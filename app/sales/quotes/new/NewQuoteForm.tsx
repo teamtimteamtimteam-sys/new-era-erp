@@ -174,10 +174,11 @@ export default function NewQuoteForm({
                     <Button type="submit" disabled={isPending || blocked}>
                         {isPending ? t('common.saving') : t('quotes.form.save')}
                     </Button>
-                    <Link href="/sales/quotes"
-                          className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
-                        {t('common.cancel')}
-                    </Link>
+                    <Button asChild variant="secondary">
+                        <Link href="/sales/quotes">
+                            {t('common.cancel')}
+                        </Link>
+                    </Button>
                 </div>
                 {blocked && <p className="text-xs text-amber-700">{t('quotes.form.blockedDates')}</p>}
             </form>

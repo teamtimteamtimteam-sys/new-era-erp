@@ -151,10 +151,11 @@ function ImportWizard({
                     </select>
                     {/* 模板与这张表【绑在一起】—— 一份通用模板会让人把员工的表头填进物料。 */}
                     {table ? (
-                        <a href={`/settings/import/template/${table}`}
-                           className="ml-3 text-sm text-blue-600 hover:underline">
-                            {t('import.downloadTemplate')}
-                        </a>
+                        <Button asChild variant="link" size="inline" className="ml-3">
+                            <a href={`/settings/import/template/${table}`}>
+                                {t('import.downloadTemplate')}
+                            </a>
+                        </Button>
                     ) : (
                         <span className="ml-3 text-sm text-gray-400">{t('import.downloadTemplate')}</span>
                     )}

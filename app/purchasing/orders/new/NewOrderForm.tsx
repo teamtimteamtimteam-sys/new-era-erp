@@ -937,12 +937,13 @@ export default function NewOrderForm({
                 >
                     {isPending ? t('purchasing.form.submitting') : t('purchasing.form.submit')}
                 </Button>
-                <Link
-                    href="/purchasing/orders"
-                    className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
-                >
-                    {t('common.cancel')}
-                </Link>
+                <Button asChild variant="secondary">
+                    <Link
+                        href="/purchasing/orders"
+                    >
+                        {t('common.cancel')}
+                    </Link>
+                </Button>
             </div>
         </form>
     )

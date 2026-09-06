@@ -21,6 +21,7 @@ import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { getBaseCurrency } from '@/lib/currency'
+import { Button } from '@/app/components/ui/button'
 
 // PROC-1:种类从 material_kinds 嵌进来,不再是物料上的一列自由文本
 type MaterialEmbed = { name: string; material_kinds: { name_en: string; name_zh: string } | null } | null
@@ -291,12 +292,13 @@ export default async function InventoryPage() {
                     是动态路由之外的一条静态路由,但可达性走查只断言"打得开却走不到"
                     的静态路由集合,新加一条没有入口的页面会被它抓到;这一行就是那个
                     入口,而且它落在读者已经持有的模块里(两者同为 module.inventory)。 */}
-                <Link
-                    href="/inventory/locations"
-                    className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm whitespace-nowrap"
-                >
-                    {t('locations.listTitle')}
-                </Link>
+                <Button asChild variant="outline" size="sm" className="whitespace-nowrap">
+                    <Link
+                        href="/inventory/locations"
+                    >
+                        {t('locations.listTitle')}
+                    </Link>
+                </Button>
             </div>
 
             {/* 物料平衡 */}

@@ -95,12 +95,13 @@ export default function EditFxRateForm({
                     >
                         {isPending ? t('common.saving') : t('common.save')}
                     </Button>
-                    <Link
-                        href="/finance/fx"
-                        className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
-                    >
-                        {t('common.cancel')}
-                    </Link>
+                    <Button asChild variant="secondary">
+                        <Link
+                            href="/finance/fx"
+                        >
+                            {t('common.cancel')}
+                        </Link>
+                    </Button>
                     <span className="flex-1" />
                     {/* ★ BTN-4:一条牌价没有单据号 —— 认得出它的是【三要素】:
                         币种 · 档位 · 生效日。CONFIRM-1 立 subject 这一格,正是为了

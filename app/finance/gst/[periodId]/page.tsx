@@ -9,6 +9,7 @@ import { mustOne, mustRows } from '@/lib/db-helpers'
 import { FileReturnControl, CorrectControl } from '../GstControls'
 import { ListPage } from '@/app/components/ui/list-page'
 import { F5BoxesTable, F5BoxDetailTable, type F5BoxRow, type F5DetailRow } from './GstTables'
+import { Button } from '@/app/components/ui/button'
 
 type Box = { box: string; label_en: string; label_zh: string; value: number; derived: boolean; note_zh?: string; note_en?: string }
 
@@ -123,8 +124,9 @@ export default async function GstPeriodPage({ params, searchParams }: {
             <div className="flex items-baseline justify-between mb-2">
                 <h2 className="font-semibold">{filed ? t('gst.asFiled') : t('gst.asComputed')}</h2>
                 {/* 【导出的是屏幕上这一份】—— 已申报导抄下来的,未申报导现算的,文件名里写明是哪一种 */}
-                <a href={`/finance/gst/${periodId}/export`}
-                   className="text-sm text-blue-600 hover:underline">{t('gst.exportCsv')}</a>
+                <Button asChild variant="outline" size="sm">
+                    <a href={`/finance/gst/${periodId}/export`}>{t('gst.exportCsv')}</a>
+                </Button>
             </div>
             <div className="mb-2">
                 <F5BoxesTable rows={boxRows} />

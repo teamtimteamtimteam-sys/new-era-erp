@@ -514,30 +514,33 @@ export default function ReconcileWorkspace({
                                 <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded text-sm">
                                     <p className="mb-2">{t('bank.noCandidates')}</p>
                                     <div className="flex flex-wrap gap-3">
-                                        <a
-                                            href="/finance/expenses/new"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {t('expense.new')}
-                                        </a>
-                                        <a
-                                            href="/finance/payments/new"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {t('finance.recordPayment')}
-                                        </a>
-                                        <a
-                                            href="/finance/journal/new"
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {t('finance.subnav.newEntry')}
-                                        </a>
+                                        <Button asChild variant="outline" size="sm">
+                                            <a
+                                                href="/finance/expenses/new"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                {t('expense.new')}
+                                            </a>
+                                        </Button>
+                                        <Button asChild variant="outline" size="sm">
+                                            <a
+                                                href="/finance/payments/new"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                {t('finance.recordPayment')}
+                                            </a>
+                                        </Button>
+                                        <Button asChild variant="outline" size="sm">
+                                            <a
+                                                href="/finance/journal/new"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                {t('finance.subnav.newEntry')}
+                                            </a>
+                                        </Button>
                                     </div>
                                 </div>
                             ) : (

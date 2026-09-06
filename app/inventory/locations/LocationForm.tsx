@@ -118,12 +118,13 @@ export default function LocationForm({
                 >
                     {isPending ? t('common.saving') : submitLabel}
                 </Button>
-                <Link
-                    href="/inventory/locations"
-                    className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
-                >
-                    {t('common.cancel')}
-                </Link>
+                <Button asChild variant="secondary">
+                    <Link
+                        href="/inventory/locations"
+                    >
+                        {t('common.cancel')}
+                    </Link>
+                </Button>
             </div>
         </form>
     )

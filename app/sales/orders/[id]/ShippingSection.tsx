@@ -13,6 +13,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import ShipControl, { type ShipOption } from './ShipControl'
+import { Button } from '@/app/components/ui/button'
 
 type ResRow = {
     id: string
@@ -114,14 +115,15 @@ export default async function ShippingSection({
                             <span className="text-gray-500">
                                 {t('sales.ship.lineCount', { n: String((s.shipment_lines ?? []).length) })}
                             </span>
-                            <a
-                                href={`/sales/shipments/${s.id}/pdf`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline text-xs"
-                            >
-                                {t('sales.ship.deliveryNote')}
-                            </a>
+                            <Button asChild variant="link" size="inline">
+                                <a
+                                    href={`/sales/shipments/${s.id}/pdf`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    {t('sales.ship.deliveryNote')}
+                                </a>
+                            </Button>
                         </li>
                     ))}
                 </ul>

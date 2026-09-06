@@ -177,12 +177,13 @@ export default async function FxRatesPage({
                     <Button asChild>
                         <Link href="/finance/fx/new">{t('finance.fxPage.addButton')}</Link>
                     </Button>
-                    <Link
-                        href="/finance/fx/bulk"
-                        className="ml-3 border border-gray-400 px-3 py-1.5 rounded text-sm hover:bg-gray-100"
-                    >
-                        {t('finance.fxPage.bulk.entryLink')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm" className="ml-3">
+                        <Link
+                            href="/finance/fx/bulk"
+                        >
+                            {t('finance.fxPage.bulk.entryLink')}
+                        </Link>
+                    </Button>
                 </>
             }
             // ★ 三块提示【无条件】渲染 —— 与有没有数据无关,理由同 /sales/commissions
@@ -265,16 +266,17 @@ export default async function FxRatesPage({
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Link
-                        href={`/finance/fx?${new URLSearchParams({ ...(currency ? { currency } : {}), sort, dir, page: String(page - 1) }).toString()}`}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('finance.pagination.prev')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={`/finance/fx?${new URLSearchParams({ ...(currency ? { currency } : {}), sort, dir, page: String(page - 1) }).toString()}`}
+                        >
+                            {t('finance.pagination.prev')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('finance.pagination.prev')}
-                    </span>
+                    </Button>
                 )}
 
                 <span className="text-sm text-gray-600">
@@ -282,16 +284,17 @@ export default async function FxRatesPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Link
-                        href={`/finance/fx?${new URLSearchParams({ ...(currency ? { currency } : {}), sort, dir, page: String(page + 1) }).toString()}`}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('finance.pagination.next')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={`/finance/fx?${new URLSearchParams({ ...(currency ? { currency } : {}), sort, dir, page: String(page + 1) }).toString()}`}
+                        >
+                            {t('finance.pagination.next')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('finance.pagination.next')}
-                    </span>
+                    </Button>
                 )}
             </div>
         </ListPage>

@@ -267,12 +267,13 @@ export default function TemplateForm({
                 >
                     {isPending ? t('common.saving') : t('common.save')}
                 </Button>
-                <Link
-                    href="/purchasing/payment-terms"
-                    className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
-                >
-                    {t('common.cancel')}
-                </Link>
+                <Button asChild variant="secondary">
+                    <Link
+                        href="/purchasing/payment-terms"
+                    >
+                        {t('common.cancel')}
+                    </Link>
+                </Button>
             </div>
         </form>
     )

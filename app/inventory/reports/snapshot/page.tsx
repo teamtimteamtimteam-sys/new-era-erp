@@ -17,6 +17,7 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { fetchValuation, groupByLocation, statusKey, bucketKey } from './snapshotQuery'
 import { ListPage } from '@/app/components/ui/list-page'
 import { SnapshotGroupTable, AgeingTable, type SnapshotRow, type AgeingRow } from './SnapshotTables'
+import { Button } from '@/app/components/ui/button'
 
 export default async function SnapshotPage() {
     const denied = await requireModule(MOD.inventory)
@@ -42,10 +43,12 @@ export default async function SnapshotPage() {
             intro={t('reports.snapshot.desc')}
             actions={
                 <div className="flex gap-2 shrink-0">
-                    <a href="/inventory/reports/snapshot/export"
-                       className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">{t('reports.csv')}</a>
-                    <a href="/inventory/reports/snapshot/pdf" target="_blank" rel="noopener noreferrer"
-                       className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">{t('reports.pdf')}</a>
+                    <Button asChild variant="outline" size="sm">
+                        <a href="/inventory/reports/snapshot/export">{t('reports.csv')}</a>
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                        <a href="/inventory/reports/snapshot/pdf" target="_blank" rel="noopener noreferrer">{t('reports.pdf')}</a>
+                    </Button>
                 </div>
             }
             state={{ kind: 'ok' }}

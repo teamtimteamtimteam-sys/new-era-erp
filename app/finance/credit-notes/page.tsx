@@ -18,6 +18,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import CreditNotesTable, { type CreditNoteRow } from './CreditNotesTable'
+import { Button } from '@/app/components/ui/button'
 
 const PAGE_SIZE = 20
 
@@ -167,31 +168,33 @@ export default async function CreditNotesPage({
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Link
-                        href={pageHref(page - 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('finance.pagination.prev')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page - 1)}
+                        >
+                            {t('finance.pagination.prev')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('finance.pagination.prev')}
-                    </span>
+                    </Button>
                 )}
                 <span className="text-sm text-gray-600">
                     {t('finance.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
                 {page < totalPages ? (
-                    <Link
-                        href={pageHref(page + 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('finance.pagination.next')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page + 1)}
+                        >
+                            {t('finance.pagination.next')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('finance.pagination.next')}
-                    </span>
+                    </Button>
                 )}
             </div>
         </ListPage>

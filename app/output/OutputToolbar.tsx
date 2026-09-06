@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { STATE_OPTIONS } from '../inbound/options'
+import { Button } from '@/app/components/ui/button'
 
 export type PartyOption = { id: string; label: string }
 
@@ -136,12 +137,13 @@ export default function OutputToolbar({
                     className="rounded border border-gray-300 bg-white px-2 py-2"
                 />
             </label>
-            <a
-                href={exportHref}
-                className="rounded border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50"
-            >
-                {t('output.export')}
-            </a>
+            <Button asChild variant="outline" size="sm">
+                <a
+                    href={exportHref}
+                >
+                    {t('output.export')}
+                </a>
+            </Button>
         </div>
     )
 }

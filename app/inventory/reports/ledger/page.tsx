@@ -55,10 +55,12 @@ export default async function LedgerPage({
             intro={t('reports.ledger.desc')}
             actions={
                 <div className="flex gap-2 shrink-0">
-                    <a href={`/inventory/reports/ledger/export?${qs}`}
-                       className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">{t('reports.csv')}</a>
-                    <a href={`/inventory/reports/ledger/pdf?${qs}`} target="_blank" rel="noopener noreferrer"
-                       className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">{t('reports.pdf')}</a>
+                    <Button asChild variant="outline" size="sm">
+                        <a href={`/inventory/reports/ledger/export?${qs}`}>{t('reports.csv')}</a>
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                        <a href={`/inventory/reports/ledger/pdf?${qs}`} target="_blank" rel="noopener noreferrer">{t('reports.pdf')}</a>
+                    </Button>
                 </div>
             }
             state={{ kind: 'ok' }}

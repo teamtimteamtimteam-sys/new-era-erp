@@ -102,14 +102,15 @@ export default function MetalContentPanel({
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">{t('metalContent.title')}</h2>
                 {priceHref && rows.length > 0 && (
-                    <a
-                        href={priceHref}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline text-sm"
-                    >
-                        {t('pricing.priceThisBatch')}
-                    </a>
+                    <Button asChild variant="outline" size="sm">
+                        <a
+                            href={priceHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            {t('pricing.priceThisBatch')}
+                        </a>
+                    </Button>
                 )}
             </div>
 

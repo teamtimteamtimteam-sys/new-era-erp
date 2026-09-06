@@ -562,10 +562,11 @@ export default async function PurchaseOrderDetailPage({
                         藏起来会让人以为这个系统不支持改单。
                         【已作废仍然藏】那才是"不适用":一张作废的单没有可改的东西。 */}
                     {!isCancelled && (po.status !== 'closed' ? (
-                        <Link href={`/purchasing/orders/${po.id}/amend`}
-                            className="border border-gray-300 px-3 py-1.5 rounded text-sm hover:bg-gray-50">
-                            {t('purchasing.amend.link')}
-                        </Link>
+                        <Button asChild variant="outline" size="sm">
+                            <Link href={`/purchasing/orders/${po.id}/amend`}>
+                                {t('purchasing.amend.link')}
+                            </Link>
+                        </Button>
                     ) : (
                         <span className="inline-flex flex-col items-start">
                             {/* FIX-3(B2):`items-start` —— 与 CancelOrderControl 同一个毛病,
@@ -885,12 +886,13 @@ export default async function PurchaseOrderDetailPage({
                             </span>
                         </div>
                         {!isCancelled && (
-                            <Link
-                                href={`/finance/payments/new?direction=out&supplier=${po.supplier_id}`}
-                                className="block text-center border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-blue-600"
-                            >
-                                {t('purchasing.payDeposit')}
-                            </Link>
+                            <Button asChild variant="outline" size="sm" className="w-full">
+                                <Link
+                                    href={`/finance/payments/new?direction=out&supplier=${po.supplier_id}`}
+                                >
+                                    {t('purchasing.payDeposit')}
+                                </Link>
+                            </Button>
                         )}
                     </div>
                 )}

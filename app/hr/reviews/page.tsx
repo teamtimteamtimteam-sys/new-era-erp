@@ -95,12 +95,16 @@ export default async function ReviewsPage({
             maxWidth="max-w-6xl"
             actions={
                 <div className="flex gap-2">
-                    <Link href="/hr/reviews/cycles" className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm">
-                        {t('reviews.cyclesTitle')}
-                    </Link>
-                    <Link href="/hr/reviews/scale" className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm">
-                        {t('reviews.scaleTitle')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href="/hr/reviews/cycles">
+                            {t('reviews.cyclesTitle')}
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href="/hr/reviews/scale">
+                            {t('reviews.scaleTitle')}
+                        </Link>
+                    </Button>
                 </div>
             }
             state={{ kind: 'ok' }}

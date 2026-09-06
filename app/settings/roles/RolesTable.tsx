@@ -9,6 +9,7 @@
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Button } from '@/app/components/ui/button'
 
 export type RoleRow = {
     id: string
@@ -54,9 +55,11 @@ export default function RolesTable({ rows, empty }: { rows: RoleRow[]; empty: Re
         {
             key: 'actions', header: '',
             render: (r) => (
-                <Link href={`/settings/roles/${r.id}`} className="text-blue-600 hover:underline">
-                    {t('permissions.editRole')}
-                </Link>
+                <Button asChild variant="link" size="inline">
+                    <Link href={`/settings/roles/${r.id}`}>
+                        {t('permissions.editRole')}
+                    </Link>
+                </Button>
             ),
         },
     ]

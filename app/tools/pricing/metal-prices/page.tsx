@@ -212,12 +212,13 @@ export default async function MetalPricesPage({
             title={t('metalPrices.listTitle')}
             actions={
                 <div className="flex gap-3">
-                    <Link
-                        href="/tools/pricing/metal-prices/bulk"
-                        className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
-                    >
-                        {t('metalPrices.bulk.entry')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href="/tools/pricing/metal-prices/bulk"
+                        >
+                            {t('metalPrices.bulk.entry')}
+                        </Link>
+                    </Button>
                     <Button asChild>
                         <Link href="/tools/pricing/metal-prices/new">{t('metalPrices.addButton')}</Link>
                     </Button>
@@ -254,16 +255,17 @@ export default async function MetalPricesPage({
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Link
-                        href={pageHref(page - 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('metalPrices.pagination.prev')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page - 1)}
+                        >
+                            {t('metalPrices.pagination.prev')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('metalPrices.pagination.prev')}
-                    </span>
+                    </Button>
                 )}
 
                 <span className="text-sm text-gray-600">
@@ -271,16 +273,17 @@ export default async function MetalPricesPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Link
-                        href={pageHref(page + 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('metalPrices.pagination.next')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page + 1)}
+                        >
+                            {t('metalPrices.pagination.next')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('metalPrices.pagination.next')}
-                    </span>
+                    </Button>
                 )}
             </div>
         </ListPage>

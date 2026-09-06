@@ -15,6 +15,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import PayrollLinesTable, { type PayrollLineRow } from './PayrollLinesTable'
+import { Button } from '@/app/components/ui/button'
 
 export default async function PayrollDetailPage({
     params,
@@ -125,12 +126,13 @@ export default async function PayrollDetailPage({
             actions={
                 !isPosted ? (
                     <span className="flex flex-wrap items-center gap-3 justify-end">
-                        <Link
-                            href={`/hr/payroll/${id}/edit`}
-                            className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm"
-                        >
-                            {t('purchasing.editLink')}
-                        </Link>
+                        <Button asChild variant="outline" size="sm">
+                            <Link
+                                href={`/hr/payroll/${id}/edit`}
+                            >
+                                {t('purchasing.editLink')}
+                            </Link>
+                        </Button>
                         <PostPayrollButton
                             periodId={id}
                             subject={`${period.period_month?.slice(0, 7)} · ${period.code}`}

@@ -18,6 +18,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import PackBody, { type PackPayload } from '../PackBody'
 import { ListPage } from '@/app/components/ui/list-page'
+import { Button } from '@/app/components/ui/button'
 
 export default async function PackDetailPage({
     params,
@@ -52,13 +53,16 @@ export default async function PackDetailPage({
             // ★ 两个出口 —— 住 actions 槽,画在状态分支【之前】,任何空态都吃不掉。
             actions={
                 <span className="flex flex-wrap gap-4">
-                    <Link href={`/finance/packs/${data.id}/export`} className="text-sm text-blue-600 hover:underline">
-                        {t('pack.exportCsv')}
-                    </Link>
-                    <Link href={`/finance/journal/export?from=${payload.period_start}&to=${payload.period_end}`}
-                          className="text-sm text-blue-600 hover:underline">
-                        {t('glExport.button')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={`/finance/packs/${data.id}/export`}>
+                            {t('pack.exportCsv')}
+                        </Link>
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={`/finance/journal/export?from=${payload.period_start}&to=${payload.period_end}`}>
+                            {t('glExport.button')}
+                        </Link>
+                    </Button>
                 </span>
             }
             // ★★ 详情页恒为 ok —— 这一份包在不在由上面的 notFound() 回答。

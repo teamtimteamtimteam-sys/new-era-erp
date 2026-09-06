@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import type { FxSortCol } from './fxQuery'
+import { Button } from '@/app/components/ui/button'
 
 export type FxRateRow = {
     id: string
@@ -60,9 +61,11 @@ export default function FxRatesTable({
         {
             key: 'actions', header: t('finance.fxPage.colActions'),
             render: (r) => (
-                <Link href={`/finance/fx/${r.id}/edit`} className="text-blue-600 hover:underline">
-                    {t('finance.fxPage.editAction')}
-                </Link>
+                <Button asChild variant="link" size="inline">
+                    <Link href={`/finance/fx/${r.id}/edit`}>
+                        {t('finance.fxPage.editAction')}
+                    </Link>
+                </Button>
             ),
         },
     ]

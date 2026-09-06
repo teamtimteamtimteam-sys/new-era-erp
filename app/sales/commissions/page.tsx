@@ -17,6 +17,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import CommissionsTable, { type CommissionRow } from './CommissionsTable'
 import Link from 'next/link'
+import { Button } from '@/app/components/ui/button'
 
 type Agreement = {
     id: string
@@ -64,9 +65,11 @@ export default async function CommissionsPage() {
             title={t('commissions.title')}
             intro={t('commissions.what')}
             actions={
-                <Link href="/sales/commissions/new" className="text-sm text-blue-600 hover:underline">
-                    {t('commissions.newTitle')}
-                </Link>
+                <Button asChild variant="outline" size="sm">
+                    <Link href="/sales/commissions/new">
+                        {t('commissions.newTitle')}
+                    </Link>
+                </Button>
             }
             // ★★【两块提示走 notices —— 它们【无条件】渲染,空态也画】★★
             //   原页面抬头写着理由:「一条只在有数据时才出现的警告,等于没有警告。」

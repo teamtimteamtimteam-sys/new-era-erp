@@ -127,6 +127,13 @@ export default async function SuppliersPage({
                         (SAL-B6、FIX-1)。这条链接配一条冒烟可达性探针
                         (scripts/smoke-routes.mjs 里在 /suppliers 的 HTML 里找
                         /contracts)—— 把"我记得加了链接"换成机制。 */}
+                    {/* ★ BTN-5b:这一条【转过又退回来】—— 退回的理由是量出来的,不是口味:
+                        转成 outline/sm 之后 /suppliers 在 390px 上横向溢出 20px
+                        (探针点名的元凶就是这一行按钮,行宽 378 / 视口 390),
+                        而库按钮基础层带 shrink-0,压不扁 —— 与 BTN-3、BTN-5a
+                        踩过的是同一个失败形状。R10 的常设答复:退回这一处并报告,
+                        【不许】在调用点加包装层。两条入口链接一起退,因为裁定
+                        是把它们当一件事裁的。 */}
                     <Link href={FN.contracts.href} className="text-sm text-blue-600 hover:underline">
                         {t('contracts.entryLink')}
                     </Link>
@@ -163,16 +170,17 @@ export default async function SuppliersPage({
             {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Link
-                        href={pageHref(page - 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('suppliers.pagination.prev')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page - 1)}
+                        >
+                            {t('suppliers.pagination.prev')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('suppliers.pagination.prev')}
-                    </span>
+                    </Button>
                 )}
 
                 <span className="text-sm text-gray-600">
@@ -180,16 +188,17 @@ export default async function SuppliersPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Link
-                        href={pageHref(page + 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('suppliers.pagination.next')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page + 1)}
+                        >
+                            {t('suppliers.pagination.next')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('suppliers.pagination.next')}
-                    </span>
+                    </Button>
                 )}
             </div>
         </ListPage>

@@ -22,6 +22,7 @@ import SettlementHistoryTable, { type SettlementRow } from '@/app/components/fin
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { Button } from '@/app/components/ui/button'
 
 type BillTo = {
     code?: string | null
@@ -271,20 +272,22 @@ export default async function InvoiceDetailPage({
                         (路由改成 attachment)—— 看版式和拿文件是两个不同的动作 */}
                     {!pdfBlocked && (
                         <>
-                            <a
-                                href={`/finance/invoices/${inv.id}/pdf`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-sm"
-                            >
-                                {t('invoice.previewPdf')}
-                            </a>
-                            <a
-                                href={`/finance/invoices/${inv.id}/pdf?download=1`}
-                                className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-sm"
-                            >
-                                {t('invoice.downloadPdf')}
-                            </a>
+                            <Button asChild variant="outline" size="sm">
+                                <a
+                                    href={`/finance/invoices/${inv.id}/pdf`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    {t('invoice.previewPdf')}
+                                </a>
+                            </Button>
+                            <Button asChild variant="outline" size="sm">
+                                <a
+                                    href={`/finance/invoices/${inv.id}/pdf?download=1`}
+                                >
+                                    {t('invoice.downloadPdf')}
+                                </a>
+                            </Button>
                         </>
                     )}
                     {!showBanking && (

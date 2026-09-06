@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 export default function CustomerToolbar() {
     const t = useTranslations()
@@ -67,12 +68,13 @@ export default function CustomerToolbar() {
                 placeholder={t('customers.searchPlaceholder')}
                 className="w-72 max-w-full rounded border border-gray-300 px-3 py-2"
             />
-            <a
-                href={exportHref}
-                className="rounded border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50"
-            >
-                {t('customers.export')}
-            </a>
+            <Button asChild variant="outline" size="sm">
+                <a
+                    href={exportHref}
+                >
+                    {t('customers.export')}
+                </a>
+            </Button>
         </div>
     )
 }

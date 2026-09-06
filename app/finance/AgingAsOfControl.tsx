@@ -60,12 +60,13 @@ export default function AgingAsOfControl({
                     {t('finance.agingAsOf.backToToday')}
                 </Button>
             )}
-            <a
-                href={exportHref}
-                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-            >
-                {t('finance.agingAsOf.exportCsv')}
-            </a>
+            <Button asChild variant="outline" size="sm">
+                <a
+                    href={exportHref}
+                >
+                    {t('finance.agingAsOf.exportCsv')}
+                </a>
+            </Button>
         </div>
     )
 }

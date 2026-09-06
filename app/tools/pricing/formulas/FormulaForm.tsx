@@ -392,9 +392,11 @@ export default function FormulaForm({
                 >
                     {isPending ? t('common.saving') : t('pricing.form.submit')}
                 </Button>
-                <Link href="/tools/pricing/formulas" className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
-                    {t('common.cancel')}
-                </Link>
+                <Button asChild variant="secondary">
+                    <Link href="/tools/pricing/formulas">
+                        {t('common.cancel')}
+                    </Link>
+                </Button>
             </div>
         </form>
     )

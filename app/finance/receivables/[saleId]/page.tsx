@@ -19,6 +19,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import SettlementHistoryTable, { type SettlementRow } from '@/app/components/finance/SettlementHistoryTable'
+import { Button } from '@/app/components/ui/button'
 
 type AllocRow = {
     id: string
@@ -292,9 +293,11 @@ export default async function ReceivableDocPage({
                 ) : (
                     <>
                         <span className="text-gray-500">{t('invoice.notInvoiced')}</span>
-                        <Link href="/finance/invoices/new" className="text-blue-600 hover:underline ml-2">
-                            {t('invoice.new')}
-                        </Link>
+                        <Button asChild variant="link" size="inline" className="ml-2">
+                            <Link href="/finance/invoices/new">
+                                {t('invoice.new')}
+                            </Link>
+                        </Button>
                     </>
                 )}
             </p>

@@ -1,243 +1,100 @@
-# 发布说明(给测试者)
+# 发布说明(给测试者)· Release notes (for the people testing)
 
 > **这份文件从 v1.4.4 开始记。** 在它之前的版本号消耗在各自的切次报告与提交信息里,
 > 没有一份面向使用者的合并说明 —— 而 BTN-3 / BTN-3b 两刀干脆没有写、也没有消耗版本号。
 > **写下来的理由:六个人不会去读提交信息。**
+>
+> **★ 2026-09-07:此前的 v1.4.4 与 v1.4.5 两份【一份都没有发出去】。**
+> 它们分六刀讲了同一批改动,而没有人会经历六次改动 —— 打开系统的是同一次。
+> 所以它们**被下面这一份合并的 v1.4.5 取代了**,版本号不动。
+> 用英文写,因为它是要直接转发给人的那一份。
 
 ---
 
-## v1.4.5 —— 更正 v1.4.4:【上一份说按钮统一了,而它说过头了】
+## v1.4.5 — Buttons, everywhere, and one real change to how deleting works
 
-**2026-09-06。一刀:BTN-5a。**
+**2026-09-07.**
 
----
-
-### ★ 先更正上一份说明,因为它让你们去找一件找不到的东西
-
-**v1.4.4 说「按钮都统一了」。那句话说过头了,而说过头的地方很具体:**
-
-> 上一次确实统一了 **187 个按钮** —— 但那 187 个,指的是网页里标签叫 `button` 的元素。
-> **而每一张列表页上最大、最蓝、最显眼的那一个「+ 新建 X」,不是按钮,是一个链接。**
-> 它长得像按钮,做的事也像按钮,**但此前四刀一次都没碰过它。**
-
-实测:**23 个主列表页,统一过的按钮 0 个 —— 23 页,一个都没有。**
-
-> ### ★ 这件事是 Tim 打开系统看出来的,而当时每一件检查工具都说他看错了
-> 他的原话是「按钮没变 —— 颜色没变,大小没变,样式没变」。
-> **他是对的。** 三件用来检查按钮的工具,恰好共用同一个定义(「标签叫 button」),
-> 于是它们一起漏掉了同一批东西 —— **三件工具一致,不等于它们对。**
-> ☞ **报出一件仪器否认的事,是对的。请继续这样报。**
+> This note replaces the two earlier button notes. Neither of those was ever sent,
+> so there is nothing to read before this one. Everything below is what you will
+> see when you next open the system.
 
 ---
 
-### 这一次你会看到什么
+### ★ The one thing that behaves differently
 
-* **每一张列表页右上角那个「+ 新建 / 登记 / 录入」,现在和系统里别的按钮一样了。**
-  共 **40 处,分布在 39 个文件**里。你最可能注意到的:
-  `/materials` · `/suppliers` · `/inbound` · `/output` · `/purchasing/orders` ·
-  `/sales/orders` · `/sales/quotes` · `/sales/customers` · `/finance/invoices` ·
-  `/finance/payments` · `/finance/expenses` · `/hr/employees` · `/hr/payroll` ·
-  `/settings/roles` —— 以及各详情页上的「编辑」「收货」「登记化验」。
-  **它们会比以前【略小一点、窄一点】** —— 那是因为它们现在用的是和别处一样的尺寸。
+* **Removing a step inside a task now asks first.**
+  It used to happen the instant you clicked. Now a dialog appears, names the step,
+  and says plainly that this removal is permanent: the record leaves the database
+  and no copy is kept anywhere.
 
-* **收货回执页和盘点单底部那两个整宽的大按钮,高度一个像素没变**(仍然 48px 触控高)。
-  它们本来就是为手上戴着手套的人做的,这一点没有动。
-
-* **`/finance/bank` 那一排按钮,在手机上不再需要左右拖了。**
-  它以前就要拖(溢出 39px),这次顺手修掉了,**现在是 0**。
+  > **This is worth knowing once:** it is the only place in the system where
+  > "delete" really destroys something. Everywhere else, a deleted record is still
+  > there and simply marked as deleted. That dialog is the only place you are told
+  > the difference.
 
 ---
 
-### ★ 需要留意,但【不该有变化】的
+### Confirmations
 
-* **所有这些按钮点下去做的事,一个字都没改。**
-  它们**仍然是链接**:中键点开、右键「在新标签页打开」、复制链接地址 ——
-  **全部照旧能用。** 如果哪一处不能了,**那是缺陷,请报。**
+* Where the browser's own grey pop-up used to appear, you now get the system's own
+  dialog — and it **names the thing you are about to act on**, instead of asking
+  "Are you sure?" about nothing in particular.
+* Where a reason is required, **the confirm button stays unavailable until you type
+  one**, rather than letting you press it and then complaining. With a reason
+  typed, pressing Enter confirms.
 
-* **手机(390px)上排版应当没有变化。**
-  本次改动落在 **37 条路由**上,**每一条都在改之前量过一遍、改之后再量一遍**:
-  可用页数 **34 / 37,改前改后同一个数**。
-  唯一动的是上面说的 `/finance/bank`(39px → **0**)。
-  **别的页面如果要左右拖,请报。**
+### What buttons look like now
 
----
+* **Buttons look the same throughout the system.** The blue "New …" at the top of a
+  list, "Cancel" next to "Save" on a form, "Export" and the CSV / PDF links in
+  report headers, the page arrows at the foot of a long list, and the "Edit" beside
+  each row of a table — all of them are now the same set of buttons.
+* **A button that destroys data carries a solid bar down its left edge. A button
+  that undoes something carries a dashed bar.** Undo means the data stays and is
+  only reversed or marked. You can tell the two apart without relying on colour.
+* Some buttons labelled "Delete", "Cancel" or "Remove" carry the **dashed** bar,
+  because what they do is reversible — a role, a leave request, a customer contact.
+  **That is deliberate, not an oversight.**
+* **"Cancel order" on a sales order is now the red, destructive kind**, while
+  "Confirm" and "Close" beside it are not. They used to look identical.
+* The amber buttons for the GST correction, the inventory hold and the retention
+  release are now ordinary buttons. They neither destroy nor undo anything.
+* **A button you cannot use is grey with dark text, not faded.** The intent is
+  "clearly switched off" rather than "possibly still loading". A couple of them no
+  longer show the "forbidden" cursor when you hover.
+* At the ends of a list, **the greyed-out page arrow now matches the live one** —
+  same size, same shape.
+* Deleting a rate on the exchange-rate page no longer opens the browser's grey
+  input box to ask why. It asks in the system's own dialog, and says which rate.
 
-### ★★ 已知的、不用报的 —— 而这一条请读完再关掉
+### These are still links
 
-* **打开一张列表页,你仍然会看到两种按钮并排。**
+* Every one of those buttons is still a link wherever it always was.
+  **Middle-click, "open in new tab", "copy link address" and the back button all
+  work exactly as before.** If any of them has stopped working, that is a bug and
+  worth reporting.
 
-  说得再直白一点:**那个蓝色的「新建」已经统一了,而它旁边那些【描边的】
-  次级按钮(「导入」「筛选」「导出」「查看对账单」之类)还没有。**
-  全系统还剩 **107 处**这样的描边链接没转。
+### Screen readers
 
-  > **这不是漏了,是这一刀【只做了主动作那一半】。**
-  > 剩下的 107 处由**下一刀(BTN-5b)**收尾。
-  > ★ **在那之前,谁都不该说「按钮统一了」** —— 上一份说明说过一次,
-  > 而这一份存在的一半理由,就是把那句话更正过来。
+* The arrows that move the calendar a month backwards or forwards now say which
+  one they are, instead of announcing a bare symbol.
 
-* **有 7 处长得像按钮的东西【永远不会】变成按钮,因为它们不是按钮:**
+### Where you will still see a mix, on purpose
 
-  | 你会在哪看到 | 它其实是什么 |
-  |---|---|
-  | 化验单 / 金属含量旁边那种小色块(琥珀色、蓝色) | **状态标签**,不是动作 —— 点了不会发生事 |
-  | 请假页顶部那一排「申请 / 日历 / 额度」 | **导航页签**,底色表示"你在这一页" |
-  | 设置页顶部那一排 | 同上 |
-  | 「已删除」页上那排类型筛选 | 同上 |
+* **Some things look like buttons and are not**, so they were left alone: the
+  coloured status chips beside assays and metal content; the row of tabs at the top
+  of the leave, settings and deleted-records pages; the filter chips on the
+  calendar; and the large clickable cards on the reports and pricing pages.
+  Making them look like buttons would suggest they perform an action, and they
+  do not — they show a state, or take you somewhere.
+* On the metal-price forms, the "Save" button keeps its own look, because it
+  turns amber when a price looks anomalous. That colour is a separate open question
+  and was deliberately not touched here.
 
-* **v1.4.4 里那 18 个"故意长得不一样"的按钮,这次一个都没动**,清单仍然有效。
+### What should NOT have changed
 
----
-
-### 这份说明里的数是怎么量的
-
-> 本仓库的法则:**一个数写进报告时,把它是怎么量出来的写在一起。**
-> ★ 并且:**量不出来的数不发表。** 上一份委托书写着「42 处分布在 19 页」——
-> 这个数**没有复现出来,所以它不在这份说明里**。能复现的那一半更强,已经写在上面。
-
-| 数 | 量法 |
-|---|---|
-| **154 处按钮态链接 / 105 个文件**(开工前) | 遍历 `app/`(不含组件库),先剥注释,再**整标签花括号配平**地读 `<Link` / `<a` —— **一次都不按行切**;判据是「两轴内边距 + 圆角 + 实底或描边」 |
-| **转换 40 处 / 39 个文件** | 同一支扫描器改前改后各跑一遍:**154 → 114**,差正好 40 |
-| **23 页库按钮 0 个** | 逐页数 `<Button` 开标签,23 页全部为 0 |
-| **34 / 37 页手机可用** | `survey-phone.mjs`,真浏览器 390px,改前改后各一遍,两次都是 34/37 |
-| **`/finance/bank` 39px → 63px → 0** | 同上;中间那个 63 是**本刀自己造成的回归**,量出来才发现,已修 |
-| **仍是 `<a>` 且 `href` 还在** | 探针断言 + 直接读服务端吐出来的 HTML,逐个读出 `<a href=…>` |
-
----
-
-## v1.4.4 —— 按钮统一收尾,以及【一个此前不问就删的地方,现在会问了】
-
-**2026-09-06。合并了四刀:BTN-3、BTN-3b、BTN-4、BTN-3c。**
-
-> **为什么四刀合成一份:你们不会经历四次改动 —— 你们会打开系统一次,看到的是结果。**
-> 所以下面按【你会注意到什么】分组,不按哪一刀做的分组。
-> **版本号不动**:这一份取代了此前那一份,不是追加在它后面。
-
----
-
-### ★ 一件会改变你操作方式的事
-
-* **删除任务步骤,现在会先问你一次。**
-  在 `/tools/tasks/{任务}` 里,每个步骤右边那个「移除」——
-  **以前点下去就立刻删掉了,没有任何确认。** 现在它会弹出一个确认框,
-  上面写着这个步骤的名字,并且明说:
-  **这一步是永久删除,记录直接从数据库移除,无法撤销,任何地方都不留副本。**
-
-  > **这句话值得读一遍:这是整个系统里唯一一处真正的永久删除。**
-  > 其它所有「删除」都是软删除 —— 记录还在,只是标成已删。
-  > 这一处不是。确认框是你唯一会被告知这件事的地方。
-
----
-
-### 你会明显看出来的变化
-
-* **一批「删除 / 取消 / 移除」按钮,左边多了一条竖条。**
-  **实线竖条 = 真的销毁数据;虚线竖条 = 撤销,数据还在。**
-  形状和位置基本没变,变的是"它有多重"——而"多重"从此对应"它会做什么"。
-
-* **有三处「删除 / 取消」现在是【虚线】竖条,不是实线:**
-  角色设置里的「删除」· 请假单上的「取消」· 客户联系人那一行的「移除」。
-  **这三处其实都不销毁数据**(记录都还在,只是标成已删/已取消),
-  所以它们从红色改成了虚线撤销档。**这不是降级,是把话说准。**
-
-* **销售订单上的「取消订单」现在是红的破坏档**,而同一排的「确认」「关闭」是次级档。
-  以前三个长得一模一样。
-
-* **绩效评估的「作废」仍然是红的**(实线竖条)—— 它确实终结这份单据。
-
-* **GST 的「提出更正」、库存的「暂扣」、采购的「释放质保金」不再是琥珀色**,
-  改成普通的次级/主按钮。它们既不撤销也不销毁,只是往前记一笔账。
-
-* **撤销一条汇率牌价,不再弹出浏览器那个灰色的输入框。**
-  `/finance/fx/{牌价}/edit` 的「删除」现在用系统自己的确认框问理由,
-  上面写着是哪一条牌价(币种 · 档位 · 生效日),而且**理由没填时确认钮按不下去**
-  —— 以前是让你先按下去,再弹一个灰盒子说"理由不能为空"。
-
-* **又有 47 个按钮换成了统一组件(这是本次新增的那一批)。**
-  它们分布在 **37 个文件**里,你最可能注意到的几处:
-  `/me` 的「提交报销 / 申请请假」· `/settings/accounts` 的「新建账号 / 编辑」·
-  `/finance/cashflow` 与 `/finance/pnl` 的日期预设 · `/hr/claims` 与 `/hr/leave` 的提交·
-  `/inbound/receive` 与盘点单里那个整宽的大提交钮 · 任务步骤行上的「上移 / 下移 / 改名 / 加子步骤」。
-  **边框、圆角、字重、禁用态从此和别处一样。**
-
-* **一批「筛选」「取消」「预览」按钮的边框和圆角统一了**,字重比主按钮轻一点。
-
-* **两处"不能用"的按钮,鼠标移上去不再显示"禁止"光标。**
-  `/finance/packs` 的「生成」和采购单上的「提出更正」,在不满足条件时是灰的、按不动 ——
-  **这一点没变**,变的只是鼠标指针不再变成禁止符号。
-  **它们旁边那句琥珀色的"为什么不能用"一个字没动**,而那句话才是真正在解释的东西。
-
----
-
-### 需要留意,但【不该有变化】的
-
-* **所有按钮点下去做的事、能不能按、在哪个表单里提交,一个字都没改。**
-  按下去没反应、或者提交到了别的地方,**都是缺陷,请报。**
-
-* **禁用状态现在是"灰底 + 深字"**,不是整体变淡。
-  判据是**清楚地按不了**,而不是"看起来淡"。
-  如果哪里的禁用态反而更看不清了,请报。
-
-* **在需要填理由的确认框里,按回车 = 确认**(理由填了的话)。
-  理由为空时按回车**什么都不会发生** —— 这是有意的。
-
-* **手机(390px)上排版应当没有变化。**
-  本次改动落在 **32 条路由**上,其中 **29 条**在 390px 上逐条量过
-  (改之前一遍、改之后一遍):**28 条一个像素都没动。**
-  剩下 3 条(`/hr/claims/{单}` · `/hr/leave/{单}` · `/output/{批}/assays/{化验}`)
-  **线上没有能渲染它们的数据,所以没量到 —— 那是"没量",不是"量过没问题"。**
-  唯一动的是 `/finance/assets`,横向溢出
-  **751px → 756px** —— 那一页**在这次改动之前就已经要左右拖**
-  (它有一张 12 列的表撑着),多出来的 5px 不改变它的结论。
-  **它已经在已知清单上。别的页面如果要左右拖,请报。**
-
----
-
-### 已知的、不用报的
-
-* **还有 18 个按钮长得和别人不一样,而这 18 个是【故意】的。**
-  它们不是"还没改到",是**它们本来就不是按钮**:
-
-  | 你会在哪看到 | 它其实是什么 |
-  |---|---|
-  | 头像圆圈 · 工具菜单的三个点 | 菜单开关,不是文字钮 |
-  | 顶部模块条 · 手机版菜单里那一行行 | 导航页签 / 整行可点区 |
-  | 中/EN 那个滑块 | 开关(轨道 + 滑块),不是按钮 |
-  | 手机菜单背后那层灰 | 点一下关闭菜单的背板 |
-  | 产出批次的「用途 / 安全状态」那一排方块 | **单选/多选组**,像一排选项卡 |
-  | 盘点单里整行可点的那一条 | 整行展开区 |
-  | 金属牌价异常时那个**琥珀色**的确认钮 | 异常提示,颜色在说话 |
-  | 采购新建单里价格旁边那个 ▸ 展开 | 一段带 FX 的金额,不是钮 |
-
-  > **说白了:"按钮都统一了"和"有些按钮看起来还不一样"这两句话都对。**
-  > 统一的是**按钮**;上面这些是**长得像按钮的别的东西**,
-  > 把它们强行画成按钮反而会让人以为它们能点出一个动作。
-  > 完整清单和逐条理由在 `docs/base-components.md §十六`。
-
-* **同一个文件里两种画法并存的,还剩 2 个**
-  (`采购新建单` 与 `盘点明细`),**两处剩下的都在上面那张表里。**
-
----
-
-### 这份说明里的数是怎么量的
-
-> 本仓库有一条法则:**一个数写进报告时,把它是怎么量出来的写在一起** ——
-> 否则下一份委托书会把它当成事实抄走,而没有人重量得起来。
-
-| 数 | 量法 |
-|---|---|
-| **四刀合计 187 个按钮转换** | ★ 这一版**重新量过,不是把上一版的数加起来**:用 TypeScript AST 逐个提交数 `app/`(不含组件库)里的 `<button>` 开标签 —— `03f31d2` **205** → `d0afe0e` 142 → `3547e37` 68 → `cb2eac5` 65 → 本次 **18**。`205 − 18 = 187`,而分刀差额 `63 + 74 + 3 + 47` 也正好是 187 |
-| **本次 47 个 / 37 个文件** | 同一支 AST 计数;并由一条与它不共用代码的断言复核:逐文件比对 HEAD 与工作树的 `button`/`Button` **文档顺序序列**,长度、每个位置的属性逐字相同、方向只许 `button→Button`,且**转换数本身是一条断言**(47/47) |
-| **还剩 18 个手写按钮 / 11 个文件** | `node scripts/check-component-library.mjs`,本次扫到 18 处;基线随之收紧(47 → 11 个文件) |
-| **"改了一半"的文件:2 个** | ★ **两种读法都列出来,因为这个数取决于算不算组件库自己**:不含组件库 **2**,含组件库 **3**(多出来的是 `app/components/ui/confirm-dialog.tsx`,它自己就该同时有两种)。上一版写的 **17 / 16** 是同一条定义下的同一件事(改动前不含组件库确为 16),**不是错的** —— 只是那时的总量还没降下来 |
-| **手机 390px:32 条路由里量到 29 条,28 条零变化** | `node scripts/survey-phone.mjs --routes=…`,改动前后各跑一遍,逐路由比对 `overflowPx` / `clippedTables` / `<44px 触控目标数`。唯一变化:`/finance/assets` 751 → 756px。★ 另外 3 条线上取不到可渲染的行,**记为"没量到",不计进"没问题"** |
-| **按钮几何:95 条断言全绿** | `node scripts/probe-button-tiers.mjs` —— 真浏览器量 191 个库按钮 / 52 页 |
-
-★ **上一版里「五个原来是文字链接的『取消』变成了按钮」那句已经删掉,并且没有补回来。**
-BTN-4 量不出它,本刀也量不出。**一个量不出来的数,宁可不发。**
-
-★ **本次唯一一处【不能靠取样证明】的,连同理由写在这里,不藏在绿色里:**
-盘点单里那个整宽大提交钮 —— **线上没有一张"开着且没被删"的盘点单**(实测 0 行),
-所以任何取样都渲染不出它。处置**不是把门槛调低**,而是换一条更强、
-且不需要线上数据的断言:探针逐字比对该处与 `/inbound/receive` 那处的参数,
-**两处完全相同**,于是画得出来的那一处把画不出的这一处也证了。
+* **What any button does.** Nothing was rewired: same destination, same form, same
+  submission. If a button does something different from before, that is a bug.
+* **The phone layout.** Nothing here was meant to change how a page sits on a
+  phone. If a page now needs dragging sideways to read, please report it.

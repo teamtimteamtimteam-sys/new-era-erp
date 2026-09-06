@@ -51,9 +51,13 @@ export default async function ToolsCalendarPage({
             <p className="text-sm mb-4" style={{ color: 'var(--brand-muted-text)' }}>{t('calendar.intro')}</p>
 
             <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
-                <a className="rounded border px-2 py-1" href={link(mk(prev), active)}>←</a>
+                {/* ★ BTN-5b:字形是一个字符,不是一个名字 —— 读屏念出来的是"链接 ←"。
+                    这两条【不转成按钮】(它们是月份导航),但必须有名字。 */}
+                <a className="rounded border px-2 py-1" href={link(mk(prev), active)}
+                   aria-label={t('calendar.prevMonth')}>←</a>
                 <span className="font-mono font-semibold">{month}</span>
-                <a className="rounded border px-2 py-1" href={link(mk(next), active)}>→</a>
+                <a className="rounded border px-2 py-1" href={link(mk(next), active)}
+                   aria-label={t('calendar.nextMonth')}>→</a>
                 {/* 【按类型筛选】—— 每一类都在,包括今天是零行的那些:
                     一个"这个月没有请假"与"请假这一类不存在"必须分得开。 */}
                 <span className="ml-3">{t('calendar.filter')}:</span>

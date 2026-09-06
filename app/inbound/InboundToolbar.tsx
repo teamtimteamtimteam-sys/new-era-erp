@@ -8,6 +8,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { STAGE_OPTIONS } from './options'
 import { PRICING_STATUS_VALUES } from './inboundQuery'
+import { Button } from '@/app/components/ui/button'
 
 export type PartyOption = { id: string; label: string }
 
@@ -151,12 +152,13 @@ export default function InboundToolbar({
                     className="rounded border border-gray-300 bg-white px-2 py-2"
                 />
             </label>
-            <a
-                href={exportHref}
-                className="rounded border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50"
-            >
-                {t('inbound.export')}
-            </a>
+            <Button asChild variant="outline" size="sm">
+                <a
+                    href={exportHref}
+                >
+                    {t('inbound.export')}
+                </a>
+            </Button>
         </div>
     )
 }

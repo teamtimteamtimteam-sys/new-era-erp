@@ -523,9 +523,11 @@ export default function ImportStatementForm({ profiles }: { profiles: ProfileOpt
                 >
                     {isPending ? t('bank.submitting') : t('bank.submit')}
                 </Button>
-                <Link href="/finance/bank" className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
-                    {t('common.cancel')}
-                </Link>
+                <Button asChild variant="secondary">
+                    <Link href="/finance/bank">
+                        {t('common.cancel')}
+                    </Link>
+                </Button>
             </div>
         </form>
     )

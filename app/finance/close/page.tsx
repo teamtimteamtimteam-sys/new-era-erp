@@ -24,6 +24,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import YearCloseHistoryTable, { type YearCloseRow } from './YearCloseHistoryTable'
+import { Button } from '@/app/components/ui/button'
 
 type CloseRow = {
     id: string
@@ -221,18 +222,20 @@ export default async function ClosePage({
                         </div>
 
                         <div className="flex flex-wrap gap-4 text-sm">
-                            <Link
-                                href={`/finance/pnl?date_from=${monthStart}&date_to=${selected}`}
-                                className="text-blue-600 hover:underline"
-                            >
-                                {t('finance.viewPnl')}
-                            </Link>
-                            <Link
-                                href={`/finance/balance-sheet?as_of=${selected}`}
-                                className="text-blue-600 hover:underline"
-                            >
-                                {t('finance.viewBs')}
-                            </Link>
+                            <Button asChild variant="outline" size="sm">
+                                <Link
+                                    href={`/finance/pnl?date_from=${monthStart}&date_to=${selected}`}
+                                >
+                                    {t('finance.viewPnl')}
+                                </Link>
+                            </Button>
+                            <Button asChild variant="outline" size="sm">
+                                <Link
+                                    href={`/finance/balance-sheet?as_of=${selected}`}
+                                >
+                                    {t('finance.viewBs')}
+                                </Link>
+                            </Button>
                         </div>
 
                         {!selectedDisabled && <CloseButton periodEnd={selected} />}

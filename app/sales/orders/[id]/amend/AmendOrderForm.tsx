@@ -305,10 +305,11 @@ export default function AmendOrderForm({
                     <Button type="submit" disabled={isPending || frozen}>
                         {isPending ? t('common.saving') : t('sales.amend.submit')}
                     </Button>
-                    <Link href={`/sales/orders/${orderId}`}
-                          className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
-                        {t('common.cancel')}
-                    </Link>
+                    <Button asChild variant="secondary">
+                        <Link href={`/sales/orders/${orderId}`}>
+                            {t('common.cancel')}
+                        </Link>
+                    </Button>
                 </div>
             </form>
         </div>

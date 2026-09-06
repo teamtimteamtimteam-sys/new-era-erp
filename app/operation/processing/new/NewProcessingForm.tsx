@@ -605,12 +605,13 @@ export default function NewProcessingForm({
                     >
                         {isPending ? t('processing.form.saving') : t('processing.form.saveRun')}
                     </Button>
-                    <Link
-                        href="/operation/processing"
-                        className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
-                    >
-                        {t('common.cancel')}
-                    </Link>
+                    <Button asChild variant="secondary">
+                        <Link
+                            href="/operation/processing"
+                        >
+                            {t('common.cancel')}
+                        </Link>
+                    </Button>
                 </div>
             </form>
         </div>

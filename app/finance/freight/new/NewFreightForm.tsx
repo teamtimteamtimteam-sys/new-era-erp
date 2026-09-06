@@ -273,10 +273,11 @@ export default function NewFreightForm({
                     <Button type="submit" disabled={isPending || (!outbound && chosen.length === 0)}>
                         {isPending ? t('common.saving') : t('common.save')}
                     </Button>
-                    <Link href="/finance/freight"
-                        className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
-                        {t('common.cancel')}
-                    </Link>
+                    <Button asChild variant="secondary">
+                        <Link href="/finance/freight">
+                            {t('common.cancel')}
+                        </Link>
+                    </Button>
                 </div>
             </form>
         </div>

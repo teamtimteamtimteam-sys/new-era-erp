@@ -194,12 +194,13 @@ export default async function EmployeeDetailPage({
             //   actions 是同一个位置,而且画在状态分支【之前】。
             actions={
                 <span className="flex flex-wrap items-center gap-3">
-                    <Link
-                        href={`/hr/training/new?employee=${id}`}
-                        className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm"
-                    >
-                        {t('hr.recordTraining')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={`/hr/training/new?employee=${id}`}
+                        >
+                            {t('hr.recordTraining')}
+                        </Link>
+                    </Button>
                     <Button asChild>
                         <Link href={`/hr/employees/${id}/edit`}>{t('purchasing.editLink')}</Link>
                     </Button>

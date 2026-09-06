@@ -27,6 +27,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 export type F5BoxRow = {
     id: string
@@ -81,9 +82,11 @@ export function F5BoxesTable({ rows }: { rows: readonly F5BoxRow[] }) {
                     // 【#box-detail:让链接跳到它打开的那一段】GST-FIX-1 实测:
                     // 钻取确实渲染了,但它落在文档 28% 处 —— 从表格顶上点一下,
                     // 视口一动不动。**一个看起来什么都没做的控件,比一个明确拒绝的更坏。**
-                    <Link href={r.drillHref} className="text-blue-600 hover:underline text-xs">
-                        {t('gst.openBox')}
-                    </Link>
+                    <Button asChild variant="link" size="inline">
+                        <Link href={r.drillHref}>
+                            {t('gst.openBox')}
+                        </Link>
+                    </Button>
                 ) : (
                     <span className="text-xs text-gray-500">{t('gst.notDrillable')}</span>
                 ),

@@ -116,16 +116,17 @@ export default async function StocktakesPage({
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Link
-                        href={pageHref(page - 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('stocktakes.pagination.prev')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page - 1)}
+                        >
+                            {t('stocktakes.pagination.prev')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('stocktakes.pagination.prev')}
-                    </span>
+                    </Button>
                 )}
 
                 <span className="text-sm text-gray-600">
@@ -133,16 +134,17 @@ export default async function StocktakesPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Link
-                        href={pageHref(page + 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('stocktakes.pagination.next')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page + 1)}
+                        >
+                            {t('stocktakes.pagination.next')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('stocktakes.pagination.next')}
-                    </span>
+                    </Button>
                 )}
             </div>
         </ListPage>

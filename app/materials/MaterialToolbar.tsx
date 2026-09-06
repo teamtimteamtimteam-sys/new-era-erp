@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import type { MaterialKind } from './materialKindOptions'
+import { Button } from '@/app/components/ui/button'
 
 export default function MaterialToolbar({ kinds, locale }: { kinds: MaterialKind[]; locale: string }) {
     const t = useTranslations()
@@ -87,12 +88,13 @@ export default function MaterialToolbar({ kinds, locale }: { kinds: MaterialKind
                     </option>
                 ))}
             </select>
-            <a
-                href={exportHref}
-                className="rounded border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50"
-            >
-                {t('materials.export')}
-            </a>
+            <Button asChild variant="outline" size="sm">
+                <a
+                    href={exportHref}
+                >
+                    {t('materials.export')}
+                </a>
+            </Button>
         </div>
     )
 }

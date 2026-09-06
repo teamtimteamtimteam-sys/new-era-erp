@@ -19,6 +19,7 @@ import PackBody, { type PackPayload } from './PackBody'
 import { ProducePackControl, PackMonthPicker } from './PackControls'
 import { ListPage } from '@/app/components/ui/list-page'
 import PacksHistoryTable, { type PackRow } from './PacksHistoryTable'
+import { Button } from '@/app/components/ui/button'
 
 function monthOf(v: string | undefined): string {
     // 【只认 YYYY-MM;认不出就用上个月】上个月是"最可能已经关账"的那一个,
@@ -79,10 +80,11 @@ export default async function PacksPage({
             {/* ── 实时预览 ────────────────────────────────────────────────── */}
             <div className="flex flex-wrap items-end gap-3 mb-4">
                 <PackMonthPicker month={month} />
-                <Link href={`/finance/journal/export?from=${preview.period_start}&to=${preview.period_end}`}
-                      className="text-sm text-blue-600 hover:underline self-center">
-                    {t('glExport.button')}
-                </Link>
+                <Button asChild variant="outline" size="sm" className="self-center">
+                    <Link href={`/finance/journal/export?from=${preview.period_start}&to=${preview.period_end}`}>
+                        {t('glExport.button')}
+                    </Link>
+                </Button>
             </div>
             <h2 className="font-semibold mb-2">
                 {t('pack.previewFor', { month })}

@@ -15,6 +15,7 @@ import { MOD } from '@/lib/modules'
 import { fetchSafety } from './safetyQuery'
 import { ListPage } from '@/app/components/ui/list-page'
 import SafetyTable, { type SafetyRow } from './SafetyTable'
+import { Button } from '@/app/components/ui/button'
 
 export default async function SafetyPage() {
     const denied = await requireModule(MOD.inventory)
@@ -42,10 +43,12 @@ export default async function SafetyPage() {
             intro={t('reports.safety.desc')}
             actions={
                 <div className="flex gap-2 shrink-0">
-                    <a href="/inventory/reports/safety/export"
-                       className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">{t('reports.csv')}</a>
-                    <a href="/inventory/reports/safety/pdf" target="_blank" rel="noopener noreferrer"
-                       className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">{t('reports.pdf')}</a>
+                    <Button asChild variant="outline" size="sm">
+                        <a href="/inventory/reports/safety/export">{t('reports.csv')}</a>
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                        <a href="/inventory/reports/safety/pdf" target="_blank" rel="noopener noreferrer">{t('reports.pdf')}</a>
+                    </Button>
                 </div>
             }
             // 【不是"一切正常"】—— 没有人设过任何阈值

@@ -101,9 +101,11 @@ export default function NewAssetForm() {
                     variant="default" size="default">
                     {pending ? t('common.saving') : t('assets.new.submit')}
                 </Button>
-                <Link href="/finance/assets" className="px-4 py-2 rounded-md border border-gray-300">
-                    {t('common.cancel')}
-                </Link>
+                <Button asChild variant="secondary">
+                    <Link href="/finance/assets">
+                        {t('common.cancel')}
+                    </Link>
+                </Button>
             </div>
         </form>
     )

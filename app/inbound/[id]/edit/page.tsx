@@ -39,6 +39,7 @@ import DiscrepancyKinds, {
     type DiscrepancyRow as GrnRow,
     type ReceivingThresholds as GrnThresholds,
 } from '@/app/components/receiving/DiscrepancyKinds'
+import { Button } from '@/app/components/ui/button'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -549,14 +550,15 @@ export default async function EditInboundPage({
                 >
                     {t('assay.pricingStatus.' + batch.pricing_status)}
                 </span>
-                <a
-                    href={`/inbound/${batch.id}/label`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-3 text-blue-600 hover:underline"
-                >
-                    {t('batchLabel.print')}
-                </a>
+                <Button asChild variant="link" size="inline" className="ml-3">
+                    <a
+                        href={`/inbound/${batch.id}/label`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {t('batchLabel.print')}
+                    </a>
+                </Button>
                 {poHeader && (
                     <span className="ml-3">
                         {t('inbound.againstPo')}:{' '}

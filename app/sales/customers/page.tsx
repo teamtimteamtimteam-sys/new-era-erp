@@ -150,9 +150,11 @@ export default async function CustomersPage({
                         而 --reach 【查得到】静态路由,只是它要跑两小时。
                         入口放在客户列表上,因为"这家客户是不是也是我们的供应商"
                         正是在看客户名单的时候才会冒出来的问题。 */}
-                    <Link href="/sales/customers/overlap" className="text-sm text-blue-600 hover:underline">
-                        {t('overlap.entryLink')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href="/sales/customers/overlap">
+                            {t('overlap.entryLink')}
+                        </Link>
+                    </Button>
                     <Button asChild>
                         <Link href="/sales/customers/new">{t('customers.addButton')}</Link>
                     </Button>
@@ -181,16 +183,17 @@ export default async function CustomersPage({
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Link
-                        href={pageHref(page - 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('customers.pagination.prev')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page - 1)}
+                        >
+                            {t('customers.pagination.prev')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('customers.pagination.prev')}
-                    </span>
+                    </Button>
                 )}
 
                 <span className="text-sm text-gray-600">
@@ -198,16 +201,17 @@ export default async function CustomersPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Link
-                        href={pageHref(page + 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('customers.pagination.next')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page + 1)}
+                        >
+                            {t('customers.pagination.next')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('customers.pagination.next')}
-                    </span>
+                    </Button>
                 )}
             </div>
         </ListPage>

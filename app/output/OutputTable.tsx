@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import DeleteButton from './DeleteButton'
+import { Button } from '@/app/components/ui/button'
 
 export type OutputTableRow = {
     id: string
@@ -89,10 +90,11 @@ export default function OutputTable({
         {
             key: 'label', header: t('batchLabel.col'),
             render: (r) => (
-                <a href={`/output/${r.id}/label`} target="_blank" rel="noopener noreferrer"
-                   className="text-blue-600 hover:underline text-sm">
-                    {t('batchLabel.col')}
-                </a>
+                <Button asChild variant="link" size="inline">
+                    <a href={`/output/${r.id}/label`} target="_blank" rel="noopener noreferrer">
+                        {t('batchLabel.col')}
+                    </a>
+                </Button>
             ),
         },
     ]

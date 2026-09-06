@@ -185,12 +185,14 @@ function readTag(src, i) {
     return null
 }
 // className 的值:字符串字面量,或 {…} 里那一整段(花括号配平,模板串不会被截断)
+// ★ BTN-5b(2026-09-07):返回 { value, isExpr } —— 后面那一位决定要不要拼常量,
+//   理由见 scanLinkButtons 里 BTN-5b 那一段。
 function grabClass(tag) {
     const i = tag.indexOf('className=')
-    if (i === -1) return ''
+    if (i === -1) return { value: '', isExpr: false }
     let j = i + 'className='.length
-    if (tag[j] === '"') { const e = tag.indexOf('"', j + 1); return e === -1 ? '' : tag.slice(j + 1, e) }
-    if (tag[j] !== '{') return ''
+    if (tag[j] === '"') { const e = tag.indexOf('"', j + 1); return { value: e === -1 ? '' : tag.slice(j + 1, e), isExpr: false } }
+    if (tag[j] !== '{') return { value: '', isExpr: false }
     let d = 0, q = null, k = j
     for (; k < tag.length; k++) {
         const c = tag[k]
@@ -199,7 +201,7 @@ function grabClass(tag) {
         if (c === '{') { d++; continue }
         if (c === '}') { d--; if (d === 0) break; continue }
     }
-    return tag.slice(j + 1, k)
+    return { value: tag.slice(j + 1, k), isExpr: true }
 }
 // 判据:两个方向的内边距 + 圆角 + (实底 或 描边)。★ 它的盲区印在收尾里,不只写在报告里。
 const padBoth = (c) => /(^|[\s"'`{])p-\S/.test(c)
@@ -220,10 +222,25 @@ function scanLinkButtons(src) {
     while ((m = RE.exec(src))) {
         const tag = readTag(src, m.index)
         if (!tag) continue
-        let cls = grabClass(tag)
-        for (const id of new Set([...cls.matchAll(/\$\{(\w+)\}/g)].map((x) => x[1])
-            .concat(/^\s*(\w+)\s*$/.test(cls) ? [cls.trim()] : [])))
-            if (consts[id]) cls += ' ' + consts[id]
+        const { value, isExpr } = grabClass(tag)
+        let cls = value
+        // ★★ BTN-5b(2026-09-07):这里【本来漏掉一整种写法】,而那是一次量出来的仪器缺陷 ★★
+        //   旧写法只认两种 className:`{\`…${FOO}…\`}` 里的占位符,以及整段就是一个
+        //   裸标识符的 `{FOO}`。而本仓库还有第三种,并且它正是【子导航页签】的写法:
+        //         const base = 'whitespace-nowrap rounded px-3 py-1 text-sm'
+        //         className={base + ' ' + (active ? 'bg-…' : '…')}
+        //   `+` 拼出来的那一段里,`base` 既不是占位符也不是整段,于是它的
+        //   `rounded px-3 py-1` 从来没有被拼回来 —— app/settings/SettingsSubnav.tsx:74
+        //   因此对这道闸【完全不存在】(实测:修之前 114,修之后 115)。
+        //   ☞ 基线因此变长了一处,而【树没有变坏,是仪器变准了】。那一处是永不转的
+        //     导航页签(§十七 余量表),它进基线是长住,不是待办。
+        //   只在【表达式】且含 `+` 时才拼:字符串字面量 className 里一个碰巧与常量同名的
+        //   单词不该被当成引用(判据窄一点,好过错抓)。
+        const ids = new Set([...cls.matchAll(/\$\{(\w+)\}/g)].map((x) => x[1]))
+        if (/^\s*(\w+)\s*$/.test(cls)) ids.add(cls.trim())
+        if (isExpr && cls.includes('+'))
+            for (const m of cls.matchAll(/(^|[^.\w$])([A-Za-z_$][\w$]*)/g)) ids.add(m[2])
+        for (const id of ids) if (consts[id]) cls += ' ' + consts[id]
         if (isButtonShaped(cls)) out.push({ line: src.slice(0, m.index).split('\n').length })
         RE.lastIndex = m.index + tag.length
     }
@@ -262,6 +279,12 @@ const NOTE = '★ 这份基线【只会缩短】,不会变长。多一处 <table
     + '前两维原样搬迁,一处都没有放宽。加这一维的理由:前三件仪器共用同一个定义'
     + '(标签名是 button),而每张列表页最显眼的那个主动作是一个 <Link>,于是'
     + '「统一了」与「我一个都没看见」两句话同时为真。'
+    + ' ★★ BTN-5b(2026-09-07)修好了本闸的一处盲区,而基线【因此先变长一处,再变短】:'
+    + 'className={base + 空格 + (…)} 这种用 + 拼出来的写法此前从不做常量代入,于是 '
+    + 'app/settings/SettingsSubnav.tsx:74 对本闸【完全不存在】(实测 114 → 115)。'
+    + '☞ 变长的那一处不是新债:树没有变坏,是仪器变准了 —— 而它是一个【永不转】的'
+    + '导航页签(见 docs/base-components.md §十七 余量表),进基线是长住,不是待办。'
+    + '这条例外只对「仪器修好了」成立,对「又手写了一个」不成立:后者仍然红。'
 
 if (process.argv.includes('--update-baseline')) {
     const obj = { __NOTE__: NOTE }

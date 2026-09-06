@@ -245,12 +245,13 @@ export default function OutputAssayForm({
                 >
                     {isPending ? t('common.saving') : t('assay.saveAndApply')}
                 </Button>
-                <Link
-                    href={`/output/${batchId}/edit`}
-                    className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
-                >
-                    {t('common.cancel')}
-                </Link>
+                <Button asChild variant="secondary">
+                    <Link
+                        href={`/output/${batchId}/edit`}
+                    >
+                        {t('common.cancel')}
+                    </Link>
+                </Button>
             </div>
         </form>
     )

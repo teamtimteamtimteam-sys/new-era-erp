@@ -3900,6 +3900,7 @@ const en = {
         title: 'Calendar',
         intro: 'Everything dated that you can already see elsewhere, on one month. It is a place to look, not a place to edit \u2014 click an item to go to the page that owns it.',
         filter: 'Show', allKinds: 'Everything',
+        prevMonth: 'Previous month', nextMonth: 'Next month',
         empty: 'Nothing dated falls in this month. That is not an error \u2014 it is what the sources actually hold.',
         emptyKind: 'Nothing of this kind falls in this month.',
         sourceFailed: 'One or more sources could not be read, so this month is INCOMPLETE: {list}. This is not the same as "nothing scheduled".',

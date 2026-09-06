@@ -93,10 +93,11 @@ export default function IssuePanel({
 
     return (
         <div className="flex flex-wrap items-center gap-3 mb-2">
-            <a href={pdfHref} target="_blank" rel="noopener noreferrer"
-               className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">
-                {previewLabel}
-            </a>
+            <Button asChild variant="outline" size="sm">
+                <a href={pdfHref} target="_blank" rel="noopener noreferrer">
+                    {previewLabel}
+                </a>
+            </Button>
             <Button variant="secondary" size="sm" className="text-sm" type="button" onClick={issue} disabled={isPending || blocked}>
                 {isPending ? t('common.saving') : issueLabel}
             </Button>

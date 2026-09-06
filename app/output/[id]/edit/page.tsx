@@ -26,6 +26,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
 import { loadSubstanceLabels, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
+import { Button } from '@/app/components/ui/button'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -309,14 +310,15 @@ export default async function EditOutputPage({
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
                     {batch.status}
                 </span>
-                <a
-                    href={`/output/${batch.id}/label`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-3 text-blue-600 hover:underline"
-                >
-                    {t('batchLabel.print')}
-                </a>
+                <Button asChild variant="link" size="inline" className="ml-3">
+                    <a
+                        href={`/output/${batch.id}/label`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        {t('batchLabel.print')}
+                    </a>
+                </Button>
             </p>
 
             {openStocktake ? (

@@ -16,6 +16,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { Button } from '@/app/components/ui/button'
 
 const JOURNAL_PAGE_SIZE = 20
 
@@ -139,10 +140,11 @@ export default async function JournalListPage({
                     【筛选为空时不给链接,而是说出为什么】—— 一份"默认全部"的
                     总账导出说不出自己覆盖到哪天。 */}
                 {dateFrom && dateTo ? (
-                    <a href={`/finance/journal/export?from=${dateFrom}&to=${dateTo}`}
-                       className="text-sm text-blue-600 hover:underline">
-                        {t('glExport.button')}
-                    </a>
+                    <Button asChild variant="outline" size="sm">
+                        <a href={`/finance/journal/export?from=${dateFrom}&to=${dateTo}`}>
+                            {t('glExport.button')}
+                        </a>
+                    </Button>
                 ) : (
                     <span className="text-sm text-amber-700">{t('glExport.needPeriod')}</span>
                 )}
@@ -153,16 +155,17 @@ export default async function JournalListPage({
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Link
-                        href={pageHref(page - 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('finance.pagination.prev')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page - 1)}
+                        >
+                            {t('finance.pagination.prev')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('finance.pagination.prev')}
-                    </span>
+                    </Button>
                 )}
 
                 <span className="text-sm text-gray-600">
@@ -170,16 +173,17 @@ export default async function JournalListPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Link
-                        href={pageHref(page + 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('finance.pagination.next')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page + 1)}
+                        >
+                            {t('finance.pagination.next')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('finance.pagination.next')}
-                    </span>
+                    </Button>
                 )}
             </div>
         </ListPage>

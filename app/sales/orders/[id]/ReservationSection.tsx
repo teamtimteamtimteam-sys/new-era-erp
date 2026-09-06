@@ -19,6 +19,7 @@ import { can } from '@/lib/permissions'
 import { soStatusKey } from '../salesOrderTypes'
 import ReserveControl, { type BucketOption } from './ReserveControl'
 import ReleaseControl from './ReleaseControl'
+import { Button } from '@/app/components/ui/button'
 
 export type ReservationLine = {
     id: string
@@ -246,11 +247,12 @@ export default async function ReservationSection({
                                                     {t('sales.reserve.consumedBy', { code: shp?.code ?? '—' })}
                                                 </span>
                                                 {shp && (
-                                                    <a href={`/sales/shipments/${shp.id}/pdf`} target="_blank"
-                                                       rel="noopener noreferrer"
-                                                       className="text-blue-600 hover:underline text-xs">
-                                                        {t('sales.ship.deliveryNote')}
-                                                    </a>
+                                                    <Button asChild variant="link" size="inline">
+                                                        <a href={`/sales/shipments/${shp.id}/pdf`} target="_blank"
+                                                           rel="noopener noreferrer">
+                                                            {t('sales.ship.deliveryNote')}
+                                                        </a>
+                                                    </Button>
                                                 )}
                                             </li>
                                         )

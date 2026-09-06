@@ -33,6 +33,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import DeleteButton from './DeleteButton'
 import type { InboundSortCol } from './inboundQuery'
+import { Button } from '@/app/components/ui/button'
 
 /**
  * 【服务端已经压平好的一行】—— 一个函数都没有,也没有 Map/Set。
@@ -150,8 +151,9 @@ export default function InboundTable({
         {
             key: 'label', header: t('batchLabel.col'),
             render: (b) => (
-                <a href={`/inbound/${b.id}/label`} target="_blank" rel="noopener noreferrer"
-                   className="text-blue-600 hover:underline text-sm">{t('batchLabel.col')}</a>
+                <Button asChild variant="link" size="inline">
+                    <a href={`/inbound/${b.id}/label`} target="_blank" rel="noopener noreferrer">{t('batchLabel.col')}</a>
+                </Button>
             ),
         },
     ]

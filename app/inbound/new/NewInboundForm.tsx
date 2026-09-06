@@ -431,12 +431,13 @@ export default function NewInboundForm({
                     >
                         {isPending ? t('common.saving') : t('common.save')}
                     </Button>
-                    <Link
-                        href="/inbound"
-                        className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
-                    >
-                        {t('common.cancel')}
-                    </Link>
+                    <Button asChild variant="secondary">
+                        <Link
+                            href="/inbound"
+                        >
+                            {t('common.cancel')}
+                        </Link>
+                    </Button>
                 </div>
             </form>
         </div>

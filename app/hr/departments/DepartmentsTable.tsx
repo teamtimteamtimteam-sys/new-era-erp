@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import DeleteDepartmentButton from './DeleteDepartmentButton'
+import { Button } from '@/app/components/ui/button'
 
 export type DepartmentRow = {
     id: string
@@ -44,9 +45,11 @@ export default function DepartmentsTable({ rows, empty }: { rows: DepartmentRow[
             key: 'actions', header: t('metalPrices.colActions'), className: 'text-sm whitespace-nowrap',
             render: (r) => (
                 <>
-                    <Link href={`/hr/departments/${r.id}/edit`} className="text-blue-600 hover:underline mr-3">
-                        {t('purchasing.editLink')}
-                    </Link>
+                    <Button asChild variant="link" size="inline" className="mr-3">
+                        <Link href={`/hr/departments/${r.id}/edit`}>
+                            {t('purchasing.editLink')}
+                        </Link>
+                    </Button>
                     <DeleteDepartmentButton id={r.id} name={r.nameEn} />
                 </>
             ),

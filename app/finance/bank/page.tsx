@@ -89,12 +89,13 @@ export default async function BankHomePage() {
             <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
                 <h1 className="text-2xl font-bold">{t('bank.title')}</h1>
                 <div className="flex gap-3">
-                    <Link
-                        href="/finance/bank/statements"
-                        className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
-                    >
-                        {t('bank.statements')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href="/finance/bank/statements"
+                        >
+                            {t('bank.statements')}
+                        </Link>
+                    </Button>
                     <Button asChild>
                         <Link href="/finance/bank/import">{t('bank.import')}</Link>
                     </Button>

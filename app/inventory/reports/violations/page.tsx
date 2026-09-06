@@ -10,6 +10,7 @@ import { MOD } from '@/lib/modules'
 import { fetchViolations, type UndecidedRow } from './violationsQuery'
 import { ListPage } from '@/app/components/ui/list-page'
 import { ViolationsTable, UndecidedTable, type ViolationRow, type UndecidedTableRow } from './ViolationsTables'
+import { Button } from '@/app/components/ui/button'
 
 function Undecided({ title, note, colA, colB, rows, qtyLabel }: {
     title: string; note: string; colA: string; colB: string; rows: UndecidedRow[]; qtyLabel: string
@@ -48,10 +49,12 @@ export default async function ViolationsPage() {
             intro={t('reports.violations.desc')}
             actions={
                 <div className="flex gap-2 shrink-0">
-                    <a href="/inventory/reports/violations/export"
-                       className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">{t('reports.csv')}</a>
-                    <a href="/inventory/reports/violations/pdf" target="_blank" rel="noopener noreferrer"
-                       className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">{t('reports.pdf')}</a>
+                    <Button asChild variant="outline" size="sm">
+                        <a href="/inventory/reports/violations/export">{t('reports.csv')}</a>
+                    </Button>
+                    <Button asChild variant="outline" size="sm">
+                        <a href="/inventory/reports/violations/pdf" target="_blank" rel="noopener noreferrer">{t('reports.pdf')}</a>
+                    </Button>
                 </div>
             }
             state={{ kind: 'ok' }}

@@ -12,6 +12,7 @@ import IssuePanel from '@/app/components/IssuePanel'
 import ReservationSection from './ReservationSection'
 import OrderInvoiceSection from './OrderInvoiceSection'
 import ShippingSection from './ShippingSection'
+import { Button } from '@/app/components/ui/button'
 
 export default async function SalesOrderPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.sales)
@@ -146,10 +147,11 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                     它动的是这张单说了什么。三个状态才画,与数据库那道闸同一份表。 */}
                 {amendable && (
                     <div className="mt-3 flex flex-wrap items-baseline gap-x-3">
-                        <Link href={`/sales/orders/${o.id}/amend`}
-                              className="border border-gray-400 px-3 py-1 rounded text-sm hover:bg-gray-50">
-                            {o.status === 'draft' ? t('sales.amend.editDraft') : t('sales.amend.action')}
-                        </Link>
+                        <Button asChild variant="outline" size="sm">
+                            <Link href={`/sales/orders/${o.id}/amend`}>
+                                {o.status === 'draft' ? t('sales.amend.editDraft') : t('sales.amend.action')}
+                            </Link>
+                        </Button>
                         <span className="text-xs text-gray-500">
                             {o.status === 'draft' ? t('sales.amend.editDraftHint') : t('sales.amend.actionHint')}
                         </span>

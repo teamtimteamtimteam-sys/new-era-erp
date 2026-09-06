@@ -318,12 +318,13 @@ export default async function InboundPage({
                     与 [id] 动态路由那条并列。现在两条路一直都在,并用下面那一行
                     说出它们的区别(而不是让人靠钮的名字猜)。 */}
                 <div className="flex items-center gap-2">
-                    <Link
-                        href="/inbound/receive"
-                        className="border border-blue-600 text-blue-600 px-4 py-2 rounded hover:bg-blue-50"
-                    >
-                        {t('receive.entry')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href="/inbound/receive"
+                        >
+                            {t('receive.entry')}
+                        </Link>
+                    </Button>
                     <Button asChild>
                         <Link href="/inbound/new">{t('inbound.addButton')}</Link>
                     </Button>
@@ -373,16 +374,17 @@ export default async function InboundPage({
             {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Link
-                        href={pageHref(page - 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('inbound.pagination.prev')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page - 1)}
+                        >
+                            {t('inbound.pagination.prev')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('inbound.pagination.prev')}
-                    </span>
+                    </Button>
                 )}
 
                 <span className="text-sm text-gray-600">
@@ -390,16 +392,17 @@ export default async function InboundPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Link
-                        href={pageHref(page + 1)}
-                        className="rounded border border-gray-300 bg-white px-3 py-2 text-sm hover:bg-gray-50"
-                    >
-                        {t('inbound.pagination.next')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link
+                            href={pageHref(page + 1)}
+                        >
+                            {t('inbound.pagination.next')}
+                        </Link>
+                    </Button>
                 ) : (
-                    <span className="rounded border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-400">
+                    <Button variant="outline" size="sm" disabled>
                         {t('inbound.pagination.next')}
-                    </span>
+                    </Button>
                 )}
             </div>
         </div>

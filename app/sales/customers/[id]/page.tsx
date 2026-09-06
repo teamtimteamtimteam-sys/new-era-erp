@@ -32,6 +32,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { collectionContext } from '../chaseActions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { Button } from '@/app/components/ui/button'
 
 type CreditRow = {
     customer_id: string
@@ -201,12 +202,13 @@ export default async function CustomerStatusPage({
                     <span className="ml-3 font-mono text-base text-gray-500">{cust.code}</span>
                 </h1>
                 {/* 【改限额/冻结在别处】这一页不放字段 —— 见文件头 */}
-                <Link
-                    href={`/sales/customers/${id}/edit`}
-                    className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm"
-                >
-                    {t('customers.status.editLink')}
-                </Link>
+                <Button asChild variant="outline" size="sm">
+                    <Link
+                        href={`/sales/customers/${id}/edit`}
+                    >
+                        {t('customers.status.editLink')}
+                    </Link>
+                </Button>
             </div>
 
             <p className="text-sm text-gray-600 mb-6">

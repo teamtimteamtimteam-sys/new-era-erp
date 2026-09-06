@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { SUPPLIER_STATUSES } from './[id]/edit/statusMachine'
+import { Button } from '@/app/components/ui/button'
 
 export default function SupplierToolbar() {
     const t = useTranslations()
@@ -87,12 +88,13 @@ export default function SupplierToolbar() {
                     </option>
                 ))}
             </select>
-            <a
-                href={exportHref}
-                className="rounded border border-gray-300 bg-white px-3 py-2 hover:bg-gray-50"
-            >
-                {t('suppliers.export')}
-            </a>
+            <Button asChild variant="outline" size="sm">
+                <a
+                    href={exportHref}
+                >
+                    {t('suppliers.export')}
+                </a>
+            </Button>
         </div>
     )
 }

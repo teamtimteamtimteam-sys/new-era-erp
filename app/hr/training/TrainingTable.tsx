@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import DeleteTrainingButton from './DeleteTrainingButton'
+import { Button } from '@/app/components/ui/button'
 
 export type TrainingRow = {
     id: string
@@ -70,9 +71,11 @@ export default function TrainingTable({ rows, empty }: { rows: TrainingRow[]; em
             key: 'actions', header: t('metalPrices.colActions'), className: 'text-sm whitespace-nowrap',
             render: (r) => (
                 <>
-                    <Link href={`/hr/training/${r.id}/edit`} className="text-blue-600 hover:underline mr-3">
-                        {t('purchasing.editLink')}
-                    </Link>
+                    <Button asChild variant="link" size="inline" className="mr-3">
+                        <Link href={`/hr/training/${r.id}/edit`}>
+                            {t('purchasing.editLink')}
+                        </Link>
+                    </Button>
                     <DeleteTrainingButton id={r.id} name={r.trainingName} />
                 </>
             ),

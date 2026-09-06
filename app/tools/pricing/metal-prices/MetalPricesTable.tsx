@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Button } from '@/app/components/ui/button'
 
 export type MetalPriceRow = {
     id: string
@@ -119,9 +120,11 @@ export default function MetalPricesTable({
         {
             key: 'actions', header: t('metalPrices.colActions'),
             render: (r) => (
-                <Link href={`/tools/pricing/metal-prices/${r.id}/edit`} className="text-blue-600 hover:underline">
-                    {t('metalPrices.editAction')}
-                </Link>
+                <Button asChild variant="link" size="inline">
+                    <Link href={`/tools/pricing/metal-prices/${r.id}/edit`}>
+                        {t('metalPrices.editAction')}
+                    </Link>
+                </Button>
             ),
         },
     ]

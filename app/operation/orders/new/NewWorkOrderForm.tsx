@@ -196,10 +196,11 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                     <Button type="button" onClick={submit} disabled={isPending || blocked}>
                         {isPending ? t('common.saving') : t('processing.wo.form.save')}
                     </Button>
-                    <Link href="/operation/orders"
-                          className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50">
-                        {t('common.cancel')}
-                    </Link>
+                    <Button asChild variant="secondary">
+                        <Link href="/operation/orders">
+                            {t('common.cancel')}
+                        </Link>
+                    </Button>
                 </div>
                 {blocked && <p className="text-xs text-amber-700">{t('processing.wo.form.blockedNoLines')}</p>}
             </div>
