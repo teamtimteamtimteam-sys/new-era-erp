@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateTaskHeader, softDeleteTask } from './actions'
 import { STATUS_VALUES, PRIORITY_VALUES } from '../types'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
 // app/tools/tasks/[id]/TaskHeader.tsx
 // TASK-1c-b:表头编辑。弹窗退休成【只建不改】之后,这七个字段搬到了这里。
@@ -18,6 +19,10 @@ import { STATUS_VALUES, PRIORITY_VALUES } from '../types'
 
 export type HeaderLabels = {
     edit: string; save: string; cancel: string; del: string; confirmDelete: string
+    /** CONFIRM-1:对话框问的那一句。见文末删除钮处的说明。 */
+    deleteConfirmTitle: string
+    /** CONFIRM-1:软删的那一句补充说明(common.softDeleteNote)。 */
+    softDeleteNote: string
     title: string; description: string; status: string; priority: string
     dueDate: string; reminderAt: string; tags: string; tagsHint: string
     // 【查好的表,不是函数】。函数不能跨 RSC 边界序列化 ——
@@ -62,7 +67,6 @@ export default function TaskHeader({
 }) {
     const [open, setOpen] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [confirming, setConfirming] = useState(false)
     const [pending, start] = useTransition()
     const router = useRouter()
 
@@ -163,35 +167,38 @@ export default function TaskHeader({
                 <button
                     type="button"
                     disabled={pending}
-                    onClick={() => { setOpen(false); setError(null); setConfirming(false) }}
+                    onClick={() => { setOpen(false); setError(null) }}
                     className="rounded border px-3 py-1 text-sm"
                 >{labels.cancel}</button>
 
                 <span className="flex-1" />
 
                 {/* 删除是软删 —— 硬删由 trg_tasks_no_hard_delete 按名拒绝。
-                    确认走的是【第二次点击】,不是 window.confirm:后者在测试里点不到。 */}
-                {confirming ? (
-                    <button
-                        type="button"
-                        disabled={pending}
-                        onClick={() =>
-                            start(async () => {
-                                const res = await softDeleteTask(task.id)
-                                if ('error' in res) { setError(res.error); setConfirming(false) }
-                                else router.push('/tools/tasks')
-                            })
-                        }
-                        className="rounded bg-red-600 px-3 py-1 text-sm text-white disabled:opacity-50"
-                    >{labels.confirmDelete}</button>
-                ) : (
-                    <button
-                        type="button"
-                        disabled={pending}
-                        onClick={() => setConfirming(true)}
-                        className="text-sm text-red-700 hover:underline"
-                    >{labels.del}</button>
-                )}
+                    ★★【CONFIRM-1:这里原来写着一条"点两次"的自制确认】★★
+                      它旁边的注释把理由写得清清楚楚:「后者在测试里点不到」——
+                      **那不是一句吐槽,那是本刀的委托书**。原生确认框对冒烟隐形,
+                      于是这一处宁可自己再实现一遍确认,也不用它。
+                      现在那个约束没有了:ConfirmDialog 是真 DOM,探针点得到。
+                      所以自制的那一层跟着退休 —— confirming 这个 state 一起消失,
+                      连同"按了删除之后按钮会变成另一个按钮"这件只有这一页才有的事。
+                    ☞ 动作没有改:同一个 softDeleteTask(task.id),同一个跳转。
+                    ☞ labels.confirmDelete 仍然是确认钮上的字,一个字没换。 */}
+                <ConfirmButton
+                    subject={task.title}
+                    title={labels.deleteConfirmTitle}
+                    body={labels.softDeleteNote}
+                    confirmLabel={labels.confirmDelete}
+                    tier="destructive"
+                    disabled={pending}
+                    className="text-sm text-red-700 hover:underline disabled:opacity-50"
+                    onConfirm={() =>
+                        start(async () => {
+                            const res = await softDeleteTask(task.id)
+                            if ('error' in res) setError(res.error)
+                            else router.push('/tools/tasks')
+                        })
+                    }
+                >{labels.del}</ConfirmButton>
             </div>
         </form>
     )

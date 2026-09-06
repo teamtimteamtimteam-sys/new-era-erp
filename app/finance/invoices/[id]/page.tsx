@@ -292,7 +292,7 @@ export default async function InvoiceDetailPage({
                             {t('invoice.pdfNeedsBanking')}
                         </span>
                     )}
-                    {!isVoid && <VoidInvoiceControl invoiceId={inv.id} hasEntry={inv.entry_id !== null} />}
+                    {!isVoid && <VoidInvoiceControl invoiceId={inv.id} subject={inv.code} hasEntry={inv.entry_id !== null} />}
                 </span>
             }
             // ★★ 详情页恒为 ok —— 这张发票在不在由上面的 notFound() 回答。CONV-8 §⑤。

@@ -1338,6 +1338,17 @@
   > **没做、已按名记进 `docs/known-issues.md`:** LME / Searates 自动取价
   > (见下一条)、以及"直接 INSERT 仍拦不住"那条残余风险。
 * 全局搜索
+  > ★★【CONFIRM-1(2026-09-06)给它挂上一条【继承来的要求】,而不是一条缺陷】★★
+  > **今天顶栏那个搜索外壳带着 `hidden md:block` —— 768px 以下每一页都不画。**
+  > **Tim 已裁定:这【今天不是缺陷】** —— 首页自己那个大外壳
+  > (`app/page.tsx:127`)**没有任何宽度隐藏**,所以手机上的人仍然读得到
+  > 那句诚实的「搜索还没有建」。缺的只是一个"还不存在的东西"的第二个入口。
+  >
+  > **而搜索真建起来的那一天它就变成缺陷了:那时手机上【没有任何入口】,
+  > 而今天【没有任何人在为它做打算】。** 记在这里,是为了让建搜索的那个人
+  > **继承**这条要求,而不是自己再发现一次。
+  > 判据已经写好了:`scripts/probe-search-shell.mjs` 的 S4 格钉着 390px 的现状,
+  > 谁改了那个断点,它会说话。
 * 给缺少生效日期的参考数据补上生效日期
 * LME 半自动取数
 
@@ -2041,9 +2052,60 @@ fixture 套件的耗时在无人察觉中累积;把"操作员用得了"加进完
 (TaskModal · ModuleBar 溢出 · 登录提示 · 草稿横幅)**要等 CONFIRM-1**,
 因为它们的形状取决于确认框最后长什么样。
 
+★★【CONFIRM-1(2026-09-06)给 BTN-4 加了一件,连同它的理由】★★
+**把 `app/components/ReasonPrompt.tsx`(八个调用点)折进 `confirm-dialog.tsx`。**
+
+**为什么不在 CONFIRM-1 里做 —— 记下来,免得下一个人当成漏掉的:**
+Tim 在 CONFIRM-1 裁的是 (c):本刀把那 9 处「就地理由 + 原生确认框」转到
+对话框上(对话框因此长出 `reason` 能力),而 **ReasonPrompt 既有的 8 个
+调用点留给 BTN-4**。理由是本刀的边界:那 8 处是【委托书明确划出去的覆盖物】,
+在这一刀里转它们会让一次提交横跨两刀,而且那 8 处是没量过的工作。
+
+**为什么那时候做才对(这是 BTN-4 要继承的那句话):**
+> **等对话框已经带着 `reason` 能力之后再折 —— 那时 ReasonPrompt 是【冗余的】,
+> 折它是删掉一份重复实现;现在折,是先造一个能力再搬,两件事挤在一刀里。**
+
+★ 还要继承一条判据:**ReasonPrompt 今天【也不点名它在确认什么】** ——
+它和被它取代的原生确认框犯的是同一个错。折进来的时候,那 8 处每一处
+都要给出 `subject`,判据由 `scripts/check-confirm-subject.mjs` 现成守着。
+
+★★ **还有第二条,而它是一个【今天靠运气不成立、折完就成立】的缺陷:**
+
+> **`ConfirmDialog` 是就地渲染的,不走 portal。所以一个带 `reason` 的
+> `<ConfirmButton>` 如果落在某个 `<form>` 里,那个理由输入框上按回车会
+> 【提交那张表单】** —— 隐式提交,不经过对话框的确认钮,主语与理由都白填了。
+
+**今天量过,是干净的:七处带 `reason` 的调用点,`<form>` 计数全部为 0**
+(`ReopenForm` · `YearClosePanel` · `CloseReopenControls` · `PostControls` ·
+`ApplyAssayControls` · `OutputApplyControls` · `UnreconcileControl`)。
+唯一落在 `<form>` 里的是 `TaskHeader` 的删除钮,而**它没有 `reason`**,
+对话框里一个输入框都没有,所以回车碰不到东西。
+
+**CONFIRM-1 没有动它,理由是范围:** 给共用对话框加一条键盘行为,是在一把
+**43 个调用点**都在用的组件上改行为,而本刀的委托书是"转换,不改行为"。
+**但 ReasonPrompt 那 8 处是【表单里的就地理由】—— 折进来大概率就落进 form。**
+所以这一条要在 BTN-4 里当成**先决条件**处理,不是当成后续:
+先给对话框一条"回车不外泄"的保证(input 上吞掉 Enter,或整个对话框走 portal),
+**并且给它一格故障注入**(把一个带 reason 的 ConfirmButton 放进 form,按回车,
+断言表单没有被提交),再折那 8 处。
+
 ---
 
 ## CONFIRM-1 · ★ 原生确认框 —— 56 处,比按钮颜色更大的一致性缺陷 ★
+
+> ★★【已落地(2026-09-06,v1.4.1)。本条【保留不删】,因为它自己的三个数
+> 都被落地实测更正了 —— 而那三处更正比结论本身更值得下一个人读。】★★
+>
+> | 本条说的 | 实测 | 更正记在哪 |
+> |---|---|---|
+> | **56 处调用** | **40 处**。差额 16 处全是【注释】,同时还漏了一处没有 `window.` 前缀的 `confirm(` —— **两个方向上都错** | AGENTS.md「一句注释可以污染将来对它自己的计数」 |
+> | **37 个文件** | 40 处散在 **35 个**文件里 | 同上,同一次 grep |
+> | 「树里没有确认组件」(Step 2 报告) | **有三处**,第三处是 `app/components/ReasonPrompt.tsx`(8 个调用点)—— 按名字搜搜不到,它既不叫 modal 也不叫 dialog | AGENTS.md「一次勘察只看得见代码碰巧给它起的名字」 |
+>
+> **Tim 裁的是「一个真的对话框组件」那条路**(本条末尾问的那个问题)。
+> 落地件:`app/components/ui/confirm-dialog.tsx` + `scripts/check-confirm-subject.mjs`
+> (进 `npm run build`,基线 0,四条判据各做过一次故障注入)。
+> 设计与实测写在 `docs/base-components.md` §十一。
 
 **Tim 在 BTN-1 的闸上单独点名入队的。**
 
@@ -2107,6 +2169,45 @@ fixture 套件的耗时在无人察觉中累积;把"操作员用得了"加进完
   * `app/tools/pricing/formulas/[id]/edit/DeleteFormulaButton.tsx`
   * `app/tools/pricing/metal-prices/[id]/edit/DeleteButton.tsx`
   * `app/tools/tasks/[id]/TaskHeader.tsx`
+
+---
+
+## CONFIRM-1-D · ★ 那 11 句【不说后果】的确认消息 —— 主语补上了,话还没说 ★
+
+**发现并量于 CONFIRM-1(2026-09-06)。Tim 在 CONFIRM-1 的闸上把它划给 COPY-2。**
+
+CONFIRM-1 给 40 处确认都装上了主语,**但它被明确禁止改写消息本身** ——
+所以这 11 句今天读起来是这样:
+
+> 「Unpost this payroll period?」 · 「Reopen this purchase order?」 ·
+> 「Unapply this assay result?」 · 「Reopen this statement for editing?」 ·
+> 「Remove the period lock?」 · 「Switch GST registration OFF?」 …
+
+**它们说得出【要做什么】,说不出【做完会怎样】。** 而它们守的动作
+一个比一个重:撤销过账会冲销分录、解除期间锁会让已锁期间重新可写、
+关掉 GST 会改变此后每一张单据的税码。
+
+★ **有几句的后果【就在同一屏上】,只是没在对话框里** ——
+`hr.unpostNote`、`assay.unapplyNote`、`assay.output.unapplyNote` 都是现成的句子,
+渲染在按钮旁边的页面上。**CONFIRM-1 刻意没有把它们搬进 `body`**:
+那已经是在决定对话框该说什么,而那是 COPY-2 的事。
+**搬进去大概是对的,但要由做文案那一刀带着判断做,不是顺手做。**
+
+---
+
+## CONFIRM-1-USECONFIRM · `useConfirm()` 今天【没有消费者】
+
+**量于 CONFIRM-1 落地后:`<ConfirmButton>` 43 处 JSX 开标签,`useConfirm()` **0** 处。**
+
+设计时划给它的 6 处(表单 onSubmit、带条件的行内判断、map 里的行内 onClick)
+最后都用组件写成了 —— 条件那几处的办法是**在条件的两侧各渲染一个控件**
+(`DictSection` 的停用/重新启用、`StatusPanel` 的破坏档/普通档),
+而不是在一个 onClick 里分支。
+
+**不建议现在删。** BTN-4 要折进来的 `ReasonPrompt` 8 个调用点里,
+有几处是表单内嵌的形状,可能正需要它。**但也不要以为它在用** ——
+这一条存在的全部意义,就是让下一个人不必去查这件事。
+**折完 BTN-4 之后如果它仍然是 0,那时删它。**
 
 ---
 

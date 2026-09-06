@@ -296,7 +296,7 @@ export default async function PaymentDetailPage({
                 转换前它就在这一块 div 里(CONV-8 §③ 记的那个实测)。 */}
             <RecordHeader
                 fields={fields}
-                actions={payment.status === 'posted' ? <ReversePaymentButton paymentId={payment.id} /> : undefined}
+                actions={payment.status === 'posted' ? <ReversePaymentButton paymentId={payment.id} subject={payment.code} /> : undefined}
             />
 
             {payment.notes && (

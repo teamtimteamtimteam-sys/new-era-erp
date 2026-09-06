@@ -157,6 +157,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                     cancel: t('common.cancel'),
                     del: t('tasks.header.del'),
                     confirmDelete: t('tasks.header.confirmDelete'),
+                    deleteConfirmTitle: t('tasks.header.deleteConfirmTitle'),
+                    softDeleteNote: t('common.softDeleteNote'),
                     title: t('tasks.form.title'),
                     description: t('tasks.form.description'),
                     status: t('tasks.form.status'),

@@ -160,7 +160,7 @@ export default async function StocktakeReviewPage({
 
             <p className="text-sm text-gray-600 mb-4">{t('stocktakes.reviewNote')}</p>
 
-            <PostButton stocktakeId={id} />
+            <PostButton stocktakeId={id} subject={st.code} />
         </ListPage>
     )
 }

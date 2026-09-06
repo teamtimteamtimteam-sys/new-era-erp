@@ -375,7 +375,7 @@ export default async function OutputAssayDetailPage({
             {/* 最近一次已应用的化验可以撤销(不回含量 —— 控件里挂着提醒)*/}
             {isLatestApplied && (
                 <section className="border-t pt-6">
-                    <UnapplyOutputAssayControl assayId={assayId} batchId={id} />
+                    <UnapplyOutputAssayControl assayId={assayId} batchId={id} subject={`${assay.code} · ${batch.code}`} />
                 </section>
             )}
         </div>

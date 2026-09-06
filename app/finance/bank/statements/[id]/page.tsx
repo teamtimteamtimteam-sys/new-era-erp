@@ -207,7 +207,7 @@ export default async function BankStatementDetailPage({
                                         : '—',
                                 })}
                             </span>
-                            <UnreconcileControl statementId={stmt.id} />
+                            <UnreconcileControl statementId={stmt.id} subject={stmt.code} />
                         </div>
                     )}
 
@@ -375,7 +375,7 @@ export default async function BankStatementDetailPage({
                         ? [{ label: t('bank.reconciledAt'), value: formatTimestamp(stmt.reconciled_at, dateLocale) }]
                         : []),
                 ]}
-                actions={stmt.status === 'open' ? <DeleteStatementButton statementId={stmt.id} /> : undefined}
+                actions={stmt.status === 'open' ? <DeleteStatementButton statementId={stmt.id} subject={stmt.code} /> : undefined}
             />
 
             {stmt.notes && (

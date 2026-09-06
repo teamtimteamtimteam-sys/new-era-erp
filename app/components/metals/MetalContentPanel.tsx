@@ -4,6 +4,7 @@
 // 所以面板本身从不接触 id。结构镜像 suppliers 的 AttachmentsPanel(mt-8 pt-8 border-t + 表格 + 录入行)。
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import DecimalInput from '../forms/DecimalInput'
 import {
     type MetalContentRow,
@@ -89,7 +90,6 @@ export default function MetalContentPanel({
     }
 
     function handleDelete(metal: string) {
-        if (!window.confirm(t('metalContent.deleteConfirm'))) return
         setError(null)
         startTransition(async () => {
             const result = await deleteAction(metal)
@@ -161,14 +161,18 @@ export default function MetalContentPanel({
                                     {r.updated_at_display}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDelete(r.metal)}
+                                    {/* CONFIRM-1:主语就是那一行的金属 —— 与首列读到的字一样。 */}
+                                    <ConfirmButton
+                                        subject={metalLabel(r.metal)}
+                                        title={t('metalContent.deleteConfirm')}
+                                        confirmLabel={t('common.delete')}
+                                        tier="destructive"
                                         disabled={isPending}
                                         className="text-red-600 text-sm hover:underline disabled:text-gray-400"
+                                        onConfirm={() => handleDelete(r.metal)}
                                     >
                                         {t('common.delete')}
-                                    </button>
+                                    </ConfirmButton>
                                 </td>
                             </tr>
                         ))}

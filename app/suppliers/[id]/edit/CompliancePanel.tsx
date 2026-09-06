@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { addCompliance, deleteCompliance } from './complianceActions'
 import { useTranslations } from '@/lib/i18n/client'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { Button } from '@/app/components/ui/button'
 
 type ComplianceRow = {
@@ -62,7 +63,6 @@ export default function CompliancePanel({
     }
 
     function handleDelete(id: string) {
-        if (!window.confirm(t('suppliers.compliance.deleteConfirm'))) return
         startTransition(async () => {
             const result = await deleteCompliance(id, supplierId)
             if (result?.error) {
@@ -115,14 +115,21 @@ export default function CompliancePanel({
                                         {expired && t('suppliers.compliance.expired')}
                                     </td>
                                     <td className="border border-gray-300 px-4 py-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDelete(row.id)}
+                                        {/* CONFIRM-1:「确定删除这张证书吗?」答不上来是哪一张。
+                                            主语 = 证书类型 + 证号(证号可以为空,那就只报类型)。 */}
+                                        <ConfirmButton
+                                            subject={row.cert_no
+                                                ? `${typeLabel(row.cert_type_code)} · ${row.cert_no}`
+                                                : typeLabel(row.cert_type_code)}
+                                            title={t('suppliers.compliance.deleteConfirm')}
+                                            confirmLabel={t('suppliers.compliance.deleteCert')}
+                                            tier="destructive"
                                             disabled={isPending}
                                             className="text-red-600 text-sm hover:underline disabled:text-gray-400"
+                                            onConfirm={() => handleDelete(row.id)}
                                         >
                                             {t('suppliers.compliance.deleteCert')}
-                                        </button>
+                                        </ConfirmButton>
                                     </td>
                                 </tr>
                             )

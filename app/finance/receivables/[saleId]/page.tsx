@@ -250,7 +250,7 @@ export default async function ReceivableDocPage({
                   恒为 'ok',children 永远画,所以它不可能被空分支吃掉。 */}
             {attributable && (
                 <div className="mb-6">
-                    <AttributeCustomerControl saleId={sale.id} customers={customerOptions} />
+                    <AttributeCustomerControl saleId={sale.id} subject={batch ? `${batch.code} · ${sale.sale_date}` : sale.sale_date} customers={customerOptions} />
                 </div>
             )}
 

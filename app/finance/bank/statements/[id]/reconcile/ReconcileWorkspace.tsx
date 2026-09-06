@@ -17,6 +17,7 @@ import {
     completeReconciliation,
 } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
 export type StatementLine = {
     id: string
@@ -194,7 +195,6 @@ export default function ReconcileWorkspace({
     }
 
     function handleComplete() {
-        if (!window.confirm(t('bank.reconcileConfirm', { code: statement.code }))) return
         // 【按钮不因差额而变灰】灰掉的按钮等于把规则在页面上再实现一遍,
         // 而两份实现会漂开;何况一个没有相邻理由的死控件,人会靠猜去绕。
         // 服务端始终是权威 —— 这里只把人填的东西原样递过去。
@@ -655,14 +655,20 @@ export default function ReconcileWorkspace({
 
             {/* 底栏:完成对账(全部行处理完才可用)*/}
             <div className="mt-6 border-t pt-4 flex flex-wrap items-center gap-4">
-                <button
-                    type="button"
+                {/* CONFIRM-1:主语是报表代号 —— 它就印在这一页的抬头上(见上方
+                    statement.code),没有遮蔽。★ 这里【不】把差额放进主语:
+                    金额是 data.view_prices 那一类东西,而主语是无条件渲染的。 */}
+                <ConfirmButton
+                    subject={statement.code}
+                    title={t('bank.reconcileConfirm', { code: statement.code })}
+                    confirmLabel={t('bank.reconcileButton')}
+                    tier="destructive"
                     disabled={!allHandled || isPending}
-                    onClick={handleComplete}
+                    onConfirm={handleComplete}
                     className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400"
                 >
                     {t('bank.reconcileButton')}
-                </button>
+                </ConfirmButton>
                 {!allHandled && (
                     <span className="text-sm text-gray-600">
                         {t('bank.outstandingCount', { n: groups.unmatched.length })}

@@ -11,6 +11,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { addDictValue, updateDictValue, setDictActive } from './actions'
 import type { DictSpec } from './registry'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 
 export type DictRow = {
@@ -90,16 +91,31 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                             className="mr-2 rounded border border-[color:var(--brand-border)] px-2 py-0.5 text-xs hover:bg-[color:var(--brand-muted)] disabled:opacity-50">
                         {t('common.edit')}
                     </button>
-                    <button type="button" disabled={pending}
-                            onClick={() => {
-                                // 【D2/D4:停用之前把那个数说出来,并说清它【不是】删除】
-                                if (r.is_active && !window.confirm(
-                                    t('dict.confirmDeactivate', { 0: r.code, 1: String(usage[r.code] ?? 0) }))) return
-                                run(() => setDictActive({ table: spec.table, code: r.code, active: !r.is_active }))
-                            }}
+                    {/* ★【CONFIRM-1:这一处是 B 类的教科书例子】★ 一节字典有几十行,
+                        每行一个「停用」钮,而原来的灰盒子问的是「Deactivate {0}?」——
+                        码是拼进消息里的,可【拼进去的东西冒烟点不到,也读不出】。
+                        现在码与名字进了独立的主语格,探针能单独把它读出来。
+                        ☞ 只有【停用】那一侧要确认:重新启用是可逆的,原来也没有问。
+                           两侧的 className 逐字相同(触发钮的画法归 BTN-2/BTN-3)。 */}
+                    {r.is_active ? (
+                        <ConfirmButton
+                            subject={`${r.code} — ${label(r)}`}
+                            // 【D2/D4:停用之前把那个数说出来,并说清它【不是】删除】
+                            title={t('dict.confirmDeactivate', { 0: r.code, 1: String(usage[r.code] ?? 0) })}
+                            confirmLabel={t('dict.deactivate')}
+                            tier="destructive"
+                            disabled={pending}
+                            onConfirm={() => run(() => setDictActive({ table: spec.table, code: r.code, active: false }))}
                             className="rounded border border-[color:var(--brand-border)] px-2 py-0.5 text-xs hover:bg-[color:var(--brand-muted)] disabled:opacity-50">
-                        {r.is_active ? t('dict.deactivate') : t('dict.reactivate')}
-                    </button>
+                            {t('dict.deactivate')}
+                        </ConfirmButton>
+                    ) : (
+                        <button type="button" disabled={pending}
+                                onClick={() => run(() => setDictActive({ table: spec.table, code: r.code, active: true }))}
+                                className="rounded border border-[color:var(--brand-border)] px-2 py-0.5 text-xs hover:bg-[color:var(--brand-muted)] disabled:opacity-50">
+                            {t('dict.reactivate')}
+                        </button>
+                    )}
                 </>
             ),
         } as Column<DictRow>]),

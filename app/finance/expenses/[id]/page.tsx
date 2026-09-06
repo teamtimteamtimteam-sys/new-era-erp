@@ -287,7 +287,7 @@ export default async function ExpenseDetailPage({
             {/* ★ 记录抬头 —— 冲销钮住 actions 槽(一个动作不是一个值)。 */}
             <RecordHeader
                 fields={fields}
-                actions={expense.status === 'posted' ? <ReverseExpenseButton expenseId={expense.id} /> : undefined}
+                actions={expense.status === 'posted' ? <ReverseExpenseButton expenseId={expense.id} subject={expense.code} /> : undefined}
             />
 
             {/* EQP-1c-b(P5):设备侧的冲抵门。只在【这张费用单确实挂在一条采购单行上】

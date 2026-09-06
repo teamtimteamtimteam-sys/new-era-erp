@@ -11,6 +11,7 @@ import {
     deleteAttachment,
 } from './attachmentActions'
 import { useTranslations } from '@/lib/i18n/client'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { ATTACHMENT_ACCEPT, isAllowedAttachmentType } from './attachmentTypes'
 import { Button } from '@/app/components/ui/button'
 
@@ -150,7 +151,6 @@ export default function AttachmentsPanel({
     }
 
     function handleDelete(id: string) {
-        if (!window.confirm(t('customers.attachments.deleteConfirm'))) return
         startTransition(async () => {
             const result = await deleteAttachment(id, customerId)
             if (result?.error) {
@@ -197,14 +197,20 @@ export default function AttachmentsPanel({
                                         {t('customers.attachments.download')}
                                     </button>
                                     <span className="mx-2 text-gray-300">|</span>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleDelete(row.id)}
+                                    {/* CONFIRM-1:这一列每行都长得一样,所以"删除这个附件?"
+                                        答不上来【哪一个】—— 文件名一直就在 row 上。 */}
+                                    <ConfirmButton
+                                        subject={row.file_name}
+                                        title={t('customers.attachments.deleteConfirm')}
+                                        body={t('common.softDeleteFileNote')}
+                                        confirmLabel={t('customers.attachments.deleteFile')}
+                                        tier="destructive"
                                         disabled={isPending}
                                         className="text-red-600 text-sm hover:underline disabled:text-gray-400"
+                                        onConfirm={() => handleDelete(row.id)}
                                     >
                                         {t('customers.attachments.deleteFile')}
-                                    </button>
+                                    </ConfirmButton>
                                 </td>
                             </tr>
                         ))}

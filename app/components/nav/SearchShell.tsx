@@ -1,3 +1,5 @@
+'use client'
+
 // app/components/nav/SearchShell.tsx
 // ════════════════════════════════════════════════════════════════════════════
 // UI-1a ①:顶栏上那个小搜索框 —— 一个【外壳】,而它不许假装能用
@@ -40,26 +42,64 @@
 //   ★ 为什么这一条要紧 ★:同一个问题的第二种问法,正是 lib/loginRoute.ts 那两个
 //     谓词、那两份写死的 /suppliers 的来路。这个仓库为它付过两次账。
 //
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【CONFIRM-1(2026-09-06):上面那套 x-pathname 的读法【坏了】,坏法值得读完】★★
+// ════════════════════════════════════════════════════════════════════════════
+//
+// 【症状】Tim 在生产上看到的是「哪一页都不画」—— 桌面、满屏、每一个角色。
+// 而上面写的规矩是「只有首页不画」。
+//
+// 【机制,一句话】**这个组件住在【根布局】里,而 App Router 在客户端软导航时
+// 不重画根布局。** UI-1b 把登录落点从 /me 改成了 `/`(lib/loginRoute.ts:148),
+// 于是每一个人进系统的第一跳都落在首页,根布局那一次求值得到 `null` ——
+// 然后他点着 <Link> 走遍整个系统,而**那个 null 跟着他一整个会话**。
+//
+// ★【为什么没有任何检查抓到它】★ COPY-1 报过「/ → 0 · 别的页 → 1 each」,
+//   而那是真的、是绿的:**一次脚本 fetch 是【硬导航】,根布局当场重画。**
+//   两边都没有撒谎 —— 那条判据量的那个状态,【人从来不会到达】。
+//   实测,同一个会话、同一个宽度、同一条路由,唯一的变量是【怎么到达】:
+//       硬导航 /me → present=true  visible=true  box=200x32
+//       软导航 /me → present=false visible=false "not in DOM at all"
+//   判据现在钉在 scripts/probe-search-shell.mjs 上(S3b 就是那一格)。
+//
+// 【修的是【谁来问】,不是【问什么】】HOME_PATH 与那条规矩一个字都没改 ——
+// 换掉的只是求值时机:`headers()` 一个会话求值一次,`usePathname()` 每次软导航
+// 都重新求值。Tim 裁定不走"每一页自己排除首页"那条路:**一条要每一页记得
+// 履行的义务会漂**,而那正是他拒绝两套确认习惯的同一条理由。
+//
+// 【这一步的代价,量过了才写在这里】'use client' 【不等于】不在服务端渲染 ——
+// 客户端组件照样出现在首屏 HTML 里,`usePathname()` 在 SSR 期就返回对的路径。
+// 所以首屏不闪、不跳版:probe 的 S5/S6 两格量的就是这件事(SSR 的 HTML 里
+// 非首页有这一格、首页没有)。真正失去的只有"服务端组件"这个身份本身,
+// 而它本来就不取任何数据 —— 读的只有路径,与两句已经在客户端可用的文案。
+//
+// ★【打包体积的增量:【刻意没有量】,而这不是疏忽】★(Tim 在 CONFIRM-1 裁定)
+//   它现在会进客户端包,而进去的东西是:一个 <details>、一个行内 SVG、两句文案。
+//   **这个数无论是多少,都改变不了任何一个决定** —— 而量它要花一次构建。
+//   本仓库那条「写下来的成本必须是量过的成本」管的是【会被拿来做决定】的数;
+//   一个不会进入任何决定的数,正确的处置是【说清楚没量,以及为什么】,
+//   而不是量一个没人会用的数字,也不是假装它不存在。
+// ════════════════════════════════════════════════════════════════════════════
+//
 // ★【HOME_PATH 与 lib/loginRoute.ts 的 LANDING_PATH 【今天是同一个字符串,
 //   而它们不是同一件事】】★ 后者答的是「登录之后落在哪一页」,前者答的是
 //   「哪一页自己有一个大搜索框,所以顶栏不必再放一个」。UI-1b 刚把落点从 /me
 //   改成 /,那两个问题恰好撞在一起;把它们绑成一个常量,下一次改落点就会顺手
 //   改掉一件与落点无关的事。**FIX-1 为 isPublicPath / isBareChromePath 立过
 //   同一条:两个问题,两个名字。**
-import { headers } from 'next/headers'
-import { getTranslations } from '@/lib/i18n/server'
+import { usePathname } from 'next/navigation'
+import { useTranslations } from '@/lib/i18n/client'
 
 /** 首页 —— 那一页自己有大搜索框(app/page.tsx),顶栏这一格因此让位。 */
 const HOME_PATH = '/'
 
-export default async function SearchShell() {
-    // 【中间件没设这个头时按"不是首页"处理】—— 那时画出这一格,最坏的后果是
-    // 首页上多一个诚实标着「尚未启用」的框,而漏画的后果是【每一页都没有搜索入口】。
-    // 两种失败不对称,所以默认值倒向后者不会发生的那一侧。
-    const pathname = (await headers()).get('x-pathname') ?? ''
+export default function SearchShell() {
+    // ★ 判据【一个字没改】,改的是【谁来问】—— 见上面 CONFIRM-1 那一段。
+    //   usePathname() 在每一次软导航上重新求值,而 headers() 一个会话只求值一次。
+    const pathname = usePathname() ?? ''
     if (pathname === HOME_PATH) return null
 
-    const t = await getTranslations()
+    const t = useTranslations()
     return (
         <details className="relative hidden md:block" data-nav="search-shell">
             <summary

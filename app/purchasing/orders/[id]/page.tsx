@@ -550,6 +550,7 @@ export default async function PurchaseOrderDetailPage({
                     {(po.status === 'confirmed' || po.status === 'receiving') && (
                         <CloseOrderControl
                             poId={po.id}
+                            subject={po.code}
                             unappliedPrepayment={canFinance ? Number(poStatus?.prepaid_remaining_base ?? 0) : null}
                             baseCurrency={baseCurrency}
                         />
@@ -579,7 +580,7 @@ export default async function PurchaseOrderDetailPage({
                             <span className="text-xs text-amber-700 mt-1">{t('purchasing.amendClosedWhy')}</span>
                         </span>
                     ))}
-                    {po.status === 'closed' && <ReopenOrderControl poId={po.id} />}
+                    {po.status === 'closed' && <ReopenOrderControl poId={po.id} subject={po.code} />}
                     {/* FIX-2(B1):挡住时也把控件画出来 —— 变灰 + 一句话,不是消失。 */}
                     {!isCancelled && po.status !== 'closed' && (
                         <CancelOrderControl poId={po.id} blockedWhy={cancelWhy} />
@@ -702,7 +703,7 @@ export default async function PurchaseOrderDetailPage({
                 关着的时候不渲染 —— 那不是"被挡住",是这个问题【不适用】
                 (没有人做过决定,也就没有决定可改)。 */}
             {approvalsOn && po.approval_status === 'pending' && !isCancelled && (
-                <ApprovalControls poId={po.id} />
+                <ApprovalControls poId={po.id} subject={po.code} />
             )}
 
             {/* PUR-1:采购单单据(规格:docs/purchase-order-document.md)。

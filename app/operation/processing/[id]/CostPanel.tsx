@@ -4,6 +4,7 @@
 // 底部一个共用表单:editingId 为空 = 新增,非空 = 编辑该行(表单按 key 重挂载以带入默认值)。
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { formatMoneyBare } from '@/lib/format'
 import { COST_TYPE_OPTIONS, costTypeLabelKey, type CostEntryRow } from './costTypes'
 import { addCostEntry, updateCostEntry, softDeleteCostEntry } from './costActions'
@@ -93,10 +94,20 @@ export default function CostPanel({
                         {t('processing.cost.edit')}
                     </button>
                     <span className="mx-2 text-gray-300">|</span>
-                    <button type="button" onClick={() => handleDelete(e.id)} disabled={isPending}
-                            className="text-red-600 text-sm hover:underline disabled:text-gray-400">
+                    {/* CONFIRM-1:主语用【身份列】那一格的字 —— 成本种类,有备注就带上备注。
+                        ★ 金额【刻意不放进主语】:它走 MaskedValue + canViewPrices,
+                          把它拼进对话框会绕过那道遮罩,对没有看价权限的人泄一个数。 */}
+                    <ConfirmButton
+                        subject={e.notes ? `${typeLabel(e.cost_type)} · ${e.notes}` : typeLabel(e.cost_type)}
+                        title={t('processing.cost.deleteConfirm')}
+                        confirmLabel={t('common.delete')}
+                        tier="destructive"
+                        disabled={isPending}
+                        className="text-red-600 text-sm hover:underline disabled:text-gray-400"
+                        onConfirm={() => handleDelete(e.id)}
+                    >
                         {t('common.delete')}
-                    </button>
+                    </ConfirmButton>
                 </>
             ),
         },
@@ -120,7 +131,6 @@ export default function CostPanel({
     }
 
     function handleDelete(id: string) {
-        if (!window.confirm(t('processing.cost.deleteConfirm'))) return
         setError(null)
         startTransition(async () => {
             const result = await softDeleteCostEntry(id)

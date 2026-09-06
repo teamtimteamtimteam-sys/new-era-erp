@@ -17,15 +17,15 @@ import { useRouter } from 'next/navigation'
 import ReasonPrompt from '@/app/components/ReasonPrompt'
 import { approveOrder, rejectOrder } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
-export default function ApprovalControls({ poId }: { poId: string }) {
+export default function ApprovalControls({ poId, subject }: { poId: string; subject: string }) {
     const t = useTranslations()
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState('')
 
-    function approve() {
-        if (!window.confirm(t('purchasing.approveConfirm'))) return
+    function doApprove() {
         setError('')
         startTransition(async () => {
             const res = await approveOrder(poId, '')
@@ -40,14 +40,18 @@ export default function ApprovalControls({ poId }: { poId: string }) {
             {/* 批准之前先说清楚它做了什么:把单据推到 confirmed,从此收得了货、付得了预付 */}
             <p className="text-xs text-gray-700 mb-3">{t('purchasing.approvalPanelWhat')}</p>
             <div className="flex flex-wrap items-start gap-3">
-                <button
-                    type="button"
-                    onClick={approve}
+                <ConfirmButton
+                    subject={subject}
+                    title={t('purchasing.approveConfirm')}
+                    body={t('purchasing.approvalPanelWhat')}
+                    confirmLabel={t('purchasing.approveOrder')}
+                    tier="destructive"
                     disabled={isPending}
                     className="border border-green-500 text-green-700 px-3 py-1.5 rounded text-sm hover:bg-green-50 disabled:opacity-50"
+                    onConfirm={doApprove}
                 >
                     {isPending ? t('common.saving') : t('purchasing.approveOrder')}
-                </button>
+                </ConfirmButton>
                 <ReasonPrompt
                     triggerLabel={t('purchasing.rejectOrder')}
                     title={t('purchasing.rejectConfirm')}

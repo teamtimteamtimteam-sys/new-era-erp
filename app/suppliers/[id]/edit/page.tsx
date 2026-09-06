@@ -182,7 +182,7 @@ export default async function EditSupplierPage({
                 </span>
             </p>
 
-            <StatusPanel id={supplier.id} currentStatus={supplier.status} />
+            <StatusPanel id={supplier.id} subject={supplier.code} currentStatus={supplier.status} />
             {/* GRN-2:摆在编辑表单【之前】—— 决定要不要再跟这家下单的人,
                 该先读到这家的收货记录,而不是先看到一堆可改的字段。 */}
             <ReceiptPatternPanel

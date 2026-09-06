@@ -1,18 +1,19 @@
 'use client'
 
-// 期间锁表单:日期 + 设置(confirm)/ 解除(confirm)。失败 alert,成功由 revalidate 刷新展示。
+// 期间锁表单:日期 + 设置(确认)/ 解除(确认)。失败 alert,成功由 revalidate 刷新展示。
+// CONFIRM-1:两处确认都换成 ConfirmButton。主语是【那个日期】—— 一个"要不要锁?"
+// 的灰盒子答不出锁到哪一天,而锁到哪一天正是这次点击的全部内容。
 import { useState, useTransition } from 'react'
 import { setPeriodLock } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
-import { Button } from '@/app/components/ui/button'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
 export default function LockForm({ lockedBefore }: { lockedBefore: string | null }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
     const [date, setDate] = useState(lockedBefore ?? '')
 
-    function submit(value: string | null, confirmKey: string) {
-        if (!window.confirm(t(confirmKey))) return
+    function submit(value: string | null) {
         startTransition(async () => {
             const result = await setPeriodLock(value)
             if (result?.error) {
@@ -40,19 +41,31 @@ export default function LockForm({ lockedBefore }: { lockedBefore: string | null
             {!date && (
                 <p className="text-sm text-amber-700 self-center">{t('finance.blockedLockDate')}</p>
             )}
-            <Button
-                onClick={() => date && submit(date, 'finance.lockConfirm')}
+            <ConfirmButton
+                subject={date}
+                title={t('finance.lockConfirm')}
+                confirmLabel={t('finance.setLock')}
+                tier="destructive"
+                triggerVariant="default"
                 disabled={isPending || !date}
+                onConfirm={() => submit(date)}
             >
                 {isPending ? t('common.saving') : t('finance.setLock')}
-            </Button>
+            </ConfirmButton>
             {lockedBefore && (
-                <Button variant="reversal"
-                    onClick={() => submit(null, 'finance.unlockConfirm')}
+                // 解除锁的主语是【现在锁在哪一天】,不是输入框里那个可能已经被改过的值 ——
+                // 解除动作传的是 null,它作用于既有的那道锁。
+                <ConfirmButton
+                    subject={lockedBefore}
+                    title={t('finance.unlockConfirm')}
+                    confirmLabel={t('finance.unlock')}
+                    tier="reversal"
+                    triggerVariant="reversal"
                     disabled={isPending}
+                    onConfirm={() => submit(null)}
                 >
                     {t('finance.unlock')}
-                </Button>
+                </ConfirmButton>
             )}
         </div>
     )

@@ -7,9 +7,14 @@
 // 是在让人用一次真实的状态变更去阅读说明书。
 //
 // 【为什么不是 checkbox onChange】那会在人读完那三行字之前就把状态改掉。
+//
+// CONFIRM-1:两个方向各自换成 ConfirmButton。★ 主语是【那个注册号】—— 开的那一侧
+//   是人刚敲进去的 regNo(它就要被写成公司的 GST 号),关的那一侧是【现在生效的
+//   那一个】registrationNo。两者都已经在上面那条状态横幅里原样印着,没有遮蔽。
 import { useState, useTransition } from 'react'
 import { setGstRegistration } from './gstActions'
 import { useTranslations } from '@/lib/i18n/client'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
 export default function GstPanel({
     registered,
@@ -22,8 +27,7 @@ export default function GstPanel({
     const [isPending, startTransition] = useTransition()
     const [regNo, setRegNo] = useState(registrationNo ?? '')
 
-    function submit(on: boolean, confirmKey: string) {
-        if (!window.confirm(t(confirmKey))) return
+    function submit(on: boolean) {
         startTransition(async () => {
             const result = await setGstRegistration(on, regNo)
             if (result?.error) alert(result.error)
@@ -70,13 +74,17 @@ export default function GstPanel({
                                 className="border border-gray-300 px-3 py-2 rounded font-mono"
                             />
                         </div>
-                        <button
-                            onClick={() => submit(true, 'finance.gstSwitch.confirmOn')}
+                        <ConfirmButton
+                            subject={regNo}
+                            title={t('finance.gstSwitch.confirmOn')}
+                            confirmLabel={t('finance.gstSwitch.turnOn')}
+                            tier="destructive"
+                            onConfirm={() => submit(true)}
                             disabled={isPending || regNoBlank}
                             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
                         >
                             {t('finance.gstSwitch.turnOn')}
-                        </button>
+                        </ConfirmButton>
                     </div>
                     {/* 【禁用必须说出为什么】CMP-2:每个禁钮条件都有紧邻的一行字 */}
                     {regNoBlank && (
@@ -87,13 +95,17 @@ export default function GstPanel({
                 <>
                     {/* 关的那一侧:先说清楚它【可能关不掉】,以及为什么 */}
                     <p className="text-sm text-gray-600 mb-3">{t('finance.gstSwitch.turningOffHint')}</p>
-                    <button
-                        onClick={() => submit(false, 'finance.gstSwitch.confirmOff')}
+                    <ConfirmButton
+                        subject={registrationNo ?? regNo}
+                        title={t('finance.gstSwitch.confirmOff')}
+                        confirmLabel={t('finance.gstSwitch.turnOff')}
+                        tier="destructive"
+                        onConfirm={() => submit(false)}
                         disabled={isPending}
                         className="border border-gray-400 px-4 py-2 rounded hover:bg-gray-50 disabled:text-gray-400"
                     >
                         {t('finance.gstSwitch.turnOff')}
-                    </button>
+                    </ConfirmButton>
                 </>
             )}
 

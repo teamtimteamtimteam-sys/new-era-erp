@@ -66,7 +66,7 @@ export default async function EditMetalPricePage({
 
             <div className="flex items-start justify-between mb-6">
                 <h1 className="text-2xl font-bold">{t('metalPrices.editTitle')}</h1>
-                <DeleteButton id={row.id} />
+                <DeleteButton id={row.id} subject={`${row.metal} · ${row.price_date}`} />
             </div>
 
             <EditMetalPriceForm substanceOptions={substanceOptions} indices={indices} locale={locale} row={row} />

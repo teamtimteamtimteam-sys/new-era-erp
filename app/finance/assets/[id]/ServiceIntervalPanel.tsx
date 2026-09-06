@@ -41,6 +41,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { saveServiceInterval, deleteServiceInterval } from './actions'
 import { Button } from '@/app/components/ui/button'
 
@@ -284,11 +285,22 @@ export default function ServiceIntervalPanel({
                                                 className="border border-gray-400 px-2 py-0.5 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
                                             {t('equipment.intervals.edit')}
                                         </button>
-                                        <button type="button" disabled={pending}
-                                                onClick={() => { if (confirm(t('equipment.intervals.stopConfirm'))) run(() => deleteServiceInterval(assetId, r.interval_id as string)) }}
-                                                className="border border-gray-400 px-2 py-0.5 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                                        {/* ★ CONFIRM-1:stopConfirm 那一整句【一个字都没删】——
+                                            它说清了后果,还给出了更轻的做法(「只记录,不上看板」),
+                                            是本仓库最好的一条确认文案。它进【正文槽】,
+                                            标题另起一句短的。主语 = 这一行那一种活。 */}
+                                        <ConfirmButton
+                                            subject={t('equipment.kind.' + (r.service_kind ?? 'service'))}
+                                            title={t('equipment.intervals.stopConfirmTitle')}
+                                            body={t('equipment.intervals.stopConfirm')}
+                                            confirmLabel={t('equipment.intervals.stop')}
+                                            tier="destructive"
+                                            disabled={pending}
+                                            className="border border-gray-400 px-2 py-0.5 rounded text-xs hover:bg-gray-50 disabled:opacity-50"
+                                            onConfirm={() => run(() => deleteServiceInterval(assetId, r.interval_id as string))}
+                                        >
                                             {t('equipment.intervals.stop')}
-                                        </button>
+                                        </ConfirmButton>
                                     </div>
                                 )}
                             </div>

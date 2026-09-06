@@ -13,6 +13,7 @@ import {
     deleteFinanceAttachment,
 } from './financeAttachmentActions'
 import { useTranslations } from '@/lib/i18n/client'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import {
     FINANCE_ATTACHMENT_ACCEPT,
     FINANCE_DOC_TYPES,
@@ -136,7 +137,6 @@ export default function FinanceAttachmentsPanel({
     }
 
     function handleDelete(id: string) {
-        if (!window.confirm(t('finAttach.deleteConfirm'))) return
         startTransition(async () => {
             const result = await deleteFinanceAttachment(id, parent)
             if (result?.error) {
@@ -212,14 +212,19 @@ export default function FinanceAttachmentsPanel({
             header: '',
             className: 'whitespace-nowrap',
             render: (row) => (
-                <button
-                    type="button"
-                    onClick={() => handleDelete(row.id)}
+                // CONFIRM-1:四张详情页共用这张表,每行一个删除钮 ——
+                // "删除该附件?" 答不上来是哪一个。文件名一直就在 row 上。
+                <ConfirmButton
+                    subject={row.file_name}
+                    title={t('finAttach.deleteConfirm')}
+                    confirmLabel={t('common.delete')}
+                    tier="destructive"
                     disabled={isPending}
                     className="text-red-600 text-sm hover:underline disabled:text-gray-400"
+                    onConfirm={() => handleDelete(row.id)}
                 >
                     {t('common.delete')}
-                </button>
+                </ConfirmButton>
             ),
         },
     ]

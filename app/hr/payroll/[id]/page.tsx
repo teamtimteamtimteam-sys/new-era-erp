@@ -133,6 +133,7 @@ export default async function PayrollDetailPage({
                         </Link>
                         <PostPayrollButton
                             periodId={id}
+                            subject={`${period.period_month?.slice(0, 7)} · ${period.code}`}
                             currency={period.currency}
                             bankAccount={bankAccount}
                             totals={{
@@ -215,7 +216,7 @@ export default async function PayrollDetailPage({
 
             {/* ★ 出口检查:反过账控件只在已过账时出现,住 children;
                   state 恒为 'ok',所以它不可能被空分支吃掉。 */}
-            {isPosted && <UnpostPayrollControl periodId={id} />}
+            {isPosted && <UnpostPayrollControl periodId={id} subject={`${period.period_month?.slice(0, 7)} · ${period.code}`} />}
         </ListPage>
     )
 }

@@ -193,7 +193,7 @@ export default async function JournalDetailPage({
                         ),
                     },
                 ]}
-                actions={entry.status === 'posted' ? <ReverseButton entryId={entry.id} /> : undefined}
+                actions={entry.status === 'posted' ? <ReverseButton entryId={entry.id} subject={entry.code} /> : undefined}
             />
 
             {entry.memo && (

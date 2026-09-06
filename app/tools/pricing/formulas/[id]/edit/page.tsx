@@ -98,7 +98,7 @@ export default async function EditFormulaPage({
                     {t('pricing.listTitle')}
                     <span className="ml-3 font-mono text-base text-gray-500">{formula.code}</span>
                 </h1>
-                <DeleteFormulaButton formulaId={formula.id} />
+                <DeleteFormulaButton formulaId={formula.id} subject={formula.code} />
             </div>
             <FormulaForm
                 substanceOptions={substanceOptions}
