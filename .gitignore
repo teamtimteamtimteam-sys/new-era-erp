@@ -66,3 +66,6 @@ lib/database.types.ts.tmp
 # 【不提交,但也不放进 /tmp】—— 一次删除的备份必须比这次会话活得久,
 # 而它同时是运行时快照,不是源码。位置写进了 docs/known-wrong-until-cutover.md。
 /.backups/
+
+# LEAK-1:一次性账号的清理计划(每个 pid 一份,跑完即删;留下来的由 reap-ephemeral 补删)
+.ephemeral/

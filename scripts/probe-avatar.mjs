@@ -30,6 +30,7 @@ import { spawn, execSync } from 'node:child_process'
 import { createConnection } from 'node:net'
 import sharp from 'sharp'
 import { acquireOrExit, release } from './liveLock.mjs'
+import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, ORDER } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3201                 // 3198 是 survey-phone 的,3199 是冒烟的
@@ -68,13 +69,9 @@ const cleanupFailures = []
 //   'application/json'」。实测踩过一次,而那次的红【看起来像】"对象删不掉"。
 const restNoJson = (p, o = {}) => fetch(URL_ + p, { ...o, headers: {
     apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, ...(o.headers || {}) } })
-async function restCleanup(p, o, what, noJson = false) {
-    try {
-        const r = await (noJson ? restNoJson : rest)(p, o)
-        if (!r.ok) cleanupFailures.push(`${what} → HTTP ${r.status} ${(await r.text()).slice(0, 160)}`)
-    } catch (e) { cleanupFailures.push(`${what} → ${e.message}`) }
-}
-
+// ★ LEAK-1(2026-09-06):这里原来有一个 restCleanup —— 账号与授权的删除
+//   现在【只有一份实现】,在 scripts/ephemeral.mjs 里。把它留在这里是一个邀请:
+//   下一个人会用它绕开那份"先落盘的清理计划",而计划正是 SIGKILL 之后唯一的凭据。
 async function waitPort(port, ms) {
     const t0 = Date.now()
     for (;;) {
@@ -90,7 +87,9 @@ async function waitPort(port, ms) {
 }
 
 async function main() {
-    acquireOrExit('scripts/probe-avatar.mjs')
+    acquireOrExit('scripts/probe-avatar.mjs', { ownExit: false })
+    openPlan('scripts/probe-avatar.mjs')
+    await reapStalePlans()
     if (!REMOTE && !existsSync(join(ROOT, '.next/BUILD_ID')))
         throw new Error('.next/BUILD_ID 不在 —— 这一支要跑在【生产构建】上。先 npm run build。')
     if (!existsSync(CHROME)) throw new Error('chrome-headless-shell not at ' + CHROME)
@@ -103,9 +102,13 @@ async function main() {
         body: JSON.stringify({ email, password: 'avatar-probe-1', email_confirm: true }) })).json()
     accountId = cu.id
     if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
+    // ★ LEAK-1:清理计划【先于】它要清的东西落盘,顺序是先收权限再删账号。
+    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke grant ${accountId}`, ORDER.GRANT)
+    planDelete(`/auth/v1/admin/users/${accountId}`, `delete account ${accountId}`, ORDER.ACCOUNT)
     avatarPath = `${accountId}.webp`
     const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify({ user_id: accountId, role_id: roles[0].id }) })
+    await rest('/rest/v1/user_roles', { method: 'POST',
+        body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
     const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
         headers: { apikey: ANON, 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: 'avatar-probe-1' }) })).json()
@@ -387,8 +390,9 @@ async function cleanup() {
             if (still.status < 400) cleanupFailures.push(`avatar object ${avatarPath} 还在(源站 HTTP ${still.status})`)
         }
         if (accountId) {
-            await restCleanup(`/rest/v1/user_roles?user_id=eq.${accountId}`, { method: 'DELETE' }, `revoke grant ${accountId}`)
-            await restCleanup(`/auth/v1/admin/users/${accountId}`, { method: 'DELETE' }, `delete account ${accountId}`)
+            // ★ LEAK-1:账号与授权的删除【只有一份实现】,在 scripts/ephemeral.mjs。
+            //   它同时把这份计划从盘上销掉;跑不到的话,下一次开跑会照计划补删。
+            await runPlan()
             const chk = await rest(`/rest/v1/user_roles?select=user_id&user_id=eq.${accountId}`)
             const left = await chk.json()
             if (Array.isArray(left) && left.length) cleanupFailures.push(`DANGLING ADMIN GRANT for ${accountId}`)

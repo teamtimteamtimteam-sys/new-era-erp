@@ -31,6 +31,7 @@ import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
+import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3202                 // 3198 survey-phone · 3199 冒烟 · 3201 probe-avatar
@@ -111,18 +112,35 @@ const REQUIRED_GROUPS = [
 //   某个状态下才存在的东西**。这类按钮由人走(docs/manual-walk-list.md)。
 
 let server, chrome, accountId
+function killChildren() {
+    try { if (chrome?.pid) process.kill(-chrome.pid) } catch {}
+    try { if (server?.pid) process.kill(-server.pid) } catch {}
+}
+// ★ 这一支【从前一个信号处理器都没有】—— 被 Ctrl-C 或管道断掉时,
+//   连那个只删账号的 finally 都跑不到。退出从此归 ephemeral 管。
+installExitHooks({ onFinish: () => { killChildren(); try { release() } catch {} } })
 try {
     if (!existsSync(join(ROOT, '.next/BUILD_ID')))
         throw new Error('.next/BUILD_ID 不在 —— 这一支跑在【生产构建】上。先 npm run build。')
-    acquireOrExit('probe-button-tiers')
+    acquireOrExit('probe-button-tiers', { ownExit: false })
+    openPlan('scripts/probe-button-tiers.mjs')
+    await reapStalePlans()
 
     const email = `btnprobe-${Date.now()}@test.local`
     const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
         body: JSON.stringify({ email, password: 'btn-probe-1', email_confirm: true }) })).json()
     accountId = cu.id
     if (!accountId) throw new Error('账号建不出来: ' + JSON.stringify(cu).slice(0, 300))
+    // ★★ LEAK-1(2026-09-06):这一支是那 28 条幽灵授权的【头号产地】,而它
+    //    【不是】被杀掉才漏的 —— 原来的 finally 只删账号、**一个字都没提 user_roles**
+    //    (整份文件里 user_roles 只出现过一次,就是下面这条 INSERT)。
+    //    于是它【每一次跑完都漏一条】:退出码 0、没有人被杀、没有任何东西报红。
+    //    先删授权再删账号,顺序反了留下的正是一条认不到人的授权。
+    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke btnprobe grant ${accountId}`, ORDER.GRANT)
+    planDelete(`/auth/v1/admin/users/${accountId}`, `delete btnprobe account ${accountId}`, ORDER.ACCOUNT)
     const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify({ user_id: accountId, role_id: roles[0].id }) })
+    await rest('/rest/v1/user_roles', { method: 'POST',
+        body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
     const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
         headers: { apikey: ANON, 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: 'btn-probe-1' }) })).json()
@@ -341,8 +359,8 @@ try {
     console.error('✗ 探针自身出错:' + (e?.message ?? e))
     process.exitCode = 1
 } finally {
-    try { if (chrome?.pid) process.kill(-chrome.pid) } catch {}
-    try { if (server?.pid) process.kill(-server.pid) } catch {}
-    if (accountId) { try { await rest(`/auth/v1/admin/users/${accountId}`, { method: 'DELETE' }) } catch {} }
+    // ★ 顺序:先跑完清理的 REST 往返,再收子进程(LEAK-1)。
+    await runPlan()
+    killChildren()
     try { release() } catch {}
 }

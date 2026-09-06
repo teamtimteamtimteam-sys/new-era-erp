@@ -47,6 +47,7 @@ import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, mkdirSy
 import { spawn, execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { acquireOrExit, release } from './liveLock.mjs'
+import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3198              // NOT 3199 — that one is the smoke's
@@ -313,80 +314,86 @@ const MEASURE = `(() => {
 let dev = null, chrome = null, accountId = null, reviewerAccountId = null
 let seededReviewId = null, seededEmployeeIds = []
 // ════════════════════════════════════════════════════════════════════════════
-// 【PRE-ACCOUNT-1】清理失败必须【说话】,而从前这里【返回码根本没人看】
+// 【PRE-ACCOUNT-1 的那一课,以及它今天住在哪儿】
 //
 // ★ 这一段修的是【幽灵 admin 的产地】★
-//   下面那两行 DELETE 从前写成裸 `rest()`:删授权那一半失败了没有任何人知道,
+//   两行 DELETE 曾经写成裸 `rest()`:删授权那一半失败了没有任何人知道,
 //   删账号那一半却照常成功 —— 留下的正是**一条权限还在、而账号已经没了的授权**,
 //   一个 `user_id` 在 auth.users 里根本解析不出来的 admin。
 //   `user_roles.user_id` 【没有】指向 auth.users 的外键(见 db/tables/user_roles.sql),
 //   所以数据库不会替我们把这两半绑在一起;而账号一旦删掉,任何按
 //   "列出账号再清理"写的清扫都【再也看不见】那行授权。
 //
-//   **这与 CLEANUP-A(2026-08-31)在 smoke-routes.mjs:1199 修掉的是同一个缺陷。**
-//   那一刀把 smoke 与 render-pdf-samples 两支都修了,**唯独漏了本文件** ——
-//   而本文件是三支里唯一一支**用完不被任何清扫兜底**的(见下面 :~360 的前缀说明)。
-//   PRE-ACCOUNT-1 实测:2026-09-04 线上躺着 2 条本文件产的幽灵 admin 授权。
-//
-// 【为什么不直接 throw】cleanup() 在 `.then()` 与信号处理里都会跑,
-//   在这里抛出去会把它【后面几步清理一起吃掉】——那是换一个缺陷,不是修。
-//   所以:照常往下清,但每一次失败都记账、都印出来、并且让整跑【变红】。
-//   **一条没删掉的 admin 授权是一次失败,不是一条日志。**
+// ★ LEAK-1(2026-09-06):记账、报红、顺序,这三件事整个搬到了
+//   `scripts/ephemeral.mjs` —— 因为它们【七支脚本都要】,而七份手写的清理
+//   已经漂成了"三支一个信号处理器都没挂、四支写法各不相同"。
+//   那一支同时补上了这里从来没有过的两层:清理计划**先于**它要清的东西落盘,
+//   以及一个不依赖本进程活到最后的收割器。**这一支自己不再写清理逻辑。**
 // ════════════════════════════════════════════════════════════════════════════
-const cleanupFailures = []
-async function restCleanup(path, opts, ctx) {
-    try {
-        const r = await rest(path, opts)
-        if (!r.ok) {
-            const body = (await r.text()).slice(0, 200)
-            cleanupFailures.push(`${ctx}: HTTP ${r.status} ${body}`)
-            console.error(`  ✗ cleanup failed (continuing, but recorded): ${ctx} → HTTP ${r.status} ${body}`)
-        }
-        return r
-    } catch (e) {
-        cleanupFailures.push(`${ctx}: ${e.message}`)
-        console.error(`  ✗ cleanup failed (continuing, but recorded): ${ctx} → ${e.message}`)
-        return null
-    }
+// ════════════════════════════════════════════════════════════════════════════
+// 【开跑先收自己那个命名空间 —— LEAK-1(2026-09-06)】
+//
+// 【为什么需要它,而 reapStalePlans 不够】收割器照【计划文件】补删,
+//   而计划机制是今天才有的:在它之前被杀掉的那些运行【没有计划】。
+//   实测:一次被 SIGTERM 的运行留下 ZZ-SMOKE-SURVEY-1/2,于是**下一次运行
+//   开跑就撞 409(employees_code_key 冲突)并整支失败** —— 一条清理不掉的残骸
+//   会把这支脚本变成一次性的。
+//
+// 【为什么这一次清扫是安全的,而 sweepScratch 那一次不是】
+//   sweepScratch 在 2026-08-10 删掉了另一个会话【正在用】的账号,
+//   因为它删的是一个**共享**的命名空间(`smoke-`),而当时有两个跑者。
+//   这里删的是 `ZZ-SMOKE-SURVEY-`,**本支脚本独占**,而且 acquireOrExit
+//   已经保证【同一时刻只有一个跑者】—— 所以"这一行可能正被别人用着"
+//   在这里构造上不成立。判据不是年龄,是那把锁。
+//
+// 【范围就是这么窄,不要扩】它不碰 `ZZ-SMOKE-`(冒烟的)、不碰别的表、
+//   不碰授权。想清别的东西的人:那是 scripts/sweep-ghost-grants.mjs,
+//   它有自己的判据与引用检查。
+// ════════════════════════════════════════════════════════════════════════════
+async function sweepOwnScratch() {
+    const r = await rest('/rest/v1/employees?select=id,code&code=like.ZZ-SMOKE-SURVEY-*')
+    if (!r.ok) throw new Error(`开跑清扫查询失败:HTTP ${r.status} ${(await r.text()).slice(0, 200)}`)
+    const rows = await r.json()
+    if (!rows.length) return
+    const ids = rows.map((x) => x.id).join(',')
+    // 评估先于员工(外键),与计划里的档位同一条顺序。
+    await rest(`/rest/v1/performance_reviews?or=(employee_id.in.(${ids}),reviewer_employee_id.in.(${ids}))`,
+        { method: 'DELETE' })
+    const d = await rest(`/rest/v1/employees?id=in.(${ids})`, { method: 'DELETE' })
+    if (!d.ok) throw new Error(`开跑清扫失败:HTTP ${d.status} ${(await d.text()).slice(0, 200)}`)
+    console.error(`· 开跑清扫:收掉 ${rows.length} 行上一次留下的 ZZ-SMOKE-SURVEY-* 员工`)
 }
 
-async function cleanup() {
+function killChildren() {
     try { if (chrome) chrome.kill('SIGKILL') } catch {}
     try { if (dev) process.kill(-dev.pid, 'SIGKILL') } catch {}
-    // 【顺序要紧】先收权限,再删账号。反过来做,一旦第二步之前挂掉,
-    // 剩下的就是一条【认不到人】的授权,而此后没有任何清扫看得见它。
-    // 【顺序:评估 → 员工 → 账号】performance_reviews 指着 employees,
-    // employees.user_id 指着 auth.users。倒过来删会留下指向已删行的记录。
-    if (seededReviewId)
-        await restCleanup(`/rest/v1/performance_reviews?id=eq.${seededReviewId}`, { method: 'DELETE' },
-            `delete seeded review ${seededReviewId}`)
-    if (seededEmployeeIds.length)
-        await restCleanup(`/rest/v1/employees?id=in.(${seededEmployeeIds.join(',')})`, { method: 'DELETE' },
-            `delete seeded employees ${seededEmployeeIds.length}`)
-    for (const [id, what] of [[accountId, 'survey admin'], [reviewerAccountId, 'survey reviewer']]) {
-        if (!id) continue
-        await restCleanup(`/rest/v1/user_roles?user_id=eq.${id}`, { method: 'DELETE' },
-            `revoke ${what} grant ${id}`)
-        await restCleanup(`/auth/v1/admin/users/${id}`, { method: 'DELETE' },
-            `delete ${what} account ${id}`)
-    }
-    if (accountId || reviewerAccountId) console.error('· cleaned up ephemeral survey account(s)')
-    try { release('scripts/survey-phone.mjs') } catch {}
-    // ★ 承诺没兑现必须让退出码说出来 ★ 「用完即删」是这一支自己许下的承诺,
-    //   而一条留下来的 admin 授权在六个人拿到账号之后不再是一条无害的残骸。
-    if (cleanupFailures.length) {
-        console.error(`\n✗ ephemeral account/grant cleanup left ${cleanupFailures.length} failure(s) —`)
-        console.error('  any of these that is a user_roles row is a DANGLING ADMIN GRANT:')
-        for (const c of cleanupFailures) console.error('   ' + c)
-        console.error('  remedy: node scripts/check-scratch-rows.mjs reports it by name.')
-        process.exitCode = 1
-    }
 }
-for (const sig of ['SIGINT', 'SIGTERM']) process.on(sig, async () => { await cleanup(); process.exit(130) })
+
+// ════════════════════════════════════════════════════════════════════════════
+// ★ LEAK-1(2026-09-06):这个函数的【顺序原来是反的】★
+//   原写法第一句就是 `chrome.kill('SIGKILL')`,随后才是四次 REST 往返 ——
+//   而 known-issues 早就点名了这一处:收进程要在四次往返【之后】。
+//   今天它就是这么排的:先 runPlan()(把线上那几行删干净),再收子进程。
+//
+//   删的清单不再写在这里,而是在【造出每一行之前】就落了盘
+//   (scripts/ephemeral.mjs)。于是这个函数跑不到的时候,那份清单还在,
+//   下一支脚本开跑时会照它补删。
+// ════════════════════════════════════════════════════════════════════════════
+async function cleanup() {
+    await runPlan()
+    if (accountId || reviewerAccountId) console.error('· cleaned up ephemeral survey account(s)')
+    killChildren()
+}
+// ★ 退出【只由 ephemeral 拥有】—— liveLock 的同步 process.exit(130) 会把
+//   还在 await 的清理当场掐死,那正是 LEAK-1 量出来的机制。
+installExitHooks({ onFinish: () => { killChildren(); release('scripts/survey-phone.mjs') } })
 
 async function main() {
-    acquireOrExit('scripts/survey-phone.mjs')
+    acquireOrExit('scripts/survey-phone.mjs', { ownExit: false })
     if (!existsSync(CHROME)) throw new Error('chrome-headless-shell not at ' + CHROME)
+    openPlan('scripts/survey-phone.mjs')          // ★ 在造出任何一次性东西【之前】
+    await reapStalePlans()                        // 上一次被 SIGKILL 掉的,现在补删
+    await sweepOwnScratch()                       // 计划机制【之前】留下的,按自己的命名空间收
     mkdirSync(OUT_DIR, { recursive: true })
 
     // stale port (only orphans — never blind-kill; same rule as the smoke)
@@ -407,8 +414,13 @@ async function main() {
         body: JSON.stringify({ email, password: 'survey-pass-1', email_confirm: true }) })).json()
     accountId = cu.id
     if (!accountId) throw new Error('could not create survey account: ' + JSON.stringify(cu).slice(0, 300))
+    // ★ LEAK-1:计划【先于】它要清的东西落盘。顺序是"先收权限,再删账号" ——
+    //   反过来,一旦中间挂掉,剩下的就是一条认不到人的授权,而此后没有任何清扫看得见它。
+    planDelete(`/rest/v1/user_roles?user_id=eq.${accountId}`, `revoke survey admin grant ${accountId}`, ORDER.GRANT)
+    planDelete(`/auth/v1/admin/users/${accountId}`, `delete survey admin account ${accountId}`, ORDER.ACCOUNT)
     const roles = await (await rest('/rest/v1/roles?select=id&code=eq.admin')).json()
-    await rest('/rest/v1/user_roles', { method: 'POST', body: JSON.stringify({ user_id: accountId, role_id: roles[0].id }) })
+    await rest('/rest/v1/user_roles', { method: 'POST',
+        body: JSON.stringify(ephemeralGrantBody(accountId, roles[0].id)) })
     const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
         headers: { apikey: ANON, 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: 'survey-pass-1' }) })).json()
@@ -453,6 +465,11 @@ async function main() {
             body: JSON.stringify({ email: email2, password: 'survey-pass-2', email_confirm: true }) })).json()
         reviewerAccountId = cu2.id
         if (!reviewerAccountId) throw new Error('reviewer account: ' + JSON.stringify(cu2).slice(0, 200))
+        // ★ LEAK-1:评估人【不授角色】,但账号仍然要清 —— 计划先于它落盘。
+        planDelete(`/rest/v1/user_roles?user_id=eq.${reviewerAccountId}`,
+            `revoke survey reviewer grant ${reviewerAccountId}`, ORDER.GRANT)
+        planDelete(`/auth/v1/admin/users/${reviewerAccountId}`,
+            `delete survey reviewer account ${reviewerAccountId}`, ORDER.ACCOUNT)
         // 【评估人【不授任何角色】】RLS 的 'select as reviewer' 只看
         // reviewer_employee_id —— 这同时也验证了"没有角色的经理也读得到自己的评估任务"。
 
@@ -479,6 +496,11 @@ async function main() {
             if (!r.ok) throw new Error(`seed employee ${n}: HTTP ${r.status} ${(await r.text()).slice(0, 200)}`)
             const row = (await r.json())[0]
             seededEmployeeIds.push(row.id)
+            // 评估先于员工删(外键);两者都先于账号。
+            planDelete(`/rest/v1/performance_reviews?or=(employee_id.eq.${row.id},reviewer_employee_id.eq.${row.id})`,
+                `delete reviews of seeded employee ${row.code}`, ORDER.REVIEW)
+            planDelete(`/rest/v1/employees?id=eq.${row.id}`,
+                `delete seeded employee ${row.code}`, ORDER.EMPLOYEE)
             return row
         }
         // 到期日必须填 —— 不填 open_probation_review 会按名拒(PROBATION_END_DATE_NOT_SET),
@@ -759,6 +781,40 @@ async function main() {
     }
     if (limit) targets = targets.slice(0, limit)
 
+    // ════════════════════════════════════════════════════════════════════════
+    // 【卡死的上限 —— LEAK-1(2026-09-06),按【实测】建,不是按当初的判词建】
+    //
+    // ★ known-issues 原先记的机制【是错的】,而照着它建会白建一层 ★
+    //   原话:「唯一的上限是 60 秒的 CDP 方法超时,而这条路【到不了】它」。
+    //   实测不是:本循环里【每一个】await 都走 S() → Cdp.send() → 60 秒 setTimeout。
+    //   导航、readyState 轮询、MEASURE、两次 newTab,全都在那 60 秒之内。
+    //   照原判词再加一层 60 秒超时,是在一层管用的上限上再叠一层,什么也不改变。
+    //
+    // 【真正没有上限的是【总量】】实测(2026-09-06,SIGSTOP 掉 chrome 复现出
+    //   与归档一致的三个信号:进程在、0% CPU、CDP 收 TCP 不回话、dev server 3.3ms):
+    //     · 健康时     每条路由 4–8 秒
+    //     · 卡死之后   每条路由 **180 秒**(60 导航 + 60 被吞掉的 closeTarget + 60 createTarget)
+    //   而循环【照跑不误】。192 条 × 180 秒 = 9.6 小时;从归档那次的 152/192 算起,
+    //   剩下 40 条 = 2 小时的垃圾记录。**这才是"没有上限"的所在。**
+    //   (归档里"日志不长"是观察窗口太短:它每 3 分钟【确实】长一行。)
+    //
+    // 【判据是失败的【形态】,不是时长】—— 这一条是这个上限能立住的全部理由。
+    //   一页慢,readyState 轮询只是多轮几次然后【成功】返回;它【不】产生超时。
+    //   一次 `CDP timeout:` 意味着浏览器不再回话 —— 那是【死】,不是【慢】。
+    //   所以退化的机器上跑多久都不会被这道闸碰到:BTN-3 那一跑 25 页从 ~10 分钟
+    //   变成 ~40 分钟,每一页仍然是【成功】的,连续计数一次都不会累加。
+    //
+    // 【8 小时那道总闸【故意】给得松】wait_for.sh 的教训:一道对正当情形【太紧】
+    //   的限制会把人赶出这条被守护的路,那时就一道上限也没有了。健康满跑约 16 分钟,
+    //   最慢的退化情形外推约 5 小时 —— 8 小时是它的一倍余量,只兜"跑了一整夜"这一类。
+    //   真正干活的是上面那道连续失败闸:它在 ~9 分钟内就收手。
+    // ════════════════════════════════════════════════════════════════════════
+    const WEDGE_CONSECUTIVE = 3                    // 连续几条路由死于 CDP 超时就收手
+    const RUN_CAP_MS = 8 * 60 * 60 * 1000          // 总闸,故意给松
+    const isCdpTimeout = (m) => typeof m === 'string' && /^CDP timeout: /.test(m)
+    let consecutiveWedged = 0
+
+    let wedgedVerdict = null
     const results = []
     const t0 = Date.now()
     for (let i = 0; i < targets.length; i++) {
@@ -809,10 +865,47 @@ async function main() {
         results.push(rec)
         const el = ((Date.now() - t0) / 1000).toFixed(0)
         console.error(`  [${String(i + 1).padStart(3)}/${targets.length}] ${el}s  ovf=${rec.overflowPx ?? '?'} clip=${rec.clippedTables ?? '?'} ${rec.route}`)
+
+        // ── 上限 ────────────────────────────────────────────────────────────
+        // 一条路由算「卡死伤亡」的判据:正跑【与】重试都死于 CDP 超时。
+        // 只看第一次会把一次偶发的超时算进来,而重试是在【新标签页】上做的 ——
+        // 两次都不回话,那就不是这一页的事。
+        const wedged = isCdpTimeout(rec.error) && isCdpTimeout(rec.retryError)
+        consecutiveWedged = wedged ? consecutiveWedged + 1 : 0
+        // ★ AGENTS.md「OPS-TIMEOUT」:到点【先写判词,再收进程组】。
+        //   今天它到点什么都不写 —— 那正是这一段存在的理由。
+        if (consecutiveWedged >= WEDGE_CONSECUTIVE) {
+            console.error(`\n✗✗ WEDGED — 连续 ${consecutiveWedged} 条路由的正跑与重试都死于 CDP 超时。`)
+            console.error(`   判据是失败的【形态】不是时长:一页慢只会让 readyState 多轮几次然后成功,`)
+            console.error(`   它【不】产生 CDP 超时。收 TCP 不回话的浏览器才产生。`)
+            console.error(`   已量 ${results.length}/${targets.length} 条,最后一条:${rec.route}`)
+            console.error(`   卡死后每条路由约 180 秒(实测),剩下 ${targets.length - results.length} 条 ≈ ` +
+                `${(((targets.length - results.length) * 180) / 3600).toFixed(1)} 小时的垃圾记录 —— 就地收手。`)
+            console.error(`   下一步:浏览器已经死了,dev server 多半还活着;重跑即可。`)
+            wedgedVerdict = { after: results.length, of: targets.length, lastRoute: rec.route,
+                consecutive: consecutiveWedged, reason: 'CDP timeout on primary and retry' }
+            break
+        }
+        if (Date.now() - t0 > RUN_CAP_MS) {
+            console.error(`\n✗✗ RUN CAP — 整跑超过 ${RUN_CAP_MS / 3600000} 小时,已量 ${results.length}/${targets.length} 条。`)
+            console.error(`   这道闸【故意】给得松(健康满跑约 16 分钟,最慢的退化情形外推约 5 小时),`)
+            console.error(`   它只兜"跑了一整夜"这一类;真正干活的是上面那道连续失败闸。`)
+            wedgedVerdict = { after: results.length, of: targets.length, lastRoute: rec.route,
+                consecutive: 0, reason: `run exceeded ${RUN_CAP_MS / 3600000}h cap` }
+            break
+        }
     }
 
     const outFile = join(OUT_DIR, 'phone-390.json')
-    writeFileSync(outFile, JSON.stringify({ measuredAt: new Date().toISOString(), viewport: '390x844', unresolved, results }, null, 2))
+    // 【判词也写进产物】一份【不全】的测量结果必须自己说得出它为什么不全,
+    // 否则下一刀会把 "192 条里只有 152 条" 读成"其余 40 条没有问题"。
+    writeFileSync(outFile, JSON.stringify({ measuredAt: new Date().toISOString(), viewport: '390x844',
+        unresolved, wedgedVerdict, results }, null, 2))
+    if (wedgedVerdict) {
+        console.error(`\n✗ 这一跑【没有量完】:${wedgedVerdict.after}/${wedgedVerdict.of} —— ${wedgedVerdict.reason}`)
+        console.error('  判词已写进 ' + outFile + ' 的 wedgedVerdict 字段;缺的那些【不是绿的,是没量】。')
+        process.exitCode = 1
+    }
 
     // ── summary ─────────────────────────────────────────────────────────────
     const redirected = results.filter((r) => !r.error && r.landedOn && r.landedOn !== r.url)

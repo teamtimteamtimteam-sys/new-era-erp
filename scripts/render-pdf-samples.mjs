@@ -33,6 +33,13 @@
 //   「幽灵 admin 授权」一节(66 → 21 → 8 三次清扫)。
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+
+// ★ LEAK-1(2026-09-06):这一支从前【一个信号处理器都没有】—— finally 里的
+//   两句 DELETE 只在正常跑完时管用,Ctrl-C / 管道断掉一律留下一个一次性 admin。
+//   ★ 它也【不持 live-lock】(与 smoke / survey / avatar / gate 不同)。那是另一件事,
+//     不在 LEAK-1 的范围里,已按名记进 docs/known-issues.md。
+installExitHooks()
 
 const ROOT = process.cwd()
 const PORT = Number(process.env.PORT ?? 3199)
@@ -50,25 +57,10 @@ const rest = (p, o = {}) =>
         'Content-Type': 'application/json', ...(o.headers ?? {}) } })
 
 // 【清理动作专用:失败必须【说话】,但【不能中断】后面的清理】
-// 抄自 scripts/smoke-routes.mjs 的 restCleanup(CLEANUP-A,2026-08-31)。
-// 【为什么不是直接抛】这些调用在 finally 里,在 finally 里抛出去会把它后面
-// 几步清理一起吃掉 —— 那是换一个缺陷,不是修。所以:照常往下清,但记账。
-const cleanupFailures = []
-async function cleanup(p, o, ctx) {
-    try {
-        const r = await rest(p, o)
-        if (!r.ok) {
-            const body = (await r.text()).slice(0, 200)
-            cleanupFailures.push(`${ctx}: HTTP ${r.status} ${body}`)
-            console.error(`  ✗ 清理失败(继续清,但记账):${ctx} → HTTP ${r.status} ${body}`)
-        }
-        return r
-    } catch (e) {
-        cleanupFailures.push(`${ctx}: ${e.message}`)
-        console.error(`  ✗ 清理失败(继续清,但记账):${ctx} → ${e.message}`)
-        return null
-    }
-}
+// ★ LEAK-1(2026-09-06):这里原来有一份 cleanup()/cleanupFailures ——
+//   记账、报红、以及"顺序要紧"那句话,全都搬去了 scripts/ephemeral.mjs,
+//   因为七支脚本各写一份已经漂成了"三支没有信号处理器、四支写法各不相同"。
+//   留一个本地副本在这里是一个邀请:下一个人会用它绕开那份先落盘的清理计划。
 
 async function rows(p, ctx) {
     const r = await rest(p)
@@ -116,15 +108,20 @@ const DOCS = [
 
 const main = async () => {
     mkdirSync(OUT, { recursive: true })
+    openPlan('scripts/render-pdf-samples.mjs')
+    await reapStalePlans()
 
     // ── 一次性 admin 会话(形状取自 scripts/smoke-routes.mjs)────────────────
     const stamp = Date.now()
     const email = `pdfsample-${stamp}@test.local`
     const cu = await (await rest('/auth/v1/admin/users', { method: 'POST',
         body: JSON.stringify({ email, password: 'pdf-pass-1', email_confirm: true }) })).json()
+    // ★ LEAK-1:计划先于它要清的东西落盘,顺序是先收权限再删账号。
+    planDelete(`/rest/v1/user_roles?user_id=eq.${cu.id}`, '收尾:收回一次性 admin 授权', ORDER.GRANT)
+    planDelete(`/auth/v1/admin/users/${cu.id}`, '收尾:删一次性 admin 账号', ORDER.ACCOUNT)
     const roleRows = await rows('/rest/v1/roles?select=id&code=eq.admin', 'roles ← admin')
     await rest('/rest/v1/user_roles', { method: 'POST',
-        body: JSON.stringify({ user_id: cu.id, role_id: roleRows[0].id }) })
+        body: JSON.stringify(ephemeralGrantBody(cu.id, roleRows[0].id)) })
     const sess = await (await fetch(URL_ + '/auth/v1/token?grant_type=password', { method: 'POST',
         headers: { apikey: ANON, 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password: 'pdf-pass-1' }) })).json()
@@ -179,12 +176,8 @@ const main = async () => {
             }
         }
     } finally {
-        // 【顺序要紧】先收授权,再删账号。反过来做,一旦第二步之前挂掉,
-        // 剩下的就是一条【认不到人】的授权,而此后没有任何清扫看得见它。
-        await cleanup(`/rest/v1/user_roles?user_id=eq.${cu.id}`, { method: 'DELETE' },
-            '收尾:收回一次性 admin 授权')
-        await cleanup(`/auth/v1/admin/users/${cu.id}`, { method: 'DELETE' },
-            '收尾:删一次性 admin 账号')
+        // 顺序(先收授权、再删账号)现在【声明在计划的档位里】,不靠这里的行序。
+        await runPlan()
     }
 
     console.log(`\n渲染产物 → ${OUT}\n`)
@@ -196,14 +189,8 @@ const main = async () => {
     if (bad.length) console.log(`未出 PDF:${bad.map((b) => b.name + '(' + b.status + ')').join('、')}`)
 
     // 【一条没删掉的 admin 授权是一次失败,不是一条日志】渲染本身不断言(见抬头),
-    // 但"用完即删"是这一支【自己许下的承诺】,而承诺没兑现必须让退出码说出来。
-    if (cleanupFailures.length) {
-        console.error(`\n✗ 一次性账号/授权没有清理干净 ${cleanupFailures.length} 处 —— ` +
-            `其中任何一条如果是 user_roles,留下的就是一条认不到人的授权:`)
-        for (const c of cleanupFailures) console.error('   ' + c)
-        console.error('  处置:node scripts/check-scratch-rows.mjs 会把它按名报出来。')
-        process.exitCode = 1
-    }
+    // 但"用完即删"是这一支【自己许下的承诺】—— 而兑现与否现在由 runPlan() 说,
+    // 它记账、逐条印出来、并且把 process.exitCode 置 1。
 }
 
 main().catch((e) => { console.error(e); process.exit(1) })

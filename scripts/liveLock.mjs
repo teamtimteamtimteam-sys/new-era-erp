@@ -61,7 +61,17 @@ export function release() {
  * 拿锁并把释放接到每一条出口上:正常退出、异常、SIGINT/SIGTERM。
  * **一把能在崩溃后活下来的锁比没有锁更坏** —— 下一个人会用手删它,然后学会每次都删。
  */
-export function acquireOrExit(holder) {
+/**
+ * ★ LEAK-1(2026-09-06):`ownExit: false` 是干什么的 ★
+ *   下面那几个信号处理器里的 `process.exit(130)` 是【同步】的。
+ *   一支同时挂了"异步清理一次性账号"的脚本,它的清理会在第一个 await 上让出,
+ *   于是这里立刻把进程收走 —— **四次 REST 一次都没跑,线上留下一条 admin 授权。**
+ *   这不是"异步处理器不保证跑完"的笼统说法,是一个每次都同一个赢家的竞争。
+ *   所以用了 scripts/ephemeral.mjs 的脚本传 `{ ownExit: false }`:
+ *   锁照拿、`exit` 与 uncaughtException 上照样释放,但【什么时候退出】
+ *   交给 ephemeral 的 installExitHooks —— 它清理跑完、再调 release()、才退。
+ */
+export function acquireOrExit(holder, { ownExit = true } = {}) {
     const other = heldBy()
     if (other !== null) {
         const ago = Math.floor(Date.now() / 1000) - (other.started_epoch ?? 0)
@@ -71,7 +81,8 @@ export function acquireOrExit(holder) {
         process.exit(5)
     }
     acquire(holder)
-    process.on('exit', release)
+    process.on('exit', release)          // 同步,任何情况下都跑得到
+    if (!ownExit) return                 // 退出交给调用方(见上面那段说明)
     for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {
         process.on(sig, () => { release(); process.exit(130) })
     }

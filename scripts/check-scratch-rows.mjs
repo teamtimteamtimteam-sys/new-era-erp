@@ -69,6 +69,41 @@ async function rows(path, ctx) {
     return out
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【sweepScratch 到底带得走什么 —— LEAK-1(2026-09-06)修的就是这一句】★★
+//
+// 这里【曾经】写着一句对所有"两小时以内"的行一视同仁的忠告:
+//     「这些不需要处理:下一次冒烟开跑时的 sweepScratch 会带走它自己那几张表的行。」
+// **它对本报告列在那一段下面的大多数行是【假的】**,而一条给出假忠告的检查
+// 比一条沉默的检查更坏 —— 它告诉读者问题正在被处理。
+//
+// 【实测 sweepScratch(scripts/smoke-routes.mjs:1334)到底做什么】它只做两件事:
+//   ① employees where code LIKE 'ZZ-SMOKE-%'(连同它们的 performance_reviews)
+//   ② auth 账号里 email 以 `smoke-` 开头、以 `@test.local` 结尾的那些,
+//      连同【那些账号的】user_roles
+// 就这两件。于是下面这些它一条都带不走:
+//   · **幽灵授权** —— 它是「列出账号再清理」写法的死角:账号已经没了,
+//     那行授权从此【永远】不在 ② 的视野里。BTN-2 实测四条授权在一次冒烟
+//     前后分别是 0.4h 与 0.7h —— 冒烟根本没碰它们。
+//   · **survey-* / probe-* / pdf-* 账号** —— ② 只认 `smoke-` 前缀。
+//     survey-phone 【故意】不用那个前缀(免得自己的会话被扫掉),
+//     它换来的正是"谁也不扫我"。
+//   · **除 employees 之外的每一张业务表** —— materials / suppliers /
+//     customers / inbound_batches / … 一张都不在 ① 里。
+//     (这也正是 ZZ-SMOKE-PROBE 躺了 739 小时的原因。)
+//
+// 所以忠告改成【逐行】给,而不是给一整段。判据就写在下面这一个函数里,
+// 它是 sweepScratch 那两条的镜像 —— 那边改了,这里要跟着改。
+// ════════════════════════════════════════════════════════════════════════════
+function sweptBySmoke(rec) {
+    if (rec.table === 'employees') return true              // ① ZZ-SMOKE-% + 它们的评估
+    if (rec.table === 'auth.users') {
+        const email = String(rec.code).split(' ')[0]        // code 可能是 `邮箱 [角色]`
+        return email.startsWith('smoke-') && email.endsWith('@test.local')   // ②
+    }
+    return false                                            // 其余一律没人扫
+}
+
 async function main() {
     const now = Date.now()
     const recent = []
@@ -209,8 +244,19 @@ async function main() {
 
     if (recent.length) {
         console.log(`\n临时行(${(STRANDED_AFTER_MS / 3600000)} 小时以内 —— 可能是【正在跑的那一次】,不是残骸):`)
-        for (const r of recent) console.log(`  · ${r.table.padEnd(18)} ${r.code}  (${r.ageH}h)`)
-        console.log('  这些不需要处理:下一次冒烟开跑时的 sweepScratch 会带走它自己那几张表的行。')
+        const covered = recent.filter(sweptBySmoke)
+        const orphaned = recent.filter((r) => !sweptBySmoke(r))
+        for (const r of covered)
+            console.log(`  · ${r.table.padEnd(18)} ${r.code}  (${r.ageH}h)   ← 下一次冒烟的 sweepScratch 会带走`)
+        for (const r of orphaned)
+            console.log(`  · ${r.table.padEnd(18)} ${r.code}  (${r.ageH}h)   ← ★ 没有任何清扫看得见它`)
+        if (covered.length)
+            console.log(`  上面 ${covered.length} 条【确实】不需要处理:它们落在 sweepScratch 认的那两个命名空间里。`)
+        if (orphaned.length) {
+            console.log(`\n  ★★ 而上面标着「没有任何清扫看得见它」的 ${orphaned.length} 条【需要处理】★★`)
+            console.log('     它们年龄不到门槛,但那【不代表】有谁会来收 —— 处置见下面滞留那一段的说明,')
+            console.log('     或者直接 node scripts/sweep-ghost-grants.mjs。')
+        }
     }
 
     if (!stranded.length) {

@@ -65,7 +65,16 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { spawn, execSync } from 'node:child_process'
 import { join } from 'node:path'
-import { acquireOrExit } from './liveLock.mjs'
+import { acquireOrExit, release } from './liveLock.mjs'
+import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+
+// ★ LEAK-1(2026-09-06):这一支从前【一个信号处理器都没有】。
+//   它的 sweepScratch 兜得住自己那两个命名空间(smoke-* 账号 + ZZ-SMOKE-* 员工),
+//   所以被杀掉之后【下一次冒烟】会收拾 —— 但那是"下一次",不是"这一次",
+//   而中间那段时间线上躺着一个密码写在仓库正文里的 admin。
+//   计划机制把那段时间缩短到"下一支脚本开跑"为止,并且覆盖 sweepScratch
+//   看不见的那一半(账号已删、授权还在 —— 也就是幽灵授权的来源)。
+installExitHooks({ onFinish: () => { try { release() } catch {} } })
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3199
@@ -1655,7 +1664,9 @@ async function main() {
     // FIX-3:整段冒烟期间持有 live-lock —— 它与 gate 共用同一把,
     // 于是"gate 在跑就别单独跑 check_mirrors"从一条要记住的规矩变成一道门。
     // 释放接在正常退出、异常与 SIGINT/SIGTERM 上(见 scripts/liveLock.mjs)。
-    acquireOrExit('scripts/smoke-routes.mjs')
+    acquireOrExit('scripts/smoke-routes.mjs', { ownExit: false })
+    openPlan('scripts/smoke-routes.mjs')
+    await reapStalePlans()
     const reachFailures = []
     // 【最先跑,而且在 sweepStalePort / next dev 之前】—— 见 preflightIdSources 抬头:
     // 这是一个静态问题,不该等到起了服务器、建了会话、扫过临时行之后才回答。
@@ -1681,9 +1692,11 @@ async function main() {
     const email = `smoke-${stamp}@test.local`
     const cu = await (await restOk('/auth/v1/admin/users', { method: 'POST',
         body: JSON.stringify({ email, password: 'smoke-pass-1', email_confirm: true }) }, '建 admin 账号')).json()
+    planDelete(`/rest/v1/user_roles?user_id=eq.${cu.id}`, '收尾:收回一次性 admin 授权', ORDER.GRANT)
+    planDelete(`/auth/v1/admin/users/${cu.id}`, '收尾:删一次性 admin 账号', ORDER.ACCOUNT)
     const roleRows = await restRows('/rest/v1/roles?select=id&code=eq.admin', 'roles ← admin')
     await restOk('/rest/v1/user_roles', { method: 'POST',
-        body: JSON.stringify({ user_id: cu.id, role_id: roleRows[0].id }) }, '授 admin 角色')
+        body: JSON.stringify(ephemeralGrantBody(cu.id, roleRows[0].id)) }, '授 admin 角色')
     const adminSession = await signInSession(email, 'smoke-pass-1')
     const cookie = adminSession.cookie
 
@@ -1695,6 +1708,8 @@ async function main() {
     const email2 = `smoke-${stamp}-reviewer@test.local`
     const cu2 = await (await restOk('/auth/v1/admin/users', { method: 'POST',
         body: JSON.stringify({ email: email2, password: 'smoke-pass-2', email_confirm: true }) }, '建评估人账号')).json()
+    planDelete(`/rest/v1/user_roles?user_id=eq.${cu2.id}`, '收尾:收回评估人授权(应为空)', ORDER.GRANT)
+    planDelete(`/auth/v1/admin/users/${cu2.id}`, '收尾:删评估人账号', ORDER.ACCOUNT)
     const mkEmp = async (n, extra) => (await (await restOk('/rest/v1/employees', { method: 'POST',
         headers: { Prefer: 'return=representation' },
         body: JSON.stringify({ code: `${SCRATCH_EMP_PREFIX}${n}`, legal_name: `${SCRATCH_NAME} ${n}`,
@@ -2379,8 +2394,10 @@ async function main() {
                 `建 ${roleCode} 账号`)).json()
             const rr = await restRows(`/rest/v1/roles?select=id&code=eq.${roleCode}`, `roles ← ${roleCode}`)
             if (!rr.length) throw new Error(`角色 ${roleCode} 不存在 —— 可达性检查不能对着一个空角色跑`)
+            planDelete(`/rest/v1/user_roles?user_id=eq.${u.id}`, `收尾:收回 ${roleCode} 授权`, ORDER.GRANT)
+            planDelete(`/auth/v1/admin/users/${u.id}`, `收尾:删 ${roleCode} 账号`, ORDER.ACCOUNT)
             await restOk('/rest/v1/user_roles', { method: 'POST',
-                body: JSON.stringify({ user_id: u.id, role_id: rr[0].id }) }, `授 ${roleCode}`)
+                body: JSON.stringify(ephemeralGrantBody(u.id, rr[0].id)) }, `授 ${roleCode}`)
             reachUsers.push(u.id)
             return signIn(em, 'smoke-pass-3')
         }
@@ -2454,6 +2471,12 @@ async function main() {
         await restCleanup(`/rest/v1/user_roles?user_id=eq.${cu.id}`, { method: 'DELETE' },
             '收尾:收回一次性 admin 授权')
         await restCleanup(`/auth/v1/admin/users/${cu.id}`, { method: 'DELETE' }, '收尾:删一次性 admin 账号')
+        // ★ LEAK-1:把计划跑一遍并销掉它。上面那几行【正常跑完时】已经清干净了,
+        //   所以这一趟基本都是 404(runSteps 把 404 当成"已经没有了",不算失败)。
+        //   它存在的意义在【非正常】那一侧:计划是造出每一行【之前】就落的盘,
+        //   所以上面任何一行没跑到,这里都还兜得住;而这里也没跑到的话,
+        //   计划留在盘上,下一支脚本开跑时照它补删。
+        await runPlan()
     }
 
     // 【总结行把带查询串的探针【单独数出来】】把它们混进 routes 的计数里,

@@ -37,6 +37,7 @@ import { spawn, execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { acquireOrExit, release } from './liveLock.mjs'
+import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const PORT = 3197            // 不是 3198(版式探针的),也不是 3199(冒烟的)
@@ -152,7 +153,9 @@ function assertPage(label, got, want, body, mustContain) {
 }
 
 async function main() {
-    acquireOrExit('scripts/probe-role-crash.mjs')
+    acquireOrExit('scripts/probe-role-crash.mjs', { ownExit: false })
+    openPlan('scripts/probe-role-crash.mjs')
+    await reapStalePlans()
     sweepStalePort()
 
     // ── 按名挑受测的行(不赌)────────────────────────────────────────────────
@@ -185,11 +188,15 @@ async function main() {
         if (!r.ok) throw new Error(`建 ${roleCode} 账号失败:HTTP ${r.status} ${(await r.text()).slice(0, 200)}`)
         const u = await r.json()
         made.push(u.id)
+        // ★ LEAK-1:计划先于它要清的东西落盘。这一支一跑造【三个】账号,
+        //   而它原来的信号处理器只放锁、不清理 —— 一次 Ctrl-C 就是三条幽灵授权。
+        planDelete(`/rest/v1/user_roles?user_id=eq.${u.id}`, `revoke ${roleCode} grant ${u.id}`, ORDER.GRANT)
+        planDelete(`/auth/v1/admin/users/${u.id}`, `delete ${roleCode} account ${u.id}`, ORDER.ACCOUNT)
         if (INJECT !== 'no-role') {
             const rr = await restRows(`/rest/v1/roles?select=id&code=eq.${roleCode}`, `roles ← ${roleCode}`)
             if (!rr.length) throw new Error(`角色 ${roleCode} 不在册`)
             const g = await rest('/rest/v1/user_roles', {
-                method: 'POST', body: JSON.stringify({ user_id: u.id, role_id: rr[0].id }),
+                method: 'POST', body: JSON.stringify(ephemeralGrantBody(u.id, rr[0].id)),
             })
             if (!g.ok) throw new Error(`授 ${roleCode} 失败:HTTP ${g.status} ${(await g.text()).slice(0, 200)}`)
         }
@@ -212,7 +219,7 @@ async function main() {
     if (!ready) {
         dev.kill()
         console.error('✗ dev server 没起来:\n' + logChunks.join('').split('\n').slice(-25).join('\n'))
-        await cleanup(made)
+        await runPlan()
         console.log('ROLE_PROBE_EXIT=2')
         process.exit(2)
     }
@@ -245,8 +252,9 @@ async function main() {
             assertPage(`[${roleCode}] /inbound(列表)`, d.status, 200, d.body, withPo[0].code)
         }
     } finally {
+        // ★ 顺序:先跑完清理的 REST 往返,再收 dev server(LEAK-1)。
+        await runPlan()
         dev.kill()
-        await cleanup(made)
     }
 
     console.log('\n== 结果 ==')
@@ -268,20 +276,11 @@ async function main() {
     process.exit(0)
 }
 
-// 清理是【两半】,而且两半都要说话 —— 见 smoke-routes.mjs 的 CLEANUP-A:
-// 只删账号不删授权,会留下一条谁也解析不出来的幽灵授权。
-async function cleanup(userIds) {
-    for (const id of userIds) {
-        const a = await rest(`/rest/v1/user_roles?user_id=eq.${id}`, { method: 'DELETE' })
-        if (!a.ok) console.error(`  ✗ 清理失败(授权 ${id}):HTTP ${a.status}`)
-        const b = await rest(`/auth/v1/admin/users/${id}`, { method: 'DELETE' })
-        if (!b.ok) console.error(`  ✗ 清理失败(账号 ${id}):HTTP ${b.status}`)
-    }
-}
-
-process.on('exit', release)
-process.on('SIGINT', () => { release(); process.exit(130) })
-process.on('SIGTERM', () => { release(); process.exit(143) })
+// ★ LEAK-1(2026-09-06):清理【两半】的那份实现搬去了 scripts/ephemeral.mjs。
+//   原来这里的信号处理器只 release() 就 exit —— 账号与授权一个都不收,
+//   于是一次 Ctrl-C 留下三个账号、三条授权。现在退出归 ephemeral 管:
+//   它跑完计划、放锁,才退。
+installExitHooks({ onFinish: () => { try { release() } catch {} } })
 
 main().catch(async (e) => {
     console.error('✗ 探针自己坏了:' + (e?.stack || e))
