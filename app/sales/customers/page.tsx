@@ -1,6 +1,7 @@
 // app/sales/customers/page.tsx
 // 客户列表页:URL 驱动的搜索 / 排序 / 分页(全部在服务端的 Supabase 查询里完成)。
 // 端口自 suppliers 列表,去掉状态筛选(客户没有状态机)。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
@@ -152,12 +153,9 @@ export default async function CustomersPage({
                     <Link href="/sales/customers/overlap" className="text-sm text-blue-600 hover:underline">
                         {t('overlap.entryLink')}
                     </Link>
-                    <Link
-                        href="/sales/customers/new"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
-                        {t('customers.addButton')}
-                    </Link>
+                    <Button asChild>
+                        <Link href="/sales/customers/new">{t('customers.addButton')}</Link>
+                    </Button>
                 </div>
             }
             state={{ kind: 'ok' }}

@@ -1,6 +1,7 @@
 // app/stocktakes/[id]/page.tsx
 // 盘点详情/点数页(移动端优先,端口自 GRN 现场收货的触控风格)。
 // open = 点数界面(汇总条 + 已盘/未盘列表 + 底部粘性操作条);posted/cancelled = 只读行表。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { formatTimestamp } from '@/lib/format'
 import { notFound } from 'next/navigation'
@@ -209,12 +210,9 @@ export default async function StocktakeDetailPage({
                     {/* 底部粘性操作条:复核过账(主)+ 取消(danger) */}
                     <div className="sticky bottom-0 mt-6 border-t border-gray-200 bg-white py-3">
                         <div className="flex gap-3">
-                            <Link
-                                href={`/stocktakes/${id}/review`}
-                                className="flex-1 bg-blue-600 text-white text-center text-base font-medium rounded px-4 py-3 min-h-[48px] hover:bg-blue-700"
-                            >
-                                {t('stocktakes.review')}
-                            </Link>
+                            <Button asChild variant="default" size="lg" className="flex-1 min-h-[48px] text-base">
+                                <Link href={`/stocktakes/${id}/review`}>{t('stocktakes.review')}</Link>
+                            </Button>
                             <CancelStocktakeButton stocktakeId={id} code={st.code} />
                         </div>
                     </div>

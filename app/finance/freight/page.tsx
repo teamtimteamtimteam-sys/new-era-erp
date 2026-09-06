@@ -3,6 +3,7 @@
 // 贷方记在【货代】名下,与材料供应商的应付是两笔账。
 //
 // CONV-4:套 CONV-1 的两文件模板。没有筛选工具栏,空态判据不必分层。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -59,10 +60,9 @@ export default async function FreightListPage() {
         <ListPage
             title={t('finance.freight.listTitle')}
             actions={
-                <Link href="/finance/freight/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    {t('finance.freight.addButton')}
-                </Link>
+                <Button asChild>
+                    <Link href="/finance/freight/new">{t('finance.freight.addButton')}</Link>
+                </Button>
             }
             // 资本化的代价,写在人看得见的地方:错的分摊藏在存货里,不显示在损益表上
             intro={t('finance.freight.intro')}

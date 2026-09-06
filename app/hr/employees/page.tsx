@@ -8,6 +8,7 @@
 // CONV-5:套 CONV-1 的两文件模板。Q7:服务端 .order('code') + .range() 分页
 // 一个字没变(DataTable 不接管排序)。
 // ★ state 恒为 'ok' —— 筛选工具栏是真实出口,见 docs/list-page-template.md §⑩-3。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -138,9 +139,9 @@ export default async function EmployeesPage({
         <ListPage
             title={t('hr.employeesTitle')}
             actions={
-                <Link href="/hr/employees/new" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    {t('hr.newEmployee')}
-                </Link>
+                <Button asChild>
+                    <Link href="/hr/employees/new">{t('hr.newEmployee')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

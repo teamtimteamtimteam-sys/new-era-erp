@@ -1,5 +1,6 @@
 // app/tools/pricing/formulas/page.tsx
 // 定价公式列表:行数很少,不分页,但保留标准的记录数。已软删的不列。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -95,10 +96,9 @@ export default async function FormulasPage() {
         <ListPage
             title={t('pricing.listTitle')}
             actions={
-                <Link href="/tools/pricing/formulas/new"
-                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    {t('pricing.new')}
-                </Link>
+                <Button asChild>
+                    <Link href="/tools/pricing/formulas/new">{t('pricing.new')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

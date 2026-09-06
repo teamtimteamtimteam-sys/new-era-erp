@@ -4,6 +4,7 @@
 // CONV-5:套 CONV-1 的两文件模板。
 // ★ state 恒为 'ok' —— 抬头的「新建薪资期间」住在 ListPage 的 actions 里
 //   (状态分支之外),空集由 DataTable 自己的 empty 说。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -81,9 +82,9 @@ export default async function PayrollListPage() {
             title={t('hr.payrollTitle')}
             maxWidth="max-w-5xl"
             actions={
-                <Link href="/hr/payroll/new" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    {t('hr.newPayroll')}
-                </Link>
+                <Button asChild>
+                    <Link href="/hr/payroll/new">{t('hr.newPayroll')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

@@ -26,6 +26,7 @@
 //
 // ☞ 后来的人:要改这个决定,先回答一句 —— **改完之后,它在 390px 上还读得成
 //   一屏回执吗?** 那才是这一页存在的理由,不是"和别的页长得一样"。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -91,20 +92,12 @@ export default async function ReceiveDonePage({
             </div>
 
             <div className="space-y-3">
-                <a
-                    href={`/inbound/${batch.id}/label`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full bg-blue-600 text-white text-base font-medium rounded px-4 py-3 min-h-[48px] hover:bg-blue-700"
-                >
-                    {t('batchLabel.print')}
-                </a>
-                <Link
-                    href="/inbound/receive"
-                    className="block w-full border border-gray-300 text-base font-medium rounded px-4 py-3 min-h-[48px] hover:bg-gray-50"
-                >
-                    {t('receive.next')}
-                </Link>
+                <Button asChild variant="default" size="lg" className="w-full min-h-[48px] text-base">
+                    <a href={`/inbound/${batch.id}/label`} target="_blank" rel="noopener noreferrer">{t('batchLabel.print')}</a>
+                </Button>
+                <Button asChild variant="secondary" size="lg" className="w-full min-h-[48px] text-base">
+                    <Link href="/inbound/receive">{t('receive.next')}</Link>
+                </Button>
             </div>
 
             <div className="mt-6">

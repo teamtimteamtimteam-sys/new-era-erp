@@ -5,6 +5,7 @@
 // 需要时另查 invoices 本表并标注为已作废(其结算数字无意义,留空)。
 //
 // CONV-4:套 CONV-1 的两文件模板。state 恒为 'ok' —— 筛选工具栏是真实出口。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -188,12 +189,9 @@ export default async function InvoicesPage({
         <ListPage
             title={t('invoice.listTitle')}
             actions={
-                <Link
-                    href="/finance/invoices/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('invoice.new')}
-                </Link>
+                <Button asChild>
+                    <Link href="/finance/invoices/new">{t('invoice.new')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

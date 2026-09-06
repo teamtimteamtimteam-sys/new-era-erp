@@ -1,6 +1,7 @@
 // app/output/page.tsx
 // 产出批次列表页:URL 驱动的搜索 / 状态筛选 / 客户筛选 / 物料筛选 / 排序 / 分页。
 // 端口自 inbound 列表:supplier→customer、stage→state。customer_id 可空(未售出批次无客户)。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
@@ -218,12 +219,9 @@ export default async function OutputPage({
         <ListPage
             title={t('output.listTitle')}
             actions={
-                <Link
-                    href="/output/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('output.addButton')}
-                </Link>
+                <Button asChild>
+                    <Link href="/output/new">{t('output.addButton')}</Link>
+                </Button>
             }
             notices={
                 /* IOD-2:刚刚那次建批次的落地告警(成功、但有决定没人做过)。

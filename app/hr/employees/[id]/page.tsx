@@ -1,6 +1,7 @@
 // app/hr/employees/[id]/page.tsx
 // 员工档案:资料卡 → 任职履历(时间线)→ 培训记录 → 薪资历史。
 // 薪资一栏是【本人】的逐月数字,属受限内容,页面上明说。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -199,12 +200,9 @@ export default async function EmployeeDetailPage({
                     >
                         {t('hr.recordTraining')}
                     </Link>
-                    <Link
-                        href={`/hr/employees/${id}/edit`}
-                        className="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm"
-                    >
-                        {t('purchasing.editLink')}
-                    </Link>
+                    <Button asChild>
+                        <Link href={`/hr/employees/${id}/edit`}>{t('purchasing.editLink')}</Link>
+                    </Button>
                 </span>
             }
             // ★★ 详情页恒为 ok —— 这名员工在不在由上面的 notFound() 回答。

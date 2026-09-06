@@ -204,13 +204,39 @@ function Button({
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     >
-      {busy && (
-        <span
-          aria-hidden
-          className="base-spin inline-block size-3.5 rounded-full border-2 border-current border-r-transparent"
-        />
+      {/* ★★ BTN-5(2026-09-06):这一行是【一条量出来的库缺陷】的修法 ★★
+          原来的写法把转圈和 children 【并列】摆在这里:
+
+              {busy && (<span … />)}
+              {children}
+
+          `busy` 为 false 时,第一项求值成 `false` —— 而 `false` 仍然【是一个
+          children 数组元素】。于是 asChild 那条路上 Slot 收到的是【两个】孩子,
+          它当场抛:`Slot failed to slot onto its children. Expected a single
+          React element child or Slottable.`
+
+          ☞ **所以 asChild 在这棵树上【从来没有能用过】。** 委托书写的是
+            「机制已经存在,只是没有调用点」;实测更准的说法是
+            **「它没有调用点,是因为它一用就抛」** —— 零调用点不是"没人想到用",
+            是"用了就红,于是没有人留下过一个"。
+          ★ 这也是一条「没有任何东西验过它」的直接后果:一个没有调用点的能力,
+            与一个坏掉的能力,在任何检查的退出码上都是同一个字节。
+
+          改法把两种形态分开:pending 时才构造那个 fragment,否则【原样传 children】。
+          ★ 非 asChild 且非 pending 的那条路,渲染结果一个字节都没变
+            (`{false}{children}` 与 `{children}` 画出来的 DOM 相同)—— 187 个
+            已经转过去的按钮因此不受影响。 */}
+      {busy ? (
+        <>
+          <span
+            aria-hidden
+            className="base-spin inline-block size-3.5 rounded-full border-2 border-current border-r-transparent"
+          />
+          {children}
+        </>
+      ) : (
+        children
       )}
-      {children}
     </Comp>
   )
 }

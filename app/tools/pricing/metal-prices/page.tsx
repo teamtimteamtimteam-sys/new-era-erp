@@ -1,6 +1,7 @@
 // app/tools/pricing/metal-prices/page.tsx
 // 金属价格列表页:URL 驱动的金属筛选 / 排序 / 分页。
 // 端口自 inbound 列表,精简为单表参考表:无搜索、无导出、无关联方下拉。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -217,12 +218,9 @@ export default async function MetalPricesPage({
                     >
                         {t('metalPrices.bulk.entry')}
                     </Link>
-                    <Link
-                        href="/tools/pricing/metal-prices/new"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
-                        {t('metalPrices.addButton')}
-                    </Link>
+                    <Button asChild>
+                        <Link href="/tools/pricing/metal-prices/new">{t('metalPrices.addButton')}</Link>
+                    </Button>
                 </div>
             }
             notices={

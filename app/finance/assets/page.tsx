@@ -127,10 +127,9 @@ export default async function AssetsPage({
                 // 而那扇门要求同时过一笔账。设备的真实顺序是先下单、后开票,
                 // 所以这里是第二扇门的入口。
                 canEdit ? (
-                    <Link href="/finance/assets/new"
-                        className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm">
-                        {t('assets.register')}
-                    </Link>
+                    <Button asChild>
+                        <Link href="/finance/assets/new">{t('assets.register')}</Link>
+                    </Button>
                 ) : undefined
             }
             state={{ kind: 'ok' }}

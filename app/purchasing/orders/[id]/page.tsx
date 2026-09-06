@@ -541,12 +541,9 @@ export default async function PurchaseOrderDetailPage({
                         【拿掉按钮不等于解决困惑】所以下面那一句告诉人该去哪 ——
                         否则只是把困惑挪了个地方。 */}
                     {!isEquipmentOrder && (po.status === 'confirmed' || po.status === 'receiving') && (
-                        <Link
-                            href={`/inbound/new?po=${po.id}`}
-                            className="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm"
-                        >
-                            {t('purchasing.receiveAgainst')}
-                        </Link>
+                        <Button asChild>
+                            <Link href={`/inbound/new?po=${po.id}`}>{t('purchasing.receiveAgainst')}</Link>
+                        </Button>
                     )}
                     {(po.status === 'confirmed' || po.status === 'receiving') && (
                         <CloseOrderControl

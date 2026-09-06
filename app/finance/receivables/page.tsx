@@ -10,6 +10,7 @@
 //
 // 【本页不算账】(OPS-16)未结合计与四档合计由函数给出;分组小计仍在本页算,
 //   它是【展示上的分组】而不是账龄口径,导出刻意不含它。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
@@ -106,12 +107,9 @@ export default async function ReceivablesPage({
                 </>
             }
             actions={
-                <Link
-                    href="/finance/payments/new?direction=in"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('finance.recordReceipt')}
-                </Link>
+                <Button asChild>
+                    <Link href="/finance/payments/new?direction=in">{t('finance.recordReceipt')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

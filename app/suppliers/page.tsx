@@ -1,5 +1,6 @@
 // app/suppliers/page.tsx
 // 供应商列表页:URL 驱动的搜索 / 状态筛选 / 排序(全部在服务端的 Supabase 查询里完成)
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
@@ -133,12 +134,9 @@ export default async function SuppliersPage({
                     <Link href={FN.commissions.href} className="text-sm text-blue-600 hover:underline">
                         {t('commissions.entryLink')}
                     </Link>
-                    <Link
-                        href="/suppliers/new"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
-                        {t('suppliers.addButton')}
-                    </Link>
+                    <Button asChild>
+                        <Link href="/suppliers/new">{t('suppliers.addButton')}</Link>
+                    </Button>
                 </div>
             }
             state={{ kind: 'ok' }}

@@ -10,6 +10,7 @@
 // 只是换成了"筛选" 而不是"新增表单"。处置与 Kind-E 相同:【回答它的层】
 // 挪到 DataTable 自己的 empty prop —— 而这本来就是这一页转换前的真实行为
 // (工具栏此前从不在任何行数判断里面)。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import { getBaseCurrency } from '@/lib/currency'
 import Link from 'next/link'
@@ -166,12 +167,9 @@ export default async function ExpensesListPage({
         <ListPage
             title={t('expense.listTitle')}
             actions={
-                <Link
-                    href="/finance/expenses/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('expense.new')}
-                </Link>
+                <Button asChild>
+                    <Link href="/finance/expenses/new">{t('expense.new')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

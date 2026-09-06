@@ -2,6 +2,7 @@
 // 银行对账首页:每个银行账户一张卡(账面余额 / 最近对账单 / 差额 / 两侧未匹配计数),
 // 卡片下方列出该账户的待对账报表并直链工作台 —— 这是每月对账的入口。
 // 金额一律用 formatAmount 带币种 —— SGD 账户的数字绝不能被当成 USD 展示。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -77,7 +78,15 @@ export default async function BankHomePage() {
 
     return (
         <div className="p-8">
-            <div className="flex justify-between items-center mb-4">
+            {/* ★ BTN-5:这一行加了 flex-wrap / gap-2,而它修的是【本刀自己造成的回归】。
+                实测 390px:转换前这一排溢出 39px,转换后 63px(那个链接 105px → 129px)。
+                原因不是内边距 —— 内边距其实【变小了】(px-4 → px-2.5,少 12px)。
+                原因是库按钮基础层带着 `shrink-0` 与 `whitespace-nowrap`:
+                生 <a> 在窄屏上会被 flex 压扁、文字会折行,而库按钮【两样都不许】。
+                ☞ 与 BTN-3 记下的是同一个失败形状(+15px 变成 +41px),
+                  也是同一课:**照内边距推方向会推反。**
+                这一页在本刀之前就已经要左右拖(39px),现在让它在窄屏换行。 */}
+            <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
                 <h1 className="text-2xl font-bold">{t('bank.title')}</h1>
                 <div className="flex gap-3">
                     <Link
@@ -86,12 +95,9 @@ export default async function BankHomePage() {
                     >
                         {t('bank.statements')}
                     </Link>
-                    <Link
-                        href="/finance/bank/import"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
-                        {t('bank.import')}
-                    </Link>
+                    <Button asChild>
+                        <Link href="/finance/bank/import">{t('bank.import')}</Link>
+                    </Button>
                 </div>
             </div>
 

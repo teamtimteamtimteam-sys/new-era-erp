@@ -5,6 +5,7 @@
 // 在这里自己写一句 valid_until < today,就是给同一个判断留下第二份实现:
 // 屏幕上说"还有效"而服务端拒绝转换,或者反过来。CMP-1 的证书过期就是被写了
 // 两遍的那一对(它自己的注释写着"改一边要改两边"),这里不重演。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -32,10 +33,9 @@ export default async function QuotesPage() {
             title={t('quotes.listTitle')}
             intro={t('quotes.listNote')}
             actions={
-                <Link href="/sales/quotes/new"
-                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    {t('quotes.newQuote')}
-                </Link>
+                <Button asChild>
+                    <Link href="/sales/quotes/new">{t('quotes.newQuote')}</Link>
+                </Button>
             }
             // 【沿用这一页原本那句空态】(PAGE-0 §⑨)。
             // 【不分两种空】—— 一张报价没有"太少所以说明不了问题":一份报价就是一份报价。

@@ -14,6 +14,7 @@
 // 是给下一个人准备的一个矛盾。moduleForPath 按最长前缀匹配,所以本页自动
 // 落在 /inventory 那条模块条目下,不需要(也不应该)新加一条 —— 新加一条
 // 会让首页为同一个模块画出第二张卡片。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -81,12 +82,9 @@ export default async function LocationsPage() {
         <ListPage
             title={t('locations.listTitle')}
             actions={
-                <Link
-                    href="/inventory/locations/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
-                >
-                    {t('locations.new')}
-                </Link>
+                <Button asChild>
+                    <Link href="/inventory/locations/new">{t('locations.new')}</Link>
+                </Button>
             }
             notices={
                 <>

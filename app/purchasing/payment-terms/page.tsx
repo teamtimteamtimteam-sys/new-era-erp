@@ -1,6 +1,7 @@
 // app/purchasing/payment-terms/page.tsx
 // 付款条款模板列表:名称、说明、各期摘要(紧凑一行)、启用状态、编辑入口。
 // 模板只为省去回头客的重复录入 —— 不是标准条款,系统也不预置任何模板。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -91,10 +92,9 @@ export default async function PaymentTermTemplatesPage() {
             title={t('purchasing.templatesTitle')}
             maxWidth="max-w-5xl"
             actions={
-                <Link href="/purchasing/payment-terms/new"
-                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    {t('purchasing.newTemplate')}
-                </Link>
+                <Button asChild>
+                    <Link href="/purchasing/payment-terms/new">{t('purchasing.newTemplate')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

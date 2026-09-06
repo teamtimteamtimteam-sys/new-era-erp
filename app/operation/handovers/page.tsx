@@ -16,6 +16,7 @@
 // 【这一页【不】显示"这个班处理了什么"】加工单只有 process_date(一个 date),
 // 归不到某一个班次上(G8)。屏幕上因此有一句常驻的话说明这件事 ——
 // 不写,下一个人会以为是这一页忘了查。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -95,10 +96,9 @@ export default async function HandoversPage() {
             maxWidth="max-w-5xl"
             actions={
                 canEdit ? (
-                    <Link href="/operation/handovers/new"
-                          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
-                        {t('processing.handover.new')}
-                    </Link>
+                    <Button asChild>
+                        <Link href="/operation/handovers/new">{t('processing.handover.new')}</Link>
+                    </Button>
                 ) : undefined
             }
             notices={

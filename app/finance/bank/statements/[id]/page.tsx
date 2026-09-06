@@ -2,6 +2,7 @@
 // 对账单详情:头部卡 + 导入提示横幅(?overlap= / ?dups=)+ 行表(金额右对齐、
 // 负数标红、状态 pill、匹配到的分录链接、忽略理由)+ 页脚合计与 期初 + Σ = 期末 校验行。
 // open → "开始对账"进工作台、可软删(坏导入丢弃);reconciled → 绿色横幅 + 重新打开。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -184,12 +185,9 @@ export default async function BankStatementDetailPage({
             //   而且它画在状态分支【之前】,所以任何空态都吃不掉它。
             actions={
                 stmt.status === 'open' ? (
-                    <Link
-                        href={`/finance/bank/statements/${stmt.id}/reconcile`}
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
-                        {t('bank.openWorkspace')}
-                    </Link>
+                    <Button asChild>
+                        <Link href={`/finance/bank/statements/${stmt.id}/reconcile`}>{t('bank.openWorkspace')}</Link>
+                    </Button>
                 ) : undefined
             }
             // ★★ 详情页恒为 ok —— 这张报表在不在由上面的 notFound() 回答。

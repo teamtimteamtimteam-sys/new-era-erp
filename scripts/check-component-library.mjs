@@ -132,19 +132,120 @@ function stripComments(src) {
 //   ★ 对 table 那一维【无影响】(实测新旧同为 66 个文件 / 76 处):
 //     本仓库的 <table> 全部写成 `<table className=…` 同一行。所以旧基线没有虚报,
 //     这次也【没有】因为换正则而把 table 的基线改大。
-const DIMS = [
+const LINE_DIMS = [
     { key: 'table',  re: /<table(?=[\s>]|$)/,  what: '手搓 <table>',  fix: '<DataTable> / <EditableTable>' },
     { key: 'button', re: /<button(?=[\s>]|$)/, what: '手写 <button>', fix: '<Button>(档位见 button.tsx 抬头)' },
+]
+
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ BTN-5(2026-09-06)· 第三维:【长得像按钮的链接】★★
+// ════════════════════════════════════════════════════════════════════════════
+// 【为什么非有这一维不可 —— 这是本刀存在的全部理由】
+//   Tim 看完线上说:按钮没变。**而这一族每一件仪器都说变了。**
+//   查下去,原因只有一个,而它藏在【判据】里,不在代码里:
+//     · 本闸数 `<button`   · 文档数 `<button`   · 探针收 [data-slot="button"]
+//   三条看起来互不相干的路,**共用同一个定义:标签名是 button。**
+//   而每一张列表页最大、最蓝、最显眼的那个「+ 新建 X」——**是一个 <Link>**。
+//   ☞ 于是「187 个按钮统一了」与「我一个都没看见」【两句话同时为真】。
+//
+//   实测(BTN-5 开工前):**154 处长得像按钮的链接,住在 105 个文件里**;
+//   而 23 个主列表页里,库按钮 **0 个**。
+//
+// 【★ 这一维【不能】按行匹配 —— 而这条教训是本刀自己撞出来的 ★】
+//   本刀拿 ripgrep 当"不共用代码的第二条路"去校对,它报 311,解析器报 470。
+//   查明:**行式工具会先把换行剥掉**,于是 `(?=[\s/>])` 这个前瞻在
+//   `<Link` 位于行尾时【匹配不上】——
+//         <Link                       ← 这一行到此为止
+//             href={…}
+//         >
+//   ★ 而这正是本文件抬头 BTN-1 那一段记下过的同一个坑(`<button` 旧写法
+//     漏掉 266 处里的 158 处)。**本刀在建"用来抓这个坑"的仪器时,又踩了一次。**
+//
+//   ☞ 所以写成一句比"记得加 -U"更强的话,因为它管得更宽:
+//     ★★【一条独立的第二路,只有在【不共用第一路的失效模式】时才是独立的】★★
+//     行式工具与这一族写过的每一个按行切分的解析器,共用同一个失效模式 ——
+//     两条都瞎在同一个地方时,它们的一致【不是证据】。
+//   (换行陷阱:本族第六次。注释污染:第五次 —— 实测 18 处 <Link>/<a> 住在注释里。)
+//
+//   本维因此【先剥注释,再整标签花括号配平地读】,一次都不按行切。
+// ════════════════════════════════════════════════════════════════════════════
+
+// 从 src[i]('<')读到配平的 '>',跳过字符串与花括号 —— 多行标签因此完整。
+function readTag(src, i) {
+    let j = i, depth = 0, q = null
+    while (j < src.length) {
+        const c = src[j]
+        if (q) { if (c === '\\') { j += 2; continue } if (c === q) q = null; j++; continue }
+        if (c === '"' || c === "'" || c === '`') { q = c; j++; continue }
+        if (c === '{') { depth++; j++; continue }
+        if (c === '}') { depth--; j++; continue }
+        if (c === '>' && depth === 0) return src.slice(i, j + 1)
+        j++
+    }
+    return null
+}
+// className 的值:字符串字面量,或 {…} 里那一整段(花括号配平,模板串不会被截断)
+function grabClass(tag) {
+    const i = tag.indexOf('className=')
+    if (i === -1) return ''
+    let j = i + 'className='.length
+    if (tag[j] === '"') { const e = tag.indexOf('"', j + 1); return e === -1 ? '' : tag.slice(j + 1, e) }
+    if (tag[j] !== '{') return ''
+    let d = 0, q = null, k = j
+    for (; k < tag.length; k++) {
+        const c = tag[k]
+        if (q) { if (c === '\\') { k++; continue } if (c === q) q = null; continue }
+        if (c === '"' || c === "'" || c === '`') { q = c; continue }
+        if (c === '{') { d++; continue }
+        if (c === '}') { d--; if (d === 0) break; continue }
+    }
+    return tag.slice(j + 1, k)
+}
+// 判据:两个方向的内边距 + 圆角 + (实底 或 描边)。★ 它的盲区印在收尾里,不只写在报告里。
+const padBoth = (c) => /(^|[\s"'`{])p-\S/.test(c)
+    || (/(^|[\s"'`{])px-\S/.test(c) && /(^|[\s"'`{])py-\S/.test(c))
+    || (/(^|[\s"'`{])pl-\S/.test(c) && /(^|[\s"'`{])pr-\S/.test(c) && /(^|[\s"'`{])py-\S/.test(c))
+const hasRadius = (c) => /(^|[\s"'`{])rounded(-|\b)/.test(c)
+const hasFill   = (c) => /(^|[\s"'`{])bg-[a-z\[]/.test(c)
+const hasBorder = (c) => /(^|[\s"'`{])border(\b|-)/.test(c)
+const isButtonShaped = (c) => padBoth(c) && hasRadius(c) && (hasFill(c) || hasBorder(c))
+
+function scanLinkButtons(src) {
+    // 同一文件里的 const 字符串拼回去 —— 否则 className={row} 这一类【整个看不见】
+    const consts = {}
+    for (const m of src.matchAll(/const\s+(\w+)\s*=\s*\n?\s*(['"`])([\s\S]*?)\2/g)) consts[m[1]] = m[3]
+    const out = []
+    const RE = /<(Link|a)(?=[\s/>]|$)/g
+    let m
+    while ((m = RE.exec(src))) {
+        const tag = readTag(src, m.index)
+        if (!tag) continue
+        let cls = grabClass(tag)
+        for (const id of new Set([...cls.matchAll(/\$\{(\w+)\}/g)].map((x) => x[1])
+            .concat(/^\s*(\w+)\s*$/.test(cls) ? [cls.trim()] : [])))
+            if (consts[id]) cls += ' ' + consts[id]
+        if (isButtonShaped(cls)) out.push({ line: src.slice(0, m.index).split('\n').length })
+        RE.lastIndex = m.index + tag.length
+    }
+    return out
+}
+
+const DIMS = [
+    ...LINE_DIMS,
+    { key: 'linkbutton', what: '长得像按钮的 <Link>/<a>', fix: '<Button asChild>(链接仍然是链接,只借外观)' },
 ]
 
 const hits = Object.fromEntries(DIMS.map((d) => [d.key, []]))
 for (const abs of walk(join(ROOT, 'app'))) {
     const file = relative(ROOT, abs)
     if (file.startsWith(LIBRARY_DIR)) continue
-    const lines = stripComments(readFileSync(abs, 'utf8')).split('\n')
+    const src = stripComments(readFileSync(abs, 'utf8'))
+    const lines = src.split('\n')
     lines.forEach((ln, idx) => {
-        for (const d of DIMS) if (d.re.test(ln)) hits[d.key].push({ file, line: idx + 1 })
+        for (const d of LINE_DIMS) if (d.re.test(ln)) hits[d.key].push({ file, line: idx + 1 })
     })
+    // ★ 这一维【不按行切】—— 理由见上面那一段(本族第六次换行陷阱)
+    for (const h of scanLinkButtons(src)) hits.linkbutton.push({ file, line: h.line })
 }
 
 const counts = Object.fromEntries(DIMS.map((d) => {
@@ -153,10 +254,14 @@ const counts = Object.fromEntries(DIMS.map((d) => {
     return [d.key, m]
 }))
 
-const NOTE = '★ 这份基线【只会缩短】,不会变长。多一处 <table> 或 <button> → 闸变红;'
+const NOTE = '★ 这份基线【只会缩短】,不会变长。多一处 <table> / <button> / 按钮态链接 → 闸变红;'
     + '少一处 → 顺手收紧。它不是白名单:白名单随新债增长,基线随还债缩短。'
     + '任何一刀想把它改大,必须在文档里解释为什么 —— 而 --update-baseline 让这件事留在 diff 里。'
     + ' BTN-1(2026-09-06)加入 button 维度:table 维度原样搬迁,没有放宽。'
+    + ' ★ BTN-5(2026-09-06)加入 linkbutton 维度(长得像按钮的 <Link>/<a>)——'
+    + '前两维原样搬迁,一处都没有放宽。加这一维的理由:前三件仪器共用同一个定义'
+    + '(标签名是 button),而每张列表页最显眼的那个主动作是一个 <Link>,于是'
+    + '「统一了」与「我一个都没看见」两句话同时为真。'
 
 if (process.argv.includes('--update-baseline')) {
     const obj = { __NOTE__: NOTE }
@@ -212,6 +317,18 @@ for (const d of DIMS) {
     if (d.key === 'button') {
         console.log(`   ★ 这 ${hits[d.key].length} 处【全部是故意留下的】,逐条理由见 docs/base-components.md §十六。`)
         console.log('     它们不是债:是 expander / 遮罩 / 分段选择组 / 整行可点区 / role="switch"。')
+    }
+    // ★★ BTN-5:盲区【印在工具自己的收尾里】,不只写在报告里 ★★
+    //   写在报告里的盲区活不过两刀 —— 下一个人读的是这段输出,不是三个月前那份报告。
+    if (d.key === 'linkbutton') {
+        console.log('   ★ 这一维【看不见什么】—— 两个方向都说,别只说让人安心的那一个:')
+        console.log('     ✗ 看不见:className 在运行期拼出来的按钮态链接(变量 / 导入的常量 /')
+        console.log('       三元表达式)。同文件的 const 字符串会被拼回来,跨文件的【不会】。')
+        console.log('     ✗ 会错抓:一个碰巧带了内边距 + 圆角 + 描边的【正文链接】。')
+        console.log('       判据是外观,而外观不是语义 —— 句子里的一个链接不是按钮,别把它转过去。')
+        console.log('     ✓ 它【不】按行切:整标签花括号配平地读,多行 <Link 因此数得到。')
+        console.log('       (行式工具在这里会漏掉行尾的开标签 —— 本族第六次换行陷阱,BTN-5 抬头有实测。)')
+        console.log(`   ★ 余量清单与逐条理由见 docs/base-components.md §十七。`)
     }
 
     if (gone.length) {

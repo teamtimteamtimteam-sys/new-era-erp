@@ -15,6 +15,7 @@
 //   屏幕上那个数与 CSV 里那个数因此是同一个数,而不是两次相同的加法。
 //   分组小计仍在本页算:它是【展示上的分组】,不是账龄口径的一部分,
 //   而导出【刻意不含】它(小计行会把电子表格里的透视表全部弄坏)。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
@@ -116,12 +117,9 @@ export default async function PayablesPage({
                 </>
             }
             actions={
-                <Link
-                    href="/finance/payments/new?direction=out"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('finance.recordPayment')}
-                </Link>
+                <Button asChild>
+                    <Link href="/finance/payments/new?direction=out">{t('finance.recordPayment')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

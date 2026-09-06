@@ -7,6 +7,7 @@
 //   ListPage 的 empty 分支会把工具栏一起藏起来(筛空了就再也筛不回来)。
 //   同一条判据这一刀在 15 张页面上适用,整套推理写在
 //   docs/list-page-template.md §⑩-3,不在每一页重复。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -98,9 +99,9 @@ export default async function TrainingPage({
         <ListPage
             title={t('hr.trainingTitle')}
             actions={
-                <Link href="/hr/training/new" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    {t('hr.newTraining')}
-                </Link>
+                <Button asChild>
+                    <Link href="/hr/training/new">{t('hr.newTraining')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

@@ -5,6 +5,7 @@
 // 缺牌价)全部【无条件】渲染,与有没有数据无关 —— 走 notices,不进 children。
 // state 恒为 'ok':筛选工具栏是真实出口,必须与表格一起无条件可见,理由与
 // /finance/expenses 同一条。排序留在服务端,Q7 行为不变。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
@@ -173,12 +174,9 @@ export default async function FxRatesPage({
             title={t('finance.fxTitle')}
             actions={
                 <>
-                    <Link
-                        href="/finance/fx/new"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
-                        {t('finance.fxPage.addButton')}
-                    </Link>
+                    <Button asChild>
+                        <Link href="/finance/fx/new">{t('finance.fxPage.addButton')}</Link>
+                    </Button>
                     <Link
                         href="/finance/fx/bulk"
                         className="ml-3 border border-gray-400 px-3 py-1.5 rounded text-sm hover:bg-gray-100"

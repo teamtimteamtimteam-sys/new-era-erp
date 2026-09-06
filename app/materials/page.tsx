@@ -1,6 +1,7 @@
 // app/materials/page.tsx
 // 物料字典列表页:URL 驱动的搜索 / 分类筛选 / 排序 / 分页(全部在服务端完成)。
 // 端口自 suppliers 列表,字段适配 materials(种类筛选用 kind_code — PROC-1)。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
@@ -169,12 +170,9 @@ export default async function MaterialsPage({
         <ListPage
             title={t('materials.listTitle')}
             actions={
-                <Link
-                    href="/materials/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('materials.addButton')}
-                </Link>
+                <Button asChild>
+                    <Link href="/materials/new">{t('materials.addButton')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

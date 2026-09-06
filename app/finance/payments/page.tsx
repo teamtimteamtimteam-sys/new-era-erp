@@ -3,6 +3,7 @@
 // (端口自分录列表)。往来单位名按页小批量反查(客户/供应商两次 .in)。
 //
 // CONV-4:套 CONV-1 的两文件模板。state 恒为 'ok' —— 筛选工具栏是真实出口。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import { getBaseCurrency } from '@/lib/currency'
 import Link from 'next/link'
@@ -137,12 +138,9 @@ export default async function PaymentsListPage({
         <ListPage
             title={t('finance.paymentsTitle')}
             actions={
-                <Link
-                    href="/finance/payments/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('finance.recordPayment')}
-                </Link>
+                <Button asChild>
+                    <Link href="/finance/payments/new">{t('finance.recordPayment')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

@@ -22,18 +22,48 @@
 //   要求页面上至少有一个 [data-slot="button"],且没有 Next 的错误覆盖层。
 //   一页都没画出来 → 直接红,不进几何比对。
 //
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ BTN-5(2026-09-06)· 这支探针此前【看不见颜色,也看不见没转过去的东西】★★
+// ════════════════════════════════════════════════════════════════════════════
+//   两个缺陷,都是量出来的,都不是"覆盖面不够"那种含糊说法:
+//
+//   ① 【颜色一条都没有被断言过】L1 的比对键是 h · radius · padL · padR · weight。
+//      颜色只被读来算对比度,而对比度只对【禁用态】断言(L3)。
+//      ☞ **一个取样到的、转换过的按钮渲染出错的底色,能通过这支探针的每一条断言。**
+//      修法:L6,按 (variant,size) 断言底色与字色的【CSS 原值】逐字相同。
+//
+//   ② 【[data-slot="button"] 对生 <a> 结构性失明】于是绿的含义只有
+//      "转过去的那些没问题",对**每张列表页上最显眼的那个主动作**一个字都没说。
+//      修法:RAWLINK,按算出来的样式收还没转过去的按钮态链接,判据是【只许变少】。
+//
+// ★★【说清楚这支探针【现在仍然】看不见什么 —— 不许把边界说宽】★★
+//      ✗ hover / active / focus 的颜色 —— 它只读静止态。
+//      ✗ 非默认主题下的颜色 —— 它只跑一套 prefers-color-scheme。
+//      ✗ 任何不带 data-slot="button" 的控件的【档位】(RAWLINK 只数得到它们的
+//        存在,数不出它们该是哪一档)。
+//      ✗ 只在某个 state 分支里才存在的按钮(要先点开一个面板)—— 见 UNRENDERABLE。
+//      ✗ 档位【选得对不对】:一个本该 destructive 的按钮写成 default,全绿。
+//      ☞ 一支夸大自己的探针会被人忽略,而被忽略的检查比没有更坏。
+// ════════════════════════════════════════════════════════════════════════════
+//
 // 用法:node scripts/probe-button-tiers.mjs
+//       node scripts/probe-button-tiers.mjs --update-rawlink-baseline   ← 写 RAWLINK 基线
 // 退出码:0 = 全绿;1 = 有断言红
 // 需要:.next/BUILD_ID(跑在生产构建上,不是 dev)
 // ════════════════════════════════════════════════════════════════════════════
 import { spawn } from 'node:child_process'
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
+const RAWLINK_BASELINE = join(ROOT, 'scripts/probe-rawlink-baseline.json')
+const RAWLINK_NOTE = '★ BTN-5(2026-09-06)· 这份基线记的是【取样页上还没转成 <Button asChild> 的'
+    + '按钮态链接】,判据是算出来的样式(两轴内边距 + 圆角 + 实底或描边)。**它只许变少。**'
+    + ' 多一处 → 探针红;少了 → 顺手收紧。它读的是 DOM,所以看得见 className 在运行期拼出来的那些'
+    + ' —— 那正是棘轮 linkbutton 维的盲区,两件仪器盲区互补。'
 const PORT = 3202                 // 3198 survey-phone · 3199 冒烟 · 3201 probe-avatar
 const CDP_PORT = 9338
 const CHROME = join(process.env.HOME, '.cache/puppeteer/chrome-headless-shell/mac_arm-152.0.7977.54/chrome-headless-shell-mac-arm64/chrome-headless-shell')
@@ -321,9 +351,34 @@ try {
           weight: cs.fontWeight, disabled: el.disabled === true,
           rule: before.content !== 'none' && before.width !== 'auto' ? before.width : null,
           ruleImg: before.backgroundImage !== 'none',
+          // ★★ BTN-5 Item 2:【用色】进采集 —— 此前一个颜色都没有被断言过 ★★
+          //   比对键是 CSS 报回来的【原值】,不是合成到父层之后的值:同一个
+          //   (variant,size) 的原值由 cva 决定,与它画在哪一页、父层什么底色无关。
+          //   合成值会随父层漂,拿它当键会红在【页面背景】上,而不是红在按钮上。
+          rawBg: cs.backgroundColor, rawFg: cs.color,
+          isAnchor: el.tagName === 'A', href: el.getAttribute('href'),
           cr: Math.round(cr*100)/100, label: (el.textContent||'').trim().slice(0,24) });
       }
-      return JSON.stringify({ err, n: out.length, out });
+      // ★★ BTN-5 Item 1:【还没转过去的】按钮态链接也要数得到 ★★
+      //   [data-slot="button"] 对一个生 <a> 是【结构性失明】的。只收它,
+      //   绿的含义就只有"转过去的那些没问题",对剩下的一个字都没说 ——
+      //   而这一族正是这样走到今天的。
+      //   ☞ 这条路读的是【算出来的样式】,所以它看得见 className 在运行期
+      //     拼出来的那些 —— 那恰好是棘轮的盲区。两件仪器盲区互补,不是重复。
+      const px = v => parseFloat(v) || 0;
+      let rawLinks = 0;
+      for (const a of document.querySelectorAll('a[href]')) {
+        if (a.closest('[data-slot="button"]')) continue;
+        const c = getComputedStyle(a); const rr = a.getBoundingClientRect();
+        if (rr.width === 0 && rr.height === 0) continue;
+        const padded = px(c.paddingLeft) > 0 && px(c.paddingRight) > 0 && px(c.paddingTop) > 0 && px(c.paddingBottom) > 0;
+        const round = px(c.borderTopLeftRadius) > 0;
+        const bgA = /rgba/.test(c.backgroundColor) ? Number(c.backgroundColor.split(',')[3]) : 1;
+        const filled = bgA > .01 && c.backgroundColor !== 'rgba(0, 0, 0, 0)';
+        const bordered = px(c.borderTopWidth) > 0 || px(c.borderLeftWidth) > 0;
+        if (padded && round && (filled || bordered)) rawLinks++;
+      }
+      return JSON.stringify({ err, n: out.length, out, rawLinks });
     })()`
 
     // ★★ BTN-3:两条【动态】路由,因为 reversal/inline 在这棵树上【没有静态落点】★★
@@ -419,6 +474,7 @@ try {
     }
 
     const all = []
+    const rawByPage = {}
     console.log('')
     for (const path of [...PAGES, ...dynamic]) {
         await S('Page.navigate', { url: origin + path })
@@ -430,6 +486,7 @@ try {
         // ★ 先证这一页真的画出来了 —— 不是 HTTP 200,是【屏幕上有库按钮且没有错误覆盖层】
         probe(`RENDER ${path}`, !d.err && d.n > 0, d.err ? '错误覆盖层在' : `${d.n} 个库按钮`)
         if (!d.err && d.n > 0) all.push(...d.out.map(o => ({ ...o, path })))
+        if (!d.err) rawByPage[path] = d.rawLinks          // ★ BTN-5:还没转过去的按钮态链接
     }
 
     console.log('')
@@ -611,6 +668,82 @@ try {
     for (const u of UNRENDERABLE) {
         console.log(`  · UNRENDERABLE ${u.k} —— ${u.site}`)
         console.log(`      ${u.why}`)
+    }
+
+    // ── ★★ BTN-5 Item 1 · RAWLINK:【还没转过去的】按钮态链接【只许变少】★★ ──────
+    //   为什么这条非有不可:这支探针原来只收 [data-slot="button"],而那对一个
+    //   生 <a> 是结构性失明。于是它的绿只说得了"转过去的那些没问题",
+    //   对**每张列表页上最显眼的那个主动作**一个字都没说 —— 这一族正是
+    //   这样走到"187 个按钮统一了"与"我一个都没看见"同时为真的。
+    //   ☞ 判据是【只许变少】,与棘轮同一个方向:多一处 → 红;少了 → 提示收紧。
+    {
+        let base = null
+        try { base = JSON.parse(readFileSync(RAWLINK_BASELINE, 'utf8')) } catch {}
+        if (process.argv.includes('--update-rawlink-baseline')) {
+            writeFileSync(RAWLINK_BASELINE, JSON.stringify({ __NOTE__: RAWLINK_NOTE, pages: rawByPage }, null, 2) + '\n')
+            console.log(`  ✓ RAWLINK 基线已写:${Object.keys(rawByPage).length} 页,` +
+                `共 ${Object.values(rawByPage).reduce((a, b) => a + b, 0)} 处按钮态链接。`)
+        } else if (!base?.pages) {
+            // ★ 读不到基线【不是】绿 —— 那会把"我没在看"伪装成"没有问题"
+            probe('RAWLINK 基线', false,
+                '读不到 scripts/probe-rawlink-baseline.json —— 生成:node scripts/probe-button-tiers.mjs --update-rawlink-baseline')
+        } else {
+            const grew = [], shrank = []
+            for (const [pg, n] of Object.entries(rawByPage)) {
+                const was = base.pages[pg]
+                if (was === undefined) continue           // 新取样的页:由下面那条点名
+                if (n > was) grew.push(`${pg} ${was} → ${n}`)
+                else if (n < was) shrank.push(`${pg} ${was} → ${n}`)
+            }
+            const unseen = Object.keys(rawByPage).filter((pg) => base.pages[pg] === undefined)
+            const total = Object.values(rawByPage).reduce((a, b) => a + b, 0)
+            const wasTotal = Object.entries(base.pages)
+                .filter(([pg]) => rawByPage[pg] !== undefined).reduce((a, [, v]) => a + v, 0)
+            probe('RAWLINK 按钮态链接只许变少', grew.length === 0,
+                grew.length === 0
+                    ? `取样页合计 ${wasTotal} → ${total} 处` + (shrank.length ? `,${shrank.length} 页变少(可收紧基线)` : '(持平)')
+                    : `★ 有 ${grew.length} 页变多:${grew.join(' · ')}`)
+            if (shrank.length) for (const t of shrank) console.log(`      · 变少:${t}`)
+            if (unseen.length) console.log(`      · 基线里没有这些页(新取样,未比对):${unseen.join(' · ')}`)
+        }
+    }
+
+    // ── ★★ BTN-5 Item 2 · L6:【颜色】—— 此前一个颜色都没有被断言过 ★★ ──────────
+    //   实测过的缺陷:L1 的比对键是 h · radius · padL · padR · weight,**没有颜色**;
+    //   颜色只被读来算对比度,而对比度只对【禁用态】断言(L3)。
+    //   ☞ 于是**一个被取样到的、转换过的按钮渲染成错的底色,能通过这支探针的
+    //     每一条断言** —— 几何全对,颜色错得离谱,退出码 0。
+    //   这条把同一个 (variant,size) 的底色与字色收进断言:cva 是它们唯一的来源,
+    //   所以同一格的原值必须逐字相同。用【原值】不用合成值的理由见 COLLECT 里那段。
+    for (const [k, list] of groups) {
+        const on = list.filter(b => !b.disabled)
+        if (on.length < 2) continue
+        const csig = b => `bg=${b.rawBg} fg=${b.rawFg}`
+        const uniq = [...new Set(on.map(csig))]
+        const pages = [...new Set(on.map(b => b.path))]
+        probe(`L6 用色 ${k}`, uniq.length === 1,
+            uniq.length === 1 ? `${on.length} 处 / ${pages.length} 页 同色 · ${uniq[0]}`
+                              : `★ ${uniq.length} 种用色:${uniq.map(u => u + ' @' +
+                                  [...new Set(on.filter(b => csig(b) === u).map(b => b.path))].join(',')).join('  |  ')}`)
+    }
+
+    // ── ★★ BTN-5 Item 3 · ANCHOR:转过去的链接【必须仍然是链接】★★ ────────────
+    //   asChild 在这棵树上此前【零个调用点】,没有任何东西验过它。
+    //   把一个 <Link> 换成 <button> 会悄悄毁掉:中键、在新标签页打开、复制链接地址、
+    //   预取,以及浏览器自己对这个控件的理解 —— **而本族没有一支探针量这些**,
+    //   所以它会一声不吭地上线。这条因此断言渲染出来的元素仍是 <a> 且 href 还在。
+    {
+        const anchors = all.filter(b => b.isAnchor)
+        if (anchors.length) {
+            const noHref = anchors.filter(b => !b.href)
+            probe('ANCHOR 转过去的链接仍是 <a> 且 href 还在', noHref.length === 0,
+                noHref.length === 0
+                    ? `${anchors.length} 处库按钮渲染成 <a>,每一处都带 href`
+                    : `★ ${noHref.length} 处是 <a> 却没有 href:` +
+                      noHref.map(b => `${b.path} "${b.label}"`).join(' · '))
+        } else {
+            console.log('  · 取样里没有 asChild 渲染出的 <a> —— ANCHOR 未取证(不算绿)')
+        }
     }
 
     // ── L3 · 禁用态读得清 ──────────────────────────────────────────────────

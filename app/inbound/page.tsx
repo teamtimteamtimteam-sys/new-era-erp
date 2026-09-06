@@ -1,6 +1,7 @@
 // app/inbound/page.tsx
 // 进料批次列表页:URL 驱动的搜索 / 阶段筛选 / 供应商筛选 / 物料筛选 / 排序 / 分页。
 // 端口自 materials 列表,适配事务表:关联方(供应商/物料)用 FK-id 下拉,嵌入仅用于展示。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
@@ -323,12 +324,9 @@ export default async function InboundPage({
                     >
                         {t('receive.entry')}
                     </Link>
-                    <Link
-                        href="/inbound/new"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
-                        {t('inbound.addButton')}
-                    </Link>
+                    <Button asChild>
+                        <Link href="/inbound/new">{t('inbound.addButton')}</Link>
+                    </Button>
                 </div>
             </div>
             <p className="text-sm text-gray-500 mb-4">{t('inbound.twoPathsHint')}</p>

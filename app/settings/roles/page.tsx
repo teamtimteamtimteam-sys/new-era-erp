@@ -1,5 +1,6 @@
 // app/settings/roles/page.tsx
 // 角色列表:码、双语名、描述、启用、系统角色标记、授权数、持有人数。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -64,9 +65,9 @@ export default async function RolesPage() {
             intro={t('permissions.rolesIntro')}
             maxWidth="max-w-6xl"
             actions={
-                <Link href="/settings/roles/new" className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm">
-                    {t('permissions.addRole')}
-                </Link>
+                <Button asChild>
+                    <Link href="/settings/roles/new">{t('permissions.addRole')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

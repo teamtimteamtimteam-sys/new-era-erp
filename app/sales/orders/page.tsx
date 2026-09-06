@@ -5,6 +5,7 @@
 // 【入口与权限】本页守 MOD.finance —— module.sales.* 线上不存在(见
 // salesOrderTypes.ts 抬头)。入口挂在财务子导航上,与该子导航其余各项同一对码,
 // 这是 RPT-1 那条子导航规矩的前提;若将来订单改挂别的权限码,那个前提当场失效。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -51,10 +52,9 @@ export default async function SalesOrdersPage() {
         <ListPage
             title={t('sales.listTitle')}
             actions={
-                <Link href="/sales/orders/new"
-                      className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    {t('sales.newOrder')}
-                </Link>
+                <Button asChild>
+                    <Link href="/sales/orders/new">{t('sales.newOrder')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

@@ -1,6 +1,7 @@
 // app/inbound/[id]/edit/AssaySection.tsx
 // 批次页的化验区(服务端组件 —— 只有列表与链接,不需要客户端状态)。
 // 位置在"金属含量"与"计价"之间:含量从哪来 → 化验 → 价格往哪去,读下来是一条线。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
 import { metalLabelKey } from '@/app/tools/pricing/metal-prices/options'
@@ -39,12 +40,9 @@ export default async function AssaySection({
         <section className="mt-8 pt-8 border-t">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">{t('assay.title')}</h2>
-                <Link
-                    href={`/inbound/${batchId}/assays/new`}
-                    className="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm"
-                >
-                    {t('assay.new')}
-                </Link>
+                <Button asChild>
+                    <Link href={`/inbound/${batchId}/assays/new`}>{t('assay.new')}</Link>
+                </Button>
             </div>
 
             {/* ── ASY-P2:化验要求的现状,三种状态各说各的话 ────────────────────

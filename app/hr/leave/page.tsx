@@ -93,9 +93,9 @@ export default async function LeaveRequestsPage({
             title={t('hr.title')}
             maxWidth="max-w-6xl"
             actions={
-                <Link href="/hr/leave/new" className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm">
-                    {t('leave.recordLeave')}
-                </Link>
+                <Button asChild>
+                    <Link href="/hr/leave/new">{t('leave.recordLeave')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

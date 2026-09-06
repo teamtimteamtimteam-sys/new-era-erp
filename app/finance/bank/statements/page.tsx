@@ -4,6 +4,7 @@
 //
 // CONV-4:套 CONV-1 的两文件模板。state 恒为 'ok' —— 筛选工具栏是真实出口,
 // 理由与 /finance/expenses 同一条。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -135,12 +136,9 @@ export default async function BankStatementsPage({
         <ListPage
             title={t('bank.listTitle')}
             actions={
-                <Link
-                    href="/finance/bank/import"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('bank.import')}
-                </Link>
+                <Button asChild>
+                    <Link href="/finance/bank/import">{t('bank.import')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

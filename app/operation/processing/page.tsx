@@ -5,6 +5,7 @@
 // ★ Q7:sort/dir 仍然由 ProcessingToolbar 写 URL、由服务端执行,DataTable 不接管
 //   排序。转换前后的行序用 fetch 对拍验过(不是断言)。
 // ★ state 恒为 'ok' —— 筛选/排序工具栏是真实出口,见 §⑩-3。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
@@ -126,12 +127,9 @@ export default async function ProcessingPage({
         <ListPage
             title={t('processing.listTitle')}
             actions={
-                <Link
-                    href="/operation/processing/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('processing.addButton')}
-                </Link>
+                <Button asChild>
+                    <Link href="/operation/processing/new">{t('processing.addButton')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

@@ -11,6 +11,7 @@
 //
 // 【计划外的加工不是这一页的事】work_order_id 为空的加工单属于【加工单列表】,
 // 而不是这里的一行"没有计划的工单" —— 它们是一个具名的类别,不是这张表的缺席。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -92,10 +93,9 @@ export default async function WorkOrdersPage() {
             intro={t('processing.wo.listNote')}
             actions={
                 canEdit ? (
-                    <Link href="/operation/orders/new"
-                          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        {t('processing.wo.addButton')}
-                    </Link>
+                    <Button asChild>
+                        <Link href="/operation/orders/new">{t('processing.wo.addButton')}</Link>
+                    </Button>
                 ) : undefined
             }
             notices={

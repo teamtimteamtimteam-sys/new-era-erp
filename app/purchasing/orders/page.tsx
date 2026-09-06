@@ -8,6 +8,7 @@
 // CCY-1:这张表里【并排两种币】——「估算总额」是采购单自己的币种(po.currency),
 // 「已预付」与那个未抵扣角标是本位币(*_base)。列头一个币种也没写,两列挨着,
 // 于是 12,000 与 8,100 看着像同一种钱。两列各自带上币种,不省。
+import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
@@ -197,12 +198,9 @@ export default async function PurchaseOrdersPage({
         <ListPage
             title={t('purchasing.ordersTitle')}
             actions={
-                <Link
-                    href="/purchasing/orders/new"
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                >
-                    {t('purchasing.newOrder')}
-                </Link>
+                <Button asChild>
+                    <Link href="/purchasing/orders/new">{t('purchasing.newOrder')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

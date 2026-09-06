@@ -54,9 +54,9 @@ export default async function ClaimsPage({
             title={t('hr.title')}
             maxWidth="max-w-6xl"
             actions={
-                <Link href="/hr/claims/new" className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm">
-                    {t('claims.record')}
-                </Link>
+                <Button asChild>
+                    <Link href="/hr/claims/new">{t('claims.record')}</Link>
+                </Button>
             }
             state={{ kind: 'ok' }}
         >

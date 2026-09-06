@@ -2,6 +2,7 @@
 // 产出批次页的化验区(服务端组件)。进料侧 AssaySection 是形状的出处;放在
 // 金属含量面板旁边 —— 化验是含量的【出处】,不是另一件事。列表与徽标共用
 // assay.* 的文案;链接指向产出侧的化验路由。
+import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
 
@@ -31,12 +32,9 @@ export default async function OutputAssaySection({
         <section className="mt-8 pt-8 border-t">
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">{t('assay.title')}</h2>
-                <Link
-                    href={`/output/${batchId}/assays/new`}
-                    className="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 text-sm"
-                >
-                    {t('assay.new')}
-                </Link>
+                <Button asChild>
+                    <Link href={`/output/${batchId}/assays/new`}>{t('assay.new')}</Link>
+                </Button>
             </div>
 
             {unapplied.length > 0 && (
