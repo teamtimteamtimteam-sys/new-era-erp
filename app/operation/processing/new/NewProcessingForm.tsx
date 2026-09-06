@@ -440,13 +440,15 @@ export default function NewProcessingForm({
                                         }
                                         className="w-32 border border-gray-300 px-3 py-2 rounded"
                                     />
-                                    <button
+                                    <Button
+                                        variant="secondary"
+                                        size="inline"
                                         type="button"
                                         onClick={() => removeInputRow(row.key)}
-                                        className="text-red-600 text-sm hover:underline py-2"
+                                        className="text-sm"
                                     >
                                         {t('processing.form.rowDelete')}
-                                    </button>
+                                    </Button>
                                 </div>
                                 {exceeds && (
                                     <p className="text-red-600 text-xs mt-1 ml-1">{t('processing.form.rowExceeds')}</p>
@@ -527,13 +529,15 @@ export default function NewProcessingForm({
                                 }
                                 className="w-36 border border-gray-300 px-3 py-2 rounded"
                             />
-                            <button
+                            <Button
+                                variant="secondary"
+                                size="inline"
                                 type="button"
                                 onClick={() => removeOutputRow(row.key)}
-                                className="text-red-600 text-sm hover:underline py-2"
+                                className="text-sm"
                             >
                                 {t('processing.form.rowDelete')}
-                            </button>
+                            </Button>
                         </div>
                     ))}
                 </section>

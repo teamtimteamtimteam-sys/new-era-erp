@@ -58,10 +58,9 @@ export default function MyExpenseClaimsPanel({
             )}
 
             {employeeId && !open && (
-                <button type="button" onClick={() => setOpen(true)}
-                    className="mb-3 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+                <Button variant="default" className="mb-3 text-sm" type="button" onClick={() => setOpen(true)}>
                     {t('expenseClaims.submit')}
-                </button>
+                </Button>
             )}
             {employeeId && open && (
                 <div className="mb-4 rounded border border-gray-300 p-3 flex flex-wrap gap-3 items-end max-w-3xl">
@@ -151,7 +150,7 @@ export default function MyExpenseClaimsPanel({
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-right">
                                     {r.status === 'submitted' && (
-                                        <button type="button" disabled={pending}
+                                        <Button variant="reversal" size="xs" type="button" disabled={pending}
                                             onClick={() => {
                                                 setError(null)
                                                 startTransition(async () => {
@@ -159,10 +158,9 @@ export default function MyExpenseClaimsPanel({
                                                     if (x.error) setError(x.error)
                                                 })
                                             }}
-                                            title={t('expenseClaims.withdrawHint')}
-                                            className="border border-gray-300 rounded px-2 py-1 text-xs hover:bg-gray-50 disabled:opacity-50">
+                                            title={t('expenseClaims.withdrawHint')}>
                                             {t('expenseClaims.withdraw')}
-                                        </button>
+                                        </Button>
                                     )}
                                 </td>
                             </tr>

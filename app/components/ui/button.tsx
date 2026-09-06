@@ -106,6 +106,57 @@ const buttonVariants = cva(
         "icon-lg": "size-9",
       },
     },
+    // ════════════════════════════════════════════════════════════════════════
+    // ★ BTN-3(2026-09-06)·【行内的档位】—— §八(b) 第三次运转 ★
+    // ════════════════════════════════════════════════════════════════════════
+    // 【为什么非加不可,而不是在调用点各写一遍】
+    //   本刀要转的 25 处红/灰链接态,今天全部是**表格单元格里、或句子里的一段字**。
+    //   照 size="default" 转过去,每一处会变成 h=32px 的盒子 —— BTN-2 §12.5 正是
+    //   为了不做这次未经授权的版式改动才留下了一处没转。
+    //   但反过来把它们留在 variant="link" 上,等于**重新发一遍 BTN-1 存在的理由**:
+    //   「一个看起来像普通动作的破坏性动作,是缺陷,不是不一致。」
+    //
+    // 【两个档到了行内会自己散架 —— 这是实测出来的,不是推的】
+    //   ① size="inline" 写着 `p-0`,而 destructive/reversal 靠 `pl-3.5` 给左竖条
+    //      让出位置。p-0 一压,**竖条就画在字底下**。
+    //   ② destructive 的 `bg-destructive/8` + `border-destructive/40` 在行内
+    //      会把「句子里的一个词」画成一个淡红色小方块 —— 比转换前更像盒子。
+    //      与 §12.4 同一课:一个 token 在【有底的档】里对,不等于它在
+    //      【没有底的档】里还是同一件东西。
+    //
+    // 【所以行内档保留什么、丢掉什么 —— 判据是 §10.1 的第 ③ 条】
+    //   保留:**3px 左竖条,实线 / 虚线**。那一条是纯几何,不经过颜色,
+    //         也是这两个档在行内**唯一**还分得开的判据。
+    //   丢掉:底与描边(它们只对盒子成立)。
+    //   字色:destructive 用 --brand-destructive-text。实测 #AA4F48 on white
+    //         = **5.356:1**,而它取代的 text-red-600 是 **4.829:1** ——
+    //         **这一次转换【提高】了对比度**(BTN-2 的蓝色那次是降低)。
+    //   hover:underline:今天这 25 处全部有,行内保留它,悬停反馈一字不改。
+    // ════════════════════════════════════════════════════════════════════════
+    compoundVariants: [
+      {
+        // 行内破坏档:实线竖条留着,底与描边去掉。
+        variant: "destructive",
+        size: "inline",
+        className:
+          "border-transparent bg-transparent pl-2 hover:bg-transparent hover:underline focus-visible:border-transparent before:inset-y-0.5",
+      },
+      {
+        // 行内撤销档:虚线竖条留着 —— 与上面同一处几何,一实一虚。
+        variant: "reversal",
+        size: "inline",
+        className:
+          "border-transparent bg-transparent pl-2 hover:bg-transparent hover:underline focus-visible:border-transparent before:inset-y-0.5",
+      },
+      {
+        // 行内次档:没有竖条(次档从来就没有),只剩 400 字重与正文色。
+        // 它与 link 的差别是【颜色与字重】:link 是 ocean 500,它是正文色 400。
+        // 草稿行上的「移除」正是这一档:什么都还没存过,红色在这里是假话。
+        variant: "secondary",
+        size: "inline",
+        className: "border-transparent hover:bg-transparent hover:underline",
+      },
+    ],
     defaultVariants: {
       variant: "default",
       size: "default",

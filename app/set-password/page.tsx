@@ -15,6 +15,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { logout } from '@/app/logout/actions'
 import SetPasswordForm from './SetPasswordForm'
+import { Button } from '@/app/components/ui/button'
 
 export default async function SetPasswordPage() {
     const supabase = await createClient()
@@ -58,12 +59,14 @@ export default async function SetPasswordPage() {
                 signOut + revalidatePath + redirect('/login') 一个字没改。
                 ══════════════════════════════════════════════════════════════ */}
             <form action={logout} className="mt-8 border-t pt-4">
-                <button
+                <Button
+                    variant="link"
+                    size="inline"
                     type="submit"
-                    className="text-sm text-gray-500 underline underline-offset-2 hover:text-gray-800"
+                    className="text-sm"
                 >
                     {t('setPassword.notYou')}
-                </button>
+                </Button>
             </form>
         </div>
     )

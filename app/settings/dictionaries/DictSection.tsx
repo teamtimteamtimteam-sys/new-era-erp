@@ -13,6 +13,7 @@ import type { DictSpec } from './registry'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
+import { Button } from '@/app/components/ui/button'
 
 export type DictRow = {
     code: string; name_en: string; name_zh: string
@@ -87,10 +88,9 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
             key: 'actions', header: '',
             render: (r: DictRow) => (
                 <>
-                    <button type="button" onClick={() => openEdit(r)} disabled={pending}
-                            className="mr-2 rounded border border-[color:var(--brand-border)] px-2 py-0.5 text-xs hover:bg-[color:var(--brand-muted)] disabled:opacity-50">
+                    <Button variant="secondary" size="xs" className="mr-2 text-xs" type="button" onClick={() => openEdit(r)} disabled={pending}>
                         {t('common.edit')}
-                    </button>
+                    </Button>
                     {/* ★【CONFIRM-1:这一处是 B 类的教科书例子】★ 一节字典有几十行,
                         每行一个「停用」钮,而原来的灰盒子问的是「Deactivate {0}?」——
                         码是拼进消息里的,可【拼进去的东西冒烟点不到,也读不出】。
@@ -110,11 +110,10 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                             {t('dict.deactivate')}
                         </ConfirmButton>
                     ) : (
-                        <button type="button" disabled={pending}
-                                onClick={() => run(() => setDictActive({ table: spec.table, code: r.code, active: true }))}
-                                className="rounded border border-[color:var(--brand-border)] px-2 py-0.5 text-xs hover:bg-[color:var(--brand-muted)] disabled:opacity-50">
+                        <Button variant="secondary" size="xs" type="button" disabled={pending}
+                                onClick={() => run(() => setDictActive({ table: spec.table, code: r.code, active: true }))}>
                             {t('dict.reactivate')}
-                        </button>
+                        </Button>
                     )}
                 </>
             ),
@@ -129,10 +128,9 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
             <div className="mb-2 flex items-baseline gap-3">
                 <h2 className="text-lg font-medium">{t(spec.titleKey)}</h2>
                 {!readOnly && (
-                    <button type="button" onClick={openNew} disabled={pending}
-                            className="rounded border border-[color:var(--brand-border)] px-2 py-1 text-xs hover:bg-[color:var(--brand-muted)] disabled:opacity-50">
+                    <Button variant="secondary" size="sm" className="text-xs" type="button" onClick={openNew} disabled={pending}>
                         {t('dict.add')}
-                    </button>
+                    </Button>
                 )}
                 {/* ★ 只读时说出【为什么】,而不是让人对着一张没有按钮的表纳闷。
                     说的是"要哪个码"—— 与下面那句 gatedBy 同一种措辞。 */}
@@ -161,19 +159,17 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                     className="max-w-2xl"
                     actions={
                         <>
-                            <button type="button" disabled={pending}
+                            <Button variant="default" size="sm" className="text-xs" type="button" disabled={pending}
                                     onClick={() => run(() => (editing === '__new__' ? addDictValue : updateDictValue)({
                                         table: spec.table, code: f.code, nameEn: f.nameEn, nameZh: f.nameZh,
                                         sortOrder: f.sortOrder, notes: f.notes, extras,
-                                    }))}
-                                    className="rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-text)] px-3 py-1 text-xs text-white disabled:opacity-50">
+                                    }))}>
                                 {pending ? t('common.saving') : t('common.save')}
-                            </button>
-                            <button type="button" disabled={pending}
-                                    onClick={() => { setEditing(null); setError(null) }}
-                                    className="rounded border border-[color:var(--brand-border)] px-3 py-1 text-xs hover:bg-[color:var(--brand-muted)] disabled:opacity-50">
+                            </Button>
+                            <Button variant="secondary" size="sm" className="text-xs" type="button" disabled={pending}
+                                    onClick={() => { setEditing(null); setError(null) }}>
                                 {t('common.cancel')}
-                            </button>
+                            </Button>
                         </>
                     }
                 >

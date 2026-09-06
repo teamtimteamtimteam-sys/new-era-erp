@@ -13,6 +13,7 @@
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { convertQuote } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function ConvertControl({
     quoteId, code, convertible, status, expired, validUntil, convertedOrderCode,
@@ -49,10 +50,9 @@ export default function ConvertControl({
 
     if (!open) {
         return (
-            <button type="button" onClick={() => setOpen(true)}
-                    className="border border-gray-400 px-3 py-1 rounded text-sm hover:bg-gray-50">
+            <Button variant="secondary" size="sm" className="text-sm" type="button" onClick={() => setOpen(true)}>
                 {t('quotes.convert.action')}
-            </button>
+            </Button>
         )
     }
 
@@ -67,14 +67,12 @@ export default function ConvertControl({
                     <input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)}
                            className="border border-gray-300 px-2 py-1 rounded text-sm" />
                 </div>
-                <button type="button" onClick={go} disabled={isPending || orderDate.trim() === ''}
-                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:bg-gray-400">
+                <Button size="sm" type="button" onClick={go} disabled={isPending || orderDate.trim() === ''}>
                     {isPending ? t('common.saving') : t('quotes.convert.action')}
-                </button>
-                <button type="button" onClick={() => setOpen(false)}
-                        className="text-gray-500 hover:underline text-xs">
+                </Button>
+                <Button variant="secondary" size="sm" type="button" onClick={() => setOpen(false)}>
                     {t('common.cancel')}
-                </button>
+                </Button>
             </div>
             {/* 【订单日不是报价日】它是客户接受的那一天,而且决定单号年份与汇率期间 */}
             <p className="text-xs text-gray-500 mt-2">{t('quotes.convert.orderDateWhy')}</p>

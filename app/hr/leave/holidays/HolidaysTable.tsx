@@ -4,6 +4,7 @@
 // CONV-3 · 公共假期登记簿的那张表。见 docs/list-page-template.md 的 Kind-E 一节。
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Button } from '@/app/components/ui/button'
 
 export type HolidayRow = {
     id: string
@@ -58,14 +59,16 @@ export default function HolidaysTable({
         {
             key: 'actions', header: '',
             render: (r) => (
-                <button
+                <Button
+                    variant="destructive"
+                    size="inline"
                     type="button"
                     disabled={pending}
                     onClick={() => onDelete(r.id)}
-                    className="text-xs text-red-700 hover:underline disabled:opacity-50"
+                    className="text-xs"
                 >
                     {t('common.delete')}
-                </button>
+                </Button>
             ),
         },
     ]

@@ -220,13 +220,13 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                                     >
                                                         {t('common.save')}
                                                     </Button>
-                                                    <button
+                                                    <Button
+                                                        variant="secondary"
                                                         type="button"
                                                         onClick={() => { setEditing(null); setDraft(null) }}
-                                                        className="text-gray-500 hover:underline"
                                                     >
                                                         {t('common.cancel')}
-                                                    </button>
+                                                    </Button>
                                                     {draftUnitMissing && (
                                                         <p className="text-xs text-red-700 mt-1">{t('reviews.unitRequired')}</p>
                                                     )}
@@ -243,14 +243,15 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                                         {t('reviews.edit')}
                                                     </Button>
                                                     {canEditGoals && (
-                                                        <button
+                                                        <Button
+                                                            variant="destructive"
+                                                            size="inline"
                                                             type="button"
                                                             onClick={() => remove(g.id)}
                                                             disabled={pending}
-                                                            className="text-red-600 hover:underline"
                                                         >
                                                             {t('common.delete')}
-                                                        </button>
+                                                        </Button>
                                                     )}
                                                 </>
                                             )}

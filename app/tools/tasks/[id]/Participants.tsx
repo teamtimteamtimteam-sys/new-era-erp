@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { addParticipant, removeParticipant, promoteToTeam, correctType } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 // app/tools/tasks/[id]/Participants.tsx
 // TASK-1b:参与者面板。
@@ -73,13 +74,12 @@ export default function Participants({
                             <span className="text-xs text-gray-500">{labels.addedBy} {r.added_by_name}</span>
                         ) : null}
                         {canEdit ? (
-                            <button
-                                className="ml-auto text-xs text-red-700"
+                            <Button variant="destructive" size="inline" className="ml-auto text-xs"
                                 disabled={pending || !r.participant_id}
                                 onClick={() => run(() => removeParticipant(taskId, r.participant_id as string))}
                             >
                                 {r.employee_id === myEmployeeId ? labels.leave : labels.removeOther}
-                            </button>
+                            </Button>
                         ) : null}
                     </li>
                 ))}
@@ -125,11 +125,10 @@ export default function Participants({
                                 </option>
                             ))}
                     </select>
-                    <button
-                        className="rounded bg-blue-600 px-2 py-1 text-xs text-white disabled:opacity-50"
+                    <Button variant="default" size="xs" className="text-xs"
                         disabled={pending || !pick}
                         onClick={() => { run(() => addParticipant(taskId, pick)); setPick('') }}
-                    >{labels.add}</button>
+                    >{labels.add}</Button>
                 </div>
             ) : null}
 
@@ -143,13 +142,15 @@ export default function Participants({
                         {labels.typeLocked}
                     </p>
                 )}
-                <button
-                    className="text-xs text-gray-700 underline disabled:no-underline disabled:text-gray-400"
+                <Button
+                    variant="reversal"
+                    size="inline"
+                    className="text-xs"
                     disabled={pending || !correctable}
                     onClick={() => run(() => correctType(taskId))}
                 >
                     {labels.correctType}
-                </button>
+                </Button>
             </div>
         </section>
     )
@@ -163,8 +164,7 @@ export function PromoteButton({ taskId, label, disabled = false }: { taskId: str
             {error ? (
                 <div className="mb-3 rounded border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             ) : null}
-            <button
-                className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50"
+            <Button variant="default" size="sm" className="text-sm"
                 disabled={pending || disabled}
                 onClick={() =>
                     start(async () => {
@@ -172,7 +172,7 @@ export function PromoteButton({ taskId, label, disabled = false }: { taskId: str
                         setError('error' in res ? res.error : null)
                     })
                 }
-            >{label}</button>
+            >{label}</Button>
         </>
     )
 }

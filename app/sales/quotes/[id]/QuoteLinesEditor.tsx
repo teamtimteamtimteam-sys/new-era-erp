@@ -110,11 +110,11 @@ export default function QuoteLinesEditor({
                                                 className="text-xs">
                                             {t('common.save')}
                                         </Button>
-                                        <button type="button" disabled={isPending}
+                                        <Button variant="destructive" size="inline" type="button" disabled={isPending}
                                                 onClick={() => run(() => removeQuoteLine(quoteId, l.id))}
-                                                className="ml-3 text-red-600 hover:underline text-xs disabled:opacity-40">
+                                                className="ml-3 text-xs">
                                             {t('quotes.removeLine')}
-                                        </button>
+                                        </Button>
                                     </td>
                                 )}
                             </tr>

@@ -279,14 +279,15 @@ export default function ReconcileWorkspace({
                                             {m.entry_code}
                                         </Link>
                                     ))}
-                                    <button
+                                    <Button
+                                        variant="reversal"
+                                        size="inline"
                                         type="button"
                                         disabled={isPending}
                                         onClick={() => run(() => unmatchLine(statement.id, line.id))}
-                                        className="text-red-600 hover:underline disabled:text-gray-400"
                                     >
                                         {t('bank.unmatch')}
-                                    </button>
+                                    </Button>
                                 </div>
                             )}
 
@@ -297,7 +298,7 @@ export default function ReconcileWorkspace({
                                         {t('bank.ignoreReason')}: {line.ignore_reason ?? '—'}
                                     </span>
                                     <Button
-                                        variant="link"
+                                        variant="reversal"
                                         size="inline"
                                         type="button"
                                         disabled={isPending}
@@ -436,24 +437,25 @@ export default function ReconcileWorkspace({
                                     aria-label={t('bank.balancePanel.note')}
                                     className="border border-gray-300 rounded px-2 py-1 text-sm flex-1 min-w-[16rem]"
                                 />
-                                <button
+                                <Button
+                                    variant="secondary"
+                                    size="inline"
                                     type="button"
                                     onClick={() => removeVarianceItem(item.id)}
-                                    className="text-sm text-red-700 hover:underline"
+                                    className="text-sm"
                                 >
                                     {t('bank.balancePanel.removeItem')}
-                                </button>
+                                </Button>
                             </div>
                         ))}
 
                         <div className="flex flex-wrap items-center gap-4 mt-2">
-                            <button
+                            <Button variant="secondary" size="sm" className="text-sm"
                                 type="button"
                                 onClick={addVarianceItem}
-                                className="bg-white border border-gray-400 px-3 py-1 rounded text-sm hover:bg-gray-100"
                             >
                                 {t('bank.balancePanel.addItem')}
-                            </button>
+                            </Button>
                             <span className="text-sm">
                                 <span className="text-gray-600 mr-1">{t('bank.balancePanel.explained')}:</span>
                                 <span className="font-mono">{formatAmount(explained, ccy)}</span>
@@ -612,14 +614,13 @@ export default function ReconcileWorkspace({
                                 >
                                     {t('bank.match')}
                                 </Button>
-                                <button
+                                <Button variant="secondary"
                                     type="button"
                                     disabled={isPending}
                                     onClick={() => setIgnoringId(selectedLine.id)}
-                                    className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"
                                 >
                                     {t('bank.ignore')}
-                                </button>
+                                </Button>
                             </div>
 
                             {/* 忽略:内联理由输入(DB 要求必填)*/}
@@ -634,7 +635,7 @@ export default function ReconcileWorkspace({
                                             placeholder={t('bank.ignoreReasonPlaceholder')}
                                             className="flex-1 min-w-[14rem] border border-gray-300 px-3 py-2 rounded text-sm"
                                         />
-                                        <button
+ <Button variant="default" 
                                             type="button"
                                             disabled={!ignoreReason.trim() || isPending}
                                             onClick={() =>
@@ -642,10 +643,9 @@ export default function ReconcileWorkspace({
                                                     ignoreLine(statement.id, selectedLine.id, ignoreReason.trim())
                                                 )
                                             }
-                                            className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800 disabled:bg-gray-400"
                                         >
                                             {t('bank.ignore')}
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             )}

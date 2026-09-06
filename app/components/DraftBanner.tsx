@@ -10,6 +10,7 @@
 // 套用之后那句"这些格子来自一份草稿"【不消失】,一直显示到提交为止。
 import { useTranslations } from '@/lib/i18n/client'
 import type { DraftState } from '@/lib/useFormDraft'
+import { Button } from '@/app/components/ui/button'
 
 function when(ts: number, locale: string) {
     return new Date(ts).toLocaleString(locale === 'en' ? 'en-SG' : 'zh-SG', {
@@ -38,10 +39,9 @@ export default function DraftBanner({ draft, locale = 'zh' }: { draft: DraftStat
                 <p className="text-amber-900 mb-2">
                     {t('draft.staleFound', { when: when(draft.found.at, locale) })}
                 </p>
-                <button type="button" onClick={draft.discard}
-                        className="text-xs border border-amber-400 text-amber-900 px-3 py-1 rounded hover:bg-amber-100">
+                <Button variant="secondary" size="xs" type="button" onClick={draft.discard}>
                     {t('draft.discard')}
-                </button>
+                </Button>
             </div>
         )
     }
@@ -58,14 +58,12 @@ export default function DraftBanner({ draft, locale = 'zh' }: { draft: DraftStat
                     {draft.restricted ? t('draft.whereSession') : t('draft.whereDevice')}
                 </p>
                 <div className="flex gap-2">
-                    <button type="button" onClick={draft.restore}
-                            className="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
+                    <Button size="xs" type="button" onClick={draft.restore}>
                         {t('draft.restore')}
-                    </button>
-                    <button type="button" onClick={draft.discard}
-                            className="text-xs border border-blue-400 text-blue-800 px-3 py-1 rounded hover:bg-blue-100">
+                    </Button>
+                    <Button variant="secondary" size="xs" type="button" onClick={draft.discard}>
                         {t('draft.discard')}
-                    </button>
+                    </Button>
                 </div>
             </div>
         )
@@ -77,10 +75,9 @@ export default function DraftBanner({ draft, locale = 'zh' }: { draft: DraftStat
             <div data-draft="restored"
                  className="text-sm bg-blue-50 border border-blue-300 rounded px-3 py-2 mb-3">
                 <p className="text-blue-900 mb-2">{t('draft.restoredNotice')}</p>
-                <button type="button" onClick={draft.discard}
-                        className="text-xs border border-blue-400 text-blue-800 px-3 py-1 rounded hover:bg-blue-100">
+                <Button variant="secondary" size="xs" type="button" onClick={draft.discard}>
                     {t('draft.discardRestored')}
-                </button>
+                </Button>
             </div>
         )
     }

@@ -15,6 +15,7 @@ import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveRunLoss, deleteRunLoss } from './lossActions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Button } from '@/app/components/ui/button'
 
 export type LossCategory = {
     code: string; name_en: string; name_zh: string
@@ -85,10 +86,10 @@ export default function LossPanel({
             header: '',
             align: 'right' as const,
             render: (r: LossRow) => (
-                <button type="button" disabled={isPending} onClick={() => remove(r.loss_category_code)}
-                        className="text-sm text-red-700 hover:underline disabled:opacity-50">
+                <Button variant="destructive" size="inline" type="button" disabled={isPending}
+                        onClick={() => remove(r.loss_category_code)} className="text-sm">
                     {t('common.delete')}
-                </button>
+                </Button>
             ),
         }] : []),
     ]
@@ -163,10 +164,9 @@ export default function LossPanel({
                         <input name="notes" type="text"
                                className="border border-gray-300 rounded px-3 py-2 text-sm w-full" />
                     </div>
-                    <button type="submit" disabled={isPending}
-                            className="bg-gray-900 text-white rounded px-4 py-2 text-sm disabled:opacity-50">
+                    <Button variant="default" className="text-sm" type="submit" disabled={isPending}>
                         {t('common.save')}
-                    </button>
+                    </Button>
                 </form>
             )}
         </section>

@@ -104,13 +104,14 @@ export default function ReleaseControl({
                 >
                     {isPending ? t('common.saving') : t('sales.reserve.release')}
                 </Button>
-                <button
+                <Button
+                    variant="ghost"
+                    size="sm"
                     type="button"
                     onClick={() => setOpen(false)}
-                    className="text-gray-500 hover:underline text-xs"
                 >
                     {t('common.cancel')}
-                </button>
+                </Button>
             </div>
             <p className="text-xs text-gray-500 mt-1">
                 {amountBad

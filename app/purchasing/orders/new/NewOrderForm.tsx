@@ -648,14 +648,16 @@ export default function NewOrderForm({
                                 一个按不下去又不说为什么的按钮读起来像是坏了。
                                 这里的理由只有一个:它是最后一行,而一张单不能没有行。 */}
                             <div className="pb-1.5">
-                                <button
+                                <Button
+                                    variant="secondary"
+                                    size="inline"
                                     type="button"
                                     onClick={() => setLines((ls) => (ls.length > 1 ? ls.filter((_, j) => j !== i) : ls))}
                                     disabled={lines.length === 1}
-                                    className="text-red-600 hover:underline text-sm disabled:text-gray-300 disabled:no-underline"
+                                    className="text-sm"
                                 >
                                     {t('purchasing.form.removeLine')}
-                                </button>
+                                </Button>
                                 {lines.length === 1 && (
                                     <p className="text-xs text-gray-500">{t('purchasing.form.removeLineOnlyOne')}</p>
                                 )}
@@ -703,13 +705,12 @@ export default function NewOrderForm({
                             而不是靠两个条件恰好都为假(F2a 数出来的第三个材料专属控件)。 */}
                         {!isEquipment && l.formula_id && assayCount(l) > 0 && (
                             <div>
-                                <button
+                                <Button variant="secondary" size="sm" className="text-sm"
                                     type="button"
                                     onClick={() => onComputeEstimate(i)}
-                                    className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-sm"
                                 >
                                     {t('purchasing.computeEstimate')}
-                                </button>
+                                </Button>
                                 {l.calcError && <span className="ml-2 text-sm text-red-600">{l.calcError}</span>}
                                 {l.calc && (
                                     <button
@@ -884,16 +885,18 @@ export default function NewOrderForm({
                                     )}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2">
-                                    <button
+                                    <Button
+                                        variant="secondary"
+                                        size="inline"
                                         type="button"
                                         onClick={() => {
                                             setTermsEdited(true)
                                             setTerms((ts) => ts.filter((_, j) => j !== i))
                                         }}
-                                        className="text-red-600 hover:underline text-sm"
+                                        className="text-sm"
                                     >
                                         {t('purchasing.form.removeLine')}
-                                    </button>
+                                    </Button>
                                 </td>
                             </tr>
                         ))}

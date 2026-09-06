@@ -10,6 +10,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { recordAttendance, completeAttendancePeriod, reopenAttendancePeriod, syncAttendancePeriod } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 type Row = {
     lineId: string; employeeCode: string; legalName: string
@@ -65,25 +66,23 @@ export default function AttendanceGrid({
 
             {open ? (
                 <div className="flex items-center gap-3">
-                    <button
+                    <Button variant="default" className="text-sm"
                         type="button"
                         disabled={pending}
                         onClick={() => run(() => completeAttendancePeriod(periodId))}
-                        className="rounded bg-gray-900 px-3 py-1.5 text-sm text-white disabled:opacity-40"
                     >
                         {t('attendance.completeBtn')}
-                    </button>
-                    <button
+                    </Button>
+                    <Button variant="secondary" className="text-sm"
                         type="button"
                         disabled={pending}
                         onClick={() => run(async () => {
                             const res = await syncAttendancePeriod(periodId)
                             return res.added ? { note: String(res.added) } : {}
                         })}
-                        className="rounded border px-3 py-1.5 text-sm disabled:opacity-40"
                     >
                         {t('attendance.syncBtn')}
-                    </button>
+                    </Button>
                     <p className="text-xs text-gray-500">
                         {unrecorded > 0
                             ? t('attendance.completeBlocked', { count: String(unrecorded) })
@@ -100,14 +99,14 @@ export default function AttendanceGrid({
                             className="w-full rounded border px-2 py-1"
                         />
                     </label>
-                    <button
+                    <Button
+                        variant="reversal"
                         type="button"
                         disabled={pending || reason.trim() === ''}
                         onClick={() => run(() => reopenAttendancePeriod(periodId, reason))}
-                        className="rounded border px-3 py-1.5 text-sm disabled:opacity-40"
                     >
                         {t('attendance.reopenBtn')}
-                    </button>
+                    </Button>
                 </div>
             )}
         </>
@@ -162,14 +161,13 @@ function LineRow({
                     <span className="text-xs text-amber-700 font-medium">{t('attendance.recordedNo')}</span>
                 )}
                 {open && (
-                    <button
+                    <Button variant="secondary" size="xs" className="ml-2 text-xs"
                         type="button"
                         disabled={disabled}
                         onClick={() => onSaved(() => recordAttendance(row.lineId, num(normal), num(restDay), num(holiday), note.trim() || null))}
-                        className="ml-2 rounded border px-2 py-0.5 text-xs disabled:opacity-40"
                     >
                         {t('attendance.saveLine')}
-                    </button>
+                    </Button>
                 )}
             </td>
         </tr>

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { saveForwarderDetails, addRateQuote, removeRateQuote } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 // LOG-1c:物流属性 + 报价。
 //
@@ -97,9 +98,9 @@ export default function ForwarderPanels({
                     </div>
                     {/* 【联系人不在这里,而这是一句要说出来的话】,不是一个空白 */}
                     <p className="text-xs text-gray-500">{labels.contactsNote}</p>
-                    <button type="submit" disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">
+                    <Button variant="default" size="sm" className="text-sm" type="submit" disabled={pending}>
                         {labels.save}
-                    </button>
+                    </Button>
                 </form>
             </section>
 
@@ -144,9 +145,9 @@ export default function ForwarderPanels({
                             <input name="free_days" type="number" step="1" min="0"
                                 className={`${field} w-24`} />
                         </div>
-                        <button type="submit" disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">
+                        <Button variant="default" size="sm" className="text-sm" type="submit" disabled={pending}>
                             {labels.addQuote}
-                        </button>
+                        </Button>
                         <p className="mt-1 w-full text-xs text-gray-600 max-w-3xl">{labels.freeDaysHint}</p>
                     </form>
                 )}
@@ -174,17 +175,19 @@ export default function ForwarderPanels({
                                                 : q.free_days}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-1">
-                                            <button
+                                            <Button
+                                                variant="destructive"
+                                                size="inline"
                                                 type="button"
                                                 disabled={pending}
                                                 onClick={() => start(async () => {
                                                     const res = await removeRateQuote(supplierId, q.id)
                                                     if ('error' in res) setError(res.error)
                                                 })}
-                                                className="text-xs text-red-700 hover:underline"
+                                                className="text-xs"
                                             >
                                                 {labels.removeQuote}
-                                            </button>
+                                            </Button>
                                         </td>
                                     </tr>
                                 ))}

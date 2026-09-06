@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { addPort, addLane, addRequirement, removeRequirement, markLaneReviewed } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 type Req = { id: string; document_type: string; regime: string | null }
 type Lane = { id: string; label: string; state: string; requirements: Req[] }
@@ -41,7 +42,7 @@ export default function LanesPanel({
                         <label className="block text-xs font-medium mb-1">{labels.portName}</label>
                         <input name="name" required className={field} />
                     </div>
-                    <button disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">{labels.addPort}</button>
+                    <Button variant="default" size="sm" className="text-sm shrink whitespace-normal" disabled={pending}>{labels.addPort}</Button>
                 </form>
 
                 {ports.length >= 2 && (
@@ -62,7 +63,7 @@ export default function LanesPanel({
                                 {ports.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                             </select>
                         </div>
-                        <button disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">{labels.addLane}</button>
+                        <Button variant="default" size="sm" className="text-sm shrink whitespace-normal" disabled={pending}>{labels.addLane}</Button>
                     </form>
                 )}
             </div>
@@ -98,12 +99,14 @@ export default function LanesPanel({
                                         <li key={r.id}>
                                             {r.document_type}
                                             {r.regime ? <span className="ml-2 text-xs text-gray-500">({r.regime})</span> : null}
-                                            <button
+                                            <Button
+                                                variant="destructive"
+                                                size="inline"
                                                 type="button"
                                                 disabled={pending}
                                                 onClick={() => run(() => removeRequirement(r.id))}
-                                                className="ml-3 text-xs text-red-700 hover:underline"
-                                            >{labels.removeRequirement}</button>
+                                                className="ml-3 text-xs"
+                                            >{labels.removeRequirement}</Button>
                                         </li>
                                     ))}
                                 </ul>
@@ -122,16 +125,15 @@ export default function LanesPanel({
                                     <label className="block text-xs font-medium mb-1">{labels.regime}</label>
                                     <input name="regime" className={field} />
                                 </div>
-                                <button disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">
+                                <Button variant="default" size="sm" className="text-sm shrink whitespace-normal" disabled={pending}>
                                     {labels.addRequirement}
-                                </button>
+                                </Button>
                                 {l.state === 'not_defined' && (
-                                    <button
+                                    <Button variant="secondary" size="sm" className="text-sm shrink whitespace-normal"
                                         type="button"
                                         disabled={pending}
                                         onClick={() => run(() => markLaneReviewed(l.id))}
-                                        className="rounded border px-3 py-1 text-sm"
-                                    >{labels.markReviewed}</button>
+                                    >{labels.markReviewed}</Button>
                                 )}
                             </form>
                             <p className="mt-1 text-xs text-gray-500">{labels.regimeHint}</p>

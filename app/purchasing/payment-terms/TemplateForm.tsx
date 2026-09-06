@@ -224,14 +224,16 @@ export default function TemplateForm({
                                 )}
                             </td>
                             <td className="border border-gray-300 px-3 py-2">
-                                <button
+                                <Button
+                                    variant="secondary"
+                                    size="inline"
                                     type="button"
                                     onClick={() => removeLine(i)}
                                     disabled={lines.length === 1}
-                                    className="text-red-600 hover:underline text-sm disabled:text-gray-300 disabled:no-underline"
+                                    className="text-sm"
                                 >
                                     {t('purchasing.form.removeLine')}
-                                </button>
+                                </Button>
                             </td>
                         </tr>
                     ))}

@@ -221,14 +221,16 @@ export default function NewEntryForm(
                                 className="w-full border border-gray-300 px-3 py-2 rounded"
                             />
                         </div>
-                        <button
+                        <Button
+                            variant="secondary"
+                            size="inline"
                             type="button"
                             onClick={() => removeRow(r.key)}
                             disabled={rows.length <= 2}
-                            className="text-red-600 hover:underline disabled:text-gray-400 px-2 py-2 text-sm"
+                            className="text-sm"
                         >
                             {t('finance.removeLine')}
-                        </button>
+                        </Button>
                     </div>
                 ))}
             </div>

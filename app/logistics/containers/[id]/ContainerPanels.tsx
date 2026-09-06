@@ -87,7 +87,7 @@ export default function ContainerPanels({
                             defaultValue={head.expected_arrival_date ?? ''} className={field} /></div>
                     <div className="min-w-[16rem] flex-1"><label className="block text-xs font-medium mb-1">{labels.notes}</label>
                         <input name="notes" defaultValue={head.notes ?? ''} className={`${field} w-full`} /></div>
-                    <button disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">{labels.save}</button>
+                    <Button variant="default" size="sm" className="text-sm" disabled={pending}>{labels.save}</Button>
                 </form>
                 {/* 【开航日不在这里改】—— 它在 DB 上没有开口子给按列放行,改它要另一条路 */}
                 <p className="mt-2 text-xs text-gray-500">{labels.blHint}</p>
@@ -131,11 +131,11 @@ export default function ContainerPanels({
                                                 {/* 【理由由服务端说了算】:这里【不加 required】,空白判定与库里的 btrim 一致 ——
                                                     两处各判一次,迟早给出两个答案。 */}
                                                 <input name="reason" placeholder={labels.detachReason} className={`${field} w-64`} />
-                                                <button disabled={pending} className="text-xs text-red-700 hover:underline">{labels.detach}</button>
+                                                <Button variant="destructive" size="inline" disabled={pending} className="text-xs">{labels.detach}</Button>
                                             </form>
                                         ) : (
-                                            <button type="button" disabled={pending} onClick={() => setDetaching(s.id)}
-                                                className="text-xs text-red-700 hover:underline">{labels.detach}</button>
+                                            <Button variant="destructive" size="inline" type="button" disabled={pending}
+                                                onClick={() => setDetaching(s.id)} className="text-xs">{labels.detach}</Button>
                                         )}
                                     </td>
                                 </tr>
@@ -165,7 +165,7 @@ export default function ContainerPanels({
                                 <option key={s.id} value={s.id}>{s.code} · {s.order_code} · {s.customer}</option>
                             ))}
                         </select>
-                        <button disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">{labels.attach}</button>
+                        <Button variant="default" size="sm" className="text-sm" disabled={pending}>{labels.attach}</Button>
                     </form>
                 )}
             </section>
@@ -192,7 +192,7 @@ export default function ContainerPanels({
                         <input type="date" name="event_date" required className={field} /></div>
                     <div className="min-w-[16rem] flex-1"><label className="block text-xs font-medium mb-1">{labels.milestoneNote}</label>
                         <input name="note" className={`${field} w-full`} /></div>
-                    <button disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">{labels.addMilestone}</button>
+                    <Button variant="default" size="sm" className="text-sm" disabled={pending}>{labels.addMilestone}</Button>
                 </form>
                 <p className="mb-3 text-xs text-gray-500">{labels.eventDateHint}</p>
 
@@ -255,8 +255,7 @@ export default function ContainerPanels({
                     </p>
                 )}
                 {hasLane && (
-                    <button type="button" disabled={pending} onClick={() => run(() => instantiateDocuments(containerId))}
-                        className="mb-4 rounded border px-3 py-1 text-sm">{labels.instantiate}</button>
+                    <Button variant="secondary" size="sm" className="mb-4 text-sm" type="button" disabled={pending} onClick={() => run(() => instantiateDocuments(containerId))}>{labels.instantiate}</Button>
                 )}
 
                 {documents.length > 0 && (
@@ -307,7 +306,7 @@ export default function ContainerPanels({
                         <input name="document_type" required className={field} /></div>
                     <div><label className="block text-xs font-medium mb-1">{labels.regime}</label>
                         <input name="regime" className={field} /></div>
-                    <button disabled={pending} className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50">{labels.addDocument}</button>
+                    <Button variant="default" size="sm" className="text-sm" disabled={pending}>{labels.addDocument}</Button>
                 </form>
             </section>
         </>

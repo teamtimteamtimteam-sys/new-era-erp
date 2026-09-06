@@ -51,10 +51,9 @@ export default function DeclineControl({ quoteId }: { quoteId: string }) {
                 <Button variant="secondary" size="sm" type="button" onClick={go} disabled={isPending || reason.trim() === ''}>
                     {isPending ? t('common.saving') : t('quotes.decline.action')}
                 </Button>
-                <button type="button" onClick={() => setOpen(false)}
-                        className="text-gray-500 hover:underline text-xs">
+                <Button variant="ghost" size="sm" type="button" onClick={() => setOpen(false)}>
                     {t('common.cancel')}
-                </button>
+                </Button>
             </div>
             <p className="text-xs text-gray-500 mt-2">
                 {reason.trim() === '' ? t('quotes.decline.needsReason') : t('quotes.decline.consequence')}

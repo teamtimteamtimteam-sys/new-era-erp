@@ -59,10 +59,10 @@ export default function LicenceTable({
                             onClick={() => onEdit(r)} className="mr-2 text-xs">
                         {t('company.licence.edit')}
                     </Button>
-                    <button type="button" disabled={pending} onClick={() => onDelete(r.id)}
-                            className="text-xs text-red-700 hover:underline disabled:opacity-50">
+                    <Button variant="destructive" size="inline" type="button" disabled={pending}
+                            onClick={() => onDelete(r.id)} className="text-xs">
                         {t('company.licence.delete')}
-                    </button>
+                    </Button>
                 </>
             ) : null,
         },

@@ -15,6 +15,7 @@ import { useState, useTransition } from 'react'
 import { voidInvoice } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { Button } from '@/app/components/ui/button'
 
 // SO-3a:order 头的作废是一次【冲销】(借 2500 / 贷 1100)—— 冲销日必填,
 // 它决定冲销分录落进哪个期间,永不默认(与手工冲销分录同一条);sale 头照旧。
@@ -57,13 +58,12 @@ export default function VoidInvoiceControl({
 
     if (!open) {
         return (
-            <button
+            <Button variant="destructive" size="sm" className="text-sm"
                 type="button"
                 onClick={() => setOpen(true)}
-                className="border border-red-300 text-red-600 px-3 py-1 rounded hover:bg-red-50 text-sm"
             >
                 {t('invoice.void')}
-            </button>
+            </Button>
         )
     }
 
@@ -99,9 +99,9 @@ export default function VoidInvoiceControl({
             >
                 {t('invoice.void')}
             </ConfirmButton>
-            <button type="button" onClick={() => setOpen(false)} className="text-gray-600 hover:underline text-sm">
+            <Button variant="secondary" size="sm" type="button" onClick={() => setOpen(false)}>
                 {t('common.cancel')}
-            </button>
+            </Button>
         </span>
     )
 }

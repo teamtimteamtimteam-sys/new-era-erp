@@ -14,6 +14,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { setLocationActive } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function LocationActiveToggle({ id, isActive }: { id: string; isActive: boolean }) {
     const t = useTranslations()
@@ -31,18 +32,20 @@ export default function LocationActiveToggle({ id, isActive }: { id: string; isA
 
     return (
         <div className="flex flex-col gap-1">
-            <button
+            <Button
+                variant="secondary"
+                size="xs"
                 type="button"
                 onClick={onToggle}
                 disabled={isPending}
-                className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-xs w-fit"
+                className="w-fit"
             >
                 {isPending
                     ? t('common.saving')
                     : isActive
                         ? t('locations.deactivate')
                         : t('locations.reactivate')}
-            </button>
+            </Button>
             {/* 后果 —— 挨着按钮,不在别处 */}
             <span className="text-xs text-gray-500">
                 {isActive ? t('locations.deactivateConsequence') : t('locations.reactivateConsequence')}
