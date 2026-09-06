@@ -16,6 +16,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import { payLines, payCpf, payDeductions } from '../month-end/actions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Button } from '@/app/components/ui/button'
 
 type Period = { id: string; code: string; period_month: string; net_pay_total: number
     employer_cpf_total: number; employee_cpf_total: number; other_deductions_total: number
@@ -118,11 +119,10 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                             />
                         </div>
                         <div className="flex gap-2 flex-wrap items-center text-sm">
-                            <button type="button" disabled={pending || chosen.length === 0 || date === ''}
-                                onClick={() => run(() => payLines(p.id, chosen, date, ''))}
-                                className="bg-blue-600 text-white px-3 py-1.5 rounded disabled:opacity-50">
+                            <Button size="sm" type="button" disabled={pending || chosen.length === 0 || date === ''}
+                                onClick={() => run(() => payLines(p.id, chosen, date, ''))}>
                                 {t('finance.payrollPay.paySelected', { n: chosen.length })}
-                            </button>
+                            </Button>
                             {cpf > 0 && (p.cpf_paid_at
                                 ? <span className="text-xs text-green-700">{t('finance.payrollPay.cpfPaid', { 0: p.cpf_paid_at })}</span>
                                 : <button type="button" disabled={pending || date === ''}

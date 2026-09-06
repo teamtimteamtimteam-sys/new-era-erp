@@ -14,6 +14,7 @@ import { useActionState, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { createCreditNote, type CreditNoteState } from './creditNoteActions'
+import { Button } from '@/app/components/ui/button'
 
 export type CnLineOption = {
     id: string
@@ -170,10 +171,9 @@ export default function CreateCreditNoteControl({
             <p className="text-xs text-gray-600">{t('cn.consequence', { code: invoiceCode })}</p>
 
             <div className="flex gap-3">
-                <button type="submit" disabled={isPending || blocked}
-                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:bg-gray-400">
+                <Button size="sm" type="submit" disabled={isPending || blocked}>
                     {isPending ? t('common.saving') : t('cn.submit')}
-                </button>
+                </Button>
                 <button type="button" onClick={() => setOpen(false)}
                         className="border border-gray-300 px-3 py-1 rounded text-sm hover:bg-gray-50">
                     {t('common.cancel')}

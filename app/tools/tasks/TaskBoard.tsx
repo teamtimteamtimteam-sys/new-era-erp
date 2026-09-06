@@ -15,6 +15,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { updateTaskStatus } from './actions'
 import TaskModal from './TaskModal'
 import { STATUS_VALUES, type Task } from './types'
+import { Button } from '@/app/components/ui/button'
 
 const PRIORITY_STYLES: Record<string, string> = {
     high: 'bg-red-100 text-red-700',
@@ -315,12 +316,10 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
     return (
         <>
             <div className="mb-4">
-                <button
-                    onClick={() => setModal({ mode: 'create' })}
-                    className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
-                >
+                <Button
+                    onClick={() => setModal({ mode: 'create' })}>
                     {t('tasks.addButton')}
-                </button>
+                </Button>
             </div>
 
             <DndContext

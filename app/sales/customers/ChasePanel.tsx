@@ -119,12 +119,11 @@ export default function ChasePanel({
                             {canEdit && (
                                 <div className="mt-1 flex flex-wrap gap-1">
                                     {OUTCOMES.map((o) => (
-                                        <button key={o} type="button" disabled={pending}
+                                        <Button variant="secondary" size="xs" key={o} type="button" disabled={pending}
                                             onClick={() => run(() =>
-                                                recordPromiseOutcome(customerId, p.promise_id, o, null))}
-                                            className="border border-gray-300 bg-white rounded px-2 py-1 text-xs hover:bg-gray-50 disabled:opacity-50">
+                                                recordPromiseOutcome(customerId, p.promise_id, o, null))}>
                                             {t('chases.outcome_' + o)}
-                                        </button>
+                                        </Button>
                                     ))}
                                 </div>
                             )}
@@ -134,10 +133,9 @@ export default function ChasePanel({
             )}
 
             {canEdit && !open && (
-                <button type="button" onClick={() => setOpen(true)}
-                    className="mb-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm">
+                <Button className="mb-4" type="button" onClick={() => setOpen(true)}>
                     {t('chases.record')}
-                </button>
+                </Button>
             )}
 
             {canEdit && open && (

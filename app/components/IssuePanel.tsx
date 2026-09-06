@@ -29,6 +29,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 export default function IssuePanel({
     pdfHref,
@@ -96,10 +97,9 @@ export default function IssuePanel({
                className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">
                 {previewLabel}
             </a>
-            <button type="button" onClick={issue} disabled={isPending || blocked}
-                    className="text-sm border border-gray-400 px-3 py-1 rounded hover:bg-gray-50 disabled:opacity-50">
+            <Button variant="secondary" size="sm" className="text-sm" type="button" onClick={issue} disabled={isPending || blocked}>
                 {isPending ? t('common.saving') : issueLabel}
-            </button>
+            </Button>
             {blockedReason && <span className="text-xs text-amber-700">{blockedReason}</span>}
             {error && <span className="text-xs text-red-600">{error}</span>}
         </div>

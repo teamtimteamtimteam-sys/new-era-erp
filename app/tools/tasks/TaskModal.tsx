@@ -10,6 +10,7 @@ import {
     PRIORITY_VALUES,
     TASK_TYPE_VALUES,
 } from './types'
+import { Button } from '@/app/components/ui/button'
 
 // 逗号分隔字符串 -> 去重去空的标签数组
 function parseTags(raw: string): string[] {
@@ -238,20 +239,16 @@ export default function TaskModal({
                         <span />
 
                         <div className="flex gap-3">
-                            <button
+                            <Button variant="secondary"
                                 type="button"
-                                onClick={onClose}
-                                className="rounded border border-gray-300 px-4 py-2 hover:bg-gray-50"
-                            >
+                                onClick={onClose}>
                                 {t('common.cancel')}
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                                 type="submit"
-                                disabled={isPending}
-                                className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:bg-gray-400"
-                            >
+                                disabled={isPending}>
                                 {isPending ? t('common.saving') : t('common.save')}
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </form>

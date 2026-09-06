@@ -24,6 +24,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { saveSelfAssessment } from '@/app/hr/reviews/actions'
+import { Button } from '@/app/components/ui/button'
 
 export type SelfAssessment = {
     review_id: string
@@ -226,14 +227,12 @@ export default function MySelfAssessmentPanel({
                                         <p className="text-xs text-gray-500">{t('reviews.selfLockedHint')}</p>
                                     ) : (
                                         <div className="flex gap-2 items-center flex-wrap">
-                                            <button
+                                            <Button variant="secondary" size="sm"
                                                 type="button"
                                                 onClick={() => save(a, drafts, false)}
-                                                disabled={pending}
-                                                className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm disabled:opacity-50"
-                                            >
+                                                disabled={pending}>
                                                 {pending ? t('common.saving') : t('common.save')}
-                                            </button>
+                                            </Button>
                                             <button
                                                 type="button"
                                                 onClick={() => save(a, drafts, true)}

@@ -11,6 +11,7 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import PriceBreakdown from '@/app/components/pricing/PriceBreakdown'
 import { calculatePrice, type CalculatorState } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: CalculatorState = {}
 
@@ -196,13 +197,11 @@ export default function CalculatorForm({
                 <section className="border-t pt-6">
                     <div className="flex justify-between items-center mb-3">
                         <h2 className="text-xl font-bold">{t('pricing.calcResult')}</h2>
-                        <button
+                        <Button variant="secondary" size="sm"
                             type="button"
-                            onClick={copyBreakdown}
-                            className="border border-gray-300 px-3 py-2 rounded hover:bg-gray-50 text-sm"
-                        >
+                            onClick={copyBreakdown}>
                             {copied ? t('pricing.copied') : t('pricing.copyBreakdown')}
-                        </button>
+                        </Button>
                     </div>
 
                     {/* 明细表与汇总抽成了共享组件(化验录入/详情的预览用的是同一份) */}

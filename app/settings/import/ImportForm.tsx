@@ -6,6 +6,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { previewImport, commitImport } from './actions'
 import { issueSentence } from './importErrorCodes'
 import type { PreviewResult, ImportIssue } from './types'
+import { Button } from '@/app/components/ui/button'
 
 const EMPTY: PreviewResult = {
     ok: false, table: '', rowCount: 0, issues: [], nearDuplicates: [], rows: [], fileName: '',
@@ -194,10 +195,9 @@ function ImportWizard({
                         {table ? t('import.oneFilePerTable') : t('import.pickTableFirst')}
                     </p>
                 </div>
-                <button type="submit" disabled={!table || done !== null || pending}
-                        className="bg-gray-800 text-white px-4 py-2 rounded text-sm disabled:bg-gray-300">
+                <Button className="text-sm" type="submit" disabled={!table || done !== null || pending}>
                     {t('import.preview')}
-                </button>
+                </Button>
             </form>
 
             {previewLive && preview.issues.length > 0 && (
@@ -261,15 +261,13 @@ function ImportWizard({
             {/* 【提交钮【永远在原地】,只是会被禁用并说出原因】——
                 它此前在成功之后被整个换掉,而一个消失的按钮读起来是"我没点成"。 */}
             <div className="flex items-center gap-3">
-                <button type="button" disabled={!canCommit} onClick={onCommit}
-                        className="bg-blue-600 text-white px-4 py-2 rounded text-sm disabled:bg-gray-300">
+                <Button className="text-sm" type="button" disabled={!canCommit} onClick={onCommit}>
                     {t('import.commit')}
-                </button>
+                </Button>
                 {done !== null && (
-                    <button type="button" onClick={onReset}
-                            className="border border-gray-400 px-4 py-2 rounded text-sm">
+                    <Button variant="secondary" className="text-sm" type="button" onClick={onReset}>
                         {t('import.another')}
-                    </button>
+                    </Button>
                 )}
             </div>
             {/* 【禁用必须说出为什么 —— 每一种禁用各有各的话】 */}

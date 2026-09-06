@@ -12,6 +12,7 @@ import { ALLOWED_TRANSITIONS, DESTRUCTIVE_TRANSITIONS } from './statusMachine'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import type { Database } from '@/lib/database.types'
+import { Button } from '@/app/components/ui/button'
 
 type SupplierStatus = Database['public']['Enums']['supplier_status']
 
@@ -82,10 +83,10 @@ export default function StatusPanel({
                             )
                             if (!isDestructive) {
                                 return (
-                                    <button key={target} type="button" disabled={isPending}
-                                            onClick={() => handleClick(target)} className={cls}>
+                                    <Button variant="secondary" size="sm" key={target} type="button" disabled={isPending}
+                                            onClick={() => handleClick(target)}>
                                         {face}
-                                    </button>
+                                    </Button>
                                 )
                             }
                             // 那条消息原样取出来,再按它自己的换行拆成几行 —— 词不动,只是不再被压平。

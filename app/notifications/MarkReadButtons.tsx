@@ -7,6 +7,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { markRead, markAllRead } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function MarkReadButtons({ id }: { id?: string }) {
     const t = useTranslations()
@@ -25,18 +26,16 @@ export default function MarkReadButtons({ id }: { id?: string }) {
 
     return (
         <div className="shrink-0 text-right">
-            <button
+            <Button variant="secondary" size="xs" className="text-xs"
                 type="button"
                 onClick={onClick}
-                disabled={isPending}
-                className="text-xs border border-gray-300 px-2 py-1 rounded hover:bg-gray-50 disabled:opacity-50"
-            >
+                disabled={isPending}>
                 {isPending
                     ? t('common.saving')
                     : id
                       ? t('notifications.markRead')
                       : t('notifications.markAll')}
-            </button>
+            </Button>
             {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
         </div>
     )

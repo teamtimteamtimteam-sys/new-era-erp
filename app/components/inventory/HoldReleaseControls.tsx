@@ -80,14 +80,12 @@ export default function HoldReleaseControls({
                             className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
                         />
                     </div>
-                    <button
+                    <Button variant="secondary" size="sm" className="text-sm"
                         type="button"
                         disabled={isPending || holdBlocked !== null}
-                        onClick={() => run(() => holdStockAction(inboundBatchId, outputBatchId, locationId, holdQty, holdReason))}
-                        className="border border-amber-400 text-amber-800 px-3 py-1 rounded hover:bg-amber-50 text-sm disabled:opacity-50"
-                    >
+                        onClick={() => run(() => holdStockAction(inboundBatchId, outputBatchId, locationId, holdQty, holdReason))}>
                         {isPending ? t('common.saving') : t('stock.hold')}
-                    </button>
+                    </Button>
                 </div>
                 {/* 后果 —— 挨着按钮。以及每一个禁用条件各自的那句话。 */}
                 <p className="text-xs text-gray-500 mt-1">{t('stock.holdConsequence')}</p>

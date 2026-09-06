@@ -15,6 +15,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { generateKpiEntries } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export type MissingPerson = { employeeId: string; name: string; positionCode: string | null }
 
@@ -47,9 +48,8 @@ export default function GenerateMissing({
                             /* ★ 没有职位就没有模板可抄 —— 说出这一句,而不是给一个会失败的钮 */
                             : <span className="text-gray-700 ml-2 text-xs">{t('kpi.generateNoPosition')}</span>}
                         {p.positionCode && (
-                            <button
+                            <Button variant="secondary" size="xs" className="ml-3 text-xs"
                                 type="button"
-                                className="ml-3 border border-gray-400 rounded px-2 py-0.5 text-xs bg-white disabled:opacity-50"
                                 disabled={disabled || busy === p.employeeId}
                                 onClick={async () => {
                                     setBusy(p.employeeId)
@@ -65,10 +65,9 @@ export default function GenerateMissing({
                                         return next
                                     })
                                     startTransition(() => router.refresh())
-                                }}
-                            >
+                                }}>
                                 {busy === p.employeeId ? t('common.saving') : t('kpi.generateAction')}
-                            </button>
+                            </Button>
                         )}
                         {errors[p.employeeId] && (
                             <p role="alert" className="mt-1 text-xs text-red-700">{errors[p.employeeId]}</p>

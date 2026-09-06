@@ -123,14 +123,12 @@ export default function LicencePanel({
                     className="mt-3 border-t-0 border-x-0 border-b-0 rounded-none p-0 pt-3"
                     actions={
                         <>
-                            <button type="submit" form="licence-form" disabled={saving || form.cert_type_code === ''}
-                                    className="rounded bg-[color:var(--brand-text)] px-4 py-2 text-sm text-white disabled:bg-[color:var(--brand-disabled-bg)] disabled:text-[color:var(--brand-disabled-text)]">
+                            <Button type="submit" form="licence-form" disabled={saving || form.cert_type_code === ''}>
                                 {t('company.licence.save')}
-                            </button>
-                            <button type="button" onClick={() => { setForm(null); setError(null) }}
-                                    className="rounded border border-[color:var(--brand-border)] px-4 py-2 text-sm">
+                            </Button>
+                            <Button variant="secondary" className="text-sm" type="button" onClick={() => { setForm(null); setError(null) }}>
                                 {t('company.licence.cancel')}
-                            </button>
+                            </Button>
                         </>
                     }
                 >

@@ -117,10 +117,9 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit }:
                                         <Button variant="secondary" size="xs" type="button" onClick={() => open(r)} disabled={pending}>
                                             {t('common.edit')}
                                         </Button>
-                                        <button type="button" onClick={() => drop(r.id)} disabled={pending}
-                                                className="ml-2 border border-gray-400 px-2 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                                        <Button variant="reversal" size="xs" className="ml-2" type="button" onClick={() => drop(r.id)} disabled={pending}>
                                             {t('contacts.remove')}
-                                        </button>
+                                        </Button>
                                     </td>
                                 )}
                             </tr>
@@ -130,10 +129,9 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit }:
             )}
 
             {canEdit && editing === null && (
-                <button type="button" onClick={() => open()} disabled={pending}
-                        className="border border-gray-600 px-3 py-1 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                <Button variant="secondary" size="xs" type="button" onClick={() => open()} disabled={pending}>
                     {t('contacts.add')}
-                </button>
+                </Button>
             )}
 
             {canEdit && editing !== null && (

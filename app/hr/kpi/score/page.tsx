@@ -22,6 +22,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import ScoreEditor, { type ScoreRow } from './ScoreEditor'
 import GenerateMissing, { type MissingPerson } from './GenerateMissing'
+import { Button } from '@/app/components/ui/button'
 
 type Cycle = {
     id: string; name: string; period_start: string; period_end: string
@@ -175,9 +176,9 @@ export default async function KpiScorePage({
                         ))}
                     </select>
                 </div>
-                <button type="submit" className="border border-gray-400 rounded px-3 py-1 text-sm bg-white">
+                <Button variant="secondary" size="sm" className="text-sm" type="submit">
                     {t('kpi.chooseMonthGo')}
-                </button>
+                </Button>
             </form>
 
             {!chosen && (

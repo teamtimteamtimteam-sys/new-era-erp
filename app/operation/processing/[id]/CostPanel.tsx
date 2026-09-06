@@ -228,17 +228,15 @@ export default function CostPanel({
                     {t('processing.cost.save')}
                 </Button>
                 {editing && (
-                    <button
+                    <Button variant="secondary"
                         type="button"
                         onClick={() => {
                             setEditingId(null)
                             setError(null)
                         }}
-                        disabled={isPending}
-                        className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50 disabled:opacity-50"
-                    >
+                        disabled={isPending}>
                         {t('common.cancel')}
-                    </button>
+                    </Button>
                 )}
             </form>
         </section>

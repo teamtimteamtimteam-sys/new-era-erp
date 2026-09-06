@@ -12,6 +12,7 @@ import { saveForecastLine } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
+import { Button } from '@/app/components/ui/button'
 
 type Row = {
     id: string; label: string; direction: string; amount_ccy: number; currency: string
@@ -64,17 +65,16 @@ export default function RecurringLines({
             <p className="mb-3 text-xs text-[color:var(--brand-muted-text)]">{t('cashForecast.linesHint')}</p>
 
             {canEdit && !open && (
-                <button type="button" onClick={() => setOpen(true)}
-                    className="mb-3 rounded border border-[color:var(--brand-border)] px-3 py-2 text-sm hover:bg-[color:var(--brand-muted)]">
+                <Button variant="secondary" size="sm" className="mb-3 text-sm" type="button" onClick={() => setOpen(true)}>
                     {t('cashForecast.addLine')}
-                </button>
+                </Button>
             )}
             {canEdit && open && (
                 <AddRowPanel
                     error={error}
                     className="mb-4"
                     actions={
-                        <button type="button" disabled={pending || !canSubmit}
+                        <Button className="text-sm" type="button" disabled={pending || !canSubmit}
                             onClick={() => {
                                 setError(null)
                                 startTransition(async () => {
@@ -85,10 +85,9 @@ export default function RecurringLines({
                                     if (r.error) setError(r.error)
                                     else { setOpen(false); setLabel(''); setAmount(''); setStartDate(''); setEndDate('') }
                                 })
-                            }}
-                            className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50">
+                            }}>
                             {t('cashForecast.addLine')}
-                        </button>
+                        </Button>
                     }
                 >
                     <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.label')}

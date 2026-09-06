@@ -585,6 +585,24 @@ Tim 的裁定,一句话:**「一个看起来像普通动作的破坏性动作,�
 3. ★ **左竖条** —— `destructive` 实线、`reversal` 虚线,**同一处几何,一实一虚**。
    别的档没有。这一条是纯几何,完全不读颜色。
 4. **动词形状** —— `destructive` 是 Delete/Void;`reversal` 是 Un-/Re-。
+   ★★ **而【动词形状是最不可靠的一条】,BTN-3 与 BTN-3b 各抓到过它说谎:**
+   `fx/DeleteButton` 写着 Delete 做的是软删除;`RoleForm:166` 同样;
+   `DecideControls:89` 写着 Cancel 做的是补一条等额反向记账。
+   **判据永远是 handler 做了什么,不是脸上那个动词。**
+
+> ### ★★ 作废 vs 撤销:这条界线 BTN-3b 之前【只是默契】,现在写下来 ★★
+>
+> 上面 destructive 那一格写着「真的销毁**或作废**一条记录」,而 `作废` 这两个字
+> 一直没有被压力测试过。BTN-3b 撞上 `void_review`:它**什么都不删**、理由必填、
+> 还专门返回 `employment_facts_unchanged: true` —— 照字面读它像撤销。
+> Tim 在 BTN-3b 裁定,跟随 `VoidInvoiceControl` 的先例,并要求把界线写在这里:
+>
+> **作废杀死【单据】;撤销是在单据继续活着的前提下,回退一个【已过账的状态】。**
+>
+> 照这条读:`void_review` 是**作废**(`void` 是终态,那份评估作为单据到此为止)→
+> `destructive`;`cancel_leave_request` 是**撤销**(补一条等额 release,
+> 请假单的账继续成立)→ `reversal`。
+> **两者都不删任何行 —— 所以"删不删行"分不开这两个档,不要用它当判据。**
 
 **探针实测(`scripts/probe-button-tiers.mjs`,18 页 / 31 处库按钮):**
 同一 `(variant,size)` 跨页几何**全等** —— `default/default` 13 处 / 11 页
@@ -1273,3 +1291,187 @@ L2 行内两档同几何(destructive/inline vs reversal/inline)
 
 **关掉它的办法是确定的,代价也是确定的:读完那 91 处一次性签名的 handler。**
 **那是 BTN-3b 的活**,并且是它比"把剩下的转完"更值钱的那一半。
+
+---
+
+## 十四 · ★ BTN-3b(2026-09-06):读完 91 个 handler —— 以及【树上唯一没有确认步骤的硬删除,穿着全场最淡的衣服】★
+
+**本刀落地 74 处转换。而它最值钱的产出不是转换,是【读 handler 读出来的六处
+动词与行为对不上】,其中一处不是档位问题,是安全问题。**
+
+### 14.1 ★★ 头号发现:两个都叫「移除」的按钮,画法的轻重【正好反了】★★
+
+| 处 | 脸上写着 | 画成什么 | handler 实际做什么 |
+|---|---|---|---|
+| `tools/tasks/[id]/NodeTree.tsx:117` | `labels.remove` | `className="text-red-700"` —— **一行裸红字,没有边、没有底、没有任何几何** | `supabase.from('task_nodes').delete()` —— **一次硬删除,行没了** |
+| `sales/customers/ContactsPanel.tsx:120` | `contacts.remove` | `border-gray-400 … hover:bg-gray-50` —— **中性灰盒子,和旁边的「编辑」一模一样** | `soft_delete_counterparty_contact` → `UPDATE … deleted_at`,**行还在** |
+
+> ★ **真的会销毁一行的那个,穿的是全树最淡的一件;什么都不销毁的那个,
+> 反而比它重。** 而 `NodeTree.tsx` 里 `ConfirmButton` 出现 **0 次** ——
+> **这是树上唯一一处【没有确认步骤的硬删除】,而它同时是最不像按钮的那个按钮。**
+
+**处置:** NodeTree:117 → `destructive/inline`(拿到实线左竖条);
+ContactsPanel:120 → `reversal/xs`(虚线左竖条)。
+★ **那个缺失的确认步骤【本刀不补】** —— 这一刀的第一条规矩是不许改行为,
+而加一个对话框是改行为。**它进 BTN-4 的交接清单第一条,并且进人工走查清单**,
+因为它是一句今天就能靠"告诉六个人"止损的话。
+
+### 14.2 另外五处动词与行为对不上
+
+| 处 | 脸上写着 / 画成 | handler 实际做什么 | 定档 |
+|---|---|---|---|
+| `settings/roles/RoleForm.tsx:166` | `common.delete`,红 | `softDeleteRole` → `deleted_at` + `is_active=false` | **reversal** —— `fx/DeleteButton` 那个形状的**第二例** |
+| `hr/leave/[id]/DecideControls.tsx:89` | `leave.cancel`,红 | `cancel_leave_request`:**对每条 draw 追加一条等额 release**,一行都不删 | **reversal** —— 正是 Unapply/Unreconcile 的形状 |
+| `hr/reviews/ReviewActions.tsx:122` | `reviews.void`,红 | `void_review`:`status='void'`,理由必填,**不回滚已发生的雇佣事实** | **destructive** —— 见 14.3 那条被写下来的界线 |
+| `finance/gst/GstControls.tsx:87` | 琥珀色 | `correct_gst_return`:**INSERT 一份新期间行**,原件仍是 `filed` | **secondary** —— 它既不撤销也不销毁,是一次向前的过账 |
+| `finance/month-end/page.tsx:200` | `t('reviews.filter')` | 一个月结页的筛选提交 | **文案缺陷,文案不动**(改名是 COPY 的事),档位按行为定 |
+
+★ **`leave.cancel` 那一处还带出一件事:全树只有这一个「Cancel」是一次域内撤销,
+另外八个 `common.cancel` 都只是关掉一个对话框。** 同一个词,两种后果。
+
+### 14.3 ★ 一条本来只是"惯例"的界线,现在写下来了 ★
+
+Tim 在本刀裁定:`void` 归 `destructive`,跟随 `VoidInvoiceControl` 的先例。
+**而他同时要求把界线写进 §10.1,不要再靠默契:**
+
+> ### **作废杀死【单据】;撤销是在单据继续活着的前提下,回退一个【已过账的状态】。**
+
+这一句是必要的,因为 §10.1 的表里 destructive 那一格写着「真的销毁**或作废**一条记录」,
+而 `作废` 这两个字此前**从来没有被压力测试过** —— `void_review` 什么都不删、
+理由必填、还专门返回 `employment_facts_unchanged: true`,照字面读它像撤销。
+**按上面那条界线读,它是作废:那份评估作为单据到此为止(`void` 是终态,不在流水线上)。**
+而 `cancel_leave_request` 相反 —— 它补一条等额的反向记账,请假单本身的账继续成立。
+
+### 14.4 非按钮:那个「9 处」是【按标记数出来的】,而标记数不到没有标记的东西
+
+BTN-1 与 BTN-3 都数到 9 处非按钮(6 `aria-expanded` + 2 整行可点 + 1 字形)。
+**本刀复量:`aria-expanded` 确实是 6 处,一处不差。** 而**按行为读**,
+光是这 91 处里就还有:
+
+* `LanguageSwitcher:37` —— `role="switch"` + `aria-checked`,**一个开关,不是按钮**;
+* `ModuleBar:275` —— `absolute inset-0 bg-black/30`,**一块遮罩**;
+* `AssetActions:80` · `CreateAccountPanel:105` · `UserRow:142` ——
+  **三个展开器,而它们【都没有 `aria-expanded`】**;
+* `PurposePanel:107/120/134` · `SafetyStatePanel:76` —— **分段/单选控件**
+  (当前项是 `disabled`),转一个成员会改变整组的含义。
+
+> ★★ **「9 处」不是数错了,是【它数的东西和它的名字对不上】:
+> 一个从 aria 标记推出来的计数,看不见一个【没有那个标记】的控件。**
+> 这与 AGENTS.md 那条勘察法则(「一次勘察只看得见代码碰巧给它起的名字」)
+> 是同一条,只是那里是组件名,这里是无障碍标记。
+> ☞ `AssetActions:80` 缺 `aria-expanded` 是一处**无障碍缺陷,本刀只报不修**。
+
+**本刀因此留下 17 处不转**,逐处带理由(见 14.6)。
+
+### 14.5 一个【运行期才定得下来】的档位
+
+`sales/orders/[id]/TransitionPanel.tsx:56` 用**一个** `<button>` 渲染
+`confirmed` / `closed` / **`cancelled`** 三个动作,而它们共用**同一个中性 className** ——
+一次销售订单的取消,与一次确认长得一模一样。
+
+**而两个目录之外的 `suppliers/[id]/edit/StatusPanel.tsx` 早就把这件事做对了**:
+它按 `DESTRUCTIVE_TRANSITIONS` 分流,危险的那支走 `<ConfirmButton tier="destructive">`。
+**同一个问题,同一棵树,一处解了、一处没解。**
+
+处置:`variant={to === 'cancelled' ? 'destructive' : 'secondary'}` ——
+**照抄树里已有的那条运行期判据,不发明第二种问法。**
+`inbound/…/AssayForm.tsx:313/326` 同理:哪一个是主动作**随 `applyBlocked` 移动**,
+转换后由 `variant={applyBlocked ? … : …}` 承接,与它原来的 className 三元一一对应。
+
+★ **顺带更正本刀自己的一个判断:** 开工时我以为 `StatusPanel:85` 要转成运行期变体。
+读下去发现**那个手写钮只是 `!isDestructive` 那一支** —— 危险的那支上面就是
+`ConfirmButton`。所以它是静态 `secondary`,而 `cls` 那个常量**必须留着**
+(第 115 行的 `ConfirmButton` 还在用它)。**读代码之前的推断,又一次比代码更复杂。**
+
+### 14.6 转了什么、没转什么
+
+| | 处数 |
+|---|---:|
+| 一次性签名(树内唯一 className,空白归一后) | **91** |
+| 转换 | **74** |
+| 留着不转 | **17** |
+
+**转换后按档位:** `secondary` 33 · `default` 32 · `reversal` 3 · `destructive` 2 ·
+`link` 1 · **运行期决定 3**(TransitionPanel ×1、AssayForm ×2)。
+
+**17 处不转,分四类:**
+1. **非按钮 10 处** —— 3 展开器(`ModuleBar` 209/255/305)、1 遮罩(275)、
+   1 开关(`LanguageSwitcher:37`)、1 整行可点(`CountList:109`)、
+   4 分段控件(`PurposePanel` 107/120/134、`SafetyStatePanel:76`);
+2. **另有 3 个展开器** —— `AssetActions:80` · `CreateAccountPanel:105` · `UserRow:142`,
+   与①同类,只是**没有 `aria-expanded` 标记**;
+3. **归 BTN-4 的 3 处** —— `ReasonPrompt` 77/114/122(它整支要折进 `confirm-dialog`,
+   **现在转等于把同一份活干两遍,还保证一次冲突**);
+4. **已入队的 1 处** —— `NewOrderForm:716`,BTN-2 与 BTN-3 各留过一次,
+   它是一次 390px 的版式测量。
+
+★ `PurposePanel:120`(「清除待定」)**单独说一句**:它本身是个正经动作,
+读下来该是 `secondary/sm`。**留着不转的理由是它属于 107/134 那一组分段控件** ——
+**只转一组里的一个成员,会让那一组从"三个同类选项"变成"两个选项加一个动作"**,
+而那是一次没人要求过的语义改动。
+
+### 14.7 数字总账
+
+| | 之前 | 之后 |
+|---|---|---|
+| 手写 `<button>` | 142 处 / 91 文件 | **68 / 48**(−74 处 / −43 文件) |
+| 组件库棘轮 · `button` 维 | 91 文件 / 142 处 | **48 / 68** |
+| 组件库棘轮 · `table` 维 | 66 / 76 | **66 / 76(原样,没有放宽)** |
+| 混合文件(同一文件手写与库并存) | 22 | **12** |
+| `variant="reversal"` 调用点 | 6 | **9** |
+| 无 `type` 的手写 `<button>` | 11 | **6** |
+| 无 `type` 且在 `<form>` 里 | **0 手写 / 9 库** | **0 手写 / 9 库(逐处对得上)** |
+| 探针断言 / 取样 | 45 条 / 25 页 | **84 条 / 43 页(153 个库按钮)** |
+
+★ **委托书写的「24 个无 `type`,其中 8 个在 `<form>` 里」是【上一刀之前】的数。**
+BTN-3 早已把那 8 处转成了 `<Button>`;本刀开工时实测是 **11 个无 `type`,
+其中在 `<form>` 里的是 0 个**。那条规矩仍然成立(`button.tsx` 不设 `type` 默认值,
+所以缺席原样穿过转换),**而它点名的那个总体已经不存在了。**
+
+### 14.8 探针:三条修正,而其中两条是【本刀自己的断言错了】
+
+1. ★ **L4 第一版是【假红】。** 它去 `button.tsx` 里取变体的类名串,分隔符写的是
+   `'\n        '`(8 空格)—— 而值那一行缩进 **10** 空格,**8 空格是它的前缀**,
+   于是取回来的是 `"\n        destructive:"`,**一个类名都没有**,三条断言全红,
+   而库里那三样一样不缺。**一条看不见那个性质的断言,红和绿都不是证据。**
+   注入五格实测:干净树绿 · 抽掉 `pl-3.5` 红 · 抽掉 `before:w-[3px]` 红 ·
+   虚线变实线红 · **拿旧的瞎 helper 对着干净树跑,复现那次假红**。
+2. ★ **L1 对行内档不该比高度,而这条 BTN-3 已经写下、只是没写进 L1。**
+   BTN-3 在 L2 里量过并写明:`size="inline"` 就是 `h-auto`,行内档的高度按定义
+   等于周围那行字。L1 照旧把 `h` 比进去,**此前没红只是因为取样里
+   destructive/inline 两处都住在 `text-xs` 的表格里**。本刀铺到 `/tools/tasks/{id}`
+   (正文 `text-sm`)之后当场两种几何。**这不是回归,是 L1 一直在问一个
+   已经被判定不该问的问题,而旧取样恰好让它答对了。**
+3. **取样从 25 页扩到 43 页(7 页动态)。** 开工前实测:那 91 个按钮住在
+   **44 个目录**里,而**其中 32 个目录一条路由都不在旧清单上**。
+
+**新加的 `L2b`(盒子形态两档同几何)与 `L4`(库源码层的左竖条)** 是为了
+`reversal/sm` 与 `reversal/xs` 各自**只有一处调用点**这件事 ——
+照 BTN-3 的处置:**不降门槛,换一条一处实例就成立、而且更强的断言。**
+
+**五页试过又拿掉了,连同理由**(RENDER 那条断言正是为此存在):
+`/settings/roles/{id}/edit` **那条路由不存在**(真实是 `/settings/roles/{id}`)·
+`/sales/commissions` 表单在 `/new` 不在列表页 · `/tools/pricing/calculator`
+的钮在 `{res && …}` 里(要先算一次)· `/operation/handovers` 与 `/finance/claims`
+**两张表实测 0 行**。
+★ 最值得读的是 `/sales/commissions/new`:**路由对、组件在,而按钮仍然不存在** ——
+`CommissionForm:67` 有一句 `if (agents.length === 0) return (…)`,
+而 `service_vendor` 供应商实测 **0 行**。
+
+**两个组合诚实地宣告为"本刀这一处走不到",连同理由印在输出里:**
+`destructive/sm`(`ReviewActions:122`——线上 `performance_reviews` **0 行**;
+★ 但**这个组合本身是证过的**,L2b 拿它与 `reversal/sm` 比过同几何)与
+`default/xs`(五个调用点**无一**在页面加载时存在)。
+
+### 14.9 版式与对比度
+
+**390px 版式探针,17 条本刀改过的路由:`USABLE 17/17`,U1 与 U2 各 17/17,
+溢出 0、裁切 0。** BTN-3 留下的那句「把手写钮转进不换行的 flex 行之前先在 390px 上量」
+**照做了,而这一次量下来没有一处需要解开 `shrink`/`whitespace-nowrap`** ——
+BTN-3 那次的 A/B 是被一条 +41px 的失败触发的,这一刀没有失败可归因。
+
+**对比度:没有一处比 BTN-2 那 0.027 更贴线,所以"更贴线就停下来报告"没有触发。**
+`L3 禁用态对比度` 实测最差 **11.27:1**(19 处)。
+★ 三处**琥珀色当动作用**(`GstControls:87` · `HoldReleaseControls:83` ·
+`RetentionPanel:176`)按行为改判,**而"琥珀=警告档"这个用法本身归入队列里那条色板问题**
+—— `warning` 在 §10.1 的定义是「系统在告诉你一件正在发生的事」,不是一个人按的动作。

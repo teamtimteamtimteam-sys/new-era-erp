@@ -22,6 +22,7 @@ import {
     type SubmitAssayState,
     type PreviewState,
 } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: SubmitAssayState = {}
 
@@ -310,32 +311,20 @@ export default function AssayForm({
             <div className="flex flex-wrap gap-3 pt-2 border-t">
                 {/* 应用被拦时,"仅记录"接过主按钮 —— 它此刻【是】那条可走的路:
                     化验单是实验室出的客观事实,先落库,定价等条款/汇率/期间理顺再说。 */}
-                <button
+                <Button variant={applyBlocked ? 'default' : 'secondary'}
                     type="submit"
                     name="intent"
                     value="record"
-                    disabled={isPending}
-                    className={
-                        applyBlocked
-                            ? 'bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400'
-                            : 'border border-gray-300 px-4 py-2 rounded hover:bg-gray-50 disabled:text-gray-400'
-                    }
-                >
+                    disabled={isPending}>
                     {t('assay.saveOnly')}
-                </button>
-                <button
+                </Button>
+                <Button variant={applyBlocked ? 'secondary' : 'default'}
                     type="submit"
                     name="intent"
                     value="record_apply"
-                    disabled={isPending || applyBlocked}
-                    className={
-                        applyBlocked
-                            ? 'border border-gray-300 px-4 py-2 rounded disabled:text-gray-400'
-                            : 'bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400'
-                    }
-                >
+                    disabled={isPending || applyBlocked}>
                     {isPending ? t('common.saving') : t('assay.saveAndApply')}
-                </button>
+                </Button>
                 <Link
                     href={`/inbound/${batch.id}/edit`}
                     className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50"

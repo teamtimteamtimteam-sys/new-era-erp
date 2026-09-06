@@ -11,6 +11,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import StocktakesTable, { type StocktakeRow } from './StocktakesTable'
+import { Button } from '@/app/components/ui/button'
 
 const STOCKTAKE_PAGE_SIZE = 20
 
@@ -99,12 +100,10 @@ export default async function StocktakesPage({
             title={t('stocktakes.listTitle')}
             actions={
                 <form action={createStocktake}>
-                    <button
-                        type="submit"
-                        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                    >
+                    <Button
+                        type="submit">
                         {t('stocktakes.new')}
-                    </button>
+                    </Button>
                 </form>
             }
             state={{ kind: 'ok' }}

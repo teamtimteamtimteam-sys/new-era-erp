@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { openAttendancePeriod } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function OpenPeriodForm() {
     const t = useTranslations()
@@ -29,7 +30,7 @@ export default function OpenPeriodForm() {
                         className="rounded border px-2 py-1"
                     />
                 </label>
-                <button
+                <Button size="sm"
                     type="button"
                     disabled={pending || month === ''}
                     onClick={() =>
@@ -40,11 +41,9 @@ export default function OpenPeriodForm() {
                             if (res.error) setError(res.error)
                             else if (res.periodId) router.push(`/hr/attendance/${res.periodId}`)
                         })
-                    }
-                    className="rounded bg-gray-900 px-3 py-1.5 text-sm text-white disabled:opacity-40"
-                >
+                    }>
                     {t('attendance.openBtn')}
-                </button>
+                </Button>
                 <p className="text-xs text-gray-500">{t('attendance.openHint')}</p>
             </div>
         </div>

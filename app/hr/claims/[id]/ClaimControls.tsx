@@ -64,15 +64,13 @@ export default function ClaimControls({
                             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
                                    className="block border border-gray-300 rounded px-2 py-1 text-sm" /></label>
                     </div>
-                    <button
+                    <Button size="sm"
                         type="button"
                         disabled={pending || !canFinance || !date}
                         title={canFinance ? undefined : t('claims.needsFinance')}
-                        onClick={() => run(() => payClaim(claimId, date))}
-                        className="bg-gray-900 text-white px-4 py-1.5 rounded text-sm disabled:opacity-50"
-                    >
+                        onClick={() => run(() => payClaim(claimId, date))}>
                         {pending ? t('common.saving') : t('claims.createExpense')}
-                    </button>
+                    </Button>
                     {!canFinance && <p className="mt-2 text-xs text-amber-800">{t('claims.needsFinance')}</p>}
                 </div>
             )}

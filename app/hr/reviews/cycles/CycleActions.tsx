@@ -26,14 +26,12 @@ export default function CycleActions({ cycleId, status }: { cycleId: string; sta
     return (
         <span className="inline-flex items-center gap-2">
             {status === 'draft' && (
-                <button
+                <Button size="sm"
                     type="button"
                     onClick={() => run(() => openCycle(cycleId))}
-                    disabled={pending}
-                    className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 text-sm disabled:opacity-50"
-                >
+                    disabled={pending}>
                     {t('reviews.openCycle')}
-                </button>
+                </Button>
             )}
             {status === 'open' && (
                 <>

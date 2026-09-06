@@ -106,14 +106,12 @@ export default function SourceReasonPanel({
                             />
                         )}
                         {error && <p className="text-red-600 text-xs">{error}</p>}
-                        <button
+                        <Button size="sm"
                             type="button"
                             onClick={onSave}
-                            disabled={saving || sel === '' || (selNeedsNote && note.trim() === '')}
-                            className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm disabled:opacity-50"
-                        >
+                            disabled={saving || sel === '' || (selNeedsNote && note.trim() === '')}>
                             {saving ? t('common.saving') : t('inbound.source.explainSave')}
-                        </button>
+                        </Button>
                     </div>
                 )}
                 {canEdit && !showForm && state !== 'fromPo' && (

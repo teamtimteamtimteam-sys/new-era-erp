@@ -9,6 +9,7 @@ import HolidaysEditor from './HolidaysEditor'
 import { type HolidayRow } from './HolidaysTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { Button } from '@/app/components/ui/button'
 
 export default async function HolidaysPage({
     searchParams,
@@ -53,9 +54,9 @@ export default async function HolidaysPage({
                             <input type="number" name="year" defaultValue={year}
                                    className="mt-1 block w-28 rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2 py-1 text-sm" />
                         </label>
-                        <button type="submit" className="rounded border border-[color:var(--brand-border)] px-3 py-1 text-sm">
+                        <Button variant="secondary" size="sm" className="text-sm" type="submit">
                             {t('leave.filter')}
-                        </button>
+                        </Button>
                     </form>
                     <p className="mb-4 text-sm text-[color:var(--brand-muted-text)]">{t('leave.holidaysIntro')}</p>
                 </>

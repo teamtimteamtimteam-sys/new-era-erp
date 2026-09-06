@@ -11,6 +11,7 @@ import { formatAmount } from '@/lib/format'
 import { acknowledgeReview } from '@/app/hr/reviews/actions'
 import type { GoalRow, ReviewRow } from '@/app/hr/reviews/reviewShared'
 import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
+import { Button } from '@/app/components/ui/button'
 
 export default function MyReviewsPanel({
     reviews,
@@ -129,14 +130,12 @@ export default function MyReviewsPanel({
                             </div>
 
                             {r.status === 'approved' && (
-                                <button
+                                <Button size="sm"
                                     type="button"
                                     onClick={() => ack(r.id)}
-                                    disabled={pending}
-                                    className="bg-gray-900 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50"
-                                >
+                                    disabled={pending}>
                                     {t('reviews.acknowledge')}
-                                </button>
+                                </Button>
                             )}
                         </div>
                     </details>

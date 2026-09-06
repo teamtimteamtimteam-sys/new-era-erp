@@ -15,6 +15,7 @@ import { useState, useTransition } from 'react'
 import { decideClaim } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Button } from '@/app/components/ui/button'
 
 export type ClaimRow = {
     claim_id: string; code: string; employee_code: string; employee_name: string
@@ -148,23 +149,21 @@ export default function ClaimDecisionPanel({
                                         <input value={get(c.claim_id).notes}
                                             onChange={(e) => set(c.claim_id, { notes: e.target.value })}
                                             className="block w-full rounded border border-gray-300 px-2 py-1 text-sm" /></label>
-                                    <button type="button" disabled={pendingTx}
+                                    <Button size="sm" type="button" disabled={pendingTx}
                                         onClick={() => run(() => decideClaim({
                                             claimId: c.claim_id, approve: true,
                                             accountCode: get(c.claim_id).acct, taxCode: get(c.claim_id).tax,
                                             postingDate: get(c.claim_id).post, notes: get(c.claim_id).notes,
-                                        }))}
-                                        className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm hover:bg-blue-700 disabled:opacity-50">
+                                        }))}>
                                         {t('expenseClaims.approve')}
-                                    </button>
-                                    <button type="button" disabled={pendingTx}
+                                    </Button>
+                                    <Button variant="secondary" size="sm" type="button" disabled={pendingTx}
                                         onClick={() => run(() => decideClaim({
                                             claimId: c.claim_id, approve: false, notes: get(c.claim_id).notes,
                                         }))}
-                                        title={t('expenseClaims.rejectNotesRequired')}
-                                        className="border border-gray-300 px-3 py-1.5 rounded text-sm hover:bg-gray-50 disabled:opacity-50">
+                                        title={t('expenseClaims.rejectNotesRequired')}>
                                         {t('expenseClaims.reject')}
-                                    </button>
+                                    </Button>
                                 </div>
                             )}
                             <p className="text-[11px] text-gray-500 mt-1">{t('expenseClaims.postingDateHint')}</p>

@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { transitionOrder } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 const ACTION_KEY: Record<string, string> = {
     confirmed: 'sales.action.confirmed',
@@ -53,11 +54,10 @@ export default function TransitionPanel({
             <div className="flex flex-wrap gap-3">
                 {nextStates.map((to) => (
                     <div key={to} className="flex-1 min-w-[14rem]">
-                        <button type="button" onClick={() => go(to)}
-                                disabled={isPending || (to === 'cancelled' && reason.trim() === '')}
-                                className="w-full border border-gray-400 px-3 py-1 rounded text-sm hover:bg-gray-50 disabled:opacity-50">
+                        <Button variant={to === 'cancelled' ? 'destructive' : 'secondary'} size="sm" className="w-full" type="button" onClick={() => go(to)}
+                                disabled={isPending || (to === 'cancelled' && reason.trim() === '')}>
                             {isPending ? t('common.saving') : t(ACTION_KEY[to] ?? 'sales.action.generic')}
-                        </button>
+                        </Button>
                         <p className="text-xs text-gray-500 mt-1">{t(CONSEQUENCE_KEY[to] ?? 'sales.consequence.generic')}</p>
                     </div>
                 ))}

@@ -12,6 +12,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { acknowledgeShiftHandover } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export default function AcknowledgeButton({ handoverId }: { handoverId: string }) {
     const t = useTranslations()
@@ -21,7 +22,7 @@ export default function AcknowledgeButton({ handoverId }: { handoverId: string }
 
     return (
         <span className="inline-flex flex-col gap-1">
-            <button
+            <Button variant="secondary" size="xs" className="text-xs"
                 type="button"
                 disabled={isPending}
                 onClick={() => startTransition(async () => {
@@ -29,10 +30,9 @@ export default function AcknowledgeButton({ handoverId }: { handoverId: string }
                     const res = await acknowledgeShiftHandover(handoverId)
                     if (res.error) setError(res.error)
                     else router.refresh()
-                })}
-                className="text-xs border border-gray-300 px-2 py-0.5 rounded hover:bg-gray-100 disabled:text-gray-400">
+                })}>
                 {isPending ? t('common.saving') : t('processing.handover.acknowledge')}
-            </button>
+            </Button>
             {error && <span className="text-xs text-red-700 max-w-xs">{error}</span>}
         </span>
     )

@@ -18,6 +18,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { remitCosts, relieveAccruals } from '../month-end/actions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Button } from '@/app/components/ui/button'
 
 type Entry = { id: string; run_id: string; cost_type: string; amount_base: number; is_estimate: boolean; created_at: string }
 type Run = { id: string; code: string }
@@ -116,11 +117,10 @@ export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency
                     <div className="flex gap-4 flex-wrap items-start">
                         {dateField('pay-date', payDate, setPayDate,
                             'finance.costSettle.paymentDate', 'finance.costSettle.paymentDateHint')}
-                        <button type="button" disabled={pending || chosenA.length === 0 || payDate === ''}
-                            onClick={() => run(() => remitCosts(chosenA.map((e) => e.id), payDate, ''))}
-                            className="mt-4 bg-blue-600 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50">
+                        <Button size="sm" className="mt-4" type="button" disabled={pending || chosenA.length === 0 || payDate === ''}
+                            onClick={() => run(() => remitCosts(chosenA.map((e) => e.id), payDate, ''))}>
                             {t('finance.costSettle.remit', { n: chosenA.length })}
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )}
@@ -168,13 +168,12 @@ export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency
                                 )}
                             </label>
                         )}
-                        <button type="button"
+                        <Button size="sm" className="mt-4" type="button"
                             disabled={pending || chosenE.length === 0 || variance === null || mixedTypes
                                       || invDate === '' || (payStatus === 'unpaid' && !supplier)}
-                            onClick={() => run(() => relieveAccruals({ entryIds: chosenE.map((e) => e.id), actual: actualN, date: invDate, paymentStatus: payStatus, bank: '', supplierId: supplier }))}
-                            className="mt-4 bg-gray-900 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50">
+                            onClick={() => run(() => relieveAccruals({ entryIds: chosenE.map((e) => e.id), actual: actualN, date: invDate, paymentStatus: payStatus, bank: '', supplierId: supplier }))}>
                             {t('finance.costSettle.relieve', { n: chosenE.length })}
-                        </button>
+                        </Button>
                     </div>
                     {/* 差异在提交【之前】就摆出来,并且说清【是哪个方向】——
                         光给一个带正负号的数字,看的人还得自己想"这是估多了还是估少了" */}

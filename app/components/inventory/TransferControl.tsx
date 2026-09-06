@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { transferStockAction } from './stockActions'
+import { Button } from '@/app/components/ui/button'
 
 export type LocationOption = { id: string; code: string; name: string }
 
@@ -109,14 +110,12 @@ export default function TransferControl({
                     <input type="text" value={note} onChange={(e) => setNote(e.target.value)}
                            className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
                 </div>
-                <button
+                <Button variant="secondary" size="sm" className="text-sm"
                     type="button"
                     onClick={onTransfer}
-                    disabled={isPending || blocked !== null}
-                    className="border border-blue-400 text-blue-800 px-3 py-1 rounded hover:bg-blue-50 text-sm disabled:opacity-50"
-                >
+                    disabled={isPending || blocked !== null}>
                     {isPending ? t('common.saving') : t('stock.transfer')}
-                </button>
+                </Button>
             </div>
             {/* 后果 —— 挨着按钮。状态保持这件事必须说出来,否则搬完一批暂扣的货
                 之后,人会以为它顺便被放开了。 */}

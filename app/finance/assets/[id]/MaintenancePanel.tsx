@@ -421,10 +421,9 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
 
     if (!open) {
         return (
-            <button type="button" onClick={() => { setOpen(true); setError(null) }}
-                    className="border border-gray-600 px-2 py-1 rounded text-xs hover:bg-gray-50">
+            <Button variant="secondary" size="xs" className="text-xs" type="button" onClick={() => { setOpen(true); setError(null) }}>
                 {t('equipment.maint.capitaliseAction')}
-            </button>
+            </Button>
         )
     }
 
@@ -463,10 +462,9 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
                 </label>
             </div>
             <div className="flex gap-2 items-center mt-2">
-                <button type="button" disabled={pending || why !== ''} onClick={submit}
-                        className="border border-gray-600 bg-gray-800 text-white px-2 py-1 rounded text-xs disabled:opacity-50">
+                <Button size="xs" type="button" disabled={pending || why !== ''} onClick={submit}>
                     {t('equipment.maint.capitaliseAction')}
-                </button>
+                </Button>
                 <Button variant="secondary" size="xs" type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}>
                     {t('common.cancel')}
                 </Button>

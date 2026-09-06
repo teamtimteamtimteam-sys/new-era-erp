@@ -19,6 +19,7 @@ import { releaseRetention } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { MaskedValue } from '@/app/components/MaskedValue'
+import { Button } from '@/app/components/ui/button'
 
 export type RetentionRow = {
     retention_id: string
@@ -173,7 +174,7 @@ function RetentionCard({
                         placeholder={t('purchasing.retention.reasonPlaceholder')}
                         className="mt-2 w-full border border-gray-300 px-2 py-1 rounded text-xs"
                     />
-                    <button
+                    <Button size="xs" className="mt-2"
                         type="button"
                         disabled={pending}
                         onClick={() => {
@@ -182,11 +183,9 @@ function RetentionCard({
                                 const res = await releaseRetention(poId, r.retention_id, released, withheld, reason)
                                 if (res.error) setError(res.error)
                             })
-                        }}
-                        className="mt-2 px-3 py-1 bg-amber-700 text-white rounded text-xs disabled:opacity-50"
-                    >
+                        }}>
                         {t('purchasing.retention.confirmButton')}
-                    </button>
+                    </Button>
                     {error && <p className="mt-1 text-xs text-red-700">{error}</p>}
                 </div>
             )}

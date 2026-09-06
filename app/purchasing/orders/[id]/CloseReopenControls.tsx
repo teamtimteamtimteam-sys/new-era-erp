@@ -16,6 +16,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { closeOrder, reopenOrder } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export function CloseOrderControl({
     poId,
@@ -54,13 +55,11 @@ export function CloseOrderControl({
 
     if (!open) {
         return (
-            <button
+            <Button variant="secondary" size="sm" className="text-sm"
                 type="button"
-                onClick={() => setOpen(true)}
-                className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm"
-            >
+                onClick={() => setOpen(true)}>
                 {t('purchasing.close')}
-            </button>
+            </Button>
         )
     }
 
@@ -105,13 +104,11 @@ export function CloseOrderControl({
                         {t('purchasing.closeNeedsNotes')}
                     </span>
                 )}
-                <button
+                <Button variant="secondary" size="sm"
                     type="button"
-                    onClick={() => setOpen(false)}
-                    className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50"
-                >
+                    onClick={() => setOpen(false)}>
                     {t('common.cancel')}
-                </button>
+                </Button>
             </div>
         </div>
     )

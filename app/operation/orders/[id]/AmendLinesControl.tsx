@@ -11,6 +11,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { amendWorkOrder } from '../actions'
+import { Button } from '@/app/components/ui/button'
 
 export type AmendRow = {
     material_id: string; material_label: string
@@ -80,15 +81,13 @@ export default function AmendLinesControl({
                         <input type="text" value={reason} placeholder={t('processing.wo.actions.amendReasonPlaceholder')}
                                onChange={(e) => setReason(e.target.value)}
                                className="border border-gray-300 px-2 py-1 rounded text-sm w-72" />
-                        <button type="button" onClick={submit}
-                                disabled={isPending || reason.trim() === ''}
-                                className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:bg-gray-400">
+                        <Button size="sm" className="text-sm" type="button" onClick={submit}
+                                disabled={isPending || reason.trim() === ''}>
                             {isPending ? t('common.saving') : t('common.save')}
-                        </button>
-                        <button type="button" onClick={() => setOpen(false)}
-                                className="text-sm border border-gray-300 px-3 py-1 rounded hover:bg-gray-50">
+                        </Button>
+                        <Button variant="secondary" size="sm" className="text-sm" type="button" onClick={() => setOpen(false)}>
                             {t('common.cancel')}
-                        </button>
+                        </Button>
                     </div>
                     {reason.trim() === '' && (
                         <p className="text-xs text-amber-700">{t('processing.wo.actions.amendReasonRequired')}</p>

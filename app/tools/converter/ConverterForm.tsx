@@ -17,6 +17,7 @@ import {
     type MassUnit,
 } from '@/lib/convert'
 import { convertBasis } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 // 【它同时是 check-i18n 的真源】—— 加一个单位,两个语言少一句话就构建变红。
 const UNITS = ['tonne', 'kg', 'pound'] as const satisfies readonly MassUnit[]
@@ -159,11 +160,9 @@ export default function ConverterForm() {
                         <option value="as_received:dry">{t('converter.basis.arToDry')}</option>
                         <option value="dry:as_received">{t('converter.basis.dryToAr')}</option>
                     </select>
-                    <button type="button" onClick={runBasis} disabled={busy}
-                            className="px-4 py-2 rounded text-white disabled:opacity-50"
-                            style={{ background: 'var(--brand-ocean-fill)' }}>
+                    <Button type="button" onClick={runBasis} disabled={busy}>
                         {busy ? t('common.saving') : t('converter.basis.run')}
-                    </button>
+                    </Button>
                 </div>
 
                 {err && (

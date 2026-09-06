@@ -55,6 +55,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import DeletedTable, { type DeletedRow } from './DeletedTable'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
+import { Button } from '@/app/components/ui/button'
 
 type Row = {
     record_kind: string
@@ -199,9 +200,9 @@ export default async function DeletedRecordsPage({
                     <span className="text-gray-500">–</span>
                     <input type="date" name="to" defaultValue={to}
                            className="border border-gray-300 px-2 py-1 rounded" />
-                    <button type="submit" className="border border-gray-400 px-3 py-1 rounded hover:bg-gray-50">
+                    <Button variant="secondary" size="sm" type="submit">
                         {t('common.filter')}
-                    </button>
+                    </Button>
                 </form>
             </div>
 

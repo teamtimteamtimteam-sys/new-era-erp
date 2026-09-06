@@ -12,6 +12,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveCommissionAgreement, type CommissionInput } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 export type Agent = { id: string; code: string; legal_name: string }
 export type Currency = { code: string }
@@ -187,10 +188,9 @@ export default function CommissionForm({
 
             {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
-            <button type="submit" disabled={incomplete || saving}
-                    className="rounded bg-gray-900 px-4 py-2 text-sm text-white disabled:bg-gray-400">
+            <Button type="submit" disabled={incomplete || saving}>
                 {t('commissions.save')}
-            </button>
+            </Button>
         </form>
     )
 }

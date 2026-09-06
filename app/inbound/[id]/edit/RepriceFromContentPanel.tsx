@@ -15,6 +15,7 @@ import {
     repriceFromCurrentContent,
     type PreviewState,
 } from '../assays/actions'
+import { Button } from '@/app/components/ui/button'
 
 function todayIsoLocal(): string {
     const d = new Date()
@@ -62,14 +63,12 @@ export default function RepriceFromContentPanel({
 
     return (
         <div className="mb-4">
-            <button
+            <Button variant="secondary" size="sm"
                 type="button"
                 onClick={onPreview}
-                disabled={isPending}
-                className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm disabled:text-gray-400"
-            >
+                disabled={isPending}>
                 {t('assay.repriceFromFormula')}
-            </button>
+            </Button>
             {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
             {preview.error && <p className="text-sm text-red-600 mt-2">{preview.error}</p>}
 
@@ -85,13 +84,11 @@ export default function RepriceFromContentPanel({
                         >
                             {isPending ? t('common.saving') : t('inbound.pricing.submit')}
                         </button>
-                        <button
+                        <Button variant="secondary" className="text-sm"
                             type="button"
-                            onClick={() => setOpen(false)}
-                            className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50 text-sm"
-                        >
+                            onClick={() => setOpen(false)}>
                             {t('common.cancel')}
-                        </button>
+                        </Button>
                     </div>
                 </div>
             )}

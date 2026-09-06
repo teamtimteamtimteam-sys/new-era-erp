@@ -86,14 +86,12 @@ export default function DecideControls({
                     </>
                 )}
                 {status === 'approved' && (
-                    <button
+                    <Button variant="reversal" size="sm"
                         type="button"
                         disabled={pending}
-                        onClick={() => act(() => cancelLeave(requestId, notes || null))}
-                        className="border border-red-300 text-red-700 px-4 py-1.5 rounded text-sm disabled:opacity-50"
-                    >
+                        onClick={() => act(() => cancelLeave(requestId, notes || null))}>
                         {t('leave.cancel')}
-                    </button>
+                    </Button>
                 )}
             </div>
             {status === 'approved' && (

@@ -102,15 +102,14 @@ export default function StatementPanel({
                     <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
                         className="block rounded border border-gray-300 bg-white px-3 py-2" />
                 </label>
-                <button type="button" disabled={pending}
+                <Button variant="secondary" size="sm" type="button" disabled={pending}
                     onClick={() => run(async () => {
                         const r = await previewStatement(customerId, from, to)
                         if (!r.error) setPreview(r.data as Preview)
                         return r
-                    })}
-                    className="border border-gray-300 rounded px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-50">
+                    })}>
                     {t('statements.preview')}
-                </button>
+                </Button>
             </div>
 
             {preview && (

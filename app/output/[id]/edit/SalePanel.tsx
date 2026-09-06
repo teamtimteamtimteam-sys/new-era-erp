@@ -216,7 +216,7 @@ export default function SalePanel({
                         </div>
                     )}
                     {priceMode !== 'manual' && (
-                        <button
+                        <Button size="sm"
                             type="button"
                             disabled={quoting}
                             onClick={() => {
@@ -231,11 +231,9 @@ export default function SalePanel({
                                     setQuote(q)
                                     if (q.unitPrice !== undefined) setUnitPrice(String(q.unitPrice))
                                 })
-                            }}
-                            className="bg-gray-800 text-white text-sm px-3 py-2 rounded hover:bg-gray-700 disabled:bg-gray-400"
-                        >
+                            }}>
                             {quoting ? t('output.sale.pricing.quoting') : t('output.sale.pricing.quote')}
-                        </button>
+                        </Button>
                     )}
                 </div>
                 {quote?.error && <p className="text-red-600 text-sm">{quote.error}</p>}

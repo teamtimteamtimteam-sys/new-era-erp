@@ -8,6 +8,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { approveReview, openSelfAssessment, submitReview, voidReview } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 type Props = {
     reviewId: string
@@ -62,16 +63,14 @@ export default function ReviewActions({
             <div className="flex gap-2 flex-wrap items-center">
                 {canWrite && (status === 'draft' || status === 'self_review') && (
                     <>
-                        <button
+                        <Button variant="secondary" size="sm"
                             type="button"
                             onClick={() => run(() => openSelfAssessment(reviewId))}
-                            disabled={pending}
-                            className={btn}
-                        >
+                            disabled={pending}>
                             {status === 'self_review' && selfAssessmentLocked
                                 ? t('reviews.reopenSelfAssessment')
                                 : t('reviews.openSelfAssessment')}
-                        </button>
+                        </Button>
                         <button
                             type="button"
                             onClick={() => run(() => submitReview(reviewId))}
@@ -84,14 +83,12 @@ export default function ReviewActions({
                 )}
 
                 {status === 'submitted' && canHrEdit && !isSubmitter && (
-                    <button
+                    <Button size="sm"
                         type="button"
                         onClick={() => run(() => approveReview(reviewId))}
-                        disabled={pending}
-                        className="bg-green-700 text-white px-3 py-1.5 rounded hover:bg-green-800 text-sm disabled:opacity-50"
-                    >
+                        disabled={pending}>
                         {t('reviews.approve')}
-                    </button>
+                    </Button>
                 )}
             </div>
 
@@ -119,14 +116,12 @@ export default function ReviewActions({
                             className="block border border-gray-300 rounded px-2 py-1 text-sm w-64"
                         />
                     </label>
-                    <button
+                    <Button variant="destructive" size="sm"
                         type="button"
                         onClick={() => run(() => voidReview(reviewId, voidReason))}
-                        disabled={pending || voidReason.trim() === ''}
-                        className="border border-red-300 text-red-700 px-3 py-1.5 rounded hover:bg-red-50 text-sm disabled:opacity-50"
-                    >
+                        disabled={pending || voidReason.trim() === ''}>
                         {t('reviews.void')}
-                    </button>
+                    </Button>
                 </div>
             )}
         </div>

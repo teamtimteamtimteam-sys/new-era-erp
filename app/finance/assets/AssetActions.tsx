@@ -140,15 +140,14 @@ export default function AssetActions({
                                 {bankAccounts.map((b) => <option key={b} value={b}>{b}</option>)}
                             </select>
                         )}
-                        <button type="button"
+                        <Button size="xs" type="button"
                                 disabled={pending || dispDate.trim() === ''
                                           || (Number(proceeds) > 0 && bank === '')}
                                 onClick={() => run(() => disposeAsset(
                                     assetId, dispDate, Number(proceeds) || 0,
-                                    Number(proceeds) > 0 ? bank : null))}
-                                className="bg-gray-900 text-white px-2 py-1 rounded text-xs disabled:opacity-50">
+                                    Number(proceeds) > 0 ? bank : null))}>
                             {pending ? t('common.saving') : t('assets.actions.disposeConfirm', { code })}
-                        </button>
+                        </Button>
                     </div>
                     {dispDate.trim() === '' && (
                         <p className="text-xs text-amber-700">{t('assets.actions.disposalDateRequired')}</p>

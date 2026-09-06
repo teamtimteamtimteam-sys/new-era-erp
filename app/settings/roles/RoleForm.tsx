@@ -163,14 +163,12 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                 </Button>
 
                 {!isNew && !initial.is_system && (
-                    <button
+                    <Button variant="reversal" size="sm"
                         type="button"
                         onClick={remove}
-                        disabled={pending}
-                        className="border border-red-300 text-red-700 px-3 py-1.5 rounded text-sm disabled:opacity-50"
-                    >
+                        disabled={pending}>
                         {t('common.delete')}
-                    </button>
+                    </Button>
                 )}
                 {/* 还有人持有这个角色时,把人数说出来 —— 软删之后他们会立刻失去这份权限 */}
                 {!isNew && !initial.is_system && (initial.user_count ?? 0) > 0 && (

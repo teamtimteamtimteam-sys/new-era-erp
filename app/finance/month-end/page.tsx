@@ -14,6 +14,7 @@ import { mustCount, mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { Button } from '@/app/components/ui/button'
 
 // ★ CONV-4:不套 DataTable —— 这张表是一份【固定的工作流清单】(10 个
 //   写死的步骤,0 个 <th>),不是从数据库查出来的记录集合。每一行的"这一
@@ -197,9 +198,9 @@ export default async function MonthEndPage({
             <form method="get" className="mb-4">
                 <input type="month" name="month" defaultValue={month}
                        className="border border-gray-300 rounded px-2 py-1 text-sm" />
-                <button type="submit" className="ml-2 border border-gray-300 rounded px-3 py-1 text-sm">
+                <Button variant="secondary" size="sm" className="ml-2 text-sm" type="submit">
                     {t('reviews.filter')}
-                </button>
+                </Button>
             </form>
             <p className="text-xs text-gray-500 mb-4">{t('finance.monthEnd.cpfNote')}</p>
             <table className="w-full border-collapse border border-gray-300 text-sm">

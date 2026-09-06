@@ -161,17 +161,13 @@ export default function TaskHeader({
             </div>
 
             <div className="flex items-center gap-2">
-                <button
+                <Button size="sm"
                     type="submit"
-                    disabled={pending}
-                    className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:opacity-50"
-                >{labels.save}</button>
-                <button
+                    disabled={pending}>{labels.save}</Button>
+                <Button variant="secondary" size="sm"
                     type="button"
                     disabled={pending}
-                    onClick={() => { setOpen(false); setError(null) }}
-                    className="rounded border px-3 py-1 text-sm"
-                >{labels.cancel}</button>
+                    onClick={() => { setOpen(false); setError(null) }}>{labels.cancel}</Button>
 
                 <span className="flex-1" />
 

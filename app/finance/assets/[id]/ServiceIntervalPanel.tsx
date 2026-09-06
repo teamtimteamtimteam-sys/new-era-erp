@@ -281,10 +281,9 @@ export default function ServiceIntervalPanel({
 
                                 {canEdit && (
                                     <div className="flex gap-2 mt-2">
-                                        <button type="button" disabled={pending} onClick={() => openEdit(r)}
-                                                className="border border-gray-400 px-2 py-0.5 rounded text-xs hover:bg-gray-50 disabled:opacity-50">
+                                        <Button variant="secondary" size="xs" className="text-xs" type="button" disabled={pending} onClick={() => openEdit(r)}>
                                             {t('equipment.intervals.edit')}
-                                        </button>
+                                        </Button>
                                         {/* ★ CONFIRM-1:stopConfirm 那一整句【一个字都没删】——
                                             它说清了后果,还给出了更轻的做法(「只记录,不上看板」),
                                             是本仓库最好的一条确认文案。它进【正文槽】,

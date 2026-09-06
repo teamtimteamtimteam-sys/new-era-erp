@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { addNode, renameNode, setNodeDate, setNodeDone, removeNode, moveNode } from './actions'
+import { Button } from '@/app/components/ui/button'
 
 // app/tools/tasks/[id]/NodeTree.tsx
 // TASK-1b:步骤树。一层嵌套 —— 而【做不到的手势这里根本不出现】:
@@ -78,11 +79,9 @@ export default function NodeTree({
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
                         />
-                        <button
-                            className="rounded bg-blue-600 px-2 py-1 text-xs text-white"
+                        <Button size="xs"
                             disabled={pending}
-                            onClick={() => { run(() => renameNode(taskId, n.id, editTitle)); setEditing(null) }}
-                        >{labels.save}</button>
+                            onClick={() => { run(() => renameNode(taskId, n.id, editTitle)); setEditing(null) }}>{labels.save}</Button>
                         <button className="text-xs text-gray-600" onClick={() => setEditing(null)}>{labels.cancel}</button>
                     </>
                 ) : (
@@ -114,9 +113,9 @@ export default function NodeTree({
                             {labels.addSub}
                         </button>
                     ) : null}
-                    <button className="text-red-700" disabled={pending} onClick={() => run(() => removeNode(taskId, n.id))}>
+                    <Button variant="destructive" size="inline" disabled={pending} onClick={() => run(() => removeNode(taskId, n.id))}>
                         {labels.remove}
-                    </button>
+                    </Button>
                 </span>
             </div>
 
@@ -141,11 +140,9 @@ export default function NodeTree({
                 value={draftDate}
                 onChange={(e) => setDraftDate(e.target.value)}
             />
-            <button
-                className="rounded bg-blue-600 px-2 py-1 text-xs text-white disabled:opacity-50"
+            <Button size="xs"
                 disabled={pending || !draftTitle.trim()}
-                onClick={() => { run(() => addNode(taskId, draftTitle, draftDate || null, parentId)); setDraftTitle(''); setDraftDate(''); setAddingUnder(undefined) }}
-            >{labels.save}</button>
+                onClick={() => { run(() => addNode(taskId, draftTitle, draftDate || null, parentId)); setDraftTitle(''); setDraftDate(''); setAddingUnder(undefined) }}>{labels.save}</Button>
             <button className="text-xs text-gray-600" onClick={() => setAddingUnder(undefined)}>{labels.cancel}</button>
         </div>
     )
@@ -167,9 +164,9 @@ export default function NodeTree({
             {addingUnder === null ? (
                 addForm(null)
             ) : (
-                <button className="mt-3 text-sm text-blue-700" onClick={() => { setAddingUnder(null); setDraftTitle(''); setDraftDate('') }}>
+                <Button variant="link" size="inline" className="mt-3 text-sm" onClick={() => { setAddingUnder(null); setDraftTitle(''); setDraftDate('') }}>
                     {labels.add}
-                </button>
+                </Button>
             )}
         </section>
     )

@@ -6,6 +6,7 @@
 import { useActionState } from 'react'
 import { saveCount, type SaveCountState, type BatchSide } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { Button } from '@/app/components/ui/button'
 
 const initialState: SaveCountState = {}
 
@@ -44,13 +45,11 @@ export default function StocktakeQuickCount({
                     placeholder={t('stocktakes.qtyPlaceholder')}
                     className="flex-1 min-w-0 border border-gray-300 rounded px-3 py-3 text-base min-h-[48px] bg-white"
                 />
-                <button
+                <Button className="shrink-0 min-h-[48px] text-base"
                     type="submit"
-                    disabled={isPending}
-                    className="shrink-0 bg-blue-600 text-white text-base font-medium rounded px-4 py-3 min-h-[48px] hover:bg-blue-700 disabled:bg-gray-400"
-                >
+                    disabled={isPending}>
                     {isPending ? t('common.saving') : t('stocktakes.save')}
-                </button>
+                </Button>
                 {state.ok && !isPending && (
                     <span className="flex items-center px-1 text-green-600" aria-hidden>
                         ✓

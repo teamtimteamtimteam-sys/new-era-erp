@@ -5580,3 +5580,40 @@ probe-role-crash · probe-button-tiers · render-pdf-samples · smoke-routes —
   (那是"说了假话",这是"没看见"),按 Tim 的裁定只报告不顺手改。去处:cleanup A。
 * **`scripts/render-pdf-samples.mjs` 不持 live-lock**,而 smoke / survey / avatar /
   gate 都持。它碰线上、造账号。同上,按名记下,不在本刀范围。
+
+---
+
+## ★★ BTN-3B-TASKNODE-HARD-DELETE · 树上唯一一处【没有确认步骤的硬删除】(BTN-3b,2026-09-06)
+
+**`app/tools/tasks/[id]/NodeTree.tsx:117`**
+
+```
+脸上写着    labels.remove（「移除」）
+handler     supabase.from('task_nodes').delete()   ← 硬删除:行真的没了,不是软删除
+确认步骤     没有 —— 整个 NodeTree.tsx 里 ConfirmButton 出现 0 次
+转换前画法   className="text-red-700"  ← 一行裸红字,没有边、没有底
+```
+
+**为什么它值得单独立案,而不是混在"档位不一致"里:**
+
+> **同一棵树上有两个按钮都叫「移除」,而它们画法的轻重【正好反了】。**
+> `sales/customers/ContactsPanel.tsx:120` 走的是 `soft_delete_counterparty_contact`
+> —— **什么都不销毁**,却穿着一个中性灰盒子;而这一处**真的销毁一行**,
+> 穿的是全树最淡的一件。**这不是不一致,是把最危险的那一格画得最不像。**
+
+**BTN-3b 的处置,以及它【刻意】没做的那一半:**
+* **做了:** 档位改成 `destructive/inline`(实线 3px 左竖条 + 破坏档字色)。
+  现在它不靠颜色也读得出比旁边的「上移/下移/编辑」重。
+* **没做:** **确认框。** 本刀第一条规矩是不许改行为,而加一个对话框是改行为。
+  → **归 BTN-4**,已列在 `docs/btn4-handover.md` 的**第一条**。
+* **同时写进 `docs/manual-walk-list.md` §16**,措辞是给人念的 ——
+  **在 BTN-4 落地之前,这一条靠"告诉会用任务模块的人"止损,不必等排期。**
+
+**判据(BTN-4 关掉它时用):** 不是"代码里有没有 `ConfirmButton`",
+而是 **`check-confirm-subject.mjs` 的计数从 43 升到 44,且新那处的 `subject`
+点得出是哪一个步骤**(建议用 `n.title`)。
+
+★ **顺带记一条勘察法则的实例:这处缺陷【按档位搜是搜不到的】。**
+它的 className 只有 `text-red-700` —— 既不像按钮、也不在任何一类"危险样式"里。
+**是读 handler 读出来的**,而那正是 BTN-3 §13.8 预言的那件事:
+「按标签找,看不见一个动词与行为对不上的动作」。

@@ -85,6 +85,40 @@ const PAGES = [
     '/purchasing/licences',    // destructive/inline(逐行的"删除")+ link/inline
     '/settings/dictionaries',  // secondary/xs(逐行的"编辑" / "重新启用")
     '/logistics/lanes',        // default/sm + secondary/sm + destructive/inline
+    // ★ BTN-3b(2026-09-06):这是【第三次】为同一个洞补取样,而这一次的规模说明了问题。
+    //   BTN-2 改的 20 个文件一页都不在取样里;BTN-3 又补了五页;本刀开工前实测:
+    //   **那 91 个按钮住在 44 个目录里,而其中 32 个目录一条路由都不在这张清单上。**
+    //   一支只走 24 页的探针,对着一把改了 54 个文件的刀,绿得毫无意义。
+    //   下面每一页都【渲染本刀转过的按钮】,按 (variant,size) 分组去够 REQUIRED_GROUPS。
+    '/notifications',              // secondary/xs(标记已读)
+    '/settings/deleted',           // secondary/sm(筛选)
+    '/finance/month-end',          // secondary/sm(筛选;它的文案键是 reviews.filter,已立案)
+    '/hr/kpi/score',               // secondary/sm(选月)+ secondary/xs(逐行补算)
+    '/finance/payroll-payments',   // default/sm(支付所选)
+    '/finance/processing-costs',   // default/sm(汇出 / 冲销计提)
+    '/hr/attendance',              // default/sm(开考勤期)
+    '/finance/cash-forecast',      // secondary/sm(加一行)+ default/default(保存)
+    '/settings/import',            // default/default(预览)
+    '/stocktakes',                 // default/default(新建盘点)
+    '/tools/tasks',                // default/default(新建任务)
+    '/tools/converter',            // default/default(换算)—— 也是唯一一处连 style 一起去掉的
+    // ★★【这四条【试过、量过、拿掉了】,连同理由 —— BTN-3 的先例:
+    //     「那是清单错了,不是产品坏了」,而 RENDER 那条断言正是为此存在】★★
+    //   第一版把它们放了进去,五条 RENDER 当场变红。逐条查明:
+    //   · /settings/roles/{id}/edit —— ★【那条路由不存在】,真实路由是
+    //     /settings/roles/{id}(app/settings/roles/[id]/page.tsx)。已在 IDSRC 改正。
+    //   · /sales/commissions —— 表单在 /new 与 /[id]/edit,列表页一个库按钮都没有。已改正。
+    //   · /tools/pricing/calculator —— 那个「复制明细」住在 `{res && (…)}` 里:
+    //     **要先算一次才存在**,一次页面加载永远看不到(与 §10.5 的 /settings/accounts 同类)。
+    //   · /operation/handovers —— 实测 shift_handovers 表【0 行】,逐行的确认钮无从渲染。
+    //   · /finance/claims —— 实测 medical_claims 表【0 行】,同上。
+    //   · /sales/commissions/new —— ★ 这一条最值得读:路由是对的、表单也在,而
+    //     `CommissionForm:67` 写着 `if (agents.length === 0) return (…)` ——
+    //     一个【不含任何按钮】的提前返回。而实测 counterparty_type=service_vendor
+    //     的供应商【0 行】,于是那个提交钮在今天的线上【必然】画不出来。
+    //     「路由对、组件在、按钮仍然不存在」是这一族里最容易被误读成产品缺陷的一种。
+    //   ☞ 后三条【不是取样偷懒,是线上没有能渲染它的数据/状态】,
+    //     归 docs/manual-walk-list.md 由人走。
 ]
 
 // ★★ BTN-3:本刀落地的组合,必须【真的被求值】—— 不是"没红"就算数 ★★
@@ -101,8 +135,47 @@ const REQUIRED_GROUPS = [
     { k: 'destructive/inline', need: 2 },  // 红色链接态 → 破坏档(实线左竖条),BTN-3 Item 2
     { k: 'reversal/inline',    need: 1,    // 撤销档的行内形态,BTN-3 Item 1
       note: '线上没有能渲染出两处的数据(见 IDSRC 注释)—— L1 因此比不了,由 L2 行内两档同几何 兜住' },
+    // ── ★ BTN-3b(2026-09-06):本刀落地的【盒子形态】组合 ────────────────────
+    //   BTN-3 证的三对全是行内档。本刀转的 74 处里有 71 处是盒子,而盒子形态的
+    //   (variant,size) 此前**一个都没有被 REQUIRED_GROUPS 守着** —— 它们只是碰巧
+    //   出现在取样里,于是"没被求值"与"绿"在退出码上又是同一个字节。
+    { k: 'default/default',    need: 2 },  // 新建 / 提交(导入 · 盘点 · 任务 · 佣金 · 换算)
+    { k: 'secondary/default',  need: 2 },  // 与之并排的取消 / 再来一份
+    { k: 'default/sm',         need: 2 },  // 批准 · 支付 · 开期 · 开评估周期
+    { k: 'secondary/sm',       need: 2 },  // 筛选 · 驳回 · 预览 · 对话框取消
+    { k: 'secondary/xs',       need: 2 },  // 逐行的编辑 / 标记已读
+    // ── ★ 撤销档的盒子形态:两处调用点,而线上只渲染得出一处 ──────────────
+    //   `/settings/roles/{id}/edit` 的 Delete(其实是 softDeleteRole)渲染得出;
+    //   `/hr/leave/{id}` 的 Cancel(其实是补一条等额 release)渲染不出 ——
+    //   ★ 实测:leave_requests 表里 pending 与 approved 【各 0 行】,
+    //     也就是"线上没有能渲染它的数据",与 BTN-3 的 reversal/inline 同一个理由。
+    { k: 'reversal/sm',        need: 1,
+      note: '两个调用点,而 leave_requests 的 pending/approved 各 0 行 —— 见 IDSRC roles;由 L2b 盒子两档同几何 兜住' },
+    { k: 'reversal/xs',        need: 1,
+      note: '只有一个调用点(客户联系人的软删除),天然到不了 2;由 L2b 兜住' },
+    // ★★【destructive/sm 【故意】不在这张表上,而它不在的理由必须被读到】★★
+    //   它只有一个调用点(hr/reviews 的 Void,void_review),而**线上
+    //   performance_reviews 一行都没有** —— 实测 `status=neq.void` 返回 []。
+    //   于是它【任何取样都渲染不出来】,写进 REQUIRED_GROUPS 只会让这支探针
+    //   永久变红,而那是把"我看不见"伪装成"产品坏了"。
+    //   ☞ 处置与 BTN-3 对 reversal/inline 的处置同一条:**不降门槛,换一条
+    //     更强、而且不需要线上数据的断言** —— 见下面 L4(库源码层的左竖条判据)。
+    //   ★ 它在收尾里【连同理由一起印出来】,不是悄悄省掉的。
     { k: 'secondary/inline',   need: 2 },  // 草稿行的"移除" —— 什么都还没存过,红色在这里是假话
     { k: 'link/inline',        need: 2 },  // BTN-2 的,顺带守住不回退
+]
+// 本刀声明为"渲染不出、由 L4 承担"的组合,收尾时逐条印出来
+const UNRENDERABLE = [
+    { k: 'destructive/sm', site: 'app/hr/reviews/ReviewActions.tsx:122',
+      why: '★ 说准一点:【这个调用点】走不到 —— 线上 performance_reviews 0 行'
+         + '(status=neq.void 返回空),那一页画不出这个钮。'
+         + '而【这个组合】是证过的:L2b 拿它与 reversal/sm 比过同几何(树里别处的调用点渲染了它)。'
+         + '☞ 缺的是"本刀这一处被求值过",不是"destructive/sm 这一档没被证过" —— 两句话不一样,别混着说' },
+    { k: 'default/xs', site: '5 处:MaintenancePanel:466 · AssetActions:143 · NodeTree:81 · NodeTree:144 · RetentionPanel:176',
+      why: '五处【无一】在页面加载时存在:前四处要先点开一个面板/进入编辑态,'
+         + 'RetentionPanel 那处要一张带质保金的采购单(实测该表在 PostgREST 里取不到)。'
+         + '★ xs 这一号的盒子几何由 secondary/xs 跨页证着(/settings/dictionaries 34 处),'
+         + 'default 与 secondary 的差别在底与字重、不在盒子 —— 所以缺的是"这一格被渲染过",不是几何' },
 ]
 // ★【为什么 /settings/accounts 不在这张清单上 —— 它不是坏的,是【看不见的】】
 //   那一页的 <Button variant="default"> 住在 `open` 这个 state 的分支里:
@@ -249,6 +322,48 @@ try {
         //   ☞ **所以这不是取样清单懒,是【线上没有能渲染它的数据】。**
         //   处置见下面的 `L2 行内两档同几何` —— 那条断言用一处实例就成立,
         //   而且它断的正是 §10.1 ③ 那条设计律,比跨页全等更强。
+        // ── ★ BTN-3b(2026-09-06)加的四条,每一条都各带自己的查询 ────────────
+        //   照 BTN-3 那条教训:**「取一行」与「取一行【这一页画得出来的】」
+        //   不是同一个问题**,所以没有一条是 `select=id&limit=1`。
+        { name: 'roles',
+          q: '/rest/v1/roles?select=id&deleted_at=is.null&is_system=eq.false&limit=1',
+          pick: (r) => r?.id,
+          mk: (id) => `/settings/roles/${id}`,   // ★ 不是 /edit —— 那条路由不存在,第一版据此报了一次假红
+          why: 'reversal/sm —— 那处写着 Delete 而做的是 softDeleteRole(deleted_at + is_active=false)。'
+             + '★ is_system=false:系统角色由 guard_system_role 挡着,那一页画不出这个钮' },
+        { name: 'customer_with_contact',
+          q: '/rest/v1/counterparty_contacts?select=customer_id&deleted_at=is.null&customer_id=not.is.null&limit=1',
+          pick: (r) => r?.customer_id,
+          mk: (id) => `/sales/customers/${id}`,
+          why: 'reversal/xs —— 逐行的"移除联系人",实为 soft_delete_counterparty_contact。'
+             + '★ 必须取【有活联系人的】那个客户,否则那张表一行都不画' },
+        { name: 'task_with_nodes',
+          q: '/rest/v1/task_nodes?select=task_id&limit=1',
+          pick: (r) => r?.task_id,
+          mk: (id) => `/tools/tasks/${id}`,
+          why: 'destructive/inline + link/inline —— ★ 本刀的头号发现就住在这一页:'
+             + 'NodeTree 的"移除"是 task_nodes.delete(),一次【硬删除】。'
+             + '★ 必须取【有步骤的】那个任务,空任务画不出 NodeTree 的行' },
+        { name: 'output_batch',
+          q: '/rest/v1/output_batches?select=id&deleted_at=is.null&limit=1',
+          pick: (r) => r?.id,
+          mk: (id) => `/output/${id}/assays/new`,
+          why: 'secondary/default —— 那张表单的「只记录」提交钮是无条件渲染的。'
+             + '★ secondary/default 的另外几个调用点(许可证取消 · 导入再来一份 · 任务弹窗取消)'
+             + '全都藏在某个 state 分支里,一次页面加载都到不了' },
+        { name: 'output_batch_2',
+          q: '/rest/v1/output_batches?select=id&deleted_at=is.null&limit=1&offset=1',
+          pick: (r) => r?.id,
+          mk: (id) => `/output/${id}/assays/new`,
+          why: '★ secondary/default 的【第二处】—— L1 要跨页比几何就得有两处,而这一档'
+             + '其余六个调用点全在 state 分支里。取【第二个】产出批次,于是两处住在'
+             + '两条不同的 URL 上,是真的跨页,不是把门槛降到 1' },
+        { name: 'sales_order_open',
+          q: '/rest/v1/sales_orders?select=id&deleted_at=is.null&status=eq.draft&limit=1',
+          pick: (r) => r?.id,
+          mk: (id) => `/sales/orders/${id}`,
+          why: 'TransitionPanel 的运行期档位(cancelled → destructive,其余 secondary)。'
+             + '★ 必须取 draft:cancelled/shipped 的单子 nextStates 为空,一个钮都不画' },
     ]
     const dynamic = []
     for (const s of IDSRC) {
@@ -294,7 +409,19 @@ try {
 
     for (const [k, list] of groups) {
         if (list.length < 2) continue
-        const sig = b => `h=${b.h} r=${b.radius} pl=${b.padL} pr=${b.padR} w=${b.weight}`
+        // ★★【BTN-3b:行内档不比高度 —— 这条法则 BTN-3 已经写下,只是没有写进 L1】★★
+        //   BTN-3 在 L2 那条里量出来并写清楚了:`size="inline"` 就是 `h-auto`,
+        //   **行内档的高度按定义等于它周围那行字的高度** —— 18 来自 text-xs 的
+        //   表格单元格,22 来自 text-sm 的正文。它当时只把这条应用到 L2 上,
+        //   而 L1 照旧把 h 比进去 —— 那没有立刻变红,**只是因为当时的取样里
+        //   destructive/inline 两处都住在 text-xs 的表格里**。
+        //   本刀把取样铺到 /tools/tasks/{id}(正文,text-sm)之后,L1 当场两种几何。
+        //   ☞ **这不是回归,是 L1 一直在问一个 BTN-3 已经判定不该问的问题,
+        //     而旧取样恰好让它答对了。** 把它比错的东西拿掉,不是把断言放松。
+        const inline = k.endsWith('/inline')
+        const sig = b => inline
+            ? `r=${b.radius} pl=${b.padL} pr=${b.padR} w=${b.weight}`
+            : `h=${b.h} r=${b.radius} pl=${b.padL} pr=${b.padR} w=${b.weight}`
         const uniq = [...new Set(list.map(sig))]
         const pages = [...new Set(list.map(b => b.path))]
         probe(`L1 ${k}`, uniq.length === 1,
@@ -341,6 +468,80 @@ try {
     }
     if (sec.length)  probe('L2 secondary 字重 400', sec.every(b => b.weight === '400'), `${sec.length} 处`)
     if (def.length)  probe('L2 default 字重 500', def.every(b => b.weight === '500'), `${def.length} 处`)
+
+    // ── ★ BTN-3b · L2b:【盒子形态】的两个档也必须同几何,一实一虚 ────────────
+    //   与 L2 行内那条同一条设计律(§10.1 ③),只是换到有底有边的盒子上。
+    //   本刀把 destructive 与 reversal 第一次同时铺到 sm/xs 上,而这两个档在盒子里
+    //   仍然只有【左竖条】这一条不经过颜色的判据 —— 竖条要分得开,盒子得先一样。
+    //   ★ 它对【任何一处实例】都成立,所以 reversal/sm 只渲染得出一处也证得了。
+    for (const sz of ['default', 'sm', 'xs']) {
+        const d = all.filter(b => b.variant === 'destructive' && b.size === sz)
+        const r = all.filter(b => b.variant === 'reversal' && b.size === sz)
+        if (!d.length || !r.length) continue      // 这一档这一号本次没同时取到,交给 L4
+        const ds = [...new Set(d.map(b => `h=${b.h} r=${b.radius} pl=${b.padL} pr=${b.padR}`))]
+        const rs = [...new Set(r.map(b => `h=${b.h} r=${b.radius} pl=${b.padL} pr=${b.padR}`))]
+        const same = ds.length === 1 && rs.length === 1 && ds[0] === rs[0]
+        probe(`L2b 盒子两档同几何(destructive/${sz} vs reversal/${sz})`, same,
+            same ? `同一处几何 · ${ds[0]} —— 只差实线/虚线`
+                 : `几何不同:destructive ${ds.join(' | ')}  ≠  reversal ${rs.join(' | ')}`)
+    }
+
+    // ── ★★ BTN-3b · L4:一条【不需要线上数据】的左竖条判据 ★★ ────────────────
+    //   为什么非要有它:destructive/sm 只有一个调用点,而线上 performance_reviews
+    //   是 0 行 —— **没有任何取样能渲染它**。BTN-3 立过的规矩是「不许把
+    //   『线上没有数据』写成『这一档是绿的』」,而它给的处置是【换一条更强的断言】,
+    //   不是降门槛。这里照办:去问【库源码】,而不是问某一页。
+    //
+    //   它断的正是 §10.1 ③ 那条设计律本身,而且是 BTN-3 在行内档上真的踩到过的
+    //   那个失败形状:`size` 的内边距把 `pl-3.5` 压掉,竖条于是画在字底下。
+    //   ★ 所以它问的不是"类名在不在",是"有没有哪一条 compoundVariant 把这两个
+    //     档的左竖条几何拿掉了,而没有另外补一条回来"。
+    {
+        const src = readFileSync(join(ROOT, 'app/components/ui/button.tsx'), 'utf8')
+        // ★★【这个 helper 的第一版是【假红】的,而那件事本身值得留下来】★★
+        //   第一版用 `indexOf('\n        ')`(8 空格)找下一个键 —— 而值那一行
+        //   缩进 10 空格,**8 空格是它的前缀**,于是 `j` 当场落在值的第一行上,
+        //   `grab()` 返回的是 `"\n        destructive:"`,**一个类名都没有**。
+        //   三条 L4 于是全部报红,而库里那三样【一样不缺】。
+        //   ☞ 与 AGENTS.md「一次没有咬人的注入是信息」是同一条的反面:
+        //     **一条看不见那个性质的断言,红和绿都不是证据。**
+        //   现在按【恰好 8 空格 + 一个非空格】切,把值整段包进来。
+        const grab = (name) => {
+            const re = new RegExp(`\\n {8}${name}:`)
+            const m = re.exec(src)
+            if (!m) return ''
+            const rest = src.slice(m.index + m[0].length)
+            const nxt = /\n {8}\S/.exec(rest)
+            return rest.slice(0, nxt ? nxt.index : rest.length)
+        }
+        const dv = grab('destructive'), rv = grab('reversal')
+        const bar = (s) => /before:w-\[3px\]/.test(s) && /before:left-0/.test(s) && /pl-3\.5/.test(s)
+        probe('L4 destructive 在库源码里带 3px 左竖条 + 让位内边距', bar(dv),
+            bar(dv) ? 'before:w-[3px] · before:left-0 · pl-3.5 三者都在'
+                    : '缺了其中一样 —— 破坏档在盒子形态下会失去它唯一的非颜色判据')
+        probe('L4 reversal 在库源码里带 3px 左竖条 + 让位内边距', bar(rv),
+            bar(rv) ? 'before:w-[3px] · before:left-0 · pl-3.5 三者都在'
+                    : '缺了其中一样 —— 撤销档在盒子形态下会失去它唯一的非颜色判据')
+        // 一实一虚:destructive 是纯色填充,reversal 是重复渐变
+        const solid  = /before:bg-destructive-text/.test(dv)
+        const dashed = /repeating-linear-gradient/.test(rv)
+        probe('L4 一实一虚在库源码里分得开', solid && dashed,
+            solid && dashed ? 'destructive=纯色填充,reversal=重复渐变(虚线)'
+                            : `destructive 纯色 ${solid} · reversal 虚线 ${dashed}`)
+        // ★ 没有任何 size 的 compoundVariant 把这两个档的竖条几何拿掉
+        //   （行内那三对是【保留】竖条、只丢底与描边的,所以它们不该被这条抓住）
+        const cvs = src.slice(src.indexOf('compoundVariants'))
+        const killsBar = /variant:\s*"(destructive|reversal)"[\s\S]{0,400}?before:hidden/.test(cvs)
+        probe('L4 没有 compoundVariant 抹掉这两个档的左竖条', !killsBar,
+            killsBar ? '★ 有一条 compoundVariant 把左竖条隐藏了 —— 那一档从此只剩颜色可分'
+                     : '三对行内 compoundVariant 保留竖条、只丢底与描边(BTN-3 §13.4)')
+    }
+
+    // ★ 声明为"线上渲染不出"的组合,连同理由一起印出来 —— 不许悄悄省掉
+    for (const u of UNRENDERABLE) {
+        console.log(`  · UNRENDERABLE ${u.k} —— ${u.site}`)
+        console.log(`      ${u.why}`)
+    }
 
     // ── L3 · 禁用态读得清 ──────────────────────────────────────────────────
     const dis = all.filter(b => b.disabled)

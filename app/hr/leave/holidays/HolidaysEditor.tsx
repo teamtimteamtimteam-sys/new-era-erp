@@ -8,6 +8,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { saveHoliday, deleteHoliday } from '../types/actions'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 import HolidaysTable, { type HolidayRow } from './HolidaysTable'
+import { Button } from '@/app/components/ui/button'
 
 export default function HolidaysEditor({
     rows, year, knownKeys,
@@ -62,10 +63,9 @@ export default function HolidaysEditor({
                 title={t('leave.addHoliday')}
                 error={error}
                 actions={
-                    <button type="button" onClick={add} disabled={pending || !en || !zh || !key.trim()}
-                            className="rounded bg-[color:var(--brand-text)] px-3 py-1.5 text-sm text-white disabled:opacity-50">
+                    <Button size="sm" type="button" onClick={add} disabled={pending || !en || !zh || !key.trim()}>
                         {t('common.save')}
-                    </button>
+                    </Button>
                 }
             >
                 <label className="text-xs">{t('leave.date')}

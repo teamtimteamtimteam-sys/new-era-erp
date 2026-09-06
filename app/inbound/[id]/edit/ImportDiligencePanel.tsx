@@ -13,6 +13,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveImportDiligence } from './importDiligenceActions'
+import { Button } from '@/app/components/ui/button'
 
 export default function ImportDiligencePanel({
     batchId, imported, permitRef, verifiedAt, canEdit,
@@ -103,10 +104,9 @@ export default function ImportDiligencePanel({
                             </>
                         )}
                         {error ? <p className="text-sm text-red-700">{error}</p> : null}
-                        <button type="button" onClick={onSave} disabled={saving}
-                                className="rounded bg-gray-900 px-3 py-1 text-sm text-white disabled:bg-gray-400">
+                        <Button size="sm" type="button" onClick={onSave} disabled={saving}>
                             {t('inbound.importDiligence.save')}
-                        </button>
+                        </Button>
                     </div>
                 )}
             </div>

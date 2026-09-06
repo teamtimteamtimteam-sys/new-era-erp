@@ -84,13 +84,12 @@ export function CorrectControl({ periodId }: { periodId: string }) {
                        className="w-full border border-gray-300 px-3 py-2 rounded" />
             </div>
             {!reason.trim() && <p className="text-sm text-amber-700 self-center">{t('gst.blockedNeedReason')}</p>}
-            <button type="button" disabled={!reason.trim() || busy}
+            <Button variant="secondary" type="button" disabled={!reason.trim() || busy}
                     onClick={() => start(async () => {
                         const r = await correctGstReturn(periodId, reason); if (r.error) setErr(r.error); else { setErr(''); router.refresh() }
-                    })}
-                    className="border border-amber-500 text-amber-800 px-4 py-2 rounded hover:bg-amber-50 disabled:opacity-50">
+                    })}>
                 {busy ? t('common.saving') : t('gst.raiseCorrection')}
-            </button>
+            </Button>
             {err && <p className="text-sm text-red-700 w-full">{err}</p>}
         </div>
     )

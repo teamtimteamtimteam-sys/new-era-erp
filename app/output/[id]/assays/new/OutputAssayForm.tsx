@@ -230,15 +230,13 @@ export default function OutputAssayForm({
 
             {/* ── 提交 ── */}
             <div className="flex flex-wrap gap-3 pt-2 border-t">
-                <button
+                <Button variant="secondary"
                     type="submit"
                     name="intent"
                     value="record"
-                    disabled={isPending}
-                    className="border border-gray-300 px-4 py-2 rounded hover:bg-gray-50 disabled:text-gray-400"
-                >
+                    disabled={isPending}>
                     {t('assay.saveOnly')}
-                </button>
+                </Button>
                 <Button
                     type="submit"
                     name="intent"
