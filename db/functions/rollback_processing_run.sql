@@ -216,5 +216,16 @@ BEGIN
      WHERE id = p_run_id;
 
     PERFORM set_config('evoltrya.movement_ctx', '', true);   -- 用毕即清(同 commit)
+
+    -- ── COD-1:冲销之后,这几票货不再是"加工完"的 ────────────────────────
+    -- 【已签发的证书在这里作废,而且没有替代品】—— 冲销说的是那次加工没发生。
+    -- 不做这一步,供应商手里那张纸就还在说着一件系统已经不再相信的事,
+    -- 而没有任何东西会提醒任何人。将来重新加工到完,那时会成立一张新的证书。
+    FOR v_input IN
+        SELECT DISTINCT pi.inbound_batch_id FROM processing_inputs pi
+         WHERE pi.run_id = p_run_id AND pi.inbound_batch_id IS NOT NULL
+    LOOP
+        PERFORM refresh_cod_for_batch(v_input.inbound_batch_id);
+    END LOOP;
 END;
 $function$;

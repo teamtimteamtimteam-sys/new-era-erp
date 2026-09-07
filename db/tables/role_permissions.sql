@@ -71,7 +71,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.tasks.edit', 'module.tasks.view',
         'module.sales.edit', 'module.sales.view',
         'module.logistics.view',
-        'data.view_deleted') WHERE r.code = 'admin';
+        'data.view_deleted',
+        -- COD-1:签发销毁证书。
+        'action.issue_cod') WHERE r.code = 'admin';
 
 -- gm(30):看得见整个生意,包括成本与利润;【但不能改权限】—— 没有 action.manage_permissions。
 INSERT INTO public.role_permissions (role_id, permission_code)
@@ -138,7 +140,16 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
         'module.inventory.view', 'module.output.edit', 'module.output.view',
         'module.stocktakes.edit', 'module.stocktakes.view', 'module.tasks.edit',
-        'module.tasks.view', 'module.logistics.view'
+        'module.tasks.view', 'module.logistics.view',
+        -- ── COD-1:签发销毁证书 ────────────────────────────────────────────
+        -- 【它没有破上面那句「不给任何数据类权限」】—— 这不是一条 data.* 权限,
+        -- 而且它够得着的东西是【逐格挑出来的】:供应商的名字(随单据走的展示
+        -- 标签)与这票货背后的加工事实,经 cod_certificate_data 一支函数交付。
+        -- suppliers 与 company_compliance 对仓储现场【仍然是零行】——
+        -- fixture 195 的 J2 / J3 两臂就是钉这一句的:名字拿得到,表读不到。
+        -- 【为什么是仓储现场】过磅收货的人就是知道这票货处理完了的人;
+        -- 而证书住在进料批页上,他本来就持有 module.inbound.view。
+        'action.issue_cod'
 ) WHERE r.code = 'warehouse';
 
 -- hr(7):人力资源 + 薪酬 + 身份信息 + 绩效正文。这四类正是 HR 的工作对象,也正是别人不该看见的。

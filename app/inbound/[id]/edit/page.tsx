@@ -24,6 +24,8 @@ import IntakeConditionPanel from './IntakeConditionPanel'
 import DeepDischargePanel from './DeepDischargePanel'
 import ImportDiligencePanel from './ImportDiligencePanel'
 import SourceReasonPanel from './SourceReasonPanel'
+import CertificatePanel, { type CertificatePanelData } from './CertificatePanel'
+import { localizeCodError } from '@/app/inbound/codErrorCodes'
 import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
 import { can, canViewPrices } from '@/lib/permissions'
 import { Refusal } from '@/app/components/ui/refusal'
@@ -118,6 +120,11 @@ export default async function EditInboundPage({
     //   那块空白原样留着。**修一条"空 = 没有"的缺陷时,把门问错,就是把它换个角色重演一遍。**
     //   判据因此是两个码的【合取】—— 这一块要两边都看得见才画得出来。
     const canSeeFinance = await can('module.finance.view')
+    // ── COD-1:销毁证书 ────────────────────────────────────────────────────
+    // 【一个权限码,不多不少】—— 页面的门与组装函数的门是同一个 action.issue_cod。
+    // 挂 module.processing.view 是另一条路,而仓储现场不持有它:那会为了看一张
+    // 证书把整个加工模块打开。
+    const canIssueCod = await can('action.issue_cod')
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const [batchRes, materialsRes, suppliersRes, metalsRes, movementsRes, stocktakeRes, priceHistoryRes] = await Promise.all([
@@ -519,6 +526,63 @@ export default async function EditInboundPage({
     // 判据在那一层,内层 batch_audit_trail_all 不授权给任何人(AUD-1 的拆法)。
     const auditRows = await loadBatchAuditTrail('inbound', id)
 
+    // ── COD-1:这一票货的销毁证书 ─────────────────────────────────────────
+    // 【证书行是自己成立的】(refresh_cod_for_batch 挂在 commit / rollback /
+    // 软删三处),所以这里【只读,不建】。没有行的时候要说得出【为什么还不能】,
+    // 而那句话只有判据自己说了算 —— 于是问 cod_delivery_completion(),
+    // 不在这一页把判据抄第二遍。抄一遍就是让同一件事有两处实现。
+    let codPanel: CertificatePanelData = {
+        codId: null, code: null, status: null, issuedAt: null,
+        completedOn: null, verificationToken: null, voidReason: null,
+        blockedBecause: null,
+    }
+    if (canIssueCod) {
+        const codRes = await supabase
+            .from('certificates_of_destruction')
+            .select('id, code, status, issued_at, completed_on, verification_token, void_reason')
+            .eq('inbound_batch_id', id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        const cod = mustOne(codRes, 'certificates_of_destruction') as {
+            id: string; code: string | null; status: 'pending' | 'issued' | 'void'
+            issued_at: string | null; completed_on: string | null
+            verification_token: string | null; void_reason: string | null
+        } | null
+
+        if (cod && cod.status !== 'void') {
+            codPanel = {
+                codId: cod.id, code: cod.code, status: cod.status,
+                issuedAt: cod.issued_at, completedOn: cod.completed_on,
+                verificationToken: cod.verification_token,
+                voidReason: cod.void_reason, blockedBecause: null,
+            }
+        } else {
+            // 没有活着的证书 —— 要说得出【为什么还不能】。
+            //
+            // ★【问带门的那一支,不问判据本身】★ 头一版直接 rpc 了
+            // cod_delivery_completion,而 gate 的 B2 当场点名:那支函数是
+            // SECURITY DEFINER 且【没有调用者检查】,对 authenticated 开着就是
+            // 一扇没人看守的侧门。三支内层函数因此都收回了 EXECUTE
+            // (db/views/zzz_function_grants.sql 有逐条理由)。
+            //
+            // 所以这里走 cod_certificate_data —— 它有 action.issue_cod 的门,
+            // 而它组装不出来时抛的正是 CANNOT_CERTIFY|批号|具名理由。
+            // 判据仍然只有一份实现,外面只有一扇门。
+            const { error: whyErr } = await supabase.rpc('cod_certificate_data', {
+                p_inbound_batch_id: id,
+            })
+            codPanel = {
+                codId: cod?.id ?? null, code: cod?.code ?? null,
+                status: cod?.status ?? null,
+                issuedAt: cod?.issued_at ?? null, completedOn: cod?.completed_on ?? null,
+                verificationToken: cod?.verification_token ?? null,
+                voidReason: cod?.void_reason ?? null,
+                blockedBecause: whyErr ? await localizeCodError(whyErr.message) : null,
+            }
+        }
+    }
+
     return (
         <div className="p-4 sm:p-8 max-w-2xl">
             <div className="mb-6">
@@ -775,6 +839,11 @@ export default async function EditInboundPage({
                 recordedAt={batch.source_reason_recorded_at ?? null}
                 reasons={sourceReasons}
                 canEdit={canEditInbound} />
+
+            {/* COD-1:销毁证书。它【自己成立】—— 整批加工完的那一刻就有了一行,
+                不等谁打开这个页面(refresh_cod_for_batch 挂在 commit / rollback /
+                软删三处)。这里只是把它显示出来,并给签发与作废两个动作。 */}
+            <CertificatePanel batchId={id} data={codPanel} canIssue={canIssueCod} />
 
             <StockStatusPanel inboundBatchId={id} unit={batch.unit} />
 

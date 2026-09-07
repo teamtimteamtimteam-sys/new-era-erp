@@ -129,7 +129,13 @@ function routesFrom(dir, segs = [], out = []) {
     for (const e of readdirSync(dir)) {
         const p = join(dir, e)
         if (statSync(p).isDirectory()) routesFrom(p, [...segs, e], out)
-        else if (e === 'page.tsx' || e === 'route.ts') {
+        // ★【COD-1:route.tsx 此前【看不见】—— 这是一处盲点,不是一次放宽】★
+        // 路由处理器带 JSX(要渲染 PDF)时,文件名必须是 route.tsx。
+        // 线上早就有一条:app/output/[id]/traceability/pdf/route.tsx(AUD-2)。
+        // 它一直不在 routes 里,只是此前没有任何 app/ 代码带参数链接过它,
+        // 所以⑥臂从来没有对它开过火 —— 【不是查过了没问题,是没人在查】。
+        // 加上 route.tsx 之后,那一条和本刀的销毁证书路由一起进入视野。
+        else if (e === 'page.tsx' || e === 'route.ts' || e === 'route.tsx') {
             out.push('/' + segs.filter((s) => !isGroup(s)).join('/'))
         }
     }

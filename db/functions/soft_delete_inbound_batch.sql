@@ -29,6 +29,11 @@ BEGIN
      WHERE id = p_batch_id;
     PERFORM set_config('evoltrya.soft_delete_ctx', '', true);
 
+    -- ── COD-1:注销掉的料【不是被处理掉的】────────────────────────────────
+    -- 实测:线上 11 张 remaining_qty = 0 的进料批里 8 张是这一类。
+    -- 一张已签发的证书在这里作废 —— 它说的是"我们处理了你的料",而这票货被报废了。
+    PERFORM refresh_cod_for_batch(p_batch_id);
+
     RETURN jsonb_build_object('id', p_batch_id, 'code', v_code, 'deleted_by', v_user);
 END;
 $function$;

@@ -5373,6 +5373,55 @@ const en = {
             invalidType: 'Invalid task type: {value}',
         },
     },
+    // ════════════════════════════════════════════════════════════════════
+    // COD-1:销毁证书。★【这一族【不】包含证书本身的文案】★
+    // 证书是【签发给外部的法律文件】,一律英文,版式写死在
+    // app/inbound/CertificateDocument.tsx 里,一次 t() 都不调 —— 那是裁定,
+    // 不是漏了国际化。这里的每一句都是说给【按按钮的那个人】听的,他坐在界面前。
+    // ════════════════════════════════════════════════════════════════════
+    cod: {
+        title: 'Certificate of destruction',
+        intro: 'Proof for the party who delivered this material that Evoltrya processed it. It exists once the whole delivery has been processed.',
+        statusPending: 'Ready to issue — not yet sent',
+        statusIssued: 'Issued',
+        statusVoid: 'Voided',
+        notReady: 'Not ready yet',
+        number: 'Certificate number',
+        issuedOn: 'Issued on',
+        completedOn: 'Processing completed',
+        verifyUrl: 'Verification address',
+        internalExport: 'Internal copy (PDF)',
+        internalExportHint: 'For your own file or an auditor. Watermarked as an internal record; no number, no stamp.',
+        openIssued: 'Open the issued certificate (PDF)',
+        issueButton: 'Issue to the supplier',
+        issueHint: 'This mints the certificate number and freezes the document. It cannot be edited afterwards — a change means voiding it and issuing a new one.',
+        voidButton: 'Void this certificate',
+        voidReasonLabel: 'Why is it being voided?',
+        voidedBecause: 'Voided: {0}',
+        restricted: 'You do not have permission to issue certificates of destruction.',
+        errors: {
+            BATCH_REQUIRED: 'No delivery was named.',
+            BATCH_NOT_FOUND: 'No such delivery: {0}.',
+            NOT_AN_INBOUND_BATCH: '{0} is an output batch. A certificate of destruction is issued for an inbound delivery — the material a supplier handed over.',
+            CANNOT_CERTIFY: 'No certificate can be issued for {0}. {1}',
+            COD_NOT_FOUND: 'No such certificate: {0}.',
+            COD_ALREADY_ISSUED: 'This certificate has already been issued (it is {0}). To correct it, void it and issue a new one.',
+            COD_NOT_ISSUED: 'Certificate {0} has not been issued (it is {1}), so there is nothing to void.',
+            COD_ALREADY_VOID: 'Certificate {0} is already void.',
+            COD_LICENCE_NOT_RECORDED: 'No active waste-disposal licence is recorded, so no certificate can be issued. Record the licence number at {0}.',
+            COMPANY_LEGAL_NAME_MISSING: 'Your company has no legal name recorded, so nothing can be issued in its name. Fill it in at {0}.',
+            SUPPLIER_NAME_MISSING: 'The delivery {0} has no supplier name, so the certificate would have no addressee.',
+            REASON_REQUIRED: 'A reason is required.',
+        },
+        cannotCertify: {
+            DELIVERY_WRITTEN_OFF: 'This delivery was written off, not processed.',
+            DELIVERY_LEFT_BY_ANOTHER_DOOR: 'Part of this delivery left stock by some route other than processing.',
+            NOTHING_PROCESSED: 'None of this delivery has been processed yet.',
+            DELIVERY_NOT_FULLY_PROCESSED: 'This delivery has not been processed in full yet.',
+            COMPLETION_DATE_UNKNOWN: 'The date processing finished cannot be established from the runs on record.',
+            BATCH_NOT_FOUND: 'The delivery no longer exists.',
+        },
+    },
     traceability: {
         // ★★【MANUAL-FIX-1 G:这一族此前把对手方叫「client」,而全系统叫「customer」】★★
         //   这不是大小写不一致(那 77 条不在本刀里),是**一个名字指错了主体**:

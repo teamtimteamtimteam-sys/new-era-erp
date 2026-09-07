@@ -1276,6 +1276,121 @@ export type Database = {
         }
         Relationships: []
       }
+      certificates_of_destruction: {
+        Row: {
+          code: string | null
+          completed_on: string
+          created_at: string
+          id: string
+          inbound_batch_id: string
+          issued_at: string | null
+          issued_by: string | null
+          replaced_by_cod_id: string | null
+          snapshot: Json | null
+          status: string
+          verification_token: string | null
+          void_reason: string | null
+          voided_at: string | null
+          voided_by: string | null
+        }
+        Insert: {
+          code?: string | null
+          completed_on: string
+          created_at?: string
+          id?: string
+          inbound_batch_id: string
+          issued_at?: string | null
+          issued_by?: string | null
+          replaced_by_cod_id?: string | null
+          snapshot?: Json | null
+          status?: string
+          verification_token?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Update: {
+          code?: string | null
+          completed_on?: string
+          created_at?: string
+          id?: string
+          inbound_batch_id?: string
+          issued_at?: string | null
+          issued_by?: string | null
+          replaced_by_cod_id?: string | null
+          snapshot?: Json | null
+          status?: string
+          verification_token?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
+          voided_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_of_destruction_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_destruction_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_destruction_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_destruction_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_destruction_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_destruction_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_destruction_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_of_destruction_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "certificates_of_destruction_replaced_by_cod_id_fkey"
+            columns: ["replaced_by_cod_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_of_destruction"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cn_issues: {
         Row: {
           credit_note_id: string
@@ -1310,6 +1425,41 @@ export type Database = {
             columns: ["credit_note_id"]
             isOneToOne: false
             referencedRelation: "credit_notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cod_issues: {
+        Row: {
+          cod_id: string
+          file_path: string
+          id: string
+          issued_at: string
+          issued_by: string | null
+          sha256: string
+        }
+        Insert: {
+          cod_id: string
+          file_path: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sha256: string
+        }
+        Update: {
+          cod_id?: string
+          file_path?: string
+          id?: string
+          issued_at?: string
+          issued_by?: string | null
+          sha256?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cod_issues_cod_id_fkey"
+            columns: ["cod_id"]
+            isOneToOne: true
+            referencedRelation: "certificates_of_destruction"
             referencedColumns: ["id"]
           },
         ]
@@ -26447,6 +26597,14 @@ export type Database = {
         Args: { p_reason: string; p_work_order_id: string }
         Returns: Json
       }
+      cod_certificate_data: {
+        Args: { p_inbound_batch_id: string }
+        Returns: Json
+      }
+      cod_delivery_completion: {
+        Args: { p_inbound_batch_id: string }
+        Returns: Json
+      }
       commit_pricing_terms: {
         Args: {
           p_formula_id: string
@@ -26896,6 +27054,7 @@ export type Database = {
         Args: { p_reviewer_employee_id: string }
         Returns: boolean
       }
+      issue_cod: { Args: { p_cod_id: string }; Returns: Json }
       issue_customer_statement: {
         Args: {
           p_customer_id: string
@@ -27025,6 +27184,7 @@ export type Database = {
       }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
       next_chase_code: { Args: { p_date?: string }; Returns: string }
+      next_cod_code: { Args: { p_date?: string }; Returns: string }
       next_container_code: { Args: { p_date: string }; Returns: string }
       next_credit_note_code: { Args: { p_date?: string }; Returns: string }
       next_employee_code: { Args: { p_date?: string }; Returns: string }
@@ -27290,6 +27450,10 @@ export type Database = {
         }
         Returns: Json
       }
+      record_cod_issue: {
+        Args: { p_cod_id: string; p_file_path: string; p_sha256: string }
+        Returns: Json
+      }
       record_collection_chase: {
         Args: {
           p_channel: string
@@ -27442,6 +27606,10 @@ export type Database = {
           p_sha256: string
         }
         Returns: Json
+      }
+      refresh_cod_for_batch: {
+        Args: { p_inbound_batch_id: string }
+        Returns: undefined
       }
       reject_purchase_order: {
         Args: { p_po_id: string; p_reason: string }
@@ -27879,6 +28047,11 @@ export type Database = {
           p_source_note: string
         }
         Returns: Json
+      }
+      void_cod: { Args: { p_cod_id: string; p_reason: string }; Returns: Json }
+      void_cod_internal: {
+        Args: { p_cod_id: string; p_reason: string; p_replaced_by?: string }
+        Returns: undefined
       }
       void_invoice: {
         Args: {

@@ -103,4 +103,9 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- IMPORT-1:批量导入自己一个码。**不复用 action.manage_permissions** ——
     -- 那会重演 DICT-ADMIN 之前的缺陷(一个物料编辑员永远够不到物料那张屏),
     -- 而它也不等于"能编辑一家供应商":它是唯一一个一次能插入数百行的动作。
-    ('action.bulk_import', 'action', 'Bulk import master data', '批量导入主数据', 'Load materials, counterparties, employees, departments and storage locations from a CSV file. This is the only action that can insert hundreds of rows at once.', '从 CSV 文件批量装入物料、往来户、员工、部门与库位。这是唯一一个一次能插入数百行的动作。', 910);
+    ('action.bulk_import', 'action', 'Bulk import master data', '批量导入主数据', 'Load materials, counterparties, employees, departments and storage locations from a CSV file. This is the only action that can insert hundreds of rows at once.', '从 CSV 文件批量装入物料、往来户、员工、部门与库位。这是唯一一个一次能插入数百行的动作。', 910),
+    -- COD-1:签发销毁证书。**是一个【动作】,不是一个模块、也不是一类数据** ——
+    -- 签发的人本来就站在收货那张页面上,他缺的不是「进得去哪个模块」,而是
+    -- 「可不可以把这张纸寄出去」。能力够得着的正好是证书需要的:供应商的
+    -- 【名字】与这票货背后的加工事实,一格都不多(见 cod_certificate_data)。
+    ('action.issue_cod', 'action', 'Issue certificate of destruction', '签发销毁证书', 'Issue a certificate of destruction to the supplier who delivered the material.', '向送料方签发销毁证书', 920);

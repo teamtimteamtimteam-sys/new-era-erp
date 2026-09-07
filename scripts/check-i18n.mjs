@@ -493,6 +493,13 @@ const MANIFEST = {
                                   () => ['unspecified']) },
     // 具名拒绝:接那个 Set 的真源。
     'traceability.errors.': { kind: 'enum', values: () => tsSet('app/output/traceabilityErrorCodes.ts', 'TRACEABILITY_ERROR_CODES') },
+    // ── COD-1:销毁证书的两族动态键 —— 【两个 Set 都现读真源】────────────
+    // errors. 是那几支函数抛的码;cannotCertify. 是【第四个状态自己的理由】,
+    // 它们是两组不同的话:"不能签发"是结论,而人要读的是"为什么不能" ——
+    // "还差 887 kg 没加工" 与 "这票货被注销了" 不能都显示成同一句。
+    // 两个集合各自接自己的 Set,判据加一条,这里自动跟上。
+    'cod.errors.': { kind: 'enum', values: () => tsSet('app/inbound/codErrorCodes.ts', 'COD_ERROR_CODES') },
+    'cod.cannotCertify.': { kind: 'enum', values: () => tsSet('app/inbound/codErrorCodes.ts', 'CANNOT_CERTIFY_REASONS') },
     // APR-2c:采购单审批状态。后缀集合就是 purchase_orders 的 CHECK —— 真源现读。
     'purchasing.approvalState.': { kind: 'enum', values: () => sqlEnum('db/tables/purchase_orders.sql', 'approval_status') },
     // ── SETTLE-1:结算按哪种重量 ── 后缀集合就是 contract_settlement_terms 的 CHECK。

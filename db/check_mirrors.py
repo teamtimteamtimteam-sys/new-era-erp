@@ -329,6 +329,22 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 是瞎的"那条病。
     "purchase_order_kind": "EXECUTE revoked from PUBLIC/authenticated/anon; its only caller is the owner-run trigger guard_payment_term_applicable, and postgres has no claims so a permission check would raise on every payment-terms write",
     "real_role_holders": "EXECUTE revoked from authenticated; callers guard_approvals_switch / approvals_readiness / require_approver_for are all definer and each checks its own caller",
+    # COD-1(2026-09-07):销毁证书的两支内层函数。EXECUTE 已从 authenticated 收回
+    # (db/views/zzz_function_grants.sql,逐条理由在那里),所以 gate 的 B2
+    # (definer-unchecked-and-CALLABLE)两侧都是 0 —— 靠的就是【调不到】。
+    # 【它们不能自己查权限,而这一条比前几支更硬】refresh_cod_for_batch 是在
+    # 【投料的那个人】的会话里被 commit_processing_run 调用的,而运营角色
+    # 不持有 action.issue_cod:加一道门会让"提交加工单"这个动作本身抛权限错。
+    # cod_delivery_completion 同理(refresh 是它的调用者之一)。
+    # 【带门的那几支在外面】cod_certificate_data / issue_cod / void_cod /
+    # record_cod_issue 各自查 action.issue_cod —— 界面只碰得到那一层。
+    "refresh_cod_for_batch": "EXECUTE revoked from authenticated; called from commit_processing_run / rollback_processing_run / soft_delete_inbound_batch in the *committing user's* session, and that user need not hold action.issue_cod — a check here would break processing itself",
+    "cod_delivery_completion": "EXECUTE revoked from authenticated; the completion predicate, called by refresh_cod_for_batch (owner-run, no claims) and by cod_certificate_data which does check action.issue_cod",
+    # void_cod_internal:带门的那一支叫 void_cod(它查 action.issue_cod)。
+    # 这一支存在,是因为【冲销加工单的人不持有签发权限】,而冲销必须能作废证书 ——
+    # 在这里设闸会把冲销闸死。EXECUTE 已从 authenticated 收回;它是本刀三支里
+    # 唯一一个【动作】(另外两支只读),所以那次收回是真的堵了一个洞,不只是消一条告警。
+    "void_cod_internal": "EXECUTE revoked from authenticated; the checked entry point is void_cod (action.issue_cod). This one exists because rollback_processing_run must void a certificate on behalf of a user who does not hold the issuing capability",
     # C-1(2026-09-04):real_role_grants —— real_role_holders 的行级形状,四条判据的唯一住处。
     # 同源同理由:读 auth.users,EXECUTE 已从 authenticated 收回(zzz_function_grants.sql)。
     # 唯一调用方 guard_last_admin 是属主身份跑的触发器,收回之后照常工作。

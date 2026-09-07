@@ -441,7 +441,16 @@ BEGIN
     -- fixture 19F 实测:不清,守卫触发器对残留 ctx 放行裸 INSERT)
     PERFORM set_config('evoltrya.movement_ctx', '', true);
 
+    -- ── COD-1:这一投料可能【刚好把某一票货加工完】────────────────────────
+    -- 销毁证书是一条【必须存在】的记录(像化验报告),不等谁打开页面。
+    -- 幂等,没完成就什么也不做;判据在 cod_delivery_completion(),不在这里。
+    FOR v_inbound_id IN
+        SELECT DISTINCT pi.inbound_batch_id FROM processing_inputs pi
+         WHERE pi.run_id = v_run_id AND pi.inbound_batch_id IS NOT NULL
+    LOOP
+        PERFORM refresh_cod_for_batch(v_inbound_id);
+    END LOOP;
+
     RETURN v_run_id;
 END;
-$function$
-
+$function$;

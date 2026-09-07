@@ -73,6 +73,31 @@ REVOKE EXECUTE ON FUNCTION public.purchase_order_kind(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.tax_rate_for(text, date) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.sod_manual_posters_in(date, date) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.sod_supplier_creator(uuid) FROM authenticated;
+
+-- COD-1(2026-09-07):销毁证书的三支内层函数。**gate 的 B2 点了它们的名,
+-- 而其中一支是真的越权动作** —— void_cod_internal 是 SECURITY DEFINER 且【没有
+-- 调用者检查】,留着 authenticated 的 EXECUTE,任何登录用户都能作废任何一张
+-- 已签发的销毁证书,完全绕开 action.issue_cod。带门的那一支叫 void_cod;
+-- 这一支存在,是因为【冲销加工单的人不持有签发权限】,而冲销必须能作废证书。
+--
+-- 三支各自的唯一调用者,全部是属主身份跑的 SECURITY DEFINER:
+--   * void_cod_internal      ← void_cod、refresh_cod_for_batch
+--   * refresh_cod_for_batch  ← commit_processing_run / rollback_processing_run /
+--                              soft_delete_inbound_batch(三处挂钩)
+--   * cod_delivery_completion ← refresh_cod_for_batch、cod_certificate_data
+-- 所以收回之后照常工作,靠的就是【真的够不着】。
+--
+-- 【为什么不给它们加 require_permission,而是收回 EXECUTE】与上面 gst_registered /
+-- purchase_order_kind 同形,但这里的理由更硬一格:refresh_cod_for_batch 是在
+-- 【投料的那个人】的会话里被调用的,而运营角色不持有 action.issue_cod ——
+-- 加一道门会让"提交加工单"这个动作本身抛权限错。
+--
+-- ★【界面因此走带门的那一支】★ 面板要显示"为什么还不能签发",而那句话
+-- 由 cod_certificate_data 的 CANNOT_CERTIFY|批号|理由 抛出 —— 它有
+-- action.issue_cod 的门。判据仍然只有一份实现,而外面只有一扇门。
+REVOKE EXECUTE ON FUNCTION public.void_cod_internal(uuid, text, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.refresh_cod_for_batch(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.cod_delivery_completion(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.pricing_terms_of_formula(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.pricing_terms_of_commitment(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.calculate_metal_price_from_terms(jsonb, jsonb, numeric, date) FROM authenticated;
