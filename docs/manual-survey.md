@@ -97,7 +97,12 @@ These are also **the only 9 routes with no capability guard** (the 8 above plus
 * `/set-password` requires a session but renders **no application chrome**
   (`BARE_CHROME_PATHS`, `lib/loginRoute.ts:57`) — deliberately, so a person who has not yet
   changed a handed-over password is not shown which modules the account lacks.
-* `/welcome` is where a signed-in person **holding no module at all** lands.
+* `/welcome` is where a signed-in person **whose account is not linked to an employee record**
+  lands, and only immediately after setting a password — `app/set-password/actions.ts:57`
+  returns `/me` when a linked employee row exists and `/welcome` when it does not.
+  ★★ **CORRECTED BY MANUAL-1:** the sentence that stood here ("holding no module at all") is
+  **not what the code does**. Nothing redirects a module-less person to `/welcome`; they land
+  on `/`, which renders `home.noModules` / `home.noModulesHint`.
 * `/me`, `/my-reviews`, `/notifications` are "my own things", gated by ownership rather than
   by a capability.
 
@@ -425,6 +430,18 @@ prepayment has been applied. A reason is mandatory (`PO_CANCEL_REASON_REQUIRED`)
 
 ### P3 · Processing a batch through to output
 
+> ★★ **CORRECTED BY MANUAL-1 (2026-09-07) — this list is the RPC's own refusals only, and it
+> is not the whole gate.** Four more fire from a **trigger on `processing_inputs`**
+> (`db/tables/processing_inputs.sql:105,172` and neighbours), so a scan of the RPC body cannot
+> see them: `INPUT_SAFETY_STATE_NOT_RECORDED`, `INPUT_SAFETY_STATE_NOT_ACCEPTED`,
+> `INPUT_SAFETY_STATE_NOT_FEEDABLE`, `INPUT_CHEMISTRY_NOT_FEEDABLE`. The first is the one a
+> reader meets most: **a batch with no recorded condition on arrival cannot be processed at
+> all**, and the manual has to put "record the condition" in the process before the run.
+> The RPC also raises, beyond the list below: `LOSS_NEGATIVE`, `INPUT_PARENT_INVALID`,
+> `DUPLICATE_INPUT`, `INPUT_QTY_INVALID`, `INBOUND_NOT_FOUND`, `OUTPUT_NOT_FOUND`,
+> `IOD_CONSUME_EXCEEDS_AVAILABLE`, `OUTPUT_QTY_INVALID`, `OUTPUT_NO_MATERIAL`,
+> `OUTPUT_EXCEEDS_INPUT`, `STATE_CHANGE_LOSS_NOT_ZERO`.
+
 `commit_processing_run` (`db/functions/commit_processing_run.sql`) is the one door. It needs
 `module.processing.edit` and refuses, in order: `PROCESS_DATE_REQUIRED`,
 `ALLOCATION_BASIS_REQUIRED`, `OPERATION_TYPE_REQUIRED`, `OPERATION_TYPE_UNKNOWN`,
@@ -437,7 +454,10 @@ Two facts the manual must carry:
 * **A work order must be `released`, not `draft`** — `WO_NOT_RELEASED`. Releasing happens on
   `/operation/orders/[id]` via `release_work_order`, which itself refuses `WO_NOT_DRAFT`.
 * **Costs are a separate, later step.** `commit_processing_run` produces output batches;
-  `allocate_processing_costs` is what puts cost onto them. A run can sit committed and
+  `allocate_processing_costs` is what puts cost onto them — and it requires
+  **`module.processing.edit`**, not `module.finance.edit`
+  (`db/functions/allocate_processing_costs.sql:69`, measured MANUAL-1).
+  It is triggered from `app/operation/processing/[id]/allocationActions.ts`. A run can sit committed and
   unallocated indefinitely — and **month-end close refuses while any run is in that state**
   (`PROCESSING_COSTS_UNALLOCATED`, see P6).
 
@@ -460,7 +480,8 @@ cancelled         → (final)
 | 1 | Quote | `/sales/quotes/new` | `quotes`, `status draft → issued` | `convert_quote` refuses unless `issued`: `QT_NOT_ISSUED`, `QT_ALREADY_CONVERTED`, `QT_DECLINED`, `QT_EXPIRED`, `QT_NO_LINES` |
 | 2 | Convert to order | `/sales/quotes/[id]` | `sales_orders` (`draft`) + `converted_order_id` back-link; quote becomes `converted` and **is frozen** | confirm before shipping |
 | 3 | Confirm | `/sales/orders/[id]` | `set_sales_order_status` → `confirmed`; refuses `SO_CUSTOMER_ON_HOLD`, `SO_NO_LINES` | stock must be reserved |
-| 4 | Invoice | `/finance/invoices/new` | `invoices` `status issued`; **posts to the ledger** | `ship_order` refuses `SO_SHIP_NOT_INVOICED` unless an `issued` invoice exists |
+| 3a | ★ **Reserve** | `/sales/orders/[id]` (`ReserveControl`) | `reserve_stock` → `sales_order_reservations`; needs `module.sales.edit` | `ship_order` consumes a reservation and refuses `SO_SHIP_NOT_RESERVED` without one. **This step was missing from this table until MANUAL-1.** |
+| 4 | Invoice | ★ `/sales/orders/[id]` (`CreateOrderInvoiceControl`) — **NOT `/finance/invoices/new`** | `create_order_invoice` → `invoices` `kind='order'`, `status issued`; **posts to the ledger**; needs `module.finance.edit` | `ship_order` refuses `SO_SHIP_NOT_INVOICED` unless an `issued` invoice exists |
 | 5 | Ship | `/sales/orders/[id]` | `shipments`; moves stock out; order → `partially_shipped` or `shipped` | refuses `SO_SHIP_ORDER_NOT_SHIPPABLE` unless status is `confirmed`/`partially_shipped`; also `SO_SHIP_NOT_RESERVED`, `SO_SHIP_EXCEEDS_RESERVATION`, `SHIP_DATE_REQUIRED` |
 | 6 | Cash | `/finance/receivables/[saleId]` | receipt settles the invoice | — |
 
@@ -511,7 +532,9 @@ its own preview (`preview_close_financial_year`).
 A **document** is a record with all three of:
 
 1. a human-facing code prefix (`PO-`, `SO-`, `INV-`, `CN-`, `QT-`, `SHP-`, `WO-`, `IN-`,
-   `OUT-`, `PROC-`, `JE-`, `PMT-`, `EXP-`, `FA-`, `ST-`, `LV-`, `CLM-`, `MC-`, …);
+   `OUT-`, `PROC-`, `JE-`, `PMT-`, `EXP-`, `FA-`, `ST-`, `STMT-`, `LV-`, `CLM-`, `MC-`,
+   and — ★ added by MANUAL-1, measured from `db/functions/next_*_code.sql` and the
+   `contracts` / `payroll_periods` code triggers — `CON-`, `CTR-`, `PAY-`, `ASY-`);
 2. a status a **person** changes;
 3. a page of its own.
 
@@ -525,7 +548,8 @@ That yields **22 document types**, below.
 | `materials` | same shape: `status text NOT NULL DEFAULT 'draft'` with **no CHECK** | master data, not a document |
 | `contracts` | has a real machine (`draft/active/suspended/expired/terminated`) and a page — **but no RPC writes its status**; nothing in `db/functions` updates `contracts.status` | **Open question — see Q9.** It may be a document whose transitions are unimplemented. |
 | `employees` | `employment_status` is an HR attribute, not a document lifecycle | |
-| `bank_reconciliation_status`, `attendance_period_status` | status-shaped **views/derived rows**, nobody transitions them | |
+| `bank_reconciliation_status`, `attendance_period_status` | status-shaped **views/derived rows**, nobody transitions them | ★★ **HALF WRONG — CORRECTED BY MANUAL-1.** The *view* `attendance_period_status` is derived, but the **table `attendance_periods` has a real machine**: `status text CHECK (status IN ('open','complete'))` (`db/tables/attendance_periods.sql:14`), transitioned by `complete_attendance_period` and `reopen_attendance_period` (both `module.hr.edit`), with reopening blocked once that month's payroll is posted. It misses the 22 only for want of a code prefix. **Part 3's HR section must document it.** |
+| `performance_reviews` | six-state machine `draft/self_review/submitted/approved/acknowledged/void` (`db/tables/performance_reviews.sql:41-42`) with its own RPCs (`submit_review`, `approve_review`, `acknowledge_review`, `void_review`, `set_review_conclusion`) and a page — **no code prefix**, so it misses R6's three-of-three | ★ **ADDED BY MANUAL-1.** Same shape as attendance: a real, person-driven machine the manual has to carry even though the R6 rule excludes it from "the 22". |
 | `tasks` | `todo/in_progress/done` and a page, but no code prefix on screen | **borderline** — included below anyway, since a reader will look for it |
 
 ### The 22 documents
@@ -676,6 +700,17 @@ the sentence alone does not carry it. I did not classify all 744 by hand; saying
 be the unsourced-claim failure 3.1 exists to prevent.
 
 ### The 744
+
+> ★★ **QUALIFIED BY MANUAL-1 (2026-09-07): one row per code, but a code can carry MORE THAN ONE
+> sentence.** The table holds a single `Message key` per code, and where the same code is
+> registered in two namespaces the row shows only one of them. Measured example:
+> `ORDER_DATE_REQUIRED` has **three** distinct sentences in `messages/en.ts` —
+> `sales.errors` (:3549, "…it decides the document number and the FX period…"),
+> `quotes.errors` (:3740, "…it is the day the customer accepted…") and
+> `purchasing.errors` (:5164, "An order date is required — it decides which FX rate values the
+> order."). The table carries the `quotes` one. **A writer quoting a refusal must confirm which
+> namespace the screen in question resolves through**, not take the row's sentence on trust.
+> This does not change the count of 744 distinct codes.
 
 | Code | Exact English sentence | Message key | Registered in |
 |---|---|---|---|
@@ -1595,6 +1630,16 @@ until somebody turns approvals on**.
 The manual must state the precondition rather than describing approval as a normal step. This
 is the clearest case in the survey of a feature that is neither a phantom nor simply unused.
 
+> ★★ **ADDED BY MANUAL-1 (2026-09-07): there is NO SWITCH ON ANY SCREEN, and the writing brief
+> assumed there was one.** `/settings/approvals` is read-only and says so itself
+> (`finance.approvals.noConfigUi`): *"This panel is read-only. There is no screen anywhere in
+> the system for configuring the approval chain — the live values were set by a direct database
+> change, and enabling approvals today is a database operation, not a button."* The page reports
+> the flag, the two approver roles, the threshold, and what flipping would do to existing
+> orders; it does not carry the flip. So "name where the switch is" has no answer beyond "the
+> database". The manual names the page that **reports** the state and says the change is not a
+> button.
+
 ### D · Not S6, but the manual must not promise it
 
 **`partially_shipped` sales orders have no manual way out** (S3/P4) and **`/finance/bank`,
@@ -1692,16 +1737,37 @@ mean touching six places, so this is a real decision, not an oversight.
 **key name**, meaning *client-side validation*. Their user-visible strings never say "client".
 Reporting them would have been a false positive of exactly the kind 3.4 forbids.
 
-### Finding 4 — **six** module roots are all labelled "Overview", through **four** different keys
+### Finding 4 — **seven** module roots are all labelled "Overview", through **five** different keys
 
-| Route | Key | Renders |
-|---|---|---|
-| `/purchasing` | `nav.moduleOverview` | Overview |
-| `/logistics` | `nav.moduleOverview` | Overview |
-| `/sales` | `nav.moduleOverview` | Overview |
-| `/operation` | `processing.subnav.overview` | Overview |
-| `/finance` | `finance.subnav.overview` | Overview |
-| `/hr` | `hr.subnav.overview` | Overview |
+> ★★ **RE-MEASURED BY MANUAL-1 (2026-09-07): it is SEVEN through FIVE, not six through four.**
+> `/inventory` carries `inventory.subnav.overview`, which also renders "Overview", and was
+> missed here. Re-derived by resolving every `FUNCTIONS[].navKey` against `messages/en.ts`.
+>
+> ★ **And the label is a MENU label only.** Every one of these pages is headed with the
+> **module's own name**, not the word Overview: `app/purchasing/page.tsx:116` renders
+> `t('nav.purchasing')` as its `<h1>`, and `/logistics`, `/sales`, `/operation`, `/finance`,
+> `/hr` do the same with their own `nav.*` key. So S1's title column ("Overview", resolved
+> from the registry navKey) is right about the **menu** and wrong about the **page heading** —
+> and rule 1.3 is about what a reader sees on screen. The manual must say "Purchasing →
+> Overview opens a page headed Purchasing."
+>
+> ★ `/inventory` is the odd one out in a second way: its `<h1>` is `inventory.listTitle`
+> ("Inventory") and its body is a stock listing, not the cross-page "what this module can say"
+> shape the other six share.
+>
+> ★ `nav.landingHint` ("What this module contains…") and the `<ModuleLanding>` component it
+> belonged to **no longer exist on the tree** — the six Overview pages replaced them. It is a
+> dead key. Do not quote it in the manual.
+
+| Route | Key | Menu label | Page `<h1>` |
+|---|---|---|---|
+| `/purchasing` | `nav.moduleOverview` | Overview | Purchasing |
+| `/logistics` | `nav.moduleOverview` | Overview | Logistics |
+| `/sales` | `nav.moduleOverview` | Overview | Sales |
+| `/operation` | `processing.subnav.overview` | Overview | Operation |
+| `/finance` | `finance.subnav.overview` | Overview | Finance |
+| `/hr` | `hr.subnav.overview` | Overview | HR |
+| ★ `/inventory` | `inventory.subnav.overview` | Overview | Inventory |
 
 The shared label is intentional (`docs/nav-registry.md`, CONV-6 ⑨) — each answers *"what is
 the state of this module"*. **That four keys produce one string is not** — it means changing
@@ -1998,3 +2064,83 @@ only to answer "has this feature ever run" (R3).
 Cited for rationale, not re-derived (R5): `docs/nav-registry.md`,
 `docs/refusal-convergence.md`, `docs/known-wrong-until-cutover.md`,
 `docs/base-components.md`, `docs/manual-walk-list.md`, `AGENTS.md`.
+
+---
+
+## MANUAL-1 · Corrections and additions found while writing (2026-09-07)
+
+Written from this document, `docs/manual-draft.md` at MANUAL-1. Everything below was found by
+writing an instruction and then checking it against the tree, per the writing brief's rule 5.1.
+The load-bearing ones are also marked ★★ inline above, at the place a reader of this document
+would trip over them; the rest are here only.
+
+### A · Corrected inline above
+
+| # | Where | What was wrong |
+|---|---|---|
+| A1 | S2 · P4 step 4 | The order-flow invoice is raised on **`/sales/orders/[id]`** (the *Invoicing* panel, `CreateOrderInvoiceControl` → `create_order_invoice`), not on `/finance/invoices/new`. That page invoices **direct sales** (`invoices.kind='sale'`, which posts nothing — the ledger entries were made by `record_output_sale`). Two different documents, two different pages, one shared table. |
+| A2 | S2 · P4 | **Reservation was missing as a step.** `ship_order` consumes a reservation row and refuses `SO_SHIP_NOT_RESERVED` without one, so `reserve_stock` on the order page is mandatory, not implied by "stock must be reserved". |
+| A3 | S2 · P3 | `allocate_processing_costs` needs **`module.processing.edit`**, not finance edit. |
+| A4 | S2 · P3 | The `commit_processing_run` refusal list is the RPC's own only. Four more fire from a **trigger on `processing_inputs`** — the condition-on-arrival gate — and eleven more from the RPC body below the point the survey stopped. |
+| A5 | S3 · near-misses | `attendance_periods` has a real two-state machine with two RPCs; the "derived view" note applies to `attendance_period_status`, not the table. `performance_reviews` has a six-state machine and was not listed at all. |
+| A6 | S3 · R6 rule | Prefix list was missing `CON-`, `CTR-`, `PAY-`, `ASY-` (and `STMT-`, which S3's own table uses). |
+| A7 | S1 · the 8 exceptions | `/welcome` is **not** where a module-less person lands. It is the post-set-password destination for an account with no linked employee record (`app/set-password/actions.ts:57`). |
+| A8 | S4 · the 744 | One row per code, but a code can carry several sentences across namespaces. `ORDER_DATE_REQUIRED` has three. |
+| A9 | S6 · C | There is **no switch anywhere on screen** for approvals. `/settings/approvals` reports and does not flip. |
+| A10 | S7 · Finding 4 | **Seven** module roots carry the "Overview" menu label, through **five** keys — `/inventory` was missed. And the label is a menu label: every one of those pages is headed with the module's own name. `nav.landingHint` and `<ModuleLanding>` are gone from the tree. |
+
+### B · S1 title column — the "sibling" heuristic picked confirmation copy, not headings
+
+The title extractor fell back to a sibling client component when `page.tsx` had no literal
+heading, and where that sibling is a **confirmation dialog** it returned the dialog's prose.
+Measured corrections:
+
+| Route | S1 says | Actually renders |
+|---|---|---|
+| `/purchasing/orders/[id]` | "Approve this purchase order?" | `purchasing.orderDetailTitle` = **Purchase Order**, then the code (`page.tsx:518-522`) |
+| `/hr/payroll/[id]` | "Post this payroll to the ledger? These accounts will move:" | `hr.payrollDetailTitle` = **Payroll Period**, then the month and code (`page.tsx:115-121`) |
+| `/finance/freight/[id]` | "Reverse this freight document?" | the record's own **code** (`page.tsx:142-148`) — a dynamic title |
+| `/finance/invoices/[id]` | "Reversal date — decides which period…" | dynamic (record code) |
+| `/finance/assets/[id]` | "Stop monitoring this kind of work?" | dynamic (record name) |
+
+Not a product defect. It means **the S1 title column cannot be quoted as an on-screen name
+without checking**, which matters because rule 1.3 makes those names load-bearing. Correct
+titles read straight from the handler are safe; sibling-sourced ones are not.
+
+### C · On-screen text that is out of date (product defects, not survey defects)
+
+| # | Where | What it says | What is true |
+|---|---|---|---|
+| C1 | `sales.ship.consequence`, on the **Ship** button | *"corrections would go through a credit note, **which does not exist yet**"* | Credit notes exist: `create_credit_note`, `/finance/credit-notes`, the `CN-` series, and a **Raise a credit note** control on the invoice. The sentence predates CN-1 and was not revisited. This is the one place the interface tells a person a working feature is missing. |
+| C2 | `common.softDeleteNote`, on ~6 delete dialogs | *"(Soft delete: data is kept and recoverable.)"* | Kept, yes. **Recoverable, no** — `/settings/deleted` is read-only by deliberate design (its own header: *"永不提供恢复"*), and no other screen restores anything. The word promises an action that does not exist. |
+| C3 | `dashboard.monthEndDesc`, the home/reminders tile | *"The seven closing signals, step by step"* | `/finance/month-end` renders **ten** steps (`page.tsx:115-179`: rates, payrollPosted, employeesPaid, cpf, deductions, accruals, staleAllocation, depreciation, revaluation, lock). |
+| C4 | `app/settings/deleted/page.tsx` header comment | claims the page's gate became `action.manage_permissions` | The registry gates it on **`data.view_deleted`** (`lib/modules.ts:354`, `P_VIEW_DELETED`), and the page calls `requireFunction(FN.deleted)`. S1's table has this right; the code comment does not. It changes who can open the page — `auditor` holds `data.view_deleted`, so it can. |
+| C5 | `permissions.noCreateUser` | *"Accounts are created by Supabase Auth invitation, which is a later cut"* | Dead key. `CreateAccountPanel` + `createAccount()` create an account in-app with an initial password. Nothing renders `noCreateUser`. |
+
+C1 and C2 are the two that reach a reader mid-task. The manual works around both by describing
+the behaviour and, for C1, saying plainly that the sentence on the button is out of date.
+
+### D · Additions the manual needed and this document did not carry
+
+| # | Thing | Where it came from |
+|---|---|---|
+| D1 | **Two sales paths, not one.** The order flow (quote → order → reserve → invoice → ship) and the **direct sale** off an output batch (`record_output_sale` on `/output/[id]/edit`, which moves stock and posts revenue and COGS at the moment of sale). Only the first was traced. | `db/functions/record_output_sale.sql`, `app/output/[id]/edit/saleActions.ts` |
+| D2 | **Purchase orders have two kinds** — Materials and Equipment — enforced at creation (`PO_LINE_KIND_INVALID`, `PO_LINES_MIXED_KINDS`). An equipment order is never received into stock and its line must point at an asset card that already exists. | `db/functions/create_purchase_order.sql:115-152`, `purchasing.form.kindRule` |
+| D3 | **Gapless vs gapped codes.** `PO/SO/QT/INV/CN/SHP/…` take `MAX+1` under an advisory lock and are gapless; `IN-`/`OUT-` come from a sequence and can skip. `db/tables/inbound_batches.sql:11` says so outright. A reader asked to explain a missing number needs this. | the `next_*_code` functions vs the two BEFORE INSERT triggers |
+| D4 | **Hard deletes beyond the task step.** `docs`/comments call the task step *"全树唯一的硬删除"*. Measured: 11 `.delete()` call sites in `app/`. The others are configuration or child rows — quote lines, holidays, allowed classes, formula metals, service intervals, loss categories, template lines, safety states, batch metals. **No document is hard-deleted**, which is the claim that survives; "only one hard delete in the tree" does not. | `grep -rn "\.delete()" app lib` |
+| D5 | **Contract create needs the *other* side's edit right.** `/contracts` is read-gated on `module.suppliers.view`, but the INSERT policy wants `module.suppliers.edit` for a buy-side contract and `module.customers.edit` for a sell-side one — so a sales-only account cannot open the register at all, and a supplier-only account cannot record a customer contract. | `app/contracts/new/actions.ts` header, `db/tables/contracts.sql:120` |
+| D6 | **The contract status dropdown reads "Active", not "In force".** `CONTRACT_STATUS_INVALID` says *"A contract can only be recorded as Draft or In force"* and `contracts.form.statusActiveMeans` says *"In force: …"*, but the `<option>` renders `contracts.status.active` = **Active** (`NewContractForm.tsx:147`). Two names for one value, on one form. The manual writes **Active** (what the option says) and quotes the helper text as-is. | measured at `NewContractForm.tsx:144-158` |
+| D7 | **Output batch `state` is machine-written after creation.** A person picks it once on the create form; `record_output_sale` / `ship_order` maintain it afterwards, and `output.edit.stateLockedHint` says *"State is set automatically by sales and processing."* S3 says the same; the manual needs the create-form half too. | `app/output/[id]/edit` |
+
+### E · Still open after this cut
+
+* **HR has no end-to-end process trace.** Part 2 of the manual covers six processes and no HR
+  one; Part 3 documents the HR module from what is catalogued. Closing it means tracing leave
+  (submit → decide → cancel, with the accrual ledger), medical claims (submit → decide → raise
+  expense → pay, which crosses into finance), the attendance → payroll → salary-payment chain
+  (three documents and a lock order), and the review cycle. The refusals and states are all in
+  S3/S4 already; what is missing is the order the steps come in and who does each one.
+* **The remedy column for 565 of 744 refusals** is still unclassified. MANUAL-1 walked only the
+  refusals it quotes.
+* **Field-level label inventory** is still not enumerated. MANUAL-1 took labels from the
+  catalogue page by page as it needed them.
