@@ -14,6 +14,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import Link from 'next/link'
 import { ListPage } from '@/app/components/ui/list-page'
+import { Button } from '@/app/components/ui/button'
 import {
     BreachesTable, ContractListTable, PricingTermsTable, SettlementTermsTable, SettlementsTable,
     type BreachRow, type ContractListRow, type PricingTermRow, type SettleTermRow, type SettlementRow,
@@ -226,6 +227,15 @@ export default async function ContractsPage() {
         <ListPage
             title={t('contracts.title')}
             intro={t('contracts.what')}
+            /* ★ MANUAL-FIX-2:这一页此前【没有创建入口】—— 表建好了、状态机建好了、
+               INSERT 策略也在,而界面上没有任何一扇门建得出一行(MANUAL-0 的 Q1)。
+               档位取 §19.1 第一条:是动作、坐在控件槽里 → 实心档,
+               与 /materials、/suppliers 那些主数据列表页逐字同一个写法。 */
+            actions={
+                <Button asChild>
+                    <Link href="/contracts/new">{t('contracts.addButton')}</Link>
+                </Button>
+            }
             notices={
                 /* ★★ 覆盖率 —— 没有它,下面那句"没有违反"会撒谎 ★★
                    所以它【必须无条件出现】,包括一份合同都没有的时候。 */

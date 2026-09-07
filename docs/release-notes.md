@@ -13,6 +13,45 @@
 
 ---
 
+## v1.4.8 — Contracts can be created
+
+**2026-09-07.**
+
+### Contracts
+
+* **The Contracts page now has a "New contract" button, and a form behind it.** Until now that
+  page could only ever be empty: the register existed, and nothing anywhere in the system
+  could put a contract into it.
+* **A contract is with one party — either a supplier or a customer, never both.** Choosing a
+  supplier makes it a buying contract; choosing a customer makes it a selling one. If the same
+  company is both to you, that is two contracts, because they are two separate agreements.
+* **You say whether it is In force or a Draft as you create it, and that choice is final.**
+  In force means purchase and sales orders can be linked to it. Draft means it is recorded and
+  readable, but nothing can be raised against it. **Nothing in this system moves a contract
+  from one status to another**, so a draft stays a draft for good. The form says so on screen,
+  before you save, rather than leaving you to find out afterwards.
+* **Leaving the end date blank means the agreement has no fixed end**, which is normal for a
+  framework agreement. It does not mean the date was forgotten, and the form says which it is.
+
+### ★ What a contract can and cannot do once it exists
+
+* **You can** read it in the register, with its period, its status and its headline terms, and
+  its terms can be measured against documents that carry a grade specification.
+* **You cannot** edit it, amend it, move it to another status, or delete it — and there is no
+  screen yet for linking an order to a contract. **Create one only when you are content with
+  what it says.** This is the one place in the system where that warning matters, because
+  there is no way back afterwards.
+
+### Permissions
+
+* **Recording a contract needs edit access to whichever side it is with** — supplier records
+  for a contract with a supplier, customer records for one with a customer. If you have
+  neither for the party you chose, the form tells you so in a sentence and saves nothing.
+* **If you cannot see customer records at all, the form says that**, instead of showing you an
+  empty list of customers that looks like nobody has ever been recorded.
+
+---
+
 ## v1.4.7 — A permission that could be ticked but did not exist, and an error that spoke in code
 
 **2026-09-07.**

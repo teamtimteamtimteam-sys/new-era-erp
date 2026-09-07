@@ -1478,6 +1478,56 @@ const en = {
         side: { buy: 'Buy', sell: 'Sell' },
         status: { draft: 'Draft', active: 'Active', suspended: 'Suspended', expired: 'Expired', terminated: 'Terminated' },
         entryLink: 'Contracts',
+
+        // ════ MANUAL-FIX-2:创建入口 ════════════════════════════════════════
+        addButton: 'New contract',
+        newTitle: 'New contract',
+        newIntro: 'Records the agreement itself \u2014 not a document raised under it. A purchase or sales order can then be linked to it, and the order copies the terms in force at the moment it is linked.',
+        kind: {
+            supply: 'Supply',
+            offtake: 'Offtake',
+            framework: 'Framework',
+            service: 'Service',
+            other: 'Other',
+        },
+        form: {
+            counterparty: 'Who the contract is with',
+            counterpartyPlaceholder: '\u2014 Select \u2014',
+            counterpartyHint: 'A contract is with a supplier or with a customer, never both. Picking a supplier makes this a buy-side contract; picking a customer makes it sell-side. If the same company is both to you, that is two contracts, because they are two agreements.',
+            groupSuppliers: 'Suppliers',
+            groupCustomers: 'Customers',
+            // ★ 具名的缺席:一张空下拉不许冒充"没有对手方"
+            customersRestricted: 'Customers are not listed here because you do not have access to customer records. That is a permission answer, not an empty customer list \u2014 you can still record a contract with a supplier.',
+            suppliersRestricted: 'Suppliers are not listed here because you do not have access to supplier records. That is a permission answer, not an empty supplier list.',
+            customersNone: 'No customers have been recorded yet.',
+            suppliersNone: 'No suppliers have been recorded yet.',
+            kind: 'Kind',
+            title: 'Title',
+            titlePlaceholder: 'e.g. 2026 annual black mass supply',
+            effectiveFrom: 'In force from',
+            effectiveTo: 'In force until',
+            effectiveToHint: 'Leave blank if the agreement has no fixed end \u2014 that is normal for a framework agreement, and blank means exactly that rather than "not filled in yet".',
+            status: 'Status',
+            statusActiveMeans: 'In force: purchase and sales orders can be linked to this contract, and a linked order copies its terms.',
+            statusDraftMeans: 'Still being negotiated: the contract is recorded and readable, but NO order can be linked to it. Anything raised against it will be refused.',
+            // ★ 这一句不能只活在手册里:没有任何一处改得动合同状态
+            statusIsFinal: 'This cannot be changed afterwards. Nothing in this system moves a contract from one status to another, so whichever you pick here is what it stays. Pick Draft only if you are content for it to stay unusable.',
+            signedOn: 'Signed on',
+            currency: 'Currency',
+            currencyNone: '\u2014 none stated \u2014',
+            incoterm: 'Incoterm',
+            incotermPlaceholder: 'e.g. CIF',
+            paymentTermsDays: 'Payment terms (days)',
+            paymentTermsDaysHint: 'Between 0 and 365. Leave blank if the agreement does not state one.',
+            documentRef: 'Document reference',
+            documentRefPlaceholder: 'e.g. the signed agreement\u2019s own reference',
+            documentRefHint: 'Where the signed paper lives, in your own filing. This system does not hold the document itself.',
+            notes: 'Notes',
+            afterTitle: 'What you will be able to do with this contract',
+            afterCanDo: 'It joins the register and can be read there, with its period, status and headline terms. Its terms can be measured against documents that carry a grade specification.',
+            afterCannotDo: 'It CANNOT be edited, amended, or moved to another status afterwards, and it cannot be deleted. There is also no screen yet for linking an order to a contract. Record it only when you are content with what it says.',
+        },
+
         pricing: {
             title: 'Index-linked pricing',
             what: 'Where a contract prices against a published index, the price does not exist on the day the deal is struck. What is recorded is a RULE \u2014 base event, M+n, which index, and what share of contained metal is payable \u2014 and the price is the index average over the quotational period.',
@@ -1541,6 +1591,17 @@ const en = {
         },
 
         errors: {
+            CONTRACT_COUNTERPARTY_REQUIRED: 'A contract is with exactly one party \u2014 either a supplier or a customer, not both and not neither. Nothing was saved. Pick one from the list.',
+            CONTRACT_TITLE_REQUIRED: 'The contract needs a title, so that a person reading the register can tell what the agreement is. Nothing was saved.',
+            CONTRACT_EFFECTIVE_FROM_REQUIRED: 'The date the contract takes effect is required \u2014 without it the register cannot say whether the agreement was in force when an order was raised. Nothing was saved.',
+            CONTRACT_KIND_INVALID: 'That is not one of the kinds of contract this system records. Nothing was saved. Choose Supply, Offtake, Framework, Service or Other.',
+            CONTRACT_STATUS_INVALID: 'A contract can only be recorded as Draft or In force. Nothing was saved.',
+            CONTRACT_PERIOD_ORDER: 'The end of the term is earlier than its start, so nothing was saved. Correct one of the two dates, or leave the end blank if the agreement has no fixed end.',
+            CONTRACT_PAYMENT_TERMS_INVALID: 'Payment terms must be a whole number of days between 0 and 365. Nothing was saved. Leave it blank if the agreement does not state one.',
+            // ★ RLS 那一条:要哪个码取决于对手方选了谁,所以两边都说出来
+            CONTRACT_NOT_PERMITTED: 'Recording a contract needs permission to edit whichever side it is with \u2014 supplier records for a contract with a supplier, customer records for one with a customer \u2014 and you do not have it for the party you chose. Nothing was saved. Ask a system administrator for edit access to that module, or record the contract against a party you can edit.',
+        
+
             SETTLEMENT_ARGUMENTS_REQUIRED: 'A sales order, an output batch and an assay result are all required to settle.',
             SETTLEMENT_PERMISSION_DENIED: 'You do not have permission for that ({0}). This is a permission answer, not missing data.',
             SETTLEMENT_NO_CONTRACT_TERMS: 'Sales order {0} is not under any contract, so there is no settlement basis to apply. A settlement basis is a contract term.',

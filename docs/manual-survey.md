@@ -1558,7 +1558,7 @@ delete working features from the manual.
 | # | Thing | Evidence | Verdict |
 |---|---|---|---|
 | **A1** | **`/brand-sampler`** | `app/brand-sampler/page.tsx:2` — *"临时页 · BRAND-1 · 用完即删"*. Not in the nav (`check-nav-routes.mjs:116` lists it as a deliberate exception), excluded from the smoke walk (`smoke-routes.mjs:95`), **connects to no database** (sample data in `./data.ts`), and its `<h1>` is Chinese. `docs/base-components.md:299` records the standing instruction to delete the whole directory. | **Omit entirely.** It is a development scratch page. |
-| **A2** | **`/contracts` — nothing in the interface can create a contract** | The route is a **menu entry** (`lib/modules.ts`, `nav.contracts`, gated `module.suppliers.view`). But `app/contracts/` contains only `page.tsx` and `ContractsTables.tsx` — **no `actions.ts`, no `.insert(`, no `.update(`, no `.rpc(`**. No `INSERT INTO contracts` exists anywhere in `db/functions` or `app/` — only in fixtures 147–150. Contracts are **not** in `lib/importTables.ts`. The only contract-related RPC is `link_document_to_contract`, which attaches an *existing* contract to a document. The table *does* have an INSERT RLS policy (`db/tables/contracts.sql:120`), so the database would permit it — **there is simply no door**. Live: 0 rows. | **A menu entry leading to a page that can never have content.** The manual must not describe creating or managing a contract. See Q1 — this is the survey's most serious finding. |
+| **A2** | **`/contracts` — nothing in the interface can create a contract** | The route is a **menu entry** (`lib/modules.ts`, `nav.contracts`, gated `module.suppliers.view`). But `app/contracts/` contains only `page.tsx` and `ContractsTables.tsx` — **no `actions.ts`, no `.insert(`, no `.update(`, no `.rpc(`**. No `INSERT INTO contracts` exists anywhere in `db/functions` or `app/` — only in fixtures 147–150. Contracts are **not** in `lib/importTables.ts`. The only contract-related RPC is `link_document_to_contract`, which attaches an *existing* contract to a document. The table *does* have an INSERT RLS policy (`db/tables/contracts.sql:120`), so the database would permit it — **there is simply no door**. Live: 0 rows. | ★★ **NO LONGER TRUE — CORRECTED BY MANUAL-FIX-2 (2026-09-07). This row is kept, struck through in meaning, because the manual is written from this document and a stale "do not document this" is exactly how a built feature goes undescribed.** The door was built: `/contracts` carries a **New contract** action and `/contracts/new` writes a row. **The manual SHOULD describe creating a contract.** What it must not describe is editing, amending, re-statusing, deleting, or linking a document to one — none of those exist. See Q1. |
 | **A3** | **The `employee` role** | `name_en = 'Employee (unused)'`, **0 capabilities**, 0 holders. Holding it grants nothing; a person with only this role lands on `/welcome`. | Per R1 it is an S6 finding, **not** a Part 4 entry. |
 
 ### B · Built and usable — merely never used yet. **These belong in the manual.**
@@ -1790,14 +1790,21 @@ Not triaged. Each carries a recommended answer and its evidence, per the brief.
 
 ### Q1 ★ — Contracts: a menu entry to a page nothing can fill. Which way does it go?
 
-> ★ **STILL OPEN AFTER MANUAL-FIX-1 (2026-09-07) — nothing below has changed.** That cut
-> re-verified the finding (the only `contracts` database access in the whole application is
-> the single `SELECT` at `app/contracts/page.tsx:63`; no insert exists anywhere) and then
-> **stopped at its own gate without building the creation door**, because a question has to
-> be answered first: `link_document_to_contract.sql:58` refuses unless the contract is
-> `active`, a contract is born `draft`, and **no function in `db/functions` writes
-> `contracts.status` at all**. A contract created under the cut's scope fence could
-> therefore never have a document attached to it. See `docs/forward-queue.md`.
+> ★★ **ANSWERED AND BUILT BY MANUAL-FIX-2 (2026-09-07). The door exists.** Tim ruled (T3)
+> that the create form may set the initial status — an insert field, not a transition — and
+> the register is no longer unfillable. `/contracts` now carries a **New contract** action,
+> and `/contracts/new` writes a row.
+> **What a person can do with a contract after that cut, and it is the sentence the manual
+> should quote:** create one (against exactly one supplier or one customer), give it a kind,
+> a title, a period, optional headline terms, and a status of either Draft or In force; and
+> read it back in the register. **They cannot edit it, amend it, move it to another status,
+> or delete it, and no screen links a document to one.** Creation is the only write.
+> ★ The status choice is **final**, because nothing in the system transitions a contract —
+> that is stated on the form itself, not left to the manual.
+> ★ The document-linking half is a *separate* gap and is still open:
+> `link_document_to_contract` will now accept a contract created as `active` (verified —
+> see below), but **it has no caller in `app/` or `lib/`**, so a person still cannot link
+> anything through the interface. See `docs/forward-queue.md`.
 
 **Evidence.** `/contracts` is a nav entry (`lib/modules.ts`, gated `module.suppliers.view`).
 `app/contracts/` has no `actions.ts` and no write call. No `INSERT INTO contracts` exists in
@@ -1871,6 +1878,15 @@ exists to guarantee. For "Overview", always write it as *"Purchasing → Overvie
 
 ### Q8 — 20 real features have no menu entry. Manual content, or a navigation bug?
 
+> ★★ **SETTLED BY TIM AT THE MANUAL-FIX-2 GATE (2026-09-07). Not an open question.**
+> **T1 — nothing changes.** All 20 are correctly reachable as they are: each has a real
+> inbound link, and every parent page is itself a menu entry (eleven control-slot buttons,
+> seven index cards, five `/hr/leave` tabs, and one deliberate grandchild). The manual's job
+> is to name the parent page as the door, not to report a navigation bug.
+> **T2 — `/finance/journal/new` stays in the menu.** A frequently-used *create action*
+> promoted to the menu is normal; a feature *sub-page* sitting as a peer of its parent is
+> not. That distinction is why "KPI scoring" moved in MANUAL-FIX-1 and this one did not.
+
 **Evidence.** S1. Includes `/inbound/receive` — a core process step — plus all of
 `/inventory/reports/*`, `/tools/pricing/*`, `/finance/bank/*` and five `/hr/leave/*` pages.
 **Recommend: document them with their entry point ("from Inbound, choose …"), and raise the
@@ -1878,6 +1894,13 @@ navigation question separately.** They are reachable and working, so they are ma
 But a reader who loses the parent page cannot find them again, and that is worth your view.
 
 ### Q9 — Nothing transitions `contracts.status`. Dead machine, or unbuilt?
+
+> ★ **STILL TRUE AFTER MANUAL-FIX-2, and now sharper rather than smaller.** That cut let the
+> *create* form choose Draft or In force, which is an insert, not a transition. **No function
+> in `db/functions` writes `contracts.status`, and no screen does either** — so whatever a
+> contract is created as, it stays. That is why the form says so in plain words on screen:
+> a person who assumes "save it as a draft and activate it once it is agreed" would otherwise
+> build a contract that can never be used, and only discover it afterwards.
 
 **Evidence.** A five-state CHECK exists; no RPC and no app code writes the column. Distinct
 from Q1: even a contract created by SQL could never change state through the interface.

@@ -341,6 +341,10 @@ const MANIFEST = {
     // Set 里加一个码,这个检查自动跟着变宽。
     'company.licence.status.': { kind: 'enum', values: () => sqlCheckIn('db/tables/company_compliance.sql', 'status') },
     'company.licence.errors.': { kind: 'enum', values: () => tsSet('app/purchasing/licences/licenceErrorCodes.ts', 'LICENCE_ERROR_CODES') },
+    // ★ MANUAL-FIX-2:合同创建那条路的拒绝码。**注册进来,而不是留成第二份手抄清单**
+    //   —— MANUAL-FIX-1 刚刚数过那个形状的代价(勘察 S4 的"机制二"):有句子、
+    //   但闸看不见,于是新加一个码却忘了写句子是【静悄悄】的。
+    'contracts.errors.': { kind: 'enum', values: () => tsSet('app/contracts/contractErrorCodes.ts', 'CONTRACT_ERROR_CODES') },
     // PROC-BUILD-1:损耗分类那两个动态前缀,两条都【接真源】——
     // 金属去向读 loss_metal_fates 的种子行(那张字典没有 CHECK,种子【就是】取值),
     // 拒绝码读那张 Set。于是加一种金属去向、加一条拒绝,这道检查自动跟着变宽。
@@ -509,6 +513,10 @@ const MANIFEST = {
     //   两个语言各补一句,而不是让屏幕上冒出一个原始机器串
     //   (docs/machine-text-reaching-humans.md 记的正是这一类)。
     'contracts.status.': { kind: 'enum', values: () => sqlEnum('db/tables/contracts.sql', 'status') },
+    // ★ MANUAL-FIX-2:种类此前【没有文案,因为界面上没有地方选它】—— 建门就要选,
+    //   所以标签跟着门一起来,并且和 status 一样从【表自己的 CHECK】取值:
+    //   加一个种类只改 SQL 而忘了写句子,构建会红。
+    'contracts.kind.': { kind: 'enum', values: () => sqlEnum('db/tables/contracts.sql', 'kind') },
     // side:它【没有 CHECK】—— 是一列 GENERATED ALWAYS AS 的派生列,
     //   所以真源就是那个 CASE 表达式本身。从它现读,而不是另写一份 ['buy','sell']:
     //   写死一份清单,改了派生规则时它只会烂在这里(与 gst.docKind. 同一条理由)。
