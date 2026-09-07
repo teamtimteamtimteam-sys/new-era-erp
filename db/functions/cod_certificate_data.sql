@@ -7,7 +7,7 @@ AS $function$
 DECLARE
     v_ib   record;
     v_comp record;
-    v_lic  record;
+    v_lic  jsonb;
     v_cod  record;
     v_done jsonb;
     v_runs jsonb;
@@ -56,20 +56,11 @@ BEGIN
            cp.postal_code, cp.country, cp.phone, cp.email, cp.website
       INTO v_comp FROM company_profile cp LIMIT 1;
 
-    -- 【执照:在组装时【读】company_compliance,不是读一个设置开关】
-    -- 于是把真正的 GWDF 号录进去那一天,之后每一张证书自动带上它 ——
-    -- 不用改一行代码,也没有任何要有人记得去翻的开关。
-    -- ★ status IS NULL 是【没有人说过】,不是 active ★(与
-    -- approved_storage_limit_tonnes 的那条注释同一句话)。
-    SELECT cc.cert_no, cc.issuing_body, cc.valid_from, cc.valid_until, cc.status, cc.scope
-      INTO v_lic
-      FROM company_compliance cc
-     WHERE cc.cert_type_code = 'gwdf'
-       AND cc.deleted_at IS NULL
-       AND cc.status = 'active'
-       AND cc.cert_no IS NOT NULL AND btrim(cc.cert_no) <> ''
-     ORDER BY cc.valid_until DESC NULLS LAST
-     LIMIT 1;
+    -- 【执照:COD-2 起走 cod_governing_licence(完成日)】—— 一个判据一份实现。
+    -- ★ 在完成日当天在效的那一行说了算,不是最新的那一行 ★:一次续期不该
+    -- 回头把旧的那几票货重新盖上新的执照号。拿不到就是 null(内部存档照印
+    -- "未记录"),按名拒绝由 issue_cod 做。
+    v_lic := cod_governing_licence((v_done->>'completed_on')::date);
 
     SELECT c.id, c.code, c.status, c.issued_at, c.verification_token,
            c.void_reason, c.voided_at
@@ -101,10 +92,7 @@ BEGIN
             'phone', v_comp.phone, 'email', v_comp.email, 'website', v_comp.website),
         -- 【执照缺席是一个具名状态,不是空白】内部存档照印这一格,标成"未记录";
         -- 签发则被 issue_cod() 按名拒。
-        'licence', CASE WHEN v_lic.cert_no IS NULL THEN NULL ELSE jsonb_build_object(
-            'cert_no', v_lic.cert_no, 'issuing_body', v_lic.issuing_body,
-            'valid_from', v_lic.valid_from, 'valid_until', v_lic.valid_until,
-            'scope', v_lic.scope) END,
+        'licence', CASE WHEN (v_lic->>'ok')::boolean THEN v_lic->'licence' ELSE NULL END,
         'certificate', CASE WHEN v_cod.id IS NULL THEN NULL ELSE jsonb_build_object(
             'id', v_cod.id, 'code', v_cod.code, 'status', v_cod.status,
             'issued_at', v_cod.issued_at,

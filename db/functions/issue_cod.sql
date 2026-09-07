@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION public.issue_cod(p_cod_id uuid)
 AS $function$
 DECLARE
     v_cod   record;
-    v_lic   record;
+    v_lic   jsonb;
     v_done  jsonb;
     v_data  jsonb;
     v_code  text;
@@ -26,29 +26,23 @@ BEGIN
         RAISE EXCEPTION 'COD_ALREADY_ISSUED|%', v_cod.status;
     END IF;
 
-    -- ── 执照闸 ────────────────────────────────────────────────────────────
-    -- 【status IS NULL 是"没有人说过",不是 active】与
-    -- approved_storage_limit_tonnes 的那条注释同一句:*"NULL 不表示『没有上限』,
-    -- 表示『没有人录过上限』"*。把 NULL 读成 active,正是这个仓库反复付账的那类缺陷。
-    -- 【不发明任何占位执照号】—— 表今天是空的,所以今天什么都签发不了,而那是对的:
-    -- NEA 发照之前 Tim 不会买料。
-    SELECT cc.cert_no INTO v_lic
-      FROM company_compliance cc
-     WHERE cc.cert_type_code = 'gwdf'
-       AND cc.deleted_at IS NULL
-       AND cc.status = 'active'
-       AND cc.cert_no IS NOT NULL AND btrim(cc.cert_no) <> ''
-     LIMIT 1;
-    IF NOT FOUND THEN
-        -- 【拒绝要说得出下一步去哪】与 loadDocumentCompany 的 COMPANY_MISSING_MESSAGE
-        -- 同一条:一句报不出去处的拒绝,等于把人留在原地。
-        RAISE EXCEPTION 'COD_LICENCE_NOT_RECORDED|/purchasing/licences';
-    END IF;
-
     -- 【签发那一刻再问一次判据】—— 不重写,问同一支函数。
     v_done := cod_delivery_completion(v_cod.inbound_batch_id);
     IF NOT (v_done->>'complete')::boolean THEN
         RAISE EXCEPTION 'CANNOT_CERTIFY|%|%', v_done->>'batch_code', v_done->>'reason';
+    END IF;
+
+    -- ── 执照闸(COD-2:两端日期都查)────────────────────────────────────────
+    -- 【判据不在这里重写】cod_governing_licence() 是唯一那一份,六句具名拒绝
+    -- 也住在那里。这里只负责把它抛出去 —— 而【抛出去的名字必须各不相同】,
+    -- 因为补救的办法各不相同(去录一行 / 去补日期 / 去核对到货日期)。
+    -- 【不发明任何占位执照号】—— 表今天是空的,所以今天什么都签发不了,而那是对的:
+    -- NEA 发照之前 Tim 不会买料。
+    v_lic := cod_governing_licence((v_done->>'completed_on')::date);
+    IF NOT (v_lic->>'ok')::boolean THEN
+        -- 【拒绝要说得出下一步去哪】与 loadDocumentCompany 的 COMPANY_MISSING_MESSAGE
+        -- 同一条:一句报不出去处的拒绝,等于把人留在原地。
+        RAISE EXCEPTION '%|%', v_lic->>'reason', v_lic->>'detail';
     END IF;
 
     v_code  := next_cod_code();
@@ -77,6 +71,8 @@ BEGIN
     IF v_data->'supplier'->>'name' IS NULL THEN
         RAISE EXCEPTION 'SUPPLIER_NAME_MISSING|%', v_data->'inbound_batch'->>'code';
     END IF;
+    -- 【第二道,刻意留着】上面的闸已经过了,这一句问的是"组装出来的那一份里
+    -- 到底有没有那一格" —— 两句问的不是同一件事,而快照是核验页几年后的唯一依据。
     IF v_data->'licence' = 'null'::jsonb OR v_data->'licence' IS NULL THEN
         RAISE EXCEPTION 'COD_LICENCE_NOT_RECORDED|/purchasing/licences';
     END IF;

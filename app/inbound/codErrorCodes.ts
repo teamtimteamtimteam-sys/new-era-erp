@@ -18,6 +18,14 @@ const COD_ERROR_CODES = new Set([
     'COD_NOT_ISSUED',
     'COD_ALREADY_VOID',
     'COD_LICENCE_NOT_RECORDED',
+    // COD-2:执照有效期闸。COD-1 只有上面那一句,它同时代表"没有行"与"行不合格";
+    // 六句拆开是因为【补救的办法各不相同】—— 去录一行 / 去补日期 / 去核对到货日期。
+    'COD_LICENCE_DATES_NOT_RECORDED',
+    'COD_LICENCE_NOT_ACTIVE',
+    'COD_LICENCE_EXPIRED',
+    'COD_LICENCE_NOT_YET_IN_FORCE',
+    'COD_LICENCE_PERIODS_OVERLAP',
+    'COD_COMPLETION_DATE_UNKNOWN',
     'COMPANY_LEGAL_NAME_MISSING',
     'SUPPLIER_NAME_MISSING',
     'REASON_REQUIRED',

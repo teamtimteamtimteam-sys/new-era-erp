@@ -1,0 +1,57 @@
+-- db/migrations/2026-09-08-cod2b-the-one-relation-that-was-actually-answering.sql
+-- COD-2b:把【唯一一个真的在回答匿名请求】的关系关上。
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- ★★★ 这一条推翻了 ANON-0 的头条结论,而推翻它的是一个【不一样的问法】★★★
+-- ════════════════════════════════════════════════════════════════════════════
+-- ANON-0(2026-09-07)的头条是:
+--     「**没有任何匿名请求能从这个 schema 的任何一个关系里拿到一行。**」
+-- 那句话是【错的】,而错因不在它的数据,在它的问法。它逐个关系问的是
+-- `SELECT *`(文档 §Method 明写着,并且论证了为什么 `select=*` 是完整的:
+--  因为一条列级 ACL 都不存在)。
+--
+-- 【那个论证漏了一种形状】列级 ACL 不是唯一一种"按列不同"的东西。
+-- **一个把守卫写在【某几列的表达式】里的遮蔽视图,也是按列不同的。**
+--     company_profile_masked 的 bank_* 五列写成 CASE WHEN has_permission(…)
+--     其余十四列是【裸列】。
+-- 于是:
+--     select=*            → 求值到 has_permission → 42501 permission denied → 判成"被函数锁定挡住"
+--     select=legal_name   → 那个函数【根本不会被求值】→ HTTP 200,一行数据
+-- 两次都是真的,而只有第二次说的是实话。
+--
+-- 【实测,2026-09-08,拿【公开的 anon key】、没有任何会话】
+--     GET /rest/v1/company_profile_masked?select=legal_name,registration_no,address_lines,city,country
+--     → 200 {"legal_name":"EVoltrya Recovery Pte. Ltd.","registration_no":"202616658E",
+--            "address_lines":"25 Haji Lane","city":"Singapore","country":"Singapore"}
+--     phone / email / website / invoice_footer_text / logo_path 同样出行 ——
+--     **其中 phone 与 email 是一个具名的人的联系方式。**
+--     bank_name / bank_account_no / bank_swift **确实被挡住**(42501)——
+--     遮蔽是有效的,漏的是它【没有遮的那十四列】。
+--
+-- 【它是怎么被抓到的】不是靠再读一遍 ANON-0,是靠 db/fixtures/196 的 B 臂
+-- 用了一个【坏法不一样】的问法:`SELECT count(*)`。count(*) 不求值任何列表达式,
+-- 于是那一行当场冒出来。**两条独立的路,而它们坏得不一样** —— 这正是本仓库
+-- 反复写下的那条规矩,这次它自己救了自己一回。
+-- 随后对 333 个关系 × 4,109 个列做了一次逐列窄读复量:
+-- **只有 company_profile_masked 这一个关系在回答,而它的每一个未遮蔽列都在回答。**
+--
+-- 【为什么只关这一个,不顺手关另外 24 个】25 个 *_masked 视图【全部】是
+-- security_invoker = off 且授给了 anon —— 形状一模一样。另外 24 个今天不漏,
+-- 是因为它们的行谓词里【调了一支带门的函数】(ANON-0 的 (b) 类),
+-- 而 company_profile_masked 的基表策略是 USING (true),它没有那一层。
+-- 那 24 个是一份【建议】,不是本刀的动作:Tim 的裁定明写着不做那次批量收权,
+-- 而"今天不漏"与"没有代码路径需要这条授权"仍然是两句话。
+-- 报告里点名,交给他裁。
+--
+-- 【为什么关它是安全的 —— 量过,不是猜的】company_profile_masked 的读者
+-- 全仓库共 6 处,【每一处都是 select('*') 且都在会话里】(PDF 抬头 loadDocumentCompany、
+-- 采购单/发票/对账单三条 PDF 路由、发票详情页、财务公司页)。
+-- 而 select('*') 本来就要求 has_permission —— 也就是说这些读者【本来就不可能】
+-- 以 anon 的身份成功。登录页不读它。基表 company_profile 的 SELECT 策略是
+-- `TO authenticated USING (true)`:**anon 从来就不是它的预期读者**,
+-- 这条授权自始至终是默认权限自动给出来的,没有人要过它。
+BEGIN;
+
+REVOKE ALL ON public.company_profile_masked FROM anon;
+
+COMMIT;

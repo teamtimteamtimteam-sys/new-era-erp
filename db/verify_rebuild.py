@@ -334,15 +334,54 @@ def diff(live, scratch) -> list:
 # ═══════════════════════════════════════════════════════════════════════════
 
 # B1:anon 在 public 架构里不该能执行任何函数。anon 就是互联网。
-# 【空的】—— 未登录的界面(登录页、设置密码页)走 Supabase auth 端点,不调 public 的函数;
-# 实测:注销状态下 /login、/set-password、/ 都渲染正常,服务端日志零条 permission denied。
-# 将来真有函数必须给 anon,在这里加一行【并写清楚为什么】。
-ANON_EXECUTE_ALLOWED: dict = {}
+# 【它此前是空的】—— 未登录的界面(登录页、设置密码页)走 Supabase auth 端点,
+# 不调 public 的函数;实测:注销状态下 /login、/set-password、/ 都渲染正常,
+# 服务端日志零条 permission denied。ANON-0(2026-09-07)对着线上复量:
+# **anon 在 492 支函数上握着 0 个 EXECUTE。**
+#
+# ★★【COD-2(2026-09-08)加了第一行,而这条断言【当场把这一刀拦下来了】】★★
+#   本条不是事后补的注释:cod_verification 建出来的第一次 `gate.py --offline`
+#   直接红在这里(B1 anon-executable: 1),迁移还没上线。**那正是它的差事** ——
+#   给 anon 开一扇门必须是一件【要动手写下来】的事,不是一件顺手就发生的事。
+ANON_EXECUTE_ALLOWED: dict = {
+    # ── COD-2(2026-09-08):销毁证书的核验页 ─────────────────────────────────
+    # 【它是什么】供应商扫他手里那张销毁证书上的二维码 → /verify/cod/<令牌> →
+    #   这支函数。**本系统第一个不用登录就打得开的业务页面**,而这支函数是
+    #   它够得着的【唯一】一样东西:没有表授权,没有第二支函数。
+    #
+    # 【为什么必须是 anon,而不是"页面用 service_role 在服务端读"】两种都跑得通,
+    #   而选这一种的理由是【判据落在哪里】:授给 anon,把关的是数据库本身 ——
+    #   收一个令牌、回一份白名单子集,任何调用者都只拿得到那些。走 service_role
+    #   的话,把关的是"那一页恰好是服务端渲染的、而且它恰好只显示了该显示的",
+    #   一次页面重写就可能悄悄改掉,而没有任何东西会说话。
+    #
+    # 【它的"权限"是什么】持有那个令牌。122 位随机的 UUID,与证书号毫无关系,
+    #   改一位数字得到的是一个【不存在】的值,而不是另一张证书。
+    #
+    # 【够得着的面】白名单,不是减法:剥掉 provenance.run_ids、全部内部 uuid、
+    #   令牌回声、签发人、公司的电话/邮箱/网址。价格/成本/化验/品位/产出批
+    #   在快照里本来就没有(COD-1 的裁定),而白名单让这句话在将来也成立。
+    #
+    # 【滥用】函数体里的失败预算:滚动 10 分钟 30 次失败,有效令牌永不被限流。
+    #   限流住在函数里而不是路由上,因为 anon key 随浏览器包发出去,
+    #   POST /rest/v1/rpc/… 是绕过 Vercel 的第二条门。
+    "cod_verification":
+        "COD-2: the certificate-of-destruction verification page — the one anonymous "
+        "door in this system. Its authority is possession of a 122-bit token; its "
+        "reachable surface is an allowlisted subset of one frozen snapshot; its abuse "
+        "budget lives in the function body. Granted in db/views/zzz_function_grants.sql.",
+}
 
 # B2:SECURITY DEFINER 函数要么自己查调用者,要么谁都执行不了。
 # 下面三个是【权限判断本身的原语】:它们解析的是【调用者自己的】上下文,
 # 对 anon 来说返回的是空,所以"没有调用者检查"对它们不是漏洞 —— 它们就是检查。
 DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
+    # ★ COD-2:cod_verification 没有调用者检查,而那是【正确的】—— 它的调用者
+    #   按定义是一个【不是本系统用户】的送料方。要求它 has_permission,
+    #   等于让核验页永远回答不了任何人。理由全文见上面 ANON_EXECUTE_ALLOWED。
+    "cod_verification":
+        "COD-2: the anonymous verification endpoint; the caller's authority IS the "
+        "122-bit token, and requiring a permission would make the page answer nobody",
     "has_permission":
         "the permission check itself; returns false for anyone holding nothing",
     "current_user_permissions":

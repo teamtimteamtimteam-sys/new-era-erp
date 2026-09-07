@@ -30,7 +30,24 @@
  * 一个路径可以"要会话、但不画外壳"(/set-password 正是),
  * 反过来"不要会话、却画外壳"没有意义 —— 所以后者必须包含前者,见下。
  */
-export const PUBLIC_PATHS = ['/login'] as const
+/*
+ * ★★【COD-2(2026-09-08):这个数组从一条变成两条,而那是一次刻意的改宽】★★
+ *
+ * `/verify/cod` 是销毁证书的核验页 —— **本系统第一个不需要会话就能打开的
+ * 业务页面**。供应商扫他手里那张证书上的二维码就到这里,而他【不是】这套
+ * 系统的用户:给他一张登录页,等于把一份对外的法律文件变成一件查不了的东西。
+ *
+ * 【为什么是 '/verify/cod' 而不是 '/verify'】上面 `matches()` 的判据是
+ * 「整条相等,或者是它下面的一层」。写 '/verify' 就等于【现在就】宣布
+ * 将来任何一条 /verify/* 都不需要会话 —— 而那是一件应该由加那条路由的人
+ * 自己来做的决定。本文件抬头记着 FIX-1 那次教训:一次看起来只是排版的
+ * 改动,顺手把一条安全判据改宽了。所以取最窄的那个前缀。
+ *
+ * 【它够得着什么】一支函数,`cod_verification(text)` —— 收一个 122 位随机
+ * 令牌,回一张证书快照的白名单子集。没有表授权、没有清单、没有翻页。
+ * anon 在这套库里握着的 EXECUTE 一共就这一个(ANON-0 实测的基线是零)。
+ */
+export const PUBLIC_PATHS = ['/login', '/verify/cod'] as const
 
 export function isPublicPath(pathname: string): boolean {
     return matches(PUBLIC_PATHS, pathname)

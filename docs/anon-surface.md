@@ -52,6 +52,45 @@ rather than assumed, and it is the same defect this repository has been bitten b
 
 ## The headline
 
+> ### ⚠ CORRECTION — COD-2, 2026-09-08: the first half of this headline was wrong
+>
+> **One relation was answering anonymous requests the whole time: `company_profile_masked`.**
+> Measured with the public anon key and no session:
+> `GET /rest/v1/company_profile_masked?select=legal_name,registration_no,address_lines,city,country`
+> returned HTTP 200 and the company's legal name, UEN and street address. `phone`, `email`,
+> `website`, `invoice_footer_text` and `logo_path` came back too — and the phone and email are
+> **a named person's contact details**. The banking columns were *not* exposed (they are
+> genuinely masked, and anon hits `42501` on them).
+>
+> **Why this document missed it, stated plainly, because the reason generalises.** The method
+> above asks every relation for `SELECT *`, and argues (in § Method) that `select=*` is a
+> complete test *because no column-level ACLs exist*. That argument has a hole: **a column-level
+> ACL is not the only thing that makes a relation answer differently per column.** A masked view
+> whose guard lives in a *column expression* — `CASE WHEN has_permission(…) THEN bank_no END` —
+> does too. `select=*` evaluates that expression, hits the function lockdown, and is refused, so
+> the relation gets filed under mechanism (b). **A narrower ask never evaluates it.** Both
+> observations are true; only the second one is the answer.
+>
+> **What caught it:** not a re-reading of this document, but a second probe with a *different
+> failure mode* — `db/fixtures/196`'s arm B sweeps every relation with `SELECT count(*)`, which
+> evaluates no column expression at all. The leaking row appeared immediately. A follow-up
+> per-column sweep (333 relations × 4,109 columns, live, rolled back) confirmed the extent:
+> **exactly one relation answers, and every one of its unmasked columns answers.**
+>
+> **Closed by** `db/migrations/2026-09-08-cod2b-the-one-relation-that-was-actually-answering.sql`
+> (`REVOKE ALL … FROM anon` — the same mechanism COD-2 used on the two views in § (d)).
+>
+> **The class, which is not closed.** All **25** `*_masked` views are `security_invoker = off`
+> and granted to `anon`. The other 24 return nothing today only because their row predicates
+> call a guarded function; `company_profile_masked` had no such predicate (its base table's
+> policy is `USING (true)`). They are recorded as a recommendation, not an action — the ruling
+> against a wholesale revoke stands, and "returns nothing today" is still not "no code path
+> expects the grant".
+>
+> **The second half of the headline was correct** and was re-measured on 2026-09-08:
+> `anon` could execute zero of 492 functions. It is now exactly one, `cod_verification(text)`,
+> granted deliberately by COD-2 and watched by `db/check_grants.py` and `verify_rebuild`'s B1.
+
 **No anonymous request returns a single row from any relation in this schema today, and no
 function in this schema can be called by `anon` at all.**
 

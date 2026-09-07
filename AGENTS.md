@@ -1389,6 +1389,16 @@ The fixtures verdict (exit 4) was fault-injected before being trusted: fixture
 same for the next one. A check never observed failing is not known to work —
 it is only known to be quiet.
 
+**The next one arrived: verdict 6 【匿名面】 (COD-2, 2026-09-08, `db/check_grants.py`).**
+It was fault-injected the same way before being trusted — a line was removed
+from `db/anon-grants-baseline.tsv`, the gate returned **6** and named the
+relation, then the line was restored and the gate returned 0 again. The script
+also carries **two injection cells that run on every invocation**, not only when
+somebody remembers: point the baseline reader at an unreadable path (it must
+raise, never read a missing file as an empty baseline) and blind the relation
+query (universe 0 must be a failure, never a pass). If either cell comes back
+green, the script exits red before it checks anything at all.
+
 ### The same disease inside a REPORT: a self-check that compares a number with itself
 
 The rule above is about gates. **A statement that claims to check itself is the

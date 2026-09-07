@@ -87,10 +87,49 @@ GRANT USAGE ON SCHEMA auth TO authenticated, anon, service_role;
 GRANT USAGE ON SCHEMA public TO authenticated, anon, service_role;
 
 -- 3. Supabase's default privileges on schema public. Every table/sequence/function created
---    in public is granted to anon/authenticated/service_role AT CREATE TIME by these.
---    Verified against live pg_default_acl: {anon=arwdDxtm, authenticated=arwdDxtm,
---    service_role=arwdDxtm} for tables. The mirrors' REVOKE/GRANT column lists then
---    narrow this down — which only works if the blanket grant existed first.
+--    in public is granted to authenticated/service_role AT CREATE TIME by these.
+--    The mirrors' REVOKE/GRANT column lists then narrow this down — which only works
+--    if the blanket grant existed first. (That masking mechanism is an `authenticated`
+--    thing; COD-2 did not touch it.)
+--
+-- ★★【COD-2(2026-09-08):anon 从这三行里【拿掉了】—— 这是一次刻意的收窄】★★
+--    此前这三行照抄线上,把每一个新建的表/序列/函数【自动】授给 anon。
+--    ANON-0 实测的 2,272 条 anon 授权就是这么长出来的:一条都不出行(RLS 与
+--    函数锁定在挡),但每一次 CREATE 都会再给一条,而给出去的那一刻没有任何
+--    东西会说话。两张【上了膛】的视图(collection_promise_status /
+--    expense_claim_status)是今天的实例,这三行是产地。
+--
+--    ★ 函数那一行尤其值得看一眼 ★ —— 它正是 db/views/zzz_function_grants.sql
+--    存在的全部理由,也正是 db/apply_migration.sh 每次都要重跑那个文件的理由:
+--    默认权限把 EXECUTE 发给 anon,那个文件再一句一句收回来。收窄之后,
+--    那个文件仍然留着(纵深),但它不再是唯一挡着的东西。
+--
+--    【线上侧的实测边界,照直写】live pg_default_acl 里 public 有【两条】记录:
+--        defaclrole = postgres        ← 本仓库建的每一个关系都由它建;COD-2 改的是它
+--        defaclrole = supabase_admin  ← 平台自己的;postgres 不是它的成员,改不动
+--    所以线上不是"anon 再也拿不到默认授权",而是"由 postgres 建的东西拿不到"。
+--    重建这一侧只有一个建库角色,所以下面三行就是全部。
+-- ★★【所以下面三行【仍然带着 anon】,而那【不是】漏改 —— 它是这个文件的职责】★★
+--   本文件的差事是【把线上今天的样子重建出来】,不是宣布政策。而线上今天的样子是:
+--   326 个【在 2026-09-08 之前建出来的】关系【仍然】握着 anon 的授权
+--   (Tim 的裁定:不做那次批量收权 —— "返回空集"不等于"没有代码路径需要这条授权")。
+--   把 anon 从这三行里拿掉,重建库就会【每一张表】都比线上少七条授权,
+--   而 db/verify_rebuild.py 会逐张报漂移 —— 实测过,门当场全红。
+--   **一个把政策写进重建脚本、于是重建不出线上的文件,已经不是镜像了。**
+--
+-- ★【那么真正的保护落在哪里】★ 落在【线上的 pg_default_acl】上,由
+--   db/migrations/2026-09-08-cod2-the-verification-page.sql 改掉,并由
+--   db/check_grants.py 的基线盯着。两者的分工:
+--     · 线上:2026-09-08 之后【新建】的关系不再自动拿到 anon 授权;
+--     · 重建:仍然按老规矩全给,然后由【每张表自己的镜像】用 REVOKE 收回去。
+--   于是"这张表对 anon 开不开"从此是一件【写在那张表的镜像里】的事,
+--   而不是一件靠默认权限悄悄决定的事。cod_verification_failures 就是第一张
+--   这样的表(它的镜像最后一行就是那句 REVOKE),collection_promise_status /
+--   expense_claim_status / company_profile_masked 同理。
+--
+-- 【将来加一张表时会发生什么 —— 照直写,因为那是刻意的】线上不会给它 anon,
+--   重建会给,于是门会报一处漂移,而修法是【在那张表的镜像里写一句 REVOKE】。
+--   那正是我们要的:一张新表对匿名开不开,必须有人写下来。
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;

@@ -261,3 +261,47 @@ REVOKE EXECUTE ON FUNCTION public.batch_processing_cost_base_all(uuid) FROM auth
 REVOKE EXECUTE ON FUNCTION public.inbound_batch_landed_unit_cost(uuid) FROM authenticated;
 -- CLEANUP-A fu1:过账原语,无判据,必须靠"调不到"活着。
 REVOKE EXECUTE ON FUNCTION public.inbound_batch_landed_unit_cost_all(uuid) FROM authenticated;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- ★★★ COD-2(2026-09-08):本仓库【第一条】给 anon 的 EXECUTE ★★★
+-- ════════════════════════════════════════════════════════════════════════════
+-- 本文件抬头写着:「anon 在 public 架构里不该有任何 EXECUTE……真有哪个函数
+-- 将来必须给 anon,就在下面显式加一行【并写明理由】。」这就是那一行,
+-- 而下面是那个理由。
+--
+-- 【它是什么】cod_verification(text) —— 销毁证书核验页的取数。供应商扫证书上
+-- 的二维码打开 /verify/cod/<令牌>,那一页就是这支函数的输出。**这是本系统
+-- 第一个不用登录就打得开的页面**,而这支函数是它够得着的【唯一】一样东西。
+--
+-- 【为什么必须给 anon,不能靠"页面在服务端用 service_role 读"】
+--   两种都成立,而选这一种的理由是【判据落在哪里】:给 anon 授权,把关的是
+--   数据库 —— 这支函数收一个令牌、回一份白名单子集,任何调用者都只拿得到那些。
+--   走 service_role 的话,把关的是"那一页恰好是服务端渲染的、而且它恰好只
+--   显示了该显示的" —— 一次页面重写就可能悄悄改掉它,而没有任何东西会说话。
+--   ★ 一条能在数据库这边说清的判据,不该寄存在一个页面的写法里。★
+--
+-- 【它没有调用者检查,而这是【正确的】】它的"权限"就是【持有那个令牌】:
+--   122 位随机、与证书号毫无关系、改一位数字得到的是一个不存在的值。
+--   一个匿名的核验入口若还要问 has_permission,它就永远回答不了任何人。
+--   check_mirrors 的 DEFINER_NO_CHECK_ALLOWED 里有它,理由逐字同此。
+--
+-- 【它的限流住在函数体里,不在路由上】anon key 随浏览器包发出去,所以
+--   POST /rest/v1/rpc/cod_verification 是第二条门,不经过 Vercel ——
+--   一个住在路由上的限流器会被它要拦的那个工具整个绕过去。
+--
+-- ⚠★【这一行【必须】在这里,而不是只在迁移里】★⚠ 与 C-1 的 real_role_grants
+--   那一段【方向相反、道理相同】:db/apply_migration.sh 把本文件拼在 COMMIT
+--   之前、同一个事务里重跑一遍,而本文件的第一句是
+--       REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC, anon;
+--   一条只写在迁移里的 GRANT 会在提交之前被它冲掉,**而迁移报告成功**。
+--   所以真源在这里,写在那句 REVOKE 的【后面】。
+GRANT EXECUTE ON FUNCTION public.cod_verification(text) TO anon;
+
+-- COD-2:执照判据(在完成日当天在效的那一张 GWDF)。与 cod_delivery_completion
+-- 逐字同一条理由 —— SECURITY DEFINER、没有调用者检查,靠的就是【调不到】。
+-- 它绕过 company_compliance 的 RLS(那张表的谓词借的是 module.suppliers.view,
+-- 而仓储现场读不到它,却仍然被这道闸管着 —— 那正是它必须 DEFINER 的原因)。
+-- 给了 authenticated 就等于任何登录用户都能把公司的执照号、发证机关与有效期
+-- 问出来。唯一的两个调用方 issue_cod 与 cod_certificate_data 都是 DEFINER、
+-- 各自 require action.issue_cod,以属主身份执行,收回之后照常工作。
+REVOKE EXECUTE ON FUNCTION public.cod_governing_licence(date) FROM authenticated;

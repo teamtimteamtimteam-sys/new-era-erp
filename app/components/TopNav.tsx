@@ -50,7 +50,7 @@ import SearchShell from './nav/SearchShell'
 import { getModuleAccess } from '@/lib/moduleAccess'
 import { getUnreadCount } from '@/lib/notifications'
 import { SETTINGS_MODULE_ID, TOOLS_MODULE_ID } from '@/lib/modules'
-import { AVATAR_BUCKET, AVATAR_VERSION_COOKIE, avatarObjectName } from '@/lib/avatar'
+import { AVATAR_ROUTE, AVATAR_VERSION_COOKIE } from '@/lib/avatar'
 import type { NavModule } from './nav/types'
 
 /**
@@ -177,9 +177,13 @@ export default async function TopNav() {
     // ── 头像(UI-1d)────────────────────────────────────────────────────────
     //
     // ★★【这里【不】问"这个人有没有头像"】★★
-    //   getPublicUrl() 是一个【纯字符串拼接】,不发请求 —— 它只是把桶名与对象名
-    //   拼成公开地址。对象在不在,由浏览器取图那一下自己回答:取到就画,
-    //   404 就由 AvatarImage 的 onError 回落成首字母。
+    //   地址是一个【常量】,不发请求 —— 对象在不在,由浏览器取图那一下自己回答:
+    //   取到就画,404 就由 AvatarImage 的 onError 回落成首字母。
+    //
+    //   ★【COD-2:地址从公开桶换成了 /me/avatar,而这一段的道理一个字没变】★
+    //     换掉的只是"拼一个公开桶地址"这件事(桶已转私有,见 lib/avatar.ts)。
+    //     那条路由服务谁由会话说了算,所以这里【连 user.id 都不需要拼】——
+    //     uid 从此不出现在任何一个前端地址里。
     //
     //   反过来的写法(服务端先 list/HEAD 一下再决定画什么)会给【每一页、
     //   每一个人、每一次加载】加一趟往返 —— 为一件装饰品。而且它并不更可靠:
@@ -191,12 +195,9 @@ export default async function TopNav() {
     //   没有它时大家取的是同一个规范地址,缓存正常工作;有它时本人立刻看到新图 ——
     //   而"立刻"正是换了头像的人唯一在意的那一秒。完整理由在 lib/avatar.ts。
     const avatarVersion = (await cookies()).get(AVATAR_VERSION_COOKIE)?.value ?? null
-    const avatarBase = supabase.storage
-        .from(AVATAR_BUCKET)
-        .getPublicUrl(avatarObjectName(user.id)).data.publicUrl
     const avatarUrl = avatarVersion
-        ? `${avatarBase}?v=${encodeURIComponent(avatarVersion)}`
-        : avatarBase
+        ? `${AVATAR_ROUTE}?v=${encodeURIComponent(avatarVersion)}`
+        : AVATAR_ROUTE
 
     // ★【未读数在这里【只算一次】】★ 头像徽标与菜单行尾画的是同一个值。
     // 【user.id 传进去,不让它自己再问一遍 auth】理由写在 getUnreadCount 的抬头:

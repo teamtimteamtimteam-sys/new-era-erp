@@ -257,9 +257,15 @@ BEGIN
     r := r || jsonb_build_object('D1_no_licence_refused', true);
 
     -- D2:有号、但 status IS NULL —— 【没有人说过】不是 active
+    -- ★【COD-2 改了这一行的两个日期,而那不是化妆】★ 原来写的是
+    --   valid_from = CURRENT_DATE - 1,而这几票货的加工完成日是 CURRENT_DATE - 10
+    --   —— 也就是说这份 fixture 自己的前提是【一张在货物加工完之后才生效的执照】。
+    --   COD-1 的闸不看日期,所以它一路绿;COD-2 的闸两端都看,于是它当场变红
+    --   (COD_LICENCE_NOT_YET_IN_FORCE)。**变红的是前提,不是被测的规则。**
+    --   按 README 第 5 条(前提要显式设定)把有效期设成真的盖住完成日。
     RESET ROLE;
     INSERT INTO company_compliance (cert_type_code, cert_no, issuing_body, status, valid_from, valid_until)
-    VALUES ('gwdf', 'FX195-GWDF', 'NEA', NULL, CURRENT_DATE - 1, CURRENT_DATE + 365)
+    VALUES ('gwdf', 'FX195-GWDF', 'NEA', NULL, CURRENT_DATE - 400, CURRENT_DATE + 365)
     RETURNING id INTO v_lic;
     EXECUTE 'SET LOCAL ROLE authenticated';
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_issuer), true);
@@ -268,7 +274,12 @@ BEGIN
     IF v_err IS NULL THEN
         RAISE EXCEPTION 'D2 失败:status IS NULL 的执照行放行了签发 —— NULL 被读成了 active';
     END IF;
-    IF v_err NOT LIKE 'COD_LICENCE_NOT_RECORDED%' THEN RAISE EXCEPTION 'D2 失败:措辞是 "%"', v_err; END IF;
+    -- ★【COD-2:这一句拒绝换了名字,而【断言的东西一个字没变】】★
+    --   COD-1 只有一句 COD_LICENCE_NOT_RECORDED,它同时代表"没有行"与"行不合格"。
+    --   COD-2 把它拆成六句(补救的办法各不相同,所以名字必须各不相同),
+    --   而"有一行盖住了这一天、但它不是 active"这一种从此叫 COD_LICENCE_NOT_ACTIVE。
+    --   本臂要钉的仍然是那一句:**status IS NULL 是【没有人说过】,不是 active。**
+    IF v_err NOT LIKE 'COD_LICENCE_NOT_ACTIVE%' THEN RAISE EXCEPTION 'D2 失败:措辞是 "%"', v_err; END IF;
     r := r || jsonb_build_object('D2_null_status_refused', true);
 
     RESET ROLE;

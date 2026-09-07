@@ -1464,6 +1464,21 @@ export type Database = {
           },
         ]
       }
+      cod_verification_failures: {
+        Row: {
+          failed_at: string
+          id: number
+        }
+        Insert: {
+          failed_at?: string
+          id?: never
+        }
+        Update: {
+          failed_at?: string
+          id?: never
+        }
+        Relationships: []
+      }
       collection_chase_documents: {
         Row: {
           chase_id: string
@@ -26605,6 +26620,8 @@ export type Database = {
         Args: { p_inbound_batch_id: string }
         Returns: Json
       }
+      cod_governing_licence: { Args: { p_completed_on: string }; Returns: Json }
+      cod_verification: { Args: { p_token: string }; Returns: Json }
       commit_pricing_terms: {
         Args: {
           p_formula_id: string

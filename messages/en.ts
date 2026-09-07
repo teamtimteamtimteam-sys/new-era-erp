@@ -5409,6 +5409,13 @@ const en = {
             COD_NOT_ISSUED: 'Certificate {0} has not been issued (it is {1}), so there is nothing to void.',
             COD_ALREADY_VOID: 'Certificate {0} is already void.',
             COD_LICENCE_NOT_RECORDED: 'No active waste-disposal licence is recorded, so no certificate can be issued. Record the licence number at {0}.',
+            // COD-2:执照有效期闸的五句新拒绝。补救的办法各不相同,所以名字各不相同。
+            COD_LICENCE_DATES_NOT_RECORDED: 'The waste-disposal licence {0} has no validity dates recorded, so it cannot be checked against the processing date. A blank date is not an open-ended licence. Record both dates at {1}.',
+            COD_LICENCE_NOT_ACTIVE: 'The waste-disposal licence covering that processing date is {0}, and its status is "{1}" — not active. No certificate can be issued under it.',
+            COD_LICENCE_EXPIRED: 'This delivery finished processing on {0}, after waste-disposal licence {2} expired on {1}. A certificate cannot state that the material was handled under a licence that had already lapsed.',
+            COD_LICENCE_NOT_YET_IN_FORCE: 'This delivery finished processing on {0}, before waste-disposal licence {2} took effect on {1}. Something is recorded wrong — check the arrival date and the licence dates.',
+            COD_LICENCE_PERIODS_OVERLAP: 'Two waste-disposal licences are both recorded as in force on {0}: {1}. One of them is recorded wrong; the system will not pick one for you.',
+            COD_COMPLETION_DATE_UNKNOWN: 'The processing completion date for this delivery cannot be worked out, so the licence cannot be checked against it.',
             COMPANY_LEGAL_NAME_MISSING: 'Your company has no legal name recorded, so nothing can be issued in its name. Fill it in at {0}.',
             SUPPLIER_NAME_MISSING: 'The delivery {0} has no supplier name, so the certificate would have no addressee.',
             REASON_REQUIRED: 'A reason is required.',

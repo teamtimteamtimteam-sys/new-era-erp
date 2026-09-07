@@ -345,6 +345,20 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 在这里设闸会把冲销闸死。EXECUTE 已从 authenticated 收回;它是本刀三支里
     # 唯一一个【动作】(另外两支只读),所以那次收回是真的堵了一个洞,不只是消一条告警。
     "void_cod_internal": "EXECUTE revoked from authenticated; the checked entry point is void_cod (action.issue_cod). This one exists because rollback_processing_run must void a certificate on behalf of a user who does not hold the issuing capability",
+    # ── COD-2(2026-09-08)────────────────────────────────────────────────────
+    # cod_governing_licence:在完成日当天在效的那一张 GWDF 执照。与
+    # cod_delivery_completion 逐字同一条理由 —— EXECUTE 已从 authenticated 收回
+    # (db/views/zzz_function_grants.sql),靠的就是【调不到】。它【不能】自己查权限:
+    # company_compliance 的 RLS 谓词借的是 module.suppliers.view,而仓储现场读不到
+    # 那张表却仍然被这道闸管着;加一道门等于让签发的人先要有查供应商的权限。
+    "cod_governing_licence": "EXECUTE revoked from authenticated; the licence predicate, called only by issue_cod and cod_certificate_data, both of which check action.issue_cod. It must be definer because company_compliance's RLS borrows module.suppliers.view, which the issuing role need not hold",
+    # ★ cod_verification:【本库唯一一支 anon 可执行的函数,而它没有调用者检查
+    #   是【正确的】】★ —— 它的"权限"就是【持有那个令牌】:122 位随机、与证书号
+    #   毫无关系、改一位数字得到的是一个不存在的值。一个匿名的核验入口若还要问
+    #   has_permission,它就永远回答不了任何人 —— 而核验页存在的全部理由,
+    #   正是让一个【不是本系统用户】的送料方查得到他手里那张纸。
+    #   它够得着的东西被【白名单】钉死(不是减法),而滥用被函数体内的失败预算限住。
+    "cod_verification": "the one anon-executable function in this schema, and deliberately unchecked: the caller's authority IS possession of a 122-bit verification token. Its reachable surface is an allowlist (not a subtraction) and its abuse budget lives in the function body",
     # C-1(2026-09-04):real_role_grants —— real_role_holders 的行级形状,四条判据的唯一住处。
     # 同源同理由:读 auth.users,EXECUTE 已从 authenticated 收回(zzz_function_grants.sql)。
     # 唯一调用方 guard_last_admin 是属主身份跑的触发器,收回之后照常工作。

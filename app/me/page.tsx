@@ -24,7 +24,7 @@ import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
 import { mustRows } from '@/lib/db-helpers'
 import AvatarPanel from './AvatarPanel'
 import { initialsOf } from '@/lib/initials'
-import { AVATAR_BUCKET, AVATAR_VERSION_COOKIE, avatarObjectName } from '@/lib/avatar'
+import { AVATAR_ROUTE, AVATAR_VERSION_COOKIE } from '@/lib/avatar'
 
 type MyKpiRow = {
     id: string; cycle_name: string; cycle_status: string; gate: string | null
@@ -85,15 +85,11 @@ export default async function MePage() {
     }
     const avatarIndeterminate =
         !meUser && (meAuthError as { name?: string } | null)?.name === 'AuthRetryableFetchError'
-    // 与顶栏【同一个地址】:同一个 lib/avatar.ts 拼的,同一个 cookie 挂的尾巴。
+    // 与顶栏【同一个地址】:同一个 lib/avatar.ts 给的常量,同一个 cookie 挂的尾巴。
+    // (COD-2:桶转私有之后,那个常量是 /me/avatar —— 地址里不再出现 uid。)
     const meAvatarVersion = (await cookies()).get(AVATAR_VERSION_COOKIE)?.value ?? null
     const meAvatarUrl = meUser
-        ? (() => {
-              const base = supabase.storage
-                  .from(AVATAR_BUCKET)
-                  .getPublicUrl(avatarObjectName(meUser.id)).data.publicUrl
-              return meAvatarVersion ? `${base}?v=${encodeURIComponent(meAvatarVersion)}` : base
-          })()
+        ? (meAvatarVersion ? `${AVATAR_ROUTE}?v=${encodeURIComponent(meAvatarVersion)}` : AVATAR_ROUTE)
         : null
     const avatarSection = meUser ? (
         <AvatarPanel

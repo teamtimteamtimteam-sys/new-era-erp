@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""db/gate.py — 合并后的数据库门(OPS-6):一次【本地】重建,两个判词。
+"""db/gate.py — 合并后的数据库门(OPS-6):一次【本地】重建,四个判词(COD-2 起)。
 
 此前是两个工具各干一半:check_mirrors 把 ~14,000 行重放整个运到线上的
 pooler 里跑(40+ 分钟,先后死于 DNS 与 socket 耗尽),verify_rebuild 在本地
@@ -20,6 +20,8 @@ pooler 里跑(40+ 分钟,先后死于 DNS 与 socket 耗尽),verify_rebuild 在�
   exit 4 = 行为断言失败(db/fixtures/*.sql —— 建出来的库跑起来不对)
   exit 5 = 【够不到线上】本工具自身的环境故障 —— 不是仓库的毛病,原样重跑即可
            (VERIFY-1:此前它混在 2 里,见 db/verify_rebuild.py 抬头那一段)
+  exit 6 = 【匿名面】anon 够得着的东西不再是基线的子集(COD-2,db/check_grants.py)
+           —— 它【只在线上跑】,因为镜像里根本没有 GRANT,那正是它要补的缺口
 
 ════════════════════════════════════════════════════════════════════════════
 ★★【--offline 是【多出来的一相】,不是"门,但快一点"】★★(VERIFY-1,2026-09-05)
@@ -448,6 +450,24 @@ def check_grant_gaps(dsn: str) -> str:
     return psql(dsn, GRANT_GAP_SQL, statement_timeout="600s")
 
 
+def check_grants(dsn: str) -> tuple:
+    """COD-2:第四个判词【匿名面】。见 db/check_grants.py 抬头。
+
+    【为什么是一个独立脚本,而不是塞进 check_mirrors】ANON-0 的裁定:
+    check_mirrors 的整套安全论据建立在"把镜像重放进一个临时 schema、
+    整段回滚"上,而 GRANT 根本不是一个镜像问题 —— 镜像里【没有】GRANT,
+    那正是这个缺口本身。把一个只能对着线上跑、不重放的比较拴到它身上,
+    会削弱一个目前为真的抬头。
+
+    【它必须要线上,而且不装自己能离线跑】—— 所以 --offline 不跑它,
+    并且【说出来】,不是静静跳过。
+    实测耗时 87 秒(2026-09-08),其中大半是对 15 个桶各发一次匿名 HTTP。
+    """
+    p = subprocess.run([sys.executable, os.path.join(HERE, "check_grants.py"), "--dsn", dsn],
+                       capture_output=True, text=True)
+    return p.returncode, (p.stdout or "") + (p.stderr or "")
+
+
 def main() -> int:
     import argparse
     ap = argparse.ArgumentParser(description="一次本地重建,两个判词(镜像漂移 / 可重建性)")
@@ -691,6 +711,9 @@ def main() -> int:
             print("           吞错 · 币种写死 · definer")
             print("   ★ 没跑的(都需要线上,一件都没有被取消):种子行比对 · 生成类型 ·")
             print("     库级 GUC · 上面四项的【线上侧】· 科目 is_system 的线上核对。")
+            print("   ★ 判词【匿名面】(db/check_grants.py)【没有跑】—— 它【不可能】离线跑:")
+            print("     镜像里根本没有 GRANT,那正是它要补的缺口。一个离线版本会什么都")
+            print("     不断言却打印绿色,而那是本仓库反复付账的那种失败。")
             print("   ★★ 迁移之后必须再跑一次不带 --offline 的整门。★★")
             if problems or fixture_fails or invariant_failed:
                 if fixture_fails:
@@ -728,6 +751,19 @@ def main() -> int:
                 print("   " + f)
             return 4
         print("判词【行为断言】:✓ db/fixtures 全部通过(建出来的库跑起来是对的)")
+
+        # ── 判词四:匿名面(COD-2)──────────────────────────────────────────
+        # 【它排在最后,而且【只在线上跑】】—— 见 check_grants() 的注释。
+        # 退出码 6 是它自己的:"anon 够得着的东西变多了"与"镜像漂了"是两种病、
+        # 两种药,和本文件抬头那条"两个判词分开报"逐字同源。
+        grants_rc, grants_out = check_grants(args.live)
+        for line in grants_out.rstrip().split(chr(10)):
+            print("   " + line if not line.startswith("==") else line)
+        if grants_rc == 5:
+            print("判词【匿名面】:够不到线上 —— 环境故障,原样重跑即可")
+            return 5
+        if grants_rc != 0:
+            return 6
         return 0
     finally:
         subprocess.run(["pg_ctl", "-D", datadir, "stop", "-m", "immediate"], capture_output=True)
