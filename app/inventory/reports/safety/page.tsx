@@ -42,7 +42,7 @@ export default async function SafetyPage() {
             title={t('reports.safety.title')}
             intro={t('reports.safety.desc')}
             actions={
-                <div className="flex gap-2 shrink-0">
+                <div className="flex gap-2">
                     <Button asChild variant="outline" size="sm">
                         <a href="/inventory/reports/safety/export">{t('reports.csv')}</a>
                     </Button>

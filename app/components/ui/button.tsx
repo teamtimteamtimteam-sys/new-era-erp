@@ -61,8 +61,35 @@ const buttonVariants = cva(
           "border-destructive/40 bg-destructive/8 pl-3.5 text-destructive-text hover:bg-destructive/16 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-full before:bg-destructive-text",
         // ── ★ 撤销档:虚线左竖条 —— 与破坏档【同位置、不同笔法】★ ───────────
         //    同一处几何,一实一虚:并排时不看颜色也分得开。
+        // ★★ BTN-6(2026-09-07):虚线竖条的颜色从【描边档】换成【字色档】★★
+        //   走查:「Remove lock 与 Turn GST off 的竖条一浅一深,后者几乎看不见」。
+        //   查下去,两件事都与走查说的不一样,而第二件是真的缺陷:
+        //   ① **不存在"两个定义"。** 全仓库 `repeating-linear-gradient` 只有这一处,
+        //      两个按钮走的是同一条规则。而「Turn GST off」**根本没有这条竖条** ——
+        //      它是 GstPanel 里一个不带 triggerVariant 的 <ConfirmButton>,
+        //      于是 confirm-dialog 渲染的是一个【裸 <button> + 手写 className】。
+        //      看起来像"浅得几乎没有"的那道线,是它自己的灰描边。
+        //   ② **而这一条竖条本身确实太浅,浅到不合格。** 它此前画的是
+        //      --brand-border-strong #AEBAC9 —— 一个【描边档】的值,白底 **1.97:1**。
+        //      而破坏档那条实线画的是 --brand-destructive-text #AA4F48,白底 **5.36:1**。
+        //   ☞ 这是本文件抬头那一课的第三次:**一个 token 在【它自己那个用法】里合规,
+        //     不等于换个用法还合规。** 前两次是"淡底上的字"与"没有底的档";
+        //     这一次是【一个描边值被派去承担一条语义信号】。
+        //     而 §10.1 ③ 说得很清楚:这条竖条是四档里**唯一不经过颜色**的判据 ——
+        //     把它画在描边的重量上,等于把唯一那条备用信道调到听不见。
+        //
+        //   【改成 currentColor,而不是新出一个 token】
+        //   破坏档的竖条 = 破坏档的字色(bg-destructive-text 就是它的 text 色)。
+        //   把同一条规矩套到撤销档上,答案就是它自己的字色 = currentColor
+        //   (--brand-text #182B4B,白底 **14.13:1**)。于是两档共用**一句话**:
+        //   **竖条画的是这一档自己的字色,笔法一实一虚。**
+        //   ★ 虚线只占一半的墨,所以 14.13 与实线的 5.36 在眼睛里量级相当,
+        //     不是"粗暴地加重"。
+        //   ★ 它还自动跟着状态走:禁用时字色变 --color-disabled-text,竖条跟着淡下去
+        //     —— 整个控件一起读成"关着的",不会剩一条亮线吊在那里。
+        //     行内档(下面 compoundVariants)也同样正确,不必再写一遍。
         reversal:
-          "border-input bg-transparent pl-3.5 text-foreground hover:bg-muted focus-visible:border-ring focus-visible:ring-ring/50 before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-full before:bg-[repeating-linear-gradient(to_bottom,var(--brand-border-strong)_0_3px,transparent_3px_6px)]",
+          "border-input bg-transparent pl-3.5 text-foreground hover:bg-muted focus-visible:border-ring focus-visible:ring-ring/50 before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-full before:bg-[repeating-linear-gradient(to_bottom,currentColor_0_3px,transparent_3px_6px)]",
         // ── 警告档:实心。不是主动作,是【系统在告诉你一件正在发生的事】────
         //    唯一用到 --brand-warning-* 的地方(闲置超时对话框)。出处见 brand-tokens.css。
         warning:

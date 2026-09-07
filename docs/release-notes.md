@@ -11,6 +11,67 @@
 
 ---
 
+## v1.4.6 — Tidier headings, and a few things that were quietly the wrong colour
+
+**2026-09-07.**
+
+> Nothing behaves differently in this release. Everything below is something you
+> will *see*, not something you have to do differently.
+
+---
+
+### Page headings
+
+* **On a narrow screen — a phone, or a small window — the buttons at the top of a
+  page now drop onto a second line instead of pushing the page sideways.** Before,
+  a page with several buttons in its heading could end up wider than the screen, so
+  you had to scroll left and right to read it.
+* **The exchange-rates page had its heading buttons spread across the width of the
+  page**, with one sitting against the title and the other pushed to the far right.
+  They are now grouped together at the right-hand end, in the same place and the
+  same order as every other list page: the secondary action first, the main one last.
+* **The supplier list has its two entry links back** — the one for contracts and the
+  one for commission agreements. They were removed shortly before the last release
+  because they made the page too wide on a phone. That has been fixed properly, so
+  they are back, and they now look like the buttons they always should have been.
+
+### Colours and shapes
+
+* **Buttons that undo something carry a dashed bar down their left edge, and that
+  bar was too faint to see.** It is now drawn in the same weight as the solid bar on
+  buttons that destroy something. The two are still told apart by the bar being
+  dashed rather than solid, not by colour — which is the point of having it.
+* **Nothing changed about which buttons carry that bar.** If a button had one
+  before, it has one now, and vice versa.
+* **On the receiving screens, the paragraph explaining how a storage location is
+  checked was printed in a warning colour.** It is not a warning — it just describes
+  what the check does — so it now reads as ordinary explanatory text. The real
+  warnings on that screen are unchanged and still stand out.
+* **"Add a licence" on the company licences panel now looks like a button**, because
+  that is what it is. It used to be styled as a plain link.
+* **The file-picker button is now the same on every screen that has one.** On one
+  screen it was near-black while everywhere else it was blue. Choosing and uploading
+  files works exactly as before.
+
+### Things that were checked and deliberately left alone
+
+* **The buttons that step a sales order through its stages stay full-width**, because
+  each one has a line underneath explaining what that step does, and the two are meant
+  to line up.
+* **The large buttons at the end of the field-receiving flow stay large**, because they
+  are sized to be tapped on a phone.
+* **The "Confirm & Post" button on a stocktake was reported as being full-width. It
+  is not** — it is an ordinary button, and on a narrow screen a long label simply
+  fills most of the line.
+* **Cancel and Save in a dialog were reported as having different corner roundings.
+  They do not** — they are identical. Smaller buttons elsewhere do use a slightly
+  smaller rounding, which is deliberate.
+* **On the finance settings page, the sentence about month-end close being the normal
+  way to lock periods is blue because the whole sentence is a link to the Close page.**
+  It is meant to look like a link.
+
+---
+
 ## v1.4.5 — Buttons, everywhere, and one real change to how deleting works
 
 **2026-09-07.**

@@ -121,30 +121,36 @@ export default async function SuppliersPage({
         <ListPage
             title={t('suppliers.listTitle')}
             actions={
-                <div className="flex items-center gap-3">
+                // BTN-6:这一层 `flex items-center gap-3` 撤了 —— 外壳的动作槽
+                // 现在就是 `flex flex-wrap items-center justify-end gap-3`,
+                // 逐字同一套值,再包一层只是把同一件事写第二遍。
+                <>
                     {/* ★【CONTRACT-1:合同登记簿的入口 —— 那一页建好时【没有任何入口】★
                         照 PARTY-1 的做法办:本仓库为「页面上线却走不到」付过两次账
                         (SAL-B6、FIX-1)。这条链接配一条冒烟可达性探针
                         (scripts/smoke-routes.mjs 里在 /suppliers 的 HTML 里找
                         /contracts)—— 把"我记得加了链接"换成机制。 */}
-                    {/* ★ BTN-5b:这一条【转过又退回来】—— 退回的理由是量出来的,不是口味:
-                        转成 outline/sm 之后 /suppliers 在 390px 上横向溢出 20px
-                        (探针点名的元凶就是这一行按钮,行宽 378 / 视口 390),
-                        而库按钮基础层带 shrink-0,压不扁 —— 与 BTN-3、BTN-5a
-                        踩过的是同一个失败形状。R10 的常设答复:退回这一处并报告,
-                        【不许】在调用点加包装层。两条入口链接一起退,因为裁定
-                        是把它们当一件事裁的。 */}
-                    <Link href={FN.contracts.href} className="text-sm text-blue-600 hover:underline">
-                        {t('contracts.entryLink')}
-                    </Link>
+                    {/* ★★ BTN-6(2026-09-07):这两条【第二次转,这次留下来了】★★
+                        BTN-5b 转过一次又退回来,理由是量出来的:转成 outline/sm 之后
+                        /suppliers 在 390px 上溢出 20px(元凶就是这一行,行宽 378 / 视口 390)。
+                        当时记的机制是「库按钮带 shrink-0,压不扁」——【那一半对,但不完整】:
+                        真正被夺走的是【折行能力】(nowrap + min-width:auto),
+                        而不是收缩能力;只拿掉 shrink-0 一个像素都不会动。
+                        BTN-6 因此不改按钮,改【行】:ListPage 的动作槽现在有自己的
+                        flex-wrap 容器(见 list-page.tsx 抬头),窄屏上这一行折到第二行。
+                        ☞ R10 那条「不许在调用点加包装层」仍然成立,而且正是靠它:
+                          修法留在外壳里,下一刀看得见;调用点这里一个包装层都没有。 */}
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={FN.contracts.href}>{t('contracts.entryLink')}</Link>
+                    </Button>
                     {/* ★【COMM-1:佣金协议的入口 —— 与上面那条逐字同一个理由】★ */}
-                    <Link href={FN.commissions.href} className="text-sm text-blue-600 hover:underline">
-                        {t('commissions.entryLink')}
-                    </Link>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={FN.commissions.href}>{t('commissions.entryLink')}</Link>
+                    </Button>
                     <Button asChild>
                         <Link href="/suppliers/new">{t('suppliers.addButton')}</Link>
                     </Button>
-                </div>
+                </>
             }
             state={{ kind: 'ok' }}
         >

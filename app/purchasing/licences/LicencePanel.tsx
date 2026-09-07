@@ -99,8 +99,20 @@ export default function LicencePanel({
         <div className="mb-6 rounded border border-[color:var(--brand-border)] p-4">
             <div className="mb-1 flex items-baseline justify-between">
                 <h2 className="font-semibold">{t('company.licence.title')}</h2>
+                {/* ★★ BTN-6/F5(2026-09-07):档位改了 —— 而【它本来就是库按钮,不是漏网的裸链接】★★
+                    走查把它记成「面板抬头里的一条裸链接,BTN-5b 漏了」。**源码里不是**:
+                    BTN-5b 已经把它转成了 <Button variant="link" size="inline">,
+                    它有 type="button"、有 onClick,是一个货真价实的库按钮。
+                    错的不是【转没转】,是【转成了哪一档】——
+                    它坐在面板抬头里(§1.6 的控件槽),该取描边档,不是行内档。
+                    ☞ 而这一处最值钱的不是修法,是它暴露的那件事:
+                      **本仓库没有任何一件仪器看得见「档位选错了」。**
+                      棘轮数的是"有没有用库"(它自己的抬头写着这句),
+                      探针比的是同一档之间几何一不一致 —— 一个坐在抬头里、
+                      却写成 link/inline 的按钮,在两者眼里都完全正常。
+                      这是那个盲区第一次被量到,记在 docs/base-components.md §十九。 */}
                 {canEdit && form === null && (
-                    <Button variant="link" size="inline" type="button"
+                    <Button variant="outline" size="sm" type="button"
                             onClick={() => { setForm({ ...EMPTY }); setError(null) }}>
                         {t('company.licence.add')}
                     </Button>

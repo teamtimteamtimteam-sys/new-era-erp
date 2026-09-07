@@ -190,8 +190,8 @@ function ImportWizard({
                            disabled={!table || done !== null || pending}
                            className="text-sm block w-full max-w-md border border-gray-300 rounded px-3 py-2
                                       bg-white disabled:bg-gray-100 disabled:text-gray-400
-                                      file:mr-3 file:rounded file:border-0 file:bg-gray-800 file:px-3
-                                      file:py-1.5 file:text-white file:text-sm" />
+                                      file:mr-3 file:rounded file:border-0 file:bg-blue-600 file:px-4
+                                      file:py-2 file:text-white file:text-sm hover:file:bg-blue-700" />
                     <p className="text-xs text-gray-500 mt-1">
                         {table ? t('import.oneFilePerTable') : t('import.pickTableFirst')}
                     </p>

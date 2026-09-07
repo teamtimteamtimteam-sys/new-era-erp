@@ -2209,3 +2209,235 @@ BTN-5a(`/finance/bank` 39 → 168)**是同一个失败形状,第三次**。
 | 390px:改动路由 | 90 条量到 | **89 条逐字未动 · 1 条退回后回到原值** |
 | `check-confirm-subject` | 52 | **52(未动)** |
 | 日历箭头的可访问名字 | **0** | **2(两种语言,走翻译机制)** |
+
+---
+
+## 十九 · ★ BTN-6(2026-09-07):动作槽的容器 · 走查七条 —— 以及【三条被量掉的前提】★
+
+本刀的产出里最值钱的不是修好的那几处,是**开工前量掉的三条前提**。
+委托书原稿点名七条走查发现,闸轮(grilling)之后 **F1 整条撤销、F3 三处里两处
+判为决定、F5 的病因换了一个、F7 一半判为本来就对**。
+「委托书里的数来自上一份报告,不是来自一次测量」这条法则,本刀是第四次命中。
+
+### 19.1 ★★ 判据:三个情形,原样抄进来 ★★
+
+> **WHETHER IT IS AN ACTION DECIDES IF IT BECOMES A BUTTON.**
+> **WHERE IT SITS DECIDES WHAT THE BUTTON LOOKS LIKE.**
+>
+> * A site in a dedicated control slot — an `actions=` prop, a toolbar row, a table
+>   actions column, a panel header, a standalone control row — takes a **bordered or
+>   filled tier**.
+> * A site inside running text or at the end of an information line takes
+>   **`variant="link" size="inline"`**: the button's weight and colour, no box.
+> * A **DISPLAY TOGGLE** — it changes only how much you see and has no other effect —
+>   **stays a LINK**, not a button.
+
+中文一句:**「是不是动作」决定它要不要变成按钮;「它坐在哪里」决定这个按钮长什么样;
+而【只改变你看见多少】的那一类根本不是动作 —— 它留在链接上。**
+
+★ 第三条是 Tim 在本刀的走查上裁的,例子是试算表上的「显示无发生额的科目」:
+它改变的只是有多少行被画出来,不改变任何东西的状态。
+§18.1 此前只有前两条,第三条到这一刀才补上 —— **而缺的那一条正是最容易被
+「它坐在控件槽里」误判成按钮的那一类。**
+
+### 19.2 ★★★ 本仓库【没有任何一件仪器】看得见「档位选错了」★★★
+
+**这是本刀最重要的发现,而它是被 F5 逼出来的。**
+
+走查把 `app/purchasing/licences/LicencePanel.tsx` 的「Add a licence」记成
+「面板抬头里的一条裸链接,BTN-5b 漏了」。**源码里不是那么回事:**
+BTN-5b **已经转过它**了 —— `<Button variant="link" size="inline" type="button">`,
+有 onClick,是一个货真价实的库按钮。错的不是【转没转】,是【转成了哪一档】。
+
+于是问题变成:**为什么没有任何东西发现它的档位不对?** 逐件问过:
+
+| 仪器 | 它问的问题 | 对「档位选错」说什么 |
+|---|---|---|
+| `check-component-library.mjs`(棘轮) | 有没有【用库】 | **一声不吭** —— 它自己的抬头就写着这句 |
+| `probe-button-tiers.mjs` L1 | 同一 (variant,size) 在不同页面之间几何一不一致 | **全绿** —— 它比的是【同档之间】,不是【选得对不对】 |
+| `probe-button-tiers.mjs` L6 | 同一 (variant,size) 的底色/字色逐字相同 | **全绿** —— 同上 |
+| `probe-button-tiers.mjs` RAWLINK | 还没转的按钮态链接【只许变少】 | **看不见** —— 它已经是库按钮了 |
+| `survey-linkbutton-ast.mjs`(本刀新建) | 还有多少按钮态 `<Link>`/`<a>` | **看不见** —— 同上 |
+
+> ★★ **一个坐在面板抬头里、却写着 `variant="link" size="inline"` 的按钮,
+> 在本仓库每一件仪器眼里都完全正常。** ★★
+> 档位由**人**评审,判据是 §19.1 那三条 —— 而 F5 是这个盲区第一处**量出来的**实例。
+
+**不要拿它当"再加一道闸"的理由。** §八 早就写明:「库里缺能力先加进库」那半条
+**没有机械特征**,而档位选得对不对是同一类东西 —— 一个坐在抬头里的 `link/inline`
+与一个坐在句子里的 `link/inline` 在语法树上一模一样,区别全在**它坐在哪里**,
+而那要读版式,不是读标签。**一个夸大自己的检查会被忽略,而被忽略的检查比没有更坏。**
+所以这里写下的是**盲区本身**,不是一道假装能看见它的闸。
+
+### 19.3 动作槽的容器 —— 以及 shrink-0 那条诊断【只对了一半】
+
+**记录在案的诊断(BTN-5b):**「库按钮基础层带 `shrink-0`,压不扁。」
+`shrink-0` 确实在(`button.tsx:63`),而**只把它拿掉,一个像素都不会变。**
+
+一个 flex item 要能变窄,**三件事都得成立**:
+
+| | 条件 | 基础层的实况 |
+|---|---|---|
+| ① | `flex-shrink ≠ 0` | `shrink-0` —— 挡住 |
+| ② | `min-width` 能低于 min-content | flex item 默认 `min-width:auto` —— 挡住 |
+| ③ | 字里有可断行的地方 | `whitespace-nowrap` —— 挡住,于是 min-content = 内边距 + **整条标签** |
+
+☞ 拿掉 ① 之后 ② 与 ③ 照旧,宽度纹丝不动。
+**而它取代的那个裸 `<Link>` 没有 nowrap** —— 它的 min-content 只是【最长的那个词】,
+所以它能折到第二行。**转换真正夺走的是折行能力,不是收缩能力。**
+
+**因此不改按钮,改【行】。** 让按钮可收缩 = 让它压扁或裁掉自己的标签,
+而 `survey-phone` 的 `clipped` 正是为抓这种事而存在的 —— 那会在某一刀之后
+变成一桩新悬案。让行折,则每个按钮保持自然宽度,溢出变成第二行。
+★ **`whitespace-nowrap` 与 `shrink-0` 对按钮都是对的,`button.tsx` 因此一个字没动。**
+
+**三次量出来的溢出,就是这条修法的证据:**
+
+| 刀 | 路由 | 溢出 |
+|---|---|---|
+| BTN-3 | 某一行 | +15 → +41 |
+| BTN-5a | `/finance/bank` | 39 → 168 |
+| BTN-5b | `/suppliers` | 0 → 20(两条链接因此退回) |
+
+#### 19.3a 【那个"共用容器"根本不存在】—— 而这是本刀改动的真正理由
+
+委托书问「修在共用的 ListPage 动作容器里,还是修在按钮里」。**实测:两个都不成立。**
+`actions` 是一个调用点自己传的 `ReactNode`,**外壳只是把它原样放进抬头行**。
+
+普查(TypeScript AST,`app/**/*.tsx`):**103 个 `<ListPage` 调用点 / 100 个文件,
+其中 47 个传了 `actions`,而它们用了 12 种互不相同的写法:**
+
+| 写法 | 处数 | 备注 |
+|---|---:|---|
+| 裸 `<Button>` | 24 | 直接成为抬头行的 flex item |
+| 三元表达式 | 5 | |
+| `<span/>` | 5 | 占位 |
+| `<div className="flex gap-2 shrink-0">` | 4 | ★ **那个 shrink-0 正好把折行堵死** |
+| `<div className="flex items-center gap-3">` | 2 | |
+| `<div className="flex flex-wrap items-center gap-3 justify-end">` | 1 | ★ 有人已经独立发现了正确形状 |
+| 裸 fragment `<>` | 1 | ★ **F4 的 `/finance/fx` 就死在这上面** |
+| `<div className="flex gap-3">` · `<div className="flex gap-2">` · `<Link>` · `<form>` · `<DeleteButton/>` | 各 1 | |
+
+**抬头行自己【早就】是 `flex flex-wrap`** —— 会溢出的从来不是它,
+**是调用点各自搭的那一层**。所以本刀建的不是"改一个共用容器",是**把那个
+一直被假设存在、其实不存在的容器建出来**:
+
+```jsx
+{actions && (
+    <div className="flex flex-wrap items-center justify-end gap-3">{actions}</div>
+)}
+```
+
+四处 `shrink-0` 一并撤掉(`/inventory/reports/{snapshot,ledger,safety,violations}`,
+四处形状逐字相同:两个 outline/sm 的 CSV / PDF 导出钮)。**逐个读过,
+没有任何一处的 `shrink-0` 有折行之外的理由。**
+
+#### 19.3b ★ 那条「基线参照会不会移位」的风险,是【量】掉的,不是【想】掉的
+
+抬头行是 `items-baseline`。此前一个裸 `<Button>` **自己**就是 flex item,
+标题与按钮按【按钮的基线】对齐;包一层之后 flex item 变成了那个 div。
+CSS 说 flex 容器的基线取自它第一个 flex item —— 也就是**应该**没有变化。
+**而"应该"不是一个测量结果**,所以本刀为它建了一支探针
+(`scripts/probe-header-baseline.mjs`,普查不是闸):
+用 `Range.getClientRects()` 取【标题文字】与【按钮标签文字】各自的墨迹盒,
+比 `delta = 标题墨迹底边 − 按钮墨迹底边`,两个宽度各量一遍。
+
+**结果(390 / 1280,改前 → 改后):**
+
+| 路由 | 形状 | 390 delta | 1280 delta | 抬头高 390 | 抬头高 1280 |
+|---|---|---|---|---|---|
+| `/materials` | 裸 `<Button>` | 2 → **2** | 2 → **2** | 35 → 35 | 35 → 35 |
+| `/sales/orders` | 裸 `<Button>` | 2 → **2** | 2 → **2** | 35 → 35 | 35 → 35 |
+| `/hr/departments` | 裸 `<Button>` | 2 → **2** | 2 → **2** | 35 → 35 | 35 → 35 |
+| `/purchasing/orders` | 裸 `<Button>` | −35 → **−35** | 2 → **2** | 72 → 72 | 35 → 35 |
+| `/inventory/reports/ledger` | 撤掉 shrink-0 的 div | 2 → **2** | 2 → **2** | 33.59 → 33.59 | 33.59 → 33.59 |
+| `/suppliers` | ★ 本刀转了两条链接 | −39 → −32.41 | 2 → **2** | 80 → 112 | 35 → 35.59 |
+| `/finance/fx` | ★ 本刀改了顺序 | 2 → −34.41 | 2 → **2** | 71 → 72 | 35 → 35.59 |
+
+★ **四条裸 `<Button>` 路由 + 那条撤掉 shrink-0 的,`delta` 与抬头高在两个宽度上
+逐字未变。那条风险的代价实测是零。**
+动了的两条正是**本刀故意改了内容**的两条(两条链接变成按钮 / 次主顺序对调),
+而它们在 1280 上 `delta` 仍然是 2 —— 变的是行高(390 上多折了一行),不是基线。
+
+### 19.4 走查七条 —— 逐条,连同【它的源码实际是什么】
+
+| | 走查说 | 源码实际 | 处置 |
+|---|---|---|---|
+| **F1** | Cancel 的圆角明显比 Save 大(新建任务对话框) | **两个都是 `size="default"` → 都是 `rounded-lg`,没有任何 className 覆盖。** 真正按轴分档的是**尺寸**不是**档位**:default/lg/icon/icon-lg = `rounded-lg` 8px;sm/xs/icon-sm/icon-xs = `min(--radius-md,12px\|10px)` 6px;inline = `rounded-sm` 4px | ★ **NOT-REPRODUCED,整条撤销。** 小控件配小圆角是光学惯例,不是缺陷;把 6 与 8 抹平是一次没人要求过的全系统视觉改动。**记在这里是为了不让下一刀再开一次。** |
+| **F2** | 文件选择器有**三种**画法 | **两种,八处。** `file:bg-blue-600` ×7、`file:bg-gray-800` ×1(`/settings/import`)。走查数的是三个**页面**,不是三种画法 | 把那一处并进多数派。**行为一个字没动**(`file:` 只画浏览器自带的那个钮) |
+| **F3** | 三处整宽按钮 | **两处是决定,一处不复现。** ① `sales/orders/[id]/TransitionPanel.tsx:57` 每个状态迁移住在 `flex-1 min-w-[14rem]` 里、**底下压着一句后果说明**,`w-full` 正是让钮与说明共用一条右边界;② `inbound/receive/done/[id]/page.tsx` 是 `w-full min-h-[48px]` —— **48px 是触控目标下限**,给手机上的收货员用的;③ 盘点的「Review & Post」**源码里根本没有 `w-full`**(`PostButton` → `ConfirmButton`,不带 className) | **三处一处都不改。** 强行"给它自然宽度"会**退化**掉本刀正在量的那件事(手机可用度) |
+| **F4** | FX 抬头摊成三段,顺序也反了 | **结构性的**:`actions` 传的是**裸 fragment**,于是两个钮直接成了 `justify-between` 抬头行的 flex item,被摊成左/中/右 | 容器(19.3a)把它结构性地修掉;顺序改回**次要在前、主要在后**;`ml-3` 撤掉(它是没有容器时顶间距的补丁,容器的 `gap-3` 正好同值) |
+| **F5** | 面板抬头里的裸链接,BTN-5b 漏了 | **已经是库按钮,档位选错了** —— 见 §19.2 | 改 `outline`/`sm`;**真正的产出是 §19.2 那条盲区** |
+| **F6** | 「Remove lock」与「Turn GST off」都带虚线竖条,而两条粗细不一 | **两件都与走查说的不同:①【不存在两个定义】**,全仓库 `repeating-linear-gradient` 只有 `button.tsx:65` 一处;**②「Turn GST off」根本没有那条竖条** —— 它是 `GstPanel` 里一个**不带 `triggerVariant`** 的 `<ConfirmButton>`,`confirm-dialog` 于是渲染一个**裸 `<button>` + 手写 className**;看起来像"浅得几乎没有"的那道线是它自己的灰描边。**③ 而这条竖条确实太浅**:画的是 `--brand-border-strong` #AEBAC9,白底 **1.97:1**,而破坏档那条实线画的是 `--brand-destructive-text` #AA4F48,白底 **5.36:1** | 竖条改画 `currentColor`(撤销档的字色 `--brand-text` #182B4B,白底 **14.13:1**)。**两档从此共用一句话:竖条画的是这一档自己的字色,笔法一实一虚。** 虚线只占一半的墨,所以 14.13 与实线的 5.36 在眼里量级相当。**没有改任何一个按钮带不带这条竖条** |
+| **F7** | Finance Settings 那句话与 Field Receiving 那段都穿着状态色 | **Finance Settings:本来就对。** 整句话就是一个 `<Link href="/finance/close">`,它是蓝的**因为它是一条通往结账页的链接** —— 正是 F7 自己的 ★ 提醒不要压平的那一种。旁边真正的说明(`lockExplainer`)已经是 `text-gray-500`。**Field Receiving:真的,而且是琥珀不是红** —— `LocationPicker.tsx:33` 的 `text-amber-800` | Finance Settings **一个字不动**;`LocationPicker` 改成与它上一行同一个正文色。★ 那是**共用组件**(3 个调用点),按共享层的规矩量 |
+
+★ **F7 的 Finance Settings 那一半,还有一条【不许做】的理由值得写下来:**
+「只把『the Close page』做成链接、前半句留成散文」需要把一句话劈成两条 i18n 片段,
+而 `scripts/check-bilingual-concat.mjs` 正是为禁止这件事进的构建闸。
+**修法与一道常设的闸相撞时,先问那道闸为什么在。**
+
+### 19.5 那条独立的第二路,现在【进仓库了】
+
+§18.2 记着一张两条路的对照表、§18.3 还记着一张三行的故障注入表 ——
+**而那条 AST 路从来没有进过仓库。** 复查时 `scripts/` 里唯一用 TypeScript 编译器的
+是 `survey-cjk-strings.mjs`,干的是别的事。也就是说:
+
+> ☞ **BTN-5b 最核心的那句证据(「两条路逐条集合相等」)在本刀之前没有任何人能重跑。**
+
+**而那正是 BTN-5b 自己在修的那一类缺陷** —— 一次跑完就扔掉的校对,与一次没做过的
+校对,在仓库里留下的痕迹完全相同。现在它是 `scripts/survey-linkbutton-ast.mjs`
+(**普查,不是闸**;退出 0 除非它自己崩)。判据与棘轮**逐字相同**;
+className 顺着语法树收(`+` 拼接因此不是需要特判的形状,而是二元表达式的普通一支)。
+
+**本刀实测,两条路:**
+
+| | 棘轮(路 A) | AST(路 B) |
+|---|---:|---:|
+| `<Link>`/`<a>` 开标签总数 | —— | **470 / 265 个文件** |
+| 按钮态链接 | **16 / 12** | **16 / 12** |
+
+**逐条集合相等,差集两边都是空。** 故障注入(同一文件三种写法:单行 `<a>`、
+多行 `<Link>`、`const` 拼接)—— 两条路**都各自 16 → 19,逐行点名同样三处**,
+棘轮退 1。还原用**文件复制**,还原后两条路都回到 16、棘轮退 0、`git status` 干净。
+
+### 19.6 本刀量过、并发现【为假】的断言
+
+按「委托书是一份待核对的清单」那条规矩,逐条列出:
+
+1. 「库按钮带 `shrink-0`,压不扁」—— **半真**。只拿掉它一个像素都不会变(§19.3)。
+2. 「修在共用的 ListPage 动作容器里」—— **假**,那个容器不存在(§19.3a)。
+3. 「F1:Cancel 圆角比 Save 大」—— **假**,两个都是 `rounded-lg`(§19.4)。
+4. 「F2:三种画法」—— **假**,两种、八处(§19.4)。
+5. 「F3:三处整宽」—— **一处不复现,两处是决定**(§19.4)。
+6. 「F5:BTN-5b 漏掉的裸链接」—— **假**,已经是库按钮,档位错(§19.2)。
+7. 「F6:两个定义要合并」—— **假**,只有一个定义;而「Turn GST off」没有竖条(§19.4)。
+8. 「F7:Finance Settings 是散文被涂成蓝色」—— **假**,它是一条真链接(§19.4)。
+9. 「独立的第二路」—— **不存在于仓库**,本刀重建(§19.5)。
+
+**量下来为真的:** F4 的机制(裸 fragment + `justify-between`)· F6 的竖条确实
+只有 1.97:1 · F7 的 Field Receiving 那一段确实是状态色而它不警告任何事 ·
+BTN-5b 那两条 `/suppliers` 链接确实被退回过。
+
+### 19.7 ★ 仪器的先后:冒烟【也】要跑在没有生产构建的树上
+
+BTN-6 的闸轮定下的顺序是:
+`干净树 → 手机普查(前) → 改 → npm run build → 门 + 冒烟 + 档位探针 → rm -rf .next → 手机普查(后)`。
+**落地时发现那一组里有一个放错了边:**
+
+| 仪器 | 起的是什么 | 对 `.next/BUILD_ID` 的要求 | 它自己拦不拦 |
+|---|---|---|---|
+| `survey-phone.mjs` | `next dev` | **必须不存在** | ✓ 存在就拒绝开跑(`:620`) |
+| `smoke-routes.mjs` | `next dev` | **必须不存在(同一个理由)** | ✗ **没有这道自检** |
+| `probe-button-tiers.mjs` | 生产构建 | **必须存在** | ✓ |
+
+`survey-phone` 抬头记着实测:`.next` 里有生产构建时,`next dev` 之下
+**16/16 条路由 HTTP 404**;`rm -rf .next` 之后 0 条。**冒烟起的是同一个 `next dev`,
+所以它有同一个前提 —— 而它没有那道自检。**
+☞ 于是本刀跑的顺序是:`build → 门 + 档位探针(要生产构建)→ rm -rf .next
+→ 冒烟 + 手机普查(都要干净树)`。**仍然只构建一次,仍然没有重叠**,
+只是把冒烟挪到了它前提成立的那一边 —— 这正是那条裁定自己写的判据
+(「每一件仪器都在它要求的树状态里」)。
+
+★ **`smoke-routes.mjs` 少一道 `.next/BUILD_ID` 自检,是一处登记在案的仪器缺口**
+(`BTN6-SMOKE-NO-BUILDID-GUARD`,见 forward-queue)。本刀没有加它 ——
+在一支刚被自己绊倒的流程里现写一道新检查,正是本仓库记过的「匆忙的检查者」形状。

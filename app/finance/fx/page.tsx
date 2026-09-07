@@ -173,16 +173,23 @@ export default async function FxRatesPage({
         <ListPage
             title={t('finance.fxTitle')}
             actions={
+                // ★★ BTN-6/F4(2026-09-07):这个抬头此前【摊开成三段】,而那是【结构性的】★★
+                //   原来这里是一个裸 fragment。fragment 不产生元素,于是这两个按钮
+                //   【直接成了抬头行的 flex item】—— 而抬头行是 `justify-between`,
+                //   三个 item(标题 + 两个钮)因此被摊成「左 / 中 / 右」:
+                //   「+ Add FX Rate」贴着标题,「Enter a week」被甩到最右边。
+                //   ☞ 那不是没对齐,是【没有容器】。ListPage 的动作槽现在自带一个
+                //     flex-wrap 容器(见 list-page.tsx),fragment 从此是安全的写法。
+                //   同时把顺序改回全站的形状:【次要在前,主要在后】——
+                //   /suppliers、/tools/pricing/metal-prices 都是这个次序,本页原先是反的。
+                //   `ml-3` 也一起撤掉:那是没有容器时用来顶开间距的调用点补丁,
+                //   现在间距由容器的 gap-3 给,而它正好是同一个值。
                 <>
+                    <Button asChild variant="outline" size="sm">
+                        <Link href="/finance/fx/bulk">{t('finance.fxPage.bulk.entryLink')}</Link>
+                    </Button>
                     <Button asChild>
                         <Link href="/finance/fx/new">{t('finance.fxPage.addButton')}</Link>
-                    </Button>
-                    <Button asChild variant="outline" size="sm" className="ml-3">
-                        <Link
-                            href="/finance/fx/bulk"
-                        >
-                            {t('finance.fxPage.bulk.entryLink')}
-                        </Link>
                     </Button>
                 </>
             }

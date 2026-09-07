@@ -30,7 +30,18 @@ export default function LocationPicker({ locations }: { locations: LocationChoic
                 消失 —— 现在它要防的是【反过来那个错觉】:闸落下了,于是看起来
                 像"分类被管住了"。管住的只有【新落地的货】,而三态里只有一态会
                 真的拒绝。存量冲突今天没有任何东西会说出来(归告警那一刀)。 */}
-            <p className="text-xs text-amber-800 mt-1">{t('stock.receiptLocationClassCheck')}</p>
+            {/* ★ BTN-6/F7(2026-09-07):这一段【不是警告】,所以不再穿警告的颜色。
+                它此前是 text-amber-800(走查读成"深红";实测是琥珀 800)。
+                而这段话陈述的是【选库位时会做什么检查】—— 它不警告任何事、
+                也不链接到任何地方,三态里还有两态是「只记不拒」。
+                一段永远在屏幕上的散文穿着状态色,会把状态色本身教成装饰,
+                于是真正的警告(上面 blockedCertExpired 那一条红框)就不再显眼。
+                改成与它上面那句提示【同一个】ordinary 正文色 —— 两句都是说明,
+                本来就该长一样。
+                ☞ 这是一处【共用组件】的改动:LocationPicker 有三个调用点
+                  (/inbound/receive · /inbound/new · /output/new),
+                  所以它按共享层的规矩量,不是只量走查点名的那一页。 */}
+            <p className="text-xs text-gray-500 mt-1">{t('stock.receiptLocationClassCheck')}</p>
         </div>
     )
 }

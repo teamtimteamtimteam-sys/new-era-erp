@@ -139,7 +139,46 @@ export async function ListPage({
             {breadcrumb && <div className="mb-6">{breadcrumb}</div>}
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
                 <h1 className="text-2xl font-bold">{title}</h1>
-                {actions}
+                {/* ★★ BTN-6(2026-09-07):动作槽【自己的容器】—— 这一层此前不存在 ★★
+
+                    【它修的是什么 —— 一个量了三次的失败形状】
+                    转换一条按钮态链接,会让那一行【压不扁】,于是整页在 390px 上横向溢出:
+                        BTN-3    某一行 +15 → +41
+                        BTN-5a   /finance/bank  39 → 168
+                        BTN-5b   /suppliers      0 → 20 —— 两条链接因此被退回
+                    BTN-5b 记的机制是「库按钮基础层带 shrink-0,压不扁」。**那一半对,但不完整。**
+                    一个 flex item 要能变窄,三件事都得成立:flex-shrink≠0、min-width 能低于
+                    min-content、字里有可断行的地方。基础层同时还带着 `whitespace-nowrap`,
+                    而 flex item 的 min-width 默认是 auto —— 于是 min-content = 内边距 + 【整条标签】。
+                    ☞ **只把 shrink-0 拿掉,一个像素都不会变。** 它换来的能力被后两条挡死了。
+                    而它取代的那个裸 <Link> 没有 nowrap,min-content 只是【最长的那个词】,
+                    所以它能折到第二行 —— **转换真正夺走的是折行能力,不是收缩能力。**
+
+                    【所以修在哪一层:不修按钮,修那一行】
+                    让按钮可收缩 = 让它把自己的标签压扁或裁掉,而 survey-phone 的 `clipped`
+                    正是为了抓这种事而存在的 —— 那会在某一刀之后变成一桩新悬案。
+                    让【行】折,则每个按钮保持它自然的宽度,溢出变成第二行,
+                    而那正是一个人在手机上预期会发生的事。
+                    ★ 因此 button.tsx 一个字都没动:whitespace-nowrap 与 shrink-0 对按钮都是对的。
+
+                    【为什么这一层是新建的,而不是"改一下既有的共用容器"】
+                    **既有的共用容器根本不存在。** 103 个 ListPage 调用点里 47 个传了 actions,
+                    而它们用了【12 种互不相同的写法】:裸 <Button>(24)· 三元(5)· <span/>(5)
+                    · `flex gap-2 shrink-0`(4,那个 shrink-0 正好把折行堵死)· `flex items-center gap-3`(2)
+                    · 裸 fragment(1,F4 的 /finance/fx 就死在这上面)· 还有 <form> / <Link> / …
+                    抬头行自己【早就】是 flex-wrap 了 —— 会溢出的从来不是它,是调用点各自搭的那一层。
+                    ☞ 一层写在外壳里的容器,把 47 处各写一遍的东西收成一处,
+                      并且让「动作行在窄屏折行」变成【外壳的性质】,不是每个调用点要记得的事。
+
+                    【裸 fragment 为什么必须靠这一层才修得掉】
+                    fragment 不产生元素,于是它的两个按钮【直接成了抬头行的 flex item】,
+                    被 justify-between 摊开:标题在左、一个按钮在中间、另一个甩到最右。
+                    那不是"样式没对齐",那是**结构决定的**——见 F4。
+
+                    【它不动任何不传 actions 的调用点】56 个不传的,渲染结果一个字节没变。 */}
+                {actions && (
+                    <div className="flex flex-wrap items-center justify-end gap-3">{actions}</div>
+                )}
             </div>
             {intro && <p className="mb-4 text-sm text-gray-600">{intro}</p>}
 

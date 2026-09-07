@@ -54,7 +54,7 @@ export default async function LedgerPage({
             title={t('reports.ledger.title')}
             intro={t('reports.ledger.desc')}
             actions={
-                <div className="flex gap-2 shrink-0">
+                <div className="flex gap-2">
                     <Button asChild variant="outline" size="sm">
                         <a href={`/inventory/reports/ledger/export?${qs}`}>{t('reports.csv')}</a>
                     </Button>
