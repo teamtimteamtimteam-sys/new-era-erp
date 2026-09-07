@@ -162,8 +162,23 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                     {pending ? t('common.saving') : t('common.save')}
                 </Button>
 
+                {/* ★★【MANUAL-FIX-1 F:这个钮从【撤销档】换成【破坏档】】★★
+                    Tim 在本刀的闸上推翻了他自己委托书里那条「软删 → 虚线条正确」:
+                    **档位由【人能不能撤回】定,不由【行怎么存】定。**
+                    · softDeleteRole 确实只写 deleted_at + is_active=false;
+                    · 但全仓库【没有任何一条恢复路径】(app/settings 里 restore /
+                      undelete / deleted_at: null 三个写法各零处),而
+                      app/settings/deleted/page.tsx:44 把这条写成了成文的立场:
+                      「【永不提供恢复】…本页只读,连一个可写入口都没有。」
+                    · button.tsx 抬头那条判据也不是软硬,是【动词形状】:
+                      破坏档是 Delete/Void,撤销档是 Un-/Re-,而撤销档的定义是
+                      「不删任何东西,审计痕迹全留着」。这个钮写着 Delete,
+                      按下去每一个持有者【当场】失去这份权限(旁边那句
+                      deleteWarnHolders 就是在说这件事)。
+                    ☞ 画成虚线撤销档,等于教操作员「这一下可以撤回」——
+                      而那句话是假的。button.tsx:41:「一条被教错的规则比没有更坏。」 */}
                 {!isNew && !initial.is_system && (
-                    <Button variant="reversal" size="sm"
+                    <Button variant="destructive" size="sm"
                         type="button"
                         onClick={remove}
                         disabled={pending}>

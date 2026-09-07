@@ -28,6 +28,9 @@ type ExportRow = {
     created_at: string
     materials: { name: string } | null
     customers: { legal_name: string } | null
+    // MANUAL-FIX-1 E:状态字典的英文名(state 是它的外键)。可空 —— 一个
+    // 对不上字典的历史值不该让整份导出崩掉,那时退回存储值本身。
+    output_batch_states: { name_en: string } | null
 }
 
 // CSV 表头:用稳定、机器可读的英文。关联方名字摊平成 Material / Customer 列。
@@ -84,7 +87,8 @@ export async function GET(request: NextRequest) {
     const baseQuery = supabase.from('output_batches').select(`
         code, quantity, unit, remaining_qty, output_date, purity, state, status, notes, created_at,
         materials ( name ),
-        customers ( legal_name )
+        customers ( legal_name ),
+        output_batch_states ( name_en )
     `)
     const { data, error } = await applyOutputFilters(baseQuery, params, searchOr)
 
@@ -108,8 +112,19 @@ export async function GET(request: NextRequest) {
                 csvCell(r.remaining_qty),
                 csvCell(r.output_date),
                 csvCell(r.purity),
-                // state 导出规范存储值(机器可读),与 suppliers 导出 status 一致
-                csvCell(r.state),
+                // ★★【MANUAL-FIX-1 E:这里此前导出的是【存储值】,而存储值是中文】★★
+                //   output_batches.state 存的是 output_batch_states 的主键,
+                //   而那些主键是 `库存中` / `部分售出` / `已售罄`。屏幕上这一列
+                //   走 output.state.* 显示成英文,于是【同一块屏幕上的下载按钮】
+                //   给出的文件,英文读者一个字也读不懂。
+                //   ★ 旧注释写着「规范存储值(机器可读)」—— 那句话现在是错的,
+                //     所以它没有留下:**没有任何东西再把这份文件读回去**
+                //     (lib/importTables.ts 不收产出批次),它唯一的读者是人。
+                //     一条不再成立的理由留在注释里,比留在代码里更坏 ——
+                //     下一个人会相信它。
+                //   取的是字典表自己的 name_en,不是在这里手抄一份英文对照:
+                //   与 finance/gst 那份导出取 label_en 是同一条路子。
+                csvCell(r.output_batch_states?.name_en ?? r.state),
                 csvCell(r.status),
                 csvCell(r.notes),
                 csvCell(formatDate(r.created_at)),

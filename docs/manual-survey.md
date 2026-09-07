@@ -105,7 +105,24 @@ These are also **the only 9 routes with no capability guard** (the 8 above plus
 
 This is S1's highest-value finding for the manual. Strip the `[id]`, `new` and `edit` pages
 out of the 106 prefix-covered routes and **20 real features remain that no menu will ever
-show you**. A reader who does not already know they exist cannot find them.
+show you**.
+
+> ★★ **RE-MEASURED AND SOFTENED BY MANUAL-FIX-1 (2026-09-07).** The count of 20 is
+> confirmed exactly by independent re-derivation (199 routes − 84 registry hrefs = 115;
+> minus 8 public/personal pages and 4 `[id]` sub-actions = 20). **But the sentence that
+> stood here — *"A reader who does not already know they exist cannot find them"* — is too
+> strong, and the manual must not inherit it.**
+> Every one of the 20 was checked for inbound links, and **every one of them has a visible
+> entrance on a page that is itself a menu entry**: eleven are `variant="outline"` buttons
+> in a parent page's `actions=` control slot, seven are titled-and-described cards on an
+> index page whose whole purpose is to list them (`/inventory/reports`, `/tools/pricing`),
+> five are tabs in a persistent sub-navigation strip (`/hr/leave`, `LeaveSubnav.tsx`), and
+> **one** — `/tools/pricing/metal-prices/bulk` — sits two levels down, which CONV-6 ⑧
+> decided deliberately and recorded as costing *"one extra click, not unfindable."*
+> So the honest finding is **not** "20 unreachable features" but **"20 features the module
+> menu does not list, each reached in one click from a page the menu does list."**
+> The manual's obligation is to name the parent page as the door, which it must do anyway.
+> The `/hr/leave` tab strip still deserves its own sentence, for the reason given below.
 
 | Route | Reached from | Note |
 |---|---|---|
@@ -607,6 +624,19 @@ repo cannot be in.
 | DB codes with a registered app-side handler | 689 | localised through the standard mechanism |
 | DB codes handled by a **hand-written `switch`** | 42 | ★ see below — works, but ungated |
 | DB codes with **no app reference at all** | **121** | if raised, the raw code reaches the screen |
+
+> ★★ **CORRECTED BY MANUAL-FIX-1 (2026-09-07) — there are FOUR, not three.**
+> The fourth is a **transport** path, which is why counting message mechanisms missed it:
+> a route handler that returns a refusal in the **HTTP response body**, and a client that
+> renders that body verbatim. `app/components/IssuePanel.tsx:73` does
+> `setError(await res.text())` and paints the result beside the Issue button — it is the
+> **only** place in the tree that renders a raw response body, verified across `app/` and
+> `lib/`. Six of the seven document routes behind it call `localize*Error(...)` first;
+> `app/purchasing/orders/[id]/pdf/route.ts` did not, so `record_po_issue`'s
+> `PERMISSION_DENIED|module.purchasing.edit` reached a person's screen as that literal
+> string. **Both halves are fixed in MANUAL-FIX-1** (the route now localises, and
+> `localizePurchasingError` gained the `PERMISSION_DENIED` branch that fourteen other
+> `*ErrorCodes.ts` files already had). The count below is otherwise unchanged.
 
 ★ **There are three refusal-localisation mechanisms, not one, and only the first is gated.**
 
@@ -1416,6 +1446,20 @@ Two kinds, by the `permissions.kind` column: `module.*` (what part of the system
 
 Note `module.logistics` has **view only** — there is no `module.logistics.edit`.
 
+> ★★ **MANUAL-FIX-1 (2026-09-07) — and until this cut the role screen did not say so.**
+> `PermissionMatrix.tsx` derived its module list from the middle segment of any `module.*`
+> code and then drew an Edit checkbox for **every** module unconditionally. Logistics
+> therefore carried a tickable Edit box for a capability that does not exist. Ticking it and
+> saving made `set_role_permissions` refuse the call with
+> `PERMISSION_NOT_FOUND|module.logistics.edit` — and because that RPC is all-or-nothing, the
+> refusal also discarded every other change in the same save, with nothing on screen saying
+> why. **No grant was ever silently lost: the refusal is total, never partial.**
+> Logistics is the only one of the 15 rendered modules missing an `.edit` code, so it was
+> the only fabricated tick. The cell now renders an em dash. The capability was **not**
+> created — `db/migrations/2026-09-01-navreg1-logistics-gets-its-own-code.sql:17-20` records
+> that logistics writes are deliberately gated on `module.purchasing.edit` and that casting
+> `module.logistics.edit` *"would be casting a dead code."*
+
 ### The 12 roles
 
 | Role code | English name | Capabilities | Holders | System | Active |
@@ -1453,8 +1497,20 @@ SELECT p.code FROM permissions p
 It is a real, working, fixture-tested capability (`db/functions/can_view_task.sql:14`,
 fixtures 92 and 95) meaning *"read other people's personal tasks"*. It is **also absent from
 the fresh-install bootstrap** (`db/tables/role_permissions.sql` has no line for it), so a new
-production system starts the same way. **Not a phantom** — an administrator can grant it
-through the interface. It is a decision nobody has made (Q3).
+production system starts the same way.
+
+> ★★ **CORRECTED BY MANUAL-FIX-1 (2026-09-07).** The sentence that stood here —
+> *"Not a phantom — an administrator can grant it through the interface"* — **was wrong**,
+> and the manual would have inherited it as an instruction. **No screen renders this
+> capability at all, so nobody can grant it through the interface.** Its `category` is
+> `'module'` (`db/tables/permissions.sql:80`), so `PermissionMatrix.tsx` sweeps it out of
+> the data/action list (`permissions.filter((p) => p.category !== 'module')`) while the
+> module matrix draws only `.view` and `.edit` columns — `.view_all` falls between the two
+> and is drawn by neither.
+> **This was deliberately left unfixed.** Tim ruled at the MANUAL-FIX-1 gate that nobody,
+> including an administrator, may read another person's private tasks — so the interface
+> being unable to grant it *matches* the ruling. Registered in `docs/forward-queue.md`.
+> It is no longer "a decision nobody has made" (Q3): the decision is made, and it is *no*.
 
 **2 · `admin` holds 38 of 39** — the missing one is exactly the above.
 
@@ -1599,6 +1655,26 @@ display column (`name_en`: `In stock` / `Partially sold` / `Sold out`), reached 
 *"state 导出规范存储值(机器可读)"*. The default on the create form is the literal `'库存中'`
 (`app/output/new/actions.ts:34`, `NewOutputForm.tsx:184`).
 
+> ★★ **FIXED IN MANUAL-FIX-1 (2026-09-07) — the export half only.** The route now embeds
+> `output_batch_states ( name_en )` and writes that, falling back to the stored value if a
+> row does not match the dictionary. The *"machine-readable"* comment was **removed, not
+> just overridden**: nothing re-imports this file (`lib/importTables.ts` does not carry
+> output batches), so its only reader is a person, and a stale rationale in a comment is
+> worse than one in code because the next person believes it.
+> **The stored values, the create-form default and the state dictionary are untouched** —
+> that is still the six-place change the mirror describes, and it is still not done.
+> **Q4 below is therefore answered for the export and still open for the storage.**
+>
+> ★ **A SECOND INSTANCE, FOUND WHILE SURVEYING FOR MORE AND NOT FIXED.**
+> `inbound_batches.stage` has the identical shape: it stores `待加工` / `加工中` /
+> `已加工完` (`db/tables/inbound_batches.sql:41-42`, a CHECK not a dictionary table), the
+> screen shows *To Process / Processing / Processed* via `app/inbound/options.ts:8-10`, and
+> `app/inbound/export/route.ts` writes `csvCell(r.stage)` raw. **It was not fixed here
+> because it is not the same one-line shape:** `output_batches.state` has a dictionary table
+> with a `name_en` column to read from, and `inbound_batches.stage` has none — fixing it
+> means either adding a dictionary (a migration) or hard-coding English in a route, and
+> that is a choice, not a repair. Registered in `docs/forward-queue.md`.
+
 **Consequence for an English-only manual:** the screen says *In stock*, and the file the
 reader downloads from the same screen says *库存中*. The manual cannot quote one string for
 both. This needs Tim's ruling (Q4). The mirror's own header notes changing the codes would
@@ -1713,6 +1789,15 @@ Reported, not fixed — this cut is read-only. See Q2.
 Not triaged. Each carries a recommended answer and its evidence, per the brief.
 
 ### Q1 ★ — Contracts: a menu entry to a page nothing can fill. Which way does it go?
+
+> ★ **STILL OPEN AFTER MANUAL-FIX-1 (2026-09-07) — nothing below has changed.** That cut
+> re-verified the finding (the only `contracts` database access in the whole application is
+> the single `SELECT` at `app/contracts/page.tsx:63`; no insert exists anywhere) and then
+> **stopped at its own gate without building the creation door**, because a question has to
+> be answered first: `link_document_to_contract.sql:58` refuses unless the contract is
+> `active`, a contract is born `draft`, and **no function in `db/functions` writes
+> `contracts.status` at all**. A contract created under the cut's scope fence could
+> therefore never have a document attached to it. See `docs/forward-queue.md`.
 
 **Evidence.** `/contracts` is a nav entry (`lib/modules.ts`, gated `module.suppliers.view`).
 `app/contracts/` has no `actions.ts` and no write call. No `INSERT INTO contracts` exists in

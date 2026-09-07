@@ -476,6 +476,10 @@ const en = {
         roles: 'Roles',
         safety: 'Safety stock',
         scale: 'Rating scale',
+        // ★ MANUAL-FIX-1 C:「KPI 打分」从注册表条目变成了普通路径段
+        //   (它搬去 /hr/kpi 页上当入口了),所以面包屑问不到注册表要名字 ——
+        //   与上面 metal-prices 那一条同一个来历、同一个修法。
+        score: 'Scoring',
         snapshot: 'Snapshot',
         statements: 'Statements',
         types: 'Types',
@@ -1142,6 +1146,12 @@ const en = {
     },
     permissions: {
         title: 'Permissions',
+        // ★ MANUAL-FIX-1 F:角色那两屏编辑的是【一个角色】—— 它的码、双语名、
+        //   描述与启用位 —— 而它们此前都顶着 `title`(「Permissions」)。
+        //   那是【设置区】的名字,四张列表/速查屏用它是对的;这两张不是。
+        //   实测过它有多能骗人:走查把角色编辑屏认成了权限速查屏,
+        //   而两屏当时顶着同一个大标题。
+        roleTitle: 'Role',
         denied: 'You do not have permission to manage permissions.',
         deniedHint: 'This page needs action.manage_permissions. Ask a system administrator to grant it.',
         subnav: { users: 'Accounts', roles: 'Roles', reference: 'Permission reference' },
@@ -1201,6 +1211,9 @@ const en = {
         module: 'Module',
         view: 'View',
         edit: 'Edit',
+        // ★ MANUAL-FIX-1 A:目录里没有 module.<模块>.edit 的那一行,Edit 那一格
+        //   画一条短横并挂上这句话,而不是画一个勾得上、存不下的框。
+        noEditCapability: 'This module has no separate edit permission — its View permission is the whole of it.',
         editRequiresViewHint: 'Edit requires View: a role that can change records but not read them cannot save at all, because writes read the row back. Ticking Edit ticks View; unticking View unticks Edit.',
         dataAndActions: 'Data and action permissions',
         dataAndActionsHint: 'These cut across every module. Read what each one reveals before granting it.',
@@ -5018,6 +5031,12 @@ const en = {
             amendedSinceIssue: 'Amended since v{version} was issued — the supplier holds a document that no longer matches. Issue a new version to send the current terms. v{version} itself is unchanged: it is what was actually sent.',
             neverIssued: 'Never issued. What the supplier holds is a specific issued version — issue one before sending.',
             issuedAt: 'issued {at} UTC',
+            // ★ MANUAL-FIX-1 B:这一句取代此前摔到屏幕上的
+            //   `PERMISSION_DENIED|module.purchasing.edit`。它要说满两件事:
+            //   【做不成什么】(签发这张单)与【怎么才做得成】(找管理员要采购编辑权)。
+            //   中间那一句写的是【什么都没发生】—— 一个人看见红字时最先想知道的
+            //   是"供应商那边是不是已经收到半份东西了"。
+            issueRestricted: 'Issuing this purchase order as a PDF needs permission to edit purchasing, which you do not have. Nothing was issued and nothing was sent to the supplier. Ask a system administrator to grant you purchasing edit access.',
         },
         approvalNote: 'Orders are auto-approved for now. Two-level approval (requester to supervisor, escalating above the threshold) arrives with the Final Phase, bound to the role structure — not with the permissions system, which shipped already and governs module access rather than approval.',
         payDeposit: 'Record a payment',
@@ -5294,19 +5313,27 @@ const en = {
         },
     },
     traceability: {
-        title: 'Client audit report',
-        intro: 'Where this batch came from, and how it was made. Issue it as a PDF for a client or auditor.',
+        // ★★【MANUAL-FIX-1 G:这一族此前把对手方叫「client」,而全系统叫「customer」】★★
+        //   这不是大小写不一致(那 77 条不在本刀里),是**一个名字指错了主体**:
+        //   同一个 traceability 块里 issuesRestricted 早就写着 "a customer's hands",
+        //   而 title / intro / issuesNote / pdfTitle 四处写着 client —— 块内自相矛盾。
+        //   ★ pdfTitle 是【印在纸上、寄出门】的那一个,所以它是四处里最要紧的:
+        //     系统内部叫法不一致只是刺眼,印在交给客户的报告抬头上就是对外的。
+        //   ★ 中文那一侧【一个字都没动】:zh.ts 这一族全程用「客户」,
+        //     与 nav 的「客户」一致 —— 走偏的自始至终只有英文。
+        title: 'Customer audit report',
+        intro: 'Where this batch came from, and how it was made. Issue it as a PDF for a customer or auditor.',
         chainHeading: 'Ancestry',
         recoveryHeading: 'Metal recovery, per run and metal',
         issuesHeading: 'Issued reports',
         issuesNote:
-            'Preview renders from today\u2019s data and is not filed. Issuing stores those exact bytes and records a version \u2014 the copy the client holds is one specific version.',
+            'Preview renders from today\u2019s data and is not filed. Issuing stores those exact bytes and records a version \u2014 the copy the customer holds is one specific version.',
         previewPdf: 'Preview report',
         issuePdf: 'Issue report',
         neverIssued: 'Never issued.',
         issuesRestricted:
             'The issue log sits behind the sales and processing modules, and you have neither \u2014 so how many versions have gone out is not shown here. That is a permission answer, not a report that has never been issued. A copy may already be in a customer\u2019s hands.',
-        pdfTitle: 'Client audit report \u2014 {code}',
+        pdfTitle: 'Customer audit report \u2014 {code}',
         pdfBatchLabel: 'Batch',
         colStep: 'Step',
         colRun: 'Processing run',

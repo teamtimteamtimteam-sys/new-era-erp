@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabase/server'
 import PurchaseOrderDocument, { type PoDocData, pricingStatusText } from './PurchaseOrderDocument'
 import type { CompanyProfile } from '@/app/finance/invoices/[id]/pdf/InvoiceDocument'
 import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
+import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
 
 
 // 与发票同一套响应头转义(RFC 6266/5987)—— 文件名是拼进 HTTP 头的
@@ -164,7 +165,14 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     if (recErr) {
         // 记录失败 → 把孤儿对象清掉再报错:桶里不该留一份没有档案的"签发件"
         await supabase.storage.from('po-documents').remove([filePath])
-        return new NextResponse(recErr.message, { status: 409 })
+        // ★★【MANUAL-FIX-1 B:这里此前回的是引擎原文】★★
+        //   另外五条单据路由都在这一步 await localize*Error(...) 之后才回;
+        //   只有采购单这一条没有,而 IssuePanel 把响应体【原样】画在按钮旁边
+        //   (app/components/IssuePanel.tsx:73 的 setError(await res.text()))。
+        //   于是 record_po_issue 的 PERMISSION_DENIED|module.purchasing.edit
+        //   一路走到屏幕上,成了一串给人看的机器码。
+        //   ☞ 这一改【不动谁能签发】:被拒的还是同一批人,变的只是那句话。
+        return new NextResponse(await localizePurchasingError(recErr.message), { status: 409 })
     }
     const issued = rec as unknown as { version: number; code: string }
 

@@ -458,6 +458,8 @@ const zh = {
         roles: '角色',
         safety: '安全水位',
         scale: '评分量表',
+        // ★ MANUAL-FIX-1 C:见 en.ts 同处 —— 「KPI 打分」现在是普通路径段。
+        score: '打分',
         snapshot: '快照',
         statements: '对账单',
         types: '类型',
@@ -1150,6 +1152,8 @@ const zh = {
     },
     permissions: {
         title: '权限管理',
+        // ★ MANUAL-FIX-1 F:见 en.ts 同处。角色那两屏编辑的是一个【角色】。
+        roleTitle: '角色',
         denied: '你没有管理权限的权限。',
         deniedHint: '本页需要 action.manage_permissions,请让系统管理员授予。',
         subnav: { users: '账号', roles: '角色', reference: '权限速查' },
@@ -1204,6 +1208,8 @@ const zh = {
         module: '模块',
         view: '查看',
         edit: '编辑',
+        // ★ MANUAL-FIX-1 A:目录里没有这个码的模块,Edit 那一格画短横。
+        noEditCapability: '这个模块没有单独的编辑权限 —— 它只有「查看」这一档。',
         editRequiresViewHint: '编辑必须连同查看:只能改、不能看的角色【根本存不了】—— 写入要把数据读回来。勾"编辑"会自动勾上"查看";取消"查看"会一并取消"编辑"。',
         dataAndActions: '数据类与动作类权限',
         dataAndActionsHint: '这几条横切所有模块。授予之前,请先读清楚每一条到底会让人看见什么。',
@@ -4979,6 +4985,9 @@ const zh = {
             amendedSinceIssue: '自 v{version} 签发之后又改过 —— 供应商手里那份已经与现在这张单不一致。要把现在的条款发出去,请重新签发一版。v{version} 本身一字未动:它就是当时真的发出去的那份。',
             neverIssued: '从未签发。供应商手里那份应是某个具体的签发版本 —— 发出前先签发。',
             issuedAt: '签发于 {at}(UTC)',
+            // ★ MANUAL-FIX-1 B:见 en.ts 同处。三件事都要说到:做不成什么、
+            //   什么都没发生、怎么才做得成。
+            issueRestricted: '签发这张采购单的 PDF 需要【采购的编辑权限】,而你没有。什么都没有签发,供应商那边也没有收到任何东西。请让系统管理员授予你采购编辑权限。',
         },
         approvalNote: '当前自动通过。两级审批(发起人 → 主管,超过阈值再升一级)随【最终阶段】与角色结构一起启用 —— 不是随权限系统:权限系统已经上线,它管的是「谁能进哪个模块」,不是「谁批准这一单」。',
         payDeposit: '登记付款',

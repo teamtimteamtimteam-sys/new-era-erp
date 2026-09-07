@@ -41,7 +41,11 @@ export default async function RoleDetailPage({
 
     return (
         <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-4">{t('permissions.title')}</h1>
+            {/* ★ MANUAL-FIX-1 F:这一屏编辑的是【一个角色】,不是「权限」。
+                下面 PermissionMatrix 自己那个 <h2>「Permissions」是对的 ——
+                那一段【真的】在编授权;错的是顶上这一句,它此前把整屏
+                命名成了它其中一段的名字。 */}
+            <h1 className="text-2xl font-bold mb-4">{t('permissions.roleTitle')}</h1>
 
             <div className="mb-4">
                 <Link

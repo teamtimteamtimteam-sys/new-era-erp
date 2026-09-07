@@ -79,6 +79,21 @@ export async function localizePurchasingError(message: string): Promise<string> 
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
 
+    // ★★【MANUAL-FIX-1 B:PERMISSION_DENIED 此前【一条都没接】】★★
+    //   require_permission 抛的是 `PERMISSION_DENIED|<码>`,而它自己的抬头写着
+    //   这个码存在就是「for the app to localize」。本文件此前没有这一支,于是
+    //   它掉进下面那条 `return raw` —— 采购单签发被拒时,屏幕上出现的是
+    //   **PERMISSION_DENIED|module.purchasing.edit** 这一串原文。
+    //   仓库里另外十四个 *ErrorCodes.ts 早就各有这两行(assayErrorCodes.ts:30 起
+    //   写着同一条理由:「那不是错误,是这个人不该看见 —— 显示『受限』,
+    //   而不是把一串权限码摔到现场人员脸上」)。这里是漏掉的第十五个。
+    //   ★ 而它【不用 common.restricted 那个光秃秃的「Restricted」】:
+    //     那一个字既没说人做不成什么,也没说怎么才做得成。签发是一个
+    //     【会寄到供应商手里】的动作,拒绝它的那句话要把两件事都说出来。
+    if (match && match[1] === 'PERMISSION_DENIED') {
+        return (await getTranslations())('purchasing.doc.issueRestricted')
+    }
+
     if (!match || !PURCHASING_ERROR_CODES.has(match[1])) {
         return raw // genuine non-coded DB error → surface verbatim
     }

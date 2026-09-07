@@ -46,4 +46,4 @@ export const DEPTH_HISTOGRAM: Readonly<Record<string, number>> = {"0":1,"1":31,"
  * 面包屑里【注册表答不上来的那些段】。每一个要 messages/{en,zh}.ts 里一句
  * breadcrumb.<段>;少一句 `npm run build` 会红(check-i18n 的 MANIFEST 从这里现读)。
  */
-export const BREADCRUMB_SEGMENTS = ['amend', 'balances', 'bulk', 'calculator', 'calendar', 'cycles', 'done', 'edit', 'formulas', 'grants', 'holidays', 'import', 'ledger', 'metal-prices', 'new', 'overlap', 'receive', 'reconcile', 'safety', 'scale', 'snapshot', 'statements', 'types', 'violations'] as const
+export const BREADCRUMB_SEGMENTS = ['amend', 'balances', 'bulk', 'calculator', 'calendar', 'cycles', 'done', 'edit', 'formulas', 'grants', 'holidays', 'import', 'ledger', 'metal-prices', 'new', 'overlap', 'receive', 'reconcile', 'safety', 'scale', 'score', 'snapshot', 'statements', 'types', 'violations'] as const

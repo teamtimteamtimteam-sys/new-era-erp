@@ -551,10 +551,16 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/hr/training', navKey: 'hr.subnav.training', modules: ['hr'], permission: P_HR },
     { href: '/hr/reviews', navKey: 'hr.subnav.reviews', modules: ['hr'], permission: P_HR },
     { href: '/hr/kpi', navKey: 'hr.subnav.kpi', modules: ['hr'], permission: P_HR },
-    // C-2:月度录入那一屏。★挂在 module.hr.edit 上,不是 view★ —— 它整屏都是写入口,
-    //   而 auditor 只有 view:给他一个链接,通往一排会被 42501 掉的钮,是把拒绝
-    //   推迟到他点下去之后。页面自己也再判一次(registry 只是界面的门,RLS 才是那扇门)。
-    { href: '/hr/kpi/score', navKey: 'hr.subnav.kpiScore', modules: ['hr'], permission: 'module.hr.edit' },
+    // ★★【MANUAL-FIX-1 C:「KPI 打分」从菜单里撤走,改挂在 /hr/kpi 那一页上】★★
+    //   它是 /hr/kpi 的【子页】,不是它的同辈:路径上就差一段,而菜单把两者
+    //   并排画着,读起来像两件平级的事。全仓库只有两条这样的条目(另一条是
+    //   /finance/journal/new,那一条留给 Tim 裁,见本刀报告 5.3)。
+    //   ★ C-2 那条 module.hr.edit 的判据【原样保留】,只是搬了地方 ——
+    //     入口现在由 /hr/kpi 页上的 can('module.hr.edit') 决定画不画。
+    //     那条理由(「别把只有 view 的人领到一排会被 42501 的钮跟前」)
+    //     与它挂在哪里无关,所以它跟着条目一起搬,不跟着一起删。
+    //   ★ 判据②的前缀例外覆盖它:/hr/kpi/score 落在 /hr/kpi 之下,
+    //     所以撤掉这一条不会让 check-nav-routes 变红(它也不在 FN 映射里)。
     // CHART-1 ③:组织架构图。与其它 HR 页同一个判据 —— 它读的两张真源
     // (employees_masked / departments)本来就都由 module.hr.view 把门,
     // 另铸一个码会造出一个"进得去模块、进不去这一页"的洞(/margin 那一课)。

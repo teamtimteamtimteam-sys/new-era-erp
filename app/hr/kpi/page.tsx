@@ -11,12 +11,15 @@
 // 换成 DataTable。CONV-4 §⑨-1 在 gst/cashflow/packs 上用的是同一条切分。
 // ★ state 恒为 'ok' —— 卡片与名单在任何行数下都要画,走 empty 分支会把
 //   页顶那两句判据(orgWeightTotal / staffingGap)一起吞掉。
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
+import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { Button } from '@/app/components/ui/button'
 import KpiMatrixTable, { type KpiMatrixRow } from './KpiMatrixTable'
 
 type Org = {
@@ -61,6 +64,11 @@ export default async function KpiPage() {
 
     const orgTotal = orgs.reduce((s, o) => s + Number(o.weight_pct), 0)
 
+    // ★ MANUAL-FIX-1 C:打分屏的入口跟着 module.hr.edit 走 —— 与它从前作为
+    //   注册表条目时的门【逐字相同】(见 lib/modules.ts 那条 C-2 注释)。
+    //   只有 view 的人(auditor)照旧看不到这个入口。
+    const mayScore = await can('module.hr.edit')
+
     const matrixRows: KpiMatrixRow[] = matrix.map((m) => ({
         positionCode: m.position_code,
         positionTitle: m.position_title,
@@ -70,7 +78,22 @@ export default async function KpiPage() {
     }))
 
     return (
-        <ListPage title={t('kpi.title')} intro={t('kpi.what')} state={{ kind: 'ok' }}>
+        <ListPage
+            title={t('kpi.title')}
+            intro={t('kpi.what')}
+            state={{ kind: 'ok' }}
+            /* ★ MANUAL-FIX-1 C:「KPI 打分」此前是 HR 菜单上 KPI 的【同辈】,
+               而它是这一页的子页。判据 §19.1:它是一个动作,坐在控件槽
+               (actions=)里 —— 所以是一个【有边框的档】,与 /hr/reviews 顶上
+               那两个入口逐字同一档。C-2 那条 module.hr.edit 的门原样跟过来。 */
+            actions={
+                mayScore ? (
+                    <Button asChild variant="outline" size="sm">
+                        <Link href="/hr/kpi/score">{t('hr.subnav.kpiScore')}</Link>
+                    </Button>
+                ) : null
+            }
+        >
 
             {/* ── 组织记分卡 ─────────────────────────────────────────────── */}
             <h2 className="text-lg font-semibold mb-1">{t('kpi.orgTitle')}</h2>

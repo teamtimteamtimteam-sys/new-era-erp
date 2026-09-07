@@ -191,23 +191,46 @@ const REQUIRED_GROUPS = [
     { k: 'default/sm',         need: 2 },  // 批准 · 支付 · 开期 · 开评估周期
     { k: 'secondary/sm',       need: 2 },  // 筛选 · 驳回 · 预览 · 对话框取消
     { k: 'secondary/xs',       need: 2 },  // 逐行的编辑 / 标记已读
-    // ── ★ 撤销档的盒子形态:两处调用点,而线上只渲染得出一处 ──────────────
-    //   `/settings/roles/{id}/edit` 的 Delete(其实是 softDeleteRole)渲染得出;
-    //   `/hr/leave/{id}` 的 Cancel(其实是补一条等额 release)渲染不出 ——
-    //   ★ 实测:leave_requests 表里 pending 与 approved 【各 0 行】,
-    //     也就是"线上没有能渲染它的数据",与 BTN-3 的 reversal/inline 同一个理由。
-    { k: 'reversal/sm',        need: 1,
-      note: '两个调用点,而 leave_requests 的 pending/approved 各 0 行 —— 见 IDSRC roles;由 L2b 盒子两档同几何 兜住' },
+    // ══════════════════════════════════════════════════════════════════════
+    // ★★【MANUAL-FIX-1(2026-09-07):reversal/sm 从本表【撤下】,理由在这里】★★
+    // ══════════════════════════════════════════════════════════════════════
+    //   本条此前写着「两个调用点,而线上只渲染得出一处」,那两处是:
+    //     ① `/settings/roles/{id}` 的 Delete(softDeleteRole)—— 渲染得出,
+    //        它就是这一组唯一的取样来源;
+    //     ② `/hr/leave/{id}` 的 Cancel —— 渲染不出(leave_requests 的
+    //        pending / approved 各 0 行)。
+    //   **MANUAL-FIX-1 把 ① 改成了 destructive/sm**(Tim 在本刀闸上推翻了
+    //   「软删 → 撤销档」那条判据:档位由【人能不能撤回】定,而全仓库没有任何
+    //   一条恢复路径 —— 见 app/settings/roles/RoleForm.tsx 那段注释)。
+    //   于是 reversal/sm 在树上【只剩 ② 一个调用点,而它正是渲染不出的那一个】。
+    //
+    //   ☞ 处置与 destructive/sm 逐字同一条,而且是本文件已经用过三次的那一条:
+    //     **不把它留在表上让探针永久变红** —— 那是把"我看不见"伪装成"产品坏了";
+    //     **也不悄悄删掉** —— 一个消失的组合与一个绿掉的组合,退出码上是同一个字节。
+    //     它移进下面的 UNRENDERABLE 声明,连同理由一起在收尾里印出来,
+    //     并由【不需要线上数据】的那两条更强的断言承担:
+    //       · L2b —— destructive 与 reversal 的盒子形态同几何(只差实线/虚线);
+    //       · L4  —— 两档的 3px 左竖条与让位内边距都在库源码里,且一实一虚。
+    //   ★ 这个组合【没有死】:DecideControls.tsx:89 是一条真实可达的路径,
+    //     只要线上出现一条 approved 的请假单它就画得出来。缺的是数据,不是代码。
+    //   ★ 而它现在【只有一个调用点】,所以即便有数据也永远到不了 need:2 ——
+    //     这一点与 reversal/xs(客户联系人软删,天然只有一处)是同一种情形。
     { k: 'reversal/xs',        need: 1,
       note: '只有一个调用点(客户联系人的软删除),天然到不了 2;由 L2b 兜住' },
-    // ★★【destructive/sm 【故意】不在这张表上,而它不在的理由必须被读到】★★
-    //   它只有一个调用点(hr/reviews 的 Void,void_review),而**线上
-    //   performance_reviews 一行都没有** —— 实测 `status=neq.void` 返回 []。
-    //   于是它【任何取样都渲染不出来】,写进 REQUIRED_GROUPS 只会让这支探针
-    //   永久变红,而那是把"我看不见"伪装成"产品坏了"。
-    //   ☞ 处置与 BTN-3 对 reversal/inline 的处置同一条:**不降门槛,换一条
-    //     更强、而且不需要线上数据的断言** —— 见下面 L4(库源码层的左竖条判据)。
-    //   ★ 它在收尾里【连同理由一起印出来】,不是悄悄省掉的。
+    // ★★【MANUAL-FIX-1(2026-09-07):destructive/sm 【进】了这张表,而它是被
+    //     同一次改动【送进来】的 —— 这一条与上面 reversal/sm 那一条是一件事的两面】★★
+    //   它此前故意不在表上:唯一的调用点是 hr/reviews 的 Void(void_review),
+    //   而线上 performance_reviews 一行都没有(`status=neq.void` 返回 []),
+    //   于是任何取样都渲染不出来,写进来只会让探针永久变红。
+    //   ★ 现在它有【第二个调用点,而且那一个渲染得出来】:
+    //     `/settings/roles/{id}` 的 Delete 由 MANUAL-FIX-1 从 reversal 改成
+    //     destructive,而 IDSRC 的 `roles` 那一条本来就把这一页取进了样本。
+    //   ☞ 所以按本文件自己的规矩,覆盖率必须跟着变成一条断言:
+    //     一个【渲染得出却没有人守着】的组合,与一个绿掉的组合,退出码上
+    //     仍然是同一个字节。need:1 —— ReviewActions 那一处照旧渲染不出。
+    { k: 'destructive/sm',     need: 1,
+      note: 'MANUAL-FIX-1 之后有了一个渲染得出的调用点(/settings/roles/{id} 的 Delete);'
+          + 'hr/reviews 的 Void 那一处照旧渲染不出(performance_reviews 0 行)' },
     // ── ★ BTN-3c(2026-09-06):本刀唯一【全新】的组合 ────────────────────────
     //   实测:转换前树上 default/lg 的调用点是 **0 个**;转换后正好 2 个,
     //   两个都是本刀落地的整宽触控提交钮(收货 · 盘点)。一个组合从 0 变 2,
@@ -229,8 +252,22 @@ const UNRENDERABLE = [
     { k: 'destructive/sm', site: 'app/hr/reviews/ReviewActions.tsx:122',
       why: '★ 说准一点:【这个调用点】走不到 —— 线上 performance_reviews 0 行'
          + '(status=neq.void 返回空),那一页画不出这个钮。'
-         + '而【这个组合】是证过的:L2b 拿它与 reversal/sm 比过同几何(树里别处的调用点渲染了它)。'
-         + '☞ 缺的是"本刀这一处被求值过",不是"destructive/sm 这一档没被证过" —— 两句话不一样,别混着说' },
+         + '★ MANUAL-FIX-1 更正:此处旧文写着「L2b 拿它与 reversal/sm 比过同几何」—— '
+         + '**那句话是错的**:L2b 按 size 分组,而 sm 这一号从来没有同时取到两档,'
+         + '于是那一轮 `continue` 掉了(实测:L2b 只对 default 求过值)。'
+         + '☞ 这个【组合】现在由 /settings/roles/{id} 的 Delete 真的渲染并被量到,'
+         + '它已进 REQUIRED_GROUPS;这里留下的只是"本调用点走不到"这一件事' },
+    // ★★【MANUAL-FIX-1(2026-09-07)新增:reversal/sm 从 REQUIRED_GROUPS 移到这里】★★
+    { k: 'reversal/sm', site: 'app/hr/leave/[id]/DecideControls.tsx:89(/hr/leave/{id})',
+      why: '★ 它此前有两个调用点,而只有一个渲染得出 —— 就是 /settings/roles/{id} 的 Delete。'
+         + 'MANUAL-FIX-1 把那一处改成了 destructive(档位由【人能不能撤回】定,而这棵树上'
+         + '没有任何一条恢复路径),于是 reversal/sm 只剩下这一个调用点,'
+         + '而它要一条 approved 的请假单才画得出来 —— 实测 leave_requests 的 '
+         + 'pending / approved 各 0 行。'
+         + '☞ **缺的是数据,不是代码**:这条路径真实可达,线上一出现 approved 就画得出来。'
+         + '而【这个档】由两条不需要线上数据的断言承担:L2b(destructive 与 reversal 的盒子'
+         + '同几何,只差实线/虚线)与 L4(两档的 3px 左竖条与让位内边距都在库源码里)。'
+         + '★ 它也【天然到不了 need:2】—— 全树只此一个调用点,与 reversal/xs 同一种情形' },
     { k: 'default/xs', site: '5 处:MaintenancePanel:466 · AssetActions:143 · NodeTree:81 · NodeTree:144 · RetentionPanel:176',
       why: '五处【无一】在页面加载时存在:前四处要先点开一个面板/进入编辑态,'
          + 'RetentionPanel 那处要一张带质保金的采购单(实测该表在 PostgREST 里取不到)。'
@@ -414,7 +451,10 @@ try {
           q: '/rest/v1/roles?select=id&deleted_at=is.null&is_system=eq.false&limit=1',
           pick: (r) => r?.id,
           mk: (id) => `/settings/roles/${id}`,   // ★ 不是 /edit —— 那条路由不存在,第一版据此报了一次假红
-          why: 'reversal/sm —— 那处写着 Delete 而做的是 softDeleteRole(deleted_at + is_active=false)。'
+          why: '★ MANUAL-FIX-1(2026-09-07)之后这一页取的是 **destructive/sm**,不再是 reversal/sm。'
+             + '那处仍然写着 Delete、做的仍然是 softDeleteRole(deleted_at + is_active=false)——'
+             + '**改的是档位,不是行为**:全树没有任何一条恢复路径,所以"软删"对使用者不是可撤回,'
+             + '而档位是按【人能不能撤回】定的(见 app/settings/roles/RoleForm.tsx 那段注释)。'
              + '★ is_system=false:系统角色由 guard_system_role 挡着,那一页画不出这个钮' },
         { name: 'customer_with_contact',
           q: '/rest/v1/counterparty_contacts?select=customer_id&deleted_at=is.null&customer_id=not.is.null&limit=1',

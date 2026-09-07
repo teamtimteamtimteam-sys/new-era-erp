@@ -13,7 +13,9 @@ export default async function NewRolePage() {
 
     return (
         <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-4">{t('permissions.title')}</h1>
+            {/* ★ MANUAL-FIX-1 F:与 /settings/roles/[id] 同一处错,同一个修法。
+                只修其中一张会让新建与编辑两屏顶着不同的名字。 */}
+            <h1 className="text-2xl font-bold mb-4">{t('permissions.roleTitle')}</h1>
 
             <div className="mb-4">
                 <Link

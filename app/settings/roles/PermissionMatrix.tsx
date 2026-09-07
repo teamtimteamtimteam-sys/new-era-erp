@@ -52,6 +52,20 @@ export default function PermissionMatrix({
     const moduleMeta = (m: string) =>
         permissions.find((p) => p.code === `module.${m}.view`)
 
+    // ★★【MANUAL-FIX-1 A:Edit 那一格【只在目录里真有这个码时】才画】★★
+    //   此前这一列对每个模块【无条件】画一个勾选框,而模块清单是从任意
+    //   module.* 码的中段推出来的 —— 于是 module.logistics.view 让物流有了一行,
+    //   那一行的 Edit 框却对应着一个【不存在】的 module.logistics.edit。
+    //   勾上它再保存,set_role_permissions 会以 PERMISSION_NOT_FOUND 拒掉
+    //   【整次调用】—— 于是那一勾不只是没有生效,它还挡住了同一次保存里
+    //   其它所有改动,而屏幕上没有一个字说明为什么。
+    //   【不铸那个码,而是不画那一格】物流的写入【故意】挂在 module.purchasing.edit
+    //   上(db/migrations/2026-09-01-navreg1-logistics-gets-its-own-code.sql:17-20:
+    //   「铸一个没有任何策略引用的 module.logistics.edit,就是铸一个死码」)。
+    //   目录是迁移级的,界面【不该能凭空造码】—— 那正是那条 RPC 守卫的原话。
+    const catalogue = new Set(permissions.map((p) => p.code))
+    const hasEditCode = (m: string) => catalogue.has(`module.${m}.edit`)
+
     const others = permissions
         .filter((p) => p.category !== 'module')
         .sort((a, b) => a.sort_order - b.sort_order)
@@ -138,12 +152,21 @@ export default function PermissionMatrix({
                                     />
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-center">
-                                    <input
-                                        type="checkbox"
-                                        disabled={disabled}
-                                        checked={has(`module.${m}.edit`)}
-                                        onChange={(e) => setModule(m, 'edit', e.target.checked)}
-                                    />
+                                    {/* 目录里没有这个码 = 这个模块【没有】编辑这一档权限。
+                                        画一条短横而不是留空:空格读起来像"还没勾",
+                                        短横读起来像"这里没有这样东西"。 */}
+                                    {hasEditCode(m) ? (
+                                        <input
+                                            type="checkbox"
+                                            disabled={disabled}
+                                            checked={has(`module.${m}.edit`)}
+                                            onChange={(e) => setModule(m, 'edit', e.target.checked)}
+                                        />
+                                    ) : (
+                                        <span className="text-gray-400" title={t('permissions.noEditCapability')}>
+                                            —
+                                        </span>
+                                    )}
                                 </td>
                             </tr>
                         )
