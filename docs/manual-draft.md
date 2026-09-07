@@ -43,7 +43,7 @@ If your account holds no module permissions, the home page tells you that your a
 signed in, that no module has been granted to it, and to ask an administrator to assign you a
 role.
 
-**What is waiting for you is on Tools → Reminders**, not on the home page. That page gathers
+What is waiting for you is on **Tools → Reminders**, not on the home page. That page gathers
 every waiting signal across the modules you can reach.
 
 Immediately after you set your password for the first time you are taken to one of two places.
@@ -70,22 +70,22 @@ There is a bar of nine top-level modules across the top:
 A module name is a button that opens a menu. It is not itself a link, so clicking a module
 name never takes you anywhere on its own. The menu under it lists that module's pages.
 
-Six points about that menu will save you looking for pages in the wrong place.
+The menu behaves in six ways that are not obvious from looking at it.
 
-**A module opens if any single page under it opens for you.** There is no separate
+A module opens if any single page under it opens for you. There is no separate
 "can you enter this module" permission. If you hold only the stocktake permission, the
 Inventory menu opens and Stocktakes is clickable.
 
-**Entries you cannot open are shown, not hidden.** They are drawn as the entry's own name
+Entries you cannot open are still listed. They are drawn as the entry's own name
 followed by **· Restricted**, and hovering one shows *"Requires module access"*. A module you
 cannot enter at all is drawn the same way on the top bar. You can always see that a feature
 exists, whether or not you can use it.
 
-**A page can sit under more than one module.** Inbound appears under Purchasing, Inventory and
+A page can sit under more than one module. Inbound appears under Purchasing, Inventory and
 Operation. Output appears under Operation and Inventory. Commissions appears under Purchasing
 and Sales. Freight appears under Logistics and Finance. It is the same page in each case.
 
-**Finance is the only module with a third level.** Its menu is grouped: **Reports · Journal ·
+Finance is the only module with a third level. Its menu is grouped: **Reports · Journal ·
 Receivables · Payables · Period end · Configuration**, with Overview above the groups.
 
 **Some pages are not in any menu.** Twenty-one working pages have no menu entry of their own.
@@ -94,7 +94,7 @@ is named wherever the page is described. The full list is in section 3.10. The o
 hardest for is **Field Receiving**, where goods are received against a purchase order: it is a
 button on the Inbound page, not a menu entry.
 
-**Leave has its own tab strip.** The HR menu shows one entry, **Leave**. Inside that page a
+Leave has its own tab strip. The HR menu shows one entry, **Leave**. Inside that page a
 strip of six tabs — **Requests · Balances · Calendar · Annual operations · Leave types ·
 Public holidays** — leads to five more pages; Requests is the Leave page itself. The module
 menu gives no hint that they are there.
@@ -198,11 +198,11 @@ undo, it says so in those words.
 Permission in this system answers two different questions, and it answers them in two different
 ways.
 
-**Can you open this page?** If not, the page says so: *"You do not have access to this module.
+Can you open this page? If not, the page says so: *"You do not have access to this module.
 This is a permission answer, not an empty result — ask an administrator to grant you access to
 this module."* You never get an empty page instead.
 
-**Can you see this number?** A page you can open may still withhold particular values. The cell
+Can you see this number? A page you can open may still withhold particular values. The cell
 reads **Restricted**. It is never blank and never zero. The most common case is money:
 `data.view_prices` is a separate capability from any module, so a person can open the purchase
 order list, see every order and every quantity, and see **Restricted** where the amounts are.
@@ -274,13 +274,6 @@ Real work crosses modules. Receiving one lorry-load touches purchasing, inventor
 finance in a single afternoon. This part follows six pieces of work from beginning to end,
 across whatever modules they pass through. Part 3 is the place to look a single page up.
 
-Each process opens by naming the people involved. Each step then gives four things: which page
-it is on, what permission it needs, what happens if the step before it was skipped, and how to
-undo a mistake. Where a step has no undo, it says so in those words.
-
-Where a refusal is quoted, it is the sentence the screen shows, so that what is in front of you
-can be matched to the page.
-
 ## 2.1 Receiving a load into stock
 
 The people involved: whoever weighs and books in the load at the gate; whoever records the
@@ -334,7 +327,7 @@ unit price and stage.
 - **Undo:** the batch can be edited afterwards (**Edit Inbound**) for most fields. The unit
   price is not an ordinary field. See step 5.
 
-**What happens the moment you save.** The batch exists and the material is stock. The receipt
+What happens the moment you save. The batch exists and the material is stock. The receipt
 movement is written in the same act that creates the batch. Assay and pricing change what the
 batch is worth; they do not decide whether it is there.
 
@@ -399,7 +392,7 @@ landed cost cannot be totalled rather than showing a partial number.
 
 ### How to undo the whole thing
 
-**You do not undo a receipt.** The stock movement written when the batch was created cannot be
+**A receipt stands once it is written.** The stock movement written when the batch was created cannot be
 edited or removed. What you can do is delete the batch with a reason, which writes a write-off
 movement for whatever is left and marks the batch deleted, with your name and your reason on
 it. If material was received against the wrong supplier or the wrong material, that is the
@@ -439,8 +432,7 @@ existing orders receivable, and turning it off never retroactively approves anyt
 - **Permission:** `module.purchasing.edit`.
 - **Choose the kind first.** An order is either **Materials** or **Equipment**, never both. The
   rule is enforced when you submit, so choosing before you type saves the typing. Mixing them is
-  refused: *"One order is either all material or all equipment."* An order carrying both would
-  have an ordered quantity that adds kilograms to machines.
+  refused: *"One order is either all material or all equipment."*
 - **What is required:** an **Order date**, a supplier, a currency with an accepted FX rate, and
   at least one line. Refusals, by name: *"An order date is required — it decides which FX rate
   values the order"*; *"Add at least one line"*.
@@ -583,8 +575,7 @@ and a run does not have to have a plan behind it.
 - **Permission:** `module.processing.edit`.
 - **What you choose:**
   - **Work order (optional)** — only released orders are listed. Inputs are not prefilled from
-    the plan: a plan names materials, a run names batches, and a guessed batch would be a
-    plausible wrong answer.
+    the plan: a plan names materials and a run names batches.
   - **Operation** — the operation decides what the machine accepts. Some operations produce no
     new batch at all: the same batch goes in and comes out with its state changed.
   - **Process Date** — required. It decides the movement date and which metal prices the
@@ -663,7 +654,7 @@ Self-produced material faces the same gate as bought material.
 ## 2.4 Selling, from quotation to cash
 
 Material leaves this company by one of two routes. They are separate processes, not two ways of
-doing the same thing. Read the first paragraph of each before deciding which one you are in.
+doing the same thing.
 
 **The order flow** starts from a quotation, produces a sales order, reserves specific stock,
 invoices, then ships. It posts to the ledger at invoicing and again at shipment.
@@ -684,8 +675,8 @@ invoicing panel states it on screen: *"Order flow requires INVOICE BEFORE SHIPME
 - **Permission:** `module.sales.edit`.
 - **What it is:** the document before the commitment. A quotation touches no stock and no
   ledger. Its one special power is converting into a sales order, copying the quote exactly.
-- **The customer does not have to be onboarded.** A name and a country are enough, which is the
-  point: you quote people before they buy.
+- **The customer does not have to be onboarded.** A name and a country are enough, so a
+  quotation can go out before the customer is set up.
 - **Both dates are required and neither is defaulted.** The validity date is a commitment, and a
   defaulted one would never expire on the day it should.
 - **Saving creates a draft.** Issuing is a separate step, and issuing is what sends it to the
@@ -937,7 +928,7 @@ marked paid before the payroll is posted; a currency with no mid rate on file fo
 to have one entered under FX first; and the revaluation has to be run before the step that
 depends on it.
 
-**CPF is not a reason to hold the close.** It is due by the 14th of the following month and its
+CPF falls due after this close. It is due by the 14th of the following month and its
 journal lands in that month, so locking this month does not block it.
 
 ### Locking the period
@@ -991,16 +982,14 @@ Separate from the month-end close, and quarterly.
 
 # PART 3 — MODULE REFERENCE
 
-Nine modules sit on the top bar. Each is taken in turn below: what it is for, the pages under
-it, what each page does, and the documents it produces with the states those documents move
-through.
+Nine modules sit on the top bar.
 
 Where a state is **final**, nothing moves the document out of it.
 
 Where a page has no menu entry, the entry point is given. Section 3.10 lists them all in one
 place.
 
-**Seven of the nine modules open with a menu entry called Overview.** Tools and Settings have
+Seven of the nine modules open with a menu entry called Overview. Tools and Settings have
 none. The page itself is headed with the module's name rather than the word Overview, so
 "Purchasing → Overview" opens a page headed **Purchasing**. Six of the seven carry only the
 facts that span several of the module's pages and that no single page can state on its own; the
@@ -1102,15 +1091,15 @@ order to one.
 - *"Payment terms must be a whole number of days between 0 and 365. Nothing was saved."*
 - *"Recording a contract needs permission to edit whichever side it is with."*
 
-**What a contract is for.** A purchase order is not a contract. A long-term supply agreement is:
+What a contract is for. A purchase order is not a contract. A long-term supply agreement is:
 it is the relationship a document is raised under. Contract terms — grade specification,
 insurance obligations, volume commitments — live on the contract, and a document raised under
 one copies the terms in force at that moment. Later edits to the contract do not reach it. The
 register also reports grade specifications not met, measured against the specification the
 document copied when it was linked.
 
-**Read the coverage figures before the breach figures.** Nothing forces a document to carry a
-contract, and that is on purpose, because spot purchases do not run under an agreement. So "no
+Read the coverage figures before the breach figures. Nothing forces a document to carry a
+contract, and a spot purchase does not run under an agreement in the first place. So "no
 contract breached" can also mean "nobody linked anything".
 
 ### Payment term templates
@@ -1137,7 +1126,7 @@ Getting goods from one place to another, and the paperwork that has to travel wi
 | Containers | yes | Containers (`CTR-`), their milestones, their ETA and their documents. |
 | Freight | yes | Freight invoices. Also under Finance. |
 
-**Logistics has no edit capability.** There is `module.logistics.view` and nothing else. Writing
+Logistics has no edit capability. There is `module.logistics.view` and nothing else. Writing
 to logistics data is gated on `module.purchasing.edit`. On the role screen the Edit box for
 Logistics is drawn as a dash, with a note that the module has no separate edit permission and
 its View permission is the whole of it.
@@ -1147,7 +1136,7 @@ its View permission is the whole of it.
 A freight invoice is recorded at Finance → Freight → **+ Record freight**, on a page headed
 **Record a freight invoice**. It needs `module.finance.edit`.
 
-**Freight is capitalised, not expensed.** It goes into the cost of the material it carried. The
+Freight is capitalised. It goes into the cost of the material it carried. The
 page states the trade-off that comes with that: a wrong apportionment now sits inside inventory
 instead of showing on the P&L.
 
@@ -1205,7 +1194,7 @@ movements. **Reversed is final.**
 A reversed run stays listed against its work order, because it really was worked against that
 order, but its consumption no longer counts anywhere.
 
-**Loss is recorded in categories, not as one number.** Water and volatiles leave but the metal
+Loss is recorded by category. Water and volatiles leave but the metal
 stays. Dust and spillage take the metal with them. Residue sent for disposal is not a loss at
 all. Collapsed into one number, recovery could never be right. Categorised amounts need not add
 up to the run's loss total, but may not exceed it.
@@ -1609,13 +1598,13 @@ sub-pages behind it. Requests is the Leave page itself.
 Cancelling releases the days back to the grants they came from, and the ledger keeps both
 entries.
 
-**Days are counted by the system**, not typed: weekends and public holidays are excluded, and
+Days are counted by the system, not typed: weekends and public holidays are excluded, and
 the count is computed by the database. Where Monday-to-Friday counting is wrong, on a six-day or
 shift schedule, there is an explicit exception path that asks for the days and a reason. An
 exception can exceed a leave type's standard days but can never exceed an accrued annual leave
 balance, because that balance is a real entitlement rather than a policy.
 
-Refusals worth knowing before you submit:
+Refusals when submitting a request:
 
 - *"Not enough leave: {available} days available, {requested} requested."*
 - *"You will have {n} days accrued by then, and you asked for {m}."* Annual leave is earned
@@ -1768,7 +1757,7 @@ ask HR to link the account.
 **Steps.** A task can carry steps, and a step can carry one level of sub-steps. Steps are
 reordered and renamed in place. **Deleting a step removes the row outright**, as with the other
 child rows and configuration described in 1.5: it is not recorded on Settings → Deleted records
-and nothing puts it back. The confirmation dialog is the only warning you get. A step that has
+and nothing puts it back. Read the confirmation before you accept it. A step that has
 sub-steps is refused rather than removed with its children.
 
 **Deleting a task** marks it, as with any other document.
@@ -1802,7 +1791,8 @@ Removing a role from a person asks for a reason, and it is recorded.
 from CSV. It is the only action in the system that inserts hundreds of rows at once. Each
 template's third line lists the accepted values for every restricted column.
 
-**Deleted records** is a register, not a recycle bin. There is no restore anywhere in the system.
+**Deleted records** is read-only, and reading is all it offers. No screen in the system puts a
+deleted record back.
 
 ## 3.10 Pages with no menu entry, and where to find them
 
@@ -1836,7 +1826,7 @@ Twenty-one working pages are not listed in any menu. Each is one click from a pa
 
 # PART 4 — ROLE QUICK REFERENCE
 
-## 4.1 Roles are data, not a fixed list
+## 4.1 Roles are data
 
 The roles described below are the ones this company uses today. They were fitted to how the
 company is organised now, and they are not built into the system.
@@ -1847,8 +1837,7 @@ signed-in person holds a particular capability, and that resolves through whiche
 hold. To every gate in the system, a role created this afternoon works exactly like one that has
 been there since the beginning.
 
-So read the table below as a description of how access is arranged today, not as a law about who
-may do what. New roles can be created, existing ones renamed or re-granted, and people moved
+New roles can be created, existing ones renamed or re-granted, and people moved
 between them, as the company grows. None of it needs a developer, a code change, a migration or
 a deployment. The roles page says the same thing in one line: *"Roles and their grants are data
 — changing them is an edit here, not a release."*
@@ -1895,9 +1884,8 @@ made. Everything you create through the interface is an ordinary role.
 
 ## 4.4 What the capabilities are
 
-There are 39 capabilities, in three kinds. Thirty-eight of them are listed in the tables below;
-the thirty-ninth is described at the end of this section, because no role holds it and no screen
-grants it.
+There are 39 capabilities, in three kinds. Thirty-eight of them can be granted. The thirty-ninth
+is held by no role and offered by no screen.
 
 **Module capabilities** say which part of the system you reach. Most come in a pair, view and
 edit.
@@ -1942,8 +1930,7 @@ every module, and this is where the **Restricted** cells come from.
 
 The thirty-ninth capability is `module.tasks.view_all`, which would let its holder read other
 people's **personal** tasks. **No role holds it, and no screen can grant it.** Personal tasks are
-private from everybody, including an administrator. That is a boundary of the system, not a
-permission somebody could be given.
+private from everybody, including an administrator.
 
 ## 4.5 The roles in use today
 
@@ -2002,7 +1989,7 @@ no stocktakes.
 
 Edit on processing, inbound, output, inventory, stocktakes, materials and tasks. View on
 logistics. **Holds no data capabilities at all**, so every money column reads **Restricted**.
-Quantities are complete; the prices are not shown.
+That covers unit prices, costs and margins alike.
 
 ### Warehouse & Field — `warehouse` · held
 
@@ -2046,14 +2033,12 @@ Of the roles defined today, only this one, System Administrator and Commercial &
 
 ## 4.6 Reading the table above
 
-Two habits will save time.
-
-**A module capability and a data capability answer different questions.** Holding
+A module capability and a data capability answer different questions. Holding
 `module.purchasing.view` gets you onto the purchase order list. Whether the amounts on it are
 figures or the word **Restricted** is decided separately, by `data.view_prices`. A role can see
-every order and no money, and that arrangement is on purpose.
+every order and none of the money on it.
 
-**Edit is not a superset of the process.** Raising a sales order needs `module.sales.edit`.
+A process can need more than one module's edit right. Raising a sales order needs `module.sales.edit`.
 Invoicing it needs `module.finance.edit`. Shipping needs `module.sales.edit` again but cannot
 happen until somebody with finance rights has invoiced. A process that crosses two modules needs
 two people, or one person holding both.
