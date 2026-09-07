@@ -69,3 +69,6 @@ lib/database.types.ts.tmp
 
 # LEAK-1:一次性账号的清理计划(每个 pid 一份,跑完即删;留下来的由 reap-ephemeral 补删)
 .ephemeral/
+
+# MANUAL-2:排版中间产物(HTML 与分册 PDF),成品在 docs/ 里
+.manual-build/
