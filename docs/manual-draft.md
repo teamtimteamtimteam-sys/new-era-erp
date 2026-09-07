@@ -271,8 +271,8 @@ expect a refusal that names the field if you do not.
 # PART 2 — BUSINESS PROCESSES
 
 Real work crosses modules. Receiving one lorry-load touches purchasing, inventory, assay and
-finance in a single afternoon. This part follows six pieces of work from beginning to end,
-across whatever modules they pass through. Part 3 is the place to look a single page up.
+finance in a single afternoon. Six such processes run from beginning to end, across whatever
+modules they pass through. Part 3 is the place to look a single page up.
 
 ## 2.1 Receiving a load into stock
 
