@@ -36,6 +36,27 @@
 //     PROBE_FAULT=raw-code     假装正文是机器码  → A4/B4 红(措辞那一族)
 //     PROBE_FAULT=d-operable   假装丁类钮还在    → C2 红
 //
+// ════════════════════════════════════════════════════════════════════════════
+// ★【覆盖率:18 处里 15 处真的被驱动过,没跑的三处按名列在这里】★
+// ════════════════════════════════════════════════════════════════════════════
+//   跑过(15):materials / suppliers / customers 三处行内删除 · 供应商状态面板
+//   (丁类,判的是"钮不在、理由在")· 定价公式删除 · GST 开关 · 期间锁定 ·
+//   分录冲销 · 收付款冲销 · 费用冲销 · 发票作废 · 关账 · 重开期间 ·
+//   取消对账 · 撤销牌价。
+//
+//   【没跑,而且不假装跑过】(3):
+//   ① `metal-prices/[id]/edit` 的删除 —— **这一页本来就把 module.pricing.edit
+//      当门**(requireEditPermission)。只有 view 的会话根本进不去,
+//      那个钮不在树里是【对的】。它的权限拒绝早就是丁类;横幅只在
+//      "非权限的驱动错误"时才出得来,而那种错误没法安全制造。
+//   ② `bank/statements/[id]` 的删除 —— 页面写着
+//      `stmt.status === 'open' ? <DeleteStatementButton…/> : undefined`,
+//      而这套数据里没有一张 open 的对账单。造一张=往共享测试数据里写业务行,
+//      Tim 在闸上禁了。
+//   ③ `tools/tasks` 看板的拖放 —— 要一次真的拖拽手势,还要一行 employees
+//      才过得了 can_edit_task。它的【服务端那一半】已被零行落地的判据覆盖,
+//      但【那一次拖拽】没有被机器走过。
+//
 // 用法:npm run build && node scripts/probe-action-message.mjs
 // ════════════════════════════════════════════════════════════════════════════
 
@@ -129,6 +150,22 @@ try {
     if (!sups?.[0]?.id) throw new Error('suppliers 一行都没有 —— C 组无从驱动')
     const supId = sups[0].id
 
+    // ── D 组:把剩下的调用点也真的走一遍 ────────────────────────────────
+    // ★ 取不到 id 的站点【不静默跳过】—— 它会变成一格红的「无从驱动」,
+    //   因为"没跑"与"跑过了"在报告里必须长得不一样(AGENTS.md 的覆盖率法则)。
+    const one = async (path) => (await (await rest(path)).json())?.[0] ?? null
+    const payment  = await one('/rest/v1/payments?select=id&limit=1')
+    const expense  = await one('/rest/v1/expenses?select=id&limit=1')
+    // ★【第一版随手取了"第一张发票",而它恰好【已经作废】】
+    //   页面写着 `{!isVoid && <VoidInvoiceControl …/>}` —— 控件因此根本没渲染,
+    //   探针报"点不到"。那不是产品的毛病,是【判据没有走人真的走的那条路】:
+    //   要驱动作废,就得先取一张【还能作废的】发票。
+    const invoice  = await one('/rest/v1/invoices?select=id,status&status=not.eq.void&limit=1')
+    const stmt     = await one('/rest/v1/bank_statements?select=id&deleted_at=is.null&limit=1')
+    const price    = await one('/rest/v1/metal_prices?select=id&deleted_at=is.null&limit=1')
+    const formula  = await one('/rest/v1/pricing_formulas?select=id&deleted_at=is.null&limit=1')
+    const fxRate   = await one('/rest/v1/fx_rates?select=id&limit=1&order=rate_date.desc')
+
     // ── 起服务器与浏览器 ──────────────────────────────────────────────────
     server = spawn('npx', ['next', 'start', '-p', String(PORT)], { cwd: ROOT, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
     server.stderr.on('data', () => {})
@@ -174,9 +211,12 @@ try {
         }
         return false
     }
-    const clickReal = async (selector) => {
+    // ★ 有些页面上【不止一个】确认钮(银行对账单:取消对账 + 删除;
+    //   关账:关账 + 重开;财务设置:锁定 + GST)。取第一个,就等于
+    //   宣布另一个"没有跑" —— 而覆盖率那个数不该被一个选择器的懒惰决定。
+    const clickReal = async (selector, nth = 0) => {
         const box = await ev(`(() => {
-            const el = document.querySelector(${JSON.stringify(selector)})
+            const el = document.querySelectorAll(${JSON.stringify(selector)})[${nth}]
             if (!el) return null
             el.scrollIntoView({ block: 'center' })
             const r = el.getBoundingClientRect()
@@ -295,7 +335,11 @@ try {
     probe('A7 无障碍树里有一条 alert', ax.hasAlert,
         ax.hasAlert ? 'role=alert 的活动区域在树里(容器常驻,内容插进去才播报得出)' : '★ 树里没有 role=alert 的节点')
     const headlineInAx = ax.names.some((n) => a.headline && n.includes(a.headline))
-    probe('A7b ★ 那句话【进了无障碍树】', headlineInAx || FAULT === 'blind',
+    // ★【`|| FAULT === 'blind'` 从这里删掉了 —— 那是一条给自己开的后门】
+    //   本刀刚在 AGENTS.md 写下「健康检查的阈值默认应当是零」,转头就在这一格
+    //   写了「除非是 blind 就算过」。一个【在专门用来弄瞎它的故障下仍然会绿】
+    //   的断言,正是那条法则说的那种自留余地。
+    probe('A7b ★ 那句话【进了无障碍树】', headlineInAx,
         headlineInAx ? `标题 ${JSON.stringify(a.headline)} 在树里露出来了 —— 不只是 DOM 里有`
                      : '★ 树里找不到那句标题:role 写了,但内容没暴露给辅助技术')
 
@@ -329,9 +373,11 @@ try {
     console.log('\n-- C /suppliers/[id]/edit 状态面板 · 丁类(控件不出现) --')
     const navC = await goto(`/suppliers/${supId}/edit`)
     probe('C0 水合', navC, navC ? '页面水合完成' : '★ 水合没等到')
+    // ★ C/E 组的选择器也要过 SEL —— 否则 `blind` 弄不瞎它们,
+    //   而一个"故障注入照不到的角落"等于一个没有反臂的断言。
     let c = await ev(`(() => {
-        const denied = document.querySelector('[data-status-panel-denied="1"]')
-        const panel = document.querySelectorAll('button[aria-haspopup="dialog"]')
+        const denied = document.querySelector(${JSON.stringify(SEL('[data-status-panel-denied="1"]'))})
+        const panel = document.querySelectorAll(${JSON.stringify(SEL('button[aria-haspopup="dialog"]'))})
         return { denied: !!denied, deniedText: denied ? denied.textContent.trim() : '',
                  dialogButtons: panel.length }
     })()`)
@@ -343,6 +389,206 @@ try {
         c.denied && c.deniedText.includes('module.suppliers.edit')
             ? '管理员要勾的那一项(module.suppliers.edit),原样写在屏幕上'
             : '★ 那行理由不在,或者它没说出是哪一项权限')
+
+    // ════════════════════════════════════════════════════════════════════
+    // D —— 把【其余的调用点】也真的走一遍(同一套判据,逐站重复)
+    // ════════════════════════════════════════════════════════════════════
+    //   A/B/C 三组各自证明了一类形状(静默那一支、机器码那一支、丁类)。
+    //   这一段不再证明新形状,它做的是【覆盖率】:委托书要的是
+    //   「18 条里有几条真的被机器走过」,而那个数只有逐站走过才说得出。
+    //
+    //   ★ 需要理由的那几处(作废发票、取消对账、撤销牌价、重开期间),
+    //     确认钮在理由为空时【按不动】—— 那是 CONFIRM-1 的闸,不是本刀的。
+    //     所以这里要先把理由填进去,而且要用【原生 setter + input 事件】,
+    //     否则 React 的受控值不会更新(直接改 .value 是看得见、React 看不见的)。
+    const typeReason = async (text) => ev(`(() => {
+        const el = document.querySelector('[data-confirm-reason="1"]')
+        if (!el) return false
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+        setter.call(el, ${JSON.stringify('ZZ-PROBE ')} + ${JSON.stringify('ALERT-1')})
+        el.dispatchEvent(new Event('input', { bubbles: true }))
+        return true
+    })()`)
+
+    const SWEEP = [
+        { id: 'D1', name: '/suppliers 行内删除',            path: '/suppliers',                        nth: 0 },
+        { id: 'D2', name: '/sales/customers 行内删除',      path: '/sales/customers',                  nth: 0 },
+        { id: 'D3', name: '/finance/payments/[id] 冲销',    path: payment && `/finance/payments/${payment.id}`,  nth: 0 },
+        { id: 'D4', name: '/finance/expenses/[id] 冲销',    path: expense && `/finance/expenses/${expense.id}`,  nth: 0 },
+        // D5(作废发票)【不在这张表里】—— 它是两段式的:先按"作废"露出理由框,
+        //   那一段【才】渲染出 ConfirmButton。通用钥匙在第一段就开不了它,
+        //   所以它有专用的一段(见下面 E 组),而不是在这里记一格假红。
+        { id: 'D6', name: '/finance/bank/statements/[id]',  path: stmt && `/finance/bank/statements/${stmt.id}`, nth: 0 },
+        { id: 'D7', name: '/finance/fx/[id]/edit 撤销牌价', path: fxRate && `/finance/fx/${fxRate.id}/edit`,     nth: 0, reason: true },
+        { id: 'D8', name: '/finance/close 关账',            path: '/finance/close',                    nth: 0 },
+        { id: 'D9', name: '/finance/settings 锁定/GST',     path: '/finance/settings',                 nth: 0 },
+        // ★★【D10 从清单里【拿掉了】,而理由值得读】★★
+        //   `/tools/pricing/metal-prices/[id]/edit` 这一页【本来就把 module.pricing.edit
+        //   当门】(page.tsx 开头的 requireEditPermission,连同一段写得很好的理由:
+        //   「不要把一张注定被拒收的表单摆到人面前」)。
+        //   于是一个只有 view 的会话【根本进不去这一页】—— 它看到的是拒绝屏,
+        //   那个删除钮不在树里是【对的】,不是缺陷。
+        //   ☞ 也就是说:这一处的权限拒绝【本来就是丁类,而且早就做掉了】。
+        //     它的横幅只在"非权限的驱动错误"时才出得来,而那种错误没法安全制造 ——
+        //     所以它按名列进"没有驱动"的那一栏,理由写在这里。
+        //   ☞ 顺带:requireEditPermission 全库只有 10 处调用点。
+        //     它正是 ALERT1-D-BLOCKED-17 那一刀要铺开的东西。
+        { id: 'D11', name: '/tools/pricing/formulas/[id]/edit',     path: formula && `/tools/pricing/formulas/${formula.id}/edit`, nth: 0 },
+        // ── 同一页上的【其余】确认钮 ────────────────────────────────────
+        // ★【按序号点第二个,是在猜】★ 第一版这么做,当场吃了一个假绿:
+        //   /finance/settings 上 nth=1 命中的是【锁定表单自己的"解除"钮】
+        //   (lockedBefore 有值时它渲染两个),而不是 GST 开关 ——
+        //   报告里于是差点写上"GST 也走过了"。**一个按序号取的选择器,
+        //   报出来的是"某一个",不是"哪一个"。**
+        //   ☞ 改成【把这一页上每一个确认控件都走一遍】,各自印出自己的标题。
+        //     覆盖率因此不再取决于我猜对了哪个是第几个。
+        // ★【删除对账单那一个驱动不了,而理由不是探针的毛病】
+        //   页面写着 `actions={stmt.status === 'open' ? <DeleteStatementButton …/> : undefined}`。
+        //   这套数据里没有一张 status='open' 的对账单,于是那个钮根本不渲染。
+        //   ☞ 造一张来驱动它,就等于往共享测试数据里写业务行 —— Tim 在闸上禁了。
+        //     所以它按名列进"没有驱动"那一栏,理由写在这里。
+        { id: 'D12', name: '/finance/bank/statements/[id] 全部确认控件', path: stmt && `/finance/bank/statements/${stmt.id}`, all: true },
+        // ★ 这一页上有【三个】确认控件,而第三个不是本刀的:
+        //   YearClosePanel(年结/重开年)从来就不走 alert(),它不在这 18 处里。
+        //   它的确认钮还带着前置条件(月锁、试算、重估、折旧),常常按不动 ——
+        //   把它算进本刀的覆盖率,红的是【别人的活】。所以只驱动前两个,
+        //   而这一行就是"为什么是两个"的记录。
+        { id: 'D13', name: '/finance/close 全部确认控件',                path: '/finance/close',    all: true, limit: 2 },
+        { id: 'D14', name: '/finance/settings 全部确认控件',             path: '/finance/settings', all: true },
+    ]
+
+    console.log('\n-- D 其余调用点(同一套判据,逐站重复) --')
+    let swept = 0
+    // all:true 的站点先问一句"这一页上有几个确认控件",再逐个展开成独立的一格。
+    const EXPANDED = []
+    for (const site of SWEEP) {
+        if (!site.all) { EXPANDED.push(site); continue }
+        if (!site.path) { EXPANDED.push(site); continue }
+        await goto(site.path)
+        const n = await ev(`document.querySelectorAll('button[aria-haspopup="dialog"]').length`)
+        if (!n) { EXPANDED.push({ ...site, nth: 0 }); continue }
+        const cap = site.limit ? Math.min(n, site.limit) : n
+        for (let k = 0; k < cap; k++)
+            EXPANDED.push({ ...site, id: `${site.id}.${k + 1}`, name: `${site.name} #${k + 1}/${cap}`, nth: k })
+    }
+    for (const site of EXPANDED) {
+        if (!site.path) { probe(`${site.id} 无从驱动`, false, `★ ${site.name}:线上没有可用记录 —— 【没有跑】,不是通过`); continue }
+        const nav = await goto(site.path)
+        if (!nav) { probe(`${site.id} 水合`, false, `★ ${site.name}:水合没等到 —— 判词无效`); continue }
+        const before = await bannerState()
+        if (before.shown) { probe(`${site.id} 反臂`, false, `★ ${site.name}:动作前已有横幅`); continue }
+
+        // ★【"点不到"有两种,而它们是两件完全不同的事】
+        //   不在树里  = 这一页根本没渲染那个控件(可能是权限、可能是状态条件);
+        //   在但零尺寸 = 渲染了却点不着(被遮住 / 折叠)。
+        //   混成一句"点不到",下一个人要从头查一遍。
+        const why = await ev(`(() => {
+            const el = document.querySelectorAll('button[aria-haspopup="dialog"]')[${site.nth}]
+            if (!el) return 'absent'
+            const r = el.getBoundingClientRect()
+            return (r.width === 0 || r.height === 0) ? 'zero-size' : 'ok'
+        })()`)
+        const trig = await clickReal(SEL(`button[aria-haspopup="dialog"]`), site.nth)
+        if (!trig) { probe(`${site.id} 触发钮`, false,
+            `★ ${site.name}:确认触发钮 ${why === 'absent' ? '【不在树里】(这一页没有渲染它)' : '【零尺寸】(渲染了却点不着)'} —— 【没有跑】`); continue }
+        const dlgSubject = await ev(`(() => {
+            const d = document.querySelector('[data-confirm-dialog="1"]')
+            const s = d && d.querySelector('[data-confirm-subject]')
+            return s ? s.getAttribute('data-confirm-subject') : null
+        })()`)
+        // ★【第一版这里漏了一件事,而它让 D6 假红】
+        //   本来只在 site.reason 为真时填理由。但一页上可能有【好几个】确认钮,
+        //   而 querySelector 取的是第一个 —— 银行对账单那一页第一个是"取消对账"
+        //   (它要理由),不是"删除"。于是理由没填、确认钮 disabled,
+        //   **鼠标事件照样派发得出去,只是什么都没发生** ——
+        //   探针于是报"没有横幅",而产品其实没被驱动过。
+        //   ☞ 两条都改:无条件试着填理由(没有输入框就返回 false,无害);
+        //     以及【点之前先问它可不可按】—— 一个 disabled 的钮吃掉点击而不出声,
+        //     正是本刀在治的那种沉默。
+        await typeReason()
+        const acceptDisabled = await ev(`(() => {
+            const b = document.querySelector('[data-confirm-accept="1"]')
+            return b ? !!b.disabled : null
+        })()`)
+        if (acceptDisabled !== false) { probe(`${site.id} 确认钮可按`, false,
+            `★ ${site.name}:确认钮 ${acceptDisabled === null ? '不在' : '仍是 disabled(理由没填上?)'} —— 【没有跑】`); continue }
+        const ok = await clickReal(SEL('[data-confirm-accept="1"]'))
+        if (!ok) { probe(`${site.id} 确认钮`, false, `★ ${site.name}:确认钮点不到 —— 【没有跑】`); continue }
+
+        let b = await waitForBanner()
+        if (FAULT === 'no-banner') b = { shown: false }
+        if (FAULT === 'raw-code') b = { ...b, text: 'PERMISSION_DENIED|module.finance.edit' }
+
+        const humane = !!b.text && !RAW_CODE.test(b.text) && !BARE_CODE.test(b.text)
+        const named = !!b.subject && b.subject === dlgSubject
+        const allOk = b.shown && humane && named
+        if (allOk) swept++
+        // ★ 印出【标题】而不只是"通过" —— 有两个确认钮的页面(银行对账单、
+        //   关账、财务设置)上,通用钥匙取的是第一个,而报告必须说得出
+        //   到底走的是哪一个,否则覆盖率那个数是含糊的。
+        probe(`${site.id} ${site.name}`, allOk,
+            allOk ? `走的是【${b.headline}】,点名 ${JSON.stringify(b.subject)},正文是人话`
+                  : `★ shown=${b.shown} 主语相符=${named}(对话框 ${JSON.stringify(dlgSubject)} / 横幅 ${JSON.stringify(b.subject)}) 人话=${humane}`)
+    }
+    console.log(`   D 组:${swept}/${EXPANDED.length} 个控件走通`)
+
+    // ════════════════════════════════════════════════════════════════════
+    // E —— 作废发票:它【不是】一个确认对话框,所以要单独驱动
+    // ════════════════════════════════════════════════════════════════════
+    //   `VoidInvoiceControl` 是一个【就地展开的两段式控件】:先按"作废"露出
+    //   理由框,再按一次提交。它没有 aria-haspopup="dialog",于是 D 组那把
+    //   通用的钥匙开不了它 —— 而【开不了不等于跑过了】,所以给它一段专用的。
+    //   ☞ 顺带记一件事:这一处的确认【不走 CONFIRM-1 的对话框】。
+    //     它是本刀视野里唯一一个这样的调用点,已在报告里点名。
+    if (invoice) {
+        console.log('\n-- E /finance/invoices/[id] 作废(两段式:先展开,第二段才是对话框) --')
+        const navE = await goto(`/finance/invoices/${invoice.id}`)
+        probe('E0 水合', navE, navE ? '页面水合完成' : '★ 水合没等到')
+        const beforeE = await bannerState()
+        probe('E1 反臂', beforeE.shown === false, beforeE.shown ? '★ 动作前已有横幅' : '动作之前:没有横幅')
+
+        // 第一段:按"作废"把理由框展开。这一段【还没有】对话框。
+        const opened = await ev(`(() => {
+            const b = [...document.querySelectorAll(${JSON.stringify(SEL('button'))})]
+                .find(x => !x.getAttribute('aria-haspopup') && /作废|Void/i.test(x.textContent || ''))
+            if (!b) return false
+            b.click(); return true
+        })()`)
+        probe('E2 展开', opened, opened ? '"作废"按下去了,理由框与确认钮露出来了' : '★ 找不到那个"作废"钮 —— 【没有跑】')
+        await sleep(700)
+
+        // 填理由(以及需要时的冲销日)—— 用原生 setter,否则受控值不动。
+        const filled = opened && await ev(`(() => {
+            const setNative = (el, v) => {
+                const proto = el.type === 'date' ? window.HTMLInputElement.prototype : window.HTMLInputElement.prototype
+                Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, v)
+                el.dispatchEvent(new Event('input', { bubbles: true }))
+            }
+            const txt = [...document.querySelectorAll(${JSON.stringify(SEL('input[type=text]'))})].pop()
+            if (!txt) return false
+            setNative(txt, 'ZZ-PROBE ALERT-1')
+            const dt = [...document.querySelectorAll('input[type=date]')].pop()
+            if (dt) setNative(dt, '2026-08-31')
+            return true
+        })()`)
+        probe('E3 理由填上了', !!filled, filled ? '理由(与冲销日,若要)已填' : '★ 找不到理由框 —— 【没有跑】')
+        await sleep(300)
+
+        // 第二段:这才是 ConfirmButton —— 触发钮 → 对话框 → 确认。
+        const trigE = filled && await clickReal(SEL('button[aria-haspopup="dialog"]'))
+        probe('E4 确认触发钮', !!trigE, trigE ? '第二段的确认钮点到了' : '★ 展开之后仍没有确认触发钮 —— 【没有跑】')
+        const okE = trigE && await clickReal(SEL('[data-confirm-accept="1"]'))
+        probe('E5 确认', !!okE, okE ? '确认了 —— 作废真的发出去了' : '★ 确认钮点不到 —— 【没有跑】')
+
+        let e = await waitForBanner()
+        if (FAULT === 'no-banner') e = { shown: false }
+        if (FAULT === 'raw-code') e = { ...e, text: 'PERMISSION_DENIED|module.finance.edit' }
+        const humaneE = !!e.text && !RAW_CODE.test(e.text) && !BARE_CODE.test(e.text)
+        probe('E6 拒绝到达屏幕且是人话', e.shown === true && humaneE,
+            e.shown ? `点名 ${JSON.stringify(e.subject)};正文:${(e.text || '').slice(0, 80)}…` : '★ 没有横幅')
+    } else {
+        probe('E0 无从驱动', false, '★ invoices 一行都没有 —— E 组【没有跑】')
+    }
 
     // ════════════════════════════════════════════════════════════════════
     console.log(`\n── 小结 ──`)
