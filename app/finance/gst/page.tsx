@@ -14,10 +14,12 @@ import { OpenPeriodControl } from './GstControls'
 import { ListPage } from '@/app/components/ui/list-page'
 import GstTaxCodesTable, { type TaxCodeRow } from './GstTaxCodesTable'
 import GstPeriodsTable, { type GstPeriodRow } from './GstPeriodsTable'
+import { can } from '@/lib/permissions'
 
 export default async function GstPage() {
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
@@ -90,7 +92,7 @@ export default async function GstPage() {
             </div>
 
             <h2 className="font-semibold mb-2">{t('gst.periods')}</h2>
-            <div className="mb-4"><OpenPeriodControl /></div>
+            <div className="mb-4"><OpenPeriodControl canEdit={canEditGate} /></div>
             <div className="mb-6">
                 <GstPeriodsTable rows={periodRows} />
             </div>

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { recordTransfer } from './transferActions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const inp = 'border border-gray-300 rounded px-2 py-1 text-sm'
 
@@ -18,7 +19,7 @@ function todayIsoLocal(): string {
     return `${yyyy}-${mm}-${dd}`
 }
 
-export default function TransferForm() {
+export default function TransferForm({ canEdit }: { canEdit: boolean }) {
     const t = useTranslations()
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -73,9 +74,11 @@ export default function TransferForm() {
                 <label>{t('finance.transfer.reference')}
                     <input value={ref} onChange={(e) => setRef(e.target.value)} className={`block ${inp} w-36`} />
                 </label>
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <Button size="sm" type="button" onClick={submit} disabled={pending || !date || !out || !inn}>
                     {t('common.save')}
                 </Button>
+                </PermissionGate>
             </div>
             {/* 禁用必须说出为什么(CMP-2):每个禁钮条件都有紧邻的一行字。 */}
             {(!date || !out || !inn) && (

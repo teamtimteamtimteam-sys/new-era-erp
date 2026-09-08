@@ -15,14 +15,18 @@ import { unreconcileStatement } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export default function UnreconcileControl({
     statementId,
     subject,
+canEdit
 }: {
     statementId: string
     /** CONFIRM-1:重新打开的是【哪一份报表】—— 报表代号,抬头里就印着它。 */
     subject: string
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
@@ -42,6 +46,7 @@ export default function UnreconcileControl({
     }
 
     return (
+        <PermissionGate code="module.finance.edit" allowed={canEdit}>
         <ConfirmButton
             subject={subject}
             title={t('bank.unreconcileConfirm')}
@@ -54,5 +59,6 @@ export default function UnreconcileControl({
         >
             {isPending ? t('common.saving') : t('bank.unreconcile')}
         </ConfirmButton>
+        </PermissionGate>
     )
 }

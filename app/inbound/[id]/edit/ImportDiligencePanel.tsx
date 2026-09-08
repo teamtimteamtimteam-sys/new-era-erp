@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveImportDiligence } from './importDiligenceActions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export default function ImportDiligencePanel({
     batchId, imported, permitRef, verifiedAt, canEdit,
@@ -74,7 +75,7 @@ export default function ImportDiligencePanel({
                 {/* 【为什么这里只提醒不拦】—— 说在人看得见的地方,不只写在函数抬头 */}
                 <p className="text-xs text-gray-600 mb-3">{t('inbound.importDiligence.whyWarnOnly')}</p>
 
-                {canEdit && (
+                <PermissionGate code="module.inbound.edit" allowed={canEdit}>
                     <div className="space-y-2">
                         <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="imp">
@@ -108,7 +109,7 @@ export default function ImportDiligencePanel({
                             {t('inbound.importDiligence.save')}
                         </Button>
                     </div>
-                )}
+                </PermissionGate>
             </div>
         </div>
     )

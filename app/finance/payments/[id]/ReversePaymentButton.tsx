@@ -7,8 +7,13 @@ import { reversePayment } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
-export default function ReversePaymentButton({ paymentId, subject }: { paymentId: string; subject: string }) {
+export default function ReversePaymentButton({ paymentId, subject ,
+canEdit
+}: { paymentId: string; subject: string 
+canEdit: boolean
+}) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
 
@@ -30,6 +35,7 @@ export default function ReversePaymentButton({ paymentId, subject }: { paymentId
     //   都留在账上,审计痕迹完整。BTN-1 为此另开了这一档,而确认钮取的正是
     //   【它所确认的那个动作】的档位。主语 = 单据代号(抬头里就印着它)。
     return (
+        <PermissionGate code="module.finance.edit" allowed={canEdit}>
         <ConfirmButton
             subject={subject}
             title={t('finance.reversePaymentConfirm')}
@@ -42,5 +48,6 @@ export default function ReversePaymentButton({ paymentId, subject }: { paymentId
         >
             {isPending ? t('common.saving') : t('finance.reversePayment')}
         </ConfirmButton>
+        </PermissionGate>
     )
 }

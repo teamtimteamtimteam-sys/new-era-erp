@@ -10,6 +10,7 @@ import { mustRows } from '@/lib/db-helpers'
 import BulkFxGrid, { type Existing } from './BulkFxGrid'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 
 const WINDOW_DAYS = 7
 
@@ -17,6 +18,7 @@ export default async function BulkFxPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const supabase = await createClient()
     const t = await getTranslations()
@@ -59,7 +61,7 @@ export default async function BulkFxPage() {
                     {t('finance.fxPage.bulk.noForeignCurrencies', { 0: base })}
                 </p>
             ) : (
-                <BulkFxGrid
+                <BulkFxGrid canEdit={canEditGate}
                     currencies={currencies}
                     dates={dates}
                     existing={existingAll as unknown as Existing[]}

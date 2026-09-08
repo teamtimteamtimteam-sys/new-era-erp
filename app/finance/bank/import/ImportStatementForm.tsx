@@ -22,6 +22,7 @@ import {
     type ThousandsSeparator,
 } from '@/lib/bankCsv'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const initialState: ImportStatementState = {}
 
@@ -48,7 +49,11 @@ const EMPTY_MAPPING: BankMapping = {
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
-export default function ImportStatementForm({ profiles }: { profiles: ProfileOption[] }) {
+export default function ImportStatementForm({ profiles ,
+canEdit
+}: { profiles: ProfileOption[] 
+canEdit: boolean
+}) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(importStatement, initialState)
 
@@ -145,6 +150,7 @@ export default function ImportStatementForm({ profiles }: { profiles: ProfileOpt
     )
 
     return (
+        <PermissionGate code="module.finance.edit" allowed={canEdit}>
         <form action={formAction} className="space-y-6">
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -530,5 +536,6 @@ export default function ImportStatementForm({ profiles }: { profiles: ProfileOpt
                 </Button>
             </div>
         </form>
+        </PermissionGate>
     )
 }

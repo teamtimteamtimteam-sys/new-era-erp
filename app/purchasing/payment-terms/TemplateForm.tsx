@@ -12,6 +12,7 @@ import { triggerLabel, type PaymentTriggerEvent } from '@/lib/paymentTriggers'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { saveTemplate, type TemplateFormState, type TemplateLineInput } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const initialState: TemplateFormState = {}
 
@@ -32,6 +33,7 @@ export default function TemplateForm({
     template,
     currencies,
     triggerEvents,
+canEdit
 }: {
     template?: {
         id: string
@@ -44,6 +46,8 @@ export default function TemplateForm({
     currencies: { code: string }[]
     // EQP-PAY-1:整份字典(模板不按种类过滤 —— 理由见文件顶部)。
     triggerEvents: PaymentTriggerEvent[]
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -75,6 +79,7 @@ export default function TemplateForm({
     const pctOver = pctTotal > 100
 
     return (
+        <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
         <form action={formAction} className="space-y-4 max-w-3xl">
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -276,5 +281,6 @@ export default function TemplateForm({
                 </Button>
             </div>
         </form>
+        </PermissionGate>
     )
 }

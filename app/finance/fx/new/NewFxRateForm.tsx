@@ -6,6 +6,7 @@ import { createFxRate, type CreateFxRateState } from './actions'
 import FxRateFormFields from '../FxRateFormFields'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const initialState: CreateFxRateState = {}
 
@@ -18,7 +19,11 @@ function todayIsoLocal(): string {
     return `${yyyy}-${mm}-${dd}`
 }
 
-export default function NewFxRateForm({ currencies }: { currencies: string[] }) {
+export default function NewFxRateForm({ currencies ,
+canEdit
+}: { currencies: string[] 
+canEdit: boolean
+}) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createFxRate, initialState)
 
@@ -30,6 +35,7 @@ export default function NewFxRateForm({ currencies }: { currencies: string[] }) 
                 </div>
             )}
 
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <form action={formAction} className="space-y-4">
                 <FxRateFormFields
                     currencies={currencies}
@@ -53,6 +59,7 @@ export default function NewFxRateForm({ currencies }: { currencies: string[] }) 
                     </Button>
                 </div>
             </form>
+            </PermissionGate>
         </>
     )
 }

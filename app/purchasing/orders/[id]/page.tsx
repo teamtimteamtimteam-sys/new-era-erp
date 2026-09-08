@@ -583,7 +583,7 @@ export default async function PurchaseOrderDetailPage({
                         </Button>
                     )}
                     {(po.status === 'confirmed' || po.status === 'receiving') && (
-                        <CloseOrderControl
+                        <CloseOrderControl canEdit={canEditPurchasing}
                             poId={po.id}
                             subject={po.code}
                             unappliedPrepayment={canFinance ? Number(poStatus?.prepaid_remaining_base ?? 0) : null}
@@ -616,10 +616,10 @@ export default async function PurchaseOrderDetailPage({
                             <span className="text-xs text-amber-700 mt-1">{t('purchasing.amendClosedWhy')}</span>
                         </span>
                     ))}
-                    {po.status === 'closed' && <ReopenOrderControl poId={po.id} subject={po.code} />}
+                    {po.status === 'closed' && <ReopenOrderControl canEdit={canEditPurchasing} poId={po.id} subject={po.code} />}
                     {/* FIX-2(B1):挡住时也把控件画出来 —— 变灰 + 一句话,不是消失。 */}
                     {!isCancelled && po.status !== 'closed' && (
-                        <CancelOrderControl poId={po.id} code={po.code} blockedWhy={cancelWhy} />
+                        <CancelOrderControl canEdit={canEditPurchasing} poId={po.id} code={po.code} blockedWhy={cancelWhy} />
                     )}
                 </div>
             }

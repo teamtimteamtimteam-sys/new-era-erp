@@ -17,6 +17,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { Button } from '@/app/components/ui/button'
 import { showActionMessage } from '@/app/components/ui/action-message'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 // SO-3a:order 头的作废是一次【冲销】(借 2500 / 贷 1100)—— 冲销日必填,
 // 它决定冲销分录落进哪个期间,永不默认(与手工冲销分录同一条);sale 头照旧。
@@ -24,11 +25,14 @@ export default function VoidInvoiceControl({
     invoiceId,
     subject,
     hasEntry,
+canEdit
 }: {
     invoiceId: string
     /** CONFIRM-1:作废的是【哪一张发票】—— 发票代号,抬头里就印着它。 */
     subject: string
     hasEntry: boolean
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
@@ -64,12 +68,14 @@ export default function VoidInvoiceControl({
 
     if (!open) {
         return (
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <Button variant="destructive" size="sm" className="text-sm"
                 type="button"
                 onClick={() => setOpen(true)}
             >
                 {t('invoice.void')}
             </Button>
+            </PermissionGate>
         )
     }
 
@@ -94,6 +100,7 @@ export default function VoidInvoiceControl({
                     <span className="text-xs text-gray-500">{t('invoice.voidReversalDateWhy')}</span>
                 </span>
             )}
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <ConfirmButton
                 subject={subject}
                 title={t('invoice.voidConfirm')}
@@ -105,6 +112,7 @@ export default function VoidInvoiceControl({
             >
                 {t('invoice.void')}
             </ConfirmButton>
+            </PermissionGate>
             <Button variant="secondary" size="sm" type="button" onClick={() => setOpen(false)}>
                 {t('common.cancel')}
             </Button>

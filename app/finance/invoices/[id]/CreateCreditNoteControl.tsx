@@ -15,6 +15,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { createCreditNote, type CreditNoteState } from './creditNoteActions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export type CnLineOption = {
     id: string
@@ -31,9 +32,12 @@ const initialState: CreditNoteState = {}
 
 export default function CreateCreditNoteControl({
     invoiceId, invoiceCode, currency, openCcy, lines,
+canEdit
 }: {
     invoiceId: string; invoiceCode: string; currency: string
     openCcy: number; lines: CnLineOption[]
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const bound = createCreditNote.bind(null, invoiceId)
@@ -55,13 +59,18 @@ export default function CreateCreditNoteControl({
 
     if (!open) {
         return (
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <Button type="button" onClick={() => setOpen(true)}
                     variant="secondary" size="sm">
                 {t('cn.create')}
             </Button>
+            </PermissionGate>
         )
     }
 
+    // 【这张表单不再单独上闸】上面那个"新建"钮已经上了闸,没有权限的人打不开它;
+    // 而给整张表单上闸会连它自己的「取消」一起禁掉 —— 把人困在一张既提交不了、
+    // 也关不掉的表单里。闸放在【打得开它的那个钮】上。
     return (
         <form action={formAction} className="border border-gray-300 rounded p-3 space-y-3">
             {state.error && (

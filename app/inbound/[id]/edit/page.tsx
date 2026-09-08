@@ -64,6 +64,7 @@ export default async function EditInboundPage({
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.inbound)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const { id } = await params
     const supabase = await createClient()
@@ -774,7 +775,7 @@ export default async function EditInboundPage({
             />
 
             {/* 抵扣预付(cut 4c):可抵扣 or 有历史时才渲染 */}
-            <PrepaymentPanel batchId={batch.id} applicable={applicable} history={prepaymentHistory}
+            <PrepaymentPanel canEdit={canEditGate} batchId={batch.id} applicable={applicable} history={prepaymentHistory}
                 baseCurrency={baseCurrency}
                 /* 挂着单、却看不到采购侧 —— 那时这一块要【说出来】,不是消失。 */
                 restricted={!!batch.purchase_order_id && !(canViewPurchasing && canSeeFinance)} />

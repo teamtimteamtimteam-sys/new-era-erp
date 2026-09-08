@@ -16,6 +16,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import StatementLinesTable, { type StatementLineRow } from './StatementLinesTable'
 import { mustRows } from '@/lib/db-helpers'
+import { can } from '@/lib/permissions'
 
 type MatchRow = {
     statement_line_id: string
@@ -36,6 +37,7 @@ export default async function BankStatementDetailPage({
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const { id } = await params
     const sp = await searchParams
@@ -205,7 +207,7 @@ export default async function BankStatementDetailPage({
                                         : '—',
                                 })}
                             </span>
-                            <UnreconcileControl statementId={stmt.id} subject={stmt.code} />
+                            <UnreconcileControl canEdit={canEditGate} statementId={stmt.id} subject={stmt.code} />
                         </div>
                     )}
 
@@ -373,7 +375,7 @@ export default async function BankStatementDetailPage({
                         ? [{ label: t('bank.reconciledAt'), value: formatTimestamp(stmt.reconciled_at, dateLocale) }]
                         : []),
                 ]}
-                actions={stmt.status === 'open' ? <DeleteStatementButton statementId={stmt.id} subject={stmt.code} /> : undefined}
+                actions={stmt.status === 'open' ? <DeleteStatementButton canEdit={canEditGate} statementId={stmt.id} subject={stmt.code} /> : undefined}
             />
 
             {stmt.notes && (

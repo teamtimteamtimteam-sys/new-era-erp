@@ -44,6 +44,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { saveServiceInterval, deleteServiceInterval } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export type IntervalRow = {
     interval_id: string | null
@@ -178,11 +179,11 @@ export default function ServiceIntervalPanel({
         <div className="mb-8">
             <div className="flex items-baseline gap-3 mb-2">
                 <h2 className="text-lg font-medium">{t('equipment.intervals.title')}</h2>
-                {canEdit && (
+                <PermissionGate code="module.processing.edit" allowed={canEdit}>
                     <Button variant="secondary" size="xs" type="button" onClick={openNew} disabled={pending}>
                         {t('equipment.intervals.add')}
                     </Button>
-                )}
+                </PermissionGate>
             </div>
             {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('equipment.needsProcessingEdit')}</p>}
             {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
@@ -279,7 +280,7 @@ export default function ServiceIntervalPanel({
                                     {h.text}
                                 </p>
 
-                                {canEdit && (
+                                <PermissionGate code="module.processing.edit" allowed={canEdit}>
                                     <div className="flex gap-2 mt-2">
                                         <Button variant="secondary" size="xs" className="text-xs" type="button" disabled={pending} onClick={() => openEdit(r)}>
                                             {t('equipment.intervals.edit')}
@@ -301,7 +302,7 @@ export default function ServiceIntervalPanel({
                                             {t('equipment.intervals.stop')}
                                         </ConfirmButton>
                                     </div>
-                                )}
+                                </PermissionGate>
                             </div>
                         )
                     })}

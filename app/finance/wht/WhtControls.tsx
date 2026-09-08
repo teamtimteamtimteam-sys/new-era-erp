@@ -7,10 +7,15 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { remitWht } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 type Month = { month: string; label: string; amount: string }
 
-export function RemitControl({ months }: { months: Month[] }) {
+export function RemitControl({ months ,
+canEdit
+}: { months: Month[] 
+canEdit: boolean
+}) {
     const t = useTranslations()
     const router = useRouter()
     const [month, setMonth] = useState('')
@@ -76,6 +81,7 @@ export function RemitControl({ months }: { months: Month[] }) {
             </div>
 
             <div className="mt-3 flex items-center gap-3">
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <Button type="button" disabled={incomplete || busy}
                         onClick={() => start(async () => {
                             const r = await remitWht(month, on, ref, bank, notes)
@@ -93,6 +99,7 @@ export function RemitControl({ months }: { months: Month[] }) {
                         })}>
                     {busy ? t('common.saving') : t('wht.remitSubmit')}
                 </Button>
+                </PermissionGate>
                 {/* 【禁用要说出理由,而不是把控件藏起来】 */}
                 {incomplete && (
                     <span className="text-sm text-amber-700">

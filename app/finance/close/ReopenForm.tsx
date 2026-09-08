@@ -14,8 +14,13 @@ import { reopenPeriod } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
-export default function ReopenForm({ periodEnd }: { periodEnd: string }) {
+export default function ReopenForm({ periodEnd ,
+canEdit
+}: { periodEnd: string 
+canEdit: boolean
+}) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
 
@@ -47,6 +52,7 @@ export default function ReopenForm({ periodEnd }: { periodEnd: string }) {
 
     return (
         <div className="flex items-center gap-2">
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <ConfirmButton
                 subject={periodEnd}
                 title={t('finance.reopenConfirm')}
@@ -59,6 +65,7 @@ export default function ReopenForm({ periodEnd }: { periodEnd: string }) {
             >
                 {isPending ? t('common.saving') : t('finance.reopenButton')}
             </ConfirmButton>
+            </PermissionGate>
         </div>
     )
 }

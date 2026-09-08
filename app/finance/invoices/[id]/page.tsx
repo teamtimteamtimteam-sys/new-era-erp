@@ -13,7 +13,7 @@ import VoidInvoiceControl from './VoidInvoiceControl'
 import CreditNoteSection from './CreditNoteSection'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
-import { canViewBanking } from '@/lib/permissions'
+import { canViewBanking, can } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import IssuePanel from '@/app/components/IssuePanel'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -54,6 +54,7 @@ export default async function InvoiceDetailPage({
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const { id } = await params
     const supabase = await createClient()
@@ -295,7 +296,7 @@ export default async function InvoiceDetailPage({
                             {t('invoice.pdfNeedsBanking')}
                         </span>
                     )}
-                    {!isVoid && <VoidInvoiceControl invoiceId={inv.id} subject={inv.code} hasEntry={inv.entry_id !== null} />}
+                    {!isVoid && <VoidInvoiceControl canEdit={canEditGate} invoiceId={inv.id} subject={inv.code} hasEntry={inv.entry_id !== null} />}
                 </span>
             }
             // ★★ 详情页恒为 ok —— 这张发票在不在由上面的 notFound() 回答。CONV-8 §⑤。

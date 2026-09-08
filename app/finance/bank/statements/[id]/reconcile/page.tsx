@@ -13,6 +13,7 @@ import ReconcileWorkspace, {
 } from './ReconcileWorkspace'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 
 type MatchRow = {
     statement_line_id: string
@@ -32,6 +33,7 @@ export default async function ReconcilePage({
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const { id } = await params
     const supabase = await createClient()
@@ -137,7 +139,7 @@ export default async function ReconcilePage({
     return (
         <div className="p-8 max-w-[110rem]">
             <h1 className="text-2xl font-bold mb-4">{t('bank.title')}</h1>
-            <ReconcileWorkspace
+            <ReconcileWorkspace canEdit={canEditGate}
                 statement={{
                     id: stmt.id,
                     code: stmt.code,

@@ -49,6 +49,7 @@ export default async function NewPaymentPage({
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const sp = await searchParams
     const supabase = await createClient()
@@ -214,7 +215,7 @@ export default async function NewPaymentPage({
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="text-2xl font-bold mb-4">{t('finance.newPaymentTitle')}</h1>
-            <NewPaymentForm
+            <NewPaymentForm canEdit={canEditGate}
                 customers={customers}
                 suppliers={suppliers}
                 sodUnknown={sodUnknown}

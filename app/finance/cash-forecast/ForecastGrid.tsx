@@ -16,6 +16,7 @@ import { freezeForecast } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 type Bucket = { currency: string; week_no: number; week_start: string; week_end: string
                 inflow: number; outflow: number; net: number; closing: number }
@@ -270,7 +271,7 @@ export default function ForecastGrid({
             </div>
 
             {/* ── 冻结 ───────────────────────────────────────────────────── */}
-            {canFreeze && (
+            <PermissionGate code="module.finance.edit" allowed={canFreeze}>
                 <div className="flex flex-wrap items-end gap-3">
                     <label className="text-sm text-gray-600">
                         {t('cashForecast.supersedeReason')}
@@ -290,7 +291,7 @@ export default function ForecastGrid({
                     </Button>
                     <span className="text-xs text-gray-500">{t('cashForecast.freezeHint')}</span>
                 </div>
-            )}
+            </PermissionGate>
         </div>
     )
 }

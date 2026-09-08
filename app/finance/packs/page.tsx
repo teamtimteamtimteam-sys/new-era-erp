@@ -20,6 +20,7 @@ import { ProducePackControl, PackMonthPicker } from './PackControls'
 import { ListPage } from '@/app/components/ui/list-page'
 import PacksHistoryTable, { type PackRow } from './PacksHistoryTable'
 import { Button } from '@/app/components/ui/button'
+import { can } from '@/lib/permissions'
 
 function monthOf(v: string | undefined): string {
     // 【只认 YYYY-MM;认不出就用上个月】上个月是"最可能已经关账"的那一个,
@@ -36,6 +37,7 @@ export default async function PacksPage({
 }: { searchParams: Promise<{ month?: string }> }) {
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
     const sp = await searchParams
     const month = monthOf(sp.month)
     const supabase = await createClient()
@@ -98,6 +100,7 @@ export default async function PacksPage({
 
             <div className="mb-8">
                 <ProducePackControl
+                    canEdit={canEditGate}
                     month={month}
                     canProduce={preview.month_locked}
                     hasLive={Boolean(livePack)}

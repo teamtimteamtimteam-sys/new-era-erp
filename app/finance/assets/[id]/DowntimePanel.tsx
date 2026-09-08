@@ -29,6 +29,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { openDowntime, closeDowntime } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export type DowntimeRow = {
     id: string
@@ -128,7 +129,7 @@ export default function DowntimePanel({
                     {/* 【时长这一栏说"还在停",不是空白、不是 0】—— duration 的列注释
                         说的正是这件事:NULL 不是零,是"还不知道"。 */}
                     <p className="text-xs text-gray-600 mt-1">{t('equipment.down.stillDown')}</p>
-                    {canEdit && (
+                    <PermissionGate code="module.processing.edit" allowed={canEdit}>
                         <div className="flex flex-wrap gap-2 items-end mt-2">
                             <label className="block">
                                 <span className="text-xs text-gray-600 block">{t('equipment.down.endedAt')}</span>
@@ -150,9 +151,11 @@ export default function DowntimePanel({
                                 </span>
                             )}
                         </div>
-                    )}
+                    </PermissionGate>
                     {/* 【为什么这里没有"再开一段"的按钮】说出来,不要让人以为按钮坏了。 */}
-                    {canEdit && <p className="text-xs text-gray-600 mt-2">{t('equipment.down.oneOpenOnly')}</p>}
+                    <PermissionGate code="module.processing.edit" allowed={canEdit}>
+                        <p className="text-xs text-gray-600 mt-2">{t('equipment.down.oneOpenOnly')}</p>
+                    </PermissionGate>
                 </div>
             )}
 

@@ -13,12 +13,14 @@ import GstPanel from './GstPanel'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
 import { getFunctionAccess } from '@/lib/moduleAccess'
+import { can } from '@/lib/permissions'
 
 export default async function FinanceSettingsPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const supabase = await createClient()
     const t = await getTranslations()
@@ -118,7 +120,7 @@ export default async function FinanceSettingsPage() {
                 </p>
             )}
 
-            <LockForm lockedBefore={lockedBefore} />
+            <LockForm canEdit={canEditGate} lockedBefore={lockedBefore} />
 
             {/* 手动锁是覆盖手段;正常关账走月结页 */}
             <p className="text-sm text-gray-500 mt-4">
@@ -131,7 +133,7 @@ export default async function FinanceSettingsPage() {
 
             {/* GST-3:注册开关。**这一页此前完全没有它** —— 而 GST-1/GST-2 建的
                 每一样东西都挂在它后面,于是两刀的成果一个人也碰不到。 */}
-            <GstPanel
+            <GstPanel canEdit={canEditGate}
                 registered={data?.gst_registered ?? false}
                 registrationNo={data?.gst_registration_no ?? null}
             />

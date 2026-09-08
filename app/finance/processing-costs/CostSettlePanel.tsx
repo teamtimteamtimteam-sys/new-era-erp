@@ -19,6 +19,7 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { remitCosts, relieveAccruals } from '../month-end/actions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 type Entry = { id: string; run_id: string; cost_type: string; amount_base: number; is_estimate: boolean; created_at: string }
 type Run = { id: string; code: string }
@@ -27,7 +28,11 @@ type Sup = { id: string; legal_name: string }
 // baseCurrency:'{accrued} {ccy}' 这句文案一直只传了 accrued —— 解析器对认不出的
 // 占位符原样保留(lib/i18n/client.tsx),所以屏幕上真的印着"1,234.00 {ccy}。"。
 // 币种来自数据(currencies.is_base),由页面传入。
-export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency }: { entries: Entry[]; runs: Run[]; suppliers: Sup[]; baseCurrency: string }) {
+export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency ,
+canEdit
+}: { entries: Entry[]; runs: Run[]; suppliers: Sup[]; baseCurrency: string 
+canEdit: boolean
+}) {
     const t = useTranslations()
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -117,10 +122,12 @@ export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency
                     <div className="flex gap-4 flex-wrap items-start">
                         {dateField('pay-date', payDate, setPayDate,
                             'finance.costSettle.paymentDate', 'finance.costSettle.paymentDateHint')}
+                        <PermissionGate code="module.finance.edit" allowed={canEdit}>
                         <Button size="sm" className="mt-4" type="button" disabled={pending || chosenA.length === 0 || payDate === ''}
                             onClick={() => run(() => remitCosts(chosenA.map((e) => e.id), payDate, ''))}>
                             {t('finance.costSettle.remit', { n: chosenA.length })}
                         </Button>
+                        </PermissionGate>
                     </div>
                 </div>
             )}
@@ -168,12 +175,14 @@ export default function CostSettlePanel({ entries, runs, suppliers, baseCurrency
                                 )}
                             </label>
                         )}
+                        <PermissionGate code="module.finance.edit" allowed={canEdit}>
                         <Button size="sm" className="mt-4" type="button"
                             disabled={pending || chosenE.length === 0 || variance === null || mixedTypes
                                       || invDate === '' || (payStatus === 'unpaid' && !supplier)}
                             onClick={() => run(() => relieveAccruals({ entryIds: chosenE.map((e) => e.id), actual: actualN, date: invDate, paymentStatus: payStatus, bank: '', supplierId: supplier }))}>
                             {t('finance.costSettle.relieve', { n: chosenE.length })}
                         </Button>
+                        </PermissionGate>
                     </div>
                     {/* 差异在提交【之前】就摆出来,并且说清【是哪个方向】——
                         光给一个带正负号的数字,看的人还得自己想"这是估多了还是估少了" */}

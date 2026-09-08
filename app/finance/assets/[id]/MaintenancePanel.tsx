@@ -53,6 +53,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { recordMaintenance, capitaliseMaintenance } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export type MaintRow = {
     id: string
@@ -194,7 +195,7 @@ export default function MaintenancePanel({
                "不要 offer 服务端一定会拒的动作"。未投用的机器不走这条路。 */
             render: (r) =>
                 r.capitalised && !r.capitalised_expense_id && inServiceDate && canEdit ? (
-                    <CapitaliseControl assetId={assetId} maintenanceId={r.id}
+                    <CapitaliseControl canEdit={canEdit} assetId={assetId} maintenanceId={r.id}
                                        performedOn={r.performed_on}
                                        suppliers={suppliers} baseCurrency={baseCurrency}
                                        currencies={currencies} />
@@ -214,11 +215,13 @@ export default function MaintenancePanel({
         <div className="mb-8">
             <div className="flex items-baseline gap-3 mb-2">
                 <h2 className="text-lg font-medium">{t('equipment.maint.title')}</h2>
-                {canEdit && (
+                <PermissionGate code="module.processing.edit" allowed={canEdit}>
+                    <PermissionGate code="module.finance.edit" allowed={canEdit}>
                     <Button variant="secondary" size="xs" type="button" onClick={() => setOpen(!open)} disabled={pending}>
                         {t('equipment.maint.add')}
                     </Button>
-                )}
+                    </PermissionGate>
+                </PermissionGate>
             </div>
             {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('equipment.needsProcessingEdit')}</p>}
             {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
@@ -355,9 +358,11 @@ export default function MaintenancePanel({
                     </div>
 
                     <div className="flex gap-2 items-center">
+                        <PermissionGate code="module.finance.edit" allowed={canEdit}>
                         <Button size="xs" type="button" disabled={pending || why !== ''} onClick={submit}>
                             {t('common.save')}
                         </Button>
+                        </PermissionGate>
                         <Button variant="secondary" size="xs" type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}>
                             {t('common.cancel')}
                         </Button>
@@ -382,13 +387,14 @@ export default function MaintenancePanel({
 //   直接 FX_RATE_NOT_ACCEPTED)。牌价属于 fx_rates,不属于表单 —— 这是全库同一条。
 // 【税码也不在】留空 = 走供应商的默认进项税码(resolve_tax_code),
 //   与普通支出表单同一份实现,不在这里另开一套。
-function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, baseCurrency, currencies }: {
+function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, baseCurrency, currencies, canEdit }: {
     assetId: string
     maintenanceId: string
     performedOn: string
     suppliers: { id: string; label: string }[]
     baseCurrency: string
     currencies: string[]
+    canEdit: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -421,9 +427,11 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
 
     if (!open) {
         return (
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <Button variant="secondary" size="xs" className="text-xs" type="button" onClick={() => { setOpen(true); setError(null) }}>
                 {t('equipment.maint.capitaliseAction')}
             </Button>
+            </PermissionGate>
         )
     }
 
@@ -462,9 +470,11 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
                 </label>
             </div>
             <div className="flex gap-2 items-center mt-2">
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <Button size="xs" type="button" disabled={pending || why !== ''} onClick={submit}>
                     {t('equipment.maint.capitaliseAction')}
                 </Button>
+                </PermissionGate>
                 <Button variant="secondary" size="xs" type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}>
                     {t('common.cancel')}
                 </Button>

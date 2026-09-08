@@ -34,12 +34,18 @@ import { softDeleteFxRate } from './actions'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { useTranslations } from '@/lib/i18n/client'
 import { showActionMessage } from '@/app/components/ui/action-message'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
-export default function DeleteButton({ id, subject }: { id: string; subject: string }) {
+export default function DeleteButton({ id, subject ,
+canEdit
+}: { id: string; subject: string 
+canEdit: boolean
+}) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
 
     return (
+        <PermissionGate code="module.finance.edit" allowed={canEdit}>
         <ConfirmButton
             subject={subject}
             title={t('finance.fxPage.withdrawConfirmTitle')}
@@ -67,5 +73,6 @@ export default function DeleteButton({ id, subject }: { id: string; subject: str
         >
             {isPending ? t('common.deleting') : t('common.delete')}
         </ConfirmButton>
+        </PermissionGate>
     )
 }

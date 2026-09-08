@@ -16,6 +16,7 @@ import { decideClaim } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export type ClaimRow = {
     claim_id: string; code: string; employee_code: string; employee_name: string
@@ -121,7 +122,7 @@ export default function ClaimDecisionPanel({
                                         ? <span className="text-amber-800">{t('expenseClaims.noReceipt')} — {c.no_receipt_reason}</span>
                                         : <span className="text-red-700">{t('expenseClaims.noReceipt')}</span>}
                             </p>
-                            {canDecide && (
+                            <PermissionGate code="module.finance.edit" allowed={canDecide}>
                                 <div className="flex flex-wrap gap-2 items-end">
                                     <label className="text-xs text-gray-600">{t('expenseClaims.accountCode')}
                                         <select value={get(c.claim_id).acct}
@@ -165,7 +166,7 @@ export default function ClaimDecisionPanel({
                                         {t('expenseClaims.reject')}
                                     </Button>
                                 </div>
-                            )}
+                            </PermissionGate>
                             <p className="text-[11px] text-gray-500 mt-1">{t('expenseClaims.postingDateHint')}</p>
                             <p className="text-[11px] text-gray-500">{t('expenseClaims.taxCodeHint')}</p>
                         </div>

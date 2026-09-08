@@ -7,12 +7,14 @@ import { loadPaymentTriggerEvents } from '@/lib/paymentTriggers'
 import TemplateForm from '../TemplateForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 
 export default async function NewTemplatePage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.purchasing)
     if (denied) return denied
+    const canEditGate = await can('module.purchasing.edit')
 
     const t = await getTranslations()
     // FIN-29:币种是【数据】(currencies 表),不是写死的清单
@@ -28,7 +30,7 @@ export default async function NewTemplatePage() {
                 </Link>
             </div>
             <h1 className="text-2xl font-bold mb-4">{t('purchasing.newTemplate')}</h1>
-            <TemplateForm currencies={currencies} triggerEvents={triggerEvents} />
+            <TemplateForm canEdit={canEditGate} currencies={currencies} triggerEvents={triggerEvents} />
         </div>
     )
 }

@@ -10,6 +10,7 @@ import { FileReturnControl, CorrectControl } from '../GstControls'
 import { ListPage } from '@/app/components/ui/list-page'
 import { F5BoxesTable, F5BoxDetailTable, type F5BoxRow, type F5DetailRow } from './GstTables'
 import { Button } from '@/app/components/ui/button'
+import { can } from '@/lib/permissions'
 
 type Box = { box: string; label_en: string; label_zh: string; value: number; derived: boolean; note_zh?: string; note_en?: string }
 
@@ -19,6 +20,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
 }) {
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
     const { periodId } = await params
     const { box } = await searchParams
     const supabase = await createClient()
@@ -217,13 +219,13 @@ export default async function GstPeriodPage({ params, searchParams }: {
             <p className="text-xs text-gray-600 mb-2">{t('gst.filingIsOutside')}</p>
             {/* ★ 出口检查:申报控件与更正控件都住 children,而 state 恒为 'ok',
                   所以它们不可能被任何空分支吃掉。 */}
-            <div className="mb-6"><FileReturnControl periodId={periodId} blockedWhy={blockedWhy} /></div>
+            <div className="mb-6"><FileReturnControl canEdit={canEditGate} periodId={periodId} blockedWhy={blockedWhy} /></div>
 
             {filed && (
                 <>
                     <h2 className="font-semibold mb-2">{t('gst.raiseCorrection')}</h2>
                     <p className="text-xs text-gray-600 mb-2">{t('gst.correctionWhy')}</p>
-                    <CorrectControl periodId={periodId} />
+                    <CorrectControl canEdit={canEditGate} periodId={periodId} />
                 </>
             )}
         </ListPage>

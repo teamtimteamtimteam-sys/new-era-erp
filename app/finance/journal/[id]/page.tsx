@@ -18,6 +18,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import JournalLinesTable, { type JournalLineRow } from './JournalLinesTable'
+import { can } from '@/lib/permissions'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type LineRow = {
@@ -40,6 +41,7 @@ export default async function JournalDetailPage({
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const { id } = await params
     const supabase = await createClient()
@@ -193,7 +195,7 @@ export default async function JournalDetailPage({
                         ),
                     },
                 ]}
-                actions={entry.status === 'posted' ? <ReverseButton entryId={entry.id} subject={entry.code} /> : undefined}
+                actions={entry.status === 'posted' ? <ReverseButton canEdit={canEditGate} entryId={entry.id} subject={entry.code} /> : undefined}
             />
 
             {entry.memo && (

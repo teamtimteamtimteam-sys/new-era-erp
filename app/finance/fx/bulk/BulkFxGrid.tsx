@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { recordFxRatesBulk, type BulkCell } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const TYPES = ['tt_buy', 'tt_sell', 'mid'] as const
 
@@ -19,10 +20,13 @@ export default function BulkFxGrid({
     currencies,
     dates,
     existing,
+canEdit
 }: {
     currencies: string[]
     dates: string[]
     existing: Existing[]
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const [currency, setCurrency] = useState(currencies[0] ?? '')
@@ -131,11 +135,13 @@ export default function BulkFxGrid({
             </div>
 
             <div className="mt-4 flex items-center gap-4">
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <Button
                     type="button" onClick={submit} disabled={isPending}
                 >
                     {isPending ? t('common.saving') : t('finance.fxPage.bulk.save')}
                 </Button>
+                </PermissionGate>
                 <span className="text-xs text-gray-600">{t('finance.fxPage.bulk.blanksSkipped')}</span>
             </div>
         </div>

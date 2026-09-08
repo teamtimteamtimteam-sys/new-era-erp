@@ -17,6 +17,7 @@ import { formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { applyPrepayment, type ApplyPrepaymentState } from './prepaymentActions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const initialState: ApplyPrepaymentState = {}
 
@@ -34,6 +35,7 @@ export default function PrepaymentPanel({
     history,
     baseCurrency,
     restricted = false,
+canEdit
 }: {
     batchId: string
     applicable: {
@@ -60,6 +62,8 @@ export default function PrepaymentPanel({
      * (那是从空结果倒推),要由页面把权限答复本身传进来。
      */
     restricted?: boolean
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const boundAction = applyPrepayment.bind(null, batchId, applicable?.purchase_order_id ?? '')
@@ -89,6 +93,7 @@ export default function PrepaymentPanel({
             )}
 
             {applicable && (
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <form action={formAction} className="space-y-3">
                     <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
                         <div>
@@ -134,6 +139,7 @@ export default function PrepaymentPanel({
                         </Button>
                     </div>
                 </form>
+                </PermissionGate>
             )}
 
             {history.length > 0 && (

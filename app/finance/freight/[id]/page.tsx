@@ -23,6 +23,7 @@ import ReverseFreightControl from './ReverseFreightControl'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader, type RecordField } from '@/app/components/ui/record-header'
 import FreightAllocationsTable, { type FreightAllocRow } from './FreightAllocationsTable'
+import { can } from '@/lib/permissions'
 
 type AllocRow = {
     id: string
@@ -36,6 +37,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const { id } = await params
     const supabase = await createClient()
@@ -180,7 +182,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
                 fields={fields}
                 // 已冲销的单据没有冲销钮 —— 服务端会按名拒(FREIGHT_ALREADY_REVERSED),
                 // 所以这里干脆不渲染一个注定被拒的控件。
-                actions={!reversed ? <ReverseFreightControl id={id} code={d.code} /> : undefined}
+                actions={!reversed ? <ReverseFreightControl canEdit={canEditGate} id={id} code={d.code} /> : undefined}
             />
 
             {/* 【空状态要说出它是哪一种空】出境单据没有分摊行,不是"还没有记" ——

@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveContact, removeContact } from './contactActions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export type ContactRow = {
     id: string
@@ -25,11 +26,14 @@ export type ContactRow = {
 
 const EMPTY = { name: '', role: '', email: '', phone: '', notes: '', isPrimary: false }
 
-export default function ContactsPanel({ customerId, supplierId, rows, canEdit }: {
+export default function ContactsPanel({ customerId, supplierId, rows, canEdit, permissionCode }: {
     customerId?: string
     supplierId?: string
     rows: ContactRow[]
     canEdit: boolean
+    /** 【这个码随宿主页面变】供应商页是 module.suppliers.edit,客户页是
+     *  module.customers.edit —— 同一个面板,两个属主,所以码不能写死在这里。 */
+    permissionCode: string
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -89,7 +93,10 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit }:
                             <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colEmail')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colPhone')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colPrimary')}</th>
-                            {canEdit && <th className="border border-gray-300 px-3 py-2" />}
+                            {/* 【表头不是控件】所以它不上闸,也不消失 —— 一个
+                                空的列头不邀请任何人做任何事,而让它随权限时有时无
+                                会让两个人看到的表宽度不一样。 */}
+                            <th className="border border-gray-300 px-3 py-2" />
                         </tr>
                     </thead>
                     <tbody>
@@ -112,16 +119,16 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit }:
                                         ? <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded">{t('contacts.primaryTag')}</span>
                                         : <span className="text-xs text-gray-400">—</span>}
                                 </td>
-                                {canEdit && (
                                     <td className="border border-gray-300 px-3 py-2 text-sm whitespace-nowrap">
+                                        <PermissionGate code={permissionCode} allowed={canEdit}>
                                         <Button variant="secondary" size="xs" type="button" onClick={() => open(r)} disabled={pending}>
                                             {t('common.edit')}
                                         </Button>
                                         <Button variant="reversal" size="xs" className="ml-2" type="button" onClick={() => drop(r.id)} disabled={pending}>
                                             {t('contacts.remove')}
                                         </Button>
+                                        </PermissionGate>
                                     </td>
-                                )}
                             </tr>
                         ))}
                     </tbody>

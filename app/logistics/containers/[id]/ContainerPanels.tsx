@@ -7,6 +7,7 @@ import {
     saveContainerHead, attachShipment, detachShipment,
     addMilestone, instantiateDocuments, setDocumentStatus, addDocument,
 } from './actions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 type Ship = { id: string; code: string; ship_date: string; order_code: string; customer: string }
 type Ms = { id: string; milestone: string; event_date: string; note: string | null; label: string }
@@ -15,6 +16,7 @@ type Doc = { id: string; document_type: string; regime: string | null; status: s
 export default function ContainerPanels({
     containerId, head, forwarders, hasLane, laneChecklistState, attached, attachable, operativeIds,
     milestones, documents, milestoneTypes, labels,
+canEdit
 }: {
     containerId: string
     head: { container_number: string | null; vessel: string | null; voyage: string | null; bl_number: string | null; notes: string | null; expected_arrival_date: string | null
@@ -28,6 +30,8 @@ export default function ContainerPanels({
     milestones: Ms[]; documents: Doc[]
     milestoneTypes: { value: string; label: string }[]
     labels: Record<string, string>
+
+canEdit: boolean
 }) {
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
@@ -47,6 +51,7 @@ export default function ContainerPanels({
             {/* ── 头 ── */}
             <section className="border-t pt-6">
                 <h2 className="mb-3 text-xl font-bold">{labels.headHeading}</h2>
+                <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                 <form
                     className="flex max-w-4xl flex-wrap items-end gap-3"
                     onSubmit={(e) => { e.preventDefault(); const d = new FormData(e.currentTarget)
@@ -89,6 +94,7 @@ export default function ContainerPanels({
                         <input name="notes" defaultValue={head.notes ?? ''} className={`${field} w-full`} /></div>
                     <Button variant="default" size="sm" className="text-sm" disabled={pending}>{labels.save}</Button>
                 </form>
+                </PermissionGate>
                 {/* 【开航日不在这里改】—— 它在 DB 上没有开口子给按列放行,改它要另一条路 */}
                 <p className="mt-2 text-xs text-gray-500">{labels.blHint}</p>
                 <p className="mt-1 text-xs text-gray-500 max-w-3xl">{labels.etaHint}</p>
@@ -122,6 +128,7 @@ export default function ContainerPanels({
                                     <td className="border border-gray-300 px-3 py-1">{s.ship_date}</td>
                                     <td className="border border-gray-300 px-3 py-1">
                                         {detaching === s.id ? (
+                                            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                                             <form
                                                 className="flex items-center gap-2"
                                                 onSubmit={(e) => { e.preventDefault(); const d = new FormData(e.currentTarget)
@@ -133,6 +140,7 @@ export default function ContainerPanels({
                                                 <input name="reason" placeholder={labels.detachReason} className={`${field} w-64`} />
                                                 <Button variant="destructive" size="inline" disabled={pending} className="text-xs">{labels.detach}</Button>
                                             </form>
+                                            </PermissionGate>
                                         ) : (
                                             <Button variant="destructive" size="inline" type="button" disabled={pending}
                                                 onClick={() => setDetaching(s.id)} className="text-xs">{labels.detach}</Button>
@@ -155,6 +163,7 @@ export default function ContainerPanels({
                        flex-wrap 让按钮换行;max-w-full/min-w-0 让 select 不能超过容器。
                        ☞ 这一页此前【就在那 9 条 404 名单里】(§⑬-1e):它一直是坏的,
                          而旧尺子把它记成「可用」。 */
+                    <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                     <form
                         className="flex flex-wrap items-end gap-2"
                         onSubmit={(e) => { e.preventDefault(); const d = new FormData(e.currentTarget)
@@ -167,6 +176,7 @@ export default function ContainerPanels({
                         </select>
                         <Button variant="default" size="sm" className="text-sm" disabled={pending}>{labels.attach}</Button>
                     </form>
+                    </PermissionGate>
                 )}
             </section>
 
@@ -255,7 +265,9 @@ export default function ContainerPanels({
                     </p>
                 )}
                 {hasLane && (
+                    <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                     <Button variant="secondary" size="sm" className="mb-4 text-sm" type="button" disabled={pending} onClick={() => run(() => instantiateDocuments(containerId))}>{labels.instantiate}</Button>
+                    </PermissionGate>
                 )}
 
                 {documents.length > 0 && (
@@ -272,6 +284,7 @@ export default function ContainerPanels({
                                         </span>
                                     </td>
                                     <td className="border border-gray-300 px-3 py-1">
+                                        <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                                         <form
                                             className="flex items-center gap-2"
                                             onSubmit={(e) => { e.preventDefault(); const dd = new FormData(e.currentTarget)
@@ -289,6 +302,7 @@ export default function ContainerPanels({
                                                 placeholder={labels.naReason} className={`${field} w-56`} />
                                             <Button variant="link" size="inline" disabled={pending} className="text-xs">{labels.save}</Button>
                                         </form>
+                                        </PermissionGate>
                                     </td>
                                 </tr>
                             ))}
@@ -296,6 +310,7 @@ export default function ContainerPanels({
                     </table>
                 )}
 
+                <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                 <form
                     className="flex flex-wrap items-end gap-2"
                     onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const d = new FormData(f)
@@ -308,6 +323,7 @@ export default function ContainerPanels({
                         <input name="regime" className={field} /></div>
                     <Button variant="default" size="sm" className="text-sm" disabled={pending}>{labels.addDocument}</Button>
                 </form>
+                </PermissionGate>
             </section>
         </>
     )

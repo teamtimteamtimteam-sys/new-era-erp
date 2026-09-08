@@ -17,6 +17,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader, type RecordField } from '@/app/components/ui/record-header'
 import PaymentAllocationsTable, { type PaymentAllocRow } from './PaymentAllocationsTable'
+import { can } from '@/lib/permissions'
 
 type AllocRow = {
     id: string
@@ -40,6 +41,7 @@ export default async function PaymentDetailPage({
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const { id } = await params
     const supabase = await createClient()
@@ -296,7 +298,7 @@ export default async function PaymentDetailPage({
                 转换前它就在这一块 div 里(CONV-8 §③ 记的那个实测)。 */}
             <RecordHeader
                 fields={fields}
-                actions={payment.status === 'posted' ? <ReversePaymentButton paymentId={payment.id} subject={payment.code} /> : undefined}
+                actions={payment.status === 'posted' ? <ReversePaymentButton canEdit={canEditGate} paymentId={payment.id} subject={payment.code} /> : undefined}
             />
 
             {payment.notes && (
@@ -336,7 +338,7 @@ export default async function PaymentDetailPage({
 
             {/* 凭据附件 —— 这一页的第二个出口(上传凭据)。它住在 children 里,
                 而详情页 state 恒为 'ok',所以它不可能被空分支吃掉。 */}
-            <FinanceAttachmentsPanel parent={{ kind: 'payment', id: payment.id }} rows={attachments} />
+            <FinanceAttachmentsPanel canEdit={canEditGate} parent={{ kind: 'payment', id: payment.id }} rows={attachments} />
         </ListPage>
     )
 }

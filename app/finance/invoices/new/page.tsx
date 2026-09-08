@@ -10,6 +10,7 @@ import NewInvoiceForm, { type CustomerOption, type SaleOption } from './NewInvoi
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 
 type SaleFetchRow = {
     id: string
@@ -31,6 +32,7 @@ export default async function NewInvoicePage() {
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const supabase = await createClient()
     const t = await getTranslations()
@@ -102,7 +104,7 @@ export default async function NewInvoicePage() {
     return (
         <div className="p-8 max-w-6xl">
             <h1 className="text-2xl font-bold mb-4">{t('invoice.newTitle')}</h1>
-            <NewInvoiceForm
+            <NewInvoiceForm canEdit={canEditGate}
                 customers={customers}
                 sales={sales}
                 gstRegistered={settingsRes.data?.gst_registered ?? false}

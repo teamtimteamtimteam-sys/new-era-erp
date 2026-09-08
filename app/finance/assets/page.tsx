@@ -248,7 +248,7 @@ export default async function AssetsPage({
             ) : (
                 <p className="text-sm text-gray-500 mb-3">{t('assets.nothingToDepreciate', { 0: d })}</p>
             )}
-            <DepreciateButton periodEnd={d} disabled={totalDelta === 0} />
+            <DepreciateButton canEdit={canEdit} periodEnd={d} disabled={totalDelta === 0} />
         </ListPage>
     )
 }

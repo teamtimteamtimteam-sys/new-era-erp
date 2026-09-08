@@ -13,13 +13,17 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { createOrderInvoice } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export default function CreateOrderInvoiceControl({
     orderId,
     unbilledCount,
+canEdit
 }: {
     orderId: string
     unbilledCount: number
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -49,6 +53,7 @@ export default function CreateOrderInvoiceControl({
                         className="border border-gray-300 px-2 py-1 rounded text-sm"
                     />
                 </div>
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <Button variant="secondary" size="sm"
                     type="button"
                     onClick={go}
@@ -56,6 +61,7 @@ export default function CreateOrderInvoiceControl({
                 >
                     {isPending ? t('common.saving') : t('sales.invoice.create', { n: String(unbilledCount) })}
                 </Button>
+                </PermissionGate>
             </div>
             <p className="text-xs text-gray-500 mt-1">
                 {issueDate.trim() === '' ? t('sales.invoice.dateRequired') : t('sales.invoice.consequence')}

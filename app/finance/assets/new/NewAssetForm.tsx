@@ -8,16 +8,18 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { createAsset, type NewAssetState } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const CATEGORIES = ['equipment', 'vehicle', 'office', 'other'] as const
 
-export default function NewAssetForm() {
+export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
     const t = useTranslations()
     const [state, formAction, pending] = useActionState<NewAssetState, FormData>(
         createAsset, {} as NewAssetState,
     )
 
     return (
+        <PermissionGate code="module.finance.edit" allowed={canEdit}>
         <form action={formAction} className="max-w-2xl space-y-5">
             {/* 【为什么有两扇门】—— 一句话,就在表单旁边。
                 读不出区别的人会选错,而两者的账是不一样的。 */}
@@ -108,5 +110,6 @@ export default function NewAssetForm() {
                 </Button>
             </div>
         </form>
+        </PermissionGate>
     )
 }

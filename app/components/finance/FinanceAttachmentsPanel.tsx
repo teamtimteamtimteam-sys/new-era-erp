@@ -23,6 +23,7 @@ import {
 } from './financeAttachmentTypes'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const BUCKET = 'finance-attachments'
 
@@ -52,9 +53,12 @@ function formatBytes(bytes: number | null): string {
 export default function FinanceAttachmentsPanel({
     parent,
     rows,
+canEdit
 }: {
     parent: FinanceAttachmentParent
     rows: FinanceAttachmentRow[]
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const [error, setError] = useState<string | null>(null)
@@ -175,6 +179,7 @@ export default function FinanceAttachmentsPanel({
             priority: true,
             className: 'break-all',
             render: (row) => (
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <Button
                     variant="link"
                     size="inline"
@@ -185,6 +190,7 @@ export default function FinanceAttachmentsPanel({
                 >
                     {row.file_name}
                 </Button>
+                </PermissionGate>
             ),
         },
         {
@@ -216,6 +222,7 @@ export default function FinanceAttachmentsPanel({
             render: (row) => (
                 // CONFIRM-1:四张详情页共用这张表,每行一个删除钮 ——
                 // "删除该附件?" 答不上来是哪一个。文件名一直就在 row 上。
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <ConfirmButton
                     subject={row.file_name}
                     title={t('finAttach.deleteConfirm')}
@@ -227,6 +234,7 @@ export default function FinanceAttachmentsPanel({
                 >
                     {t('common.delete')}
                 </ConfirmButton>
+                </PermissionGate>
             ),
         },
     ]
@@ -248,6 +256,7 @@ export default function FinanceAttachmentsPanel({
                 />
             </div>
 
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <form key={formKey} action={handleUpload} className="flex flex-wrap items-end gap-3">
                 <div>
                     <label className="block text-sm font-medium mb-1">
@@ -294,6 +303,7 @@ export default function FinanceAttachmentsPanel({
                     {isPending ? t('finAttach.uploading') : t('finAttach.upload')}
                 </Button>
             </form>
+            </PermissionGate>
         </section>
     )
 }

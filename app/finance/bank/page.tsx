@@ -10,6 +10,7 @@ import { formatAmount } from '@/lib/format'
 import TransferForm from './TransferForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 
 // 视图列生成类型全可空;取用列本地锁死
 type StatusRow = {
@@ -31,6 +32,7 @@ export default async function BankHomePage() {
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const supabase = await createClient()
     const t = await getTranslations()
@@ -102,7 +104,7 @@ export default async function BankHomePage() {
                 </div>
             </div>
 
-            <TransferForm />
+            <TransferForm canEdit={canEditGate} />
 
             <div className="grid gap-4 md:grid-cols-2 mb-6">
                 {rows.map((r) => (

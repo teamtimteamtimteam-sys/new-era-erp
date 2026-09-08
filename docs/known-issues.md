@@ -3,9 +3,25 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
-## ★★ ALERT1-SILENT-WRITES-DB-SIDE —— 十处写入【被 RLS 挡下时不是错误】,数据库那一侧仍未补(ALERT-1,2026-09-08)
+## ~~★★ ALERT1-SILENT-WRITES-DB-SIDE~~ —— **✅ 已关闭(SILENT-1,2026-09-08,`5915c17`)**
 
-> **界面这一侧 ALERT-1 已经补好了。这一条记的是【剩下的那一半】,它在数据库里。**
+> **关闭它的那一刀同时更正了它的标题:那不是「十处」,是【74 处、横跨 61 张表】。**
+> 十处是从 18 处原生 `alert()` 站点出发找到的 —— 一次取样,不是一次普查。
+> 复算用 TypeScript AST(按行正则的第一版数出 78,把六处已有守卫误判成静默)。
+> ☞ 方法本身记在 `docs/forward-queue.md` 的「方法注记 · 从调用点清单出发的计数,三次都是取样」。
+
+**做法:**133 张表装上**语句级**触发器 `enforce_write_permission('<码>')`,零行也照样触发,
+抛 `PERMISSION_DENIED|<码>`(`refuseFromCoded` 当天就认得,零新映射)。
+`notification_reads` 刻意不装。闸门是 `row_security_active(TG_RELID)` ——
+**没有它,五支绩效自评函数会把六个同事锁在自己的绩效考核外面**(DEFINER 那几路必须放行)。
+
+> **下面这一段【保留不删】,因为它解释的是【为什么闸要在库里】,而那句话仍然成立:**
+> 客户端能分辨"零行"靠的是每一个调用点都记得加 `.select()`。忘一个,那一处就退回静默 ——
+> 而**忘记不会让任何检查变红**。
+> ☞ 同一形状的既有条目:`BTN4-REMOVENODE-SILENT-NOOP`。
+> ☞ **而它确实又被忘了一处 —— 见下面的 `FIXED-ASSETS-NO-UPDATE-POLICY`。**
+
+<details><summary>原文(关闭前)</summary>
 
 受影响的每一张表(`materials` `suppliers` `customers` `tasks` `finance_settings`
 `pricing_formulas` `metal_prices` `bank_statements`),UPDATE 策略都是
@@ -31,28 +47,150 @@ Tim 在 ALERT-1 闸上明确把它切成独立一刀(要一次迁移,而 ALERT-1
 而**忘记不会让任何检查变红**。闸在数据库里才是结构性的。
 ☞ 同一形状的既有条目:`BTN4-REMOVENODE-SILENT-NOOP`(`removeNode` 删零行仍返回成功)。
 
----
-
-## ALERT1-D-BLOCKED-17 —— 十七个控件【按得下,但注定被拒】(ALERT-1,2026-09-08)
-
-ALERT-1 把「权限不足」判成【丁类】:控件本来就不该可操作,理由要在按之前看得见。
-十八处里**只有一处当场做掉了**(`suppliers/[id]/edit` 的状态面板 —— 那一页
-`page.tsx:37` 早就算过 `can('module.suppliers.edit')`,还把它交给了同一页的
-`<ContactsPanel>`,唯独没给状态面板;补的是一个 prop)。
-
-**剩下十七处是 D-blocked**:它们的宿主页面【今天并不知道】编辑权限 ——
-`requireModule()` 问的是 view。要让控件消失,得在每一页多算一次
-`can('module.x.edit')` 再往下传。
-
-* 那个助手【已经存在】(`lib/permissions.ts` 的 `can()`,带 React cache),所以这一刀不大;
-* 但它是**六个在用账号身上的行为变化**(钮会消失),而 ALERT-1 的主题是消息显示。
-
-**Tim 在 ALERT-1 闸上的原话记在这里:「绝不把丁类改个样子然后叫它乙类。」**
-所以这十七处今天仍然可操作,只是被拒时会说一句人话。
+</details>
 
 ---
 
-## ALERT1-SUPPLIER-STATUS-TRIGGER-PROSE —— 一个触发器抛的是【中文散文,不是码】(ALERT-1,2026-09-08)
+## ALERT1-D-BLOCKED-17 → **改名 `DBLOCK-REMAINING-120`** —— 那个 17 是取样,真数是 190(DBLOCK-1 更正,2026-09-08)
+
+> **★ 标题里的 17 是错的,而错法与 SILENT-1 那个「十处」逐字同源 ★**
+> 两个数都是从**同一张 18 处原生 `alert()` 站点清单**出发数的。
+> 那张清单只找得到"碰巧坐在 `alert()` 后面"的控件 —— **它的边界是症状的边界,不是缺陷的边界。**
+
+**按形状重扫(TypeScript AST + 线上策略谓词 + 角色矩阵三路交叉):**
+
+| | 数 |
+|---|---|
+| 需要 edit 类权限的服务端动作 | 245 |
+| 调用它们的(组件,动作)控件对 | 243 |
+| — 宿主页面整页拒绝,控件到不了人眼前 | 17 |
+| — 本刀之前就已经按权限把关的 | 36 |
+| **— 不把关、且到得了人眼前** | **190**,横跨 ~150 个文件 |
+| **— 今天真的会骗到在册账号的** | **70** ← **DBLOCK-1 做掉了这些** |
+| **— 剩下的** | **120** ← **本条现在记的是它们** |
+
+> **★ 那个 218 也是错的,而它错在同一个地方 ★** 本条第一版写 218,是因为判"已经把关"
+> 用的是**按名字猜的正则**(`canEdit|canWrite|readOnly…`)。它漏掉了两种真的把关:
+> **三元式**(`!canEdit ? <说明> : <表单>`)与**名字不在猜测清单上的 prop**
+> (`canDecide` / `canFreeze` / `canIssue`)。改成【顺着页面把 `can(码)` 的那个变量
+> 追到组件】之后,36 处现出原形。**又一次:一个按名字猜的判据,数出来的是它猜得到的那些。**
+
+**复算的第二条路坏法不一样**(按角色,不按导入图),而它给出的是同一批控件:
+`cfo` 84 · `cco` 52 · `gm`/`finance`/`operations`/`warehouse` 各 8 · **`admin` 0**。
+
+### ★ 这 136 个今天不骗任何人,而它们会怎样醒过来 ★
+
+> **`auditor` 持 15 条 view、【0 条 edit】,而今天没有任何人持有这个角色。**
+> **给谁挂上它的那一天,他走得到的每一个编辑控件【同时】变成一次假邀请 —— 218 个,一次全开。**
+> 这不是假设:一套会计系统迟早要有一个审计员。
+
+### ★ 而它一直看不见,是因为 `admin` 在这张表上得零分 ★
+
+`admin` 持全部 14 条 edit,**一个假邀请都遇不到**;而**冒烟以 `admin` 跑**。
+☞ **请与本文件的 `SMOKE-SINGLE-ROLE-BLINDSPOT` 并排读** —— 那一条说的是
+「角色形状的缺陷,冒烟结构上看不见」,**本条就是它的第二个实例,而且是更大的那个**。
+
+### 关于「按行判权够不着」那句话 —— **也更正了**
+
+真正按行判权的**只有三张**(`tasks` 的 UPDATE/DELETE、`task_nodes`、`task_participants`,
+判据 `can_edit_task`),**而且只在编辑那条路上**:`tasks` 的 INSERT 是干净的模块码。
+**合同那八张不是按行判权,是按行取分支**(看 `customer_id` 还是 `supplier_id`),
+**而详情页早就把那一行读进来了** —— 它们便宜,不要绕开。
+
+**删除条件:**120 个都做完,或者 `auditor` 这类零-edit 角色被真的挂到人身上、
+从而把它们整批提前。
+
+---
+
+## DBLOCK-CONFLATED-BOOLEANS —— 一个布尔【同时】表示"没权限"和"状态不对",于是说不出到底哪一个(DBLOCK-1 查出,2026-09-08)
+
+**这一条是 DBLOCK-1 刻意【没有】做的那一半,而它值得单独立案,因为做错了比不做更坏。**
+
+`<PermissionGate>` 说的话是**「你缺 `<码>` 这项权限,管理员在 Settings → Roles 里给」**。
+那句话只有在它挂着的那个布尔【纯粹是一个权限答案】时才是真的。
+若那个布尔还掺着业务状态,这句话就会**指着一项他已经有了的权限**,
+让他去找管理员要一个他早就持有的东西。**说错原因比不说原因更坏。**
+
+### 本刀在探针 B 臂上【当场抓到过两次】,都已修
+
+* `YearClosePanel`:`canClose = hardChecks.every(ok)` —— 月锁 / 试算 / 重估 / 折旧做完没有,
+  **纯业务状态**。一个持有 `module.finance.edit` 的人看到的是「需要 module.finance.edit」。
+* `ProducePackControl`:`canProduce = preview.month_locked` —— 同样是纯状态,
+  而且因为它在 `if (!canProduce)` 的另一侧,那道闸**从来不会触发**。
+
+两处都改成【两个 prop,各说各的】:权限归 `canEdit`,状态归原来那个布尔。
+☞ **抓到它们的是探针的 B 臂**(有权限的人手里还能不能用),不是 A 臂,也不是 fixture。
+一支只跑"没权限"那条臂的探针,对这两处会全绿。
+
+### 没有改、按名登记的一族:`app/hr/reviews/*`
+
+| 站点 | 那个布尔 |
+|---|---|
+| `GoalsEditor` | `canEditGoals={canWrite && r.status === 'draft'}` |
+| 同页 | `canAssess={canWrite && (status === 'draft' \|\| status === 'self_review')}` |
+| 同页 | `canSetActual={canWrite && (status === 'draft' \|\| status === 'submitted')}` |
+| `ReviewActions` / `HrDecisionForm` | `canWrite` / `canPay`,而 `/my-reviews` 那一侧传的是 `canWrite={true}`、`canEditGoals={r.status === 'draft'}` —— **一个权限成分都没有** |
+
+**为什么不顺手改:**要把它们拆干净,得先回答一个业务问题 ——
+**「这一格现在按不动,到底是因为你不是 HR,还是因为这份考核还没到那一步?」**
+两种情形的下一步完全不同(一个去找管理员,一个去等流程),而**今天屏幕上一句都没说**。
+这不是套一个组件的事,是给绩效考核那一族**逐格写出两句不同的话**。
+
+☞ 与 `docs/silent-disable-inventory.md`(CMP-2)是同一族:那份清单记的正是
+「禁用了却不说为什么」的表单钮,而这一条是它的**权限版**。
+**删除条件:**绩效考核那一族逐格给出两句区分得开的话。
+
+---
+
+## ★★ FIXED-ASSETS-NO-UPDATE-POLICY —— `fixed_assets` 【一条写策略都没有】,于是那个"计划投用日"对**所有人**都是死的(DBLOCK-1 查出,2026-09-08)
+
+**线上实测(不是从镜像推的):**
+
+```
+pg_class.relrowsecurity = true          -- RLS 开着
+pg_policies WHERE tablename='fixed_assets'
+  → 只有一条:"fixed_assets select by permission" (SELECT)
+```
+
+**RLS 开着、而一条 UPDATE 策略都没有 = 任何 `authenticated` 会话的 UPDATE 匹配零行。**
+零行不是错误,所以 `error` 是 null。于是
+`app/finance/assets/[id]/actions.ts:222` 的 `setPlannedInService`
+**对每一个人**(**包括 `admin`**)都:改动零行 · 不报错 · `return { success: true }`。
+
+界面上那个控件在 `app/finance/assets/AssetActions.tsx:118`。
+
+### ★ 为什么这一条比它看起来更值钱 ★
+
+**FIX-1(B-D1)建这扇门,是为了给另一处拒绝一个【去处】。** 那条新守卫会拒掉一个未来的
+`in_service_date` 并告诉人"那是计划投用日";动作自己的抬头写着:
+**「如果没有地方填计划,那句话就是一条死路」**。
+**而那个地方从落地那天起就是死的** —— 于是那句拒绝一直指着一扇打不开的门。
+
+### 本刀做了什么、没做什么
+
+* **做了(不需要迁移)**:给那条 update 补 `.select('id')`,零行不再报告成功,
+  改走 `refuseNothingChanged` —— **与 SILENT-1 给另外 74 处用的是同一个形状**。
+  屏幕上从此有一句话,而不是一次假成功。
+* **没做**:补那条缺失的 UPDATE 策略。**那是一次迁移,而本刀是一刀前端。**
+  把迁移混进前端刀正是 SILENT-1 被单独切出去要避免的事。
+
+**删除条件:**给 `fixed_assets` 补上 UPDATE 策略(判据大概率是 `module.finance.edit`,
+**但要先量**:`fixed_assets` 上别的写路径全走 DEFINER 函数,所以直连表这一条是不是
+本来就该存在,本身是个要裁的问题 —— 也可能正解是**删掉这个控件**,
+让计划投用日也走一支函数)。**两条路都没量过,不要照着上面那句猜的判据就写。**
+
+---
+
+## ~~ALERT1-SUPPLIER-STATUS-TRIGGER-PROSE~~ —— **✅ 已关闭(SILENT-1 一族,2026-09-08)**
+
+**线上实测(DBLOCK-1 复核 2026-09-08)**:`validate_supplier_status_transition` 现在抛的是
+`INVALID_STATUS_TRANSITION|<from>|<to>`,**一个码,不是那句中文散文**。
+两条文案与本地化都接好了:`messages/en.ts:1396` / `messages/zh.ts:1404`,
+认它的是 `app/suppliers/supplierErrorCodes.ts:26`,消费点 `app/suppliers/[id]/edit/statusActions.ts`。
+**英文界面上不会再原样露出中文。**
+
+<details><summary>原文(关闭前)</summary>
+
 
 `validate_supplier_status_transition` 抛的是:
 
@@ -70,6 +208,8 @@ ALERT-1 能做的只是让它落进那句写好的兜底(标题是人话,原文�
 **正解是给这个触发器一个码**,再补 `suppliers.errors.*` 两条文案 —— 那是一次迁移。
 
 ☞ 同族参考:`docs/machine-text-reaching-humans.md`。
+
+</details>
 
 ---
 

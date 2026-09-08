@@ -7,6 +7,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { producePack } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export function PackMonthPicker({ month }: { month: string }) {
     const t = useTranslations()
@@ -23,8 +24,16 @@ export function PackMonthPicker({ month }: { month: string }) {
 }
 
 export function ProducePackControl({
-    month, canProduce, hasLive,
-}: { month: string; canProduce: boolean; hasLive: boolean }) {
+    month, canProduce, canEdit, hasLive,
+}: {
+    month: string
+    /** 【状态,不是权限】= `preview.month_locked`:这个月锁了没有。 */
+    canProduce: boolean
+    /** 【权限,不是状态】= module.finance.edit。两者混用会说出一句假话 ——
+     *  DBLOCK-1 的探针在 YearClosePanel 上抓到过同一次混用,详见那份抬头。 */
+    canEdit: boolean
+    hasLive: boolean
+}) {
     const t = useTranslations()
     const router = useRouter()
     const [notes, setNotes] = useState('')
@@ -62,6 +71,7 @@ export function ProducePackControl({
                                className="border border-gray-300 px-3 py-2 rounded w-full" />
                     </div>
                 )}
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <Button type="button" disabled={busy || (hasLive && !reason.trim())}
                         onClick={() => start(async () => {
                             const r = await producePack(month, notes, reason)
@@ -71,6 +81,7 @@ export function ProducePackControl({
                         variant="default" size="default">
                     {busy ? t('common.saving') : t('pack.produce')}
                 </Button>
+                </PermissionGate>
             </div>
             {hasLive && !reason.trim() && (
                 <p className="text-xs text-amber-700 mt-2">{t('pack.supersedeNeeded')}</p>

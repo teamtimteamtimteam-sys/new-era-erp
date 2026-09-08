@@ -17,6 +17,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import RevaluationPreviewTable, { type RevaluationRow } from './RevaluationPreviewTable'
 import { Button } from '@/app/components/ui/button'
+import { can } from '@/lib/permissions'
 
 type PreviewRow = {
     account: string
@@ -40,6 +41,7 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const sp = await searchParams
     const d = sp.date ?? new Date().toISOString().slice(0, 10)
@@ -106,7 +108,7 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
                 </div>
             )}
 
-            <RevalueButton periodEnd={d} disabled={!canPost} />
+            <RevalueButton canEdit={canEditGate} periodEnd={d} disabled={!canPost} />
         </ListPage>
     )
 }

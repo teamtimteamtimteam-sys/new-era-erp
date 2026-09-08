@@ -18,6 +18,7 @@ import {
 } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export type StatementLine = {
     id: string
@@ -86,11 +87,14 @@ export default function ReconcileWorkspace({
     lines,
     candidates,
     comparison,
+canEdit
 }: {
     statement: Statement
     lines: StatementLine[]
     candidates: Candidate[]
     comparison: BalanceComparison
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
@@ -279,6 +283,7 @@ export default function ReconcileWorkspace({
                                             {m.entry_code}
                                         </Link>
                                     ))}
+                                    <PermissionGate code="module.finance.edit" allowed={canEdit}>
                                     <Button
                                         variant="reversal"
                                         size="inline"
@@ -288,6 +293,7 @@ export default function ReconcileWorkspace({
                                     >
                                         {t('bank.unmatch')}
                                     </Button>
+                                    </PermissionGate>
                                 </div>
                             )}
 
@@ -297,6 +303,7 @@ export default function ReconcileWorkspace({
                                     <span>
                                         {t('bank.ignoreReason')}: {line.ignore_reason ?? '—'}
                                     </span>
+                                    <PermissionGate code="module.finance.edit" allowed={canEdit}>
                                     <Button
                                         variant="reversal"
                                         size="inline"
@@ -306,6 +313,7 @@ export default function ReconcileWorkspace({
                                     >
                                         {t('bank.unignore')}
                                     </Button>
+                                    </PermissionGate>
                                 </div>
                             )}
                         </div>
@@ -608,6 +616,7 @@ export default function ReconcileWorkspace({
                             </div>
 
                             <div className="flex flex-wrap items-center gap-3 mt-3">
+                                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                                 <Button
                                     type="button"
                                     disabled={!amountsAgree || isPending}
@@ -617,6 +626,7 @@ export default function ReconcileWorkspace({
                                 >
                                     {t('bank.match')}
                                 </Button>
+                                </PermissionGate>
                                 <Button variant="secondary"
                                     type="button"
                                     disabled={isPending}
@@ -638,6 +648,7 @@ export default function ReconcileWorkspace({
                                             placeholder={t('bank.ignoreReasonPlaceholder')}
                                             className="flex-1 min-w-[14rem] border border-gray-300 px-3 py-2 rounded text-sm"
                                         />
+ <PermissionGate code="module.finance.edit" allowed={canEdit}>
  <Button variant="default" 
                                             type="button"
                                             disabled={!ignoreReason.trim() || isPending}
@@ -649,6 +660,7 @@ export default function ReconcileWorkspace({
                                         >
                                             {t('bank.ignore')}
                                         </Button>
+ </PermissionGate>
                                     </div>
                                 </div>
                             )}

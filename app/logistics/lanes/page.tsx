@@ -10,10 +10,12 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import LanesPanel from './LanesPanel'
+import { can } from '@/lib/permissions'
 
 export default async function LanesPage() {
     const denied = await requireModule(MOD.logistics)
     if (denied) return denied
+    const canEditGate = await can('module.purchasing.edit')
 
     const supabase = await createClient()
     const t = await getTranslations()
@@ -42,7 +44,7 @@ export default async function LanesPage() {
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('logistics.lanesTitle')}</h1>
-            <LanesPanel
+            <LanesPanel canEdit={canEditGate}
                 ports={ports.map((p) => ({ id: p.id as string, label: `${p.code} ${p.name}` }))}
                 lanes={lanes.map((l) => ({
                     id: l.id as string,

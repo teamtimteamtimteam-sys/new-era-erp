@@ -8,6 +8,7 @@ import EditFxRateForm from './EditFxRateForm'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 
 export default async function EditFxRatePage({
     params,
@@ -18,6 +19,7 @@ export default async function EditFxRatePage({
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const { id } = await params
     const supabase = await createClient()
@@ -47,7 +49,7 @@ export default async function EditFxRatePage({
 
             <h1 className="text-2xl font-bold mb-6">{t('finance.fxPage.editTitle')}</h1>
 
-            <EditFxRateForm
+            <EditFxRateForm canEdit={canEditGate}
                 rate={rateRes.data}
                 currencies={(mustRows(currenciesRes)).map((c) => c.code)}
             />

@@ -8,8 +8,13 @@ import { setPeriodLock } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage, FieldMessage } from '@/app/components/ui/action-message'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
-export default function LockForm({ lockedBefore }: { lockedBefore: string | null }) {
+export default function LockForm({ lockedBefore ,
+canEdit
+}: { lockedBefore: string | null 
+canEdit: boolean
+}) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
     const [date, setDate] = useState(lockedBefore ?? '')
@@ -58,6 +63,7 @@ export default function LockForm({ lockedBefore }: { lockedBefore: string | null
             {!date && (
                 <p className="text-sm text-amber-700 self-center">{t('finance.blockedLockDate')}</p>
             )}
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <ConfirmButton
                 subject={date}
                 title={t('finance.lockConfirm')}
@@ -69,9 +75,11 @@ export default function LockForm({ lockedBefore }: { lockedBefore: string | null
             >
                 {isPending ? t('common.saving') : t('finance.setLock')}
             </ConfirmButton>
+            </PermissionGate>
             {lockedBefore && (
                 // 解除锁的主语是【现在锁在哪一天】,不是输入框里那个可能已经被改过的值 ——
                 // 解除动作传的是 null,它作用于既有的那道锁。
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <ConfirmButton
                     subject={lockedBefore}
                     title={t('finance.unlockConfirm')}
@@ -83,6 +91,7 @@ export default function LockForm({ lockedBefore }: { lockedBefore: string | null
                 >
                     {t('finance.unlock')}
                 </ConfirmButton>
+                </PermissionGate>
             )}
         </div>
     )

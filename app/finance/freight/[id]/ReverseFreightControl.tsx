@@ -10,8 +10,13 @@ import { useRouter } from 'next/navigation'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { reverseFreight } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
-export default function ReverseFreightControl({ id, code }: { id: string; code: string }) {
+export default function ReverseFreightControl({ id, code ,
+canEdit
+}: { id: string; code: string 
+canEdit: boolean
+}) {
     const t = useTranslations()
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
@@ -19,6 +24,7 @@ export default function ReverseFreightControl({ id, code }: { id: string; code: 
 
     return (
         <div className="inline-flex flex-col items-end">
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <ConfirmButton
                 subject={code}
                 title={t('finance.freight.reverseTitle')}
@@ -43,6 +49,7 @@ export default function ReverseFreightControl({ id, code }: { id: string; code: 
             >
                 {isPending ? t('common.saving') : t('finance.freight.reverseButton')}
             </ConfirmButton>
+            </PermissionGate>
             {error && <p className="mt-1 max-w-md text-xs text-destructive-text">{error}</p>}
         </div>
     )

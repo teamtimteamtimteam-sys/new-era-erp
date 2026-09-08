@@ -7,8 +7,13 @@ import { closePeriod } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
-export default function CloseButton({ periodEnd }: { periodEnd: string }) {
+export default function CloseButton({ periodEnd ,
+canEdit
+}: { periodEnd: string 
+canEdit: boolean
+}) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
 
@@ -27,6 +32,7 @@ export default function CloseButton({ periodEnd }: { periodEnd: string }) {
     }
 
     return (
+        <PermissionGate code="module.finance.edit" allowed={canEdit}>
         <ConfirmButton
             subject={periodEnd}
             title={t('finance.closeConfirm', { date: periodEnd })}
@@ -38,5 +44,6 @@ export default function CloseButton({ periodEnd }: { periodEnd: string }) {
         >
             {isPending ? t('common.saving') : t('finance.closeButton')}
         </ConfirmButton>
+        </PermissionGate>
     )
 }

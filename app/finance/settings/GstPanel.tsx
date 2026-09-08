@@ -16,13 +16,17 @@ import { setGstRegistration } from './gstActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage, FieldMessage } from '@/app/components/ui/action-message'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export default function GstPanel({
     registered,
     registrationNo,
+canEdit
 }: {
     registered: boolean
     registrationNo: string | null
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
@@ -93,6 +97,7 @@ export default function GstPanel({
                             {/* ★ 甲类:话贴着那个框。页顶一条横幅会让人回头找是哪个框。 */}
                             <FieldMessage field="registrationNo">{fieldError}</FieldMessage>
                         </div>
+                        <PermissionGate code="module.finance.edit" allowed={canEdit}>
                         <ConfirmButton
                             subject={regNo}
                             title={t('finance.gstSwitch.confirmOn')}
@@ -104,6 +109,7 @@ export default function GstPanel({
                         >
                             {t('finance.gstSwitch.turnOn')}
                         </ConfirmButton>
+                        </PermissionGate>
                     </div>
                     {/* 【禁用必须说出为什么】CMP-2:每个禁钮条件都有紧邻的一行字 */}
                     {regNoBlank && (
@@ -114,6 +120,7 @@ export default function GstPanel({
                 <>
                     {/* 关的那一侧:先说清楚它【可能关不掉】,以及为什么 */}
                     <p className="text-sm text-gray-600 mb-3">{t('finance.gstSwitch.turningOffHint')}</p>
+                    <PermissionGate code="module.finance.edit" allowed={canEdit}>
                     <ConfirmButton
                         subject={registrationNo ?? regNo}
                         title={t('finance.gstSwitch.confirmOff')}
@@ -125,6 +132,7 @@ export default function GstPanel({
                     >
                         {t('finance.gstSwitch.turnOff')}
                     </ConfirmButton>
+                    </PermissionGate>
                 </>
             )}
 

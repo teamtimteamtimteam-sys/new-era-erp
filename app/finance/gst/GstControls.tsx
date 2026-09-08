@@ -7,8 +7,9 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { openGstPeriod, fileGstReturn, correctGstReturn } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
-export function OpenPeriodControl() {
+export function OpenPeriodControl({ canEdit }: { canEdit: boolean }) {
     const t = useTranslations(); const router = useRouter()
     const [start, setStart] = useState('')
     const [err, setErr] = useState(''); const [busy, start2] = useTransition()
@@ -21,18 +22,22 @@ export function OpenPeriodControl() {
                        className="border border-gray-300 px-3 py-2 rounded" />
             </div>
             {!start && <p className="text-sm text-amber-700 self-center">{t('gst.blockedNeedStart')}</p>}
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <Button type="button" disabled={!start || busy}
                     onClick={() => start2(async () => {
                         const r = await openGstPeriod(start); if (r.error) setErr(r.error); else { setErr(''); router.refresh() }
                     })}>
                 {busy ? t('common.saving') : t('gst.openPeriod')}
             </Button>
+            </PermissionGate>
             {err && <p className="text-sm text-red-700 w-full">{err}</p>}
         </div>
     )
 }
 
-export function FileReturnControl({ periodId, blockedWhy }: { periodId: string; blockedWhy?: string }) {
+export function FileReturnControl({ periodId, blockedWhy, canEdit }: {
+    periodId: string; blockedWhy?: string; canEdit: boolean
+}) {
     const t = useTranslations(); const router = useRouter()
     const [on, setOn] = useState(''); const [ref, setRef] = useState('')
     const [err, setErr] = useState(''); const [busy, start] = useTransition()
@@ -61,18 +66,20 @@ export function FileReturnControl({ periodId, blockedWhy }: { periodId: string; 
                        className="border border-gray-300 px-3 py-2 rounded" />
             </div>
             {!on && <p className="text-sm text-amber-700 self-center">{t('gst.blockedNeedFiledOn')}</p>}
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <Button type="button" disabled={!on || busy}
                     onClick={() => start(async () => {
                         const r = await fileGstReturn(periodId, on, ref); if (r.error) setErr(r.error); else { setErr(''); router.refresh() }
                     })}>
                 {busy ? t('common.saving') : t('gst.recordFiling')}
             </Button>
+            </PermissionGate>
             {err && <p className="text-sm text-red-700 w-full">{err}</p>}
         </div>
     )
 }
 
-export function CorrectControl({ periodId }: { periodId: string }) {
+export function CorrectControl({ periodId, canEdit }: { periodId: string; canEdit: boolean }) {
     const t = useTranslations(); const router = useRouter()
     const [reason, setReason] = useState(''); const [err, setErr] = useState('')
     const [busy, start] = useTransition()
@@ -84,12 +91,14 @@ export function CorrectControl({ periodId }: { periodId: string }) {
                        className="w-full border border-gray-300 px-3 py-2 rounded" />
             </div>
             {!reason.trim() && <p className="text-sm text-amber-700 self-center">{t('gst.blockedNeedReason')}</p>}
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <Button variant="secondary" type="button" disabled={!reason.trim() || busy}
                     onClick={() => start(async () => {
                         const r = await correctGstReturn(periodId, reason); if (r.error) setErr(r.error); else { setErr(''); router.refresh() }
                     })}>
                 {busy ? t('common.saving') : t('gst.raiseCorrection')}
             </Button>
+            </PermissionGate>
             {err && <p className="text-sm text-red-700 w-full">{err}</p>}
         </div>
     )

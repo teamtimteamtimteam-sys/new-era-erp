@@ -16,6 +16,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { localizeEquipmentError } from '../equipmentErrorCodes'
+import { refuseNothingChanged } from '@/lib/action-refusal'
 
 export type ActState = { error?: string; success?: boolean }
 
@@ -219,10 +220,22 @@ export async function setPlannedInService(input: {
     const supabase = await createClient()
     // 【空 = 撤掉这个计划】那是一个正当的动作(计划会变),不是一个要被拦的状态。
     const value = input.plannedDate.trim() === '' ? null : input.plannedDate.trim()
-    const { error } = await supabase.from('fixed_assets')
+    // ★★【DBLOCK-1(2026-09-08):这条 update 对【所有人】都改零行,包括 admin】★★
+    //   线上实测:`fixed_assets` 开着 RLS,而它【只有一条 SELECT 策略】——
+    //   一条 UPDATE 策略都没有。于是任何 authenticated 会话的 update 都匹配不到行:
+    //   **零行、不报错**,而这里从前直接 return { success: true }。
+    //   也就是说 FIX-1 建的这扇门【从落地那天起就是死的】,而屏幕上说它成功了。
+    //   ☞ 补那条缺失的策略要一次迁移,本刀是一刀前端 —— 按名记在
+    //     docs/known-issues.md 的 FIXED-ASSETS-NO-UPDATE-POLICY。
+    //   ☞ 这里做的是 SILENT-1 给另外 74 处用的同一个形状:**零行不再报告成功**。
+    const { data, error } = await supabase.from('fixed_assets')
         .update({ planned_in_service_date: value } as never)
         .eq('id', input.assetId)
+        .select('id')
     if (error) return { error: await localizeEquipmentError(error.message) }
+    if (!data || data.length === 0) {
+        return { error: (await refuseNothingChanged('module.finance.edit')).error }
+    }
     refresh(input.assetId)
     return { success: true }
 }

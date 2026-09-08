@@ -20,6 +20,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import SettlementHistoryTable, { type SettlementRow } from '@/app/components/finance/SettlementHistoryTable'
 import { Button } from '@/app/components/ui/button'
+import { can } from '@/lib/permissions'
 
 type AllocRow = {
     id: string
@@ -41,6 +42,7 @@ export default async function ReceivableDocPage({
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const { saleId } = await params
     const supabase = await createClient()
@@ -251,7 +253,7 @@ export default async function ReceivableDocPage({
                   恒为 'ok',children 永远画,所以它不可能被空分支吃掉。 */}
             {attributable && (
                 <div className="mb-6">
-                    <AttributeCustomerControl saleId={sale.id} subject={batch ? `${batch.code} · ${sale.sale_date}` : sale.sale_date} customers={customerOptions} />
+                    <AttributeCustomerControl canEdit={canEditGate} saleId={sale.id} subject={batch ? `${batch.code} · ${sale.sale_date}` : sale.sale_date} customers={customerOptions} />
                 </div>
             )}
 
@@ -307,7 +309,7 @@ export default async function ReceivableDocPage({
             <SettlementHistoryTable rows={tableRows} />
 
             {/* 凭据附件 */}
-            <FinanceAttachmentsPanel parent={{ kind: 'sale', id: sale.id }} rows={attachments} />
+            <FinanceAttachmentsPanel canEdit={canEditGate} parent={{ kind: 'sale', id: sale.id }} rows={attachments} />
         </ListPage>
     )
 }

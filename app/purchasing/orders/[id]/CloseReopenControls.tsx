@@ -17,12 +17,14 @@ import { formatAmount } from '@/lib/format'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { closeOrder, reopenOrder } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export function CloseOrderControl({
     poId,
     subject,
     unappliedPrepayment,
     baseCurrency,
+canEdit
 }: {
     poId: string
     /** CONFIRM-1:这一次结束的是【哪一张单】—— 单号,页面抬头里就印着它。 */
@@ -34,6 +36,8 @@ export function CloseOrderControl({
      *  写着币种,而这一页的抬头写的是【单据币种】—— 借它就等于说错话。
      *  本位币来自 currencies.is_base,由页面传进来(客户端组件不自己查)。 */
     baseCurrency: string
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -55,11 +59,13 @@ export function CloseOrderControl({
 
     if (!open) {
         return (
+            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
             <Button variant="secondary" size="sm" className="text-sm"
                 type="button"
                 onClick={() => setOpen(true)}>
                 {t('purchasing.close')}
             </Button>
+            </PermissionGate>
         )
     }
 
@@ -85,6 +91,7 @@ export function CloseOrderControl({
             </div>
             {error && <p className="text-red-600">{error}</p>}
             <div className="flex gap-2">
+                <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                 <ConfirmButton
                     subject={subject}
                     title={t('purchasing.closeConfirm')}
@@ -96,6 +103,7 @@ export function CloseOrderControl({
                 >
                     {t('purchasing.close')}
                 </ConfirmButton>
+                </PermissionGate>
                 {/* FIX-2(B3/F):【禁用了就说为什么】此前这个按钮会变灰而一言不发 ——
                     上面那条琥珀色提示解释的是"还有多少预付没抵扣",
                     而【为什么点不动】另有其因:需要一句说明。 */}
@@ -104,6 +112,8 @@ export function CloseOrderControl({
                         {t('purchasing.closeNeedsNotes')}
                     </span>
                 )}
+                {/* 【取消【不】上闸】—— 关掉一张自己打开的表单不是一次写操作。
+                    给它上闸会把人困在一张他既提交不了、也关不掉的表单里。 */}
                 <Button variant="secondary" size="sm"
                     type="button"
                     onClick={() => setOpen(false)}>
@@ -114,7 +124,7 @@ export function CloseOrderControl({
     )
 }
 
-export function ReopenOrderControl({ poId, subject }: { poId: string; subject: string }) {
+export function ReopenOrderControl({ poId, subject, canEdit }: { poId: string; subject: string; canEdit: boolean }) {
     const t = useTranslations()
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
@@ -133,6 +143,7 @@ export function ReopenOrderControl({ poId, subject }: { poId: string; subject: s
             {/* CONFIRM-1:原因输入框与它的 FIX-2 说明一起搬进了对话框 ——
                 对话框自己带同一条空白判据、同一句"为什么按不动"。
                 传给 reopenOrder 的仍是同一个字符串、同一个参数位。 */}
+            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
             <ConfirmButton
                 subject={subject}
                 title={t('purchasing.reopenConfirm')}
@@ -145,6 +156,7 @@ export function ReopenOrderControl({ poId, subject }: { poId: string; subject: s
             >
                 {t('purchasing.reopen')}
             </ConfirmButton>
+            </PermissionGate>
             {error && <span className="text-sm text-red-600">{error}</span>}
         </div>
     )

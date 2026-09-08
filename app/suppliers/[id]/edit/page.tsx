@@ -183,7 +183,7 @@ export default async function EditSupplierPage({
             </p>
 
             {/* ALERT-1(丁类):canEditSupplier 这一页早就算过了(:37),而且已经
-                交给了下面的 <ContactsPanel>。本组件此前【没有】拿到它,于是没有
+                交给了下面的 <ContactsPanel permissionCode="module.suppliers.edit">。本组件此前【没有】拿到它,于是没有
                 编辑权的人按得下状态钮,按下去一片安静。补上的是一个 prop。 */}
             <StatusPanel id={supplier.id} subject={supplier.code} currentStatus={supplier.status}
                 canEdit={canEditSupplier} />
@@ -218,7 +218,7 @@ export default async function EditSupplierPage({
             <section className="mt-6">
                 <h2 className="text-lg font-semibold mb-1">{t('contacts.sectionTitle')}</h2>
                 <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
-                <ContactsPanel supplierId={supplier.id} rows={supplierContacts} canEdit={canEditSupplier} />
+                <ContactsPanel permissionCode="module.suppliers.edit" supplierId={supplier.id} rows={supplierContacts} canEdit={canEditSupplier} />
             </section>
         </div>
     )

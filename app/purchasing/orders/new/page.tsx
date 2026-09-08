@@ -26,6 +26,7 @@ export default async function NewOrderPage() {
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.purchasing)
     if (denied) return denied
+    const canEditGate = await can('module.purchasing.edit')
 
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
@@ -240,7 +241,7 @@ export default async function NewOrderPage() {
                 </Link>
             </div>
             <h1 className="text-2xl font-bold mb-4">{t('purchasing.newOrder')}</h1>
-            <NewOrderForm
+            <NewOrderForm canEdit={canEditGate}
                 substanceOptions={substanceOptions}
                 baseCurrency={baseCurrency}
                 suppliers={suppliers}

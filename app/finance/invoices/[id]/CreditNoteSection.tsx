@@ -153,7 +153,7 @@ export default async function CreditNoteSection({
                 // 猜出来的上限比不给更坏 —— 服务端仍会按名拒,但人已经填完了。
                 <p className="text-sm text-gray-600">{t('common.restricted')} — {t('cn.needsSalesView')}</p>
             ) : (
-                <CreateCreditNoteControl
+                <CreateCreditNoteControl canEdit={canEdit}
                     invoiceId={invoiceId}
                     invoiceCode={invoiceCode}
                     currency={currency}

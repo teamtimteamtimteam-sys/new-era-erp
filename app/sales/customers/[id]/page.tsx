@@ -341,7 +341,7 @@ export default async function CustomerStatusPage({
             <section className="mt-6">
                 <h2 className="text-lg font-semibold mb-1">{t('contacts.sectionTitle')}</h2>
                 <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
-                <ContactsPanel customerId={id} rows={contacts} canEdit={canEditCustomer} />
+                <ContactsPanel permissionCode="module.customers.edit" customerId={id} rows={contacts} canEdit={canEditCustomer} />
             </section>
         </div>
     )

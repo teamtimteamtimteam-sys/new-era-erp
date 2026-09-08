@@ -885,6 +885,12 @@ const en = {
         // 对他说"你没有这个模块的权限"是假的。
         editDenied: 'You do not have permission to change this data.',
         editDeniedHint: 'You can view it — saving requires a separate edit permission. This is a permission answer, not an error; ask an administrator if you need to make changes.',
+        // DBLOCK-1:一个【注定被拒】的控件在被按之前挂的那条可见短句。
+        // 完整那句话(缺哪个码 / 记录没动 / 管理员去哪里勾)走 title,
+        // 用的是 actionMessage.permissionDenied —— 按之前与按之后【同一句】。
+        permissionGate: {
+            needs: 'Needs ',
+        },
         dataClassDenied: 'This figure is price information.',
         dataClassDeniedHint: 'Your role can enter this module, but it has not been granted price visibility (data.view_prices). This is a permission answer, not an empty result — ask an administrator.',
         backHome: '← Back to home',

@@ -6,8 +6,13 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { runDepreciation } from '../month-end/actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
-export default function DepreciateButton({ periodEnd, disabled }: { periodEnd: string; disabled: boolean }) {
+export default function DepreciateButton({ periodEnd, disabled ,
+canEdit
+}: { periodEnd: string; disabled: boolean 
+canEdit: boolean
+}) {
     const t = useTranslations()
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -17,6 +22,7 @@ export default function DepreciateButton({ periodEnd, disabled }: { periodEnd: s
         <div>
             {error && <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>}
             {done && <p className="mb-3 text-sm text-green-700">{t('assets.depDone', { 0: done })}</p>}
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <Button type="button" disabled={pending || disabled}
                 onClick={() => { setError(null); start(async () => {
                     const r = await runDepreciation(periodEnd)
@@ -25,6 +31,7 @@ export default function DepreciateButton({ periodEnd, disabled }: { periodEnd: s
                 }) }}>
                 {t('assets.depRun', { 0: periodEnd })}
             </Button>
+            </PermissionGate>
         </div>
     )
 }

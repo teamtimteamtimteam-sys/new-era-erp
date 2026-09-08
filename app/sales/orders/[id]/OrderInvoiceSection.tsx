@@ -127,7 +127,7 @@ export default async function OrderInvoiceSection({
             ) : unbilled.length === 0 ? (
                 <p className="text-sm text-gray-600">{t('sales.invoice.fullyBilled')}</p>
             ) : canBill ? (
-                <CreateOrderInvoiceControl orderId={orderId} unbilledCount={unbilled.length} />
+                <CreateOrderInvoiceControl canEdit={canBill} orderId={orderId} unbilledCount={unbilled.length} />
             ) : (
                 <p className="text-sm text-gray-600">
                     {t('common.restricted')} — {t('sales.invoice.needsFinanceEdit')}

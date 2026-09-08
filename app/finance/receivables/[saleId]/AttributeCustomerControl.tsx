@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { attributeSaleCustomer } from './actions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 type CustomerOption = { id: string; code: string; legal_name: string }
 
@@ -23,11 +24,14 @@ export default function AttributeCustomerControl({
     saleId,
     subject,
     customers,
+canEdit
 }: {
     saleId: string
     /** CONFIRM-1:补挂的是【哪一笔销售】—— 抬头那一格印的就是它。 */
     subject: string
     customers: CustomerOption[]
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -85,6 +89,7 @@ export default function AttributeCustomerControl({
                     />
                 </div>
                 {/* 单向且不可撤销 —— 按下之前问一次 */}
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <ConfirmButton
                     subject={subject}
                     title={confirmBlocks[0]}
@@ -105,6 +110,7 @@ export default function AttributeCustomerControl({
                 >
                     {pending ? t('common.saving') : t('receivables.attribute.button')}
                 </ConfirmButton>
+                </PermissionGate>
             </div>
             {/* 禁用必须说出为什么(CMP-2 的规矩) */}
             {customerId === '' && (

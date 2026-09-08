@@ -10,12 +10,14 @@ import CostSettlePanel from './CostSettlePanel'
 import { getBaseCurrency } from '@/lib/currency'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 
 export default async function ProcessingCostsPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const supabase = await createClient()
     const t = await getTranslations()
@@ -38,7 +40,7 @@ export default async function ProcessingCostsPage() {
     const suppliers = mustRows(supRes, 'suppliers')
     return (
         <ListPage title={t('finance.costSettle.title')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
-            <CostSettlePanel entries={entries as never} runs={runs as never}
+            <CostSettlePanel canEdit={canEditGate} entries={entries as never} runs={runs as never}
                              suppliers={suppliers as never} baseCurrency={baseCurrency} />
         </ListPage>
     )

@@ -8,6 +8,7 @@ import { saveCompanyProfile, uploadLogo, removeLogo, type CompanyState } from '.
 import { useTranslations } from '@/lib/i18n/client'
 import { RefusalBlock } from '@/app/components/ui/refusal'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const initialState: CompanyState = {}
 
@@ -34,11 +35,14 @@ export default function CompanyProfileForm({
     profile,
     logoUrl,
     canBanking,
+canEdit
 }: {
     profile: CompanyProfileRow
     logoUrl: string | null
     /** data.view_banking —— false 时银行那一段画成一句拒绝，不画空输入框。 */
     canBanking: boolean
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(saveCompanyProfile, initialState)
@@ -190,6 +194,7 @@ export default function CompanyProfileForm({
                     <p className="text-sm text-gray-500 mb-3">{t('company.noLogo')}</p>
                 )}
 
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <form action={logoAction} className="flex flex-wrap items-end gap-3">
                     <div>
                         <label className="block text-sm font-medium mb-1">
@@ -219,6 +224,7 @@ export default function CompanyProfileForm({
                         </Button>
                     )}
                 </form>
+                </PermissionGate>
             </fieldset>
         </div>
     )

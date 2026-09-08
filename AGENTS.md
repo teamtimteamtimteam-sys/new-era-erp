@@ -2068,8 +2068,58 @@ call the writer's own helper. One implementation, two callers.
 eligibility either.** If the server validates in document currency, the
 page shows document currency (`/finance/payments` was subtracting
 document-currency allocations from a base-currency amount). If the server
-will reject a combination, the page must not offer it: never render a
-submit control for an action the server is guaranteed to refuse.
+will reject a combination, the page must not offer it.
+
+### ★ Amended by DBLOCK-1 (2026-09-08): "must not offer it" ≠ "must not show it" ★
+
+> **This section used to end: _"never render a submit control for an action the
+> server is guaranteed to refuse."_ That sentence is now wrong as written, and
+> it is being amended rather than deleted — a rule that was removed and a rule
+> that was never written read identically to the next person, and the drift
+> that costs is exactly what DBLOCK-1 exists to close.**
+
+**What changed.** The old wording was read as *hide it*, and it was being
+followed: 21 controls across 13 files rendered `{canEdit && <button>}`, so the
+control **vanished** for anyone without the permission. Tim's ruling on the
+DBLOCK-1 gate reverses that:
+
+> **A control the server will certainly refuse must be VISIBLE, UNPRESSABLE, and
+> CARRY ITS REASON — not absent.**
+>
+> **A hidden button teaches a person the feature does not exist. A visible,
+> explained one teaches them what to ask for.**
+
+**Why the old sentence looked right.** It was generalised from the navigation
+rule, where the house has always shown what exists (`· 受限` + a hover naming
+the module) rather than hiding it. The generalisation lost the very thing that
+made the nav rule good: **the entry is still there, and it says why.**
+
+**So the rule now reads:** never render a **pressable** submit control for an
+action the server is guaranteed to refuse. Render it disabled, beside a visible
+line naming the permission needed and saying an administrator grants it.
+
+* The mechanism is `app/components/ui/permission-gate.tsx` (`<PermissionGate>`),
+  which uses **`<fieldset disabled>`** so the control stays in the accessibility
+  tree announced as *disabled* — `inert` and `aria-hidden` are "hidden" by
+  another name, and `pointer-events-none` only stops the mouse.
+* The wording is **not new**: it is `common.actionMessage.permissionDenied`,
+  the same sentence SILENT-1 shows *after* a refused press. Before and after
+  say the same thing, so a person recognises the two encounters as one fact.
+* **The page-level refusal (`requireEditPermission`) is unaffected** — replacing
+  a whole page with a named refusal already shows and explains. This is about
+  controls inside a page a person can legitimately enter.
+
+**Two boundaries measured on the way, so nobody re-learns them:**
+
+1. **Never gate a control that dismisses something.** Wrapping a form's own
+   *Cancel* traps the person in a form they can neither submit nor close. Closing
+   a form you opened is not a write. (Caught in `CloseReopenControls`,
+   `MaintenancePanel`, `VoidInvoiceControl` — a `<Link>`-based cancel is safe,
+   because `fieldset disabled` does not disable links.)
+2. **Never gate on a boolean that mixes permission with record state.**
+   `canEditGoals={canWrite && r.status === 'draft'}` is false for two different
+   reasons, and naming the permission when the real cause is the status is a new
+   false statement. Those sites are registered, not converted.
 
 ## A failed query must fail — never `?? []`
 

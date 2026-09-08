@@ -16,6 +16,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { saveRunLoss, deleteRunLoss } from './lossActions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export type LossCategory = {
     code: string; name_en: string; name_zh: string
@@ -142,7 +143,7 @@ export default function LossPanel({
 
             {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
 
-            {canEdit && (
+            <PermissionGate code="module.processing.edit" allowed={canEdit}>
                 <form key={formKey} onSubmit={submit} className="mt-3 flex flex-wrap items-end gap-3">
                     <div>
                         <label className="block text-sm font-medium mb-1">{t('processing.loss.colCategory')}</label>
@@ -168,7 +169,7 @@ export default function LossPanel({
                         {t('common.save')}
                     </Button>
                 </form>
-            )}
+            </PermissionGate>
         </section>
     )
 }

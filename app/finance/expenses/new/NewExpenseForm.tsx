@@ -17,6 +17,7 @@ import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 // EQP-1c-c:已登记、还能加成本的机器。
 // EQP-1c-c:资本支出的两扇门。**这个数组是 expense.form.capitalMode(.Hint) 那两族
@@ -72,6 +73,7 @@ export default function NewExpenseForm({
     gstRegistered,
     taxCodes,
     whtNatures,
+canEdit
 }: {
     accounts: AccountOption[]
     suppliers: SupplierOption[]
@@ -86,6 +88,8 @@ export default function NewExpenseForm({
     gstRegistered: boolean
     taxCodes: TaxCodeOption[]
     whtNatures: WhtNatureOption[]
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -176,6 +180,7 @@ export default function NewExpenseForm({
         (l) => supplierId === null || l.supplierId === supplierId)
 
     return (
+        <PermissionGate code="module.finance.edit" allowed={canEdit}>
         <form ref={formRef} action={formAction} className="space-y-4">
                 <DraftBanner draft={draft} />
             {state.error && (
@@ -625,5 +630,6 @@ export default function NewExpenseForm({
                 </Button>
             </div>
         </form>
+        </PermissionGate>
     )
 }

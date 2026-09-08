@@ -7,6 +7,8 @@ import FxRateFormFields from '../../FxRateFormFields'
 import DeleteButton from './DeleteButton'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { can } from '@/lib/permissions'
 
 const initialState: UpdateFxRateState = {}
 
@@ -23,9 +25,12 @@ type FxRate = {
 export default function EditFxRateForm({
     rate,
     currencies,
+canEdit
 }: {
     rate: FxRate
     currencies: string[]
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const updateWithId = updateFxRate.bind(null, rate.id)
@@ -39,6 +44,7 @@ export default function EditFxRateForm({
                 </div>
             )}
 
+            <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <form action={formAction} className="space-y-4">
                 <FxRateFormFields
                     currencies={currencies}
@@ -106,12 +112,13 @@ export default function EditFxRateForm({
                     {/* ★ BTN-4:一条牌价没有单据号 —— 认得出它的是【三要素】:
                         币种 · 档位 · 生效日。CONFIRM-1 立 subject 这一格,正是为了
                         「哪一个?」这个问题在一张十行的表里答得出来。 */}
-                    <DeleteButton
+                    <DeleteButton canEdit={canEdit}
                         id={rate.id}
                         subject={`${rate.currency} · ${rate.rate_type} · ${rate.rate_date}`}
                     />
                 </div>
             </form>
+            </PermissionGate>
         </>
     )
 }

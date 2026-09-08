@@ -25,6 +25,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import YearCloseHistoryTable, { type YearCloseRow } from './YearCloseHistoryTable'
 import { Button } from '@/app/components/ui/button'
+import { can } from '@/lib/permissions'
 
 type CloseRow = {
     id: string
@@ -50,6 +51,7 @@ export default async function ClosePage({
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const sp = await searchParams
     const supabase = await createClient()
@@ -238,7 +240,7 @@ export default async function ClosePage({
                             </Button>
                         </div>
 
-                        {!selectedDisabled && <CloseButton periodEnd={selected} />}
+                        {!selectedDisabled && <CloseButton canEdit={canEditGate} periodEnd={selected} />}
                     </>
                 )}
             </div>
@@ -291,7 +293,7 @@ export default async function ClosePage({
                                 )}
                             </td>
                             <td className="border border-gray-300 px-4 py-2">
-                                {!c.reopened_at && <ReopenForm periodEnd={c.period_end} />}
+                                {!c.reopened_at && <ReopenForm canEdit={canEditGate} periodEnd={c.period_end} />}
                             </td>
                         </tr>
                     ))}
@@ -339,7 +341,7 @@ export default async function ClosePage({
                             </span>
                         )}
                     </div>
-                    <YearClosePanel yearEnd={yp.expected_year_end} canClose={canCloseYear}
+                    <YearClosePanel canEdit={canEditGate} yearEnd={yp.expected_year_end} canClose={canCloseYear}
                                     alreadyClosed={yp.already_closed} />
                 </div>
             )}

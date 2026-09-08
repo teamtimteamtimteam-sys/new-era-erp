@@ -10,6 +10,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import DeleteTemplateButton from './DeleteTemplateButton'
 import { Button } from '@/app/components/ui/button'
+import { can } from '@/lib/permissions'
 
 export type TemplateRow = {
     id: string
@@ -20,7 +21,7 @@ export type TemplateRow = {
     isActive: boolean
 }
 
-export default function TemplatesTable({ rows, empty }: { rows: TemplateRow[]; empty: React.ReactNode }) {
+export default function TemplatesTable({ rows, empty, canEdit }: { rows: TemplateRow[]; empty: React.ReactNode; canEdit: boolean }) {
     const t = useTranslations()
 
     // ★ 手机上留【模板名】与【付款条件】—— 名字是身份,而那一串"几成 / 什么时候"
@@ -49,7 +50,7 @@ export default function TemplatesTable({ rows, empty }: { rows: TemplateRow[]; e
                             {t('purchasing.editLink')}
                         </Link>
                     </Button>
-                    <DeleteTemplateButton templateId={r.id} name={r.name} />
+                    <DeleteTemplateButton canEdit={canEdit} templateId={r.id} name={r.name} />
                 </>
             ),
         },

@@ -30,6 +30,7 @@ import { WhtLiabilityTable, WhtRemittancesTable, WhtRatesTable, type LiabilityRo
 export default async function WhtPage() {
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
@@ -156,7 +157,7 @@ export default async function WhtPage() {
             {/* ── 汇缴 ───────────────────────────────────────────────────────── */}
             <h2 className="font-semibold mb-2">{t('wht.remitHeading')}</h2>
             <div className="mb-6">
-                <RemitControl
+                <RemitControl canEdit={canEditGate}
                     months={owing.map((r) => ({
                         month: String(r.period_month).slice(0, 10),
                         label: String(r.period_month).slice(0, 7),

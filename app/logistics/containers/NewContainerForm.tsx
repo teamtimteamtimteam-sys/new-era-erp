@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { createContainer } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 // LOG-2c:新建集装箱。
 // 【开航日永不预填】—— 它是世界那一侧的事实,系统无从知道。给它一个"今天",
@@ -12,10 +13,13 @@ import { Button } from '@/app/components/ui/button'
 
 export default function NewContainerForm({
     lanes, forwarders, labels,
+canEdit
 }: {
     lanes: { id: string; label: string }[]
     forwarders: { id: string; label: string }[]
     labels: Record<string, string>
+
+canEdit: boolean
 }) {
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
@@ -30,6 +34,7 @@ export default function NewContainerForm({
     }
 
     return (
+        <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
         <form
             className="mt-4 rounded border border-gray-200 bg-gray-50 p-4"
             onSubmit={(e) => {
@@ -93,5 +98,6 @@ export default function NewContainerForm({
             </div>
             <p className="mt-2 text-xs text-gray-500">{labels.departureHint} · {labels.blHint}</p>
         </form>
+        </PermissionGate>
     )
 }

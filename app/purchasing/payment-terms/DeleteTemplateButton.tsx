@@ -7,8 +7,13 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { deleteTemplate } from './actions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
-export default function DeleteTemplateButton({ templateId, name }: { templateId: string; name: string }) {
+export default function DeleteTemplateButton({ templateId, name ,
+canEdit
+}: { templateId: string; name: string 
+canEdit: boolean
+}) {
     const t = useTranslations()
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
@@ -16,6 +21,7 @@ export default function DeleteTemplateButton({ templateId, name }: { templateId:
 
     return (
         <>
+            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
             <ConfirmButton
                 subject={name}
                 title={t('purchasing.deleteTemplateConfirmTitle')}
@@ -34,6 +40,7 @@ export default function DeleteTemplateButton({ templateId, name }: { templateId:
             >
                 {isPending ? t('common.deleting') : t('common.delete')}
             </ConfirmButton>
+            </PermissionGate>
             {error && <span className="ml-2 text-xs text-red-600">{error}</span>}
         </>
     )

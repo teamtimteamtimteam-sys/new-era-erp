@@ -29,6 +29,7 @@ import IntakeConditionFields, {
     CERTAINTY_UNCHOSEN, type SafetyState, type Certainty,
 } from '@/app/inbound/IntakeConditionFields'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export { CERTAINTY_UNCHOSEN }
 export type { SafetyState, Certainty }
@@ -78,14 +79,14 @@ export default function IntakeConditionPanel({
                     everRecordedCertainty={currentCertainty !== null}
                 />
 
-                {canEdit && (
+                <PermissionGate code="module.inbound.edit" allowed={canEdit}>
                     <div className="flex gap-2 items-center">
                         <Button size="xs" type="button" disabled={pending} onClick={save}>
                             {t('common.save')}
                         </Button>
                         <span className="text-xs text-gray-500">{t('inbound.condition.saveHint')}</span>
                     </div>
-                )}
+                </PermissionGate>
             </div>
         </div>
     )

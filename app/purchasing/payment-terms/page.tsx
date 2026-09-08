@@ -12,6 +12,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { loadPaymentTriggerEvents, triggerLabel } from '@/lib/paymentTriggers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 
 type TemplateLine = {
     template_id: string
@@ -28,6 +29,7 @@ export default async function PaymentTermTemplatesPage() {
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.purchasing)
     if (denied) return denied
+    const canEditGate = await can('module.purchasing.edit')
 
     const supabase = await createClient()
     const t = await getTranslations()
@@ -101,7 +103,7 @@ export default async function PaymentTermTemplatesPage() {
             <p className="text-sm text-gray-600 mb-4">
                 {t('finance.recordCount', { count: templates.length })}
             </p>
-            <TemplatesTable rows={tableRows} empty={t('purchasing.templatesEmpty')} />
+            <TemplatesTable canEdit={canEditGate} rows={tableRows} empty={t('purchasing.templatesEmpty')} />
         </ListPage>
     )
 }

@@ -18,6 +18,7 @@ import ForwarderPanels from './ForwarderPanels'
 export default async function ForwarderDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.logistics)
     if (denied) return denied
+    const canEditGate = await can('module.purchasing.edit')
 
     const { id } = await params
     const supabase = await createClient()
@@ -152,7 +153,7 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                 )}
             </p>
 
-            <ForwarderPanels
+            <ForwarderPanels canEdit={canEditGate}
                 supplierId={id}
                 details={details}
                 lanes={laneOptions}

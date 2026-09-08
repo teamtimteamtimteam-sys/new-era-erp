@@ -890,6 +890,12 @@ const zh = {
         // 对他说"你没有这个模块的权限"是假的。
         editDenied: '你没有修改这项数据的权限。',
         editDeniedHint: '你看得到这份数据,但保存需要单独的编辑权限。这是一个【权限答复】,不是出错 —— 需要修改请联系管理员。',
+        // DBLOCK-1:一个【注定被拒】的控件在被按之前挂的那条可见短句。
+        // 完整那句话(缺哪个码 / 记录没动 / 管理员去哪里勾)走 title,
+        // 用的是 actionMessage.permissionDenied —— 按之前与按之后【同一句】。
+        permissionGate: {
+            needs: '需要权限 ',
+        },
         dataClassDenied: '这个数字属于价格信息。',
         dataClassDeniedHint: '你的角色进得来这个模块,但没有被授予价格可见性(data.view_prices)。这是一个【权限答复】,不是"查出来是空的" —— 请联系管理员。',
         backHome: '← 返回首页',

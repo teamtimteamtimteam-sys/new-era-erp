@@ -12,6 +12,7 @@
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { setOutputBatchPurpose } from './purposeActions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export type BatchPurpose = {
     code: string; name_en: string; name_zh: string; is_saleable_stock: boolean
@@ -101,7 +102,7 @@ export default function PurposePanel({
                                 : <span className="text-gray-500 italic">{t('output.purpose.awaitingUnset')}</span>}
                         </span>
                     </div>
-                    {canEdit && (
+                    <PermissionGate code="module.processing.edit" allowed={canEdit}>
                         <div className="mt-2 flex flex-wrap gap-2">
                             {operations.map((o) => (
                                 <button key={o.code} type="button"
@@ -124,7 +125,7 @@ export default function PurposePanel({
                                 </button>
                             )}
                         </div>
-                    )}
+                    </PermissionGate>
                 </div>
             )}
 

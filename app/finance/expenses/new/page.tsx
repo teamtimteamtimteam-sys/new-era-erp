@@ -17,6 +17,7 @@ export default async function NewExpensePage() {
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const supabase = await createClient()
     const baseCurrency = await getBaseCurrency()
@@ -187,7 +188,7 @@ export default async function NewExpensePage() {
     return (
         <div className="p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-4">{t('expense.new')}</h1>
-            <NewExpenseForm
+            <NewExpenseForm canEdit={canEditGate}
                 baseCurrency={baseCurrency} accounts={accounts} suppliers={suppliers}
                 employees={employees} assets={assets} poLines={poLines}
                 canSeePurchasing={canSeePurchasing} canSeeSuppliers={canSeeSuppliers}

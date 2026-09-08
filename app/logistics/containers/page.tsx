@@ -13,10 +13,12 @@ import { MOD } from '@/lib/modules'
 import NewContainerForm from './NewContainerForm'
 import { ListPage } from '@/app/components/ui/list-page'
 import ContainersTable, { type ContainerRow } from './ContainersTable'
+import { can } from '@/lib/permissions'
 
 export default async function ContainersPage() {
     const denied = await requireModule(MOD.logistics)
     if (denied) return denied
+    const canEditGate = await can('module.purchasing.edit')
 
     const supabase = await createClient()
     const t = await getTranslations()
@@ -78,7 +80,7 @@ export default async function ContainersPage() {
 
     return (
         <ListPage title={t('logistics.containersTitle')} state={{ kind: 'ok' }}>
-            <NewContainerForm
+            <NewContainerForm canEdit={canEditGate}
                 lanes={lanes.map((l) => ({ id: l.id as string, label: laneLabel(l.id as string) }))}
                 forwarders={forwarders.map((f) => ({ id: f.id as string, label: f.legal_name as string }))}
                 labels={{

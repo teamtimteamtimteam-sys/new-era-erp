@@ -17,16 +17,21 @@ import { cancelOrder } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 // FIX-2(B1):**禁用并把理由摆在旁边,不是把控件拿掉。**
 // 本仓库的规矩:问题【不适用】就藏起来,问题适用但【被挡住】就变灰加一句话。
 // "能不能取消这张单"是一个适用的问题 —— 答案只是"这一张不行,因为…"。
 // 此前父组件在挡住时直接渲染一句灰字、连按钮都没有,于是人看不出"这里本来有个动作"。
-export default function CancelOrderControl({ poId, code, blockedWhy }: {
+export default function CancelOrderControl({ poId, code, blockedWhy ,
+canEdit
+}: {
     poId: string
     code: string
     // 空串 = 没挡住。非空 = 挡住了,而这句话【就是那个具体理由】(不是析取式)。
     blockedWhy: string
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -38,15 +43,18 @@ export default function CancelOrderControl({ poId, code, blockedWhy }: {
         // 加上它,按钮保持自然宽度,理由自己占一行。
         return (
             <div className="inline-flex flex-col items-start">
+                <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                 <Button variant="destructive" size="sm" type="button" disabled>
                     {t('purchasing.cancelOrder')}
                 </Button>
+                </PermissionGate>
                 <span className="text-xs text-amber-700 mt-1">{blockedWhy}</span>
             </div>
         )
     }
     return (
         <div className="inline-flex flex-col items-start">
+            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
             <ConfirmButton
                 subject={code}
                 title={t('purchasing.cancelConfirm')}
@@ -68,6 +76,7 @@ export default function CancelOrderControl({ poId, code, blockedWhy }: {
             >
                 {isPending ? t('common.saving') : t('purchasing.cancelOrder')}
             </ConfirmButton>
+            </PermissionGate>
             {error && <span className="mt-1 text-xs text-destructive-text">{error}</span>}
         </div>
     )

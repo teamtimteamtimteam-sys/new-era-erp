@@ -8,13 +8,14 @@ import CompanyProfileForm, { type CompanyProfileRow } from './CompanyProfileForm
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
 import { getFunctionAccess } from '@/lib/moduleAccess'
-import { canViewBanking } from '@/lib/permissions'
+import { canViewBanking, can } from '@/lib/permissions'
 
 export default async function CompanyPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    const canEditGate = await can('module.finance.edit')
 
     const supabase = await createClient()
     const t = await getTranslations()
@@ -73,7 +74,7 @@ export default async function CompanyPage() {
     return (
         <div className="p-8">
             <h1 className="text-2xl font-bold mb-4">{t('company.title')}</h1>
-            <CompanyProfileForm profile={profile} logoUrl={logoUrl} canBanking={canBanking} />
+            <CompanyProfileForm canEdit={canEditGate} profile={profile} logoUrl={logoUrl} canBanking={canBanking} />
             {/* D7:执照登记簿的新家。进不去的人【照样看得见它在哪】,
                 画成一条具名的限制 —— 与顶栏同一套词(D5)。 */}
             <div className="border border-gray-200 rounded p-4 mb-6 bg-white">

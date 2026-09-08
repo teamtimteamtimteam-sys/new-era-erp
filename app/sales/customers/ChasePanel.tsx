@@ -18,6 +18,7 @@ import { useState, useTransition } from 'react'
 import { recordChase, recordPromiseOutcome } from './chaseActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 type OpenPromise = {
     promise_id: string; chase_id: string; chase_code: string; chased_on: string
@@ -116,7 +117,7 @@ export default function ChasePanel({
                                 <span className="font-mono">{money(p.applied_since_base)} {baseCurrency}</span>
                             </p>
                             <p className="text-[11px] text-gray-500">{t('chases.appliedSinceHint')}</p>
-                            {canEdit && (
+                            <PermissionGate code="module.finance.edit" allowed={canEdit}>
                                 <div className="mt-1 flex flex-wrap gap-1">
                                     {OUTCOMES.map((o) => (
                                         <Button variant="secondary" size="xs" key={o} type="button" disabled={pending}
@@ -126,7 +127,7 @@ export default function ChasePanel({
                                         </Button>
                                     ))}
                                 </div>
-                            )}
+                            </PermissionGate>
                         </div>
                     ))}
                 </div>

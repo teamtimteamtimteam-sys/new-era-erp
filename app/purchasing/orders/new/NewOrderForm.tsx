@@ -35,6 +35,7 @@ import {
     type OrderTermInput,
 } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const initialState: CreateOrderState = {}
 
@@ -144,6 +145,7 @@ export default function NewOrderForm({
     canSeeSupplierTerms,
     canSeePricingFormulas,
     triggerEvents,
+canEdit
 }: {
     // PROC-4:物质清单由页面从 substances 那张字典读好传进来。
     // 【表单不再自己拿着一份清单】那份清单曾经是这份名单的第五个副本,
@@ -167,6 +169,8 @@ export default function NewOrderForm({
     canSeePricingFormulas: boolean
     // EQP-PAY-1:整份字典;按 orderKind 现算可选项(见下面 triggerOptions)。
     triggerEvents: PaymentTriggerEvent[]
+
+canEdit: boolean
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -335,6 +339,7 @@ export default function NewOrderForm({
         Object.values(l.assay).filter((v) => parseDecimal(v) !== null).length
 
     return (
+        <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
         <form ref={formRef} action={formAction} className="space-y-6">
                 <DraftBanner draft={draft} />
             {state.error && (
@@ -992,5 +997,6 @@ export default function NewOrderForm({
                 </Button>
             </div>
         </form>
+        </PermissionGate>
     )
 }

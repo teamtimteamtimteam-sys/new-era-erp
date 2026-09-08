@@ -10,10 +10,12 @@ import { MOD } from '@/lib/modules'
 import ContainerPanels from './ContainerPanels'
 import ContainerFreightPanel from './ContainerFreightPanel'
 import { operativeMilestoneIds } from './operativeMilestone'
+import { can } from '@/lib/permissions'
 
 export default async function ContainerDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.logistics)
     if (denied) return denied
+    const canEditGate = await can('module.purchasing.edit')
 
     const { id } = await params
     const supabase = await createClient()
@@ -96,7 +98,7 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                 {t('logistics.colDeparture')}: {head.data.departure_date}
             </p>
 
-            <ContainerPanels
+            <ContainerPanels canEdit={canEditGate}
                 containerId={id}
                 head={{
                     container_number: head.data.container_number,

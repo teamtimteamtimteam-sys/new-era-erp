@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { saveForwarderDetails, addRateQuote, removeRateQuote } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 // LOG-1c:物流属性 + 报价。
 //
@@ -17,6 +18,7 @@ type Quote = { id: string; lane_id: string; amount_ccy: string; currency: string
 
 export default function ForwarderPanels({
     supplierId, details, lanes, quotes, currencies, labels,
+canEdit
 }: {
     supplierId: string
     details: Details
@@ -24,6 +26,8 @@ export default function ForwarderPanels({
     quotes: Quote[]
     currencies: string[]
     labels: Record<string, string>
+
+canEdit: boolean
 }) {
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
@@ -175,6 +179,7 @@ export default function ForwarderPanels({
                                                 : q.free_days}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-1">
+                                            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                                             <Button
                                                 variant="destructive"
                                                 size="inline"
@@ -188,6 +193,7 @@ export default function ForwarderPanels({
                                             >
                                                 {labels.removeQuote}
                                             </Button>
+                                            </PermissionGate>
                                         </td>
                                     </tr>
                                 ))}

@@ -8,6 +8,7 @@
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import AcknowledgeButton from './AcknowledgeButton'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export type HandoverRow = {
     id: string
@@ -47,7 +48,9 @@ export default function HandoversTable({
                         <span className="inline-block px-2 py-0.5 rounded bg-amber-200 text-amber-900 text-xs font-medium">
                             {t('processing.handover.pending')}
                         </span>
-                        {canEdit && <AcknowledgeButton handoverId={r.id} />}
+                        <PermissionGate code="module.processing.edit" allowed={canEdit}>
+                            <AcknowledgeButton handoverId={r.id} />
+                        </PermissionGate>
                     </span>
                 ),
         },

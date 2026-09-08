@@ -12,6 +12,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { loadPaymentTriggerEvents } from '@/lib/paymentTriggers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 
 export default async function EditTemplatePage({
     params,
@@ -22,6 +23,7 @@ export default async function EditTemplatePage({
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.purchasing)
     if (denied) return denied
+    const canEditGate = await can('module.purchasing.edit')
 
     const { id } = await params
     const supabase = await createClient()
@@ -70,7 +72,7 @@ export default async function EditTemplatePage({
                 {t('purchasing.templatesTitle')}
                 <span className="ml-3 text-base text-gray-500">{tplRes.data.name}</span>
             </h1>
-            <TemplateForm template={{ ...tplRes.data, lines }} currencies={currencies} triggerEvents={triggerEvents} />
+            <TemplateForm canEdit={canEditGate} template={{ ...tplRes.data, lines }} currencies={currencies} triggerEvents={triggerEvents} />
         </div>
     )
 }

@@ -3,16 +3,20 @@
 import { useState, useTransition } from 'react'
 import { addPort, addLane, addRequirement, removeRequirement, markLaneReviewed } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 type Req = { id: string; document_type: string; regime: string | null }
 type Lane = { id: string; label: string; state: string; requirements: Req[] }
 
 export default function LanesPanel({
     ports, lanes, labels,
+canEdit
 }: {
     ports: { id: string; label: string }[]
     lanes: Lane[]
     labels: Record<string, string>
+
+canEdit: boolean
 }) {
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
@@ -29,6 +33,7 @@ export default function LanesPanel({
             {error && <div className="mb-4 rounded border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>}
 
             <div className="flex flex-wrap gap-6">
+                <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                 <form
                     onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const d = new FormData(f)
                         run(() => addPort(d.get('code') as string, d.get('name') as string, ((d.get('country') as string) || null)), f) }}
@@ -44,8 +49,10 @@ export default function LanesPanel({
                     </div>
                     <Button variant="default" size="sm" className="text-sm shrink whitespace-normal" disabled={pending}>{labels.addPort}</Button>
                 </form>
+                </PermissionGate>
 
                 {ports.length >= 2 && (
+                    <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                     <form
                         onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const d = new FormData(f)
                             run(() => addLane(d.get('origin') as string, d.get('destination') as string), f) }}
@@ -65,6 +72,7 @@ export default function LanesPanel({
                         </div>
                         <Button variant="default" size="sm" className="text-sm shrink whitespace-normal" disabled={pending}>{labels.addLane}</Button>
                     </form>
+                    </PermissionGate>
                 )}
             </div>
 
@@ -99,6 +107,7 @@ export default function LanesPanel({
                                         <li key={r.id}>
                                             {r.document_type}
                                             {r.regime ? <span className="ml-2 text-xs text-gray-500">({r.regime})</span> : null}
+                                            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                                             <Button
                                                 variant="destructive"
                                                 size="inline"
@@ -107,11 +116,13 @@ export default function LanesPanel({
                                                 onClick={() => run(() => removeRequirement(r.id))}
                                                 className="ml-3 text-xs"
                                             >{labels.removeRequirement}</Button>
+                                            </PermissionGate>
                                         </li>
                                     ))}
                                 </ul>
                             )}
 
+                            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                             <form
                                 onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const d = new FormData(f)
                                     run(() => addRequirement(l.id, d.get('document_type') as string, ((d.get('regime') as string) || null)), f) }}
@@ -136,6 +147,7 @@ export default function LanesPanel({
                                     >{labels.markReviewed}</Button>
                                 )}
                             </form>
+                            </PermissionGate>
                             <p className="mt-1 text-xs text-gray-500">{labels.regimeHint}</p>
                         </section>
                     ))}
