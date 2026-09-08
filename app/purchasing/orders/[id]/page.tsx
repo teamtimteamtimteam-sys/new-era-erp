@@ -34,6 +34,7 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import PoLinesTable, { type PoLineRow, type Tone } from './PoLinesTable'
 import PoPaymentTermsTable, { type PoTermRow } from './PoPaymentTermsTable'
 import PoReceiptsTable, { type PoReceiptRow } from './PoReceiptsTable'
+import ContractLinkPanel, { type ContractOption } from './ContractLinkPanel'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
@@ -63,7 +64,7 @@ export default async function PurchaseOrderDetailPage({
 
     const { data: poRaw, error } = await supabase
         .from('purchase_orders_masked')
-        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason, cancelled_by')
+        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason, cancelled_by, delivery_location')
         .eq('id', id)
         .is('deleted_at', null)
         .single()
@@ -78,6 +79,10 @@ export default async function PurchaseOrderDetailPage({
     // OPS-14:预付三列与 ap_open_items 现在都挂 module.finance.view —— 没有它读到的是
     // NULL / 0 行,【那是"看不见",不是"没有"】。取一次权限码,才能把两者分开渲染。
     const canFinance = await can('module.finance.view')
+    // ★ PUR-1:合同对这个人可不可见 —— contracts 的 RLS 要 module.suppliers.view,
+    //   而本页的门是采购。【不取这个码,一个空下拉框会把"你看不见"读成"没有合同"】
+    //   (与上面 supplier_lookup 那一处逐字同一课:零行不是"没有")。
+    const canSeeContracts = await can('module.suppliers.view')
     // PROC-1B-iii(R1):深度放电判断的字典。【只读 is_active 的】—— 停用是
     // "以后别再选它",而历史行照旧显示(下面的 label 回落到码本身,不画空白)。
     // 这张字典没有 _masked 伴生,表级 SELECT 授权给 authenticated,直读。
@@ -86,7 +91,8 @@ export default async function PurchaseOrderDetailPage({
     const po = maskedExcept<Tables<'purchase_orders'>, 'fx_rate' | 'estimated_total_ccy'>(poRaw) as unknown as
         (Tables<'purchase_orders'> & { tax_total_ccy: number | null; gross_total_ccy: number | null; carries_tax: boolean })
 
-    const [supplierRes, linesRes, termsRes, statusRes, receiptsRes, apprRes, issuesRes, historyRes] = await Promise.all([
+    const [supplierRes, linesRes, termsRes, statusRes, receiptsRes, apprRes, issuesRes, historyRes,
+           contractTermsRes, contractOptionsRes, contractCountRes] = await Promise.all([
         // ★ FIX-2b:查名视图。基表要 module.suppliers.view,本页的门是采购 ——
         //   零行 + `?? '—'`(第 605 行)把这张单的往来对象渲染成一根破折号,
         //   而那根破折号还包在一个指向该供应商的 <Link> 里。
@@ -95,7 +101,7 @@ export default async function PurchaseOrderDetailPage({
         supabase.from('supplier_lookup').select('id, legal_name').eq('id', po.supplier_id).maybeSingle(),
         supabase
             .from('purchase_order_lines_masked')
-            .select('id, line_no, material_id, asset_id, quantity, unit, pricing_formula_id, estimated_unit_price, estimated_amount_ccy, expected_assay, notes, price_source, price_provenance, deep_discharge_judgement_code')
+            .select('id, line_no, material_id, asset_id, quantity, unit, pricing_formula_id, estimated_unit_price, estimated_amount_ccy, expected_assay, notes, price_source, price_provenance, deep_discharge_judgement_code, price_status')
             .eq('purchase_order_id', id)
             .order('line_no'),
         supabase
@@ -118,8 +124,26 @@ export default async function PurchaseOrderDetailPage({
             .eq('purchase_order_id', id).order('version', { ascending: false }),
         // PUR-2:编辑史。最新一行的时点用来判断"已改、未重发"
         supabase.from('purchase_order_history')
-            .select('id, change_type, line_no, amend_reason, changed_at, old_quantity, new_quantity, old_estimated_unit_price, new_estimated_unit_price, old_estimated_total_ccy, new_estimated_total_ccy')
+            .select('id, change_type, line_no, amend_reason, changed_at, old_quantity, new_quantity, old_estimated_unit_price, new_estimated_unit_price, old_estimated_total_ccy, new_estimated_total_ccy, payment_term_seq')
             .eq('purchase_order_id', id).order('changed_at', { ascending: false }).limit(50),
+        // ── PUR-1:这张单挂在哪一份合同之下 ─────────────────────────────────
+        // ★【读的是【抄下来的那一份】】★ contract_document_terms.contract_code
+        //   是挂接那一刻抄下来的【值】。顺着 purchase_orders.contract_id 回查
+        //   contracts.code,就是把"抄"静悄悄退化成"引用"—— 那张表的表注把这件事
+        //   写成了一条禁令,而退化是没有声音的。
+        supabase.from('contract_document_terms')
+            .select('contract_code, linked_at').eq('purchase_order_id', id).maybeSingle(),
+        // 可挂的合同:【这家供应商的】【生效中的】【买方】合同。
+        // 三条判据与 link_document_to_contract 的三条拒绝一一对应 —— 这里是礼貌
+        // (不摆注定被拒的选项),把关在那支函数里。
+        supabase.from('contracts')
+            .select('id, code, title')
+            .eq('supplier_id', po.supplier_id).eq('status', 'active')
+            .is('deleted_at', null).order('code'),
+        // 【登记簿整个是不是空的】—— 与"这家供应商没有生效合同"是两件事,
+        // 屏幕上要说两句不同的话。本刀落地当天线上是 0 份合同,而那是【预期】
+        // 状态,不是坏掉:合同要一份一份录进去。
+        supabase.from('contracts').select('id', { count: 'exact', head: true }).is('deleted_at', null),
     ])
 
     // ── GRN-1b:这张单的收货差异,【按采购行】────────────────────────────────
@@ -173,7 +197,20 @@ export default async function PurchaseOrderDetailPage({
         changed_at: string; old_quantity: number | null; new_quantity: number | null
         old_estimated_unit_price: number | null; new_estimated_unit_price: number | null
         old_estimated_total_ccy: number | null; new_estimated_total_ccy: number | null
+        // PUR-1:付款计划那三种改动 —— 第几期改的,要说出来。
+        payment_term_seq: number | null
     }[]
+
+    // ── PUR-1:合同 ─────────────────────────────────────────────────────────
+    // 【已挂上的那一份读副本,不读 contracts】理由见上面那条查询的注释。
+    const linkedContract = contractTermsRes.data as { contract_code: string; linked_at: string } | null
+    const linkedContractCode = linkedContract?.contract_code ?? null
+    // 【零行不是"没有"】没有 module.suppliers.view 时这两条查询都会读到空 ——
+    // 所以判据取的是【权限码】,不是行数。面板据此说三句不同的话。
+    const contractOptions = (canSeeContracts
+        ? mustRows(contractOptionsRes, 'contracts')
+        : []) as unknown as ContractOption[]
+    const contractRegisterIsEmpty = canSeeContracts && (contractCountRes.count ?? 0) === 0
     const issues = mustRows(issuesRes, 'po_issues')
     const latestIssueVersion = issues.length ? Number(issues[0].version) : null
     const amendedSinceIssue =
@@ -649,6 +686,14 @@ export default async function PurchaseOrderDetailPage({
                     ...(po.incoterm
                         ? [{ label: t('purchasing.form.incoterm'), value: po.incoterm }]
                         : []),
+                    // PUR-1:交货地点与参照合同号 —— 【没有就不占一格】,与上一条
+                    // 同形。空标签在头卡上读起来像"这里本该有东西而它丢了"。
+                    ...(po.delivery_location
+                        ? [{ label: t('purchasing.form.deliveryLocation'), value: po.delivery_location }]
+                        : []),
+                    ...(linkedContractCode
+                        ? [{ label: t('purchasing.contract.number'), value: linkedContractCode, mono: true }]
+                        : []),
                     // 状态药丸没有标签,它自己就是一句话。RecordHeader 的 label
                     // 允许是空 —— 与转换前那个裸着的 <div>{statusPill}</div> 同形。
                     { label: t('purchasing.colStatus'), value: statusPill },
@@ -704,6 +749,18 @@ export default async function PurchaseOrderDetailPage({
             {approvalsOn && po.approval_status === 'pending' && !isCancelled && (
                 <ApprovalControls poId={po.id} subject={po.code} />
             )}
+
+            {/* PUR-1:参照合同。摆在「单据」那一块【之前】—— 先回答"这张单依据
+                什么开出来",再回答"它印成什么"。采购单可以【没有】合同,
+                现货采购本来就没有,所以这里不催、也不把空着画成一个待办。 */}
+            <ContractLinkPanel
+                poId={po.id}
+                linkedCode={linkedContractCode}
+                linkedAt={linkedContract?.linked_at ?? null}
+                options={contractOptions}
+                canSeeContracts={canSeeContracts}
+                registerIsEmpty={contractRegisterIsEmpty}
+            />
 
             {/* PUR-1:采购单单据(规格:docs/purchase-order-document.md)。
                 预览按当前数据渲染、不落档;【签发】把渲染出的字节存档并记录
@@ -770,6 +827,13 @@ export default async function PurchaseOrderDetailPage({
                                 <span>{t('purchasing.amend.change.' + h.change_type)}</span>
                                 {h.line_no !== null && (
                                     <span className="text-gray-500">#{h.line_no}</span>
+                                )}
+                                {/* PUR-1:付款计划的改动说得出【第几期】—— 否则
+                                    "付款条款改了"在一份五期的计划上等于什么都没说。 */}
+                                {h.payment_term_seq !== null && (
+                                    <span className="text-gray-500">
+                                        {t('purchasing.amend.termSeq', { seq: h.payment_term_seq })}
+                                    </span>
                                 )}
                                 {h.old_quantity !== null && h.new_quantity !== null && (
                                     <span className="font-mono text-xs">{h.old_quantity} → {h.new_quantity}</span>

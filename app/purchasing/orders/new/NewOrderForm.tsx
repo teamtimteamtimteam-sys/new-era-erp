@@ -115,6 +115,8 @@ function emptyLine(kind: 'material' | 'equipment' = 'material'): LineRow {
         unit: equip ? 'unit' : 'kg',
         formula_id: '',
         est_price: '',
+        // PUR-1:默认【不选】—— 见 actions.ts 里那条注释:空串不是 fixed。
+        price_status: '' as const,
         priceComputed: false,
         assay: {},
         assayOpen: false,
@@ -296,6 +298,10 @@ export default function NewOrderForm({
         //  也就是一次【什么也没做】的清空。写在键上,才真的清得掉。)
         formula_id: isEquipment ? '' : l.formula_id,
         est_price: l.est_price,
+        // PUR-1:挂了公式的行【送不出 fixed】—— 下面那个下拉框已经把它禁掉了,
+        // 而这里再清一次,因为"先选 fixed、再选公式"会留下一个屏幕上看不见的值。
+        // (与上面 formula_id 那两行同一课:指望"状态恰好还是空的"清不干净。)
+        price_status: !isEquipment && l.formula_id && l.price_status === 'fixed' ? '' : l.price_status,
         assay: isEquipment ? {} : l.assay,
         // FIN-26:出处随行走。computed = 按钮算的且没被手改过;有价而非 computed
         // 即 manual。依据 = 完整 CalcResult(逐金属行情与日期、公式参数)+ 汇率。
@@ -419,6 +425,16 @@ export default function NewOrderForm({
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('purchasing.form.incoterm')}</label>
                     <input type="text" name="incoterm" className="w-28 border border-gray-300 px-3 py-2 rounded" />
+                </div>
+                {/* PUR-1:交货地点 —— 自由文本。【刻意不是储位下拉框】(Tim 裁定):
+                    一台设备订单送到的地方常常根本不是仓库,把它做成 storage_locations
+                    的选择器会逼人在一份不适用的清单里凑一个最接近的答案 ——
+                    而那个答案会被印在发给供应商的纸上。 */}
+                <div className="flex-1 min-w-[16rem]">
+                    <label className="block text-sm font-medium mb-1">{t('purchasing.form.deliveryLocation')}</label>
+                    <input type="text" name="delivery_location"
+                        className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    <p className="text-xs text-gray-500 mt-1">{t('purchasing.form.deliveryLocationHint')}</p>
                 </div>
             </div>
             <div className="flex flex-wrap gap-4">
@@ -640,6 +656,36 @@ export default function NewOrderForm({
                                     className="w-28 border border-gray-300 px-2 py-1.5 rounded"
                                 />
                             </div>
+                            {/* ── PUR-1:这一行的价定了没有 ────────────────────────
+                                【三个选项,而"不选"是其中一个】留空 = 按事实推导:
+                                挂了公式就印暂定价,有单价就印定价 —— 也就是本刀之前
+                                这张纸上一直在做的事。
+                                ★【挂了公式时 fixed 禁用,并把理由摆在旁边】★
+                                  那一行真的按公式结算,标成定价是印在供应商纸上的假话。
+                                  这里是【礼貌】,不是把关:DB 那一侧
+                                  guard_po_line_price_status 按名拒
+                                  (PO_LINE_PRICE_STATUS_CONFLICT),直连改库也逃不掉。 */}
+                            {!isEquipment && (
+                            <div>
+                                <label className="block text-xs text-gray-600 mb-1">{t('purchasing.form.priceStatus')}</label>
+                                <select
+                                    value={l.price_status ?? ''}
+                                    onChange={(e) => patchLine(i, { price_status: e.target.value as '' | 'fixed' | 'provisional' })}
+                                    className="w-36 border border-gray-300 px-2 py-1.5 rounded text-sm"
+                                >
+                                    <option value="">{t('purchasing.form.priceStatusDerive')}</option>
+                                    <option value="fixed" disabled={Boolean(l.formula_id)}>
+                                        {t('purchasing.form.priceStatusFixed')}
+                                    </option>
+                                    <option value="provisional">{t('purchasing.form.priceStatusProvisional')}</option>
+                                </select>
+                                {l.formula_id && (
+                                    <p className="text-xs text-gray-500 mt-1 max-w-40">
+                                        {t('purchasing.form.priceStatusFormulaHint')}
+                                    </p>
+                                )}
+                            </div>
+                            )}
                             <div className="text-sm text-gray-600 pb-1.5">
                                 {t('purchasing.colAmount')}:{' '}
                                 <span className="font-mono font-medium">{formatAmount(lineAmount(l), currency)}</span>

@@ -9,12 +9,16 @@ DECLARE
     v_sup  record;
     v_lines jsonb;
     v_terms jsonb;
+    -- PUR-1:这张单挂在哪一份合同之下 —— 读的是【抄下来的那一份】。
+    v_contract_code text;
 BEGIN
     PERFORM require_permission('module.purchasing.view');
 
     SELECT po.id, po.code, po.order_date, po.expected_delivery_date, po.currency,
            po.status, po.approval_status, po.incoterm, po.terms_text, po.notes,
-           po.estimated_total_ccy, po.tax_total_ccy, po.supplier_id
+           po.estimated_total_ccy, po.tax_total_ccy, po.supplier_id,
+           -- PUR-1:交货地点(自由文本,可空)
+           po.delivery_location
     INTO v_po FROM purchase_orders po
     WHERE po.id = p_po_id AND po.deleted_at IS NULL;
     IF NOT FOUND THEN
@@ -23,6 +27,18 @@ BEGIN
 
     SELECT s.legal_name, s.address, s.country, s.tax_id
     INTO v_sup FROM suppliers s WHERE s.id = v_po.supplier_id;
+
+    -- ── PUR-1:参照合同号 ────────────────────────────────────────────────────
+    -- ★★【读 contract_document_terms,【不】读 contracts】★★
+    --   contract_document_terms 的表注写得很死:purchase_orders.contract_id 只回答
+    --   "挂在哪一份合同上",**任何读取路径都不许拿它回查条款内容** —— 一旦那么写,
+    --   "抄"就静悄悄退化成了"引用"。合同编号【就是被抄下来的字段之一】
+    --   (contract_code,NOT NULL),所以这里读副本,而不是顺着外键回查。
+    --   后果是具体的:合同日后改了编号,这张【已经开出去的】单上印的仍是当时那个 ——
+    --   而那正是供应商手里那张纸上写着的东西。
+    -- 【没挂合同就是 NULL】PDF 那一侧据此【整块不印】,不印一个空标签。
+    SELECT t.contract_code INTO v_contract_code
+      FROM contract_document_terms t WHERE t.purchase_order_id = p_po_id;
 
     -- ── 逐行:定价状态在这里裁决,PDF 只负责画(docs/purchase-order-document.md §B)──
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
@@ -46,7 +62,19 @@ BEGIN
             -- 公式挂着、条款没抄下来(FIN-27 之前的旧行):【不印公式今天的条款】——
             -- 那是编造一份承诺,known-wrong 里写明这些行走手工结算
             WHEN l.pricing_formula_id IS NOT NULL THEN 'provisional_uncommitted'
+            -- ★★【PUR-1:存下来的那个选择排在这里,而位置就是判据】★★
+            --   上面两支(有承诺 / 挂公式)是【事实】,这一支是【选择】——
+            --   事实排在选择前面,于是一行按公式结算的料【印不出 FIXED】,
+            --   哪怕它的 price_status 不知怎么被写成了 'fixed'。
+            --   写入那一侧已经按名拒了(guard_po_line_price_status),
+            --   而这里是第二道:**一道闸能被绕过的时候,第二道不是冗余**
+            --   (比这道闸更老的行、以及将来任何一条新的写入路径)。
+            --   反方向【是允许的】:一行没有公式、被人标成 provisional,
+            --   就印暂定价 —— 那是真话,也正是本刀补上的那个能力。
+            WHEN l.price_status = 'provisional'   THEN 'provisional_uncommitted'
             WHEN l.estimated_unit_price IS NOT NULL THEN 'fixed'
+            -- 【标成 fixed 却一个价都没有】仍然是 not_priced —— 纸上不能说
+            -- "价格已定"而那一栏是一横。选择改变不了"没有数字"这件事。
             ELSE 'not_priced'
         END,
         'committed_terms', CASE WHEN c.id IS NOT NULL THEN jsonb_build_object(
@@ -91,6 +119,10 @@ BEGIN
         'code', v_po.code,
         'order_date', v_po.order_date,
         'expected_delivery_date', v_po.expected_delivery_date,
+        -- PUR-1:交货地点与参照合同号。**两者都可空,而空就是【不印】** ——
+        -- PDF 那一侧不画空标签(见 PurchaseOrderDocument.tsx 的两处判断)。
+        'delivery_location', v_po.delivery_location,
+        'contract_code', v_contract_code,
         'currency', v_po.currency,
         'status', v_po.status,
         'approval_status', v_po.approval_status,

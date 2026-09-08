@@ -10,8 +10,9 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
-import AmendOrderForm, { type AmendLine } from './AmendOrderForm'
+import AmendOrderForm, { type AmendLine, type AmendTerm } from './AmendOrderForm'
 import { requireEditPermission } from '@/app/components/moduleGuard'
+import { applicableTriggers, loadPaymentTriggerEvents, type OrderKind } from '@/lib/paymentTriggers'
 
 export default async function AmendOrderPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireEditPermission('module.purchasing.edit', 'nav.purchasing')
@@ -23,7 +24,7 @@ export default async function AmendOrderPage({ params }: { params: Promise<{ id:
 
     const { data: po } = await supabase
         .from('purchase_orders_masked')
-        .select('id, code, status, approval_status, order_date, expected_delivery_date, currency, incoterm, notes')
+        .select('id, code, status, approval_status, order_date, expected_delivery_date, currency, incoterm, notes, delivery_location')
         .eq('id', id)
         .is('deleted_at', null)
         .maybeSingle()
@@ -31,7 +32,7 @@ export default async function AmendOrderPage({ params }: { params: Promise<{ id:
 
     const linesRaw = maskedRows<Tables<'purchase_order_lines'>, 'estimated_unit_price' | 'estimated_amount_ccy'>(
         mustRows(await supabase.from('purchase_order_lines_masked')
-            .select('id, line_no, material_id, quantity, unit, estimated_unit_price')
+            .select('id, line_no, material_id, asset_id, quantity, unit, estimated_unit_price, pricing_formula_id, price_status')
             .eq('purchase_order_id', id).order('line_no'))
     )
 
@@ -58,7 +59,34 @@ export default async function AmendOrderPage({ params }: { params: Promise<{ id:
         unit: l.unit as string,
         estimated_unit_price: l.estimated_unit_price === null ? null : Number(l.estimated_unit_price),
         received: receivedBy.get(l.id as string) ?? 0,
+        // PUR-1:这一行现在的定价状态选择,以及【它挂没挂公式】——
+        // 后者决定表单要不要把 fixed 那一项禁掉(礼貌;把关在 DB 那道闸)。
+        price_status: (l.price_status as 'fixed' | 'provisional' | null) ?? '',
+        has_formula: l.pricing_formula_id !== null,
     }))
+
+    // ── PUR-1:现在这份付款计划 ──────────────────────────────────────────────
+    // 【读遮蔽视图】定额腿是钱(fixed_amount_ccy 随 data.view_prices 遮蔽),
+    // 与本页读行单价走的是同一扇门。
+    const termsRaw = maskedRows<Tables<'purchase_order_payment_terms'>, 'fixed_amount_ccy'>(
+        mustRows(await supabase.from('purchase_order_payment_terms_masked')
+            .select('seq, label, percentage, fixed_amount_ccy, trigger_event, due_date, notes')
+            .eq('purchase_order_id', id).order('seq'))
+    )
+    const terms: AmendTerm[] = termsRaw.map((r) => ({
+        seq: r.seq as number,
+        label: (r.label as string) ?? '',
+        mode: r.percentage !== null ? 'percentage' : 'fixed',
+        percentage: r.percentage === null ? '' : String(r.percentage),
+        fixed_amount: r.fixed_amount_ccy === null ? '' : String(r.fixed_amount_ccy),
+        trigger_event: (r.trigger_event as string) ?? '',
+        due_date: (r.due_date as string | null) ?? '',
+    }))
+
+    // 【这张单是材料单还是设备单】由它的行决定 —— purchase_orders 上没有类型列
+    // (与建单那一侧逐字同一句话)。里程碑的可选清单跟着它走。
+    const orderKind: OrderKind = linesRaw.some((l) => l.asset_id !== null) ? 'equipment' : 'material'
+    const triggers = applicableTriggers(await loadPaymentTriggerEvents(supabase), orderKind)
 
     return (
         <div className="p-8">
@@ -71,7 +99,10 @@ export default async function AmendOrderPage({ params }: { params: Promise<{ id:
                 expectedDelivery={(po.expected_delivery_date as string | null) ?? ''}
                 incoterm={(po.incoterm as string | null) ?? ''}
                 notes={(po.notes as string | null) ?? ''}
+                deliveryLocation={(po.delivery_location as string | null) ?? ''}
                 lines={lines}
+                terms={terms}
+                triggers={triggers}
             />
         </div>
     )

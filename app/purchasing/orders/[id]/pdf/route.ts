@@ -39,6 +39,20 @@ function collectPoPdfStrings(data: PoDocData, company: CompanyProfile): PdfTextF
         { where: 'po terms_text', text: data.terms_text },
         { where: 'po notes', text: data.notes },
         { where: 'po incoterm', text: data.incoterm },
+        // ★★【PUR-1:交货地点【必须】在这份清单里,而理由是它的形状】★★
+        //   这道闸拦的是"字体渲染不出来的字符"——它此前拦的正是 terms_text /
+        //   notes / incoterm 这三个【人打字打进去的自由文本】。
+        //   交货地点是本刀新加的第四个,而且它比那三个更容易踩:
+        //   Tim 裁定它【不是】储位选择器,所以它收的就是人打的字 ——
+        //   一个中文地址会在这张纸上印成 `wÑ^Þ6 Plø`(PDF-1 实测过的那种),
+        //   而【生成是成功的、HTTP 是 200】,没有任何一道门会红。
+        //   忘了这一行,后果不是报错,是一张发出去的乱码单据。
+        { where: 'po delivery_location', text: data.delivery_location },
+        // 合同编号来自 next_contract_code() 的 'CON-YYYY-NNNN',按构造是 ASCII;
+        // 但它经由 contract_document_terms.contract_code【抄写】而来,
+        // 而那一列只有一条 btrim <> '' 的 CHECK —— 没有任何东西规定它是 ASCII。
+        // 一条判据不该建立在"取号器现在长什么样"上面。
+        { where: 'po contract_code', text: data.contract_code },
     ]
     for (const l of data.lines) {
         fields.push({ where: `line ${l.line_no} material`, text: l.material_name })

@@ -40,6 +40,10 @@ export type OrderLineInput = {
     retention_on?: boolean
     retention_pct?: string
     retention_months?: string
+    // PUR-1:这一行的定价状态 —— 空串 = 【不选】= 按事实推导(挂了公式就是暂定价,
+    // 有单价就是定价)。**空串不等于 fixed**:替人默认成"定价"就是替他做了一个
+    // 他没做过的选择,而那个选择会印在供应商手里那张纸上。
+    price_status?: '' | 'fixed' | 'provisional'
 }
 
 export type OrderTermInput = {
@@ -70,6 +74,8 @@ export async function createOrder(
     const expectedDelivery = String(formData.get('expected_delivery') ?? '').trim()
     const currency = String(formData.get('currency') ?? await getBaseCurrency())
     const incoterm = String(formData.get('incoterm') ?? '').trim()
+    // PUR-1:交货地点 —— 自由文本(Tim 裁定:不是储位选择器,一台设备不发去仓库)
+    const deliveryLocation = String(formData.get('delivery_location') ?? '').trim()
     const notes = String(formData.get('notes') ?? '').trim()
     const termsText = String(formData.get('terms_text') ?? '').trim()
 
@@ -109,6 +115,9 @@ export async function createOrder(
             ...(assay.length ? { expected_assay: assay } : {}),
             // FIN-26:出处随行进 DB;配对(computed ↔ provenance)由函数与 CHECK 双重把关
             ...(l.price_source ? { price_source: l.price_source } : {}),
+            // PUR-1:没选就【不带这一键】—— 与上面质保金那一条同形:
+            // 缺席即"按事实推导",而不是一个被默认掉的选择。
+            ...(l.price_status ? { price_status: l.price_status } : {}),
             ...(l.price_provenance ? { price_provenance: l.price_provenance } : {}),
             // EQP-PAY-1:没勾就【不带这一键】—— 缺席即"没有质保金"。
             ...(isEquipment && l.retention_on && l.retention_pct?.trim()
@@ -191,6 +200,7 @@ export async function createOrder(
         // provenance jsonb 自由形状 —— 生成类型的 Json 联合装不下 CalcResult,原样断言
         p_lines: lines as unknown as import('@/lib/database.types').Json,
         p_payment_terms: terms,
+        p_delivery_location: (deliveryLocation || null) as unknown as string,
     })
 
     if (error) {

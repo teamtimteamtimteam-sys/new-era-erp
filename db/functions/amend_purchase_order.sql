@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.amend_purchase_order(p_purchase_order_id uuid, p_reason text, p_header jsonb DEFAULT NULL::jsonb, p_lines jsonb DEFAULT NULL::jsonb)
+CREATE OR REPLACE FUNCTION public.amend_purchase_order(p_purchase_order_id uuid, p_reason text, p_header jsonb DEFAULT NULL::jsonb, p_lines jsonb DEFAULT NULL::jsonb, p_payment_terms jsonb DEFAULT NULL::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -11,6 +11,12 @@ DECLARE
     v_line_id  uuid;
     v_qty      numeric;
     v_price    numeric;
+    v_price_status text;      -- PUR-1:这一行的定价状态选择
+    -- ── PUR-1:付款条款 ─────────────────────────────────────────────────────
+    v_term       jsonb;
+    v_seq        integer;
+    v_expect     integer;
+    v_pct_total  numeric;
     v_new_date date;
     v_fx       numeric;
     v_total    numeric;
@@ -71,6 +77,11 @@ BEGIN
             incoterm = CASE WHEN p_header ? 'incoterm' THEN p_header->>'incoterm' ELSE incoterm END,
             terms_text = CASE WHEN p_header ? 'terms_text' THEN p_header->>'terms_text' ELSE terms_text END,
             notes = CASE WHEN p_header ? 'notes' THEN p_header->>'notes' ELSE notes END,
+            -- PUR-1:交货地点。【键在不在,与值是不是空,是两件事】——
+            -- 不传这个键 = 不动它;传一个空串 = 把它清掉(收成 NULL,于是纸上不印)。
+            delivery_location = CASE WHEN p_header ? 'delivery_location'
+                THEN NULLIF(btrim(COALESCE(p_header->>'delivery_location', '')), '')
+                ELSE delivery_location END,
             fx_rate = v_fx,
             updated_by = v_user
         WHERE id = p_purchase_order_id;
@@ -110,6 +121,13 @@ BEGIN
                 RAISE EXCEPTION 'PO_LINE_QUANTITY_INVALID|%', COALESCE(v_el->>'line_no', '?');
             END IF;
             v_price := NULLIF(v_el->>'estimated_unit_price', '')::numeric;
+            -- PUR-1:定价状态 —— 与建单同一条校验,同一个码。
+            v_price_status := NULLIF(btrim(COALESCE(v_el->>'price_status', '')), '');
+            IF v_price_status IS NOT NULL AND v_price_status NOT IN ('fixed', 'provisional') THEN
+                RAISE EXCEPTION 'PO_LINE_PRICE_STATUS_INVALID|%|%',
+                    COALESCE(v_el->>'line_no', '?'), v_price_status
+                  USING HINT = '定价状态只有两个取值:fixed(定价)与 provisional(暂定价)。留空表示按事实推导';
+            END IF;
 
             IF v_line_id IS NULL THEN
                 -- 新增行:与建单同口径(金额 = 数量 × 单价,无价则 0)
@@ -138,7 +156,7 @@ BEGIN
                 END IF;
                 INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, asset_id,
                     quantity, unit, estimated_unit_price, estimated_amount_ccy, notes, created_by,
-                    tax_code, tax_rate_pct, tax_amount_ccy)
+                    tax_code, tax_rate_pct, tax_amount_ccy, price_status)
                 VALUES (p_purchase_order_id,
                     COALESCE((v_el->>'line_no')::integer,
                         (SELECT COALESCE(MAX(line_no), 0) + 1 FROM purchase_order_lines
@@ -148,11 +166,16 @@ BEGIN
                     v_price, round(v_qty * COALESCE(v_price, 0), 2), v_el->>'notes', v_user,
                     v_tax_code, v_tax_rate,
                     CASE WHEN v_tax_rate IS NULL THEN NULL
-                         ELSE tax_amount_for(round(v_qty * COALESCE(v_price, 0), 2), v_tax_rate) END);
+                         ELSE tax_amount_for(round(v_qty * COALESCE(v_price, 0), 2), v_tax_rate) END,
+                    v_price_status);
             ELSE
                 -- 【已收下限由触发器把关】砍到已收之下 → PO_LINE_BELOW_RECEIVED
                 UPDATE purchase_order_lines SET
                     quantity = v_qty,
+                    -- PUR-1:键在不在,与值是不是空,是两件事(与表头那一条同形)。
+                    -- 传 '' 把它清回 NULL —— 也就是"别再替我选了,按事实推导"。
+                    price_status = CASE WHEN v_el ? 'price_status'
+                        THEN v_price_status ELSE price_status END,
                     unit = COALESCE(v_el->>'unit', unit),
                     estimated_unit_price = CASE WHEN v_el ? 'estimated_unit_price'
                         THEN v_price ELSE estimated_unit_price END,
@@ -197,7 +220,74 @@ BEGIN
 
     SELECT estimated_total_ccy INTO v_total FROM purchase_orders WHERE id = p_purchase_order_id;
 
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★★【PUR-1:改单可以改付款条款 —— 而档案接得住,那才是本段的重点】★★
+    -- ════════════════════════════════════════════════════════════════════════
+    --   【此前改不了,而那【不是】一道锁】(2026-09-08 实测):没有参数、没有
+    --   表单字段,而 purchase_order_payment_terms 的 INSERT/UPDATE/DELETE 策略
+    --   对持 module.purchasing.edit 的人【全开】—— 也就是说这条路今天就通,
+    --   通的是一条直连改库、且在档案里【完全沉默】的路。
+    --   留痕在触发器上(trg_po_history_payment_term),不在这里 —— 与 PUR-2 同一条:
+    --   触发器接得住每一条路径,包括上面那一条。
+    --
+    --   ★【为什么是【按期落位】而不是整表删了重灌】★
+    --     删了重灌在档案里读起来是"整份计划被换掉了",而真相常常是"第二期
+    --     从 40% 改成了 30%"。按 seq 落位之后,没动过的那几期【一条历史都不长】
+    --     (触发器对无改动的 UPDATE 直接返回),读的人一眼看得出改的是哪一期。
+    --
+    --   ★【NULL 与 [] 是两件事】★ 不传这个参数 = 不动付款计划(既有调用方
+    --     一个字不用改);传一个空数组 = 把整份计划清掉,那是一次明说的动作。
+    --
+    --   【适用性不在这里判】trg_po_payment_terms_event_applicable 已经在表上按名拒
+    --   (PO_TERM_EVENT_NOT_APPLICABLE)—— 在这里再抄一遍就是同一条规矩的第二份实现。
+    IF p_payment_terms IS NOT NULL THEN
+        IF jsonb_typeof(p_payment_terms) <> 'array' THEN
+            RAISE EXCEPTION 'PO_PAYMENT_TERMS_INVALID|%', jsonb_typeof(p_payment_terms)
+              USING HINT = '付款计划要么不传(不动它),要么传一个数组(整份计划按期落位)';
+        END IF;
+
+        -- 【先整份验完,再动一个字】—— 验到一半才拒,会留下一份改了一半的计划。
+        v_expect := 0; v_pct_total := 0;
+        FOR v_term IN SELECT * FROM jsonb_array_elements(p_payment_terms)
+        LOOP
+            v_expect := v_expect + 1;
+            v_seq := (v_term->>'seq')::integer;
+            -- 与建单【同一个码】:一条规矩只能有一个码,否则屏幕上会有一半的
+            -- 拒绝印出裸码(EQP-PAY-1 A2 那一课)。
+            IF v_seq IS DISTINCT FROM v_expect THEN
+                RAISE EXCEPTION 'TERMS_SEQ_INVALID';
+            END IF;
+            v_pct_total := v_pct_total + COALESCE((v_term->>'percentage')::numeric, 0);
+        END LOOP;
+        IF v_pct_total > 100 THEN
+            RAISE EXCEPTION 'TERMS_PCT_EXCEEDS|%', v_pct_total;
+        END IF;
+
+        -- 多出来的期数先删(触发器记 payment_term_remove)
+        DELETE FROM purchase_order_payment_terms
+         WHERE purchase_order_id = p_purchase_order_id AND seq > v_expect;
+
+        FOR v_term IN SELECT * FROM jsonb_array_elements(p_payment_terms)
+        LOOP
+            INSERT INTO purchase_order_payment_terms (purchase_order_id, seq, label,
+                percentage, fixed_amount_ccy, trigger_event, due_date, notes)
+            VALUES (p_purchase_order_id, (v_term->>'seq')::integer, v_term->>'label',
+                (v_term->>'percentage')::numeric, (v_term->>'fixed_amount_ccy')::numeric,
+                v_term->>'trigger_event', (v_term->>'due_date')::date, v_term->>'notes')
+            ON CONFLICT (purchase_order_id, seq) DO UPDATE SET
+                label            = EXCLUDED.label,
+                percentage       = EXCLUDED.percentage,
+                fixed_amount_ccy = EXCLUDED.fixed_amount_ccy,
+                trigger_event    = EXCLUDED.trigger_event,
+                due_date         = EXCLUDED.due_date,
+                notes            = EXCLUDED.notes;
+            v_changed := v_changed + 1;
+        END LOOP;
+    END IF;
+
     -- ── 付款计划:定额腿必须仍然加得上 ───────────────────────────────────────
+    -- 【PUR-1:这道闸现在【也】管新传进来的那份计划】—— 顺序没有变,
+    -- 它读的仍然是库里此刻的计划,而上面那一段已经把新计划落位了。
     SELECT COALESCE(SUM(fixed_amount_ccy), 0), COALESCE(SUM(percentage), 0)
       INTO v_plan_fixed, v_plan_pct
       FROM purchase_order_payment_terms WHERE purchase_order_id = p_purchase_order_id;
@@ -232,5 +322,3 @@ BEGIN
         'approval_status', (SELECT approval_status FROM purchase_orders WHERE id = p_purchase_order_id));
 END;
 $function$
-
-

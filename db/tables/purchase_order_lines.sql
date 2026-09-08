@@ -52,7 +52,12 @@ CREATE TABLE public.purchase_order_lines (
     -- 或不在范围内的行 —— 表头一个码说不出这件事。三列的完整含义见列注释。
     tax_code       text REFERENCES public.tax_codes (code),
     tax_rate_pct   numeric,
-    tax_amount_ccy numeric
+    tax_amount_ccy numeric,
+    -- ── PUR-1 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)────────────────
+    -- 这一行的价【定了没有】—— 一个人做出的选择。NULL = 按事实推导(见列注释)。
+    -- 【''fixed'' 有一条它选不动的边界】挂着公式 / 已有承诺的行标不成定价,
+    -- 由 guard_po_line_price_status 按名拒 —— 那道闸看得见另一张表,CHECK 看不见。
+    price_status   text CHECK (price_status IS NULL OR price_status IN ('fixed', 'provisional'))
 );
 
 COMMENT ON CONSTRAINT purchase_order_lines_equipment_qty_one ON public.purchase_order_lines IS
@@ -65,6 +70,9 @@ COMMENT ON CONSTRAINT purchase_order_lines_equipment_unit ON public.purchase_ord
 【这条 CHECK 存在的全部理由】unit 的列默认值是 ''kg'' —— 省略它的设备行会
 无声地变成公斤,而 purchase_order_status.ordered_qty 是一个【不看单位】的
 sum(quantity),于是那台机器会被加进公斤里。约定挡不住"忘了填",CHECK 挡得住。';
+
+COMMENT ON COLUMN public.purchase_order_lines.price_status IS
+'PUR-1:这一行的价是【定价】还是【暂定价】—— 一个人做出的选择。★**NULL 不是"没选",是"按事实推导"**★:本刀之前的每一行都是 NULL,而它们在纸上照常印出正确的状态(po_document_data 的四支 CASE:有承诺 → provisional_committed,挂公式 → provisional_uncommitted,有单价 → fixed,都没有 → not_priced)。**不回填** —— 回填等于替下单的人做了一个他没做过的选择。★【''fixed'' 有一条它选不动的边界】★:一行挂着 pricing_formula_id、或已经有一份 pricing_term_commitments,它就是【按公式结算】的,把它标成 fixed 是一句**印在供应商纸上的假话** —— guard_po_line_price_status 按名拒(PO_LINE_PRICE_STATUS_CONFLICT)。反过来【是允许的】:把一条没有公式的行标成 provisional,那是真话,而且正是本刀补上的那个能力。';
 
 COMMENT ON COLUMN public.purchase_order_lines.price_source IS
     '行价的出处(FIN-26):computed = 估算按钮产出(必带 price_provenance);manual = 手填。NULL = FIN-26 之前的行,当时没记 —— 【不回填猜测】,界面画"未知"。不要从 expected_assay 推断。';
@@ -124,7 +132,9 @@ GRANT SELECT (id, purchase_order_id, line_no, material_id, quantity, unit, prici
     deep_discharge_judgement_code,
     -- PO-GST-1:税码与税率【不敏感】(分类 + 法定税率),进列清单授权;
     -- tax_amount_ccy 【是钱】,不在这里 —— 只经 _masked 读。
-    tax_code, tax_rate_pct)
+    tax_code, tax_rate_pct,
+    -- PUR-1:定价状态【不敏感】—— 它说的是"这个价定了没有",不是那个价是多少。
+    price_status)
     ON public.purchase_order_lines TO authenticated;
 
 -- ── PUR-2:已收下限与留痕 ────────────────────────────────────────────────────
@@ -138,6 +148,14 @@ CREATE TRIGGER guard_po_lines_received_floor
 CREATE TRIGGER trg_purchase_order_lines_history
     AFTER INSERT OR UPDATE OR DELETE ON public.purchase_order_lines
     FOR EACH ROW EXECUTE FUNCTION public.trg_po_history_line();
+
+-- ── PUR-1:一条按公式结算的行,标不成【定价】────────────────────────────────
+-- 【为什么是触发器而不是 CHECK】承诺在另一张表上(pricing_term_commitments),
+-- CHECK 看不见它;只挡住 pricing_formula_id 那一半,是把一条规矩写成两处各一半。
+-- 函数体见 db/functions/guard_po_line_price_status.sql。
+CREATE TRIGGER guard_po_line_price_status
+    BEFORE INSERT OR UPDATE ON public.purchase_order_lines
+    FOR EACH ROW EXECUTE FUNCTION public.guard_po_line_price_status();
 
 COMMENT ON COLUMN public.purchase_order_lines.asset_id IS
     'EQP-1a:这一行订的是【一台已经建了卡的固定资产】。

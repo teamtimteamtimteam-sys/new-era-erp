@@ -13251,6 +13251,7 @@ export type Database = {
           changed_by: string | null
           id: string
           line_no: number | null
+          new_delivery_location: string | null
           new_estimated_amount_ccy: number | null
           new_estimated_total_ccy: number | null
           new_estimated_unit_price: number | null
@@ -13259,9 +13260,12 @@ export type Database = {
           new_incoterm: string | null
           new_notes: string | null
           new_order_date: string | null
+          new_payment_term: Json | null
+          new_price_status: string | null
           new_quantity: number | null
           new_terms_text: string | null
           new_unit: string | null
+          old_delivery_location: string | null
           old_estimated_amount_ccy: number | null
           old_estimated_total_ccy: number | null
           old_estimated_unit_price: number | null
@@ -13270,9 +13274,12 @@ export type Database = {
           old_incoterm: string | null
           old_notes: string | null
           old_order_date: string | null
+          old_payment_term: Json | null
+          old_price_status: string | null
           old_quantity: number | null
           old_terms_text: string | null
           old_unit: string | null
+          payment_term_seq: number | null
           purchase_order_id: string
           purchase_order_line_id: string | null
         }
@@ -13283,6 +13290,7 @@ export type Database = {
           changed_by?: string | null
           id?: string
           line_no?: number | null
+          new_delivery_location?: string | null
           new_estimated_amount_ccy?: number | null
           new_estimated_total_ccy?: number | null
           new_estimated_unit_price?: number | null
@@ -13291,9 +13299,12 @@ export type Database = {
           new_incoterm?: string | null
           new_notes?: string | null
           new_order_date?: string | null
+          new_payment_term?: Json | null
+          new_price_status?: string | null
           new_quantity?: number | null
           new_terms_text?: string | null
           new_unit?: string | null
+          old_delivery_location?: string | null
           old_estimated_amount_ccy?: number | null
           old_estimated_total_ccy?: number | null
           old_estimated_unit_price?: number | null
@@ -13302,9 +13313,12 @@ export type Database = {
           old_incoterm?: string | null
           old_notes?: string | null
           old_order_date?: string | null
+          old_payment_term?: Json | null
+          old_price_status?: string | null
           old_quantity?: number | null
           old_terms_text?: string | null
           old_unit?: string | null
+          payment_term_seq?: number | null
           purchase_order_id: string
           purchase_order_line_id?: string | null
         }
@@ -13315,6 +13329,7 @@ export type Database = {
           changed_by?: string | null
           id?: string
           line_no?: number | null
+          new_delivery_location?: string | null
           new_estimated_amount_ccy?: number | null
           new_estimated_total_ccy?: number | null
           new_estimated_unit_price?: number | null
@@ -13323,9 +13338,12 @@ export type Database = {
           new_incoterm?: string | null
           new_notes?: string | null
           new_order_date?: string | null
+          new_payment_term?: Json | null
+          new_price_status?: string | null
           new_quantity?: number | null
           new_terms_text?: string | null
           new_unit?: string | null
+          old_delivery_location?: string | null
           old_estimated_amount_ccy?: number | null
           old_estimated_total_ccy?: number | null
           old_estimated_unit_price?: number | null
@@ -13334,9 +13352,12 @@ export type Database = {
           old_incoterm?: string | null
           old_notes?: string | null
           old_order_date?: string | null
+          old_payment_term?: Json | null
+          old_price_status?: string | null
           old_quantity?: number | null
           old_terms_text?: string | null
           old_unit?: string | null
+          payment_term_seq?: number | null
           purchase_order_id?: string
           purchase_order_line_id?: string | null
         }
@@ -13508,6 +13529,7 @@ export type Database = {
           notes: string | null
           price_provenance: Json | null
           price_source: string | null
+          price_status: string | null
           pricing_formula_id: string | null
           purchase_order_id: string
           quantity: number
@@ -13530,6 +13552,7 @@ export type Database = {
           notes?: string | null
           price_provenance?: Json | null
           price_source?: string | null
+          price_status?: string | null
           pricing_formula_id?: string | null
           purchase_order_id: string
           quantity: number
@@ -13552,6 +13575,7 @@ export type Database = {
           notes?: string | null
           price_provenance?: Json | null
           price_source?: string | null
+          price_status?: string | null
           pricing_formula_id?: string | null
           purchase_order_id?: string
           quantity?: number
@@ -13839,6 +13863,7 @@ export type Database = {
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
+          delivery_location: string | null
           estimated_total_ccy: number
           expected_delivery_date: string | null
           fx_rate: number
@@ -13869,6 +13894,7 @@ export type Database = {
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          delivery_location?: string | null
           estimated_total_ccy?: number
           expected_delivery_date?: string | null
           fx_rate: number
@@ -13899,6 +13925,7 @@ export type Database = {
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          delivery_location?: string | null
           estimated_total_ccy?: number
           expected_delivery_date?: string | null
           fx_rate?: number
@@ -24534,6 +24561,7 @@ export type Database = {
           notes: string | null
           price_provenance: Json | null
           price_source: string | null
+          price_status: string | null
           pricing_formula_id: string | null
           purchase_order_id: string | null
           quantity: number | null
@@ -24556,6 +24584,7 @@ export type Database = {
           notes?: string | null
           price_provenance?: never
           price_source?: string | null
+          price_status?: string | null
           pricing_formula_id?: string | null
           purchase_order_id?: string | null
           quantity?: number | null
@@ -24578,6 +24607,7 @@ export type Database = {
           notes?: string | null
           price_provenance?: never
           price_source?: string | null
+          price_status?: string | null
           pricing_formula_id?: string | null
           purchase_order_id?: string | null
           quantity?: number | null
@@ -25052,6 +25082,7 @@ export type Database = {
           delete_reason: string | null
           deleted_at: string | null
           deleted_by: string | null
+          delivery_location: string | null
           estimated_total_ccy: number | null
           expected_delivery_date: string | null
           fx_rate: number | null
@@ -25084,6 +25115,7 @@ export type Database = {
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          delivery_location?: string | null
           estimated_total_ccy?: never
           expected_delivery_date?: string | null
           fx_rate?: never
@@ -25116,6 +25148,7 @@ export type Database = {
           delete_reason?: string | null
           deleted_at?: string | null
           deleted_by?: string | null
+          delivery_location?: string | null
           estimated_total_ccy?: never
           expected_delivery_date?: string | null
           fx_rate?: never
@@ -26323,6 +26356,7 @@ export type Database = {
         Args: {
           p_header?: Json
           p_lines?: Json
+          p_payment_terms?: Json
           p_purchase_order_id: string
           p_reason: string
         }
@@ -26783,6 +26817,7 @@ export type Database = {
       create_purchase_order: {
         Args: {
           p_currency: string
+          p_delivery_location?: string
           p_expected_delivery: string
           p_fx_rate: number
           p_incoterm: string

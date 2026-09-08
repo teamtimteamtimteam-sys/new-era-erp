@@ -75,6 +75,16 @@ CREATE POLICY "purchase_order_payment_terms delete by permission"
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 -- CASHFLOW-1：列注释也要在镜像里 —— 一次重建缺了它，gate 的结构比对会红，
 -- 而更要紧的是：下一个读镜像的人会少掉「为什么它不写进 due_date」这句话。
+-- ── PUR-1:付款计划的编辑史 ──────────────────────────────────────────────────
+-- ★【本表此前【一个留痕触发器都没有】,而它的写入策略是全开的】★
+--   也就是说改一份付款计划这件事,在档案里【完全沉默】—— 而 PUR-2 建
+--   purchase_order_history 的全部理由,正是"只能作废重开"不是规则、是没人建按钮。
+--   改单能改付款条款(PUR-1)之前,先把档案扩到接得住它。
+--   函数体见 db/functions/trg_po_history_payment_term.sql。
+CREATE TRIGGER trg_purchase_order_payment_terms_history
+    AFTER INSERT OR UPDATE OR DELETE ON public.purchase_order_payment_terms
+    FOR EACH ROW EXECUTE FUNCTION public.trg_po_history_payment_term();
+
 COMMENT ON COLUMN public.purchase_order_payment_terms.expected_date IS
     'CASHFLOW-1:这一期【预计】什么时候付 —— 一个估计,不是一个事实。★【为什么不写进 due_date】★ due_date 在这张表上的含义是"合同约定的日子"(表上那条 CHECK 要求 fixed_date 那一种必须有它);把估计写进去,会让一个猜测长得和一条合同条款一模一样。三种事件才需要它:on_shipment / on_arrival / post_assay —— 另外两种不需要,因为 fixed_date 已经有真日期,而 on_order 的日子是 purchase_orders.order_date 这个事实。谁设的、何时设的在旁边两列;按事件类型的保管人在 payment_event_owners。到了预测那一层它的 confidence 是 estimated,与 committed 【不同的渲染】。';
 

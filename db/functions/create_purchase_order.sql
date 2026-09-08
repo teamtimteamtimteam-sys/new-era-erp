@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.create_purchase_order(p_supplier_id uuid, p_order_date date, p_expected_delivery date, p_currency text, p_fx_rate numeric, p_incoterm text, p_terms_text text, p_notes text, p_lines jsonb, p_payment_terms jsonb DEFAULT '[]'::jsonb)
+CREATE OR REPLACE FUNCTION public.create_purchase_order(p_supplier_id uuid, p_order_date date, p_expected_delivery date, p_currency text, p_fx_rate numeric, p_incoterm text, p_terms_text text, p_notes text, p_lines jsonb, p_payment_terms jsonb DEFAULT '[]'::jsonb, p_delivery_location text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -17,6 +17,7 @@ DECLARE
     v_line_id    uuid;      -- FIN-27:承诺挂在行上,需要它的 id
     v_qty        numeric;
     v_price      numeric;
+    v_price_status text;      -- PUR-1:这一行的定价状态选择(可空 = 按事实推导)
     v_src          text;      -- FIN-26:computed / manual / NULL(旧调用方)
     v_prov         jsonb;     -- FIN-26:computed 行的重导出依据
     v_amount     numeric;
@@ -85,7 +86,8 @@ BEGIN
     INSERT INTO purchase_orders (id, code, supplier_id, order_date, expected_delivery_date,
                                  currency, fx_rate, estimated_total_ccy, status,
                                  approval_status, approved_at, approved_by,
-                                 incoterm, terms_text, notes, created_by, updated_by)
+                                 incoterm, terms_text, notes, created_by, updated_by,
+                                 delivery_location)
     VALUES (v_po_id, v_code, p_supplier_id, v_date, p_expected_delivery,
             -- APR-2:新单【生为 draft/pending】—— 此前是 confirmed/approved,
             -- 于是"提单人发起"根本无处可放。批准把它推到 confirmed。
@@ -96,7 +98,10 @@ BEGIN
             CASE WHEN v_appr_on THEN 'pending' ELSE 'approved'  END,
             CASE WHEN v_appr_on THEN NULL ELSE now() END,
             CASE WHEN v_appr_on THEN NULL ELSE v_user END,
-            p_incoterm, p_terms_text, p_notes, v_user, v_user);
+            p_incoterm, p_terms_text, p_notes, v_user, v_user,
+            -- PUR-1:自由文本。空串与只有空白的输入一律收成 NULL ——
+            -- 一个空串会让 PDF 那一侧画出一个空的标签,而"没填"该是【不印】。
+            NULLIF(btrim(COALESCE(p_delivery_location, '')), ''));
 
     FOR v_line IN SELECT * FROM jsonb_array_elements(p_lines)
     LOOP
@@ -108,6 +113,16 @@ BEGIN
         v_qty := (v_line->>'quantity')::numeric;
         v_price := (v_line->>'estimated_unit_price')::numeric;
         v_formula := (v_line->>'pricing_formula_id')::uuid;
+        -- ── PUR-1:这一行的定价状态 ──────────────────────────────────────
+        -- 【省略 = NULL = 按事实推导】不是"默认定价"。既有调用方一个字不改,
+        -- 而它们开出来的单在纸上印的状态与本刀之前【逐字相同】。
+        v_price_status := NULLIF(btrim(COALESCE(v_line->>'price_status', '')), '');
+        IF v_price_status IS NOT NULL AND v_price_status NOT IN ('fixed', 'provisional') THEN
+            -- 【按名拒,不让表上那条 CHECK 去炸】屏幕上拿到一条裸约束原文,
+            -- 读的人无从知道可选值是哪两个(与本函数其余具名拒绝同一条)。
+            RAISE EXCEPTION 'PO_LINE_PRICE_STATUS_INVALID|%|%', v_line_no, v_price_status
+              USING HINT = '定价状态只有两个取值:fixed(定价)与 provisional(暂定价)。留空表示按事实推导 —— 挂了公式就是暂定价,有单价就是定价';
+        END IF;
 
         -- EQP-1a:恰一非空 —— 与表上那条 CHECK 同一句话,在这里【先】说一遍,
         -- 好让走门的人拿到一个具名拒绝而不是一条约束原文。
@@ -222,12 +237,17 @@ BEGIN
                                           unit, pricing_formula_id, estimated_unit_price,
                                           estimated_amount_ccy, expected_assay, notes, created_by,
                                           price_source, price_provenance,
-                                          tax_code, tax_rate_pct, tax_amount_ccy)
+                                          tax_code, tax_rate_pct, tax_amount_ccy,
+                                          price_status)
         VALUES (v_po_id, v_line_no, v_material, v_asset, v_qty,
                 COALESCE(v_line->>'unit', CASE WHEN v_asset IS NOT NULL THEN 'unit' ELSE 'kg' END), v_formula, v_price,
                 v_amount, v_line->'expected_assay', v_line->>'notes', v_user,
                 v_src, v_prov,
-                v_tax_code, v_tax_rate, v_line_tax)
+                v_tax_code, v_tax_rate, v_line_tax,
+                -- PUR-1:标成 fixed 而这一行挂着公式,由 guard_po_line_price_status
+                -- 按名拒(PO_LINE_PRICE_STATUS_CONFLICT)—— 那一行真的按公式结算,
+                -- 而这张纸是发给供应商的。
+                v_price_status)
         RETURNING id INTO v_line_id;
 
         -- ── FIN-27:承诺时抄下结算条款 ───────────────────────────────────────

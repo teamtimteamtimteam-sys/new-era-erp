@@ -27,6 +27,29 @@ export const CONTRACT_ERROR_CODES = new Set([
     'CONTRACT_PERIOD_ORDER',
     'CONTRACT_PAYMENT_TERMS_INVALID',
     'CONTRACT_NOT_PERMITTED',
+    // ── PUR-1:把一张单据挂到合同上那条路的具名拒绝 ──────────────────────────
+    // ★★【这五条【一直】会被抛出,却从来没有句子 —— 因为从来没有屏幕调它】★★
+    //   link_document_to_contract 是 CONTRACT-1 建的,五条拒绝早就在函数里,
+    //   而全仓库【零处】调用它(2026-09-08 实测)。PUR-1 建了那扇门,
+    //   于是这五条从今天起会真的打到操作员脸上 —— 不接就是
+    //   `CONTRACT_NOT_ACTIVE|CON-2027-0001|draft` 这一串原文。
+    //   ★ 与 SOD-1 把审批引擎那十二条一次接齐是同一件事:
+    //     码是从【函数体】里逐条数出来的,不是"我碰巧撞到过哪几条"。
+    'CONTRACT_NOT_ACTIVE',
+    'CONTRACT_SIDE_MISMATCH',
+    'CONTRACT_COUNTERPARTY_MISMATCH',
+    'DOCUMENT_ALREADY_UNDER_CONTRACT',
+    'CONTRACT_NOT_FOUND',
+    'CONTRACT_DOCUMENT_KIND_INVALID',
+    'PO_NOT_FOUND',
+    'SO_NOT_FOUND',
+    // ★【PERMISSION_DENIED 【不】在这里,而那是刻意的】★
+    //   link_document_to_contract 确实抛得出它(它自己按合同归属那一侧
+    //   require_permission),而 messages 里也早就有一句专门写给它的话。
+    //   但这个 localizer 是【共用】的:创建合同那条路也调它,而那句话写的是
+    //   "你没有权限把单据挂到这份合同上" —— 在创建页上说这句就是答非所问。
+    //   所以它在【挂接那个 action 里】单独接(app/purchasing/orders/[id]/contractActions.ts),
+    //   接在知道上下文的那一处。
 ])
 
 const CONSTRAINT_TO_CODE: Record<string, string> = {
@@ -49,8 +72,15 @@ export async function localizeContractError(message: string): Promise<string> {
     if (/row-level security|42501/i.test(raw)) {
         return t('contracts.errors.CONTRACT_NOT_PERMITTED')
     }
-    if (CONTRACT_ERROR_CODES.has(raw)) {
-        return t('contracts.errors.' + raw)
+    // ★【PUR-1:按码认之前先把管道参数拆出来】★
+    //   此前这一支比对的是【整串】,而它接的那七条(全来自表单校验)都是光码。
+    //   link_document_to_contract 抛的是 `CONTRACT_NOT_ACTIVE|CON-2027-0001|draft`
+    //   —— 带参数。不拆,`has(raw)` 永远为 false,那一串会原样落到屏幕上。
+    const m = raw.match(/^([A-Z][A-Z0-9_]+)(?:\|([\s\S]*))?$/)
+    if (m && CONTRACT_ERROR_CODES.has(m[1])) {
+        const params: Record<string, string> = {}
+        if (m[2]) m[2].split('|').forEach((v, i) => { params[String(i)] = v })
+        return t('contracts.errors.' + m[1], params)
     }
     return raw // 真正的非编码错误 —— 原样呈上,不要吞掉
 }

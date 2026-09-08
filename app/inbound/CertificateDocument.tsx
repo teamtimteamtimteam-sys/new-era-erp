@@ -131,6 +131,17 @@ export default function CertificateDocument({
     const b = data.inbound_batch
     const issued = mode !== 'internal'
     const code = data.certificate?.code ?? null
+    // PUR-1:核验网址【只印域名】—— 从二维码自己的负载里推导出来,不是写死的
+    // 字面量(理由写在下面使用点那一段 ★)。解析不出来就是 null:整行不印,
+    // 不编一个域名出来。
+    const verifyHost = (() => {
+        if (!verificationUrl) return null
+        try {
+            return new URL(verificationUrl).host
+        } catch {
+            return null
+        }
+    })()
     const addr = [company.address_lines, company.city, company.postal_code, company.country]
         .filter((x) => x && String(x).trim() !== '').join(', ')
 
@@ -219,7 +230,32 @@ export default function CertificateDocument({
                                 {qrDataUrl ? <Image src={qrDataUrl} style={{ width: 78, height: 78 }} /> : null}
                                 <View style={{ marginLeft: 10, flex: 1 }}>
                                     <Text>{code}</Text>
-                                    <Text style={s.verifyUrl}>{verificationUrl ?? ''}</Text>
+                                    {/* ════════════════════════════════════════════════
+                                        ★★【PUR-1:整条核验网址退休,只留域名】★★
+                                        ════════════════════════════════════════════════
+                                        【此前】这里印的是完整网址,尾巴上挂着那个
+                                        36 位的令牌 —— 一串供应商既读不出意思、也照着
+                                        敲不进去的字符,占掉一整行。
+                                        【现在】只说【它通向哪里】,好让人在扫码之前
+                                        就知道会被带到哪个站点。
+                                        ★【域名不是写死的,是从二维码自己的负载里取的】★
+                                          (Tim 2026-09-08 裁定 Q6)——
+                                          写死一个字面量就是第二份真相,而它会在两处
+                                          悄悄分岔:① 这里印 A、二维码却指向 B;
+                                          ② 域名换掉的那天(见下)要有人记得回来改这里。
+                                          从同一个 url 推导,两者【不可能】不一致。
+                                        【二维码的负载一个字节都没动】它仍然编码完整网址
+                                        (含令牌)—— 那是核验真正需要的东西。
+                                        【解析不出来就整行不印】不编一个域名出来。
+                                        ★【已登记、不在本刀】★ new-era-erp.vercel.app 是
+                                          托管平台免费域名下的仓库名,不适合出现在发给
+                                          供应商与监管方的单据上。它必须在【生产库启用
+                                          之前】换成公司域名 —— 因为一张已签发的证书
+                                          会把内容冻住,从此永远指着那个地址。
+                                          见 docs/forward-queue.md。 */}
+                                    {verifyHost ? (
+                                        <Text style={s.verifyUrl}>Verify at {verifyHost}</Text>
+                                    ) : null}
                                     <Text style={s.verifyUrl}>
                                         Issued {data.certificate?.issued_at?.slice(0, 10) ?? dash}
                                     </Text>

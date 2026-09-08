@@ -14,7 +14,10 @@ BEGIN
        AND NEW.estimated_total_ccy IS NOT DISTINCT FROM OLD.estimated_total_ccy
        AND NEW.incoterm IS NOT DISTINCT FROM OLD.incoterm
        AND NEW.terms_text IS NOT DISTINCT FROM OLD.terms_text
-       AND NEW.notes IS NOT DISTINCT FROM OLD.notes THEN
+       AND NEW.notes IS NOT DISTINCT FROM OLD.notes
+       -- PUR-1:交货地点也是【商业字段】—— 改了它而档案一言不发,
+       -- 与付款条款那一条是同一个缺席(见迁移抬头)。
+       AND NEW.delivery_location IS NOT DISTINCT FROM OLD.delivery_location THEN
         RETURN NEW;
     END IF;
 
@@ -25,7 +28,8 @@ BEGIN
         old_fx_rate, new_fx_rate,
         old_estimated_total_ccy, new_estimated_total_ccy,
         old_incoterm, new_incoterm, old_terms_text, new_terms_text,
-        old_notes, new_notes, amend_reason)
+        old_notes, new_notes,
+        old_delivery_location, new_delivery_location, amend_reason)
     VALUES (NEW.id, 'header_update',
         OLD.order_date, NEW.order_date,
         OLD.expected_delivery_date, NEW.expected_delivery_date,
@@ -33,7 +37,8 @@ BEGIN
         OLD.estimated_total_ccy, NEW.estimated_total_ccy,
         OLD.incoterm, NEW.incoterm, OLD.terms_text, NEW.terms_text,
         OLD.notes, NEW.notes,
+        OLD.delivery_location, NEW.delivery_location,
         NULLIF(current_setting('evoltrya.amend_reason', true), ''));
     RETURN NEW;
 END;
-$function$;
+$function$

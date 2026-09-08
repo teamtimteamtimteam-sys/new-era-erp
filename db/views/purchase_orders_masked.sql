@@ -68,6 +68,10 @@ CREATE VIEW public.purchase_orders_masked WITH (security_invoker = off) AS
              ELSE NULL::numeric END AS gross_total_ccy,
     -- 这张单【算过税吗】—— NULL 的税额合计【不是】零税:它是"开在 PO-GST-1 之前,
     -- 或开在 GST 未注册的时候"。屏幕靠它决定说哪一句话,而不是印一个 0.00。
-    (tax_total_ccy IS NOT NULL) AS carries_tax
+    (tax_total_ccy IS NOT NULL) AS carries_tax,
+    -- PUR-1(2026-09-08):交货地点。**新列加在末尾** —— CREATE OR REPLACE VIEW
+    -- 只许末尾追加,中间插一列要 DROP + 重建(与上面 contract_id 那一条同一课)。
+    -- 【不遮蔽】它是一个地址,不是钱。
+    delivery_location
    FROM purchase_orders
   WHERE has_permission('module.purchasing.view'::text);

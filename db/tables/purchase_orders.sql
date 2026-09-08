@@ -65,8 +65,15 @@ CREATE TABLE public.purchase_orders (
     -- 这张单的税额合计 = Σ 行 tax_amount_ccy。**净额那一列没有动。**
     -- 【它不在下面的列清单授权里,这是刻意的】它是钱,与 estimated_total_ccy /
     -- fx_rate 同一档 —— 只经 purchase_orders_masked 读。
-    tax_total_ccy numeric
+    tax_total_ccy numeric,
+    -- ── PUR-1 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)────────────────
+    -- 这张单的货送到哪里。**自由文本,刻意不是储位选择器**(Tim 2026-09-08 裁定)——
+    -- 一台设备订单送到的常常不是仓库。**不敏感**,进下面的列清单授权。
+    delivery_location text
 );
+
+COMMENT ON COLUMN public.purchase_orders.delivery_location IS
+    'PUR-1:这张单的货送到哪里 —— **自由文本,刻意【不是】储位选择器**(Tim 2026-09-08 裁定)。理由是具体的:一台设备订单送到的地方常常根本不是仓库(车间、工地、供应商代管),把它做成 storage_locations 的下拉框会逼人在一份【不适用】的清单里凑一个最接近的答案 —— 而那个答案会被印在发给供应商的纸上。**空着就是空着**:PDF 上不印一个空标签(与 expected_delivery_date 那一格不同,它有 ''—'',因为那一格永远该有一个日期)。';
 
 COMMENT ON COLUMN public.purchase_orders.contract_id IS
     'CONTRACT-1:这张单据挂在哪一份合同之下。**可空** —— 现货采购本来就没有合同。★**它是导航,不是条款的来源**★:条款读 contract_document_terms 那份【挂上去那一刻抄下来的】副本,顺着这一列回查合同"现在"的条款就是把抄退化成引用。';
@@ -109,7 +116,9 @@ CREATE POLICY "purchase_orders delete by permission"
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 purchase_orders_masked 读取。
 -- (check_mirrors 不比对 GRANT;这一段是为了让镜像仍能重建出权限状态。)
 REVOKE SELECT ON public.purchase_orders FROM authenticated, anon;
-GRANT SELECT (id, code, supplier_id, order_date, expected_delivery_date, currency, status, approval_status, approved_at, approved_by, incoterm, terms_text, notes, closed_at, cancelled_at, cancel_reason, deleted_at, created_at, created_by, updated_at, updated_by, deleted_by, delete_reason, cancelled_by, contract_id)
+GRANT SELECT (id, code, supplier_id, order_date, expected_delivery_date, currency, status, approval_status, approved_at, approved_by, incoterm, terms_text, notes, closed_at, cancelled_at, cancel_reason, deleted_at, created_at, created_by, updated_at, updated_by, deleted_by, delete_reason, cancelled_by, contract_id,
+    -- PUR-1:交货地点【不敏感】(一个地址,不是钱)—— 进列清单授权。
+    delivery_location)
     ON public.purchase_orders TO authenticated;
 
 -- APR-2 决定 4:金额被改到需要更高一级审批时,原审批作废并重新路由。

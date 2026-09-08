@@ -51,7 +51,10 @@ CREATE VIEW public.purchase_order_lines_masked WITH (security_invoker = off) AS
         CASE
             WHEN has_permission('data.view_prices'::text) THEN tax_amount_ccy
             ELSE NULL::numeric
-        END AS tax_amount_ccy
+        END AS tax_amount_ccy,
+    -- PUR-1(2026-09-08):这一行的定价状态选择。**新列加在末尾**(同上一条)。
+    -- 【不遮蔽】它是一个分类 —— 它说的是"这个价定了没有",不是那个价是多少。
+    price_status
    FROM purchase_order_lines
   WHERE has_permission('module.purchasing.view'::text);
 

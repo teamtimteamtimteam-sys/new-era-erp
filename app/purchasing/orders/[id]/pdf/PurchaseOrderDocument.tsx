@@ -49,6 +49,10 @@ export type PoDocData = {
     code: string
     order_date: string
     expected_delivery_date: string | null
+    // PUR-1:交货地点与参照合同号 —— 【两者都可空,而空就是不印】,
+    // 不印一个空标签(见下面两处判断)。
+    delivery_location: string | null
+    contract_code: string | null
     currency: string
     incoterm: string | null
     terms_text: string | null
@@ -94,6 +98,23 @@ export type PoDocData = {
 // 一个码,而不是再长出一个 "on on"。
 function triggerPhrase(ev: string, phrase: string | null | undefined): string {
     return phrase ?? ev.replace(/_/g, ' ')
+}
+
+// ★★【PUR-1:这张单上有没有一条【暂定价】的行】★★
+//   po_document_data 裁决出四个状态,其中【两个】说的是暂定价:
+//     provisional_committed   —— 已经抄下结算条款的
+//     provisional_uncommitted —— 挂了公式、条款没抄下来的,以及本刀之后
+//                                被人明确标成 provisional 的
+//   ★【not_priced 不算,而这是 Tim 2026-09-08 的裁定(Q2)】★
+//     那一行【一个价都没说】,而要印的那句话是"Where a price is stated as
+//     provisional…" —— 一个根本没有被 stated 的价,不在它说的范围里。
+//     fixed 当然也不算。
+//   【判据写在这里、只写一次】页脚那一句此前是【无条件】印的,于是一张全是
+//   定价的单也带着一句关于暂定价的话 —— 那不是多余,是一句不成立的陈述。
+export function hasProvisionalPrice(lines: PoDocLine[]): boolean {
+    return lines.some(
+        (l) => l.pricing_status === 'provisional_committed' || l.pricing_status === 'provisional_uncommitted'
+    )
 }
 
 const num = (n: number, dp = 2) =>
@@ -204,6 +225,13 @@ export default function PurchaseOrderDocument({
                     <Text style={styles.title}>PURCHASE ORDER</Text>
                     <Text>{data.code}</Text>
                     <Text>Date: {data.order_date}</Text>
+                    {/* ★【PUR-1:参照合同号 —— 没有就【整行不印】】★
+                        Tim 裁定:没有合同的时候印一个空标签,比不印更坏 ——
+                        供应商读到 "Contract:" 后面跟着空白,会以为这里漏了东西。
+                        而一张【没有】合同的采购单是完全正当的:现货采购本来就没有。
+                        【值来自抄下来的那一份】contract_document_terms.contract_code,
+                        不是顺着外键回查 contracts 现在叫什么(见 po_document_data)。 */}
+                    {data.contract_code ? <Text>Contract: {data.contract_code}</Text> : null}
                 </View>
 
                 <View style={styles.section}>
@@ -227,6 +255,17 @@ export default function PurchaseOrderDocument({
                         <Text style={styles.sectionTitle}>Currency</Text>
                         <Text>{data.currency}</Text>
                     </View>
+                    {/* PUR-1:交货地点 —— 【空着就整格不印】,与上面合同号同一条。
+                        注意它与旁边「Expected delivery」那一格【处置不同】:
+                        那一格空着印 '—',因为一张采购单总该有一个预计到货日,
+                        破折号说的是"这个该有的东西还没定"。交货地点不是那样的东西:
+                        很多单据本来就不需要它,一个破折号会把"不需要"读成"漏了"。 */}
+                    {data.delivery_location ? (
+                        <View style={{ maxWidth: 180 }}>
+                            <Text style={styles.sectionTitle}>Delivery location</Text>
+                            <Text>{data.delivery_location}</Text>
+                        </View>
+                    ) : null}
                 </View>
 
                 <View style={[styles.table, styles.section]}>
@@ -324,6 +363,28 @@ export default function PurchaseOrderDocument({
                     </View>
                 ) : null}
 
+                {/* ════════════════════════════════════════════════════════════
+                    ★★【PUR-1:暂定价那一句 —— 换了措辞、换了位置、换了条件】★★
+                    ════════════════════════════════════════════════════════════
+                    【此前】它无条件地印在【页脚】里,而页脚是 fixed 的 ——
+                    也就是说它出现在【每一页】,而且出现在一张【全是定价】的单上。
+                    后者不是啰嗦,是一句**不成立的陈述**:这张单上没有任何一个价
+                    是暂定的,纸上却写着暂定价怎么结算。
+                    【现在】① 只在真有一条暂定价的行时才印(hasProvisionalPrice);
+                            ② 印在正文流里、只印一次;
+                            ③ 位置:付款计划之后、「无需签章」那一句之前(Tim 指定)。
+                    【措辞逐字由 Tim 给定,不许改写】—— 它是一句合同用语,
+                    不是一句说明文字。 */}
+                {hasProvisionalPrice(data.lines) ? (
+                    <View style={styles.section}>
+                        <Text>
+                            Where a price is stated as provisional, the final price shall be
+                            determined in accordance with the pricing terms specified for the
+                            relevant line item.
+                        </Text>
+                    </View>
+                ) : null}
+
                 {data.terms_text ? (
                     <View style={styles.section}>
                         <Text style={styles.sectionTitle}>Terms</Text>
@@ -342,9 +403,40 @@ export default function PurchaseOrderDocument({
                 {/* PDF-1:页脚改用共享层,并【加上页码】—— 采购单带承诺定价条款与
                     付款里程碑,常常多页,而它此前不印页码。文案一个字没改。 */}
                 {/* 【不传 code】这句说明本身就以单号收尾,再传一次会把它印两遍 */}
+                {/* ★【PUR-1:页脚那一句里关于暂定价的半句搬走了】★
+                    搬去了正文(见上面那一块),并且变成【有条件】的。
+                    留下的是页脚本来该说的那一半:这是谁开的、哪一张单。
+                    ★【顺带记一件【没有】发生的事】★ 委托书说这句旧文案里有
+                    `setle` 与 `commited` 两个拼写错误。**实测:没有。**
+                    这一行此前逐字是 "Provisional prices settle on the committed
+                    terms stated per line." —— settle 与 committed 都拼对了。
+                    全仓库 grep 过 setle / commited / specifed:零处。
+                    Tim 已确认他读到的是一份【缓存的旧渲染】,不是一个缺陷。
+                    ★【而新的这一句也拼对了】★ 逐字对过:provisional /
+                    determined / accordance / specified —— 这是委托书要求的那次确认。 */}
                 <DocumentFooter
-                    note={`${company.legal_name} — Purchase Order ${data.code}. Provisional prices settle on the committed terms stated per line.`}
+                    note={`${company.legal_name} — Purchase Order ${data.code}.`}
                 />
+
+                {/* ════════════════════════════════════════════════════════════
+                    ★★【这里【没有】"Approved by:" 那一行 —— 而那是一次裁定】★★
+                    ════════════════════════════════════════════════════════════
+                    Tim 的字段清单里有一条审批/授权状态,他要它读作
+                    `Approved by:` 加上批准这张单的那个人的名字。
+                    **本刀不建它,也不在这个位置印任何东西**(Tim 2026-09-08 裁定)。
+                    理由是量出来的,不是推出来的:
+                      · finance_settings.approvals_enabled = false;
+                      · 线上 11 张采购单 approval_status 全是 'approved';
+                      · create_purchase_order 自己把这件事记成 auto_approved,
+                        理由栏写着"审批流未启用 —— 系统直接盖章,没有人做过这个决定";
+                      · 而全系统【没有任何界面】打得开那个开关。
+                    也就是说【今天没有任何人批准过任何一张单】,也就没有一个名字
+                    填得上这一行。
+                    ★ 所以:不要"把字段补齐" ★ —— 印下单人的名字、印 CFO 的名字、
+                    或者印 "System",三者都是**一张发给供应商的单据上的假话**。
+                    打开审批链是它自己的一刀(它伸出采购单之外:报销、请假、
+                    销售单、贷项凭证都是候选),已登记在 docs/forward-queue.md。
+                    补齐它的唯一正确方式,是先让一个人真的批准过。 */}
             </Page>
         </Document>
     )

@@ -48,6 +48,13 @@ const PURCHASING_ERROR_CODES = new Set([
     'SOURCE_PROVENANCE_REQUIRED', 'SOURCE_PROVENANCE_NOT_AT_INTAKE',
     'PO_HEADER_WITHOUT_LINE',
 
+    // PUR-1:定价状态与改单改付款条款。★【三条【都】会打到操作员脸上】★ ——
+    // 前两条来自那个新加的下拉框,最后一条来自改单表单里那份付款计划。
+    // 消息文件里有句子而这个集合里没有码,等于没接:localizePurchasingError
+    // 会把 `PO_LINE_PRICE_STATUS_CONFLICT|PO-2026-0011|4|pricing_formula`
+    // 这一串管道原文原样摔到屏幕上(MANUAL-FIX-1 B 那一课)。
+    'PO_LINE_PRICE_STATUS_CONFLICT', 'PO_LINE_PRICE_STATUS_INVALID',
+    'PO_PAYMENT_TERMS_INVALID',
     'PO_CANCEL_REASON_REQUIRED',   // AUDEL-1b
     // EQP-1b-ii:报销过的采购单行删不得。设备行【没有收货】,所以既有的
     // PO_LINE_HAS_RECEIPTS 对它恒为假 —— 这一条是它那一半。
