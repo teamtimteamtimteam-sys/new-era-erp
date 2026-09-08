@@ -3,7 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/lib/database.types'
 import { revalidatePath } from 'next/cache'
-import { refuseFromDriver, refuseNothingChanged } from '@/lib/action-refusal'
+import { refuseFromCoded, refuseNothingChanged } from '@/lib/action-refusal'
+import { localizeSupplierError } from '@/app/suppliers/supplierErrorCodes'
 
 export type ChangeStatusState = {
     error?: string
@@ -28,18 +29,20 @@ export async function changeSupplierStatus(
         .select('id')
 
     if (error) {
-        // ★★【这一处的原文【是中文】,而界面可能是英文的】★★
-        //   validate_supplier_status_transition 抛的是
-        //   `RAISE EXCEPTION '非法状态跳转: % → %'` —— 一句【中文散文,不是码】。
-        //   旧写法把它拼进那个「状态变更失败:{message}」的模板里(消息键
-        //   suppliers.statusPanel 下的 changeError),于是英文界面上出现
+        // ★★【SILENT-1:这一处的原文【不再是中文散文】】★★
+        //   validate_supplier_status_transition 从前抛的是
+        //   `RAISE EXCEPTION '非法状态跳转: % → %'` —— 一句散文,不是码。
+        //   本地化器接不住散文,于是英文界面上出现
         //   「Status change failed: 非法状态跳转: active → draft」。
-        //   ☞【注释里【不写】那个字面调用】本刀第一版把那句模板写成了真的调用形状,
-        //     check-i18n 照字面抓,当场把注释当成了一处缺键 —— AGENTS.md 记过这个形状:
-        //     一句注释会污染将来对它自己的计数。这一行是那条法则的第三次学费。
-        //   本地化器接不住一句散文,所以这里只能退到那句写好的兜底,把原文降级。
-        //   ☞ 正解是给这个触发器一个【码】,那是一次迁移 —— ALERT-1 闸上登记为独立一刀。
-        return await refuseFromDriver(error.message)
+        //   本刀把它换成 `INVALID_STATUS_TRANSITION|<from>|<to>`,
+        //   与 PERMISSION_DENIED|<码> 逐字同一个形状,localizeSupplierError 认得它。
+        //   ☞【注释里【不写】那个字面调用形状】check-i18n 照字面抓,
+        //     一句注释会污染将来对它自己的计数 —— 这条法则本仓库付过三次学费。
+        //   refuseFromCoded 的三支分支在这里都用得上:
+        //     ① PERMISSION_DENIED 先接(本刀给 suppliers 装了库侧闸,它现在真的会来);
+        //     ② 本地化器认出 INVALID_STATUS_TRANSITION → 那句人话;
+        //     ③ 都不是 → 原文降级进 detail,标题换成说得出下一步的话。
+        return await refuseFromCoded(error.message, localizeSupplierError)
     }
 
     // ★ 零行落地 = 状态没有变。见 app/materials/actions.ts 的注释。

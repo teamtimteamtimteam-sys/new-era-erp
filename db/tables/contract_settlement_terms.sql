@@ -111,3 +111,15 @@ COMMENT ON COLUMN public.contract_settlement_terms.sale_weight_basis IS
 
 COMMENT ON COLUMN public.contract_settlement_terms.settling_party IS
     'SETTLE-1:哪一方的化验结果用于最终结算(U12 那条条款;它的返回条件写的正是「第一份写明化验条款的合同」,而本刀建的就是那个)。★**''umpire'' 不是这里的合法值**★:仲裁是一次**升级**,不是一份合同的常设约定。**哪一份结果真的被用了,记在 sales_settlements 上** —— 那是一次被记录的选择,不是从本列推导出来的。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+-- 双码:持有其中任何一个即放行;一个都不持才抛。
+-- 这道闸【只】管模块级的没权限;这张表的策略还判【行】,那一半仍由应用层兜着。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.contract_settlement_terms
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.customers.edit', 'module.suppliers.edit');

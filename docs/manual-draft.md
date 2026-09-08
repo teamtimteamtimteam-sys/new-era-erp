@@ -1073,9 +1073,9 @@ register but cannot be chosen at creation and cannot be reached afterwards.
 amended, moved to another status or deleted. Record it only when you are content with what it
 says.
 
-**There is also no screen yet for linking an order to a contract.** A contract can be recorded
-and read, and the register reports against it, but no page attaches a purchase order or a sales
-order to one.
+**A sales order still cannot be linked to a contract.** A purchase order can — the order's own
+page carries the control, and a linked order copies the contract's terms. A sales order has no
+such control on any screen, so the contract and the sale stay unconnected.
 
 **Undo: there is none.** A contract recorded wrongly stays in the register as recorded.
 

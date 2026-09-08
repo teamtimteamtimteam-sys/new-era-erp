@@ -77,20 +77,26 @@ opposite directions, and the second one would need more of section 1.5 rewritten
 row covers. If the recovery screen is what ships, treat this row as a flag to re-read the
 whole section rather than as a deletion.
 
-### 4 · No screen links a purchase order or sales order to a contract
+### 4 · No screen links a **sales** order to a contract
 
-**The defect.** A contract can be recorded and read, and the register reports against it, but
-**no page attaches a purchase order or a sales order to one.**
+**Amended by SILENT-1 (2026-09-08), not struck.** This row used to name both document
+types. **PUR-1 shipped the purchase-order half** — `app/purchasing/orders/[id]/ContractLinkPanel.tsx`
+attaches a purchase order to a contract through `link_document_to_contract`. The sales-order
+half is **still true**, so the row stays, narrowed.
 
-**This is not the /contracts menu fix, which is done** (MANUAL-FIX-2, `cf3a896` — the
-contract register has a menu entry now). That was a missing door to a page that existed.
-This is a page that does not exist.
+**The defect.** A contract can be recorded and read, and the register reports against it, and a
+**purchase** order can now be attached to one — but **no page attaches a sales order.**
+`sales_orders.contract_id` exists in the database and nothing in the interface ever sets it.
+
+**Careful — the RPC is not the evidence.** `link_document_to_contract(p_document_kind, …)` takes
+a document kind and would accept `'sales_order'` tomorrow. It is called from **exactly one place**,
+with `'purchase_order'`. A reader who greps for the function will conclude the gap is closed; it
+is not. The screen is what is missing, not the plumbing.
 
 **Manual passage.** Part 3, section 3.1 *Purchasing*, under **The contract**.
-Paragraph headed **"There is also no screen yet for linking an order to a contract."** —
-line 1087 at `0ea22fd`.
+Paragraph headed **"A sales order still cannot be linked to a contract."**
 
-**Comes out.** The whole paragraph, three lines — when the linking screen ships.
+**Comes out.** The whole paragraph, three lines — when a sales-order linking screen ships.
 
 **Careful.** The paragraph immediately below (**"Undo: there is none."**) is about contracts
 being uncorrectable once recorded. Different defect, not covered by this row, stays.

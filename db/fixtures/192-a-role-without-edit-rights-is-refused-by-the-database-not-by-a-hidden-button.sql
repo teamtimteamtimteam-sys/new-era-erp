@@ -72,16 +72,28 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 192 D-负 失败:只持 module.inbound.edit 的角色【仍然】建得出实验室(得到「%」,期望 42501)—— C-1b 的迁移没有真的生效,界面上的只读就只是一个藏起来的按钮', v_err;
     END IF;
 
+    -- ★★【SILENT-1(2026-09-08)改了这一格的判据,而这是本条最要紧的一句】★★
+    --   这里【曾经】把 `ZERO_ROWS` 也算作"被拒了"。那句注释当时写的是
+    --   「UPDATE 命中 0 行不算被拒:USING 假会让它安静地改 0 行」—— 话是对的,
+    --   而它接下来做的事是**把那次静默收进了合格线里**。
+    --   于是这支 fixture 一边证明"数据库真的拦住了",一边【把拦不出声这件事
+    --   写成了通过】。SILENT-1 装上语句级写闸之后,拦下来的写会抛
+    --   `PERMISSION_DENIED|<码>`,所以合格线收紧:**静默不再是通过。**
+    --   ☞ inbound_source_reasons 的写策略要 module.materials.edit,
+    --     而这个弱角色只有 module.inbound.*,所以它必须拿到那个码。
     v_err := NULL;
     BEGIN
         UPDATE inbound_source_reasons SET requires_explanation = NOT requires_explanation;
-        -- UPDATE 命中 0 行【不算被拒】:USING 假会让它安静地改 0 行。
         GET DIAGNOSTICS v_n = ROW_COUNT;
         v_err := CASE WHEN v_n = 0 THEN 'ZERO_ROWS' ELSE 'NO_EXCEPTION' END;
-    EXCEPTION WHEN OTHERS THEN v_err := SQLSTATE;
+    EXCEPTION WHEN OTHERS THEN v_err := SQLERRM;
     END;
-    IF v_err NOT IN ('42501', 'ZERO_ROWS') THEN
-        RAISE EXCEPTION 'FIXTURE 192 D-负 失败:只持 module.inbound.edit 的角色【仍然】翻得动 requires_explanation(得到「%」)', v_err;
+    IF v_err <> 'PERMISSION_DENIED|module.materials.edit' THEN
+        RAISE EXCEPTION
+            'FIXTURE 192 D-负 失败:只持 module.inbound.edit 的角色对 requires_explanation 的写,'
+            '期望被【具名地】拒绝(PERMISSION_DENIED|module.materials.edit),实得「%」。'
+            '★ 若这里得到的是 ZERO_ROWS,说明 SILENT-1 的写闸没有装上或没有生效 —— '
+            '那正是"一次被拒绝的写报告成功"那个缺陷本身。', v_err;
     END IF;
 
     RESET ROLE;

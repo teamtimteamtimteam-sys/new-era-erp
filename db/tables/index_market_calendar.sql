@@ -84,3 +84,13 @@ COMMENT ON TABLE public.index_market_calendar IS
 
 COMMENT ON COLUMN public.index_market_calendar.is_trading_day IS
     'PRICE-1:那天这个市场开不开。**它只区分三态里的前两态** —— 第三态「我们不知道」由**这一行不存在**表示,而那一态会让均价按名拒。所以【不要】给这一列加默认值,也不要用"没有行 = 开市"去省掉半张表:那会把"不知道"悄悄变成"知道",而这正是本表存在的理由。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.index_market_calendar
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.pricing.edit');

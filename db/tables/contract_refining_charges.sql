@@ -58,3 +58,15 @@ CREATE POLICY "contract refining charges write by owner permission"
 
 COMMENT ON TABLE public.contract_refining_charges IS
     'SETTLE-1:精炼费(RC),**按【含金属】吨数收**,逐金属一行。★**它不能用 flat_discount_pct 冒充**★:那一列按 gross 的**比例**走,而 RC 按**含金属单位**收、与价格无关 —— **拿折扣冒充 RC,价格一动那个数字就错**。本刀因此**不碰** flat_discount_pct(它有活着的使用者,FIN-27 的已承诺副本必须保持原义;动它还会碰到采购侧,而那是 index-pricing-spec §9 留给 Tim 的)。顺带分清另一件:`treatment_charge_usd_per_tonne`(TC)按**物料**吨数收,RC 按**含金属**吨数收 —— **两者吨的主语不同**,而这正是湿基与干基会结算出不同金额的原因(按物料吨数的费用随基准变,按含金属吨数的不变)。★**值未知、轴现在建**★:Tim 没有给条款清单,本表出厂是空的;而**空不许被读成"没有精炼费"** —— 那由 contract_settlement_terms.refining_charge_basis 来说。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+-- 双码:持有其中任何一个即放行;一个都不持才抛。
+-- 这道闸【只】管模块级的没权限;这张表的策略还判【行】,那一半仍由应用层兜着。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.contract_refining_charges
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.customers.edit', 'module.suppliers.edit');

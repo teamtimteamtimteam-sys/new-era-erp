@@ -65,3 +65,13 @@ INSERT INTO public.certificate_types (code, name_en, name_zh, disposition, warn_
     --   而 disposition 是 RUNTIME CONFIG:真要改成 block,在界面上改一行就行,
     --   不用跑迁移。**这一行是【默认值】,不是【决定】。**
     ('insurance',  'Insurance Policy',  '保险单',            'warn',  60, 8, '默认 warn 是【默认值】不是决定:过期保单要立刻处理,但"停不停收货"是经营决定,disposition 在界面上改得动');
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.certificate_types
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.suppliers.edit');

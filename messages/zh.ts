@@ -1399,6 +1399,10 @@ const zh = {
             trader: '贸易商',
             equipmentVendor: '设备供应商',
         },
+        // SILENT-1:状态跳转触发器现在抛的是【码】,不是那句中文散文。
+        errors: {
+            INVALID_STATUS_TRANSITION: '供应商不能从{0}直接变为{1}。',
+        },
         status: {
             draft: '草稿',
             pending_review: '待审核',

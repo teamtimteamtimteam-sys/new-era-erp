@@ -54,3 +54,15 @@ CREATE POLICY "assay_result_metals delete by permission"
                     WHERE ar.id = assay_result_metals.assay_result_id
                       AND ((ar.inbound_batch_id IS NOT NULL AND has_permission('module.inbound.edit'::text))
                         OR (ar.output_batch_id IS NOT NULL AND has_permission('module.output.edit'::text)))));
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+-- 双码:持有其中任何一个即放行;一个都不持才抛。
+-- 这道闸【只】管模块级的没权限;这张表的策略还判【行】,那一半仍由应用层兜着。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.assay_result_metals
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.inbound.edit', 'module.output.edit');

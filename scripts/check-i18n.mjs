@@ -438,6 +438,10 @@ const MANIFEST = {
     // 直接抛约束名。加一条守卫或一条约束就来那个 Set 里加一个名字,
     // 于是这道检查立刻要求两个语言都补上句子。
     'materials.errors.': { kind: 'enum', values: () => tsSet('app/materials/materialErrorCodes.ts', 'MATERIAL_ERROR_CODES') },
+    // SILENT-1:供应商状态跳转的拒绝。此前库里抛的是一句【中文散文】,
+    // 本地化器接不住,于是英文界面上印出中文。换成码之后它有了后缀集合,
+    // 加一条拒绝、忘了写句子,构建当场红 —— 与上面 materials 那条同一个机制。
+    'suppliers.errors.': { kind: 'enum', values: () => tsSet('app/suppliers/supplierErrorCodes.ts', 'SUPPLIER_ERROR_CODES') },
     // LOG-2b:集装箱里程碑。**真源是表上那条 CHECK**(db/tables/container_milestones.sql)——
     // 往库里加一个里程碑,这道检查立刻要求两个语言都补上标签,于是页面那份清单
     // 也不会被悄悄落下。写死一份清单只会烂在这里。

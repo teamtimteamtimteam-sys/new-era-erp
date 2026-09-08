@@ -71,3 +71,15 @@ CREATE POLICY "contract insurance write by owner permission"
 
 COMMENT ON TABLE public.contract_insurance_obligations IS
     'CONTRACT-1:合同里那条「谁来投保、保到多少」的义务。★★**它不是保险登记簿的第二个家 —— 两件事,判据是它们能各自为真**★★(Tim 2026-08-29):**我们持有的保单**是一件有到期日的东西,由既有机制管着(certificate_types 是 RUNTIME CONFIG,加一种证书是界面上加一行;company_compliance 已有 cert_no/issuing_body/scope/valid_from/valid_until/document_path,且已经有两个消费方 —— operations_now 的看板臂与 supplier_receiving_blocked 的收货闸)。**给保险再造一套到期机制,就是把那两样又写一遍。** 而**合同里那条义务没有自己的到期日**,它约束对手方,被违反的方式是**一份保单不存在**而不是一份保单过期。两者能各自为真:可以持有保单而无合同要求,也可以有要求而一张保单都没有。★**本刀刻意不建那条连接(哪份保单满足哪条义务)**★ —— 那是一次判断(险种、保额、保障区间、被保险人),没有人裁过,而一条猜出来的自动连接会把一份没有保障的合同报成已保障,比不连坏得多;记在 known-issues,附上它需要什么才答得了。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+-- 双码:持有其中任何一个即放行;一个都不持才抛。
+-- 这道闸【只】管模块级的没权限;这张表的策略还判【行】,那一半仍由应用层兜着。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.contract_insurance_obligations
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.customers.edit', 'module.suppliers.edit');

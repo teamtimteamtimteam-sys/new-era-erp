@@ -153,3 +153,13 @@ COMMENT ON COLUMN public.tasks.task_type IS
 'personal / team。**它同时承载【出身】** —— task_type = ''personal'' 蕴含"这张任务从来不曾真正是团队任务",而这一点【只因为】唯一的降级路径被 trg_tasks_type_transition 做成了可证明无损的(除归属人外从来没有别人留过参与者行)。
 【谁加了第二条降级路径,谁就悄悄毁掉了隐私规则】,而且什么都不会报错:一张有过五个人的团队任务会变成一张私人任务,那五个人从此读不到自己参与过的记录。所以这里没有 was_ever_team 列 —— 一个事实两处陈述必然漂移 —— 代价是这条不变式是隐式的,只有这段注释和触发器抬头说得出它。
 参与者【离开】永远不会产生私人任务:判据取自 task_participants(退出是软的,行还在),不取自 task_history(它可能被修剪)。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.tasks
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.tasks.edit');

@@ -169,3 +169,13 @@ COMMENT ON COLUMN public.invoices.kind IS
     'SO-3a:发票的种类。''sale'' = 归拢已过账销售的文件(不过分录,SO-3a 之前唯一的一种);''order'' = 订单流的过账单据 —— 开票即 借 1100 应收 / 贷 2500 合同负债(选项 C),发货(3b)再释放负债进收入。entry_id/fx_rate/sales_order_id 只在 order 上非空,由 invoices_kind_consistency 双向钉死 —— NULL 的含义由 kind 说,不是一列两义。';
 COMMENT ON COLUMN public.invoices.fx_rate IS
     'SO-3a:入账汇率,【从订单抄来】(FIN-27 一族:承诺抄下来,不再看行情)。开票分录按它过、结算按它解除、7100 已实现汇兑从它算起 —— 一个数,三处同源。sale 头恒 NULL(那种发票不过账,行背后的销售各有各的汇率)。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.invoices
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.finance.edit');

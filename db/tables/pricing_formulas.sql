@@ -107,3 +107,13 @@ GRANT SELECT (id, code, name, direction, price_basis, average_days, supplier_id,
 -- METAL-2:指数是条款,可读一类(与 price_basis 同级);受限的仍只有费率两列。
 COMMENT ON COLUMN public.pricing_formulas.price_index IS
     'METAL-2:这份公式在哪个指数上结算 —— 交易条款,与 price_basis 同级,承诺时抄进 pricing_term_commitments。NULL = 未声明,只匹配未标注指数的行情。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.pricing_formulas
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.pricing.edit');

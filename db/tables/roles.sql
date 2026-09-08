@@ -103,3 +103,13 @@ INSERT INTO public.roles (code, name_en, name_zh, description_en, description_zh
     ('hr', 'Human Resources', '人力资源', 'Employee records, payroll and training, including pay and identity data.', '员工档案、薪资与培训,含薪酬与身份信息。', false, 80),
     ('auditor', 'Read-only Auditor', '只读审计', 'Sees every module and all costs, changes nothing; no bank details, no salaries.', '可查看全部模块与成本,不能改动任何东西;不含银行明细与薪酬。', false, 90),
     ('employee', 'Employee (unused)', '员工(暂未使用)', 'Not used for access. Employee self-service is row-level and applies automatically to any account linked to an employee record.', '不用于授权。员工自助是行级的,只要账号关联了员工档案即自动生效,与本角色无关。', false, 100);
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.roles
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.manage_permissions');

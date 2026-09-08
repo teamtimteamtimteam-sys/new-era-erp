@@ -86,3 +86,13 @@ CREATE INDEX idx_finance_attachments_claim ON public.finance_attachments (claim_
 
 COMMENT ON COLUMN public.finance_attachments.claim_id IS
     'CLAIM-1:这份附件属于哪一笔报销申请。沿用本表既有的【每种主体一列可空外键】写法(sales_record_id / inbound_batch_id / payment_id / expense_id),不另起 (subject_type, subject_id) —— 一张表里两种写法比任何一种单独用都坏。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.finance_attachments
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.finance.edit');

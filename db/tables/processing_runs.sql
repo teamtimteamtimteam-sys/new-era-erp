@@ -197,3 +197,13 @@ COMMENT ON COLUMN public.processing_runs.equipment_id IS
 理由是一次【测量】,不是一次对称性偏好:线上 fixed_assets 只有 2 行,两行都是深度放电机(FA-2026-0001 / FA-2026-0002,in_service_date 均为 NULL)。于是 deep_discharge 对应【两台】机器(工序推不出机器,不可派生),而另外【四道】工序 —— manual_disassembly、electrode_line、electrode_powder_line、battery_powder_line —— 【一台在册机器都没有】。一旦这一列必填,这四道工序的加工单一张都提交不了。
 所以:operation_type_code 的字典【完整】(5/5 已播种)→ 必填代价为零;equipment_id 的字典【残缺】(5 道里 4 道无资产可指)→ 必填代价是让四道工序停摆。**这是字典完整性判断,不是对称性判断。**
 【真正的前置条件,可查询而不是凭感觉】(1) 每一道启用的工序至少有一台在册在役资产;(2) 而那需要一条【工序 ↔ 资产】的关联 —— **今天这个库里没有这条关联**,那才是缺口本身。记在 docs/processing-support-as-built.md。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.processing_runs
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.processing.edit');

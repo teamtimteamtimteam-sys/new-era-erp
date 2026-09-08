@@ -117,3 +117,13 @@ CREATE TRIGGER trg_customers_default_tax_code_side
 
 COMMENT ON COLUMN public.customers.default_tax_code IS
     'GST-2:开给这个客户的发票默认用哪个销项税码。**初值 NULL,而 NULL 不是一个默认值,是一个未回答的问题** —— 已注册时开票会按名拒(TAX_CODE_REQUIRED|customer),因为一个悄悄默认的税码是一个穿着默认值外衣的错答案。尤其不要按国别自动推 ZR:出口零税率在法定上取决于【出口证据】,不取决于账单地址,按国别推等于把一个证据问题答成一个地址问题。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.customers
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.customers.edit');

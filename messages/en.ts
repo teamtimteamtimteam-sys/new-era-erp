@@ -1389,6 +1389,12 @@ const en = {
             trader: 'Trader',
             equipmentVendor: 'Equipment vendor',
         },
+        // SILENT-1: the supplier status trigger raises a CODE now, not a Chinese
+        // sentence. The two states arrive as stored values and are turned into the
+        // same labels the status panel shows before they reach this sentence.
+        errors: {
+            INVALID_STATUS_TRANSITION: 'A supplier cannot go from {0} to {1}.',
+        },
         status: {
             draft: 'Draft',
             pending_review: 'Pending Review',

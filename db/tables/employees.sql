@@ -253,3 +253,13 @@ COMMENT ON COLUMN public.employees.greeting_name IS
 
 COMMENT ON COLUMN public.employees.position_id IS
     'KPI-1:这个人今天在哪个职位上。**KPI 绑在职位上,不绑在人上**(规格 §8.1)—— 那是 exec-views-plan 开篇「答案取自职责,不取自职级」的第二次落地。它取代了本表上原来那个自由文本的 job_title(已删):两个都能填就是同一个事实有两个写入口(§12.1)。**employment_history.job_title 保留**,那是一条不可变的履历快照,记的是"那一天头衔写的是什么"。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.employees
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.hr.edit');

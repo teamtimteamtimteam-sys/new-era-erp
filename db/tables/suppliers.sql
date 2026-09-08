@@ -99,7 +99,11 @@ END;
 $function$;
 
 CREATE OR REPLACE FUNCTION public.validate_supplier_status_transition()
-RETURNS trigger LANGUAGE plpgsql AS $function$
+RETURNS trigger LANGUAGE plpgsql
+-- SILENT-1(2026-09-08):补上 search_path。这支函数是全库少数没有它的一支;
+-- 改到了就补,不静默留着。
+SET search_path TO 'public', 'pg_temp'
+AS $function$
 BEGIN
   -- INSERT 时不检查
   IF TG_OP = 'INSERT' THEN
@@ -122,7 +126,7 @@ BEGIN
     (OLD.status = 'blacklisted'    AND NEW.status IN ('archived')) OR
     (OLD.status = 'archived'       AND NEW.status IN ('draft'))  -- 归档后可恢复为草稿
   ) THEN
-    RAISE EXCEPTION '非法状态跳转: % → %', OLD.status, NEW.status;
+    RAISE EXCEPTION 'INVALID_STATUS_TRANSITION|%|%', OLD.status, NEW.status;
   END IF;
 
   RETURN NEW;
@@ -230,3 +234,13 @@ country 是账单地址;税务居民身份取决于【管理与控制在哪里�
 【残留的风险,照直写】一家【未申报身份】的非居民服务商,今天可以被记费用、
 被付款,而系统一分钱都不会代扣。这是上面那个取舍买来的,不是没想到 ——
 按名记在 docs/known-issues.md,返回条件是第一家真实的非居民服务商到场。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.suppliers
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.suppliers.edit');

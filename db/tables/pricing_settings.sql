@@ -85,3 +85,13 @@ COMMENT ON COLUMN public.pricing_settings.default_metal_index IS
 
 COMMENT ON COLUMN public.pricing_settings.metal_quote_stale_days IS
     '行情多少天没更新算【旧】(EXEC-1a,ASY-3 报告为它留的那一列)。看板的 metal_quote_stale 支现读这一列 —— 【没有任何地方写死这个数】。默认 14:实测录入节奏是"六周两次",7 天会天天响(等于没有警报),30 天要等到 average 口径已经跳过那个金属之后才响。判据按 price_date 不按 created_at —— 补录发生过(6-25 的行情 7-2 才录进来),按 created_at 会让补录当天显得刚刚更新过。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.pricing_settings
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.pricing.edit');

@@ -79,3 +79,13 @@ COMMENT ON COLUMN public.review_goals.actual_value IS
     '期末的实际值。自评阶段由【本人】写(save_self_assessment),draft/submitted 阶段由【评估人或 HR】写(set_goal_actual_value)。两条路都碰不到 target_value 与 unit。';
 COMMENT ON COLUMN public.review_goals.unit IS
     '指标的单位(%、件、天……)。只要填了 target_value 或 actual_value 就必须有单位:一个没有单位的数字不是指标,是一个会被读错的数。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.review_goals
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.hr.edit');

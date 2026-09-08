@@ -115,3 +115,13 @@ COMMENT ON COLUMN public.public_holidays.is_in_lieu IS
     'C-2:这一行是不是【补假】(逢周日顺延的那个周一)。补假与被补的那天**共用同一个 holiday_key** —— 它们是同一个节日,所以只看键分不出来。逢周日补周一这条规矩在本仓库里一直是【数据】不是逻辑:官方公布哪天补就存哪天,不去推算。';
 
 -- ============================================================================
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.public_holidays
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.hr.edit');

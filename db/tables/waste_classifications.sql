@@ -58,3 +58,13 @@ INSERT INTO public.waste_classifications (code, name_en, name_zh, is_controlled,
      'Doc 1 里 Tim 用这个词同时回答了【合规仓储的要求】与【一个采购类别】—— 它指的是需要受控处置与受控存放的那一类。is_controlled = true 是这个词的语义,不是一个默认值。'),
     ('non_focused', 'Non-focused material', '非重点物料', false, 2,
      '与上一条相对:不需要受控处置的那一类。【它不是"未分类"的同义词】—— 未分类是 materials.waste_classification_code IS NULL,意思是没有人分过类,而这一行的意思是【有人分过,结论是不受控】。两者在合规判断上不是一回事。');
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.waste_classifications
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.materials.edit');

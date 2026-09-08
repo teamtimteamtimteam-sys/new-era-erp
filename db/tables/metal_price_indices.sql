@@ -80,3 +80,13 @@ INSERT INTO public.metal_price_indices (code, name_en, name_zh, quote_currency, 
      'USD/吨是 LME 的市场惯例 —— 这一条是市场事实,不是某一笔合同的条款,所以按 contract(已确定)记,不是房屋假设。'),
     ('SMM', 'Shanghai Metals Market', '上海有色网', 'CNY', 'house_assumption', 2,
      'SMM 以 CNY/吨发布。报价币种【CNY 是房屋假设,不是合同条款】—— Tim 认为按当天汇率换算是合理的做法,但今天还没有任何一笔 SMM 交易这么约定过(quote_currency_basis = house_assumption)。真的合同出现时可能另有说法,届时改这一行即可。换算发生在读的时候:按【报价那一天】的中间价,两条腿(CNY→本位币→USD)。');
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.metal_price_indices
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.pricing.edit');

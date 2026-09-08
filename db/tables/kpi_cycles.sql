@@ -72,3 +72,13 @@ COMMENT ON COLUMN public.kpi_cycles.gate IS
 
 COMMENT ON COLUMN public.kpi_cycles.locked_at IS
     'C-2:这个月被关口【锁住】的时刻 —— 锁住之后分数不能再改。★**锁与关是两件事**★:`locked_at` 冻结打分,`status=''closed''` 才把分数对本人揭晓(my_kpi_entries)。原本只有 status 一个 flag,而它同时做这两件事 —— 于是「为了冻结而 close」会把分数提前揭晓给所有人,「不 close」则前两个月永远冻不住。Tim 的裁定(2026-09-05):**M3 关口锁住第 1–3 个月,不是只锁第 3 个月** —— 一道过后还能靠改第 1 个月推翻的关口,不是关口。';
+
+-- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
+-- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
+-- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
+-- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
+-- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
+-- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+CREATE TRIGGER enforce_write_permission
+    BEFORE UPDATE OR DELETE ON public.kpi_cycles
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.hr.edit');
