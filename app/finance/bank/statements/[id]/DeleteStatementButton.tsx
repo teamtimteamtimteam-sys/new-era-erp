@@ -8,6 +8,7 @@ import { useTransition } from 'react'
 import { deleteStatement } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { showActionMessage } from '@/app/components/ui/action-message'
 
 export default function DeleteStatementButton({ statementId, subject }: { statementId: string; subject: string }) {
     const t = useTranslations()
@@ -26,7 +27,12 @@ export default function DeleteStatementButton({ statementId, subject }: { statem
                 startTransition(async () => {
                     const result = await deleteStatement(statementId)
                     if (result?.error) {
-                        alert(result.error)
+                        showActionMessage({
+                            subject: subject,
+                            headline: t('common.actionMessage.headline.notDeleted'),
+                            body: result.error,
+                            detail: result.detail,
+                        })
                     }
                 })
             }}

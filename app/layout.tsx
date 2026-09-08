@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import TopNav from "@/app/components/TopNav";
 import Breadcrumbs from "@/app/components/nav/Breadcrumbs";
 import IdleWatcher from "@/app/components/IdleWatcher";
+import { ActionMessageRegion } from "@/app/components/ui/action-message";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale } from "@/lib/i18n/server";
 import { isBareChromePath } from "@/lib/loginRoute";
@@ -100,6 +101,11 @@ export default async function RootLayout({
               那一次修的是"它读起来像第三层菜单",而这一次答的是它该不该存在。
               于是外壳回到 dock 之前的形状:顶栏 → 面包屑 → 正文,没有中间那一层。 */}
           {!bare && <Breadcrumbs openModuleIds={openModuleIds} />}
+          {/* ALERT-1:【告知】的页级位置。与 IdleWatcher 同一个形状 ——
+              平时画一个空的活动区域(它必须常驻,否则插进来的内容播报不出),
+              有话说的时候才出现一条横幅。**它不挡人**:确认才挡人,而确认在
+              <ConfirmButton> 里,不在这里。 */}
+          {!bare && <ActionMessageRegion />}
           {children}
         </I18nProvider>
       </body>

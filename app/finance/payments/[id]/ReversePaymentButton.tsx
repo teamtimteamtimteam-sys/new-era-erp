@@ -6,6 +6,7 @@ import { useTransition } from 'react'
 import { reversePayment } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { showActionMessage } from '@/app/components/ui/action-message'
 
 export default function ReversePaymentButton({ paymentId, subject }: { paymentId: string; subject: string }) {
     const t = useTranslations()
@@ -15,7 +16,12 @@ export default function ReversePaymentButton({ paymentId, subject }: { paymentId
         startTransition(async () => {
             const result = await reversePayment(paymentId)
             if (result?.error) {
-                alert(result.error)
+                showActionMessage({
+                    subject: subject,
+                    headline: t('common.actionMessage.headline.notReversed'),
+                    body: result.error,
+                    detail: result.detail,
+                })
             }
         })
     }

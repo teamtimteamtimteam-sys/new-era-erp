@@ -7,6 +7,7 @@ import { useTransition } from 'react'
 import { deleteFormula } from '../../actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { showActionMessage } from '@/app/components/ui/action-message'
 
 export default function DeleteFormulaButton({ formulaId, subject }: { formulaId: string; subject: string }) {
     const t = useTranslations()
@@ -23,7 +24,14 @@ export default function DeleteFormulaButton({ formulaId, subject }: { formulaId:
             onConfirm={() => {
                 startTransition(async () => {
                     const result = await deleteFormula(formulaId)
-                    if (result?.error) alert(result.error)
+                    if (result?.error) {
+                        showActionMessage({
+                            subject: subject,
+                            headline: t('common.actionMessage.headline.notDeleted'),
+                            body: result.error,
+                            detail: result.detail,
+                        })
+                    }
                 })
             }}
         >

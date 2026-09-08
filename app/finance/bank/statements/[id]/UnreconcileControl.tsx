@@ -14,6 +14,7 @@ import { useTransition } from 'react'
 import { unreconcileStatement } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { showActionMessage } from '@/app/components/ui/action-message'
 
 export default function UnreconcileControl({
     statementId,
@@ -30,7 +31,12 @@ export default function UnreconcileControl({
         startTransition(async () => {
             const result = await unreconcileStatement(statementId, reason.trim())
             if (result?.error) {
-                alert(result.error)
+                showActionMessage({
+                    subject: subject,
+                    headline: t('common.actionMessage.headline.notUnreconciled'),
+                    body: result.error,
+                    detail: result.detail,
+                })
             }
         })
     }

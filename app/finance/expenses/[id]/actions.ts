@@ -6,8 +6,9 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { localizeExpenseError } from '../../expenseErrorCodes'
+import { refuseFromCoded } from '@/lib/action-refusal'
 
-export type ReverseExpenseState = { error?: string }
+export type ReverseExpenseState = { error?: string; detail?: string }
 
 export async function reverseExpense(expenseId: string): Promise<ReverseExpenseState> {
     const supabase = await createClient()
@@ -17,7 +18,7 @@ export async function reverseExpense(expenseId: string): Promise<ReverseExpenseS
     })
 
     if (error) {
-        return { error: await localizeExpenseError(error.message) }
+        return await refuseFromCoded(error.message, localizeExpenseError)
     }
 
     const reversalId = (data as { reversal_expense_id?: string } | null)?.reversal_expense_id

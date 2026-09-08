@@ -15,6 +15,7 @@ import { useState, useTransition } from 'react'
 import { setGstRegistration } from './gstActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { showActionMessage, FieldMessage } from '@/app/components/ui/action-message'
 
 export default function GstPanel({
     registered,
@@ -27,10 +28,25 @@ export default function GstPanel({
     const [isPending, startTransition] = useTransition()
     const [regNo, setRegNo] = useState(registrationNo ?? '')
 
+    // ★ ALERT-1:甲类那一条留在本组件里(它属于登记号那个框),
+    //   其余走页级横幅。判据是服务端给的 result.field,不是在这里认字符串。
+    const [fieldError, setFieldError] = useState<string | null>(null)
+
     function submit(on: boolean) {
+        setFieldError(null)
         startTransition(async () => {
             const result = await setGstRegistration(on, regNo)
-            if (result?.error) alert(result.error)
+            if (!result?.error) return
+            if (result.field === 'registrationNo') {
+                setFieldError(result.error)
+                return
+            }
+            showActionMessage({
+                subject: on ? regNo : (registrationNo ?? regNo),
+                headline: t('common.actionMessage.headline.notSwitched'),
+                body: result.error,
+                detail: result.detail,
+            })
         })
     }
 
@@ -72,7 +88,10 @@ export default function GstPanel({
                                 onChange={(e) => setRegNo(e.target.value)}
                                 placeholder={t('finance.gstSwitch.regNoPlaceholder')}
                                 className="border border-gray-300 px-3 py-2 rounded font-mono"
+                                aria-invalid={fieldError ? true : undefined}
                             />
+                            {/* ★ 甲类:话贴着那个框。页顶一条横幅会让人回头找是哪个框。 */}
+                            <FieldMessage field="registrationNo">{fieldError}</FieldMessage>
                         </div>
                         <ConfirmButton
                             subject={regNo}

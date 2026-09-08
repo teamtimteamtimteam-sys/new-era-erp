@@ -10,6 +10,7 @@ import { parseIndexField } from '@/app/tools/pricing/metal-prices/indexOptions'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { loadSubstances } from '../metal-prices/substanceQuery'
+import { refuseFromDriver, refuseNothingChanged } from '@/lib/action-refusal'
 
 export type FormulaState = {
     error?: string
@@ -221,15 +222,28 @@ export async function updateFormula(
     redirect('/tools/pricing/formulas')
 }
 
-export async function deleteFormula(formulaId: string): Promise<{ error?: string }> {
+export async function deleteFormula(
+    formulaId: string
+): Promise<{ error?: string; detail?: string }> {
     const supabase = await createClient()
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('pricing_formulas')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', formulaId)
         .is('deleted_at', null)
+        // ★ ALERT-1:见 app/materials/actions.ts 的同一段注释 ——
+        //   没有这一行,一次被 RLS 挡下的删除会报告成功,
+        //   而这一处更难看:成功那一支【会 redirect】,于是人被送回列表,
+        //   而那条记录还好端端地在列表里。**同一个谎,换了个形状。**
+        .select('id')
 
-    if (error) return { error: error.message }
+    // ★ ALERT-1:这一处原来是 `return { error: error.message }` ——
+    //   全库唯一一个连【模板都没有】的:数据库原文直接就是屏幕上那句话。
+    if (error) return await refuseFromDriver(error.message)
+
+    if (!data || data.length === 0) {
+        return await refuseNothingChanged('module.pricing.edit')
+    }
 
     revalidatePath('/tools/pricing/formulas')
     redirect('/tools/pricing/formulas')

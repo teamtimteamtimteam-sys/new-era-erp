@@ -182,7 +182,11 @@ export default async function EditSupplierPage({
                 </span>
             </p>
 
-            <StatusPanel id={supplier.id} subject={supplier.code} currentStatus={supplier.status} />
+            {/* ALERT-1(丁类):canEditSupplier 这一页早就算过了(:37),而且已经
+                交给了下面的 <ContactsPanel>。本组件此前【没有】拿到它,于是没有
+                编辑权的人按得下状态钮,按下去一片安静。补上的是一个 prop。 */}
+            <StatusPanel id={supplier.id} subject={supplier.code} currentStatus={supplier.status}
+                canEdit={canEditSupplier} />
             {/* GRN-2:摆在编辑表单【之前】—— 决定要不要再跟这家下单的人,
                 该先读到这家的收货记录,而不是先看到一堆可改的字段。 */}
             <ReceiptPatternPanel

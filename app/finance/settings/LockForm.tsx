@@ -7,18 +7,32 @@ import { useState, useTransition } from 'react'
 import { setPeriodLock } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { showActionMessage, FieldMessage } from '@/app/components/ui/action-message'
 
 export default function LockForm({ lockedBefore }: { lockedBefore: string | null }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
     const [date, setDate] = useState(lockedBefore ?? '')
 
+    // ★ ALERT-1:甲类那一条(日期本身不合法)贴着日期框;其余走页级横幅。
+    const [fieldError, setFieldError] = useState<string | null>(null)
+
     function submit(value: string | null) {
+        setFieldError(null)
         startTransition(async () => {
             const result = await setPeriodLock(value)
-            if (result?.error) {
-                alert(result.error)
+            if (!result?.error) return
+            if (result.field === 'lockDate') {
+                setFieldError(result.error)
+                return
             }
+            showActionMessage({
+                // 【主语跟着动作走】设置锁 → 那个日期;解除锁 → 现在锁着的那一天。
+                subject: value ?? (lockedBefore ?? ''),
+                headline: t('common.actionMessage.headline.notLocked'),
+                body: result.error,
+                detail: result.detail,
+            })
         })
     }
 
@@ -35,7 +49,10 @@ export default function LockForm({ lockedBefore }: { lockedBefore: string | null
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
                     className="border border-gray-300 px-3 py-2 rounded"
+                    aria-invalid={fieldError ? true : undefined}
                 />
+                {/* ★ 甲类:话贴着那个框。 */}
+                <FieldMessage field="lockDate">{fieldError}</FieldMessage>
             </div>
             {/* 禁用必须说出为什么(CMP-2):每个禁钮条件都有紧邻的一行字。 */}
             {!date && (

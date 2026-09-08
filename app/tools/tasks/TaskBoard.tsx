@@ -16,6 +16,7 @@ import { updateTaskStatus } from './actions'
 import TaskModal from './TaskModal'
 import { STATUS_VALUES, type Task } from './types'
 import { Button } from '@/app/components/ui/button'
+import { showActionMessage } from '@/app/components/ui/action-message'
 
 const PRIORITY_STYLES: Record<string, string> = {
     high: 'bg-red-100 text-red-700',
@@ -289,14 +290,34 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
 
         startTransition(async () => {
             const result = await updateTaskStatus(taskId, newStatus)
-            if (result?.error) {
-                // 失败回滚
+
+            // ★★【ALERT-1:判据从「出错了就回滚」改成「没确认落地就回滚」】★★
+            //   这不是同一句话的两种写法,而这一处正是它们分岔的地方:
+            //   tasks 的 UPDATE 策略是 `USING (can_edit_task(id)) WITH CHECK (…)`,
+            //   一个改不动这张任务的人【不会拿到 error】—— 那一行根本没被匹配到,
+            //   零行、不抛异常。旧判据 `if (result?.error)` 于是【两件事都不做】:
+            //   不回滚,也不说话。**卡片就留在数据库拒绝的那一列里**,
+            //   而这已经不是"少了一条消息",是屏幕主动说了一句假话。
+            //   实测(活库,真账号,BEGIN…ROLLBACK):rows=0 raised=NONE。
+            //
+            //   ☞ 现在服务端零行时会回一条拒绝(见 actions.ts),但判据仍然写成
+            //     【要 success 才留下】:回滚的正确条件是"没有被确认",
+            //     而不是"被明确告知失败" —— 后者要求服务端永远记得报错,
+            //     前者不要求任何人记得任何事。
+            if (!result?.success) {
                 setTasks((prev) =>
                     prev.map((t) =>
                         t.id === taskId ? { ...t, status: prevStatus } : t
                     )
                 )
-                alert(result.error)
+                if (result?.error) {
+                    showActionMessage({
+                        subject: task.title,
+                        headline: t('common.actionMessage.headline.notMoved'),
+                        body: result.error,
+                        detail: result.detail,
+                    })
+                }
             }
         })
     }

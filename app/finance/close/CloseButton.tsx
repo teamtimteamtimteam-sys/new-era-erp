@@ -6,6 +6,7 @@ import { useTransition } from 'react'
 import { closePeriod } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { showActionMessage } from '@/app/components/ui/action-message'
 
 export default function CloseButton({ periodEnd }: { periodEnd: string }) {
     const t = useTranslations()
@@ -15,7 +16,12 @@ export default function CloseButton({ periodEnd }: { periodEnd: string }) {
         startTransition(async () => {
             const result = await closePeriod(periodEnd)
             if (result?.error) {
-                alert(result.error)
+                showActionMessage({
+                    subject: periodEnd,
+                    headline: t('common.actionMessage.headline.notClosed'),
+                    body: result.error,
+                    detail: result.detail,
+                })
             }
         })
     }

@@ -10,14 +10,16 @@ import { revalidatePath } from 'next/cache'
 // 「SOD_POST_AND_CLOSE|2026-08-31」这串管道分隔的机器码。
 // **一条有句子却到不了屏幕的拒绝,等于没有句子**(IOD-2 那一课的形状)。
 import { localizeFinanceError } from '../financeErrorCodes'
+import { refuseFromCoded, refuseNothingChanged } from '@/lib/action-refusal'
 
-export type LockState = { error?: string }
+export type LockState = { error?: string; detail?: string; field?: string }
 
 export async function setPeriodLock(lockDate: string | null): Promise<LockState> {
     const t = await getTranslations()
 
     if (lockDate !== null && (!lockDate || Number.isNaN(Date.parse(lockDate)))) {
-        return { error: t('finance.errDate') }
+        // ALERT-1:甲类 —— 这一条说的是【锁定日那个框】,不是整条记录。
+        return { error: t('finance.errDate'), field: 'lockDate' }
     }
 
     const supabase = await createClient()
@@ -25,17 +27,26 @@ export async function setPeriodLock(lockDate: string | null): Promise<LockState>
         data: { user },
     } = await supabase.auth.getUser()
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('finance_settings')
         .update({
             locked_before: lockDate,
             updated_by: user?.id ?? null,
         })
         .eq('id', true)
+        // ★ ALERT-1:见 app/materials/actions.ts 的注释。
+        .select('id')
 
     if (error) {
-        // 已编码的 DB 拒绝 → 人话;其余 → 原样(localizeFinanceError 自己分辨)
-        return { error: await localizeFinanceError(error.message) }
+        // 已编码的 DB 拒绝 → 人话;其余 → 【一句写好的兜底 + 原文降级】。
+        // ★ 那句注释原来写的是「其余 → 原样」,而"原样"正是本刀要终结的东西:
+        //   一串数据库原文做标题。refuseFromCoded 接住 PERMISSION_DENIED,
+        //   剩下认不出的换成人话,原文进 detail。
+        return await refuseFromCoded(error.message, localizeFinanceError)
+    }
+
+    if (!data || data.length === 0) {
+        return await refuseNothingChanged('module.finance.edit')
     }
 
     revalidatePath('/finance')

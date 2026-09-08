@@ -3,6 +3,76 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ★★ ALERT1-SILENT-WRITES-DB-SIDE —— 十处写入【被 RLS 挡下时不是错误】,数据库那一侧仍未补(ALERT-1,2026-09-08)
+
+> **界面这一侧 ALERT-1 已经补好了。这一条记的是【剩下的那一半】,它在数据库里。**
+
+受影响的每一张表(`materials` `suppliers` `customers` `tasks` `finance_settings`
+`pricing_formulas` `metal_prices` `bank_statements`),UPDATE 策略都是
+`USING (p) WITH CHECK (p)` —— **两侧同一个谓词**。一个不满足 `p` 的人
+【先卡在 USING 上】:那一行根本没有被匹配到,于是:
+
+```
+零行  ·  不抛异常  ·  error 为 null
+```
+
+活库实测(真账号 Fu Sheng,无编辑权,`BEGIN…ROLLBACK`),十张表全部
+`rows=0 raised=NONE`。
+
+**ALERT-1 做了什么:** 每一处 UPDATE 补上 `.select('id')`,零行时【不再报告成功】,
+改为回一条说得出下一步的拒绝(`lib/action-refusal.ts` 的 `refuseNothingChanged`)。
+这一层【是把话说出来】,不是【把闸补上】。
+
+**这一条要做的:** 让数据库自己在拒绝时 **RAISE**,而不是静静地匹配零行。
+Tim 在 ALERT-1 闸上明确把它切成独立一刀(要一次迁移,而 ALERT-1 的主题是显示)。
+
+**为什么它仍然值钱,即使界面已经不撒谎了:** 今天客户端能分辨"零行"靠的是
+**每一个调用点都记得加 `.select()`**。忘一个,那一处就退回静默 ——
+而**忘记不会让任何检查变红**。闸在数据库里才是结构性的。
+☞ 同一形状的既有条目:`BTN4-REMOVENODE-SILENT-NOOP`(`removeNode` 删零行仍返回成功)。
+
+---
+
+## ALERT1-D-BLOCKED-17 —— 十七个控件【按得下,但注定被拒】(ALERT-1,2026-09-08)
+
+ALERT-1 把「权限不足」判成【丁类】:控件本来就不该可操作,理由要在按之前看得见。
+十八处里**只有一处当场做掉了**(`suppliers/[id]/edit` 的状态面板 —— 那一页
+`page.tsx:37` 早就算过 `can('module.suppliers.edit')`,还把它交给了同一页的
+`<ContactsPanel>`,唯独没给状态面板;补的是一个 prop)。
+
+**剩下十七处是 D-blocked**:它们的宿主页面【今天并不知道】编辑权限 ——
+`requireModule()` 问的是 view。要让控件消失,得在每一页多算一次
+`can('module.x.edit')` 再往下传。
+
+* 那个助手【已经存在】(`lib/permissions.ts` 的 `can()`,带 React cache),所以这一刀不大;
+* 但它是**六个在用账号身上的行为变化**(钮会消失),而 ALERT-1 的主题是消息显示。
+
+**Tim 在 ALERT-1 闸上的原话记在这里:「绝不把丁类改个样子然后叫它乙类。」**
+所以这十七处今天仍然可操作,只是被拒时会说一句人话。
+
+---
+
+## ALERT1-SUPPLIER-STATUS-TRIGGER-PROSE —— 一个触发器抛的是【中文散文,不是码】(ALERT-1,2026-09-08)
+
+`validate_supplier_status_transition` 抛的是:
+
+```sql
+RAISE EXCEPTION '非法状态跳转: % → %', OLD.status, NEW.status
+```
+
+**一句中文,不是一个错误码。** 于是:
+
+* 任何 `*ErrorCodes.ts` 都接不住它(它们认的是 `CODE` 或 `CODE|p0|p1`);
+* 英文界面上它会**原样露出中文** —— 转换前屏幕上是
+  `Status change failed: 非法状态跳转: active → draft`。
+
+ALERT-1 能做的只是让它落进那句写好的兜底(标题是人话,原文降级进 `<details>`)。
+**正解是给这个触发器一个码**,再补 `suppliers.errors.*` 两条文案 —— 那是一次迁移。
+
+☞ 同族参考:`docs/machine-text-reaching-humans.md`。
+
+---
+
 ## MASKED-READS-BASELINE-STALE —— 棘轮的基线比现实【松了 7 条】(FIX-2b 顺手量到,2026-09-06)
 
 `scripts/check-masked-reads.mjs` 每次运行都印一句「基线可以收紧」,列出 7 处

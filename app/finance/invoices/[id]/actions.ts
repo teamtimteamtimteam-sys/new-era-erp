@@ -5,8 +5,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { localizeInvoiceError } from '../../invoiceErrorCodes'
+import { refuseFromCoded } from '@/lib/action-refusal'
 
-export type VoidInvoiceState = { error?: string }
+export type VoidInvoiceState = { error?: string; detail?: string }
 
 // SO-3a:order 头的作废是一次【冲销】—— 冲销日必填(决定分录期间,永不默认);
 // sale 头没有分录可冲,传了日期服务端按名拒(REVERSAL_DATE_NOT_ACCEPTED),
@@ -21,7 +22,7 @@ export async function voidInvoice(invoiceId: string, reason: string, reversalDat
     })
 
     if (error) {
-        return { error: await localizeInvoiceError(error.message) }
+        return await refuseFromCoded(error.message, localizeInvoiceError)
     }
 
     revalidatePath('/finance/invoices')

@@ -6,8 +6,9 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { localizePaymentError } from '../../paymentErrorCodes'
+import { refuseFromCoded } from '@/lib/action-refusal'
 
-export type ReversePaymentState = { error?: string }
+export type ReversePaymentState = { error?: string; detail?: string }
 
 export async function reversePayment(paymentId: string): Promise<ReversePaymentState> {
     const supabase = await createClient()
@@ -17,7 +18,7 @@ export async function reversePayment(paymentId: string): Promise<ReversePaymentS
     })
 
     if (error) {
-        return { error: await localizePaymentError(error.message) }
+        return await refuseFromCoded(error.message, localizePaymentError)
     }
 
     const reversalId = (data as { reversal_payment_id?: string } | null)?.reversal_payment_id

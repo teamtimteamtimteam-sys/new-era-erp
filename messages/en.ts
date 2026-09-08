@@ -810,6 +810,45 @@ const en = {
         note: 'Unsold batches are not listed here — they have no margin. Ageing stock is on the home dashboard.',
     },
     common: {
+        // ALERT-1 (2026-09-08) · wording for the "telling" family.
+        // A refusal states three things: what did not happen, why, and what to do
+        // next. The yardstick in this repo is finance.gstSwitch.authUnknown and
+        // finance.errors.GST_REGISTRATION_NO_REQUIRED — both say all three.
+        actionMessage: {
+            // The headline says WHAT did not happen; the subject cell says WHICH
+            // record. They are separate because this banner is page-level and has
+            // to work over a fifty-row table, where "Delete failed" says nothing.
+            headline: {
+                notDeleted: 'This record was not deleted',
+                notReversed: 'This entry was not reversed',
+                notVoided: 'This invoice was not voided',
+                notClosed: 'This period was not closed',
+                notReopened: 'This period was not reopened',
+                notUnreconciled: 'This statement was not unreconciled',
+                notWithdrawn: 'This rate was not withdrawn',
+                notStatusChanged: 'The status did not change',
+                notSwitched: 'The GST registration switch did not change',
+                notLocked: 'The lock date did not change',
+                notMoved: 'This task did not move',
+            },
+            dismiss: 'Got it',
+            technicalDetail: 'Technical detail (for your administrator)',
+            permissionDenied:
+                'This step did not happen, because it needs the "{0}" permission and your account '
+                + 'does not have it. Nothing about the record was changed. Permissions are granted by '
+                + 'an administrator under Settings → Roles — tell them this sentence along with what '
+                + 'you were trying to do, and "{0}" is the one they need to tick.',
+            nothingChanged:
+                'Nothing was changed — this record is still exactly as it was. Most likely someone '
+                + 'else has already changed or deleted it. Reload this page to see its current state; '
+                + 'if it looks unchanged and this step really should have worked, tell your '
+                + 'administrator this sentence.',
+            driverFallback:
+                'This step did not happen and the record is unchanged. The system received a database '
+                + 'message it did not recognise, so it cannot say anything more specific here. You can '
+                + 'try again; if it keeps happening, copy the technical detail below to your '
+                + 'administrator.',
+        },
         // IA-BUILD-1:外壳的两句小词(手机抽屉的关闭、dock 编辑完成)。
         close: 'Close',
         done: 'Done',
@@ -1372,6 +1411,12 @@ const en = {
         },
         statusPanel: {
             current: 'Current Status',
+            // ALERT-1 (class D): when the permission is absent, the reason is
+            // visible before the control would have been pressed, not after.
+            needsEditPermission:
+                'Changing a supplier\'s status needs the "module.suppliers.edit" permission, which '
+                + 'your account does not have — you can see this page but not change it. To change it, '
+                + 'ask an administrator to grant that permission under Settings → Roles.',
             noActions: 'No actions available for the current status.',
             availableChanges: 'Available status changes:',
             processing: 'Processing…',
@@ -6428,6 +6473,33 @@ const en = {
             ALLOC_EXCEEDS_PAYMENT: 'Total allocated ({0}) exceeds the payment amount ({1})',
             NOT_MONTH_END: '{0} is not a month-end date',
             ALREADY_CLOSED: 'Period already closed (locked before {0})',
+            // ALERT-1 (2026-09-08): what was missing here was mostly the CODE
+            // REGISTRATION, not the wording. These codes are really raised by
+            // close_period and the journal triggers, but FINANCE_ERROR_CODES did
+            // not list them, so localizeFinanceError fell through to `return raw`
+            // and the screen showed the bare code.
+            //
+            // Note DEPRECIATION_OUTSTANDING is NOT here: its message was already
+            // written, a few dozen lines above, and says all three things. Only
+            // the registration was missing — so a well-written sentence had never
+            // once reached a person. ALERT-1's first pass added a second copy and
+            // TypeScript's duplicate-key check caught it. Lesson: a machine code
+            // on screen does not mean nobody wrote the words; search the same
+            // object for the code before adding one.
+            // The three below genuinely had none, and each states the next step.
+            PROCESSING_COSTS_UNALLOCATED:
+                'Period {0} has {1} submitted processing run(s) whose costs were never allocated '
+                + '({2} in total). The material has moved but work in progress is still sitting in '
+                + '1200 — allocate those costs under Operations → Processing, then close the period.',
+            JOURNAL_IMMUTABLE:
+                'A posted journal entry cannot be edited or deleted — once the books accept it, it '
+                + 'is read-only. To correct it, reverse it and post a correct entry; both stay on '
+                + 'the books, which is exactly what an audit needs to see.',
+            JE_LINE_INVALID:
+                'This journal line points at an entry that cannot exist ({0} is empty or refers to '
+                + 'an entry that is no longer there), so nothing was posted. This usually means an '
+                + 'earlier step was interrupted — run the action again, and if it keeps happening, '
+                + 'tell your administrator this sentence.',
             TRIAL_BALANCE_UNBALANCED: 'Trial balance does not balance ({0} vs {1})',
             CLOSE_NOT_FOUND: 'No close found for this period',
             ALREADY_REOPENED: 'This period has already been reopened',

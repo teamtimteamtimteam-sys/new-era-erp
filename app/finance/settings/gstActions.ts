@@ -13,8 +13,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { revalidatePath } from 'next/cache'
 import { localizeFinanceError } from '../financeErrorCodes'
+import { refuseFromCoded, refuseNothingChanged } from '@/lib/action-refusal'
 
-export type GstSwitchState = { error?: string }
+export type GstSwitchState = { error?: string; detail?: string; field?: string }
 
 export async function setGstRegistration(
     on: boolean,
@@ -39,13 +40,14 @@ export async function setGstRegistration(
     // GST_REGISTRATION_NO_REQUIRED 仍然是唯一的正确性来源(直连 UPDATE 也逃不掉)。
     // 这一句只是让人不必按下一个注定被拒的按钮 —— CMP-2:禁用与说明要在动作之前。
     if (on && trimmed === '') {
-        return { error: t('finance.errors.GST_REGISTRATION_NO_REQUIRED') }
+        // ALERT-1:甲类 —— 说的是【登记号那个框】。
+        return { error: t('finance.errors.GST_REGISTRATION_NO_REQUIRED'), field: 'registrationNo' }
     }
 
     // 【一次 UPDATE 同时写两列】号码与开关必须在同一条语句里落地,
     // 否则"先写号码、再开开关"中间存在一个【已注册但没有号】的瞬间,
     // 而那正是这条规矩要消灭的状态。触发器也是按 NEW 的两列一起判的。
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('finance_settings')
         .update({
             gst_registered: on,
@@ -53,9 +55,18 @@ export async function setGstRegistration(
             updated_by: user.id,
         })
         .eq('id', true)
+        // ★ ALERT-1:见 app/materials/actions.ts 的注释。没有这一行,一个没有
+        //   module.finance.edit 的人按下开关会得到【一片安静】,而上面那条状态
+        //   横幅仍然写着旧状态 —— 屏幕看起来像是"什么都没发生",而那正是事实,
+        //   只是没有人说出来。
+        .select('id')
 
     if (error) {
-        return { error: await localizeFinanceError(error.message) }
+        return await refuseFromCoded(error.message, localizeFinanceError)
+    }
+
+    if (!data || data.length === 0) {
+        return await refuseNothingChanged('module.finance.edit')
     }
 
     // 开关一翻,这些页面的渲染【形状】就变了(税码那一格出现或消失),

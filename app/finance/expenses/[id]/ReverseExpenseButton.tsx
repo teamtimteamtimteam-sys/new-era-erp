@@ -6,6 +6,7 @@ import { useTransition } from 'react'
 import { reverseExpense } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { showActionMessage } from '@/app/components/ui/action-message'
 
 export default function ReverseExpenseButton({ expenseId, subject }: { expenseId: string; subject: string }) {
     const t = useTranslations()
@@ -15,7 +16,12 @@ export default function ReverseExpenseButton({ expenseId, subject }: { expenseId
         startTransition(async () => {
             const result = await reverseExpense(expenseId)
             if (result?.error) {
-                alert(result.error)
+                showActionMessage({
+                    subject: subject,
+                    headline: t('common.actionMessage.headline.notReversed'),
+                    body: result.error,
+                    detail: result.detail,
+                })
             }
         })
     }

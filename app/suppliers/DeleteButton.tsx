@@ -4,6 +4,7 @@ import { useTransition } from 'react'
 import { softDeleteSupplier } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { showActionMessage } from '@/app/components/ui/action-message'
 
 export default function DeleteButton({
     id,
@@ -30,7 +31,12 @@ export default function DeleteButton({
                 startTransition(async () => {
                     const result = await softDeleteSupplier(id)
                     if (result?.error) {
-                        alert(result.error)
+                        showActionMessage({
+                            subject: legalName,
+                            headline: t('common.actionMessage.headline.notDeleted'),
+                            body: result.error,
+                            detail: result.detail,
+                        })
                     }
                 })
             }}

@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { loadSubstances } from '../../substanceQuery'
 import { ACK_FIELD, ackSignature, outsideOnly, type AnomalyVerdict } from '../../anomaly'
 import { parseIndexField } from '../../indexOptions'
+import { refuseFromDriver, refuseNothingChanged, type ActionOutcome } from '@/lib/action-refusal'
 
 export type UpdateMetalPriceState = {
     error?: string
@@ -83,7 +84,7 @@ export async function updateMetalPrice(
         data: { user },
     } = await supabase.auth.getUser()
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('metal_prices')
         .update({
             metal,
@@ -110,14 +111,14 @@ export async function updateMetalPrice(
 }
 
 // 软删除:置 deleted_at + 记录 updated_by,revalidate 后跳回列表。
-export async function softDeleteMetalPrice(id: string) {
+export async function softDeleteMetalPrice(id: string): Promise<ActionOutcome> {
     const supabase = await createClient()
     const t = await getTranslations()
     const {
         data: { user },
     } = await supabase.auth.getUser()
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('metal_prices')
         .update({
             deleted_at: new Date().toISOString(),
@@ -125,9 +126,18 @@ export async function softDeleteMetalPrice(id: string) {
         })
         .eq('id', id)
         .is('deleted_at', null) // 已经删过的不重复删
+        // ★ ALERT-1:见 app/materials/actions.ts 的同一段注释 ——
+        //   没有这一行,一次被 RLS 挡下的删除会报告成功,
+        //   而这一处更难看:成功那一支【会 redirect】,于是人被送回列表,
+        //   而那条记录还好端端地在列表里。**同一个谎,换了个形状。**
+        .select('id')
 
     if (error) {
-        return { error: t('metalPrices.deleteError', { message: error.message }) }
+        return await refuseFromDriver(error.message)
+    }
+
+    if (!data || data.length === 0) {
+        return await refuseNothingChanged('module.pricing.edit')
     }
 
     revalidatePath('/tools/pricing/metal-prices')

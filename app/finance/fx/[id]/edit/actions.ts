@@ -7,6 +7,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { localizeFxError } from '../../../fxErrorCodes'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { refuseFromCoded } from '@/lib/action-refusal'
 
 export type UpdateFxRateState = {
     error?: string
@@ -72,7 +73,7 @@ export async function updateFxRate(
     })
 
     if (error) {
-        return { error: await localizeFxError(error.message) }
+        return await refuseFromCoded(error.message, localizeFxError)
     }
 
     revalidatePath('/finance/fx')
@@ -91,7 +92,7 @@ export async function softDeleteFxRate(id: string, reason: string) {
     })
 
     if (error) {
-        return { error: await localizeFxError(error.message) }
+        return await refuseFromCoded(error.message, localizeFxError)
     }
 
     revalidatePath('/finance/fx')

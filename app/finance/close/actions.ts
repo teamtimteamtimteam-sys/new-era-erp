@@ -6,8 +6,9 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { revalidatePath } from 'next/cache'
 import { localizeFinanceError } from '../financeErrorCodes'
+import { refuseFromCoded } from '@/lib/action-refusal'
 
-export type CloseActionState = { error?: string }
+export type CloseActionState = { error?: string; detail?: string; field?: string }
 
 function revalidateFinance() {
     revalidatePath('/finance')
@@ -24,7 +25,7 @@ export async function closePeriod(periodEnd: string): Promise<CloseActionState> 
     })
 
     if (error) {
-        return { error: await localizeFinanceError(error.message) }
+        return await refuseFromCoded(error.message, localizeFinanceError)
     }
 
     revalidateFinance()
@@ -36,7 +37,8 @@ export async function reopenPeriod(periodEnd: string, reason: string): Promise<C
 
     const trimmed = (reason ?? '').trim()
     if (!trimmed) {
-        return { error: t('finance.errors.REASON_REQUIRED') }
+        // ALERT-1:甲类 —— 说的是【原因那个框】。
+        return { error: t('finance.errors.REASON_REQUIRED'), field: 'reason' }
     }
 
     const supabase = await createClient()
@@ -46,7 +48,7 @@ export async function reopenPeriod(periodEnd: string, reason: string): Promise<C
     })
 
     if (error) {
-        return { error: await localizeFinanceError(error.message) }
+        return await refuseFromCoded(error.message, localizeFinanceError)
     }
 
     revalidateFinance()
@@ -63,7 +65,7 @@ export async function closeFinancialYear(yearEnd: string, notes?: string): Promi
         p_notes: notes || undefined,
     })
     if (error) {
-        return { error: await localizeFinanceError(error.message) }
+        return await refuseFromCoded(error.message, localizeFinanceError)
     }
     revalidateFinance()
     return {}
@@ -73,7 +75,8 @@ export async function reopenFinancialYear(yearEnd: string, reason: string): Prom
     const t = await getTranslations()
     const trimmed = (reason ?? '').trim()
     if (!trimmed) {
-        return { error: t('finance.errors.REASON_REQUIRED') }
+        // ALERT-1:甲类 —— 说的是【原因那个框】。
+        return { error: t('finance.errors.REASON_REQUIRED'), field: 'reason' }
     }
     const supabase = await createClient()
     const { error } = await supabase.rpc('reopen_financial_year', {
@@ -81,7 +84,7 @@ export async function reopenFinancialYear(yearEnd: string, reason: string): Prom
         p_reason: trimmed,
     })
     if (error) {
-        return { error: await localizeFinanceError(error.message) }
+        return await refuseFromCoded(error.message, localizeFinanceError)
     }
     revalidateFinance()
     return {}

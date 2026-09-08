@@ -16,6 +16,7 @@ import { voidInvoice } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { Button } from '@/app/components/ui/button'
+import { showActionMessage } from '@/app/components/ui/action-message'
 
 // SO-3a:order 头的作废是一次【冲销】(借 2500 / 贷 1100)—— 冲销日必填,
 // 它决定冲销分录落进哪个期间,永不默认(与手工冲销分录同一条);sale 头照旧。
@@ -48,7 +49,12 @@ export default function VoidInvoiceControl({
         startTransition(async () => {
             const result = await voidInvoice(invoiceId, reason.trim(), needsReversalDate ? reversalDate : undefined)
             if (result?.error) {
-                alert(result.error)
+                showActionMessage({
+                    subject: subject,
+                    headline: t('common.actionMessage.headline.notVoided'),
+                    body: result.error,
+                    detail: result.detail,
+                })
             } else {
                 setOpen(false)
                 setReason('')
