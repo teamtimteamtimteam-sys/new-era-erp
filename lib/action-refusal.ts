@@ -62,6 +62,21 @@ export async function refusePermission(permissionCode: string): Promise<ActionRe
 export async function refuseFromDriver(rawMessage: string): Promise<ActionRefusal> {
     const t = await getTranslations()
     const raw = (rawMessage ?? '').trim()
+
+    // ★★【SILENT-1(2026-09-08):一条【有码】的拒绝,永远不是"读不懂的驱动消息"】★★
+    //   ALERT-1 之前,这几个调用点的 error 分支只可能装着真正的驱动错误 ——
+    //   权限拒绝那一支根本不走这里,它走的是零行静默(refuseNothingChanged)。
+    //   SILENT-1 给库装上写闸之后,**那一支改从 error 进来了**,带着
+    //   `PERMISSION_DENIED|<码>`。而本函数从前不认码,于是它被当成机器字降级进
+    //   detail,标题换成了那句最泛的兜底 —— 屏幕上从"你没有这项权限"退回成
+    //   "这一步没有发生"。
+    //   ☞ 这是【驱动界面走出来的】:probe-action-message 的 A4/D1/D2/D11 四格
+    //     当场变红,而库侧断言全绿。一条只在库上证明过的修复,看不见这一格。
+    //   与 refuseFromCoded 的分支 ① 逐字同一条规矩,所以放在这里而不是各调用点:
+    //   五个调用点各写一遍,就是同一个问题的第五份实现。
+    const denied = raw.match(/^PERMISSION_DENIED\|(.*)$/)
+    if (denied) return refusePermission(denied[1] ?? '')
+
     return {
         error: t('common.actionMessage.driverFallback'),
         detail: raw === '' ? undefined : raw,
