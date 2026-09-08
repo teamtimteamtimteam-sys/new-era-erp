@@ -873,8 +873,9 @@ const en = {
         deleting: 'Deleting…',
         // CONFIRM-1:这两句原本逐字重复在十几条 confirm 消息里。对话框有了独立的
         // 正文槽之后,它们成了【一句话一处】—— 改一次全体跟着改。
-        softDeleteNote: '(Soft delete: data is kept and recoverable.)',
+        softDeleteNote: '(Soft delete: the record is kept, along with who deleted it and why. It is not undone \u2014 this system deliberately offers no restore.)',
         softDeleteFileNote: '(Soft delete: the record is hidden but the stored file is kept.)',
+        hardDeleteNote: 'This one is deleted permanently \u2014 the row is removed from the database, not marked as deleted. It cannot be undone, and nothing keeps a copy.',
         // Shown in place of a figure the signed-in user has no permission to see.
         // Deliberately NOT a blank (reads as missing data) and NOT a zero (a lie).
         restricted: 'Restricted',
@@ -971,6 +972,7 @@ const en = {
         isInLieu: 'Holiday in lieu (of a Sunday)',
         inLieuTag: '(in lieu)',
         addHoliday: 'Add a holiday', holidayName: 'Name', noHolidays: 'No holidays recorded for {0}.',
+        holidayDeleteTitle: 'Delete this public holiday permanently?',
         warnShortBalance: 'The balance is now {0} days but this request is for {1}. Approving will be refused.',
         errInsufficient: 'Not enough leave: {0} days available, {1} requested.',
         errInsufficientFrom: 'You will have {0} days accrued by then, and you asked for {1}. Annual leave is earned monthly — you will have enough from {2}.',
@@ -2563,7 +2565,7 @@ const en = {
             noneRecorded: '★ No safety state has been recorded. That means NOBODY HAS LOOKED, not that the batch is safe — this batch cannot be fed into any operation until someone records one here.',
             notFeedable: 'not feedable',
             add: 'Record {name}',
-            remove: 'Remove {name}',
+            remove: 'Delete {name}',
             noPermission: 'You do not have output-batch edit rights, so you cannot change this.',
             errors: {
                 writeFailed: 'Write failed: {msg}',
@@ -2697,6 +2699,7 @@ const en = {
             colQty: 'Quantity',
             colNotes: 'Notes',
             notTrueLoss: '(not a loss: an output with negative value, parked here for now)',
+            deleteTitle: 'Delete this loss line permanently?',
             metalFate: { stays: 'Metal stays behind', leaves: 'Metal leaves', unknown: 'Not yet known' },
             errInvalid: 'Quantity must be greater than 0 and a category must be chosen — a zero loss cannot be told apart from “no such category”.',
             errors: {
@@ -3708,7 +3711,7 @@ const en = {
         expired: 'Expired',
         noLines: 'No lines yet — add one below.',
         addLine: 'Add line',
-        removeLine: 'remove',
+        removeLine: 'Delete',
         editableNote: 'A quotation stays editable after it is issued — negotiating is what it is for. Change anything and the banner above will ask you to re-issue, because the copy the customer holds is a specific version.',
         linesLockedConverted: 'This quotation became a sales order, so it is now read-only: the offer and the order it produced must not drift apart.',
         linesLockedDeclined: 'This quotation was declined, so it is no longer edited. Raise a new one if the customer comes back.',
@@ -4687,6 +4690,7 @@ const en = {
         status_approved: 'Approved', status_acknowledged: 'Acknowledged', status_void: 'Void',
         // goals
         goalsTitle: 'Goals', noGoals: 'No goals yet.',
+        goalDeleteTitle: 'Delete this objective permanently?',
         colObjective: 'Objective', colTarget: 'Target', colUnit: 'Unit', colActual: 'Actual',
         colEmployeeResult: 'Employee result', colAssessment: 'Reviewer assessment',
         addGoal: 'Add a goal',
@@ -5356,8 +5360,7 @@ const en = {
             rename: 'Rename',
             // ★ BTN-4:全树唯一的硬删除 —— 这句话是一个人唯一会被告知它不可撤销的地方。
             deleteNodeTitle: 'Delete this step permanently?',
-            deleteNodeConsequence: 'This step is deleted permanently \u2014 the record is removed from the database, not marked as deleted. It cannot be undone, and nothing keeps a copy. Every other delete in this system keeps the record; this one does not.',
-        },
+            },
         participants: {
             heading: 'Participants',
             empty: 'Nobody is on this task yet.',
@@ -5762,7 +5765,7 @@ const en = {
         alreadySet: ' (recorded)',
         pctPlaceholder: 'Content %',
         save: 'Save',
-        deleteConfirm: 'Remove this metal from the assay?',
+        deleteConfirm: 'Delete this metal from the assay?',
         totalLabel: 'Total',
         totalWarning: 'Total exceeds 100% — please check',
         errInvalid: 'Invalid metal or percentage',

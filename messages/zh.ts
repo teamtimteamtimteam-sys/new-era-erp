@@ -877,8 +877,9 @@ const zh = {
         delete: '删除',
         deleting: '删除中…',
         // CONFIRM-1:见 en.ts 同一处。
-        softDeleteNote: '（软删除：数据保留在数据库中，可以恢复。）',
+        softDeleteNote: '（软删除：记录留在库里，谁删的、为什么都记着。【但删除不会被撤销】——本系统刻意不提供恢复。）',
         softDeleteFileNote: '（软删除：记录会隐藏，已存储的文件仍保留。）',
+        hardDeleteNote: '这一条会被【永久删除】——记录直接从数据库里移除，不是标成已删除。【无法撤销，也没有任何地方留着副本。】',
         // 当前登录者无权看见某个数字时,占位显示这个词。
         // 【不能留空】(会被当成缺数据),【更不能显示 0】(那是撒谎)。
         restricted: '受限',
@@ -969,6 +970,7 @@ const zh = {
         isInLieu: '补假(顶替周日)',
         inLieuTag: '(补假)',
         addHoliday: '新增假期', holidayName: '名称', noHolidays: '{0} 年还没有录入假期。',
+        holidayDeleteTitle: '确定永久删除这个公众假期吗？',
         warnShortBalance: '当前余额 {0} 天,本次申请 {1} 天,批准会被拒绝。',
         errInsufficient: '假期不足:可用 {0} 天,申请 {1} 天。',
         errInsufficientFrom: '到那时你累积到 {0} 天,本次申请 {1} 天。年假按月累积 —— {2} 起就够了。',
@@ -2557,7 +2559,7 @@ const zh = {
             noneRecorded: '★ 一条安全状态都没有记。这的意思是【没有人记过】,不是"它安全" —— 这一批现在【投不进任何工序】,直到有人在这里记上。',
             notFeedable: '不可投料',
             add: '记上{name}',
-            remove: '撤掉{name}',
+            remove: '删除{name}',
             noPermission: '你没有产出批次编辑权限,改不了这一项。',
             errors: {
                 writeFailed: '写入失败:{msg}',
@@ -2689,6 +2691,7 @@ const zh = {
             colQty: '数量',
             colNotes: '备注',
             notTrueLoss: '(不是损耗:一条带负价值的产出,暂记在这里)',
+            deleteTitle: '确定永久删除这一条损耗吗？',
             metalFate: { stays: '金属留着', leaves: '金属走了', unknown: '还不知道' },
             errInvalid: '数量必须大于 0,而且要选一个类别 —— 一笔为零的损耗与"没有这一类"分不开。',
             errors: {
@@ -4661,6 +4664,7 @@ const zh = {
         status_approved: '已批准', status_acknowledged: '已确认', status_void: '已作废',
         // goals
         goalsTitle: '目标', noGoals: '还没有目标行。',
+        goalDeleteTitle: '确定永久删除这条目标吗？',
         colObjective: '目标', colTarget: '指标', colUnit: '单位', colActual: '实际',
         colEmployeeResult: '本人结果', colAssessment: '评估人评语',
         addGoal: '新增目标',
@@ -5305,7 +5309,6 @@ const zh = {
             rename: '改名',
             // ★ BTN-4:全树唯一的硬删除 —— 这句话是一个人唯一会被告知它不可撤销的地方。
             deleteNodeTitle: '确定永久删除这个步骤吗？',
-            deleteNodeConsequence: '这个步骤会被【永久删除】——记录直接从数据库里移除，不是标成已删除。【无法撤销，也没有任何地方留着副本。】这个系统里其它每一处删除都保留记录，只有这一处不保留。',
         },
         participants: {
             heading: '参与者',
@@ -5695,7 +5698,7 @@ const zh = {
         alreadySet: '(已录)',
         pctPlaceholder: '含量 %',
         save: '保存',
-        deleteConfirm: '从化验结果中移除该金属?',
+        deleteConfirm: '从化验结果中删除该金属?',
         totalLabel: '合计',
         totalWarning: '合计超过 100%,请核对',
         errInvalid: '金属或百分比无效',

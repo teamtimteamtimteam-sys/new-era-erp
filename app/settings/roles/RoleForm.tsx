@@ -185,6 +185,19 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                         {t('common.delete')}
                     </Button>
                 )}
+                {/* ★ ALERT-2a:这个钮写着 Delete,做的是软删 —— 而它是本族里
+                      【唯一没有确认框】的那一个,所以那句话只能长在这里。
+                    ☞ 用的就是别处那八处确认框里同一个键 `common.softDeleteNote`,
+                      本刀把它改准了:它此前写着「可以恢复」,而全仓库
+                      **没有任何一条恢复路径**(见上面那段注释与
+                      `app/settings/deleted/page.tsx` 抬头「永不提供恢复」)。
+                      于是这一行与上面那段注释不再互相矛盾:记录留着、权限当场失去、
+                      而没有人会去撤销它。 */}
+                {!isNew && !initial.is_system && (
+                    <span className="text-sm text-[color:var(--brand-muted-text)]">
+                        {t('common.softDeleteNote')}
+                    </span>
+                )}
                 {/* 还有人持有这个角色时,把人数说出来 —— 软删之后他们会立刻失去这份权限 */}
                 {!isNew && !initial.is_system && (initial.user_count ?? 0) > 0 && (
                     <span className="text-sm text-amber-800">

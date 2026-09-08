@@ -100,6 +100,7 @@ export default function CostPanel({
                     <ConfirmButton
                         subject={e.notes ? `${typeLabel(e.cost_type)} · ${e.notes}` : typeLabel(e.cost_type)}
                         title={t('processing.cost.deleteConfirm')}
+                        body={t('common.softDeleteNote')}
                         confirmLabel={t('common.delete')}
                         tier="destructive"
                         disabled={isPending}

@@ -24,6 +24,7 @@ canEdit: boolean
         <ConfirmButton
             subject={subject}
             title={t('bank.deleteConfirm')}
+            body={t('common.softDeleteNote')}
             confirmLabel={t('common.delete')}
             tier="destructive"
             triggerVariant="destructive"

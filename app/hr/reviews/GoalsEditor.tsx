@@ -12,6 +12,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { addGoal, removeGoal, setGoalActual, setGoalAssessment, updateGoal } from './actions'
 import type { GoalRow } from './reviewShared'
 import { Button } from '@/app/components/ui/button'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
 type Props = {
     reviewId: string
@@ -242,16 +243,29 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                                     >
                                                         {t('reviews.edit')}
                                                     </Button>
+                                                    {/* ★★ ALERT-2a:这一处【此前没有任何确认步骤,而它是一次硬删除】★★
+                                                        `removeGoal` → `app/hr/reviews/actions.ts:68`
+                                                        → rpc `remove_review_goal`
+                                                        → `DELETE FROM review_goals`。**行没了。**
+                                                        ☞ ALERT-2a 的委托书把它归进了「说 Delete 其实是软删」那一族,
+                                                          并要给它挂上 `common.softDeleteNote`(「数据保留…可以恢复」)——
+                                                          **那句话在这里是假的**,而在一个一按就永久销毁的钮上
+                                                          印一句"可以恢复",比什么都不说更坏。闸上更正,归到这一族。
+                                                        ☞ 动作一个字没改:同一个 `remove(g.id)`。 */}
                                                     {canEditGoals && (
-                                                        <Button
-                                                            variant="destructive"
-                                                            size="inline"
-                                                            type="button"
-                                                            onClick={() => remove(g.id)}
+                                                        <ConfirmButton
+                                                            subject={g.objective_text}
+                                                            title={t('reviews.goalDeleteTitle')}
+                                                            body={t('common.hardDeleteNote')}
+                                                            confirmLabel={t('common.delete')}
+                                                            tier="destructive"
                                                             disabled={pending}
+                                                            triggerVariant="destructive"
+                                                            triggerSize="inline"
+                                                            onConfirm={() => remove(g.id)}
                                                         >
                                                             {t('common.delete')}
-                                                        </Button>
+                                                        </ConfirmButton>
                                                     )}
                                                 </>
                                             )}

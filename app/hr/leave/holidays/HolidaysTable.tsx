@@ -4,7 +4,7 @@
 // CONV-3 · 公共假期登记簿的那张表。见 docs/list-page-template.md 的 Kind-E 一节。
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
-import { Button } from '@/app/components/ui/button'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
 export type HolidayRow = {
     id: string
@@ -58,17 +58,28 @@ export default function HolidaysTable({
         },
         {
             key: 'actions', header: '',
+            // ★★ ALERT-2a:这一处【此前没有任何确认步骤,而它是一次硬删除】★★
+            //   `deleteHoliday` → `app/hr/leave/types/actions.ts:59` →
+            //   `public_holidays` 走 `.delete()`,行没了、没人记、恢复不了。
+            //   而这张表是【承重】的:`calculate_leave_days` 与 `fx_rate_asof`
+            //   都读它(见 AGENTS.md 的「public_holidays is load-bearing for two
+            //   modules」),删错一天会安静地改掉请假天数与汇率回溯的边界。
+            //   ☞ 动作一个字没改:同一个 `onDelete(r.id)`。
             render: (r) => (
-                <Button
-                    variant="destructive"
-                    size="inline"
-                    type="button"
+                <ConfirmButton
+                    subject={locale === 'zh' ? r.name_zh : r.name_en}
+                    title={t('leave.holidayDeleteTitle')}
+                    body={t('common.hardDeleteNote')}
+                    confirmLabel={t('common.delete')}
+                    tier="destructive"
                     disabled={pending}
-                    onClick={() => onDelete(r.id)}
+                    triggerVariant="destructive"
+                    triggerSize="inline"
                     className="text-xs"
+                    onConfirm={() => onDelete(r.id)}
                 >
                     {t('common.delete')}
-                </Button>
+                </ConfirmButton>
             ),
         },
     ]

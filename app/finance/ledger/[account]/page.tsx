@@ -143,9 +143,12 @@ export default async function AccountLedgerPage({
                 <h1 className="text-2xl font-bold mb-4">{title}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('finance.loadError')}</p>
-                    <pre className="text-xs mt-2">
-                        {JSON.stringify(ledgerRes.error ?? stmtRes.error, null, 2)}
-                    </pre>
+                    <details className="mt-2">
+                        <summary className="cursor-pointer text-xs">{t('common.actionMessage.technicalDetail')}</summary>
+                        <pre className="mt-1 text-xs">
+                            {JSON.stringify(ledgerRes.error ?? stmtRes.error, null, 2)}
+                        </pre>
+                    </details>
                 </div>
             </div>
         )

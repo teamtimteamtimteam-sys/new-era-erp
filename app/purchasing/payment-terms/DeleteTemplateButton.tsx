@@ -25,6 +25,7 @@ canEdit: boolean
             <ConfirmButton
                 subject={name}
                 title={t('purchasing.deleteTemplateConfirmTitle')}
+                body={t('common.softDeleteNote')}
                 confirmLabel={t('common.delete')}
                 tier="destructive"
                 disabled={isPending}

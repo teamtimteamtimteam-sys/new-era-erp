@@ -19,6 +19,7 @@ export default function DeleteTrainingButton({ id, name }: { id: string; name: s
             <ConfirmButton
                 subject={name}
                 title={t('hr.deleteTrainingConfirmTitle')}
+                body={t('common.softDeleteNote')}
                 confirmLabel={t('common.delete')}
                 tier="destructive"
                 disabled={isPending}

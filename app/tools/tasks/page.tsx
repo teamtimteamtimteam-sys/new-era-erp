@@ -35,7 +35,10 @@ export default async function TasksPage() {
                 <h1 className="mb-4 text-2xl font-bold">{t('tasks.pageTitle')}</h1>
                 <div className="rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
                     <p className="font-bold">{t('tasks.loadError')}</p>
-                    <pre className="mt-2 text-xs">{JSON.stringify(error ?? derivedError, null, 2)}</pre>
+                    <details className="mt-2">
+                        <summary className="cursor-pointer text-xs">{t('common.actionMessage.technicalDetail')}</summary>
+                        <pre className="mt-2 text-xs">{JSON.stringify(error ?? derivedError, null, 2)}</pre>
+                    </details>
                 </div>
             </div>
         )

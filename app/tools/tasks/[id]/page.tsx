@@ -196,7 +196,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                     cancel: t('common.cancel'),
                     rename: t('tasks.nodes.rename'),
                     deleteNodeTitle: t('tasks.nodes.deleteNodeTitle'),
-                    deleteNodeConsequence: t('tasks.nodes.deleteNodeConsequence'),
+                    deleteNodeConsequence: t('common.hardDeleteNote'),
                 }}
             />
 

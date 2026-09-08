@@ -17,6 +17,7 @@ export default function DeleteFormulaButton({ formulaId, subject }: { formulaId:
         <ConfirmButton
             subject={subject}
             title={t('pricing.deleteConfirm')}
+            body={t('common.softDeleteNote')}
             confirmLabel={t('common.delete')}
             tier="destructive"
             disabled={isPending}

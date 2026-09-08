@@ -226,6 +226,7 @@ canEdit: boolean
                 <ConfirmButton
                     subject={row.file_name}
                     title={t('finAttach.deleteConfirm')}
+                    body={t('common.softDeleteNote')}
                     confirmLabel={t('common.delete')}
                     tier="destructive"
                     disabled={isPending}

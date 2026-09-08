@@ -162,10 +162,15 @@ export default function MetalContentPanel({
                                     {r.updated_at_display}
                                 </td>
                                 <td className="border border-gray-300 px-4 py-2">
-                                    {/* CONFIRM-1:主语就是那一行的金属 —— 与首列读到的字一样。 */}
+                                    {/* CONFIRM-1:主语就是那一行的金属 —— 与首列读到的字一样。
+                                        ★ ALERT-2a:这一处是【硬删除】—— inbound_batch_metals /
+                                          output_batch_metals 走 `.delete()`,行没了,没有任何地方留副本。
+                                          钮上写 Delete、问句却写 Remove,两句话原本互相矛盾;
+                                          现在标题、问句与动作说的是同一件事。 */}
                                     <ConfirmButton
                                         subject={metalLabel(r.metal)}
                                         title={t('metalContent.deleteConfirm')}
+                                        body={t('common.hardDeleteNote')}
                                         confirmLabel={t('common.delete')}
                                         tier="destructive"
                                         disabled={isPending}

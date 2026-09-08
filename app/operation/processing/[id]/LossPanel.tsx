@@ -16,6 +16,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { saveRunLoss, deleteRunLoss } from './lossActions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export type LossCategory = {
@@ -86,12 +87,32 @@ export default function LossPanel({
             key: 'actions',
             header: '',
             align: 'right' as const,
-            render: (r: LossRow) => (
-                <Button variant="destructive" size="inline" type="button" disabled={isPending}
-                        onClick={() => remove(r.loss_category_code)} className="text-sm">
-                    {t('common.delete')}
-                </Button>
-            ),
+            // ★★ ALERT-2a:这一处【此前没有任何确认步骤,而它是一次硬删除】★★
+            //   `deleteRunLoss` → `lossActions.ts:52` → `processing_run_losses` 走 `.delete()`。
+            //   行【真的没了】:不是标成已删,没有 deleted_at,没有删的人,没有理由,
+            //   而这个仓库【从不提供恢复】(app/settings/deleted/page.tsx 抬头的成文立场)。
+            //   于是这个对话框是一个人【唯一】会被告知这件事的地方。
+            //   ☞ 动作一个字没改:同一个 `remove(r.loss_category_code)`。
+            //   ☞ 主语 = 那一类去向的名字,与首列读到的字逐字一样。
+            render: (r: LossRow) => {
+                const c = byCode(r.loss_category_code)
+                return (
+                    <ConfirmButton
+                        subject={c ? label(c) : r.loss_category_code}
+                        title={t('processing.loss.deleteTitle')}
+                        body={t('common.hardDeleteNote')}
+                        confirmLabel={t('common.delete')}
+                        tier="destructive"
+                        disabled={isPending}
+                        triggerVariant="destructive"
+                        triggerSize="inline"
+                        className="text-sm"
+                        onConfirm={() => remove(r.loss_category_code)}
+                    >
+                        {t('common.delete')}
+                    </ConfirmButton>
+                )
+            },
         }] : []),
     ]
 
