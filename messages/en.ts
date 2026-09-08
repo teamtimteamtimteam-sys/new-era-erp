@@ -1352,7 +1352,6 @@ const en = {
         },
         emptyState: 'No suppliers yet',
         loadError: 'Load failed',
-        deleteConfirm: 'Delete "{name}"?\n\n(Soft delete: data is kept and recoverable.)',
         deleteConfirmTitle: 'Delete this supplier?',
         deleteError: 'Delete failed: {message}',
         newTitle: 'Add Supplier',
@@ -1946,7 +1945,6 @@ const en = {
         },
         emptyState: 'No customers yet',
         loadError: 'Load failed',
-        deleteConfirm: 'Delete "{name}"?\n\n(Soft delete: data is kept and recoverable.)',
         deleteConfirmTitle: 'Delete this customer?',
         deleteError: 'Delete failed: {message}',
         newTitle: 'Add Customer',
@@ -2087,7 +2085,6 @@ const en = {
         },
         emptyState: 'No materials yet',
         loadError: 'Load failed',
-        deleteConfirm: 'Delete "{name}"?\n\n(Soft delete: data is kept and recoverable.)',
         deleteConfirmTitle: 'Delete this material?',
         deleteError: 'Delete failed: {message}',
         newTitle: 'Add Material',
@@ -2380,7 +2377,6 @@ const en = {
         },
         emptyState: 'No inbound batches yet',
         loadError: 'Load failed',
-        deleteConfirm: 'Delete inbound batch "{code}"?\n\n(Soft delete: data is kept and recoverable.)',
         // BTN-4:主语(批号)搬进对话框自己那一格,标题只剩问话。
         deleteConfirmTitle: 'Delete this inbound batch?',
         deleteError: 'Delete failed: {message}',
@@ -2529,7 +2525,6 @@ const en = {
         },
         emptyState: 'No output batches yet',
         loadError: 'Load failed',
-        deleteConfirm: 'Delete output batch "{code}"?\n\n(Soft delete: data is kept and recoverable.)',
         // BTN-4:同 inbound —— 主语搬进对话框,标题只剩问话。
         deleteConfirmTitle: 'Delete this output batch?',
         deleteError: 'Delete failed: {message}',
@@ -2566,6 +2561,10 @@ const en = {
             notFeedable: 'not feedable',
             add: 'Record {name}',
             remove: 'Delete {name}',
+            // ALERT-2c:硬删有了门。主语是那个状态的名字(它就印在上面那排徽章里,
+            // 不走 MaskedValue,本页对每个读得到它的人都可见)。
+            removeConfirmTitle: 'Delete this safety state?',
+            removeConsequence: 'A safety state is the record that somebody looked at this batch. Deleting it does not mean the batch is safe — it means nobody has looked, and the batch cannot be fed into any operation until someone records one again.',
             noPermission: 'You do not have output-batch edit rights, so you cannot change this.',
             errors: {
                 writeFailed: 'Write failed: {msg}',
@@ -3712,6 +3711,8 @@ const en = {
         noLines: 'No lines yet — add one below.',
         addLine: 'Add line',
         removeLine: 'Delete',
+        // ALERT-2c:硬删有了门。主语是【行号 · 物料】—— 两者都印在同一张表里。
+        removeLineConfirmTitle: 'Delete this quotation line?',
         editableNote: 'A quotation stays editable after it is issued — negotiating is what it is for. Change anything and the banner above will ask you to re-issue, because the copy the customer holds is a specific version.',
         linesLockedConverted: 'This quotation became a sales order, so it is now read-only: the offer and the order it produced must not drift apart.',
         linesLockedDeclined: 'This quotation was declined, so it is no longer edited. Raise a new one if the customer comes back.',
@@ -5427,8 +5428,6 @@ const en = {
         newTitle: 'New Task',
         editTitle: 'Edit Task',
         dropPlaceholder: 'Drop tasks here',
-        deleteConfirm:
-            'Delete "{title}"?\n\n(Soft delete: data is kept and recoverable.)',
         deleteError: 'Delete failed: {message}',
         status: {
             todo: 'To Do',

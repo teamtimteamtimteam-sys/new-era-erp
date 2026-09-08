@@ -15,6 +15,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import { updateQuoteLine, removeQuoteLine, addQuoteLine } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
 type Line = {
     id: string; line_no: number; material: string; unit: string
@@ -110,11 +111,28 @@ export default function QuoteLinesEditor({
                                                 className="text-xs">
                                             {t('common.save')}
                                         </Button>
-                                        <Button variant="destructive" size="inline" type="button" disabled={isPending}
-                                                onClick={() => run(() => removeQuoteLine(quoteId, l.id))}
-                                                className="ml-3 text-xs">
+                                        {/* ★【硬删,所以有门】★(ALERT-2c)
+                                            removeQuoteLine 走的是 quote_lines 上一次裸
+                                            `.delete()` —— 没有理由、没有墓碑、没有回头路。
+                                            ALERT-2a 已经把这个钮的字从 "remove" 改成
+                                            「删除」,那是把【牌子】写对;这里补上【门】。
+                                            主语取【行号 · 物料】:两者都印在同一行里,
+                                            本页没有一处 MaskedValue,所以主语不会说出
+                                            这个读者在表上看不到的东西(CONFIRM-1 的逐消费者判据)。
+                                            金额【刻意不进主语】—— 与 CostPanel 同一条理由。 */}
+                                        <ConfirmButton
+                                            subject={`#${l.line_no} · ${l.material}`}
+                                            title={t('quotes.removeLineConfirmTitle')}
+                                            body={t('common.hardDeleteNote')}
+                                            confirmLabel={t('common.delete')}
+                                            triggerVariant="destructive"
+                                            triggerSize="inline"
+                                            disabled={isPending}
+                                            className="ml-3 text-xs"
+                                            onConfirm={() => run(() => removeQuoteLine(quoteId, l.id))}
+                                        >
                                             {t('quotes.removeLine')}
-                                        </Button>
+                                        </ConfirmButton>
                                     </td>
                                 )}
                             </tr>

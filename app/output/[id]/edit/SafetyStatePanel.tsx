@@ -11,6 +11,7 @@
 // processing.edit);本面板答"这批料是什么状态"(产出/收货的人看见的,output.edit)。
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { addOutputSafetyState, removeOutputSafetyState } from './safetyActions'
 
 export type SafetyState = {
@@ -72,20 +73,47 @@ export default function SafetyStatePanel({
 
             {canEdit ? (
                 <div className="flex flex-wrap gap-2">
-                    {dictionary.map((s) => (
-                        <button key={s.code} type="button" disabled={isPending}
-                                onClick={() => toggle(s.code, !held.has(s.code))}
-                                className={
-                                    'px-3 py-1.5 text-sm rounded border disabled:opacity-50 ' +
-                                    (held.has(s.code)
-                                        ? 'bg-gray-200 border-gray-300'
-                                        : 'bg-white border-gray-300 hover:bg-gray-50')
-                                }>
-                            {held.has(s.code)
-                                ? t('output.safety.remove', { name: label(s) })
-                                : t('output.safety.add', { name: label(s) })}
-                        </button>
-                    ))}
+                    {dictionary.map((s) => {
+                        const on = held.has(s.code)
+                        const cls =
+                            'px-3 py-1.5 text-sm rounded border disabled:opacity-50 ' +
+                            (on ? 'bg-gray-200 border-gray-300'
+                                : 'bg-white border-gray-300 hover:bg-gray-50')
+                        // ★★【只有【拆】那一边有门,【记】那一边没有】★★(ALERT-2c,Tim 裁定 R4)
+                        //   记一条安全状态是【加】,而且再点一下就撤得掉;
+                        //   拆掉一条是【硬删】—— output_batch_safety_states 直接 .delete(),
+                        //   没有理由、没有墓碑、没有回头路。
+                        //   两个方向都弹框,是在教人把对话框当成一道过场 ——
+                        //   而那正是一个确认框失效的方式。
+                        return on ? (
+                            <ConfirmButton
+                                key={s.code}
+                                subject={label(s)}
+                                title={t('output.safety.removeConfirmTitle')}
+                                body={t('common.hardDeleteNote')}
+                                /* ★ 后果那一段【走对话框自己的 token】,不新画一个琥珀盒子:
+                                     本刀明令不碰 ALERT-2b 那 ~250 处行内色值,
+                                     那就更不该往里【添】一处。 */
+                                details={
+                                    <p className="text-sm font-medium text-foreground">
+                                        {t('output.safety.removeConsequence')}
+                                    </p>
+                                }
+                                confirmLabel={t('common.delete')}
+                                disabled={isPending}
+                                className={cls}
+                                onConfirm={() => toggle(s.code, false)}
+                            >
+                                {t('output.safety.remove', { name: label(s) })}
+                            </ConfirmButton>
+                        ) : (
+                            <button key={s.code} type="button" disabled={isPending}
+                                    onClick={() => toggle(s.code, true)}
+                                    className={cls}>
+                                {t('output.safety.add', { name: label(s) })}
+                            </button>
+                        )
+                    })}
                 </div>
             ) : (
                 <p className="text-xs text-gray-500">{t('output.safety.noPermission')}</p>
