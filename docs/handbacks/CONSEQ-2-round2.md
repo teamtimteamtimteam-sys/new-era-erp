@@ -258,7 +258,7 @@ c 说不出话才退回去读调用点(路线 a);两条都得不出一句验证�
 | # | 站点 | 动作走到哪 | 验证到的后果 | 出处 |
 |---|---|---|---|---|
 | 1 | `FinanceAttachmentsPanel:226` | `deleteFinanceAttachment` → `finance_attachments` 软删 | ✗ **没有** | 见 §5.2 ①(查到一条闸,但**它不管这个面板**) |
-| 2 | `MetalContentPanel:170` | `deleteAction` → `inbound_batch_metals` / `output_batch_metals` **硬删** | 这种金属不再计入本批计价;**删掉最后一种之后按合约条款算价会按名拒** | **c** — `db/functions/committed_terms_price.sql:34-39`:`SELECT jsonb_agg(…) FROM inbound_batch_metals …; IF v_metals IS NULL THEN RAISE EXCEPTION 'NO_METALS'`,随后 `calculate_metal_price_from_terms` 拿这份清单算价 |
+| 2 | `MetalContentPanel:170` | `deleteAction` → `inbound_batch_metals` / `output_batch_metals` **硬删** | 这种金属不再计入本批计价;**删掉最后一种之后按合约条款算价会按名拒** | **c** ×2(**这个面板进料/产出两张页面共用,所以两边都查过**)— 进料侧:`db/functions/committed_terms_price.sql:34-39` `IF v_metals IS NULL THEN RAISE EXCEPTION 'NO_METALS'`;产出侧:`db/functions/price_output_sale.sql:48-53` `IF v_metals = '[]'::jsonb THEN RAISE EXCEPTION 'NO_METAL_CONTENT|%'`。两边随后都把这份清单喂给 `calculate_metal_price_from_terms` —— **句子在两张屏幕上都成立** |
 | 3 | `DeleteStatementButton:24` | `deleteStatement` → `bank_statements` 软删 + `redirect` | **已对账的删不掉,要先重新打开**;删成之后被送回对账单列表 | **c** — `db/tables/bank_statements.sql:41,47`:`trg_bank_statements_no_delete_reconciled` 抛 `STATEMENT_RECONCILED`;`redirect('/finance/bank/statements')` 在 `actions.ts` 成功那一支 |
 | 4 | `DeleteDepartmentButton:20` | `deleteDepartment` | **还有人在的部门删不掉**(并点出人数) | **c**(动作层的闸)— `app/hr/departments/actions.ts:58-73`:先 `count` `employees` 且 `deleted_at IS NULL`,`headcount > 0` 即 `hr.deptHasEmployees`;★ 且 `countRes.error` 时**挡住而不是放行** |
 | 5 | `HolidaysTable:69` | `deleteHoliday` → `public_holidays` **硬删** | 这一天重新算作工作日:**跨过它的休假多扣一天**,**汇率取数也不再跳过它** | **c** — `db/functions/is_business_day.sql`(读 `public_holidays … AND h.is_active`),被 `calculate_leave_days.sql` 与 `fx_rate_asof.sql` 调用 |
@@ -275,7 +275,7 @@ c 说不出话才退回去读调用点(路线 a);两条都得不出一句验证�
 | 16 | `suppliers/DeleteButton:22` | `softDeleteSupplier` | 同 #8 | **a + c** — a:§2 那 26 处供应商列表取全部过滤;c:`create_purchase_order.sql:59` `SUPPLIER_NOT_FOUND` |
 | 17 | `suppliers/[id]/edit/AttachmentsPanel:203` | `supplier_attachments` 软删 | ✗ **没有** | 见 §5.2 ② |
 | 18 | `CompliancePanel:120` | `deleteCompliance` → `supplier_compliance` 软删 | ★★ **拦收货的是【过期的】证书,不是【缺少的】证书 —— 所以删掉一张正在拦收货的过期证书之后,这家供应商的货又可以收了** | **c** — `db/tables/inbound_batches.sql:180-196`(`guard_inbound_po_receivable` 的证书段):`WHERE sc.supplier_id = NEW.supplier_id AND sc.deleted_at IS NULL AND ct.disposition = 'block' AND sc.valid_until < CURRENT_DATE` → `SUPPLIER_QUALIFICATION_EXPIRED`;**函数自己的注释逐字写着「【缺证不挡】:挡的是"过期",不是"没有"」**。同一份谓词也在 `db/views/supplier_receiving_blocked.sql` 上 |
-| 19 | `DeleteFormulaButton:17` | `deleteFormula` → `pricing_formulas` 软删 + `redirect` | **新单上不再出现在可选项里**;已用它算过价的单据价格不变;删成之后回到公式列表 | **a + c** — a:`app/purchasing/orders/new/page.tsx` 公式那一句 `.is('deleted_at', null).eq('is_active', true).neq('direction','sale')`;c:`redirect('/tools/pricing/formulas')` |
+| 19 | `DeleteFormulaButton:17` | `deleteFormula` → `pricing_formulas` 软删 + `redirect` | **新单上不再出现在可选项里**;已用它算过价的单据价格不变;删成之后回到公式列表 | **a + c** — a:`app/purchasing/orders/new/page.tsx` 公式那一句 `.is('deleted_at', null).eq('is_active', true).neq('direction','sale')`;c:`redirect('/tools/pricing/formulas')`,**外加一条按名拒** —— `db/functions/price_output_sale.sql:60-62`:`IF NOT FOUND OR v_formula_deleted IS NOT NULL THEN RAISE EXCEPTION 'FORMULA_NOT_FOUND|%'`(拿一条已软删的公式【重新算价】会被按名拒;而【已经算好存下来的价】不变,所以句子那两半都成立)|
 | 20 | `NodeTree:146` | `removeNode` → `task_nodes` **硬删** | ✗ **没有写**(但**不是因为查不到**)| 见 §5.2 ③ —— 查到了 `TASK_NODE_HAS_CHILDREN`,**而调用点上有一条明文裁定说它不该写进这个对话框** |
 | 21 | `TaskHeader:184` | `softDeleteTask` → `tasks` 软删 | ✗ **没有** | 见 §5.2 ④ |
 
@@ -688,6 +688,34 @@ EXIT 0 — 每一处确认都点得出它在确认什么。
 ```
 ☞ **57 / 57 一个没变** —— 本刀没有新增或去掉任何一个确认框,这一行就是那件事的独立证据。
 另外 `npx tsc --noEmit` 单独跑过一次:`TSC_OWN_EXIT=0`,零行输出。
+
+### 11.3 提交、推送、部署
+
+| | |
+|---|---|
+| 开工 HEAD | `df643736a24530053390c31b3eb4d503fd9a9cf0` |
+| **收工 HEAD** | **`77586eada533468318c143d6154f10c70dfbf827`** |
+| 提交 | 19 个文件,+156 / −69(15 处调用点各 +5 行 · 两份词条各 +15 行 · 队列 · 本报告) |
+| **推送校验** | ★ **靠 `git fetch` + 比对哈希,不靠 push 的输出** —— `HEAD` == `origin/main`,两者都是 `77586ea…`。**一个空的退出码不是一个成功的退出码**;顺带一提 `git push … \| tail` 那一行印出来的 `PUSH_OWN_EXIT=0` **是 `tail` 的退出码,不是 `git` 的**(zsh 的 `$?` 取的是管道最后一段),所以它本来也不作数 |
+| 收工树 | `nothing to commit, working tree clean` |
+
+**部署 —— 两个问题分开问的(委托书明令):**
+
+| 问题 | 怎么问的 | 答案 |
+|---|---|---|
+| **Q1:存在一次 success 的部署吗?** | 问 `deployments/6343048085/**statuses**`(**不是**问那条部署记录本身) | **`state=success`**,`2026-09-09T05:15:12Z` |
+| **Q2:那一次的 sha 是本刀这次提交吗?** | 问 `deployments/6343048085` 的 `.sha`,再与 `git rev-parse HEAD` 逐字比 | **`77586eada533468318c143d6154f10c70dfbf827` == 本刀提交,MATCH** |
+
+* **部署 id:`6343048085`**
+* **sha:`77586eada533468318c143d6154f10c70dfbf827`**
+* **success 时刻:`2026-09-09T05:15:12Z` = 2026-09-09 13:15:12 CST**
+* URL:`https://new-era-1b6e7onkd-tim-s-projects7.vercel.app`
+
+★ **实测滞后**:推送后第一次查 `deployments?sha=` 返回**空数组**,轮询到第二次才拿到记录。
+**空数组不是"部署失败",是"下游登记还没写下来"** —— 与 PART 1 记的 162 秒同族。
+
+★ **破窗:不适用。** 本刀**零 SQL、零迁移**(`apply_migration.sh` 一次都没跑),
+没有"旧代码 + 新库"那个窗口。success 时刻记在这里是为了完整,不是因为有窗口要闭合。
 
 ---
 
