@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatTimestamp } from '@/lib/format'
 import { metalLabelKey } from '@/app/tools/pricing/metal-prices/options'
+import { AssayMetalsTable, ApplyPreviewTable } from './AssayTables'
 import { localizeAssayError } from '@/app/inbound/assayErrorCodes'
 import { ApplyOutputAssayButton, UnapplyOutputAssayControl } from './OutputApplyControls'
 import { mustRows } from '@/lib/db-helpers'
@@ -254,28 +255,15 @@ export default async function OutputAssayDetailPage({
                 </p>
             )}
 
-            {/* 金属表(单据本身说了什么)*/}
-            <table className="w-full border-collapse border border-gray-300 max-w-md mb-6">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('assay.colMetal')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('assay.colContent')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {metals.map((m) => (
-                        <tr key={m.metal}>
-                            <td className="border border-gray-300 px-4 py-2">
-                                {metalLabel(m.metal)}
-                                <span className="text-gray-400 font-mono text-xs ml-2">{m.metal}</span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {m.content_pct}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            {/* 金属表(单据本身说了什么)—— TABLE-CONVERT-4:换成 DataTable。
+                与 /inbound/[id]/assays/[assayId] 那张是同一次判断,同一个形状。 */}
+            <AssayMetalsTable
+                rows={metals.map((m) => ({
+                    metal: m.metal,
+                    metalLabel: metalLabel(m.metal),
+                    contentPct: String(m.content_pct),
+                }))}
+            />
 
             {/* 未应用:应用会怎样(问库)+ 立即应用 */}
             {!isApplied && (
@@ -289,60 +277,24 @@ export default async function OutputAssayDetailPage({
                     {preview && (
                         <>
                             <p className="text-sm text-gray-600 mb-3">{t('assay.output.replacesAll')}</p>
-                            <div className="overflow-x-auto mb-4">
-                                <table className="w-full border-collapse border border-gray-300 max-w-2xl text-sm">
-                                    <thead className="bg-gray-100">
-                                        <tr>
-                                            <th className="border border-gray-300 px-3 py-2 text-left">{t('assay.colMetal')}</th>
-                                            <th className="border border-gray-300 px-3 py-2 text-right">{t('assay.output.colCurrent')}</th>
-                                            <th className="border border-gray-300 px-3 py-2 text-left">{t('metalContent.colSource')}</th>
-                                            <th className="border border-gray-300 px-3 py-2 text-right">{t('assay.output.colAfter')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {previewRows.map((r) => (
-                                            <tr key={r.metal}>
-                                                <td className="border border-gray-300 px-3 py-2">
-                                                    {metalLabel(r.metal)}
-                                                    <span className="text-gray-400 font-mono text-xs ml-2">{r.metal}</span>
-                                                </td>
-                                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                                    {r.current ? `${r.current.content_pct}%` : '—'}
-                                                </td>
-                                                <td className="border border-gray-300 px-3 py-2">
-                                                    {r.current ? (
-                                                        <span
-                                                            className={
-                                                                'px-2 py-0.5 rounded text-xs ' +
-                                                                (r.current.content_source === 'assay'
-                                                                    ? 'bg-blue-100 text-blue-800 font-mono'
-                                                                    : r.current.content_source === 'manual'
-                                                                        ? 'bg-gray-200 text-gray-600'
-                                                                        : 'bg-amber-100 text-amber-800')
-                                                            }
-                                                        >
-                                                            {sourceLabel(r.current)}
-                                                        </span>
-                                                    ) : (
-                                                        '—'
-                                                    )}
-                                                </td>
-                                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                                    {r.next ? (
-                                                        `${r.next.content_pct}%`
-                                                    ) : (
-                                                        // 化验没报这一行 —— 应用是整体替换,这行会消失。
-                                                        // 被顶掉/移除的行必须看得见,不能被静默覆盖。
-                                                        <span className="px-2 py-0.5 rounded text-xs bg-red-100 text-red-700">
-                                                            {t('assay.output.willRemove')}
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+                            {/* 对照表 —— TABLE-CONVERT-4:换成 DataTable。
+                                四列、列头、每一格的字与红片全部原样;手机档仍然是横向滚动。 */}
+                            <ApplyPreviewTable
+                                rows={previewRows.map((r) => ({
+                                    metal: r.metal,
+                                    metalLabel: metalLabel(r.metal),
+                                    currentText: r.current ? `${r.current.content_pct}%` : '—',
+                                    sourceLabel: r.current ? sourceLabel(r.current) : null,
+                                    sourceKind: r.current
+                                        ? r.current.content_source === 'assay'
+                                            ? 'assay' as const
+                                            : r.current.content_source === 'manual'
+                                                ? 'manual' as const
+                                                : 'other' as const
+                                        : null,
+                                    afterText: r.next ? `${r.next.content_pct}%` : null,
+                                }))}
+                            />
 
                             {/* 过期后果:说在确认之前 */}
                             {preview.will_flag_stale ? (

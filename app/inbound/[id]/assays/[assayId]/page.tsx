@@ -12,6 +12,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatMoneyBare, formatUnitCost, formatTimestamp } from '@/lib/format'
 import { metalLabelKey } from '@/app/tools/pricing/metal-prices/options'
+import { AssayMetalsTable } from './AssayMetalsTable'
 import { localizeAssayError } from '../../../assayErrorCodes'
 import { ApplyNowButton, UnapplyControl } from './ApplyAssayControls'
 import AssayImpactPreview from '../AssayImpactPreview'
@@ -285,28 +286,15 @@ export default async function AssayDetailPage({
                 </p>
             )}
 
-            {/* 金属表 */}
-            <table className="w-full border-collapse border border-gray-300 max-w-md mb-6">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('assay.colMetal')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('assay.colContent')}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {metals.map((m) => (
-                        <tr key={m.metal}>
-                            <td className="border border-gray-300 px-4 py-2">
-                                {metalLabel(m.metal)}
-                                <span className="text-gray-400 font-mono text-xs ml-2">{m.metal}</span>
-                            </td>
-                            <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                {m.content_pct}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+            {/* 金属表 —— TABLE-CONVERT-4:换成 DataTable。列头与格子里的字一个都没有变;
+                行在这里压平(metalLabel 走 t(),函数跨不过 server→client)。 */}
+            <AssayMetalsTable
+                rows={metals.map((m) => ({
+                    metal: m.metal,
+                    metalLabel: metalLabel(m.metal),
+                    contentPct: String(m.content_pct),
+                }))}
+            />
 
             {/* 已应用:由此产生的价格变动(读记录,不重算)*/}
             {isApplied && priceChange && (

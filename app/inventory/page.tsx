@@ -15,6 +15,7 @@ import { compareForSort } from '@/lib/sortCollation'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { UNIT_OPTIONS, labelKeyForValue } from '@/app/materials/options'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
+import { InventoryTable } from './InventoryTable'
 import { latestPriceByMetal, marketValuePerKg } from '@/lib/valuation'
 import { maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -383,125 +384,34 @@ export default async function InventoryPage() {
                     )}
                 </div>
 
-                <table className="w-full border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('inventory.colMaterial')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('inventory.colCategory')}</th>
-                            <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('inventory.colInboundStock')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('valuation.colAvgPrice')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('valuation.colStockValue')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('inventory.colOutputStock')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('valuation.colCostValue')}</th>
-                            <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('valuation.colMarketValue')}</th>
-                            {/* ★ TABLE-PHONE-1(R-Q5):「单位」这一列没了 —— 它并进了它所属的那个数。
-                                「12.5」与「t」本来是【一个值】,此前被拆在两列里,中间隔着五列。
-                                ★ 这一处【桌面档也变了】(九列 → 八列),而它超出"手机档"这一刀
-                                  本来的边界 —— Tim 2026-09-09 单独批的,交回报告里单独报。 */}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((r) => {
-                            // ★ R-Q5:数与单位并成一个值。两档共用同一份节点,免得两处各自漂。
-                            //   链接仍然只挂在【数】上 —— 单位不是另一个去处。
-                            const unit = unitLabel(r.unit)
-                            const inboundNode = (
-                                <>
-                                    {r.inboundStock > 0 ? (
-                                        <Link
-                                            href={`/inventory/inbound/${r.material_id}`}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {r.inboundStock}
-                                        </Link>
-                                    ) : (
-                                        r.inboundStock
-                                    )}
-                                    {' '}{unit}
-                                </>
-                            )
-                            const outputNode = (
-                                <>
-                                    {r.outputStock > 0 ? (
-                                        <Link
-                                            href={`/inventory/output/${r.material_id}`}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {r.outputStock}
-                                        </Link>
-                                    ) : (
-                                        r.outputStock
-                                    )}
-                                    {' '}{unit}
-                                </>
-                            )
-                            const avgPriceNode = r.pricedQty > 0 && r.stockValue !== null
-                                ? formatMoneyBare(r.stockValue / r.pricedQty, '列头「加权均价 (SGD)」')
-                                : '—'
-                            const stockValueNode = r.stockValue !== null ? formatMoneyBare(r.stockValue, '列头「库存价值 (SGD)」') : '—'
-                            const costValueNode = r.costValue !== null ? formatMoneyBare(r.costValue, '列头「成本价值 (SGD)」') : '—'
-                            return (
-                            <tr key={r.material_id}>
-                                <td className="border border-gray-300 px-2 sm:px-4 py-2">
-                                    {r.name ?? '—'}
-                                    {/* ★ TABLE-PHONE-1:手机档被拿掉的五列,原样叠在这里,各带各的列头。
-                                        产出量那一条【连着它的链接一起叠】—— 一个在手机上够不着的
-                                        钻取入口,与没有这个入口是同一回事。 */}
-                                    <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
-                                        <div>
-                                            <span className="text-gray-500">{t('inventory.colCategory')}: </span>
-                                            {categoryLabel(r.kindLabel)}
-                                        </div>
-                                        <div className="font-mono">
-                                            <span className="font-sans text-gray-500">{t('valuation.colAvgPrice')}: </span>
-                                            {avgPriceNode}
-                                        </div>
-                                        <div className="font-mono">
-                                            <span className="font-sans text-gray-500">{t('valuation.colStockValue')}: </span>
-                                            {stockValueNode}
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">{t('inventory.colOutputStock')}: </span>
-                                            {outputNode}
-                                        </div>
-                                        <div className="font-mono">
-                                            <span className="font-sans text-gray-500">{t('valuation.colCostValue')}: </span>
-                                            {costValueNode}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">{categoryLabel(r.kindLabel)}</td>
-                                <td className="border border-gray-300 px-2 sm:px-4 py-2">{inboundNode}</td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">{avgPriceNode}</td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">{stockValueNode}</td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">{outputNode}</td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">{costValueNode}</td>
-                                <td className="border border-gray-300 px-2 sm:px-4 py-2">
-                                    {r.marketValue !== null ? formatMoneyBare(r.marketValue, '列头「市价价值 (USD)」') : '—'}
-                                </td>
-                            </tr>
-                            )
-                        })}
-                        {rows.length === 0 && (
-                            <tr>
-                                {/* colSpan 不能随断点变 —— 手机档三列,桌面档八列
-                                    (九列减掉并进数字里的「单位」)。 */}
-                                <td
-                                    colSpan={3}
-                                    className="sm:hidden border border-gray-300 px-4 py-8 text-center text-gray-500"
-                                >
-                                    {t('inventory.emptyState')}
-                                </td>
-                                <td
-                                    colSpan={8}
-                                    className="hidden sm:table-cell border border-gray-300 px-4 py-8 text-center text-gray-500"
-                                >
-                                    {t('inventory.emptyState')}
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
+                {/* ★ TABLE-CONVERT-4:换成 DataTable。
+                    列、列头、每一格的字、以及 R-Q5 那条「数与单位并成一个值」全部原样;
+                    手机档留下的仍然是 物料 · 进料库存 · 市价价值 三列。
+                    ★ 那条「单位」列早就并进了数字里(TABLE-PHONE-1 / R-Q5,桌面 8 列),
+                      本刀【没有再动它】。 */}
+                <InventoryTable
+                    rows={rows.map((r) => {
+                        const unit = unitLabel(r.unit)
+                        return {
+                            materialId: r.material_id,
+                            name: r.name ?? '—',
+                            category: categoryLabel(r.kindLabel),
+                            inboundStock: r.inboundStock,
+                            outputStock: r.outputStock,
+                            unit,
+                            avgPriceText:
+                                r.pricedQty > 0 && r.stockValue !== null
+                                    ? formatMoneyBare(r.stockValue / r.pricedQty, '列头「加权均价 (SGD)」')
+                                    : '—',
+                            stockValueText:
+                                r.stockValue !== null ? formatMoneyBare(r.stockValue, '列头「库存价值 (SGD)」') : '—',
+                            costValueText:
+                                r.costValue !== null ? formatMoneyBare(r.costValue, '列头「成本价值 (SGD)」') : '—',
+                            marketValueText:
+                                r.marketValue !== null ? formatMoneyBare(r.marketValue, '列头「市价价值 (USD)」') : '—',
+                        }
+                    })}
+                />
                 <p className="text-xs text-gray-500 mt-2">
                     {t('inventory.footerNote')}
                 </p>

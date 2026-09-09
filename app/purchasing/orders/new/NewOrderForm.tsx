@@ -25,7 +25,7 @@ import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput, { parseDecimal } from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
-import type { CalcResult } from '@/app/tools/pricing/calculator/actions'
+import type { CalcResult, CalcLine } from '@/app/tools/pricing/calculator/actions'
 import { applicableTriggers, triggerLabel, type PaymentTriggerEvent } from '@/lib/paymentTriggers'
 import {
     createOrder,
@@ -36,6 +36,7 @@ import {
 } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 const initialState: CreateOrderState = {}
 
@@ -804,55 +805,11 @@ canEdit: boolean
                                         {/* ★ TABLE-PHONE-5：这张计价明细以前【一个列头都没有】——
                                             五列裸的数字，谁也不知道哪一列是含量、哪一列是计价。
                                             五个 key 是 Tim 批的，而它们【桌面档也上】—— 这一步本身是一次
-                                            桌面改动，单独报告过。整张表只读，一个输入框都没有。 */}
-                                        <table className="border-collapse">
-                                            <thead>
-                                                <tr className="text-gray-500">
-                                                    <th className="pr-3 text-left font-medium">{t('purchasing.calcColMetal')}</th>
-                                                    <th className="hidden sm:table-cell pr-3 text-left font-medium">{t('purchasing.calcColContentPct')}</th>
-                                                    <th className="hidden sm:table-cell pr-3 text-left font-medium">{t('purchasing.calcColPayablePct')}</th>
-                                                    <th className="pr-3 text-right font-medium">{t('purchasing.calcColUnitPrice')}</th>
-                                                    <th className="text-right font-medium">{t('purchasing.calcColMetalValue')}</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {l.calc.lines.map((cl) => {
-                                                    /* 两档都要出现的数，提出来写一次 —— 抄成两份就是
-                                                       让两份将来各走各的，而漂移在桌面上是看不见的。
-                                                       ★ 那个「×」原样带着：它是桌面格子里本来就有的字，
-                                                       叠进去的时候去掉它就是【改了那一列装的东西】。 */
-                                                    const contentPctText = `${cl.content_pct}%`
-                                                    const payablePctText = `× ${cl.payable_pct}%`
-                                                    return (
-                                                    <tr key={cl.metal}>
-                                                        <td className="pr-3">
-                                                            {t('metals.' + cl.metal)}
-                                                            <div className="sm:hidden mt-0.5 space-y-0.5 text-gray-600">
-                                                                <div className="font-mono">
-                                                                    <span className="font-sans text-gray-500">{t('purchasing.calcColContentPct')}: </span>
-                                                                    {contentPctText}
-                                                                </div>
-                                                                <div className="font-mono">
-                                                                    <span className="font-sans text-gray-500">{t('purchasing.calcColPayablePct')}: </span>
-                                                                    {payablePctText}
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="hidden sm:table-cell pr-3 font-mono">{contentPctText}</td>
-                                                        <td className="hidden sm:table-cell pr-3 font-mono">{payablePctText}</td>
-                                                        <td className="pr-3 font-mono text-right">
-                                                            {cl.price_usd_per_tonne !== null
-                                                                ? formatMoneyBare(cl.price_usd_per_tonne, '本块末行的「… = … USD」—— 计价明细整块是行情口径 USD') + '/t'
-                                                                : '—'}
-                                                        </td>
-                                                        <td className="font-mono text-right">
-                                                            {formatMoneyBare(cl.metal_value_usd, '本块末行的「… = … USD」—— 计价明细整块是行情口径 USD')}
-                                                        </td>
-                                                    </tr>
-                                                    )
-                                                })}
-                                            </tbody>
-                                        </table>
+                                            桌面改动，单独报告过。整张表只读，一个输入框都没有。
+                                            ★ TABLE-CONVERT-4：换成 DataTable。五列、列头、每一格的字
+                                              （含那个原样带着的「×」）全部不变；手机档留下的仍然是
+                                              金属 · 单价 · 金属价值 三列。 */}
+                                        <CalcLinesTable lines={l.calc.lines} />
                                         <p className="font-mono text-gray-700">
                                             {formatMoneyBare(l.calc.gross_value_usd, '同一行末尾的 USD')} − {formatMoneyBare(l.calc.treatment_usd, '同一行末尾的 USD')}{' '}
                                             − {formatMoneyBare(l.calc.discount_usd, '同一行末尾的 USD')} = {formatMoneyBare(l.calc.net_value_usd, '同一行末尾的 USD')} USD →{' '}
@@ -1053,5 +1010,69 @@ canEdit: boolean
             </div>
         </form>
         </PermissionGate>
+    )
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TABLE-CONVERT-4 · 计价明细(5 列)—— 手搓 <table> 换成 DataTable
+// ════════════════════════════════════════════════════════════════════════════
+// 【为什么住在本文件里,不另起一个文件】本文件已经是 client component,没有
+//   server→client 那道边界要过;这张表只被这一处用。多一个文件在这里买不到东西。
+//   ★ 它 export 出来,是为了让量测台能渲染【这一个真组件】,而不是渲染一份抄过去的
+//     列定义 —— TABLE-CONVERT-2 对 ImportStatementForm 只能量抄件,那一层间接
+//     它自己在 §8 里记过。本刀不想再欠那一笔。
+//
+// 【手机档是搬运,不是新判断】转换前含量% 与 计价% 两列带着 hidden sm:table-cell,
+//   另有一份叠在金属那一格里(各带各的列头)。组件的展开区就是那一份叠加块的
+//   正规写法,所以:金属 · 单价 · 金属价值 三列 priority,另外两列进展开区。
+//
+// 【那个「×」原样带着】它是桌面格子里本来就有的字(`× 90%` 读作"乘以九成"),
+//   转换前叠加块与桌面格各写了一份;现在只有一份 render,两档同一个字。
+export function CalcLinesTable({ lines }: { lines: CalcLine[] }) {
+    const t = useTranslations()
+    const columns: Column<CalcLine>[] = [
+        {
+            key: 'metal',
+            header: t('purchasing.calcColMetal'),
+            priority: true,
+            render: (cl) => t('metals.' + cl.metal),
+        },
+        {
+            key: 'contentPct',
+            header: t('purchasing.calcColContentPct'),
+            className: 'font-mono',
+            render: (cl) => `${cl.content_pct}%`,
+        },
+        {
+            key: 'payablePct',
+            header: t('purchasing.calcColPayablePct'),
+            className: 'font-mono',
+            render: (cl) => `× ${cl.payable_pct}%`,
+        },
+        {
+            key: 'unitPrice',
+            header: t('purchasing.calcColUnitPrice'),
+            align: 'right',
+            priority: true,
+            className: 'font-mono',
+            render: (cl) =>
+                cl.price_usd_per_tonne !== null
+                    ? formatMoneyBare(cl.price_usd_per_tonne, '本块末行的「… = … USD」—— 计价明细整块是行情口径 USD') + '/t'
+                    : '—',
+        },
+        {
+            key: 'metalValue',
+            header: t('purchasing.calcColMetalValue'),
+            align: 'right',
+            priority: true,
+            className: 'font-mono',
+            render: (cl) =>
+                formatMoneyBare(cl.metal_value_usd, '本块末行的「… = … USD」—— 计价明细整块是行情口径 USD'),
+        },
+    ]
+    // 没有给 empty:转换前 lines 为空时画的是一张只有表头的表,这一处从来没有空态文案。
+    return (
+        <DataTable rows={lines} columns={columns} rowKey={(cl) => cl.metal}
+                   phone={{ mode: 'columns' }} />
     )
 }
