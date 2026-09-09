@@ -448,6 +448,13 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     priorRunsRestricted={!canSeeProcessingRuns}
                     kgSinceAcquisition={kgSinceAcquisition}
                     canEdit={canRecordEquipment} />
+                {/* ★ PERM-CODE-1(2026-09-09)· 这一块要【两个】权限,而它们不是同一个:
+                    canEdit       ← canRecordEquipment = module.processing.edit(保养记录的直插)
+                    canCapitalise ← 本页 :49 那个 canEdit = module.finance.edit(资本化走 record_expense)
+                    ☞ 本页自己的 `canEdit` 是 finance,而传下去的 `canEdit` 是 processing ——
+                      正是这个同名陷阱让面板里四道闸对人报错了权限码。传下去的名字因此
+                      刻意叫 canCapitalise,不叫 canEdit。**新的取数一次都没加**,
+                      :49 那个布尔本来就在。 */}
                 <MaintenancePanel
                     assetId={asset.id}
                     rows={maintRows}
@@ -455,6 +462,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     suppliers={suppliers}
                     expenses={expenseOpts}
                     canEdit={canRecordEquipment}
+                    canCapitalise={canEdit}
                     inServiceDate={asset.in_service_date}
                     capitalisePct={Number(settingsRes.data?.capitalise_pct_of_cost ?? 0)}
                     capitaliseFloor={Number(settingsRes.data?.capitalise_floor_base ?? 0)}

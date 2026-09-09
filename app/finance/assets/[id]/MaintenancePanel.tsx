@@ -73,7 +73,7 @@ export type MaintRow = {
 }
 
 export default function MaintenancePanel({
-    assetId, rows, employees, suppliers, expenses, canEdit,
+    assetId, rows, employees, suppliers, expenses, canEdit, canCapitalise,
     inServiceDate, capitalisePct, capitaliseFloor, equipmentCostBase, baseCurrency, currencies,
 }: {
     assetId: string
@@ -81,7 +81,16 @@ export default function MaintenancePanel({
     employees: { id: string; label: string }[]
     suppliers: { id: string; label: string }[]
     expenses: { id: string; label: string }[]
+    /* ★ PERM-CODE-1(2026-09-09)· 这两个布尔【不是同一个权限】,名字必须分得开。
+       canEdit       = module.processing.edit —— 保养记录那条 insert 的 RLS 策略要它
+                       (db/tables/equipment_maintenance.sql:144-147 WITH CHECK)。
+       canCapitalise = module.finance.edit    —— 资本化走 record_expense,
+                       db/functions/record_expense.sql:54 的 require_permission 要它。
+       ☞ 本刀之前这里只有一个 canEdit,而父页 :451 传进来的是 canRecordEquipment
+         (processing)。父页自己的 canEdit 却是 finance —— 同一个名字两个意思,
+         四道闸因此对人报错了权限码。**不要把这两个再合回一个名字。** */
     canEdit: boolean
+    canCapitalise: boolean
     inServiceDate: string | null
     capitalisePct: number
     capitaliseFloor: number
@@ -194,8 +203,13 @@ export default function MaintenancePanel({
                而一个点下去只会得到错误的按钮是本仓库记过的那条
                "不要 offer 服务端一定会拒的动作"。未投用的机器不走这条路。 */
             render: (r) =>
-                r.capitalised && !r.capitalised_expense_id && inServiceDate && canEdit ? (
-                    <CapitaliseControl canEdit={canEdit} assetId={assetId} maintenanceId={r.id}
+                /* ★ PERM-CODE-1:这里【不再问权限】。原本的 `&& canEdit` 问的是
+                   processing,却在决定一个 finance 控件画不画 —— 于是持 finance
+                   而不持 processing 的人【连这个钮都看不见】,正是 DBLOCK-1 裁掉的
+                   那种藏法。闸归闸、状态归状态(ALERT-2d ④(a)):三个条件是记录状态,
+                   权限交给 CapitaliseControl 里面那两道闸。 */
+                r.capitalised && !r.capitalised_expense_id && inServiceDate ? (
+                    <CapitaliseControl canCapitalise={canCapitalise} assetId={assetId} maintenanceId={r.id}
                                        performedOn={r.performed_on}
                                        suppliers={suppliers} baseCurrency={baseCurrency}
                                        currencies={currencies} />
@@ -215,12 +229,14 @@ export default function MaintenancePanel({
         <div className="mb-8">
             <div className="flex items-baseline gap-3 mb-2">
                 <h2 className="text-lg font-medium">{t('equipment.maint.title')}</h2>
+                {/* ★ PERM-CODE-1:此处原本是【两层嵌套的闸】,外层 processing、内层 finance,
+                    而两层的 allowed 是【同一个布尔】—— 内层因此一次都没挡住过任何人,
+                    它唯一的作用是把一句【错的】原因印到屏幕上。内层已删。
+                    留下的这一道与服务端一致:新增保养是一条直插,RLS 要 processing.edit。 */}
                 <PermissionGate code="module.processing.edit" allowed={canEdit}>
-                    <PermissionGate code="module.finance.edit" allowed={canEdit}>
                     <Button variant="secondary" size="xs" type="button" onClick={() => setOpen(!open)} disabled={pending}>
                         {t('equipment.maint.add')}
                     </Button>
-                    </PermissionGate>
                 </PermissionGate>
             </div>
             {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('equipment.needsProcessingEdit')}</p>}
@@ -364,7 +380,10 @@ export default function MaintenancePanel({
                     </div>
 
                     <div className="flex gap-2 items-center">
-                        <PermissionGate code="module.finance.edit" allowed={canEdit}>
+                        {/* ★ PERM-CODE-1:码由 finance.edit 改为 processing.edit。
+                            这个【保存】提交的是 recordMaintenance,一条直插 equipment_maintenance,
+                            强制它的是那张表的 insert 策略(processing.edit),不是 finance。 */}
+                        <PermissionGate code="module.processing.edit" allowed={canEdit}>
                         <Button size="xs" type="button" disabled={pending || why !== ''} onClick={submit}>
                             {t('common.save')}
                         </Button>
@@ -393,14 +412,16 @@ export default function MaintenancePanel({
 //   直接 FX_RATE_NOT_ACCEPTED)。牌价属于 fx_rates,不属于表单 —— 这是全库同一条。
 // 【税码也不在】留空 = 走供应商的默认进项税码(resolve_tax_code),
 //   与普通支出表单同一份实现,不在这里另开一套。
-function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, baseCurrency, currencies, canEdit }: {
+function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, baseCurrency, currencies, canCapitalise }: {
     assetId: string
     maintenanceId: string
     performedOn: string
     suppliers: { id: string; label: string }[]
     baseCurrency: string
     currencies: string[]
-    canEdit: boolean
+    /* ★ PERM-CODE-1:这一族走 record_expense,要的是 module.finance.edit。
+       它【不是】保养记录那个权限 —— 收一个自己的布尔,不共用 canEdit。 */
+    canCapitalise: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -433,7 +454,7 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
 
     if (!open) {
         return (
-            <PermissionGate code="module.finance.edit" allowed={canEdit}>
+            <PermissionGate code="module.finance.edit" allowed={canCapitalise}>
             <Button variant="secondary" size="xs" className="text-xs" type="button" onClick={() => { setOpen(true); setError(null) }}>
                 {t('equipment.maint.capitaliseAction')}
             </Button>
@@ -476,7 +497,7 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
                 </label>
             </div>
             <div className="flex gap-2 items-center mt-2">
-                <PermissionGate code="module.finance.edit" allowed={canEdit}>
+                <PermissionGate code="module.finance.edit" allowed={canCapitalise}>
                 <Button size="xs" type="button" disabled={pending || why !== ''} onClick={submit}>
                     {t('equipment.maint.capitaliseAction')}
                 </Button>

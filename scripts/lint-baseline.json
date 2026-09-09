@@ -1,0 +1,535 @@
+{
+  "__NOTE__": "★ 这份基线【只会缩短】,不会变长。键是【文件路径 + 规则名】,不是行号(行号随每次编辑漂,会让闸天天假红)。error 与 warning 【各记一个数,各自只许降】—— 只冻 error 会让 no-unused-vars 那 63 个 warning 完全不设防,那是一道开着后门的冻结。多一处 → 闸变红并点名文件与规则;少一处 → 用 --update-baseline 顺手收紧。它不是白名单:白名单随新债增长,基线随还债缩短。本刀(PERM-CODE-1 + LINT-FREEZE-1,2026-09-09)只冻结,【一个都没有修】。",
+  "totals": {
+    "errors": 42,
+    "warnings": 88
+  },
+  "entries": {
+    "app/components/IdleWatcher.tsx": {
+      "react-hooks/purity": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/components/nav/ModuleBar.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/components/nav/SearchShell.tsx": {
+      "react-hooks/rules-of-hooks": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/components/ui/data-table.tsx": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "app/components/ui/editable-table.tsx": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 1
+      },
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/components/ui/feedback.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/finance/bank/statements/[id]/reconcile/ReconcileWorkspace.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/finance/cashflow/page.tsx": {
+      "react-hooks/static-components": {
+        "errors": 7,
+        "warnings": 0
+      }
+    },
+    "app/finance/company/CompanyProfileForm.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/finance/expenses/new/NewExpenseForm.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/finance/fx/[id]/edit/EditFxRateForm.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/finance/invoices/[id]/pdf/route.ts": {
+      "<unused-eslint-disable>": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/finance/payments/new/NewPaymentForm.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 2,
+        "warnings": 0
+      }
+    },
+    "app/finance/wht/page.tsx": {
+      "react-hooks/purity": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/hr/claims/[id]/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/hr/employees/EmployeeForm.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/hr/employees/[id]/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/hr/leave/LeaveForm.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/hr/leave/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/hr/reviews/ReviewActions.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/inbound/CertificateDocument.tsx": {
+      "jsx-a11y/alt-text": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/inbound/InboundToolbar.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/inbound/[id]/edit/LandedCostPanel.tsx": {
+      "react-hooks/static-components": {
+        "errors": 4,
+        "warnings": 0
+      }
+    },
+    "app/inbound/[id]/edit/PricingPanel.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/inbound/[id]/edit/pricingActions.ts": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/inbound/actions.ts": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/inbound/new/actions.ts": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "app/inbound/receive/actions.ts": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "app/logistics/containers/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/logistics/forwarders/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/margin/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/materials/MaterialToolbar.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/materials/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "app/my-reviews/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/operation/processing/new/NewProcessingForm.tsx": {
+      "react-hooks/refs": {
+        "errors": 2,
+        "warnings": 0
+      }
+    },
+    "app/operation/wip/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/output/OutputToolbar.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/output/[id]/edit/SalePanel.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/output/[id]/edit/saleActions.ts": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/output/actions.ts": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/output/new/actions.ts": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "app/output/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "app/purchasing/orders/[id]/ExpectedDateControl.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/purchasing/orders/[id]/amend/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/purchasing/orders/[id]/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/purchasing/orders/[id]/pdf/route.ts": {
+      "<unused-eslint-disable>": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/purchasing/orders/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/purchasing/payment-terms/TemplatesTable.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/sales/customers/CustomerToolbar.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/sales/customers/overlap/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/sales/customers/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "app/sales/orders/[id]/ShippingSection.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/sales/quotes/[id]/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/settings/approvals/ApprovalsPanel.tsx": {
+      "react-hooks/static-components": {
+        "errors": 5,
+        "warnings": 0
+      }
+    },
+    "app/settings/import/actions.ts": {
+      "prefer-const": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/suppliers/SupplierToolbar.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/suppliers/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "app/tools/pricing/formulas/FormulaForm.tsx": {
+      "react-hooks/purity": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/tools/pricing/formulas/[id]/edit/page.tsx": {
+      "react-hooks/purity": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/tools/pricing/formulas/new/page.tsx": {
+      "react-hooks/purity": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/tools/pricing/formulas/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/tools/pricing/metal-prices/[id]/edit/actions.ts": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "app/tools/pricing/metal-prices/bulk/BulkPricesForm.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/tools/pricing/metal-prices/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "app/tools/tasks/TaskBoard.tsx": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "app/tools/tasks/TaskModal.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/tools/tasks/[id]/page.tsx": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "app/tools/tasks/actions.ts": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "lib/paymentTriggers.ts": {
+      "@typescript-eslint/no-explicit-any": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "lib/useFormDraft.ts": {
+      "react-hooks/set-state-in-effect": {
+        "errors": 1,
+        "warnings": 0
+      }
+    },
+    "scripts/check-currency-literals.mjs": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "scripts/check-nav-routes.mjs": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "scripts/probe-action-message.mjs": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 2
+      },
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "scripts/probe-alert2a.mjs": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 2
+      },
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "scripts/probe-avatar.mjs": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "scripts/probe-button-tiers.mjs": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "scripts/probe-confirm-dialog.mjs": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "scripts/probe-header-baseline.mjs": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "scripts/probe-permission-gate.mjs": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "scripts/probe-search-shell.mjs": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "scripts/probe-silent1-journeys.mjs": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "scripts/smoke-routes.mjs": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 5
+      }
+    },
+    "scripts/survey-error-spellings.mjs": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 1
+      }
+    },
+    "scripts/survey-pages.mjs": {
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 2
+      }
+    },
+    "scripts/survey-phone.mjs": {
+      "@typescript-eslint/no-unused-expressions": {
+        "errors": 0,
+        "warnings": 3
+      },
+      "@typescript-eslint/no-unused-vars": {
+        "errors": 0,
+        "warnings": 1
+      }
+    }
+  }
+}
