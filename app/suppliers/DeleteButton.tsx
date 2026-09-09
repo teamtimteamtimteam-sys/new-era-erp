@@ -23,6 +23,11 @@ export default function DeleteButton({
             subject={legalName}
             title={t('suppliers.deleteConfirmTitle')}
             body={t('common.softDeleteNote')}
+            details={
+                <p className="text-sm font-medium text-foreground">
+                    {t('suppliers.deleteConsequence')}
+                </p>
+            }
             confirmLabel={t('common.delete')}
             tier="destructive"
             disabled={isPending}

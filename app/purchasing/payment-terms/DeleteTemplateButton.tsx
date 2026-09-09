@@ -26,6 +26,11 @@ canEdit: boolean
                 subject={name}
                 title={t('purchasing.deleteTemplateConfirmTitle')}
                 body={t('common.softDeleteNote')}
+                details={
+                    <p className="text-sm font-medium text-foreground">
+                        {t('purchasing.deleteTemplateConsequence')}
+                    </p>
+                }
                 confirmLabel={t('common.delete')}
                 tier="destructive"
                 disabled={isPending}

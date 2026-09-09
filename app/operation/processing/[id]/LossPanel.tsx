@@ -101,6 +101,11 @@ export default function LossPanel({
                         subject={c ? label(c) : r.loss_category_code}
                         title={t('processing.loss.deleteTitle')}
                         body={t('common.hardDeleteNote')}
+                        details={
+                            <p className="text-sm font-medium text-foreground">
+                                {t('processing.loss.deleteConsequence')}
+                            </p>
+                        }
                         confirmLabel={t('common.delete')}
                         tier="destructive"
                         disabled={isPending}

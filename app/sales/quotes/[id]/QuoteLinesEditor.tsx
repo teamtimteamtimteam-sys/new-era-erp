@@ -124,6 +124,11 @@ export default function QuoteLinesEditor({
                                             subject={`#${l.line_no} · ${l.material}`}
                                             title={t('quotes.removeLineConfirmTitle')}
                                             body={t('common.hardDeleteNote')}
+                                            details={
+                                                <p className="text-sm font-medium text-foreground">
+                                                    {t('quotes.removeLineConsequence')}
+                                                </p>
+                                            }
                                             confirmLabel={t('common.delete')}
                                             triggerVariant="destructive"
                                             triggerSize="inline"

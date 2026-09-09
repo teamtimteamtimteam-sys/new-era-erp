@@ -21,6 +21,11 @@ export default function DeleteDepartmentButton({ id, name }: { id: string; name:
                 subject={name}
                 title={t('hr.deleteDepartmentConfirmTitle')}
                 body={t('common.softDeleteNote')}
+                details={
+                    <p className="text-sm font-medium text-foreground">
+                        {t('hr.deleteDepartmentConsequence')}
+                    </p>
+                }
                 confirmLabel={t('common.delete')}
                 tier="destructive"
                 disabled={isPending}

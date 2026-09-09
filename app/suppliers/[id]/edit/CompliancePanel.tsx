@@ -123,6 +123,11 @@ export default function CompliancePanel({
                                                 : typeLabel(row.cert_type_code)}
                                             title={t('suppliers.compliance.deleteConfirm')}
                                             body={t('common.softDeleteNote')}
+                                            details={
+                                                <p className="text-sm font-medium text-foreground">
+                                                    {t('suppliers.compliance.deleteConsequence')}
+                                                </p>
+                                            }
                                             confirmLabel={t('suppliers.compliance.deleteCert')}
                                             tier="destructive"
                                             disabled={isPending}

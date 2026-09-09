@@ -3252,83 +3252,65 @@ Tim 在闸上点名给三处硬删补确认框(LossPanel · HolidaysTable · 绩
 
 **触发条件:** 无前置。四条各自独立,可以分开做。
 
-### ⬜ CONSEQ-2 · 确认框说出它会造成什么(桶 B:二十一处只有通用软/硬删说明的)
+### ✅ CONSEQ-2 · 确认框说出它会造成什么(桶 B)—— **2026-09-09 关闭**
 
-**排在 `NARROW-COVERAGE-1` 之后** —— 桶 B 的每一句都是**一条关于系统行为的断言**,
-而验证它需要的正是那一刀要建的东西。**不要提前开工,也不要"先勘察一下"。**
+**做完了:二十一处逐处验证,15 处补了后果句,6 处留白。**
+交回报告:`docs/handbacks/CONSEQ-2-round2.md`(留白的六处逐条列名与理由在 §5.2)。
 
-* **二十一处**:`FinanceAttachmentsPanel:226` · `MetalContentPanel:170` ·
-  `DeleteStatementButton:24` · `DeleteDepartmentButton:20` · `HolidaysTable:69` ·
-  `GoalsEditor:279` · `DeleteTrainingButton:19` · `materials/DeleteButton:22` ·
-  `materials/[id]/edit/AttachmentsPanel:196` · `CostPanel:100` · `LossPanel:100` ·
-  `DeleteTemplateButton:25` · `customers/DeleteButton:22` ·
-  `customers/[id]/edit/AttachmentsPanel:203` · `QuoteLinesEditor:123` ·
-  `suppliers/DeleteButton:22` · `suppliers/[id]/edit/AttachmentsPanel:203` ·
-  `CompliancePanel:120` · `DeleteFormulaButton:17` · `NodeTree:146` · `TaskHeader:184`
-* **管着它的两条规矩(Tim 在 CONSEQ-1 的闸上裁定,原样搬来):**
-  * **R-Q2:**只在**验证得出**确有后果的地方补一句;通用那句本身就是全部真相的地方
-    **留着别动** —— 但**每一处留着不动的都要在交回报告里逐条列出并说明理由**,
-    留白的那一组必须**可审计**,不能靠默认。
-  * **R-Q3:**后果要从**动作自己的服务端调用与它背后的数据库闸**推出来(路线 c);
-    c 说不出话时才退回去读调用点(路线 a);**两条都得不出一句验证过的话,
-    就一个字都不要写,把该处登记下来** —— `DBLOCK-CONFLATED-BOOLEANS`:
-    **说错原因比不说原因更坏。**
-* ★ **已知的坑(CONSEQ-1 实测):**`deleted_at` 的过滤**并不齐**
-  (`materials` 15 处读点里 10 处过滤 · `suppliers` 19 之 14 · `customers` 16 之 13),
-  所以「它不会再被选到」**今天不是一句可以直接写下的话**。
+> ★★【R-Q5:记出处,不只记结果 —— 本条把【旧数错在哪】也写下来】★★
+>
+> **旧的那个问题问错了对象,而这是它当初写不出答案的全部原因。**
+> 队列里原来的坑写着「`deleted_at` 的过滤并不齐,所以『它不会再被选到』今天不是
+> 一句可以直接写下的话」。**实测:那句话今天可以写,而当初写不了不是因为过滤不齐,
+> 是因为【量的是读点,而选择器不在读点里】。**
+>
+> **选择器从三张【查名视图】喂,不是从三张基表:**
+> `material_lookup`(20 处)· `supplier_lookup`(26 处)· `customer_lookup`(14 处)
+> = **60 个站点,而队列指定的量法 `delcount.mjs` 结构上一处都看不见** ——
+> 它只认三个基表字面量。**「名字对,覆盖窄」又一次出在交给下一刀的那个数上。**
+>
+> **重量之后(六个标识符,110 个 `.from()` 站点):**
+>
+> | 标识符 | 合计 | 写入点 | 计数 | 按 id 取 | 列表取 | **未过滤** |
+> |---|---|---|---|---|---|---|
+> | `materials` | 15 | 3 | 1 | 2 | 9 | **0** |
+> | `material_lookup` | 20 | 0 | 0 | 6 | 14 | **0** |
+> | `suppliers` | 19 | 4 | 2 | 3 | 10 | **0** |
+> | `supplier_lookup` | 26 | 0 | 0 | 10 | 16 | **0** |
+> | `customers` | 16 | 3 | 1 | 4 | 8 | **0** |
+> | `customer_lookup` | 14 | 0 | 0 | 6 | 8 | **0** |
+> | **合计** | **110** | 10 | 4 | 31 | **65** | **0** |
+>
+> 三张基表那一半(15 / 19 / 16)与旧数逐个对上;那 5 处「真的不过滤」本次分进
+> **按 id 取**,与旧结论一致,只是这次分类是**判据分出来的**。
+>
+> **答案(逐表):一行软删的料 / 供应商 / 客户,今天【不能】在一张新单据上被选中。**
+> 两层证据分开记:① 屏幕 —— 65 处列表取 0 处未过滤;
+> ② 数据库 —— `create_purchase_order`(`SUPPLIER_NOT_FOUND` / `MATERIAL_NOT_FOUND`)、
+> `create_sales_order`(`SO_CREATE_CUSTOMER_INVALID` / `SO_CREATE_LINE_INVALID`)按名拒。
+> ★ **第二层不是全覆盖** —— 不走这几支 RPC 而直接 INSERT 的路径没有对应的具名拒绝,
+> 所以写进对话框的那句话**只说屏幕上不再摆出来**,没有说「系统会拒绝」。
+>
+> **内嵌关系读:`materials` 19 · `suppliers` 5 · `customers` 7 = 31 处,逐处读过,
+> 没有一处是选择点**(全是详情页 / PDF / 标签 / 列表页拿父行去印已选好的那个名字)。
+> ★ 旧数记的是 21 / 9 / 4,**复现不了,而且它的量法没有留下** —— 队列写的量法是
+> `delcount.mjs`,但那支脚本**根本不数内嵌读**。登记在交回报告 §8 ④。
+>
+> **量法(下一个人抄这个数请连量法一起抄走):`pickerscan.mjs`,全文在
+> `docs/handbacks/CONSEQ-2-round2.md` §12。** 三个关键零件:
+> 逐字符 `code/comment/string` 定性 · **三判据的链终点(不是定长窗口)** ·
+> 赋值目标 → helper 感知。致盲台账 12 格 + 3 格对照在交回报告 §2.5。
+>
+> ★★ **本刀自己踩过一次「量具坏了」,记在交回报告 §2.4**:第一版不认正则字面量,
+> `/"/g` 让整个文件的字符串奇偶性反了,链提前收尾,于是报出「5 处未过滤」——
+> **而当时每一条覆盖断言都是绿的**(它们证的是灵敏度,不是瞄准)。
+> 修好之后那个数是 **0**。**第一版那个 5 是量具的产物,不是树的事实。**
 
-> ★★【更正 · NARROW-COVERAGE-1,2026-09-09 —— 连同【那三个数是从哪来的】】★★
-> **R-Q5:不只写新数,写清楚旧数的出处。** CONSEQ-1 在队列里立的规矩是
-> 「本条记出处,不只记结果。下一条也照办」——**本刀就是那个"下一条"。**
->
-> **旧数:`materials` 15 之 10 · `suppliers` 19 之 14 · `customers` 16 之 13。**
-> **它们是低报,而低报的原因是量具的形状,不是谁数错了:**
-> 那支扫描器只在**同一条调用链上**找 `.is('deleted_at', null)`,
-> 于是它**结构上看不见**写在 helper 里的那一次过滤 ——
-> `app/materials/materialQuery.ts:68` 的 `applyMaterialFilters`、
-> `app/suppliers/supplierQuery.ts:65` 的 `applySupplierFilters`、
-> `app/sales/customers/customerQuery.ts:54` 的 `applyCustomerFilters`,
-> **三支都是无条件 `chain.is('deleted_at', null)`**,清单页与导出路由全走它们。
-> ☞ 这本身就是「名字对,覆盖窄」的又一例,而它**出在交给下一刀的那个数上**。
->
-> **重量之后(分母逐个对上:15 / 19 / 16,与旧数同源):**
->
-> | 表 | `.from()` 站点 | 其中**写入点**(根本不是读点) | 读点 | 读点里过滤了的 | **真的不过滤** |
-> |---|---|---|---|---|---|
-> | `materials` | 15 | 3 | 12 | **11**(链上 8 + helper 3) | **1** |
-> | `suppliers` | 19 | 4 | 15 | **13**(链上 10 + helper 3) | **2** |
-> | `customers` | 16 | 3 | 13 | **11**(链上 8 + helper 3) | **2** |
->
-> ★ **旧数把写入点也算进了"读点"里** —— `INSERT` / `UPDATE` 一个 `deleted_at`
-> 过滤器都不该有,把它们放进分母会让比例天生偏低。
->
-> **而那 5 处真的不过滤的读点,逐个读过之后【全部是拿着一个已有的父记录去取它指着的那一行】:**
-> * `app/purchasing/orders/[id]/page.tsx:258` — `.in('id', materialIds)`,在一张**历史单据**上显示料名
-> * `app/logistics/forwarders/page.tsx:55` — `.in('id', …)`,给**已经筛过**的货代清单补付款条件
-> * `app/logistics/forwarders/[id]/page.tsx:47` — `.eq('id', id).maybeSingle()`,货代详情页
-> * `app/finance/credit-notes/page.tsx:114` — `.in('id', customerIds)`,显示已开出贷项凭证的客户名
-> * `app/finance/statements/[id]/pdf/route.ts:53` — `.eq('id', …).maybeSingle()`,对账单 PDF 抬头
->
-> 也就是 CONSEQ-1 假设存在、但**从未确立**的那一类正当不过滤:
-> **一行软删之后仍然要能在旧单据上印出它的名字**,否则历史单据会变成一排空白。
->
-> ★★ **但这【不】等于「它不会再被选到」现在可以写了 —— 那句话问的对象一开始就不对。**
-> 需要的证明不是「所有读点都过滤吗」,而是「**一行软删之后,还能不能在一张【新】单据上被【选中】**」。
-> 两条实测说明第一个总体量不出第二件事:
-> * **内嵌读根本不在分母里。** `.select('… materials ( … ) …')` 这种内嵌关系读,
->   `.from()` 计数一个都看不见:`materials` **21 处**、`customers` **9 处**、
->   `suppliers` **4 处** —— `materials` 的内嵌读**比直连读还多**。
->   (这正是 `CHECKER-BLIND-SPOTS ②` 逐字记着的那条盲区,原样再现。)
-> * **选择器不在这些文件里。** 读 `.from('materials')` 的 **14 个文件**中,
->   **0 个**渲染 `<option>` / `<select>` / Combobox(对照:全库 **115 个** `.tsx` 含 `<option>`)。
->   **料的下拉是从别处喂的**,所以按读点数出来的比例与「能不能被选到」不相干。
->
-> ☞ **Tim 的裁定(R-Q6):PART 2 在【选择点】上量,不在读点上量。**
-> 「everywhere it matters」= **每一处把这张表当作可选项呈现给操作者、
-> 且那次选择会落到一张新单据上的地方。** 不是每一处读。
-> **上面这张读点表作为附带产物交回,不丢掉。**
-> ☞ 量法:`/tmp/delcount.mjs` 那一支(helper 感知 + 写入点分离)。
->   **下一个人抄这个数的时候,请连量法一起抄走。**
+**本刀【没有】做、已登记的四件**(交回报告 §8):
+① 三张查名视图自己不过滤 `deleted_at`,过滤全压在调用点上,**没有机制守着第 66 个调用点**;
+② `finance_attachments.claim_id` 有闸依赖它,而 `app/` 里没有任何代码写它;
+③ `NodeTree` 的裁定与 CONSEQ-1 的做法之间有张力,**要一条房规**;
+④ 旧的内嵌数出处不明。
 
 
 ### ⬜ COPY-1-SORT-COLLATION · 排序用哪一套字序

@@ -280,6 +280,11 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                                             subject={g.objective_text}
                                                             title={t('reviews.goalDeleteTitle')}
                                                             body={t('common.hardDeleteNote')}
+                                                            details={
+                                                                <p className="text-sm font-medium text-foreground">
+                                                                    {t('reviews.goalDeleteConsequence')}
+                                                                </p>
+                                                            }
                                                             confirmLabel={t('common.delete')}
                                                             tier="destructive"
                                                             disabled={pending}

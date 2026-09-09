@@ -171,6 +171,11 @@ export default function MetalContentPanel({
                                         subject={metalLabel(r.metal)}
                                         title={t('metalContent.deleteConfirm')}
                                         body={t('common.hardDeleteNote')}
+                                        details={
+                                            <p className="text-sm font-medium text-foreground">
+                                                {t('metalContent.deleteConsequence')}
+                                            </p>
+                                        }
                                         confirmLabel={t('common.delete')}
                                         tier="destructive"
                                         disabled={isPending}

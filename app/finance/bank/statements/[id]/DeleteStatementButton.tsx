@@ -25,6 +25,11 @@ canEdit: boolean
             subject={subject}
             title={t('bank.deleteConfirm')}
             body={t('common.softDeleteNote')}
+            details={
+                <p className="text-sm font-medium text-foreground">
+                    {t('bank.deleteConsequence')}
+                </p>
+            }
             confirmLabel={t('common.delete')}
             tier="destructive"
             triggerVariant="destructive"

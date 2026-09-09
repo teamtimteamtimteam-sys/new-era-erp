@@ -70,6 +70,11 @@ export default function HolidaysTable({
                     subject={locale === 'zh' ? r.name_zh : r.name_en}
                     title={t('leave.holidayDeleteTitle')}
                     body={t('common.hardDeleteNote')}
+                    details={
+                        <p className="text-sm font-medium text-foreground">
+                            {t('leave.holidayDeleteConsequence')}
+                        </p>
+                    }
                     confirmLabel={t('common.delete')}
                     tier="destructive"
                     disabled={pending}
