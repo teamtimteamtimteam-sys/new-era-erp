@@ -262,6 +262,24 @@ canEdit: boolean
         setTerms((ts) => ts.map((l, j) => (j === i ? { ...l, ...patch } : l)))
     }
 
+    /* ★ TABLE-PHONE-3:同一个删除钮要在两个断点各画一次(桌面档在自己那一列,
+       手机档叠在「序号」格里),所以在这里定义一次 —— 免得两处日后走散。
+       动作一个字没改:还是同一个 setTermsEdited + filter。 */
+    const removeTermControl = (i: number) => (
+        <Button
+            variant="secondary"
+            size="inline"
+            type="button"
+            onClick={() => {
+                setTermsEdited(true)
+                setTerms((ts) => ts.filter((_, j) => j !== i))
+            }}
+            className="text-sm"
+        >
+            {t('purchasing.form.removeLine')}
+        </Button>
+    )
+
     async function onComputeEstimate(i: number) {
         const l = lines[i]
         const qty = parseDecimal(l.quantity)
@@ -861,15 +879,30 @@ canEdit: boolean
                             <th className="border border-gray-300 px-3 py-2 text-left w-10">{t('purchasing.colSeq')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colLabel')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colShare')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.colAmount')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('purchasing.colAmount')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colTrigger')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left w-16" />
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left w-16" />
                         </tr>
                     </thead>
                     <tbody>
                         {terms.map((l, i) => (
                             <tr key={i}>
-                                <td className="border border-gray-300 px-3 py-2 text-sm text-gray-500">{i + 1}</td>
+                                <td className="border border-gray-300 px-3 py-2 text-sm text-gray-500">
+                                    {i + 1}
+                                    {/* ★ TABLE-PHONE-3:手机档被拿掉的两列(金额 / 删除),原样叠在这里 ——
+                                        拿掉的是那一列,不是那个事实。金额带着自己的列头;删除钮在桌面档
+                                        本来就没有列头,钮面上自己带着字,所以【不另造一句话】。
+                                        这张表按 R-Q4 留四列:序号 + 名目 + 比例/金额 + 触发 —— 与
+                                        payment-terms 模板那一张【选的是同一组】,两张一起判的。
+                                        算出来的金额是只读的,读一眼不花点按次数,所以让它下来。 */}
+                                    <div className="sm:hidden mt-1 space-y-1 text-xs text-gray-600">
+                                        <div>
+                                            <span className="text-gray-500">{t('purchasing.colAmount')}: </span>
+                                            <span className="font-mono">{formatAmount(termAmount(l), currency)}</span>
+                                        </div>
+                                        <div>{removeTermControl(i)}</div>
+                                    </div>
+                                </td>
                                 <td className="border border-gray-300 px-3 py-2">
                                     <input
                                         type="text"
@@ -911,7 +944,7 @@ canEdit: boolean
                                         )}
                                     </div>
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                     {formatAmount(termAmount(l), currency)}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2">
@@ -935,19 +968,8 @@ canEdit: boolean
                                         />
                                     )}
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    <Button
-                                        variant="secondary"
-                                        size="inline"
-                                        type="button"
-                                        onClick={() => {
-                                            setTermsEdited(true)
-                                            setTerms((ts) => ts.filter((_, j) => j !== i))
-                                        }}
-                                        className="text-sm"
-                                    >
-                                        {t('purchasing.form.removeLine')}
-                                    </Button>
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
+                                    {removeTermControl(i)}
                                 </td>
                             </tr>
                         ))}

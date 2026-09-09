@@ -78,6 +78,22 @@ canEdit: boolean
     ) / 100
     const pctOver = pctTotal > 100
 
+    /* ★ TABLE-PHONE-3:同一个删除钮要在两个断点各画一次(桌面档在自己那一列,
+       手机档叠在「序号」格里),所以在这里定义一次 —— 免得两处日后走散。
+       动作一个字没改:还是同一个 removeLine(i),同一条禁用规则。 */
+    const removeControl = (i: number) => (
+        <Button
+            variant="secondary"
+            size="inline"
+            type="button"
+            onClick={() => removeLine(i)}
+            disabled={lines.length === 1}
+            className="text-sm"
+        >
+            {t('purchasing.form.removeLine')}
+        </Button>
+    )
+
     return (
         <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
         <form action={formAction} className="space-y-4 max-w-3xl">
@@ -155,13 +171,21 @@ canEdit: boolean
                         <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colLabel')}</th>
                         <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colShare')}</th>
                         <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colTrigger')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left w-16" />
+                        <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left w-16" />
                     </tr>
                 </thead>
                 <tbody>
                     {lines.map((l, i) => (
                         <tr key={i}>
-                            <td className="border border-gray-300 px-3 py-2 text-sm text-gray-500">{i + 1}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-sm text-gray-500">
+                                {i + 1}
+                                {/* ★ TABLE-PHONE-3:手机档被拿掉的那一列是【删除】—— 它在桌面档
+                                    本来就没有列头,钮面上自己带着字,所以这里【不另造一句话】。
+                                    这张表整张都是输入,按 R-Q4 留四列:序号 + 名目 + 比例/金额 + 触发。 */}
+                                <div className="sm:hidden mt-1">
+                                    <div>{removeControl(i)}</div>
+                                </div>
+                            </td>
                             <td className="border border-gray-300 px-3 py-2">
                                 <input
                                     type="text"
@@ -228,17 +252,8 @@ canEdit: boolean
                                     </span>
                                 )}
                             </td>
-                            <td className="border border-gray-300 px-3 py-2">
-                                <Button
-                                    variant="secondary"
-                                    size="inline"
-                                    type="button"
-                                    onClick={() => removeLine(i)}
-                                    disabled={lines.length === 1}
-                                    className="text-sm"
-                                >
-                                    {t('purchasing.form.removeLine')}
-                                </Button>
+                            <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
+                                {removeControl(i)}
                             </td>
                         </tr>
                     ))}

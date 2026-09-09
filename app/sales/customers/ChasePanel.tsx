@@ -240,10 +240,10 @@ export default function ChasePanel({
                     <thead className="bg-gray-100">
                         <tr>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('chases.colCode')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('chases.colDate')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('chases.colChannel')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('chases.colWho')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('chases.colSummary')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('chases.colDate')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('chases.colChannel')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('chases.colWho')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('chases.colSummary')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-right">{t('chases.owedAtChase')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('chases.colPromise')}</th>
                         </tr>
@@ -258,13 +258,42 @@ export default function ChasePanel({
                                             {t('chases.superseded')}
                                         </span>
                                     )}
+                                    {/* ★ TABLE-PHONE-3:手机档被拿掉的四列(日期 / 渠道 / 联系到谁 / 纪要),
+                                        原样叠在这里,各带各的列头 —— 拿掉的是那一列,不是那个事实。
+                                        留在列上的是:单号 + 当时欠多少 + 对方许了什么 ——
+                                        催收这件事的结果就在最后那一列。 */}
+                                    <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                                        <div>
+                                            <span className="text-gray-500">{t('chases.colDate')}: </span>
+                                            <span className="font-mono">{c.chased_on}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('chases.colChannel')}: </span>
+                                            {t('chases.channel_' + c.channel)}
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('chases.colWho')}: </span>
+                                            {c.reached ? (c.contacted_person ?? '—') : t('chases.notReached')}
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('chases.colSummary')}: </span>
+                                            {c.summary}
+                                            {c.documents.length > 0 && (
+                                                <span className="block text-[11px] text-gray-500 mt-1">
+                                                    {c.documents.map((d) =>
+                                                        `${t('chases.subject_' + d.subject_type)} ${d.subject_code ?? ''}`.trim()
+                                                    ).join(' · ')}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{c.chased_on}</td>
-                                <td className="border border-gray-300 px-3 py-2">{t('chases.channel_' + c.channel)}</td>
-                                <td className="border border-gray-300 px-3 py-2">
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 font-mono text-xs">{c.chased_on}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">{t('chases.channel_' + c.channel)}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
                                     {c.reached ? (c.contacted_person ?? '—') : t('chases.notReached')}
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2">
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
                                     {c.summary}
                                     {c.documents.length > 0 && (
                                         <span className="block text-[11px] text-gray-500 mt-1">

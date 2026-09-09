@@ -51,9 +51,9 @@ export default function AttendanceGrid({
                         <th className="py-2 pr-3">{t('attendance.colEmployee')}</th>
                         <th className="py-2 pr-3 text-right">{t('attendance.colOtNormal')}</th>
                         <th className="py-2 pr-3 text-right">{t('attendance.colOtRestDay')}</th>
-                        <th className="py-2 pr-3 text-right">{t('attendance.colOtHoliday')}</th>
-                        <th className="py-2 pr-3">{t('attendance.colNote')}</th>
-                        <th className="py-2 pr-3 text-right">{t('attendance.colUnpaidDays')}</th>
+                        <th className="hidden sm:table-cell py-2 pr-3 text-right">{t('attendance.colOtHoliday')}</th>
+                        <th className="hidden sm:table-cell py-2 pr-3">{t('attendance.colNote')}</th>
+                        <th className="hidden sm:table-cell py-2 pr-3 text-right">{t('attendance.colUnpaidDays')}</th>
                         <th className="py-2 pr-3">{t('attendance.colRecorded')}</th>
                     </tr>
                 </thead>
@@ -133,6 +133,32 @@ function LineRow({
             <td className="py-2 pr-3">
                 <div>{row.legalName}</div>
                 <div className="text-xs text-gray-500">{row.employeeCode}</div>
+                {/* ★ TABLE-PHONE-3:手机档被拿掉的三列(节假日加班 / 备注 / 无薪天数),
+                    原样叠在这里,各带各的列头 —— 拿掉的是那一列,不是那个事实。
+                    录入版按 R-Q4 多留一列,留下的是【最常填的那两个输入框】;
+                    节假日加班少见,备注是一条长文本(叠在这里反而比挤成一列宽)。 */}
+                <div className="sm:hidden mt-1 space-y-1 text-xs text-gray-600">
+                    <div>
+                        <span className="text-gray-500">{t('attendance.colOtHoliday')}: </span>
+                        {open ? (
+                            <input className={cell} value={holiday} onChange={(e) => setHoliday(e.target.value)} />
+                        ) : (
+                            row.holiday
+                        )}
+                    </div>
+                    <div>
+                        <span className="text-gray-500">{t('attendance.colNote')}: </span>
+                        {open ? (
+                            <input className="w-full rounded border px-2 py-1" value={note} onChange={(e) => setNote(e.target.value)} />
+                        ) : (
+                            <span className="text-gray-600">{row.note || '—'}</span>
+                        )}
+                    </div>
+                    <div>
+                        <span className="text-gray-500">{t('attendance.colUnpaidDays')}: </span>
+                        {row.unpaidDays === null ? '—' : row.unpaidDays}
+                    </div>
+                </div>
             </td>
             <td className="py-2 pr-3 text-right">
                 {open ? <input className={cell} value={normal} onChange={(e) => setNormal(e.target.value)} /> : row.normal}
@@ -140,17 +166,17 @@ function LineRow({
             <td className="py-2 pr-3 text-right">
                 {open ? <input className={cell} value={restDay} onChange={(e) => setRestDay(e.target.value)} /> : row.restDay}
             </td>
-            <td className="py-2 pr-3 text-right">
+            <td className="hidden sm:table-cell py-2 pr-3 text-right">
                 {open ? <input className={cell} value={holiday} onChange={(e) => setHoliday(e.target.value)} /> : row.holiday}
             </td>
-            <td className="py-2 pr-3">
+            <td className="hidden sm:table-cell py-2 pr-3">
                 {open ? (
                     <input className="w-full rounded border px-2 py-1" value={note} onChange={(e) => setNote(e.target.value)} />
                 ) : (
                     <span className="text-gray-600">{row.note || '—'}</span>
                 )}
             </td>
-            <td className="py-2 pr-3 text-right text-gray-600">
+            <td className="hidden sm:table-cell py-2 pr-3 text-right text-gray-600">
                 {row.unpaidDays === null ? '—' : row.unpaidDays}
             </td>
             <td className="py-2 pr-3">

@@ -156,16 +156,88 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                             <th className="border border-gray-300 px-2 py-1 text-left w-8">#</th>
                             <th className="border border-gray-300 px-2 py-1 text-left">{t('reviews.colObjective')}</th>
                             <th className="border border-gray-300 px-2 py-1 text-right">{t('reviews.colTarget')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('reviews.colUnit')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-left">{t('reviews.colUnit')}</th>
                             <th className="border border-gray-300 px-2 py-1 text-right">{t('reviews.colActual')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('reviews.colEmployeeResult')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('reviews.colAssessment')}</th>
-                            {editable && <th className="border border-gray-300 px-2 py-1 w-28"></th>}
+                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-left">{t('reviews.colEmployeeResult')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-left">{t('reviews.colAssessment')}</th>
+                            {editable && <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 w-28"></th>}
                         </tr>
                     </thead>
                     <tbody>
                         {goals.map((g) => {
                             const on = editing === g.id
+                            /* ★ TABLE-PHONE-3:同一组控件要在两个断点各画一次(桌面档在自己那一列,
+                               手机档叠在「目标」格里),所以提到这里定义一次 —— 免得两处日后走散。
+                               动作一个字没改:还是同一个 save / begin / remove。 */
+                            const actionControls = (
+                                <>
+                                {on ? (
+                                    <>
+                                        <Button
+                                            variant="link"
+                                            size="inline"
+                                            type="button"
+                                            onClick={() => save(g)}
+                                            disabled={pending || draftUnitMissing}
+                                            className="mr-2"
+                                        >
+                                            {t('common.save')}
+                                        </Button>
+                                        <Button
+                                            variant="secondary"
+                                            type="button"
+                                            onClick={() => { setEditing(null); setDraft(null) }}
+                                        >
+                                            {t('common.cancel')}
+                                        </Button>
+                                        {draftUnitMissing && (
+                                            <p className="text-xs text-red-700 mt-1">{t('reviews.unitRequired')}</p>
+                                        )}
+                                    </>
+                                ) : (
+                                    <>
+                                        <Button
+                                            variant="link"
+                                            size="inline"
+                                            type="button"
+                                            onClick={() => begin(g)}
+                                            className="mr-2"
+                                        >
+                                            {t('reviews.edit')}
+                                        </Button>
+                                        {/* ★★ ALERT-2a:这一处【此前没有任何确认步骤,而它是一次硬删除】★★
+                                            `removeGoal` → `app/hr/reviews/actions.ts:68`
+                                            → rpc `remove_review_goal`
+                                            → `DELETE FROM review_goals`。**行没了。**
+                                            ☞ ALERT-2a 的委托书把它归进了「说 Delete 其实是软删」那一族,
+                                              并要给它挂上 `common.softDeleteNote`(「数据保留…可以恢复」)——
+                                              **那句话在这里是假的**,而在一个一按就永久销毁的钮上
+                                              印一句"可以恢复",比什么都不说更坏。闸上更正,归到这一族。
+                                            ☞ 动作一个字没改:同一个 `remove(g.id)`。 */}
+                                        {canEditGoals && (
+                                            <ConfirmButton
+                                                subject={g.objective_text}
+                                                title={t('reviews.goalDeleteTitle')}
+                                                body={t('common.hardDeleteNote')}
+                                                details={
+                                                    <p className="text-sm font-medium text-foreground">
+                                                        {t('reviews.goalDeleteConsequence')}
+                                                    </p>
+                                                }
+                                                confirmLabel={t('common.delete')}
+                                                tier="destructive"
+                                                disabled={pending}
+                                                triggerVariant="destructive"
+                                                triggerSize="inline"
+                                                onConfirm={() => remove(g.id)}
+                                            >
+                                                {t('common.delete')}
+                                            </ConfirmButton>
+                                        )}
+                                    </>
+                                )}
+                                </>
+                            )
                             return (
                                 <tr key={g.id} className="align-top">
                                     <td className="border border-gray-300 px-2 py-1 text-gray-500">{g.sequence}</td>
@@ -179,6 +251,45 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                         ) : (
                                             <span className="whitespace-pre-wrap">{g.objective_text}</span>
                                         )}
+                                        {/* ★ TABLE-PHONE-3:手机档被拿掉的列(单位 / 本人小结 / 评价,
+                                            以及那一列【桌面档本来就没有列头】的动作),原样叠在这里,
+                                            各带各的列头 —— 拿掉的是那一列,不是那个事实。
+                                            指标与实绩留在列上:少了任何一个,另一个都判断不了。 */}
+                                        <div className="sm:hidden mt-1 space-y-1 text-xs text-gray-600">
+                                            <div>
+                                                <span className="text-gray-500">{t('reviews.colUnit')}: </span>
+                                                {on && canEditGoals ? (
+                                                    <input
+                                                        value={draft!.unit}
+                                                        onChange={(e) => setDraft({ ...draft!, unit: e.target.value })}
+                                                        placeholder={t('reviews.colUnit')}
+                                                        className={`${inp} w-16`}
+                                                    />
+                                                ) : (
+                                                    g.unit ?? '—'
+                                                )}
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">{t('reviews.colEmployeeResult')}: </span>
+                                                <span className="whitespace-pre-wrap">{g.employee_result_text ?? '—'}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">{t('reviews.colAssessment')}: </span>
+                                                {on && canAssess ? (
+                                                    <textarea
+                                                        value={draft!.assessment}
+                                                        onChange={(e) => setDraft({ ...draft!, assessment: e.target.value })}
+                                                        className={`${inp} min-h-16`}
+                                                    />
+                                                ) : (
+                                                    <span className="whitespace-pre-wrap">{g.reviewer_assessment_text ?? '—'}</span>
+                                                )}
+                                            </div>
+                                            {/* 这一条【没有标签,而它在桌面档也没有】—— 钮面上自己带着字
+                                                (common.save / common.cancel / reviews.edit / common.delete),
+                                                所以这里【不另造一句话】。 */}
+                                            {editable && <div>{actionControls}</div>}
+                                        </div>
                                     </td>
                                     <td className="border border-gray-300 px-2 py-1 text-right font-mono">
                                         {on && canEditGoals ? (
@@ -192,7 +303,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                             g.target_value ?? '—'
                                         )}
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-1">
+                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-1">
                                         {on && canEditGoals ? (
                                             <input
                                                 value={draft!.unit}
@@ -216,10 +327,10 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                             g.actual_value ?? '—'
                                         )}
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-1">
+                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-1">
                                         <span className="whitespace-pre-wrap">{g.employee_result_text ?? '—'}</span>
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-1">
+                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-1">
                                         {on && canAssess ? (
                                             <textarea
                                                 value={draft!.assessment}
@@ -231,72 +342,8 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                         )}
                                     </td>
                                     {editable && (
-                                        <td className="border border-gray-300 px-2 py-1 whitespace-nowrap">
-                                            {on ? (
-                                                <>
-                                                    <Button
-                                                        variant="link"
-                                                        size="inline"
-                                                        type="button"
-                                                        onClick={() => save(g)}
-                                                        disabled={pending || draftUnitMissing}
-                                                        className="mr-2"
-                                                    >
-                                                        {t('common.save')}
-                                                    </Button>
-                                                    <Button
-                                                        variant="secondary"
-                                                        type="button"
-                                                        onClick={() => { setEditing(null); setDraft(null) }}
-                                                    >
-                                                        {t('common.cancel')}
-                                                    </Button>
-                                                    {draftUnitMissing && (
-                                                        <p className="text-xs text-red-700 mt-1">{t('reviews.unitRequired')}</p>
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Button
-                                                        variant="link"
-                                                        size="inline"
-                                                        type="button"
-                                                        onClick={() => begin(g)}
-                                                        className="mr-2"
-                                                    >
-                                                        {t('reviews.edit')}
-                                                    </Button>
-                                                    {/* ★★ ALERT-2a:这一处【此前没有任何确认步骤,而它是一次硬删除】★★
-                                                        `removeGoal` → `app/hr/reviews/actions.ts:68`
-                                                        → rpc `remove_review_goal`
-                                                        → `DELETE FROM review_goals`。**行没了。**
-                                                        ☞ ALERT-2a 的委托书把它归进了「说 Delete 其实是软删」那一族,
-                                                          并要给它挂上 `common.softDeleteNote`(「数据保留…可以恢复」)——
-                                                          **那句话在这里是假的**,而在一个一按就永久销毁的钮上
-                                                          印一句"可以恢复",比什么都不说更坏。闸上更正,归到这一族。
-                                                        ☞ 动作一个字没改:同一个 `remove(g.id)`。 */}
-                                                    {canEditGoals && (
-                                                        <ConfirmButton
-                                                            subject={g.objective_text}
-                                                            title={t('reviews.goalDeleteTitle')}
-                                                            body={t('common.hardDeleteNote')}
-                                                            details={
-                                                                <p className="text-sm font-medium text-foreground">
-                                                                    {t('reviews.goalDeleteConsequence')}
-                                                                </p>
-                                                            }
-                                                            confirmLabel={t('common.delete')}
-                                                            tier="destructive"
-                                                            disabled={pending}
-                                                            triggerVariant="destructive"
-                                                            triggerSize="inline"
-                                                            onConfirm={() => remove(g.id)}
-                                                        >
-                                                            {t('common.delete')}
-                                                        </ConfirmButton>
-                                                    )}
-                                                </>
-                                            )}
+                                        <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 whitespace-nowrap">
+                                            {actionControls}
                                         </td>
                                     )}
                                 </tr>

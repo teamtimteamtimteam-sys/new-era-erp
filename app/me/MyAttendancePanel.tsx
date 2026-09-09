@@ -30,20 +30,39 @@ export default function MyAttendancePanel({ rows }: { rows: Row[] }) {
                         <tr className="border-b text-left text-gray-600">
                             <th className="py-2 pr-3">{t('attendance.colCode')}</th>
                             <th className="py-2 pr-3 text-right">{t('attendance.colOtNormal')}</th>
-                            <th className="py-2 pr-3 text-right">{t('attendance.colOtRestDay')}</th>
-                            <th className="py-2 pr-3 text-right">{t('attendance.colOtHoliday')}</th>
-                            <th className="py-2 pr-3 text-right">{t('attendance.colUnpaidDays')}</th>
+                            <th className="hidden sm:table-cell py-2 pr-3 text-right">{t('attendance.colOtRestDay')}</th>
+                            <th className="hidden sm:table-cell py-2 pr-3 text-right">{t('attendance.colOtHoliday')}</th>
+                            <th className="hidden sm:table-cell py-2 pr-3 text-right">{t('attendance.colUnpaidDays')}</th>
                             <th className="py-2 pr-3">{t('attendance.colRecorded')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {rows.map((r) => (
                             <tr key={r.code} className="border-b">
-                                <td className="py-2 pr-3">{r.code}</td>
+                                <td className="py-2 pr-3">
+                                    {r.code}
+                                    {/* ★ TABLE-PHONE-3:手机档被拿掉的三列(休息日 / 节假日 / 无薪天数),
+                                        原样叠在这里,各带各的列头 —— 拿掉的是那一列,不是那个事实。
+                                        只读版按 R-Q4 留三列:身份 + 那个要紧的数 + 状态。 */}
+                                    <div className="sm:hidden mt-1 space-y-0.5 text-xs text-gray-600">
+                                        <div>
+                                            <span className="text-gray-500">{t('attendance.colOtRestDay')}: </span>
+                                            {r.restDay}
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('attendance.colOtHoliday')}: </span>
+                                            {r.holiday}
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('attendance.colUnpaidDays')}: </span>
+                                            {r.unpaidDays === null ? '—' : r.unpaidDays}
+                                        </div>
+                                    </div>
+                                </td>
                                 <td className="py-2 pr-3 text-right">{r.normal}</td>
-                                <td className="py-2 pr-3 text-right">{r.restDay}</td>
-                                <td className="py-2 pr-3 text-right">{r.holiday}</td>
-                                <td className="py-2 pr-3 text-right">{r.unpaidDays === null ? '—' : r.unpaidDays}</td>
+                                <td className="hidden sm:table-cell py-2 pr-3 text-right">{r.restDay}</td>
+                                <td className="hidden sm:table-cell py-2 pr-3 text-right">{r.holiday}</td>
+                                <td className="hidden sm:table-cell py-2 pr-3 text-right">{r.unpaidDays === null ? '—' : r.unpaidDays}</td>
                                 <td className="py-2 pr-3 text-xs">
                                     {r.recorded ? (
                                         <span className="text-green-700">{t('attendance.recordedYes')}</span>

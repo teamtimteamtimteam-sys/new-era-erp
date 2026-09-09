@@ -1622,7 +1622,7 @@ fixture 196 的 B 臂改用 `count(*)` 扫(**不求值任何列表达式**),那�
 
 ## 阶段 8 · 前端三件套
 
-### ★【RAW-TABLE-PHONE —— 手搓表格的手机档。★ 裁定已下,首批已上线,**剩 26 张表 / 24 个文件**★】
+### ★【RAW-TABLE-PHONE —— 手搓表格的手机档。★ 裁定已下,三批已上线,**剩 10 张表 / 10 个文件**★】
 
 **★ 那个「54 页」是【错的】,而且错在两个相反的方向上 —— 全部说明在
 `docs/known-issues.md` 的 RAW-TABLE-PHONE-SWEEP。这里只记排期。**
@@ -1652,20 +1652,31 @@ fixture 196 的 B 臂改用 `count(*)` 扫(**不求值任何列表达式**),那�
 那个 Fragment 裹的是**分组抬头行**,不是更多的列)· `/finance/close`(7 列)· `/me` 工资条(6 列)。
 ★ 这一批把 **4 个文件整个清干净**(没有一个还被后面的批次点到)。
 
-**★ 剩下的:21 张表 / 20 个文件,按判断数分批**
+**★ 已上线 —— TABLE-PHONE-3(2026-09-09):9 次判断 / 11 张表 / 11 个文件**
+**成对的三组(R-Q4:两次判断、一次讨论)**:考勤(`AttendanceGrid` 7 列录入 + `MyAttendancePanel` 6 列只读)·
+绩效(`GoalsEditor` 7/8 列录入 + `MyReviewsPanel` 5 列只读)·
+分期(`NewOrderForm:858` 6 列 + `payment-terms/TemplateForm` 5 列);
+**其余五张**:`ChasePanel`(7 列)· `ContactsPanel`(6 列)· `CompliancePanel`(5 列)·
+`MyExpenseClaimsPanel`(6 列)· `MyLeavePanel:117`(5 列,TABLE-PHONE-1 没点名的那一张 ——
+**这个文件到此清完**)。
+★ **第三组两半【都是录入版】**(读文件读出来的,不是照名字猜的),所以**两张都留四列、留的是同一组**。
+★ `GoalsEditor` **有条件列**:`editable` 为真 8 列(第 8 列空列头)、为假 7 列 —— 两支各量过一次。
 
-**下面三批【正好把那 21 张分完】,不重不漏 —— 数过的。**
+**★ 剩下的:10 张表 / 10 个文件,按判断数分批**
 
 | 批 | 内容 | 表数 / 判断数 |
 |---|---|---|
-| **TABLE-PHONE-3** | **成对的那几组(R-Q4:两次判断、一次讨论)**:考勤(`hr/attendance/[id]/AttendanceGrid:48` + `me/MyAttendancePanel:28`)· 绩效(`hr/reviews/GoalsEditor:153` + `me/MyReviewsPanel:82`)· 付款条款分期(`purchasing/orders/new/NewOrderForm:858` + `purchasing/payment-terms/TemplateForm:151`) | 6 张 / **3** |
 | **TABLE-PHONE-4** | 录入表单里的行编辑表:`finance/invoices/new/NewInvoiceForm:272` · `finance/payments/new/NewPaymentForm:504` · `finance/invoices/[id]/CreateCreditNoteControl:101` · `finance/bank/import/ImportStatementForm:390` · `finance/freight/new/NewFreightForm:225` · `sales/orders/[id]/amend/AmendOrderForm:141` · `purchasing/orders/[id]/amend/AmendOrderForm:135` · `sales/quotes/[id]/QuoteLinesEditor:65` · `purchasing/orders/new/NewOrderForm:786` | 9 张 / 9 |
-| **TABLE-PHONE-5** | 其余:`sales/customers/ChasePanel:239` · `sales/customers/ContactsPanel:88` · `suppliers/[id]/edit/CompliancePanel:85` · `logistics/containers/[id]/ContainerPanels:119` · `me/MyExpenseClaimsPanel:108` · `me/MyLeavePanel:117`(同文件第二张,TABLE-PHONE-1 没点名所以没动) | 6 张 / 6 |
+| **TABLE-PHONE-6** | ★ **`logistics/containers/[id]/ContainerPanels:119` —— 卡住了,先要一个裁定。** 那张表**整张没有 `<thead>`**,5 列**全部没有列头**;折叠任何一列都要**现造一句话**,而委托书禁止新增 i18n key。**要做它就要先批 4 个 key**(发货单号 / 订单号 / 客户 / 发货日)。说明见 `docs/known-issues.md` 的 RAW-TABLE-PHONE-SWEEP。 | 1 张 / **0(待裁定)** |
 
-**合计 21 张 = 6 + 9 + 6。**
-★ `purchasing/orders/new/NewOrderForm` 在 TABLE-PHONE-3(`:858`)与 TABLE-PHONE-4(`:786`)里
-**各有一张表**,所以 21 张表落在 **20 个文件**上 —— 表数与文件数差的就是这一处,不是数错了。
-★ `/logistics/forwarders/[id]` **不在这四批里** —— 它有滚动外壳,归下面那条 UNMEASURED。
+**合计 10 张 = 9 + 1。**(上一版是 21 张 = 6 + 9 + 6;TABLE-PHONE-3 做掉了 6 + 5 = **11 张**,
+`ContainerPanels:119` 从原 TABLE-PHONE-5 里**拆出来单列一批**,因为它缺的是裁定不是工时。
+**21 − 11 = 10**,对得上。)
+★ **`purchasing/orders/new/NewOrderForm` 到今天【还没做完】** —— 它的两张表分属两批:
+`:858`(分期)**本刀已做**,`:786`(行编辑)**在 TABLE-PHONE-4**。
+**所以这个文件现在是半张脸,这是排期使然,不是漏了。**
+剩下的 10 张表落在 **10 个文件**上(`NewOrderForm` 只按 TABLE-PHONE-4 那一张算)。
+★ `/logistics/forwarders/[id]` **不在这几批里** —— 它有滚动外壳,归下面那条 UNMEASURED。
 
 **触发条件:没有了。** 裁定已下、路子已经上线跑过 8 张,**照 `/finance/payables` 做即可。**
 

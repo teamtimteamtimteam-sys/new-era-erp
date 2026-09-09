@@ -75,6 +75,31 @@ export default function CompliancePanel({
 
     const now = new Date()
 
+    /* ★ TABLE-PHONE-3:同一个删除钮要在两个断点各画一次(桌面档在自己那一列,
+       手机档叠在「种类」格里),所以在这里定义一次 —— 免得两处日后走散。
+       确认框与动作一个字没改:同一个 ConfirmButton、同一个 handleDelete(row.id)。 */
+    const deleteControl = (row: (typeof rows)[number]) => (
+        <ConfirmButton
+            subject={row.cert_no
+                ? `${typeLabel(row.cert_type_code)} · ${row.cert_no}`
+                : typeLabel(row.cert_type_code)}
+            title={t('suppliers.compliance.deleteConfirm')}
+            body={t('common.softDeleteNote')}
+            details={
+                <p className="text-sm font-medium text-foreground">
+                    {t('suppliers.compliance.deleteConsequence')}
+                </p>
+            }
+            confirmLabel={t('suppliers.compliance.deleteCert')}
+            tier="destructive"
+            disabled={isPending}
+            className="text-red-600 text-sm hover:underline disabled:text-gray-400"
+            onConfirm={() => handleDelete(row.id)}
+        >
+            {t('suppliers.compliance.deleteCert')}
+        </ConfirmButton>
+    )
+
     return (
         <section className="mt-8 pt-8 border-t">
             <h2 className="text-xl font-bold mb-4">{t('suppliers.compliance.sectionTitle')}</h2>
@@ -87,9 +112,9 @@ export default function CompliancePanel({
                         <tr>
                             <th className="border border-gray-300 px-4 py-2 text-left">{t('suppliers.compliance.colType')}</th>
                             <th className="border border-gray-300 px-4 py-2 text-left">{t('suppliers.compliance.colNo')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('suppliers.compliance.colIssuer')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('suppliers.compliance.colIssuer')}</th>
                             <th className="border border-gray-300 px-4 py-2 text-left">{t('suppliers.compliance.colValidity')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('suppliers.compliance.colActions')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('suppliers.compliance.colActions')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -99,11 +124,27 @@ export default function CompliancePanel({
                                 new Date(row.valid_until) < now
                             return (
                                 <tr key={row.id}>
-                                    <td className="border border-gray-300 px-4 py-2">{typeLabel(row.cert_type_code)}</td>
+                                    <td className="border border-gray-300 px-4 py-2">
+                                        {typeLabel(row.cert_type_code)}
+                                        {/* ★ TABLE-PHONE-3:手机档被拿掉的两列(发证机构 / 操作),
+                                            原样叠在这里,各带各的列头 —— 拿掉的是那一列,不是那个事实。
+                                            这张表没有数,留在列上的是【认得出是哪一张、以及它还作不作数】:
+                                            种类 + 证号 + 有效期(过期就红在这一列上)。 */}
+                                        <div className="sm:hidden mt-1 space-y-0.5 text-xs text-gray-600">
+                                            <div>
+                                                <span className="text-gray-500">{t('suppliers.compliance.colIssuer')}: </span>
+                                                {row.issuing_body ?? '—'}
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">{t('suppliers.compliance.colActions')}: </span>
+                                                {deleteControl(row)}
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td className="border border-gray-300 px-4 py-2 text-sm">
                                         {row.cert_no ?? '—'}
                                     </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-sm">
+                                    <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-sm">
                                         {row.issuing_body ?? '—'}
                                     </td>
                                     <td
@@ -114,28 +155,10 @@ export default function CompliancePanel({
                                         {row.valid_from || '—'} ~ {row.valid_until || '—'}
                                         {expired && t('suppliers.compliance.expired')}
                                     </td>
-                                    <td className="border border-gray-300 px-4 py-2">
+                                    <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">
                                         {/* CONFIRM-1:「确定删除这张证书吗?」答不上来是哪一张。
                                             主语 = 证书类型 + 证号(证号可以为空,那就只报类型)。 */}
-                                        <ConfirmButton
-                                            subject={row.cert_no
-                                                ? `${typeLabel(row.cert_type_code)} · ${row.cert_no}`
-                                                : typeLabel(row.cert_type_code)}
-                                            title={t('suppliers.compliance.deleteConfirm')}
-                                            body={t('common.softDeleteNote')}
-                                            details={
-                                                <p className="text-sm font-medium text-foreground">
-                                                    {t('suppliers.compliance.deleteConsequence')}
-                                                </p>
-                                            }
-                                            confirmLabel={t('suppliers.compliance.deleteCert')}
-                                            tier="destructive"
-                                            disabled={isPending}
-                                            className="text-red-600 text-sm hover:underline disabled:text-gray-400"
-                                            onConfirm={() => handleDelete(row.id)}
-                                        >
-                                            {t('suppliers.compliance.deleteCert')}
-                                        </ConfirmButton>
+                                        {deleteControl(row)}
                                     </td>
                                 </tr>
                             )

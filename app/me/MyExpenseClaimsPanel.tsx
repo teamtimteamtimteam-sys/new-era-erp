@@ -46,6 +46,27 @@ export default function MyExpenseClaimsPanel({
     }
     const canSubmit = spendDate !== '' && amount !== '' && description.trim() !== ''
 
+    /* ★ TABLE-PHONE-3:同一个撤回钮要在两个断点各画一次(桌面档在自己那一列,
+       手机档叠在「单号」格里),所以在这里定义一次 —— 免得两处日后走散。
+       动作与它自己的 submitted 判定一个字没改。 */
+    const withdrawControl = (r: (typeof rows)[number]) => (
+        <>
+        {r.status === 'submitted' && (
+            <Button variant="reversal" size="xs" type="button" disabled={pending}
+                onClick={() => {
+                    setError(null)
+                    startTransition(async () => {
+                        const x = await withdrawClaim(r.claim_id)
+                        if (x.error) setError(x.error)
+                    })
+                }}
+                title={t('expenseClaims.withdrawHint')}>
+                {t('expenseClaims.withdraw')}
+            </Button>
+        )}
+        </>
+    )
+
     return (
         <section className="mb-8">
             <h2 className="text-lg font-semibold mb-1">{t('expenseClaims.myTitle')}</h2>
@@ -109,19 +130,48 @@ export default function MyExpenseClaimsPanel({
                     <thead className="bg-gray-100">
                         <tr>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colRef')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colSpent')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colDescription')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colSpent')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colDescription')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-right">{t('expenseClaims.colAmount')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colStatus')}</th>
-                            <th className="border border-gray-300 px-3 py-2"></th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {rows.map((r) => (
                             <tr key={r.claim_id}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{r.code}</td>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{r.spend_date}</td>
-                                <td className="border border-gray-300 px-3 py-2">
+                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">
+                                    {r.code}
+                                    {/* ★ TABLE-PHONE-3:手机档被拿掉的列(消费日 / 事由,以及那一列
+                                        【桌面档本来就没有列头】的撤回),原样叠在这里,各带各的列头 ——
+                                        拿掉的是那一列,不是那个事实。
+                                        留在列上的是:单号 + 报了多少 + 批没批 —— 报销这件事就这三问。 */}
+                                    <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                                        <div>
+                                            <span className="text-gray-500">{t('expenseClaims.colSpent')}: </span>
+                                            <span className="font-mono">{r.spend_date}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('expenseClaims.colDescription')}: </span>
+                                            {r.description}
+                                            <span className="block text-[11px] text-gray-500">
+                                                {r.has_receipt ? t('expenseClaims.hasReceipt')
+                                                    : r.no_receipt_reason
+                                                        ? `${t('expenseClaims.noReceipt')} — ${r.no_receipt_reason}`
+                                                        : t('expenseClaims.noReceipt')}
+                                            </span>
+                                            {r.decision_notes && (
+                                                <span className="block text-[11px] text-gray-600">{r.decision_notes}</span>
+                                            )}
+                                        </div>
+                                        {/* 这一条【没有标签,而它在桌面档也没有】—— 钮面上自己带着字
+                                            (expenseClaims.withdraw),所以【不另造一句话】。
+                                            它只在 submitted 时才画,与桌面档同一条规矩。 */}
+                                        {r.status === 'submitted' && <div className="pt-0.5">{withdrawControl(r)}</div>}
+                                    </div>
+                                </td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 font-mono text-xs">{r.spend_date}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
                                     {r.description}
                                     <span className="block text-[11px] text-gray-500">
                                         {r.has_receipt ? t('expenseClaims.hasReceipt')
@@ -148,20 +198,8 @@ export default function MyExpenseClaimsPanel({
                                         <span className="block text-[11px] text-green-700">{t('expenseClaims.paid')}</span>
                                     )}
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right">
-                                    {r.status === 'submitted' && (
-                                        <Button variant="reversal" size="xs" type="button" disabled={pending}
-                                            onClick={() => {
-                                                setError(null)
-                                                startTransition(async () => {
-                                                    const x = await withdrawClaim(r.claim_id)
-                                                    if (x.error) setError(x.error)
-                                                })
-                                            }}
-                                            title={t('expenseClaims.withdrawHint')}>
-                                            {t('expenseClaims.withdraw')}
-                                        </Button>
-                                    )}
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">
+                                    {withdrawControl(r)}
                                 </td>
                             </tr>
                         ))}

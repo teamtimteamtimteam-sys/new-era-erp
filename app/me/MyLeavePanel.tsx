@@ -118,8 +118,8 @@ export default function MyLeavePanel({
                     <thead>
                         <tr className="bg-gray-50 text-left">
                             <th className="border border-gray-300 px-3 py-2">{t('leave.code')}</th>
-                            <th className="border border-gray-300 px-3 py-2">{t('leave.type')}</th>
-                            <th className="border border-gray-300 px-3 py-2">{t('leave.dates')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2">{t('leave.type')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2">{t('leave.dates')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-right">{t('leave.days')}</th>
                             <th className="border border-gray-300 px-3 py-2">{t('leave.status')}</th>
                         </tr>
@@ -127,9 +127,27 @@ export default function MyLeavePanel({
                     <tbody>
                         {requests.map((r) => (
                             <tr key={r.id}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{r.code}</td>
-                                <td className="border border-gray-300 px-3 py-2">{typeName(r.leave_type_code)}</td>
-                                <td className="border border-gray-300 px-3 py-2">{r.start_date} → {r.end_date}</td>
+                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">
+                                    {r.code}
+                                    {/* ★ TABLE-PHONE-3:手机档被拿掉的两列(假别 / 起止),原样叠在这里,
+                                        各带各的列头 —— 拿掉的是那一列,不是那个事实。
+                                        留在列上的是:单号 + 几天 + 批没批。天数是这张表的那个数
+                                        (它就是上面那张余额表扣掉的东西);批没批是它的状态。
+                                        ★ 本文件上面那张余额表是 TABLE-PHONE-1 做的,这一张
+                                        当时的委托书没有点名,所以留到了本刀 —— 这个文件到此清完。 */}
+                                    <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                                        <div>
+                                            <span className="text-gray-500">{t('leave.type')}: </span>
+                                            {typeName(r.leave_type_code)}
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('leave.dates')}: </span>
+                                            {r.start_date} → {r.end_date}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">{typeName(r.leave_type_code)}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">{r.start_date} → {r.end_date}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-right font-mono">{r.days}</td>
                                 <td className="border border-gray-300 px-3 py-2">{t(`leave.status_${r.status}`)}</td>
                             </tr>

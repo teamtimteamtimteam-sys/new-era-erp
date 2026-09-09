@@ -85,22 +85,38 @@ export default function MyReviewsPanel({
                                             <th className="border border-gray-300 px-2 py-1">{t('reviews.colObjective')}</th>
                                             <th className="border border-gray-300 px-2 py-1 text-right">{t('reviews.colTarget')}</th>
                                             <th className="border border-gray-300 px-2 py-1 text-right">{t('reviews.colActual')}</th>
-                                            <th className="border border-gray-300 px-2 py-1">{t('reviews.colEmployeeResult')}</th>
-                                            <th className="border border-gray-300 px-2 py-1">{t('reviews.colAssessment')}</th>
+                                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-1">{t('reviews.colEmployeeResult')}</th>
+                                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-1">{t('reviews.colAssessment')}</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {myGoals.map((g) => (
                                             <tr key={g.id} className="align-top">
-                                                <td className="border border-gray-300 px-2 py-1 whitespace-pre-wrap">{g.objective_text}</td>
+                                                <td className="border border-gray-300 px-2 py-1 whitespace-pre-wrap">
+                                                    {g.objective_text}
+                                                    {/* ★ TABLE-PHONE-3:手机档被拿掉的两列(本人小结 / 评价),
+                                                        原样叠在这里,各带各的列头 —— 拿掉的是那一列,不是那个事实。
+                                                        只读版留三列:目标 + 指标 + 实绩 —— 这张表没有状态列,
+                                                        第三格就给第二个要紧的数(只有实绩没有指标,判断不了)。 */}
+                                                    <div className="sm:hidden mt-1 space-y-0.5 text-xs text-gray-600">
+                                                        <div>
+                                                            <span className="text-gray-500">{t('reviews.colEmployeeResult')}: </span>
+                                                            {g.employee_result_text ?? '—'}
+                                                        </div>
+                                                        <div>
+                                                            <span className="text-gray-500">{t('reviews.colAssessment')}: </span>
+                                                            {g.reviewer_assessment_text ?? '—'}
+                                                        </div>
+                                                    </div>
+                                                </td>
                                                 <td className="border border-gray-300 px-2 py-1 text-right font-mono whitespace-nowrap">
                                                     {g.target_value !== null ? `${g.target_value} ${g.unit ?? ''}` : '—'}
                                                 </td>
                                                 <td className="border border-gray-300 px-2 py-1 text-right font-mono whitespace-nowrap">
                                                     {g.actual_value !== null ? `${g.actual_value} ${g.unit ?? ''}` : '—'}
                                                 </td>
-                                                <td className="border border-gray-300 px-2 py-1 whitespace-pre-wrap">{g.employee_result_text ?? '—'}</td>
-                                                <td className="border border-gray-300 px-2 py-1 whitespace-pre-wrap">{g.reviewer_assessment_text ?? '—'}</td>
+                                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 whitespace-pre-wrap">{g.employee_result_text ?? '—'}</td>
+                                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 whitespace-pre-wrap">{g.reviewer_assessment_text ?? '—'}</td>
                                             </tr>
                                         ))}
                                     </tbody>

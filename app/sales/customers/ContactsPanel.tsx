@@ -47,6 +47,20 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit, p
               : (!f.email.trim() && !f.phone.trim()) ? t('contacts.needReach')
               : ''
 
+    /* ★ TABLE-PHONE-3:同一组控件要在两个断点各画一次(桌面档在自己那一列,
+       手机档叠在「姓名」格里),所以在这里定义一次 —— 免得两处日后走散。
+       闸与动作一个字没改:同一个 PermissionGate、同一个 open / drop。 */
+    const rowControls = (r: ContactRow) => (
+        <PermissionGate code={permissionCode} allowed={canEdit}>
+            <Button variant="secondary" size="xs" type="button" onClick={() => open(r)} disabled={pending}>
+                {t('common.edit')}
+            </Button>
+            <Button variant="reversal" size="xs" className="ml-2" type="button" onClick={() => drop(r.id)} disabled={pending}>
+                {t('contacts.remove')}
+            </Button>
+        </PermissionGate>
+    )
+
     function open(r?: ContactRow) {
         setError(null)
         setEditing(r?.id ?? 'new')
@@ -89,14 +103,14 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit, p
                     <thead>
                         <tr className="bg-gray-100">
                             <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colName')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colRole')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colEmail')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colRole')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colEmail')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colPhone')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colPrimary')}</th>
                             {/* 【表头不是控件】所以它不上闸,也不消失 —— 一个
                                 空的列头不邀请任何人做任何事,而让它随权限时有时无
                                 会让两个人看到的表宽度不一样。 */}
-                            <th className="border border-gray-300 px-3 py-2" />
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2" />
                         </tr>
                     </thead>
                     <tbody>
@@ -110,24 +124,35 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit, p
                                             {t('contacts.inferredTag')}
                                         </span>
                                     )}
+                                    {/* ★ TABLE-PHONE-3:手机档被拿掉的列(职务 / 邮箱,以及那一列
+                                        【桌面档本来就没有列头】的动作),原样叠在这里,各带各的列头 ——
+                                        拿掉的是那一列,不是那个事实。这张表没有数,
+                                        留在列上的是【手机上打得通的那一条】:姓名 + 电话 + 主联系人。
+                                        邮箱叠下来反而占得开(它在桌面档就带着 break-all)。 */}
+                                    <div className="sm:hidden mt-1 space-y-0.5 text-xs text-gray-600">
+                                        <div>
+                                            <span className="text-gray-500">{t('contacts.colRole')}: </span>
+                                            {r.role ?? '—'}
+                                        </div>
+                                        <div className="break-all">
+                                            <span className="text-gray-500">{t('contacts.colEmail')}: </span>
+                                            {r.email ?? '—'}
+                                        </div>
+                                        {/* 这一条【没有标签,而它在桌面档也没有】—— 两个钮自己带着字
+                                            (common.edit / contacts.remove),所以【不另造一句话】。 */}
+                                        <div className="pt-0.5">{rowControls(r)}</div>
+                                    </div>
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{r.role ?? '—'}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm break-all">{r.email ?? '—'}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-sm">{r.role ?? '—'}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-sm break-all">{r.email ?? '—'}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-sm">{r.phone ?? '—'}</td>
                                 <td className="border border-gray-300 px-3 py-2 text-sm">
                                     {r.is_primary
                                         ? <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded">{t('contacts.primaryTag')}</span>
                                         : <span className="text-xs text-gray-400">—</span>}
                                 </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm whitespace-nowrap">
-                                        <PermissionGate code={permissionCode} allowed={canEdit}>
-                                        <Button variant="secondary" size="xs" type="button" onClick={() => open(r)} disabled={pending}>
-                                            {t('common.edit')}
-                                        </Button>
-                                        <Button variant="reversal" size="xs" className="ml-2" type="button" onClick={() => drop(r.id)} disabled={pending}>
-                                            {t('contacts.remove')}
-                                        </Button>
-                                        </PermissionGate>
+                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-sm whitespace-nowrap">
+                                        {rowControls(r)}
                                     </td>
                             </tr>
                         ))}
