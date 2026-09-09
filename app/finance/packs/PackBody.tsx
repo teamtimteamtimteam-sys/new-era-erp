@@ -78,32 +78,82 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
             <table className="w-full border-collapse border border-gray-300 mb-2 text-sm">
                 <thead className="bg-gray-50">
                     <tr>
-                        {['pack.colSide', 'pack.colControl', 'pack.colLedger', 'pack.colSubledger',
-                          'pack.colDifference', 'pack.colOrigination', 'pack.colSettlement',
-                          'pack.colRevaluation', 'pack.colUnexplained'].map((k) => (
-                            <th key={k} className="border border-gray-300 px-2 py-1 text-left">{t(k)}</th>
+                        {/* ★ TABLE-PHONE-2:手机档三列 —— 侧别 · 差额 · 未解释。
+                            勾稽这一张存在的理由就是【差额有多少、其中多少解释不掉】,
+                            而「未解释」那一格自己带着红色 —— 状态不在另一列里,就在那个数上。
+                            其余六列在 390px 上不画,原样叠进「侧别」那一格,各带自己的列头。 */}
+                        {[
+                            { k: 'pack.colSide', phone: true },
+                            { k: 'pack.colControl', phone: false },
+                            { k: 'pack.colLedger', phone: false },
+                            { k: 'pack.colSubledger', phone: false },
+                            { k: 'pack.colDifference', phone: true },
+                            { k: 'pack.colOrigination', phone: false },
+                            { k: 'pack.colSettlement', phone: false },
+                            { k: 'pack.colRevaluation', phone: false },
+                            { k: 'pack.colUnexplained', phone: true },
+                        ].map(({ k, phone }) => (
+                            <th key={k} className={(phone ? '' : 'hidden sm:table-cell ') + 'border border-gray-300 px-2 py-1 text-left'}>{t(k)}</th>
                         ))}
                     </tr>
                 </thead>
                 <tbody>
-                    {sides.map((s) => (
-                        <tr key={s.side}>
-                            <td className="border border-gray-300 px-2 py-1">
-                                {t(s.side === 'ar' ? 'pack.sideAr' : 'pack.sideAp')}
-                            </td>
-                            <td className="border border-gray-300 px-2 py-1 font-mono">{s.control_account}</td>
-                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">{formatAmount(s.ledger_base, ccy)}</td>
-                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">{formatAmount(s.subledger_base, ccy)}</td>
-                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">{formatAmount(s.difference_base, ccy)}</td>
-                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">{formatAmount(s.origination_variance_base, ccy)}</td>
-                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">{formatAmount(s.settlement_variance_base, ccy)}</td>
-                            <td className="border border-gray-300 px-2 py-1 text-right font-mono">{formatAmount(s.revaluation_base, ccy)}</td>
-                            <td className={'border border-gray-300 px-2 py-1 text-right font-mono ' +
-                                (s.reconciled ? '' : 'bg-red-50 text-red-800 font-semibold')}>
-                                {formatAmount(s.unexplained_base, ccy)}
-                            </td>
-                        </tr>
-                    ))}
+                    {sides.map((s) => {
+                        // ★ 两个断点【共用同一份节点】—— 照抄两份的话,两处会各自漂,
+                        //   而那种漂在桌面上看不见(桌面那份是对的),只在手机上错。
+                        const ledger = formatAmount(s.ledger_base, ccy)
+                        const subledger = formatAmount(s.subledger_base, ccy)
+                        const origination = formatAmount(s.origination_variance_base, ccy)
+                        const settlement = formatAmount(s.settlement_variance_base, ccy)
+                        const revaluation = formatAmount(s.revaluation_base, ccy)
+                        return (
+                            <tr key={s.side}>
+                                <td className="border border-gray-300 px-2 py-1">
+                                    {t(s.side === 'ar' ? 'pack.sideAr' : 'pack.sideAp')}
+                                    {/* ★ 手机档拿掉的六列原样叠在这里 ——「拿掉」指的是
+                                        【那一列】,不是【那个事实】。带着各自的列头,
+                                        所以数字不会失去主语。 */}
+                                    <div className="sm:hidden mt-1 space-y-0.5 text-xs text-gray-600">
+                                        <div>
+                                            <span className="text-gray-500">{t('pack.colControl')}: </span>
+                                            <span className="font-mono">{s.control_account}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('pack.colLedger')}: </span>
+                                            <span className="font-mono">{ledger}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('pack.colSubledger')}: </span>
+                                            <span className="font-mono">{subledger}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('pack.colOrigination')}: </span>
+                                            <span className="font-mono">{origination}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('pack.colSettlement')}: </span>
+                                            <span className="font-mono">{settlement}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('pack.colRevaluation')}: </span>
+                                            <span className="font-mono">{revaluation}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 font-mono">{s.control_account}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-right font-mono">{ledger}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-right font-mono">{subledger}</td>
+                                <td className="border border-gray-300 px-2 py-1 text-right font-mono">{formatAmount(s.difference_base, ccy)}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-right font-mono">{origination}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-right font-mono">{settlement}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-right font-mono">{revaluation}</td>
+                                <td className={'border border-gray-300 px-2 py-1 text-right font-mono ' +
+                                    (s.reconciled ? '' : 'bg-red-50 text-red-800 font-semibold')}>
+                                    {formatAmount(s.unexplained_base, ccy)}
+                                </td>
+                            </tr>
+                        )
+                    })}
                 </tbody>
             </table>
             {/* ★【未解释余额是一条【发现】,不是一个装饰】★ 说出它是什么、以及
@@ -136,19 +186,43 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
                 <table className="w-full border-collapse border border-gray-300 mb-6 text-sm">
                     <thead className="bg-gray-50">
                         <tr>
-                            {['pack.colEntry', 'pack.colDate', 'pack.colCounterpart',
-                              'pack.colCounterpartDate', 'pack.colAmount'].map((k) => (
-                                <th key={k} className="border border-gray-300 px-2 py-1 text-left">{t(k)}</th>
+                            {/* ★ TABLE-PHONE-2:手机档三列 —— 分录 · 对手件 · 金额。
+                                这张表的一行【就是一对】,所以两个单号一起构成身份:
+                                只留一半的话,剩下的那半没有对手,这张表也就没有意义了。
+                                两个日期在 390px 上不画,叠进「分录」那一格,各带自己的列头。 */}
+                            {[
+                                { k: 'pack.colEntry', phone: true },
+                                { k: 'pack.colDate', phone: false },
+                                { k: 'pack.colCounterpart', phone: true },
+                                { k: 'pack.colCounterpartDate', phone: false },
+                                { k: 'pack.colAmount', phone: true },
+                            ].map(({ k, phone }) => (
+                                <th key={k} className={(phone ? '' : 'hidden sm:table-cell ') + 'border border-gray-300 px-2 py-1 text-left'}>{t(k)}</th>
                             ))}
                         </tr>
                     </thead>
                     <tbody>
                         {payload.split_reversal_pairs.map((s) => (
                             <tr key={s.entry_code}>
-                                <td className="border border-gray-300 px-2 py-1 font-mono">{s.entry_code}</td>
-                                <td className="border border-gray-300 px-2 py-1 font-mono text-xs">{s.entry_date}</td>
+                                <td className="border border-gray-300 px-2 py-1 font-mono">
+                                    {s.entry_code}
+                                    {/* ★ 手机档拿掉的两个日期叠在这里,各带自己的列头 ——
+                                        而这一对【跨了两个月】正是本表要说的那件事,
+                                        所以这两个日期在手机上必须还读得到。 */}
+                                    <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                                        <div>
+                                            <span className="text-gray-500">{t('pack.colDate')}: </span>
+                                            <span className="font-mono">{s.entry_date}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('pack.colCounterpartDate')}: </span>
+                                            <span className="font-mono">{s.counterpart_date}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 font-mono text-xs">{s.entry_date}</td>
                                 <td className="border border-gray-300 px-2 py-1 font-mono">{s.counterpart_code}</td>
-                                <td className="border border-gray-300 px-2 py-1 font-mono text-xs">{s.counterpart_date}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 font-mono text-xs">{s.counterpart_date}</td>
                                 <td className="border border-gray-300 px-2 py-1 text-right font-mono">{formatAmount(s.amount_base, ccy)}</td>
                             </tr>
                         ))}

@@ -326,13 +326,20 @@ export default async function MePage() {
                 ) : (
                     <table className="w-full border-collapse text-sm">
                         <thead>
+                            {/* ★ TABLE-PHONE-2:手机档三列 —— 期间 · 应发 · 实发。
+                                【这张表没有状态列】,所以第三格给了第二个要紧的数:
+                                一个人在手机上翻自己的工资条,问的是「这个月应发多少、
+                                真正到手多少」—— 两头都要,少一头就没法自己对。
+                                中间那三列(雇主公积金 / 个人公积金 / 其他扣除)正是
+                                两头之间的明细,在 390px 上不画,叠进「期间」那一格,
+                                各带自己的列头。 */}
                             <tr className="bg-gray-50 text-left">
-                                <th className="border border-gray-300 px-3 py-2">{t('me.period')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('me.gross')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('me.employerCpf')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('me.employeeCpf')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('me.deductions')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('me.net')}</th>
+                                <th className="border border-gray-300 px-2 sm:px-3 py-2">{t('me.period')}</th>
+                                <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('me.gross')}</th>
+                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('me.employerCpf')}</th>
+                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('me.employeeCpf')}</th>
+                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('me.deductions')}</th>
+                                <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('me.net')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -340,27 +347,43 @@ export default async function MePage() {
                                 const per = l.payroll_period_id ? periodById.get(l.payroll_period_id) : undefined
                                 return (
                                     <tr key={l.id}>
-                                        <td className="border border-gray-300 px-3 py-2">
+                                        <td className="border border-gray-300 px-2 sm:px-3 py-2">
                                             {per ? per.code : '—'}
                                             {per?.period_month && (
                                                 <span className="ml-2 text-xs text-gray-500">
                                                     {fmtDate(per.period_month)}
                                                 </span>
                                             )}
+                                            {/* ★ 手机档拿掉的三列叠在这里,各带自己的列头 ——
+                                                「拿掉」指的是【那一列】,不是【那个事实】。 */}
+                                            <div className="sm:hidden mt-1 space-y-0.5 text-xs text-gray-600">
+                                                <div>
+                                                    <span className="text-gray-500">{t('me.employerCpf')}: </span>
+                                                    <span className="font-mono">{formatAmount(l.employer_cpf, per?.currency)}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-500">{t('me.employeeCpf')}: </span>
+                                                    <span className="font-mono">{formatAmount(l.employee_cpf, per?.currency)}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-500">{t('me.deductions')}: </span>
+                                                    <span className="font-mono">{formatAmount(l.other_deductions, per?.currency)}</span>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">
+                                        <td className="border border-gray-300 px-2 sm:px-3 py-2 text-right font-mono">
                                             {formatAmount(l.gross_pay, per?.currency)}
                                         </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">
+                                        <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono">
                                             {formatAmount(l.employer_cpf, per?.currency)}
                                         </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">
+                                        <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono">
                                             {formatAmount(l.employee_cpf, per?.currency)}
                                         </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">
+                                        <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono">
                                             {formatAmount(l.other_deductions, per?.currency)}
                                         </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono font-medium">
+                                        <td className="border border-gray-300 px-2 sm:px-3 py-2 text-right font-mono font-medium">
                                             {formatAmount(l.net_pay, per?.currency)}
                                         </td>
                                     </tr>

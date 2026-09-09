@@ -1646,18 +1646,25 @@ fixture 196 的 B 臂改用 `count(*)` 扫(**不求值任何列表达式**),那�
 `/finance/payables` 是 FIX-2b 早先做的参照。
 **判据:390px 上读得到的字段数与桌面完全相同,变的只是排布。**
 
-**★ 剩下的:26 张表 / 24 个文件,按判断数分批**
+**★ 已上线 —— TABLE-PHONE-2(2026-09-09):5 次判断 / 5 张表 / 4 个文件**
+钱、且是只读账簿:`finance/packs/PackBody.tsx:78`(9 列)+ `:136`(5 列,同一个文件两张,一起做完)·
+`/finance/trial-balance`(**5 列** —— TABLE-PHONE-0 标的「unparsed: Fragment」读进去之后就是 5 列,
+那个 Fragment 裹的是**分组抬头行**,不是更多的列)· `/finance/close`(7 列)· `/me` 工资条(6 列)。
+★ 这一批把 **4 个文件整个清干净**(没有一个还被后面的批次点到)。
 
-**下面四批【正好把那 26 张分完】,不重不漏 —— 数过的。**
+**★ 剩下的:21 张表 / 20 个文件,按判断数分批**
+
+**下面三批【正好把那 21 张分完】,不重不漏 —— 数过的。**
 
 | 批 | 内容 | 表数 / 判断数 |
 |---|---|---|
-| **TABLE-PHONE-2** | 钱、且是只读账簿:`finance/packs/PackBody.tsx:78,136` · `finance/trial-balance:147` · `finance/close:253` · `me/page.tsx:327`(工资条) | 5 张 / 5 |
 | **TABLE-PHONE-3** | **成对的那几组(R-Q4:两次判断、一次讨论)**:考勤(`hr/attendance/[id]/AttendanceGrid:48` + `me/MyAttendancePanel:28`)· 绩效(`hr/reviews/GoalsEditor:153` + `me/MyReviewsPanel:82`)· 付款条款分期(`purchasing/orders/new/NewOrderForm:858` + `purchasing/payment-terms/TemplateForm:151`) | 6 张 / **3** |
 | **TABLE-PHONE-4** | 录入表单里的行编辑表:`finance/invoices/new/NewInvoiceForm:272` · `finance/payments/new/NewPaymentForm:504` · `finance/invoices/[id]/CreateCreditNoteControl:101` · `finance/bank/import/ImportStatementForm:390` · `finance/freight/new/NewFreightForm:225` · `sales/orders/[id]/amend/AmendOrderForm:141` · `purchasing/orders/[id]/amend/AmendOrderForm:135` · `sales/quotes/[id]/QuoteLinesEditor:65` · `purchasing/orders/new/NewOrderForm:786` | 9 张 / 9 |
 | **TABLE-PHONE-5** | 其余:`sales/customers/ChasePanel:239` · `sales/customers/ContactsPanel:88` · `suppliers/[id]/edit/CompliancePanel:85` · `logistics/containers/[id]/ContainerPanels:119` · `me/MyExpenseClaimsPanel:108` · `me/MyLeavePanel:117`(同文件第二张,TABLE-PHONE-1 没点名所以没动) | 6 张 / 6 |
 
-**合计 26 张 = 5 + 6 + 9 + 6。**
+**合计 21 张 = 6 + 9 + 6。**
+★ `purchasing/orders/new/NewOrderForm` 在 TABLE-PHONE-3(`:858`)与 TABLE-PHONE-4(`:786`)里
+**各有一张表**,所以 21 张表落在 **20 个文件**上 —— 表数与文件数差的就是这一处,不是数错了。
 ★ `/logistics/forwarders/[id]` **不在这四批里** —— 它有滚动外壳,归下面那条 UNMEASURED。
 
 **触发条件:没有了。** 裁定已下、路子已经上线跑过 8 张,**照 `/finance/payables` 做即可。**

@@ -146,26 +146,50 @@ export default async function FinancePage({
 
             <table className="w-full border-collapse border border-gray-300">
                 <thead className="bg-gray-100">
+                    {/* ★ TABLE-PHONE-2:手机档三列 —— 编号 · 科目 · 净额。
+                        【身份占两格是有理由的】:一个科目在这套系统里由编号与名字
+                        【一起】认出来 —— 编号是拿来引用的把手,名字才是它的意思,
+                        光有编号读起来就是一串没有主语的数字。
+                        借方/贷方在 390px 上不画,叠进「编号」那一格(各带列头);
+                        净额正是这两者的差,所以留它不等于丢掉那两个事实。 */}
                     <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colAccount')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colDebits')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colCredits')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colNet')}</th>
+                        <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('finance.colCode')}</th>
+                        <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('finance.colAccount')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right">{t('finance.colDebits')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right">{t('finance.colCredits')}</th>
+                        <th className="border border-gray-300 px-2 sm:px-4 py-2 text-right">{t('finance.colNet')}</th>
                     </tr>
                 </thead>
                 <tbody>
                     {groups.map((g) => (
                         <Fragment key={g.type}>
+                            {/* ★ colSpan 不能随断点变,所以这条分组抬头写两份 ——
+                                手机档跨 3 列,桌面档跨 5 列。字一模一样。 */}
                             <tr className="bg-gray-50">
-                                <td colSpan={5} className="border border-gray-300 px-4 py-2 font-semibold">
+                                <td colSpan={3} className="sm:hidden border border-gray-300 px-2 py-2 font-semibold">
+                                    {t('finance.accountType.' + g.type)}
+                                </td>
+                                <td colSpan={5} className="hidden sm:table-cell border border-gray-300 px-4 py-2 font-semibold">
                                     {t('finance.accountType.' + g.type)}
                                 </td>
                             </tr>
                             {g.rows.map((r) => (
                                 <tr key={r.id}>
-                                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{r.code}</td>
-                                    <td className="border border-gray-300 px-4 py-2">
+                                    <td className="border border-gray-300 px-2 sm:px-4 py-2 font-mono text-sm">
+                                        {r.code}
+                                        {/* ★ 手机档拿掉的借方/贷方叠在这里,各带自己的列头。 */}
+                                        <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                                            <div>
+                                                <span className="text-gray-500">{t('finance.colDebits')}: </span>
+                                                <span className="font-mono">{formatAmount(r.debits, baseCurrency)}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">{t('finance.colCredits')}: </span>
+                                                <span className="font-mono">{formatAmount(r.credits, baseCurrency)}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="border border-gray-300 px-2 sm:px-4 py-2">
                                         {accountName(r)}
                                         {!r.is_active && (
                                             <span className="ml-2 px-2 py-0.5 bg-gray-200 rounded text-xs">
@@ -173,15 +197,15 @@ export default async function FinancePage({
                                             </span>
                                         )}
                                     </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                    <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                         {formatAmount(r.debits, baseCurrency)}
                                     </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                    <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                         {formatAmount(r.credits, baseCurrency)}
                                     </td>
                                     <td
                                         className={
-                                            'border border-gray-300 px-4 py-2 text-right font-mono text-sm ' +
+                                            'border border-gray-300 px-2 sm:px-4 py-2 text-right font-mono text-sm ' +
                                             (r.net < 0 ? 'text-red-600' : '')
                                         }
                                     >
@@ -193,7 +217,11 @@ export default async function FinancePage({
                     ))}
                     {groups.length === 0 && (
                         <tr>
-                            <td colSpan={5} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+                            {/* colSpan 不能随断点变 —— 手机档三列,桌面档五列。 */}
+                            <td colSpan={3} className="sm:hidden border border-gray-300 px-4 py-8 text-center text-gray-500">
+                                {t('finance.emptyState')}
+                            </td>
+                            <td colSpan={5} className="hidden sm:table-cell border border-gray-300 px-4 py-8 text-center text-gray-500">
                                 {t('finance.emptyState')}
                             </td>
                         </tr>
@@ -201,14 +229,25 @@ export default async function FinancePage({
                 </tbody>
                 <tfoot>
                     <tr className="bg-gray-100 font-bold">
-                        <td colSpan={2} className="border border-gray-300 px-4 py-2">{t('finance.totalsLabel')}</td>
-                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                        {/* ★ 合计行同样写两份 —— 手机档标签格跨 2 列(编号+科目),
+                            桌面档也跨 2 列,但手机档另外把借贷两个合计【叠】进来:
+                            那两列在 390px 上不画,而"借贷相不相等"正是试算表的用处。 */}
+                        <td colSpan={2} className="sm:hidden border border-gray-300 px-2 py-2 text-xs">
+                            {t('finance.totalsLabel')}
+                            <span className="block mt-0.5 font-mono text-[11px] font-normal text-gray-600">
+                                {t('finance.colDebits')} {formatAmount(totalDebits, baseCurrency)}
+                                {' · '}
+                                {t('finance.colCredits')} {formatAmount(totalCredits, baseCurrency)}
+                            </span>
+                        </td>
+                        <td colSpan={2} className="hidden sm:table-cell border border-gray-300 px-4 py-2">{t('finance.totalsLabel')}</td>
+                        <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                             {formatAmount(totalDebits, baseCurrency)}
                         </td>
-                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                        <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                             {formatAmount(totalCredits, baseCurrency)}
                         </td>
-                        <td className="border border-gray-300 px-4 py-2" />
+                        <td className="border border-gray-300 px-2 sm:px-4 py-2" />
                     </tr>
                 </tfoot>
             </table>
