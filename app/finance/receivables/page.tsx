@@ -168,17 +168,17 @@ export default async function ReceivablesPage({
             <table className="w-full border-collapse border border-gray-300">
                 <thead className="bg-gray-100">
                     <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colCounterparty')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDocument')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('invoice.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDate')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('finance.colCounterparty')}</th>
+                        <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('finance.colDocument')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('invoice.colCode')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('finance.colDate')}</th>
                         {/* AGING-1:到期日露出来,而【档位不按它分】—— AR 的发票支有,销售支借它挂着的发票的 */}
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.agingAsOf.colDueDate')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount', { ccy: baseCurrency })}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colSettled')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colCredited')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colOpen')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDays')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('finance.agingAsOf.colDueDate')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount', { ccy: baseCurrency })}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right">{t('finance.colSettled')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right">{t('finance.colCredited')}</th>
+                        <th className="border border-gray-300 px-2 sm:px-4 py-2 text-right">{t('finance.colOpen')}</th>
+                        <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('finance.colDays')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -187,10 +187,10 @@ export default async function ReceivablesPage({
                             ...g.rows.map((r, ri) => {
                                 return (
                                     <tr key={r.sales_record_id ?? r.invoice_id ?? `${gi}-${ri}`}>
-                                        <td className="border border-gray-300 px-4 py-2">
+                                        <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">
                                             {ri === 0 ? g.name : ''}
                                         </td>
-                                        <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                                        <td className="border border-gray-300 px-2 sm:px-4 py-2 font-mono text-sm">
                                             {r.doc_kind === 'invoice' ? (
                                                 <Link
                                                     href={`/finance/invoices/${r.invoice_id}`}
@@ -211,8 +211,49 @@ export default async function ReceivablesPage({
                                                     {t('finance.docKind.invoice')}
                                                 </span>
                                             )}
+                                            {/* ★ TABLE-PHONE-1:手机档被拿掉的七列,原样叠在这里 ——
+                                                与 FIX-2b 对 /finance/payables 的做法逐字同一条:
+                                                「拿掉」指的是【那一列】,不是【那个事实】。
+                                                每一条带着自己的列头,所以数字不会失去主语。
+                                                ★ 往来对象在桌面档只画在每组第一行(ri === 0),
+                                                  而手机档【每一行都画】—— 那一格的合并靠的是
+                                                  上下相邻,手机上一行一屏,相邻关系没有了。 */}
+                                            <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                                                <div>
+                                                    <span className="text-gray-500">{t('finance.colCounterparty')}: </span>
+                                                    {g.name}
+                                                </div>
+                                                <div className="font-mono">
+                                                    <span className="font-sans text-gray-500">{t('invoice.colCode')}: </span>
+                                                    {r.invoice_id && r.invoice_code ? r.invoice_code : <span className="text-gray-400">—</span>}
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-500">{t('finance.colDate')}: </span>
+                                                    {r.sale_date}
+                                                </div>
+                                                <div>
+                                                    <span className="text-gray-500">{t('finance.agingAsOf.colDueDate')}: </span>
+                                                    {r.due_date ?? (
+                                                        <span className="text-gray-400" title={t('finance.agingAsOf.noDueDateWhy')}>
+                                                            {t('finance.agingAsOf.noDueDate')}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="font-mono">
+                                                    <span className="font-sans text-gray-500">{t('finance.colAmount', { ccy: baseCurrency })}: </span>
+                                                    {formatMoneyBare(r.amount_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
+                                                </div>
+                                                <div className="font-mono">
+                                                    <span className="font-sans text-gray-500">{t('finance.colSettled')}: </span>
+                                                    {formatMoneyBare(r.settled_base, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
+                                                </div>
+                                                <div className="font-mono">
+                                                    <span className="font-sans text-gray-500">{t('finance.colCredited')}: </span>
+                                                    {formatMoneyBare(r.credited_base, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                                        <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 font-mono text-sm">
                                             {r.invoice_id && r.invoice_code ? (
                                                 <Link
                                                     href={`/finance/invoices/${r.invoice_id}`}
@@ -224,29 +265,29 @@ export default async function ReceivablesPage({
                                                 <span className="text-gray-400">—</span>
                                             )}
                                         </td>
-                                        <td className="border border-gray-300 px-4 py-2">{r.sale_date}</td>
+                                        <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">{r.sale_date}</td>
                                         {/* 【命名的缺席,不是空白】没有到期日的那些行,说的是这套系统里
                                             【还没有】这个事实(客户账期 0/3 填了),不是"数据漏填"。 */}
-                                        <td className="border border-gray-300 px-4 py-2 text-sm">
+                                        <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-sm">
                                             {r.due_date ?? (
                                                 <span className="text-gray-400" title={t('finance.agingAsOf.noDueDateWhy')}>
                                                     {t('finance.agingAsOf.noDueDate')}
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                        <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                             {formatMoneyBare(r.amount_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                         </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                        <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                             {formatMoneyBare(r.settled_base, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                         </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                        <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                             {formatMoneyBare(r.credited_base, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                         </td>
-                                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm font-medium">
+                                        <td className="border border-gray-300 px-2 sm:px-4 py-2 text-right font-mono text-sm font-medium">
                                             {formatMoneyBare(r.open_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                         </td>
-                                        <td className="border border-gray-300 px-4 py-2">
+                                        <td className="border border-gray-300 px-2 sm:px-4 py-2">
                                             <span className={'px-2 py-1 rounded text-xs ' + bucketPillClass(r.bucket)}>
                                                 {r.days_outstanding}
                                             </span>
@@ -255,28 +296,49 @@ export default async function ReceivablesPage({
                                 )
                             }),
                             <tr key={`subtotal-${gi}`} className="bg-gray-50 font-medium">
-                                <td className="border border-gray-300 px-4 py-2 text-sm" colSpan={5}>
+                                {/* ★ TABLE-PHONE-1:colSpan 不能随断点变,所以标签格写两份 ——
+                                    手机档跨 1 列(单据),桌面档跨 5 列(往来/单据/发票号/单据日/到期日)。
+                                    两份的字一模一样;分开的只是它跨几格。
+                                    手机档不画「金额 / 已结 / 已贷记」三列,那三个合计叠在标签格里 ——
+                                    与明细行同一条规矩:拿掉的是列,不是事实。 */}
+                                <td className="sm:hidden border border-gray-300 px-2 py-2 text-xs">
+                                    {g.name} — {t('finance.totalsLabel')}
+                                    <span className="block mt-0.5 font-mono text-[11px] text-gray-600">
+                                        {t('finance.colAmount', { ccy: baseCurrency })} {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
+                                        {' · '}
+                                        {t('finance.colSettled')} {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
+                                        {' · '}
+                                        {t('finance.colCredited')} {formatMoneyBare(Math.round(g.credited * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
+                                    </span>
+                                </td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-sm" colSpan={5}>
                                     {g.name} — {t('finance.totalsLabel')}
                                 </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                     {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                 </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                     {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                 </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
                                     {formatMoneyBare(Math.round(g.credited * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                 </td>
-                                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                <td className="border border-gray-300 px-2 sm:px-4 py-2 text-right font-mono text-sm">
                                     {formatMoneyBare(Math.round(g.open * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                 </td>
-                                <td className="border border-gray-300 px-4 py-2" />
+                                <td className="border border-gray-300 px-2 sm:px-4 py-2" />
                             </tr>,
                         ]
                     ))}
                     {rows.length === 0 && (
                         <tr>
-                            <td colSpan={10} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+                            {/* colSpan 不能随断点变 —— 手机档三列,桌面档十列。 */}
+                            <td colSpan={3} className="sm:hidden border border-gray-300 px-4 py-8 text-center text-gray-500">
+                                {report.is_past
+                                    ? t('finance.agingAsOf.noOpenItemsAsOf', { date: report.as_of })
+                                    : t('finance.noOpenItems')}
+                            </td>
+                            <td colSpan={10} className="hidden sm:table-cell border border-gray-300 px-4 py-8 text-center text-gray-500">
                                 {/* 一个过去的时点上"没有"与今天"没有"不是同一句话 */}
                                 {report.is_past
                                     ? t('finance.agingAsOf.noOpenItemsAsOf', { date: report.as_of })

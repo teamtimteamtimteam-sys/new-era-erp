@@ -5420,77 +5420,145 @@ FIX-1 的跨模块普查顺手量到:线上 98 张视图里,**97 张 `security_i
 
 ---
 
-## RAW-TABLE-PHONE-SWEEP —— 手搓 `<table>` 的手机档:54 个文件,**一族债,不是一堆缺陷**(FIX-2b,2026-09-06)
+## RAW-TABLE-PHONE-SWEEP —— 手搓 `<table>` 的手机档:**真数是 43 张表 / 39 个文件**,不是 54(TABLE-PHONE-0 普查 + TABLE-PHONE-1 首批,2026-09-09)
 
-**委托书问「同一个祖先是不是也裁了别的页」。答案是:【没有那个祖先】。**
-每一页各自写自己的 `<table>`,所以这不是一个坏掉的组件,是**一个被重复了五十几遍的惯用法**。
+> ★★ **这一条被【重新量过】了。下面先说真数,再说【那个 54 是怎么来的】——
+> 因为它错在两个相反的方向上,而只把 54 换成 39 的话,下一个人什么都学不到。**
 
-实测(2026-09-06):`app/**/*.tsx` 里 **73 个文件**含一个手搓 `<table>`;
-其中 **54 个文件整份源码里一处 `overflow-x` / `overflow-auto` 都没有**。
+### 一 · 真数(TABLE-PHONE-0,2026-09-09 实测)
 
-> ★ **不要把它读成「有 54 个缺陷」。** COPY-1 的探针只在**真实数据真的把表撑出
-> 容器**时才判 U2 红,而全站量下来红的只有 `/finance/payables` 一页(已修)。
-> 其余 53 页今天大多没有显形 —— 它们是**同一个惯用法**,不是五十三个已知故障。
-
-**下一刀从这张表开始,不必重做勘察。** 排期与那个要先做的裁定见
-`docs/forward-queue.md` 阶段 8 的 **RAW-TABLE-PHONE**。
-
-| 列数(`<th>`) | 文件 |
+| | |
 |---|---|
-| 13 | `app/finance/assets/page.tsx` |
-| 13 | `app/me/MyLeavePanel.tsx` |
-| 13 | `app/sales/orders/[id]/amend/AmendOrderForm.tsx` |
-| 11 | `app/finance/payments/new/NewPaymentForm.tsx` |
-| 11 | `app/finance/receivables/page.tsx` |
-| 11 | `app/me/page.tsx` |
-| 10 | `app/inventory/page.tsx` |
-| 9 | `app/finance/payables/page.tsx` |
-| 9 | `app/hr/reviews/GoalsEditor.tsx` |
-| 8 | `app/finance/close/page.tsx` |
-| 8 | `app/finance/invoices/[id]/CreateCreditNoteControl.tsx` |
-| 8 | `app/hr/attendance/[id]/AttendanceGrid.tsx` |
-| 8 | `app/operation/orders/new/NewWorkOrderForm.tsx` |
-| 8 | `app/sales/customers/ChasePanel.tsx` |
-| 7 | `app/finance/invoices/new/NewInvoiceForm.tsx` |
-| 7 | `app/materials/[id]/edit/AttachmentsPanel.tsx` |
-| 7 | `app/me/MyAttendancePanel.tsx` |
-| 7 | `app/me/MyExpenseClaimsPanel.tsx` |
-| 7 | `app/purchasing/orders/new/NewOrderForm.tsx` |
-| 7 | `app/sales/customers/ContactsPanel.tsx` |
-| 7 | `app/sales/customers/[id]/edit/AttachmentsPanel.tsx` |
-| 7 | `app/sales/quotes/[id]/QuoteLinesEditor.tsx` |
-| 7 | `app/suppliers/[id]/edit/AttachmentsPanel.tsx` |
-| 6 | `app/finance/bank/import/ImportStatementForm.tsx` |
-| 6 | `app/finance/freight/new/NewFreightForm.tsx` |
-| 6 | `app/finance/trial-balance/page.tsx` |
-| 6 | `app/me/MyReviewsPanel.tsx` |
-| 6 | `app/purchasing/orders/[id]/amend/AmendOrderForm.tsx` |
-| 6 | `app/purchasing/payment-terms/TemplateForm.tsx` |
-| 6 | `app/suppliers/[id]/edit/CompliancePanel.tsx` |
-| 5 | `app/me/MyClaimsPanel.tsx` |
-| 5 | `app/sales/customers/StatementPanel.tsx` |
-| 5 | `app/sales/orders/[id]/page.tsx` |
-| 4 | `app/finance/balance-sheet/page.tsx` |
-| 4 | `app/finance/packs/PackBody.tsx` |
-| 4 | `app/finance/pnl/page.tsx` |
-| 4 | `app/output/[id]/assays/new/OutputAssayForm.tsx` |
-| 4 | `app/sales/quotes/new/NewQuoteForm.tsx` |
-| 4 | `app/settings/roles/PermissionMatrix.tsx` |
-| 4 | `app/tools/pricing/metal-prices/bulk/BulkPricesForm.tsx` |
-| 3 | `app/finance/cost-variance/page.tsx` |
-| 3 | `app/inbound/[id]/assays/[assayId]/page.tsx` |
-| 3 | `app/inbound/[id]/assays/new/AssayForm.tsx` |
-| 3 | `app/tools/pricing/calculator/CalculatorForm.tsx` |
-| 3 | `app/tools/pricing/formulas/FormulaForm.tsx` |
-| 1 | `app/finance/month-end/page.tsx` |
-| 1 | `app/hr/reviews/cycles/page.tsx` |
-| 1 | `app/operation/processing/[id]/LossPanel.tsx` |
-| 0 | `app/finance/cashflow/page.tsx` |
-| 0 | `app/inbound/[id]/edit/PrepaymentPanel.tsx` |
-| 0 | `app/inbound/page.tsx` |
-| 0 | `app/logistics/containers/[id]/ContainerPanels.tsx` |
-| 0 | `app/operation/orders/[id]/page.tsx` |
-| 0 | `app/sales/commissions/CommissionsTable.tsx` |
+| 手搓 `<table>` 的总体 | **72 张表 · 62 个文件**(另有 7 张住在 `app/components/` 的共用件里) |
+| **≤4 列 —— 既有规矩明说不必动** | **29 张 · 27 个文件** |
+| **≥5 列 —— 工作单** | **43 张 · 39 个文件** |
+| ↳ 本文件内已有滚动外壳(**够得着**) | **9 张 · 8 个文件** |
+| ↳ **一处没动过、列在手机上够不着** | **33 张 · 30 个文件** |
+
+**判据(不是估的):** `app/` 下 603 个 `.tsx`;先把**注释与字符串字面量的内容**抹成
+空格(长度不变,行号不移),再在**整份源码**上跑 `/<table(?=[\s\n>/])/`(不按行切 ——
+BTN-1/2/3 那条具名法则);列数取各 `<tr>` 里 colSpan 之和的最大值,**减掉
+`hidden sm:table-cell` 那些桌面专属格**;表体里【行位置】上的大写组件解析到同文件的
+定义再进去数格子(CONV-5 §⑩-1「扫组件,不扫标签名」)。
+双向钉住:正则数出的 79 == 一支手写字符扫描器数出的 79。
+★ **量具没有进仓库**(裁定 R-Q8):它读的是标记,而该守着「390px 上读不读得到」的是
+`scripts/survey-phone.mjs`(真浏览器量 `scrollWidth`)。**再加一道读声明的闸,
+只会多发一张它不够格发的合格证。** 判据全文在 TABLE-PHONE-0 的交回报告里。
+
+### 二 · 那个 54 是怎么来的 —— 它**复现得出来**,而它错在【两个相反的方向】
+
+判据是:「文件里有 `<table` 字样,且整份源码里一处 `overflow-x`/`overflow-auto` 都没有」。
+`grep -rlE "<table[ >/]" app --include="*.tsx"` → **73**,再滤掉带 overflow 的 → **54**。
+**两个数一字不差地复现出来了,所以它不是编的 —— 它是一条判据的输出,而那条判据有三个洞。**
+
+**① 4 个文件【根本没有表】—— `<table>` 只出现在注释里,而且四处都在说"这一页已经转换掉了"**
+
+| 文件 | 那一处 `<table>` | 清单上的列数 |
+|---|---|---|
+| `app/inbound/page.tsx:361` | `{/* ★★【CONV-1:13 列的手写 <table> 换成 DataTable】★★` | **0** |
+| `app/operation/orders/[id]/page.tsx:250` | `{/* 转换前是 {runs.length === 0 ? <p>没有</p> : <table>} ——` | **0** |
+| `app/operation/processing/[id]/LossPanel.tsx:157` | `{/* ★ CONV-10:转换前是 … : <table>} ——` | 1 |
+| `app/sales/commissions/CommissionsTable.tsx:15` | `// …不是"把 <table> 换成 <DataTable>"。` | **0** |
+
+☞ **四条【已经修好】的记录,被当成了四笔还欠着的债。**
+而清单上那个 `<th>` 计数写着 **0** —— **那个 0 就是它在喊,而没有人听。**
+这是 CONV-8 那条具名教训的第四次:**一道读文本的闸把散文当成了代码**
+(前三次:`check-masked-reads` 的内嵌扫描、`check-permission-predicate` 的反引号洞、
+CONV-8 自己)。**解药是同一个:先剥注释(而且要连字符串字面量一起剥),再匹配。**
+
+**② 每一个列数都偏高一格 —— `<thead>` 被数成了一列**
+
+判据是 `count(/<th/)`,**没有词边界**,于是 `<thead>` 里的那三个字符也匹配上了。
+**逐条验过:54 条里 53 条一字不差地等于 `count(/<th/)`(含 `<thead>`)。**
+唯一的一条(`purchasing/orders/[id]/amend/AmendOrderForm.tsx`,清单 6 / 今天 7)是
+**PUR-1 在那次普查之后给它加了一列** —— `git show` 到当天那个提交,它是 6。**也就是 54/54 全中。**
+
+| 页 | 清单 | 真的表头格子 |
+|---|---|---|
+| `/finance/pnl` | 4 | **3** |
+| `/finance/payables` | 9 | **8** |
+| `/finance/assets` | 13 | **12** |
+| `/finance/receivables` | 11 | **10** |
+| `/inventory` | 10 | **9** |
+
+☞ **这一条直接改工作单的大小:** 规矩是「≤4 免、≥5 进单」——
+**清单上写 5 列的页,真身是 4 列,按既有规矩根本不该被打开。**
+
+**③ 反方向:12 个有手搓表的文件被【漏掉】了**
+
+「整份源码里一处 `overflow-x` 都没有」是**按文件**问的。于是一个文件只要在**别处**
+(另一张表、一个下拉框)出现过 `overflow-x`,它那张**没有外壳**的表就被整个漏掉:
+
+`app/hr/payroll/PayrollGrid.tsx` · `app/inbound/[id]/edit/AssaySection.tsx` ·
+`app/inbound/[id]/edit/PricingPanel.tsx` · `app/logistics/forwarders/[id]/ForwarderPanels.tsx` ·
+`app/logistics/forwarders/[id]/page.tsx` · `app/output/[id]/edit/OutputAssaySection.tsx` ·
+`app/output/[id]/edit/TraceabilitySection.tsx` · `app/stocktakes/[id]/page.tsx` ·
+`app/sales/customers/[id]/page.tsx` · `app/output/[id]/assays/[assayId]/page.tsx` ·
+`app/finance/cash-forecast/ForecastGrid.tsx` · `app/finance/fx/bulk/BulkFxGrid.tsx`
+
+☞ **判据要问的是【那张表的祖先】,不是【那个文件】。** 今天的量具走 JSX 祖先栈。
+
+> ★ **所以真数不是"54 减掉几条"** —— 两份名单差着 4 个假阳性与 12 个漏网,
+> 只是恰好都往下走。**这一族此前连着九次数错;这一次两个方向的错都当场量出来并各自点了名。**
+
+### 三 · ★ 选列**不需要**转 DataTable —— `/finance/payables` 就是证据
+
+`priority` 是 `Column<T>` 上的一个字段,**只有 DataTable 自己读它**
+(`app/components/ui/data-table.tsx:71` 声明 · `:238` `isPhoneCol` · `:475` `restCols` ·
+`:524` 展开区的 colSpan)。一张手搓 `<table>` 没有列描述符,**所以要用 `priority`,
+那一页必须先变成 DataTable** —— 而那是 13 个服务端文件各要新建一个客户端文件、
+外加 13 张格子里有输入控件的表要去 `EditableTable` 的迁移面。
+
+**而选列本身走 Tailwind 断点类就够了,不碰 DataTable、不碰服务端/客户端边界:**
+`hidden sm:table-cell` 关掉桌面专属列 · `sm:hidden` 的一块把拿掉的列**带着各自的列头**
+叠进身份格 · `colSpan` **写两份**(它不能随断点变)。
+`/finance/payables`(FIX-2b,2026-09-06)是第一张,**TABLE-PHONE-1 又照它做了 7 张**。
+☞ **裁定 R-Q1:走这条路。**
+
+### 四 · 工作单的切法(裁定 R-Q2)
+
+**工作单是那 30 个「够不着」的文件,不是 39 个。**
+另外 9 张**已经有滚动外壳**的表是**够得着**的 —— 按 `scripts/survey-phone.mjs` 抬头
+自己的话,U2(表比一个**不滚动**的祖先宽)才是**安静的那种失败,也是更坏的那一种**;
+能滚的那一种够得着,只是一屏读不完。**两者不要混在一条队里。**
+★ 那 9 张在 390px 上到底**读不读得懂,今天是【没量过】的** ——
+它要么等真浏览器探针,要么等一次手走。**不要在没量之前就改**(裁定 R-Q6)。
+
+### 五 · `phone={{ mode: 'scroll', why }}` 那一支留着(裁定 R-Q7)
+
+`check-datatable-phone` 今天报 **123 个调用点全走 `columns` 模式,`scroll` 模式 0 个**。
+**一条从来没有人走过的分支,和一条不存在的分支,退出码相同** —— 但它**留着**:
+它是「显式声明横向滚动**并写下理由**」的唯一出口,而上面那 9 张表可能正好要用它。
+**把这个决定写在这里,免得下一个人当它是死代码删掉。**
+
+### 六 · TABLE-PHONE-1 首批做完的(2026-09-09)
+
+**6 次判断,8 张表**(含 FIX-2b 那张作参照)。每一张的判据都是 FIX-2b 那一条:
+**390px 上读得到的字段数与桌面【完全相同】,变的只是排布。**
+
+| 页 | 桌面列 | 手机留下 | 叠进身份格 |
+|---|---|---|---|
+| `/finance/payables`(FIX-2b,参照) | 8 | 单据 · 未结 · 账龄 | 5 条 |
+| `/finance/receivables` | 10 | 单据 · 未结 · 账龄 | 7 条 |
+| `/finance/assets` | 12 | 编号 · 净值 · 状态 | 9 条(含**动作**) |
+| `/inventory` | **9 → 8** | 物料 · 入库量 · 市值 | 5 条 |
+| `AttachmentsPanel` ×3 | 6 | 名称 · 分类 · **动作** | 3 条 |
+| `/me` 年假明细 | 6 | 年度 · 剩余 · 状态 | 3 条 |
+
+★ **`/inventory` 那一行的「9 → 8」是【桌面档也变了】**:「单位」这一列并进了它所属的
+那个数(`12.5 t` 本来就是一个值,此前被拆在两列里、中间隔着五列)。
+**这超出"手机档"的边界,是 Tim 2026-09-09 单独批的**(裁定 R-Q5)。
+副作用:`inventory.colUnit` 这个 key **今天没有使用者了**,两份语言包里都还留着
+(仓库没有"未使用 key"的检查;删它是一次文案改动,不在这一刀里)。
+
+★ **动作列的处置有两种,而它们是同一条道理:**
+`AttachmentsPanel` 三张**把「操作」整列留在手机上**;`/finance/assets` 把动作
+**叠进身份格里,而那一块是【画出来的】,不是收进折叠区的**。两种都满足同一句话 ——
+**一个在手机上够不着的下载/删除/处置,与没有这个动作是同一回事**(DBLOCK-1 用在版式上)。
+
+**剩下的:26 张表 / 24 个文件**仍然够不着。
+(7 张做完,但只有 6 个文件**整个**清干净 —— `app/me/MyLeavePanel.tsx` 里还有
+第二张 5 列的表,那一张这一刀没点名,所以没动。)排期见 `docs/forward-queue.md`。
 
 ---
 

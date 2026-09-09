@@ -171,23 +171,44 @@ export default function AttachmentsPanel({
                 <table className="w-full border-collapse border border-gray-300 mb-6">
                     <thead className="bg-gray-100">
                         <tr>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('customers.attachments.colName')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('customers.attachments.colCategory')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('customers.attachments.colType')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('customers.attachments.colSize')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('customers.attachments.colCreated')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('customers.attachments.colActions')}</th>
+                            <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('customers.attachments.colName')}</th>
+                            <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('customers.attachments.colCategory')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('customers.attachments.colType')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('customers.attachments.colSize')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('customers.attachments.colCreated')}</th>
+                            {/* ★ TABLE-PHONE-1:「操作」这一列在手机上【照画】,不叠进去 ——
+                                一个在手机上够不着的下载/删除,与没有这两个动作是同一回事
+                                (DBLOCK-1 那条道理用在版式上)。 */}
+                            <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('customers.attachments.colActions')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {rows.map((row) => (
                             <tr key={row.id}>
-                                <td className="border border-gray-300 px-4 py-2 break-all">{row.file_name}</td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">{categoryLabel(row.doc_category)}</td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">{row.file_type ?? '—'}</td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm">{formatBytes(row.file_size)}</td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm text-gray-600">{row.created_at_display}</td>
-                                <td className="border border-gray-300 px-4 py-2 whitespace-nowrap">
+                                <td className="border border-gray-300 px-2 sm:px-4 py-2 break-all">
+                                    {row.file_name}
+                                    {/* ★ TABLE-PHONE-1:手机档被拿掉的三列(类型 / 大小 / 创建时间),
+                                        原样叠在这里,各带各的列头 —— 「拿掉」指的是那一列,不是那个事实。 */}
+                                    <div className="sm:hidden mt-1 space-y-0.5 text-xs text-gray-600">
+                                        <div>
+                                            <span className="text-gray-500">{t('customers.attachments.colType')}: </span>
+                                            {row.file_type ?? '—'}
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('customers.attachments.colSize')}: </span>
+                                            {formatBytes(row.file_size)}
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('customers.attachments.colCreated')}: </span>
+                                            {row.created_at_display}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="border border-gray-300 px-2 sm:px-4 py-2 text-sm">{categoryLabel(row.doc_category)}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-sm">{row.file_type ?? '—'}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-sm">{formatBytes(row.file_size)}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-sm text-gray-600">{row.created_at_display}</td>
+                                <td className="border border-gray-300 px-2 sm:px-4 py-2 whitespace-nowrap">
                                     <Button
                                         variant="link"
                                         size="inline"

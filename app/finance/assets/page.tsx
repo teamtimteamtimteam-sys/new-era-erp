@@ -137,26 +137,51 @@ export default async function AssetsPage({
             <table className="w-full border-collapse border border-gray-300 mb-8">
                 <thead className="bg-gray-100">
                     <tr>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('finance.colCode')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('assets.colDescription')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('assets.colCategory')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('assets.colAcquired')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('assets.colInService')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('assets.colCost')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('finance.colAmount', { ccy: baseCurrency })}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('assets.colLife')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('assets.colAccum')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-right">{t('assets.colNbv')}</th>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('finance.colStatus')}</th>
+                        <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('finance.colCode')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('assets.colDescription')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('assets.colCategory')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('assets.colAcquired')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('assets.colInService')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('assets.colCost')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('finance.colAmount', { ccy: baseCurrency })}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('assets.colLife')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('assets.colAccum')}</th>
+                        <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('assets.colNbv')}</th>
+                        <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('finance.colStatus')}</th>
                         {/* FA-1b:处置终于有了入口 —— 引擎从 FIN-22 起就在,
                             而 FA-0 查出它在 app 里一个调用点都没有。 */}
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('assets.colActions')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('assets.colActions')}</th>
                     </tr>
                 </thead>
                 <tbody>
                     {assets.map((a) => {
                         const accum = accumByAsset.get(a.id) ?? 0
                         const nbv = Math.round((a.cost_base - accum) * 100) / 100
+                        // ★ TABLE-PHONE-1:投用日那句话【提到这里算一次】—— 桌面档的格子与
+                        //   手机档叠起来的那一条要用同一个值。原来它是格子里的一个 IIFE,
+                        //   照抄一份到手机档就等于让同一句话有两个出处,而那两处会各自漂。
+                        const inSvcState = inServiceState(a)
+                        const inSvcTxt = inSvcState.params ? t(inSvcState.key, inSvcState.params) : t(inSvcState.key)
+                        const inSvcNode = a.in_service_date
+                            ? <>{inSvcTxt}</>
+                            : <span className="text-amber-700 text-xs">{inSvcTxt}</span>
+                        const costCcyNode = (
+                            <>
+                                {formatAmount(a.cost_ccy, a.currency)}
+                                {a.currency !== baseCurrency && (
+                                    <span className="ml-1 text-xs text-gray-500">@ {a.fx_rate}</span>
+                                )}
+                            </>
+                        )
+                        const actionsNode = (
+                            <AssetActions
+                                assetId={a.id} code={a.code} status={a.status}
+                                inServiceDate={a.in_service_date}
+                                plannedInServiceDate={a.planned_in_service_date}
+                                hasCost={Number(a.cost_base) > 0}
+                                acquisitionDate={a.acquisition_date}
+                                canEdit={canEdit} bankAccounts={bankAccounts} />
+                        )
                         return (
                             <tr key={a.id} className={a.status === 'disposed' ? 'text-gray-400' : ''}>
                                 <td className="border border-gray-300 px-3 py-2 font-mono text-sm">
@@ -170,60 +195,94 @@ export default async function AssetsPage({
                                     <Link href={`/finance/assets/${a.id}`} className="text-blue-600 hover:underline">
                                         {a.code}
                                     </Link>
+                                    {/* ★ TABLE-PHONE-1:手机档被拿掉的九列,原样叠在这里 ——
+                                        与 FIX-2b 对 /finance/payables 的做法同一条:
+                                        「拿掉」指的是【那一列】,不是【那个事实】。
+                                        每一条带着自己的列头。
+                                        ★【动作也叠进来,而且它是【画出来的】,不是收进折叠区的】——
+                                          一个在手机上够不着的处置钮,与没有这个钮是同一回事
+                                          (DBLOCK-1 那条道理用在版式上)。 */}
+                                    <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                                        <div>
+                                            <span className="text-gray-500">{t('assets.colDescription')}: </span>
+                                            {a.description}
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('assets.colCategory')}: </span>
+                                            {t('assets.category.' + a.category)}
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('assets.colAcquired')}: </span>
+                                            {a.acquisition_date}
+                                        </div>
+                                        <div>
+                                            <span className="text-gray-500">{t('assets.colInService')}: </span>
+                                            {inSvcNode}
+                                        </div>
+                                        <div className="font-mono">
+                                            <span className="font-sans text-gray-500">{t('assets.colCost')}: </span>
+                                            {costCcyNode}
+                                        </div>
+                                        <div className="font-mono">
+                                            <span className="font-sans text-gray-500">{t('finance.colAmount', { ccy: baseCurrency })}: </span>
+                                            {formatMoneyBare(a.cost_base, '本列列头 金额 ({ccy})')}
+                                        </div>
+                                        <div className="font-mono">
+                                            <span className="font-sans text-gray-500">{t('assets.colLife')}: </span>
+                                            {a.useful_life_months}
+                                        </div>
+                                        <div className="font-mono">
+                                            <span className="font-sans text-gray-500">{t('assets.colAccum')}: </span>
+                                            {formatAmount(accum, baseCurrency)}
+                                        </div>
+                                        <div className="pt-1">
+                                            <span className="text-gray-500">{t('assets.colActions')}: </span>
+                                            {actionsNode}
+                                        </div>
+                                    </div>
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2">{a.description}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{t('assets.category.' + a.category)}</td>
-                                <td className="border border-gray-300 px-3 py-2">{a.acquisition_date}</td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    {(() => {
-                                        // FIX-1(B-D5):与详情页同一份判断。
-                                        const st = inServiceState(a)
-                                        const txt = st.params ? t(st.key, st.params) : t(st.key)
-                                        return a.in_service_date
-                                            ? txt
-                                            : <span className="text-amber-700 text-xs">{txt}</span>
-                                    })()}
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">{a.description}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-sm">{t('assets.category.' + a.category)}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">{a.acquisition_date}</td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
+                                    {/* FIX-1(B-D5):与详情页同一份判断。值在上面提了一次,两档共用。 */}
+                                    {inSvcNode}
                                 </td>
                                 {/* 原币成本:购置日汇率定格(非货币)—— 与本位币两列并排,各带各的币种 */}
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
-                                    {formatAmount(a.cost_ccy, a.currency)}
-                                    {a.currency !== baseCurrency && (
-                                        <span className="ml-1 text-xs text-gray-500">@ {a.fx_rate}</span>
-                                    )}
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                    {costCcyNode}
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                     {formatMoneyBare(a.cost_base, '本列列头 金额 ({ccy})')}
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                     {a.useful_life_months}
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                     {formatAmount(accum, baseCurrency)}
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm font-medium">
+                                <td className="border border-gray-300 px-2 sm:px-3 py-2 text-right font-mono text-sm font-medium">
                                     {formatAmount(nbv, baseCurrency)}
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2">
+                                <td className="border border-gray-300 px-2 sm:px-3 py-2">
                                     <span className={'px-2 py-1 rounded text-xs ' +
                                         (a.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600')}>
                                         {t('assets.status.' + a.status)}
                                     </span>
                                 </td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    <AssetActions
-                                        assetId={a.id} code={a.code} status={a.status}
-                                        inServiceDate={a.in_service_date}
-                                        plannedInServiceDate={a.planned_in_service_date}
-                                        hasCost={Number(a.cost_base) > 0}
-                                        acquisitionDate={a.acquisition_date}
-                                        canEdit={canEdit} bankAccounts={bankAccounts} />
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
+                                    {actionsNode}
                                 </td>
                             </tr>
                         )
                     })}
                     {assets.length === 0 && (
                         <tr>
-                            <td colSpan={12} className="border border-gray-300 px-4 py-8 text-center text-gray-500">
+                            {/* colSpan 不能随断点变 —— 手机档三列,桌面档十二列。 */}
+                            <td colSpan={3} className="sm:hidden border border-gray-300 px-4 py-8 text-center text-gray-500">
+                                {t('assets.empty')}
+                            </td>
+                            <td colSpan={12} className="hidden sm:table-cell border border-gray-300 px-4 py-8 text-center text-gray-500">
                                 {t('assets.empty')}
                             </td>
                         </tr>

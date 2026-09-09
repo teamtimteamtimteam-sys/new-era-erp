@@ -1622,32 +1622,70 @@ fixture 196 的 B 臂改用 `count(*)` 扫(**不求值任何列表达式**),那�
 
 ## 阶段 8 · 前端三件套
 
-### ★【RAW-TABLE-PHONE(FIX-2b,2026-09-06 排进来)—— 手搓表格的手机档,54 页】★
+### ★【RAW-TABLE-PHONE —— 手搓表格的手机档。★ 裁定已下,首批已上线,**剩 26 张表 / 24 个文件**★】
 
-**这一条【带着清单】排队,所以做它的那一刀不必重做勘察。**
-清单在 `docs/known-issues.md` 的 **RAW-TABLE-PHONE-SWEEP**:
-**73 个文件里有一个手搓 `<table>`;其中 54 个文件在整份源码里一处
-`overflow-x` / `overflow-auto` 都没有**,列数(按 `<th>` 计)从 3 到 13。
+**★ 那个「54 页」是【错的】,而且错在两个相反的方向上 —— 全部说明在
+`docs/known-issues.md` 的 RAW-TABLE-PHONE-SWEEP。这里只记排期。**
+真数(TABLE-PHONE-0,2026-09-09 实测):**72 张表 / 62 个文件**;
+**≤4 列 29 张免修**;**≥5 列 43 张 / 39 个文件是工作单**。
 
-**先要一个裁定,再动手 —— 这一条的难点不是工作量,是【修法只能有一种】:**
+**裁定(Tim,2026-09-09)—— 甲/乙/丙那三选一已经答了,答案是 (乙),而且不必转 DataTable:**
 
-| 修法 | 买到什么 | 代价 |
+| 裁定 | 内容 |
+|---|---|
+| **R-Q1** | **走 Tailwind 断点类(FIX-2b 那条路)**,不转 DataTable。`priority` 只有 DataTable 读得到,用它就要先转换;而选列不需要它 —— `/finance/payables` 是手搓表且已经选完列。代价:`colSpan` 每处写两份。 |
+| **R-Q2** | **工作单是那 30 个「够不着」的文件,不是 39 个。** 9 张已有滚动外壳的表**够得着**,单独排队(见下)。 |
+| **R-Q4** | 「录入版 + 只读版」成对的那几组:**两次判断,一次讨论**。只读版留身份 + 那个要紧的数;**录入版多留一列** —— 把输入框收进折叠区等于填一格要点两下。 |
+| **R-Q5** | `/inventory` 的「单位」并进它所属的那个数。**这一处桌面档也变**,已批。 |
+| **R-Q7** | `phone={{ mode: 'scroll', why }}` 那一支**留着**(今天 0 个调用点),它是"显式声明横向滚动并写下理由"的唯一出口。 |
+| **R-Q8** | **普查量具不进仓库**:它读的是标记,而该守着「390px 上读不读得到」的是真浏览器探针。 |
+
+**★ 已上线 —— TABLE-PHONE-1(2026-09-09):6 次判断 / 8 张表**
+`/finance/receivables`(10 列)· `/finance/assets`(12 列)· `/inventory`(9→8 列,含单位并列)·
+`AttachmentsPanel` ×3(6 列,一次判断三处照用)· `/me` 年假明细(6 列);
+`/finance/payables` 是 FIX-2b 早先做的参照。
+**判据:390px 上读得到的字段数与桌面完全相同,变的只是排布。**
+
+**★ 剩下的:26 张表 / 24 个文件,按判断数分批**
+
+**下面四批【正好把那 26 张分完】,不重不漏 —— 数过的。**
+
+| 批 | 内容 | 表数 / 判断数 |
 |---|---|---|
-| **(甲) 一个共用的滚动外壳** | 一处改动覆盖 54 页;够得着 | **够得着 ≠ 读得懂**。八列金额横着拖到「未结」时,左边的单据号已经滚出屏幕,数字就没有主语 —— Tim 2026-09-06 对 `/finance/payables` 正是据此否掉了滚动条 |
-| **(乙) 每页各自选列** | 每一页都读得懂 | 54 次判断,而且每一次都要回答「这一页的人在手机上要的是哪三列」 |
-| **(丙) 混着来** | 金额密集的页选列,其余给滚动 | 要一条**判据**,否则它就是 54 次即兴发挥 |
+| **TABLE-PHONE-2** | 钱、且是只读账簿:`finance/packs/PackBody.tsx:78,136` · `finance/trial-balance:147` · `finance/close:253` · `me/page.tsx:327`(工资条) | 5 张 / 5 |
+| **TABLE-PHONE-3** | **成对的那几组(R-Q4:两次判断、一次讨论)**:考勤(`hr/attendance/[id]/AttendanceGrid:48` + `me/MyAttendancePanel:28`)· 绩效(`hr/reviews/GoalsEditor:153` + `me/MyReviewsPanel:82`)· 付款条款分期(`purchasing/orders/new/NewOrderForm:858` + `purchasing/payment-terms/TemplateForm:151`) | 6 张 / **3** |
+| **TABLE-PHONE-4** | 录入表单里的行编辑表:`finance/invoices/new/NewInvoiceForm:272` · `finance/payments/new/NewPaymentForm:504` · `finance/invoices/[id]/CreateCreditNoteControl:101` · `finance/bank/import/ImportStatementForm:390` · `finance/freight/new/NewFreightForm:225` · `sales/orders/[id]/amend/AmendOrderForm:141` · `purchasing/orders/[id]/amend/AmendOrderForm:135` · `sales/quotes/[id]/QuoteLinesEditor:65` · `purchasing/orders/new/NewOrderForm:786` | 9 张 / 9 |
+| **TABLE-PHONE-5** | 其余:`sales/customers/ChasePanel:239` · `sales/customers/ContactsPanel:88` · `suppliers/[id]/edit/CompliancePanel:85` · `logistics/containers/[id]/ContainerPanels:119` · `me/MyExpenseClaimsPanel:108` · `me/MyLeavePanel:117`(同文件第二张,TABLE-PHONE-1 没点名所以没动) | 6 张 / 6 |
 
-**★ FIX-2b 只做了 `/finance/payables` 一页,而且是 Tim 点名拉出来的。**
-它证明了 (乙) 做得成(见 known-issues 的 COPY-1-PAYABLES-OVF),
-**但一页的成功不构成对 54 页的排期。**
+**合计 26 张 = 5 + 6 + 9 + 6。**
+★ `/logistics/forwarders/[id]` **不在这四批里** —— 它有滚动外壳,归下面那条 UNMEASURED。
 
-**触发条件:** Tim 在甲/乙/丙里裁一个。裁定之前不要动手 ——
-**一半用滚动、一半选列的 54 页,比 54 页都溢出更难收拾。**
+**触发条件:没有了。** 裁定已下、路子已经上线跑过 8 张,**照 `/finance/payables` 做即可。**
 
-> **不要把这一条读成「有 54 个缺陷」。** COPY-1 的探针只在**真实数据真的把表
-> 撑出容器**时才判 U2 红,而全站量下来红的只有 `/finance/payables` 一页。
-> 其余 53 页是**同一个惯用法**,今天大多没有显形。
-> **它是一族债,不是一堆缺陷** —— 这也正是它值得一条自己的裁定,而不是逐页救火。
+---
+
+### ★【RAW-TABLE-PHONE-WRAPPED —— 那 9 张【已经能滚】的表:够得着,而**读不读得懂是没量过的**】★
+
+**★★ 这一条的状态是【UNMEASURED】,而这正是它单独排一条的理由。★★**
+
+`app/hr/payroll/PayrollGrid.tsx:202`(7 列)· `app/output/[id]/edit/TraceabilitySection.tsx:68,126`(6/7 列)·
+`app/inbound/[id]/edit/AssaySection.tsx:87` · `app/inbound/[id]/edit/PricingPanel.tsx:138` ·
+`app/logistics/forwarders/[id]/ForwarderPanels.tsx:167` · `app/logistics/forwarders/[id]/page.tsx:203` ·
+`app/output/[id]/edit/OutputAssaySection.tsx:50` · `app/stocktakes/[id]/page.tsx:226`(各 5 列)
+
+**它们与上面那一族不是同一个毛病:**
+按 `scripts/survey-phone.mjs` 抬头自己的话,U2(表比一个**不滚动**的祖先宽)是
+**安静的那种失败,也是更坏的那一种** —— 那几列**根本够不着**,而屏幕上没有任何东西
+说这件事。**这 9 张够得着**,它们的问题是「一屏读不完」,是**较轻的那一半**。
+
+**而"够得着 ≠ 读得懂"这句话仍然对它们成立** —— Tim 正是据此否掉了通用滚动外壳。
+**所以它们大概也要选列,或者用 `phone={{ mode: 'scroll', why }}` 显式声明。**
+
+> **★ 触发条件:先量,再决定。**
+> **今天没有任何人量过它们在 390px 上读不读得懂** —— 那需要
+> `scripts/survey-phone.mjs`(真浏览器读 `scrollWidth`)或者一次手走。
+> **不要在没量之前改它们**(裁定 R-Q6)。一个"看起来该改"的判断,
+> 和一个量出来的判断,在这个仓库里不是同一个东西。
 
 
 ### ★【BTN-5b(2026-09-07)留下的三条,都是【量过、没修】的】★

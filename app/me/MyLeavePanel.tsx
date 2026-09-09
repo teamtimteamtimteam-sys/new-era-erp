@@ -62,21 +62,41 @@ export default function MyLeavePanel({
                         <thead>
                             <tr className="bg-gray-50 text-left">
                                 <th className="border border-gray-300 px-2 py-1">{t('leave.grantYear')}</th>
-                                <th className="border border-gray-300 px-2 py-1">{t('leave.grantType')}</th>
-                                <th className="border border-gray-300 px-2 py-1 text-right">{t('leave.days')}</th>
+                                <th className="hidden sm:table-cell border border-gray-300 px-2 py-1">{t('leave.grantType')}</th>
+                                <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-right">{t('leave.days')}</th>
+                                {/* ★ TABLE-PHONE-1:「剩余」是这张表存在的理由 —— 一个人点开
+                                    「我的年假」要的就是这一个数,所以它在手机上留着。 */}
                                 <th className="border border-gray-300 px-2 py-1 text-right">{t('leave.remaining')}</th>
-                                <th className="border border-gray-300 px-2 py-1">{t('leave.expires')}</th>
+                                <th className="hidden sm:table-cell border border-gray-300 px-2 py-1">{t('leave.expires')}</th>
                                 <th className="border border-gray-300 px-2 py-1">{t('leave.grantStatus')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {balance.breakdown.map((b) => (
                                 <tr key={b.grant_id}>
-                                    <td className="border border-gray-300 px-2 py-1">{b.leave_year}</td>
-                                    <td className="border border-gray-300 px-2 py-1">{t(`leave.grantType_${b.grant_type}`)}</td>
-                                    <td className="border border-gray-300 px-2 py-1 text-right font-mono">{b.days}</td>
+                                    <td className="border border-gray-300 px-2 py-1">
+                                        {b.leave_year}
+                                        {/* ★ TABLE-PHONE-1:手机档被拿掉的三列(类型 / 天数 / 到期),
+                                            原样叠在这里,各带各的列头 —— 拿掉的是那一列,不是那个事实。 */}
+                                        <div className="sm:hidden mt-1 space-y-0.5 text-[11px] text-gray-600">
+                                            <div>
+                                                <span className="text-gray-500">{t('leave.grantType')}: </span>
+                                                {t(`leave.grantType_${b.grant_type}`)}
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">{t('leave.days')}: </span>
+                                                <span className="font-mono">{b.days}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">{t('leave.expires')}: </span>
+                                                {b.expires_on ?? '—'}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-1">{t(`leave.grantType_${b.grant_type}`)}</td>
+                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-right font-mono">{b.days}</td>
                                     <td className="border border-gray-300 px-2 py-1 text-right font-mono">{b.remaining}</td>
-                                    <td className="border border-gray-300 px-2 py-1">{b.expires_on ?? '—'}</td>
+                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-1">{b.expires_on ?? '—'}</td>
                                     <td className="border border-gray-300 px-2 py-1">{t(`leave.grantStatus_${b.status}`)}</td>
                                 </tr>
                             ))}
