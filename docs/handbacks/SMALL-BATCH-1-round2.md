@@ -448,4 +448,60 @@ node scripts/survey-conflated-booleans.mjs
 
 ## 11 · 推送与部署
 
-见本节末尾(提交之后补齐)。
+### 11.1 HEAD
+
+| | |
+|---|---|
+| **HEAD before** | `e848965fe9690369651e32c0345f73bd5727bf3f` |
+| **HEAD after** | `0097f956ce1c503354d2c3df001d23c5e764ba5a` |
+| 开工时树 | 干净 |
+| 收工时树 | 干净(见 §11.4) |
+
+### 11.2 推送 —— **判词来自 fetch,不是来自推送命令的输出**
+
+`git push origin main` **没有接管道**,所以它自己的退出码是 0
+(委托书点名的那个坑:一条接了管道的推送报的是管道的码,不是 git 的)。
+但判词仍然不取自它:
+
+```
+git fetch origin
+git rev-parse HEAD origin/main
+  0097f956ce1c503354d2c3df001d23c5e764ba5a
+  0097f956ce1c503354d2c3df001d23c5e764ba5a
+```
+
+**两个哈希相等 —— 推送由一次独立的 fetch 证实。**
+
+### 11.3 部署 —— **两个问题分开问,分开答**
+
+`scripts/wait-for-deploy.sh 0097f95` 自己的退出码 **0**,7 秒等到记录。
+
+**问题一:存在一次成功的部署吗?**(不带 sha 过滤,再单独查它的状态)
+
+```
+repos/…/deployments?per_page=3   → id 6343869424 · created_at 2026-09-09T06:24:18Z
+repos/…/deployments/6343869424/statuses → {"state":"success","environment":"Production"}
+```
+**答:是。** 部署 **6343869424**,环境 Production,**state = success**。
+
+**问题二:那次部署的 sha 是本刀这次提交吗?**
+
+```
+deployment sha = 0097f956ce1c503354d2c3df001d23c5e764ba5a
+this cut HEAD  = 0097f956ce1c503354d2c3df001d23c5e764ba5a
+```
+**答:是,同一个 sha。**
+
+| | |
+|---|---|
+| **部署 id** | `6343869424` |
+| **sha** | `0097f956ce1c503354d2c3df001d23c5e764ba5a` |
+| **success 时刻** | **2026-09-09 14:24:18 CST**(`2026-09-09T06:24:18Z`) |
+| 生产地址 | `https://new-era-rmxdngd2i-tim-s-projects7.vercel.app` |
+
+> ★ 按 AGENTS.md 那条:GitHub 的部署记录是**下游登记**,真源是 Vercel。
+> 这一次登记没有滞后(7 秒就到),所以两侧不冲突,**不需要去看面板**。
+
+### 11.4 收工时树
+
+`git status --porcelain` 输出为空 —— **干净**。
