@@ -24,7 +24,7 @@ export default function MyClaimsPanel({
             <div className="flex items-center justify-between mb-2">
                 <h2 className="text-lg font-bold">{t('me.claims')}</h2>
                 <Button type="button" onClick={() => setOpen((o) => !o)}
-                        variant="default" size="sm">
+                        variant="default">
                     {open ? t('common.cancel') : t('me.submitClaim')}
                 </Button>
             </div>

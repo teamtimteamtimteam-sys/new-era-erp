@@ -295,12 +295,12 @@ export default async function InvoiceDetailPage({
                           留在无障碍树里,并且被正确播报成"已禁用"。 */}
                     {pdfBlocked ? (
                         <PermissionGate code="data.view_banking" allowed={showBanking} inline>
-                            <Button variant="outline" size="sm" disabled>{t('invoice.previewPdf')}</Button>
-                            <Button variant="outline" size="sm" disabled>{t('invoice.downloadPdf')}</Button>
+                            <Button variant="outline" disabled>{t('invoice.previewPdf')}</Button>
+                            <Button variant="outline" disabled>{t('invoice.downloadPdf')}</Button>
                         </PermissionGate>
                     ) : (
                         <>
-                            <Button asChild variant="outline" size="sm">
+                            <Button asChild variant="outline">
                                 <a
                                     href={`/finance/invoices/${inv.id}/pdf`}
                                     target="_blank"
@@ -309,7 +309,7 @@ export default async function InvoiceDetailPage({
                                     {t('invoice.previewPdf')}
                                 </a>
                             </Button>
-                            <Button asChild variant="outline" size="sm">
+                            <Button asChild variant="outline">
                                 <a
                                     href={`/finance/invoices/${inv.id}/pdf?download=1`}
                                 >

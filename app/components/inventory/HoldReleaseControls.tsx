@@ -80,7 +80,7 @@ export default function HoldReleaseControls({
                             className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
                         />
                     </div>
-                    <Button variant="secondary" size="sm" className="text-sm"
+                    <Button variant="secondary" className="text-sm"
                         type="button"
                         disabled={isPending || holdBlocked !== null}
                         onClick={() => run(() => holdStockAction(inboundBatchId, outputBatchId, locationId, holdQty, holdReason))}>
@@ -114,7 +114,7 @@ export default function HoldReleaseControls({
                             className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
                         />
                     </div>
-                    <Button variant="secondary" size="sm"
+                    <Button variant="secondary"
                         type="button"
                         disabled={isPending || releaseBlocked !== null}
                         onClick={() => run(() => releaseStockAction(inboundBatchId, outputBatchId, locationId, relQty, relNote))}

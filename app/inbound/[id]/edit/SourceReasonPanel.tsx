@@ -123,7 +123,7 @@ export default function SourceReasonPanel({
                             />
                         )}
                         {error && <p className="text-red-600 text-xs">{error}</p>}
-                        <Button size="sm"
+                        <Button
                             type="button"
                             onClick={onSave}
                             disabled={saving || sel === '' || (selNeedsNote && note.trim() === '')}>

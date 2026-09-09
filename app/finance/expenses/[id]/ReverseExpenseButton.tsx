@@ -42,7 +42,6 @@ canEdit: boolean
             confirmLabel={t('expense.reverse')}
             tier="reversal"
             triggerVariant="reversal"
-            triggerSize="sm"
             disabled={isPending}
             onConfirm={doReverse}
         >

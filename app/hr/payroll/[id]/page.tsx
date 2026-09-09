@@ -126,7 +126,7 @@ export default async function PayrollDetailPage({
             actions={
                 !isPosted ? (
                     <span className="flex flex-wrap items-center gap-3 justify-end">
-                        <Button asChild variant="outline" size="sm">
+                        <Button asChild variant="outline">
                             <Link
                                 href={`/hr/payroll/${id}/edit`}
                             >

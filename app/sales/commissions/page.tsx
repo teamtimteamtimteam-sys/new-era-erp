@@ -65,7 +65,7 @@ export default async function CommissionsPage() {
             title={t('commissions.title')}
             intro={t('commissions.what')}
             actions={
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="outline">
                     <Link href="/sales/commissions/new">
                         {t('commissions.newTitle')}
                     </Link>

@@ -77,7 +77,7 @@ export default async function LeaveCalendarPage({
                     <input type="month" name="month" defaultValue={month}
                            className="mt-1 block border border-gray-300 rounded px-2 py-1 text-sm" />
                 </label>
-                <Button variant="secondary" size="sm" type="submit">
+                <Button variant="secondary" type="submit">
                     {t('leave.filter')}
                 </Button>
             </form>

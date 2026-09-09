@@ -235,7 +235,7 @@ export default function NewEntryForm(
                 ))}
             </div>
 
-            <Button variant="secondary" size="sm"
+            <Button variant="secondary"
                 type="button"
                 onClick={addRow}
             >

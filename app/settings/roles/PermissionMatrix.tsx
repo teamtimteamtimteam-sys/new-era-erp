@@ -203,7 +203,7 @@ export default function PermissionMatrix({
                 ))}
             </div>
 
-            <Button size="sm"
+            <Button
                 type="button"
                 onClick={save}
                 disabled={pending || disabled}

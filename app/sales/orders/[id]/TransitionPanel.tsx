@@ -54,7 +54,7 @@ export default function TransitionPanel({
             <div className="flex flex-wrap gap-3">
                 {nextStates.map((to) => (
                     <div key={to} className="flex-1 min-w-[14rem]">
-                        <Button variant={to === 'cancelled' ? 'destructive' : 'secondary'} size="sm" className="w-full" type="button" onClick={() => go(to)}
+                        <Button variant={to === 'cancelled' ? 'destructive' : 'secondary'} className="w-full" type="button" onClick={() => go(to)}
                                 disabled={isPending || (to === 'cancelled' && reason.trim() === '')}>
                             {isPending ? t('common.saving') : t(ACTION_KEY[to] ?? 'sales.action.generic')}
                         </Button>

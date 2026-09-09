@@ -197,7 +197,7 @@ export default function CalculatorForm({
                 <section className="border-t pt-6">
                     <div className="flex justify-between items-center mb-3">
                         <h2 className="text-xl font-bold">{t('pricing.calcResult')}</h2>
-                        <Button variant="secondary" size="sm"
+                        <Button variant="secondary"
                             type="button"
                             onClick={copyBreakdown}>
                             {copied ? t('pricing.copied') : t('pricing.copyBreakdown')}

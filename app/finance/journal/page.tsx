@@ -143,7 +143,7 @@ export default async function JournalListPage({
                     【筛选为空时不给链接,而是说出为什么】—— 一份"默认全部"的
                     总账导出说不出自己覆盖到哪天。 */}
                 {dateFrom && dateTo ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <a href={`/finance/journal/export?from=${dateFrom}&to=${dateTo}`}>
                             {t('glExport.button')}
                         </a>
@@ -158,7 +158,7 @@ export default async function JournalListPage({
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page - 1)}
                         >
@@ -166,7 +166,7 @@ export default async function JournalListPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('finance.pagination.prev')}
                     </Button>
                 )}
@@ -176,7 +176,7 @@ export default async function JournalListPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page + 1)}
                         >
@@ -184,7 +184,7 @@ export default async function JournalListPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('finance.pagination.next')}
                     </Button>
                 )}

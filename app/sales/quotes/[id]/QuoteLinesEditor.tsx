@@ -217,7 +217,7 @@ export default function QuoteLinesEditor({
                            onChange={(e) => setNewPrice(e.target.value)}
                            placeholder={t('sales.form.unitPrice')}
                            className="w-24 border border-gray-300 px-2 py-1 rounded text-right text-sm" />
-                    <Button variant="secondary" size="sm" type="button"
+                    <Button variant="secondary" type="button"
                             disabled={isPending || !newMat || newQty.trim() === '' || newPrice.trim() === ''}
                             onClick={() => run(async () => {
                                 const r = await addQuoteLine(quoteId, newMat, newQty, newPrice)

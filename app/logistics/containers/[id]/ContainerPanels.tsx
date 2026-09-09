@@ -92,7 +92,7 @@ canEdit: boolean
                             defaultValue={head.expected_arrival_date ?? ''} className={field} /></div>
                     <div className="min-w-[16rem] flex-1"><label className="block text-xs font-medium mb-1">{labels.notes}</label>
                         <input name="notes" defaultValue={head.notes ?? ''} className={`${field} w-full`} /></div>
-                    <Button variant="default" size="sm" className="text-sm" disabled={pending}>{labels.save}</Button>
+                    <Button variant="default" className="text-sm" disabled={pending}>{labels.save}</Button>
                 </form>
                 </PermissionGate>
                 {/* 【开航日不在这里改】—— 它在 DB 上没有开口子给按列放行,改它要另一条路 */}
@@ -205,7 +205,7 @@ canEdit: boolean
                                 <option key={s.id} value={s.id}>{s.code} · {s.order_code} · {s.customer}</option>
                             ))}
                         </select>
-                        <Button variant="default" size="sm" className="text-sm" disabled={pending}>{labels.attach}</Button>
+                        <Button variant="default" className="text-sm" disabled={pending}>{labels.attach}</Button>
                     </form>
                     </PermissionGate>
                 )}
@@ -233,7 +233,7 @@ canEdit: boolean
                         <input type="date" name="event_date" required className={field} /></div>
                     <div className="min-w-[16rem] flex-1"><label className="block text-xs font-medium mb-1">{labels.milestoneNote}</label>
                         <input name="note" className={`${field} w-full`} /></div>
-                    <Button variant="default" size="sm" className="text-sm" disabled={pending}>{labels.addMilestone}</Button>
+                    <Button variant="default" className="text-sm" disabled={pending}>{labels.addMilestone}</Button>
                 </form>
                 <p className="mb-3 text-xs text-gray-500">{labels.eventDateHint}</p>
 
@@ -297,7 +297,7 @@ canEdit: boolean
                 )}
                 {hasLane && (
                     <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
-                    <Button variant="secondary" size="sm" className="mb-4 text-sm" type="button" disabled={pending} onClick={() => run(() => instantiateDocuments(containerId))}>{labels.instantiate}</Button>
+                    <Button variant="secondary" className="mb-4 text-sm" type="button" disabled={pending} onClick={() => run(() => instantiateDocuments(containerId))}>{labels.instantiate}</Button>
                     </PermissionGate>
                 )}
 
@@ -352,7 +352,7 @@ canEdit: boolean
                         <input name="document_type" required className={field} /></div>
                     <div><label className="block text-xs font-medium mb-1">{labels.regime}</label>
                         <input name="regime" className={field} /></div>
-                    <Button variant="default" size="sm" className="text-sm" disabled={pending}>{labels.addDocument}</Button>
+                    <Button variant="default" className="text-sm" disabled={pending}>{labels.addDocument}</Button>
                 </form>
                 </PermissionGate>
             </section>

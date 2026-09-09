@@ -72,7 +72,11 @@ const arg = (k) => { const a = process.argv.find((x) => x.startsWith(k + '=')); 
 const MODE = arg('--mode') || 'spec'
 const BLIND = arg('--blind') || ''
 const LIMIT = Number(arg('--limit') || 0)
-const ONLY = arg('--only') || ''
+// ★ STYLE-2:`--only` 收【逗号分隔的一串】前缀,不只是一个。
+//   理由是本刀的量法要的那一组路由横跨 /finance /settings /purchasing /hr …,
+//   用一个前缀圈不出来;而为了圈它跑满 141 条,正是上一刀卡死的那个跑法。
+//   ☞ 它只改【走哪几条路由】,不改【量什么】—— 单个前缀的老写法逐字不变。
+const ONLY = (arg('--only') || '').split(',').map((s) => s.trim()).filter(Boolean)
 
 const KNOWN_BLINDS = ['', 'noop', 'pick-a', 'no-variant', 'no-buttons', 'desktop-only', 'round-height']
 if (!KNOWN_BLINDS.includes(BLIND)) { console.error('unknown --blind=' + BLIND); process.exit(2) }
@@ -180,10 +184,17 @@ function buildMeasure({ blind }) {
   function collect(scope, prefix) {
     const out = [];
     const claimed = new Set();
+    // ★ STYLE-2:每一行读数都带上【它属于第几张表】。
+    //   理由:STYLE-1 的读数把一页上所有 tbody tr 混在一个池子里,于是
+    //   「每张表的行高变了多少」问不出来 —— 而本刀要判的正是这件事,
+    //   而且 /me 一类的页面上同时有三四张表,混池会把一张表的增长摊平。
+    //   ☞ 它【只加一个归属编号,不改任何被测量的值】。
+    const tables = [...scope.querySelectorAll('table')];
+    const tblOf = (el) => { const t = el.closest ? el.closest('table') : null; return t ? tables.indexOf(t) : -1; };
     for (const [role, sel] of ROLES) {
       let els = [];
       try { els = [...scope.querySelectorAll(sel)]; } catch (e) { els = []; }
-      els.forEach((el, i) => { claimed.add(el); out.push(Object.assign({ role: prefix + role, idx: i }, m(el))); });
+      els.forEach((el, i) => { claimed.add(el); out.push(Object.assign({ role: prefix + role, idx: i, tbl: tblOf(el) }, m(el))); });
     }
     // 按钮单列 —— 要把 variant 与 size 一起带出来,那正是 Tim 裁定的那件事。
     // ★★ 这个筛子是【被自己的断言抓出来改过的】,记在这里 ★★
@@ -201,7 +212,7 @@ function buildMeasure({ blind }) {
         const v = el.getAttribute('data-variant');
         const s = el.getAttribute('data-size');
         const role = prefix + 'button.' + (v || 'RAW') + '.' + (s || 'RAW') + (el.disabled ? '.disabled' : '');
-        out.push(Object.assign({ role: role, idx: i, btnVariant: v, btnSize: s, isLibrary: !!v }, m(el)));
+        out.push(Object.assign({ role: role, idx: i, tbl: tblOf(el), btnVariant: v, btnSize: s, isLibrary: !!v }, m(el)));
       });
     }
     // ── 完备性:这一段【不是】按名单走的,它数的是 scope 里的每一个元素 ──────
@@ -212,7 +223,15 @@ function buildMeasure({ blind }) {
       const t = el.tagName.toLowerCase();
       unclaimed[t] = (unclaimed[t] || 0) + 1;
     }
-    return { rows: out, totalElements: every.length, claimedElements: claimed.size, unclaimed: unclaimed };
+    return {
+      rows: out, totalElements: every.length, claimedElements: claimed.size, unclaimed: unclaimed,
+      tableCount: tables.length,
+      // ★ STYLE-2:横向溢出的直接读数。一颗 sm→default 的按钮不只是【高】4px,
+      //   它的字号 12.8→14px、图标 14→16px、gap 4→6px —— 它也【变宽】。
+      //   在 390px 上,变宽才是会把表推出屏幕的那一维。
+      docScrollW: document.documentElement.scrollWidth,
+      docClientW: document.documentElement.clientWidth,
+    };
   }
 
   const res = { viewportW: de.clientWidth, url: location.pathname, sections: {}, page: null };
@@ -497,7 +516,7 @@ async function main() {
                 + `rowsC=${r.result.value.sections.C ? r.result.value.sections.C.rows.length : 0}`)
         }
     } else {
-        let routes = staticRoutes.filter((r) => !ONLY || r.startsWith(ONLY))
+        let routes = staticRoutes.filter((r) => !ONLY.length || ONLY.some((o) => r === o || r.startsWith(o)))
         if (LIMIT) routes = routes.slice(0, LIMIT)
         out.notes.routesAttempted = routes
         out.notes.dynamicRoutesSkipped = dynamicRoutes
@@ -532,6 +551,9 @@ async function main() {
                     totalElements: val.page.totalElements,
                     claimedElements: val.page.claimedElements,
                     unclaimed: val.page.unclaimed,
+                    tableCount: val.page.tableCount,
+                    docScrollW: val.page.docScrollW,
+                    docClientW: val.page.docClientW,
                 }
                 if (n % 10 === 0) { console.error(`  · ${vp.name} ${n}/${routes.length} …`); flush() }
             }

@@ -205,13 +205,13 @@ export default async function InvoicesPage({
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link href={pageHref(page - 1)}>
                             {t('finance.pagination.prev')}
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('finance.pagination.prev')}
                     </Button>
                 )}
@@ -219,13 +219,13 @@ export default async function InvoicesPage({
                     {t('finance.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
                 {page < totalPages ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link href={pageHref(page + 1)}>
                             {t('finance.pagination.next')}
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('finance.pagination.next')}
                     </Button>
                 )}

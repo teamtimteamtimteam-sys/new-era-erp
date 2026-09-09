@@ -599,7 +599,7 @@ export default async function PurchaseOrderDetailPage({
                         藏起来会让人以为这个系统不支持改单。
                         【已作废仍然藏】那才是"不适用":一张作废的单没有可改的东西。 */}
                     {!isCancelled && (po.status !== 'closed' ? (
-                        <Button asChild variant="outline" size="sm">
+                        <Button asChild variant="outline">
                             <Link href={`/purchasing/orders/${po.id}/amend`}>
                                 {t('purchasing.amend.link')}
                             </Link>
@@ -610,7 +610,7 @@ export default async function PurchaseOrderDetailPage({
                                 而【这一个没有人报过】:列方向 flex 默认 stretch,按钮被下面
                                 那句长理由撑到同宽,读起来像输入框。B2 要找的就是它。 */}
                             <Button type="button" disabled
-                                    variant="secondary" size="sm">
+                                    variant="secondary">
                                 {t('purchasing.amend.link')}
                             </Button>
                             <span className="text-xs text-amber-700 mt-1">{t('purchasing.amendClosedWhy')}</span>
@@ -950,7 +950,7 @@ export default async function PurchaseOrderDetailPage({
                             </span>
                         </div>
                         {!isCancelled && (
-                            <Button asChild variant="outline" size="sm" className="w-full">
+                            <Button asChild variant="outline" className="w-full">
                                 <Link
                                     href={`/finance/payments/new?direction=out&supplier=${po.supplier_id}`}
                                 >

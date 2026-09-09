@@ -154,7 +154,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
             )}
 
             <div className="flex items-center gap-3">
-                <Button size="sm"
+                <Button
                     type="button"
                     onClick={save}
                     disabled={pending}
@@ -178,7 +178,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                     ☞ 画成虚线撤销档,等于教操作员「这一下可以撤回」——
                       而那句话是假的。button.tsx:41:「一条被教错的规则比没有更坏。」 */}
                 {!isNew && !initial.is_system && (
-                    <Button variant="destructive" size="sm"
+                    <Button variant="destructive"
                         type="button"
                         onClick={remove}
                         disabled={pending}>

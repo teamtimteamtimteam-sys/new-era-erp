@@ -102,7 +102,7 @@ export default function MetalContentPanel({
             <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold">{t('metalContent.title')}</h2>
                 {priceHref && rows.length > 0 && (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <a
                             href={priceHref}
                             target="_blank"

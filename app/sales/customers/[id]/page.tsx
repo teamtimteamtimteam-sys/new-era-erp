@@ -202,7 +202,7 @@ export default async function CustomerStatusPage({
                     <span className="ml-3 font-mono text-base text-gray-500">{cust.code}</span>
                 </h1>
                 {/* 【改限额/冻结在别处】这一页不放字段 —— 见文件头 */}
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="outline">
                     <Link
                         href={`/sales/customers/${id}/edit`}
                     >

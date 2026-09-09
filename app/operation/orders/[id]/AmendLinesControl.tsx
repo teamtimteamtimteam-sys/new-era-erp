@@ -58,7 +58,7 @@ export default function AmendLinesControl({
         <div className="mt-3">
             {!open ? (
                 <Button type="button" onClick={() => setOpen(true)}
-                        variant="secondary" size="sm">
+                        variant="secondary">
                     {t('processing.wo.actions.amend')}
                 </Button>
             ) : (
@@ -81,11 +81,11 @@ export default function AmendLinesControl({
                         <input type="text" value={reason} placeholder={t('processing.wo.actions.amendReasonPlaceholder')}
                                onChange={(e) => setReason(e.target.value)}
                                className="border border-gray-300 px-2 py-1 rounded text-sm w-72" />
-                        <Button size="sm" className="text-sm" type="button" onClick={submit}
+                        <Button className="text-sm" type="button" onClick={submit}
                                 disabled={isPending || reason.trim() === ''}>
                             {isPending ? t('common.saving') : t('common.save')}
                         </Button>
-                        <Button variant="secondary" size="sm" className="text-sm" type="button" onClick={() => setOpen(false)}>
+                        <Button variant="secondary" className="text-sm" type="button" onClick={() => setOpen(false)}>
                             {t('common.cancel')}
                         </Button>
                     </div>

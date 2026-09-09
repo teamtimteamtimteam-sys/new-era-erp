@@ -105,7 +105,7 @@ export default function ImportDiligencePanel({
                             </>
                         )}
                         {error ? <p className="text-sm text-red-700">{error}</p> : null}
-                        <Button size="sm" type="button" onClick={onSave} disabled={saving}>
+                        <Button type="button" onClick={onSave} disabled={saving}>
                             {t('inbound.importDiligence.save')}
                         </Button>
                     </div>

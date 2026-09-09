@@ -30,7 +30,7 @@ export default function OpenPeriodForm() {
                         className="rounded border px-2 py-1"
                     />
                 </label>
-                <Button size="sm"
+                <Button
                     type="button"
                     disabled={pending || month === ''}
                     onClick={() =>

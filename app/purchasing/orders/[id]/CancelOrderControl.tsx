@@ -44,7 +44,7 @@ canEdit: boolean
         return (
             <div className="inline-flex flex-col items-start">
                 <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
-                <Button variant="destructive" size="sm" type="button" disabled>
+                <Button variant="destructive" type="button" disabled>
                     {t('purchasing.cancelOrder')}
                 </Button>
                 </PermissionGate>
@@ -63,7 +63,6 @@ canEdit: boolean
                 tier="destructive"
                 reason={{ placeholder: t('purchasing.cancelReason') }}
                 triggerVariant="destructive"
-                triggerSize="sm"
                 disabled={isPending}
                 onConfirm={(reason) => {
                     setError('')

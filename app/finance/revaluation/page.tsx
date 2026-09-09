@@ -90,7 +90,7 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
         <ListPage title={t('finance.reval.title')} maxWidth="max-w-4xl" state={{ kind: 'ok' }}>
             <form method="get" className="mb-4">
                 <input type="date" name="date" defaultValue={d} className="border border-gray-300 rounded px-2 py-1 text-sm" />
-                <Button variant="secondary" size="sm" type="submit" className="ml-2">{t('reviews.filter')}</Button>
+                <Button variant="secondary" type="submit" className="ml-2">{t('reviews.filter')}</Button>
             </form>
 
             {/* 缺牌价:点名【是哪些币种】缺,而不是笼统说"当天没有中间价" */}

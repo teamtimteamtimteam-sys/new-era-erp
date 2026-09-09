@@ -48,10 +48,10 @@ export default function DeclineControl({ quoteId }: { quoteId: string }) {
                     <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
                            className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
                 </div>
-                <Button variant="secondary" size="sm" type="button" onClick={go} disabled={isPending || reason.trim() === ''}>
+                <Button variant="secondary" type="button" onClick={go} disabled={isPending || reason.trim() === ''}>
                     {isPending ? t('common.saving') : t('quotes.decline.action')}
                 </Button>
-                <Button variant="ghost" size="sm" type="button" onClick={() => setOpen(false)}>
+                <Button variant="ghost" type="button" onClick={() => setOpen(false)}>
                     {t('common.cancel')}
                 </Button>
             </div>

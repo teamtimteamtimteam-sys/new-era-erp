@@ -126,7 +126,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
             <div className="flex items-baseline justify-between mb-2">
                 <h2 className="font-semibold">{filed ? t('gst.asFiled') : t('gst.asComputed')}</h2>
                 {/* 【导出的是屏幕上这一份】—— 已申报导抄下来的,未申报导现算的,文件名里写明是哪一种 */}
-                <Button asChild variant="outline" size="sm">
+                <Button asChild variant="outline">
                     <a href={`/finance/gst/${periodId}/export`}>{t('gst.exportCsv')}</a>
                 </Button>
             </div>

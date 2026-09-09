@@ -227,14 +227,14 @@ export default async function ClosePage({
                         </div>
 
                         <div className="flex flex-wrap gap-4 text-sm">
-                            <Button asChild variant="outline" size="sm">
+                            <Button asChild variant="outline">
                                 <Link
                                     href={`/finance/pnl?date_from=${monthStart}&date_to=${selected}`}
                                 >
                                     {t('finance.viewPnl')}
                                 </Link>
                             </Button>
-                            <Button asChild variant="outline" size="sm">
+                            <Button asChild variant="outline">
                                 <Link
                                     href={`/finance/balance-sheet?as_of=${selected}`}
                                 >

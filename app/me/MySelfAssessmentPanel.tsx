@@ -227,7 +227,7 @@ export default function MySelfAssessmentPanel({
                                         <p className="text-xs text-gray-500">{t('reviews.selfLockedHint')}</p>
                                     ) : (
                                         <div className="flex gap-2 items-center flex-wrap">
-                                            <Button variant="secondary" size="sm"
+                                            <Button variant="secondary"
                                                 type="button"
                                                 onClick={() => save(a, drafts, false)}
                                                 disabled={pending}>
@@ -237,7 +237,7 @@ export default function MySelfAssessmentPanel({
                                                 type="button"
                                                 onClick={() => save(a, drafts, true)}
                                                 disabled={pending}
-                                                variant="default" size="sm"
+                                                variant="default"
                                             >
                                                 {t('reviews.selfFinalize')}
                                             </Button>

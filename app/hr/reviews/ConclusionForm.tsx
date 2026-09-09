@@ -105,7 +105,7 @@ export default function ConclusionForm({ reviewId, ratings, ratingCode, summaryT
                         className="block w-full border border-gray-300 rounded px-2 py-1 text-sm min-h-20"
                     />
                 </label>
-                <Button size="sm"
+                <Button
                     type="button"
                     onClick={save}
                     disabled={pending}

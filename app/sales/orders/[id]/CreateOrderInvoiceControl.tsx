@@ -54,7 +54,7 @@ canEdit: boolean
                     />
                 </div>
                 <PermissionGate code="module.finance.edit" allowed={canEdit}>
-                <Button variant="secondary" size="sm"
+                <Button variant="secondary"
                     type="button"
                     onClick={go}
                     disabled={isPending || issueDate.trim() === ''}

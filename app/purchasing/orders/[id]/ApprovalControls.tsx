@@ -64,7 +64,6 @@ export default function ApprovalControls({ poId, subject }: { poId: string; subj
                     tier="destructive"
                     reason={{ placeholder: t('purchasing.rejectReason') }}
                     triggerVariant="destructive"
-                    triggerSize="sm"
                     disabled={isPending}
                     onConfirm={(reason) => {
                         setError('')

@@ -26,7 +26,7 @@ export default function CycleActions({ cycleId, status }: { cycleId: string; sta
     return (
         <span className="inline-flex items-center gap-2">
             {status === 'draft' && (
-                <Button size="sm"
+                <Button
                     type="button"
                     onClick={() => run(() => openCycle(cycleId))}
                     disabled={pending}>
@@ -36,14 +36,14 @@ export default function CycleActions({ cycleId, status }: { cycleId: string; sta
             {status === 'open' && (
                 <>
                     {/* 幂等重跑:新入职转正的人补一份草稿 */}
-                    <Button variant="secondary" size="sm"
+                    <Button variant="secondary"
                         type="button"
                         onClick={() => run(() => openCycle(cycleId))}
                         disabled={pending}
                     >
                         {t('reviews.rerunCycle')}
                     </Button>
-                    <Button variant="secondary" size="sm"
+                    <Button variant="secondary"
                         type="button"
                         onClick={() => run(() => closeCycle(cycleId))}
                         disabled={pending}

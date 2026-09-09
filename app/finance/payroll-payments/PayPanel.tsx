@@ -119,7 +119,7 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                             />
                         </div>
                         <div className="flex gap-2 flex-wrap items-center text-sm">
-                            <Button size="sm" type="button" disabled={pending || chosen.length === 0 || date === ''}
+                            <Button type="button" disabled={pending || chosen.length === 0 || date === ''}
                                 onClick={() => run(() => payLines(p.id, chosen, date, ''))}>
                                 {t('finance.payrollPay.paySelected', { n: chosen.length })}
                             </Button>
@@ -127,14 +127,14 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                                 ? <span className="text-xs text-green-700">{t('finance.payrollPay.cpfPaid', { 0: p.cpf_paid_at })}</span>
                                 : <Button type="button" disabled={pending || date === ''}
                                     onClick={() => run(() => payCpf(p.id, date))}
-                                    variant="secondary" size="sm">
+                                    variant="secondary">
                                     {t('finance.payrollPay.payCpf', { amount: formatAmount(cpf, baseCurrency), due: cpfDue(p.period_month) })}
                                   </Button>)}
                             {Number(p.other_deductions_total ?? 0) > 0 && (p.deductions_paid_at
                                 ? <span className="text-xs text-green-700">{t('finance.payrollPay.dedPaid', { 0: p.deductions_paid_at })}</span>
                                 : <Button type="button" disabled={pending || date === ''}
                                     onClick={() => run(() => payDeductions(p.id, date))}
-                                    variant="secondary" size="sm">
+                                    variant="secondary">
                                     {t('finance.payrollPay.payDeductions', { amount: formatAmount(p.other_deductions_total, baseCurrency) })}
                                   </Button>)}
                         </div>

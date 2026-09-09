@@ -33,7 +33,6 @@ export default function CancelStocktakeButton({ stocktakeId, code }: {
                 tier="destructive"
                 reason={{ placeholder: t('stocktakes.cancelReasonPlaceholder') }}
                 triggerVariant="destructive"
-                triggerSize="sm"
                 disabled={isPending}
                 onConfirm={(reason) => {
                     setError('')

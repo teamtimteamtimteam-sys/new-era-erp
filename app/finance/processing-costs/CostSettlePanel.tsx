@@ -123,7 +123,7 @@ canEdit: boolean
                         {dateField('pay-date', payDate, setPayDate,
                             'finance.costSettle.paymentDate', 'finance.costSettle.paymentDateHint')}
                         <PermissionGate code="module.finance.edit" allowed={canEdit}>
-                        <Button size="sm" className="mt-4" type="button" disabled={pending || chosenA.length === 0 || payDate === ''}
+                        <Button className="mt-4" type="button" disabled={pending || chosenA.length === 0 || payDate === ''}
                             onClick={() => run(() => remitCosts(chosenA.map((e) => e.id), payDate, ''))}>
                             {t('finance.costSettle.remit', { n: chosenA.length })}
                         </Button>
@@ -176,7 +176,7 @@ canEdit: boolean
                             </label>
                         )}
                         <PermissionGate code="module.finance.edit" allowed={canEdit}>
-                        <Button size="sm" className="mt-4" type="button"
+                        <Button className="mt-4" type="button"
                             disabled={pending || chosenE.length === 0 || variance === null || mixedTypes
                                       || invDate === '' || (payStatus === 'unpaid' && !supplier)}
                             onClick={() => run(() => relieveAccruals({ entryIds: chosenE.map((e) => e.id), actual: actualN, date: invDate, paymentStatus: payStatus, bank: '', supplierId: supplier }))}>

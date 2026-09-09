@@ -88,7 +88,7 @@ export default async function KpiPage() {
                那两个入口逐字同一档。C-2 那条 module.hr.edit 的门原样跟过来。 */
             actions={
                 mayScore ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link href="/hr/kpi/score">{t('hr.subnav.kpiScore')}</Link>
                     </Button>
                 ) : null

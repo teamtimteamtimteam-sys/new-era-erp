@@ -137,7 +137,7 @@ export default function OutputToolbar({
                     className="rounded border border-gray-300 bg-white px-2 py-2"
                 />
             </label>
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline">
                 <a
                     href={exportHref}
                 >

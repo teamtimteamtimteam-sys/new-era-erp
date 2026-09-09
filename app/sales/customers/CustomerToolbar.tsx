@@ -68,7 +68,7 @@ export default function CustomerToolbar() {
                 placeholder={t('customers.searchPlaceholder')}
                 className="w-72 max-w-full rounded border border-gray-300 px-3 py-2"
             />
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline">
                 <a
                     href={exportHref}
                 >

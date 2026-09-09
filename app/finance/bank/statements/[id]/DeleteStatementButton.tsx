@@ -33,7 +33,6 @@ canEdit: boolean
             confirmLabel={t('common.delete')}
             tier="destructive"
             triggerVariant="destructive"
-            triggerSize="sm"
             disabled={isPending}
             onConfirm={() => {
                 startTransition(async () => {

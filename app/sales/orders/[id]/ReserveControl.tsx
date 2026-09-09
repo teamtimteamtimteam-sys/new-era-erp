@@ -109,7 +109,7 @@ export default function ReserveControl({
                     type="button"
                     onClick={go}
                     disabled={isPending || blocked !== null}
-                    variant="secondary" size="sm"
+                    variant="secondary"
                 >
                     {isPending ? t('common.saving') : t('sales.reserve.action')}
                 </Button>

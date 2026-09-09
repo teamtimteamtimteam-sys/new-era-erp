@@ -296,7 +296,7 @@ export default async function AssetsPage({
                 <label className="text-sm mr-2">{t('assets.depPeriodEnd')}</label>
                 <input type="date" name="date" defaultValue={d}
                        className="border border-gray-300 rounded px-2 py-1 text-sm" />
-                <Button variant="secondary" size="sm" type="submit" className="ml-2">
+                <Button variant="secondary" type="submit" className="ml-2">
                     {t('finance.reval.preview')}
                 </Button>
             </form>

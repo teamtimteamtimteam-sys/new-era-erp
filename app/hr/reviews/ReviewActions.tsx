@@ -99,7 +99,7 @@ export default function ReviewActions({
                     </p>
                 ) : (
                     <PermissionGate code="module.hr.edit" allowed={canWrite} alsoAllowedIf={orReviewer} inline>
-                        <Button variant="secondary" size="sm"
+                        <Button variant="secondary"
                             type="button"
                             onClick={() => run(() => openSelfAssessment(reviewId))}
                             disabled={pending}>
@@ -111,7 +111,7 @@ export default function ReviewActions({
                             type="button"
                             onClick={() => run(() => submitReview(reviewId))}
                             disabled={pending}
-                            variant="default" size="sm"
+                            variant="default"
                         >
                             {t('reviews.submit')}
                         </Button>
@@ -125,7 +125,7 @@ export default function ReviewActions({
                        于是一个【没有 HR 权限的提交人】三句话一句都读不到。 */}
                 {status === 'submitted' && !isSubmitter && (
                     <PermissionGate code="module.hr.edit" allowed={canHrEdit} inline>
-                        <Button size="sm"
+                        <Button
                             type="button"
                             onClick={() => run(() => approveReview(reviewId))}
                             disabled={pending}>
@@ -172,7 +172,7 @@ export default function ReviewActions({
                             className="block border border-gray-300 rounded px-2 py-1 text-sm w-64"
                         />
                     </label>
-                    <Button variant="destructive" size="sm"
+                    <Button variant="destructive"
                         type="button"
                         onClick={() => run(() => voidReview(reviewId, voidReason))}
                         disabled={pending || voidReason.trim() === ''}>

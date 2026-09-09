@@ -106,7 +106,7 @@ export default function CreateAccountPanel({
                     type="button"
                     aria-expanded={open}
                     onClick={() => setOpen((o) => !o)}
-                    variant="default" size="sm"
+                    variant="default"
                 >
                     {open ? t('common.cancel') : t('permissions.createAccount')}
                 </Button>
@@ -228,7 +228,7 @@ export default function CreateAccountPanel({
                         </div>
 
                         <div className="mt-4">
-                            <Button size="sm"
+                            <Button
                                 type="button"
                                 onClick={submit}
                                 disabled={pending || !canSubmit}

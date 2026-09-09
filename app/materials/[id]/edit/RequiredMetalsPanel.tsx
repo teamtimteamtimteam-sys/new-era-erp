@@ -112,7 +112,7 @@ export default function RequiredMetalsPanel({
 
                 {/* 【取消所有勾也是一次提交】按钮文案不随选择变化 —— "保存"就是保存,
                     包括保存成一个空集合。写成"清空要求"会让人以为那是另一个按钮。 */}
-                <Button size="sm"
+                <Button
                     type="submit"
                     disabled={isPending}
                 >

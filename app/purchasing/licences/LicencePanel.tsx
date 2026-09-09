@@ -124,7 +124,7 @@ export default function LicencePanel({
                          没有权限的人翻不开这个开合位。 */}
                     {form === null && (
                     <PermissionGate code="module.suppliers.edit" allowed={canEdit} inline>
-                        <Button variant="outline" size="sm" type="button"
+                        <Button variant="outline" type="button"
                                 onClick={() => { setForm({ ...EMPTY }); setError(null) }}>
                             {t('company.licence.add')}
                         </Button>

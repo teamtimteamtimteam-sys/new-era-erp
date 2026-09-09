@@ -188,7 +188,7 @@ export default async function FxRatesPage({
                 //   `ml-3` 也一起撤掉:那是没有容器时用来顶开间距的调用点补丁,
                 //   现在间距由容器的 gap-3 给,而它正好是同一个值。
                 <>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link href="/finance/fx/bulk">{t('finance.fxPage.bulk.entryLink')}</Link>
                     </Button>
                     <Button asChild>
@@ -276,7 +276,7 @@ export default async function FxRatesPage({
             {/* 分页控件:服务端 <Link>;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={`/finance/fx?${new URLSearchParams({ ...(currency ? { currency } : {}), sort, dir, page: String(page - 1) }).toString()}`}
                         >
@@ -284,7 +284,7 @@ export default async function FxRatesPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('finance.pagination.prev')}
                     </Button>
                 )}
@@ -294,7 +294,7 @@ export default async function FxRatesPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={`/finance/fx?${new URLSearchParams({ ...(currency ? { currency } : {}), sort, dir, page: String(page + 1) }).toString()}`}
                         >
@@ -302,7 +302,7 @@ export default async function FxRatesPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('finance.pagination.next')}
                     </Button>
                 )}

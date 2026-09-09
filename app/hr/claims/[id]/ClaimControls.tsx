@@ -43,13 +43,13 @@ export default function ClaimControls({
                         <input value={notes} onChange={(e) => setNotes(e.target.value)}
                                className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-sm" /></label>
                     <div className="flex gap-3">
-                        <Button size="sm" type="button" disabled={pending}
+                        <Button type="button" disabled={pending}
                                 onClick={() => run(() => decideClaim(claimId, true, notes || null))}>
                             {t('leave.approve')}
                         </Button>
                         <Button type="button" disabled={pending}
                                 onClick={() => run(() => decideClaim(claimId, false, notes || null))}
-                                variant="secondary" size="sm">
+                                variant="secondary">
                             {t('leave.reject')}
                         </Button>
                     </div>
@@ -77,7 +77,7 @@ export default function ClaimControls({
                                            它是"还没有东西可操作"那一族。给它写一句拒绝
                                            是假话:该说的是【下一步做什么】。 */}
                     <PermissionGate code="module.finance.edit" allowed={canFinance} inline>
-                        <Button size="sm"
+                        <Button
                             type="button"
                             disabled={pending || !date}
                             onClick={() => run(() => payClaim(claimId, date))}>

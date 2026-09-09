@@ -79,7 +79,7 @@ export default async function ClaimsPage({
                 </label>
                 <label className="text-xs text-gray-600">{t('claims.year')}
                     <input type="number" name="year" defaultValue={sp.year ?? ''} className={`block ${sel} w-24`} /></label>
-                <Button variant="secondary" size="sm" type="submit">{t('leave.filter')}</Button>
+                <Button variant="secondary" type="submit">{t('leave.filter')}</Button>
             </form>
 
             <ClaimsTable rows={tableRows} empty={t('claims.none')} />

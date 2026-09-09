@@ -28,7 +28,6 @@ export default function DeleteButton({ runId, code }: { runId: string; code: str
                 tier="destructive"
                 reason={{ placeholder: t('processing.delete.reasonPlaceholder') }}
                 triggerVariant="destructive"
-                triggerSize="sm"
                 disabled={isPending}
                 onConfirm={(reason) => {
                     setError('')

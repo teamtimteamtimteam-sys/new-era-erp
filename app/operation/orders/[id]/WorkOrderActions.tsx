@@ -49,7 +49,7 @@ export default function WorkOrderActions({
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <div className="flex flex-wrap items-center gap-3">
-                <Button variant="secondary" size="sm" type="button" disabled={isPending || releaseWhy !== ''}
+                <Button variant="secondary" type="button" disabled={isPending || releaseWhy !== ''}
                         onClick={() => run(() => releaseWorkOrder(id))}>
                     {t('processing.wo.actions.release')}
                 </Button>
@@ -60,7 +60,7 @@ export default function WorkOrderActions({
                 <input type="text" value={closeReason} placeholder={t('processing.wo.actions.closeReasonPlaceholder')}
                        onChange={(e) => setCloseReason(e.target.value)} disabled={closeWhy !== ''}
                        className="border border-gray-300 px-2 py-1 rounded text-sm w-72 disabled:bg-gray-100" />
-                <Button variant="secondary" size="sm" type="button"
+                <Button variant="secondary" type="button"
                         disabled={isPending || closeWhy !== '' || closeReason.trim() === ''}
                         onClick={() => run(() => closeWorkOrder(id, closeReason))}>
                     {t('processing.wo.actions.close')}
@@ -74,7 +74,7 @@ export default function WorkOrderActions({
                 <input type="text" value={cancelReason} placeholder={t('processing.wo.actions.cancelReasonPlaceholder')}
                        onChange={(e) => setCancelReason(e.target.value)} disabled={cancelWhy !== ''}
                        className="border border-gray-300 px-2 py-1 rounded text-sm w-72 disabled:bg-gray-100" />
-                <Button variant="destructive" size="sm" type="button"
+                <Button variant="destructive" type="button"
                         disabled={isPending || cancelWhy !== '' || cancelReason.trim() === ''}
                         onClick={() => run(() => cancelWorkOrder(id, cancelReason))}>
                     {t('processing.wo.actions.cancel')}

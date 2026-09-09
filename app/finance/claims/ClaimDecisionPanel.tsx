@@ -150,7 +150,7 @@ export default function ClaimDecisionPanel({
                                         <input value={get(c.claim_id).notes}
                                             onChange={(e) => set(c.claim_id, { notes: e.target.value })}
                                             className="block w-full rounded border border-gray-300 px-2 py-1 text-sm" /></label>
-                                    <Button size="sm" type="button" disabled={pendingTx}
+                                    <Button type="button" disabled={pendingTx}
                                         onClick={() => run(() => decideClaim({
                                             claimId: c.claim_id, approve: true,
                                             accountCode: get(c.claim_id).acct, taxCode: get(c.claim_id).tax,
@@ -158,7 +158,7 @@ export default function ClaimDecisionPanel({
                                         }))}>
                                         {t('expenseClaims.approve')}
                                     </Button>
-                                    <Button variant="secondary" size="sm" type="button" disabled={pendingTx}
+                                    <Button variant="secondary" type="button" disabled={pendingTx}
                                         onClick={() => run(() => decideClaim({
                                             claimId: c.claim_id, approve: false, notes: get(c.claim_id).notes,
                                         }))}

@@ -458,7 +458,7 @@ canEdit: boolean
                         ))}
 
                         <div className="flex flex-wrap items-center gap-4 mt-2">
-                            <Button variant="secondary" size="sm" className="text-sm"
+                            <Button variant="secondary" className="text-sm"
                                 type="button"
                                 onClick={addVarianceItem}
                             >
@@ -522,7 +522,7 @@ canEdit: boolean
                                 <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded text-sm">
                                     <p className="mb-2">{t('bank.noCandidates')}</p>
                                     <div className="flex flex-wrap gap-3">
-                                        <Button asChild variant="outline" size="sm">
+                                        <Button asChild variant="outline">
                                             <a
                                                 href="/finance/expenses/new"
                                                 target="_blank"
@@ -531,7 +531,7 @@ canEdit: boolean
                                                 {t('expense.new')}
                                             </a>
                                         </Button>
-                                        <Button asChild variant="outline" size="sm">
+                                        <Button asChild variant="outline">
                                             <a
                                                 href="/finance/payments/new"
                                                 target="_blank"
@@ -540,7 +540,7 @@ canEdit: boolean
                                                 {t('finance.recordPayment')}
                                             </a>
                                         </Button>
-                                        <Button asChild variant="outline" size="sm">
+                                        <Button asChild variant="outline">
                                             <a
                                                 href="/finance/journal/new"
                                                 target="_blank"

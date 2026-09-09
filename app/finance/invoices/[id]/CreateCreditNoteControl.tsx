@@ -61,7 +61,7 @@ canEdit: boolean
         return (
             <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <Button type="button" onClick={() => setOpen(true)}
-                    variant="secondary" size="sm">
+                    variant="secondary">
                 {t('cn.create')}
             </Button>
             </PermissionGate>
@@ -225,11 +225,11 @@ canEdit: boolean
             <p className="text-xs text-gray-600">{t('cn.consequence', { code: invoiceCode })}</p>
 
             <div className="flex gap-3">
-                <Button size="sm" type="submit" disabled={isPending || blocked}>
+                <Button type="submit" disabled={isPending || blocked}>
                     {isPending ? t('common.saving') : t('cn.submit')}
                 </Button>
                 <Button type="button" onClick={() => setOpen(false)}
-                        variant="secondary" size="sm">
+                        variant="secondary">
                     {t('common.cancel')}
                 </Button>
             </div>

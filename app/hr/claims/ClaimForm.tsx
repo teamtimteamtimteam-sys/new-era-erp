@@ -65,7 +65,7 @@ export default function ClaimForm({
             </div>
             <Button type="button" onClick={submit}
                     disabled={pending || !date || !amount || (!fixedEmployeeId && !employeeId)}
-                    variant="default" size="sm" className="mt-4">
+                    variant="default" className="mt-4">
                 {pending ? t('common.saving') : t('claims.submit')}
             </Button>
         </div>

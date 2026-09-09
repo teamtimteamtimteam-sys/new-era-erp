@@ -391,7 +391,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                 className={`block ${inp} w-24`}
                             />
                         </label>
-                        <Button size="sm"
+                        <Button
                             type="button"
                             onClick={add}
                             disabled={pending || newObjective.trim() === '' || newUnitMissing}

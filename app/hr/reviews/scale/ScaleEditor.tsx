@@ -200,7 +200,7 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
                         <input type="number" value={nSort} onChange={(e) => setNSort(e.target.value)}
                                className={`block ${inp} w-20 text-right`} />
                     </label>
-                    <Button size="sm"
+                    <Button
                         type="button"
                         onClick={add}
                         disabled={pending || !nCode.trim() || !nEn.trim() || !nZh.trim()}

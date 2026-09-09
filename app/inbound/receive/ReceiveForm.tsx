@@ -340,7 +340,7 @@ export default function ReceiveForm({
             <Button
                 type="submit"
                 disabled={isPending || !arrivalDate || !!blocked}
-                variant="default" size="lg" className="w-full min-h-[48px] text-base"
+                variant="default" className="w-full min-h-[48px] text-base"
             >
                 {isPending ? t('receive.submitting') : t('receive.submit')}
             </Button>

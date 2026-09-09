@@ -139,7 +139,7 @@ export default async function LeaveRequestsPage({
                     {t('leave.to')}
                     <input type="date" name="to" defaultValue={sp.to ?? ''} className={`block ${sel}`} />
                 </label>
-                <Button variant="secondary" size="sm" type="submit">
+                <Button variant="secondary" type="submit">
                     {t('leave.filter')}
                 </Button>
             </form>

@@ -63,7 +63,7 @@ export default function RepriceFromContentPanel({
 
     return (
         <div className="mb-4">
-            <Button variant="secondary" size="sm"
+            <Button variant="secondary"
                 type="button"
                 onClick={onPreview}
                 disabled={isPending}>

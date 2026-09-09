@@ -198,7 +198,7 @@ export default async function MonthEndPage({
             <form method="get" className="mb-4">
                 <input type="month" name="month" defaultValue={month}
                        className="border border-gray-300 rounded px-2 py-1 text-sm" />
-                <Button variant="secondary" size="sm" className="ml-2 text-sm" type="submit">
+                <Button variant="secondary" className="ml-2 text-sm" type="submit">
                     {t('reviews.filter')}
                 </Button>
             </form>

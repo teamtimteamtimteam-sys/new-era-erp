@@ -153,7 +153,7 @@ export default async function CustomersPage({
                         而 --reach 【查得到】静态路由,只是它要跑两小时。
                         入口放在客户列表上,因为"这家客户是不是也是我们的供应商"
                         正是在看客户名单的时候才会冒出来的问题。 */}
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link href="/sales/customers/overlap">
                             {t('overlap.entryLink')}
                         </Link>
@@ -186,7 +186,7 @@ export default async function CustomersPage({
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page - 1)}
                         >
@@ -194,7 +194,7 @@ export default async function CustomersPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('customers.pagination.prev')}
                     </Button>
                 )}
@@ -204,7 +204,7 @@ export default async function CustomersPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page + 1)}
                         >
@@ -212,7 +212,7 @@ export default async function CustomersPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('customers.pagination.next')}
                     </Button>
                 )}

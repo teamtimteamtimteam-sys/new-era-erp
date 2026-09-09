@@ -92,10 +92,10 @@ export default async function ReceiveDonePage({
             </div>
 
             <div className="space-y-3">
-                <Button asChild variant="default" size="lg" className="w-full min-h-[48px] text-base">
+                <Button asChild variant="default" className="w-full min-h-[48px] text-base">
                     <a href={`/inbound/${batch.id}/label`} target="_blank" rel="noopener noreferrer">{t('batchLabel.print')}</a>
                 </Button>
-                <Button asChild variant="secondary" size="lg" className="w-full min-h-[48px] text-base">
+                <Button asChild variant="secondary" className="w-full min-h-[48px] text-base">
                     <Link href="/inbound/receive">{t('receive.next')}</Link>
                 </Button>
             </div>

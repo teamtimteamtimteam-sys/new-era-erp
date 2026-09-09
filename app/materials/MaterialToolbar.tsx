@@ -88,7 +88,7 @@ export default function MaterialToolbar({ kinds, locale }: { kinds: MaterialKind
                     </option>
                 ))}
             </select>
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline">
                 <a
                     href={exportHref}
                 >

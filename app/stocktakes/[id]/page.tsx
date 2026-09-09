@@ -213,7 +213,7 @@ export default async function StocktakeDetailPage({
                     {/* 底部粘性操作条:复核过账(主)+ 取消(danger) */}
                     <div className="sticky bottom-0 mt-6 border-t border-gray-200 bg-white py-3">
                         <div className="flex gap-3">
-                            <Button asChild variant="default" size="lg" className="flex-1 min-h-[48px] text-base">
+                            <Button asChild variant="default" className="flex-1 min-h-[48px] text-base">
                                 <Link href={`/stocktakes/${id}/review`}>{t('stocktakes.review')}</Link>
                             </Button>
                             <CancelStocktakeButton stocktakeId={id} code={st.code} />

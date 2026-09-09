@@ -216,7 +216,7 @@ export default function SalePanel({
                         </div>
                     )}
                     {priceMode !== 'manual' && (
-                        <Button size="sm"
+                        <Button
                             type="button"
                             disabled={quoting}
                             onClick={() => {

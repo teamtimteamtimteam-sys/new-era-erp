@@ -200,7 +200,7 @@ export default async function MaterialsPage({
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page - 1)}
                         >
@@ -208,7 +208,7 @@ export default async function MaterialsPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('materials.pagination.prev')}
                     </Button>
                 )}
@@ -218,7 +218,7 @@ export default async function MaterialsPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page + 1)}
                         >
@@ -226,7 +226,7 @@ export default async function MaterialsPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('materials.pagination.next')}
                     </Button>
                 )}

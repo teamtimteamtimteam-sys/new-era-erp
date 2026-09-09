@@ -200,7 +200,7 @@ export default async function DeletedRecordsPage({
                     <span className="text-gray-500">–</span>
                     <input type="date" name="to" defaultValue={to}
                            className="border border-gray-300 px-2 py-1 rounded" />
-                    <Button variant="secondary" size="sm" type="submit">
+                    <Button variant="secondary" type="submit">
                         {t('common.filter')}
                     </Button>
                 </form>

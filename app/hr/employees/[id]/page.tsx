@@ -194,7 +194,7 @@ export default async function EmployeeDetailPage({
             //   actions 是同一个位置,而且画在状态分支【之前】。
             actions={
                 <span className="flex flex-wrap items-center gap-3">
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={`/hr/training/new?employee=${id}`}
                         >

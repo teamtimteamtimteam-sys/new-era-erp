@@ -110,7 +110,7 @@ export default function TransferControl({
                     <input type="text" value={note} onChange={(e) => setNote(e.target.value)}
                            className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
                 </div>
-                <Button variant="secondary" size="sm" className="text-sm"
+                <Button variant="secondary" className="text-sm"
                     type="button"
                     onClick={onTransfer}
                     disabled={isPending || blocked !== null}>

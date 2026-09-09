@@ -43,10 +43,10 @@ export default async function SnapshotPage() {
             intro={t('reports.snapshot.desc')}
             actions={
                 <div className="flex gap-2">
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <a href="/inventory/reports/snapshot/export">{t('reports.csv')}</a>
                     </Button>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <a href="/inventory/reports/snapshot/pdf" target="_blank" rel="noopener noreferrer">{t('reports.pdf')}</a>
                     </Button>
                 </div>

@@ -146,7 +146,7 @@ export default function MyReviewsPanel({
                             </div>
 
                             {r.status === 'approved' && (
-                                <Button size="sm"
+                                <Button
                                     type="button"
                                     onClick={() => ack(r.id)}
                                     disabled={pending}>

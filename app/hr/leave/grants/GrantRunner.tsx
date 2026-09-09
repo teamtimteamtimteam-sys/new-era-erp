@@ -54,7 +54,7 @@ export default function GrantRunner({
                 <h2 className="font-bold mb-1">{t('leave.carryTitle', { 0: String(year), 1: String(year + 1) })}</h2>
                 <p className="text-sm text-gray-600 mb-3">{t('leave.carryHint')}</p>
                 <p className="text-sm mb-3">{t('leave.alreadyCarried', { 0: String(alreadyCarried) })}</p>
-                <Button size="sm" type="button" onClick={carry} disabled={pending}>
+                <Button type="button" onClick={carry} disabled={pending}>
                     {pending ? t('common.saving') : t('leave.runCarry')}
                 </Button>
                 <p className="mt-2 text-xs text-gray-500">{t('leave.carryIdempotentHint')}</p>

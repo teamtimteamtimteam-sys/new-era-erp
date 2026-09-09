@@ -774,7 +774,7 @@ canEdit: boolean
                             而不是靠两个条件恰好都为假(F2a 数出来的第三个材料专属控件)。 */}
                         {!isEquipment && l.formula_id && assayCount(l) > 0 && (
                             <div>
-                                <Button variant="secondary" size="sm" className="text-sm"
+                                <Button variant="secondary" className="text-sm"
                                     type="button"
                                     onClick={() => onComputeEstimate(i)}
                                 >

@@ -68,7 +68,7 @@ export default function DecideControls({
             <div className="flex gap-3 flex-wrap">
                 {status === 'pending' && (
                     <>
-                        <Button size="sm"
+                        <Button
                             type="button"
                             disabled={pending}
                             onClick={() => act(() => decideLeave(requestId, true, notes || null))}
@@ -79,14 +79,14 @@ export default function DecideControls({
                             type="button"
                             disabled={pending}
                             onClick={() => act(() => decideLeave(requestId, false, notes || null))}
-                            variant="secondary" size="sm"
+                            variant="secondary"
                         >
                             {t('leave.reject')}
                         </Button>
                     </>
                 )}
                 {status === 'approved' && (
-                    <Button variant="reversal" size="sm"
+                    <Button variant="reversal"
                         type="button"
                         disabled={pending}
                         onClick={() => act(() => cancelLeave(requestId, notes || null))}>

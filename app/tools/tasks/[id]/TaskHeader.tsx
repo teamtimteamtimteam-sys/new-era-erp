@@ -161,10 +161,10 @@ export default function TaskHeader({
             </div>
 
             <div className="flex items-center gap-2">
-                <Button size="sm"
+                <Button
                     type="submit"
                     disabled={pending}>{labels.save}</Button>
-                <Button variant="secondary" size="sm"
+                <Button variant="secondary"
                     type="button"
                     disabled={pending}
                     onClick={() => { setOpen(false); setError(null) }}>{labels.cancel}</Button>

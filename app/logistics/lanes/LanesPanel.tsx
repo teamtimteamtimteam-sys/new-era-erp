@@ -47,7 +47,7 @@ canEdit: boolean
                         <label className="block text-xs font-medium mb-1">{labels.portName}</label>
                         <input name="name" required className={field} />
                     </div>
-                    <Button variant="default" size="sm" className="text-sm shrink whitespace-normal" disabled={pending}>{labels.addPort}</Button>
+                    <Button variant="default" className="text-sm shrink whitespace-normal" disabled={pending}>{labels.addPort}</Button>
                 </form>
                 </PermissionGate>
 
@@ -70,7 +70,7 @@ canEdit: boolean
                                 {ports.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                             </select>
                         </div>
-                        <Button variant="default" size="sm" className="text-sm shrink whitespace-normal" disabled={pending}>{labels.addLane}</Button>
+                        <Button variant="default" className="text-sm shrink whitespace-normal" disabled={pending}>{labels.addLane}</Button>
                     </form>
                     </PermissionGate>
                 )}
@@ -136,11 +136,11 @@ canEdit: boolean
                                     <label className="block text-xs font-medium mb-1">{labels.regime}</label>
                                     <input name="regime" className={field} />
                                 </div>
-                                <Button variant="default" size="sm" className="text-sm shrink whitespace-normal" disabled={pending}>
+                                <Button variant="default" className="text-sm shrink whitespace-normal" disabled={pending}>
                                     {labels.addRequirement}
                                 </Button>
                                 {l.state === 'not_defined' && (
-                                    <Button variant="secondary" size="sm" className="text-sm shrink whitespace-normal"
+                                    <Button variant="secondary" className="text-sm shrink whitespace-normal"
                                         type="button"
                                         disabled={pending}
                                         onClick={() => run(() => markLaneReviewed(l.id))}

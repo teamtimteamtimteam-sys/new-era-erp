@@ -215,7 +215,7 @@ export default async function MetalPricesPage({
             title={t('metalPrices.listTitle')}
             actions={
                 <div className="flex gap-3">
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href="/tools/pricing/metal-prices/bulk"
                         >
@@ -258,7 +258,7 @@ export default async function MetalPricesPage({
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page - 1)}
                         >
@@ -266,7 +266,7 @@ export default async function MetalPricesPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('metalPrices.pagination.prev')}
                     </Button>
                 )}
@@ -276,7 +276,7 @@ export default async function MetalPricesPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page + 1)}
                         >
@@ -284,7 +284,7 @@ export default async function MetalPricesPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('metalPrices.pagination.next')}
                     </Button>
                 )}

@@ -147,7 +147,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                     它动的是这张单说了什么。三个状态才画,与数据库那道闸同一份表。 */}
                 {amendable && (
                     <div className="mt-3 flex flex-wrap items-baseline gap-x-3">
-                        <Button asChild variant="outline" size="sm">
+                        <Button asChild variant="outline">
                             <Link href={`/sales/orders/${o.id}/amend`}>
                                 {o.status === 'draft' ? t('sales.amend.editDraft') : t('sales.amend.action')}
                             </Link>

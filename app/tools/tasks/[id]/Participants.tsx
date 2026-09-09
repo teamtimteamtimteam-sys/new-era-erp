@@ -177,7 +177,7 @@ export function PromoteButton({ taskId, label, disabled = false }: { taskId: str
             {error ? (
                 <div className="mb-3 rounded border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             ) : null}
-            <Button variant="default" size="sm" className="text-sm"
+            <Button variant="default" className="text-sm"
                 disabled={pending || disabled}
                 onClick={() =>
                     start(async () => {

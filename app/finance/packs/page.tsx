@@ -82,7 +82,7 @@ export default async function PacksPage({
             {/* ── 实时预览 ────────────────────────────────────────────────── */}
             <div className="flex flex-wrap items-end gap-3 mb-4">
                 <PackMonthPicker month={month} />
-                <Button asChild variant="outline" size="sm" className="self-center">
+                <Button asChild variant="outline" className="self-center">
                     <Link href={`/finance/journal/export?from=${preview.period_start}&to=${preview.period_end}`}>
                         {t('glExport.button')}
                     </Link>

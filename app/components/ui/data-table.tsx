@@ -421,7 +421,25 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                         scope="col"
                                         aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : undefined}
                                         className={cn(
-                                            'px-3 py-2.5 align-middle font-medium text-[color:var(--brand-text)]',
+                                            // ★ STYLE-2(2026-09-09):表头字号 14px → 15px。
+                                            //   出处是 variant C 自己那一行 spec:`text: 'text-[15px]'`
+                                            //   (docs/variant-c-spec.md §4.3)。STYLE-1 实测:685 个 <th> 里
+                                            //   **409 个的内边距早就是 C 的 px-3 py-2.5 了 —— 那是本组件干的**,
+                                            //   唯一还差的就是这一个数 —— 改这一处,它们【绝大多数】一起到位
+                                            //   (不是全部,见下面那条 ⚠)。
+                                            //   ★ 只动字号:px-3 py-2.5 一个字节都没碰。
+                                            //   ★ 行高【自己跟着走了】—— 这一条是实测,不是推的:
+                                            //     我先推断「text-[15px] 只设字号,行高会继承 <table> 的
+                                            //     text-sm=20px,于是差 1.43px」。**量出来不是这样:**
+                                            //     实测 line-height = 21.4286px,与 spec 的 21.43px 一致
+                                            //     (Tailwind v4 的任意值字号会把 line-height 一起重置)。
+                                            //     ☞ 于是表头四项(字号 15 / 字重 500 / 行高 21.43 / 内边距 10-12)
+                                            //       现在【全部】合 §4.3。**推断错了,读数是对的。**
+                                            //   ⚠ 但【调用方写了字号的列不会动】:c.className 排在 cn() 最后,
+                                            //     所以 `className: 'font-mono text-sm'` 这类列的表头仍是 14px。
+                                            //     实测 28 条路由:102 个本组件的表头里 92 个到了 15px,
+                                            //     **10 个没动**,全部是这种列(/finance/fx · /hr/departments · /output)。
+                                            'px-3 py-2.5 align-middle text-[15px] font-medium text-[color:var(--brand-text)]',
                                             // 表头【桌面上不折行】—— 实测 1280px 下「库存状态」被折成
                                             // 每行一个字。手机上不加这一条:那里是 table-fixed,
                                             // 列宽是平分的,nowrap 会让表头顶出格子。

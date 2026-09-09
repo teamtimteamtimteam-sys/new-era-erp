@@ -77,7 +77,7 @@ export default function RecurringLines({
                          没有权限的人翻不开这个开合位。 */}
                     {!open && (
                 <PermissionGate code="module.finance.edit" allowed={canEdit} inline className="mb-3">
-                    <Button variant="secondary" size="sm" className="text-sm" type="button" onClick={() => setOpen(true)}>
+                    <Button variant="secondary" className="text-sm" type="button" onClick={() => setOpen(true)}>
                         {t('cashForecast.addLine')}
                     </Button>
                 </PermissionGate>

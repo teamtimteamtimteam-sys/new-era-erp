@@ -43,7 +43,6 @@ canEdit: boolean
             confirmLabel={t('finance.reversePayment')}
             tier="reversal"
             triggerVariant="reversal"
-            triggerSize="sm"
             disabled={isPending}
             onConfirm={doReverse}
         >

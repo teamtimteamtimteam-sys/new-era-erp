@@ -128,7 +128,7 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
             <div className="mb-2 flex items-baseline gap-3">
                 <h2 className="text-lg font-medium">{t(spec.titleKey)}</h2>
                 {!readOnly && (
-                    <Button variant="secondary" size="sm" className="text-xs" type="button" onClick={openNew} disabled={pending}>
+                    <Button variant="secondary" className="text-xs" type="button" onClick={openNew} disabled={pending}>
                         {t('dict.add')}
                     </Button>
                 )}
@@ -159,14 +159,14 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                     className="max-w-2xl"
                     actions={
                         <>
-                            <Button variant="default" size="sm" className="text-xs" type="button" disabled={pending}
+                            <Button variant="default" className="text-xs" type="button" disabled={pending}
                                     onClick={() => run(() => (editing === '__new__' ? addDictValue : updateDictValue)({
                                         table: spec.table, code: f.code, nameEn: f.nameEn, nameZh: f.nameZh,
                                         sortOrder: f.sortOrder, notes: f.notes, extras,
                                     }))}>
                                 {pending ? t('common.saving') : t('common.save')}
                             </Button>
-                            <Button variant="secondary" size="sm" className="text-xs" type="button" disabled={pending}
+                            <Button variant="secondary" className="text-xs" type="button" disabled={pending}
                                     onClick={() => { setEditing(null); setError(null) }}>
                                 {t('common.cancel')}
                             </Button>

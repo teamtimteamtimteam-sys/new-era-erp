@@ -227,7 +227,7 @@ export default function LeaveForm({
                 type="button"
                 onClick={submit}
                 disabled={pending || !start || !end || (!fixedEmployeeId && !employeeId)}
-                variant="default" size="sm" className="mt-4"
+                variant="default" className="mt-4"
             >
                 {pending ? t('common.saving') : t('leave.submit')}
             </Button>

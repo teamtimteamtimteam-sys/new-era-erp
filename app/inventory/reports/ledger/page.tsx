@@ -55,10 +55,10 @@ export default async function LedgerPage({
             intro={t('reports.ledger.desc')}
             actions={
                 <div className="flex gap-2">
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <a href={`/inventory/reports/ledger/export?${qs}`}>{t('reports.csv')}</a>
                     </Button>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <a href={`/inventory/reports/ledger/pdf?${qs}`} target="_blank" rel="noopener noreferrer">{t('reports.pdf')}</a>
                     </Button>
                 </div>
@@ -106,7 +106,7 @@ export default async function LedgerPage({
                     <input type="text" name="batch" defaultValue={params.batchCode}
                            placeholder="IN-…" className="border border-gray-300 px-2 py-1 rounded text-sm w-36" />
                 </div>
-                <Button type="submit" variant="secondary" size="sm">
+                <Button type="submit" variant="secondary">
                     {t('reports.ledger.apply')}
                 </Button>
             </form>

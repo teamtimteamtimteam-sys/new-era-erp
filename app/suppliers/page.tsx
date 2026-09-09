@@ -143,11 +143,11 @@ export default async function SuppliersPage({
                         flex-wrap 容器(见 list-page.tsx 抬头),窄屏上这一行折到第二行。
                         ☞ R10 那条「不许在调用点加包装层」仍然成立,而且正是靠它:
                           修法留在外壳里,下一刀看得见;调用点这里一个包装层都没有。 */}
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link href={FN.contracts.href}>{t('contracts.entryLink')}</Link>
                     </Button>
                     {/* ★【COMM-1:佣金协议的入口 —— 与上面那条逐字同一个理由】★ */}
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link href={FN.commissions.href}>{t('commissions.entryLink')}</Link>
                     </Button>
                     <Button asChild>
@@ -179,7 +179,7 @@ export default async function SuppliersPage({
             {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page - 1)}
                         >
@@ -187,7 +187,7 @@ export default async function SuppliersPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('suppliers.pagination.prev')}
                     </Button>
                 )}
@@ -197,7 +197,7 @@ export default async function SuppliersPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page + 1)}
                         >
@@ -205,7 +205,7 @@ export default async function SuppliersPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('suppliers.pagination.next')}
                     </Button>
                 )}

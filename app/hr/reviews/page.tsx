@@ -95,12 +95,12 @@ export default async function ReviewsPage({
             maxWidth="max-w-6xl"
             actions={
                 <div className="flex gap-2">
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link href="/hr/reviews/cycles">
                             {t('reviews.cyclesTitle')}
                         </Link>
                     </Button>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link href="/hr/reviews/scale">
                             {t('reviews.scaleTitle')}
                         </Link>
@@ -148,7 +148,7 @@ export default async function ReviewsPage({
                         ))}
                     </select>
                 </label>
-                <Button variant="secondary" size="sm" type="submit">
+                <Button variant="secondary" type="submit">
                     {t('reviews.filter')}
                 </Button>
             </form>

@@ -36,7 +36,6 @@ canEdit: boolean
                 tier="destructive"
                 reason={{ placeholder: t('finance.freight.reverseReason') }}
                 triggerVariant="destructive"
-                triggerSize="sm"
                 disabled={isPending}
                 onConfirm={(reason) => {
                     setError('')

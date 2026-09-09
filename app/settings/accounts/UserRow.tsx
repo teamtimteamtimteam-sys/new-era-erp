@@ -143,7 +143,7 @@ export default function UserRow({
                     type="button"
                     aria-expanded={open}
                     onClick={() => setOpen((o) => !o)}
-                    variant="secondary" size="sm" className="whitespace-nowrap"
+                    variant="secondary" className="whitespace-nowrap"
                 >
                     {open ? t('common.cancel') : t('permissions.editUser')}
                 </Button>
@@ -218,7 +218,7 @@ export default function UserRow({
                     </div>
 
                     <div className="mt-4">
-                        <Button size="sm"
+                        <Button
                             type="button"
                             onClick={save}
                             disabled={pending}

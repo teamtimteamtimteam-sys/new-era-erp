@@ -204,7 +204,7 @@ export default async function KpiScorePage({
                         ))}
                     </select>
                 </div>
-                <Button variant="secondary" size="sm" className="text-sm" type="submit">
+                <Button variant="secondary" className="text-sm" type="submit">
                     {t('kpi.chooseMonthGo')}
                 </Button>
             </form>

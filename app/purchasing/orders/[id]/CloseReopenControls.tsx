@@ -60,7 +60,7 @@ canEdit: boolean
     if (!open) {
         return (
             <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
-            <Button variant="secondary" size="sm" className="text-sm"
+            <Button variant="secondary" className="text-sm"
                 type="button"
                 onClick={() => setOpen(true)}>
                 {t('purchasing.close')}
@@ -115,7 +115,7 @@ canEdit: boolean
                 )}
                 {/* 【取消【不】上闸】—— 关掉一张自己打开的表单不是一次写操作。
                     给它上闸会把人困在一张他既提交不了、也关不掉的表单里。 */}
-                <Button variant="secondary" size="sm"
+                <Button variant="secondary"
                     type="button"
                     onClick={() => setOpen(false)}>
                     {t('common.cancel')}

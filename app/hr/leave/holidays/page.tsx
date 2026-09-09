@@ -54,7 +54,7 @@ export default async function HolidaysPage({
                             <input type="number" name="year" defaultValue={year}
                                    className="mt-1 block w-28 rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2 py-1 text-sm" />
                         </label>
-                        <Button variant="secondary" size="sm" className="text-sm" type="submit">
+                        <Button variant="secondary" className="text-sm" type="submit">
                             {t('leave.filter')}
                         </Button>
                     </form>

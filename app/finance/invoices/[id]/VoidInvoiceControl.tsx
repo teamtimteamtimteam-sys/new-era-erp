@@ -69,7 +69,7 @@ canEdit: boolean
     if (!open) {
         return (
             <PermissionGate code="module.finance.edit" allowed={canEdit}>
-            <Button variant="destructive" size="sm" className="text-sm"
+            <Button variant="destructive" className="text-sm"
                 type="button"
                 onClick={() => setOpen(true)}
             >
@@ -113,7 +113,7 @@ canEdit: boolean
                 {t('invoice.void')}
             </ConfirmButton>
             </PermissionGate>
-            <Button variant="secondary" size="sm" type="button" onClick={() => setOpen(false)}>
+            <Button variant="secondary" type="button" onClick={() => setOpen(false)}>
                 {t('common.cancel')}
             </Button>
         </span>

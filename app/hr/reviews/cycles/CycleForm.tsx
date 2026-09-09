@@ -65,7 +65,7 @@ export default function CycleForm() {
                     {t('leave.notes')}
                     <input value={notes} onChange={(e) => setNotes(e.target.value)} className={`block ${inp} w-56`} />
                 </label>
-                <Button size="sm"
+                <Button
                     type="button"
                     onClick={add}
                     disabled={pending || !name.trim() || !start || !end || !due}

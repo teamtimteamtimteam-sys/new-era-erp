@@ -44,7 +44,7 @@ export default async function GrantsPage({
                     <input type="number" name="year" defaultValue={year}
                            className="mt-1 block border border-gray-300 rounded px-2 py-1 text-sm w-28" />
                 </label>
-                <Button variant="secondary" size="sm" type="submit">
+                <Button variant="secondary" type="submit">
                     {t('leave.filter')}
                 </Button>
             </form>

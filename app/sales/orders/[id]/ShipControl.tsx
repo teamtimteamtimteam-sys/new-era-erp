@@ -83,7 +83,7 @@ export default function ShipControl({
                            className="border border-gray-300 px-2 py-1 rounded text-sm" />
                 </div>
                 <Button type="button" onClick={go} disabled={isPending || blocked !== null}
-                        variant="secondary" size="sm">
+                        variant="secondary">
                     {isPending ? t('common.saving') : t('sales.ship.action')}
                 </Button>
             </div>

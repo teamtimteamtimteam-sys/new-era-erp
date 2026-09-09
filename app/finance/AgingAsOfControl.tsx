@@ -60,7 +60,7 @@ export default function AgingAsOfControl({
                     {t('finance.agingAsOf.backToToday')}
                 </Button>
             )}
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline">
                 <a
                     href={exportHref}
                 >

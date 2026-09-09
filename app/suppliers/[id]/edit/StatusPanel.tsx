@@ -113,7 +113,7 @@ export default function StatusPanel({
                             )
                             if (!isDestructive) {
                                 return (
-                                    <Button variant="secondary" size="sm" key={target} type="button" disabled={isPending}
+                                    <Button variant="secondary" key={target} type="button" disabled={isPending}
                                             onClick={() => handleClick(target)}>
                                         {face}
                                     </Button>

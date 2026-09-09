@@ -63,7 +63,7 @@ export default function HolidaysEditor({
                 title={t('leave.addHoliday')}
                 error={error}
                 actions={
-                    <Button size="sm" type="button" onClick={add} disabled={pending || !en || !zh || !key.trim()}>
+                    <Button type="button" onClick={add} disabled={pending || !en || !zh || !key.trim()}>
                         {t('common.save')}
                     </Button>
                 }

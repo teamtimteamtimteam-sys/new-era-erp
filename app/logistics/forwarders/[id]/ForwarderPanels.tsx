@@ -102,7 +102,7 @@ canEdit: boolean
                     </div>
                     {/* 【联系人不在这里,而这是一句要说出来的话】,不是一个空白 */}
                     <p className="text-xs text-gray-500">{labels.contactsNote}</p>
-                    <Button variant="default" size="sm" className="text-sm" type="submit" disabled={pending}>
+                    <Button variant="default" className="text-sm" type="submit" disabled={pending}>
                         {labels.save}
                     </Button>
                 </form>
@@ -149,7 +149,7 @@ canEdit: boolean
                             <input name="free_days" type="number" step="1" min="0"
                                 className={`${field} w-24`} />
                         </div>
-                        <Button variant="default" size="sm" className="text-sm" type="submit" disabled={pending}>
+                        <Button variant="default" className="text-sm" type="submit" disabled={pending}>
                             {labels.addQuote}
                         </Button>
                         <p className="mt-1 w-full text-xs text-gray-600 max-w-3xl">{labels.freeDaysHint}</p>

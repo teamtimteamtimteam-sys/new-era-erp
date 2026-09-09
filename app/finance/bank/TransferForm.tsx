@@ -75,7 +75,7 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
                     <input value={ref} onChange={(e) => setRef(e.target.value)} className={`block ${inp} w-36`} />
                 </label>
                 <PermissionGate code="module.finance.edit" allowed={canEdit}>
-                <Button size="sm" type="button" onClick={submit} disabled={pending || !date || !out || !inn}>
+                <Button type="button" onClick={submit} disabled={pending || !date || !out || !inn}>
                     {t('common.save')}
                 </Button>
                 </PermissionGate>

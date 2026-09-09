@@ -97,7 +97,7 @@ export default function ReleaseControl({
                         className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
                     />
                 </div>
-                <Button variant="secondary" size="sm"
+                <Button variant="secondary"
                     type="button"
                     onClick={go}
                     disabled={isPending || blocked}
@@ -106,7 +106,6 @@ export default function ReleaseControl({
                 </Button>
                 <Button
                     variant="ghost"
-                    size="sm"
                     type="button"
                     onClick={() => setOpen(false)}
                 >

@@ -119,7 +119,7 @@ export default async function StocktakesPage({
 
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page - 1)}
                         >
@@ -127,7 +127,7 @@ export default async function StocktakesPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('stocktakes.pagination.prev')}
                     </Button>
                 )}
@@ -137,7 +137,7 @@ export default async function StocktakesPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page + 1)}
                         >
@@ -145,7 +145,7 @@ export default async function StocktakesPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('stocktakes.pagination.next')}
                     </Button>
                 )}

@@ -321,7 +321,7 @@ export default async function InboundPage({
                     与 [id] 动态路由那条并列。现在两条路一直都在,并用下面那一行
                     说出它们的区别(而不是让人靠钮的名字猜)。 */}
                 <div className="flex items-center gap-2">
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href="/inbound/receive"
                         >
@@ -377,7 +377,7 @@ export default async function InboundPage({
             {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}
             <div className="mt-4 flex items-center justify-between">
                 {page > 1 ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page - 1)}
                         >
@@ -385,7 +385,7 @@ export default async function InboundPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('inbound.pagination.prev')}
                     </Button>
                 )}
@@ -395,7 +395,7 @@ export default async function InboundPage({
                 </span>
 
                 {page < totalPages ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href={pageHref(page + 1)}
                         >
@@ -403,7 +403,7 @@ export default async function InboundPage({
                         </Link>
                     </Button>
                 ) : (
-                    <Button variant="outline" size="sm" disabled>
+                    <Button variant="outline" disabled>
                         {t('inbound.pagination.next')}
                     </Button>
                 )}

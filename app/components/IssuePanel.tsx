@@ -133,7 +133,7 @@ export default function IssuePanel({
 
     return (
         <div className="flex flex-wrap items-center gap-3 mb-2">
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline">
                 <a href={pdfHref} target="_blank" rel="noopener noreferrer">
                     {previewLabel}
                 </a>
@@ -143,7 +143,7 @@ export default function IssuePanel({
                    ——「保存中…」。非瞬态那两半各自有自己的句子,在下面。 */}
             {(() => {
                 const btn = (
-                    <Button variant="secondary" size="sm" className="text-sm" type="button" onClick={issue}
+                    <Button variant="secondary" className="text-sm" type="button" onClick={issue}
                             disabled={isPending || blocked}>
                         {isPending ? t('common.saving') : issueLabel}
                     </Button>

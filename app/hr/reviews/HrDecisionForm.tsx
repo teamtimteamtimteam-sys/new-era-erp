@@ -156,7 +156,7 @@ export default function HrDecisionForm({
                 )}
 
                 {editable && (
-                    <Button size="sm"
+                    <Button
                         type="button"
                         onClick={save}
                         disabled={pending || salaryHalf}

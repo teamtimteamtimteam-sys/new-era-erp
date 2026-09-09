@@ -88,7 +88,7 @@ export default function SupplierToolbar() {
                     </option>
                 ))}
             </select>
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline">
                 <a
                     href={exportHref}
                 >

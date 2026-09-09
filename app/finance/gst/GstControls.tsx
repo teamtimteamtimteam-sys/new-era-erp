@@ -45,7 +45,7 @@ export function FileReturnControl({ periodId, blockedWhy, canEdit }: {
         // 【禁用要说出理由,而不是把控件藏起来】问题适用、只是被挡住了。
         return (
             <div className="inline-flex flex-col items-start">
-                <Button size="sm" type="button" disabled>
+                <Button type="button" disabled>
                     {t('gst.recordFiling')}
                 </Button>
                 <span className="text-xs text-amber-700 mt-1">{blockedWhy}</span>

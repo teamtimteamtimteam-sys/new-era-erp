@@ -53,12 +53,12 @@ export default async function PackDetailPage({
             // ★ 两个出口 —— 住 actions 槽,画在状态分支【之前】,任何空态都吃不掉。
             actions={
                 <span className="flex flex-wrap gap-4">
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link href={`/finance/packs/${data.id}/export`}>
                             {t('pack.exportCsv')}
                         </Link>
                     </Button>
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link href={`/finance/journal/export?from=${payload.period_start}&to=${payload.period_end}`}>
                             {t('glExport.button')}
                         </Link>

@@ -48,7 +48,7 @@ export function ProducePackControl({
         return (
             <div className="inline-flex flex-col items-start">
                 <Button type="button" disabled
-                        variant="secondary" size="sm">
+                        variant="secondary">
                     {t('pack.produce')}
                 </Button>
                 <span className="text-xs text-amber-700 mt-1 max-w-2xl">{t('pack.produceBlockedNotLocked')}</span>

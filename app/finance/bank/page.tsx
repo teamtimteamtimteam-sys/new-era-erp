@@ -94,7 +94,7 @@ export default async function BankHomePage() {
             <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
                 <h1 className="text-2xl font-bold">{t('bank.title')}</h1>
                 <div className="flex gap-3">
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link
                             href="/finance/bank/statements"
                         >

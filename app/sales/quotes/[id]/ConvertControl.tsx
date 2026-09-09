@@ -50,7 +50,7 @@ export default function ConvertControl({
 
     if (!open) {
         return (
-            <Button variant="secondary" size="sm" className="text-sm" type="button" onClick={() => setOpen(true)}>
+            <Button variant="secondary" className="text-sm" type="button" onClick={() => setOpen(true)}>
                 {t('quotes.convert.action')}
             </Button>
         )
@@ -67,10 +67,10 @@ export default function ConvertControl({
                     <input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)}
                            className="border border-gray-300 px-2 py-1 rounded text-sm" />
                 </div>
-                <Button size="sm" type="button" onClick={go} disabled={isPending || orderDate.trim() === ''}>
+                <Button type="button" onClick={go} disabled={isPending || orderDate.trim() === ''}>
                     {isPending ? t('common.saving') : t('quotes.convert.action')}
                 </Button>
-                <Button variant="secondary" size="sm" type="button" onClick={() => setOpen(false)}>
+                <Button variant="secondary" type="button" onClick={() => setOpen(false)}>
                     {t('common.cancel')}
                 </Button>
             </div>
