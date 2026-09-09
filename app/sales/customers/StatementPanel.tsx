@@ -20,6 +20,7 @@ import Link from 'next/link'
 import { previewStatement, issueStatement } from './statementActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 type Preview = {
     opening_base: number; charges_base: number; credits_base: number
@@ -147,7 +148,15 @@ export default function StatementPanel({
                 </div>
             )}
 
-            {canIssue && preview?.ties && (
+            {/* ★★ ALERT-2d ④(c):`canIssue && preview?.ties` —— 两件事:
+                   · `preview?.ties`  对不对得上账 —— 【还不能签发】,而这一句
+                     上面已经说了(doesNotTie,带着差额)。对不上时不画这块表单
+                     是对的:它不是"你不可以",是【还没有一份对得上的对账单可签】。
+                   · `canIssue`       权限 —— 此前为假时整块表单消失,一个字都没有。
+                     现在它走 <PermissionGate>:看得见、按不动、点名 module.finance.edit。
+                   ☞ 这一块里没有【取消】,包住它不触 DBLOCK-1 的第一条边界。 */}
+            {preview?.ties && (
+                <PermissionGate code="module.finance.edit" allowed={canIssue} className="mb-4 flex w-full items-stretch">
                 <div className="flex flex-wrap items-end gap-3 mb-4">
                     <label className="text-sm text-gray-600">
                         {t('statements.supersedeReason')}
@@ -160,6 +169,7 @@ export default function StatementPanel({
                         {t('statements.issue')}
                     </Button>
                 </div>
+                </PermissionGate>
             )}
 
             <h3 className="text-sm font-semibold mb-1">{t('statements.issuedTitle')}</h3>

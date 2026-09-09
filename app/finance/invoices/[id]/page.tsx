@@ -16,6 +16,7 @@ import type { Tables } from '@/lib/database.types'
 import { canViewBanking, can } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import IssuePanel from '@/app/components/IssuePanel'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { ListPage } from '@/app/components/ui/list-page'
 import InvoiceLinesTable, { type InvoiceLineRow } from './InvoiceLinesTable'
 import SettlementHistoryTable, { type SettlementRow } from '@/app/components/finance/SettlementHistoryTable'
@@ -271,7 +272,33 @@ export default async function InvoiceDetailPage({
                 <span className="flex flex-wrap items-center gap-3 justify-end">
                     {/* 预览是新标签页里直接打开(路由默认 inline),下载走 ?download=1
                         (路由改成 attachment)—— 看版式和拿文件是两个不同的动作 */}
-                    {!pdfBlocked && (
+                    {/* ════════════════════════════════════════════════════════
+                        ★★★ ALERT-2d ④ —— 这一处【自成一格】,而它是 DBLOCK-1 的反面 ★★★
+                        ════════════════════════════════════════════════════════
+                        `pdfBlocked = profileIncomplete || fontProblems.length > 0 || !showBanking`
+                        三个操作数,**一个瞬态都没有**,而且三件事完全不同:
+                          · `profileIncomplete`  公司抬头还没填 —— 一个【还没做的准备】;
+                          · `fontProblems`       **系统自己印不出这几个字** ——
+                                                 这句话的意思是【机器坏了/做不到】,
+                                                 不是"你不可以",也不是"这张单子状态不对";
+                          · `!showBanking`       一个货真价实的权限答复(data.view_banking)。
+                        而此前三者共用同一个后果:**两个按钮整个不画。**
+                        DBLOCK-1 裁定的正好相反 —— 看得见、按不动、说出为什么。
+                        页面下方那三段横幅本来就各说各的(:294 / :306 / :315),
+                        **缺的从来不是话,是那个控件。**
+
+                        ★【为什么禁用态【不能】继续用 <a>】★ 这两个钮是 `asChild` 包着
+                          `<a href>`。而 `fieldset disabled`(<PermissionGate> 的机制)
+                          **禁不掉链接** —— AGENTS.md 那条边界原话就是"a <Link>-based
+                          cancel is safe, because fieldset disabled does not disable links"。
+                          所以挡住的那一支画的是真的 `<button disabled>`:它按不动,
+                          留在无障碍树里,并且被正确播报成"已禁用"。 */}
+                    {pdfBlocked ? (
+                        <PermissionGate code="data.view_banking" allowed={showBanking} inline>
+                            <Button variant="outline" size="sm" disabled>{t('invoice.previewPdf')}</Button>
+                            <Button variant="outline" size="sm" disabled>{t('invoice.downloadPdf')}</Button>
+                        </PermissionGate>
+                    ) : (
                         <>
                             <Button asChild variant="outline" size="sm">
                                 <a
@@ -291,9 +318,22 @@ export default async function InvoiceDetailPage({
                             </Button>
                         </>
                     )}
+                    {/* 【一个原因一句话】—— 权限那一句留着(它说的是【为什么这张 PDF
+                        需要银行权限】:纸上印着公司收款账号),它与闸上那句
+                        「缺哪个码、管理员在哪儿给」是两件事。 */}
                     {!showBanking && (
                         <span className="text-sm text-gray-400 italic">
                             {t('invoice.pdfNeedsBanking')}
+                        </span>
+                    )}
+                    {showBanking && fontProblems.length > 0 && (
+                        <span className="text-sm text-gray-600" data-state-note="pdf-font">
+                            {t('invoice.pdfBlockedFont')}
+                        </span>
+                    )}
+                    {showBanking && fontProblems.length === 0 && profileIncomplete && (
+                        <span className="text-sm text-gray-600" data-state-note="pdf-profile">
+                            {t('invoice.pdfBlockedProfile')}
                         </span>
                     )}
                     {!isVoid && <VoidInvoiceControl canEdit={canEditGate} invoiceId={inv.id} subject={inv.code} hasEntry={inv.entry_id !== null} />}
@@ -498,8 +538,9 @@ export default async function InvoiceDetailPage({
                         blockedReason={
                             isVoid ? t('invoice.issueBlockedVoid')
                             : profileIncomplete ? t('invoice.issueBlockedProfile')
-                            : fontProblems.length > 0 ? t('invoice.issueBlockedFont')
-                            : rows.length === 0 ? t('invoice.issueBlockedNoLines') : ''}
+                            : fontProblems.length > 0 ? t('invoice.issueBlockedFont') : ''}
+                        // ★ ALERT-2d ④(c):见 IssuePanel 那个 prop 的说明。
+                        nothingToIssueNote={t('invoice.issueBlockedNoLines')}
                         hasLines={rows.length > 0}
                     />
                     {issues.length === 0 ? (

@@ -133,13 +133,25 @@ export default function ChasePanel({
                 </div>
             )}
 
-            {canEdit && !open && (
-                <Button className="mb-4" type="button" onClick={() => setOpen(true)}>
-                    {t('chases.record')}
-                </Button>
+            {/* ★★ ALERT-2d ④(a):`canEdit && !<开合位>` —— 一个权限答复与
+                       【这一次会话里面板开没开】挤在同一个 &&。为假的两个原因
+                       后果完全不同,而屏幕上的表现是同一个:**钮不见了**。
+                       DBLOCK-1 裁定:注定被拒的控件要【看得见、按不动、说出为什么】。
+                       ☞ 改法是**闸归闸、开合归开合** —— 权限的闸装在这个钮上,
+                         `open` 照旧只管面板开不开。
+                       ☞ 面板【自己不再套闸】:它里面有【取消】,而 `fieldset disabled`
+                         会把取消一起禁掉,人就被关在一个既提交不了也关不掉的表单里
+                         (DBLOCK-1 量出来的第一条边界)。而它也不需要 ——
+                         没有权限的人翻不开这个开合位。 */}
+                    {!open && (
+                <PermissionGate code="module.finance.edit" allowed={canEdit} inline className="mb-4">
+                    <Button type="button" onClick={() => setOpen(true)}>
+                        {t('chases.record')}
+                    </Button>
+                </PermissionGate>
             )}
 
-            {canEdit && open && (
+            {open && (
                 <div className="mb-4 rounded border border-gray-300 p-3 max-w-2xl">
                     <div className="flex flex-wrap gap-3 mb-3">
                         <label className="text-sm text-gray-600">

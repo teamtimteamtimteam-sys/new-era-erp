@@ -18,6 +18,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { disposeAsset, commissionAsset } from '../month-end/actions'
 import { setPlannedInService } from './[id]/actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export default function AssetActions({
     assetId, code, status, inServiceDate, plannedInServiceDate, acquisitionDate, hasCost, canEdit, bankAccounts,
@@ -79,12 +80,23 @@ export default function AssetActions({
                 {/* FIX-1:记一个【计划】投用日。
                     没有这扇门,"那是计划投用日"那句拒绝就是一条死路(D6:拒绝要说去哪儿)。
                     它【永远可点】—— 计划与在不在役无关,已投用的机器也可能有下一次计划。 */}
-                <Button type="button" disabled={pending || !canEdit}
-                        aria-expanded={open === 'plan'}
-                        onClick={() => setOpen(open === 'plan' ? '' : 'plan')}
-                        variant="secondary" size="xs">
-                    {t('assets.actions.plan')}
-                </Button>
+                {/* ★★ ALERT-2d ④(b):`pending || !canEdit` —— 一个【一秒后自己消失】的
+                       瞬态,和一个【不会自己消失】的权限答复,挤在同一个 disabled 里。
+                       CMP-2 的房规只要求**非瞬态**条件配一行常驻的解释,而这个钮
+                       两样都没有:旁边那两句 why 是给投用/处置写的,这一个一句都没有。
+                       ☞ 瞬态留在 disabled(它一秒后自己好),权限交给 <PermissionGate>
+                         —— 看得见、按不动、点名 module.finance.edit。
+                       ☞ 上面那两个钮【不动】:它们的 commissionWhy / disposeWhy 已经
+                         按【先权限、再终态、再业务前提】逐支给出了不同的话,
+                         那正是这一刀在别处装的东西。 */}
+                <PermissionGate code="module.finance.edit" allowed={canEdit} inline>
+                    <Button type="button" disabled={pending}
+                            aria-expanded={open === 'plan'}
+                            onClick={() => setOpen(open === 'plan' ? '' : 'plan')}
+                            variant="secondary" size="xs">
+                        {t('assets.actions.plan')}
+                    </Button>
+                </PermissionGate>
             </div>
             {/* 【禁用了就说为什么】两个动作各说各的 */}
             {commissionWhy && <p className="text-xs text-amber-700 mt-1">{commissionWhy}</p>}

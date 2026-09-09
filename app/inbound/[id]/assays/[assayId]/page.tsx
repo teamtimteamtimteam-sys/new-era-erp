@@ -337,15 +337,27 @@ export default async function AssayDetailPage({
                                 <Refusal why={t('assay.journalRestrictedWhy')}>{t('common.restricted')}</Refusal>
                             </div>
                         ) : null}
-                        {canSeeJournal && priceChange.journalId && (
+                        {/* ★★ ALERT-2d ④(c):`canSeeJournal && priceChange.journalId`
+                               —— 权限那一半上面已经答了(那条具名的「受限」药丸)。
+                               剩下的 `journalId` 为空**不是一句拒绝**,它是
+                               【这次改价没有过分录】。而此前它的表现是整行消失,
+                               于是"你看不到"与"根本没有"在屏幕上长得一模一样 ——
+                               这正是本仓库反复在治的那一个病。现在它自己说出来。 */}
+                        {canSeeJournal && (
                             <div className="flex justify-between">
                                 <span className="text-gray-600">{t('assay.journalLink')}</span>
-                                <Link
-                                    href={`/finance/journal/${priceChange.journalId}`}
-                                    className="text-blue-600 hover:underline font-mono"
-                                >
-                                    {priceChange.journalCode}
-                                </Link>
+                                {priceChange.journalId ? (
+                                    <Link
+                                        href={`/finance/journal/${priceChange.journalId}`}
+                                        className="text-blue-600 hover:underline font-mono"
+                                    >
+                                        {priceChange.journalCode}
+                                    </Link>
+                                ) : (
+                                    <span className="text-gray-500" data-state-note="no-journal">
+                                        {t('assay.noJournalEntry')}
+                                    </span>
+                                )}
                             </div>
                         )}
                     </div>

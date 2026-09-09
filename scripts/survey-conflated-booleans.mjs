@@ -520,7 +520,18 @@ function isGate(node, file) {
 const chains = []
 let OP = ts.SyntaxKind.AmpersandAmpersandToken
 for (const [f, { sf }] of parsed) {
+    // ★★【括号里的操作数要【钻进去】,不要丢掉 —— ALERT-2d 的仪器修正】★★
+    //   头一版把 ParenthesizedExpression 原样 push 出来,再被下面那句 filter
+    //   整个丢掉。于是 `perm && (a || b)` 展开成【一个】操作数,parts.length < 2,
+    //   **整条链一次都没有进过 chains** —— 不是分错桶,是【结构上看不见】。
+    //   而那正是委托书点名的旗舰形状:hr/reviews/[id]/page.tsx 的
+    //   `canAssess={canWrite && (r.status === 'draft' || r.status === 'self_review')}`。
+    //   ☞ 修法:先剥括号再判。剥出来的若还是同一个运算符,继续摊平;
+    //     若是【另一个】运算符(`&&` 里套 `||`),把它整个当一个操作数交给
+    //     catsOfNode —— 它对链取类别【并集】,这正是"一个操作数里裹着几类"
+    //     该有的读法(桶 ① 与桶 ④ 的分界就卡在这上面)。
     const flat = (n, acc = []) => {
+        while (ts.isParenthesizedExpression(n)) n = n.expression
         if (ts.isBinaryExpression(n) && n.operatorToken.kind === OP) {
             flat(n.left, acc); flat(n.right, acc)
         } else acc.push(n)
@@ -535,8 +546,10 @@ for (const [f, { sf }] of parsed) {
             const p = n.parent
             const top = !(ts.isBinaryExpression(p) && p.operatorToken.kind === OP)
             if (top) {
+                // ☞ `isParenthesizedExpression` 这一项【删掉了】:flat() 已经剥干净,
+                //   留着它就是那条把括号操作数丢掉的判据本身。
                 const parts = flat(n).filter((x) => !ts.isJsxElement(x) && !ts.isJsxFragment(x) &&
-                                                    !ts.isJsxSelfClosingElement(x) && !ts.isParenthesizedExpression(x))
+                                                    !ts.isJsxSelfClosingElement(x))
                 if (parts.length >= 2) {
                     const catSets = parts.map((x) => catsOfNode(f, x))
                     const kinds = catSets.map((cs) => [...cs].sort().join('+'))

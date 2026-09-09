@@ -184,7 +184,41 @@ function ConfirmDialog({
                 aria-labelledby={titleId}
                 aria-describedby={subjectId}
                 data-confirm-dialog="1"
-                className="w-full max-w-md rounded-lg border border-[color:var(--brand-border)] bg-background p-5 shadow-xl"
+                // ════════════════════════════════════════════════════════════════
+                // ★★【一个对话框是它自己的说话面,不许继承【打开它的那个控件】的
+                //     文字排版】★★(ALERT-2d,2026-09-09 · Tim 在闸上裁定)
+                // ════════════════════════════════════════════════════════════════
+                //   这五个 class 不是装饰,是【承重】的。机制:
+                //   · 本对话框**就地渲染,不走 portal** —— CONFIRM-1 的刻意决定
+                //     (焦点归还、动作跑在同一次用户手势里,都挂在那上面),见上面
+                //     那段注释。于是它在 DOM 里是【触发它的那个元素的后代】。
+                //   · `position: fixed` **不打断继承** —— 它只把盒子搬出文档流,
+                //     继承走的是 DOM 树,不是布局树。这是最容易想反的一步。
+                //   · 而 `white-space` / `text-align` / `text-transform` /
+                //     `font-style` / `letter-spacing` **全都是可继承属性**。
+                //   ☞ 实测后果(ALERT-2d 的起因):五个调用点把 <ConfirmButton>
+                //     放在 `<td … whitespace-nowrap>` 里,于是 nowrap 一路继承到
+                //     下面那句 body 和主语格上 —— **一段本该折行的话被拉成一行**,
+                //     在窄屏上横着溢出去。调用点一个字都没写错:那个 nowrap 是给
+                //     表格单元格写的,它没打算、也不该管到一个对话框里。
+                //
+                //   ★【为什么是【五条一起重置】,而不是只治 white-space】★
+                //     Tim 的原话:**一个对话框是它自己的说话面,不得从打开它的那个
+                //     控件继承文字排版。** 这是一句关于【对话框是什么】的规矩,
+                //     不是一次"顺手扫一遍还不存在的缺陷"。只治 white-space 会让
+                //     下一个人把 <ConfirmButton> 放进一个 `text-right` 或
+                //     `uppercase` 的格子里时,重新踩一遍同一件事 —— 而那一次
+                //     不会有人再写一份委托书。
+                //
+                //   ★【为什么不是另外两条路】★(两条都在闸上被否掉,记下来免得重提)
+                //     · 剥掉那五个 <td> 的 class —— 治的是这五处,不是这件事;
+                //       而那个 nowrap 在表格里是对的。
+                //     · 搬进 portal —— 那会拆掉 CONFIRM-1 的 no-portal 决定,
+                //       连同挂在它上面的焦点归还与"同一次用户手势"两条保证。
+                //
+                //   ☞ 规矩本身记在 docs/base-components.md(「对话框不继承文字排版」)。
+                //     只留在一次提交里的规矩活不下来。
+                className="w-full max-w-md rounded-lg border border-[color:var(--brand-border)] bg-background p-5 shadow-xl whitespace-normal text-left normal-case not-italic tracking-normal"
             >
                 <h2 id={titleId} className="text-base font-medium text-foreground">
                     {content.title}

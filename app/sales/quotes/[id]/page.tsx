@@ -21,6 +21,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { quoteStatusKey } from '../quoteTypes'
 import IssuePanel from '@/app/components/IssuePanel'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import ConvertControl from './ConvertControl'
 import DeclineControl from './DeclineControl'
 import QuoteLinesEditor from './QuoteLinesEditor'
@@ -78,7 +79,20 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
     // 【转过、谢绝了的都不再编辑】前者由数据库的守卫兜底(QT_CONVERTED_IMMUTABLE),
     // 后者数据库并不拦 —— 但给一张已经被拒绝的报价改价,是在改一件已经结束的事,
     // 界面比数据库严一点是允许的,而这里是一个【决定】,不是漏了。
-    const editable = canEdit && !isConverted && !isDeclined
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★【ALERT-2d ①(2026-09-09)· 同一条表达式此前写了两遍】★★
+    // ════════════════════════════════════════════════════════════════════════
+    //   `canEdit && !isConverted && !isDeclined` 在这一页出现过【两次】——
+    //   :81 的 `editable` 与 :195 的 `canIssue={…}`,逐字相同。
+    //   **两份实现,而它们已经开始分开了:** `QuoteLinesEditor` 那一份的
+    //   `reason` 有三支(转过 / 谢绝了 / 没有 module.sales.edit),
+    //   `IssuePanel` 那一份的 `blockedReason` **只有两支** ——
+    //   一个没有 `module.sales.edit` 的人看到的是一个按不下去的签发钮和一片空白。
+    //   ☞ 所以"解决重复"这件事本身就修掉了一个真缺陷,不只是少写一行。
+    //
+    //   现在:记录状态那一半只算一次,权限那一半只写一次,两个消费者共用。
+    const stateAllowsEdit = !isConverted && !isDeclined
+    const editable = canEdit && stateAllowsEdit
     const total = lines.reduce((s, l) => s + Number(l.quantity) * Number(l.unit_price), 0)
 
     return (
@@ -144,21 +158,42 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                 </dl>
 
                 {/* ── 明细:签发之后仍然改得动 ─────────────────────────────── */}
-                <QuoteLinesEditor
-                    quoteId={q.quote_id}
-                    currency={q.currency}
-                    editable={editable}
-                    reason={isConverted ? t('quotes.linesLockedConverted')
-                            : isDeclined ? t('quotes.linesLockedDeclined')
-                            : !canEdit ? `${t('common.restricted')} — ${t('quotes.needsSalesEdit')}` : ''}
-                    lines={lines.map((l) => ({
-                        id: l.id, line_no: l.line_no,
-                        material: l.materials ? `${l.materials.code} — ${l.materials.name}` : '—',
-                        unit: l.materials?.unit ?? '',
-                        quantity: Number(l.quantity), unit_price: Number(l.unit_price),
-                    }))}
-                    materials={materials}
-                />
+                {(() => {
+                    const lineProps = {
+                        quoteId: q.quote_id,
+                        currency: q.currency,
+                        lines: lines.map((l) => ({
+                            id: l.id, line_no: l.line_no,
+                            material: l.materials ? `${l.materials.code} — ${l.materials.name}` : '—',
+                            unit: l.materials?.unit ?? '',
+                            quantity: Number(l.quantity), unit_price: Number(l.unit_price),
+                        })),
+                        materials,
+                    }
+                    // ★★ ALERT-2d ①:两半各归各。
+                    //   记录状态那两句(转过 / 谢绝了)**一个字都没改** —— 它们今天说的就是对的。
+                    //   权限那一支从 `reason` 里【搬走】,改由 <PermissionGate> 说,
+                    //   因为它多说了一件今天缺的事:**这个码由管理员在 Settings → Roles 里给**
+                    //   (而且与按下去被拒之后 SILENT-1 说的是同一句话)。
+                    //   ☞ 顺带修掉一个藏:此前没有 module.sales.edit 的人看到的是一张
+                    //     【干净的只读表】—— 增行、改价、删行三个控件整个不存在,
+                    //     而 DBLOCK-1 裁定"看得见、按不动、说出为什么"。
+                    return stateAllowsEdit ? (
+                        <PermissionGate
+                            code="module.sales.edit"
+                            allowed={canEdit}
+                            className="flex w-full items-stretch"
+                        >
+                            <QuoteLinesEditor {...lineProps} editable reason="" />
+                        </PermissionGate>
+                    ) : (
+                        <QuoteLinesEditor
+                            {...lineProps}
+                            editable={false}
+                            reason={isConverted ? t('quotes.linesLockedConverted') : t('quotes.linesLockedDeclined')}
+                        />
+                    )
+                })()}
 
                 {/* ── 转换 / 谢绝 ──────────────────────────────────────────── */}
                 <h2 className="font-medium mt-8 mb-2">{t('quotes.decide')}</h2>
@@ -192,10 +227,15 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                     pdfHref={`/sales/quotes/${q.quote_id}/pdf`}
                     previewLabel={t('quotes.previewPdf')}
                     issueLabel={t('quotes.issuePdf')}
-                    canIssue={canEdit && !isConverted && !isDeclined}
+                    // ★ ALERT-2d:同一条表达式不再写第二遍 —— 记录状态那一半
+                    //   走 stateAllowsEdit,权限那一半走 permission(它此前
+                    //   【没有对应的句子】,是这一刀补上的)。
+                    canIssue={stateAllowsEdit}
+                    permission={{ code: 'module.sales.edit', allowed: canEdit }}
                     blockedReason={isConverted ? t('quotes.issueBlockedConverted')
-                                   : isDeclined ? t('quotes.issueBlockedDeclined')
-                                   : lines.length === 0 ? t('quotes.issueBlockedNoLines') : ''}
+                                   : isDeclined ? t('quotes.issueBlockedDeclined') : ''}
+                    // ★ ④(c):「一行都还没有」不是拒绝,是【还没有东西可签发】。
+                    nothingToIssueNote={t('quotes.issueBlockedNoLines')}
                     hasLines={lines.length > 0}
                 />
                 <p className="text-xs text-gray-500 mb-2">{t('quotes.issuesNote')}</p>

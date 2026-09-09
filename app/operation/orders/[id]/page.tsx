@@ -22,6 +22,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { workOrderStatusKey } from '../woTypes'
 import WorkOrderActions from './WorkOrderActions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import AmendLinesControl, { type AmendRow } from './AmendLinesControl'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
@@ -98,7 +99,14 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
     const inputRows = fulfil.filter((r) => r.side === 'input')
     const outputRows = fulfil.filter((r) => r.side === 'output')
     const liveRuns = runs.filter((r) => r.status === 'committed')
-    const editable = canEdit && ['draft', 'released'].includes(wo.status)
+    // ★★ ALERT-2d ①:`canEdit && ['draft','released'].includes(wo.status)` 拆开。
+    //   屏幕上那两句话【本来就是分开的】(blockedReason 按 !canEdit / 状态 分叉),
+    //   所以这一处**没有在说错原因**。它错在别处:`AmendLinesControl` 在
+    //   `!editable` 时把【改计划】那个钮整个换成一行字 —— 缺权限的人看不到
+    //   那个钮存在,而 DBLOCK-1 裁定"看得见、按不动、说出为什么"。
+    //   ☞ 于是:状态那一半留在 `editable` 里(连同它原来那句话,一个字没改),
+    //     权限那一半交给 <PermissionGate>,它把钮画出来并点名权限码。
+    const stateAllowsAmend = ['draft', 'released'].includes(wo.status)
 
     const label = (r: FulfilRow) =>
         r.material_code ? `${r.material_code} — ${r.material_name ?? ''}` : '—'
@@ -209,12 +217,28 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
             {/* ★ 出口:改计划行。住 children,靠 state 恒为 'ok' 撑着;
                 它自己带 blockedReason,不可改时说【为什么】而不是消失。 */}
             <div className="mt-2">
-                <AmendLinesControl
-                    id={wo.id} rows={amendRows} editable={editable}
-                    blockedReason={!canEdit
-                        ? `${t('common.restricted')} — ${t('processing.wo.needsEdit')}`
-                        : t('processing.wo.blocked.amendTerminal', { status: t(workOrderStatusKey(wo.status)) })}
-                />
+                {stateAllowsAmend ? (
+                    // 状态允许 —— 那么按不动就只剩一个原因,而它有一个可以去要的码。
+                    // ★【里面那个【取消】钮为什么不怕被 fieldset 一起禁掉】★
+                    //   它只在 `open` 之后才画,而 `open` 只能由这一层里【已经被禁掉的】
+                    //   「改计划」钮翻起来 —— 没有权限的人走不到那一步,不会被关在
+                    //   一个既提交不了、也关不掉的表单里(DBLOCK-1 的第一条边界)。
+                    <PermissionGate
+                        code="module.processing.edit"
+                        allowed={canEdit}
+                        className="flex w-full items-stretch"
+                    >
+                        <AmendLinesControl id={wo.id} rows={amendRows} editable blockedReason="" />
+                    </PermissionGate>
+                ) : (
+                    // 状态不允许 —— 这一句【一个字没改】,它今天说的就是对的。
+                    <AmendLinesControl
+                        id={wo.id} rows={amendRows} editable={false}
+                        blockedReason={t('processing.wo.blocked.amendTerminal', {
+                            status: t(workOrderStatusKey(wo.status)),
+                        })}
+                    />
+                )}
             </div>
 
             {/* ── 产出侧 ──────────────────────────────────────────────── */}

@@ -17,6 +17,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import { saveRequiredMetals, type RequiredMetalsState } from './requiredMetalsActions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export default function RequiredMetalsPanel({
     substanceOptions,
@@ -67,6 +68,16 @@ export default function RequiredMetalsPanel({
                 </span>
             </p>
 
+            {/* ★★ ALERT-2d ④(b):`!canEdit || isPending` —— 瞬态与权限一个 disabled。
+                   而更要紧的是下面那一支:提交钮此前在 `!canEdit` 时【整个不画】,
+                   注释还引着 AGENTS.md 那句「永远不要为服务端必然拒绝的动作渲染
+                   提交控件」——**那句话已经被 DBLOCK-1 推翻了**(见 AGENTS.md 的
+                   “must not offer it ≠ must not show it”)。藏起来的钮教人"这个功能
+                   不存在",看得见的钮教人"该去要什么"。
+                   ☞ 整张表单包进 <PermissionGate>:勾选框与提交钮一起【看得见、
+                     按不动】,理由点名 module.materials.edit。瞬态留在 disabled。
+                   ☞ 这张表单【没有取消钮】,所以包住它不会触到 DBLOCK-1 的第一条边界。 */}
+            <PermissionGate code="module.materials.edit" allowed={canEdit} className="flex w-full items-stretch">
             <form action={formAction}>
                 <div className="flex flex-wrap gap-x-5 gap-y-2 mb-3">
                     {substanceOptions.filter((s) => s.isActive).map((o) => (
@@ -81,7 +92,7 @@ export default function RequiredMetalsPanel({
                                 type="checkbox"
                                 name="metal"
                                 value={o.value}
-                                disabled={!canEdit || isPending}
+                                disabled={isPending}
                                 checked={picked.includes(o.value)}
                                 onChange={(e) =>
                                     setPicked((prev) =>
@@ -101,17 +112,12 @@ export default function RequiredMetalsPanel({
 
                 {/* 【取消所有勾也是一次提交】按钮文案不随选择变化 —— "保存"就是保存,
                     包括保存成一个空集合。写成"清空要求"会让人以为那是另一个按钮。 */}
-                {canEdit ? (
-                    <Button size="sm"
-                        type="submit"
-                        disabled={isPending}
-                    >
-                        {isPending ? t('common.saving') : t('common.save')}
-                    </Button>
-                ) : (
-                    // 【永远不要为服务端必然拒绝的动作渲染提交控件】(AGENTS.md)
-                    <p className="text-xs text-amber-700">{t('materials.assayPolicy.needsEdit')}</p>
-                )}
+                <Button size="sm"
+                    type="submit"
+                    disabled={isPending}
+                >
+                    {isPending ? t('common.saving') : t('common.save')}
+                </Button>
 
                 {/* 保存成空集合时,把那句话再说一遍 —— 一个"已保存"配一排空方框,
                     看起来像什么都没发生。 */}
@@ -126,6 +132,7 @@ export default function RequiredMetalsPanel({
                     <p className="text-sm text-green-700 mt-2">{t('common.saved')}</p>
                 )}
             </form>
+            </PermissionGate>
         </section>
     )
 }

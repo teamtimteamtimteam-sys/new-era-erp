@@ -20,6 +20,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export type RetentionRow = {
     retention_id: string
@@ -157,8 +158,19 @@ function RetentionCard({
                 </div>
             )}
 
-            {/* ★ 到期了:出现的是一个【问题】,不是一笔付款 ★ */}
-            {r.retention_state === 'awaiting_confirmation' && canEdit && (
+            {/* ★ 到期了:出现的是一个【问题】,不是一笔付款 ★
+                ★★ ALERT-2d —— 这一处【改了分类】,而分类决定用哪一副药 ★★
+                   普查把它算进桶 ④(掺了第三种东西),因为 `retention_state` 里的
+                   `state` 前面是一个下划线,判据那条 `\bstate\b` 的词边界卡不住它,
+                   于是这个操作数被判成 OTHER。**它其实是一条不折不扣的记录状态**,
+                   所以这一处是桶 ①(权限 × 记录状态),用的是 ① 的药:
+                     · 记录状态那一半 —— `retention_state === 'awaiting_confirmation'`,
+                       不到期就不该出现这一块(它本来就只在到期时才是一个问题);
+                     · 权限那一半 —— 此前为假时【整块消失】,而 DBLOCK-1 裁定
+                       "看得见、按不动、说出为什么"。现在它走 <PermissionGate>。
+                   ☞ 这一块里没有【取消】,所以包住它不触 DBLOCK-1 的第一条边界。 */}
+            {r.retention_state === 'awaiting_confirmation' && (
+                <PermissionGate code="module.purchasing.edit" allowed={canEdit} className="mt-2 flex w-full items-stretch">
                 <div className="mt-2 border-t border-amber-200 pt-2">
                     <p className="text-xs mb-2">{t('purchasing.retention.confirmPrompt')}</p>
                     <div className="flex flex-wrap items-center gap-2">
@@ -188,6 +200,7 @@ function RetentionCard({
                     </Button>
                     {error && <p className="mt-1 text-xs text-red-700">{error}</p>}
                 </div>
+                </PermissionGate>
             )}
         </div>
     )

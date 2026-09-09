@@ -13,6 +13,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { explainSource } from './sourceReasonActions'
 import type { SourceReasonOption } from '@/app/inbound/sourceReasonQuery'
 
@@ -59,7 +60,22 @@ export default function SourceReasonPanel({
         router.refresh()
     }
 
-    const showForm = canEdit && (state === 'unexplained' || editing)
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★★【ALERT-2d ④ · 一个操作数里裹着三类东西 —— 委托书点名的那一处】★★★
+    // ════════════════════════════════════════════════════════════════════════
+    //   原来是:`showForm = canEdit && (state === 'unexplained' || editing)`
+    //             ~~~~~~~     ~~~~~~~~~~~~~~~~~~~~~~~~~~~   ~~~~~~~
+    //             权限        记录状态(这张收货还没说明)   这一次会话的开合位
+    //   而 `showForm` 又被下面 :117 那一行当成一个操作数用,于是那条布尔
+    //   **一个操作数里就有三类东西** —— 它为假的时候,没有任何一句话说得清是哪一类。
+    //
+    //   拆开:`formOpen` 只装【记录状态 + 开合位】(两者都是"这块表单该不该展开"
+    //   的答案,它们回答的是同一个问题);权限那一半交给 <PermissionGate>。
+    //   ☞ 于是没有 module.inbound.edit 的人,在一张【未说明】的收货上
+    //     看得见那张表单、按不动、并读得到该去要哪个码 ——
+    //     此前他看到的是一个琥珀框和一片空白,而那张收货正等着有人来补答案。
+    //   ☞ 这张表单里没有【取消】(只有保存),所以包住它不触 DBLOCK-1 的第一条边界。
+    const formOpen = state === 'unexplained' || editing
 
     return (
         <div className="mb-8">
@@ -76,7 +92,7 @@ export default function SourceReasonPanel({
                             ? t('inbound.source.stateExplainedAtIntake', { reason: reasonLabel ?? '' })
                             : t('inbound.source.stateUnexplained')}
                 </p>
-                {reasonNote && !showForm && (
+                {reasonNote && !formOpen && (
                     <p className="text-xs text-gray-600 mb-2">{t('inbound.source.noteField')}: {reasonNote}</p>
                 )}
                 {/* R4 的下半句:未说明的留着、看得出来,补答案的门在这里 */}
@@ -84,7 +100,8 @@ export default function SourceReasonPanel({
                     <p className="text-xs text-gray-600 mb-2">{t('inbound.source.whyUnexplained')}</p>
                 )}
 
-                {showForm && (
+                {formOpen && (
+                    <PermissionGate code="module.inbound.edit" allowed={canEdit} className="flex w-full items-stretch">
                     <div className="space-y-2">
                         <select
                             value={sel}
@@ -113,17 +130,23 @@ export default function SourceReasonPanel({
                             {saving ? t('common.saving') : t('inbound.source.explainSave')}
                         </Button>
                     </div>
+                    </PermissionGate>
                 )}
-                {canEdit && !showForm && state !== 'fromPo' && (
-                    <Button
-                        variant="link"
-                        size="inline"
-                        type="button"
-                        onClick={() => setEditing(true)}
-                        className="text-xs"
-                    >
-                        {t('inbound.source.reExplain')}
-                    </Button>
+                {/* ★ 同一次拆分的下半:`canEdit && !showForm && state !== 'fromPo'`。
+                       `state !== 'fromPo'` 是记录状态(对着采购行的收货没有"重说"
+                       这件事可做),留在条件里;权限那一半上闸。 */}
+                {!formOpen && state !== 'fromPo' && (
+                    <PermissionGate code="module.inbound.edit" allowed={canEdit} inline>
+                        <Button
+                            variant="link"
+                            size="inline"
+                            type="button"
+                            onClick={() => setEditing(true)}
+                            className="text-xs"
+                        >
+                            {t('inbound.source.reExplain')}
+                        </Button>
+                    </PermissionGate>
                 )}
             </div>
         </div>

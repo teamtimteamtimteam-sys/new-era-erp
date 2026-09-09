@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { decideClaim, payClaim } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export default function ClaimControls({
     claimId, status, alreadyLinked, canFinance,
@@ -64,13 +65,30 @@ export default function ClaimControls({
                             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
                                    className="block border border-gray-300 rounded px-2 py-1 text-sm" /></label>
                     </div>
-                    <Button size="sm"
-                        type="button"
-                        disabled={pending || !canFinance || !date}
-                        title={canFinance ? undefined : t('claims.needsFinance')}
-                        onClick={() => run(() => payClaim(claimId, date))}>
-                        {pending ? t('common.saving') : t('claims.createExpense')}
-                    </Button>
+                    {/* ★★ ALERT-2d ④(b):`pending || !canFinance || !date` —— 三样东西:
+                           · `pending`     瞬态,一秒后自己消失 → 留在 disabled 里,
+                                           按钮的字已经说了「保存中…」(CMP-2 只要求
+                                           **非瞬态**条件配一行常驻的解释);
+                           · `!canFinance` 权限 → <PermissionGate>:点名 module.finance.edit,
+                                           并说管理员在 Settings → Roles 里给。
+                                           下面那句 needsFinance 【留着】—— 它说的是另一件事
+                                           (HR 审、财务转应付,两步两人),是【流程】不是【补救】;
+                           · `!date`       【还没填日期】—— 既不是权限也不是记录状态,
+                                           它是"还没有东西可操作"那一族。给它写一句拒绝
+                                           是假话:该说的是【下一步做什么】。 */}
+                    <PermissionGate code="module.finance.edit" allowed={canFinance} inline>
+                        <Button size="sm"
+                            type="button"
+                            disabled={pending || !date}
+                            onClick={() => run(() => payClaim(claimId, date))}>
+                            {pending ? t('common.saving') : t('claims.createExpense')}
+                        </Button>
+                    </PermissionGate>
+                    {!date && (
+                        <p className="mt-2 text-xs text-gray-600" data-state-note="claim-date">
+                            {t('claims.needExpenseDate')}
+                        </p>
+                    )}
                     {!canFinance && <p className="mt-2 text-xs text-amber-800">{t('claims.needsFinance')}</p>}
                 </div>
             )}

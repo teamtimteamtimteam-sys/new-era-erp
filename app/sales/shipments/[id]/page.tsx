@@ -198,7 +198,9 @@ export default async function ShipmentDetailPage({
                 pdfHref={`/sales/shipments/${head.id}/pdf`}
                 previewLabel={t('sales.shipDetail.previewPdf')}
                 issueLabel={t('sales.shipDetail.issuePdf')}
-                blockedReason={lines.length === 0 ? t('sales.shipDetail.issueBlockedNoLines') : ''}
+                // ★ ALERT-2d ④(c):「一行都还没有」不是一句拒绝,是【还没有东西可签发】。
+                //   同一句话,换到中性的那一格 —— 琥珀色是给"你不可以"用的。
+                nothingToIssueNote={t('sales.shipDetail.issueBlockedNoLines')}
                 hasLines={lines.length > 0}
             />
             {issues.length === 0 ? (

@@ -776,6 +776,35 @@ CONFIRM-1 的 Step 2 报告写的是「没有现成的确认组件,只有两处�
 「这个字段,在【每一个】用到这个组件的页面上,对【每一个】读得到那一页的角色,
 都是可见的吗」。文件名是(它就印在表里);金额不是。
 
+### ★★【对话框不继承文字排版 —— 它是它自己的说话面】★★(ALERT-2d,2026-09-09)
+
+**面板上那五个 class 是承重的,不是装饰:**
+`whitespace-normal text-left normal-case not-italic tracking-normal`。
+
+本对话框**就地渲染、不走 portal**(CONFIRM-1 的刻意决定,焦点归还与"动作跑在同一次
+用户手势里"两条保证都挂在上面),所以它在 DOM 里是**触发它的那个元素的后代**;
+而 `position: fixed` **不打断继承** —— 继承走 DOM 树,不走布局树。于是
+`white-space` / `text-align` / `text-transform` / `font-style` / `letter-spacing`
+这五个**可继承**属性会从调用点一路淌进对话框。**实测五处**(`QuoteLinesEditor:123`、
+`GoalsEditor:256`,以及 materials / sales.customers / suppliers 三份
+`AttachmentsPanel`)把 `<ConfirmButton>` 放在 `<td … whitespace-nowrap>` 里,
+于是那句 `body` 与主语格**被拉成一行**,窄屏上横着溢出。
+**调用点一个字都没写错** —— 那个 `nowrap` 是给表格单元格写的。
+
+> **规矩(Tim 在 ALERT-2d 闸上裁定):一个对话框是它自己的说话面,
+> 不得从【打开它的那个控件】继承文字排版。**
+> 所以五条一起重置,不是只治 `white-space` —— 这是一句关于**对话框是什么**的规矩,
+> 不是一次"顺手扫一遍还不存在的缺陷"。只治一条,下一个人把 `<ConfirmButton>`
+> 放进 `text-right` 或 `uppercase` 的格子里时会重踩一遍,而那次不会再有委托书。
+
+**闸上否掉的两条路,记下来免得重提:** 剥掉那五个 `<td>` 的 class(治的是这五处,
+不是这件事,而那个 `nowrap` 在表格里是对的);搬进 portal(拆掉 CONFIRM-1 的
+no-portal 决定,连同挂在它上面的两条保证)。
+
+☞ **这五处【没有被走过】** —— ALERT-2d 不装浏览器、不装任何自动化,
+按代码确认(五处都在 `whitespace-nowrap` 的 `<td>` 里、重置落在面板上)。
+`SafetyStatePanel` 那一处今天就是对的,重置对它是空操作。
+
 ### ★ `scripts/check-confirm-subject.mjs` —— 四条判据,四次故障注入(基线 0)
 
 **只有类型是守不住 `subject` 的。** 编译器拦得住「不写」,拦不住「写了等于没写」,

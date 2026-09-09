@@ -237,7 +237,13 @@ export default function MaintenancePanel({
                 />
             </div>
 
-            {open && canEdit && (
+            {/* ★★ ALERT-2d ④(a):`<开合位> && canEdit` —— 开合位是【这一次会话】
+                   的状态,权限是一个答复,两者不该挤在一个 &&。
+                   权限的闸已经装在【打开这一块的那个钮】上(见本文件上方),
+                   所以这里只留开合位。
+                   ☞ 这一块【自己不再套闸】:它里面有【取消】,而 `fieldset disabled`
+                     会把取消一起禁掉 —— DBLOCK-1 量出来的第一条边界。 */}
+            {open && (
                 <div className="border border-gray-400 rounded p-3 text-sm space-y-3 max-w-2xl">
                     <div className="flex flex-wrap gap-3 items-end">
                         <label className="block">

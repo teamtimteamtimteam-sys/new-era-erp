@@ -224,6 +224,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                         typeLocked: t('tasks.participants.typeLocked'),
                         noAssignPermission: t('tasks.participants.noAssignPermission'),
                         nobodyEligible: t('tasks.participants.nobodyEligible'),
+                        notOnTask: t('tasks.participants.notOnTask'),
                     }}
                 />
             ) : (

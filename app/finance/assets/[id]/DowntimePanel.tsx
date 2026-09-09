@@ -110,10 +110,22 @@ export default function DowntimePanel({
         <div className="mb-8">
             <div className="flex items-baseline gap-3 mb-2">
                 <h2 className="text-lg font-medium">{t('equipment.down.title')}</h2>
-                {canEdit && !openRow && (
-                    <Button variant="secondary" size="xs" type="button" onClick={() => setOpen(!open)} disabled={pending}>
-                        {t('equipment.down.add')}
-                    </Button>
+                {/* ★★ ALERT-2d ①:`canEdit && !openRow` 是【权限 × 记录状态】。
+                       为假有两个完全不同的原因,而此前两个原因都只换来"钮不见了":
+                         · 缺 module.processing.edit  → 去找管理员;
+                         · 这台设备【已经有一段没结束的停机】 → 去把那一段结掉。
+                       第二句今天写在琥珀块里(oneOpenOnly),可它被一层
+                       PermissionGate 罩着 —— 于是没有权限的人两句都读不到。 */}
+                {!openRow ? (
+                    <PermissionGate code="module.processing.edit" allowed={canEdit} inline>
+                        <Button variant="secondary" size="xs" type="button" onClick={() => setOpen(!open)} disabled={pending}>
+                            {t('equipment.down.add')}
+                        </Button>
+                    </PermissionGate>
+                ) : (
+                    <span className="text-xs text-gray-600" data-state-note="downtime-open">
+                        {t('equipment.down.oneOpenOnly')}
+                    </span>
                 )}
             </div>
             {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('equipment.needsProcessingEdit')}</p>}
@@ -173,7 +185,20 @@ export default function DowntimePanel({
                 />
             </div>
 
-            {open && canEdit && !openRow && (
+            {/* ★ ALERT-2d ④(a):`open` 是【这一次会话的开合位】,不是一句拒绝 ——
+                   它和权限挤在一个 && 里,于是"没权限"只能表现成整块不见。
+                   改法是**闸归闸、开合归开合**:权限的闸装在【打开它的那个钮】上
+                   (上面那处),`open` / `!openRow` 照旧管这一块开不开。
+
+                   ★【为什么这一块自己【不】再套一层 PermissionGate】★
+                     它里面有一个【取消】钮,而 DBLOCK-1 量出来的第一条边界正是
+                     「**永远不要闸住一个用来关掉东西的控件**」—— `fieldset disabled`
+                     会把取消一起禁掉,人于是被关在一个既提交不了、也关不掉的表单里。
+                     (DBLOCK-1 当场在 CloseReopenControls / MaintenancePanel /
+                      VoidInvoiceControl 三处踩到过。)
+                     而这里也【不需要】那一层:`open` 只能由上面那个已经上了闸的钮
+                     翻成 true,没有权限的人根本走不到这一块。 */}
+            {open && !openRow && (
                 <div className="border border-gray-400 rounded p-3 text-sm space-y-2 max-w-xl">
                     <label className="block">
                         <span className="text-xs text-gray-600 block">{t('equipment.down.startedAt')}</span>

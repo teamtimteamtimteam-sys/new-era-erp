@@ -118,12 +118,16 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
             )}
 
             <h2 className="text-xl font-bold mb-3">{t('reviews.goalsTitle')}</h2>
+            {/* ★ ALERT-2d:这一页【一直】传的就是纯记录状态(这里没有第二种权限:
+                   进得来这一页的人就是这一行点名的评估人,上面 notFound 已经把关)。
+                   缺的只是那句解释 —— 状态不许改的时候,屏幕上原本一个字都没有。 */}
             <GoalsEditor
                 reviewId={r.id}
                 goals={goals}
                 canEditGoals={r.status === 'draft'}
                 canAssess={r.status === 'draft' || r.status === 'self_review'}
                 canSetActual={r.status === 'draft' || r.status === 'submitted'}
+                stateNote={t('reviews.stateGoalsLocked', { 0: t(`reviews.status_${r.status}`) })}
             />
 
             <h2 className="text-xl font-bold mb-3">{t('reviews.conclusionTitle')}</h2>
@@ -133,6 +137,11 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
                 ratingCode={r.rating_code}
                 summaryText={r.summary_text}
                 editable={r.status === 'draft' || r.status === 'self_review'}
+                stateNote={
+                    r.status === 'draft' || r.status === 'self_review'
+                        ? null
+                        : t('reviews.stateConclusionLocked', { 0: t(`reviews.status_${r.status}`) })
+                }
             />
 
             {r.review_type === 'probation' && (

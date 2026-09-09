@@ -61,6 +61,35 @@
 //   它已经说了三件事:缺哪个码、记录一个字没动、以及管理员在
 //   Settings → Roles 里勾它。**按之前与按之后说同一句话**,人才能把两次遭遇
 //   认成同一件事;各写一句,就是同一个问题的第二份实现。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// ★★★【ALERT-2d(2026-09-09)· `alsoAllowedIf` —— 一条【管理员开不了】的路】★★★
+// ════════════════════════════════════════════════════════════════════════════
+//   上面那句话("管理员在 Settings → Roles 里勾 <码>")**只有在这个控件的
+//   权限半边【只有一条路】时才是真的。**
+//
+//   实测的反例是绩效考核:`canWrite = canHrEdit || isReviewer` ——
+//     · `canHrEdit` = `can('module.hr.edit')`,一个**管理员勾得出来**的码;
+//     · `isReviewer` = 你是不是这份考核【点名的那个评估人】,一次**关系授权**。
+//   两者都能打开同一个控件,而**它们不是同一种东西**。
+//   一个被挡住的读者,最可能的真相是第二条:**"这件事不归你"** ——
+//   而那**没有任何管理员给得了、没有任何角色开关打得开**。
+//
+//   ☞ 只说 `module.hr.edit`,就是把人支去要一样【要来了也可能不管用】的东西,
+//     而更坏的情形是他【已经有】那个码:那句话于是指着一项他早就持有的权限。
+//     `docs/known-issues.md` 的 DBLOCK-CONFLATED-BOOLEANS 整条立案讲的就是这个,
+//     它自己的原话是:**说错原因比不说原因更坏。**
+//
+//   ★【为什么是一条【能力】,不是给考核写一个组件】★(Tim 在 ALERT-2d 闸上裁定)
+//     第二份拒绝实现正是措辞开始漂的地方(BASE-1 抬头那 18 种画法的由来)。
+//     所以这条能力住在共享库里,**下一块关系授权的屏(任务参与人、我的考核、
+//     谁被指派到这一行)照样用得上** —— 它只要求调用方给出两句话,
+//     不要求它知道"关系授权"这四个字。
+//
+//   ★【两句话为什么是两句,而不是一句】★ 与 RefusalBlock 的
+//     statement / hint 同一条理由:可见的那半句要短到能挂在控件旁边,
+//     而"这条路管理员开不了、你该去找谁"那句话装不进一枚药丸。
+//     交给调用方拼成一句,它就会在下一页上漂成另一个样子。
 // ════════════════════════════════════════════════════════════════════════════
 
 import * as React from 'react'
@@ -74,6 +103,7 @@ export function PermissionGate({
     children,
     className,
     inline = false,
+    alsoAllowedIf,
 }: {
     /** 缺的那个权限码,例如 `module.finance.edit`。**必填** —— 一句说不出码的拒绝,
      *  读的人拿不到任何可以去要的东西(refusal-names-the-numbers)。 */
@@ -85,11 +115,32 @@ export function PermissionGate({
     className?: string
     /** 行内场景(表格行里的一个小钮):理由挨在右边而不是另起一行。 */
     inline?: boolean
+    /**
+     * ★ 另一条【同样能打开这个控件】的路,而它通常**不是管理员给得了的**。
+     *
+     * 传了它,拒绝就从「你需要 <码>」变成「你需要 <码>,或者 <label>」,
+     * 并且 title 里那句完整的话后面接上 `why` —— 说清楚这第二条路怎么走、
+     * 以及(要紧的那句)**它不是在 Settings → Roles 里勾得出来的**。
+     *
+     * 【两句都必须走 i18n,而且都由调用方给】判据只有页面知道:
+     * 「你不是这份考核指定的评估人」与「你不是这条任务的参与人」是两句不同的话,
+     * 而把它们塞进这个组件就等于让共享库去猜每一块屏的关系模型。
+     */
+    alsoAllowedIf?: {
+        /** 可见的那半句,要短:「或者你是这份考核指定的评估人」 */
+        label: string
+        /** 进 title 的整句:这条路怎么走,以及管理员开不了它。 */
+        why: string
+    }
 }) {
     const t = useTranslations()
     if (allowed) return <>{children}</>
 
-    const why = t('common.actionMessage.permissionDenied', { 0: code })
+    // 按之前与按之后同一句(见抬头);另一条路的说明【接在后面】,不覆盖它 ——
+    // 那个码仍然是真的,只是它不再是唯一的一条路。
+    const why = alsoAllowedIf
+        ? `${t('common.actionMessage.permissionDenied', { 0: code })}\n\n${alsoAllowedIf.why}`
+        : t('common.actionMessage.permissionDenied', { 0: code })
 
     return (
         <span
@@ -108,9 +159,24 @@ export function PermissionGate({
             <fieldset disabled className="contents">
                 {children}
             </fieldset>
-            <Refusal why={why} className="font-normal">
+            {/* ★ `Refusal` 自己是 `whitespace-nowrap`(一枚药丸本该是一行)。
+                   带上「或者……」之后它装的是两句话,一行放不下 —— 在手机上
+                   会横着溢出去。所以这一支【明确】把它放开。
+                   ☞ 与本刀 confirm-dialog 那五条重置是同一条道理的反面:
+                     那里是"对话框不许继承排版",这里是"一段两句话的拒绝
+                     不该被一条为单句写的规则钉成一行"。 */}
+            <Refusal why={why} className={cn('font-normal', alsoAllowedIf && 'whitespace-normal text-left')}>
                 {t('common.permissionGate.needs')}
                 <code className="font-mono text-[0.95em]">{code}</code>
+                {/* ★ 「或者……」跟在码后面,而【不是】另起一枚药丸:
+                       两枚药丸读起来像两条各自独立的拒绝,而它们是【一个】
+                       条件的两条路 —— 满足任一条就开。 */}
+                {alsoAllowedIf && (
+                    <span data-permission-alt="1">
+                        {t('common.permissionGate.or')}
+                        {alsoAllowedIf.label}
+                    </span>
+                )}
             </Refusal>
         </span>
     )

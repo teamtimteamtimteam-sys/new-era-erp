@@ -891,6 +891,9 @@ const en = {
         // 用的是 actionMessage.permissionDenied —— 按之前与按之后【同一句】。
         permissionGate: {
             needs: 'Needs ',
+            // ALERT-2d:当这个控件的权限半边有【第二条路】时,接在权限码后面。
+            // 它不是第二条拒绝,是同一个条件的另一条路 —— 满足任一条就开。
+            or: ' \u2014 or: ',
         },
         dataClassDenied: 'This figure is price information.',
         dataClassDeniedHint: 'Your role can enter this module, but it has not been granted price visibility (data.view_prices). This is a permission answer, not an empty result — ask an administrator.',
@@ -1004,6 +1007,11 @@ const en = {
         createExpenseHint: 'Creates an unpaid expense on 6120 Staff Welfare & Medical, settled through the usual payment flow. Nothing is posted until then.',
         expenseCreated: 'Expense {0} raised.',
         needsFinance: 'Raising the expense needs finance permission. HR approves the claim; finance turns it into a payable.',
+        // ALERT-2d ④(c):「日期还没填」不是一句拒绝,是【还没有东西可操作】。
+        // 说下一步做什么,并说清为什么系统不替他补一个(FIN-10 那条房规)。
+        needExpenseDate:
+            'Enter the expense date first. It decides the posting period and the exchange rate, '
+            + 'so the system will not fill in a date for you.',
         errNotApproved: 'This claim is {0} — approve it first.',
         errAlreadyPaid: 'An expense ({0}) has already been raised for this claim.',
         errExceedsLimit: 'That exceeds the remaining entitlement: {0} left, {1} claimed.',
@@ -2057,7 +2065,6 @@ const en = {
             currentSet: 'assay required for {metals}',
             emptyMeans:
                 'Saving with nothing ticked means this material requires no assay — batches of it will never appear on the awaiting-assay list.',
-            needsEdit: 'Changing the assay requirement needs module.materials.edit.',
             errors: {
                 MATERIAL_REQUIRED: 'No material was given.',
                 MATERIAL_NOT_FOUND: 'That material does not exist (or has been deleted): {0}',
@@ -4704,6 +4711,31 @@ const en = {
         openSelfAssessment: 'Open self-assessment', reopenSelfAssessment: 'Reopen self-assessment',
         submit: 'Submit', approve: 'Approve',
         fourEyes: 'You submitted this review — approval needs a second pair of eyes.',
+        // ════════════════════════════════════════════════════════════════════
+        // ALERT-2d(2026-09-09)· 拆开 `canWrite && r.status === '…'` 之后要说的话
+        // ════════════════════════════════════════════════════════════════════
+        // 【gate.*】权限那一半的【第二条路】。canWrite = canHrEdit || isReviewer,
+        //   而 isReviewer 是一次关系授权 —— 管理员在 Settings → Roles 里勾不出来它。
+        gate: {
+            orReviewer: 'you are the reviewer named on this appraisal',
+            orReviewerWhy:
+                'There is a second way in: this appraisal names a reviewer, and that person can '
+                + 'edit it without the permission above. Being that reviewer is not something an '
+                + 'administrator can grant — it is written on the appraisal itself, in the Reviewer '
+                + 'field. If it should be you, ask HR to set you as the reviewer on this appraisal.',
+        },
+        // 【state*】记录状态那一半。说出【它现在是什么状态】和【什么状态才能做】,
+        //   两件都说,否则读的人不知道要等什么。
+        stateGoalsLocked:
+            'Goals can be added, changed or removed only while this appraisal is a draft. '
+            + 'It is “{0}” now.',
+        stateConclusionLocked:
+            'The rating and the written conclusion can be changed only while this appraisal is a '
+            + 'draft or in self-review. It is “{0}” now.',
+        stateFlowLocked:
+            'Self-assessment can be opened, and the appraisal submitted, only while it is a draft '
+            + 'or in self-review. It is “{0}” now.',
+        stateAlreadyVoid: 'This appraisal has already been voided, so there is nothing left to void.',
         probationOutcomePendingHr: 'A probation review needs HR to record the confirmation decision before it can be submitted.',
         voidReason: 'Void reason', void: 'Void',
         voidBanner: 'Voided: {0}',
@@ -4874,6 +4906,10 @@ const en = {
         priceChangeTitle: 'Resulting price change',
         journalLink: 'Journal entry',
         // FIX-2b: the whole row used to vanish, which reads as "this reprice never posted".
+        // ALERT-2d (c):「没有过分录」既不是拒绝,也不是「你看不到」—— 它是一个事实。
+        //   此前这一行整个不画,于是两者在屏幕上长得一模一样。上面那条
+        //   journalRestrictedWhy 管的是权限那一半,这一条管的是另一半。
+        noJournalEntry: 'No journal entry — this price change did not post one.',
         journalRestrictedWhy: 'Journal entries sit behind the finance module, which you do not have. Whether this price change posted to the ledger is not shown here — that is a permission answer, not a reprice that never posted.',
         // FIX-2a(b):Tim 的 Q4 裁定 —— 价格不给现场。扣下是对的,沉默不是。
         pricingRestricted: 'Pricing for this batch is withheld from this account.',
@@ -5378,6 +5414,9 @@ const en = {
             promoteBlockedNoEmployee: 'Your login is not linked to an employee record, so this task has no owner to put on the team. Ask HR to link your account, then this becomes available.',
             noAssignPermission: 'You do not have permission to add people to tasks, so the list of employees is not shown here.',
             nobodyEligible: 'Every employee with a login account is already on this task. Staff without a login account cannot be added — link their account under HR first.',
+            // ALERT-2d:第四种原因 —— 关系授权。它【不是】一个管理员给得了的权限码,
+            //   所以这句话指的是「让已经在上面的人把你加进来」,而不是「去要某项权限」。
+            notOnTask: 'You are not on this task, so you cannot change who else is. Ask someone already on it to add you — this is not a permission an administrator can grant.',
             personalHint: 'This is a personal task. Only you can see it and change it.',
             promote: 'Make this a team task',
         },
@@ -6889,6 +6928,14 @@ const en = {
     invoice: {
         noLines: 'This invoice has no lines.',
         pdfNeedsBanking: 'PDF needs permission to see company bank details',
+        // ★ ALERT-2d:预览/下载被挡住时,【摆在按钮旁边】的那一句。
+        //   它与下面那两段横幅说的是同一件事,但人先看的是按钮 —— 而一个
+        //   按不下去又不说为什么的按钮,读起来像是坏了(CMP-2)。
+        pdfBlockedFont:
+            'The PDF cannot be built: some characters on this invoice cannot be rendered, so the '
+            + 'file would come out with blanks where they should be. They are listed below.',
+        pdfBlockedProfile:
+            'The PDF cannot be built until the company details are filled in — Finance → Company.',
         issuePdf: 'Issue this version',
         issuesTitle: 'Issued versions',
         issuesNote: 'Preview renders the invoice as it stands right now and records nothing. Issuing stores those exact bytes and records a version — what the customer holds is one specific version, and it stays retrievable however the data changes afterwards.',

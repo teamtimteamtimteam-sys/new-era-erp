@@ -33,6 +33,8 @@ type Labels = {
     left: string; removed: string; removeOther: string; leave: string
     addedBy: string; stillReads: string; correctType: string; typeLocked: string
     noAssignPermission: string; nobodyEligible: string
+    /** ★ ALERT-2d:【你不在这张任务上】—— 第四种原因,此前一个字都没有。 */
+    notOnTask: string
 }
 
 export default function Participants({
@@ -101,15 +103,26 @@ export default function Participants({
             {/* TASK-1c-b STEP 4:【三种状态,三句不同的话】。
                 以前这里只有"有没有行"两种,于是"你不被允许看"与"没有人可选"
                 长成了同一个空下拉 —— 空集不是答案(lib/permissions.ts 的立身之本)。 */}
-            {canEdit && !mayAssign ? (
+            {/* ★★ ALERT-2d ④:上面那段注释说的「三种状态,三句不同的话」——
+                   **实测是四种,而第四种一个字都没有。** 三个操作数三类东西:
+                     · `canEdit`   ← 页面传的是 `iAmParticipant`,一次**关系授权**
+                                     (你在不在这张任务上)。**管理员给不了它**,
+                                     所以它【不能】写成一句"去要某个权限码" ——
+                                     那正是 DBLOCK-CONFLATED-BOOLEANS 说的
+                                     "说错原因比不说原因更坏";
+                     · `mayAssign` ← 一个真的权限答复,它那一句本来就在;
+                     · 可选名单为空 ← 【还没有人可选】,不是拒绝,它那一句也在。
+                   而 `canEdit` 为假时,三句话【一句都不画】—— 上面那三行每一行
+                   都以 `canEdit &&` 开头。于是一个不在这张任务上的人看到的是
+                   **一片空白**,和"这个功能不存在"长得一模一样。
+                   ☞ 改成一条四选一:四个原因,四句话,永远命中一句。 */}
+            {!canEdit ? (
+                <p className="mt-4 text-sm text-gray-600" data-state-note="not-on-task">{labels.notOnTask}</p>
+            ) : !mayAssign ? (
                 <p className="mt-4 text-sm text-gray-600">{labels.noAssignPermission}</p>
-            ) : null}
-
-            {canEdit && mayAssign && assignable.filter((a) => a.employee_id && !onIt.has(a.employee_id)).length === 0 ? (
+            ) : assignable.filter((a) => a.employee_id && !onIt.has(a.employee_id)).length === 0 ? (
                 <p className="mt-4 text-sm text-gray-600">{labels.nobodyEligible}</p>
-            ) : null}
-
-            {canEdit && mayAssign && assignable.filter((a) => a.employee_id && !onIt.has(a.employee_id)).length > 0 ? (
+            ) : (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                     <select
                         className="rounded border px-2 py-1 text-sm"
@@ -130,7 +143,7 @@ export default function Participants({
                         onClick={() => { run(() => addParticipant(taskId, pick)); setPick('') }}
                     >{labels.add}</Button>
                 </div>
-            ) : null}
+            )}
 
             {/* TASK-1c-c:【控件不再静默消失】。服务端会拒绝时,它渲染成禁用的,
                 理由写在屏幕上 —— 与 PromotePanel 给 Team 那一项的处理同一套,

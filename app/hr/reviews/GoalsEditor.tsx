@@ -14,17 +14,40 @@ import type { GoalRow } from './reviewShared'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【ALERT-2d(2026-09-09):这三个 prop 现在【只装记录状态】,不装权限】★★
+// ════════════════════════════════════════════════════════════════════════════
+//   改之前 /hr/reviews/[id] 传的是 `canWrite && r.status === 'draft'` ——
+//   **一个布尔为假有两个完全不同的原因**,而屏幕上一句都不说。
+//   `DBLOCK-CONFLATED-BOOLEANS` 拿的正是这一行当样板:给"状态不对"写一句
+//   权限的话,就是把人支去要一项他可能早就有的权限。
+//
+//   现在两半各归各:
+//     · 权限那一半 → 页面用 `<PermissionGate>` 包住整个编辑器
+//       (看得见、按不动、点名 `module.hr.edit`,并且带上【另一条路】:
+//        你是不是这份考核点名的评估人 —— 那条路管理员开不了);
+//     · 记录状态那一半 → 就是下面这三个 prop,外加 `stateNote` 那一句话。
+//   ☞ /my-reviews/[id] 一直就是这么传的(纯状态),所以两个调用点从此同形。
 type Props = {
     reviewId: string
     goals: GoalRow[]
-    canEditGoals: boolean // draft:目标行的增删改(objective/target/unit)
-    canAssess: boolean // draft/self_review:逐条评语
-    canSetActual: boolean // draft/submitted:实际值(自评期归本人)
+    /** 【只是记录状态】draft:目标行的增删改(objective/target/unit) */
+    canEditGoals: boolean
+    /** 【只是记录状态】draft/self_review:逐条评语 */
+    canAssess: boolean
+    /** 【只是记录状态】draft/submitted:实际值(自评期归本人) */
+    canSetActual: boolean
+    /**
+     * 记录状态那一半的【一句话】:这份考核现在是什么状态、于是目标改不动。
+     * CMP-2 的房规 —— 一个非瞬态的禁用条件要有一行紧邻的、看得见的解释。
+     * 由页面给整句(它才知道状态名怎么念),组件不拼字符串。
+     */
+    stateNote?: string | null
 }
 
 const inp = 'w-full border border-gray-300 rounded px-1 py-0.5 text-xs'
 
-export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, canSetActual }: Props) {
+export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, canSetActual, stateNote }: Props) {
     const t = useTranslations()
     const router = useRouter()
     const [pending, startTransition] = useTransition()
@@ -278,6 +301,12 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                 </table>
             )}
 
+            {/* ★ ALERT-2d:`canEditGoals` 为假时这一块【原本整个消失,一个字都没有】。
+                   它今天为假只剩一个原因(记录状态),所以就地说出那个原因 ——
+                   而不是让"这份考核已经提交了"和"这个功能不存在"在屏幕上长得一样。 */}
+            {!canEditGoals && stateNote && (
+                <p className="text-sm text-gray-600" data-state-note="goals">{stateNote}</p>
+            )}
             {canEditGoals && (
                 <div className="rounded border border-gray-200 p-4">
                     <h3 className="font-bold mb-1 text-sm">{t('reviews.addGoal')}</h3>

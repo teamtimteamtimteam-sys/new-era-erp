@@ -20,6 +20,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { saveLicence, softDeleteLicence, type LicenceInput } from './licenceActions'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import LicenceTable from './LicenceTable'
 
 export type LicenceRow = {
@@ -111,11 +112,23 @@ export default function LicencePanel({
                       探针比的是同一档之间几何一不一致 —— 一个坐在抬头里、
                       却写成 link/inline 的按钮,在两者眼里都完全正常。
                       这是那个盲区第一次被量到,记在 docs/base-components.md §十九。 */}
-                {canEdit && form === null && (
-                    <Button variant="outline" size="sm" type="button"
-                            onClick={() => { setForm({ ...EMPTY }); setError(null) }}>
-                        {t('company.licence.add')}
-                    </Button>
+                {/* ★★ ALERT-2d ④(a):`canEdit && !<开合位>` —— 一个权限答复与
+                       【这一次会话里面板开没开】挤在同一个 &&。为假的两个原因
+                       后果完全不同,而屏幕上的表现是同一个:**钮不见了**。
+                       DBLOCK-1 裁定:注定被拒的控件要【看得见、按不动、说出为什么】。
+                       ☞ 改法是**闸归闸、开合归开合** —— 权限的闸装在这个钮上,
+                         `open` 照旧只管面板开不开。
+                       ☞ 面板【自己不再套闸】:它里面有【取消】,而 `fieldset disabled`
+                         会把取消一起禁掉,人就被关在一个既提交不了也关不掉的表单里
+                         (DBLOCK-1 量出来的第一条边界)。而它也不需要 ——
+                         没有权限的人翻不开这个开合位。 */}
+                    {form === null && (
+                    <PermissionGate code="module.suppliers.edit" allowed={canEdit} inline>
+                        <Button variant="outline" size="sm" type="button"
+                                onClick={() => { setForm({ ...EMPTY }); setError(null) }}>
+                            {t('company.licence.add')}
+                        </Button>
+                    </PermissionGate>
                 )}
             </div>
             <p className="mb-3 max-w-3xl text-sm text-[color:var(--brand-text)]">{t('company.licence.what')}</p>

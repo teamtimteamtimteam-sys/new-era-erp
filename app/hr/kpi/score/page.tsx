@@ -22,6 +22,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import ScoreEditor, { type ScoreRow } from './ScoreEditor'
 import GenerateMissing, { type MissingPerson } from './GenerateMissing'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { Button } from '@/app/components/ui/button'
 
 type Cycle = {
@@ -145,7 +146,32 @@ export default async function KpiScorePage({
     // ★ 锁了就不许改分 —— 与数据库那道守卫是同一条规则的两面。
     //   界面变只读是【礼貌】,score_kpi_entry 的 RAISE 才是【那扇门】。
     const locked = !!chosen?.locked_at
-    const canEdit = mayScore && !!chosen && !locked && chosen.status !== 'closed'
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★★【ALERT-2d(2026-09-09)· 委托书点名的旗舰站点,而它要的是【三分】】★★★
+    // ════════════════════════════════════════════════════════════════════════
+    //   原来是一条布尔,四个操作数,三类东西:
+    //     const canEdit = mayScore && !!chosen && !locked && chosen.status !== 'closed'
+    //                     ~~~~~~~~    ~~~~~~~~~    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    //                     权限        还没选月份    记录状态(两条)
+    //   **给"还没选月份"写一句权限的话是假话,写一句记录状态的话也是假话** ——
+    //   它要的根本不是一句拒绝,而是一个空态。
+    //
+    //   ★【而 `!!chosen` 这个操作数是【死的】—— 这是量出来的,不是推的】★
+    //     `canEdit` 的两个消费者(GenerateMissing / ScoreEditor)**都住在
+    //     下面那个 `{chosen && (…)}` 里面**,所以到得了它们的时候 `chosen`
+    //     必然非空。这个操作数从来没有独立生效过 —— 它只是让整条布尔
+    //     再也说不清自己为什么是假。
+    //     ☞ 而它的【意思】早就画对了:上面 `{!chosen && …}` 那块蓝色的
+    //       `kpi.noMonthChosen` 正是那个空态。所以这里不新写一句话,
+    //       只是把那个操作数拿掉 —— **它要的东西已经在屏幕上了。**
+    //
+    //   三分之后:
+    //     · 还没选月份 → 上面那块空态(已有,一个字没改);
+    //     · 记录状态   → `lockedNotice` / `closedNotice`(已有,各说各的);
+    //     · 权限       → `readOnlyNotice`(已有)+ 控件上的 <PermissionGate>
+    //                    (新的:它多说了【哪个码】和【管理员在哪儿给】)。
+    const stateAllowsScoring = !locked && chosen?.status !== 'closed'
 
     return (
         <ListPage
@@ -232,13 +258,21 @@ export default async function KpiScorePage({
                         ))}
                     </div>
 
-                    <GenerateMissing people={missing} cycleId={chosen.id} disabled={!canEdit} />
+                    {/* ★ 权限归闸、记录状态归 disabled —— 两者不再相乘。 */}
+                    <PermissionGate code="module.hr.edit" allowed={mayScore} className="flex w-full items-stretch">
+                        <GenerateMissing people={missing} cycleId={chosen.id} disabled={!stateAllowsScoring} />
+                    </PermissionGate>
 
                     <h2 className="text-lg font-semibold mb-1">
                         {t('kpi.scoreGridTitle', { 0: chosen.name })}
                     </h2>
                     <p className="text-xs text-gray-600 mb-3 max-w-4xl">{t('kpi.weightedIsComputed')}</p>
-                    <ScoreEditor rows={rows} canEdit={canEdit} />
+                    {/* ★ 同上。表格里的【取消】只在按过「编辑」之后才画,而「编辑」
+                           就在这层 fieldset 里 —— 没有权限的人翻不开编辑态,
+                           不会被关在一个既存不了也关不掉的行里(DBLOCK-1 第一条边界)。 */}
+                    <PermissionGate code="module.hr.edit" allowed={mayScore} className="flex w-full items-stretch">
+                        <ScoreEditor rows={rows} canEdit={stateAllowsScoring} />
+                    </PermissionGate>
                 </>
             )}
         </ListPage>

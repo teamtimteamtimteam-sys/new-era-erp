@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveHrDecision } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { Refusal } from '@/app/components/ui/refusal'
 
 type Props = {
     reviewId: string
@@ -59,7 +61,26 @@ export default function HrDecisionForm({
     }
 
     const showProbation = reviewType === 'probation'
-    if (!showProbation && !canPay) return null
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★★【ALERT-2d(2026-09-09)· 这里原本是 `if (!showProbation && !canPay)
+    //      return null` —— DBLOCK-1 裁定的【最坏的一种】】★★★
+    // ════════════════════════════════════════════════════════════════════════
+    //   两个操作数,两类东西,而普查把它算进了桶 ④:
+    //     · `showProbation = reviewType === 'probation'` —— **记录状态**
+    //       (判据那条 `\bstate\b` 认不出 `reviewType`,所以它被判成 OTHER;
+    //        它其实是这份考核【是哪一种】,一条不折不扣的记录属性);
+    //     · `canPay = data.view_pay` —— **权限**,而且是一个【数据类】权限。
+    //   合起来为假时整块面板 `return null`:一个只做年度考核、又没有看薪权限的
+    //   HR,屏幕上【连"这里本来有一块 HR 的决定"都读不到】。
+    //   **一个藏起来的东西教给人的是"这个功能不存在"。**
+    //
+    //   现在:面板恒画。
+    //     · 试用期结论那一格 —— 只有 probation 型考核才有,这是记录状态,
+    //       年度考核里它本来就【不存在】,不是被挡住(所以不给它一句拒绝);
+    //     · 薪酬那两格 —— 走 <PermissionGate>(点名 data.view_pay),
+    //       而值本身画成【受限】药丸,不是空白。
+    //       **空白读作"没定过工资",受限读作"你看不到"** —— 本仓库
+    //       lib/permissions.ts 整个存在的理由就是这一句。
 
     return (
         <div className="mb-6 rounded border border-gray-200 p-4">
@@ -89,7 +110,18 @@ export default function HrDecisionForm({
                     </label>
                 )}
 
-                {/* 薪酬段:只对持 data.view_pay 的人渲染(不渲染灰框,整段不出现) */}
+                {/* 薪酬段:ALERT-2d 之前是【只对持 data.view_pay 的人渲染,整段不出现】。
+                    现在整段照画,值画成「受限」,控件看得见按不动并点名那个码。 */}
+                {!canPay && (
+                    <PermissionGate code="data.view_pay" allowed={false} inline>
+                        <label className="text-xs text-gray-600">
+                            {t('reviews.newSalary')}
+                            <span className="block py-1">
+                                <Refusal why={t('common.dataClassDeniedHint')}>{t('common.restricted')}</Refusal>
+                            </span>
+                        </label>
+                    </PermissionGate>
+                )}
                 {canPay && (
                     <>
                         <label className="text-xs text-gray-600">

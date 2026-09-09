@@ -16,6 +16,7 @@ import ReviewActions from '../ReviewActions'
 import HrDecisionForm from '../HrDecisionForm'
 import SetReviewerControl, { type EmployeeOption } from '../SetReviewerControl'
 import { REVIEW_COLUMNS, type GoalRow, type ReviewRow, daysInState, statusPillClass } from '../reviewShared'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 
@@ -83,6 +84,40 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
     const canWrite = canHrEdit || isReviewer
     const isSubmitter = r.submitted_by !== null && r.submitted_by === uid
     const preApproval = ['draft', 'self_review', 'submitted'].includes(r.status)
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★【ALERT-2d(2026-09-09)· 权限与记录状态从此是两样东西】★★
+    // ════════════════════════════════════════════════════════════════════════
+    //   这一页此前把它们乘在一起递下去:
+    //     canEditGoals={canWrite && r.status === 'draft'}
+    //     canAssess   ={canWrite && (r.status === 'draft' || r.status === 'self_review')}
+    //     canSetActual={canWrite && (r.status === 'draft' || r.status === 'submitted')}
+    //     editable    ={canWrite && (r.status === 'draft' || r.status === 'self_review')}
+    //   `DBLOCK-CONFLATED-BOOLEANS` 就是拿这四行当样板立的案。四个布尔为假各有
+    //   两个原因,而屏幕上【一个字都不说】—— 它不是在说错原因,它是什么都不说。
+    //
+    //   现在:递下去的三个 prop 只装【记录状态】,权限那一半由
+    //   `<PermissionGate>` 在外面挡,并带上【另一条路】。
+    //
+    //   ★【为什么是 alsoAllowedIf,而不是只报 module.hr.edit】★
+    //     `canWrite = canHrEdit || isReviewer` —— 一边是管理员勾得出来的码,
+    //     一边是"这份考核点名的评估人是不是你",一次**关系授权**。
+    //     对一个被挡住的读者,更可能为真的是后者,而**没有任何管理员给得了它**。
+    //     只说那个码,就是把人支去要一样要来了也未必管用的东西。
+    //
+    //   ★【为什么先问状态、再问权限】★ 一份已经批准/作废的考核,对【任何人】
+    //     都改不动 —— 那时再挂一句"你还需要某项权限"是正确而无用的。
+    //     所以状态不许时只说状态;状态许了,缺的才真的只剩权限。
+    const orReviewer = {
+        label: t('reviews.gate.orReviewer'),
+        why: t('reviews.gate.orReviewerWhy'),
+    }
+    const statusName = t(`reviews.status_${r.status}`)
+    // 记录状态那一半 —— 与 DB 里那几支函数各自的状态判据一一对应。
+    const stateGoals = r.status === 'draft'
+    const stateAssess = r.status === 'draft' || r.status === 'self_review'
+    const stateActual = r.status === 'draft' || r.status === 'submitted'
+    const stateConclusion = r.status === 'draft' || r.status === 'self_review'
     const ratingName = (code: string | null) => {
         if (!code) return '—'
         const x = ratings.find((s) => s.code === code)
@@ -177,23 +212,60 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
 
             {/* 目标 */}
             <h2 className="text-xl font-bold mb-3">{t('reviews.goalsTitle')}</h2>
-            <GoalsEditor
-                reviewId={r.id}
-                goals={goals}
-                canEditGoals={canWrite && r.status === 'draft'}
-                canAssess={canWrite && (r.status === 'draft' || r.status === 'self_review')}
-                canSetActual={canWrite && (r.status === 'draft' || r.status === 'submitted')}
-            />
+            {(() => {
+                const editor = (
+                    <GoalsEditor
+                        reviewId={r.id}
+                        goals={goals}
+                        canEditGoals={stateGoals}
+                        canAssess={stateAssess}
+                        canSetActual={stateActual}
+                        stateNote={t('reviews.stateGoalsLocked', { 0: statusName })}
+                    />
+                )
+                // 状态已经把所有人挡在外面时,不再叠一句权限的话(见上面的理由)。
+                return stateGoals || stateAssess || stateActual ? (
+                    <PermissionGate
+                        code="module.hr.edit"
+                        allowed={canWrite}
+                        alsoAllowedIf={orReviewer}
+                        className="flex w-full items-stretch"
+                    >
+                        {editor}
+                    </PermissionGate>
+                ) : (
+                    editor
+                )
+            })()}
 
             {/* 结论 */}
             <h2 className="text-xl font-bold mb-3">{t('reviews.conclusionTitle')}</h2>
-            <ConclusionForm
-                reviewId={r.id}
-                ratings={ratings}
-                ratingCode={r.rating_code}
-                summaryText={r.summary_text}
-                editable={canWrite && (r.status === 'draft' || r.status === 'self_review')}
-            />
+            {(() => {
+                const form = (
+                    <ConclusionForm
+                        reviewId={r.id}
+                        ratings={ratings}
+                        ratingCode={r.rating_code}
+                        summaryText={r.summary_text}
+                        editable={stateConclusion}
+                        stateNote={
+                            stateConclusion ? null : t('reviews.stateConclusionLocked', { 0: statusName })
+                        }
+                    />
+                )
+                return stateConclusion ? (
+                    <PermissionGate
+                        code="module.hr.edit"
+                        allowed={canWrite}
+                        alsoAllowedIf={orReviewer}
+                        className="flex w-full items-stretch"
+                    >
+                        {form}
+                    </PermissionGate>
+                ) : (
+                    form
+                )
+            })()}
 
             {/* HR 的决定:试用期结论 + 调薪(薪酬段只对 data.view_pay 渲染) */}
             {canHrEdit ? (

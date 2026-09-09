@@ -20,10 +20,18 @@ type Props = {
     ratings: RatingOption[]
     ratingCode: string | null
     summaryText: string | null
+    /**
+     * ★ ALERT-2d:这个 prop 现在【只装记录状态】,不装权限。
+     * 改之前 /hr/reviews/[id] 传的是 `canWrite && (status==='draft'||status==='self_review')`
+     * —— 为假有两个不同的原因,而屏幕上一句都不说。权限那一半移到页面上的
+     * `<PermissionGate>`(看得见、按不动、点名权限码 + 另一条路)。
+     */
     editable: boolean
+    /** 记录状态那一半的一句话:这份考核现在是什么状态、于是结论改不动。 */
+    stateNote?: string | null
 }
 
-export default function ConclusionForm({ reviewId, ratings, ratingCode, summaryText, editable }: Props) {
+export default function ConclusionForm({ reviewId, ratings, ratingCode, summaryText, editable, stateNote }: Props) {
     const t = useTranslations()
     const locale = useLocale()
     const router = useRouter()
@@ -49,6 +57,10 @@ export default function ConclusionForm({ reviewId, ratings, ratingCode, summaryT
                     <span className="text-gray-600 mr-1">{t('reviews.summary')}:</span>
                     <span className="whitespace-pre-wrap">{summaryText ?? '—'}</span>
                 </div>
+                {/* ★ ALERT-2d:只读【本身】没有问题,没有解释才有。 */}
+                {stateNote && (
+                    <p className="mt-2 text-sm text-gray-600" data-state-note="conclusion">{stateNote}</p>
+                )}
             </div>
         )
     }

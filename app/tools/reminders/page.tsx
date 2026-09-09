@@ -416,12 +416,23 @@ export default async function RemindersPage() {
             {/* ★【零【没有】被藏起来 —— 它被降了重量,而这两件事不一样】★
                 名字全列出来,所以"这一支我看得见、而它此刻是零"仍然是一句
                 读得到的话。它只是不再占一块牌子的面积和一个 3xl 的数字。 */}
-            {quiet.length > 0 && (
-                <section className="mb-8" data-reminders-quiet={quiet.length}>
+            {/* ★★ ALERT-2d ④(c) —— 这一页【本来就对】,只差一个臂 ★★
+                   `canHr && hrAlerts.length > 0`(下面 HR 那一节)是两类东西:
+                   权限,和"此刻有没有事"。而这一页对 REMINDERS 那一族已经把它们
+                   分得干干净净 —— waiting / quiet / restricted 三节,连颜色都不一样,
+                   `!canHr` 也早就在 restricted 那一节里有一枚具名的药丸。
+                   **唯一漏掉的是 HR 那一支的【安静】那一格**:看得见、此刻没事,
+                   在这一页上本该出现在下面这一节里,而它此前谁都没进 ——
+                   于是"HR 这边没事"与"我压根没让你看 HR"在屏幕上又合上了。
+                   ☞ 补一格,不新造一套画法。 */}
+            {(quiet.length > 0 || (canHr && hrAlerts.length === 0)) && (
+                <section className="mb-8" data-reminders-quiet={quiet.length + (canHr && hrAlerts.length === 0 ? 1 : 0)}>
                     <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--brand-text)' }}>
                         {t('reminders.sectionQuiet')}
                         <span className="ml-2 font-mono font-normal">
-                            {t('reminders.count', { n: String(quiet.length) })}
+                            {t('reminders.count', {
+                                n: String(quiet.length + (canHr && hrAlerts.length === 0 ? 1 : 0)),
+                            })}
                         </span>
                     </h2>
                     <p className="text-xs mb-2" style={{ color: 'var(--brand-muted-text)' }}>
@@ -436,6 +447,12 @@ export default async function RemindersPage() {
                                 </Link>
                             </span>
                         ))}
+                        {canHr && hrAlerts.length === 0 && (
+                            <span>
+                                {quiet.length > 0 && <span aria-hidden> · </span>}
+                                {t('reminders.hrSection')}
+                            </span>
+                        )}
                     </p>
                 </section>
             )}

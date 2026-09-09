@@ -896,6 +896,8 @@ const zh = {
         // 用的是 actionMessage.permissionDenied —— 按之前与按之后【同一句】。
         permissionGate: {
             needs: '需要权限 ',
+            // ALERT-2d:见 en.ts 同一处。
+            or: '，或者：',
         },
         dataClassDenied: '这个数字属于价格信息。',
         dataClassDeniedHint: '你的角色进得来这个模块,但没有被授予价格可见性(data.view_prices)。这是一个【权限答复】,不是"查出来是空的" —— 请联系管理员。',
@@ -1002,6 +1004,8 @@ const zh = {
         createExpenseHint: '在 6120 员工福利与医疗下生成一笔【未付】费用,走既有付款流程结清。在那之前不入账。',
         expenseCreated: '已生成费用单 {0}。',
         needsFinance: '生成费用单需要财务权限。HR 审核报销,财务把它变成一笔应付 —— 两步两人。',
+        // ALERT-2d ④(c):见 en.ts 同一处。
+        needExpenseDate: '先填费用日期。它决定这笔账落在哪个期间、按哪一天的汇率折算,所以系统不会替你补一个。',
         errNotApproved: '本报销当前状态为「{0}」,请先批准。',
         errAlreadyPaid: '本报销已经生成过费用单({0})。',
         errExceedsLimit: '超出剩余额度:剩余 {0},本次 {1}。',
@@ -2052,7 +2056,6 @@ const zh = {
             noRequirement: '无化验要求',
             currentSet: '要求化验 {metals}',
             emptyMeans: '一个都不勾就保存,意思是这种物料不需要化验 —— 它的批次永远不会出现在「待化验」里。',
-            needsEdit: '修改化验要求需要 module.materials.edit 权限。',
             errors: {
                 MATERIAL_REQUIRED: '没有指定物料。',
                 MATERIAL_NOT_FOUND: '该物料不存在(或已删除):{0}',
@@ -4675,6 +4678,20 @@ const zh = {
         openSelfAssessment: '开启自评', reopenSelfAssessment: '重开自评',
         submit: '提交', approve: '批准',
         fourEyes: '这份评估是你提交的 —— 批准需要另一双眼睛。',
+        // ALERT-2d(2026-09-09):见 en.ts 同一处。
+        gate: {
+            orReviewer: '你是这份考核指定的评估人',
+            orReviewerWhy:
+                '还有第二条路:这份考核点名了一位评估人,那个人不需要上面那项权限也改得动它。'
+                + '【是不是那位评估人,管理员给不了】—— 它写在这份考核自己的「评估人」那一栏里。'
+                + '如果那个人应该是你,请让 HR 把这份考核的评估人改成你。',
+        },
+        stateGoalsLocked: '目标只有在这份考核【还是草稿】的时候才能增删改。它现在是「{0}」。',
+        stateConclusionLocked:
+            '评级与书面结论只有在这份考核【是草稿或自评中】的时候才能改。它现在是「{0}」。',
+        stateFlowLocked:
+            '只有在这份考核【是草稿或自评中】的时候,才能开启自评、提交考核。它现在是「{0}」。',
+        stateAlreadyVoid: '这份考核已经作废了,没有什么可以再作废的。',
         probationOutcomePendingHr: '试用期评估要先由 HR 记下转正决定,才能提交。',
         voidReason: '作废原因', void: '作废',
         voidBanner: '已作废:{0}',
@@ -4844,6 +4861,8 @@ const zh = {
         priceChangeTitle: '由此产生的价格变动',
         journalLink: '关联分录',
         // FIX-2b:此前整行消失,而那读起来是「这次改价没有过账」。
+        // ALERT-2d (c):见 en.ts 同一处。
+        noJournalEntry: '没有分录 —— 这次改价没有过账。',
         journalRestrictedWhy: '分录在财务模块那道门后面,而你没有那个权限。这次改价有没有过到总账,这里不显示 —— 这是一句【权限答复】,不是「这次改价没有过账」。',
         // FIX-2a(b):Tim 的 Q4 裁定 —— 价格不给现场。扣下是对的,沉默不是。
         pricingRestricted: '本批次的计价对该账号受限。',
@@ -5324,6 +5343,8 @@ const zh = {
             promoteBlockedNoEmployee: '你的登录账号还没有关联在册员工档案,所以这张任务没有可放进团队的归属人。请让 HR 关联你的账号,之后这里就可以用了。',
             noAssignPermission: '你没有把人加进任务的权限,所以这里不显示员工名单。',
             nobodyEligible: '有登录账号的员工都已经在这张任务上了。没有登录账号的员工加不进来 —— 请先在 HR 里关联他的账号。',
+            // ALERT-2d:见 en.ts 同一处。
+            notOnTask: '你不在这张任务上,所以改不了参与人。请让已经在上面的人把你加进来 —— 这一条不是管理员能给的权限。',
             personalHint: '这是一张私人任务。只有你看得见,也只有你改得动。',
             promote: '变成团队任务',
         },
@@ -6814,6 +6835,9 @@ const zh = {
     invoice: {
         noLines: '这张发票没有明细行。',
         pdfNeedsBanking: '生成 PDF 需要「查看公司银行明细」权限',
+        // ★ ALERT-2d:见 en.ts 同一处。
+        pdfBlockedFont: 'PDF 生成不出来:这张发票上有几个字印不出来,硬生成的话那几处会是空白。是哪几个字列在下面。',
+        pdfBlockedProfile: 'PDF 要等公司抬头填好之后才生成得出来 —— 去「财务 → 公司信息」。',
         issuePdf: '签发这一版',
         issuesTitle: '签发档',
         issuesNote: '预览按【此刻】的数据渲染,看完就没了、不记录任何东西;签发把那一刻的字节存进桶里并记一版 —— 客户手里那份是某个具体版本,此后数据怎么变,那一版都取得回。',
