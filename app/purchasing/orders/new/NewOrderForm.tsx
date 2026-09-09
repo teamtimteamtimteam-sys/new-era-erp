@@ -801,13 +801,45 @@ canEdit: boolean
                                         <p className="text-gray-600">
                                             {l.calc.formula_code} — {l.calc.formula_name} · {l.calc.reference_date}
                                         </p>
+                                        {/* ★ TABLE-PHONE-5：这张计价明细以前【一个列头都没有】——
+                                            五列裸的数字，谁也不知道哪一列是含量、哪一列是计价。
+                                            五个 key 是 Tim 批的，而它们【桌面档也上】—— 这一步本身是一次
+                                            桌面改动，单独报告过。整张表只读，一个输入框都没有。 */}
                                         <table className="border-collapse">
+                                            <thead>
+                                                <tr className="text-gray-500">
+                                                    <th className="pr-3 text-left font-medium">{t('purchasing.calcColMetal')}</th>
+                                                    <th className="hidden sm:table-cell pr-3 text-left font-medium">{t('purchasing.calcColContentPct')}</th>
+                                                    <th className="hidden sm:table-cell pr-3 text-left font-medium">{t('purchasing.calcColPayablePct')}</th>
+                                                    <th className="pr-3 text-right font-medium">{t('purchasing.calcColUnitPrice')}</th>
+                                                    <th className="text-right font-medium">{t('purchasing.calcColMetalValue')}</th>
+                                                </tr>
+                                            </thead>
                                             <tbody>
-                                                {l.calc.lines.map((cl) => (
+                                                {l.calc.lines.map((cl) => {
+                                                    /* 两档都要出现的数，提出来写一次 —— 抄成两份就是
+                                                       让两份将来各走各的，而漂移在桌面上是看不见的。
+                                                       ★ 那个「×」原样带着：它是桌面格子里本来就有的字，
+                                                       叠进去的时候去掉它就是【改了那一列装的东西】。 */
+                                                    const contentPctText = `${cl.content_pct}%`
+                                                    const payablePctText = `× ${cl.payable_pct}%`
+                                                    return (
                                                     <tr key={cl.metal}>
-                                                        <td className="pr-3">{t('metals.' + cl.metal)}</td>
-                                                        <td className="pr-3 font-mono">{cl.content_pct}%</td>
-                                                        <td className="pr-3 font-mono">× {cl.payable_pct}%</td>
+                                                        <td className="pr-3">
+                                                            {t('metals.' + cl.metal)}
+                                                            <div className="sm:hidden mt-0.5 space-y-0.5 text-gray-600">
+                                                                <div className="font-mono">
+                                                                    <span className="font-sans text-gray-500">{t('purchasing.calcColContentPct')}: </span>
+                                                                    {contentPctText}
+                                                                </div>
+                                                                <div className="font-mono">
+                                                                    <span className="font-sans text-gray-500">{t('purchasing.calcColPayablePct')}: </span>
+                                                                    {payablePctText}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="hidden sm:table-cell pr-3 font-mono">{contentPctText}</td>
+                                                        <td className="hidden sm:table-cell pr-3 font-mono">{payablePctText}</td>
                                                         <td className="pr-3 font-mono text-right">
                                                             {cl.price_usd_per_tonne !== null
                                                                 ? formatMoneyBare(cl.price_usd_per_tonne, '本块末行的「… = … USD」—— 计价明细整块是行情口径 USD') + '/t'
@@ -817,7 +849,8 @@ canEdit: boolean
                                                             {formatMoneyBare(cl.metal_value_usd, '本块末行的「… = … USD」—— 计价明细整块是行情口径 USD')}
                                                         </td>
                                                     </tr>
-                                                ))}
+                                                    )
+                                                })}
                                             </tbody>
                                         </table>
                                         <p className="font-mono text-gray-700">

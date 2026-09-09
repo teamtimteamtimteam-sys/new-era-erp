@@ -310,6 +310,12 @@ const zh = {
         headHeading: '箱子信息',
         shipmentsHeading: '这个箱子里的发货单',
         shipmentsEmpty: '这个箱子里还没有装货。',
+        // ★ TABLE-PHONE-5:箱子里那张发货单表此前【一个列头都没有】——四列数据没有主语。
+        // 这四个是新加的(2026-09-09 批),而且【桌面档也上】,不只是手机档。
+        colShipmentCode: '发货单号',
+        colOrderCode: '订单号',
+        colCustomer: '客户',
+        colShipDate: '发货日',
         attach: '装入发货单',
         attachEmpty: '没有等待装箱的发货单 —— 每一张都已经在某个箱子里了。',
         detach: '拆出',
@@ -5093,6 +5099,18 @@ const zh = {
         },
         applyTemplate: '套用模板',
         computeEstimate: '按化验估算',
+        // ★ TABLE-PHONE-5:这个钮底下那段计价明细此前【一个列头都没有】——五列裸的数字。
+        // 这五个是新加的(2026-09-09 批),而且【桌面档也上】。措辞刻意与计价器自己那张
+        // 明细表(pricing.colContent / colPrice / colValue)读起来一致 —— 但【键】不是从
+        // 那边借的:这个文件归 purchasing 这个命名空间管。
+        calcColMetal: '金属',
+        calcColContentPct: '含量%',
+        calcColPayablePct: '计价%',
+        // ★ 币种【刻意不进这两个列头】,理由同 en.ts:check-currency-literals 把
+        // 「金属价值(USD)」判成 FIN-0 那一类。单价那一格自己带着 '/t',
+        // 整块的口径由块末那行「… = … USD」说出来。
+        calcColUnitPrice: '单价',
+        calcColMetalValue: '金属价值',
         receiveAgainst: '按此单收货',
         close: '结束采购单',
         closeConfirm: '结束该采购单?',

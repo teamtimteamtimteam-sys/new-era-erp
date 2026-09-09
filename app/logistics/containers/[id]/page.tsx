@@ -137,6 +137,10 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                     voyage: t('logistics.colVoyage'), bl: t('logistics.blNumber'), blHint: t('logistics.blHint'),
                     notes: t('logistics.notes'), save: t('common.save'),
                     shipmentsHeading: t('logistics.shipmentsHeading'), shipmentsEmpty: t('logistics.shipmentsEmpty'),
+                    // ★ TABLE-PHONE-5:装着的发货单那张表此前【一个列头都没有】,四列数据没有主语。
+                    // 这四个 key 是新加的(Tim 批的),而它们上的是【两档】—— 桌面档也从此有列头。
+                    colShipmentCode: t('logistics.colShipmentCode'), colOrderCode: t('logistics.colOrderCode'),
+                    colCustomer: t('logistics.colCustomer'), colShipDate: t('logistics.colShipDate'),
                     attach: t('logistics.attach'), attachEmpty: t('logistics.attachEmpty'),
                     detach: t('logistics.detach'), detachReason: t('logistics.detachReason'),
                     milestonesHeading: t('logistics.milestonesHeading'), milestonesEmpty: t('logistics.milestonesEmpty'),

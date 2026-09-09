@@ -117,16 +117,46 @@ canEdit: boolean
                     <p className="text-sm text-gray-500">{labels.shipmentsEmpty}</p>
                 ) : (
                     <table className="mb-4 w-full border-collapse border border-gray-300 text-sm">
+                        {/* ★ TABLE-PHONE-5：这张表以前【一个列头都没有】—— 四列数据裸奔，
+                            而那不是手机上才有的毛病，是每一种屏幕上都有的。四个 key 是 Tim 批的，
+                            所以它们【桌面档也上】—— 这一步本身是一次桌面改动，单独报告过。
+                            第五列是拆离钮，它自己带着字，按 /finance/close 那一条先例不另造文案。 */}
+                        <thead className="bg-gray-100">
+                            <tr>
+                                <th className="border border-gray-300 px-2 sm:px-3 py-1 text-left">{labels.colShipmentCode}</th>
+                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-1 text-left">{labels.colOrderCode}</th>
+                                <th className="border border-gray-300 px-2 sm:px-3 py-1 text-left">{labels.colCustomer}</th>
+                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-1 text-left">{labels.colShipDate}</th>
+                                <th className="border border-gray-300 px-2 sm:px-3 py-1"></th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            {attached.map((s) => (
+                            {attached.map((s) => {
+                                /* 【两档都要出现的东西，提出来写一次】—— 抄成两份就是让两份
+                                   将来各走各的，而漂移在桌面上是看不见的：桌面那一份永远是对的那一份。 */
+                                const orderCodeText = <span className="font-mono text-xs">{s.order_code}</span>
+                                const shipDateText = s.ship_date
+                                return (
                                 <tr key={s.id}>
-                                    <td className="border border-gray-300 px-3 py-1">
+                                    <td className="border border-gray-300 px-2 sm:px-3 py-1">
                                         <Link href={`/sales/shipments/${s.id}`} className="font-mono text-xs text-blue-700 hover:underline">{s.code}</Link>
+                                        {/* 手机档拿掉的两列，原样叠在这里、各自带着列头——
+                                            「拿掉」指的是【那一列】，不是【那个事实】。 */}
+                                        <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                                            <div>
+                                                <span className="text-gray-500">{labels.colOrderCode}: </span>
+                                                {orderCodeText}
+                                            </div>
+                                            <div>
+                                                <span className="text-gray-500">{labels.colShipDate}: </span>
+                                                {shipDateText}
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-1 font-mono text-xs">{s.order_code}</td>
-                                    <td className="border border-gray-300 px-3 py-1">{s.customer}</td>
-                                    <td className="border border-gray-300 px-3 py-1">{s.ship_date}</td>
-                                    <td className="border border-gray-300 px-3 py-1">
+                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-1">{orderCodeText}</td>
+                                    <td className="border border-gray-300 px-2 sm:px-3 py-1">{s.customer}</td>
+                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-1">{shipDateText}</td>
+                                    <td className="border border-gray-300 px-2 sm:px-3 py-1">
                                         {detaching === s.id ? (
                                             <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                                             <form
@@ -147,7 +177,8 @@ canEdit: boolean
                                         )}
                                     </td>
                                 </tr>
-                            ))}
+                                )
+                            })}
                         </tbody>
                     </table>
                 )}

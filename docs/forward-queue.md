@@ -1673,27 +1673,37 @@ fixture 196 的 B 臂改用 `count(*)` 扫(**不求值任何列表达式**),那�
 **照样提交**,并列数组当场错位(`DecimalInput` 给了 name 会多渲染一个同名 hidden input)。
 说明见 `docs/known-issues.md` 的 RAW-TABLE-PHONE-SWEEP「四批之后」。
 
-**★ 剩下的:2 张表 / 2 个文件 —— 【两张卡的都是裁定,不是工时】**
+**★ 已上线 —— TABLE-PHONE-5(2026-09-09):最后两张,2 次判断 / 2 张表 / 2 个文件。
+这一批做完,`RAW-TABLE-PHONE` 关了。**
 
 | 批 | 内容 | 表数 / 判断数 |
 |---|---|---|
-| **TABLE-PHONE-6** | ★ **`logistics/containers/[id]/ContainerPanels:119`** —— 整张没有 `<thead>`,5 列全无列头。要做先批 4 个 key(发货单号 / 订单号 / 客户 / 发货日)。 | 1 张 / **0(待裁定)** |
-| **TABLE-PHONE-7** | ★ **`purchasing/orders/new/NewOrderForm:786`** —— **TABLE-PHONE-4 读出来它是同一个形状**:整张没有 `<thead>`,5 列全无列头(金属 / 含量% / 计价% / 单价 / 金属价值),而且它不是行编辑表,是折叠面板里一段**只读的算式明细**。要做先批 5 个 key。 | 1 张 / **0(待裁定)** |
+| ~~**TABLE-PHONE-6**~~ | ~~`logistics/containers/[id]/ContainerPanels:119`~~ | ~~1 张 / 0(待裁定)~~ |
+| ~~**TABLE-PHONE-7**~~ | ~~`purchasing/orders/new/NewOrderForm:786`~~ | ~~1 张 / 0(待裁定)~~ |
 
-**合计 2 张 = 1 + 1。**(上一版是 10 张 = 9 + 1;TABLE-PHONE-4 做掉了 **8 张**,
-`NewOrderForm:786` 从 TABLE-PHONE-4 里**拆出来单列一批**,理由与 `ContainerPanels` 逐字相同。
-**10 − 8 = 2**,对得上。)
-★ **`purchasing/orders/new/NewOrderForm` 今天【仍然是半张脸】** —— `:858`(分期)
-TABLE-PHONE-3 做了,`:786` 卡在裁定上。**这一次不是排期使然,是它缺列头。**
-★★ **除掉这两张 + 那 9 张 UNMEASURED 的带滚动外壳的表,这一族【已经空了】。**
+★★ **两批都划掉了 —— Tim 2026-09-09 批了那 9 个 key(4 + 5),而卡住这两张的
+【从来只有那一个裁定】。** 批下来之后它们各是一次判断、半刀的工,与上面那句预估一致。
+
+* `ContainerPanels:119`(装着的发货单,5 列)—— 加 4 个列头
+  (`logistics.colShipmentCode` / `colOrderCode` / `colCustomer` / `colShipDate`);
+  第 5 列是拆离钮,**自己带着字,按 `/finance/close` 那条先例不另造文案**。
+  手机留 **发货单号 · 客户 · 拆离钮**,折叠 订单号 · 发货日。
+* `NewOrderForm:786`(今天在 `:804`,加了 thead 之后在 `:808`;计价明细,5 列)——
+  加 5 个列头(`purchasing.calcColMetal` / `calcColContentPct` / `calcColPayablePct` /
+  `calcColUnitPrice` / `calcColMetalValue`)。手机留 **金属 · 单价 · 金属价值**,
+  折叠 含量% · 计价%。**整张只读,一个带 `name` 的输入框都没有**(量过,不是推的)。
+* ★ **`purchasing/orders/new/NewOrderForm` 到此【不再是半张脸】** —— `:858`(分期)
+  TABLE-PHONE-3 做的,`:786` 这一刀做的,这个文件整个清干净了。
+
+★★ **这九个列头【桌面档也上】,所以这一刀是一次【桌面改动】** ——
+本族的第二次(第一次是 TABLE-PHONE-1 那个 `/inventory` 的单位合并,单独批、单独报的)。
+**理由:五列裸的数字没有主语,那不是手机上才有的毛病,是每一种屏幕上都有的。**
 
 ★ `/logistics/forwarders/[id]` **不在这几批里** —— 它有滚动外壳,归下面那条 UNMEASURED。
 
-**触发条件:★ 变了 —— 从「没有了」变回【要一个裁定】。**
-剩下的两张都缺列头,而委托书一贯禁止现造文案。
-**Tim 要答的是同一个问题问两遍:这 9 个 key(4 + 5)批不批?**
-批了,两张各是一次判断、半刀的工;不批,这一族就到此为止 ——
-**而那也是一个可以接受的结局,只要它是说出来的。**
+**触发条件:没有了 —— `RAW-TABLE-PHONE` 已关(见 `docs/known-issues.md` 同名条的「结案」)。**
+**这一族还剩下的唯一一件事是下面那条 `RAW-TABLE-PHONE-WRAPPED`,而它的状态是
+【UNMEASURED】,触发条件是【先量,再决定】。**
 
 ---
 

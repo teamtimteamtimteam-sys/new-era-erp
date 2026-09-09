@@ -322,6 +322,13 @@ const en = {
         headHeading: 'Container details',
         shipmentsHeading: 'Shipments in this container',
         shipmentsEmpty: 'Nothing loaded into this container yet.',
+        // ★ TABLE-PHONE-5: the shipments table inside a container had NO header row at all —
+        // four columns of data with no subject. These four are new (approved 2026-09-09) and they
+        // go on the desktop table too, not only the phone one.
+        colShipmentCode: 'Shipment',
+        colOrderCode: 'Order',
+        colCustomer: 'Customer',
+        colShipDate: 'Shipped',
         attach: 'Attach shipment',
         attachEmpty: 'No shipment is waiting to be containerised — every shipment already sits in a container.',
         detach: 'Detach',
@@ -5152,6 +5159,20 @@ const en = {
         },
         applyTemplate: 'Apply template',
         computeEstimate: 'Compute from assay',
+        // ★ TABLE-PHONE-5: the calculated-pricing breakdown under this button had NO header row —
+        // five bare numeric columns. These five are new (approved 2026-09-09) and they go on the
+        // desktop table too. Wording deliberately matches the pricing calculator's own breakdown
+        // (pricing.colContent / colPrice / colValue) so the two read alike — the KEYS are not
+        // borrowed from there: this file is served by the purchasing namespace.
+        calcColMetal: 'Metal',
+        calcColContentPct: 'Content %',
+        calcColPayablePct: 'Payable %',
+        // ★ 币种【刻意不进这两个列头】:check-currency-literals 把 'Metal value (USD)'
+        // 判成 FIN-0 那一类(把币种烤进标签),而把 'Price (USD/t)' 判成 [unit]、
+        // 要过一遍眼才准进基线。两条都躲开了:单价那一格自己带着 '/t',
+        // 而整块的口径由块末那行「… = … USD」说出来 —— 屏幕上一个字都没少。
+        calcColUnitPrice: 'Price',
+        calcColMetalValue: 'Metal value',
         receiveAgainst: 'Receive against this order',
         close: 'Close order',
         closeConfirm: 'Close this purchase order?',
