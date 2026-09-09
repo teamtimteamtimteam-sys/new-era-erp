@@ -41,8 +41,23 @@
 // 它查的是【源码里写没写别的字体】。它【不】验证 coverage.json 与 .subset.ttf
 // 是否对得上(那由 subset.py 同一次产出保证),也【不】验证渲染结果的字形
 // (那要真的渲染,是 STEP 4 的事)。一支说得比自己做得多的检查,比没有更坏。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// 【瞄准 · AIM】
+//   我读的是      :import 了 `@react-pdf/renderer` 的 .ts/.tsx 源码(剥掉注释),
+//                   抽每一处 `fontFamily:` 的**字面写法**。
+//   我声称管的是   :对外单据的字体只有一个来源(`DOC_FONT_STACK`)。
+//   两者不同之处   :**我读的是源码里那个标识符,不是那份字体本身。**
+//                   `DOC_FONT_STACK` 指向的 .ttf 里有没有那个汉字,我答不出 ——
+//                   而那正是 PDF-1 那次事故的直接死因。
+//                   ☞ CHECKER-BLIND-SPOTS ④ **就是这一支的前身**:运行期那道守卫
+//                     读的是 coverage.json、文档写的是 Helvetica,两句话说的不是
+//                     同一件事,所以它每一次都通过。**一次致盲注入对那种缺陷完全
+//                     无效** —— 把 coverage.json 弄脏,它会照常变红,并因此发一张
+//                     它不够格发的合格证。这就是本刀要求手写这三行的理由。
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = process.cwd()
 const EXTS = new Set(['.tsx', '.ts'])
@@ -73,6 +88,7 @@ function stripComments(src) {
 
 const problems = []
 let scanned = 0
+let fontFamilyDecls = 0
 
 for (const abs of walk(ROOT)) {
     const raw = readFileSync(abs, 'utf8')
@@ -82,6 +98,7 @@ for (const abs of walk(ROOT)) {
     const src = stripComments(raw)
 
     for (const m of src.matchAll(/fontFamily\s*:\s*([^,\n}]+)/g)) {
+        fontFamilyDecls += 1
         const value = m[1].trim().replace(/\s+as\s+never$/, '').trim()
         if (value === ALLOWED_IDENTIFIER) continue
         const line = src.slice(0, m.index).split('\n').length
@@ -98,6 +115,12 @@ if (scanned === 0) {
     console.error('  判据(import 了 @react-pdf/renderer)多半失效了 —— 这不是"没有问题",是没有测量。')
     process.exit(2)
 }
+
+// ── 覆盖断言:判据的【原料】还在吗 ──────────────────────────────────────────
+// `scanned === 0` 守住了"一个 PDF 文件都没扫到"。它守不住第二段:文件扫到了,
+// 而 `fontFamily:` 那条正则一处都没匹配上 —— 那时 problems 是 0、闸是绿的,
+// 而它其实什么都没读。
+assertPopulation('check-pdf-font-stack', '匹配到的 fontFamily: 声明', fontFamilyDecls)
 
 if (problems.length) {
     console.error(`✗ check-pdf-font-stack:${problems.length} 处 PDF 文档写了字体栈以外的 fontFamily\n`)

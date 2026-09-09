@@ -26,11 +26,48 @@
 //   撤掉之后回到 EXIT 0 / 0 finding。
 //   一条没被证明会红的断言,和没有这条断言是一样的。
 //
+// ════════════════════════════════════════════════════════════════════════════
+// 【瞄准 · AIM】
+//   我读的是      :app/ 与 lib/ 下 .ts/.tsx 的源码文本(**先剥掉注释**),
+//                   从里面抽 `subject=` 的表达式原文,并把 t('a.b.c') 解析到
+//                   messages/en.ts 的**那句英文**。
+//   我声称管的是  :每一处确认对话框的调用点,主语都点得出【它在确认哪一个】。
+//   两者不同之处  :**它读的是源码,不是屏幕。** 一处主语在代码里引用了作用域
+//                   (于是三条判据全过),渲染出来仍然可能是空的或一样的 ——
+//                   `subject={r.label}` 而 `r.label` 运行期为空字符串,本闸看不见。
+//                   它保证的是【写法点得出行】,不是【屏幕上真的点出了行】。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【NARROW-COVERAGE-1(2026-09-09)修了两件,它们是同一个缺陷的两半】★★
+// ════════════════════════════════════════════════════════════════════════════
+// 本支此前是 `docs/forward-queue.md` 的 NARROW-COVERAGE-1 里点名的**实例 4**,
+// 而它的性质是:**它数错了,而且它自己永远发现不了。**
+//
+// ① 断言只有一个方向。原来是 `subjects.length < openings` ——
+//    拦得住解析器【漏抓】,拦不住它【凭空多抓】。
+// ② 于是它真的多抓了一处,线上报 **58 处 subject / 57 个 JSX 开标签**:
+//    · 文件级筛子跑在**没有去掉注释的原文**上,于是
+//      app/components/ui/action-message.tsx:13(一行 `//` 注释里提到组件名)
+//      让整个文件进了扫描范围;
+//    · :143 的 `data-action-message-subject={e.subject}` 被主语正则吃了下去——
+//      `\bsubject\s*=` 的 `\b` **在连字符后面是成立的**。
+//    · 而那个文件的 openings 是 0、subjects 是 1,`1 < 0` 为假,**它静静地通过**。
+//
+// 【修法,两条都对着上面那两半】
+//   · 判据改成 `(?<![-\w$])subject\s*=` —— 连字符与标识符字符后面的 `subject`
+//     不再算主语。实测:`data-action-message-subject={e.subject}` → 不匹配;
+//     `subject={r.code}` / `<ConfirmButton subject="…"` → 照旧匹配。
+//   · 文件级筛子与所有计数一律跑在**剥掉注释之后**的源码上。
+//   · 断言改成**逐文件相等**(assertPinned):JSX 抽出的主语数必须【等于】
+//     JSX 开标签数,多一个少一个都红。useConfirm 那一支单独计数、单独断言 ——
+//     它没有 JSX 开标签,混在一起数就等于把这条断言重新弄成单向的。
+//
 // 用法:node scripts/check-confirm-subject.mjs        (退出码 0 = 干净)
 // ════════════════════════════════════════════════════════════════════════════
 
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { assertPinned, assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = process.cwd()
 const SCAN_DIRS = ['app', 'lib']
@@ -88,21 +125,36 @@ function readBraced(src, from) {
     return null
 }
 
+// ★【注释要先剥掉,而且要【等长】地剥】★
+// 原来的文件级筛子跑在没剥注释的原文上,于是一个只在 `//` 注释里提到组件名的
+// 文件也会被扫 —— 那正是那处幽灵主语进来的门。
+// 【为什么用等长空格替换,而不是删掉】下面所有的 `lineOf(src, index)` 都靠
+// 字符下标算行号。删掉注释会让每一处报错的行号往前漂,而一个行号会漂的检查,
+// 与一个不报行号的检查一样难用。
+function stripComments(src) {
+    return src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, ' '))
+              .replace(/(^|[^:])\/\/[^\n]*/g, (m, p1) => p1 + ' '.repeat(m.length - p1.length))
+}
+
 function findSubjects(src) {
     const found = []
     // JSX:subject={expr} 或 subject="literal"
-    const re = /\bsubject\s*=\s*(\{|")/g
+    // ★【`\b` 在连字符后面是成立的,所以它【不够】】★
+    //   `data-action-message-subject={e.subject}` 里,`-subject` 的 `\b` 成立,
+    //   于是一个 data-* 属性被当成了确认框主语(线上实测,58 对 57 的那一处)。
+    //   改用负向后顾:前一个字符是连字符或标识符字符时,这不是一个 subject prop。
+    const re = /(?<![-\w$])subject\s*=\s*(\{|")/g
     let m
     while ((m = re.exec(src)) !== null) {
         if (m[1] === '"') {
             const close = src.indexOf('"', m.index + m[0].length)
             if (close === -1) continue
-            found.push({ index: m.index, expr: JSON.stringify(src.slice(m.index + m[0].length, close)) })
+            found.push({ index: m.index, via: 'jsx', expr: JSON.stringify(src.slice(m.index + m[0].length, close)) })
             continue
         }
         const braced = readBraced(src, m.index + m[0].length - 1)
         if (!braced) continue
-        found.push({ index: m.index, expr: braced.expr })
+        found.push({ index: m.index, via: 'jsx', expr: braced.expr })
         re.lastIndex = braced.end
     }
     // useConfirm():对象字面量里的 `subject: expr` —— 目前没有调用点,
@@ -113,7 +165,7 @@ function findSubjects(src) {
         const re2 = /^[ \t]*subject\s*:\s*(.+?),?[ \t]*$/gm
         while ((m = re2.exec(src)) !== null) {
             if (/^\s*subject\s*:\s*string\b/.test(m[0])) continue   // 类型声明,不是调用点
-            found.push({ index: m.index, expr: m[1].trim().replace(/,$/, '') })
+            found.push({ index: m.index, via: 'useConfirm', expr: m[1].trim().replace(/,$/, '') })
         }
     }
     return found
@@ -124,16 +176,13 @@ function findSubjects(src) {
 // 后来查明是【注释里提到组件名】,不是漏抓。可**当时没有任何东西能证明这一点**:
 // 一个解析器悄悄跳过五个调用点,和它抓到了五个坏调用点,输出长得一模一样。
 // 所以这里把它变成断言:一个文件里有几个真的 JSX 开标签,就得抽出几处主语。
-// 漏一个,本检查【自己】红 —— 一道会漏抓而不吭声的闸,比没有闸更坏,
-// 因为它还发一张"干净"的证明。
+// **多一个也红**(NARROW-COVERAGE-1)—— 见抬头,原来那条只拦少不拦多,
+// 于是它自己多抓了一处,而且永远发现不了。
+//
+// 【入参已经是剥掉注释的源码】所以这里不再自己跳 `//` 行:
+// 那个跳法只认【整行注释】,一句 `const x = 1 // <ConfirmButton 见下` 它就漏了。
 function countJsxOpenings(src) {
-    let n = 0
-    for (const line of src.split('\n')) {
-        const t = line.trim()
-        if (t.startsWith('//') || t.startsWith('*')) continue     // 注释里提到组件名不算
-        n += (line.match(/<(?:ConfirmButton|ConfirmDialog)\b/g) ?? []).length
-    }
-    return n
+    return (src.match(/<(?:ConfirmButton|ConfirmDialog)\b/g) ?? []).length
 }
 
 const lineOf = (src, index) => src.slice(0, index).split('\n').length
@@ -239,25 +288,41 @@ const findings = []
 let sites = 0
 let scanned = 0
 let jsxOpenings = 0
+let jsxSubjects = 0
+let hookSubjects = 0
+let filesWalked = 0
 
 for (const dir of SCAN_DIRS) {
     for (const file of walk(join(ROOT, dir))) {
+        filesWalked++
         const rel = relative(ROOT, file)
         if (rel === COMPONENT_FILE) continue          // 组件自己声明 subject,不是调用点
-        const src = readFileSync(file, 'utf8')
+        // ★ 一切都跑在【剥掉注释】的源码上 —— 文件级筛子也是。
+        //   原来筛子跑在原文上,于是一个只在注释里提到组件名的文件也会被扫,
+        //   而它里面的 data-* 属性就成了那处幽灵主语。
+        const src = stripComments(readFileSync(file, 'utf8'))
         if (!src.includes('subject')) continue
         if (!/ConfirmButton|ConfirmDialog|useConfirm/.test(src)) continue
         scanned++
         const subjects = findSubjects(src)
         const openings = countJsxOpenings(src)
-        if (subjects.length < openings) {
-            findings.push({
-                rel, line: 1, expr: '(n/a)', code: 'COVERAGE',
-                why: `本文件有 ${openings} 个 <ConfirmButton>/<ConfirmDialog> 开标签,` +
-                     `却只抽出 ${subjects.length} 处主语 —— 解析器漏了,不是代码干净`,
-            })
-        }
+        const viaJsx = subjects.filter((s) => s.via === 'jsx').length
+
+        // ★★【两个方向都拦】★★ 逐文件:JSX 抽出的主语数必须【等于】JSX 开标签数。
+        //   少 → 解析器漏抓;多 → 解析器凭空多抓(线上就发生过,见抬头)。
+        //   useConfirm 那一支【不并进来数】:它没有 JSX 开标签,并进来就等于
+        //   给这条断言重新开一个只能变大的方向 —— 那正是原来那条的毛病。
+        assertPinned(
+            'check-confirm-subject',
+            `${rel} 的 JSX 主语数 ↔ JSX 开标签数`,
+            viaJsx, openings,
+            'subject 是必填 prop,所以每一个 <ConfirmButton>/<ConfirmDialog> 开标签' +
+            '都应当恰好对应一处 subject=。对不上就是判据出了问题,不是代码干净。',
+        )
+
         jsxOpenings += openings
+        jsxSubjects += viaJsx
+        hookSubjects += subjects.length - viaJsx
         for (const s of subjects) {
             sites++
             const bad = judge(s.expr, english)
@@ -266,8 +331,18 @@ for (const dir of SCAN_DIRS) {
     }
 }
 
-console.log(`check-confirm-subject: ${sites} 处 subject / ${jsxOpenings} 个 JSX 开标签,` +
-            `来自 ${scanned} 个文件,English 词条 ${english.size} 条`)
+// ── 覆盖断言:零必须是一次测量 ──────────────────────────────────────────────
+// 【为什么四条都要】走文件、筛文件、解析词条、抽主语,是四段各自会独立瞎掉的
+// 管道。只断言最后一个数,前几段瞎掉时它同样是 0,而 0 会被读成"全都合规"。
+// 【下界一律是 1】—— 见 selfproof.mjs 里那段:一个凭感觉写下的下界会在树缩小
+// 那天误报,而"零必须是一次测量"只要求区分 0 与非 0。
+assertPopulation('check-confirm-subject', 'app/ 与 lib/ 下走到的 .ts/.tsx 文件', filesWalked)
+assertPopulation('check-confirm-subject', '含确认调用点的文件', scanned)
+assertPopulation('check-confirm-subject', 'messages/en.ts 解析出的词条', english.size)
+assertPinned('check-confirm-subject', '全库 JSX 主语总数 ↔ JSX 开标签总数', jsxSubjects, jsxOpenings)
+
+console.log(`check-confirm-subject: ${sites} 处 subject(JSX ${jsxSubjects} · useConfirm ${hookSubjects})` +
+            ` / ${jsxOpenings} 个 JSX 开标签,来自 ${scanned} 个文件,English 词条 ${english.size} 条`)
 if (findings.length === 0) {
     console.log('EXIT 0 — 每一处确认都点得出它在确认什么。')
     process.exit(0)

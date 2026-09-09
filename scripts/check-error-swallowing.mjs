@@ -46,9 +46,30 @@
 //   ✗ 跨函数的兜底(A 查、B 兜)。
 // ════════════════════════════════════════════════════════════════════════════
 //
+// ════════════════════════════════════════════════════════════════════════════
+// 【瞄准 · AIM】
+//   我读的是      :`app/` 与 `lib/` 下 .ts/.tsx 的**逐行文本**(return 那一类取
+//                   两行的窗口),用三条正则匹配。
+//   我声称管的是  :一次失败的查询不许被读成一个空集。
+//   两者不同之处  :**我读的是行,不是数据流。** 抬头 ③④ 已经写明两类看不见的形状,
+//                   而它们不是"还没做" —— 判它们要跟着变量走。
+//                   ★ 另外一条此前没写:**我靠【名字】判断什么是查询结果**
+//                   (`data` / `xxxRes.data`)。一个叫别的名字的查询结果我看不见,
+//                   而一个叫 `data` 的非查询结果我会误判 —— ALLOWLIST 里
+//                   `ImportStatementForm` 那条(PapaParse 的 `res.data`)就是它。
+//
+// ★★【NARROW-COVERAGE-1(2026-09-09)补的覆盖断言】★★
+//   原来它没有任何东西守着"我到底扫了几个文件"。walk() 返回空数组时
+//   `bad` / `onQueue` / `nAllow` 全是 0,于是它印「✓ 没有【新增】…」并 exit 0。
+//   【两条】① 扫到的文件数;② **ALLOWLIST 是一组"已知必然命中"的探针** ——
+//   九条豁免每一条都断言着"那一行不是缺陷",所以它们必须真的还在被命中。
+//   命不中只有两种可能而输出上分不开:那一行改好了(该删掉这条豁免),
+//   或者扫描器瞎了。做法照 check-base-isolation:160 的既有先例。
+//
 // 用法:node scripts/check-error-swallowing.mjs   (退出码 0 = 干净)
 import { readdirSync, statSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { assertAllowlistLive, assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 
@@ -163,10 +184,12 @@ function* walk(dir) {
 }
 
 const hits = []
+let filesScanned = 0
 for (const dir of ['app', 'lib']) {
     for (const file of walk(join(ROOT, dir))) {
         const rel = file.slice(ROOT.length)
         if (rel.includes('database.types')) continue
+        filesScanned++
         const lines = readFileSync(file, 'utf8').split('\n')
         lines.forEach((line, i) => {
             const t = line.trim()
@@ -185,6 +208,16 @@ for (const dir of ['app', 'lib']) {
         })
     }
 }
+
+// ── 覆盖断言 ────────────────────────────────────────────────────────────────
+assertPopulation('check-error-swallowing', 'app/ 与 lib/ 下扫到的 .ts/.tsx 文件', filesScanned)
+assertAllowlistLive(
+    'check-error-swallowing',
+    'ALLOWLIST 的存活(每一条豁免都该还在被命中)',
+    ALLOWLIST,
+    (a) => hits.some((h) => h.rel.startsWith(a.path) && (!a.match || h.full.includes(a.match))),
+    (a) => `${a.path}${a.match ? `  match=${JSON.stringify(a.match)}` : ''}`,
+)
 
 const KIND_LABEL = {
     coalesce: '?? 空值',

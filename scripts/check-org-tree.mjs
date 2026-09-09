@@ -14,13 +14,26 @@
 // 这正是它能测到那五个分支的原因。**线上那一半由 db/fixtures/181 另外钉。**
 //
 // 【故障注入怎么做】改 lib/orgTree.ts 里对应的那一行,本脚本必须变红并指名道姓。
-// 退出码 0 = 全过;1 = 有断言不成立。
+// 退出码 0 = 全过;1 = 有断言不成立;2 = **断言没跑齐**(覆盖断言,见报告那一段)。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// 【瞄准 · AIM】
+//   我读的是      :`lib/orgTree.ts` 的四个纯函数,拿 38 组**我自己造的**员工/部门
+//                   数组跑一遍。
+//   我声称管的是   :汇报树的六种脏数据各自渲染成什么。
+//   两者不同之处   :**我读的是那四个纯函数,不是那一页。** 页面怎么把
+//                   `issue` / `cycles` / `emptyDepartments` 画出来(甚至有没有画),
+//                   我一个字都没看 —— 抬头自己写着「线上那一半由 db/fixtures/181 另外钉」,
+//                   而【渲染】那一段两者都没有钉。
 // ════════════════════════════════════════════════════════════════════════════
 import { buildOrgTree, isDeparted, showsStatus, flattenForList } from '../lib/orgTree.ts'
+import { assertAssertionsRan } from './lib/selfproof.mjs'
 
 let failures = 0
+let ran = 0
 const fails = []
 function check(name, cond, detail) {
+    ran++
     if (cond) return
     failures++
     // 【失败要报得出 file:line】一句"某条断言不成立"会让人回来数括号。
@@ -191,6 +204,10 @@ const emp = (over = {}) => ({
         `total=${t.total} roots=${t.rootCount} depth=${t.maxDepth}`)
     check('⑩-b 一秒之内(不是 O(n²))', ms < 1000, `${ms}ms`)
 }
+
+// ── 覆盖断言:断言真的跑了 ──────────────────────────────────────────────────
+// 见 check-pmap 里同一段:这一族的失效方式是【没跑到】,而没跑到时 failures 是 0。
+assertAssertionsRan('check-org-tree', ran, 38)
 
 // ── 报告 ──────────────────────────────────────────────────────────────────
 if (failures) {

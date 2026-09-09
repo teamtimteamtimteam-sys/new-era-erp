@@ -35,6 +35,35 @@
 //   ✗ 它看不见:同一文件同一规则里,一处违规被修好、另一处被新加(净额为零)。
 //     那是这个口径【已知的洞】,写在这里而不是等下一个人踩到。
 //
+// ════════════════════════════════════════════════════════════════════════════
+// 【瞄准 · AIM】
+//   我读的是      :`new ESLint({ cwd: ROOT }).lintFiles(['.'])` 回来的结果数组
+//                   —— 也就是**eslint 自己决定要看哪些文件**之后的产物。
+//   我声称管的是  :这棵树上的 eslint 问题数只降不升。
+//   两者不同之处  :★ **我读的那份清单,由 `eslint.config.mjs` 与它的 ignores 决定,
+//                   而我对那份清单一个字都没有验过。** 一次让 eslint 少看几个目录
+//                   的配置改动,在我这里长得【和有人把问题修好了一模一样】——
+//                   两者都表现为"某个文件+规则的计数掉到 0"。
+//                   ☞ 下面的覆盖断言就是为这一句写的。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【NARROW-COVERAGE-1(2026-09-09)补的覆盖断言 —— 它此前是全库最大的一个洞】★★
+// ════════════════════════════════════════════════════════════════════════════
+// 原来的判据只看三件事:有没有【新的】文件+规则、有没有【变多】、总数有没有升。
+// **三件在 eslint 一个文件都没看的时候【全部为假】** ——
+//   added = []、risen = []、totalsRose = (0 > 42) = false,
+// 于是它印「✓ 没有新增的 eslint 问题。」并 **exit 0**。
+// **一次完全瞎掉的 eslint,能通过这道冻结 42/88 的闸。**
+// 而这道闸是整条构建链上最不能瞎的一道:本仓库每一刀都拿它的绿灯当"没加新债"的证明。
+//
+// 【两条断言,各治一半】
+//   ① 它到底看了几个文件?0 个 = 瞎了,不是树干净了。
+//   ② **基线本身就是一组"已知必然被看到"的探针。** 基线里点名的每一个文件,
+//      这一次都必须真的被 lint 到。看不到,只有两种可能而它们在输出上分不开:
+//      那个文件没了(基线过期,`--update-baseline`),或者 eslint 不再看它了。
+//      这一条与 check-base-isolation:160 的 `known !== KNOWN_CONVERSIONS.size`
+//      是同一个做法 —— 那一处已经上线,这里只是把它推广过来。
+//
 // 用法:
 //   node scripts/check-lint.mjs                    # 闸(进 npm run build)
 //   node scripts/check-lint.mjs --update-baseline  # 收紧基线(只在干净树上做)
@@ -42,6 +71,7 @@
 import { ESLint } from 'eslint'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { assertAllowlistLive, assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = process.cwd()
 const BASELINE = join(ROOT, 'scripts', 'lint-baseline.json')
@@ -53,6 +83,11 @@ const NOTE = '★ 这份基线【只会缩短】,不会变长。键是【文件�
 // ── 量 ──────────────────────────────────────────────────────────────────────
 const eslint = new ESLint({ cwd: ROOT })
 const results = await eslint.lintFiles(['.'])
+
+// ── 覆盖断言 ① ──────────────────────────────────────────────────────────────
+// eslint 到底看了几个文件?一个都没看时,下面每一条判据都为假,而闸会变绿。
+const lintedFiles = new Set(results.map((r) => relative(ROOT, r.filePath)))
+assertPopulation('check-lint', 'eslint 实际 lint 到的文件', lintedFiles.size)
 
 /** `${file}${SEP}${rule}` -> { errors, warnings } */
 const now = new Map()
@@ -95,6 +130,20 @@ if (UPDATE || !existsSync(BASELINE)) {
 // ── 比 ──────────────────────────────────────────────────────────────────────
 const base = JSON.parse(readFileSync(BASELINE, 'utf8'))
 const baseAt = (file, rule) => base.entries?.[file]?.[rule] ?? { errors: 0, warnings: 0 }
+
+// ── 覆盖断言 ② ──────────────────────────────────────────────────────────────
+// 基线里点名的每一个文件,这一次都必须真的被 lint 到。
+// 【为什么这一条比"总数没升"硬】总数没升在 eslint 少看了几个目录的时候【也成立】,
+// 而且那时它还顺手把那些文件报成"债还掉了"(fallen),读起来像好消息。
+const baseFiles = Object.keys(base.entries ?? {})
+assertPopulation('check-lint', '基线里点名的文件', baseFiles.length)
+assertAllowlistLive(
+    'check-lint',
+    '基线文件的可见性(每一个都该被 lint 到)',
+    baseFiles,
+    (f) => lintedFiles.has(f),
+    (f) => `${f} —— 基线记着它有 eslint 问题,而这一次 eslint 【没有看它】`,
+)
 
 const risen = []
 const added = []

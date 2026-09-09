@@ -12,13 +12,25 @@
 //   ③ 吞掉 reject —— 把一次查询失败变成一个看起来正常的零,
 //      正是 AGENTS.md「失败不是空集」那一条。
 //
-// 退出码 0 = 全过;1 = 有断言不成立。
+// 退出码 0 = 全过;1 = 有断言不成立;2 = **断言没跑齐**(覆盖断言,见文件末尾)。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// 【瞄准 · AIM】
+//   我读的是      :`lib/pMap.ts` 导出的 `pMap` 与 `DEFAULT_QUERY_CONCURRENCY`,
+//                   拿 14 组**我自己造的输入**跑一遍。
+//   我声称管的是   :有上限的并发 map,顺序 / 上限 / 失败外抛 / 边界 / 批数五条性质。
+//   两者不同之处   :**我读的是那个函数,不是它的调用点。** 一个调用点传错了
+//                   `limit`、或者压根没用 `pMap` 而是手写了一个 `Promise.all`,
+//                   我一个都看不见 —— 全库谁在用它、用得对不对,没有任何机器在看。
 // ════════════════════════════════════════════════════════════════════════════
 import { pMap, DEFAULT_QUERY_CONCURRENCY } from '../lib/pMap.ts'
+import { assertAssertionsRan } from './lib/selfproof.mjs'
 
 let failures = 0
+let ran = 0
 const fails = []
 function check(name, cond, detail) {
+    ran++
     if (cond) return
     failures++
     const at = (new Error().stack || '').split('\n')
@@ -91,6 +103,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
     check('⑤-a 墙上时间接近【批数 × 一次往返】,不是【次数 × 一次往返】',
         ms < serial / 3, `ms=${ms} 串行=${serial} 理论批=${batches}`)
 }
+
+// ── 覆盖断言:断言真的跑了 ──────────────────────────────────────────────────
+// 【这一支的失效方式不是"漏抓",是"根本没跑到"】一个 early return、一个被注释
+// 掉的块、一个 if (false) —— failures 仍然是 0,于是它印一个绿勾。
+// 所以把【真的求值过的断言条数】钉死;加断言就把这个数一起改掉,摩擦是刻意的。
+assertAssertionsRan('check-pmap', ran, 14)
 
 if (failures) {
     console.error(`✗ check-pmap:${failures} 条断言不成立`)

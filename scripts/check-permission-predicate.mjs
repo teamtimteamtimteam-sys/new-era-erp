@@ -20,6 +20,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = process.cwd()
 const problems = []
@@ -34,7 +35,17 @@ function walk(dir, out = []) {
     }
     return out
 }
+//
+// ==========================================================================
+// 【瞄准 · AIM】
+//   我读的是      :`app/` 与 `lib/` 的源码文本(剥注释),以及 `lib/modules.ts` 的注册表。
+//   我声称管的是   :权限求值只有一处(`allows`)· 功能可跨模块 · 守卫的返回值都接住了。
+//   两者不同之处   :**我读的是源码里的写法,不是运行期的答案。** 一处 `allows()` 调用
+//                   传错了 spec,我看不出来 —— 我只保证没有人**另写**一份求值。
+//                   ★ 而「一个人点不点得到」我和 `--reach` 都答不了(AGENTS.md 明写)。
+// ==========================================================================
 const FILES = [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'lib'))]
+assertPopulation('check-permission-predicate', 'app/ 与 lib/ 下走到的文件', FILES.length)
 const rel = (p) => p.slice(ROOT.length + 1)
 const read = (p) => readFileSync(p, 'utf8')
 // 注释不算实现 —— 讲这条规矩的注释里必然会出现被禁的写法。
@@ -274,6 +285,11 @@ if (guardNames.length > 0) {
 }
 
 // ── 判词 ───────────────────────────────────────────────────────────────────
+// * 【同样是一次没有咬人的注入逼出来的】把扫描范围缩到一个叶子目录之后，
+//   guardCallSites 从 186 掉到 0，而它照旧印「守卫 4 支的 0 处调用都接住了返回值」
+//   并 exit 0 —— 一句「0 处调用都接住了」在语法上为真，在意思上是空的。
+assertPopulation('check-permission-predicate', '守卫的调用点', guardCallSites)
+
 if (problems.length === 0) {
     console.log(`✓ 权限谓词:求值一处(allows)· FUNCTIONS ${entries.length} 条(${multi.length} 条跨模块)· 受限具名 · 守卫 ${guardNames.length} 支的 ${guardCallSites} 处调用都接住了返回值`)
     process.exit(0)

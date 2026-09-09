@@ -194,6 +194,63 @@ c 说不出话才退回去读调用点(路线 a)。** 每一行的最后一列�
 
 ---
 
+## 5.4 ★ 更正(NARROW-COVERAGE-1,2026-09-09):本刀报的三个 `deleted_at` 数是**低报**
+
+★★【更正 · NARROW-COVERAGE-1,2026-09-09 —— 连同【那三个数是从哪来的】】★★
+**R-Q5:不只写新数,写清楚旧数的出处。** CONSEQ-1 在队列里立的规矩是
+「本条记出处,不只记结果。下一条也照办」——**本刀就是那个"下一条"。**
+
+**旧数:`materials` 15 之 10 · `suppliers` 19 之 14 · `customers` 16 之 13。**
+**它们是低报,而低报的原因是量具的形状,不是谁数错了:**
+那支扫描器只在**同一条调用链上**找 `.is('deleted_at', null)`,
+于是它**结构上看不见**写在 helper 里的那一次过滤 ——
+`app/materials/materialQuery.ts:68` 的 `applyMaterialFilters`、
+`app/suppliers/supplierQuery.ts:65` 的 `applySupplierFilters`、
+`app/sales/customers/customerQuery.ts:54` 的 `applyCustomerFilters`,
+**三支都是无条件 `chain.is('deleted_at', null)`**,清单页与导出路由全走它们。
+☞ 这本身就是「名字对,覆盖窄」的又一例,而它**出在交给下一刀的那个数上**。
+
+**重量之后(分母逐个对上:15 / 19 / 16,与旧数同源):**
+
+| 表 | `.from()` 站点 | 其中**写入点**(根本不是读点) | 读点 | 读点里过滤了的 | **真的不过滤** |
+|---|---|---|---|---|---|
+| `materials` | 15 | 3 | 12 | **11**(链上 8 + helper 3) | **1** |
+| `suppliers` | 19 | 4 | 15 | **13**(链上 10 + helper 3) | **2** |
+| `customers` | 16 | 3 | 13 | **11**(链上 8 + helper 3) | **2** |
+
+★ **旧数把写入点也算进了"读点"里** —— `INSERT` / `UPDATE` 一个 `deleted_at`
+过滤器都不该有,把它们放进分母会让比例天生偏低。
+
+**而那 5 处真的不过滤的读点,逐个读过之后【全部是拿着一个已有的父记录去取它指着的那一行】:**
+* `app/purchasing/orders/[id]/page.tsx:258` — `.in('id', materialIds)`,在一张**历史单据**上显示料名
+* `app/logistics/forwarders/page.tsx:55` — `.in('id', …)`,给**已经筛过**的货代清单补付款条件
+* `app/logistics/forwarders/[id]/page.tsx:47` — `.eq('id', id).maybeSingle()`,货代详情页
+* `app/finance/credit-notes/page.tsx:114` — `.in('id', customerIds)`,显示已开出贷项凭证的客户名
+* `app/finance/statements/[id]/pdf/route.ts:53` — `.eq('id', …).maybeSingle()`,对账单 PDF 抬头
+
+也就是 CONSEQ-1 假设存在、但**从未确立**的那一类正当不过滤:
+**一行软删之后仍然要能在旧单据上印出它的名字**,否则历史单据会变成一排空白。
+
+★★ **但这【不】等于「它不会再被选到」现在可以写了 —— 那句话问的对象一开始就不对。**
+需要的证明不是「所有读点都过滤吗」,而是「**一行软删之后,还能不能在一张【新】单据上被【选中】**」。
+两条实测说明第一个总体量不出第二件事:
+* **内嵌读根本不在分母里。** `.select('… materials ( … ) …')` 这种内嵌关系读,
+  `.from()` 计数一个都看不见:`materials` **21 处**、`customers` **9 处**、
+  `suppliers` **4 处** —— `materials` 的内嵌读**比直连读还多**。
+  (这正是 `CHECKER-BLIND-SPOTS ②` 逐字记着的那条盲区,原样再现。)
+* **选择器不在这些文件里。** 读 `.from('materials')` 的 **14 个文件**中,
+  **0 个**渲染 `<option>` / `<select>` / Combobox(对照:全库 **115 个** `.tsx` 含 `<option>`)。
+  **料的下拉是从别处喂的**,所以按读点数出来的比例与「能不能被选到」不相干。
+
+☞ **Tim 的裁定(R-Q6):PART 2 在【选择点】上量,不在读点上量。**
+「everywhere it matters」= **每一处把这张表当作可选项呈现给操作者、
+且那次选择会落到一张新单据上的地方。** 不是每一处读。
+**上面这张读点表作为附带产物交回,不丢掉。**
+☞ 量法:`/tmp/delcount.mjs` 那一支(helper 感知 + 写入点分离)。
+  **下一个人抄这个数的时候,请连量法一起抄走。**
+
+---
+
 ## 6. 登记、**没有修**:`check-confirm-subject` 的幽灵主语
 
 **R-Q7:只登记。已写进 `docs/forward-queue.md` 的 `NARROW-COVERAGE-1` 条目。**

@@ -32,11 +32,26 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { scanCjk } from './survey-cjk-strings.mjs'
+import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = process.cwd()
 const BASELINE = join(ROOT, 'scripts/cjk-rendered-baseline.json')
 
-const hits = scanCjk(ROOT).filter((h) => h.cat === 'D-rendered')
+//
+// ==========================================================================
+// 【瞄准 · AIM】
+//   我读的是      :`survey-cjk-strings.mjs` 导出的 `scanCjk()` 分好类之后的结果 —— 也就是说
+//                   **我读的是另一支脚本的判断,不是树。** 我自己一个字符都没扫。
+//   我声称管的是   :屏幕上不许【新增】写死的中文。
+//   两者不同之处   :两处。① 抬头 KNOWN LIMITATION 已经写明:**我只认中文**,
+//                   一句只有英文的硬串我一个都抓不到。② 更要紧的一处此前没写:
+//                   **我的覆盖率就是 `scanCjk` 的覆盖率。** 那个分类器漏掉一类,
+//                   我这里表现为「基线变短了」—— 而基线变短在本文件里是**好消息**,
+//                   会被顺手 `--update-baseline` 掉。下面那条断言就是为这句写的。
+// ==========================================================================
+const allCjk = scanCjk(ROOT)
+assertPopulation('check-cjk-rendered', 'scanCjk() 返回的中文串(全部类别)', allCjk.length)
+const hits = allCjk.filter((h) => h.cat === 'D-rendered')
 // 键用【文件 :: 文本】,不用行号 —— 行号会随无关的编辑漂移,
 // 那会让基线天天要刷新,而一个天天要刷新的基线等于没有基线。
 const counts = {}
@@ -60,6 +75,14 @@ try {
     process.exit(2)
 }
 
+assertPopulation('check-cjk-rendered', '基线里的条目', Object.keys(base).length)
+// * 【这一条是被一次【没有咬人】的致盲注入逼出来的,记在这里】
+// 第一版只断言 scanCjk() 的**总**返回数。把分类判据弄瞎(D-rendered 改成一个匹配不到
+// 的值)之后:总数照旧、hits 变 0、added 空、gone 变成 18,于是它印
+// 「小了 18 条(基线可以变短)」并 **exit 0** —— 还邀请你刷新基线。
+// **一个瞎掉的分类器伪装成了一次还债。** 所以断言要下在【过滤之后】那一格上:
+// 基线有 18 条,那么 D-rendered 这一类今天就不可能是 0。
+assertPopulation('check-cjk-rendered', '判成 D-rendered(会走到人眼前)的中文串', hits.length)
 const added = Object.keys(counts).filter((k) => !(k in base) || counts[k] > base[k])
 const gone = Object.keys(base).filter((k) => !(k in counts) || counts[k] < base[k])
 

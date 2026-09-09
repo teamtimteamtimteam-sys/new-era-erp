@@ -22,6 +22,7 @@
 
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = process.cwd()
 
@@ -127,7 +128,19 @@ const walk = (dir, out = []) => {
     return out
 }
 
+//
+// ==========================================================================
+// 【瞄准 · AIM】
+//   我读的是      :`app/` 与 `lib/` 下 .ts/.tsx/.mjs 的源码文本,找 import 与 `base-*` 类名。
+//   我声称管的是   :GUARDED 里那批组件【还没有被任何页面采用】。
+//   两者不同之处   :**我只答「有没有人 import 它」,不答「用得对不对」。**
+//                   抬头已经逐个写明 input/label/select/button 毕业之后本闸
+//                   对它们【不再守着任何东西】。★ 另外:`GUARDED` 同样是一张手写
+//                   清单 —— 一个新建、但没写进清单的组件,我一样看不见。
+// ==========================================================================
 const files = [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'lib'))]
+assertPopulation('check-base-isolation', 'app/ 与 lib/ 下走到的文件', files.length)
+assertPopulation('check-base-isolation', 'GUARDED 里仍在守着的组件', GUARDED.length)
 const importRe = new RegExp(
     String.raw`from\s+['"]@/app/components/ui/(` + GUARDED.join('|') + String.raw`)['"]`, 'g')
 const classRe = /\bbase-(flash-ok|nudge-err|skeleton|spin|pressable|reveal)\b/g

@@ -68,6 +68,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = process.cwd()
 const SCAN_DIRS = ['app', 'lib']
@@ -106,7 +107,17 @@ function handlesError(lines, idx, callCol) {
     return false
 }
 
+//
+// ==========================================================================
+// 【瞄准 · AIM】
+//   我读的是      :`app/` 与 `lib/` 的源码文本,找 `auth.getUser()` 调用点及其解构写法。
+//   我声称管的是   :`getUser()` 的 error 不许被丢掉。
+//   两者不同之处   :**我只答「接住了没有」,不答「接住之后处理得对不对」** ——
+//                   抬头已经写明后者要读控制流。★ 而 `unchecked` 那 45 处**是债**,
+//                   不是覆盖:它们在册(AUTH-ERROR-SWALLOWED),每次都打印出来。
+// ==========================================================================
 const files = SCAN_DIRS.flatMap((d) => walk(join(ROOT, d)))
+assertPopulation('check-auth-error-swallowing', 'app/ 与 lib/ 下走到的文件', files.length)
 const unchecked = []
 let total = 0
 
@@ -124,6 +135,7 @@ for (const f of files) {
     })
 }
 
+assertPopulation('check-auth-error-swallowing', '扫到的 getUser() 调用点', total)
 const counts = new Map()
 for (const h of unchecked) counts.set(h.file, (counts.get(h.file) ?? 0) + 1)
 

@@ -19,8 +19,27 @@
 //
 // 【为什么比【名字】而不是比【个数】】两边都是 34 而其中一支拼错了,比个数是绿的。
 //   本仓库为"一个恒绿的判词是装饰,不是检查"付过很多次账。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// 【瞄准 · AIM】
+//   我读的是      :`db/views/operations_now.sql` 与 `lib/reminders.ts` 两份**源码文本**,
+//                   各用一条正则抽出一组支名。
+//   我声称管的是  :视图里有一支提醒,首页上就得有一块对应的牌子。
+//   两者不同之处  :**我读的是注册表,不是屏幕。** `lib/reminders.ts` 里有一条
+//                   `itemType`,不等于那块牌子真的渲染出来了 ——
+//                   渲染那一段(`app/page.tsx` 怎么用这份清单)我一个字都没看。
+//                   我保证的是【两份清单对齐】,不是【那块牌子出现在人眼前】。
+//
+// ★★【NARROW-COVERAGE-1(2026-09-09):下面那道自检【只装在一条臂上】】★★
+//   `declared !== view.size` 这一条治的是**视图那一侧**字符集写窄了。
+//   而 `tilesOf` 用的是**同一个字符集** `[a-z0-9_]+`,跑在 `lib/reminders.ts` 上,
+//   **却没有任何独立计数守着它** —— 注册表那一侧的字符集写窄了,
+//   两边会同时丢掉同样的支,集合比较照样相等,检查照旧印绿勾。
+//   **也就是说那条注释描述的病,在它自己旁边留了一半没治。**
+//   处置:注册表那一侧也独立数一遍 `itemType:` 的出现次数。
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync } from 'node:fs'
+import { assertPinned, assertPopulation } from './lib/selfproof.mjs'
 
 const VIEW = 'db/views/operations_now.sql'
 const REG = 'lib/reminders.ts'
@@ -36,8 +55,9 @@ const tilesOf = (ts) =>
     new Set([...ts.matchAll(/itemType:\s*'([a-z0-9_]+)'/g)].map((m) => m[1]))
 
 const viewSrc = readFileSync(VIEW, 'utf8')
+const regSrc = readFileSync(REG, 'utf8')
 const view = armsOf(viewSrc)
-const reg = tilesOf(readFileSync(REG, 'utf8'))
+const reg = tilesOf(regSrc)
 
 // ★★【解析器自己要被查一遍 —— 这一段是故障注入逼出来的,不是设计出来的】★★
 // 把上面的字符集从 [a-z0-9_]+ 写成 [a-z_]+(一个非常容易犯的手误),
@@ -58,15 +78,29 @@ if (declared !== view.size) {
     process.exit(1)
 }
 
+// ★★【注册表那一侧,同一条自检 —— NARROW-COVERAGE-1 补的】★★
+// 与上面那条逐字同形,只是换了一侧:有几处 `itemType: '…'`,就该解析出几个名字。
+// 少了 = `tilesOf` 的字符集写窄了,而两边同时窄下去的话集合比较仍然相等。
+//
+// ★【独立计数【不许】用被守的那个字符集】★ 这一条守的就是 `[a-z0-9_]+` 写窄了,
+//   所以独立那一路只认"冒号后面跟着一个引号",一个字符类都不带。
+// ★【`itemType: string` 是类型声明,不是一支】★ 数它就把 34 数成 35 ——
+//   本刀第一版正是这么写的,当场把这道断言自己弄红了。
+//   **一个数错的常见原因不是数错了,是它数的东西和它的名字对不上**(AGENTS.md)。
+//   同一处豁免在 check-confirm-subject 的 `subject: string` 上已经有先例。
+const declaredTiles = (regSrc.match(/itemType:\s*'/g) ?? []).length
+assertPinned(
+    'check-reminder-arms',
+    `${REG} 的 \`itemType:\` 出现次数 ↔ 解析出的支名个数`,
+    reg.size, declaredTiles,
+    '少了就是注册表那一侧的字符集写窄了,不是清单少了一支 —— ' +
+    '两边同时漏掉同一支的话,下面那个集合比较会保持绿色。',
+)
+
 // 【解析器坏了要红,不能当成"两边都是空的所以相等"】
 // gen-masked-tables.mjs 同一条:解析出 0 条 = 解析器坏了,不是没有条目。
-if (view.size === 0 || reg.size === 0) {
-    console.error(
-        `✗ check-reminder-arms:解析出 ${view.size} 支(视图)/ ${reg.size} 支(清单)——` +
-            ` 0 意味着解析器坏了,不是"没有支"。`
-    )
-    process.exit(1)
-}
+assertPopulation('check-reminder-arms', `${VIEW} 解析出的提醒支`, view.size)
+assertPopulation('check-reminder-arms', `${REG} 解析出的牌子`, reg.size)
 
 const missing = [...view].filter((a) => !reg.has(a)).sort()
 const extra = [...reg].filter((a) => !view.has(a)).sort()

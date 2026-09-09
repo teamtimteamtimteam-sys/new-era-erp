@@ -78,6 +78,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = process.cwd()
 const BASELINE = join(ROOT, 'scripts/component-library-baseline.json')
@@ -253,7 +254,19 @@ const DIMS = [
 ]
 
 const hits = Object.fromEntries(DIMS.map((d) => [d.key, []]))
+//
+// ==========================================================================
+// 【瞄准 · AIM】
+//   我读的是      :`app/` 下的源码文本,按 DIMS 那几个维度各扫一遍(整标签花括号配平,**不按行切**)。
+//   我声称管的是   :新页面不许再手搓组件库已经有的东西。
+//   两者不同之处   :**我读的是写法,不是外观。** 一个手搓的 `<div>` 长得和 `<Card>`
+//                   一模一样,我一个都抓不到 —— 我认的是「像按钮的 `<Link>`」这类
+//                   **具名形状**,而形状清单是手写的(`DIMS`)。
+//                   ★ 抬头已写明「库里缺能力时先加进库」那一半**本闸不检查**。
+// ==========================================================================
+let filesScanned = 0
 for (const abs of walk(join(ROOT, 'app'))) {
+    filesScanned++
     const file = relative(ROOT, abs)
     if (file.startsWith(LIBRARY_DIR)) continue
     const src = stripComments(readFileSync(abs, 'utf8'))
@@ -299,6 +312,9 @@ if (process.argv.includes('--update-baseline')) {
 }
 
 let base
+assertPopulation('check-component-library', 'app/ 下扫到的文件', filesScanned)
+assertPopulation('check-component-library', 'DIMS 里的维度', DIMS.length)
+
 try {
     base = JSON.parse(readFileSync(BASELINE, 'utf8'))
 } catch {
@@ -309,6 +325,16 @@ try {
 }
 
 // ── 逐维比对。任一维有新增 → 整道闸红。──────────────────────────────────────
+// * 【被一次没有咬人的注入逼出来的】把扫描根缩到一个叶子目录之后，每一维的 hits
+//   都掉到 0，added 于是为空、gone 很长，整道闸绿着，并报「债还掉了」。
+//   所以：基线里某一维有条目，那一维今天就不可能扫出 0 处。
+for (const d of DIMS) {
+    const baseFiles = Object.keys(base[d.key] ?? {}).length
+    if (baseFiles > 0) {
+        assertPopulation(`check-component-library[${d.key}]`, `${d.what} baseline=${baseFiles}`, hits[d.key].length)
+    }
+}
+
 let red = 0
 for (const d of DIMS) {
     const base_d = base[d.key]

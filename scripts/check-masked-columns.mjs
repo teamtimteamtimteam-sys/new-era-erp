@@ -73,6 +73,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, readdirSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
+import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = process.cwd()
 const TABLES_DIR = join(ROOT, 'db/tables')
@@ -187,6 +188,15 @@ const REVOKE_RE = /\bREVOKE\s+SELECT\s+ON\s+(?:TABLE\s+)?(?:public\s*\.\s*)?([a-
 
 // ── 走一遍 ───────────────────────────────────────────────────────────────────
 const problems = []
+//
+// ==========================================================================
+// 【瞄准 · AIM】
+//   我读的是      :`db/tables/*.sql` 与 `db/views/*_masked.sql` 两组**仓库镜像文件**。
+//   我声称管的是   :一张被遮蔽的表,它的每一列都必须呈现得出来。
+//   两者不同之处   :★ **我读的是镜像,不是线上。** 线上那一问是 `db/gate.py` 的 `colgrant`,
+//                   某一支迁移那一问是 `db/preflight_migration.py` 的 `masked` ——
+//                   三者分工见抬头。**镜像与线上漂开时,我照旧是绿的。**
+// ==========================================================================
 let nViewTables = 0, nGrantTables = 0, nCols = 0, nSkipped = 0
 
 // 【从 db/tables 这一侧走,不从 db/views 走】——【CHECK-1 的红/绿演示逼出来的】
@@ -262,6 +272,7 @@ console.log('   判词:**一张被遮蔽的表,它的每一列都必须【呈现
 console.log('         有 _masked 伴生的,每列都要在视图里;只用列清单的,每列都要在 GRANT 里。')
 console.log('   它【不】问线上(那是 db/gate.py 的 colgrant),也【不】问某一支迁移')
 console.log('   (那是 db/preflight_migration.py 的 masked)。三者的分工见本文件抬头。')
+assertPopulation('check-masked-columns', '比对到的遮蔽表列', nCols)
 console.log(`   比对了 ${nViewTables + nGrantTables} 张遮蔽表 / ${nCols} 列`
     + ` —— ${nViewTables} 张有 _masked 伴生(判据:每列都在视图里),`
     + `${nGrantTables} 张只用列清单(判据:每列都在 GRANT 里)`

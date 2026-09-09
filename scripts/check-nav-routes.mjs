@@ -32,6 +32,7 @@
 import { readFileSync, readdirSync, statSync, writeFileSync, unlinkSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import { join, relative } from 'node:path'
+import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = process.cwd()
 const APP = join(ROOT, 'app')
@@ -174,7 +175,18 @@ const scopeBlock = modulesSrc.slice(
 )
 const scopeIds = [...scopeBlock.matchAll(/id:\s*'([^']+)'/g)].map((m) => m[1])
 
+//
+// ==========================================================================
+// 【瞄准 · AIM】
+//   我读的是      :`lib/modules.ts` 的注册表 + `app/` 的**目录树**(路由由文件系统推出来)。
+//   我声称管的是   :注册表与路由对得上;退休路径不再出现;活动模块解析器真的跑得通。
+//   两者不同之处   :★★ **我答的是「注册表与文件系统对不对得上」,不是「一个会话走不走得到」**
+//                   (那是 `--reach`),**更不是「一个人点不点得到」**(那要人走一遍)。
+//                   AGENTS.md 把这三句分得很清,而它们谁都不许冒充谁。
+// ==========================================================================
 const routes = routesFrom(APP)
+assertPopulation('check-nav-routes', 'app/ 下推出来的路由', routes.length)
+assertPopulation('check-nav-routes', '注册表里的 href', entryHrefs.length)
 
 // ★【空集不是通过】★
 if (entryHrefs.length === 0) problems.push({ arm: '解析器', msg: 'FUNCTIONS 里读出 0 条 href —— 解析器坏了,不是注册表空了。' })

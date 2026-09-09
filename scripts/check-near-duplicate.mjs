@@ -18,11 +18,23 @@
 //      (`r.code.toLowerCase() === code.toLowerCase()`,配 `trim().replace(/\s+/g,' ')`)
 //      与新的 findNearDuplicate 在同一批输入上对拍,答案必须逐个相同。
 //      ②【不是】重写一遍新实现 —— 它是把【旧的那一份】留在这里当基准。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// 【瞄准 · AIM】
+//   我读的是      :`lib/nearDuplicate.ts` 的三个导出,拿 21 条断言 / 16 条语料跑一遍。
+//   我声称管的是   :近重复比较抽取前后行为一致。
+//   两者不同之处   :**我读的是那个函数,不是"树里的近重复检测"。**
+//                   哪些页面在用它、传的取值函数对不对、没用它的地方是不是也该用,
+//                   我一个都看不见。抬头那句「它现在是这条比较逻辑的第一份自动化覆盖」
+//                   说的是**函数**的覆盖,不是**调用点**的覆盖。
 // ════════════════════════════════════════════════════════════════════════════
 import { normaliseIdentityText, foldForCompare, findNearDuplicate } from '../lib/nearDuplicate.ts'
+import { assertAssertionsRan } from './lib/selfproof.mjs'
 
 let fail = 0
+let ran = 0
 const eq = (label, got, want) => {
+    ran++
     const ok = JSON.stringify(got) === JSON.stringify(want)
     if (!ok) { fail++; console.error(`  ✗ ${label}\n      得到 ${JSON.stringify(got)}\n      应为 ${JSON.stringify(want)}`) }
     return ok
@@ -62,6 +74,11 @@ for (const c of CORPUS) {
     compared++
 }
 if (compared === 0) { console.error('  ✗ 对拍了 0 条 —— 语料是空的,这不是"通过"'); fail++ }
+
+// ── 覆盖断言 ────────────────────────────────────────────────────────────────
+// `compared === 0` 那一条只守着 ② 的语料。① 那五条逐条行为断言【没有人守】——
+// 把它们整块注释掉,fail 仍是 0,绿勾照印。所以把总条数钉死。
+assertAssertionsRan('check-near-duplicate', ran, 21)
 
 console.log(`\n对拍 ${compared} 条输入,旧实现与抽取后的共享实现答案一致。`)
 if (fail) { console.error(`\n✗ ${fail} 条断言失败 —— 抽取【改变了行为】,这是一个发现,不是一个待调整的测试。`); process.exit(1) }

@@ -23,8 +23,31 @@
 // 【为什么是行内注释,不是一份基线文件】一次刻意的双语打印是【那一行的性质】,
 // 理由要待在下一个读它的人眼前;而一份中心基线会与代码漂开,还能被整体刷新以变绿
 // —— 本仓库对那件事的说法是"把债划掉,不是还债"。
+// ════════════════════════════════════════════════════════════════════════════
+// 【瞄准 · AIM】
+//   我读的是      :`app/` 下 .ts/.tsx 的**逐行文本**,一次一行,两条正则。
+//   我声称管的是  :同一条记录的 `_zh` 与 `_en` 不许被一起印给人看。
+//   两者不同之处  :★★ **我按行切,而那对插值可以跨行。**
+//                   `.split('\n')` 之后,一个被 prettier 拆成两行的
+//                   `{c.name_zh} / {c.name_en}` 我**一个字都看不见**。
+//                   AGENTS.md 有一条具名法则说的正是这个陷阱
+//                   (「按行切开再匹配,会废掉一个含 `\n` 的字符类」,三次记录),
+//                   而 check-component-library 的收尾还特意夸自己**不**按行切。
+//                   **这一支是按行切的**,所以那条法则对它成立。
+//                   ☞ 没有在本刀改掉:改成整份源码匹配会动到判据的
+//                   「中间只隔着不含 `( ) , < >` 的字面文本」那一条(换行要算进分隔符),
+//                   而那会改变它今天报的那个 0 —— 本刀不动任何判据的结论。
+//                   **已登记为 NARROW-COVERAGE-2。**
+//   ★ 另外:我只扫 `app/`。`lib/` 与 `messages/` 不在射程里。
+//
+// ★★【NARROW-COVERAGE-1(2026-09-09)补的覆盖断言】★★
+//   它此前没有任何东西守着"我扫了几个文件"。基线是 0 处,于是
+//   **walk() 返回空数组与"树是干净的"在输出上逐字相同**,都是 exit 0。
+//   ① 扫到的文件数;② 树里**真的存在**成对的 `_zh`/`_en` 列引用 ——
+//   一条也找不到就说明判据的原料没了,而不是没有缺陷。
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = process.cwd()
 const EXTS = new Set(['.tsx', '.ts'])
@@ -46,8 +69,13 @@ const EN_ZH = new RegExp(String.raw`\{[^{}]*\b(\w+)\.(\w*_en)\b[^{}]*\}${SEP}\{[
 
 const findings = []
 const allowed = []
+let filesScanned = 0
+let zhEnColumnRefs = 0          // 判据的【原料】:树里到底有没有成对的 _zh/_en 列引用
 for (const file of walk(join(ROOT, 'app'))) {
-    const lines = readFileSync(file, 'utf8').split('\n')
+    filesScanned++
+    const whole = readFileSync(file, 'utf8')
+    if (/\b\w+\.\w*_zh\b/.test(whole) && /\b\w+\.\w*_en\b/.test(whole)) zhEnColumnRefs++
+    const lines = whole.split('\n')
     lines.forEach((line, i) => {
         for (const re of [ZH_EN, EN_ZH]) {
             const m = line.match(re)
@@ -61,6 +89,10 @@ for (const file of walk(join(ROOT, 'app'))) {
         }
     })
 }
+
+// ── 覆盖断言 ────────────────────────────────────────────────────────────────
+assertPopulation('check-bilingual-concat', 'app/ 下扫到的 .ts/.tsx 文件', filesScanned)
+assertPopulation('check-bilingual-concat', '同时引用 _zh 与 _en 列的文件(判据的原料)', zhEnColumnRefs)
 
 console.log('== 双语拼接体检 ==')
 console.log('   判词:**同一条记录的 _zh 与 _en 被一起印出来,而不是按界面语言选一个。**')

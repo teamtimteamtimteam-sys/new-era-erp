@@ -60,6 +60,7 @@
 // 用法:node scripts/check-currency-literals.mjs   (退出码 0 = 干净)
 import { readdirSync, statSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const CODES = ['USD', 'SGD']
@@ -322,14 +323,27 @@ function* walk(dir) {
 // 真正该留的默认值进 ALLOWLIST 并写理由(百分比默认 0 就是这么留下的)。
 const RATE_DEFAULT = /^\s*(\w*rate\w*)\s+(numeric|real|double\s+precision)[^,]*\bDEFAULT\s+([0-9.]+)/i
 
+//
+// ==========================================================================
+// 【瞄准 · AIM】
+//   我读的是      :`app/` `lib/` `db/` 下的源码文本(判断类),以及 `messages/*.ts`(文案类)。
+//   我声称管的是   :币种代码是数据,不是常量。
+//   两者不同之处   :★★ **我答的是「有没有【写】币种」,不是「写得【对】不对」。**
+//                   一个把 USD 数字标成 SGD 的屏幕可以永远通过这道门 —— 实测如此,
+//                   `known-issues.md` 的 CCY-VERIFY 把它记成**永久限制**,不是待办:
+//                   `metal_prices` 连一个币种列都没有,schema 里**没有可比的事实**。
+//                   ☞ 也就是说 CHECKER-BLIND-SPOTS ① 说的就是这一支,而它至今成立。
+// ==========================================================================
 const hits = []
 // db/ 下的 SQL 也扫。SQL 里判本位币要问 currencies.is_base,不要写字面量。
 // (这几行原先写着"fx_rate_gaps 里那句 l.currency <> 'SGD'"——【那句话两头都过期了】:
 //  fx_rate_gaps 早已改成读 is_base,而 <> 这个形状当时根本不在模式表里。见抬头 OPS-8。)
+let filesScanned = 0
 for (const dir of ['app', 'lib', 'db']) {
     for (const file of walk(join(ROOT, dir))) {
         const rel = file.slice(ROOT.length)
         if (rel.includes('database.types')) continue
+        filesScanned++
         // db/migrations 是【历史记录】:当时写下的字面量不该被今天的规矩追认
         if (rel.startsWith('db/migrations/')) continue
         const lines = blankBlockComments(readFileSync(file, 'utf8')).split('\n')
@@ -448,6 +462,10 @@ for (const h of msgHits) shapeCounts[h.shape] = (shapeCounts[h.shape] ?? 0) + 1
 
 const bad = hits.filter((h) => !allowed(h))
 for (const h of bad) console.log(`  [${h.kind}] ${h.rel}:${h.line}  ${h.text}`)
+// ── 覆盖断言 ────────────────────────────────────────────────────────────────
+assertPopulation('check-currency-literals', 'app/ lib/ db/ 下扫到的文件', filesScanned)
+assertPopulation('check-currency-literals', '判断类命中(在册 + 违规)', hits.length)
+
 const allowedCount = hits.length - bad.length
 console.log(`\ncurrency literals: ${bad.length} unallowed, ${allowedCount} allowlisted`)
 

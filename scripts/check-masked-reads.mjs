@@ -71,6 +71,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = process.cwd()
 const SCAN_DIRS = ['app', 'lib']
@@ -162,7 +163,18 @@ function embedHits(rel, rawText) {
     }
     console.log(`   lib/maskedTables.ts 与遮蔽表集合一致(${expected.size} 张)`)
 }
+//
+// ==========================================================================
+// 【瞄准 · AIM】
+//   我读的是      :`app/` 与 `lib/` 的源码文本,认 `.from('<表>')` 与 select 串里的**内嵌关系**。
+//   我声称管的是   :app 不许【新增】直连遮蔽基表的读取。
+//   两者不同之处   :**我认的是字面量。** 表名一旦经过变量、模板串或一个辅助函数,
+//                   我就看不见了。内嵌那一半是 CHECK-1 补的(此前整条路隐形,
+//                   代价是 /inventory/output 对每个真实用户报「没有库存」)——
+//                   **补的是一种写法,不是一条通用能力。**
+// ==========================================================================
 const files = SCAN_DIRS.flatMap((d) => walk(join(ROOT, d)))
+assertPopulation('check-masked-reads', 'app/ 与 lib/ 下走到的文件', files.length)
 const hits = []
 
 for (const f of files) {
@@ -195,6 +207,7 @@ const BASELINE = join(ROOT, 'scripts/masked-reads-baseline.json')
 // 键:〈文件 · 表 · 读法〉。行号会漂,文件与表不会。
 // 【读法也进键】——直连与内嵌是两种写法、两处改法,合成一个计数会让"改好一处直连、
 // 同时新增一处内嵌"在基线上互相抵消,而那正是棘轮要拦的东西。
+assertPopulation('check-masked-reads', '扫到的遮蔽表读取(在册基线)', hits.length)
 const counts = new Map()
 for (const h of hits) {
     const k = `${h.file} :: ${h.table}` + (h.kind === 'embed' ? ' :: embed' : '')

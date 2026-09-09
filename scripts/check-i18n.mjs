@@ -28,6 +28,7 @@
 // 用法:node scripts/check-i18n.mjs   (退出码 0 = 干净;1 = 有缺)
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { assertPopulation } from './lib/selfproof.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 
@@ -68,9 +69,22 @@ function* walk(dir) {
 }
 
 // lib/i18n 自身不扫:解析器内部与注释里的 t('key') 示例是文档,不是用法
+//
+// ==========================================================================
+// 【瞄准 · AIM】
+//   我读的是      :`app/` 与 `lib/` 的源码文本(找 `t()` 调用点),`messages/{en,zh}.ts`,
+//                   以及 MANIFEST 里每个动态前缀的**真源**(SQL CHECK / 视图 / as const)。
+//   我声称管的是   :代码引用到的每一个键,en 与 zh 里都在。
+//   两者不同之处   :**我答的是「键在不在」,不答「那句话说得对不对」。**
+//                   `'Amount (SGD)'` 对我完全合法 —— 那是 check-currency-literals
+//                   的 `message-text` 那一类;而一句写死在 JSX 里的中文
+//                   **一个键都不引用**,于是它不在我的宇宙里(check-cjk-rendered 抬头
+//                   把这件事写得很明白:两道检查因此不能合并)。
+// ==========================================================================
 const files = [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'lib'))].filter(
     (p) => !p.includes('/lib/i18n/')
 )
+assertPopulation('check-i18n', 'app/ 与 lib/ 下走到的文件', files.length)
 const lineOf = (src, idx) => src.slice(0, idx).split('\n').length
 
 // t('key', { … }) 的第二个实参:从 key 之后开始,按花括号配对切出对象字面量源码。
@@ -839,6 +853,10 @@ for (const k of ZH.keys()) if (!EN.has(k)) failures.push({ key: k, file: 'messag
 
 // 4. 死键(报告,不 FAIL)
 const usedStatic = new Set([...staticUses, ...keyLiterals].map((u) => u.key))
+// * 【被一次没有咬人的注入逼出来的】只断言「走到了几个文件」不够：
+//   把扫描根缩到一个叶子目录之后文件数仍然非 0，而引用到的键掉到接近 0，
+//   检查照旧全绿。
+assertPopulation('check-i18n', '代码里引用到的静态键', usedStatic.size)
 const deadKeys = []
 for (const key of EN.keys()) {
     if (usedStatic.has(key)) continue

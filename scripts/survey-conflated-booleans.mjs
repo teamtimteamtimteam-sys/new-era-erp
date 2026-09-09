@@ -1,4 +1,22 @@
 #!/usr/bin/env node
+// ==========================================================================
+// 【瞄准 · AIM】
+//   我读的是      :app/ 下的 TypeScript AST(合取/析取式 + 跨组件的污点传播),
+//                   外加一条**宽口径全文**交叉核对。
+//   我声称管的是   :「权限与记录状态混在一个布尔里」的那一族,分桶计数。
+//   两者不同之处   :★ **两条臂看的不是同一个总体:交叉核对只扫 `&&`,AST 两个运算符都看。**
+//                   于是那把本该当超集用的粗筛子,**结构上看不见 `||` 那一半** ——
+//                   实测今天恰好 1 处(WorkOrderActions.tsx)。
+//                   ☞ NARROW-COVERAGE-1 把这条差额**钉住**了(见文件末尾断言 ③)。
+//                   ★ 另外两条【已登记、本刀没有修】:`STATE_FIELD` 的词边界漏掉
+//                     `retention_state` 与 `reviewType`(改词表会移动分桶数,而那
+//                     是 ALERT-2d 的收工读数)。见 NARROW-COVERAGE-2。
+//   ☞ 【本文件是普查,不是闸】它的红是【给读数的人的一句话】(这一次读数不可信),
+//     不是一道拦住构建的门 —— 它不在 npm run build 里,也不该进去:
+//     普查报的是【数】不是【违规】,接进构建会把基线漂移变成构建红,
+//     而那种红会被 --update-baseline 顺手按掉。(R-Q4)
+
+// ==========================================================================
 // ════════════════════════════════════════════════════════════════════════════
 // ALERT-2c(2026-09-08)· 量【权限与记录状态混在一个布尔里】的那一族
 // ════════════════════════════════════════════════════════════════════════════
@@ -684,10 +702,67 @@ if (parsed.size !== files.length) findings.push(`解析覆盖不全:${files.leng
 // ── 断言 ②:解析器没有被弄瞎(合取式为 0 或权限绑定为 0,都是"什么都没看见")
 if (chains.length === 0) findings.push('AST 一条合取式都没找到 —— 解析器瞎了,不是树干净了')
 if (permTainted.size === 0) findings.push('污点传播一个权限绑定都没找到 —— 种子瞎了,不是仓库里没有权限')
-// ── 断言 ③:两条路必须互相看得见(允许差额,但不允许一边为空)
+// ── 断言 ③:两条路必须互相看得见 ────────────────────────────────────────────
 if (__probeTotal > 0 && __boolProbe === 0) findings.push('类型检查器一个 boolean 都没认出来 —— 它自己瞎了(污点会被整条掐断)')
 if (xFiles.size === 0) findings.push('交叉核对一个文件都没命中 —— 它自己瞎了')
 if (astPermFiles.size === 0) findings.push('AST 一个权限文件都没命中 —— 它自己瞎了')
+
+// ★★【NARROW-COVERAGE-1(2026-09-09):这一条【钉住差额】,不再只断言两边非空】★★
+//
+// 上面那三条的说明写着「两条路必须互相看得见」,而它们实际断言的只是
+// **两边都不为空**。实跑:交叉核对命中 78 个文件、AST 命中 5 个,
+// **74 个文件的差额照常通过** —— 而 AST 那条臂若明天退化到只看见 1 个文件,
+// 这三条仍然全绿。**与 check-confirm-subject 那条 `<` 同形:单向。**
+//
+// 【为什么不把 74 写成一个数】那个数随任何一次无关的增删文件而漂,
+// 而一道天天假红的闸三刀之内会被人关掉(AGENTS.md 明写)。
+// **要钉的不是那个数,是那条【结构不变量】:**
+//
+//     交叉核对是一次宽口径全文扫,所以它【应当是 AST 的超集】——
+//     AST 精确地认出来的每一处,那把粗筛子都该命中。
+//
+// 【实测它今天【不成立】,而漏的那一处是有原因的、可以点名的】
+//   `app/operation/orders/[id]/WorkOrderActions.tsx` 只有 AST 看得见。
+//   原因:**交叉核对那条臂只扫 `&&`**(它逐字符找 `&&` 然后 `idx += 2`),
+//   而该处是 `noPerm || (status !== 'draft' ? … : '')` —— 一个 `||`。
+//   AST 那条臂**刻意两个运算符都看**(见 isGate 抬头:「或是同一个缺陷的
+//   反极性写法(德摩根)」)。也就是说那把"粗筛子"**结构上看不见半个总体**,
+//   而两条臂被写下来时是当作互相校验用的。
+//
+// 【所以断言下在【它能成立】的那一半上,并把另一半按名豁免】
+//   凡是 AST 通过 `&&` 认出来的文件,交叉核对必须命中。一个都不许漏。
+//   `||` 那一半按名列出 —— 名单变长就是一次发现,要么补上那条臂,要么说明理由。
+//   ☞ 补 `||` 那条臂**不在本刀里**:它会改变 xFiles,而 `onlyX`/`onlyA` 两个数
+//     是 ALERT-2d 的收工读数。已登记为 NARROW-COVERAGE-2。
+const astAmpFiles = new Set(
+    [...bucket[1], ...bucket[3], ...bucket[4]].filter((c) => c.op === '&&').map((c) => c.file)
+)
+const ampMissedByX = [...astAmpFiles].filter((f) => !xFiles.has(f))
+if (ampMissedByX.length > 0) {
+    findings.push(
+        `交叉核对漏掉了 ${ampMissedByX.length} 个【AST 靠 && 认出来的】文件 —— ` +
+        `那把粗筛子应当是 AST 的超集,漏了就说明它自己有洞:` +
+        ampMissedByX.join(', ')
+    )
+}
+// `||` 那一半:今天恰好 1 个,按名钉住。多一个少一个都要有人看一眼。
+const OR_ONLY_KNOWN = ['app/operation/orders/[id]/WorkOrderActions.tsx']
+const orOnly = [...astPermFiles].filter((f) => !xFiles.has(f) && !astAmpFiles.has(f))
+const orOnlyUnexpected = orOnly.filter((f) => !OR_ONLY_KNOWN.includes(f))
+const orOnlyVanished = OR_ONLY_KNOWN.filter((f) => !orOnly.includes(f))
+if (orOnlyUnexpected.length) {
+    findings.push(
+        `又多了 ${orOnlyUnexpected.length} 个【只有 AST 看得见、且是 || 形状】的文件:` +
+        `${orOnlyUnexpected.join(', ')} —— 交叉核对只扫 &&,这一族它结构上看不见。` +
+        `要么给它补上 ||,要么把这个文件写进 OR_ONLY_KNOWN 并说明理由。`
+    )
+}
+if (orOnlyVanished.length) {
+    findings.push(
+        `OR_ONLY_KNOWN 里 ${orOnlyVanished.length} 条今天命不中:${orOnlyVanished.join(', ')} —— ` +
+        `那一处改好了(请删掉这一条),或者 AST 那条臂瞎了。两种都要红。`
+    )
+}
 
 if (findings.length) {
     console.log('\n✗ 覆盖率断言失败:')

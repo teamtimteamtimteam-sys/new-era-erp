@@ -38,6 +38,18 @@
 //
 // 退出码 0 = 干净;1 = 有表没声明可用的手机列;2 = 解析器坏了。
 // ════════════════════════════════════════════════════════════════════════════
+// ==========================================================================
+// 【瞄准 · AIM】
+//   我读的是      :app/ 下的源码文本,找 `<DataTable` / `<EditableTable` 开标签,
+//                   再从属性区读出 `phone` 与 `columns` 的声明。
+//   我声称管的是   :每一张表都声明了它在手机上留哪几列。
+//   两者不同之处   :**我读的是声明,不是屏幕。** 一张表声明了 `priority: true`,
+//                   而那一列在 390px 上仍然被挤没了 —— 我看不出来。那一问是
+//                   `survey-phone.mjs`(真浏览器量 scrollWidth)。
+//                   ★ 而它自己的调用点计数跑在【原文】上,一句提到 `<DataTable `
+//                     的注释会被数进去(实测今天 0 处,已加断言钉住)。
+// ==========================================================================
+import { assertPinned, assertPopulation } from './lib/selfproof.mjs'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
@@ -137,6 +149,22 @@ function blankComments(src) {
 
 const files = walk(join(ROOT, 'app'))
 const problems = []
+// ★★【NARROW-COVERAGE-1(2026-09-09):独立数一遍,而且是在【剥掉注释】之后】★★
+// 下面那个 `callSites` 是在**原文**上数的 —— 一句 `// 这张表换成了 <DataTable …>`
+// 的注释会被数成一个调用点。**实测 2026-09-09:今天 0 处**(原文 123 / 剥注释后 123)。
+// 所以这不是一个活着的缺陷,它是一个**没有任何东西守着的**性质 ——
+// 而本仓库为「一道读文本的闸把散文当成代码」已经付过三次账(见 blankComments 抬头)。
+//
+// ☞ **刻意不改那条正则。** 它的 lookahead 是 `[\s\n<]`,不含 `>`,于是一个没有属性的
+//   `<DataTable>` 它看不见(实测全库 1 处,而那一处在一句 `throw new Error('… 请用
+//   <DataTable> …')` 的**字符串里**,不是调用点)。按 AGENTS.md 那条具名法则把
+//   lookahead 放宽成 `[\s>]|$` 会【当场把四句注释数成调用点】,把 123 变成一个错的数。
+//   **本刀不动任何判据的结论。** 已登记为 NARROW-COVERAGE-2。
+let callSitesBlanked = 0
+for (const abs of files) {
+    callSitesBlanked += (blankComments(readFileSync(abs, 'utf8'))
+        .match(/<(DataTable|EditableTable)(?=[\s\n<])/g) ?? []).length
+}
 const unresolved = []
 let callSites = 0
 let scrollMode = 0
@@ -201,10 +229,17 @@ for (const abs of files) {
     }
 }
 
+assertPopulation('check-datatable-phone', 'app/ 下走到的 .ts/.tsx 文件', files.length)
 if (callSites === 0) {
     console.error('✗ check-datatable-phone:解析出 0 个 <DataTable / <EditableTable 调用点 —— 解析器坏了,不是"全都合格"。')
     process.exit(2)
 }
+assertPinned(
+    'check-datatable-phone',
+    '原文数出的调用点 ↔ 剥掉注释后数出的调用点',
+    callSites, callSitesBlanked,
+    '不等 = 有 <DataTable / <EditableTable 住在注释里,而它被当成了一个真的调用点。',
+)
 
 if (problems.length === 0) {
     console.log(
