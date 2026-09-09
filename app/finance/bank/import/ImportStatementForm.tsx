@@ -387,26 +387,44 @@ canEdit: boolean
                     )}
 
                     {parsed.rows.length > 0 && (
+                        /* ════════════════════════════════════════════════════════════════
+                            ★ TABLE-PHONE-4:五列 → 手机档留四列(行号 · 日期 · 摘要 · 金额)。
+                            被拿掉的参考号没有丢:它带着列头叠在摘要那一格里。
+                            ☞ 留行号不留参考号:上面那条报错清单指的就是【行号】
+                              (「行号 7: …」),拿掉它,那条清单在手机上就指不着东西了;
+                              而参考号是核对时才查的第二身份。
+                            ★ 这张表整行【没有一个输入框】—— 它是解析结果的回读。四列是
+                              本批统一的档,不是这一张自己需要;登记在交回报告里。
+                            ════════════════════════════════════════════════════════════════ */
                         <table className="w-full border-collapse border border-gray-300">
                             <thead className="bg-gray-100">
                                 <tr>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('bank.colLineNo')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('bank.colDate')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('bank.colDescription')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('bank.colReference')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-right">{t('bank.colAmount')}</th>
+                                    <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('bank.colLineNo')}</th>
+                                    <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('bank.colDate')}</th>
+                                    <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('bank.colDescription')}</th>
+                                    <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('bank.colReference')}</th>
+                                    <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('bank.colAmount')}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {parsed.rows.slice(0, 20).map((r) => (
                                     <tr key={r.line_no}>
-                                        <td className="border border-gray-300 px-3 py-1 text-sm text-gray-500">{r.line_no}</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-sm">{r.line_date}</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-sm">{r.description ?? '—'}</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-sm font-mono">{r.reference ?? '—'}</td>
+                                        <td className="border border-gray-300 px-2 sm:px-3 py-1 text-sm text-gray-500">{r.line_no}</td>
+                                        <td className="border border-gray-300 px-2 sm:px-3 py-1 text-sm">{r.line_date}</td>
+                                        <td className="border border-gray-300 px-2 sm:px-3 py-1 text-sm">
+                                            {r.description ?? '—'}
+                                            {/* ★ TABLE-PHONE-4:手机档拿掉的参考号,带着列头叠在这里。 */}
+                                            <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                                                <div className="font-mono">
+                                                    <span className="font-sans text-gray-500">{t('bank.colReference')}: </span>
+                                                    {r.reference ?? '—'}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="hidden sm:table-cell border border-gray-300 px-3 py-1 text-sm font-mono">{r.reference ?? '—'}</td>
                                         <td
                                             className={
-                                                'border border-gray-300 px-3 py-1 text-right font-mono text-sm ' +
+                                                'border border-gray-300 px-2 sm:px-3 py-1 text-right font-mono text-sm ' +
                                                 (r.amount < 0 ? 'text-red-600' : '')
                                             }
                                         >

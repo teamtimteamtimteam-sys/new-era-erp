@@ -98,14 +98,30 @@ canEdit: boolean
             </div>
             <p className="text-xs text-gray-500">{t('cn.noteDateHint')}</p>
 
+            {/* ════════════════════════════════════════════════════════════════
+                ★ TABLE-PHONE-4:七列 → 手机档留四列(# · 发票行 · 数量 · 冲减)。
+                被拿掉的三列(尚未交付 / 已交付、可冲减 / 类型)一个字段都没丢:
+                带着各自的列头叠在「发票行」那一格里,见下面 sm:hidden 的那一块。
+
+                ★★【为什么留的是「数量」而不是「类型」—— 这不是取舍,是【正确性】★★
+                `cn_qty` 是并列数组的一员(cn_line_id / cn_kind / cn_qty / cn_amount
+                按下标配对)。折叠一列是用 CSS 藏,【藏起来的 input 照样提交】——
+                把 cn_qty 画两遍就等于每行往那个数组里塞两格,整组配对当场错位。
+                于是凡是带 name 的输入框,这一刀一律【留在看得见的那四列里】。
+                而「类型」那个 <select> 自己【不带 name】:它的值由第一格里那个
+                单独渲染一次的 <input type="hidden" name="cn_kind"> 携带,
+                所以它画两遍是安全的 —— 两份都受同一个 kind[l.id] 控制。
+                ☞ 代价说清楚:类型决定用哪个上限,收进折叠区意味着改它要多滚一下。
+                  拿正确性换这一下,换得起。
+                ════════════════════════════════════════════════════════════════ */}
             <table className="w-full border-collapse border border-gray-300 text-sm">
                 <thead className="bg-gray-100">
                     <tr>
                         <th className="border border-gray-300 px-2 py-2 text-left">#</th>
                         <th className="border border-gray-300 px-2 py-2 text-left">{t('cn.colLine')}</th>
-                        <th className="border border-gray-300 px-2 py-2 text-right">{t('cn.colUnreleased')}</th>
-                        <th className="border border-gray-300 px-2 py-2 text-right">{t('cn.colReleased')}</th>
-                        <th className="border border-gray-300 px-2 py-2 text-left">{t('cn.colKind')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right">{t('cn.colUnreleased')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right">{t('cn.colReleased')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-left">{t('cn.colKind')}</th>
                         <th className="border border-gray-300 px-2 py-2 text-right">{t('cn.colQty')}</th>
                         <th className="border border-gray-300 px-2 py-2 text-right">{t('cn.colAmount', { ccy: currency })}</th>
                     </tr>
@@ -116,6 +132,25 @@ canEdit: boolean
                         const ceiling = k === 'unshipped_cancel' ? l.unreleased : l.releasedRemaining
                         const n = Number(amount[l.id] ?? '')
                         const over = (amount[l.id] ?? '').trim() !== '' && ceiling !== null && n > ceiling
+                        // ★ TABLE-PHONE-4:两档共用的写法【提出来写一次】——
+                        //   把控件抄成两份就是让两份将来各走各的,而漂移在桌面上是看不见的
+                        //   (桌面那一份永远是对的那一份)。提一次,两处引用同一个描述。
+                        const unreleasedText = l.unreleased === null
+                            ? <span className="font-sans text-gray-500">{t('common.restricted')}</span>
+                            : formatMoneyBare(l.unreleased, '同表列头 冲减({ccy}),整张表单同一个币种')
+                        const releasedText = l.releasedRemaining === null
+                            ? <span className="font-sans text-gray-500">{t('common.restricted')}</span>
+                            : formatMoneyBare(l.releasedRemaining, '同表列头 冲减({ccy}),整张表单同一个币种')
+                        // 这个 <select> 【不带 name】,值由第一格那个渲染一次的 hidden input 携带,
+                        // 所以两档各画一份是安全的;两份共用同一个 k / setKind。
+                        const kindSelect = (
+                            <select value={k}
+                                    onChange={(e) => setKind((s) => ({ ...s, [l.id]: e.target.value }))}
+                                    className="border border-gray-300 px-1 py-1 rounded text-xs">
+                                <option value="unshipped_cancel">{t('cn.kind.unshipped_cancel')}</option>
+                                <option value="revenue_reduction">{t('cn.kind.revenue_reduction')}</option>
+                            </select>
+                        )
                         return (
                             <tr key={l.id}>
                                 <td className="border border-gray-300 px-2 py-2">
@@ -123,24 +158,34 @@ canEdit: boolean
                                     <input type="hidden" name="cn_line_id" value={l.id} />
                                     <input type="hidden" name="cn_kind" value={k} />
                                 </td>
-                                <td className="border border-gray-300 px-2 py-2">{l.description}</td>
-                                <td className="border border-gray-300 px-2 py-2 text-right font-mono text-xs">
-                                    {l.unreleased === null
-                                        ? <span className="font-sans text-gray-500">{t('common.restricted')}</span>
-                                        : formatMoneyBare(l.unreleased, '同表列头 冲减({ccy}),整张表单同一个币种')}
-                                </td>
-                                <td className="border border-gray-300 px-2 py-2 text-right font-mono text-xs">
-                                    {l.releasedRemaining === null
-                                        ? <span className="font-sans text-gray-500">{t('common.restricted')}</span>
-                                        : formatMoneyBare(l.releasedRemaining, '同表列头 冲减({ccy}),整张表单同一个币种')}
-                                </td>
                                 <td className="border border-gray-300 px-2 py-2">
-                                    <select value={k}
-                                            onChange={(e) => setKind((s) => ({ ...s, [l.id]: e.target.value }))}
-                                            className="border border-gray-300 px-1 py-1 rounded text-xs">
-                                        <option value="unshipped_cancel">{t('cn.kind.unshipped_cancel')}</option>
-                                        <option value="revenue_reduction">{t('cn.kind.revenue_reduction')}</option>
-                                    </select>
+                                    {l.description}
+                                    {/* ★ TABLE-PHONE-4:手机档拿掉的三列,带着各自的列头叠在这里。
+                                        类型是个能点的控件,所以它单独占一行、标签在左、控件在右 ——
+                                        一个被挤在窄缝里的 <select> 不算"还能用"。 */}
+                                    <div className="sm:hidden mt-1 space-y-1 font-sans text-xs text-gray-600">
+                                        <div className="font-mono">
+                                            <span className="font-sans text-gray-500">{t('cn.colUnreleased')}: </span>
+                                            {unreleasedText}
+                                        </div>
+                                        <div className="font-mono">
+                                            <span className="font-sans text-gray-500">{t('cn.colReleased')}: </span>
+                                            {releasedText}
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-gray-500 shrink-0">{t('cn.colKind')}: </span>
+                                            {kindSelect}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right font-mono text-xs">
+                                    {unreleasedText}
+                                </td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right font-mono text-xs">
+                                    {releasedText}
+                                </td>
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-2">
+                                    {kindSelect}
                                 </td>
                                 <td className="border border-gray-300 px-2 py-2 text-right">
                                     {/* 【数量可空,而且这不是偷懒】一次整批折让往往不对应

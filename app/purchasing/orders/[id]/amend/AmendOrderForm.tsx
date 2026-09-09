@@ -132,15 +132,31 @@ export default function AmendOrderForm({
                     </div>
                 </div>
 
+                {/* ════════════════════════════════════════════════════════════════
+                    ★ TABLE-PHONE-4:六列 → 手机档留四列(# · 数量 · 单价 · 价格)。
+                    被拿掉的两列(已收 / 删除)一个字段都没丢:带着各自的列头叠在
+                    第一格(行号)里 —— ★ 这张表【没有物料列】,行号是它唯一的身份,
+                    所以折叠块只能挂在它下面,而它本来就是这一行对外的号码。
+                    ☞ 留的三个都是要动手的:数量、单价、定价状态。已收是个读的数,
+                      而且真要用到它的那一刻(数量低于已收)那句告警本来就印在数量框底下。
+                    ★★【这三列留在明面上不是偏好,是正确性】★★
+                      line_quantity / line_price / line_price_status 是三条【并列数组】
+                      (见下面 PUR-1 那段原注)。折叠一列是用 CSS 藏,【藏起来的 input
+                      照样提交】—— 画两遍就是每行往数组里多塞一格,整组配对当场错位,
+                      而那正是 PUR-1 刚修掉的那个错位。带 name 的一个都没被复制。
+                      删除那个复选框【不带 name】(值由第一格渲染一次的 hidden
+                      line_remove 携带),所以它是这张表里唯一能安全画两份的控件。
+                    ★【# 的列头是硬编码的 "#",没有 i18n key】—— 留在明面上,一句都不用造。
+                    ════════════════════════════════════════════════════════════════ */}
                 <table className="w-full border-collapse border border-gray-300">
                     <thead className="bg-gray-100">
                         <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">#</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.amend.colQty')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.amend.colReceived')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('purchasing.amend.colPrice', { ccy: currency })}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.form.priceStatus')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.amend.colRemove')}</th>
+                            <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">#</th>
+                            <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('purchasing.amend.colQty')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('purchasing.amend.colReceived')}</th>
+                            <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('purchasing.amend.colPrice', { ccy: currency })}</th>
+                            <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('purchasing.form.priceStatus')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('purchasing.amend.colRemove')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -161,14 +177,40 @@ export default function AmendOrderForm({
                             连提交钮都是禁用的,不会有半份负载被送出去。 */}
                         {lines.map((l) => {
                             const below = Number(qty[l.id] || 0) < l.received && !remove[l.id]
+                            // ★ TABLE-PHONE-4:两档共用的两份内容【提出来写一次】——
+                            //   抄成两份就是让两份将来各走各的,而漂移在桌面上看不见。
+                            const receivedText = <>{l.received} {l.unit}</>
+                            const removeControl = (
+                                <label className="text-sm">
+                                    <input type="checkbox" checked={!!remove[l.id]} disabled={frozen || l.received > 0}
+                                        onChange={(e) => setRemove((r) => ({ ...r, [l.id]: e.target.checked }))} />
+                                    {/* 收过货的行删不掉 —— 复选框直接禁用并说明 */}
+                                    <span className="ml-1">
+                                        {l.received > 0 ? t('purchasing.amend.cannotRemove') : t('purchasing.amend.remove')}
+                                    </span>
+                                </label>
+                            )
                             return (
                                 <tr key={l.id} className={remove[l.id] ? 'bg-gray-100 text-gray-400' : ''}>
-                                    <td className="border border-gray-300 px-3 py-2">
+                                    <td className="border border-gray-300 px-2 sm:px-3 py-2">
                                         {l.line_no}
                                         <input type="hidden" name="line_id" value={l.id} />
                                         <input type="hidden" name="line_remove" value={remove[l.id] ? '1' : '0'} />
+                                        {/* ★ TABLE-PHONE-4:手机档拿掉的两列,带着各自的列头叠在这里。
+                                            删除是能点的控件,所以它单独占一行、标签在左、控件在右 ——
+                                            一个被挤在窄缝里的复选框不算"还能用"。 */}
+                                        <div className="sm:hidden mt-1 space-y-1 font-sans text-xs text-gray-600">
+                                            <div className="font-mono">
+                                                <span className="font-sans text-gray-500">{t('purchasing.amend.colReceived')}: </span>
+                                                {receivedText}
+                                            </div>
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-gray-500 shrink-0">{t('purchasing.amend.colRemove')}: </span>
+                                                {removeControl}
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right">
+                                    <td className="border border-gray-300 px-2 sm:px-3 py-2 text-right">
                                         <DecimalInput name="line_quantity" value={qty[l.id] ?? ''}
                                             onChange={(raw) => setQty((q) => ({ ...q, [l.id]: raw }))}
                                             disabled={frozen}
@@ -180,10 +222,10 @@ export default function AmendOrderForm({
                                             </p>
                                         )}
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm text-gray-600">
-                                        {l.received} {l.unit}
+                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono text-sm text-gray-600">
+                                        {receivedText}
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right">
+                                    <td className="border border-gray-300 px-2 sm:px-3 py-2 text-right">
                                         <DecimalInput name="line_price" value={price[l.id] ?? ''}
                                             onChange={(raw) => setPrice((p) => ({ ...p, [l.id]: raw }))}
                                             disabled={frozen}
@@ -192,7 +234,7 @@ export default function AmendOrderForm({
                                     {/* PUR-1:定价状态。挂了公式的行【标不成定价】——
                                         禁用并把理由摆在旁边(CMP-2 的规矩);把关在
                                         guard_po_line_price_status 那道闸上。 */}
-                                    <td className="border border-gray-300 px-3 py-2">
+                                    <td className="border border-gray-300 px-2 sm:px-3 py-2">
                                         <select name="line_price_status" value={priceStatus[l.id] ?? ''}
                                             disabled={frozen}
                                             onChange={(e) => setPriceStatus((p) => ({ ...p, [l.id]: e.target.value }))}
@@ -209,15 +251,8 @@ export default function AmendOrderForm({
                                             </p>
                                         )}
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        <label className="text-sm">
-                                            <input type="checkbox" checked={!!remove[l.id]} disabled={frozen || l.received > 0}
-                                                onChange={(e) => setRemove((r) => ({ ...r, [l.id]: e.target.checked }))} />
-                                            {/* 收过货的行删不掉 —— 复选框直接禁用并说明 */}
-                                            <span className="ml-1">
-                                                {l.received > 0 ? t('purchasing.amend.cannotRemove') : t('purchasing.amend.remove')}
-                                            </span>
-                                        </label>
+                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
+                                        {removeControl}
                                     </td>
                                 </tr>
                             )

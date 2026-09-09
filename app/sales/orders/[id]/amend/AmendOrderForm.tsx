@@ -138,17 +138,32 @@ export default function AmendOrderForm({
 
                 {/* ── 明细 ──────────────────────────────────────────────────── */}
                 <h2 className="font-medium pt-2">{t('sales.form.lines')}</h2>
+                {/* ════════════════════════════════════════════════════════════════
+                    ★ TABLE-PHONE-4:八列 → 手机档留四列(# · 物料 · 已订 · 单价)。
+                    被拿掉的四列(已开票 / 已预留 / 已发 / 删除)一个字段都没丢:
+                    带着各自的列头叠在物料那一格里,见下面 sm:hidden 的那一块。
+                    ☞ 改一张销售单,手指落在【已订】与【单价】上 —— 两个输入框都留住。
+                      已开票/已预留/已发是三个【读】的数,读在折叠区里不多花一次点击;
+                      而两条下限告警(belowShipped / belowReserved)本来就印在数量框底下,
+                      所以"已发多少"在真要用到它的那一刻仍然在眼前。
+                    ★【# 这一列留在明面上,不是凑数】它的列头是硬编码的 "#",没有 i18n key;
+                      收进折叠区就要现造一句话,而委托书禁止现造。留着它,一句都不用造 ——
+                      而行号本来就是这张表跟人对话时用的号码(报错、审计都指它)。
+                    ★ 删除那一列的复选框【不带 name】(它的值由第一格里渲染一次的
+                      <input type="hidden" name="line_remove"> 携带),所以画两份是安全的。
+                      带 name 的两个(line_quantity / line_price)都留在明面上,没有一个被复制。
+                    ════════════════════════════════════════════════════════════════ */}
                 <table className="w-full border-collapse border border-gray-300 text-sm">
                     <thead className="bg-gray-100">
                         <tr>
                             <th className="border border-gray-300 px-2 py-2 text-left">#</th>
                             <th className="border border-gray-300 px-2 py-2 text-left">{t('sales.colMaterial')}</th>
                             <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colOrdered')}</th>
-                            <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colInvoiced')}</th>
-                            <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colReserved')}</th>
-                            <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colShipped')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colInvoiced')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colReserved')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colShipped')}</th>
                             <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colPrice', { ccy: currency })}</th>
-                            <th className="border border-gray-300 px-2 py-2 text-left">{t('sales.amend.colRemove')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-left">{t('sales.amend.colRemove')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -163,6 +178,41 @@ export default function AmendOrderForm({
                             // (作废那张票 / 释放那笔预留 / 货已经发了);has_record
                             // 指不出 —— 没有任何动作能让一件发生过的事没发生过。
                             const cannotRemove = billed || l.shipped > 0 || l.reserved > 0 || l.has_record
+                            // ★ TABLE-PHONE-4:两档共用的四份内容【提出来写一次】。
+                            //   抄成两份就是让两份将来各走各的,而漂移在桌面上看不见 ——
+                            //   桌面那一份永远是对的那一份。提一次,两处引用同一个描述。
+                            const invoicedText = !canSeeInvoices ? (
+                                // 【受限 ≠ 未开票】前者是"你看不到",后者是"确实没有"
+                                <span className="text-gray-500 font-sans">{t('common.restricted')}</span>
+                            ) : billed ? (
+                                <>
+                                    {l.invoiced} {l.unit}
+                                    <span className="block text-gray-500">{l.invoice_code}</span>
+                                </>
+                            ) : (
+                                <span className="text-gray-400 font-sans">{t('sales.invoice.lineUnbilled')}</span>
+                            )
+                            const reservedText = <>{l.reserved} {l.unit}</>
+                            const shippedText = (
+                                <>
+                                    {l.shipped} {l.unit}
+                                    {l.shipment_code && (
+                                        <span className="block text-gray-500">{l.shipment_code}</span>
+                                    )}
+                                </>
+                            )
+                            // 这个复选框【不带 name】—— 值由第一格那个渲染一次的 hidden
+                            // line_remove 携带,所以两档各画一份不会往表单里多塞一格。
+                            const removeControl = (
+                                <label className="text-xs">
+                                    <input type="checkbox" checked={gone}
+                                        disabled={frozen || addOnly || cannotRemove}
+                                        onChange={(e) => setRemove((r) => ({ ...r, [l.id]: e.target.checked }))} />
+                                    <span className="ml-1">
+                                        {cannotRemove ? t('sales.amend.cannotRemove') : t('sales.amend.remove')}
+                                    </span>
+                                </label>
+                            )
                             return (
                                 <tr key={l.id} className={gone ? 'bg-gray-100 text-gray-400' : ''}>
                                     <td className="border border-gray-300 px-2 py-2">
@@ -173,6 +223,28 @@ export default function AmendOrderForm({
                                     <td className="border border-gray-300 px-2 py-2">
                                         <span className="font-mono">{l.material_code}</span>{' '}
                                         <span className="text-gray-500">{l.material_name}</span>
+                                        {/* ★ TABLE-PHONE-4:手机档拿掉的四列,带着各自的列头叠在这里。
+                                            前三个是读的数,一行一个;最后那个是能点的控件,
+                                            所以它单独占一行、标签在左、控件在右 ——
+                                            一个被挤在窄缝里的复选框不算"还能用"。 */}
+                                        <div className="sm:hidden mt-1 space-y-1 font-sans text-xs text-gray-600">
+                                            <div className="font-mono">
+                                                <span className="font-sans text-gray-500">{t('sales.amend.colInvoiced')}: </span>
+                                                {invoicedText}
+                                            </div>
+                                            <div className="font-mono">
+                                                <span className="font-sans text-gray-500">{t('sales.amend.colReserved')}: </span>
+                                                {reservedText}
+                                            </div>
+                                            <div className="font-mono">
+                                                <span className="font-sans text-gray-500">{t('sales.amend.colShipped')}: </span>
+                                                {shippedText}
+                                            </div>
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-gray-500 shrink-0">{t('sales.amend.colRemove')}: </span>
+                                                {removeControl}
+                                            </div>
+                                        </div>
                                     </td>
                                     <td className="border border-gray-300 px-2 py-2 text-right">
                                         <DecimalInput name="line_quantity" value={qty[l.id] ?? ''}
@@ -192,27 +264,14 @@ export default function AmendOrderForm({
                                             </p>
                                         )}
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-2 text-right font-mono text-xs">
-                                        {/* 【受限 ≠ 未开票】前者是"你看不到",后者是"确实没有" */}
-                                        {!canSeeInvoices ? (
-                                            <span className="text-gray-500 font-sans">{t('common.restricted')}</span>
-                                        ) : billed ? (
-                                            <>
-                                                {l.invoiced} {l.unit}
-                                                <span className="block text-gray-500">{l.invoice_code}</span>
-                                            </>
-                                        ) : (
-                                            <span className="text-gray-400 font-sans">{t('sales.invoice.lineUnbilled')}</span>
-                                        )}
+                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right font-mono text-xs">
+                                        {invoicedText}
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-2 text-right font-mono text-xs">
-                                        {l.reserved} {l.unit}
+                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right font-mono text-xs">
+                                        {reservedText}
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-2 text-right font-mono text-xs">
-                                        {l.shipped} {l.unit}
-                                        {l.shipment_code && (
-                                            <span className="block text-gray-500">{l.shipment_code}</span>
-                                        )}
+                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right font-mono text-xs">
+                                        {shippedText}
                                     </td>
                                     <td className="border border-gray-300 px-2 py-2 text-right">
                                         <DecimalInput name="line_price" value={price[l.id] ?? ''}
@@ -220,15 +279,8 @@ export default function AmendOrderForm({
                                             disabled={lockedRow || billed}
                                             className="w-24 border border-gray-300 px-2 py-1 rounded text-right" />
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-2">
-                                        <label className="text-xs">
-                                            <input type="checkbox" checked={gone}
-                                                disabled={frozen || addOnly || cannotRemove}
-                                                onChange={(e) => setRemove((r) => ({ ...r, [l.id]: e.target.checked }))} />
-                                            <span className="ml-1">
-                                                {cannotRemove ? t('sales.amend.cannotRemove') : t('sales.amend.remove')}
-                                            </span>
-                                        </label>
+                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-2">
+                                        {removeControl}
                                     </td>
                                 </tr>
                             )

@@ -1622,7 +1622,7 @@ fixture 196 的 B 臂改用 `count(*)` 扫(**不求值任何列表达式**),那�
 
 ## 阶段 8 · 前端三件套
 
-### ★【RAW-TABLE-PHONE —— 手搓表格的手机档。★ 裁定已下,三批已上线,**剩 10 张表 / 10 个文件**★】
+### ★【RAW-TABLE-PHONE —— 手搓表格的手机档。★ 裁定已下,四批已上线,**剩 2 张表 / 2 个文件,而两张卡的都是【裁定】不是工时**★】
 
 **★ 那个「54 页」是【错的】,而且错在两个相反的方向上 —— 全部说明在
 `docs/known-issues.md` 的 RAW-TABLE-PHONE-SWEEP。这里只记排期。**
@@ -1662,23 +1662,38 @@ fixture 196 的 B 臂改用 `count(*)` 扫(**不求值任何列表达式**),那�
 ★ **第三组两半【都是录入版】**(读文件读出来的,不是照名字猜的),所以**两张都留四列、留的是同一组**。
 ★ `GoalsEditor` **有条件列**:`editable` 为真 8 列(第 8 列空列头)、为假 7 列 —— 两支各量过一次。
 
-**★ 剩下的:10 张表 / 10 个文件,按判断数分批**
+**★ 已上线 —— TABLE-PHONE-4(2026-09-09):8 次判断 / 8 张表 / 8 个文件**
+录入表单里的行编辑表,**一律留四列**(R-Q4):
+`NewInvoiceForm:272`(6 列)· `NewPaymentForm:504`(5 列)·
+`CreateCreditNoteControl:101`(7 列)· `ImportStatementForm:390`(5 列)·
+`NewFreightForm:225`(**有条件列**:stated 支 5 列 / 否则 4 列免修,只在 5 列支折叠)·
+`sales/…/amend/AmendOrderForm:141`(8 列)· `purchasing/…/amend/AmendOrderForm:135`(6 列)·
+`QuoteLinesEditor:65`(**有条件列**:editable 6 列 / 只读 5 列,**两支留同一组**)。
+★ **三张表的第四格是【正确性】定的,不是偏好定的**:带 `name` 的输入框折叠 = 用 CSS 藏 =
+**照样提交**,并列数组当场错位(`DecimalInput` 给了 name 会多渲染一个同名 hidden input)。
+说明见 `docs/known-issues.md` 的 RAW-TABLE-PHONE-SWEEP「四批之后」。
+
+**★ 剩下的:2 张表 / 2 个文件 —— 【两张卡的都是裁定,不是工时】**
 
 | 批 | 内容 | 表数 / 判断数 |
 |---|---|---|
-| **TABLE-PHONE-4** | 录入表单里的行编辑表:`finance/invoices/new/NewInvoiceForm:272` · `finance/payments/new/NewPaymentForm:504` · `finance/invoices/[id]/CreateCreditNoteControl:101` · `finance/bank/import/ImportStatementForm:390` · `finance/freight/new/NewFreightForm:225` · `sales/orders/[id]/amend/AmendOrderForm:141` · `purchasing/orders/[id]/amend/AmendOrderForm:135` · `sales/quotes/[id]/QuoteLinesEditor:65` · `purchasing/orders/new/NewOrderForm:786` | 9 张 / 9 |
-| **TABLE-PHONE-6** | ★ **`logistics/containers/[id]/ContainerPanels:119` —— 卡住了,先要一个裁定。** 那张表**整张没有 `<thead>`**,5 列**全部没有列头**;折叠任何一列都要**现造一句话**,而委托书禁止新增 i18n key。**要做它就要先批 4 个 key**(发货单号 / 订单号 / 客户 / 发货日)。说明见 `docs/known-issues.md` 的 RAW-TABLE-PHONE-SWEEP。 | 1 张 / **0(待裁定)** |
+| **TABLE-PHONE-6** | ★ **`logistics/containers/[id]/ContainerPanels:119`** —— 整张没有 `<thead>`,5 列全无列头。要做先批 4 个 key(发货单号 / 订单号 / 客户 / 发货日)。 | 1 张 / **0(待裁定)** |
+| **TABLE-PHONE-7** | ★ **`purchasing/orders/new/NewOrderForm:786`** —— **TABLE-PHONE-4 读出来它是同一个形状**:整张没有 `<thead>`,5 列全无列头(金属 / 含量% / 计价% / 单价 / 金属价值),而且它不是行编辑表,是折叠面板里一段**只读的算式明细**。要做先批 5 个 key。 | 1 张 / **0(待裁定)** |
 
-**合计 10 张 = 9 + 1。**(上一版是 21 张 = 6 + 9 + 6;TABLE-PHONE-3 做掉了 6 + 5 = **11 张**,
-`ContainerPanels:119` 从原 TABLE-PHONE-5 里**拆出来单列一批**,因为它缺的是裁定不是工时。
-**21 − 11 = 10**,对得上。)
-★ **`purchasing/orders/new/NewOrderForm` 到今天【还没做完】** —— 它的两张表分属两批:
-`:858`(分期)**本刀已做**,`:786`(行编辑)**在 TABLE-PHONE-4**。
-**所以这个文件现在是半张脸,这是排期使然,不是漏了。**
-剩下的 10 张表落在 **10 个文件**上(`NewOrderForm` 只按 TABLE-PHONE-4 那一张算)。
+**合计 2 张 = 1 + 1。**(上一版是 10 张 = 9 + 1;TABLE-PHONE-4 做掉了 **8 张**,
+`NewOrderForm:786` 从 TABLE-PHONE-4 里**拆出来单列一批**,理由与 `ContainerPanels` 逐字相同。
+**10 − 8 = 2**,对得上。)
+★ **`purchasing/orders/new/NewOrderForm` 今天【仍然是半张脸】** —— `:858`(分期)
+TABLE-PHONE-3 做了,`:786` 卡在裁定上。**这一次不是排期使然,是它缺列头。**
+★★ **除掉这两张 + 那 9 张 UNMEASURED 的带滚动外壳的表,这一族【已经空了】。**
+
 ★ `/logistics/forwarders/[id]` **不在这几批里** —— 它有滚动外壳,归下面那条 UNMEASURED。
 
-**触发条件:没有了。** 裁定已下、路子已经上线跑过 8 张,**照 `/finance/payables` 做即可。**
+**触发条件:★ 变了 —— 从「没有了」变回【要一个裁定】。**
+剩下的两张都缺列头,而委托书一贯禁止现造文案。
+**Tim 要答的是同一个问题问两遍:这 9 个 key(4 + 5)批不批?**
+批了,两张各是一次判断、半刀的工;不批,这一族就到此为止 ——
+**而那也是一个可以接受的结局,只要它是说出来的。**
 
 ---
 

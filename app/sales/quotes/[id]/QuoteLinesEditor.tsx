@@ -62,6 +62,22 @@ export default function QuoteLinesEditor({
                     {reason}
                 </p>
             )}
+            {/* ════════════════════════════════════════════════════════════════
+                ★ TABLE-PHONE-4:六列(editable)/ 五列(只读)→ 手机档一律留四列
+                (# · 物料 · 数量 · 单价)。两支留的是【同一组】,所以人在两种状态下
+                看到的是同一张表,只是格子里的东西从输入框变回文字。
+                被拿掉的:金额(算出来的)+ 末列那一组按钮(editable 时才有)。
+                ☞ 金额 = 数量 × 单价,两个乘数都在明面上而且都是要动手的;
+                  一个读得到的算式结果放在折叠区里不多花一次点击 —— 这正是
+                  TABLE-PHONE-3 定下的那条:第四格给【要打字的】,不给【算出来的】。
+                ★ 末列的列头是【真的空】,格子里两个按钮各自带着自己的字
+                  (保存 / 删除)—— 按已定的做法:折叠区里照画,不现造文案。
+                ★ 这张表【一个带 name 的输入框都没有】(数量/单价是受控 state,
+                  提交走的是 server action 参数),所以复制不会往任何表单里多塞一格。
+                  ConfirmButton 也经得起复制:id 是 useId 生成的、不开 portal、
+                  keydown 监听只在对话框开着时挂 —— 而 display:none 的那一份点不开。
+                ★ colSpan 写两份(R-Q1 的代价):手机档恒为 4,桌面档 editable ? 6 : 5。
+                ════════════════════════════════════════════════════════════════ */}
             <table className="w-full border-collapse border border-gray-300 text-sm">
                 <thead className="bg-gray-100">
                     <tr>
@@ -70,8 +86,8 @@ export default function QuoteLinesEditor({
                         <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.form.qty')}</th>
                         <th className="border border-gray-300 px-2 py-2 text-right">
                             {t('quotes.colUnitPrice', { ccy: currency })}</th>
-                        <th className="border border-gray-300 px-2 py-2 text-right">{t('quotes.colLineTotal')}</th>
-                        {editable && <th className="border border-gray-300 px-2 py-2" />}
+                        <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right">{t('quotes.colLineTotal')}</th>
+                        {editable && <th className="hidden sm:table-cell border border-gray-300 px-2 py-2" />}
                     </tr>
                 </thead>
                 <tbody>
@@ -79,10 +95,65 @@ export default function QuoteLinesEditor({
                         const qn = Number(qty[l.id] ?? l.quantity)
                         const pn = Number(price[l.id] ?? l.unit_price)
                         const dirty = qn !== l.quantity || pn !== l.unit_price
+                        // ★ TABLE-PHONE-4:两档共用的两份内容【提出来写一次】——
+                        //   抄成两份就是让两份将来各走各的,而漂移在桌面上看不见。
+                        const lineTotalText = formatMoneyBare(Math.round(qn * pn * 100) / 100, '整表同一个币种,见表头单价那一列')
+                        const rowActions = editable ? (
+                            <>
+                                <Button variant="link" size="inline" type="button" disabled={isPending || !dirty}
+                                        onClick={() => run(() => updateQuoteLine(quoteId, l.id, qty[l.id] ?? '', price[l.id] ?? ''))}
+                                        className="text-xs">
+                                    {t('common.save')}
+                                </Button>
+                                {/* ★【硬删,所以有门】★(ALERT-2c)
+                                    removeQuoteLine 走的是 quote_lines 上一次裸
+                                    `.delete()` —— 没有理由、没有墓碑、没有回头路。
+                                    ALERT-2a 已经把这个钮的字从 "remove" 改成
+                                    「删除」,那是把【牌子】写对;这里补上【门】。
+                                    主语取【行号 · 物料】:两者都印在同一行里,
+                                    本页没有一处 MaskedValue,所以主语不会说出
+                                    这个读者在表上看不到的东西(CONFIRM-1 的逐消费者判据)。
+                                    ★ TABLE-PHONE-4 复核:行号与物料【两档都留在明面上】,
+                                      所以这句主语在 390px 上照样指得着它说的那一行。
+                                    金额【刻意不进主语】—— 与 CostPanel 同一条理由。 */}
+                                <ConfirmButton
+                                    subject={`#${l.line_no} · ${l.material}`}
+                                    title={t('quotes.removeLineConfirmTitle')}
+                                    body={t('common.hardDeleteNote')}
+                                    details={
+                                        <p className="text-sm font-medium text-foreground">
+                                            {t('quotes.removeLineConsequence')}
+                                        </p>
+                                    }
+                                    confirmLabel={t('common.delete')}
+                                    triggerVariant="destructive"
+                                    triggerSize="inline"
+                                    disabled={isPending}
+                                    className="ml-3 text-xs"
+                                    onConfirm={() => run(() => removeQuoteLine(quoteId, l.id))}
+                                >
+                                    {t('quotes.removeLine')}
+                                </ConfirmButton>
+                            </>
+                        ) : null
                         return (
                             <tr key={l.id}>
                                 <td className="border border-gray-300 px-2 py-2">{l.line_no}</td>
-                                <td className="border border-gray-300 px-2 py-2">{l.material}</td>
+                                <td className="border border-gray-300 px-2 py-2">
+                                    {l.material}
+                                    {/* ★ TABLE-PHONE-4:手机档拿掉的两样,叠在这里。
+                                        金额带着它的列头;末列的列头是真的空,而那两个
+                                        按钮各自带着自己的字,所以照画、不现造文案。 */}
+                                    <div className="sm:hidden mt-1 space-y-1 font-sans text-xs text-gray-600">
+                                        <div className="font-mono">
+                                            <span className="font-sans text-gray-500">{t('quotes.colLineTotal')}: </span>
+                                            {lineTotalText}
+                                        </div>
+                                        {rowActions && (
+                                            <div className="whitespace-nowrap">{rowActions}</div>
+                                        )}
+                                    </div>
+                                </td>
                                 <td className="border border-gray-300 px-2 py-2 text-right">
                                     {editable ? (
                                         <input type="number" step="any" min="0" value={qty[l.id] ?? ''}
@@ -101,43 +172,12 @@ export default function QuoteLinesEditor({
                                         </span>
                                     )}
                                 </td>
-                                <td className="border border-gray-300 px-2 py-2 text-right font-mono">
-                                    {formatMoneyBare(Math.round(qn * pn * 100) / 100, '整表同一个币种,见表头单价那一列')}
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right font-mono">
+                                    {lineTotalText}
                                 </td>
                                 {editable && (
-                                    <td className="border border-gray-300 px-2 py-2 whitespace-nowrap">
-                                        <Button variant="link" size="inline" type="button" disabled={isPending || !dirty}
-                                                onClick={() => run(() => updateQuoteLine(quoteId, l.id, qty[l.id] ?? '', price[l.id] ?? ''))}
-                                                className="text-xs">
-                                            {t('common.save')}
-                                        </Button>
-                                        {/* ★【硬删,所以有门】★(ALERT-2c)
-                                            removeQuoteLine 走的是 quote_lines 上一次裸
-                                            `.delete()` —— 没有理由、没有墓碑、没有回头路。
-                                            ALERT-2a 已经把这个钮的字从 "remove" 改成
-                                            「删除」,那是把【牌子】写对;这里补上【门】。
-                                            主语取【行号 · 物料】:两者都印在同一行里,
-                                            本页没有一处 MaskedValue,所以主语不会说出
-                                            这个读者在表上看不到的东西(CONFIRM-1 的逐消费者判据)。
-                                            金额【刻意不进主语】—— 与 CostPanel 同一条理由。 */}
-                                        <ConfirmButton
-                                            subject={`#${l.line_no} · ${l.material}`}
-                                            title={t('quotes.removeLineConfirmTitle')}
-                                            body={t('common.hardDeleteNote')}
-                                            details={
-                                                <p className="text-sm font-medium text-foreground">
-                                                    {t('quotes.removeLineConsequence')}
-                                                </p>
-                                            }
-                                            confirmLabel={t('common.delete')}
-                                            triggerVariant="destructive"
-                                            triggerSize="inline"
-                                            disabled={isPending}
-                                            className="ml-3 text-xs"
-                                            onConfirm={() => run(() => removeQuoteLine(quoteId, l.id))}
-                                        >
-                                            {t('quotes.removeLine')}
-                                        </ConfirmButton>
+                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 whitespace-nowrap">
+                                        {rowActions}
                                     </td>
                                 )}
                             </tr>
@@ -145,8 +185,14 @@ export default function QuoteLinesEditor({
                     })}
                     {lines.length === 0 && (
                         <tr>
+                            {/* ★ TABLE-PHONE-4:colSpan 写两份 —— 这是 R-Q1 明写的代价。
+                                手机档恒为 4(两支留的是同一组);桌面档 editable ? 6 : 5。 */}
+                            <td colSpan={4}
+                                className="sm:hidden border border-gray-300 px-3 py-4 text-center text-gray-500">
+                                {t('quotes.noLines')}
+                            </td>
                             <td colSpan={editable ? 6 : 5}
-                                className="border border-gray-300 px-3 py-4 text-center text-gray-500">
+                                className="hidden sm:table-cell border border-gray-300 px-3 py-4 text-center text-gray-500">
                                 {t('quotes.noLines')}
                             </td>
                         </tr>

@@ -5635,6 +5635,64 @@ CONV-8 自己)。**解药是同一个:先剥注释(而且要连字符串字面�
 **剩下的:10 张表 / 10 个文件**仍然够不着(TABLE-PHONE-4 那 9 张录入表
 + `ContainerPanels:119`)。排期见 `docs/forward-queue.md`。
 
+### 四批之后 —— TABLE-PHONE-4(2026-09-09):**录入表单里的行编辑表,8 次判断 / 8 张表 / 8 个文件**
+
+**九张里做了八张。** 录入表一律留四列(Tim 裁定),而**第四格给【要打字的】,
+不给【算出来的】**(TABLE-PHONE-3 定下的先例)。
+
+★★ **这一批的第四格,有三张【不是由偏好决定的,是由正确性决定的】** ★★
+`DecimalInput` 给了 `name` 时会**额外渲染一个同名 hidden input**
+(`app/components/forms/DecimalInput.tsx` 文件头写着这件事)。而折叠一列是**用 CSS 藏**——
+**藏起来的 input 照样提交**。于是:
+
+> **凡是格子里有【带 name 的输入框】的列,一律留在明面上。**
+> 把它折叠 = 每行往那条并列数组里多塞一格 = 整组配对当场错位。
+
+三处按这条定的列:
+* `CreateCreditNoteControl` —— `cn_qty` 带 name,所以**留数量、折叠类型**。
+  类型那个 `<select>` **自己不带 name**(值由第一格渲染一次的 `cn_kind` hidden 携带),
+  所以它是这张表里唯一能安全画两份的控件。**代价说清楚:改类型要多滚一下。**
+* `purchasing/…/amend/AmendOrderForm` —— `line_quantity` / `line_price` /
+  `line_price_status` **是三条并列数组**(PUR-1 的原注就写着这件事),
+  三列全部留在明面上;折叠的是已收(读的数)与删除(不带 name 的复选框)。
+  ☞ **这正是 PUR-1 刚修掉的那个错位**,换一件衣服回来。
+* `sales/…/amend/AmendOrderForm` —— 同上,`line_quantity` / `line_price` 留住。
+
+★ **两处的第一列列头是硬编码的 `#`,没有 i18n key —— 处置是【留在明面上】。**
+委托书 §4 禁止现造文案;而**一列不被折叠,就不需要标签**,于是一句都不用造。
+行号本来就是这两张表跟人对话时用的号码(报错、审计、`ConfirmButton` 的主语都指它)。
+☞ 这是一个**判断**,不是委托书写死的:另一条路是照 `ContainerPanels` 那样整张跳过。
+   为一个 `#` 跳掉三张能干净做完的表,不值。
+
+★ **两张有条件列,两支各量一次:**
+`NewFreightForm`(`basis==='stated'` 5 列 / 否则 4 列)——
+**折叠只在 5 列那一支生效**,四列那一支本来就在免修档里,一刀不动它。
+`QuoteLinesEditor`(`editable` 6 列 / 只读 5 列)—— **两支留的是同一组四列**。
+
+★★ **`NewOrderForm:786` 没有做 —— 它是 `ContainerPanels:119` 的第二例** ★★
+委托书说「这一刀finishes 那个文件」,而**读文件读出来不行**:
+`:786` 那张表(计价明细,5 列:金属 / 含量% / 计价% / 单价 / 金属价值)
+**整张没有 `<thead>`,一个 `<th>` 都没有**。它甚至不是一张行编辑表 ——
+它是折叠面板里一段**只读的算式明细**。
+☞ 处置与 `ContainerPanels:119` 逐字相同:**登记,不动,不现造 key。**
+   量具对着它给出的是「★ 整张表没有 `<thead>` —— 拒绝判定」,退出码 1,
+   **不是一句"没有折叠块"的静默 0** —— 这正是 TABLE-PHONE-3 那条"绝不静默兜底"的兑现。
+☞ **所以 `purchasing/orders/new/NewOrderForm` 今天仍然是半张脸**,而这一次
+   卡住它的是**裁定**,不是工时 —— 与 `ContainerPanels:119` 同一条队。
+
+★ **登记一处版式观察,不动它(归排队中的样式普查):**
+`NewFreightForm` 的批次表外面套着 `overflow-y-auto`。按 CSS 规范,
+`overflow-y` 非 `visible` 而 `overflow-x` 是 `visible` 时,**`overflow-x` 计算值会变成 `auto`**——
+也就是说它**事实上可能已经能横向滚动**,那会让它更接近 `RAW-TABLE-PHONE-WRAPPED`
+那一族而不是这一族。**没有量过**(本刀没有浏览器),按批次表的裁定原样做了折叠。
+
+★ **登记一处输入框的不一致,不动它(§7 明说归样式普查):**
+这八张表里的输入框宽度是 `w-20 / w-24 / w-28 / w-32 / w-40` 五种,
+内边距是 `px-1 py-1 / px-2 py-1 / px-3 py-2` 三种,**同一张表里也混**。
+☞ **`purchasing/…/amend/AmendOrderForm` 是本批最挤的一行**:四列里三列是控件
+(两个 `w-28` 的 `DecimalInput` + 一个 `<select>`)。**它在 390px 上大概仍然放不下**,
+而收窄输入框是样式刀的事,不是本刀的。**没有量过。**
+
 ---
 
 ## COPY-1-PAYABLES-OVF(原文,保留)—— /finance/payables 在 390px 上溢出 480px,且有一张【够不着】的表(2026-09-06)

@@ -269,21 +269,30 @@ canEdit: boolean
                 ) : visible.length === 0 ? (
                     <p className="text-sm text-gray-500">{t('invoice.form.noSales')}</p>
                 ) : (
+                    /* ════════════════════════════════════════════════════════════════
+                        ★ TABLE-PHONE-4:六列 → 手机档留四列(勾选 · 品名 · 日期 · 金额)。
+                        录入表留四列不留三列(Tim 裁定):把控件收进折叠区等于填一格要点两下,
+                        而这张表【要点的就是第一列那个勾】—— 它必须留在看得见的地方。
+                        被拿掉的两列(数量 / 单价)一个字段都没丢:它们带着各自的列头
+                        叠在品名那一格里,见下面 sm:hidden 的那一块。
+                        ☞ 留金额不留数量×单价:勾这一票的人核的是"这笔会开多少钱",
+                          而数量与单价是它的来路 —— 来路读得到就够,不必占住一列。
+                        ════════════════════════════════════════════════════════════════ */
                     <table className="w-full border-collapse border border-gray-300">
                         <thead className="bg-gray-100">
                             <tr>
-                                <th className="border border-gray-300 px-3 py-2 w-8" />
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('invoice.colDescription')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('finance.colDate')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('invoice.colQuantity')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('invoice.colUnitPrice')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-right">{t('invoice.colAmount')}</th>
+                                <th className="border border-gray-300 px-2 sm:px-3 py-2 w-8" />
+                                <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('invoice.colDescription')}</th>
+                                <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('finance.colDate')}</th>
+                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('invoice.colQuantity')}</th>
+                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('invoice.colUnitPrice')}</th>
+                                <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('invoice.colAmount')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {visible.map((s) => (
                                 <tr key={s.sales_record_id}>
-                                    <td className="border border-gray-300 px-3 py-2 text-center">
+                                    <td className="border border-gray-300 px-2 sm:px-3 py-2 text-center">
                                         <input
                                             type="checkbox"
                                             checked={!!checked[s.sales_record_id]}
@@ -298,7 +307,7 @@ canEdit: boolean
                                             <input type="hidden" name="sale_id" value={s.sales_record_id} />
                                         )}
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm">
+                                    <td className="border border-gray-300 px-2 sm:px-3 py-2 text-sm">
                                         <span className="font-mono">{s.batch_code}</span>
                                         {s.material_name && <span className="ml-2">{s.material_name}</span>}
                                         {s.customer_id === null && (
@@ -306,15 +315,28 @@ canEdit: boolean
                                                 {t('invoice.unassignedSale')}
                                             </span>
                                         )}
+                                        {/* ★ TABLE-PHONE-4:手机档拿掉的两列,原样叠在这里 ——
+                                            「拿掉」指的是【那一列】,不是【那个事实】。
+                                            带着各自的列头,所以数字不会失去主语。 */}
+                                        <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                                            <div className="font-mono">
+                                                <span className="font-sans text-gray-500">{t('invoice.colQuantity')}: </span>
+                                                {s.quantity} {s.unit}
+                                            </div>
+                                            <div className="font-mono">
+                                                <span className="font-sans text-gray-500">{t('invoice.colUnitPrice')}: </span>
+                                                {s.currency} {formatMoneyBare(s.unit_price, '同格内紧邻的 s.currency 前缀')}
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-sm">{s.sale_date}</td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                    <td className="border border-gray-300 px-2 sm:px-3 py-2 text-sm">{s.sale_date}</td>
+                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                         {s.quantity} {s.unit}
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono text-sm">
                                         {s.currency} {formatMoneyBare(s.unit_price, '同格内紧邻的 s.currency 前缀')}
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                    <td className="border border-gray-300 px-2 sm:px-3 py-2 text-right font-mono text-sm">
                                         {formatAmount(s.amount_base, s.currency)}
                                     </td>
                                 </tr>

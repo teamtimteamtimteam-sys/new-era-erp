@@ -65,6 +65,11 @@ export default function NewFreightForm({
     // 不把一张注定被拒的表单摆到人面前(CMP-2 的规矩)
     const unpriced = !outbound && basis === 'value' ? chosen.filter((b) => b.unit_price === null) : []
 
+    // ★ TABLE-PHONE-4:批次表的列数是有条件的 —— 'stated' 那一支多一列「分得」,共 5 列;
+    //   另外两支 4 列,本来就在免修档里。折叠只在 5 列那一支生效,写在这里一处,
+    //   列头与单元格共用它 —— 两边各写一个条件,就是让它们将来各走各的。
+    const stacked = basis === 'stated'
+
     return (
         <div className="max-w-4xl">
             <div className="mb-6">
@@ -222,31 +227,55 @@ export default function NewFreightForm({
                         </div>
                     )}
                     <div className="border border-gray-300 rounded max-h-96 overflow-y-auto">
+                        {/* ════════════════════════════════════════════════════════════════
+                            ★ TABLE-PHONE-4:这张表【列数是有条件的】(GoalsEditor 的先例):
+                            basis === 'stated' 时 5 列,否则 4 列。**四列那一支本来就免修**,
+                            所以折叠【只在 5 列那一支生效】—— 一张已经合格的表不该被这一刀改掉。
+                            5 列那一支手机档留四列(勾选 · 批次 · 数量 · 分得):
+                            被拿掉的「剩余」带着列头叠在批次那一格里。
+                            ☞ 留数量不留剩余:分摊运费分的是【这一票走了多少】,数量就是分母;
+                              剩余是仓里还剩多少,那是另一件事。而末列是唯一要打字的地方,必留。
+                            ════════════════════════════════════════════════════════════════ */}
                         <table className="w-full border-collapse">
                             <thead className="bg-gray-100 sticky top-0">
                                 <tr>
-                                    <th className="px-3 py-2 text-left w-10" />
-                                    <th className="px-3 py-2 text-left">{t('finance.freight.colBatch')}</th>
-                                    <th className="px-3 py-2 text-right">{t('finance.freight.colQty')}</th>
-                                    <th className="px-3 py-2 text-right">{t('finance.freight.colRemaining')}</th>
+                                    <th className="px-2 sm:px-3 py-2 text-left w-10" />
+                                    <th className="px-2 sm:px-3 py-2 text-left">{t('finance.freight.colBatch')}</th>
+                                    <th className="px-2 sm:px-3 py-2 text-right">{t('finance.freight.colQty')}</th>
+                                    <th className={(stacked ? 'hidden sm:table-cell ' : '') + 'px-2 sm:px-3 py-2 text-right'}>
+                                        {t('finance.freight.colRemaining')}
+                                    </th>
                                     {basis === 'stated' && (
-                                        <th className="px-3 py-2 text-right">{t('finance.freight.colShare')}</th>
+                                        <th className="px-2 sm:px-3 py-2 text-right">{t('finance.freight.colShare')}</th>
                                     )}
                                 </tr>
                             </thead>
                             <tbody>
                                 {batches.map((b) => (
                                     <tr key={b.id} className="border-t border-gray-200">
-                                        <td className="px-3 py-2">
+                                        <td className="px-2 sm:px-3 py-2">
                                             <input type="checkbox" checked={!!picked[b.id]}
                                                 onChange={(e) => setPicked((p) => ({ ...p, [b.id]: e.target.checked }))} />
                                             {picked[b.id] && <input type="hidden" name="batch_id" value={b.id} />}
                                         </td>
-                                        <td className="px-3 py-2 font-mono text-sm">{b.code}</td>
-                                        <td className="px-3 py-2 text-right font-mono text-sm">{b.quantity} {b.unit}</td>
-                                        <td className="px-3 py-2 text-right font-mono text-sm">{b.remaining_qty}</td>
+                                        <td className="px-2 sm:px-3 py-2 font-mono text-sm">
+                                            {b.code}
+                                            {/* ★ TABLE-PHONE-4:5 列那一支手机档拿掉的「剩余」,带着列头叠在这里。 */}
+                                            {stacked && (
+                                                <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                                                    <div className="font-mono">
+                                                        <span className="font-sans text-gray-500">{t('finance.freight.colRemaining')}: </span>
+                                                        {b.remaining_qty}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="px-2 sm:px-3 py-2 text-right font-mono text-sm">{b.quantity} {b.unit}</td>
+                                        <td className={(stacked ? 'hidden sm:table-cell ' : '') + 'px-2 sm:px-3 py-2 text-right font-mono text-sm'}>
+                                            {b.remaining_qty}
+                                        </td>
                                         {basis === 'stated' && (
-                                            <td className="px-3 py-2 text-right">
+                                            <td className="px-2 sm:px-3 py-2 text-right">
                                                 {picked[b.id] && (
                                                     <DecimalInput name="stated_amount"
                                                         value={stated[b.id] ?? ''}

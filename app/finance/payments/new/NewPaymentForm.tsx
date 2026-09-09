@@ -501,32 +501,51 @@ canEdit: boolean
                     <h3 className="text-sm font-bold text-gray-700 mb-2">
                         {t('purchasing.prepaymentGroup')}
                     </h3>
+                    {/* ════════════════════════════════════════════════════════════════
+                        ★ TABLE-PHONE-4:五列 → 手机档留四列(单据 · 估算总额 · 已预付 · 本次冲销)。
+                        录入表留四列(Tim 裁定):最后一列是这张表【唯一】要动手的地方,
+                        收进折叠区就等于每填一格都要先展开。
+                        被拿掉的下单日期没有丢:它带着列头叠在单据那一格里。
+                        ☞ 留两个钱不留日期:预付多少的上限由「估算总额 − 已预付」决定,
+                          两个数缺一个这一格就填不成;下单日期只是认单据,而单据号已经在。
+                        ★ 那两列【不是同一种币】(见下面原注),所以两列各自带着币种 ——
+                          折叠区里也一样,formatAmount 原样搬过去。
+                        ════════════════════════════════════════════════════════════════ */}
                     <table className="w-full border-collapse border border-gray-300">
                         <thead className="bg-gray-100">
                             <tr>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDocument')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('purchasing.colOrderDate')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colEstimatedTotal')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-right">{t('purchasing.colPrepaid')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colAllocate')}</th>
+                                <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('finance.colDocument')}</th>
+                                <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('purchasing.colOrderDate')}</th>
+                                <th className="border border-gray-300 px-2 sm:px-4 py-2 text-right">{t('purchasing.colEstimatedTotal')}</th>
+                                <th className="border border-gray-300 px-2 sm:px-4 py-2 text-right">{t('purchasing.colPrepaid')}</th>
+                                <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('finance.colAllocate')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {pos.map((p) => (
                                 <tr key={p.po_id}>
-                                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">{p.code}</td>
-                                    <td className="border border-gray-300 px-4 py-2">{p.order_date}</td>
+                                    <td className="border border-gray-300 px-2 sm:px-4 py-2 font-mono text-sm">
+                                        {p.code}
+                                        {/* ★ TABLE-PHONE-4:手机档拿掉的下单日期,带着列头叠在这里。 */}
+                                        <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                                            <div>
+                                                <span className="text-gray-500">{t('purchasing.colOrderDate')}: </span>
+                                                {p.order_date}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">{p.order_date}</td>
                                     {/* 【这两列不是同一种币】estimated_total_ccy 名字里带 usd,
                                         存的却是【单据币种】(create_purchase_order 全程不乘汇率,
                                         旧名见 docs/known-issues.md);prepaid_base 是【本位币】。
                                         并排、都不标币种,比未结那一列还容易读错 —— 各标各的。 */}
-                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                    <td className="border border-gray-300 px-2 sm:px-4 py-2 text-right font-mono text-sm">
                                         {formatAmount(p.estimated_total_ccy, p.currency)}
                                     </td>
-                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                    <td className="border border-gray-300 px-2 sm:px-4 py-2 text-right font-mono text-sm">
                                         {formatAmount(p.prepaid_base, baseCurrency)}
                                     </td>
-                                    <td className="border border-gray-300 px-4 py-2">
+                                    <td className="border border-gray-300 px-2 sm:px-4 py-2">
                                         <input type="hidden" name="alloc_id" value={p.po_id} />
                                         <input type="hidden" name="alloc_kind" value="purchase_order" />
                                         <div className="flex items-center gap-1">
