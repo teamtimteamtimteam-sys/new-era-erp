@@ -9,10 +9,24 @@
 // 而答案在另一个模块里。所以是一对,不是一个。
 // ★ 也正因为两块面板会并排出现,本刀的错误码全部带 EXPENSE_ 前缀 ——
 //   否则一个共用的 localizer 会把一种报销的错误译成另一种的措辞。
+//
+// ★ TABLE-CONVERT-1(2026-09-10):手搓表格 → 组件。
+//   【手机上留哪几列一个字没改 —— 而它今天是【四】列,不是三列】
+//     留:单号 · 金额 · 状态 · 撤回钮那一列;折:消费日 · 事由。
+//   ★★ 撤回钮那一列是 priority,而这是【接着 TABLE-STYLE-1 / R1 往下走】:
+//     那一刀(Tim 裁定,2026-09-09)把这一列从「折进单号格」改回了「自己留在
+//     明面上」,理由是【够不着的动作等于不存在】。在组件里"折"意味着那颗钮
+//     落进展开区 —— 要先点开一行才够得着。所以它必须 priority:true,
+//     否则这一次转换会把上一刀刚做的裁定悄悄撤销。规矩的出处见
+//     docs/base-components.md §二十.1 与 Column.priority 的抬头。
+//   ☞ TABLE-CONVERT-0 普查 §5 那一行把撤回钮记成【折进去了】—— 那份普查
+//     跑在 TABLE-STYLE-1 落地【之前】,记的是当时的源码。**以今天的源码为准。**
+//   叠在单号格里那一段手写的展开块【拿掉了】:组件自己画那一段。
 import { useState, useTransition } from 'react'
 import { submitClaim, withdrawClaim } from '@/app/finance/claims/actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 type Row = {
     claim_id: string; code: string; spend_date: string; amount_ccy: number
@@ -46,8 +60,10 @@ export default function MyExpenseClaimsPanel({
     }
     const canSubmit = spendDate !== '' && amount !== '' && description.trim() !== ''
 
-    /* ★ TABLE-PHONE-3:同一个撤回钮要在两个断点各画一次(桌面档在自己那一列,
-       手机档叠在「单号」格里),所以在这里定义一次 —— 免得两处日后走散。
+    /* 撤回钮。TABLE-PHONE-3 当时把它写成一个共用的画法,是因为同一颗钮要在两个
+       断点各画一次(桌面在自己那一列,手机叠在「单号」格里);TABLE-STYLE-1 之后
+       它【只画一次】了 —— 那一列在两个断点都留在明面上。
+       ☞ 留着这个具名的画法,是因为它现在就是那一列的 render。
        动作与它自己的 submitted 判定一个字没改。 */
     const withdrawControl = (r: (typeof rows)[number]) => (
         <>
@@ -66,6 +82,54 @@ export default function MyExpenseClaimsPanel({
         )}
         </>
     )
+
+    const columns: Column<Row>[] = [
+        { key: 'ref', header: t('expenseClaims.colRef'), priority: true, className: 'font-mono', render: (r) => r.code },
+        {
+            key: 'spent', header: t('expenseClaims.colSpent'), className: 'font-mono',
+            render: (r) => r.spend_date,
+        },
+        {
+            key: 'description', header: t('expenseClaims.colDescription'),
+            render: (r) => (
+                <>
+                    {r.description}
+                    <span className="block text-[11px] text-gray-500">
+                        {r.has_receipt ? t('expenseClaims.hasReceipt')
+                            : r.no_receipt_reason
+                                ? `${t('expenseClaims.noReceipt')} — ${r.no_receipt_reason}`
+                                : t('expenseClaims.noReceipt')}
+                    </span>
+                    {r.decision_notes && (
+                        <span className="block text-[11px] text-gray-600">{r.decision_notes}</span>
+                    )}
+                </>
+            ),
+        },
+        {
+            key: 'amount', header: t('expenseClaims.colAmount'), align: 'right', priority: true,
+            className: 'font-mono', render: (r) => `${money(r.amount_ccy)} ${r.currency}`,
+        },
+        {
+            key: 'status', header: t('expenseClaims.colStatus'), priority: true,
+            render: (r) => (
+                <>
+                    {t('expenseClaims.status_' + r.status)}
+                    {r.expense_reversed && (
+                        <span className="block text-[11px] text-red-700">{t('expenseClaims.reversed')}</span>
+                    )}
+                    {!r.expense_reversed && r.is_owing && (
+                        <span className="block text-[11px] text-amber-800">{t('expenseClaims.owing')}</span>
+                    )}
+                    {!r.expense_reversed && r.is_paid && (
+                        <span className="block text-[11px] text-green-700">{t('expenseClaims.paid')}</span>
+                    )}
+                </>
+            ),
+        },
+        // ★ 动作列 —— 空列头与转换之前逐字相同,priority 的理由见抬头。
+        { key: 'actions', header: '', align: 'right', priority: true, render: withdrawControl },
+    ]
 
     return (
         <section className="mb-8">
@@ -122,90 +186,13 @@ export default function MyExpenseClaimsPanel({
                 </div>
             )}
 
-            {rows.length === 0 ? (
-                // 【命名的缺席,不是空白】"还没提过"与"读不到"要说得不一样
-                <p className="text-sm text-gray-500">{t('expenseClaims.none')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colRef')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colSpent')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colDescription')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('expenseClaims.colAmount')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colStatus')}</th>
-                            <th className="border border-gray-300 px-3 py-2"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((r) => (
-                            <tr key={r.claim_id}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">
-                                    {r.code}
-                                    {/* ★ TABLE-PHONE-3:手机档被拿掉的列(消费日 / 事由,以及那一列
-                                        原样叠在这里,各带各的列头 ——
-                                        拿掉的是那一列,不是那个事实。
-                                        留在列上的是:单号 + 报了多少 + 批没批 —— 报销这件事就这三问。 */}
-                                    <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
-                                        <div>
-                                            <span className="text-gray-500">{t('expenseClaims.colSpent')}: </span>
-                                            <span className="font-mono">{r.spend_date}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">{t('expenseClaims.colDescription')}: </span>
-                                            {r.description}
-                                            <span className="block text-[11px] text-gray-500">
-                                                {r.has_receipt ? t('expenseClaims.hasReceipt')
-                                                    : r.no_receipt_reason
-                                                        ? `${t('expenseClaims.noReceipt')} — ${r.no_receipt_reason}`
-                                                        : t('expenseClaims.noReceipt')}
-                                            </span>
-                                            {r.decision_notes && (
-                                                <span className="block text-[11px] text-gray-600">{r.decision_notes}</span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 font-mono text-xs">{r.spend_date}</td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
-                                    {r.description}
-                                    <span className="block text-[11px] text-gray-500">
-                                        {r.has_receipt ? t('expenseClaims.hasReceipt')
-                                            : r.no_receipt_reason
-                                                ? `${t('expenseClaims.noReceipt')} — ${r.no_receipt_reason}`
-                                                : t('expenseClaims.noReceipt')}
-                                    </span>
-                                    {r.decision_notes && (
-                                        <span className="block text-[11px] text-gray-600">{r.decision_notes}</span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                    {money(r.amount_ccy)} {r.currency}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    {t('expenseClaims.status_' + r.status)}
-                                    {r.expense_reversed && (
-                                        <span className="block text-[11px] text-red-700">{t('expenseClaims.reversed')}</span>
-                                    )}
-                                    {!r.expense_reversed && r.is_owing && (
-                                        <span className="block text-[11px] text-amber-800">{t('expenseClaims.owing')}</span>
-                                    )}
-                                    {!r.expense_reversed && r.is_paid && (
-                                        <span className="block text-[11px] text-green-700">{t('expenseClaims.paid')}</span>
-                                    )}
-                                </td>
-                                {/* ★★ TABLE-STYLE-1 / R1(Tim 裁定,2026-09-09):【动作列在手机上不折】。
-                                    这一列原来带 hidden sm:table-cell、撤回钮叠在单号那一格里;
-                                    现在它自己留在明面上,叠着的那一份【拿掉了】——
-                                    留着就是同一颗钮在同一行里画两遍。规矩见 docs/base-components.md §二十。 */}
-                                <td className="border border-gray-300 px-3 py-2 text-right">
-                                    {withdrawControl(r)}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <DataTable
+                rows={rows}
+                columns={columns}
+                rowKey={(r) => r.claim_id}
+                phone={{ mode: 'columns' }}
+                empty={t('expenseClaims.none')}
+            />
         </section>
     )
 }

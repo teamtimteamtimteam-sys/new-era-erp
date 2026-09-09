@@ -2,10 +2,16 @@
 
 // app/me/MyClaimsPanel.tsx
 // 自助的医疗报销:剩余额度 + 自己的报销历史 + 提交表单。
+//
+// ★ TABLE-CONVERT-1(2026-09-10):手搓表格 → 组件。
+//   【这张表【没有】列选判断要搬】—— 它转换之前一个 hidden sm:table-cell 都没有,
+//   四列在 390px 上【全部看得见】。于是四列【全部】priority:那不是"我给它加了
+//   优先级",那是把「今天手机上四列都在」原样说了一遍。折进展开区才是改判断。
 import { useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import ClaimForm from '@/app/hr/claims/ClaimForm'
 import { Button } from '@/app/components/ui/button'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 type Claim = {
     claim_id: string; code: string; claim_date: string
@@ -18,6 +24,20 @@ export default function MyClaimsPanel({
 }: { employeeId: string; claims: Claim[]; balance: Bal | null }) {
     const t = useTranslations()
     const [open, setOpen] = useState(false)
+
+    // ★ 四列全部 priority —— 见抬头:转换之前手机上就是四列都在。
+    const columns: Column<Claim>[] = [
+        { key: 'code', header: t('claims.code'), priority: true, className: 'font-mono', render: (c) => c.code },
+        { key: 'date', header: t('claims.date'), priority: true, render: (c) => c.claim_date },
+        {
+            key: 'amount', header: t('claims.amount'), align: 'right', priority: true, className: 'font-mono',
+            render: (c) => `${Number(c.amount_sgd).toFixed(2)} SGD`,
+        },
+        {
+            key: 'state', header: t('claims.state'), priority: true,
+            render: (c) => t(`claims.state_${c.settlement_state}`),
+        },
+    ]
 
     return (
         <section className="mb-6">
@@ -46,32 +66,13 @@ export default function MyClaimsPanel({
                 </div>
             )}
 
-            {claims.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('me.noClaims')}</p>
-            ) : (
-                <table className="w-full border-collapse text-sm">
-                    <thead>
-                        <tr className="bg-gray-50 text-left">
-                            <th className="border border-gray-300 px-3 py-2">{t('claims.code')}</th>
-                            <th className="border border-gray-300 px-3 py-2">{t('claims.date')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('claims.amount')}</th>
-                            <th className="border border-gray-300 px-3 py-2">{t('claims.state')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {claims.map((c) => (
-                            <tr key={c.claim_id}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{c.code}</td>
-                                <td className="border border-gray-300 px-3 py-2">{c.claim_date}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                    {Number(c.amount_sgd).toFixed(2)} SGD
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2">{t(`claims.state_${c.settlement_state}`)}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <DataTable
+                rows={claims}
+                columns={columns}
+                rowKey={(c) => c.claim_id}
+                phone={{ mode: 'columns' }}
+                empty={t('me.noClaims')}
+            />
         </section>
     )
 }

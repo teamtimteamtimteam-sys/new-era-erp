@@ -19,6 +19,8 @@ import MySelfAssessmentPanel, {
     type SelfAssessmentGoal,
 } from './MySelfAssessmentPanel'
 import MyReviewsPanel from './MyReviewsPanel'
+import MyPayslipsTable, { type PayslipRow } from './MyPayslipsTable'
+import MyTrainingTable, { type TrainingRow } from './MyTrainingTable'
 import { REVIEW_COLUMNS, type GoalRow, type ReviewRow } from '@/app/hr/reviews/reviewShared'
 import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
 import { mustRows } from '@/lib/db-helpers'
@@ -244,6 +246,41 @@ export default async function MePage() {
         return null
     }
 
+    // ════════════════════════════════════════════════════════════════════════
+    // ★ TABLE-CONVERT-1(2026-09-10):本页那两张手搓表格搬进了两个
+    //   'use client' 组件(MyPayslipsTable / MyTrainingTable)。
+    //   【为什么搬出去】本页是 server component,而表格组件的列描述符带 render 函数
+    //   —— 函数过不了 server→client 那道边界。全库 97 个调用点【全部】是这个形状。
+    //   【为什么在这里就把行格好】币种、期间号、日期与"今天"都住在这一侧;
+    //   把 toLocaleDateString 挪到客户端会让服务端渲染与水合的结果可能不一致,
+    //   那会改变屏幕上的字。**过界的只有已经格好的字符串。**
+    // ════════════════════════════════════════════════════════════════════════
+    //   ★ payroll_lines_masked 是一个【视图】,于是生成的类型把它的 id 记成
+    //     string | null。转换之前这里写的是 key={l.id} —— 键为 null 时 React
+    //     退回按【位置】认这一行。组件的 rowKey 要一个真的字符串,所以那个
+    //     "按位置"在这里写明出来,而不是换一种认法:下标兜底,不会撞。
+    const payslipRows: PayslipRow[] = (mustRows(payRes)).map((l, i) => {
+        const per = l.payroll_period_id ? periodById.get(l.payroll_period_id) : undefined
+        return {
+            id: l.id ?? `payslip-${i}`,
+            periodCode: per ? per.code : '—',
+            periodMonthLabel: per?.period_month ? fmtDate(per.period_month) : null,
+            gross: formatAmount(l.gross_pay, per?.currency),
+            employerCpf: formatAmount(l.employer_cpf, per?.currency),
+            employeeCpf: formatAmount(l.employee_cpf, per?.currency),
+            deductions: formatAmount(l.other_deductions, per?.currency),
+            net: formatAmount(l.net_pay, per?.currency),
+        }
+    })
+    const trainingRows: TrainingRow[] = (mustRows(trainRes)).map((r) => ({
+        id: r.id,
+        trainingName: r.training_name,
+        provider: r.provider,
+        completedLabel: fmtDate(r.completed_date),
+        expiryLabel: fmtDate(r.expiry_date),
+        expiry: expiryState(r.expiry_date),
+    }))
+
     return (
         <div className="p-8 max-w-4xl">
             <h1 className="text-2xl font-bold mb-1">{t('me.title')}</h1>
@@ -321,121 +358,13 @@ export default async function MePage() {
             {/* ── payslips: own figures in full ── */}
             <section className="mb-6">
                 <h2 className="text-lg font-bold mb-2">{t('me.payslips')}</h2>
-                {(mustRows(payRes)).length === 0 ? (
-                    <p className="text-sm text-gray-500">{t('me.noPayslips')}</p>
-                ) : (
-                    <table className="w-full border-collapse text-sm">
-                        <thead>
-                            {/* ★ TABLE-PHONE-2:手机档三列 —— 期间 · 应发 · 实发。
-                                【这张表没有状态列】,所以第三格给了第二个要紧的数:
-                                一个人在手机上翻自己的工资条,问的是「这个月应发多少、
-                                真正到手多少」—— 两头都要,少一头就没法自己对。
-                                中间那三列(雇主公积金 / 个人公积金 / 其他扣除)正是
-                                两头之间的明细,在 390px 上不画,叠进「期间」那一格,
-                                各带自己的列头。 */}
-                            <tr className="bg-gray-50 text-left">
-                                <th className="border border-gray-300 px-2 sm:px-3 py-2">{t('me.period')}</th>
-                                <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('me.gross')}</th>
-                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('me.employerCpf')}</th>
-                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('me.employeeCpf')}</th>
-                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('me.deductions')}</th>
-                                <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('me.net')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {(mustRows(payRes)).map((l) => {
-                                const per = l.payroll_period_id ? periodById.get(l.payroll_period_id) : undefined
-                                return (
-                                    <tr key={l.id}>
-                                        <td className="border border-gray-300 px-2 sm:px-3 py-2">
-                                            {per ? per.code : '—'}
-                                            {per?.period_month && (
-                                                <span className="ml-2 text-xs text-gray-500">
-                                                    {fmtDate(per.period_month)}
-                                                </span>
-                                            )}
-                                            {/* ★ 手机档拿掉的三列叠在这里,各带自己的列头 ——
-                                                「拿掉」指的是【那一列】,不是【那个事实】。 */}
-                                            <div className="sm:hidden mt-1 space-y-0.5 text-xs text-gray-600">
-                                                <div>
-                                                    <span className="text-gray-500">{t('me.employerCpf')}: </span>
-                                                    <span className="font-mono">{formatAmount(l.employer_cpf, per?.currency)}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-gray-500">{t('me.employeeCpf')}: </span>
-                                                    <span className="font-mono">{formatAmount(l.employee_cpf, per?.currency)}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-gray-500">{t('me.deductions')}: </span>
-                                                    <span className="font-mono">{formatAmount(l.other_deductions, per?.currency)}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="border border-gray-300 px-2 sm:px-3 py-2 text-right font-mono">
-                                            {formatAmount(l.gross_pay, per?.currency)}
-                                        </td>
-                                        <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {formatAmount(l.employer_cpf, per?.currency)}
-                                        </td>
-                                        <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {formatAmount(l.employee_cpf, per?.currency)}
-                                        </td>
-                                        <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {formatAmount(l.other_deductions, per?.currency)}
-                                        </td>
-                                        <td className="border border-gray-300 px-2 sm:px-3 py-2 text-right font-mono font-medium">
-                                            {formatAmount(l.net_pay, per?.currency)}
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
-                )}
+                <MyPayslipsTable rows={payslipRows} empty={t('me.noPayslips')} />
             </section>
 
             {/* ── training ── */}
             <section className="mb-6">
                 <h2 className="text-lg font-bold mb-2">{t('me.training')}</h2>
-                {(mustRows(trainRes)).length === 0 ? (
-                    <p className="text-sm text-gray-500">{t('me.noTraining')}</p>
-                ) : (
-                    <table className="w-full border-collapse text-sm">
-                        <thead>
-                            <tr className="bg-gray-50 text-left">
-                                <th className="border border-gray-300 px-3 py-2">{t('me.trainingName')}</th>
-                                <th className="border border-gray-300 px-3 py-2">{t('me.completed')}</th>
-                                <th className="border border-gray-300 px-3 py-2">{t('me.expires')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {(mustRows(trainRes)).map((r) => {
-                                const s = expiryState(r.expiry_date)
-                                return (
-                                    <tr key={r.id}>
-                                        <td className="border border-gray-300 px-3 py-2">
-                                            {r.training_name}
-                                            {r.provider && (
-                                                <span className="ml-2 text-xs text-gray-500">{r.provider}</span>
-                                            )}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2">
-                                            {fmtDate(r.completed_date)}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2">
-                                            {fmtDate(r.expiry_date)}
-                                            {s && (
-                                                <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${s.cls}`}>
-                                                    {t(s.key)}
-                                                </span>
-                                            )}
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                        </tbody>
-                    </table>
-                )}
+                <MyTrainingTable rows={trainingRows} empty={t('me.noTraining')} />
             </section>
 
             {/* ── employment history ── */}
