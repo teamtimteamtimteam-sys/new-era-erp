@@ -19,6 +19,7 @@ import { recordChase, recordPromiseOutcome } from './chaseActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 type OpenPromise = {
     promise_id: string; chase_id: string; chase_code: string; chased_on: string
@@ -84,6 +85,69 @@ export default function ChasePanel({
     // 提交控件在必填项为空时【禁用】,而服务端【独立地】拒空 —— 两道,不是一道。
     const canSubmit = chasedOn !== '' && summary.trim() !== ''
         && (!wantPromise || (amount !== '' && promisedDate !== ''))
+
+    // ★ TABLE-CONVERT-3:手搓表格 → 组件。
+    //   【手机上留哪几列一个字没改】TABLE-PHONE-3 留的是 单号 · 当时欠多少 · 承诺,
+    //   折起来的是 日期 · 渠道 · 联系到谁 · 纪要 —— 催收这件事的结果就在最后那一列。
+    //   叠在单号格里那一段手写的展开块【拿掉了】:组件自己画那一段。
+    //   ★ 「纪要」下面那串关联单据原来在两个断点各画一份,现在只画一次
+    //     (组件把同一个 render 用在行里和展开区)。
+    const columns: Column<Chase>[] = [
+        {
+            key: 'code', header: t('chases.colCode'), priority: true, className: 'font-mono',
+            render: (c) => (
+                <>
+                    {c.code}
+                    {c.superseded_at && (
+                        <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] bg-gray-200 text-gray-700">
+                            {t('chases.superseded')}
+                        </span>
+                    )}
+                </>
+            ),
+        },
+        { key: 'date', header: t('chases.colDate'), className: 'font-mono', render: (c) => c.chased_on },
+        { key: 'channel', header: t('chases.colChannel'), render: (c) => t('chases.channel_' + c.channel) },
+        {
+            key: 'who', header: t('chases.colWho'),
+            render: (c) => (c.reached ? (c.contacted_person ?? '—') : t('chases.notReached')),
+        },
+        {
+            key: 'summary', header: t('chases.colSummary'),
+            render: (c) => (
+                <>
+                    {c.summary}
+                    {c.documents.length > 0 && (
+                        <span className="block text-[11px] text-gray-500 mt-1">
+                            {c.documents.map((d) =>
+                                `${t('chases.subject_' + d.subject_type)} ${d.subject_code ?? ''}`.trim()
+                            ).join(' · ')}
+                        </span>
+                    )}
+                </>
+            ),
+        },
+        {
+            key: 'owed', header: t('chases.owedAtChase'), align: 'right', priority: true,
+            className: 'font-mono', render: (c) => money(c.owed_base),
+        },
+        {
+            key: 'promise', header: t('chases.colPromise'), priority: true,
+            render: (c) => (c.promise ? (
+                <>
+                    <span className="font-mono">
+                        {c.promise.promised_amount_ccy.toLocaleString()} {c.promise.currency}
+                    </span>
+                    <span className="block text-gray-500">→ {c.promise.promised_date}</span>
+                    {c.promise.outcome && (
+                        <span className="block">{t('chases.outcome_' + c.promise.outcome)}</span>
+                    )}
+                </>
+            ) : (
+                <span className="text-gray-400">{t('chases.promiseNone')}</span>
+            )),
+        },
+    ]
 
     return (
         <section className="mb-8">
@@ -232,100 +296,14 @@ export default function ChasePanel({
             )}
 
             {/* ── 记录本身 ───────────────────────────────────────────────── */}
-            {chases.length === 0 ? (
-                // 【命名的缺席,不是空白】"从没催过"与"读不到"要说得不一样
-                <p className="text-sm text-gray-500">{t('chases.none')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('chases.colCode')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('chases.colDate')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('chases.colChannel')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('chases.colWho')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('chases.colSummary')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('chases.owedAtChase')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('chases.colPromise')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {chases.map((c) => (
-                            <tr key={c.id} className={c.superseded_at ? 'text-gray-400' : ''}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">
-                                    {c.code}
-                                    {c.superseded_at && (
-                                        <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] bg-gray-200 text-gray-700">
-                                            {t('chases.superseded')}
-                                        </span>
-                                    )}
-                                    {/* ★ TABLE-PHONE-3:手机档被拿掉的四列(日期 / 渠道 / 联系到谁 / 纪要),
-                                        原样叠在这里,各带各的列头 —— 拿掉的是那一列,不是那个事实。
-                                        留在列上的是:单号 + 当时欠多少 + 对方许了什么 ——
-                                        催收这件事的结果就在最后那一列。 */}
-                                    <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
-                                        <div>
-                                            <span className="text-gray-500">{t('chases.colDate')}: </span>
-                                            <span className="font-mono">{c.chased_on}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">{t('chases.colChannel')}: </span>
-                                            {t('chases.channel_' + c.channel)}
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">{t('chases.colWho')}: </span>
-                                            {c.reached ? (c.contacted_person ?? '—') : t('chases.notReached')}
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">{t('chases.colSummary')}: </span>
-                                            {c.summary}
-                                            {c.documents.length > 0 && (
-                                                <span className="block text-[11px] text-gray-500 mt-1">
-                                                    {c.documents.map((d) =>
-                                                        `${t('chases.subject_' + d.subject_type)} ${d.subject_code ?? ''}`.trim()
-                                                    ).join(' · ')}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 font-mono text-xs">{c.chased_on}</td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">{t('chases.channel_' + c.channel)}</td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
-                                    {c.reached ? (c.contacted_person ?? '—') : t('chases.notReached')}
-                                </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
-                                    {c.summary}
-                                    {c.documents.length > 0 && (
-                                        <span className="block text-[11px] text-gray-500 mt-1">
-                                            {c.documents.map((d) =>
-                                                `${t('chases.subject_' + d.subject_type)} ${d.subject_code ?? ''}`.trim()
-                                            ).join(' · ')}
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                    {money(c.owed_base)}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-xs">
-                                    {c.promise ? (
-                                        <>
-                                            <span className="font-mono">
-                                                {c.promise.promised_amount_ccy.toLocaleString()} {c.promise.currency}
-                                            </span>
-                                            <span className="block text-gray-500">→ {c.promise.promised_date}</span>
-                                            {c.promise.outcome && (
-                                                <span className="block">{t('chases.outcome_' + c.promise.outcome)}</span>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <span className="text-gray-400">{t('chases.promiseNone')}</span>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <DataTable
+                rows={chases}
+                columns={columns}
+                rowKey={(c) => c.id}
+                phone={{ mode: 'columns' }}
+                empty={t('chases.none')}
+                rowClassName={(c) => (c.superseded_at ? 'text-gray-400' : undefined)}
+            />
             {/* 冻结的数与今天的数【并排】—— 表里那一列是当时告诉客户的数 */}
             {chases.length > 0 && (
                 <p className="text-xs text-gray-500 mt-2">

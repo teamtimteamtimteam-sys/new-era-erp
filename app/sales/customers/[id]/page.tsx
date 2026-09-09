@@ -23,6 +23,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
+import OpenItemsTable, { type OpenItemRow } from './OpenItemsTable'
 import { formatAmount } from '@/lib/format'
 import { can } from '@/lib/permissions'
 import StatementPanel from '../StatementPanel'
@@ -129,6 +130,17 @@ export default async function CustomerStatusPage({
                   .order('sale_date')
           ) as OpenItem[])
         : []
+
+    // ★ TABLE-CONVERT-3:未结清单搬进了 OpenItemsTable('use client')。
+    //   本页是 server component,列描述符带 render 函数,过不了那道边界。
+    //   金额在这一侧格好再过界 —— 屏幕上的字一个都没变。
+    const openItemRows: OpenItemRow[] = openItems.map((it) => ({
+        salesRecordId: it.sales_record_id,
+        docCode: it.doc_code,
+        saleDate: it.sale_date,
+        openBase: formatAmount(it.open_base, baseCurrency),
+        daysOutstanding: it.days_outstanding,
+    }))
 
     // STATEMENT-1:这个客户【已经出过】的对账单。与明细同一道门(module.finance.view)——
     // 看得见限额不等于看得见账,而对账单就是账寄出去的样子。
@@ -262,44 +274,17 @@ export default async function CustomerStatusPage({
             <section>
                 <h2 className="text-lg font-semibold mb-2">{t('customers.status.openTitle')}</h2>
                 {!canFinance ? (
-                    // 看得见限额不等于看得见账 —— 整段受限,不是一张空表
+                    // 看得见限额不等于看得见账 —— 整段受限,不是一张空表。
+                    // ★ 这一支【留着】:它不是空态,是一句权限答复,两者不能合成一句。
                     <p className="text-sm text-gray-500">{t('common.restricted')}</p>
-                ) : openItems.length === 0 ? (
-                    <p className="text-sm text-gray-500">{t('customers.status.noOpenItems')}</p>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse border border-gray-300 text-sm">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('customers.status.colDoc')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('customers.status.colDate')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-right">{t('customers.status.colOpen', { ccy: baseCurrency })}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-right">{t('customers.status.colDays')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {openItems.map((it) => (
-                                    <tr key={it.sales_record_id}>
-                                        <td className="border border-gray-300 px-3 py-2">
-                                            <Link
-                                                href={`/finance/receivables/${it.sales_record_id}`}
-                                                className="text-blue-600 hover:underline font-mono"
-                                            >
-                                                {it.doc_code}
-                                            </Link>
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2">{it.sale_date}</td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {formatAmount(it.open_base, baseCurrency)}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                            {it.days_outstanding}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    // ★ TABLE-CONVERT-3:空态搬进了组件的 empty prop —— 原来那一支
+                    //   `openItems.length === 0 ? <p>…</p>` 拿掉了,同一个 key 只剩一处。
+                    <OpenItemsTable
+                        rows={openItemRows}
+                        baseCurrency={baseCurrency}
+                        empty={t('customers.status.noOpenItems')}
+                    />
                 )}
             </section>
 

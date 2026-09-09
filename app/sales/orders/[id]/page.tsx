@@ -12,6 +12,7 @@ import IssuePanel from '@/app/components/IssuePanel'
 import ReservationSection from './ReservationSection'
 import OrderInvoiceSection from './OrderInvoiceSection'
 import ShippingSection from './ShippingSection'
+import OrderLinesTable, { type OrderLineRow } from './OrderLinesTable'
 import { Button } from '@/app/components/ui/button'
 
 export default async function SalesOrderPage({ params }: { params: Promise<{ id: string }> }) {
@@ -43,6 +44,16 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
             id: string; line_no: number; quantity: number; unit_price: number; price_source: string | null
             material_id: string
             materials: { code: string; name: string; unit: string } | null }[]
+
+    // ★ TABLE-CONVERT-3:订单行那张表搬进了 OrderLinesTable('use client')。
+    //   本页是 server component,列描述符带 render 函数,过不了那道边界。
+    //   物料那一格的拼法(`code — name`,读不到就 '—')在这一侧算好再过界。
+    const orderLineRows: OrderLineRow[] = lines.map((l) => ({
+        lineNo: l.line_no,
+        material: l.materials ? `${l.materials.code} — ${l.materials.name}` : '—',
+        quantity: l.quantity,
+        unitPrice: l.unit_price,
+    }))
 
     // SO-1b:改单史与事件史【同表】—— 多取三列,因为一行 line_update 的全部内容
     // 就是 "12 → 10" 与那句理由;只印 change_type 等于把留痕做成一个空标签。
@@ -159,28 +170,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                 )}
 
                 <h2 className="font-medium mt-8 mb-2">{t('sales.form.lines')}</h2>
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">#</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('sales.colMaterial')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('sales.form.qty')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('sales.form.unitPrice')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {lines.map((l) => (
-                            <tr key={l.line_no}>
-                                <td className="border border-gray-300 px-3 py-2">{l.line_no}</td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    {l.materials ? `${l.materials.code} — ${l.materials.name}` : '—'}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right">{l.quantity}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right">{l.unit_price}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                <OrderLinesTable rows={orderLineRows} />
 
                 {/* SO-3a:开票 —— 订单流【先开票后发货】(选项 C),开票即过账 */}
                 <OrderInvoiceSection

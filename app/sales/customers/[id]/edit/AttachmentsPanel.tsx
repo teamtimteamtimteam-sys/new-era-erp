@@ -3,6 +3,17 @@
 // 客户附件面板,端口自 suppliers 的 AttachmentsPanel.tsx。
 // 上传:浏览器端直传 Storage(@/lib/supabase/client),成功后再调 recordAttachment 写元数据。
 // 下载:点按钮时现取一个签名 URL 再打开(私有桶)。删除:软删元数据行。
+//
+// ★ TABLE-CONVERT-3(2026-09-10):手搓表格 → 组件。
+//   【这是【一次判断,三个文件】—— materials / sales-customers / suppliers 三份
+//     AttachmentsPanel 是互相移植出来的,列、判断、动作逐字相同,所以三份一起转,
+//     一份都不落下(委托书:三个文件是一个单位)。】
+//   【手机上留哪几列一个字没改】TABLE-PHONE-1 留的是 名称 · 分类 · **操作**,
+//     折起来的是 类型 · 大小 · 上传时间。
+//   ★ 「操作」那一列转换前【就已经】留在明面上(它没有 hidden sm:table-cell),
+//     所以这里 priority:true 是【原样搬过来】,不是 R1 又改了一次判断 ——
+//     R1 当初正是照着这一列的理由写的(够不着的动作等于不存在)。
+//   叠在名称格里那一段手写的展开块【拿掉了】:组件自己画那一段。
 import { useRef, useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -14,6 +25,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { ATTACHMENT_ACCEPT, isAllowedAttachmentType } from './attachmentTypes'
 import { Button } from '@/app/components/ui/button'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 const BUCKET = 'customer-attachments'
 
@@ -161,84 +173,59 @@ export default function AttachmentsPanel({
         })
     }
 
+    // ★ 手机上留三列:名称(身份)· 分类 · 操作。类型 / 大小 / 上传时间进展开区。
+    const columns: Column<AttachmentRow>[] = [
+        { key: 'name', header: t('customers.attachments.colName'), priority: true, className: 'break-all', render: (row) => row.file_name },
+        { key: 'category', header: t('customers.attachments.colCategory'), priority: true, render: (row) => categoryLabel(row.doc_category) },
+        { key: 'type', header: t('customers.attachments.colType'), render: (row) => row.file_type ?? '—' },
+        { key: 'size', header: t('customers.attachments.colSize'), render: (row) => formatBytes(row.file_size) },
+        { key: 'created', header: t('customers.attachments.colCreated'), className: 'text-gray-600', render: (row) => row.created_at_display },
+        {
+            key: 'actions', header: t('customers.attachments.colActions'), priority: true, className: 'whitespace-nowrap',
+            render: (row) => (
+                <>
+                    <Button
+                        variant="link"
+                        size="inline"
+                        type="button"
+                        onClick={() => handleDownload(row)}
+                        disabled={isPending}
+                    >
+                        {t('customers.attachments.download')}
+                    </Button>
+                    <span className="mx-2 text-gray-300">|</span>
+                    {/* CONFIRM-1:这一列每行都长得一样,所以"删除这个附件?"
+                        答不上来【哪一个】—— 文件名一直就在 row 上。 */}
+                    <ConfirmButton
+                        subject={row.file_name}
+                        title={t('customers.attachments.deleteConfirm')}
+                        body={t('common.softDeleteFileNote')}
+                        confirmLabel={t('customers.attachments.deleteFile')}
+                        tier="destructive"
+                        disabled={isPending}
+                        className="text-red-600 text-sm hover:underline disabled:text-gray-400"
+                        onConfirm={() => handleDelete(row.id)}
+                    >
+                        {t('customers.attachments.deleteFile')}
+                    </ConfirmButton>
+                </>
+            ),
+        },
+    ]
+
     return (
         <section className="mt-8 pt-8 border-t">
             <h2 className="text-xl font-bold mb-4">{t('customers.attachments.sectionTitle')}</h2>
 
-            {rows.length === 0 ? (
-                <p className="text-sm text-gray-500 mb-6">{t('customers.attachments.empty')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 mb-6">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('customers.attachments.colName')}</th>
-                            <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('customers.attachments.colCategory')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('customers.attachments.colType')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('customers.attachments.colSize')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('customers.attachments.colCreated')}</th>
-                            {/* ★ TABLE-PHONE-1:「操作」这一列在手机上【照画】,不叠进去 ——
-                                一个在手机上够不着的下载/删除,与没有这两个动作是同一回事
-                                (DBLOCK-1 那条道理用在版式上)。 */}
-                            <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('customers.attachments.colActions')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((row) => (
-                            <tr key={row.id}>
-                                <td className="border border-gray-300 px-2 sm:px-4 py-2 break-all">
-                                    {row.file_name}
-                                    {/* ★ TABLE-PHONE-1:手机档被拿掉的三列(类型 / 大小 / 创建时间),
-                                        原样叠在这里,各带各的列头 —— 「拿掉」指的是那一列,不是那个事实。 */}
-                                    <div className="sm:hidden mt-1 space-y-0.5 text-xs text-gray-600">
-                                        <div>
-                                            <span className="text-gray-500">{t('customers.attachments.colType')}: </span>
-                                            {row.file_type ?? '—'}
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">{t('customers.attachments.colSize')}: </span>
-                                            {formatBytes(row.file_size)}
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">{t('customers.attachments.colCreated')}: </span>
-                                            {row.created_at_display}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td className="border border-gray-300 px-2 sm:px-4 py-2 text-sm">{categoryLabel(row.doc_category)}</td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-sm">{row.file_type ?? '—'}</td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-sm">{formatBytes(row.file_size)}</td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-sm text-gray-600">{row.created_at_display}</td>
-                                <td className="border border-gray-300 px-2 sm:px-4 py-2 whitespace-nowrap">
-                                    <Button
-                                        variant="link"
-                                        size="inline"
-                                        type="button"
-                                        onClick={() => handleDownload(row)}
-                                        disabled={isPending}
-                                    >
-                                        {t('customers.attachments.download')}
-                                    </Button>
-                                    <span className="mx-2 text-gray-300">|</span>
-                                    {/* CONFIRM-1:这一列每行都长得一样,所以"删除这个附件?"
-                                        答不上来【哪一个】—— 文件名一直就在 row 上。 */}
-                                    <ConfirmButton
-                                        subject={row.file_name}
-                                        title={t('customers.attachments.deleteConfirm')}
-                                        body={t('common.softDeleteFileNote')}
-                                        confirmLabel={t('customers.attachments.deleteFile')}
-                                        tier="destructive"
-                                        disabled={isPending}
-                                        className="text-red-600 text-sm hover:underline disabled:text-gray-400"
-                                        onConfirm={() => handleDelete(row.id)}
-                                    >
-                                        {t('customers.attachments.deleteFile')}
-                                    </ConfirmButton>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <div className="mb-6">
+                <DataTable
+                    rows={rows}
+                    columns={columns}
+                    rowKey={(row) => row.id}
+                    phone={{ mode: 'columns' }}
+                    empty={t('customers.attachments.empty')}
+                />
+            </div>
 
             <h3 className="text-lg font-semibold mb-3">{t('customers.attachments.addTitle')}</h3>
 

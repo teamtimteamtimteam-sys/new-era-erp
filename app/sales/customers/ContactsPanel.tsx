@@ -12,6 +12,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { saveContact, removeContact } from './contactActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 export type ContactRow = {
     id: string
@@ -92,73 +93,60 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit, p
         })
     }
 
+    // ★ TABLE-CONVERT-3:手搓表格 → 组件。
+    //   【手机上留哪几列】TABLE-PHONE-3 留的是 姓名 · 电话 · 主联系人
+    //   ——「这张表没有数,留在列上的是【手机上打得通的那一条】」,原样成立。
+    //   折起来的是 职务 · 邮箱。
+    //
+    // ★★【动作那一列从"折起来 + 另画一份在身份格里"变成 priority —— R1】★★
+    //   转换之前它带着 hidden sm:table-cell,而两颗钮【另外画了一份在姓名格里】
+    //   (源码原注释:那一条没有标签,因为两个钮自己带着字)。也就是说它在手机上
+    //   本来就【不用点开任何东西就够得着】。组件里没有"叠在身份格里画出来"这一档:
+    //   要么 priority,要么进点一下才展开的那一段 —— 折进去就要先点开一行才够得着,
+    //   那正是 R1 判过的事(够不着的动作等于不存在)。
+    //   ☞ 所以它 priority:true。列头保持【空的】,与转换之前逐字相同,
+    //     所以【没有】新增任何 i18n key。
+    //   ☞ 与 TABLE-CONVERT-2 对 assets / close 的处置同一条,同样当成
+    //     【手机可见列多了一列】报出来,不藏在"同一组"里面。
+    const columns: Column<ContactRow>[] = [
+        {
+            key: 'name', header: t('contacts.colName'), priority: true,
+            render: (r) => (
+                <>
+                    {r.name}
+                    {r.name_inferred && (
+                        <span className="ml-1 text-xs text-amber-700" title={t('contacts.inferredWhy')}>
+                            {t('contacts.inferredTag')}
+                        </span>
+                    )}
+                </>
+            ),
+        },
+        { key: 'role', header: t('contacts.colRole'), render: (r) => r.role ?? '—' },
+        { key: 'email', header: t('contacts.colEmail'), className: 'break-all', render: (r) => r.email ?? '—' },
+        { key: 'phone', header: t('contacts.colPhone'), priority: true, render: (r) => r.phone ?? '—' },
+        {
+            key: 'primary', header: t('contacts.colPrimary'), priority: true,
+            render: (r) => (r.is_primary
+                ? <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded">{t('contacts.primaryTag')}</span>
+                : <span className="text-xs text-gray-400">—</span>),
+        },
+        // 空列头 —— 与转换之前逐字相同(那一列本来就没有列头,两颗钮自己带着字)。
+        { key: 'actions', header: '', priority: true, className: 'whitespace-nowrap', render: rowControls },
+    ]
+
     return (
         <div>
             {error && <p className="text-sm text-red-700 mb-2">{error}</p>}
-            {rows.length === 0 ? (
-                /* 【具名的缺席,不是空白】为什么这里没有人,以及该做什么 */
-                <p className="text-sm text-gray-600">{t('contacts.noneYet')}</p>
-            ) : (
-                <table className="w-full border-collapse mb-3">
-                    <thead>
-                        <tr className="bg-gray-100">
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colName')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colRole')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colEmail')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colPhone')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left text-sm">{t('contacts.colPrimary')}</th>
-                            {/* 【表头不是控件】所以它不上闸,也不消失 —— 一个
-                                空的列头不邀请任何人做任何事,而让它随权限时有时无
-                                会让两个人看到的表宽度不一样。 */}
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2" />
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((r) => (
-                            <tr key={r.id}>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">
-                                    {r.name}
-                                    {/* 【这个名字是凑出来的,说出来】迁移时"有邮箱没名字"的那一支 */}
-                                    {r.name_inferred && (
-                                        <span className="ml-1 text-xs text-amber-700" title={t('contacts.inferredWhy')}>
-                                            {t('contacts.inferredTag')}
-                                        </span>
-                                    )}
-                                    {/* ★ TABLE-PHONE-3:手机档被拿掉的列(职务 / 邮箱,以及那一列
-                                        【桌面档本来就没有列头】的动作),原样叠在这里,各带各的列头 ——
-                                        拿掉的是那一列,不是那个事实。这张表没有数,
-                                        留在列上的是【手机上打得通的那一条】:姓名 + 电话 + 主联系人。
-                                        邮箱叠下来反而占得开(它在桌面档就带着 break-all)。 */}
-                                    <div className="sm:hidden mt-1 space-y-0.5 text-xs text-gray-600">
-                                        <div>
-                                            <span className="text-gray-500">{t('contacts.colRole')}: </span>
-                                            {r.role ?? '—'}
-                                        </div>
-                                        <div className="break-all">
-                                            <span className="text-gray-500">{t('contacts.colEmail')}: </span>
-                                            {r.email ?? '—'}
-                                        </div>
-                                        {/* 这一条【没有标签,而它在桌面档也没有】—— 两个钮自己带着字
-                                            (common.edit / contacts.remove),所以【不另造一句话】。 */}
-                                        <div className="pt-0.5">{rowControls(r)}</div>
-                                    </div>
-                                </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-sm">{r.role ?? '—'}</td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-sm break-all">{r.email ?? '—'}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{r.phone ?? '—'}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">
-                                    {r.is_primary
-                                        ? <span className="text-xs bg-gray-800 text-white px-2 py-1 rounded">{t('contacts.primaryTag')}</span>
-                                        : <span className="text-xs text-gray-400">—</span>}
-                                </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-sm whitespace-nowrap">
-                                        {rowControls(r)}
-                                    </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <div className="mb-3">
+                <DataTable
+                    rows={rows}
+                    columns={columns}
+                    rowKey={(r) => r.id}
+                    phone={{ mode: 'columns' }}
+                    empty={t('contacts.noneYet')}
+                />
+            </div>
 
             {/* ★★ ALERT-2d ④(a):`canEdit && !<开合位>` —— 一个权限答复与
                        【这一次会话里面板开没开】挤在同一个 &&。为假的两个原因

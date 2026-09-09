@@ -21,6 +21,7 @@ import { previewStatement, issueStatement } from './statementActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 type Preview = {
     opening_base: number; charges_base: number; credits_base: number
@@ -80,6 +81,39 @@ export default function StatementPanel({
             <span className="font-mono">{paren ? `(${money(value)})` : money(value)}</span>
         </div>
     )
+
+    // ★ TABLE-CONVERT-3:手搓表格 → 组件。
+    //   【这张表【没有】列选判断要搬】—— 转换之前一个 hidden sm:table-cell 都没有,
+    //   四列在 390px 上全部看得见。于是四列全部 priority:那是把「今天手机上四列都在」
+    //   原样说了一遍,不是新做了一次判断。
+    const columns: Column<Issued>[] = [
+        {
+            key: 'code', header: t('statements.colCode'), priority: true, className: 'font-mono',
+            render: (x) => (
+                <>
+                    <Link href={`/finance/statements/${x.id}/pdf`}
+                        className="text-blue-600 hover:underline">{x.code}</Link>
+                    {x.superseded_at && (
+                        <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] bg-gray-200 text-gray-700">
+                            {t('statements.superseded')}
+                        </span>
+                    )}
+                </>
+            ),
+        },
+        {
+            key: 'period', header: t('statements.colPeriod'), priority: true, className: 'font-mono',
+            render: (x) => `${x.period_start} → ${x.period_end}`,
+        },
+        {
+            key: 'closing', header: t('statements.doc.closing'), align: 'right', priority: true,
+            className: 'font-mono', render: (x) => money(x.closing_base),
+        },
+        {
+            key: 'issued', header: t('statements.colIssued'), priority: true,
+            render: (x) => x.issued_at.slice(0, 10),
+        },
+    ]
 
     return (
         <section className="mb-8">
@@ -173,45 +207,14 @@ export default function StatementPanel({
             )}
 
             <h3 className="text-sm font-semibold mb-1">{t('statements.issuedTitle')}</h3>
-            {issued.length === 0 ? (
-                // 【命名的缺席,不是空白】"还没有出过"与"读不到"要说得不一样
-                <p className="text-sm text-gray-500">{t('statements.noneIssued')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('statements.colCode')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('statements.colPeriod')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('statements.doc.closing')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('statements.colIssued')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {issued.map((s) => (
-                            <tr key={s.id} className={s.superseded_at ? 'text-gray-400' : ''}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono">
-                                    <Link href={`/finance/statements/${s.id}/pdf`}
-                                        className="text-blue-600 hover:underline">{s.code}</Link>
-                                    {s.superseded_at && (
-                                        <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] bg-gray-200 text-gray-700">
-                                            {t('statements.superseded')}
-                                        </span>
-                                    )}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 font-mono text-xs">
-                                    {s.period_start} → {s.period_end}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono">
-                                    {money(s.closing_base)}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-xs">
-                                    {s.issued_at.slice(0, 10)}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            )}
+            <DataTable
+                rows={issued}
+                columns={columns}
+                rowKey={(x) => x.id}
+                phone={{ mode: 'columns' }}
+                empty={t('statements.noneIssued')}
+                rowClassName={(x) => (x.superseded_at ? 'text-gray-400' : undefined)}
+            />
         </section>
     )
 }
