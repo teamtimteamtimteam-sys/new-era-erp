@@ -654,3 +654,106 @@ BUILD_WALL_SECONDS=37
 
 ## 12. 推送与部署(实测)
 
+### 12.1 推送 —— **靠 fetch 比对哈希确认,不靠 push 的输出**
+
+```
+PUSH_OWN_EXIT=0
+   0fef367..e516194  main -> main
+```
+
+**而这一句【不作为证据】** —— 一个走管道的 push 报的是管道的退出码,不是 git 的。
+所以另外 fetch 一次,直接比两个哈希:
+
+```
+FETCH_OWN_EXIT=0
+local  HEAD  = e51619470f62c1628d50cb13b0652770081dd01c
+origin/main  = e51619470f62c1628d50cb13b0652770081dd01c
+MATCH ✓
+```
+
+### 12.2 部署 —— **两个问题【分开问】,而★本刀第三次撞进那个窗口★**
+
+**问题一:有没有一次 state=success 的部署?**(问的时候不提本刀的 sha)
+
+```
+gh api repos/…/deployments?per_page=1  → id 6345332806
+gh api repos/…/deployments/6345332806/statuses
+  {"state":"success","created_at":"2026-09-09T08:06:30Z"}
+```
+→ **有。**
+
+**问题二:那一次成功的部署,它的 sha 是不是本刀这个提交?**(单独问)
+
+```
+deployment sha = 0fef3678be67cc47401a4b662c9c1a91013e90c8   ← 【上一刀那一版】
+this cut sha   = e51619470f62c1628d50cb13b0652770081dd01c
+MISMATCH ✗
+```
+→ **不是。**
+
+### ★★ 12.2a 三刀连着撞同一个窗口 —— **这是常态,不是巧合** ★★
+
+**推完之后头 150 秒,「最新的成功部署」的 sha 一直是 `0fef367`(上一刀那一版)。**
+
+```
+[  0s] no deployment for this sha yet
+[ 13s] no deployment for this sha yet
+ …
+[136s] no deployment for this sha yet
+[150s] deployment 6346131737 for this sha -> state=success   ✓
+```
+
+☞ **只问问题一的话,在第 0 秒就"通过"了** —— 那时候屏幕上是一次货真价实的
+`state=success`,而它部署的是**上一刀的代码**。
+
+| 刀 | 窗口 |
+|---|---|
+| TABLE-PHONE-1 | **165s** |
+| TABLE-PHONE-2 | **155s** |
+| **TABLE-PHONE-3(本刀)** | **150s** |
+
+★ **三个数,150–165s,方差不到 10%。** 这条流水线**每一次**都会有两分半钟
+"最新的成功部署 = 上一刀"的时间。
+☞ **判据必须是"等到 sha 对上",不是"等到有一次成功"** —— 而且下一刀
+**不必再重新发现这件事**:直接从第 120 秒开始问就行。
+
+### 12.3 记录
+
+| | |
+|---|---|
+| **部署 id** | **6346131737** |
+| **sha** | **e51619470f62c1628d50cb13b0652770081dd01c** |
+| **success 时间** | **2026-09-09T08:56:02Z** |
+| **窗口** | **150s**(第三个数据点) |
+| environment | Production |
+| environment_url | `https://new-era-8fuvg5vlj-tim-s-projects7.vercel.app` |
+
+| | |
+|---|---|
+| 开工前 HEAD | `0fef3678be67cc47401a4b662c9c1a91013e90c8` |
+| **本刀提交后 HEAD** | **`e51619470f62c1628d50cb13b0652770081dd01c`** |
+| 结束时 `origin/main` | 同上(fetch 比对过) |
+| 结束时树 | **干净**(见 §13) |
+
+> 本节由紧随工作提交之后的一个提交补齐 —— 部署要先有提交才谈得上,
+> 而交回报告必须与工作同一个提交进仓库(委托书 §9)。
+> 本仓库对这个办法已有四次先例(`df64373` NARROW-COVERAGE-1 §12.3、
+> `75a1122` SMALL-BATCH-1 §11、`fbef9ac` TABLE-PHONE-1 §11、`0fef367` TABLE-PHONE-2 §11)。
+
+---
+
+## 13. 收尾
+
+* **没有 SQL,没有迁移,没有 DDL,没有新文案,没有版本行。**
+* **改了 11 个页面文件 + 2 份文档**(`docs/known-issues.md` · `docs/forward-queue.md`)+ 本报告。
+* **十二张里做完十一张;第十二张(`ContainerPanels:119`)整张没有列头,
+  登记不动,拆成 TABLE-PHONE-6 待裁定** —— §2.3 / §7.1。
+* **三组成对的都是整组做完的**(委托书 §7:一组是一个单位),没有"一半转了一半没转"的中间态。
+* **`me/MyLeavePanel.tsx` 到此整个清干净**;
+  **`purchasing/orders/new/NewOrderForm.tsx` 没有清完**(`:786` 在 TABLE-PHONE-4)—— §7.2。
+* **没有转换任何一页到 DataTable / EditableTable**(`check-datatable-phone` 的 123 一动没动)。
+* **没有动桌面档的任何一列。**
+* **没有加 `table-fixed`**,十一张表仍然是 `width-auto`(§10.4)。
+* **没有碰那 9 张已有滚动外壳的表**,状态仍是 **UNMEASURED**。
+* **量具没有进仓库**(R-Q8)。
+* **NO VERSION NUMBER** —— 照委托书,版本线由 Tim 统一发。
