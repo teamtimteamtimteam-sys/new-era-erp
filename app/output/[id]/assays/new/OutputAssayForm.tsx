@@ -14,6 +14,7 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import { submitOutputAssay, type SubmitOutputAssayState } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { tableC } from '@/app/components/ui/table-style'
 
 const initialState: SubmitOutputAssayState = {}
 
@@ -174,24 +175,24 @@ export default function OutputAssayForm({
                 {hasCurrent && (
                     <p className="text-xs text-amber-800 mb-2">{t('assay.output.replacesAll')}</p>
                 )}
-                <table className="w-full border-collapse border border-gray-300 max-w-xl">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('assay.colMetal')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('assay.colContent')}</th>
+                <table className={`${tableC.root} w-full max-w-xl`}>
+                    <thead>
+                        <tr className={tableC.headRow}>
+                            <th className={`${tableC.headCell} text-left`}>{t('assay.colMetal')}</th>
+                            <th className={`${tableC.headCell} text-left`}>{t('assay.colContent')}</th>
                             {hasCurrent && (
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('assay.output.colCurrent')}</th>
+                                <th className={`${tableC.headCell} text-left`}>{t('assay.output.colCurrent')}</th>
                             )}
                         </tr>
                     </thead>
                     <tbody>
                         {substanceOptions.filter((s) => s.isActive).map((opt) => (
-                            <tr key={opt.value}>
-                                <td className="border border-gray-300 px-4 py-2">
+                            <tr className={tableC.bodyRow} key={opt.value}>
+                                <td className={tableC.cell}>
                                     {t(opt.labelKey)}
                                     <span className="text-gray-400 font-mono text-xs ml-2">{opt.value}</span>
                                 </td>
-                                <td className="border border-gray-300 px-4 py-2">
+                                <td className={tableC.cell}>
                                     <input type="hidden" name="assay_metal" value={opt.value} />
                                     <DecimalInput
                                         name="assay_content"
@@ -201,7 +202,7 @@ export default function OutputAssayForm({
                                     />
                                 </td>
                                 {hasCurrent && (
-                                    <td className="border border-gray-300 px-4 py-2 text-sm text-gray-500 font-mono">
+                                    <td className={`${tableC.cell} text-gray-500 font-mono`}>
                                         {currentMetals[opt.value] !== undefined
                                             ? `${currentMetals[opt.value]}%`
                                             : '—'}

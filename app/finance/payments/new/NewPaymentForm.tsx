@@ -15,6 +15,7 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { tableC } from '@/app/components/ui/table-style'
 
 const initialState: CreatePaymentState = {}
 
@@ -511,20 +512,20 @@ canEdit: boolean
                         ★ 那两列【不是同一种币】(见下面原注),所以两列各自带着币种 ——
                           折叠区里也一样,formatAmount 原样搬过去。
                         ════════════════════════════════════════════════════════════════ */}
-                    <table className="w-full border-collapse border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('finance.colDocument')}</th>
-                                <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('purchasing.colOrderDate')}</th>
-                                <th className="border border-gray-300 px-2 sm:px-4 py-2 text-right">{t('purchasing.colEstimatedTotal')}</th>
-                                <th className="border border-gray-300 px-2 sm:px-4 py-2 text-right">{t('purchasing.colPrepaid')}</th>
-                                <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('finance.colAllocate')}</th>
+                    <table className={`${tableC.root} w-full`}>
+                        <thead>
+                            <tr className={tableC.headRow}>
+                                <th className={`${tableC.headCell} text-left`}>{t('finance.colDocument')}</th>
+                                <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('purchasing.colOrderDate')}</th>
+                                <th className={`${tableC.headCell} text-right`}>{t('purchasing.colEstimatedTotal')}</th>
+                                <th className={`${tableC.headCell} text-right`}>{t('purchasing.colPrepaid')}</th>
+                                <th className={`${tableC.headCell} text-left`}>{t('finance.colAllocate')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {pos.map((p) => (
-                                <tr key={p.po_id}>
-                                    <td className="border border-gray-300 px-2 sm:px-4 py-2 font-mono text-sm">
+                                <tr className={tableC.bodyRow} key={p.po_id}>
+                                    <td className={`${tableC.cell} font-mono`}>
                                         {p.code}
                                         {/* ★ TABLE-PHONE-4:手机档拿掉的下单日期,带着列头叠在这里。 */}
                                         <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
@@ -534,18 +535,18 @@ canEdit: boolean
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">{p.order_date}</td>
+                                    <td className={`${tableC.cell} hidden sm:table-cell`}>{p.order_date}</td>
                                     {/* 【这两列不是同一种币】estimated_total_ccy 名字里带 usd,
                                         存的却是【单据币种】(create_purchase_order 全程不乘汇率,
                                         旧名见 docs/known-issues.md);prepaid_base 是【本位币】。
                                         并排、都不标币种,比未结那一列还容易读错 —— 各标各的。 */}
-                                    <td className="border border-gray-300 px-2 sm:px-4 py-2 text-right font-mono text-sm">
+                                    <td className={`${tableC.cell} text-right font-mono`}>
                                         {formatAmount(p.estimated_total_ccy, p.currency)}
                                     </td>
-                                    <td className="border border-gray-300 px-2 sm:px-4 py-2 text-right font-mono text-sm">
+                                    <td className={`${tableC.cell} text-right font-mono`}>
                                         {formatAmount(p.prepaid_base, baseCurrency)}
                                     </td>
-                                    <td className="border border-gray-300 px-2 sm:px-4 py-2">
+                                    <td className={tableC.cell}>
                                         <input type="hidden" name="alloc_id" value={p.po_id} />
                                         <input type="hidden" name="alloc_kind" value="purchase_order" />
                                         <div className="flex items-center gap-1">
@@ -582,19 +583,19 @@ canEdit: boolean
             {/* 核销:选定往来单位后列其未结单据 */}
             {partyId && (
                 items.length > 0 ? (
-                    <table className="w-full border-collapse border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDocument')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colDate')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colOpen')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colAllocate')}</th>
+                    <table className={`${tableC.root} w-full`}>
+                        <thead>
+                            <tr className={tableC.headRow}>
+                                <th className={`${tableC.headCell} text-left`}>{t('finance.colDocument')}</th>
+                                <th className={`${tableC.headCell} text-left`}>{t('finance.colDate')}</th>
+                                <th className={`${tableC.headCell} text-right`}>{t('finance.colOpen')}</th>
+                                <th className={`${tableC.headCell} text-left`}>{t('finance.colAllocate')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {items.map((i) => (
-                                <tr key={i.doc_id}>
-                                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                                <tr className={tableC.bodyRow} key={i.doc_id}>
+                                    <td className={`${tableC.cell} font-mono`}>
                                         {i.doc_code}
                                         {/* AP 侧标注单据类别(进料/开支),看清核销对象;AR 全是销售,不标 */}
                                         {i.doc_kind !== 'sale' && (
@@ -603,13 +604,13 @@ canEdit: boolean
                                             </span>
                                         )}
                                     </td>
-                                    <td className="border border-gray-300 px-4 py-2">{i.doc_date}</td>
+                                    <td className={tableC.cell}>{i.doc_date}</td>
                                     {/* 【每行都要带币种】FIN-16 之后这一列按设计就是混币种的,
                                         不标币种的混币种金额列不是显示瑕疵,是陷阱 */}
-                                    <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                    <td className={`${tableC.cell} text-right font-mono`}>
                                         {formatAmount(i.open_ccy, i.currency)}
                                     </td>
-                                    <td className="border border-gray-300 px-4 py-2">
+                                    <td className={tableC.cell}>
                                         <input type="hidden" name="alloc_id" value={i.doc_id} />
                                         <input type="hidden" name="alloc_kind" value={i.doc_kind} />
                                         {/* 上限不再由 max 属性约束(text 输入无此语义);

@@ -30,6 +30,7 @@ import PnlToolbar from './PnlToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { tableC } from '@/app/components/ui/table-style'
 
 // ★ CONV-4:不套 DataTable —— 与 balance-sheet 同一条理由(分组小计 +
 //   毛利/净利派生行,不是记录列表)。见 balance-sheet/page.tsx 顶注。
@@ -100,20 +101,20 @@ export default async function PnlPage({
 
     const sectionBlock = (titleKey: string, s: PnlSection) => (
         <Fragment>
-            <tr className="bg-gray-50">
-                <td colSpan={3} className="border border-gray-300 px-4 py-2 font-semibold">
+            <tr className={`${tableC.bodyRow} bg-gray-50`}>
+                <td colSpan={3} className={`${tableC.cell} font-semibold`}>
                     {t(titleKey)}
                 </td>
             </tr>
             {s.rows.map((r) => (
-                <tr key={r.code}>
+                <tr className={tableC.bodyRow} key={r.code}>
                     {/* ── FIN-DRILL:科目行是下钻入口 ─────────────────────────
                         链接把【科目号】与【本表自己的期间】一起带走,由
                         /finance/ledger/[account] 用同一段推导列出背后的行,
                         并把它自己的合计与这里这个数字并排显示。
                         mode=pnl 一并决定年结开关(剔除)—— 见那一页的抬头:
                         两者总是配套的,拆成两个参数就等于允许对不上的组合。 */}
-                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                    <td className={`${tableC.cell} font-mono`}>
                         <Link
                             href={`/finance/ledger/${encodeURIComponent(r.code)}?mode=pnl&from=${from}&to=${to}`}
                             className="text-blue-600 hover:underline"
@@ -121,22 +122,20 @@ export default async function PnlPage({
                             {r.code}
                         </Link>
                     </td>
-                    <td className="border border-gray-300 px-4 py-2">{accountName(r)}</td>
+                    <td className={tableC.cell}>{accountName(r)}</td>
                     <td
-                        className={
-                            'border border-gray-300 px-4 py-2 text-right font-mono text-sm ' +
-                            (r.amount < 0 ? 'text-red-600' : '')
-                        }
+                        className={`${tableC.cell} ${'text-right font-mono ' +
+                            (r.amount < 0 ? 'text-red-600' : '')}`}
                     >
                         {formatMoneyBare(r.amount, '列头 金额 ({ccy}) —— 已带本位币')}
                     </td>
                 </tr>
             ))}
-            <tr className="bg-gray-100 font-semibold">
-                <td colSpan={2} className="border border-gray-300 px-4 py-2">
+            <tr className={`${tableC.bodyRow} bg-gray-100 font-semibold`}>
+                <td colSpan={2} className={tableC.cell}>
                     {t(titleKey)} — {t('finance.totalsLabel')}
                 </td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                <td className={`${tableC.cell} text-right font-mono`}>
                     {formatMoneyBare(s.subtotal, '列头 金额 ({ccy}) —— 已带本位币')}
                 </td>
             </tr>
@@ -158,40 +157,38 @@ export default async function PnlPage({
                 />
             </Suspense>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colAccount')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount', { ccy: baseCurrency })}</th>
+            <table className={`${tableC.root} w-full`}>
+                <thead>
+                    <tr className={tableC.headRow}>
+                        <th className={`${tableC.headCell} text-left`}>{t('finance.colCode')}</th>
+                        <th className={`${tableC.headCell} text-left`}>{t('finance.colAccount')}</th>
+                        <th className={`${tableC.headCell} text-right`}>{t('finance.colAmount', { ccy: baseCurrency })}</th>
                     </tr>
                 </thead>
                 <tbody>
                     {sectionBlock('finance.accountType.revenue', pnl.revenue)}
                     {sectionBlock('finance.accountType.cogs', pnl.cogs)}
                     {/* 毛利(附毛利率)*/}
-                    <tr className="font-bold">
-                        <td colSpan={2} className="border border-gray-300 px-4 py-2">
+                    <tr className={`${tableC.bodyRow} font-bold`}>
+                        <td colSpan={2} className={tableC.cell}>
                             {t('finance.grossProfit')}
                             {pnl.margin_pct !== null && (
                                 <span className="ml-2 text-gray-500 font-normal text-sm">({pnl.margin_pct}%)</span>
                             )}
                         </td>
-                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                        <td className={`${tableC.cell} text-right font-mono`}>
                             {formatMoneyBare(pnl.gross_profit, '列头 金额 ({ccy}) —— 已带本位币')}
                         </td>
                     </tr>
                     {sectionBlock('finance.accountType.expense', pnl.expense)}
                     {/* 净利(正绿负红)*/}
-                    <tr className="font-bold">
-                        <td colSpan={2} className="border border-gray-300 px-4 py-2">
+                    <tr className={`${tableC.bodyRow} font-bold`}>
+                        <td colSpan={2} className={tableC.cell}>
                             {t('finance.netProfit')}
                         </td>
                         <td
-                            className={
-                                'border border-gray-300 px-4 py-2 text-right font-mono text-sm ' +
-                                (pnl.net_profit >= 0 ? 'text-green-700' : 'text-red-600')
-                            }
+                            className={`${tableC.cell} ${'text-right font-mono ' +
+                                (pnl.net_profit >= 0 ? 'text-green-700' : 'text-red-600')}`}
                         >
                             {formatMoneyBare(pnl.net_profit, '列头 金额 ({ccy}) —— 已带本位币')}
                         </td>

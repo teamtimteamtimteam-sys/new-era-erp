@@ -10,6 +10,7 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { tableC } from '@/app/components/ui/table-style'
 
 const initialState: CreateInvoiceState = {}
 
@@ -278,21 +279,21 @@ canEdit: boolean
                         ☞ 留金额不留数量×单价:勾这一票的人核的是"这笔会开多少钱",
                           而数量与单价是它的来路 —— 来路读得到就够,不必占住一列。
                         ════════════════════════════════════════════════════════════════ */
-                    <table className="w-full border-collapse border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-2 sm:px-3 py-2 w-8" />
-                                <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('invoice.colDescription')}</th>
-                                <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('finance.colDate')}</th>
-                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('invoice.colQuantity')}</th>
-                                <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('invoice.colUnitPrice')}</th>
-                                <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('invoice.colAmount')}</th>
+                    <table className={`${tableC.root} w-full`}>
+                        <thead>
+                            <tr className={tableC.headRow}>
+                                <th className={`${tableC.headCell} w-8`} />
+                                <th className={`${tableC.headCell} text-left`}>{t('invoice.colDescription')}</th>
+                                <th className={`${tableC.headCell} text-left`}>{t('finance.colDate')}</th>
+                                <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('invoice.colQuantity')}</th>
+                                <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('invoice.colUnitPrice')}</th>
+                                <th className={`${tableC.headCell} text-right`}>{t('invoice.colAmount')}</th>
                             </tr>
                         </thead>
                         <tbody>
                             {visible.map((s) => (
-                                <tr key={s.sales_record_id}>
-                                    <td className="border border-gray-300 px-2 sm:px-3 py-2 text-center">
+                                <tr className={tableC.bodyRow} key={s.sales_record_id}>
+                                    <td className={`${tableC.cell} text-center`}>
                                         <input
                                             type="checkbox"
                                             checked={!!checked[s.sales_record_id]}
@@ -307,7 +308,7 @@ canEdit: boolean
                                             <input type="hidden" name="sale_id" value={s.sales_record_id} />
                                         )}
                                     </td>
-                                    <td className="border border-gray-300 px-2 sm:px-3 py-2 text-sm">
+                                    <td className={tableC.cell}>
                                         <span className="font-mono">{s.batch_code}</span>
                                         {s.material_name && <span className="ml-2">{s.material_name}</span>}
                                         {s.customer_id === null && (
@@ -329,14 +330,14 @@ canEdit: boolean
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="border border-gray-300 px-2 sm:px-3 py-2 text-sm">{s.sale_date}</td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                    <td className={tableC.cell}>{s.sale_date}</td>
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
                                         {s.quantity} {s.unit}
                                     </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
                                         {s.currency} {formatMoneyBare(s.unit_price, '同格内紧邻的 s.currency 前缀')}
                                     </td>
-                                    <td className="border border-gray-300 px-2 sm:px-3 py-2 text-right font-mono text-sm">
+                                    <td className={`${tableC.cell} text-right font-mono`}>
                                         {formatAmount(s.amount_base, s.currency)}
                                     </td>
                                 </tr>

@@ -21,6 +21,7 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import { soStatusKey } from '../../salesOrderTypes'
 import { amendOrder, type AmendState } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { tableC } from '@/app/components/ui/table-style'
 
 export type AmendLine = {
     id: string
@@ -140,8 +141,13 @@ export default function AmendOrderForm({
                 <h2 className="font-medium pt-2">{t('sales.form.lines')}</h2>
                 {/* ════════════════════════════════════════════════════════════════
                     ★ TABLE-PHONE-4:八列 → 手机档留四列(# · 物料 · 已订 · 单价)。
-                    被拿掉的四列(已开票 / 已预留 / 已发 / 删除)一个字段都没丢:
+                    被拿掉的三列(已开票 / 已预留 / 已发)一个字段都没丢:
                     带着各自的列头叠在物料那一格里,见下面 sm:hidden 的那一块。
+                    ★★ TABLE-STYLE-1 / R1(Tim 裁定,2026-09-09):【删除那一列不再折】。
+                      原来它是被拿掉的第四列;现在它留在明面上,叠着的那一份拿掉了。
+                      理由不是"这一列更值得读",而是**它不是一个要读的数,是一个要按的控件**
+                      —— 够不着的动作等于不存在(DBLOCK-1 用在版式上)。
+                      规矩见 docs/base-components.md §二十。
                     ☞ 改一张销售单,手指落在【已订】与【单价】上 —— 两个输入框都留住。
                       已开票/已预留/已发是三个【读】的数,读在折叠区里不多花一次点击;
                       而两条下限告警(belowShipped / belowReserved)本来就印在数量框底下,
@@ -150,20 +156,22 @@ export default function AmendOrderForm({
                       收进折叠区就要现造一句话,而委托书禁止现造。留着它,一句都不用造 ——
                       而行号本来就是这张表跟人对话时用的号码(报错、审计都指它)。
                     ★ 删除那一列的复选框【不带 name】(它的值由第一格里渲染一次的
-                      <input type="hidden" name="line_remove"> 携带),所以画两份是安全的。
+                      <input type="hidden" name="line_remove"> 携带)。R1 之后它只画【一份】,
+                      而在此之前画两份也是安全的 —— 两句话都记着,因为安全的理由(没有 name)
+                      与只画一份的理由(不重复控件)不是同一条。
                       带 name 的两个(line_quantity / line_price)都留在明面上,没有一个被复制。
                     ════════════════════════════════════════════════════════════════ */}
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-2 py-2 text-left">#</th>
-                            <th className="border border-gray-300 px-2 py-2 text-left">{t('sales.colMaterial')}</th>
-                            <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colOrdered')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colInvoiced')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colReserved')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colShipped')}</th>
-                            <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colPrice', { ccy: currency })}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-left">{t('sales.amend.colRemove')}</th>
+                <table className={`${tableC.root} w-full`}>
+                    <thead>
+                        <tr className={tableC.headRow}>
+                            <th className={`${tableC.headCell} text-left`}>#</th>
+                            <th className={`${tableC.headCell} text-left`}>{t('sales.colMaterial')}</th>
+                            <th className={`${tableC.headCell} text-right`}>{t('sales.amend.colOrdered')}</th>
+                            <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('sales.amend.colInvoiced')}</th>
+                            <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('sales.amend.colReserved')}</th>
+                            <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('sales.amend.colShipped')}</th>
+                            <th className={`${tableC.headCell} text-right`}>{t('sales.amend.colPrice', { ccy: currency })}</th>
+                            <th className={`${tableC.headCell} text-left`}>{t('sales.amend.colRemove')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -214,13 +222,13 @@ export default function AmendOrderForm({
                                 </label>
                             )
                             return (
-                                <tr key={l.id} className={gone ? 'bg-gray-100 text-gray-400' : ''}>
-                                    <td className="border border-gray-300 px-2 py-2">
+                                <tr key={l.id} className={`${tableC.bodyRow} ${gone ? 'bg-gray-100 text-gray-400' : ''}`}>
+                                    <td className={tableC.cell}>
                                         {l.line_no}
                                         <input type="hidden" name="line_id" value={l.id} />
                                         <input type="hidden" name="line_remove" value={gone ? '1' : '0'} />
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-2">
+                                    <td className={tableC.cell}>
                                         <span className="font-mono">{l.material_code}</span>{' '}
                                         <span className="text-gray-500">{l.material_name}</span>
                                         {/* ★ TABLE-PHONE-4:手机档拿掉的四列,带着各自的列头叠在这里。
@@ -240,13 +248,9 @@ export default function AmendOrderForm({
                                                 <span className="font-sans text-gray-500">{t('sales.amend.colShipped')}: </span>
                                                 {shippedText}
                                             </div>
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-gray-500 shrink-0">{t('sales.amend.colRemove')}: </span>
-                                                {removeControl}
-                                            </div>
                                         </div>
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-2 text-right">
+                                    <td className={`${tableC.cell} text-right`}>
                                         <DecimalInput name="line_quantity" value={qty[l.id] ?? ''}
                                             onChange={(raw) => setQty((q) => ({ ...q, [l.id]: raw }))}
                                             disabled={lockedRow || billed}
@@ -264,22 +268,26 @@ export default function AmendOrderForm({
                                             </p>
                                         )}
                                     </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right font-mono text-xs">
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
                                         {invoicedText}
                                     </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right font-mono text-xs">
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
                                         {reservedText}
                                     </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right font-mono text-xs">
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
                                         {shippedText}
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-2 text-right">
+                                    <td className={`${tableC.cell} text-right`}>
                                         <DecimalInput name="line_price" value={price[l.id] ?? ''}
                                             onChange={(raw) => setPrice((p) => ({ ...p, [l.id]: raw }))}
                                             disabled={lockedRow || billed}
                                             className="w-24 border border-gray-300 px-2 py-1 rounded text-right" />
                                     </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-2">
+                                    {/* ★★ TABLE-STYLE-1 / R1(Tim 裁定,2026-09-09):【动作列在手机上不折】。
+                                        这一列原来带 hidden sm:table-cell、移除钮叠在物料那一格里;
+                                        现在它自己留在明面上,叠着的那一份【拿掉了】——
+                                        留着就是同一颗钮在同一行里画两遍。规矩见 docs/base-components.md §二十。 */}
+                                    <td className={tableC.cell}>
                                         {removeControl}
                                     </td>
                                 </tr>
@@ -299,18 +307,18 @@ export default function AmendOrderForm({
                     <>
                         <h2 className="font-medium pt-2">{t('sales.amend.addLines')}</h2>
                         <p className="text-xs text-gray-500">{t('sales.amend.addLinesHint')}</p>
-                        <table className="w-full border-collapse border border-gray-300 text-sm">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="border border-gray-300 px-2 py-2 text-left">{t('sales.colMaterial')}</th>
-                                    <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.form.qty')}</th>
-                                    <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.amend.colPrice', { ccy: currency })}</th>
+                        <table className={`${tableC.root} w-full`}>
+                            <thead>
+                                <tr className={tableC.headRow}>
+                                    <th className={`${tableC.headCell} text-left`}>{t('sales.colMaterial')}</th>
+                                    <th className={`${tableC.headCell} text-right`}>{t('sales.form.qty')}</th>
+                                    <th className={`${tableC.headCell} text-right`}>{t('sales.amend.colPrice', { ccy: currency })}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {Array.from({ length: NEW_SLOTS }, (_, i) => (
-                                    <tr key={i}>
-                                        <td className="border border-gray-300 px-2 py-2">
+                                    <tr className={tableC.bodyRow} key={i}>
+                                        <td className={tableC.cell}>
                                             <select name={`new_material_${i}`} defaultValue=""
                                                     className="w-full border border-gray-300 px-2 py-1 rounded">
                                                 <option value="">{t('sales.form.selectMaterial')}</option>
@@ -319,11 +327,11 @@ export default function AmendOrderForm({
                                                 ))}
                                             </select>
                                         </td>
-                                        <td className="border border-gray-300 px-2 py-2 text-right">
+                                        <td className={`${tableC.cell} text-right`}>
                                             <input type="number" step="any" min="0" name={`new_qty_${i}`}
                                                    className="w-24 border border-gray-300 px-2 py-1 rounded text-right" />
                                         </td>
-                                        <td className="border border-gray-300 px-2 py-2 text-right">
+                                        <td className={`${tableC.cell} text-right`}>
                                             <input type="number" step="any" min="0" name={`new_price_${i}`}
                                                    className="w-24 border border-gray-300 px-2 py-1 rounded text-right" />
                                         </td>

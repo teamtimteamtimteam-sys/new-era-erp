@@ -13,6 +13,7 @@ import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { triggerLabel, type PaymentTriggerEvent } from '@/lib/paymentTriggers'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
+import { tableC } from '@/app/components/ui/table-style'
 
 export type AmendLine = {
     id: string
@@ -148,15 +149,15 @@ export default function AmendOrderForm({
                       line_remove 携带),所以它是这张表里唯一能安全画两份的控件。
                     ★【# 的列头是硬编码的 "#",没有 i18n key】—— 留在明面上,一句都不用造。
                     ════════════════════════════════════════════════════════════════ */}
-                <table className="w-full border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">#</th>
-                            <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('purchasing.amend.colQty')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('purchasing.amend.colReceived')}</th>
-                            <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('purchasing.amend.colPrice', { ccy: currency })}</th>
-                            <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('purchasing.form.priceStatus')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('purchasing.amend.colRemove')}</th>
+                <table className={`${tableC.root} w-full`}>
+                    <thead>
+                        <tr className={tableC.headRow}>
+                            <th className={`${tableC.headCell} text-left`}>#</th>
+                            <th className={`${tableC.headCell} text-right`}>{t('purchasing.amend.colQty')}</th>
+                            <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('purchasing.amend.colReceived')}</th>
+                            <th className={`${tableC.headCell} text-right`}>{t('purchasing.amend.colPrice', { ccy: currency })}</th>
+                            <th className={`${tableC.headCell} text-left`}>{t('purchasing.form.priceStatus')}</th>
+                            <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('purchasing.amend.colRemove')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -191,8 +192,8 @@ export default function AmendOrderForm({
                                 </label>
                             )
                             return (
-                                <tr key={l.id} className={remove[l.id] ? 'bg-gray-100 text-gray-400' : ''}>
-                                    <td className="border border-gray-300 px-2 sm:px-3 py-2">
+                                <tr key={l.id} className={`${tableC.bodyRow} ${remove[l.id] ? 'bg-gray-100 text-gray-400' : ''}`}>
+                                    <td className={tableC.cell}>
                                         {l.line_no}
                                         <input type="hidden" name="line_id" value={l.id} />
                                         <input type="hidden" name="line_remove" value={remove[l.id] ? '1' : '0'} />
@@ -210,7 +211,7 @@ export default function AmendOrderForm({
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="border border-gray-300 px-2 sm:px-3 py-2 text-right">
+                                    <td className={`${tableC.cell} text-right`}>
                                         <DecimalInput name="line_quantity" value={qty[l.id] ?? ''}
                                             onChange={(raw) => setQty((q) => ({ ...q, [l.id]: raw }))}
                                             disabled={frozen}
@@ -222,10 +223,10 @@ export default function AmendOrderForm({
                                             </p>
                                         )}
                                     </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono text-sm text-gray-600">
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono text-gray-600`}>
                                         {receivedText}
                                     </td>
-                                    <td className="border border-gray-300 px-2 sm:px-3 py-2 text-right">
+                                    <td className={`${tableC.cell} text-right`}>
                                         <DecimalInput name="line_price" value={price[l.id] ?? ''}
                                             onChange={(raw) => setPrice((p) => ({ ...p, [l.id]: raw }))}
                                             disabled={frozen}
@@ -234,7 +235,7 @@ export default function AmendOrderForm({
                                     {/* PUR-1:定价状态。挂了公式的行【标不成定价】——
                                         禁用并把理由摆在旁边(CMP-2 的规矩);把关在
                                         guard_po_line_price_status 那道闸上。 */}
-                                    <td className="border border-gray-300 px-2 sm:px-3 py-2">
+                                    <td className={tableC.cell}>
                                         <select name="line_price_status" value={priceStatus[l.id] ?? ''}
                                             disabled={frozen}
                                             onChange={(e) => setPriceStatus((p) => ({ ...p, [l.id]: e.target.value }))}
@@ -251,7 +252,7 @@ export default function AmendOrderForm({
                                             </p>
                                         )}
                                     </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
+                                    <td className={`${tableC.cell} hidden sm:table-cell`}>
                                         {removeControl}
                                     </td>
                                 </tr>

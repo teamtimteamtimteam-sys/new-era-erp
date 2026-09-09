@@ -7,6 +7,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { tableC } from '@/app/components/ui/table-style'
 
 // ★ CONV-4:不套 DataTable —— 这是一张【透视表】,行 = 成本类型、
 //   列 = 动态生成的月份,两根轴都不是"记录"。与 §⑧-3 拒绝把
@@ -31,19 +32,19 @@ export default async function CostVariancePage() {
     return (
         <ListPage title={t('finance.variance.title')} intro={t('finance.variance.intro')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
             {rows.length === 0 ? <p className="text-sm text-gray-500">{t('finance.variance.empty')}</p> : (
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100"><tr>
-                        <th className="border border-gray-300 px-3 py-2 text-left">{t('finance.variance.type')}</th>
-                        {months.map((m) => <th key={m} className="border border-gray-300 px-3 py-2 text-right font-mono">{m}</th>)}
+                <table className={`${tableC.root} w-full`}>
+                    <thead><tr className={tableC.headRow}>
+                        <th className={`${tableC.headCell} text-left`}>{t('finance.variance.type')}</th>
+                        {months.map((m) => <th key={m} className={`${tableC.headCell} text-right font-mono`}>{m}</th>)}
                     </tr></thead>
                     <tbody>
                         {types.map((ty) => (
-                            <tr key={ty}>
-                                <td className="border border-gray-300 px-3 py-2">{t('processing.costTypes.' + ty)}</td>
+                            <tr className={tableC.bodyRow} key={ty}>
+                                <td className={tableC.cell}>{t('processing.costTypes.' + ty)}</td>
                                 {months.map((m) => {
                                     const r = by.get(ty + '|' + m)
                                     return (
-                                        <td key={m} className="border border-gray-300 px-3 py-2 text-right font-mono">
+                                        <td key={m} className={`${tableC.cell} text-right font-mono`}>
                                             {r ? (
                                                 <span title={`est ${r.estimated_total} / act ${r.actual_total}`}
                                                       className={r.variance > 0 ? 'text-red-700' : r.variance < 0 ? 'text-green-700' : ''}>

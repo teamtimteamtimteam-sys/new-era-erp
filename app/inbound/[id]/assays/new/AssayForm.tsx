@@ -23,6 +23,7 @@ import {
     type PreviewState,
 } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { tableC } from '@/app/components/ui/table-style'
 
 const initialState: SubmitAssayState = {}
 
@@ -240,21 +241,21 @@ export default function AssayForm({
             {/* ── 金属表(留空 = 没测,整行忽略)── */}
             <div>
                 <h2 className="text-lg font-semibold mb-2">{t('assay.title')}</h2>
-                <table className="w-full border-collapse border border-gray-300 max-w-md">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('assay.colMetal')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('assay.colContent')}</th>
+                <table className={`${tableC.root} w-full max-w-md`}>
+                    <thead>
+                        <tr className={tableC.headRow}>
+                            <th className={`${tableC.headCell} text-left`}>{t('assay.colMetal')}</th>
+                            <th className={`${tableC.headCell} text-left`}>{t('assay.colContent')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {substanceOptions.filter((s) => s.isActive).map((opt) => (
-                            <tr key={opt.value}>
-                                <td className="border border-gray-300 px-4 py-2">
+                            <tr className={tableC.bodyRow} key={opt.value}>
+                                <td className={tableC.cell}>
                                     {t(opt.labelKey)}
                                     <span className="text-gray-400 font-mono text-xs ml-2">{opt.value}</span>
                                 </td>
-                                <td className="border border-gray-300 px-4 py-2">
+                                <td className={tableC.cell}>
                                     <input type="hidden" name="assay_metal" value={opt.value} />
                                     <DecimalInput
                                         name="assay_content"

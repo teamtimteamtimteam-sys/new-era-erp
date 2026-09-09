@@ -28,6 +28,7 @@ import { localizeFinanceError } from '../financeErrorCodes'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { tableC } from '@/app/components/ui/table-style'
 
 // ★ CONV-4:不套 DataTable —— 按往来对象【动态分组】+ 组内小计,与
 //   balance-sheet/pnl/trial-balance 撞见的同一个分组缺口(见那三页顶注)。
@@ -169,26 +170,26 @@ export default async function PayablesPage({
                 它们叠在单据那一格里,见下面 sm:hidden 的那一块。
                 ★ 判据:这一刀之后,390px 上读得到的字段数与桌面【完全相同】。
                 ════════════════════════════════════════════════════════════════ */}
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('finance.colCounterparty')}</th>
-                        <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('finance.colDocument')}</th>
-                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('finance.colDate')}</th>
+            <table className={`${tableC.root} w-full`}>
+                <thead>
+                    <tr className={tableC.headRow}>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('finance.colCounterparty')}</th>
+                        <th className={`${tableC.headCell} text-left`}>{t('finance.colDocument')}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('finance.colDate')}</th>
                         {/* AGING-1:到期日露出来,而【档位不按它分】—— 见 finance.agingAsOf.dueDateNote */}
-                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('finance.agingAsOf.colDueDate')}</th>
-                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right">{t('finance.colAmount', { ccy: baseCurrency })}</th>
-                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right">{t('finance.colSettled')}</th>
-                        <th className="border border-gray-300 px-2 sm:px-4 py-2 text-right">{t('finance.colOpen')}</th>
-                        <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('finance.colDays')}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('finance.agingAsOf.colDueDate')}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('finance.colAmount', { ccy: baseCurrency })}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('finance.colSettled')}</th>
+                        <th className={`${tableC.headCell} text-right`}>{t('finance.colOpen')}</th>
+                        <th className={`${tableC.headCell} text-left`}>{t('finance.colDays')}</th>
                     </tr>
                 </thead>
                 <tbody>
                     {groups.map((g, gi) => (
                         [
                             ...g.rows.map((r, ri) => (
-                                <tr key={r.doc_id}>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">
+                                <tr className={tableC.bodyRow} key={r.doc_id}>
+                                    <td className={`${tableC.cell} hidden sm:table-cell`}>
                                         {ri === 0 ? (
                                             <>
                                                 {g.name}
@@ -198,7 +199,7 @@ export default async function PayablesPage({
                                             </>
                                         ) : ''}
                                     </td>
-                                    <td className="border border-gray-300 px-2 sm:px-4 py-2 font-mono text-sm">
+                                    <td className={`${tableC.cell} font-mono`}>
                                         {/* FRT-1:三种单据,三个去处。【认不出的种类不给链接】——
                                             原来是二分的 else,新来的 freight 会被送进
                                             /finance/expenses/<freight-id> 然后 404;而"点开是空的"
@@ -271,7 +272,7 @@ export default async function PayablesPage({
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">{r.doc_date}</td>
+                                    <td className={`${tableC.cell} hidden sm:table-cell`}>{r.doc_date}</td>
                                     {/* 【空的时候说出【为什么】空,不留一个破折号】AP 三支今天一张
                                         到期日都没有 —— 而一个光秃秃的「—」读起来像"数据没填",
                                         实情是这套系统里【还没有】这个事实(供应商账期 0/8 填了)。
@@ -281,34 +282,34 @@ export default async function PayablesPage({
                                         错的是把它放进一个在 390px 上撑得开视口的格子里。
                                         手机档这一列整格不画(内容叠在单据格里),U1 的
                                         480px 溢出由此闭合。 */}
-                                    <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-sm">
+                                    <td className={`${tableC.cell} hidden sm:table-cell`}>
                                         {r.due_date ?? (
                                             <span className="text-gray-400" title={t('finance.agingAsOf.noDueDateWhy')}>
                                                 {t('finance.agingAsOf.noDueDate')}
                                             </span>
                                         )}
                                     </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
                                         {formatMoneyBare(r.doc_value_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                     </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
                                         {formatMoneyBare(r.settled_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                     </td>
-                                    <td className="border border-gray-300 px-2 sm:px-4 py-2 text-right font-mono text-sm font-medium">
+                                    <td className={`${tableC.cell} text-right font-mono font-medium`}>
                                         {formatMoneyBare(r.open_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                     </td>
-                                    <td className="border border-gray-300 px-2 sm:px-4 py-2">
+                                    <td className={tableC.cell}>
                                         <span className={'px-2 py-1 rounded text-xs ' + bucketPillClass(r.bucket)}>
                                             {r.days_outstanding}
                                         </span>
                                     </td>
                                 </tr>
                             )),
-                            <tr key={`subtotal-${gi}`} className="bg-gray-50 font-medium">
+                            <tr key={`subtotal-${gi}`} className={`${tableC.bodyRow} bg-gray-50 font-medium`}>
                                 {/* ★ FIX-2b:colSpan 不能随断点变,所以标签格写两份 ——
                                     手机档跨 1 列(单据),桌面档跨 4 列(往来/单据/日期/到期)。
                                     两份的字一模一样;分开的只是它跨几格。 */}
-                                <td className="sm:hidden border border-gray-300 px-2 py-2 text-xs">
+                                <td className={`${tableC.cell} sm:hidden`}>
                                     {g.name} ({t('finance.counterpartyKind.' + g.kind)}) — {t('finance.totalsLabel')}
                                     {/* 手机档「金额 / 已结」两列不画,合计叠在这里 —— 与明细行同一条规矩。 */}
                                     <span className="block mt-0.5 font-mono text-[11px] text-gray-600">
@@ -317,31 +318,31 @@ export default async function PayablesPage({
                                         {t('finance.colSettled')} {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                     </span>
                                 </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-sm" colSpan={4}>
+                                <td className={`${tableC.cell} hidden sm:table-cell`} colSpan={4}>
                                     {g.name} ({t('finance.counterpartyKind.' + g.kind)}) — {t('finance.totalsLabel')}
                                 </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
                                     {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                 </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                                <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
                                     {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                 </td>
-                                <td className="border border-gray-300 px-2 sm:px-4 py-2 text-right font-mono text-sm">
+                                <td className={`${tableC.cell} text-right font-mono`}>
                                     {formatMoneyBare(Math.round(g.open * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                 </td>
-                                <td className="border border-gray-300 px-2 sm:px-4 py-2" />
+                                <td className={tableC.cell} />
                             </tr>,
                         ]
                     ))}
                     {rows.length === 0 && (
-                        <tr>
+                        <tr className={tableC.bodyRow}>
                             {/* colSpan 不能随断点变 —— 手机档三列,桌面档八列。 */}
-                            <td colSpan={3} className="sm:hidden border border-gray-300 px-4 py-8 text-center text-gray-500">
+                            <td colSpan={3} className="px-3 py-8 align-middle sm:hidden text-center text-gray-500">
                                 {report.is_past
                                     ? t('finance.agingAsOf.noOpenItemsAsOf', { date: report.as_of })
                                     : t('finance.noOpenItems')}
                             </td>
-                            <td colSpan={8} className="hidden sm:table-cell border border-gray-300 px-4 py-8 text-center text-gray-500">
+                            <td colSpan={8} className="px-3 py-8 align-middle hidden sm:table-cell text-center text-gray-500">
                                 {/* 【一个过去的时点上"没有"与今天"没有"不是同一句话】*/}
                                 {report.is_past
                                     ? t('finance.agingAsOf.noOpenItemsAsOf', { date: report.as_of })

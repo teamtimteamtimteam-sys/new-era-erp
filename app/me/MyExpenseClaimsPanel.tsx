@@ -134,7 +134,7 @@ export default function MyExpenseClaimsPanel({
                             <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colDescription')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-right">{t('expenseClaims.colAmount')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('expenseClaims.colStatus')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2"></th>
+                            <th className="border border-gray-300 px-3 py-2"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -143,7 +143,7 @@ export default function MyExpenseClaimsPanel({
                                 <td className="border border-gray-300 px-3 py-2 font-mono text-xs">
                                     {r.code}
                                     {/* ★ TABLE-PHONE-3:手机档被拿掉的列(消费日 / 事由,以及那一列
-                                        【桌面档本来就没有列头】的撤回),原样叠在这里,各带各的列头 ——
+                                        原样叠在这里,各带各的列头 ——
                                         拿掉的是那一列,不是那个事实。
                                         留在列上的是:单号 + 报了多少 + 批没批 —— 报销这件事就这三问。 */}
                                     <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
@@ -164,10 +164,6 @@ export default function MyExpenseClaimsPanel({
                                                 <span className="block text-[11px] text-gray-600">{r.decision_notes}</span>
                                             )}
                                         </div>
-                                        {/* 这一条【没有标签,而它在桌面档也没有】—— 钮面上自己带着字
-                                            (expenseClaims.withdraw),所以【不另造一句话】。
-                                            它只在 submitted 时才画,与桌面档同一条规矩。 */}
-                                        {r.status === 'submitted' && <div className="pt-0.5">{withdrawControl(r)}</div>}
                                     </div>
                                 </td>
                                 <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 font-mono text-xs">{r.spend_date}</td>
@@ -198,7 +194,11 @@ export default function MyExpenseClaimsPanel({
                                         <span className="block text-[11px] text-green-700">{t('expenseClaims.paid')}</span>
                                     )}
                                 </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">
+                                {/* ★★ TABLE-STYLE-1 / R1(Tim 裁定,2026-09-09):【动作列在手机上不折】。
+                                    这一列原来带 hidden sm:table-cell、撤回钮叠在单号那一格里;
+                                    现在它自己留在明面上,叠着的那一份【拿掉了】——
+                                    留着就是同一颗钮在同一行里画两遍。规矩见 docs/base-components.md §二十。 */}
+                                <td className="border border-gray-300 px-3 py-2 text-right">
                                     {withdrawControl(r)}
                                 </td>
                             </tr>

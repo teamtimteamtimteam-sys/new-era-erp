@@ -16,6 +16,7 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { createCreditNote, type CreditNoteState } from './creditNoteActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { tableC } from '@/app/components/ui/table-style'
 
 export type CnLineOption = {
     id: string
@@ -114,16 +115,16 @@ canEdit: boolean
                 ☞ 代价说清楚:类型决定用哪个上限,收进折叠区意味着改它要多滚一下。
                   拿正确性换这一下,换得起。
                 ════════════════════════════════════════════════════════════════ */}
-            <table className="w-full border-collapse border border-gray-300 text-sm">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-2 py-2 text-left">#</th>
-                        <th className="border border-gray-300 px-2 py-2 text-left">{t('cn.colLine')}</th>
-                        <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right">{t('cn.colUnreleased')}</th>
-                        <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right">{t('cn.colReleased')}</th>
-                        <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-left">{t('cn.colKind')}</th>
-                        <th className="border border-gray-300 px-2 py-2 text-right">{t('cn.colQty')}</th>
-                        <th className="border border-gray-300 px-2 py-2 text-right">{t('cn.colAmount', { ccy: currency })}</th>
+            <table className={`${tableC.root} w-full`}>
+                <thead>
+                    <tr className={tableC.headRow}>
+                        <th className={`${tableC.headCell} text-left`}>#</th>
+                        <th className={`${tableC.headCell} text-left`}>{t('cn.colLine')}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('cn.colUnreleased')}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('cn.colReleased')}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('cn.colKind')}</th>
+                        <th className={`${tableC.headCell} text-right`}>{t('cn.colQty')}</th>
+                        <th className={`${tableC.headCell} text-right`}>{t('cn.colAmount', { ccy: currency })}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -152,13 +153,13 @@ canEdit: boolean
                             </select>
                         )
                         return (
-                            <tr key={l.id}>
-                                <td className="border border-gray-300 px-2 py-2">
+                            <tr className={tableC.bodyRow} key={l.id}>
+                                <td className={tableC.cell}>
                                     {l.line_no}
                                     <input type="hidden" name="cn_line_id" value={l.id} />
                                     <input type="hidden" name="cn_kind" value={k} />
                                 </td>
-                                <td className="border border-gray-300 px-2 py-2">
+                                <td className={tableC.cell}>
                                     {l.description}
                                     {/* ★ TABLE-PHONE-4:手机档拿掉的三列,带着各自的列头叠在这里。
                                         类型是个能点的控件,所以它单独占一行、标签在左、控件在右 ——
@@ -178,22 +179,22 @@ canEdit: boolean
                                         </div>
                                     </div>
                                 </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right font-mono text-xs">
+                                <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
                                     {unreleasedText}
                                 </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right font-mono text-xs">
+                                <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
                                     {releasedText}
                                 </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-2">
+                                <td className={`${tableC.cell} hidden sm:table-cell`}>
                                     {kindSelect}
                                 </td>
-                                <td className="border border-gray-300 px-2 py-2 text-right">
+                                <td className={`${tableC.cell} text-right`}>
                                     {/* 【数量可空,而且这不是偷懒】一次整批折让往往不对应
                                         任何数量,硬要一个就得编一个 —— 金额才是主语 */}
                                     <input type="number" step="any" min="0" name="cn_qty"
                                            className="w-20 border border-gray-300 px-1 py-1 rounded text-right text-xs" />
                                 </td>
-                                <td className="border border-gray-300 px-2 py-2 text-right">
+                                <td className={`${tableC.cell} text-right`}>
                                     <input type="number" step="any" min="0" name="cn_amount"
                                            value={amount[l.id] ?? ''}
                                            onChange={(e) => setAmount((s) => ({ ...s, [l.id]: e.target.value }))}

@@ -248,9 +248,65 @@ function scanLinkButtons(src) {
     return out
 }
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ TABLE-STYLE-1(2026-09-09)· 第四维:【格子自己钉死的字号】★★
+// ════════════════════════════════════════════════════════════════════════════
+// 【为什么非有这一维不可 —— 这是 Tim 的裁定 R2,而它有一个量出来的理由】
+//   variant C 的表格字号是 15px(docs/variant-c-spec.md §4.3,实测)。
+//   而 `data-table.tsx` 的 `cn()` 把 `c.className` 排在【最后】——
+//   **调用方在列上写了字号的,调用方赢。**
+//   STYLE-2 实测:本组件的 102 个表头里 92 个到了 15px,**10 个仍是 14px**,
+//   那 10 个全部来自 `className: 'font-mono text-sm'` 这一类列。
+//
+//   ☞ 于是「把手搓表转成组件」这件事有一个**会把债搬走、而不是还掉**的失败模式:
+//     一次机械的转换会把 `<td>` 上的字号**原样搬进 `Column.className`**,
+//     转完那些表**仍然渲染 14px**,而全仓库钉字号的列定义会从 293 涨到约 433。
+//     **那不是还债,是把债换了个拼法。**
+//
+// 【★ 所以这一维【一个债、两种拼法】,而不是两维 ★】
+//   ① `<table>` / `<th>` / `<td>` 标签上的字号   ← 手搓表那条路
+//   ② `className: '…'` 属性里的字号              ← 列描述符那条路(Column<T>)
+//   两者是**同一件事的两种写法**,而这一族刀的题目正是"同一个外观不许有两份定义"。
+//   把它们分成两维,就等于允许"这边减、那边加"而闸仍然是绿的。
+//   ☞ 收尾会把两者的分账【分别印出来】,好让人读得到是哪一边在动。
+//
+// 【它【看不见】什么 —— 两个方向都说】
+//   ✗ 运行期拼出来的 className(变量 / 三元 / 跨文件常量)。
+//   ✗ 它分不出「一个 Column 描述符的 className」与「任何别的对象的 className 属性」——
+//     判据是**写法**(一个叫 className 的对象属性里有字号),不是类型。
+//     实测今天 ② 那一支是 293 处,与 STYLE-2 从另一条路数出来的 293 **相等**;
+//     这不是证明它只抓 Column,是说明本仓库里这个拼法几乎只用在列描述符上。
+//   ✗ 它看不见【外层元素】上的字号往下继承(一个 `text-sm` 的 <div> 包着表)。
+//     ☞ 那一类只有真浏览器量得出来,scripts/survey-variant-c.mjs 才是那件仪器。
+//   ✓ 它【不】按行切:整标签花括号配平地读(本族第七次换行陷阱,前六次见上文)。
+// ════════════════════════════════════════════════════════════════════════════
+const CELL_FONT = /(^|[\s"'`{])(sm:|md:|lg:|xl:)?text-(xs|sm|base|lg|xl|2xl|3xl)(?=[\s"'`}]|$)/
+
+function scanCellFonts(src) {
+    const out = []
+    // ① 格子标签上的字号
+    for (let i = 0; i < src.length; i++) {
+        const m = /^<(table|th|td)(?=[\s/>])/.exec(src.slice(i, i + 7))
+        if (!m) continue
+        const tag = readTag(src, i)
+        if (tag && CELL_FONT.test(tag)) out.push({ line: src.slice(0, i).split('\n').length, how: 'tag' })
+    }
+    // ② 列描述符 className: '…' 里的字号
+    for (const mm of src.matchAll(/className:\s*(['"`])([^'"`]*)\1/g))
+        if (CELL_FONT.test(' ' + mm[2] + ' ')) out.push({ line: src.slice(0, mm.index).split('\n').length, how: 'prop' })
+    return out
+}
+
 const DIMS = [
     ...LINE_DIMS,
     { key: 'linkbutton', what: '长得像按钮的 <Link>/<a>', fix: '<Button asChild>(链接仍然是链接,只借外观)' },
+    // ★ 这一维的判词不是「请改用 X」——它没有替代品,答案是【拿掉】。
+    //   所以它自带 verdict,而不是硬塞进 fix 里凑出一句读不通的话。
+    { key: 'cellfont', what: '格子钉死的字号(<table>/<th>/<td> 标签 + 列描述符的 className)',
+      fix: 'tableC / DataTable 自己的字号',
+      verdict: '**把字号从格子上拿掉。** 表格字号由 variant C 的标准给(表头 15px/500,表体 15px/400,'
+             + 'docs/variant-c-spec.md §4.3);手搓表用 app/components/ui/table-style.ts 的 tableC。' },
 ]
 
 const hits = Object.fromEntries(DIMS.map((d) => [d.key, []]))
@@ -276,6 +332,8 @@ for (const abs of walk(join(ROOT, 'app'))) {
     })
     // ★ 这一维【不按行切】—— 理由见上面那一段(本族第六次换行陷阱)
     for (const h of scanLinkButtons(src)) hits.linkbutton.push({ file, line: h.line })
+    // ★ 同样【不按行切】—— 理由见 cellfont 那一段抬头
+    for (const h of scanCellFonts(src)) hits.cellfont.push({ file, line: h.line, how: h.how })
 }
 
 const counts = Object.fromEntries(DIMS.map((d) => {
@@ -298,6 +356,11 @@ const NOTE = '★ 这份基线【只会缩短】,不会变长。多一处 <table
     + '☞ 变长的那一处不是新债:树没有变坏,是仪器变准了 —— 而它是一个【永不转】的'
     + '导航页签(见 docs/base-components.md §十七 余量表),进基线是长住,不是待办。'
     + '这条例外只对「仪器修好了」成立,对「又手写了一个」不成立:后者仍然红。'
+    + ' ★ TABLE-STYLE-1(2026-09-09)加入 cellfont 维度(格子钉死的字号,两种拼法合成一维)——'
+    + '前三维原样搬迁,一处都没有放宽。理由是 Tim 的裁定 R2:variant C 的表格字号是 15px,'
+    + '而 data-table.tsx 的 cn() 把 c.className 排在最后,调用方钉了字号就是调用方赢;'
+    + '不拦住它,一次机械的转换会把 140 处 <td> 字号搬进 Column.className,转完仍然是 14px'
+    + '——【债不是还了,是搬了个地方】。'
 
 if (process.argv.includes('--update-baseline')) {
     const obj = { __NOTE__: NOTE }
@@ -354,7 +417,7 @@ for (const d of DIMS) {
     }
 
     console.log(`== ${d.what}(app/,不含组件库自己)==`)
-    console.log(`   判词:**请改用 ${d.fix}。**`)
+    console.log(d.verdict ? `   判词:${d.verdict}` : `   判词:**请改用 ${d.fix}。**`)
     console.log(`   基线:${Object.keys(base_d).length} 个文件在册。本次扫到 ${hits[d.key].length} 处。`)
     // ★ BTN-3c(2026-09-06):余量必须【读得到】,否则"统一了"是一句不可检验的话。
     //   这道闸数的是"还剩多少手写",而它【不知道】剩下的哪些是【故意】剩的。
@@ -369,6 +432,22 @@ for (const d of DIMS) {
     }
     // ★★ BTN-5:盲区【印在工具自己的收尾里】,不只写在报告里 ★★
     //   写在报告里的盲区活不过两刀 —— 下一个人读的是这段输出,不是三个月前那份报告。
+    // ★ TABLE-STYLE-1:两种拼法【分别印出来】,否则"这边减那边加"读不出来。
+    if (d.key === 'cellfont') {
+        const tagN  = hits[d.key].filter((h) => h.how === 'tag').length
+        const propN = hits[d.key].filter((h) => h.how === 'prop').length
+        console.log(`   分账:标签上 ${tagN} 处(<table>/<th>/<td>) · 列描述符里 ${propN} 处(className: '…')。`)
+        console.log('   ★ 这一维【看不见什么】——')
+        console.log("     ✗ 运行期拼出来的 className(变量 / 三元 / 跨文件常量)。")
+        console.log("     ✗ 它分不出 Column 描述符与任何别的带 className 属性的对象:判据是写法,不是类型。")
+        console.log('     ✗ 它看不见【常量背后】的字号 —— app/components/ui/table-style.ts 的 tableC.root')
+        console.log('       就带着一个 text-sm(那是行高的来源,不是格子钉字号),本闸数不到它。')
+        console.log('     ✗ 它看不见外层元素的字号往下继承 —— 那要真浏览器,见 scripts/survey-variant-c.mjs。')
+        console.log('   ★ 为什么它该【只减不增】:variant C 的表格字号是 15px(variant-c-spec §4.3),')
+        console.log('     而 data-table.tsx 的 cn() 把 c.className 排在最后 —— 调用方钉了字号,调用方赢。')
+        console.log('     一次机械的转换会把 <td> 的字号原样搬进 Column.className,于是转完仍然是 14px:')
+        console.log('     那不是还债,是把债换了个拼法。')
+    }
     if (d.key === 'linkbutton') {
         console.log('   ★ 这一维【看不见什么】—— 两个方向都说,别只说让人安心的那一个:')
         console.log('     ✗ 看不见:className 在运行期拼出来的按钮态链接(变量 / 导入的常量 /')

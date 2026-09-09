@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { createQuote, type QuoteFormState } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { tableC } from '@/app/components/ui/table-style'
 
 const initialState: QuoteFormState = {}
 const LINE_SLOTS = 5
@@ -124,18 +125,18 @@ export default function NewQuoteForm({
                 {state.fieldErrors?.lines && (
                     <p className="text-xs text-red-600">{state.fieldErrors.lines}</p>
                 )}
-                <table className="w-full border-collapse border border-gray-300 text-sm">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-2 py-2 text-left">{t('sales.colMaterial')}</th>
-                            <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.form.qty')}</th>
-                            <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.form.unitPrice')}</th>
+                <table className={`${tableC.root} w-full`}>
+                    <thead>
+                        <tr className={tableC.headRow}>
+                            <th className={`${tableC.headCell} text-left`}>{t('sales.colMaterial')}</th>
+                            <th className={`${tableC.headCell} text-right`}>{t('sales.form.qty')}</th>
+                            <th className={`${tableC.headCell} text-right`}>{t('sales.form.unitPrice')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {Array.from({ length: LINE_SLOTS }, (_, i) => (
-                            <tr key={i}>
-                                <td className="border border-gray-300 px-2 py-2">
+                            <tr className={tableC.bodyRow} key={i}>
+                                <td className={tableC.cell}>
                                     <select name={`line_material_${i}`} defaultValue=""
                                             className="w-full border border-gray-300 px-2 py-1 rounded">
                                         <option value="">{t('sales.form.selectMaterial')}</option>
@@ -144,11 +145,11 @@ export default function NewQuoteForm({
                                         ))}
                                     </select>
                                 </td>
-                                <td className="border border-gray-300 px-2 py-2 text-right">
+                                <td className={`${tableC.cell} text-right`}>
                                     <input type="number" step="any" min="0" name={`line_qty_${i}`}
                                            className="w-28 border border-gray-300 px-2 py-1 rounded text-right" />
                                 </td>
-                                <td className="border border-gray-300 px-2 py-2 text-right">
+                                <td className={`${tableC.cell} text-right`}>
                                     <input type="number" step="any" min="0" name={`line_price_${i}`}
                                            className="w-28 border border-gray-300 px-2 py-1 rounded text-right" />
                                 </td>

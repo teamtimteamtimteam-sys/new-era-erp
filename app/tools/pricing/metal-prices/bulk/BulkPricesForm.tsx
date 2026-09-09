@@ -14,6 +14,7 @@ import AnomalyWarning from '../AnomalyWarning'
 import SourcePicker from '../SourcePicker'
 import { INDEX_UNSTATED, type MetalPriceIndex } from '../indexOptions'
 import { ACK_FIELD, ackSignature } from '../anomaly'
+import { tableC } from '@/app/components/ui/table-style'
 
 const initialState: BulkPricesState = {}
 
@@ -102,26 +103,26 @@ export default function BulkPricesForm({
                 />
             </div>
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('pricing.form.colMetal')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">
+            <table className={`${tableC.root} w-full`}>
+                <thead>
+                    <tr className={tableC.headRow}>
+                        <th className={`${tableC.headCell} text-left`}>{t('pricing.form.colMetal')}</th>
+                        <th className={`${tableC.headCell} text-left`}>
                             {t('metalPrices.colPrice')}
                         </th>
-                        <th className="border border-gray-300 px-4 py-2 text-left" />
+                        <th className={`${tableC.headCell} text-left`} />
                     </tr>
                 </thead>
                 <tbody>
                     {substanceOptions.filter((s) => s.isActive).map((opt) => {
                         const row = rows.find((r) => r.metal === opt.value)
                         return (
-                            <tr key={opt.value}>
-                                <td className="border border-gray-300 px-4 py-2">
+                            <tr className={tableC.bodyRow} key={opt.value}>
+                                <td className={tableC.cell}>
                                     {metalLabel(opt.value)}
                                     <span className="text-gray-400 font-mono text-xs ml-2">{opt.value}</span>
                                 </td>
-                                <td className="border border-gray-300 px-4 py-2">
+                                <td className={tableC.cell}>
                                     {/* 并列数组:每行都送 metal,价格空串由 DB 侧跳过 */}
                                     <input type="hidden" name="metal" value={opt.value} />
                                     <DecimalInput
@@ -133,7 +134,7 @@ export default function BulkPricesForm({
                                         className="w-40 border border-gray-300 px-3 py-2 rounded"
                                     />
                                 </td>
-                                <td className="border border-gray-300 px-4 py-2 text-sm text-gray-500">
+                                <td className={`${tableC.cell} text-gray-500`}>
                                     {row?.lastPrice != null && row.lastDate
                                         ? t('metalPrices.bulk.lastPrice', {
                                               price: row.lastPrice,

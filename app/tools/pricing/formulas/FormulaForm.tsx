@@ -15,6 +15,7 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import type { FormulaState } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { tableC } from '@/app/components/ui/table-style'
 
 const initialState: FormulaState = {}
 
@@ -351,21 +352,21 @@ export default function FormulaForm({
             <div>
                 <h2 className="text-lg font-semibold mb-1">{t('pricing.form.payableTitle')}</h2>
                 <p className="text-sm text-gray-500 mb-3">{t('pricing.payableBlankHint')}</p>
-                <table className="w-full border-collapse border border-gray-300 max-w-md">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('pricing.form.colMetal')}</th>
-                            <th className="border border-gray-300 px-4 py-2 text-left">{t('pricing.form.colPayable')}</th>
+                <table className={`${tableC.root} w-full max-w-md`}>
+                    <thead>
+                        <tr className={tableC.headRow}>
+                            <th className={`${tableC.headCell} text-left`}>{t('pricing.form.colMetal')}</th>
+                            <th className={`${tableC.headCell} text-left`}>{t('pricing.form.colPayable')}</th>
                         </tr>
                     </thead>
                     <tbody>
                         {substanceOptions.filter((s) => s.isActive).map((opt) => (
-                            <tr key={opt.value}>
-                                <td className="border border-gray-300 px-4 py-2">
+                            <tr className={tableC.bodyRow} key={opt.value}>
+                                <td className={tableC.cell}>
                                     {t(opt.labelKey)}
                                     <span className="text-gray-400 font-mono text-xs ml-2">{opt.value}</span>
                                 </td>
-                                <td className="border border-gray-300 px-4 py-2">
+                                <td className={tableC.cell}>
                                     <input type="hidden" name="payable_metal" value={opt.value} />
                                     <DecimalInput
                                         name="payable_pct"

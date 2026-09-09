@@ -17,6 +17,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { tableC } from '@/app/components/ui/table-style'
 
 type Bucket = { currency: string; week_no: number; week_start: string; week_end: string
                 inflow: number; outflow: number; net: number; closing: number }
@@ -165,14 +166,14 @@ export default function ForecastGrid({
                         {t('cashForecast.opening')}: <span className="font-mono">{money(openingOf(ccy))}</span>
                         {' · '}{t('cashForecast.openingHint')}
                     </p>
-                    <table className="border-collapse border border-gray-300 text-xs min-w-max">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-2 py-1 text-left sticky left-0 bg-gray-100">
+                    <table className={`${tableC.root} min-w-max`}>
+                        <thead>
+                            <tr className={tableC.headRow}>
+                                <th className={`${tableC.headCell} text-left sticky left-0 bg-[color:var(--brand-bg)]`}>
                                     {t('cashForecast.weekOf')}
                                 </th>
                                 {weeks.map((w) => (
-                                    <th key={w} className="border border-gray-300 px-2 py-1 text-right whitespace-nowrap">
+                                    <th key={w} className={`${tableC.headCell} text-right whitespace-nowrap`}>
                                         {bucketOf(ccy, w)?.week_start ?? ''}
                                     </th>
                                 ))}
@@ -181,10 +182,10 @@ export default function ForecastGrid({
                         <tbody>
                             {([['inflow', 'cashForecast.inflow'], ['outflow', 'cashForecast.outflow'],
                                ['net', 'cashForecast.net'], ['closing', 'cashForecast.closing']] as const).map(([k, key]) => (
-                                <tr key={k} className={k === 'closing' ? 'font-medium bg-gray-50' : ''}>
-                                    <td className="border border-gray-300 px-2 py-1 sticky left-0 bg-inherit">{t(key)}</td>
+                                <tr key={k} className={`${tableC.bodyRow} ${k === 'closing' ? 'font-medium bg-gray-50' : ''}`}>
+                                    <td className={`${tableC.cell} sticky left-0 bg-inherit`}>{t(key)}</td>
                                     {weeks.map((w) => (
-                                        <td key={w} className="border border-gray-300 px-2 py-1 text-right font-mono">
+                                        <td key={w} className={`${tableC.cell} text-right font-mono`}>
                                             {money(Number(bucketOf(ccy, w)?.[k] ?? 0))}
                                         </td>
                                     ))}

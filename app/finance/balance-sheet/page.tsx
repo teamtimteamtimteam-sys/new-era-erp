@@ -32,6 +32,7 @@ import BsToolbar from './BsToolbar'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { tableC } from '@/app/components/ui/table-style'
 
 // ★ CONV-4:这一页【不】套 DataTable —— 它的表不是"记录的列表",是一份
 //   按科目类型分组、每组自己算小计、末尾还有资产合计/负债权益合计两行
@@ -104,20 +105,20 @@ export default async function BalanceSheetPage({
         subtotalOverride?: number
     ) => (
         <Fragment>
-            <tr className="bg-gray-50">
-                <td colSpan={3} className="border border-gray-300 px-4 py-2 font-semibold">
+            <tr className={`${tableC.bodyRow} bg-gray-50`}>
+                <td colSpan={3} className={`${tableC.cell} font-semibold`}>
                     {t(titleKey)}
                 </td>
             </tr>
             {s.rows.map((r) => (
-                <tr key={r.code}>
+                <tr className={tableC.bodyRow} key={r.code}>
                     {/* ── FIN-DRILL:科目行是下钻入口 ─────────────────────────
                         链接把【科目号】与【本表自己的截至日】一起带走。
                         mode=bs 一并决定年结开关(包含)与日期形状(累计,不设
                         起点)—— 见 /finance/ledger/[account] 的抬头:那两件事
                         总是配套的(FIN-23 的不对称),拆开就等于允许对不上的组合。
                         下钻页把区间如实标成"截至 X,累计",不标成一个月份。 */}
-                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
+                    <td className={`${tableC.cell} font-mono`}>
                         <Link
                             href={`/finance/ledger/${encodeURIComponent(r.code)}?mode=bs&as_of=${asOf}`}
                             className="text-blue-600 hover:underline"
@@ -125,36 +126,32 @@ export default async function BalanceSheetPage({
                             {r.code}
                         </Link>
                     </td>
-                    <td className="border border-gray-300 px-4 py-2">{accountName(r)}</td>
+                    <td className={tableC.cell}>{accountName(r)}</td>
                     <td
-                        className={
-                            'border border-gray-300 px-4 py-2 text-right font-mono text-sm ' +
-                            (r.net < 0 ? 'text-red-600' : '')
-                        }
+                        className={`${tableC.cell} ${'text-right font-mono ' +
+                            (r.net < 0 ? 'text-red-600' : '')}`}
                     >
                         {formatAmount(r.net, baseCurrency)}
                     </td>
                 </tr>
             ))}
             {extraRow && (
-                <tr>
-                    <td className="border border-gray-300 px-4 py-2 font-mono text-sm">—</td>
-                    <td className="border border-gray-300 px-4 py-2">{extraRow.label}</td>
+                <tr className={tableC.bodyRow}>
+                    <td className={`${tableC.cell} font-mono`}>—</td>
+                    <td className={tableC.cell}>{extraRow.label}</td>
                     <td
-                        className={
-                            'border border-gray-300 px-4 py-2 text-right font-mono text-sm ' +
-                            (extraRow.value < 0 ? 'text-red-600' : '')
-                        }
+                        className={`${tableC.cell} ${'text-right font-mono ' +
+                            (extraRow.value < 0 ? 'text-red-600' : '')}`}
                     >
                         {formatAmount(extraRow.value, baseCurrency)}
                     </td>
                 </tr>
             )}
-            <tr className="bg-gray-100 font-semibold">
-                <td colSpan={2} className="border border-gray-300 px-4 py-2">
+            <tr className={`${tableC.bodyRow} bg-gray-100 font-semibold`}>
+                <td colSpan={2} className={tableC.cell}>
                     {t(titleKey)} — {t('finance.totalsLabel')}
                 </td>
-                <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                <td className={`${tableC.cell} text-right font-mono`}>
                     {formatAmount(subtotalOverride ?? s.subtotal, baseCurrency)}
                 </td>
             </tr>
@@ -174,12 +171,12 @@ export default async function BalanceSheetPage({
                 </div>
             )}
 
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    <tr>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colCode')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-left">{t('finance.colAccount')}</th>
-                        <th className="border border-gray-300 px-4 py-2 text-right">{t('finance.colNet')}</th>
+            <table className={`${tableC.root} w-full`}>
+                <thead>
+                    <tr className={tableC.headRow}>
+                        <th className={`${tableC.headCell} text-left`}>{t('finance.colCode')}</th>
+                        <th className={`${tableC.headCell} text-left`}>{t('finance.colAccount')}</th>
+                        <th className={`${tableC.headCell} text-right`}>{t('finance.colNet')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -194,19 +191,19 @@ export default async function BalanceSheetPage({
                     )}
                 </tbody>
                 <tfoot>
-                    <tr className="bg-gray-100 font-bold">
-                        <td colSpan={2} className="border border-gray-300 px-4 py-2">
+                    <tr className={`${tableC.bodyRow} bg-gray-100 font-bold`}>
+                        <td colSpan={2} className={tableC.cell}>
                             {t('finance.totalAssets')}
                         </td>
-                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                        <td className={`${tableC.cell} text-right font-mono`}>
                             {formatAmount(bs.total_assets, baseCurrency)}
                         </td>
                     </tr>
-                    <tr className="bg-gray-100 font-bold">
-                        <td colSpan={2} className="border border-gray-300 px-4 py-2">
+                    <tr className={`${tableC.bodyRow} bg-gray-100 font-bold`}>
+                        <td colSpan={2} className={tableC.cell}>
                             {t('finance.totalLiabEquity')}
                         </td>
-                        <td className="border border-gray-300 px-4 py-2 text-right font-mono text-sm">
+                        <td className={`${tableC.cell} text-right font-mono`}>
                             {formatAmount(bs.total_liab_equity, baseCurrency)}
                         </td>
                     </tr>

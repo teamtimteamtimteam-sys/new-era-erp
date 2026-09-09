@@ -22,6 +22,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import CashflowEntriesTable, { type CashflowEntryRow } from './CashflowEntriesTable'
+import { tableC } from '@/app/components/ui/table-style'
 
 type Cf = {
     period_from: string
@@ -98,12 +99,12 @@ export default async function CashflowPage({
     const sign = (n: number) => (n < 0 ? 'text-red-700' : n > 0 ? 'text-green-700' : 'text-gray-500')
 
     const Row = ({ label, value, bold = false, hint }: { label: string; value: number; bold?: boolean; hint?: string }) => (
-        <tr className={bold ? 'font-bold bg-gray-50' : ''}>
-            <td className="border border-gray-300 px-3 py-2 text-sm">
+        <tr className={`${tableC.bodyRow} ${bold ? 'font-bold bg-gray-50' : ''}`}>
+            <td className={tableC.cell}>
                 {label}
                 {hint && <span className="block text-xs font-normal text-gray-500 mt-0.5">{hint}</span>}
             </td>
-            <td className={'border border-gray-300 px-3 py-2 text-right font-mono text-sm ' + sign(value)}>
+            <td className={`${tableC.cell} ${'text-right font-mono ' + sign(value)}`}>
                 {money(value)}
             </td>
         </tr>
@@ -143,7 +144,7 @@ export default async function CashflowPage({
                 </div>
             )}
 
-            <table className="w-full border-collapse border border-gray-300 mb-4">
+            <table className={`${tableC.root} w-full mb-4`}>
                 <tbody>
                     <Row label={t('finance.cashflowOpening')} value={cf.opening_cash} bold />
                     <Row label={t('finance.cashflowOperating')} value={cf.operating} />
