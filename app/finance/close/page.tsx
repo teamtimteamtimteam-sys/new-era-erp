@@ -7,6 +7,12 @@
 //   ReopenForm,一个真实的、逐行的行内表单(<input type="text"> + 提交)。
 //   按【格子里有没有输入控件】这条全仓库统一的判据,它不是只读账簿,
 //   与资产台账主表撞上 AssetActions 是同一族发现。月结历史表按兵不动。
+//
+// ★★ TABLE-CONVERT-2(2026-09-10):**"按兵不动"到此为止 —— 这张表转了。**
+//   理由与资产台账同一条(见那个文件的抬头):ReopenForm 是一个自带状态的
+//   'use client' 子组件,不是靠并列数组提交的行内输入,所以它不需要
+//   "行级编辑态"契约,列描述符把它画出来就够了。
+//   ☞ 表本身搬到了 ./CloseHistoryTable.tsx;本页是 server component。
 //   年结历史表是另一张表,零行内控件,套 CONV-1 模板转换。
 //   state 恒为 'ok':这一页没有"整页无内容"这回事,月份选择器总是有得看。
 import Link from 'next/link'
@@ -17,7 +23,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { formatAmount } from '@/lib/format'
 import PeriodPicker, { type PeriodOption } from './PeriodPicker'
 import CloseButton from './CloseButton'
-import ReopenForm from './ReopenForm'
+import CloseHistoryTable, { type CloseHistoryRow } from './CloseHistoryTable'
 import YearClosePanel from './YearClosePanel'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -90,6 +96,19 @@ export default async function ClosePage({
 
     const lockedBefore = settingsRes.data?.locked_before ?? null
     const closes = (mustRows(closesRes)) as CloseRow[]
+    // ★ TABLE-CONVERT-2:关账历史那张表搬进了 CloseHistoryTable('use client')。
+    //   本页是 server component,列描述符带 render 函数,过不了那道边界。
+    //   时间与金额在这一侧格好再过界 —— 屏幕上的字因此一个都没变。
+    const closeHistoryRows: CloseHistoryRow[] = closes.map((c) => ({
+        id: c.id,
+        periodEnd: c.period_end,
+        closedAt: c.closed_at.slice(0, 16).replace('T', ' '),
+        entriesCount: c.entries_count,
+        debits: formatAmount(c.total_debits, baseCurrency),
+        credits: formatAmount(c.total_credits, baseCurrency),
+        reopened: !!c.reopened_at,
+        reopenReason: c.reopen_reason,
+    }))
     const activeCloses = new Set(closes.filter((c) => !c.reopened_at).map((c) => c.period_end))
 
     // 最近 12 个月末;已有活跃关账、早于期间锁、【或该月还没过完】的禁选。
@@ -250,107 +269,11 @@ export default async function ClosePage({
 
             {/* 关账历史 */}
             <h2 className="text-lg font-semibold mb-3">{t('finance.closeHistory')}</h2>
-            <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100">
-                    {/* ★ TABLE-PHONE-2:手机档三列 —— 期末日 · 借方 · 状态。
-                        关账历史问的是「哪个月关了、锁了多大一笔、现在还锁着没有」;
-                        一次关账借贷【按构造相等】,所以留一侧就说清了它的大小,
-                        贷方与分录数叠进「期末日」那一格,各带自己的列头。
-                        ★ 第七列在桌面档【本来就没有列头】(空的 <th />),它装的是
-                          重开钮 —— 它叠进身份格里【画出来】,不是收进折叠区:
-                          够不着的钮与没有这个钮是同一回事(DBLOCK-1 的道理用在版式上)。
-                          它自己带着字(finance.reopenButton),所以不需要另加标签,
-                          也就【没有】新增任何 i18n key。 */}
-                    <tr>
-                        <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('finance.colPeriodEnd')}</th>
-                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left">{t('finance.colClosedAt')}</th>
-                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right">{t('finance.entriesCount')}</th>
-                        <th className="border border-gray-300 px-2 sm:px-4 py-2 text-right">{t('finance.colDebits')}</th>
-                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right">{t('finance.colCredits')}</th>
-                        <th className="border border-gray-300 px-2 sm:px-4 py-2 text-left">{t('finance.colStatus')}</th>
-                        <th className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-left" />
-                    </tr>
-                </thead>
-                <tbody>
-                    {closes.map((c) => {
-                        // ★ 两个断点【共用同一份节点】—— 照抄两份的话,两处会各自漂,
-                        //   而那种漂在桌面上看不见(桌面那份是对的),只在手机上错。
-                        const closedAt = c.closed_at.slice(0, 16).replace('T', ' ')
-                        const credits = formatAmount(c.total_credits, baseCurrency)
-                        const reopen = !c.reopened_at
-                            ? <ReopenForm canEdit={canEditGate} periodEnd={c.period_end} />
-                            : null
-                        return (
-                            <tr key={c.id}>
-                                <td className="border border-gray-300 px-2 sm:px-4 py-2 font-mono text-sm">
-                                    {c.period_end}
-                                    {/* ★ 手机档拿掉的三列叠在这里 ——「拿掉」指的是【那一列】,
-                                        不是【那个事实】。前两条带着各自的列头;第三条是
-                                        那个重开钮,它在桌面档也没有列头,而它自己带着字。 */}
-                                    <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
-                                        <div>
-                                            <span className="text-gray-500">{t('finance.colClosedAt')}: </span>
-                                            {closedAt}
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">{t('finance.entriesCount')}: </span>
-                                            <span className="font-mono">{c.entries_count}</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-500">{t('finance.colCredits')}: </span>
-                                            <span className="font-mono">{credits}</span>
-                                        </div>
-                                        {reopen && <div className="mt-1">{reopen}</div>}
-                                    </div>
-                                </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-sm">
-                                    {closedAt}
-                                </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {c.entries_count}
-                                </td>
-                                <td className="border border-gray-300 px-2 sm:px-4 py-2 text-right font-mono text-sm">
-                                    {formatAmount(c.total_debits, baseCurrency)}
-                                </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2 text-right font-mono text-sm">
-                                    {credits}
-                                </td>
-                                <td className="border border-gray-300 px-2 sm:px-4 py-2">
-                                    <span
-                                        className={
-                                            'px-2 py-1 rounded text-xs ' +
-                                            (c.reopened_at
-                                                ? 'bg-amber-100 text-amber-800'
-                                                : 'bg-green-100 text-green-800')
-                                        }
-                                    >
-                                        {c.reopened_at
-                                            ? t('finance.closeStatus.reopened')
-                                            : t('finance.closeStatus.active')}
-                                    </span>
-                                    {c.reopen_reason && (
-                                        <p className="text-xs text-gray-500 mt-1">{c.reopen_reason}</p>
-                                    )}
-                                </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-4 py-2">
-                                    {reopen}
-                                </td>
-                            </tr>
-                        )
-                    })}
-                    {closes.length === 0 && (
-                        <tr>
-                            {/* colSpan 不能随断点变 —— 手机档三列,桌面档七列。 */}
-                            <td colSpan={3} className="sm:hidden border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('finance.closeHistoryEmpty')}
-                            </td>
-                            <td colSpan={7} className="hidden sm:table-cell border border-gray-300 px-4 py-8 text-center text-gray-500">
-                                {t('finance.closeHistoryEmpty')}
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+            <CloseHistoryTable
+                rows={closeHistoryRows}
+                canEdit={canEditGate}
+                empty={t('finance.closeHistoryEmpty')}
+            />
 
             {/* ── FIN-23:年结 ─────────────────────────────────────────────── */}
             <h2 className="text-lg font-semibold mt-8 mb-3">{t('finance.yearClose.title')}</h2>

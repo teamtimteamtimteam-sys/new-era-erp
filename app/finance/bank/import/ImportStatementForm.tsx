@@ -22,6 +22,7 @@ import {
     type ThousandsSeparator,
 } from '@/lib/bankCsv'
 import { Button } from '@/app/components/ui/button'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const initialState: ImportStatementState = {}
@@ -107,6 +108,19 @@ canEdit: boolean
         }
         return buildBankRows(csvRows, mapping)
     }, [csvRows, mapping])
+
+    const columns: Column<(typeof parsed.rows)[number]>[] = [
+        { key: 'lineNo', header: t('bank.colLineNo'), priority: true, className: 'text-gray-500', render: (r) => r.line_no },
+        { key: 'date', header: t('bank.colDate'), priority: true, render: (r) => r.line_date },
+        { key: 'description', header: t('bank.colDescription'), priority: true, render: (r) => r.description ?? '—' },
+        { key: 'reference', header: t('bank.colReference'), className: 'font-mono', render: (r) => r.reference ?? '—' },
+        {
+            key: 'amount', header: t('bank.colAmount'), align: 'right', priority: true, className: 'font-mono',
+            render: (r) => (
+                <span className={r.amount < 0 ? 'text-red-600' : undefined}>{formatAmount(r.amount, null)}</span>
+            ),
+        },
+    ]
 
     const sum = round2(parsed.rows.reduce((s, r) => s + r.amount, 0))
     const currency = currencyOfBank(bankAccount) ?? ''
@@ -386,54 +400,25 @@ canEdit: boolean
                         </div>
                     )}
 
+                    {/* ★ TABLE-CONVERT-2:手搓表格 → 组件。
+                        【手机上留哪几列一个字没改】TABLE-PHONE-4 留的是
+                        行号 · 日期 · 摘要 · 金额,折起来的是参考号。留行号不留参考号
+                        的理由原样成立:上面那条报错清单指的就是【行号】,拿掉它,
+                        那条清单在手机上就指不着东西了;参考号是核对时才查的第二身份。
+                        ★ 这张表整行【没有一个输入框】—— 它是解析结果的回读,
+                          所以组件"非 priority 列画两遍"那条隐患在这里够不着。
+                        ★ 空态【不给 empty prop】:它本来就是 rows.length > 0 &&,
+                          没有解析结果就整张不画,而不是画一张写着"空"的表。
+                        ★ 负数的红字从格子搬进 render 里的一个 <span>:
+                          Column.className 是每列一份静态字符串,表达不了"这一行才红"。
+                          只有字色、没有底色,所以搬进去不改几何。 */}
                     {parsed.rows.length > 0 && (
-                        /* ════════════════════════════════════════════════════════════════
-                            ★ TABLE-PHONE-4:五列 → 手机档留四列(行号 · 日期 · 摘要 · 金额)。
-                            被拿掉的参考号没有丢:它带着列头叠在摘要那一格里。
-                            ☞ 留行号不留参考号:上面那条报错清单指的就是【行号】
-                              (「行号 7: …」),拿掉它,那条清单在手机上就指不着东西了;
-                              而参考号是核对时才查的第二身份。
-                            ★ 这张表整行【没有一个输入框】—— 它是解析结果的回读。四列是
-                              本批统一的档,不是这一张自己需要;登记在交回报告里。
-                            ════════════════════════════════════════════════════════════════ */
-                        <table className="w-full border-collapse border border-gray-300">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('bank.colLineNo')}</th>
-                                    <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('bank.colDate')}</th>
-                                    <th className="border border-gray-300 px-2 sm:px-3 py-2 text-left">{t('bank.colDescription')}</th>
-                                    <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left">{t('bank.colReference')}</th>
-                                    <th className="border border-gray-300 px-2 sm:px-3 py-2 text-right">{t('bank.colAmount')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {parsed.rows.slice(0, 20).map((r) => (
-                                    <tr key={r.line_no}>
-                                        <td className="border border-gray-300 px-2 sm:px-3 py-1 text-sm text-gray-500">{r.line_no}</td>
-                                        <td className="border border-gray-300 px-2 sm:px-3 py-1 text-sm">{r.line_date}</td>
-                                        <td className="border border-gray-300 px-2 sm:px-3 py-1 text-sm">
-                                            {r.description ?? '—'}
-                                            {/* ★ TABLE-PHONE-4:手机档拿掉的参考号,带着列头叠在这里。 */}
-                                            <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
-                                                <div className="font-mono">
-                                                    <span className="font-sans text-gray-500">{t('bank.colReference')}: </span>
-                                                    {r.reference ?? '—'}
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="hidden sm:table-cell border border-gray-300 px-3 py-1 text-sm font-mono">{r.reference ?? '—'}</td>
-                                        <td
-                                            className={
-                                                'border border-gray-300 px-2 sm:px-3 py-1 text-right font-mono text-sm ' +
-                                                (r.amount < 0 ? 'text-red-600' : '')
-                                            }
-                                        >
-                                            {formatAmount(r.amount, null)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <DataTable
+                            rows={parsed.rows.slice(0, 20)}
+                            columns={columns}
+                            rowKey={(r) => String(r.line_no)}
+                            phone={{ mode: 'columns' }}
+                        />
                     )}
                 </div>
             )}
