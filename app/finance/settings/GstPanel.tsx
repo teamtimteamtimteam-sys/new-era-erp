@@ -124,6 +124,7 @@ canEdit: boolean
                     <ConfirmButton
                         subject={registrationNo ?? regNo}
                         title={t('finance.gstSwitch.confirmOff')}
+                        body={t('finance.gstSwitch.consequenceOff')}
                         confirmLabel={t('finance.gstSwitch.turnOff')}
                         tier="destructive"
                         onConfirm={() => submit(false)}

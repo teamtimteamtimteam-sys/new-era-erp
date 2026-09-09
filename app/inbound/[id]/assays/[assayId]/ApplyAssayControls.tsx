@@ -84,6 +84,7 @@ export function UnapplyControl({
                 <ConfirmButton
                     subject={subject}
                     title={t('assay.unapplyConfirm')}
+                    body={t('assay.unapplyConsequence')}
                     confirmLabel={t('assay.unapply')}
                     tier="reversal"
                     reason={{ placeholder: t('assay.unapplyReason') }}

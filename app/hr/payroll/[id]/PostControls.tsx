@@ -120,6 +120,7 @@ export function UnpostPayrollControl({
                 <ConfirmButton
                     subject={subject}
                     title={t('hr.unpostConfirm')}
+                    body={t('hr.unpostConsequence')}
                     confirmLabel={t('hr.unpostPayroll')}
                     tier="reversal"
                     reason={{ placeholder: t('hr.unpostReason') }}

@@ -50,6 +50,7 @@ canEdit: boolean
         <ConfirmButton
             subject={subject}
             title={t('bank.unreconcileConfirm')}
+            body={t('bank.unreconcileConsequence')}
             confirmLabel={t('bank.unreconcile')}
             tier="reversal"
             reason={{ placeholder: t('bank.unreconcileReasonPlaceholder') }}

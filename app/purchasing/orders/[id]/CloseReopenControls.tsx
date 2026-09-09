@@ -95,6 +95,7 @@ canEdit: boolean
                 <ConfirmButton
                     subject={subject}
                     title={t('purchasing.closeConfirm')}
+                    body={t('purchasing.closeConsequence')}
                     confirmLabel={t('purchasing.close')}
                     tier="destructive"
                     onConfirm={onClose}
@@ -147,6 +148,7 @@ export function ReopenOrderControl({ poId, subject, canEdit }: { poId: string; s
             <ConfirmButton
                 subject={subject}
                 title={t('purchasing.reopenConfirm')}
+                body={t('purchasing.reopenConsequence')}
                 confirmLabel={t('purchasing.reopen')}
                 tier="reversal"
                 reason={{ placeholder: t('purchasing.reopenReason') }}

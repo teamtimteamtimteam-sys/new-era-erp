@@ -83,6 +83,7 @@ canEdit: boolean
                 <ConfirmButton
                     subject={lockedBefore}
                     title={t('finance.unlockConfirm')}
+                    body={t('finance.unlockConsequence')}
                     confirmLabel={t('finance.unlock')}
                     tier="reversal"
                     triggerVariant="reversal"

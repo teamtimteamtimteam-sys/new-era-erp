@@ -4162,6 +4162,7 @@ const en = {
         unpostPayroll: 'Unpost',
         postConfirm: 'Post this payroll to the ledger? These accounts will move:',
         unpostConfirm: 'Unpost this payroll period?',
+        unpostConsequence: 'The payroll journal is reversed by a new entry dated today, and the period returns to draft so its lines can be corrected and posted again. The original entry stays on the books. If any payslip has already been paid, or CPF or deductions already remitted, this is refused and those payments have to be reversed first.',
         unpostReason: 'Reason',
         unpostNote: 'The journal entry will be reversed and the period returns to draft.',
         trainingTitle: 'Training Records',
@@ -4884,9 +4885,10 @@ const en = {
         applyNow: 'Apply now',
         unapply: 'Unapply',
         unapplyConfirm: 'Unapply this assay result?',
+        unapplyConsequence: 'This marks the result as no longer standing. The batch content and the price it produced are left exactly as they are and nothing is rolled back. Which figures replace them is a separate deliberate act: a new assay, or the manual content grid. Only the most recently applied assay can be unapplied.',
         unapplyReason: 'Reason',
         unapplyNote:
-            'Unapplying restores the metal content record but does NOT reverse the price change — reprice explicitly if that is what you want.',
+            'Unapplying marks this result as no longer standing. It does NOT restore the previous metal content and does NOT reverse the price change — both stay as this assay left them, and replacing them is a separate deliberate act.',
         // PROC-1b: output-side assays — same document, no payable to restate
         output: {
             unappliedWarning: 'Assay {code} is recorded but not applied — batch content, recovery and any metal-value allocation still read the previous figures.',
@@ -4900,6 +4902,7 @@ const en = {
             impactUnavailable: 'Could not preview the consequences of applying — recording still works; the same checks run again on apply.',
             willRemove: 'will be removed',
             unapplyConfirm: 'Unapply this output assay?',
+            unapplyConsequence: 'This marks the result as no longer standing. The batch content is left exactly as it is and nothing is rolled back. Which figures replace it is a separate deliberate act: a new assay, or the manual content grid. Only the most recently applied assay can be unapplied.',
             unapplyNote: 'Unapplying only marks this result as no longer standing — the batch content stays as it is. Which figures replace it is an explicit act: a new assay, or the manual grid.',
         },
         empty: 'No assay results recorded',
@@ -5141,6 +5144,7 @@ const en = {
         receiveAgainst: 'Receive against this order',
         close: 'Close order',
         closeConfirm: 'Close this purchase order?',
+        closeConsequence: 'The order stops being offered for receiving, so nothing further can be booked against it there. Nothing already received or invoiced changes, and it can be reopened later with a reason. If money was prepaid against this order and not yet applied, closing asks for a written explanation first: that cash stays in prepayments and this order will never absorb it.',
         closeNotes: 'How is the unapplied prepayment being resolved?',
         closeWithPrepaymentWarning:
             'This order still has {amount} of unapplied prepayment. Explain how it is being resolved — the amount stays in Prepayments until it is applied elsewhere.',
@@ -5148,6 +5152,7 @@ const en = {
             'Whether this order still has unapplied prepayment cannot be shown with your permissions. Explain how any remaining prepayment is being resolved — it stays in Prepayments until applied elsewhere.',
         reopen: 'Reopen',
         reopenConfirm: 'Reopen this purchase order?',
+        reopenConsequence: 'The order goes back to receiving if anything has already been received against it, or to confirmed if nothing has, and it appears in the receiving list again. Your reason is added to the order notes. Nothing already received, invoiced or paid is changed.',
         reopenReason: 'Reason',
         unappliedMarker: 'Unapplied prepayment',
         applyPrepayment: 'Apply prepayment',
@@ -6138,6 +6143,7 @@ const en = {
         detailTitle: 'Journal Entry',
         reverse: 'Reverse',
         reverseConfirm: 'Create a reversal of this entry?',
+        reverseConsequence: 'A new entry dated today is posted with every line flipped, so the two cancel out from today rather than from the original entry date. Nothing is deleted: this entry stays on the books marked as reversed, and it cannot be reversed a second time.',
         reversedBanner: 'Reversed by {code}',
         reversalOfBanner: 'Reversal of {code}',
         newEntryTitle: 'New Manual Entry',
@@ -6172,6 +6178,7 @@ const en = {
         unlock: 'Remove lock',
         lockConfirm: 'Entries dated before this will be rejected. Continue?',
         unlockConfirm: 'Remove the period lock?',
+        unlockConsequence: 'Backdated entries are accepted again: anything dated before the locked date can be posted once more, including entries written by other actions such as reversals and depreciation. A closed financial year is guarded separately and stays closed, so removing this lock does not reopen it.',
         lockExplainer: 'Journal entries dated before the lock date are rejected — business actions that would create such entries are blocked too.',
         // GST-3:注册开关的控件。**打开是一次刻意的动作,不是一个 toggle。**
         gstSwitch: {
@@ -6189,6 +6196,7 @@ const en = {
             confirmOn: 'Switch GST registration ON? From this moment invoices and expenses carry tax codes, and a counterparty with no default tax code will refuse.',
             turnOff: 'Turn GST off',
             confirmOff: 'Switch GST registration OFF?',
+            consequenceOff: 'From this moment nothing can carry a tax code: invoices and expenses raised afterwards hold no tax, and every return box reads zero. Reverse anything that still needs reversing before switching off, because a coded expense can no longer be reversed once it is off. While coded expenses or live taxed invoices exist the switch is refused outright, and the refusal names the documents in the way.',
             authUnknown: 'Cannot establish who is making this change, so nothing was changed. Switching GST registration reshapes every document raised afterwards, so it is recorded against a person — and a change with no one behind it is not one this system will write. Sign in again and retry; if that does not help, the authentication service is unreachable rather than your session being expired.',
             turningOffHint: 'Switching off is refused while coded expenses or live taxed invoices exist — reversing a coded expense would become impossible once off, and a return reporting supplies for a quarter the company says it was not registered for is not a coherent state. The refusal names which documents are in the way.',
             rateLivesElsewhere: 'The GST RATE is not a setting on this page. It lives on tax_rates as a history by effective period, and each document resolves it for its own date — a 2022 invoice is 7% forever. The old finance_settings.gst_rate_pct column is dead: nothing reads it, and changing it changes no document\u2019s tax.',
@@ -6232,6 +6240,7 @@ const en = {
         submitPayment: 'Post payment',
         reversePayment: 'Reverse',
         reversePaymentConfirm: 'Reverse this payment? A mirror entry will be created.',
+        reversePaymentConsequence: 'Everything this payment settled goes back to outstanding: the invoices and bills it was allocated to read as unpaid again, and the counterparty exposure returns. A mirror payment dated today returns the cash and the journal entry is reversed. The mirror carries no allocations, so if this money is entered again it has to be allocated again. Nothing is deleted, and a payment cannot be reversed twice.',
         reversedByPayment: 'Reversed by {code}',
         linkedJournal: 'Journal entry',
         noOpenItems: 'Nothing outstanding',
@@ -7304,6 +7313,7 @@ const en = {
         reconciledBanner: 'Reconciled on {when}',
         unreconcile: 'Reopen',
         unreconcileConfirm: 'Reopen this statement for editing?',
+        unreconcileConsequence: 'The statement returns to open and its lines can be edited again. The reconciliation already recorded is kept and marked superseded, with your reason stored alongside it, but it no longer counts and whoever completed it is cleared. The statement has to be reconciled again.',
         unreconcileReasonPlaceholder: 'Reason for reopening',
         openStatements: 'Open statements',
         errors: {

@@ -39,6 +39,7 @@ canEdit: boolean
         <ConfirmButton
             subject={subject}
             title={t('finance.reversePaymentConfirm')}
+            body={t('finance.reversePaymentConsequence')}
             confirmLabel={t('finance.reversePayment')}
             tier="reversal"
             triggerVariant="reversal"

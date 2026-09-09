@@ -4133,6 +4133,7 @@ const zh = {
         unpostPayroll: '撤销过账',
         postConfirm: '将本期薪资过账到总账?以下科目将发生变动:',
         unpostConfirm: '撤销该薪资期间的过账?',
+        unpostConsequence: '系统会按今天的日期新过一张分录冲销薪资分录,期间退回草稿,行可以改了再过账一次。原分录留在账上。如果已经有工资付过款,或 CPF、代扣款已经汇出,这一步会被拒绝 —— 要先把那些付款冲掉。',
         unpostReason: '原因',
         unpostNote: '对应分录将被冲销,期间退回草稿状态。',
         trainingTitle: '培训记录',
@@ -4840,8 +4841,9 @@ const zh = {
         applyNow: '立即应用',
         unapply: '撤销应用',
         unapplyConfirm: '撤销应用该化验结果?',
+        unapplyConsequence: '这一步只是承认这份结果不再作数。批次含量与它算出来的价格【原样留着】,什么都不会回滚。换成哪一份数是另一件要明确去做的事:新化验,或手工含量格子。只有最近一次应用的化验能被撤销。',
         unapplyReason: '原因',
-        unapplyNote: '撤销应用会还原金属含量记录,但不会撤销价格变动 —— 如需改价请另行操作。',
+        unapplyNote: '撤销应用只是承认这份结果不再作数。它【不会】还原之前的金属含量,也不会撤销价格变动 —— 两样都停在这份化验留下的状态上,要换掉是另一件要明确去做的事。',
         // PROC-1b:产出侧化验 —— 同一种单据,只是没有应付可重述
         output: {
             unappliedWarning: '化验 {code} 已记录但未应用 —— 批次含量、回收率与 metal_value 分摊读的仍是此前的数。',
@@ -4855,6 +4857,7 @@ const zh = {
             impactUnavailable: '暂时无法预览应用的后果 —— 记录不受影响;应用时同一套检查会再跑一遍。',
             willRemove: '将移除',
             unapplyConfirm: '撤销应用该产出化验?',
+            unapplyConsequence: '这一步只是承认这份结果不再作数。批次含量【原样留着】,什么都不会回滚。换成哪一份数是另一件要明确去做的事:新化验,或手工含量格子。只有最近一次应用的化验能被撤销。',
             unapplyNote: '撤销只是承认这份结果不再作数 —— 批次含量保持原样。换成哪份数是显式动作:新化验,或手工格子。',
         },
         empty: '暂无化验结果',
@@ -5082,6 +5085,7 @@ const zh = {
         receiveAgainst: '按此单收货',
         close: '结束采购单',
         closeConfirm: '结束该采购单?',
+        closeConsequence: '这张单不再出现在收货列表里,于是不能再按它收货。已经收过的货、已经开过的票都不变,之后可以带理由重新打开。如果有预付款打到这张单上而还没抵扣,关单会先要一句书面说明:那笔钱留在预付款项里,而这张单永远不会再吸收它。',
         closeNotes: '未抵扣的预付款如何处理?',
         closeWithPrepaymentWarning:
             '该采购单还有 {amount} 预付款未抵扣。请说明如何处理 —— 该金额将一直留在预付款项科目中,直到被抵扣。',
@@ -5089,6 +5093,7 @@ const zh = {
             '以你的权限看不到该采购单是否还有未抵扣的预付款。请说明剩余预付款如何处理 —— 未抵扣的金额会一直留在预付款项科目中。',
         reopen: '重新打开',
         reopenConfirm: '重新打开该采购单?',
+        reopenConsequence: '这张单回到【收货中】(如果已经收过货)或【已确认】(如果一车都没收过),并重新出现在收货列表里。你写的理由会加进单据备注。已经收过的货、开过的票、付过的款都不变。',
         reopenReason: '原因',
         unappliedMarker: '有未抵扣预付款',
         applyPrepayment: '抵扣预付款',
@@ -6049,6 +6054,7 @@ const zh = {
         detailTitle: '分录详情',
         reverse: '冲销',
         reverseConfirm: '为该分录生成反向冲销?',
+        reverseConsequence: '系统会按今天的日期新过一张分录,每一行借贷对调,于是两张从【今天】起互相抵消,而不是从原分录的日期起。什么都不会被删:这张分录留在账上并标记为已冲销,而且不能再冲销第二次。',
         reversedBanner: '已被 {code} 冲销',
         reversalOfBanner: '冲销自 {code}',
         newEntryTitle: '新增手工分录',
@@ -6083,6 +6089,7 @@ const zh = {
         unlock: '解除锁定',
         lockConfirm: '早于该日期的分录将被拒绝,确定?',
         unlockConfirm: '解除期间锁定?',
+        unlockConsequence: '早于该日期的分录重新被接受:那个日期之前的分录又能过账了,包括冲销、折旧这些由别的动作写下的分录。已结的财年由另一道闸单独守着,仍然是关着的 —— 解除这道锁【不会】重开那一年。',
         lockExplainer: '早于锁定日的分录会被拒绝——会产生此类分录的业务操作也会被一并阻止。',
         // GST-3:注册开关的控件。
         gstSwitch: {
@@ -6100,6 +6107,7 @@ const zh = {
             confirmOn: '确定打开 GST 注册?从这一刻起,发票与费用单会携带税码,而没有默认税码的往来对象会按名拒绝。',
             turnOff: '关闭 GST',
             confirmOff: '确定关闭 GST 注册?',
+            consequenceOff: '从这一刻起,任何单据都不能再带税码:此后开出的发票与费用单不含税,申报表每一格都是零。要冲销的先冲销掉再关 —— 关掉之后,带税码的费用单再也冲不了。只要还存在带税码的费用单或在册的带税发票,这个开关会被直接拒绝,并点名是哪些单据挡在前面。',
             authUnknown: '认不出【是谁】在做这次改动,所以什么都没有改。打开或关闭 GST 注册会立刻改变此后每一张单据的形状,因此它是要留痕的 —— 一条没有主语的变更,这套系统不写。请重新登录后再试;若仍然如此,那是认证服务够不着,而不是你的会话过期了。',
             turningOffHint: '还存在带税码的费用单或在册的带税发票时,关闭会被拒绝 —— 关掉之后带税码的费用单【再也冲销不了】;而一份报着某季供应额、公司却声称那一季未注册的申报表,不是一个说得通的状态。拒绝会点名说出是哪几张单据挡着。',
             rateLivesElsewhere: '【GST 税率不是这一页上的设置。】它按生效期间挂在 tax_rates 上,每张单据按【自己那一天】解析 —— 一张 2022 年的发票永远是 7%。旧的 finance_settings.gst_rate_pct 列【已死】:没有任何代码再读它,改它不会改变任何一张单据的税。',
@@ -6143,6 +6151,7 @@ const zh = {
         submitPayment: '过账',
         reversePayment: '冲销',
         reversePaymentConfirm: '冲销这笔收付款?将生成一笔反向记录。',
+        reversePaymentConsequence: '这笔款结掉的东西全部回到未结:它核销过的发票与账单重新读成未付,往来敞口也回来。系统会按今天的日期生成一张镜像收付款单把钱退回,并冲销它的分录。镜像单【不带核销行】,所以这笔钱如果重新录入,要重新核销一次。什么都不会被删,而且同一笔款不能冲销两次。',
         reversedByPayment: '已被 {code} 冲销',
         linkedJournal: '关联分录',
         noOpenItems: '没有未结单据',
@@ -7204,6 +7213,7 @@ const zh = {
         reconciledBanner: '已于 {when} 完成对账',
         unreconcile: '重新打开',
         unreconcileConfirm: '重新打开该对账单以便修改?',
+        unreconcileConsequence: '对账单回到【打开】状态,行又可以改了。已经记下的那次对账会保留并标记为被取代,你写的理由一并存着,但它不再作数,完成对账的人也会被清掉。这张对账单要重新对过一次。',
         unreconcileReasonPlaceholder: '重新打开的原因',
         openStatements: '待对账',
         errors: {
