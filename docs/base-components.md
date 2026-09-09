@@ -296,7 +296,7 @@ R2 把这一条留给了判断(「淡底落地、看得出效果之后再说」)
 | **列显隐要不要在某页默认开** | R4:加能力可以,**悄悄改变某一页默认显示什么不行**。哪一页开、开哪几列,是那一页的决定 |
 | **输入框推移默认关着** | `/login` 两个输入框都写着 `aria-invalid`。默认打开就等于**在一个已上线页面上改了行为** —— 见下 |
 | **全站字体仍是 Arial** | BRAND-1 的结论没变:换字体值得是一次单独的、看得见的决定 |
-| **`app/brand-sampler/` 整个目录** | 用完即删。删的时候连 `scripts/smoke-routes.mjs` 里那几行排除、以及 `check-base-isolation.mjs` 的 `ALLOWED_PREFIXES` 一起删 |
+| **`app/brand-sampler/` 整个目录** | 用完即删。删的时候连 `scripts/smoke-routes.mjs` 里那几行排除、以及 `check-base-isolation.mjs` 的 `ALLOWED_PREFIXES` 一起删。★ **删之前先读 `docs/variant-c-spec.md`** —— STYLE-1 把 variant C 实测成了数值,那份文档就是让这一行变得可以执行的东西 |
 
 ### 输入框的推移为什么默认关着
 
