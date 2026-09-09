@@ -11,6 +11,7 @@
 // 快照页,不做日期筛选(既定约定)。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
+import { compareForSort } from '@/lib/sortCollation'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { UNIT_OPTIONS, labelKeyForValue } from '@/app/materials/options'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
@@ -246,7 +247,9 @@ export default async function InventoryPage() {
     }
 
     const rows = Array.from(rowsByMaterial.values())
-    rows.sort((a, b) => (a.name ?? '').localeCompare(b.name ?? '', 'zh-CN'))
+    // ★ 这一页【不走 DataTable】,自己排自己的 —— 所以只改表格组件碰不到它。
+    //   字序走 lib/sortCollation.ts 那条具名规矩(排序永远用英文字序,与界面语言无关)。
+    rows.sort((a, b) => compareForSort(a.name ?? '', b.name ?? ''))
 
     // 估值合计(三个口径分开:原料按单价、成品按成本、成品按市价)
     // ★★【读不到价的人必须拿到【具名受限】,不是一个自信的 SGD 0.00】★★

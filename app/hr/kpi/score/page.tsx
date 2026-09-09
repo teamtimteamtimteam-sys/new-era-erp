@@ -14,6 +14,7 @@
 // ★【刻度与封顶规则读的是 kpi_score_rubric,不是写死的文案】★
 //   打分的规则要能不发版就改正 —— 与公共假期同一条论证(它们都是【数据】)。
 import { createClient } from '@/lib/supabase/server'
+import { compareForSort } from '@/lib/sortCollation'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
@@ -129,7 +130,8 @@ export default async function KpiScorePage({
             overrideCap: e.override_cap,
             overrideReason: e.override_reason,
         })).sort((a, b) =>
-            a.employeeName.localeCompare(b.employeeName) || a.kpiRef.localeCompare(b.kpiRef))
+            // 人读的名字要显式取字序 —— 不给 locale 等于跟运行时默认走(lib/sortCollation.ts)。
+            compareForSort(a.employeeName, b.employeeName) || compareForSort(a.kpiRef, b.kpiRef))
 
         // 这个月还没有条目的人 —— ★具名的缺席,不是一张空表★(与 /hr/kpi 同一条)
         const haveEntries = new Set(es.map((e) => e.employee_id))
@@ -140,7 +142,7 @@ export default async function KpiScorePage({
                 name: e.legal_name,
                 positionCode: e.position_id ? posBy.get(e.position_id) ?? null : null,
             }))
-            .sort((a, b) => a.name.localeCompare(b.name))
+            .sort((a, b) => compareForSort(a.name, b.name))
     }
 
     // ★ 锁了就不许改分 —— 与数据库那道守卫是同一条规则的两面。

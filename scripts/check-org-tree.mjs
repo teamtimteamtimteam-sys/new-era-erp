@@ -26,7 +26,10 @@
 //                   我一个字都没看 —— 抬头自己写着「线上那一半由 db/fixtures/181 另外钉」,
 //                   而【渲染】那一段两者都没有钉。
 // ════════════════════════════════════════════════════════════════════════════
-import { buildOrgTree, isDeparted, showsStatus, flattenForList } from '../lib/orgTree.ts'
+import { buildOrgTree, isDeparted, showsStatus, flattenForList, ORG_SORT_COLLATION } from '../lib/orgTree.ts'
+// ★ 正本:排序字序那条具名规矩。本文件是【唯一】能同时加载这两份的地方 ——
+//   app/ 那一侧走 `@/` 别名(node 不认),而 orgTree 必须保持零 import(见它的抬头)。
+import { SORT_COLLATION } from '../lib/sortCollation.ts'
 import { assertAssertionsRan } from './lib/selfproof.mjs'
 
 let failures = 0
@@ -207,7 +210,15 @@ const emp = (over = {}) => ({
 
 // ── 覆盖断言:断言真的跑了 ──────────────────────────────────────────────────
 // 见 check-pmap 里同一段:这一族的失效方式是【没跑到】,而没跑到时 failures 是 0。
-assertAssertionsRan('check-org-tree', ran, 38)
+// ★★【副本必须等于正本 —— 否则 lib/orgTree.ts 里那个字序就是第二个事实】★★
+// orgTree 被裸 node 直接加载,所以它 import 不到 lib/sortCollation.ts(两个加载器
+// 对 `.ts` 后缀的要求是打架的,理由写在 ORG_SORT_COLLATION 的抬头上)。
+// 本文件是唯一同时够得着两份的地方,所以这条钉子只能钉在这里。
+check('⑪ 排序字序:orgTree 的副本 == lib/sortCollation.ts 的正本',
+    ORG_SORT_COLLATION === SORT_COLLATION,
+    `orgTree=${ORG_SORT_COLLATION} sortCollation=${SORT_COLLATION}`)
+
+assertAssertionsRan('check-org-tree', ran, 39)
 
 // ── 报告 ──────────────────────────────────────────────────────────────────
 if (failures) {

@@ -8,9 +8,14 @@
 //                   于是那把本该当超集用的粗筛子,**结构上看不见 `||` 那一半** ——
 //                   实测今天恰好 1 处(WorkOrderActions.tsx)。
 //                   ☞ NARROW-COVERAGE-1 把这条差额**钉住**了(见文件末尾断言 ③)。
-//                   ★ 另外两条【已登记、本刀没有修】:`STATE_FIELD` 的词边界漏掉
-//                     `retention_state` 与 `reviewType`(改词表会移动分桶数,而那
-//                     是 ALERT-2d 的收工读数)。见 NARROW-COVERAGE-2。
+//                   ★★【已修:SMALL-BATCH-1】词边界那一条不再是缺口 —— 判据先把
+//                     驼峰摊成下划线再判,于是 `retention_state` 与 `reviewType`
+//                     都认得出(见下面 STATE_WORDS 的抬头)。**分桶数因此动了,
+//                     ALERT-2d 的收工读数 ①3·②43·③1·④4 已被取代**,新数与它的
+//                     成因记在 `docs/forward-queue.md` 的 NARROW-COVERAGE-2 ①。
+//                   ★ 而这支普查【仍然】认不出的是:泛化的 `type`【刻意】不在词表里
+//                     —— 收它会把 `itemType` 那类种类判别器误升进桶 ①。理由与实测
+//                     写在 STATE_WORDS 的抬头上。
 //   ☞ 【本文件是普查,不是闸】它的红是【给读数的人的一句话】(这一次读数不可信),
 //     不是一道拦住构建的门 —— 它不在 npm run build 里,也不该进去:
 //     普查报的是【数】不是【违规】,接进构建会把基线漂移变成构建红,
@@ -88,7 +93,70 @@ const PERM_CODE = /['"](?:module|data|action)\.[a-z_]+(?:\.[a-z_]+)?['"]/
 // ── 记录状态的形状 ──────────────────────────────────────────────────────────
 // 【为什么是"和一个字面量比"而不是一张字段名单】一张名单永远漏字段;
 // 而"这个布尔是拿一条记录的字段去和一个常量比出来的"是这一族的真实长相。
-const STATE_FIELD = /\b(status|state|locked|locked_at|posted|posted_at|closed|closed_at|approved|approved_at|submitted|voided|void_at|cancelled|canceled|deleted_at|is_active|active|month_locked|frozen|issued|converted|declined|paid|paid_at|settled|reversed|finalized)\b/i
+//
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【NARROW-COVERAGE-2 ①(SMALL-BATCH-1)· 词边界:下划线与驼峰都要认】★★
+// ════════════════════════════════════════════════════════════════════════════
+// 【原来的病】判据是 `\b(…|state|…)\b/i`,而 **`_` 是一个词字符** ——
+//   于是 `retention_state` 里的 `state` 两侧都没有词边界,判据卡不住它;
+//   `reviewType` 更彻底,`type` 根本不在词表里。两个都是真的记录状态字段,
+//   而它们被判成 OTHER(第三种东西),分错了桶。
+//
+// 【修法:先把驼峰摊成下划线,再用一条"下划线不算词字符"的边界】
+//   `reviewType` → `review_type`、`isLocked` → `is_locked`,
+//   之后只需要一条边界规则,不需要两条互相要小心的正则臂。
+//
+// ★★【为什么【没有】收进泛化的 `type` —— 实测的代价,不是洁癖】★★
+//   停止闸上量过:词表里加一个裸 `type`,桶 ① 从 3 涨到 4,而**多出来的那一处
+//   不是 `reviewType`**,是 `app/tools/reminders/page.tsx:188` 的
+//   `armAllowed.get(r.itemType) && (byType.get(r.itemType)?.length ?? 0) === 0`。
+//   `itemType` 是**提醒臂的种类判别器**,不是一条记录的状态;而
+//   `byType.get(...).length === 0` 是一次**空表判断** —— 本文件抬头把
+//   `rows.length > 0` 逐字列为桶 ④ 的样板。
+//   ☞ 于是那个裸词会把一处**本来正确坐在桶 ④** 的站点,提升进**在范围内**的桶 ①
+//     —— 也就是往下一刀的待修清单里塞进一件不是缺陷的东西。
+//   ☞ **同一个 `itemType`,同一个"词收得太泛"的病,这是第二次**:
+//     第一次是 `NARROW-COVERAGE-1 ⑬`(独立计数把 `itemType: string` 这条
+//     **类型声明**也数了进去,34 数成 35)。
+//   ☞ 所以 `reviewType` 是**逐个具名**进来的(`review_type`),不是靠一个泛词捎带的。
+//     词表的定义本来就是「记录状态字段的名字」,而具名正是唯一能把
+//     `reviewType`(这份考核是哪一种)与 `itemType`(提醒臂是哪一类)分开的办法。
+//     ★ 下一个想往这张表里加词的人:加一个**字段名**,不要加一个**通用名词**。
+const STATE_WORDS = [
+    'status', 'state', 'locked', 'locked_at', 'posted', 'posted_at',
+    'closed', 'closed_at', 'approved', 'approved_at', 'submitted',
+    'voided', 'void_at', 'cancelled', 'canceled', 'deleted_at',
+    'is_active', 'active', 'month_locked', 'frozen', 'issued',
+    'converted', 'declined', 'paid', 'paid_at', 'settled', 'reversed', 'finalized',
+    // ★ 逐个具名的那一条(见上)。摊平之后 `reviewType` 就是 `review_type`。
+    'review_type',
+]
+// 边界:左边只要不是字母数字就算(于是 `_` 与 `.` 都是分隔符),
+// 右边不许紧跟字母数字(于是 `statuses` / `stateful` 不算)。
+const STATE_FIELD = new RegExp('(?:^|[^a-z0-9])(?:' + STATE_WORDS.join('|') + ')(?![a-z0-9])')
+// 驼峰摊平 + 转小写。**这两步必须一起做**:摊平靠的正是大小写交界,
+// 先转小写就再也分不出 `reviewType` 里的那一刀。
+//
+// ★★【致盲实测:归一化那一步【两个方向】都在承重,而总数看不出来】★★
+//   把 `.replace(...).toLowerCase()` 摘掉(判据其余不动)再跑:
+//   **四个桶的数一模一样(① 3 · ② 48 · ③ 1 · ④ 4),而成员换了两处** ——
+//     · 少了两处**真的**:`CostSettlePanel.tsx:180`/`:181` 的 `payStatus === 'unpaid'`
+//       (不摊平就没有小写的 `status` 可认);
+//     · 多了两处**假的**:`HoldReleaseControls.tsx:85`/`:119` 的 `holdBlocked !== null`
+//       —— `holdB|locked` 里那个大写 `B` 当了左边界,于是 `locked` 被认了出来。
+//       摊平之后它是 `hold_blocked`,`locked` 根本不存在。
+//   ☞ **一次只看总数的对照会把这次致盲判成"没有差别"。** 这正是 CONSEQ-2
+//     记下的那件事:覆盖断言证的是灵敏度,不是瞄准 —— 要拿成员清单去对,不是拿数。
+//
+// ★【已知的一处假阳性,登记、不为它改判据】`app/hr/training/TrainingForm.tsx:41`
+//   的 `!!lockedEmployeeId` 会被认成 STATE。那个 `locked` 是**真的那个词**,
+//   但它说的是「员工这一格是钉住的」(从某位员工页进来的),不是一条记录被锁。
+//   **这是语义,不是词法** —— 判据分不开它,而为一处观察去特判一个词,
+//   正是本仓库禁止的"给阈值编一个出处"。它落在桶 ②(不在范围内),
+//   所以它不会被塞进任何人的待修清单。登记在 NARROW-COVERAGE-2 ①。
+function looksLikeStateField(text) {
+    return STATE_FIELD.test(text.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase())
+}
 const STATE_SUFFIX = /\.\w*_at\b/
 
 // ── 【"这一行是不是我的"】也是一次权限答复,不是"第三种东西" ──────────────────
@@ -459,7 +527,7 @@ function catsOfNode(file, node, depth = 0, seen = new Set()) {
     }
 
     // 叶子:判记录状态
-    if (STATE_SUFFIX.test(own) || STATE_FIELD.test(own)) out.add('STATE')
+    if (STATE_SUFFIX.test(own) || looksLikeStateField(own)) out.add('STATE')
     if (!out.size) out.add('OTHER')
     return out
 }

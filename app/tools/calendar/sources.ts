@@ -38,6 +38,7 @@
 //     而那个预测这个系统today 给不出来。**放一个算出来的假日期比不放更坏。**
 // ════════════════════════════════════════════════════════════════════════════
 import { createClient } from '@/lib/supabase/server'
+import { compareForSort } from '@/lib/sortCollation'
 import { pMap, DEFAULT_QUERY_CONCURRENCY } from '@/lib/pMap'
 import { can } from '@/lib/permissions'
 import type { CalendarItem } from '@/app/components/calendar/MonthGrid'
@@ -223,6 +224,7 @@ export async function loadMonth(month: string, locale: string): Promise<{
         if (res.error) { failures.push(`${kind}: ${res.error.message}`); continue }
         for (const r of res.data ?? []) items.push(...map(r))
     }
-    items.sort((a, b) => a.date.localeCompare(b.date) || a.label.localeCompare(b.label))
+    // `date` 是 ISO 日期(ASCII,字序无关);`label` 是人读的字,要显式取字序。
+    items.sort((a, b) => a.date.localeCompare(b.date) || compareForSort(a.label, b.label))
     return { items, failures, withheld, ms: Date.now() - t0 }
 }

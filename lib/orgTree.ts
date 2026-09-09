@@ -23,6 +23,26 @@
 // monthly_salary(实测 has_column_privilege,2026-09-03)—— **一个都不在下面。**
 // 加字段的人:先去查那张表的列权限,再决定加不加。
 
+/**
+ * 排序字序 —— **规矩的正本在 `lib/sortCollation.ts`(`SORT_COLLATION`),这里是一份副本。**
+ *
+ * ★★【为什么本文件【不能】import 那一份正本 —— 是结构限制,不是偷懒】★★
+ * 本文件被 `scripts/check-org-tree.mjs` 用**裸 node** 直接加载
+ * (`import … from '../lib/orgTree.ts'`)。两个加载器要的东西是打架的:
+ *   · node 的类型剥离要求相对路径**带 `.ts` 后缀**;
+ *   · 而 `tsc` 在没有 `allowImportingTsExtensions` 时**拒绝**带后缀的路径
+ *     (实测:`error TS5097`)。
+ * 而 `@/…` 那个别名 node 根本不认(实测:`ERR_MODULE_NOT_FOUND: '@/lib'`)。
+ * ☞ 这就是为什么被检查脚本直接加载的那四个 lib 文件(`orgTree` · `nearDuplicate` ·
+ *   `homeGreetingCore` · `pMap`)**一个 import 都没有** —— 那是一条不成文的不变量,
+ *   本刀把它写下来。
+ *
+ * ★【一份副本必须被钉住,否则它就是第二个事实】`scripts/check-org-tree.mjs`
+ *   同时 import 这一份与 `lib/sortCollation.ts` 那一份,两者不相等就红。
+ *   **改字序请改正本,这一份会被那道断言拽着一起改。**
+ */
+export const ORG_SORT_COLLATION = 'en'
+
 /** 本页读的员工字段 —— **就是这些,没有别的**。任何一个遮蔽列都不在其中。 */
 export type OrgEmployee = {
     id: string
@@ -195,7 +215,10 @@ export function buildOrgTree(
 
     // 名字排序,让两次渲染稳定(否则 PostgREST 顺序一变,页面就抖)
     const sortRec = (ns: OrgNode[]) => {
-        ns.sort((a, b) => a.emp.name.localeCompare(b.emp.name) || a.emp.code.localeCompare(b.emp.code))
+        // 人读的名字要显式取字序(规矩见 ORG_SORT_COLLATION 的抬头);
+        // `code` 是 ASCII 工号,跟着同一条规矩走不改变它今天的顺序。
+        ns.sort((a, b) => a.emp.name.localeCompare(b.emp.name, ORG_SORT_COLLATION)
+                       || a.emp.code.localeCompare(b.emp.code, ORG_SORT_COLLATION))
         for (const n of ns) sortRec(n.children)
     }
     sortRec(roots)

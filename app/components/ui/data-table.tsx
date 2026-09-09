@@ -61,6 +61,7 @@
 import { useTranslations } from '@/lib/i18n/client'
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { compareForSort } from '@/lib/sortCollation'
 
 export type Column<T> = {
     /** 稳定的列键 —— 排序状态与列显隐都按它记。 */
@@ -304,7 +305,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
             if (va == null) return 1
             if (vb == null) return -1
             if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * sign
-            return String(va).localeCompare(String(vb), 'zh-Hans-CN', { numeric: true }) * sign
+            // 字序走 lib/sortCollation.ts 那条具名规矩(排序永远用英文字序,与界面语言无关)。
+            // `{ numeric: true }` 是这一处【原有】的行为,原样保留 —— 这一刀只改字序。
+            return compareForSort(String(va), String(vb), { numeric: true }) * sign
         })
     }, [filtered, clientSort, sort, columns])
 
