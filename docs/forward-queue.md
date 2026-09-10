@@ -3686,7 +3686,7 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 ☞ 一个已经量到的落点:**`/logistics/lanes` 的控件宽度由 INPUT-2 设定**(见下),
 本族以后再动那一页,先读那一段。
 
-### ✅ INPUT-2 —— 已完成 2026-09-10
+### ✅ INPUT-2 —— 已完成 2026-09-10(工作提交 `115340c`,交回报告 `docs/handbacks/INPUT-2.md`;部署 `state=success`,`db/gate.py` 四条判词全绿、197 支 fixture、**零迁移**)
 
 * **共享样式模块 `app/components/ui/control-style.ts`** —— 单行控件 / 原生下拉 / 多行框 /
   勾选框(含不确定态)/ 单选框 / 文件选择钮 / `<DataTable>` 筛选框,**一处定义**。
