@@ -35,6 +35,7 @@ import { statusPillClass } from '../reviewShared'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { tableC } from '@/app/components/ui/table-style'
 
 type CycleRow = {
     id: string
@@ -154,13 +155,13 @@ export default async function ReviewCyclesPage() {
                                         <p className="text-sm font-medium text-red-800 mb-2">
                                             {t('reviews.noReviewerList', { 0: noReviewer.length })}
                                         </p>
-                                        <table className="w-full text-sm">
+                                        <table className={`${tableC.root} w-full`}>
                                             <tbody>
                                                 {noReviewer.map((r) => {
                                                     const emp = empById.get(r.employee_id)
                                                     return (
-                                                        <tr key={r.id}>
-                                                            <td className="py-1 pr-4 whitespace-nowrap">
+                                                        <tr key={r.id} className={tableC.bodyRow}>
+                                                            <td className={`${tableC.cell} whitespace-nowrap`}>
                                                                 <Link
                                                                     href={`/hr/reviews/${r.id}`}
                                                                     className="text-blue-700 hover:underline"
@@ -169,7 +170,7 @@ export default async function ReviewCyclesPage() {
                                                                     {emp?.legal_name ?? ''}
                                                                 </Link>
                                                             </td>
-                                                            <td className="py-1">
+                                                            <td className={tableC.cell}>
                                                                 <SetReviewerControl
                                                                     reviewId={r.id}
                                                                     employees={assignable}

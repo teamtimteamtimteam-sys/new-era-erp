@@ -18,6 +18,7 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import { applyPrepayment, type ApplyPrepaymentState } from './prepaymentActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { tableC } from '@/app/components/ui/table-style'
 
 const initialState: ApplyPrepaymentState = {}
 
@@ -145,17 +146,17 @@ canEdit: boolean
             {history.length > 0 && (
                 <div className="mt-4">
                     <h3 className="text-sm font-bold text-gray-700 mb-2">{t('purchasing.appliedHistory')}</h3>
-                    <table className="w-full border-collapse border border-gray-300 text-sm">
+                    <table className={`${tableC.root} w-full`}>
                         <tbody>
                             {history.map((h) => (
-                                <tr key={h.id}>
-                                    <td className="border border-gray-300 px-3 py-1.5 text-right font-mono w-32">
+                                <tr key={h.id} className={tableC.bodyRow}>
+                                    <td className={`${tableC.cell} text-right font-mono w-32`}>
                                         {formatAmount(h.amount_base, baseCurrency)}
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-1.5 text-gray-600">
+                                    <td className={`${tableC.cell} text-gray-600`}>
                                         {h.created_at_display}
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-1.5">
+                                    <td className={tableC.cell}>
                                         {h.journal_id ? (
                                             <Link
                                                 href={`/finance/journal/${h.journal_id}`}

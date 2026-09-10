@@ -15,6 +15,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { Button } from '@/app/components/ui/button'
+import { tableC } from '@/app/components/ui/table-style'
 
 // ★ CONV-4:不套 DataTable —— 这张表是一份【固定的工作流清单】(10 个
 //   写死的步骤,0 个 <th>),不是从数据库查出来的记录集合。每一行的"这一
@@ -203,22 +204,22 @@ export default async function MonthEndPage({
                 </Button>
             </form>
             <p className="text-xs text-gray-500 mb-4">{t('finance.monthEnd.cpfNote')}</p>
-            <table className="w-full border-collapse border border-gray-300 text-sm">
+            <table className={`${tableC.root} w-full`}>
                 <tbody>
                     {steps.map((s, i) => (
-                        <tr key={s.key}>
-                            <td className="border border-gray-300 px-3 py-2 w-8 text-gray-500">{i + 1}</td>
-                            <td className="border border-gray-300 px-3 py-2">
+                        <tr key={s.key} className={tableC.bodyRow}>
+                            <td className={`${tableC.cell} w-8 text-gray-500`}>{i + 1}</td>
+                            <td className={tableC.cell}>
                                 <Link href={s.href} className="text-blue-600 hover:underline">
                                     {t('finance.monthEnd.step_' + s.key)}
                                 </Link>
                             </td>
-                            <td className="border border-gray-300 px-3 py-2 w-32">
+                            <td className={`${tableC.cell} w-32`}>
                                 <span className={'inline-block rounded px-2 py-0.5 text-xs ' + badge[s.state]}>
                                     {t('finance.monthEnd.state_' + s.state)}
                                 </span>
                             </td>
-                            <td className="border border-gray-300 px-3 py-2 text-gray-600">{s.detail}</td>
+                            <td className={`${tableC.cell} text-gray-600`}>{s.detail}</td>
                         </tr>
                     ))}
                 </tbody>

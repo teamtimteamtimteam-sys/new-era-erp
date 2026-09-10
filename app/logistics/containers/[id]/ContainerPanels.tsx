@@ -8,6 +8,7 @@ import {
     addMilestone, instantiateDocuments, setDocumentStatus, addDocument,
 } from './actions'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { tableC } from '@/app/components/ui/table-style'
 
 type Ship = { id: string; code: string; ship_date: string; order_code: string; customer: string }
 type Ms = { id: string; milestone: string; event_date: string; note: string | null; label: string }
@@ -302,11 +303,11 @@ canEdit: boolean
                 )}
 
                 {documents.length > 0 && (
-                    <table className="mb-4 w-full border-collapse border border-gray-300 text-sm">
+                    <table className={`${tableC.root} mb-4 w-full`}>
                         <tbody>
                             {documents.map((d) => (
-                                <tr key={d.id} className={d.from_lane ? '' : 'bg-gray-50'}>
-                                    <td className="border border-gray-300 px-3 py-1">
+                                <tr key={d.id} className={`${tableC.bodyRow} ${d.from_lane ? '' : 'bg-gray-50'}`}>
+                                    <td className={tableC.cell}>
                                         {d.document_type}
                                         {d.regime && <span className="ml-2 text-xs text-gray-500">({d.regime})</span>}
                                         {/* 清单来的 vs 人后加的,看得出来 */}
@@ -314,7 +315,7 @@ canEdit: boolean
                                             {d.from_lane ? labels.fromLane : labels.handAdded}
                                         </span>
                                     </td>
-                                    <td className="border border-gray-300 px-3 py-1">
+                                    <td className={tableC.cell}>
                                         <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                                         <form
                                             className="flex items-center gap-2"
