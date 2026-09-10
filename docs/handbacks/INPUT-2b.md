@@ -465,13 +465,62 @@ RUN_EXIT=0
 
 ### 7.5–7.9 —— 提交 · 推送 · 部署 · 残留
 
-> ★ **7.5(交回报告 + 按显式路径暂存 + 工作与报告同一个提交)与 7.6(推送)在这份报告
-> 【被写下来的那一刻】就要做完;7.7(部署)、7.8(残留)、7.9(收尾提交)按委托书
-> 填在【一个 docs-only 的收尾提交】里。**
-> ☞ **所以下面这一节在工作提交里是空的,而在收尾提交里是满的** —— 如果你读到的仍然是空的,
-> 那就是收尾提交没有做,**照直读成 NOT DONE**。
+### 7.5 提交 —— **工作与交回报告【同一个提交】**
 
-<!-- DEPLOY-RESIDUE-PLACEHOLDER -->
+| | |
+|---|---|
+| ★ **工作提交** | ★ **`f4290c175561ea9a782a3124d5ab48f24ca9cbf7`** —— **130 个文件,+2932 / −485** |
+| 暂存方式 | ★ **按显式路径** —— 先 `git status --porcelain` 逐条看过,再 `git add` 那 124 个 `app/` 文件(从 status 里抽出来的清单)+ `AGENTS.md` + 四份 docs + `scripts/smoke-routes.mjs` |
+| ★ **范围核对(暂存之后)** | ★ **暂存了 130 条;`git diff --cached --name-only` 里【没有一条】落在 `app/` · `scripts/` · `docs/` · `AGENTS.md` 之外;暂存之后工作区【没有剩下任何未暂存的改动】** |
+| 提交里有什么 | 124 个 `app/`(ROUND 2 的转换 + ROUND 3 的两个 `flex-wrap`)· `docs/handbacks/INPUT-2b.md`(**新建**)· `docs/variant-c-spec.md` · `docs/forward-queue.md` · `docs/known-issues.md` · `AGENTS.md` · `scripts/smoke-routes.mjs` |
+| ★ **零迁移** | `db/` **一个文件都没动** |
+| 退出码 | ★ `COMMIT_OWN_EXIT=0`;提交后 `git status --porcelain` **空** |
+
+### 7.6 推送 —— **三方 40 位全等**
+
+```
+3b02163..f4290c1  main -> main        PUSH_OWN_EXIT=0
+```
+
+| `git fetch` 之后 | 值 |
+|---|---|
+| `git rev-parse HEAD` | `f4290c175561ea9a782a3124d5ab48f24ca9cbf7` |
+| `git rev-parse origin/main` | `f4290c175561ea9a782a3124d5ab48f24ca9cbf7` |
+| `git ls-remote origin refs/heads/main` | `f4290c175561ea9a782a3124d5ab48f24ca9cbf7` |
+| ★ 判定 | ★ **三者全等,长度 40** |
+
+### 7.7 部署 —— **`state=success`,而且【先绑 id→sha,再问状态】**
+
+| | |
+|---|---|
+| 等法 | ★ `db/wait_for.sh --timeout 900 --label "Production deployment 登记 for f4290c17…" --interval 10`(**有上限、会报名字**,不是手写 until 循环)|
+| 等了多久 | ★ **162 秒**(`✓ 等到了:…(162s)`,`WAITFOR_OWN_EXIT=0`)|
+| ★ **① 先把 id 绑到 sha 上** | `id=6379525731` · `sha=f4290c175561ea9a782a3124d5ab48f24ca9cbf7` · `environment=Production` · `created_at=2026-09-10T19:31:00Z` —— ★ **是【这个】SHA 的,不是上一个** |
+| ★ **② 只有绑定之后才问状态** | ★ **`state=success`**,`created_at=2026-09-10T19:31:01Z` |
+| ★ **状态记录数** | ★ **1** |
+| **破窗** | ★ **不适用 —— 本刀零迁移**,不存在「旧代码 + 新库」那个窗口 |
+
+### 7.8 残留 —— 逐格,连判据一起
+
+| 项 | 判据(说清楚查的是什么) | 结果 |
+|---|---|---|
+| ★ **一次性账号** | ★ 拉线上**全部**账号(6 个),逐个匹配 **五种式样**:`smoke-*@test.local` · `input2b-*@test.local` · `input2b-d-*@test.local` · ★ `input2b-r3-*@test.local`(**本轮探针自己的前缀**)· 以及**任何** `@test.local` | ★ **五种全部 0 个** |
+| ★ **幽灵授权** | `user_roles` 的 `user_id` 去重后,逐个与现存账号求差 | `user_roles` **8 行 / 6 个不同 user_id**;★ **幽灵授权 0 条** |
+| ★ **`.ephemeral/`** | `ls -la` | ★ **空**(`EPHEMERAL_COUNT=0`) |
+| ★ **`reap-ephemeral`** | ★ **真的跑了一遍**,不是「量成 0 就当跑过」 | ★ `REAP_OWN_EXIT=0` —— 「✓ 没有滞留的清理计划(`.ephemeral/` 是空的)」 |
+| ★ **本刀自己的端口** | 逐个 `lsof -ti tcp:` | ★ **五个全空**:3196(survey)· 3199(冒烟)· 3213(修复探针 / probe2)· CDP 9335 · CDP 9353 |
+| ★ **孤儿 headless chrome** | `pgrep -fl "chrome-headless-shell\|next dev\|survey-controls\|smoke-routes\|probe2\|repair-probe"` | ★ **一个都没有** —— ☞ **所以「先证明 ppid=1 + CDP 端口无人连 + 没有探针在跑,再动手」那三条判据【没有用上】:没有东西要处置。一个信号都没有发。** |
+| **`cod_verification_failures`** | service_role + `Prefer: count=exact` | ★ **1 行**,时间戳 `2026-09-11T03:21:58.908002+08:00` —— 正是本轮冒烟插的那一行。**它 10 分钟后由下一次调用自己删掉**,表封顶 30 行 |
+| ⚠ **不是本刀的残留,但看见了就报** | 冒烟的临时行体检 | **6 条滞留的 `ZZ-SMOKE-*` 业务行**(materials ×3 · suppliers · customers · inbound_batches),**年龄 204 – 846 小时** —— ★ **一条都不是本刀的**;其中 5 条**仍被真单据引用**,脚本自己写着「本检查只报告,不删除」。**照直报出来,不处置。** |
+
+### 7.9 收尾提交(docs-only)
+
+| | |
+|---|---|
+| 它做什么 | 把 §7.7 与 §7.8 这两节(部署与残留)填进本文件 —— 它们的读数在工作提交**之后**才存在 |
+| 它动什么 | ★ **只动 `docs/handbacks/INPUT-2b.md` 一个文件**,`app/` 一个字节都没有 |
+| 提交 / 推送 / 三方核对 | 见本节末尾那一行(与 §7.6 同一套判据) |
+
 
 ---
 
@@ -599,11 +648,12 @@ RUN_EXIT=0
 | ★ §7.2 `npm run build` | 24 道静态闸 + `next build` | 19:14:14 | 19:14:48 | ★ **34** | ★ `BUILD_OWN_EXIT=0` |
 | ★ §7.3 **冒烟整跑** | `node scripts/smoke-routes.mjs`(不带 `--reach`) | 19:16:23 | 19:22:40 | ★ **377** | ★ `SMOKE_OWN_EXIT=0` |
 | ★ §7.4 `db/gate.py` | 经 `db/run_detached.sh --timeout 2700` | 19:23:08 | 19:26:0x | ★ **135**(gate 自报的 wall-clock) | ★ `RUN_EXIT=0` |
-| §7.5 组装交回报告 + 暂存 + 提交 | `assemble.sh` · `git add <显式路径>` · `git commit` | 见下 | | | 见 §R3-7.5 |
-| §7.6 推送 + 三方 40 位全等 | `git push` · `git fetch` · `git ls-remote` | 见下 | | | 见 §R3-7.6 |
-| §7.7 等部署 | `db/wait_for.sh`(有上限)+ 先绑 id→sha 再问状态 | 见下 | | | 见 §R3-7.7 |
-| §7.8 残留 | `residue.sh`(账号 · 幽灵授权 · `.ephemeral/` · reap · 端口 · 进程 · cod) | 见下 | | | 见 §R3-7.8 |
-| ★ **本轮合计(到 gate 为止)** | | **18:43:25** | **19:26:0x** | ★ **≈ 2560 秒 ≈ 43 分钟** | |
+| §7.5 组装 + 暂存 + 提交 | `assemble.sh` · `git add <显式路径>` · `git commit -F` | 19:27:19 | 19:27:34 | **15** | ★ `COMMIT_OWN_EXIT=0` |
+| §7.6 推送 + 三方核对 | `git push` · `git fetch` · `git rev-parse` ×2 · `git ls-remote` | 19:28:02 | 19:28:06 | **4** | ★ `PUSH_OWN_EXIT=0` · `FETCH_EXIT=0` |
+| ★ §7.7 等部署登记 | `db/wait_for.sh --timeout 900 --interval 10` | 19:28:25 | 19:31:07 | ★ **162** | ★ `WAITFOR_OWN_EXIT=0` |
+| §7.7 绑 id→sha,再问状态 | `gh api deployments` → `gh api .../statuses` | 19:31:18 | 19:31:20 | **2** | ★ `GH_DEPLOY_EXIT=0` · `GH_STATUS_EXIT=0` |
+| §7.8 残留 | `residue.sh`(账号 · 幽灵授权 · `.ephemeral/` · reap · 端口 · 进程 · cod) | 19:31:27 | 19:31:31 | **4** | ★ `ACCOUNTS_OWN_EXIT=0` · `GHOSTS_OWN_EXIT=0` · `REAP_OWN_EXIT=0` |
+| ★ **本轮合计(开工闸 → 残留查完)** | | **18:43:25** | **19:31:31** | ★ **2886 秒 ≈ 48 分钟** | |
 
 ★ **一处必须照直说的时长差:** 委托书引的 ROUND 2 实测是「冒烟 **871** 秒 · drift **1669** 秒」,
 **本轮同一支脚本、同一棵树实测 377 与 727** —— **各差 2.3 倍**。
