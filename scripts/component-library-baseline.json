@@ -1,10 +1,6 @@
 {
   "__NOTE__": "★ 这份基线【只会缩短】,不会变长。多一处 <table> / <button> / 按钮态链接 → 闸变红;少一处 → 顺手收紧。它不是白名单:白名单随新债增长,基线随还债缩短。任何一刀想把它改大,必须在文档里解释为什么 —— 而 --update-baseline 让这件事留在 diff 里。 BTN-1(2026-09-06)加入 button 维度:table 维度原样搬迁,没有放宽。 ★ BTN-5(2026-09-06)加入 linkbutton 维度(长得像按钮的 <Link>/<a>)——前两维原样搬迁,一处都没有放宽。加这一维的理由:前三件仪器共用同一个定义(标签名是 button),而每张列表页最显眼的那个主动作是一个 <Link>,于是「统一了」与「我一个都没看见」两句话同时为真。 ★★ BTN-5b(2026-09-07)修好了本闸的一处盲区,而基线【因此先变长一处,再变短】:className={base + 空格 + (…)} 这种用 + 拼出来的写法此前从不做常量代入,于是 app/settings/SettingsSubnav.tsx:74 对本闸【完全不存在】(实测 114 → 115)。☞ 变长的那一处不是新债:树没有变坏,是仪器变准了 —— 而它是一个【永不转】的导航页签(见 docs/base-components.md §十七 余量表),进基线是长住,不是待办。这条例外只对「仪器修好了」成立,对「又手写了一个」不成立:后者仍然红。 ★ TABLE-STYLE-1(2026-09-09)加入 cellfont 维度(格子钉死的字号,两种拼法合成一维)——前三维原样搬迁,一处都没有放宽。理由是 Tim 的裁定 R2:variant C 的表格字号是 15px,而 data-table.tsx 的 cn() 把 c.className 排在最后,调用方钉了字号就是调用方赢;不拦住它,一次机械的转换会把 140 处 <td> 字号搬进 Column.className,转完仍然是 14px——【债不是还了,是搬了个地方】。",
   "table": {
-    "app/components/audit/BatchAuditTrail.tsx": 1,
-    "app/components/inventory/MovementTimeline.tsx": 1,
-    "app/components/metals/MetalContentPanel.tsx": 1,
-    "app/components/pricing/PriceBreakdown.tsx": 1,
     "app/finance/balance-sheet/page.tsx": 1,
     "app/finance/cash-forecast/ForecastGrid.tsx": 1,
     "app/finance/cashflow/page.tsx": 1,
@@ -69,12 +65,8 @@
     "app/tools/pricing/page.tsx": 1
   },
   "cellfont": {
-    "app/components/audit/BatchAuditTrail.tsx": 2,
     "app/components/finance/FinanceAttachmentsPanel.tsx": 4,
     "app/components/finance/SettlementHistoryTable.tsx": 2,
-    "app/components/inventory/MovementTimeline.tsx": 6,
-    "app/components/metals/MetalContentPanel.tsx": 3,
-    "app/components/pricing/PriceBreakdown.tsx": 6,
     "app/contracts/ContractsTables.tsx": 28,
     "app/finance/assets/[id]/CostEntriesTable.tsx": 5,
     "app/finance/assets/[id]/DowntimePanel.tsx": 4,

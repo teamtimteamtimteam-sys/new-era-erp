@@ -16,11 +16,11 @@
 // ③ **谁做的只有一种答法**:一律走 app/components/ActorName.tsx。它已经把
 //    ①查得到 ②账号没关联档案 ③根本没记过 ④看不到人事 分成四句不同的话,
 //    并且写死了【绝不裸印 uuid】。本刀不再造第二套词汇。
-import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
 import { createClient } from '@/lib/supabase/server'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { UNREACHABLE_HISTORY_TABLES, type AuditTrailRow } from './auditTrailTypes'
+import BatchAuditTrailTable, { type AuditTableRow } from './BatchAuditTrailTable'
 
 export default async function BatchAuditTrail({ rows }: { rows: AuditTrailRow[] }) {
     const t = await getTranslations()
@@ -48,6 +48,37 @@ export default async function BatchAuditTrail({ rows }: { rows: AuditTrailRow[] 
         return parts.join(' · ')
     }
 
+    // ── TABLE-CONVERT-6:行【在服务端压平】────────────────────────────────
+    // Column.render 是函数,过不了 server→client 那道边界,所以表住在
+    // ./BatchAuditTrailTable.tsx 里。
+    // ★ `whoNode` 带的是【服务端渲染好的 <ActorName/>】,不是一个名字字符串:
+    //   ActorName.tsx 抬头写着「谁做的只有一种答法 … 本刀不再造第二套词汇」,
+    //   在客户端重算一遍名字就正好是造第二套。
+    const tableRows: AuditTableRow[] = rows.map((r, i) => ({
+        key: `${r.source_table}-${r.source_id ?? i}`,
+        mayView: r.may_view,
+        whenText: r.occurred_at.slice(0, 16).replace('T', ' '),
+        bizDateLine:
+            r.business_date && r.business_date !== r.occurred_at.slice(0, 10)
+                ? `${t('auditTrail.bizDate')}: ${r.business_date}`
+                : null,
+        whatText: t('auditTrail.kind.' + r.event_kind),
+        detailText: r.may_view ? summarise(r) || '—' : null,
+        needsModuleText: r.may_view ? null : `(${t('auditTrail.needsModule')}: ${r.module_code})`,
+        seams: r.seams.map((s) => t('auditTrail.seam.' + s)),
+        whoNode: r.may_view ? (
+            <ActorName
+                userId={r.actor_id}
+                names={names}
+                space={r.actor_space === 'employee' ? 'employee' : 'account'}
+            />
+        ) : (
+            <span className="text-gray-500">{t('common.restricted')}</span>
+        ),
+        sourceHref: r.href ?? null,
+        sourceText: r.source_code ?? r.source_table,
+    }))
+
     return (
         <section className="mt-8 pt-8 border-t">
             <h2 className="text-xl font-bold mb-1">{t('auditTrail.title')}</h2>
@@ -57,89 +88,10 @@ export default async function BatchAuditTrail({ rows }: { rows: AuditTrailRow[] 
                 发生过的事。不说出来,下一个读者会以为轨迹对此是中立的。 */}
             <p className="text-xs text-gray-500 mb-4">{t('auditTrail.spineNote')}</p>
 
-            {rows.length === 0 ? (
-                // 【具名的空状态】。"什么都没发生过"是审计的一个合法答案,
-                // 但它必须与"你不能看"分开说 —— 后者由每一行的「受限」承担。
-                <p className="text-sm text-gray-500">{t('auditTrail.empty')}</p>
-            ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 text-sm">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('auditTrail.colWhen')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('auditTrail.colWhat')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('auditTrail.colDetail')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('auditTrail.colWho')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('auditTrail.colSource')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((r, i) => (
-                                <tr key={`${r.source_table}-${r.source_id ?? i}`} className={r.may_view ? '' : 'bg-gray-50'}>
-                                    <td className="border border-gray-300 px-3 py-2 whitespace-nowrap text-gray-600">
-                                        <div className="font-mono text-xs">{r.occurred_at.slice(0, 16).replace('T', ' ')}</div>
-                                        {/* 3b:业务日期与记账时刻【不同时】两个都印。
-                                            相同就不印第二个 —— 重复一遍不是信息。 */}
-                                        {r.business_date && r.business_date !== r.occurred_at.slice(0, 10) && (
-                                            <div className="text-xs text-gray-500">
-                                                {t('auditTrail.bizDate')}: {r.business_date}
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {t('auditTrail.kind.' + r.event_kind)}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {r.may_view ? (
-                                            summarise(r) || '—'
-                                        ) : (
-                                            // ② 受限:点名是哪个模块,不是一格空白
-                                            <span className="text-gray-500">
-                                                {t('common.restricted')}
-                                                <span className="ml-1 text-xs text-gray-400">
-                                                    ({t('auditTrail.needsModule')}: {r.module_code})
-                                                </span>
-                                            </span>
-                                        )}
-                                        {/* ① 接缝:逐条画在这一行里 */}
-                                        {r.seams.length > 0 && (
-                                            <ul className="mt-1 space-y-0.5">
-                                                {r.seams.map((s) => (
-                                                    <li key={s} className="text-xs text-amber-700">
-                                                        ⚠ {t('auditTrail.seam.' + s)}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        {r.may_view ? (
-                                            <ActorName
-                                                userId={r.actor_id}
-                                                names={names}
-                                                space={r.actor_space === 'employee' ? 'employee' : 'account'}
-                                            />
-                                        ) : (
-                                            <span className="text-gray-500">{t('common.restricted')}</span>
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono text-xs">
-                                        {r.may_view && r.href ? (
-                                            <Link href={r.href} className="text-blue-600 hover:underline">
-                                                {r.source_code ?? r.source_table}
-                                            </Link>
-                                        ) : r.may_view ? (
-                                            (r.source_code ?? r.source_table)
-                                        ) : (
-                                            <span className="text-gray-400">{t('common.restricted')}</span>
-                                        )}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            {/* TABLE-CONVERT-6:空态搬进 DataTable 的 empty prop(同一个 auditTrail.empty),
+                旧那一支不留。「什么都没发生过」仍然与每一行的「受限」分开说 ——
+                后者由 detail 那一列承担,而它在手机上【留在明面上】(见 client 文件抬头)。 */}
+            <BatchAuditTrailTable rows={tableRows} />
 
             {/* 【具名脚注:够不到批次的六张历史表】——(Tim 的 A1)。
                 它们在 schema 上没有任何一条路通向批次。建成永远空的臂会读成

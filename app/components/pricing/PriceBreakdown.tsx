@@ -7,6 +7,7 @@
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import type { CalcResult, CalcLine } from '@/app/tools/pricing/calculator/actions'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 // 汇总这四行(毛值/加工费/折扣/净值)不各自带币种,因为紧接着的最后一行写着
 // 「单价 (USD/公斤)」,而金属计价【全程 USD 进 USD 出】(市场惯例,见 AGENTS.md
@@ -74,6 +75,82 @@ export default function PriceBreakdown({
         )
     }
 
+    // ════════════════════════════════════════════════════════════════════
+    // TABLE-CONVERT-6 · 计价明细 —— ★ 这张表此前【没有】手机档判断 ★
+    // ════════════════════════════════════════════════════════════════════
+    // 转换前一处 hidden sm:table-cell 都没有,七列在 390px 上靠外层
+    // overflow-x-auto 横着拖。
+    //
+    // ★【留哪两列 —— 金属 · 金额(USD)】
+    //   · 金属:身份(行键就是 l.metal)。
+    //   · 金额:结论 —— 这张明细回答的问题是「这一种金属值多少钱」,
+    //     而中间那五列(含量% · 计价% · 含金属量 · 计价量 · 单价)是【算给你看的过程】。
+    //   ☞ 过程整组折进展开区,各带自己的列头:它们只有连起来读才有意义
+    //     (含量 → 含金属量 → 计价% → 计价量 → 单价 → 金额),
+    //     单独留一两列反而给人一种"这就是全部"的错觉。
+    //   ⚠ 而「说不出口」的那几种答案跟着数字一起进展开区:
+    //     termNotStated / noQuoteNotStated 是 ASY-2 的具名空缺(**不是 0**),
+    //     它们由 absent() 画在各自的格子里,折进去之后一个字都没变。
+    const columns: Column<CalcLine>[] = [
+        {
+            key: 'metal',
+            header: t('pricing.form.colMetal'),
+            // ★ 身份 —— 手机上留下。
+            priority: true,
+            render: (l) => (
+                <>
+                    {t('metals.' + l.metal)}
+                    <span className="text-gray-400 font-mono text-xs ml-2">{l.metal}</span>
+                </>
+            ),
+        },
+        {
+            key: 'content',
+            header: t('pricing.colContent'),
+            align: 'right',
+            // ⚠ 转换前 `text-right font-mono text-sm` —— text-sm 不搬(列描述符不许钉字号)
+            className: 'font-mono',
+            render: (l) => l.content_pct,
+        },
+        {
+            key: 'payablePct',
+            header: t('pricing.form.colPayable'),
+            align: 'right',
+            render: (l) => absent(l.payable_pct, (n) => String(n), t('pricing.termNotStated')),
+        },
+        {
+            key: 'contained',
+            header: t('pricing.colContained'),
+            align: 'right',
+            className: 'font-mono',
+            render: (l) => l.contained_kg,
+        },
+        {
+            key: 'payableKg',
+            header: t('pricing.colPayableKg'),
+            align: 'right',
+            render: (l) => absent(l.payable_kg, (n) => String(n), t('pricing.termNotStated')),
+        },
+        {
+            key: 'price',
+            header: t('pricing.colPrice'),
+            render: (l) => priceCell(l),
+        },
+        {
+            key: 'value',
+            header: t('pricing.colValue'),
+            // ★ 结论 —— 手机上留下。
+            priority: true,
+            align: 'right',
+            render: (l) =>
+                absent(
+                    l.metal_value_usd,
+                    (n) => formatMoneyBare(n, '列头 pricing.colValue「金额 (USD)」'),
+                    l.payable_pct === null ? t('pricing.termNotStated') : t('pricing.noQuoteNotStated')
+                ),
+        },
+    ]
+
     return (
         <div>
             <p className="text-sm text-gray-600 mb-3">
@@ -101,45 +178,15 @@ export default function PriceBreakdown({
                 </p>
             )}
 
-            <div className="overflow-x-auto">
-                <table className="w-full border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('pricing.form.colMetal')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('pricing.colContent')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('pricing.form.colPayable')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('pricing.colContained')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('pricing.colPayableKg')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('pricing.colPrice')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('pricing.colValue')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {res.lines.map((l) => (
-                            <tr key={l.metal}>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    {t('metals.' + l.metal)}
-                                    <span className="text-gray-400 font-mono text-xs ml-2">{l.metal}</span>
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.content_pct}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                                    {absent(l.payable_pct, (n) => String(n), t('pricing.termNotStated'))}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-right font-mono text-sm">{l.contained_kg}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                                    {absent(l.payable_kg, (n) => String(n), t('pricing.termNotStated'))}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2 text-sm">{priceCell(l)}</td>
-                                <td className="border border-gray-300 px-3 py-2 text-right text-sm">
-                                    {absent(l.metal_value_usd,
-                                        (n) => formatMoneyBare(n, '列头 pricing.colValue「金额 (USD)」'),
-                                        l.payable_pct === null ? t('pricing.termNotStated') : t('pricing.noQuoteNotStated'))}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            {/* TABLE-CONVERT-6:转换前【没有空态】—— res.lines 为空时画的是一张
+                只有表头的表。组件在没有 empty prop 时会退到它自带的 table.empty,
+                所以真遇上零行会多出一句(组件既有的 key,不是我造的新词)。 */}
+            <DataTable
+                rows={res.lines}
+                columns={columns}
+                rowKey={(l) => l.metal}
+                phone={{ mode: 'columns' }}
+            />
 
             <div className="mt-4 max-w-md ml-auto text-sm space-y-1">
                 <div className="flex justify-between">
