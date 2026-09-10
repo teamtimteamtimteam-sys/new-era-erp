@@ -1709,7 +1709,28 @@ fixture 196 的 B 臂改用 `count(*)` 扫(**不求值任何列表达式**),那�
 
 ### ★【RAW-TABLE-PHONE-WRAPPED —— 那 9 张【已经能滚】的表:够得着,而**读不读得懂是没量过的**】★
 
-**★★ 这一条的状态是【UNMEASURED】,而这正是它单独排一条的理由。★★**
+> ## ★★ 状态更正(2026-09-10,TABLE-CONVERT-7)—— **9 张里 6 张已转,剩 3 张【已经量过了】** ★★
+>
+> **下面那句「UNMEASURED」对剩下的 3 张【不再成立】。** 逐条:
+>
+> * **已转掉 6 张**(TABLE-CONVERT-5 / TABLE-CONVERT-6):
+>   `TraceabilitySection:68` 与 `:126` · `AssaySection:87` · `PricingPanel:138` ·
+>   `OutputAssaySection:50` · `stocktakes/[id]/page.tsx:226`。
+> * **剩 3 张,而它们【量过了】**:`PayrollGrid:202` · `ForwarderPanels:167` ·
+>   `forwarders/page:203` —— **TABLE-MEASURE-1 用真浏览器在 390px 上逐张量过**
+>   (`maxScroll` 414 / 24 / 0,行高 73 / 109 / 57),**TABLE-STYLE-2 又量了一次前后对比**。
+> * **所以这 3 张的状态不是「没量」,是【量过了、等一个裁定】:**
+>   TABLE-STYLE-2 实测它们穿上 `tableC` 之后 390px 横滚变成 **450 / 30 / 5px**
+>   (第三张从**完全不滚**变成**要滚**),按「变差由 Tim 裁」停手。
+>   ☞ **等的是裁定,不是工时,也不是测量。**
+> * **`PayrollGrid` 另有一个更硬的拦路者**:它是 B 类(格子里 12 处受控输入),
+>   要**草稿模型**才转得动。它的手机代价已登记且已被接受:
+>   **414px 横滚、身份列滚到底就丢,而它是一张录入工资的表。**
+>
+> ☞ 全族结案见 `docs/known-issues.md` 的 **`TABLE-CONVERT-SWEEP`**(2026-09-10 结案),
+> 那里带着【从来没有验证过】与【这个估算自己的历史】两节。
+
+**★★ 下面是原文(2026-09-09),保留。★★**
 
 `app/hr/payroll/PayrollGrid.tsx:202`(7 列)· `app/output/[id]/edit/TraceabilitySection.tsx:68,126`(6/7 列)·
 `app/inbound/[id]/edit/AssaySection.tsx:87` · `app/inbound/[id]/edit/PricingPanel.tsx:138` ·
