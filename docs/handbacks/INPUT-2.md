@@ -503,6 +503,58 @@ INPUT-2 那 190 个站点**不是 190 次编辑** —— 它们由 **49 个常�
 
 ---
 
+## 15b · 推送与部署
+
+| | |
+|---|---|
+| 工作提交 | **`115340c9b2f5654b828b3c5380b628b744a77fa1`**(53 个文件,+1799 / −162,**工作与交回报告同一个提交**) |
+| 推送 | `37eed5e..115340c  main -> main`,**退 0** |
+| ★ 三方核对(`git fetch` 之后) | `HEAD` = `origin/main` = `git ls-remote` = **`115340c9b2f5654b828b3c5380b628b744a77fa1`**,**40 位全等** |
+| 部署登记 | 等到用了 **137 秒**(`db/wait_for.sh --timeout 900`,退 0)。★ **先把 id 绑到 sha 上,再问状态** |
+| 部署 id → sha | `id=6373280852` · `sha=115340c9…7fa1` · `env=Production` · `created=2026-09-10T13:54:40Z` —— ★ **是我这个 SHA 的,不是上一个** |
+| 状态 | ★ **`success`**;**状态记录数 = 1**(`success @ 2026-09-10T13:54:40Z`) |
+| 破窗 | ★ **不适用 —— 本刀零迁移**(`db/` 下零改动),不存在「旧代码 + 新库」那个窗口 |
+
+## 15c · 残留
+
+| | 判据(说清楚查的是什么) | 结果 |
+|---|---|---|
+| 本会话的一次性账号 | ★ 按**命名模式**查线上:`input2r3-*`(几何探针)与 `input2r3s-*`(截图探针)—— **这两个前缀就是本会话建过的全部** | ★ **各 0 个**;顺带把 `@test.local` 结尾的**全部**查了一遍,也是 **0** |
+| `scripts/reap-ephemeral.mjs` | 直接跑 | ★ **退 0**:收割 1 份(冒烟那次预检就退出了,**0 步**,没建过任何东西)· 补删失败 **0** · 持有者还活着跳过 **0** |
+| `.ephemeral/` | `ls` | ★ **空(0 个文件)** |
+| 锁文件 | `.live-lock` / `.livelock` | ★ **不存在** |
+| 我自己的进程 | `ps` 查 `probe-geom` / `probe-shots` / `survey-controls` / `smoke-routes` / `next dev` / `gate.py` | ★ **0 个** |
+| 我自己的端口 | 逐个查 3196 · 3199 · 3211–3215 · 9335 · 9347–9351 | ★ **全部释放** |
+
+### ★ 那五个 `chrome-headless-shell`(INPUT-0 / INPUT-1 / INPUT-2 连着三刀登记在案)—— **已证明是孤儿,已清掉**
+
+**证明(三条判据,缺一条都不动手):**
+
+| 判据 | 读数 |
+|---|---|
+| ① `ppid` | `74963 → ppid=1` ★ **它的启动者早就没了**;`74964` `74966` `75354` `75400` → `ppid=74963`(都是它的子进程) |
+| ② CDP `:9341` 上有没有活着的客户端 | 持端口的只有 `74963` 自己;**ESTABLISHED 连接 0 条** —— **没有任何探针或会话在驱动它** |
+| ③ 本机还有没有探针/量具活着 | `ps` 查 `probe-*` / `survey-*` / `smoke-routes` → ★ **0 个** |
+
+**动手的分寸,照委托书的话办:「只杀被证明的孤儿;有活父进程的不许杀,报出来」**
+—— 五个里**只有 `74963` 满足 `ppid=1`**,另外四个**有一个活着的父进程(就是 74963)**。
+☞ **所以只对 `74963` 发了一次 `kill -9`,另外四个一个信号都没发**,然后复核它们是不是
+跟着走了(chrome 的子进程随浏览器主进程退出)。
+
+**复核(kill 之后 2 秒):**
+
+```
+✓ pid 74963 已退出      ✓ pid 74964 已退出      ✓ pid 74966 已退出
+✓ pid 75354 已退出      ✓ pid 75400 已退出
+:9341 → (没有进程持它)
+pgrep -f chrome-headless-shell → 0
+```
+
+★ **五个全部退出,而其中四个是【被它们的父进程带走的】,不是被我杀的。**
+起于 `2026-09-10 01:38:49`,活了约 **12 小时 17 分钟**,横跨三刀。**这一族到此清零。**
+
+---
+
 ## 16 · 给测试的人(counts toward v1.4.17; released after INPUT-2b and INPUT-3)
 
 When you open a form on your phone, the boxes you type in, the dropdowns you pick from and the tick-boxes you tap should now all look like one another — the same height, the same rounded corners, the same grey outline — except on the receiving and stock-count screens, where they stay deliberately taller so you can still hit them while holding a scanner; if you find a box that still looks like the old style, that is expected for now, because the remaining screens are being converted in the next two rounds.
