@@ -16,7 +16,6 @@
 //
 // 【NOTHING_TO_REPORT 是一个具名的空状态,不是一张空表】线上真实用例:
 // OUT-2026-0001 / OUT-2026-0002 —— 在册、却零支生产单。
-import Link from 'next/link'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import IssuePanel from '@/app/components/IssuePanel'
 import { localizeTraceabilityError } from '@/app/output/traceabilityErrorCodes'
@@ -26,6 +25,12 @@ import {
     kgText,
     type TraceabilityReport,
 } from '@/app/output/traceabilityShared'
+import {
+    ChainTable,
+    RecoveryTable,
+    type ChainTableRow,
+    type RecoveryTableRow,
+} from './TraceabilityTables'
 
 export type IssueRow = { code: string; version: number; issued_at: string; sha256: string }
 
@@ -50,6 +55,51 @@ export default async function TraceabilitySection({
     const failed = 'error' in report
     const blockedReason = failed ? await localizeTraceabilityError(report.error) : ''
 
+    // ════════════════════════════════════════════════════════════════════════
+    // TABLE-CONVERT-5 · 两张表的行【在服务端压平】
+    // ════════════════════════════════════════════════════════════════════════
+    // Column.render 是函数,过不了 server→client 那道边界,所以表住在
+    // ./TraceabilityTables.tsx 里。而【每一个格子的文案仍旧由
+    // app/output/traceabilityShared.ts 出】—— 那三个函数同时喂着 PDF,
+    // 屏幕这一侧自己拼一遍就会与客户手里那张纸各说各的(AUD-2 最不能出的错)。
+    // ☞ 于是这里传过去的是【成品字串】,客户端一个字都不再算。
+    const chainRows: ChainTableRow[] = failed
+        ? []
+        : report.chain.map((c) => ({
+              key: `${c.depth}-${c.via_run_id}-${c.parent_batch_id}`,
+              depth: String(c.depth),
+              runId: c.via_run_id,
+              runCode: c.via_run_code,
+              parentKindLabel:
+                  c.parent_kind === 'inbound'
+                      ? t('traceability.kindInbound')
+                      : t('traceability.kindOutput'),
+              parentHref:
+                  c.parent_kind === 'inbound'
+                      ? `/inbound/${c.parent_batch_id}/edit`
+                      : `/output/${c.parent_batch_id}/edit`,
+              parentCode: c.parent_code ?? '—',
+              quantityConsumed: String(c.quantity_consumed),
+              supplierCode: c.supplier_code,
+              supplierName: c.supplier_name,
+              arrivalDate: c.arrival_date ?? '—',
+          }))
+
+    const recoveryRows: RecoveryTableRow[] = failed
+        ? []
+        : report.recovery.map((r) => ({
+              key: `${r.run_id}-${r.metal}`,
+              runCode: r.run_code,
+              metalLabel: t('metals.' + r.metal),
+              inputKg: kgText(r.input_metal_kg, t),
+              outputKg: kgText(r.output_metal_kg, t),
+              recoveryText: recoveryText(r, t),
+              recoveryIsNumeric: r.recovery_pct !== null && r.recovery_pct !== undefined,
+              conservationFlag: r.conservation_warning ? t('traceability.conservationFlag') : null,
+              inputSource: sourceText(r.input_source, t),
+              outputSource: sourceText(r.output_source, t),
+          }))
+
     return (
         <section className="mt-8 pt-8 border-t">
             <h2 className="text-xl font-bold mb-1">{t('traceability.title')}</h2>
@@ -64,114 +114,11 @@ export default async function TraceabilitySection({
                 <>
                     {/* ── 血缘链:供应商 → 收货 → 每一支加工单 → 这一批 ─────────── */}
                     <h3 className="font-medium mb-2">{t('traceability.chainHeading')}</h3>
-                    <div className="overflow-x-auto mb-6">
-                        <table className="w-full border-collapse border border-gray-300 text-sm">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="border border-gray-300 px-3 py-2 text-right">{t('traceability.colStep')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('traceability.colRun')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('traceability.colParent')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-right">{t('traceability.colQtyConsumed')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('traceability.colSupplier')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('traceability.colArrival')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {report.chain.map((c) => (
-                                    <tr key={`${c.depth}-${c.via_run_id}-${c.parent_batch_id}`}>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{c.depth}</td>
-                                        <td className="border border-gray-300 px-3 py-2 font-mono text-xs">
-                                            <Link href={`/operation/processing/${c.via_run_id}`} className="text-blue-600 hover:underline">
-                                                {c.via_run_code}
-                                            </Link>
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-xs">
-                                            <span className="text-gray-500 mr-1">
-                                                {c.parent_kind === 'inbound'
-                                                    ? t('traceability.kindInbound')
-                                                    : t('traceability.kindOutput')}
-                                            </span>
-                                            <Link
-                                                href={
-                                                    c.parent_kind === 'inbound'
-                                                        ? `/inbound/${c.parent_batch_id}/edit`
-                                                        : `/output/${c.parent_batch_id}/edit`
-                                                }
-                                                className="font-mono text-blue-600 hover:underline"
-                                            >
-                                                {c.parent_code ?? '—'}
-                                            </Link>
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono">{c.quantity_consumed}</td>
-                                        {/* 供应商只在链末的进料父上有 —— 上游那几段的父是自家的产出批 */}
-                                        <td className="border border-gray-300 px-3 py-2 text-xs">
-                                            {c.supplier_name ? (
-                                                <>
-                                                    <span className="font-mono">{c.supplier_code}</span> {c.supplier_name}
-                                                </>
-                                            ) : (
-                                                '—'
-                                            )}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{c.arrival_date ?? '—'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <ChainTable rows={chainRows} />
 
                     {/* ── 回收率:每支加工单 × 金属,出处跟着数字走 ───────────────── */}
                     <h3 className="font-medium mb-2">{t('traceability.recoveryHeading')}</h3>
-                    <div className="overflow-x-auto mb-3">
-                        <table className="w-full border-collapse border border-gray-300 text-sm">
-                            <thead className="bg-gray-100">
-                                <tr>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('traceability.colRun')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('traceability.colMetal')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-right">{t('traceability.colInputKg')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-right">{t('traceability.colOutputKg')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-right">{t('traceability.colRecovery')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('traceability.colInputSource')}</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-left">{t('traceability.colOutputSource')}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {report.recovery.map((r) => (
-                                    <tr key={`${r.run_id}-${r.metal}`}>
-                                        <td className="border border-gray-300 px-3 py-2 font-mono text-xs">{r.run_code}</td>
-                                        <td className="border border-gray-300 px-3 py-2">{t('metals.' + r.metal)}</td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono text-xs">
-                                            {kgText(r.input_metal_kg, t)}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-right font-mono text-xs">
-                                            {kgText(r.output_metal_kg, t)}
-                                        </td>
-                                        {/* 【算不出就说原因】—— 灰字,与一个真的百分比在视觉上分得开 */}
-                                        <td
-                                            className={
-                                                'border border-gray-300 px-3 py-2 text-right text-xs ' +
-                                                (r.recovery_pct === null ? 'text-gray-500' : 'font-mono')
-                                            }
-                                        >
-                                            {recoveryText(r, t)}
-                                            {r.conservation_warning && (
-                                                <span className="ml-2 text-amber-700">
-                                                    {t('traceability.conservationFlag')}
-                                                </span>
-                                            )}
-                                        </td>
-                                        {/* 【出处跟着数字走】unknown 印成 unknown */}
-                                        <td className="border border-gray-300 px-3 py-2 text-xs">
-                                            {sourceText(r.input_source, t)}
-                                        </td>
-                                        <td className="border border-gray-300 px-3 py-2 text-xs">
-                                            {sourceText(r.output_source, t)}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                    <RecoveryTable rows={recoveryRows} />
 
                     {/* 【一句人话,而它也进 PDF】客户只拿到那张纸时,同样读得到这句。 */}
                     <p className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4">

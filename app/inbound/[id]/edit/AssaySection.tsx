@@ -5,15 +5,11 @@ import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
 import { metalLabelKey } from '@/app/tools/pricing/metal-prices/options'
+import AssayRowsTable, { type AssayRow } from './AssayRowsTable'
 
-export type AssayRow = {
-    id: string
-    code: string
-    assay_date: string
-    lab_name: string | null
-    is_final: boolean
-    applied_at: string | null
-}
+// TABLE-CONVERT-5:行的形状跟着表走了(Column.render 是函数,过不了 server→client
+// 那道边界,所以表住在 client 文件里)。这里原样再导出,页面那侧的 import 不用动。
+export type { AssayRow } from './AssayRowsTable'
 
 export default async function AssaySection({
     batchId,
@@ -80,63 +76,9 @@ export default async function AssaySection({
                 </div>
             )}
 
-            {rows.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('assay.empty')}</p>
-            ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 text-sm">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('assay.colCode')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('assay.colDate')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('assay.colLab')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('assay.colKind')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('assay.colApplied')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {rows.map((r) => (
-                                <tr key={r.id}>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono">
-                                        <Link
-                                            href={`/inbound/${batchId}/assays/${r.id}`}
-                                            className="text-blue-600 hover:underline"
-                                        >
-                                            {r.code}
-                                        </Link>
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">{r.assay_date}</td>
-                                    <td className="border border-gray-300 px-3 py-2">{r.lab_name ?? '—'}</td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        <span
-                                            className={
-                                                'px-2 py-0.5 rounded text-xs ' +
-                                                (r.is_final
-                                                    ? 'bg-gray-200 text-gray-700'
-                                                    : 'bg-amber-100 text-amber-800')
-                                            }
-                                        >
-                                            {r.is_final ? t('assay.kindFinal') : t('assay.kindPreliminary')}
-                                        </span>
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">
-                                        <span
-                                            className={
-                                                'px-2 py-0.5 rounded text-xs ' +
-                                                (r.applied_at
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-gray-200 text-gray-600')
-                                            }
-                                        >
-                                            {r.applied_at ? t('assay.applied') : t('assay.notApplied')}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            {/* TABLE-CONVERT-5:空态搬进了 DataTable 的 empty prop(同一个 assay.empty),
+                所以这里【没有】三元 —— 旧那一支不留,不然 prop 永远到不了。 */}
+            <AssayRowsTable batchId={batchId} rows={rows} />
         </section>
     )
 }

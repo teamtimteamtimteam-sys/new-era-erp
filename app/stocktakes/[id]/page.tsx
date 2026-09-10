@@ -11,6 +11,7 @@ import { stocktakeStatusLabelKey } from '../status'
 import { qtyDelta, formatSigned } from '../delta'
 import CountList, { type CountItem } from '../CountList'
 import CancelStocktakeButton from './CancelStocktakeButton'
+import PostedLinesTable, { type PostedLineRow } from './PostedLinesTable'
 import { mustRows } from '@/lib/db-helpers'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -145,6 +146,22 @@ export default async function StocktakeDetailPage({
 
     const totalBatches = inbound.length + output.length
     const diffCount = countedItems.filter((i) => i.delta !== null && i.delta !== 0).length
+
+    // TABLE-CONVERT-5:posted/cancelled 那张只读表的行【在服务端压平】——
+    // Column.render 是函数,过不了 server→client 那道边界。差额仍旧由
+    // app/stocktakes/delta.ts 算(qtyDelta / formatSigned),客户端一个数都不再算。
+    const postedRows: PostedLineRow[] = countedItems.map((item) => {
+        const bookDelta = item.book !== null ? qtyDelta(item.counted ?? 0, item.book) : null
+        return {
+            key: `${item.side}:${item.batchId}`,
+            code: item.code,
+            material: item.material,
+            book: `${item.book ?? ''} ${item.unit}`,
+            counted: `${item.counted ?? ''} ${item.unit}`,
+            deltaText: bookDelta !== null && bookDelta !== 0 ? formatSigned(bookDelta) : null,
+            deltaPositive: (bookDelta ?? 0) > 0,
+        }
+    })
     const isOpen = st.status === 'open'
 
     return (
@@ -222,63 +239,9 @@ export default async function StocktakeDetailPage({
                 </>
             ) : (
                 /* posted / cancelled:只读行表(差异按账面快照算 —— 过账后剩余已被改成实点) */
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.colBatch')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.colMaterial')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.bookLabel')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.countedLabel')}</th>
-                                <th className="border border-gray-300 px-4 py-2 text-left">{t('stocktakes.deltaLabel')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {countedItems.map((item) => {
-                                const bookDelta =
-                                    item.book !== null ? qtyDelta(item.counted ?? 0, item.book) : null
-                                return (
-                                    <tr key={`${item.side}:${item.batchId}`}>
-                                        <td className="border border-gray-300 px-4 py-2 font-mono text-sm">
-                                            {item.code}
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2">{item.material}</td>
-                                        <td className="border border-gray-300 px-4 py-2">
-                                            {item.book} {item.unit}
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2">
-                                            {item.counted} {item.unit}
-                                        </td>
-                                        <td className="border border-gray-300 px-4 py-2">
-                                            {bookDelta !== null && bookDelta !== 0 ? (
-                                                <span
-                                                    className={
-                                                        'font-medium ' +
-                                                        (bookDelta > 0 ? 'text-green-600' : 'text-red-600')
-                                                    }
-                                                >
-                                                    {formatSigned(bookDelta)}
-                                                </span>
-                                            ) : (
-                                                '—'
-                                            )}
-                                        </td>
-                                    </tr>
-                                )
-                            })}
-                            {countedItems.length === 0 && (
-                                <tr>
-                                    <td
-                                        colSpan={5}
-                                        className="border border-gray-300 px-4 py-8 text-center text-gray-500"
-                                    >
-                                        {t('stocktakes.noLines')}
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                /* TABLE-CONVERT-5:空态搬进了 DataTable 的 empty prop(同一个
+                   stocktakes.noLines);表体里那一行 colSpan={5} 已经删掉。 */
+                <PostedLinesTable rows={postedRows} />
             )}
         </div>
     )

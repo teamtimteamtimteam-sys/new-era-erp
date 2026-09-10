@@ -8,6 +8,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatUnitCost } from '@/lib/format'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { Button } from '@/app/components/ui/button'
+import { DataTable, type Column } from '@/app/components/ui/data-table'
 
 const initialState: SetPriceState = {}
 
@@ -58,6 +59,87 @@ export default function PricingPanel({
             setCurrency('USD')
         }
     }, [st.success])
+
+    // ════════════════════════════════════════════════════════════════════
+    // TABLE-CONVERT-5 · 价格历史表 —— ★ 这张表此前【没有】手机档判断 ★
+    // ════════════════════════════════════════════════════════════════════
+    // 转换前一处 hidden sm:table-cell 都没有,五列在 390px 上靠外层
+    // overflow-x-auto 横着拖(TABLE-MEASURE-1 实测 +35px,露一半的是 Notes)。
+    // ☞ 所以下面这三列是【新判断】,不是搬运。
+    //
+    // ★【留哪三列 —— 时间 · 旧价 · 新价。而"三"这个数字要给理由】
+    //   身份是【时间】:一条价格历史行就是"某一刻发生的一次改价",除了时间没有别的
+    //   东西能认出它(同一批次可以在同一天改两次价)。
+    //   而这张表存在的理由是【那次改动本身】—— 而一次改动是【一个位移】,
+    //   位移要两个端点才成立。只留"新价"会把一张历史表变成一列孤零零的数字:
+    //   人还是不知道它是涨了还是跌了。**所以结论这一栏占两列,这是说出来的例外。**
+    //
+    // ★【录入原值 / 备注 为什么折】
+    //   「录入原值」是出处(原币 + 牌价 + 取自哪一天),FIN-21 要求它跟着数字走 ——
+    //   它【跟着走进了展开区】,带着自己的列头,一点就到。
+    //   「备注」本来就是补充说明,而读数说 390px 上露一半的正好就是它(TM-1 §6:⑤)。
+    const columns: Column<PriceHistoryRow>[] = [
+        {
+            key: 'when',
+            header: t('inbound.pricing.colWhen'),
+            // ★ 身份 —— 手机上留下。
+            priority: true,
+            render: (h) => h.created_at_display,
+        },
+        {
+            key: 'old',
+            header: t('inbound.pricing.colOld'),
+            // ★ 位移的起点 —— 手机上留下。
+            priority: true,
+            className: 'font-mono',
+            render: (h) => (
+                <MaskedValue
+                    value={h.old_unit_price}
+                    canView={canViewPrices}
+                    format={formatUnitCost}
+                    fallback="—"
+                />
+            ),
+        },
+        {
+            key: 'new',
+            header: t('inbound.pricing.colNew'),
+            // ★ 位移的终点,也就是此后生效的那个价 —— 手机上留下。
+            priority: true,
+            className: 'font-mono',
+            render: (h) => (
+                <MaskedValue value={h.new_unit_price} canView={canViewPrices} format={formatUnitCost} />
+            ),
+        },
+        {
+            key: 'original',
+            header: t('inbound.pricing.colOriginal'),
+            className: 'font-mono',
+            render: (h) => (
+                <>
+                    <MaskedValue value={h.original_price} canView={canViewPrices} />{' '}
+                    {h.original_price !== null ? h.currency : ''}
+                    {/* FIN-21:汇率必须带上侧与(回溯时)取自哪一天 ——
+                        "4.24 USD @ 1.22" 是个查不回去的数;
+                        "@ 1.22 tt_sell" + as-of 标记才是。旧行没记,留白。 */}
+                    {h.currency !== baseCurrency && h.fx_rate !== null ? ` @ ${h.fx_rate}` : ''}
+                    {h.currency !== baseCurrency && h.fx_rate !== null && h.rate_type && (
+                        <span className="ml-1 text-xs text-gray-500">{h.rate_type}</span>
+                    )}
+                    {h.currency !== baseCurrency && h.rate_as_of && h.priced_date && h.rate_as_of !== h.priced_date && (
+                        <span className="ml-1 px-1 rounded bg-amber-100 text-amber-800 text-xs font-sans">
+                            {t('finance.fxLookup.asOf', { 0: h.rate_as_of })}
+                        </span>
+                    )}
+                </>
+            ),
+        },
+        {
+            key: 'notes',
+            header: t('inbound.pricing.colNotes'),
+            render: (h) => h.notes ?? '—',
+        },
+    ]
 
     return (
         <section className="mt-8 pt-8 border-t">
@@ -131,53 +213,15 @@ export default function PricingPanel({
             </form>
 
             <h3 className="text-sm font-semibold mb-2">{t('inbound.pricing.historyTitle')}</h3>
-            {history.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('inbound.pricing.historyEmpty')}</p>
-            ) : (
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-300 text-sm">
-                        <thead className="bg-gray-100">
-                            <tr>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('inbound.pricing.colWhen')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('inbound.pricing.colOld')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('inbound.pricing.colNew')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('inbound.pricing.colOriginal')}</th>
-                                <th className="border border-gray-300 px-3 py-2 text-left">{t('inbound.pricing.colNotes')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {history.map((h) => (
-                                <tr key={h.id}>
-                                    <td className="border border-gray-300 px-3 py-2">{h.created_at_display}</td>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono">
-                                        <MaskedValue value={h.old_unit_price} canView={canViewPrices} format={formatUnitCost} fallback="—" />
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono">
-                                        <MaskedValue value={h.new_unit_price} canView={canViewPrices} format={formatUnitCost} />
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2 font-mono">
-                                        <MaskedValue value={h.original_price} canView={canViewPrices} />{' '}
-                                        {h.original_price !== null ? h.currency : ''}
-                                        {/* FIN-21:汇率必须带上侧与(回溯时)取自哪一天 ——
-                                            "4.24 USD @ 1.22" 是个查不回去的数;
-                                            "@ 1.22 tt_sell" + as-of 标记才是。旧行没记,留白。 */}
-                                        {h.currency !== baseCurrency && h.fx_rate !== null ? ` @ ${h.fx_rate}` : ''}
-                                        {h.currency !== baseCurrency && h.fx_rate !== null && h.rate_type && (
-                                            <span className="ml-1 text-xs text-gray-500">{h.rate_type}</span>
-                                        )}
-                                        {h.currency !== baseCurrency && h.rate_as_of && h.priced_date && h.rate_as_of !== h.priced_date && (
-                                            <span className="ml-1 px-1 rounded bg-amber-100 text-amber-800 text-xs font-sans">
-                                                {t('finance.fxLookup.asOf', { 0: h.rate_as_of })}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-3 py-2">{h.notes ?? '—'}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
+            {/* TABLE-CONVERT-5:空态搬进了 DataTable 的 empty prop(同一个
+                inbound.pricing.historyEmpty),旧那一支不留 —— 见 TABLE-CONVERT-3 §6.1。 */}
+            <DataTable
+                rows={history}
+                columns={columns}
+                rowKey={(h) => h.id}
+                phone={{ mode: 'columns' }}
+                empty={t('inbound.pricing.historyEmpty')}
+            />
         </section>
     )
 }
