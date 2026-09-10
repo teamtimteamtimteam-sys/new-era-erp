@@ -189,7 +189,7 @@ export default function PermissionMatrix({
                         <input
                             type="checkbox"
                             disabled={disabled}
-                            className="mt-1"
+                            className={`${CONTROL_CHECKBOX} mt-1`}
                             checked={has(p.code)}
                             onChange={() => toggleOther(p.code)}
                         />

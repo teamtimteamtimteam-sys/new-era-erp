@@ -14,6 +14,7 @@
 // 【冻结的数与今天的数【并排】,谁也不替换谁】—— 与 bank_reconciliations 同一条。
 // 一条催收记录里的"欠多少"是【当时告诉客户的那个数】;今天的余额是另一件事。
 // 只显示前者会让人拿着过期数字打电话,只显示后者会让记录说不出当时谈的是什么。
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_CHECKBOX, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { recordChase, recordPromiseOutcome } from './chaseActions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -222,20 +223,20 @@ export default function ChasePanel({
                             {t('chases.chasedOn')}
                             <input type="date" value={chasedOn} max={today()}
                                 onChange={(e) => setChasedOn(e.target.value)}
-                                className="block rounded border border-gray-300 bg-white px-3 py-2" />
+                                className={`${CONTROL_INPUT} block`} />
                             <span className="block text-[11px] text-gray-500">{t('chases.chasedOnHint')}</span>
                         </label>
                         <label className="text-sm text-gray-600">
                             {t('chases.channel')}
                             <select value={channel} onChange={(e) => setChannel(e.target.value)}
-                                className="block rounded border border-gray-300 bg-white px-3 py-2">
+                                className={`${CONTROL_SELECT} block`}>
                                 {CHANNELS.map((c) => (
                                     <option key={c} value={c}>{t('chases.channel_' + c)}</option>
                                 ))}
                             </select>
                         </label>
                         <label className="text-sm text-gray-600 self-end pb-2">
-                            <input type="checkbox" checked={reached} className="mr-2"
+                            <input type="checkbox" checked={reached} className={`${CONTROL_CHECKBOX} mr-2`}
                                 onChange={(e) => { setReached(e.target.checked); if (!e.target.checked) setPerson('') }} />
                             {reached ? t('chases.reached') : t('chases.notReached')}
                         </label>
@@ -243,21 +244,21 @@ export default function ChasePanel({
                             <label className="text-sm text-gray-600">
                                 {t('chases.contactedPerson')}
                                 <input value={person} onChange={(e) => setPerson(e.target.value)}
-                                    className="block rounded border border-gray-300 bg-white px-3 py-2" />
+                                    className={`${CONTROL_INPUT} block`} />
                             </label>
                         )}
                     </div>
                     <label className="text-sm text-gray-600 block mb-3">
                         {t('chases.summary')}
-                        <textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={3}
-                            className="block w-full rounded border border-gray-300 bg-white px-3 py-2" />
+                        <textarea value={summary} onChange={(e) => setSummary(e.target.value)}
+                            className={`${CONTROL_TEXTAREA} block w-full`} />
                         <span className="block text-[11px] text-gray-500">{t('chases.summaryHint')}</span>
                     </label>
 
                     {/* 【承诺是有牙齿的那一半】没联系上人时它不出现 —— 服务端也拒 */}
                     {reached && (
                         <label className="text-sm text-gray-600 block mb-2">
-                            <input type="checkbox" checked={wantPromise} className="mr-2"
+                            <input type="checkbox" checked={wantPromise} className={`${CONTROL_CHECKBOX} mr-2`}
                                 onChange={(e) => setWantPromise(e.target.checked)} />
                             {t('chases.addPromise')}
                         </label>
@@ -268,18 +269,18 @@ export default function ChasePanel({
                                 {t('chases.promiseAmount')}
                                 <input type="number" step="0.01" min="0" value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
-                                    className="block rounded border border-gray-300 bg-white px-3 py-2 w-40" />
+                                    className={`${CONTROL_INPUT} block w-40`} />
                             </label>
                             <label className="text-sm text-gray-600">
                                 {t('chases.promiseCurrency')}
                                 <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                                    className="block rounded border border-gray-300 bg-white px-3 py-2 w-24 font-mono" />
+                                    className={`${CONTROL_INPUT} block w-24 font-mono`} />
                             </label>
                             <label className="text-sm text-gray-600">
                                 {t('chases.promiseDate')}
                                 <input type="date" value={promisedDate} min={chasedOn || undefined}
                                     onChange={(e) => setPromisedDate(e.target.value)}
-                                    className="block rounded border border-gray-300 bg-white px-3 py-2" />
+                                    className={`${CONTROL_INPUT} block`} />
                             </label>
                         </div>
                     )}

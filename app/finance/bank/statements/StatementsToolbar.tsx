@@ -2,6 +2,7 @@
 
 // 对账单列表工具栏:银行账户 + 状态筛选(端口自 PaymentsToolbar)。
 // 改动只写进 URL searchParams,真正的过滤在服务端 page.tsx 完成。
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 
@@ -29,7 +30,7 @@ export default function StatementsToolbar() {
             <select
                 value={account}
                 onChange={(e) => onChange('account', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('expense.filterAllAccounts')}</option>
                 <option value="1010">{t('finance.bank.1010')}</option>
@@ -38,7 +39,7 @@ export default function StatementsToolbar() {
             <select
                 value={status}
                 onChange={(e) => onChange('status', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('expense.filterAllStatus')}</option>
                 <option value="open">{t('bank.status.open')}</option>

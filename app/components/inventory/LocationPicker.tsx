@@ -10,6 +10,7 @@
 // 【下拉只列在用库位,是便利;拒绝在函数里】停用/不存在的库位由
 // resolve_receipt_location 点名拒(IOD_RECEIPT_LOCATION_INACTIVE / _UNKNOWN)——
 // 下拉挡不住直接调 RPC 的人,所以判断不能只住在这里。
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useTranslations } from '@/lib/i18n/client'
 
 export type LocationChoice = { id: string; code: string; name: string }
@@ -19,7 +20,7 @@ export default function LocationPicker({ locations }: { locations: LocationChoic
     return (
         <div>
             <label className="block text-sm font-medium mb-1">{t('stock.receiptLocation')}</label>
-            <select name="location_id" defaultValue="" className="w-full border border-gray-300 px-3 py-2 rounded">
+            <select name="location_id" defaultValue="" className={`${CONTROL_SELECT} w-full`}>
                 <option value="">{t('stock.receiptLocationUnspecified')}</option>
                 {locations.map((l) => (
                     <option key={l.id} value={l.id}>{l.code} — {l.name}</option>

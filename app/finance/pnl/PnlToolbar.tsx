@@ -2,6 +2,7 @@
 
 // 损益表工具栏:日期区间(显示生效值,含默认)+ 快捷预设(本月/上月/今年)。
 // 改动只写进 URL searchParams,聚合在服务端 page.tsx 完成。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
@@ -38,7 +39,7 @@ export default function PnlToolbar({
                     type="date"
                     value={from}
                     onChange={(e) => push(e.target.value, to)}
-                    className="rounded border border-gray-300 bg-white px-3 py-2"
+                    className={CONTROL_INPUT}
                 />
             </label>
             <label className="text-sm text-gray-600">
@@ -47,7 +48,7 @@ export default function PnlToolbar({
                     type="date"
                     value={to}
                     onChange={(e) => push(from, e.target.value)}
-                    className="rounded border border-gray-300 bg-white px-3 py-2"
+                    className={CONTROL_INPUT}
                 />
             </label>
             {presets.map((p) => (

@@ -2,6 +2,7 @@
 
 // app/finance/packs/PackControls.tsx
 // GLEXPORT-1:月份选择 + 存档控件。**禁用一律说出为什么**(CMP-2 的规矩)。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -18,7 +19,7 @@ export function PackMonthPicker({ month }: { month: string }) {
             <label className="block text-sm font-medium mb-1">{t('pack.colMonth')}</label>
             <input type="month" defaultValue={month} name="month"
                    onChange={(e) => { if (e.target.value) router.push(`${pathname}?month=${e.target.value}`) }}
-                   className="border border-gray-300 px-3 py-2 rounded" />
+                   className={CONTROL_INPUT} />
         </div>
     )
 }
@@ -62,13 +63,13 @@ export function ProducePackControl({
                 <div className="grow">
                     <label className="block text-sm font-medium mb-1">{t('pack.colCode')}</label>
                     <input value={notes} onChange={(e) => setNotes(e.target.value)}
-                           className="border border-gray-300 px-3 py-2 rounded w-full" />
+                           className={`${CONTROL_INPUT} w-full`} />
                 </div>
                 {hasLive && (
                     <div className="grow">
                         <label className="block text-sm font-medium mb-1">{t('pack.supersedeReason')}</label>
                         <input value={reason} onChange={(e) => setReason(e.target.value)}
-                               className="border border-gray-300 px-3 py-2 rounded w-full" />
+                               className={`${CONTROL_INPUT} w-full`} />
                     </div>
                 )}
                 <PermissionGate code="module.finance.edit" allowed={canEdit}>

@@ -2,6 +2,7 @@
 
 // 评级 + 书面结论。两者都要:只有档位的评估没法向员工交代,只有文字的没法横向看。
 // 档位目录人人可读(HR-3d 的策略),但【谁能写】仍由 set_review_conclusion 把关。
+import { CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from '@/lib/i18n/client'
@@ -85,7 +86,7 @@ export default function ConclusionForm({ reviewId, ratings, ratingCode, summaryT
                     <select
                         value={rating}
                         onChange={(e) => setRating(e.target.value)}
-                        className="block border border-gray-300 rounded px-2 py-1 text-sm"
+                        className={`${CONTROL_SELECT} block`}
                     >
                         <option value="">—</option>
                         {ratings
@@ -102,7 +103,7 @@ export default function ConclusionForm({ reviewId, ratings, ratingCode, summaryT
                     <textarea
                         value={summary}
                         onChange={(e) => setSummary(e.target.value)}
-                        className="block w-full border border-gray-300 rounded px-2 py-1 text-sm min-h-20"
+                        className={`${CONTROL_TEXTAREA} block w-full`}
                     />
                 </label>
                 <Button

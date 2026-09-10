@@ -13,7 +13,7 @@ import { saveContact, removeContact } from './contactActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
-import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX, CONTROL_INPUT } from '@/app/components/ui/control-style'
 
 export type ContactRow = {
     id: string
@@ -172,23 +172,23 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit, p
                     <div className="grid grid-cols-2 gap-2">
                         <label className="text-xs">{t('contacts.colName')}
                             <input type="text" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })}
-                                   className="block w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                                   className={`${CONTROL_INPUT} block w-full`} />
                         </label>
                         <label className="text-xs">{t('contacts.colRole')}
                             <input type="text" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}
-                                   className="block w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                                   className={`${CONTROL_INPUT} block w-full`} />
                         </label>
                         <label className="text-xs">{t('contacts.colEmail')}
                             <input type="text" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })}
-                                   className="block w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                                   className={`${CONTROL_INPUT} block w-full`} />
                         </label>
                         <label className="text-xs">{t('contacts.colPhone')}
                             <input type="text" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })}
-                                   className="block w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                                   className={`${CONTROL_INPUT} block w-full`} />
                         </label>
                         <label className="text-xs col-span-2">{t('contacts.colNotes')}
                             <input type="text" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })}
-                                   className="block w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                                   className={`${CONTROL_INPUT} block w-full`} />
                         </label>
                     </div>
                     <label className="flex items-center gap-2 mt-2 text-xs">

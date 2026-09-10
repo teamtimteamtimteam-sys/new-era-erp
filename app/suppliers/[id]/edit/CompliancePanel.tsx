@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { addCompliance, deleteCompliance } from './complianceActions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -192,7 +193,7 @@ export default function CompliancePanel({
                         name="cert_type_code"
                         required
                         defaultValue=""
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="" disabled>
                             {t('suppliers.compliance.certTypePlaceholder')}
@@ -213,7 +214,7 @@ export default function CompliancePanel({
                     <select
                         name="document_id"
                         defaultValue=""
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('suppliers.compliance.documentNone')}</option>
                         {attachments.map((a) => (
@@ -230,7 +231,7 @@ export default function CompliancePanel({
                         type="text"
                         name="cert_no"
                         placeholder={t('suppliers.compliance.certNo')}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -240,7 +241,7 @@ export default function CompliancePanel({
                         type="text"
                         name="issuing_body"
                         placeholder={t('suppliers.compliance.issuer')}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -250,7 +251,7 @@ export default function CompliancePanel({
                         <input
                             type="date"
                             name="valid_from"
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_INPUT} w-full`}
                         />
                     </div>
                     <div>
@@ -258,7 +259,7 @@ export default function CompliancePanel({
                         <input
                             type="date"
                             name="valid_until"
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_INPUT} w-full`}
                         />
                     </div>
                 </div>
@@ -269,7 +270,7 @@ export default function CompliancePanel({
                         type="text"
                         name="notes"
                         placeholder={t('suppliers.compliance.notesPlaceholder')}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 

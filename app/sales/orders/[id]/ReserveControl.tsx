@@ -9,6 +9,7 @@
 // 【页面不做服务端会做的判断,只是不给人看见一个必然被拒的按钮】
 // 数量超过桶里的可用、或超过这一行还能许的量时禁钮并说原因;真正的判决在
 // reserve_stock 里(那里的数是现算的,这里的只是上一次渲染的快照)。
+import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -82,7 +83,7 @@ export default function ReserveControl({
                     <select
                         value={pick}
                         onChange={(e) => setPick(e.target.value)}
-                        className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('sales.reserve.pickBucket')}</option>
                         {buckets.map((b) => (
@@ -102,7 +103,7 @@ export default function ReserveControl({
                         min="0"
                         value={qty}
                         onChange={(e) => setQty(e.target.value)}
-                        className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
                 <Button

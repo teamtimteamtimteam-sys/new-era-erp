@@ -31,6 +31,7 @@
 //   ★ 所以这里【不】自己加一条"作废单不许挂"★:那会是一条【没有人裁过】的规矩,
 //     而且它会与 DB 那一侧说两句不一样的话。要立这条规矩,先要有一次裁定,
 //     而且它该立在那支函数里,不是立在这个组件里。
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import { linkOrderToContract, type LinkContractState } from './contractActions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -104,7 +105,7 @@ export default function ContractLinkPanel({
                             这里是【礼貌】:把注定被拒的选项先不摆出来。
                             把关仍在 link_document_to_contract —— 直连 PostgREST 也逃不掉。 */}
                         <select name="contract_id" required
-                            className="w-72 border border-gray-300 px-2 py-1.5 rounded text-sm">
+                            className={`${CONTROL_SELECT} w-72`}>
                             <option value="">{t('common.select')}</option>
                             {options.map((c) => (
                                 <option key={c.id} value={c.id}>

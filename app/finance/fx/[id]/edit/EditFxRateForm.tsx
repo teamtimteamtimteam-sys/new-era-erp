@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { updateFxRate, type UpdateFxRateState } from './actions'
@@ -84,7 +85,7 @@ canEdit: boolean
 
                             placeholder={t('finance.fxPage.form.reasonPlaceholder')}
 
-                            className="border border-gray-300 rounded px-2 py-1 w-full text-sm"
+                            className={`${CONTROL_INPUT} w-full`}
 
                         />
 

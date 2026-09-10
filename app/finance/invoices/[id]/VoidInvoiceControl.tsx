@@ -11,6 +11,7 @@
 //   人会以为面板填完就齐了,然后在对话框里撞上第二个必填项。
 //   所以这里【只加主语】,理由与冲销日原样留在面板里,一起管着那个禁用条件。
 //   ☞ 这是刻意的不一致,写在这里是为了让下一个人不必再推一遍。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { voidInvoice } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -86,7 +87,7 @@ canEdit: boolean
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 placeholder={t('invoice.voidReason')}
-                className="border border-gray-300 px-3 py-1 rounded text-sm min-w-[16rem]"
+                className={`${CONTROL_INPUT} min-w-[16rem]`}
             />
             {needsReversalDate && (
                 <span className="flex items-center gap-1">
@@ -94,7 +95,7 @@ canEdit: boolean
                         type="date"
                         value={reversalDate}
                         onChange={(e) => setReversalDate(e.target.value)}
-                        className="border border-gray-300 px-3 py-1 rounded text-sm"
+                        className={CONTROL_INPUT}
                         title={t('invoice.voidReversalDateWhy')}
                     />
                     <span className="text-xs text-gray-500">{t('invoice.voidReversalDateWhy')}</span>

@@ -15,6 +15,7 @@
 // 【延迟是三态,不是复选框】当天 / 延迟 / 未记录 —— 一个复选框只有两态,
 // 而"没记录过"必须与"记录了否"分得开(1a 的列注释就是这么写的)。
 // 默认是【未记录】:不推断,也不替录入的人回答。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import IndexPicker from './IndexPicker'
@@ -23,7 +24,8 @@ import {
     NEW_QUOTE_SOURCES, DELAY_UNRECORDED, DELAY_SAME_DAY, DELAY_DELAYED,
 } from './sourceOptions'
 
-const fieldCls = 'w-full border border-gray-300 px-3 py-2 rounded'
+const fieldCls = `${CONTROL_INPUT} w-full`
+const fieldClsSelect = `${CONTROL_SELECT} w-full`
 
 export default function SourcePicker({
     indices, locale, indexName = 'price_index', onIndexChange, defaultIndex = null, error,
@@ -52,7 +54,7 @@ export default function SourcePicker({
                     required
                     value={source}
                     onChange={(e) => setSource(e.target.value)}
-                    className={fieldCls}
+                    className={fieldClsSelect}
                 >
                     <option value="" disabled>{t('metalPrices.source.choose')}</option>
                     {NEW_QUOTE_SOURCES.map((s) => (
@@ -84,7 +86,7 @@ export default function SourcePicker({
                         {/* 禁用的 select 不会进 FormData —— 服务端因此收到"没有指数",
                             正是我们要的。但【禁用必须说出为什么】(本仓库反复的那一条):
                             一个灰着不语的下拉,操作员分不清是坏了还是不该填。 */}
-                        <select disabled className={fieldCls + ' bg-gray-100 text-gray-400'}>
+                        <select disabled className={fieldClsSelect + ' text-gray-400'}>
                             <option>{t('metalPrices.index.onlyForPublished')}</option>
                         </select>
                         <p className="text-xs text-gray-500 mt-1">
@@ -111,7 +113,7 @@ export default function SourcePicker({
                 <label className="block text-sm font-medium mb-1">
                     {t('metalPrices.source.delayLabel')}
                 </label>
-                <select name="quote_delayed" defaultValue={DELAY_UNRECORDED} className={fieldCls}>
+                <select name="quote_delayed" defaultValue={DELAY_UNRECORDED} className={fieldClsSelect}>
                     <option value={DELAY_UNRECORDED}>{t('metalPrices.source.delayUnrecorded')}</option>
                     <option value={DELAY_SAME_DAY}>{t('metalPrices.source.delaySameDay')}</option>
                     <option value={DELAY_DELAYED}>{t('metalPrices.source.delayDelayed')}</option>

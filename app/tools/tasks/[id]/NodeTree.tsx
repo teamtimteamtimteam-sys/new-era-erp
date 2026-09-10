@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { addNode, renameNode, setNodeDate, setNodeDone, removeNode, moveNode } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
-import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX, CONTROL_INPUT } from '@/app/components/ui/control-style'
 
 // app/tools/tasks/[id]/NodeTree.tsx
 // TASK-1b:步骤树。一层嵌套 —— 而【做不到的手势这里根本不出现】:
@@ -85,7 +85,7 @@ export default function NodeTree({
                 {editing === n.id ? (
                     <>
                         <input
-                            className="rounded border px-2 py-1 text-sm"
+                            className={CONTROL_INPUT}
                             value={editTitle}
                             onChange={(e) => setEditTitle(e.target.value)}
                         />
@@ -100,7 +100,7 @@ export default function NodeTree({
 
                 <input
                     type="date"
-                    className="rounded border px-1 text-xs"
+                    className={CONTROL_INPUT}
                     value={n.target_date ?? ''}
                     disabled={pending}
                     aria-label={labels.targetDate}
@@ -170,14 +170,14 @@ export default function NodeTree({
     const addForm = (parentId: string | null) => (
         <div className="my-2 flex flex-wrap items-center gap-2">
             <input
-                className="rounded border px-2 py-1 text-sm"
+                className={CONTROL_INPUT}
                 placeholder={labels.titlePlaceholder}
                 value={draftTitle}
                 onChange={(e) => setDraftTitle(e.target.value)}
             />
             <input
                 type="date"
-                className="rounded border px-1 py-1 text-sm"
+                className={CONTROL_INPUT}
                 aria-label={labels.targetDate}
                 value={draftDate}
                 onChange={(e) => setDraftDate(e.target.value)}

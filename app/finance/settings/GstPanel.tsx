@@ -11,6 +11,7 @@
 // CONFIRM-1:两个方向各自换成 ConfirmButton。★ 主语是【那个注册号】—— 开的那一侧
 //   是人刚敲进去的 regNo(它就要被写成公司的 GST 号),关的那一侧是【现在生效的
 //   那一个】registrationNo。两者都已经在上面那条状态横幅里原样印着,没有遮蔽。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { setGstRegistration } from './gstActions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -91,7 +92,7 @@ canEdit: boolean
                                 value={regNo}
                                 onChange={(e) => setRegNo(e.target.value)}
                                 placeholder={t('finance.gstSwitch.regNoPlaceholder')}
-                                className="border border-gray-300 px-3 py-2 rounded font-mono"
+                                className={`${CONTROL_INPUT} font-mono`}
                                 aria-invalid={fieldError ? true : undefined}
                             />
                             {/* ★ 甲类:话贴着那个框。页顶一条横幅会让人回头找是哪个框。 */}

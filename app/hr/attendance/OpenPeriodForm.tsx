@@ -2,6 +2,7 @@
 
 // app/hr/attendance/OpenPeriodForm.tsx
 // ATTEND-1:开一个月。月份【不预填】—— 预填就是奖励不看;函数侧也独立拒未来月份。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -20,14 +21,14 @@ export default function OpenPeriodForm() {
             {error && (
                 <div className="mb-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
-            <div className="flex items-end gap-3">
+            <div className="flex flex-wrap items-end gap-3">
                 <label className="text-sm">
                     <span className="block text-gray-600 mb-1">{t('attendance.openMonth')}</span>
                     <input
                         type="month"
                         value={month}
                         onChange={(e) => setMonth(e.target.value)}
-                        className="rounded border px-2 py-1"
+                        className={CONTROL_INPUT}
                     />
                 </label>
                 <Button

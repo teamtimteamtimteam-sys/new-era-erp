@@ -38,7 +38,7 @@ import { useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { KIND_UNCHOSEN, type MaterialKind } from './materialKindOptions'
 import { AXIS_UNCHOSEN, type MaterialForm, type MaterialSource, type MaterialSizeFormat } from './materialAxesOptions'
-import { CONTROL_RADIO } from '@/app/components/ui/control-style'
+import { CONTROL_RADIO, CONTROL_SELECT } from '@/app/components/ui/control-style'
 
 // 不适用/未知时画的那一行 —— 灰底、成句,而不是一个消失了的控件。
 function NotApplicable({ label, why }: { label: string; why: string }) {
@@ -75,7 +75,7 @@ export default function MaterialAxesPicker({
                       rows: { code: string; name_en: string; name_zh: string }[], unchosenKey: string) => (
         <select name={name} defaultValue={onChange ? undefined : value} value={onChange ? value : undefined}
                 onChange={onChange ? (e) => onChange(e.target.value) : undefined}
-                className="w-full border border-gray-300 px-3 py-2 rounded">
+                className={`${CONTROL_SELECT} w-full`}>
             <option value={AXIS_UNCHOSEN}>{t(unchosenKey)}</option>
             {rows.map((r) => <option key={r.code} value={r.code}>{label(r)}</option>)}
         </select>
@@ -87,7 +87,7 @@ export default function MaterialAxesPicker({
             <div>
                 <label className="block text-sm font-medium mb-1">{t('materials.form.kind')}</label>
                 <select name="kind_code" value={kind} onChange={(e) => setKind(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded">
+                        className={`${CONTROL_SELECT} w-full`}>
                     <option value={KIND_UNCHOSEN}>{t('materials.form.kindUnchosen')}</option>
                     {kinds.map((k) => <option key={k.code} value={k.code}>{label(k)}</option>)}
                 </select>

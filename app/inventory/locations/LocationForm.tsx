@@ -2,6 +2,7 @@
 
 // LOC-1:库位表单 —— 新建与编辑共用一个组件(字段完全相同,差别只有初值与
 // 提交动作)。写成两份的那一天,两份就会开始漂开。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
@@ -54,7 +55,7 @@ export default function LocationForm({
                         name="code"
                         defaultValue={defaults.code}
                         required
-                        className="border border-gray-300 px-3 py-2 rounded font-mono w-48"
+                        className={`${CONTROL_INPUT} font-mono w-48`}
                     />
                     {/* "SG-" 是约定不是约束 —— 提示写在这里,数据库【故意】不用
                         CHECK 钉死它(多实体是计划中的,见迁移文件头) */}
@@ -72,7 +73,7 @@ export default function LocationForm({
                         name="name"
                         defaultValue={defaults.name}
                         required
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {state.fieldErrors?.name && (
                         <p className="text-xs text-red-600 mt-1">{state.fieldErrors.name}</p>
@@ -84,7 +85,7 @@ export default function LocationForm({
                         type="text"
                         name="zone"
                         defaultValue={defaults.zone}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {/* zone 只是显示分组 —— 说在输入框旁边,免得有人把合规范围
                         写进这一格然后以为系统会照着办 */}
@@ -98,7 +99,7 @@ export default function LocationForm({
                     type="text"
                     name="notes"
                     defaultValue={defaults.notes}
-                    className="w-full border border-gray-300 px-3 py-2 rounded"
+                    className={`${CONTROL_INPUT} w-full`}
                 />
             </div>
 

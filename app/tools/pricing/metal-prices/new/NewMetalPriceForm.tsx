@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_SELECT, CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { createMetalPrice, type CreateMetalPriceState } from './actions'
@@ -66,7 +67,7 @@ export default function NewMetalPriceForm({
                         name="metal"
                         required
                         defaultValue=""
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="" disabled>{t('metalPrices.form.selectMetal')}</option>
                         {substanceOptions.filter((s) => s.isActive).map((o) => (
@@ -91,7 +92,7 @@ export default function NewMetalPriceForm({
                         required
                         step="0.01"
                         min="0"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {state.fieldErrors?.price_usd_per_tonne && (
                         <p className="text-red-600 text-xs mt-1">
@@ -115,7 +116,7 @@ export default function NewMetalPriceForm({
                         name="price_date"
                         required
                         defaultValue={todayIsoLocal()}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {state.fieldErrors?.price_date && (
                         <p className="text-red-600 text-xs mt-1">
@@ -129,8 +130,7 @@ export default function NewMetalPriceForm({
                     <label className="block text-sm font-medium mb-1">{t('metalPrices.form.notes')}</label>
                     <textarea
                         name="notes"
-                        rows={3}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 

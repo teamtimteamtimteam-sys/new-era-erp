@@ -1,6 +1,7 @@
 'use client'
 
 // 培训列表工具栏:类别 + 到期状态(已过期 / 90 天内到期 / 无到期日)。
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { TRAINING_CATEGORY_OPTIONS } from '../options'
@@ -27,7 +28,7 @@ export default function TrainingToolbar() {
             <select
                 value={category}
                 onChange={(e) => onChange('category', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('hr.allCategoriesTraining')}</option>
                 {TRAINING_CATEGORY_OPTIONS.map((o) => (
@@ -39,7 +40,7 @@ export default function TrainingToolbar() {
             <select
                 value={expiry}
                 onChange={(e) => onChange('expiry', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('hr.allExpiryStates')}</option>
                 <option value="expired">{t('hr.severity.expired')}</option>

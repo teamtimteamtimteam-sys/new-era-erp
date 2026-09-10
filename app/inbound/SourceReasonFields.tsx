@@ -10,6 +10,7 @@
 // R5:这里的 required 只是【提前把答案说出来】;真正的拒绝在库里
 //   (guard_receipt_source_stated),绕过表单也一样被按名拒。
 
+import { CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import type { SourceReasonOption } from './sourceReasonQuery'
@@ -40,7 +41,7 @@ export default function SourceReasonFields({
                 required={!hasPoLine}
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                className="w-full border border-gray-300 px-3 py-2 rounded"
+                className={`${CONTROL_SELECT} w-full`}
             >
                 {/* 选了采购行时,空选项的意思是"来路就是那张采购行" */}
                 <option value="">
@@ -62,8 +63,7 @@ export default function SourceReasonFields({
                     <textarea
                         name="source_reason_note"
                         required
-                        rows={2}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                         placeholder={t('inbound.source.notePlaceholder')}
                     />
                     <p className="text-xs text-gray-500 mt-1">{t('inbound.source.noteHint')}</p>

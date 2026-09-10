@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { addParticipant, removeParticipant, promoteToTeam, correctType } from './actions'
 import { Button } from '@/app/components/ui/button'
@@ -125,7 +126,7 @@ export default function Participants({
             ) : (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                     <select
-                        className="rounded border px-2 py-1 text-sm"
+                        className={CONTROL_SELECT}
                         value={pick}
                         onChange={(e) => setPick(e.target.value)}
                     >

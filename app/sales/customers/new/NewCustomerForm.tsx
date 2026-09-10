@@ -5,6 +5,7 @@
 // (它 await 权限、读 cookie 取语言)。守卫塞进客户端组件会把 next/headers 拖进
 // 客户端图,整个构建失败;而且客户端组件不能是 async。
 // 所以守卫回到 page.tsx 那层服务端壳里,与 app/tools/pricing/metal-prices/new 早就在用的形状一致。
+import { CONTROL_INPUT, CONTROL_TEXTAREA, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import { useRef } from 'react'
 import { useFormDraft } from '@/lib/useFormDraft'
@@ -79,7 +80,7 @@ export default function NewCustomerForm() {
                         type="text"
                         name="legal_name"
                         required
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('customers.form.legalNamePlaceholder')}
                     />
                     {state.fieldErrors?.legal_name && (
@@ -95,7 +96,7 @@ export default function NewCustomerForm() {
                     <input
                         type="text"
                         name="short_name"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('customers.form.shortNamePlaceholder')}
                     />
                 </div>
@@ -110,7 +111,7 @@ export default function NewCustomerForm() {
                         name="country"
                         required
                         maxLength={2}
-                        className="w-full border border-gray-300 px-3 py-2 rounded uppercase"
+                        className={`${CONTROL_INPUT} w-full uppercase`}
                         placeholder={t('customers.form.countryPlaceholder')}
                     />
                     {state.fieldErrors?.country && (
@@ -126,7 +127,7 @@ export default function NewCustomerForm() {
                     <input
                         type="text"
                         name="tax_id"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -135,8 +136,7 @@ export default function NewCustomerForm() {
                     <label className="block text-sm font-medium mb-1">{t('customers.form.address')}</label>
                     <textarea
                         name="address"
-                        rows={2}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 
@@ -154,7 +154,7 @@ export default function NewCustomerForm() {
                             <input
                                 type="text"
                                 name="contact_person"
-                                className="w-full border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_INPUT} w-full`}
                             />
                         </div>
                         <div className="flex flex-wrap gap-3">
@@ -163,7 +163,7 @@ export default function NewCustomerForm() {
                                 <input
                                     type="text"
                                     name="email"
-                                    className="w-full border border-gray-300 px-3 py-2 rounded"
+                                    className={`${CONTROL_INPUT} w-full`}
                                 />
                             </div>
                             <div className="flex-1 min-w-[12rem]">
@@ -171,7 +171,7 @@ export default function NewCustomerForm() {
                                 <input
                                     type="text"
                                     name="phone"
-                                    className="w-full border border-gray-300 px-3 py-2 rounded"
+                                    className={`${CONTROL_INPUT} w-full`}
                                 />
                             </div>
                         </div>
@@ -190,7 +190,7 @@ export default function NewCustomerForm() {
                                     type="checkbox"
                                     name="customer_types"
                                     value={opt.value}
-                                    className="w-4 h-4"
+                                    className={`${CONTROL_CHECKBOX} w-4`}
                                 />
                                 <span className="text-sm">{t(opt.labelKey)}</span>
                             </label>
@@ -204,7 +204,7 @@ export default function NewCustomerForm() {
                     <input
                         type="text"
                         name="payment_terms"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('customers.form.paymentTermsPlaceholder')}
                     />
                 </div>
@@ -215,7 +215,7 @@ export default function NewCustomerForm() {
                         min="0"
                         name="payment_terms_days"
                         
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {/* CASHFLOW-1:这一列【已经被读了】—— 开票表单拿它当默认账期,
                         读不到就悄悄用 30 天。而在此之前【没有任何地方设得了它】,
@@ -232,7 +232,7 @@ export default function NewCustomerForm() {
                     <input
                         type="text"
                         name="incoterm"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('customers.form.incotermPlaceholder')}
                     />
                 </div>
@@ -243,7 +243,7 @@ export default function NewCustomerForm() {
                     <input
                         type="text"
                         name="credit_rating"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('customers.form.creditRatingPlaceholder')}
                     />
                 </div>
@@ -253,8 +253,7 @@ export default function NewCustomerForm() {
                     <label className="block text-sm font-medium mb-1">{t('customers.form.notes')}</label>
                     <textarea
                         name="notes"
-                        rows={3}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 

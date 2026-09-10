@@ -6,6 +6,7 @@
 // 答复推到最后。所以选完客户就把限额/敞口/余额/冻结画出来。
 // 【受限 ≠ 零】没有 module.customers.view 的读者看到的是「受限」,不是 0 ——
 // 0 在信用面板上读作"没有限额、余额充足"(SAL-B6 的原话)。
+import { CONTROL_SELECT, CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
@@ -52,7 +53,7 @@ export default function NewOrderForm({
                         {t('sales.form.customer')} <span className="text-red-600">*</span>
                     </label>
                     <select name="customer_id" value={customerId} onChange={(e) => setCustomerId(e.target.value)}
-                            required className="w-full border border-gray-300 px-3 py-2 rounded">
+                            required className={`${CONTROL_SELECT} w-full`}>
                         <option value="">{t('sales.form.selectCustomer')}</option>
                         {customers.map((c) => (
                             <option key={c.id} value={c.id}>{c.code} — {c.legal_name}</option>
@@ -94,7 +95,7 @@ export default function NewOrderForm({
                     </label>
                     <input type="date" name="order_date" value={orderDate}
                            onChange={(e) => setOrderDate(e.target.value)} required
-                           className="w-full border border-gray-300 px-3 py-2 rounded" />
+                           className={`${CONTROL_INPUT} w-full`} />
                     {state.fieldErrors?.order_date && (
                         <p className="text-red-600 text-xs mt-1">{state.fieldErrors.order_date}</p>
                     )}
@@ -104,14 +105,14 @@ export default function NewOrderForm({
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">{t('sales.form.currency')} <span className="text-red-600">*</span></label>
-                        <select name="currency" required className="w-full border border-gray-300 px-3 py-2 rounded">
+                        <select name="currency" required className={`${CONTROL_SELECT} w-full`}>
                             {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">{t('sales.form.fxRate')} <span className="text-red-600">*</span></label>
                         <input type="number" step="any" min="0" name="fx_rate" required
-                               className="w-full border border-gray-300 px-3 py-2 rounded" />
+                               className={`${CONTROL_INPUT} w-full`} />
                         {state.fieldErrors?.fx_rate && (
                             <p className="text-red-600 text-xs mt-1">{state.fieldErrors.fx_rate}</p>
                         )}
@@ -128,15 +129,15 @@ export default function NewOrderForm({
                     )}
                     <div className="space-y-2">
                         {Array.from({ length: LINE_SLOTS }, (_, i) => (
-                            <div key={i} className="flex gap-2">
-                                <select name={`line_material_${i}`} className="flex-1 border border-gray-300 px-2 py-1 rounded text-sm">
+                            <div key={i} className="flex flex-wrap gap-2">
+                                <select name={`line_material_${i}`} className={`${CONTROL_SELECT} flex-1`}>
                                     <option value="">{t('sales.form.selectMaterial')}</option>
                                     {materials.map((m) => <option key={m.id} value={m.id}>{m.code} — {m.name}</option>)}
                                 </select>
                                 <input type="number" step="any" min="0" name={`line_qty_${i}`}
-                                       placeholder={t('sales.form.qty')} className="w-28 border border-gray-300 px-2 py-1 rounded text-sm" />
+                                       placeholder={t('sales.form.qty')} className={`${CONTROL_INPUT} w-28`} />
                                 <input type="number" step="any" min="0" name={`line_price_${i}`}
-                                       placeholder={t('sales.form.unitPrice')} className="w-32 border border-gray-300 px-2 py-1 rounded text-sm" />
+                                       placeholder={t('sales.form.unitPrice')} className={`${CONTROL_INPUT} w-32`} />
                             </div>
                         ))}
                     </div>
@@ -145,7 +146,7 @@ export default function NewOrderForm({
 
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('sales.form.notes')}</label>
-                    <textarea name="notes" rows={3} className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    <textarea name="notes" className={`${CONTROL_TEXTAREA} w-full`} />
                 </div>
 
                 {/* 【草稿,不是承诺】保存只建草稿;确认是另一步,而确认才会冻结 */}

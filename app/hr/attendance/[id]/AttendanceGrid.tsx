@@ -97,7 +97,7 @@ export default function AttendanceGrid({
                         <input
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
-                            className="w-full rounded border px-2 py-1"
+                            className={`${CONTROL_INPUT} w-full`}
                         />
                     </label>
                     <Button
@@ -150,7 +150,7 @@ function LineRow({
                     <div>
                         <span className="text-gray-500">{t('attendance.colNote')}: </span>
                         {open ? (
-                            <input className="w-full rounded border px-2 py-1" value={note} onChange={(e) => setNote(e.target.value)} />
+                            <input className={`${CONTROL_INPUT} w-full`} value={note} onChange={(e) => setNote(e.target.value)} />
                         ) : (
                             <span className="text-gray-600">{row.note || '—'}</span>
                         )}
@@ -172,7 +172,7 @@ function LineRow({
             </td>
             <td className="hidden sm:table-cell py-2 pr-3">
                 {open ? (
-                    <input className="w-full rounded border px-2 py-1" value={note} onChange={(e) => setNote(e.target.value)} />
+                    <input className={`${CONTROL_INPUT} w-full`} value={note} onChange={(e) => setNote(e.target.value)} />
                 ) : (
                     <span className="text-gray-600">{row.note || '—'}</span>
                 )}

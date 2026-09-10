@@ -2,6 +2,7 @@
 
 // SO-1:状态转换。【每个按钮都带一句后果】—— 确认会冻结什么、作废要理由,
 // 都写在按钮旁边而不是等拒绝之后才说。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -48,7 +49,7 @@ export default function TransitionPanel({
                 <div className="mb-3">
                     <label className="block text-xs text-gray-600 mb-1">{t('sales.cancelReason')}</label>
                     <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
-                           className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
+                           className={`${CONTROL_INPUT} w-full`} />
                 </div>
             )}
             <div className="flex flex-wrap gap-3">

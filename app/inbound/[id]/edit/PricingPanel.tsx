@@ -2,6 +2,7 @@
 
 // 计价面板:当前 USD 单价(只读)+ 设价表单(价格/币种/汇率/备注)+ 价格历史。
 // 走 set_inbound_unit_price RPC —— 每次变更都有 price_history 审计行。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useEffect, useState } from 'react'
 import { setInboundPrice, type SetPriceState } from './pricingActions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -177,7 +178,7 @@ export default function PricingPanel({
                         step="any"
                         min="0"
                         required
-                        className="w-32 border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-32`}
                     />
                 </div>
                 <div>
@@ -186,7 +187,7 @@ export default function PricingPanel({
                         name="currency"
                         value={currency}
                         onChange={(e) => setCurrency(e.target.value)}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         <option value="USD">USD</option>
                         <option value="SGD">SGD</option>
@@ -201,7 +202,7 @@ export default function PricingPanel({
                     <input
                         type="text"
                         name="notes"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
                 <Button

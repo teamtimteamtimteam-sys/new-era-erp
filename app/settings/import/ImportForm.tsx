@@ -1,6 +1,7 @@
 'use client'
 
 // app/settings/import/ImportForm.tsx —— 选表 → 下模板 → 传文件 → 预览 → 提交。
+import { CONTROL_SELECT, CONTROL_FILE_BUTTON, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 import { useActionState, useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { previewImport, commitImport } from './actions'
@@ -142,7 +143,7 @@ function ImportWizard({
                     <label className="block text-sm font-medium mb-1">{t('import.pickTable')}</label>
                     <select name="table" value={table} disabled={done !== null || pending}
                             onChange={(e) => { setPicked(e.target.value); setStaleTable(true); setAck(false) }}
-                            className="border border-gray-300 rounded px-3 py-2 disabled:bg-gray-100">
+                            className={CONTROL_SELECT}>
                         {/* 【不预选】一个预选好的值不是一次选择 —— 本仓库成文的规矩。
                             而且导错表是【不可撤销】的:把供应商导进客户,只要列名恰好
                             对得上就会成功。一次必须点的选择花一下,弄错要花一次清库。 */}
@@ -188,10 +189,7 @@ function ImportWizard({
                         给它边框与内边距,并且**在选表之前禁用** —— 见上面 4.1 那一段。 */}
                     <input type="file" name="file" accept=".csv,text/csv"
                            disabled={!table || done !== null || pending}
-                           className="text-sm block w-full max-w-md border border-gray-300 rounded px-3 py-2
-                                      bg-white disabled:bg-gray-100 disabled:text-gray-400
-                                      file:mr-3 file:rounded file:border-0 file:bg-blue-600 file:px-4
-                                      file:py-2 file:text-white file:text-sm hover:file:bg-blue-700" />
+                           className={`${CONTROL_FILE_BUTTON} block w-full max-w-md disabled:text-gray-400`} />
                     <p className="text-xs text-gray-500 mt-1">
                         {table ? t('import.oneFilePerTable') : t('import.pickTableFirst')}
                     </p>
@@ -237,7 +235,7 @@ function ImportWizard({
                     </ul>
                     <label className="flex items-start gap-2 text-sm">
                         <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)}
-                               className="mt-1" />
+                               className={`${CONTROL_CHECKBOX} mt-1`} />
                         <span>{t('import.nearDupAck')}</span>
                     </label>
                 </div>

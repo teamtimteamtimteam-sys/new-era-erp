@@ -22,6 +22,7 @@
 // 【这三个数是【判据】,不是【目标】】把它们调大,屏幕会安静,而【到货的东西
 // 一克都没有变】。与 EXEC-3b 的 notATarget、output_unsold_aging 那条"改
 // output_date 会让牌子安静"是同一个隐患,所以直说,不指望人自己想到。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { updateGrnThresholds, type GrnThresholdState } from './thresholdActions'
@@ -66,7 +67,7 @@ export default function ReceivingThresholdPanel({
                             </label>
                             <input type="number" name="grn_short_pct" step="0.1" min="0.1"
                                    required defaultValue={shortPct}
-                                   className="w-32 border border-gray-300 px-3 py-2 rounded" />
+                                   className={`${CONTROL_INPUT} w-32`} />
                             <p className="text-xs text-gray-500 mt-1">{t('grn.settings.shortWhen')}</p>
                         </div>
                         <div className="max-w-xs">
@@ -75,7 +76,7 @@ export default function ReceivingThresholdPanel({
                             </label>
                             <input type="number" name="grn_over_pct" step="0.1" min="0.1"
                                    required defaultValue={overPct}
-                                   className="w-32 border border-gray-300 px-3 py-2 rounded" />
+                                   className={`${CONTROL_INPUT} w-32`} />
                             <p className="text-xs text-gray-500 mt-1">{t('grn.settings.overWhen')}</p>
                         </div>
                         <div className="max-w-xs">
@@ -84,7 +85,7 @@ export default function ReceivingThresholdPanel({
                             </label>
                             <input type="number" name="grn_assay_tolerance_pct" step="0.1" min="0.1"
                                    required defaultValue={assayPct}
-                                   className="w-32 border border-gray-300 px-3 py-2 rounded" />
+                                   className={`${CONTROL_INPUT} w-32`} />
                             <p className="text-xs text-gray-500 mt-1">{t('grn.settings.assayWhen')}</p>
                         </div>
                     </div>

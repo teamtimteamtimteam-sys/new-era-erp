@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_SELECT, CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createOutput, type CreateOutputState } from './actions'
@@ -63,7 +64,7 @@ export default function NewOutputForm({
                         name="material_id"
                         required
                         defaultValue=""
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="" disabled>{t('output.form.selectMaterial')}</option>
                         {materials.map((m) => (
@@ -94,7 +95,7 @@ export default function NewOutputForm({
                     <select
                         name="customer_id"
                         defaultValue=""
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('output.form.selectCustomerOptional')}</option>
                         {customers.map((c) => (
@@ -125,7 +126,7 @@ export default function NewOutputForm({
                         required
                         step="any"
                         min="0"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {state.fieldErrors?.quantity && (
                         <p className="text-red-600 text-xs mt-1">
@@ -140,7 +141,7 @@ export default function NewOutputForm({
                     <select
                         name="unit"
                         defaultValue="kg"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         {UNIT_OPTIONS.map((u) => (
                             <option key={u.value} value={u.value}>
@@ -163,7 +164,7 @@ export default function NewOutputForm({
                         value={outputDate}
                         onChange={(e) => setOutputDate(e.target.value)}
                         required
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {state.fieldErrors?.output_date && (
                         <p className="text-red-600 text-xs mt-1">
@@ -182,7 +183,7 @@ export default function NewOutputForm({
                     <select
                         name="state"
                         defaultValue="库存中"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         {STATE_OPTIONS.map((s) => (
                             <option key={s.value} value={s.value}>
@@ -198,7 +199,7 @@ export default function NewOutputForm({
                     <input
                         type="text"
                         name="purity"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('output.form.purityPlaceholder')}
                     />
                 </div>
@@ -208,8 +209,7 @@ export default function NewOutputForm({
                     <label className="block text-sm font-medium mb-1">{t('output.form.notes')}</label>
                     <textarea
                         name="notes"
-                        rows={3}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 

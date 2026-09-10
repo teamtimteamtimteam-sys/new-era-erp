@@ -11,6 +11,7 @@
 //   与真实星期【从来没有对齐过】,而没有任何东西会说。
 //   共享组件按当月 1 号的星期算前导空格(并且按周一开头),所以列对上了。
 //   **这不是本刀新加的功能,是搬家时露出来的一处旧账。**
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import LeaveSubnav from '../LeaveSubnav'
@@ -75,7 +76,7 @@ export default async function LeaveCalendarPage({
                 <label className="text-sm">
                     {t('leave.month')}
                     <input type="month" name="month" defaultValue={month}
-                           className="mt-1 block border border-gray-300 rounded px-2 py-1 text-sm" />
+                           className={`${CONTROL_INPUT} mt-1 block`} />
                 </label>
                 <Button variant="secondary" type="submit">
                     {t('leave.filter')}

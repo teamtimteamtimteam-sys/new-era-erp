@@ -2,6 +2,7 @@
 
 // app/finance/gst/GstControls.tsx
 // 三个动作的控件。**禁用一律说出为什么**(CMP-2 的规矩);拒绝就地显示。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -19,7 +20,7 @@ export function OpenPeriodControl({ canEdit }: { canEdit: boolean }) {
                 <label className="block text-sm font-medium mb-1">{t('gst.periodStart')}</label>
                 {/* 【不预填今天】期初是一个季度的第一天,今天几乎不会是答案 */}
                 <input type="date" value={start} onChange={(e) => setStart(e.target.value)}
-                       className="border border-gray-300 px-3 py-2 rounded" />
+                       className={CONTROL_INPUT} />
             </div>
             {!start && <p className="text-sm text-amber-700 self-center">{t('gst.blockedNeedStart')}</p>}
             <PermissionGate code="module.finance.edit" allowed={canEdit}>
@@ -57,13 +58,13 @@ export function FileReturnControl({ periodId, blockedWhy, canEdit }: {
             <div>
                 <label className="block text-sm font-medium mb-1">{t('gst.filedOn')}</label>
                 <input type="date" value={on} onChange={(e) => setOn(e.target.value)}
-                       className="border border-gray-300 px-3 py-2 rounded" />
+                       className={CONTROL_INPUT} />
             </div>
             <div>
                 <label className="block text-sm font-medium mb-1">{t('gst.filedReference')}</label>
                 <input value={ref} onChange={(e) => setRef(e.target.value)}
                        placeholder={t('gst.filedReferenceHint')}
-                       className="border border-gray-300 px-3 py-2 rounded" />
+                       className={CONTROL_INPUT} />
             </div>
             {!on && <p className="text-sm text-amber-700 self-center">{t('gst.blockedNeedFiledOn')}</p>}
             <PermissionGate code="module.finance.edit" allowed={canEdit}>
@@ -88,7 +89,7 @@ export function CorrectControl({ periodId, canEdit }: { periodId: string; canEdi
             <div className="flex-1 min-w-[16rem]">
                 <label className="block text-sm font-medium mb-1">{t('gst.correctionReason')}</label>
                 <input value={reason} onChange={(e) => setReason(e.target.value)}
-                       className="w-full border border-gray-300 px-3 py-2 rounded" />
+                       className={`${CONTROL_INPUT} w-full`} />
             </div>
             {!reason.trim() && <p className="text-sm text-amber-700 self-center">{t('gst.blockedNeedReason')}</p>}
             <PermissionGate code="module.finance.edit" allowed={canEdit}>

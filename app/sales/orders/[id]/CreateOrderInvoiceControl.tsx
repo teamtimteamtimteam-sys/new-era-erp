@@ -8,6 +8,7 @@
 //
 // 【后果写在按钮旁边】开票会过账(借 1100 应收 / 贷 2500 合同负债,按订单抄来的
 // 汇率),而且订单流【先开票后发货】—— 那句话必须在按下之前就在屏幕上。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -50,7 +51,7 @@ canEdit: boolean
                         type="date"
                         value={issueDate}
                         onChange={(e) => setIssueDate(e.target.value)}
-                        className="border border-gray-300 px-2 py-1 rounded text-sm"
+                        className={CONTROL_INPUT}
                     />
                 </div>
                 <PermissionGate code="module.finance.edit" allowed={canEdit}>

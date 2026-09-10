@@ -10,6 +10,7 @@
 //   ★ 关单那一侧的「关单说明」留在面板里【没有搬进对话框】:它不是一句理由,
 //     它是给未抵扣预付留的记录,而对话框只放得下一个理由框。搬一半更坏。
 //   ★ 重开那一侧的原因搬进了对话框(只有它一个必填项,搬得干净)。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -86,7 +87,7 @@ canEdit: boolean
                     type="text"
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="w-full border border-gray-300 px-3 py-1.5 rounded"
+                    className={`${CONTROL_INPUT} w-full`}
                 />
             </div>
             {error && <p className="text-red-600">{error}</p>}

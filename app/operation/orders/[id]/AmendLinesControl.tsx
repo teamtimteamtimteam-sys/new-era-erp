@@ -7,6 +7,7 @@
 // 这里【不重算那个判据】,而是把服务端那句拒绝按名显示出来。页面自己算一遍,
 // 就是给同一个规则留下第二处实现(AGENTS.md:一处推导,N 个消费者)。
 // 每行下面显示的"已耗"来自 work_order_fulfilment,所以人在按之前就看得见地板在哪。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -70,7 +71,7 @@ export default function AmendLinesControl({
                             <span className="w-64">{r.material_label}</span>
                             <input type="number" step="any" min="0" value={draft[r.material_id] ?? ''}
                                    onChange={(e) => setDraft({ ...draft, [r.material_id]: e.target.value })}
-                                   className="w-28 border border-gray-300 px-2 py-1 rounded text-right" />
+                                   className={`${CONTROL_INPUT} w-28 text-right`} />
                             {/* 【地板画在旁边,但判据在服务端】 */}
                             <span className="text-xs text-gray-500">
                                 {t('processing.wo.actions.floorHint', { qty: String(r.consumed_qty) })}
@@ -80,7 +81,7 @@ export default function AmendLinesControl({
                     <div className="flex items-center gap-3">
                         <input type="text" value={reason} placeholder={t('processing.wo.actions.amendReasonPlaceholder')}
                                onChange={(e) => setReason(e.target.value)}
-                               className="border border-gray-300 px-2 py-1 rounded text-sm w-72" />
+                               className={`${CONTROL_INPUT} w-72`} />
                         <Button className="text-sm" type="button" onClick={submit}
                                 disabled={isPending || reason.trim() === ''}>
                             {isPending ? t('common.saving') : t('common.save')}

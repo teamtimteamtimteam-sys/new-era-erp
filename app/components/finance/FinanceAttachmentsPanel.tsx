@@ -5,6 +5,7 @@
 // 上传:浏览器端直传 Storage(@/lib/supabase/client),成功后再调 recordFinanceAttachment 写元数据。
 // 下载:点文件名时现取一个签名 URL 再打开(私有桶)。删除:软删元数据行。
 // 列表 append-only,最新在前 —— 同一单据可多次上传,上传时间(created_at_display)始终可见。
+import { CONTROL_FILE_BUTTON, CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useRef, useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -269,7 +270,7 @@ canEdit: boolean
                         name="file"
                         required
                         accept={FINANCE_ATTACHMENT_ACCEPT}
-                        className="text-sm file:mr-3 file:rounded file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-white hover:file:bg-blue-700"
+                        className={CONTROL_FILE_BUTTON}
                     />
                 </div>
 
@@ -278,7 +279,7 @@ canEdit: boolean
                     <select
                         name="doc_type"
                         defaultValue="other"
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         {FINANCE_DOC_TYPES.map((c) => (
                             <option key={c} value={c}>
@@ -293,7 +294,7 @@ canEdit: boolean
                     <input
                         type="text"
                         name="notes"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 

@@ -11,6 +11,7 @@
 //
 // 【"还没解释"不是"过磅误差"】—— 屏幕上必须照直说。把差额叫成误差,
 // 等于把一个记账问题说成一件已经查清的物理事实,而那正是 loss_qty 今天在犯的错。
+import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveRunLoss, deleteRunLoss } from './lossActions'
@@ -174,7 +175,7 @@ export default function LossPanel({
                     <div>
                         <label className="block text-sm font-medium mb-1">{t('processing.loss.colCategory')}</label>
                         <select name="loss_category_code" required defaultValue=""
-                                className="border border-gray-300 rounded px-3 py-2 text-sm">
+                                className={CONTROL_SELECT}>
                             <option value="" disabled>{t('processing.loss.pick')}</option>
                             {categories.map((c) => (
                                 <option key={c.code} value={c.code}>{label(c)}</option>
@@ -184,12 +185,12 @@ export default function LossPanel({
                     <div>
                         <label className="block text-sm font-medium mb-1">{t('processing.loss.colQty')}</label>
                         <input name="quantity" type="number" step="any" min="0" required
-                               className="border border-gray-300 rounded px-3 py-2 text-sm w-32" />
+                               className={`${CONTROL_INPUT} w-32`} />
                     </div>
                     <div className="flex-1 min-w-[12rem]">
                         <label className="block text-sm font-medium mb-1">{t('processing.loss.colNotes')}</label>
                         <input name="notes" type="text"
-                               className="border border-gray-300 rounded px-3 py-2 text-sm w-full" />
+                               className={`${CONTROL_INPUT} w-full`} />
                     </div>
                     <Button variant="default" className="text-sm" type="submit" disabled={isPending}>
                         {t('common.save')}

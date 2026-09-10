@@ -17,7 +17,7 @@ import { formatAmount } from '@/lib/format'
 import { payLines, payCpf, payDeductions } from '../month-end/actions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
-import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX, CONTROL_INPUT } from '@/app/components/ui/control-style'
 
 type Period = { id: string; code: string; period_month: string; net_pay_total: number
     employer_cpf_total: number; employee_cpf_total: number; other_deductions_total: number
@@ -65,8 +65,8 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                 {t('finance.payrollPay.date')} <span className="text-red-600">*</span>
                 <input type="date" value={date} required aria-invalid={date === ''}
                        onChange={(e) => setDate(e.target.value)} onBlur={(e) => setDate(e.target.value)}
-                       className={'block border rounded px-2 py-1 text-sm '
-                           + (date === '' ? 'border-red-400 bg-red-50' : 'border-gray-300')} />
+                       className={`${CONTROL_INPUT} block`
+                           + (date === '' ? ' border-red-400 bg-red-50' : '')} />
                 <span className="mt-1 block max-w-md text-gray-500">{t('finance.payrollPay.dateHint')}</span>
             </label>
             {periods.length === 0 && (

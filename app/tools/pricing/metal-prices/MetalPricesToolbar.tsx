@@ -3,6 +3,7 @@
 // 金属价格列表工具栏:只有一个金属筛选下拉(全部 + 7 金属)。
 // 端口自 InboundToolbar,但去掉搜索/其它筛选 —— 参考表只需按金属过滤。
 // 改动只写进 URL searchParams,真正的过滤在服务端 page.tsx 完成。
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import type { MetalOption } from './options'
@@ -41,7 +42,7 @@ export default function MetalPricesToolbar({
             <select
                 value={currentMetal}
                 onChange={(e) => onFilterChange('metal', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('metalPrices.allMetals')}</option>
                 {substanceOptions.filter((s) => s.isActive).map((o) => (

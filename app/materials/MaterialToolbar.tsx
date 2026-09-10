@@ -4,6 +4,7 @@
 // 【PROC-1】下拉从 CATEGORY_OPTIONS(app 里写死的第三份权威)改成 material_kinds
 // 的行 —— 由服务端 page.tsx 取好传进来,加一种物料种类是加一行。
 // 改动只写进 URL searchParams,真正的过滤在服务端 page.tsx 完成。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -74,12 +75,12 @@ export default function MaterialToolbar({ kinds, locale }: { kinds: MaterialKind
                 value={q}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={t('materials.searchPlaceholder')}
-                className="w-72 max-w-full rounded border border-gray-300 px-3 py-2"
+                className={`${CONTROL_INPUT} w-72 max-w-full`}
             />
             <select
                 value={currentKind}
                 onChange={(e) => onCategoryChange(e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('materials.allKinds')}</option>
                 {kinds.map((k) => (

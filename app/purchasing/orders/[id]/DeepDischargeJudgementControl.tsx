@@ -14,6 +14,7 @@
 //   而"没选"(空)是第四种情况:**这一行比这条轴还老**。
 //   ★ 一个没设的判断【永远不许被读成"不能"】★ —— 所以空选项的字面写的是
 //   "未填写",不是"否",而 not_assessed 是一个要【主动选】的、记下来的事实。
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { setDeepDischargeJudgement } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -50,7 +51,7 @@ export default function DeepDischargeJudgementControl({
                             if (r.error) setError(r.error)
                         })
                     }}
-                    className="rounded border border-gray-300 bg-white px-1 py-0.5 text-xs"
+                    className={CONTROL_SELECT}
                 >
                     {/* 【空 = 没填过,不是"否"】文案必须说出这一点 */}
                     <option value="">{t('purchasing.deepDischarge.unset')}</option>

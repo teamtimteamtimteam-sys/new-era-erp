@@ -65,6 +65,7 @@
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { spawn, execSync } from 'node:child_process'
 import { join } from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
 
@@ -713,6 +714,17 @@ const MUST_CONTAIN = {
         { probe: '/rest/v1/suppliers?select=id&limit=1&deleted_at=is.null&counterparty_type=eq.forwarder',
           why: '货代不在付款对象名单里 —— 未付运费就永远付不掉(PAY-FRT 的回归)' },
     ],
+    // ── COD 核验页:状态码骗得过人,这一句骗不过(INPUT-2b,2026-09-10)────────
+    // 【为什么状态码不够】404 是 Next.js 自己也会给的东西。要证明的是
+    //   【这一页真的被 renderNotFound() 画了出来】,而不是路由压根没匹配上。
+    // 【这两句话是从 app/verify/cod/verifyHtml.ts 的 renderNotFound() 里读出来的】
+    //   —— 不是从委托书里抄的。它改了,这条断言就该红,那正是它存在的理由。
+    '/verify/cod/[token]': [
+        { needle: 'Certificate not found',
+          why: '404 有了,而 renderNotFound() 那一页没有画出来 —— 二维码扫出来的会是一张空白' },
+        { needle: 'No certificate matches this verification link.',
+          why: '那一页的正文不见了 —— 一张只有标题的核验页说不出它到底在说什么' },
+    ],
 }
 
 // 探针为空时【跳过并说出来】,不算失败:"线上还没有货代"是一个正当状态,
@@ -792,6 +804,46 @@ const EXPECTED = {
     // 而「它真的导得出东西吗」从来没有被问过 —— 所以 QUERY_PROBES 里
     // 配了一条带期间的探针,两条合起来才算走过这条路由。
     '/finance/journal/export': [400],
+    // ── SMOKE-PREFLIGHT-COD-TOKEN 关闭(INPUT-2b,2026-09-10,Tim 裁定 Q4/Q5)──────
+    // 【为什么是 404 而不是 200】这一段的 token 是一枚【122 位随机的 UUID】,
+    //   不是任何一行的 id —— 所以 ID_SOURCES(一律 select=id)结构上走不了。
+    //   主循环里现取一枚【证明了匹配不到任何一行】的随机 UUID,于是这条路由
+    //   必然走 not_found 那一支。
+    // 【为什么不写 [404, 429]】Tim 2026-09-10 Q5:精确 404,不接受 429。
+    //   一次【真的】限流就该红 —— 「两个都行」会让一次真限流悄悄变绿,
+    //   而那正是本文件为 /login 与状态门路由记过的同一条。
+    // 【★ 这一次请求【会写库】,而这是【绕不开】的 —— 照直写在这里 ★】
+    //   cod_verification() 的 not_found 那一支自己做两件写(SECURITY DEFINER):
+    //     DELETE FROM cod_verification_failures WHERE failed_at < clock_timestamp() - interval '10 minutes';
+    //     INSERT INTO cod_verification_failures DEFAULT VALUES;
+    //   也就是说【限流状态就是由"查不到"这件事写出来的】,不写就断言不了 404。
+    //   ☞ Tim 2026-09-10 Q4 把裁定放宽成:**不建任何【业务】数据,并逐字写明写了什么。**
+    //     · 一行 cod_verification_failures —— 它 10 分钟后被下一次调用自己删掉,表封顶 30 行;
+    //     · 2026-09-10 首跑实测:清掉 4 行 2026-09-08 的过期行,插 1 行。
+    //     · **有效令牌永不被限流**,所以真实的证书持有人一个都不受影响。
+    //     · 零业务数据:没有证书、没有单据、没有账号。
+    '/verify/cod/[token]': [404],
+    // ── ★★ /me/avatar —— 与上面那一条【同一个提交带进来的】,而预检把它遮了两天 ★★
+    // 【它不是任何一刀弄坏的,这句话是量出来的】
+    //   · `git show HEAD:scripts/smoke-routes.mjs | grep -c 'me/avatar'` = **0** —— 在 HEAD 上就没登记过;
+    //   · `app/me/avatar/route.ts` 的首次出现是 **9b71b4e(COD-2,2026-09-08)** ——
+    //     **与那条 `[token]` 路由是【同一个提交】**;
+    //   · 于是这道闸自 2026-09-08 起就有【两处】红,而**预检先退 1**,
+    //     所以没有任何一刀看见过第二处。**INPUT-2b 是第一条走过预检的刀。**
+    //   ☞ 与 AGENTS.md 记着的 `--reach`「结构性地红着」是同一个形状,
+    //     再加一层:**一道闸的第一处红会把它后面所有的红藏起来。**
+    // 【为什么 404 是【契约】而不是缺陷】route.ts:75 自己写着:
+    //   「★【对象不在 = 404,而 404 是【预期内】的答案】★ AvatarImage 的 onError
+    //     会回落成首字母 —— 那正是 UI-1d 立下的判据」。
+    //   而本冒烟用的是一个**用完即删的 admin**,它【永远没有头像对象】
+    //   → 这条路由对它**永远是 404**。一个永远满足不了的 2xx 判据是【坏判据】。
+    // 【精确 404,不写 [200,404]】两个都行会静默放过一个开始 500 / 401 的路由。
+    // ★★【它证明了什么、【没有】证明什么 —— 照直说】★★
+    //   证明了:这条路由起得来、认得出会话、并且在【没有对象】时回它自己承诺的那个 404。
+    //   ★ **没有**证明:它在【有对象】时真的把 webp 的字节送出去。
+    //     那一半要一个【带头像的】账号,而本冒烟不建业务数据 ——
+    //     **已登记进 docs/known-issues.md 的 SMOKE-AVATAR-BYTES-UNCOVERED。**
+    '/me/avatar': [404],
 }
 // 三条状态门路由:预期值从被选中的那一行【算出来】,精确断言 ——
 // [200,307] 那种"两个都行"会静默放过一个开始乱重定向的守卫。
@@ -820,6 +872,11 @@ const SPECIAL_ID_ROUTES = new Set([
     // 取值直接用 IMPORT_TABLES 的第一个:模板【不读任何业务数据】,
     // 所以"取到哪一张表"不影响这条路由证明得了什么(它证明的是模板生成得出来)。
     '/settings/import/template/[table]',
+    // COD-2 / SMOKE-PREFLIGHT-COD-TOKEN(INPUT-2b,2026-09-10):核验页。
+    // 段里放的是一枚【122 位随机的 UUID 令牌】,不是任何一行的 id ——
+    // ID_SOURCES 一律 select=id,所以它结构上走不了那条路(known-issues 记过)。
+    // 主循环里现造一枚,并且【只读地证明它匹配不到任何一张证书】。
+    '/verify/cod/[token]',
 ])
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -894,8 +951,17 @@ const EXPECTED_SKIPS = new Set([
     // 逼人把这两行删掉。跳过是记录,不是默许。"
     // 那一天到了:Tim 在 2026-08-26 走 §17 时开出了 GST-2026-Q3,于是
     // /finance/gst/[periodId] 与它的 export 从此有数据可跑。两行照约定删除。
-    '/hr/claims/[id]',    // medical_claims 空 —— 正常运营会产生;有数据那天此断言逼人收编
-    '/hr/leave/[id]',     // leave_requests 空
+    // 【GST-1 那两行之后,又有两行照约定到期了(INPUT-2b,2026-09-10)】
+    //   原文:'/hr/claims/[id]'(medical_claims 空 —— 正常运营会产生;有数据那天此断言逼人收编)
+    //         '/hr/leave/[id]'(leave_requests 空)
+    //   ★ 那一天到了,而且是这道闸自己喊出来的:
+    //     「✗ 预期会 SKIP 的路由跑起来了 —— 数据到位了,把它移出 EXPECTED_SKIPS:
+    //       /hr/claims/[id], /hr/leave/[id]」
+    //   实测(2026-09-10,service_role,count=exact):
+    //     medical_claims **1 行** · leave_requests **3 行** —— 两张表都不再是空的。
+    //   ☞ 两行照约定删除。**跳过是记录,不是默许。**
+    //     ⚠ 这两条路由从此【每一跑都真的渲染】;哪天那些行又没了,
+    //       这道闸会从另一个方向响(「no data in …」→ 跳过清单漂移),那正是它该有的样子。
     // ATTEND-1:线上还没有一份考勤底稿 —— attendance_periods 只由
     // open_attendance_period 写入,而这一刀是机制与屏幕先于第一份真底稿落地。
     // 开出第一个月的那天,这条断言会报「预期会 SKIP 的路由跑起来了」,逼人把它删掉。
@@ -1849,6 +1915,30 @@ async function main() {
             // IMPORT-1:模板路由 —— 段是表名,不是 id。用一个固定的、一定存在的表。
             if (route === '/settings/import/template/[table]') {
                 url = route.replace('[table]', 'suppliers')
+            }
+            // ★ COD-2:核验页 —— 造一枚【证明了匹配不到任何一张证书】的随机令牌。
+            //   【为什么不取一枚真令牌】线上有真证书(COD-2026-0001 / -0002,issued)。
+            //     拿真令牌去断言 200,等于把一份【有人正拿在手里】的法律文件
+            //     写进一支每天都在跑的脚本里,而且那条路径还会被限流机制记账。
+            //   【为什么要【证明】而不是【假定】不匹配】122 位随机撞上的概率是 0,
+            //     但"概率是 0"是一句推理,不是一次测量。这里只读地查一次:
+            //     要求真的回 0 行。查不到 0 行就重来,五次都撞上就抛 ——
+            //     那时坏掉的不是运气,是这条查询。
+            //   ☞ 这一次请求【会写库】:见 EXPECTED 里那一段(DELETE 过期行 + INSERT 一行)。
+            //     零业务数据。
+            if (route === '/verify/cod/[token]') {
+                let tok = null
+                for (let i = 0; i < 5 && !tok; i++) {
+                    const cand = randomUUID()
+                    const rows = await restRows(
+                        `/rest/v1/certificates_of_destruction?select=id&verification_token=eq.${cand}`,
+                        `${route} ← 证明这枚令牌匹配不到任何一张证书`)
+                    if (rows.length === 0) tok = cand
+                }
+                if (!tok) throw new Error(
+                    '五次随机 UUID 全部匹配到了证书 —— 122 位随机撞不出这个结果,' +
+                    '坏掉的是那条查询,不是运气。停下来,不要把它当成一次"取不到令牌"。')
+                url = route.replace('[token]', tok)
             }
             // 状态门路由:取同一行的 id 和 status,预期值算出来、精确断言
             let exact = null

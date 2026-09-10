@@ -15,7 +15,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { saveImportDiligence } from './importDiligenceActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 
 export default function ImportDiligencePanel({
     batchId, imported, permitRef, verifiedAt, canEdit,
@@ -82,7 +82,7 @@ export default function ImportDiligencePanel({
                             <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="imp">
                                 {t('inbound.importDiligence.fieldImported')}
                             </label>
-                            <select id="imp" className="border border-gray-300 rounded px-2 py-1 text-sm"
+                            <select id="imp" className={CONTROL_SELECT}
                                     value={sel} onChange={(e) => setSel(e.target.value as 'unknown' | 'no' | 'yes')}>
                                 <option value="unknown">{t('inbound.importDiligence.optUnstated')}</option>
                                 <option value="no">{t('inbound.importDiligence.optNo')}</option>
@@ -95,7 +95,7 @@ export default function ImportDiligencePanel({
                                     <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="ref">
                                         {t('inbound.importDiligence.fieldPermitRef')}
                                     </label>
-                                    <input id="ref" className="border border-gray-300 rounded px-2 py-1 text-sm w-full"
+                                    <input id="ref" className={`${CONTROL_INPUT} w-full`}
                                            value={ref} onChange={(e) => setRef(e.target.value)} />
                                 </div>
                                 <label className="flex items-center gap-2 text-sm">

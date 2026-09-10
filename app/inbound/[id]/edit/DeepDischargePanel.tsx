@@ -14,6 +14,7 @@
 //
 // 【它不拦任何东西】R3:这个判断影响的是【怎么路由】,不是收不收货。
 //   所以这块界面上没有任何"被卡住了"的语气 —— 它记录,不裁决。
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { setDeepDischargeActual } from './deepDischargeActions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -98,7 +99,7 @@ export default function DeepDischargePanel({
                                 if (r.error) setError(r.error)
                             })
                         }}
-                        className="rounded border border-gray-300 bg-white px-2 py-1 text-sm"
+                        className={CONTROL_SELECT}
                     >
                         {/* 【空 = 没记过,不是"不能"】文案必须说出这一点 */}
                         <option value="">{t('inbound.deepDischarge.unset')}</option>

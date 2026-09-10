@@ -6,7 +6,7 @@ import { useState, useTransition } from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { saveUserRoles } from '../accountsActions'
 import { Button } from '@/app/components/ui/button'
-import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 
 export type DirectoryRow = {
     user_id: string
@@ -194,7 +194,7 @@ export default function UserRow({
                             <select
                                 value={employeeId}
                                 onChange={(e) => setEmployeeId(e.target.value)}
-                                className="w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                className={`${CONTROL_SELECT} w-full`}
                             >
                                 <option value="">{t('permissions.noEmployee')}</option>
                                 {options.map((e) => (
@@ -212,7 +212,7 @@ export default function UserRow({
                                 <input
                                     value={reason}
                                     onChange={(e) => setReason(e.target.value)}
-                                    className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                                    className={`${CONTROL_INPUT} mt-1 w-full`}
                                     placeholder={t('permissions.revokeReasonHint')}
                                 />
                             </label>

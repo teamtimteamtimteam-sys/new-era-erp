@@ -19,6 +19,7 @@
 //     "说错原因比不说原因更坏"。
 //
 // - 批准之前把话说在前面:批准后的评估不能改,只能作废重开。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -169,7 +170,7 @@ export default function ReviewActions({
                         <input
                             value={voidReason}
                             onChange={(e) => setVoidReason(e.target.value)}
-                            className="block border border-gray-300 rounded px-2 py-1 text-sm w-64"
+                            className={`${CONTROL_INPUT} block w-64`}
                         />
                     </label>
                     <Button variant="destructive"

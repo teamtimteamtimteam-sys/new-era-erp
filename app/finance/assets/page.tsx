@@ -24,6 +24,7 @@
 //   同名数组回传),这张表【没有】那个形状。
 //   ☞ 表本身搬到了 ./AssetsTable.tsx('use client');本页是 server component,
 //     而列描述符带 render 函数,过不了那道边界。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
@@ -188,7 +189,7 @@ export default async function AssetsPage({
             <form method="get" className="mb-3">
                 <label className="text-sm mr-2">{t('assets.depPeriodEnd')}</label>
                 <input type="date" name="date" defaultValue={d}
-                       className="border border-gray-300 rounded px-2 py-1 text-sm" />
+                       className={CONTROL_INPUT} />
                 <Button variant="secondary" type="submit" className="ml-2">
                     {t('finance.reval.preview')}
                 </Button>

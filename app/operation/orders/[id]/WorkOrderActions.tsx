@@ -8,6 +8,7 @@
 //
 // 【理由必填的两个动作,输入框空着就不给按】而服务端【独立】拒空
 // (WO_CLOSE_REASON_REQUIRED / WO_CANCEL_REASON_REQUIRED),界面这道不是保护。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -59,7 +60,7 @@ export default function WorkOrderActions({
             <div className="flex flex-wrap items-center gap-3">
                 <input type="text" value={closeReason} placeholder={t('processing.wo.actions.closeReasonPlaceholder')}
                        onChange={(e) => setCloseReason(e.target.value)} disabled={closeWhy !== ''}
-                       className="border border-gray-300 px-2 py-1 rounded text-sm w-72 disabled:bg-gray-100" />
+                       className={`${CONTROL_INPUT} w-72`} />
                 <Button variant="secondary" type="button"
                         disabled={isPending || closeWhy !== '' || closeReason.trim() === ''}
                         onClick={() => run(() => closeWorkOrder(id, closeReason))}>
@@ -73,7 +74,7 @@ export default function WorkOrderActions({
             <div className="flex flex-wrap items-center gap-3">
                 <input type="text" value={cancelReason} placeholder={t('processing.wo.actions.cancelReasonPlaceholder')}
                        onChange={(e) => setCancelReason(e.target.value)} disabled={cancelWhy !== ''}
-                       className="border border-gray-300 px-2 py-1 rounded text-sm w-72 disabled:bg-gray-100" />
+                       className={`${CONTROL_INPUT} w-72`} />
                 <Button variant="destructive" type="button"
                         disabled={isPending || cancelWhy !== '' || cancelReason.trim() === ''}
                         onClick={() => run(() => cancelWorkOrder(id, cancelReason))}>

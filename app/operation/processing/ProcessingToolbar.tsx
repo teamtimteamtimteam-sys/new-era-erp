@@ -1,6 +1,7 @@
 'use client'
 
 // 加工单列表工具栏:仅两个日期字段(process_date 区间)。URL 驱动,改动回到第 1 页。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 
@@ -35,7 +36,7 @@ export default function ProcessingToolbar() {
                     type="date"
                     value={currentDateFrom}
                     onChange={(e) => onFilterChange('date_from', e.target.value)}
-                    className="rounded border border-gray-300 bg-white px-2 py-2"
+                    className={CONTROL_INPUT}
                 />
             </label>
             <label className="flex items-center gap-1 text-sm text-gray-600">
@@ -44,7 +45,7 @@ export default function ProcessingToolbar() {
                     type="date"
                     value={currentDateTo}
                     onChange={(e) => onFilterChange('date_to', e.target.value)}
-                    className="rounded border border-gray-300 bg-white px-2 py-2"
+                    className={CONTROL_INPUT}
                 />
             </label>
         </div>

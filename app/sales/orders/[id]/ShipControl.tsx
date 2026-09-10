@@ -8,6 +8,7 @@
 //
 // 【后果写在按钮旁边,而且它是【不可撤】的那一种】货离开台账、负债换成收入、
 // 那张发票从此作废不了。更正只能走贷项凭证 —— 而那个概念还不存在。
+import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -61,7 +62,7 @@ export default function ShipControl({
                 <div className="min-w-[18rem]">
                     <label className="block text-xs text-gray-600 mb-1">{t('sales.ship.reservationLabel')}</label>
                     <select value={pick} onChange={(e) => setPick(e.target.value)}
-                            className="w-full border border-gray-300 px-2 py-1 rounded text-sm">
+                            className={`${CONTROL_SELECT} w-full`}>
                         <option value="">{t('sales.ship.pickReservation')}</option>
                         {options.map((o) => (
                             <option key={o.reservationId} value={o.reservationId}>{o.label}</option>
@@ -75,12 +76,12 @@ export default function ShipControl({
                     <input type="number" step="any" min="0" value={qty}
                            onChange={(e) => setQty(e.target.value)}
                            placeholder={chosen ? String(chosen.qty) : ''}
-                           className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
+                           className={`${CONTROL_INPUT} w-full`} />
                 </div>
                 <div>
                     <label className="block text-xs text-gray-600 mb-1">{t('sales.ship.shipDate')}</label>
                     <input type="date" value={shipDate} onChange={(e) => setShipDate(e.target.value)}
-                           className="border border-gray-300 px-2 py-1 rounded text-sm" />
+                           className={CONTROL_INPUT} />
                 </div>
                 <Button type="button" onClick={go} disabled={isPending || blocked !== null}
                         variant="secondary">

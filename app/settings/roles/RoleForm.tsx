@@ -86,7 +86,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                         value={v.code}
                         disabled={!isNew}
                         onChange={(e) => setV({ ...v, code: e.target.value })}
-                        className={field + (isNew ? '' : ' bg-gray-100 text-gray-500')}
+                        className={field + (isNew ? '' : ' text-gray-500')}
                     />
                     {/* 码是稳定标识:策略、函数、以及日后的授权导出都靠它对上号。
                         改一次码,等于把这个角色换成了另一个角色。 */}

@@ -7,6 +7,7 @@
 // 通知期、最后一个月的工资、状态改动都还是手工流程 —— 否则 HR 点完就以为人走完了。
 //
 // 【调薪两列一起交】没有生效日的新工资无法过账(performance_reviews_salary_shape)。
+import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -96,7 +97,7 @@ export default function HrDecisionForm({
                             <select
                                 value={outcome}
                                 onChange={(e) => setOutcome(e.target.value)}
-                                className="block border border-gray-300 rounded px-2 py-1 text-sm"
+                                className={`${CONTROL_SELECT} block`}
                             >
                                 <option value="">—</option>
                                 <option value="confirm">{t('reviews.outcome_confirm')}</option>
@@ -131,7 +132,7 @@ export default function HrDecisionForm({
                                     type="number"
                                     value={salary}
                                     onChange={(e) => setSalary(e.target.value)}
-                                    className="block border border-gray-300 rounded px-2 py-1 text-sm w-32 text-right font-mono"
+                                    className={`${CONTROL_INPUT} block w-32 text-right font-mono`}
                                 />
                             ) : (
                                 <span className="block text-sm py-1 font-mono">
@@ -146,7 +147,7 @@ export default function HrDecisionForm({
                                     type="date"
                                     value={effective}
                                     onChange={(e) => setEffective(e.target.value)}
-                                    className="block border border-gray-300 rounded px-2 py-1 text-sm"
+                                    className={`${CONTROL_INPUT} block`}
                                 />
                             ) : (
                                 <span className="block text-sm py-1 font-mono">{salaryEffectiveDate ?? '—'}</span>

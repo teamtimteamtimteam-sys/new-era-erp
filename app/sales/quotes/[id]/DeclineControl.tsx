@@ -6,6 +6,7 @@
 //
 // 【过期的报价也谢绝得了,这是有意的】过期只是日历走过去了,而"对方明确说
 // 不要"是一个真实发生的事实 —— 拒绝记录它只会让那条信息无处安放。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -46,7 +47,7 @@ export default function DeclineControl({ quoteId }: { quoteId: string }) {
                         {t('quotes.decline.reason')} <span className="text-red-600">*</span>
                     </label>
                     <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
-                           className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
+                           className={`${CONTROL_INPUT} w-full`} />
                 </div>
                 <Button variant="secondary" type="button" onClick={go} disabled={isPending || reason.trim() === ''}>
                     {isPending ? t('common.saving') : t('quotes.decline.action')}

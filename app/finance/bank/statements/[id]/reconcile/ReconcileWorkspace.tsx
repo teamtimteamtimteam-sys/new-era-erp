@@ -19,7 +19,7 @@ import {
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 
 export type StatementLine = {
     id: string
@@ -420,7 +420,7 @@ canEdit: boolean
                                 <select
                                     value={item.kind}
                                     onChange={(e) => updateVarianceItem(item.id, { kind: e.target.value })}
-                                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                    className={CONTROL_SELECT}
                                     aria-label={t('bank.balancePanel.kind')}
                                 >
                                     {VARIANCE_KINDS.map((k) => (
@@ -436,7 +436,7 @@ canEdit: boolean
                                     onChange={(e) => updateVarianceItem(item.id, { amount: e.target.value })}
                                     placeholder={t('bank.balancePanel.amount')}
                                     aria-label={t('bank.balancePanel.amount')}
-                                    className="border border-gray-300 rounded px-2 py-1 text-sm font-mono w-32"
+                                    className={`${CONTROL_INPUT} font-mono w-32`}
                                 />
                                 <input
                                     type="text"
@@ -444,7 +444,7 @@ canEdit: boolean
                                     onChange={(e) => updateVarianceItem(item.id, { note: e.target.value })}
                                     placeholder={t('bank.balancePanel.notePlaceholder')}
                                     aria-label={t('bank.balancePanel.note')}
-                                    className="border border-gray-300 rounded px-2 py-1 text-sm flex-1 min-w-[16rem]"
+                                    className={`${CONTROL_INPUT} flex-1 min-w-[16rem]`}
                                 />
                                 <Button
                                     variant="secondary"
@@ -648,7 +648,7 @@ canEdit: boolean
                                             value={ignoreReason}
                                             onChange={(e) => setIgnoreReason(e.target.value)}
                                             placeholder={t('bank.ignoreReasonPlaceholder')}
-                                            className="flex-1 min-w-[14rem] border border-gray-300 px-3 py-2 rounded text-sm"
+                                            className={`${CONTROL_INPUT} flex-1 min-w-[14rem]`}
                                         />
  <PermissionGate code="module.finance.edit" allowed={canEdit}>
  <Button variant="default" 

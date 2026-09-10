@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveDepartment, type DepartmentFormState } from './actions'
 import { Button } from '@/app/components/ui/button'
-import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 const initialState: DepartmentFormState = {}
 
@@ -51,7 +51,7 @@ export default function DepartmentForm({
                         name="code"
                         required
                         defaultValue={department?.code ?? ''}
-                        className="w-40 border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-40`}
                     />
                 </div>
                 <div className="flex-1 min-w-[14rem]">
@@ -63,7 +63,7 @@ export default function DepartmentForm({
                         name="name_en"
                         required
                         defaultValue={department?.name_en ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
                 <div className="flex-1 min-w-[14rem]">
@@ -75,7 +75,7 @@ export default function DepartmentForm({
                         name="name_zh"
                         required
                         defaultValue={department?.name_zh ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
             </div>
@@ -86,7 +86,7 @@ export default function DepartmentForm({
                     <select
                         name="parent_department_id"
                         defaultValue={department?.parent_department_id ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">—</option>
                         {parentOptions.map((o) => (
@@ -106,9 +106,8 @@ export default function DepartmentForm({
                 <label className="block text-sm font-medium mb-1">{t('hr.colNotes')}</label>
                 <textarea
                     name="notes"
-                    rows={2}
                     defaultValue={department?.notes ?? ''}
-                    className="w-full border border-gray-300 px-3 py-2 rounded"
+                    className={`${CONTROL_TEXTAREA} w-full`}
                 />
             </div>
 

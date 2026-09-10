@@ -12,6 +12,7 @@
 // 【两个日期都不给默认值】投用日决定折旧起点,处置日决定分录落在哪个期间 ——
 // 补一个今天,会让一次本该 PERIOD_LOCKED 的处置悄悄落进开着的月份(FIN-10)。
 // 空着就禁钮,并在旁边说出来;服务端也各自独立拒空。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -109,7 +110,7 @@ export default function AssetActions({
                     <p className="text-xs text-gray-500">{t('assets.actions.commissionWhy')}</p>
                     <input type="date" value={inSvc} min={acquisitionDate}
                            onChange={(e) => setInSvc(e.target.value)}
-                           className="border border-gray-300 px-2 py-1 rounded text-xs" />
+                           className={CONTROL_INPUT} />
                     <Button type="button" disabled={pending || inSvc.trim() === ''}
                             onClick={() => run(() => commissionAsset(assetId, inSvc))}
                             variant="default" size="xs" className="ml-2">
@@ -125,7 +126,7 @@ export default function AssetActions({
                 <div className="mt-2 border border-gray-300 rounded p-2 space-y-1">
                     <p className="text-xs text-gray-500">{t('assets.plannedHint')}</p>
                     <input type="date" value={plan} onChange={(e) => setPlan(e.target.value)}
-                           className="border border-gray-300 px-2 py-1 rounded text-xs" />
+                           className={CONTROL_INPUT} />
                     <Button type="button" disabled={pending}
                             onClick={() => run(() => setPlannedInService({ assetId, plannedDate: plan }))}
                             variant="default" size="xs" className="ml-2">
@@ -142,15 +143,15 @@ export default function AssetActions({
                     <div className="flex flex-wrap items-center gap-2">
                         <input type="date" value={dispDate} min={acquisitionDate}
                                onChange={(e) => setDispDate(e.target.value)}
-                               className="border border-gray-300 px-2 py-1 rounded text-xs" />
+                               className={CONTROL_INPUT} />
                         <input type="number" step="any" min="0" value={proceeds}
                                onChange={(e) => setProceeds(e.target.value)}
-                               className="w-28 border border-gray-300 px-2 py-1 rounded text-xs text-right"
+                               className={`${CONTROL_INPUT} w-28 text-right`}
                                placeholder={t('assets.actions.proceeds')} />
                         {/* 【有价款才要收款账户】报废(价款 0)不该逼人挑一个银行账户 */}
                         {Number(proceeds) > 0 && (
                             <select value={bank} onChange={(e) => setBank(e.target.value)}
-                                    className="border border-gray-300 px-2 py-1 rounded text-xs">
+                                    className={CONTROL_SELECT}>
                                 <option value="">{t('assets.actions.selectBank')}</option>
                                 {bankAccounts.map((b) => <option key={b} value={b}>{b}</option>)}
                             </select>

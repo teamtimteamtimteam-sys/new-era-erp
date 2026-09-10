@@ -288,7 +288,7 @@ export default function EmployeeForm({
                             name="employment_type"
                             required
                             defaultValue={employee?.employment_type ?? 'full_time'}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_SELECT}
                         >
                             {EMPLOYMENT_TYPE_OPTIONS.map((o) => (
                                 <option key={o.value} value={o.value}>
@@ -306,7 +306,7 @@ export default function EmployeeForm({
                             required
                             value={workCategory}
                             onChange={(e) => setWorkCategory(e.target.value)}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_SELECT}
                         >
                             {WORK_CATEGORY_OPTIONS.map((o) => (
                                 <option key={o.value} value={o.value}>
@@ -324,7 +324,7 @@ export default function EmployeeForm({
                             name="hire_date"
                             required
                             defaultValue={employee?.hire_date ?? todayIsoLocal()}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_INPUT}
                         />
                     </div>
                     <div>
@@ -333,7 +333,7 @@ export default function EmployeeForm({
                             type="date"
                             name="probation_end_date"
                             defaultValue={employee?.probation_end_date ?? ''}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_INPUT}
                         />
                     </div>
                     <div>
@@ -342,7 +342,7 @@ export default function EmployeeForm({
                             name="employment_status"
                             value={status}
                             onChange={(e) => setStatus(e.target.value)}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_SELECT}
                         >
                             {EMPLOYMENT_STATUS_OPTIONS.map((o) => (
                                 <option key={o.value} value={o.value}>
@@ -360,7 +360,7 @@ export default function EmployeeForm({
                         <input
                             type="date"
                             name="effective_date"
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_INPUT}
                         />
                         <p className="text-xs text-gray-500 mt-1">{t('hr.effectiveDateHint')}</p>
                     </div>
@@ -377,7 +377,7 @@ export default function EmployeeForm({
                             name="residency_status"
                             value={residency}
                             onChange={(e) => setResidency(e.target.value)}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_SELECT}
                         >
                             <option value="">—</option>
                             {RESIDENCY_OPTIONS.map((o) => (
@@ -412,7 +412,7 @@ export default function EmployeeForm({
                                 name="work_pass_type"
                                 required
                                 defaultValue={employee?.work_pass_type ?? ''}
-                                className="w-40 border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_INPUT} w-40`}
                             />
                         </div>
                         <div>
@@ -426,7 +426,7 @@ export default function EmployeeForm({
                                 name="work_pass_no"
                                 required
                                 defaultValue={employee?.work_pass_no ?? ''}
-                                className="w-44 border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_INPUT} w-44`}
                             />
                         </div>
                         <div>
@@ -438,7 +438,7 @@ export default function EmployeeForm({
                                 name="work_pass_issue_date"
                                 required
                                 defaultValue={employee?.work_pass_issue_date ?? ''}
-                                className="border border-gray-300 px-3 py-2 rounded"
+                                className={CONTROL_INPUT}
                             />
                         </div>
                         <div>
@@ -450,7 +450,7 @@ export default function EmployeeForm({
                                 name="work_pass_expiry_date"
                                 required
                                 defaultValue={employee?.work_pass_expiry_date ?? ''}
-                                className="border border-gray-300 px-3 py-2 rounded"
+                                className={CONTROL_INPUT}
                             />
                         </div>
                     </div>
@@ -471,7 +471,7 @@ export default function EmployeeForm({
                                 name="separation_date"
                                 required
                                 defaultValue={employee?.separation_date ?? ''}
-                                className="border border-gray-300 px-3 py-2 rounded"
+                                className={CONTROL_INPUT}
                             />
                         </div>
                         <div>
@@ -479,7 +479,7 @@ export default function EmployeeForm({
                             <select
                                 name="separation_type"
                                 defaultValue={employee?.separation_type ?? ''}
-                                className="border border-gray-300 px-3 py-2 rounded"
+                                className={CONTROL_SELECT}
                             >
                                 <option value="">—</option>
                                 {SEPARATION_TYPE_OPTIONS.map((o) => (

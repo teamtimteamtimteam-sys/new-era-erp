@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import type { DictOption } from '@/app/components/dictionaries/dictionaryQuery'
 import { useActionState } from 'react'
 import Link from 'next/link'
@@ -80,7 +81,7 @@ export default function EditMaterialForm({
                         name="name"
                         required
                         defaultValue={material.name}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {state.fieldErrors?.name && (
                         <p className="text-red-600 text-xs mt-1">
@@ -124,7 +125,7 @@ export default function EditMaterialForm({
                     <select
                         name="chemistry"
                         defaultValue={material.chemistry ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('materials.form.selectPlaceholder', {
                             label: t('materials.form.chemistry'),
@@ -161,7 +162,7 @@ export default function EditMaterialForm({
                     <select
                         name="unit"
                         defaultValue={material.unit}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         {UNIT_OPTIONS.map((u) => (
                             <option key={u.value} value={u.value}>
@@ -178,7 +179,7 @@ export default function EditMaterialForm({
                         type="text"
                         name="spec"
                         defaultValue={material.spec ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -192,7 +193,7 @@ export default function EditMaterialForm({
                         min="0"
                         name="safety_stock_qty"
                         defaultValue={material.safety_stock_qty ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {state.fieldErrors?.safety_stock_qty && (
                         <p className="text-red-600 text-xs mt-1">{state.fieldErrors.safety_stock_qty}</p>
@@ -205,9 +206,8 @@ export default function EditMaterialForm({
                     <label className="block text-sm font-medium mb-1">{t('materials.form.notes')}</label>
                     <textarea
                         name="notes"
-                        rows={3}
                         defaultValue={material.notes ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 

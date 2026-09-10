@@ -18,7 +18,7 @@ import {
 } from '@/lib/convert'
 import { convertBasis } from './actions'
 import { Button } from '@/app/components/ui/button'
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 
 // 【它同时是 check-i18n 的真源】—— 加一个单位,两个语言少一句话就构建变红。
 const UNITS = ['tonne', 'kg', 'pound'] as const satisfies readonly MassUnit[]
@@ -80,13 +80,13 @@ export default function ConverterForm() {
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                     <input className={inp} value={massIn} onChange={(e) => setMassIn(e.target.value)}
                            inputMode="decimal" aria-label={t('converter.mass.value')} />
-                    <select className="border rounded px-2 py-1" value={from}
+                    <select className={CONTROL_SELECT} value={from}
                             onChange={(e) => setFrom(e.target.value as MassUnit)}
                             aria-label={t('converter.mass.from')}>
                         {UNITS.map((u) => <option key={u} value={u}>{t('converter.unit.' + u)}</option>)}
                     </select>
                     <span aria-hidden="true">→</span>
-                    <select className="border rounded px-2 py-1" value={to}
+                    <select className={CONTROL_SELECT} value={to}
                             onChange={(e) => setTo(e.target.value as MassUnit)}
                             aria-label={t('converter.mass.to')}>
                         {UNITS.map((u) => <option key={u} value={u}>{t('converter.unit.' + u)}</option>)}
@@ -155,7 +155,7 @@ export default function ConverterForm() {
                         <input className={inp + ' block mt-1'} value={m} inputMode="decimal"
                                onChange={(e) => setM(e.target.value)} />
                     </label>
-                    <select className="border rounded px-2 py-1" value={dir}
+                    <select className={CONTROL_SELECT} value={dir}
                             onChange={(e) => setDir(e.target.value as typeof dir)}
                             aria-label={t('converter.basis.direction')}>
                         <option value="as_received:dry">{t('converter.basis.arToDry')}</option>

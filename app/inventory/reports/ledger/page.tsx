@@ -5,6 +5,7 @@
 //   而且说出来」)都必须无条件出现。一个筛空了就把筛选栏藏起来的页面,
 //   会让人再也筛不回来;而一句只在有行时才出现的"本表默认只看 90 天",
 //   正好在最需要它的时候(一行都没有)消失。见 docs/list-page-template.md §⑩-3。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -89,22 +90,22 @@ export default async function LedgerPage({
                 <div>
                     <label className="block text-xs text-gray-600 mb-1">{t('reports.ledger.from')}</label>
                     <input type="date" name="from" defaultValue={params.from}
-                           className="border border-gray-300 px-2 py-1 rounded text-sm" />
+                           className={CONTROL_INPUT} />
                 </div>
                 <div>
                     <label className="block text-xs text-gray-600 mb-1">{t('reports.ledger.to')}</label>
                     <input type="date" name="to" defaultValue={params.to}
-                           className="border border-gray-300 px-2 py-1 rounded text-sm" />
+                           className={CONTROL_INPUT} />
                 </div>
                 <div>
                     <label className="block text-xs text-gray-600 mb-1">{t('reports.ledger.material')}</label>
                     <input type="text" name="material_id" defaultValue={params.materialId}
-                           placeholder="MAT-…" className="border border-gray-300 px-2 py-1 rounded text-sm w-36" />
+                           placeholder="MAT-…" className={`${CONTROL_INPUT} w-36`} />
                 </div>
                 <div>
                     <label className="block text-xs text-gray-600 mb-1">{t('reports.ledger.batch')}</label>
                     <input type="text" name="batch" defaultValue={params.batchCode}
-                           placeholder="IN-…" className="border border-gray-300 px-2 py-1 rounded text-sm w-36" />
+                           placeholder="IN-…" className={`${CONTROL_INPUT} w-36`} />
                 </div>
                 <Button type="submit" variant="secondary">
                     {t('reports.ledger.apply')}

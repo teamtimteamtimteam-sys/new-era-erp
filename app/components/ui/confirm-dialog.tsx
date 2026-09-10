@@ -57,6 +57,7 @@
 //   焦点在开着的时候【关在里面】,关掉之后【还给触发它的那个钮】。
 // ════════════════════════════════════════════════════════════════════════════
 
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import * as React from 'react'
 import { Button } from '@/app/components/ui/button'
 import { useTranslations } from '@/lib/i18n/client'
@@ -284,7 +285,7 @@ function ConfirmDialog({
                                 e.preventDefault()          // ← 隐式提交死在这里
                                 if (!blank) onAccept(reason)
                             }}
-                            className="w-full rounded border border-[color:var(--brand-border)] bg-background px-2 py-1 text-sm"
+                            className={`${CONTROL_INPUT} w-full`}
                         />
                     </label>
                 )}

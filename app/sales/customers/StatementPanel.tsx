@@ -15,6 +15,7 @@
 //
 // 【默认上个自然月】催收找的往往是"上个月"这个窗口;而 from/to 可改,
 // 因为催收也会找"上次说过话之后"这种不规则区间。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { previewStatement, issueStatement } from './statementActions'
@@ -130,12 +131,12 @@ export default function StatementPanel({
                 <label className="text-sm text-gray-600">
                     {t('statements.from')}
                     <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-                        className="block rounded border border-gray-300 bg-white px-3 py-2" />
+                        className={`${CONTROL_INPUT} block`} />
                 </label>
                 <label className="text-sm text-gray-600">
                     {t('statements.to')}
                     <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-                        className="block rounded border border-gray-300 bg-white px-3 py-2" />
+                        className={`${CONTROL_INPUT} block`} />
                 </label>
                 <Button variant="secondary" type="button" disabled={pending}
                     onClick={() => run(async () => {
@@ -196,7 +197,7 @@ export default function StatementPanel({
                         {t('statements.supersedeReason')}
                         <input value={reason} onChange={(e) => setReason(e.target.value)}
                             placeholder={t('statements.supersedeReasonHint')}
-                            className="block rounded border border-gray-300 bg-white px-3 py-2 w-72" />
+                            className={`${CONTROL_INPUT} block w-72`} />
                     </label>
                     <Button type="button" disabled={pending}
                         onClick={() => run(() => issueStatement(customerId, from, to, reason))}>

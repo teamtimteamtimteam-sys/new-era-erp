@@ -16,6 +16,7 @@
 // 【这两个数是【判据】,不是【目标】】把它们调大,看板会安静,而车间一克料
 // 都没有省下来 —— 与 output_unsold_aging 那条"改 output_date 会让牌子安静"
 // 同一个隐患。所以面板上把这句话直说出来,而不是指望人自己想到。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { updateWoThresholds, type WoThresholdState } from './thresholdActions'
@@ -58,7 +59,7 @@ export default function WoThresholdPanel({
                             </label>
                             <input type="number" name="wo_input_overrun_pct" step="0.1" min="0.1"
                                    required defaultValue={inputPct}
-                                   className="w-32 border border-gray-300 px-3 py-2 rounded" />
+                                   className={`${CONTROL_INPUT} w-32`} />
                             <p className="text-xs text-gray-500 mt-1">{t('processing.wo.settings.inputWhen')}</p>
                         </div>
                         <div>
@@ -67,7 +68,7 @@ export default function WoThresholdPanel({
                             </label>
                             <input type="number" name="wo_output_shortfall_pct" step="0.1" min="0.1"
                                    required defaultValue={outputPct}
-                                   className="w-32 border border-gray-300 px-3 py-2 rounded" />
+                                   className={`${CONTROL_INPUT} w-32`} />
                             <p className="text-xs text-gray-500 mt-1">{t('processing.wo.settings.outputWhen')}</p>
                         </div>
                         <Button type="submit" disabled={isPending}>

@@ -5,6 +5,7 @@
 //
 // 【为什么把它摆在行情列表页上】改阈值的人就是录行情的人 —— 把这个数字放进
 // /finance/settings 会让它归到另一批人名下,而他们不看这块屏。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import { updateAnomalyThreshold, type ThresholdState } from './thresholdActions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -53,7 +54,7 @@ export default function ThresholdPanel({
                             min="0.1"
                             required
                             defaultValue={thresholdPct}
-                            className="w-32 border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_INPUT} w-32`}
                         />
                     </div>
                     <Button

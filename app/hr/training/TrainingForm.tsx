@@ -105,7 +105,7 @@ export default function TrainingForm({
                     <select
                         name="category"
                         defaultValue={record?.category ?? ''}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         <option value="">—</option>
                         {TRAINING_CATEGORY_OPTIONS.map((o) => (
@@ -124,7 +124,7 @@ export default function TrainingForm({
                         name="completed_date"
                         required
                         defaultValue={record?.completed_date ?? ''}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                 </div>
                 <div>
@@ -133,7 +133,7 @@ export default function TrainingForm({
                         type="date"
                         name="expiry_date"
                         defaultValue={record?.expiry_date ?? ''}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                     <p className="text-xs text-gray-500 mt-1">{t('hr.expiryHint')}</p>
                 </div>

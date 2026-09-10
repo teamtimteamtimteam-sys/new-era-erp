@@ -1,5 +1,6 @@
 // app/hr/leave/holidays/page.tsx
 // 公共假期维护。【Tim 每年自己补】—— 农历与回历日期要等官方公布,不去算。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
@@ -52,7 +53,7 @@ export default async function HolidaysPage({
                         <label className="text-sm">
                             {t('leave.leaveYear')}
                             <input type="number" name="year" defaultValue={year}
-                                   className="mt-1 block w-28 rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2 py-1 text-sm" />
+                                   className={`${CONTROL_INPUT} mt-1 block w-28`} />
                         </label>
                         <Button variant="secondary" className="text-sm" type="submit">
                             {t('leave.filter')}

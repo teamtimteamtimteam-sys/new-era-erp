@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { updateCustomer, type UpdateCustomerState } from './actions'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
-import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_TEXTAREA, CONTROL_SELECT } from '@/app/components/ui/control-style'
 
 const CUSTOMER_TYPE_OPTIONS = [
     { value: 'cathode_maker', labelKey: 'customers.types.cathodeMaker' },
@@ -69,7 +69,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         name="legal_name"
                         required
                         defaultValue={customer.legal_name}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {state.fieldErrors?.legal_name && (
                         <p className="text-red-600 text-xs mt-1">
@@ -84,7 +84,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         type="text"
                         name="short_name"
                         defaultValue={customer.short_name ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -98,7 +98,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         required
                         maxLength={2}
                         defaultValue={customer.country}
-                        className="w-full border border-gray-300 px-3 py-2 rounded uppercase"
+                        className={`${CONTROL_INPUT} w-full uppercase`}
                     />
                     {state.fieldErrors?.country && (
                         <p className="text-red-600 text-xs mt-1">
@@ -113,7 +113,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         type="text"
                         name="tax_id"
                         defaultValue={customer.tax_id ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -121,9 +121,8 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                     <label className="block text-sm font-medium mb-1">{t('customers.form.address')}</label>
                     <textarea
                         name="address"
-                        rows={2}
                         defaultValue={customer.address ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 
@@ -148,7 +147,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                                     name="customer_types"
                                     value={opt.value}
                                     defaultChecked={currentTypes.includes(opt.value)}
-                                    className="w-4 h-4"
+                                    className={`${CONTROL_CHECKBOX} w-4`}
                                 />
                                 <span className="text-sm">{t(opt.labelKey)}</span>
                             </label>
@@ -162,7 +161,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         type="text"
                         name="payment_terms"
                         defaultValue={customer.payment_terms ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
                 <div>
@@ -172,7 +171,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         min="0"
                         name="payment_terms_days"
                         defaultValue={customer.payment_terms_days ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {/* CASHFLOW-1:这一列【已经被读了】—— 开票表单拿它当默认账期,
                         读不到就悄悄用 30 天。而在此之前【没有任何地方设得了它】,
@@ -189,7 +188,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         type="text"
                         name="incoterm"
                         defaultValue={customer.incoterm ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -199,7 +198,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         type="text"
                         name="credit_rating"
                         defaultValue={customer.credit_rating ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -214,7 +213,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         name="credit_limit_base"
                         defaultValue={customer.credit_limit_base ?? ''}
                         placeholder={t('customers.form.creditLimitPlaceholder')}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     <p className="text-xs text-gray-500 mt-1">{t('customers.form.creditLimitHint')}</p>
                 </div>
@@ -236,7 +235,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         <select
                             name="default_tax_code"
                             defaultValue={customer.default_tax_code ?? ''}
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="">{t('customers.form.defaultTaxCodeNone')}</option>
                             {taxCodes.map((c) => (
@@ -255,9 +254,8 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                     <label className="block text-sm font-medium mb-1">{t('customers.form.notes')}</label>
                     <textarea
                         name="notes"
-                        rows={3}
                         defaultValue={customer.notes ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 

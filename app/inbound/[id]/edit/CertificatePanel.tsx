@@ -10,6 +10,7 @@
 //   · 已作废     —— 红。编号仍然在(供应商手里那张纸要查得到),外加作废理由。
 //
 // 【内部存档那个链接在四种状态里都在】—— 存档是内部的事,永远不因缺执照被拒。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -171,7 +172,7 @@ export default function CertificatePanel({
                     <div className="mt-3 space-y-2">
                         <label className="block text-sm font-medium">{t('cod.voidReasonLabel')}</label>
                         <input
-                            className="w-full rounded border px-2 py-1 text-sm text-gray-900"
+                            className={`${CONTROL_INPUT} w-full`}
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
                         />

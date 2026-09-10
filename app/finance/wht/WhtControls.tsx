@@ -2,6 +2,7 @@
 
 // app/finance/wht/WhtControls.tsx
 // WHT-1:汇缴控件。**禁用一律说出为什么**(CMP-2 的规矩);拒绝就地显示。
+import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -47,7 +48,7 @@ canEdit: boolean
                     <label className="block text-sm font-medium mb-1">{t('wht.remitMonth')}</label>
                     <select value={month} onChange={(e) => setMonth(e.target.value)}
                             name="period_month"
-                            className="border border-gray-300 px-3 py-2 rounded">
+                            className={CONTROL_SELECT}>
                         <option value="">—</option>
                         {months.map((m) => (
                             <option key={m.month} value={m.month}>{m.label} · {m.amount}</option>
@@ -57,13 +58,13 @@ canEdit: boolean
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('wht.remitOn')}</label>
                     <input type="date" value={on} onChange={(e) => setOn(e.target.value)}
-                           className="border border-gray-300 px-3 py-2 rounded" />
+                           className={CONTROL_INPUT} />
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('wht.remitReference')}</label>
                     <input value={ref} onChange={(e) => setRef(e.target.value)}
                            placeholder={t('wht.remitReferenceHint')}
-                           className="border border-gray-300 px-3 py-2 rounded" />
+                           className={CONTROL_INPUT} />
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('wht.remitBank')}</label>
@@ -71,12 +72,12 @@ canEdit: boolean
                         本位币户之外的账户由服务端按名拒(WHT_REMIT_BANK_NOT_BASE)。 */}
                     <input value={bank} onChange={(e) => setBank(e.target.value)}
                            placeholder="1000"
-                           className="border border-gray-300 px-3 py-2 rounded w-24" />
+                           className={`${CONTROL_INPUT} w-24`} />
                 </div>
                 <div className="grow">
                     <label className="block text-sm font-medium mb-1">{t('wht.remitNotes')}</label>
                     <input value={notes} onChange={(e) => setNotes(e.target.value)}
-                           className="border border-gray-300 px-3 py-2 rounded w-full" />
+                           className={`${CONTROL_INPUT} w-full`} />
                 </div>
             </div>
 

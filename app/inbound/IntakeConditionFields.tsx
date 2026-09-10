@@ -19,6 +19,7 @@
 //
 // 【P4:没有默认】复选框一个都不预勾;确定度以【还没选】开局。两个宿主都是。
 // ════════════════════════════════════════════════════════════════════════════
+import { CONTROL_CHECKBOX, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useTranslations } from '@/lib/i18n/client'
 
 export type SafetyState = { code: string; name_en: string; name_zh: string; may_be_fed: boolean }
@@ -61,7 +62,7 @@ export default function IntakeConditionFields({
                 <div className="space-y-1">
                     {states.map((s) => (
                         <label key={s.code} className="flex items-start gap-2 text-sm">
-                            <input type="checkbox" className="mt-1" disabled={disabled}
+                            <input type="checkbox" className={`${CONTROL_CHECKBOX} mt-1`} disabled={disabled}
                                    {...(asFormFields ? { name: FIELD_SAFETY_STATES, value: s.code } : {})}
                                    checked={picked.includes(s.code)} onChange={() => onToggle(s.code)} />
                             <span>
@@ -87,7 +88,7 @@ export default function IntakeConditionFields({
                 <p className="text-sm font-medium mb-1">{t('inbound.condition.certainty')}</p>
                 <select value={certainty} onChange={(e) => onCertainty(e.target.value)} disabled={disabled}
                         {...(asFormFields ? { name: FIELD_CERTAINTY } : {})}
-                        className="w-full border border-gray-300 px-3 py-2 rounded text-sm">
+                        className={`${CONTROL_SELECT} w-full`}>
                     <option value={CERTAINTY_UNCHOSEN}>{t('inbound.condition.certaintyUnchosen')}</option>
                     {certainties.map((c) => (
                         <option key={c.code} value={c.code}>{label(c)}</option>

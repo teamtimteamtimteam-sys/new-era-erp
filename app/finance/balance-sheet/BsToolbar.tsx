@@ -2,6 +2,7 @@
 
 // 资产负债表工具栏:截至日期(显示生效值,含默认今天)。
 // 改动只写进 URL searchParams,聚合在服务端 page.tsx 完成。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 
@@ -27,7 +28,7 @@ export default function BsToolbar({ asOf }: { asOf: string }) {
                     type="date"
                     value={asOf}
                     onChange={(e) => onChange(e.target.value)}
-                    className="rounded border border-gray-300 bg-white px-3 py-2"
+                    className={CONTROL_INPUT}
                 />
             </label>
         </div>

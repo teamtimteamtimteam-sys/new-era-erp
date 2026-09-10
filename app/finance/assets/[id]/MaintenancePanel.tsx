@@ -54,7 +54,7 @@ import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { recordMaintenance, capitaliseMaintenance } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { CONTROL_RADIO } from '@/app/components/ui/control-style'
+import { CONTROL_RADIO, CONTROL_INPUT, CONTROL_SELECT, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export type MaintRow = {
     id: string
@@ -268,12 +268,12 @@ export default function MaintenancePanel({
                             {/* 【没有 defaultValue,而且不许有】见本文件抬头。 */}
                             <input type="date" value={f.performedOn}
                                    onChange={(e) => setF({ ...f, performedOn: e.target.value })}
-                                   className="border border-gray-400 rounded px-2 py-1 text-sm" />
+                                   className={CONTROL_INPUT} />
                         </label>
                         <label className="block">
                             <span className="text-xs text-gray-600 block">{t('equipment.maint.kind')}</span>
                             <select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}
-                                    className="border border-gray-400 rounded px-2 py-1 text-sm">
+                                    className={CONTROL_SELECT}>
                                 <option value="service">{t('equipment.kind.service')}</option>
                                 <option value="repair">{t('equipment.kind.repair')}</option>
                             </select>
@@ -282,7 +282,7 @@ export default function MaintenancePanel({
                     <label className="block">
                         <span className="text-xs text-gray-600 block">{t('equipment.maint.what')}</span>
                         <input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })}
-                               className="border border-gray-400 rounded px-2 py-1 text-sm w-full" />
+                               className={`${CONTROL_INPUT} w-full`} />
                     </label>
 
                     {/* ── 谁做的:【一个选择】,不是三个格子 ─────────────────────── */}
@@ -307,18 +307,18 @@ export default function MaintenancePanel({
                         {f.performerKind === 'name' && (
                             <input value={f.performerName} onChange={(e) => setF({ ...f, performerName: e.target.value })}
                                    placeholder={t('equipment.maint.performerNamePlaceholder')}
-                                   className="border border-gray-400 rounded px-2 py-1 text-sm w-full" />
+                                   className={`${CONTROL_INPUT} w-full`} />
                         )}
                         {f.performerKind === 'employee' && (
                             <select value={f.employeeId} onChange={(e) => setF({ ...f, employeeId: e.target.value })}
-                                    className="border border-gray-400 rounded px-2 py-1 text-sm w-full">
+                                    className={`${CONTROL_SELECT} w-full`}>
                                 <option value="">{t('common.select')}</option>
                                 {employees.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
                             </select>
                         )}
                         {f.performerKind === 'supplier' && (
                             <select value={f.supplierId} onChange={(e) => setF({ ...f, supplierId: e.target.value })}
-                                    className="border border-gray-400 rounded px-2 py-1 text-sm w-full">
+                                    className={`${CONTROL_SELECT} w-full`}>
                                 <option value="">{t('common.select')}</option>
                                 {suppliers.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                             </select>
@@ -329,7 +329,7 @@ export default function MaintenancePanel({
                     <label className="block">
                         <span className="text-xs text-gray-600 block">{t('equipment.maint.expense')}</span>
                         <select value={f.expenseId} onChange={(e) => setF({ ...f, expenseId: e.target.value })}
-                                className="border border-gray-400 rounded px-2 py-1 text-sm w-full">
+                                className={`${CONTROL_SELECT} w-full`}>
                             <option value="">{t('equipment.maint.expenseNone')}</option>
                             {expenses.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
                         </select>
@@ -339,7 +339,7 @@ export default function MaintenancePanel({
                     {/* ── 资本化判断 ─────────────────────────────────────────── */}
                     <div className="border-t border-gray-200 pt-2">
                         <label className="flex items-start gap-2">
-                            <input type="checkbox" checked={f.capitalised} className="mt-1"
+                            <input type="checkbox" checked={f.capitalised} className={`${CONTROL_CHECKBOX} mt-1`}
                                    onChange={(e) => setF({ ...f, capitalised: e.target.checked })} />
                             <span>
                                 <span className="block">{t('equipment.maint.capitalise')}</span>
@@ -361,7 +361,7 @@ export default function MaintenancePanel({
                                 <span className="text-xs text-gray-600 block">{t('equipment.maint.reason')}</span>
                                 <input value={f.capitalisationReason}
                                        onChange={(e) => setF({ ...f, capitalisationReason: e.target.value })}
-                                       className="border border-gray-400 rounded px-2 py-1 text-sm w-full" />
+                                       className={`${CONTROL_INPUT} w-full`} />
                                 {/* 【说清为什么要理由,而不只是拒绝】—— P2 的原话。 */}
                                 <span className="text-xs text-gray-600 block mt-1">{t('equipment.maint.reasonWhy')}</span>
                             </label>
@@ -473,25 +473,25 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
                 <label className="text-xs">
                     {t('equipment.maint.capDate')}
                     <input type="date" value={f.expenseDate} onChange={(e) => setF({ ...f, expenseDate: e.target.value })}
-                           className="block w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                           className={`${CONTROL_INPUT} block w-full`} />
                 </label>
                 <label className="text-xs">
                     {t('equipment.maint.capAmount')}
                     <input type="number" step="0.01" min="0" value={f.amount}
                            onChange={(e) => setF({ ...f, amount: e.target.value })}
-                           className="block w-full border border-gray-300 rounded px-2 py-1 text-xs" />
+                           className={`${CONTROL_INPUT} block w-full`} />
                 </label>
                 <label className="text-xs">
                     {t('equipment.maint.capCurrency')}
                     <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })}
-                            className="block w-full border border-gray-300 rounded px-2 py-1 text-xs">
+                            className={`${CONTROL_SELECT} block w-full`}>
                         {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                 </label>
                 <label className="text-xs">
                     {t('equipment.maint.capSupplier')}
                     <select value={f.supplierId} onChange={(e) => setF({ ...f, supplierId: e.target.value })}
-                            className="block w-full border border-gray-300 rounded px-2 py-1 text-xs">
+                            className={`${CONTROL_SELECT} block w-full`}>
                         <option value="">{t('equipment.maint.capNoSupplier')}</option>
                         {suppliers.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                     </select>

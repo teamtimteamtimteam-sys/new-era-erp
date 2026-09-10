@@ -2,6 +2,7 @@
 
 // 牌价列表工具栏:币种筛选下拉(全部 + 非 SGD 币种,选项由服务端页面传入)。
 // 端口自 MetalPricesToolbar。改动只写进 URL searchParams,过滤在服务端完成。
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 
@@ -27,7 +28,7 @@ export default function FxToolbar({ currencies }: { currencies: string[] }) {
             <select
                 value={current}
                 onChange={(e) => onFilterChange(e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('finance.fxPage.allCurrencies')}</option>
                 {currencies.map((c) => (

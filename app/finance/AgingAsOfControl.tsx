@@ -14,6 +14,7 @@
 // 【"今天"取库那一侧的今天】max 与"回到今天"用的都是服务端传下来的 today
 // (报表自己报的 today 字段),不是浏览器的 new Date():浏览器可能在别的时区,
 // 而这套系统的今天是新加坡的今天(db/fixtures/15)。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
@@ -49,7 +50,7 @@ export default function AgingAsOfControl({
                     value={asOf}
                     max={today}
                     onChange={(e) => go(e.target.value)}
-                    className="rounded border border-gray-300 bg-white px-3 py-2"
+                    className={CONTROL_INPUT}
                 />
             </label>
             {asOf !== today && (

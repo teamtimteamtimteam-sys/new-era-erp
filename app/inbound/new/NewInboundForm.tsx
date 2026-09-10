@@ -3,6 +3,7 @@
 // 新建进料批次。cut 4c:供应商之后可选【关联采购单】—— 选定供应商后列出其可收货
 // 的采购单(po_receivable_lines),再选行,物料与数量按行的剩余量预填(都仍可改 ——
 // 实收和下单本来就会有出入)。留空 = 与从前完全一样的临时采购路径。
+import { CONTROL_SELECT, CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createInbound, type CreateInboundState } from './actions'
@@ -162,7 +163,7 @@ export default function NewInboundForm({
                             required
                             value={supplierId}
                             onChange={(e) => onSupplierChange(e.target.value)}
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="" disabled>{t('inbound.form.selectSupplier')}</option>
                             {suppliers.map((s) => (
@@ -197,7 +198,7 @@ export default function NewInboundForm({
                         <select
                             value={poId}
                             onChange={(e) => onPoChange(e.target.value)}
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="">—</option>
                             {supplierPos.map((p) => (
@@ -211,7 +212,7 @@ export default function NewInboundForm({
                             <select
                                 value={lineId}
                                 onChange={(e) => onLineChange(e.target.value)}
-                                className="w-full border border-gray-300 px-3 py-2 rounded mt-2"
+                                className={`${CONTROL_SELECT} w-full mt-2`}
                             >
                                 <option value="" disabled>{t('inbound.selectPoLine')}</option>
                                 {poLineOptions.map((l) => (
@@ -249,7 +250,7 @@ export default function NewInboundForm({
                         required
                         value={materialId}
                         onChange={(e) => setMaterialId(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="" disabled>{t('inbound.form.selectMaterial')}</option>
                         {materials.map((m) => (
@@ -287,7 +288,7 @@ export default function NewInboundForm({
                         min="0"
                         value={quantity}
                         onChange={(e) => setQuantity(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {state.fieldErrors?.quantity && (
                         <p className="text-red-600 text-xs mt-1">
@@ -312,7 +313,7 @@ export default function NewInboundForm({
                         step="any"
                         min="0"
                         placeholder={t('inbound.form.declaredQtyPlaceholder')}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     <p className="text-xs text-gray-500 mt-1">{t('inbound.form.declaredQtyHint')}</p>
                     {state.fieldErrors?.declared_qty && (
@@ -328,7 +329,7 @@ export default function NewInboundForm({
                     <select
                         name="unit"
                         defaultValue="kg"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         {UNIT_OPTIONS.map((u) => (
                             <option key={u.value} value={u.value}>
@@ -352,7 +353,7 @@ export default function NewInboundForm({
                         value={arrivalDate}
                         onChange={(e) => setArrivalDate(e.target.value)}
                         required
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {/* IOD-1b:说清【为什么】必填 —— 星号只说"必填",不说这个日期
                         会去到哪里。它是收货流水的业务日(FIN-32),而业务日永远不
@@ -366,7 +367,7 @@ export default function NewInboundForm({
                     <select
                         name="stage"
                         defaultValue="待加工"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         {STAGE_OPTIONS.map((s) => (
                             <option key={s.value} value={s.value}>
@@ -383,7 +384,7 @@ export default function NewInboundForm({
                         type="number"
                         name="unit_price"
                         step="any"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {state.fieldErrors?.unit_price && (
                         <p className="text-red-600 text-xs mt-1">
@@ -405,8 +406,7 @@ export default function NewInboundForm({
                     <label className="block text-sm font-medium mb-1">{t('inbound.form.notes')}</label>
                     <textarea
                         name="notes"
-                        rows={3}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 

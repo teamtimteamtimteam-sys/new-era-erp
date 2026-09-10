@@ -11,6 +11,7 @@
 //   现在它是 details 里真正的两行,而【一个字没有改写】。
 //   ★ 主语点的是【这一笔销售】(出库批号 · 销售日),不是金额 ——
 //     主语无条件渲染,而钱是另一回事。
+import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -69,7 +70,7 @@ canEdit: boolean
                     <select
                         value={customerId}
                         onChange={(e) => setCustomerId(e.target.value)}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         <option value="">{t('receivables.attribute.pick')}</option>
                         {customers.map((c) => (
@@ -85,7 +86,7 @@ canEdit: boolean
                         type="text"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
                 {/* 单向且不可撤销 —— 按下之前问一次 */}

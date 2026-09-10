@@ -2,6 +2,7 @@
 
 // 员工列表工具栏:姓名/编号搜索 + 部门 + 在职状态 + 办公室/车间。
 // 改动只写进 URL searchParams,过滤在服务端完成(端口自 InvoicesToolbar)。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { EMPLOYMENT_STATUS_OPTIONS, WORK_CATEGORY_OPTIONS } from '../options'
@@ -43,13 +44,13 @@ export default function EmployeesToolbar({ departments }: { departments: DeptOpt
                     name="q"
                     defaultValue={q}
                     placeholder={t('hr.searchPlaceholder')}
-                    className="w-56 max-w-full rounded border border-gray-300 px-3 py-2"
+                    className={`${CONTROL_INPUT} w-56 max-w-full`}
                 />
             </form>
             <select
                 value={dept}
                 onChange={(e) => onChange('department', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('hr.allDepartments')}</option>
                 {departments.map((d) => (
@@ -61,7 +62,7 @@ export default function EmployeesToolbar({ departments }: { departments: DeptOpt
             <select
                 value={status}
                 onChange={(e) => onChange('status', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('hr.allStatuses')}</option>
                 {EMPLOYMENT_STATUS_OPTIONS.map((o) => (
@@ -73,7 +74,7 @@ export default function EmployeesToolbar({ departments }: { departments: DeptOpt
             <select
                 value={category}
                 onChange={(e) => onChange('category', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('hr.allCategories')}</option>
                 {WORK_CATEGORY_OPTIONS.map((o) => (

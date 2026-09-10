@@ -11,6 +11,7 @@
 // 【入账日那一格默认留空】留空 = 按花钱那天入账(成本属于它发生的期间)。
 // 只有那个期间已经关账、服务端按名拒(PERIOD_LOCKED)之后,才另给一个日子 ——
 // 界面【不】替人回落到今天,那正是 FIN-10 拆掉的那种默认。
+import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { decideClaim } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -127,7 +128,7 @@ export default function ClaimDecisionPanel({
                                     <label className="text-xs text-gray-600">{t('expenseClaims.accountCode')}
                                         <select value={get(c.claim_id).acct}
                                             onChange={(e) => set(c.claim_id, { acct: e.target.value })}
-                                            className="block rounded border border-gray-300 px-2 py-1 text-sm">
+                                            className={`${CONTROL_SELECT} block`}>
                                             <option value=""></option>
                                             {accounts.map((a) => (
                                                 <option key={a.code} value={a.code}>{a.code} {a.name_en}</option>
@@ -136,7 +137,7 @@ export default function ClaimDecisionPanel({
                                     <label className="text-xs text-gray-600">{t('expenseClaims.taxCode')}
                                         <select value={get(c.claim_id).tax}
                                             onChange={(e) => set(c.claim_id, { tax: e.target.value })}
-                                            className="block rounded border border-gray-300 px-2 py-1 text-sm">
+                                            className={`${CONTROL_SELECT} block`}>
                                             <option value=""></option>
                                             {taxCodes.map((x) => (
                                                 <option key={x.code} value={x.code}>{x.code} {x.name_en}</option>
@@ -145,11 +146,11 @@ export default function ClaimDecisionPanel({
                                     <label className="text-xs text-gray-600">{t('expenseClaims.postingDate')}
                                         <input type="date" value={get(c.claim_id).post}
                                             onChange={(e) => set(c.claim_id, { post: e.target.value })}
-                                            className="block rounded border border-gray-300 px-2 py-1 text-sm" /></label>
+                                            className={`${CONTROL_INPUT} block`} /></label>
                                     <label className="text-xs text-gray-600 flex-1 min-w-[12rem]">{t('expenseClaims.decisionNotes')}
                                         <input value={get(c.claim_id).notes}
                                             onChange={(e) => set(c.claim_id, { notes: e.target.value })}
-                                            className="block w-full rounded border border-gray-300 px-2 py-1 text-sm" /></label>
+                                            className={`${CONTROL_INPUT} block w-full`} /></label>
                                     <Button type="button" disabled={pendingTx}
                                         onClick={() => run(() => decideClaim({
                                             claimId: c.claim_id, approve: true,

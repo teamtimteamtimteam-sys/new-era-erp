@@ -10,6 +10,7 @@
 //
 // 【过期那一条要给补救办法】"过期了"是一句没有下一步的话;能做的事是
 // 改有效期、再签发一版 —— 那句话必须写出来。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { convertQuote } from '../actions'
@@ -65,7 +66,7 @@ export default function ConvertControl({
                         {t('quotes.convert.orderDate')} <span className="text-red-600">*</span>
                     </label>
                     <input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)}
-                           className="border border-gray-300 px-2 py-1 rounded text-sm" />
+                           className={CONTROL_INPUT} />
                 </div>
                 <Button type="button" onClick={go} disabled={isPending || orderDate.trim() === ''}>
                     {isPending ? t('common.saving') : t('quotes.convert.action')}

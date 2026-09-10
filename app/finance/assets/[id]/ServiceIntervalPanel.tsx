@@ -38,6 +38,7 @@
 // 【提前量与"至少一个"【不在这里再校验一遍】】lead < interval 与 at-least-one
 // 都是表上的 CHECK。在 TS 里再写一遍就是第二份实现 —— 让库拒,句子由
 // localizeEquipmentError 按约束名翻。W1 正面走这两条。
+import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -321,7 +322,7 @@ export default function ServiceIntervalPanel({
                         <label className="block">
                             <span className="text-xs text-gray-600 block">{t('equipment.intervals.kind')}</span>
                             <select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}
-                                    className="border border-gray-400 rounded px-2 py-1 text-sm">
+                                    className={CONTROL_SELECT}>
                                 <option value="service">{t('equipment.kind.service')}</option>
                                 <option value="repair">{t('equipment.kind.repair')}</option>
                             </select>
@@ -329,7 +330,7 @@ export default function ServiceIntervalPanel({
                         <label className="block">
                             <span className="text-xs text-gray-600 block">{t('equipment.intervals.disposition')}</span>
                             <select value={f.disposition} onChange={(e) => setF({ ...f, disposition: e.target.value })}
-                                    className="border border-gray-400 rounded px-2 py-1 text-sm">
+                                    className={CONTROL_SELECT}>
                                 <option value="warn">{t('equipment.intervals.dispWarn')}</option>
                                 <option value="ignore">{t('equipment.intervals.dispIgnore')}</option>
                             </select>
@@ -339,22 +340,22 @@ export default function ServiceIntervalPanel({
                         <label className="block">
                             <span className="text-xs text-gray-600 block">{t('equipment.intervals.intervalKg')}</span>
                             <input value={f.intervalKg} onChange={(e) => setF({ ...f, intervalKg: e.target.value })}
-                                   inputMode="decimal" className="border border-gray-400 rounded px-2 py-1 text-sm w-full" />
+                                   inputMode="decimal" className={`${CONTROL_INPUT} w-full`} />
                         </label>
                         <label className="block">
                             <span className="text-xs text-gray-600 block">{t('equipment.intervals.leadKg')}</span>
                             <input value={f.leadKg} onChange={(e) => setF({ ...f, leadKg: e.target.value })}
-                                   inputMode="decimal" className="border border-gray-400 rounded px-2 py-1 text-sm w-full" />
+                                   inputMode="decimal" className={`${CONTROL_INPUT} w-full`} />
                         </label>
                         <label className="block">
                             <span className="text-xs text-gray-600 block">{t('equipment.intervals.intervalDays')}</span>
                             <input value={f.intervalDays} onChange={(e) => setF({ ...f, intervalDays: e.target.value })}
-                                   inputMode="numeric" className="border border-gray-400 rounded px-2 py-1 text-sm w-full" />
+                                   inputMode="numeric" className={`${CONTROL_INPUT} w-full`} />
                         </label>
                         <label className="block">
                             <span className="text-xs text-gray-600 block">{t('equipment.intervals.leadDays')}</span>
                             <input value={f.leadDays} onChange={(e) => setF({ ...f, leadDays: e.target.value })}
-                                   inputMode="numeric" className="border border-gray-400 rounded px-2 py-1 text-sm w-full" />
+                                   inputMode="numeric" className={`${CONTROL_INPUT} w-full`} />
                         </label>
                     </div>
                     {/* 【两条规矩说出来,但【不在这里执行】】执行它们的是表上的 CHECK。

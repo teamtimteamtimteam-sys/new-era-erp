@@ -14,6 +14,7 @@
 //     所以这里 priority:true 是【原样搬过来】,不是 R1 又改了一次判断 ——
 //     R1 当初正是照着这一列的理由写的(够不着的动作等于不存在)。
 //   叠在名称格里那一段手写的展开块【拿掉了】:组件自己画那一段。
+import { CONTROL_FILE_BUTTON, CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useRef, useState, useTransition } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -242,7 +243,7 @@ export default function AttachmentsPanel({
                         name="file"
                         required
                         accept={ATTACHMENT_ACCEPT}
-                        className="w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-white hover:file:bg-blue-700"
+                        className={`${CONTROL_FILE_BUTTON} w-full`}
                     />
                 </div>
 
@@ -251,7 +252,7 @@ export default function AttachmentsPanel({
                     <select
                         name="doc_category"
                         defaultValue=""
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('customers.attachments.categoryPlaceholder')}</option>
                         {DOC_CATEGORIES.map((c) => (
@@ -268,7 +269,7 @@ export default function AttachmentsPanel({
                         type="text"
                         name="notes"
                         placeholder={t('customers.attachments.notesPlaceholder')}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 

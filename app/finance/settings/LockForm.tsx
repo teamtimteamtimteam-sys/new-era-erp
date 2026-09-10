@@ -3,6 +3,7 @@
 // 期间锁表单:日期 + 设置(确认)/ 解除(确认)。失败 alert,成功由 revalidate 刷新展示。
 // CONFIRM-1:两处确认都换成 ConfirmButton。主语是【那个日期】—— 一个"要不要锁?"
 // 的灰盒子答不出锁到哪一天,而锁到哪一天正是这次点击的全部内容。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { setPeriodLock } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -53,7 +54,7 @@ canEdit: boolean
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="border border-gray-300 px-3 py-2 rounded"
+                    className={CONTROL_INPUT}
                     aria-invalid={fieldError ? true : undefined}
                 />
                 {/* ★ 甲类:话贴着那个框。 */}

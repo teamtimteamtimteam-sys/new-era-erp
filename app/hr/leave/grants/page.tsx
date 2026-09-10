@@ -2,6 +2,7 @@
 // 年度操作:发放年假、年末结转。
 // 【这两件事一年只做一两次,但整本假期账都靠它们】—— 所以给它们一个显眼的入口,
 // 而不是埋在某个按钮后面。页面先把"将会发生什么"算给你看,再让你按。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import LeaveSubnav from '../LeaveSubnav'
@@ -42,7 +43,7 @@ export default async function GrantsPage({
                 <label className="text-sm">
                     {t('leave.leaveYear')}
                     <input type="number" name="year" defaultValue={year}
-                           className="mt-1 block border border-gray-300 rounded px-2 py-1 text-sm w-28" />
+                           className={`${CONTROL_INPUT} mt-1 block w-28`} />
                 </label>
                 <Button variant="secondary" type="submit">
                     {t('leave.filter')}

@@ -5,6 +5,7 @@
 // → 代扣款汇出 → 应计冲抵(发票到了才冲,记在发票期间)→ 重估(记在月末,
 // 必须在锁期之前)→ 锁期。CPF 例外:次月 14 日前汇、凭证记在【次月】,
 // 所以锁本月不挡 CPF —— 它挂在下月的账上。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
@@ -198,7 +199,7 @@ export default async function MonthEndPage({
         <ListPage title={t('finance.monthEnd.title')} maxWidth="max-w-4xl" state={{ kind: 'ok' }}>
             <form method="get" className="mb-4">
                 <input type="month" name="month" defaultValue={month}
-                       className="border border-gray-300 rounded px-2 py-1 text-sm" />
+                       className={CONTROL_INPUT} />
                 <Button variant="secondary" className="ml-2 text-sm" type="submit">
                     {t('reviews.filter')}
                 </Button>

@@ -58,7 +58,7 @@ canEdit: boolean
                 <form
                     onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const d = new FormData(f)
                         run(() => addPort(d.get('code') as string, d.get('name') as string, ((d.get('country') as string) || null)), f) }}
-                    className="flex items-end gap-2 rounded border border-gray-200 bg-gray-50 p-3"
+                    className="flex flex-wrap items-end gap-2 rounded border border-gray-200 bg-gray-50 p-3"
                 >
                     <div>
                         <label className="block text-xs font-medium mb-1">{labels.portCode}</label>
@@ -66,7 +66,7 @@ canEdit: boolean
                     </div>
                     <div>
                         <label className="block text-xs font-medium mb-1">{labels.portName}</label>
-                        <input name="name" required className={`${field} w-40 md:w-42`} />
+                        <input name="name" required className={field} />
                     </div>
                     <Button variant="default" className="text-sm shrink whitespace-normal" disabled={pending}>{labels.addPort}</Button>
                 </form>
@@ -77,17 +77,17 @@ canEdit: boolean
                     <form
                         onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const d = new FormData(f)
                             run(() => addLane(d.get('origin') as string, d.get('destination') as string), f) }}
-                        className="flex items-end gap-2 rounded border border-gray-200 bg-gray-50 p-3"
+                        className="flex flex-wrap items-end gap-2 rounded border border-gray-200 bg-gray-50 p-3"
                     >
                         <div>
                             <label className="block text-xs font-medium mb-1">{labels.origin}</label>
-                            <select name="origin" required className={`${fieldSelect} w-34 md:w-40`}>
+                            <select name="origin" required className={fieldSelect}>
                                 {ports.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                             </select>
                         </div>
                         <div>
                             <label className="block text-xs font-medium mb-1">{labels.destination}</label>
-                            <select name="destination" required className={`${fieldSelect} w-34 md:w-40`}>
+                            <select name="destination" required className={fieldSelect}>
                                 {ports.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                             </select>
                         </div>

@@ -2,6 +2,7 @@
 
 // 发票列表工具栏:issue_date 区间 + 收款状态 + 单据状态(端口自 PaymentsToolbar)。
 // 改动只写进 URL searchParams,过滤在服务端完成。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 
@@ -33,7 +34,7 @@ export default function InvoicesToolbar() {
                     type="date"
                     value={dateFrom}
                     onChange={(e) => onChange('date_from', e.target.value)}
-                    className="rounded border border-gray-300 bg-white px-3 py-2"
+                    className={CONTROL_INPUT}
                 />
             </label>
             <label className="text-sm text-gray-600">
@@ -42,13 +43,13 @@ export default function InvoicesToolbar() {
                     type="date"
                     value={dateTo}
                     onChange={(e) => onChange('date_to', e.target.value)}
-                    className="rounded border border-gray-300 bg-white px-3 py-2"
+                    className={CONTROL_INPUT}
                 />
             </label>
             <select
                 value={state}
                 onChange={(e) => onChange('state', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('expense.filterAllStatus')}</option>
                 <option value="unpaid">{t('invoice.paymentState.unpaid')}</option>
@@ -60,7 +61,7 @@ export default function InvoicesToolbar() {
             <select
                 value={status}
                 onChange={(e) => onChange('status', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('invoice.status.issued')}</option>
                 <option value="void">{t('invoice.status.void')}</option>

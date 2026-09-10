@@ -44,6 +44,7 @@
 // 【永不提供恢复】撤销删除是一个没有人做过的决定 —— 台账上已经有一条注销流水、
 // 回滚的投入已经还回去了。这里放一个按钮等于替所有人默默把那个决定做了。
 // 本页只读,连一个可写入口都没有。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -196,10 +197,10 @@ export default async function DeletedRecordsPage({
                 <form className="flex flex-wrap items-center gap-2 sm:ml-auto" action="/settings/deleted">
                     {kind && <input type="hidden" name="kind" value={kind} />}
                     <input type="date" name="from" defaultValue={from}
-                           className="border border-gray-300 px-2 py-1 rounded" />
+                           className={CONTROL_INPUT} />
                     <span className="text-gray-500">–</span>
                     <input type="date" name="to" defaultValue={to}
-                           className="border border-gray-300 px-2 py-1 rounded" />
+                           className={CONTROL_INPUT} />
                     <Button variant="secondary" type="submit">
                         {t('common.filter')}
                     </Button>

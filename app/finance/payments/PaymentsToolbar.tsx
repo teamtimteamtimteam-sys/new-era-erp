@@ -2,6 +2,7 @@
 
 // 收付款列表工具栏:payment_date 日期区间 + 方向筛选(端口自 JournalToolbar)。
 // 改动只写进 URL searchParams,真正的过滤在服务端 page.tsx 完成。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 
@@ -33,7 +34,7 @@ export default function PaymentsToolbar() {
                     type="date"
                     value={dateFrom}
                     onChange={(e) => onChange('date_from', e.target.value)}
-                    className="rounded border border-gray-300 bg-white px-3 py-2"
+                    className={CONTROL_INPUT}
                 />
             </label>
             <label className="text-sm text-gray-600">
@@ -42,13 +43,13 @@ export default function PaymentsToolbar() {
                     type="date"
                     value={dateTo}
                     onChange={(e) => onChange('date_to', e.target.value)}
-                    className="rounded border border-gray-300 bg-white px-3 py-2"
+                    className={CONTROL_INPUT}
                 />
             </label>
             <select
                 value={direction}
                 onChange={(e) => onChange('direction', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('finance.direction.all')}</option>
                 <option value="in">{t('finance.direction.in')}</option>

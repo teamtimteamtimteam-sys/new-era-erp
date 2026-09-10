@@ -5,6 +5,7 @@
 // (它 await 权限、读 cookie 取语言)。守卫塞进客户端组件会把 next/headers 拖进
 // 客户端图,整个构建失败;而且客户端组件不能是 async。
 // 所以守卫回到 page.tsx 那层服务端壳里,与 app/tools/pricing/metal-prices/new 早就在用的形状一致。
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import type { DictOption } from '@/app/components/dictionaries/dictionaryQuery'
 import { useActionState } from 'react'
 import Link from 'next/link'
@@ -76,7 +77,7 @@ export default function NewMaterialForm({
                         type="text"
                         name="name"
                         required
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('materials.form.namePlaceholder')}
                     />
                     {state.fieldErrors?.name && (
@@ -115,7 +116,7 @@ export default function NewMaterialForm({
                     <select
                         name="chemistry"
                         defaultValue={''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('materials.form.selectPlaceholder', {
                             label: t('materials.form.chemistry'),
@@ -153,7 +154,7 @@ export default function NewMaterialForm({
                     <select
                         name="unit"
                         defaultValue="kg"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         {UNIT_OPTIONS.map((u) => (
                             <option key={u.value} value={u.value}>
@@ -169,7 +170,7 @@ export default function NewMaterialForm({
                     <input
                         type="text"
                         name="spec"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -182,7 +183,7 @@ export default function NewMaterialForm({
                         step="any"
                         min="0"
                         name="safety_stock_qty"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {state.fieldErrors?.safety_stock_qty && (
                         <p className="text-red-600 text-xs mt-1">{state.fieldErrors.safety_stock_qty}</p>
@@ -195,8 +196,7 @@ export default function NewMaterialForm({
                     <label className="block text-sm font-medium mb-1">{t('materials.form.notes')}</label>
                     <textarea
                         name="notes"
-                        rows={3}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 

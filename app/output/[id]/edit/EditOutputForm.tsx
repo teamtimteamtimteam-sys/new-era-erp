@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_SELECT, CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { updateOutput, type UpdateOutputState } from './actions'
@@ -60,7 +61,7 @@ export default function EditOutputForm({
                         name="material_id"
                         required
                         defaultValue={batch.material_id}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="" disabled>{t('output.form.selectMaterial')}</option>
                         {materials.map((m) => (
@@ -91,7 +92,7 @@ export default function EditOutputForm({
                     <select
                         name="customer_id"
                         defaultValue={batch.customer_id ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('output.form.selectCustomerOptional')}</option>
                         {customers.map((c) => (
@@ -120,7 +121,7 @@ export default function EditOutputForm({
                         step="any"
                         disabled
                         defaultValue={batch.quantity}
-                        className="w-full border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500"
+                        className={`${CONTROL_INPUT} text-gray-500 w-full`}
                     />
                     <p className="text-xs text-gray-500 mt-1">{t('output.edit.quantityLockedHint')}</p>
                 </div>
@@ -131,7 +132,7 @@ export default function EditOutputForm({
                     <select
                         name="unit"
                         defaultValue={batch.unit}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         {UNIT_OPTIONS.map((u) => (
                             <option key={u.value} value={u.value}>
@@ -156,7 +157,7 @@ export default function EditOutputForm({
                         type="date"
                         name="output_date"
                         defaultValue={batch.output_date ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -167,7 +168,7 @@ export default function EditOutputForm({
                         name="state"
                         disabled
                         defaultValue={batch.state}
-                        className="w-full border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500"
+                        className={`${CONTROL_SELECT} text-gray-500 w-full`}
                     >
                         {STATE_OPTIONS.map((s) => (
                             <option key={s.value} value={s.value}>
@@ -185,7 +186,7 @@ export default function EditOutputForm({
                         type="text"
                         name="purity"
                         defaultValue={batch.purity ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('output.form.purityPlaceholder')}
                     />
                 </div>
@@ -195,9 +196,8 @@ export default function EditOutputForm({
                     <label className="block text-sm font-medium mb-1">{t('output.form.notes')}</label>
                     <textarea
                         name="notes"
-                        rows={3}
                         defaultValue={batch.notes ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 

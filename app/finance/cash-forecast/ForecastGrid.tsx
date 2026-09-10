@@ -11,6 +11,7 @@
 // ★【按币种分开,而且不假装有个合计】★ 实测今天 USD 折不出 SGD
 // (FX_RATE_MISSING)。所以每个币种一张表;跨币种合计那一格是【一句说明】,
 // 不是一个 0 —— 一个编出来的合计比没有合计坏得多。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { freezeForecast } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -277,7 +278,7 @@ export default function ForecastGrid({
                     <label className="text-sm text-gray-600">
                         {t('cashForecast.supersedeReason')}
                         <input value={reason} onChange={(e) => setReason(e.target.value)}
-                            className="block rounded border border-gray-300 bg-white px-3 py-2 w-80" />
+                            className={`${CONTROL_INPUT} block w-80`} />
                     </label>
                     <Button type="button" disabled={pending}
                         onClick={() => {

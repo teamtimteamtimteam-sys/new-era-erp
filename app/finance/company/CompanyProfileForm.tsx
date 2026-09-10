@@ -2,6 +2,7 @@
 
 // 公司抬头设置表单:身份 / 地址 / 联系方式 / 银行资料 / 单据 五组。
 // logo 单独一个小表单(上传即生效),与主表单互不影响。
+import { CONTROL_TEXTAREA, CONTROL_INPUT, CONTROL_FILE_BUTTON } from '@/app/components/ui/control-style'
 import { useActionState, useTransition } from 'react'
 import Image from 'next/image'
 import { saveCompanyProfile, uploadLogo, removeLogo, type CompanyState } from './actions'
@@ -61,9 +62,8 @@ canEdit: boolean
             {opts.textarea ? (
                 <textarea
                     name={name}
-                    rows={opts.rows ?? 3}
                     defaultValue={(profile[name] as string) ?? ''}
-                    className="w-full border border-gray-300 px-3 py-2 rounded"
+                    className={`${CONTROL_TEXTAREA} w-full`}
                 />
             ) : (
                 <input
@@ -71,7 +71,7 @@ canEdit: boolean
                     name={name}
                     required={opts.required}
                     defaultValue={(profile[name] as string) ?? ''}
-                    className="w-full border border-gray-300 px-3 py-2 rounded"
+                    className={`${CONTROL_INPUT} w-full`}
                 />
             )}
         </div>
@@ -204,7 +204,7 @@ canEdit: boolean
                             type="file"
                             name="logo"
                             accept="image/png,image/jpeg"
-                            className="text-sm file:mr-3 file:rounded file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-white hover:file:bg-blue-700"
+                            className={CONTROL_FILE_BUTTON}
                         />
                         <p className="text-xs text-gray-500 mt-1">{t('company.logoHint')}</p>
                     </div>

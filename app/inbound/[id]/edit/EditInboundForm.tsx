@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_SELECT, CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { updateInbound, type UpdateInboundState } from './actions'
@@ -60,7 +61,7 @@ export default function EditInboundForm({
                         name="material_id"
                         required
                         defaultValue={batch.material_id}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="" disabled>{t('inbound.form.selectMaterial')}</option>
                         {materials.map((m) => (
@@ -100,7 +101,7 @@ export default function EditInboundForm({
                             name="supplier_id"
                             required
                             defaultValue={batch.supplier_id}
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="" disabled>{t('inbound.form.selectSupplier')}</option>
                             {suppliers.map((s) => (
@@ -135,7 +136,7 @@ export default function EditInboundForm({
                         step="any"
                         disabled
                         defaultValue={batch.quantity}
-                        className="w-full border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500"
+                        className={`${CONTROL_INPUT} text-gray-500 w-full`}
                     />
                     <p className="text-xs text-gray-500 mt-1">{t('inbound.edit.quantityLockedHint')}</p>
                 </div>
@@ -146,7 +147,7 @@ export default function EditInboundForm({
                     <select
                         name="unit"
                         defaultValue={batch.unit}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         {UNIT_OPTIONS.map((u) => (
                             <option key={u.value} value={u.value}>
@@ -171,7 +172,7 @@ export default function EditInboundForm({
                         type="date"
                         name="arrival_date"
                         defaultValue={batch.arrival_date ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -181,7 +182,7 @@ export default function EditInboundForm({
                     <select
                         name="stage"
                         defaultValue={batch.stage}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         {STAGE_OPTIONS.map((s) => (
                             <option key={s.value} value={s.value}>
@@ -200,7 +201,7 @@ export default function EditInboundForm({
                         step="any"
                         disabled
                         defaultValue={batch.unit_price ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded bg-gray-100 text-gray-500"
+                        className={`${CONTROL_INPUT} text-gray-500 w-full`}
                     />
                     <p className="text-xs text-gray-500 mt-1">{t('inbound.edit.priceLockedHint')}</p>
                 </div>
@@ -210,9 +211,8 @@ export default function EditInboundForm({
                     <label className="block text-sm font-medium mb-1">{t('inbound.form.notes')}</label>
                     <textarea
                         name="notes"
-                        rows={3}
                         defaultValue={batch.notes ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 

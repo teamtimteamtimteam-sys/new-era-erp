@@ -5,6 +5,7 @@
 // 敞口以【单据币种】计(apply_prepayment 的 p_amount 就是这个单位),
 // 可用定金以【本位币】计。两者不是同一个空间,页面若替它取 min 就是
 // 在 TypeScript 里重算汇率(FIN-12 的老毛病)。上限由服务端拒。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { releasePrepayment, type ReleaseState } from './releasePrepaymentActions'
@@ -71,14 +72,14 @@ export default function ReleasePrepaymentPanel({
                             {t('expense.release.amount', { ccy: currency })}
                         </label>
                         <input id="amount" name="amount" type="number" step="0.01" min="0.01" required
-                            className="w-40 border border-gray-300 px-2 py-1.5 rounded" />
+                            className={`${CONTROL_INPUT} w-40`} />
                     </div>
                     <div>
                         <label htmlFor="release_date" className="block text-xs text-gray-600 mb-1">
                             {t('expense.release.date')}
                         </label>
                         <input id="release_date" name="release_date" type="date" required
-                            className="border border-gray-300 px-2 py-1.5 rounded" />
+                            className={CONTROL_INPUT} />
                         {/* X1:不预填今天 —— 它决定期间。 */}
                         <p className="mt-1 text-xs text-gray-600">{t('expense.release.dateHint')}</p>
                     </div>
@@ -87,7 +88,7 @@ export default function ReleasePrepaymentPanel({
                             {t('expense.release.notes')}
                         </label>
                         <input id="notes" name="notes"
-                            className="w-full border border-gray-300 px-2 py-1.5 rounded" />
+                            className={`${CONTROL_INPUT} w-full`} />
                     </div>
                     <Button type="submit" disabled={pending}
                         variant="default" size="default">

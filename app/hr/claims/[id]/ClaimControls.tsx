@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -41,7 +42,7 @@ export default function ClaimControls({
                 <>
                     <label className="block text-sm mb-3">{t('leave.decisionNotes')}
                         <input value={notes} onChange={(e) => setNotes(e.target.value)}
-                               className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-sm" /></label>
+                               className={`${CONTROL_INPUT} mt-1 w-full`} /></label>
                     <div className="flex gap-3">
                         <Button type="button" disabled={pending}
                                 onClick={() => run(() => decideClaim(claimId, true, notes || null))}>
@@ -63,7 +64,7 @@ export default function ClaimControls({
                     <div className="flex gap-2 flex-wrap items-end mb-3">
                         <label className="text-xs">{t('claims.expenseDate')}
                             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                                   className="block border border-gray-300 rounded px-2 py-1 text-sm" /></label>
+                                   className={`${CONTROL_INPUT} block`} /></label>
                     </div>
                     {/* ★★ ALERT-2d ④(b):`pending || !canFinance || !date` —— 三样东西:
                            · `pending`     瞬态,一秒后自己消失 → 留在 disabled 里,

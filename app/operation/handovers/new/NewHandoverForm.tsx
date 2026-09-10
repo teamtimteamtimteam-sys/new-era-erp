@@ -17,7 +17,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { submitShiftHandover } from '../actions'
 import { Button } from '@/app/components/ui/button'
-import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 export default function NewHandoverForm({ shifts, people, itemTypes, downtime }: {
     shifts: { code: string; label: string }[]
@@ -75,7 +75,7 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
                         {t('processing.handover.colShift')} <span className="text-red-600">*</span>
                     </label>
                     <select value={shiftCode} onChange={(e) => setShiftCode(e.target.value)}
-                            className="w-full border border-gray-300 px-3 py-2 rounded">
+                            className={`${CONTROL_SELECT} w-full`}>
                         <option value="">{t('common.select')}</option>
                         {shifts.map((s) => <option key={s.code} value={s.code}>{s.label}</option>)}
                     </select>
@@ -85,14 +85,14 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
                         {t('processing.handover.colDate')} <span className="text-red-600">*</span>
                     </label>
                     <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                           className="w-full border border-gray-300 px-3 py-2 rounded" />
+                           className={`${CONTROL_INPUT} w-full`} />
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">
                         {t('processing.handover.colFrom')} <span className="text-red-600">*</span>
                     </label>
                     <select value={outgoing} onChange={(e) => setOutgoing(e.target.value)}
-                            className="w-full border border-gray-300 px-3 py-2 rounded">
+                            className={`${CONTROL_SELECT} w-full`}>
                         <option value="">{t('common.select')}</option>
                         {people.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                     </select>
@@ -102,7 +102,7 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
                         {t('processing.handover.colTo')} <span className="text-red-600">*</span>
                     </label>
                     <select value={incoming} onChange={(e) => setIncoming(e.target.value)}
-                            className="w-full border border-gray-300 px-3 py-2 rounded">
+                            className={`${CONTROL_SELECT} w-full`}>
                         <option value="">{t('common.select')}</option>
                         {people.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                     </select>
@@ -118,9 +118,9 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
                         <label className="block text-sm mb-1">
                             {it.label}{it.required && <span className="text-red-600"> *</span>}
                         </label>
-                        <textarea rows={2} value={items[it.code] ?? ''}
+                        <textarea value={items[it.code] ?? ''}
                                   onChange={(e) => setItems({ ...items, [it.code]: e.target.value })}
-                                  className="w-full border border-gray-300 px-3 py-2 rounded" />
+                                  className={`${CONTROL_TEXTAREA} w-full`} />
                     </div>
                 ))}
             </div>
@@ -144,8 +144,8 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
 
             <div>
                 <label className="block text-sm font-medium mb-1">{t('processing.handover.notes')}</label>
-                <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)}
-                          className="w-full border border-gray-300 px-3 py-2 rounded" />
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+                          className={`${CONTROL_TEXTAREA} w-full`} />
             </div>
 
             {error && <p className="text-sm text-red-700">{error}</p>}

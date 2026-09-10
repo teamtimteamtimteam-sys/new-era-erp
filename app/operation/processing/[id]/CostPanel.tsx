@@ -11,7 +11,7 @@ import { addCostEntry, updateCostEntry, softDeleteCostEntry } from './costAction
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
-import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 
 export default function CostPanel({
     runId,
@@ -195,7 +195,7 @@ export default function CostPanel({
                     name="cost_type"
                     required
                     defaultValue={editing?.cost_type ?? ''}
-                    className="border border-gray-300 px-3 py-2 rounded"
+                    className={CONTROL_SELECT}
                 >
                     <option value="" disabled>{t('processing.cost.selectType')}</option>
                     {COST_TYPE_OPTIONS.map((o) => (
@@ -211,7 +211,7 @@ export default function CostPanel({
                     required
                     defaultValue={editing?.amount_base ?? ''}
                     placeholder={t('processing.cost.amountPlaceholder')}
-                    className="w-32 border border-gray-300 px-3 py-2 rounded"
+                    className={`${CONTROL_INPUT} w-32`}
                 />
                 <label className="flex items-center gap-1 text-sm px-1 py-2">
                     <input
@@ -227,7 +227,7 @@ export default function CostPanel({
                     name="notes"
                     defaultValue={editing?.notes ?? ''}
                     placeholder={t('processing.cost.notesPlaceholder')}
-                    className="flex-1 min-w-[8rem] border border-gray-300 px-3 py-2 rounded"
+                    className={`${CONTROL_INPUT} flex-1 min-w-[8rem]`}
                 />
                 <Button
                     type="submit"

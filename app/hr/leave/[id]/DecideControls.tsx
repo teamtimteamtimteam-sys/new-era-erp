@@ -4,6 +4,7 @@
 // 审批 / 驳回 / 取消。
 // 【余额可能在提交之后变过】,所以批准按钮旁边先给一句提示,真正的拦截仍由
 // decide_leave_request 抛 INSUFFICIENT_BALANCE 完成 —— 界面上的提示只是让人少白跑一趟。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -61,7 +62,7 @@ export default function DecideControls({
                 <input
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    className="mt-1 w-full border border-gray-300 rounded px-2 py-1 text-sm"
+                    className={`${CONTROL_INPUT} mt-1 w-full`}
                 />
             </label>
 

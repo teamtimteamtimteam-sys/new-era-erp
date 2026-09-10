@@ -2,6 +2,7 @@
 
 // app/hr/claims/ClaimForm.tsx
 // 报销提交。HR 代提交时可选员工;自助时固定成本人。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -38,7 +39,8 @@ export default function ClaimForm({
         })
     }
 
-    const field = 'mt-1 w-full border border-gray-300 rounded px-2 py-1 text-sm'
+    const field = `${CONTROL_INPUT} mt-1 w-full`
+    const fieldSelect = `${CONTROL_SELECT} mt-1 w-full`
     return (
         <div className="rounded border border-gray-200 p-4 max-w-xl">
             {error && (
@@ -47,7 +49,7 @@ export default function ClaimForm({
             <div className="grid gap-4 sm:grid-cols-2">
                 {!fixedEmployeeId && employees && (
                     <label className="text-sm sm:col-span-2">{t('leave.employee')}
-                        <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className={field}>
+                        <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className={fieldSelect}>
                             <option value="">—</option>
                             {employees.map((e) => <option key={e.id} value={e.id}>{e.code} — {e.legal_name}</option>)}
                         </select>

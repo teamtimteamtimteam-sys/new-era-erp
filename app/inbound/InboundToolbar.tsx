@@ -3,6 +3,7 @@
 // 进料列表工具栏:搜索(code)+ 阶段下拉 + 供应商下拉 + 物料下拉 + 导出。
 // 阶段用 STAGE_OPTIONS(value/labelKey);供应商/物料是 FK-id 下拉,选项由 page 以 props 传入。
 // 改动只写进 URL searchParams,真正的过滤在服务端 page.tsx 完成。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -83,12 +84,12 @@ export default function InboundToolbar({
                 value={q}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={t('inbound.searchPlaceholder')}
-                className="w-60 max-w-full rounded border border-gray-300 px-3 py-2"
+                className={`${CONTROL_INPUT} w-60 max-w-full`}
             />
             <select
                 value={currentStage}
                 onChange={(e) => onFilterChange('stage', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('inbound.allStages')}</option>
                 {STAGE_OPTIONS.map((o) => (
@@ -100,7 +101,7 @@ export default function InboundToolbar({
             <select
                 value={currentSupplier}
                 onChange={(e) => onFilterChange('supplier_id', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('inbound.allSuppliers')}</option>
                 {suppliers.map((s) => (
@@ -112,7 +113,7 @@ export default function InboundToolbar({
             <select
                 value={currentMaterial}
                 onChange={(e) => onFilterChange('material_id', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('inbound.allMaterials')}</option>
                 {materials.map((m) => (
@@ -125,7 +126,7 @@ export default function InboundToolbar({
             <select
                 value={currentPricingStatus}
                 onChange={(e) => onFilterChange('pricing_status', e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('assay.allPricingStatuses')}</option>
                 {PRICING_STATUS_VALUES.map((s) => (
@@ -140,7 +141,7 @@ export default function InboundToolbar({
                     type="date"
                     value={currentDateFrom}
                     onChange={(e) => onFilterChange('date_from', e.target.value)}
-                    className="rounded border border-gray-300 bg-white px-2 py-2"
+                    className={CONTROL_INPUT}
                 />
             </label>
             <label className="flex items-center gap-1 text-sm text-gray-600">
@@ -149,7 +150,7 @@ export default function InboundToolbar({
                     type="date"
                     value={currentDateTo}
                     onChange={(e) => onFilterChange('date_to', e.target.value)}
-                    className="rounded border border-gray-300 bg-white px-2 py-2"
+                    className={CONTROL_INPUT}
                 />
             </label>
             <Button asChild variant="outline">

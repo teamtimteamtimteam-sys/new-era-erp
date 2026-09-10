@@ -2,6 +2,7 @@
 
 // 新建供应商表单(原 page.tsx 的客户端内容;cut 4b 补:默认付款条款模板需要
 // 服务端取数,页面改成 server shell + 客户端表单的通行结构)。
+import { CONTROL_INPUT, CONTROL_TEXTAREA, CONTROL_CHECKBOX, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import { useRef } from 'react'
 import { useFormDraft } from '@/lib/useFormDraft'
@@ -61,7 +62,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                         type="text"
                         name="legal_name"
                         required
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('suppliers.form.legalNamePlaceholder')}
                     />
                     {state.fieldErrors?.legal_name && (
@@ -77,7 +78,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                     <input
                         type="text"
                         name="short_name"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('suppliers.form.shortNamePlaceholder')}
                     />
                 </div>
@@ -92,7 +93,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                         name="country"
                         required
                         maxLength={2}
-                        className="w-full border border-gray-300 px-3 py-2 rounded uppercase"
+                        className={`${CONTROL_INPUT} w-full uppercase`}
                         placeholder={t('suppliers.form.countryPlaceholder')}
                     />
                     {state.fieldErrors?.country && (
@@ -108,7 +109,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                     <input
                         type="text"
                         name="tax_id"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -117,8 +118,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                     <label className="block text-sm font-medium mb-1">{t('suppliers.form.address')}</label>
                     <textarea
                         name="address"
-                        rows={2}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 
@@ -134,7 +134,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                                     type="checkbox"
                                     name="supplier_types"
                                     value={opt.value}
-                                    className="w-4 h-4"
+                                    className={`${CONTROL_CHECKBOX} w-4`}
                                 />
                                 <span className="text-sm">{t(opt.labelKey)}</span>
                             </label>
@@ -150,7 +150,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                     <label className="block text-sm font-medium mb-1">
                         {t('suppliers.counterpartyType')} <span className="text-red-600">*</span>
                     </label>
-                    <select name="counterparty_type" defaultValue={"goods_supplier"} className="w-full border border-gray-300 px-3 py-2 rounded">
+                    <select name="counterparty_type" defaultValue={"goods_supplier"} className={`${CONTROL_SELECT} w-full`}>
                         <option value="goods_supplier">{t('suppliers.type.goods_supplier')}</option>
                         <option value="forwarder">{t('suppliers.type.forwarder')}</option>
                         <option value="service_vendor">{t('suppliers.type.service_vendor')}</option>
@@ -170,7 +170,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                     <input
                         type="text"
                         name="payment_terms"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('suppliers.form.paymentTermsPlaceholder')}
                     />
                 </div>
@@ -181,7 +181,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                     <select
                         name="default_payment_term_template_id"
                         defaultValue=""
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('suppliers.defaultPaymentTermsNone')}</option>
                         {templates.map((tpl) => (
@@ -199,7 +199,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                     <input
                         type="text"
                         name="incoterm"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('suppliers.form.incotermPlaceholder')}
                     />
                 </div>
@@ -210,7 +210,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                     <input
                         type="text"
                         name="credit_rating"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                         placeholder={t('suppliers.form.creditRatingPlaceholder')}
                     />
                 </div>
@@ -220,8 +220,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                     <label className="block text-sm font-medium mb-1">{t('suppliers.form.notes')}</label>
                     <textarea
                         name="notes"
-                        rows={3}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 

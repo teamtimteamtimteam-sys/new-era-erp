@@ -23,6 +23,7 @@
 //   【这一页不多一个文件】这个面板本来就是 'use client'(它要 useState),
 //   所以列描述符就住在这里 —— 与 CONV-1 在 /finance/claims 上的情形同形。
 //   【开着的那一段整行发琥珀】走 rowClassName(CONV-4 §⑨-3),与转换前逐字同形。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -146,7 +147,7 @@ export default function DowntimePanel({
                             <label className="block">
                                 <span className="text-xs text-gray-600 block">{t('equipment.down.endedAt')}</span>
                                 <input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)}
-                                       className="border border-gray-400 rounded px-2 py-1 text-sm" />
+                                       className={CONTROL_INPUT} />
                             </label>
                             <Button size="xs" type="button" disabled={pending || !endAt || endBeforeStart}
                                     onClick={() => run(() => closeDowntime({ assetId, downtimeId: openRow.id, endedAt: endAt }))}>
@@ -205,12 +206,12 @@ export default function DowntimePanel({
                         {/* 【不预填"现在"】停机是世界那一侧的事实 —— 谁都可能过后才来补录。 */}
                         <input type="datetime-local" value={f.startedAt}
                                onChange={(e) => setF({ ...f, startedAt: e.target.value })}
-                               className="border border-gray-400 rounded px-2 py-1 text-sm" />
+                               className={CONTROL_INPUT} />
                     </label>
                     <label className="block">
                         <span className="text-xs text-gray-600 block">{t('equipment.down.reason')}</span>
                         <input value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })}
-                               className="border border-gray-400 rounded px-2 py-1 text-sm w-full" />
+                               className={`${CONTROL_INPUT} w-full`} />
                     </label>
                     <p className="text-xs text-gray-600">{t('equipment.down.openHint')}</p>
                     <div className="flex gap-2 items-center">

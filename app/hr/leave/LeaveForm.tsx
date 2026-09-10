@@ -5,6 +5,7 @@
 //
 // 天数是【服务端算的】(previewLeaveDays → calculate_leave_days),不是前端自己数日历 ——
 // 公共假期在数据库里,前端数不准;而且预览用的和提交时用的必须是同一个函数。
+import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
@@ -105,7 +106,8 @@ export default function LeaveForm({
         })
     }
 
-    const field = 'mt-1 w-full border border-gray-300 rounded px-2 py-1 text-sm'
+    const field = `${CONTROL_INPUT} mt-1 w-full`
+    const fieldSelect = `${CONTROL_SELECT} mt-1 w-full`
 
     return (
         <div className="rounded border border-gray-200 p-4 max-w-2xl">
@@ -120,7 +122,7 @@ export default function LeaveForm({
                 {!fixedEmployeeId && employees && (
                     <label className="text-sm sm:col-span-2">
                         {t('leave.employee')}
-                        <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className={field}>
+                        <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className={fieldSelect}>
                             <option value="">—</option>
                             {employees.map((e) => (
                                 <option key={e.id} value={e.id}>{e.code} — {e.legal_name}</option>
@@ -131,7 +133,7 @@ export default function LeaveForm({
 
                 <label className="text-sm">
                     {t('leave.type')}
-                    <select value={typeCode} onChange={(e) => setTypeCode(e.target.value)} className={field}>
+                    <select value={typeCode} onChange={(e) => setTypeCode(e.target.value)} className={fieldSelect}>
                         {types.map((x) => (
                             <option key={x.code} value={x.code}>{locale === 'zh' ? x.name_zh : x.name_en}</option>
                         ))}
@@ -151,7 +153,7 @@ export default function LeaveForm({
                     <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className={field} />
                     {type?.allows_half_day && (
                         <label className="mt-1 flex items-center gap-2 text-xs text-gray-600">
-                            <input type="checkbox" checked={startHalf} onChange={(e) => setStartHalf(e.target.checked)} />
+                            <input className={CONTROL_CHECKBOX} type="checkbox" checked={startHalf} onChange={(e) => setStartHalf(e.target.checked)} />
                             {t('leave.halfDayStart')}
                         </label>
                     )}
@@ -162,7 +164,7 @@ export default function LeaveForm({
                     <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className={field} />
                     {type?.allows_half_day && (
                         <label className="mt-1 flex items-center gap-2 text-xs text-gray-600">
-                            <input type="checkbox" checked={endHalf} onChange={(e) => setEndHalf(e.target.checked)} />
+                            <input className={CONTROL_CHECKBOX} type="checkbox" checked={endHalf} onChange={(e) => setEndHalf(e.target.checked)} />
                             {t('leave.halfDayEnd')}
                         </label>
                     )}
@@ -199,7 +201,7 @@ export default function LeaveForm({
                 {allowException && (
                     <div className="sm:col-span-2 rounded border border-purple-200 bg-purple-50 px-3 py-2">
                         <label className="flex items-center gap-2 text-sm">
-                            <input type="checkbox" checked={isException} onChange={(e) => setIsException(e.target.checked)} />
+                            <input className={CONTROL_CHECKBOX} type="checkbox" checked={isException} onChange={(e) => setIsException(e.target.checked)} />
                             {t('leave.exceptionToggle')}
                         </label>
                         <p className="mt-1 text-xs text-gray-600">{t('leave.exceptionHint')}</p>

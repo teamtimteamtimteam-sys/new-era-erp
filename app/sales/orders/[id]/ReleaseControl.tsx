@@ -10,6 +10,7 @@
 // 【数量留空 = 整笔释放】,不是 0。部分释放在服务端做成"整笔释放 + 就地重新
 // 预留剩余",所以这个框里填 25 的意思是"放回 25",剩下的仍然许着 —— 提示语
 // 说的就是这件事。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -85,7 +86,7 @@ export default function ReleaseControl({
                         value={amount}
                         onChange={(e) => setAmount(e.target.value)}
                         placeholder={String(qty)}
-                        className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
                 <div className="flex-1 min-w-[14rem]">
@@ -94,7 +95,7 @@ export default function ReleaseControl({
                         type="text"
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
-                        className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
                 <Button variant="secondary"

@@ -2,6 +2,7 @@
 
 // 供应商列表工具栏:搜索框(q)+ 状态下拉(status)。
 // 改动只写进 URL searchParams,真正的过滤在服务端 page.tsx 完成。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -74,12 +75,12 @@ export default function SupplierToolbar() {
                 value={q}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder={t('suppliers.searchPlaceholder')}
-                className="w-72 max-w-full rounded border border-gray-300 px-3 py-2"
+                className={`${CONTROL_INPUT} w-72 max-w-full`}
             />
             <select
                 value={currentStatus}
                 onChange={(e) => onStatusChange(e.target.value)}
-                className="rounded border border-gray-300 bg-white px-3 py-2"
+                className={CONTROL_SELECT}
             >
                 <option value="">{t('suppliers.allStatuses')}</option>
                 {SUPPLIER_STATUSES.map((s) => (

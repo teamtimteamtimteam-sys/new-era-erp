@@ -14,6 +14,7 @@
 // 【真正的补救在别处,所以这里只把条件说出来】"没有人可选"要靠把组织图录进来
 // (EXEC-0b 计划里的 org-fill),那是一次 HR 数据录入,不是这个组件能做的事。
 // 所以这一支的文案说的是【条件】与【去哪里补】,而不是假装它能被这里解决。
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -69,7 +70,7 @@ export default function SetReviewerControl({ reviewId, employees, currentReviewe
             <select
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
-                className="border border-gray-300 rounded px-2 py-1 text-sm max-w-full min-w-0"
+                className={`${CONTROL_SELECT} max-w-full min-w-0`}
             >
                 <option value="">{t('reviews.pickReviewer')}</option>
                 {candidates

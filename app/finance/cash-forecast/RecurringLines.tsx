@@ -7,6 +7,7 @@
 // 【固定 OPEX 集合】—— 一张表,两个用途。
 //
 // CONV-3 · 表换成 DataTable,新增表单外壳换成 AddRowPanel。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { saveForecastLine } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -105,33 +106,33 @@ export default function RecurringLines({
                 >
                     <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.label')}
                         <input value={label} onChange={(e) => setLabel(e.target.value)}
-                            className="block w-56 rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2" /></label>
+                            className={`${CONTROL_INPUT} block w-56`} /></label>
                     <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.direction')}
                         <select value={direction} onChange={(e) => setDirection(e.target.value)}
-                            className="block rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2">
+                            className={`${CONTROL_SELECT} block`}>
                             <option value="out">{t('cashForecast.dir_out')}</option>
                             <option value="in">{t('cashForecast.dir_in')}</option>
                         </select></label>
                     <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.amount')}
                         <input type="number" step="0.01" min="0" value={amount}
                             onChange={(e) => setAmount(e.target.value)}
-                            className="block w-32 rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2" /></label>
+                            className={`${CONTROL_INPUT} block w-32`} /></label>
                     <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.currency')}
                         <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                            className="block w-20 rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2 font-mono" /></label>
+                            className={`${CONTROL_INPUT} block w-20 font-mono`} /></label>
                     <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.cadence')}
                         <select value={cadence} onChange={(e) => setCadence(e.target.value)}
-                            className="block rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2">
+                            className={`${CONTROL_SELECT} block`}>
                             {CADENCES.map((c) => (
                                 <option key={c} value={c}>{t('cashForecast.cadence_' + c)}</option>
                             ))}
                         </select></label>
                     <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.startDate')}
                         <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                            className="block rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2" /></label>
+                            className={`${CONTROL_INPUT} block`} /></label>
                     <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.endDate')}
                         <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-                            className="block rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-3 py-2" /></label>
+                            className={`${CONTROL_INPUT} block`} /></label>
                 </AddRowPanel>
             )}
 

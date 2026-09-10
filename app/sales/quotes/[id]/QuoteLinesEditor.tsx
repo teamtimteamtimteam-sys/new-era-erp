@@ -9,6 +9,7 @@
 //
 // 【不可编辑时,理由长在表旁边】(CMP-2)—— 转过、谢绝了、或者没有写权限,
 // 三种情形指向三句不同的话,而不是一张灰掉的表让人自己猜。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -158,14 +159,14 @@ export default function QuoteLinesEditor({
                                     {editable ? (
                                         <input type="number" step="any" min="0" value={qty[l.id] ?? ''}
                                                onChange={(e) => setQty((s) => ({ ...s, [l.id]: e.target.value }))}
-                                               className="w-24 border border-gray-300 px-2 py-1 rounded text-right" />
+                                               className={`${CONTROL_INPUT} w-24 text-right`} />
                                     ) : (<span className="font-mono">{l.quantity} {l.unit}</span>)}
                                 </td>
                                 <td className="border border-gray-300 px-2 py-2 text-right">
                                     {editable ? (
                                         <input type="number" step="any" min="0" value={price[l.id] ?? ''}
                                                onChange={(e) => setPrice((s) => ({ ...s, [l.id]: e.target.value }))}
-                                               className="w-24 border border-gray-300 px-2 py-1 rounded text-right" />
+                                               className={`${CONTROL_INPUT} w-24 text-right`} />
                                     ) : (
                                         <span className="font-mono">
                                             {formatMoneyBare(l.unit_price, '同表列头 单价({ccy})')}
@@ -203,7 +204,7 @@ export default function QuoteLinesEditor({
             {editable && (
                 <div className="flex flex-wrap items-end gap-2 mt-2">
                     <select value={newMat} onChange={(e) => setNewMat(e.target.value)}
-                            className="border border-gray-300 px-2 py-1 rounded text-sm">
+                            className={CONTROL_SELECT}>
                         <option value="">{t('sales.form.selectMaterial')}</option>
                         {materials.map((m) => (
                             <option key={m.id} value={m.id}>{m.code} — {m.name}</option>
@@ -212,11 +213,11 @@ export default function QuoteLinesEditor({
                     <input type="number" step="any" min="0" value={newQty}
                            onChange={(e) => setNewQty(e.target.value)}
                            placeholder={t('sales.form.qty')}
-                           className="w-24 border border-gray-300 px-2 py-1 rounded text-right text-sm" />
+                           className={`${CONTROL_INPUT} w-24 text-right`} />
                     <input type="number" step="any" min="0" value={newPrice}
                            onChange={(e) => setNewPrice(e.target.value)}
                            placeholder={t('sales.form.unitPrice')}
-                           className="w-24 border border-gray-300 px-2 py-1 rounded text-right text-sm" />
+                           className={`${CONTROL_INPUT} w-24 text-right`} />
                     <Button variant="secondary" type="button"
                             disabled={isPending || !newMat || newQty.trim() === '' || newPrice.trim() === ''}
                             onClick={() => run(async () => {

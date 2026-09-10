@@ -3,6 +3,7 @@
 // EQP-1c-b(P1):登记一台机器。
 // 【这张表单与开支表单的资本勾选项是【两扇门,不是一新一旧】】——
 // 页面上那句话不是装饰:选错门的代价是真的(见 twoDoors 那段文案)。
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
@@ -45,7 +46,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                     {t('assets.new.description')}
                 </label>
                 <input id="description" name="description" required
-                    className="w-full border border-gray-300 rounded-md px-3 py-2" />
+                    className={`${CONTROL_INPUT} w-full`} />
                 <p className="mt-1 text-xs text-gray-600">{t('assets.new.descriptionHint')}</p>
             </div>
 
@@ -55,7 +56,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                         {t('assets.new.acquisitionDate')}
                     </label>
                     <input id="acquisition_date" name="acquisition_date" type="date" required
-                        className="w-full border border-gray-300 rounded-md px-3 py-2" />
+                        className={`${CONTROL_INPUT} w-full`} />
                     {/* 【为什么不预填今天】它是投用日的下界 —— 预填会把投用日的
                         合法范围一起挪掉,而那不是这张表单该替人决定的事。 */}
                     <p className="mt-1 text-xs text-gray-600">{t('assets.new.acquisitionDateHint')}</p>
@@ -66,7 +67,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                     </label>
                     <input id="useful_life_months" name="useful_life_months" type="number"
                         min="1" step="1" required
-                        className="w-full border border-gray-300 rounded-md px-3 py-2" />
+                        className={`${CONTROL_INPUT} w-full`} />
                     <p className="mt-1 text-xs text-gray-600">{t('assets.new.usefulLifeHint')}</p>
                 </div>
             </div>
@@ -76,7 +77,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                     {t('assets.new.category')}
                 </label>
                 <select id="category" name="category" defaultValue="equipment"
-                    className="w-full border border-gray-300 rounded-md px-3 py-2">
+                    className={`${CONTROL_SELECT} w-full`}>
                     {CATEGORIES.map((c) => (
                         <option key={c} value={c}>{t('assets.category.' + c)}</option>
                     ))}
@@ -87,8 +88,8 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                 <label htmlFor="notes" className="block text-sm font-medium mb-1">
                     {t('assets.new.notes')}
                 </label>
-                <textarea id="notes" name="notes" rows={2}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2" />
+                <textarea id="notes" name="notes"
+                    className={`${CONTROL_TEXTAREA} w-full`} />
                 {/* E2 的既有事实:序列号/制造商/型号全库没有列,只能写在这里。 */}
                 <p className="mt-1 text-xs text-gray-600">{t('assets.new.notesHint')}</p>
             </div>

@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_INPUT, CONTROL_TEXTAREA, CONTROL_CHECKBOX, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { updateSupplier, type UpdateSupplierState } from './actions'
@@ -70,7 +71,7 @@ export default function EditSupplierForm({
                         name="legal_name"
                         required
                         defaultValue={supplier.legal_name}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {state.fieldErrors?.legal_name && (
                         <p className="text-red-600 text-xs mt-1">
@@ -85,7 +86,7 @@ export default function EditSupplierForm({
                         type="text"
                         name="short_name"
                         defaultValue={supplier.short_name ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -99,7 +100,7 @@ export default function EditSupplierForm({
                         required
                         maxLength={2}
                         defaultValue={supplier.country}
-                        className="w-full border border-gray-300 px-3 py-2 rounded uppercase"
+                        className={`${CONTROL_INPUT} w-full uppercase`}
                     />
                     {state.fieldErrors?.country && (
                         <p className="text-red-600 text-xs mt-1">
@@ -114,7 +115,7 @@ export default function EditSupplierForm({
                         type="text"
                         name="tax_id"
                         defaultValue={supplier.tax_id ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -122,9 +123,8 @@ export default function EditSupplierForm({
                     <label className="block text-sm font-medium mb-1">{t('suppliers.form.address')}</label>
                     <textarea
                         name="address"
-                        rows={2}
                         defaultValue={supplier.address ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 
@@ -140,7 +140,7 @@ export default function EditSupplierForm({
                                     name="supplier_types"
                                     value={opt.value}
                                     defaultChecked={currentTypes.includes(opt.value)}
-                                    className="w-4 h-4"
+                                    className={`${CONTROL_CHECKBOX} w-4`}
                                 />
                                 <span className="text-sm">{t(opt.labelKey)}</span>
                             </label>
@@ -156,7 +156,7 @@ export default function EditSupplierForm({
                     <label className="block text-sm font-medium mb-1">
                         {t('suppliers.counterpartyType')} <span className="text-red-600">*</span>
                     </label>
-                    <select name="counterparty_type" defaultValue={supplier.counterparty_type ?? 'goods_supplier'} className="w-full border border-gray-300 px-3 py-2 rounded">
+                    <select name="counterparty_type" defaultValue={supplier.counterparty_type ?? 'goods_supplier'} className={`${CONTROL_SELECT} w-full`}>
                         <option value="goods_supplier">{t('suppliers.type.goods_supplier')}</option>
                         <option value="forwarder">{t('suppliers.type.forwarder')}</option>
                         <option value="service_vendor">{t('suppliers.type.service_vendor')}</option>
@@ -179,7 +179,7 @@ export default function EditSupplierForm({
                     <select
                         name="tax_residence"
                         defaultValue={supplier.tax_residence ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('suppliers.form.taxResidenceUnstated')}</option>
                         <option value="resident">{t('suppliers.form.taxResidenceResident')}</option>
@@ -195,7 +195,7 @@ export default function EditSupplierForm({
                         <select
                             name="default_tax_code"
                             defaultValue={supplier.default_tax_code ?? ''}
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="">{t('suppliers.form.defaultTaxCodeNone')}</option>
                             {taxCodes.map((c) => (
@@ -216,7 +216,7 @@ export default function EditSupplierForm({
                         type="text"
                         name="payment_terms"
                         defaultValue={supplier.payment_terms ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -226,7 +226,7 @@ export default function EditSupplierForm({
                     <select
                         name="default_payment_term_template_id"
                         defaultValue={supplier.default_payment_term_template_id ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('suppliers.defaultPaymentTermsNone')}</option>
                         {templates.map((tpl) => (
@@ -244,7 +244,7 @@ export default function EditSupplierForm({
                         type="text"
                         name="incoterm"
                         defaultValue={supplier.incoterm ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -254,7 +254,7 @@ export default function EditSupplierForm({
                         type="text"
                         name="credit_rating"
                         defaultValue={supplier.credit_rating ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -262,9 +262,8 @@ export default function EditSupplierForm({
                     <label className="block text-sm font-medium mb-1">{t('suppliers.form.notes')}</label>
                     <textarea
                         name="notes"
-                        rows={3}
                         defaultValue={supplier.notes ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 

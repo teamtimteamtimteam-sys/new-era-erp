@@ -10,6 +10,7 @@
 //     让系统按"有没有发货"替人选,就是替他做了一个会计判断;
 //   * 后果句在按下之前:这张凭证会减少客户在【这张发票】上欠的钱。
 // 表单上的提示是【礼貌】,不是保护。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
@@ -87,14 +88,14 @@ canEdit: boolean
                     </label>
                     <input type="date" name="note_date" value={noteDate}
                            onChange={(e) => setNoteDate(e.target.value)}
-                           className="border border-gray-300 px-2 py-1 rounded text-sm" />
+                           className={CONTROL_INPUT} />
                 </div>
                 <div className="flex-1 min-w-[16rem]">
                     <label className="block text-xs text-gray-600 mb-1">
                         {t('cn.reason')} <span className="text-red-600">*</span>
                     </label>
                     <input type="text" name="reason" required
-                           className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
+                           className={`${CONTROL_INPUT} w-full`} />
                 </div>
             </div>
             <p className="text-xs text-gray-500">{t('cn.noteDateHint')}</p>
@@ -147,7 +148,7 @@ canEdit: boolean
                         const kindSelect = (
                             <select value={k}
                                     onChange={(e) => setKind((s) => ({ ...s, [l.id]: e.target.value }))}
-                                    className="border border-gray-300 px-1 py-1 rounded text-xs">
+                                    className={CONTROL_SELECT}>
                                 <option value="unshipped_cancel">{t('cn.kind.unshipped_cancel')}</option>
                                 <option value="revenue_reduction">{t('cn.kind.revenue_reduction')}</option>
                             </select>
@@ -192,13 +193,13 @@ canEdit: boolean
                                     {/* 【数量可空,而且这不是偷懒】一次整批折让往往不对应
                                         任何数量,硬要一个就得编一个 —— 金额才是主语 */}
                                     <input type="number" step="any" min="0" name="cn_qty"
-                                           className="w-20 border border-gray-300 px-1 py-1 rounded text-right text-xs" />
+                                           className={`${CONTROL_INPUT} w-20 text-right`} />
                                 </td>
                                 <td className={`${tableC.cell} text-right`}>
                                     <input type="number" step="any" min="0" name="cn_amount"
                                            value={amount[l.id] ?? ''}
                                            onChange={(e) => setAmount((s) => ({ ...s, [l.id]: e.target.value }))}
-                                           className="w-24 border border-gray-300 px-1 py-1 rounded text-right" />
+                                           className={`${CONTROL_INPUT} w-24 text-right`} />
                                     {over && (
                                         <p className="text-xs text-red-600 mt-1">
                                             {t('cn.overCeiling', { ceiling: formatMoneyBare(ceiling as number, '同表列头 冲减({ccy}),整张表单同一个币种') })}

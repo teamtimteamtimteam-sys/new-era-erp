@@ -9,6 +9,7 @@
 //   · 两者皆无             → 琥珀【未说明】—— 8 张早于本刀的收货就是这个样子,
 //                            按 R4 不回填;Tim 哪天知道答案,从这里补,门会盖章。
 
+import { CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -106,7 +107,7 @@ export default function SourceReasonPanel({
                         <select
                             value={sel}
                             onChange={(e) => setSel(e.target.value)}
-                            className="w-full border border-gray-300 px-3 py-2 rounded text-sm"
+                            className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="">{t('inbound.source.select')}</option>
                             {reasons.map((r) => (
@@ -117,9 +118,8 @@ export default function SourceReasonPanel({
                             <textarea
                                 value={note}
                                 onChange={(e) => setNote(e.target.value)}
-                                rows={2}
                                 placeholder={t('inbound.source.notePlaceholder')}
-                                className="w-full border border-gray-300 px-3 py-2 rounded text-sm"
+                                className={`${CONTROL_TEXTAREA} w-full`}
                             />
                         )}
                         {error && <p className="text-red-600 text-xs">{error}</p>}
