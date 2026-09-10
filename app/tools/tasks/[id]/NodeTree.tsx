@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { addNode, renameNode, setNodeDate, setNodeDone, removeNode, moveNode } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 // app/tools/tasks/[id]/NodeTree.tsx
 // TASK-1b:步骤树。一层嵌套 —— 而【做不到的手势这里根本不出现】:
@@ -75,6 +76,7 @@ export default function NodeTree({
             <div className="flex flex-wrap items-center gap-2 py-1">
                 <input
                     type="checkbox"
+                    className={CONTROL_CHECKBOX}
                     checked={n.done}
                     disabled={pending}
                     onChange={(e) => run(() => setNodeDone(taskId, n.id, e.target.checked))}

@@ -18,6 +18,7 @@ import {
 } from '@/lib/convert'
 import { convertBasis } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 
 // 【它同时是 check-i18n 的真源】—— 加一个单位,两个语言少一句话就构建变红。
 const UNITS = ['tonne', 'kg', 'pound'] as const satisfies readonly MassUnit[]
@@ -68,7 +69,7 @@ export default function ConverterForm() {
 
     const card = 'rounded border p-4 mb-6'
     const cardStyle = { borderColor: 'var(--brand-border)', background: 'var(--brand-surface)' }
-    const inp = 'border rounded px-2 py-1 w-32'
+    const inp = `${CONTROL_INPUT} w-32`
     const formulaStyle = { background: 'var(--brand-muted)', color: 'var(--brand-text)' }
 
     return (

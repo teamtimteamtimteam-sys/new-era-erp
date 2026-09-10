@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { saveUserRoles } from '../accountsActions'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export type DirectoryRow = {
     user_id: string
@@ -171,6 +172,7 @@ export default function UserRow({
                                     <label key={r.id} className="flex items-center gap-2 text-sm">
                                         <input
                                             type="checkbox"
+                                            className={CONTROL_CHECKBOX}
                                             checked={checked.includes(r.id)}
                                             onChange={() => toggle(r.id)}
                                         />

@@ -7,10 +7,11 @@
 // 而不是"不选就是它"。
 import { useTranslations } from '@/lib/i18n/client'
 import { WASTE_CLASS_UNCLASSIFIED, type WasteClass } from './wasteClassOptions'
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 
 export default function WasteClassPicker({
     name, classes, defaultValue, locale,
-    className = 'w-full border border-gray-300 px-3 py-2 rounded',
+    className = `${CONTROL_SELECT} w-full`,
 }: {
     name: string
     classes: WasteClass[]

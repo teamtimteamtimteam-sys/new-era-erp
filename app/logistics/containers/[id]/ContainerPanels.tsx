@@ -9,6 +9,7 @@ import {
 } from './actions'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { tableC } from '@/app/components/ui/table-style'
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 
 type Ship = { id: string; code: string; ship_date: string; order_code: string; customer: string }
 type Ms = { id: string; milestone: string; event_date: string; note: string | null; label: string }
@@ -37,7 +38,8 @@ canEdit: boolean
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
     const [detaching, setDetaching] = useState<string | null>(null)
-    const field = 'rounded border border-gray-300 px-2 py-1 text-sm'
+    const field = CONTROL_INPUT
+    const fieldSelect = CONTROL_SELECT
     const run = (fn: () => Promise<unknown>, after?: () => void) =>
         start(async () => {
             const res = await fn()
@@ -80,7 +82,7 @@ canEdit: boolean
                         此前这一页既不显示也不能改它,而免柜期那一行却有一句
                         "箱子没有指定货代" —— 一句指着一个没有门的字段的话。 */}
                     <div><label className="block text-xs font-medium mb-1">{labels.forwarderLabel}</label>
-                        <select name="forwarder_id" defaultValue={head.forwarder_id ?? ''} className={field}>
+                        <select name="forwarder_id" defaultValue={head.forwarder_id ?? ''} className={fieldSelect}>
                             <option value="">{labels.forwarderNone}</option>
                             {forwarders.map((f) => (
                                 <option key={f.id} value={f.id}>{f.name}</option>
@@ -201,7 +203,7 @@ canEdit: boolean
                         onSubmit={(e) => { e.preventDefault(); const d = new FormData(e.currentTarget)
                             run(() => attachShipment(containerId, d.get('shipment_id') as string)) }}
                     >
-                        <select name="shipment_id" required className={`${field} max-w-full min-w-0`}>
+                        <select name="shipment_id" required className={`${fieldSelect} max-w-full min-w-0`}>
                             {attachable.map((s) => (
                                 <option key={s.id} value={s.id}>{s.code} · {s.order_code} · {s.customer}</option>
                             ))}
@@ -226,7 +228,7 @@ canEdit: boolean
                         }), () => f.reset()) }}
                 >
                     <div><label className="block text-xs font-medium mb-1">{labels.milestone}</label>
-                        <select name="milestone" required className={field}>
+                        <select name="milestone" required className={fieldSelect}>
                             {milestoneTypes.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                         </select></div>
                     <div><label className="block text-xs font-medium mb-1">{labels.eventDate} <span className="text-red-600">*</span></label>
@@ -324,7 +326,7 @@ canEdit: boolean
                                                     dd.get('status') as string,
                                                     ((dd.get('na_reason') as string) ?? '') || null)) }}
                                         >
-                                            <select name="status" defaultValue={d.status} className={field}>
+                                            <select name="status" defaultValue={d.status} className={fieldSelect}>
                                                 <option value="pending">{labels.statusPending}</option>
                                                 <option value="received">{labels.statusReceived}</option>
                                                 <option value="not_applicable">{labels.statusNa}</option>

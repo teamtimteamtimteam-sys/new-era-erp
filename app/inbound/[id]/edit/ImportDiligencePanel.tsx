@@ -15,6 +15,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { saveImportDiligence } from './importDiligenceActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export default function ImportDiligencePanel({
     batchId, imported, permitRef, verifiedAt, canEdit,
@@ -98,7 +99,7 @@ export default function ImportDiligencePanel({
                                            value={ref} onChange={(e) => setRef(e.target.value)} />
                                 </div>
                                 <label className="flex items-center gap-2 text-sm">
-                                    <input type="checkbox" checked={verified}
+                                    <input type="checkbox" className={CONTROL_CHECKBOX} checked={verified}
                                            onChange={(e) => setVerified(e.target.checked)} />
                                     {t('inbound.importDiligence.fieldVerified')}
                                 </label>

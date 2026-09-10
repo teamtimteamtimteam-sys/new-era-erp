@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { updateCustomer, type UpdateCustomerState } from './actions'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 const CUSTOMER_TYPE_OPTIONS = [
     { value: 'cathode_maker', labelKey: 'customers.types.cathodeMaker' },
@@ -220,7 +221,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
 
                 <div>
                     <label className="inline-flex items-center gap-2 text-sm font-medium">
-                        <input type="checkbox" name="credit_hold" defaultChecked={customer.credit_hold ?? false} />
+                        <input type="checkbox" className={CONTROL_CHECKBOX} name="credit_hold" defaultChecked={customer.credit_hold ?? false} />
                         {t('customers.form.creditHold')}
                     </label>
                     <p className="text-xs text-gray-500 mt-1">{t('customers.form.creditHoldHint')}</p>

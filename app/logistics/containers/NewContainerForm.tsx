@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { createContainer } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 
 // LOG-2c:新建集装箱。
 // 【开航日永不预填】—— 它是世界那一侧的事实,系统无从知道。给它一个"今天",
@@ -23,7 +24,8 @@ canEdit: boolean
 }) {
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
-    const field = 'rounded border border-gray-300 px-2 py-1 text-sm'
+    const field = CONTROL_INPUT
+    const fieldSelect = CONTROL_SELECT
 
     if (lanes.length === 0) {
         return (
@@ -60,7 +62,7 @@ canEdit: boolean
             <div className="flex flex-wrap items-end gap-3">
                 <div>
                     <label className="block text-xs font-medium mb-1">{labels.lane} <span className="text-red-600">*</span></label>
-                    <select name="lane_id" required className={field}>
+                    <select name="lane_id" required className={fieldSelect}>
                         {lanes.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
                     </select>
                 </div>
@@ -83,7 +85,7 @@ canEdit: boolean
                 </div>
                 <div>
                     <label className="block text-xs font-medium mb-1">{labels.forwarder}</label>
-                    <select name="forwarder_id" className={field} defaultValue="">
+                    <select name="forwarder_id" className={fieldSelect} defaultValue="">
                         <option value="">—</option>
                         {forwarders.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
                     </select>

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { createRole, updateRole, softDeleteRole } from '../accountsActions'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export type RoleFormValues = {
     id?: string
@@ -67,7 +68,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
         })
     }
 
-    const field = 'w-full border border-gray-300 rounded px-2 py-1 text-sm'
+    const field = `${CONTROL_INPUT} w-full`
 
     return (
         <div className="mb-8">
@@ -140,6 +141,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                 <label className="flex items-center gap-2 text-sm mb-4">
                     <input
                         type="checkbox"
+                        className={CONTROL_CHECKBOX}
                         checked={v.is_active}
                         disabled={initial.is_system}
                         onChange={(e) => setV({ ...v, is_active: e.target.checked })}

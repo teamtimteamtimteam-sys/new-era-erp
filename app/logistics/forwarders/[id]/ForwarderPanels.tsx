@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { saveForwarderDetails, addRateQuote, removeRateQuote } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 // LOG-1c:物流属性 + 报价。
 //
@@ -31,7 +32,9 @@ canEdit: boolean
 }) {
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
-    const field = 'w-full rounded border border-gray-300 px-2 py-1 text-sm'
+    const field = `${CONTROL_INPUT} w-full`
+    const fieldSelect = `${CONTROL_SELECT} w-full`
+    const fieldTextarea = `${CONTROL_TEXTAREA} w-full`
     const laneLabel = new Map(lanes.map((l) => [l.id, l.label]))
 
     function onSaveDetails(e: React.FormEvent<HTMLFormElement>) {
@@ -98,7 +101,7 @@ canEdit: boolean
                     </div>
                     <div>
                         <label className="block text-xs font-medium mb-1">{labels.notes}</label>
-                        <textarea name="notes" rows={2} defaultValue={details?.notes ?? ''} className={field} />
+                        <textarea name="notes" defaultValue={details?.notes ?? ''} className={fieldTextarea} />
                     </div>
                     {/* 【联系人不在这里,而这是一句要说出来的话】,不是一个空白 */}
                     <p className="text-xs text-gray-500">{labels.contactsNote}</p>
@@ -121,7 +124,7 @@ canEdit: boolean
                     <form onSubmit={onAddQuote} className="mb-4 flex flex-wrap items-end gap-2">
                         <div>
                             <label className="block text-xs font-medium mb-1">{labels.lane}</label>
-                            <select name="lane_id" required className={field}>
+                            <select name="lane_id" required className={fieldSelect}>
                                 {lanes.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
                             </select>
                         </div>
@@ -130,7 +133,7 @@ canEdit: boolean
                             <input name="amount_ccy" type="number" step="0.01" min="0.01" required className={`${field} w-32`} />
                         </div>
                         <div>
-                            <select name="currency" required className={field} defaultValue={currencies[0]}>
+                            <select name="currency" required className={fieldSelect} defaultValue={currencies[0]}>
                                 {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
                             </select>
                         </div>

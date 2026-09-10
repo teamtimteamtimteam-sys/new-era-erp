@@ -14,6 +14,7 @@ import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 
 export type DictRow = {
     code: string; name_en: string; name_zh: string
@@ -120,7 +121,8 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
         } as Column<DictRow>]),
     ]
 
-    const field = 'rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2 py-1 text-sm w-full'
+    const field = `${CONTROL_INPUT} w-full`
+    const fieldSelect = `${CONTROL_SELECT} w-full`
     const flabel = 'block text-xs font-medium text-[color:var(--brand-muted-text)] mb-1'
 
     return (
@@ -180,7 +182,7 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                             <span className={flabel}>{t('dict.f.code')}</span>
                             <input value={f.code} disabled={editing !== '__new__'}
                                    onChange={(e) => setF({ ...f, code: e.target.value })}
-                                   className={`${field} font-mono disabled:bg-[color:var(--brand-disabled-bg)]`} />
+                                   className={`${field} font-mono`} />
                             {/* 【D6:建好之后 code 不能改 —— 说出来,不要只是灰掉】 */}
                             <span className="text-xs text-[color:var(--brand-muted-text)]">
                                 {editing === '__new__' ? t('dict.h.codeNew') : t('dict.h.codeLocked')}
@@ -213,7 +215,7 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                                         {/* 【必填的规则布尔用三态下拉,不用裸勾选框】 */}
                                         <select value={extras[x.column] ?? ''}
                                                 onChange={(e) => setExtras({ ...extras, [x.column]: e.target.value })}
-                                                className={field}>
+                                                className={fieldSelect}>
                                             <option value="" disabled>{t('dict.pickYesNo')}</option>
                                             <option value="true">{t('common.yes')}</option>
                                             <option value="false">{t('common.no')}</option>

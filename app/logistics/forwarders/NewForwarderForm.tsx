@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 import { createSupplier, type CreateSupplierState } from '@/app/suppliers/new/actions'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 
 // LOG-1c:新建货代。
 // 【它调的是供应商那条创建路径,不是第二处 insert】—— 货代在库里就是一行 suppliers,
@@ -17,7 +18,7 @@ export default function NewForwarderForm({
     labels: { heading: string; legalName: string; country: string; paymentTerms: string; submit: string }
 }) {
     const [state, formAction, pending] = useActionState(createSupplier, initial)
-    const field = 'border border-gray-300 px-3 py-2 rounded'
+    const field = CONTROL_INPUT
 
     return (
         <form action={formAction} className="mt-4 rounded border border-gray-200 bg-gray-50 p-4">

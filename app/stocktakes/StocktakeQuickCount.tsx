@@ -7,6 +7,7 @@ import { useActionState } from 'react'
 import { saveCount, type SaveCountState, type BatchSide } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_TOUCH } from '@/app/components/ui/control-style'
 
 const initialState: SaveCountState = {}
 
@@ -43,7 +44,7 @@ export default function StocktakeQuickCount({
                     inputMode="decimal"
                     defaultValue={counted ?? ''}
                     placeholder={t('stocktakes.qtyPlaceholder')}
-                    className="flex-1 min-w-0 border border-gray-300 rounded px-3 py-3 text-base min-h-[48px] bg-white"
+                    className={`${CONTROL_TOUCH} flex-1 min-w-0 px-3 py-3 text-base min-h-[48px]`}
                 />
                 <Button className="shrink-0 min-h-[48px] text-base"
                     type="submit"

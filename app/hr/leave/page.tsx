@@ -14,6 +14,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import LeaveRequestsTable, { type LeaveRequestRow } from './LeaveRequestsTable'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 
 type Row = {
     request_id: string
@@ -69,7 +70,8 @@ export default async function LeaveRequestsPage({
         return (b.start_date ?? '').localeCompare(a.start_date ?? '')
     })
 
-    const sel = 'border border-gray-300 rounded px-2 py-1 text-sm'
+    const sel = CONTROL_SELECT
+    const inp = CONTROL_INPUT
 
     const tableRows: LeaveRequestRow[] = rows.map((r) => {
         const e = empById.get(r.employee_id)
@@ -133,11 +135,11 @@ export default async function LeaveRequestsPage({
                 </label>
                 <label className="text-xs text-gray-600">
                     {t('leave.from')}
-                    <input type="date" name="from" defaultValue={sp.from ?? ''} className={`block ${sel}`} />
+                    <input type="date" name="from" defaultValue={sp.from ?? ''} className={`block ${inp}`} />
                 </label>
                 <label className="text-xs text-gray-600">
                     {t('leave.to')}
-                    <input type="date" name="to" defaultValue={sp.to ?? ''} className={`block ${sel}`} />
+                    <input type="date" name="to" defaultValue={sp.to ?? ''} className={`block ${inp}`} />
                 </label>
                 <Button variant="secondary" type="submit">
                     {t('leave.filter')}

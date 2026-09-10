@@ -3656,6 +3656,222 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 
 ★ **本刀【没有】版本号** —— Tim 压着版本线,等手搓表格手机档一起发一个号,两刀共用。
 
+## ★★ 控件那一族(INPUT-0 → INPUT-1 → INPUT-2 → INPUT-2b → INPUT-3)—— 2026-09-10
+
+> **标准是 `docs/variant-c-spec.md`。这一节只记【谁做什么、边界在哪】,不重复那些值。**
+> 切法是 Tim 在 2026-09-10 裁的:**先按路由把 14 条表格路由划给 INPUT-3
+> (行高风险全部落在一刀里),再按【改动的种类】把其余的切成 INPUT-2 与 INPUT-2b。**
+
+### ★★ 停止条件已修订(Tim 2026-09-10)—— INPUT-2b 与 INPUT-3 照这一条走 ★★
+
+**旧的那一条是:「控件的渲染宽度变了就停手」。它已经作废。**
+
+**为什么作废:** 一个**没有宽度类**的原生 `<input>` / `<select>`,宽度是浏览器按
+**字号与内边距**替它算的(`<input>` = `size` 默认 20 个字符宽;`<select>` = 最长那条选项宽)。
+`control-style.ts` 不带宽度类,保证的是**不动调用点上的 `w-*`**,
+**不是**「渲染宽度不变」—— 标准把手机字号 14→16px、左内边距 8→10px、
+下拉右内边距 →24px,**没有宽度类的控件必然变宽**。
+这条错误的前提让 INPUT-2 停过一整轮。
+
+| | |
+|---|---|
+| **不再是停止条件** | 控件的**渲染宽度**变了 —— 报出来,不停手 |
+| ★ **仍然停手** | ① 390px 上**新增**整页横向溢出,或已有溢出**比 `docs/row-height-baseline.md` 记的更大**<br>② 一张**已按裁定横滚**的表**多出了滚动范围**<br>③ 12 张有控件的基线表:**表头高 / 行数 / 最大行高 / 滚动壳内容宽**任何一个变了<br>④ 那 14 条 INPUT-3 路由上有任何东西变了(**应用外壳除外**,Q5)<br>⑤ `<Input>` / `<Textarea>` 发出去的 class 串变了 |
+| **停手怎么做** | 交回、**不回退**、**不改表、不动列宽** |
+
+★★ **给 INPUT-2b 与 INPUT-3 的一句话:你们名下【没有宽度类】的那一批控件也会变宽 ——
+那不是 bug,是标准。要盯的是【整页横向溢出】,不是控件宽度。**
+开工前先把 `docs/row-height-baseline.md` §4.1 那 7 条已经溢出的路由与 §6.3 的机读块拿在手上,
+它们是「有没有变大」的唯一参照点。
+☞ 一个已经量到的落点:**`/logistics/lanes` 的控件宽度由 INPUT-2 设定**(见下),
+本族以后再动那一页,先读那一段。
+
+### ✅ INPUT-2 —— 已完成 2026-09-10
+
+* **共享样式模块 `app/components/ui/control-style.ts`** —— 单行控件 / 原生下拉 / 多行框 /
+  勾选框(含不确定态)/ 单选框 / 文件选择钮 / `<DataTable>` 筛选框,**一处定义**。
+  **它不带任何宽度类**(勾选框与单选框的 16×16 除外,那是 R5/R6 裁的值)。
+* `<Input>` 与 `<Textarea>` 改读该模块,**发出去的 class 串逐字节未变**。
+* **26 个本地样式常量**(覆盖 190 个调用点)+ **18 个一个 className 都没写的勾选/单选框**。
+* **E6 触控档**(`/inbound/receive` 与 `/stocktakes/*`,9 个输入框):高度、上下内边距、
+  字号一个不动,只换边框色 / 圆角 / 焦点环 / 底色。
+* `CycleForm.tsx` 两处死宽度(R10)· `EmployeeForm.tsx` 那一行死 `DecimalInput` import。
+* 行高比对器 `scripts/check-row-height-baseline.mjs`。
+* ★ **`/logistics/lanes` 的控件宽度由本刀设定**(Tim 2026-09-10 裁定,唯一一处):
+  那一页顶上两张 flex 表单**不换行**,采用标准之后 390px 的整页溢出从 **+12px** 长到 **+76px**。
+  `LanesPanel.tsx`(**实测只被 `app/logistics/lanes/page.tsx` 引用**,别处渲染不到)的
+  三个调用点加了宽度类:`name` 输入框 `w-40`(160px)· 两个原生下拉各 `w-34`(136px)。
+  **字号、内边距、边框、圆角一个都没动 —— 那些是标准。**
+
+### ⬜ INPUT-2b —— 剩下的 inline class 串(下一刀,新开一块)
+
+> ★★ **开工前先读上面那条【修订过的停止条件】。** 与本刀直接相关的一句:
+> **你名下那 415 处里,凡是调用点上【没有 `w-*`】的控件,采用标准之后【渲染宽度会变宽】** ——
+> 手机字号 14→16px、左内边距 8→10px、下拉右内边距 →24px,三样都进宽度。
+> **那不是回归,不用停。** 要盯的是**整页横向溢出**:
+> 拿 `docs/row-height-baseline.md` §4.1 那 7 条已经溢出的路由与 §6.3 的机读块作参照,
+> **新增一条、或者哪一条比基线更大,才是停手。**
+> ⚠ 已知最险的形状是**不换行的 flex 表单**(`flex` 而没有 `flex-wrap`):
+> `/logistics/lanes` 就是这么从 +12px 长到 +76px 的。**先 grep 你名下的页面有没有这种表单。**
+
+
+**范围:INPUT-2 名下、自己写了一整串 class 的控件站点。**
+**分类器数出 422 处;B 类 9 个【全部手查过】,其中 7 个是假阳性(已经改完了),
+所以真正要动的是 415 处。** 手工复核 36 处,**漏判率 19.4%,而 7 处错判全部是假阳性
+(把做完的说成没做完),一处假阴性都没有** —— 也就是说这份名单**不会让 INPUT-2b 漏掉站点**。
+⚠ **但 A 类是抽查(15 / 401),A 类里有没有假阴性【这次没有查】。**
+
+| 类 | 定义 | 处数 |
+|---|---|--:|
+| **A** | 静态 className 字面量,每一个 class 都在剥/留清单上 → 机械可改写 | **401** |
+| **B** | 模板 / `cn()` / 三元 / 计算 → 手改 | **2**(修正后;分类器原报 9) |
+| **C** | 含两张清单都没有的 class → 见下 | **12** |
+
+**类 × 控件类型(分类器原始数):**
+`checkbox` A10 · `date` A78/B1/C1 · `file` C6 · `number` A43/B1/C3 ·
+`select` A120/B2/C1 · `text` A123/B4/C1 · `textarea` A27/B1
+
+**类 × 顶层模块(A/B/C):** finance 109/1/1 · sales 71/0/1 · hr 42/0/0 · inbound 37/1/3 ·
+suppliers 37/0/1 · output 20/0/2 · tools 18/3/0 · operation 20/0/0 · materials 18/1/1 ·
+purchasing 10/0/1 · settings 7/1/1 · inventory 8/0/0 · components 4/1/1 · stocktakes 0/1/0
+
+**C 类那 12 处,逐条:**
+
+* **6 处文件上传**(`file:bg-blue-600` 那一套):`app/settings/import/ImportForm.tsx:189` ·
+  `app/materials/[id]/edit/AttachmentsPanel.tsx:232` · `app/suppliers/[id]/edit/AttachmentsPanel.tsx:239` ·
+  `app/sales/customers/[id]/edit/AttachmentsPanel.tsx:239` · `app/components/finance/FinanceAttachmentsPanel.tsx:266` ·
+  `app/finance/company/CompanyProfileForm.tsx:203`。
+  ☞ **样式(`CONTROL_FILE_BUTTON`)INPUT-2 已经定义好**,INPUT-2b 只要接上去。
+* **4 处 `text-gray-500` —— 全部带 `disabled`,照 Q12 的例外【留】:**
+  `app/inbound/[id]/edit/EditInboundForm.tsx:132` · `:197` ·
+  `app/output/[id]/edit/EditOutputForm.tsx:117` · `:166`。
+* **1 处 `text-gray-900` —— 既不 readOnly 也不 disabled,照 Q12【剥】:**
+  `app/inbound/[id]/edit/CertificatePanel.tsx:173`。
+* **1 处 Q13 的例外(不动):** `app/purchasing/orders/[id]/ExpectedDateControl.tsx`。
+* ★ **还有第 6 个字色站点,而它在 B 类里、C 类名单看不见它:**
+  `app/settings/roles/RoleForm.tsx:85` —— `field + (isNew ? '' : ' bg-gray-100 text-gray-500')`,
+  `disabled={!isNew}` → **照 Q12 的例外【留】**。
+  **☞ 所以 Q12 要点名的是 6 处:留 5、剥 1。**
+
+**还要带上的两件:**
+
+1. ★ **给 `INPUT_COMPONENT_CLASS` / `TEXTAREA_COMPONENT_CLASS` 做一道常驻的闸**
+   (把它和 `git show HEAD:` 的原串逐字比,对不上就红)。
+   INPUT-2 是**手工**证的,没有做成闸 —— 因为那一刀只许往 `scripts/` 里加**一支**量具。
+2. ★ **B 类那 7 处假阳性的机制**:分类器认不出 `x + ' 一些 class'` 这种字符串加法里
+   哪些标识符已经接了模块。**INPUT-2b 要重写这一段,不要照抄。**
+
+### ⬜ Q13 · 一处带含义的状态样式 —— 等一次「状态样式」的裁定
+
+`app/purchasing/orders/[id]/ExpectedDateControl.tsx`:一个日期框写着
+`border-b border-dashed border-amber-500 bg-transparent px-1 py-0.5 text-amber-900`。
+**它不是漂移** —— 同一套写法也在 `app/finance/cash-forecast/ForecastGrid.tsx:51` 的
+`estimated:` 上,意思是「**这个日期是估的,不是定的**」。
+照 §4.1 转过去(32px 盒子 + 实线 `#AEBAC9` + 8px 圆角)**会把那个含义抹掉**。
+**Tim 2026-09-10 裁定:不动,登记在这里。**
+☞ 它住在 `[id]` 动态路由上,**量具走不到,首屏未测量**。
+
+### ⬜ INPUT-3 —— 那 14 条表格路由(范围已按 2026-09-10 的裁定修订)
+
+> ★★ **开工前先读上面那条【修订过的停止条件】。** 与本刀直接相关的两句:
+> ① **你名下没有宽度类的控件也会变宽**(机制同上)—— 报出来,不停手;
+> ② 而**你这一刀的风险不在宽度,在行高**:14 条路由里有 6 条走 `<DataTable>`,
+> 勾选框 13→16px **会把它所在的那一行推高**,而 `/finance/freight/new` 那张表
+> **只差 1px 就溢出**(壳 326 / 内容 327)。
+> ☞ **停止条件里第 ①③ 两条(整页溢出 / 12 张基线表)是你要逐张对的那两条。**
+
+
+**它owns:**
+
+* **14 条路由:** `/hr/payroll/new` · `/operation/orders/new` · `/finance/fx/bulk` ·
+  `/finance/freight/new` · `/sales/quotes/new` · `/finance/processing-costs` ·
+  `/tools/pricing/calculator` · `/tools/pricing/formulas/new` ·
+  `/tools/pricing/metal-prices/bulk` · `/purchasing/payment-terms/new` ·
+  `/hr/leave/types` · `/hr/reviews/scale` · `/hr/kpi/score` · `/me`
+* **那 14 条路由的【页面子树】里的任何源文件,整份。**
+  ★ **Q5(Tim 2026-09-10):`app/layout.tsx` 与应用外壳【不算】** —— 归属按页面子树走,
+  不按「屏幕上出现过」走。外壳里的改动即使显示在那 14 条上,**也不算范围泄漏**。
+* **`app/components/forms/DecimalInput.tsx` 与【渲染】它的每一个文件,整份**
+  —— 实测 **52 个调用点 / 23 个文件**(注释里 0 处)。
+  ★ **Q4(Tim 2026-09-10):只 import 而从不渲染的不算。**
+  `app/hr/employees/EmployeeForm.tsx` 就是这一种(第 19 行一行死 import);
+  **INPUT-2 已经把那行删了,该文件留在 INPUT-2 一族。**
+* ★★ **`app/components/ui/data-table.tsx` —— 这个文件按【行】分给两刀(Q1/Q2,Tim 2026-09-10):**
+
+  | 行 | 归谁 | 为什么 |
+  |---|---|---|
+  | **473**(`input[type=search]`,表上方那个筛选框) | ★ **INPUT-2(已完成)** | 它只在调用方传了 `filter=` 时才画;**那 14 条路由的调用方一个都没传**(逐文件查实)—— 所以它推不动 INPUT-3 的任何一行 |
+  | **296**(表头全选框,**全仓库唯一用到 `indeterminate` 的地方**)· **490**(列显隐面板里的)· **636**(每一行的选择框) | ★ **INPUT-3** | `/finance/processing-costs` 传了 `selection=`(`CostSettlePanel.tsx:119` 与 `:145`),**296 与 636 确实渲染在那条 INPUT-3 路由上**,而基线记着那两张表的行高是 81px / 81.5px |
+
+  > ★ **已经接受的代价(Tim 2026-09-10, Q2):在 INPUT-3 落地之前,系统里的勾选框有两种样子** ——
+  > INPUT-2 画过的那一批(16×16、`#62738C` 边、`#007FAD` 填)与 `<DataTable>` 那一批(浏览器默认 13×13)。
+* `ScaleEditor.tsx` 的**四处死宽度**(`:188` `w-32` · `:192` `w-40` · `:196` `w-40` · `:201` `w-20`,
+  常量在第 33 行,`w-full` 赢)。
+* `/finance/freight/new` 的 **15 个勾选框**与 `/finance/processing-costs` 的 **11 个**
+  (它们是 `<DataTable>` 的 selection 框,见上表)。
+* 那 14 条路由上的**原生下拉**(实测 34 个渲染在首屏)。
+
+**开工必须带上的三件(前两件是这一族踩过的):**
+
+1. ★ **表的身份要用 `(路由, 表头签名, 同签名里的第几个)`。**
+   实测**同一路由上表头签名逐字相同的有 5 条路由**:`/settings/dictionaries` **6 张** ·
+   `/settings/reference` 3 张 · `/finance/cash-forecast` 2 张 ·
+   `/inventory/reports/snapshot` 2 张 · `/finance/processing-costs` 2 张。
+   `scripts/check-row-height-baseline.mjs` 已经按三元组写好,并逐条打印警告 —— **用它,别再写一个。**
+2. ★ **`/finance/freight/new` 在 phone 上会卡死渲染器 —— 这是第【三】刀撞上同一处。**
+   照样 `--only=/finance/freight/new` 单条补齐;**别跳过它**:壳 326 / 内容 327,只差 1px。
+3. ★ **勾选框从 13px 变成 16px 会推高格子所在的行。** INPUT-3 那两张表今天的行高是
+   **81px / 81.5px**(`/finance/processing-costs`)与 **63.84px×14 / 85.77px×1**(`/finance/freight/new`),
+   而 freight 那张**只差 1px 就溢出**。
+
+### ⬜ 原生 `<label>`(426 个渲染 / 739 个代码点)—— **改归【字体/排版】那一刀**
+
+**Tim 2026-09-10 裁定(R13):`<label>` 不属于控件这一族 —— 它是一行文字,不是一个控件。**
+INPUT-0 §9 Q8「归本族还是归字体那一刀」到此关闭。
+☞ **控件这一族(INPUT-2 / INPUT-2b / INPUT-3)一个 `<label>` 都不动。**
+⚠ 一件字体那一刀会撞上的事,先记在这里:**本族有一批控件包在 `<label className="text-xs">` 里**,
+今天靠继承拿字号;控件采用共享样式之后,**字号由控件自己给(桌面 14px / 手机 16px)**,
+不再继承那个 `text-xs`。**也就是说 label 的字号改动不会再穿透到控件里。**
+
+### ⬜ 一处【没有任何量具看得见】的落点 —— `/settings/roles/[id]`
+
+`app/settings/roles/PermissionMatrix.tsx:147` 与 `:159` 是**住在 `<td>` 里**的勾选框
+(第三个 `:186` 在一个 `<label>` 列表里,不在格子里),而这个组件**只挂在 `/settings/roles/[id]`** ——
+一条**动态路由**,`docs/row-height-baseline.md` 与 `survey-controls.mjs` **都走不到**。
+
+**INPUT-2 用一支一次性探针量了它的【前】读数(角色 `admin`,两个视口):**
+
+| | desktop 1440 | phone 390 |
+|---|---|---|
+| 表 | `h:Module/View/Edit`,3 列 **15 行** | 同左 |
+| 表头行高 | **37px** | **37px** |
+| **每一条表体行** | **37px**(15 行全部) | **37px** |
+| 格子里的勾选框 | **29 个** | 29 |
+| 整页横向溢出 | **0**(1440 / 1440) | ★ **0**(390 / 390) |
+| 勾选框尺寸 | 全部 **13×13**、`appearance: auto`、坐在 `#F1F9FE` 上 | 同左 |
+
+### ★ 改完的读数(INPUT-2,2026-09-10;同一个角色 id `40aad47d-a2e1-468b-98c1-823680b5ae8b` = `admin`)
+
+| | **改前** | **改后** | |
+|---|---|---|---|
+| 表 `h:Module/View/Edit` | 3 列 **15 行** | 3 列 **15 行** | 不变 |
+| 表头行高 | **37px** | **37px** | 不变 |
+| 每一条表体行 | **37px**(15 行全部) | ★ **38px**(15 行全部) | ★ **+1px —— 报告,不是停手**(裁定原文:这张表的行高变化报出来即可) |
+| 格子里的勾选框 | **29 个,全部 13×13**、`appearance: auto` | **29 个,全部 16×16**、圆角 4px、`appearance: none` | 裁定要的(R5) |
+| 整页横向溢出 | **0 / 0**(desktop / phone) | ★ **0 / 0** | ★ **没有新增溢出 → 不停手** |
+
+★ **那 29 个的边框实测是 `rgb(0, 127, 173)` = `#007FAD`,不是 `#62738C`** ——
+`admin` 这个角色**每一格都是勾上的**,而选中态的边框本来就是品牌蓝(`checked:border-primary`)。
+**这是判据要认得的一件事,不是一处不合规**(第二轮的 16 个"不合"里有 2 个正是栽在这上面)。
+★ 同一页上另有 **10 个 13×13、`appearance: auto` 的勾选框**(不在这张表的格子里)——
+它们来自 `data-table.tsx`,**归 INPUT-3**,本刀一个字节都没碰。
+
+☞ **行高 +1px 的来源说清楚:** 勾选框从 13px 长到 16px,而它所在的 `<td>` 的行高
+由那一格里最高的东西决定 —— 那 3px 里有 1px 顶到了行上。
+**这正是 forward-queue 早就写着的那句「勾选框从 13px 变成 16px 会推高格子所在的行」,
+在一张【没有任何量具看得见】的表上兑现了。INPUT-3 那两张 81px / 81.5px 的表要按这个数预期。**
+☞ **这一族以后再动这张表,拿这份读数比。**
+
 ## 维护规则
 
 > **一刀关闭,就在【关闭它的那一次提交里】把它从所在阶段划掉。**

@@ -13,6 +13,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveCommissionAgreement, type CommissionInput } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 export type Agent = { id: string; code: string; legal_name: string }
 export type Currency = { code: string }
@@ -87,13 +88,15 @@ export default function CommissionForm({
     }
 
     const label = 'block text-sm font-medium mb-1'
-    const field = 'border border-gray-300 rounded px-2 py-1 text-sm w-full'
+    const field = `${CONTROL_INPUT} w-full`
+    const fieldSelect = `${CONTROL_SELECT} w-full`
+    const fieldTextarea = `${CONTROL_TEXTAREA} w-full`
 
     return (
         <form onSubmit={onSubmit} className="max-w-2xl space-y-4">
             <div>
                 <label className={label} htmlFor="agent">{t('commissions.fieldAgent')}</label>
-                <select id="agent" name="agent_supplier_id" className={field} value={form.agent_supplier_id}
+                <select id="agent" name="agent_supplier_id" className={fieldSelect} value={form.agent_supplier_id}
                         onChange={(e) => set('agent_supplier_id', e.target.value)}>
                     <option value="">{t('commissions.selectPrompt')}</option>
                     {agents.map((a) => (
@@ -105,7 +108,7 @@ export default function CommissionForm({
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className={label} htmlFor="side">{t('commissions.fieldSide')}</label>
-                    <select id="side" name="side" className={field} value={form.side}
+                    <select id="side" name="side" className={fieldSelect} value={form.side}
                             onChange={(e) => set('side', e.target.value)}>
                         <option value="">{t('commissions.selectPrompt')}</option>
                         {SIDES.map((s) => (
@@ -115,7 +118,7 @@ export default function CommissionForm({
                 </div>
                 <div>
                     <label className={label} htmlFor="basis">{t('commissions.fieldBasis')}</label>
-                    <select id="basis" name="basis" className={field} value={form.basis}
+                    <select id="basis" name="basis" className={fieldSelect} value={form.basis}
                             onChange={(e) => set('basis', e.target.value)}>
                         <option value="">{t('commissions.selectPrompt')}</option>
                         {BASES.map((b) => (
@@ -143,7 +146,7 @@ export default function CommissionForm({
                     </div>
                     <div>
                         <label className={label} htmlFor="ccy">{t('commissions.fieldCurrency')}</label>
-                        <select id="ccy" name="currency" className={field} value={form.currency}
+                        <select id="ccy" name="currency" className={fieldSelect} value={form.currency}
                                 onChange={(e) => set('currency', e.target.value)}>
                             <option value="">{t('commissions.selectPrompt')}</option>
                             {currencies.map((c) => (
@@ -157,7 +160,7 @@ export default function CommissionForm({
             {/* ★★ 本表单最要紧的一格 ★★ */}
             <div className="border-l-4 border-amber-500 bg-amber-50 p-3">
                 <label className={label} htmlFor="trigger">{t('commissions.fieldTrigger')}</label>
-                <select id="trigger" name="recognition_trigger" className={field} value={form.recognition_trigger}
+                <select id="trigger" name="recognition_trigger" className={fieldSelect} value={form.recognition_trigger}
                         onChange={(e) => set('recognition_trigger', e.target.value)}>
                     <option value="">{t('commissions.selectPrompt')}</option>
                     {TRIGGERS.map((r) => (
@@ -182,7 +185,7 @@ export default function CommissionForm({
 
             <div>
                 <label className={label} htmlFor="remarks">{t('commissions.fieldRemarks')}</label>
-                <textarea id="remarks" name="remarks" rows={3} className={field} value={form.remarks}
+                <textarea id="remarks" name="remarks" className={fieldTextarea} value={form.remarks}
                           onChange={(e) => set('remarks', e.target.value)} />
             </div>
 

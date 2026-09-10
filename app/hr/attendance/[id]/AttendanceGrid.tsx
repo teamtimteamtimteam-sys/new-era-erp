@@ -9,6 +9,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { recordAttendance, completeAttendancePeriod, reopenAttendancePeriod, syncAttendancePeriod } from '../actions'
 import { Button } from '@/app/components/ui/button'
 
@@ -126,7 +127,7 @@ function LineRow({
     const [note, setNote] = useState(row.note)
 
     const num = (v: string) => (v.trim() === '' ? 0 : Number(v))
-    const cell = 'w-20 rounded border px-2 py-1 text-right'
+    const cell = `${CONTROL_INPUT} w-20 text-right`
 
     return (
         <tr className={'border-b ' + (row.recorded ? '' : 'bg-amber-50')}>

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { saveDepartment, type DepartmentFormState } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 const initialState: DepartmentFormState = {}
 
@@ -96,7 +97,7 @@ export default function DepartmentForm({
                     </select>
                 </div>
                 <label className="flex items-center gap-2 text-sm pb-2">
-                    <input type="checkbox" name="is_active" defaultChecked={department?.is_active ?? true} />
+                    <input type="checkbox" className={CONTROL_CHECKBOX} name="is_active" defaultChecked={department?.is_active ?? true} />
                     {t('pricing.form.active')}
                 </label>
             </div>

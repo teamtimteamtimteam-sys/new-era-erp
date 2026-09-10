@@ -3,6 +3,41 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ★★ SMOKE-PREFLIGHT-COD-TOKEN —— **冒烟今天【一条路由都跑不到】,自 COD-2 起**(INPUT-2 撞到,2026-09-10)
+
+`node scripts/smoke-routes.mjs` 在**预检**处退 **1**,连 dev server 都没起:
+
+```
+✗ /verify/cod/[token]
+    段 [token] 【不在】 ID_SOURCES 里
+SMOKE_OWN_EXIT=1        ← 实测 2026-09-10T13:36:52Z,耗时 0 秒
+```
+
+**它不是 INPUT-2 造成的,而这句话是量出来的、不是推出来的:**
+
+| 查的是什么 | 结果 |
+|---|---|
+| `git status --porcelain app/verify` | **空** —— 本刀一个字节都没碰 |
+| `git status --porcelain scripts/smoke-routes.mjs` | **空** |
+| 那条路由是谁建的 | `9b71b4e`(**COD-2,2026-09-08**),早于本刀的 HEAD `37eed5ea` |
+| `git show HEAD:scripts/smoke-routes.mjs \| grep -c '\[token\]'` | **0** —— 在 HEAD 上就已经没有 |
+
+☞ **也就是说这道闸自 2026-09-08 起对【每一刀】都是红的**,而 INPUT-2 是第一个真去跑它的。
+与 AGENTS.md 记着的 `--reach`「结构性地红着,不是任何一刀弄坏的」是同一个形状。
+
+**为什么 INPUT-2 不顺手修:** `ID_SOURCES` **一律 `select=id`**(见 `smoke-routes.mjs`
+里 `/finance/ledger/[account]` 与导入模板那两条注释),而 `[token]` 是一枚
+**122 位随机令牌**,不是任何一行的 `id` —— **它结构上走不了 `ID_SOURCES` 那条路**,
+只能进 `SPECIAL_ID_ROUTES`(取一枚真令牌)或 `EXPECTED_SKIPS`(并说明为什么没数据)。
+而选哪一条要先答一个**属于 COD 的问题**:冒烟该断言哪个状态?
+那条路由自己有 **200 / 404 / 429 / 503** 四种(作废的证书是 404,限流是 429)——
+挑错一个,就是一次会绿的假断言。
+**在一刀刚被它绊倒时现写这个判据,正是 AGENTS.md 点名的「匆忙的检查者」形状。**
+
+**去处:** 归 COD 那一族(或下一刀 `scripts/` 的维护),两步 ——
+① 令牌存在哪张表哪一列,取一枚**有效**的;② 写进 `SPECIAL_ID_ROUTES` 并断言 **200**,
+把 404/429 那两支留给它们自己的判据。
+
 ## ~~★★ ALERT1-SILENT-WRITES-DB-SIDE~~ —— **✅ 已关闭(SILENT-1,2026-09-08,`5915c17`)**
 
 > **关闭它的那一刀同时更正了它的标题:那不是「十处」,是【74 处、横跨 61 张表】。**

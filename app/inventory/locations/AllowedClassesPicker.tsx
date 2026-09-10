@@ -9,6 +9,7 @@
 import { useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import type { WasteClass } from '@/app/materials/wasteClassOptions'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export default function AllowedClassesPicker({
     classes,
@@ -35,6 +36,7 @@ export default function AllowedClassesPicker({
                     <label key={c.code} className="flex items-center gap-2 text-sm">
                         <input
                             type="checkbox"
+                            className={CONTROL_CHECKBOX}
                             checked={selected.includes(c.code)}
                             onChange={() => toggle(c.code)}
                         />

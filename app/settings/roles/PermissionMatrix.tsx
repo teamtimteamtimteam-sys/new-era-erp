@@ -12,6 +12,7 @@ import { useState, useTransition } from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { saveRolePermissions } from '../accountsActions'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export type PermissionRow = {
     code: string
@@ -146,6 +147,7 @@ export default function PermissionMatrix({
                                 <td className="border border-gray-300 px-3 py-2 text-center">
                                     <input
                                         type="checkbox"
+                                        className={CONTROL_CHECKBOX}
                                         disabled={disabled}
                                         checked={has(`module.${m}.view`)}
                                         onChange={(e) => setModule(m, 'view', e.target.checked)}
@@ -158,6 +160,7 @@ export default function PermissionMatrix({
                                     {hasEditCode(m) ? (
                                         <input
                                             type="checkbox"
+                                            className={CONTROL_CHECKBOX}
                                             disabled={disabled}
                                             checked={has(`module.${m}.edit`)}
                                             onChange={(e) => setModule(m, 'edit', e.target.checked)}

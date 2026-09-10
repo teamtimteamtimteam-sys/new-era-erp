@@ -38,6 +38,7 @@ import { useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { KIND_UNCHOSEN, type MaterialKind } from './materialKindOptions'
 import { AXIS_UNCHOSEN, type MaterialForm, type MaterialSource, type MaterialSizeFormat } from './materialAxesOptions'
+import { CONTROL_RADIO } from '@/app/components/ui/control-style'
 
 // 不适用/未知时画的那一行 —— 灰底、成句,而不是一个消失了的控件。
 function NotApplicable({ label, why }: { label: string; why: string }) {
@@ -108,7 +109,7 @@ export default function MaterialAxesPicker({
                         <div className="flex gap-4">
                             {(['yes', 'no'] as const).map((v) => (
                                 <label key={v} className="flex items-center gap-1 text-sm">
-                                    <input type="radio" name="may_be_processed" value={v}
+                                    <input type="radio" className={CONTROL_RADIO} name="may_be_processed" value={v}
                                            defaultChecked={defaultProcessable === (v === 'yes')} />
                                     {t(v === 'yes' ? 'materials.form.processableYes' : 'materials.form.processableNo')}
                                 </label>

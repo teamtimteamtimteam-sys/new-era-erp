@@ -13,6 +13,7 @@ import LocationPicker, { type LocationChoice } from '@/app/components/inventory/
 import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditionFormSection'
 import type { SafetyState, Certainty } from '../IntakeConditionFields'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_TOUCH } from '@/app/components/ui/control-style'
 
 const initialState: ReceiveState = {}
 
@@ -51,8 +52,10 @@ function todayIsoLocal(): string {
 }
 
 // 移动端触摸友好:大字号 + 约 48px 高的触控目标。
-const fieldCls =
-    'w-full border border-gray-300 rounded px-3 py-3 text-base min-h-[48px] bg-white'
+// ★ E6(Tim 2026-09-10, Q7):收货这一页是【触控档】—— 48px 的高度、上下内边距
+//   与 16px 字号一个都不动(站在仓库里拿手机或扫码枪按),
+//   只把边框色、圆角、焦点环与底色换成共享模块那一套。
+const fieldCls = `${CONTROL_TOUCH} w-full px-3 py-3 text-base min-h-[48px]`
 const labelCls = 'block text-sm font-medium mb-1'
 const errCls = 'text-red-600 text-sm mt-1'
 

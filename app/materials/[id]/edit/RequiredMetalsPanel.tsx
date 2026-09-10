@@ -18,6 +18,7 @@ import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import { saveRequiredMetals, type RequiredMetalsState } from './requiredMetalsActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export default function RequiredMetalsPanel({
     substanceOptions,
@@ -90,6 +91,7 @@ export default function RequiredMetalsPanel({
                         >
                             <input
                                 type="checkbox"
+                                className={CONTROL_CHECKBOX}
                                 name="metal"
                                 value={o.value}
                                 disabled={isPending}

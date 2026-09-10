@@ -8,6 +8,7 @@ import { saveCount, type SaveCountState, type BatchSide } from './actions'
 import { formatSigned } from './delta'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_TOUCH } from '@/app/components/ui/control-style'
 
 export type CountItem = {
     side: BatchSide
@@ -25,8 +26,8 @@ export type CountItem = {
 const initialState: SaveCountState = {}
 
 // 移动端触摸友好:大字号 + 约 48px 高的触控目标(端口自 receive/ReceiveForm)。
-const fieldCls =
-    'w-full border border-gray-300 rounded px-3 py-3 text-base min-h-[48px] bg-white'
+// ★ E6(Tim 2026-09-10, Q7):盘点这一页是【触控档】,见 ReceiveForm 抬头那一段。
+const fieldCls = `${CONTROL_TOUCH} w-full px-3 py-3 text-base min-h-[48px]`
 
 // 展开的内联点数行:数量 + 备注 + 保存。保存成功后由父组件收起(数据经 revalidate 刷新)。
 function CountRow({

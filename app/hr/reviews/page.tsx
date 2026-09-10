@@ -24,6 +24,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import ReviewsTable, { type ReviewsTableRow } from './ReviewsTable'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 
 type EmployeeOpt = { id: string; code: string; legal_name: string }
 type CycleOpt = { id: string; name: string }
@@ -68,7 +69,7 @@ export default async function ReviewsPage({
     const empById = new Map(employees.map((e) => [e.id, e]))
     const cycleById = new Map(cycles.map((c) => [c.id, c.name]))
 
-    const sel = 'border border-gray-300 rounded px-2 py-1 text-sm'
+    const sel = CONTROL_SELECT
 
     const tableRows: ReviewsTableRow[] = reviews.map((r) => {
         const emp = empById.get(r.employee_id)

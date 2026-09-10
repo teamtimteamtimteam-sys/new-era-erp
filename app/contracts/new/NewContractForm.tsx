@@ -8,6 +8,7 @@ import DraftBanner from '@/app/components/DraftBanner'
 import { useTranslations } from '@/lib/i18n/client'
 import { createContract, type CreateContractState } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 const initialState: CreateContractState = {}
 
@@ -37,7 +38,9 @@ export default function NewContractForm({
     // 状态那一段的说明跟着选择走 —— 两个选项的后果差得很远,而其中一个不可逆。
     const [status, setStatus] = useState('active')
 
-    const field = 'w-full border border-gray-300 px-3 py-2 rounded'
+    const field = `${CONTROL_INPUT} w-full`
+    const fieldSelect = `${CONTROL_SELECT} w-full`
+    const fieldTextarea = `${CONTROL_TEXTAREA} w-full`
     const err = (k: string) =>
         state.fieldErrors?.[k] ? <p className="text-red-600 text-xs mt-1">{state.fieldErrors[k]}</p> : null
 
@@ -59,7 +62,7 @@ export default function NewContractForm({
                     <label className="block text-sm font-medium mb-1">
                         {t('contracts.form.counterparty')} <span className="text-red-600">*</span>
                     </label>
-                    <select name="counterparty" defaultValue="" className={field}>
+                    <select name="counterparty" defaultValue="" className={fieldSelect}>
                         <option value="">{t('contracts.form.counterpartyPlaceholder')}</option>
                         {suppliers.length > 0 && (
                             <optgroup label={t('contracts.form.groupSuppliers')}>
@@ -101,7 +104,7 @@ export default function NewContractForm({
                     <label className="block text-sm font-medium mb-1">
                         {t('contracts.form.kind')} <span className="text-red-600">*</span>
                     </label>
-                    <select name="kind" defaultValue="supply" className={field}>
+                    <select name="kind" defaultValue="supply" className={fieldSelect}>
                         {KINDS.map((k) => (
                             <option key={k} value={k}>{t(`contracts.kind.${k}`)}</option>
                         ))}
@@ -143,7 +146,7 @@ export default function NewContractForm({
                     <label className="block text-sm font-medium mb-1">
                         {t('contracts.form.status')} <span className="text-red-600">*</span>
                     </label>
-                    <select name="status" value={status} onChange={(e) => setStatus(e.target.value)} className={field}>
+                    <select name="status" value={status} onChange={(e) => setStatus(e.target.value)} className={fieldSelect}>
                         <option value="active">{t('contracts.status.active')}</option>
                         <option value="draft">{t('contracts.status.draft')}</option>
                     </select>
@@ -168,7 +171,7 @@ export default function NewContractForm({
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">{t('contracts.form.currency')}</label>
-                        <select name="currency" defaultValue="" className={field}>
+                        <select name="currency" defaultValue="" className={fieldSelect}>
                             <option value="">{t('contracts.form.currencyNone')}</option>
                             {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
                         </select>
@@ -195,7 +198,7 @@ export default function NewContractForm({
 
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('contracts.form.notes')}</label>
-                    <textarea name="notes" rows={3} className={field} />
+                    <textarea name="notes" className={fieldTextarea} />
                 </div>
 
                 {/* ★ 建完之后能做什么、不能做什么 —— 说在【建之前】 */}

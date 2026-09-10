@@ -14,6 +14,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import ClaimsTable, { type ClaimRow } from './ClaimsTable'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 
 export default async function ClaimsPage({
     searchParams,
@@ -37,7 +38,8 @@ export default async function ClaimsPage({
     let rows = mustRows(rowsRes)
     if (sp.status) rows = rows.filter((r) => r.settlement_state === sp.status)
 
-    const sel = 'border border-gray-300 rounded px-2 py-1 text-sm'
+    const sel = CONTROL_SELECT
+    const inp = CONTROL_INPUT
 
     const tableRows: ClaimRow[] = rows.map((r) => ({
         claimId: r.claim_id as string,
@@ -78,7 +80,7 @@ export default async function ClaimsPage({
                     </select>
                 </label>
                 <label className="text-xs text-gray-600">{t('claims.year')}
-                    <input type="number" name="year" defaultValue={sp.year ?? ''} className={`block ${sel} w-24`} /></label>
+                    <input type="number" name="year" defaultValue={sp.year ?? ''} className={`block ${inp} w-24`} /></label>
                 <Button variant="secondary" type="submit">{t('leave.filter')}</Button>
             </form>
 

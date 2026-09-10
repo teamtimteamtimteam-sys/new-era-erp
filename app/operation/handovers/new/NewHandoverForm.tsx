@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { submitShiftHandover } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export default function NewHandoverForm({ shifts, people, itemTypes, downtime }: {
     shifts: { code: string; label: string }[]
@@ -132,7 +133,7 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
                     ? <p className="text-sm text-gray-500">{t('processing.handover.noDowntime')}</p>
                     : downtime.map((d) => (
                         <label key={d.id} className="flex items-center gap-2 text-sm mb-1">
-                            <input type="checkbox" checked={refs.includes(d.id)}
+                            <input type="checkbox" className={CONTROL_CHECKBOX} checked={refs.includes(d.id)}
                                    onChange={(e) => setRefs(e.target.checked
                                        ? [...refs, d.id]
                                        : refs.filter((x) => x !== d.id))} />

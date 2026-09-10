@@ -6,6 +6,7 @@ import { updateTaskHeader, softDeleteTask } from './actions'
 import { STATUS_VALUES, PRIORITY_VALUES } from '../types'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 // app/tools/tasks/[id]/TaskHeader.tsx
 // TASK-1c-b:表头编辑。弹窗退休成【只建不改】之后,这七个字段搬到了这里。
@@ -71,7 +72,9 @@ export default function TaskHeader({
     const [pending, start] = useTransition()
     const router = useRouter()
 
-    const field = 'w-full rounded border border-gray-300 px-2 py-1 text-sm'
+    const field = `${CONTROL_INPUT} w-full`
+    const fieldSelect = `${CONTROL_SELECT} w-full`
+    const fieldTextarea = `${CONTROL_TEXTAREA} w-full`
     const label = 'block text-xs font-medium text-gray-600 mb-1'
 
     function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -124,13 +127,13 @@ export default function TaskHeader({
 
             <div className="mb-3">
                 <label className={label}>{labels.description}</label>
-                <textarea name="description" rows={3} defaultValue={task.description ?? ''} className={field} />
+                <textarea name="description" defaultValue={task.description ?? ''} className={fieldTextarea} />
             </div>
 
             <div className="mb-3 flex flex-wrap gap-3">
                 <div className="min-w-[8rem] flex-1">
                     <label className={label}>{labels.status}</label>
-                    <select name="status" defaultValue={task.status} className={field}>
+                    <select name="status" defaultValue={task.status} className={fieldSelect}>
                         {STATUS_VALUES.map((v) => (
                             <option key={v} value={v}>{labels.statusLabels[v] ?? v}</option>
                         ))}
@@ -138,7 +141,7 @@ export default function TaskHeader({
                 </div>
                 <div className="min-w-[8rem] flex-1">
                     <label className={label}>{labels.priority}</label>
-                    <select name="priority" defaultValue={task.priority} className={field}>
+                    <select name="priority" defaultValue={task.priority} className={fieldSelect}>
                         {PRIORITY_VALUES.map((v) => (
                             <option key={v} value={v}>{labels.priorityLabels[v] ?? v}</option>
                         ))}

@@ -19,6 +19,7 @@ import {
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export type StatementLine = {
     id: string
@@ -562,6 +563,7 @@ canEdit: boolean
                                             >
                                                 <input
                                                     type="checkbox"
+                                                    className={CONTROL_CHECKBOX}
                                                     checked={!!checked[c.journal_line_id]}
                                                     onChange={(e) =>
                                                         setChecked((prev) => ({

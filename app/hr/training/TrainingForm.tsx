@@ -8,6 +8,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { TRAINING_CATEGORY_OPTIONS } from '../options'
 import { saveTraining, type TrainingFormState } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 const initialState: TrainingFormState = {}
 
@@ -41,7 +42,9 @@ export default function TrainingForm({
     const locked = !!lockedEmployeeId && !record
 
     const label = 'block text-sm font-medium mb-1'
-    const field = 'w-full border border-gray-300 px-3 py-2 rounded'
+    const field = `${CONTROL_INPUT} w-full`
+    const fieldSelect = `${CONTROL_SELECT} w-full`
+    const fieldTextarea = `${CONTROL_TEXTAREA} w-full`
 
     return (
         <form action={formAction} className="space-y-4 max-w-3xl">
@@ -69,7 +72,7 @@ export default function TrainingForm({
                             name="employee_id"
                             required
                             defaultValue={selectedEmployee}
-                            className={field}
+                            className={fieldSelect}
                         >
                             <option value="" disabled>
                                 —
@@ -159,7 +162,7 @@ export default function TrainingForm({
 
             <div>
                 <label className={label}>{t('hr.colNotes')}</label>
-                <textarea name="notes" rows={2} defaultValue={record?.notes ?? ''} className={field} />
+                <textarea name="notes" defaultValue={record?.notes ?? ''} className={fieldTextarea} />
             </div>
 
             <div className="flex gap-3 pt-2">

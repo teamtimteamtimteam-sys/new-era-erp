@@ -63,6 +63,7 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { compareForSort } from '@/lib/sortCollation'
 import { tableC } from '@/app/components/ui/table-style'
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 
 export type Column<T> = {
     /** 稳定的列键 —— 排序状态与列显隐都按它记。 */
@@ -475,7 +476,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
                             onChange={(e) => { setQ(e.target.value); setPage(0) }}
                             aria-label={filter.label}
                             placeholder={filter.label}
-                            className="base-pressable min-w-0 flex-1 rounded-[var(--brand-radius)] border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2.5 py-1.5 text-sm text-[color:var(--brand-text)] outline-none focus-visible:border-[color:var(--brand-ring)]"
+                            // ★ R8 / Q1(Tim 2026-09-10):这一行归 INPUT-2,
+                            //   这个文件里的其余部分(尤其那三个勾选框)归 INPUT-3。
+                            //   保留的是宽度(min-w-0 flex-1)与按压动效(base-pressable);
+                            //   高度、圆角、边框、底色、字号、焦点环全部改读共享模块。
+                            className={`base-pressable ${CONTROL_INPUT} min-w-0 flex-1`}
                         />
                     )}
                     {columnToggle && (

@@ -11,6 +11,7 @@ import {
     TASK_TYPE_VALUES,
 } from './types'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 // 逗号分隔字符串 -> 去重去空的标签数组
 function parseTags(raw: string): string[] {
@@ -31,7 +32,9 @@ function toLocalDatetime(iso: string | null): string {
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
-const inputCls = 'w-full border border-gray-300 px-3 py-2 rounded'
+const inputCls = `${CONTROL_INPUT} w-full`
+const selectCls = `${CONTROL_SELECT} w-full`
+const textareaCls = `${CONTROL_TEXTAREA} w-full`
 const labelCls = 'block text-sm font-medium mb-1'
 
 // TASK-1c-b:【只建不改】。改任务(含软删)在 /tools/tasks/[id]。
@@ -134,9 +137,8 @@ export default function TaskModal({
                         </label>
                         <textarea
                             name="description"
-                            rows={3}
                             defaultValue=""
-                            className={inputCls}
+                            className={textareaCls}
                         />
                     </div>
 
@@ -149,7 +151,7 @@ export default function TaskModal({
                             <select
                                 name="status"
                                 defaultValue="todo"
-                                className={inputCls}
+                                className={selectCls}
                             >
                                 {STATUS_VALUES.map((v) => (
                                     <option key={v} value={v}>
@@ -165,7 +167,7 @@ export default function TaskModal({
                             <select
                                 name="priority"
                                 defaultValue="medium"
-                                className={inputCls}
+                                className={selectCls}
                             >
                                 {PRIORITY_VALUES.map((v) => (
                                     <option key={v} value={v}>
@@ -181,7 +183,7 @@ export default function TaskModal({
                             <select
                                 name="task_type"
                                 defaultValue="personal"
-                                className={inputCls}
+                                className={selectCls}
                             >
                                 {TASK_TYPE_VALUES.map((v) => (
                                     <option key={v} value={v}>

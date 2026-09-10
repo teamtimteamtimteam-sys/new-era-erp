@@ -13,6 +13,7 @@ import { addGoal, removeGoal, setGoalActual, setGoalAssessment, updateGoal } fro
 import type { GoalRow } from './reviewShared'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 // ════════════════════════════════════════════════════════════════════════════
 // ★★【ALERT-2d(2026-09-09):这三个 prop 现在【只装记录状态】,不装权限】★★
@@ -45,7 +46,8 @@ type Props = {
     stateNote?: string | null
 }
 
-const inp = 'w-full border border-gray-300 rounded px-1 py-0.5 text-xs'
+const inp = `${CONTROL_INPUT} w-full`
+const ta = `${CONTROL_TEXTAREA} w-full`
 
 export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, canSetActual, stateNote }: Props) {
     const t = useTranslations()
@@ -246,7 +248,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                             <textarea
                                                 value={draft!.objective}
                                                 onChange={(e) => setDraft({ ...draft!, objective: e.target.value })}
-                                                className={`${inp} min-h-16`}
+                                                className={ta}
                                             />
                                         ) : (
                                             <span className="whitespace-pre-wrap">{g.objective_text}</span>
@@ -279,7 +281,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                                     <textarea
                                                         value={draft!.assessment}
                                                         onChange={(e) => setDraft({ ...draft!, assessment: e.target.value })}
-                                                        className={`${inp} min-h-16`}
+                                                        className={ta}
                                                     />
                                                 ) : (
                                                     <span className="whitespace-pre-wrap">{g.reviewer_assessment_text ?? '—'}</span>
@@ -335,7 +337,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                             <textarea
                                                 value={draft!.assessment}
                                                 onChange={(e) => setDraft({ ...draft!, assessment: e.target.value })}
-                                                className={`${inp} min-h-16`}
+                                                className={ta}
                                             />
                                         ) : (
                                             <span className="whitespace-pre-wrap">{g.reviewer_assessment_text ?? '—'}</span>
@@ -370,7 +372,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                             <textarea
                                 value={newObjective}
                                 onChange={(e) => setNewObjective(e.target.value)}
-                                className={`block ${inp} min-h-16`}
+                                className={`block ${ta}`}
                             />
                         </label>
                         <label className="text-xs">

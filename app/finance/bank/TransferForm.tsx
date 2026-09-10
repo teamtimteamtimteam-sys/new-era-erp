@@ -8,8 +8,10 @@ import { useTranslations } from '@/lib/i18n/client'
 import { recordTransfer } from './transferActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 
-const inp = 'border border-gray-300 rounded px-2 py-1 text-sm'
+const inp = CONTROL_INPUT
+const sel = CONTROL_SELECT
 
 function todayIsoLocal(): string {
     const d = new Date()
@@ -54,7 +56,7 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
                     <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`block ${inp}`} />
                 </label>
                 <label>{t('finance.transfer.from')}
-                    <select value={from} onChange={(e) => setFrom(e.target.value)} className={`block ${inp}`}>
+                    <select value={from} onChange={(e) => setFrom(e.target.value)} className={`block ${sel}`}>
                         <option value="1000">{t('finance.bank.1000')}</option>
                         <option value="1010">{t('finance.bank.1010')}</option>
                     </select>
@@ -63,7 +65,7 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
                     <input type="number" value={out} onChange={(e) => setOut(e.target.value)} className={`block ${inp} w-28 text-right`} />
                 </label>
                 <label>{t('finance.transfer.to')}
-                    <select value={to} onChange={(e) => setTo(e.target.value)} className={`block ${inp}`}>
+                    <select value={to} onChange={(e) => setTo(e.target.value)} className={`block ${sel}`}>
                         <option value="1000">{t('finance.bank.1000')}</option>
                         <option value="1010">{t('finance.bank.1010')}</option>
                     </select>

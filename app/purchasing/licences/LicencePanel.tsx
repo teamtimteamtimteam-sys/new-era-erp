@@ -22,6 +22,7 @@ import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import LicenceTable from './LicenceTable'
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 export type LicenceRow = {
     id: string
@@ -93,7 +94,9 @@ export default function LicencePanel({
         router.refresh()
     }
 
-    const field = 'rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2 py-1 text-sm w-full'
+    const field = `${CONTROL_INPUT} w-full`
+    const fieldSelect = `${CONTROL_SELECT} w-full`
+    const fieldTextarea = `${CONTROL_TEXTAREA} w-full`
     const label = 'block text-xs font-medium text-[color:var(--brand-muted-text)] mb-1'
 
     return (
@@ -161,7 +164,7 @@ export default function LicencePanel({
                         <div className="grid grid-cols-3 gap-3">
                             <div>
                                 <label className={label} htmlFor="kind">{t('company.licence.fieldKind')}</label>
-                                <select id="kind" className={field} value={form.cert_type_code}
+                                <select id="kind" className={fieldSelect} value={form.cert_type_code}
                                         onChange={(e) => set('cert_type_code', e.target.value)}>
                                     <option value="">{t('company.licence.selectPrompt')}</option>
                                     {certTypes.map((c) => (
@@ -181,7 +184,7 @@ export default function LicencePanel({
                             </div>
                             <div>
                                 <label className={label} htmlFor="st">{t('company.licence.fieldStatus')}</label>
-                                <select id="st" className={field} value={form.status}
+                                <select id="st" className={fieldSelect} value={form.status}
                                         onChange={(e) => set('status', e.target.value)}>
                                     <option value="">{t('company.licence.selectPrompt')}</option>
                                     {STATUSES.map((s) => (
@@ -219,7 +222,7 @@ export default function LicencePanel({
 
                         <div className="mt-3">
                             <label className={label} htmlFor="scope">{t('company.licence.fieldScope')}</label>
-                            <textarea id="scope" rows={3} className={field} value={form.scope}
+                            <textarea id="scope" className={fieldTextarea} value={form.scope}
                                       onChange={(e) => set('scope', e.target.value)} />
                             <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('company.licence.scopeWhy')}</p>
                         </div>

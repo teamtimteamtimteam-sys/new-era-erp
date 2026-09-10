@@ -13,6 +13,7 @@ import { saveContact, removeContact } from './contactActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export type ContactRow = {
     id: string
@@ -191,7 +192,7 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit, p
                         </label>
                     </div>
                     <label className="flex items-center gap-2 mt-2 text-xs">
-                        <input type="checkbox" checked={f.isPrimary}
+                        <input type="checkbox" className={CONTROL_CHECKBOX} checked={f.isPrimary}
                                onChange={(e) => setF({ ...f, isPrimary: e.target.checked })} />
                         {t('contacts.makePrimary')}
                     </label>

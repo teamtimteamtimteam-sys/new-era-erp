@@ -11,6 +11,7 @@ import { addCostEntry, updateCostEntry, softDeleteCostEntry } from './costAction
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export default function CostPanel({
     runId,
@@ -215,6 +216,7 @@ export default function CostPanel({
                 <label className="flex items-center gap-1 text-sm px-1 py-2">
                     <input
                         type="checkbox"
+                        className={CONTROL_CHECKBOX}
                         name="is_estimate"
                         defaultChecked={editing?.is_estimate ?? false}
                     />

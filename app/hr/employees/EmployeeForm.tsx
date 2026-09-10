@@ -16,7 +16,6 @@ import { useFormDraft } from '@/lib/useFormDraft'
 import DraftBanner from '@/app/components/DraftBanner'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
-import DecimalInput from '@/app/components/forms/DecimalInput'
 import {
     EMPLOYMENT_TYPE_OPTIONS,
     WORK_CATEGORY_OPTIONS,
@@ -26,6 +25,7 @@ import {
 } from '../options'
 import { createEmployee, updateEmployee, type EmployeeFormState } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 const initialState: EmployeeFormState = {}
 
@@ -110,7 +110,9 @@ export default function EmployeeForm({
     const [workCategory, setWorkCategory] = useState(employee?.work_category ?? 'office')
 
     const label = 'block text-sm font-medium mb-1'
-    const field = 'w-full border border-gray-300 px-3 py-2 rounded'
+    const field = `${CONTROL_INPUT} w-full`
+    const fieldSelect = `${CONTROL_SELECT} w-full`
+    const fieldTextarea = `${CONTROL_TEXTAREA} w-full`
 
     return (
         <form ref={formRef} action={formAction} className="space-y-6 max-w-4xl">
@@ -175,7 +177,7 @@ export default function EmployeeForm({
                             <select
                                 name="user_id"
                                 defaultValue={employee?.user_id ?? ''}
-                                className={`${field} max-w-md`}
+                                className={`${fieldSelect} max-w-md`}
                             >
                                 <option value="">{t('hr.loginAccountNone')}</option>
                                 {accounts.map((a) => (
@@ -239,7 +241,7 @@ export default function EmployeeForm({
                         <select
                             name="department_id"
                             defaultValue={employee?.department_id ?? ''}
-                            className={field}
+                            className={fieldSelect}
                         >
                             <option value="">—</option>
                             {departments.map((d) => (
@@ -256,7 +258,7 @@ export default function EmployeeForm({
                         而履历里存的是【当时那个职位的名称文本】,不是指针。 */}
                     <div className="flex-1 min-w-[14rem]">
                         <label className={label}>{t('hr.colPosition')}</label>
-                        <select name="position_id" defaultValue={employee?.position_id ?? ''} className={field}>
+                        <select name="position_id" defaultValue={employee?.position_id ?? ''} className={fieldSelect}>
                             <option value="">{t('hr.positionNone')}</option>
                             {positions.map((p) => (
                                 <option key={p.id} value={p.id}>{p.code} · {p.title}</option>
@@ -266,7 +268,7 @@ export default function EmployeeForm({
                     </div>
                     <div className="flex-1 min-w-[14rem]">
                         <label className={label}>{t('hr.colManager')}</label>
-                        <select name="manager_id" defaultValue={employee?.manager_id ?? ''} className={field}>
+                        <select name="manager_id" defaultValue={employee?.manager_id ?? ''} className={fieldSelect}>
                             <option value="">—</option>
                             {managers.map((m) => (
                                 <option key={m.id} value={m.id}>
@@ -502,7 +504,7 @@ export default function EmployeeForm({
 
             <section className="border-t pt-4">
                 <label className={label}>{t('hr.colNotes')}</label>
-                <textarea name="notes" rows={2} defaultValue={employee?.notes ?? ''} className={field} />
+                <textarea name="notes" defaultValue={employee?.notes ?? ''} className={fieldTextarea} />
             </section>
 
             <div className="flex gap-3 pt-2">

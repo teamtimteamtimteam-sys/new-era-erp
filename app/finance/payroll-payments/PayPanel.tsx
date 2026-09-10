@@ -17,6 +17,7 @@ import { formatAmount } from '@/lib/format'
 import { payLines, payCpf, payDeductions } from '../month-end/actions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 type Period = { id: string; code: string; period_month: string; net_pay_total: number
     employer_cpf_total: number; employee_cpf_total: number; other_deductions_total: number
@@ -81,7 +82,7 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                     {
                         key: 'select', header: '', priority: true, className: 'w-6',
                         render: (l) => !l.paid_at && (
-                            <input type="checkbox" checked={!!sel[l.id]}
+                            <input type="checkbox" className={CONTROL_CHECKBOX} checked={!!sel[l.id]}
                                 onChange={(ev) => setSel({ ...sel, [l.id]: ev.target.checked })}
                                 aria-label={t('finance.payrollPay.paySelected', { n: 1 })} />
                         ),

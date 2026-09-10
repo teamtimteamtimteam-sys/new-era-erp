@@ -59,7 +59,14 @@ const STUBS = {
 // ★ `table-style.ts` 【不桩】,真的载进来 —— 表尾用的是 tableC 的类串,
 //   而本支量具靠读类串判断一格在哪个断点上看得见。桩掉它就等于自己给自己
 //   编一份类名,然后拿它去证明类名是对的。
-const REAL = { '@/app/components/ui/table-style': 'app/components/ui/table-style.ts' }
+// ★ `control-style.ts` 同理【不桩】(INPUT-2,2026-09-10):`data-table.tsx:479` 那个
+//   筛选框现在从它拿类串,而本支靠读类串判断一格在哪个断点上看得见 ——
+//   桩掉它就是自己编一份类名再拿它证明类名是对的,与上面那一条逐字同一个理由。
+//   它是一个只有字符串常量、零 import 的模块,真载进来没有代价。
+const REAL = {
+    '@/app/components/ui/table-style': 'app/components/ui/table-style.ts',
+    '@/app/components/ui/control-style': 'app/components/ui/control-style.ts',
+}
 
 function transpile(file) {
     return ts.transpileModule(readFileSync(file, 'utf8'), {

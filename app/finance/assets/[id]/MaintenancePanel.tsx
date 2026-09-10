@@ -54,6 +54,7 @@ import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { recordMaintenance, capitaliseMaintenance } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { CONTROL_RADIO } from '@/app/components/ui/control-style'
 
 export type MaintRow = {
     id: string
@@ -297,7 +298,7 @@ export default function MaintenancePanel({
                                 ['supplier', t('equipment.maint.performerSupplier')],
                             ] as const).map(([k, label]) => (
                                 <label key={k} className="flex items-center gap-1 text-sm">
-                                    <input type="radio" name="performerKind" checked={f.performerKind === k}
+                                    <input type="radio" className={CONTROL_RADIO} name="performerKind" checked={f.performerKind === k}
                                            onChange={() => setF({ ...f, performerKind: k as 'employee' | 'supplier' | 'name' })} />
                                     {label}
                                 </label>

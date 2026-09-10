@@ -5,6 +5,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
+import { CONTROL_INPUT, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 import { saveHoliday, deleteHoliday } from '../types/actions'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 import HolidaysTable, { type HolidayRow } from './HolidaysTable'
@@ -51,7 +52,7 @@ export default function HolidaysEditor({
         })
     }
 
-    const inp = 'rounded border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2 py-1 text-sm'
+    const inp = CONTROL_INPUT
 
     return (
         <div>
@@ -86,7 +87,7 @@ export default function HolidaysEditor({
                         {knownKeys.map((k) => <option key={k} value={k} />)}
                     </datalist></label>
                 <label className="text-xs flex items-center gap-1 mt-4">
-                    <input type="checkbox" checked={inLieu} onChange={(e) => setInLieu(e.target.checked)} />
+                    <input type="checkbox" className={CONTROL_CHECKBOX} checked={inLieu} onChange={(e) => setInLieu(e.target.checked)} />
                     {t('leave.isInLieu')}</label>
                 <label className="text-xs">{t('leave.notes')}
                     <input value={notes} onChange={(e) => setNotes(e.target.value)} className={`block ${inp}`} /></label>

@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { createCycle } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 
-const inp = 'w-full border border-gray-300 rounded px-2 py-1 text-sm'
+const inp = `${CONTROL_INPUT} w-full`
 
 export default function CycleForm() {
     const t = useTranslations()
@@ -47,7 +48,7 @@ export default function CycleForm() {
             <div className="flex gap-2 flex-wrap items-end">
                 <label className="text-xs">
                     {t('reviews.cycleName')}
-                    <input value={name} onChange={(e) => setName(e.target.value)} className={`block ${inp} w-48`} />
+                    <input value={name} onChange={(e) => setName(e.target.value)} className={`block ${inp}`} />
                 </label>
                 <label className="text-xs">
                     {t('leave.startDate')}
@@ -63,7 +64,7 @@ export default function CycleForm() {
                 </label>
                 <label className="text-xs">
                     {t('leave.notes')}
-                    <input value={notes} onChange={(e) => setNotes(e.target.value)} className={`block ${inp} w-56`} />
+                    <input value={notes} onChange={(e) => setNotes(e.target.value)} className={`block ${inp}`} />
                 </label>
                 <Button
                     type="button"
