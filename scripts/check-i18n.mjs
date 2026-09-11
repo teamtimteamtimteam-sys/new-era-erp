@@ -255,6 +255,32 @@ function sqlCaseAs(file, alias) {
     if (!m) throw new Error(`${file} 里找不到 CASE ... END AS ${alias}`)
     return [...m[1].matchAll(/(?:THEN|ELSE)\s+'(\w+)'/g)].map((x) => x[1])
 }
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ BUGFIX-1a(2026-09-12):`leave_balance_internal` 这支函数**自己合成**
+//    两个 jsonb 键的值 —— `'status'` 与 `'grant_type'`。
+//    下面这两支各读其中一个;它们是**同一种形状的两份实现**,而此前只有
+//    `'status'` 那一支存在。
+//    ☞ 代价是量出来的:`grant_type` 的第五个值 `monthly_accrual` 由函数体合成,
+//      而 `leave.grantType_` 当时只接 `leave_grants` 表上的 CHECK ——
+//      于是 check-i18n 报「缺键 0」,而请假单余额表上**今天每一行**印的
+//      都正好是那个没有翻译的 `leave.grantType_monthly_accrual`。
+//    ★ 一般化的那一句,写下来给下一个人:**一道 i18n 闸如果从【一个源】枚举,
+//      而值是由【另一个源】产生的,它按构造看不见那个差集 —— 而它仍然报绿。**
+// ════════════════════════════════════════════════════════════════════════════
+
+/** jsonb_build_object 里某个键的字面量取值:CASE 分支 + 直接字面量两种写法。 */
+function jsonbLiteralValues(file, key) {
+    const src = readFileSync(join(ROOT, file), 'utf8')
+    const out = new Set()
+    const caseBlock = src.match(new RegExp(String.raw`'${key}', CASE([\s\S]*?)END`))
+    if (caseBlock) for (const m of caseBlock[1].matchAll(/(?:THEN|ELSE)\s+'(\w+)'/g)) out.add(m[1])
+    for (const m of src.matchAll(new RegExp(String.raw`'${key}', '(\w+)'`, 'g'))) out.add(m[1])
+    // 解析出 0 个【不是】一个空集合,是一支瞎掉的解析器(本文件抬头那一条)。
+    if (out.size === 0) throw new Error(`${file} 里找不到 '${key}' 的任何字面量`)
+    return [...out]
+}
+const grantTypeValues = () => jsonbLiteralValues('db/functions/leave_balance_internal.sql', 'grant_type')
+
 // leave_balance_internal 里 'status' 是 jsonb 键值:CASE 分支 + 直接字面量两种写法
 function grantStatusValues() {
     const src = readFileSync(join(ROOT, 'db/functions/leave_balance_internal.sql'), 'utf8')
@@ -566,7 +592,12 @@ const MANIFEST = {
     'leave.status_':        { kind: 'enum', values: () => sqlEnum('db/tables/leave_requests.sql', 'status') },
     'leave.finalState_':    { kind: 'enum', values: () => tsRegex('app/hr/leave/[id]/DecideControls.tsx',
                                   /status === '(\w+)' \|\| status === '(\w+)'/g) },
-    'leave.grantType_':     { kind: 'enum', values: () => sqlEnum('db/tables/leave_grants.sql', 'grant_type') },
+    // ★ BUGFIX-1a:两个源【都要】接 —— 表上的 CHECK(4 个)∪ 函数体里合成的
+    //   字面量(monthly_accrual)。只接前者时它对 `monthly_accrual` 按构造失明,
+    //   而那正是屏幕上唯一在用的那一个。与下一行 grantStatus_ 同一个形状。
+    'leave.grantType_':     { kind: 'enum', values: union(
+                                  () => sqlEnum('db/tables/leave_grants.sql', 'grant_type'),
+                                  grantTypeValues) },
     'leave.grantStatus_':   { kind: 'enum', values: grantStatusValues }, // leave_balance_internal 的 jsonb 'status'
     'leave.entry_':         { kind: 'enum', values: () => sqlEnum('db/tables/leave_consumption.sql', 'entry_type') },
     // settlement_state = 索赔单自身状态直通(<> approved 时) ∪ 视图 CASE 推导值

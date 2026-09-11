@@ -37,11 +37,15 @@ export default function ExpectedDateControl({
     return (
         <div className="text-xs text-[color:var(--brand-muted-text)]">
             {canEdit ? (
+                // ★ BUGFIX-1a(2026-09-12):与 NodeTree 那一颗是【同一个形状】——
+                //   一颗日期框的 change 发起保存,而它在保存过程中把自己 disable 掉,
+                //   于是焦点当场销毁、原生浮层失去关掉它的那个事件。
+                //   防重复提交改成「pending 时忽略后续的 change」,不动焦点。
                 <input
                     type="date"
                     value={value}
-                    disabled={pending}
                     onChange={(e) => {
+                        if (pending) return
                         setValue(e.target.value)
                         setError(null)
                         startTransition(async () => {

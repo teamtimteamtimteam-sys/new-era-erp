@@ -957,6 +957,9 @@ const zh = {
         expires: '到期', expiringSoon: '90 天内到期',
         grantYear: '年度', grantType: '来源', grantStatus: '状态', grantId: '授予',
         grantType_entitlement: '年度额度', grantType_pro_rata: '按月折算', grantType_carry_forward: '结转', grantType_adjustment: '调整',
+        // ★ BUGFIX-1a(2026-09-12,措辞是 Tim 裁的):「按月累计」,
+        //   刻意与 pro_rata 的「按月折算」分开 —— 一个是【挣到的】,一个是【折算的】。
+        grantType_monthly_accrual: '按月累计',
         grantStatus_active: '有效', grantStatus_expired: '已过期', grantStatus_carried_forward: '已结转',
         noGrants: '这个假别一笔授予都没有。计提型假别没有授予,说明还没有任何天数入过账 —— 这值得报出来,而不是当成余额为零。',
         noConsumption: '这张请假单还没有扣过任何天数。',

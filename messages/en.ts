@@ -961,6 +961,10 @@ const en = {
         expires: 'Expires', expiringSoon: 'Lapsing within 90 days',
         grantYear: 'Year', grantType: 'Source', grantStatus: 'State', grantId: 'Grant',
         grantType_entitlement: 'Entitlement', grantType_pro_rata: 'Pro-rated', grantType_carry_forward: 'Carried forward', grantType_adjustment: 'Adjustment',
+        // ★ BUGFIX-1a(2026-09-12):第五个值。它【不在】leave_grants 的 CHECK 里 ——
+        //   `leave_balance_internal` 用 jsonb_build_object 现合成出来,于是 check-i18n
+        //   按构造看不见它,而余额表上今天每一行用的都正好是它。
+        grantType_monthly_accrual: 'Monthly accrual',
         grantStatus_active: 'Active', grantStatus_expired: 'Lapsed', grantStatus_carried_forward: 'Carried forward',
         noGrants: 'No grants of this leave type. An accrued type with no grants means nothing has been credited yet, which is worth reporting rather than reading as a zero balance.',
         noConsumption: 'Nothing has been deducted against this request yet.',

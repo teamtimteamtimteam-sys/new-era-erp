@@ -130,9 +130,41 @@ export const CONTROL_SELECT = [BOX, SHAPE, PAD_SELECT, TYPE, FOCUS, DISABLED, IN
 /**
  * ★ 多行框:下限 64px、随内容长、竖向拖拽手柄留着(Tailwind preflight 给的 `resize: vertical`)。
  * ☞ **永远不要给多行框一个固定高度**;调用点上的 `rows=` 要去掉 —— `field-sizing-content`
- *   接管之后 `rows` 是空转的(取样页写着 `rows={3}`,渲染不出 78px)。**不含宽度。**
+ *   接管之后 `rows` 是空转的(取样页写着 `rows={3}`,渲染不出 78px)。**不含宽度类。**
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * ★★ BUGFIX-1a(2026-09-12):`max-w-0 min-w-full` —— 高度随内容长,【宽度不许】★★
+ * ════════════════════════════════════════════════════════════════════════════
+ * 【它修的是什么】`field-sizing: content`(INPUT-2 加的)管的是**两个轴**。
+ *   在一个表格格子里,这一颗多行框的 max-content 贡献于是**跟着它里面的字长**,
+ *   而表格的自动布局按各格的 max-content 分宽度 —— 于是**越打字越宽,而且宽度是
+ *   从邻居那一列抢来的**。Tim 走查看到的正是这个:同一张表里 Evidence 窄得换行、
+ *   Feedback 宽得一行到底,**而两颗的类串逐字相同**。
+ *
+ * 【实测(/hr/kpi/score?cycle=…,Cheng Siong Phua / C1,桌面 1440,编辑态)】
+ *   改前:空的时候 Evidence 50.25px;打 109 个字 → **235.20px**;
+ *         再往 Feedback 打 65 个字(一个不能断行的长词)→ Feedback **467.66px**,
+ *         Evidence 被挤回 100.47px、高度 238px。
+ *   改后:两颗**都停在空的时候那个宽度**(50.25 / 54.33),高度改为 598 / 338。
+ *   ☞ **宽度不再动,字改为换行 —— 这正是 Tim 要的那个一致。**
+ *
+ * 【为什么不是 `max-w-full`】★ **量过:它一点作用都没有。**
+ *   同一颗元素上逐个注入再量(读数在交回报告里):`max-width:100%` → 宽度**逐字未变**;
+ *   `min-width:0` → 未变;两者一起 → 未变。机制:**百分比的 max-width 在
+ *   【内在尺寸】计算里当 `none`**,而决定这一列宽度的正是内在尺寸。
+ *   ★ FONT-1 在 `<fieldset>` 那条链上付过同一笔账,这里是它的第二张脸。
+ *
+ * 【为什么是 max-width 而不是 width:0】两者实测**效果完全相同**,
+ *   而调用点上写着 `w-full`(`width:100%`)—— 在这里写 `width` 就是**同一个属性
+ *   的第二处声明**,胜负要靠生成出来的 CSS 顺序,那是不可预测的。
+ *   `max-width` / `min-width` 与调用点的 `w-*` **不冲突**,所以选它。
+ *
+ * ⚠ **它不是一个宽度类** —— 本文件抬头那条「一个 `w-*` 都不许出现」仍然成立:
+ *   这两条不给多行框任何一个宽度,它们只是**不让它自己去挑一个**。
+ * ⚠ **`<Textarea>` 组件不受影响**:那一串是 `TEXTAREA_COMPONENT_CLASS`(本文件最后一条),
+ *   它是关掉的一族,一个字节都没有动。
  */
-export const CONTROL_TEXTAREA = ['flex field-sizing-content min-h-16', SHAPE, PAD_TEXTAREA, TYPE, PLACEHOLDER, FOCUS, DISABLED, INVALID, TAIL].join(' ')
+export const CONTROL_TEXTAREA = ['flex field-sizing-content min-h-16 max-w-0 min-w-full', SHAPE, PAD_TEXTAREA, TYPE, PLACEHOLDER, FOCUS, DISABLED, INVALID, TAIL].join(' ')
 
 /**
  * ★ E6 —— 收货与盘点两页上的【触控档】(TIM'S RULING 2026-09-10, Q7;与 E1 同一条理由:

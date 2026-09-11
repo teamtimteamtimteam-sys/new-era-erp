@@ -98,13 +98,23 @@ export default function NodeTree({
                     <span className={n.done ? 'text-gray-400 line-through' : ''}>{n.title}</span>
                 )}
 
+                {/* ★★ BUGFIX-1a(2026-09-12):这一颗【不许】在自己的保存过程中变成 disabled ★★
+                    改掉一个已有步骤的日期之后,日期选择器关不掉(Tim 走查报的 item e)。
+                    机制是量出来的:`onChange` 一发,`pending` 立刻为真 → `disabled` 切到
+                    **人正在操作的这一颗** input 上 → 实测**焦点当场销毁**(activeElement → BODY)
+                    **而且切回来也不还**(同一个 DOM 节点,没有 remount)。
+                    ☞ 原生日期浮层是靠【这一颗 input 上的】失焦 / 外部点击关掉的,
+                      而它那一刻已经不是焦点、也拿不回焦点。
+                    ★ **防重复提交换了一个不动焦点的办法**:pending 时直接忽略后续的 change。
+                      `disabled` 是把控件从人手里拿走;这一句只是不听第二次。
+                    ⚠ 原生浮层本身在无头浏览器里**观察不到**(它不在 DOM 里)——
+                      这一条的机制是 PROVEN,「于是浮层关得掉」要 Tim 手上确认。 */}
                 <input
                     type="date"
                     className={CONTROL_INPUT}
                     value={n.target_date ?? ''}
-                    disabled={pending}
                     aria-label={labels.targetDate}
-                    onChange={(e) => run(() => setNodeDate(taskId, n.id, e.target.value || null))}
+                    onChange={(e) => { if (pending) return; run(() => setNodeDate(taskId, n.id, e.target.value || null)) }}
                 />
                 {isOverdue(n) ? (
                     <span className="rounded bg-amber-100 px-1 text-xs text-amber-800">{labels.overdue}</span>

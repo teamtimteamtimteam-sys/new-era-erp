@@ -120,7 +120,15 @@ export async function loadMonth(month: string, locale: string): Promise<{
          * undefined = 这一类没有模块门(公共假期对谁都是公开的)。
          */
         needs?: string
-        run: () => Promise<{ data: Row[] | null; error: { message: string } | null }>
+        /**
+         * ★ BUGFIX-1a:这里写 `PromiseLike`,而不是 `Promise`。
+         * PostgREST 的查询构造器**不是**一个 Promise,它是一个 thenable ——
+         * 写成 `Promise` 就只能靠 `as never` 把它塞进来,而那 6 句 cast 正是
+         * item a 活了 8 天的原因:实测去掉它们,`tsc` 当场报
+         * `TS2339: column 'container_no' does not exist on 'containers'`。
+         * ☞ **一个为了让类型过关而加的 cast,关掉的正是那个会抓住这个错的检查。**
+         */
+        run: () => PromiseLike<{ data: Row[] | null; error: { message: string } | null }>
         /** 一行可以铺成【多天】—— 请假是区间,不是单日。 */
         map: (r: Row) => CalendarItem[]
     }
@@ -130,7 +138,7 @@ export async function loadMonth(month: string, locale: string): Promise<{
             kind: 'holiday',
             run: () => supabase.from('public_holidays')
                 .select('holiday_date, name_en, name_zh')
-                .eq('is_active', true).gte('holiday_date', first).lte('holiday_date', last) as never,
+                .eq('is_active', true).gte('holiday_date', first).lte('holiday_date', last),
             map: (r) => [{
                 date: String(r.holiday_date), kind: 'holiday',
                 label: String(locale === 'zh' ? r.name_zh : r.name_en),
@@ -141,13 +149,17 @@ export async function loadMonth(month: string, locale: string): Promise<{
             kind: 'leave',
             needs: 'module.hr.view',
             run: () => supabase.from('leave_calendar').select('*')
-                .lte('start_date', last).gte('end_date', first) as never,
+                .lte('start_date', last).gte('end_date', first),
             // ★【请假是一段区间,要【铺满】它覆盖的每一天】★
             // 只放在 start_date 上,一段跨十天的假在日历上只会出现一次 ——
             // 而看排期的人正是要看"这十天里谁不在"。区间要裁到本月之内。
             map: (r) => expandRange(String(r.start_date), String(r.end_date), first, last).map((d) => ({
                 date: d, kind: 'leave' as const,
-                label: String(r.employee_code ?? r.employee_name ?? '—'),
+                // ★ BUGFIX-1a(Tim 2026-09-12):显示【姓名】,工号只作兜底。
+                //   此前写的是 `employee_code ?? employee_name`,而 `employee_name`
+                //   这一列**不存在**(视图里它叫 `legal_name`)—— 于是那一支是死代码,
+                //   日历上永远只画得出工号。日历是给人看「这十天谁不在」的。
+                label: String(r.legal_name ?? r.employee_code ?? '—'),
                 href: '/hr/leave',
             })),
         },
@@ -155,7 +167,7 @@ export async function loadMonth(month: string, locale: string): Promise<{
             kind: 'task',
             needs: 'module.tasks.view',
             run: () => supabase.from('tasks').select('id, title, due_date')
-                .is('deleted_at', null).gte('due_date', first).lte('due_date', last) as never,
+                .is('deleted_at', null).gte('due_date', first).lte('due_date', last),
             map: (r) => [{
                 date: String(r.due_date), kind: 'task', label: String(r.title),
                 href: `/tools/tasks/${String(r.id)}`,
@@ -167,7 +179,7 @@ export async function loadMonth(month: string, locale: string): Promise<{
             // 【读遮蔽视图,不读基表】invoices 是遮蔽表;而这一页只要
             // 编号与到期日两列(都不是被扣住的列),走 _masked 是免费的。
             run: () => supabase.from('invoices_masked').select('id, code, due_date')
-                .gte('due_date', first).lte('due_date', last) as never,
+                .gte('due_date', first).lte('due_date', last),
             map: (r) => [{
                 date: String(r.due_date), kind: 'invoiceDue', label: String(r.code),
                 href: `/finance/invoices/${String(r.id)}`,
@@ -176,18 +188,26 @@ export async function loadMonth(month: string, locale: string): Promise<{
         {
             kind: 'containerEta',
             needs: 'module.logistics.view',
-            run: () => supabase.from('containers').select('id, container_no, expected_arrival_date')
-                .gte('expected_arrival_date', first).lte('expected_arrival_date', last) as never,
+            // ★★ BUGFIX-1a:`container_no` 这一列【从来没有存在过】★★
+            //   不是被删的、也不是改名的:TOOLS-1(2026-09-03)一出生就拼错了,
+            //   而 `git log -G` 在 db/ 下 0 次提交。真正的列叫 `container_number`。
+            //   后果是 Container ETA 从那天起【一条都没有出现在日历上】——
+            //   整个来源每次都报错,月视图顶上那条 INCOMPLETE 横幅说的就是它。
+            run: () => supabase.from('containers').select('id, code, container_number, expected_arrival_date')
+                .gte('expected_arrival_date', first).lte('expected_arrival_date', last),
             map: (r) => [{
                 date: String(r.expected_arrival_date), kind: 'containerEta',
-                label: String(r.container_no), href: `/logistics/containers/${String(r.id)}`,
+                // ★ `container_number` 可空(实测 18 列里它是 NULL 允许的),
+                //   而 `code`(CTR-YYYY-NNNN)是 NOT NULL 且对人可读 ——
+                //   直接画 String(null) 会在格子里印出字符串 "null"(Tim 2026-09-12 裁)。
+                label: String(r.container_number ?? r.code), href: `/logistics/containers/${String(r.id)}`,
             }],
         },
         {
             kind: 'periodClose',
             needs: 'module.finance.view',
             run: () => supabase.from('gst_periods').select('id, period_end')
-                .gte('period_end', first).lte('period_end', last) as never,
+                .gte('period_end', first).lte('period_end', last),
             map: (r) => [{
                 date: String(r.period_end), kind: 'periodClose',
                 label: String(r.period_end), href: '/finance/gst',
