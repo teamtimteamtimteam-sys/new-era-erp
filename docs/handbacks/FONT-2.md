@@ -733,15 +733,51 @@ ROWHEIGHT_OWN_EXIT=0
 
 ## 16 · 部署与残留
 
-> ★ **这一节在紧随其后的一次【纯文档】提交里填。**
-> 理由与 FONT-1 逐字同一条:**部署与残留的读数要等这一次推送真的上线之后才存在**,
-> 而把它们写进工作那一个提交,等于在读数出现之前就先写下判词。
+> ★ **这一节在紧随工作提交之后的一次【纯文档】提交里填** —— 与 FONT-1 逐字同一条做法:
+> **部署与残留的读数要等那一次推送真的上线之后才存在。**
 
-| 项 | 状态 |
+### 16.1 §8.5–8.6 提交与推送
+
+| | |
 |---|---|
-| §8.6 推送后三方 SHA 相等(`HEAD` · `origin/main` · `git ls-remote`) | ⬜ 待填 |
-| §8.7 Production 部署:先绑 deployment id → sha,再问状态;要求 `success`;数它的状态记录条数 | ⬜ 待填 |
-| §8.8 残留(用完即删账号 0 · 幽灵授权 0 · `reap-ephemeral` 干净 · `.ephemeral/` 空 · 自己的进程与端口 0 · 孤儿 chrome) | ⬜ 待填 |
+| 工作提交(**工作 + 交回报告同一个**) | ★ **`0f66f3e7f0dd1bc0705fa786ed3dfcbfdfa863ba`** —— **306 个文件**,+3203 / −1216 |
+| 暂存的办法 | ★ **逐条显式路径**:`git add -- app docs AGENTS.md`。<br>★ **`scripts/` 一个字节都没有改**(这一刀不动量具);★ **`app/login/` 与 `app/brand-sampler/` 一个文件都没有**;★ **`button.tsx` / `table.tsx` / `label.tsx` / `alert.tsx` / `control-style.ts` / `table-style.ts` 一个都没有** |
+| §8.6 推送后**三方 SHA** | ★ **三个逐字相同,都是完整 40 字符:**<br>`HEAD        0f66f3e7f0dd1bc0705fa786ed3dfcbfdfa863ba`<br>`origin/main 0f66f3e7f0dd1bc0705fa786ed3dfcbfdfa863ba`<br>`ls-remote   0f66f3e7f0dd1bc0705fa786ed3dfcbfdfa863ba` |
+| 推送时刻 | **16:18:08 UTC**,`PUSH_EXIT=0` |
+
+### 16.2 §8.7 部署
+
+> ★ **先说清楚这一条问的是谁:** `AGENTS.md` 记着「**部署的真源是 Vercel,GitHub 的
+> deployment record 是一份【下游登记】**,它会滞后、也会干脆不出现」。
+> ★ **本刀重量了那五项:`vercel` CLI 没有 · devDependencies 里没有 ·
+> `.vercel/project.json` 没有 · `VERCEL_TOKEN` 没有 · `~/.vercel` 没有。**
+> ☞ **于是仍然只能问 GitHub 那一侧。这一次它用了 3 分 06 秒。**
+
+| 步 | 读数 |
+|---|---|
+| **等待的办法** | `db/wait_for.sh --timeout 900 --interval 20`,★ **有上限、有失败分支**,条件写的是**完整 40 字符 SHA 上的 Production 部署**。<br>★ **`✓ 等到了:…(157s)`** —— 这一次**不是**被我杀掉的,是真的等到了 |
+| ★ **① 先把 deployment id 绑到 SHA**(问那一次部署【自己】,不是问列表最新的那一条) | `id=6397224637` · ★ **`sha=0f66f3e7f0dd1bc0705fa786ed3dfcbfdfa863ba`** · `environment=Production` · `created=2026-09-11T16:21:14Z` |
+| ★ **② 绑好之后才问【它】的状态** | `2026-09-11T16:21:14Z` · ★ **`state=success`** · `Production` · `https://new-era-orffig12h-tim-s-projects7.vercel.app` |
+| ★ **③ 它的状态记录有几条** | ★ **1 条** —— 只有 `success` 那一条,**没有中间态被登记下来** |
+
+### 16.3 §8.8 残留
+
+> **本刀跑过 6 支带【用完即删 admin】的量具**:`--mode=drift` ×2(主跑 + 补量)·
+> `--mode=edit` ×1 · 全量读数层 ×1 · 取样页/截图/中文 ×1 · 修复后重量 ×1 · Q8 单点 ×1,
+> 外加 `smoke-routes.mjs` ×1。每一支都在 `.ephemeral/` 里先落一份清理计划再动手。
+
+| 判据 | 读数 | 怎么查的 |
+|---|---|---|
+| ★ **用完即删的账号** | ★ **0** | 列出**全部 6 个**在册账号(**分母摆出来**),按 **`font2-` · `font1-` · `input0-`/`input2`/`input3` · `probe` · `style-c` · `smoke`** 六个模式比对 → ★ **一个都没命中** |
+| ★ **幽灵授权**(`user_roles` 指向一个已不存在的账号) | ★ **0** | `user_roles` 共 **8 行**,**全部**指向在册账号。`RESIDUE_OWN_EXIT=0`,**收工前后各跑一遍,两次相同** |
+| ★ **`reap-ephemeral`** | ★ **干净** | `node scripts/reap-ephemeral.mjs` → 「✓ 没有滞留的清理计划(`.ephemeral/` 是空的)」,`REAP_OWN_EXIT=0` |
+| ★ **`.ephemeral/`** | ★ **空(0 个条目)** | `ls -A .ephemeral` |
+| **live-lock** | ★ **已释放(文件不存在)** | `ls .live-lock` |
+| ★ **我自己的进程与端口** | ★ **0** | 逐个查 **5 个**端口(HTTP `3196` 普查 · `3199` 冒烟 · `3231` 探针;CDP `9335` · `9371`)→ ★ **每一个 0 个 listener**;`pgrep`:`next dev` **0** · `chrome-headless-shell` **0** · `wait_for.sh` **0** |
+| ★ **孤儿 chrome** | ★ **0 —— 没有可杀的,也就不必证明它是孤儿** | `pgrep -fl chrome-headless-shell` 无输出。★ **本刀一个进程都没有杀** |
+| ★ **仓库里的临时文件** | ★ **0** | 提交之后 `git status --porcelain` **一行都没有**。本刀所有量具与中间产物都住在 **`/tmp/font2/r2/`**(仓库外) |
+| ⚠ **6 条滞留的 `ZZ-SMOKE-*` 行** | ★ **不是这一刀的** | 最年轻的 **224.5 小时(≈9 天)**,而这一刀从开工到收工不到 **3 小时**。★ **按年龄就不可能是它留下的**;其中 5 条**仍被真单据引用**。那道检查自己写着「只报告,不删除」—— **本刀照规矩:报出来,不顺手删** |
+| ⚠ **构建产物 `.next/`** | **留着**(`.gitignore` 里) | 它不是残留,是构建输出。★ **但下一支探针跑之前要 `rm -rf .next`** —— 那几支量具自己那道闸会因为 `.next/BUILD_ID` 存在而拒跑 |
 
 ---
 
