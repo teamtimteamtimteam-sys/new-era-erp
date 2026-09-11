@@ -664,13 +664,48 @@ INPUT-2 已经转过它(29 个格子里的勾选框 13×13 → 16×16,行高 37 
 
 ## 15 · §7.6–§7.9 · 推送 · 部署 · 残留
 
-> **本节在提交与推送【之后】由一次 docs-only 的补充提交填上(§7.9)。**
+### 7.6 推送 —— 三方 40 位全等
 
-| 项 | 状态 |
+| | |
 |---|---|
-| §7.6 push + 三方 SHA 相等 | (待填) |
-| §7.7 部署(绑 id→sha,再问 state) | (待填) |
-| §7.8 残留 | (待填) |
+| 工作提交 | `918f0942a5eb8533c1c501fa0f7e9b76f4fce175`(44 个文件 · +2047 / −306) |
+| `git rev-parse HEAD` | `918f0942a5eb8533c1c501fa0f7e9b76f4fce175` |
+| `git rev-parse origin/main` | `918f0942a5eb8533c1c501fa0f7e9b76f4fce175` |
+| `git ls-remote origin refs/heads/main` | `918f0942a5eb8533c1c501fa0f7e9b76f4fce175` |
+| ★ 判定 | ★ **三者全等,长度 40** ✓(`PUSH_OWN_EXIT=0`,02:26:11 → 02:26:17 UTC) |
+
+### 7.7 部署 —— `state=success`,**先绑 id→sha,再问状态**
+
+| | |
+|---|---|
+| 等法 | ★ `db/wait_for.sh --timeout 900 --interval 10 --label "Production deployment 登记 for 918f0942…"`(**有上限、会报名字**,不是手写 until 循环) |
+| 等了多久 | ★ **173 秒**(`✓ 等到了:…(173s)`,`WAITFOR_OWN_EXIT=0`) |
+| ★ **① 先把 id 绑到 sha 上** | `id=6385183091` · `sha=918f0942a5eb8533c1c501fa0f7e9b76f4fce175` · `environment=Production` · `created_at=2026-09-11T02:28:58Z` —— ★ **是【这个】SHA 的,不是上一个**(`GH_DEPLOY_EXIT=0`) |
+| ★ **② 绑定之后才问状态** | ★ **`state=success`**,`created_at=2026-09-11T02:28:59Z`(`GH_STATUS_EXIT=0`) |
+| ★ **状态记录数** | ★ **1** |
+| **破窗** | ★ **不适用 —— 本刀零迁移**,不存在「旧代码 + 新库」那个窗口 |
+
+### 7.8 残留 —— 逐格,连判据一起
+
+| 项 | 判据(说清楚查的是什么) | 结果 |
+|---|---|---|
+| ★ **一次性账号** | 拉线上**全部**账号(**6 个**),逐个匹配 **11 种式样**:`input0-*`(量具自己的)· 本刀七支探针各自的前缀 `input3s1-* / input3r2-* / input3a-* / input3c-* / input3x-* / input3h-* / input3d-*` · 截图探针 `input3s-*` · `smoke-*` · 以及**任何** `@test.local` | ★ **11 种全部 0 个** ✓<br>线上那 6 个全是真人账号(`chooer@` · `phua@` · `sandra@` · `vince@` · `fusheng@` · `admin@swm-os.test`) |
+| ★ **幽灵授权** | `user_roles` 的 `user_id` 去重后,逐个与**现存账号**求差 —— ☞ **round 1 明写这一格【没查】,本轮补上** | `user_roles` **8 行 / 6 个不同 user_id** · 现存账号 **6 个** → ★ **幽灵授权 0 条** ✓ |
+| ★ **`.ephemeral/`** | `ls -A` | ★ **空(0 个文件)** ✓ |
+| ★ **`reap-ephemeral`** | ★ **真的跑了一遍**,不是「量成 0 就当跑过」 | ★ `REAP_OWN_EXIT=0` —— 「✓ 没有滞留的清理计划(`.ephemeral/` 是空的)」 |
+| ★ **本刀自己的进程** | `pgrep -fl 'chrome-headless-shell\|next dev\|survey-controls\|smoke-routes\|p-after\|p-conform\|p-extras\|p-hover\|p-diag\|p-repair\|p-scale1\|shots3\|repair-probe\|probe3'` | ★ **一个都没有** ✓ |
+| ★ **本刀自己的端口** | 逐个 `lsof -ti tcp:` | ★ **六个全空**:3196(survey)· 3218(截图)· 3219(本刀六支探针)· CDP 9335 · 9356 · 9357 |
+| ★ **孤儿 headless chrome** | 先证明再动手(ppid=1 · CDP 端口无人连 · 没有探针在跑) | ★ **一个 `chrome-headless-shell` 进程都没有** —— ☞ **那三条判据【没有用上】:没有东西要处置,一个信号都没有发。** |
+| **`cod_verification_failures`** | service_role + `Prefer: count=exact` | ★ **1 行**(`Content-Range: 0-0/1`)—— 正是本轮冒烟插的那一行;它由下一次调用自己清掉,表封顶 30 行 |
+| ⚠ **不是本刀的残留,但看见了就报** | 冒烟自己的临时行体检 | 报了**滞留的 `ZZ-SMOKE-*` 业务行**,脚本自己写着「本检查只报告,不删除;其中有些**仍被真单据引用**,删掉比留着坏」。★ **一条都不是本刀的**,照直报出来,**不处置** |
+| **树** | `git status --porcelain` | ★ **空** ✓ |
+
+### 7.9 收尾提交(docs-only)
+
+| | |
+|---|---|
+| 它做什么 | 把 §15 这一节(部署与残留)填进本文件 —— 它们的读数在工作提交**之后**才存在 |
+| 范围 | ★ **只有 `docs/handbacks/INPUT-3.md` 一个文件** |
 
 ---
 
