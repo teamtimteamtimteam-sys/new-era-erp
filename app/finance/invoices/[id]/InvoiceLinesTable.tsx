@@ -67,7 +67,7 @@ export default function InvoiceLinesTable({ rows }: { rows: readonly InvoiceLine
             className: 'text-sm',
             // 每行都能跳回它背后的 AR 单据(凭据附件挂在那里)。
             render: (r) => (
-                <Link href={r.arHref} className="text-blue-600 hover:underline">
+                <Link href={r.arHref} className="hover:underline app-link">
                     {t('finance.arDocTitle')}
                 </Link>
             ),

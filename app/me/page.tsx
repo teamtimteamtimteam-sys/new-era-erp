@@ -111,7 +111,7 @@ export default async function MePage() {
     if (!p) {
         return (
             <div className="p-8 max-w-lg">
-                <h1 className="text-2xl font-bold mb-3">{t('me.title')}</h1>
+                <h1 className="mb-3">{t('me.title')}</h1>
                 {/* ★ 没有员工档案的人【也换得了头像】—— 见上面那段抬头。 */}
                 {avatarSection}
                 <div className="rounded border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
@@ -283,7 +283,7 @@ export default async function MePage() {
 
     return (
         <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-1">{t('me.title')}</h1>
+            <h1 className="mb-1">{t('me.title')}</h1>
             <p className="text-sm text-gray-500 mb-6">{t('me.subtitle')}</p>
 
             {avatarSection}
@@ -291,7 +291,7 @@ export default async function MePage() {
             {/* ── profile ── */}
             <section className={card + ' mb-6'}>
                 <div className="flex items-baseline gap-3 mb-4">
-                    <h2 className="text-xl font-bold">{p.preferred_name || p.legal_name}</h2>
+                    <h2 className="">{p.preferred_name || p.legal_name}</h2>
                     <span className="font-mono text-sm text-gray-500">{p.code}</span>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
@@ -357,19 +357,19 @@ export default async function MePage() {
 
             {/* ── payslips: own figures in full ── */}
             <section className="mb-6">
-                <h2 className="text-lg font-bold mb-2">{t('me.payslips')}</h2>
+                <h2 className="mb-2">{t('me.payslips')}</h2>
                 <MyPayslipsTable rows={payslipRows} empty={t('me.noPayslips')} />
             </section>
 
             {/* ── training ── */}
             <section className="mb-6">
-                <h2 className="text-lg font-bold mb-2">{t('me.training')}</h2>
+                <h2 className="mb-2">{t('me.training')}</h2>
                 <MyTrainingTable rows={trainingRows} empty={t('me.noTraining')} />
             </section>
 
             {/* ── employment history ── */}
             <section className="mb-6">
-                <h2 className="text-lg font-bold mb-2">{t('me.history')}</h2>
+                <h2 className="mb-2">{t('me.history')}</h2>
                 {(mustRows(histRes)).length === 0 ? (
                     <p className="text-sm text-gray-500">{t('me.noHistory')}</p>
                 ) : (
@@ -437,7 +437,7 @@ export default async function MePage() {
                   也可能是"挂了职位但这个周期还没生成" —— 两句话的下一步不同,
                   而一片空白两句都说不出来。 */}
             <section className="mb-8">
-                <h2 className="text-lg font-semibold mb-1">{t('kpi.myTitle')}</h2>
+                <h2 className="mb-1">{t('kpi.myTitle')}</h2>
                 <p className="text-xs text-gray-600 mb-3 max-w-3xl">{t('kpi.myWhat')}</p>
                 {myKpi.length === 0 ? (
                     <p className="text-sm text-gray-600">

@@ -27,7 +27,7 @@ export default async function NewEntryPage() {
     if (res.error) {
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">{t('finance.newEntryTitle')}</h1>
+                <h1 className="mb-4">{t('finance.newEntryTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('finance.loadError')}</p>
                     <details className="mt-2">
@@ -47,7 +47,7 @@ export default async function NewEntryPage() {
 
     return (
         <div className="p-8 max-w-5xl">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.newEntryTitle')}</h1>
+            <h1 className="mb-4">{t('finance.newEntryTitle')}</h1>
             <NewEntryForm accounts={accounts} baseCurrency={await getBaseCurrency()} />
         </div>
     )

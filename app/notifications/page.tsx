@@ -50,7 +50,7 @@ export default async function NotificationsPage() {
     return (
         <div className="p-8 max-w-4xl">
             <div className="flex items-center justify-between mb-2">
-                <h1 className="text-2xl font-bold">{t('notifications.title')}</h1>
+                <h1 className="">{t('notifications.title')}</h1>
                 {unreadCount > 0 && <MarkReadButtons />}
             </div>
 
@@ -85,7 +85,7 @@ export default async function NotificationsPage() {
                                             {href && r.subject_code && (
                                                 <>
                                                     {' · '}
-                                                    <Link href={href} className="text-blue-600 hover:underline font-mono">
+                                                    <Link href={href} className="hover:underline font-mono app-link app-link-inline">
                                                         {r.subject_code}
                                                     </Link>
                                                 </>

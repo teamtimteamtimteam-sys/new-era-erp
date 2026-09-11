@@ -126,12 +126,12 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
 
     return (
         <div className="p-8 max-w-6xl">
-            <Link href="/hr/reviews" className="text-sm text-blue-600 hover:underline">
+            <Link href="/hr/reviews" className="text-sm hover:underline app-link app-link-inline">
                 {t('common.back')}
             </Link>
 
             <div className="flex justify-between items-start mt-2 mb-4">
-                <h1 className="text-2xl font-bold">
+                <h1 className="">
                     {subject ? subject.legal_name : t('reviews.detailTitle')}
                     <span className="ml-2 font-mono text-base text-gray-500">{subject?.code}</span>
                     <span className={'ml-3 align-middle inline-block rounded px-2 py-0.5 text-xs ' + statusPillClass(r.status)}>
@@ -200,7 +200,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
             {/* 自评 */}
             {(r.self_assessment_text || r.self_assessment_submitted_at) && (
                 <div className="mb-6">
-                    <h2 className="text-xl font-bold mb-1">{t('reviews.selfAssessmentTitle')}</h2>
+                    <h2 className="mb-1">{t('reviews.selfAssessmentTitle')}</h2>
                     {r.self_assessment_submitted_at && (
                         <p className="text-xs text-gray-500 mb-2">
                             {t('reviews.selfAssessmentSubmittedAt', { 0: r.self_assessment_submitted_at.slice(0, 10) })}
@@ -211,7 +211,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
             )}
 
             {/* 目标 */}
-            <h2 className="text-xl font-bold mb-3">{t('reviews.goalsTitle')}</h2>
+            <h2 className="mb-3">{t('reviews.goalsTitle')}</h2>
             {(() => {
                 const editor = (
                     <GoalsEditor
@@ -239,7 +239,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
             })()}
 
             {/* 结论 */}
-            <h2 className="text-xl font-bold mb-3">{t('reviews.conclusionTitle')}</h2>
+            <h2 className="mb-3">{t('reviews.conclusionTitle')}</h2>
             {(() => {
                 const form = (
                     <ConclusionForm

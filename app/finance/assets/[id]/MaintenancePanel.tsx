@@ -229,7 +229,7 @@ export default function MaintenancePanel({
     return (
         <div className="mb-8">
             <div className="flex items-baseline gap-3 mb-2">
-                <h2 className="text-lg font-medium">{t('equipment.maint.title')}</h2>
+                <h2 className="">{t('equipment.maint.title')}</h2>
                 {/* ★ PERM-CODE-1:此处原本是【两层嵌套的闸】,外层 processing、内层 finance,
                     而两层的 allowed 是【同一个布尔】—— 内层因此一次都没挡住过任何人,
                     它唯一的作用是把一句【错的】原因印到屏幕上。内层已删。
@@ -297,7 +297,7 @@ export default function MaintenancePanel({
                                 ['employee', t('equipment.maint.performerEmployee')],
                                 ['supplier', t('equipment.maint.performerSupplier')],
                             ] as const).map(([k, label]) => (
-                                <label key={k} className="flex items-center gap-1 text-sm">
+                                <label key={k} className="flex items-center gap-1">
                                     <input type="radio" className={CONTROL_RADIO} name="performerKind" checked={f.performerKind === k}
                                            onChange={() => setF({ ...f, performerKind: k as 'employee' | 'supplier' | 'name' })} />
                                     {label}
@@ -470,25 +470,25 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
             <p className="text-xs text-gray-800 mb-2">{t('equipment.maint.capitaliseWhatHappens')}</p>
             {error && <p className="text-xs text-red-700 mb-2">{error}</p>}
             <div className="grid grid-cols-2 gap-2">
-                <label className="text-xs">
+                <label className="">
                     {t('equipment.maint.capDate')}
                     <input type="date" value={f.expenseDate} onChange={(e) => setF({ ...f, expenseDate: e.target.value })}
                            className={`${CONTROL_INPUT} block w-full`} />
                 </label>
-                <label className="text-xs">
+                <label className="">
                     {t('equipment.maint.capAmount')}
                     <input type="number" step="0.01" min="0" value={f.amount}
                            onChange={(e) => setF({ ...f, amount: e.target.value })}
                            className={`${CONTROL_INPUT} block w-full`} />
                 </label>
-                <label className="text-xs">
+                <label className="">
                     {t('equipment.maint.capCurrency')}
                     <select value={f.currency} onChange={(e) => setF({ ...f, currency: e.target.value })}
                             className={`${CONTROL_SELECT} block w-full`}>
                         {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                 </label>
-                <label className="text-xs">
+                <label className="">
                     {t('equipment.maint.capSupplier')}
                     <select value={f.supplierId} onChange={(e) => setF({ ...f, supplierId: e.target.value })}
                             className={`${CONTROL_SELECT} block w-full`}>

@@ -41,28 +41,28 @@ export default function CycleForm() {
 
     return (
         <div className="rounded border border-gray-200 p-4 mb-6">
-            <h3 className="font-bold mb-3 text-sm">{t('reviews.newCycle')}</h3>
+            <h3 className="mb-3">{t('reviews.newCycle')}</h3>
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
             <div className="flex gap-2 flex-wrap items-end">
-                <label className="text-xs">
+                <label className="">
                     {t('reviews.cycleName')}
                     <input value={name} onChange={(e) => setName(e.target.value)} className={`block ${inp}`} />
                 </label>
-                <label className="text-xs">
+                <label className="">
                     {t('leave.startDate')}
                     <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className={`block ${inp}`} />
                 </label>
-                <label className="text-xs">
+                <label className="">
                     {t('leave.endDate')}
                     <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className={`block ${inp}`} />
                 </label>
-                <label className="text-xs">
+                <label className="">
                     {t('reviews.dueDate')}
                     <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className={`block ${inp}`} />
                 </label>
-                <label className="text-xs">
+                <label className="">
                     {t('leave.notes')}
                     <input value={notes} onChange={(e) => setNotes(e.target.value)} className={`block ${inp}`} />
                 </label>

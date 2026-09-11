@@ -79,7 +79,7 @@ export default function ReserveControl({
             {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
             <div className="flex flex-wrap items-end gap-2">
                 <div className="min-w-[18rem]">
-                    <label className="block text-xs text-gray-600 mb-1">{t('sales.reserve.batchLabel')}</label>
+                    <label className="block mb-1">{t('sales.reserve.batchLabel')}</label>
                     <select
                         value={pick}
                         onChange={(e) => setPick(e.target.value)}
@@ -94,7 +94,7 @@ export default function ReserveControl({
                     </select>
                 </div>
                 <div className="w-40">
-                    <label className="block text-xs text-gray-600 mb-1">
+                    <label className="block mb-1">
                         {t('sales.reserve.qtyLabel', { unit })}
                     </label>
                     <input

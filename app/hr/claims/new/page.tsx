@@ -18,9 +18,9 @@ export default async function NewClaimPage() {
         .is('deleted_at', null).neq('employment_status', 'separated').order('code')
     return (
         <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
-            <div className="mb-4"><Link href="/hr/claims" className="text-blue-600 hover:underline text-sm">{t('common.back')}</Link></div>
-            <h2 className="text-xl font-bold mb-4">{t('claims.record')}</h2>
+            <h1 className="mb-4">{t('hr.title')}</h1>
+            <div className="mb-4"><Link href="/hr/claims" className="hover:underline text-sm app-link">{t('common.back')}</Link></div>
+            <h2 className="mb-4">{t('claims.record')}</h2>
             <ClaimForm employees={mustRows(res) as EmpOpt[]} redirectTo="/hr/claims" />
         </div>
     )

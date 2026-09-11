@@ -139,7 +139,7 @@ export default function AssayForm({
             {/* ── 单据字段 ── */}
             <div className="flex flex-wrap gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('assay.assayDate')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -156,7 +156,7 @@ export default function AssayForm({
                         一份没说明基准的含量数字事后还原不出来:干基 30% 与湿基 30%
                         是两个数,差多少取决于水分。 */}
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('assay.weightBasis')} <span className="text-red-600">*</span>
                         </label>
                         <select name="weight_basis" defaultValue="" required
@@ -170,7 +170,7 @@ export default function AssayForm({
                     {/* PROC-6:出具方 —— 必填,【刻意没有默认值】。
                         默认成"我们"会让一个忘了改的字段变成"这是我们测的"这句话。 */}
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('assay.resultParty')} <span className="text-red-600">*</span>
                         </label>
                         <select name="result_party" defaultValue="" required
@@ -185,7 +185,7 @@ export default function AssayForm({
                     {/* PROC-6:水分 —— 【可空,而空不是零】。没测就留空;
                         库里落 NULL,屏幕上显示成「没测过」。填 0 是一次测量。 */}
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('assay.moisture')}</label>
+                        <label className="block mb-1">{t('assay.moisture')}</label>
                         <input type="number" name="moisture_pct" step="any" min="0" max="100"
                                placeholder={t('assay.moisturePlaceholder')}
                                className={`${CONTROL_INPUT} w-full`} />
@@ -193,7 +193,7 @@ export default function AssayForm({
                     </div>
 
                 <div className="flex-1 min-w-[12rem]">
-                    <label className="block text-sm font-medium mb-1">{t('assay.labName')}</label>
+                    <label className="block mb-1">{t('assay.labName')}</label>
                     {/* PROC-5:实验室 —— 字典下拉,不再是自由文本框。
                         【留空仍然合法】那是"没有人记过是哪家出的"(线上 3 行就是这样),
                         而不是"我们自己做的" —— 后者若要成为一个可记录的事实,
@@ -210,38 +210,38 @@ export default function AssayForm({
                         而不是只放在导航里(可达性不靠单点)。 */}
                     <p className="text-xs text-gray-500 mt-1">
                         {t('assay.labAddHint')}{' '}
-                        <a href="/settings/dictionaries" className="text-blue-600 underline">
+                        <a href="/settings/dictionaries" className="underline app-link app-link-inline">
                             {t('dict.title')}
                         </a>
                     </p>
                 </div>
                 <div className="flex-1 min-w-[12rem]">
-                    <label className="block text-sm font-medium mb-1">{t('assay.certificateRef')}</label>
+                    <label className="block mb-1">{t('assay.certificateRef')}</label>
                     <input type="text" name="certificate_ref" className={`${CONTROL_INPUT} w-full`} />
                 </div>
                 <div className="flex-1 min-w-[10rem]">
-                    <label className="block text-sm font-medium mb-1">{t('assay.sampleRef')}</label>
+                    <label className="block mb-1">{t('assay.sampleRef')}</label>
                     <input type="text" name="sample_ref" className={`${CONTROL_INPUT} w-full`} />
                 </div>
             </div>
 
             <div className="flex flex-wrap gap-4 items-start">
                 <div>
-                    <label className="flex items-center gap-2 text-sm font-medium">
+                    <label className="flex items-center gap-2">
                         <input className={CONTROL_CHECKBOX} type="checkbox" name="is_final" defaultChecked />
                         {t('assay.isFinal')}
                     </label>
                     <p className="text-xs text-gray-500 mt-1">{t('assay.isFinalHint')}</p>
                 </div>
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">{t('assay.notes')}</label>
+                    <label className="block mb-1">{t('assay.notes')}</label>
                     <input type="text" name="notes" className={`${CONTROL_INPUT} w-full`} />
                 </div>
             </div>
 
             {/* ── 金属表(留空 = 没测,整行忽略)── */}
             <div>
-                <h2 className="text-lg font-semibold mb-2">{t('assay.title')}</h2>
+                <h2 className="mb-2">{t('assay.title')}</h2>
                 <table className={`${tableC.root} w-full max-w-md`}>
                     <thead>
                         <tr className={tableC.headRow}>
@@ -288,7 +288,7 @@ export default function AssayForm({
             ) : (
                 <section className="border-t pt-6">
                     <div className="flex items-center gap-3 mb-3">
-                        <h2 className="text-xl font-bold">{t('assay.impactPreview')}</h2>
+                        <h2 className="">{t('assay.impactPreview')}</h2>
                         {previewing && <span className="text-sm text-gray-400">{t('common.saving')}</span>}
                     </div>
 

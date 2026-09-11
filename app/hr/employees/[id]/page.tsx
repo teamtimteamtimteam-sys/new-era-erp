@@ -180,7 +180,7 @@ export default async function EmployeeDetailPage({
         <ListPage
             maxWidth="max-w-5xl"
             breadcrumb={
-                <Link href="/hr/employees" className="text-blue-600 hover:underline text-sm">
+                <Link href="/hr/employees" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             }
@@ -217,7 +217,7 @@ export default async function EmployeeDetailPage({
                     {
                         label: t('hr.colManager'),
                         value: mgrRes.data ? (
-                            <Link href={`/hr/employees/${mgrRes.data.id}`} className="text-blue-600 hover:underline">
+                            <Link href={`/hr/employees/${mgrRes.data.id}`} className="hover:underline app-link app-link-inline">
                                 {mgrRes.data.code} — {mgrRes.data.legal_name}
                             </Link>
                         ) : (
@@ -317,7 +317,7 @@ export default async function EmployeeDetailPage({
             {/* 任职履历 —— ★【它【不是】一张表,所以它没有进 DataTable】★
                 转换前就是一条 <ol> 时间线。把时间线塞进「一行 = 一条记录」的
                 表格契约,是 CONV-3 §⑧-3 拒绝对透视表做的同一件事。 */}
-            <h2 className="text-xl font-bold mb-3">{t('hr.historyTitle')}</h2>
+            <h2 className="mb-3">{t('hr.historyTitle')}</h2>
             {history.length === 0 ? (
                 <p className="text-sm text-gray-500 mb-6">{t('hr.historyEmpty')}</p>
             ) : (
@@ -343,7 +343,7 @@ export default async function EmployeeDetailPage({
             )}
 
             {/* 培训 */}
-            <h2 className="text-xl font-bold mb-3">{t('hr.trainingTitle')}</h2>
+            <h2 className="mb-3">{t('hr.trainingTitle')}</h2>
             <div className="mb-6">
                 <EmployeeTrainingTable rows={trainingRows} />
             </div>
@@ -356,7 +356,7 @@ export default async function EmployeeDetailPage({
                 ★ CONV-9:表格现在【无条件】画,空态由它自己说(DataTable 的 empty)——
                   这与 PROBATION-1 的方向一致,而不是把那道门又藏回去。
                 canHrEdit 那一半保持原样 —— 读得到不等于写得了。 */}
-            <h2 className="text-xl font-bold mb-3">{t('reviews.sectionTitle')}</h2>
+            <h2 className="mb-3">{t('reviews.sectionTitle')}</h2>
             {/* ★ 出口:发起转正评估。住 children,而 state 恒为 'ok'。 */}
             {canHrEdit && emp.employment_status === 'probation' && (
                 <RaiseProbationReview
@@ -369,7 +369,7 @@ export default async function EmployeeDetailPage({
             </div>
 
             {/* 薪资历史(受限) */}
-            <h2 className="text-xl font-bold mb-1">{t('hr.payrollTitle')}</h2>
+            <h2 className="mb-1">{t('hr.payrollTitle')}</h2>
             <p className="text-xs text-gray-500 mb-3">{t('hr.payRestricted')}</p>
             <EmployeePayrollTable rows={payRows} />
         </ListPage>

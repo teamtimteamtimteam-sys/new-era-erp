@@ -19,7 +19,7 @@ export default function LocationPicker({ locations }: { locations: LocationChoic
     const t = useTranslations()
     return (
         <div>
-            <label className="block text-sm font-medium mb-1">{t('stock.receiptLocation')}</label>
+            <label className="block mb-1">{t('stock.receiptLocation')}</label>
             <select name="location_id" defaultValue="" className={`${CONTROL_SELECT} w-full`}>
                 <option value="">{t('stock.receiptLocationUnspecified')}</option>
                 {locations.map((l) => (

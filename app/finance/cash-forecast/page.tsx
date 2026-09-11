@@ -70,7 +70,7 @@ export default async function CashForecastPage() {
 
             <RecurringLines rows={lines} canEdit={canEdit} baseCurrency={baseCurrency} />
 
-            <h2 className="mb-2 text-lg font-semibold">{t('cashForecast.frozenTitle')}</h2>
+            <h2 className="mb-2">{t('cashForecast.frozenTitle')}</h2>
             <div className="max-w-3xl">
                 <FrozenForecastsTable rows={frozen} />
             </div>

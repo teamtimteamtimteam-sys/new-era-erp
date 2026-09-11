@@ -48,21 +48,21 @@ export default function ClaimForm({
             )}
             <div className="grid gap-4 sm:grid-cols-2">
                 {!fixedEmployeeId && employees && (
-                    <label className="text-sm sm:col-span-2">{t('leave.employee')}
+                    <label className="sm:col-span-2">{t('leave.employee')}
                         <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className={fieldSelect}>
                             <option value="">—</option>
                             {employees.map((e) => <option key={e.id} value={e.id}>{e.code} — {e.legal_name}</option>)}
                         </select>
                     </label>
                 )}
-                <label className="text-sm">{t('claims.date')}
+                <label className="">{t('claims.date')}
                     <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={field} /></label>
-                <label className="text-sm">{t('claims.amountSgd')}
+                <label className="">{t('claims.amountSgd')}
                     <input type="number" step="0.01" min="0.01" value={amount}
                            onChange={(e) => setAmount(e.target.value)} className={field} /></label>
-                <label className="text-sm sm:col-span-2">{t('claims.description')}
+                <label className="sm:col-span-2">{t('claims.description')}
                     <input value={desc} onChange={(e) => setDesc(e.target.value)} className={field} /></label>
-                <label className="text-sm sm:col-span-2">{t('claims.receipt')}
+                <label className="sm:col-span-2">{t('claims.receipt')}
                     <input value={receipt} onChange={(e) => setReceipt(e.target.value)} className={field} /></label>
             </div>
             <Button type="button" onClick={submit}

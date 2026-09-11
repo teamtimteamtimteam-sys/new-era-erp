@@ -46,7 +46,7 @@ export default function ForwardersTable({
         {
             key: 'name', header: t('logistics.colName'), priority: true,
             render: (r) => (
-                <Link href={`/logistics/forwarders/${r.id}`} className="text-blue-700 hover:underline">
+                <Link href={`/logistics/forwarders/${r.id}`} className="hover:underline app-link">
                     {r.legalName}
                 </Link>
             ),

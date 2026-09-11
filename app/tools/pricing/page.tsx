@@ -74,7 +74,7 @@ export default async function PricingHubPage() {
 
     return (
         <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('pricing.hubTitle')}</h1>
+            <h1 className="mb-4">{t('pricing.hubTitle')}</h1>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {CARDS.map((c) => (
@@ -83,7 +83,7 @@ export default async function PricingHubPage() {
                         href={c.href}
                         className="block border border-gray-300 rounded p-5 hover:bg-gray-50"
                     >
-                        <h2 className="font-bold mb-1">{t(c.titleKey)}</h2>
+                        <h2 className="mb-1">{t(c.titleKey)}</h2>
                         <p className="text-sm text-gray-600">{t(c.descKey)}</p>
                     </Link>
                 ))}

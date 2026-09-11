@@ -48,7 +48,7 @@ export default async function ApprovalsSettingsPage() {
 
     return (
         <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.approvals.title')}</h1>
+            <h1 className="mb-4">{t('finance.approvals.title')}</h1>
             {/* 【读失败不许读成"没有面板"】一块悄悄消失的面板,与一块说"审批未生效"
                 的面板在屏幕上长得一模一样 —— 而后者是一句关于内控的断言。 */}
             {readinessRes.error ? (

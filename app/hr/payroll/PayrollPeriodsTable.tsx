@@ -36,7 +36,7 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
             key: 'period', header: t('hr.colPeriod'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
                 <>
-                    <Link href={`/hr/payroll/${r.id}`} className="text-blue-600 hover:underline">
+                    <Link href={`/hr/payroll/${r.id}`} className="hover:underline app-link">
                         {r.periodMonth?.slice(0, 7)}
                     </Link>
                     <span className="text-gray-400 ml-2 text-xs">{r.code}</span>
@@ -74,7 +74,7 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
                 ) : r.journalCode === 'restricted' ? (
                     <Refusal why={t('hr.payrollEntryRestrictedHint')}>{t('common.restricted')}</Refusal>
                 ) : (
-                    <Link href={`/finance/journal/${r.journalEntryId}`} className="text-blue-600 hover:underline font-mono">
+                    <Link href={`/finance/journal/${r.journalEntryId}`} className="hover:underline font-mono app-link">
                         {r.journalCode}
                     </Link>
                 ),

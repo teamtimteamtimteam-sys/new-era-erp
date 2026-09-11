@@ -69,10 +69,10 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
                     {/* 【返回链接留在标题【下面】】这一页转换前就是这样,
                         所以【不】用 breadcrumb 槽 —— 用了会把它挪到标题之上。 */}
                     <div className="mb-4">
-                        <Link href="/hr/claims" className="text-blue-600 hover:underline text-sm">{t('common.back')}</Link>
+                        <Link href="/hr/claims" className="hover:underline text-sm app-link">{t('common.back')}</Link>
                     </div>
                     <div className="flex flex-wrap items-baseline gap-3 mb-4">
-                        <h2 className="text-xl font-bold">{claim.code}</h2>
+                        <h2 className="">{claim.code}</h2>
                         <span className="text-sm text-gray-500">{claim.employee_code} — {claim.legal_name}</span>
                     </div>
                 </>
@@ -96,7 +96,7 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
 
             {bal && (
                 <section className={card}>
-                    <h3 className="font-bold mb-3">{t('claims.limitTitle', { 0: String(claimYear) })}</h3>
+                    <h3 className="mb-3">{t('claims.limitTitle', { 0: String(claimYear) })}</h3>
                     {/* 第二块抬头 —— 同一个 RecordHeader,不是第二种写法。
                         它带一个自己的小标题,所以留在 section 里而不是并到上面那一块。 */}
                     <RecordHeader
@@ -131,8 +131,8 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
 
             {claim.expense_code && (
                 <section className={card}>
-                    <h3 className="font-bold mb-2">{t('claims.linkedExpense')}</h3>
-                    <Link href="/finance/expenses" className="text-blue-600 hover:underline font-mono text-sm">
+                    <h3 className="mb-2">{t('claims.linkedExpense')}</h3>
+                    <Link href="/finance/expenses" className="hover:underline font-mono text-sm app-link app-link-inline">
                         {claim.expense_code}
                     </Link>
                     <p className="mt-1 text-xs text-gray-500">{t('claims.expenseHint')}</p>

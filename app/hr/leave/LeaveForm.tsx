@@ -120,7 +120,7 @@ export default function LeaveForm({
 
             <div className="grid gap-4 sm:grid-cols-2">
                 {!fixedEmployeeId && employees && (
-                    <label className="text-sm sm:col-span-2">
+                    <label className="sm:col-span-2">
                         {t('leave.employee')}
                         <select value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className={fieldSelect}>
                             <option value="">—</option>
@@ -131,7 +131,7 @@ export default function LeaveForm({
                     </label>
                 )}
 
-                <label className="text-sm">
+                <label className="">
                     {t('leave.type')}
                     <select value={typeCode} onChange={(e) => setTypeCode(e.target.value)} className={fieldSelect}>
                         {types.map((x) => (
@@ -148,22 +148,22 @@ export default function LeaveForm({
 
                 <div />
 
-                <label className="text-sm">
+                <label className="">
                     {t('leave.startDate')}
                     <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className={field} />
                     {type?.allows_half_day && (
-                        <label className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+                        <label className="mt-1 flex items-center gap-2">
                             <input className={CONTROL_CHECKBOX} type="checkbox" checked={startHalf} onChange={(e) => setStartHalf(e.target.checked)} />
                             {t('leave.halfDayStart')}
                         </label>
                     )}
                 </label>
 
-                <label className="text-sm">
+                <label className="">
                     {t('leave.endDate')}
                     <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className={field} />
                     {type?.allows_half_day && (
-                        <label className="mt-1 flex items-center gap-2 text-xs text-gray-600">
+                        <label className="mt-1 flex items-center gap-2">
                             <input className={CONTROL_CHECKBOX} type="checkbox" checked={endHalf} onChange={(e) => setEndHalf(e.target.checked)} />
                             {t('leave.halfDayEnd')}
                         </label>
@@ -182,14 +182,14 @@ export default function LeaveForm({
                     )}
                 </div>
 
-                <label className="text-sm sm:col-span-2">
+                <label className="sm:col-span-2">
                     {t('leave.reason')}
                     <input value={reason} onChange={(e) => setReason(e.target.value)} className={field} />
                 </label>
 
                 {/* 证明要求【从假别配置动态显示】 */}
                 {type?.requires_certificate_after_days != null && (
-                    <label className="text-sm sm:col-span-2">
+                    <label className="sm:col-span-2">
                         {t('leave.certificate')}
                         <input value={certRef} onChange={(e) => setCertRef(e.target.value)} className={field} />
                         <span className="mt-1 block text-xs text-gray-500">
@@ -200,19 +200,19 @@ export default function LeaveForm({
 
                 {allowException && (
                     <div className="sm:col-span-2 rounded border border-purple-200 bg-purple-50 px-3 py-2">
-                        <label className="flex items-center gap-2 text-sm">
+                        <label className="flex items-center gap-2">
                             <input className={CONTROL_CHECKBOX} type="checkbox" checked={isException} onChange={(e) => setIsException(e.target.checked)} />
                             {t('leave.exceptionToggle')}
                         </label>
                         <p className="mt-1 text-xs text-gray-600">{t('leave.exceptionHint')}</p>
                         {isException && (
                             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                                <label className="text-sm">
+                                <label className="">
                                     {t('leave.exceptionDays')}
                                     <input type="number" step="0.5" min="0.5" value={exDays}
                                            onChange={(e) => setExDays(e.target.value)} className={field} />
                                 </label>
-                                <label className="text-sm">
+                                <label className="">
                                     {t('leave.exceptionReason')}
                                     <input value={exReason} onChange={(e) => setExReason(e.target.value)} className={field} />
                                 </label>

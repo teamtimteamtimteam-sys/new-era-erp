@@ -102,7 +102,7 @@ export default function NewEntryForm(
             <div className="flex flex-wrap gap-4">
                 {/* 日期(必填,默认今天)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('finance.entryDate')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -115,7 +115,7 @@ export default function NewEntryForm(
                 </div>
                 {/* 摘要(必填)*/}
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('finance.memo')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -132,7 +132,7 @@ export default function NewEntryForm(
                 {rows.map((r) => (
                     <div key={r.key} className="flex flex-wrap items-end gap-2 border border-gray-200 rounded p-3">
                         <div className="flex-1 min-w-[14rem]">
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('finance.colAccount')} <span className="text-red-600">*</span>
                             </label>
                             <select
@@ -157,7 +157,7 @@ export default function NewEntryForm(
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('finance.side')}</label>
+                            <label className="block mb-1">{t('finance.side')}</label>
                             <select
                                 name="side"
                                 value={r.side}
@@ -169,7 +169,7 @@ export default function NewEntryForm(
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('output.sale.currency')}</label>
+                            <label className="block mb-1">{t('output.sale.currency')}</label>
                             <select
                                 name="currency"
                                 value={r.currency}
@@ -181,7 +181,7 @@ export default function NewEntryForm(
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('finance.amount')} <span className="text-red-600">*</span>
                             </label>
                             {/* DecimalInput 每行仍只产出一个同名字段,
@@ -196,7 +196,7 @@ export default function NewEntryForm(
                         </div>
                         {r.currency !== baseCurrency ? (
                             <div>
-                                <label className="block text-sm font-medium mb-1">
+                                <label className="block mb-1">
                                     {t('output.sale.fxRate')} <span className="text-red-600">*</span>
                                 </label>
                                 <DecimalInput
@@ -213,7 +213,7 @@ export default function NewEntryForm(
                             <input type="hidden" name="fx_rate" value="" />
                         )}
                         <div className="flex-1 min-w-[10rem]">
-                            <label className="block text-sm font-medium mb-1">{t('finance.lineMemo')}</label>
+                            <label className="block mb-1">{t('finance.lineMemo')}</label>
                             <input
                                 type="text"
                                 name="line_memo"

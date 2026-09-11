@@ -61,7 +61,7 @@ export default function IntakeConditionFields({
                 <p className="text-xs text-gray-600 mb-2">{t('inbound.condition.safetyHint')}</p>
                 <div className="space-y-1">
                     {states.map((s) => (
-                        <label key={s.code} className="flex items-start gap-2 text-sm">
+                        <label key={s.code} className="flex items-start gap-2">
                             <input type="checkbox" className={`${CONTROL_CHECKBOX} mt-1`} disabled={disabled}
                                    {...(asFormFields ? { name: FIELD_SAFETY_STATES, value: s.code } : {})}
                                    checked={picked.includes(s.code)} onChange={() => onToggle(s.code)} />

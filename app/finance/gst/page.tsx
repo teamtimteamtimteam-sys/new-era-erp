@@ -85,13 +85,13 @@ export default async function GstPage() {
                 </p>
             )}
 
-            <h2 className="font-semibold mb-2">{t('gst.taxCodes')}</h2>
+            <h2 className="mb-2">{t('gst.taxCodes')}</h2>
             <p className="text-xs text-gray-600 mb-2">{t('gst.taxCodesWhy')}</p>
             <div className="mb-6">
                 <GstTaxCodesTable rows={taxCodeRows} />
             </div>
 
-            <h2 className="font-semibold mb-2">{t('gst.periods')}</h2>
+            <h2 className="mb-2">{t('gst.periods')}</h2>
             <div className="mb-4"><OpenPeriodControl canEdit={canEditGate} /></div>
             <div className="mb-6">
                 <GstPeriodsTable rows={periodRows} />

@@ -69,27 +69,27 @@ export default function HolidaysEditor({
                     </Button>
                 }
             >
-                <label className="text-xs">{t('leave.date')}
+                <label className="">{t('leave.date')}
                     <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`block ${inp}`} /></label>
-                <label className="text-xs">{t('permissions.nameEn')}
+                <label className="">{t('permissions.nameEn')}
                     <input value={en} onChange={(e) => setEn(e.target.value)} className={`block ${inp}`} /></label>
-                <label className="text-xs">{t('permissions.nameZh')}
+                <label className="">{t('permissions.nameZh')}
                     <input value={zh} onChange={(e) => setZh(e.target.value)} className={`block ${inp}`} /></label>
                 {/* ★★ 跨年份稳定的身份 —— 日期年年在动,这个键不动 ★★
                     datalist 列出【已经用过的键】,因为这个字段的全部价值就是
                     「明年的农历新年要和今年用同一个键」。让人从既有的里面挑,
                     比让他重新打一遍字更可能得到同一个答案 —— 一个打成
                     `chinese_new_year` 的键,对 UI-1 来说就是一个新节日。 */}
-                <label className="text-xs">{t('leave.holidayKey')}
+                <label className="">{t('leave.holidayKey')}
                     <input value={key} onChange={(e) => setKey(e.target.value)} list="holiday-keys"
                            placeholder="chinese-new-year" className={`block ${inp}`} />
                     <datalist id="holiday-keys">
                         {knownKeys.map((k) => <option key={k} value={k} />)}
                     </datalist></label>
-                <label className="text-xs flex items-center gap-1 mt-4">
+                <label className="flex items-center gap-1 mt-4">
                     <input type="checkbox" className={CONTROL_CHECKBOX} checked={inLieu} onChange={(e) => setInLieu(e.target.checked)} />
                     {t('leave.isInLieu')}</label>
-                <label className="text-xs">{t('leave.notes')}
+                <label className="">{t('leave.notes')}
                     <input value={notes} onChange={(e) => setNotes(e.target.value)} className={`block ${inp}`} /></label>
             </AddRowPanel>
         </div>

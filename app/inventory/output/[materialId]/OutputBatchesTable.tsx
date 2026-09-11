@@ -58,7 +58,7 @@ export default function OutputBatchesTable({ rows }: { rows: readonly OutputBatc
             priority: true,
             className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={r.href} className="text-blue-600 hover:underline">
+                <Link href={r.href} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),
@@ -100,7 +100,7 @@ export default function OutputBatchesTable({ rows }: { rows: readonly OutputBatc
             className: 'font-mono text-sm',
             render: (r) =>
                 r.workOrderHref ? (
-                    <Link href={r.workOrderHref} className="text-blue-600 hover:underline">
+                    <Link href={r.workOrderHref} className="hover:underline app-link">
                         {r.workOrderCode ?? '—'}
                     </Link>
                 ) : (

@@ -40,7 +40,7 @@ export default function ClaimControls({
 
             {status === 'submitted' && (
                 <>
-                    <label className="block text-sm mb-3">{t('leave.decisionNotes')}
+                    <label className="block mb-3">{t('leave.decisionNotes')}
                         <input value={notes} onChange={(e) => setNotes(e.target.value)}
                                className={`${CONTROL_INPUT} mt-1 w-full`} /></label>
                     <div className="flex gap-3">
@@ -59,10 +59,10 @@ export default function ClaimControls({
 
             {status === 'approved' && !alreadyLinked && (
                 <div>
-                    <h3 className="font-bold mb-1 text-sm">{t('claims.createExpense')}</h3>
+                    <h3 className="mb-1">{t('claims.createExpense')}</h3>
                     <p className="text-xs text-gray-600 mb-3">{t('claims.createExpenseHint')}</p>
                     <div className="flex gap-2 flex-wrap items-end mb-3">
-                        <label className="text-xs">{t('claims.expenseDate')}
+                        <label className="">{t('claims.expenseDate')}
                             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
                                    className={`${CONTROL_INPUT} block`} /></label>
                     </div>

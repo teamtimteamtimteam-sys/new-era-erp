@@ -272,7 +272,7 @@ export default async function PaymentDetailPage({
         <ListPage
             maxWidth="max-w-4xl"
             breadcrumb={
-                <Link href="/finance/payments" className="text-blue-600 hover:underline text-sm">
+                <Link href="/finance/payments" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             }
@@ -286,7 +286,7 @@ export default async function PaymentDetailPage({
                     <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
                         <Link
                             href={`/finance/payments/${reversedByRes.data.id}`}
-                            className="text-blue-600 hover:underline"
+                            className="hover:underline app-link"
                         >
                             {t('finance.reversedByPayment', { code: reversedByRes.data.code })}
                         </Link>
@@ -314,7 +314,7 @@ export default async function PaymentDetailPage({
                     <span className="text-gray-600 mr-1">{t('finance.linkedJournal')}:</span>
                     <Link
                         href={`/finance/journal/${journalRes.data.id}`}
-                        className="text-blue-600 hover:underline font-mono"
+                        className="hover:underline font-mono app-link app-link-inline"
                     >
                         {journalRes.data.code}
                     </Link>

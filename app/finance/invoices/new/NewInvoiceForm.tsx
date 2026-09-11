@@ -174,7 +174,7 @@ canEdit: boolean
 
             <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[18rem]">
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('invoice.form.customer')} <span className="text-red-600">*</span>
                     </label>
                     <select
@@ -195,7 +195,7 @@ canEdit: boolean
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('invoice.form.issueDate')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -208,7 +208,7 @@ canEdit: boolean
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('invoice.form.termsDays')}</label>
+                    <label className="block mb-1">{t('invoice.form.termsDays')}</label>
                     <DecimalInput
                         value={effTerms}
                         onChange={(raw) => {
@@ -227,7 +227,7 @@ canEdit: boolean
                     建 GST 之前一模一样,连这一格都不该长出来。 */}
                 {gstRegistered && (
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('invoice.form.taxCode')} <span className="text-red-600">*</span>
                         </label>
                         <select
@@ -265,7 +265,7 @@ canEdit: boolean
 
             {/* 待开票销售 */}
             <div>
-                <h2 className="text-lg font-semibold mb-2">{t('invoice.form.sales')}</h2>
+                <h2 className="mb-2">{t('invoice.form.sales')}</h2>
                 {!customerId ? (
                     <p className="text-sm text-gray-500">{t('invoice.form.selectCustomer')}</p>
                 ) : visible.length === 0 ? (
@@ -286,9 +286,9 @@ canEdit: boolean
                                 <th className={`${tableC.headCell} w-8`} />
                                 <th className={`${tableC.headCell} text-left`}>{t('invoice.colDescription')}</th>
                                 <th className={`${tableC.headCell} text-left`}>{t('finance.colDate')}</th>
-                                <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('invoice.colQuantity')}</th>
-                                <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('invoice.colUnitPrice')}</th>
-                                <th className={`${tableC.headCell} text-right`}>{t('invoice.colAmount')}</th>
+                                <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('invoice.colQuantity')}</th>
+                                <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('invoice.colUnitPrice')}</th>
+                                <th className={`${tableC.headCell} text-right tabular-nums`}>{t('invoice.colAmount')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -351,7 +351,7 @@ canEdit: boolean
 
             <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">{t('invoice.form.notes')}</label>
+                    <label className="block mb-1">{t('invoice.form.notes')}</label>
                     <input
                         type="text"
                         name="notes"
@@ -359,7 +359,7 @@ canEdit: boolean
                     />
                 </div>
                 <div className="flex-1 min-w-[20rem]">
-                    <label className="block text-sm font-medium mb-1">{t('invoice.form.termsText')}</label>
+                    <label className="block mb-1">{t('invoice.form.termsText')}</label>
                     <input
                         type="text"
                         value={effTermsText}
@@ -403,7 +403,7 @@ canEdit: boolean
             </div>
 
             {mixedCurrency && (
-                <p className="text-red-600 text-sm text-right">{t('invoice.mixedCurrency')}</p>
+                <p className="text-red-600 text-sm text-right tabular-nums">{t('invoice.mixedCurrency')}</p>
             )}
 
             <div className="flex gap-3 pt-2">

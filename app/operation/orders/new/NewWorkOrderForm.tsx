@@ -70,11 +70,11 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
     return (
         <div className="p-8 max-w-3xl">
             <div className="mb-6">
-                <Link href="/operation/orders" className="text-blue-600 hover:underline text-sm">
+                <Link href="/operation/orders" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-6">{t('processing.wo.newTitle')}</h1>
+            <h1 className="mb-6">{t('processing.wo.newTitle')}</h1>
 
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -84,20 +84,20 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
 
             <div className="space-y-5">
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('processing.wo.form.scheduled')}</label>
+                    <label className="block mb-1">{t('processing.wo.form.scheduled')}</label>
                     <input type="date" value={scheduled} onChange={(e) => setScheduled(e.target.value)}
                            className={CONTROL_INPUT} />
                     <p className="text-xs text-gray-500 mt-1">{t('processing.wo.form.scheduledWhy')}</p>
                 </div>
 
                 <div>
-                    <h2 className="font-medium mb-1">{t('processing.wo.form.lines')}</h2>
+                    <h2 className="mb-1">{t('processing.wo.form.lines')}</h2>
                     <p className="text-xs text-gray-500 mb-2">{t('processing.wo.form.linesWhy')}</p>
                     <table className="w-full border-collapse border border-gray-300 text-sm">
                         <thead className="bg-gray-100">
                             <tr>
                                 <th className="border border-gray-300 px-2 py-2 text-left">{t('processing.wo.colMaterial')}</th>
-                                <th className="border border-gray-300 px-2 py-2 text-right">{t('processing.wo.colPlanned')}</th>
+                                <th className="border border-gray-300 px-2 py-2 text-right tabular-nums">{t('processing.wo.colPlanned')}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -113,9 +113,9 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                                             ))}
                                         </select>
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-2 text-right">
+                                    <td className="border border-gray-300 px-2 py-2 text-right tabular-nums">
                                         <input type="number" step="any" min="0" value={l.planned_qty}
-                                               className={`${CONTROL_INPUT} w-32 text-right`}
+                                               className={`${CONTROL_INPUT} w-32 text-right tabular-nums`}
                                                onChange={(e) => setLines(lines.map((x, j) =>
                                                    j === i ? { ...x, planned_qty: e.target.value } : x))} />
                                     </td>
@@ -126,7 +126,7 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                 </div>
 
                 <div>
-                    <h2 className="font-medium mb-1">{t('processing.wo.form.expected')}</h2>
+                    <h2 className="mb-1">{t('processing.wo.form.expected')}</h2>
                     {/* 【这一段留空是一个正当答案 —— 说出来,而不是让人猜】 */}
                     <p className="text-xs text-gray-500 mb-2">{t('processing.wo.form.expectedWhy')}</p>
                     {/* PROC-SUPPORT-1(R3):播种的猜测与校准过的数字必须在【屏幕上】分得开,
@@ -136,7 +136,7 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                         <thead className="bg-gray-100">
                             <tr>
                                 <th className="border border-gray-300 px-2 py-2 text-left">{t('processing.wo.colMaterial')}</th>
-                                <th className="border border-gray-300 px-2 py-2 text-right">{t('processing.wo.colExpected')}</th>
+                                <th className="border border-gray-300 px-2 py-2 text-right tabular-nums">{t('processing.wo.colExpected')}</th>
                                 <th className="border border-gray-300 px-2 py-2 text-left">{t('processing.wo.colBasis')}</th>
                                 <th className="border border-gray-300 px-2 py-2 text-left">{t('processing.wo.colBasisReference')}</th>
                             </tr>
@@ -154,9 +154,9 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                                             ))}
                                         </select>
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-2 text-right">
+                                    <td className="border border-gray-300 px-2 py-2 text-right tabular-nums">
                                         <input type="number" step="any" min="0" value={e.expected_qty}
-                                               className={`${CONTROL_INPUT} w-32 text-right`}
+                                               className={`${CONTROL_INPUT} w-32 text-right tabular-nums`}
                                                onChange={(ev) => setExpected(expected.map((x, j) =>
                                                    j === i ? { ...x, expected_qty: ev.target.value } : x))} />
                                     </td>
@@ -187,7 +187,7 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('processing.wo.form.notes')}</label>
+                    <label className="block mb-1">{t('processing.wo.form.notes')}</label>
                     <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
                               className={`${CONTROL_TEXTAREA} w-full`} />
                 </div>

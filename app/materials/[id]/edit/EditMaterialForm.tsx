@@ -73,7 +73,7 @@ export default function EditMaterialForm({
             <form action={formAction} className="space-y-4">
                 {/* 名称(必填)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('materials.form.name')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -119,7 +119,7 @@ export default function EditMaterialForm({
                         加一种化学体系现在 = 往字典里加一行。
                         【留空仍然合法】它的意思是"没有人记过",不是"不适用"
                         —— 后者由物料种类回答。 */}
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('materials.form.chemistry')}
                     </label>
                     <select
@@ -139,7 +139,7 @@ export default function EditMaterialForm({
                     {/* DICT-ADMIN:同上 —— 那句"还没有页面"换成一条真链接。 */}
                     <p className="text-xs text-gray-500 mt-1">
                         {t('materials.form.chemistryAddHint')}{' '}
-                        <a href="/settings/dictionaries" className="text-blue-600 underline">
+                        <a href="/settings/dictionaries" className="underline app-link app-link-inline">
                             {t('dict.title')}
                         </a>
                     </p>
@@ -148,7 +148,7 @@ export default function EditMaterialForm({
                 {/* MAT-1:受控废物分类。改回【未分类】是正当的动作(录错了要能撤回),
                     而不是一个应当被拦住的状态。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('materials.form.wasteClass')}
                     </label>
                     <WasteClassPicker name="waste_classification_code" classes={wasteClasses}
@@ -158,7 +158,7 @@ export default function EditMaterialForm({
 
                 {/* 单位(固定列表)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.form.unit')}</label>
+                    <label className="block mb-1">{t('materials.form.unit')}</label>
                     <select
                         name="unit"
                         defaultValue={material.unit}
@@ -174,7 +174,7 @@ export default function EditMaterialForm({
 
                 {/* 规格/描述 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.form.spec')}</label>
+                    <label className="block mb-1">{t('materials.form.spec')}</label>
                     <input
                         type="text"
                         name="spec"
@@ -186,7 +186,7 @@ export default function EditMaterialForm({
                 {/* SS-1:安全库存阈值。【留空 = 不监控】—— 那是一个还没有人做过的
                     决定,不是"阈值为零";旁边那句话必须在,否则留空会被读成"没事"。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.form.safetyStock')}</label>
+                    <label className="block mb-1">{t('materials.form.safetyStock')}</label>
                     <input
                         type="number"
                         step="any"
@@ -203,7 +203,7 @@ export default function EditMaterialForm({
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.form.notes')}</label>
+                    <label className="block mb-1">{t('materials.form.notes')}</label>
                     <textarea
                         name="notes"
                         defaultValue={material.notes ?? ''}

@@ -50,11 +50,11 @@ export default function AttendanceGrid({
                 <thead>
                     <tr className="border-b text-left text-gray-600">
                         <th className="py-2 pr-3">{t('attendance.colEmployee')}</th>
-                        <th className="py-2 pr-3 text-right">{t('attendance.colOtNormal')}</th>
-                        <th className="py-2 pr-3 text-right">{t('attendance.colOtRestDay')}</th>
-                        <th className="hidden sm:table-cell py-2 pr-3 text-right">{t('attendance.colOtHoliday')}</th>
+                        <th className="py-2 pr-3 text-right tabular-nums">{t('attendance.colOtNormal')}</th>
+                        <th className="py-2 pr-3 text-right tabular-nums">{t('attendance.colOtRestDay')}</th>
+                        <th className="hidden sm:table-cell py-2 pr-3 text-right tabular-nums">{t('attendance.colOtHoliday')}</th>
                         <th className="hidden sm:table-cell py-2 pr-3">{t('attendance.colNote')}</th>
-                        <th className="hidden sm:table-cell py-2 pr-3 text-right">{t('attendance.colUnpaidDays')}</th>
+                        <th className="hidden sm:table-cell py-2 pr-3 text-right tabular-nums">{t('attendance.colUnpaidDays')}</th>
                         <th className="py-2 pr-3">{t('attendance.colRecorded')}</th>
                     </tr>
                 </thead>
@@ -92,7 +92,7 @@ export default function AttendanceGrid({
                 </div>
             ) : (
                 <div className="flex items-end gap-3">
-                    <label className="text-sm flex-1 max-w-md">
+                    <label className="flex-1 max-w-md">
                         <span className="block text-gray-600 mb-1">{t('attendance.reopenReason')}</span>
                         <input
                             value={reason}
@@ -161,13 +161,13 @@ function LineRow({
                     </div>
                 </div>
             </td>
-            <td className="py-2 pr-3 text-right">
+            <td className="py-2 pr-3 text-right tabular-nums">
                 {open ? <input className={cell} value={normal} onChange={(e) => setNormal(e.target.value)} /> : row.normal}
             </td>
-            <td className="py-2 pr-3 text-right">
+            <td className="py-2 pr-3 text-right tabular-nums">
                 {open ? <input className={cell} value={restDay} onChange={(e) => setRestDay(e.target.value)} /> : row.restDay}
             </td>
-            <td className="hidden sm:table-cell py-2 pr-3 text-right">
+            <td className="hidden sm:table-cell py-2 pr-3 text-right tabular-nums">
                 {open ? <input className={cell} value={holiday} onChange={(e) => setHoliday(e.target.value)} /> : row.holiday}
             </td>
             <td className="hidden sm:table-cell py-2 pr-3">
@@ -177,7 +177,7 @@ function LineRow({
                     <span className="text-gray-600">{row.note || '—'}</span>
                 )}
             </td>
-            <td className="hidden sm:table-cell py-2 pr-3 text-right text-gray-600">
+            <td className="hidden sm:table-cell py-2 pr-3 text-right text-gray-600 tabular-nums">
                 {row.unpaidDays === null ? '—' : row.unpaidDays}
             </td>
             <td className="py-2 pr-3">

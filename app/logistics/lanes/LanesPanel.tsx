@@ -61,11 +61,11 @@ canEdit: boolean
                     className="flex flex-wrap items-end gap-2 rounded border border-gray-200 bg-gray-50 p-3"
                 >
                     <div>
-                        <label className="block text-xs font-medium mb-1">{labels.portCode}</label>
+                        <label className="block mb-1">{labels.portCode}</label>
                         <input name="code" required className={`${field} w-28`} />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">{labels.portName}</label>
+                        <label className="block mb-1">{labels.portName}</label>
                         <input name="name" required className={field} />
                     </div>
                     <Button variant="default" className="text-sm shrink whitespace-normal" disabled={pending}>{labels.addPort}</Button>
@@ -80,13 +80,13 @@ canEdit: boolean
                         className="flex flex-wrap items-end gap-2 rounded border border-gray-200 bg-gray-50 p-3"
                     >
                         <div>
-                            <label className="block text-xs font-medium mb-1">{labels.origin}</label>
+                            <label className="block mb-1">{labels.origin}</label>
                             <select name="origin" required className={fieldSelect}>
                                 {ports.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-medium mb-1">{labels.destination}</label>
+                            <label className="block mb-1">{labels.destination}</label>
                             <select name="destination" required className={fieldSelect}>
                                 {ports.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                             </select>
@@ -103,7 +103,7 @@ canEdit: boolean
                 <div className="mt-6 space-y-6">
                     {lanes.map((l) => (
                         <section key={l.id} className="rounded border border-gray-200 p-4">
-                            <h2 className="font-bold mb-2">{l.label}</h2>
+                            <h2 className="mb-2">{l.label}</h2>
 
                             {/* 【三种状态,三句话】。中间那一句说的是"有人做过这个决定" ——
                                 把它与"没人看过"合并成"零条要求",就是把一次没做完的活
@@ -150,11 +150,11 @@ canEdit: boolean
                                 className="flex flex-wrap items-end gap-2"
                             >
                                 <div>
-                                    <label className="block text-xs font-medium mb-1">{labels.documentType}</label>
+                                    <label className="block mb-1">{labels.documentType}</label>
                                     <input name="document_type" required className={field} />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium mb-1">{labels.regime}</label>
+                                    <label className="block mb-1">{labels.regime}</label>
                                     <input name="regime" className={field} />
                                 </div>
                                 <Button variant="default" className="text-sm shrink whitespace-normal" disabled={pending}>

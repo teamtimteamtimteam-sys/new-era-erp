@@ -192,7 +192,7 @@ export default function NodeTree({
     return (
         <section className="mt-8 border-t pt-6">
             <div className="mb-3 flex items-center gap-3">
-                <h2 className="text-xl font-bold">{labels.heading}</h2>
+                <h2 className="">{labels.heading}</h2>
                 {/* 【零步骤时这里一个字都没有】 */}
                 {total > 0 ? <span className="text-sm text-gray-600">{doneCount}/{total}</span> : null}
             </div>

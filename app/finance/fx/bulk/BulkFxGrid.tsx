@@ -64,7 +64,7 @@ canEdit: boolean
             <p className="text-xs text-gray-600 mb-4">{t('finance.fxPage.bulk.howToCorrect')}</p>
 
             <div className="mb-4 flex flex-wrap items-center gap-2">
-                <label htmlFor="ccy" className="text-sm">{t('finance.fxPage.colCurrency')}</label>
+                <label htmlFor="ccy" className="">{t('finance.fxPage.colCurrency')}</label>
                 <select
                     id="ccy" value={currency} onChange={(e) => setCurrency(e.target.value)}
                     className={CONTROL_SELECT}
@@ -110,7 +110,7 @@ canEdit: boolean
                                                     <span className="font-mono text-gray-600">{ex.rate_sgd_per_unit}</span>
                                                     <Link
                                                         href={`/finance/fx/${ex.id}/edit`}
-                                                        className="text-xs text-blue-600 hover:underline"
+                                                        className="text-xs hover:underline app-link"
                                                     >
                                                         {t('finance.fxPage.bulk.alreadyOnFile')}
                                                     </Link>

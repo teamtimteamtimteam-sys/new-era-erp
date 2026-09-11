@@ -99,7 +99,7 @@ export default function ClaimDecisionPanel({
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
 
-            <h2 className="text-lg font-semibold mb-2">{t('expenseClaims.pendingTitle')}</h2>
+            <h2 className="mb-2">{t('expenseClaims.pendingTitle')}</h2>
             {pending.length === 0 ? (
                 // 【命名的缺席,不是空白】
                 <p className="text-sm text-gray-500 mb-8">{t('expenseClaims.noPending')}</p>
@@ -125,7 +125,7 @@ export default function ClaimDecisionPanel({
                             </p>
                             <PermissionGate code="module.finance.edit" allowed={canDecide}>
                                 <div className="flex flex-wrap gap-2 items-end">
-                                    <label className="text-xs text-gray-600">{t('expenseClaims.accountCode')}
+                                    <label className="">{t('expenseClaims.accountCode')}
                                         <select value={get(c.claim_id).acct}
                                             onChange={(e) => set(c.claim_id, { acct: e.target.value })}
                                             className={`${CONTROL_SELECT} block`}>
@@ -134,7 +134,7 @@ export default function ClaimDecisionPanel({
                                                 <option key={a.code} value={a.code}>{a.code} {a.name_en}</option>
                                             ))}
                                         </select></label>
-                                    <label className="text-xs text-gray-600">{t('expenseClaims.taxCode')}
+                                    <label className="">{t('expenseClaims.taxCode')}
                                         <select value={get(c.claim_id).tax}
                                             onChange={(e) => set(c.claim_id, { tax: e.target.value })}
                                             className={`${CONTROL_SELECT} block`}>
@@ -143,11 +143,11 @@ export default function ClaimDecisionPanel({
                                                 <option key={x.code} value={x.code}>{x.code} {x.name_en}</option>
                                             ))}
                                         </select></label>
-                                    <label className="text-xs text-gray-600">{t('expenseClaims.postingDate')}
+                                    <label className="">{t('expenseClaims.postingDate')}
                                         <input type="date" value={get(c.claim_id).post}
                                             onChange={(e) => set(c.claim_id, { post: e.target.value })}
                                             className={`${CONTROL_INPUT} block`} /></label>
-                                    <label className="text-xs text-gray-600 flex-1 min-w-[12rem]">{t('expenseClaims.decisionNotes')}
+                                    <label className="flex-1 min-w-[12rem]">{t('expenseClaims.decisionNotes')}
                                         <input value={get(c.claim_id).notes}
                                             onChange={(e) => set(c.claim_id, { notes: e.target.value })}
                                             className={`${CONTROL_INPUT} block w-full`} /></label>
@@ -177,7 +177,7 @@ export default function ClaimDecisionPanel({
 
             {/* 列描述符住在这个文件里,因为它本来就已经是 'use client' ——
                 另外三页要多一个文件,是因为它们的 page.tsx 是服务端组件。 */}
-            <h2 className="text-lg font-semibold mb-2">{t('expenseClaims.decidedTitle')}</h2>
+            <h2 className="mb-2">{t('expenseClaims.decidedTitle')}</h2>
             {/* ★★【CONV-1:只有【这一张】换成了 DataTable —— 上面那个决定队列没动】★★
                 这一页有两半:上面是【做决定的地方】(select / input / 提交),
                 下面是【已决的登记簿】。只有下半张是只读账簿,而 DataTable 是一个

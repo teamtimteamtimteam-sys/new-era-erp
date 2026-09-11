@@ -104,7 +104,7 @@ export default function CalculatorForm({
 
                 <div className="flex flex-wrap gap-4">
                     <div className="flex-1 min-w-[18rem]">
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('pricing.calcFormula')} <span className="text-red-600">*</span>
                         </label>
                         <select
@@ -129,7 +129,7 @@ export default function CalculatorForm({
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('pricing.calcQuantity')} <span className="text-red-600">*</span>
                         </label>
                         <DecimalInput
@@ -141,7 +141,7 @@ export default function CalculatorForm({
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('pricing.calcDate')} <span className="text-red-600">*</span>
                         </label>
                         <input
@@ -155,7 +155,7 @@ export default function CalculatorForm({
                 </div>
 
                 <div>
-                    <h2 className="text-lg font-semibold mb-2">{t('pricing.calcAssay')}</h2>
+                    <h2 className="mb-2">{t('pricing.calcAssay')}</h2>
                     <table className={`${tableC.root} w-full max-w-md`}>
                         <thead>
                             <tr className={tableC.headRow}>
@@ -198,7 +198,7 @@ export default function CalculatorForm({
             {res && (
                 <section className="border-t pt-6">
                     <div className="flex justify-between items-center mb-3">
-                        <h2 className="text-xl font-bold">{t('pricing.calcResult')}</h2>
+                        <h2 className="">{t('pricing.calcResult')}</h2>
                         <Button variant="secondary"
                             type="button"
                             onClick={copyBreakdown}>

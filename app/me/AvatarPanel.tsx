@@ -87,7 +87,7 @@ export default function AvatarPanel({
 
                 <form action={formAction} className="flex flex-wrap items-end gap-3">
                     <div>
-                        <label className="block text-sm font-medium mb-1" htmlFor="avatar-file">
+                        <label className="block mb-1" htmlFor="avatar-file">
                             {t('me.avatarChoose')}
                         </label>
                         <input
@@ -95,7 +95,7 @@ export default function AvatarPanel({
                             type="file"
                             name="avatar"
                             accept={AVATAR_ALLOWED_MIME.join(',')}
-                            className={CONTROL_FILE_BUTTON}
+                            className={`${CONTROL_FILE_BUTTON} w-full`}
                         />
                         {/* 【这句话把三条闸原原本本说出来】2MB、三种格式、会被裁成方的。
                             人在选文件【之前】就知道会被拒什么,比事后一句红字好。 */}

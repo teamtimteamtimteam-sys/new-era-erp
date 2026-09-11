@@ -32,7 +32,7 @@ export default function StatementsTable({ rows, empty }: { rows: StatementRow[];
         {
             key: 'code', header: t('bank.colCode'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/finance/bank/statements/${r.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/finance/bank/statements/${r.id}`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

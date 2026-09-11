@@ -30,13 +30,13 @@ export default async function NewSupplierPage() {
             <div className="mb-6">
                 <Link
                     href="/suppliers"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">{t('suppliers.newTitle')}</h1>
+            <h1 className="mb-6">{t('suppliers.newTitle')}</h1>
 
             <NewSupplierForm templates={templates} />
         </div>

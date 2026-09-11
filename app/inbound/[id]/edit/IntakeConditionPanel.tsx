@@ -66,7 +66,7 @@ export default function IntakeConditionPanel({
 
     return (
         <div className="mb-8">
-            <h2 className="text-sm font-medium text-gray-700 mb-2">{t('inbound.condition.title')}</h2>
+            <h2 className="mb-2">{t('inbound.condition.title')}</h2>
             {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('inbound.condition.needsEdit')}</p>}
             {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
 

@@ -75,7 +75,7 @@ export default function BulkPricesForm({
 
             <div className="flex flex-wrap gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('metalPrices.bulk.date')} <span className="text-red-600">*</span>
                     </label>
                     <input

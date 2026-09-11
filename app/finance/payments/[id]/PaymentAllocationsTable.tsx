@@ -53,7 +53,7 @@ export default function PaymentAllocationsTable({
             className: 'font-mono text-sm',
             render: (r) =>
                 r.docHref ? (
-                    <Link href={r.docHref} className="text-blue-600 hover:underline">
+                    <Link href={r.docHref} className="hover:underline app-link">
                         {r.docCode}
                     </Link>
                 ) : (

@@ -22,7 +22,7 @@ function Undecided({ title, note, colA, colB, rows, qtyLabel }: {
     }))
     return (
         <section className="mb-8">
-            <h2 className="font-medium mb-1">{title}</h2>
+            <h2 className="mb-1">{title}</h2>
             <p className="text-xs text-gray-500 mb-2">{note}</p>
             <UndecidedTable rows={tableRows} colA={colA} colB={colB} qtyLabel={qtyLabel} />
         </section>
@@ -66,7 +66,7 @@ export default async function ViolationsPage() {
             <p className="text-xs text-gray-500 mb-6">{t('reports.violations.countNote')}</p>
 
             <section className="mb-8">
-                <h2 className="font-medium mb-2">{t('reports.violations.sectionViolations')}</h2>
+                <h2 className="mb-2">{t('reports.violations.sectionViolations')}</h2>
                 <ViolationsTable rows={violationRows} empty={t('reports.violations.none')} />
             </section>
 

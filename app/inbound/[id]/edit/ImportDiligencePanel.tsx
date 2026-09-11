@@ -57,7 +57,7 @@ export default function ImportDiligencePanel({
 
     return (
         <div className="mb-8">
-            <h2 className="text-sm font-medium text-gray-700 mb-2">{t('inbound.importDiligence.title')}</h2>
+            <h2 className="mb-2">{t('inbound.importDiligence.title')}</h2>
             <div className="border border-gray-300 rounded p-3 max-w-2xl">
                 <p className="text-xs text-gray-600 mb-2">{t('inbound.importDiligence.what')}</p>
 
@@ -79,7 +79,7 @@ export default function ImportDiligencePanel({
                 <PermissionGate code="module.inbound.edit" allowed={canEdit}>
                     <div className="space-y-2">
                         <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="imp">
+                            <label className="block mb-1" htmlFor="imp">
                                 {t('inbound.importDiligence.fieldImported')}
                             </label>
                             <select id="imp" className={CONTROL_SELECT}
@@ -92,13 +92,13 @@ export default function ImportDiligencePanel({
                         {sel === 'yes' && (
                             <>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="ref">
+                                    <label className="block mb-1" htmlFor="ref">
                                         {t('inbound.importDiligence.fieldPermitRef')}
                                     </label>
                                     <input id="ref" className={`${CONTROL_INPUT} w-full`}
                                            value={ref} onChange={(e) => setRef(e.target.value)} />
                                 </div>
-                                <label className="flex items-center gap-2 text-sm">
+                                <label className="flex items-center gap-2">
                                     <input type="checkbox" className={CONTROL_CHECKBOX} checked={verified}
                                            onChange={(e) => setVerified(e.target.checked)} />
                                     {t('inbound.importDiligence.fieldVerified')}

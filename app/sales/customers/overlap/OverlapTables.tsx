@@ -40,7 +40,7 @@ export function ByTaxTable({ rows }: { rows: ByTaxRow[] }) {
             key: 'customer', header: t('overlap.colCustomer'), priority: true, className: 'text-sm',
             render: (r) => (
                 <>
-                    <Link href={`/sales/customers/${r.customerId}`} className="text-blue-600 hover:underline">
+                    <Link href={`/sales/customers/${r.customerId}`} className="hover:underline app-link">
                         {r.customerCode}
                     </Link>{' '}
                     · {r.customerName}
@@ -51,7 +51,7 @@ export function ByTaxTable({ rows }: { rows: ByTaxRow[] }) {
             key: 'supplier', header: t('overlap.colSupplier'), className: 'text-sm',
             render: (r) => (
                 <>
-                    <Link href={`/suppliers/${r.supplierId}/edit`} className="text-blue-600 hover:underline">
+                    <Link href={`/suppliers/${r.supplierId}/edit`} className="hover:underline app-link">
                         {r.supplierCode}
                     </Link>{' '}
                     · {r.supplierName}

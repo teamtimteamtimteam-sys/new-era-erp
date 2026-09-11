@@ -61,7 +61,7 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                 留空反而顺利滑进未关的月份】。留空严格地比填错更危险。
                 onBlur 与 onChange 双挂:自动填充/表单状态恢复会改 DOM 而不触发 change,
                 受控输入会显示着日期而状态仍是空串(走查里就是这个形状)。 */}
-            <label className="text-xs text-gray-600 block mb-4">
+            <label className="block mb-4">
                 {t('finance.payrollPay.date')} <span className="text-red-600">*</span>
                 <input type="date" value={date} required aria-invalid={date === ''}
                        onChange={(e) => setDate(e.target.value)} onBlur={(e) => setDate(e.target.value)}
@@ -108,7 +108,7 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
 
                 return (
                     <section key={p.id} className="rounded border border-gray-200 p-4 mb-4">
-                        <h3 className="font-bold mb-2">{p.code}
+                        <h3 className="mb-2">{p.code}
                             <span className="ml-2 text-xs text-gray-500 font-normal">{p.period_month.slice(0, 7)}</span>
                         </h3>
                         <div className="mb-3">

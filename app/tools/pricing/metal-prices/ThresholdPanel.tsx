@@ -44,7 +44,7 @@ export default function ThresholdPanel({
             {canEdit ? (
                 <form action={formAction} className="flex flex-wrap items-end gap-3">
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('metalPrices.settings.label')}
                         </label>
                         <input

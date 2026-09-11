@@ -28,7 +28,7 @@ export default function WipTable({ rows, empty }: { rows: WipRow[]; empty: React
         {
             key: 'batch', header: t('processing.wip.colBatch'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/output/${r.outputBatchId}/edit`} className="text-blue-600 hover:underline">
+                <Link href={`/output/${r.outputBatchId}/edit`} className="hover:underline app-link">
                     {r.batchCode}
                 </Link>
             ),

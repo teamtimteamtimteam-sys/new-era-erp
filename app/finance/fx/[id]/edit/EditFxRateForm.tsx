@@ -67,7 +67,7 @@ canEdit: boolean
 
                     <div className="mb-4">
 
-                        <label htmlFor="reason" className="block text-sm font-medium mb-1">
+                        <label htmlFor="reason" className="block mb-1">
 
                             {t('finance.fxPage.form.reason')}
 

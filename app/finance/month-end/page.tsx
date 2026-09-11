@@ -211,7 +211,7 @@ export default async function MonthEndPage({
                         <tr key={s.key} className={tableC.bodyRow}>
                             <td className={`${tableC.cell} w-8 text-gray-500`}>{i + 1}</td>
                             <td className={tableC.cell}>
-                                <Link href={s.href} className="text-blue-600 hover:underline">
+                                <Link href={s.href} className="hover:underline app-link">
                                     {t('finance.monthEnd.step_' + s.key)}
                                 </Link>
                             </td>

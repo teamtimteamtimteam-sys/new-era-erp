@@ -42,7 +42,7 @@ export default function DeletedTable({ rows, empty }: { rows: DeletedRow[]; empt
             render: (r) => (
                 <>
                     {r.href ? (
-                        <Link href={r.href} className="text-blue-600 hover:underline">{r.code}</Link>
+                        <Link href={r.href} className="hover:underline app-link">{r.code}</Link>
                     ) : (
                         r.code
                     )}
@@ -63,7 +63,7 @@ export default function DeletedTable({ rows, empty }: { rows: DeletedRow[]; empt
             key: 'ledger', header: t('deleted.colLedger'), className: 'text-xs',
             render: (r) =>
                 r.ledgerHref ? (
-                    <Link href={r.ledgerHref} className="text-blue-600 hover:underline">
+                    <Link href={r.ledgerHref} className="hover:underline app-link">
                         {t('deleted.ledgerLink')}
                     </Link>
                 ) : r.reversalIsTheRun ? (

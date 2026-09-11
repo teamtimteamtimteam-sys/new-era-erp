@@ -143,7 +143,7 @@ export default function LossPanel({
 
     return (
         <section className="mt-6">
-            <h2 className="text-lg font-semibold mb-1">{t('processing.loss.title')}</h2>
+            <h2 className="mb-1">{t('processing.loss.title')}</h2>
             <p className="text-sm text-gray-600 mb-3">{t('processing.loss.intro')}</p>
 
             <div className="text-sm mb-3 flex flex-wrap gap-x-6 gap-y-1">
@@ -173,7 +173,7 @@ export default function LossPanel({
             <PermissionGate code="module.processing.edit" allowed={canEdit}>
                 <form key={formKey} onSubmit={submit} className="mt-3 flex flex-wrap items-end gap-3">
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('processing.loss.colCategory')}</label>
+                        <label className="block mb-1">{t('processing.loss.colCategory')}</label>
                         <select name="loss_category_code" required defaultValue=""
                                 className={CONTROL_SELECT}>
                             <option value="" disabled>{t('processing.loss.pick')}</option>
@@ -183,12 +183,12 @@ export default function LossPanel({
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('processing.loss.colQty')}</label>
+                        <label className="block mb-1">{t('processing.loss.colQty')}</label>
                         <input name="quantity" type="number" step="any" min="0" required
                                className={`${CONTROL_INPUT} w-32`} />
                     </div>
                     <div className="flex-1 min-w-[12rem]">
-                        <label className="block text-sm font-medium mb-1">{t('processing.loss.colNotes')}</label>
+                        <label className="block mb-1">{t('processing.loss.colNotes')}</label>
                         <input name="notes" type="text"
                                className={`${CONTROL_INPUT} w-full`} />
                     </div>

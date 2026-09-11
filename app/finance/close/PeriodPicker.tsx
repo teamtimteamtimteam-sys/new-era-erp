@@ -19,7 +19,7 @@ export default function PeriodPicker({
     const router = useRouter()
 
     return (
-        <label className="text-sm text-gray-600">
+        <label className="">
             {t('finance.selectPeriod')}{' '}
             <select
                 value={selected}

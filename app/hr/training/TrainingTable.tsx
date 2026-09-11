@@ -35,7 +35,7 @@ export default function TrainingTable({ rows, empty }: { rows: TrainingRow[]; em
             key: 'employee', header: t('hr.colEmployee'), priority: true, className: 'text-sm',
             render: (r) =>
                 r.employeeId ? (
-                    <Link href={`/hr/employees/${r.employeeId}`} className="text-blue-600 hover:underline">
+                    <Link href={`/hr/employees/${r.employeeId}`} className="hover:underline app-link">
                         <span className="font-mono text-xs text-gray-500 mr-2">{r.employeeCode}</span>
                         {r.employeeName}
                     </Link>

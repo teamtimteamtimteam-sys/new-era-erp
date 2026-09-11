@@ -32,7 +32,7 @@ export default async function TasksPage() {
     if (error || derivedError) {
         return (
             <div className="p-8">
-                <h1 className="mb-4 text-2xl font-bold">{t('tasks.pageTitle')}</h1>
+                <h1 className="mb-4">{t('tasks.pageTitle')}</h1>
                 <div className="rounded border border-red-400 bg-red-100 px-4 py-3 text-red-700">
                     <p className="font-bold">{t('tasks.loadError')}</p>
                     <details className="mt-2">
@@ -57,7 +57,7 @@ export default async function TasksPage() {
 
     return (
         <div className="p-8">
-            <h1 className="mb-4 text-2xl font-bold">{t('tasks.pageTitle')}</h1>
+            <h1 className="mb-4">{t('tasks.pageTitle')}</h1>
             <TaskBoard tasks={merged} />
         </div>
     )

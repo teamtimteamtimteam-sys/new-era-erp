@@ -127,7 +127,7 @@ export default async function ProcessingDetailPage({
         const err = inputsRes.error ?? outputsRes.error
         return (
             <div className="p-8 max-w-3xl">
-                <h1 className="text-2xl font-bold mb-4">{t('processing.detailTitle')}</h1>
+                <h1 className="mb-4">{t('processing.detailTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('processing.detailLoadError')}</p>
                     <details className="mt-2">
@@ -396,7 +396,7 @@ export default async function ProcessingDetailPage({
         <ListPage
             maxWidth="max-w-3xl"
             breadcrumb={
-                <Link href="/operation/processing" className="text-blue-600 hover:underline text-sm">
+                <Link href="/operation/processing" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             }
@@ -435,7 +435,7 @@ export default async function ProcessingDetailPage({
                         label: t('processing.detail.workOrder'),
                         value: wo
                             ? <Link href={`/operation/orders/${wo.id}`}
-                                    className="text-blue-600 hover:underline font-mono">{wo.code}</Link>
+                                    className="hover:underline font-mono app-link app-link-inline">{wo.code}</Link>
                             : <span className="text-gray-500 italic">{t('processing.noWorkOrder')}</span>,
                     },
                     {
@@ -473,7 +473,7 @@ export default async function ProcessingDetailPage({
                     ☞ 守卫的是 wo 存不存在(记录的属性),画的是数据不是出口 —— §⑬-0c。 */}
                 {wo && varianceRows.length > 0 && (
                     <section>
-                        <h2 className="text-lg font-semibold mb-2">
+                        <h2 className="mb-2">
                             {t('processing.detail.varianceTitle', { code: wo.code })}
                         </h2>
                         <WoVarianceTable rows={varianceRows} />
@@ -495,7 +495,7 @@ export default async function ProcessingDetailPage({
                        而单层血缘就是上面那张投入表,画出来是重复不是补充。 */}
                 {lineage.some((l) => l.depth > 1) && (
                     <section>
-                        <h2 className="text-lg font-semibold mb-2">{t('processing.lineage.title')}</h2>
+                        <h2 className="mb-2">{t('processing.lineage.title')}</h2>
                         <LineageTable rows={lineageTableRows} />
                     </section>
                 )}
@@ -503,7 +503,7 @@ export default async function ProcessingDetailPage({
                 {/* 成本分摊(仅已提交单) */}
                 {isCommitted && (
                     <div className="mt-8 pt-8 border-t">
-                        <h2 className="text-xl font-bold mb-4">{t('processing.allocation.title')}</h2>
+                        <h2 className="mb-4">{t('processing.allocation.title')}</h2>
                         {/* 过期标记(FIN-24 起差额法):重跑把差额按处置拆 —— 在库→1220、
                             已售→5000 补 COGS、注销→5200,全记当期。已过账 COGS 不再是
                             不能重跑的理由;唯一的红 = 资本化分录被人工冲销(基线分道)。 */}
@@ -533,20 +533,20 @@ export default async function ProcessingDetailPage({
 
                 {/* 投入 —— 空态由表自己说(CONV-8 §⑤ 的推论),不再自己画一行 colSpan */}
                 <section>
-                    <h2 className="text-lg font-semibold mb-2">{t('processing.detail.inputsSectionHeader')}</h2>
+                    <h2 className="mb-2">{t('processing.detail.inputsSectionHeader')}</h2>
                     <InputsTable rows={inputRows} />
                 </section>
 
                 {/* 产出 */}
                 <section>
-                    <h2 className="text-lg font-semibold mb-2">{t('processing.detail.outputsSectionHeader')}</h2>
+                    <h2 className="mb-2">{t('processing.detail.outputsSectionHeader')}</h2>
                     <OutputsTable rows={outputRows} canViewPrices={showPrices} />
                 </section>
 
                 {/* 金属回收率(仅已提交单) */}
                 {isCommitted && (
                     <section>
-                        <h2 className="text-lg font-semibold mb-2">{t('processing.recovery.title')}</h2>
+                        <h2 className="mb-2">{t('processing.recovery.title')}</h2>
                         {!recoveryComputable && (
                             <p className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-3 text-sm">
                                 {t('processing.recovery.runNotComputable')}

@@ -203,13 +203,13 @@ export default async function CustomerStatusPage({
     return (
         <div className="p-8 max-w-3xl">
             <div className="mb-6">
-                <Link href="/sales/customers" className="text-blue-600 hover:underline text-sm">
+                <Link href="/sales/customers" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <h1 className="text-2xl font-bold">
+                <h1 className="">
                     {cust.legal_name}
                     <span className="ml-3 font-mono text-base text-gray-500">{cust.code}</span>
                 </h1>
@@ -231,7 +231,7 @@ export default async function CustomerStatusPage({
 
             {/* ── 信用仓位 ─────────────────────────────────────────────────── */}
             <section className="mb-8">
-                <h2 className="text-lg font-semibold mb-2">{t('customers.status.creditTitle')}</h2>
+                <h2 className="mb-2">{t('customers.status.creditTitle')}</h2>
                 {/* SO-3a:敞口从此包含【已开票未发货】的订单流发票 —— 面板显示的数
                     与开票/销售被拒时用的数【按构造是同一个】(都出自
                     customer_ar_exposure_base,它的第二项与应收账龄第二支读同一张
@@ -272,7 +272,7 @@ export default async function CustomerStatusPage({
 
             {/* ── 敞口由哪些单据构成 ───────────────────────────────────────── */}
             <section>
-                <h2 className="text-lg font-semibold mb-2">{t('customers.status.openTitle')}</h2>
+                <h2 className="mb-2">{t('customers.status.openTitle')}</h2>
                 {!canFinance ? (
                     // 看得见限额不等于看得见账 —— 整段受限,不是一张空表。
                     // ★ 这一支【留着】:它不是空态,是一句权限答复,两者不能合成一句。
@@ -324,7 +324,7 @@ export default async function CustomerStatusPage({
                 【为什么不挂在 canFinance 上】联系人属于客户主数据,
                 读得到这个客户的人就读得到他的联系人 —— 与对账单那一段不同。 */}
             <section className="mt-6">
-                <h2 className="text-lg font-semibold mb-1">{t('contacts.sectionTitle')}</h2>
+                <h2 className="mb-1">{t('contacts.sectionTitle')}</h2>
                 <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
                 <ContactsPanel permissionCode="module.customers.edit" customerId={id} rows={contacts} canEdit={canEditCustomer} />
             </section>

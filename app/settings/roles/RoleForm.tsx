@@ -80,7 +80,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
             {done && <p className="mb-3 text-sm text-green-700">{t('permissions.saved')}</p>}
 
             <div className="grid gap-4 md:grid-cols-2 mb-4">
-                <label className="text-sm">
+                <label className="">
                     {t('permissions.roleCode')}
                     <input
                         value={v.code}
@@ -94,7 +94,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                         {isNew ? t('permissions.codeHintNew') : t('permissions.codeHintLocked')}
                     </span>
                 </label>
-                <label className="text-sm">
+                <label className="">
                     {t('permissions.sortOrder')}
                     <input
                         type="number"
@@ -103,7 +103,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                         className={field}
                     />
                 </label>
-                <label className="text-sm">
+                <label className="">
                     {t('permissions.nameEn')}
                     <input
                         value={v.name_en}
@@ -111,7 +111,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                         className={field}
                     />
                 </label>
-                <label className="text-sm">
+                <label className="">
                     {t('permissions.nameZh')}
                     <input
                         value={v.name_zh}
@@ -119,7 +119,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                         className={field}
                     />
                 </label>
-                <label className="text-sm">
+                <label className="">
                     {t('permissions.descriptionEn')}
                     <input
                         value={v.description_en}
@@ -127,7 +127,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                         className={field}
                     />
                 </label>
-                <label className="text-sm">
+                <label className="">
                     {t('permissions.descriptionZh')}
                     <input
                         value={v.description_zh}
@@ -138,7 +138,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
             </div>
 
             {!isNew && (
-                <label className="flex items-center gap-2 text-sm mb-4">
+                <label className="flex items-center gap-2 mb-4">
                     <input
                         type="checkbox"
                         className={CONTROL_CHECKBOX}

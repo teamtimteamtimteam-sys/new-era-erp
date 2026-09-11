@@ -87,13 +87,13 @@ export default async function EditMaterialPage({
             <div className="mb-6">
                 <Link
                     href="/materials"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">{t('materials.editTitle')}</h1>
+            <h1 className="mb-2">{t('materials.editTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6">
                 <span className="font-mono">{material.code}</span>
                 <span className="mx-2">·</span>

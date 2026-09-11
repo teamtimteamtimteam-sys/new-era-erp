@@ -35,8 +35,8 @@ export default async function RatingScalePage() {
             notices={
                 <>
                     <div className="mb-4 flex items-baseline justify-between gap-2">
-                        <h2 className="text-xl font-bold">{t('reviews.scaleTitle')}</h2>
-                        <Link href="/hr/reviews" className="text-sm text-blue-600 hover:underline">
+                        <h2 className="">{t('reviews.scaleTitle')}</h2>
+                        <Link href="/hr/reviews" className="text-sm hover:underline app-link app-link-inline">
                             {t('common.back')}
                         </Link>
                     </div>

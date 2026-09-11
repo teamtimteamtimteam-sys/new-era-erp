@@ -65,7 +65,7 @@ export default function ContractLinkPanel({
 
     return (
         <div className="border border-gray-200 rounded p-4 mb-4">
-            <h2 className="font-semibold mb-2">{t('purchasing.contract.title')}</h2>
+            <h2 className="mb-2">{t('purchasing.contract.title')}</h2>
 
             {linkedCode ? (
                 <>
@@ -97,7 +97,7 @@ export default function ContractLinkPanel({
             ) : (
                 <form action={formAction} className="flex flex-wrap items-end gap-3">
                     <div>
-                        <label className="block text-xs text-gray-600 mb-1">
+                        <label className="block mb-1">
                             {t('purchasing.contract.choose')}
                         </label>
                         {/* 【清单只装【这家供应商的、生效中的买方合同】】—— 三条判据都在

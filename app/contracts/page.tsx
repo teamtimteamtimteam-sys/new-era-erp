@@ -240,7 +240,7 @@ export default async function ContractsPage() {
                 /* ★★ 覆盖率 —— 没有它,下面那句"没有违反"会撒谎 ★★
                    所以它【必须无条件出现】,包括一份合同都没有的时候。 */
                 <div className="border border-gray-300 rounded p-4 mb-6 max-w-4xl">
-                    <h2 className="font-medium mb-1">{t('contracts.coverageTitle')}</h2>
+                    <h2 className="mb-1">{t('contracts.coverageTitle')}</h2>
                     <p className="text-sm text-gray-800">
                         {t('contracts.coverageLine', {
                             poUnder: String(cov.purchase_orders_under_contract),
@@ -257,7 +257,7 @@ export default async function ContractsPage() {
         >
 
             {/* ── 违反 ─────────────────────────────────────────────────────── */}
-            <h2 className="text-lg font-semibold mb-1">{t('contracts.breachTitle')}</h2>
+            <h2 className="mb-1">{t('contracts.breachTitle')}</h2>
             <p className="text-xs text-gray-600 mb-2 max-w-4xl">{t('contracts.breachWhat')}</p>
             {breaches.length === 0 ? (
                 /* ★ 一个具名的缺席:是"没有违反"还是"没有可比的东西"?说出来 ★ */
@@ -271,7 +271,7 @@ export default async function ContractsPage() {
             )}
 
             {/* ── 合同清单 ─────────────────────────────────────────────────── */}
-            <h2 className="text-lg font-semibold mb-2">{t('contracts.listTitle')}</h2>
+            <h2 className="mb-2">{t('contracts.listTitle')}</h2>
             {contracts.length === 0 ? (
                 <p className="text-sm text-gray-600">{t('contracts.listNone')}</p>
             ) : (
@@ -280,20 +280,20 @@ export default async function ContractsPage() {
 
             {/* 【第 4 刀的交接点写在屏幕上,不只写在表注里】 */}
             {/* ════ PRICE-1:指数挂钩定价 ════════════════════════════════════════ */}
-            <h2 className="text-lg font-semibold mb-1 mt-8">{t('contracts.pricing.title')}</h2>
+            <h2 className="mb-1 mt-8">{t('contracts.pricing.title')}</h2>
             <p className="text-sm text-gray-700 max-w-4xl mb-3">{t('contracts.pricing.what')}</p>
 
             {/* ★★【本刀停在哪儿 —— 写在读者会遇见它的地方,不只在切次报告里】★★
                 「指数定价上线了」与「我们能按指数开票了」是两句不同的话,
                 而把前者读成后者的代价是有人去等一张永远不会自动出现的发票。 */}
             <div className="border border-amber-300 bg-amber-50 rounded p-4 mb-6 max-w-4xl">
-                <h3 className="font-medium mb-1">{t('contracts.pricing.builtTitle')}</h3>
+                <h3 className="mb-1">{t('contracts.pricing.builtTitle')}</h3>
                 <p className="text-sm text-gray-800">{t('contracts.pricing.canDo')}</p>
                 <p className="text-sm text-amber-900 mt-2 font-medium">{t('contracts.pricing.cannotDo')}</p>
             </div>
 
             {/* ── 开市日历:三种"算不出来"里的第一种 ──────────────────────── */}
-            <h3 className="font-medium mb-1">{t('contracts.pricing.calendarTitle')}</h3>
+            <h3 className="mb-1">{t('contracts.pricing.calendarTitle')}</h3>
             <p className="text-xs text-gray-600 mb-2 max-w-4xl">{t('contracts.pricing.calendarWhy')}</p>
             {calByIndex.size === 0 ? (
                 /* ★ 具名的缺席,不是一片空白 ★ 「日历是空的」与「那天没有报价」
@@ -315,7 +315,7 @@ export default async function ContractsPage() {
             )}
 
             {/* ── 标了指数的报价:第二种 ─────────────────────────────────── */}
-            <h3 className="font-medium mb-1">{t('contracts.pricing.quotesTitle')}</h3>
+            <h3 className="mb-1">{t('contracts.pricing.quotesTitle')}</h3>
             {quotesTagged === 0 ? (
                 <p className="text-sm text-amber-800 mb-4 max-w-4xl">{t('contracts.pricing.quotesNone')}</p>
             ) : (
@@ -325,12 +325,12 @@ export default async function ContractsPage() {
             )}
 
             {/* ── 冻结的时刻:挂接,不是下单 ─────────────────────────────── */}
-            <h3 className="font-medium mb-1">{t('contracts.pricing.frozenTitle')}</h3>
+            <h3 className="mb-1">{t('contracts.pricing.frozenTitle')}</h3>
             <p className="text-sm text-gray-800 mb-1 max-w-4xl">{t('contracts.pricing.frozenAtLinkTime')}</p>
             <p className="text-xs text-gray-600 mb-4 max-w-4xl">{t('contracts.pricing.noProvisional')}</p>
 
             {/* ── 按指数计价的合同 ──────────────────────────────────────── */}
-            <h3 className="font-medium mb-1">{t('contracts.pricing.termsTitle')}</h3>
+            <h3 className="mb-1">{t('contracts.pricing.termsTitle')}</h3>
             {pricingTerms.length === 0 ? (
                 <p className="text-sm text-gray-600 mb-4">{t('contracts.pricing.termsNone')}</p>
             ) : (
@@ -338,18 +338,18 @@ export default async function ContractsPage() {
             )}
 
             {/* ════ SETTLE-1:结算口径 ══════════════════════════════════════════ */}
-            <h2 className="text-lg font-semibold mb-1 mt-8">{t('contracts.settlement.title')}</h2>
+            <h2 className="mb-1 mt-8">{t('contracts.settlement.title')}</h2>
             <p className="text-sm text-gray-700 max-w-4xl mb-3">{t('contracts.settlement.what')}</p>
 
             {/* ★★【本刀【记】不【过账】—— 写在读者会遇见它的地方】★★ */}
             <div className="border border-amber-300 bg-amber-50 rounded p-4 mb-6 max-w-4xl">
-                <h3 className="font-medium mb-1">{t('contracts.settlement.builtTitle')}</h3>
+                <h3 className="mb-1">{t('contracts.settlement.builtTitle')}</h3>
                 <p className="text-sm text-gray-800">{t('contracts.settlement.canDo')}</p>
                 <p className="text-sm text-amber-900 mt-2 font-medium">{t('contracts.settlement.cannotDo')}</p>
             </div>
 
             {/* ── 写明了结算口径的合同 ───────────────────────────────────── */}
-            <h3 className="font-medium mb-1">{t('contracts.settlement.termsTitle')}</h3>
+            <h3 className="mb-1">{t('contracts.settlement.termsTitle')}</h3>
             {settleTerms.length === 0 ? (
                 /* ★ 具名的缺席 ★ 「还没有合同写明口径」与「口径写了但值没填」
                    是两件不同的事,下面表格里那两列说的是后者。 */
@@ -360,11 +360,11 @@ export default async function ContractsPage() {
             <p className="text-xs text-gray-600 mb-4 max-w-4xl">{t('contracts.settlement.splittingWhy')}</p>
 
             {/* ── 留样:一个【说出来的】未满足前提 ────────────────────────── */}
-            <h3 className="font-medium mb-1">{t('contracts.settlement.retentionTitle')}</h3>
+            <h3 className="mb-1">{t('contracts.settlement.retentionTitle')}</h3>
             <p className="text-sm text-gray-800 mb-4 max-w-4xl">{t('contracts.settlement.retentionWhy')}</p>
 
             {/* ── 已记录的结算 ──────────────────────────────────────────── */}
-            <h3 className="font-medium mb-1">{t('contracts.settlement.settlementsTitle')}</h3>
+            <h3 className="mb-1">{t('contracts.settlement.settlementsTitle')}</h3>
             {settlements.length === 0 ? (
                 <p className="text-sm text-gray-600 mb-4 max-w-4xl">{t('contracts.settlement.settlementsNone')}</p>
             ) : (

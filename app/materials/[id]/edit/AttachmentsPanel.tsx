@@ -209,7 +209,7 @@ export default function AttachmentsPanel({
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-xl font-bold mb-4">{t('materials.attachments.sectionTitle')}</h2>
+            <h2 className="mb-4">{t('materials.attachments.sectionTitle')}</h2>
 
             <div className="mb-6">
                 <DataTable
@@ -221,13 +221,13 @@ export default function AttachmentsPanel({
                 />
             </div>
 
-            <h3 className="text-lg font-semibold mb-3">{t('materials.attachments.addTitle')}</h3>
+            <h3 className="mb-3">{t('materials.attachments.addTitle')}</h3>
 
             {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
             <form key={formKey} action={handleUpload} className="space-y-3">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('materials.attachments.fileLabel')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -241,7 +241,7 @@ export default function AttachmentsPanel({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.attachments.category')}</label>
+                    <label className="block mb-1">{t('materials.attachments.category')}</label>
                     <select
                         name="doc_category"
                         defaultValue=""
@@ -257,7 +257,7 @@ export default function AttachmentsPanel({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.attachments.notes')}</label>
+                    <label className="block mb-1">{t('materials.attachments.notes')}</label>
                     <input
                         type="text"
                         name="notes"

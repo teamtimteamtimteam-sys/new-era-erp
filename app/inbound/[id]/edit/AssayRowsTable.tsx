@@ -57,7 +57,7 @@ export default function AssayRowsTable({
             render: (r) => (
                 <Link
                     href={`/inbound/${batchId}/assays/${r.id}`}
-                    className="text-blue-600 hover:underline"
+                    className="hover:underline app-link"
                 >
                     {r.code}
                 </Link>

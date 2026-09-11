@@ -25,7 +25,7 @@ export default function MarkReadButtons({ id }: { id?: string }) {
     }
 
     return (
-        <div className="shrink-0 text-right">
+        <div className="shrink-0 text-right tabular-nums">
             <Button variant="secondary" size="xs" className="text-xs"
                 type="button"
                 onClick={onClick}

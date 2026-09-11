@@ -86,7 +86,7 @@ export default function LandedCostPanel({
 
     return (
         <section className="mb-6 rounded border border-gray-200 p-4">
-            <h2 className="mb-1 text-base font-medium">{t('inbound.landedCost.title')}</h2>
+            <h2 className="mb-1">{t('inbound.landedCost.title')}</h2>
             {/* 说明这块面板在回答什么 —— 而不是让人从三个数字里猜 */}
             <p className="mb-3 text-xs text-gray-500">{t('inbound.landedCost.blurb')}</p>
 

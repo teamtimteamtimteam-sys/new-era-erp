@@ -69,7 +69,7 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
             priority: true,
             className: 'font-mono',
             render: (c) => (
-                <Link href={`/operation/processing/${c.runId}`} className="text-blue-600 hover:underline">
+                <Link href={`/operation/processing/${c.runId}`} className="hover:underline app-link">
                     {c.runCode}
                 </Link>
             ),
@@ -82,7 +82,7 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
             render: (c) => (
                 <>
                     <span className="text-gray-500 mr-1">{c.parentKindLabel}</span>
-                    <Link href={c.parentHref} className="font-mono text-blue-600 hover:underline">
+                    <Link href={c.parentHref} className="font-mono hover:underline app-link">
                         {c.parentCode}
                     </Link>
                 </>

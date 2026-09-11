@@ -374,7 +374,7 @@ canEdit: boolean
             {/* ── 头部 ── */}
             <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('purchasing.form.supplier')} <span className="text-red-600">*</span>
                     </label>
                     {/* LOG-1b:空名单不画空下拉 —— 说出它是哪一种空(货代那一侧另有一句)。 */}
@@ -411,7 +411,7 @@ canEdit: boolean
                     )}
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('purchasing.form.orderDate')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -424,7 +424,7 @@ canEdit: boolean
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('purchasing.form.expectedDelivery')}</label>
+                    <label className="block mb-1">{t('purchasing.form.expectedDelivery')}</label>
                     <input
                         type="date"
                         name="expected_delivery"
@@ -432,7 +432,7 @@ canEdit: boolean
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('purchasing.form.currency')}</label>
+                    <label className="block mb-1">{t('purchasing.form.currency')}</label>
                     <select
                         name="currency"
                         value={currency}
@@ -448,7 +448,7 @@ canEdit: boolean
                     <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('purchasing.form.incoterm')}</label>
+                    <label className="block mb-1">{t('purchasing.form.incoterm')}</label>
                     <input type="text" name="incoterm" className={`${CONTROL_INPUT} w-28`} />
                 </div>
                 {/* PUR-1:交货地点 —— 自由文本。【刻意不是储位下拉框】(Tim 裁定):
@@ -456,7 +456,7 @@ canEdit: boolean
                     的选择器会逼人在一份不适用的清单里凑一个最接近的答案 ——
                     而那个答案会被印在发给供应商的纸上。 */}
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">{t('purchasing.form.deliveryLocation')}</label>
+                    <label className="block mb-1">{t('purchasing.form.deliveryLocation')}</label>
                     <input type="text" name="delivery_location"
                         className={`${CONTROL_INPUT} w-full`} />
                     <p className="text-xs text-gray-500 mt-1">{t('purchasing.form.deliveryLocationHint')}</p>
@@ -464,17 +464,17 @@ canEdit: boolean
             </div>
             <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">{t('purchasing.form.notes')}</label>
+                    <label className="block mb-1">{t('purchasing.form.notes')}</label>
                     <input type="text" name="notes" className={`${CONTROL_INPUT} w-full`} />
                 </div>
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">{t('purchasing.form.termsText')}</label>
+                    <label className="block mb-1">{t('purchasing.form.termsText')}</label>
                     <input type="text" name="terms_text" className={`${CONTROL_INPUT} w-full`} />
                 </div>
             </div>
 
             {/* ── 明细行 ── */}
-            <h2 className="font-bold">{t('purchasing.form.lines')}</h2>
+            <h2 className="">{t('purchasing.form.lines')}</h2>
 
             {/* ── EQP-1c-b(P2):这张单订的是材料还是设备 ──────────────────────
                 【规矩在动手【之前】说,不在提交之后说】不混装是单据一级的规矩,
@@ -484,7 +484,7 @@ canEdit: boolean
             <div className="border border-gray-300 rounded p-3 bg-gray-50">
                 <div className="flex gap-6 items-center">
                     {ORDER_KINDS.map((k) => (
-                        <label key={k} className="flex items-center gap-2 text-sm">
+                        <label key={k} className="flex items-center gap-2">
                             <input
                                 className={CONTROL_RADIO}
                                 type="radio" name="order_kind" value={k}
@@ -512,7 +512,7 @@ canEdit: boolean
                     <div key={i} className="border border-gray-300 rounded p-3 space-y-2">
                         <div className="flex flex-wrap gap-3 items-end">
                             <div className="flex-1 min-w-[14rem]">
-                                <label className="block text-xs text-gray-600 mb-1">
+                                <label className="block mb-1">
                                     {isEquipment ? t('purchasing.colMachine') : t('purchasing.colMaterial')}{' '}
                                     <span className="text-red-600">*</span>
                                 </label>
@@ -549,7 +549,7 @@ canEdit: boolean
                                             CHECK 是 percentage > 0。"没有质保金"与"0% 质保金"
                                             是两个不同的事实,永远不许渲染成同一个样子。 */}
                                         <div className="mt-2 border-t border-gray-200 pt-2">
-                                            <label className="flex items-center gap-2 text-sm">
+                                            <label className="flex items-center gap-2">
                                                 <input
                                                     className={CONTROL_CHECKBOX}
                                                     type="checkbox"
@@ -609,7 +609,7 @@ canEdit: boolean
                                 一个能填、填了又被拒的框,浪费的是填它的那次动作。 */}
                             {isEquipment ? (
                                 <div>
-                                    <label className="block text-xs text-gray-600 mb-1">
+                                    <label className="block mb-1">
                                         {t('purchasing.colQuantity')} · {t('inbound.form.unit')}
                                     </label>
                                     {/* 显示的是【状态本身】,不是一段写死的文字 —— 见 emptyLine 的注释。 */}
@@ -621,7 +621,7 @@ canEdit: boolean
                             ) : (
                                 <>
                                     <div>
-                                        <label className="block text-xs text-gray-600 mb-1">
+                                        <label className="block mb-1">
                                             {t('purchasing.colQuantity')} <span className="text-red-600">*</span>
                                         </label>
                                         <DecimalInput
@@ -632,7 +632,7 @@ canEdit: boolean
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs text-gray-600 mb-1">{t('inbound.form.unit')}</label>
+                                        <label className="block mb-1">{t('inbound.form.unit')}</label>
                                         <input
                                             type="text"
                                             value={l.unit}
@@ -648,7 +648,7 @@ canEdit: boolean
                                 而这里的答案是【这个问题不适用】,不是"你现在不行"。 */}
                             {!isEquipment && (
                             <div className="min-w-[12rem]">
-                                <label className="block text-xs text-gray-600 mb-1">{t('purchasing.colFormula')}</label>
+                                <label className="block mb-1">{t('purchasing.colFormula')}</label>
                                 <select
                                     value={l.formula_id}
                                     onChange={(e) => patchLine(i, {
@@ -676,7 +676,7 @@ canEdit: boolean
                             </div>
                             )}
                             <div>
-                                <label className="block text-xs text-gray-600 mb-1">{t('purchasing.colUnitPrice')}</label>
+                                <label className="block mb-1">{t('purchasing.colUnitPrice')}</label>
                                 <DecimalInput
                                     value={l.est_price}
                                     onChange={(v) => patchLine(i, { est_price: v, priceComputed: false })}
@@ -694,7 +694,7 @@ canEdit: boolean
                                   (PO_LINE_PRICE_STATUS_CONFLICT),直连改库也逃不掉。 */}
                             {!isEquipment && (
                             <div>
-                                <label className="block text-xs text-gray-600 mb-1">{t('purchasing.form.priceStatus')}</label>
+                                <label className="block mb-1">{t('purchasing.form.priceStatus')}</label>
                                 <select
                                     value={l.price_status ?? ''}
                                     onChange={(e) => patchLine(i, { price_status: e.target.value as '' | 'fixed' | 'provisional' })}
@@ -755,7 +755,7 @@ canEdit: boolean
                             {l.assayOpen && (
                                 <div className="mt-2 flex flex-wrap gap-3">
                                     {substanceOptions.filter((s) => s.isActive).map((m) => (
-                                        <label key={m.value} className="flex items-center gap-1 text-sm">
+                                        <label key={m.value} className="flex items-center gap-1">
                                             <span className="w-8 text-gray-600">{t(m.labelKey)}</span>
                                             <DecimalInput
                                                 value={l.assay[m.value] ?? ''}
@@ -789,7 +789,7 @@ canEdit: boolean
                                     <button
                                         type="button"
                                         onClick={() => patchLine(i, { calcOpen: !l.calcOpen })}
-                                        className="ml-2 text-blue-600 hover:underline text-sm"
+                                        className="ml-2 hover:underline text-sm app-link"
                                     >
                                         {l.calcOpen ? '▾' : '▸'} {formatMoneyBare(l.calc.unit_price_usd_per_kg, '紧跟其后的 USD/kg')} USD/kg
                                         {l.calcFx && l.calcFx !== 1 && (
@@ -838,7 +838,7 @@ canEdit: boolean
 
             {/* ── 付款计划(可选)── */}
             <div className="flex items-center gap-4 pt-2">
-                <h2 className="font-bold">{t('purchasing.form.paymentTerms')}</h2>
+                <h2 className="">{t('purchasing.form.paymentTerms')}</h2>
                 <select
                     value={templateSel}
                     onChange={(e) => onApplyTemplate(e.target.value)}
@@ -872,7 +872,7 @@ canEdit: boolean
                             <th className="border border-gray-300 px-3 py-2 text-left w-10">{t('purchasing.colSeq')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colLabel')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colShare')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right">{t('purchasing.colAmount')}</th>
+                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right tabular-nums">{t('purchasing.colAmount')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colTrigger')}</th>
                             <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left w-16" />
                         </tr>
@@ -906,7 +906,7 @@ canEdit: boolean
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2">
                                     <div className="flex items-center gap-2">
-                                        <label className="flex items-center gap-1 text-sm">
+                                        <label className="flex items-center gap-1">
                                             <input
                                                 className={CONTROL_RADIO}
                                                 type="radio"
@@ -915,7 +915,7 @@ canEdit: boolean
                                             />
                                             {t('purchasing.form.modePct')}
                                         </label>
-                                        <label className="flex items-center gap-1 text-sm">
+                                        <label className="flex items-center gap-1">
                                             <input
                                                 className={CONTROL_RADIO}
                                                 type="radio"

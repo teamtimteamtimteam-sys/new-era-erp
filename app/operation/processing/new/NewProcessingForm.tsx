@@ -258,13 +258,13 @@ export default function NewProcessingForm({
             <div className="mb-6">
                 <Link
                     href="/operation/processing"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">{t('processing.newTitle')}</h1>
+            <h1 className="mb-6">{t('processing.newTitle')}</h1>
 
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -277,7 +277,7 @@ export default function NewProcessingForm({
                     它直接决定每个产出批次的报告毛利:同一张单按重量与按金属价值分摊,
                     单位成本可以差出一倍以上(FIN-25 量过 62.50 对 27.50)。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('processing.form.basisLabel')}
                     </label>
                     <select
@@ -298,7 +298,7 @@ export default function NewProcessingForm({
                     错答案比留空坏得多(与 restricted-is-not-zero 同一条)。
                     挑批次是开工那天的决定,这里只问"这次算在哪张计划上"。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('processing.form.workOrderLabel')}
                     </label>
                     <select
@@ -319,7 +319,7 @@ export default function NewProcessingForm({
                 {/* 加工日期 —— 必填(决定分录期间)。预填今天是【便利】不是默认值:
                     记录加工的通常就是当天开工的人;清空则禁钮并在按钮旁点名。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('processing.form.dateLabel')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -335,7 +335,7 @@ export default function NewProcessingForm({
                 {/* PROC-WIRE-1B-i:这一炉跑哪一道工序 —— 它决定收什么料、产不产批,
                     以及那道【起火】闸受理哪些安全状态。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('processing.form.operationLabel')} <span className="text-red-600">*</span>
                     </label>
                     <select
@@ -370,7 +370,7 @@ export default function NewProcessingForm({
                 {/* 投入 */}
                 <section className="border border-gray-200 rounded p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="font-semibold">{t('processing.form.inputsSectionHeader')}</h2>
+                        <h2 className="">{t('processing.form.inputsSectionHeader')}</h2>
                         <Button
                             variant="link"
                             size="inline"
@@ -474,7 +474,7 @@ export default function NewProcessingForm({
                 {producesOutputs && (
                 <section className="border border-gray-200 rounded p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                        <h2 className="font-semibold">{t('processing.form.outputsSectionHeader')}</h2>
+                        <h2 className="">{t('processing.form.outputsSectionHeader')}</h2>
                         <Button
                             variant="link"
                             size="inline"
@@ -586,7 +586,7 @@ export default function NewProcessingForm({
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('processing.form.notesLabel')}</label>
+                    <label className="block mb-1">{t('processing.form.notesLabel')}</label>
                     <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}

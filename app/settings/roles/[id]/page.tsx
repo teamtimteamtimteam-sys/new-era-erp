@@ -45,18 +45,18 @@ export default async function RoleDetailPage({
                 下面 PermissionMatrix 自己那个 <h2>「Permissions」是对的 ——
                 那一段【真的】在编授权;错的是顶上这一句,它此前把整屏
                 命名成了它其中一段的名字。 */}
-            <h1 className="text-2xl font-bold mb-4">{t('permissions.roleTitle')}</h1>
+            <h1 className="mb-4">{t('permissions.roleTitle')}</h1>
 
             <div className="mb-4">
                 <Link
                     href="/settings/roles"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h2 className="text-xl font-bold mb-4">
+            <h2 className="mb-4">
                 {role.name_en}
                 <span className="ml-3 font-mono text-sm text-gray-500">{role.code}</span>
             </h2>

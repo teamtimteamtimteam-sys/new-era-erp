@@ -32,7 +32,7 @@ export default function ExpensesTable({ rows, empty }: { rows: ExpenseRow[]; emp
         {
             key: 'code', header: t('expense.colCode'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/finance/expenses/${r.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/finance/expenses/${r.id}`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

@@ -135,7 +135,7 @@ export default async function ShipmentDetailPage({
                 /* 【回到订单】发货单永远属于一张订单,所以这条链接总是有意义的 */
                 order ? (
                     <p className="text-sm mb-4">
-                        <Link href={`/sales/orders/${order.id}`} className="text-blue-600 hover:underline">
+                        <Link href={`/sales/orders/${order.id}`} className="hover:underline app-link">
                             {t('sales.shipDetail.backToOrder', { code: order.code })}
                         </Link>
                     </p>
@@ -165,7 +165,7 @@ export default async function ShipmentDetailPage({
                             label: t('logistics.containerOf'),
                             value: (
                                 <Link href={`/logistics/containers/${head.containers.id}`}
-                                    className="font-mono text-blue-700 hover:underline">
+                                    className="font-mono hover:underline app-link app-link-inline">
                                     {head.containers.code}
                                 </Link>
                             ),
@@ -183,13 +183,13 @@ export default async function ShipmentDetailPage({
             </p>
 
             {/* ── 行 ───────────────────────────────────────────────────────── */}
-            <h2 className="font-medium mb-2">{t('sales.shipDetail.linesTitle')}</h2>
+            <h2 className="mb-2">{t('sales.shipDetail.linesTitle')}</h2>
             <div className="mb-6">
                 <ShipmentLinesTable rows={tableRows} />
             </div>
 
             {/* ── 送货单:签发 ─────────────────────────────────────────────── */}
-            <h2 className="font-medium mb-2">{t('sales.shipDetail.issuesTitle')}</h2>
+            <h2 className="mb-2">{t('sales.shipDetail.issuesTitle')}</h2>
             <p className="text-xs text-gray-500 mb-2">{t('sales.shipDetail.issuesNote')}</p>
             {/* EXT-1:与另外五个单据【同一个公共件】。
                 一张没有行的发货单不给签发 —— 发出去的会是一张没有内容的送货单。
@@ -213,7 +213,7 @@ export default async function ShipmentDetailPage({
                                 href={`/sales/shipments/${head.id}/pdf?version=${iss.version}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
+                                className="hover:underline app-link app-link-inline"
                             >
                                 v{iss.version}
                             </a>

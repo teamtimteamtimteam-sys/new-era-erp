@@ -38,9 +38,9 @@ export default function NewOrderForm({
     return (
         <div className="p-8 max-w-3xl">
             <div className="mb-6">
-                <Link href="/sales/orders" className="text-blue-600 hover:underline text-sm">{t('common.back')}</Link>
+                <Link href="/sales/orders" className="hover:underline text-sm app-link">{t('common.back')}</Link>
             </div>
-            <h1 className="text-2xl font-bold mb-6">{t('sales.newTitle')}</h1>
+            <h1 className="mb-6">{t('sales.newTitle')}</h1>
 
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">{state.error}</div>
@@ -49,7 +49,7 @@ export default function NewOrderForm({
             <form action={formAction} className="space-y-4">
                 {/* 客户(必填)—— 订单的主语 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('sales.form.customer')} <span className="text-red-600">*</span>
                     </label>
                     <select name="customer_id" value={customerId} onChange={(e) => setCustomerId(e.target.value)}
@@ -90,7 +90,7 @@ export default function NewOrderForm({
 
                 {/* 订单日 —— 物理事件日,永不默认 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('sales.form.orderDate')} <span className="text-red-600">*</span>
                     </label>
                     <input type="date" name="order_date" value={orderDate}
@@ -104,13 +104,13 @@ export default function NewOrderForm({
 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('sales.form.currency')} <span className="text-red-600">*</span></label>
+                        <label className="block mb-1">{t('sales.form.currency')} <span className="text-red-600">*</span></label>
                         <select name="currency" required className={`${CONTROL_SELECT} w-full`}>
                             {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('sales.form.fxRate')} <span className="text-red-600">*</span></label>
+                        <label className="block mb-1">{t('sales.form.fxRate')} <span className="text-red-600">*</span></label>
                         <input type="number" step="any" min="0" name="fx_rate" required
                                className={`${CONTROL_INPUT} w-full`} />
                         {state.fieldErrors?.fx_rate && (
@@ -123,7 +123,7 @@ export default function NewOrderForm({
 
                 {/* 行 */}
                 <div>
-                    <label className="block text-sm font-medium mb-2">{t('sales.form.lines')}</label>
+                    <label className="block mb-2">{t('sales.form.lines')}</label>
                     {state.fieldErrors?.lines && (
                         <p className="text-red-600 text-xs mb-2">{state.fieldErrors.lines}</p>
                     )}
@@ -145,7 +145,7 @@ export default function NewOrderForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('sales.form.notes')}</label>
+                    <label className="block mb-1">{t('sales.form.notes')}</label>
                     <textarea name="notes" className={`${CONTROL_TEXTAREA} w-full`} />
                 </div>
 

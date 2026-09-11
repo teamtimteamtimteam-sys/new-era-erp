@@ -86,7 +86,7 @@ export default async function SnapshotPage() {
                 ) : (
                     groups.map(([key, g]) => (
                         <section key={key} className="mb-8">
-                            <h2 className="font-medium mb-2">
+                            <h2 className="mb-2">
                                 {g.code ? `${g.code} — ${g.name ?? ''}` : t('reports.unspecifiedLocation')}
                             </h2>
                             {!g.code && (
@@ -110,7 +110,7 @@ export default async function SnapshotPage() {
 
                 {/* ── C 节:库龄。档位定义在 DB 的 aging_bucket,这里只翻译 ── */}
                 <section className="mb-8">
-                    <h2 className="font-medium mb-2">{t('reports.snapshot.ageingTitle')}</h2>
+                    <h2 className="mb-2">{t('reports.snapshot.ageingTitle')}</h2>
                     <p className="text-xs text-gray-500 mb-2">{t('reports.snapshot.ageingNote')}</p>
                     <AgeingTable
                         rows={v.ageing.map((a): AgeingRow => ({
@@ -125,7 +125,7 @@ export default async function SnapshotPage() {
 
                 {/* ── 产出侧:三种状态必须长得不一样(R6) ────────────────── */}
                 <section className="mb-8">
-                    <h2 className="font-medium mb-2">{t('reports.snapshot.producedTitle')}</h2>
+                    <h2 className="mb-2">{t('reports.snapshot.producedTitle')}</h2>
                     <p className="text-xs text-gray-500 mb-2">
                         {t('reports.snapshot.producedNote', {
                             n: String(v.produced.never_costed_batches),
@@ -150,7 +150,7 @@ export default async function SnapshotPage() {
 
                 {/* ── 这张报表看不见什么 —— 逐条具名 ─────────────────────── */}
                 <section className="mb-4">
-                    <h2 className="font-medium mb-2">{t('reports.snapshot.cannotSeeTitle')}</h2>
+                    <h2 className="mb-2">{t('reports.snapshot.cannotSeeTitle')}</h2>
                     <ul className="list-disc pl-6 text-xs text-gray-600 space-y-1">
                         {Object.entries(v.cannotSee).map(([k, val]) => (
                             <li key={k}>

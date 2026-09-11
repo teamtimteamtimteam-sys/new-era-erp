@@ -82,7 +82,7 @@ export default async function ReconcilePage({
     if (previewRes.error) {
         return (
             <div className="p-8 max-w-[110rem]">
-                <h1 className="text-2xl font-bold mb-4">{t('bank.title')}</h1>
+                <h1 className="mb-4">{t('bank.title')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('bank.balancePanel.loadError')}</p>
                     <details className="mt-2">
@@ -141,7 +141,7 @@ export default async function ReconcilePage({
 
     return (
         <div className="p-8 max-w-[110rem]">
-            <h1 className="text-2xl font-bold mb-4">{t('bank.title')}</h1>
+            <h1 className="mb-4">{t('bank.title')}</h1>
             <ReconcileWorkspace canEdit={canEditGate}
                 statement={{
                     id: stmt.id,

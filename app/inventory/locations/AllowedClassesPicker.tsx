@@ -28,12 +28,12 @@ export default function AllowedClassesPicker({
 
     return (
         <div>
-            <label className="block text-sm font-medium mb-1">{t('locations.form.allowedClasses')}</label>
+            <label className="block mb-1">{t('locations.form.allowedClasses')}</label>
             <p className="text-xs text-gray-500 mb-2">{t('locations.form.allowedClassesHint')}</p>
 
             <div className="space-y-2">
                 {classes.map((c) => (
-                    <label key={c.code} className="flex items-center gap-2 text-sm">
+                    <label key={c.code} className="flex items-center gap-2">
                         <input
                             type="checkbox"
                             className={CONTROL_CHECKBOX}

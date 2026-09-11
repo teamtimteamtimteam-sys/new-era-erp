@@ -45,7 +45,7 @@ export default async function BankHomePage() {
     if (error) {
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">{t('bank.title')}</h1>
+                <h1 className="mb-4">{t('bank.title')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('finance.loadError')}</p>
                     <details className="mt-2">
@@ -92,7 +92,7 @@ export default async function BankHomePage() {
                   也是同一课:**照内边距推方向会推反。**
                 这一页在本刀之前就已经要左右拖(39px),现在让它在窄屏换行。 */}
             <div className="flex flex-wrap justify-between items-center gap-2 mb-4">
-                <h1 className="text-2xl font-bold">{t('bank.title')}</h1>
+                <h1 className="">{t('bank.title')}</h1>
                 <div className="flex gap-3">
                     <Button asChild variant="outline">
                         <Link
@@ -112,7 +112,7 @@ export default async function BankHomePage() {
             <div className="grid gap-4 md:grid-cols-2 mb-6">
                 {rows.map((r) => (
                     <div key={r.account_code} className="border border-gray-300 rounded p-4">
-                        <h2 className="font-bold mb-3">
+                        <h2 className="mb-3">
                             <span className="font-mono">{r.account_code}</span>{' '}
                             {t('finance.bank.' + r.account_code)}
                             <span className="ml-2 text-sm text-gray-500">{r.currency}</span>
@@ -188,7 +188,7 @@ export default async function BankHomePage() {
                                             <li key={s.id} className="flex justify-between gap-3">
                                                 <Link
                                                     href={`/finance/bank/statements/${s.id}/reconcile`}
-                                                    className="text-blue-600 hover:underline font-mono"
+                                                    className="hover:underline font-mono app-link app-link-inline"
                                                 >
                                                     {s.code}
                                                 </Link>

@@ -28,12 +28,12 @@ export default async function NewLeavePage() {
 
     return (
         <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
+            <h1 className="mb-4">{t('hr.title')}</h1>
             <LeaveSubnav />
             <div className="mb-4">
-                <Link href="/hr/leave" className="text-blue-600 hover:underline text-sm">{t('common.back')}</Link>
+                <Link href="/hr/leave" className="hover:underline text-sm app-link">{t('common.back')}</Link>
             </div>
-            <h2 className="text-xl font-bold mb-4">{t('leave.recordLeave')}</h2>
+            <h2 className="mb-4">{t('leave.recordLeave')}</h2>
             <LeaveForm
                 types={(mustRows(typeRes)) as LeaveTypeOption[]}
                 employees={(mustRows(empRes)) as EmployeeOption[]}

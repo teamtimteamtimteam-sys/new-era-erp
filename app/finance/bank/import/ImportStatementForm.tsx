@@ -189,7 +189,7 @@ canEdit: boolean
             {/* (a) 账户 + 映射档 */}
             <div className="flex flex-wrap gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('bank.bankAccount')} <span className="text-red-600">*</span>
                     </label>
                     <select
@@ -203,7 +203,7 @@ canEdit: boolean
                     </select>
                 </div>
                 <div className="min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">{t('bank.profile')}</label>
+                    <label className="block mb-1">{t('bank.profile')}</label>
                     <select
                         value={profileId}
                         onChange={(e) => onProfileChange(e.target.value)}
@@ -219,7 +219,7 @@ canEdit: boolean
                 </div>
                 {/* (b) 文件 */}
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('bank.file')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -242,17 +242,17 @@ canEdit: boolean
                 <div className="border border-gray-300 rounded p-4 space-y-4">
                     <div className="grid gap-4 md:grid-cols-3">
                         <div>
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('bank.dateColumn')} <span className="text-red-600">*</span>
                             </label>
                             {columnSelect(mapping.date_column, (v) => setM({ date_column: v }))}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('bank.descriptionColumn')}</label>
+                            <label className="block mb-1">{t('bank.descriptionColumn')}</label>
                             {columnSelect(mapping.description_column, (v) => setM({ description_column: v }))}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('bank.referenceColumn')}</label>
+                            <label className="block mb-1">{t('bank.referenceColumn')}</label>
                             {columnSelect(mapping.reference_column, (v) => setM({ reference_column: v }), {
                                 allowNone: true,
                             })}
@@ -261,7 +261,7 @@ canEdit: boolean
 
                     <div>
                         <span className="block text-sm font-medium mb-1">{t('bank.amountMode')}</span>
-                        <label className="mr-4 text-sm">
+                        <label className="mr-4">
                             <input
                                 type="radio"
                                 checked={mapping.amount_mode === 'single'}
@@ -270,7 +270,7 @@ canEdit: boolean
                             />
                             {t('bank.amountModeSingle')}
                         </label>
-                        <label className="text-sm">
+                        <label className="">
                             <input
                                 type="radio"
                                 checked={mapping.amount_mode === 'debit_credit'}
@@ -284,14 +284,14 @@ canEdit: boolean
                     {mapping.amount_mode === 'single' ? (
                         <div className="grid gap-4 md:grid-cols-2">
                             <div>
-                                <label className="block text-sm font-medium mb-1">
+                                <label className="block mb-1">
                                     {t('bank.amountColumn')} <span className="text-red-600">*</span>
                                 </label>
                                 {columnSelect(mapping.amount_column, (v) => setM({ amount_column: v }))}
                             </div>
                             <div>
                                 <span className="block text-sm font-medium mb-1">{t('bank.amountMode')}</span>
-                                <label className="mr-4 text-sm">
+                                <label className="mr-4">
                                     <input
                                         type="radio"
                                         checked={mapping.sign_convention === 'positive_in'}
@@ -300,7 +300,7 @@ canEdit: boolean
                                     />
                                     {t('bank.signPositiveIn')}
                                 </label>
-                                <label className="text-sm">
+                                <label className="">
                                     <input
                                         type="radio"
                                         checked={mapping.sign_convention === 'positive_out'}
@@ -315,11 +315,11 @@ canEdit: boolean
                         <div className="grid gap-4 md:grid-cols-2">
                             {/* 银行视角:Debit = 取款(钱出),Credit = 存款(钱进)*/}
                             <div>
-                                <label className="block text-sm font-medium mb-1">{t('bank.debitColumn')}</label>
+                                <label className="block mb-1">{t('bank.debitColumn')}</label>
                                 {columnSelect(mapping.debit_column, (v) => setM({ debit_column: v }))}
                             </div>
                             <div>
-                                <label className="block text-sm font-medium mb-1">{t('bank.creditColumn')}</label>
+                                <label className="block mb-1">{t('bank.creditColumn')}</label>
                                 {columnSelect(mapping.credit_column, (v) => setM({ credit_column: v }))}
                             </div>
                             <p className="md:col-span-2 text-xs text-gray-500">{t('bank.debitCreditHint')}</p>
@@ -328,7 +328,7 @@ canEdit: boolean
 
                     <div className="grid gap-4 md:grid-cols-3">
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('bank.dateFormat')}</label>
+                            <label className="block mb-1">{t('bank.dateFormat')}</label>
                             <select
                                 value={mapping.date_format}
                                 onChange={(e) => setM({ date_format: e.target.value })}
@@ -342,7 +342,7 @@ canEdit: boolean
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('bank.decimalSeparator')}</label>
+                            <label className="block mb-1">{t('bank.decimalSeparator')}</label>
                             <select
                                 value={mapping.decimal_separator}
                                 onChange={(e) =>
@@ -355,7 +355,7 @@ canEdit: boolean
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('bank.thousandsSeparator')}</label>
+                            <label className="block mb-1">{t('bank.thousandsSeparator')}</label>
                             <select
                                 value={mapping.thousands_separator}
                                 onChange={(e) =>
@@ -376,7 +376,7 @@ canEdit: boolean
             {/* (d) 预览 */}
             {csvRows.length > 0 && (
                 <div>
-                    <h2 className="text-lg font-semibold mb-2">{t('bank.preview')}</h2>
+                    <h2 className="mb-2">{t('bank.preview')}</h2>
                     <p className="text-sm text-gray-600 mb-2">
                         {t('bank.parsedSummary', {
                             ok: parsed.rows.length,
@@ -427,7 +427,7 @@ canEdit: boolean
             {/* (e) 期间 + 期初期末 + 余额校验 */}
             <div className="flex flex-wrap gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('bank.periodStart')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -441,7 +441,7 @@ canEdit: boolean
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('bank.periodEnd')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -455,7 +455,7 @@ canEdit: boolean
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('bank.openingBalance')} <span className="text-red-600">*</span>
                     </label>
                     {/* 银行余额可以是负数(透支),故 allowNegative */}
@@ -469,7 +469,7 @@ canEdit: boolean
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('bank.enteredClosing')} <span className="text-red-600">*</span>
                     </label>
                     <DecimalInput
@@ -498,7 +498,7 @@ canEdit: boolean
 
             {/* (f) 保存映射 */}
             <div className="flex flex-wrap items-end gap-4">
-                <label className="text-sm">
+                <label className="">
                     <input
                         type="checkbox"
                         name="save_mapping"
@@ -510,7 +510,7 @@ canEdit: boolean
                 </label>
                 {saveMapping && (
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('bank.mappingName')} <span className="text-red-600">*</span>
                         </label>
                         <input

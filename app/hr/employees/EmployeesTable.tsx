@@ -45,7 +45,7 @@ export default function EmployeesTable({ rows, empty }: { rows: EmployeeRow[]; e
             key: 'code', header: t('hr.colCode'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
                 <>
-                    <Link href={`/hr/employees/${r.employeeId}`} className="text-blue-600 hover:underline">
+                    <Link href={`/hr/employees/${r.employeeId}`} className="hover:underline app-link">
                         {r.code}
                     </Link>
                     {r.workPassAlert && (

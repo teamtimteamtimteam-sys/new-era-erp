@@ -57,7 +57,7 @@ export default function DecideControls({
                 </div>
             )}
 
-            <label className="block text-sm mb-3">
+            <label className="block mb-3">
                 {t('leave.decisionNotes')}
                 <input
                     value={notes}

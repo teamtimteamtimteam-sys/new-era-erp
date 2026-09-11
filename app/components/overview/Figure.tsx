@@ -86,7 +86,7 @@ export default async function Figure({
             className="rounded-[var(--brand-radius)] border p-4 mb-4"
             style={{ borderColor: 'var(--brand-border)', background: 'var(--brand-surface)' }}
         >
-            <h2 className="text-base font-semibold mb-2" style={{ color: 'var(--brand-text)' }}>
+            <h2 className="mb-2" style={{ color: 'var(--brand-text)' }}>
                 {title}
             </h2>
 

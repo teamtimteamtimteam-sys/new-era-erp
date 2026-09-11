@@ -93,7 +93,7 @@ export default function StatementPanel({
             render: (x) => (
                 <>
                     <Link href={`/finance/statements/${x.id}/pdf`}
-                        className="text-blue-600 hover:underline">{x.code}</Link>
+                        className="hover:underline app-link">{x.code}</Link>
                     {x.superseded_at && (
                         <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] bg-gray-200 text-gray-700">
                             {t('statements.superseded')}
@@ -118,7 +118,7 @@ export default function StatementPanel({
 
     return (
         <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-2">{t('statements.sectionTitle')}</h2>
+            <h2 className="mb-2">{t('statements.sectionTitle')}</h2>
             <p className="text-xs text-gray-500 mb-3">{t('statements.sectionHint')}</p>
 
             {error && (
@@ -128,12 +128,12 @@ export default function StatementPanel({
             )}
 
             <div className="flex flex-wrap items-end gap-3 mb-3">
-                <label className="text-sm text-gray-600">
+                <label className="">
                     {t('statements.from')}
                     <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
                         className={`${CONTROL_INPUT} block`} />
                 </label>
-                <label className="text-sm text-gray-600">
+                <label className="">
                     {t('statements.to')}
                     <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
                         className={`${CONTROL_INPUT} block`} />
@@ -193,7 +193,7 @@ export default function StatementPanel({
             {preview?.ties && (
                 <PermissionGate code="module.finance.edit" allowed={canIssue} className="mb-4 flex w-full items-stretch">
                 <div className="flex flex-wrap items-end gap-3 mb-4">
-                    <label className="text-sm text-gray-600">
+                    <label className="">
                         {t('statements.supersedeReason')}
                         <input value={reason} onChange={(e) => setReason(e.target.value)}
                             placeholder={t('statements.supersedeReasonHint')}
@@ -207,7 +207,7 @@ export default function StatementPanel({
                 </PermissionGate>
             )}
 
-            <h3 className="text-sm font-semibold mb-1">{t('statements.issuedTitle')}</h3>
+            <h3 className="mb-1">{t('statements.issuedTitle')}</h3>
             <DataTable
                 rows={issued}
                 columns={columns}

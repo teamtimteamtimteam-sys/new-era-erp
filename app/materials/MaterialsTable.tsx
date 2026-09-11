@@ -60,7 +60,7 @@ export default function MaterialsTable({
         {
             key: 'code', header: t('materials.colCode'), priority: true, sortable: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/materials/${r.id}/edit`} className="text-blue-600 hover:underline">
+                <Link href={`/materials/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

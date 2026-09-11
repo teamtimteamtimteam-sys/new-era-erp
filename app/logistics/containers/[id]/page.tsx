@@ -91,9 +91,9 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
     return (
         <div className="p-8">
             <div className="mb-4">
-                <Link href="/logistics/containers" className="text-blue-600 hover:underline text-sm">{t('common.back')}</Link>
+                <Link href="/logistics/containers" className="hover:underline text-sm app-link">{t('common.back')}</Link>
             </div>
-            <h1 className="text-2xl font-bold mb-1 font-mono">{head.data.code}</h1>
+            <h1 className="mb-1 font-mono">{head.data.code}</h1>
             <p className="mb-4 text-sm text-gray-500">
                 {t('logistics.colDeparture')}: {head.data.departure_date}
             </p>

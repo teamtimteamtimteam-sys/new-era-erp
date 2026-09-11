@@ -94,7 +94,16 @@ const buttonVariants = cva(
         //    唯一用到 --brand-warning-* 的地方(闲置超时对话框)。出处见 brand-tokens.css。
         warning:
           "bg-warning text-warning-foreground hover:bg-warning-hover active:bg-warning-active focus-visible:border-warning focus-visible:ring-warning/30",
-        link: "text-primary underline-offset-4 hover:underline",
+        // ★★ FONT-1(2026-09-11, Tim 的裁定 Q16):`link` 档换成链接那一个 token ★★
+        //   它此前是 `text-primary` = --brand-ocean-fill #007FAD ——
+        //   **在页面底色上 4.25:1,过不了 AA**(而它取代的 text-blue-600 是 4.94)。
+        //   forward-queue 第七节早就为这一处写过判词:
+        //   「**那是一次【降低】对比度的替换**…另出一个【当字色用】的档」。
+        //   现在那一档有了:--brand-ocean-text #00709D,on --brand-bg **5.18:1** ✓
+        //   ★ **44 个调用点**,它们是全系统唯一一处【已经】用着品牌蓝的链接;
+        //     不跟,这一刀落地之后屏幕上会有【两种】品牌蓝链接。
+        //   ★ button.tsx 里除了这一行,一个字节都没有动。
+        link: "text-[color:var(--brand-ocean-text)] underline-offset-4 hover:underline",
       },
       size: {
         default:

@@ -60,7 +60,7 @@ export default function ShipControl({
             {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
             <div className="flex flex-wrap items-end gap-2">
                 <div className="min-w-[18rem]">
-                    <label className="block text-xs text-gray-600 mb-1">{t('sales.ship.reservationLabel')}</label>
+                    <label className="block mb-1">{t('sales.ship.reservationLabel')}</label>
                     <select value={pick} onChange={(e) => setPick(e.target.value)}
                             className={`${CONTROL_SELECT} w-full`}>
                         <option value="">{t('sales.ship.pickReservation')}</option>
@@ -70,7 +70,7 @@ export default function ShipControl({
                     </select>
                 </div>
                 <div className="w-36">
-                    <label className="block text-xs text-gray-600 mb-1">
+                    <label className="block mb-1">
                         {t('sales.ship.qtyLabel', { unit })}
                     </label>
                     <input type="number" step="any" min="0" value={qty}
@@ -79,7 +79,7 @@ export default function ShipControl({
                            className={`${CONTROL_INPUT} w-full`} />
                 </div>
                 <div>
-                    <label className="block text-xs text-gray-600 mb-1">{t('sales.ship.shipDate')}</label>
+                    <label className="block mb-1">{t('sales.ship.shipDate')}</label>
                     <input type="date" value={shipDate} onChange={(e) => setShipDate(e.target.value)}
                            className={CONTROL_INPUT} />
                 </div>

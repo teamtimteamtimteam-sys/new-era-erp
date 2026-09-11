@@ -81,7 +81,7 @@ export default async function BatchAuditTrail({ rows }: { rows: AuditTrailRow[] 
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-xl font-bold mb-1">{t('auditTrail.title')}</h2>
+            <h2 className="mb-1">{t('auditTrail.title')}</h2>
             <p className="text-sm text-gray-600 mb-1">{t('auditTrail.intro')}</p>
             {/* 【脊柱是哪一份,说出来】(Tim 的 A4)。同一支被冲销的加工单有三份
                 互相不一致的说法,轨迹挑了流水 —— 因为只有它把"冲销"记成了一件

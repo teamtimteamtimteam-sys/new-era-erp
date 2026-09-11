@@ -251,7 +251,7 @@ export default async function ExpenseDetailPage({
         <ListPage
             maxWidth="max-w-4xl"
             breadcrumb={
-                <Link href="/finance/expenses" className="text-blue-600 hover:underline text-sm">
+                <Link href="/finance/expenses" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             }
@@ -265,7 +265,7 @@ export default async function ExpenseDetailPage({
                         <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
                             <Link
                                 href={`/finance/expenses/${reversedByRes.data.id}`}
-                                className="text-blue-600 hover:underline"
+                                className="hover:underline app-link"
                             >
                                 {t('expense.reversedBanner', { code: reversedByRes.data.code })}
                             </Link>
@@ -275,7 +275,7 @@ export default async function ExpenseDetailPage({
                         <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
                             <Link
                                 href={`/finance/expenses/${reversalOfRes.data.id}`}
-                                className="text-blue-600 hover:underline"
+                                className="hover:underline app-link"
                             >
                                 {t('expense.reversalOfBanner', { code: reversalOfRes.data.code })}
                             </Link>
@@ -316,7 +316,7 @@ export default async function ExpenseDetailPage({
                     <span className="text-gray-600 mr-1">{t('finance.linkedJournal')}:</span>
                     <Link
                         href={`/finance/journal/${journalRes.data.id}`}
-                        className="text-blue-600 hover:underline font-mono"
+                        className="hover:underline font-mono app-link app-link-inline"
                     >
                         {journalRes.data.code}
                     </Link>
@@ -338,7 +338,7 @@ export default async function ExpenseDetailPage({
                         ]}
                     />
 
-                    <h2 className="text-lg font-semibold mb-3">{t('finance.settlementHistory')}</h2>
+                    <h2 className="mb-3">{t('finance.settlementHistory')}</h2>
                     <SettlementHistoryTable rows={tableRows} />
                 </>
             )}

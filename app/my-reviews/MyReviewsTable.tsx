@@ -33,7 +33,7 @@ export default function MyReviewsTable({ rows }: { rows: MyReviewRow[] }) {
             key: 'employee', header: t('reviews.employee'), priority: true, className: 'whitespace-nowrap',
             render: (r) => (
                 <>
-                    <Link href={`/my-reviews/${r.id}`} className="text-blue-600 hover:underline">
+                    <Link href={`/my-reviews/${r.id}`} className="hover:underline app-link">
                         <span className="font-mono">{r.employeeCode}</span> {r.employeeName}
                     </Link>
                     {r.subtitle && <span className="ml-2 text-xs text-gray-500">{r.subtitle}</span>}

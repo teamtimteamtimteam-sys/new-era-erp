@@ -96,7 +96,7 @@ export default async function KpiPage() {
         >
 
             {/* ── 组织记分卡 ─────────────────────────────────────────────── */}
-            <h2 className="text-lg font-semibold mb-1">{t('kpi.orgTitle')}</h2>
+            <h2 className="mb-1">{t('kpi.orgTitle')}</h2>
             <p className="text-xs text-gray-600 mb-3 max-w-4xl">
                 {t('kpi.orgWeightTotal', { total: String(orgTotal) })}
             </p>
@@ -144,7 +144,7 @@ export default async function KpiPage() {
             </div>
 
             {/* ── 联动矩阵(职位级)───────────────────────────────────────── */}
-            <h2 className="text-lg font-semibold mb-1">{t('kpi.matrixTitle')}</h2>
+            <h2 className="mb-1">{t('kpi.matrixTitle')}</h2>
             {/* ★★ 这句话必须贴着数字放,原表原文 —— 见 §9.1 ★★ */}
             <div className="border-l-4 border-blue-500 bg-blue-50 p-3 mb-3 max-w-4xl">
                 <p className="text-sm">{t('kpi.matrixNotWeights')}</p>
@@ -154,7 +154,7 @@ export default async function KpiPage() {
             </div>
 
             {/* ── 谁到了、谁没到 ★具名的缺席,不是一片零★ ──────────────────── */}
-            <h2 className="text-lg font-semibold mb-1">{t('kpi.staffingTitle')}</h2>
+            <h2 className="mb-1">{t('kpi.staffingTitle')}</h2>
             <p className="text-sm text-gray-800 mb-2 max-w-4xl">
                 {t('kpi.staffingCount', { filled: String(filledPositions.size), total: String(positions.length) })}
             </p>

@@ -239,7 +239,7 @@ canEdit: boolean
     ) =>
         rows.length > 0 && (
             <div className="mb-5">
-                <h3 className="text-sm font-semibold text-gray-600 mb-2">
+                <h3 className="mb-2">
                     {t(titleKey)} ({rows.length})
                 </h3>
                 <div className="border border-gray-300 rounded divide-y">
@@ -268,7 +268,7 @@ canEdit: boolean
                                 >
                                     {formatAmount(line.amount, null)}
                                 </span>
-                                <span className="w-20 shrink-0 text-right">{statusPill(line.match_status)}</span>
+                                <span className="w-20 shrink-0 text-right tabular-nums">{statusPill(line.match_status)}</span>
                             </div>
 
                             {/* 已匹配:显示配到的分录 + 取消匹配 */}
@@ -279,7 +279,7 @@ canEdit: boolean
                                         <Link
                                             key={m.entry_id}
                                             href={`/finance/journal/${m.entry_id}`}
-                                            className="text-blue-600 hover:underline font-mono"
+                                            className="hover:underline font-mono app-link app-link-inline"
                                         >
                                             {m.entry_code}
                                         </Link>
@@ -330,7 +330,7 @@ canEdit: boolean
                 <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm items-center mb-3">
                     <Link
                         href={`/finance/bank/statements/${statement.id}`}
-                        className="text-blue-600 hover:underline font-mono font-medium"
+                        className="hover:underline font-mono font-medium app-link app-link-inline"
                     >
                         {statement.code}
                     </Link>
@@ -379,7 +379,7 @@ canEdit: boolean
                 }
             >
                 <div className="flex flex-wrap items-baseline gap-x-3 mb-2">
-                    <h2 className="font-semibold">{t('bank.balancePanel.title')}</h2>
+                    <h2 className="">{t('bank.balancePanel.title')}</h2>
                     <span className="text-xs text-gray-600">
                         {t('bank.balancePanel.asOf', { date: statement.period_end })}
                     </span>
@@ -412,7 +412,7 @@ canEdit: boolean
                     <div>
                         <p className="text-sm text-amber-900 mb-3">{t('bank.balancePanel.disagrees')}</p>
 
-                        <h3 className="text-sm font-semibold mb-1">{t('bank.balancePanel.explainTitle')}</h3>
+                        <h3 className="mb-1">{t('bank.balancePanel.explainTitle')}</h3>
                         <p className="text-xs text-gray-600 mb-2">{t('bank.balancePanel.explainHint')}</p>
 
                         {variance.map((item) => (
@@ -504,7 +504,7 @@ canEdit: boolean
                         </p>
                     ) : (
                         <div className="border border-gray-300 rounded p-4">
-                            <h3 className="font-semibold mb-1">
+                            <h3 className="mb-1">
                                 {t('bank.candidatesFor', { code: selectedLine.line_no })}
                             </h3>
                             <p className="text-sm text-gray-600 mb-1">
@@ -559,7 +559,7 @@ canEdit: boolean
                                         return (
                                             <label
                                                 key={c.journal_line_id}
-                                                className="flex items-center gap-3 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50"
+                                                className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50"
                                             >
                                                 <input
                                                     type="checkbox"
@@ -575,7 +575,7 @@ canEdit: boolean
                                                 <Link
                                                     href={`/finance/journal/${c.entry_id}`}
                                                     target="_blank"
-                                                    className="text-blue-600 hover:underline font-mono w-28 shrink-0"
+                                                    className="hover:underline font-mono w-28 shrink-0 app-link app-link-inline"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
                                                     {c.entry_code}
@@ -588,7 +588,7 @@ canEdit: boolean
                                                 <span className="w-24 shrink-0 text-right font-mono">
                                                     {formatAmount(c.amount_ccy, null)}
                                                 </span>
-                                                <span className="w-16 shrink-0 text-right">
+                                                <span className="w-16 shrink-0 text-right tabular-nums">
                                                     {exact && (
                                                         <span className="px-2 py-0.5 rounded text-xs bg-green-100 text-green-800">
                                                             {t('bank.exactMatch')}

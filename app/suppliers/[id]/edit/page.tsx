@@ -167,13 +167,13 @@ export default async function EditSupplierPage({
             <div className="mb-6">
                 <Link
                     href="/suppliers"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">{t('suppliers.editTitle')}</h1>
+            <h1 className="mb-2">{t('suppliers.editTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6">
                 <span className="font-mono">{supplier.code}</span>
                 <span className="mx-2">·</span>
@@ -216,7 +216,7 @@ export default async function EditSupplierPage({
                 【抬头在服务端渲染】理由与客户那一页同一条:藏在客户端开关后面的
                 针,fetch 冒烟看不见。 */}
             <section className="mt-6">
-                <h2 className="text-lg font-semibold mb-1">{t('contacts.sectionTitle')}</h2>
+                <h2 className="mb-1">{t('contacts.sectionTitle')}</h2>
                 <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
                 <ContactsPanel permissionCode="module.suppliers.edit" supplierId={supplier.id} rows={supplierContacts} canEdit={canEditSupplier} />
             </section>

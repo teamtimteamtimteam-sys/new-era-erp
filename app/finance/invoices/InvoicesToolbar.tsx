@@ -28,7 +28,7 @@ export default function InvoicesToolbar() {
 
     return (
         <div className="mb-4 flex flex-wrap items-center gap-3">
-            <label className="text-sm text-gray-600">
+            <label className="">
                 {t('listFilters.dateFrom')}{' '}
                 <input
                     type="date"
@@ -37,7 +37,7 @@ export default function InvoicesToolbar() {
                     className={CONTROL_INPUT}
                 />
             </label>
-            <label className="text-sm text-gray-600">
+            <label className="">
                 {t('listFilters.dateTo')}{' '}
                 <input
                     type="date"

@@ -79,7 +79,7 @@ export default async function ImportPage() {
         >
             <ImportForm tables={[...IMPORT_TABLES]} guide={guide} />
 
-            <h2 className="text-lg font-semibold mt-10 mb-2">{t('import.history')}</h2>
+            <h2 className="mt-10 mb-2">{t('import.history')}</h2>
             <ImportHistoryTable rows={tableRows} empty={t('import.historyEmpty')} />
             <p className="text-xs text-gray-500 mt-2">{t('import.historyIsALog')}</p>
         </ListPage>

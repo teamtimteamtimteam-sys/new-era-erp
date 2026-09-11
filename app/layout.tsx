@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Google_Sans } from "next/font/google";
 import TopNav from "@/app/components/TopNav";
 import Breadcrumbs from "@/app/components/nav/Breadcrumbs";
 import IdleWatcher from "@/app/components/IdleWatcher";
@@ -11,6 +11,55 @@ import { getModuleAccess } from "@/lib/moduleAccess";
 import { headers } from "next/headers";
 import "./globals.css";
 
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ FONT-1(2026-09-11)· 产品字体 —— 载入【一次】,给整个应用外壳 ★★
+// ════════════════════════════════════════════════════════════════════════════
+// 【它之前在哪儿】`app/login/page.tsx` 与 `app/brand-sampler/page.tsx` 各自载入过
+//   一次,各自只管自己那一页。**其余 217 个页面渲染的是 `Arial`** ——
+//   FONT-1 round 1 实测:141 条静态路由 × 2 视口,拉丁文字 **141/141 都是 Arial**。
+//
+// ★【为什么变量名不叫 `--font-google-sans`】★
+//   那个名字**已经被那两页占着**。同名会撞:next/font 每一次调用生成的是一个
+//   【不同的】字族名(`__Google_Sans_xxxx`),两处都往 `--font-google-sans` 里写,
+//   谁赢取决于它写在哪个元素上 —— 那是一条**看不出来的**依赖。
+//   ☞ 所以这里另起一个名字,那两页一个字节都不动(Tim 2026-09-11, Q12:
+//     「两页的字体作用域留着」;删掉那两层冗余登记成队列里的一条)。
+//   ☞ 附带的好处正是本刀要的:**取样页仍然用它自己那一份静态载入渲染**,
+//     于是「标准本身有没有动」这件事不会被本刀的载入方式搅混。
+//
+// ★【可变轴,不是三个静态档】★ `weight` 【不传】= 走可变轴。
+//   next/font 自己的字体表里 `Google Sans` 的 `wght` 轴是 **400–700**
+//   (`axes: [{tag:'wght',min:400,max:700}]`),所以 500 与 600 都是【真的】字重。
+//   ⚠ 此前那两页传的是 `weight: ['400','500','700']` —— 三个静态档,**没有 600**,
+//     而系统里 `font-semibold`(600)用了 146 处,它们会吸附到 700。
+//   ☞ 构建产物里 `@font-face` 的 `font-weight` 必须是一个**区间**;
+//     不是区间就退回「加一个 600 静态档」。见 docs/handbacks/FONT-1.md。
+//
+// ★【中文:一个字节的 web 字体都不带】★ Google Sans 的 25 个 subset 里
+//   **没有 chinese-simplified**(round 1 两条独立量法:字体文件 cmap 里
+//   U+4E00–9FFF 共 0 个码位;构建产物里 75 条 @font-face 的 unicode-range
+//   与该区间相交的 0 条)。于是中文照旧落到系统字体,而**回退链的尾巴
+//   逐字就是今天那三个**(`Arial, Helvetica, sans-serif`,见 globals.css)——
+//   **中文因此按构造走今天同一条路**。理由与代价见 docs/variant-c-spec.md。
+const googleSans = Google_Sans({
+  variable: "--font-product-sans",
+  subsets: ["latin"],
+  display: "swap",
+  // ★【这里【故意】不传 `fallback`】★ 实测(构建产物):传了 `fallback` 之后
+  //   next/font **并没有**生成度量补偿的 `Google Sans Fallback` face,它只是把那几个
+  //   名字原样拼进 `--font-product-sans` 的值里 ——
+  //   于是整条串会变成 `"Google Sans", Arial, Helvetica, sans-serif, Arial, Helvetica, sans-serif`
+  //   (尾巴出现两遍)。重复的名字浏览器会忽略,但那不是 Tim 裁的那一串。
+  //   ☞ 不传,变量的值就是 `"Google Sans"` 一个名字,而尾巴由 app/globals.css 那两处给,
+  //     **两处逐字相同,且逐字就是今天的尾巴**。字体没下载完的那一瞬间落到 Arial,
+  //     与今天渲染的东西一模一样。
+});
+
+// ★【Geist 留着,一个字节不动】(Tim 2026-09-11, Q9)
+//   `--font-sans` 从今天起指向产品字体(见 app/globals.css 的 @theme),
+//   但 `--font-geist-sans` 这个变量**仍然要有人定义** —— 把下面这一段删掉,
+//   它就变成一个悬空变量,而 `app/brand-tokens.css:199` 记着 BRAND-1 在
+//   「接一个 token」上踩过的那个坑。**删它是一次单独的清理**(已登记入队列)。
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -82,7 +131,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${googleSans.variable} ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <I18nProvider locale={locale}>

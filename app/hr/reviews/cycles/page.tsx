@@ -103,13 +103,13 @@ export default async function ReviewCyclesPage() {
             title={t('hr.title')}
             maxWidth="max-w-6xl"
             actions={
-                <Link href="/hr/reviews" className="text-sm text-blue-600 hover:underline">
+                <Link href="/hr/reviews" className="text-sm hover:underline app-link">
                     {t('common.back')}
                 </Link>
             }
             state={{ kind: 'ok' }}
         >
-            <h2 className="text-xl font-bold mb-4">{t('reviews.cyclesTitle')}</h2>
+            <h2 className="mb-4">{t('reviews.cyclesTitle')}</h2>
 
             <CycleForm />
 
@@ -128,7 +128,7 @@ export default async function ReviewCyclesPage() {
                         return (
                             <section key={c.id} className="rounded border border-gray-200 p-4">
                                 <div className="flex items-center gap-3 flex-wrap mb-1">
-                                    <h3 className="font-bold">{c.name}</h3>
+                                    <h3 className="">{c.name}</h3>
                                     <span className={'inline-block rounded px-2 py-0.5 text-xs ' + statusPillClass(c.status === 'open' ? 'self_review' : c.status === 'closed' ? 'acknowledged' : 'draft')}>
                                         {t(`reviews.cycleStatus_${c.status}`)}
                                     </span>
@@ -164,7 +164,7 @@ export default async function ReviewCyclesPage() {
                                                             <td className={`${tableC.cell} whitespace-nowrap`}>
                                                                 <Link
                                                                     href={`/hr/reviews/${r.id}`}
-                                                                    className="text-blue-700 hover:underline"
+                                                                    className="hover:underline app-link"
                                                                 >
                                                                     <span className="font-mono">{emp?.code ?? '—'}</span>{' '}
                                                                     {emp?.legal_name ?? ''}

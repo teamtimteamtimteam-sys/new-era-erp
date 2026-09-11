@@ -77,7 +77,7 @@ export default async function LedgerPage({
                         className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4 max-w-3xl"
                     >
                         {t('reports.ledger.movementFilter')}{' '}
-                        <a href="/inventory/reports/ledger" className="text-blue-600 hover:underline">
+                        <a href="/inventory/reports/ledger" className="hover:underline app-link app-link-inline">
                             {t('reports.ledger.movementFilterClear')}
                         </a>
                     </p>
@@ -88,22 +88,22 @@ export default async function LedgerPage({
                 会让人以为"就这么多流水"。 */}
             <form method="get" className="flex flex-wrap items-end gap-3 my-4">
                 <div>
-                    <label className="block text-xs text-gray-600 mb-1">{t('reports.ledger.from')}</label>
+                    <label className="block mb-1">{t('reports.ledger.from')}</label>
                     <input type="date" name="from" defaultValue={params.from}
                            className={CONTROL_INPUT} />
                 </div>
                 <div>
-                    <label className="block text-xs text-gray-600 mb-1">{t('reports.ledger.to')}</label>
+                    <label className="block mb-1">{t('reports.ledger.to')}</label>
                     <input type="date" name="to" defaultValue={params.to}
                            className={CONTROL_INPUT} />
                 </div>
                 <div>
-                    <label className="block text-xs text-gray-600 mb-1">{t('reports.ledger.material')}</label>
+                    <label className="block mb-1">{t('reports.ledger.material')}</label>
                     <input type="text" name="material_id" defaultValue={params.materialId}
                            placeholder="MAT-…" className={`${CONTROL_INPUT} w-36`} />
                 </div>
                 <div>
-                    <label className="block text-xs text-gray-600 mb-1">{t('reports.ledger.batch')}</label>
+                    <label className="block mb-1">{t('reports.ledger.batch')}</label>
                     <input type="text" name="batch" defaultValue={params.batchCode}
                            placeholder="IN-…" className={`${CONTROL_INPUT} w-36`} />
                 </div>

@@ -17,7 +17,7 @@ export function OpenPeriodControl({ canEdit }: { canEdit: boolean }) {
     return (
         <div className="flex flex-wrap items-end gap-3">
             <div>
-                <label className="block text-sm font-medium mb-1">{t('gst.periodStart')}</label>
+                <label className="block mb-1">{t('gst.periodStart')}</label>
                 {/* 【不预填今天】期初是一个季度的第一天,今天几乎不会是答案 */}
                 <input type="date" value={start} onChange={(e) => setStart(e.target.value)}
                        className={CONTROL_INPUT} />
@@ -56,12 +56,12 @@ export function FileReturnControl({ periodId, blockedWhy, canEdit }: {
     return (
         <div className="flex flex-wrap items-end gap-3">
             <div>
-                <label className="block text-sm font-medium mb-1">{t('gst.filedOn')}</label>
+                <label className="block mb-1">{t('gst.filedOn')}</label>
                 <input type="date" value={on} onChange={(e) => setOn(e.target.value)}
                        className={CONTROL_INPUT} />
             </div>
             <div>
-                <label className="block text-sm font-medium mb-1">{t('gst.filedReference')}</label>
+                <label className="block mb-1">{t('gst.filedReference')}</label>
                 <input value={ref} onChange={(e) => setRef(e.target.value)}
                        placeholder={t('gst.filedReferenceHint')}
                        className={CONTROL_INPUT} />
@@ -87,7 +87,7 @@ export function CorrectControl({ periodId, canEdit }: { periodId: string; canEdi
     return (
         <div className="flex flex-wrap items-end gap-3">
             <div className="flex-1 min-w-[16rem]">
-                <label className="block text-sm font-medium mb-1">{t('gst.correctionReason')}</label>
+                <label className="block mb-1">{t('gst.correctionReason')}</label>
                 <input value={reason} onChange={(e) => setReason(e.target.value)}
                        className={`${CONTROL_INPUT} w-full`} />
             </div>

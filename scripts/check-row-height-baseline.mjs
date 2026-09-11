@@ -131,6 +131,44 @@ if (!section) {
     console.error('  ☞ 基线文档的形状变了,而本支还照老样子读。先看那份文档,再决定要不要传 --baseline-heading=。')
     process.exit(2)
 }
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ FONT-1(2026-09-11, Tim 的裁定)—— 读到一节【已经被后面那一节取代】的基线时,
+//    打【一行】警告。★ 默认标题一个字节都不改。★★
+// ════════════════════════════════════════════════════════════════════════════
+// 【它答的是哪一个坑】round 1 实测:不传 `--baseline-heading=` 跑出来是 EXIT 1
+//   (它报 `/finance/freight/new #0:滚动范围长了 1 → 4`)——
+//   **而那是 INPUT-3 落地的结果,不是跑它的那一刀破的。**
+//   于是一个 1 看起来像「我破了什么」,真相是「我在对一个过期的参照点比」。
+// 【为什么不改默认值】改默认值会【静默地】改掉此前几刀的行为:
+//   INPUT-2 / INPUT-2b / INPUT-3 三刀共用 §6 作参照点,而它们的退出码是在案的。
+//   ☞ 一支量具**换了参照点却不换名字**,正是这个仓库反复付账的形状。
+//   所以这里只多说一句话,一个判据都不动。
+// 【判据】一节【带着三个 ```json 机读块】的小节就是一份读数;
+//   文档里这样的小节按出现次序排,**读的不是最后一份 = 它被后面那一份取代了**。
+//   ★ 这个判据不认标题文字(标题会改),只认"它是不是最后一份读数"。
+function readingSections(md) {
+    const lines = md.split('\n')
+    const heads = []
+    for (let i = 0; i < lines.length; i++) if (lines[i].startsWith('## ')) heads.push(i)
+    const out = []
+    for (let k = 0; k < heads.length; k++) {
+        const body = lines.slice(heads[k], k + 1 < heads.length ? heads[k + 1] : lines.length).join('\n')
+        if (jsonBlocks(body).length === 3) out.push({ title: lines[heads[k]].replace(/^##\s*/, '').trim(), line: heads[k] + 1 })
+    }
+    return out
+}
+{
+    const all = readingSections(md)
+    const meIdx = all.findIndex((r) => r.title.includes(HEADING))
+    if (all.length > 1 && meIdx >= 0 && meIdx < all.length - 1) {
+        const newest = all[all.length - 1]
+        console.error(`⚠ ${SELF}:你在对一份【已经被取代】的基线比 —— 读的是「${all[meIdx].title}」`
+            + `(第 ${all[meIdx].line} 行),而这份文档里最新的一份读数是「${newest.title}」(第 ${newest.line} 行)。`
+            + `  ☞ 要比最新的那一份就传 --baseline-heading='${newest.title.replace(/^[★\s·]+/, '').split(' ')[0]}…' 里认得出的一段文字。`
+            + `**默认值【没有】改 —— 此前几刀的行为逐字不变。**`)
+    }
+}
+
 const blocks = jsonBlocks(section)
 // ── 覆盖断言 ①:基线必须解析出三个块;少一个,下面每一条判据都空转 ──────────
 assertPinned(SELF, `docs/row-height-baseline.md 「${HEADING}」那一节里的 \`\`\`json 机读块`,

@@ -187,7 +187,7 @@ export default async function KpiScorePage({
             {/* ── 选月份 ★没有默认值★ ────────────────────────────────────── */}
             <form method="get" className="mb-6 flex flex-wrap items-end gap-2">
                 <div>
-                    <label htmlFor="cycle" className="block text-xs text-gray-600 mb-1">
+                    <label htmlFor="cycle" className="block mb-1">
                         {t('kpi.chooseMonth')}
                     </label>
                     <select
@@ -242,7 +242,7 @@ export default async function KpiScorePage({
 
                     {/* ── ★★ 打分刻度与封顶规则 —— 就画在她打分的这一屏上 ★★ ──────
                         Tim 的裁定:封顶规则必须在界面里,不能只躺在一份文档里。 */}
-                    <h2 className="text-lg font-semibold mb-1">{t('kpi.rubricTitle')}</h2>
+                    <h2 className="mb-1">{t('kpi.rubricTitle')}</h2>
                     <p className="text-xs text-gray-600 mb-2 max-w-4xl">{t('kpi.rubricWhat')}</p>
                     <div className="space-y-1.5 mb-6 max-w-4xl">
                         {rubric.map((r) => (
@@ -266,7 +266,7 @@ export default async function KpiScorePage({
                         <GenerateMissing people={missing} cycleId={chosen.id} disabled={!stateAllowsScoring} />
                     </PermissionGate>
 
-                    <h2 className="text-lg font-semibold mb-1">
+                    <h2 className="mb-1">
                         {t('kpi.scoreGridTitle', { 0: chosen.name })}
                     </h2>
                     <p className="text-xs text-gray-600 mb-3 max-w-4xl">{t('kpi.weightedIsComputed')}</p>

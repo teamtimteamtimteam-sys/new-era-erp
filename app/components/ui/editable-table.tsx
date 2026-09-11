@@ -428,7 +428,7 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                                         <button
                                                             type="button" onClick={() => void save(row)}
                                                             disabled={savingKey === k || !dirty}
-                                                            className="base-pressable mr-2 rounded px-1 text-blue-600 hover:underline disabled:cursor-not-allowed disabled:text-[color:var(--brand-disabled-text)] disabled:no-underline"
+                                                            className="base-pressable mr-2 rounded px-1 hover:underline disabled:cursor-not-allowed disabled:text-[color:var(--brand-disabled-text)] disabled:no-underline app-link"
                                                         >
                                                             {savingKey === k ? labels.saving : labels.save}
                                                         </button>
@@ -442,7 +442,7 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                                 ) : (
                                                     <button
                                                         type="button" onClick={() => begin(row)}
-                                                        className="base-pressable rounded px-1 text-blue-600 hover:underline"
+                                                        className="base-pressable rounded px-1 hover:underline app-link"
                                                     >
                                                         {labels.edit}
                                                     </button>

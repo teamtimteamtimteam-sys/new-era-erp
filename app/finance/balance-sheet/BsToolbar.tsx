@@ -22,7 +22,7 @@ export default function BsToolbar({ asOf }: { asOf: string }) {
 
     return (
         <div className="mb-4 flex flex-wrap items-center gap-3">
-            <label className="text-sm text-gray-600">
+            <label className="">
                 {t('finance.asOf')}{' '}
                 <input
                     type="date"

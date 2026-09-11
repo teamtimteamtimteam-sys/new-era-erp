@@ -148,7 +148,7 @@ export default function CostPanel({
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-xl font-bold mb-4">{t('processing.cost.title')}</h2>
+            <h2 className="mb-4">{t('processing.cost.title')}</h2>
 
             {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
@@ -183,7 +183,7 @@ export default function CostPanel({
             </p>
 
             {/* 新增 / 编辑表单(共用) */}
-            <h3 className="text-sm font-semibold mb-2">
+            <h3 className="mb-2">
                 {editing ? t('processing.cost.editTitle') : t('processing.cost.addTitle')}
             </h3>
             <form
@@ -213,7 +213,7 @@ export default function CostPanel({
                     placeholder={t('processing.cost.amountPlaceholder')}
                     className={`${CONTROL_INPUT} w-32`}
                 />
-                <label className="flex items-center gap-1 text-sm px-1 py-2">
+                <label className="flex items-center gap-1 px-1 py-2">
                     <input
                         type="checkbox"
                         className={CONTROL_CHECKBOX}

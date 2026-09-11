@@ -104,7 +104,7 @@ export default async function LeaveRequestsPage({
             <LeaveSubnav />
 
             <form className="flex gap-2 flex-wrap items-end mb-4" method="get">
-                <label className="text-xs text-gray-600">
+                <label className="">
                     {t('leave.status')}
                     <select name="status" defaultValue={sp.status ?? ''} className={`block ${sel}`}>
                         <option value="">{t('leave.allStatuses')}</option>
@@ -113,7 +113,7 @@ export default async function LeaveRequestsPage({
                         ))}
                     </select>
                 </label>
-                <label className="text-xs text-gray-600">
+                <label className="">
                     {t('leave.type')}
                     <select name="type" defaultValue={sp.type ?? ''} className={`block ${sel}`}>
                         <option value="">{t('leave.allTypes')}</option>
@@ -124,7 +124,7 @@ export default async function LeaveRequestsPage({
                         ))}
                     </select>
                 </label>
-                <label className="text-xs text-gray-600">
+                <label className="">
                     {t('leave.employee')}
                     <select name="employee" defaultValue={sp.employee ?? ''} className={`block ${sel}`}>
                         <option value="">{t('leave.allEmployees')}</option>
@@ -133,11 +133,11 @@ export default async function LeaveRequestsPage({
                         ))}
                     </select>
                 </label>
-                <label className="text-xs text-gray-600">
+                <label className="">
                     {t('leave.from')}
                     <input type="date" name="from" defaultValue={sp.from ?? ''} className={`block ${inp}`} />
                 </label>
-                <label className="text-xs text-gray-600">
+                <label className="">
                     {t('leave.to')}
                     <input type="date" name="to" defaultValue={sp.to ?? ''} className={`block ${inp}`} />
                 </label>

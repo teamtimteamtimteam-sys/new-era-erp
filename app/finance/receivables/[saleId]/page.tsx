@@ -185,7 +185,7 @@ export default async function ReceivableDocPage({
         <ListPage
             maxWidth="max-w-4xl"
             breadcrumb={
-                <Link href="/finance/receivables" className="text-blue-600 hover:underline text-sm">
+                <Link href="/finance/receivables" className="hover:underline text-sm app-link">
                     {t('finance.backToAging')}
                 </Link>
             }
@@ -206,7 +206,7 @@ export default async function ReceivableDocPage({
                                 {batch ? (
                                     <Link
                                         href={`/output/${batch.id}/edit`}
-                                        className="text-blue-600 hover:underline font-mono font-medium"
+                                        className="hover:underline font-mono font-medium app-link app-link-inline"
                                     >
                                         {batch.code}
                                     </Link>
@@ -273,7 +273,7 @@ export default async function ReceivableDocPage({
                             {i > 0 && <span className="mx-1 text-gray-300">|</span>}
                             <Link
                                 href={`/finance/journal/${j.id}`}
-                                className="text-blue-600 hover:underline font-mono"
+                                className="hover:underline font-mono app-link app-link-inline"
                             >
                                 {j.code}
                             </Link>
@@ -288,7 +288,7 @@ export default async function ReceivableDocPage({
                 {invoice ? (
                     <Link
                         href={`/finance/invoices/${invoice.id}`}
-                        className="text-blue-600 hover:underline font-mono"
+                        className="hover:underline font-mono app-link app-link-inline"
                     >
                         {invoice.code}
                     </Link>
@@ -305,7 +305,7 @@ export default async function ReceivableDocPage({
             </p>
 
             {/* 结算历史 */}
-            <h2 className="text-lg font-semibold mb-3">{t('finance.settlementHistory')}</h2>
+            <h2 className="mb-3">{t('finance.settlementHistory')}</h2>
             <SettlementHistoryTable rows={tableRows} />
 
             {/* 凭据附件 */}

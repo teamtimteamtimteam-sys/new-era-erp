@@ -245,7 +245,7 @@ export default async function OutputDrillPage({
     return (
         <ListPage
             breadcrumb={
-                <Link href="/inventory" className="text-blue-600 hover:underline text-sm">
+                <Link href="/inventory" className="hover:underline text-sm app-link">
                     {t('inventory.drill.back')}
                 </Link>
             }

@@ -82,7 +82,7 @@ canEdit: boolean
                 </p>
             )}
             <div>
-                <label className="block text-xs text-gray-600 mb-1">{t('purchasing.closeNotes')}</label>
+                <label className="block mb-1">{t('purchasing.closeNotes')}</label>
                 <input
                     type="text"
                     value={notes}

@@ -47,7 +47,7 @@ export function EmployeeTrainingTable({ rows }: { rows: readonly TrainingRow[] }
             header: t('hr.colTrainingName'),
             priority: true,
             render: (r) => (
-                <Link href={r.href} className="text-blue-600 hover:underline">
+                <Link href={r.href} className="hover:underline app-link">
                     {r.name}
                 </Link>
             ),
@@ -103,7 +103,7 @@ export function EmployeeReviewsTable({ rows }: { rows: readonly EmployeeReviewRo
             header: t('reviews.type'),
             priority: true,
             render: (r) => (
-                <Link href={r.href} className="text-blue-600 hover:underline">
+                <Link href={r.href} className="hover:underline app-link">
                     {r.typeText}
                 </Link>
             ),
@@ -164,7 +164,7 @@ export function EmployeePayrollTable({ rows }: { rows: readonly EmployeePayRow[]
             render: (r) => (
                 <>
                     {r.periodHref ? (
-                        <Link href={r.periodHref} className="text-blue-600 hover:underline">
+                        <Link href={r.periodHref} className="hover:underline app-link">
                             {r.periodLabel}
                         </Link>
                     ) : (

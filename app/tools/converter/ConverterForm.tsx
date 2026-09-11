@@ -76,7 +76,7 @@ export default function ConverterForm() {
         <div>
             {/* ══ ① 吨 / 公斤 / 磅 ═══════════════════════════════════════════ */}
             <section className={card} style={cardStyle}>
-                <h2 className="font-semibold mb-2">{t('converter.mass.title')}</h2>
+                <h2 className="mb-2">{t('converter.mass.title')}</h2>
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                     <input className={inp} value={massIn} onChange={(e) => setMassIn(e.target.value)}
                            inputMode="decimal" aria-label={t('converter.mass.value')} />
@@ -108,7 +108,7 @@ export default function ConverterForm() {
 
             {/* ══ ② 品位 ════════════════════════════════════════════════════ */}
             <section className={card} style={cardStyle}>
-                <h2 className="font-semibold mb-2">{t('converter.grade.title')}</h2>
+                <h2 className="mb-2">{t('converter.grade.title')}</h2>
                 <div className="flex flex-wrap items-center gap-2 mb-3">
                     <input className={inp} value={pct} inputMode="decimal"
                            aria-label={t('converter.grade.pct')}
@@ -138,20 +138,20 @@ export default function ConverterForm() {
 
             {/* ══ ③ 湿基 ↔ 干基 —— 这一档决定钱 ═══════════════════════════════ */}
             <section className={card} style={{ ...cardStyle, borderColor: 'var(--brand-ocean)' }}>
-                <h2 className="font-semibold mb-1">{t('converter.basis.title')}</h2>
+                <h2 className="mb-1">{t('converter.basis.title')}</h2>
                 <p className="text-xs mb-3" style={{ color: 'var(--brand-muted-text)' }}>
                     {t('converter.basis.why')}
                 </p>
                 <div className="flex flex-wrap items-end gap-3 mb-3">
-                    <label className="text-sm">{t('converter.basis.weight')}
+                    <label className="">{t('converter.basis.weight')}
                         <input className={inp + ' block mt-1'} value={w} inputMode="decimal"
                                onChange={(e) => setW(e.target.value)} />
                     </label>
-                    <label className="text-sm">{t('converter.basis.grade')}
+                    <label className="">{t('converter.basis.grade')}
                         <input className={inp + ' block mt-1'} value={g} inputMode="decimal"
                                onChange={(e) => setG(e.target.value)} />
                     </label>
-                    <label className="text-sm">{t('converter.basis.moisture')}
+                    <label className="">{t('converter.basis.moisture')}
                         <input className={inp + ' block mt-1'} value={m} inputMode="decimal"
                                onChange={(e) => setM(e.target.value)} />
                     </label>

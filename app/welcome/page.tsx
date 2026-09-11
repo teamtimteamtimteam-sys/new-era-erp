@@ -13,7 +13,7 @@ export default async function WelcomePage() {
 
     return (
         <div className="p-8 max-w-lg mx-auto">
-            <h1 className="text-2xl font-bold mb-3">{t('welcome.title')}</h1>
+            <h1 className="mb-3">{t('welcome.title')}</h1>
             <p className="text-gray-700 mb-2">{t('welcome.body')}</p>
             {user?.email && (
                 <p className="text-sm text-gray-500">

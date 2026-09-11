@@ -55,7 +55,7 @@ export default function PayrollLinesTable({ rows }: { rows: readonly PayrollLine
                         {r.totalNote && <span className="ml-2 font-normal text-gray-500">{r.totalNote}</span>}
                     </>
                 ) : r.employeeHref ? (
-                    <Link href={r.employeeHref} className="text-blue-600 hover:underline">
+                    <Link href={r.employeeHref} className="hover:underline app-link">
                         <span className="font-mono text-xs text-gray-500 mr-2">{r.employeeCode}</span>
                         {r.employeeName}
                     </Link>

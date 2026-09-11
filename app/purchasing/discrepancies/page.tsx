@@ -90,7 +90,7 @@ export default async function ReceivingDiscrepanciesPage() {
     return (
         <>
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-2">{t('grn.list.title')}</h1>
+                <h1 className="mb-2">{t('grn.list.title')}</h1>
                 <p className="text-sm text-gray-600 mb-4">{t('grn.list.note')}</p>
 
                 {/* GRN-1b:三个阈值。人人看得见(下面每一条提示出不出现都取决于它),
@@ -129,12 +129,12 @@ export default async function ReceivingDiscrepanciesPage() {
                             <div key={r.batch_id} className="border border-gray-300 rounded-lg p-4">
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2 text-sm">
                                     <Link href={`/inbound/${r.batch_id}/edit`}
-                                          className="font-mono text-blue-600 hover:underline">
+                                          className="font-mono hover:underline app-link app-link-inline">
                                         {r.batch_code}
                                     </Link>
                                     <span className="text-gray-400">·</span>
                                     <Link href={`/purchasing/orders/${r.po_id}`}
-                                          className="font-mono text-blue-600 hover:underline">
+                                          className="font-mono hover:underline app-link app-link-inline">
                                         {r.po_code}
                                     </Link>
                                     <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
@@ -162,7 +162,7 @@ export default async function ReceivingDiscrepanciesPage() {
                     <p className="text-sm font-medium text-gray-700">{t('grn.blindSpot.title')}</p>
                     <p className="text-sm text-gray-600 mt-1">{t('grn.blindSpot.body')}</p>
                     <Link href="/purchasing/orders?status=closed"
-                          className="text-sm text-blue-600 hover:underline">
+                          className="text-sm hover:underline app-link app-link-inline">
                         {t('grn.blindSpot.link')}
                     </Link>
                 </div>

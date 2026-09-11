@@ -35,7 +35,7 @@ export default function OpenItemsTable({
             render: (it) => (
                 <Link
                     href={`/finance/receivables/${it.salesRecordId}`}
-                    className="text-blue-600 hover:underline font-mono"
+                    className="hover:underline font-mono app-link"
                 >
                     {it.docCode}
                 </Link>

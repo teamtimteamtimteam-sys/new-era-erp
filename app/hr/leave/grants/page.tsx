@@ -36,11 +36,11 @@ export default async function GrantsPage({
 
     return (
         <div className="p-8 max-w-4xl">
-            <h1 className="text-2xl font-bold mb-4">{t('hr.title')}</h1>
+            <h1 className="mb-4">{t('hr.title')}</h1>
             <LeaveSubnav />
 
             <form method="get" className="mb-6 flex items-end gap-2">
-                <label className="text-sm">
+                <label className="">
                     {t('leave.leaveYear')}
                     <input type="number" name="year" defaultValue={year}
                            className={`${CONTROL_INPUT} mt-1 block w-28`} />

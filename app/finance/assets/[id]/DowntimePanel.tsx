@@ -110,7 +110,7 @@ export default function DowntimePanel({
     return (
         <div className="mb-8">
             <div className="flex items-baseline gap-3 mb-2">
-                <h2 className="text-lg font-medium">{t('equipment.down.title')}</h2>
+                <h2 className="">{t('equipment.down.title')}</h2>
                 {/* ★★ ALERT-2d ①:`canEdit && !openRow` 是【权限 × 记录状态】。
                        为假有两个完全不同的原因,而此前两个原因都只换来"钮不见了":
                          · 缺 module.processing.edit  → 去找管理员;

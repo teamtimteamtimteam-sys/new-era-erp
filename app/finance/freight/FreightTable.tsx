@@ -28,7 +28,7 @@ export default function FreightTable({ rows, empty }: { rows: FreightRow[]; empt
         {
             key: 'code', header: t('finance.freight.colCode'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/finance/freight/${r.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/finance/freight/${r.id}`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

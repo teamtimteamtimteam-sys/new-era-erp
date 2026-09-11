@@ -42,7 +42,7 @@ export default async function FinanceSettingsPage() {
     if (error) {
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">{t('finance.settingsTitle')}</h1>
+                <h1 className="mb-4">{t('finance.settingsTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('finance.loadError')}</p>
                     <details className="mt-2">
@@ -81,7 +81,7 @@ export default async function FinanceSettingsPage() {
 
     return (
         <div className="p-8 max-w-2xl">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.settingsTitle')}</h1>
+            <h1 className="mb-4">{t('finance.settingsTitle')}</h1>
 
             <div className="bg-gray-50 rounded p-4 mb-6 text-sm">
                 <span className="text-gray-600 mr-1">{t('finance.lockedBefore')}:</span>
@@ -94,9 +94,9 @@ export default async function FinanceSettingsPage() {
 
             {/* D7:审批链的新家。 */}
             <div className="border border-gray-200 rounded p-4 mb-6 bg-white">
-                <h2 className="font-semibold mb-1">{t('finance.approvals.title')}</h2>
+                <h2 className="mb-1">{t('finance.approvals.title')}</h2>
                 {approvalsAccess?.allowed ? (
-                    <Link href={FN.approvals.href} className="text-sm text-blue-700 hover:underline">
+                    <Link href={FN.approvals.href} className="text-sm hover:underline app-link app-link-inline">
                         {t('finance.approvals.movedToSettings')}
                     </Link>
                 ) : (
@@ -127,7 +127,7 @@ export default async function FinanceSettingsPage() {
 
             {/* 手动锁是覆盖手段;正常关账走月结页 */}
             <p className="text-sm text-gray-500 mt-4">
-                <Link href="/finance/close" className="text-blue-600 hover:underline">
+                <Link href="/finance/close" className="hover:underline app-link">
                     {t('finance.useClosePage')}
                 </Link>
             </p>

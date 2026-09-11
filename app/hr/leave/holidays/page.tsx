@@ -50,7 +50,7 @@ export default async function HolidaysPage({
                 <>
                     <LeaveSubnav />
                     <form method="get" className="mb-4 flex items-end gap-2">
-                        <label className="text-sm">
+                        <label className="">
                             {t('leave.leaveYear')}
                             <input type="number" name="year" defaultValue={year}
                                    className={`${CONTROL_INPUT} mt-1 block w-28`} />

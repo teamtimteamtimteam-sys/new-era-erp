@@ -56,12 +56,12 @@ export default async function NewContractPage() {
     return (
         <div className="p-8 max-w-2xl">
             <div className="mb-6">
-                <Link href="/contracts" className="text-blue-600 hover:underline text-sm">
+                <Link href="/contracts" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">{t('contracts.newTitle')}</h1>
+            <h1 className="mb-2">{t('contracts.newTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6 max-w-2xl">{t('contracts.newIntro')}</p>
 
             <NewContractForm

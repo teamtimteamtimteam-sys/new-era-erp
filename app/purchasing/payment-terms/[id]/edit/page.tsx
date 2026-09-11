@@ -64,11 +64,11 @@ export default async function EditTemplatePage({
     return (
         <div className="p-8">
             <div className="mb-6">
-                <Link href="/purchasing/payment-terms" className="text-blue-600 hover:underline text-sm">
+                <Link href="/purchasing/payment-terms" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-4">
+            <h1 className="mb-4">
                 {t('purchasing.templatesTitle')}
                 <span className="ml-3 text-base text-gray-500">{tplRes.data.name}</span>
             </h1>

@@ -40,7 +40,7 @@ export default async function CompanyPage() {
     if (error || !data) {
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">{t('company.title')}</h1>
+                <h1 className="mb-4">{t('company.title')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('finance.loadError')}</p>
                     <details className="mt-2">
@@ -76,14 +76,14 @@ export default async function CompanyPage() {
 
     return (
         <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('company.title')}</h1>
+            <h1 className="mb-4">{t('company.title')}</h1>
             <CompanyProfileForm canEdit={canEditGate} profile={profile} logoUrl={logoUrl} canBanking={canBanking} />
             {/* D7:执照登记簿的新家。进不去的人【照样看得见它在哪】,
                 画成一条具名的限制 —— 与顶栏同一套词(D5)。 */}
             <div className="border border-gray-200 rounded p-4 mb-6 bg-white">
-                <h2 className="font-semibold mb-1">{t('company.licence.title')}</h2>
+                <h2 className="mb-1">{t('company.licence.title')}</h2>
                 {licenceAccess?.allowed ? (
-                    <Link href={FN.licences.href} className="text-sm text-blue-700 hover:underline">
+                    <Link href={FN.licences.href} className="text-sm hover:underline app-link app-link-inline">
                         {t('company.licence.movedToPurchasing')}
                     </Link>
                 ) : (

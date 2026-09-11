@@ -62,7 +62,7 @@ export default function ReceivingThresholdPanel({
                 <form action={formAction} className="space-y-3">
                     <div className="flex flex-wrap items-start gap-4">
                         <div className="max-w-xs">
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('grn.settings.shortLabel')}
                             </label>
                             <input type="number" name="grn_short_pct" step="0.1" min="0.1"
@@ -71,7 +71,7 @@ export default function ReceivingThresholdPanel({
                             <p className="text-xs text-gray-500 mt-1">{t('grn.settings.shortWhen')}</p>
                         </div>
                         <div className="max-w-xs">
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('grn.settings.overLabel')}
                             </label>
                             <input type="number" name="grn_over_pct" step="0.1" min="0.1"
@@ -80,7 +80,7 @@ export default function ReceivingThresholdPanel({
                             <p className="text-xs text-gray-500 mt-1">{t('grn.settings.overWhen')}</p>
                         </div>
                         <div className="max-w-xs">
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('grn.settings.assayLabel')}
                             </label>
                             <input type="number" name="grn_assay_tolerance_pct" step="0.1" min="0.1"

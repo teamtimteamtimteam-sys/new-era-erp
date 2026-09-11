@@ -122,7 +122,7 @@ export default function FormulaForm({
 
             <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[18rem]">
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('pricing.form.name')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -135,7 +135,7 @@ export default function FormulaForm({
                     {err('name') && <p className="text-red-600 text-sm mt-1">{err('name')}</p>}
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('pricing.form.direction')}</label>
+                    <label className="block mb-1">{t('pricing.form.direction')}</label>
                     <select
                         name="direction"
                         defaultValue={defaults.direction}
@@ -154,7 +154,7 @@ export default function FormulaForm({
                 【声明了指数,就看不见未标注指数的行情】—— 在那个指数的报价录进来
                 之前,结算会点名拒绝,而不是拿一条不知出处的数字顶上。 */}
             <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">{t('pricing.form.priceIndex')}</label>
+                <label className="block mb-1">{t('pricing.form.priceIndex')}</label>
                 <div className="max-w-xs">
                     <IndexPicker
                         name="price_index"
@@ -170,7 +170,7 @@ export default function FormulaForm({
             <div className="flex flex-wrap items-end gap-4">
                 <div>
                     <span className="block text-sm font-medium mb-1">{t('pricing.form.basis')}</span>
-                    <label className="mr-4 text-sm">
+                    <label className="mr-4">
                         <input
                             type="radio"
                             name="price_basis"
@@ -181,7 +181,7 @@ export default function FormulaForm({
                         />
                         {t('pricing.form.basisSpot')}
                     </label>
-                    <label className="text-sm">
+                    <label className="">
                         <input
                             type="radio"
                             name="price_basis"
@@ -195,7 +195,7 @@ export default function FormulaForm({
                 </div>
                 {basis === 'average' && (
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('pricing.form.averageDays')} <span className="text-red-600">*</span>
                         </label>
                         <DecimalInput
@@ -227,7 +227,7 @@ export default function FormulaForm({
 
             <div className="flex flex-wrap gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('pricing.form.treatment')}</label>
+                    <label className="block mb-1">{t('pricing.form.treatment')}</label>
                     <DecimalInput
                         name="treatment_charge_usd_per_tonne"
                         value={treatment}
@@ -239,7 +239,7 @@ export default function FormulaForm({
                     )}
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('pricing.form.discount')}</label>
+                    <label className="block mb-1">{t('pricing.form.discount')}</label>
                     <DecimalInput
                         name="flat_discount_pct"
                         value={discount}
@@ -257,7 +257,7 @@ export default function FormulaForm({
                 <div>
                     <span className="block text-sm font-medium mb-1">{t('pricing.form.counterpartyMode')}</span>
                     <input type="hidden" name="counterparty_mode" value={mode} />
-                    <label className="mr-4 text-sm">
+                    <label className="mr-4">
                         <input
                             type="radio"
                             checked={mode === 'generic'}
@@ -266,7 +266,7 @@ export default function FormulaForm({
                         />
                         {t('pricing.form.modeGeneric')}
                     </label>
-                    <label className="mr-4 text-sm">
+                    <label className="mr-4">
                         <input
                             type="radio"
                             checked={mode === 'supplier'}
@@ -275,7 +275,7 @@ export default function FormulaForm({
                         />
                         {t('pricing.form.modeSupplier')}
                     </label>
-                    <label className="text-sm">
+                    <label className="">
                         <input
                             type="radio"
                             checked={mode === 'customer'}
@@ -329,7 +329,7 @@ export default function FormulaForm({
             </div>
 
             <div className="flex flex-wrap gap-4">
-                <label className="text-sm">
+                <label className="">
                     <input
                         type="checkbox"
                         name="is_active"
@@ -339,7 +339,7 @@ export default function FormulaForm({
                     {t('pricing.form.active')}
                 </label>
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">{t('pricing.form.notes')}</label>
+                    <label className="block mb-1">{t('pricing.form.notes')}</label>
                     <input
                         type="text"
                         name="notes"
@@ -351,7 +351,7 @@ export default function FormulaForm({
 
             {/* 计价比例 */}
             <div>
-                <h2 className="text-lg font-semibold mb-1">{t('pricing.form.payableTitle')}</h2>
+                <h2 className="mb-1">{t('pricing.form.payableTitle')}</h2>
                 <p className="text-sm text-gray-500 mb-3">{t('pricing.payableBlankHint')}</p>
                 <table className={`${tableC.root} w-full max-w-md`}>
                     <thead>

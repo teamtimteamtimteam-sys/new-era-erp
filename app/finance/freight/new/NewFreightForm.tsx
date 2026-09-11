@@ -75,11 +75,11 @@ export default function NewFreightForm({
     return (
         <div className="max-w-4xl">
             <div className="mb-6">
-                <Link href="/finance/freight" className="text-blue-600 hover:underline text-sm">
+                <Link href="/finance/freight" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-2">{t('finance.freight.newTitle')}</h1>
+            <h1 className="mb-2">{t('finance.freight.newTitle')}</h1>
             <p className="text-sm text-gray-600 mb-4 max-w-3xl">
                 {outbound ? t('finance.freight.exportHint') : t('finance.freight.newIntro')}
             </p>
@@ -94,7 +94,7 @@ export default function NewFreightForm({
                 {/* 【方向先问】它决定后面这张表单是哪一张 —— 分摊那一段在出境时
                     根本不存在,而不是"存在但空着"。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('finance.freight.colDirection')} <span className="text-red-600">*</span>
                     </label>
                     <select name="direction" value={direction}
@@ -108,14 +108,14 @@ export default function NewFreightForm({
 
                 <div className="flex flex-wrap gap-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('finance.freight.colDate')} <span className="text-red-600">*</span>
                         </label>
                         <input type="date" name="doc_date" required
                             className={CONTROL_INPUT} />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('finance.freight.colForwarder')} <span className="text-red-600">*</span>
                         </label>
                         {/* LOG-1b:【空名单要说出它是哪一种空】。这里过滤的是货代,
@@ -139,7 +139,7 @@ export default function NewFreightForm({
                         <p className="text-xs text-gray-500 mt-1">{t('finance.freight.forwarderHint')}</p>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('finance.freight.colAmount')} <span className="text-red-600">*</span>
                         </label>
                         <div className="flex gap-2">
@@ -158,7 +158,7 @@ export default function NewFreightForm({
                 {/* 口径:一次明写的选择。【出境没有这一项】—— 出口运费不分摊,
                     摆一个禁用的下拉等于说"这里本该有个答案";它本来就不该有。 */}
                 {!outbound && <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('finance.freight.colBasis')} <span className="text-red-600">*</span>
                     </label>
                     <select name="allocation_basis" value={basis} onChange={(e) => setBasis(e.target.value)}
@@ -173,7 +173,7 @@ export default function NewFreightForm({
                 {/* 付款方式 */}
                 <div className="flex flex-wrap gap-4 items-end">
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('finance.freight.colPayment')}</label>
+                        <label className="block mb-1">{t('finance.freight.colPayment')}</label>
                         <select name="payment_status" value={paid ? 'paid' : 'unpaid'}
                             onChange={(e) => setPaid(e.target.value === 'paid')}
                             className={CONTROL_SELECT}>
@@ -183,7 +183,7 @@ export default function NewFreightForm({
                     </div>
                     {paid && (
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('finance.freight.colBank')}</label>
+                            <label className="block mb-1">{t('finance.freight.colBank')}</label>
                             <select name="bank_account_code" defaultValue="1000"
                                 className={CONTROL_SELECT}>
                                 <option value="1000">1000</option>
@@ -198,7 +198,7 @@ export default function NewFreightForm({
                     不摊到任何批次,摆一个空的批次表等于暗示这里少填了东西。 */}
                 {outbound && (
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('finance.freight.colContainer')}</label>
+                        <label className="block mb-1">{t('finance.freight.colContainer')}</label>
                         {containers.length === 0 ? (
                             <p className="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 max-w-xl">
                                 {t('finance.freight.noContainers')}
@@ -243,12 +243,12 @@ export default function NewFreightForm({
                                 <tr className={tableC.headRow}>
                                     <th className={`${tableC.headCell} text-left w-10`} />
                                     <th className={`${tableC.headCell} text-left`}>{t('finance.freight.colBatch')}</th>
-                                    <th className={`${tableC.headCell} text-right`}>{t('finance.freight.colQty')}</th>
+                                    <th className={`${tableC.headCell} text-right tabular-nums`}>{t('finance.freight.colQty')}</th>
                                     <th className={`${tableC.headCell} ${(stacked ? 'hidden sm:table-cell ' : '') + 'text-right'}`}>
                                         {t('finance.freight.colRemaining')}
                                     </th>
                                     {basis === 'stated' && (
-                                        <th className={`${tableC.headCell} text-right`}>{t('finance.freight.colShare')}</th>
+                                        <th className={`${tableC.headCell} text-right tabular-nums`}>{t('finance.freight.colShare')}</th>
                                     )}
                                 </tr>
                             </thead>
@@ -277,7 +277,7 @@ export default function NewFreightForm({
                                             {b.remaining_qty}
                                         </td>
                                         {basis === 'stated' && (
-                                            <td className={`${tableC.cell} text-right`}>
+                                            <td className={`${tableC.cell} text-right tabular-nums`}>
                                                 {picked[b.id] && (
                                                     <DecimalInput name="stated_amount"
                                                         value={stated[b.id] ?? ''}
@@ -294,7 +294,7 @@ export default function NewFreightForm({
                 </div>}
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('finance.freight.colNotes')}</label>
+                    <label className="block mb-1">{t('finance.freight.colNotes')}</label>
                     <textarea name="notes" className={`${CONTROL_TEXTAREA} w-full`} />
                 </div>
 

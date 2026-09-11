@@ -53,7 +53,7 @@ canEdit: boolean
 
             {/* ── 头 ── */}
             <section className="border-t pt-6">
-                <h2 className="mb-3 text-xl font-bold">{labels.headHeading}</h2>
+                <h2 className="mb-3">{labels.headHeading}</h2>
                 <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                 <form
                     className="flex max-w-4xl flex-wrap items-end gap-3"
@@ -70,18 +70,18 @@ canEdit: boolean
                             forwarder_id: (d.get('forwarder_id') as string)?.trim() || null,
                         })) }}
                 >
-                    <div><label className="block text-xs font-medium mb-1">{labels.containerNumber}</label>
+                    <div><label className="block mb-1">{labels.containerNumber}</label>
                         <input name="container_number" defaultValue={head.container_number ?? ''} className={field} /></div>
-                    <div><label className="block text-xs font-medium mb-1">{labels.vessel}</label>
+                    <div><label className="block mb-1">{labels.vessel}</label>
                         <input name="vessel" defaultValue={head.vessel ?? ''} className={field} /></div>
-                    <div><label className="block text-xs font-medium mb-1">{labels.voyage}</label>
+                    <div><label className="block mb-1">{labels.voyage}</label>
                         <input name="voyage" defaultValue={head.voyage ?? ''} className={`${field} w-24`} /></div>
-                    <div><label className="block text-xs font-medium mb-1">{labels.bl}</label>
+                    <div><label className="block mb-1">{labels.bl}</label>
                         <input name="bl_number" defaultValue={head.bl_number ?? ''} className={field} /></div>
                     {/* 【承运方:免柜期与报价都按它去查】所以它必须在这一页上改得动 ——
                         此前这一页既不显示也不能改它,而免柜期那一行却有一句
                         "箱子没有指定货代" —— 一句指着一个没有门的字段的话。 */}
-                    <div><label className="block text-xs font-medium mb-1">{labels.forwarderLabel}</label>
+                    <div><label className="block mb-1">{labels.forwarderLabel}</label>
                         <select name="forwarder_id" defaultValue={head.forwarder_id ?? ''} className={fieldSelect}>
                             <option value="">{labels.forwarderNone}</option>
                             {forwarders.map((f) => (
@@ -90,10 +90,10 @@ canEdit: boolean
                         </select></div>
                     {/* 【世界那一侧的日期:永不预填】没有 defaultValue 的兜底,
                         没有"默认今天",空着就是空着 —— 与 event_date 那条列注释同一条规矩。 */}
-                    <div><label className="block text-xs font-medium mb-1">{labels.etaLabel}</label>
+                    <div><label className="block mb-1">{labels.etaLabel}</label>
                         <input type="date" name="expected_arrival_date"
                             defaultValue={head.expected_arrival_date ?? ''} className={field} /></div>
-                    <div className="min-w-[16rem] flex-1"><label className="block text-xs font-medium mb-1">{labels.notes}</label>
+                    <div className="min-w-[16rem] flex-1"><label className="block mb-1">{labels.notes}</label>
                         <input name="notes" defaultValue={head.notes ?? ''} className={`${field} w-full`} /></div>
                     <Button variant="default" className="text-sm" disabled={pending}>{labels.save}</Button>
                 </form>
@@ -108,14 +108,14 @@ canEdit: boolean
                     <p className="mt-2 text-sm">
                         <span className="text-gray-500">{labels.forwarderLabel}: </span>
                         <Link href={`/logistics/forwarders/${head.forwarder_id}`}
-                            className="text-blue-700 hover:underline">{head.forwarder_name}</Link>
+                            className="hover:underline app-link app-link-inline">{head.forwarder_name}</Link>
                     </p>
                 )}
             </section>
 
             {/* ── 装着的发货单 ── */}
             <section className="mt-8 border-t pt-6">
-                <h2 className="mb-3 text-xl font-bold">{labels.shipmentsHeading}</h2>
+                <h2 className="mb-3">{labels.shipmentsHeading}</h2>
                 {attached.length === 0 ? (
                     <p className="text-sm text-gray-500">{labels.shipmentsEmpty}</p>
                 ) : (
@@ -142,7 +142,7 @@ canEdit: boolean
                                 return (
                                 <tr key={s.id}>
                                     <td className="border border-gray-300 px-2 sm:px-3 py-1">
-                                        <Link href={`/sales/shipments/${s.id}`} className="font-mono text-xs text-blue-700 hover:underline">{s.code}</Link>
+                                        <Link href={`/sales/shipments/${s.id}`} className="font-mono text-xs hover:underline app-link">{s.code}</Link>
                                         {/* 手机档拿掉的两列，原样叠在这里、各自带着列头——
                                             「拿掉」指的是【那一列】，不是【那个事实】。 */}
                                         <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
@@ -216,7 +216,7 @@ canEdit: boolean
 
             {/* ── 里程碑 ── */}
             <section className="mt-8 border-t pt-6">
-                <h2 className="mb-2 text-xl font-bold">{labels.milestonesHeading}</h2>
+                <h2 className="mb-2">{labels.milestonesHeading}</h2>
                 <p className="mb-3 max-w-3xl text-sm text-gray-600">{labels.correctionNote}</p>
                 <form
                     className="mb-4 flex flex-wrap items-end gap-2"
@@ -227,14 +227,14 @@ canEdit: boolean
                             note: (d.get('note') as string)?.trim() || null,
                         }), () => f.reset()) }}
                 >
-                    <div><label className="block text-xs font-medium mb-1">{labels.milestone}</label>
+                    <div><label className="block mb-1">{labels.milestone}</label>
                         <select name="milestone" required className={fieldSelect}>
                             {milestoneTypes.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
                         </select></div>
-                    <div><label className="block text-xs font-medium mb-1">{labels.eventDate} <span className="text-red-600">*</span></label>
+                    <div><label className="block mb-1">{labels.eventDate} <span className="text-red-600">*</span></label>
                         {/* 【没有 defaultValue】—— 世界那一侧的日期,系统不代填 */}
                         <input type="date" name="event_date" required className={field} /></div>
-                    <div className="min-w-[16rem] flex-1"><label className="block text-xs font-medium mb-1">{labels.milestoneNote}</label>
+                    <div className="min-w-[16rem] flex-1"><label className="block mb-1">{labels.milestoneNote}</label>
                         <input name="note" className={`${field} w-full`} /></div>
                     <Button variant="default" className="text-sm" disabled={pending}>{labels.addMilestone}</Button>
                 </form>
@@ -280,7 +280,7 @@ canEdit: boolean
 
             {/* ── 单据 ── */}
             <section className="mt-8 border-t pt-6">
-                <h2 className="mb-2 text-xl font-bold">{labels.documentsHeading}</h2>
+                <h2 className="mb-2">{labels.documentsHeading}</h2>
 
                 {/* 【航段清单的三种状态,三句不同的话】 */}
                 {!hasLane && <p className="mb-3 text-sm text-gray-500">{labels.noLane}</p>}
@@ -351,9 +351,9 @@ canEdit: boolean
                         run(() => addDocument(containerId, d.get('document_type') as string,
                             (d.get('regime') as string)?.trim() || null), () => f.reset()) }}
                 >
-                    <div><label className="block text-xs font-medium mb-1">{labels.documentType}</label>
+                    <div><label className="block mb-1">{labels.documentType}</label>
                         <input name="document_type" required className={field} /></div>
-                    <div><label className="block text-xs font-medium mb-1">{labels.regime}</label>
+                    <div><label className="block mb-1">{labels.regime}</label>
                         <input name="regime" className={field} /></div>
                     <Button variant="default" className="text-sm" disabled={pending}>{labels.addDocument}</Button>
                 </form>

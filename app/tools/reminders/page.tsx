@@ -192,7 +192,7 @@ export default async function RemindersPage() {
 
     return (
         <div className="p-4 sm:p-8 max-w-3xl">
-            <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--brand-text)' }}>
+            <h1 className="mb-1" style={{ color: 'var(--brand-text)' }}>
                 {t('reminders.title')}
             </h1>
             {/* 【这一页在说自己是什么】—— 一页不解释自己的清单会被当成"还没加载完"。 */}
@@ -220,7 +220,7 @@ export default async function RemindersPage() {
             {/* ══ 正在等 ═══════════════════════════════════════════════════ */}
             {waiting.length > 0 && (
                 <section className="mb-8">
-                    <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--brand-text)' }}>
+                    <h2 className="mb-1" style={{ color: 'var(--brand-text)' }}>
                         {t('reminders.sectionWaiting')}
                     </h2>
                     <p className="text-xs mb-4" style={{ color: 'var(--brand-muted-text)' }}>
@@ -277,8 +277,7 @@ export default async function RemindersPage() {
                                                     {href ? (
                                                         <Link
                                                             href={href}
-                                                            className="font-mono hover:underline"
-                                                            style={{ color: 'var(--brand-ocean-fill)' }}
+                                                            className="font-mono hover:underline app-link app-link-inline"
                                                         >
                                                             {row.item_code}
                                                         </Link>
@@ -334,7 +333,7 @@ export default async function RemindersPage() {
                 方向相反:hr_alerts 的等级【在库里】就是一列,不该在这里被抹平。 */}
             {canHr && hrAlerts.length > 0 && (
                 <section className="mb-8">
-                    <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--brand-text)' }}>
+                    <h2 className="mb-1" style={{ color: 'var(--brand-text)' }}>
                         {t('reminders.hrSection')}
                     </h2>
                     <p className="text-xs mb-4" style={{ color: 'var(--brand-muted-text)' }}>
@@ -374,8 +373,7 @@ export default async function RemindersPage() {
                                                 {a.employee_id ? (
                                                     <Link
                                                         href={`/hr/employees/${a.employee_id}`}
-                                                        className="font-mono hover:underline"
-                                                        style={{ color: 'var(--brand-ocean-fill)' }}
+                                                        className="font-mono hover:underline app-link app-link-inline"
                                                     >
                                                         {a.employee_code}
                                                     </Link>
@@ -427,7 +425,7 @@ export default async function RemindersPage() {
                    ☞ 补一格,不新造一套画法。 */}
             {(quiet.length > 0 || (canHr && hrAlerts.length === 0)) && (
                 <section className="mb-8" data-reminders-quiet={quiet.length + (canHr && hrAlerts.length === 0 ? 1 : 0)}>
-                    <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--brand-text)' }}>
+                    <h2 className="mb-1" style={{ color: 'var(--brand-text)' }}>
                         {t('reminders.sectionQuiet')}
                         <span className="ml-2 font-mono font-normal">
                             {t('reminders.count', {
@@ -464,7 +462,7 @@ export default async function RemindersPage() {
                 【不给链接】指向一扇必然拒绝的门的链接是一句谎话。 */}
             {restricted.length > 0 && (
                 <section className="mb-8" data-reminders-restricted={restricted.length}>
-                    <h2 className="text-sm font-semibold mb-1" style={{ color: 'var(--brand-text)' }}>
+                    <h2 className="mb-1" style={{ color: 'var(--brand-text)' }}>
                         {t('reminders.sectionRestricted')}
                         <span className="ml-2 font-mono font-normal">
                             {t('reminders.count', { n: String(restricted.length) })}

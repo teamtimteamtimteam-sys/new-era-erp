@@ -114,7 +114,7 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
             className: 'font-mono',
             render: (r) => r.sort_order,
             edit: (d, set) => (
-                <input type="number" value={d.sort_order} className={inp + ' text-right'} aria-label={t('reviews.scaleSort')}
+                <input type="number" value={d.sort_order} className={inp + ' text-right tabular-nums'} aria-label={t('reviews.scaleSort')}
                        onChange={(e) => set({ sort_order: Number(e.target.value) })} />
             ),
         },
@@ -181,25 +181,25 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
 
             {/* ── 新增一档:一张【表单】,不是网格的一行。见本文件抬头。 ───────── */}
             <div className="rounded border border-gray-200 p-4">
-                <h3 className="font-bold mb-3 text-sm">{t('reviews.addScale')}</h3>
+                <h3 className="mb-3">{t('reviews.addScale')}</h3>
                 <div className="flex gap-2 flex-wrap items-end">
-                    <label className="text-xs">
+                    <label className="">
                         {t('reviews.scaleCode')}
                         <input value={nCode} onChange={(e) => setNCode(e.target.value)}
                                className={`block ${inp} font-mono`} />
                     </label>
-                    <label className="text-xs">
+                    <label className="">
                         {t('permissions.nameEn')}
                         <input value={nEn} onChange={(e) => setNEn(e.target.value)} className={`block ${inp}`} />
                     </label>
-                    <label className="text-xs">
+                    <label className="">
                         {t('permissions.nameZh')}
                         <input value={nZh} onChange={(e) => setNZh(e.target.value)} className={`block ${inp}`} />
                     </label>
-                    <label className="text-xs">
+                    <label className="">
                         {t('reviews.scaleSort')}
                         <input type="number" value={nSort} onChange={(e) => setNSort(e.target.value)}
-                               className={`block ${inp} text-right`} />
+                               className={`block ${inp} text-right tabular-nums`} />
                     </label>
                     <Button
                         type="button"

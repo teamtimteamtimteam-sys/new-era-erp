@@ -32,7 +32,7 @@ export default function SourceReasonFields({
 
     return (
         <div>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block mb-1">
                 {t('inbound.source.field')}{' '}
                 {!hasPoLine && <span className="text-red-600">*</span>}
             </label>
@@ -57,7 +57,7 @@ export default function SourceReasonFields({
             {fieldError && <p className="text-red-600 text-xs mt-1">{fieldError}</p>}
             {needsNote && (
                 <div className="mt-2">
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('inbound.source.noteField')} <span className="text-red-600">*</span>
                     </label>
                     <textarea

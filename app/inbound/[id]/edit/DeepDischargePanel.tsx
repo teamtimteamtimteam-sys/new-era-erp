@@ -60,7 +60,7 @@ export default function DeepDischargePanel({
 
     return (
         <div className="mb-8">
-            <h2 className="text-sm font-medium text-gray-700 mb-2">
+            <h2 className="mb-2">
                 {t('inbound.deepDischarge.title')}
             </h2>
             <div className="border border-gray-300 rounded p-3 max-w-2xl">
@@ -83,7 +83,7 @@ export default function DeepDischargePanel({
                     )}
                 </p>
 
-                <label className="block text-xs font-medium mb-1">
+                <label className="block mb-1">
                     {t('inbound.deepDischarge.actual')}
                 </label>
                 {canEdit ? (

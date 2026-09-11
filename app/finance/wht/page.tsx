@@ -138,7 +138,7 @@ export default async function WhtPage() {
             )}
 
             {/* ── 欠 IRAS 多少 ───────────────────────────────────────────────── */}
-            <h2 className="font-semibold mb-2">{t('wht.liabilityHeading')}</h2>
+            <h2 className="mb-2">{t('wht.liabilityHeading')}</h2>
             <div className="mb-6">
                 <WhtLiabilityTable
                     rows={liabilityRows}
@@ -155,7 +155,7 @@ export default async function WhtPage() {
             </div>
 
             {/* ── 汇缴 ───────────────────────────────────────────────────────── */}
-            <h2 className="font-semibold mb-2">{t('wht.remitHeading')}</h2>
+            <h2 className="mb-2">{t('wht.remitHeading')}</h2>
             <div className="mb-6">
                 <RemitControl canEdit={canEditGate}
                     months={owing.map((r) => ({
@@ -166,13 +166,13 @@ export default async function WhtPage() {
                 />
             </div>
 
-            <h2 className="font-semibold mb-2">{t('wht.remittancesHeading')}</h2>
+            <h2 className="mb-2">{t('wht.remittancesHeading')}</h2>
             <div className="mb-6">
                 <WhtRemittancesTable rows={remittanceRows} empty={t('wht.noRemittances')} />
             </div>
 
             {/* ── 法定税率:一张【待核对】的表 ─────────────────────────────────── */}
-            <h2 className="font-semibold mb-2">{t('wht.ratesHeading')}</h2>
+            <h2 className="mb-2">{t('wht.ratesHeading')}</h2>
             {/* ★ 这一段是 1.5/G 在屏幕上的落点:形状是工程判断,数字是法律事实 ★ */}
             <p className="text-sm mb-3 bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded">
                 <strong>{t('wht.ratesUnverifiedTitle')}</strong>

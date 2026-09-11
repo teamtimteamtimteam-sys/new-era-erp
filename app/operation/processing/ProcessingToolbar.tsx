@@ -30,7 +30,7 @@ export default function ProcessingToolbar() {
 
     return (
         <div className="mb-4 flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-1 text-sm text-gray-600">
+            <label className="flex items-center gap-1">
                 {t('listFilters.dateFrom')}
                 <input
                     type="date"
@@ -39,7 +39,7 @@ export default function ProcessingToolbar() {
                     className={CONTROL_INPUT}
                 />
             </label>
-            <label className="flex items-center gap-1 text-sm text-gray-600">
+            <label className="flex items-center gap-1">
                 {t('listFilters.dateTo')}
                 <input
                     type="date"

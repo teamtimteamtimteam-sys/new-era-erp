@@ -49,6 +49,13 @@
     --brand-ocean-fill: #007FAD; /* 【推导】ocean 压 L 0.606→0.558;白字 4.53:1 */
     --brand-ocean-fill-hover: #00709D; /* 【推导】fill 再压 L 0.05 */
     --brand-ocean-fill-active: #00618E; /* 【推导】fill 再压 L 0.10 */
+    /* ★★ FONT-1(2026-09-11, Tim 的裁定)· 【当字色用】的那一档 ★★
+       值与上面的 --brand-ocean-fill-hover **逐字相同** —— **没有新颜色**。
+       给它自己的名字,是因为「链接色 = 一个 hover 档」读起来自相矛盾。
+       实测对比度(链接真正坐着的底,round 1 量的,FONT-1 又量了一遍):
+         on --brand-bg #F1F9FE  **5.18:1** ✓   on 白 #FFFFFF  **5.52:1** ✓
+       ⚠ 它【不】管坐在品牌实心底上的**白字**链接(41 个)—— 那会是蓝底蓝字。 */
+    --brand-ocean-text: #00709D; /* 【推导】= --brand-ocean-fill-hover;链接字色 */
     --brand-forest-fill: #5E8047; /* 【推导】forest 压 L 0.603→0.559;白字 4.51:1 */
     --brand-forest-fill-hover: #507139; /* 【推导】fill 再压 L 0.05 */
     --brand-forest-fill-active: #42632B; /* 【推导】fill 再压 L 0.10 */

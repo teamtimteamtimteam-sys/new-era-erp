@@ -75,7 +75,7 @@ export default function ReleaseControl({
             {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
             <div className="flex flex-wrap items-end gap-2">
                 <div className="w-36">
-                    <label className="block text-xs text-gray-600 mb-1">
+                    <label className="block mb-1">
                         {t('sales.reserve.releaseQty', { unit })}
                     </label>
                     <input
@@ -90,7 +90,7 @@ export default function ReleaseControl({
                     />
                 </div>
                 <div className="flex-1 min-w-[14rem]">
-                    <label className="block text-xs text-gray-600 mb-1">{t('sales.reserve.releaseReason')}</label>
+                    <label className="block mb-1">{t('sales.reserve.releaseReason')}</label>
                     <input
                         type="text"
                         value={reason}

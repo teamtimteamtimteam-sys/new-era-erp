@@ -81,26 +81,26 @@ canEdit: boolean
             )}
 
             <section className="border-t pt-6">
-                <h2 className="mb-3 text-xl font-bold">{labels.detailsHeading}</h2>
+                <h2 className="mb-3">{labels.detailsHeading}</h2>
                 <form onSubmit={onSaveDetails} className="max-w-3xl space-y-3">
                     <div>
-                        <label className="block text-xs font-medium mb-1">{labels.mainRoutes}</label>
+                        <label className="block mb-1">{labels.mainRoutes}</label>
                         <input name="main_routes" defaultValue={details?.main_routes ?? ''} className={field} />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">{labels.portsServed}</label>
+                        <label className="block mb-1">{labels.portsServed}</label>
                         <input name="ports_served" defaultValue={details?.ports_served ?? ''} className={field} />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">{labels.freeTimeTerms}</label>
+                        <label className="block mb-1">{labels.freeTimeTerms}</label>
                         <input name="free_time_terms" defaultValue={details?.free_time_terms ?? ''} className={field} />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">{labels.dgClasses}</label>
+                        <label className="block mb-1">{labels.dgClasses}</label>
                         <input name="dg_classes" defaultValue={details?.dg_classes ?? ''} className={field} />
                     </div>
                     <div>
-                        <label className="block text-xs font-medium mb-1">{labels.notes}</label>
+                        <label className="block mb-1">{labels.notes}</label>
                         <textarea name="notes" defaultValue={details?.notes ?? ''} className={fieldTextarea} />
                     </div>
                     {/* 【联系人不在这里,而这是一句要说出来的话】,不是一个空白 */}
@@ -112,7 +112,7 @@ canEdit: boolean
             </section>
 
             <section className="mt-8 border-t pt-6">
-                <h2 className="mb-2 text-xl font-bold">{labels.quotesHeading}</h2>
+                <h2 className="mb-2">{labels.quotesHeading}</h2>
                 {/* 一份报价什么都不入账 —— 说在最显眼的地方 */}
                 <p className="mb-3 max-w-3xl text-sm text-gray-600">{labels.booksNothing}</p>
 
@@ -123,13 +123,13 @@ canEdit: boolean
                 ) : (
                     <form onSubmit={onAddQuote} className="mb-4 flex flex-wrap items-end gap-2">
                         <div>
-                            <label className="block text-xs font-medium mb-1">{labels.lane}</label>
+                            <label className="block mb-1">{labels.lane}</label>
                             <select name="lane_id" required className={fieldSelect}>
                                 {lanes.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-medium mb-1">{labels.amount}</label>
+                            <label className="block mb-1">{labels.amount}</label>
                             <input name="amount_ccy" type="number" step="0.01" min="0.01" required className={`${field} w-32`} />
                         </div>
                         <div>
@@ -138,17 +138,17 @@ canEdit: boolean
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-medium mb-1">{labels.validFrom}</label>
+                            <label className="block mb-1">{labels.validFrom}</label>
                             <input name="valid_from" type="date" required className={field} />
                         </div>
                         <div>
-                            <label className="block text-xs font-medium mb-1">{labels.validTo}</label>
+                            <label className="block mb-1">{labels.validTo}</label>
                             <input name="valid_to" type="date" required className={field} />
                         </div>
                         {/* 【不是 required】—— 留空是一个正当答案("这份报价没写免柜期"),
                             不是漏填。min=0 允许真正的 0,而 0 与留空是两件不同的事。 */}
                         <div>
-                            <label className="block text-xs font-medium mb-1">{labels.freeDays}</label>
+                            <label className="block mb-1">{labels.freeDays}</label>
                             <input name="free_days" type="number" step="1" min="0"
                                 className={`${field} w-24`} />
                         </div>
@@ -172,11 +172,11 @@ canEdit: boolean
                                 {quotes.map((q) => (
                                     <tr key={q.id}>
                                         <td className="border border-gray-300 px-3 py-1">{laneLabel.get(q.lane_id) ?? q.lane_id}</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-right">{q.amount_ccy} {q.currency}</td>
+                                        <td className="border border-gray-300 px-3 py-1 text-right tabular-nums">{q.amount_ccy} {q.currency}</td>
                                         <td className="border border-gray-300 px-3 py-1">{q.valid_from} → {q.valid_to}</td>
                                         {/* 【三态各有各的样子】数字 / "未写明"。
                                             空单元格会被读成 0,而 0 是另一件事。 */}
-                                        <td className="border border-gray-300 px-3 py-1 text-right">
+                                        <td className="border border-gray-300 px-3 py-1 text-right tabular-nums">
                                             {q.free_days === null
                                                 ? <span className="text-gray-500 italic">{labels.freeDaysNotStated}</span>
                                                 : q.free_days}

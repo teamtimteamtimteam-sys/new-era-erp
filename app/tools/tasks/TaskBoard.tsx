@@ -217,7 +217,7 @@ function Column({
                 (isOver ? 'border-blue-400 bg-blue-50' : 'border-gray-200 bg-gray-50')
             }
         >
-            <h2 className="mb-3 text-sm font-semibold text-gray-700">
+            <h2 className="mb-3">
                 {label} <span className="text-gray-400">({tasks.length})</span>
             </h2>
             <div className="flex min-h-16 flex-col gap-2">

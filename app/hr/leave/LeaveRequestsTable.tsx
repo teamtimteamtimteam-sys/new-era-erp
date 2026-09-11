@@ -38,7 +38,7 @@ export default function LeaveRequestsTable({ rows, empty }: { rows: LeaveRequest
             key: 'code', header: t('leave.code'), priority: true, className: 'font-mono text-xs',
             render: (r) => (
                 <>
-                    <Link href={`/hr/leave/${r.id}`} className="text-blue-600 hover:underline">
+                    <Link href={`/hr/leave/${r.id}`} className="hover:underline app-link">
                         {r.code}
                     </Link>
                     {r.isException && (

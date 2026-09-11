@@ -41,7 +41,7 @@ export default function FreightAllocationsTable({ rows }: { rows: readonly Freig
             className: 'font-mono text-sm',
             render: (r) =>
                 r.batchHref ? (
-                    <Link href={r.batchHref} className="text-blue-600 hover:underline">
+                    <Link href={r.batchHref} className="hover:underline app-link">
                         {r.batchCode}
                     </Link>
                 ) : (

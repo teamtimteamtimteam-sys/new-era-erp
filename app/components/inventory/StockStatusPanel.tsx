@@ -131,7 +131,7 @@ export default async function StockStatusPanel({
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-xl font-bold mb-1">{t('stock.panelTitle')}</h2>
+            <h2 className="mb-1">{t('stock.panelTitle')}</h2>
             <p className="text-sm text-gray-500 mb-4">{t('stock.panelNote')}</p>
 
             {totalHeld === 0 && (
@@ -238,7 +238,7 @@ export default async function StockStatusPanel({
                 "没有人预留过"。 */}
             {outputBatchId && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
-                    <h3 className="text-sm font-medium mb-1">{t('stock.reservedBy')}</h3>
+                    <h3 className="mb-1">{t('stock.reservedBy')}</h3>
                     {!canSeeOrders ? (
                         <p className="text-sm text-gray-600">{t('common.restricted')}</p>
                     ) : totalCommitted === 0 ? (
@@ -250,7 +250,7 @@ export default async function StockStatusPanel({
                                     {p.sales_order_lines?.sales_orders ? (
                                         <Link
                                             href={`/sales/orders/${p.sales_order_lines.sales_orders.id}`}
-                                            className="text-blue-600 hover:underline font-mono"
+                                            className="hover:underline font-mono app-link app-link-inline"
                                         >
                                             {p.sales_order_lines.sales_orders.code}
                                         </Link>

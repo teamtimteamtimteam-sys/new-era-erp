@@ -80,12 +80,12 @@ export default async function NewOutputAssayPage({
     return (
         <div className="p-4 sm:p-8 max-w-5xl">
             <div className="mb-6">
-                <Link href={`/output/${id}/edit`} className="text-blue-600 hover:underline text-sm">
+                <Link href={`/output/${id}/edit`} className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">{t('assay.newTitle')}</h1>
+            <h1 className="mb-2">{t('assay.newTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6">
                 <span className="font-mono">{batch.code}</span>
                 <span className="mx-2">·</span>

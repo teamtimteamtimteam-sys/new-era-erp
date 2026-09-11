@@ -135,7 +135,7 @@ export default function InboundToolbar({
                     </option>
                 ))}
             </select>
-            <label className="flex items-center gap-1 text-sm text-gray-600">
+            <label className="flex items-center gap-1">
                 {t('listFilters.dateFrom')}
                 <input
                     type="date"
@@ -144,7 +144,7 @@ export default function InboundToolbar({
                     className={CONTROL_INPUT}
                 />
             </label>
-            <label className="flex items-center gap-1 text-sm text-gray-600">
+            <label className="flex items-center gap-1">
                 {t('listFilters.dateTo')}
                 <input
                     type="date"

@@ -63,7 +63,7 @@ export default function HoldReleaseControls({
             <div>
                 <div className="flex flex-wrap items-end gap-2">
                     <div>
-                        <label className="block text-xs text-gray-600 mb-1">{t('stock.holdQty', { unit })}</label>
+                        <label className="block mb-1">{t('stock.holdQty', { unit })}</label>
                         <DecimalInput
                             value={holdQty}
                             onChange={setHoldQty}
@@ -71,7 +71,7 @@ export default function HoldReleaseControls({
                         />
                     </div>
                     <div className="flex-1 min-w-[12rem]">
-                        <label className="block text-xs text-gray-600 mb-1">
+                        <label className="block mb-1">
                             {t('stock.holdReason')} <span className="text-red-600">*</span>
                         </label>
                         <input
@@ -99,7 +99,7 @@ export default function HoldReleaseControls({
             <div>
                 <div className="flex flex-wrap items-end gap-2">
                     <div>
-                        <label className="block text-xs text-gray-600 mb-1">{t('stock.releaseQty', { unit })}</label>
+                        <label className="block mb-1">{t('stock.releaseQty', { unit })}</label>
                         <DecimalInput
                             value={relQty}
                             onChange={setRelQty}
@@ -107,7 +107,7 @@ export default function HoldReleaseControls({
                         />
                     </div>
                     <div className="flex-1 min-w-[12rem]">
-                        <label className="block text-xs text-gray-600 mb-1">{t('stock.releaseNote')}</label>
+                        <label className="block mb-1">{t('stock.releaseNote')}</label>
                         <input
                             type="text"
                             value={relNote}

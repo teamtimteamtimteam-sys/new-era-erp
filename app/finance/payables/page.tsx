@@ -71,7 +71,7 @@ export default async function PayablesPage({
         const msg = await localizeFinanceError(e instanceof Error ? e.message : String(e))
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">{t('finance.payablesTitle')}</h1>
+                <h1 className="mb-4">{t('finance.payablesTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('finance.loadError')}</p>
                     <p className="mt-2 text-sm">{msg}</p>
@@ -178,9 +178,9 @@ export default async function PayablesPage({
                         <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('finance.colDate')}</th>
                         {/* AGING-1:到期日露出来,而【档位不按它分】—— 见 finance.agingAsOf.dueDateNote */}
                         <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('finance.agingAsOf.colDueDate')}</th>
-                        <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('finance.colAmount', { ccy: baseCurrency })}</th>
-                        <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('finance.colSettled')}</th>
-                        <th className={`${tableC.headCell} text-right`}>{t('finance.colOpen')}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('finance.colAmount', { ccy: baseCurrency })}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('finance.colSettled')}</th>
+                        <th className={`${tableC.headCell} text-right tabular-nums`}>{t('finance.colOpen')}</th>
                         <th className={`${tableC.headCell} text-left`}>{t('finance.colDays')}</th>
                     </tr>
                 </thead>
@@ -208,7 +208,7 @@ export default async function PayablesPage({
                                         {r.doc_kind === 'inbound' ? (
                                             <Link
                                                 href={`/finance/payables/${r.doc_id}`}
-                                                className="text-blue-600 hover:underline"
+                                                className="hover:underline app-link"
                                             >
                                                 {r.doc_code}
                                             </Link>
@@ -216,7 +216,7 @@ export default async function PayablesPage({
                                             <>
                                                 <Link
                                                     href={`/finance/expenses/${r.doc_id}`}
-                                                    className="text-blue-600 hover:underline"
+                                                    className="hover:underline app-link"
                                                 >
                                                     {r.doc_code}
                                                 </Link>
@@ -228,7 +228,7 @@ export default async function PayablesPage({
                                             <>
                                                 <Link
                                                     href={`/finance/freight/${r.doc_id}`}
-                                                    className="text-blue-600 hover:underline"
+                                                    className="hover:underline app-link"
                                                 >
                                                     {r.doc_code}
                                                 </Link>

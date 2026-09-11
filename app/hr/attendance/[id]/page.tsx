@@ -61,10 +61,10 @@ export default async function AttendancePeriodPage({
 
     return (
         <div className="p-8 max-w-5xl">
-            <Link href="/hr/attendance" className="text-sm text-blue-600 hover:underline">
+            <Link href="/hr/attendance" className="text-sm hover:underline app-link app-link-inline">
                 ← {t('attendance.backToList')}
             </Link>
-            <h1 className="text-2xl font-bold mt-2 mb-1">{period.code}</h1>
+            <h1 className="mt-2 mb-1">{period.code}</h1>
             <p className="text-sm text-gray-500 mb-1">{t('attendance.subtitle')}</p>
             {period.reopen_reason && (
                 <p className="text-xs text-gray-500 mb-1">

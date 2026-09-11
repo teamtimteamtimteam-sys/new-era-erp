@@ -30,7 +30,7 @@ export default function PaymentsTable({ rows, empty }: { rows: PaymentRow[]; emp
         {
             key: 'code', header: t('finance.colCode'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/finance/payments/${r.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/finance/payments/${r.id}`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

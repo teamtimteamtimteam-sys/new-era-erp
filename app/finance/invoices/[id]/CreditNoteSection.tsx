@@ -41,7 +41,7 @@ export default async function CreditNoteSection({
     if (!isOrderKind) {
         return (
             <section className="mt-8">
-                <h2 className="font-medium mb-1">{t('cn.title')}</h2>
+                <h2 className="mb-1">{t('cn.title')}</h2>
                 <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2">
                     {t('cn.saleKindNote')}
                 </p>
@@ -120,7 +120,7 @@ export default async function CreditNoteSection({
 
     return (
         <section className="mt-8">
-            <h2 className="font-medium mb-1">{t('cn.title')}</h2>
+            <h2 className="mb-1">{t('cn.title')}</h2>
             <p className="text-xs text-gray-500 mb-3">{t('cn.note')}</p>
 
             {notes.length > 0 && (
@@ -131,7 +131,7 @@ export default async function CreditNoteSection({
                         return (
                             <li key={n.id} className="flex flex-wrap items-baseline gap-x-3">
                                 <Link href={`/finance/credit-notes/${n.id}`}
-                                      className="font-mono text-blue-600 hover:underline">{n.code}</Link>
+                                      className="font-mono hover:underline app-link app-link-inline">{n.code}</Link>
                                 <span className="text-gray-500">{new Date(n.note_date).toLocaleDateString(dl)}</span>
                                 <span className="font-mono">−{formatAmount(total, n.currency)}</span>
                                 <span className="text-gray-500">{n.reason}</span>

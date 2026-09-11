@@ -63,7 +63,7 @@ export default function RecurringLines({
 
     return (
         <section className="mb-8">
-            <h2 className="mb-1 text-lg font-semibold">{t('cashForecast.linesTitle')}</h2>
+            <h2 className="mb-1">{t('cashForecast.linesTitle')}</h2>
             <p className="mb-3 text-xs text-[color:var(--brand-muted-text)]">{t('cashForecast.linesHint')}</p>
 
             {/* ★★ ALERT-2d ④(a):`canEdit && !<开合位>` —— 一个权限答复与
@@ -104,33 +104,33 @@ export default function RecurringLines({
                         </Button>
                     }
                 >
-                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.label')}
+                    <label className="">{t('cashForecast.label')}
                         <input value={label} onChange={(e) => setLabel(e.target.value)}
                             className={`${CONTROL_INPUT} block w-56`} /></label>
-                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.direction')}
+                    <label className="">{t('cashForecast.direction')}
                         <select value={direction} onChange={(e) => setDirection(e.target.value)}
                             className={`${CONTROL_SELECT} block`}>
                             <option value="out">{t('cashForecast.dir_out')}</option>
                             <option value="in">{t('cashForecast.dir_in')}</option>
                         </select></label>
-                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.amount')}
+                    <label className="">{t('cashForecast.amount')}
                         <input type="number" step="0.01" min="0" value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             className={`${CONTROL_INPUT} block w-32`} /></label>
-                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.currency')}
+                    <label className="">{t('cashForecast.currency')}
                         <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
                             className={`${CONTROL_INPUT} block w-20 font-mono`} /></label>
-                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.cadence')}
+                    <label className="">{t('cashForecast.cadence')}
                         <select value={cadence} onChange={(e) => setCadence(e.target.value)}
                             className={`${CONTROL_SELECT} block`}>
                             {CADENCES.map((c) => (
                                 <option key={c} value={c}>{t('cashForecast.cadence_' + c)}</option>
                             ))}
                         </select></label>
-                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.startDate')}
+                    <label className="">{t('cashForecast.startDate')}
                         <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
                             className={`${CONTROL_INPUT} block`} /></label>
-                    <label className="text-sm text-[color:var(--brand-muted-text)]">{t('cashForecast.endDate')}
+                    <label className="">{t('cashForecast.endDate')}
                         <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
                             className={`${CONTROL_INPUT} block`} /></label>
                 </AddRowPanel>

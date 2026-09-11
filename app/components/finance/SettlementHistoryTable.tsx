@@ -58,7 +58,7 @@ export default function SettlementHistoryTable({ rows }: { rows: readonly Settle
                         className={
                             r.reversed
                                 ? 'text-gray-400 hover:underline line-through'
-                                : 'text-blue-600 hover:underline'
+                                : 'app-link hover:underline'
                         }
                     >
                         {r.paymentCode}

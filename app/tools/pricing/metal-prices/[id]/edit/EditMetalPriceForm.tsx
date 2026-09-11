@@ -51,7 +51,7 @@ export default function EditMetalPriceForm({
             <form action={formAction} className="space-y-4">
                 {/* 金属(必填,预选)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('metalPrices.form.metal')} <span className="text-red-600">*</span>
                     </label>
                     <select
@@ -74,7 +74,7 @@ export default function EditMetalPriceForm({
 
                 {/* 价格(必填,> 0)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('metalPrices.form.price')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -95,7 +95,7 @@ export default function EditMetalPriceForm({
 
                 {/* 价格日期(必填)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('metalPrices.form.priceDate')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -114,7 +114,7 @@ export default function EditMetalPriceForm({
 
                 {/* METAL-2:改标指数会让这一行换一条序列比对,判词也跟着重算 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('metalPrices.form.priceIndex')}
                     </label>
                     <IndexPicker name="price_index" indices={indices} defaultValue={row.price_index} locale={locale} />
@@ -124,7 +124,7 @@ export default function EditMetalPriceForm({
                     一句话之一。不显示,读的人就得回列表去看;显示成可编辑的,
                     又会假装这里能改(action 不动 source)。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('metalPrices.source.label')}
                     </label>
                     <p className="text-sm text-gray-700 border border-gray-200 bg-gray-50 rounded px-3 py-2">
@@ -135,7 +135,7 @@ export default function EditMetalPriceForm({
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('metalPrices.form.notes')}</label>
+                    <label className="block mb-1">{t('metalPrices.form.notes')}</label>
                     <textarea
                         name="notes"
                         defaultValue={row.notes ?? ''}

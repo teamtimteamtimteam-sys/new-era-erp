@@ -58,7 +58,7 @@ export default function InvoicesTable({ rows, empty }: { rows: InvoiceRow[]; emp
                 <>
                     <Link
                         href={`/finance/invoices/${r.invoiceId}`}
-                        className={r.isVoid ? 'text-gray-500 hover:underline line-through' : 'text-blue-600 hover:underline'}
+                        className={r.isVoid ? 'text-gray-500 hover:underline line-through' : 'app-link hover:underline'}
                     >
                         {r.code}
                     </Link>
@@ -107,7 +107,7 @@ export default function InvoicesTable({ rows, empty }: { rows: InvoiceRow[]; emp
                 // attachment 不会导航,故不需要 target="_blank"
                 <a
                     href={`/finance/invoices/${r.invoiceId}/pdf?download=1`}
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     PDF
                 </a>

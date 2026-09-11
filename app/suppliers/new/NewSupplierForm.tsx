@@ -55,7 +55,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                 )}
                 {/* 法人名(必填) */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('suppliers.form.legalName')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -74,7 +74,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
 
                 {/* 简称 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.shortName')}</label>
+                    <label className="block mb-1">{t('suppliers.form.shortName')}</label>
                     <input
                         type="text"
                         name="short_name"
@@ -85,7 +85,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
 
                 {/* 国家(必填) */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('suppliers.form.country')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -105,7 +105,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
 
                 {/* 税号 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.taxId')}</label>
+                    <label className="block mb-1">{t('suppliers.form.taxId')}</label>
                     <input
                         type="text"
                         name="tax_id"
@@ -115,7 +115,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
 
                 {/* 地址 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.address')}</label>
+                    <label className="block mb-1">{t('suppliers.form.address')}</label>
                     <textarea
                         name="address"
                         className={`${CONTROL_TEXTAREA} w-full`}
@@ -124,7 +124,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
 
                 {/* 供应商类型(多选) */}
                 <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block mb-2">
                         {t('suppliers.form.types')}
                     </label>
                     <div className="space-y-2">
@@ -147,7 +147,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                     三选一而不是勾选,是因为问题不再是二元的:货代与房东/水电
                     都"不供货",但前者不该出现在供应商名单里,后者要留在费用选择器里。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('suppliers.counterpartyType')} <span className="text-red-600">*</span>
                     </label>
                     <select name="counterparty_type" defaultValue={"goods_supplier"} className={`${CONTROL_SELECT} w-full`}>
@@ -166,7 +166,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
 
                 {/* 付款条款 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.paymentTerms')}</label>
+                    <label className="block mb-1">{t('suppliers.form.paymentTerms')}</label>
                     <input
                         type="text"
                         name="payment_terms"
@@ -177,7 +177,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
 
                 {/* 默认付款条款模板(cut 4b:新建采购单时自动带入付款计划)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.defaultPaymentTerms')}</label>
+                    <label className="block mb-1">{t('suppliers.defaultPaymentTerms')}</label>
                     <select
                         name="default_payment_term_template_id"
                         defaultValue=""
@@ -195,7 +195,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
 
                 {/* Incoterm */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.incoterm')}</label>
+                    <label className="block mb-1">{t('suppliers.form.incoterm')}</label>
                     <input
                         type="text"
                         name="incoterm"
@@ -206,7 +206,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
 
                 {/* 信用评级 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.creditRating')}</label>
+                    <label className="block mb-1">{t('suppliers.form.creditRating')}</label>
                     <input
                         type="text"
                         name="credit_rating"
@@ -217,7 +217,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.notes')}</label>
+                    <label className="block mb-1">{t('suppliers.form.notes')}</label>
                     <textarea
                         name="notes"
                         className={`${CONTROL_TEXTAREA} w-full`}

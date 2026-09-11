@@ -121,7 +121,7 @@ export default function PayrollGrid({
             {/* 期间抬头 */}
             <div className="flex flex-wrap gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('hr.colPeriod')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -134,7 +134,7 @@ export default function PayrollGrid({
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('hr.colPaymentDate')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -147,7 +147,7 @@ export default function PayrollGrid({
                     <p className="text-xs text-gray-500 mt-1">{t('hr.paymentDateHint')}</p>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('hr.colCurrency')}</label>
+                    <label className="block mb-1">{t('hr.colCurrency')}</label>
                     <select
                         name="currency"
                         value={currency}
@@ -159,7 +159,7 @@ export default function PayrollGrid({
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('hr.colFxRate')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -172,7 +172,7 @@ export default function PayrollGrid({
                     />
                 </div>
                 <div className="flex-1 min-w-[14rem]">
-                    <label className="block text-sm font-medium mb-1">{t('hr.colSourceNote')}</label>
+                    <label className="block mb-1">{t('hr.colSourceNote')}</label>
                     <input
                         type="text"
                         name="source_note"
@@ -182,7 +182,7 @@ export default function PayrollGrid({
                     />
                 </div>
                 <div className="flex-1 min-w-[12rem]">
-                    <label className="block text-sm font-medium mb-1">{t('hr.colNotes')}</label>
+                    <label className="block mb-1">{t('hr.colNotes')}</label>
                     <input
                         type="text"
                         name="notes"
@@ -204,11 +204,11 @@ export default function PayrollGrid({
                     <thead className="bg-gray-100">
                         <tr>
                             <th className="border border-gray-300 px-3 py-2 text-left">{t('hr.colEmployee')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colGross')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colEmployeeCpf')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colEmployerCpf')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colDeductions')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-right">{t('hr.colNet')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-right tabular-nums">{t('hr.colGross')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-right tabular-nums">{t('hr.colEmployeeCpf')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-right tabular-nums">{t('hr.colEmployerCpf')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-right tabular-nums">{t('hr.colDeductions')}</th>
+                            <th className="border border-gray-300 px-3 py-2 text-right tabular-nums">{t('hr.colNet')}</th>
                             <th className="border border-gray-300 px-3 py-2 text-left w-32">{t('hr.colCheck')}</th>
                         </tr>
                     </thead>

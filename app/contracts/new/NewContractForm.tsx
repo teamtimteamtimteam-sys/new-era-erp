@@ -59,7 +59,7 @@ export default function NewContractForm({
                     【一个字段,不是两个】「恰好属于一边」是数据库上的一条 CHECK,
                     而一个下拉框让它在屏幕上也成为结构性的:选不出"两个都是"。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('contracts.form.counterparty')} <span className="text-red-600">*</span>
                     </label>
                     <select name="counterparty" defaultValue="" className={fieldSelect}>
@@ -101,7 +101,7 @@ export default function NewContractForm({
 
                 {/* ── 种类 ─────────────────────────────────────────────── */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('contracts.form.kind')} <span className="text-red-600">*</span>
                     </label>
                     <select name="kind" defaultValue="supply" className={fieldSelect}>
@@ -114,7 +114,7 @@ export default function NewContractForm({
 
                 {/* ── 标题 ─────────────────────────────────────────────── */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('contracts.form.title')} <span className="text-red-600">*</span>
                     </label>
                     <input type="text" name="title" required className={field}
@@ -125,14 +125,14 @@ export default function NewContractForm({
                 {/* ── 期限 ─────────────────────────────────────────────── */}
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('contracts.form.effectiveFrom')} <span className="text-red-600">*</span>
                         </label>
                         <input type="date" name="effective_from" required className={field} />
                         {err('effective_from')}
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('contracts.form.effectiveTo')}</label>
+                        <label className="block mb-1">{t('contracts.form.effectiveTo')}</label>
                         <input type="date" name="effective_to" className={field} />
                         {/* 【空 = 没有固定期限,不是"忘了填"】—— 表上那条列注就是这么写的,
                             而表单必须说同一句话,否则它自己在暗示相反的意思。 */}
@@ -143,7 +143,7 @@ export default function NewContractForm({
 
                 {/* ── 状态:创建时选,而【之后改不了】 ───────────────────── */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('contracts.form.status')} <span className="text-red-600">*</span>
                     </label>
                     <select name="status" value={status} onChange={(e) => setStatus(e.target.value)} className={fieldSelect}>
@@ -166,23 +166,23 @@ export default function NewContractForm({
                 {/* ── 商务条款(全部可空:框架协议可以不定币种、不定贸易术语)── */}
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('contracts.form.signedOn')}</label>
+                        <label className="block mb-1">{t('contracts.form.signedOn')}</label>
                         <input type="date" name="signed_on" className={field} />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('contracts.form.currency')}</label>
+                        <label className="block mb-1">{t('contracts.form.currency')}</label>
                         <select name="currency" defaultValue="" className={fieldSelect}>
                             <option value="">{t('contracts.form.currencyNone')}</option>
                             {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('contracts.form.incoterm')}</label>
+                        <label className="block mb-1">{t('contracts.form.incoterm')}</label>
                         <input type="text" name="incoterm" className={field}
                                placeholder={t('contracts.form.incotermPlaceholder')} />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('contracts.form.paymentTermsDays')}</label>
+                        <label className="block mb-1">{t('contracts.form.paymentTermsDays')}</label>
                         <input type="number" name="payment_terms_days" min={0} max={365} className={field} />
                         <p className="text-xs text-gray-500 mt-1">{t('contracts.form.paymentTermsDaysHint')}</p>
                         {err('payment_terms_days')}
@@ -190,20 +190,20 @@ export default function NewContractForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('contracts.form.documentRef')}</label>
+                    <label className="block mb-1">{t('contracts.form.documentRef')}</label>
                     <input type="text" name="document_ref" className={field}
                            placeholder={t('contracts.form.documentRefPlaceholder')} />
                     <p className="text-xs text-gray-500 mt-1 max-w-2xl">{t('contracts.form.documentRefHint')}</p>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('contracts.form.notes')}</label>
+                    <label className="block mb-1">{t('contracts.form.notes')}</label>
                     <textarea name="notes" className={fieldTextarea} />
                 </div>
 
                 {/* ★ 建完之后能做什么、不能做什么 —— 说在【建之前】 */}
                 <div className="border border-amber-300 bg-amber-50 rounded p-4 max-w-2xl">
-                    <h2 className="font-medium mb-1">{t('contracts.form.afterTitle')}</h2>
+                    <h2 className="mb-1">{t('contracts.form.afterTitle')}</h2>
                     <p className="text-sm text-gray-800">{t('contracts.form.afterCanDo')}</p>
                     <p className="text-sm text-amber-900 mt-2 font-medium">{t('contracts.form.afterCannotDo')}</p>
                 </div>

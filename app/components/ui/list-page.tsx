@@ -138,7 +138,7 @@ export async function ListPage({
             {/* ★ 标题【之上】—— 见 breadcrumb 的说明。不给就不画。 */}
             {breadcrumb && <div className="mb-6">{breadcrumb}</div>}
             <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-                <h1 className="text-2xl font-bold">{title}</h1>
+                <h1 className="">{title}</h1>
                 {/* ★★ BTN-6(2026-09-07):动作槽【自己的容器】—— 这一层此前不存在 ★★
 
                     【它修的是什么 —— 一个量了三次的失败形状】

@@ -47,7 +47,7 @@ export default async function ToolsCalendarPage({
 
     return (
         <div className="p-6 max-w-5xl">
-            <h1 className="text-2xl font-semibold mb-1">{t('calendar.title')}</h1>
+            <h1 className="mb-1">{t('calendar.title')}</h1>
             <p className="text-sm mb-4" style={{ color: 'var(--brand-muted-text)' }}>{t('calendar.intro')}</p>
 
             <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">

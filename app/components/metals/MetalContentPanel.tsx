@@ -140,7 +140,7 @@ export default function MetalContentPanel({
                               // 化验来源:标签就是单据号,点过去是那份化验
                               <a
                                   href={r.source_href}
-                                  className="px-2 py-0.5 rounded text-xs bg-blue-100 text-blue-800 hover:underline font-mono"
+                                  className="px-2 py-0.5 rounded text-xs bg-blue-100 hover:underline font-mono app-link"
                               >
                                   {r.source_label}
                               </a>
@@ -196,7 +196,7 @@ export default function MetalContentPanel({
     return (
         <section className="mt-8 pt-8 border-t">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">{t('metalContent.title')}</h2>
+                <h2 className="">{t('metalContent.title')}</h2>
                 {priceHref && rows.length > 0 && (
                     <Button asChild variant="outline">
                         <a

@@ -70,11 +70,11 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
 
     return (
         <div className="p-8 max-w-6xl">
-            <Link href="/my-reviews" className="text-sm text-blue-600 hover:underline">
+            <Link href="/my-reviews" className="text-sm hover:underline app-link app-link-inline">
                 {t('common.back')}
             </Link>
 
-            <h1 className="text-2xl font-bold mt-2 mb-1">
+            <h1 className="mt-2 mb-1">
                 {subject?.employee_name ?? t('reviews.detailTitle')}
                 <span className="ml-2 font-mono text-base text-gray-500">{subject?.employee_code}</span>
                 <span className={'ml-3 align-middle inline-block rounded px-2 py-0.5 text-xs ' + statusPillClass(r.status)}>
@@ -107,7 +107,7 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
 
             {(r.self_assessment_text || r.self_assessment_submitted_at) && (
                 <div className="mb-6">
-                    <h2 className="text-xl font-bold mb-1">{t('reviews.selfAssessmentTitle')}</h2>
+                    <h2 className="mb-1">{t('reviews.selfAssessmentTitle')}</h2>
                     {r.self_assessment_submitted_at && (
                         <p className="text-xs text-gray-500 mb-2">
                             {t('reviews.selfAssessmentSubmittedAt', { 0: r.self_assessment_submitted_at.slice(0, 10) })}
@@ -117,7 +117,7 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
                 </div>
             )}
 
-            <h2 className="text-xl font-bold mb-3">{t('reviews.goalsTitle')}</h2>
+            <h2 className="mb-3">{t('reviews.goalsTitle')}</h2>
             {/* ★ ALERT-2d:这一页【一直】传的就是纯记录状态(这里没有第二种权限:
                    进得来这一页的人就是这一行点名的评估人,上面 notFound 已经把关)。
                    缺的只是那句解释 —— 状态不许改的时候,屏幕上原本一个字都没有。 */}
@@ -130,7 +130,7 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
                 stateNote={t('reviews.stateGoalsLocked', { 0: t(`reviews.status_${r.status}`) })}
             />
 
-            <h2 className="text-xl font-bold mb-3">{t('reviews.conclusionTitle')}</h2>
+            <h2 className="mb-3">{t('reviews.conclusionTitle')}</h2>
             <ConclusionForm
                 reviewId={r.id}
                 ratings={ratings}

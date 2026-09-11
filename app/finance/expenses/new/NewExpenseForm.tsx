@@ -193,7 +193,7 @@ canEdit: boolean
             <div className="flex flex-wrap gap-4">
                 {/* 费用日期(默认今天)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('expense.form.date')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -207,7 +207,7 @@ canEdit: boolean
                 {/* FIN-22:资本性支出开关 —— 勾上后借 1500 而不是费用科目,
                     同一事务生成固定资产台账行(资产不脱离应付/付款存在)*/}
                 <div className="self-end pb-2">
-                    <label className="inline-flex items-center gap-2 text-sm font-medium">
+                    <label className="inline-flex items-center gap-2">
                         <input className={CONTROL_CHECKBOX} type="checkbox" name="capital" checked={capital}
                                onChange={(e) => setCapital(e.target.checked)} />
                         {t('expense.form.capital')}
@@ -216,7 +216,7 @@ canEdit: boolean
                 {/* 费用科目(仅 active expense 科目,按编码排序);资本行固定 1500 */}
                 {!capital ? (
                     <div className="flex-1 min-w-[16rem]">
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('expense.form.account')} <span className="text-red-600">*</span>
                         </label>
                         <select
@@ -250,7 +250,7 @@ canEdit: boolean
             {gstRegistered && (
                 <div className="flex flex-wrap gap-4">
                     <div className="flex-1 min-w-[16rem]">
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('expense.form.taxCode')} <span className="text-red-600">*</span>
                         </label>
                         <select
@@ -295,7 +295,7 @@ canEdit: boolean
                     <p className="text-xs text-gray-700 mb-3">{t('expense.form.whtWhy')}</p>
                     <div className="flex flex-wrap gap-4">
                         <div className="flex-1 min-w-[16rem]">
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('expense.form.whtNature')} <span className="text-red-600">*</span>
                             </label>
                             <select
@@ -317,7 +317,7 @@ canEdit: boolean
                             (WHT_TREATY_REF_WITHOUT_RATE / WHT_TREATY_REF_REQUIRED),
                             页面不重复判一遍 —— 那就是同一条规矩的第二处实现。 */}
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('expense.form.whtTreatyRate')}</label>
+                            <label className="block mb-1">{t('expense.form.whtTreatyRate')}</label>
                             <input
                                 name="wht_treaty_rate_pct" type="number" step="0.001" min="0"
                                 value={whtTreatyRate}
@@ -326,7 +326,7 @@ canEdit: boolean
                             />
                         </div>
                         <div className="flex-1 min-w-[14rem]">
-                            <label className="block text-sm font-medium mb-1">{t('expense.form.whtTreatyRef')}</label>
+                            <label className="block mb-1">{t('expense.form.whtTreatyRef')}</label>
                             <input
                                 name="wht_treaty_ref"
                                 value={whtTreatyRef}
@@ -349,7 +349,7 @@ canEdit: boolean
             <div className="flex flex-wrap gap-4">
                 {/* 金额(必填,原币)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('expense.form.amount')} <span className="text-red-600">*</span>
                     </label>
                     <DecimalInput
@@ -362,7 +362,7 @@ canEdit: boolean
                 </div>
                 {/* 币种(默认 SGD)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('expense.form.currency')}</label>
+                    <label className="block mb-1">{t('expense.form.currency')}</label>
                     <select
                         name="currency"
                         value={currency}
@@ -379,7 +379,7 @@ canEdit: boolean
                 )}
                 {/* 付款状态(默认挂账)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('expense.form.paymentStatus')}</label>
+                    <label className="block mb-1">{t('expense.form.paymentStatus')}</label>
                     <select
                         name="payment_status"
                         value={paymentStatus}
@@ -393,7 +393,7 @@ canEdit: boolean
                 {/* paid → 银行账户(默认随币种);unpaid → 供应商(必选)*/}
                 {paymentStatus === 'paid' ? (
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('expense.form.bankAccount')}</label>
+                        <label className="block mb-1">{t('expense.form.bankAccount')}</label>
                         <select
                             name="bank_account"
                             value={bank}
@@ -410,7 +410,7 @@ canEdit: boolean
                             一个下拉、两组选项:一次选择就是一个不可分割的答案,
                             没有第二个字段能和它矛盾(库里那条 XOR 的表单形态)。
                             默认仍是"请选择",供应商在前 —— 既有用法一步没变。 */}
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('expense.form.counterparty')} <span className="text-red-600">*</span>
                         </label>
                         {/* EQP-1c-c:改成受控 —— 采购行的挑选要按【这家供应商】过滤,
@@ -444,7 +444,7 @@ canEdit: boolean
                 {/* 收款方(paid 时可选的自由文本)*/}
                 {paymentStatus === 'paid' && (
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('expense.form.payeeName')}</label>
+                        <label className="block mb-1">{t('expense.form.payeeName')}</label>
                         <input
                             type="text"
                             name="payee_name"
@@ -454,7 +454,7 @@ canEdit: boolean
                 )}
                 {/* 备注 */}
                 <div className="flex-1 min-w-[12rem]">
-                    <label className="block text-sm font-medium mb-1">{t('expense.form.notes')}</label>
+                    <label className="block mb-1">{t('expense.form.notes')}</label>
                     <input
                         type="text"
                         name="notes"
@@ -467,14 +467,14 @@ canEdit: boolean
                 在役日可留空(未投用不折旧),折旧从【在役日】起算 ── */}
             {capital && (
                 <div className="border border-gray-300 rounded p-4 space-y-3">
-                    <h3 className="text-sm font-bold text-gray-700">{t('expense.form.assetSection')}</h3>
+                    <h3 className="">{t('expense.form.assetSection')}</h3>
 
                     {/* ── EQP-1c-c(D1):两扇门,【由人明选】────────────────────
                         一个推断出来的模式,是一个没有人选过的模式。选错的代价不对称:
                         "新机器"用在一台已登记的机器上,会多出一张【撤不回来】的资产卡。 */}
                     <div className="rounded border border-blue-200 bg-blue-50 p-3 space-y-2">
                         {CAPITAL_MODES.map((m) => (
-                            <label key={m} className="flex items-start gap-2 text-sm">
+                            <label key={m} className="flex items-start gap-2">
                                 <input type="radio" name="capital_mode" value={m} className={`${CONTROL_RADIO} mt-1`}
                                        checked={capitalMode === m}
                                        onChange={() => { setCapitalMode(m); setAssetId(''); setPoLineId('') }} />
@@ -492,7 +492,7 @@ canEdit: boolean
                     {isAppend && (
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-sm font-medium mb-1">
+                                <label className="block mb-1">
                                     {t('expense.form.existingAsset')} <span className="text-red-600">*</span>
                                 </label>
                                 <select name="asset_id" required value={assetId}
@@ -513,7 +513,7 @@ canEdit: boolean
 
                             {/* ── D3:采购单行(可选)—— 三种"空"要说清是哪一种 ──── */}
                             <div>
-                                <label className="block text-sm font-medium mb-1">
+                                <label className="block mb-1">
                                     {t('expense.form.poLine')}
                                 </label>
                                 <select name="purchase_order_line_id" value={poLineId}
@@ -550,14 +550,14 @@ canEdit: boolean
                     {!isAppend && (
                     <div className="flex flex-wrap gap-4">
                         <div className="flex-1 min-w-[16rem]">
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('assets.colDescription')} <span className="text-red-600">*</span>
                             </label>
                             <input type="text" name="asset_description" required={capital && !isAppend}
                                    className={`${CONTROL_INPUT} w-full`} />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('assets.colCategory')}</label>
+                            <label className="block mb-1">{t('assets.colCategory')}</label>
                             <select name="asset_category" defaultValue="equipment"
                                     className={CONTROL_SELECT}>
                                 <option value="equipment">{t('assets.category.equipment')}</option>
@@ -567,20 +567,20 @@ canEdit: boolean
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('assets.colInService')}</label>
+                            <label className="block mb-1">{t('assets.colInService')}</label>
                             <input type="date" name="asset_in_service_date"
                                    className={CONTROL_INPUT} />
                             <p className="text-xs text-gray-500 mt-1">{t('expense.form.inServiceHint')}</p>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('assets.colLife')} <span className="text-red-600">*</span>
                             </label>
                             <input type="number" name="asset_life_months" min={1} step={1} required={capital && !isAppend}
                                    className={`${CONTROL_INPUT} w-28`} />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('expense.form.residual', { ccy: baseCurrency })}
                             </label>
                             <DecimalInput name="asset_residual" value={residual} onChange={setResidual}

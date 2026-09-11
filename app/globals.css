@@ -17,7 +17,18 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  /* ★★ FONT-1(2026-09-11):`font-sans` 那个工具类从 Geist 换成产品字体 ★★
+     【为什么这一行非改不可】只改下面 body 那一行是不够的:
+     `--font-sans` 是 Tailwind 的 `font-sans` 工具类的值,而 FONT-1 round 1
+     实测 **`font-sans` 有 50 个站点**(39 个 <span> + 11 个 <div>),
+     屏幕上 **264 个元素**声明着 `Geist, "Geist Fallback"`。
+     不改这一行,那 264 个元素会继续渲染 Geist,而别处渲染 Google Sans ——
+     **屏幕上仍然是两种拉丁字体**,正是这一刀要结束的那件事。
+     ★ 这一串与下面 `body` 那一行【逐字相同】,不是两份定义各写一遍值:
+       两处都写 `var(--font-product-sans), Arial, Helvetica, sans-serif`。
+     ★ `--font-mono` 一个字节不动 —— 等宽那一族(548 个站点)归另一件事,
+       「要不要换 Google Sans Code」已登记入队列(Tim 2026-09-11, Q10)。 */
+  --font-sans: var(--font-product-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
@@ -57,10 +68,172 @@
    现在它们是【浮在淡底上的白面】,而不是白底上的白块 —— 分层是靠明度差做出来的,
    这正是 --brand-surface 那一行注释早就写着的意思。
    ════════════════════════════════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════════════════════════════════
+   ★★ FONT-1(2026-09-11)· body 的两件事:字族换成产品字体,默认字色换成 --brand-text
+   ════════════════════════════════════════════════════════════════════════════
+   ① 【字族】`Arial, Helvetica, sans-serif` → `var(--font-product-sans), 同样那三个`。
+      ★ **尾巴逐字没动** —— 这不是偷懒,是**中文回退链**那一条:
+        今天中文走的是「Arial 里没有 → Helvetica 里没有 → sans-serif」;
+        产品字体的 subset 里同样没有中文(两条独立量法,见 layout.tsx 抬头),
+        于是中文**按构造**走今天同一条路,在每一个操作系统上都是。
+      ⚠ 而「同一条路」只在 macOS 上被【量】过(round 1:141 条路由 × 2 视口,
+        `NEXT_LOCALE=zh`,改前改后都是 `PingFang SC`,282 个读数 0 个变化)。
+        **Windows 上那条链落到微软雅黑,一次都没有验证。**
+
+   ② 【默认字色】`var(--foreground)` #171717 → `var(--brand-text)` #182B4B(Tim 2026-09-11, Q4)。
+      实测对比度(WCAG,对着 --brand-bg #F1F9FE):**13.27:1** ✓
+      (它取代的 #171717 是 16.84:1 —— 两档都远在 AA 之上,这一步是【归一】不是【放宽】。)
+      ★ **`--foreground` 那个 token 本身一个字节都没动**(Tim 明写)——
+        它还在 :root 里,`text-foreground` 那 23 个站点照旧指着 #171717。
+        ☞ 把它们一起归一是 **FONT-2** 的事,已登记。
+      ☞ 于是这一行的准确含义是:**没有写字色 class 的文字**从今天起是品牌深蓝。
+   ════════════════════════════════════════════════════════════════════════════ */
 body {
   background: var(--brand-bg);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--brand-text);
+  font-family: var(--font-product-sans), Arial, Helvetica, sans-serif;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ★★ FONT-1(2026-09-11)· 字号表 —— 一处定义,四条元素规则 ★★
+   ════════════════════════════════════════════════════════════════════════════
+   【为什么是【元素规则】而不是一个工具类】Tim 的裁定写得很死:「**ONE definition**」。
+   一个工具类要在 444 + 633 个落点上各写一遍,而那 1077 个落点正是这一刀要**清空**的
+   东西 —— 用工具类等于把刚拆掉的那一堆换个名字再摆回去。
+   ☞ 于是值住在这里【一处】,落点那一侧**只做减法**:把字号 / 字重 / 行高 / 字族 /
+     字色的 class 剥掉,让它们落到这四条规则上。
+
+   【为什么在 @layer base 里】Tailwind v4 的层序是 theme → base(preflight)→
+   components → utilities。写进 `base` 有两个后果,而两个都是要的:
+     ① 它**压得过 preflight** —— preflight 把 h1–h6 重置成 `font-size: inherit;
+        font-weight: inherit`,不压过它,这四条就不生效;
+     ② 它**压不过工具类** —— 于是**没有被剥掉的 class 仍然赢**。
+        ★ 这一条是刻意的:`app/login/` 与 `app/brand-sampler/` 两页不许编辑,
+          它们写着 class 的地方因此**一个字节都不会变**(实测见交回报告)。
+
+   【每一个值的出处,逐条】—— 三种身份,不许混着读:
+     · `h1` **24 / 700 / 32** —— **E3**(docs/variant-c-spec.md §2A,在案的例外)。
+       取样页自己那个 h1 是 30px,而 E3 的裁定是「页面标题保持 24px」,
+       理由是系统自己 139 个页面标题里 127 个逐字节相同 —— **乱的不是它**。
+     · `h2` **20 / 700 / 28** —— **MEASURED**,取自 /brand-sampler 实测的 `h3` 那一档
+       (20/700/28 #182B4B,4 个)。★ 标题整体【下移一级】,与 E3 同一条理路。
+     · `h3` **20 / 600 / 28** —— **TIM'S RULING**:低一级保持上一级的字号,字重降一档。
+     · `label` **14 / 500 / 20** —— 字号与字重是 MEASURED(取样页 3 个 label 都是 14/500),
+       ★ **行高 20px 是一条记录在案的【例外】**:取样页实测的是 **14**(leading 1.0),
+       而那个读数来自**永远不会折行**的三个标签;系统里的标签在 390px 上折行是常事,
+       一个 leading 1.0 的标签一折行就挤成一团。
+       ☞ 代价照直说:**取样页自己那三个 label 的行高也会从 14 变成 20** ——
+         `<Label>` 组件不再写 `leading-none`,而它们一个 class 都没写。
+         **这是 Tim 这条裁定的直接后果,不是一次副作用**,见交回报告 §5.4(e)。
+     · 颜色四条都是 `--brand-text` #182B4B —— MEASURED(取样页 h1/h2/h3/label 全是它),
+       实测对比度 on --brand-bg **13.27:1** ✓
+     · `h4`–`h6`:**一个都不写**。实测代码点各 0 个、取样页上各 0 个 ——
+       一条没有消费者的规则是一条没有人会去核对的规则。
+       将来真要加一级,规矩写在 docs/variant-c-spec.md 里:**保持上一级的字号,字重再降一档。**
+   ════════════════════════════════════════════════════════════════════════════ */
+@layer base {
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 32px;
+    color: var(--brand-text);
+  }
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 28px;
+    color: var(--brand-text);
+  }
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 28px;
+    color: var(--brand-text);
+  }
+  label {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 20px;
+    color: var(--brand-text);
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════
+     ★★ FONT-1 round 3(2026-09-11, Tim T4)· 控件的字重回到 400 ★★
+     ══════════════════════════════════════════════════════════════════════
+     【它修的是什么】上面那条 `label` 规则把 500 给了【每一个】 `<label>`,
+     而 `control-style.ts` **没有设 font-weight** —— 于是 Tailwind preflight 的
+     `font: inherit` 把那个 500 一路传进了**包在 label 里的控件**。
+     ★ 实测(round 2 的 `--mode=compare`):**240 个控件 / 42 条路由**的输入文字
+       从 400 变成了 500,而**没有任何人裁过控件要变**。
+     ☞ 这一条不是一个新标准,是**把一次没有人要的继承挡回去**。
+
+     【400 这个值是量出来的,不是挑出来的】
+     ★ 量法:`/brand-sampler` 两个视口,`getComputedStyle` 读那一页上
+       **21 颗共享控件**(4 个 `<Input>` · 3 个 `<Textarea>` · 1 个 search ·
+       13 个勾选框)。读数存在 `/tmp/font1-r3/sampler-controls-before.json`。
+     ★ 读数:`<Input>` / `<Textarea>` / search 三族 **font-weight 400**
+       (desktop 14/20 · phone 16/24;高 32px)—— **取样页上那几颗控件
+       一个都不住在 `<label>` 里**,所以它们**从来没有继承到那个 500**,
+       它们身上的 400 就是这个标准没有被污染过的样子。
+     ⚠ **取样页上【没有】原生 `<select>`**(实测 0 颗)——
+       所以 `select` 那一档是**照 `<Input>` 的读数给的**,不是它自己量到的。
+       这一件照直说,写在 `docs/variant-c-spec.md` §4.7.8 里。
+
+     【为什么它压不过该压不过的东西】`@layer base` 排在 utilities **前面**,
+     于是任何写着 `font-medium` / `font-semibold` 的调用点**照旧赢**。
+     ★ 实测的两个后果,都是要的:
+       ① `::file-selector-button` **不受影响** —— 那颗钮的字重来自
+          `file:font-medium`(一个 utility),见 `control-style.ts` 的
+          `CONTROL_FILE_BUTTON` 与 `INPUT_FILE_RESET`,**两条都显式写着**;
+       ② `control-style.ts` **一个字节都没有改** —— Tim T4 明写不许动它,
+          而这一条住在 base 层,**不进那一串 class**。
+     ══════════════════════════════════════════════════════════════════════ */
+  input,
+  select,
+  textarea {
+    font-weight: 400;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   ★★ FONT-1(2026-09-11)· 链接色 —— 同样【一处定义】★★
+   ════════════════════════════════════════════════════════════════════════════
+   【判据:不许给 `a` 加全局规则】(Tim 2026-09-11, F3/Q13)
+   实测:首屏 888 个链接里,今天写着泛蓝的只有 283 个;其余是导航、卡片、
+   以及**渲染成链接的按钮**(41 个是品牌实心底上的**白字**)。
+   ☞ 给 `a` 写一条全局色,会把那 600 个从来不是"蓝链接"的东西一起染了 ——
+     其中白字那 41 个会变成**蓝底蓝字**。所以这里是一个**要显式写上去的 class**,
+     它换掉的正是那些今天显式写着 `text-blue-*` 的落点。
+
+   【`--brand-ocean-text` 是从哪来的】它的值与 `--brand-ocean-fill-hover` **逐字相同**
+   (#00709D)—— **没有引入一个新颜色**,那个值早就在色板里(由 --brand-ocean-fill
+   压 L 0.05 推出来的)。给它一个**自己的名字**,是因为「链接色 = 一个 hover 档」
+   读起来自相矛盾,而下一个人会照着那个名字去理解它。
+   实测对比度(round 1,链接**真正坐着**的底):
+       on --brand-bg #F1F9FE(710 个链接) **5.18:1** ✓
+       on 白 #FFFFFF(120 个)            **5.52:1** ✓
+   ★ 而它取代的 `text-blue-600` #155dfc 是 4.94 / 5.17 —— **这一步是【提高】对比度**。
+   ⚠ 对照:照字面用 `--brand-ocean`(3.53 ✗)或 `--brand-ocean-fill`(4.25 ✗)
+     会把 283 个链接压到 AA 线下面。那正是 forward-queue 第七节早就写过的那句话。
+
+   【hover】**不换色,只有下划线**(Tim, Q14)。理由:再压一档(#00618E)在小字上
+   几乎看不出来,而下划线在色盲与低对比度屏幕上都成立。
+   【静息态下划线】只给**正文里**的链接(`.app-link-inline`),表格单元格与导航
+   保持今天的 hover-only —— 给密表里每一个单号都加下划线是一次没有人要求过的版式改动。
+   ════════════════════════════════════════════════════════════════════════════ */
+@layer components {
+  .app-link {
+    color: var(--brand-ocean-text);
+    text-underline-offset: 2px;
+  }
+  .app-link:hover {
+    text-decoration-line: underline;
+  }
+  /* 正文里的链接:静息态就带下划线(WCAG 1.4.1 —— 它管的是【不悬停】那一刻,
+     而 `hover:underline` 在那一刻什么都不是)。 */
+  .app-link-inline {
+    text-decoration-line: underline;
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════════════════

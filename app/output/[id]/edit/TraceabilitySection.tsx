@@ -102,7 +102,7 @@ export default async function TraceabilitySection({
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-xl font-bold mb-1">{t('traceability.title')}</h2>
+            <h2 className="mb-1">{t('traceability.title')}</h2>
             <p className="text-sm text-gray-600 mb-3">{t('traceability.intro')}</p>
 
             {failed ? (
@@ -113,11 +113,11 @@ export default async function TraceabilitySection({
             ) : (
                 <>
                     {/* ── 血缘链:供应商 → 收货 → 每一支加工单 → 这一批 ─────────── */}
-                    <h3 className="font-medium mb-2">{t('traceability.chainHeading')}</h3>
+                    <h3 className="mb-2">{t('traceability.chainHeading')}</h3>
                     <ChainTable rows={chainRows} />
 
                     {/* ── 回收率:每支加工单 × 金属,出处跟着数字走 ───────────────── */}
-                    <h3 className="font-medium mb-2">{t('traceability.recoveryHeading')}</h3>
+                    <h3 className="mb-2">{t('traceability.recoveryHeading')}</h3>
                     <RecoveryTable rows={recoveryRows} />
 
                     {/* 【一句人话,而它也进 PDF】客户只拿到那张纸时,同样读得到这句。 */}
@@ -128,7 +128,7 @@ export default async function TraceabilitySection({
             )}
 
             {/* ── 签发:与另外六个单据【同一个公共件】(EXT-1)───────────────── */}
-            <h3 className="font-medium mb-2">{t('traceability.issuesHeading')}</h3>
+            <h3 className="mb-2">{t('traceability.issuesHeading')}</h3>
             <p className="text-xs text-gray-500 mb-2">{t('traceability.issuesNote')}</p>
             <IssuePanel
                 pdfHref={pdfHref}
@@ -159,7 +159,7 @@ export default async function TraceabilitySection({
                                 href={`${pdfHref}?version=${iss.version}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
+                                className="hover:underline app-link app-link-inline"
                             >
                                 {iss.code} v{iss.version}
                             </a>

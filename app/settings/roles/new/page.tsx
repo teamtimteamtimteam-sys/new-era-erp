@@ -15,18 +15,18 @@ export default async function NewRolePage() {
         <div className="p-8 max-w-4xl">
             {/* ★ MANUAL-FIX-1 F:与 /settings/roles/[id] 同一处错,同一个修法。
                 只修其中一张会让新建与编辑两屏顶着不同的名字。 */}
-            <h1 className="text-2xl font-bold mb-4">{t('permissions.roleTitle')}</h1>
+            <h1 className="mb-4">{t('permissions.roleTitle')}</h1>
 
             <div className="mb-4">
                 <Link
                     href="/settings/roles"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h2 className="text-xl font-bold mb-2">{t('permissions.addRole')}</h2>
+            <h2 className="mb-2">{t('permissions.addRole')}</h2>
             <p className="text-sm text-gray-500 mb-4">{t('permissions.addRoleHint')}</p>
 
             <RoleForm

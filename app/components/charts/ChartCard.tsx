@@ -77,7 +77,7 @@ export default async function ChartCard({
     return (
         <section className="rounded border p-4 mb-6"
                  style={{ borderColor: 'var(--brand-border)', background: 'var(--brand-surface)' }}>
-            <h2 className="text-base font-semibold mb-1" style={{ color: 'var(--brand-text)' }}>{title}</h2>
+            <h2 className="mb-1" style={{ color: 'var(--brand-text)' }}>{title}</h2>
 
             {/* 【出处永远画,连受限和空态也画】—— 一张说不出自己出处的空图,
                 与一张说不出自己出处的满图一样不可信。 */}

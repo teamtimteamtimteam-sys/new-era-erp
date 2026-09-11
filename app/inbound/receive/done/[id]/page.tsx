@@ -77,7 +77,7 @@ export default async function ReceiveDonePage({
     return (
         <div className="p-4 max-w-md mx-auto text-center">
             <div className="mt-6 mb-4 text-5xl text-green-600">✓</div>
-            <h1 className="text-2xl font-bold text-green-700 mb-6">{t('receive.doneTitle')}</h1>
+            <h1 className="text-green-700 mb-6">{t('receive.doneTitle')}</h1>
 
             <div className="font-mono text-3xl font-extrabold break-all mb-3">{batch.code}</div>
             <p className="text-gray-600 mb-8">
@@ -101,7 +101,7 @@ export default async function ReceiveDonePage({
             </div>
 
             <div className="mt-6">
-                <Link href={`/inbound/${batch.id}/edit`} className="text-blue-600 hover:underline text-sm">
+                <Link href={`/inbound/${batch.id}/edit`} className="hover:underline text-sm app-link">
                     {t('receive.viewBatch')}
                 </Link>
             </div>

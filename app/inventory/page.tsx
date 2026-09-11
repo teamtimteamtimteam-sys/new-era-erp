@@ -139,7 +139,7 @@ export default async function InventoryPage() {
             legsRes.error ?? metalsRes.error ?? pricesRes.error ?? materialsRes.error
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">{t('inventory.listTitle')}</h1>
+                <h1 className="mb-4">{t('inventory.listTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('inventory.loadError')}</p>
                     <details className="mt-2">
@@ -292,7 +292,7 @@ export default async function InventoryPage() {
         <div className="p-8 space-y-6">
             <div className="flex justify-between items-start gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold">{t('inventory.listTitle')}</h1>
+                    <h1 className="">{t('inventory.listTitle')}</h1>
                     <p className="text-sm text-gray-500 mt-1">{t('inventory.ledgerNote')}</p>
                 </div>
                 {/* LOC-1:库位主数据的入口。【本页是它唯一的入口】—— /inventory/locations
@@ -310,7 +310,7 @@ export default async function InventoryPage() {
 
             {/* 物料平衡 */}
             <section>
-                <h2 className="text-lg font-semibold mb-2">{t('inventory.balanceSectionHeader')}</h2>
+                <h2 className="mb-2">{t('inventory.balanceSectionHeader')}</h2>
                 <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm">
                     <div>
                         <span className="text-gray-600">{t('inventory.balTotalInput')}</span>{' '}
@@ -336,7 +336,7 @@ export default async function InventoryPage() {
 
             {/* 当前库存 */}
             <section>
-                <h2 className="text-lg font-semibold mb-2">{t('inventory.stockSectionHeader')}</h2>
+                <h2 className="mb-2">{t('inventory.stockSectionHeader')}</h2>
 
                 {/* 估值合计条 */}
                 <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm mb-3">

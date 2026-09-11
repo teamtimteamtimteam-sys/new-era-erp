@@ -82,7 +82,7 @@ export default async function CounterpartyOverlapPage() {
                     {/* ★【分母:让"0 条"说得出它是哪一种 0】★
                         没有这一段,"没有重叠"与"没有可比的东西"在屏幕上长得一模一样。 */}
                     <div className="border border-gray-300 rounded p-3 mb-6 max-w-3xl">
-                        <h2 className="font-medium mb-1">{t('overlap.coverageTitle')}</h2>
+                        <h2 className="mb-1">{t('overlap.coverageTitle')}</h2>
                         <p className="text-sm text-gray-800">
                             {t('overlap.coverageLine', {
                                 cwith: String(cov.customers_with_tax_id), ctotal: String(cov.customers_total),
@@ -98,7 +98,7 @@ export default async function CounterpartyOverlapPage() {
             }
             state={{ kind: 'ok' }}
         >
-            <h2 className="text-lg font-semibold mb-2">{t('overlap.byTaxTitle')}</h2>
+            <h2 className="mb-2">{t('overlap.byTaxTitle')}</h2>
             <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('overlap.byTaxWhat')}</p>
             {report.by_tax_id.length === 0 ? (
                 <p className="text-sm text-gray-600 mb-6">{t('overlap.byTaxNone')}</p>
@@ -106,7 +106,7 @@ export default async function CounterpartyOverlapPage() {
                 <ByTaxTable rows={byTaxRows} />
             )}
 
-            <h2 className="text-lg font-semibold mb-2">{t('overlap.byNameTitle')}</h2>
+            <h2 className="mb-2">{t('overlap.byNameTitle')}</h2>
             <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('overlap.byNameWhat')}</p>
             {report.by_name.length === 0 ? (
                 <p className="text-sm text-gray-600">{t('overlap.byNameNone')}</p>

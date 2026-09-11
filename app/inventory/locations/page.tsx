@@ -89,7 +89,7 @@ export default async function LocationsPage() {
             notices={
                 <>
                     <div className="mb-6">
-                        <Link href="/inventory" className="text-blue-600 hover:underline text-sm">
+                        <Link href="/inventory" className="hover:underline text-sm app-link">
                             {t('common.back')}
                         </Link>
                     </div>

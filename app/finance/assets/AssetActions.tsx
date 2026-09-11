@@ -146,7 +146,7 @@ export default function AssetActions({
                                className={CONTROL_INPUT} />
                         <input type="number" step="any" min="0" value={proceeds}
                                onChange={(e) => setProceeds(e.target.value)}
-                               className={`${CONTROL_INPUT} w-28 text-right`}
+                               className={`${CONTROL_INPUT} w-28 text-right tabular-nums`}
                                placeholder={t('assets.actions.proceeds')} />
                         {/* 【有价款才要收款账户】报废(价款 0)不该逼人挑一个银行账户 */}
                         {Number(proceeds) > 0 && (

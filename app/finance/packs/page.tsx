@@ -56,7 +56,7 @@ export default async function PacksPage({
     if (previewRes.error) {
         return (
             <div className="p-8 max-w-5xl">
-                <h1 className="text-2xl font-bold mb-1">{t('pack.title')}</h1>
+                <h1 className="mb-1">{t('pack.title')}</h1>
                 <p className="text-sm text-gray-600 mb-4">{t('pack.subtitle')}</p>
                 <p className="text-sm bg-red-50 border border-red-300 text-red-900 px-3 py-2 rounded">
                     {previewRes.error.message}
@@ -88,7 +88,7 @@ export default async function PacksPage({
                     </Link>
                 </Button>
             </div>
-            <h2 className="font-semibold mb-2">
+            <h2 className="mb-2">
                 {t('pack.previewFor', { month })}
                 {!preview.month_locked && (
                     <span className="ml-2 text-xs font-normal bg-amber-100 text-amber-900 px-2 py-0.5 rounded">
@@ -108,7 +108,7 @@ export default async function PacksPage({
             </div>
 
             {/* ── 已存档的包 ──────────────────────────────────────────────── */}
-            <h2 className="font-semibold mb-1">{t('pack.storedHeading')}</h2>
+            <h2 className="mb-1">{t('pack.storedHeading')}</h2>
             {/* ★ 这一句是这一整刀的裁定,印在读者遇到存档包的地方 ★ */}
             <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('pack.storedMeans')}</p>
             <PacksHistoryTable rows={packRows} empty={t('pack.noStored')} />

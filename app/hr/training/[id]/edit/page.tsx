@@ -48,11 +48,11 @@ export default async function EditTrainingPage({
     return (
         <div className="p-8">
             <div className="mb-6">
-                <Link href="/hr/training" className="text-blue-600 hover:underline text-sm">
+                <Link href="/hr/training" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-4">{t('hr.trainingTitle')}</h1>
+            <h1 className="mb-4">{t('hr.trainingTitle')}</h1>
             <TrainingForm record={recRes.data} employees={employees} />
         </div>
     )

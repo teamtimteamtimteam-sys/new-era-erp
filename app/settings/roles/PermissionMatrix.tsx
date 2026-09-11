@@ -108,7 +108,7 @@ export default function PermissionMatrix({
 
     return (
         <div>
-            <h2 className="text-lg font-bold mb-1">{t('permissions.matrixTitle')}</h2>
+            <h2 className="mb-1">{t('permissions.matrixTitle')}</h2>
             <p className="text-sm text-gray-500 mb-3">{t('permissions.editRequiresViewHint')}</p>
 
             {error && (
@@ -177,7 +177,7 @@ export default function PermissionMatrix({
                 </tbody>
             </table>
 
-            <h3 className="font-bold mb-1">{t('permissions.dataAndActions')}</h3>
+            <h3 className="mb-1">{t('permissions.dataAndActions')}</h3>
             {/* 描述【就是重点】—— 要授出 data.view_pay 的人,应当先读到它到底泄露什么。 */}
             <p className="text-sm text-gray-500 mb-3">{t('permissions.dataAndActionsHint')}</p>
             <div className="space-y-2 mb-6">

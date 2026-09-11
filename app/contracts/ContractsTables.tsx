@@ -89,7 +89,7 @@ export function ContractListTable({ rows }: { rows: ContractListRow[] }) {
         {
             key: 'code', header: t('contracts.colCode'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/contracts/${r.id}`} className="text-blue-600 hover:underline">{r.code}</Link>
+                <Link href={`/contracts/${r.id}`} className="hover:underline app-link">{r.code}</Link>
             ),
         },
         { key: 'side', header: t('contracts.colSide'), className: 'text-sm', render: (r) => r.sideLabel },

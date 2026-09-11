@@ -54,7 +54,7 @@ export default function SuppliersTable({
         {
             key: 'code', header: t('suppliers.col.code'), priority: true, sortable: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/suppliers/${r.id}/edit`} className="text-blue-600 hover:underline">
+                <Link href={`/suppliers/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

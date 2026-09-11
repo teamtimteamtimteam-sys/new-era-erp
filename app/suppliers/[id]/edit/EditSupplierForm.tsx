@@ -63,7 +63,7 @@ export default function EditSupplierForm({
 
             <form action={formAction} className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('suppliers.form.legalName')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -81,7 +81,7 @@ export default function EditSupplierForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.shortName')}</label>
+                    <label className="block mb-1">{t('suppliers.form.shortName')}</label>
                     <input
                         type="text"
                         name="short_name"
@@ -91,7 +91,7 @@ export default function EditSupplierForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('suppliers.form.country')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -110,7 +110,7 @@ export default function EditSupplierForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.taxId')}</label>
+                    <label className="block mb-1">{t('suppliers.form.taxId')}</label>
                     <input
                         type="text"
                         name="tax_id"
@@ -120,7 +120,7 @@ export default function EditSupplierForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.address')}</label>
+                    <label className="block mb-1">{t('suppliers.form.address')}</label>
                     <textarea
                         name="address"
                         defaultValue={supplier.address ?? ''}
@@ -129,7 +129,7 @@ export default function EditSupplierForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block mb-2">
                         {t('suppliers.form.types')}
                     </label>
                     <div className="space-y-2">
@@ -153,7 +153,7 @@ export default function EditSupplierForm({
                     三选一而不是勾选,是因为问题不再是二元的:货代与房东/水电
                     都"不供货",但前者不该出现在供应商名单里,后者要留在费用选择器里。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('suppliers.counterpartyType')} <span className="text-red-600">*</span>
                     </label>
                     <select name="counterparty_type" defaultValue={supplier.counterparty_type ?? 'goods_supplier'} className={`${CONTROL_SELECT} w-full`}>
@@ -173,7 +173,7 @@ export default function EditSupplierForm({
                     【三态,而 NULL 不是"居民"】留空 = 没有人回答过,
                     与"申报为居民"在账上的后果完全不同:前者不追问、后者明确不代扣。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('suppliers.form.taxResidence')}
                     </label>
                     <select
@@ -191,7 +191,7 @@ export default function EditSupplierForm({
                 {/* ★【GST-2:这家供应商的默认进项税码 —— 只在已注册时出现】★ */}
                 {gstRegistered && (
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('suppliers.form.defaultTaxCode')}</label>
+                        <label className="block mb-1">{t('suppliers.form.defaultTaxCode')}</label>
                         <select
                             name="default_tax_code"
                             defaultValue={supplier.default_tax_code ?? ''}
@@ -211,7 +211,7 @@ export default function EditSupplierForm({
                 )}
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.paymentTerms')}</label>
+                    <label className="block mb-1">{t('suppliers.form.paymentTerms')}</label>
                     <input
                         type="text"
                         name="payment_terms"
@@ -222,7 +222,7 @@ export default function EditSupplierForm({
 
                 {/* 默认付款条款模板(cut 4b:新建采购单时自动带入付款计划)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.defaultPaymentTerms')}</label>
+                    <label className="block mb-1">{t('suppliers.defaultPaymentTerms')}</label>
                     <select
                         name="default_payment_term_template_id"
                         defaultValue={supplier.default_payment_term_template_id ?? ''}
@@ -239,7 +239,7 @@ export default function EditSupplierForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.incoterm')}</label>
+                    <label className="block mb-1">{t('suppliers.form.incoterm')}</label>
                     <input
                         type="text"
                         name="incoterm"
@@ -249,7 +249,7 @@ export default function EditSupplierForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.creditRating')}</label>
+                    <label className="block mb-1">{t('suppliers.form.creditRating')}</label>
                     <input
                         type="text"
                         name="credit_rating"
@@ -259,7 +259,7 @@ export default function EditSupplierForm({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.form.notes')}</label>
+                    <label className="block mb-1">{t('suppliers.form.notes')}</label>
                     <textarea
                         name="notes"
                         defaultValue={supplier.notes ?? ''}

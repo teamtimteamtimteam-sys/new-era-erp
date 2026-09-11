@@ -117,7 +117,7 @@ export default function BatchAuditTrailTable({ rows }: { rows: readonly AuditTab
             className: 'font-mono',
             render: (r) =>
                 r.mayView && r.sourceHref ? (
-                    <Link href={r.sourceHref} className="text-blue-600 hover:underline">
+                    <Link href={r.sourceHref} className="hover:underline app-link">
                         {r.sourceText}
                     </Link>
                 ) : r.mayView ? (

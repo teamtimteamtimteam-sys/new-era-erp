@@ -148,17 +148,17 @@ export default async function OutputAssayDetailPage({
     return (
         <div className="p-4 sm:p-8 max-w-5xl">
             <div className="mb-6">
-                <Link href={`/output/${id}/edit`} className="text-blue-600 hover:underline text-sm">
+                <Link href={`/output/${id}/edit`} className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">
+            <h1 className="mb-2">
                 {t('assay.detailTitle')}
                 <span className="ml-3 font-mono text-base text-gray-500">{assay.code}</span>
             </h1>
             <p className="text-sm text-gray-600 mb-4">
-                <Link href={`/output/${id}/edit`} className="text-blue-600 hover:underline font-mono">
+                <Link href={`/output/${id}/edit`} className="hover:underline font-mono app-link app-link-inline">
                     {batch.code}
                 </Link>
                 <span className="mx-2">·</span>
@@ -268,7 +268,7 @@ export default async function OutputAssayDetailPage({
             {/* 未应用:应用会怎样(问库)+ 立即应用 */}
             {!isApplied && (
                 <section className="border-t pt-6 mb-6">
-                    <h2 className="text-xl font-bold mb-3">{t('assay.output.applyPreviewTitle')}</h2>
+                    <h2 className="mb-3">{t('assay.output.applyPreviewTitle')}</h2>
                     {previewError && (
                         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-3 text-sm">
                             {previewError}
@@ -305,7 +305,7 @@ export default async function OutputAssayDetailPage({
                                             {' '}
                                             <Link
                                                 href={`/operation/processing/${preview.producing_run_id}`}
-                                                className="text-blue-600 hover:underline font-mono"
+                                                className="hover:underline font-mono app-link app-link-inline"
                                             >
                                                 {preview.producing_run_code}
                                             </Link>

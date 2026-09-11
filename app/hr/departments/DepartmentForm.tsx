@@ -43,7 +43,7 @@ export default function DepartmentForm({
 
             <div className="flex flex-wrap gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('hr.colCode')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -55,7 +55,7 @@ export default function DepartmentForm({
                     />
                 </div>
                 <div className="flex-1 min-w-[14rem]">
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('hr.colNameEn')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -67,7 +67,7 @@ export default function DepartmentForm({
                     />
                 </div>
                 <div className="flex-1 min-w-[14rem]">
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('hr.colNameZh')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -82,7 +82,7 @@ export default function DepartmentForm({
 
             <div className="flex flex-wrap gap-4 items-end">
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">{t('hr.colParent')}</label>
+                    <label className="block mb-1">{t('hr.colParent')}</label>
                     <select
                         name="parent_department_id"
                         defaultValue={department?.parent_department_id ?? ''}
@@ -96,14 +96,14 @@ export default function DepartmentForm({
                         ))}
                     </select>
                 </div>
-                <label className="flex items-center gap-2 text-sm pb-2">
+                <label className="flex items-center gap-2 pb-2">
                     <input type="checkbox" className={CONTROL_CHECKBOX} name="is_active" defaultChecked={department?.is_active ?? true} />
                     {t('pricing.form.active')}
                 </label>
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">{t('hr.colNotes')}</label>
+                <label className="block mb-1">{t('hr.colNotes')}</label>
                 <textarea
                     name="notes"
                     defaultValue={department?.notes ?? ''}

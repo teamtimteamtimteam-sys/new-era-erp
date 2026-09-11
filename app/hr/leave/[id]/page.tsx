@@ -102,13 +102,13 @@ export default async function LeaveRequestDetail({
                     {/* 【返回链接留在标题【下面】】这一页转换前就是这样(它在子导航之后),
                         所以【不】用 breadcrumb 槽 —— 用了会把它挪到标题之上。 */}
                     <div className="mb-4">
-                        <Link href="/hr/leave" className="text-blue-600 hover:underline text-sm">
+                        <Link href="/hr/leave" className="hover:underline text-sm app-link">
                             {t('common.back')}
                         </Link>
                     </div>
 
                     <div className="flex flex-wrap items-baseline gap-3 mb-4">
-                        <h2 className="text-xl font-bold">{req.code}</h2>
+                        <h2 className="">{req.code}</h2>
                         <span className="text-sm text-gray-500">
                             {emp ? `${emp.code} — ${emp.legal_name}` : ''}
                         </span>
@@ -141,7 +141,7 @@ export default async function LeaveRequestDetail({
             {/* 余额:审批之前该看的那个数 */}
             {ty?.is_accrued && bal && (
                 <section className={card + ' mb-6'}>
-                    <h3 className="font-bold mb-1">{t('leave.balanceNow')}</h3>
+                    <h3 className="mb-1">{t('leave.balanceNow')}</h3>
                     <p className="text-xs text-gray-500 mb-3">{t('leave.balanceAsOfHint')}</p>
                     {/* 第二块抬头 —— 同一个 RecordHeader,不是第二种写法。 */}
                     <RecordHeader
@@ -159,7 +159,7 @@ export default async function LeaveRequestDetail({
             {/* 批准之后:这几天到底从哪几笔授予里扣的 */}
             {consumptionRows.length > 0 && (
                 <section className={card + ' mb-6'}>
-                    <h3 className="font-bold mb-1">{t('leave.consumption')}</h3>
+                    <h3 className="mb-1">{t('leave.consumption')}</h3>
                     <p className="text-xs text-gray-500 mb-3">{t('leave.consumptionHint')}</p>
                     <ConsumptionTable rows={consumptionRows} />
                 </section>

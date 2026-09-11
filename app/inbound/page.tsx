@@ -295,7 +295,7 @@ export default async function InboundPage({
     if (error) {
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">{t('inbound.listTitle')}</h1>
+                <h1 className="mb-4">{t('inbound.listTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('inbound.loadError')}</p>
                     <details className="mt-2">
@@ -312,7 +312,7 @@ export default async function InboundPage({
             {/* IOD-2:刚刚那次收货的落地告警(建批次成功、但有决定没人做过) */}
             <StockWarningBanner warn={sp.warn} />
             <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold">{t('inbound.listTitle')}</h1>
+                <h1 className="">{t('inbound.listTitle')}</h1>
                 {/* FIX-1:这两个钮原本是 sm:hidden / hidden sm:inline-block ——
                     【互斥】的:桌面上现场收货那条路根本不出现,手机上完整录入
                     那条不出现。于是"从采购单收货"在桌面浏览器里没有任何入口,

@@ -51,7 +51,7 @@ export default function GrantRunner({
             )}
 
             <section className={card}>
-                <h2 className="font-bold mb-1">{t('leave.carryTitle', { 0: String(year), 1: String(year + 1) })}</h2>
+                <h2 className="mb-1">{t('leave.carryTitle', { 0: String(year), 1: String(year + 1) })}</h2>
                 <p className="text-sm text-gray-600 mb-3">{t('leave.carryHint')}</p>
                 <p className="text-sm mb-3">{t('leave.alreadyCarried', { 0: String(alreadyCarried) })}</p>
                 <Button type="button" onClick={carry} disabled={pending}>

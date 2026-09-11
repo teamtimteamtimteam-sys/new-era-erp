@@ -26,7 +26,7 @@ export default function GstPeriodsTable({ rows }: { rows: GstPeriodRow[] }) {
             key: 'period', header: t('gst.period'), priority: true,
             render: (r) => (
                 <>
-                    <Link href={`/finance/gst/${r.id}`} className="text-blue-600 hover:underline font-mono">{r.code}</Link>
+                    <Link href={`/finance/gst/${r.id}`} className="hover:underline font-mono app-link">{r.code}</Link>
                     {r.isCorrection && <span className="ml-2 text-xs text-amber-800">{t('gst.isCorrection')}</span>}
                 </>
             ),

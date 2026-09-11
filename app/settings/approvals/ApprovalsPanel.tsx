@@ -84,7 +84,7 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
 
     return (
         <div className="border border-gray-200 rounded p-4 mb-6">
-            <h2 className="font-semibold mb-1">{t('finance.approvals.title')}</h2>
+            <h2 className="mb-1">{t('finance.approvals.title')}</h2>
 
             <p
                 className={

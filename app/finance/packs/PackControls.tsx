@@ -16,7 +16,7 @@ export function PackMonthPicker({ month }: { month: string }) {
     const pathname = usePathname()
     return (
         <div>
-            <label className="block text-sm font-medium mb-1">{t('pack.colMonth')}</label>
+            <label className="block mb-1">{t('pack.colMonth')}</label>
             <input type="month" defaultValue={month} name="month"
                    onChange={(e) => { if (e.target.value) router.push(`${pathname}?month=${e.target.value}`) }}
                    className={CONTROL_INPUT} />
@@ -61,13 +61,13 @@ export function ProducePackControl({
         <div className="border border-gray-300 rounded p-4">
             <div className="flex flex-wrap items-end gap-3">
                 <div className="grow">
-                    <label className="block text-sm font-medium mb-1">{t('pack.colCode')}</label>
+                    <label className="block mb-1">{t('pack.colCode')}</label>
                     <input value={notes} onChange={(e) => setNotes(e.target.value)}
                            className={`${CONTROL_INPUT} w-full`} />
                 </div>
                 {hasLive && (
                     <div className="grow">
-                        <label className="block text-sm font-medium mb-1">{t('pack.supersedeReason')}</label>
+                        <label className="block mb-1">{t('pack.supersedeReason')}</label>
                         <input value={reason} onChange={(e) => setReason(e.target.value)}
                                className={`${CONTROL_INPUT} w-full`} />
                     </div>

@@ -45,7 +45,7 @@ canEdit: boolean
         <div className="border border-gray-300 rounded p-4">
             <div className="flex flex-wrap items-end gap-3">
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('wht.remitMonth')}</label>
+                    <label className="block mb-1">{t('wht.remitMonth')}</label>
                     <select value={month} onChange={(e) => setMonth(e.target.value)}
                             name="period_month"
                             className={CONTROL_SELECT}>
@@ -56,18 +56,18 @@ canEdit: boolean
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('wht.remitOn')}</label>
+                    <label className="block mb-1">{t('wht.remitOn')}</label>
                     <input type="date" value={on} onChange={(e) => setOn(e.target.value)}
                            className={CONTROL_INPUT} />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('wht.remitReference')}</label>
+                    <label className="block mb-1">{t('wht.remitReference')}</label>
                     <input value={ref} onChange={(e) => setRef(e.target.value)}
                            placeholder={t('wht.remitReferenceHint')}
                            className={CONTROL_INPUT} />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('wht.remitBank')}</label>
+                    <label className="block mb-1">{t('wht.remitBank')}</label>
                     {/* 【币种是数据,不是这里的字面量】账户码本身是科目码,不是币种;
                         本位币户之外的账户由服务端按名拒(WHT_REMIT_BANK_NOT_BASE)。 */}
                     <input value={bank} onChange={(e) => setBank(e.target.value)}
@@ -75,7 +75,7 @@ canEdit: boolean
                            className={`${CONTROL_INPUT} w-24`} />
                 </div>
                 <div className="grow">
-                    <label className="block text-sm font-medium mb-1">{t('wht.remitNotes')}</label>
+                    <label className="block mb-1">{t('wht.remitNotes')}</label>
                     <input value={notes} onChange={(e) => setNotes(e.target.value)}
                            className={`${CONTROL_INPUT} w-full`} />
                 </div>

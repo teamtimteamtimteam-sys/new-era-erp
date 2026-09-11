@@ -52,7 +52,7 @@ export default function QuoteLinesEditor({
 
     return (
         <section>
-            <h2 className="font-medium mb-2">{t('sales.form.lines')}</h2>
+            <h2 className="mb-2">{t('sales.form.lines')}</h2>
             {error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded mb-2 text-sm">
                     {error}
@@ -84,10 +84,10 @@ export default function QuoteLinesEditor({
                     <tr>
                         <th className="border border-gray-300 px-2 py-2 text-left">#</th>
                         <th className="border border-gray-300 px-2 py-2 text-left">{t('sales.colMaterial')}</th>
-                        <th className="border border-gray-300 px-2 py-2 text-right">{t('sales.form.qty')}</th>
-                        <th className="border border-gray-300 px-2 py-2 text-right">
+                        <th className="border border-gray-300 px-2 py-2 text-right tabular-nums">{t('sales.form.qty')}</th>
+                        <th className="border border-gray-300 px-2 py-2 text-right tabular-nums">
                             {t('quotes.colUnitPrice', { ccy: currency })}</th>
-                        <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right">{t('quotes.colLineTotal')}</th>
+                        <th className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right tabular-nums">{t('quotes.colLineTotal')}</th>
                         {editable && <th className="hidden sm:table-cell border border-gray-300 px-2 py-2" />}
                     </tr>
                 </thead>
@@ -155,18 +155,18 @@ export default function QuoteLinesEditor({
                                         )}
                                     </div>
                                 </td>
-                                <td className="border border-gray-300 px-2 py-2 text-right">
+                                <td className="border border-gray-300 px-2 py-2 text-right tabular-nums">
                                     {editable ? (
                                         <input type="number" step="any" min="0" value={qty[l.id] ?? ''}
                                                onChange={(e) => setQty((s) => ({ ...s, [l.id]: e.target.value }))}
-                                               className={`${CONTROL_INPUT} w-24 text-right`} />
+                                               className={`${CONTROL_INPUT} w-24 text-right tabular-nums`} />
                                     ) : (<span className="font-mono">{l.quantity} {l.unit}</span>)}
                                 </td>
-                                <td className="border border-gray-300 px-2 py-2 text-right">
+                                <td className="border border-gray-300 px-2 py-2 text-right tabular-nums">
                                     {editable ? (
                                         <input type="number" step="any" min="0" value={price[l.id] ?? ''}
                                                onChange={(e) => setPrice((s) => ({ ...s, [l.id]: e.target.value }))}
-                                               className={`${CONTROL_INPUT} w-24 text-right`} />
+                                               className={`${CONTROL_INPUT} w-24 text-right tabular-nums`} />
                                     ) : (
                                         <span className="font-mono">
                                             {formatMoneyBare(l.unit_price, '同表列头 单价({ccy})')}
@@ -213,11 +213,11 @@ export default function QuoteLinesEditor({
                     <input type="number" step="any" min="0" value={newQty}
                            onChange={(e) => setNewQty(e.target.value)}
                            placeholder={t('sales.form.qty')}
-                           className={`${CONTROL_INPUT} w-24 text-right`} />
+                           className={`${CONTROL_INPUT} w-24 text-right tabular-nums`} />
                     <input type="number" step="any" min="0" value={newPrice}
                            onChange={(e) => setNewPrice(e.target.value)}
                            placeholder={t('sales.form.unitPrice')}
-                           className={`${CONTROL_INPUT} w-24 text-right`} />
+                           className={`${CONTROL_INPUT} w-24 text-right tabular-nums`} />
                     <Button variant="secondary" type="button"
                             disabled={isPending || !newMat || newQty.trim() === '' || newPrice.trim() === ''}
                             onClick={() => run(async () => {

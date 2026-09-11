@@ -48,12 +48,12 @@ export default async function EditLocationPage({
     return (
         <div className="p-4 sm:p-8">
             <div className="mb-6">
-                <Link href="/inventory/locations" className="text-blue-600 hover:underline text-sm">
+                <Link href="/inventory/locations" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">
+            <h1 className="mb-2">
                 {t('locations.editTitle')}
                 <span className="ml-3 font-mono text-base text-gray-500">{loc.code}</span>
             </h1>
@@ -83,7 +83,7 @@ export default async function EditLocationPage({
             {/* 停用 / 启用 —— 与列表上同一个控件、同一句后果。
                 【这里没有删除】理由写在控件文件头上。 */}
             <section className="border-t pt-6 max-w-2xl">
-                <h2 className="text-lg font-semibold mb-3">{t('locations.statusSectionTitle')}</h2>
+                <h2 className="mb-3">{t('locations.statusSectionTitle')}</h2>
                 <LocationActiveToggle id={loc.id} isActive={loc.is_active} />
             </section>
         </div>

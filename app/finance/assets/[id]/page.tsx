@@ -329,7 +329,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     {t('assets.category.' + asset.category)} · {t('assets.detail.acquired')} {asset.acquisition_date}
                     {' · '}
                     {asset.expense_id
-                        ? <Link href={`/finance/expenses/${asset.expense_id}`} className="text-blue-600 underline">{t('assets.detail.bornFromExpense')}</Link>
+                        ? <Link href={`/finance/expenses/${asset.expense_id}`} className="underline app-link">{t('assets.detail.bornFromExpense')}</Link>
                         : <span className="text-gray-500">{t('assets.detail.bornAsMasterData')}</span>}
                 </>
             }
@@ -356,7 +356,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             </div>
 
             {/* ── 成本从哪几张单据来 ──────────────────────────────────────── */}
-            <h2 className="text-lg font-medium mb-2">{t('assets.detail.costEntries')}</h2>
+            <h2 className="mb-2">{t('assets.detail.costEntries')}</h2>
             {/* ★ 空态由表自己说(DataTable 的 empty)—— CONV-8 §⑤ 的推论。 */}
             <div className="mb-6">
                 <CostEntriesTable rows={costRows} />
@@ -368,7 +368,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             )}
 
             {/* ── 是哪一条采购单行买的它,以及那张单的定金 ─────────────────── */}
-            <h2 className="text-lg font-medium mb-2">{t('assets.detail.boughtBy')}</h2>
+            <h2 className="mb-2">{t('assets.detail.boughtBy')}</h2>
             {!canSeePurchasing ? (
                 /* 【不是"没有",是"你看不到"】—— 两者的下一步不一样。 */
                 <p className="text-sm text-gray-600 mb-6">{t('assets.detail.poRestricted')}</p>
@@ -382,7 +382,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     {deadClaims.map((c) => (
                         <p key={c.id} className="text-sm text-gray-600">
                             <Link href={`/purchasing/orders/${c.purchase_order_id}`}
-                                  className="text-blue-600 underline font-mono">
+                                  className="underline font-mono app-link app-link-inline">
                                 {c.po?.code ?? '—'}
                             </Link>
                             <span className="ml-2">{t('assets.detail.lineNo', { 0: c.line_no })}</span>
@@ -396,7 +396,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             ) : (
                 <div className="mb-6 text-sm space-y-1">
                     <p>
-                        <Link href={`/purchasing/orders/${line.purchase_order_id}`} className="text-blue-600 underline font-mono">
+                        <Link href={`/purchasing/orders/${line.purchase_order_id}`} className="underline font-mono app-link app-link-inline">
                             {line.purchase_orders?.code ?? '—'}
                         </Link>
                         <span className="ml-2 text-gray-600">{t('assets.detail.lineNo', { 0: line.line_no })}</span>
@@ -417,7 +417,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     {deadClaims.map((c) => (
                         <p key={c.id} className="text-gray-600">
                             <Link href={`/purchasing/orders/${c.purchase_order_id}`}
-                                  className="text-blue-600 underline font-mono">
+                                  className="underline font-mono app-link app-link-inline">
                                 {c.po?.code ?? '—'}
                             </Link>
                             <span className="ml-2">{t('assets.detail.lineNo', { 0: c.line_no })}</span>
@@ -428,7 +428,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             )}
 
             {/* ── 要投用还差什么 ─────────────────────────────────────────── */}
-            <h2 className="text-lg font-medium mb-2">{t('assets.detail.commissioning')}</h2>
+            <h2 className="mb-2">{t('assets.detail.commissioning')}</h2>
             <AssetActions assetId={asset.id} code={asset.code} status={asset.status}
                 hasCost={Number(asset.cost_base) > 0}
                 inServiceDate={asset.in_service_date} plannedInServiceDate={asset.planned_in_service_date}

@@ -72,7 +72,7 @@ export default function RetentionPanel({
 
     return (
         <div className="space-y-2">
-            <h2 className="font-bold">{t('purchasing.retention.title')}</h2>
+            <h2 className="">{t('purchasing.retention.title')}</h2>
             {rows.length === 0 ? (
                 /* ★【明说,不留白】★ 这一句就是"这张单没有质保金"这个【事实】。
                    留一片空白,读起来是"还没填";印一个 0%,更糟 —— 那是另一件事。 */
@@ -175,10 +175,10 @@ function RetentionCard({
                 <div className="mt-2 border-t border-amber-200 pt-2">
                     <p className="text-xs mb-2">{t('purchasing.retention.confirmPrompt')}</p>
                     <div className="flex flex-wrap items-center gap-2">
-                        <label className="text-xs">{t('purchasing.retention.releaseAmount')}</label>
+                        <label className="">{t('purchasing.retention.releaseAmount')}</label>
                         <DecimalInput value={released} onChange={setReleased}
                             className="w-28" />
-                        <label className="text-xs">{t('purchasing.retention.withheldAmount')}</label>
+                        <label className="">{t('purchasing.retention.withheldAmount')}</label>
                         <DecimalInput value={withheld} onChange={setWithheld}
                             className="w-28" />
                     </div>

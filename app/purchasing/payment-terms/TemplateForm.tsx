@@ -109,7 +109,7 @@ canEdit: boolean
 
             <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('purchasing.colName')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -121,7 +121,7 @@ canEdit: boolean
                     />
                 </div>
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">{t('purchasing.colDescription')}</label>
+                    <label className="block mb-1">{t('purchasing.colDescription')}</label>
                     <input
                         type="text"
                         name="description"
@@ -129,7 +129,7 @@ canEdit: boolean
                         className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
-                <label className="flex items-end gap-2 pb-2 text-sm">
+                <label className="flex items-end gap-2 pb-2">
                     <input
                         className={CONTROL_CHECKBOX}
                         type="checkbox"
@@ -145,7 +145,7 @@ canEdit: boolean
                 谈定的承诺,不是算出来的量)。只有比例的模板不需要,字段就不出现。 */}
             {hasFixed && (
                 <div className="max-w-xs">
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('purchasing.form.templateCurrency')} <span className="text-red-600">*</span>
                     </label>
                     <select
@@ -165,7 +165,7 @@ canEdit: boolean
             )}
             {!hasFixed && <input type="hidden" name="currency" value="" />}
 
-            <h2 className="font-bold pt-2">{t('purchasing.form.paymentTerms')}</h2>
+            <h2 className="pt-2">{t('purchasing.form.paymentTerms')}</h2>
             <table className="w-full border-collapse border border-gray-300">
                 <thead className="bg-gray-100">
                     <tr>
@@ -198,7 +198,7 @@ canEdit: boolean
                             </td>
                             <td className="border border-gray-300 px-3 py-2">
                                 <div className="flex flex-wrap items-center gap-2">
-                                    <label className="flex items-center gap-1 text-sm">
+                                    <label className="flex items-center gap-1">
                                         <input
                                             className={CONTROL_RADIO}
                                             type="radio"
@@ -207,7 +207,7 @@ canEdit: boolean
                                         />
                                         {t('purchasing.form.modePct')}
                                     </label>
-                                    <label className="flex items-center gap-1 text-sm">
+                                    <label className="flex items-center gap-1">
                                         <input
                                             className={CONTROL_RADIO}
                                             type="radio"

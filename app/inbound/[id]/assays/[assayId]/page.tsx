@@ -179,17 +179,17 @@ export default async function AssayDetailPage({
     return (
         <div className="p-4 sm:p-8 max-w-5xl">
             <div className="mb-6">
-                <Link href={`/inbound/${id}/edit`} className="text-blue-600 hover:underline text-sm">
+                <Link href={`/inbound/${id}/edit`} className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">
+            <h1 className="mb-2">
                 {t('assay.detailTitle')}
                 <span className="ml-3 font-mono text-base text-gray-500">{assay.code}</span>
             </h1>
             <p className="text-sm text-gray-600 mb-4">
-                <Link href={`/inbound/${id}/edit`} className="text-blue-600 hover:underline font-mono">
+                <Link href={`/inbound/${id}/edit`} className="hover:underline font-mono app-link app-link-inline">
                     {batch.code}
                 </Link>
                 <span className="mx-2">·</span>
@@ -299,7 +299,7 @@ export default async function AssayDetailPage({
             {/* 已应用:由此产生的价格变动(读记录,不重算)*/}
             {isApplied && priceChange && (
                 <section className="border-t pt-6 mb-6">
-                    <h2 className="text-xl font-bold mb-3">{t('assay.priceChangeTitle')}</h2>
+                    <h2 className="mb-3">{t('assay.priceChangeTitle')}</h2>
                     <div className="bg-gray-50 rounded p-4 text-sm max-w-md space-y-1">
                         <div className="flex justify-between">
                             <span className="text-gray-600">{t('assay.currentPrice', { ccy: baseCurrency })}</span>
@@ -337,7 +337,7 @@ export default async function AssayDetailPage({
                                 {priceChange.journalId ? (
                                     <Link
                                         href={`/finance/journal/${priceChange.journalId}`}
-                                        className="text-blue-600 hover:underline font-mono"
+                                        className="hover:underline font-mono app-link app-link-inline"
                                     >
                                         {priceChange.journalCode}
                                     </Link>
@@ -355,7 +355,7 @@ export default async function AssayDetailPage({
             {/* 未应用:影响预览 + 立即应用 */}
             {!isApplied && (
                 <section className="border-t pt-6 mb-6">
-                    <h2 className="text-xl font-bold mb-3">{t('assay.impactPreview')}</h2>
+                    <h2 className="mb-3">{t('assay.impactPreview')}</h2>
                     {previewError && (
                         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-3 text-sm">
                             {previewError}

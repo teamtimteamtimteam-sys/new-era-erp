@@ -58,14 +58,14 @@ export default async function EditMetalPricePage({
             <div className="mb-6">
                 <Link
                     href="/tools/pricing/metal-prices"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
             <div className="flex items-start justify-between mb-6">
-                <h1 className="text-2xl font-bold">{t('metalPrices.editTitle')}</h1>
+                <h1 className="">{t('metalPrices.editTitle')}</h1>
                 <DeleteButton id={row.id} subject={`${row.metal} · ${row.price_date}`} />
             </div>
 

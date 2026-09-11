@@ -170,28 +170,28 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit, p
             {editing !== null && (
                 <div className="border border-gray-400 rounded p-3 bg-gray-50 max-w-2xl">
                     <div className="grid grid-cols-2 gap-2">
-                        <label className="text-xs">{t('contacts.colName')}
+                        <label className="">{t('contacts.colName')}
                             <input type="text" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })}
                                    className={`${CONTROL_INPUT} block w-full`} />
                         </label>
-                        <label className="text-xs">{t('contacts.colRole')}
+                        <label className="">{t('contacts.colRole')}
                             <input type="text" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value })}
                                    className={`${CONTROL_INPUT} block w-full`} />
                         </label>
-                        <label className="text-xs">{t('contacts.colEmail')}
+                        <label className="">{t('contacts.colEmail')}
                             <input type="text" value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })}
                                    className={`${CONTROL_INPUT} block w-full`} />
                         </label>
-                        <label className="text-xs">{t('contacts.colPhone')}
+                        <label className="">{t('contacts.colPhone')}
                             <input type="text" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })}
                                    className={`${CONTROL_INPUT} block w-full`} />
                         </label>
-                        <label className="text-xs col-span-2">{t('contacts.colNotes')}
+                        <label className="col-span-2">{t('contacts.colNotes')}
                             <input type="text" value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })}
                                    className={`${CONTROL_INPUT} block w-full`} />
                         </label>
                     </div>
-                    <label className="flex items-center gap-2 mt-2 text-xs">
+                    <label className="flex items-center gap-2 mt-2">
                         <input type="checkbox" className={CONTROL_CHECKBOX} checked={f.isPrimary}
                                onChange={(e) => setF({ ...f, isPrimary: e.target.checked })} />
                         {t('contacts.makePrimary')}

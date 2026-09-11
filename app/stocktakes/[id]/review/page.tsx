@@ -70,7 +70,7 @@ export default async function StocktakeReviewPage({
         const err = linesRes.error ?? inboundRes.error ?? outputRes.error
         return (
             <div className="p-8 max-w-3xl">
-                <h1 className="text-2xl font-bold mb-4">{t('stocktakes.reviewTitle')}</h1>
+                <h1 className="mb-4">{t('stocktakes.reviewTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('stocktakes.loadError')}</p>
                     <details className="mt-2">
@@ -132,7 +132,7 @@ export default async function StocktakeReviewPage({
             notices={
                 <>
                     <div className="mb-6">
-                        <Link href={`/stocktakes/${id}`} className="text-blue-600 hover:underline text-sm">
+                        <Link href={`/stocktakes/${id}`} className="hover:underline text-sm app-link">
                             ← {t('stocktakes.backToCount')}
                         </Link>
                     </div>

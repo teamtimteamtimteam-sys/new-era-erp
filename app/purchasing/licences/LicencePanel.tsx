@@ -102,7 +102,7 @@ export default function LicencePanel({
     return (
         <div className="mb-6 rounded border border-[color:var(--brand-border)] p-4">
             <div className="mb-1 flex items-baseline justify-between">
-                <h2 className="font-semibold">{t('company.licence.title')}</h2>
+                <h2 className="">{t('company.licence.title')}</h2>
                 {/* ★★ BTN-6/F5(2026-09-07):档位改了 —— 而【它本来就是库按钮,不是漏网的裸链接】★★
                     走查把它记成「面板抬头里的一条裸链接,BTN-5b 漏了」。**源码里不是**:
                     BTN-5b 已经把它转成了 <Button variant="link" size="inline">,

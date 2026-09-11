@@ -33,7 +33,7 @@ export default async function NewOutputPage() {
         const err = materialsRes.error ?? customersRes.error
         return (
             <div className="p-8 max-w-2xl">
-                <h1 className="text-2xl font-bold mb-4">{t('output.newTitle')}</h1>
+                <h1 className="mb-4">{t('output.newTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('output.dropdownLoadError')}</p>
                     <details className="mt-2">

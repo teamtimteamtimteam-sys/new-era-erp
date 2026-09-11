@@ -157,7 +157,7 @@ export default async function ReservationSection({
 
     return (
         <section className="mt-8">
-            <h2 className="font-medium mb-1">{t('sales.reserve.title')}</h2>
+            <h2 className="mb-1">{t('sales.reserve.title')}</h2>
             <p className="text-xs text-gray-500 mb-3">{t('sales.reserve.note')}</p>
 
             {/* 【禁用的理由长在控件旁边】—— 不是等人点了才说 */}
@@ -299,7 +299,7 @@ export default async function ReservationSection({
             </div>
 
             <p className="text-xs text-gray-500 mt-3">
-                <Link href="/inventory/reports/snapshot" className="text-blue-600 hover:underline">
+                <Link href="/inventory/reports/snapshot" className="hover:underline app-link">
                     {t('sales.reserve.snapshotLink')}
                 </Link>
             </p>

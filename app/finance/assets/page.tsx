@@ -185,9 +185,9 @@ export default async function AssetsPage({
             </div>
 
             {/* ── 月度折旧 ── */}
-            <h2 className="text-xl font-bold mb-3">{t('assets.depTitle')}</h2>
+            <h2 className="mb-3">{t('assets.depTitle')}</h2>
             <form method="get" className="mb-3">
-                <label className="text-sm mr-2">{t('assets.depPeriodEnd')}</label>
+                <label className="mr-2">{t('assets.depPeriodEnd')}</label>
                 <input type="date" name="date" defaultValue={d}
                        className={CONTROL_INPUT} />
                 <Button variant="secondary" type="submit" className="ml-2">

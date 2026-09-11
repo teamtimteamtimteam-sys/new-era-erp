@@ -26,7 +26,7 @@ export default async function OutputAssaySection({
     return (
         <section className="mt-8 pt-8 border-t">
             <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">{t('assay.title')}</h2>
+                <h2 className="">{t('assay.title')}</h2>
                 <Button asChild>
                     <Link href={`/output/${batchId}/assays/new`}>{t('assay.new')}</Link>
                 </Button>

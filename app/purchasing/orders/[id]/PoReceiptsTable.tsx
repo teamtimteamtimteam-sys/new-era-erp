@@ -56,7 +56,7 @@ export default function PoReceiptsTable({
             priority: true,
             className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/inbound/${r.id}/edit`} className="text-blue-600 hover:underline">
+                <Link href={`/inbound/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

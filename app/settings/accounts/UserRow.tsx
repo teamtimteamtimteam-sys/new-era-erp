@@ -84,7 +84,16 @@ export default function UserRow({
 
     return (
         <div className="border border-gray-200 rounded">
-            <div className="flex items-center justify-between px-4 py-3 gap-4">
+            {/* ★ FONT-1(2026-09-11):这一行加了 `flex-wrap`。
+                【为什么】390px 上这一页的整页横向溢出从 35 长到 49 —— 而这一行
+                **此前不换行**:左边是邮箱那一格(它有 `min-w-0`,压得下去),
+                右边是角色小片 + 「编辑」钮,而右边那一堆**压不下去**。
+                换字体之后右边那一堆变宽,整行的 min-content 跟着长,把页面撑破。
+                ☞ 这正是 `docs/variant-c-spec.md` §4.1d 那条标准修法的形状:
+                  **一个不换行的容器,先给它 `flex-wrap`,不够再谈停手。**
+                ★ 实测(390px):整页溢出 **49 → 35**(= round 1 的改前读数);1440px 改前改后都是 0。
+                ★ 一个宽度类都没有动,也没有加 `min-w-0` / `max-w-full`。 */}
+            <div className="flex flex-wrap items-center justify-between px-4 py-3 gap-4">
                 <div className="min-w-0">
                     <div className="font-medium truncate flex items-center gap-2">
                         {row.email ?? '—'}
@@ -126,7 +135,7 @@ export default function UserRow({
                     )}
                 </div>
 
-                <div className="text-xs text-gray-500 whitespace-nowrap text-right">
+                <div className="text-xs text-gray-500 whitespace-nowrap text-right tabular-nums">
                     <div>
                         {t('permissions.lastSignIn')}: {lastSignInDisplay}
                     </div>
@@ -164,12 +173,12 @@ export default function UserRow({
 
                     <div className="grid gap-6 md:grid-cols-2">
                         <div>
-                            <h3 className="font-medium mb-2 text-sm">
+                            <h3 className="mb-2">
                                 {t('permissions.rolesLabel')}
                             </h3>
                             <div className="space-y-1">
                                 {roles.map((r) => (
-                                    <label key={r.id} className="flex items-center gap-2 text-sm">
+                                    <label key={r.id} className="flex items-center gap-2">
                                         <input
                                             type="checkbox"
                                             className={CONTROL_CHECKBOX}
@@ -188,7 +197,7 @@ export default function UserRow({
                         </div>
 
                         <div>
-                            <h3 className="font-medium mb-2 text-sm">
+                            <h3 className="mb-2">
                                 {t('permissions.linkEmployee')}
                             </h3>
                             <select
@@ -207,7 +216,7 @@ export default function UserRow({
                                 {t('permissions.linkEmployeeHint')}
                             </p>
 
-                            <label className="mt-4 block text-sm">
+                            <label className="mt-4 block">
                                 {t('permissions.revokeReason')}
                                 <input
                                     value={reason}

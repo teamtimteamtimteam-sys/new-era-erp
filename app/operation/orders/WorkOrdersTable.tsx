@@ -30,7 +30,7 @@ export default function WorkOrdersTable({ rows, empty }: { rows: WorkOrderRow[];
         {
             key: 'code', header: t('processing.wo.colCode'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/operation/orders/${r.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/operation/orders/${r.id}`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

@@ -48,7 +48,7 @@ export default async function ConverterPage() {
     const t = await getTranslations()
     return (
         <div className="p-6 max-w-3xl">
-            <h1 className="text-2xl font-semibold mb-1">{t('converter.title')}</h1>
+            <h1 className="mb-1">{t('converter.title')}</h1>
             <p className="text-sm mb-6" style={{ color: 'var(--brand-muted-text)' }}>
                 {t('converter.intro')}
             </p>

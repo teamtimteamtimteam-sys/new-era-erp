@@ -33,7 +33,7 @@ export default async function MovementTimeline({
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-xl font-bold mb-4">{t('movements.title')}</h2>
+            <h2 className="mb-4">{t('movements.title')}</h2>
 
             {/* TABLE-CONVERT-6:空态搬进 DataTable 的 empty prop(同一个 movements.empty),
                 旧那一支不留 —— 留着 prop 就永远到不了(TABLE-CONVERT-3 §6.1)。 */}

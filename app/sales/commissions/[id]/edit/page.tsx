@@ -31,7 +31,7 @@ export default async function EditCommissionPage({ params }: { params: Promise<{
     if (row.deleted_at) {
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-2">{t('commissions.editTitle')}</h1>
+                <h1 className="mb-2">{t('commissions.editTitle')}</h1>
                 <p className="text-sm text-gray-700">{t('commissions.deleted')}</p>
             </div>
         )
@@ -50,7 +50,7 @@ export default async function EditCommissionPage({ params }: { params: Promise<{
 
     return (
         <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('commissions.editTitle')}</h1>
+            <h1 className="mb-4">{t('commissions.editTitle')}</h1>
             <CommissionForm
                 agents={agents}
                 currencies={currencies}

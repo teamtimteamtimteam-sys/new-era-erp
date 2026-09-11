@@ -22,7 +22,7 @@ export default function OpenPeriodForm() {
                 <div className="mb-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
             <div className="flex flex-wrap items-end gap-3">
-                <label className="text-sm">
+                <label className="">
                     <span className="block text-gray-600 mb-1">{t('attendance.openMonth')}</span>
                     <input
                         type="month"

@@ -96,7 +96,7 @@ export default async function LogisticsOverviewPage() {
 
     return (
         <div className="p-4 sm:p-8 max-w-3xl">
-            <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--brand-text)' }}>
+            <h1 className="mb-1" style={{ color: 'var(--brand-text)' }}>
                 {t('nav.logistics')}
             </h1>
             <p className="text-sm mb-6 max-w-2xl" style={{ color: 'var(--brand-muted-text)' }}>
@@ -119,7 +119,7 @@ export default async function LogisticsOverviewPage() {
                           : { kind: 'ok' }
                 }
                 action={
-                    <Link href="/logistics/containers" className="hover:underline" style={{ color: 'var(--brand-ocean-fill)' }}>
+                    <Link href="/logistics/containers" className="hover:underline app-link">
                         {t('logistics.containersTitle')}
                     </Link>
                 }

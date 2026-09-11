@@ -79,11 +79,11 @@ export default function AmendOrderForm({
     return (
         <div className="max-w-5xl">
             <div className="mb-6">
-                <Link href={`/sales/orders/${orderId}`} className="text-blue-600 hover:underline text-sm">
+                <Link href={`/sales/orders/${orderId}`} className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-2">
+            <h1 className="mb-2">
                 {isDraft ? t('sales.amend.draftTitle', { code }) : t('sales.amend.title', { code })}
             </h1>
             <p className="text-sm text-gray-600 mb-6 max-w-3xl">
@@ -109,7 +109,7 @@ export default function AmendOrderForm({
 
             {/* ── 永久冻结的五列:看得见,改不动,旁边写着为什么 ───────────────── */}
             <div className="border border-gray-300 rounded p-4 mb-6 bg-gray-50">
-                <h2 className="font-medium mb-1">{t('sales.amend.frozenTitle')}</h2>
+                <h2 className="mb-1">{t('sales.amend.frozenTitle')}</h2>
                 <p className="text-xs text-gray-600 mb-3 max-w-3xl">{t('sales.amend.frozenWhy')}</p>
                 <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
                     <div><dt className="inline text-gray-500">{t('sales.colCode')}: </dt>
@@ -129,7 +129,7 @@ export default function AmendOrderForm({
                 {/* 【草稿没有理由这一栏】—— 不是隐藏一个必填项,是它在草稿态真的不存在 */}
                 {!isDraft && (
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('sales.amend.reason')} <span className="text-red-600">*</span>
                         </label>
                         <input type="text" name="reason" required disabled={frozen}
@@ -139,7 +139,7 @@ export default function AmendOrderForm({
                 )}
 
                 {/* ── 明细 ──────────────────────────────────────────────────── */}
-                <h2 className="font-medium pt-2">{t('sales.form.lines')}</h2>
+                <h2 className="pt-2">{t('sales.form.lines')}</h2>
                 {/* ════════════════════════════════════════════════════════════════
                     ★ TABLE-PHONE-4:八列 → 手机档留四列(# · 物料 · 已订 · 单价)。
                     被拿掉的三列(已开票 / 已预留 / 已发)一个字段都没丢:
@@ -167,11 +167,11 @@ export default function AmendOrderForm({
                         <tr className={tableC.headRow}>
                             <th className={`${tableC.headCell} text-left`}>#</th>
                             <th className={`${tableC.headCell} text-left`}>{t('sales.colMaterial')}</th>
-                            <th className={`${tableC.headCell} text-right`}>{t('sales.amend.colOrdered')}</th>
-                            <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('sales.amend.colInvoiced')}</th>
-                            <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('sales.amend.colReserved')}</th>
-                            <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('sales.amend.colShipped')}</th>
-                            <th className={`${tableC.headCell} text-right`}>{t('sales.amend.colPrice', { ccy: currency })}</th>
+                            <th className={`${tableC.headCell} text-right tabular-nums`}>{t('sales.amend.colOrdered')}</th>
+                            <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('sales.amend.colInvoiced')}</th>
+                            <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('sales.amend.colReserved')}</th>
+                            <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('sales.amend.colShipped')}</th>
+                            <th className={`${tableC.headCell} text-right tabular-nums`}>{t('sales.amend.colPrice', { ccy: currency })}</th>
                             <th className={`${tableC.headCell} text-left`}>{t('sales.amend.colRemove')}</th>
                         </tr>
                     </thead>
@@ -213,7 +213,7 @@ export default function AmendOrderForm({
                             // 这个复选框【不带 name】—— 值由第一格那个渲染一次的 hidden
                             // line_remove 携带,所以两档各画一份不会往表单里多塞一格。
                             const removeControl = (
-                                <label className="text-xs">
+                                <label className="">
                                     <input className={CONTROL_CHECKBOX} type="checkbox" checked={gone}
                                         disabled={frozen || addOnly || cannotRemove}
                                         onChange={(e) => setRemove((r) => ({ ...r, [l.id]: e.target.checked }))} />
@@ -251,11 +251,11 @@ export default function AmendOrderForm({
                                             </div>
                                         </div>
                                     </td>
-                                    <td className={`${tableC.cell} text-right`}>
+                                    <td className={`${tableC.cell} text-right tabular-nums`}>
                                         <DecimalInput name="line_quantity" value={qty[l.id] ?? ''}
                                             onChange={(raw) => setQty((q) => ({ ...q, [l.id]: raw }))}
                                             disabled={lockedRow || billed}
-                                            className="w-24 text-right" />
+                                            className="w-24 text-right tabular-nums" />
                                         {/* 【硬下限】货已经出去了 */}
                                         {belowShipped && (
                                             <p className="text-xs text-red-600 mt-1">
@@ -278,11 +278,11 @@ export default function AmendOrderForm({
                                     <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
                                         {shippedText}
                                     </td>
-                                    <td className={`${tableC.cell} text-right`}>
+                                    <td className={`${tableC.cell} text-right tabular-nums`}>
                                         <DecimalInput name="line_price" value={price[l.id] ?? ''}
                                             onChange={(raw) => setPrice((p) => ({ ...p, [l.id]: raw }))}
                                             disabled={lockedRow || billed}
-                                            className="w-24 text-right" />
+                                            className="w-24 text-right tabular-nums" />
                                     </td>
                                     {/* ★★ TABLE-STYLE-1 / R1(Tim 裁定,2026-09-09):【动作列在手机上不折】。
                                         这一列原来带 hidden sm:table-cell、移除钮叠在物料那一格里;
@@ -306,14 +306,14 @@ export default function AmendOrderForm({
                 {/* ── 加行 ──────────────────────────────────────────────────── */}
                 {!frozen && (
                     <>
-                        <h2 className="font-medium pt-2">{t('sales.amend.addLines')}</h2>
+                        <h2 className="pt-2">{t('sales.amend.addLines')}</h2>
                         <p className="text-xs text-gray-500">{t('sales.amend.addLinesHint')}</p>
                         <table className={`${tableC.root} w-full`}>
                             <thead>
                                 <tr className={tableC.headRow}>
                                     <th className={`${tableC.headCell} text-left`}>{t('sales.colMaterial')}</th>
-                                    <th className={`${tableC.headCell} text-right`}>{t('sales.form.qty')}</th>
-                                    <th className={`${tableC.headCell} text-right`}>{t('sales.amend.colPrice', { ccy: currency })}</th>
+                                    <th className={`${tableC.headCell} text-right tabular-nums`}>{t('sales.form.qty')}</th>
+                                    <th className={`${tableC.headCell} text-right tabular-nums`}>{t('sales.amend.colPrice', { ccy: currency })}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -328,13 +328,13 @@ export default function AmendOrderForm({
                                                 ))}
                                             </select>
                                         </td>
-                                        <td className={`${tableC.cell} text-right`}>
+                                        <td className={`${tableC.cell} text-right tabular-nums`}>
                                             <input type="number" step="any" min="0" name={`new_qty_${i}`}
-                                                   className={`${CONTROL_INPUT} w-24 text-right`} />
+                                                   className={`${CONTROL_INPUT} w-24 text-right tabular-nums`} />
                                         </td>
-                                        <td className={`${tableC.cell} text-right`}>
+                                        <td className={`${tableC.cell} text-right tabular-nums`}>
                                             <input type="number" step="any" min="0" name={`new_price_${i}`}
-                                                   className={`${CONTROL_INPUT} w-24 text-right`} />
+                                                   className={`${CONTROL_INPUT} w-24 text-right tabular-nums`} />
                                         </td>
                                     </tr>
                                 ))}
@@ -346,15 +346,15 @@ export default function AmendOrderForm({
                 {/* ── 表头上可改的那两列 ─────────────────────────────────────── */}
                 {!addOnly && (
                     <>
-                        <h2 className="font-medium pt-2">{t('sales.amend.headerTitle')}</h2>
+                        <h2 className="pt-2">{t('sales.amend.headerTitle')}</h2>
                         <p className="text-xs text-gray-500">{t('sales.amend.headerWhy')}</p>
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('sales.form.notes')}</label>
+                            <label className="block mb-1">{t('sales.form.notes')}</label>
                             <textarea name="notes" defaultValue={notes} disabled={frozen}
                                       className={`${CONTROL_TEXTAREA} w-full`} />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('sales.amend.terms')}</label>
+                            <label className="block mb-1">{t('sales.amend.terms')}</label>
                             <textarea name="terms_text" defaultValue={termsText} disabled={frozen}
                                       className={`${CONTROL_TEXTAREA} w-full`} />
                             <p className="text-xs text-gray-500 mt-1">{t('sales.amend.termsHint')}</p>

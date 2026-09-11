@@ -128,7 +128,7 @@ export default function MySelfAssessmentPanel({
                                 value={d.actual}
                                 onChange={(e) => set({ actual: e.target.value })}
                                 aria-label={t('reviews.colActual')}
-                                className={`${CONTROL_INPUT} w-24 text-right`}
+                                className={`${CONTROL_INPUT} w-24 text-right tabular-nums`}
                             />
                         </span>
                     ),
@@ -156,7 +156,7 @@ export default function MySelfAssessmentPanel({
 
     return (
         <section className="mb-6">
-            <h2 className="text-lg font-bold mb-2">{t('reviews.selfPanelTitle')}</h2>
+            <h2 className="mb-2">{t('reviews.selfPanelTitle')}</h2>
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
@@ -207,7 +207,7 @@ export default function MySelfAssessmentPanel({
                             //   页面在这里画自己的提交区。
                             footer={(drafts) => (
                                 <>
-                                    <label className="text-xs text-gray-600 block mb-3">
+                                    <label className="block mb-3">
                                         {t('reviews.selfText')}
                                         {locked ? (
                                             <p className="text-sm text-gray-900 whitespace-pre-wrap mt-1">

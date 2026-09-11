@@ -28,7 +28,7 @@ export default async function NewCommissionPage() {
 
     return (
         <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('commissions.newTitle')}</h1>
+            <h1 className="mb-4">{t('commissions.newTitle')}</h1>
             <CommissionForm agents={agents} currencies={currencies} />
         </div>
     )

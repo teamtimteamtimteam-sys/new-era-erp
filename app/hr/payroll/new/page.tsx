@@ -30,11 +30,11 @@ export default async function NewPayrollPage() {
     return (
         <div className="p-8">
             <div className="mb-6">
-                <Link href="/hr/payroll" className="text-blue-600 hover:underline text-sm">
+                <Link href="/hr/payroll" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-4">{t('hr.newPayroll')}</h1>
+            <h1 className="mb-4">{t('hr.newPayroll')}</h1>
             <PayrollGrid
                 employees={employees}
                 prefill={prefill}

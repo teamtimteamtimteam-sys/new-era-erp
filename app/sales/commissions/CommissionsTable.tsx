@@ -50,7 +50,7 @@ export default function CommissionsTable({ rows }: { rows: CommissionRow[] }) {
             key: 'agent', header: t('commissions.colAgent'), priority: true,
             render: (r) => (
                 <>
-                    <Link href={`/sales/commissions/${r.id}/edit`} className="text-blue-600 hover:underline">
+                    <Link href={`/sales/commissions/${r.id}/edit`} className="hover:underline app-link">
                         {r.agentCode}
                     </Link>
                     {r.agentName ? ` · ${r.agentName}` : null}

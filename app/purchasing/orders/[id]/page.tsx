@@ -548,7 +548,7 @@ export default async function PurchaseOrderDetailPage({
         <ListPage
             maxWidth="max-w-5xl"
             breadcrumb={
-                <Link href="/purchasing/orders" className="text-blue-600 hover:underline text-sm">
+                <Link href="/purchasing/orders" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             }
@@ -664,7 +664,7 @@ export default async function PurchaseOrderDetailPage({
                         value: (
                             <Link
                                 href={`/suppliers/${po.supplier_id}/edit`}
-                                className="text-blue-600 hover:underline"
+                                className="hover:underline app-link app-link-inline"
                             >
                                 {supplierRes.data?.legal_name ?? '—'}
                             </Link>
@@ -767,7 +767,7 @@ export default async function PurchaseOrderDetailPage({
                 谁/何时/第几版 —— 供应商手里那份是某个具体版本,重签发产生新版本,
                 旧版本原样留着。未获批的单签发会被 record_po_issue 点名拒绝。 */}
             <div className="border border-gray-200 rounded p-4 mb-4">
-                <h2 className="font-semibold mb-2">{t('purchasing.doc.title')}</h2>
+                <h2 className="mb-2">{t('purchasing.doc.title')}</h2>
                 {/* EXT-1:此前这里是这一族里唯一的 <form method="post"> 变体。
                     换成公共件之后有三处【看得见的】变化,都记在切次报告里:
                       ① 外观并入这一族(蓝色实心钮 → 描边钮,蓝色文字链 → 描边链);
@@ -791,7 +791,7 @@ export default async function PurchaseOrderDetailPage({
                         {mustRows(issuesRes, 'po_issues').map((iss) => (
                             <li key={iss.version}>
                                 <a href={`/purchasing/orders/${po.id}/pdf?version=${iss.version}`}
-                                   className="text-blue-600 hover:underline font-mono">
+                                   className="hover:underline font-mono app-link app-link-inline">
                                     v{iss.version}
                                 </a>
                                 <span className="text-gray-500 ml-2">
@@ -814,7 +814,7 @@ export default async function PurchaseOrderDetailPage({
             {/* PUR-2:编辑史。与 approval_log 各答各的 —— 那张答"谁批了什么金额",
                 这张答"这张单当时说的是什么"。只增不改。 */}
             <div className="border border-gray-200 rounded p-4 mb-4">
-                <h2 className="font-semibold mb-2">{t('purchasing.amend.historyTitle')}</h2>
+                <h2 className="mb-2">{t('purchasing.amend.historyTitle')}</h2>
                 {history.length === 0 ? (
                     <p className="text-xs text-gray-500">{t('purchasing.amend.noHistory')}</p>
                 ) : (
@@ -862,7 +862,7 @@ export default async function PurchaseOrderDetailPage({
             )}
 
             {/* 明细行 */}
-            <h2 className="text-xl font-bold mb-3">{t('purchasing.form.lines')}</h2>
+            <h2 className="mb-3">{t('purchasing.form.lines')}</h2>
             <PoLinesTable
                 rows={lineRows}
                 poId={id}
@@ -898,7 +898,7 @@ export default async function PurchaseOrderDetailPage({
             {/* 付款计划 + 预付摘要 */}
             <div className="grid gap-6 md:grid-cols-3 mb-6">
                 <div className="md:col-span-2">
-                    <h2 className="text-xl font-bold mb-3">{t('purchasing.form.paymentTerms')}</h2>
+                    <h2 className="mb-3">{t('purchasing.form.paymentTerms')}</h2>
                     {terms.length > 0 ? (
                         <PoPaymentTermsTable
                             rows={termRows}
@@ -973,7 +973,7 @@ export default async function PurchaseOrderDetailPage({
                 "还没收到货",不像"这件事不适用"。
                 【与那个按钮同一条判据】问题不适用 → 隐藏。 */}
             {!isEquipmentOrder && (<>
-            <h2 className="text-xl font-bold mb-3">{t('grn.po.heading')}</h2>
+            <h2 className="mb-3">{t('grn.po.heading')}</h2>
             <p className="text-sm text-gray-600 mb-3">{t('grn.po.note')}</p>
             <div className="space-y-3 mb-8">
                 {lines.map((l) => {
@@ -1040,7 +1040,7 @@ export default async function PurchaseOrderDetailPage({
                                         <span key={r.batch_id}>
                                             {i > 0 && ', '}
                                             <Link href={`/inbound/${r.batch_id}/edit`}
-                                                  className="font-mono text-blue-600 hover:underline">
+                                                  className="font-mono hover:underline app-link app-link-inline">
                                                 {r.batch_code}
                                             </Link>
                                             <span> ({r.received_qty} {r.received_unit})</span>
@@ -1054,7 +1054,7 @@ export default async function PurchaseOrderDetailPage({
             </div>
 
             {/* 收货记录 */}
-            <h2 className="text-xl font-bold mb-3">{t('purchasing.receipts')}</h2>
+            <h2 className="mb-3">{t('purchasing.receipts')}</h2>
             {/* ★ FIX-2b:【先答"看不看得见",再答"有没有"】inbound_batches_masked
                 的谓词是 module.inbound.view;一个只有采购权限的读者读到零行,
                 而下面那句 noReceipts 写的是「这张单还没有收过货」—— 在一张

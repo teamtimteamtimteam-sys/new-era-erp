@@ -103,7 +103,7 @@ export function LineageTable({ rows }: { rows: readonly LineageRow[] }) {
             className: 'font-mono text-sm',
             render: (r) => (
                 <>
-                    <Link href={r.parentHref} className="text-blue-600 hover:underline">{r.parentCode}</Link>
+                    <Link href={r.parentHref} className="hover:underline app-link">{r.parentCode}</Link>
                     <span className="ml-2 text-xs text-gray-500 font-sans">{r.parentKindLabel}</span>
                 </>
             ),
@@ -149,7 +149,7 @@ export function InputsTable({ rows }: { rows: readonly InputLegRow[] }) {
                 <>
                     {r.parentCode == null ? '—'
                         : r.parentDeleted ? <span className="text-gray-500">{r.parentCode}{r.deletedMarker}</span>
-                        : r.parentHref ? <Link href={r.parentHref} className="text-blue-600 hover:underline">{r.parentCode}</Link>
+                        : r.parentHref ? <Link href={r.parentHref} className="hover:underline app-link">{r.parentCode}</Link>
                         : r.parentCode}
                     {/* ★ CONV-9 §⑫-5a:一枚徽章可以【既是】徽章【又在】表里。
                         这一枚不是 priority 列的一部分 —— 它跟着「投入批」这一格
@@ -205,7 +205,7 @@ export function OutputsTable({ rows, canViewPrices }: { rows: readonly OutputLeg
             render: (r) =>
                 r.batchCode == null ? '—'
                     : r.batchDeleted ? <span className="text-gray-500">{r.batchCode}{r.deletedMarker}</span>
-                    : r.batchHref ? <Link href={r.batchHref} className="text-blue-600 hover:underline">{r.batchCode}</Link>
+                    : r.batchHref ? <Link href={r.batchHref} className="hover:underline app-link">{r.batchCode}</Link>
                     : r.batchCode,
         },
         { key: 'material', header: t('processing.detail.colMaterial'), render: (r) => r.material },

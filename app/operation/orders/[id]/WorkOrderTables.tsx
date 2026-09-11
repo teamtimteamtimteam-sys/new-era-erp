@@ -152,7 +152,7 @@ export function LinkedRunsTable({ rows }: { rows: readonly LinkedRunRow[] }) {
             // 身份列。
             priority: true,
             className: 'font-mono',
-            render: (r) => <Link href={r.href} className="text-blue-600 hover:underline">{r.code}</Link>,
+            render: (r) => <Link href={r.href} className="hover:underline app-link">{r.code}</Link>,
         },
         { key: 'date', header: t('processing.colProcessDate'), render: (r) => r.processDate },
         { key: 'in', header: t('processing.colTotalInput'), align: 'right', className: 'font-mono', render: (r) => r.totalInput },

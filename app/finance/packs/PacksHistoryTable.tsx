@@ -26,7 +26,7 @@ export default function PacksHistoryTable({ rows, empty }: { rows: PackRow[]; em
         {
             key: 'code', header: t('pack.colCode'), priority: true, className: 'font-mono',
             render: (r) => (
-                <Link href={`/finance/packs/${r.id}`} className="text-blue-600 hover:underline font-mono">
+                <Link href={`/finance/packs/${r.id}`} className="hover:underline font-mono app-link">
                     {r.code}
                 </Link>
             ),

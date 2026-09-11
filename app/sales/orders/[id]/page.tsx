@@ -109,11 +109,11 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
         <>
             <div className="p-8 max-w-4xl">
                 <div className="mb-6">
-                    <Link href="/sales/orders" className="text-blue-600 hover:underline text-sm">{t('common.back')}</Link>
+                    <Link href="/sales/orders" className="hover:underline text-sm app-link">{t('common.back')}</Link>
                 </div>
                 <div className="flex items-start justify-between mb-4">
                     <div>
-                        <h1 className="text-2xl font-bold font-mono">{o.code}</h1>
+                        <h1 className="font-mono">{o.code}</h1>
                         <p className="text-sm text-gray-600 mt-1">
                             {o.customers ? `${o.customers.code} — ${o.customers.legal_name}` : '—'}
                         </p>
@@ -131,7 +131,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                              <dd className="inline">
                                  {fromQuote ? (
                                      <Link href={`/sales/quotes/${fromQuote.id}`}
-                                           className="font-mono text-blue-600 hover:underline">{fromQuote.code}</Link>
+                                           className="font-mono hover:underline app-link app-link-inline">{fromQuote.code}</Link>
                                  ) : (
                                      // 【报价读不到时印单号,不留白】读不到与不存在是两件事,
                                      // 而一片空白会被读成"没有出处"
@@ -169,7 +169,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                     </div>
                 )}
 
-                <h2 className="font-medium mt-8 mb-2">{t('sales.form.lines')}</h2>
+                <h2 className="mt-8 mb-2">{t('sales.form.lines')}</h2>
                 <OrderLinesTable rows={orderLineRows} />
 
                 {/* SO-3a:开票 —— 订单流【先开票后发货】(选项 C),开票即过账 */}
@@ -213,7 +213,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                     }))}
                 />
 
-                <h2 className="font-medium mt-8 mb-2">{t('sales.issues')}</h2>
+                <h2 className="mt-8 mb-2">{t('sales.issues')}</h2>
                 {/* SO-1b:签发面板【旁边】也说一次 —— 这里正是"要不要重新签发"
                     这个问题被问出来的地方,而它在页面顶部那一句可能早被滚过去了 */}
                 {amendedSinceIssue && (
@@ -241,7 +241,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                         {issues.map((i) => (
                             <li key={i.version} className="font-mono text-xs">
                                 <a href={`/sales/orders/${o.id}/pdf?version=${i.version}`} target="_blank"
-                                   rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                                   rel="noopener noreferrer" className="hover:underline app-link app-link-inline">
                                     v{i.version}
                                 </a>
                                 {' · '}{new Date(i.issued_at).toLocaleString(dl)} · {i.sha256.slice(0, 12)}…
@@ -250,7 +250,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                     </ul>
                 )}
 
-                <h2 className="font-medium mt-8 mb-2">{t('sales.history')}</h2>
+                <h2 className="mt-8 mb-2">{t('sales.history')}</h2>
                 <ul className="text-sm space-y-1">
                     {history.map((h, i) => {
                         // SO-1b:改动的内容【印出来】—— 一行 line_update 的全部意义

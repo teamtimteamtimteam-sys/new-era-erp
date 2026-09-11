@@ -128,7 +128,7 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
     return (
         <section className="mb-8">
             <div className="mb-2 flex items-baseline gap-3">
-                <h2 className="text-lg font-medium">{t(spec.titleKey)}</h2>
+                <h2 className="">{t(spec.titleKey)}</h2>
                 {!readOnly && (
                     <Button variant="secondary" className="text-xs" type="button" onClick={openNew} disabled={pending}>
                         {t('dict.add')}

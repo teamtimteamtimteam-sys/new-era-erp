@@ -40,12 +40,12 @@ export default async function NewTrainingPage({
             <div className="mb-6">
                 <Link
                     href={locked ? `/hr/employees/${locked}` : '/hr/training'}
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-4">{t('hr.newTraining')}</h1>
+            <h1 className="mb-4">{t('hr.newTraining')}</h1>
             <TrainingForm
                 employees={employees}
                 lockedEmployeeId={locked}

@@ -75,7 +75,7 @@ canEdit: boolean
     if (restricted) {
         return (
             <section className="mt-8 border border-gray-300 rounded p-4">
-                <h2 className="font-bold mb-1">{t('purchasing.applyPrepayment')}</h2>
+                <h2 className="mb-1">{t('purchasing.applyPrepayment')}</h2>
                 <p className="text-sm text-gray-600">{t('purchasing.prepaymentRestricted')}</p>
             </section>
         )
@@ -85,7 +85,7 @@ canEdit: boolean
 
     return (
         <section className="mt-8 border border-gray-300 rounded p-4">
-            <h2 className="font-bold mb-1">{t('purchasing.applyPrepayment')}</h2>
+            <h2 className="mb-1">{t('purchasing.applyPrepayment')}</h2>
             <p className="text-xs text-gray-500 mb-3">{t('purchasing.applyPrepaymentNote')}</p>
 
             {state.error && (
@@ -102,7 +102,7 @@ canEdit: boolean
                             <span className="text-gray-600 mr-1">{t('purchasing.orderDetailTitle')}:</span>
                             <Link
                                 href={`/purchasing/orders/${applicable.purchase_order_id}`}
-                                className="text-blue-600 hover:underline font-mono"
+                                className="hover:underline font-mono app-link app-link-inline"
                             >
                                 {applicable.po_code}
                             </Link>
@@ -127,7 +127,7 @@ canEdit: boolean
                             落在哪个期间,而一个默认成今天的日期【永远撞不上
                             PERIOD_LOCKED】,于是留空反而比填对更顺(AGENTS.md 那条)。
                             服务端也独立拒空(RELEASE_DATE_REQUIRED)。 */}
-                        <label className="text-sm text-gray-600" htmlFor="release_date">
+                        <label className="" htmlFor="release_date">
                             {t('purchasing.releaseDate')}
                         </label>
                         <input id="release_date" name="release_date" type="date" required
@@ -146,7 +146,7 @@ canEdit: boolean
 
             {history.length > 0 && (
                 <div className="mt-4">
-                    <h3 className="text-sm font-bold text-gray-700 mb-2">{t('purchasing.appliedHistory')}</h3>
+                    <h3 className="mb-2">{t('purchasing.appliedHistory')}</h3>
                     <table className={`${tableC.root} w-full`}>
                         <tbody>
                             {history.map((h) => (
@@ -161,7 +161,7 @@ canEdit: boolean
                                         {h.journal_id ? (
                                             <Link
                                                 href={`/finance/journal/${h.journal_id}`}
-                                                className="text-blue-600 hover:underline font-mono"
+                                                className="hover:underline font-mono app-link"
                                             >
                                                 {h.journal_code}
                                             </Link>

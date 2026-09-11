@@ -81,7 +81,7 @@ export default function ConclusionForm({ reviewId, ratings, ratingCode, summaryT
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
             <div className="flex gap-3 flex-wrap items-end">
-                <label className="text-xs text-gray-600">
+                <label className="">
                     {t('reviews.rating')}
                     <select
                         value={rating}
@@ -98,7 +98,7 @@ export default function ConclusionForm({ reviewId, ratings, ratingCode, summaryT
                             ))}
                     </select>
                 </label>
-                <label className="text-xs text-gray-600 grow min-w-64">
+                <label className="grow min-w-64">
                     {t('reviews.summary')}
                     <textarea
                         value={summary}

@@ -59,7 +59,7 @@ canEdit: boolean
 
     return (
         <section className="border border-gray-300 rounded p-4 mb-6">
-            <h2 className="font-semibold mb-1">{t('finance.gstSwitch.title')}</h2>
+            <h2 className="mb-1">{t('finance.gstSwitch.title')}</h2>
 
             {/* 【状态是一句话,不是一个空白】与 /finance/gst 那条横幅同一个措辞族 */}
             <p className={'text-sm mb-3 inline-block px-3 py-2 rounded border ' +
@@ -84,7 +84,7 @@ canEdit: boolean
 
                     <div className="flex flex-wrap items-end gap-3">
                         <div>
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('finance.gstSwitch.regNo')} <span className="text-red-600">*</span>
                             </label>
                             <input

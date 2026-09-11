@@ -38,13 +38,13 @@ export default function NewOutputForm({
             <div className="mb-6">
                 <Link
                     href="/output"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">{t('output.newTitle')}</h1>
+            <h1 className="mb-6">{t('output.newTitle')}</h1>
 
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -57,7 +57,7 @@ export default function NewOutputForm({
             <LocationPicker locations={locations} />
                 {/* 物料(必填)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('output.form.material')} <span className="text-red-600">*</span>
                     </label>
                     <select
@@ -91,7 +91,7 @@ export default function NewOutputForm({
 
                 {/* 客户(可选)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.customer')}</label>
+                    <label className="block mb-1">{t('output.form.customer')}</label>
                     <select
                         name="customer_id"
                         defaultValue=""
@@ -117,7 +117,7 @@ export default function NewOutputForm({
 
                 {/* 数量(必填)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('output.form.quantity')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -137,7 +137,7 @@ export default function NewOutputForm({
 
                 {/* 单位 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.unit')}</label>
+                    <label className="block mb-1">{t('output.form.unit')}</label>
                     <select
                         name="unit"
                         defaultValue="kg"
@@ -155,7 +155,7 @@ export default function NewOutputForm({
                     这条流水就永远说不出货是哪天产出的。守卫成对(AGENTS.md):这里控制
                     提交按钮,服务端 action 另有一道独立的拒绝,绕过界面也进不来。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('output.form.outputDate')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -179,7 +179,7 @@ export default function NewOutputForm({
 
                 {/* 状态 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.state')}</label>
+                    <label className="block mb-1">{t('output.form.state')}</label>
                     <select
                         name="state"
                         defaultValue="库存中"
@@ -195,7 +195,7 @@ export default function NewOutputForm({
 
                 {/* 品位/纯度 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.purity')}</label>
+                    <label className="block mb-1">{t('output.form.purity')}</label>
                     <input
                         type="text"
                         name="purity"
@@ -206,7 +206,7 @@ export default function NewOutputForm({
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.notes')}</label>
+                    <label className="block mb-1">{t('output.form.notes')}</label>
                     <textarea
                         name="notes"
                         className={`${CONTROL_TEXTAREA} w-full`}

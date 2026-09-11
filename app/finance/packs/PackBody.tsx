@@ -99,7 +99,7 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
             </div>
 
             {/* ── ★ 勾稽:本包唯一一条两边独立推导的 ★ ───────────────────── */}
-            <h2 className="font-semibold mb-1">{t('pack.reconHeading')}</h2>
+            <h2 className="mb-1">{t('pack.reconHeading')}</h2>
             <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('pack.reconWhy')}</p>
             <div className="mb-2">
                 <ReconTable rows={reconRows} />
@@ -120,7 +120,7 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
             )}
 
             {/* ── 这份包看不见什么 ────────────────────────────────────────── */}
-            <h2 className="font-semibold mb-2">{t('pack.cannotSeeHeading')}</h2>
+            <h2 className="mb-2">{t('pack.cannotSeeHeading')}</h2>
             {notes.length === 0 ? (
                 <p className="text-sm text-gray-600 mb-4">{t('pack.cannotSeeNone')}</p>
             ) : (

@@ -117,7 +117,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
             // 转换前这条返回链接画在 <h1> 之上 —— breadcrumb 槽是同一个位置。
             breadcrumb={
                 <div className="text-sm">
-                    <Link href="/tools/tasks" className="text-blue-700 hover:underline">
+                    <Link href="/tools/tasks" className="hover:underline app-link">
                         ← {t('tasks.pageTitle')}
                     </Link>
                 </div>
@@ -252,7 +252,7 @@ async function PromotePanel({ taskId, canPromote }: { taskId: string; canPromote
     const Client = (await import('./Participants')).PromoteButton
     return (
         <section className="mt-8 border-t pt-6">
-            <h2 className="mb-2 text-xl font-bold">{t('tasks.participants.heading')}</h2>
+            <h2 className="mb-2">{t('tasks.participants.heading')}</h2>
             <p className="mb-3 text-sm text-gray-600">{t('tasks.participants.personalHint')}</p>
             {/* TASK-1c-b STEP 3:【绝不摆一个服务端会拒绝的按钮】。
                 没有在册员工档案时,升级必然撞 TASK_OWNER_NOT_AN_EMPLOYEE ——

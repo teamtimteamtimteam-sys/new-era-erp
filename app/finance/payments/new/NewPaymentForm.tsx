@@ -352,7 +352,7 @@ canEdit: boolean
             <div className="flex flex-wrap gap-4">
                 {/* 方向 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('finance.side')}</label>
+                    <label className="block mb-1">{t('finance.side')}</label>
                     <select
                         name="direction"
                         value={direction}
@@ -365,7 +365,7 @@ canEdit: boolean
                 </div>
                 {/* 往来单位(必填;收=客户,付=供应商)*/}
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('finance.colCounterparty')} <span className="text-red-600">*</span>
                     </label>
                     <select
@@ -403,7 +403,7 @@ canEdit: boolean
             <div className="flex flex-wrap gap-4">
                 {/* 金额(必填,原币)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('finance.amount')} <span className="text-red-600">*</span>
                     </label>
                     <DecimalInput
@@ -416,7 +416,7 @@ canEdit: boolean
                 </div>
                 {/* 币种 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.sale.currency')}</label>
+                    <label className="block mb-1">{t('output.sale.currency')}</label>
                     <select
                         name="currency"
                         value={currency}
@@ -431,7 +431,7 @@ canEdit: boolean
                     做了兑换)才要填 —— 填水单两边实际金额折出的成交价,不是牌价(C4) */}
                 {crossCurrency && (
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('finance.actualDealRate')} <span className="text-red-600">*</span>
                         </label>
                         <DecimalInput
@@ -446,7 +446,7 @@ canEdit: boolean
                 )}
                 {/* 银行账户(默认随币种)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('finance.bankAccount')}</label>
+                    <label className="block mb-1">{t('finance.bankAccount')}</label>
                     <select
                         name="bank_account"
                         value={bank}
@@ -459,7 +459,7 @@ canEdit: boolean
                 </div>
                 {/* 收付日期(默认今天)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('finance.paymentDate')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -474,7 +474,7 @@ canEdit: boolean
                 </div>
                 {/* 备注 */}
                 <div className="flex-1 min-w-[12rem]">
-                    <label className="block text-sm font-medium mb-1">{t('finance.memo')}</label>
+                    <label className="block mb-1">{t('finance.memo')}</label>
                     <input
                         type="text"
                         name="notes"
@@ -500,7 +500,7 @@ canEdit: boolean
                 purchase_order_id,分录借 1300 而不是 2000 */}
             {partyId && pos.length > 0 && (
                 <div>
-                    <h3 className="text-sm font-bold text-gray-700 mb-2">
+                    <h3 className="mb-2">
                         {t('purchasing.prepaymentGroup')}
                     </h3>
                     {/* ════════════════════════════════════════════════════════════════
@@ -518,8 +518,8 @@ canEdit: boolean
                             <tr className={tableC.headRow}>
                                 <th className={`${tableC.headCell} text-left`}>{t('finance.colDocument')}</th>
                                 <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('purchasing.colOrderDate')}</th>
-                                <th className={`${tableC.headCell} text-right`}>{t('purchasing.colEstimatedTotal')}</th>
-                                <th className={`${tableC.headCell} text-right`}>{t('purchasing.colPrepaid')}</th>
+                                <th className={`${tableC.headCell} text-right tabular-nums`}>{t('purchasing.colEstimatedTotal')}</th>
+                                <th className={`${tableC.headCell} text-right tabular-nums`}>{t('purchasing.colPrepaid')}</th>
                                 <th className={`${tableC.headCell} text-left`}>{t('finance.colAllocate')}</th>
                             </tr>
                         </thead>
@@ -589,7 +589,7 @@ canEdit: boolean
                             <tr className={tableC.headRow}>
                                 <th className={`${tableC.headCell} text-left`}>{t('finance.colDocument')}</th>
                                 <th className={`${tableC.headCell} text-left`}>{t('finance.colDate')}</th>
-                                <th className={`${tableC.headCell} text-right`}>{t('finance.colOpen')}</th>
+                                <th className={`${tableC.headCell} text-right tabular-nums`}>{t('finance.colOpen')}</th>
                                 <th className={`${tableC.headCell} text-left`}>{t('finance.colAllocate')}</th>
                             </tr>
                         </thead>

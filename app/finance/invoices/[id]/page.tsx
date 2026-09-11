@@ -249,7 +249,7 @@ export default async function InvoiceDetailPage({
         <ListPage
             maxWidth="max-w-5xl"
             breadcrumb={
-                <Link href="/finance/invoices" className="text-blue-600 hover:underline text-sm">
+                <Link href="/finance/invoices" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             }
@@ -346,7 +346,7 @@ export default async function InvoiceDetailPage({
             {profileIncomplete && (
                 <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
                     {t('invoice.profileIncomplete')}{' '}
-                    <Link href="/finance/company" className="text-blue-600 hover:underline">
+                    <Link href="/finance/company" className="hover:underline app-link app-link-inline">
                         {t('company.title')}
                     </Link>
                 </div>
@@ -370,13 +370,13 @@ export default async function InvoiceDetailPage({
                 <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded mb-4 text-sm">
                     {t('invoice.orderKindNote')}{' '}
                     {orderRef ? (
-                        <Link href={`/sales/orders/${orderRef.id}`} className="text-blue-700 underline font-mono">{orderRef.code}</Link>
+                        <Link href={`/sales/orders/${orderRef.id}`} className="underline font-mono app-link app-link-inline">{orderRef.code}</Link>
                     ) : (
                         <span className="italic">{t('common.restricted')}</span>
                     )}
                     {' · '}
                     {entryRef ? (
-                        <Link href={`/finance/journal/${entryRef.id}`} className="text-blue-700 underline font-mono">{entryRef.code}</Link>
+                        <Link href={`/finance/journal/${entryRef.id}`} className="underline font-mono app-link app-link-inline">{entryRef.code}</Link>
                     ) : (
                         <span className="italic">—</span>
                     )}
@@ -396,7 +396,7 @@ export default async function InvoiceDetailPage({
             <div className="grid gap-4 md:grid-cols-2 mb-6">
                 {/* 抬头:开票当刻的存档 */}
                 <div className="border border-gray-300 rounded p-4">
-                    <h2 className="font-bold mb-2">{t('invoice.billTo')}</h2>
+                    <h2 className="mb-2">{t('invoice.billTo')}</h2>
                     <p className="text-sm font-medium">{bill.legal_name ?? '—'}</p>
                     {bill.code && <p className="text-xs text-gray-500 font-mono">{bill.code}</p>}
                     {bill.address && <p className="text-sm text-gray-600 whitespace-pre-line mt-1">{bill.address}</p>}
@@ -477,7 +477,7 @@ export default async function InvoiceDetailPage({
 
             {/* 收款情况 */}
             <section className="mt-8 pt-8 border-t">
-                <h2 className="text-xl font-bold mb-3">{t('invoice.settlementTitle')}</h2>
+                <h2 className="mb-3">{t('invoice.settlementTitle')}</h2>
 
                 <div className="bg-gray-50 rounded p-4 mb-4 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                     <div>
@@ -528,7 +528,7 @@ export default async function InvoiceDetailPage({
                 本刀之前发出去过多少次,查不出来,也不补(伪造的出处比空白更坏)。 */}
             {showBanking && (
                 <section className="mt-8">
-                    <h2 className="text-xl font-bold mb-1">{t('invoice.issuesTitle')}</h2>
+                    <h2 className="mb-1">{t('invoice.issuesTitle')}</h2>
                     <p className="text-xs text-gray-500 mb-2">{t('invoice.issuesNote')}</p>
                     <IssuePanel
                         pdfHref={`/finance/invoices/${inv.id}/pdf`}
@@ -551,7 +551,7 @@ export default async function InvoiceDetailPage({
                                 <li key={iss.version} className="font-mono text-xs">
                                     <a href={`/finance/invoices/${inv.id}/pdf?version=${iss.version}`}
                                        target="_blank" rel="noopener noreferrer"
-                                       className="text-blue-600 hover:underline">v{iss.version}</a>
+                                       className="hover:underline app-link app-link-inline">v{iss.version}</a>
                                     {' · '}{formatTimestamp(iss.issued_at, dateLocale)}
                                     {' · '}<ActorName userId={iss.issued_by} names={issuerNames} />
                                     {' · '}{iss.sha256.slice(0, 12)}…

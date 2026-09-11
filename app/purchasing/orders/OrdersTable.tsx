@@ -53,7 +53,7 @@ export default function OrdersTable({ rows, empty }: { rows: PurchaseOrderRow[];
             render: (r) => (
                 <Link
                     href={`/purchasing/orders/${r.poId}`}
-                    className={r.status === 'cancelled' ? 'text-gray-500 hover:underline line-through' : 'text-blue-600 hover:underline'}
+                    className={r.status === 'cancelled' ? 'text-gray-500 hover:underline line-through' : 'app-link hover:underline'}
                 >
                     {r.code}
                 </Link>

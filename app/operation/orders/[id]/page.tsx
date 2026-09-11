@@ -160,7 +160,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
         <ListPage
             maxWidth="max-w-5xl"
             breadcrumb={
-                <Link href="/operation/orders" className="text-blue-600 hover:underline text-sm">
+                <Link href="/operation/orders" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             }
@@ -211,7 +211,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
             />
 
             {/* ── 投入侧 ──────────────────────────────────────────────── */}
-            <h2 className="text-lg font-semibold mt-6 mb-1">{t('processing.wo.inputSide')}</h2>
+            <h2 className="mt-6 mb-1">{t('processing.wo.inputSide')}</h2>
             <p className="text-xs text-gray-500 mb-2">{t('processing.wo.inputSideNote')}</p>
             <InputSideTable rows={inputTableRows} />
             {/* ★ 出口:改计划行。住 children,靠 state 恒为 'ok' 撑着;
@@ -242,14 +242,14 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
             </div>
 
             {/* ── 产出侧 ──────────────────────────────────────────────── */}
-            <h2 className="text-lg font-semibold mt-8 mb-1">{t('processing.wo.outputSide')}</h2>
+            <h2 className="mt-8 mb-1">{t('processing.wo.outputSide')}</h2>
             <p className="text-xs text-gray-500 mb-2">{t('processing.wo.outputSideNote')}</p>
             <OutputSideTable rows={outputTableRows} />
 
             {/* ── 挂上来的加工单 ──────────────────────────────────────── */}
             {/* 转换前是 {runs.length === 0 ? <p>没有</p> : <table>} —— 现在表无条件画,
                 空态由表自己说(与 CONV-9 给 /hr/employees/[id] 的修法同向)。 */}
-            <h2 className="text-lg font-semibold mt-8 mb-2">{t('processing.wo.linkedRuns')}</h2>
+            <h2 className="mt-8 mb-2">{t('processing.wo.linkedRuns')}</h2>
             <LinkedRunsTable rows={linkedRunRows} />
             {runs.some((r) => r.status === 'reversed') && (
                 <p className="text-xs text-gray-500 mt-2">{t('processing.wo.reversedNote')}</p>
@@ -257,11 +257,11 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
 
             {/* ── 动作 ────────────────────────────────────────────────── */}
             {/* ★ 出口:发布 / 收工 / 取消。住 children,无条件画,自己说不可用的理由。 */}
-            <h2 className="text-lg font-semibold mt-8 mb-2">{t('processing.wo.actionsTitle')}</h2>
+            <h2 className="mt-8 mb-2">{t('processing.wo.actionsTitle')}</h2>
             <WorkOrderActions id={wo.id} status={wo.status} canEdit={canEdit} hasRuns={liveRuns.length > 0} />
 
             {/* ── 历史 ────────────────────────────────────────────────── */}
-            <h2 className="text-lg font-semibold mt-8 mb-2">{t('processing.wo.history')}</h2>
+            <h2 className="mt-8 mb-2">{t('processing.wo.history')}</h2>
             <ul className="text-sm space-y-1">
                 {history.map((h, i) => (
                     <li key={i} className="text-gray-600">

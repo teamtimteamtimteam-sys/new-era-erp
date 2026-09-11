@@ -46,7 +46,7 @@ export default function SourcePicker({
     return (
         <div className="space-y-3 border border-gray-200 rounded p-3 bg-gray-50">
             <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block mb-1">
                     {t('metalPrices.source.label')} <span className="text-red-600">*</span>
                 </label>
                 <select
@@ -68,7 +68,7 @@ export default function SourcePicker({
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block mb-1">
                     {t('metalPrices.index.label')}
                     {isPublished && <span className="text-red-600"> *</span>}
                 </label>
@@ -97,7 +97,7 @@ export default function SourcePicker({
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block mb-1">
                     {t('metalPrices.source.referenceLabel')}
                 </label>
                 <input
@@ -110,7 +110,7 @@ export default function SourcePicker({
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block mb-1">
                     {t('metalPrices.source.delayLabel')}
                 </label>
                 <select name="quote_delayed" defaultValue={DELAY_UNRECORDED} className={fieldClsSelect}>

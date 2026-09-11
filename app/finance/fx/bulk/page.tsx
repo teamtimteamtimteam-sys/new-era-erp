@@ -49,9 +49,9 @@ export default async function BulkFxPage() {
 
     return (
         <div className="p-8 max-w-5xl">
-            <h1 className="text-2xl font-bold mb-4">{t('finance.fxPage.bulk.title')}</h1>
+            <h1 className="mb-4">{t('finance.fxPage.bulk.title')}</h1>
             <p className="mb-4 text-sm">
-                <Link href="/finance/fx" className="text-blue-600 hover:underline">
+                <Link href="/finance/fx" className="hover:underline app-link">
                     {t('finance.fxPage.bulk.backToList')}
                 </Link>
             </p>

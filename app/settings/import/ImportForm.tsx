@@ -140,7 +140,7 @@ function ImportWizard({
         <div className="space-y-6">
             <form action={formAction} className="space-y-4 border border-gray-300 rounded p-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('import.pickTable')}</label>
+                    <label className="block mb-1">{t('import.pickTable')}</label>
                     <select name="table" value={table} disabled={done !== null || pending}
                             onChange={(e) => { setPicked(e.target.value); setStaleTable(true); setAck(false) }}
                             className={CONTROL_SELECT}>
@@ -184,7 +184,7 @@ function ImportWizard({
                     )}
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('import.pickFile')}</label>
+                    <label className="block mb-1">{t('import.pickFile')}</label>
                     {/* 4.2:一个裸 file input 在屏幕上读起来像一行说明文字,不像一个控件。
                         给它边框与内边距,并且**在选表之前禁用** —— 见上面 4.1 那一段。 */}
                     <input type="file" name="file" accept=".csv,text/csv"
@@ -233,7 +233,7 @@ function ImportWizard({
                                 existing: w.existingName, code: w.existingCode })}</li>
                         ))}
                     </ul>
-                    <label className="flex items-start gap-2 text-sm">
+                    <label className="flex items-start gap-2">
                         <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)}
                                className={`${CONTROL_CHECKBOX} mt-1`} />
                         <span>{t('import.nearDupAck')}</span>

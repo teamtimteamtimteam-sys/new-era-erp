@@ -61,7 +61,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
 
             <form action={formAction} className="space-y-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('customers.form.legalName')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -79,7 +79,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.shortName')}</label>
+                    <label className="block mb-1">{t('customers.form.shortName')}</label>
                     <input
                         type="text"
                         name="short_name"
@@ -89,7 +89,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('customers.form.country')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -108,7 +108,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.taxId')}</label>
+                    <label className="block mb-1">{t('customers.form.taxId')}</label>
                     <input
                         type="text"
                         name="tax_id"
@@ -118,7 +118,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.address')}</label>
+                    <label className="block mb-1">{t('customers.form.address')}</label>
                     <textarea
                         name="address"
                         defaultValue={customer.address ?? ''}
@@ -136,7 +136,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                 </fieldset>
 
                 <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block mb-2">
                         {t('customers.form.types')}
                     </label>
                     <div className="space-y-2">
@@ -156,7 +156,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.paymentTerms')}</label>
+                    <label className="block mb-1">{t('customers.form.paymentTerms')}</label>
                     <input
                         type="text"
                         name="payment_terms"
@@ -165,7 +165,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.paymentTermsDays')}</label>
+                    <label className="block mb-1">{t('customers.form.paymentTermsDays')}</label>
                     <input
                         type="number"
                         min="0"
@@ -183,7 +183,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
 
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.incoterm')}</label>
+                    <label className="block mb-1">{t('customers.form.incoterm')}</label>
                     <input
                         type="text"
                         name="incoterm"
@@ -193,7 +193,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.creditRating')}</label>
+                    <label className="block mb-1">{t('customers.form.creditRating')}</label>
                     <input
                         type="text"
                         name="credit_rating"
@@ -203,7 +203,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.creditLimit')}</label>
+                    <label className="block mb-1">{t('customers.form.creditLimit')}</label>
                     {/* SAL-B:【留空 = 没设限额(放行);0 = 现款现货(任何赊销都拒)——
                         相反,不是相近】。全部既有客户为空:管控按客户逐个启用。 */}
                     <input
@@ -219,7 +219,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                 </div>
 
                 <div>
-                    <label className="inline-flex items-center gap-2 text-sm font-medium">
+                    <label className="inline-flex items-center gap-2">
                         <input type="checkbox" className={CONTROL_CHECKBOX} name="credit_hold" defaultChecked={customer.credit_hold ?? false} />
                         {t('customers.form.creditHold')}
                     </label>
@@ -231,7 +231,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                     留一个设得了却毫无作用的框,是在承诺一件做不到的事。 */}
                 {gstRegistered && (
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('customers.form.defaultTaxCode')}</label>
+                        <label className="block mb-1">{t('customers.form.defaultTaxCode')}</label>
                         <select
                             name="default_tax_code"
                             defaultValue={customer.default_tax_code ?? ''}
@@ -251,7 +251,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                 )}
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.notes')}</label>
+                    <label className="block mb-1">{t('customers.form.notes')}</label>
                     <textarea
                         name="notes"
                         defaultValue={customer.notes ?? ''}

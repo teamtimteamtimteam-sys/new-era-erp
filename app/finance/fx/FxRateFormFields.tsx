@@ -30,7 +30,7 @@ export default function FxRateFormFields({
         <>
             {/* 币种(必填)*/}
             <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block mb-1">
                     {t('finance.fxPage.form.currency')} <span className="text-red-600">*</span>
                 </label>
                 <select
@@ -53,7 +53,7 @@ export default function FxRateFormFields({
 
             {/* 牌价方向(必填)*/}
             <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block mb-1">
                     {t('finance.fxPage.form.rateType')} <span className="text-red-600">*</span>
                 </label>
                 <select
@@ -74,7 +74,7 @@ export default function FxRateFormFields({
 
             {/* 汇率(必填,> 0)*/}
             <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block mb-1">
                     {t('finance.fxPage.form.rate')} <span className="text-red-600">*</span>
                 </label>
                 <input
@@ -93,7 +93,7 @@ export default function FxRateFormFields({
 
             {/* 汇率日期(必填)*/}
             <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block mb-1">
                     {t('finance.fxPage.form.rateDate')} <span className="text-red-600">*</span>
                 </label>
                 <input
@@ -110,7 +110,7 @@ export default function FxRateFormFields({
 
             {/* 出处(默认 DBS)*/}
             <div>
-                <label className="block text-sm font-medium mb-1">{t('finance.fxPage.form.source')}</label>
+                <label className="block mb-1">{t('finance.fxPage.form.source')}</label>
                 <input
                     name="source"
                     defaultValue={defaults?.source ?? 'DBS'}
@@ -120,7 +120,7 @@ export default function FxRateFormFields({
 
             {/* 备注 */}
             <div>
-                <label className="block text-sm font-medium mb-1">{t('finance.fxPage.form.notes')}</label>
+                <label className="block mb-1">{t('finance.fxPage.form.notes')}</label>
                 <textarea
                     name="notes"
                     defaultValue={defaults?.notes ?? ''}

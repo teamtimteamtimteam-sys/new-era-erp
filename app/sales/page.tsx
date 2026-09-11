@@ -124,7 +124,7 @@ export default async function SalesOverviewPage() {
 
     return (
         <div className="p-4 sm:p-8 max-w-3xl">
-            <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--brand-text)' }}>
+            <h1 className="mb-1" style={{ color: 'var(--brand-text)' }}>
                 {t('nav.sales')}
             </h1>
             <p className="text-sm mb-6 max-w-2xl" style={{ color: 'var(--brand-muted-text)' }}>
@@ -145,7 +145,7 @@ export default async function SalesOverviewPage() {
                         : { kind: 'ok' }
                 }
                 action={
-                    <Link href="/sales/orders" className="hover:underline" style={{ color: 'var(--brand-ocean-fill)' }}>
+                    <Link href="/sales/orders" className="hover:underline app-link">
                         {t('sales.subnav.orders')}
                     </Link>
                 }
@@ -184,7 +184,7 @@ export default async function SalesOverviewPage() {
                           : { kind: 'ok' }
                 }
                 action={
-                    <Link href="/sales/customers" className="hover:underline" style={{ color: 'var(--brand-ocean-fill)' }}>
+                    <Link href="/sales/customers" className="hover:underline app-link">
                         {t('nav.customers')}
                     </Link>
                 }

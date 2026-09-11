@@ -62,11 +62,11 @@ export default async function NewEmployeePage() {
     return (
         <div className="p-8">
             <div className="mb-6">
-                <Link href="/hr/employees" className="text-blue-600 hover:underline text-sm">
+                <Link href="/hr/employees" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-4">{t('hr.newEmployee')}</h1>
+            <h1 className="mb-4">{t('hr.newEmployee')}</h1>
             <EmployeeForm
                 positions={positions}
                 departments={departments}

@@ -160,7 +160,7 @@ export default async function PayableDocPage({
         <ListPage
             maxWidth="max-w-4xl"
             breadcrumb={
-                <Link href="/finance/payables" className="text-blue-600 hover:underline text-sm">
+                <Link href="/finance/payables" className="hover:underline text-sm app-link">
                     {t('finance.backToAging')}
                 </Link>
             }
@@ -178,7 +178,7 @@ export default async function PayableDocPage({
                             <>
                                 <Link
                                     href={`/inbound/${batch.id}/edit`}
-                                    className="text-blue-600 hover:underline font-mono font-medium"
+                                    className="hover:underline font-mono font-medium app-link app-link-inline"
                                 >
                                     {batch.code}
                                 </Link>
@@ -233,7 +233,7 @@ export default async function PayableDocPage({
                             {i > 0 && <span className="mx-1 text-gray-300">|</span>}
                             <Link
                                 href={`/finance/journal/${j.id}`}
-                                className="text-blue-600 hover:underline font-mono"
+                                className="hover:underline font-mono app-link app-link-inline"
                             >
                                 {j.code}
                             </Link>
@@ -243,7 +243,7 @@ export default async function PayableDocPage({
             )}
 
             {/* 结算历史 */}
-            <h2 className="text-lg font-semibold mb-3">{t('finance.settlementHistory')}</h2>
+            <h2 className="mb-3">{t('finance.settlementHistory')}</h2>
             <SettlementHistoryTable rows={tableRows} />
 
             {/* 凭据附件 —— 这一页唯一的出口(上传凭据)。它住在 children 里,

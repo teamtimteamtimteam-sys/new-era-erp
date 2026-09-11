@@ -165,7 +165,7 @@ export default async function ReceiptPatternPanel({
                                 {receipts.map((r) => (
                                     <li key={r.batch_id}>
                                         <Link href={`/inbound/${r.batch_id}/edit`}
-                                              className="font-mono text-blue-600 hover:underline">
+                                              className="font-mono hover:underline app-link app-link-inline">
                                             {r.batch_code}
                                         </Link>
                                         {r.arrival_date && (

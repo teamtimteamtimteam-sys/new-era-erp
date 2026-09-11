@@ -67,13 +67,13 @@ export default async function EditCustomerPage({
             <div className="mb-6">
                 <Link
                     href="/sales/customers"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-2">{t('customers.editTitle')}</h1>
+            <h1 className="mb-2">{t('customers.editTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6">
                 <span className="font-mono">{customer.code}</span>
                 <span className="mx-2">·</span>

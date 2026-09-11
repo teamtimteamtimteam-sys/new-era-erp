@@ -32,7 +32,7 @@ export default function QuotesTable({ rows }: { rows: QuoteRow[] }) {
             key: 'code', header: t('quotes.colCode'), priority: true, className: 'font-mono',
             render: (r) => (
                 <>
-                    <Link href={`/sales/quotes/${r.quote_id}`} className="text-blue-600 hover:underline">{r.code}</Link>
+                    <Link href={`/sales/quotes/${r.quote_id}`} className="hover:underline app-link">{r.code}</Link>
                     {r.issue_version !== null && <span className="ml-2 text-xs text-gray-500">v{r.issue_version}</span>}
                 </>
             ),
@@ -71,7 +71,7 @@ export default function QuotesTable({ rows }: { rows: QuoteRow[] }) {
             key: 'order', header: t('quotes.colOrder'), className: 'font-mono',
             render: (r) =>
                 r.converted_order_id ? (
-                    <Link href={`/sales/orders/${r.converted_order_id}`} className="text-blue-600 hover:underline">
+                    <Link href={`/sales/orders/${r.converted_order_id}`} className="hover:underline app-link">
                         {r.converted_order_code}
                     </Link>
                 ) : (

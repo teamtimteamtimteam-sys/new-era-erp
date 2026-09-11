@@ -26,7 +26,7 @@ export default function StocktakesTable({ rows, empty }: { rows: StocktakeRow[];
         {
             key: 'code', header: t('stocktakes.colCode'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/stocktakes/${r.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/stocktakes/${r.id}`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

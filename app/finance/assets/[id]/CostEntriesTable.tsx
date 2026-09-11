@@ -41,7 +41,7 @@ export default function CostEntriesTable({ rows }: { rows: readonly CostEntryRow
             priority: true,
             className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={r.expenseHref} className="text-blue-600 underline">
+                <Link href={r.expenseHref} className="underline app-link">
                     {r.expenseCode}
                 </Link>
             ),

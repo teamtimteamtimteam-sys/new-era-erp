@@ -58,7 +58,7 @@ export default function InboundBatchesTable({ rows }: { rows: readonly InboundBa
             priority: true,
             className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={r.href} className="text-blue-600 hover:underline">
+                <Link href={r.href} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

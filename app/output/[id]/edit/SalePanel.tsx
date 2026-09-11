@@ -130,7 +130,7 @@ export default function SalePanel({
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-xl font-bold mb-4">{t('output.sale.title')}</h2>
+            <h2 className="mb-4">{t('output.sale.title')}</h2>
 
             <div className="bg-gray-50 rounded p-4 mb-4 flex flex-wrap gap-8 text-sm">
                 <div>
@@ -179,7 +179,7 @@ export default function SalePanel({
                     换算在 DB 里按 tt_buy(收钱进来)—— 不是买路径的 tt_sell。 */}
                 <div className="flex flex-wrap gap-2 items-end">
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('output.sale.pricing.mode')}</label>
+                        <label className="block mb-1">{t('output.sale.pricing.mode')}</label>
                         <select
                             value={priceMode}
                             onChange={(e) => { setPriceMode(e.target.value as 'manual' | 'formula' | 'spot'); setQuote(null) }}
@@ -192,7 +192,7 @@ export default function SalePanel({
                     </div>
                     {priceMode === 'formula' && (
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('output.sale.pricing.formulaPick')}</label>
+                            <label className="block mb-1">{t('output.sale.pricing.formulaPick')}</label>
                             <select
                                 value={quoteFormulaId}
                                 onChange={(e) => setQuoteFormulaId(e.target.value)}
@@ -253,7 +253,7 @@ export default function SalePanel({
                 <input type="hidden" name="price_provenance" value={computed && quote?.provenance ? JSON.stringify(quote.provenance) : ''} />
                 <div className="flex flex-wrap gap-2 items-end">
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('output.sale.quantity')} <span className="text-red-600">*</span>
                         </label>
                         <DecimalInput
@@ -265,7 +265,7 @@ export default function SalePanel({
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {t('output.sale.unitPrice')} <span className="text-red-600">*</span>
                         </label>
                         <DecimalInput
@@ -277,7 +277,7 @@ export default function SalePanel({
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('output.sale.currency')}</label>
+                        <label className="block mb-1">{t('output.sale.currency')}</label>
                         <select
                             name="currency"
                             value={currency}
@@ -296,7 +296,7 @@ export default function SalePanel({
 
                 <div className="flex flex-wrap gap-2 items-end">
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('output.sale.customer')}</label>
+                        <label className="block mb-1">{t('output.sale.customer')}</label>
                         <select
                             name="customer_id"
                             value={customerId}
@@ -312,7 +312,7 @@ export default function SalePanel({
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('output.sale.saleDate')}</label>
+                        <label className="block mb-1">{t('output.sale.saleDate')}</label>
                         <input
                             type="date"
                             name="sale_date"
@@ -322,7 +322,7 @@ export default function SalePanel({
                         />
                     </div>
                     <div className="flex-1 min-w-[8rem]">
-                        <label className="block text-sm font-medium mb-1">{t('output.sale.notes')}</label>
+                        <label className="block mb-1">{t('output.sale.notes')}</label>
                         <input
                             type="text"
                             name="notes"

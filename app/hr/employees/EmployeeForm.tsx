@@ -125,7 +125,7 @@ export default function EmployeeForm({
 
             {/* ── 身份 ── */}
             <section>
-                <h2 className="font-bold mb-3">{t('hr.groupIdentity')}</h2>
+                <h2 className="mb-3">{t('hr.groupIdentity')}</h2>
                 <div className="flex flex-wrap gap-4">
                     <div className="flex-1 min-w-[16rem]">
                         <label className={label}>
@@ -234,7 +234,7 @@ export default function EmployeeForm({
 
             {/* ── 任职 ── */}
             <section className="border-t pt-4">
-                <h2 className="font-bold mb-3">{t('hr.groupEmployment')}</h2>
+                <h2 className="mb-3">{t('hr.groupEmployment')}</h2>
                 <div className="flex flex-wrap gap-4">
                     <div className="flex-1 min-w-[14rem]">
                         <label className={label}>{t('hr.colDepartment')}</label>
@@ -369,7 +369,7 @@ export default function EmployeeForm({
 
             {/* ── 居留 ── */}
             <section className="border-t pt-4">
-                <h2 className="font-bold mb-3">{t('hr.groupResidency')}</h2>
+                <h2 className="mb-3">{t('hr.groupResidency')}</h2>
                 <div className="flex flex-wrap gap-4">
                     <div>
                         <label className={label}>{t('hr.colResidency')}</label>
@@ -460,7 +460,7 @@ export default function EmployeeForm({
             {/* ── 离职(仅在状态为已离职时出现)── */}
             {status === 'separated' && (
                 <section className="border-t pt-4">
-                    <h2 className="font-bold mb-3">{t('hr.groupSeparation')}</h2>
+                    <h2 className="mb-3">{t('hr.groupSeparation')}</h2>
                     <div className="flex flex-wrap gap-4">
                         <div>
                             <label className={label}>

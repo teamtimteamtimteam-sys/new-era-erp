@@ -162,7 +162,7 @@ export default function ForecastGrid({
                 【本来就在用】的答案,不是转换漏掉的一步。 */}
             {data.currencies.map((ccy) => (
                 <div key={ccy} className="mb-8 overflow-x-auto">
-                    <h3 className="text-sm font-semibold mb-1">{ccy}</h3>
+                    <h3 className="mb-1">{ccy}</h3>
                     <p className="text-xs text-gray-500 mb-2">
                         {t('cashForecast.opening')}: <span className="font-mono">{money(openingOf(ccy))}</span>
                         {' · '}{t('cashForecast.openingHint')}
@@ -174,7 +174,7 @@ export default function ForecastGrid({
                                     {t('cashForecast.weekOf')}
                                 </th>
                                 {weeks.map((w) => (
-                                    <th key={w} className={`${tableC.headCell} text-right whitespace-nowrap`}>
+                                    <th key={w} className={`${tableC.headCell} text-right whitespace-nowrap tabular-nums`}>
                                         {bucketOf(ccy, w)?.week_start ?? ''}
                                     </th>
                                 ))}
@@ -198,7 +198,7 @@ export default function ForecastGrid({
             ))}
 
             {/* ── 明细:每一行说得出【它是哪一种】 ───────────────────────── */}
-            <h3 className="text-sm font-semibold mb-1">{t('cashForecast.confidence')}</h3>
+            <h3 className="mb-1">{t('cashForecast.confidence')}</h3>
             <ul className="text-xs text-gray-600 mb-2 space-y-0.5">
                 <li>
                     <span className={CONF_CLASS.committed}>{t('cashForecast.conf_committed')}</span>
@@ -223,7 +223,7 @@ export default function ForecastGrid({
             </div>
 
             {/* ── ★【预测【看不见】的那部分,印在预测上】★ ───────────────── */}
-            <h3 className="text-sm font-semibold mb-1">{t('cashForecast.undatedTitle')}</h3>
+            <h3 className="mb-1">{t('cashForecast.undatedTitle')}</h3>
             <p className="text-xs text-gray-500 mb-2">{t('cashForecast.undatedHint')}</p>
             {data.undated.length === 0 ? (
                 <p className="text-sm text-gray-500 mb-8">—</p>
@@ -246,7 +246,7 @@ export default function ForecastGrid({
             {/* ── 客户承诺:备查,不计入 ─────────────────────────────────── */}
             {data.promises_memo.length > 0 && (
                 <>
-                    <h3 className="text-sm font-semibold mb-1">{t('cashForecast.promisesTitle')}</h3>
+                    <h3 className="mb-1">{t('cashForecast.promisesTitle')}</h3>
                     <p className="text-xs text-gray-500 mb-2">{t('cashForecast.promisesHint')}</p>
                     <ul className="text-sm mb-8 space-y-1">
                         {data.promises_memo.map((p) => (
@@ -261,7 +261,7 @@ export default function ForecastGrid({
             )}
 
             {/* ── 固定 OPEX 覆盖(KPI T2)────────────────────────────────── */}
-            <h3 className="text-sm font-semibold mb-1">{t('cashForecast.bufferTitle')}</h3>
+            <h3 className="mb-1">{t('cashForecast.bufferTitle')}</h3>
             <p className="text-xs text-gray-500 mb-2">{t('cashForecast.coverHint')}</p>
             <div className="mb-8 max-w-2xl">
                 <DataTable
@@ -275,7 +275,7 @@ export default function ForecastGrid({
             {/* ── 冻结 ───────────────────────────────────────────────────── */}
             <PermissionGate code="module.finance.edit" allowed={canFreeze}>
                 <div className="flex flex-wrap items-end gap-3">
-                    <label className="text-sm text-gray-600">
+                    <label className="">
                         {t('cashForecast.supersedeReason')}
                         <input value={reason} onChange={(e) => setReason(e.target.value)}
                             className={`${CONTROL_INPUT} block w-80`} />

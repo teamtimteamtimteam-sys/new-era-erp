@@ -34,7 +34,7 @@ export function InventoryTable({ rows }: { rows: readonly InventoryTableRow[] })
     const qtyNode = (qty: number, unit: string, href: string) => (
         <>
             {qty > 0 ? (
-                <Link href={href} className="text-blue-600 hover:underline">
+                <Link href={href} className="hover:underline app-link">
                     {qty}
                 </Link>
             ) : (

@@ -83,7 +83,7 @@ canEdit: boolean
 
             <div className="flex flex-wrap items-end gap-4">
                 <div>
-                    <label className="block text-xs text-gray-600 mb-1">
+                    <label className="block mb-1">
                         {t('cn.noteDate')} <span className="text-red-600">*</span>
                     </label>
                     <input type="date" name="note_date" value={noteDate}
@@ -91,7 +91,7 @@ canEdit: boolean
                            className={CONTROL_INPUT} />
                 </div>
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-xs text-gray-600 mb-1">
+                    <label className="block mb-1">
                         {t('cn.reason')} <span className="text-red-600">*</span>
                     </label>
                     <input type="text" name="reason" required
@@ -121,11 +121,11 @@ canEdit: boolean
                     <tr className={tableC.headRow}>
                         <th className={`${tableC.headCell} text-left`}>#</th>
                         <th className={`${tableC.headCell} text-left`}>{t('cn.colLine')}</th>
-                        <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('cn.colUnreleased')}</th>
-                        <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('cn.colReleased')}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('cn.colUnreleased')}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('cn.colReleased')}</th>
                         <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('cn.colKind')}</th>
-                        <th className={`${tableC.headCell} text-right`}>{t('cn.colQty')}</th>
-                        <th className={`${tableC.headCell} text-right`}>{t('cn.colAmount', { ccy: currency })}</th>
+                        <th className={`${tableC.headCell} text-right tabular-nums`}>{t('cn.colQty')}</th>
+                        <th className={`${tableC.headCell} text-right tabular-nums`}>{t('cn.colAmount', { ccy: currency })}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -189,17 +189,17 @@ canEdit: boolean
                                 <td className={`${tableC.cell} hidden sm:table-cell`}>
                                     {kindSelect}
                                 </td>
-                                <td className={`${tableC.cell} text-right`}>
+                                <td className={`${tableC.cell} text-right tabular-nums`}>
                                     {/* 【数量可空,而且这不是偷懒】一次整批折让往往不对应
                                         任何数量,硬要一个就得编一个 —— 金额才是主语 */}
                                     <input type="number" step="any" min="0" name="cn_qty"
-                                           className={`${CONTROL_INPUT} w-20 text-right`} />
+                                           className={`${CONTROL_INPUT} w-20 text-right tabular-nums`} />
                                 </td>
-                                <td className={`${tableC.cell} text-right`}>
+                                <td className={`${tableC.cell} text-right tabular-nums`}>
                                     <input type="number" step="any" min="0" name="cn_amount"
                                            value={amount[l.id] ?? ''}
                                            onChange={(e) => setAmount((s) => ({ ...s, [l.id]: e.target.value }))}
-                                           className={`${CONTROL_INPUT} w-24 text-right`} />
+                                           className={`${CONTROL_INPUT} w-24 text-right tabular-nums`} />
                                     {over && (
                                         <p className="text-xs text-red-600 mt-1">
                                             {t('cn.overCeiling', { ceiling: formatMoneyBare(ceiling as number, '同表列头 冲减({ccy}),整张表单同一个币种') })}

@@ -29,7 +29,7 @@ export default function ReviewDiffTable({ rows }: { rows: ReviewDiffRow[] }) {
         {
             key: 'batch', header: t('stocktakes.colBatch'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/${r.side}/${r.batchId}/edit`} className="text-blue-600 hover:underline">
+                <Link href={`/${r.side}/${r.batchId}/edit`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

@@ -144,7 +144,7 @@ export default function PricingPanel({
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-xl font-bold mb-4">{t('inbound.pricing.title')}</h2>
+            <h2 className="mb-4">{t('inbound.pricing.title')}</h2>
 
             <div className="bg-gray-50 rounded p-4 mb-4 text-sm">
                 <span className="text-gray-600 mr-1">{t('inbound.pricing.current')}:</span>
@@ -169,7 +169,7 @@ export default function PricingPanel({
 
             <form key={formKey} action={formAction} className="flex flex-wrap gap-2 items-end mb-6">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('inbound.pricing.price')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -182,7 +182,7 @@ export default function PricingPanel({
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('inbound.pricing.currency')}</label>
+                    <label className="block mb-1">{t('inbound.pricing.currency')}</label>
                     <select
                         name="currency"
                         value={currency}
@@ -198,7 +198,7 @@ export default function PricingPanel({
                     <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 <div className="flex-1 min-w-[8rem]">
-                    <label className="block text-sm font-medium mb-1">{t('inbound.pricing.notes')}</label>
+                    <label className="block mb-1">{t('inbound.pricing.notes')}</label>
                     <input
                         type="text"
                         name="notes"
@@ -213,7 +213,7 @@ export default function PricingPanel({
                 </Button>
             </form>
 
-            <h3 className="text-sm font-semibold mb-2">{t('inbound.pricing.historyTitle')}</h3>
+            <h3 className="mb-2">{t('inbound.pricing.historyTitle')}</h3>
             {/* TABLE-CONVERT-5:空态搬进了 DataTable 的 empty prop(同一个
                 inbound.pricing.historyEmpty),旧那一支不留 —— 见 TABLE-CONVERT-3 §6.1。 */}
             <DataTable

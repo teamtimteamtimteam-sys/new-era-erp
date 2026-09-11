@@ -109,7 +109,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
         fields.push({
             label: t('finance.freight.colContainer'),
             value: d.containers ? (
-                <Link href={`/logistics/containers/${d.containers.id}`} className="text-blue-600 hover:underline font-mono">
+                <Link href={`/logistics/containers/${d.containers.id}`} className="hover:underline font-mono app-link">
                     {d.containers.code}
                 </Link>
             ) : (
@@ -125,7 +125,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
         fields.push({
             label: t('finance.freight.colEntry'),
             value: (
-                <Link href={`/finance/journal/${d.journal_entries.id}`} className="text-blue-600 hover:underline font-mono">
+                <Link href={`/finance/journal/${d.journal_entries.id}`} className="hover:underline font-mono app-link">
                     {d.journal_entries.code}
                 </Link>
             ),
@@ -137,7 +137,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
         <ListPage
             maxWidth="max-w-4xl"
             breadcrumb={
-                <Link href="/finance/freight" className="text-blue-600 hover:underline text-sm">
+                <Link href="/finance/freight" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             }
@@ -164,7 +164,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
                             {d.reversal_entry && (
                                 <div>
                                     <span className="text-amber-700">{t('finance.freight.colReversalEntry')}: </span>
-                                    <Link href={`/finance/journal/${d.reversal_entry.id}`} className="text-blue-700 hover:underline font-mono">
+                                    <Link href={`/finance/journal/${d.reversal_entry.id}`} className="hover:underline font-mono app-link app-link-inline">
                                         {d.reversal_entry.code}
                                     </Link>
                                 </div>
@@ -189,12 +189,12 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
                 所以这里是一句话,不是一张空表。这个区别转换前就在,没有被压平。 */}
             {outbound ? (
                 <>
-                    <h2 className="text-lg font-semibold mb-2">{t('finance.freight.outboundNoAllocTitle')}</h2>
+                    <h2 className="mb-2">{t('finance.freight.outboundNoAllocTitle')}</h2>
                     <p className="text-sm text-gray-600 max-w-3xl">{t('finance.freight.outboundNoAlloc')}</p>
                 </>
             ) : (
                 <>
-                    <h2 className="text-lg font-semibold mb-2">{t('finance.freight.allocTitle')}</h2>
+                    <h2 className="mb-2">{t('finance.freight.allocTitle')}</h2>
                     <p className="text-sm text-gray-600 mb-3 max-w-3xl">{t('finance.freight.allocHint')}</p>
                     <FreightAllocationsTable rows={tableRows} />
                 </>

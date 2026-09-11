@@ -22,7 +22,7 @@ export default function NewForwarderForm({
 
     return (
         <form action={formAction} className="mt-4 rounded border border-gray-200 bg-gray-50 p-4">
-            <h2 className="font-medium mb-3">{labels.heading}</h2>
+            <h2 className="mb-3">{labels.heading}</h2>
             {state.error && (
                 <div className="mb-3 rounded border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">{state.error}</div>
             )}
@@ -31,21 +31,21 @@ export default function NewForwarderForm({
             <input type="hidden" name="redirect_to" value="/logistics/forwarders" />
             <div className="flex flex-wrap items-end gap-3">
                 <div>
-                    <label className="block text-xs font-medium mb-1">{labels.legalName}</label>
+                    <label className="block mb-1">{labels.legalName}</label>
                     <input name="legal_name" required className={field} />
                     {state.fieldErrors?.legal_name && (
                         <p className="text-xs text-red-700 mt-1">{state.fieldErrors.legal_name}</p>
                     )}
                 </div>
                 <div>
-                    <label className="block text-xs font-medium mb-1">{labels.country}</label>
+                    <label className="block mb-1">{labels.country}</label>
                     <input name="country" required maxLength={2} className={`${field} w-20`} />
                     {state.fieldErrors?.country && (
                         <p className="text-xs text-red-700 mt-1">{state.fieldErrors.country}</p>
                     )}
                 </div>
                 <div>
-                    <label className="block text-xs font-medium mb-1">{labels.paymentTerms}</label>
+                    <label className="block mb-1">{labels.paymentTerms}</label>
                     <input name="payment_terms" className={field} />
                 </div>
                 <Button

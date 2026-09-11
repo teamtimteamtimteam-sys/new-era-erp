@@ -121,7 +121,7 @@ export default async function HrOverviewPage() {
 
     return (
         <div className="p-4 sm:p-8 max-w-3xl">
-            <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--brand-text)' }}>
+            <h1 className="mb-1" style={{ color: 'var(--brand-text)' }}>
                 {t('nav.hr')}
             </h1>
             <p className="text-sm mb-6 max-w-2xl" style={{ color: 'var(--brand-muted-text)' }}>
@@ -143,7 +143,7 @@ export default async function HrOverviewPage() {
                         : { kind: 'ok' }
                 }
                 action={
-                    <Link href="/hr/employees" className="hover:underline" style={{ color: 'var(--brand-ocean-fill)' }}>
+                    <Link href="/hr/employees" className="hover:underline app-link">
                         {t('hr.subnav.employees')}
                     </Link>
                 }
@@ -186,7 +186,7 @@ export default async function HrOverviewPage() {
                 }}
                 state={{ kind: 'ok' }}
                 action={
-                    <Link href="/hr/payroll" className="hover:underline" style={{ color: 'var(--brand-ocean-fill)' }}>
+                    <Link href="/hr/payroll" className="hover:underline app-link">
                         {t('hr.subnav.payroll')}
                     </Link>
                 }
@@ -243,7 +243,7 @@ export default async function HrOverviewPage() {
             {/* 【提醒在别处 —— 给一条路,不复制信号】这一页刻意不画任何一条
                 hr_alerts:它们【全部】在提醒页上,而两处都画就是两份会各自漂开的实现。 */}
             <p className="text-sm mt-6">
-                <Link href="/tools/reminders" className="hover:underline" style={{ color: 'var(--brand-ocean-fill)' }}>
+                <Link href="/tools/reminders" className="hover:underline app-link">
                     {t('reminders.title')}
                 </Link>
                 <span className="ml-2" style={{ color: 'var(--brand-muted-text)' }}>

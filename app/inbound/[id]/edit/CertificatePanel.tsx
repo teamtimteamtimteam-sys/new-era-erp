@@ -74,7 +74,7 @@ export default function CertificatePanel({
 
     return (
         <section className="mt-8">
-            <h2 className="text-lg font-medium mb-1">{t('cod.title')}</h2>
+            <h2 className="mb-1">{t('cod.title')}</h2>
             <p className="text-sm text-gray-600 mb-3">{t('cod.intro')}</p>
 
             <div className={`rounded border p-4 ${tone}`}>
@@ -170,7 +170,7 @@ export default function CertificatePanel({
 
                 {voiding && (
                     <div className="mt-3 space-y-2">
-                        <label className="block text-sm font-medium">{t('cod.voidReasonLabel')}</label>
+                        <label className="block">{t('cod.voidReasonLabel')}</label>
                         <input
                             className={`${CONTROL_INPUT} w-full`}
                             value={reason}

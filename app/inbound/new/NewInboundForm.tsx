@@ -130,13 +130,13 @@ export default function NewInboundForm({
             <div className="mb-6">
                 <Link
                     href="/inbound"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">{t('inbound.newTitle')}</h1>
+            <h1 className="mb-6">{t('inbound.newTitle')}</h1>
 
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -149,7 +149,7 @@ export default function NewInboundForm({
             <LocationPicker locations={locations} />
                 {/* 供应商(必填)—— 排在物料前:关联采购单要先知道是谁的单 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('inbound.form.supplier')} <span className="text-red-600">*</span>
                     </label>
                     {/* LOG-1b:空名单不画空下拉 —— 说出它是哪一种空(货代那一侧另有一句)。 */}
@@ -194,7 +194,7 @@ export default function NewInboundForm({
                 {/* 关联采购单(可选;该供应商没有可收货的单时不出现)*/}
                 {supplierPos.length > 0 && (
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('inbound.againstPo')}</label>
+                        <label className="block mb-1">{t('inbound.againstPo')}</label>
                         <select
                             value={poId}
                             onChange={(e) => onPoChange(e.target.value)}
@@ -242,7 +242,7 @@ export default function NewInboundForm({
 
                 {/* 物料(必填)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('inbound.form.material')} <span className="text-red-600">*</span>
                     </label>
                     <select
@@ -277,7 +277,7 @@ export default function NewInboundForm({
 
                 {/* 数量(必填)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('inbound.form.quantity')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -304,7 +304,7 @@ export default function NewInboundForm({
                     而那正是这一列存在要回答的问题。空着 = 没记录过,是一个具名状态,
                     不是 0(action 传 undefined,库里落 NULL)。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('inbound.form.declaredQty')}
                     </label>
                     <input
@@ -325,7 +325,7 @@ export default function NewInboundForm({
 
                 {/* 单位 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('inbound.form.unit')}</label>
+                    <label className="block mb-1">{t('inbound.form.unit')}</label>
                     <select
                         name="unit"
                         defaultValue="kg"
@@ -344,7 +344,7 @@ export default function NewInboundForm({
                     货是哪天到的。守卫成对(AGENTS.md):这里控制提交按钮,
                     服务端 action 另有一道独立的拒绝,绕过界面也进不来。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('inbound.form.arrivalDate')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -363,7 +363,7 @@ export default function NewInboundForm({
 
                 {/* 阶段 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('inbound.form.stage')}</label>
+                    <label className="block mb-1">{t('inbound.form.stage')}</label>
                     <select
                         name="stage"
                         defaultValue="待加工"
@@ -379,7 +379,7 @@ export default function NewInboundForm({
 
                 {/* 单价 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('inbound.form.unitPrice')}</label>
+                    <label className="block mb-1">{t('inbound.form.unitPrice')}</label>
                     <input
                         type="number"
                         name="unit_price"
@@ -403,7 +403,7 @@ export default function NewInboundForm({
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('inbound.form.notes')}</label>
+                    <label className="block mb-1">{t('inbound.form.notes')}</label>
                     <textarea
                         name="notes"
                         className={`${CONTROL_TEXTAREA} w-full`}

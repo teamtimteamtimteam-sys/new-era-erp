@@ -57,7 +57,7 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
 
     return (
         <div className="p-8 max-w-3xl space-y-5">
-            <h1 className="text-2xl font-semibold">{t('processing.handover.newTitle')}</h1>
+            <h1 className="">{t('processing.handover.newTitle')}</h1>
 
             {/* ★ 这一屏答不出什么,自己说出来 ★ */}
             <p className="text-xs text-gray-500">{t('processing.handover.cannotAnswerYet')}</p>
@@ -71,7 +71,7 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('processing.handover.colShift')} <span className="text-red-600">*</span>
                     </label>
                     <select value={shiftCode} onChange={(e) => setShiftCode(e.target.value)}
@@ -81,14 +81,14 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('processing.handover.colDate')} <span className="text-red-600">*</span>
                     </label>
                     <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
                            className={`${CONTROL_INPUT} w-full`} />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('processing.handover.colFrom')} <span className="text-red-600">*</span>
                     </label>
                     <select value={outgoing} onChange={(e) => setOutgoing(e.target.value)}
@@ -98,7 +98,7 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('processing.handover.colTo')} <span className="text-red-600">*</span>
                     </label>
                     <select value={incoming} onChange={(e) => setIncoming(e.target.value)}
@@ -112,10 +112,10 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
             {/* 【内容是【行】—— 这一段整个由字典驱动】加第七类内容 = 字典加一行,
                 这一屏一个字都不用改。 */}
             <div>
-                <h2 className="font-medium mb-2">{t('processing.handover.itemsTitle')}</h2>
+                <h2 className="mb-2">{t('processing.handover.itemsTitle')}</h2>
                 {itemTypes.map((it) => (
                     <div key={it.code} className="mb-3">
-                        <label className="block text-sm mb-1">
+                        <label className="block mb-1">
                             {it.label}{it.required && <span className="text-red-600"> *</span>}
                         </label>
                         <textarea value={items[it.code] ?? ''}
@@ -127,12 +127,12 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
 
             {/* R5:设备状态是【引用】,不是复述 —— 勾的是 equipment_downtime 的行。 */}
             <div>
-                <h2 className="font-medium mb-1">{t('processing.handover.equipmentTitle')}</h2>
+                <h2 className="mb-1">{t('processing.handover.equipmentTitle')}</h2>
                 <p className="text-xs text-gray-500 mb-2">{t('processing.handover.equipmentReference')}</p>
                 {downtime.length === 0
                     ? <p className="text-sm text-gray-500">{t('processing.handover.noDowntime')}</p>
                     : downtime.map((d) => (
-                        <label key={d.id} className="flex items-center gap-2 text-sm mb-1">
+                        <label key={d.id} className="flex items-center gap-2 mb-1">
                             <input type="checkbox" className={CONTROL_CHECKBOX} checked={refs.includes(d.id)}
                                    onChange={(e) => setRefs(e.target.checked
                                        ? [...refs, d.id]
@@ -143,7 +143,7 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">{t('processing.handover.notes')}</label>
+                <label className="block mb-1">{t('processing.handover.notes')}</label>
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
                           className={`${CONTROL_TEXTAREA} w-full`} />
             </div>

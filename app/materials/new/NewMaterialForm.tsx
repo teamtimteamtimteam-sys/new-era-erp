@@ -53,13 +53,13 @@ export default function NewMaterialForm({
             <div className="mb-6">
                 <Link
                     href="/materials"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">{t('materials.newTitle')}</h1>
+            <h1 className="mb-6">{t('materials.newTitle')}</h1>
 
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -70,7 +70,7 @@ export default function NewMaterialForm({
             <form action={formAction} className="space-y-4">
                 {/* 名称(必填)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('materials.form.name')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -110,7 +110,7 @@ export default function NewMaterialForm({
                         加一种化学体系现在 = 往字典里加一行。
                         【留空仍然合法】它的意思是"没有人记过",不是"不适用"
                         —— 后者由物料种类回答。 */}
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('materials.form.chemistry')}
                     </label>
                     <select
@@ -130,7 +130,7 @@ export default function NewMaterialForm({
                     {/* DICT-ADMIN:同上 —— 那句"还没有页面"换成一条真链接。 */}
                     <p className="text-xs text-gray-500 mt-1">
                         {t('materials.form.chemistryAddHint')}{' '}
-                        <a href="/settings/dictionaries" className="text-blue-600 underline">
+                        <a href="/settings/dictionaries" className="underline app-link app-link-inline">
                             {t('dict.title')}
                         </a>
                     </p>
@@ -140,7 +140,7 @@ export default function NewMaterialForm({
                 {/* MAT-1:受控废物分类。【未分类是一个要选的选项,不是留空】——
                     它的意思是"没有人分过类",与"分类为非受控"在合规判断上不是一回事。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('materials.form.wasteClass')}
                     </label>
                     <WasteClassPicker name="waste_classification_code" classes={wasteClasses}
@@ -150,7 +150,7 @@ export default function NewMaterialForm({
 
                 {/* 单位(固定列表)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.form.unit')}</label>
+                    <label className="block mb-1">{t('materials.form.unit')}</label>
                     <select
                         name="unit"
                         defaultValue="kg"
@@ -166,7 +166,7 @@ export default function NewMaterialForm({
 
                 {/* 规格/描述 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.form.spec')}</label>
+                    <label className="block mb-1">{t('materials.form.spec')}</label>
                     <input
                         type="text"
                         name="spec"
@@ -177,7 +177,7 @@ export default function NewMaterialForm({
                 {/* SS-1:安全库存阈值。【留空 = 不监控】—— 那是一个还没有人做过的
                     决定,不是"阈值为零";旁边那句话必须在,否则留空会被读成"没事"。 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.form.safetyStock')}</label>
+                    <label className="block mb-1">{t('materials.form.safetyStock')}</label>
                     <input
                         type="number"
                         step="any"
@@ -193,7 +193,7 @@ export default function NewMaterialForm({
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.form.notes')}</label>
+                    <label className="block mb-1">{t('materials.form.notes')}</label>
                     <textarea
                         name="notes"
                         className={`${CONTROL_TEXTAREA} w-full`}

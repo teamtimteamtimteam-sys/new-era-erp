@@ -71,7 +71,7 @@ canEdit: boolean
     // 于是显示着日期、状态却仍是空串。走查里"字段填着 08/05 却报空串"就是这个形状:
     // React 只比对前后两次的 prop,不会拿 prop 去纠正 DOM,所以一旦失同步就一直错下去。
     const dateField = (id: string, value: string, set: (v: string) => void, labelKey: string, hintKey: string) => (
-        <label className="text-xs text-gray-600 block">
+        <label className="block">
             {t(labelKey)} <span className="text-red-600">*</span>
             <input id={id} type="date" value={value} required aria-invalid={value === ''}
                    onChange={(e) => set(e.target.value)} onBlur={(e) => set(e.target.value)}
@@ -108,7 +108,7 @@ canEdit: boolean
             {error && <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>}
 
             {/* ── 实际额:汇付 ─────────────────────────────────────────────── */}
-            <h2 className="text-lg font-bold mb-2">{t('finance.costSettle.actualTitle')}</h2>
+            <h2 className="mb-2">{t('finance.costSettle.actualTitle')}</h2>
             {actuals.length === 0 ? <p className="text-sm text-gray-500 mb-6">{t('finance.costSettle.none')}</p> : (
                 <div className="mb-6 rounded border border-gray-200 p-4">
                     <div className="mb-3">
@@ -134,7 +134,7 @@ canEdit: boolean
             )}
 
             {/* ── 估算:按真实发票冲抵 ─────────────────────────────────────── */}
-            <h2 className="text-lg font-bold mb-2">{t('finance.costSettle.estimateTitle')}</h2>
+            <h2 className="mb-2">{t('finance.costSettle.estimateTitle')}</h2>
             {estimates.length === 0 ? <p className="text-sm text-gray-500">{t('finance.costSettle.none')}</p> : (
                 <div className="rounded border border-gray-200 p-4">
                     <div className="mb-3">
@@ -151,7 +151,7 @@ canEdit: boolean
                             'finance.costSettle.invoiceDate', 'finance.costSettle.invoiceDateHint')}
                         <label>{t('finance.costSettle.invoiceAmount')}
                             <input type="number" value={actual} onChange={(e) => setActual(e.target.value)}
-                                   className={`${CONTROL_INPUT} block w-32 text-right`} />
+                                   className={`${CONTROL_INPUT} block w-32 text-right tabular-nums`} />
                         </label>
                         <label>{t('finance.costSettle.payStatus')}
                             <select value={payStatus} onChange={(e) => setPayStatus(e.target.value)}

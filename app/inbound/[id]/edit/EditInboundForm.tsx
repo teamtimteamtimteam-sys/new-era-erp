@@ -54,7 +54,7 @@ export default function EditInboundForm({
             <form action={formAction} className="space-y-4">
                 {/* 物料(必填,预选)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('inbound.form.material')} <span className="text-red-600">*</span>
                     </label>
                     <select
@@ -88,7 +88,7 @@ export default function EditInboundForm({
 
                 {/* 供应商(必填,预选)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('inbound.form.supplier')} <span className="text-red-600">*</span>
                     </label>
                     {/* LOG-1b:空名单不画空下拉 —— 说出它是哪一种空(货代那一侧另有一句)。 */}
@@ -129,7 +129,7 @@ export default function EditInboundForm({
 
                 {/* 数量(创建后锁定 —— 库存变动走库存流水;disabled 不随表单提交)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('inbound.form.quantity')}</label>
+                    <label className="block mb-1">{t('inbound.form.quantity')}</label>
                     <input
                         type="number"
                         name="quantity"
@@ -143,7 +143,7 @@ export default function EditInboundForm({
 
                 {/* 单位 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('inbound.form.unit')}</label>
+                    <label className="block mb-1">{t('inbound.form.unit')}</label>
                     <select
                         name="unit"
                         defaultValue={batch.unit}
@@ -167,7 +167,7 @@ export default function EditInboundForm({
 
                 {/* 到货日期 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('inbound.form.arrivalDate')}</label>
+                    <label className="block mb-1">{t('inbound.form.arrivalDate')}</label>
                     <input
                         type="date"
                         name="arrival_date"
@@ -178,7 +178,7 @@ export default function EditInboundForm({
 
                 {/* 阶段 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('inbound.form.stage')}</label>
+                    <label className="block mb-1">{t('inbound.form.stage')}</label>
                     <select
                         name="stage"
                         defaultValue={batch.stage}
@@ -194,7 +194,7 @@ export default function EditInboundForm({
 
                 {/* 单价(cut 1 起锁定 —— 变更必须走下方计价面板留痕;disabled 不随表单提交)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('inbound.form.unitPrice')}</label>
+                    <label className="block mb-1">{t('inbound.form.unitPrice')}</label>
                     <input
                         type="number"
                         name="unit_price"
@@ -208,7 +208,7 @@ export default function EditInboundForm({
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('inbound.form.notes')}</label>
+                    <label className="block mb-1">{t('inbound.form.notes')}</label>
                     <textarea
                         name="notes"
                         defaultValue={batch.notes ?? ''}

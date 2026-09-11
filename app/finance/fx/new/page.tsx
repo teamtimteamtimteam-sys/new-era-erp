@@ -28,12 +28,12 @@ export default async function NewFxRatePage() {
     return (
         <div className="p-8 max-w-2xl">
             <div className="mb-6">
-                <Link href="/finance/fx" className="text-blue-600 hover:underline text-sm">
+                <Link href="/finance/fx" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">{t('finance.fxPage.newTitle')}</h1>
+            <h1 className="mb-6">{t('finance.fxPage.newTitle')}</h1>
 
             <NewFxRateForm canEdit={canEditGate} currencies={mustRows(res).map((c) => c.code)} />
         </div>

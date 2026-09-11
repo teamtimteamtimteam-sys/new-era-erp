@@ -94,7 +94,7 @@ export default async function EditFormulaPage({
     return (
         <div className="p-8">
             <div className="flex justify-between items-center mb-4">
-                <h1 className="text-2xl font-bold">
+                <h1 className="">
                     {t('pricing.listTitle')}
                     <span className="ml-3 font-mono text-base text-gray-500">{formula.code}</span>
                 </h1>

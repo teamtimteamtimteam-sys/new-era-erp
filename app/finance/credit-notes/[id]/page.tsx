@@ -120,7 +120,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
             // ★ CONV-8 加的槽:返回链接画在标题【之上】,与转换前同位置。
             breadcrumb={
                 <Link href={inv ? `/finance/invoices/${inv.id}` : '/finance/invoices'}
-                      className="text-blue-600 hover:underline text-sm">{t('common.back')}</Link>
+                      className="hover:underline text-sm app-link">{t('common.back')}</Link>
             }
             title={<span className="font-mono">{cn.code}</span>}
             // 转换前这枚徽章画在 h1 的右边 —— actions 槽是同一个位置。
@@ -140,7 +140,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
                         label: t('cn.againstInvoice'),
                         value: inv ? (
                             <Link href={`/finance/invoices/${inv.id}`}
-                                  className="font-mono text-blue-600 hover:underline">{inv.code}</Link>
+                                  className="font-mono hover:underline app-link app-link-inline">{inv.code}</Link>
                         ) : '—',
                     },
                     { label: t('sales.colCurrency'), value: `${cn.currency} @ ${cn.fx_rate}` },
@@ -148,7 +148,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
                         label: t('cn.journal'),
                         value: entry ? (
                             <Link href={`/finance/journal/${entry.id}`}
-                                  className="font-mono text-blue-600 hover:underline">{entry.code}</Link>
+                                  className="font-mono hover:underline app-link app-link-inline">{entry.code}</Link>
                         ) : '—',
                     },
                     { label: t('cn.reason'), value: cn.reason },
@@ -160,10 +160,10 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
                 在账上长得一模一样,却没有任何钱动过。 */}
             <p className="text-xs text-gray-500 mb-6">{t('cn.rateNote', { code: inv?.code ?? '—' })}</p>
 
-            <h2 className="font-medium mb-2">{t('cn.linesTitle')}</h2>
+            <h2 className="mb-2">{t('cn.linesTitle')}</h2>
             <CreditNoteLinesTable rows={tableRows} amountHeader={amountHeader} />
 
-            <h2 className="font-medium mt-8 mb-2">{t('cn.issues')}</h2>
+            <h2 className="mt-8 mb-2">{t('cn.issues')}</h2>
             {/* EXT-1:凭证一出生就已经过账了,不存在"还不是承诺"的中间态 ——
                 所以【不传】canIssue / hasLines,按钮永不禁用,与此前逐字相同。 */}
             <IssuePanel
@@ -180,7 +180,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
                         <li key={i.version} className="font-mono text-xs">
                             <a href={`/finance/credit-notes/${cn.id}/pdf?version=${i.version}`}
                                target="_blank" rel="noopener noreferrer"
-                               className="text-blue-600 hover:underline">v{i.version}</a>
+                               className="hover:underline app-link app-link-inline">v{i.version}</a>
                             {' · '}{new Date(i.issued_at).toLocaleString(dl)} · {i.sha256.slice(0, 12)}…
                         </li>
                     ))}

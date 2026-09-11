@@ -36,7 +36,7 @@ export function AddRowPanel({
 }) {
     return (
         <div className={cn('rounded border border-[color:var(--brand-border)] p-4', className)}>
-            {title && <h3 className="mb-3 text-sm font-bold text-[color:var(--brand-text)]">{title}</h3>}
+            {title && <h3 className="mb-3">{title}</h3>}
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
                     {error}

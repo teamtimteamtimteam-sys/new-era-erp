@@ -162,7 +162,7 @@ export default function CompliancePanel({
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-xl font-bold mb-4">{t('suppliers.compliance.sectionTitle')}</h2>
+            <h2 className="mb-4">{t('suppliers.compliance.sectionTitle')}</h2>
 
             {/* ★ TABLE-CONVERT-4:换成 DataTable。
                 五列、列头、每一格的字、删除钮与它的确认框全部原样;手机档留下的
@@ -178,7 +178,7 @@ export default function CompliancePanel({
                 className="mb-6"
             />
 
-            <h3 className="text-lg font-semibold mb-3">{t('suppliers.compliance.addTitle')}</h3>
+            <h3 className="mb-3">{t('suppliers.compliance.addTitle')}</h3>
 
             {error && (
                 <p className="text-red-600 text-sm mb-3">{error}</p>
@@ -186,7 +186,7 @@ export default function CompliancePanel({
 
             <form key={formKey} action={handleAdd} className="space-y-3">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('suppliers.compliance.certType')} <span className="text-red-600">*</span>
                     </label>
                     <select
@@ -208,7 +208,7 @@ export default function CompliancePanel({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.compliance.document')}</label>
+                    <label className="block mb-1">{t('suppliers.compliance.document')}</label>
                     {/* CMP-1:证书文件引用本供应商已上传的附件(上传走下方附件面板)——
                         document_id 从此有外键、有人写入,证书记录能走到证书本身 */}
                     <select
@@ -226,7 +226,7 @@ export default function CompliancePanel({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.compliance.certNo')}</label>
+                    <label className="block mb-1">{t('suppliers.compliance.certNo')}</label>
                     <input
                         type="text"
                         name="cert_no"
@@ -236,7 +236,7 @@ export default function CompliancePanel({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.compliance.issuer')}</label>
+                    <label className="block mb-1">{t('suppliers.compliance.issuer')}</label>
                     <input
                         type="text"
                         name="issuing_body"
@@ -247,7 +247,7 @@ export default function CompliancePanel({
 
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('suppliers.compliance.validFrom')}</label>
+                        <label className="block mb-1">{t('suppliers.compliance.validFrom')}</label>
                         <input
                             type="date"
                             name="valid_from"
@@ -255,7 +255,7 @@ export default function CompliancePanel({
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">{t('suppliers.compliance.validUntil')}</label>
+                        <label className="block mb-1">{t('suppliers.compliance.validUntil')}</label>
                         <input
                             type="date"
                             name="valid_until"
@@ -265,7 +265,7 @@ export default function CompliancePanel({
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('suppliers.compliance.notes')}</label>
+                    <label className="block mb-1">{t('suppliers.compliance.notes')}</label>
                     <input
                         type="text"
                         name="notes"

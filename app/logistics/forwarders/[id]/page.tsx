@@ -123,11 +123,11 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
     return (
         <div className="p-8">
             <div className="mb-6">
-                <Link href="/logistics/forwarders" className="text-blue-600 hover:underline text-sm">
+                <Link href="/logistics/forwarders" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-1">{sup.data.legal_name}</h1>
+            <h1 className="mb-1">{sup.data.legal_name}</h1>
             <p className="mb-6 text-sm text-gray-500">
                 {sup.data.code}
                 {/* 国别与付款条件:读得到就照印;读不到画【具名受限】,不静静消失 ——
@@ -195,7 +195,7 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
             />
 
             <section className="mt-8 border-t pt-6">
-                <h2 className="mb-3 text-xl font-bold">{t('logistics.freightHeading')}</h2>
+                <h2 className="mb-3">{t('logistics.freightHeading')}</h2>
                 {freight.length === 0 ? (
                     <p className="text-sm text-gray-500">{t('logistics.freightEmpty')}</p>
                 ) : (
@@ -207,7 +207,7 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                                         {/* LOG-2b:运费凭证【有自己的页面】(app/finance/freight/[id]),
                                             所以这里从只读文本变成链接。 */}
                                         <td className="border border-gray-300 px-3 py-1 font-mono text-xs">
-                                            <Link href={`/finance/freight/${f.id}`} className="text-blue-700 hover:underline">
+                                            <Link href={`/finance/freight/${f.id}`} className="hover:underline app-link">
                                                 {f.code as string}
                                             </Link>
                                         </td>
@@ -217,7 +217,7 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                                             {t('finance.freight.directionShort.' + (f.direction as string))}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-1">{f.doc_date}</td>
-                                        <td className="border border-gray-300 px-3 py-1 text-right">
+                                        <td className="border border-gray-300 px-3 py-1 text-right tabular-nums">
                                             {formatAmount(Number(f.amount_ccy), f.currency as string)}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-1">{f.payment_status}</td>

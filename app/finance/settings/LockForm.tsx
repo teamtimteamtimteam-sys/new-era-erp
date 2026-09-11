@@ -45,7 +45,7 @@ canEdit: boolean
     return (
         <div className="flex flex-wrap items-end gap-3">
             <div>
-                <label className="block text-sm font-medium mb-1">
+                <label className="block mb-1">
                     {t('finance.lockedBefore')} <span className="text-red-600">*</span>
                 </label>
                 {/* 【不预填今天】:锁定日是期间边界(通常是上月末),今天几乎不会是

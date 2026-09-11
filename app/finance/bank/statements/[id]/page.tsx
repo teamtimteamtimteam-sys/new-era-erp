@@ -178,7 +178,7 @@ export default async function BankStatementDetailPage({
         <ListPage
             maxWidth="max-w-6xl"
             breadcrumb={
-                <Link href="/finance/bank/statements" className="text-blue-600 hover:underline text-sm">
+                <Link href="/finance/bank/statements" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             }
@@ -216,7 +216,7 @@ export default async function BankStatementDetailPage({
                     {/* 【具名的缺席,不是空白】没有对过账的报表要【说】它没有对过账,
                         而不是让这一块整个消失 —— 消失与"读不出来"在屏幕上长得一模一样。 */}
                     <div className="border border-gray-300 rounded p-4 mb-4">
-                        <h2 className="font-semibold mb-3">{t('bank.record.title')}</h2>
+                        <h2 className="mb-3">{t('bank.record.title')}</h2>
                         {!currentRecord && <p className="text-sm text-gray-600">{t('bank.record.none')}</p>}
                         {currentRecord && (
                         <>
@@ -274,7 +274,7 @@ export default async function BankStatementDetailPage({
                             </div>
 
                             {/* 写明的差额 */}
-                            <h3 className="text-sm font-semibold mb-1">{t('bank.record.explanation')}</h3>
+                            <h3 className="mb-1">{t('bank.record.explanation')}</h3>
                             {(itemsByRecon.get(currentRecord.reconciliation_id) ?? []).length === 0 ? (
                                 <p className="text-sm text-gray-600">{t('bank.record.noItems')}</p>
                             ) : (
@@ -296,7 +296,7 @@ export default async function BankStatementDetailPage({
 
                     {supersededRecords.length > 0 && (
                         <div className="border border-gray-200 rounded p-4 mb-4 text-sm">
-                            <h2 className="font-semibold mb-1">{t('bank.record.history')}</h2>
+                            <h2 className="mb-1">{t('bank.record.history')}</h2>
                             <p className="text-xs text-gray-600 mb-2">{t('bank.record.supersededNote')}</p>
                             <ul className="space-y-2">
                                 {supersededRecords.map((r) => (

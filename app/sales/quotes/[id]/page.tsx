@@ -99,13 +99,13 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
         <>
             <div className="p-8 max-w-4xl">
                 <div className="mb-6">
-                    <Link href="/sales/quotes" className="text-blue-600 hover:underline text-sm">
+                    <Link href="/sales/quotes" className="hover:underline text-sm app-link">
                         {t('common.back')}
                     </Link>
                 </div>
                 <div className="flex items-start justify-between mb-4">
                     <div>
-                        <h1 className="text-2xl font-bold font-mono">{q.code}</h1>
+                        <h1 className="font-mono">{q.code}</h1>
                         <p className="text-sm text-gray-600 mt-1">
                             {q.customer_code} — {q.customer_name}
                         </p>
@@ -134,7 +134,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                         {t('quotes.convertedBanner', { code: q.converted_order_code ?? '—' })}{' '}
                         {q.converted_order_id && (
                             <Link href={`/sales/orders/${q.converted_order_id}`}
-                                  className="text-blue-600 hover:underline font-mono">
+                                  className="hover:underline font-mono app-link app-link-inline">
                                 {q.converted_order_code}
                             </Link>
                         )}
@@ -196,7 +196,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                 })()}
 
                 {/* ── 转换 / 谢绝 ──────────────────────────────────────────── */}
-                <h2 className="font-medium mt-8 mb-2">{t('quotes.decide')}</h2>
+                <h2 className="mt-8 mb-2">{t('quotes.decide')}</h2>
                 {!canEdit ? (
                     <p className="text-sm text-gray-600">
                         {t('common.restricted')} — {t('quotes.needsSalesEdit')}
@@ -217,7 +217,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                 )}
 
                 {/* ── 签发 ─────────────────────────────────────────────────── */}
-                <h2 className="font-medium mt-8 mb-2">{t('quotes.issues')}</h2>
+                <h2 className="mt-8 mb-2">{t('quotes.issues')}</h2>
                 {q.amended_since_issue && (
                     <p className="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 mb-2">
                         {t('quotes.reissueHint')}
@@ -247,14 +247,14 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                             <li key={i.version} className="font-mono text-xs">
                                 <a href={`/sales/quotes/${q.quote_id}/pdf?version=${i.version}`}
                                    target="_blank" rel="noopener noreferrer"
-                                   className="text-blue-600 hover:underline">v{i.version}</a>
+                                   className="hover:underline app-link app-link-inline">v{i.version}</a>
                                 {' · '}{new Date(i.issued_at).toLocaleString(dl)} · {i.sha256.slice(0, 12)}…
                             </li>
                         ))}
                     </ul>
                 )}
 
-                <h2 className="font-medium mt-8 mb-2">{t('sales.history')}</h2>
+                <h2 className="mt-8 mb-2">{t('sales.history')}</h2>
                 <ul className="text-sm space-y-1">
                     {history.map((h, i) => (
                         <li key={i} className="text-gray-600">

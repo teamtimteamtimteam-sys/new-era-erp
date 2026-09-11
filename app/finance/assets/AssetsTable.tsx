@@ -64,7 +64,7 @@ export default function AssetsTable({
         {
             key: 'code', header: t('finance.colCode'), priority: true, className: 'font-mono',
             render: (a) => (
-                <Link href={`/finance/assets/${a.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/finance/assets/${a.id}`} className="hover:underline app-link">
                     {a.code}
                 </Link>
             ),

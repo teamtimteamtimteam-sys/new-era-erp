@@ -35,7 +35,7 @@ export default function ProcessingTable({ rows, empty }: { rows: ProcessingRunRo
         {
             key: 'code', header: t('processing.colCode'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/operation/processing/${r.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/operation/processing/${r.id}`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),
@@ -54,7 +54,7 @@ export default function ProcessingTable({ rows, empty }: { rows: ProcessingRunRo
             key: 'workOrder', header: t('processing.colWorkOrder'), className: 'font-mono text-sm',
             render: (r) =>
                 r.workOrderId ? (
-                    <Link href={`/operation/orders/${r.workOrderId}`} className="text-blue-600 hover:underline">
+                    <Link href={`/operation/orders/${r.workOrderId}`} className="hover:underline app-link">
                         {r.workOrderCode}
                     </Link>
                 ) : (

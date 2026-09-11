@@ -165,7 +165,7 @@ export default function ReviewActions({
             ) : (
                 <PermissionGate code="module.hr.edit" allowed={canHrEdit} className="mt-4 flex w-full items-stretch">
                 <div className="flex gap-2 items-end mt-4">
-                    <label className="text-xs text-gray-600">
+                    <label className="">
                         {t('reviews.voidReason')}
                         <input
                             value={voidReason}

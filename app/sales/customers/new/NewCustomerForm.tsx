@@ -41,13 +41,13 @@ export default function NewCustomerForm() {
             <div className="mb-6">
                 <Link
                     href="/sales/customers"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">{t('customers.newTitle')}</h1>
+            <h1 className="mb-6">{t('customers.newTitle')}</h1>
 
             {/* 通用错误显示 */}
             {state.error && (
@@ -73,7 +73,7 @@ export default function NewCustomerForm() {
                 )}
                 {/* 法人名(必填) */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('customers.form.legalName')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -92,7 +92,7 @@ export default function NewCustomerForm() {
 
                 {/* 简称 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.shortName')}</label>
+                    <label className="block mb-1">{t('customers.form.shortName')}</label>
                     <input
                         type="text"
                         name="short_name"
@@ -103,7 +103,7 @@ export default function NewCustomerForm() {
 
                 {/* 国家(必填) */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('customers.form.country')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -123,7 +123,7 @@ export default function NewCustomerForm() {
 
                 {/* 税号 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.taxId')}</label>
+                    <label className="block mb-1">{t('customers.form.taxId')}</label>
                     <input
                         type="text"
                         name="tax_id"
@@ -133,7 +133,7 @@ export default function NewCustomerForm() {
 
                 {/* 地址 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.address')}</label>
+                    <label className="block mb-1">{t('customers.form.address')}</label>
                     <textarea
                         name="address"
                         className={`${CONTROL_TEXTAREA} w-full`}
@@ -150,7 +150,7 @@ export default function NewCustomerForm() {
                     <p className="text-xs text-gray-600 mb-3">{t('customers.form.contactGroupHint')}</p>
                     <div className="space-y-3">
                         <div>
-                            <label className="block text-sm font-medium mb-1">{t('customers.form.contactPerson')}</label>
+                            <label className="block mb-1">{t('customers.form.contactPerson')}</label>
                             <input
                                 type="text"
                                 name="contact_person"
@@ -159,7 +159,7 @@ export default function NewCustomerForm() {
                         </div>
                         <div className="flex flex-wrap gap-3">
                             <div className="flex-1 min-w-[14rem]">
-                                <label className="block text-sm font-medium mb-1">{t('customers.form.email')}</label>
+                                <label className="block mb-1">{t('customers.form.email')}</label>
                                 <input
                                     type="text"
                                     name="email"
@@ -167,7 +167,7 @@ export default function NewCustomerForm() {
                                 />
                             </div>
                             <div className="flex-1 min-w-[12rem]">
-                                <label className="block text-sm font-medium mb-1">{t('customers.form.phone')}</label>
+                                <label className="block mb-1">{t('customers.form.phone')}</label>
                                 <input
                                     type="text"
                                     name="phone"
@@ -180,7 +180,7 @@ export default function NewCustomerForm() {
 
                 {/* 客户类型(多选) */}
                 <div>
-                    <label className="block text-sm font-medium mb-2">
+                    <label className="block mb-2">
                         {t('customers.form.types')}
                     </label>
                     <div className="space-y-2">
@@ -200,7 +200,7 @@ export default function NewCustomerForm() {
 
                 {/* 付款条款 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.paymentTerms')}</label>
+                    <label className="block mb-1">{t('customers.form.paymentTerms')}</label>
                     <input
                         type="text"
                         name="payment_terms"
@@ -209,7 +209,7 @@ export default function NewCustomerForm() {
                     />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.paymentTermsDays')}</label>
+                    <label className="block mb-1">{t('customers.form.paymentTermsDays')}</label>
                     <input
                         type="number"
                         min="0"
@@ -228,7 +228,7 @@ export default function NewCustomerForm() {
 
                 {/* Incoterm */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.incoterm')}</label>
+                    <label className="block mb-1">{t('customers.form.incoterm')}</label>
                     <input
                         type="text"
                         name="incoterm"
@@ -239,7 +239,7 @@ export default function NewCustomerForm() {
 
                 {/* 信用评级 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.creditRating')}</label>
+                    <label className="block mb-1">{t('customers.form.creditRating')}</label>
                     <input
                         type="text"
                         name="credit_rating"
@@ -250,7 +250,7 @@ export default function NewCustomerForm() {
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('customers.form.notes')}</label>
+                    <label className="block mb-1">{t('customers.form.notes')}</label>
                     <textarea
                         name="notes"
                         className={`${CONTROL_TEXTAREA} w-full`}

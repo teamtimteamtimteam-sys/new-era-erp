@@ -152,7 +152,7 @@ export default function ChasePanel({
 
     return (
         <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-2">{t('chases.sectionTitle')}</h2>
+            <h2 className="mb-2">{t('chases.sectionTitle')}</h2>
             <p className="text-xs text-gray-500 mb-3">{t('chases.sectionHint')}</p>
 
             {error && (
@@ -164,7 +164,7 @@ export default function ChasePanel({
             {/* ── 还没了结的承诺:每一个带着它自己的【证据】 ──────────────── */}
             {openPromises.length > 0 && (
                 <div className="mb-4 rounded border border-amber-300 bg-amber-50 p-3">
-                    <h3 className="text-sm font-semibold mb-2">{t('chases.promisesOpen')}</h3>
+                    <h3 className="mb-2">{t('chases.promisesOpen')}</h3>
                     {openPromises.map((p) => (
                         <div key={p.promise_id} className="mb-3 last:mb-0 text-sm">
                             <div className="flex flex-wrap items-baseline gap-2">
@@ -219,14 +219,14 @@ export default function ChasePanel({
             {open && (
                 <div className="mb-4 rounded border border-gray-300 p-3 max-w-2xl">
                     <div className="flex flex-wrap gap-3 mb-3">
-                        <label className="text-sm text-gray-600">
+                        <label className="">
                             {t('chases.chasedOn')}
                             <input type="date" value={chasedOn} max={today()}
                                 onChange={(e) => setChasedOn(e.target.value)}
                                 className={`${CONTROL_INPUT} block`} />
                             <span className="block text-[11px] text-gray-500">{t('chases.chasedOnHint')}</span>
                         </label>
-                        <label className="text-sm text-gray-600">
+                        <label className="">
                             {t('chases.channel')}
                             <select value={channel} onChange={(e) => setChannel(e.target.value)}
                                 className={`${CONTROL_SELECT} block`}>
@@ -235,20 +235,20 @@ export default function ChasePanel({
                                 ))}
                             </select>
                         </label>
-                        <label className="text-sm text-gray-600 self-end pb-2">
+                        <label className="self-end pb-2">
                             <input type="checkbox" checked={reached} className={`${CONTROL_CHECKBOX} mr-2`}
                                 onChange={(e) => { setReached(e.target.checked); if (!e.target.checked) setPerson('') }} />
                             {reached ? t('chases.reached') : t('chases.notReached')}
                         </label>
                         {reached && (
-                            <label className="text-sm text-gray-600">
+                            <label className="">
                                 {t('chases.contactedPerson')}
                                 <input value={person} onChange={(e) => setPerson(e.target.value)}
                                     className={`${CONTROL_INPUT} block`} />
                             </label>
                         )}
                     </div>
-                    <label className="text-sm text-gray-600 block mb-3">
+                    <label className="block mb-3">
                         {t('chases.summary')}
                         <textarea value={summary} onChange={(e) => setSummary(e.target.value)}
                             className={`${CONTROL_TEXTAREA} block w-full`} />
@@ -257,7 +257,7 @@ export default function ChasePanel({
 
                     {/* 【承诺是有牙齿的那一半】没联系上人时它不出现 —— 服务端也拒 */}
                     {reached && (
-                        <label className="text-sm text-gray-600 block mb-2">
+                        <label className="block mb-2">
                             <input type="checkbox" checked={wantPromise} className={`${CONTROL_CHECKBOX} mr-2`}
                                 onChange={(e) => setWantPromise(e.target.checked)} />
                             {t('chases.addPromise')}
@@ -265,18 +265,18 @@ export default function ChasePanel({
                     )}
                     {reached && wantPromise && (
                         <div className="flex flex-wrap gap-3 mb-3">
-                            <label className="text-sm text-gray-600">
+                            <label className="">
                                 {t('chases.promiseAmount')}
                                 <input type="number" step="0.01" min="0" value={amount}
                                     onChange={(e) => setAmount(e.target.value)}
                                     className={`${CONTROL_INPUT} block w-40`} />
                             </label>
-                            <label className="text-sm text-gray-600">
+                            <label className="">
                                 {t('chases.promiseCurrency')}
                                 <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
                                     className={`${CONTROL_INPUT} block w-24 font-mono`} />
                             </label>
-                            <label className="text-sm text-gray-600">
+                            <label className="">
                                 {t('chases.promiseDate')}
                                 <input type="date" value={promisedDate} min={chasedOn || undefined}
                                     onChange={(e) => setPromisedDate(e.target.value)}

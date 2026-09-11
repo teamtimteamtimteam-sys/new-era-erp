@@ -85,7 +85,8 @@
 //   no-tables    不再认表格 —— 「住在表里的控件」那条断言当场红
 //   one-viewport 拿掉 390px 那一遍 —— 视口总体断言当场红
 
-import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, mkdirSync, rmSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { spawn, execSync } from 'node:child_process'
 import { join } from 'node:path'
 import { acquireOrExit, release } from './liveLock.mjs'
@@ -356,13 +357,27 @@ function buildMeasure({ blind }) {
 // ════════════════════════════════════════════════════════════════════════════
 // §EDIT · 那一颗、且只有那一颗按钮
 //   返回点到了几颗。判据窄到只认 <EditableTable> 的行内「编辑」:
-//     住在 tbody tr 里 · className 含 text-blue-600 · 不带 aria-expanded
-//     (aria-expanded 那颗是手机上的展开箭头,不是编辑)
+//     住在 tbody tr 里 · **文字等于 <EditableTable> 自己那个 `labels.edit`** ·
+//     不带 aria-expanded(那颗是手机上的展开箭头,不是编辑)· 没有被禁用。
 //   它的 onClick 是 begin(row) —— 纯本地 state。**一个请求都不发。**
+//
+// ★★ FONT-1(2026-09-11):判据从【颜色 class】换成【内容】★★
+//   此前这一条写的是「className 里含 `text-blue-600`」,而 `text-blue-600`
+//   正是 FONT-1 要从 editable-table.tsx 那几颗按钮上换掉的 class。
+//   ☞ **不一起改,这支普查会一个候选都挑不到,而它的失败方式是【一个安静的零】:**
+//     `clickHadNoEffect: true` 与「这一页本来就没有可编辑的行」在读数里长得一模一样,
+//     于是下一刀会拿到一份"看起来干净"的编辑态读数,
+//     而 `docs/row-height-baseline.md` §7.2.2 那两张表从此量不到。
+//   ☞ 这也是 `AGENTS.md`「判据吊在一个【会被别的刀改掉】的性质上」的又一例:
+//     **一条判据不该认颜色 —— 颜色是别人要改的东西,内容不是。**
+//   ★ 与它配套的那条覆盖断言在 §EDIT-COVERAGE(下面),
+//     理由照 `AGENTS.md`「★★★ 覆盖率本身必须是一条断言」:
+//     **一个挑不到候选的编辑态普查必须说【我瞎了】,不许说【干净】。**
 // ════════════════════════════════════════════════════════════════════════════
-const CLICK_EDIT = `(() => {
+const clickEditExpr = (labels) => `(() => {
+  const LAB = ${JSON.stringify(labels)};
   const cands = [...document.querySelectorAll('tbody tr button')].filter((b) =>
-    (b.getAttribute('class') || '').indexOf('text-blue-600') !== -1 &&
+    LAB.indexOf((b.textContent || '').trim()) !== -1 &&
     !b.hasAttribute('aria-expanded') && !b.disabled);
   // 每张表只点【第一行】那一颗 —— 要看的是"一行变成输入之后有多高",
   // 不是"把整张表都打开"。
@@ -373,6 +388,55 @@ const CLICK_EDIT = `(() => {
   }
   return { nClicked: clicked.length, labels: clicked, nCandidates: cands.length };
 })()`
+
+// ── 「编辑」那个词是什么 —— 从 i18n 词典里【取】,不写死 ──────────────────────
+// 【为什么不写死 'Edit'】写死就是把一条判据吊在一个【文案】上,而文案会改;
+//   而且 <EditableTable> 的调用点用的不是同一个词条(common.edit 与 reviews.edit 两个)。
+// 【怎么取】① 在每一个 import 了 editable-table 的文件里找 `edit: t('<键>')`;
+//   ② 把 messages/en.ts 用仓库自己的 typescript 转一遍再 import,按点号路径取值。
+//   ★ 两步都带断言:一个键都找不到、或者有一个键取不出值 —— **退 2**。
+async function editLabels() {
+    const keys = new Set()
+    const hosts = editableTableRoutes()
+    for (const h of hosts) {
+        const src = readFileSync(join(ROOT, h.file.replace(/^\//, '')), 'utf8')
+        const re = /\bedit\s*:\s*t\(\s*['"]([^'"]+)['"]/g
+        let m
+        while ((m = re.exec(src))) keys.add(m[1])
+    }
+    if (!keys.size) {
+        console.error(`✗ ${SELF}:**覆盖断言失败** —— ${hosts.length} 个 <EditableTable> 宿主文件里,`
+            + `一个 \`edit: t('…')\` 都没找到。判据取不到那个词,就挑不出那颗按钮。`)
+        process.exit(2)
+    }
+    // messages/en.ts → 一个可以 import 的 .mjs(转译用仓库自己的 typescript)
+    let dict
+    try {
+        const ts = createRequire(import.meta.url)(join(ROOT, 'node_modules/typescript'))
+        const js = ts.transpileModule(readFileSync(join(ROOT, 'messages/en.ts'), 'utf8'),
+            { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText
+        const tmp = join(ROOT, '.survey-out', `.en-${process.pid}.mjs`)
+        mkdirSync(join(ROOT, '.survey-out'), { recursive: true })
+        writeFileSync(tmp, js)
+        dict = (await import('file://' + tmp)).default
+        try { rmSync(tmp) } catch { /* 临时文件删不掉不该杀掉普查 */ }
+    } catch (e) {
+        console.error(`✗ ${SELF}:**覆盖断言失败** —— messages/en.ts 读不出来:${e.message}`)
+        process.exit(2)
+    }
+    const labels = []
+    for (const k of keys) {
+        const v = k.split('.').reduce((o, part) => (o == null ? undefined : o[part]), dict)
+        if (typeof v !== 'string' || !v) {
+            console.error(`✗ ${SELF}:**覆盖断言失败** —— 词条键 ${JSON.stringify(k)} 在 messages/en.ts 里取不出一个字符串。`)
+            process.exit(2)
+        }
+        labels.push(v)
+    }
+    const uniq = [...new Set(labels)].sort()
+    console.error(`· 「编辑」那个词(从 ${keys.size} 个词条键取出来的):${JSON.stringify(uniq)}`)
+    return uniq
+}
 
 // ── spec 模式:取样页的 C 那一节 ─────────────────────────────────────────────
 const SPEC_MEASURE = `(() => {
@@ -679,6 +743,9 @@ async function main() {
         }
     } else if (MODE === 'edit') {
         const cand = editableTableRoutes()
+        const EDIT_LABELS = await editLabels()
+        const CLICK_EDIT = clickEditExpr(EDIT_LABELS)
+        out.notes.editLabels = EDIT_LABELS
         out.notes.editableTableFiles = cand
         const routes = [...new Set(cand.map((c) => c.route).filter((r) => r && !r.includes('[')))].sort()
         out.notes.routesAttempted = routes
@@ -785,6 +852,52 @@ async function main() {
         assertPinned(SELF, '有结论的路由 ↔ 量到的路由',
             okRoutes.filter((r) => r.clickHadNoEffect === true || r.controlsInTablesAfter > r.controlsInTablesBefore).length,
             okRoutes.length, '一条既没点出控件、又没被记成 clickHadNoEffect 的路由,是一次沉默。'); ran++
+        // ════════════════════════════════════════════════════════════════════
+        // ★★ §EDIT-COVERAGE(FONT-1,2026-09-11)—— 点名两条路由,它们必须有候选 ★★
+        // ════════════════════════════════════════════════════════════════════
+        // 【为什么非有不可】上面那条「双向钉住」拦不住本刀最怕的那件事:
+        //   判据换了之后**一个候选都挑不到**。那时每一条路由都是
+        //   `clickHadNoEffect: true`,双向钉住**全绿** —— 因为"没点出控件"
+        //   确实被明写了。☞ 它区分不开【这一页本来就没有可编辑的行】与
+        //   【判据瞎了】,而这两件事在读数里长得一模一样。
+        // 【判据】`/hr/leave/types` 与 `/hr/reviews/scale` **今天各有可编辑的行**
+        //   (round 1 实测:候选 13 与 4,点开后表内控件 0→12 与 0→14)。
+        //   它们是两条**已知必然命中**的探针 —— 照 `assertAllowlistLive` 那一条的心思:
+        //   **一条命不中任何东西的探针,与一支瞎掉的量具分不开。**
+        // 【为什么不连 /hr/kpi/score 与 /me 一起断言】★ 它们**今天没有可编辑的行**
+        //   (round 1 两个视口都是候选 0)—— 把它们写进断言,就是把一个
+        //   【真的零】当成故障。**它们报出来,不断言。**
+        const MUST_HAVE_CANDIDATES = ['/hr/leave/types', '/hr/reviews/scale']
+        const NO_EDITABLE_ROWS_TODAY = ['/hr/kpi/score', '/me']
+        for (const vpName of out.viewports) {
+            const vr = out.routes[vpName] || {}
+            const dead = MUST_HAVE_CANDIDATES.filter((rt) => {
+                const rec = vr[rt]
+                return !rec || rec.failed || !rec.click || !(rec.click.nCandidates >= 1)
+            })
+            if (dead.length) {
+                console.error(`✗ ${SELF}:**覆盖断言失败** —— ${vpName} 上这几条路由一个「编辑」候选都挑不到:`)
+                for (const rt of dead) {
+                    const rec = vr[rt]
+                    console.error(`    · ${rt}  候选 ${rec && rec.click ? rec.click.nCandidates : '(没有读数)'}`)
+                }
+                console.error(`  ☞ 它们今天各有可编辑的行(round 1 实测候选 13 与 4)。挑不到候选只有两种可能:`)
+                console.error(`    ① 那两页真的没有可编辑的行了 —— 那就把这条名单改掉,并说明是哪一刀改的;`)
+                console.error(`    ② **判据瞎了** —— 「编辑」那个词变了,或者按钮不再住在 tbody tr 里。`)
+                console.error(`  ☞ 不查清楚就放过去,下一刀会拿到一份【看起来干净、其实什么都没量到】的编辑态读数。`)
+                console.error(`  ☞ 用的词条:${JSON.stringify(out.notes.editLabels)}`)
+                process.exit(2)
+            }
+            ran++
+        }
+        out.notes.editCoverage = {
+            asserted: MUST_HAVE_CANDIDATES,
+            reportedNotAsserted: NO_EDITABLE_ROWS_TODAY.map((rt) => ({
+                route: rt,
+                nCandidates: out.viewports.map((v) => ((out.routes[v][rt] || {}).click || {}).nCandidates ?? null),
+                why: '今天没有可编辑的行 —— 这是一个【真的零】,不是一次失明',
+            })),
+        }
     } else {
         const dv = out.routes[out.viewports[0]]
         const okRoutes = Object.values(dv).filter((r) => !r.failed)

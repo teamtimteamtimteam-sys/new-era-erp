@@ -71,7 +71,7 @@ export default async function PriceExposurePage() {
             </div>
 
             {/* ── 卖方向:三种状态,每一种都是一句具名的话,没有一种是空白 ── */}
-            <h2 className="text-lg font-semibold mb-2">{t('priceExposure.sellPositions')}</h2>
+            <h2 className="mb-2">{t('priceExposure.sellPositions')}</h2>
             {report.sell_side.state === 'no_contracts' ? (
                 <p className="text-sm text-amber-800 mb-6 max-w-3xl">{t('priceExposure.sellNoContracts')}</p>
             ) : report.sell_side.state === 'no_pricing_terms' ? (
@@ -100,7 +100,7 @@ export default async function PriceExposurePage() {
 
             {/* ── 分母:让每一个 0 说得出它是哪一种 0 ── */}
             <div className="border border-gray-300 rounded p-3 mb-6 max-w-3xl">
-                <h2 className="font-medium mb-1">{t('priceExposure.coverageTitle')}</h2>
+                <h2 className="mb-1">{t('priceExposure.coverageTitle')}</h2>
                 <ul className="text-sm text-gray-800 space-y-1">
                     <li>{t('priceExposure.covContracts', {
                         total: String(cov.contracts_total),

@@ -101,7 +101,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
             // 转换前这条返回链接画在 <h1> 之上 —— breadcrumb 槽是同一个位置。
             breadcrumb={
                 <p className="text-sm">
-                    <Link href="/finance/gst" className="text-blue-600 hover:underline">← {t('gst.title')}</Link>
+                    <Link href="/finance/gst" className="hover:underline app-link">← {t('gst.title')}</Link>
                 </p>
             }
             title={period.code}
@@ -124,7 +124,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
             }
         >
             <div className="flex items-baseline justify-between mb-2">
-                <h2 className="font-semibold">{filed ? t('gst.asFiled') : t('gst.asComputed')}</h2>
+                <h2 className="">{filed ? t('gst.asFiled') : t('gst.asComputed')}</h2>
                 {/* 【导出的是屏幕上这一份】—— 已申报导抄下来的,未申报导现算的,文件名里写明是哪一种 */}
                 <Button asChild variant="outline">
                     <a href={`/finance/gst/${periodId}/export`}>{t('gst.exportCsv')}</a>
@@ -185,7 +185,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
             {box && (
                 <section id="box-detail" data-box-detail={box}
                          className="border-2 border-blue-300 bg-blue-50/40 rounded p-4 mb-6 scroll-mt-4">
-                    <h2 className="font-semibold mb-1">{t('gst.boxDetail', { box: box.replace('box', '') })}</h2>
+                    <h2 className="mb-1">{t('gst.boxDetail', { box: box.replace('box', '') })}</h2>
                     {/* 【把这一格的数字放在这里】没有它,"这一格里没有东西"读起来像查询失败;
                         有了它,读者立刻知道:这一格【本来就是】这个数。 */}
                     <p className="text-xs text-gray-600 mb-3">
@@ -215,7 +215,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
                 </section>
             )}
 
-            <h2 className="font-semibold mb-2">{t('gst.recordFiling')}</h2>
+            <h2 className="mb-2">{t('gst.recordFiling')}</h2>
             <p className="text-xs text-gray-600 mb-2">{t('gst.filingIsOutside')}</p>
             {/* ★ 出口检查:申报控件与更正控件都住 children,而 state 恒为 'ok',
                   所以它们不可能被任何空分支吃掉。 */}
@@ -223,7 +223,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
 
             {filed && (
                 <>
-                    <h2 className="font-semibold mb-2">{t('gst.raiseCorrection')}</h2>
+                    <h2 className="mb-2">{t('gst.raiseCorrection')}</h2>
                     <p className="text-xs text-gray-600 mb-2">{t('gst.correctionWhy')}</p>
                     <CorrectControl canEdit={canEditGate} periodId={periodId} />
                 </>

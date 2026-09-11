@@ -45,11 +45,11 @@ export default async function EditPayrollPage({
     return (
         <div className="p-8">
             <div className="mb-6">
-                <Link href={`/hr/payroll/${id}`} className="text-blue-600 hover:underline text-sm">
+                <Link href={`/hr/payroll/${id}`} className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-4">
+            <h1 className="mb-4">
                 {t('hr.payrollDetailTitle')}
                 <span className="ml-3 font-mono text-base text-gray-500">
                     {period.period_month?.slice(0, 7)}

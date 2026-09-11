@@ -56,7 +56,7 @@ export default function RequiredMetalsPanel({
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-lg font-semibold mb-1">{t('materials.assayPolicy.title')}</h2>
+            <h2 className="mb-1">{t('materials.assayPolicy.title')}</h2>
 
             {/* 【一句人话:这些勾有什么后果】 */}
             <p className="text-sm text-gray-600 mb-3">{t('materials.assayPolicy.note')}</p>
@@ -85,7 +85,7 @@ export default function RequiredMetalsPanel({
                         <label
                             key={o.value}
                             className={
-                                'inline-flex items-center gap-2 text-sm ' +
+                                'inline-flex items-center gap-2 ' +
                                 (canEdit ? 'cursor-pointer' : 'cursor-not-allowed opacity-60')
                             }
                         >

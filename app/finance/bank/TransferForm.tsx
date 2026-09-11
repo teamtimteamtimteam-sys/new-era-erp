@@ -46,7 +46,7 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
 
     return (
         <div className="rounded border border-gray-200 p-4 mb-6">
-            <h3 className="font-bold mb-1 text-sm">{t('finance.transfer.title')}</h3>
+            <h3 className="mb-1">{t('finance.transfer.title')}</h3>
             <p className="text-xs text-gray-500 mb-3">{t('finance.transfer.hint')}</p>
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
@@ -62,7 +62,7 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
                     </select>
                 </label>
                 <label>{t('finance.transfer.amountOut')}
-                    <input type="number" value={out} onChange={(e) => setOut(e.target.value)} className={`block ${inp} w-28 text-right`} />
+                    <input type="number" value={out} onChange={(e) => setOut(e.target.value)} className={`block ${inp} w-28 text-right tabular-nums`} />
                 </label>
                 <label>{t('finance.transfer.to')}
                     <select value={to} onChange={(e) => setTo(e.target.value)} className={`block ${sel}`}>
@@ -71,7 +71,7 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
                     </select>
                 </label>
                 <label>{t('finance.transfer.amountIn')}
-                    <input type="number" value={inn} onChange={(e) => setInn(e.target.value)} className={`block ${inp} w-28 text-right`} />
+                    <input type="number" value={inn} onChange={(e) => setInn(e.target.value)} className={`block ${inp} w-28 text-right tabular-nums`} />
                 </label>
                 <label>{t('finance.transfer.reference')}
                     <input value={ref} onChange={(e) => setRef(e.target.value)} className={`block ${inp} w-36`} />

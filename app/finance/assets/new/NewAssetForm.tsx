@@ -42,7 +42,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
             )}
 
             <div>
-                <label htmlFor="description" className="block text-sm font-medium mb-1">
+                <label htmlFor="description" className="block mb-1">
                     {t('assets.new.description')}
                 </label>
                 <input id="description" name="description" required
@@ -52,7 +52,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label htmlFor="acquisition_date" className="block text-sm font-medium mb-1">
+                    <label htmlFor="acquisition_date" className="block mb-1">
                         {t('assets.new.acquisitionDate')}
                     </label>
                     <input id="acquisition_date" name="acquisition_date" type="date" required
@@ -62,7 +62,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                     <p className="mt-1 text-xs text-gray-600">{t('assets.new.acquisitionDateHint')}</p>
                 </div>
                 <div>
-                    <label htmlFor="useful_life_months" className="block text-sm font-medium mb-1">
+                    <label htmlFor="useful_life_months" className="block mb-1">
                         {t('assets.new.usefulLife')}
                     </label>
                     <input id="useful_life_months" name="useful_life_months" type="number"
@@ -73,7 +73,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
             </div>
 
             <div>
-                <label htmlFor="category" className="block text-sm font-medium mb-1">
+                <label htmlFor="category" className="block mb-1">
                     {t('assets.new.category')}
                 </label>
                 <select id="category" name="category" defaultValue="equipment"
@@ -85,7 +85,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
             </div>
 
             <div>
-                <label htmlFor="notes" className="block text-sm font-medium mb-1">
+                <label htmlFor="notes" className="block mb-1">
                     {t('assets.new.notes')}
                 </label>
                 <textarea id="notes" name="notes"

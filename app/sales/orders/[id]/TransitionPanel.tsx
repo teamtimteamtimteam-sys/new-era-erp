@@ -47,7 +47,7 @@ export default function TransitionPanel({
             {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
             {nextStates.includes('cancelled') && (
                 <div className="mb-3">
-                    <label className="block text-xs text-gray-600 mb-1">{t('sales.cancelReason')}</label>
+                    <label className="block mb-1">{t('sales.cancelReason')}</label>
                     <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
                            className={`${CONTROL_INPUT} w-full`} />
                 </div>

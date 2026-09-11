@@ -122,7 +122,7 @@ export default async function ContainerFreightPanel({
 
     return (
         <section className="mt-8 border-t pt-6">
-            <h2 className="mb-1 text-xl font-bold">{t('logistics.freightPanelHeading')}</h2>
+            <h2 className="mb-1">{t('logistics.freightPanelHeading')}</h2>
             <p className="mb-4 text-sm text-gray-600 max-w-3xl">{t('logistics.freightPanelHint')}</p>
 
             {/* ── 免柜期:一行,五种"算不出来"各说各的话 ─────────────────────
@@ -132,7 +132,7 @@ export default async function ContainerFreightPanel({
                 (口径仍然是同一条:同一个锚点、同一份报价。这一处重复是【已知的】,
                  见本刀的报告 —— 去掉它要一个库侧的算子,而本刀不动库。) */}
             <div className="mb-6 rounded-lg border border-gray-300 p-4">
-                <h3 className="font-semibold mb-2 text-sm">{t('logistics.freeTimeHeading')}</h3>
+                <h3 className="mb-2">{t('logistics.freeTimeHeading')}</h3>
                 {!forwarderId ? (
                     /* 【指向那个控件】—— 与"清单从没实例化过"那句指向它的按钮同一条:
                        一句说出缺什么的话,要顺带说出去哪里补。此前这一句指着的是一个
@@ -180,14 +180,14 @@ export default async function ContainerFreightPanel({
             <div className="grid gap-6 md:grid-cols-2">
                 {/* ── 实际 ─────────────────────────────────────────────── */}
                 <div className="border border-gray-300 rounded-lg p-4">
-                    <h3 className="font-semibold mb-2 text-sm">{t('logistics.freightActualHeading')}</h3>
+                    <h3 className="mb-2">{t('logistics.freightActualHeading')}</h3>
                     {docs.length === 0 ? empty(t('logistics.freightNoneYet')) : (
                         <>
                             <ul className="mb-3 space-y-1">
                                 {docs.map((d) => (
                                     <li key={d.id} className="text-sm flex items-baseline gap-2">
                                         <Link href={`/finance/freight/${d.id}`}
-                                            className="text-blue-700 hover:underline font-mono text-xs">
+                                            className="hover:underline font-mono text-xs app-link app-link-inline">
                                             {d.code}
                                         </Link>
                                         <span className="text-xs text-gray-500">
@@ -218,7 +218,7 @@ export default async function ContainerFreightPanel({
 
                 {/* ── 报价 ─────────────────────────────────────────────── */}
                 <div className="border border-gray-300 rounded-lg p-4">
-                    <h3 className="font-semibold mb-2 text-sm">{t('logistics.freightQuoteHeading')}</h3>
+                    <h3 className="mb-2">{t('logistics.freightQuoteHeading')}</h3>
                     {quoteState.kind === 'no_lane' && empty(t('logistics.quoteNoLane'))}
                     {quoteState.kind === 'no_forwarder' && empty(
                         t('logistics.quoteNoForwarder') + ' ' + t('logistics.containerNoForwarderPointer'))}

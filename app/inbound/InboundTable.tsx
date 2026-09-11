@@ -92,7 +92,7 @@ export default function InboundTable({
             key: 'code', header: t('inbound.colCode'), priority: true, sortable: true,
             className: 'font-mono text-sm',
             render: (b) => (
-                <Link href={`/inbound/${b.id}/edit`} className="text-blue-600 hover:underline">{b.code}</Link>
+                <Link href={`/inbound/${b.id}/edit`} className="hover:underline app-link">{b.code}</Link>
             ),
         },
         { key: 'material', header: t('inbound.colMaterial'), priority: true, render: (b) => b.materialName },

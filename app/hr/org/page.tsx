@@ -102,7 +102,7 @@ export default async function OrgPage() {
 
     return (
         <div className="p-6 max-w-5xl">
-            <h1 className="text-2xl font-semibold mb-1">{t('org.title')}</h1>
+            <h1 className="mb-1">{t('org.title')}</h1>
             <p className="text-sm mb-4" style={{ color: 'var(--brand-muted-text)' }}>{t('org.intro')}</p>
 
             <ChartCard

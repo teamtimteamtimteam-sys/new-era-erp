@@ -57,41 +57,41 @@ canEdit: boolean
                 })
             }}
         >
-            <h2 className="font-medium mb-3">{labels.heading}</h2>
+            <h2 className="mb-3">{labels.heading}</h2>
             {error && <div className="mb-3 rounded border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>}
             <div className="flex flex-wrap items-end gap-3">
                 <div>
-                    <label className="block text-xs font-medium mb-1">{labels.lane} <span className="text-red-600">*</span></label>
+                    <label className="block mb-1">{labels.lane} <span className="text-red-600">*</span></label>
                     <select name="lane_id" required className={fieldSelect}>
                         {lanes.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-xs font-medium mb-1">{labels.departure} <span className="text-red-600">*</span></label>
+                    <label className="block mb-1">{labels.departure} <span className="text-red-600">*</span></label>
                     {/* 【没有 defaultValue】—— 见组件抬头 */}
                     <input type="date" name="departure_date" required className={field} />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium mb-1">{labels.containerNumber}</label>
+                    <label className="block mb-1">{labels.containerNumber}</label>
                     <input name="container_number" className={field} />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium mb-1">{labels.vessel}</label>
+                    <label className="block mb-1">{labels.vessel}</label>
                     <input name="vessel" className={field} />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium mb-1">{labels.voyage}</label>
+                    <label className="block mb-1">{labels.voyage}</label>
                     <input name="voyage" className={`${field} w-24`} />
                 </div>
                 <div>
-                    <label className="block text-xs font-medium mb-1">{labels.forwarder}</label>
+                    <label className="block mb-1">{labels.forwarder}</label>
                     <select name="forwarder_id" className={fieldSelect} defaultValue="">
                         <option value="">—</option>
                         {forwarders.map((f) => <option key={f.id} value={f.id}>{f.label}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label className="block text-xs font-medium mb-1">{labels.bl}</label>
+                    <label className="block mb-1">{labels.bl}</label>
                     <input name="bl_number" className={field} />
                 </div>
                 <Button type="submit" disabled={pending} variant="default" size="default">

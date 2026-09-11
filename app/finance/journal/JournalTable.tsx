@@ -28,7 +28,7 @@ export default function JournalTable({ rows, empty, baseCurrency }: { rows: Jour
         {
             key: 'code', header: t('finance.colCode'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/finance/journal/${r.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/finance/journal/${r.id}`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),
@@ -39,7 +39,7 @@ export default function JournalTable({ rows, empty, baseCurrency }: { rows: Jour
             key: 'source', header: t('finance.colSource'), className: 'text-sm',
             render: (r) =>
                 r.sourceHref ? (
-                    <Link href={r.sourceHref} className="text-blue-600 hover:underline">
+                    <Link href={r.sourceHref} className="hover:underline app-link">
                         {sourceLabel(r.sourceType)}
                     </Link>
                 ) : (

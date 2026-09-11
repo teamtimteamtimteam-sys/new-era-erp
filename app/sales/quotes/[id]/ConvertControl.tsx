@@ -62,7 +62,7 @@ export default function ConvertControl({
             {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
             <div className="flex flex-wrap items-end gap-3">
                 <div>
-                    <label className="block text-xs text-gray-600 mb-1">
+                    <label className="block mb-1">
                         {t('quotes.convert.orderDate')} <span className="text-red-600">*</span>
                     </label>
                     <input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)}

@@ -221,7 +221,7 @@ function ConfirmDialog({
                 //     只留在一次提交里的规矩活不下来。
                 className="w-full max-w-md rounded-lg border border-[color:var(--brand-border)] bg-background p-5 shadow-xl whitespace-normal text-left normal-case not-italic tracking-normal"
             >
-                <h2 id={titleId} className="text-base font-medium text-foreground">
+                <h2 id={titleId} className="">
                     {content.title}
                 </h2>
 

@@ -134,7 +134,7 @@ export default function MyExpenseClaimsPanel({
 
     return (
         <section className="mb-8">
-            <h2 className="text-lg font-semibold mb-1">{t('expenseClaims.myTitle')}</h2>
+            <h2 className="mb-1">{t('expenseClaims.myTitle')}</h2>
             <p className="text-xs text-gray-500 mb-1">{t('expenseClaims.myHint')}</p>
             {/* 【备用金是被否决的,不是没做】—— 让读的人遇到一个决定,而不是一个缺口 */}
             <p className="text-xs text-gray-400 mb-3">{t('expenseClaims.pettyCashRuledOut')}</p>
@@ -150,23 +150,23 @@ export default function MyExpenseClaimsPanel({
             )}
             {employeeId && open && (
                 <div className="mb-4 rounded border border-gray-300 p-3 flex flex-wrap gap-3 items-end max-w-3xl">
-                    <label className="text-sm text-gray-600">{t('expenseClaims.spendDate')}
+                    <label className="">{t('expenseClaims.spendDate')}
                         <input type="date" value={spendDate} max={today()}
                             onChange={(e) => setSpendDate(e.target.value)}
                             className={`${CONTROL_INPUT} block`} />
                         <span className="block text-[11px] text-gray-500">{t('expenseClaims.spendDateHint')}</span></label>
-                    <label className="text-sm text-gray-600">{t('expenseClaims.amount')}
+                    <label className="">{t('expenseClaims.amount')}
                         <input type="number" step="0.01" min="0" value={amount}
                             onChange={(e) => setAmount(e.target.value)}
                             className={`${CONTROL_INPUT} block w-32`} /></label>
-                    <label className="text-sm text-gray-600">{t('expenseClaims.currency')}
+                    <label className="">{t('expenseClaims.currency')}
                         <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
                             className={`${CONTROL_INPUT} block w-20 font-mono`} /></label>
-                    <label className="text-sm text-gray-600 flex-1 min-w-[16rem]">{t('expenseClaims.description')}
+                    <label className="flex-1 min-w-[16rem]">{t('expenseClaims.description')}
                         <input value={description} onChange={(e) => setDescription(e.target.value)}
                             className={`${CONTROL_INPUT} block w-full`} />
                         <span className="block text-[11px] text-gray-500">{t('expenseClaims.descriptionHint')}</span></label>
-                    <label className="text-sm text-gray-600 flex-1 min-w-[16rem]">{t('expenseClaims.noReceiptReason')}
+                    <label className="flex-1 min-w-[16rem]">{t('expenseClaims.noReceiptReason')}
                         <input value={noReceipt} onChange={(e) => setNoReceipt(e.target.value)}
                             className={`${CONTROL_INPUT} block w-full`} />
                         <span className="block text-[11px] text-gray-500">{t('expenseClaims.noReceiptReasonHint')}</span></label>

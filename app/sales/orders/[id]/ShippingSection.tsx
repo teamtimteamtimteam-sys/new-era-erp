@@ -98,7 +98,7 @@ export default async function ShippingSection({
 
     return (
         <section className="mt-8">
-            <h2 className="font-medium mb-1">{t('sales.ship.title')}</h2>
+            <h2 className="mb-1">{t('sales.ship.title')}</h2>
             <p className="text-xs text-gray-500 mb-3">{t('sales.ship.note')}</p>
 
             {shipments.length > 0 && (
@@ -110,7 +110,7 @@ export default async function ShippingSection({
                                 一个答案 —— 一份渲染出来的纸。单号现在进详情页,
                                 送货单那条链接留在原处不动。 */}
                             <a href={`/sales/shipments/${s.id}`}
-                               className="font-mono text-blue-600 hover:underline">{s.code}</a>
+                               className="font-mono hover:underline app-link app-link-inline">{s.code}</a>
                             <span className="text-gray-500">{new Date(s.ship_date).toLocaleDateString(dl)}</span>
                             <span className="text-gray-500">
                                 {t('sales.ship.lineCount', { n: String((s.shipment_lines ?? []).length) })}

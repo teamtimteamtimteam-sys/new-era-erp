@@ -243,7 +243,7 @@ canEdit: boolean
 
     return (
         <section className="mt-8 pt-8 border-t">
-            <h2 className="text-xl font-bold mb-4">{t('finAttach.title')}</h2>
+            <h2 className="mb-4">{t('finAttach.title')}</h2>
 
             {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
@@ -261,7 +261,7 @@ canEdit: boolean
             <PermissionGate code="module.finance.edit" allowed={canEdit}>
             <form key={formKey} action={handleUpload} className="flex flex-wrap items-end gap-3">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('finAttach.file')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -275,7 +275,7 @@ canEdit: boolean
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('finAttach.docType')}</label>
+                    <label className="block mb-1">{t('finAttach.docType')}</label>
                     <select
                         name="doc_type"
                         defaultValue="other"
@@ -290,7 +290,7 @@ canEdit: boolean
                 </div>
 
                 <div className="grow">
-                    <label className="block text-sm font-medium mb-1">{t('finAttach.notes')}</label>
+                    <label className="block mb-1">{t('finAttach.notes')}</label>
                     <input
                         type="text"
                         name="notes"

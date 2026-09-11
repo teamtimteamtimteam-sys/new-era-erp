@@ -43,7 +43,7 @@ export default async function LanesPage() {
 
     return (
         <div className="p-8">
-            <h1 className="text-2xl font-bold mb-4">{t('logistics.lanesTitle')}</h1>
+            <h1 className="mb-4">{t('logistics.lanesTitle')}</h1>
             <LanesPanel canEdit={canEditGate}
                 ports={ports.map((p) => ({ id: p.id as string, label: `${p.code} ${p.name}` }))}
                 lanes={lanes.map((l) => ({

@@ -71,7 +71,7 @@ export default function AmendLinesControl({
                             <span className="w-64">{r.material_label}</span>
                             <input type="number" step="any" min="0" value={draft[r.material_id] ?? ''}
                                    onChange={(e) => setDraft({ ...draft, [r.material_id]: e.target.value })}
-                                   className={`${CONTROL_INPUT} w-28 text-right`} />
+                                   className={`${CONTROL_INPUT} w-28 text-right tabular-nums`} />
                             {/* 【地板画在旁边,但判据在服务端】 */}
                             <span className="text-xs text-gray-500">
                                 {t('processing.wo.actions.floorHint', { qty: String(r.consumed_qty) })}

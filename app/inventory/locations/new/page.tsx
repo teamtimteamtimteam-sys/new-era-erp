@@ -19,12 +19,12 @@ export default async function NewLocationPage() {
     return (
         <div className="p-4 sm:p-8">
             <div className="mb-6">
-                <Link href="/inventory/locations" className="text-blue-600 hover:underline text-sm">
+                <Link href="/inventory/locations" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">{t('locations.newTitle')}</h1>
+            <h1 className="mb-6">{t('locations.newTitle')}</h1>
 
             <LocationForm
                 action={createLocation}

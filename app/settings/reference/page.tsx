@@ -84,7 +84,7 @@ export default async function ReferencePage() {
         >
             {categories.map((cat) => (
                 <section key={cat} className="mb-8">
-                    <h2 className="text-lg font-bold mb-3">{t(CATEGORY_KEY[cat] ?? cat)}</h2>
+                    <h2 className="mb-3">{t(CATEGORY_KEY[cat] ?? cat)}</h2>
                     <PermissionReferenceTable rows={rowsFor(cat)} />
                 </section>
             ))}

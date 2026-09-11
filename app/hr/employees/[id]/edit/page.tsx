@@ -104,11 +104,11 @@ export default async function EditEmployeePage({
     return (
         <div className="p-8">
             <div className="mb-6">
-                <Link href={`/hr/employees/${id}`} className="text-blue-600 hover:underline text-sm">
+                <Link href={`/hr/employees/${id}`} className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-4">
+            <h1 className="mb-4">
                 {t('hr.employeeDetailTitle')}
                 <span className="ml-3 font-mono text-base text-gray-500">{empRes.data.code}</span>
             </h1>

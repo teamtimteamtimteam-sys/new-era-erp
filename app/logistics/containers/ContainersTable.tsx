@@ -40,7 +40,7 @@ export default function ContainersTable({ rows, empty }: { rows: ContainerRow[];
         {
             key: 'code', header: t('logistics.colContainerCode'), priority: true,
             render: (r) => (
-                <Link href={`/logistics/containers/${r.id}`} className="text-blue-700 hover:underline font-mono text-xs">
+                <Link href={`/logistics/containers/${r.id}`} className="hover:underline font-mono text-xs app-link">
                     {r.code}
                 </Link>
             ),

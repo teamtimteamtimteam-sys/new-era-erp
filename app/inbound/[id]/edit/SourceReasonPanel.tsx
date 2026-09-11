@@ -80,7 +80,7 @@ export default function SourceReasonPanel({
 
     return (
         <div className="mb-8">
-            <h2 className="text-sm font-medium text-gray-700 mb-2">{t('inbound.source.panelTitle')}</h2>
+            <h2 className="mb-2">{t('inbound.source.panelTitle')}</h2>
             <div className="border border-gray-300 rounded p-3 max-w-2xl">
                 <p className={'text-sm mb-2 px-2 py-1 rounded border ' + tone}>
                     {state === 'fromPo'

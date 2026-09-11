@@ -26,11 +26,11 @@ export default async function NewDepartmentPage() {
     return (
         <div className="p-8">
             <div className="mb-6">
-                <Link href="/hr/departments" className="text-blue-600 hover:underline text-sm">
+                <Link href="/hr/departments" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-4">{t('hr.newDepartment')}</h1>
+            <h1 className="mb-4">{t('hr.newDepartment')}</h1>
             {/* 新建时没有"自己",全部现有部门都可当上级 */}
             <DepartmentForm parentOptions={parentOptionsFor(mustRows(res) as DeptNode[])} />
         </div>

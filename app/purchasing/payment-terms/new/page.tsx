@@ -25,11 +25,11 @@ export default async function NewTemplatePage() {
     return (
         <div className="p-8">
             <div className="mb-6">
-                <Link href="/purchasing/payment-terms" className="text-blue-600 hover:underline text-sm">
+                <Link href="/purchasing/payment-terms" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-4">{t('purchasing.newTemplate')}</h1>
+            <h1 className="mb-4">{t('purchasing.newTemplate')}</h1>
             <TemplateForm canEdit={canEditGate} currencies={currencies} triggerEvents={triggerEvents} />
         </div>
     )

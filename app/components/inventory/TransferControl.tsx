@@ -90,11 +90,11 @@ export default function TransferControl({
             )}
             <div className="flex flex-wrap items-end gap-2">
                 <div>
-                    <label className="block text-xs text-gray-600 mb-1">{t('stock.transferQty', { unit })}</label>
+                    <label className="block mb-1">{t('stock.transferQty', { unit })}</label>
                     <DecimalInput value={qty} onChange={setQty} className="w-24" />
                 </div>
                 <div className="flex-1 min-w-[11rem]">
-                    <label className="block text-xs text-gray-600 mb-1">{t('stock.transferTo')}</label>
+                    <label className="block mb-1">{t('stock.transferTo')}</label>
                     <select
                         value={to}
                         onChange={(e) => setTo(e.target.value)}
@@ -107,7 +107,7 @@ export default function TransferControl({
                     </select>
                 </div>
                 <div className="flex-1 min-w-[10rem]">
-                    <label className="block text-xs text-gray-600 mb-1">{t('stock.transferNote')}</label>
+                    <label className="block mb-1">{t('stock.transferNote')}</label>
                     <input type="text" value={note} onChange={(e) => setNote(e.target.value)}
                            className={`${CONTROL_INPUT} w-full`} />
                 </div>

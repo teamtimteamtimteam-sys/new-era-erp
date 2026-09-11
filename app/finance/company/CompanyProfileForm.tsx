@@ -56,7 +56,7 @@ canEdit: boolean
         opts: { required?: boolean; textarea?: boolean; rows?: number } = {}
     ) => (
         <div className={opts.textarea ? '' : 'flex-1 min-w-[14rem]'}>
-            <label className="block text-sm font-medium mb-1">
+            <label className="block mb-1">
                 {t(labelKey)} {opts.required && <span className="text-red-600">*</span>}
             </label>
             {opts.textarea ? (
@@ -197,14 +197,14 @@ canEdit: boolean
                 <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <form action={logoAction} className="flex flex-wrap items-end gap-3">
                     <div>
-                        <label className="block text-sm font-medium mb-1">
+                        <label className="block mb-1">
                             {logoUrl ? t('company.replaceLogo') : t('company.uploadLogo')}
                         </label>
                         <input
                             type="file"
                             name="logo"
                             accept="image/png,image/jpeg"
-                            className={CONTROL_FILE_BUTTON}
+                            className={`${CONTROL_FILE_BUTTON} w-full`}
                         />
                         <p className="text-xs text-gray-500 mt-1">{t('company.logoHint')}</p>
                     </div>

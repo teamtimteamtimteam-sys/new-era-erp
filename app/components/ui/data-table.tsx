@@ -490,7 +490,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                             </summary>
                             <div className="nav-glass absolute right-0 z-20 mt-1 min-w-44 rounded-[var(--brand-radius)] border border-[color:var(--brand-border)] p-2 shadow-md">
                                 {columns.map((c) => (
-                                    <label key={c.key} className="flex items-center gap-2 px-1 py-1 text-sm text-[color:var(--brand-text)]">
+                                    <label key={c.key} className="flex items-center gap-2 px-1 py-1">
                                         <input
                                             type="checkbox"
                                             className={CONTROL_CHECKBOX}

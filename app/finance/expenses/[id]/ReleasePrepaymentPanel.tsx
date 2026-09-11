@@ -28,7 +28,7 @@ export default function ReleasePrepaymentPanel({
 
     return (
         <div className="border border-gray-300 rounded-lg p-4 mt-6">
-            <h2 className="font-medium mb-1">{t('expense.release.title')}</h2>
+            <h2 className="mb-1">{t('expense.release.title')}</h2>
             <p className="text-sm text-gray-600 mb-3">
                 {t('expense.release.subtitle', { po: poCode })}
             </p>
@@ -68,14 +68,14 @@ export default function ReleasePrepaymentPanel({
             ) : (
                 <form action={formAction} className="flex flex-wrap gap-3 items-end">
                     <div>
-                        <label htmlFor="amount" className="block text-xs text-gray-600 mb-1">
+                        <label htmlFor="amount" className="block mb-1">
                             {t('expense.release.amount', { ccy: currency })}
                         </label>
                         <input id="amount" name="amount" type="number" step="0.01" min="0.01" required
                             className={`${CONTROL_INPUT} w-40`} />
                     </div>
                     <div>
-                        <label htmlFor="release_date" className="block text-xs text-gray-600 mb-1">
+                        <label htmlFor="release_date" className="block mb-1">
                             {t('expense.release.date')}
                         </label>
                         <input id="release_date" name="release_date" type="date" required
@@ -84,7 +84,7 @@ export default function ReleasePrepaymentPanel({
                         <p className="mt-1 text-xs text-gray-600">{t('expense.release.dateHint')}</p>
                     </div>
                     <div className="flex-1 min-w-[12rem]">
-                        <label htmlFor="notes" className="block text-xs text-gray-600 mb-1">
+                        <label htmlFor="notes" className="block mb-1">
                             {t('expense.release.notes')}
                         </label>
                         <input id="notes" name="notes"

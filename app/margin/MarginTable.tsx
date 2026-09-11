@@ -68,7 +68,7 @@ export default function MarginTable({ rows, empty }: { rows: MarginRow[]; empty:
             key: 'batch', header: t('margin.colBatch'), priority: true,
             render: (r) => (
                 <>
-                    <Link href={r.outputHref} className="font-mono text-sm text-blue-600 hover:underline">
+                    <Link href={r.outputHref} className="font-mono text-sm hover:underline app-link">
                         {r.batchCode}
                     </Link>
                     <span className="block text-xs text-gray-500">{r.materialName}</span>

@@ -44,11 +44,11 @@ export default async function EditDepartmentPage({
     return (
         <div className="p-8">
             <div className="mb-6">
-                <Link href="/hr/departments" className="text-blue-600 hover:underline text-sm">
+                <Link href="/hr/departments" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
-            <h1 className="text-2xl font-bold mb-4">
+            <h1 className="mb-4">
                 {t('hr.departmentsTitle')}
                 <span className="ml-3 font-mono text-base text-gray-500">{deptRes.data.code}</span>
             </h1>

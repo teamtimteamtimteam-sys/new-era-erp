@@ -71,7 +71,7 @@ export default function LedgerRowsTable({
                 ) : (
                     <>
                         {r.entryHref ? (
-                            <Link href={r.entryHref} className="text-blue-600 hover:underline">
+                            <Link href={r.entryHref} className="hover:underline app-link">
                                 {r.entryCode}
                             </Link>
                         ) : (
@@ -91,7 +91,7 @@ export default function LedgerRowsTable({
             className: 'text-sm',
             render: (r) =>
                 r.sourceHref ? (
-                    <Link href={r.sourceHref} className="text-blue-600 hover:underline">
+                    <Link href={r.sourceHref} className="hover:underline app-link">
                         {r.sourceLabel}
                     </Link>
                 ) : (

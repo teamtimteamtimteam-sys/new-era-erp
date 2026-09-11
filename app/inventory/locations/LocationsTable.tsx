@@ -30,7 +30,7 @@ export default function LocationsTable({ rows, empty }: { rows: LocationRow[]; e
         {
             key: 'code', header: t('locations.colCode'), priority: true, className: 'font-mono',
             render: (r) => (
-                <Link href={`/inventory/locations/${r.id}/edit`} className="text-blue-600 hover:underline">
+                <Link href={`/inventory/locations/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

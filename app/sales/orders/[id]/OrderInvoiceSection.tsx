@@ -44,7 +44,7 @@ export default async function OrderInvoiceSection({
     if (!canSeeFinance) {
         return (
             <section className="mt-8">
-                <h2 className="font-medium mb-1">{t('sales.invoice.title')}</h2>
+                <h2 className="mb-1">{t('sales.invoice.title')}</h2>
                 {/* 「受限」,不是空白 —— 空白读起来是"没开过票" */}
                 <p className="text-sm text-gray-600">
                     {t('common.restricted')} — {t('sales.invoice.needsFinanceView')}
@@ -82,14 +82,14 @@ export default async function OrderInvoiceSection({
 
     return (
         <section className="mt-8">
-            <h2 className="font-medium mb-1">{t('sales.invoice.title')}</h2>
+            <h2 className="mb-1">{t('sales.invoice.title')}</h2>
             <p className="text-xs text-gray-500 mb-3">{t('sales.invoice.note')}</p>
 
             {invoices.length > 0 && (
                 <ul className="text-sm space-y-1 mb-3">
                     {invoices.map((i) => (
                         <li key={i.id} className="flex flex-wrap items-baseline gap-x-3">
-                            <Link href={`/finance/invoices/${i.id}`} className="text-blue-600 hover:underline font-mono">
+                            <Link href={`/finance/invoices/${i.id}`} className="hover:underline font-mono app-link app-link-inline">
                                 {i.code}
                             </Link>
                             <span className="text-gray-500">{new Date(i.issue_date).toLocaleDateString(dl)}</span>

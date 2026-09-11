@@ -157,9 +157,9 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                         <tr>
                             <th className="border border-gray-300 px-2 py-1 text-left w-8">#</th>
                             <th className="border border-gray-300 px-2 py-1 text-left">{t('reviews.colObjective')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-right">{t('reviews.colTarget')}</th>
+                            <th className="border border-gray-300 px-2 py-1 text-right tabular-nums">{t('reviews.colTarget')}</th>
                             <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-left">{t('reviews.colUnit')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-right">{t('reviews.colActual')}</th>
+                            <th className="border border-gray-300 px-2 py-1 text-right tabular-nums">{t('reviews.colActual')}</th>
                             <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-left">{t('reviews.colEmployeeResult')}</th>
                             <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-left">{t('reviews.colAssessment')}</th>
                             {editable && <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 w-28"></th>}
@@ -299,7 +299,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                                 type="number"
                                                 value={draft!.target}
                                                 onChange={(e) => setDraft({ ...draft!, target: e.target.value })}
-                                                className={`${inp} text-right w-20`}
+                                                className={`${inp} text-right w-20 tabular-nums`}
                                             />
                                         ) : (
                                             g.target_value ?? '—'
@@ -323,7 +323,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                                 type="number"
                                                 value={draft!.actual}
                                                 onChange={(e) => setDraft({ ...draft!, actual: e.target.value })}
-                                                className={`${inp} text-right w-20`}
+                                                className={`${inp} text-right w-20 tabular-nums`}
                                             />
                                         ) : (
                                             g.actual_value ?? '—'
@@ -363,11 +363,11 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
             )}
             {canEditGoals && (
                 <div className="rounded border border-gray-200 p-4">
-                    <h3 className="font-bold mb-1 text-sm">{t('reviews.addGoal')}</h3>
+                    <h3 className="mb-1">{t('reviews.addGoal')}</h3>
                     {/* 指标与单位一起定:此刻不填单位,以后就没有任何一条路能补上它 */}
                     <p className="text-xs text-gray-500 mb-3">{t('reviews.addGoalHint')}</p>
                     <div className="flex gap-2 flex-wrap items-end">
-                        <label className="text-xs grow min-w-64">
+                        <label className="grow min-w-64">
                             {t('reviews.colObjective')}
                             <textarea
                                 value={newObjective}
@@ -375,16 +375,16 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                 className={`block ${ta}`}
                             />
                         </label>
-                        <label className="text-xs">
+                        <label className="">
                             {t('reviews.colTarget')}
                             <input
                                 type="number"
                                 value={newTarget}
                                 onChange={(e) => setNewTarget(e.target.value)}
-                                className={`block ${inp} w-24 text-right`}
+                                className={`block ${inp} w-24 text-right tabular-nums`}
                             />
                         </label>
-                        <label className="text-xs">
+                        <label className="">
                             {t('reviews.colUnit')}
                             <input
                                 value={newUnit}

@@ -55,7 +55,7 @@ export default function OutputTable({
         {
             key: 'code', header: t('output.colCode'), priority: true, sortable: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/output/${r.id}/edit`} className="text-blue-600 hover:underline">
+                <Link href={`/output/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

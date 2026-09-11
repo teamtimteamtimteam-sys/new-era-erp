@@ -54,7 +54,7 @@ export default function WoThresholdPanel({
                 <form action={formAction} className="space-y-3">
                     <div className="flex flex-wrap items-end gap-3">
                         <div>
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('processing.wo.settings.inputLabel')}
                             </label>
                             <input type="number" name="wo_input_overrun_pct" step="0.1" min="0.1"
@@ -63,7 +63,7 @@ export default function WoThresholdPanel({
                             <p className="text-xs text-gray-500 mt-1">{t('processing.wo.settings.inputWhen')}</p>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-1">
+                            <label className="block mb-1">
                                 {t('processing.wo.settings.outputLabel')}
                             </label>
                             <input type="number" name="wo_output_shortfall_pct" step="0.1" min="0.1"

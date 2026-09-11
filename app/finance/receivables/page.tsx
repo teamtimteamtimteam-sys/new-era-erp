@@ -63,7 +63,7 @@ export default async function ReceivablesPage({
         const msg = await localizeFinanceError(e instanceof Error ? e.message : String(e))
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">{t('finance.receivablesTitle')}</h1>
+                <h1 className="mb-4">{t('finance.receivablesTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('finance.loadError')}</p>
                     <p className="mt-2 text-sm">{msg}</p>
@@ -175,10 +175,10 @@ export default async function ReceivablesPage({
                         <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('finance.colDate')}</th>
                         {/* AGING-1:到期日露出来,而【档位不按它分】—— AR 的发票支有,销售支借它挂着的发票的 */}
                         <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('finance.agingAsOf.colDueDate')}</th>
-                        <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('finance.colAmount', { ccy: baseCurrency })}</th>
-                        <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('finance.colSettled')}</th>
-                        <th className={`${tableC.headCell} hidden sm:table-cell text-right`}>{t('finance.colCredited')}</th>
-                        <th className={`${tableC.headCell} text-right`}>{t('finance.colOpen')}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('finance.colAmount', { ccy: baseCurrency })}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('finance.colSettled')}</th>
+                        <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('finance.colCredited')}</th>
+                        <th className={`${tableC.headCell} text-right tabular-nums`}>{t('finance.colOpen')}</th>
                         <th className={`${tableC.headCell} text-left`}>{t('finance.colDays')}</th>
                     </tr>
                 </thead>
@@ -195,14 +195,14 @@ export default async function ReceivablesPage({
                                             {r.doc_kind === 'invoice' ? (
                                                 <Link
                                                     href={`/finance/invoices/${r.invoice_id}`}
-                                                    className="text-blue-600 hover:underline"
+                                                    className="hover:underline app-link"
                                                 >
                                                     {r.doc_code}
                                                 </Link>
                                             ) : (
                                                 <Link
                                                     href={`/finance/receivables/${r.sales_record_id}`}
-                                                    className="text-blue-600 hover:underline"
+                                                    className="hover:underline app-link"
                                                 >
                                                     {r.doc_code}
                                                 </Link>
@@ -258,7 +258,7 @@ export default async function ReceivablesPage({
                                             {r.invoice_id && r.invoice_code ? (
                                                 <Link
                                                     href={`/finance/invoices/${r.invoice_id}`}
-                                                    className="text-blue-600 hover:underline"
+                                                    className="hover:underline app-link"
                                                 >
                                                     {r.invoice_code}
                                                 </Link>

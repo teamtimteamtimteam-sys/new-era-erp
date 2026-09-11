@@ -47,7 +47,7 @@ export default function LocationForm({
 
             <div className="flex flex-wrap gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('locations.form.code')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -65,7 +65,7 @@ export default function LocationForm({
                     )}
                 </div>
                 <div className="flex-1 min-w-[14rem]">
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('locations.form.name')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -80,7 +80,7 @@ export default function LocationForm({
                     )}
                 </div>
                 <div className="w-48">
-                    <label className="block text-sm font-medium mb-1">{t('locations.form.zone')}</label>
+                    <label className="block mb-1">{t('locations.form.zone')}</label>
                     <input
                         type="text"
                         name="zone"
@@ -94,7 +94,7 @@ export default function LocationForm({
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">{t('locations.form.notes')}</label>
+                <label className="block mb-1">{t('locations.form.notes')}</label>
                 <input
                     type="text"
                     name="notes"

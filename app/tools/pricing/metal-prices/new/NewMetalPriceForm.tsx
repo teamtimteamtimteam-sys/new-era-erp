@@ -43,13 +43,13 @@ export default function NewMetalPriceForm({
             <div className="mb-6">
                 <Link
                     href="/tools/pricing/metal-prices"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">{t('metalPrices.newTitle')}</h1>
+            <h1 className="mb-6">{t('metalPrices.newTitle')}</h1>
 
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -60,7 +60,7 @@ export default function NewMetalPriceForm({
             <form action={formAction} className="space-y-4">
                 {/* 金属(必填)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('metalPrices.form.metal')} <span className="text-red-600">*</span>
                     </label>
                     <select
@@ -83,7 +83,7 @@ export default function NewMetalPriceForm({
 
                 {/* 价格(必填,> 0)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('metalPrices.form.price')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -108,7 +108,7 @@ export default function NewMetalPriceForm({
 
                 {/* 价格日期(必填,默认今天)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('metalPrices.form.priceDate')} <span className="text-red-600">*</span>
                     </label>
                     <input
@@ -127,7 +127,7 @@ export default function NewMetalPriceForm({
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('metalPrices.form.notes')}</label>
+                    <label className="block mb-1">{t('metalPrices.form.notes')}</label>
                     <textarea
                         name="notes"
                         className={`${CONTROL_TEXTAREA} w-full`}

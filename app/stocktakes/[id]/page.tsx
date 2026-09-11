@@ -74,7 +74,7 @@ export default async function StocktakeDetailPage({
         const err = linesRes.error ?? inboundRes.error ?? outputRes.error
         return (
             <div className="p-4 sm:p-8 max-w-3xl">
-                <h1 className="text-2xl font-bold mb-4">{t('stocktakes.detailTitle')}</h1>
+                <h1 className="mb-4">{t('stocktakes.detailTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('stocktakes.loadError')}</p>
                     <details className="mt-2">
@@ -167,12 +167,12 @@ export default async function StocktakeDetailPage({
     return (
         <div className="p-4 sm:p-8 max-w-3xl">
             <div className="mb-6">
-                <Link href="/stocktakes" className="text-blue-600 hover:underline text-sm">
+                <Link href="/stocktakes" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-bold mb-2">{t('stocktakes.detailTitle')}</h1>
+            <h1 className="sm:text-2xl mb-2">{t('stocktakes.detailTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6">
                 <span className="font-mono">{st.code}</span>
                 <span className="mx-2">·</span>
@@ -215,14 +215,14 @@ export default async function StocktakeDetailPage({
 
                     {countedItems.length > 0 && (
                         <>
-                            <h2 className="text-lg font-semibold mb-2">{t('stocktakes.countedTitle')}</h2>
+                            <h2 className="mb-2">{t('stocktakes.countedTitle')}</h2>
                             <CountList stocktakeId={id} items={countedItems} mode="counted" />
                         </>
                     )}
 
                     {uncountedItems.length > 0 && (
                         <>
-                            <h2 className="text-lg font-semibold mb-2">{t('stocktakes.uncountedTitle')}</h2>
+                            <h2 className="mb-2">{t('stocktakes.uncountedTitle')}</h2>
                             <CountList stocktakeId={id} items={uncountedItems} mode="uncounted" />
                         </>
                     )}

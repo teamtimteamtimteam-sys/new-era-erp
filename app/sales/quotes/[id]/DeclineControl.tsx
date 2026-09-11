@@ -43,7 +43,7 @@ export default function DeclineControl({ quoteId }: { quoteId: string }) {
             {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
             <div className="flex flex-wrap items-end gap-3">
                 <div className="flex-1 min-w-[16rem]">
-                    <label className="block text-xs text-gray-600 mb-1">
+                    <label className="block mb-1">
                         {t('quotes.decline.reason')} <span className="text-red-600">*</span>
                     </label>
                     <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}

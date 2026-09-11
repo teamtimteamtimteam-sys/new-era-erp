@@ -43,7 +43,7 @@ export default async function PermissionUsersPage() {
 
     return (
         <div className="p-8 max-w-6xl">
-            <h1 className="text-2xl font-bold mb-4">{t('permissions.title')}</h1>
+            <h1 className="mb-4">{t('permissions.title')}</h1>
 
             {/* C4:被锁在门外的人读不到这个界面 —— 所以恢复流程必须写在【别处】,
                 这里只负责告诉还进得来的人:它存在,在哪儿。

@@ -176,7 +176,7 @@ export default async function EditOutputPage({
         const err = materialsRes.error ?? customersRes.error
         return (
             <div className="p-8 max-w-2xl">
-                <h1 className="text-2xl font-bold mb-4">{t('output.editTitle')}</h1>
+                <h1 className="mb-4">{t('output.editTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('output.dropdownLoadError')}</p>
                     <details className="mt-2">
@@ -300,13 +300,13 @@ export default async function EditOutputPage({
             <div className="mb-6">
                 <Link
                     href="/output"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-bold mb-2">{t('output.editTitle')}</h1>
+            <h1 className="sm:text-2xl mb-2">{t('output.editTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6">
                 <span className="font-mono">{batch.code}</span>
                 <span className="mx-2">·</span>
@@ -370,7 +370,7 @@ export default async function EditOutputPage({
                 "这批货挣了多少" 的答案摆在批次自己身上,而不是一条通往报表的链接:
                 问题是在这里产生的。数字全部来自 batch_margin,页面不算账。 */}
             <section className="mt-8 pt-8 border-t">
-                <h2 className="text-xl font-bold mb-3">{t('margin.title')}</h2>
+                <h2 className="mb-3">{t('margin.title')}</h2>
                 {!showPrices ? (
                     // 受限,不是零 —— operations 与 warehouse 都进得来这一页
                     <p className="text-sm text-gray-500">{t('common.restricted')}</p>
@@ -430,7 +430,7 @@ export default async function EditOutputPage({
                                 也就是说这个链接出现的条件与注册表判据同源,只是由
                                 数据库那一侧执行。写死的 /margin 换成 FN.margin.href,
                                 地址就再也不会与注册表分家。 */}
-                            <Link href={FN.margin.href} className="text-blue-600 hover:underline">
+                            <Link href={FN.margin.href} className="hover:underline app-link app-link-inline">
                                 {t('output.margin.allBatches')}
                             </Link>
                         </p>
@@ -481,7 +481,7 @@ export default async function EditOutputPage({
                 />
             ) : (
                 <section className="mt-8 pt-8 border-t">
-                    <h2 className="text-xl font-bold mb-4">{t('output.sale.title')}</h2>
+                    <h2 className="mb-4">{t('output.sale.title')}</h2>
                     <p className="text-sm text-gray-500">{t('output.sale.soldOut')}</p>
                 </section>
             )}

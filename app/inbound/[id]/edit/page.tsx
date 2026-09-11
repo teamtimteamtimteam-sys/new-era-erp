@@ -182,7 +182,7 @@ export default async function EditInboundPage({
         const err = materialsRes.error ?? suppliersRes.error
         return (
             <div className="p-8 max-w-2xl">
-                <h1 className="text-2xl font-bold mb-4">{t('inbound.editTitle')}</h1>
+                <h1 className="mb-4">{t('inbound.editTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('inbound.dropdownLoadError')}</p>
                     <details className="mt-2">
@@ -592,13 +592,13 @@ export default async function EditInboundPage({
             <div className="mb-6">
                 <Link
                     href="/inbound"
-                    className="text-blue-600 hover:underline text-sm"
+                    className="hover:underline text-sm app-link"
                 >
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-bold mb-2">{t('inbound.editTitle')}</h1>
+            <h1 className="sm:text-2xl mb-2">{t('inbound.editTitle')}</h1>
             <p className="text-sm text-gray-600 mb-6">
                 <span className="font-mono">{batch.code}</span>
                 <span className="mx-2">·</span>
@@ -632,7 +632,7 @@ export default async function EditInboundPage({
                         {t('inbound.againstPo')}:{' '}
                         <Link
                             href={`/purchasing/orders/${poHeader.po_id}`}
-                            className="text-blue-600 hover:underline font-mono"
+                            className="hover:underline font-mono app-link app-link-inline"
                         >
                             {poHeader.po_code}
                         </Link>
@@ -663,7 +663,7 @@ export default async function EditInboundPage({
                   · 挂了、正常 → 【对得上】,并把比过的两个数摆出来当证据;
                   · 有差异     → 逐条点名(DiscrepancyKinds)。 */}
             <div className="mb-6">
-                <h2 className="text-sm font-medium text-gray-700 mb-2">{t('grn.batch.heading')}</h2>
+                <h2 className="mb-2">{t('grn.batch.heading')}</h2>
                 {!batch.purchase_order_line_id ? (
                     <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
                         {t('grn.batch.noPoLine')}
@@ -798,7 +798,7 @@ export default async function EditInboundPage({
                 /* 【不适用时说出是哪一种种类,而不是让这一块凭空消失】——
                    一块无声消失的界面读起来像"这个功能坏了",而不像一个答复。 */
                 <div className="mb-8">
-                    <h2 className="text-sm font-medium text-gray-700 mb-2">{t('inbound.condition.title')}</h2>
+                    <h2 className="mb-2">{t('inbound.condition.title')}</h2>
                     <div className="border border-gray-300 rounded p-3 max-w-2xl bg-gray-50">
                         <p className="text-xs text-gray-600">
                             {t('inbound.condition.notApplicable', { kind: conditionKindLabel })}

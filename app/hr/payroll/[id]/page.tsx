@@ -108,7 +108,7 @@ export default async function PayrollDetailPage({
         <ListPage
             maxWidth="max-w-5xl"
             breadcrumb={
-                <Link href="/hr/payroll" className="text-blue-600 hover:underline text-sm">
+                <Link href="/hr/payroll" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             }
@@ -180,7 +180,7 @@ export default async function PayrollDetailPage({
                             value: (
                                 <Link
                                     href={`/finance/journal/${jeRes.data.id}`}
-                                    className="text-blue-600 hover:underline font-mono"
+                                    className="hover:underline font-mono app-link app-link-inline"
                                 >
                                     {jeRes.data.code}
                                 </Link>

@@ -85,13 +85,13 @@ export default function HrDecisionForm({
 
     return (
         <div className="mb-6 rounded border border-gray-200 p-4">
-            <h3 className="font-bold mb-3 text-sm">{t('reviews.hrDecisionTitle')}</h3>
+            <h3 className="mb-3">{t('reviews.hrDecisionTitle')}</h3>
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
             <div className="flex gap-4 flex-wrap items-end">
                 {showProbation && (
-                    <label className="text-xs text-gray-600">
+                    <label className="">
                         {t('reviews.probationOutcome')}
                         {editable ? (
                             <select
@@ -115,7 +115,7 @@ export default function HrDecisionForm({
                     现在整段照画,值画成「受限」,控件看得见按不动并点名那个码。 */}
                 {!canPay && (
                     <PermissionGate code="data.view_pay" allowed={false} inline>
-                        <label className="text-xs text-gray-600">
+                        <label className="">
                             {t('reviews.newSalary')}
                             <span className="block py-1">
                                 <Refusal why={t('common.dataClassDeniedHint')}>{t('common.restricted')}</Refusal>
@@ -125,7 +125,7 @@ export default function HrDecisionForm({
                 )}
                 {canPay && (
                     <>
-                        <label className="text-xs text-gray-600">
+                        <label className="">
                             {t('reviews.newSalary')}
                             {editable ? (
                                 <input
@@ -140,7 +140,7 @@ export default function HrDecisionForm({
                                 </span>
                             )}
                         </label>
-                        <label className="text-xs text-gray-600">
+                        <label className="">
                             {t('reviews.salaryEffective')}
                             {editable ? (
                                 <input

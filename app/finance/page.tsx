@@ -114,7 +114,7 @@ export default async function FinanceOverviewPage() {
 
     return (
         <div className="p-4 sm:p-8 max-w-3xl">
-            <h1 className="text-2xl font-bold mb-1" style={{ color: 'var(--brand-text)' }}>
+            <h1 className="mb-1" style={{ color: 'var(--brand-text)' }}>
                 {t('nav.finance')}
             </h1>
             {/* 【一页要说出自己是什么】—— 尤其这一页,因为它替掉的那一版
@@ -133,7 +133,7 @@ export default async function FinanceOverviewPage() {
                 }}
                 state={{ kind: 'ok' }}
                 action={
-                    <Link href="/finance/close" className="hover:underline" style={{ color: 'var(--brand-ocean-fill)' }}>
+                    <Link href="/finance/close" className="hover:underline app-link">
                         {t('financeOverview.periodAction')}
                     </Link>
                 }
@@ -248,7 +248,7 @@ export default async function FinanceOverviewPage() {
 
             {/* 【月结在旁边,不在这一页上】—— 分界写在文件抬头。给一条路,不复制信号。 */}
             <p className="text-sm mt-6">
-                <Link href="/finance/month-end" className="hover:underline" style={{ color: 'var(--brand-ocean-fill)' }}>
+                <Link href="/finance/month-end" className="hover:underline app-link">
                     {t('dashboard.monthEnd')}
                 </Link>
                 <span className="ml-2" style={{ color: 'var(--brand-muted-text)' }}>

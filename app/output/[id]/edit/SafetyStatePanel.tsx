@@ -46,7 +46,7 @@ export default function SafetyStatePanel({
 
     return (
         <div className="mt-8 border rounded p-4">
-            <h2 className="font-semibold mb-1">{t('output.safety.title')}</h2>
+            <h2 className="mb-1">{t('output.safety.title')}</h2>
             <p className="text-xs text-gray-500 mb-3">{t('output.safety.why')}</p>
 
             {/* ★ 一条都没有 → 按名说出来,不画空白 */}

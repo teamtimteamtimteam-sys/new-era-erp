@@ -62,7 +62,7 @@ export default function PurposePanel({
 
     return (
         <div className="mt-8 border rounded p-4">
-            <h2 className="font-semibold mb-1">{t('output.purpose.title')}</h2>
+            <h2 className="mb-1">{t('output.purpose.title')}</h2>
             <p className="text-xs text-gray-500 mb-3">{t('output.purpose.why')}</p>
 
             {/* 【当前状态要一眼看得出来】被指定的批次不是可售库存,而那是一条

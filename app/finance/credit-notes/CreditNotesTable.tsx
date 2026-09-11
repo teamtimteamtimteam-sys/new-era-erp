@@ -31,7 +31,7 @@ export default function CreditNotesTable({ rows }: { rows: CreditNoteRow[] }) {
         {
             key: 'code', header: t('cn.colCode'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/finance/credit-notes/${r.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/finance/credit-notes/${r.id}`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),
@@ -42,7 +42,7 @@ export default function CreditNotesTable({ rows }: { rows: CreditNoteRow[] }) {
             key: 'invoice', header: t('cn.againstInvoice'), className: 'font-mono text-sm',
             render: (r) =>
                 r.invoiceId ? (
-                    <Link href={`/finance/invoices/${r.invoiceId}`} className="text-blue-600 hover:underline">
+                    <Link href={`/finance/invoices/${r.invoiceId}`} className="hover:underline app-link">
                         {r.invoiceCode}
                     </Link>
                 ) : (

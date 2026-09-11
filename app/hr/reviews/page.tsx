@@ -111,7 +111,7 @@ export default async function ReviewsPage({
             state={{ kind: 'ok' }}
         >
             <form className="flex gap-2 flex-wrap items-end mb-4" method="get">
-                <label className="text-xs text-gray-600">
+                <label className="">
                     {t('reviews.cycle')}
                     <select name="cycle" defaultValue={sp.cycle ?? ''} className={`block ${sel}`}>
                         <option value="">{t('reviews.allCycles')}</option>
@@ -120,7 +120,7 @@ export default async function ReviewsPage({
                         ))}
                     </select>
                 </label>
-                <label className="text-xs text-gray-600">
+                <label className="">
                     {t('reviews.type')}
                     <select name="type" defaultValue={sp.type ?? ''} className={`block ${sel}`}>
                         <option value="">{t('reviews.allTypes')}</option>
@@ -129,7 +129,7 @@ export default async function ReviewsPage({
                         ))}
                     </select>
                 </label>
-                <label className="text-xs text-gray-600">
+                <label className="">
                     {t('reviews.status')}
                     <select name="status" defaultValue={sp.status ?? ''} className={`block ${sel}`}>
                         <option value="">{t('reviews.allStatuses')}</option>
@@ -138,7 +138,7 @@ export default async function ReviewsPage({
                         ))}
                     </select>
                 </label>
-                <label className="text-xs text-gray-600">
+                <label className="">
                     {t('reviews.employee')}
                     <select name="employee" defaultValue={sp.employee ?? ''} className={`block ${sel}`}>
                         <option value="">{t('reviews.allEmployees')}</option>

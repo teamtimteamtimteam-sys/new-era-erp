@@ -33,7 +33,7 @@ export default function FormulasTable({ rows, empty }: { rows: FormulaRow[]; emp
         {
             key: 'code', header: t('pricing.colCode'), priority: true, className: 'font-mono text-sm',
             render: (r) => (
-                <Link href={`/tools/pricing/formulas/${r.id}/edit`} className="text-blue-600 hover:underline">
+                <Link href={`/tools/pricing/formulas/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

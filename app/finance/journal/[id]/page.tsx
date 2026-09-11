@@ -122,7 +122,7 @@ export default async function JournalDetailPage({
             maxWidth="max-w-4xl"
             // ★ CONV-8 加的槽:返回链接画在标题【之上】,与转换前同位置。
             breadcrumb={
-                <Link href="/finance/journal" className="text-blue-600 hover:underline text-sm">
+                <Link href="/finance/journal" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             }
@@ -140,7 +140,7 @@ export default async function JournalDetailPage({
                         <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
                             <Link
                                 href={`/finance/journal/${reversedByRes.data.id}`}
-                                className="text-blue-600 hover:underline"
+                                className="hover:underline app-link"
                             >
                                 {t('finance.reversedBanner', { code: reversedByRes.data.code })}
                             </Link>
@@ -150,7 +150,7 @@ export default async function JournalDetailPage({
                         <div className="bg-gray-50 border border-gray-300 text-gray-700 px-4 py-3 rounded mb-4 text-sm">
                             <Link
                                 href={`/finance/journal/${reversalOfRes.data.id}`}
-                                className="text-blue-600 hover:underline"
+                                className="hover:underline app-link"
                             >
                                 {t('finance.reversalOfBanner', { code: reversalOfRes.data.code })}
                             </Link>
@@ -169,7 +169,7 @@ export default async function JournalDetailPage({
                         label: t('finance.colSource'),
                         value: entry.source_type ? (
                             sourceHref ? (
-                                <Link href={sourceHref} className="text-blue-600 hover:underline">
+                                <Link href={sourceHref} className="hover:underline app-link app-link-inline">
                                     {t('finance.source.' + entry.source_type)}
                                 </Link>
                             ) : (

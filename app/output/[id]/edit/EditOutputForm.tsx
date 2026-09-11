@@ -54,7 +54,7 @@ export default function EditOutputForm({
             <form action={formAction} className="space-y-4">
                 {/* 物料(必填,预选)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label className="block mb-1">
                         {t('output.form.material')} <span className="text-red-600">*</span>
                     </label>
                     <select
@@ -88,7 +88,7 @@ export default function EditOutputForm({
 
                 {/* 客户(可选,预选)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.customer')}</label>
+                    <label className="block mb-1">{t('output.form.customer')}</label>
                     <select
                         name="customer_id"
                         defaultValue={batch.customer_id ?? ''}
@@ -114,7 +114,7 @@ export default function EditOutputForm({
 
                 {/* 数量(创建后锁定 —— 库存变动走库存流水;disabled 不随表单提交)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.quantity')}</label>
+                    <label className="block mb-1">{t('output.form.quantity')}</label>
                     <input
                         type="number"
                         name="quantity"
@@ -128,7 +128,7 @@ export default function EditOutputForm({
 
                 {/* 单位 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.unit')}</label>
+                    <label className="block mb-1">{t('output.form.unit')}</label>
                     <select
                         name="unit"
                         defaultValue={batch.unit}
@@ -152,7 +152,7 @@ export default function EditOutputForm({
 
                 {/* 产出日期 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.outputDate')}</label>
+                    <label className="block mb-1">{t('output.form.outputDate')}</label>
                     <input
                         type="date"
                         name="output_date"
@@ -163,7 +163,7 @@ export default function EditOutputForm({
 
                 {/* 状态(由销售/加工自动更新 —— 只读;disabled 不随表单提交)*/}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.state')}</label>
+                    <label className="block mb-1">{t('output.form.state')}</label>
                     <select
                         name="state"
                         disabled
@@ -181,7 +181,7 @@ export default function EditOutputForm({
 
                 {/* 品位/纯度 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.purity')}</label>
+                    <label className="block mb-1">{t('output.form.purity')}</label>
                     <input
                         type="text"
                         name="purity"
@@ -193,7 +193,7 @@ export default function EditOutputForm({
 
                 {/* 备注 */}
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('output.form.notes')}</label>
+                    <label className="block mb-1">{t('output.form.notes')}</label>
                     <textarea
                         name="notes"
                         defaultValue={batch.notes ?? ''}

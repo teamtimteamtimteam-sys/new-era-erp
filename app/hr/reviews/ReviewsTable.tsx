@@ -34,7 +34,7 @@ export default function ReviewsTable({ rows, empty }: { rows: ReviewsTableRow[];
         {
             key: 'employee', header: t('reviews.employee'), priority: true, className: 'whitespace-nowrap',
             render: (r) => (
-                <Link href={`/hr/reviews/${r.id}`} className="text-blue-600 hover:underline">
+                <Link href={`/hr/reviews/${r.id}`} className="hover:underline app-link">
                     <span className="font-mono">{r.employeeCode}</span> {r.employeeLabel}
                 </Link>
             ),

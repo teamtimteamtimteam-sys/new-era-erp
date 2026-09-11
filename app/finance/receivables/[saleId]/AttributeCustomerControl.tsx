@@ -66,7 +66,7 @@ canEdit: boolean
             <p className="text-sm text-amber-900">{t('receivables.attribute.explain')}</p>
             <div className="flex flex-wrap items-end gap-2">
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('receivables.attribute.customer')}</label>
+                    <label className="block mb-1">{t('receivables.attribute.customer')}</label>
                     <select
                         value={customerId}
                         onChange={(e) => setCustomerId(e.target.value)}
@@ -81,7 +81,7 @@ canEdit: boolean
                     </select>
                 </div>
                 <div className="flex-1 min-w-[12rem]">
-                    <label className="block text-sm font-medium mb-1">{t('receivables.attribute.note')}</label>
+                    <label className="block mb-1">{t('receivables.attribute.note')}</label>
                     <input
                         type="text"
                         value={note}

@@ -38,7 +38,7 @@ export default function ClaimsTable({ rows, empty }: { rows: ClaimRow[]; empty: 
         {
             key: 'code', header: t('claims.code'), priority: true, className: 'font-mono text-xs',
             render: (r) => (
-                <Link href={`/hr/claims/${r.claimId}`} className="text-blue-600 hover:underline">
+                <Link href={`/hr/claims/${r.claimId}`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),

@@ -90,7 +90,7 @@ export default function MyReviewsPanel({
 
     return (
         <section className="mb-6">
-            <h2 className="text-lg font-bold mb-2">{t('reviews.mineTitle')}</h2>
+            <h2 className="mb-2">{t('reviews.mineTitle')}</h2>
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}

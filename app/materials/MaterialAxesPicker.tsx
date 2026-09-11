@@ -44,7 +44,7 @@ import { CONTROL_RADIO, CONTROL_SELECT } from '@/app/components/ui/control-style
 function NotApplicable({ label, why }: { label: string; why: string }) {
     return (
         <div>
-            <label className="block text-sm font-medium mb-1 text-gray-500">{label}</label>
+            <label className="block mb-1">{label}</label>
             <p className="text-sm text-gray-600 border border-gray-200 rounded px-3 py-2 bg-gray-50">{why}</p>
         </div>
     )
@@ -85,7 +85,7 @@ export default function MaterialAxesPicker({
         <>
             {/* ── 种类 ─────────────────────────────────────────────────────── */}
             <div>
-                <label className="block text-sm font-medium mb-1">{t('materials.form.kind')}</label>
+                <label className="block mb-1">{t('materials.form.kind')}</label>
                 <select name="kind_code" value={kind} onChange={(e) => setKind(e.target.value)}
                         className={`${CONTROL_SELECT} w-full`}>
                     <option value={KIND_UNCHOSEN}>{t('materials.form.kindUnchosen')}</option>
@@ -96,7 +96,7 @@ export default function MaterialAxesPicker({
 
             {/* ── 能不能投料(PROC-1)──────────────────────────────────────── */}
             <div>
-                <label className="block text-sm font-medium mb-1">{t('materials.form.processable')}</label>
+                <label className="block mb-1">{t('materials.form.processable')}</label>
                 {chosenKind && !chosenKind.may_ever_be_processed ? (
                     <>
                         <input type="hidden" name="may_be_processed" value="no" />
@@ -108,7 +108,7 @@ export default function MaterialAxesPicker({
                     <>
                         <div className="flex gap-4">
                             {(['yes', 'no'] as const).map((v) => (
-                                <label key={v} className="flex items-center gap-1 text-sm">
+                                <label key={v} className="flex items-center gap-1">
                                     <input type="radio" className={CONTROL_RADIO} name="may_be_processed" value={v}
                                            defaultChecked={defaultProcessable === (v === 'yes')} />
                                     {t(v === 'yes' ? 'materials.form.processableYes' : 'materials.form.processableNo')}
@@ -131,7 +131,7 @@ export default function MaterialAxesPicker({
                     why={t('materials.form.axisNotForKind', { kind: label(chosenKind!) })} />
             ) : (
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.form.formAxis')}</label>
+                    <label className="block mb-1">{t('materials.form.formAxis')}</label>
                     {dropdown('form_code', form, setForm, forms, 'materials.form.formUnchosen')}
                     <p className="text-xs text-gray-600 mt-1">{t('materials.form.formHint')}</p>
                     {/* PROC-BUILD-1(R5):可售性【看得见】,而不是只在按下"记录销售"时才出现。
@@ -153,7 +153,7 @@ export default function MaterialAxesPicker({
                     why={t('materials.form.axisNotForKind', { kind: label(chosenKind!) })} />
             ) : (
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.form.sourceAxis')}</label>
+                    <label className="block mb-1">{t('materials.form.sourceAxis')}</label>
                     {dropdown('source_code', defaultSource ?? AXIS_UNCHOSEN, null, sources, 'materials.form.sourceUnchosen')}
                     <p className="text-xs text-gray-600 mt-1">{t('materials.form.sourceHint')}</p>
                 </div>
@@ -172,7 +172,7 @@ export default function MaterialAxesPicker({
                     why={t('materials.form.sizeNotForForm', { form: label(chosenForm) })} />
             ) : (
                 <div>
-                    <label className="block text-sm font-medium mb-1">{t('materials.form.sizeAxis')}</label>
+                    <label className="block mb-1">{t('materials.form.sizeAxis')}</label>
                     {dropdown('size_format_code', defaultSizeFormat ?? AXIS_UNCHOSEN, null, sizeFormats, 'materials.form.sizeUnchosen')}
                     <p className="text-xs text-gray-600 mt-1">{t('materials.form.sizeHint')}</p>
                 </div>

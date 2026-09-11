@@ -86,7 +86,7 @@ export default function MovementTimelineTable({ rows }: { rows: readonly Movemen
             className: 'font-mono',
             render: (r) =>
                 r.runHref && r.runCode ? (
-                    <Link href={r.runHref} className="text-blue-600 hover:underline">
+                    <Link href={r.runHref} className="hover:underline app-link">
                         {r.runCode}
                     </Link>
                 ) : (

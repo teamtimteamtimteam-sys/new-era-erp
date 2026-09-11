@@ -98,13 +98,13 @@ export default async function MyReviewsPage() {
         >
             {open.length > 0 && (
                 <>
-                    <h2 className="text-lg font-bold mb-2">{t('reviews.myOpen')}</h2>
+                    <h2 className="mb-2">{t('reviews.myOpen')}</h2>
                     <MyReviewsTable rows={open.map(toRow)} />
                 </>
             )}
             {closed.length > 0 && (
                 <>
-                    <h2 className="text-lg font-bold mb-2">{t('reviews.myClosed')}</h2>
+                    <h2 className="mb-2">{t('reviews.myClosed')}</h2>
                     <MyReviewsTable rows={closed.map(toRow)} />
                 </>
             )}

@@ -69,12 +69,12 @@ export default async function ReceivePage() {
     return (
         <div className="p-4 max-w-md mx-auto">
             <div className="mb-4">
-                <Link href="/inbound" className="text-blue-600 hover:underline text-sm">
+                <Link href="/inbound" className="hover:underline text-sm app-link">
                     {t('common.back')}
                 </Link>
             </div>
 
-            <h1 className="text-2xl font-bold mb-6">{t('receive.title')}</h1>
+            <h1 className="mb-6">{t('receive.title')}</h1>
 
             <ReceiveForm
             sourceReasons={sourceReasons}

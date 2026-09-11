@@ -82,7 +82,7 @@ export default async function ClosePage({
     if (error) {
         return (
             <div className="p-8">
-                <h1 className="text-2xl font-bold mb-4">{t('finance.closeTitle')}</h1>
+                <h1 className="mb-4">{t('finance.closeTitle')}</h1>
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                     <p className="font-bold">{t('finance.loadError')}</p>
                     <details className="mt-2">
@@ -268,7 +268,7 @@ export default async function ClosePage({
             </div>
 
             {/* 关账历史 */}
-            <h2 className="text-lg font-semibold mb-3">{t('finance.closeHistory')}</h2>
+            <h2 className="mb-3">{t('finance.closeHistory')}</h2>
             <CloseHistoryTable
                 rows={closeHistoryRows}
                 canEdit={canEditGate}
@@ -276,7 +276,7 @@ export default async function ClosePage({
             />
 
             {/* ── FIN-23:年结 ─────────────────────────────────────────────── */}
-            <h2 className="text-lg font-semibold mt-8 mb-3">{t('finance.yearClose.title')}</h2>
+            <h2 className="mt-8 mb-3">{t('finance.yearClose.title')}</h2>
             {yp && (
                 <div className="bg-gray-50 rounded p-4 mb-4 space-y-3 text-sm">
                     <div className="flex flex-wrap gap-x-8 gap-y-1">

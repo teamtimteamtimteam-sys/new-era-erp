@@ -63,7 +63,7 @@ export default async function ClaimsPage({
             state={{ kind: 'ok' }}
         >
             <form method="get" className="flex gap-2 flex-wrap items-end mb-4">
-                <label className="text-xs text-gray-600">{t('claims.state')}
+                <label className="">{t('claims.state')}
                     <select name="status" defaultValue={sp.status ?? ''} className={`block ${sel}`}>
                         <option value="">{t('leave.allStatuses')}</option>
                         {['submitted','approved','rejected','expense_raised','part_paid','paid'].map((s) => (
@@ -71,7 +71,7 @@ export default async function ClaimsPage({
                         ))}
                     </select>
                 </label>
-                <label className="text-xs text-gray-600">{t('leave.employee')}
+                <label className="">{t('leave.employee')}
                     <select name="employee" defaultValue={sp.employee ?? ''} className={`block ${sel}`}>
                         <option value="">{t('leave.allEmployees')}</option>
                         {(mustRows(empRes)).map((e) => (
@@ -79,7 +79,7 @@ export default async function ClaimsPage({
                         ))}
                     </select>
                 </label>
-                <label className="text-xs text-gray-600">{t('claims.year')}
+                <label className="">{t('claims.year')}
                     <input type="number" name="year" defaultValue={sp.year ?? ''} className={`block ${inp} w-24`} /></label>
                 <Button variant="secondary" type="submit">{t('leave.filter')}</Button>
             </form>

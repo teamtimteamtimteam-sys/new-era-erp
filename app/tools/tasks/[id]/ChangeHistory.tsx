@@ -87,7 +87,7 @@ export default async function ChangeHistory({
 
     return (
         <section className="mt-8 border-t pt-6">
-            <h2 className="mb-3 text-xl font-bold">{heading}</h2>
+            <h2 className="mb-3">{heading}</h2>
             {/* 空态由表自己说(DataTable 的 empty)—— CONV-8 §⑤ 的推论。 */}
             <ChangeHistoryTable
                 rows={tableRows}

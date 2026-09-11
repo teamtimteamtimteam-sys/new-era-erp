@@ -34,7 +34,7 @@ export default function AttendanceTable({ rows, empty }: { rows: AttendanceRow[]
         {
             key: 'code', header: t('attendance.colCode'), priority: true,
             render: (r) => (
-                <Link className="text-blue-600 hover:underline" href={`/hr/attendance/${r.periodId}`}>
+                <Link className="hover:underline app-link" href={`/hr/attendance/${r.periodId}`}>
                     {r.code}
                 </Link>
             ),

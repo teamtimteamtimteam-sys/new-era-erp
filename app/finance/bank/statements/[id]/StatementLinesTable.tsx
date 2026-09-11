@@ -109,7 +109,7 @@ export default function StatementLinesTable({ rows }: { rows: readonly Statement
                             <Link
                                 key={m.entryId}
                                 href={`/finance/journal/${m.entryId}`}
-                                className="text-blue-600 hover:underline font-mono"
+                                className="hover:underline font-mono app-link app-link-inline"
                             >
                                 {m.entryCode}
                             </Link>
