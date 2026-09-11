@@ -5942,6 +5942,80 @@ CONV-8 自己)。**解药是同一个:先剥注释(而且要连字符串字面�
 
 ---
 
+## ★ SMOKE-SCRATCH-ROWS-STALE · 冒烟每一跑都报的那几条 `ZZ-SMOKE-*` 滞留业务行(OPEN · 刻意不删,2026-09-11 由 INPUT-3 收工核对立案)
+
+> **一句话:** `scripts/smoke-routes.mjs` 的临时行体检**每一跑都会报同一批 `ZZ-SMOKE-*` 行**,
+> 而**它们不该被按命名删掉** —— 多数**仍被在册的真单据引用**。
+> ☞ **立案的理由不是"发现了新问题",是"每一刀都撞见它、每一刀都要在交回报告里解释一遍"** ——
+> 把解释放在一处,下一刀指过来就行。
+
+### 冒烟自己报的那一段(INPUT-3 这一跑,2026-09-11,逐字)
+
+```
+⚠ 滞留的临时行 6 条（超过 2 小时，没有哪一次运行还应当持有它们）:
+  · materials          ZZ-SMOKE-PROBE  (853.3h)  ← 【仍被引用:inbound_batches.material_id × 1】不要直接删
+  · materials          ZZ-SMOKE-M25  (853.3h)  ← 【仍被引用:inbound_batches.material_id × 1、output_batches.material_id × 2】不要直接删
+  · materials          ZZ-SMOKE-NTF  (685.9h)  ← 【仍被引用:inbound_batches.material_id × 2】不要直接删
+  · suppliers          ZZ-SMOKE-S25  (853.3h)  ← 【仍被引用:inbound_batches.supplier_id × 1】不要直接删
+  · customers          ZZ-SMOKE-CJK  (210.9h)  (无人引用)
+  · inbound_batches    ZZ-SMOKE-IB25  (853.3h)  ← 【仍被引用:processing_inputs.inbound_batch_id × 1】不要直接删
+
+【本检查只报告,不删除】归属与年龄正是一次清扫无法安全知道、而报告可以
+照直说出来的东西:同样的不确定,报告说错了人多看一眼,清扫做错了正在跑的活被毁掉。
+怎么处置由人决定 —— 尤其是上面标着【仍被引用】的那些:删掉它们会让一张真单据
+指向一个已删的行,而那比留着残骸坏得多。
+```
+
+### 按表分账
+
+| 表 | 行 | 年龄 | 被真单据引用吗 |
+|---|---|--:|---|
+| `materials` | `ZZ-SMOKE-PROBE` | 853.3h | ★ **是** —— `inbound_batches.material_id` × 1 |
+| `materials` | `ZZ-SMOKE-M25` | 853.3h | ★ **是** —— `inbound_batches.material_id` × 1 · `output_batches.material_id` × 2 |
+| `materials` | `ZZ-SMOKE-NTF` | 685.9h | ★ **是** —— `inbound_batches.material_id` × 2 |
+| `suppliers` | `ZZ-SMOKE-S25` | 853.3h | ★ **是** —— `inbound_batches.supplier_id` × 1 |
+| `customers` | `ZZ-SMOKE-CJK` | 210.9h | **否 —— 无人引用** |
+| `inbound_batches` | `ZZ-SMOKE-IB25` | 853.3h | ★ **是** —— `processing_inputs.inbound_batch_id` × 1 |
+
+★ **合计 6 条 / 4 张表;其中 5 条仍被在册的真单据引用,1 条无人引用。**
+
+### ★ 这一次【什么都没有删,也没有改】
+
+**INPUT-3 收工核对只读了它们,一条 `DELETE` / `UPDATE` 都没有发。**
+★ **一条都不是这一族(INPUT-0 → 3)造出来的** —— 最年轻的一条 210.9 小时 ≈ 8.8 天,
+而整族五刀是 2026-09-10 与 09-11 两天跑完的。
+
+### ★★ 为什么它们【刻意】留着 —— 每一条的来由已经写在别处,不在这里重复
+
+> **本仓库的维护规矩:「新增条目之前,先查它的规格是不是已经在别处 —— 在,就指过去。」**
+
+☞ **`docs/known-wrong-until-cutover.md` 已经逐簇写清楚了**,包括**每一条为什么不删是一个决定而不是疏忽**:
+
+| 那一条 | 它在 `known-wrong-until-cutover.md` 里的判词(摘要) |
+|---|---|
+| `ZZ-SMOKE-PROBE` | 一张**在册的真批次** `IN-2026-0180`(99,970 kg)指着它。**删了它,这张真批次就指向一个已删的物料,比留着残骸坏得多**;处置它「要么改批次的物料、要么连批次一起作废,两者都是**业务动作**而不是清扫动作」 |
+| `ZZ-SMOKE-M25` / `S25` / `IB25` | 2026-08-06 一整套 fixture-25 形状的行,**逐行软删且彼此自洽**;屏幕上一个都看不见。**刻意不硬删** —— 硬删会打断它与一张已冲销加工单之间的外键 |
+| `ZZ-SMOKE-NTF` | NTF-1 手走留下的。`notifications` 只增不改(`BEFORE UPDATE OR DELETE` 抛 `NOTIFICATION_IMMUTABLE`),那两条记的是**真的发生过**的告警,**删掉它才是伪造**;台账那 1 行 receipt 同理不可删 |
+| `ZZ-SMOKE-CJK` | `SMALL-BATCH-1` 为了证明中文渲染而造的客户(法定名称「上海金属回收有限公司」),连同 `quotes.ZZ-SMOKE-QT-CJK`;**已软删并写了 `delete_reason`**,仍叫 `ZZ-SMOKE-*` 好让 `check:scratch` 看得见 —— **「那正是那支检查存在的理由(报告,不清扫)」** |
+
+### ☞ 处置要一次自己的裁定,不是一次清扫
+
+| | |
+|---|---|
+| ★ **为什么不能按命名清** | 6 条里 **5 条仍被在册单据引用**。按命名硬删 = 让真单据指向已删行。`check-scratch-rows.mjs` 的第三列(「仍被引用」)**就是为这种情形加的** |
+| ★ **那要做什么** | 逐条是一次**业务动作**:改那张批次的物料 / 连批次一起作废 / 或者干脆等生产全新重建时不带它们(`known-wrong-until-cutover.md` 对每一条都给了首选答案:**生产全新重建,不带任何一方**) |
+| ★ **在那之前,冒烟会一直报它们** | **那是对的,不是噪音** —— 它每一跑都在说「这里有 6 条不该属于任何一次运行的行」。**不要为了让它安静而去删。** |
+| ⚠ **数会变** | 2026-08-18 的 `SMOKE-DEBT-2` 那一跑报的是 **9 条**(最老 285h),本跑是 **6 条**(最老 853.3h)。**别把条数当常数** —— 每一刀照着自己那一跑的读数报 |
+
+### 它在哪些交回报告里被报过(都只是转述,不是处置)
+
+`docs/handbacks/INPUT-2b.md`(§7.8 与 R3-7:6 条,年龄 204–846h)·
+`docs/handbacks/INPUT-3.md`(§15 的残留表)·
+`docs/known-issues.md` 的 `SMOKE-DEBT-2` 那一节里有一条 2026-08-18 的「顺带记下:滞留的临时行 9 条」。
+☞ **本条把它们收成一处,此后指这里。**
+
+---
+
 ## ★ INPUT3-DRIFT-COST-UNEXPLAINED · `--mode=drift` 冷跑的耗时【差 2.1 倍,原因不明】(INPUT-3,2026-09-11)
 
 > **一句话:** 同一支量具、同一棵树的同一族刀,两次「冷跑」的读数是 **1669 秒** 与 **782 秒** ——
