@@ -114,7 +114,7 @@ export default async function ReviewCyclesPage() {
             <CycleForm />
 
             {cycles.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('reviews.noCycles')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('reviews.noCycles')}</p>
             ) : (
                 <div className="space-y-4">
                     {cycles.map((c) => {
@@ -132,16 +132,16 @@ export default async function ReviewCyclesPage() {
                                     <span className={'inline-block rounded px-2 py-0.5 text-xs ' + statusPillClass(c.status === 'open' ? 'self_review' : c.status === 'closed' ? 'acknowledged' : 'draft')}>
                                         {t(`reviews.cycleStatus_${c.status}`)}
                                     </span>
-                                    <span className="font-mono text-xs text-gray-500">
+                                    <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">
                                         {c.period_start} → {c.period_end}
                                     </span>
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-xs text-[color:var(--brand-muted-text)]">
                                         {t('reviews.dueDate')}: <span className="font-mono">{c.due_date}</span>
                                     </span>
                                     <CycleActions cycleId={c.id} status={c.status} />
                                 </div>
                                 {rs.length > 0 && (
-                                    <p className="text-xs text-gray-600 mb-2">
+                                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">
                                         {t('reviews.cycleCounts', {
                                             0: rs.length,
                                             1: unsubmitted.length,

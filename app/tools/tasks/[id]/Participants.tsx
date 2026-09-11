@@ -68,13 +68,13 @@ export default function Participants({
                 <div className="mb-3 rounded border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             ) : null}
 
-            {active.length === 0 ? <p className="text-sm text-gray-500">{labels.empty}</p> : null}
+            {active.length === 0 ? <p className="text-sm text-[color:var(--brand-muted-text)]">{labels.empty}</p> : null}
             <ul className="text-sm">
                 {active.map((r) => (
                     <li key={r.participant_id ?? r.employee_id} className="flex items-center gap-3 py-1">
                         <span>{r.display_name}</span>
                         {r.added_by_name ? (
-                            <span className="text-xs text-gray-500">{labels.addedBy} {r.added_by_name}</span>
+                            <span className="text-xs text-[color:var(--brand-muted-text)]">{labels.addedBy} {r.added_by_name}</span>
                         ) : null}
                         {canEdit ? (
                             <Button variant="destructive" size="inline" className="ml-auto text-xs"
@@ -90,7 +90,7 @@ export default function Participants({
 
             {past.length > 0 ? (
                 <>
-                    <p className="mt-4 text-xs text-gray-500">{labels.stillReads}</p>
+                    <p className="mt-4 text-xs text-[color:var(--brand-muted-text)]">{labels.stillReads}</p>
                     <ul className="text-sm text-gray-500">
                         {past.map((r) => (
                             <li key={r.participant_id ?? r.employee_id} className="py-1">
@@ -118,11 +118,11 @@ export default function Participants({
                    **一片空白**,和"这个功能不存在"长得一模一样。
                    ☞ 改成一条四选一:四个原因,四句话,永远命中一句。 */}
             {!canEdit ? (
-                <p className="mt-4 text-sm text-gray-600" data-state-note="not-on-task">{labels.notOnTask}</p>
+                <p className="mt-4 text-sm text-[color:var(--brand-muted-text)]" data-state-note="not-on-task">{labels.notOnTask}</p>
             ) : !mayAssign ? (
-                <p className="mt-4 text-sm text-gray-600">{labels.noAssignPermission}</p>
+                <p className="mt-4 text-sm text-[color:var(--brand-muted-text)]">{labels.noAssignPermission}</p>
             ) : assignable.filter((a) => a.employee_id && !onIt.has(a.employee_id)).length === 0 ? (
-                <p className="mt-4 text-sm text-gray-600">{labels.nobodyEligible}</p>
+                <p className="mt-4 text-sm text-[color:var(--brand-muted-text)]">{labels.nobodyEligible}</p>
             ) : (
                 <div className="mt-4 flex flex-wrap items-center gap-2">
                     <select

@@ -75,7 +75,7 @@ function MoreBelow({ n, label }: { n: number; label: string }) {
         <p
             data-menu-more={n}
             aria-hidden
-            className="sticky bottom-0 -mx-1 -mb-1 mt-1 border-t border-[color:var(--brand-border)] bg-[color:var(--brand-accent)] px-3 py-1 text-[11px] font-medium text-[color:var(--brand-text)]"
+            className="sticky bottom-0 -mx-1 -mb-1 mt-1 border-t border-[color:var(--brand-border)] bg-[color:var(--brand-accent)] px-3 py-1 text-xs font-medium text-[color:var(--brand-text)]"
         >
             {label}
         </p>
@@ -227,7 +227,7 @@ export function MenuEntryRow({
  */
 export function MenuSectionLabel({ children }: { children: React.ReactNode }) {
     return (
-        <p className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-[color:var(--brand-muted-glass)]">
+        <p className="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-[color:var(--brand-muted-glass)]">
             {children}
         </p>
     )

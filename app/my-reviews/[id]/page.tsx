@@ -76,13 +76,13 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
 
             <h1 className="mt-2 mb-1">
                 {subject?.employee_name ?? t('reviews.detailTitle')}
-                <span className="ml-2 font-mono text-base text-gray-500">{subject?.employee_code}</span>
+                <span className="ml-2 font-mono text-sm text-[color:var(--brand-muted-text)]">{subject?.employee_code}</span>
                 <span className={'ml-3 align-middle inline-block rounded px-2 py-0.5 text-xs ' + statusPillClass(r.status)}>
                     {t(`reviews.status_${r.status}`)}
                 </span>
             </h1>
             {subject?.job_title && (
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                     {subject.job_title}
                     {(locale === 'zh' ? subject.department_name_zh : subject.department_name_en)
                         ? ` · ${locale === 'zh' ? subject.department_name_zh : subject.department_name_en}`
@@ -92,15 +92,15 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
 
             <div className="bg-gray-50 rounded p-4 mb-6 grid grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-2 text-sm">
                 <div>
-                    <span className="text-gray-600 mr-1">{t('reviews.type')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.type')}:</span>
                     {t(`reviews.type_${r.review_type}`)}
                 </div>
                 <div>
-                    <span className="text-gray-600 mr-1">{t('reviews.cycle')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.cycle')}:</span>
                     {subject?.cycle_name ?? '—'}
                 </div>
                 <div>
-                    <span className="text-gray-600 mr-1">{t('reviews.period')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.period')}:</span>
                     <span className="font-mono">{r.period_start} → {r.period_end}</span>
                 </div>
             </div>
@@ -109,7 +109,7 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
                 <div className="mb-6">
                     <h2 className="mb-1">{t('reviews.selfAssessmentTitle')}</h2>
                     {r.self_assessment_submitted_at && (
-                        <p className="text-xs text-gray-500 mb-2">
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">
                             {t('reviews.selfAssessmentSubmittedAt', { 0: r.self_assessment_submitted_at.slice(0, 10) })}
                         </p>
                     )}
@@ -146,7 +146,7 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
 
             {r.review_type === 'probation' && (
                 <div className="mb-6 text-sm">
-                    <span className="text-gray-600 mr-1">{t('reviews.probationOutcome')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.probationOutcome')}:</span>
                     {r.probation_outcome ? t(`reviews.outcome_${r.probation_outcome}`) : '—'}
                 </div>
             )}

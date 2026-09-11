@@ -99,7 +99,7 @@ export default function AvatarPanel({
                         />
                         {/* 【这句话把三条闸原原本本说出来】2MB、三种格式、会被裁成方的。
                             人在选文件【之前】就知道会被拒什么,比事后一句红字好。 */}
-                        <p className="text-xs text-gray-500 mt-1">{t('me.avatarHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('me.avatarHint')}</p>
                     </div>
                     <Button
                         type="submit"

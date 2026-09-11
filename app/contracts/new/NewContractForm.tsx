@@ -79,7 +79,7 @@ export default function NewContractForm({
                             </optgroup>
                         )}
                     </select>
-                    <p className="text-xs text-gray-500 mt-1 max-w-2xl">{t('contracts.form.counterpartyHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-2xl">{t('contracts.form.counterpartyHint')}</p>
                     {/* ★★【具名的缺席 —— 一张空下拉不许冒充"没有对手方"】★★
                         客户名单在 module.customers.view 那道门后面,而本页的门是
                         供应商查看权。看不见的人此前会拿到一个【空的】客户分组,
@@ -91,10 +91,10 @@ export default function NewContractForm({
                         <p className="text-xs text-amber-800 mt-1 max-w-2xl">{t('contracts.form.suppliersRestricted')}</p>
                     )}
                     {canSeeCustomers && customers.length === 0 && (
-                        <p className="text-xs text-gray-500 mt-1 max-w-2xl">{t('contracts.form.customersNone')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-2xl">{t('contracts.form.customersNone')}</p>
                     )}
                     {canSeeSuppliers && suppliers.length === 0 && (
-                        <p className="text-xs text-gray-500 mt-1 max-w-2xl">{t('contracts.form.suppliersNone')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-2xl">{t('contracts.form.suppliersNone')}</p>
                     )}
                     {err('counterparty')}
                 </div>
@@ -136,7 +136,7 @@ export default function NewContractForm({
                         <input type="date" name="effective_to" className={field} />
                         {/* 【空 = 没有固定期限,不是"忘了填"】—— 表上那条列注就是这么写的,
                             而表单必须说同一句话,否则它自己在暗示相反的意思。 */}
-                        <p className="text-xs text-gray-500 mt-1">{t('contracts.form.effectiveToHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('contracts.form.effectiveToHint')}</p>
                         {err('effective_to')}
                     </div>
                 </div>
@@ -150,7 +150,7 @@ export default function NewContractForm({
                         <option value="active">{t('contracts.status.active')}</option>
                         <option value="draft">{t('contracts.status.draft')}</option>
                     </select>
-                    <p className="text-sm text-gray-700 mt-1 max-w-2xl">
+                    <p className="text-sm text-[color:var(--brand-text)] mt-1 max-w-2xl">
                         {status === 'active' ? t('contracts.form.statusActiveMeans') : t('contracts.form.statusDraftMeans')}
                     </p>
                     {/* ★★ 这一句【必须】在屏幕上,不能只在手册里 ★★
@@ -184,7 +184,7 @@ export default function NewContractForm({
                     <div>
                         <label className="block mb-1">{t('contracts.form.paymentTermsDays')}</label>
                         <input type="number" name="payment_terms_days" min={0} max={365} className={field} />
-                        <p className="text-xs text-gray-500 mt-1">{t('contracts.form.paymentTermsDaysHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('contracts.form.paymentTermsDaysHint')}</p>
                         {err('payment_terms_days')}
                     </div>
                 </div>
@@ -193,7 +193,7 @@ export default function NewContractForm({
                     <label className="block mb-1">{t('contracts.form.documentRef')}</label>
                     <input type="text" name="document_ref" className={field}
                            placeholder={t('contracts.form.documentRefPlaceholder')} />
-                    <p className="text-xs text-gray-500 mt-1 max-w-2xl">{t('contracts.form.documentRefHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-2xl">{t('contracts.form.documentRefHint')}</p>
                 </div>
 
                 <div>
@@ -204,7 +204,7 @@ export default function NewContractForm({
                 {/* ★ 建完之后能做什么、不能做什么 —— 说在【建之前】 */}
                 <div className="border border-amber-300 bg-amber-50 rounded p-4 max-w-2xl">
                     <h2 className="mb-1">{t('contracts.form.afterTitle')}</h2>
-                    <p className="text-sm text-gray-800">{t('contracts.form.afterCanDo')}</p>
+                    <p className="text-sm text-[color:var(--brand-text)]">{t('contracts.form.afterCanDo')}</p>
                     <p className="text-sm text-amber-900 mt-2 font-medium">{t('contracts.form.afterCannotDo')}</p>
                 </div>
 

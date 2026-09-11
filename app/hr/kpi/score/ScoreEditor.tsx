@@ -203,7 +203,7 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
                         onChange={(e) => set({ overrideReason: textOrNull(e.target.value) })}
                     />
                     {/* 封顶的规则贴在按下它的地方 —— 页顶那张刻度表是全文,这里是那一句 */}
-                    <p className="mt-1 text-[10px] text-gray-600">{t('kpi.capHint')}</p>
+                    <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('kpi.capHint')}</p>
                 </>
             ),
         },

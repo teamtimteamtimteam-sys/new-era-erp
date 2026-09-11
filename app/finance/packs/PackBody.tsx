@@ -87,11 +87,11 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
                     ['pack.apHeading', payload.ap_aging?.total_open_base],
                 ].map(([key, val]) => (
                     <div key={key as string} className="border border-gray-300 rounded p-3">
-                        <div className="text-xs text-gray-600">{t(key as string)}</div>
+                        <div className="text-xs text-[color:var(--brand-muted-text)]">{t(key as string)}</div>
                         <div className="font-mono text-lg">
                             {val === undefined || val === null
                                 // 【具名的缺席,不是一个 0】读不到与等于零是两件事。
-                                ? <span className="text-gray-500 text-sm">—</span>
+                                ? <span className="text-[color:var(--brand-muted-text)] text-sm">—</span>
                                 : formatAmount(Number(val), ccy)}
                         </div>
                     </div>
@@ -100,7 +100,7 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
 
             {/* ── ★ 勾稽:本包唯一一条两边独立推导的 ★ ───────────────────── */}
             <h2 className="mb-1">{t('pack.reconHeading')}</h2>
-            <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('pack.reconWhy')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('pack.reconWhy')}</p>
             <div className="mb-2">
                 <ReconTable rows={reconRows} />
             </div>
@@ -122,7 +122,7 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
             {/* ── 这份包看不见什么 ────────────────────────────────────────── */}
             <h2 className="mb-2">{t('pack.cannotSeeHeading')}</h2>
             {notes.length === 0 ? (
-                <p className="text-sm text-gray-600 mb-4">{t('pack.cannotSeeNone')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('pack.cannotSeeNone')}</p>
             ) : (
                 <ul className="text-sm mb-4 bg-amber-50 border border-amber-300 text-amber-900 px-4 py-2 rounded list-disc list-inside max-w-3xl">
                     {notes.map((n, i) => <li key={i} className="my-1">{n}</li>)}

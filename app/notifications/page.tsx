@@ -55,10 +55,10 @@ export default async function NotificationsPage() {
             </div>
 
             {/* 【缺席不是零】—— 这一页只显示你有权限看见的那些 */}
-            <p className="text-xs text-gray-500 mb-6">{t('notifications.permissionNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-6">{t('notifications.permissionNote')}</p>
 
             {rows.length === 0 ? (
-                <p className="text-gray-500">{t('notifications.empty')}</p>
+                <p className="text-[color:var(--brand-muted-text)]">{t('notifications.empty')}</p>
             ) : (
                 <ul className="space-y-2">
                     {rows.map((r) => {
@@ -80,7 +80,7 @@ export default async function NotificationsPage() {
                                         <p className={isUnread ? 'text-sm font-medium' : 'text-sm text-gray-600'}>
                                             {t('notifications.event.' + r.event_type, eventParams(r))}
                                         </p>
-                                        <p className="text-xs text-gray-500 mt-1">
+                                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                                             {new Date(r.occurred_at).toLocaleString(dateLocale)}
                                             {href && r.subject_code && (
                                                 <>

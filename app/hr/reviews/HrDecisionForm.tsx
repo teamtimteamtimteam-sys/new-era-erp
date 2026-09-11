@@ -104,7 +104,7 @@ export default function HrDecisionForm({
                                 <option value="not_confirm">{t('reviews.outcome_not_confirm')}</option>
                             </select>
                         ) : (
-                            <span className="block text-sm text-gray-900 py-1">
+                            <span className="block text-sm text-[color:var(--brand-text)] py-1">
                                 {probationOutcome ? t(`reviews.outcome_${probationOutcome}`) : '—'}
                             </span>
                         )}

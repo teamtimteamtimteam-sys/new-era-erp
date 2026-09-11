@@ -86,7 +86,7 @@ canEdit: boolean
 
     return (
         <div className="space-y-6 max-w-3xl">
-            <p className="text-sm text-gray-500">{t('company.note')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)]">{t('company.note')}</p>
 
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">{state.error}</div>
@@ -107,7 +107,7 @@ canEdit: boolean
                         </div>
                         <div className="flex flex-wrap gap-3">{field('website', 'company.website')}</div>
                         {/* GST 登记号不在这里 —— 它住在财务设置(同一个号只存一份)*/}
-                        <p className="text-xs text-gray-500">{t('company.gstNote')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)]">{t('company.gstNote')}</p>
                     </>
                 )}
 
@@ -191,7 +191,7 @@ canEdit: boolean
                         <img src={logoUrl} alt="logo" className="h-16 object-contain border border-gray-200 rounded p-2" />
                     </div>
                 ) : (
-                    <p className="text-sm text-gray-500 mb-3">{t('company.noLogo')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('company.noLogo')}</p>
                 )}
 
                 <PermissionGate code="module.finance.edit" allowed={canEdit}>
@@ -206,7 +206,7 @@ canEdit: boolean
                             accept="image/png,image/jpeg"
                             className={`${CONTROL_FILE_BUTTON} w-full`}
                         />
-                        <p className="text-xs text-gray-500 mt-1">{t('company.logoHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('company.logoHint')}</p>
                     </div>
                     <Button
                         type="submit"

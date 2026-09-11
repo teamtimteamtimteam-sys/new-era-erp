@@ -68,7 +68,7 @@ export default function CommissionForm({
     if (agents.length === 0) {
         return (
             <div className="border-l-4 border-amber-500 bg-amber-50 p-3 max-w-2xl">
-                <p className="text-sm text-gray-800">{t('commissions.noAgents')}</p>
+                <p className="text-sm text-[color:var(--brand-text)]">{t('commissions.noAgents')}</p>
             </div>
         )
     }
@@ -167,7 +167,7 @@ export default function CommissionForm({
                         <option key={r} value={r}>{t('commissions.trigger.' + r)}</option>
                     ))}
                 </select>
-                <p className="text-xs text-gray-700 mt-2">{t('commissions.triggerWhy')}</p>
+                <p className="text-xs text-[color:var(--brand-text)] mt-2">{t('commissions.triggerWhy')}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

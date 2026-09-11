@@ -140,7 +140,7 @@ export default function LeaveForm({
                     </select>
                     {/* 假别的配置【由数据说了算】,不写死在界面里 */}
                     {type?.default_days_per_year != null && (
-                        <span className="mt-1 block text-xs text-gray-500">
+                        <span className="mt-1 block text-xs text-[color:var(--brand-muted-text)]">
                             {t('leave.standardDays', { 0: String(type.default_days_per_year) })}
                         </span>
                     )}
@@ -176,7 +176,7 @@ export default function LeaveForm({
                         {isException ? (exDays === '' ? '—' : exDays) : (days ?? '—')}
                     </span>
                     {isException && <span className="ml-2 text-xs text-purple-800">{t('leave.exceptionManual')}</span>}
-                    {!isException && !daysError && <span className="ml-2 text-xs text-gray-500">{t('leave.computedHint')}</span>}
+                    {!isException && !daysError && <span className="ml-2 text-xs text-[color:var(--brand-muted-text)]">{t('leave.computedHint')}</span>}
                     {!isException && daysError && (
                         <span className="ml-2 text-xs font-medium text-red-700">{daysError}</span>
                     )}
@@ -192,7 +192,7 @@ export default function LeaveForm({
                     <label className="sm:col-span-2">
                         {t('leave.certificate')}
                         <input value={certRef} onChange={(e) => setCertRef(e.target.value)} className={field} />
-                        <span className="mt-1 block text-xs text-gray-500">
+                        <span className="mt-1 block text-xs text-[color:var(--brand-muted-text)]">
                             {t('leave.certificateHint', { 0: String(type.requires_certificate_after_days) })}
                         </span>
                     </label>
@@ -204,7 +204,7 @@ export default function LeaveForm({
                             <input className={CONTROL_CHECKBOX} type="checkbox" checked={isException} onChange={(e) => setIsException(e.target.checked)} />
                             {t('leave.exceptionToggle')}
                         </label>
-                        <p className="mt-1 text-xs text-gray-600">{t('leave.exceptionHint')}</p>
+                        <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('leave.exceptionHint')}</p>
                         {isException && (
                             <div className="mt-3 grid gap-3 sm:grid-cols-2">
                                 <label className="">
@@ -216,7 +216,7 @@ export default function LeaveForm({
                                     {t('leave.exceptionReason')}
                                     <input value={exReason} onChange={(e) => setExReason(e.target.value)} className={field} />
                                 </label>
-                                <p className="sm:col-span-2 text-xs text-gray-600">
+                                <p className="sm:col-span-2 text-xs text-[color:var(--brand-muted-text)]">
                                     {t('leave.exceptionBalanceNote')}
                                 </p>
                             </div>

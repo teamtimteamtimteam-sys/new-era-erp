@@ -47,7 +47,7 @@ export default function SafetyStatePanel({
     return (
         <div className="mt-8 border rounded p-4">
             <h2 className="mb-1">{t('output.safety.title')}</h2>
-            <p className="text-xs text-gray-500 mb-3">{t('output.safety.why')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('output.safety.why')}</p>
 
             {/* ★ 一条都没有 → 按名说出来,不画空白 */}
             {current.length === 0 ? (
@@ -95,7 +95,7 @@ export default function SafetyStatePanel({
                                      本刀明令不碰 ALERT-2b 那 ~250 处行内色值,
                                      那就更不该往里【添】一处。 */
                                 details={
-                                    <p className="text-sm font-medium text-foreground">
+                                    <p className="text-sm font-medium text-[color:var(--brand-text)]">
                                         {t('output.safety.removeConsequence')}
                                     </p>
                                 }
@@ -116,7 +116,7 @@ export default function SafetyStatePanel({
                     })}
                 </div>
             ) : (
-                <p className="text-xs text-gray-500">{t('output.safety.noPermission')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)]">{t('output.safety.noPermission')}</p>
             )}
 
             {error && (

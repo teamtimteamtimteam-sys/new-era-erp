@@ -145,7 +145,7 @@ export default function AvatarMenu({ name, email, unread, settingsEntries, avata
                         data-nav="unread-badge"
                         aria-hidden
                         className={
-                            'absolute -top-1 -right-1 min-w-[1.1rem] rounded-full px-1 text-[10px] leading-4 text-white text-center ' +
+                            'absolute -top-1 -right-1 min-w-[1.1rem] rounded-full px-1 text-xs leading-4 text-white text-center ' +
                             (unknown ? 'bg-gray-500' : 'bg-red-600')
                         }
                     >
@@ -200,7 +200,7 @@ export default function AvatarMenu({ name, email, unread, settingsEntries, avata
                             <span
                                 data-nav="unread-row"
                                 className={
-                                    'ml-3 min-w-[1.25rem] rounded-full px-1.5 text-[11px] leading-5 text-white text-center ' +
+                                    'ml-3 min-w-[1.25rem] rounded-full px-1.5 text-xs leading-5 text-white text-center ' +
                                     (unknown ? 'bg-gray-500' : 'bg-red-600')
                                 }
                             >

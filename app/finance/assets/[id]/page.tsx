@@ -316,7 +316,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     那三个数是一个刻意的序列,把一个状态排在它们后面是归错了类,
                     与谁有没有看到它无关。徽章位是眼睛找状态时会去的地方。
                     C2 查过了:此处原本【没有】任何状态行,所以这是搬家,不是第二份。】 */}
-                    <span className="text-sm font-normal border border-gray-300 rounded px-2 py-0.5 text-gray-700">
+                    <span className="text-sm font-normal border border-gray-300 rounded px-2 py-0.5 text-[color:var(--brand-text)]">
                         {(() => {
                             const st = inServiceState(asset)
                             return st.params ? t(st.key, st.params) : t(st.key)
@@ -330,7 +330,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     {' · '}
                     {asset.expense_id
                         ? <Link href={`/finance/expenses/${asset.expense_id}`} className="underline app-link">{t('assets.detail.bornFromExpense')}</Link>
-                        : <span className="text-gray-500">{t('assets.detail.bornAsMasterData')}</span>}
+                        : <span className="text-[color:var(--brand-muted-text)]">{t('assets.detail.bornAsMasterData')}</span>}
                 </>
             }
             // ★★ 详情页恒为 ok —— 这台设备在不在由上面的 notFound() 回答。
@@ -362,7 +362,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                 <CostEntriesTable rows={costRows} />
             </div>
             {entries.length > 0 && (
-                <p className="text-xs text-gray-600 -mt-4 mb-6">
+                <p className="text-xs text-[color:var(--brand-muted-text)] -mt-4 mb-6">
                     {t('assets.detail.entriesFootnote', { live: live.length, all: entries.length })}
                 </p>
             )}
@@ -371,16 +371,16 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             <h2 className="mb-2">{t('assets.detail.boughtBy')}</h2>
             {!canSeePurchasing ? (
                 /* 【不是"没有",是"你看不到"】—— 两者的下一步不一样。 */
-                <p className="text-sm text-gray-600 mb-6">{t('assets.detail.poRestricted')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">{t('assets.detail.poRestricted')}</p>
             ) : !line ? (
                 <div className="mb-6 space-y-1">
-                    <p className="text-sm text-gray-600">{t('assets.detail.noPoLine')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('assets.detail.noPoLine')}</p>
                     {/* ★ FA-PO-1:【曾经有过一张,而它被取消了】与【从来没有过】不是一回事。
                         留白会把前者读成后者 —— 而那正是 Tim 走到的那一步的反面:
                         修好之前这一页说的是"由 PO-2026-0008 买下",一句已经不成立的断言;
                         修坏的方向是让它什么都不说,那同样是在隐瞒一段真实的履历。 */}
                     {deadClaims.map((c) => (
-                        <p key={c.id} className="text-sm text-gray-600">
+                        <p key={c.id} className="text-sm text-[color:var(--brand-muted-text)]">
                             <Link href={`/purchasing/orders/${c.purchase_order_id}`}
                                   className="underline font-mono app-link app-link-inline">
                                 {c.po?.code ?? '—'}
@@ -388,7 +388,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                             <span className="ml-2">{t('assets.detail.lineNo', { 0: c.line_no })}</span>
                             <span className="ml-2">{t('assets.detail.claimCancelled')}</span>
                             {c.po?.cancel_reason ? (
-                                <span className="ml-1 text-gray-500">({c.po.cancel_reason})</span>
+                                <span className="ml-1 text-[color:var(--brand-muted-text)]">({c.po.cancel_reason})</span>
                             ) : null}
                         </p>
                     ))}
@@ -399,10 +399,10 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                         <Link href={`/purchasing/orders/${line.purchase_order_id}`} className="underline font-mono app-link app-link-inline">
                             {line.purchase_orders?.code ?? '—'}
                         </Link>
-                        <span className="ml-2 text-gray-600">{t('assets.detail.lineNo', { 0: line.line_no })}</span>
+                        <span className="ml-2 text-[color:var(--brand-muted-text)]">{t('assets.detail.lineNo', { 0: line.line_no })}</span>
                     </p>
                     {poStatus && (
-                        <p className="text-gray-700">
+                        <p className="text-[color:var(--brand-text)]">
                             {t('assets.detail.depositLine', {
                                 paid: formatAmount(Number(poStatus.prepaid_base ?? 0), baseCurrency),
                                 applied: formatAmount(Number(poStatus.prepaid_applied_base ?? 0), baseCurrency),
@@ -411,11 +411,11 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                         </p>
                     )}
                     {poStatus && Number(poStatus.prepaid_remaining_base ?? 0) > 0 && (
-                        <p className="text-gray-600">{t('assets.detail.depositReleaseHint')}</p>
+                        <p className="text-[color:var(--brand-muted-text)]">{t('assets.detail.depositReleaseHint')}</p>
                     )}
                     {/* 同一台机器【之前】被取消掉的那些单,照样列出来 —— 见上面那段理由。 */}
                     {deadClaims.map((c) => (
-                        <p key={c.id} className="text-gray-600">
+                        <p key={c.id} className="text-[color:var(--brand-muted-text)]">
                             <Link href={`/purchasing/orders/${c.purchase_order_id}`}
                                   className="underline font-mono app-link app-link-inline">
                                 {c.po?.code ?? '—'}
@@ -476,7 +476,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     locale={locale} />
                 {/* 【员工那个选项为什么可能不在】—— 说出来,不要让人以为下拉坏了。 */}
                 {!canSeeEmployees && (
-                    <p className="text-xs text-gray-500">{t('equipment.maint.employeesRestricted')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.maint.employeesRestricted')}</p>
                 )}
             </div>
         </ListPage>
@@ -486,7 +486,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
 function Stat({ label, value }: { label: string; value: string }) {
     return (
         <div className="border border-gray-200 rounded-lg p-3">
-            <p className="text-xs text-gray-600">{label}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)]">{label}</p>
             <p className="text-lg mt-1">{value}</p>
         </div>
     )

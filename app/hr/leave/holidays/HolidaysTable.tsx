@@ -71,7 +71,7 @@ export default function HolidaysTable({
                     title={t('leave.holidayDeleteTitle')}
                     body={t('common.hardDeleteNote')}
                     details={
-                        <p className="text-sm font-medium text-foreground">
+                        <p className="text-sm font-medium text-[color:var(--brand-text)]">
                             {t('leave.holidayDeleteConsequence')}
                         </p>
                     }

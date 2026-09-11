@@ -111,7 +111,7 @@ export default async function StocktakesPage({
             }
             state={{ kind: 'ok' }}
         >
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                 {t('stocktakes.recordCount', { count: total })}
             </p>
 
@@ -132,7 +132,7 @@ export default async function StocktakesPage({
                     </Button>
                 )}
 
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('stocktakes.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
 

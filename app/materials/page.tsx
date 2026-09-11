@@ -184,7 +184,7 @@ export default async function MaterialsPage({
                 <MaterialToolbar kinds={kinds} locale={locale} />
             </Suspense>
 
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                 {t('materials.recordCount', { count: total })}
             </p>
 
@@ -213,7 +213,7 @@ export default async function MaterialsPage({
                     </Button>
                 )}
 
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('materials.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
 

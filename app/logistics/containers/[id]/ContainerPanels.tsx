@@ -99,14 +99,14 @@ canEdit: boolean
                 </form>
                 </PermissionGate>
                 {/* 【开航日不在这里改】—— 它在 DB 上没有开口子给按列放行,改它要另一条路 */}
-                <p className="mt-2 text-xs text-gray-500">{labels.blHint}</p>
-                <p className="mt-1 text-xs text-gray-500 max-w-3xl">{labels.etaHint}</p>
-                <p className="mt-1 text-xs text-gray-500 max-w-3xl">{labels.forwarderHint}</p>
+                <p className="mt-2 text-xs text-[color:var(--brand-muted-text)]">{labels.blHint}</p>
+                <p className="mt-1 text-xs text-[color:var(--brand-muted-text)] max-w-3xl">{labels.etaHint}</p>
+                <p className="mt-1 text-xs text-[color:var(--brand-muted-text)] max-w-3xl">{labels.forwarderHint}</p>
                 {/* 【设了就把它显示成一个门牌】—— 报价与免柜天数编辑在货代那一页,
                     所以这里给出去那一页的路,而不只是一个名字。 */}
                 {head.forwarder_id && head.forwarder_name && (
                     <p className="mt-2 text-sm">
-                        <span className="text-gray-500">{labels.forwarderLabel}: </span>
+                        <span className="text-[color:var(--brand-muted-text)]">{labels.forwarderLabel}: </span>
                         <Link href={`/logistics/forwarders/${head.forwarder_id}`}
                             className="hover:underline app-link app-link-inline">{head.forwarder_name}</Link>
                     </p>
@@ -117,7 +117,7 @@ canEdit: boolean
             <section className="mt-8 border-t pt-6">
                 <h2 className="mb-3">{labels.shipmentsHeading}</h2>
                 {attached.length === 0 ? (
-                    <p className="text-sm text-gray-500">{labels.shipmentsEmpty}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{labels.shipmentsEmpty}</p>
                 ) : (
                     <table className="mb-4 w-full border-collapse border border-gray-300 text-sm">
                         {/* ★ TABLE-PHONE-5：这张表以前【一个列头都没有】—— 四列数据裸奔，
@@ -137,7 +137,7 @@ canEdit: boolean
                             {attached.map((s) => {
                                 /* 【两档都要出现的东西，提出来写一次】—— 抄成两份就是让两份
                                    将来各走各的，而漂移在桌面上是看不见的：桌面那一份永远是对的那一份。 */
-                                const orderCodeText = <span className="font-mono text-xs">{s.order_code}</span>
+                                const orderCodeText = <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">{s.order_code}</span>
                                 const shipDateText = s.ship_date
                                 return (
                                 <tr key={s.id}>
@@ -187,7 +187,7 @@ canEdit: boolean
                 )}
 
                 {attachable.length === 0 ? (
-                    <p className="text-sm text-gray-600">{labels.attachEmpty}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{labels.attachEmpty}</p>
                 ) : (
                     /* ★ CONV-10:这一行【转换前不换行】(flex,没有 flex-wrap),而它里面的
                        <select> 按【最宽的那个 option】定宽 —— option 的文本是
@@ -217,7 +217,7 @@ canEdit: boolean
             {/* ── 里程碑 ── */}
             <section className="mt-8 border-t pt-6">
                 <h2 className="mb-2">{labels.milestonesHeading}</h2>
-                <p className="mb-3 max-w-3xl text-sm text-gray-600">{labels.correctionNote}</p>
+                <p className="mb-3 max-w-3xl text-sm text-[color:var(--brand-muted-text)]">{labels.correctionNote}</p>
                 <form
                     className="mb-4 flex flex-wrap items-end gap-2"
                     onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const d = new FormData(f)
@@ -238,10 +238,10 @@ canEdit: boolean
                         <input name="note" className={`${field} w-full`} /></div>
                     <Button variant="default" className="text-sm" disabled={pending}>{labels.addMilestone}</Button>
                 </form>
-                <p className="mb-3 text-xs text-gray-500">{labels.eventDateHint}</p>
+                <p className="mb-3 text-xs text-[color:var(--brand-muted-text)]">{labels.eventDateHint}</p>
 
                 {milestones.length === 0 ? (
-                    <p className="text-sm text-gray-500">{labels.milestonesEmpty}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{labels.milestonesEmpty}</p>
                 ) : (
                     <ol className="space-y-1 text-sm">
                         {milestones.map((m) => {
@@ -266,7 +266,7 @@ canEdit: boolean
                                     <span className={isOperative ? 'font-medium' : ''}>{m.label}</span>
                                     {isOperative
                                         ? <span className="rounded bg-emerald-100 px-1.5 text-xs text-emerald-900">{labels.milestoneOperative}</span>
-                                        : <span className="rounded bg-gray-100 px-1.5 text-xs text-gray-500">↺ {labels.milestoneSuperseded}</span>}
+                                        : <span className="rounded bg-gray-100 px-1.5 text-xs text-[color:var(--brand-muted-text)]">↺ {labels.milestoneSuperseded}</span>}
                                     {m.note && <span>{m.note}</span>}
                                 </li>
                             )
@@ -274,7 +274,7 @@ canEdit: boolean
                     </ol>
                 )}
                 {milestones.length > 0 && (
-                    <p className="mt-3 max-w-3xl text-xs text-gray-600">{labels.milestoneLegend}</p>
+                    <p className="mt-3 max-w-3xl text-xs text-[color:var(--brand-muted-text)]">{labels.milestoneLegend}</p>
                 )}
             </section>
 
@@ -283,12 +283,12 @@ canEdit: boolean
                 <h2 className="mb-2">{labels.documentsHeading}</h2>
 
                 {/* 【航段清单的三种状态,三句不同的话】 */}
-                {!hasLane && <p className="mb-3 text-sm text-gray-500">{labels.noLane}</p>}
+                {!hasLane && <p className="mb-3 text-sm text-[color:var(--brand-muted-text)]">{labels.noLane}</p>}
                 {hasLane && laneChecklistState === 'not_defined' && (
                     <p className="mb-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{labels.notDefined}</p>
                 )}
                 {hasLane && laneChecklistState === 'defined_empty' && (
-                    <p className="mb-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">{labels.definedEmpty}</p>
+                    <p className="mb-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-[color:var(--brand-text)]">{labels.definedEmpty}</p>
                 )}
                 {/* 【第六种沉默,而且是最容易被读错的那一种】航段【有】清单,
                     却从没被复制到这个箱子上 —— 下面那张表因此是空的。

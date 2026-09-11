@@ -253,7 +253,7 @@ async function PromotePanel({ taskId, canPromote }: { taskId: string; canPromote
     return (
         <section className="mt-8 border-t pt-6">
             <h2 className="mb-2">{t('tasks.participants.heading')}</h2>
-            <p className="mb-3 text-sm text-gray-600">{t('tasks.participants.personalHint')}</p>
+            <p className="mb-3 text-sm text-[color:var(--brand-muted-text)]">{t('tasks.participants.personalHint')}</p>
             {/* TASK-1c-b STEP 3:【绝不摆一个服务端会拒绝的按钮】。
                 没有在册员工档案时,升级必然撞 TASK_OWNER_NOT_AN_EMPLOYEE ——
                 所以这里把按钮禁掉,并且【把理由写在屏幕上】,不是塞进 title 提示:

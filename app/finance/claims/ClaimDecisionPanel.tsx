@@ -102,21 +102,21 @@ export default function ClaimDecisionPanel({
             <h2 className="mb-2">{t('expenseClaims.pendingTitle')}</h2>
             {pending.length === 0 ? (
                 // 【命名的缺席,不是空白】
-                <p className="text-sm text-gray-500 mb-8">{t('expenseClaims.noPending')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-8">{t('expenseClaims.noPending')}</p>
             ) : (
                 <div className="mb-8 space-y-3">
                     {pending.map((c) => (
                         <div key={c.claim_id} className="rounded border border-gray-300 p-3">
                             <div className="flex flex-wrap items-baseline gap-2 mb-1">
-                                <span className="font-mono text-xs">{c.code}</span>
+                                <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">{c.code}</span>
                                 <span className="font-medium">{c.employee_name}</span>
-                                <span className="text-xs text-gray-500 font-mono">{c.employee_code}</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)] font-mono">{c.employee_code}</span>
                                 <span className="font-mono">{money(c.amount_ccy)} {c.currency}</span>
-                                <span className="text-xs text-gray-600">{t('expenseClaims.colSpent')} {c.spend_date}</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.colSpent')} {c.spend_date}</span>
                             </div>
                             <p className="text-sm mb-1">{c.description}</p>
                             {/* 【凭据是哪一种,审批人必须看得见】 */}
-                            <p className="text-xs mb-2">
+                            <p className="text-xs mb-2 text-[color:var(--brand-muted-text)]">
                                 {c.has_receipt
                                     ? <span className="text-green-700">{t('expenseClaims.hasReceipt')}</span>
                                     : c.no_receipt_reason
@@ -168,8 +168,8 @@ export default function ClaimDecisionPanel({
                                     </Button>
                                 </div>
                             </PermissionGate>
-                            <p className="text-[11px] text-gray-500 mt-1">{t('expenseClaims.postingDateHint')}</p>
-                            <p className="text-[11px] text-gray-500">{t('expenseClaims.taxCodeHint')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('expenseClaims.postingDateHint')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.taxCodeHint')}</p>
                         </div>
                     ))}
                 </div>
@@ -185,7 +185,7 @@ export default function ClaimDecisionPanel({
                 「19 张可编辑网格是另一套模板」)。
                 所以本刀【只碰下半张】,上面那半个字没改。 */}
             {decided.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('expenseClaims.noneForEmployee')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('expenseClaims.noneForEmployee')}</p>
             ) : (
                 <DataTable
                     rows={decided}

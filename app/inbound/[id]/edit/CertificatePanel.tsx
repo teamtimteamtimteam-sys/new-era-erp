@@ -75,7 +75,7 @@ export default function CertificatePanel({
     return (
         <section className="mt-8">
             <h2 className="mb-1">{t('cod.title')}</h2>
-            <p className="text-sm text-gray-600 mb-3">{t('cod.intro')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('cod.intro')}</p>
 
             <div className={`rounded border p-4 ${tone}`}>
                 {state === 'blocked' && (
@@ -104,7 +104,7 @@ export default function CertificatePanel({
                                 <dt className="w-40 opacity-70">{t('cod.verifyUrl')}</dt>
                                 {/* 【核验页是后一刀的事】—— 这里只把网址显示出来,
                                     不做成链接:一个指向 404 的链接比一段文字更坏。 */}
-                                <dd className="break-all font-mono text-xs">
+                                <dd className="break-all font-mono text-xs text-[color:var(--brand-muted-text)]">
                                     /verify/cod/{data.verificationToken}
                                 </dd>
                             </div>
@@ -119,7 +119,7 @@ export default function CertificatePanel({
                 )}
 
                 {data.completedOn && (
-                    <p className="text-xs mt-2 opacity-70">
+                    <p className="text-xs mt-2 opacity-70 text-[color:var(--brand-muted-text)]">
                         {t('cod.completedOn')}: {data.completedOn}
                     </p>
                 )}
@@ -162,10 +162,10 @@ export default function CertificatePanel({
                 </div>
 
                 {state === 'pending' && (
-                    <p className="text-xs mt-2 opacity-70">{t('cod.issueHint')}</p>
+                    <p className="text-xs mt-2 opacity-70 text-[color:var(--brand-muted-text)]">{t('cod.issueHint')}</p>
                 )}
                 {state === 'blocked' && (
-                    <p className="text-xs mt-2 opacity-70">{t('cod.internalExportHint')}</p>
+                    <p className="text-xs mt-2 opacity-70 text-[color:var(--brand-muted-text)]">{t('cod.internalExportHint')}</p>
                 )}
 
                 {voiding && (

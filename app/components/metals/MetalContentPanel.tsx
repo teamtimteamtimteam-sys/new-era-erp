@@ -177,7 +177,7 @@ export default function MetalContentPanel({
                     title={t('metalContent.deleteConfirm')}
                     body={t('common.hardDeleteNote')}
                     details={
-                        <p className="text-sm font-medium text-foreground">
+                        <p className="text-sm font-medium text-[color:var(--brand-text)]">
                             {t('metalContent.deleteConsequence')}
                         </p>
                     }
@@ -210,7 +210,7 @@ export default function MetalContentPanel({
                 )}
             </div>
 
-            {note && <p className="text-xs text-gray-500 mb-3">{note}</p>}
+            {note && <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{note}</p>}
 
             {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
@@ -230,7 +230,7 @@ export default function MetalContentPanel({
 
             {/* 合计行:实时反映"保存后"的百分比合计;>100 只警告不拦截 */}
             <p className="text-sm mb-4">
-                <span className="text-gray-600 mr-1">{t('metalContent.totalLabel')}:</span>
+                <span className="text-[color:var(--brand-muted-text)] mr-1">{t('metalContent.totalLabel')}:</span>
                 <span className={'font-mono ' + (overHundred ? 'text-red-600' : '')}>
                     {projectedTotal.toFixed(2)}%
                 </span>

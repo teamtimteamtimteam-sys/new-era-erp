@@ -86,7 +86,7 @@ export default function ReviewActions({
 
             {/* 批准是终点站:改动只能靠作废重开 —— 这句话要在批准【之前】读到 */}
             {preApproval && (canWrite || canHrEdit) && (
-                <p className="text-xs text-gray-500 mb-3">{t('reviews.approvalIsFinal')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('reviews.approvalIsFinal')}</p>
             )}
 
             <div className="flex gap-2 flex-wrap items-center">
@@ -95,7 +95,7 @@ export default function ReviewActions({
                        对【任何人】都开不了自评,那时再补一句"你还需要某项权限"
                        是一句正确而无用的话(要它也没用)。所以状态不对时只说状态。 */}
                 {!stateAllowsFlow ? (
-                    <p className="text-sm text-gray-600" data-state-note="flow">
+                    <p className="text-sm text-[color:var(--brand-muted-text)]" data-state-note="flow">
                         {t('reviews.stateFlowLocked', { 0: statusName })}
                     </p>
                 ) : (
@@ -159,7 +159,7 @@ export default function ReviewActions({
                    ☞ 这里【不带】alsoAllowedIf:作废真的只有 module.hr.edit 一条路,
                      评估人开不了它。写一条不存在的第二条路,与写错原因是同一种坏。 */}
             {status === 'void' ? (
-                <p className="mt-4 text-sm text-gray-600" data-state-note="void">
+                <p className="mt-4 text-sm text-[color:var(--brand-muted-text)]" data-state-note="void">
                     {t('reviews.stateAlreadyVoid')}
                 </p>
             ) : (

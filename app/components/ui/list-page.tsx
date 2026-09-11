@@ -180,7 +180,7 @@ export async function ListPage({
                     <div className="flex flex-wrap items-center justify-end gap-3">{actions}</div>
                 )}
             </div>
-            {intro && <p className="mb-4 text-sm text-gray-600">{intro}</p>}
+            {intro && <p className="mb-4 text-sm text-[color:var(--brand-muted-text)]">{intro}</p>}
 
             {/* ★ 无条件 —— 空态也画。见 notices 的说明。 */}
             {notices}

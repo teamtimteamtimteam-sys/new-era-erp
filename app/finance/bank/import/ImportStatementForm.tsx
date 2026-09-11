@@ -229,7 +229,7 @@ canEdit: boolean
                         className={`${CONTROL_FILE_BUTTON} w-full`}
                     />
                     {headers.length > 0 && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                             {t('bank.detectedColumns', { n: headers.length })} ·{' '}
                             {t('finance.recordCount', { count: csvRows.length })}
                         </p>
@@ -322,7 +322,7 @@ canEdit: boolean
                                 <label className="block mb-1">{t('bank.creditColumn')}</label>
                                 {columnSelect(mapping.credit_column, (v) => setM({ credit_column: v }))}
                             </div>
-                            <p className="md:col-span-2 text-xs text-gray-500">{t('bank.debitCreditHint')}</p>
+                            <p className="md:col-span-2 text-xs text-[color:var(--brand-muted-text)]">{t('bank.debitCreditHint')}</p>
                         </div>
                     )}
 
@@ -377,7 +377,7 @@ canEdit: boolean
             {csvRows.length > 0 && (
                 <div>
                     <h2 className="mb-2">{t('bank.preview')}</h2>
-                    <p className="text-sm text-gray-600 mb-2">
+                    <p className="text-sm text-[color:var(--brand-muted-text)] mb-2">
                         {t('bank.parsedSummary', {
                             ok: parsed.rows.length,
                             failed: parsed.errors.length,

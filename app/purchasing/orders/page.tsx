@@ -208,7 +208,7 @@ export default async function PurchaseOrdersPage({
                 <OrdersToolbar suppliers={supplierOptions} />
             </Suspense>
 
-            <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: total })}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
             <OrdersTable rows={tableRows} empty={t('purchasing.empty')} />
 
@@ -224,7 +224,7 @@ export default async function PurchaseOrdersPage({
                         {t('finance.pagination.prev')}
                     </Button>
                 )}
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('finance.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
                 {page < totalPages ? (

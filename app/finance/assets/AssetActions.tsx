@@ -107,7 +107,7 @@ export default function AssetActions({
 
             {open === 'commission' && (
                 <div className="mt-2 border border-gray-300 rounded p-2 space-y-1">
-                    <p className="text-xs text-gray-500">{t('assets.actions.commissionWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('assets.actions.commissionWhy')}</p>
                     <input type="date" value={inSvc} min={acquisitionDate}
                            onChange={(e) => setInSvc(e.target.value)}
                            className={CONTROL_INPUT} />
@@ -124,7 +124,7 @@ export default function AssetActions({
 
             {open === 'plan' && (
                 <div className="mt-2 border border-gray-300 rounded p-2 space-y-1">
-                    <p className="text-xs text-gray-500">{t('assets.plannedHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('assets.plannedHint')}</p>
                     <input type="date" value={plan} onChange={(e) => setPlan(e.target.value)}
                            className={CONTROL_INPUT} />
                     <Button type="button" disabled={pending}
@@ -133,13 +133,13 @@ export default function AssetActions({
                         {pending ? t('common.saving') : t('common.save')}
                     </Button>
                     {/* 【留空 = 撤掉这个计划】计划会变,撤回它是正当的动作 */}
-                    <p className="text-xs text-gray-500">{t('assets.actions.planClear')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('assets.actions.planClear')}</p>
                 </div>
             )}
 
             {open === 'dispose' && (
                 <div className="mt-2 border border-gray-300 rounded p-2 space-y-1">
-                    <p className="text-xs text-gray-500">{t('assets.actions.disposeWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('assets.actions.disposeWhy')}</p>
                     <div className="flex flex-wrap items-center gap-2">
                         <input type="date" value={dispDate} min={acquisitionDate}
                                onChange={(e) => setDispDate(e.target.value)}

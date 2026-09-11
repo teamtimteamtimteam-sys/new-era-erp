@@ -257,7 +257,7 @@ canEdit: boolean
                                 <span className="text-gray-400 w-8 shrink-0">{line.line_no}</span>
                                 <span className="w-24 shrink-0">{line.line_date}</span>
                                 <span className="flex-1 min-w-0 truncate">{line.description ?? '—'}</span>
-                                <span className="w-24 shrink-0 font-mono text-xs text-gray-500 truncate">
+                                <span className="w-24 shrink-0 font-mono text-xs text-[color:var(--brand-muted-text)] truncate">
                                     {line.reference ?? ''}
                                 </span>
                                 <span
@@ -273,7 +273,7 @@ canEdit: boolean
 
                             {/* 已匹配:显示配到的分录 + 取消匹配 */}
                             {line.match_status === 'matched' && (
-                                <div className="mt-1 pl-11 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                                <div className="mt-1 pl-11 flex flex-wrap items-center gap-2 text-xs text-[color:var(--brand-muted-text)]">
                                     <span>{t('bank.colMatchedTo')}:</span>
                                     {line.matches.map((m) => (
                                         <Link
@@ -300,7 +300,7 @@ canEdit: boolean
 
                             {/* 已忽略:显示理由 + 恢复 */}
                             {line.match_status === 'ignored' && (
-                                <div className="mt-1 pl-11 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                                <div className="mt-1 pl-11 flex flex-wrap items-center gap-2 text-xs text-[color:var(--brand-muted-text)]">
                                     <span>
                                         {t('bank.ignoreReason')}: {line.ignore_reason ?? '—'}
                                     </span>
@@ -337,17 +337,17 @@ canEdit: boolean
                     <span>
                         <span className="font-mono">{statement.bank_account_code}</span>{' '}
                         {t('finance.bank.' + statement.bank_account_code)}
-                        <span className="text-gray-500 ml-2">{ccy}</span>
+                        <span className="text-[color:var(--brand-muted-text)] ml-2">{ccy}</span>
                     </span>
                     <span>
                         {statement.period_start} – {statement.period_end}
                     </span>
                     <span>
-                        <span className="text-gray-600 mr-1">{t('bank.colOpening')}:</span>
+                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.colOpening')}:</span>
                         <span className="font-mono">{formatAmount(statement.opening_balance, ccy)}</span>
                     </span>
                     <span>
-                        <span className="text-gray-600 mr-1">{t('bank.colClosing')}:</span>
+                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.colClosing')}:</span>
                         <span className="font-mono font-medium">{formatAmount(statement.closing_balance, ccy)}</span>
                     </span>
                 </div>
@@ -363,7 +363,7 @@ canEdit: boolean
                                      background: allHandled ? 'var(--brand-forest-fill)' : 'var(--brand-ocean-fill)' }}
                         />
                     </div>
-                    <span className="text-sm text-gray-600 whitespace-nowrap">
+                    <span className="text-sm text-[color:var(--brand-muted-text)] whitespace-nowrap">
                         {t('bank.progress', { handled, total })}
                     </span>
                 </div>
@@ -380,21 +380,21 @@ canEdit: boolean
             >
                 <div className="flex flex-wrap items-baseline gap-x-3 mb-2">
                     <h2 className="">{t('bank.balancePanel.title')}</h2>
-                    <span className="text-xs text-gray-600">
+                    <span className="text-xs text-[color:var(--brand-muted-text)]">
                         {t('bank.balancePanel.asOf', { date: statement.period_end })}
                     </span>
                 </div>
                 <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm mb-2">
                     <span>
-                        <span className="text-gray-600 mr-1">{t('bank.balancePanel.bankClosing')}:</span>
+                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.bankClosing')}:</span>
                         <span className="font-mono">{formatAmount(comparison.bank_closing_balance, ccy)}</span>
                     </span>
                     <span>
-                        <span className="text-gray-600 mr-1">{t('bank.balancePanel.bookBalance')}:</span>
+                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.bookBalance')}:</span>
                         <span className="font-mono">{formatAmount(comparison.book_balance, ccy)}</span>
                     </span>
                     <span>
-                        <span className="text-gray-600 mr-1">{t('bank.balancePanel.difference')}:</span>
+                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.difference')}:</span>
                         <span
                             className={
                                 'font-mono font-semibold ' +
@@ -413,7 +413,7 @@ canEdit: boolean
                         <p className="text-sm text-amber-900 mb-3">{t('bank.balancePanel.disagrees')}</p>
 
                         <h3 className="mb-1">{t('bank.balancePanel.explainTitle')}</h3>
-                        <p className="text-xs text-gray-600 mb-2">{t('bank.balancePanel.explainHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('bank.balancePanel.explainHint')}</p>
 
                         {variance.map((item) => (
                             <div key={item.id} className="flex flex-wrap items-center gap-2 mb-2">
@@ -466,7 +466,7 @@ canEdit: boolean
                                 {t('bank.balancePanel.addItem')}
                             </Button>
                             <span className="text-sm">
-                                <span className="text-gray-600 mr-1">{t('bank.balancePanel.explained')}:</span>
+                                <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.explained')}:</span>
                                 <span className="font-mono">{formatAmount(explained, ccy)}</span>
                             </span>
                             {unexplained === 0 ? (
@@ -499,7 +499,7 @@ canEdit: boolean
                 {/* 右:候选分录 */}
                 <div>
                     {!selectedLine ? (
-                        <p className="text-sm text-gray-500 border border-dashed border-gray-300 rounded p-6 text-center">
+                        <p className="text-sm text-[color:var(--brand-muted-text)] border border-dashed border-gray-300 rounded p-6 text-center">
                             {allHandled ? t('bank.allHandled') : t('bank.noSelection')}
                         </p>
                     ) : (
@@ -507,7 +507,7 @@ canEdit: boolean
                             <h3 className="mb-1">
                                 {t('bank.candidatesFor', { code: selectedLine.line_no })}
                             </h3>
-                            <p className="text-sm text-gray-600 mb-1">
+                            <p className="text-sm text-[color:var(--brand-muted-text)] mb-1">
                                 {selectedLine.description ?? '—'} ·{' '}
                                 <span
                                     className={
@@ -517,7 +517,7 @@ canEdit: boolean
                                     {formatAmount(selectedLine.amount, ccy)}
                                 </span>
                             </p>
-                            <p className="text-xs text-gray-500 mb-3">{t('bank.directionNote')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('bank.directionNote')}</p>
 
                             {visibleCandidates.length === 0 ? (
                                 <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded text-sm">
@@ -582,7 +582,7 @@ canEdit: boolean
                                                 </Link>
                                                 <span className="w-24 shrink-0">{c.entry_date}</span>
                                                 <span className="flex-1 min-w-0 truncate">{c.memo ?? '—'}</span>
-                                                <span className="w-24 shrink-0 text-xs text-gray-500">
+                                                <span className="w-24 shrink-0 text-xs text-[color:var(--brand-muted-text)]">
                                                     {c.source_type ? t('finance.source.' + c.source_type) : '—'}
                                                 </span>
                                                 <span className="w-24 shrink-0 text-right font-mono">
@@ -641,7 +641,7 @@ canEdit: boolean
                             {/* 忽略:内联理由输入(DB 要求必填)*/}
                             {ignoringId === selectedLine.id && (
                                 <div className="mt-3 border-t pt-3">
-                                    <p className="text-xs text-gray-500 mb-2">{t('bank.ignoreHint')}</p>
+                                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('bank.ignoreHint')}</p>
                                     <div className="flex flex-wrap gap-2">
                                         <input
                                             type="text"
@@ -688,7 +688,7 @@ canEdit: boolean
                     {t('bank.reconcileButton')}
                 </ConfirmButton>
                 {!allHandled && (
-                    <span className="text-sm text-gray-600">
+                    <span className="text-sm text-[color:var(--brand-muted-text)]">
                         {t('bank.outstandingCount', { n: groups.unmatched.length })}
                     </span>
                 )}

@@ -111,7 +111,7 @@ export default async function PayablesPage({
                 <>
                     {t('finance.payablesTitle')}
                     {report.is_past && (
-                        <span className="ml-3 align-middle text-base font-normal text-amber-700">
+                        <span className="ml-3 align-middle text-sm font-normal text-amber-700">
                             {t('finance.agingAsOf.headingSuffix', { date: report.as_of })}
                         </span>
                     )}
@@ -139,12 +139,12 @@ export default async function PayablesPage({
             {/* 汇总条:未结合计 + 四档账龄(90+ 标红)。数字来自函数,本页不加总。*/}
             <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                 <div>
-                    <span className="text-gray-600 mr-1">{t('finance.totalOpen')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.totalOpen')}:</span>
                     <span className="font-mono font-bold">{formatAmount(report.total_open_base, baseCurrency)}</span>
                 </div>
                 {BUCKETS.map((b) => (
                     <div key={b}>
-                        <span className="text-gray-600 mr-1">{t('finance.aging.' + b)}:</span>
+                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.aging.' + b)}:</span>
                         <span className={'font-mono ' + (b === 'b90_plus' ? 'text-red-600 font-medium' : '')}>
                             {formatAmount(report.buckets[b] ?? 0, baseCurrency)}
                         </span>

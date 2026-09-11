@@ -128,7 +128,7 @@ export default function CreateAccountPanel({
                         {/* 【把"接下来会发生什么"说在前面】Tim 当面把密码交出去,
                             而对方第一次登录时会被要求换掉它 —— 那不是故障,
                             所以这一页要先讲清楚。 */}
-                        <p className="mb-4 text-sm text-muted-foreground">
+                        <p className="mb-4 text-sm text-[color:var(--brand-muted-text)]">
                             {t('permissions.createAccountHint')}
                         </p>
 
@@ -157,7 +157,7 @@ export default function CreateAccountPanel({
                                         aria-invalid={password !== '' && tooShort}
                                         nudgeOnInvalid
                                     />
-                                    <span className="block text-xs text-muted-foreground">
+                                    <span className="block text-xs text-[color:var(--brand-muted-text)]">
                                         {t('permissions.passwordHint', { 0: String(MIN_PASSWORD_LENGTH) })}
                                     </span>
                                 </div>
@@ -198,7 +198,7 @@ export default function CreateAccountPanel({
                                     </Select>
                                     {/* 【恰好一个,而且不能是零个】—— 这句话要写在控件旁边,
                                         因为"为什么我不能不选"是一个人会当场问的问题。 */}
-                                    <span className="block text-xs text-muted-foreground">
+                                    <span className="block text-xs text-[color:var(--brand-muted-text)]">
                                         {t('permissions.roleRequiredHint')}
                                     </span>
                                 </div>
@@ -220,7 +220,7 @@ export default function CreateAccountPanel({
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <span className="block text-xs text-muted-foreground">
+                                    <span className="block text-xs text-[color:var(--brand-muted-text)]">
                                         {t('permissions.linkEmployeeHint')}
                                     </span>
                                 </div>

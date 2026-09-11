@@ -115,31 +115,31 @@ export default async function BankHomePage() {
                         <h2 className="mb-3">
                             <span className="font-mono">{r.account_code}</span>{' '}
                             {t('finance.bank.' + r.account_code)}
-                            <span className="ml-2 text-sm text-gray-500">{r.currency}</span>
+                            <span className="ml-2 text-sm text-[color:var(--brand-muted-text)]">{r.currency}</span>
                         </h2>
 
                         <dl className="text-sm space-y-1">
                             <div className="flex justify-between">
-                                <dt className="text-gray-600">{t('bank.ledgerBalance')}</dt>
+                                <dt className="text-[color:var(--brand-muted-text)]">{t('bank.ledgerBalance')}</dt>
                                 <dd className="font-mono">{formatAmount(r.ledger_balance, r.currency)}</dd>
                             </div>
                             <div className="flex justify-between">
-                                <dt className="text-gray-600">{t('bank.latestStatement')}</dt>
+                                <dt className="text-[color:var(--brand-muted-text)]">{t('bank.latestStatement')}</dt>
                                 <dd className="font-mono">
                                     {r.latest_statement_code ? (
                                         <>
                                             {r.latest_statement_code}
-                                            <span className="text-gray-500 ml-2">
+                                            <span className="text-[color:var(--brand-muted-text)] ml-2">
                                                 {r.latest_statement_period_end}
                                             </span>
                                         </>
                                     ) : (
-                                        <span className="text-gray-500 font-sans">{t('bank.noStatement')}</span>
+                                        <span className="text-[color:var(--brand-muted-text)] font-sans">{t('bank.noStatement')}</span>
                                     )}
                                 </dd>
                             </div>
                             <div className="flex justify-between">
-                                <dt className="text-gray-600">{t('bank.closingBalance')}</dt>
+                                <dt className="text-[color:var(--brand-muted-text)]">{t('bank.closingBalance')}</dt>
                                 <dd className="font-mono">
                                     {r.latest_closing_balance === null
                                         ? '—'
@@ -147,7 +147,7 @@ export default async function BankHomePage() {
                                 </dd>
                             </div>
                             <div className="flex justify-between border-t pt-1 mt-1">
-                                <dt className="text-gray-600">{t('bank.difference')}</dt>
+                                <dt className="text-[color:var(--brand-muted-text)]">{t('bank.difference')}</dt>
                                 <dd
                                     className={
                                         'font-mono font-bold ' +
@@ -160,14 +160,14 @@ export default async function BankHomePage() {
                                 </dd>
                             </div>
                             <div className="flex justify-between">
-                                <dt className="text-gray-600">{t('bank.unmatchedStatementLines')}</dt>
+                                <dt className="text-[color:var(--brand-muted-text)]">{t('bank.unmatchedStatementLines')}</dt>
                                 <dd className="font-mono">{r.unmatched_statement_lines}</dd>
                             </div>
                             <div className="flex justify-between">
-                                <dt className="text-gray-600">{t('bank.unmatchedJournalLines')}</dt>
+                                <dt className="text-[color:var(--brand-muted-text)]">{t('bank.unmatchedJournalLines')}</dt>
                                 <dd className="font-mono">
                                     {r.unmatched_journal_lines}
-                                    <span className="text-gray-500 ml-2">
+                                    <span className="text-[color:var(--brand-muted-text)] ml-2">
                                         {formatAmount(r.unmatched_journal_amount, r.currency)}
                                     </span>
                                 </dd>
@@ -178,7 +178,7 @@ export default async function BankHomePage() {
                         {(openStatements ?? []).filter((s) => s.bank_account_code === r.account_code)
                             .length > 0 && (
                             <div className="mt-3 pt-3 border-t">
-                                <p className="text-xs font-medium text-gray-600 mb-1">
+                                <p className="text-xs font-medium text-[color:var(--brand-muted-text)] mb-1">
                                     {t('bank.openStatements')}
                                 </p>
                                 <ul className="text-sm space-y-1">
@@ -192,7 +192,7 @@ export default async function BankHomePage() {
                                                 >
                                                     {s.code}
                                                 </Link>
-                                                <span className="text-gray-500">
+                                                <span className="text-[color:var(--brand-muted-text)]">
                                                     {s.period_end} ·{' '}
                                                     {t('bank.outstandingCount', {
                                                         n: outstandingById.get(s.id) ?? 0,
@@ -207,7 +207,7 @@ export default async function BankHomePage() {
                 ))}
             </div>
 
-            <p className="text-sm text-gray-500 max-w-3xl">{t('bank.identityNote')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] max-w-3xl">{t('bank.identityNote')}</p>
         </div>
     )
 }

@@ -77,7 +77,7 @@ canEdit: boolean
                    onChange={(e) => set(e.target.value)} onBlur={(e) => set(e.target.value)}
                    className={`${CONTROL_INPUT} block`
                        + (value === '' ? ' border-red-400 bg-red-50' : '')} />
-            <span className="mt-1 block max-w-[16rem] text-gray-500">{t(hintKey)}</span>
+            <span className="mt-1 block max-w-[16rem] text-[color:var(--brand-muted-text)]">{t(hintKey)}</span>
         </label>
     )
 
@@ -109,7 +109,7 @@ canEdit: boolean
 
             {/* ── 实际额:汇付 ─────────────────────────────────────────────── */}
             <h2 className="mb-2">{t('finance.costSettle.actualTitle')}</h2>
-            {actuals.length === 0 ? <p className="text-sm text-gray-500 mb-6">{t('finance.costSettle.none')}</p> : (
+            {actuals.length === 0 ? <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">{t('finance.costSettle.none')}</p> : (
                 <div className="mb-6 rounded border border-gray-200 p-4">
                     <div className="mb-3">
                         <DataTable
@@ -135,7 +135,7 @@ canEdit: boolean
 
             {/* ── 估算:按真实发票冲抵 ─────────────────────────────────────── */}
             <h2 className="mb-2">{t('finance.costSettle.estimateTitle')}</h2>
-            {estimates.length === 0 ? <p className="text-sm text-gray-500">{t('finance.costSettle.none')}</p> : (
+            {estimates.length === 0 ? <p className="text-sm text-[color:var(--brand-muted-text)]">{t('finance.costSettle.none')}</p> : (
                 <div className="rounded border border-gray-200 p-4">
                     <div className="mb-3">
                         <DataTable
@@ -146,7 +146,7 @@ canEdit: boolean
                             selection={selectionFor(estimates, selE, setSelE)}
                         />
                     </div>
-                    <div className="flex gap-4 flex-wrap items-start text-xs">
+                    <div className="flex gap-4 flex-wrap items-start text-xs text-[color:var(--brand-muted-text)]">
                         {dateField('inv-date', invDate, setInvDate,
                             'finance.costSettle.invoiceDate', 'finance.costSettle.invoiceDateHint')}
                         <label>{t('finance.costSettle.invoiceAmount')}

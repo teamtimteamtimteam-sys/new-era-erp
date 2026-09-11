@@ -59,7 +59,7 @@ export default function LocationForm({
                     />
                     {/* "SG-" 是约定不是约束 —— 提示写在这里,数据库【故意】不用
                         CHECK 钉死它(多实体是计划中的,见迁移文件头) */}
-                    <p className="text-xs text-gray-500 mt-1">{t('locations.form.codeHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('locations.form.codeHint')}</p>
                     {state.fieldErrors?.code && (
                         <p className="text-xs text-red-600 mt-1">{state.fieldErrors.code}</p>
                     )}
@@ -89,7 +89,7 @@ export default function LocationForm({
                     />
                     {/* zone 只是显示分组 —— 说在输入框旁边,免得有人把合规范围
                         写进这一格然后以为系统会照着办 */}
-                    <p className="text-xs text-gray-500 mt-1">{t('locations.form.zoneHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('locations.form.zoneHint')}</p>
                 </div>
             </div>
 

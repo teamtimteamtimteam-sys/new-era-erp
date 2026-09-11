@@ -178,7 +178,7 @@ export default async function MarginPage() {
             <MarginTable rows={tableRows} empty={t('margin.empty')} />
 
 
-            <p className="text-sm text-gray-500 mt-4">{t('margin.note')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mt-4">{t('margin.note')}</p>
         </ListPage>
     )
 }

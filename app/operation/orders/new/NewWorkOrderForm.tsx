@@ -87,12 +87,12 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                     <label className="block mb-1">{t('processing.wo.form.scheduled')}</label>
                     <input type="date" value={scheduled} onChange={(e) => setScheduled(e.target.value)}
                            className={CONTROL_INPUT} />
-                    <p className="text-xs text-gray-500 mt-1">{t('processing.wo.form.scheduledWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('processing.wo.form.scheduledWhy')}</p>
                 </div>
 
                 <div>
                     <h2 className="mb-1">{t('processing.wo.form.lines')}</h2>
-                    <p className="text-xs text-gray-500 mb-2">{t('processing.wo.form.linesWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('processing.wo.form.linesWhy')}</p>
                     <table className="w-full border-collapse border border-gray-300 text-sm">
                         <thead className="bg-gray-100">
                             <tr>
@@ -128,10 +128,10 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                 <div>
                     <h2 className="mb-1">{t('processing.wo.form.expected')}</h2>
                     {/* 【这一段留空是一个正当答案 —— 说出来,而不是让人猜】 */}
-                    <p className="text-xs text-gray-500 mb-2">{t('processing.wo.form.expectedWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('processing.wo.form.expectedWhy')}</p>
                     {/* PROC-SUPPORT-1(R3):播种的猜测与校准过的数字必须在【屏幕上】分得开,
                         不只是在数据里分得开 —— 六个月后打开这一页的人读的是屏幕。 */}
-                    <p className="text-xs text-gray-500 mb-2">{t('processing.wo.form.basisWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('processing.wo.form.basisWhy')}</p>
                     <table className="w-full border-collapse border border-gray-300 text-sm">
                         <thead className="bg-gray-100">
                             <tr>
@@ -192,7 +192,7 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                               className={`${CONTROL_TEXTAREA} w-full`} />
                 </div>
 
-                <p className="text-xs text-gray-600">{t('processing.wo.form.savesAsDraft')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.wo.form.savesAsDraft')}</p>
                 <div className="flex gap-3">
                     <Button type="button" onClick={submit} disabled={isPending || blocked}>
                         {isPending ? t('common.saving') : t('processing.wo.form.save')}

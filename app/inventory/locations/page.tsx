@@ -95,7 +95,7 @@ export default async function LocationsPage() {
                     </div>
                     {/* 【这一刀只记录,不设闸】—— 一张写着"可存放分类"的表看起来就像已经
                         在拦了,所以第一句话就说清楚它还没有。 */}
-                    <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-6">
+                    <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-6">
                         {t('locations.recordsOnlyNotice')}
                     </p>
                 </>

@@ -79,10 +79,10 @@ export default async function CommissionsPage() {
             notices={
                 <>
                     <div className="border-l-4 border-amber-500 bg-amber-50 p-3 mb-3 max-w-3xl">
-                        <p className="text-sm text-gray-800">{t('commissions.notPosted')}</p>
+                        <p className="text-sm text-[color:var(--brand-text)]">{t('commissions.notPosted')}</p>
                     </div>
                     <div className="border-l-4 border-gray-400 bg-gray-50 p-3 mb-6 max-w-3xl">
-                        <p className="text-sm text-gray-800">{t('commissions.noAccrual')}</p>
+                        <p className="text-sm text-[color:var(--brand-text)]">{t('commissions.noAccrual')}</p>
                     </div>
                 </>
             }

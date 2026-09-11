@@ -91,7 +91,7 @@ export default async function ReceivingDiscrepanciesPage() {
         <>
             <div className="p-8">
                 <h1 className="mb-2">{t('grn.list.title')}</h1>
-                <p className="text-sm text-gray-600 mb-4">{t('grn.list.note')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('grn.list.note')}</p>
 
                 {/* GRN-1b:三个阈值。人人看得见(下面每一条提示出不出现都取决于它),
                     有写权限的人改得动。settings 读不出来时不画面板,而不是画一个
@@ -106,7 +106,7 @@ export default async function ReceivingDiscrepanciesPage() {
                        于是【一个只有采购权限的读者永远走这一支】,而下面每一条
                        差异提示的分寸都由这三个数定:面板不在,那些提示就成了没有
                        标尺的判断。不画面板仍然对,但要说出为什么它不在。 */
-                    <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2 mb-4">
+                    <p className="text-sm text-[color:var(--brand-muted-text)] border border-gray-300 rounded px-3 py-2 mb-4">
                         {t('grn.po.thresholdsRestricted')}
                     </p>
                 ) : settings ? (
@@ -120,7 +120,7 @@ export default async function ReceivingDiscrepanciesPage() {
                 {rows.length === 0 ? (
                     /* 【"没有差异"要说得出它的范围】—— 空表配一句"一切正常"是这一页
                        最容易犯的错:它对那条一次都没收过的采购行是句假话。 */
-                    <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
+                    <p className="text-sm text-[color:var(--brand-muted-text)] border border-gray-300 rounded px-3 py-2">
                         {t('grn.list.empty')}
                     </p>
                 ) : (
@@ -140,9 +140,9 @@ export default async function ReceivingDiscrepanciesPage() {
                                     <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
                                         {t('purchasing.status.' + r.po_status)}
                                     </span>
-                                    <span className="text-gray-500">#{r.line_no}</span>
-                                    {r.supplier_name && <span className="text-gray-600">{r.supplier_name}</span>}
-                                    {r.arrival_date && <span className="text-gray-500">{r.arrival_date}</span>}
+                                    <span className="text-[color:var(--brand-muted-text)]">#{r.line_no}</span>
+                                    {r.supplier_name && <span className="text-[color:var(--brand-muted-text)]">{r.supplier_name}</span>}
+                                    {r.arrival_date && <span className="text-[color:var(--brand-muted-text)]">{r.arrival_date}</span>}
                                 </div>
                                 {settings && (
                                     <DiscrepancyKinds
@@ -159,8 +159,8 @@ export default async function ReceivingDiscrepanciesPage() {
                     粒度是一条收货一行,所以一条一次都没收过的采购行【根本不产生行】。
                     空白在这里【不是】"没问题",而这一句就是不让它被那样读的全部办法。 */}
                 <div className="mt-8 border-t border-gray-200 pt-4 max-w-3xl">
-                    <p className="text-sm font-medium text-gray-700">{t('grn.blindSpot.title')}</p>
-                    <p className="text-sm text-gray-600 mt-1">{t('grn.blindSpot.body')}</p>
+                    <p className="text-sm font-medium text-[color:var(--brand-text)]">{t('grn.blindSpot.title')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)] mt-1">{t('grn.blindSpot.body')}</p>
                     <Link href="/purchasing/orders?status=closed"
                           className="text-sm hover:underline app-link app-link-inline">
                         {t('grn.blindSpot.link')}

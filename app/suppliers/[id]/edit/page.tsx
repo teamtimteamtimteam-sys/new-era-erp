@@ -174,7 +174,7 @@ export default async function EditSupplierPage({
             </div>
 
             <h1 className="mb-2">{t('suppliers.editTitle')}</h1>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
                 <span className="font-mono">{supplier.code}</span>
                 <span className="mx-2">·</span>
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
@@ -217,7 +217,7 @@ export default async function EditSupplierPage({
                 针,fetch 冒烟看不见。 */}
             <section className="mt-6">
                 <h2 className="mb-1">{t('contacts.sectionTitle')}</h2>
-                <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
                 <ContactsPanel permissionCode="module.suppliers.edit" supplierId={supplier.id} rows={supplierContacts} canEdit={canEditSupplier} />
             </section>
         </div>

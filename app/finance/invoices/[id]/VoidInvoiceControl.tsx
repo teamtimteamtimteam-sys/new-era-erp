@@ -98,7 +98,7 @@ canEdit: boolean
                         className={CONTROL_INPUT}
                         title={t('invoice.voidReversalDateWhy')}
                     />
-                    <span className="text-xs text-gray-500">{t('invoice.voidReversalDateWhy')}</span>
+                    <span className="text-xs text-[color:var(--brand-muted-text)]">{t('invoice.voidReversalDateWhy')}</span>
                 </span>
             )}
             <PermissionGate code="module.finance.edit" allowed={canEdit}>

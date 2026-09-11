@@ -150,7 +150,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
             {goals.length === 0 ? (
-                <p className="text-sm text-gray-500 mb-3">{t('reviews.noGoals')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('reviews.noGoals')}</p>
             ) : (
                 <table className="w-full border-collapse border border-gray-300 text-sm mb-3">
                     <thead className="bg-gray-100">
@@ -222,7 +222,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                                 title={t('reviews.goalDeleteTitle')}
                                                 body={t('common.hardDeleteNote')}
                                                 details={
-                                                    <p className="text-sm font-medium text-foreground">
+                                                    <p className="text-sm font-medium text-[color:var(--brand-text)]">
                                                         {t('reviews.goalDeleteConsequence')}
                                                     </p>
                                                 }
@@ -359,13 +359,13 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                    它今天为假只剩一个原因(记录状态),所以就地说出那个原因 ——
                    而不是让"这份考核已经提交了"和"这个功能不存在"在屏幕上长得一样。 */}
             {!canEditGoals && stateNote && (
-                <p className="text-sm text-gray-600" data-state-note="goals">{stateNote}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]" data-state-note="goals">{stateNote}</p>
             )}
             {canEditGoals && (
                 <div className="rounded border border-gray-200 p-4">
                     <h3 className="mb-1">{t('reviews.addGoal')}</h3>
                     {/* 指标与单位一起定:此刻不填单位,以后就没有任何一条路能补上它 */}
-                    <p className="text-xs text-gray-500 mb-3">{t('reviews.addGoalHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('reviews.addGoalHint')}</p>
                     <div className="flex gap-2 flex-wrap items-end">
                         <label className="grow min-w-64">
                             {t('reviews.colObjective')}

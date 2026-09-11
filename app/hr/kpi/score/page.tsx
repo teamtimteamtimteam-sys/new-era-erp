@@ -211,7 +211,7 @@ export default async function KpiScorePage({
             </form>
 
             {!chosen && (
-                <p className="text-sm text-gray-800 max-w-4xl border-l-4 border-blue-500 bg-blue-50 p-3">
+                <p className="text-sm text-[color:var(--brand-text)] max-w-4xl border-l-4 border-blue-500 bg-blue-50 p-3">
                     {t('kpi.noMonthChosen')}
                 </p>
             )}
@@ -243,16 +243,16 @@ export default async function KpiScorePage({
                     {/* ── ★★ 打分刻度与封顶规则 —— 就画在她打分的这一屏上 ★★ ──────
                         Tim 的裁定:封顶规则必须在界面里,不能只躺在一份文档里。 */}
                     <h2 className="mb-1">{t('kpi.rubricTitle')}</h2>
-                    <p className="text-xs text-gray-600 mb-2 max-w-4xl">{t('kpi.rubricWhat')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-4xl">{t('kpi.rubricWhat')}</p>
                     <div className="space-y-1.5 mb-6 max-w-4xl">
                         {rubric.map((r) => (
-                            <div key={r.score} className="border border-gray-300 rounded p-2 text-xs">
+                            <div key={r.score} className="border border-gray-300 rounded p-2 text-xs text-[color:var(--brand-muted-text)]">
                                 <div className="flex flex-wrap items-baseline gap-2">
                                     <span className="font-mono font-semibold">{r.score}</span>
                                     <span className="font-semibold">{r.band_en}</span>
-                                    <span className="text-gray-700">{r.evidence_standard_en}</span>
+                                    <span className="text-[color:var(--brand-text)]">{r.evidence_standard_en}</span>
                                 </div>
-                                <div className="mt-1 text-gray-700">{r.management_action_en}</div>
+                                <div className="mt-1 text-[color:var(--brand-text)]">{r.management_action_en}</div>
                                 {/* ★ 否决那一栏单独高亮 —— 它不是"又一列",它是那条封顶规则 */}
                                 <div className="mt-1 text-amber-900 bg-amber-50 border-l-2 border-amber-400 pl-2 py-0.5">
                                     {r.veto_rule_en}
@@ -269,7 +269,7 @@ export default async function KpiScorePage({
                     <h2 className="mb-1">
                         {t('kpi.scoreGridTitle', { 0: chosen.name })}
                     </h2>
-                    <p className="text-xs text-gray-600 mb-3 max-w-4xl">{t('kpi.weightedIsComputed')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-3 max-w-4xl">{t('kpi.weightedIsComputed')}</p>
                     {/* ★ 同上。表格里的【取消】只在按过「编辑」之后才画,而「编辑」
                            就在这层 fieldset 里 —— 没有权限的人翻不开编辑态,
                            不会被关在一个既存不了也关不掉的行里(DBLOCK-1 第一条边界)。 */}

@@ -26,7 +26,7 @@ export default function LocationPicker({ locations }: { locations: LocationChoic
                     <option key={l.id} value={l.id}>{l.code} — {l.name}</option>
                 ))}
             </select>
-            <p className="text-xs text-gray-500 mt-1">{t('stock.receiptLocationHint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('stock.receiptLocationHint')}</p>
             {/* IOD-2:这句话从"不检查"改成了"检查什么"。留着它的理由变了但没有
                 消失 —— 现在它要防的是【反过来那个错觉】:闸落下了,于是看起来
                 像"分类被管住了"。管住的只有【新落地的货】,而三态里只有一态会
@@ -42,7 +42,7 @@ export default function LocationPicker({ locations }: { locations: LocationChoic
                 ☞ 这是一处【共用组件】的改动:LocationPicker 有三个调用点
                   (/inbound/receive · /inbound/new · /output/new),
                   所以它按共享层的规矩量,不是只量走查点名的那一页。 */}
-            <p className="text-xs text-gray-500 mt-1">{t('stock.receiptLocationClassCheck')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('stock.receiptLocationClassCheck')}</p>
         </div>
     )
 }

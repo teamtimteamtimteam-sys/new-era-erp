@@ -76,14 +76,14 @@ export default async function CounterpartyOverlapPage() {
                 <>
                     <div className="border-l-4 border-amber-500 bg-amber-50 p-3 mb-6 max-w-3xl">
                         <p className="text-sm font-medium">{t('overlap.notNettedTitle')}</p>
-                        <p className="text-sm text-gray-800 mt-1">{t('overlap.notNettedWhy')}</p>
+                        <p className="text-sm text-[color:var(--brand-text)] mt-1">{t('overlap.notNettedWhy')}</p>
                     </div>
 
                     {/* ★【分母:让"0 条"说得出它是哪一种 0】★
                         没有这一段,"没有重叠"与"没有可比的东西"在屏幕上长得一模一样。 */}
                     <div className="border border-gray-300 rounded p-3 mb-6 max-w-3xl">
                         <h2 className="mb-1">{t('overlap.coverageTitle')}</h2>
-                        <p className="text-sm text-gray-800">
+                        <p className="text-sm text-[color:var(--brand-text)]">
                             {t('overlap.coverageLine', {
                                 cwith: String(cov.customers_with_tax_id), ctotal: String(cov.customers_total),
                                 swith: String(cov.suppliers_with_tax_id), stotal: String(cov.suppliers_total),
@@ -99,23 +99,23 @@ export default async function CounterpartyOverlapPage() {
             state={{ kind: 'ok' }}
         >
             <h2 className="mb-2">{t('overlap.byTaxTitle')}</h2>
-            <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('overlap.byTaxWhat')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('overlap.byTaxWhat')}</p>
             {report.by_tax_id.length === 0 ? (
-                <p className="text-sm text-gray-600 mb-6">{t('overlap.byTaxNone')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">{t('overlap.byTaxNone')}</p>
             ) : (
                 <ByTaxTable rows={byTaxRows} />
             )}
 
             <h2 className="mb-2">{t('overlap.byNameTitle')}</h2>
-            <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('overlap.byNameWhat')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('overlap.byNameWhat')}</p>
             {report.by_name.length === 0 ? (
-                <p className="text-sm text-gray-600">{t('overlap.byNameNone')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('overlap.byNameNone')}</p>
             ) : (
                 <ByNameTable rows={byNameRows} />
             )}
 
             {/* 【结构上的那件事还没有做,说出来 —— 免得读者以为已经做了】 */}
-            <p className="text-xs text-gray-500 mt-8 max-w-3xl">{t('overlap.notStructure')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-8 max-w-3xl">{t('overlap.notStructure')}</p>
         </ListPage>
     )
 }

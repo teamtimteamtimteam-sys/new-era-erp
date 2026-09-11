@@ -147,7 +147,7 @@ export default function PricingPanel({
             <h2 className="mb-4">{t('inbound.pricing.title')}</h2>
 
             <div className="bg-gray-50 rounded p-4 mb-4 text-sm">
-                <span className="text-gray-600 mr-1">{t('inbound.pricing.current')}:</span>
+                <span className="text-[color:var(--brand-muted-text)] mr-1">{t('inbound.pricing.current')}:</span>
                 {/* cut 2b:null 有两种含义 —— 没有 data.view_prices 时是「受限」,
                     有权限而仍为 null 才是真的「未定价」。两者绝不能混为一谈。 */}
                 {!canViewPrices && unitPrice === null ? (
@@ -195,7 +195,7 @@ export default function PricingPanel({
                 </div>
                 {/* FIN-0:外币按定价日行方卖出价(tt_sell)自动估值,当天没牌价直接拒 */}
                 {currency !== baseCurrency && (
-                    <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 <div className="flex-1 min-w-[8rem]">
                     <label className="block mb-1">{t('inbound.pricing.notes')}</label>

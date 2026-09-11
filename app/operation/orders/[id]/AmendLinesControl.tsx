@@ -64,7 +64,7 @@ export default function AmendLinesControl({
                 </Button>
             ) : (
                 <div className="border border-gray-300 rounded p-3 space-y-2">
-                    <p className="text-xs text-gray-500">{t('processing.wo.actions.amendWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.wo.actions.amendWhy')}</p>
                     {error && <p className="text-sm text-red-600">{error}</p>}
                     {rows.filter((r) => r.planned_qty != null).map((r) => (
                         <div key={r.material_id} className="flex items-center gap-3 text-sm">
@@ -73,7 +73,7 @@ export default function AmendLinesControl({
                                    onChange={(e) => setDraft({ ...draft, [r.material_id]: e.target.value })}
                                    className={`${CONTROL_INPUT} w-28 text-right tabular-nums`} />
                             {/* 【地板画在旁边,但判据在服务端】 */}
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-[color:var(--brand-muted-text)]">
                                 {t('processing.wo.actions.floorHint', { qty: String(r.consumed_qty) })}
                             </span>
                         </div>

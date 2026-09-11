@@ -445,7 +445,7 @@ canEdit: boolean
                 </div>
                 {/* FIN-0:外币按下单日行方卖出价(tt_sell)自动估值,当天没牌价直接拒 */}
                 {currency !== baseCurrency && (
-                    <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 <div>
                     <label className="block mb-1">{t('purchasing.form.incoterm')}</label>
@@ -459,7 +459,7 @@ canEdit: boolean
                     <label className="block mb-1">{t('purchasing.form.deliveryLocation')}</label>
                     <input type="text" name="delivery_location"
                         className={`${CONTROL_INPUT} w-full`} />
-                    <p className="text-xs text-gray-500 mt-1">{t('purchasing.form.deliveryLocationHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('purchasing.form.deliveryLocationHint')}</p>
                 </div>
             </div>
             <div className="flex flex-wrap gap-4">
@@ -502,9 +502,9 @@ canEdit: boolean
                         </label>
                     ))}
                 </div>
-                <p className="mt-2 text-xs text-gray-700">{t('purchasing.form.kindRule')}</p>
+                <p className="mt-2 text-xs text-[color:var(--brand-text)]">{t('purchasing.form.kindRule')}</p>
                 {isEquipment && (
-                    <p className="mt-1 text-xs text-gray-700">{t('purchasing.form.kindEquipmentNote')}</p>
+                    <p className="mt-1 text-xs text-[color:var(--brand-text)]">{t('purchasing.form.kindEquipmentNote')}</p>
                 )}
             </div>
             <div className="space-y-3">
@@ -539,7 +539,7 @@ canEdit: boolean
                                                     : t('purchasing.form.assetsRestricted')}
                                             </p>
                                         )}
-                                        <p className="mt-1 text-xs text-gray-600">
+                                        <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">
                                             {t('purchasing.form.assetLineHint')}
                                         </p>
                                         {/* ── EQP-PAY-1(R6):质保金 ────────────────────────────
@@ -580,7 +580,7 @@ canEdit: boolean
                                                     />
                                                 </div>
                                             ) : null}
-                                            <p className="mt-1 text-xs text-gray-600">
+                                            <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">
                                                 {t('purchasing.form.retentionHint')}
                                             </p>
                                         </div>
@@ -613,10 +613,10 @@ canEdit: boolean
                                         {t('purchasing.colQuantity')} · {t('inbound.form.unit')}
                                     </label>
                                     {/* 显示的是【状态本身】,不是一段写死的文字 —— 见 emptyLine 的注释。 */}
-                                    <p className="w-40 border border-gray-200 bg-gray-50 px-2 py-1.5 rounded text-sm text-gray-700">
+                                    <p className="w-40 border border-gray-200 bg-gray-50 px-2 py-1.5 rounded text-sm text-[color:var(--brand-text)]">
                                         {l.quantity} {l.unit}
                                     </p>
-                                    <p className="mt-1 text-xs text-gray-600">{t('purchasing.form.equipmentQtyFixed')}</p>
+                                    <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('purchasing.form.equipmentQtyFixed')}</p>
                                 </div>
                             ) : (
                                 <>
@@ -669,7 +669,7 @@ canEdit: boolean
                                 </select>
                                 {/* ★ FIX-2b:空下拉的两种意思,说出是哪一种。 */}
                                 {!canSeePricingFormulas && (
-                                    <p className="mt-1 text-xs text-gray-600">
+                                    <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">
                                         {t('purchasing.form.formulasRestricted')}
                                     </p>
                                 )}
@@ -707,13 +707,13 @@ canEdit: boolean
                                     <option value="provisional">{t('purchasing.form.priceStatusProvisional')}</option>
                                 </select>
                                 {l.formula_id && (
-                                    <p className="text-xs text-gray-500 mt-1 max-w-40">
+                                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-40">
                                         {t('purchasing.form.priceStatusFormulaHint')}
                                     </p>
                                 )}
                             </div>
                             )}
-                            <div className="text-sm text-gray-600 pb-1.5">
+                            <div className="text-sm text-[color:var(--brand-muted-text)] pb-1.5">
                                 {t('purchasing.colAmount')}:{' '}
                                 <span className="font-mono font-medium">{formatAmount(lineAmount(l), currency)}</span>
                             </div>
@@ -732,7 +732,7 @@ canEdit: boolean
                                     {t('purchasing.form.removeLine')}
                                 </Button>
                                 {lines.length === 1 && (
-                                    <p className="text-xs text-gray-500">{t('purchasing.form.removeLineOnlyOne')}</p>
+                                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('purchasing.form.removeLineOnlyOne')}</p>
                                 )}
                             </div>
                         </div>
@@ -749,14 +749,14 @@ canEdit: boolean
                             >
                                 {l.assayOpen ? '▾' : '▸'} {t('purchasing.form.expectedAssay')}
                                 {assayCount(l) > 0 && (
-                                    <span className="ml-1 text-gray-500">({assayCount(l)})</span>
+                                    <span className="ml-1 text-[color:var(--brand-muted-text)]">({assayCount(l)})</span>
                                 )}
                             </Button>
                             {l.assayOpen && (
                                 <div className="mt-2 flex flex-wrap gap-3">
                                     {substanceOptions.filter((s) => s.isActive).map((m) => (
                                         <label key={m.value} className="flex items-center gap-1">
-                                            <span className="w-8 text-gray-600">{t(m.labelKey)}</span>
+                                            <span className="w-8 text-[color:var(--brand-muted-text)]">{t(m.labelKey)}</span>
                                             <DecimalInput
                                                 value={l.assay[m.value] ?? ''}
                                                 onChange={(v) =>
@@ -793,7 +793,7 @@ canEdit: boolean
                                     >
                                         {l.calcOpen ? '▾' : '▸'} {formatMoneyBare(l.calc.unit_price_usd_per_kg, '紧跟其后的 USD/kg')} USD/kg
                                         {l.calcFx && l.calcFx !== 1 && (
-                                            <span className="ml-1 text-xs text-gray-500">
+                                            <span className="ml-1 text-xs text-[color:var(--brand-muted-text)]">
                                                 × {l.calcFx.toFixed(4)} = {l.est_price} {currency}/kg
                                                 {l.calcFxAsOf && ' ' + t('finance.fxLookup.asOf', { 0: l.calcFxAsOf })}
                                             </span>
@@ -801,8 +801,8 @@ canEdit: boolean
                                     </button>
                                 )}
                                 {l.calc && l.calcOpen && (
-                                    <div className="mt-2 bg-gray-50 rounded p-3 text-xs space-y-1">
-                                        <p className="text-gray-600">
+                                    <div className="mt-2 bg-gray-50 rounded p-3 text-xs space-y-1 text-[color:var(--brand-muted-text)]">
+                                        <p className="text-[color:var(--brand-muted-text)]">
                                             {l.calc.formula_code} — {l.calc.formula_name} · {l.calc.reference_date}
                                         </p>
                                         {/* ★ TABLE-PHONE-5：这张计价明细以前【一个列头都没有】——
@@ -813,7 +813,7 @@ canEdit: boolean
                                               （含那个原样带着的「×」）全部不变；手机档留下的仍然是
                                               金属 · 单价 · 金属价值 三列。 */}
                                         <CalcLinesTable lines={l.calc.lines} />
-                                        <p className="font-mono text-gray-700">
+                                        <p className="font-mono text-[color:var(--brand-text)]">
                                             {formatMoneyBare(l.calc.gross_value_usd, '同一行末尾的 USD')} − {formatMoneyBare(l.calc.treatment_usd, '同一行末尾的 USD')}{' '}
                                             − {formatMoneyBare(l.calc.discount_usd, '同一行末尾的 USD')} = {formatMoneyBare(l.calc.net_value_usd, '同一行末尾的 USD')} USD →{' '}
                                             <span className="font-medium">
@@ -855,7 +855,7 @@ canEdit: boolean
                     读不到的是「这家供应商默认用哪一张」。所以不禁用这个下拉 ——
                     只说出那一步为什么没有自动发生。 */}
                 {!canSeeSupplierTerms && (
-                    <span className="text-xs text-gray-600">{t('purchasing.form.supplierTermsRestricted')}</span>
+                    <span className="text-xs text-[color:var(--brand-muted-text)]">{t('purchasing.form.supplierTermsRestricted')}</span>
                 )}
             </div>
             {/* EQP-PAY-1:换了单据种类之后,用不上的里程碑被换掉了 —— 【说出来】,
@@ -994,7 +994,7 @@ canEdit: boolean
 
             {/* ── 实时合计 ── */}
             <div className="bg-gray-50 rounded p-4 text-sm">
-                <span className="text-gray-600 mr-1">{t('purchasing.colEstimatedTotal')}:</span>
+                <span className="text-[color:var(--brand-muted-text)] mr-1">{t('purchasing.colEstimatedTotal')}:</span>
                 <span className="font-mono font-medium">{formatAmount(estTotal, currency)}</span>
             </div>
 

@@ -144,7 +144,7 @@ export default function PayrollGrid({
                         defaultValue={defaults.payment_date}
                         className={CONTROL_INPUT}
                     />
-                    <p className="text-xs text-gray-500 mt-1">{t('hr.paymentDateHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('hr.paymentDateHint')}</p>
                 </div>
                 <div>
                     <label className="block mb-1">{t('hr.colCurrency')}</label>

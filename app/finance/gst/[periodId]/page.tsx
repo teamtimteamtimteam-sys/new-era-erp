@@ -188,7 +188,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
                     <h2 className="mb-1">{t('gst.boxDetail', { box: box.replace('box', '') })}</h2>
                     {/* 【把这一格的数字放在这里】没有它,"这一格里没有东西"读起来像查询失败;
                         有了它,读者立刻知道:这一格【本来就是】这个数。 */}
-                    <p className="text-xs text-gray-600 mb-3">
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">
                         {t('gst.boxDetailFor', {
                             box: box.replace('box', ''),
                             value: (openBoxValue ?? 0).toFixed(2),
@@ -216,7 +216,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
             )}
 
             <h2 className="mb-2">{t('gst.recordFiling')}</h2>
-            <p className="text-xs text-gray-600 mb-2">{t('gst.filingIsOutside')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('gst.filingIsOutside')}</p>
             {/* ★ 出口检查:申报控件与更正控件都住 children,而 state 恒为 'ok',
                   所以它们不可能被任何空分支吃掉。 */}
             <div className="mb-6"><FileReturnControl canEdit={canEditGate} periodId={periodId} blockedWhy={blockedWhy} /></div>
@@ -224,7 +224,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
             {filed && (
                 <>
                     <h2 className="mb-2">{t('gst.raiseCorrection')}</h2>
-                    <p className="text-xs text-gray-600 mb-2">{t('gst.correctionWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('gst.correctionWhy')}</p>
                     <CorrectControl canEdit={canEditGate} periodId={periodId} />
                 </>
             )}

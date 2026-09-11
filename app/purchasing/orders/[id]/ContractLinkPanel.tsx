@@ -77,23 +77,23 @@ export default function ContractLinkPanel({
                         link_document_to_contract 的返回里带着 terms_frozen_as_of,
                         /contracts 页也印它。对品位规格这条边不算锋利,对钱锋利。 */}
                     {linkedAt && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                             {t('purchasing.contract.frozenAt', {
                                 at: new Date(linkedAt).toISOString().slice(0, 16).replace('T', ' '),
                             })}
                         </p>
                     )}
-                    <p className="text-xs text-gray-500 mt-2">{t('purchasing.contract.cannotRelink')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('purchasing.contract.cannotRelink')}</p>
                 </>
             ) : !canSeeContracts ? (
                 // ③-c 你看不见合同 —— 这不是"没有合同"
-                <p className="text-sm text-gray-600">{t('purchasing.contract.noPermission')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('purchasing.contract.noPermission')}</p>
             ) : registerIsEmpty ? (
                 // ③-a 登记簿整个是空的
-                <p className="text-sm text-gray-600">{t('purchasing.contract.registerEmpty')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('purchasing.contract.registerEmpty')}</p>
             ) : options.length === 0 ? (
                 // ③-b 这家供应商名下没有【生效中】的合同
-                <p className="text-sm text-gray-600">{t('purchasing.contract.noActiveForSupplier')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('purchasing.contract.noActiveForSupplier')}</p>
             ) : (
                 <form action={formAction} className="flex flex-wrap items-end gap-3">
                     <div>
@@ -117,7 +117,7 @@ export default function ContractLinkPanel({
                     <Button type="submit" disabled={isPending}>
                         {isPending ? t('common.saving') : t('purchasing.contract.link')}
                     </Button>
-                    <p className="w-full text-xs text-gray-500">{t('purchasing.contract.optional')}</p>
+                    <p className="w-full text-xs text-[color:var(--brand-muted-text)]">{t('purchasing.contract.optional')}</p>
                 </form>
             )}
 

@@ -31,7 +31,7 @@ export default async function CostVariancePage() {
     const by = new Map(rows.map((r) => [r.cost_type + '|' + r.month.slice(0, 7), r]))
     return (
         <ListPage title={t('finance.variance.title')} intro={t('finance.variance.intro')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
-            {rows.length === 0 ? <p className="text-sm text-gray-500">{t('finance.variance.empty')}</p> : (
+            {rows.length === 0 ? <p className="text-sm text-[color:var(--brand-muted-text)]">{t('finance.variance.empty')}</p> : (
                 <table className={`${tableC.root} w-full`}>
                     <thead><tr className={tableC.headRow}>
                         <th className={`${tableC.headCell} text-left`}>{t('finance.variance.type')}</th>

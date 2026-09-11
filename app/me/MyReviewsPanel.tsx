@@ -100,7 +100,7 @@ export default function MyReviewsPanel({
                     <details key={r.id} className="rounded border border-gray-200 mb-3">
                         <summary className="cursor-pointer px-4 py-3 text-sm flex items-baseline gap-3 flex-wrap">
                             <span className="font-medium">{t(`reviews.type_${r.review_type}`)}</span>
-                            <span className="font-mono text-xs text-gray-500">
+                            <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">
                                 {r.period_start} → {r.period_end}
                             </span>
                             <span className="font-medium">{ratingName(r.rating_code)}</span>
@@ -133,18 +133,18 @@ export default function MyReviewsPanel({
                             <div className="flex gap-6 flex-wrap text-sm mb-3">
                                 {r.review_type === 'probation' && (
                                     <div>
-                                        <span className="text-gray-600 mr-1">{t('reviews.probationOutcome')}:</span>
+                                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.probationOutcome')}:</span>
                                         {r.probation_outcome ? t(`reviews.outcome_${r.probation_outcome}`) : '—'}
                                     </div>
                                 )}
                                 {r.new_monthly_salary !== null && (
                                     <div>
-                                        <span className="text-gray-600 mr-1">{t('reviews.newSalary')}:</span>
+                                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.newSalary')}:</span>
                                         <span className="font-mono">
                                             {formatAmount(r.new_monthly_salary, baseCurrency)}
                                         </span>
                                         {r.salary_effective_date && (
-                                            <span className="ml-2 text-gray-500">
+                                            <span className="ml-2 text-[color:var(--brand-muted-text)]">
                                                 {t('reviews.salaryEffective')} {r.salary_effective_date}
                                             </span>
                                         )}

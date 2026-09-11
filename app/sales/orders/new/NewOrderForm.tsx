@@ -62,7 +62,7 @@ export default function NewOrderForm({
                     {state.fieldErrors?.customer_id && (
                         <p className="text-red-600 text-xs mt-1">{state.fieldErrors.customer_id}</p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">{t('sales.form.customerWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('sales.form.customerWhy')}</p>
                 </div>
 
                 {/* 信用面板 */}
@@ -70,7 +70,7 @@ export default function NewOrderForm({
                     <div className={'border rounded px-4 py-3 text-sm ' +
                         (blocked ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50')}>
                         {restricted ? (
-                            <p className="text-gray-600">{t('common.restricted')}</p>
+                            <p className="text-[color:var(--brand-muted-text)]">{t('common.restricted')}</p>
                         ) : row ? (
                             <>
                                 <div className="flex flex-wrap gap-x-6 gap-y-1">
@@ -83,7 +83,7 @@ export default function NewOrderForm({
                                 )}
                             </>
                         ) : (
-                            <p className="text-gray-600">{t('sales.credit.noRow')}</p>
+                            <p className="text-[color:var(--brand-muted-text)]">{t('sales.credit.noRow')}</p>
                         )}
                     </div>
                 )}
@@ -99,7 +99,7 @@ export default function NewOrderForm({
                     {state.fieldErrors?.order_date && (
                         <p className="text-red-600 text-xs mt-1">{state.fieldErrors.order_date}</p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">{t('sales.form.orderDateWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('sales.form.orderDateWhy')}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -117,7 +117,7 @@ export default function NewOrderForm({
                             <p className="text-red-600 text-xs mt-1">{state.fieldErrors.fx_rate}</p>
                         )}
                         {/* FIN-35:没有默认值是有意的 */}
-                        <p className="text-xs text-gray-500 mt-1">{t('sales.form.fxRateWhy')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('sales.form.fxRateWhy')}</p>
                     </div>
                 </div>
 
@@ -141,7 +141,7 @@ export default function NewOrderForm({
                             </div>
                         ))}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">{t('sales.form.linesWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('sales.form.linesWhy')}</p>
                 </div>
 
                 <div>
@@ -150,7 +150,7 @@ export default function NewOrderForm({
                 </div>
 
                 {/* 【草稿,不是承诺】保存只建草稿;确认是另一步,而确认才会冻结 */}
-                <p className="text-sm text-gray-600">{t('sales.form.savesAsDraft')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('sales.form.savesAsDraft')}</p>
                 {!orderDate && <p className="text-sm text-amber-700">{t('sales.form.blockedOrderDate')}</p>}
 
                 <div className="flex gap-3 pt-2">

@@ -24,7 +24,7 @@ export default function DeleteButton({
             title={t('customers.deleteConfirmTitle')}
             body={t('common.softDeleteNote')}
             details={
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-sm font-medium text-[color:var(--brand-text)]">
                     {t('customers.deleteConsequence')}
                 </p>
             }

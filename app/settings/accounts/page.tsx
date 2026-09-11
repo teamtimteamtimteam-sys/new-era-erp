@@ -50,7 +50,7 @@ export default async function PermissionUsersPage() {
                 ★ COPY-1(2026-09-06):从前这里还印出一个迁移脚本的文件名,
                   而屏幕前的人是仓管与行政 —— 一个 .sql 的路径对他们不是线索,
                   是噪音。做法与那个文件名都搬进 docs/accounts-roles-and-permissions.md。 */}
-            <div className="mb-6 rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
+            <div className="mb-6 rounded border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-[color:var(--brand-muted-text)]">
                 <span className="font-medium">{t('permissions.recoveryTitle')}</span>{' '}
                 {t('permissions.recoveryBody')}
             </div>
@@ -58,7 +58,7 @@ export default async function PermissionUsersPage() {
             <CreateAccountPanel roles={roles} employees={employees} />
 
             {rows.length === 0 ? (
-                <p className="text-gray-500">{t('permissions.noUsers')}</p>
+                <p className="text-[color:var(--brand-muted-text)]">{t('permissions.noUsers')}</p>
             ) : (
                 <div className="space-y-3">
                     {rows.map((r) => (

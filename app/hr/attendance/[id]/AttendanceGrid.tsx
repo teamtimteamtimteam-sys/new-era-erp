@@ -84,7 +84,7 @@ export default function AttendanceGrid({
                     >
                         {t('attendance.syncBtn')}
                     </Button>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">
                         {unrecorded > 0
                             ? t('attendance.completeBlocked', { count: String(unrecorded) })
                             : t('attendance.completeHint')}
@@ -93,7 +93,7 @@ export default function AttendanceGrid({
             ) : (
                 <div className="flex items-end gap-3">
                     <label className="flex-1 max-w-md">
-                        <span className="block text-gray-600 mb-1">{t('attendance.reopenReason')}</span>
+                        <span className="block text-[color:var(--brand-muted-text)] mb-1">{t('attendance.reopenReason')}</span>
                         <input
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}

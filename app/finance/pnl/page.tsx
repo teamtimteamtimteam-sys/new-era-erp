@@ -196,7 +196,7 @@ export default async function PnlPage({
                 </tbody>
             </table>
 
-            <p className="text-sm text-gray-500 mt-4">{t('finance.pnlNote')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mt-4">{t('finance.pnlNote')}</p>
         </ListPage>
     )
 }

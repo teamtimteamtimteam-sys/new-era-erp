@@ -158,7 +158,7 @@ export default function IssuePanel({
             })()}
             {blockedReason && <span className="text-xs text-amber-700">{blockedReason}</span>}
             {!hasLines && nothingToIssueNote && (
-                <span className="text-xs text-gray-600" data-state-note="nothing-to-issue">{nothingToIssueNote}</span>
+                <span className="text-xs text-[color:var(--brand-muted-text)]" data-state-note="nothing-to-issue">{nothingToIssueNote}</span>
             )}
             {error && <span className="text-xs text-red-600">{error}</span>}
         </div>

@@ -40,7 +40,7 @@ export default async function RatingScalePage() {
                             {t('common.back')}
                         </Link>
                     </div>
-                    <p className="mb-4 text-sm text-gray-600">{t('reviews.scaleIntro')}</p>
+                    <p className="mb-4 text-sm text-[color:var(--brand-muted-text)]">{t('reviews.scaleIntro')}</p>
                 </>
             }
             // ★★★【这一页【不能】用外壳的 empty 分支 —— 差一点就发出去了】★★★

@@ -133,7 +133,7 @@ export default async function JournalListPage({
             </Suspense>
 
             <div className="flex flex-wrap items-center gap-4 mb-4">
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('finance.recordCount', { count: total })}
                 </p>
                 {/* ★【总账导出的入口】★ 一个没有入口的导出路由,路由冒烟照样 200 ——
@@ -171,7 +171,7 @@ export default async function JournalListPage({
                     </Button>
                 )}
 
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('finance.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
 

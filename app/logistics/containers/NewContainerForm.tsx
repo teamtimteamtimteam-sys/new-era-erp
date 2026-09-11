@@ -98,7 +98,7 @@ canEdit: boolean
                     {labels.submit}
                 </Button>
             </div>
-            <p className="mt-2 text-xs text-gray-500">{labels.departureHint} · {labels.blHint}</p>
+            <p className="mt-2 text-xs text-[color:var(--brand-muted-text)]">{labels.departureHint} · {labels.blHint}</p>
         </form>
         </PermissionGate>
     )

@@ -67,7 +67,7 @@ export default function IntakeConditionPanel({
     return (
         <div className="mb-8">
             <h2 className="mb-2">{t('inbound.condition.title')}</h2>
-            {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('inbound.condition.needsEdit')}</p>}
+            {!canEdit && <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('inbound.condition.needsEdit')}</p>}
             {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
 
             <div className="border border-gray-300 rounded p-3 max-w-2xl space-y-4">
@@ -84,7 +84,7 @@ export default function IntakeConditionPanel({
                         <Button size="xs" type="button" disabled={pending} onClick={save}>
                             {t('common.save')}
                         </Button>
-                        <span className="text-xs text-gray-500">{t('inbound.condition.saveHint')}</span>
+                        <span className="text-xs text-[color:var(--brand-muted-text)]">{t('inbound.condition.saveHint')}</span>
                     </div>
                 </PermissionGate>
             </div>

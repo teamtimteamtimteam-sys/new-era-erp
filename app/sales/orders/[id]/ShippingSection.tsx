@@ -99,7 +99,7 @@ export default async function ShippingSection({
     return (
         <section className="mt-8">
             <h2 className="mb-1">{t('sales.ship.title')}</h2>
-            <p className="text-xs text-gray-500 mb-3">{t('sales.ship.note')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('sales.ship.note')}</p>
 
             {shipments.length > 0 && (
                 <ul className="text-sm space-y-1 mb-3">
@@ -111,8 +111,8 @@ export default async function ShippingSection({
                                 送货单那条链接留在原处不动。 */}
                             <a href={`/sales/shipments/${s.id}`}
                                className="font-mono hover:underline app-link app-link-inline">{s.code}</a>
-                            <span className="text-gray-500">{new Date(s.ship_date).toLocaleDateString(dl)}</span>
-                            <span className="text-gray-500">
+                            <span className="text-[color:var(--brand-muted-text)]">{new Date(s.ship_date).toLocaleDateString(dl)}</span>
+                            <span className="text-[color:var(--brand-muted-text)]">
                                 {t('sales.ship.lineCount', { n: String((s.shipment_lines ?? []).length) })}
                             </span>
                             <Button asChild variant="link" size="inline">
@@ -130,7 +130,7 @@ export default async function ShippingSection({
             )}
 
             {!shippable && (
-                <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-3">
+                <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-3">
                     {t('sales.ship.notShippable')}
                 </p>
             )}
@@ -155,14 +155,14 @@ export default async function ShippingSection({
                                     #{l.line_no} <span className="font-mono">{l.material_code}</span>
                                 </span>
                                 <span className="text-sm">
-                                    <span className="text-gray-600">{t('sales.ship.shippedLabel')}:</span>{' '}
+                                    <span className="text-[color:var(--brand-muted-text)]">{t('sales.ship.shippedLabel')}:</span>{' '}
                                     <span className="font-mono">
                                         {shipped} / {l.quantity} {l.unit}
                                     </span>
                                 </span>
                                 <span className="text-sm">
                                     {!canSeeFinance ? (
-                                        <span className="text-gray-500">{t('sales.ship.invoiceRestricted')}</span>
+                                        <span className="text-[color:var(--brand-muted-text)]">{t('sales.ship.invoiceRestricted')}</span>
                                     ) : isBilled ? (
                                         <span className="text-green-800">{t('sales.ship.invoiced')}</span>
                                     ) : (
@@ -174,15 +174,15 @@ export default async function ShippingSection({
                             {/* 禁用的理由长在控件旁边,而且【各说各的】—— 三种"发不了"
                                 指向三个不同的下一步 */}
                             {!shippable ? null : !canShip ? (
-                                <p className="text-sm text-gray-600">
+                                <p className="text-sm text-[color:var(--brand-muted-text)]">
                                     {t('common.restricted')} — {t('sales.ship.needsSalesEdit')}
                                 </p>
                             ) : !canSeeFinance ? (
-                                <p className="text-sm text-gray-600">{t('sales.ship.blockedNoFinanceView')}</p>
+                                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('sales.ship.blockedNoFinanceView')}</p>
                             ) : !isBilled ? (
-                                <p className="text-sm text-gray-600">{t('sales.ship.blockedNotInvoiced')}</p>
+                                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('sales.ship.blockedNotInvoiced')}</p>
                             ) : opts.length === 0 ? (
-                                <p className="text-sm text-gray-600">{t('sales.ship.blockedNoReservation')}</p>
+                                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('sales.ship.blockedNoReservation')}</p>
                             ) : (
                                 <ShipControl orderId={orderId} options={opts} unit={l.unit} />
                             )}
@@ -191,7 +191,7 @@ export default async function ShippingSection({
                 })}
             </div>
 
-            <p className="text-xs text-gray-500 mt-3">{t('sales.ship.arNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-3">{t('sales.ship.arNote')}</p>
         </section>
     )
 }

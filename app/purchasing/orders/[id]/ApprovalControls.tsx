@@ -37,7 +37,7 @@ export default function ApprovalControls({ poId, subject }: { poId: string; subj
         <div className="border border-amber-300 bg-amber-50 rounded p-4 mb-4">
             <h2 className="mb-1">{t('purchasing.approvalPanelTitle')}</h2>
             {/* 批准之前先说清楚它做了什么:把单据推到 confirmed,从此收得了货、付得了预付 */}
-            <p className="text-xs text-gray-700 mb-3">{t('purchasing.approvalPanelWhat')}</p>
+            <p className="text-xs text-[color:var(--brand-text)] mb-3">{t('purchasing.approvalPanelWhat')}</p>
             <div className="flex flex-wrap items-start gap-3">
                 <ConfirmButton
                     subject={subject}

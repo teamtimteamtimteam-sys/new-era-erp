@@ -74,7 +74,7 @@ export default async function LedgerPage({
                 params.movementId ? (
                     <p
                         data-ledger-filter="movement"
-                        className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4 max-w-3xl"
+                        className="text-sm text-[color:var(--brand-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4 max-w-3xl"
                     >
                         {t('reports.ledger.movementFilter')}{' '}
                         <a href="/inventory/reports/ledger" className="hover:underline app-link app-link-inline">
@@ -111,7 +111,7 @@ export default async function LedgerPage({
                     {t('reports.ledger.apply')}
                 </Button>
             </form>
-            <p className="text-xs text-gray-500 mb-4">{t('reports.ledger.windowNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('reports.ledger.windowNote')}</p>
 
             <LedgerTable rows={tableRows} empty={t('reports.ledger.empty')} />
         </ListPage>

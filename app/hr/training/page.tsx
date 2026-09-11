@@ -110,7 +110,7 @@ export default async function TrainingPage({
                 <TrainingToolbar />
             </Suspense>
 
-            <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: rows.length })}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: rows.length })}</p>
 
             <TrainingTable rows={tableRows} empty={t('hr.trainingEmpty')} />
         </ListPage>

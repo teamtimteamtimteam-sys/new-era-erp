@@ -64,7 +64,7 @@ canEdit: boolean
                 </Button>
                 </PermissionGate>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                 {issueDate.trim() === '' ? t('sales.invoice.dateRequired') : t('sales.invoice.consequence')}
             </p>
         </div>

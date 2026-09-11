@@ -51,7 +51,7 @@ export default async function EditPayrollPage({
             </div>
             <h1 className="mb-4">
                 {t('hr.payrollDetailTitle')}
-                <span className="ml-3 font-mono text-base text-gray-500">
+                <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">
                     {period.period_month?.slice(0, 7)}
                 </span>
             </h1>

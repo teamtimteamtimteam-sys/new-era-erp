@@ -41,9 +41,9 @@ export default function ReceivingThresholdPanel({
     return (
         <div className="border border-gray-300 rounded-lg p-4 mb-6 max-w-4xl">
             <p className="font-medium mb-1">{t('grn.settings.title')}</p>
-            <p className="text-sm text-gray-600 mb-1">{t('grn.settings.hint')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-1">{t('grn.settings.hint')}</p>
             {/* 【两个数,不是一个】—— 这块面板最容易被"简化"掉的一句 */}
-            <p className="text-sm text-gray-600 mb-1">{t('grn.settings.twoNumbers')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-1">{t('grn.settings.twoNumbers')}</p>
             {/* 【判据不是目标】—— 这块面板最容易被需要的一句 */}
             <p className="text-xs text-amber-700 mb-3">{t('grn.settings.notATarget')}</p>
 
@@ -68,7 +68,7 @@ export default function ReceivingThresholdPanel({
                             <input type="number" name="grn_short_pct" step="0.1" min="0.1"
                                    required defaultValue={shortPct}
                                    className={`${CONTROL_INPUT} w-32`} />
-                            <p className="text-xs text-gray-500 mt-1">{t('grn.settings.shortWhen')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('grn.settings.shortWhen')}</p>
                         </div>
                         <div className="max-w-xs">
                             <label className="block mb-1">
@@ -77,7 +77,7 @@ export default function ReceivingThresholdPanel({
                             <input type="number" name="grn_over_pct" step="0.1" min="0.1"
                                    required defaultValue={overPct}
                                    className={`${CONTROL_INPUT} w-32`} />
-                            <p className="text-xs text-gray-500 mt-1">{t('grn.settings.overWhen')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('grn.settings.overWhen')}</p>
                         </div>
                         <div className="max-w-xs">
                             <label className="block mb-1">
@@ -86,7 +86,7 @@ export default function ReceivingThresholdPanel({
                             <input type="number" name="grn_assay_tolerance_pct" step="0.1" min="0.1"
                                    required defaultValue={assayPct}
                                    className={`${CONTROL_INPUT} w-32`} />
-                            <p className="text-xs text-gray-500 mt-1">{t('grn.settings.assayWhen')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('grn.settings.assayWhen')}</p>
                         </div>
                     </div>
                     <Button type="submit" disabled={isPending}>
@@ -96,12 +96,12 @@ export default function ReceivingThresholdPanel({
             ) : (
                 <div className="text-sm space-y-1">
                     <p>{t('grn.settings.shortLabel')}:{' '}<span className="font-mono">{shortPct}</span>
-                       <span className="text-xs text-gray-500 ml-2">{t('grn.settings.shortWhen')}</span></p>
+                       <span className="text-xs text-[color:var(--brand-muted-text)] ml-2">{t('grn.settings.shortWhen')}</span></p>
                     <p>{t('grn.settings.overLabel')}:{' '}<span className="font-mono">{overPct}</span>
-                       <span className="text-xs text-gray-500 ml-2">{t('grn.settings.overWhen')}</span></p>
+                       <span className="text-xs text-[color:var(--brand-muted-text)] ml-2">{t('grn.settings.overWhen')}</span></p>
                     <p>{t('grn.settings.assayLabel')}:{' '}<span className="font-mono">{assayPct}</span>
-                       <span className="text-xs text-gray-500 ml-2">{t('grn.settings.assayWhen')}</span></p>
-                    <p className="text-xs text-gray-500">{t('grn.settings.readOnly')}</p>
+                       <span className="text-xs text-[color:var(--brand-muted-text)] ml-2">{t('grn.settings.assayWhen')}</span></p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('grn.settings.readOnly')}</p>
                 </div>
             )}
         </div>

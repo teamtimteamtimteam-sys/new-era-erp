@@ -25,7 +25,7 @@ export default function DraftBanner({ draft, locale = 'zh' }: { draft: DraftStat
     if (draft.restricted && !draft.found && !draft.restored) {
         return (
             <p data-draft="restricted-notice"
-               className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-3">
+               className="text-xs text-[color:var(--brand-muted-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-3">
                 {t('draft.restrictedNotice')}
             </p>
         )

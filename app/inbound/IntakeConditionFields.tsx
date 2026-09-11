@@ -58,7 +58,7 @@ export default function IntakeConditionFields({
             {/* ── 安全状态:多值 ─────────────────────────────────────────────── */}
             <div>
                 <p className="text-sm font-medium mb-1">{t('inbound.condition.safety')}</p>
-                <p className="text-xs text-gray-600 mb-2">{t('inbound.condition.safetyHint')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('inbound.condition.safetyHint')}</p>
                 <div className="space-y-1">
                     {states.map((s) => (
                         <label key={s.code} className="flex items-start gap-2">
@@ -97,7 +97,7 @@ export default function IntakeConditionFields({
                 {/* 【把那条界摆在【选的人面前】,不只写在字典里】——
                     站在一个乱糟糟的集装箱前面的人,最容易把"我分不出来"选成"已知混合"。
                     这句话写在字典行上是给读库的人看的;这一句是给他看的。 */}
-                <p className="text-xs text-gray-600 mt-1">{t('inbound.condition.certaintyBoundary')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('inbound.condition.certaintyBoundary')}</p>
                 {certainty === CERTAINTY_UNCHOSEN && !everRecordedCertainty && (
                     <p className="text-xs text-amber-700 mt-1">{t('inbound.condition.certaintyNotRecorded')}</p>
                 )}

@@ -59,7 +59,7 @@ export default function QuoteLinesEditor({
                 </div>
             )}
             {!editable && reason && (
-                <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-2">
+                <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-2">
                     {reason}
                 </p>
             )}
@@ -122,7 +122,7 @@ export default function QuoteLinesEditor({
                                     title={t('quotes.removeLineConfirmTitle')}
                                     body={t('common.hardDeleteNote')}
                                     details={
-                                        <p className="text-sm font-medium text-foreground">
+                                        <p className="text-sm font-medium text-[color:var(--brand-text)]">
                                             {t('quotes.removeLineConsequence')}
                                         </p>
                                     }
@@ -229,7 +229,7 @@ export default function QuoteLinesEditor({
                     </Button>
                 </div>
             )}
-            {editable && <p className="text-xs text-gray-500 mt-2">{t('quotes.editableNote')}</p>}
+            {editable && <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('quotes.editableNote')}</p>}
         </section>
     )
 }

@@ -89,10 +89,10 @@ export default function HoldReleaseControls({
                     </Button>
                 </div>
                 {/* 后果 —— 挨着按钮。以及每一个禁用条件各自的那句话。 */}
-                <p className="text-xs text-gray-500 mt-1">{t('stock.holdConsequence')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('stock.holdConsequence')}</p>
                 {holdBlocked === 'noAvailable' && <p className="text-xs text-amber-800 mt-1">{t('stock.holdBlockedNoAvailable')}</p>}
-                {holdBlocked === 'noQty' && <p className="text-xs text-gray-500 mt-1">{t('stock.blockedNoQty')}</p>}
-                {holdBlocked === 'noReason' && <p className="text-xs text-gray-500 mt-1">{t('stock.holdBlockedNoReason')}</p>}
+                {holdBlocked === 'noQty' && <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('stock.blockedNoQty')}</p>}
+                {holdBlocked === 'noReason' && <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('stock.holdBlockedNoReason')}</p>}
             </div>
 
             {/* ── 释放 ── */}
@@ -123,9 +123,9 @@ export default function HoldReleaseControls({
                         {isPending ? t('common.saving') : t('stock.release')}
                     </Button>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">{t('stock.releaseConsequence')}</p>
-                {releaseBlocked === 'noHeld' && <p className="text-xs text-gray-500 mt-1">{t('stock.releaseBlockedNoHeld')}</p>}
-                {releaseBlocked === 'noQty' && <p className="text-xs text-gray-500 mt-1">{t('stock.blockedNoQty')}</p>}
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('stock.releaseConsequence')}</p>
+                {releaseBlocked === 'noHeld' && <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('stock.releaseBlockedNoHeld')}</p>}
+                {releaseBlocked === 'noQty' && <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('stock.blockedNoQty')}</p>}
             </div>
         </div>
     )

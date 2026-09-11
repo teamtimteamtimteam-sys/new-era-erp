@@ -51,16 +51,16 @@ export default function ConclusionForm({ reviewId, ratings, ratingCode, summaryT
         return (
             <div className="mb-6">
                 <div className="text-sm mb-2">
-                    <span className="text-gray-600 mr-1">{t('reviews.rating')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.rating')}:</span>
                     <span className="font-medium">{ratingName(ratingCode)}</span>
                 </div>
                 <div className="text-sm">
-                    <span className="text-gray-600 mr-1">{t('reviews.summary')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.summary')}:</span>
                     <span className="whitespace-pre-wrap">{summaryText ?? '—'}</span>
                 </div>
                 {/* ★ ALERT-2d:只读【本身】没有问题,没有解释才有。 */}
                 {stateNote && (
-                    <p className="mt-2 text-sm text-gray-600" data-state-note="conclusion">{stateNote}</p>
+                    <p className="mt-2 text-sm text-[color:var(--brand-muted-text)]" data-state-note="conclusion">{stateNote}</p>
                 )}
             </div>
         )

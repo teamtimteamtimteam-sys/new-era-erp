@@ -333,14 +333,14 @@ export default async function InboundPage({
                     </Button>
                 </div>
             </div>
-            <p className="text-sm text-gray-500 mb-4">{t('inbound.twoPathsHint')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('inbound.twoPathsHint')}</p>
 
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <InboundToolbar suppliers={supplierOptions} materials={materialOptions} />
             </Suspense>
 
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                 {t('inbound.recordCount', { count: total })}
                 {(mustCount(unpricedRes)) > 0 && (
                     <span className="ml-2 text-gray-400">
@@ -390,7 +390,7 @@ export default async function InboundPage({
                     </Button>
                 )}
 
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('inbound.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
 

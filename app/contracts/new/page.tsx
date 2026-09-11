@@ -62,7 +62,7 @@ export default async function NewContractPage() {
             </div>
 
             <h1 className="mb-2">{t('contracts.newTitle')}</h1>
-            <p className="text-sm text-gray-600 mb-6 max-w-2xl">{t('contracts.newIntro')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-6 max-w-2xl">{t('contracts.newIntro')}</p>
 
             <NewContractForm
                 suppliers={suppliers}

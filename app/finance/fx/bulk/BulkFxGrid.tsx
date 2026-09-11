@@ -60,8 +60,8 @@ canEdit: boolean
 
     return (
         <div>
-            <p className="text-sm text-gray-700 mb-1">{t('finance.fxPage.bulk.whatThisIsFor')}</p>
-            <p className="text-xs text-gray-600 mb-4">{t('finance.fxPage.bulk.howToCorrect')}</p>
+            <p className="text-sm text-[color:var(--brand-text)] mb-1">{t('finance.fxPage.bulk.whatThisIsFor')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('finance.fxPage.bulk.howToCorrect')}</p>
 
             <div className="mb-4 flex flex-wrap items-center gap-2">
                 <label htmlFor="ccy" className="">{t('finance.fxPage.colCurrency')}</label>
@@ -143,7 +143,7 @@ canEdit: boolean
                     {isPending ? t('common.saving') : t('finance.fxPage.bulk.save')}
                 </Button>
                 </PermissionGate>
-                <span className="text-xs text-gray-600">{t('finance.fxPage.bulk.blanksSkipped')}</span>
+                <span className="text-xs text-[color:var(--brand-muted-text)]">{t('finance.fxPage.bulk.blanksSkipped')}</span>
             </div>
         </div>
     )

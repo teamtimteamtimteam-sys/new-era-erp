@@ -32,7 +32,7 @@ export default async function EditCommissionPage({ params }: { params: Promise<{
         return (
             <div className="p-8">
                 <h1 className="mb-2">{t('commissions.editTitle')}</h1>
-                <p className="text-sm text-gray-700">{t('commissions.deleted')}</p>
+                <p className="text-sm text-[color:var(--brand-text)]">{t('commissions.deleted')}</p>
             </div>
         )
     }

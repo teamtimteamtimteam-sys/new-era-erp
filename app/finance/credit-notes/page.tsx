@@ -120,13 +120,13 @@ export default async function CreditNotesPage({
     // ★ CONV-4:客户名列在服务端就压平成【纯数据】(ReactNode 可以过边界,
     //   函数不能)—— 与 InboundTable 的通则同形。
     function customerCell(invoiceId: string) {
-        if (!canReadCustomers) return <span className="text-gray-500">{t('common.restricted')}</span>
+        if (!canReadCustomers) return <span className="text-[color:var(--brand-muted-text)]">{t('common.restricted')}</span>
         const inv = invoiceById.get(invoiceId)
         const c = inv ? customerById.get(inv.customer_id) : undefined
         if (!c) return <span className="text-gray-400">—</span>
         return (
             <>
-                <span className="font-mono text-xs text-gray-500">{c.code}</span> {c.legal_name}
+                <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">{c.code}</span> {c.legal_name}
             </>
         )
     }
@@ -162,7 +162,7 @@ export default async function CreditNotesPage({
                 ? { kind: 'empty', noRows: t('cn.empty') }
                 : { kind: 'ok' }}
         >
-            <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: total })}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
             <CreditNotesTable rows={tableRows} />
 
@@ -180,7 +180,7 @@ export default async function CreditNotesPage({
                         {t('finance.pagination.prev')}
                     </Button>
                 )}
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('finance.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
                 {page < totalPages ? (

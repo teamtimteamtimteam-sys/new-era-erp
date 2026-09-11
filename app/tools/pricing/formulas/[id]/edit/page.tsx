@@ -96,7 +96,7 @@ export default async function EditFormulaPage({
             <div className="flex justify-between items-center mb-4">
                 <h1 className="">
                     {t('pricing.listTitle')}
-                    <span className="ml-3 font-mono text-base text-gray-500">{formula.code}</span>
+                    <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{formula.code}</span>
                 </h1>
                 <DeleteFormulaButton formulaId={formula.id} subject={formula.code} />
             </div>

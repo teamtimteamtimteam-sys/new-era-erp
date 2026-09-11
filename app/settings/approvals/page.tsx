@@ -61,7 +61,7 @@ export default async function ApprovalsSettingsPage() {
             {/* ★ 把"这里没有配置控件"写在屏幕上,而不是只写在注释里 ★
                 一块只读的状态面板,与一块"控件坏了/我没权限"的面板长得一样。
                 来这里想改审批链的人必须读到:今天这件事不在界面上做。 */}
-            <p className="mt-6 max-w-2xl text-sm text-gray-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+            <p className="mt-6 max-w-2xl text-sm text-[color:var(--brand-text)] bg-amber-50 border border-amber-200 rounded px-3 py-2">
                 {t('finance.approvals.noConfigUi')}
             </p>
         </div>

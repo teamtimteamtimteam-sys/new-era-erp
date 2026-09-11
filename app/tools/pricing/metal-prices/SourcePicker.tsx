@@ -64,7 +64,7 @@ export default function SourcePicker({
                 {/* 【"来源未记录"为什么不在选项里】读的人会在列表上看到这个状态,
                     所以它必须在这里被解释一次,而不是留给人猜。 */}
                 {error && <p className="text-red-600 text-xs mt-1">{error}</p>}
-                <p className="text-xs text-gray-500 mt-1">{t('metalPrices.source.unknownNotOffered')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('metalPrices.source.unknownNotOffered')}</p>
             </div>
 
             <div>
@@ -89,7 +89,7 @@ export default function SourcePicker({
                         <select disabled className={fieldClsSelect + ' text-gray-400'}>
                             <option>{t('metalPrices.index.onlyForPublished')}</option>
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                             {t('metalPrices.index.onlyForPublishedHint')}
                         </p>
                     </>
@@ -106,7 +106,7 @@ export default function SourcePicker({
                     className={fieldCls}
                     placeholder={t('metalPrices.source.referencePlaceholder')}
                 />
-                <p className="text-xs text-gray-500 mt-1">{t('metalPrices.source.referenceHint')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('metalPrices.source.referenceHint')}</p>
             </div>
 
             <div>
@@ -118,7 +118,7 @@ export default function SourcePicker({
                     <option value={DELAY_SAME_DAY}>{t('metalPrices.source.delaySameDay')}</option>
                     <option value={DELAY_DELAYED}>{t('metalPrices.source.delayDelayed')}</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-1">{t('metalPrices.source.delayHint')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('metalPrices.source.delayHint')}</p>
             </div>
         </div>
     )

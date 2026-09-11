@@ -181,14 +181,14 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
             notices={
                 <>
                     {wo.closed_at && (
-                        <div className="bg-gray-50 border border-gray-300 text-gray-800 px-4 py-3 rounded mb-4">
+                        <div className="bg-gray-50 border border-gray-300 text-[color:var(--brand-text)] px-4 py-3 rounded mb-4">
                             {t('processing.wo.closedBanner', {
                                 at: formatTimestamp(wo.closed_at, dl), reason: wo.close_reason ?? '—',
                             })}
                         </div>
                     )}
                     {wo.cancelled_at && (
-                        <div className="bg-gray-50 border border-gray-300 text-gray-800 px-4 py-3 rounded mb-4">
+                        <div className="bg-gray-50 border border-gray-300 text-[color:var(--brand-text)] px-4 py-3 rounded mb-4">
                             {t('processing.wo.cancelledBanner', {
                                 at: formatTimestamp(wo.cancelled_at, dl), reason: wo.cancel_reason ?? '—',
                             })}
@@ -204,7 +204,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
                         label: t('processing.wo.colScheduled'),
                         value: wo.scheduled_date
                             ? new Date(wo.scheduled_date).toLocaleDateString(dl)
-                            : <span className="text-gray-500 italic">{t('processing.wo.noSchedule')}</span>,
+                            : <span className="text-[color:var(--brand-muted-text)] italic">{t('processing.wo.noSchedule')}</span>,
                     },
                     { label: t('processing.wo.colNotes'), value: wo.notes ?? '—' },
                 ]}
@@ -212,7 +212,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
 
             {/* ── 投入侧 ──────────────────────────────────────────────── */}
             <h2 className="mt-6 mb-1">{t('processing.wo.inputSide')}</h2>
-            <p className="text-xs text-gray-500 mb-2">{t('processing.wo.inputSideNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('processing.wo.inputSideNote')}</p>
             <InputSideTable rows={inputTableRows} />
             {/* ★ 出口:改计划行。住 children,靠 state 恒为 'ok' 撑着;
                 它自己带 blockedReason,不可改时说【为什么】而不是消失。 */}
@@ -243,7 +243,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
 
             {/* ── 产出侧 ──────────────────────────────────────────────── */}
             <h2 className="mt-8 mb-1">{t('processing.wo.outputSide')}</h2>
-            <p className="text-xs text-gray-500 mb-2">{t('processing.wo.outputSideNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('processing.wo.outputSideNote')}</p>
             <OutputSideTable rows={outputTableRows} />
 
             {/* ── 挂上来的加工单 ──────────────────────────────────────── */}
@@ -252,7 +252,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
             <h2 className="mt-8 mb-2">{t('processing.wo.linkedRuns')}</h2>
             <LinkedRunsTable rows={linkedRunRows} />
             {runs.some((r) => r.status === 'reversed') && (
-                <p className="text-xs text-gray-500 mt-2">{t('processing.wo.reversedNote')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('processing.wo.reversedNote')}</p>
             )}
 
             {/* ── 动作 ────────────────────────────────────────────────── */}
@@ -264,7 +264,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
             <h2 className="mt-8 mb-2">{t('processing.wo.history')}</h2>
             <ul className="text-sm space-y-1">
                 {history.map((h, i) => (
-                    <li key={i} className="text-gray-600">
+                    <li key={i} className="text-[color:var(--brand-muted-text)]">
                         {formatTimestamp(h.changed_at, dl)}
                         {/* 动态前缀,后缀集合接 work_order_history 的 CHECK(check-i18n 的清单) */}
                         {' · '}{t('processing.wo.changeType.' + h.change_type)}

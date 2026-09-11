@@ -63,7 +63,7 @@ export default function PurposePanel({
     return (
         <div className="mt-8 border rounded p-4">
             <h2 className="mb-1">{t('output.purpose.title')}</h2>
-            <p className="text-xs text-gray-500 mb-3">{t('output.purpose.why')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('output.purpose.why')}</p>
 
             {/* 【当前状态要一眼看得出来】被指定的批次不是可售库存,而那是一条
                 会在结账那一刻才发作的事实 —— 让它在这里就发作。 */}
@@ -90,7 +90,7 @@ export default function PurposePanel({
                 所以这里写"还没决定",不写"—"。 */}
             {earmarked && (
                 <div className="mb-3 border-t pt-3">
-                    <p className="text-xs text-gray-600 mb-2">{t('output.purpose.awaitingWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('output.purpose.awaitingWhy')}</p>
                     <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm">
                             {t('output.purpose.awaitingNow')}{' '}
@@ -99,7 +99,7 @@ export default function PurposePanel({
                                       const op = operations.find((o) => o.code === awaiting)
                                       return op ? (locale === 'zh' ? op.name_zh : op.name_en) : awaiting
                                   })()}</b>
-                                : <span className="text-gray-500 italic">{t('output.purpose.awaitingUnset')}</span>}
+                                : <span className="text-[color:var(--brand-muted-text)] italic">{t('output.purpose.awaitingUnset')}</span>}
                         </span>
                     </div>
                     <PermissionGate code="module.processing.edit" allowed={canEdit}>
@@ -151,7 +151,7 @@ export default function PurposePanel({
                     ))}
                 </div>
             ) : (
-                <p className="text-xs text-gray-500">{t('output.purpose.noPermission')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)]">{t('output.purpose.noPermission')}</p>
             )}
 
             {error && (

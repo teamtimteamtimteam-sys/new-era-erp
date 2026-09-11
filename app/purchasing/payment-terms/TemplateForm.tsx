@@ -160,7 +160,7 @@ canEdit: boolean
                             <option key={c.code} value={c.code}>{c.code}</option>
                         ))}
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">{t('purchasing.form.templateCurrencyHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('purchasing.form.templateCurrencyHint')}</p>
                 </div>
             )}
             {!hasFixed && <input type="hidden" name="currency" value="" />}
@@ -280,7 +280,7 @@ canEdit: boolean
                 ) : pctTotal > 0 && pctTotal < 100 ? (
                     <p className="text-sm text-amber-700">{t('purchasing.pctUnder', { total: pctTotal })}</p>
                 ) : pctTotal === 100 ? (
-                    <p className="text-sm text-gray-500 font-mono">100%</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)] font-mono">100%</p>
                 ) : null}
             </div>
 

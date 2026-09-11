@@ -84,7 +84,7 @@ export default async function PricingHubPage() {
                         className="block border border-gray-300 rounded p-5 hover:bg-gray-50"
                     >
                         <h2 className="mb-1">{t(c.titleKey)}</h2>
-                        <p className="text-sm text-gray-600">{t(c.descKey)}</p>
+                        <p className="text-sm text-[color:var(--brand-muted-text)]">{t(c.descKey)}</p>
                     </Link>
                 ))}
             </div>

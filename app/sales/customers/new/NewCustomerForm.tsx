@@ -147,7 +147,7 @@ export default function NewCustomerForm() {
                     【更多联系人在客户页上加】—— 那里才是一个对手方的联系人【们】。 */}
                 <fieldset className="border border-gray-200 rounded p-4">
                     <legend className="text-sm font-medium px-1">{t('customers.form.contactGroup')}</legend>
-                    <p className="text-xs text-gray-600 mb-3">{t('customers.form.contactGroupHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('customers.form.contactGroupHint')}</p>
                     <div className="space-y-3">
                         <div>
                             <label className="block mb-1">{t('customers.form.contactPerson')}</label>
@@ -222,7 +222,7 @@ export default function NewCustomerForm() {
                         于是一个 60 天账期的客户一直在拿 30 天的发票。
                         这里补的是那扇缺掉的门,不是第二扇:自由文本的 payment_terms
                         本来就在上面那一格里。 */}
-                    <p className="text-xs text-gray-500 mt-1">{t('customers.form.paymentTermsDaysHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('customers.form.paymentTermsDaysHint')}</p>
                 </div>
 
 

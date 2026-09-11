@@ -120,17 +120,17 @@ export default function TransferControl({
             </div>
             {/* 后果 —— 挨着按钮。状态保持这件事必须说出来,否则搬完一批暂扣的货
                 之后,人会以为它顺便被放开了。 */}
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                 {stockStatus === 'on_hold'
                     ? t('stock.transferConsequenceHeld')
                     : stockStatus === 'committed'
                       ? t('stock.transferConsequenceCommitted')
                       : t('stock.transferConsequence')}
             </p>
-            {blocked === 'noStock' && <p className="text-xs text-gray-500 mt-1">{t('stock.transferBlockedNoStock')}</p>}
+            {blocked === 'noStock' && <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('stock.transferBlockedNoStock')}</p>}
             {blocked === 'noTargets' && <p className="text-xs text-amber-800 mt-1">{t('stock.transferBlockedNoTargets')}</p>}
-            {blocked === 'noQty' && <p className="text-xs text-gray-500 mt-1">{t('stock.blockedNoQty')}</p>}
-            {blocked === 'noTarget' && <p className="text-xs text-gray-500 mt-1">{t('stock.transferBlockedNoTarget')}</p>}
+            {blocked === 'noQty' && <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('stock.blockedNoQty')}</p>}
+            {blocked === 'noTarget' && <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('stock.transferBlockedNoTarget')}</p>}
             {blocked === 'partialCommitted' && (
                 <p className="text-xs text-amber-800 mt-1">{t('stock.transferBlockedCommittedPartial', { have: String(have) })}</p>
             )}

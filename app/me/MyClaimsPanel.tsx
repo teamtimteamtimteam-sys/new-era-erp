@@ -51,11 +51,11 @@ export default function MyClaimsPanel({
 
             {balance && (
                 <div className="rounded border border-gray-200 p-4 mb-3 grid gap-4 sm:grid-cols-3">
-                    <div><div className="text-xs text-gray-500">{t('claims.limit')}</div>
+                    <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('claims.limit')}</div>
                         <div className="text-sm font-mono">{balance.pro_rated_limit_sgd} SGD</div></div>
-                    <div><div className="text-xs text-gray-500">{t('claims.claimed')}</div>
+                    <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('claims.claimed')}</div>
                         <div className="text-sm font-mono">{balance.claimed_sgd} SGD</div></div>
-                    <div><div className="text-xs text-gray-500">{t('claims.remaining')}</div>
+                    <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('claims.remaining')}</div>
                         <div className="text-lg font-mono font-medium">{balance.remaining_sgd} SGD</div></div>
                 </div>
             )}

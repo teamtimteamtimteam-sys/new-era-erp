@@ -118,12 +118,12 @@ export default async function ContainerFreightPanel({
         quoteState.kind === 'found' && actualCurrencies.length > 0
         && !actualCurrencies.includes(quoteState.currency)
 
-    const empty = (msg: string) => <p className="text-sm text-gray-600 max-w-xl">{msg}</p>
+    const empty = (msg: string) => <p className="text-sm text-[color:var(--brand-muted-text)] max-w-xl">{msg}</p>
 
     return (
         <section className="mt-8 border-t pt-6">
             <h2 className="mb-1">{t('logistics.freightPanelHeading')}</h2>
-            <p className="mb-4 text-sm text-gray-600 max-w-3xl">{t('logistics.freightPanelHint')}</p>
+            <p className="mb-4 text-sm text-[color:var(--brand-muted-text)] max-w-3xl">{t('logistics.freightPanelHint')}</p>
 
             {/* ── 免柜期:一行,五种"算不出来"各说各的话 ─────────────────────
                 【这一页算 remaining 只为了【显示】,而不是决定何时告警】——
@@ -137,18 +137,18 @@ export default async function ContainerFreightPanel({
                     /* 【指向那个控件】—— 与"清单从没实例化过"那句指向它的按钮同一条:
                        一句说出缺什么的话,要顺带说出去哪里补。此前这一句指着的是一个
                        【没有门】的字段(CTN-FWD 之前箱子页既不显示也不能改承运方)。 */
-                    <p className="text-sm text-gray-600 max-w-3xl">
+                    <p className="text-sm text-[color:var(--brand-muted-text)] max-w-3xl">
                         {t('logistics.freeTimeNoForwarder')}{' '}
-                        <span className="text-gray-800">{t('logistics.containerNoForwarderPointer')}</span>
+                        <span className="text-[color:var(--brand-text)]">{t('logistics.containerNoForwarderPointer')}</span>
                     </p>
                 ) : quoteState.kind !== 'found' ? (
-                    <p className="text-sm text-gray-600 max-w-3xl">{t('logistics.freeTimeNoQuote')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)] max-w-3xl">{t('logistics.freeTimeNoQuote')}</p>
                 ) : arrivedOn === null ? (
                     /* 【"还没到港"不是"时间还很多"】—— 这一句就是那条区别 */
-                    <p className="text-sm text-gray-600 max-w-3xl">{t('logistics.freeTimeNoArrival')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)] max-w-3xl">{t('logistics.freeTimeNoArrival')}</p>
                 ) : quoteState.free_days === null ? (
                     /* 【NULL ≠ 0】报价没写免柜期,不是零个免费天 */
-                    <p className="text-sm text-gray-600 max-w-3xl">{t('logistics.freeTimeQuoteSilent')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)] max-w-3xl">{t('logistics.freeTimeQuoteSilent')}</p>
                 ) : (() => {
                     const since = Math.floor(
                         (Date.parse(new Date().toISOString().slice(0, 10)) - Date.parse(arrivedOn)) / 86400000)
@@ -190,10 +190,10 @@ export default async function ContainerFreightPanel({
                                             className="hover:underline font-mono text-xs app-link app-link-inline">
                                             {d.code}
                                         </Link>
-                                        <span className="text-xs text-gray-500">
+                                        <span className="text-xs text-[color:var(--brand-muted-text)]">
                                             {t('finance.freight.directionShort.' + d.direction)}
                                         </span>
-                                        <span className="text-gray-500 text-xs">{d.doc_date}</span>
+                                        <span className="text-[color:var(--brand-muted-text)] text-xs">{d.doc_date}</span>
                                         <span className={'font-mono ml-auto ' + (d.status === 'posted' ? '' : 'line-through text-gray-400')}>
                                             {formatAmount(Number(d.amount_ccy), d.currency)}
                                         </span>
@@ -231,7 +231,7 @@ export default async function ContainerFreightPanel({
                                 <span>{quoteState.currency}</span>
                                 <span>{formatAmount(quoteState.amount, quoteState.currency)}</span>
                             </div>
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                                 {t('logistics.quoteValidRange', { from: quoteState.from, to: quoteState.to })}
                             </p>
                         </>

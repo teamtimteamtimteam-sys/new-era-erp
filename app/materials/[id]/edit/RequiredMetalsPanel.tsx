@@ -59,11 +59,11 @@ export default function RequiredMetalsPanel({
             <h2 className="mb-1">{t('materials.assayPolicy.title')}</h2>
 
             {/* 【一句人话:这些勾有什么后果】 */}
-            <p className="text-sm text-gray-600 mb-3">{t('materials.assayPolicy.note')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('materials.assayPolicy.note')}</p>
 
             {/* 【当前状态永远说出来】—— 包括"无化验要求" */}
             <p className="text-sm mb-3">
-                <span className="text-gray-500">{t('materials.assayPolicy.currentLabel')}</span>{' '}
+                <span className="text-[color:var(--brand-muted-text)]">{t('materials.assayPolicy.currentLabel')}</span>{' '}
                 <span className={initial.length === 0 ? 'text-gray-600 italic' : 'font-medium'}>
                     {currentLabel}
                 </span>
@@ -106,7 +106,7 @@ export default function RequiredMetalsPanel({
                             />
                             <span>
                                 {t(o.labelKey)}{' '}
-                                <span className="font-mono text-xs text-gray-500">{o.value}</span>
+                                <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">{o.value}</span>
                             </span>
                         </label>
                     ))}
@@ -124,7 +124,7 @@ export default function RequiredMetalsPanel({
                 {/* 保存成空集合时,把那句话再说一遍 —— 一个"已保存"配一排空方框,
                     看起来像什么都没发生。 */}
                 {picked.length === 0 && canEdit && (
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">
                         {t('materials.assayPolicy.emptyMeans')}
                     </p>
                 )}

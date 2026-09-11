@@ -158,7 +158,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
             {/* 【汇率那一句要说出来】凭证按【发票存下来的】汇率冲,不是今天的行情 ——
                 否则单据币种归零之后本位币还会剩一截,而那截与真实的已实现汇兑
                 在账上长得一模一样,却没有任何钱动过。 */}
-            <p className="text-xs text-gray-500 mb-6">{t('cn.rateNote', { code: inv?.code ?? '—' })}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-6">{t('cn.rateNote', { code: inv?.code ?? '—' })}</p>
 
             <h2 className="mb-2">{t('cn.linesTitle')}</h2>
             <CreditNoteLinesTable rows={tableRows} amountHeader={amountHeader} />
@@ -171,13 +171,13 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
                 previewLabel={t('cn.previewPdf')}
                 issueLabel={t('cn.issuePdf')}
             />
-            <p className="text-xs text-gray-500 mb-2">{t('cn.issuesNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('cn.issuesNote')}</p>
             {issues.length === 0 ? (
-                <p className="text-gray-500 text-sm">{t('cn.noIssues')}</p>
+                <p className="text-[color:var(--brand-muted-text)] text-sm">{t('cn.noIssues')}</p>
             ) : (
                 <ul className="text-sm space-y-1">
                     {issues.map((i) => (
-                        <li key={i.version} className="font-mono text-xs">
+                        <li key={i.version} className="font-mono text-xs text-[color:var(--brand-muted-text)]">
                             <a href={`/finance/credit-notes/${cn.id}/pdf?version=${i.version}`}
                                target="_blank" rel="noopener noreferrer"
                                className="hover:underline app-link app-link-inline">v{i.version}</a>
@@ -188,7 +188,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
             )}
 
             {/* 【为什么这一页没有作废按钮】说出来,而不是留一个空白让人以为漏了 */}
-            <p className="text-xs text-gray-500 mt-8">{t('cn.immutableNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-8">{t('cn.immutableNote')}</p>
         </ListPage>
     )
 }

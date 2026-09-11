@@ -160,7 +160,7 @@ export default function TaskHeader({
             <div className="mb-4">
                 <label className={label}>{labels.tags}</label>
                 <input name="tags" defaultValue={(task.tags ?? []).join(', ')} className={field} />
-                <p className="mt-1 text-xs text-gray-500">{labels.tagsHint}</p>
+                <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{labels.tagsHint}</p>
             </div>
 
             <div className="flex items-center gap-2">

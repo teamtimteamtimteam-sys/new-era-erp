@@ -68,7 +68,7 @@ export default function WorkOrderActions({
                 </Button>
                 {closeWhy
                     ? <span className="text-xs text-amber-700">{closeWhy}</span>
-                    : <span className="text-xs text-gray-500">{t('processing.wo.actions.closeWhy')}</span>}
+                    : <span className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.wo.actions.closeWhy')}</span>}
             </div>
 
             <div className="flex flex-wrap items-center gap-3">

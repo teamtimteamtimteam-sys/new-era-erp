@@ -115,7 +115,7 @@ export default function ReserveControl({
                     {isPending ? t('common.saving') : t('sales.reserve.action')}
                 </Button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">{blocked ?? t('sales.reserve.consequence')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{blocked ?? t('sales.reserve.consequence')}</p>
         </div>
     )
 }

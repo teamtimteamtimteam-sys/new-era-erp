@@ -171,17 +171,17 @@ export function ActionMessageRegion() {
 
                             {/* 次级行用 foreground,不用 muted —— 见抬头 ② */}
                             {e.body && (
-                                <p className="mt-1.5 text-sm break-words text-foreground">{e.body}</p>
+                                <p className="mt-1.5 text-sm break-words text-[color:var(--brand-text)]">{e.body}</p>
                             )}
 
                             {e.detail && (
                                 <details className="mt-1.5">
-                                    <summary className="cursor-pointer text-xs text-foreground">
+                                    <summary className="cursor-pointer text-xs text-[color:var(--brand-text)]">
                                         {t('common.actionMessage.technicalDetail')}
                                     </summary>
                                     <p
                                         data-action-message-detail="1"
-                                        className="mt-1 font-mono text-xs break-all text-foreground"
+                                        className="mt-1 font-mono text-xs break-all text-[color:var(--brand-text)]"
                                     >
                                         {e.detail}
                                     </p>

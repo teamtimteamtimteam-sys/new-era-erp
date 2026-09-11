@@ -100,7 +100,7 @@ export default async function PaymentTermTemplatesPage() {
             }
             state={{ kind: 'ok' }}
         >
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                 {t('finance.recordCount', { count: templates.length })}
             </p>
             <TemplatesTable canEdit={canEditGate} rows={tableRows} empty={t('purchasing.templatesEmpty')} />

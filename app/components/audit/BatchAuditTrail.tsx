@@ -73,7 +73,7 @@ export default async function BatchAuditTrail({ rows }: { rows: AuditTrailRow[] 
                 space={r.actor_space === 'employee' ? 'employee' : 'account'}
             />
         ) : (
-            <span className="text-gray-500">{t('common.restricted')}</span>
+            <span className="text-[color:var(--brand-muted-text)]">{t('common.restricted')}</span>
         ),
         sourceHref: r.href ?? null,
         sourceText: r.source_code ?? r.source_table,
@@ -82,11 +82,11 @@ export default async function BatchAuditTrail({ rows }: { rows: AuditTrailRow[] 
     return (
         <section className="mt-8 pt-8 border-t">
             <h2 className="mb-1">{t('auditTrail.title')}</h2>
-            <p className="text-sm text-gray-600 mb-1">{t('auditTrail.intro')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-1">{t('auditTrail.intro')}</p>
             {/* 【脊柱是哪一份,说出来】(Tim 的 A4)。同一支被冲销的加工单有三份
                 互相不一致的说法,轨迹挑了流水 —— 因为只有它把"冲销"记成了一件
                 发生过的事。不说出来,下一个读者会以为轨迹对此是中立的。 */}
-            <p className="text-xs text-gray-500 mb-4">{t('auditTrail.spineNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('auditTrail.spineNote')}</p>
 
             {/* TABLE-CONVERT-6:空态搬进 DataTable 的 empty prop(同一个 auditTrail.empty),
                 旧那一支不留。「什么都没发生过」仍然与每一行的「受限」分开说 ——
@@ -97,7 +97,7 @@ export default async function BatchAuditTrail({ rows }: { rows: AuditTrailRow[] 
                 它们在 schema 上没有任何一条路通向批次。建成永远空的臂会读成
                 "这里什么都没发生过";省掉不提则读者无从知道轨迹的边界在哪。
                 所以点名。 */}
-            <p className="mt-3 text-xs text-gray-500">
+            <p className="mt-3 text-xs text-[color:var(--brand-muted-text)]">
                 {t('auditTrail.footerUnreachable')}: {UNREACHABLE_HISTORY_TABLES.join(t('common.listSep'))}
             </p>
         </section>

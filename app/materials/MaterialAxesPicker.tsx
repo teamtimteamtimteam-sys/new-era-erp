@@ -45,7 +45,7 @@ function NotApplicable({ label, why }: { label: string; why: string }) {
     return (
         <div>
             <label className="block mb-1">{label}</label>
-            <p className="text-sm text-gray-600 border border-gray-200 rounded px-3 py-2 bg-gray-50">{why}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] border border-gray-200 rounded px-3 py-2 bg-gray-50">{why}</p>
         </div>
     )
 }
@@ -91,7 +91,7 @@ export default function MaterialAxesPicker({
                     <option value={KIND_UNCHOSEN}>{t('materials.form.kindUnchosen')}</option>
                     {kinds.map((k) => <option key={k.code} value={k.code}>{label(k)}</option>)}
                 </select>
-                <p className="text-xs text-gray-600 mt-1">{t('materials.form.kindHint')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('materials.form.kindHint')}</p>
             </div>
 
             {/* ── 能不能投料(PROC-1)──────────────────────────────────────── */}
@@ -100,7 +100,7 @@ export default function MaterialAxesPicker({
                 {chosenKind && !chosenKind.may_ever_be_processed ? (
                     <>
                         <input type="hidden" name="may_be_processed" value="no" />
-                        <p className="text-sm text-gray-700 border border-gray-200 rounded px-3 py-2 bg-gray-50">
+                        <p className="text-sm text-[color:var(--brand-text)] border border-gray-200 rounded px-3 py-2 bg-gray-50">
                             {t('materials.form.processableImpossible', { kind: label(chosenKind) })}
                         </p>
                     </>
@@ -115,7 +115,7 @@ export default function MaterialAxesPicker({
                                 </label>
                             ))}
                         </div>
-                        <p className="text-xs text-gray-600 mt-1">{t('materials.form.processableHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('materials.form.processableHint')}</p>
                         {defaultProcessable === null && defaultKind !== null && (
                             <p className="text-xs text-amber-700 mt-1">{t('materials.form.processableUndecided')}</p>
                         )}
@@ -133,7 +133,7 @@ export default function MaterialAxesPicker({
                 <div>
                     <label className="block mb-1">{t('materials.form.formAxis')}</label>
                     {dropdown('form_code', form, setForm, forms, 'materials.form.formUnchosen')}
-                    <p className="text-xs text-gray-600 mt-1">{t('materials.form.formHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('materials.form.formHint')}</p>
                     {/* PROC-BUILD-1(R5):可售性【看得见】,而不是只在按下"记录销售"时才出现。
                         它跟着【形态】走,所以它属于选形态的这一格 —— 说一次,每一种物料继承。
                         **这里只是说出来;拦在数据库那四个触发器上**,因为屏幕拦不住第二条路。 */}
@@ -155,7 +155,7 @@ export default function MaterialAxesPicker({
                 <div>
                     <label className="block mb-1">{t('materials.form.sourceAxis')}</label>
                     {dropdown('source_code', defaultSource ?? AXIS_UNCHOSEN, null, sources, 'materials.form.sourceUnchosen')}
-                    <p className="text-xs text-gray-600 mt-1">{t('materials.form.sourceHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('materials.form.sourceHint')}</p>
                 </div>
             )}
 
@@ -174,7 +174,7 @@ export default function MaterialAxesPicker({
                 <div>
                     <label className="block mb-1">{t('materials.form.sizeAxis')}</label>
                     {dropdown('size_format_code', defaultSizeFormat ?? AXIS_UNCHOSEN, null, sizeFormats, 'materials.form.sizeUnchosen')}
-                    <p className="text-xs text-gray-600 mt-1">{t('materials.form.sizeHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('materials.form.sizeHint')}</p>
                 </div>
             )}
         </>

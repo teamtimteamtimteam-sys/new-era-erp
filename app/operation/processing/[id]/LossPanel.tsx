@@ -103,7 +103,7 @@ export default function LossPanel({
                         title={t('processing.loss.deleteTitle')}
                         body={t('common.hardDeleteNote')}
                         details={
-                            <p className="text-sm font-medium text-foreground">
+                            <p className="text-sm font-medium text-[color:var(--brand-text)]">
                                 {t('processing.loss.deleteConsequence')}
                             </p>
                         }
@@ -144,13 +144,13 @@ export default function LossPanel({
     return (
         <section className="mt-6">
             <h2 className="mb-1">{t('processing.loss.title')}</h2>
-            <p className="text-sm text-gray-600 mb-3">{t('processing.loss.intro')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('processing.loss.intro')}</p>
 
             <div className="text-sm mb-3 flex flex-wrap gap-x-6 gap-y-1">
-                <span><span className="text-gray-600">{t('processing.loss.total')}</span>{' '}{lossQty ?? '—'}</span>
-                <span><span className="text-gray-600">{t('processing.loss.categorised')}</span>{' '}{categorised}</span>
+                <span><span className="text-[color:var(--brand-muted-text)]">{t('processing.loss.total')}</span>{' '}{lossQty ?? '—'}</span>
+                <span><span className="text-[color:var(--brand-muted-text)]">{t('processing.loss.categorised')}</span>{' '}{categorised}</span>
                 <span>
-                    <span className="text-gray-600">{t('processing.loss.unexplained')}</span>{' '}
+                    <span className="text-[color:var(--brand-muted-text)]">{t('processing.loss.unexplained')}</span>{' '}
                     {unexplained ?? t('processing.loss.unexplainedUnknown')}
                 </span>
             </div>

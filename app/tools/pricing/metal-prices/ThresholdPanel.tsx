@@ -28,7 +28,7 @@ export default function ThresholdPanel({
     return (
         <div className="border border-gray-300 rounded-lg p-4 mb-6 max-w-3xl">
             <p className="font-medium mb-1">{t('metalPrices.settings.title')}</p>
-            <p className="text-sm text-gray-600 mb-3">{t('metalPrices.settings.hint')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('metalPrices.settings.hint')}</p>
 
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-3 py-2 rounded mb-3 text-sm">
@@ -73,7 +73,7 @@ export default function ThresholdPanel({
 
             {/* 引导里那一行自带的说明 —— "这是默认值,不是决定"就写在数据里,
                 而不是只写在某次提交的说明里 */}
-            {notes && <p className="text-xs text-gray-500 mt-2">{notes}</p>}
+            {notes && <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{notes}</p>}
         </div>
     )
 }

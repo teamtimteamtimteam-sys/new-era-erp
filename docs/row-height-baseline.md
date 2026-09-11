@@ -2006,3 +2006,642 @@ render 函数画出来,**控件在源码里根本不住在 `<table>` 块里**
  ]
 }
 ```
+
+---
+
+## 9 · ★★ FONT-2 之后的读数(2026-09-11)—— **下一刀拿这一份比,不要再拿 §8** ★★
+
+| | |
+|---|---|
+| **量的那一天** | 2026-09-11(UTC 14:23:42 → 14:53:49 那一趟 `--mode=drift`,外加 15:22 那一次单条补量) |
+| **量的那一刀** | ★ **FONT-2**(`body` 的默认字号与行高 · 正文与次级的字色 · 选项文字的字重 · 不在标准上的字号类;`docs/handbacks/FONT-2.md`) |
+| **量具** | `scripts/survey-controls.mjs`,与 §6 / §7 / §8 **逐字同一支**;★ **逐列宽度**仍然由这一刀自己那支探针补(仓库里的量具没有这个字段 —— 那一条已登记入队) |
+| **原样的命令** | `SURVEY_OUT=.survey-out/font2-after node scripts/survey-controls.mjs --mode=drift` 与 `--mode=edit`<br>补量:`--mode=drift --only=/purchasing,/tools/pricing/calculator`(★ 伴随路由的读数按规矩丢掉) |
+| **视口** | phone **390×844**(dsf=3, mobile=true) |
+| ★ **覆盖** | phone **141 条**路由全部 `ready=ok`(**not-ok 0 条**);带控件的表 **12 张**;编辑态 **2 张** |
+| ⚠ **补量过一条** | ★ `--mode=drift` 在 **`/purchasing @ phone`** 上撞到那个已知的渲染器卡死(`docs/known-issues.md` 的 `FONT2-PROBE-WEDGE-390`),**单独重跑一次**才读到。**覆盖率仍然是 141 / 141,但其中 1 条是第二次才读到的** —— 不要把「补量过」和「没读到」算成一件事 |
+| ★ **为什么另起一节而不是改 §8** | 与 §7 / §8 的理由逐字同一条:§8 是 **FONT-1 那一天**的快照,是 FONT-2 的参照点。**改掉它等于抹掉本刀的判据。** |
+| ★ **这里的行高【不是标准】** | 与 §1 / §7 / §8 逐字同一条:它是一份「今天是多少」。本刀的裁定同样是**行高变化报告、不停手**(`docs/variant-c-spec.md` §4.1e / §4.7.7) |
+
+### ★ 与 §8(FONT-1 之后)比:动了两个数,两个都变【小】
+
+| 动了什么 | FONT-1 之后 | FONT-2 之后 | 判词 |
+|---|--:|--:|---|
+| `/purchasing/payment-terms/new` #0 的**表头高** | **41** | ★ **37** | **变小 4px** —— 竖向,报告不停手 |
+| `/purchasing/payment-terms/new` #0 的**第 2 列宽** | **66.22** | ★ **61.08** | 变窄 5.14px;**这张表的列宽合计不变**(表是 `w-full`,列之间重新分配) |
+| `/purchasing/payment-terms/new` 的 **390px 整页溢出** | **149** | ★ **143** | **变小 6px** —— NOT a stop,登记在案 |
+| 其余 **11 张**含控件的表的四项 · 其余 **11 列**的宽度 · 另外 **4 条**整页溢出 · **12 张**横滚表的滚动范围 | | | ★ **一个数都没有动** |
+
+☞ ★ **行高闸(`--row-height=report`,`--baseline-heading='FONT-1 之后的读数'`)`ROWHEIGHT_OWN_EXIT=0`:**
+「12 张含控件的表:横向四项与基线相同;竖向 1 处变化【报告,不停手】;390px 整页溢出没有新增也没有长大;12 张已裁定横滚的表一张都没有多出滚动范围。」
+
+### 9.1 首屏:格子里有控件的表(12 张,10 条路由)
+
+| 路由 | # | 列 | 行 | 格子里的控件 | 表头高 | 最大行高 | 滚动壳内容宽 |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| `/finance/freight/new` | 0 | 4 | 15 | **15** | 42.42 | 85.77 | 336 |
+| `/finance/fx/bulk` | 0 | 4 | 7 | **21** | 97 | 41 | 497 |
+| `/finance/processing-costs` | 0 | 6 | 5 | **6** | 63.84 | 81.5 | 292 |
+| `/finance/processing-costs` | 1 | 6 | 4 | **5** | 63.84 | 81.5 | 292 |
+| `/hr/payroll/new` | 0 | 7 | 7 | **35** | 57 | 73 | 739 |
+| `/operation/orders/new` | 0 | 2 | 5 | **10** | 37 | 49 | (没有滚动壳) |
+| `/operation/orders/new` | 1 | 4 | 3 | **12** | 97 | 49 | (没有滚动壳) |
+| `/purchasing/payment-terms/new` | 0 | 5 | 1 | **5** | 37 | 77 | (没有滚动壳) |
+| `/sales/quotes/new` | 0 | 3 | 5 | **15** | 42.42 | 53.5 | (没有滚动壳) |
+| `/tools/pricing/calculator` | 0 | 2 | 7 | **7** | 42.42 | 53.5 | (没有滚动壳) |
+| `/tools/pricing/formulas/new` | 0 | 2 | 7 | **7** | 42.42 | 53.5 | (没有滚动壳) |
+| `/tools/pricing/metal-prices/bulk` | 0 | 3 | 7 | **7** | 42.42 | 128.61 | (没有滚动壳) |
+
+### 9.2 ★ 逐列宽度(colW,390px)
+
+| 路由 | # | 每一列的宽度 |
+|---|--:|---|
+| `/finance/freight/new` | 0 | 40 · 114 · 84.98 · 96.8 |
+| `/finance/fx/bulk` | 0 | 109 · 129 · 129 · 129 |
+| `/finance/processing-costs` | 0 | 32 · 32 · 76 · 76 · 76 · 0 |
+| `/finance/processing-costs` | 1 | 32 · 32 · 76 · 76 · 76 · 0 |
+| `/hr/payroll/new` | 0 | 105.64 · 113 · 113 · 113 · 113 · 113 · 67.75 |
+| `/operation/orders/new` | 0 | 180 · 145 |
+| `/operation/orders/new` | 1 | 71.8 · 145 · 61.11 · 77.7 |
+| `/purchasing/payment-terms/new` | 0 | 78.36 · 61.08 · 121 · 240 · 0 |
+| `/sales/quotes/new` | 0 | 80.33 · 136 · 136 |
+| `/tools/pricing/calculator` | 0 | 156.05 · 169.95 |
+| `/tools/pricing/formulas/new` | 0 | 156.05 · 169.95 |
+| `/tools/pricing/metal-prices/bulk` | 0 | 124.89 · 184 · 70.58 |
+
+### 9.3 机读块(给下一刀直接 diff 用)
+
+#### 9.3.1 首屏
+
+```json
+[
+ {
+  "route": "/finance/freight/new",
+  "idx": 0,
+  "key": "h:/Batch/Quantity/Remaining",
+  "cols": 4,
+  "bodyRows": 15,
+  "nControls": 15,
+  "headH": 42.42,
+  "rowH": [
+   85.77,
+   63.84,
+   63.84,
+   63.84,
+   63.84,
+   63.84,
+   63.84,
+   63.84,
+   63.84,
+   63.84,
+   63.84,
+   63.84,
+   63.84,
+   63.84,
+   63.84
+  ],
+  "rowFirstCell": [
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "shellW": 326,
+  "shellScrollW": 336,
+  "colW": [
+   40,
+   114,
+   84.98,
+   96.8
+  ]
+ },
+ {
+  "route": "/finance/fx/bulk",
+  "idx": 0,
+  "key": "h:Rate Date/TT buy (bank buy/TT sell (bank se/Mid",
+  "cols": 4,
+  "bodyRows": 7,
+  "nControls": 21,
+  "headH": 97,
+  "rowH": [
+   41,
+   41,
+   41,
+   41,
+   41,
+   41,
+   41
+  ],
+  "rowFirstCell": [
+   "2026-09-05",
+   "2026-09-06",
+   "2026-09-07",
+   "2026-09-08",
+   "2026-09-09",
+   "2026-09-10",
+   "2026-09-11"
+  ],
+  "shellW": 326,
+  "shellScrollW": 497,
+  "colW": [
+   109,
+   129,
+   129,
+   129
+  ]
+ },
+ {
+  "route": "/finance/processing-costs",
+  "idx": 0,
+  "key": "h://Run/Cost type/Amount/Recorded",
+  "cols": 6,
+  "bodyRows": 5,
+  "nControls": 6,
+  "headH": 63.84,
+  "rowH": [
+   81.5,
+   81,
+   81,
+   81,
+   81
+  ],
+  "rowFirstCell": [
+   "",
+   "",
+   "",
+   "",
+   ""
+  ],
+  "shellW": 292,
+  "shellScrollW": 292,
+  "colW": [
+   32,
+   32,
+   76,
+   76,
+   76,
+   0
+  ]
+ },
+ {
+  "route": "/finance/processing-costs",
+  "idx": 1,
+  "key": "h://Run/Cost type/Amount/Recorded",
+  "cols": 6,
+  "bodyRows": 4,
+  "nControls": 5,
+  "headH": 63.84,
+  "rowH": [
+   81.5,
+   81,
+   81,
+   81
+  ],
+  "rowFirstCell": [
+   "",
+   "",
+   "",
+   ""
+  ],
+  "shellW": 292,
+  "shellScrollW": 292,
+  "colW": [
+   32,
+   32,
+   76,
+   76,
+   76,
+   0
+  ]
+ },
+ {
+  "route": "/hr/payroll/new",
+  "idx": 0,
+  "key": "h:Employee/Gross pay/Employee CPF/Employer CPF/Deductions/Net pay/Check",
+  "cols": 7,
+  "bodyRows": 7,
+  "nControls": 35,
+  "headH": 57,
+  "rowH": [
+   73,
+   53,
+   73,
+   73,
+   73,
+   73,
+   73
+  ],
+  "rowFirstCell": [
+   "EMP-2026-0001Choo Er Teh",
+   "EMP-2026-0002Tim",
+   "EMP-2026-0003Vince Goh",
+   "EMP-2026-0004Sandra Yap",
+   "EMP-2026-0005Cheng Siong Phua",
+   "EMP-2026-0006Fu Sheng Wong",
+   "ZZ-2BL-186301ZZ 2BL"
+  ],
+  "shellW": 326,
+  "shellScrollW": 739,
+  "colW": [
+   105.64,
+   113,
+   113,
+   113,
+   113,
+   113,
+   67.75
+  ]
+ },
+ {
+  "route": "/operation/orders/new",
+  "idx": 0,
+  "key": "h:Material/Planned",
+  "cols": 2,
+  "bodyRows": 5,
+  "nControls": 10,
+  "headH": 37,
+  "rowH": [
+   49,
+   49,
+   49,
+   49,
+   49
+  ],
+  "rowFirstCell": [
+   "Select material…MAT-2026-0001 — ",
+   "Select material…MAT-2026-0001 — ",
+   "Select material…MAT-2026-0001 — ",
+   "Select material…MAT-2026-0001 — ",
+   "Select material…MAT-2026-0001 — "
+  ],
+  "shellW": null,
+  "shellScrollW": null,
+  "colW": [
+   180,
+   145
+  ]
+ },
+ {
+  "route": "/operation/orders/new",
+  "idx": 1,
+  "key": "h:Material/Expected/Where it came fr/Evidence",
+  "cols": 4,
+  "bodyRows": 3,
+  "nControls": 12,
+  "headH": 97,
+  "rowH": [
+   49,
+   49,
+   49
+  ],
+  "rowFirstCell": [
+   "NoneMAT-2026-0001 — NMC Cathode ",
+   "NoneMAT-2026-0001 — NMC Cathode ",
+   "NoneMAT-2026-0001 — NMC Cathode "
+  ],
+  "shellW": null,
+  "shellScrollW": null,
+  "colW": [
+   71.8,
+   145,
+   61.11,
+   77.7
+  ]
+ },
+ {
+  "route": "/purchasing/payment-terms/new",
+  "idx": 0,
+  "key": "h:#/Label/Share/Trigger/",
+  "cols": 5,
+  "bodyRows": 1,
+  "nControls": 5,
+  "headH": 37,
+  "rowH": [
+   77
+  ],
+  "rowFirstCell": [
+   "1Remove"
+  ],
+  "shellW": null,
+  "shellScrollW": null,
+  "colW": [
+   78.36,
+   61.08,
+   121,
+   240,
+   0
+  ]
+ },
+ {
+  "route": "/sales/quotes/new",
+  "idx": 0,
+  "key": "h:Material/Quantity/Unit price",
+  "cols": 3,
+  "bodyRows": 5,
+  "nControls": 15,
+  "headH": 42.42,
+  "rowH": [
+   53.5,
+   53,
+   53,
+   53,
+   53
+  ],
+  "rowFirstCell": [
+   "Select materialMAT-2026-0001 — N",
+   "Select materialMAT-2026-0001 — N",
+   "Select materialMAT-2026-0001 — N",
+   "Select materialMAT-2026-0001 — N",
+   "Select materialMAT-2026-0001 — N"
+  ],
+  "shellW": null,
+  "shellScrollW": null,
+  "colW": [
+   80.33,
+   136,
+   136
+  ]
+ },
+ {
+  "route": "/tools/pricing/calculator",
+  "idx": 0,
+  "key": "h:Metal/Content %",
+  "cols": 2,
+  "bodyRows": 7,
+  "nControls": 7,
+  "headH": 42.42,
+  "rowH": [
+   53.5,
+   53,
+   53,
+   53,
+   53,
+   53,
+   53
+  ],
+  "rowFirstCell": [
+   "Nickelni",
+   "Cobaltco",
+   "Lithiumli",
+   "Manganesemn",
+   "Coppercu",
+   "Aluminiumal",
+   "Ironfe"
+  ],
+  "shellW": null,
+  "shellScrollW": null,
+  "colW": [
+   156.05,
+   169.95
+  ]
+ },
+ {
+  "route": "/tools/pricing/formulas/new",
+  "idx": 0,
+  "key": "h:Metal/Payable %",
+  "cols": 2,
+  "bodyRows": 7,
+  "nControls": 7,
+  "headH": 42.42,
+  "rowH": [
+   53.5,
+   53,
+   53,
+   53,
+   53,
+   53,
+   53
+  ],
+  "rowFirstCell": [
+   "Nickelni",
+   "Cobaltco",
+   "Lithiumli",
+   "Manganesemn",
+   "Coppercu",
+   "Aluminiumal",
+   "Ironfe"
+  ],
+  "shellW": null,
+  "shellScrollW": null,
+  "colW": [
+   156.05,
+   169.95
+  ]
+ },
+ {
+  "route": "/tools/pricing/metal-prices/bulk",
+  "idx": 0,
+  "key": "h:Metal/Price (USD/t)/",
+  "cols": 3,
+  "bodyRows": 7,
+  "nControls": 7,
+  "headH": 42.42,
+  "rowH": [
+   128.61,
+   128.11,
+   128.11,
+   128.11,
+   128.11,
+   128.11,
+   128.11
+  ],
+  "rowFirstCell": [
+   "Nickelni",
+   "Cobaltco",
+   "Lithiumli",
+   "Manganesemn",
+   "Coppercu",
+   "Aluminiumal",
+   "Ironfe"
+  ],
+  "shellW": null,
+  "shellScrollW": null,
+  "colW": [
+   124.89,
+   184,
+   70.58
+  ]
+ }
+]
+```
+
+#### 9.3.2 `<EditableTable>` 编辑态
+
+```json
+[
+ {
+  "route": "/hr/leave/types",
+  "idx": 0,
+  "key": "h:/Code/Name/Standard days/Certificate afte/Paid/Accrues/Half days",
+  "cols": 10,
+  "nControls": 12,
+  "headH": 41,
+  "rowH_editing": [
+   172.03,
+   271,
+   177.25,
+   134.41,
+   171.53,
+   128.69,
+   191.53,
+   171.53,
+   134.41,
+   162.97,
+   85.84,
+   134.41,
+   114.41,
+   114.41
+  ],
+  "shellW_editing": 326,
+  "shellScrollW_editing": 326
+ },
+ {
+  "route": "/hr/reviews/scale",
+  "idx": 0,
+  "key": "h:/Code/Name/Description/Sort/Active/Usually passes p/",
+  "cols": 8,
+  "nControls": 14,
+  "headH": 41,
+  "rowH_editing": [
+   45.5,
+   307,
+   61,
+   61,
+   45
+  ],
+  "shellW_editing": 326,
+  "shellScrollW_editing": 326
+ }
+]
+```
+
+#### 9.3.3 今天的溢出
+
+```json
+{
+ "documentOverflow390": [
+  {
+   "route": "/finance/freight/new",
+   "docScrollW": 417,
+   "docClientW": 390
+  },
+  {
+   "route": "/operation/processing/new",
+   "docScrollW": 567,
+   "docClientW": 390
+  },
+  {
+   "route": "/purchasing/payment-terms/new",
+   "docScrollW": 533,
+   "docClientW": 390
+  },
+  {
+   "route": "/sales/orders/new",
+   "docScrollW": 398,
+   "docClientW": 390
+  },
+  {
+   "route": "/tools/pricing/metal-prices/bulk",
+   "docScrollW": 411,
+   "docClientW": 390
+  }
+ ],
+ "tableShellOverflow390": [
+  {
+   "route": "/finance/assets",
+   "idx": 0,
+   "key": "h:/Code/Description/Category/Acquired/In service/Cost/Amount (SGD)",
+   "shellW": 326,
+   "shellScrollW": 353
+  },
+  {
+   "route": "/finance/cash-forecast",
+   "idx": 0,
+   "key": "h:Week of/2026-09-07/2026-09-14/2026-09-21/2026-09-28/2026-10-05/2026-10-12/2026-10-19",
+   "shellW": 326,
+   "shellScrollW": 1680
+  },
+  {
+   "route": "/finance/cash-forecast",
+   "idx": 1,
+   "key": "h:Week of/2026-09-07/2026-09-14/2026-09-21/2026-09-28/2026-10-05/2026-10-12/2026-10-19",
+   "shellW": 326,
+   "shellScrollW": 1563
+  },
+  {
+   "route": "/finance/close",
+   "idx": 0,
+   "key": "h:/Period end/Closed at/Entries/Debits/Credits/Status/",
+   "shellW": 326,
+   "shellScrollW": 339
+  },
+  {
+   "route": "/finance/freight/new",
+   "idx": 0,
+   "key": "h:/Batch/Quantity/Remaining",
+   "shellW": 326,
+   "shellScrollW": 336
+  },
+  {
+   "route": "/finance/fx/bulk",
+   "idx": 0,
+   "key": "h:Rate Date/TT buy (bank buy/TT sell (bank se/Mid",
+   "shellW": 326,
+   "shellScrollW": 497
+  },
+  {
+   "route": "/finance/packs",
+   "idx": 0,
+   "key": "h:/Side/Control account/Per the ledger/Per the document/Difference/Raised but not p/Applied in the l",
+   "shellW": 326,
+   "shellScrollW": 339
+  },
+  {
+   "route": "/hr/payroll/new",
+   "idx": 0,
+   "key": "h:Employee/Gross pay/Employee CPF/Employer CPF/Deductions/Net pay/Check",
+   "shellW": 326,
+   "shellScrollW": 739
+  },
+  {
+   "route": "/inbound",
+   "idx": 0,
+   "key": "h:/Code↕/Material/Remaining↕/Supplier/Source/Quantity↕/Arrival Date↕",
+   "shellW": 326,
+   "shellScrollW": 328
+  },
+  {
+   "route": "/settings/reference",
+   "idx": 0,
+   "key": "h:/Permission/What it covers/Held by",
+   "shellW": 326,
+   "shellScrollW": 544
+  },
+  {
+   "route": "/settings/reference",
+   "idx": 1,
+   "key": "h:/Permission/What it covers/Held by",
+   "shellW": 326,
+   "shellScrollW": 544
+  },
+  {
+   "route": "/settings/reference",
+   "idx": 2,
+   "key": "h:/Permission/What it covers/Held by",
+   "shellW": 326,
+   "shellScrollW": 544
+  }
+ ]
+}
+```

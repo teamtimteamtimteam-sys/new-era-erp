@@ -204,7 +204,7 @@ export default async function MonthEndPage({
                     {t('reviews.filter')}
                 </Button>
             </form>
-            <p className="text-xs text-gray-500 mb-4">{t('finance.monthEnd.cpfNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('finance.monthEnd.cpfNote')}</p>
             <table className={`${tableC.root} w-full`}>
                 <tbody>
                     {steps.map((s, i) => (

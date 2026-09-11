@@ -29,7 +29,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                 <p className="mt-1">{t('assets.new.twoDoorsThis')}</p>
                 <p className="mt-1">
                     {t('assets.new.twoDoorsOther')}{' '}
-                    <Link href="/finance/expenses/new" className="underline">
+                    <Link href="/finance/expenses/new" className="underline app-link">
                         {t('assets.new.twoDoorsOtherLink')}
                     </Link>
                 </p>
@@ -47,7 +47,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                 </label>
                 <input id="description" name="description" required
                     className={`${CONTROL_INPUT} w-full`} />
-                <p className="mt-1 text-xs text-gray-600">{t('assets.new.descriptionHint')}</p>
+                <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('assets.new.descriptionHint')}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -59,7 +59,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                         className={`${CONTROL_INPUT} w-full`} />
                     {/* 【为什么不预填今天】它是投用日的下界 —— 预填会把投用日的
                         合法范围一起挪掉,而那不是这张表单该替人决定的事。 */}
-                    <p className="mt-1 text-xs text-gray-600">{t('assets.new.acquisitionDateHint')}</p>
+                    <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('assets.new.acquisitionDateHint')}</p>
                 </div>
                 <div>
                     <label htmlFor="useful_life_months" className="block mb-1">
@@ -68,7 +68,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                     <input id="useful_life_months" name="useful_life_months" type="number"
                         min="1" step="1" required
                         className={`${CONTROL_INPUT} w-full`} />
-                    <p className="mt-1 text-xs text-gray-600">{t('assets.new.usefulLifeHint')}</p>
+                    <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('assets.new.usefulLifeHint')}</p>
                 </div>
             </div>
 
@@ -91,11 +91,11 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                 <textarea id="notes" name="notes"
                     className={`${CONTROL_TEXTAREA} w-full`} />
                 {/* E2 的既有事实:序列号/制造商/型号全库没有列,只能写在这里。 */}
-                <p className="mt-1 text-xs text-gray-600">{t('assets.new.notesHint')}</p>
+                <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('assets.new.notesHint')}</p>
             </div>
 
             {/* 【成本不在这张表单上,而这要说出来】否则第一个用它的人会找价格字段。 */}
-            <p className="rounded-md bg-gray-50 border border-gray-200 px-3 py-2 text-sm text-gray-700">
+            <p className="rounded-md bg-gray-50 border border-gray-200 px-3 py-2 text-sm text-[color:var(--brand-text)]">
                 {t('assets.new.costComesLater')}
             </p>
 

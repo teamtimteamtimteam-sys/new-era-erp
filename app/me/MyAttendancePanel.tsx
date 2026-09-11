@@ -62,7 +62,7 @@ export default function MyAttendancePanel({ rows }: { rows: Row[] }) {
     return (
         <section className="mb-8">
             <h2 className="mb-1">{t('attendance.myTitle')}</h2>
-            <p className="text-xs text-gray-500 mb-3">{t('attendance.myHint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('attendance.myHint')}</p>
             <DataTable
                 rows={rows}
                 columns={columns}

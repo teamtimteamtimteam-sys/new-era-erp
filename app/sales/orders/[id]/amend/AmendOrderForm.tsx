@@ -86,7 +86,7 @@ export default function AmendOrderForm({
             <h1 className="mb-2">
                 {isDraft ? t('sales.amend.draftTitle', { code }) : t('sales.amend.title', { code })}
             </h1>
-            <p className="text-sm text-gray-600 mb-6 max-w-3xl">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-6 max-w-3xl">
                 {isDraft ? t('sales.amend.draftIntro') : t('sales.amend.intro')}
             </p>
 
@@ -110,15 +110,15 @@ export default function AmendOrderForm({
             {/* ── 永久冻结的五列:看得见,改不动,旁边写着为什么 ───────────────── */}
             <div className="border border-gray-300 rounded p-4 mb-6 bg-gray-50">
                 <h2 className="mb-1">{t('sales.amend.frozenTitle')}</h2>
-                <p className="text-xs text-gray-600 mb-3 max-w-3xl">{t('sales.amend.frozenWhy')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-3 max-w-3xl">{t('sales.amend.frozenWhy')}</p>
                 <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
-                    <div><dt className="inline text-gray-500">{t('sales.colCode')}: </dt>
+                    <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colCode')}: </dt>
                          <dd className="inline font-mono">{code}</dd></div>
-                    <div><dt className="inline text-gray-500">{t('sales.colCustomer')}: </dt>
+                    <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colCustomer')}: </dt>
                          <dd className="inline">{customerLabel}</dd></div>
-                    <div><dt className="inline text-gray-500">{t('sales.colDate')}: </dt>
+                    <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colDate')}: </dt>
                          <dd className="inline">{orderDate}</dd></div>
-                    <div><dt className="inline text-gray-500">{t('sales.colCurrency')}: </dt>
+                    <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colCurrency')}: </dt>
                          <dd className="inline">{currency} @ {fxRate}</dd></div>
                 </dl>
             </div>
@@ -134,7 +134,7 @@ export default function AmendOrderForm({
                         </label>
                         <input type="text" name="reason" required disabled={frozen}
                                className={`${CONTROL_INPUT} w-full`} />
-                        <p className="text-xs text-gray-500 mt-1">{t('sales.amend.reasonHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('sales.amend.reasonHint')}</p>
                     </div>
                 )}
 
@@ -192,11 +192,11 @@ export default function AmendOrderForm({
                             //   桌面那一份永远是对的那一份。提一次,两处引用同一个描述。
                             const invoicedText = !canSeeInvoices ? (
                                 // 【受限 ≠ 未开票】前者是"你看不到",后者是"确实没有"
-                                <span className="text-gray-500 font-sans">{t('common.restricted')}</span>
+                                <span className="text-[color:var(--brand-muted-text)] font-sans">{t('common.restricted')}</span>
                             ) : billed ? (
                                 <>
                                     {l.invoiced} {l.unit}
-                                    <span className="block text-gray-500">{l.invoice_code}</span>
+                                    <span className="block text-[color:var(--brand-muted-text)]">{l.invoice_code}</span>
                                 </>
                             ) : (
                                 <span className="text-gray-400 font-sans">{t('sales.invoice.lineUnbilled')}</span>
@@ -206,7 +206,7 @@ export default function AmendOrderForm({
                                 <>
                                     {l.shipped} {l.unit}
                                     {l.shipment_code && (
-                                        <span className="block text-gray-500">{l.shipment_code}</span>
+                                        <span className="block text-[color:var(--brand-muted-text)]">{l.shipment_code}</span>
                                     )}
                                 </>
                             )
@@ -300,14 +300,14 @@ export default function AmendOrderForm({
                 {/* 【已开票的行:两条出路都说出来】数字错了 → 先作废那张票;
                     客户要加量 → 另起一行(整单发完之后也走得通) */}
                 {lines.some((l) => l.invoice_code !== null) && (
-                    <p className="text-xs text-gray-600">{t('sales.amend.invoicedNote')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('sales.amend.invoicedNote')}</p>
                 )}
 
                 {/* ── 加行 ──────────────────────────────────────────────────── */}
                 {!frozen && (
                     <>
                         <h2 className="pt-2">{t('sales.amend.addLines')}</h2>
-                        <p className="text-xs text-gray-500">{t('sales.amend.addLinesHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)]">{t('sales.amend.addLinesHint')}</p>
                         <table className={`${tableC.root} w-full`}>
                             <thead>
                                 <tr className={tableC.headRow}>
@@ -347,7 +347,7 @@ export default function AmendOrderForm({
                 {!addOnly && (
                     <>
                         <h2 className="pt-2">{t('sales.amend.headerTitle')}</h2>
-                        <p className="text-xs text-gray-500">{t('sales.amend.headerWhy')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)]">{t('sales.amend.headerWhy')}</p>
                         <div>
                             <label className="block mb-1">{t('sales.form.notes')}</label>
                             <textarea name="notes" defaultValue={notes} disabled={frozen}
@@ -357,7 +357,7 @@ export default function AmendOrderForm({
                             <label className="block mb-1">{t('sales.amend.terms')}</label>
                             <textarea name="terms_text" defaultValue={termsText} disabled={frozen}
                                       className={`${CONTROL_TEXTAREA} w-full`} />
-                            <p className="text-xs text-gray-500 mt-1">{t('sales.amend.termsHint')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('sales.amend.termsHint')}</p>
                         </div>
                     </>
                 )}

@@ -87,7 +87,7 @@ export default async function CompanyPage() {
                         {t('company.licence.movedToPurchasing')}
                     </Link>
                 ) : (
-                    <p data-module-restricted="1" title={t('dashboard.restrictedHint')} className="text-sm text-gray-600">
+                    <p data-module-restricted="1" title={t('dashboard.restrictedHint')} className="text-sm text-[color:var(--brand-muted-text)]">
                         {t('company.licence.movedToPurchasing')} · {t('common.restricted')}
                     </p>
                 )}

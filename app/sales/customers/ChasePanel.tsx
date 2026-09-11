@@ -153,7 +153,7 @@ export default function ChasePanel({
     return (
         <section className="mb-8">
             <h2 className="mb-2">{t('chases.sectionTitle')}</h2>
-            <p className="text-xs text-gray-500 mb-3">{t('chases.sectionHint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('chases.sectionHint')}</p>
 
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -169,19 +169,19 @@ export default function ChasePanel({
                         <div key={p.promise_id} className="mb-3 last:mb-0 text-sm">
                             <div className="flex flex-wrap items-baseline gap-2">
                                 <span className="font-mono">{p.promised_amount_ccy.toLocaleString()} {p.currency}</span>
-                                <span className="text-gray-600">→ {p.promised_date}</span>
+                                <span className="text-[color:var(--brand-muted-text)]">→ {p.promised_date}</span>
                                 {p.is_overdue && (
-                                    <span className="px-1.5 py-0.5 rounded text-[11px] bg-red-200 text-red-900">
+                                    <span className="px-1.5 py-0.5 rounded text-xs bg-red-200 text-red-900">
                                         {t('chases.promiseOverdue')}
                                     </span>
                                 )}
-                                <span className="text-xs text-gray-500 font-mono">{p.chase_code}</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)] font-mono">{p.chase_code}</span>
                             </div>
-                            <p className="text-xs text-gray-700 mt-1">
+                            <p className="text-xs text-[color:var(--brand-text)] mt-1">
                                 {t('chases.appliedSince')}:{' '}
                                 <span className="font-mono">{money(p.applied_since_base)} {baseCurrency}</span>
                             </p>
-                            <p className="text-[11px] text-gray-500">{t('chases.appliedSinceHint')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('chases.appliedSinceHint')}</p>
                             <PermissionGate code="module.finance.edit" allowed={canEdit}>
                                 <div className="mt-1 flex flex-wrap gap-1">
                                     {OUTCOMES.map((o) => (
@@ -224,7 +224,7 @@ export default function ChasePanel({
                             <input type="date" value={chasedOn} max={today()}
                                 onChange={(e) => setChasedOn(e.target.value)}
                                 className={`${CONTROL_INPUT} block`} />
-                            <span className="block text-[11px] text-gray-500">{t('chases.chasedOnHint')}</span>
+                            <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('chases.chasedOnHint')}</span>
                         </label>
                         <label className="">
                             {t('chases.channel')}
@@ -252,7 +252,7 @@ export default function ChasePanel({
                         {t('chases.summary')}
                         <textarea value={summary} onChange={(e) => setSummary(e.target.value)}
                             className={`${CONTROL_TEXTAREA} block w-full`} />
-                        <span className="block text-[11px] text-gray-500">{t('chases.summaryHint')}</span>
+                        <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('chases.summaryHint')}</span>
                     </label>
 
                     {/* 【承诺是有牙齿的那一半】没联系上人时它不出现 —— 服务端也拒 */}
@@ -307,7 +307,7 @@ export default function ChasePanel({
             />
             {/* 冻结的数与今天的数【并排】—— 表里那一列是当时告诉客户的数 */}
             {chases.length > 0 && (
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">
                     {t('chases.owedToday')}: <span className="font-mono">{money(owedToday)} {baseCurrency}</span>
                     {' · '}{t('chases.frozenNote', { date: chases[0].chased_on })}
                 </p>

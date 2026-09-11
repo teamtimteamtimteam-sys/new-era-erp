@@ -35,7 +35,7 @@ export default function WoThresholdPanel({
     return (
         <div className="border border-gray-300 rounded-lg p-4 mb-6 max-w-3xl">
             <p className="font-medium mb-1">{t('processing.wo.settings.title')}</p>
-            <p className="text-sm text-gray-600 mb-1">{t('processing.wo.settings.hint')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-1">{t('processing.wo.settings.hint')}</p>
             {/* 【判据不是目标】—— 这一句是这块面板最容易被需要的一句 */}
             <p className="text-xs text-amber-700 mb-3">{t('processing.wo.settings.notATarget')}</p>
 
@@ -60,7 +60,7 @@ export default function WoThresholdPanel({
                             <input type="number" name="wo_input_overrun_pct" step="0.1" min="0.1"
                                    required defaultValue={inputPct}
                                    className={`${CONTROL_INPUT} w-32`} />
-                            <p className="text-xs text-gray-500 mt-1">{t('processing.wo.settings.inputWhen')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('processing.wo.settings.inputWhen')}</p>
                         </div>
                         <div>
                             <label className="block mb-1">
@@ -69,7 +69,7 @@ export default function WoThresholdPanel({
                             <input type="number" name="wo_output_shortfall_pct" step="0.1" min="0.1"
                                    required defaultValue={outputPct}
                                    className={`${CONTROL_INPUT} w-32`} />
-                            <p className="text-xs text-gray-500 mt-1">{t('processing.wo.settings.outputWhen')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('processing.wo.settings.outputWhen')}</p>
                         </div>
                         <Button type="submit" disabled={isPending}>
                             {isPending ? t('common.saving') : t('common.save')}
@@ -80,11 +80,11 @@ export default function WoThresholdPanel({
                 <div className="text-sm space-y-1">
                     <p>{t('processing.wo.settings.inputLabel')}:{' '}
                        <span className="font-mono">{inputPct}</span>
-                       <span className="text-xs text-gray-500 ml-2">{t('processing.wo.settings.inputWhen')}</span></p>
+                       <span className="text-xs text-[color:var(--brand-muted-text)] ml-2">{t('processing.wo.settings.inputWhen')}</span></p>
                     <p>{t('processing.wo.settings.outputLabel')}:{' '}
                        <span className="font-mono">{outputPct}</span>
-                       <span className="text-xs text-gray-500 ml-2">{t('processing.wo.settings.outputWhen')}</span></p>
-                    <p className="text-xs text-gray-500">{t('processing.wo.settings.readOnly')}</p>
+                       <span className="text-xs text-[color:var(--brand-muted-text)] ml-2">{t('processing.wo.settings.outputWhen')}</span></p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.wo.settings.readOnly')}</p>
                 </div>
             )}
         </div>

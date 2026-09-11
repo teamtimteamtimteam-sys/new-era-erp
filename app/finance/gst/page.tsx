@@ -86,7 +86,7 @@ export default async function GstPage() {
             )}
 
             <h2 className="mb-2">{t('gst.taxCodes')}</h2>
-            <p className="text-xs text-gray-600 mb-2">{t('gst.taxCodesWhy')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('gst.taxCodesWhy')}</p>
             <div className="mb-6">
                 <GstTaxCodesTable rows={taxCodeRows} />
             </div>
@@ -97,7 +97,7 @@ export default async function GstPage() {
                 <GstPeriodsTable rows={periodRows} />
             </div>
 
-            <p className="text-xs text-gray-500">{t('gst.filingIsOutside')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('gst.filingIsOutside')}</p>
         </ListPage>
     )
 }

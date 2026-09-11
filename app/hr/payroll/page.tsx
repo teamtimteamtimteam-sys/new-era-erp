@@ -88,7 +88,7 @@ export default async function PayrollListPage() {
             }
             state={{ kind: 'ok' }}
         >
-            <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: periods.length })}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: periods.length })}</p>
             <PayrollPeriodsTable rows={tableRows} empty={t('hr.payrollEmpty')} />
         </ListPage>
     )

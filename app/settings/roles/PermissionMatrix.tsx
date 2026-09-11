@@ -109,7 +109,7 @@ export default function PermissionMatrix({
     return (
         <div>
             <h2 className="mb-1">{t('permissions.matrixTitle')}</h2>
-            <p className="text-sm text-gray-500 mb-3">{t('permissions.editRequiresViewHint')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('permissions.editRequiresViewHint')}</p>
 
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -179,7 +179,7 @@ export default function PermissionMatrix({
 
             <h3 className="mb-1">{t('permissions.dataAndActions')}</h3>
             {/* 描述【就是重点】—— 要授出 data.view_pay 的人,应当先读到它到底泄露什么。 */}
-            <p className="text-sm text-gray-500 mb-3">{t('permissions.dataAndActionsHint')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('permissions.dataAndActionsHint')}</p>
             <div className="space-y-2 mb-6">
                 {others.map((p) => (
                     <label
@@ -198,7 +198,7 @@ export default function PermissionMatrix({
                                 {locale === 'zh' ? p.name_zh : p.name_en}
                             </span>
                             <span className="ml-2 font-mono text-xs text-gray-400">{p.code}</span>
-                            <span className="block text-gray-600">
+                            <span className="block text-[color:var(--brand-muted-text)]">
                                 {(locale === 'zh' ? p.description_zh : p.description_en) ?? ''}
                             </span>
                         </span>

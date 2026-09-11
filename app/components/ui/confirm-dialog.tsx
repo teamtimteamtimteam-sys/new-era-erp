@@ -230,19 +230,19 @@ function ConfirmDialog({
                 <p
                     id={subjectId}
                     data-confirm-subject={content.subject}
-                    className="mt-2 rounded border-l-[3px] border-[color:var(--brand-border-strong)] bg-muted/60 px-3 py-2 text-sm font-medium break-words text-foreground"
+                    className="mt-2 rounded border-l-[3px] border-[color:var(--brand-border-strong)] bg-muted/60 px-3 py-2 text-sm font-medium break-words text-[color:var(--brand-text)]"
                 >
                     {content.subject}
                 </p>
 
                 {content.body && (
-                    <p className="mt-3 text-sm text-muted-foreground">{content.body}</p>
+                    <p className="mt-3 text-sm text-[color:var(--brand-muted-text)]">{content.body}</p>
                 )}
                 {content.details && <div className="mt-3">{content.details}</div>}
 
                 {content.reason && (
                     <label className="mt-4 block">
-                        <span className="mb-1 block text-xs text-muted-foreground">
+                        <span className="mb-1 block text-xs text-[color:var(--brand-muted-text)]">
                             {t('common.reasonRequired')}
                         </span>
                         <input
@@ -312,7 +312,7 @@ function ConfirmDialog({
                         {content.confirmLabel}
                     </Button>
                     {content.reason && blank && (
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-[color:var(--brand-muted-text)]">
                             {t('common.reasonBlankHint')}
                         </span>
                     )}

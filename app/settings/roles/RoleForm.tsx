@@ -90,7 +90,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                     />
                     {/* 码是稳定标识:策略、函数、以及日后的授权导出都靠它对上号。
                         改一次码,等于把这个角色换成了另一个角色。 */}
-                    <span className="mt-1 block text-xs text-gray-500">
+                    <span className="mt-1 block text-xs text-[color:var(--brand-muted-text)]">
                         {isNew ? t('permissions.codeHintNew') : t('permissions.codeHintLocked')}
                     </span>
                 </label>
@@ -148,7 +148,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                     />
                     {t('permissions.active')}
                     {initial.is_system && (
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-[color:var(--brand-muted-text)]">
                             {t('permissions.systemRoleLocked')}
                         </span>
                     )}
@@ -207,7 +207,7 @@ export default function RoleForm({ initial }: { initial: RoleFormValues }) {
                     </span>
                 )}
                 {!isNew && initial.is_system && (
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-[color:var(--brand-muted-text)]">
                         {t('permissions.systemRoleNoDelete')}
                     </span>
                 )}

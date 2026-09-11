@@ -243,7 +243,7 @@ export default async function PaymentDetailPage({
                         {payment.currency} {formatMoneyBare(payment.amount_ccy, '同格内紧邻的 payment.currency 前缀')}
                     </span>
                     {payment.currency !== baseCurrency && (
-                        <span className="text-gray-500 ml-1 font-mono">
+                        <span className="text-[color:var(--brand-muted-text)] ml-1 font-mono">
                             @ {payment.fx_rate} = {formatMoneyBare(payment.amount_base, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}
                         </span>
                     )}
@@ -302,8 +302,8 @@ export default async function PaymentDetailPage({
             />
 
             {payment.notes && (
-                <p className="text-sm text-gray-600 mb-4">
-                    <span className="text-gray-500 mr-1">{t('finance.memo')}:</span>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.memo')}:</span>
                     {payment.notes}
                 </p>
             )}
@@ -311,7 +311,7 @@ export default async function PaymentDetailPage({
             {/* 关联分录 */}
             {journalRes.data && (
                 <p className="text-sm mb-4">
-                    <span className="text-gray-600 mr-1">{t('finance.linkedJournal')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.linkedJournal')}:</span>
                     <Link
                         href={`/finance/journal/${journalRes.data.id}`}
                         className="hover:underline font-mono app-link app-link-inline"
@@ -331,7 +331,7 @@ export default async function PaymentDetailPage({
 
             {/* 未冲销余额(挂账)*/}
             {unallocated > 0 && (
-                <p className="text-sm text-gray-500 mt-3">
+                <p className="text-sm text-[color:var(--brand-muted-text)] mt-3">
                     {t('finance.unallocated')}: <span className="font-mono">{formatAmount(unallocated, payment.currency)}</span>
                 </p>
             )}

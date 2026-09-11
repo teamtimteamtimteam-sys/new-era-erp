@@ -88,7 +88,7 @@ export default function ShipControl({
                     {isPending ? t('common.saving') : t('sales.ship.action')}
                 </Button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">{blocked ?? t('sales.ship.consequence')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{blocked ?? t('sales.ship.consequence')}</p>
         </div>
     )
 }

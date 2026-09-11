@@ -88,7 +88,7 @@ export default function CompliancePanel({
             title={t('suppliers.compliance.deleteConfirm')}
             body={t('common.softDeleteNote')}
             details={
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-sm font-medium text-[color:var(--brand-text)]">
                     {t('suppliers.compliance.deleteConsequence')}
                 </p>
             }

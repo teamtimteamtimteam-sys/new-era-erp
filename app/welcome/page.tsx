@@ -14,9 +14,9 @@ export default async function WelcomePage() {
     return (
         <div className="p-8 max-w-lg mx-auto">
             <h1 className="mb-3">{t('welcome.title')}</h1>
-            <p className="text-gray-700 mb-2">{t('welcome.body')}</p>
+            <p className="text-[color:var(--brand-text)] mb-2">{t('welcome.body')}</p>
             {user?.email && (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('welcome.signedInAs', { 0: user.email })}
                 </p>
             )}

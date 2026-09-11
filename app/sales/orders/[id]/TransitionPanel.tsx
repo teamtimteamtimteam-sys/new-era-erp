@@ -39,7 +39,7 @@ export default function TransitionPanel({
     }
 
     if (nextStates.length === 0) {
-        return <p className="text-sm text-gray-500">{t('sales.terminal')}</p>
+        return <p className="text-sm text-[color:var(--brand-muted-text)]">{t('sales.terminal')}</p>
     }
 
     return (
@@ -59,11 +59,11 @@ export default function TransitionPanel({
                                 disabled={isPending || (to === 'cancelled' && reason.trim() === '')}>
                             {isPending ? t('common.saving') : t(ACTION_KEY[to] ?? 'sales.action.generic')}
                         </Button>
-                        <p className="text-xs text-gray-500 mt-1">{t(CONSEQUENCE_KEY[to] ?? 'sales.consequence.generic')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t(CONSEQUENCE_KEY[to] ?? 'sales.consequence.generic')}</p>
                     </div>
                 ))}
             </div>
-            <p className="text-xs text-gray-500 mt-2">{t('sales.transitionNote', { status })}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('sales.transitionNote', { status })}</p>
         </div>
     )
 }

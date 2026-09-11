@@ -81,7 +81,7 @@ export default async function ImportPage() {
 
             <h2 className="mt-10 mb-2">{t('import.history')}</h2>
             <ImportHistoryTable rows={tableRows} empty={t('import.historyEmpty')} />
-            <p className="text-xs text-gray-500 mt-2">{t('import.historyIsALog')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('import.historyIsALog')}</p>
         </ListPage>
     )
 }

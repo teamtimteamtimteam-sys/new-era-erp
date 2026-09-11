@@ -78,7 +78,7 @@ export default function StatementPanel({
 
     const row = (label: string, value: number, paren = false) => (
         <div className="flex justify-between py-0.5">
-            <span className="text-gray-600">{label}</span>
+            <span className="text-[color:var(--brand-muted-text)]">{label}</span>
             <span className="font-mono">{paren ? `(${money(value)})` : money(value)}</span>
         </div>
     )
@@ -119,7 +119,7 @@ export default function StatementPanel({
     return (
         <section className="mb-8">
             <h2 className="mb-2">{t('statements.sectionTitle')}</h2>
-            <p className="text-xs text-gray-500 mb-3">{t('statements.sectionHint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('statements.sectionHint')}</p>
 
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
@@ -150,7 +150,7 @@ export default function StatementPanel({
 
             {preview && (
                 <div className="mb-4 rounded border border-gray-300 p-3 text-sm max-w-md">
-                    <p className="text-xs text-gray-500 mb-2">
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">
                         {t('statements.previewIsLive')}
                     </p>
                     {row(t('statements.doc.opening'), preview.opening_base)}

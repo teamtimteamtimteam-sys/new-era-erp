@@ -161,7 +161,7 @@ export default function EditSupplierForm({
                         <option value="forwarder">{t('suppliers.type.forwarder')}</option>
                         <option value="service_vendor">{t('suppliers.type.service_vendor')}</option>
                     </select>
-                    <p className="text-xs text-gray-500 mt-1 max-w-2xl">
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-2xl">
                         {t('suppliers.counterpartyTypeHint')}
                     </p>
                 </div>
@@ -185,7 +185,7 @@ export default function EditSupplierForm({
                         <option value="resident">{t('suppliers.form.taxResidenceResident')}</option>
                         <option value="non_resident">{t('suppliers.form.taxResidenceNonResident')}</option>
                     </select>
-                    <p className="text-xs text-gray-500 mt-1 max-w-2xl">{t('suppliers.form.taxResidenceHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-2xl">{t('suppliers.form.taxResidenceHint')}</p>
                 </div>
 
                 {/* ★【GST-2:这家供应商的默认进项税码 —— 只在已注册时出现】★ */}
@@ -206,7 +206,7 @@ export default function EditSupplierForm({
                                 </option>
                             ))}
                         </select>
-                        <p className="text-xs text-gray-500 mt-1 max-w-2xl">{t('suppliers.form.defaultTaxCodeHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-2xl">{t('suppliers.form.defaultTaxCodeHint')}</p>
                     </div>
                 )}
 
@@ -235,7 +235,7 @@ export default function EditSupplierForm({
                             </option>
                         ))}
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">{t('suppliers.defaultPaymentTermsHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('suppliers.defaultPaymentTermsHint')}</p>
                 </div>
 
                 <div>

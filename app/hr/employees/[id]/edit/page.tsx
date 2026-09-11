@@ -110,7 +110,7 @@ export default async function EditEmployeePage({
             </div>
             <h1 className="mb-4">
                 {t('hr.employeeDetailTitle')}
-                <span className="ml-3 font-mono text-base text-gray-500">{empRes.data.code}</span>
+                <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{empRes.data.code}</span>
             </h1>
             <EmployeeForm
                 positions={positions}

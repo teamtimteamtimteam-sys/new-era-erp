@@ -90,7 +90,7 @@ export default function MonthGrid({
     return (
         <div data-month-grid={month}>
             {/* ══ 图例:哪种颜色是什么 ══════════════════════════════════════ */}
-            <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs">
+            <div className="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[color:var(--brand-muted-text)]">
                 {kinds.map((k) => (
                     <span key={k.key} className="inline-flex items-center gap-1">
                         <span className="inline-block h-3 w-3 rounded" style={{ background: k.color }} />
@@ -113,8 +113,18 @@ export default function MonthGrid({
                         <div className="grid grid-cols-7 gap-px rounded overflow-hidden"
                              style={{ background: 'var(--brand-border)' }}>
                             {heads.map((d) => (
-                                <div key={d} className="px-2 py-1 text-center text-[11px] font-semibold"
-                                     style={{ background: 'var(--brand-muted)', color: 'var(--brand-muted-text)' }}>
+                                /* ★★ FONT-2(2026-09-11, Tim Q13①)· 星期表头的字色:次级 → 正文 ★★
+                                   它坐在 `--brand-muted` **#E5EEF4** 上 —— Tim 点名的四种浅底之一。
+                                   实测:`--brand-muted-text` #62738C 对它只有 **4.11:1**(过不了 4.5:1),
+                                   `--brand-text` #182B4B 是 **12.02:1**。
+                                   ⚠ **这一处【不是】FONT-2 造成的** —— 它改前就是这个颜色。
+                                     round 1 的对比度普查只量了 **phone** 首屏,而这一格是
+                                     `hidden md:block` 的**宽屏**视图,**它按构造不会出现在那一份读数里**。
+                                     FONT-2 round 2 把普查扩到两个视口才看见它。
+                                   ☞ 修它是**直接套用 Tim 的那条裁定**(坐在那四种浅底上的字取正文色),
+                                     不是一次范围扩张 —— 裁的是【底】,不是一份元素名单。 */
+                                <div key={d} className="px-2 py-1 text-center text-xs font-semibold"
+                                     style={{ background: 'var(--brand-muted)', color: 'var(--brand-text)' }}>
                                     {d}
                                 </div>
                             ))}
@@ -128,7 +138,7 @@ export default function MonthGrid({
                                 return (
                                     <div key={ds} className="min-h-20 p-1 align-top"
                                          style={{ background: 'var(--brand-surface)' }}>
-                                        <div className="mb-0.5 text-[11px]" style={{ color: 'var(--brand-muted-text)' }}>{day}</div>
+                                        <div className="mb-0.5 text-xs" style={{ color: 'var(--brand-muted-text)' }}>{day}</div>
                                         <div className="flex flex-col gap-0.5">
                                             {its.map((it, n) => <Pill key={`${ds}-${n}`} it={it} />)}
                                         </div>

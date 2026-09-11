@@ -106,7 +106,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                 <div className="flex items-start justify-between mb-4">
                     <div>
                         <h1 className="font-mono">{q.code}</h1>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-[color:var(--brand-muted-text)] mt-1">
                             {q.customer_code} — {q.customer_name}
                         </p>
                     </div>
@@ -130,7 +130,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                     </div>
                 )}
                 {isConverted && (
-                    <div className="bg-gray-50 border border-gray-300 text-gray-800 px-4 py-3 rounded mb-4">
+                    <div className="bg-gray-50 border border-gray-300 text-[color:var(--brand-text)] px-4 py-3 rounded mb-4">
                         {t('quotes.convertedBanner', { code: q.converted_order_code ?? '—' })}{' '}
                         {q.converted_order_id && (
                             <Link href={`/sales/orders/${q.converted_order_id}`}
@@ -141,19 +141,19 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                     </div>
                 )}
                 {isDeclined && (
-                    <div className="bg-gray-50 border border-gray-300 text-gray-800 px-4 py-3 rounded mb-4">
+                    <div className="bg-gray-50 border border-gray-300 text-[color:var(--brand-text)] px-4 py-3 rounded mb-4">
                         {t('quotes.declinedBanner', { reason: q.decline_reason ?? '—' })}
                     </div>
                 )}
 
                 <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm mb-6">
-                    <div><dt className="inline text-gray-500">{t('quotes.colQuoteDate')}: </dt>
+                    <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('quotes.colQuoteDate')}: </dt>
                          <dd className="inline">{new Date(q.quote_date).toLocaleDateString(dl)}</dd></div>
-                    <div><dt className="inline text-gray-500">{t('quotes.colValidUntil')}: </dt>
+                    <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('quotes.colValidUntil')}: </dt>
                          <dd className="inline">{new Date(q.valid_until).toLocaleDateString(dl)}</dd></div>
-                    <div><dt className="inline text-gray-500">{t('sales.colCurrency')}: </dt>
+                    <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colCurrency')}: </dt>
                          <dd className="inline">{q.currency} @ {q.fx_rate}</dd></div>
-                    <div><dt className="inline text-gray-500">{t('quotes.total')}: </dt>
+                    <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('quotes.total')}: </dt>
                          <dd className="inline font-mono">{formatAmount(total, q.currency)}</dd></div>
                 </dl>
 
@@ -198,7 +198,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                 {/* ── 转换 / 谢绝 ──────────────────────────────────────────── */}
                 <h2 className="mt-8 mb-2">{t('quotes.decide')}</h2>
                 {!canEdit ? (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">
                         {t('common.restricted')} — {t('quotes.needsSalesEdit')}
                     </p>
                 ) : (
@@ -238,13 +238,13 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                     nothingToIssueNote={t('quotes.issueBlockedNoLines')}
                     hasLines={lines.length > 0}
                 />
-                <p className="text-xs text-gray-500 mb-2">{t('quotes.issuesNote')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('quotes.issuesNote')}</p>
                 {issues.length === 0 ? (
-                    <p className="text-gray-500 text-sm">{t('quotes.noIssues')}</p>
+                    <p className="text-[color:var(--brand-muted-text)] text-sm">{t('quotes.noIssues')}</p>
                 ) : (
                     <ul className="text-sm space-y-1">
                         {issues.map((i) => (
-                            <li key={i.version} className="font-mono text-xs">
+                            <li key={i.version} className="font-mono text-xs text-[color:var(--brand-muted-text)]">
                                 <a href={`/sales/quotes/${q.quote_id}/pdf?version=${i.version}`}
                                    target="_blank" rel="noopener noreferrer"
                                    className="hover:underline app-link app-link-inline">v{i.version}</a>
@@ -257,7 +257,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                 <h2 className="mt-8 mb-2">{t('sales.history')}</h2>
                 <ul className="text-sm space-y-1">
                     {history.map((h, i) => (
-                        <li key={i} className="text-gray-600">
+                        <li key={i} className="text-[color:var(--brand-muted-text)]">
                             {new Date(h.changed_at).toLocaleString(dl)}
                             {/* 动态前缀,后缀集合接 quote_history 的 CHECK(check-i18n 的清单) */}
                             {' · '}{t('quotes.changeType.' + h.change_type)}

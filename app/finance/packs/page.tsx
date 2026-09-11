@@ -57,7 +57,7 @@ export default async function PacksPage({
         return (
             <div className="p-8 max-w-5xl">
                 <h1 className="mb-1">{t('pack.title')}</h1>
-                <p className="text-sm text-gray-600 mb-4">{t('pack.subtitle')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('pack.subtitle')}</p>
                 <p className="text-sm bg-red-50 border border-red-300 text-red-900 px-3 py-2 rounded">
                     {previewRes.error.message}
                 </p>
@@ -110,7 +110,7 @@ export default async function PacksPage({
             {/* ── 已存档的包 ──────────────────────────────────────────────── */}
             <h2 className="mb-1">{t('pack.storedHeading')}</h2>
             {/* ★ 这一句是这一整刀的裁定,印在读者遇到存档包的地方 ★ */}
-            <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('pack.storedMeans')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('pack.storedMeans')}</p>
             <PacksHistoryTable rows={packRows} empty={t('pack.noStored')} />
         </ListPage>
     )

@@ -132,7 +132,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                     联系人在客户页上维护(增删改、指定主联系人)。 */}
                 <fieldset className="border border-gray-200 rounded p-4">
                     <legend className="text-sm font-medium px-1">{t('customers.form.contactGroup')}</legend>
-                    <p className="text-xs text-gray-600">{t('customers.form.contactsMovedHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('customers.form.contactsMovedHint')}</p>
                 </fieldset>
 
                 <div>
@@ -178,7 +178,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         于是一个 60 天账期的客户一直在拿 30 天的发票。
                         这里补的是那扇缺掉的门,不是第二扇:自由文本的 payment_terms
                         本来就在上面那一格里。 */}
-                    <p className="text-xs text-gray-500 mt-1">{t('customers.form.paymentTermsDaysHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('customers.form.paymentTermsDaysHint')}</p>
                 </div>
 
 
@@ -215,7 +215,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         placeholder={t('customers.form.creditLimitPlaceholder')}
                         className={`${CONTROL_INPUT} w-full`}
                     />
-                    <p className="text-xs text-gray-500 mt-1">{t('customers.form.creditLimitHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('customers.form.creditLimitHint')}</p>
                 </div>
 
                 <div>
@@ -223,7 +223,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                         <input type="checkbox" className={CONTROL_CHECKBOX} name="credit_hold" defaultChecked={customer.credit_hold ?? false} />
                         {t('customers.form.creditHold')}
                     </label>
-                    <p className="text-xs text-gray-500 mt-1">{t('customers.form.creditHoldHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('customers.form.creditHoldHint')}</p>
                 </div>
 
                 {/* ★【GST-2:这个客户的默认销项税码 —— 只在已注册时出现】★
@@ -246,7 +246,7 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                                 </option>
                             ))}
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">{t('customers.form.defaultTaxCodeHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('customers.form.defaultTaxCodeHint')}</p>
                     </div>
                 )}
 

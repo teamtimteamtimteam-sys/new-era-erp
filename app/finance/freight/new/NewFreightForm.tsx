@@ -80,7 +80,7 @@ export default function NewFreightForm({
                 </Link>
             </div>
             <h1 className="mb-2">{t('finance.freight.newTitle')}</h1>
-            <p className="text-sm text-gray-600 mb-4 max-w-3xl">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4 max-w-3xl">
                 {outbound ? t('finance.freight.exportHint') : t('finance.freight.newIntro')}
             </p>
 
@@ -103,7 +103,7 @@ export default function NewFreightForm({
                         <option value="inbound">{t('finance.freight.direction.inbound')}</option>
                         <option value="outbound">{t('finance.freight.direction.outbound')}</option>
                     </select>
-                    <p className="text-xs text-gray-600 mt-1 max-w-3xl">{t('finance.freight.directionHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-3xl">{t('finance.freight.directionHint')}</p>
                 </div>
 
                 <div className="flex flex-wrap gap-4">
@@ -136,7 +136,7 @@ export default function NewFreightForm({
                             </select>
                         )}
                         {/* 【货代,不是材料供应商】—— 未付运费的应付记在这个人名下 */}
-                        <p className="text-xs text-gray-500 mt-1">{t('finance.freight.forwarderHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('finance.freight.forwarderHint')}</p>
                     </div>
                     <div>
                         <label className="block mb-1">
@@ -167,7 +167,7 @@ export default function NewFreightForm({
                         <option value="value">{t('finance.freight.basis.value')}</option>
                         <option value="stated">{t('finance.freight.basis.stated')}</option>
                     </select>
-                    <p className="text-xs text-gray-600 mt-1 max-w-3xl">{t('finance.freight.basisHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-3xl">{t('finance.freight.basisHint')}</p>
                 </div>}
 
                 {/* 付款方式 */}
@@ -215,14 +215,14 @@ export default function NewFreightForm({
                                 ))}
                             </select>
                         )}
-                        <p className="text-xs text-gray-600 mt-1 max-w-3xl">{t('finance.freight.containerHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-3xl">{t('finance.freight.containerHint')}</p>
                     </div>
                 )}
 
                 {/* 批次(仅进境)*/}
                 {!outbound && <div>
                     <p className="block text-sm font-medium mb-1">{t('finance.freight.pickBatches')}</p>
-                    <p className="text-xs text-gray-600 mb-2">{t('finance.freight.pickBatchesHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('finance.freight.pickBatchesHint')}</p>
                     {unpriced.length > 0 && (
                         <div className="bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded mb-2 text-sm">
                             {t('finance.freight.unpricedWarning', { codes: unpriced.map((b) => b.code).join(', ') })}

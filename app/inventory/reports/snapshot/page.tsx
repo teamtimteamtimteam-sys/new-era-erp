@@ -53,8 +53,8 @@ export default async function SnapshotPage() {
             }
             state={{ kind: 'ok' }}
         >
-                <p className="text-xs text-gray-500 mb-2">{t('reports.snapshot.derivedNote')}</p>
-                <p className="text-xs text-gray-500 mb-4">{t('reports.snapshot.basisNote')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('reports.snapshot.derivedNote')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('reports.snapshot.basisNote')}</p>
 
                 {/* ★ 具名受限 —— 说出【缺的是哪一项权限】,而不是让人对着空格子猜 */}
                 {!v.prices_visible && (
@@ -66,7 +66,7 @@ export default async function SnapshotPage() {
                 {/* ── 合计条 ─────────────────────────────────────────────── */}
                 <div className="mb-6 flex flex-wrap gap-6 text-sm">
                     <div>
-                        <span className="text-gray-600">{t('reports.snapshot.totalValue')}:</span>{' '}
+                        <span className="text-[color:var(--brand-muted-text)]">{t('reports.snapshot.totalValue')}:</span>{' '}
                         <span className="font-medium font-mono">
                             {totalValue === null
                                 ? <span className="text-gray-400">{t('valuation.priceRestricted')}</span>
@@ -75,14 +75,14 @@ export default async function SnapshotPage() {
                     </div>
                     {/* 【没有成本口径的量单独站一格】它不是"值 0 的货" */}
                     <div>
-                        <span className="text-gray-600">{t('reports.snapshot.uncostedQty')}:</span>{' '}
+                        <span className="text-[color:var(--brand-muted-text)]">{t('reports.snapshot.uncostedQty')}:</span>{' '}
                         <span className="font-medium font-mono">{totalUncosted}</span>
                     </div>
                 </div>
 
                 {/* ── B 节:物料 × 库位 × 状态 ───────────────────────────── */}
                 {groups.length === 0 ? (
-                    <p className="text-gray-500">{t('reports.snapshot.empty')}</p>
+                    <p className="text-[color:var(--brand-muted-text)]">{t('reports.snapshot.empty')}</p>
                 ) : (
                     groups.map(([key, g]) => (
                         <section key={key} className="mb-8">
@@ -90,7 +90,7 @@ export default async function SnapshotPage() {
                                 {g.code ? `${g.code} — ${g.name ?? ''}` : t('reports.unspecifiedLocation')}
                             </h2>
                             {!g.code && (
-                                <p className="text-xs text-gray-500 mb-2">{t('reports.unspecifiedLocationNote')}</p>
+                                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('reports.unspecifiedLocationNote')}</p>
                             )}
                             <SnapshotGroupTable
                                 rows={g.rows.map((r, i): SnapshotRow => ({
@@ -111,7 +111,7 @@ export default async function SnapshotPage() {
                 {/* ── C 节:库龄。档位定义在 DB 的 aging_bucket,这里只翻译 ── */}
                 <section className="mb-8">
                     <h2 className="mb-2">{t('reports.snapshot.ageingTitle')}</h2>
-                    <p className="text-xs text-gray-500 mb-2">{t('reports.snapshot.ageingNote')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('reports.snapshot.ageingNote')}</p>
                     <AgeingTable
                         rows={v.ageing.map((a): AgeingRow => ({
                             bucket: a.bucket,
@@ -126,7 +126,7 @@ export default async function SnapshotPage() {
                 {/* ── 产出侧:三种状态必须长得不一样(R6) ────────────────── */}
                 <section className="mb-8">
                     <h2 className="mb-2">{t('reports.snapshot.producedTitle')}</h2>
-                    <p className="text-xs text-gray-500 mb-2">
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">
                         {t('reports.snapshot.producedNote', {
                             n: String(v.produced.never_costed_batches),
                             qty: String(v.produced.never_costed_qty),
@@ -135,14 +135,14 @@ export default async function SnapshotPage() {
                     </p>
                     <div className="flex flex-wrap gap-6 text-sm">
                         <div>
-                            <span className="text-gray-600">{t('reports.snapshot.producedCosted')}:</span>{' '}
+                            <span className="text-[color:var(--brand-muted-text)]">{t('reports.snapshot.producedCosted')}:</span>{' '}
                             <span className="font-medium font-mono">{money(v.produced.costed_value_base)}</span>
                         </div>
                         <div>
-                            <span className="text-gray-600">{t('reports.snapshot.producedNeverCosted')}:</span>{' '}
+                            <span className="text-[color:var(--brand-muted-text)]">{t('reports.snapshot.producedNeverCosted')}:</span>{' '}
                             {/* ★【从未分摊渲染 '—',不是 0.00】不适用不是值零 */}
                             <span className="font-medium font-mono">
-                                — <span className="text-gray-500">({v.produced.never_costed_qty})</span>
+                                — <span className="text-[color:var(--brand-muted-text)]">({v.produced.never_costed_qty})</span>
                             </span>
                         </div>
                     </div>

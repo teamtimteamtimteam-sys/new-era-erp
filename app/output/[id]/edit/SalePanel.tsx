@@ -134,18 +134,18 @@ export default function SalePanel({
 
             <div className="bg-gray-50 rounded p-4 mb-4 flex flex-wrap gap-8 text-sm">
                 <div>
-                    <span className="text-gray-600 mr-1">{t('output.sale.remainingLabel')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('output.sale.remainingLabel')}:</span>
                     <span className="font-medium font-mono">{remainingQty} {unit}</span>
                 </div>
                 {/* IOD-1:可售与暂扣分开列。remaining 留着 —— 它回答的是
                     "这批货还剩多少",而可售回答的是"我现在能卖多少",
                     两个问题在有暂扣时答案不同,合成一个数就等于把差额藏起来。 */}
                 <div>
-                    <span className="text-gray-600 mr-1">{t('stock.saleAvailable')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('stock.saleAvailable')}:</span>
                     <span className="font-medium font-mono">{availableQty} {unit}</span>
                 </div>
                 <div>
-                    <span className="text-gray-600 mr-1">{t('stock.saleHeld')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('stock.saleHeld')}:</span>
                     <span className={'font-medium font-mono ' + (heldQty > 0 ? 'text-amber-800' : '')}>
                         {heldQty} {unit}
                     </span>
@@ -153,16 +153,16 @@ export default function SalePanel({
                 {/* SO-2:已承诺 —— 点名它是"许给了订单",并把人送到订单那一侧去
                     (释放在那里,不在这个页面上:撤回一个承诺是销售的动作)。 */}
                 <div>
-                    <span className="text-gray-600 mr-1">{t('stock.saleCommitted')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('stock.saleCommitted')}:</span>
                     <span className={'font-medium font-mono ' + (committedQty > 0 ? 'text-blue-800' : '')}>
                         {committedQty} {unit}
                     </span>
                     {committedQty > 0 && (
-                        <span className="text-xs text-gray-500 ml-2">{t('stock.saleCommittedHint')}</span>
+                        <span className="text-xs text-[color:var(--brand-muted-text)] ml-2">{t('stock.saleCommittedHint')}</span>
                     )}
                 </div>
                 <div>
-                    <span className="text-gray-600 mr-1">{t('output.sale.stateLabel')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('output.sale.stateLabel')}:</span>
                     <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">{stateLabel(state)}</span>
                 </div>
             </div>
@@ -210,9 +210,9 @@ export default function SalePanel({
                                 判据由页面传进来(不是从 formulas.length 倒推:真的一条公式
                                 都没建过,也会是空)。 */}
                             {formulasRestricted ? (
-                                <p className="mt-1 text-xs text-gray-600">{t('output.sale.pricing.formulasRestricted')}</p>
+                                <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('output.sale.pricing.formulasRestricted')}</p>
                             ) : formulas.length === 0 ? (
-                                <p className="mt-1 text-xs text-gray-600">{t('output.sale.pricing.formulasNone')}</p>
+                                <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('output.sale.pricing.formulasNone')}</p>
                             ) : null}
                         </div>
                     )}
@@ -239,7 +239,7 @@ export default function SalePanel({
                 </div>
                 {quote?.error && <p className="text-red-600 text-sm">{quote.error}</p>}
                 {quote?.summary && (
-                    <p className="text-xs text-gray-600">
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">
                         {t('output.sale.pricing.quoted', {
                             usd: String(quote.summary.usdPerKg),
                             factor: quote.summary.fxFactor.toFixed(4),
@@ -290,7 +290,7 @@ export default function SalePanel({
                     </div>
                     {/* FIN-0:外币按销售日行方买入价(tt_buy)自动估值,当天没牌价直接拒 */}
                     {currency !== baseCurrency && (
-                    <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 </div>
 
@@ -342,7 +342,7 @@ export default function SalePanel({
                     服务端保证会拒时】禁钮(冻结、或敞口已够到限额)—— 其余情形
                     给余额,让人自己判断,不假装算得出这一单会不会顶过线。 */}
                 {creditRestricted && (
-                    <p className="mt-3 text-sm text-gray-500">{t('output.sale.credit.restricted')}</p>
+                    <p className="mt-3 text-sm text-[color:var(--brand-muted-text)]">{t('output.sale.credit.restricted')}</p>
                 )}
                 {creditRow?.credit_hold && (
                     <p className="mt-3 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded text-sm">
@@ -382,7 +382,7 @@ export default function SalePanel({
                 )}
 
                 {previewAmount !== null && (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">
                         {t('output.sale.amountPreview', {
                             amount: formatMoneyBare(previewAmount, '同句 output.sale.amountPreview 里紧跟其后的 {ccy}'),
                             ccy: currency,

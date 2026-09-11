@@ -163,7 +163,7 @@ export default function ForecastGrid({
             {data.currencies.map((ccy) => (
                 <div key={ccy} className="mb-8 overflow-x-auto">
                     <h3 className="mb-1">{ccy}</h3>
-                    <p className="text-xs text-gray-500 mb-2">
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">
                         {t('cashForecast.opening')}: <span className="font-mono">{money(openingOf(ccy))}</span>
                         {' · '}{t('cashForecast.openingHint')}
                     </p>
@@ -224,9 +224,9 @@ export default function ForecastGrid({
 
             {/* ── ★【预测【看不见】的那部分,印在预测上】★ ───────────────── */}
             <h3 className="mb-1">{t('cashForecast.undatedTitle')}</h3>
-            <p className="text-xs text-gray-500 mb-2">{t('cashForecast.undatedHint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('cashForecast.undatedHint')}</p>
             {data.undated.length === 0 ? (
-                <p className="text-sm text-gray-500 mb-8">—</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-8">—</p>
             ) : (
                 <div className="mb-8">
                     {/* ★【原表整行是琥珀底,DataTable 没有整行样式的口子】★
@@ -247,10 +247,10 @@ export default function ForecastGrid({
             {data.promises_memo.length > 0 && (
                 <>
                     <h3 className="mb-1">{t('cashForecast.promisesTitle')}</h3>
-                    <p className="text-xs text-gray-500 mb-2">{t('cashForecast.promisesHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('cashForecast.promisesHint')}</p>
                     <ul className="text-sm mb-8 space-y-1">
                         {data.promises_memo.map((p) => (
-                            <li key={p.promise_id} className="text-gray-600">
+                            <li key={p.promise_id} className="text-[color:var(--brand-muted-text)]">
                                 <span className="font-mono">{money(p.amount)} {p.currency}</span>
                                 {' → '}{p.promised_date}{' · '}{p.customer_name}
                                 <span className="ml-1 font-mono text-xs text-gray-400">{p.chase_code}</span>
@@ -262,7 +262,7 @@ export default function ForecastGrid({
 
             {/* ── 固定 OPEX 覆盖(KPI T2)────────────────────────────────── */}
             <h3 className="mb-1">{t('cashForecast.bufferTitle')}</h3>
-            <p className="text-xs text-gray-500 mb-2">{t('cashForecast.coverHint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('cashForecast.coverHint')}</p>
             <div className="mb-8 max-w-2xl">
                 <DataTable
                     rows={data.buffer}
@@ -291,7 +291,7 @@ export default function ForecastGrid({
                         variant="default" size="default">
                         {t('cashForecast.freeze')}
                     </Button>
-                    <span className="text-xs text-gray-500">{t('cashForecast.freezeHint')}</span>
+                    <span className="text-xs text-[color:var(--brand-muted-text)]">{t('cashForecast.freezeHint')}</span>
                 </div>
             </PermissionGate>
         </div>

@@ -147,7 +147,7 @@ export default async function JournalDetailPage({
                         </div>
                     )}
                     {reversalOfRes.data && (
-                        <div className="bg-gray-50 border border-gray-300 text-gray-700 px-4 py-3 rounded mb-4 text-sm">
+                        <div className="bg-gray-50 border border-gray-300 text-[color:var(--brand-text)] px-4 py-3 rounded mb-4 text-sm">
                             <Link
                                 href={`/finance/journal/${reversalOfRes.data.id}`}
                                 className="hover:underline app-link"
@@ -199,8 +199,8 @@ export default async function JournalDetailPage({
             />
 
             {entry.memo && (
-                <p className="text-sm text-gray-600 mb-4">
-                    <span className="text-gray-500 mr-1">{t('finance.memo')}:</span>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.memo')}:</span>
                     {entry.memo}
                 </p>
             )}

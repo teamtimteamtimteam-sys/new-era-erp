@@ -47,7 +47,7 @@ export default function LocationActiveToggle({ id, isActive }: { id: string; isA
                         : t('locations.reactivate')}
             </Button>
             {/* 后果 —— 挨着按钮,不在别处 */}
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-[color:var(--brand-muted-text)]">
                 {isActive ? t('locations.deactivateConsequence') : t('locations.reactivateConsequence')}
             </span>
             {error && <span className="text-xs text-red-600">{error}</span>}

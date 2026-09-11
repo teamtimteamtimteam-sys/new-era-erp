@@ -260,7 +260,7 @@ export default async function FxRatesPage({
                 <FxToolbar currencies={currencyOptions} />
             </Suspense>
 
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                 {t('finance.fxPage.recordCount', { count: total })}
             </p>
 
@@ -289,7 +289,7 @@ export default async function FxRatesPage({
                     </Button>
                 )}
 
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('finance.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
 

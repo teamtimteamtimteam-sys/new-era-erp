@@ -163,7 +163,7 @@ export default function FormulaForm({
                         locale={locale}
                     />
                 </div>
-                <p className="text-xs text-gray-500 mt-1">{t('pricing.form.priceIndexHint')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('pricing.form.priceIndexHint')}</p>
             </div>
 
             {/* 计价基准:average 才出天数 */}
@@ -352,7 +352,7 @@ export default function FormulaForm({
             {/* 计价比例 */}
             <div>
                 <h2 className="mb-1">{t('pricing.form.payableTitle')}</h2>
-                <p className="text-sm text-gray-500 mb-3">{t('pricing.payableBlankHint')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('pricing.payableBlankHint')}</p>
                 <table className={`${tableC.root} w-full max-w-md`}>
                     <thead>
                         <tr className={tableC.headRow}>

@@ -29,22 +29,22 @@ export default function ReleasePrepaymentPanel({
     return (
         <div className="border border-gray-300 rounded-lg p-4 mt-6">
             <h2 className="mb-1">{t('expense.release.title')}</h2>
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">
                 {t('expense.release.subtitle', { po: poCode })}
             </p>
 
             <div className="grid grid-cols-2 gap-4 mb-3 text-sm">
                 <div>
-                    <p className="text-xs text-gray-600">{t('expense.release.openOnThisInvoice')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expense.release.openOnThisInvoice')}</p>
                     <p className="text-lg">{openCcy.toFixed(2)} {currency}</p>
                 </div>
                 <div>
-                    <p className="text-xs text-gray-600">{t('expense.release.depositRemaining')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expense.release.depositRemaining')}</p>
                     <p className="text-lg">{remainingBase.toFixed(2)} {baseCurrency}</p>
                 </div>
             </div>
             {/* 【两个数不同币种,而这要说出来】否则人会以为可以直接相减。 */}
-            <p className="text-xs text-gray-600 mb-3">{t('expense.release.twoCurrenciesNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('expense.release.twoCurrenciesNote')}</p>
 
             {state.error && (
                 <p className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 mb-3">
@@ -60,11 +60,11 @@ export default function ReleasePrepaymentPanel({
             {/* 【每一个禁用都把理由摆在旁边】(CMP-2)—— 按不下去又不说为什么的
                 按钮读起来像坏了。 */}
             {!canEdit ? (
-                <p className="text-sm text-gray-600">{t('expense.release.noPermission')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('expense.release.noPermission')}</p>
             ) : nothingToRelease ? (
-                <p className="text-sm text-gray-600">{t('expense.release.noDeposit')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('expense.release.noDeposit')}</p>
             ) : nothingOpen ? (
-                <p className="text-sm text-gray-600">{t('expense.release.nothingOpen')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('expense.release.nothingOpen')}</p>
             ) : (
                 <form action={formAction} className="flex flex-wrap gap-3 items-end">
                     <div>
@@ -81,7 +81,7 @@ export default function ReleasePrepaymentPanel({
                         <input id="release_date" name="release_date" type="date" required
                             className={CONTROL_INPUT} />
                         {/* X1:不预填今天 —— 它决定期间。 */}
-                        <p className="mt-1 text-xs text-gray-600">{t('expense.release.dateHint')}</p>
+                        <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('expense.release.dateHint')}</p>
                     </div>
                     <div className="flex-1 min-w-[12rem]">
                         <label htmlFor="notes" className="block mb-1">

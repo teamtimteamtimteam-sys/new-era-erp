@@ -162,7 +162,7 @@ export default async function DeletedRecordsPage({
             intro={t('deleted.intro')}
             notices={
                 /* 【说清这一页不能做什么】—— 没有恢复,而那是一个决定,不是一个遗漏 */
-                <p className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4 max-w-3xl">
+                <p className="text-sm text-[color:var(--brand-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4 max-w-3xl">
                     {t('deleted.noRestoreNote')}
                 </p>
             }
@@ -198,7 +198,7 @@ export default async function DeletedRecordsPage({
                     {kind && <input type="hidden" name="kind" value={kind} />}
                     <input type="date" name="from" defaultValue={from}
                            className={CONTROL_INPUT} />
-                    <span className="text-gray-500">–</span>
+                    <span className="text-[color:var(--brand-muted-text)]">–</span>
                     <input type="date" name="to" defaultValue={to}
                            className={CONTROL_INPUT} />
                     <Button variant="secondary" type="submit">

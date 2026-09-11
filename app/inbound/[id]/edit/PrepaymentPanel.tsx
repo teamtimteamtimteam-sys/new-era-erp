@@ -76,7 +76,7 @@ canEdit: boolean
         return (
             <section className="mt-8 border border-gray-300 rounded p-4">
                 <h2 className="mb-1">{t('purchasing.applyPrepayment')}</h2>
-                <p className="text-sm text-gray-600">{t('purchasing.prepaymentRestricted')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('purchasing.prepaymentRestricted')}</p>
             </section>
         )
     }
@@ -86,7 +86,7 @@ canEdit: boolean
     return (
         <section className="mt-8 border border-gray-300 rounded p-4">
             <h2 className="mb-1">{t('purchasing.applyPrepayment')}</h2>
-            <p className="text-xs text-gray-500 mb-3">{t('purchasing.applyPrepaymentNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('purchasing.applyPrepaymentNote')}</p>
 
             {state.error && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-3 text-sm">
@@ -99,7 +99,7 @@ canEdit: boolean
                 <form action={formAction} className="space-y-3">
                     <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
                         <div>
-                            <span className="text-gray-600 mr-1">{t('purchasing.orderDetailTitle')}:</span>
+                            <span className="text-[color:var(--brand-muted-text)] mr-1">{t('purchasing.orderDetailTitle')}:</span>
                             <Link
                                 href={`/purchasing/orders/${applicable.purchase_order_id}`}
                                 className="hover:underline font-mono app-link app-link-inline"
@@ -108,15 +108,15 @@ canEdit: boolean
                             </Link>
                         </div>
                         <div>
-                            <span className="text-gray-600 mr-1">{t('purchasing.remainingLabel')}:</span>
+                            <span className="text-[color:var(--brand-muted-text)] mr-1">{t('purchasing.remainingLabel')}:</span>
                             <span className="font-mono">{formatAmount(applicable.po_unapplied_prepayment_base, baseCurrency)}</span>
                         </div>
                         <div>
-                            <span className="text-gray-600 mr-1">{t('finance.colOpen')}:</span>
+                            <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.colOpen')}:</span>
                             <span className="font-mono">{formatAmount(applicable.batch_ap_open_base, baseCurrency)}</span>
                         </div>
                         <div>
-                            <span className="text-gray-600 mr-1">{t('purchasing.applicableAmount')}:</span>
+                            <span className="text-[color:var(--brand-muted-text)] mr-1">{t('purchasing.applicableAmount')}:</span>
                             <span className="font-mono font-medium">{formatAmount(applicable.applicable_base, baseCurrency)}</span>
                         </div>
                     </div>

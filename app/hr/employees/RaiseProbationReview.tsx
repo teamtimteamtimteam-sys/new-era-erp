@@ -71,7 +71,7 @@ export default function RaiseProbationReview({
             >
                 {t('reviews.raiseProbation')}
             </Button>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">
                 {t('reviews.raiseProbationHint', { date: probationEndDate })}
             </p>
         </div>

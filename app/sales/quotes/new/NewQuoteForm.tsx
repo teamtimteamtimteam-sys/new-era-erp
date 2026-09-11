@@ -65,7 +65,7 @@ export default function NewQuoteForm({
                     {state.fieldErrors?.customer_id && (
                         <p className="text-xs text-red-600 mt-1">{state.fieldErrors.customer_id}</p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">{t('quotes.form.customerWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('quotes.form.customerWhy')}</p>
                 </div>
 
                 <div className="flex flex-wrap gap-4">
@@ -92,7 +92,7 @@ export default function NewQuoteForm({
                         )}
                     </div>
                 </div>
-                <p className="text-xs text-gray-500">{t('quotes.form.datesWhy')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)]">{t('quotes.form.datesWhy')}</p>
 
                 <div className="flex flex-wrap gap-4">
                     <div>
@@ -119,10 +119,10 @@ export default function NewQuoteForm({
                         )}
                     </div>
                 </div>
-                <p className="text-xs text-gray-500">{t('sales.form.fxRateWhy')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)]">{t('sales.form.fxRateWhy')}</p>
 
                 <h2 className="pt-2">{t('sales.form.lines')}</h2>
-                <p className="text-xs text-gray-500">{t('quotes.form.linesWhy')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)]">{t('quotes.form.linesWhy')}</p>
                 {state.fieldErrors?.lines && (
                     <p className="text-xs text-red-600">{state.fieldErrors.lines}</p>
                 )}
@@ -168,10 +168,10 @@ export default function NewQuoteForm({
                     <label className="block mb-1">{t('quotes.form.terms')}</label>
                     <textarea name="terms_text"
                               className={`${CONTROL_TEXTAREA} w-full`} />
-                    <p className="text-xs text-gray-500 mt-1">{t('quotes.form.termsWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('quotes.form.termsWhy')}</p>
                 </div>
 
-                <p className="text-xs text-gray-600">{t('quotes.form.savesAsDraft')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)]">{t('quotes.form.savesAsDraft')}</p>
                 <div className="flex gap-3 pt-2">
                     <Button type="submit" disabled={isPending || blocked}>
                         {isPending ? t('common.saving') : t('quotes.form.save')}

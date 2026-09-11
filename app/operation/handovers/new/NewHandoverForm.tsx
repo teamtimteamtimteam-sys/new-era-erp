@@ -60,8 +60,8 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
             <h1 className="">{t('processing.handover.newTitle')}</h1>
 
             {/* ★ 这一屏答不出什么,自己说出来 ★ */}
-            <p className="text-xs text-gray-500">{t('processing.handover.cannotAnswerYet')}</p>
-            <p className="text-xs text-gray-500">{t('processing.handover.incidentsElsewhere')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.handover.cannotAnswerYet')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.handover.incidentsElsewhere')}</p>
 
             {people.length === 0 && (
                 <p className="text-sm bg-amber-50 border border-amber-200 text-amber-900 px-3 py-2 rounded">
@@ -128,9 +128,9 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
             {/* R5:设备状态是【引用】,不是复述 —— 勾的是 equipment_downtime 的行。 */}
             <div>
                 <h2 className="mb-1">{t('processing.handover.equipmentTitle')}</h2>
-                <p className="text-xs text-gray-500 mb-2">{t('processing.handover.equipmentReference')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('processing.handover.equipmentReference')}</p>
                 {downtime.length === 0
-                    ? <p className="text-sm text-gray-500">{t('processing.handover.noDowntime')}</p>
+                    ? <p className="text-sm text-[color:var(--brand-muted-text)]">{t('processing.handover.noDowntime')}</p>
                     : downtime.map((d) => (
                         <label key={d.id} className="flex items-center gap-2 mb-1">
                             <input type="checkbox" className={CONTROL_CHECKBOX} checked={refs.includes(d.id)}

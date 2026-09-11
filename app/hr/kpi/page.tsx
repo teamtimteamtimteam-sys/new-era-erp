@@ -97,16 +97,16 @@ export default async function KpiPage() {
 
             {/* ── 组织记分卡 ─────────────────────────────────────────────── */}
             <h2 className="mb-1">{t('kpi.orgTitle')}</h2>
-            <p className="text-xs text-gray-600 mb-3 max-w-4xl">
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3 max-w-4xl">
                 {t('kpi.orgWeightTotal', { total: String(orgTotal) })}
             </p>
             <div className="space-y-4 mb-8">
                 {orgs.map((o) => (
                     <div key={o.code} className="border border-gray-300 rounded p-4">
                         <div className="flex flex-wrap items-baseline gap-2 mb-2">
-                            <span className="font-mono text-sm text-gray-500">{o.code}</span>
+                            <span className="font-mono text-sm text-[color:var(--brand-muted-text)]">{o.code}</span>
                             <span className="font-semibold">{o.title}</span>
-                            <span className="text-sm text-gray-700">— {o.weight_pct}%</span>
+                            <span className="text-sm text-[color:var(--brand-text)]">— {o.weight_pct}%</span>
                             {/* ★ 4.2:暂定的目标要看得出来,而且要说出【暂定到什么为止】★ */}
                             {o.is_provisional && (
                                 <span className="text-xs bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded">
@@ -114,22 +114,22 @@ export default async function KpiPage() {
                                 </span>
                             )}
                         </div>
-                        <p className="text-sm text-gray-800 mb-2">{o.definition}</p>
+                        <p className="text-sm text-[color:var(--brand-text)] mb-2">{o.definition}</p>
                         <dl className="grid gap-2 sm:grid-cols-2 text-sm">
                             <div>
-                                <dt className="text-xs text-gray-500">{t('kpi.month3')}</dt>
+                                <dt className="text-xs text-[color:var(--brand-muted-text)]">{t('kpi.month3')}</dt>
                                 <dd>{o.month3_target}</dd>
                             </div>
                             <div>
-                                <dt className="text-xs text-gray-500">{t('kpi.month6')}</dt>
+                                <dt className="text-xs text-[color:var(--brand-muted-text)]">{t('kpi.month6')}</dt>
                                 <dd>{o.month6_target}</dd>
                             </div>
                             <div>
-                                <dt className="text-xs text-gray-500">{t('kpi.evidence')}</dt>
+                                <dt className="text-xs text-[color:var(--brand-muted-text)]">{t('kpi.evidence')}</dt>
                                 <dd>{o.measurement_evidence}</dd>
                             </div>
                             <div>
-                                <dt className="text-xs text-gray-500">{t('kpi.criticality')}</dt>
+                                <dt className="text-xs text-[color:var(--brand-muted-text)]">{t('kpi.criticality')}</dt>
                                 <dd>{o.criticality_note}</dd>
                             </div>
                         </dl>
@@ -155,7 +155,7 @@ export default async function KpiPage() {
 
             {/* ── 谁到了、谁没到 ★具名的缺席,不是一片零★ ──────────────────── */}
             <h2 className="mb-1">{t('kpi.staffingTitle')}</h2>
-            <p className="text-sm text-gray-800 mb-2 max-w-4xl">
+            <p className="text-sm text-[color:var(--brand-text)] mb-2 max-w-4xl">
                 {t('kpi.staffingCount', { filled: String(filledPositions.size), total: String(positions.length) })}
             </p>
             {vacant.length > 0 && (
@@ -167,7 +167,7 @@ export default async function KpiPage() {
                             <li key={p.code}>
                                 <span className="font-mono text-xs">{p.code}</span> · {p.title}
                                 {p.source_incumbent_name && (
-                                    <span className="text-gray-600"> — {t('kpi.staffingNamedInSource', { name: p.source_incumbent_name })}</span>
+                                    <span className="text-[color:var(--brand-muted-text)]"> — {t('kpi.staffingNamedInSource', { name: p.source_incumbent_name })}</span>
                                 )}
                             </li>
                         ))}

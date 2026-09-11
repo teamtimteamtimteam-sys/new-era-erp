@@ -213,7 +213,7 @@ export default async function ReceivableDocPage({
                                 ) : (
                                     <span className="font-mono">—</span>
                                 )}
-                                <span className="text-gray-500 ml-2">{materialName}</span>
+                                <span className="text-[color:var(--brand-muted-text)] ml-2">{materialName}</span>
                             </>
                         ),
                     },
@@ -227,7 +227,7 @@ export default async function ReceivableDocPage({
                                     {sale.quantity} × {sale.unit_price}
                                 </span>
                                 {sale.currency !== baseCurrency && (
-                                    <span className="text-gray-500 ml-1 font-mono">
+                                    <span className="text-[color:var(--brand-muted-text)] ml-1 font-mono">
                                         {sale.currency} @ {sale.fx_rate}
                                     </span>
                                 )}
@@ -258,8 +258,8 @@ export default async function ReceivableDocPage({
             )}
 
             {sale.notes && (
-                <p className="text-sm text-gray-600 mb-4">
-                    <span className="text-gray-500 mr-1">{t('finance.memo')}:</span>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.memo')}:</span>
                     {sale.notes}
                 </p>
             )}
@@ -267,7 +267,7 @@ export default async function ReceivableDocPage({
             {/* 关联分录:收入分录(source_type='sale')+ COGS(cogs_entry_id)*/}
             {journals.length > 0 && (
                 <p className="text-sm mb-4">
-                    <span className="text-gray-600 mr-1">{t('finance.relatedJournals')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.relatedJournals')}:</span>
                     {journals.map((j, i) => (
                         <span key={j.id}>
                             {i > 0 && <span className="mx-1 text-gray-300">|</span>}
@@ -284,7 +284,7 @@ export default async function ReceivableDocPage({
 
             {/* 所属发票 —— 未开票时这里是第二个出口(去开一张) */}
             <p className="text-sm mb-4">
-                <span className="text-gray-600 mr-1">{t('invoice.detailTitle')}:</span>
+                <span className="text-[color:var(--brand-muted-text)] mr-1">{t('invoice.detailTitle')}:</span>
                 {invoice ? (
                     <Link
                         href={`/finance/invoices/${invoice.id}`}
@@ -294,7 +294,7 @@ export default async function ReceivableDocPage({
                     </Link>
                 ) : (
                     <>
-                        <span className="text-gray-500">{t('invoice.notInvoiced')}</span>
+                        <span className="text-[color:var(--brand-muted-text)]">{t('invoice.notInvoiced')}</span>
                         <Button asChild variant="link" size="inline" className="ml-2">
                             <Link href="/finance/invoices/new">
                                 {t('invoice.new')}

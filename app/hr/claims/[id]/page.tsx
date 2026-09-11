@@ -73,7 +73,7 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
                     </div>
                     <div className="flex flex-wrap items-baseline gap-3 mb-4">
                         <h2 className="">{claim.code}</h2>
-                        <span className="text-sm text-gray-500">{claim.employee_code} — {claim.legal_name}</span>
+                        <span className="text-sm text-[color:var(--brand-muted-text)]">{claim.employee_code} — {claim.legal_name}</span>
                     </div>
                 </>
             }
@@ -107,7 +107,7 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
                                 value: (
                                     <>
                                         {t('claims.amountWithCcy', { amount: String(bal.pro_rated_limit_sgd), ccy: claimCcy })}
-                                        <span className="block text-xs text-gray-500">
+                                        <span className="block text-xs text-[color:var(--brand-muted-text)]">
                                             {t('claims.monthsOfService', { 0: String(bal.months_of_service) })}
                                         </span>
                                     </>
@@ -135,7 +135,7 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
                     <Link href="/finance/expenses" className="hover:underline font-mono text-sm app-link app-link-inline">
                         {claim.expense_code}
                     </Link>
-                    <p className="mt-1 text-xs text-gray-500">{t('claims.expenseHint')}</p>
+                    <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('claims.expenseHint')}</p>
                 </section>
             )}
 

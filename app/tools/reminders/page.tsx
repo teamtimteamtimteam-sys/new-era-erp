@@ -307,7 +307,7 @@ export default async function RemindersPage() {
                                             )
                                         })}
                                         {rest > 0 && (
-                                            <li className="text-xs pt-1">
+                                            <li className="text-xs pt-1 text-[color:var(--brand-muted-text)]">
                                                 <Link
                                                     href={reminder.href}
                                                     className="hover:underline"

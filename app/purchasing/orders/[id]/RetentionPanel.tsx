@@ -76,7 +76,7 @@ export default function RetentionPanel({
             {rows.length === 0 ? (
                 /* ★【明说,不留白】★ 这一句就是"这张单没有质保金"这个【事实】。
                    留一片空白,读起来是"还没填";印一个 0%,更糟 —— 那是另一件事。 */
-                <p className="text-sm text-gray-700 border border-gray-200 rounded px-3 py-2 bg-gray-50">
+                <p className="text-sm text-[color:var(--brand-text)] border border-gray-200 rounded px-3 py-2 bg-gray-50">
                     {t('purchasing.retention.none')}
                 </p>
             ) : (
@@ -123,7 +123,7 @@ function RetentionCard({
                 <span className="font-medium">
                     #{r.line_no} {r.asset_code ?? ''} {r.asset_description ?? ''}
                 </span>
-                <span className="px-2 py-0.5 rounded border text-xs">
+                <span className="px-2 py-0.5 rounded border text-xs text-[color:var(--brand-muted-text)]">
                     {t('purchasing.retention.state.' + r.retention_state)}
                 </span>
                 <span>
@@ -132,7 +132,7 @@ function RetentionCard({
                 <span>{t('purchasing.retention.monthsLabel', { 0: r.retention_months })}</span>
             </div>
 
-            <div className="mt-1 text-xs">
+            <div className="mt-1 text-xs text-[color:var(--brand-muted-text)]">
                 {/* ★【没有验收日 = 时钟还没起算】★ 这不是缺数据,也不是零 ——
                     今天线上两台机器都是这个状态(厂子没开工)。 */}
                 {r.acceptance_date === null ? (
@@ -148,7 +148,7 @@ function RetentionCard({
             </div>
 
             {r.retention_state === 'released' && (
-                <div className="mt-1 text-xs flex flex-wrap items-center gap-1">
+                <div className="mt-1 text-xs flex flex-wrap items-center gap-1 text-[color:var(--brand-muted-text)]">
                     {/* 【不要把一个 React 节点塞进 t() 的参数里】那会变成 "[object Object]"。
                         受限渲染是一个节点,所以这里把句子拆开排,而不是拼字符串。 */}
                     <span>{t('purchasing.retention.releaseAmount')}:</span>
@@ -173,7 +173,7 @@ function RetentionCard({
             {r.retention_state === 'awaiting_confirmation' && (
                 <PermissionGate code="module.purchasing.edit" allowed={canEdit} className="mt-2 flex w-full items-stretch">
                 <div className="mt-2 border-t border-amber-200 pt-2">
-                    <p className="text-xs mb-2">{t('purchasing.retention.confirmPrompt')}</p>
+                    <p className="text-xs mb-2 text-[color:var(--brand-muted-text)]">{t('purchasing.retention.confirmPrompt')}</p>
                     <div className="flex flex-wrap items-center gap-2">
                         <label className="">{t('purchasing.retention.releaseAmount')}</label>
                         <DecimalInput value={released} onChange={setReleased}

@@ -110,7 +110,7 @@ export default function NodeTree({
                     <span className="rounded bg-amber-100 px-1 text-xs text-amber-800">{labels.overdue}</span>
                 ) : null}
 
-                <span className="ml-auto flex gap-2 text-xs">
+                <span className="ml-auto flex gap-2 text-xs text-[color:var(--brand-muted-text)]">
                     {/* ★ BTN-2:名字补上了,但【没有】转成 <Button> —— 本文件另外 8 个
                         手写钮是 BTN-3 的,只转这两个只会让这一页更花。Tim 的规矩说的是
                         「不许把没有名字的图标钮转过去」,没有说「必须让它继续没有名字」。 */}
@@ -194,14 +194,14 @@ export default function NodeTree({
             <div className="mb-3 flex items-center gap-3">
                 <h2 className="">{labels.heading}</h2>
                 {/* 【零步骤时这里一个字都没有】 */}
-                {total > 0 ? <span className="text-sm text-gray-600">{doneCount}/{total}</span> : null}
+                {total > 0 ? <span className="text-sm text-[color:var(--brand-muted-text)]">{doneCount}/{total}</span> : null}
             </div>
 
             {error ? (
                 <div className="mb-3 rounded border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             ) : null}
 
-            {total === 0 ? <p className="text-sm text-gray-500">{labels.empty}</p> : <ul>{tops.map((n) => row(n, false))}</ul>}
+            {total === 0 ? <p className="text-sm text-[color:var(--brand-muted-text)]">{labels.empty}</p> : <ul>{tops.map((n) => row(n, false))}</ul>}
 
             {addingUnder === null ? (
                 addForm(null)

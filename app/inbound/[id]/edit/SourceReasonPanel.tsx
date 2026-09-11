@@ -94,11 +94,11 @@ export default function SourceReasonPanel({
                             : t('inbound.source.stateUnexplained')}
                 </p>
                 {reasonNote && !formOpen && (
-                    <p className="text-xs text-gray-600 mb-2">{t('inbound.source.noteField')}: {reasonNote}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('inbound.source.noteField')}: {reasonNote}</p>
                 )}
                 {/* R4 的下半句:未说明的留着、看得出来,补答案的门在这里 */}
                 {state === 'unexplained' && (
-                    <p className="text-xs text-gray-600 mb-2">{t('inbound.source.whyUnexplained')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('inbound.source.whyUnexplained')}</p>
                 )}
 
                 {formOpen && (

@@ -102,17 +102,17 @@ export default function MyLeavePanel({
             {balance && (
                 <div className="rounded border border-gray-200 p-4 mb-3">
                     <div className="grid gap-4 sm:grid-cols-4 mb-3">
-                        <div><div className="text-xs text-gray-500">{t('leave.granted')}</div>
+                        <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.granted')}</div>
                             <div className="text-sm font-mono">{balance.granted}</div></div>
-                        <div><div className="text-xs text-gray-500">{t('leave.taken')}</div>
+                        <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.taken')}</div>
                             <div className="text-sm font-mono">{balance.consumed}</div></div>
-                        <div><div className="text-xs text-gray-500">{t('leave.expired')}</div>
+                        <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.expired')}</div>
                             <div className="text-sm font-mono">{balance.expired}</div></div>
-                        <div><div className="text-xs text-gray-500">{t('leave.available')}</div>
+                        <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.available')}</div>
                             <div className="text-lg font-mono font-medium">{balance.available}</div></div>
                     </div>
                     {/* 【"我的余额为什么是 19.5"就靠这张表回答】 */}
-                    <p className="text-xs text-gray-500 mb-2">{t('me.balanceExplainer')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('me.balanceExplainer')}</p>
                     <DataTable
                         rows={balance.breakdown}
                         columns={breakdownColumns}

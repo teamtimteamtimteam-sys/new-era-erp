@@ -218,7 +218,7 @@ canEdit: boolean
                         className="w-24"
                     />
                     {dueDate && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                             {t('invoice.form.dueDatePreview', { date: dueDate })}
                         </p>
                     )}
@@ -247,7 +247,7 @@ canEdit: boolean
                         </select>
                         {/* 【说出这个码是【从哪儿来的】,不让它看起来像凭空出现的】 */}
                         {!taxCodeTouched && customer?.default_tax_code && (
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                                 {t('invoice.form.taxCodeFromCustomer', { code: customer.default_tax_code })}
                             </p>
                         )}
@@ -267,9 +267,9 @@ canEdit: boolean
             <div>
                 <h2 className="mb-2">{t('invoice.form.sales')}</h2>
                 {!customerId ? (
-                    <p className="text-sm text-gray-500">{t('invoice.form.selectCustomer')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('invoice.form.selectCustomer')}</p>
                 ) : visible.length === 0 ? (
-                    <p className="text-sm text-gray-500">{t('invoice.form.noSales')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('invoice.form.noSales')}</p>
                 ) : (
                     /* ════════════════════════════════════════════════════════════════
                         ★ TABLE-PHONE-4:六列 → 手机档留四列(勾选 · 品名 · 日期 · 金额)。
@@ -375,10 +375,10 @@ canEdit: boolean
             {/* 实时合计 */}
             <div className="bg-gray-50 rounded p-4 max-w-sm ml-auto text-sm space-y-1">
                 <div className="flex justify-between">
-                    <span className="text-gray-600">{t('invoice.form.selectedCount', { n: selected.length })}</span>
+                    <span className="text-[color:var(--brand-muted-text)]">{t('invoice.form.selectedCount', { n: selected.length })}</span>
                 </div>
                 <div className="flex justify-between">
-                    <span className="text-gray-600">{t('invoice.subtotal')}</span>
+                    <span className="text-[color:var(--brand-muted-text)]">{t('invoice.subtotal')}</span>
                     <span className="font-mono">{formatAmount(subtotal, currencies[0] ?? null)}</span>
                 </div>
                 {/* 税行只在已做 GST 登记时出现 */}
@@ -386,7 +386,7 @@ canEdit: boolean
                     <div className="flex justify-between">
                         {/* 【印的是【解析出来的】税率,连它是哪个码一起说】—— 一个
                             光秃秃的百分数说不出 0% 是零税率、豁免还是不在范围内。 */}
-                        <span className="text-gray-600">
+                        <span className="text-[color:var(--brand-muted-text)]">
                             {effTaxCode && !rateMissing
                                 ? t('invoice.taxWithCode', { code: effTaxCode, rate: taxRate })
                                 : t('invoice.taxUnresolved')}

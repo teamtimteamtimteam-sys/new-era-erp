@@ -199,7 +199,7 @@ export default async function InvoicesPage({
                 <InvoicesToolbar />
             </Suspense>
 
-            <p className="text-sm text-gray-600 mb-4">{t('finance.recordCount', { count: total })}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('finance.recordCount', { count: total })}</p>
 
             <InvoicesTable rows={tableRows} empty={t('invoice.empty')} />
 
@@ -215,7 +215,7 @@ export default async function InvoicesPage({
                         {t('finance.pagination.prev')}
                     </Button>
                 )}
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('finance.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
                 {page < totalPages ? (

@@ -36,8 +36,8 @@ export default function DeepDischargeJudgementControl({
     const label = options.find((o) => o.code === value)?.label
 
     return (
-        <span className="block text-xs mt-0.5">
-            <span className="text-gray-500">{t('purchasing.deepDischarge.label')}: </span>
+        <span className="block text-xs mt-0.5 text-[color:var(--brand-muted-text)]">
+            <span className="text-[color:var(--brand-muted-text)]">{t('purchasing.deepDischarge.label')}: </span>
             {canEdit ? (
                 <select
                     value={value}
@@ -64,7 +64,7 @@ export default function DeepDischargeJudgementControl({
                     {label ?? t('purchasing.deepDischarge.unset')}
                 </span>
             )}
-            {error && <span className="block text-[11px] text-red-700">{error}</span>}
+            {error && <span className="block text-xs text-red-700">{error}</span>}
         </span>
     )
 }

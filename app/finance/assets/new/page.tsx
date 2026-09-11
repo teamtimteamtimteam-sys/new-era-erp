@@ -17,7 +17,7 @@ export default async function NewAssetPage() {
     return (
         <div className="p-6">
             <h1 className="mb-1">{t('assets.new.title')}</h1>
-            <p className="text-sm text-gray-600 mb-6">{t('assets.new.subtitle')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">{t('assets.new.subtitle')}</p>
             <NewAssetForm canEdit={canEditGate} />
         </div>
     )

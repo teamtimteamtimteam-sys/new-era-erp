@@ -120,7 +120,7 @@ canEdit: boolean
             ) : (
                 <>
                     {/* 关的那一侧:先说清楚它【可能关不掉】,以及为什么 */}
-                    <p className="text-sm text-gray-600 mb-3">{t('finance.gstSwitch.turningOffHint')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('finance.gstSwitch.turningOffHint')}</p>
                     <PermissionGate code="module.finance.edit" allowed={canEdit}>
                     <ConfirmButton
                         subject={registrationNo ?? regNo}
@@ -140,7 +140,7 @@ canEdit: boolean
 
             {/* 【那个死掉的标量列】—— 一个看起来像设置、实际什么都不做的东西,
                 正是下一个人"把税率设成 9%"然后什么都没发生的地方 */}
-            <p className="text-xs text-gray-500 mt-4">{t('finance.gstSwitch.rateLivesElsewhere')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-4">{t('finance.gstSwitch.rateLivesElsewhere')}</p>
         </section>
     )
 }

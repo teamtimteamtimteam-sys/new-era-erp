@@ -29,7 +29,7 @@ export default function AllowedClassesPicker({
     return (
         <div>
             <label className="block mb-1">{t('locations.form.allowedClasses')}</label>
-            <p className="text-xs text-gray-500 mb-2">{t('locations.form.allowedClassesHint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('locations.form.allowedClassesHint')}</p>
 
             <div className="space-y-2">
                 {classes.map((c) => (

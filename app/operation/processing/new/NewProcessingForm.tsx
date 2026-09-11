@@ -288,7 +288,7 @@ export default function NewProcessingForm({
                         <option value="metal_value">{t('processing.allocation.basis.metal_value')}</option>
                         <option value="weight">{t('processing.allocation.basis.weight')}</option>
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">{t('processing.form.basisHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('processing.form.basisHint')}</p>
                 </div>
 
                 {/* WO-1c:照哪一张工单做的 —— 【可选】。
@@ -313,7 +313,7 @@ export default function NewProcessingForm({
                             </option>
                         ))}
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">{t('processing.form.workOrderHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('processing.form.workOrderHint')}</p>
                 </div>
 
                 {/* 加工日期 —— 必填(决定分录期间)。预填今天是【便利】不是默认值:
@@ -352,7 +352,7 @@ export default function NewProcessingForm({
                     </select>
                     {/* 【收什么形态,照字典画出来】操作员不必去猜这台机器吃不吃这批料。 */}
                     {operation && (
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                             {t('processing.form.operationAccepts', {
                                 forms: operation.input_forms
                                     .map((f) => (locale === 'zh' ? f.name_zh : f.name_en))
@@ -548,15 +548,15 @@ export default function NewProcessingForm({
                 <div className="bg-gray-50 rounded p-4 space-y-2">
                     <div className="flex items-center gap-6 flex-wrap">
                         <div>
-                            <span className="text-sm text-gray-600 mr-1">{t('processing.form.totalInputLabel')}</span>
+                            <span className="text-sm text-[color:var(--brand-muted-text)] mr-1">{t('processing.form.totalInputLabel')}</span>
                             <span className="font-medium">{totalInput}</span>
                         </div>
                         <div>
-                            <span className="text-sm text-gray-600 mr-1">{t('processing.form.totalOutputLabel')}</span>
+                            <span className="text-sm text-[color:var(--brand-muted-text)] mr-1">{t('processing.form.totalOutputLabel')}</span>
                             <span className="font-medium">{totalOutput}</span>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-sm text-gray-600">{t('processing.form.lossLabel')}</span>
+                            <span className="text-sm text-[color:var(--brand-muted-text)]">{t('processing.form.lossLabel')}</span>
                             {/* 自动损耗可能为负(产出大于投入),显示的就是它 ——
                                 故允许负号,否则用户没法编辑一个负值;
                                 负数的手工覆盖仍由提交前的 lossInvalidClient 拦下 */}

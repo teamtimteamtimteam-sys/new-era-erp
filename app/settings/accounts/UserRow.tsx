@@ -105,7 +105,7 @@ export default function UserRow({
                             </span>
                         )}
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-[color:var(--brand-muted-text)]">
                         {row.employee_code ? (
                             <>
                                 {row.employee_code} — {row.employee_name}
@@ -127,7 +127,7 @@ export default function UserRow({
                         row.roles.map((r) => (
                             <span
                                 key={r.role_id}
-                                className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
+                                className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-[color:var(--brand-text)]"
                             >
                                 {locale === 'zh' ? r.name_zh : r.name_en}
                             </span>
@@ -135,7 +135,7 @@ export default function UserRow({
                     )}
                 </div>
 
-                <div className="text-xs text-gray-500 whitespace-nowrap text-right tabular-nums">
+                <div className="text-xs text-[color:var(--brand-muted-text)] whitespace-nowrap text-right tabular-nums">
                     <div>
                         {t('permissions.lastSignIn')}: {lastSignInDisplay}
                     </div>
@@ -212,7 +212,7 @@ export default function UserRow({
                                     </option>
                                 ))}
                             </select>
-                            <p className="mt-1 text-xs text-gray-500">
+                            <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">
                                 {t('permissions.linkEmployeeHint')}
                             </p>
 

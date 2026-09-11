@@ -599,7 +599,7 @@ export default async function EditInboundPage({
             </div>
 
             <h1 className="sm:text-2xl mb-2">{t('inbound.editTitle')}</h1>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
                 <span className="font-mono">{batch.code}</span>
                 <span className="mx-2">·</span>
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
@@ -637,7 +637,7 @@ export default async function EditInboundPage({
                             {poHeader.po_code}
                         </Link>
                         {poHeader.ordered_qty !== null && (
-                            <span className="text-gray-500">
+                            <span className="text-[color:var(--brand-muted-text)]">
                                 {' '}({t('inbound.poLineOrdered', { qty: poHeader.ordered_qty, unit: poHeader.unit })})
                             </span>
                         )}
@@ -665,13 +665,13 @@ export default async function EditInboundPage({
             <div className="mb-6">
                 <h2 className="mb-2">{t('grn.batch.heading')}</h2>
                 {!batch.purchase_order_line_id ? (
-                    <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
+                    <p className="text-sm text-[color:var(--brand-muted-text)] border border-gray-300 rounded px-3 py-2">
                         {t('grn.batch.noPoLine')}
                     </p>
                 ) : !canSeeOrderedQty ? (
                     /* 【受限,不是"没有差异"】订量本来就只在采购那道门后面。
                        说"受限"而不是留白 —— 留白会被读成"这批货没问题"。 */
-                    <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
+                    <p className="text-sm text-[color:var(--brand-muted-text)] border border-gray-300 rounded px-3 py-2">
                         {t('grn.batch.restricted')}
                     </p>
                 ) : !grnRow ? (
@@ -710,7 +710,7 @@ export default async function EditInboundPage({
                    `openStocktake &&` —— 于是「没有盘点在进行」与「你看不到盘点」
                    在这一页上长得一模一样,而它们的下一步完全不同。
                    这一格不给控件(她本来也没有 stocktakes.edit),只给那句话。 */
-                <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2 mb-6">
+                <p className="text-sm text-[color:var(--brand-muted-text)] border border-gray-300 rounded px-3 py-2 mb-6">
                     {t('stocktakes.openStateRestricted')}
                 </p>
             ) : null}
@@ -770,7 +770,7 @@ export default async function EditInboundPage({
                            采购行的读者会得到 resolvedFormulaId = null —— 与"这批货
                            真的没有计价公式"一模一样,于是上面那句 termsNotCommitted
                            【不出现】,而它正是"按下去会被拒"的预告。说出这一句。 */
-                        <p className="mb-4 text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
+                        <p className="mb-4 text-sm text-[color:var(--brand-muted-text)] border border-gray-300 rounded px-3 py-2">
                             {t('assay.termsFromPoLineRestricted')}
                         </p>
                     ) : null
@@ -800,7 +800,7 @@ export default async function EditInboundPage({
                 <div className="mb-8">
                     <h2 className="mb-2">{t('inbound.condition.title')}</h2>
                     <div className="border border-gray-300 rounded p-3 max-w-2xl bg-gray-50">
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-[color:var(--brand-muted-text)]">
                             {t('inbound.condition.notApplicable', { kind: conditionKindLabel })}
                         </p>
                     </div>

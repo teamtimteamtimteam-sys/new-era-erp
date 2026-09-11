@@ -94,7 +94,7 @@ export default async function EditMaterialPage({
             </div>
 
             <h1 className="mb-2">{t('materials.editTitle')}</h1>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
                 <span className="font-mono">{material.code}</span>
                 <span className="mx-2">·</span>
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">

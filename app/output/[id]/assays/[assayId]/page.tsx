@@ -155,9 +155,9 @@ export default async function OutputAssayDetailPage({
 
             <h1 className="mb-2">
                 {t('assay.detailTitle')}
-                <span className="ml-3 font-mono text-base text-gray-500">{assay.code}</span>
+                <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{assay.code}</span>
             </h1>
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                 <Link href={`/output/${id}/edit`} className="hover:underline font-mono app-link app-link-inline">
                     {batch.code}
                 </Link>
@@ -177,46 +177,46 @@ export default async function OutputAssayDetailPage({
             {/* 抬头 */}
             <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                 <div>
-                    <span className="text-gray-600 mr-1">{t('assay.colDate')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.colDate')}:</span>
                     <span>{assay.assay_date}</span>
                 </div>
                 {/* PROC-6:基准与出具方【总是显示】—— 它们是解读这些数字的前提,
                     不是可有可无的补充。历史化验单没有基准,那就照直说「没有记过」,
                     而不是让那一栏消失(消失读起来像"这件事不重要")。 */}
                 <div>
-                    <span className="text-gray-600 mr-1">{t('assay.weightBasis')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.weightBasis')}:</span>
                     <span>{assay.weight_basis
                         ? t('assay.basis_' + assay.weight_basis)
                         : <span className="text-amber-700">{t('assay.basisNotRecorded')}</span>}</span>
                 </div>
                 <div>
-                    <span className="text-gray-600 mr-1">{t('assay.resultParty')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.resultParty')}:</span>
                     <span>{t('assay.party_' + assay.result_party)}</span>
                 </div>
                 {/* 【水分:没测过就写「没测过」,绝不写 0】
                     一个乘数的单位元是看不见的 —— 把没测过显示成 0,
                     读的人会拿它去推干重,而那个数看起来完全合理。 */}
                 <div>
-                    <span className="text-gray-600 mr-1">{t('assay.moisture')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.moisture')}:</span>
                     <span>{assay.moisture_pct === null || assay.moisture_pct === undefined
                         ? <span className="text-amber-700">{t('assay.moistureNotMeasured')}</span>
                         : <span className="font-mono">{assay.moisture_pct}%</span>}</span>
                 </div>
                 {assay.lab_name && (
                     <div>
-                        <span className="text-gray-600 mr-1">{t('assay.colLab')}:</span>
+                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.colLab')}:</span>
                         <span>{assay.lab_name}</span>
                     </div>
                 )}
                 {assay.certificate_ref && (
                     <div>
-                        <span className="text-gray-600 mr-1">{t('assay.colCertificate')}:</span>
+                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.colCertificate')}:</span>
                         <span className="font-mono">{assay.certificate_ref}</span>
                     </div>
                 )}
                 {assay.sample_ref && (
                     <div>
-                        <span className="text-gray-600 mr-1">{t('assay.colSample')}:</span>
+                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.colSample')}:</span>
                         <span className="font-mono">{assay.sample_ref}</span>
                     </div>
                 )}
@@ -249,8 +249,8 @@ export default async function OutputAssayDetailPage({
             </div>
 
             {assay.notes && (
-                <p className="text-sm text-gray-600 mb-4 whitespace-pre-line">
-                    <span className="text-gray-500 mr-1">{t('assay.notes')}:</span>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4 whitespace-pre-line">
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.notes')}:</span>
                     {assay.notes}
                 </p>
             )}
@@ -276,7 +276,7 @@ export default async function OutputAssayDetailPage({
                     )}
                     {preview && (
                         <>
-                            <p className="text-sm text-gray-600 mb-3">{t('assay.output.replacesAll')}</p>
+                            <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('assay.output.replacesAll')}</p>
                             {/* 对照表 —— TABLE-CONVERT-4:换成 DataTable。
                                 四列、列头、每一格的字与红片全部原样;手机档仍然是横向滚动。 */}
                             <ApplyPreviewTable
@@ -313,7 +313,7 @@ export default async function OutputAssayDetailPage({
                                     )}
                                 </div>
                             ) : preview.producing_run_code ? (
-                                <p className="text-sm text-gray-600 mb-4">
+                                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                                     {t('assay.output.noStaleEffect', { run: preview.producing_run_code })}
                                 </p>
                             ) : null}

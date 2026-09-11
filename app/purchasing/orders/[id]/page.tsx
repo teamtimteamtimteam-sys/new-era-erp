@@ -555,7 +555,7 @@ export default async function PurchaseOrderDetailPage({
             title={
                 <>
                     {t('purchasing.orderDetailTitle')}
-                    <span className="ml-3 font-mono text-base text-gray-500">{po.code}</span>
+                    <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{po.code}</span>
                 </>
             }
             // ★ 详情页恒为 ok —— 记录存在与否由上面的 notFound() 回答。
@@ -720,7 +720,7 @@ export default async function PurchaseOrderDetailPage({
                 一张写着 approved 而其实没人批过的单子,与一张真的被批过的单子
                 在屏幕上长得一模一样,那就是"0 冒充受限"换了第四件衣服。 */}
             {approvalsOn ? (
-                <p className="text-xs text-gray-500 mb-4">
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">
                     {t('purchasing.approvalOn')}
                     <span
                         className={
@@ -785,7 +785,7 @@ export default async function PurchaseOrderDetailPage({
                     issueLabel={t('purchasing.doc.issue')}
                 />
                 {mustRows(issuesRes, 'po_issues').length === 0 ? (
-                    <p className="text-xs text-gray-500">{t('purchasing.doc.neverIssued')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('purchasing.doc.neverIssued')}</p>
                 ) : (
                     <ul className="text-sm space-y-1">
                         {mustRows(issuesRes, 'po_issues').map((iss) => (
@@ -794,7 +794,7 @@ export default async function PurchaseOrderDetailPage({
                                    className="hover:underline font-mono app-link app-link-inline">
                                     v{iss.version}
                                 </a>
-                                <span className="text-gray-500 ml-2">
+                                <span className="text-[color:var(--brand-muted-text)] ml-2">
                                     {t('purchasing.doc.issuedAt', { at: new Date(iss.issued_at).toISOString().slice(0, 16).replace('T', ' ') })}
                                 </span>
                             </li>
@@ -816,22 +816,22 @@ export default async function PurchaseOrderDetailPage({
             <div className="border border-gray-200 rounded p-4 mb-4">
                 <h2 className="mb-2">{t('purchasing.amend.historyTitle')}</h2>
                 {history.length === 0 ? (
-                    <p className="text-xs text-gray-500">{t('purchasing.amend.noHistory')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('purchasing.amend.noHistory')}</p>
                 ) : (
                     <ul className="text-sm space-y-1">
                         {history.map((h) => (
                             <li key={h.id} className="flex flex-wrap gap-2">
-                                <span className="text-gray-500 font-mono text-xs">
+                                <span className="text-[color:var(--brand-muted-text)] font-mono text-xs">
                                     {new Date(h.changed_at).toISOString().slice(0, 16).replace('T', ' ')}
                                 </span>
                                 <span>{t('purchasing.amend.change.' + h.change_type)}</span>
                                 {h.line_no !== null && (
-                                    <span className="text-gray-500">#{h.line_no}</span>
+                                    <span className="text-[color:var(--brand-muted-text)]">#{h.line_no}</span>
                                 )}
                                 {/* PUR-1:付款计划的改动说得出【第几期】—— 否则
                                     "付款条款改了"在一份五期的计划上等于什么都没说。 */}
                                 {h.payment_term_seq !== null && (
-                                    <span className="text-gray-500">
+                                    <span className="text-[color:var(--brand-muted-text)]">
                                         {t('purchasing.amend.termSeq', { seq: h.payment_term_seq })}
                                     </span>
                                 )}
@@ -841,7 +841,7 @@ export default async function PurchaseOrderDetailPage({
                                 {h.old_quantity !== null && h.new_quantity === null && (
                                     <span className="font-mono text-xs">{h.old_quantity} →</span>
                                 )}
-                                {h.amend_reason && <span className="text-gray-600">— {h.amend_reason}</span>}
+                                {h.amend_reason && <span className="text-[color:var(--brand-muted-text)]">— {h.amend_reason}</span>}
                             </li>
                         ))}
                     </ul>
@@ -849,14 +849,14 @@ export default async function PurchaseOrderDetailPage({
             </div>
 
             {po.notes && (
-                <p className="text-sm text-gray-600 mb-2">
-                    <span className="text-gray-500 mr-1">{t('purchasing.form.notes')}:</span>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-2">
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('purchasing.form.notes')}:</span>
                     {po.notes}
                 </p>
             )}
             {po.terms_text && (
-                <p className="text-sm text-gray-600 mb-4">
-                    <span className="text-gray-500 mr-1">{t('purchasing.form.termsText')}:</span>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('purchasing.form.termsText')}:</span>
                     {po.terms_text}
                 </p>
             )}
@@ -887,12 +887,12 @@ export default async function PurchaseOrderDetailPage({
                 —— 在 Tim 裁定采购单必须携带税之后,它【不再为真】。留着一句过期的
                 解释比没有解释更坏:它会让人相信屏幕上那个数是全部。 */}
             {po.carries_tax ? (
-                <p className="text-sm text-gray-600 mb-2">{t('purchasing.gstOnOrderNote')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-2">{t('purchasing.gstOnOrderNote')}</p>
             ) : (
-                <p className="text-sm text-gray-600 mb-2">{t('purchasing.gstNotCarriedNote')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-2">{t('purchasing.gstNotCarriedNote')}</p>
             )}
             {lines.some((l) => (l as { tax_code?: string | null }).tax_code === 'OP') && (
-                <p className="text-sm text-gray-600 mb-6">{t('purchasing.gstOutOfScopeNote')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">{t('purchasing.gstOutOfScopeNote')}</p>
             )}
 
             {/* 付款计划 + 预付摘要 */}
@@ -906,7 +906,7 @@ export default async function PurchaseOrderDetailPage({
                             canEditPurchasing={canEditPurchasing}
                         />
                     ) : (
-                        <p className="text-sm text-gray-500">—</p>
+                        <p className="text-sm text-[color:var(--brand-muted-text)]">—</p>
                     )}
 
                     {/* EQP-PAY-1(R6):质保金。★ 它【紧挨着付款计划】,因为它就是
@@ -932,13 +932,13 @@ export default async function PurchaseOrderDetailPage({
                        「币种:USD」,而这里的数字并不是 USD。 */
                     <div className="border border-gray-300 rounded p-4 text-sm space-y-2 h-fit">
                         <div className="flex justify-between">
-                            <span className="text-gray-600">{t('purchasing.prepaidLabel')}</span>
+                            <span className="text-[color:var(--brand-muted-text)]">{t('purchasing.prepaidLabel')}</span>
                             <span className="font-mono">
                                 <MaskedValue value={poStatus.prepaid_base === null ? null : formatAmount(poStatus.prepaid_base, baseCurrency)} canView={canFinance} />
                             </span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-600">{t('purchasing.appliedLabel')}</span>
+                            <span className="text-[color:var(--brand-muted-text)]">{t('purchasing.appliedLabel')}</span>
                             <span className="font-mono">
                                 <MaskedValue value={poStatus.prepaid_applied_base === null ? null : formatAmount(poStatus.prepaid_applied_base, baseCurrency)} canView={canFinance} />
                             </span>
@@ -974,7 +974,7 @@ export default async function PurchaseOrderDetailPage({
                 【与那个按钮同一条判据】问题不适用 → 隐藏。 */}
             {!isEquipmentOrder && (<>
             <h2 className="mb-3">{t('grn.po.heading')}</h2>
-            <p className="text-sm text-gray-600 mb-3">{t('grn.po.note')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('grn.po.note')}</p>
             <div className="space-y-3 mb-8">
                 {lines.map((l) => {
                     const rows = grnByLine.get(l.id) ?? []
@@ -982,13 +982,13 @@ export default async function PurchaseOrderDetailPage({
                     return (
                         <div key={l.id} className="border border-gray-300 rounded-lg p-3">
                             <p className="text-sm mb-2">
-                                <span className="text-gray-500">#{l.line_no}</span>
+                                <span className="text-[color:var(--brand-muted-text)]">#{l.line_no}</span>
                                 <span className="ml-2 font-mono">{lineName(l)}</span>
-                                <span className="ml-2 text-gray-600">
+                                <span className="ml-2 text-[color:var(--brand-muted-text)]">
                                     {t('grn.po.orderedLabel', { qty: Number(l.quantity), unit: l.unit ?? 'kg' })}
                                 </span>
                                 {rows.length > 0 && (
-                                    <span className="ml-2 text-gray-600">
+                                    <span className="ml-2 text-[color:var(--brand-muted-text)]">
                                         {t('grn.po.receivedLabel', {
                                             qty: rows[0].line_received_qty,
                                             unit: l.unit ?? 'kg',
@@ -1021,7 +1021,7 @@ export default async function PurchaseOrderDetailPage({
                                    【消失】,于是屏幕在一条真的有差异的行上什么都不说。
                                    receiving_settings 的门是 module.inbound.view,
                                    本页的门是采购:一个只有采购权限的读者永远走这一支。 */
-                                <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
+                                <p className="text-sm text-[color:var(--brand-muted-text)] border border-gray-300 rounded px-3 py-2">
                                     {t('grn.po.thresholdsRestricted')}
                                 </p>
                             ) : grnSettings ? (
@@ -1034,7 +1034,7 @@ export default async function PurchaseOrderDetailPage({
                             {/* 逐条收货点名 —— 行级结论说的是"这一行短了",而人还要
                                 知道它是由哪几条收货组成的。 */}
                             {rows.length > 0 && (
-                                <p className="text-xs text-gray-500 mt-2">
+                                <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">
                                     {t('grn.po.receiptsList')}{' '}
                                     {rows.map((r, i) => (
                                         <span key={r.batch_id}>
@@ -1060,12 +1060,12 @@ export default async function PurchaseOrderDetailPage({
                 而下面那句 noReceipts 写的是「这张单还没有收过货」—— 在一张
                 可能已经收完的单子上,那是最坏的一句假话之一。 */}
             {!canSeeReceipts ? (
-                <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
+                <p className="text-sm text-[color:var(--brand-muted-text)] border border-gray-300 rounded px-3 py-2">
                     {t('purchasing.receiptsRestricted')}
                 </p>
             ) : receipts.length > 0 ? (
                 <>
-                    <p className="text-sm text-gray-600 mb-2">
+                    <p className="text-sm text-[color:var(--brand-muted-text)] mb-2">
                         {t('purchasing.receivedVsOrdered', {
                             received: receivedQty,
                             ordered: orderedQty,
@@ -1078,7 +1078,7 @@ export default async function PurchaseOrderDetailPage({
                     <PoReceiptsTable rows={receiptRows} canFinance={canFinance} />
                 </>
             ) : (
-                <p className="text-sm text-gray-500">{t('purchasing.noReceipts')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('purchasing.noReceipts')}</p>
             )}
             </>)}
         </ListPage>

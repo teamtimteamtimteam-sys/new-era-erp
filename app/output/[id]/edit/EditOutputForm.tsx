@@ -123,7 +123,7 @@ export default function EditOutputForm({
                         defaultValue={batch.quantity}
                         className={`${CONTROL_INPUT} text-gray-500 w-full`}
                     />
-                    <p className="text-xs text-gray-500 mt-1">{t('output.edit.quantityLockedHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('output.edit.quantityLockedHint')}</p>
                 </div>
 
                 {/* 单位 */}
@@ -143,7 +143,7 @@ export default function EditOutputForm({
                 </div>
 
                 {/* 剩余可售量(只读)*/}
-                <p className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded">
+                <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-50 px-3 py-2 rounded">
                     {t('output.form.remainingLine', {
                         qty: batch.remaining_qty,
                         unit: batch.unit,
@@ -176,7 +176,7 @@ export default function EditOutputForm({
                             </option>
                         ))}
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">{t('output.edit.stateLockedHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('output.edit.stateLockedHint')}</p>
                 </div>
 
                 {/* 品位/纯度 */}

@@ -75,7 +75,7 @@ export default async function ReceiptPatternPanel({
                 留白会被读成"这家供应商记录干净",而那是这块面板最不能撒的谎。
                 (GRN-1b 在批次详情上栽过同一处,这里从一开始就分开。) */}
             {!canSee ? (
-                <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2">
+                <p className="text-sm text-[color:var(--brand-muted-text)] border border-gray-300 rounded px-3 py-2">
                     {t('grn.pattern.restricted')}
                 </p>
             ) : !row ? (
@@ -86,7 +86,7 @@ export default async function ReceiptPatternPanel({
                 </p>
             ) : (
                 <>
-                    <p className="text-sm text-gray-600 mb-3">
+                    <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">
                         {t('grn.pattern.window', {
                             days: row.window_days,
                             from: row.window_from,
@@ -98,7 +98,7 @@ export default async function ReceiptPatternPanel({
                            一家从来没有可比对收货的供应商,不是一家记录干净的供应商:
                            它是一家【没有人能评判】的供应商。这两句话在采购决定面前
                            完全不同,而"0 discrepancies"会被读成前者。 */
-                        <p className="text-sm text-gray-700 border border-gray-300 rounded px-3 py-2 mb-3">
+                        <p className="text-sm text-[color:var(--brand-text)] border border-gray-300 rounded px-3 py-2 mb-3">
                             {t('grn.pattern.noComparable', { days: row.window_days })}
                         </p>
                     ) : (
@@ -139,10 +139,10 @@ export default async function ReceiptPatternPanel({
                         只在非零时才印,会让读者无从分辨"这里没有这一类"与
                         "这块面板不谈这件事"。 */}
                     <div className="border-t border-gray-200 pt-3 space-y-1">
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-[color:var(--brand-text)]">
                             {t('grn.pattern.excluded', { n: row.excluded_receipts })}
                         </p>
-                        <p className="text-sm text-gray-700">
+                        <p className="text-sm text-[color:var(--brand-text)]">
                             {t('grn.pattern.undated', { n: row.undated_receipts })}
                         </p>
                         {row.undated_with_discrepancy > 0 && (
@@ -169,7 +169,7 @@ export default async function ReceiptPatternPanel({
                                             {r.batch_code}
                                         </Link>
                                         {r.arrival_date && (
-                                            <span className="text-gray-500 ml-2">{r.arrival_date}</span>
+                                            <span className="text-[color:var(--brand-muted-text)] ml-2">{r.arrival_date}</span>
                                         )}
                                         <span className="ml-2">
                                             {r.kinds.map((k) => t('grn.kind.' + k)).join(t('common.listSep'))}

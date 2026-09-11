@@ -104,7 +104,7 @@ canEdit: boolean
                         <textarea name="notes" defaultValue={details?.notes ?? ''} className={fieldTextarea} />
                     </div>
                     {/* 【联系人不在这里,而这是一句要说出来的话】,不是一个空白 */}
-                    <p className="text-xs text-gray-500">{labels.contactsNote}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{labels.contactsNote}</p>
                     <Button variant="default" className="text-sm" type="submit" disabled={pending}>
                         {labels.save}
                     </Button>
@@ -114,7 +114,7 @@ canEdit: boolean
             <section className="mt-8 border-t pt-6">
                 <h2 className="mb-2">{labels.quotesHeading}</h2>
                 {/* 一份报价什么都不入账 —— 说在最显眼的地方 */}
-                <p className="mb-3 max-w-3xl text-sm text-gray-600">{labels.booksNothing}</p>
+                <p className="mb-3 max-w-3xl text-sm text-[color:var(--brand-muted-text)]">{labels.booksNothing}</p>
 
                 {lanes.length === 0 ? (
                     <p className="text-sm text-amber-900 bg-amber-50 border border-amber-300 rounded px-3 py-2 max-w-2xl">
@@ -155,16 +155,16 @@ canEdit: boolean
                         <Button variant="default" className="text-sm" type="submit" disabled={pending}>
                             {labels.addQuote}
                         </Button>
-                        <p className="mt-1 w-full text-xs text-gray-600 max-w-3xl">{labels.freeDaysHint}</p>
+                        <p className="mt-1 w-full text-xs text-[color:var(--brand-muted-text)] max-w-3xl">{labels.freeDaysHint}</p>
                     </form>
                 )}
 
                 {/* 【报价没有"改"这扇门】—— 只有新增与撤回(软删)。说出来,
                     否则人会在列表里找一个不存在的编辑按钮。 */}
-                <p className="mb-3 text-xs text-gray-500 max-w-3xl">{labels.noEditDoor}</p>
+                <p className="mb-3 text-xs text-[color:var(--brand-muted-text)] max-w-3xl">{labels.noEditDoor}</p>
 
                 {quotes.length === 0 ? (
-                    <p className="text-sm text-gray-500">{labels.quotesEmpty}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{labels.quotesEmpty}</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse border border-gray-300 text-sm">

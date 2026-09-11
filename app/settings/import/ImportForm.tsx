@@ -160,7 +160,7 @@ function ImportWizard({
                     ) : (
                         <span className="ml-3 text-sm text-gray-400">{t('import.downloadTemplate')}</span>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">{t('import.templateHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('import.templateHint')}</p>
                     {/* 【取值受限的列,在【屏幕上】也说一遍】—— 与模板第三行同一个 RPC。
                         走查里 counterparty_type 那三个值是【口头】补上的,那就是这一块的由来。 */}
                     {table && guide[table]?.status === 'unavailable' && (
@@ -168,7 +168,7 @@ function ImportWizard({
                         <p className="mt-3 text-xs text-amber-700">{t('import.guideUnavailable')}</p>
                     )}
                     {table && guide[table]?.status === 'ok' && (
-                        <div className="mt-3 border border-gray-200 rounded bg-gray-50 p-3 text-xs">
+                        <div className="mt-3 border border-gray-200 rounded bg-gray-50 p-3 text-xs text-[color:var(--brand-muted-text)]">
                             <p className="font-medium mb-1">{t('import.guideTitle')}</p>
                             <ul className="space-y-0.5">
                                 {guide[table].cols.map((c) => (
@@ -176,7 +176,7 @@ function ImportWizard({
                                         <code>{c.column_name}</code>
                                         {c.is_required && <span className="text-red-700"> · {t('import.guideRequired')}</span>}
                                         {c.accepted_values && c.accepted_values.length > 0 &&
-                                            <span className="text-gray-600"> · {c.accepted_values.join(' | ')}</span>}
+                                            <span className="text-[color:var(--brand-muted-text)]"> · {c.accepted_values.join(' | ')}</span>}
                                     </li>
                                 ))}
                             </ul>
@@ -190,7 +190,7 @@ function ImportWizard({
                     <input type="file" name="file" accept=".csv,text/csv"
                            disabled={!table || done !== null || pending}
                            className={`${CONTROL_FILE_BUTTON} block w-full max-w-md disabled:text-gray-400`} />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                         {table ? t('import.oneFilePerTable') : t('import.pickTableFirst')}
                     </p>
                 </div>
@@ -271,7 +271,7 @@ function ImportWizard({
             </div>
             {/* 【禁用必须说出为什么 —— 每一种禁用各有各的话】 */}
             {!canCommit && (
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-[color:var(--brand-muted-text)]">
                     {done !== null ? t('import.blockedAlreadyImported')
                      : pending ? t('import.blockedWorking')
                      : !table ? t('import.blockedNoTable')

@@ -44,9 +44,9 @@ export default function GenerateMissing({
                     <li key={p.employeeId} className="text-sm">
                         <span>{p.name}</span>
                         {p.positionCode
-                            ? <span className="text-gray-600 ml-1 font-mono text-xs">{p.positionCode}</span>
+                            ? <span className="text-[color:var(--brand-muted-text)] ml-1 font-mono text-xs">{p.positionCode}</span>
                             /* ★ 没有职位就没有模板可抄 —— 说出这一句,而不是给一个会失败的钮 */
-                            : <span className="text-gray-700 ml-2 text-xs">{t('kpi.generateNoPosition')}</span>}
+                            : <span className="text-[color:var(--brand-text)] ml-2 text-xs">{t('kpi.generateNoPosition')}</span>}
                         {p.positionCode && (
                             <Button variant="secondary" size="xs" className="ml-3 text-xs"
                                 type="button"

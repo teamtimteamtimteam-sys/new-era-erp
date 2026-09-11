@@ -103,11 +103,11 @@ export default async function TraceabilitySection({
     return (
         <section className="mt-8 pt-8 border-t">
             <h2 className="mb-1">{t('traceability.title')}</h2>
-            <p className="text-sm text-gray-600 mb-3">{t('traceability.intro')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('traceability.intro')}</p>
 
             {failed ? (
                 // 【具名的空状态】—— 不是一张空表让人猜是没数据还是没加载出来。
-                <div className="bg-gray-50 border border-gray-300 text-gray-700 px-4 py-4 rounded mb-4 text-sm">
+                <div className="bg-gray-50 border border-gray-300 text-[color:var(--brand-text)] px-4 py-4 rounded mb-4 text-sm">
                     {blockedReason}
                 </div>
             ) : (
@@ -121,7 +121,7 @@ export default async function TraceabilitySection({
                     <RecoveryTable rows={recoveryRows} />
 
                     {/* 【一句人话,而它也进 PDF】客户只拿到那张纸时,同样读得到这句。 */}
-                    <p className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4">
+                    <p className="text-sm text-[color:var(--brand-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4">
                         {t('traceability.estimateNote')}
                     </p>
                 </>
@@ -129,7 +129,7 @@ export default async function TraceabilitySection({
 
             {/* ── 签发:与另外六个单据【同一个公共件】(EXT-1)───────────────── */}
             <h3 className="mb-2">{t('traceability.issuesHeading')}</h3>
-            <p className="text-xs text-gray-500 mb-2">{t('traceability.issuesNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('traceability.issuesNote')}</p>
             <IssuePanel
                 pdfHref={pdfHref}
                 previewLabel={t('traceability.previewPdf')}
@@ -148,13 +148,13 @@ export default async function TraceabilitySection({
                 Fu Sheng 0 行、Phua 1 行)—— 零行于是照直渲染成「从未签发」。
                 权限先答,次序不能反。 */}
             {issuesRestricted ? (
-                <p className="text-sm text-gray-600">{t('traceability.issuesRestricted')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('traceability.issuesRestricted')}</p>
             ) : issues.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('traceability.neverIssued')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('traceability.neverIssued')}</p>
             ) : (
                 <ul className="text-sm space-y-1">
                     {issues.map((iss) => (
-                        <li key={iss.version} className="font-mono text-xs">
+                        <li key={iss.version} className="font-mono text-xs text-[color:var(--brand-muted-text)]">
                             <a
                                 href={`${pdfHref}?version=${iss.version}`}
                                 target="_blank"

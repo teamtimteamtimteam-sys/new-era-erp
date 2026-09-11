@@ -34,7 +34,7 @@ export default async function SetPasswordPage() {
     return (
         <div className="p-8 max-w-md mx-auto">
             <h1 className="mb-2">{t('setPassword.title')}</h1>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
                 {t('setPassword.intro', { 0: user.email ?? '' })}
             </p>
             <SetPasswordForm />

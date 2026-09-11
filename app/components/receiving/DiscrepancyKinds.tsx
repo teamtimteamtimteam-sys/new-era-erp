@@ -156,7 +156,7 @@ export default async function DiscrepancyKinds({
                                 threshold: thresholds.grn_assay_tolerance_pct,
                             })}
                             {/* 视图说不出是哪一种金属 —— 说明白,并把人送到看得见的地方 */}
-                            <span className="block mt-1 text-xs opacity-80">
+                            <span className="block mt-1 text-xs opacity-80 text-[color:var(--brand-muted-text)]">
                                 {t('grn.detail.assayWhichMetal')}
                                 {assayHref && (
                                     <a href={assayHref} className="ml-1 underline">

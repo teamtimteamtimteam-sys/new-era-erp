@@ -113,7 +113,7 @@ export default function ReleaseControl({
                     {t('common.cancel')}
                 </Button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                 {amountBad
                     ? t('sales.reserve.releaseOver', { have: String(qty) })
                     : reason.trim() === ''

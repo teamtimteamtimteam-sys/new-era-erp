@@ -37,7 +37,7 @@ export default function ConvertControl({
         : ''
 
     if (!convertible) {
-        return <p className="text-sm text-gray-600">{blockedReason}</p>
+        return <p className="text-sm text-[color:var(--brand-muted-text)]">{blockedReason}</p>
     }
 
     function go() {
@@ -76,9 +76,9 @@ export default function ConvertControl({
                 </Button>
             </div>
             {/* 【订单日不是报价日】它是客户接受的那一天,而且决定单号年份与汇率期间 */}
-            <p className="text-xs text-gray-500 mt-2">{t('quotes.convert.orderDateWhy')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('quotes.convert.orderDateWhy')}</p>
             {/* 【后果句在按下之前】 */}
-            <p className="text-xs text-gray-600 mt-1">{t('quotes.convert.consequence', { code })}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('quotes.convert.consequence', { code })}</p>
         </div>
     )
 }

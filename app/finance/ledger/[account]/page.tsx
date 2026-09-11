@@ -243,11 +243,11 @@ export default async function AccountLedgerPage({
                         <p className="text-lg">
                             <span className="font-mono">{led.account.code}</span>{' '}
                             <span className="font-semibold">{accountName}</span>{' '}
-                            <span className="text-gray-500 text-sm">
+                            <span className="text-[color:var(--brand-muted-text)] text-sm">
                                 ({t('finance.accountType.' + led.account.account_type)})
                             </span>
                         </p>
-                        <p className="text-sm text-gray-600">{rangeLabel}</p>
+                        <p className="text-sm text-[color:var(--brand-muted-text)]">{rangeLabel}</p>
                         {/* 【返回链接留在标题【下面】】这一页转换前就是这样 ——
                             它不在 <h1> 之上,所以【不】用 breadcrumb 槽:
                             用了会把它挪上去,那是一次没人要求的版式改动。 */}
@@ -261,19 +261,19 @@ export default async function AccountLedgerPage({
                         不一致时【说出来】—— 见抬头关于这个对账能查出什么。 */}
                     <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
                         <div className="border border-gray-300 rounded px-4 py-3">
-                            <p className="text-xs text-gray-500">{t('finance.ledgerOwnTotal')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('finance.ledgerOwnTotal')}</p>
                             <p className="font-mono text-lg">
                                 {formatMoneyBare(led.total, '本块抬头下方一行写明本位币')} {baseCurrency}
                             </p>
                         </div>
                         <div className="border border-gray-300 rounded px-4 py-3">
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-[color:var(--brand-muted-text)]">
                                 {t(mode === 'pnl' ? 'finance.ledgerPnlFigure' : 'finance.ledgerBsFigure')}
                             </p>
                             <p className="font-mono text-lg">
                                 {figure === null ? (
                                     // 【报表不报这一行】—— 不写 0.00。见抬头。
-                                    <span className="text-gray-500 text-base">
+                                    <span className="text-[color:var(--brand-muted-text)] text-sm">
                                         {t('finance.ledgerFigureAbsent')}
                                     </span>
                                 ) : (
@@ -302,7 +302,7 @@ export default async function AccountLedgerPage({
                 empty={t('finance.ledgerEmpty')}
             />
 
-            <p className="text-sm text-gray-500 mt-4">{t('finance.ledgerNote')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mt-4">{t('finance.ledgerNote')}</p>
         </ListPage>
     )
 }

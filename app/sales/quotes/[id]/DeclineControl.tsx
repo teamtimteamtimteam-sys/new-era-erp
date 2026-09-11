@@ -56,7 +56,7 @@ export default function DeclineControl({ quoteId }: { quoteId: string }) {
                     {t('common.cancel')}
                 </Button>
             </div>
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">
                 {reason.trim() === '' ? t('quotes.decline.needsReason') : t('quotes.decline.consequence')}
             </p>
         </div>

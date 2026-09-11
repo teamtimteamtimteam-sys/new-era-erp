@@ -51,7 +51,7 @@ export default function LanguageSwitcher() {
                 说的是图标集,而这里一个字形都没有借。 */}
             <span
                 aria-hidden
-                className="relative ml-3 flex h-6 shrink-0 items-center rounded-full border border-[color:var(--brand-border)] bg-[color:var(--brand-accent)] p-0.5 text-[11px] font-medium"
+                className="relative ml-3 flex h-6 shrink-0 items-center rounded-full border border-[color:var(--brand-border)] bg-[color:var(--brand-accent)] p-0.5 text-xs font-medium"
             >
                 <span
                     className={

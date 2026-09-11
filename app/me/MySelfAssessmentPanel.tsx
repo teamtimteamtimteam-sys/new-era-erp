@@ -169,7 +169,7 @@ export default function MySelfAssessmentPanel({
                             <div className="text-sm font-medium">
                                 {t(`reviews.type_${a.review_type}`)}
                                 {a.cycle_name && <span className="ml-2">{a.cycle_name}</span>}
-                                <span className="ml-2 font-mono text-xs text-gray-500">
+                                <span className="ml-2 font-mono text-xs text-[color:var(--brand-muted-text)]">
                                     {a.period_start} → {a.period_end}
                                 </span>
                             </div>
@@ -210,7 +210,7 @@ export default function MySelfAssessmentPanel({
                                     <label className="block mb-3">
                                         {t('reviews.selfText')}
                                         {locked ? (
-                                            <p className="text-sm text-gray-900 whitespace-pre-wrap mt-1">
+                                            <p className="text-sm text-[color:var(--brand-text)] whitespace-pre-wrap mt-1">
                                                 {a.self_assessment_text ?? '—'}
                                             </p>
                                         ) : (
@@ -223,7 +223,7 @@ export default function MySelfAssessmentPanel({
                                     </label>
 
                                     {locked ? (
-                                        <p className="text-xs text-gray-500">{t('reviews.selfLockedHint')}</p>
+                                        <p className="text-xs text-[color:var(--brand-muted-text)]">{t('reviews.selfLockedHint')}</p>
                                     ) : (
                                         <div className="flex gap-2 items-center flex-wrap">
                                             <Button variant="secondary"
@@ -240,7 +240,7 @@ export default function MySelfAssessmentPanel({
                                             >
                                                 {t('reviews.selfFinalize')}
                                             </Button>
-                                            <span className="text-xs text-gray-500">{t('reviews.selfFinalizeHint')}</span>
+                                            <span className="text-xs text-[color:var(--brand-muted-text)]">{t('reviews.selfFinalizeHint')}</span>
                                         </div>
                                     )}
                                 </>

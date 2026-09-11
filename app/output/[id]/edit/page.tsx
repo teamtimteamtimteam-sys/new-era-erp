@@ -307,7 +307,7 @@ export default async function EditOutputPage({
             </div>
 
             <h1 className="sm:text-2xl mb-2">{t('output.editTitle')}</h1>
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
                 <span className="font-mono">{batch.code}</span>
                 <span className="mx-2">·</span>
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
@@ -334,7 +334,7 @@ export default async function EditOutputPage({
                 />
             ) : !canSeeStocktakes ? (
                 /* ★ FIX-2b:与 /inbound/[id]/edit 那一处逐字同一条 —— 见那里的理由。 */
-                <p className="text-sm text-gray-600 border border-gray-300 rounded px-3 py-2 mb-6">
+                <p className="text-sm text-[color:var(--brand-muted-text)] border border-gray-300 rounded px-3 py-2 mb-6">
                     {t('stocktakes.openStateRestricted')}
                 </p>
             ) : null}
@@ -373,17 +373,17 @@ export default async function EditOutputPage({
                 <h2 className="mb-3">{t('margin.title')}</h2>
                 {!showPrices ? (
                     // 受限,不是零 —— operations 与 warehouse 都进得来这一页
-                    <p className="text-sm text-gray-500">{t('common.restricted')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('common.restricted')}</p>
                 ) : marginRow === null ? (
-                    <p className="text-sm text-gray-500">{t('output.margin.notSold')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('output.margin.notSold')}</p>
                 ) : (
                     <div className="max-w-md space-y-1 text-sm">
                         <div className="flex justify-between">
-                            <span className="text-gray-600">{t('margin.colRevenue')}</span>
+                            <span className="text-[color:var(--brand-muted-text)]">{t('margin.colRevenue')}</span>
                             <span className="font-mono">{formatAmount(marginRow.revenue_base, baseCurrency)}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-gray-600">{t('margin.colCost')}</span>
+                            <span className="text-[color:var(--brand-muted-text)]">{t('margin.colCost')}</span>
                             <span className="font-mono">
                                 {marginRow.margin_status === 'ok'
                                     ? formatAmount(marginRow.cost_current_base, baseCurrency)
@@ -414,13 +414,13 @@ export default async function EditOutputPage({
                             <p className="text-xs text-amber-800">{t('output.margin.stale')}</p>
                         )}
                         {marginRow.cogs_differs && (
-                            <p className="text-xs text-gray-600">
+                            <p className="text-xs text-[color:var(--brand-muted-text)]">
                                 {t('output.margin.cogsDiffers', {
                                     posted: formatAmount(marginRow.cogs_posted_base, baseCurrency),
                                 })}
                             </p>
                         )}
-                        <p className="text-xs text-gray-500 pt-1">
+                        <p className="text-xs text-[color:var(--brand-muted-text)] pt-1">
                             {/* 【地址来自注册表】NAV-REG-1:这一条是【上下文交叉引用】,
                                 不是产出模块名下的入口 —— 措辞("查看全部批次毛利")
                                 是这一处的话,所以标签不从注册表取。
@@ -482,7 +482,7 @@ export default async function EditOutputPage({
             ) : (
                 <section className="mt-8 pt-8 border-t">
                     <h2 className="mb-4">{t('output.sale.title')}</h2>
-                    <p className="text-sm text-gray-500">{t('output.sale.soldOut')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('output.sale.soldOut')}</p>
                 </section>
             )}
 

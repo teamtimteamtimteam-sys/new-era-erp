@@ -114,7 +114,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                 <div className="flex items-start justify-between mb-4">
                     <div>
                         <h1 className="font-mono">{o.code}</h1>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-[color:var(--brand-muted-text)] mt-1">
                             {o.customers ? `${o.customers.code} — ${o.customers.legal_name}` : '—'}
                         </p>
                     </div>
@@ -122,12 +122,12 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                 </div>
 
                 <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm mb-6">
-                    <div><dt className="inline text-gray-500">{t('sales.colDate')}: </dt>
+                    <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colDate')}: </dt>
                          <dd className="inline">{new Date(o.order_date).toLocaleDateString(dl)}</dd></div>
-                    <div><dt className="inline text-gray-500">{t('sales.colCurrency')}: </dt>
+                    <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colCurrency')}: </dt>
                          <dd className="inline">{o.currency} @ {o.fx_rate}</dd></div>
                     {fromQuoteCode && (
-                        <div className="col-span-2"><dt className="inline text-gray-500">{t('quotes.fromQuote')}: </dt>
+                        <div className="col-span-2"><dt className="inline text-[color:var(--brand-muted-text)]">{t('quotes.fromQuote')}: </dt>
                              <dd className="inline">
                                  {fromQuote ? (
                                      <Link href={`/sales/quotes/${fromQuote.id}`}
@@ -140,7 +140,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                              </dd></div>
                     )}
                     {o.cancel_reason && (
-                        <div className="col-span-2"><dt className="inline text-gray-500">{t('sales.cancelReason')}: </dt>
+                        <div className="col-span-2"><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.cancelReason')}: </dt>
                              <dd className="inline">{o.cancel_reason}</dd></div>
                     )}
                 </dl>
@@ -163,7 +163,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                                 {o.status === 'draft' ? t('sales.amend.editDraft') : t('sales.amend.action')}
                             </Link>
                         </Button>
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-[color:var(--brand-muted-text)]">
                             {o.status === 'draft' ? t('sales.amend.editDraftHint') : t('sales.amend.actionHint')}
                         </span>
                     </div>
@@ -233,13 +233,13 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                     canIssue={o.status !== 'draft'}
                     blockedReason={o.status === 'draft' ? t('sales.issueBlockedDraft') : ''}
                 />
-                <p className="text-xs text-gray-500 mb-2">{t('sales.issuesNote')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('sales.issuesNote')}</p>
                 {issues.length === 0 ? (
-                    <p className="text-gray-500 text-sm">{t('sales.noIssues')}</p>
+                    <p className="text-[color:var(--brand-muted-text)] text-sm">{t('sales.noIssues')}</p>
                 ) : (
                     <ul className="text-sm space-y-1">
                         {issues.map((i) => (
-                            <li key={i.version} className="font-mono text-xs">
+                            <li key={i.version} className="font-mono text-xs text-[color:var(--brand-muted-text)]">
                                 <a href={`/sales/orders/${o.id}/pdf?version=${i.version}`} target="_blank"
                                    rel="noopener noreferrer" className="hover:underline app-link app-link-inline">
                                     v{i.version}
@@ -261,7 +261,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                         if (h.old_unit_price !== null || h.new_unit_price !== null)
                             moves.push(`@ ${h.old_unit_price ?? '—'} → ${h.new_unit_price ?? '—'}`)
                         return (
-                            <li key={i} className="text-gray-600">
+                            <li key={i} className="text-[color:var(--brand-muted-text)]">
                                 {new Date(h.changed_at).toLocaleString(dl)}
                                 {/* 动态前缀,后缀集合接 sales_order_history 的 CHECK(check-i18n 的清单) */}
                                 {' · '}{t('sales.changeType.' + h.change_type)}

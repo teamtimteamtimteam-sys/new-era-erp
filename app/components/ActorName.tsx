@@ -150,7 +150,7 @@ export default async function ActorName({
     //   而这个仓库从 lib/permissions.ts 起、每一刀都在把这两件事分开。
     //   **统一不值这个价。**
     return (
-        <span className="text-gray-600">
+        <span className="text-[color:var(--brand-muted-text)]">
             {space === 'employee' ? t('actor.employeeGone') : t('actor.noEmployeeRecord')}
             <span className="ml-1 text-xs text-gray-400 font-mono">{userId.slice(0, 8)}…</span>
         </span>

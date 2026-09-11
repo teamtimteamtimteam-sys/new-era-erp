@@ -237,7 +237,7 @@ canEdit: boolean
                         </select>
                     </div>
                 ) : (
-                    <p className="flex-1 min-w-[16rem] self-end pb-2 text-sm text-gray-600">
+                    <p className="flex-1 min-w-[16rem] self-end pb-2 text-sm text-[color:var(--brand-muted-text)]">
                         {t('expense.form.capitalHint')}
                     </p>
                 )}
@@ -269,9 +269,9 @@ canEdit: boolean
                                 </option>
                             ))}
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">{t('expense.form.taxCodeNetHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('expense.form.taxCodeNetHint')}</p>
                         {!taxCodeTouched && supplierDefaultTaxCode && (
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                                 {t('expense.form.taxCodeFromSupplier', { code: supplierDefaultTaxCode })}
                             </p>
                         )}
@@ -292,7 +292,7 @@ canEdit: boolean
             {askWht && (
                 <div className="border border-amber-300 bg-amber-50 rounded p-4">
                     <p className="text-sm font-medium mb-1">{t('expense.form.whtHeading')}</p>
-                    <p className="text-xs text-gray-700 mb-3">{t('expense.form.whtWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-text)] mb-3">{t('expense.form.whtWhy')}</p>
                     <div className="flex flex-wrap gap-4">
                         <div className="flex-1 min-w-[16rem]">
                             <label className="block mb-1">
@@ -335,7 +335,7 @@ canEdit: boolean
                             />
                         </div>
                     </div>
-                    <p className="text-xs text-gray-600 mt-2">{t('expense.form.whtTreatyHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('expense.form.whtTreatyHint')}</p>
                     {/* 【已付那一支在这里就说出来,不等服务端】它是 record_expense
                         默认参数值那条路,而一条在默认路径上才现身的拒绝最该被提前说明。
                         这【不是】重复实现规则:服务端仍然拒(那是把关的那一道),
@@ -375,7 +375,7 @@ canEdit: boolean
                 </div>
                 {/* FIN-0:外币按费用日行方卖出价(tt_sell)自动估值,当天没牌价直接拒 */}
                 {currency !== baseCurrency && (
-                    <p className="text-xs text-gray-500 self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
                 {/* 付款状态(默认挂账)*/}
                 <div>
@@ -505,7 +505,7 @@ canEdit: boolean
                                 </select>
                                 {/* 【列表的判据照抄函数的两条拒绝】—— 已投用 / 已处置的机器不在这里,
                                     因为 record_expense 的追加支对它们按名拒。 */}
-                                <p className="mt-1 text-xs text-gray-600">{t('expense.form.existingAssetHint')}</p>
+                                <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('expense.form.existingAssetHint')}</p>
                                 {assets.length === 0 && (
                                     <p className="mt-1 text-xs text-amber-700">{t('expense.form.noAssetsAppendable')}</p>
                                 )}
@@ -540,7 +540,7 @@ canEdit: boolean
                                                 : t('expense.form.poLineNoOrder')}
                                     </p>
                                 )}
-                                <p className="mt-1 text-xs text-gray-600">{t('expense.form.poLineHint')}</p>
+                                <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('expense.form.poLineHint')}</p>
                             </div>
                         </div>
                     )}
@@ -570,7 +570,7 @@ canEdit: boolean
                             <label className="block mb-1">{t('assets.colInService')}</label>
                             <input type="date" name="asset_in_service_date"
                                    className={CONTROL_INPUT} />
-                            <p className="text-xs text-gray-500 mt-1">{t('expense.form.inServiceHint')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('expense.form.inServiceHint')}</p>
                         </div>
                         <div>
                             <label className="block mb-1">
@@ -600,12 +600,12 @@ canEdit: boolean
                             : t('common.fxBoardRateHint')}
                     </span>
                     {currency !== baseCurrency && amountValid && (
-                        <span className="text-gray-500 ml-2 font-mono">
+                        <span className="text-[color:var(--brand-muted-text)] ml-2 font-mono">
                             ({currency} {formatMoneyBare(amountNum, '同格内紧邻的 {currency} 前缀')})
                         </span>
                     )}
                 </div>
-                <p className="text-gray-500">
+                <p className="text-[color:var(--brand-muted-text)]">
                     {paymentStatus === 'paid'
                         ? t('expense.previewPaid', {
                               account: previewAccount,

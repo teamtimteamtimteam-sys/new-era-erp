@@ -96,7 +96,7 @@ canEdit: boolean
                     title={confirmBlocks[0]}
                     details={
                         confirmBlocks.length > 1 ? (
-                            <div className="space-y-1 text-sm text-muted-foreground">
+                            <div className="space-y-1 text-sm text-[color:var(--brand-muted-text)]">
                                 {confirmBlocks.slice(1).map((line, i) => (
                                     <p key={i}>{line}</p>
                                 ))}

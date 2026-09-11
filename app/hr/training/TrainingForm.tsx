@@ -135,7 +135,7 @@ export default function TrainingForm({
                         defaultValue={record?.expiry_date ?? ''}
                         className={CONTROL_INPUT}
                     />
-                    <p className="text-xs text-gray-500 mt-1">{t('hr.expiryHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('hr.expiryHint')}</p>
                 </div>
             </div>
 

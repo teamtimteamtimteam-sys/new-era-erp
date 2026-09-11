@@ -106,7 +106,7 @@ export function RecordHeader({
                 <div key={i} className="min-w-0">
                     {/* --brand-muted-text,不是 --brand-muted:后者是【底色】(#E5EEF4),
                         拿它当文字色会在白底上几乎看不见。两个名字只差一个词、方向相反。 */}
-                    <span className="mr-1 text-[color:var(--brand-muted-text)]">{f.label}:</span>
+                    <span className="mr-1 text-[color:var(--brand-text)]">{f.label}:</span>
                     <span
                         className={cn(
                             'break-words text-[color:var(--brand-text)]',

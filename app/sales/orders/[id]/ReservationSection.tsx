@@ -158,11 +158,11 @@ export default async function ReservationSection({
     return (
         <section className="mt-8">
             <h2 className="mb-1">{t('sales.reserve.title')}</h2>
-            <p className="text-xs text-gray-500 mb-3">{t('sales.reserve.note')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('sales.reserve.note')}</p>
 
             {/* 【禁用的理由长在控件旁边】—— 不是等人点了才说 */}
             {!isReservable && (
-                <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-3">
+                <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-3">
                     {/* 【静态映射,不拼动态键】soStatusKey 是那一份唯一的表 */}
                     {t('sales.reserve.onlyConfirmed', { status: t(soStatusKey(status)) })}
                 </p>
@@ -187,22 +187,22 @@ export default async function ReservationSection({
                             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-2">
                                 <span className="font-medium">
                                     #{l.line_no} <span className="font-mono">{l.material_code}</span>{' '}
-                                    <span className="text-gray-500">{l.material_name}</span>
+                                    <span className="text-[color:var(--brand-muted-text)]">{l.material_name}</span>
                                 </span>
                                 <span className="text-sm">
-                                    <span className="text-gray-600">{t('sales.reserve.spokenForLabel')}:</span>{' '}
+                                    <span className="text-[color:var(--brand-muted-text)]">{t('sales.reserve.spokenForLabel')}:</span>{' '}
                                     <span className="font-mono">
                                         {reserved + shipped} / {l.quantity} {l.unit}
                                     </span>
                                 </span>
                                 {shipped > 0 && (
-                                    <span className="text-sm text-gray-600">
+                                    <span className="text-sm text-[color:var(--brand-muted-text)]">
                                         {t('sales.reserve.ofWhichShipped', { qty: String(shipped) })}
                                     </span>
                                 )}
                                 {/* 【零要说出来】留白读起来像"没加载出来" */}
                                 {reserved + shipped === 0 && (
-                                    <span className="text-sm text-gray-500">{t('sales.reserve.nothingReserved')}</span>
+                                    <span className="text-sm text-[color:var(--brand-muted-text)]">{t('sales.reserve.nothingReserved')}</span>
                                 )}
                             </div>
 
@@ -211,7 +211,7 @@ export default async function ReservationSection({
                                     {active.map((r) => (
                                         <li key={r.id} className="flex flex-wrap items-baseline gap-x-3">
                                             <span className="font-mono">{r.output_batches?.code ?? '—'}</span>
-                                            <span className="text-gray-500">
+                                            <span className="text-[color:var(--brand-muted-text)]">
                                                 {r.storage_locations?.code ?? t('stock.unspecifiedLocation')}
                                             </span>
                                             <span className="font-mono">
@@ -238,7 +238,7 @@ export default async function ReservationSection({
                                     {consumed.map((r) => {
                                         const shp = shipByReservation.get(r.id) ?? null
                                         return (
-                                            <li key={r.id} className="flex flex-wrap items-baseline gap-x-3 text-gray-600">
+                                            <li key={r.id} className="flex flex-wrap items-baseline gap-x-3 text-[color:var(--brand-muted-text)]">
                                                 <span className="font-mono">{r.output_batches?.code ?? '—'}</span>
                                                 <span className="font-mono">
                                                     {r.qty} {r.output_batches?.unit ?? l.unit}
@@ -261,7 +261,7 @@ export default async function ReservationSection({
                             )}
 
                             {released.length > 0 && (
-                                <details className="text-xs text-gray-500 mb-2">
+                                <details className="text-xs text-[color:var(--brand-muted-text)] mb-2">
                                     <summary className="cursor-pointer">
                                         {t('sales.reserve.releasedCount', { n: String(released.length) })}
                                     </summary>
@@ -289,7 +289,7 @@ export default async function ReservationSection({
                                     />
                                 ) : (
                                     // 【「受限」,不是一个空清单】见文件抬头
-                                    <p className="text-sm text-gray-600">
+                                    <p className="text-sm text-[color:var(--brand-muted-text)]">
                                         {t('common.restricted')} — {t('sales.reserve.needsInventoryView')}
                                     </p>
                                 ))}
@@ -298,7 +298,7 @@ export default async function ReservationSection({
                 })}
             </div>
 
-            <p className="text-xs text-gray-500 mt-3">
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-3">
                 <Link href="/inventory/reports/snapshot" className="hover:underline app-link">
                     {t('sales.reserve.snapshotLink')}
                 </Link>

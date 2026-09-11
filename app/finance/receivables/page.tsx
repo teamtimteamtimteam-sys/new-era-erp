@@ -101,7 +101,7 @@ export default async function ReceivablesPage({
                 <>
                     {t('finance.receivablesTitle')}
                     {report.is_past && (
-                        <span className="ml-3 align-middle text-base font-normal text-amber-700">
+                        <span className="ml-3 align-middle text-sm font-normal text-amber-700">
                             {t('finance.agingAsOf.headingSuffix', { date: report.as_of })}
                         </span>
                     )}
@@ -130,17 +130,17 @@ export default async function ReceivablesPage({
                 选项 C 之下订单流的债生在【开票】那一刻;发货只是把合同负债换成
                 收入,不再产生任何应收。所以这里说出来 —— 一个看着账龄的人最容易
                 以为"发了货怎么没多出一笔应收",而那正是对的。 */}
-            <p className="text-xs text-gray-500 mb-4">{t('finance.arKindsNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('finance.arKindsNote')}</p>
 
             {/* 汇总条:未结合计 + 四档账龄(90+ 标红)*/}
             <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                 <div>
-                    <span className="text-gray-600 mr-1">{t('finance.totalOpen')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.totalOpen')}:</span>
                     <span className="font-mono font-bold">{formatAmount(report.total_open_base, baseCurrency)}</span>
                 </div>
                 {BUCKETS.map((b) => (
                     <div key={b}>
-                        <span className="text-gray-600 mr-1">{t('finance.aging.' + b)}:</span>
+                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.aging.' + b)}:</span>
                         <span className={'font-mono ' + (b === 'b90_plus' ? 'text-red-600 font-medium' : '')}>
                             {formatAmount(report.buckets[b] ?? 0, baseCurrency)}
                         </span>

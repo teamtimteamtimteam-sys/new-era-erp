@@ -137,7 +137,7 @@ export default function EditMaterialForm({
                         ))}
                     </select>
                     {/* DICT-ADMIN:同上 —— 那句"还没有页面"换成一条真链接。 */}
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                         {t('materials.form.chemistryAddHint')}{' '}
                         <a href="/settings/dictionaries" className="underline app-link app-link-inline">
                             {t('dict.title')}
@@ -153,7 +153,7 @@ export default function EditMaterialForm({
                     </label>
                     <WasteClassPicker name="waste_classification_code" classes={wasteClasses}
                         defaultValue={material.waste_classification_code} locale={locale} />
-                    <p className="text-xs text-gray-500 mt-1">{t('materials.form.wasteClassHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('materials.form.wasteClassHint')}</p>
                 </div>
 
                 {/* 单位(固定列表)*/}
@@ -198,7 +198,7 @@ export default function EditMaterialForm({
                     {state.fieldErrors?.safety_stock_qty && (
                         <p className="text-red-600 text-xs mt-1">{state.fieldErrors.safety_stock_qty}</p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">{t('materials.form.safetyStockHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('materials.form.safetyStockHint')}</p>
                 </div>
 
                 {/* 备注 */}

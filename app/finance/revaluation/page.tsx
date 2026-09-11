@@ -102,7 +102,7 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
             )}
 
             {rows.length === 0 ? (
-                <p className="mb-4 text-sm text-gray-500">{t('finance.reval.nothingToRevalue')}</p>
+                <p className="mb-4 text-sm text-[color:var(--brand-muted-text)]">{t('finance.reval.nothingToRevalue')}</p>
             ) : (
                 <div className="mb-4">
                     <RevaluationPreviewTable rows={previewRows} />

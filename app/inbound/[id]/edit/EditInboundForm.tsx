@@ -138,7 +138,7 @@ export default function EditInboundForm({
                         defaultValue={batch.quantity}
                         className={`${CONTROL_INPUT} text-gray-500 w-full`}
                     />
-                    <p className="text-xs text-gray-500 mt-1">{t('inbound.edit.quantityLockedHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('inbound.edit.quantityLockedHint')}</p>
                 </div>
 
                 {/* 单位 */}
@@ -158,7 +158,7 @@ export default function EditInboundForm({
                 </div>
 
                 {/* 剩余可用量(只读)*/}
-                <p className="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded">
+                <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-50 px-3 py-2 rounded">
                     {t('inbound.form.remainingLine', {
                         qty: batch.remaining_qty,
                         unit: batch.unit,
@@ -203,7 +203,7 @@ export default function EditInboundForm({
                         defaultValue={batch.unit_price ?? ''}
                         className={`${CONTROL_INPUT} text-gray-500 w-full`}
                     />
-                    <p className="text-xs text-gray-500 mt-1">{t('inbound.edit.priceLockedHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('inbound.edit.priceLockedHint')}</p>
                 </div>
 
                 {/* 备注 */}

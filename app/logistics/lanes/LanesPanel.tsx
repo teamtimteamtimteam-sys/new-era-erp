@@ -114,7 +114,7 @@ canEdit: boolean
                                 </p>
                             )}
                             {l.state === 'defined_empty' && (
-                                <p className="mb-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                                <p className="mb-3 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-[color:var(--brand-text)]">
                                     {labels.definedEmpty}
                                 </p>
                             )}
@@ -127,7 +127,7 @@ canEdit: boolean
                                     {l.requirements.map((r) => (
                                         <li key={r.id}>
                                             {r.document_type}
-                                            {r.regime ? <span className="ml-2 text-xs text-gray-500">({r.regime})</span> : null}
+                                            {r.regime ? <span className="ml-2 text-xs text-[color:var(--brand-muted-text)]">({r.regime})</span> : null}
                                             <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
                                             <Button
                                                 variant="destructive"
@@ -169,7 +169,7 @@ canEdit: boolean
                                 )}
                             </form>
                             </PermissionGate>
-                            <p className="mt-1 text-xs text-gray-500">{labels.regimeHint}</p>
+                            <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{labels.regimeHint}</p>
                         </section>
                     ))}
                 </div>

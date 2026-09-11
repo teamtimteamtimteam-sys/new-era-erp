@@ -35,7 +35,7 @@ export default function ExpectedDateControl({
     }
 
     return (
-        <div className="text-xs">
+        <div className="text-xs text-[color:var(--brand-muted-text)]">
             {canEdit ? (
                 <input
                     type="date"
@@ -56,11 +56,11 @@ export default function ExpectedDateControl({
             ) : (
                 <span className="text-gray-400">{t('cashForecast.expectedDateNone')}</span>
             )}
-            <span className="block text-[11px] text-gray-500">
+            <span className="block text-xs text-[color:var(--brand-muted-text)]">
                 {t('cashForecast.expectedDateOwner', { owner: ownerName })}
             </span>
-            <span className="block text-[11px] text-gray-400">{t('cashForecast.expectedDateIsEstimate')}</span>
-            {error && <span className="block text-[11px] text-red-700">{error}</span>}
+            <span className="block text-xs text-gray-400">{t('cashForecast.expectedDateIsEstimate')}</span>
+            {error && <span className="block text-xs text-red-700">{error}</span>}
         </div>
     )
 }

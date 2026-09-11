@@ -190,12 +190,12 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
             {outbound ? (
                 <>
                     <h2 className="mb-2">{t('finance.freight.outboundNoAllocTitle')}</h2>
-                    <p className="text-sm text-gray-600 max-w-3xl">{t('finance.freight.outboundNoAlloc')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)] max-w-3xl">{t('finance.freight.outboundNoAlloc')}</p>
                 </>
             ) : (
                 <>
                     <h2 className="mb-2">{t('finance.freight.allocTitle')}</h2>
-                    <p className="text-sm text-gray-600 mb-3 max-w-3xl">{t('finance.freight.allocHint')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)] mb-3 max-w-3xl">{t('finance.freight.allocHint')}</p>
                     <FreightAllocationsTable rows={tableRows} />
                 </>
             )}

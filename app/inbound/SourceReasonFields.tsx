@@ -53,7 +53,7 @@ export default function SourceReasonFields({
                     </option>
                 ))}
             </select>
-            <p className="text-xs text-gray-500 mt-1">{t('inbound.source.hint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('inbound.source.hint')}</p>
             {fieldError && <p className="text-red-600 text-xs mt-1">{fieldError}</p>}
             {needsNote && (
                 <div className="mt-2">
@@ -66,7 +66,7 @@ export default function SourceReasonFields({
                         className={`${CONTROL_TEXTAREA} w-full`}
                         placeholder={t('inbound.source.notePlaceholder')}
                     />
-                    <p className="text-xs text-gray-500 mt-1">{t('inbound.source.noteHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('inbound.source.noteHint')}</p>
                 </div>
             )}
         </div>

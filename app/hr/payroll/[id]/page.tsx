@@ -115,7 +115,7 @@ export default async function PayrollDetailPage({
             title={
                 <>
                     {t('hr.payrollDetailTitle')}
-                    <span className="ml-3 font-mono text-base text-gray-500">
+                    <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">
                         {period.period_month?.slice(0, 7)}
                     </span>
                     <span className="ml-2 text-sm text-gray-400 font-mono">{period.code}</span>
@@ -203,13 +203,13 @@ export default async function PayrollDetailPage({
             />
 
             {period.notes && (
-                <p className="text-sm text-gray-600 mb-4 whitespace-pre-line">
-                    <span className="text-gray-500 mr-1">{t('hr.colNotes')}:</span>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4 whitespace-pre-line">
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('hr.colNotes')}:</span>
                     {period.notes}
                 </p>
             )}
 
-            <p className="text-xs text-gray-500 mb-3">{t('hr.payRestricted')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('hr.payRestricted')}</p>
 
             {/* 明细 */}
             <div className="mb-6">

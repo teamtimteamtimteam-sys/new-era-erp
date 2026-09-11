@@ -84,7 +84,7 @@ export default async function FinanceSettingsPage() {
             <h1 className="mb-4">{t('finance.settingsTitle')}</h1>
 
             <div className="bg-gray-50 rounded p-4 mb-6 text-sm">
-                <span className="text-gray-600 mr-1">{t('finance.lockedBefore')}:</span>
+                <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.lockedBefore')}:</span>
                 {lockedBefore ? (
                     <span className="font-mono font-medium">{lockedBefore}</span>
                 ) : (
@@ -100,7 +100,7 @@ export default async function FinanceSettingsPage() {
                         {t('finance.approvals.movedToSettings')}
                     </Link>
                 ) : (
-                    <p data-module-restricted="1" title={t('dashboard.restrictedHint')} className="text-sm text-gray-600">
+                    <p data-module-restricted="1" title={t('dashboard.restrictedHint')} className="text-sm text-[color:var(--brand-muted-text)]">
                         {t('finance.approvals.movedToSettings')} · {t('common.restricted')}
                     </p>
                 )}
@@ -126,13 +126,13 @@ export default async function FinanceSettingsPage() {
             <LockForm canEdit={canEditGate} lockedBefore={lockedBefore} />
 
             {/* 手动锁是覆盖手段;正常关账走月结页 */}
-            <p className="text-sm text-gray-500 mt-4">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mt-4">
                 <Link href="/finance/close" className="hover:underline app-link">
                     {t('finance.useClosePage')}
                 </Link>
             </p>
 
-            <p className="text-sm text-gray-500 mt-6 mb-8">{t('finance.lockExplainer')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mt-6 mb-8">{t('finance.lockExplainer')}</p>
 
             {/* GST-3:注册开关。**这一页此前完全没有它** —— 而 GST-1/GST-2 建的
                 每一样东西都挂在它后面,于是两刀的成果一个人也碰不到。 */}

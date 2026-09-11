@@ -57,7 +57,7 @@ export default async function BulkFxPage() {
             </p>
             {currencies.length === 0 ? (
                 // 【具名的缺席】没有外币就说出来,不要给一张空表格让人猜
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('finance.fxPage.bulk.noForeignCurrencies', { 0: base })}
                 </p>
             ) : (

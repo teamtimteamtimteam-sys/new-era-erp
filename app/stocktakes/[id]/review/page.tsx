@@ -136,7 +136,7 @@ export default async function StocktakeReviewPage({
                             ← {t('stocktakes.backToCount')}
                         </Link>
                     </div>
-                    <p className="text-sm text-gray-600 mb-6">
+                    <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
                         <span className="font-mono">{st.code}</span>
                     </p>
                     {/* 汇总:已录行数 · 差异行数 · 差异合计 */}
@@ -156,12 +156,12 @@ export default async function StocktakeReviewPage({
                     <ReviewDiffTable rows={diffTableRows} />
                 </div>
             ) : (
-                <div className="bg-gray-50 rounded p-4 mb-4 text-sm text-gray-600">
+                <div className="bg-gray-50 rounded p-4 mb-4 text-sm text-[color:var(--brand-muted-text)]">
                     {t('stocktakes.noDiffs')}
                 </div>
             )}
 
-            <p className="text-sm text-gray-600 mb-4">{t('stocktakes.reviewNote')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('stocktakes.reviewNote')}</p>
 
             <PostButton stocktakeId={id} subject={st.code} />
         </ListPage>

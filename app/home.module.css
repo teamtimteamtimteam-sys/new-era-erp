@@ -205,7 +205,17 @@
     padding: 0.15rem 0.55rem;
     border-radius: 999px;
     background: var(--brand-muted);
-    color: var(--brand-muted-text);
+    /* ★★ FONT-2(2026-09-11, Tim Q13①)· 字色从次级换成正文色 ★★
+       实测(390px 首屏,逐元素往上走到第一个不透明的底):这颗徽章的底是
+       `--brand-muted` **#E5EEF4**,而次级色 `--brand-muted-text` #62738C 对它
+       只有 **4.11:1** —— **过不了 WCAG 1.4.3 的 4.5:1**。
+       换成 `--brand-text` #182B4B 是 **12.02:1**。
+       ☞ Tim 的裁定:坐在那四种浅底(#E5E7EB · #E5EEF4 · #DDE7EF · #E1F5FF)
+         上的字取【正文色】,不取次级色。
+       ⚠ 这颗徽章在 `/` 与 `/login` 两条路由上都看得见(`/login` 对已登录会话
+         重定向到 `/`)。★ `app/login/` 的源码一个字节都没有被编辑 —— 变的是
+         这个共享样式模块,那在 S6 里是允许的。 */
+    color: var(--brand-text);
     font-size: 0.7rem;
     line-height: 1.25rem;
     white-space: nowrap;

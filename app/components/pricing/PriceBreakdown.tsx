@@ -63,7 +63,7 @@ export default function PriceBreakdown({
                 <span className="font-mono">
                     {formatMoneyBare(l.price_usd_per_tonne, '列头 pricing.colPrice「行情 (USD/吨)」')}
                 </span>
-                <span className="text-gray-500 text-xs ml-2">
+                <span className="text-[color:var(--brand-muted-text)] text-xs ml-2">
                     {l.price_date ?? (l.price_from ? `${l.price_from} – ${l.price_to}` : '')}
                 </span>
                 {thinWindow(l) && (
@@ -153,7 +153,7 @@ export default function PriceBreakdown({
 
     return (
         <div>
-            <p className="text-sm text-gray-600 mb-3">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">
                 <span className="font-mono">{res.formula_code}</span> {res.formula_name}
                 <span className="mx-2">·</span>
                 {res.price_basis === 'average'
@@ -173,7 +173,7 @@ export default function PriceBreakdown({
                 </div>
             )}
             {res.unpaid_metals.length > 0 && (
-                <p className="text-sm text-gray-500 mb-3">
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">
                     {t('pricing.unpaidNote', { metals: res.unpaid_metals.join(', ') })}
                 </p>
             )}
@@ -190,19 +190,19 @@ export default function PriceBreakdown({
 
             <div className="mt-4 max-w-md ml-auto text-sm space-y-1">
                 <div className="flex justify-between">
-                    <span className="text-gray-600">{t('pricing.grossValue')}</span>
+                    <span className="text-[color:var(--brand-muted-text)]">{t('pricing.grossValue')}</span>
                     <span className="font-mono">
                         {formatMoneyBare(res.gross_value_usd, SUMMARY_CCY_STATED_IN)}
                     </span>
                 </div>
                 <div className="flex justify-between">
-                    <span className="text-gray-600">{t('pricing.treatmentCharge')}</span>
+                    <span className="text-[color:var(--brand-muted-text)]">{t('pricing.treatmentCharge')}</span>
                     <span className="font-mono">
                         −{formatMoneyBare(res.treatment_usd, SUMMARY_CCY_STATED_IN)}
                     </span>
                 </div>
                 <div className="flex justify-between">
-                    <span className="text-gray-600">{t('pricing.discountAmount')}</span>
+                    <span className="text-[color:var(--brand-muted-text)]">{t('pricing.discountAmount')}</span>
                     <span className="font-mono">
                         −{formatMoneyBare(res.discount_usd, SUMMARY_CCY_STATED_IN)}
                     </span>

@@ -69,7 +69,7 @@ export default function LandedCostPanel({
                 strong ? 'border-t border-gray-300 mt-1 pt-2 font-medium' : ''
             }`}
         >
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-[color:var(--brand-text)]">
                 {label}
                 {hint ? <span className="ml-2 text-xs text-gray-400">{hint}</span> : null}
             </span>
@@ -88,7 +88,7 @@ export default function LandedCostPanel({
         <section className="mb-6 rounded border border-gray-200 p-4">
             <h2 className="mb-1">{t('inbound.landedCost.title')}</h2>
             {/* 说明这块面板在回答什么 —— 而不是让人从三个数字里猜 */}
-            <p className="mb-3 text-xs text-gray-500">{t('inbound.landedCost.blurb')}</p>
+            <p className="mb-3 text-xs text-[color:var(--brand-muted-text)]">{t('inbound.landedCost.blurb')}</p>
 
             <Row label={t('inbound.landedCost.purchase')} value={purchaseBase} />
             <Row label={t('inbound.landedCost.freight')} value={freightBase} />

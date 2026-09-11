@@ -182,7 +182,7 @@ export default async function PayableDocPage({
                                 >
                                     {batch.code}
                                 </Link>
-                                <span className="text-gray-500 ml-2">{materialName}</span>
+                                <span className="text-[color:var(--brand-muted-text)] ml-2">{materialName}</span>
                             </>
                         ),
                     },
@@ -218,8 +218,8 @@ export default async function PayableDocPage({
             />
 
             {batch.notes && (
-                <p className="text-sm text-gray-600 mb-4">
-                    <span className="text-gray-500 mr-1">{t('finance.memo')}:</span>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.memo')}:</span>
                     {batch.notes}
                 </p>
             )}
@@ -227,7 +227,7 @@ export default async function PayableDocPage({
             {/* 关联采购分录(改价后可能多条,全部列出)*/}
             {(mustRows(journalsRes)).length > 0 && (
                 <p className="text-sm mb-4">
-                    <span className="text-gray-600 mr-1">{t('finance.relatedJournals')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.relatedJournals')}:</span>
                     {(mustRows(journalsRes)).map((j, i) => (
                         <span key={j.id}>
                             {i > 0 && <span className="mx-1 text-gray-300">|</span>}

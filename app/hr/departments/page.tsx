@@ -62,7 +62,7 @@ export default async function DepartmentsPage() {
             }
             state={{ kind: 'ok' }}
         >
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                 {t('finance.recordCount', { count: departments.length })}
             </p>
             <DepartmentsTable rows={tableRows} empty={t('hr.departmentsEmpty')} />

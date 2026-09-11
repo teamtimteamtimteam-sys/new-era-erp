@@ -23,7 +23,7 @@ export default function OpenPeriodForm() {
             )}
             <div className="flex flex-wrap items-end gap-3">
                 <label className="">
-                    <span className="block text-gray-600 mb-1">{t('attendance.openMonth')}</span>
+                    <span className="block text-[color:var(--brand-muted-text)] mb-1">{t('attendance.openMonth')}</span>
                     <input
                         type="month"
                         value={month}
@@ -45,7 +45,7 @@ export default function OpenPeriodForm() {
                     }>
                     {t('attendance.openBtn')}
                 </Button>
-                <p className="text-xs text-gray-500">{t('attendance.openHint')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)]">{t('attendance.openHint')}</p>
             </div>
         </div>
     )

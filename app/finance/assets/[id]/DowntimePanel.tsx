@@ -124,12 +124,12 @@ export default function DowntimePanel({
                         </Button>
                     </PermissionGate>
                 ) : (
-                    <span className="text-xs text-gray-600" data-state-note="downtime-open">
+                    <span className="text-xs text-[color:var(--brand-muted-text)]" data-state-note="downtime-open">
                         {t('equipment.down.oneOpenOnly')}
                     </span>
                 )}
             </div>
-            {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('equipment.needsProcessingEdit')}</p>}
+            {!canEdit && <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('equipment.needsProcessingEdit')}</p>}
             {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
 
             {/* ── 开着的那一段:自己一块,不混在流水里 ─────────────────────────── */}
@@ -138,14 +138,14 @@ export default function DowntimePanel({
                     <p className="font-medium text-amber-900">
                         {t('equipment.down.openNow', { since: fmt(openRow.started_at) })}
                     </p>
-                    <p className="text-gray-700 mt-1">{openRow.reason}</p>
+                    <p className="text-[color:var(--brand-text)] mt-1">{openRow.reason}</p>
                     {/* 【时长这一栏说"还在停",不是空白、不是 0】—— duration 的列注释
                         说的正是这件事:NULL 不是零,是"还不知道"。 */}
-                    <p className="text-xs text-gray-600 mt-1">{t('equipment.down.stillDown')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('equipment.down.stillDown')}</p>
                     <PermissionGate code="module.processing.edit" allowed={canEdit}>
                         <div className="flex flex-wrap gap-2 items-end mt-2">
                             <label className="block">
-                                <span className="text-xs text-gray-600 block">{t('equipment.down.endedAt')}</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.down.endedAt')}</span>
                                 <input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)}
                                        className={CONTROL_INPUT} />
                             </label>
@@ -157,7 +157,7 @@ export default function DowntimePanel({
                                 此前只有"没填"那一句。**填了一个早于开始的时刻时,
                                 按钮是【能点】的**,人点下去才换来一次数据库拒绝 ——
                                 屏幕全程没说过那件事。现在当场说,并且不让它点。 */}
-                            {!endAt && <span className="text-xs text-gray-600">{t('equipment.down.needEnd')}</span>}
+                            {!endAt && <span className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.down.needEnd')}</span>}
                             {endAt && endBeforeStart && (
                                 <span className="text-xs text-amber-700">
                                     {t('equipment.down.endBeforeStart', { start: fmt(openRow.started_at) })}
@@ -167,7 +167,7 @@ export default function DowntimePanel({
                     </PermissionGate>
                     {/* 【为什么这里没有"再开一段"的按钮】说出来,不要让人以为按钮坏了。 */}
                     <PermissionGate code="module.processing.edit" allowed={canEdit}>
-                        <p className="text-xs text-gray-600 mt-2">{t('equipment.down.oneOpenOnly')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('equipment.down.oneOpenOnly')}</p>
                     </PermissionGate>
                 </div>
             )}
@@ -202,18 +202,18 @@ export default function DowntimePanel({
             {open && !openRow && (
                 <div className="border border-gray-400 rounded p-3 text-sm space-y-2 max-w-xl">
                     <label className="block">
-                        <span className="text-xs text-gray-600 block">{t('equipment.down.startedAt')}</span>
+                        <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.down.startedAt')}</span>
                         {/* 【不预填"现在"】停机是世界那一侧的事实 —— 谁都可能过后才来补录。 */}
                         <input type="datetime-local" value={f.startedAt}
                                onChange={(e) => setF({ ...f, startedAt: e.target.value })}
                                className={CONTROL_INPUT} />
                     </label>
                     <label className="block">
-                        <span className="text-xs text-gray-600 block">{t('equipment.down.reason')}</span>
+                        <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.down.reason')}</span>
                         <input value={f.reason} onChange={(e) => setF({ ...f, reason: e.target.value })}
                                className={`${CONTROL_INPUT} w-full`} />
                     </label>
-                    <p className="text-xs text-gray-600">{t('equipment.down.openHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.down.openHint')}</p>
                     <div className="flex gap-2 items-center">
                         <Button size="xs" type="button" disabled={pending || !f.startedAt || !f.reason.trim()}
                                 onClick={() => run(() => openDowntime({ assetId, ...f }))}>

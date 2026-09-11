@@ -207,7 +207,7 @@ export default function NewInboundForm({
                                 </option>
                             ))}
                         </select>
-                        <p className="text-xs text-gray-500 mt-1">{t('inbound.againstPoHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('inbound.againstPoHint')}</p>
                         {poId && (
                             <select
                                 value={lineId}
@@ -315,7 +315,7 @@ export default function NewInboundForm({
                         placeholder={t('inbound.form.declaredQtyPlaceholder')}
                         className={`${CONTROL_INPUT} w-full`}
                     />
-                    <p className="text-xs text-gray-500 mt-1">{t('inbound.form.declaredQtyHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('inbound.form.declaredQtyHint')}</p>
                     {state.fieldErrors?.declared_qty && (
                         <p className="text-red-600 text-xs mt-1">
                             {state.fieldErrors.declared_qty}
@@ -358,7 +358,7 @@ export default function NewInboundForm({
                     {/* IOD-1b:说清【为什么】必填 —— 星号只说"必填",不说这个日期
                         会去到哪里。它是收货流水的业务日(FIN-32),而业务日永远不
                         默认成今天:默认会让一次补录的收货悄悄记在录入那天。 */}
-                    <p className="text-xs text-gray-500 mt-1">{t('inbound.form.arrivalDateWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('inbound.form.arrivalDateWhy')}</p>
                 </div>
 
                 {/* 阶段 */}

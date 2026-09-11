@@ -256,7 +256,7 @@ export default async function InvoiceDetailPage({
             title={
                 <>
                     {t('invoice.detailTitle')}
-                    <span className="ml-3 font-mono text-base text-gray-500">{inv.code}</span>
+                    <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{inv.code}</span>
                     {/* SO-3a:两种发票在列表与详情上都要看得出来 —— sale 头是归拢文件,
                         order 头是过账单据,把它们混着读会把"未收"读成"未确认" */}
                     <span className={'ml-3 px-2 py-0.5 rounded text-xs align-middle ' +
@@ -327,12 +327,12 @@ export default async function InvoiceDetailPage({
                         </span>
                     )}
                     {showBanking && fontProblems.length > 0 && (
-                        <span className="text-sm text-gray-600" data-state-note="pdf-font">
+                        <span className="text-sm text-[color:var(--brand-muted-text)]" data-state-note="pdf-font">
                             {t('invoice.pdfBlockedFont')}
                         </span>
                     )}
                     {showBanking && fontProblems.length === 0 && profileIncomplete && (
-                        <span className="text-sm text-gray-600" data-state-note="pdf-profile">
+                        <span className="text-sm text-[color:var(--brand-muted-text)]" data-state-note="pdf-profile">
                             {t('invoice.pdfBlockedProfile')}
                         </span>
                     )}
@@ -359,7 +359,7 @@ export default async function InvoiceDetailPage({
                         {fontProblems.map((p) => (
                             <li key={p.where}>
                                 <span className="text-amber-800">{p.where}:</span>{' '}
-                                <span className="font-medium text-base">{p.chars.join('  ')}</span>
+                                <span className="font-medium text-sm">{p.chars.join('  ')}</span>
                             </li>
                         ))}
                     </ul>
@@ -398,14 +398,14 @@ export default async function InvoiceDetailPage({
                 <div className="border border-gray-300 rounded p-4">
                     <h2 className="mb-2">{t('invoice.billTo')}</h2>
                     <p className="text-sm font-medium">{bill.legal_name ?? '—'}</p>
-                    {bill.code && <p className="text-xs text-gray-500 font-mono">{bill.code}</p>}
-                    {bill.address && <p className="text-sm text-gray-600 whitespace-pre-line mt-1">{bill.address}</p>}
-                    {bill.country && <p className="text-sm text-gray-600">{bill.country}</p>}
-                    {bill.contact_person && <p className="text-sm text-gray-600 mt-1">{bill.contact_person}</p>}
-                    {bill.email && <p className="text-sm text-gray-600 break-all">{bill.email}</p>}
-                    {bill.phone && <p className="text-sm text-gray-600">{bill.phone}</p>}
+                    {bill.code && <p className="text-xs text-[color:var(--brand-muted-text)] font-mono">{bill.code}</p>}
+                    {bill.address && <p className="text-sm text-[color:var(--brand-muted-text)] whitespace-pre-line mt-1">{bill.address}</p>}
+                    {bill.country && <p className="text-sm text-[color:var(--brand-muted-text)]">{bill.country}</p>}
+                    {bill.contact_person && <p className="text-sm text-[color:var(--brand-muted-text)] mt-1">{bill.contact_person}</p>}
+                    {bill.email && <p className="text-sm text-[color:var(--brand-muted-text)] break-all">{bill.email}</p>}
+                    {bill.phone && <p className="text-sm text-[color:var(--brand-muted-text)]">{bill.phone}</p>}
                     {bill.tax_id && (
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-[color:var(--brand-muted-text)] mt-1">
                             {t('customers.form.taxId')}: {bill.tax_id}
                         </p>
                     )}
@@ -415,23 +415,23 @@ export default async function InvoiceDetailPage({
                 {/* 单据信息 */}
                 <div className="border border-gray-300 rounded p-4 text-sm space-y-1">
                     <div className="flex justify-between">
-                        <span className="text-gray-600">{t('invoice.colCode')}</span>
+                        <span className="text-[color:var(--brand-muted-text)]">{t('invoice.colCode')}</span>
                         <span className="font-mono font-medium">{inv.code}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-gray-600">{t('invoice.colIssueDate')}</span>
+                        <span className="text-[color:var(--brand-muted-text)]">{t('invoice.colIssueDate')}</span>
                         <span>{inv.issue_date}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-gray-600">{t('invoice.colDueDate')}</span>
+                        <span className="text-[color:var(--brand-muted-text)]">{t('invoice.colDueDate')}</span>
                         <span>{inv.due_date}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-gray-600">{t('invoice.form.termsDays')}</span>
+                        <span className="text-[color:var(--brand-muted-text)]">{t('invoice.form.termsDays')}</span>
                         <span>{inv.payment_terms_days}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-gray-600">{t('output.sale.currency')}</span>
+                        <span className="text-[color:var(--brand-muted-text)]">{t('output.sale.currency')}</span>
                         <span>{inv.currency}</span>
                     </div>
                 </div>
@@ -445,12 +445,12 @@ export default async function InvoiceDetailPage({
             {/* 合计 */}
             <div className="mt-4 max-w-sm ml-auto text-sm space-y-1">
                 <div className="flex justify-between">
-                    <span className="text-gray-600">{t('invoice.subtotal')}</span>
+                    <span className="text-[color:var(--brand-muted-text)]">{t('invoice.subtotal')}</span>
                     <span className="font-mono">{formatAmount(docTotals?.subtotal_ccy ?? null, inv.currency)}</span>
                 </div>
                 {Number(docTotals?.tax_ccy ?? 0) !== 0 && (
                     <div className="flex justify-between">
-                        <span className="text-gray-600">{t('invoice.tax', { rate: inv.tax_rate_pct })}</span>
+                        <span className="text-[color:var(--brand-muted-text)]">{t('invoice.tax', { rate: inv.tax_rate_pct })}</span>
                         <span className="font-mono">{formatAmount(docTotals?.tax_ccy ?? null, inv.currency)}</span>
                     </div>
                 )}
@@ -464,13 +464,13 @@ export default async function InvoiceDetailPage({
                 (发票一律英文开具,不因界面切换而变) */}
             {inv.terms_text && (
                 <div className="mt-4 text-sm">
-                    <span className="text-gray-500 mr-1">{t('invoice.termsLabel')}:</span>
-                    <span className="text-gray-700">{inv.terms_text}</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('invoice.termsLabel')}:</span>
+                    <span className="text-[color:var(--brand-text)]">{inv.terms_text}</span>
                 </div>
             )}
             {inv.notes && (
-                <p className="text-sm text-gray-600 mt-2">
-                    <span className="text-gray-500 mr-1">{t('finance.memo')}:</span>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mt-2">
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.memo')}:</span>
                     {inv.notes}
                 </p>
             )}
@@ -481,7 +481,7 @@ export default async function InvoiceDetailPage({
 
                 <div className="bg-gray-50 rounded p-4 mb-4 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                     <div>
-                        <span className="text-gray-600 mr-1">{t('invoice.colSettled')}:</span>
+                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('invoice.colSettled')}:</span>
                         <span className="font-mono">{formatAmount(settled, inv.currency)}</span>
                     </div>
                     {/* CN-1:【已贷记单列,而且只在有的时候画】"付过了"与"不用付了"
@@ -490,12 +490,12 @@ export default async function InvoiceDetailPage({
                         发票上多出一个永远是 0 的数。 */}
                     {credited > 0 && (
                         <div>
-                            <span className="text-gray-600 mr-1">{t('invoice.colCredited')}:</span>
+                            <span className="text-[color:var(--brand-muted-text)] mr-1">{t('invoice.colCredited')}:</span>
                             <span className="font-mono">{formatAmount(credited, inv.currency)}</span>
                         </div>
                     )}
                     <div>
-                        <span className="text-gray-600 mr-1">{t('invoice.colOpen')}:</span>
+                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('invoice.colOpen')}:</span>
                         <span className="font-mono font-bold">{formatAmount(open, inv.currency)}</span>
                     </div>
                     <span
@@ -529,7 +529,7 @@ export default async function InvoiceDetailPage({
             {showBanking && (
                 <section className="mt-8">
                     <h2 className="mb-1">{t('invoice.issuesTitle')}</h2>
-                    <p className="text-xs text-gray-500 mb-2">{t('invoice.issuesNote')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('invoice.issuesNote')}</p>
                     <IssuePanel
                         pdfHref={`/finance/invoices/${inv.id}/pdf`}
                         previewLabel={t('invoice.previewPdf')}
@@ -544,7 +544,7 @@ export default async function InvoiceDetailPage({
                         hasLines={rows.length > 0}
                     />
                     {issues.length === 0 ? (
-                        <p className="text-sm text-gray-500">{t('invoice.neverIssued')}</p>
+                        <p className="text-sm text-[color:var(--brand-muted-text)]">{t('invoice.neverIssued')}</p>
                     ) : (
                         <ul className="text-sm space-y-1">
                             {issues.map((iss) => (
@@ -564,7 +564,7 @@ export default async function InvoiceDetailPage({
                         它【自己的】单据,不是对旧版本的修改;所以这里既不重发、
                         也不给旧版本打标记,只说清楚这件事。读时现算。 */}
                     {creditNoteCount > 0 && (
-                        <p className="text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded px-3 py-2 mt-3">
+                        <p className="text-sm text-[color:var(--brand-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mt-3">
                             {t('invoice.issuesPreCreditNote', { count: String(creditNoteCount) })}
                         </p>
                     )}

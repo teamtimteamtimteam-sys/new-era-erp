@@ -293,7 +293,7 @@ export default async function InventoryPage() {
             <div className="flex justify-between items-start gap-4">
                 <div>
                     <h1 className="">{t('inventory.listTitle')}</h1>
-                    <p className="text-sm text-gray-500 mt-1">{t('inventory.ledgerNote')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)] mt-1">{t('inventory.ledgerNote')}</p>
                 </div>
                 {/* LOC-1:库位主数据的入口。【本页是它唯一的入口】—— /inventory/locations
                     是动态路由之外的一条静态路由,但可达性走查只断言"打得开却走不到"
@@ -313,22 +313,22 @@ export default async function InventoryPage() {
                 <h2 className="mb-2">{t('inventory.balanceSectionHeader')}</h2>
                 <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm">
                     <div>
-                        <span className="text-gray-600">{t('inventory.balTotalInput')}</span>{' '}
+                        <span className="text-[color:var(--brand-muted-text)]">{t('inventory.balTotalInput')}</span>{' '}
                         <span className="font-medium">{balInput}</span>
                     </div>
                     <div>
-                        <span className="text-gray-600">{t('inventory.balTotalOutput')}</span>{' '}
+                        <span className="text-[color:var(--brand-muted-text)]">{t('inventory.balTotalOutput')}</span>{' '}
                         <span className="font-medium">{balOutput}</span>
                     </div>
                     <div>
-                        <span className="text-gray-600">{t('inventory.balTotalLoss')}</span>{' '}
+                        <span className="text-[color:var(--brand-muted-text)]">{t('inventory.balTotalLoss')}</span>{' '}
                         <span className="font-medium">{balLoss}</span>
                         {lossRate && (
-                            <span className="text-gray-500"> ({lossRate}%)</span>
+                            <span className="text-[color:var(--brand-muted-text)]"> ({lossRate}%)</span>
                         )}
                     </div>
                     <div>
-                        <span className="text-gray-600">{t('inventory.balRunCount')}</span>{' '}
+                        <span className="text-[color:var(--brand-muted-text)]">{t('inventory.balRunCount')}</span>{' '}
                         <span className="font-medium">{runs.length}</span>
                     </div>
                 </div>
@@ -341,7 +341,7 @@ export default async function InventoryPage() {
                 {/* 估值合计条 */}
                 <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm mb-3">
                     <div>
-                        <span className="text-gray-600">{t('valuation.totalInboundValue')}:</span>{' '}
+                        <span className="text-[color:var(--brand-muted-text)]">{t('valuation.totalInboundValue')}:</span>{' '}
                         <span className="font-medium font-mono">
                             {pricesRestricted
                                 ? <span className="text-gray-400">{t('valuation.priceRestricted')}</span>
@@ -349,7 +349,7 @@ export default async function InventoryPage() {
                         </span>
                     </div>
                     <div>
-                        <span className="text-gray-600">{t('valuation.totalCostValue')}:</span>{' '}
+                        <span className="text-[color:var(--brand-muted-text)]">{t('valuation.totalCostValue')}:</span>{' '}
                         <span className="font-medium font-mono">
                             {pricesRestricted
                                 ? <span className="text-gray-400">{t('valuation.priceRestricted')}</span>
@@ -371,11 +371,11 @@ export default async function InventoryPage() {
                         而不是拿一个过期的汇率编一个 SGD 数出来。
                         ════════════════════════════════════════════════════════════ */}
                     <div className="border-l border-gray-300 pl-8">
-                        <span className="text-gray-600">{t('valuation.totalMarketValue')}:</span>{' '}
+                        <span className="text-[color:var(--brand-muted-text)]">{t('valuation.totalMarketValue')}:</span>{' '}
                         <span className="font-medium font-mono">
                             {formatMoneyBare(totalMarketValue, '同一格的标签「成品市价价值 (USD)」')}
                         </span>
-                        <p className="text-xs text-gray-500 mt-1 max-w-md">{t('valuation.marketValueNote')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-md">{t('valuation.marketValueNote')}</p>
                     </div>
                     {(mustCount(unpricedRes)) > 0 && (
                         <div className="text-gray-400">
@@ -412,7 +412,7 @@ export default async function InventoryPage() {
                         }
                     })}
                 />
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">
                     {t('inventory.footerNote')}
                 </p>
             </section>

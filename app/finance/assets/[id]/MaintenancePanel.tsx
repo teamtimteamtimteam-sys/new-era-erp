@@ -218,7 +218,7 @@ export default function MaintenancePanel({
                     <span className="text-xs text-green-800">{t('equipment.maint.capitalised')}</span>
                 ) : (
                     /* 【具名的缺席,不是空白】为什么这里没有按钮,说出来 */
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-[color:var(--brand-muted-text)]">
                         {!inServiceDate ? t('equipment.maint.capNotInService')
                          : !r.capitalised ? t('equipment.maint.capNeedsFlag') : ''}
                     </span>
@@ -240,7 +240,7 @@ export default function MaintenancePanel({
                     </Button>
                 </PermissionGate>
             </div>
-            {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('equipment.needsProcessingEdit')}</p>}
+            {!canEdit && <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('equipment.needsProcessingEdit')}</p>}
             {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
 
             {/* ★ 空态由表自己说(DataTable 的 empty)—— CONV-8 §⑤ 的推论。 */}
@@ -264,14 +264,14 @@ export default function MaintenancePanel({
                 <div className="border border-gray-400 rounded p-3 text-sm space-y-3 max-w-2xl">
                     <div className="flex flex-wrap gap-3 items-end">
                         <label className="block">
-                            <span className="text-xs text-gray-600 block">{t('equipment.maint.date')}</span>
+                            <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.maint.date')}</span>
                             {/* 【没有 defaultValue,而且不许有】见本文件抬头。 */}
                             <input type="date" value={f.performedOn}
                                    onChange={(e) => setF({ ...f, performedOn: e.target.value })}
                                    className={CONTROL_INPUT} />
                         </label>
                         <label className="block">
-                            <span className="text-xs text-gray-600 block">{t('equipment.maint.kind')}</span>
+                            <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.maint.kind')}</span>
                             <select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}
                                     className={CONTROL_SELECT}>
                                 <option value="service">{t('equipment.kind.service')}</option>
@@ -280,14 +280,14 @@ export default function MaintenancePanel({
                         </label>
                     </div>
                     <label className="block">
-                        <span className="text-xs text-gray-600 block">{t('equipment.maint.what')}</span>
+                        <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.maint.what')}</span>
                         <input value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })}
                                className={`${CONTROL_INPUT} w-full`} />
                     </label>
 
                     {/* ── 谁做的:【一个选择】,不是三个格子 ─────────────────────── */}
                     <div>
-                        <span className="text-xs text-gray-600 block mb-1">{t('equipment.maint.who')}</span>
+                        <span className="text-xs text-[color:var(--brand-muted-text)] block mb-1">{t('equipment.maint.who')}</span>
                         <div className="flex gap-3 mb-1">
                             {/* 【三个标签写成静态键】拼出来的键漏一个,屏幕上会印出
                                 键名本身而没有任何东西报错 —— check-i18n 存在的理由。
@@ -327,13 +327,13 @@ export default function MaintenancePanel({
 
                     {/* ── 这次活的花费(可选)—— 它是资本化建议那笔算术的输入 ────── */}
                     <label className="block">
-                        <span className="text-xs text-gray-600 block">{t('equipment.maint.expense')}</span>
+                        <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.maint.expense')}</span>
                         <select value={f.expenseId} onChange={(e) => setF({ ...f, expenseId: e.target.value })}
                                 className={`${CONTROL_SELECT} w-full`}>
                             <option value="">{t('equipment.maint.expenseNone')}</option>
                             {expenses.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
                         </select>
-                        <span className="text-xs text-gray-500 block mt-1">{t('equipment.maint.expenseHint')}</span>
+                        <span className="text-xs text-[color:var(--brand-muted-text)] block mt-1">{t('equipment.maint.expenseHint')}</span>
                     </label>
 
                     {/* ── 资本化判断 ─────────────────────────────────────────── */}
@@ -343,12 +343,12 @@ export default function MaintenancePanel({
                                    onChange={(e) => setF({ ...f, capitalised: e.target.checked })} />
                             <span>
                                 <span className="block">{t('equipment.maint.capitalise')}</span>
-                                <span className="block text-xs text-gray-600">{t('equipment.maint.capitaliseWhat')}</span>
+                                <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('equipment.maint.capitaliseWhat')}</span>
                             </span>
                         </label>
                         {/* 【建议:两个阈值 + 这台机器的记录成本】—— 判词本身由
                             equipment_maintenance_advice 在存下来之后算(一份实现)。 */}
-                        <p className="text-xs text-gray-600 mt-1">
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                             {t('equipment.maint.thresholdHint', {
                                 pct: String(capitalisePct),
                                 floor: String(capitaliseFloor),
@@ -358,12 +358,12 @@ export default function MaintenancePanel({
                         </p>
                         {f.capitalised && (
                             <label className="block mt-2">
-                                <span className="text-xs text-gray-600 block">{t('equipment.maint.reason')}</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.maint.reason')}</span>
                                 <input value={f.capitalisationReason}
                                        onChange={(e) => setF({ ...f, capitalisationReason: e.target.value })}
                                        className={`${CONTROL_INPUT} w-full`} />
                                 {/* 【说清为什么要理由,而不只是拒绝】—— P2 的原话。 */}
-                                <span className="text-xs text-gray-600 block mt-1">{t('equipment.maint.reasonWhy')}</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)] block mt-1">{t('equipment.maint.reasonWhy')}</span>
                             </label>
                         )}
                         {f.capitalised && (
@@ -394,7 +394,7 @@ export default function MaintenancePanel({
                         </Button>
                         {/* 【禁用了就把理由摆在旁边】—— 一个按不下去又不说为什么的
                             按钮读起来像是坏了(AssetActions 立的规矩)。 */}
-                        {why && <span className="text-xs text-gray-600">{why}</span>}
+                        {why && <span className="text-xs text-[color:var(--brand-muted-text)]">{why}</span>}
                     </div>
                 </div>
             )}
@@ -467,7 +467,7 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
         <div className="border border-gray-400 rounded p-2 bg-amber-50 min-w-[18rem]">
             {/* ★【它会做什么,写在按下去【之前】】★ 这一步会动折旧的摊法,
                 而一个改了算术却不预告的按钮,正是本仓库付过 56,532.48 的那一族。 */}
-            <p className="text-xs text-gray-800 mb-2">{t('equipment.maint.capitaliseWhatHappens')}</p>
+            <p className="text-xs text-[color:var(--brand-text)] mb-2">{t('equipment.maint.capitaliseWhatHappens')}</p>
             {error && <p className="text-xs text-red-700 mb-2">{error}</p>}
             <div className="grid grid-cols-2 gap-2">
                 <label className="">
@@ -506,7 +506,7 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
                 <Button variant="secondary" size="xs" type="button" disabled={pending} onClick={() => { setOpen(false); setError(null) }}>
                     {t('common.cancel')}
                 </Button>
-                {why && <span className="text-xs text-gray-600">{why}</span>}
+                {why && <span className="text-xs text-[color:var(--brand-muted-text)]">{why}</span>}
             </div>
         </div>
     )

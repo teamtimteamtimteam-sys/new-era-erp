@@ -79,7 +79,7 @@ export function UnapplyControl({
 
     return (
         <div className="space-y-2">
-            <p className="text-xs text-gray-500">{t('assay.unapplyNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('assay.unapplyNote')}</p>
             <div className="flex flex-wrap items-center gap-2">
                 <ConfirmButton
                     subject={subject}

@@ -84,7 +84,7 @@ export default function AmendOrderForm({
                 </Link>
             </div>
             <h1 className="mb-2">{t('purchasing.amend.title', { code })}</h1>
-            <p className="text-sm text-gray-600 mb-6 max-w-3xl">{t('purchasing.amend.intro')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-6 max-w-3xl">{t('purchasing.amend.intro')}</p>
 
             {frozen && (
                 <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4">
@@ -104,7 +104,7 @@ export default function AmendOrderForm({
                     </label>
                     <input type="text" name="reason" required disabled={frozen}
                         className={`${CONTROL_INPUT} w-full`} />
-                    <p className="text-xs text-gray-500 mt-1">{t('purchasing.amend.reasonHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('purchasing.amend.reasonHint')}</p>
                 </div>
 
                 <div className="flex flex-wrap gap-4">
@@ -113,7 +113,7 @@ export default function AmendOrderForm({
                         <input type="date" name="order_date" defaultValue={orderDate} disabled={frozen}
                             className={CONTROL_INPUT} />
                         {/* 改单据日会重取牌价 —— 缺牌价即拒,绝不编一个 */}
-                        <p className="text-xs text-gray-500 mt-1">{t('purchasing.amend.orderDateHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('purchasing.amend.orderDateHint')}</p>
                     </div>
                     <div>
                         <label className="block mb-1">{t('purchasing.amend.expected')}</label>
@@ -275,7 +275,7 @@ export default function AmendOrderForm({
                             onChange={(e) => setEditTerms(e.target.checked)} />
                         {t('purchasing.amend.editTerms')}
                     </label>
-                    <p className="text-xs text-gray-500 mt-1">{t('purchasing.amend.editTermsHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('purchasing.amend.editTermsHint')}</p>
 
                     {editTerms && (
                         <div className="mt-3 space-y-2">
@@ -286,7 +286,7 @@ export default function AmendOrderForm({
                             )}
                             {terms.map((tm, i) => (
                                 <div key={i} className="flex flex-wrap items-end gap-2 border-b border-gray-200 pb-2">
-                                    <span className="font-mono text-sm text-gray-500 pb-2">{i + 1}.</span>
+                                    <span className="font-mono text-sm text-[color:var(--brand-muted-text)] pb-2">{i + 1}.</span>
                                     <div>
                                         <label className="block mb-1">{t('purchasing.form.termLabel')}</label>
                                         <input type="text" name="term_label" value={tm.label} disabled={frozen}

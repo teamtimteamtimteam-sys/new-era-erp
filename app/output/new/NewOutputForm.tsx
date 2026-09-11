@@ -174,7 +174,7 @@ export default function NewOutputForm({
                     {/* 说清【为什么】必填 —— 星号只说"必填",不说这个日期会去到哪里。
                         它是产出流水的业务日,而业务日永远不默认成今天:默认会让一次
                         补录的产出悄悄记在录入那天。与到货日同一条(IOD-1b)。 */}
-                    <p className="text-xs text-gray-500 mt-1">{t('output.form.outputDateWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('output.form.outputDateWhy')}</p>
                 </div>
 
                 {/* 状态 */}

@@ -127,10 +127,10 @@ export default function EditMetalPriceForm({
                     <label className="block mb-1">
                         {t('metalPrices.source.label')}
                     </label>
-                    <p className="text-sm text-gray-700 border border-gray-200 bg-gray-50 rounded px-3 py-2">
+                    <p className="text-sm text-[color:var(--brand-text)] border border-gray-200 bg-gray-50 rounded px-3 py-2">
                         {t(sourceLabelKey(row.source))}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">{t('metalPrices.form.priceIndexHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('metalPrices.form.priceIndexHint')}</p>
                 </div>
 
                 {/* 备注 */}

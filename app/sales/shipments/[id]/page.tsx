@@ -178,7 +178,7 @@ export default async function ShipmentDetailPage({
 
             {/* 【发货单不可作废、没有冲销】—— 这一句摆在页面上,而不是只写在表注释里:
                 看这一页的人正是会问"能不能撤"的那个人。 */}
-            <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-6">
+            <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-6">
                 {t('sales.shipDetail.immutableNote')}
             </p>
 
@@ -190,7 +190,7 @@ export default async function ShipmentDetailPage({
 
             {/* ── 送货单:签发 ─────────────────────────────────────────────── */}
             <h2 className="mb-2">{t('sales.shipDetail.issuesTitle')}</h2>
-            <p className="text-xs text-gray-500 mb-2">{t('sales.shipDetail.issuesNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('sales.shipDetail.issuesNote')}</p>
             {/* EXT-1:与另外五个单据【同一个公共件】。
                 一张没有行的发货单不给签发 —— 发出去的会是一张没有内容的送货单。
                 ★ 出口检查:这是这一页唯一的出口,住 children;state 恒为 'ok'。 */}
@@ -204,11 +204,11 @@ export default async function ShipmentDetailPage({
                 hasLines={lines.length > 0}
             />
             {issues.length === 0 ? (
-                <p className="text-sm text-gray-500">{t('sales.shipDetail.neverIssued')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('sales.shipDetail.neverIssued')}</p>
             ) : (
                 <ul className="text-sm space-y-1">
                     {issues.map((iss) => (
-                        <li key={iss.version} className="font-mono text-xs">
+                        <li key={iss.version} className="font-mono text-xs text-[color:var(--brand-muted-text)]">
                             <a
                                 href={`/sales/shipments/${head.id}/pdf?version=${iss.version}`}
                                 target="_blank"

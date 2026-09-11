@@ -31,7 +31,7 @@ export default function InvoicesTable({ rows, empty }: { rows: InvoiceRow[]; emp
     const statePill = (r: InvoiceRow) => {
         if (r.isVoid) {
             return (
-                <span className="px-2 py-1 rounded text-xs bg-gray-200 text-gray-600">
+                <span className="px-2 py-1 rounded text-xs bg-gray-200 text-[color:var(--brand-text)]">
                     {t('invoice.status.void')}
                 </span>
             )

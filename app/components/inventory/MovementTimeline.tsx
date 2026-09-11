@@ -42,7 +42,7 @@ export default async function MovementTimeline({
             {/* 结余仍旧只在【有行】的时候画 —— 这一条与空态无关,转换前后一样。 */}
             {rows.length > 0 && (
                 <p className="text-sm mt-3">
-                    <span className="text-gray-600 mr-1">{t('movements.sumLabel')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('movements.sumLabel')}:</span>
                     <span className="font-mono">{total} {unit}</span>
                 </p>
             )}

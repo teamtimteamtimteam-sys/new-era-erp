@@ -21,7 +21,7 @@ export default function DeleteTrainingButton({ id, name }: { id: string; name: s
                 title={t('hr.deleteTrainingConfirmTitle')}
                 body={t('common.softDeleteNote')}
                 details={
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-sm font-medium text-[color:var(--brand-text)]">
                         {t('hr.deleteTrainingConsequence')}
                     </p>
                 }

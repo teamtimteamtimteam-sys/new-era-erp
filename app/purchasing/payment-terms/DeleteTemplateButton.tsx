@@ -27,7 +27,7 @@ canEdit: boolean
                 title={t('purchasing.deleteTemplateConfirmTitle')}
                 body={t('common.softDeleteNote')}
                 details={
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-sm font-medium text-[color:var(--brand-text)]">
                         {t('purchasing.deleteTemplateConsequence')}
                     </p>
                 }

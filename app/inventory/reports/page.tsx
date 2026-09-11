@@ -21,13 +21,13 @@ export default async function ReportsIndexPage() {
         <>
             <div className="p-8">
                 <h1 className="mb-2">{t('reports.title')}</h1>
-                <p className="text-sm text-gray-500 mb-6">{t('reports.intro')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">{t('reports.intro')}</p>
                 <div className="grid gap-4 sm:grid-cols-2 max-w-4xl">
                     {CARDS.map((c) => (
                         <Link key={c.href} href={c.href}
                               className="block border border-gray-300 rounded p-4 hover:bg-gray-50">
                             <div className="font-medium mb-1">{t(c.titleKey)}</div>
-                            <div className="text-sm text-gray-500">{t(c.descKey)}</div>
+                            <div className="text-sm text-[color:var(--brand-muted-text)]">{t(c.descKey)}</div>
                         </Link>
                     ))}
                 </div>

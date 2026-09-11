@@ -22,7 +22,7 @@ export default function DeleteDepartmentButton({ id, name }: { id: string; name:
                 title={t('hr.deleteDepartmentConfirmTitle')}
                 body={t('common.softDeleteNote')}
                 details={
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-sm font-medium text-[color:var(--brand-text)]">
                         {t('hr.deleteDepartmentConsequence')}
                     </p>
                 }

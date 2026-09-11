@@ -186,7 +186,7 @@ export default function ServiceIntervalPanel({
                     </Button>
                 </PermissionGate>
             </div>
-            {!canEdit && <p className="text-xs text-gray-500 mb-2">{t('equipment.needsProcessingEdit')}</p>}
+            {!canEdit && <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('equipment.needsProcessingEdit')}</p>}
             {error && <p className="text-red-600 text-xs mb-2">{error}</p>}
 
             {monitored.length === 0 ? (
@@ -196,13 +196,13 @@ export default function ServiceIntervalPanel({
                    no_reference 是同一课。 */
                 <div className="border border-gray-300 rounded p-3 mb-2 bg-gray-50">
                     <p className="text-sm font-medium">{t('equipment.intervals.notMonitored')}</p>
-                    <p className="text-xs text-gray-600 mt-1">{t('equipment.intervals.notMonitoredWhy')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('equipment.intervals.notMonitoredWhy')}</p>
                     {/* FIX-2(A):**读数与那句诚实话属于【机器】,不属于间隔行。**
                         没人监控的时候正是它们最要紧的时候 —— 否则这块屏幕
                         一边说"没有人在看这台机器",一边对已经看不见的磨损闭口不谈。
                         取得日以来的公斤数来自 equipment_usage(加工炉只能从取得日起
                         归属给机器,所以它就是"取得日以来"),句子来自同一个 honesty()。 */}
-                    <p className="text-xs text-gray-700 mt-2">
+                    <p className="text-xs text-[color:var(--brand-text)] mt-2">
                         {t('equipment.intervals.sinceAcquisition',
                            { kg: num(kgSinceAcquisition), date: acquisitionDate })}
                     </p>
@@ -245,7 +245,7 @@ export default function ServiceIntervalPanel({
                                             : ''}
                                     </span>
                                     {r.disposition === 'ignore' && (
-                                        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                                        <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-[color:var(--brand-muted-text)]">
                                             {t('equipment.intervals.ignored')}
                                         </span>
                                     )}
@@ -270,7 +270,7 @@ export default function ServiceIntervalPanel({
                                 </div>
 
                                 {/* ── 基线:从哪一天算起,以及为什么是那一天 ────────── */}
-                                <p className="text-xs text-gray-700">
+                                <p className="text-xs text-[color:var(--brand-text)]">
                                     {r.never_serviced
                                         ? t('equipment.intervals.baselineNever', { date: r.baseline_date ?? acquisitionDate })
                                         : t('equipment.intervals.baselineLast', { date: r.last_service_date ?? '—' })}
@@ -320,7 +320,7 @@ export default function ServiceIntervalPanel({
                 <div className="border border-gray-400 rounded p-3 text-sm space-y-2 max-w-2xl">
                     <div className="flex flex-wrap gap-3 items-end">
                         <label className="block">
-                            <span className="text-xs text-gray-600 block">{t('equipment.intervals.kind')}</span>
+                            <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.intervals.kind')}</span>
                             <select value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}
                                     className={CONTROL_SELECT}>
                                 <option value="service">{t('equipment.kind.service')}</option>
@@ -328,7 +328,7 @@ export default function ServiceIntervalPanel({
                             </select>
                         </label>
                         <label className="block">
-                            <span className="text-xs text-gray-600 block">{t('equipment.intervals.disposition')}</span>
+                            <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.intervals.disposition')}</span>
                             <select value={f.disposition} onChange={(e) => setF({ ...f, disposition: e.target.value })}
                                     className={CONTROL_SELECT}>
                                 <option value="warn">{t('equipment.intervals.dispWarn')}</option>
@@ -338,30 +338,30 @@ export default function ServiceIntervalPanel({
                     </div>
                     <div className="grid grid-cols-2 gap-3 max-w-xl">
                         <label className="block">
-                            <span className="text-xs text-gray-600 block">{t('equipment.intervals.intervalKg')}</span>
+                            <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.intervals.intervalKg')}</span>
                             <input value={f.intervalKg} onChange={(e) => setF({ ...f, intervalKg: e.target.value })}
                                    inputMode="decimal" className={`${CONTROL_INPUT} w-full`} />
                         </label>
                         <label className="block">
-                            <span className="text-xs text-gray-600 block">{t('equipment.intervals.leadKg')}</span>
+                            <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.intervals.leadKg')}</span>
                             <input value={f.leadKg} onChange={(e) => setF({ ...f, leadKg: e.target.value })}
                                    inputMode="decimal" className={`${CONTROL_INPUT} w-full`} />
                         </label>
                         <label className="block">
-                            <span className="text-xs text-gray-600 block">{t('equipment.intervals.intervalDays')}</span>
+                            <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.intervals.intervalDays')}</span>
                             <input value={f.intervalDays} onChange={(e) => setF({ ...f, intervalDays: e.target.value })}
                                    inputMode="numeric" className={`${CONTROL_INPUT} w-full`} />
                         </label>
                         <label className="block">
-                            <span className="text-xs text-gray-600 block">{t('equipment.intervals.leadDays')}</span>
+                            <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.intervals.leadDays')}</span>
                             <input value={f.leadDays} onChange={(e) => setF({ ...f, leadDays: e.target.value })}
                                    inputMode="numeric" className={`${CONTROL_INPUT} w-full`} />
                         </label>
                     </div>
                     {/* 【两条规矩说出来,但【不在这里执行】】执行它们的是表上的 CHECK。
                         在 TS 里再判一遍就是第二份实现,而两份实现必然漂开。 */}
-                    <p className="text-xs text-gray-600">{t('equipment.intervals.atLeastOneHint')}</p>
-                    <p className="text-xs text-gray-600">{t('equipment.intervals.leadHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.intervals.atLeastOneHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.intervals.leadHint')}</p>
                     <div className="flex gap-2">
                         <Button size="xs" type="button" disabled={pending}
                                 onClick={() => run(() => saveServiceInterval({

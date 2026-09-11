@@ -47,7 +47,7 @@ export default async function AssaySection({
                 这也是首页那一支点名的同一件事 —— 补救就发生在这张页面上,
                 所以两处必须说同一句话。 */}
             {!hasRequirement ? (
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                     {t('assay.policy.noRequirement')}
                 </p>
             ) : missingMetals.length === 0 ? (

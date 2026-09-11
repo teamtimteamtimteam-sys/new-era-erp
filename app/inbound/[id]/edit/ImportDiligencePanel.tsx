@@ -59,7 +59,7 @@ export default function ImportDiligencePanel({
         <div className="mb-8">
             <h2 className="mb-2">{t('inbound.importDiligence.title')}</h2>
             <div className="border border-gray-300 rounded p-3 max-w-2xl">
-                <p className="text-xs text-gray-600 mb-2">{t('inbound.importDiligence.what')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('inbound.importDiligence.what')}</p>
 
                 <p className={'text-sm mb-3 px-2 py-1 rounded border ' + tone}>
                     {/* 【显式四选一,不用字符串拼键】拼出来的键 check-i18n 只能靠
@@ -74,7 +74,7 @@ export default function ImportDiligencePanel({
                 </p>
 
                 {/* 【为什么这里只提醒不拦】—— 说在人看得见的地方,不只写在函数抬头 */}
-                <p className="text-xs text-gray-600 mb-3">{t('inbound.importDiligence.whyWarnOnly')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('inbound.importDiligence.whyWarnOnly')}</p>
 
                 <PermissionGate code="module.inbound.edit" allowed={canEdit}>
                     <div className="space-y-2">

@@ -27,7 +27,7 @@ export default async function NewRolePage() {
             </div>
 
             <h2 className="mb-2">{t('permissions.addRole')}</h2>
-            <p className="text-sm text-gray-500 mb-4">{t('permissions.addRoleHint')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('permissions.addRoleHint')}</p>
 
             <RoleForm
                 initial={{

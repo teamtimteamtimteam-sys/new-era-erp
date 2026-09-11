@@ -187,7 +187,7 @@ export default async function EmployeeDetailPage({
             title={
                 <>
                     {emp.legal_name}
-                    <span className="ml-3 font-mono text-base text-gray-500">{emp.code}</span>
+                    <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{emp.code}</span>
                 </>
             }
             // ★ 出口:记一次培训 / 改这名员工。转换前它们画在 h1 右边 ——
@@ -241,7 +241,7 @@ export default async function EmployeeDetailPage({
                             <>
                                 {emp.hire_date}
                                 {emp.probation_end_date && (
-                                    <span className="text-gray-500 ml-2">
+                                    <span className="text-[color:var(--brand-muted-text)] ml-2">
                                         {t('hr.colProbationEnd')}: {emp.probation_end_date}
                                     </span>
                                 )}
@@ -253,13 +253,13 @@ export default async function EmployeeDetailPage({
                         value: (
                             <>
                                 <span className="font-mono">{emp.annual_leave_available_days ?? '-'}</span>
-                                <span className="text-xs text-gray-500 ml-1">{t('hr.unitDays')}</span>
-                                <span className="text-gray-600 ml-4 mr-1">{t('hr.colAnnualLeaveAccrued')}:</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)] ml-1">{t('hr.unitDays')}</span>
+                                <span className="text-[color:var(--brand-muted-text)] ml-4 mr-1">{t('hr.colAnnualLeaveAccrued')}:</span>
                                 <span className="font-mono">{emp.annual_leave_accrued_days ?? '-'}</span>
-                                <span className="text-xs text-gray-500 ml-1">{t('hr.unitDays')}</span>
-                                <span className="text-gray-600 ml-4 mr-1">{t('hr.colAnnualLeaveRate')}:</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)] ml-1">{t('hr.unitDays')}</span>
+                                <span className="text-[color:var(--brand-muted-text)] ml-4 mr-1">{t('hr.colAnnualLeaveRate')}:</span>
                                 <span className="font-mono">{emp.annual_leave_rate_days ?? '-'}</span>
-                                <span className="text-xs text-gray-500 ml-1">{t('hr.unitDaysPerYear')}</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)] ml-1">{t('hr.unitDaysPerYear')}</span>
                             </>
                         ),
                     },
@@ -299,7 +299,7 @@ export default async function EmployeeDetailPage({
                                     {emp.separation_type && (
                                         <span className="ml-2">{t('hr.separationType.' + emp.separation_type)}</span>
                                     )}
-                                    {emp.separation_notes && <span className="ml-2 text-gray-500">{emp.separation_notes}</span>}
+                                    {emp.separation_notes && <span className="ml-2 text-[color:var(--brand-muted-text)]">{emp.separation_notes}</span>}
                                 </>
                             ),
                           }]
@@ -308,8 +308,8 @@ export default async function EmployeeDetailPage({
             />
 
             {emp.notes && (
-                <p className="text-sm text-gray-600 mb-6 whitespace-pre-line">
-                    <span className="text-gray-500 mr-1">{t('hr.colNotes')}:</span>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-6 whitespace-pre-line">
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('hr.colNotes')}:</span>
                     {emp.notes}
                 </p>
             )}
@@ -319,24 +319,24 @@ export default async function EmployeeDetailPage({
                 表格契约,是 CONV-3 §⑧-3 拒绝对透视表做的同一件事。 */}
             <h2 className="mb-3">{t('hr.historyTitle')}</h2>
             {history.length === 0 ? (
-                <p className="text-sm text-gray-500 mb-6">{t('hr.historyEmpty')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">{t('hr.historyEmpty')}</p>
             ) : (
                 <ol className="mb-6 border-l-2 border-gray-200 pl-4 space-y-3">
                     {history.map((h) => (
                         <li key={h.id} className="text-sm">
                             <div className="flex flex-wrap items-baseline gap-2">
-                                <span className="font-mono text-gray-600">{h.effective_date}</span>
-                                <span className="px-2 py-0.5 rounded text-xs bg-gray-200 text-gray-700">
+                                <span className="font-mono text-[color:var(--brand-muted-text)]">{h.effective_date}</span>
+                                <span className="px-2 py-0.5 rounded text-xs bg-gray-200 text-[color:var(--brand-text)]">
                                     {t('hr.changeType.' + h.change_type)}
                                 </span>
                                 {h.job_title && <span>{h.job_title}</span>}
                                 {h.department_id && (
-                                    <span className="text-gray-500">
+                                    <span className="text-[color:var(--brand-muted-text)]">
                                         {deptCodeById.get(h.department_id) ?? ''}
                                     </span>
                                 )}
                             </div>
-                            {h.notes && <p className="text-gray-500 mt-0.5">{h.notes}</p>}
+                            {h.notes && <p className="text-[color:var(--brand-muted-text)] mt-0.5">{h.notes}</p>}
                         </li>
                     ))}
                 </ol>
@@ -370,7 +370,7 @@ export default async function EmployeeDetailPage({
 
             {/* 薪资历史(受限) */}
             <h2 className="mb-1">{t('hr.payrollTitle')}</h2>
-            <p className="text-xs text-gray-500 mb-3">{t('hr.payRestricted')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('hr.payRestricted')}</p>
             <EmployeePayrollTable rows={payRows} />
         </ListPage>
     )

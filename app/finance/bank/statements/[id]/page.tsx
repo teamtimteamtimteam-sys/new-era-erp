@@ -217,29 +217,29 @@ export default async function BankStatementDetailPage({
                         而不是让这一块整个消失 —— 消失与"读不出来"在屏幕上长得一模一样。 */}
                     <div className="border border-gray-300 rounded p-4 mb-4">
                         <h2 className="mb-3">{t('bank.record.title')}</h2>
-                        {!currentRecord && <p className="text-sm text-gray-600">{t('bank.record.none')}</p>}
+                        {!currentRecord && <p className="text-sm text-[color:var(--brand-muted-text)]">{t('bank.record.none')}</p>}
                         {currentRecord && (
                         <>
-                            <p className="text-sm text-gray-700 mb-1">
+                            <p className="text-sm text-[color:var(--brand-text)] mb-1">
                                 {t('bank.record.frozenTitle', {
                                     when: formatTimestamp(currentRecord.reconciled_at, dateLocale),
                                 })}
                             </p>
                             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm mb-3">
                                 <span>
-                                    <span className="text-gray-600 mr-1">{t('bank.balancePanel.bankClosing')}:</span>
+                                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.bankClosing')}:</span>
                                     <span className="font-mono">
                                         {formatAmount(currentRecord.bank_closing_balance, currentRecord.currency)}
                                     </span>
                                 </span>
                                 <span>
-                                    <span className="text-gray-600 mr-1">{t('bank.balancePanel.bookBalance')}:</span>
+                                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.bookBalance')}:</span>
                                     <span className="font-mono">
                                         {formatAmount(currentRecord.book_balance, currentRecord.currency)}
                                     </span>
                                 </span>
                                 <span>
-                                    <span className="text-gray-600 mr-1">{t('bank.balancePanel.difference')}:</span>
+                                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.difference')}:</span>
                                     <span className="font-mono font-semibold">
                                         {formatAmount(currentRecord.difference, currentRecord.currency)}
                                     </span>
@@ -248,10 +248,10 @@ export default async function BankStatementDetailPage({
 
                             {/* 今天重算 —— 与上面那一组【并排】,不替换它 */}
                             <div className="bg-gray-50 rounded p-3 mb-3">
-                                <p className="text-sm text-gray-700 mb-1">{t('bank.record.recomputedTitle')}</p>
+                                <p className="text-sm text-[color:var(--brand-text)] mb-1">{t('bank.record.recomputedTitle')}</p>
                                 <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
                                     <span>
-                                        <span className="text-gray-600 mr-1">{t('bank.record.bookNow')}:</span>
+                                        <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.record.bookNow')}:</span>
                                         <span className="font-mono">
                                             {formatAmount(currentRecord.book_balance_now, currentRecord.currency)}
                                         </span>
@@ -267,7 +267,7 @@ export default async function BankStatementDetailPage({
                                     )}
                                 </div>
                                 {currentRecord.book_balance_drift !== 0 && (
-                                    <p className="text-xs text-gray-600 mt-1">
+                                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                                         {t('bank.record.driftNote', { date: currentRecord.period_end })}
                                     </p>
                                 )}
@@ -276,7 +276,7 @@ export default async function BankStatementDetailPage({
                             {/* 写明的差额 */}
                             <h3 className="mb-1">{t('bank.record.explanation')}</h3>
                             {(itemsByRecon.get(currentRecord.reconciliation_id) ?? []).length === 0 ? (
-                                <p className="text-sm text-gray-600">{t('bank.record.noItems')}</p>
+                                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('bank.record.noItems')}</p>
                             ) : (
                                 <ul className="text-sm space-y-1">
                                     {(itemsByRecon.get(currentRecord.reconciliation_id) ?? []).map((v) => (
@@ -284,8 +284,8 @@ export default async function BankStatementDetailPage({
                                             <span className="font-mono w-32 text-right">
                                                 {formatAmount(v.amount, currentRecord.currency)}
                                             </span>
-                                            <span className="text-gray-700">{t('bank.varianceKind.' + v.item_kind)}</span>
-                                            <span className="text-gray-600">— {v.note}</span>
+                                            <span className="text-[color:var(--brand-text)]">{t('bank.varianceKind.' + v.item_kind)}</span>
+                                            <span className="text-[color:var(--brand-muted-text)]">— {v.note}</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -297,7 +297,7 @@ export default async function BankStatementDetailPage({
                     {supersededRecords.length > 0 && (
                         <div className="border border-gray-200 rounded p-4 mb-4 text-sm">
                             <h2 className="mb-1">{t('bank.record.history')}</h2>
-                            <p className="text-xs text-gray-600 mb-2">{t('bank.record.supersededNote')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('bank.record.supersededNote')}</p>
                             <ul className="space-y-2">
                                 {supersededRecords.map((r) => (
                                     <li key={r.reconciliation_id}>
@@ -307,7 +307,7 @@ export default async function BankStatementDetailPage({
                                                 {formatAmount(r.book_balance, r.currency)} /{' '}
                                                 {formatAmount(r.difference, r.currency)}
                                             </span>
-                                            <span className="text-gray-600">
+                                            <span className="text-[color:var(--brand-muted-text)]">
                                                 {t('bank.record.superseded', {
                                                     when: r.superseded_at
                                                         ? formatTimestamp(r.superseded_at, dateLocale)
@@ -342,7 +342,7 @@ export default async function BankStatementDetailPage({
                             <>
                                 <span className="font-mono">{stmt.bank_account_code}</span>{' '}
                                 {t('finance.bank.' + stmt.bank_account_code)}
-                                <span className="text-gray-500 ml-2">{stmt.currency}</span>
+                                <span className="text-[color:var(--brand-muted-text)] ml-2">{stmt.currency}</span>
                             </>
                         ),
                     },
@@ -354,7 +354,7 @@ export default async function BankStatementDetailPage({
                         mono: true,
                     },
                     ...(stmt.file_name
-                        ? [{ label: t('bank.fileName'), value: <span className="text-xs">{stmt.file_name}</span>, mono: true }]
+                        ? [{ label: t('bank.fileName'), value: <span className="text-xs text-[color:var(--brand-muted-text)]">{stmt.file_name}</span>, mono: true }]
                         : []),
                     {
                         label: t('finance.colStatus'),
@@ -379,8 +379,8 @@ export default async function BankStatementDetailPage({
             />
 
             {stmt.notes && (
-                <p className="text-sm text-gray-600 mb-4 whitespace-pre-line">
-                    <span className="text-gray-500 mr-1">{t('finance.memo')}:</span>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4 whitespace-pre-line">
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.memo')}:</span>
                     {stmt.notes}
                 </p>
             )}

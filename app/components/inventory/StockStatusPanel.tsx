@@ -132,10 +132,10 @@ export default async function StockStatusPanel({
     return (
         <section className="mt-8 pt-8 border-t">
             <h2 className="mb-1">{t('stock.panelTitle')}</h2>
-            <p className="text-sm text-gray-500 mb-4">{t('stock.panelNote')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('stock.panelNote')}</p>
 
             {totalHeld === 0 && (
-                <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4">
+                <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mb-4">
                     {t('stock.nothingHeld')}
                 </p>
             )}
@@ -150,16 +150,16 @@ export default async function StockStatusPanel({
                                 ) : (
                                     <>
                                         <span className="font-mono">{g.code}</span>
-                                        {g.name && <span className="text-gray-500 ml-2">{g.name}</span>}
+                                        {g.name && <span className="text-[color:var(--brand-muted-text)] ml-2">{g.name}</span>}
                                     </>
                                 )}
                             </span>
                             <span className="text-sm">
-                                <span className="text-gray-600">{t('stock.available')}:</span>{' '}
+                                <span className="text-[color:var(--brand-muted-text)]">{t('stock.available')}:</span>{' '}
                                 <span className="font-mono">{g.available} {unit}</span>
                             </span>
                             <span className="text-sm">
-                                <span className="text-gray-600">{t('stock.onHold')}:</span>{' '}
+                                <span className="text-[color:var(--brand-muted-text)]">{t('stock.onHold')}:</span>{' '}
                                 <span className={'font-mono ' + (g.held > 0 ? 'text-amber-800 font-medium' : '')}>
                                     {g.held} {unit}
                                 </span>
@@ -167,21 +167,21 @@ export default async function StockStatusPanel({
                             {/* SO-2:第三格。与暂扣并列,因为它回答的是同一个问题 ——
                                 "这些货为什么不能动" —— 只是原因不同。 */}
                             <span className="text-sm">
-                                <span className="text-gray-600">{t('stock.committed')}:</span>{' '}
+                                <span className="text-[color:var(--brand-muted-text)]">{t('stock.committed')}:</span>{' '}
                                 <span className={'font-mono ' + (g.committed > 0 ? 'text-blue-800 font-medium' : '')}>
                                     {g.committed} {unit}
                                 </span>
                             </span>
                             {[...g.unknown.entries()].map(([s, q]) => (
                                 <span key={s} className="text-sm">
-                                    <span className="text-gray-600">{t('stock.unknownStatus', { status: s })}:</span>{' '}
+                                    <span className="text-[color:var(--brand-muted-text)]">{t('stock.unknownStatus', { status: s })}:</span>{' '}
                                     <span className="font-mono text-red-700">{q} {unit}</span>
                                 </span>
                             ))}
                         </div>
                         {key === '__unspecified__' && (
                             // 说明性的一句,不是警告 —— 今天全部库存都在这一组里
-                            <p className="text-xs text-gray-500 mt-1">{t('stock.unspecifiedLocationHint')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('stock.unspecifiedLocationHint')}</p>
                         )}
                         <HoldReleaseControls
                             inboundBatchId={inboundBatchId}
@@ -240,9 +240,9 @@ export default async function StockStatusPanel({
                 <div className="mt-4 pt-4 border-t border-gray-200">
                     <h3 className="mb-1">{t('stock.reservedBy')}</h3>
                     {!canSeeOrders ? (
-                        <p className="text-sm text-gray-600">{t('common.restricted')}</p>
+                        <p className="text-sm text-[color:var(--brand-muted-text)]">{t('common.restricted')}</p>
                     ) : totalCommitted === 0 ? (
-                        <p className="text-sm text-gray-600">{t('stock.nothingCommitted')}</p>
+                        <p className="text-sm text-[color:var(--brand-muted-text)]">{t('stock.nothingCommitted')}</p>
                     ) : (
                         <ul className="text-sm space-y-1">
                             {provenance.map((p) => (
@@ -257,13 +257,13 @@ export default async function StockStatusPanel({
                                     ) : (
                                         <span className="font-mono">—</span>
                                     )}
-                                    <span className="text-gray-500">
+                                    <span className="text-[color:var(--brand-muted-text)]">
                                         #{p.sales_order_lines?.line_no ?? '—'}
                                     </span>
                                     <span className="font-mono">
                                         {p.qty} {unit}
                                     </span>
-                                    <span className="text-gray-500">
+                                    <span className="text-[color:var(--brand-muted-text)]">
                                         {p.storage_locations?.code ?? t('stock.unspecifiedLocation')}
                                     </span>
                                 </li>

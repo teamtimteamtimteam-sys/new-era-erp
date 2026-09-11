@@ -53,7 +53,7 @@ export default function IntakeConditionFormSection({
         return (
             <div className="border border-gray-300 rounded p-3 bg-gray-50">
                 <p className="text-sm font-medium mb-1">{t('inbound.condition.title')}</p>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-[color:var(--brand-muted-text)]">
                     {t('inbound.condition.notApplicable', {
                         kind: locale === 'zh' ? axis.kind_zh : axis.kind_en,
                     })}
@@ -65,7 +65,7 @@ export default function IntakeConditionFormSection({
     return (
         <div className="border border-gray-300 rounded p-3">
             <p className="text-sm font-medium mb-1">{t('inbound.condition.title')}</p>
-            <p className="text-xs text-gray-600 mb-3">{t('inbound.condition.atGateHint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('inbound.condition.atGateHint')}</p>
             <IntakeConditionFields
                 states={states} certainties={certainties}
                 picked={picked} certainty={certainty}

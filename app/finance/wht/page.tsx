@@ -148,7 +148,7 @@ export default async function WhtPage() {
                         <div className="text-sm">
                             <strong>{t('wht.noneTitle')}</strong>
                             <br />
-                            <span className="text-gray-600">{t('wht.noneBody')}</span>
+                            <span className="text-[color:var(--brand-muted-text)]">{t('wht.noneBody')}</span>
                         </div>
                     }
                 />

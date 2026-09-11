@@ -199,7 +199,7 @@ export default async function AssetsPage({
                     <DepreciationPreviewTable rows={depreciationTableRows} empty={t('assets.nothingToDepreciate', { 0: d })} baseCurrency={baseCurrency} />
                 </div>
             ) : (
-                <p className="text-sm text-gray-500 mb-3">{t('assets.nothingToDepreciate', { 0: d })}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('assets.nothingToDepreciate', { 0: d })}</p>
             )}
             <DepreciateButton canEdit={canEdit} periodEnd={d} disabled={totalDelta === 0} />
         </ListPage>

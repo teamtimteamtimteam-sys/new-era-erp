@@ -230,7 +230,7 @@ export default function TaskModal({
                             className={inputCls}
                             placeholder={t('tasks.form.tagsPlaceholder')}
                         />
-                        <p className="mt-1 text-xs text-gray-500">
+                        <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">
                             {t('tasks.form.tagsHint')}
                         </p>
                     </div>

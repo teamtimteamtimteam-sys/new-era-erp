@@ -64,7 +64,7 @@ export function PostPayrollButton({
                     <dl className="divide-y divide-[color:var(--brand-border)] rounded border border-[color:var(--brand-border)]">
                         {postingLines.map((l) => (
                             <div key={l.acct} className="flex items-baseline justify-between gap-4 px-3 py-1.5 text-sm">
-                                <dt className="text-muted-foreground">
+                                <dt className="text-[color:var(--brand-muted-text)]">
                                     <span className="font-mono">{l.acct}</span> {l.name}
                                 </dt>
                                 <dd className="font-mono whitespace-nowrap">{l.amount}</dd>
@@ -112,7 +112,7 @@ export function UnpostPayrollControl({
             {/* ☞ hr.unpostNote(「分录会被冲销」)【留在页面上】,没有搬进对话框:
                 hr.unpostConfirm 本身不说后果,而重写那一句是 COPY-2 的事。
                 本刀只给它一个主语。 */}
-            <p className="text-xs text-gray-500">{t('hr.unpostNote')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('hr.unpostNote')}</p>
             <div className="flex flex-wrap items-center gap-2">
                 {/* CONFIRM-1:★ 撤销档,不是破坏档 —— 撤销过账冲掉的是分录,
                     原分录与冲销分录都留在账上。理由输入框搬进了对话框,

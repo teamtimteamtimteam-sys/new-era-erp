@@ -155,10 +155,10 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                         <option value="forwarder">{t('suppliers.type.forwarder')}</option>
                         <option value="service_vendor">{t('suppliers.type.service_vendor')}</option>
                     </select>
-                    <p className="text-xs text-gray-500 mt-1 max-w-2xl">
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-2xl">
                         {t('suppliers.counterpartyTypeHint')}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1 max-w-2xl">
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-2xl">
                         {t('suppliers.suppliesGoodsHint')}
                     </p>
                 </div>
@@ -190,7 +190,7 @@ export default function NewSupplierForm({ templates }: { templates: TemplateOpti
                             </option>
                         ))}
                     </select>
-                    <p className="text-xs text-gray-500 mt-1">{t('suppliers.defaultPaymentTermsHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('suppliers.defaultPaymentTermsHint')}</p>
                 </div>
 
                 {/* Incoterm */}

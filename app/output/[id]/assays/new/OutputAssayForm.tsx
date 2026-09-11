@@ -64,7 +64,7 @@ export default function OutputAssayForm({
 
             {/* 产出化验不定价 —— 与进料侧最大的区别,先说出来,免得有人等一个
                 不会出现的价格预览 */}
-            <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2">
+            <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2">
                 {t('assay.output.noPricing')}
             </p>
 
@@ -120,7 +120,7 @@ export default function OutputAssayForm({
                         <input type="number" name="moisture_pct" step="any" min="0" max="100"
                                placeholder={t('assay.moisturePlaceholder')}
                                className={`${CONTROL_INPUT} w-full`} />
-                        <p className="text-xs text-gray-500 mt-1">{t('assay.moistureHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('assay.moistureHint')}</p>
                     </div>
 
                 <div className="flex-1 min-w-[12rem]">
@@ -139,7 +139,7 @@ export default function OutputAssayForm({
                     {/* DICT-ADMIN:FIX-2 在这里写的是"还没有这个页面" —— 现在有了。
                         **人撞到墙的那一刻就在这儿**,所以链接放在这儿,
                         而不是只放在导航里(可达性不靠单点)。 */}
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                         {t('assay.labAddHint')}{' '}
                         <a href="/settings/dictionaries" className="underline app-link app-link-inline">
                             {t('dict.title')}
@@ -162,7 +162,7 @@ export default function OutputAssayForm({
                         <input className={CONTROL_CHECKBOX} type="checkbox" name="is_final" defaultChecked />
                         {t('assay.isFinal')}
                     </label>
-                    <p className="text-xs text-gray-500 mt-1">{t('assay.isFinalHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('assay.isFinalHint')}</p>
                 </div>
                 <div className="flex-1 min-w-[16rem]">
                     <label className="block mb-1">{t('assay.notes')}</label>
@@ -225,7 +225,7 @@ export default function OutputAssayForm({
                     {t('assay.output.staleWarning', { run: impact.producing_run_code ?? '?' })}
                 </p>
             ) : impact.producing_run_code ? (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('assay.output.noStaleEffect', { run: impact.producing_run_code })}
                 </p>
             ) : null}

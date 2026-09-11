@@ -55,11 +55,11 @@ export default async function EditLocationPage({
 
             <h1 className="mb-2">
                 {t('locations.editTitle')}
-                <span className="ml-3 font-mono text-base text-gray-500">{loc.code}</span>
+                <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{loc.code}</span>
             </h1>
 
             {!loc.is_active && (
-                <p className="text-sm text-gray-600 bg-gray-100 border border-gray-300 rounded px-3 py-2 mb-6 max-w-2xl">
+                <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-100 border border-gray-300 rounded px-3 py-2 mb-6 max-w-2xl">
                     {t('locations.inactiveNotice')}
                 </p>
             )}

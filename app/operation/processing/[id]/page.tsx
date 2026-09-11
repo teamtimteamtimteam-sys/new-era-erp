@@ -436,7 +436,7 @@ export default async function ProcessingDetailPage({
                         value: wo
                             ? <Link href={`/operation/orders/${wo.id}`}
                                     className="hover:underline font-mono app-link app-link-inline">{wo.code}</Link>
-                            : <span className="text-gray-500 italic">{t('processing.noWorkOrder')}</span>,
+                            : <span className="text-[color:var(--brand-muted-text)] italic">{t('processing.noWorkOrder')}</span>,
                     },
                     {
                         label: t('processing.detail.materialCost'),
@@ -455,7 +455,7 @@ export default async function ProcessingDetailPage({
             />
 
             {allocatedWhen && (
-                <p className="mt-3 text-xs text-gray-500">
+                <p className="mt-3 text-xs text-[color:var(--brand-muted-text)]">
                     {t('processing.allocation.lastRun', { when: allocatedWhen, basis: basisLabel })}
                 </p>
             )}

@@ -67,7 +67,7 @@ function CountRow({
                     className={fieldCls}
                     autoFocus
                 />
-                <span className="flex items-center px-3 text-base text-gray-600 bg-gray-100 border border-gray-300 rounded">
+                <span className="flex items-center px-3 text-base text-[color:var(--brand-text)] bg-gray-100 border border-gray-300 rounded">
                     {item.unit}
                 </span>
             </div>
@@ -116,10 +116,10 @@ export default function CountList({
                             <div className="flex items-center justify-between gap-3">
                                 <div className="min-w-0">
                                     <span className="font-mono text-sm">{item.code}</span>
-                                    <span className="ml-2 text-sm text-gray-600">{item.material}</span>
+                                    <span className="ml-2 text-sm text-[color:var(--brand-muted-text)]">{item.material}</span>
                                 </div>
                                 {mode === 'uncounted' ? (
-                                    <span className="shrink-0 text-sm text-gray-600">
+                                    <span className="shrink-0 text-sm text-[color:var(--brand-muted-text)]">
                                         {item.remaining ?? '—'} {item.unit}
                                     </span>
                                 ) : (
@@ -129,7 +129,7 @@ export default function CountList({
                                 )}
                             </div>
                             {mode === 'counted' && (
-                                <div className="mt-1 text-sm text-gray-600">
+                                <div className="mt-1 text-sm text-[color:var(--brand-muted-text)]">
                                     {t('stocktakes.bookLabel')} {item.book ?? '—'} → {t('stocktakes.countedLabel')}{' '}
                                     {item.counted} {item.unit}
                                     {item.delta !== null && item.delta !== 0 && (

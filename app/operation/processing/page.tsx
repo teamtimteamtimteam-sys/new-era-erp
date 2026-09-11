@@ -141,7 +141,7 @@ export default async function ProcessingPage({
                 <ProcessingToolbar />
             </Suspense>
 
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                 {t('processing.recordCount', { count: total })}
             </p>
 
@@ -162,7 +162,7 @@ export default async function ProcessingPage({
                     </Button>
                 )}
 
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('processing.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
 

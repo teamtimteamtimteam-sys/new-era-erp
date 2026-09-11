@@ -577,7 +577,7 @@ canEdit: boolean
                             ))}
                         </tbody>
                     </table>
-                    <p className="text-xs text-gray-500 mt-1">{t('purchasing.prepaymentNote')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('purchasing.prepaymentNote')}</p>
                 </div>
             )}
 
@@ -645,7 +645,7 @@ canEdit: boolean
                         </tbody>
                     </table>
                 ) : (
-                    <p className="text-sm text-gray-500">{t('finance.noOpenItems')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('finance.noOpenItems')}</p>
                 )
             )}
 
@@ -668,18 +668,18 @@ canEdit: boolean
                 <div>
                     {/* 【不能用 finance.colAmount】那个键写死了"(SGD)",而这里显示的是
                         【付款币种】的金额 —— 标签说 SGD、数字后面跟着 USD,自相矛盾 */}
-                    <span className="text-gray-600 mr-1">{t('finance.paymentAmount')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.paymentAmount')}:</span>
                     <span className="font-mono font-medium">
                         {formatMoneyBare(amountValid ? amountNum : 0, '同格内紧随其后的 {currency} 后缀')} {currency}
                     </span>
                 </div>
                 {/* 基准额单列一格,并标明是折算值 —— 与上面的付款币种金额不再混为一谈 */}
                 <div>
-                    <span className="text-gray-600 mr-1">{t('finance.baseEquivalent')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.baseEquivalent')}:</span>
                     <span className="font-mono">
                         {payBase === null ? '—' : formatAmount(payBase, baseCurrency)}
                         {effectiveFx !== null && (
-                            <span className="ml-1 text-xs text-gray-500">
+                            <span className="ml-1 text-xs text-[color:var(--brand-muted-text)]">
                                 @ {effectiveFx}
                                 {/* 取自哪一天:与交易日不同时【必须说出来】 */}
                                 {!crossCurrency && fxAsOf && fxAsOf !== payDate
@@ -690,7 +690,7 @@ canEdit: boolean
                     </span>
                 </div>
                 <div>
-                    <span className="text-gray-600 mr-1">{t('finance.totalAllocated')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.totalAllocated')}:</span>
                     {/* 【两边都摆出来】核销的是单据额;消耗的是款额。跨币种时这是两个数,
                         同币种时相等 —— 相等就不必重复显示。 */}
                     <span className="font-mono font-medium">
@@ -700,7 +700,7 @@ canEdit: boolean
                         一张 USD 单加一张 SGD 单直接相加。只核销一张时看不出来,两张就
                         是个没有单位的数。分币种写出来,加法就无处可做。 */}
                     {mixedCcy && (
-                        <span className="ml-2 text-xs text-gray-500">
+                        <span className="ml-2 text-xs text-[color:var(--brand-muted-text)]">
                             {t('finance.settlesDocuments', {
                                 list: settlesByCcy.map(([c, v]) => formatAmount(v, c)).join(' + '),
                             })}

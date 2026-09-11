@@ -42,7 +42,7 @@ export default async function CreditNoteSection({
         return (
             <section className="mt-8">
                 <h2 className="mb-1">{t('cn.title')}</h2>
-                <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2">
+                <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2">
                     {t('cn.saleKindNote')}
                 </p>
             </section>
@@ -121,7 +121,7 @@ export default async function CreditNoteSection({
     return (
         <section className="mt-8">
             <h2 className="mb-1">{t('cn.title')}</h2>
-            <p className="text-xs text-gray-500 mb-3">{t('cn.note')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('cn.note')}</p>
 
             {notes.length > 0 && (
                 <ul className="text-sm space-y-1 mb-3">
@@ -132,9 +132,9 @@ export default async function CreditNoteSection({
                             <li key={n.id} className="flex flex-wrap items-baseline gap-x-3">
                                 <Link href={`/finance/credit-notes/${n.id}`}
                                       className="font-mono hover:underline app-link app-link-inline">{n.code}</Link>
-                                <span className="text-gray-500">{new Date(n.note_date).toLocaleDateString(dl)}</span>
+                                <span className="text-[color:var(--brand-muted-text)]">{new Date(n.note_date).toLocaleDateString(dl)}</span>
                                 <span className="font-mono">−{formatAmount(total, n.currency)}</span>
-                                <span className="text-gray-500">{n.reason}</span>
+                                <span className="text-[color:var(--brand-muted-text)]">{n.reason}</span>
                             </li>
                         )
                     })}
@@ -143,15 +143,15 @@ export default async function CreditNoteSection({
 
             {/* 【禁用的理由长在控件旁边】—— 三种"开不了"指向三个不同的下一步 */}
             {isVoid ? (
-                <p className="text-sm text-gray-600">{t('cn.blockedVoid')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('cn.blockedVoid')}</p>
             ) : !canEdit ? (
-                <p className="text-sm text-gray-600">{t('common.restricted')} — {t('cn.needsFinanceEdit')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('common.restricted')} — {t('cn.needsFinanceEdit')}</p>
             ) : fullySettled ? (
-                <p className="text-sm text-gray-600">{t('cn.blockedFullySettled')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('cn.blockedFullySettled')}</p>
             ) : !canSeeSales ? (
                 // 【受限 ≠ 没有上限】看不到发货就算不出两个天花板,而给一个
                 // 猜出来的上限比不给更坏 —— 服务端仍会按名拒,但人已经填完了。
-                <p className="text-sm text-gray-600">{t('common.restricted')} — {t('cn.needsSalesView')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('common.restricted')} — {t('cn.needsSalesView')}</p>
             ) : (
                 <CreateCreditNoteControl canEdit={canEdit}
                     invoiceId={invoiceId}

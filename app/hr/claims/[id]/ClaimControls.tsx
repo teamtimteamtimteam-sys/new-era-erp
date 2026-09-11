@@ -60,7 +60,7 @@ export default function ClaimControls({
             {status === 'approved' && !alreadyLinked && (
                 <div>
                     <h3 className="mb-1">{t('claims.createExpense')}</h3>
-                    <p className="text-xs text-gray-600 mb-3">{t('claims.createExpenseHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('claims.createExpenseHint')}</p>
                     <div className="flex gap-2 flex-wrap items-end mb-3">
                         <label className="">{t('claims.expenseDate')}
                             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
@@ -86,7 +86,7 @@ export default function ClaimControls({
                         </Button>
                     </PermissionGate>
                     {!date && (
-                        <p className="mt-2 text-xs text-gray-600" data-state-note="claim-date">
+                        <p className="mt-2 text-xs text-[color:var(--brand-muted-text)]" data-state-note="claim-date">
                             {t('claims.needExpenseDate')}
                         </p>
                     )}

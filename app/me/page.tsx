@@ -284,7 +284,7 @@ export default async function MePage() {
     return (
         <div className="p-8 max-w-4xl">
             <h1 className="mb-1">{t('me.title')}</h1>
-            <p className="text-sm text-gray-500 mb-6">{t('me.subtitle')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">{t('me.subtitle')}</p>
 
             {avatarSection}
 
@@ -292,7 +292,7 @@ export default async function MePage() {
             <section className={card + ' mb-6'}>
                 <div className="flex items-baseline gap-3 mb-4">
                     <h2 className="">{p.preferred_name || p.legal_name}</h2>
-                    <span className="font-mono text-sm text-gray-500">{p.code}</span>
+                    <span className="font-mono text-sm text-[color:var(--brand-muted-text)]">{p.code}</span>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
                     <div>
@@ -328,7 +328,7 @@ export default async function MePage() {
                     <div>
                         <div className={dt}>{t('me.annualLeaveRate')}</div>
                         <div className={dd + ' font-mono'}>{p.annual_leave_rate_days ?? 0} {t('me.daysPerYear')}</div>
-                        <p className="text-xs text-gray-500 mt-1 max-w-md">{t('me.annualLeaveHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-md">{t('me.annualLeaveHint')}</p>
                     </div>
                     {p.work_pass_type && (
                         <>
@@ -371,7 +371,7 @@ export default async function MePage() {
             <section className="mb-6">
                 <h2 className="mb-2">{t('me.history')}</h2>
                 {(mustRows(histRes)).length === 0 ? (
-                    <p className="text-sm text-gray-500">{t('me.noHistory')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('me.noHistory')}</p>
                 ) : (
                     <ol className="border-l border-gray-200 pl-4 space-y-3">
                         {(mustRows(histRes)).map((h) => (
@@ -379,16 +379,16 @@ export default async function MePage() {
                                 <span className="absolute -left-[21px] top-1.5 h-2 w-2 rounded-full bg-gray-400" />
                                 <div className="text-sm font-medium">
                                     {t(`hr.changeType.${h.change_type}`)}
-                                    <span className="ml-2 text-xs text-gray-500">
+                                    <span className="ml-2 text-xs text-[color:var(--brand-muted-text)]">
                                         {fmtDate(h.effective_date)}
                                     </span>
                                 </div>
-                                <div className="text-sm text-gray-600">
+                                <div className="text-sm text-[color:var(--brand-muted-text)]">
                                     {[h.job_title, h.employment_type, h.employment_status]
                                         .filter(Boolean)
                                         .join(' · ') || '—'}
                                 </div>
-                                {h.notes && <div className="text-xs text-gray-500">{h.notes}</div>}
+                                {h.notes && <div className="text-xs text-[color:var(--brand-muted-text)]">{h.notes}</div>}
                             </li>
                         ))}
                     </ol>
@@ -438,9 +438,9 @@ export default async function MePage() {
                   而一片空白两句都说不出来。 */}
             <section className="mb-8">
                 <h2 className="mb-1">{t('kpi.myTitle')}</h2>
-                <p className="text-xs text-gray-600 mb-3 max-w-3xl">{t('kpi.myWhat')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-3 max-w-3xl">{t('kpi.myWhat')}</p>
                 {myKpi.length === 0 ? (
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">
                         {p?.position_code ? t('kpi.myNoneThisCycle') : t('kpi.myNoPosition')}
                     </p>
                 ) : (
@@ -448,19 +448,19 @@ export default async function MePage() {
                         {myKpi.map((k) => (
                             <div key={k.id} className="border border-gray-300 rounded p-3">
                                 <div className="flex flex-wrap items-baseline gap-2">
-                                    <span className="font-mono text-xs text-gray-500">{k.kpi_ref}</span>
+                                    <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">{k.kpi_ref}</span>
                                     <span className="font-medium">{k.title}</span>
-                                    <span className="text-sm text-gray-700">— {k.weight_pct}%</span>
-                                    <span className="text-xs text-gray-500">{k.org_codes.join(' / ')}</span>
+                                    <span className="text-sm text-[color:var(--brand-text)]">— {k.weight_pct}%</span>
+                                    <span className="text-xs text-[color:var(--brand-muted-text)]">{k.org_codes.join(' / ')}</span>
                                     {k.is_provisional && (
                                         <span className="text-xs bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded">
                                             {t('kpi.provisionalTag')}
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-sm text-gray-800 mt-1">{k.target_text}</p>
+                                <p className="text-sm text-[color:var(--brand-text)] mt-1">{k.target_text}</p>
                                 {/* 【证据来源:原表三十格全空 —— 具名的缺席,不是留白】 */}
-                                <p className="text-xs text-gray-500 mt-1">
+                                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                                     {k.evidence_source ?? t('kpi.noEvidenceSource')}
                                 </p>
                                 {k.is_provisional && k.provisional_note && (
@@ -471,25 +471,25 @@ export default async function MePage() {
                                 {/* ★ 分数:没到时候就说【为什么没有】,不是留白 ★ */}
                                 <div className="mt-2 text-sm">
                                     {!k.score_visible ? (
-                                        <span className="text-gray-500 text-xs">{t('kpi.scoreHiddenUntilClosed')}</span>
+                                        <span className="text-[color:var(--brand-muted-text)] text-xs">{t('kpi.scoreHiddenUntilClosed')}</span>
                                     ) : k.score === null ? (
-                                        <span className="text-gray-500 text-xs">{t('kpi.scoreNotGiven')}</span>
+                                        <span className="text-[color:var(--brand-muted-text)] text-xs">{t('kpi.scoreNotGiven')}</span>
                                     ) : (
                                         <>
                                             {/* ★★ 4.3:算出来的分与人判的分【长得不一样】★★ */}
                                             {k.score_kind === 'computed' ? (
                                                 <span className="inline-flex items-center gap-1 font-mono bg-slate-800 text-white px-2 py-0.5 rounded">
                                                     {k.score}/5
-                                                    <span className="text-[10px] font-sans">{t('kpi.computedTag')}</span>
+                                                    <span className="text-xs font-sans">{t('kpi.computedTag')}</span>
                                                 </span>
                                             ) : (
                                                 <span className="inline-flex items-center gap-1 italic border border-dashed border-gray-500 px-2 py-0.5 rounded">
                                                     {k.score}/5
-                                                    <span className="text-[10px] not-italic">{t('kpi.judgedTag')}</span>
+                                                    <span className="text-xs not-italic">{t('kpi.judgedTag')}</span>
                                                 </span>
                                             )}
                                             {k.score_kind === 'computed' && k.computed_basis && (
-                                                <span className="ml-2 text-xs text-gray-600">{k.computed_basis}</span>
+                                                <span className="ml-2 text-xs text-[color:var(--brand-muted-text)]">{k.computed_basis}</span>
                                             )}
                                             {k.override_cap !== null && (
                                                 <span className="ml-2 text-xs text-red-800">

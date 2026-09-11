@@ -33,7 +33,7 @@ canEdit: boolean
     // "页面不该 offer 一个服务端一定会拒的动作"。
     if (months.length === 0) {
         return (
-            <p className="text-sm text-gray-600">{t('wht.noneTitle')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)]">{t('wht.noneTitle')}</p>
         )
     }
 

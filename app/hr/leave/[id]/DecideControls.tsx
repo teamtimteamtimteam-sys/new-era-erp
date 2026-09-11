@@ -40,7 +40,7 @@ export default function DecideControls({
     }
 
     if (status === 'rejected' || status === 'cancelled') {
-        return <p className="text-sm text-gray-500">{t(`leave.finalState_${status}`)}</p>
+        return <p className="text-sm text-[color:var(--brand-muted-text)]">{t(`leave.finalState_${status}`)}</p>
     }
 
     return (
@@ -96,7 +96,7 @@ export default function DecideControls({
                 )}
             </div>
             {status === 'approved' && (
-                <p className="mt-2 text-xs text-gray-500">{t('leave.cancelHint')}</p>
+                <p className="mt-2 text-xs text-[color:var(--brand-muted-text)]">{t('leave.cancelHint')}</p>
             )}
         </div>
     )

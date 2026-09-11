@@ -197,7 +197,7 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit, p
                         {t('contacts.makePrimary')}
                     </label>
                     {/* 【主联系人会被开票快照读到 —— 按之前说出来】 */}
-                    <p className="text-xs text-gray-600 mt-1">{t('contacts.primaryWhat')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('contacts.primaryWhat')}</p>
                     <div className="flex gap-2 items-center mt-2">
                         <Button size="xs" type="button" disabled={pending || why !== ''} onClick={submit}>
                             {t('common.save')}
@@ -205,7 +205,7 @@ export default function ContactsPanel({ customerId, supplierId, rows, canEdit, p
                         <Button variant="secondary" size="xs" type="button" disabled={pending} onClick={() => { setEditing(null); setError(null) }}>
                             {t('common.cancel')}
                         </Button>
-                        {why && <span className="text-xs text-gray-600">{why}</span>}
+                        {why && <span className="text-xs text-[color:var(--brand-muted-text)]">{why}</span>}
                     </div>
                 </div>
             )}

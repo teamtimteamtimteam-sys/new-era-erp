@@ -64,12 +64,12 @@ export default function DeepDischargePanel({
                 {t('inbound.deepDischarge.title')}
             </h2>
             <div className="border border-gray-300 rounded p-3 max-w-2xl">
-                <p className="text-xs text-gray-600 mb-2">{t('inbound.deepDischarge.help')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('inbound.deepDischarge.help')}</p>
 
                 {/* 【买的时候判的那个值,原样摆在旁边】—— 没有它,操作员看不出
                     自己正在记的东西与谈好的是不是一回事。 */}
-                <p className="text-xs mb-2">
-                    <span className="text-gray-500">{t('inbound.deepDischarge.judged')}: </span>
+                <p className="text-xs mb-2 text-[color:var(--brand-muted-text)]">
+                    <span className="text-[color:var(--brand-muted-text)]">{t('inbound.deepDischarge.judged')}: </span>
                     {!hasPoLine ? (
                         /* 没有采购行 —— "买的时候判的"这件事根本不存在 */
                         <span className="text-gray-400">{t('inbound.deepDischarge.judgedNoLine')}</span>

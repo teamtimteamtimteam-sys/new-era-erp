@@ -200,7 +200,7 @@ export default async function ClosePage({
         <ListPage title={t('finance.closeTitle')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
             {/* 当前锁状态 */}
             <div className="bg-gray-50 rounded p-4 mb-6 text-sm">
-                <span className="text-gray-600 mr-1">{t('finance.lockedBefore')}:</span>
+                <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.lockedBefore')}:</span>
                 {lockedBefore ? (
                     <span className="font-mono font-medium">{lockedBefore}</span>
                 ) : (
@@ -216,15 +216,15 @@ export default async function ClosePage({
                     <>
                         <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                             <div>
-                                <span className="text-gray-600 mr-1">{t('finance.entriesCount')}:</span>
+                                <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.entriesCount')}:</span>
                                 <span className="font-mono font-medium">{preview.count}</span>
                             </div>
                             <div>
-                                <span className="text-gray-600 mr-1">{t('finance.colDebits')}:</span>
+                                <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.colDebits')}:</span>
                                 <span className="font-mono font-medium">{formatAmount(preview.debits, baseCurrency)}</span>
                             </div>
                             <div>
-                                <span className="text-gray-600 mr-1">{t('finance.colCredits')}:</span>
+                                <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.colCredits')}:</span>
                                 <span className="font-mono font-medium">{formatAmount(preview.credits, baseCurrency)}</span>
                             </div>
                             <span
@@ -281,11 +281,11 @@ export default async function ClosePage({
                 <div className="bg-gray-50 rounded p-4 mb-4 space-y-3 text-sm">
                     <div className="flex flex-wrap gap-x-8 gap-y-1">
                         <div>
-                            <span className="text-gray-600 mr-1">{t('finance.yearClose.nextYearEnd')}:</span>
+                            <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.yearClose.nextYearEnd')}:</span>
                             <span className="font-mono">{yp.expected_year_end}</span>
                         </div>
                         <div>
-                            <span className="text-gray-600 mr-1">{t('finance.yearClose.netResult')}:</span>
+                            <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.yearClose.netResult')}:</span>
                             <span className="font-mono font-medium">{formatAmount(yp.net_result, baseCurrency)}</span>
                         </div>
                     </div>

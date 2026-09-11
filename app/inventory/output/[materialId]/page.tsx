@@ -255,13 +255,13 @@ export default async function OutputDrillPage({
             notices={
                 /* 汇总行:剩余合计 + 成本价值 + 市价价值(+ 无成本/无市价批数) */
                 <p className="text-sm mb-3">
-                    <span className="text-gray-600 mr-1">{t('inventory.drill.sumLabel')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('inventory.drill.sumLabel')}:</span>
                     <span className="font-mono">{total}</span>
                     <span className="mx-2 text-gray-300">·</span>
-                    <span className="text-gray-600 mr-1">{t('valuation.colCostValue')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('valuation.colCostValue')}:</span>
                     <span className="font-mono">{formatMoneyBare(totalCostValue, '紧挨着的行标签「成本价值 (SGD)」')}</span>
                     <span className="mx-2 text-gray-300">·</span>
-                    <span className="text-gray-600 mr-1">{t('valuation.colMarketValue')}:</span>
+                    <span className="text-[color:var(--brand-muted-text)] mr-1">{t('valuation.colMarketValue')}:</span>
                     {/* FX-DISPLAY-1:同一个缺陷的第二个消费方 —— 列头与这条合计行共用
                         valuation.colMarketValue,那个键现在写 (USD)。这个数从来就是 USD。 */}
                     <span className="font-mono">{formatMoneyBare(totalMarketValue, '紧挨着的行标签「市价价值 (USD)」')}</span>

@@ -135,7 +135,7 @@ export default function MyExpenseClaimsPanel({
     return (
         <section className="mb-8">
             <h2 className="mb-1">{t('expenseClaims.myTitle')}</h2>
-            <p className="text-xs text-gray-500 mb-1">{t('expenseClaims.myHint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-1">{t('expenseClaims.myHint')}</p>
             {/* 【备用金是被否决的,不是没做】—— 让读的人遇到一个决定,而不是一个缺口 */}
             <p className="text-xs text-gray-400 mb-3">{t('expenseClaims.pettyCashRuledOut')}</p>
 
@@ -154,7 +154,7 @@ export default function MyExpenseClaimsPanel({
                         <input type="date" value={spendDate} max={today()}
                             onChange={(e) => setSpendDate(e.target.value)}
                             className={`${CONTROL_INPUT} block`} />
-                        <span className="block text-[11px] text-gray-500">{t('expenseClaims.spendDateHint')}</span></label>
+                        <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.spendDateHint')}</span></label>
                     <label className="">{t('expenseClaims.amount')}
                         <input type="number" step="0.01" min="0" value={amount}
                             onChange={(e) => setAmount(e.target.value)}
@@ -165,11 +165,11 @@ export default function MyExpenseClaimsPanel({
                     <label className="flex-1 min-w-[16rem]">{t('expenseClaims.description')}
                         <input value={description} onChange={(e) => setDescription(e.target.value)}
                             className={`${CONTROL_INPUT} block w-full`} />
-                        <span className="block text-[11px] text-gray-500">{t('expenseClaims.descriptionHint')}</span></label>
+                        <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.descriptionHint')}</span></label>
                     <label className="flex-1 min-w-[16rem]">{t('expenseClaims.noReceiptReason')}
                         <input value={noReceipt} onChange={(e) => setNoReceipt(e.target.value)}
                             className={`${CONTROL_INPUT} block w-full`} />
-                        <span className="block text-[11px] text-gray-500">{t('expenseClaims.noReceiptReasonHint')}</span></label>
+                        <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.noReceiptReasonHint')}</span></label>
                     <Button type="button" disabled={pending || !canSubmit}
                         onClick={() => {
                             setError(null)

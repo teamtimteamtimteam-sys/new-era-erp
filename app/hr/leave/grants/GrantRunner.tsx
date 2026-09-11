@@ -46,18 +46,18 @@ export default function GrantRunner({
             )}
             {log.length > 0 && (
                 <div className="mb-4 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
-                    {log.map((l, i) => <div key={i} className="font-mono text-xs">{l}</div>)}
+                    {log.map((l, i) => <div key={i} className="font-mono text-xs text-[color:var(--brand-muted-text)]">{l}</div>)}
                 </div>
             )}
 
             <section className={card}>
                 <h2 className="mb-1">{t('leave.carryTitle', { 0: String(year), 1: String(year + 1) })}</h2>
-                <p className="text-sm text-gray-600 mb-3">{t('leave.carryHint')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('leave.carryHint')}</p>
                 <p className="text-sm mb-3">{t('leave.alreadyCarried', { 0: String(alreadyCarried) })}</p>
                 <Button type="button" onClick={carry} disabled={pending}>
                     {pending ? t('common.saving') : t('leave.runCarry')}
                 </Button>
-                <p className="mt-2 text-xs text-gray-500">{t('leave.carryIdempotentHint')}</p>
+                <p className="mt-2 text-xs text-[color:var(--brand-muted-text)]">{t('leave.carryIdempotentHint')}</p>
             </section>
         </div>
     )

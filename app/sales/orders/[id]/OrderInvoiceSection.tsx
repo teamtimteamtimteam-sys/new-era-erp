@@ -46,7 +46,7 @@ export default async function OrderInvoiceSection({
             <section className="mt-8">
                 <h2 className="mb-1">{t('sales.invoice.title')}</h2>
                 {/* 「受限」,不是空白 —— 空白读起来是"没开过票" */}
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('common.restricted')} — {t('sales.invoice.needsFinanceView')}
                 </p>
             </section>
@@ -83,7 +83,7 @@ export default async function OrderInvoiceSection({
     return (
         <section className="mt-8">
             <h2 className="mb-1">{t('sales.invoice.title')}</h2>
-            <p className="text-xs text-gray-500 mb-3">{t('sales.invoice.note')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('sales.invoice.note')}</p>
 
             {invoices.length > 0 && (
                 <ul className="text-sm space-y-1 mb-3">
@@ -92,7 +92,7 @@ export default async function OrderInvoiceSection({
                             <Link href={`/finance/invoices/${i.id}`} className="hover:underline font-mono app-link app-link-inline">
                                 {i.code}
                             </Link>
-                            <span className="text-gray-500">{new Date(i.issue_date).toLocaleDateString(dl)}</span>
+                            <span className="text-[color:var(--brand-muted-text)]">{new Date(i.issue_date).toLocaleDateString(dl)}</span>
                             {i.status === 'void' ? (
                                 <span className="text-red-700 text-xs">
                                     {t('sales.invoice.voided')}{i.void_reason ? ` · ${i.void_reason}` : ''}
@@ -108,7 +108,7 @@ export default async function OrderInvoiceSection({
             {/* 逐行可开状态 —— "开过没有"是看订单的人的问题 */}
             <ul className="text-sm space-y-0.5 mb-3">
                 {lines.map((l) => (
-                    <li key={l.id} className="text-gray-600">
+                    <li key={l.id} className="text-[color:var(--brand-muted-text)]">
                         #{l.line_no} <span className="font-mono">{l.material_code}</span> · {l.quantity} {l.unit} ·{' '}
                         {billedSet.has(l.id) ? (
                             <span className="text-green-800">{t('sales.invoice.lineBilled')}</span>
@@ -121,15 +121,15 @@ export default async function OrderInvoiceSection({
 
             {/* 禁用的理由长在控件旁边 */}
             {!isConfirmed ? (
-                <p className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2">
+                <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2">
                     {t('sales.invoice.onlyConfirmed')}
                 </p>
             ) : unbilled.length === 0 ? (
-                <p className="text-sm text-gray-600">{t('sales.invoice.fullyBilled')}</p>
+                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('sales.invoice.fullyBilled')}</p>
             ) : canBill ? (
                 <CreateOrderInvoiceControl canEdit={canBill} orderId={orderId} unbilledCount={unbilled.length} />
             ) : (
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('common.restricted')} — {t('sales.invoice.needsFinanceEdit')}
                 </p>
             )}

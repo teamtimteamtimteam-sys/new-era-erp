@@ -104,7 +104,7 @@ export default async function HandoversPage() {
             notices={
                 <>
                     {/* ★【G8:这一页答不出"这个班处理了什么",而它必须自己说出来】★ */}
-                    <p className="text-xs text-gray-500 mb-4">{t('processing.handover.cannotAnswerYet')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('processing.handover.cannotAnswerYet')}</p>
                     {unacknowledged > 0 && (
                         <p className="mb-4 text-sm bg-amber-50 border border-amber-200 text-amber-900 px-3 py-2 rounded">
                             {t('processing.handover.unacknowledgedCount', { n: String(unacknowledged) })}

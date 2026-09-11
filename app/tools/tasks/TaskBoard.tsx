@@ -55,7 +55,7 @@ function PriorityBadge({ priority }: { priority: string }) {
     const t = useTranslations()
     const cls = PRIORITY_STYLES[priority] ?? 'bg-gray-100 text-gray-600'
     return (
-        <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${cls}`}>
+        <span className={`rounded px-1.5 py-0.5 text-xs font-medium ${cls}`}>
             {t('tasks.priority.' + priority)}
         </span>
     )
@@ -67,7 +67,7 @@ function TaskTypeBadge({ type }: { type: string }) {
     return (
         <span
             className={
-                'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ' +
+                'shrink-0 rounded px-1.5 py-0.5 text-xs font-medium uppercase tracking-wide ' +
                 (isTeam ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500')
             }
         >
@@ -97,7 +97,7 @@ function DueDate({ due, today }: { due: string; today: string | null }) {
         if (diff < 0) tone = 'text-red-600 font-medium'
         else if (diff <= 1) tone = 'text-amber-600 font-medium'
     }
-    return <span className={'text-[11px] ' + tone}>{formatDue(due)}</span>
+    return <span className={'text-xs ' + tone}>{formatDue(due)}</span>
 }
 
 function TaskCard({
@@ -139,14 +139,14 @@ function TaskCard({
             <Link href={`/tools/tasks/${task.id}`} className="block">
             {/* 标题 + 类型 */}
             <div className="flex items-start justify-between gap-2">
-                <div className="text-sm font-medium leading-snug text-gray-900">
+                <div className="text-sm font-medium leading-snug text-[color:var(--brand-text)]">
                     {task.title}
                 </div>
                 <TaskTypeBadge type={task.task_type} />
             </div>
 
             {/* 编号:更小更淡 */}
-            <div className="mt-0.5 font-mono text-[10px] text-gray-400">
+            <div className="mt-0.5 font-mono text-xs text-gray-400">
                 {task.code}
             </div>
 
@@ -167,14 +167,14 @@ function TaskCard({
                 【零步骤时这里一个字都没有】:不是 0/0,也不是空进度条 ——
                 0/0 读成"全没做"还是"全做完"取决于除法往哪边倒,两个都是编的。 */}
             {(task.node_count ?? 0) > 0 && (
-                <div className="mt-1.5 text-[11px] text-gray-500">
+                <div className="mt-1.5 text-xs text-[color:var(--brand-muted-text)]">
                     {task.done_count}/{task.node_count}
                 </div>
             )}
             {/* 【一句陈述,不是一个警告色】。没有截止日、或者没有带日期的未完成步骤时,
                 视图给的是 null —— 那时这里什么都不说,而不是画一个"一切正常"的绿点。 */}
             {task.steps_overrun_due_date === true && (
-                <div className="mt-1 text-[11px] text-amber-800">{t('tasks.card.stepsOverrun')}</div>
+                <div className="mt-1 text-xs text-amber-800">{t('tasks.card.stepsOverrun')}</div>
             )}
 
             {/* 标签 */}
@@ -183,7 +183,7 @@ function TaskCard({
                     {task.tags!.map((tag) => (
                         <span
                             key={tag}
-                            className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-600"
+                            className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-[color:var(--brand-muted-text)]"
                         >
                             {tag}
                         </span>

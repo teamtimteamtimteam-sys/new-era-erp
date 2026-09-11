@@ -98,7 +98,7 @@ canEdit: boolean
                            className={`${CONTROL_INPUT} w-full`} />
                 </div>
             </div>
-            <p className="text-xs text-gray-500">{t('cn.noteDateHint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('cn.noteDateHint')}</p>
 
             {/* ════════════════════════════════════════════════════════════════
                 ★ TABLE-PHONE-4:七列 → 手机档留四列(# · 发票行 · 数量 · 冲减)。
@@ -138,10 +138,10 @@ canEdit: boolean
                         //   把控件抄成两份就是让两份将来各走各的,而漂移在桌面上是看不见的
                         //   (桌面那一份永远是对的那一份)。提一次,两处引用同一个描述。
                         const unreleasedText = l.unreleased === null
-                            ? <span className="font-sans text-gray-500">{t('common.restricted')}</span>
+                            ? <span className="font-sans text-[color:var(--brand-muted-text)]">{t('common.restricted')}</span>
                             : formatMoneyBare(l.unreleased, '同表列头 冲减({ccy}),整张表单同一个币种')
                         const releasedText = l.releasedRemaining === null
-                            ? <span className="font-sans text-gray-500">{t('common.restricted')}</span>
+                            ? <span className="font-sans text-[color:var(--brand-muted-text)]">{t('common.restricted')}</span>
                             : formatMoneyBare(l.releasedRemaining, '同表列头 冲减({ccy}),整张表单同一个币种')
                         // 这个 <select> 【不带 name】,值由第一格那个渲染一次的 hidden input 携带,
                         // 所以两档各画一份是安全的;两份共用同一个 k / setKind。
@@ -214,17 +214,17 @@ canEdit: boolean
 
             <div className="flex flex-wrap items-baseline gap-x-4 text-sm">
                 <span>
-                    <span className="text-gray-600">{t('cn.totalLabel')}:</span>{' '}
+                    <span className="text-[color:var(--brand-muted-text)]">{t('cn.totalLabel')}:</span>{' '}
                     <span className="font-mono">{formatAmount(total, currency)}</span>
                 </span>
-                <span className="text-gray-500">
+                <span className="text-[color:var(--brand-muted-text)]">
                     {t('cn.openLabel', { amount: formatMoneyBare(openCcy, '本句里紧跟着 {ccy}'), ccy: currency })}
                 </span>
             </div>
             {overOpen && <p className="text-xs text-red-600">{t('cn.overOpen')}</p>}
 
             {/* 【后果句在按下之前】—— 这张凭证会过账,而凭证只增不改 */}
-            <p className="text-xs text-gray-600">{t('cn.consequence', { code: invoiceCode })}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('cn.consequence', { code: invoiceCode })}</p>
 
             <div className="flex gap-3">
                 <Button type="submit" disabled={isPending || blocked}>

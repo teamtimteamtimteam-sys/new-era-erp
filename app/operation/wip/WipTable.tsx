@@ -52,7 +52,7 @@ export default function WipTable({ rows, empty }: { rows: WipRow[]; empty: React
                 r.safetyStatesRecorded === 0 ? (
                     <span className="text-amber-700">{t('processing.wip.noSafetyState')}</span>
                 ) : (
-                    <span className="text-gray-600">
+                    <span className="text-[color:var(--brand-muted-text)]">
                         {t('processing.wip.safetyRecorded', { n: String(r.safetyStatesRecorded) })}
                     </span>
                 ),

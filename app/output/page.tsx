@@ -238,7 +238,7 @@ export default async function OutputPage({
                 <OutputToolbar customers={customerOptions} materials={materialOptions} />
             </Suspense>
 
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                 {t('output.recordCount', { count: total })}
             </p>
 
@@ -268,7 +268,7 @@ export default async function OutputPage({
                     </Button>
                 )}
 
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('output.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
 

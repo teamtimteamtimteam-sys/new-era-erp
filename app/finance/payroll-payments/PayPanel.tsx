@@ -67,7 +67,7 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                        onChange={(e) => setDate(e.target.value)} onBlur={(e) => setDate(e.target.value)}
                        className={`${CONTROL_INPUT} block`
                            + (date === '' ? ' border-red-400 bg-red-50' : '')} />
-                <span className="mt-1 block max-w-md text-gray-500">{t('finance.payrollPay.dateHint')}</span>
+                <span className="mt-1 block max-w-md text-[color:var(--brand-muted-text)]">{t('finance.payrollPay.dateHint')}</span>
             </label>
             {periods.length === 0 && (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('finance.payrollPay.noPeriods')}</p>
@@ -109,7 +109,7 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                 return (
                     <section key={p.id} className="rounded border border-gray-200 p-4 mb-4">
                         <h3 className="mb-2">{p.code}
-                            <span className="ml-2 text-xs text-gray-500 font-normal">{p.period_month.slice(0, 7)}</span>
+                            <span className="ml-2 text-xs text-[color:var(--brand-muted-text)] font-normal">{p.period_month.slice(0, 7)}</span>
                         </h3>
                         <div className="mb-3">
                             <DataTable

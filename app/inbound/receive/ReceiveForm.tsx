@@ -264,7 +264,7 @@ export default function ReceiveForm({
                         placeholder={t('receive.qtyPlaceholder')}
                         className={fieldCls}
                     />
-                    <span className="flex items-center px-3 text-base text-gray-600 bg-gray-100 border border-gray-300 rounded">
+                    <span className="flex items-center px-3 text-base text-[color:var(--brand-text)] bg-gray-100 border border-gray-300 rounded">
                         kg
                     </span>
                 </div>
@@ -289,11 +289,11 @@ export default function ReceiveForm({
                         placeholder={t('receive.declaredQtyPlaceholder')}
                         className={fieldCls}
                     />
-                    <span className="flex items-center px-3 text-base text-gray-600 bg-gray-100 border border-gray-300 rounded">
+                    <span className="flex items-center px-3 text-base text-[color:var(--brand-text)] bg-gray-100 border border-gray-300 rounded">
                         kg
                     </span>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">{t('receive.declaredQtyHint')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('receive.declaredQtyHint')}</p>
                 {state.fieldErrors?.declared_qty && <p className={errCls}>{state.fieldErrors.declared_qty}</p>}
             </div>
 

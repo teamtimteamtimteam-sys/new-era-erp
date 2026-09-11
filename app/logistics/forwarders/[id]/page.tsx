@@ -128,7 +128,7 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                 </Link>
             </div>
             <h1 className="mb-1">{sup.data.legal_name}</h1>
-            <p className="mb-6 text-sm text-gray-500">
+            <p className="mb-6 text-sm text-[color:var(--brand-muted-text)]">
                 {sup.data.code}
                 {/* 国别与付款条件:读得到就照印;读不到画【具名受限】,不静静消失 ——
                     一个不见了的字段读起来像"没填",而这里的真相是"你不能看"。 */}
@@ -197,7 +197,7 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
             <section className="mt-8 border-t pt-6">
                 <h2 className="mb-3">{t('logistics.freightHeading')}</h2>
                 {freight.length === 0 ? (
-                    <p className="text-sm text-gray-500">{t('logistics.freightEmpty')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('logistics.freightEmpty')}</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse border border-gray-300 text-sm">

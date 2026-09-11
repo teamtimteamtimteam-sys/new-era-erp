@@ -68,7 +68,7 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
         label: string; value: string | null; unsetNote: string
     }) => (
         <div className="flex flex-wrap items-baseline gap-x-2 py-1">
-            <span className="text-gray-600 text-sm">{label}:</span>
+            <span className="text-[color:var(--brand-muted-text)] text-sm">{label}:</span>
             {value ? (
                 <span className="font-mono text-sm">{value}</span>
             ) : (
@@ -76,7 +76,7 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
                     <span className="text-amber-800 text-sm font-medium">
                         {t('finance.approvals.notDecided')}
                     </span>
-                    <span className="text-xs text-gray-600">— {unsetNote}</span>
+                    <span className="text-xs text-[color:var(--brand-muted-text)]">— {unsetNote}</span>
                 </>
             )}
         </div>
@@ -147,7 +147,7 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
             )}
 
             {/* 【开关翻过去会发生什么】—— 两个方向都写,因为会搁死单据的是【关】那一边 */}
-            <div className="mt-3 text-xs text-gray-700 space-y-1">
+            <div className="mt-3 text-xs text-[color:var(--brand-text)] space-y-1">
                 <p className="font-medium">{t('finance.approvals.whatFlipDoes')}</p>
                 <p>{t('finance.approvals.flipOn')}</p>
                 <p>{t('finance.approvals.flipOff', { n: String(r.pending_purchase_orders) })}</p>
@@ -155,7 +155,7 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
 
             {/* readiness 与闸读的是同一份判据(fixture 127 的 C8 钉这一条) */}
             {!r.enabled && (
-                <p className="mt-3 text-xs">
+                <p className="mt-3 text-xs text-[color:var(--brand-muted-text)]">
                     {r.can_enable ? (
                         <span className="text-green-800">{t('finance.approvals.canEnable')}</span>
                     ) : (
@@ -171,11 +171,11 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
             {/* ★【没有代理人、没有升级 —— 一条裁定,不是一处遗漏】★(R2)
                 无条件渲染:它与有没有配置无关,而一个只在出事时才出现的说明
                 等于没有说明。语气与"匿名化函数永久拒绝"那一条相同。 */}
-            <p className="mt-3 text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded px-2 py-1">
+            <p className="mt-3 text-xs text-[color:var(--brand-text)] bg-gray-50 border border-gray-200 rounded px-2 py-1">
                 {t('finance.approvals.noDeputy')}
             </p>
 
-            <p className="mt-3 text-xs text-gray-500">{t('finance.approvals.howToTurnOn')}</p>
+            <p className="mt-3 text-xs text-[color:var(--brand-muted-text)]">{t('finance.approvals.howToTurnOn')}</p>
         </div>
     )
 }

@@ -80,7 +80,7 @@ export default async function ReceiveDonePage({
             <h1 className="text-green-700 mb-6">{t('receive.doneTitle')}</h1>
 
             <div className="font-mono text-3xl font-extrabold break-all mb-3">{batch.code}</div>
-            <p className="text-gray-600 mb-8">
+            <p className="text-[color:var(--brand-muted-text)] mb-8">
                 {batch.materials?.name ?? '—'} · {batch.quantity} {batch.unit}
             </p>
 

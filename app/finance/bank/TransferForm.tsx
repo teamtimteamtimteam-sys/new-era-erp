@@ -47,11 +47,11 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
     return (
         <div className="rounded border border-gray-200 p-4 mb-6">
             <h3 className="mb-1">{t('finance.transfer.title')}</h3>
-            <p className="text-xs text-gray-500 mb-3">{t('finance.transfer.hint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('finance.transfer.hint')}</p>
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
-            <div className="flex gap-2 flex-wrap items-end text-xs">
+            <div className="flex gap-2 flex-wrap items-end text-xs text-[color:var(--brand-muted-text)]">
                 <label>{t('finance.transfer.date')}
                     <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`block ${inp}`} />
                 </label>

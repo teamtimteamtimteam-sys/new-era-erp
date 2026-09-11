@@ -103,7 +103,7 @@ export default function CostPanel({
                         title={t('processing.cost.deleteConfirm')}
                         body={t('common.softDeleteNote')}
                         details={
-                            <p className="text-sm font-medium text-foreground">
+                            <p className="text-sm font-medium text-[color:var(--brand-text)]">
                                 {t('processing.cost.deleteConsequence')}
                             </p>
                         }
@@ -172,7 +172,7 @@ export default function CostPanel({
 
             {/* 合计 */}
             <p className="text-sm mb-4">
-                <span className="text-gray-600 mr-1">{t('processing.cost.sumLabel')}:</span>
+                <span className="text-[color:var(--brand-muted-text)] mr-1">{t('processing.cost.sumLabel')}:</span>
                 <span className="font-mono">
                     <MaskedValue
                         value={total}

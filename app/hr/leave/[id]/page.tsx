@@ -109,7 +109,7 @@ export default async function LeaveRequestDetail({
 
                     <div className="flex flex-wrap items-baseline gap-3 mb-4">
                         <h2 className="">{req.code}</h2>
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-[color:var(--brand-muted-text)]">
                             {emp ? `${emp.code} — ${emp.legal_name}` : ''}
                         </span>
                         {req.is_exception && (
@@ -142,7 +142,7 @@ export default async function LeaveRequestDetail({
             {ty?.is_accrued && bal && (
                 <section className={card + ' mb-6'}>
                     <h3 className="mb-1">{t('leave.balanceNow')}</h3>
-                    <p className="text-xs text-gray-500 mb-3">{t('leave.balanceAsOfHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('leave.balanceAsOfHint')}</p>
                     {/* 第二块抬头 —— 同一个 RecordHeader,不是第二种写法。 */}
                     <RecordHeader
                         fields={[
@@ -160,7 +160,7 @@ export default async function LeaveRequestDetail({
             {consumptionRows.length > 0 && (
                 <section className={card + ' mb-6'}>
                     <h3 className="mb-1">{t('leave.consumption')}</h3>
-                    <p className="text-xs text-gray-500 mb-3">{t('leave.consumptionHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('leave.consumptionHint')}</p>
                     <ConsumptionTable rows={consumptionRows} />
                 </section>
             )}

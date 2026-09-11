@@ -162,7 +162,7 @@ export default async function SuppliersPage({
                 <SupplierToolbar />
             </Suspense>
 
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
                 {t('suppliers.recordCount', { count: total })}
             </p>
 
@@ -192,7 +192,7 @@ export default async function SuppliersPage({
                     </Button>
                 )}
 
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('suppliers.pagination.pageOf', { current: page, total: totalPages })}
                 </span>
 

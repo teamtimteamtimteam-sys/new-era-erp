@@ -70,7 +70,7 @@ export default async function EditTemplatePage({
             </div>
             <h1 className="mb-4">
                 {t('purchasing.templatesTitle')}
-                <span className="ml-3 text-base text-gray-500">{tplRes.data.name}</span>
+                <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{tplRes.data.name}</span>
             </h1>
             <TemplateForm canEdit={canEditGate} template={{ ...tplRes.data, lines }} currencies={currencies} triggerEvents={triggerEvents} />
         </div>

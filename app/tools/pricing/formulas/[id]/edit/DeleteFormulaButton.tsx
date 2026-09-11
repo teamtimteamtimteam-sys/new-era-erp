@@ -19,7 +19,7 @@ export default function DeleteFormulaButton({ formulaId, subject }: { formulaId:
             title={t('pricing.deleteConfirm')}
             body={t('common.softDeleteNote')}
             details={
-                <p className="text-sm font-medium text-foreground">
+                <p className="text-sm font-medium text-[color:var(--brand-text)]">
                     {t('pricing.deleteConsequence')}
                 </p>
             }

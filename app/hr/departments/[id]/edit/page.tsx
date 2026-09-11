@@ -50,7 +50,7 @@ export default async function EditDepartmentPage({
             </div>
             <h1 className="mb-4">
                 {t('hr.departmentsTitle')}
-                <span className="ml-3 font-mono text-base text-gray-500">{deptRes.data.code}</span>
+                <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{deptRes.data.code}</span>
             </h1>
             <DepartmentForm
                 department={deptRes.data}

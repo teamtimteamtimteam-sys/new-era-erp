@@ -65,14 +65,14 @@ export default async function AttendancePeriodPage({
                 ← {t('attendance.backToList')}
             </Link>
             <h1 className="mt-2 mb-1">{period.code}</h1>
-            <p className="text-sm text-gray-500 mb-1">{t('attendance.subtitle')}</p>
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-1">{t('attendance.subtitle')}</p>
             {period.reopen_reason && (
-                <p className="text-xs text-gray-500 mb-1">
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-1">
                     {t('attendance.reopenedFor', { reason: period.reopen_reason })}
                 </p>
             )}
             {period.payroll_posted && (
-                <p className="mb-4 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                <p className="mb-4 rounded border border-gray-300 bg-gray-50 px-3 py-2 text-xs text-[color:var(--brand-text)]">
                     {t('attendance.lockedByPayroll')}
                 </p>
             )}

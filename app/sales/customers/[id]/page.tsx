@@ -195,7 +195,7 @@ export default async function CustomerStatusPage({
 
     const row = (label: string, value: React.ReactNode) => (
         <div className="flex justify-between py-1">
-            <span className="text-gray-600">{label}</span>
+            <span className="text-[color:var(--brand-muted-text)]">{label}</span>
             <span className="font-mono">{value}</span>
         </div>
     )
@@ -211,7 +211,7 @@ export default async function CustomerStatusPage({
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <h1 className="">
                     {cust.legal_name}
-                    <span className="ml-3 font-mono text-base text-gray-500">{cust.code}</span>
+                    <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{cust.code}</span>
                 </h1>
                 {/* 【改限额/冻结在别处】这一页不放字段 —— 见文件头 */}
                 <Button asChild variant="outline">
@@ -223,7 +223,7 @@ export default async function CustomerStatusPage({
                 </Button>
             </div>
 
-            <p className="text-sm text-gray-600 mb-6">
+            <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
                 {cust.country ?? '—'}
                 <span className="mx-2">·</span>
                 {cust.status}
@@ -236,10 +236,10 @@ export default async function CustomerStatusPage({
                     与开票/销售被拒时用的数【按构造是同一个】(都出自
                     customer_ar_exposure_base,它的第二项与应收账龄第二支读同一张
                     内层视图)。这一句放在这里,是为了让看见数字的人知道口径。 */}
-                <p className="text-xs text-gray-500 mb-2">{t('customers.status.exposureIncludesInvoiced')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('customers.status.exposureIncludesInvoiced')}</p>
                 {credit === null ? (
                     // 拿不到行 = 无权。【不是 0】—— 0 读作"没有限额、余额充足"
-                    <p className="text-sm text-gray-500">{t('common.restricted')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('common.restricted')}</p>
                 ) : (
                     <div className="bg-gray-50 rounded p-4 text-sm max-w-md">
                         {credit.credit_hold && (
@@ -276,7 +276,7 @@ export default async function CustomerStatusPage({
                 {!canFinance ? (
                     // 看得见限额不等于看得见账 —— 整段受限,不是一张空表。
                     // ★ 这一支【留着】:它不是空态,是一句权限答复,两者不能合成一句。
-                    <p className="text-sm text-gray-500">{t('common.restricted')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('common.restricted')}</p>
                 ) : (
                     // ★ TABLE-CONVERT-3:空态搬进了组件的 empty prop —— 原来那一支
                     //   `openItems.length === 0 ? <p>…</p>` 拿掉了,同一个 key 只剩一处。
@@ -325,7 +325,7 @@ export default async function CustomerStatusPage({
                 读得到这个客户的人就读得到他的联系人 —— 与对账单那一段不同。 */}
             <section className="mt-6">
                 <h2 className="mb-1">{t('contacts.sectionTitle')}</h2>
-                <p className="text-xs text-gray-600 mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
                 <ContactsPanel permissionCode="module.customers.edit" customerId={id} rows={contacts} canEdit={canEditCustomer} />
             </section>
         </div>

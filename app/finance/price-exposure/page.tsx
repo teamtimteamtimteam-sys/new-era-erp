@@ -67,7 +67,7 @@ export default async function PriceExposurePage() {
         <ListPage title={t('priceExposure.title')} intro={t('priceExposure.what')} state={{ kind: 'ok' }}>
             {/* ★【先说它看不见什么】—— 无条件渲染 ★ */}
             <div className="border-l-4 border-amber-500 bg-amber-50 p-3 mb-6 max-w-3xl">
-                <p className="text-sm text-gray-800">{t('priceExposure.cannotSee')}</p>
+                <p className="text-sm text-[color:var(--brand-text)]">{t('priceExposure.cannotSee')}</p>
             </div>
 
             {/* ── 卖方向:三种状态,每一种都是一句具名的话,没有一种是空白 ── */}
@@ -85,13 +85,13 @@ export default async function PriceExposurePage() {
             {/* ★★【买方向:一句关于结构的话,永远不是一个 0 吨】★★
                 这一段【不在任何条件里面】—— 它今天为真,而且要一直为真到 §9 被回答为止。 */}
             <div className="border-l-4 border-red-500 bg-red-50 p-3 mb-6 max-w-3xl">
-                <p className="text-sm text-gray-900">{t('priceExposure.purchaseNotModelled')}</p>
-                <p className="text-xs text-gray-700 mt-2">{t('priceExposure.purchaseOpenQuestion')}</p>
+                <p className="text-sm text-[color:var(--brand-text)]">{t('priceExposure.purchaseNotModelled')}</p>
+                <p className="text-xs text-[color:var(--brand-text)] mt-2">{t('priceExposure.purchaseOpenQuestion')}</p>
             </div>
 
             {/* ── 均价能不能算:【另一个】原因,单独一段 ── */}
             <div className="border border-gray-300 rounded p-3 mb-6 max-w-3xl">
-                <p className="text-sm text-gray-800">
+                <p className="text-sm text-[color:var(--brand-text)]">
                     {qp.calendar_days_loaded === 0
                         ? t('priceExposure.calendarNone')
                         : t('priceExposure.calendarLoaded')}
@@ -124,7 +124,7 @@ export default async function PriceExposurePage() {
             </div>
 
             {/* 【两侧不轧成一个数】—— 跟着数字走的那句话,不只躺在文档里 */}
-            <p className="text-xs text-gray-600 max-w-3xl">{t('priceExposure.notNetted')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] max-w-3xl">{t('priceExposure.notNetted')}</p>
         </ListPage>
     )
 }

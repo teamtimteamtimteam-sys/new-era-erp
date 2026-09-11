@@ -68,7 +68,7 @@ function todayIsoLocal(): string {
 function Restricted() {
     const t = useTranslations()
     return (
-        <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-gray-200 text-gray-600 align-middle">
+        <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-gray-200 text-[color:var(--brand-text)] align-middle">
             {t('hr.restrictedField')}
         </span>
     )
@@ -186,7 +186,7 @@ export default function EmployeeForm({
                                     </option>
                                 ))}
                             </select>
-                            <p className="mt-1 text-sm text-gray-600">{t('hr.loginAccountHelp')}</p>
+                            <p className="mt-1 text-sm text-[color:var(--brand-muted-text)]">{t('hr.loginAccountHelp')}</p>
                         </>
                     ) : (
                         /* 【不渲染一个空的下拉】。user_directory 对没有
@@ -194,7 +194,7 @@ export default function EmployeeForm({
                            照着渲染就会得到一个空的选择框 —— 那读起来是"没有账号可选",
                            而真相是"你不被允许看"。这正是 lib/permissions.ts 存在的
                            理由:空集不是答案,所以这里把它说出来。 */
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-[color:var(--brand-muted-text)]">
                             {linkedAccountLabel
                                 ? t('hr.loginAccountCurrent', { 0: linkedAccountLabel })
                                 : employee?.user_id
@@ -264,7 +264,7 @@ export default function EmployeeForm({
                                 <option key={p.id} value={p.id}>{p.code} · {p.title}</option>
                             ))}
                         </select>
-                        <p className="text-xs text-gray-600 mt-1">{t('hr.positionWhat')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('hr.positionWhat')}</p>
                     </div>
                     <div className="flex-1 min-w-[14rem]">
                         <label className={label}>{t('hr.colManager')}</label>
@@ -362,7 +362,7 @@ export default function EmployeeForm({
                             name="effective_date"
                             className={CONTROL_INPUT}
                         />
-                        <p className="text-xs text-gray-500 mt-1">{t('hr.effectiveDateHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('hr.effectiveDateHint')}</p>
                     </div>
                 )}
             </section>

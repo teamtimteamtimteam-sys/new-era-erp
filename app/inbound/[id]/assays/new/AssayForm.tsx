@@ -189,7 +189,7 @@ export default function AssayForm({
                         <input type="number" name="moisture_pct" step="any" min="0" max="100"
                                placeholder={t('assay.moisturePlaceholder')}
                                className={`${CONTROL_INPUT} w-full`} />
-                        <p className="text-xs text-gray-500 mt-1">{t('assay.moistureHint')}</p>
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('assay.moistureHint')}</p>
                     </div>
 
                 <div className="flex-1 min-w-[12rem]">
@@ -208,7 +208,7 @@ export default function AssayForm({
                     {/* DICT-ADMIN:FIX-2 在这里写的是"还没有这个页面" —— 现在有了。
                         **人撞到墙的那一刻就在这儿**,所以链接放在这儿,
                         而不是只放在导航里(可达性不靠单点)。 */}
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
                         {t('assay.labAddHint')}{' '}
                         <a href="/settings/dictionaries" className="underline app-link app-link-inline">
                             {t('dict.title')}
@@ -231,7 +231,7 @@ export default function AssayForm({
                         <input className={CONTROL_CHECKBOX} type="checkbox" name="is_final" defaultChecked />
                         {t('assay.isFinal')}
                     </label>
-                    <p className="text-xs text-gray-500 mt-1">{t('assay.isFinalHint')}</p>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('assay.isFinalHint')}</p>
                 </div>
                 <div className="flex-1 min-w-[16rem]">
                     <label className="block mb-1">{t('assay.notes')}</label>

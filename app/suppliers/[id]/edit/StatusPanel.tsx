@@ -64,7 +64,7 @@ export default function StatusPanel({
         <div className="border border-gray-300 rounded p-4 mb-6 bg-gray-50">
             <div className="flex items-center justify-between mb-3">
                 <div>
-                    <div className="text-xs text-gray-500 mb-1">
+                    <div className="text-xs text-[color:var(--brand-muted-text)] mb-1">
                         {t('suppliers.statusPanel.current')}
                     </div>
                     <div className="text-lg font-medium">
@@ -82,17 +82,17 @@ export default function StatusPanel({
                    (与 purchasingErrorCodes 那条注释同一个理由)。 */
                 <div className="flex flex-wrap items-center gap-2">
                     <Refusal>{t('common.restricted')}</Refusal>
-                    <p className="text-sm text-foreground" data-status-panel-denied="1">
+                    <p className="text-sm text-[color:var(--brand-text)]" data-status-panel-denied="1">
                         {t('suppliers.statusPanel.needsEditPermission')}
                     </p>
                 </div>
             ) : allowedTargets.length === 0 ? (
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('suppliers.statusPanel.noActions')}
                 </p>
             ) : (
                 <div>
-                    <div className="text-xs text-gray-500 mb-2">
+                    <div className="text-xs text-[color:var(--brand-muted-text)] mb-2">
                         {t('suppliers.statusPanel.availableChanges')}
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -132,7 +132,7 @@ export default function StatusPanel({
                                     title={blocks[0]}
                                     details={
                                         blocks.length > 1 ? (
-                                            <div className="space-y-1 text-sm text-muted-foreground">
+                                            <div className="space-y-1 text-sm text-[color:var(--brand-muted-text)]">
                                                 {blocks.slice(1).join('\n').split('\n').map((line, i) => (
                                                     <p key={i}>{line}</p>
                                                 ))}
