@@ -10,6 +10,7 @@
 //   也没有可比较的原行。把新增塞进可编辑网格,会让那个 Record 里出现一个
 //   假的行键(`'__new__'` 之类),而那正是 /settings/dictionaries 今天的写法 ——
 //   见 docs/editable-grid-template.md §⑥,这是模板【做不到】的第一件事。
+import { CONTROL_CHECKBOX, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale, useTranslations } from '@/lib/i18n/client'
@@ -30,7 +31,7 @@ export type ScaleRow = {
 
 type Draft = ScaleRow
 
-const inp = 'w-full border border-gray-300 rounded px-1 py-0.5 text-xs'
+const inp = `${CONTROL_INPUT} w-full`
 
 export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
     const t = useTranslations()
@@ -122,7 +123,7 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
             header: t('reviews.scaleActive'),
             render: (r) => yesNo(r.is_active),
             edit: (d, set) => (
-                <input type="checkbox" checked={d.is_active} aria-label={t('reviews.scaleActive')}
+                <input className={CONTROL_CHECKBOX} type="checkbox" checked={d.is_active} aria-label={t('reviews.scaleActive')}
                        onChange={(e) => set({ is_active: e.target.checked })} />
             ),
         },
@@ -131,7 +132,7 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
             header: t('reviews.scaleProbationPass'),
             render: (r) => yesNo(r.is_probation_pass),
             edit: (d, set) => (
-                <input type="checkbox" checked={d.is_probation_pass} aria-label={t('reviews.scaleProbationPass')}
+                <input className={CONTROL_CHECKBOX} type="checkbox" checked={d.is_probation_pass} aria-label={t('reviews.scaleProbationPass')}
                        onChange={(e) => set({ is_probation_pass: e.target.checked })} />
             ),
         },
@@ -185,20 +186,20 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
                     <label className="text-xs">
                         {t('reviews.scaleCode')}
                         <input value={nCode} onChange={(e) => setNCode(e.target.value)}
-                               className={`block ${inp} w-32 font-mono`} />
+                               className={`block ${inp} font-mono`} />
                     </label>
                     <label className="text-xs">
                         {t('permissions.nameEn')}
-                        <input value={nEn} onChange={(e) => setNEn(e.target.value)} className={`block ${inp} w-40`} />
+                        <input value={nEn} onChange={(e) => setNEn(e.target.value)} className={`block ${inp}`} />
                     </label>
                     <label className="text-xs">
                         {t('permissions.nameZh')}
-                        <input value={nZh} onChange={(e) => setNZh(e.target.value)} className={`block ${inp} w-40`} />
+                        <input value={nZh} onChange={(e) => setNZh(e.target.value)} className={`block ${inp}`} />
                     </label>
                     <label className="text-xs">
                         {t('reviews.scaleSort')}
                         <input type="number" value={nSort} onChange={(e) => setNSort(e.target.value)}
-                               className={`block ${inp} w-20 text-right`} />
+                               className={`block ${inp} text-right`} />
                     </label>
                     <Button
                         type="button"

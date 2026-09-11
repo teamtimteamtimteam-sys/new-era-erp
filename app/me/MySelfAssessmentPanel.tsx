@@ -19,6 +19,7 @@
 //   ☞ 这与 CONV-1 的 notices 槽同源:两个槽都不是设计出来的,
 //     都是在【第四页之内】被一个真实页面撞出来的。
 // ════════════════════════════════════════════════════════════════════════════
+import { CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -65,8 +66,6 @@ export default function MySelfAssessmentPanel({
     const [text, setText] = useState<Record<string, string>>(() =>
         Object.fromEntries(assessments.map((a) => [a.review_id, a.self_assessment_text ?? '']))
     )
-
-    const inp = 'w-full border border-gray-300 rounded px-2 py-1 text-sm'
 
     function save(a: SelfAssessment, drafts: Readonly<Record<string, GoalDraft>>, final: boolean) {
         setError(null)
@@ -129,7 +128,7 @@ export default function MySelfAssessmentPanel({
                                 value={d.actual}
                                 onChange={(e) => set({ actual: e.target.value })}
                                 aria-label={t('reviews.colActual')}
-                                className="w-24 rounded border border-gray-300 px-1 py-0.5 text-right text-xs"
+                                className={`${CONTROL_INPUT} w-24 text-right`}
                             />
                         </span>
                     ),
@@ -147,7 +146,7 @@ export default function MySelfAssessmentPanel({
                             value={d.result}
                             onChange={(e) => set({ result: e.target.value })}
                             aria-label={t('reviews.colEmployeeResult')}
-                            className="min-h-14 w-full rounded border border-gray-300 px-1 py-0.5 text-xs"
+                            className={`${CONTROL_TEXTAREA} w-full`}
                         />
                     ),
                 }),
@@ -218,7 +217,7 @@ export default function MySelfAssessmentPanel({
                                             <textarea
                                                 value={text[a.review_id] ?? ''}
                                                 onChange={(e) => setText({ ...text, [a.review_id]: e.target.value })}
-                                                className={`block mt-1 ${inp} min-h-24`}
+                                                className={`${CONTROL_TEXTAREA} block mt-1`}
                                             />
                                         )}
                                     </label>

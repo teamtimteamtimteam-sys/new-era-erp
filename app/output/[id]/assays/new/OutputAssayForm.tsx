@@ -6,6 +6,7 @@
 //     每行旁边(它是录入起点),外加一行明说替换语义;
 //   * 过期后果 —— 服务端问库得来(preview_apply_output_assay),这里只显示。
 // 两个提交按钮:仅记录 / 记录并应用。后者失败时【记录仍然保留】(见 actions.ts)。
+import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import type { DictOption } from '@/app/components/dictionaries/dictionaryQuery'
@@ -79,7 +80,7 @@ export default function OutputAssayForm({
                         required
                         max={todayIsoLocal()}
                         defaultValue={todayIsoLocal()}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                 </div>
                     {/* PROC-6:重量基准 —— 必填,【没有默认选中项】。
@@ -90,7 +91,7 @@ export default function OutputAssayForm({
                             {t('assay.weightBasis')} <span className="text-red-600">*</span>
                         </label>
                         <select name="weight_basis" defaultValue="" required
-                                className="w-full border border-gray-300 px-3 py-2 rounded">
+                                className={`${CONTROL_SELECT} w-full`}>
                             <option value="" disabled>{t('assay.weightBasisPick')}</option>
                             <option value="as_received">{t('assay.basisAsReceived')}</option>
                             <option value="dry">{t('assay.basisDry')}</option>
@@ -104,7 +105,7 @@ export default function OutputAssayForm({
                             {t('assay.resultParty')} <span className="text-red-600">*</span>
                         </label>
                         <select name="result_party" defaultValue="" required
-                                className="w-full border border-gray-300 px-3 py-2 rounded">
+                                className={`${CONTROL_SELECT} w-full`}>
                             <option value="" disabled>{t('assay.resultPartyPick')}</option>
                             <option value="ours">{t('assay.partyOurs')}</option>
                             <option value="counterparty">{t('assay.partyCounterparty')}</option>
@@ -118,7 +119,7 @@ export default function OutputAssayForm({
                         <label className="block text-sm font-medium mb-1">{t('assay.moisture')}</label>
                         <input type="number" name="moisture_pct" step="any" min="0" max="100"
                                placeholder={t('assay.moisturePlaceholder')}
-                               className="w-full border border-gray-300 px-3 py-2 rounded" />
+                               className={`${CONTROL_INPUT} w-full`} />
                         <p className="text-xs text-gray-500 mt-1">{t('assay.moistureHint')}</p>
                     </div>
 
@@ -129,7 +130,7 @@ export default function OutputAssayForm({
                         而不是"我们自己做的" —— 后者若要成为一个可记录的事实,
                         它是字典里的一行,不是一个空值的含义。 */}
                     <select name="lab_name" defaultValue=""
-                            className="w-full border border-gray-300 px-3 py-2 rounded">
+                            className={`${CONTROL_SELECT} w-full`}>
                         <option value="">{t('assay.labUnknown')}</option>
                         {labOptions.filter((o) => o.isActive).map((o) => (
                             <option key={o.value} value={o.value}>{o.label}</option>
@@ -147,25 +148,25 @@ export default function OutputAssayForm({
                 </div>
                 <div className="flex-1 min-w-[12rem]">
                     <label className="block text-sm font-medium mb-1">{t('assay.certificateRef')}</label>
-                    <input type="text" name="certificate_ref" className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    <input type="text" name="certificate_ref" className={`${CONTROL_INPUT} w-full`} />
                 </div>
                 <div className="flex-1 min-w-[10rem]">
                     <label className="block text-sm font-medium mb-1">{t('assay.sampleRef')}</label>
-                    <input type="text" name="sample_ref" className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    <input type="text" name="sample_ref" className={`${CONTROL_INPUT} w-full`} />
                 </div>
             </div>
 
             <div className="flex flex-wrap gap-4 items-start">
                 <div>
                     <label className="flex items-center gap-2 text-sm font-medium">
-                        <input type="checkbox" name="is_final" defaultChecked />
+                        <input className={CONTROL_CHECKBOX} type="checkbox" name="is_final" defaultChecked />
                         {t('assay.isFinal')}
                     </label>
                     <p className="text-xs text-gray-500 mt-1">{t('assay.isFinalHint')}</p>
                 </div>
                 <div className="flex-1 min-w-[16rem]">
                     <label className="block text-sm font-medium mb-1">{t('assay.notes')}</label>
-                    <input type="text" name="notes" className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    <input type="text" name="notes" className={`${CONTROL_INPUT} w-full`} />
                 </div>
             </div>
 
@@ -198,7 +199,7 @@ export default function OutputAssayForm({
                                         name="assay_content"
                                         value={metals[opt.value] ?? ''}
                                         onChange={(raw) => setMetals((m) => ({ ...m, [opt.value]: raw }))}
-                                        className="w-28 border border-gray-300 px-3 py-2 rounded"
+                                        className="w-28"
                                     />
                                 </td>
                                 {hasCurrent && (

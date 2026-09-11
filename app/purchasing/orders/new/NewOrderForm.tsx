@@ -16,6 +16,7 @@
 // 下拉当不了"币种写在这儿了"的凭据。而"按化验估算"摊开的那块是 calculate_metal_price
 // 的原始输出,【行情口径,恒为 USD】(见 check-currency-literals 的 ALLOWLIST 理由),
 // 那块自己每行都写着 USD,所以留裸数字并指着它。
+import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_RADIO, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useMemo, useState } from 'react'
 import { useRef } from 'react'
 import { useFormDraft } from '@/lib/useFormDraft'
@@ -387,7 +388,7 @@ canEdit: boolean
                             required
                             value={supplierId}
                             onChange={(e) => onSupplierChange(e.target.value)}
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="" disabled>
                                 {t('finance.selectCounterparty')}
@@ -419,7 +420,7 @@ canEdit: boolean
                         required
                         value={orderDate}
                         onChange={(e) => setOrderDate(e.target.value)}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                 </div>
                 <div>
@@ -427,7 +428,7 @@ canEdit: boolean
                     <input
                         type="date"
                         name="expected_delivery"
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                 </div>
                 <div>
@@ -436,7 +437,7 @@ canEdit: boolean
                         name="currency"
                         value={currency}
                         onChange={(e) => setCurrency(e.target.value)}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         <option value="USD">USD</option>
                         <option value="SGD">SGD</option>
@@ -448,7 +449,7 @@ canEdit: boolean
                 )}
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('purchasing.form.incoterm')}</label>
-                    <input type="text" name="incoterm" className="w-28 border border-gray-300 px-3 py-2 rounded" />
+                    <input type="text" name="incoterm" className={`${CONTROL_INPUT} w-28`} />
                 </div>
                 {/* PUR-1:交货地点 —— 自由文本。【刻意不是储位下拉框】(Tim 裁定):
                     一台设备订单送到的地方常常根本不是仓库,把它做成 storage_locations
@@ -457,18 +458,18 @@ canEdit: boolean
                 <div className="flex-1 min-w-[16rem]">
                     <label className="block text-sm font-medium mb-1">{t('purchasing.form.deliveryLocation')}</label>
                     <input type="text" name="delivery_location"
-                        className="w-full border border-gray-300 px-3 py-2 rounded" />
+                        className={`${CONTROL_INPUT} w-full`} />
                     <p className="text-xs text-gray-500 mt-1">{t('purchasing.form.deliveryLocationHint')}</p>
                 </div>
             </div>
             <div className="flex flex-wrap gap-4">
                 <div className="flex-1 min-w-[16rem]">
                     <label className="block text-sm font-medium mb-1">{t('purchasing.form.notes')}</label>
-                    <input type="text" name="notes" className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    <input type="text" name="notes" className={`${CONTROL_INPUT} w-full`} />
                 </div>
                 <div className="flex-1 min-w-[16rem]">
                     <label className="block text-sm font-medium mb-1">{t('purchasing.form.termsText')}</label>
-                    <input type="text" name="terms_text" className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    <input type="text" name="terms_text" className={`${CONTROL_INPUT} w-full`} />
                 </div>
             </div>
 
@@ -485,6 +486,7 @@ canEdit: boolean
                     {ORDER_KINDS.map((k) => (
                         <label key={k} className="flex items-center gap-2 text-sm">
                             <input
+                                className={CONTROL_RADIO}
                                 type="radio" name="order_kind" value={k}
                                 checked={orderKind === k}
                                 onChange={() => {
@@ -520,7 +522,7 @@ canEdit: boolean
                                             required
                                             value={l.asset_id}
                                             onChange={(e) => patchLine(i, { asset_id: e.target.value })}
-                                            className="w-full border border-gray-300 px-2 py-1.5 rounded"
+                                            className={`${CONTROL_SELECT} w-full`}
                                         >
                                             <option value="" disabled>—</option>
                                             {assets.map((a) => (
@@ -549,6 +551,7 @@ canEdit: boolean
                                         <div className="mt-2 border-t border-gray-200 pt-2">
                                             <label className="flex items-center gap-2 text-sm">
                                                 <input
+                                                    className={CONTROL_CHECKBOX}
                                                     type="checkbox"
                                                     checked={Boolean(l.retention_on)}
                                                     onChange={(e) =>
@@ -565,7 +568,7 @@ canEdit: boolean
                                                     <DecimalInput
                                                         value={l.retention_pct ?? ''}
                                                         onChange={(v) => patchLine(i, { retention_pct: v })}
-                                                        className="w-16 border border-gray-300 px-2 py-1 rounded"
+                                                        className="w-16"
                                                     />
                                                     <span>%</span>
                                                     <span className="ml-2">{t('purchasing.form.retentionMonths')}</span>
@@ -573,7 +576,7 @@ canEdit: boolean
                                                         type="number" min={1}
                                                         value={l.retention_months ?? '12'}
                                                         onChange={(e) => patchLine(i, { retention_months: e.target.value })}
-                                                        className="w-16 border border-gray-300 px-2 py-1 rounded"
+                                                        className={`${CONTROL_INPUT} w-16`}
                                                     />
                                                 </div>
                                             ) : null}
@@ -587,7 +590,7 @@ canEdit: boolean
                                         required
                                         value={l.material_id}
                                         onChange={(e) => patchLine(i, { material_id: e.target.value })}
-                                        className="w-full border border-gray-300 px-2 py-1.5 rounded"
+                                        className={`${CONTROL_SELECT} w-full`}
                                     >
                                         <option value="" disabled>
                                             —
@@ -625,7 +628,7 @@ canEdit: boolean
                                             required
                                             value={l.quantity}
                                             onChange={(v) => patchLine(i, { quantity: v })}
-                                            className="w-28 border border-gray-300 px-2 py-1.5 rounded"
+                                            className="w-28"
                                         />
                                     </div>
                                     <div>
@@ -634,7 +637,7 @@ canEdit: boolean
                                             type="text"
                                             value={l.unit}
                                             onChange={(e) => patchLine(i, { unit: e.target.value })}
-                                            className="w-16 border border-gray-300 px-2 py-1.5 rounded"
+                                            className={`${CONTROL_INPUT} w-16`}
                                         />
                                     </div>
                                 </>
@@ -655,7 +658,7 @@ canEdit: boolean
                                         // 正是"没有含量字段"误会(和手敲 8.0000)的成因。
                                         ...(e.target.value ? { assayOpen: true } : {}),
                                     })}
-                                    className="w-full border border-gray-300 px-2 py-1.5 rounded"
+                                    className={`${CONTROL_SELECT} w-full`}
                                 >
                                     <option value="">—</option>
                                     {formulas.map((f) => (
@@ -677,7 +680,7 @@ canEdit: boolean
                                 <DecimalInput
                                     value={l.est_price}
                                     onChange={(v) => patchLine(i, { est_price: v, priceComputed: false })}
-                                    className="w-28 border border-gray-300 px-2 py-1.5 rounded"
+                                    className="w-28"
                                 />
                             </div>
                             {/* ── PUR-1:这一行的价定了没有 ────────────────────────
@@ -695,7 +698,7 @@ canEdit: boolean
                                 <select
                                     value={l.price_status ?? ''}
                                     onChange={(e) => patchLine(i, { price_status: e.target.value as '' | 'fixed' | 'provisional' })}
-                                    className="w-36 border border-gray-300 px-2 py-1.5 rounded text-sm"
+                                    className={`${CONTROL_SELECT} w-36`}
                                 >
                                     <option value="">{t('purchasing.form.priceStatusDerive')}</option>
                                     <option value="fixed" disabled={Boolean(l.formula_id)}>
@@ -759,7 +762,7 @@ canEdit: boolean
                                                 onChange={(v) =>
                                                     patchLine(i, { assay: { ...l.assay, [m.value]: v } })
                                                 }
-                                                className="w-20 border border-gray-300 px-2 py-1 rounded"
+                                                className="w-20"
                                             />
                                             <span className="text-gray-400">%</span>
                                         </label>
@@ -839,7 +842,7 @@ canEdit: boolean
                 <select
                     value={templateSel}
                     onChange={(e) => onApplyTemplate(e.target.value)}
-                    className="border border-gray-300 px-2 py-1 rounded text-sm"
+                    className={CONTROL_SELECT}
                 >
                     <option value="">{t('purchasing.applyTemplate')}</option>
                     {templates.map((tpl) => (
@@ -898,13 +901,14 @@ canEdit: boolean
                                         type="text"
                                         value={l.label}
                                         onChange={(e) => patchTerm(i, { label: e.target.value })}
-                                        className="w-full border border-gray-300 px-2 py-1 rounded"
+                                        className={`${CONTROL_INPUT} w-full`}
                                     />
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2">
                                     <div className="flex items-center gap-2">
                                         <label className="flex items-center gap-1 text-sm">
                                             <input
+                                                className={CONTROL_RADIO}
                                                 type="radio"
                                                 checked={l.mode === 'percentage'}
                                                 onChange={() => patchTerm(i, { mode: 'percentage' })}
@@ -913,6 +917,7 @@ canEdit: boolean
                                         </label>
                                         <label className="flex items-center gap-1 text-sm">
                                             <input
+                                                className={CONTROL_RADIO}
                                                 type="radio"
                                                 checked={l.mode === 'fixed'}
                                                 onChange={() => patchTerm(i, { mode: 'fixed' })}
@@ -923,13 +928,13 @@ canEdit: boolean
                                             <DecimalInput
                                                 value={l.percentage}
                                                 onChange={(v) => patchTerm(i, { percentage: v })}
-                                                className="w-20 border border-gray-300 px-2 py-1 rounded"
+                                                className="w-20"
                                             />
                                         ) : (
                                             <DecimalInput
                                                 value={l.fixed_amount}
                                                 onChange={(v) => patchTerm(i, { fixed_amount: v })}
-                                                className="w-24 border border-gray-300 px-2 py-1 rounded"
+                                                className="w-24"
                                             />
                                         )}
                                     </div>
@@ -941,7 +946,7 @@ canEdit: boolean
                                     <select
                                         value={l.trigger_event}
                                         onChange={(e) => patchTerm(i, { trigger_event: e.target.value })}
-                                        className="border border-gray-300 px-2 py-1 rounded"
+                                        className={CONTROL_SELECT}
                                     >
                                         {triggerOptions.map((ev) => (
                                             <option key={ev.code} value={ev.code}>
@@ -954,7 +959,7 @@ canEdit: boolean
                                             type="date"
                                             value={l.due_date}
                                             onChange={(e) => patchTerm(i, { due_date: e.target.value })}
-                                            className="ml-2 border border-gray-300 px-2 py-1 rounded"
+                                            className={`${CONTROL_INPUT} ml-2`}
                                         />
                                     )}
                                 </td>

@@ -13,6 +13,7 @@
 //
 // ★【刻度与封顶规则读的是 kpi_score_rubric,不是写死的文案】★
 //   打分的规则要能不发版就改正 —— 与公共假期同一条论证(它们都是【数据】)。
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { createClient } from '@/lib/supabase/server'
 import { compareForSort } from '@/lib/sortCollation'
 import { getTranslations } from '@/lib/i18n/server'
@@ -191,7 +192,7 @@ export default async function KpiScorePage({
                     </label>
                     <select
                         id="cycle" name="cycle" defaultValue={chosen?.id ?? ''}
-                        className="border border-gray-300 rounded px-2 py-1 text-sm"
+                        className={CONTROL_SELECT}
                     >
                         {/* ★ 这个空选项是刻意的:它是"还没选"的样子,不是一个默认月份 */}
                         <option value="">{t('kpi.chooseMonthNone')}</option>

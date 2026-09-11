@@ -14,6 +14,7 @@
 // 屏幕上出现的是一个【要人回答的问题】,不是一笔已经发生的付款。
 // 放多少、扣多少都要人填 —— 不给"全额放款"的默认值,因为那等于替人做了
 // "这台机器没出过毛病"这个判断,而那正是这次确认要问的唯一问题。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { releaseRetention } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -176,15 +177,15 @@ function RetentionCard({
                     <div className="flex flex-wrap items-center gap-2">
                         <label className="text-xs">{t('purchasing.retention.releaseAmount')}</label>
                         <DecimalInput value={released} onChange={setReleased}
-                            className="w-28 border border-gray-300 px-2 py-1 rounded" />
+                            className="w-28" />
                         <label className="text-xs">{t('purchasing.retention.withheldAmount')}</label>
                         <DecimalInput value={withheld} onChange={setWithheld}
-                            className="w-28 border border-gray-300 px-2 py-1 rounded" />
+                            className="w-28" />
                     </div>
                     <input
                         type="text" value={reason} onChange={(e) => setReason(e.target.value)}
                         placeholder={t('purchasing.retention.reasonPlaceholder')}
-                        className="mt-2 w-full border border-gray-300 px-2 py-1 rounded text-xs"
+                        className={`${CONTROL_INPUT} mt-2 w-full`}
                     />
                     <Button size="xs" className="mt-2"
                         type="button"

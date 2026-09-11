@@ -6,6 +6,7 @@
 //   * 把【已收多少】写在行上 —— 下限要在动手之前看得见,而不是保存之后才被拒(CMP-2);
 //   * 理由必填 —— 一次改动没有理由,历史上就只是一行"数字变了"。
 // 真正的把关仍在 DB:表单上的提示是【礼貌】,不是保护。
+import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { amendOrder, type AmendState } from './actions'
@@ -102,7 +103,7 @@ export default function AmendOrderForm({
                         {t('purchasing.amend.reason')} <span className="text-red-600">*</span>
                     </label>
                     <input type="text" name="reason" required disabled={frozen}
-                        className="w-full border border-gray-300 px-3 py-2 rounded" />
+                        className={`${CONTROL_INPUT} w-full`} />
                     <p className="text-xs text-gray-500 mt-1">{t('purchasing.amend.reasonHint')}</p>
                 </div>
 
@@ -110,26 +111,26 @@ export default function AmendOrderForm({
                     <div>
                         <label className="block text-sm font-medium mb-1">{t('purchasing.amend.orderDate')}</label>
                         <input type="date" name="order_date" defaultValue={orderDate} disabled={frozen}
-                            className="border border-gray-300 px-3 py-2 rounded" />
+                            className={CONTROL_INPUT} />
                         {/* 改单据日会重取牌价 —— 缺牌价即拒,绝不编一个 */}
                         <p className="text-xs text-gray-500 mt-1">{t('purchasing.amend.orderDateHint')}</p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">{t('purchasing.amend.expected')}</label>
                         <input type="date" name="expected_delivery_date" defaultValue={expectedDelivery}
-                            disabled={frozen} className="border border-gray-300 px-3 py-2 rounded" />
+                            disabled={frozen} className={CONTROL_INPUT} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">{t('purchasing.amend.incoterm')}</label>
                         <input type="text" name="incoterm" defaultValue={incoterm} disabled={frozen}
-                            className="border border-gray-300 px-3 py-2 rounded" />
+                            className={CONTROL_INPUT} />
                     </div>
                     {/* PUR-1:交货地点 —— 清空它是一次正当的修改,所以空串照样提交
                         (服务端靠"键在不在"分开"不动它"与"清掉它")。 */}
                     <div className="flex-1 min-w-[16rem]">
                         <label className="block text-sm font-medium mb-1">{t('purchasing.form.deliveryLocation')}</label>
                         <input type="text" name="delivery_location" defaultValue={deliveryLocation}
-                            disabled={frozen} className="w-full border border-gray-300 px-3 py-2 rounded" />
+                            disabled={frozen} className={`${CONTROL_INPUT} w-full`} />
                     </div>
                 </div>
 
@@ -183,7 +184,7 @@ export default function AmendOrderForm({
                             const receivedText = <>{l.received} {l.unit}</>
                             const removeControl = (
                                 <label className="text-sm">
-                                    <input type="checkbox" checked={!!remove[l.id]} disabled={frozen || l.received > 0}
+                                    <input className={CONTROL_CHECKBOX} type="checkbox" checked={!!remove[l.id]} disabled={frozen || l.received > 0}
                                         onChange={(e) => setRemove((r) => ({ ...r, [l.id]: e.target.checked }))} />
                                     {/* 收过货的行删不掉 —— 复选框直接禁用并说明 */}
                                     <span className="ml-1">
@@ -215,7 +216,7 @@ export default function AmendOrderForm({
                                         <DecimalInput name="line_quantity" value={qty[l.id] ?? ''}
                                             onChange={(raw) => setQty((q) => ({ ...q, [l.id]: raw }))}
                                             disabled={frozen}
-                                            className="w-28 border border-gray-300 px-2 py-1 rounded text-right" />
+                                            className="w-28 text-right" />
                                         {/* 下限写在行上 —— 保存之后才被拒是最差的一种告知 */}
                                         {below && (
                                             <p className="text-xs text-red-600 mt-1">
@@ -230,7 +231,7 @@ export default function AmendOrderForm({
                                         <DecimalInput name="line_price" value={price[l.id] ?? ''}
                                             onChange={(raw) => setPrice((p) => ({ ...p, [l.id]: raw }))}
                                             disabled={frozen}
-                                            className="w-28 border border-gray-300 px-2 py-1 rounded text-right" />
+                                            className="w-28 text-right" />
                                     </td>
                                     {/* PUR-1:定价状态。挂了公式的行【标不成定价】——
                                         禁用并把理由摆在旁边(CMP-2 的规矩);把关在
@@ -239,7 +240,7 @@ export default function AmendOrderForm({
                                         <select name="line_price_status" value={priceStatus[l.id] ?? ''}
                                             disabled={frozen}
                                             onChange={(e) => setPriceStatus((p) => ({ ...p, [l.id]: e.target.value }))}
-                                            className="border border-gray-300 px-2 py-1 rounded text-sm">
+                                            className={CONTROL_SELECT}>
                                             <option value="">{t('purchasing.form.priceStatusDerive')}</option>
                                             <option value="fixed" disabled={l.has_formula}>
                                                 {t('purchasing.form.priceStatusFixed')}
@@ -269,7 +270,7 @@ export default function AmendOrderForm({
                     (trg_po_history_payment_term)。理由与其余修改共用上面那一个。 */}
                 <div className="border border-gray-300 rounded p-4">
                     <label className="flex items-center gap-2 text-sm font-medium">
-                        <input type="checkbox" name="edit_terms" value="1" checked={editTerms}
+                        <input className={CONTROL_CHECKBOX} type="checkbox" name="edit_terms" value="1" checked={editTerms}
                             disabled={frozen}
                             onChange={(e) => setEditTerms(e.target.checked)} />
                         {t('purchasing.amend.editTerms')}
@@ -290,13 +291,13 @@ export default function AmendOrderForm({
                                         <label className="block text-xs text-gray-600 mb-1">{t('purchasing.form.termLabel')}</label>
                                         <input type="text" name="term_label" value={tm.label} disabled={frozen}
                                             onChange={(e) => patchTerm(i, { label: e.target.value })}
-                                            className="w-40 border border-gray-300 px-2 py-1.5 rounded" />
+                                            className={`${CONTROL_INPUT} w-40`} />
                                     </div>
                                     <div>
                                         <label className="block text-xs text-gray-600 mb-1">{t('purchasing.form.termMode')}</label>
                                         <select name="term_mode" value={tm.mode} disabled={frozen}
                                             onChange={(e) => patchTerm(i, { mode: e.target.value as 'percentage' | 'fixed' })}
-                                            className="w-28 border border-gray-300 px-2 py-1.5 rounded">
+                                            className={`${CONTROL_SELECT} w-28`}>
                                             <option value="percentage">%</option>
                                             <option value="fixed">{currency}</option>
                                         </select>
@@ -311,19 +312,19 @@ export default function AmendOrderForm({
                                         <input type="text" name="term_percentage" value={tm.percentage}
                                             disabled={frozen}
                                             onChange={(e) => patchTerm(i, { percentage: e.target.value })}
-                                            className={'w-24 border border-gray-300 px-2 py-1.5 rounded text-right ' +
+                                            className={`${CONTROL_INPUT} w-24 text-right ` +
                                                 (tm.mode === 'percentage' ? '' : 'hidden')} />
                                         <input type="text" name="term_fixed" value={tm.fixed_amount}
                                             disabled={frozen}
                                             onChange={(e) => patchTerm(i, { fixed_amount: e.target.value })}
-                                            className={'w-24 border border-gray-300 px-2 py-1.5 rounded text-right ' +
+                                            className={`${CONTROL_INPUT} w-24 text-right ` +
                                                 (tm.mode === 'fixed' ? '' : 'hidden')} />
                                     </div>
                                     <div>
                                         <label className="block text-xs text-gray-600 mb-1">{t('purchasing.form.termTrigger')}</label>
                                         <select name="term_event" value={tm.trigger_event} disabled={frozen}
                                             onChange={(e) => patchTerm(i, { trigger_event: e.target.value })}
-                                            className="w-44 border border-gray-300 px-2 py-1.5 rounded">
+                                            className={`${CONTROL_SELECT} w-44`}>
                                             {triggers.map((ev) => (
                                                 <option key={ev.code} value={ev.code}>{triggerLabel(ev, locale)}</option>
                                             ))}
@@ -333,7 +334,7 @@ export default function AmendOrderForm({
                                         <label className="block text-xs text-gray-600 mb-1">{t('purchasing.form.termDue')}</label>
                                         <input type="date" name="term_due" value={tm.due_date} disabled={frozen}
                                             onChange={(e) => patchTerm(i, { due_date: e.target.value })}
-                                            className="border border-gray-300 px-2 py-1.5 rounded" />
+                                            className={CONTROL_INPUT} />
                                     </div>
                                     <Button variant="secondary" size="inline" type="button" disabled={frozen}
                                         onClick={() => setTerms((ts) => ts.filter((_, j) => j !== i))}
@@ -357,8 +358,8 @@ export default function AmendOrderForm({
 
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('purchasing.amend.notes')}</label>
-                    <textarea name="notes" rows={2} defaultValue={notes} disabled={frozen}
-                        className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    <textarea name="notes" defaultValue={notes} disabled={frozen}
+                        className={`${CONTROL_TEXTAREA} w-full`} />
                 </div>
 
                 <div className="flex gap-3 pt-2">

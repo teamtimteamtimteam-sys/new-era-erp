@@ -2,6 +2,7 @@
 
 // 金属含量(化验)面板。进料/产出共用同一份;页面用 .bind 把 batchId 绑进 save/delete 动作,
 // 所以面板本身从不接触 id。结构镜像 suppliers 的 AttachmentsPanel(mt-8 pt-8 border-t + 表格 + 录入行)。
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
@@ -243,7 +244,7 @@ export default function MetalContentPanel({
                 <select
                     value={selectedMetal}
                     onChange={(e) => setSelectedMetal(e.target.value)}
-                    className="border border-gray-300 px-3 py-2 rounded"
+                    className={CONTROL_SELECT}
                 >
                     <option value="" disabled>{t('metalContent.selectMetal')}</option>
                     {/* 【选单只列还能新选的】—— 停用的物质不出现在这里,
@@ -261,7 +262,7 @@ export default function MetalContentPanel({
                     placeholder={t('metalContent.pctPlaceholder')}
                     value={pctInput}
                     onChange={setPctInput}
-                    className="w-32 border border-gray-300 px-3 py-2 rounded"
+                    className="w-32"
                 />
                 <Button
                     type="button"

@@ -7,6 +7,7 @@
 // 行级编辑状态 / 脏值 / 逐行保存 / 手机上怎么改,全部由组件承担。
 // **保存的语义一个字没变**:整行 patch 交给 saveLeaveType,
 // 失败留在编辑态、成功才 router.refresh()。
+import { CONTROL_CHECKBOX, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
@@ -32,7 +33,7 @@ export type LeaveTypeRow = {
 /** 草稿就是那一行本身 —— 进编辑时整行拷一份,取消就把它丢掉。 */
 type Draft = LeaveTypeRow
 
-const inp = 'w-full border border-gray-300 rounded px-1 py-0.5 text-xs'
+const inp = `${CONTROL_INPUT} w-full`
 
 export default function LeaveTypesEditor({ rows }: { rows: LeaveTypeRow[] }) {
     const t = useTranslations()
@@ -101,7 +102,7 @@ export default function LeaveTypesEditor({ rows }: { rows: LeaveTypeRow[] }) {
             header: t('leave.halfDay'),
             render: (r) => yesNo(r.allows_half_day),
             edit: (d, set) => (
-                <input type="checkbox" checked={d.allows_half_day} aria-label={t('leave.halfDay')}
+                <input className={CONTROL_CHECKBOX} type="checkbox" checked={d.allows_half_day} aria-label={t('leave.halfDay')}
                        onChange={(e) => set({ allows_half_day: e.target.checked })} />
             ),
         },
@@ -110,7 +111,7 @@ export default function LeaveTypesEditor({ rows }: { rows: LeaveTypeRow[] }) {
             header: t('permissions.active'),
             render: (r) => yesNo(r.is_active),
             edit: (d, set) => (
-                <input type="checkbox" checked={d.is_active} aria-label={t('permissions.active')}
+                <input className={CONTROL_CHECKBOX} type="checkbox" checked={d.is_active} aria-label={t('permissions.active')}
                        onChange={(e) => set({ is_active: e.target.checked })} />
             ),
         },

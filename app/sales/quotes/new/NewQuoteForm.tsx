@@ -8,6 +8,7 @@
 //   * 行指向【物料】,不指向批次 —— 报价的时候那批货可能还没生产出来。
 //
 // 【保存出来的是一张草稿】签发是另一步,而签发才是"发给对方"这件事本身。
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
@@ -55,7 +56,7 @@ export default function NewQuoteForm({
                         {t('quotes.form.customer')} <span className="text-red-600">*</span>
                     </label>
                     <select name="customer_id" required defaultValue=""
-                            className="w-full border border-gray-300 px-3 py-2 rounded">
+                            className={`${CONTROL_SELECT} w-full`}>
                         <option value="">{t('sales.form.selectCustomer')}</option>
                         {customers.map((c) => (
                             <option key={c.id} value={c.id}>{c.code} — {c.legal_name}</option>
@@ -74,7 +75,7 @@ export default function NewQuoteForm({
                         </label>
                         <input type="date" name="quote_date" value={quoteDate}
                                onChange={(e) => setQuoteDate(e.target.value)}
-                               className="border border-gray-300 px-3 py-2 rounded" />
+                               className={CONTROL_INPUT} />
                         {state.fieldErrors?.quote_date && (
                             <p className="text-xs text-red-600 mt-1">{state.fieldErrors.quote_date}</p>
                         )}
@@ -85,7 +86,7 @@ export default function NewQuoteForm({
                         </label>
                         <input type="date" name="valid_until" value={validUntil}
                                onChange={(e) => setValidUntil(e.target.value)}
-                               className="border border-gray-300 px-3 py-2 rounded" />
+                               className={CONTROL_INPUT} />
                         {state.fieldErrors?.valid_until && (
                             <p className="text-xs text-red-600 mt-1">{state.fieldErrors.valid_until}</p>
                         )}
@@ -99,7 +100,7 @@ export default function NewQuoteForm({
                             {t('sales.form.currency')} <span className="text-red-600">*</span>
                         </label>
                         <select name="currency" required defaultValue=""
-                                className="border border-gray-300 px-3 py-2 rounded">
+                                className={CONTROL_SELECT}>
                             <option value="">—</option>
                             {currencies.map((c) => (<option key={c} value={c}>{c}</option>))}
                         </select>
@@ -112,7 +113,7 @@ export default function NewQuoteForm({
                             {t('sales.form.fxRate')} <span className="text-red-600">*</span>
                         </label>
                         <input type="number" step="any" min="0" name="fx_rate"
-                               className="border border-gray-300 px-3 py-2 rounded" />
+                               className={CONTROL_INPUT} />
                         {state.fieldErrors?.fx_rate && (
                             <p className="text-xs text-red-600 mt-1">{state.fieldErrors.fx_rate}</p>
                         )}
@@ -138,7 +139,7 @@ export default function NewQuoteForm({
                             <tr className={tableC.bodyRow} key={i}>
                                 <td className={tableC.cell}>
                                     <select name={`line_material_${i}`} defaultValue=""
-                                            className="w-full border border-gray-300 px-2 py-1 rounded">
+                                            className={`${CONTROL_SELECT} w-full`}>
                                         <option value="">{t('sales.form.selectMaterial')}</option>
                                         {materials.map((m) => (
                                             <option key={m.id} value={m.id}>{m.code} — {m.name}</option>
@@ -147,11 +148,11 @@ export default function NewQuoteForm({
                                 </td>
                                 <td className={`${tableC.cell} text-right`}>
                                     <input type="number" step="any" min="0" name={`line_qty_${i}`}
-                                           className="w-28 border border-gray-300 px-2 py-1 rounded text-right" />
+                                           className={`${CONTROL_INPUT} w-28 text-right`} />
                                 </td>
                                 <td className={`${tableC.cell} text-right`}>
                                     <input type="number" step="any" min="0" name={`line_price_${i}`}
-                                           className="w-28 border border-gray-300 px-2 py-1 rounded text-right" />
+                                           className={`${CONTROL_INPUT} w-28 text-right`} />
                                 </td>
                             </tr>
                         ))}
@@ -160,13 +161,13 @@ export default function NewQuoteForm({
 
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('sales.form.notes')}</label>
-                    <textarea name="notes" rows={2}
-                              className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    <textarea name="notes"
+                              className={`${CONTROL_TEXTAREA} w-full`} />
                 </div>
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('quotes.form.terms')}</label>
-                    <textarea name="terms_text" rows={3}
-                              className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    <textarea name="terms_text"
+                              className={`${CONTROL_TEXTAREA} w-full`} />
                     <p className="text-xs text-gray-500 mt-1">{t('quotes.form.termsWhy')}</p>
                 </div>
 

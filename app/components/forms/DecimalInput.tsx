@@ -12,6 +12,8 @@
 // 父组件【始终持有原始字符串】;需要数字的地方用 parseDecimal。
 // 给了 name 时额外渲染一个同名 hidden input,保证 <form action> 的非受控提交照常拿到值。
 
+import { cn } from '@/lib/utils'
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import type { ChangeEvent } from 'react'
 
 // 允许的中间态:空、单个负号、单个小数点、以及任意"数字/小数点"组合
@@ -68,7 +70,7 @@ export default function DecimalInput({
                 onChange={handleChange}
                 required={required}
                 placeholder={placeholder}
-                className={className}
+                className={cn(CONTROL_INPUT, className)}
                 id={id}
                 disabled={disabled}
             />

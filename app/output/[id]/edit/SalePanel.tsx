@@ -3,6 +3,7 @@
 // 销售登记面板。仅在批次未软删且 remaining_qty > 0 时由页面渲染。
 // cut 1:销售必须带价 —— 单价 + 币种(非 USD 附汇率)+ 可选客户,实时金额预览。
 // 成功后服务端 revalidate 重取,remaining/state/时间线一起刷新;表单用 formKey 清空。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useEffect, useState } from 'react'
 import { recordSale, quoteSalePrice, type SaleState, type QuoteState } from './saleActions'
 import { STATE_OPTIONS, labelKeyForValue } from '../../../inbound/options'
@@ -182,7 +183,7 @@ export default function SalePanel({
                         <select
                             value={priceMode}
                             onChange={(e) => { setPriceMode(e.target.value as 'manual' | 'formula' | 'spot'); setQuote(null) }}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_SELECT}
                         >
                             <option value="manual">{t('output.sale.pricing.manual')}</option>
                             <option value="spot">{t('output.sale.pricing.spot')}</option>
@@ -195,7 +196,7 @@ export default function SalePanel({
                             <select
                                 value={quoteFormulaId}
                                 onChange={(e) => setQuoteFormulaId(e.target.value)}
-                                className="border border-gray-300 px-3 py-2 rounded"
+                                className={CONTROL_SELECT}
                             >
                                 <option value="">—</option>
                                 {formulas.map((f) => (
@@ -260,7 +261,7 @@ export default function SalePanel({
                             required
                             value={quantity}
                             onChange={setQuantity}
-                            className="w-32 border border-gray-300 px-3 py-2 rounded"
+                            className="w-32"
                         />
                     </div>
                     <div>
@@ -272,7 +273,7 @@ export default function SalePanel({
                             required
                             value={unitPrice}
                             onChange={setUnitPrice}
-                            className="w-32 border border-gray-300 px-3 py-2 rounded"
+                            className="w-32"
                         />
                     </div>
                     <div>
@@ -281,7 +282,7 @@ export default function SalePanel({
                             name="currency"
                             value={currency}
                             onChange={(e) => setCurrency(e.target.value)}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_SELECT}
                         >
                             <option value="USD">USD</option>
                             <option value="SGD">SGD</option>
@@ -300,7 +301,7 @@ export default function SalePanel({
                             name="customer_id"
                             value={customerId}
                             onChange={(e) => setCustomerId(e.target.value)}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_SELECT}
                         >
                             <option value="">{t('output.form.selectCustomerOptional')}</option>
                             {customers.map((c) => (
@@ -317,7 +318,7 @@ export default function SalePanel({
                             name="sale_date"
                             required
                             defaultValue={todayIsoLocal()}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_INPUT}
                         />
                     </div>
                     <div className="flex-1 min-w-[8rem]">
@@ -325,7 +326,7 @@ export default function SalePanel({
                         <input
                             type="text"
                             name="notes"
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_INPUT} w-full`}
                         />
                     </div>
                     <Button

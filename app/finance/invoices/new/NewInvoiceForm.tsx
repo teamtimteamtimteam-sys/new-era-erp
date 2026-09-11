@@ -2,6 +2,7 @@
 
 // 开票表单:选客户 → 勾选其待开票销售(外加"未记录客户"的那批,它们可以开给所选客户)
 // → 期限/条款 → 提交。底部实时合计;混币种时直接禁用提交(DB 的 MIXED_CURRENCY 兜底)。
+import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { createInvoice, type CreateInvoiceState } from './actions'
@@ -181,7 +182,7 @@ canEdit: boolean
                         required
                         value={customerId}
                         onChange={(e) => onCustomerChange(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="" disabled>
                             {t('invoice.form.selectCustomer')}
@@ -203,7 +204,7 @@ canEdit: boolean
                         required
                         value={issueDate}
                         onChange={(e) => setIssueDate(e.target.value)}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                 </div>
                 <div>
@@ -214,7 +215,7 @@ canEdit: boolean
                             setTermsTouched(true)
                             setTermsDays(raw)
                         }}
-                        className="w-24 border border-gray-300 px-3 py-2 rounded"
+                        className="w-24"
                     />
                     {dueDate && (
                         <p className="text-xs text-gray-500 mt-1">
@@ -233,7 +234,7 @@ canEdit: boolean
                             name="tax_code"
                             value={effTaxCode}
                             onChange={(e) => { setTaxCodeTouched(true); setTaxCode(e.target.value) }}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_SELECT}
                         >
                             <option value="">{t('invoice.form.taxCodePick')}</option>
                             {taxCodes.map((c) => (
@@ -295,6 +296,7 @@ canEdit: boolean
                                 <tr className={tableC.bodyRow} key={s.sales_record_id}>
                                     <td className={`${tableC.cell} text-center`}>
                                         <input
+                                            className={CONTROL_CHECKBOX}
                                             type="checkbox"
                                             checked={!!checked[s.sales_record_id]}
                                             onChange={(e) =>
@@ -353,7 +355,7 @@ canEdit: boolean
                     <input
                         type="text"
                         name="notes"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
                 <div className="flex-1 min-w-[20rem]">
@@ -365,7 +367,7 @@ canEdit: boolean
                             setTermsTextTouched(true)
                             setTermsText(e.target.value)
                         }}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
             </div>

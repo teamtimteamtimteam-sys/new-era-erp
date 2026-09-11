@@ -10,6 +10,7 @@
 // CCY-1:这一块【整块都是本位币】(*_base),而它挂在进料批次编辑页上 —— 那一页
 // 上下都是采购单的单据币种口径(批次单价、金额)。面板自己不写币种就等于借了
 // 一个说着别的币种的抬头,所以四个数字各自带上币种。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
@@ -130,7 +131,7 @@ canEdit: boolean
                             {t('purchasing.releaseDate')}
                         </label>
                         <input id="release_date" name="release_date" type="date" required
-                            className="border border-gray-300 px-2 py-1.5 rounded text-sm" />
+                            className={CONTROL_INPUT} />
                         <Button
                             type="submit"
                             disabled={isPending}
@@ -188,7 +189,7 @@ function AmountInput({ defaultAmount }: { defaultAmount: number }) {
             required
             value={value}
             onChange={setValue}
-            className="w-36 border border-gray-300 px-3 py-2 rounded"
+            className="w-36"
         />
     )
 }

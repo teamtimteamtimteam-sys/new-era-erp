@@ -12,6 +12,7 @@
 // 两张表(实际额 / 估算)各自是【独立的 DataTable 实例】,各带各的 selection —
 // 天然就是两个互不相干的选中集,不需要给 selection 设计"命名分组"这种复杂度。
 // 见 data-table.tsx 抬头 CONV-3 那一节:这正是那条设计判断的来源页面。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -74,8 +75,8 @@ canEdit: boolean
             {t(labelKey)} <span className="text-red-600">*</span>
             <input id={id} type="date" value={value} required aria-invalid={value === ''}
                    onChange={(e) => set(e.target.value)} onBlur={(e) => set(e.target.value)}
-                   className={'block border rounded px-2 py-1 text-sm '
-                       + (value === '' ? 'border-red-400 bg-red-50' : 'border-gray-300')} />
+                   className={`${CONTROL_INPUT} block`
+                       + (value === '' ? ' border-red-400 bg-red-50' : '')} />
             <span className="mt-1 block max-w-[16rem] text-gray-500">{t(hintKey)}</span>
         </label>
     )
@@ -150,11 +151,11 @@ canEdit: boolean
                             'finance.costSettle.invoiceDate', 'finance.costSettle.invoiceDateHint')}
                         <label>{t('finance.costSettle.invoiceAmount')}
                             <input type="number" value={actual} onChange={(e) => setActual(e.target.value)}
-                                   className="block border border-gray-300 rounded px-2 py-1 text-sm w-32 text-right" />
+                                   className={`${CONTROL_INPUT} block w-32 text-right`} />
                         </label>
                         <label>{t('finance.costSettle.payStatus')}
                             <select value={payStatus} onChange={(e) => setPayStatus(e.target.value)}
-                                    className="block border border-gray-300 rounded px-2 py-1 text-sm">
+                                    className={`${CONTROL_SELECT} block`}>
                                 <option value="paid">{t('finance.costSettle.paid')}</option>
                                 <option value="unpaid">{t('finance.costSettle.unpaid')}</option>
                             </select>
@@ -168,7 +169,7 @@ canEdit: boolean
                                     </p>
                                 ) : (
                                     <select value={supplier} onChange={(e) => setSupplier(e.target.value)}
-                                            className="block border border-gray-300 rounded px-2 py-1 text-sm">
+                                            className={`${CONTROL_SELECT} block`}>
                                         <option value=""></option>
                                         {suppliers.map((s) => <option key={s.id} value={s.id}>{s.legal_name}</option>)}
                                     </select>

@@ -4,6 +4,7 @@
 // 每行右侧给出"该日期之前(含当日)最近一次的价格"作为参照 —— 录入时能看清是从多少改到多少。
 // 已有当日价格的金属会被预填(于是本页同时也是"改今天的价"的编辑页)。
 // 改日期会重新拉取参照价与预填值(走 router.replace 把日期写进 URL,由服务端重取)。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useActionState, useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { saveBulkPrices, type BulkPricesState } from './actions'
@@ -86,7 +87,7 @@ export default function BulkPricesForm({
                             const d = e.target.value
                             if (d) router.replace(`${pathname}?date=${d}&index=${priceIndex ?? INDEX_UNSTATED}`)
                         }}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                 </div>
                 {/* METAL-2:整张表属于一个指数。改它要【重取参照价】—— 拿 LME 的
@@ -131,7 +132,7 @@ export default function BulkPricesForm({
                                         onChange={(raw) =>
                                             setValues((v) => ({ ...v, [opt.value]: raw }))
                                         }
-                                        className="w-40 border border-gray-300 px-3 py-2 rounded"
+                                        className="w-40"
                                     />
                                 </td>
                                 <td className={`${tableC.cell} text-gray-500`}>

@@ -6,6 +6,7 @@
 // → (f) 可选保存映射 → (g) 提交。
 // 解析失败的行会拦住提交(必须先修);余额不符【不拦】—— DB 的
 // STATEMENT_NOT_BALANCED 才是权威判定,这里的指示器只是早一步的反馈。
+import { CONTROL_CHECKBOX, CONTROL_FILE_BUTTON, CONTROL_INPUT, CONTROL_RADIO, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useMemo, useState } from 'react'
 import { currencyOfBank } from '@/lib/currencyMap'
 import Link from 'next/link'
@@ -152,7 +153,7 @@ canEdit: boolean
         <select
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full border border-gray-300 px-3 py-2 rounded"
+            className={`${CONTROL_SELECT} w-full`}
         >
             <option value="">{opts.allowNone ? t('bank.none') : '—'}</option>
             {headers.map((h) => (
@@ -195,7 +196,7 @@ canEdit: boolean
                         name="bank_account"
                         value={bankAccount}
                         onChange={(e) => setBankAccount(e.target.value)}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         <option value="1010">{t('finance.bank.1010')}</option>
                         <option value="1000">{t('finance.bank.1000')}</option>
@@ -206,7 +207,7 @@ canEdit: boolean
                     <select
                         value={profileId}
                         onChange={(e) => onProfileChange(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('bank.profileNew')}</option>
                         {profiles.map((p) => (
@@ -225,7 +226,7 @@ canEdit: boolean
                         type="file"
                         accept=".csv,text/csv"
                         onChange={(e) => onFile(e.target.files?.[0])}
-                        className="w-full text-sm file:mr-3 file:rounded file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-white hover:file:bg-blue-700"
+                        className={`${CONTROL_FILE_BUTTON} w-full`}
                     />
                     {headers.length > 0 && (
                         <p className="text-xs text-gray-500 mt-1">
@@ -265,7 +266,7 @@ canEdit: boolean
                                 type="radio"
                                 checked={mapping.amount_mode === 'single'}
                                 onChange={() => setM({ amount_mode: 'single' })}
-                                className="mr-1"
+                                className={`${CONTROL_RADIO} mr-1`}
                             />
                             {t('bank.amountModeSingle')}
                         </label>
@@ -274,7 +275,7 @@ canEdit: boolean
                                 type="radio"
                                 checked={mapping.amount_mode === 'debit_credit'}
                                 onChange={() => setM({ amount_mode: 'debit_credit' })}
-                                className="mr-1"
+                                className={`${CONTROL_RADIO} mr-1`}
                             />
                             {t('bank.amountModeDebitCredit')}
                         </label>
@@ -295,7 +296,7 @@ canEdit: boolean
                                         type="radio"
                                         checked={mapping.sign_convention === 'positive_in'}
                                         onChange={() => setM({ sign_convention: 'positive_in' })}
-                                        className="mr-1"
+                                        className={`${CONTROL_RADIO} mr-1`}
                                     />
                                     {t('bank.signPositiveIn')}
                                 </label>
@@ -304,7 +305,7 @@ canEdit: boolean
                                         type="radio"
                                         checked={mapping.sign_convention === 'positive_out'}
                                         onChange={() => setM({ sign_convention: 'positive_out' })}
-                                        className="mr-1"
+                                        className={`${CONTROL_RADIO} mr-1`}
                                     />
                                     {t('bank.signPositiveOut')}
                                 </label>
@@ -331,7 +332,7 @@ canEdit: boolean
                             <select
                                 value={mapping.date_format}
                                 onChange={(e) => setM({ date_format: e.target.value })}
-                                className="w-full border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_SELECT} w-full`}
                             >
                                 {DATE_FORMATS.map((f) => (
                                     <option key={f} value={f}>
@@ -347,7 +348,7 @@ canEdit: boolean
                                 onChange={(e) =>
                                     setM({ decimal_separator: e.target.value as DecimalSeparator })
                                 }
-                                className="w-full border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_SELECT} w-full`}
                             >
                                 <option value=".">.</option>
                                 <option value=",">,</option>
@@ -360,7 +361,7 @@ canEdit: boolean
                                 onChange={(e) =>
                                     setM({ thousands_separator: e.target.value as ThousandsSeparator })
                                 }
-                                className="w-full border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_SELECT} w-full`}
                             >
                                 <option value=",">,</option>
                                 <option value=".">.</option>
@@ -436,7 +437,7 @@ canEdit: boolean
                             setPeriodTouched(true)
                             setPeriodStart(e.target.value)
                         }}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                 </div>
                 <div>
@@ -450,7 +451,7 @@ canEdit: boolean
                             setPeriodTouched(true)
                             setPeriodEnd(e.target.value)
                         }}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                 </div>
                 <div>
@@ -464,7 +465,7 @@ canEdit: boolean
                         allowNegative
                         value={opening}
                         onChange={setOpening}
-                        className="w-40 border border-gray-300 px-3 py-2 rounded"
+                        className="w-40"
                     />
                 </div>
                 <div>
@@ -477,7 +478,7 @@ canEdit: boolean
                         allowNegative
                         value={closing}
                         onChange={setClosing}
-                        className="w-40 border border-gray-300 px-3 py-2 rounded"
+                        className="w-40"
                     />
                 </div>
             </div>
@@ -503,7 +504,7 @@ canEdit: boolean
                         name="save_mapping"
                         checked={saveMapping}
                         onChange={(e) => setSaveMapping(e.target.checked)}
-                        className="mr-2"
+                        className={`${CONTROL_CHECKBOX} mr-2`}
                     />
                     {t('bank.saveMapping')}
                 </label>
@@ -518,7 +519,7 @@ canEdit: boolean
                             required
                             value={mappingName}
                             onChange={(e) => setMappingName(e.target.value)}
-                            className="w-64 border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_INPUT} w-64`}
                         />
                     </div>
                 )}

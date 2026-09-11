@@ -4,6 +4,7 @@
 // 输入公式 / 数量 / 计价日 / 七个金属的化验含量(留空 = 没测,整行忽略),
 // 点"计算"走服务端动作调 DB 函数,把返回的【完整明细】原样摊开 —— 客户端不做任何算术。
 // 支持 ?formula=&quantity=&ni=&co=… 预填,便于从批次页直接带着化验结果跳进来。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
@@ -111,7 +112,7 @@ export default function CalculatorForm({
                             required
                             value={formulaId}
                             onChange={(e) => setFormulaId(e.target.value)}
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="" disabled>
                                 {t('pricing.form.name')}
@@ -136,7 +137,7 @@ export default function CalculatorForm({
                             required
                             value={quantity}
                             onChange={setQuantity}
-                            className="w-36 border border-gray-300 px-3 py-2 rounded"
+                            className="w-36"
                         />
                     </div>
                     <div>
@@ -148,7 +149,7 @@ export default function CalculatorForm({
                             name="reference_date"
                             required
                             defaultValue={prefill.date}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_INPUT}
                         />
                     </div>
                 </div>
@@ -175,7 +176,7 @@ export default function CalculatorForm({
                                             name="assay_content"
                                             value={assay[opt.value] ?? ''}
                                             onChange={(raw) => setAssay((a) => ({ ...a, [opt.value]: raw }))}
-                                            className="w-28 border border-gray-300 px-3 py-2 rounded"
+                                            className="w-28"
                                         />
                                     </td>
                                 </tr>

@@ -17,6 +17,7 @@
 // ★【目标原文贴着输入放,不是折叠起来】★
 //   Tim:没有它,她得开着表格再开着这一屏。所以 target_text / 证据来源 /
 //   所链组织 KPI 的 M3 与 M6 目标,全部画在【她打分那一格的左边】。
+import { CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -52,8 +53,8 @@ type Draft = {
     overrideReason: string | null
 }
 
-const inp = 'w-full border border-gray-300 rounded px-1 py-0.5 text-xs'
-const ta = 'w-full border border-gray-300 rounded px-1 py-0.5 text-xs min-h-[3.5rem]'
+const inp = `${CONTROL_INPUT} w-full`
+const ta = `${CONTROL_TEXTAREA} w-full`
 
 /** 分 ÷ 5 × 权重,封顶后取 LEAST —— 与数据库那两处是同一个式子。 */
 function weightedOf(score: number | null, cap: number | null, weight: number): number | null {

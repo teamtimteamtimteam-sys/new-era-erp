@@ -63,7 +63,7 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { compareForSort } from '@/lib/sortCollation'
 import { tableC } from '@/app/components/ui/table-style'
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { CONTROL_INPUT, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export type Column<T> = {
     /** 稳定的列键 —— 排序状态与列显隐都按它记。 */
@@ -298,7 +298,7 @@ function SelectAllCheckbox({
             checked={total > 0 && selected === total}
             onChange={onChange}
             aria-label={label}
-            className="base-pressable h-4 w-4"
+            className={`${CONTROL_CHECKBOX} w-4 base-pressable`}
         />
     )
 }
@@ -493,6 +493,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                     <label key={c.key} className="flex items-center gap-2 px-1 py-1 text-sm text-[color:var(--brand-text)]">
                                         <input
                                             type="checkbox"
+                                            className={CONTROL_CHECKBOX}
                                             checked={!hidden.has(c.key)}
                                             onChange={() => setHidden((s) => {
                                                 const n = new Set(s); n.has(c.key) ? n.delete(c.key) : n.add(c.key); return n
@@ -642,7 +643,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                     checked={selection.selectedIds.has(k)}
                                                     onChange={() => selection.onToggle(k)}
                                                     aria-label={(selection.selectRowLabel ?? t('table.selectRow'))}
-                                                    className="base-pressable h-4 w-4"
+                                                    className={`${CONTROL_CHECKBOX} w-4 base-pressable`}
                                                 />
                                             </td>
                                         )}

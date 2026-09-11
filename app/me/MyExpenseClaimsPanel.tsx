@@ -22,6 +22,7 @@
 //   ☞ TABLE-CONVERT-0 普查 §5 那一行把撤回钮记成【折进去了】—— 那份普查
 //     跑在 TABLE-STYLE-1 落地【之前】,记的是当时的源码。**以今天的源码为准。**
 //   叠在单号格里那一段手写的展开块【拿掉了】:组件自己画那一段。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { submitClaim, withdrawClaim } from '@/app/finance/claims/actions'
 import { useTranslations } from '@/lib/i18n/client'
@@ -152,22 +153,22 @@ export default function MyExpenseClaimsPanel({
                     <label className="text-sm text-gray-600">{t('expenseClaims.spendDate')}
                         <input type="date" value={spendDate} max={today()}
                             onChange={(e) => setSpendDate(e.target.value)}
-                            className="block rounded border border-gray-300 px-3 py-2" />
+                            className={`${CONTROL_INPUT} block`} />
                         <span className="block text-[11px] text-gray-500">{t('expenseClaims.spendDateHint')}</span></label>
                     <label className="text-sm text-gray-600">{t('expenseClaims.amount')}
                         <input type="number" step="0.01" min="0" value={amount}
                             onChange={(e) => setAmount(e.target.value)}
-                            className="block rounded border border-gray-300 px-3 py-2 w-32" /></label>
+                            className={`${CONTROL_INPUT} block w-32`} /></label>
                     <label className="text-sm text-gray-600">{t('expenseClaims.currency')}
                         <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                            className="block rounded border border-gray-300 px-3 py-2 w-20 font-mono" /></label>
+                            className={`${CONTROL_INPUT} block w-20 font-mono`} /></label>
                     <label className="text-sm text-gray-600 flex-1 min-w-[16rem]">{t('expenseClaims.description')}
                         <input value={description} onChange={(e) => setDescription(e.target.value)}
-                            className="block w-full rounded border border-gray-300 px-3 py-2" />
+                            className={`${CONTROL_INPUT} block w-full`} />
                         <span className="block text-[11px] text-gray-500">{t('expenseClaims.descriptionHint')}</span></label>
                     <label className="text-sm text-gray-600 flex-1 min-w-[16rem]">{t('expenseClaims.noReceiptReason')}
                         <input value={noReceipt} onChange={(e) => setNoReceipt(e.target.value)}
-                            className="block w-full rounded border border-gray-300 px-3 py-2" />
+                            className={`${CONTROL_INPUT} block w-full`} />
                         <span className="block text-[11px] text-gray-500">{t('expenseClaims.noReceiptReasonHint')}</span></label>
                     <Button type="button" disabled={pending || !canSubmit}
                         onClick={() => {

@@ -201,11 +201,24 @@ export const CONTROL_RADIO = [
  * 只能把 Button default 档的**样子**用 `file:*` 写出来:
  * #007FAD 底 · 白字 · 高 32px · 左右 10px · 圆角 8px · 无边 · 14px / 500。
  * ☞ 量它要用 `getComputedStyle(el, '::file-selector-button')`,不是量那个 `<input>`。
+ *
+ * ★★【hover —— INPUT-3(Tim 2026-09-11, Q11)补上的那一条】★★
+ *   转换之前,那两处手搓的文件输入自己写着 `hover:file:bg-blue-700`;
+ *   照 R2(只许用模块已有的值)接过来,**它们会当场丢掉 hover**。
+ *   ☞ Tim 的裁定:**去 `button.tsx` 读 default 档,它有 hover 底色就抄那一条同一个工具类。**
+ *     实测 default 档写的是 `hover:bg-primary-hover`(`app/components/ui/button.tsx`,
+ *     `buttonVariants` 的 `variant.default`)—— 于是这里写成它的 `file:` 形态。
+ *   ★ **这【不是】一个新值**:它逐字就是 Button 已有的那一条,
+ *     与「文件钮 = Button 的 default 档」那条裁定同源。
+ *   ★ **它不会动 `<Input>` / `<Textarea>`**:那两条发的是 `INPUT_FILE_RESET`(上面那条),
+ *     与本常量**不是同一件东西** —— 实测两条组件串逐字未变(见 INPUT-3 交回报告 R6(d))。
+ *   ⚠ 写法照本文件抬头那一条:**类名必须是一个完整的字面量**,不许用 `${...}` 拼 ——
+ *     Tailwind 的扫描器读的是文件里的字面文本。
  */
 export const CONTROL_FILE_BUTTON = [
     'file:mr-3 file:inline-flex file:h-8 file:items-center file:rounded-lg file:border-0',
     'file:bg-primary file:px-2.5 file:text-sm file:font-medium file:text-primary-foreground',
-    'file:transition-colors', TYPE, FOCUS, DISABLED, TAIL,
+    'file:transition-colors hover:file:bg-primary-hover', TYPE, FOCUS, DISABLED, TAIL,
 ].join(' ')
 
 /**

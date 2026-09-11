@@ -7,6 +7,7 @@
 // 每行实时校验 net =? gross − 员工CPF − 其它扣款:对了给绿勾,错了标红并显示差额,
 // 且只要有一行不平就禁用提交 —— DB 的 LINE_NOT_BALANCED 是后墙,不是第一道防线。
 // 整行留空的员工不提交(当月没发薪的人不该以 0 混进工资单)。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
@@ -105,7 +106,7 @@ export default function PayrollGrid({
         { gross: 0, eeCpf: 0, erCpf: 0, other: 0, net: 0 }
     )
 
-    const cell = 'w-24 border border-gray-300 px-2 py-1 rounded text-right'
+    const cell = 'w-24 text-right'
 
     return (
         <form action={formAction} className="space-y-4">
@@ -129,7 +130,7 @@ export default function PayrollGrid({
                         required
                         defaultValue={defaults.period_month}
                         readOnly={monthLocked}
-                        className="border border-gray-300 px-3 py-2 rounded read-only:bg-gray-100"
+                        className={`${CONTROL_INPUT} read-only:bg-gray-100`}
                     />
                 </div>
                 <div>
@@ -141,7 +142,7 @@ export default function PayrollGrid({
                         name="payment_date"
                         required
                         defaultValue={defaults.payment_date}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                     <p className="text-xs text-gray-500 mt-1">{t('hr.paymentDateHint')}</p>
                 </div>
@@ -151,7 +152,7 @@ export default function PayrollGrid({
                         name="currency"
                         value={currency}
                         onChange={(e) => setCurrency(e.target.value)}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         <option value="SGD">SGD</option>
                         <option value="USD">USD</option>
@@ -167,7 +168,7 @@ export default function PayrollGrid({
                         required
                         inputMode="decimal"
                         defaultValue={defaults.fx_rate}
-                        className="w-28 border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-28`}
                     />
                 </div>
                 <div className="flex-1 min-w-[14rem]">
@@ -177,7 +178,7 @@ export default function PayrollGrid({
                         name="source_note"
                         defaultValue={defaults.source_note}
                         placeholder={t('hr.sourceNoteHint')}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
                 <div className="flex-1 min-w-[12rem]">
@@ -186,7 +187,7 @@ export default function PayrollGrid({
                         type="text"
                         name="notes"
                         defaultValue={defaults.notes}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
             </div>

@@ -3,6 +3,7 @@
 // 定价公式表单(新建/编辑共用)。计价基准选 average 时才出现天数;
 // 适用对象三选一,选中哪个才出现对应下拉。
 // 下方计价比例表:七个金属各一行,【留空 = 该金属不计价】(保存时删除旧行)。
+import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_RADIO, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import { useRef } from 'react'
 import { useFormDraft } from '@/lib/useFormDraft'
@@ -129,7 +130,7 @@ export default function FormulaForm({
                         name="name"
                         required
                         defaultValue={defaults.name}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                     {err('name') && <p className="text-red-600 text-sm mt-1">{err('name')}</p>}
                 </div>
@@ -138,7 +139,7 @@ export default function FormulaForm({
                     <select
                         name="direction"
                         defaultValue={defaults.direction}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         <option value="both">{t('pricing.direction.both')}</option>
                         <option value="purchase">{t('pricing.direction.purchase')}</option>
@@ -176,7 +177,7 @@ export default function FormulaForm({
                             value="spot"
                             checked={basis === 'spot'}
                             onChange={() => setBasis('spot')}
-                            className="mr-1"
+                            className={`${CONTROL_RADIO} mr-1`}
                         />
                         {t('pricing.form.basisSpot')}
                     </label>
@@ -187,7 +188,7 @@ export default function FormulaForm({
                             value="average"
                             checked={basis === 'average'}
                             onChange={() => setBasis('average')}
-                            className="mr-1"
+                            className={`${CONTROL_RADIO} mr-1`}
                         />
                         {t('pricing.form.basisAverage')}
                     </label>
@@ -201,7 +202,7 @@ export default function FormulaForm({
                             name="average_days"
                             value={averageDays}
                             onChange={setAverageDays}
-                            className="w-24 border border-gray-300 px-3 py-2 rounded"
+                            className="w-24"
                         />
                         {err('average_days') && (
                             <p className="text-red-600 text-sm mt-1">{err('average_days')}</p>
@@ -231,7 +232,7 @@ export default function FormulaForm({
                         name="treatment_charge_usd_per_tonne"
                         value={treatment}
                         onChange={setTreatment}
-                        className="w-40 border border-gray-300 px-3 py-2 rounded"
+                        className="w-40"
                     />
                     {err('treatment_charge_usd_per_tonne') && (
                         <p className="text-red-600 text-sm mt-1">{err('treatment_charge_usd_per_tonne')}</p>
@@ -243,7 +244,7 @@ export default function FormulaForm({
                         name="flat_discount_pct"
                         value={discount}
                         onChange={setDiscount}
-                        className="w-32 border border-gray-300 px-3 py-2 rounded"
+                        className="w-32"
                     />
                     {err('flat_discount_pct') && (
                         <p className="text-red-600 text-sm mt-1">{err('flat_discount_pct')}</p>
@@ -261,7 +262,7 @@ export default function FormulaForm({
                             type="radio"
                             checked={mode === 'generic'}
                             onChange={() => setMode('generic')}
-                            className="mr-1"
+                            className={`${CONTROL_RADIO} mr-1`}
                         />
                         {t('pricing.form.modeGeneric')}
                     </label>
@@ -270,7 +271,7 @@ export default function FormulaForm({
                             type="radio"
                             checked={mode === 'supplier'}
                             onChange={() => setMode('supplier')}
-                            className="mr-1"
+                            className={`${CONTROL_RADIO} mr-1`}
                         />
                         {t('pricing.form.modeSupplier')}
                     </label>
@@ -279,7 +280,7 @@ export default function FormulaForm({
                             type="radio"
                             checked={mode === 'customer'}
                             onChange={() => setMode('customer')}
-                            className="mr-1"
+                            className={`${CONTROL_RADIO} mr-1`}
                         />
                         {t('pricing.form.modeCustomer')}
                     </label>
@@ -295,7 +296,7 @@ export default function FormulaForm({
                             <select
                                 name="supplier_id"
                                 defaultValue={defaults.supplier_id ?? ''}
-                                className="w-full border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_SELECT} w-full`}
                             >
                                 <option value="">{t('finance.selectCounterparty')}</option>
                                 {suppliers.map((s) => (
@@ -313,7 +314,7 @@ export default function FormulaForm({
                         <select
                             name="customer_id"
                             defaultValue={defaults.customer_id ?? ''}
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="">{t('finance.selectCounterparty')}</option>
                             {customers.map((c) => (
@@ -333,7 +334,7 @@ export default function FormulaForm({
                         type="checkbox"
                         name="is_active"
                         defaultChecked={defaults.is_active}
-                        className="mr-2"
+                        className={`${CONTROL_CHECKBOX} mr-2`}
                     />
                     {t('pricing.form.active')}
                 </label>
@@ -343,7 +344,7 @@ export default function FormulaForm({
                         type="text"
                         name="notes"
                         defaultValue={defaults.notes}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
             </div>
@@ -374,7 +375,7 @@ export default function FormulaForm({
                                         onChange={(raw) =>
                                             setPayables((p) => ({ ...p, [opt.value]: raw }))
                                         }
-                                        className="w-28 border border-gray-300 px-3 py-2 rounded"
+                                        className="w-28"
                                     />
                                     {err('payable_' + opt.value) && (
                                         <p className="text-red-600 text-sm mt-1">{err('payable_' + opt.value)}</p>

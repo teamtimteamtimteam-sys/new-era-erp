@@ -10,6 +10,7 @@
 //     【不预置任何一行】:预置一行等于替人做了一个"这里应该有个数"的判断,
 //     而这个库里今天没有任何东西能推出那个数(没有 BOM、投料侧化验来源全空)。
 //   * 计划按【物料】写,不按批次 —— 排计划的时候批次往往还不存在。
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
@@ -85,7 +86,7 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('processing.wo.form.scheduled')}</label>
                     <input type="date" value={scheduled} onChange={(e) => setScheduled(e.target.value)}
-                           className="border border-gray-300 px-3 py-2 rounded" />
+                           className={CONTROL_INPUT} />
                     <p className="text-xs text-gray-500 mt-1">{t('processing.wo.form.scheduledWhy')}</p>
                 </div>
 
@@ -103,7 +104,7 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                             {lines.map((l, i) => (
                                 <tr key={i}>
                                     <td className="border border-gray-300 px-2 py-2">
-                                        <select value={l.material_id} className="w-full border border-gray-300 px-2 py-1 rounded"
+                                        <select value={l.material_id} className={`${CONTROL_SELECT} w-full`}
                                                 onChange={(e) => setLines(lines.map((x, j) =>
                                                     j === i ? { ...x, material_id: e.target.value } : x))}>
                                             <option value="">{t('processing.wo.form.selectMaterial')}</option>
@@ -114,7 +115,7 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                                     </td>
                                     <td className="border border-gray-300 px-2 py-2 text-right">
                                         <input type="number" step="any" min="0" value={l.planned_qty}
-                                               className="w-32 border border-gray-300 px-2 py-1 rounded text-right"
+                                               className={`${CONTROL_INPUT} w-32 text-right`}
                                                onChange={(e) => setLines(lines.map((x, j) =>
                                                    j === i ? { ...x, planned_qty: e.target.value } : x))} />
                                     </td>
@@ -144,7 +145,7 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                             {expected.map((e, i) => (
                                 <tr key={i}>
                                     <td className="border border-gray-300 px-2 py-2">
-                                        <select value={e.material_id} className="w-full border border-gray-300 px-2 py-1 rounded"
+                                        <select value={e.material_id} className={`${CONTROL_SELECT} w-full`}
                                                 onChange={(ev) => setExpected(expected.map((x, j) =>
                                                     j === i ? { ...x, material_id: ev.target.value } : x))}>
                                             <option value="">{t('processing.wo.form.noExpectation')}</option>
@@ -155,7 +156,7 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                                     </td>
                                     <td className="border border-gray-300 px-2 py-2 text-right">
                                         <input type="number" step="any" min="0" value={e.expected_qty}
-                                               className="w-32 border border-gray-300 px-2 py-1 rounded text-right"
+                                               className={`${CONTROL_INPUT} w-32 text-right`}
                                                onChange={(ev) => setExpected(expected.map((x, j) =>
                                                    j === i ? { ...x, expected_qty: ev.target.value } : x))} />
                                     </td>
@@ -163,7 +164,7 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                                         不是一个空格 —— 一个空格读起来像"这一栏不重要",而这一栏
                                         正是六个月后唯一能回答"这个数可不可信"的东西。 */}
                                     <td className="border border-gray-300 px-2 py-2">
-                                        <select value={e.basis} className="w-full border border-gray-300 px-2 py-1 rounded"
+                                        <select value={e.basis} className={`${CONTROL_SELECT} w-full`}
                                                 onChange={(ev) => setExpected(expected.map((x, j) =>
                                                     j === i ? { ...x, basis: ev.target.value } : x))}>
                                             <option value="">{t('processing.wo.basis.unstated')}</option>
@@ -175,7 +176,7 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
                                     <td className="border border-gray-300 px-2 py-2">
                                         <input type="text" value={e.basis_reference}
                                                placeholder={t('processing.wo.basisReferencePlaceholder')}
-                                               className="w-full border border-gray-300 px-2 py-1 rounded"
+                                               className={`${CONTROL_INPUT} w-full`}
                                                onChange={(ev) => setExpected(expected.map((x, j) =>
                                                    j === i ? { ...x, basis_reference: ev.target.value } : x))} />
                                     </td>
@@ -187,8 +188,8 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
 
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('processing.wo.form.notes')}</label>
-                    <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)}
-                              className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)}
+                              className={`${CONTROL_TEXTAREA} w-full`} />
                 </div>
 
                 <p className="text-xs text-gray-600">{t('processing.wo.form.savesAsDraft')}</p>

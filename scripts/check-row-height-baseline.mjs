@@ -42,12 +42,29 @@
 //
 //     ④ **基线里没有的表,我报成「新出现」,不当作干净。** 反之基线有而读数里
 //        没有的,报成「不见了」。两个方向都红。
+//
+//     ⑤ ★★ **我把差别分成【横向】与【竖向】两桶,而这两桶【不共用一个退出码】**
+//        (INPUT-3,2026-09-11,Tim 的 Q17)。★★
+//        **横向** = 整页横向溢出新增/长大 · 已裁定横滚的表多出滚动范围 ·
+//                   滚动壳内容宽变了 · 一张表不见了 / 基线里没有这张表(含编辑态的同名项);
+//        **竖向** = 表头高 · 行数 · 最大行高(以及编辑态那三项)。
+//        ☞ **为什么非分不可:** 此前 `hard` 是一个数组、一个退出码 ——
+//          `滚动壳内容宽`(横向)与 `最大行高`(竖向)混在同一个 `diffs` 里。
+//          而 INPUT-3 的裁定是**行高变化【报告,不停手】**(理由:每一张有控件的表
+//          都在 INPUT-3 的路由上,而标准【按设计】就会改控件高度)——
+//          不分开,这支比对器会为一次**被允许的**行高变化整支退 1,
+//          下一刀于是拿到一个**含义不明的 1**,分不清「是不是这一刀造成的」。
+//        ☞ **默认仍然是 `stop`** —— 此前几刀的行为**逐字不变**。
+//          要把竖向降成「报告」,必须**显式**写 `--row-height=report`。
+//          ★ **横向【任何时候都退 1】**,`--row-height` 管不着它。
 // ════════════════════════════════════════════════════════════════════════════
 //
 // Usage:
 //   node scripts/check-row-height-baseline.mjs --now=.survey-out/controls-drift-X.json
 //                                             [--edit=.survey-out/controls-edit-X.json]
 //                                             [--baseline=docs/row-height-baseline.md]
+//                                             [--row-height=stop|report]   (默认 stop)
+//                                             [--baseline-heading=机读块]   (默认「机读块」= §6)
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -61,14 +78,42 @@ const NOW_FILE = arg('--now')
 const EDIT_FILE = arg('--edit')
 const BASE_FILE = arg('--baseline') || join(ROOT, 'docs/row-height-baseline.md')
 
+// ★ INPUT-3(Tim 2026-09-11, Q17):竖向差别要不要停手。**默认 stop —— 老行为逐字不变。**
+const ROW_HEIGHT_MODE = arg('--row-height') || 'stop'
+
 if (!NOW_FILE) {
-    console.error('用法:node scripts/check-row-height-baseline.mjs --now=<drift 读数.json> [--edit=<edit 读数.json>]')
+    console.error('用法:node scripts/check-row-height-baseline.mjs --now=<drift 读数.json> [--edit=<edit 读数.json>] [--row-height=stop|report]')
+    process.exit(2)
+}
+// 一个拼错的档位【不许】被当成默认值放过去 —— 那正是「一个瞎掉的检查说自己干净」。
+if (ROW_HEIGHT_MODE !== 'stop' && ROW_HEIGHT_MODE !== 'report') {
+    console.error(`✗ ${SELF}:--row-height 只认 stop 或 report,收到的是 ${JSON.stringify(ROW_HEIGHT_MODE)}。`)
     process.exit(2)
 }
 
 // ── 基线:从 markdown 里把那三个 ```json 块原样取出来 ────────────────────────
 // 【为什么解析 markdown 而不是读 .survey-out】`.survey-out/` 是生成物、被 .gitignore
 // 忽略、而且上一刀已经覆盖过一次。**耐久的那份基线在 git 里**,所以判据也读那一份。
+//
+// ★★【为什么要先按【小节】切一刀,而不是直接取全文的前三个块】★★
+//   `docs/row-height-baseline.md` 是**会长的**:INPUT-3 在文末加了一节
+//   「§7 · INPUT-3 之后的读数」,而那一节自己也带三个 ```json 块。
+//   ☞ 照全文取块,总数会变成 6,下面那条「必须正好三个」的覆盖断言当场退 2;
+//     而如果把它松成「取前三个」,**这支量具就再也说不出自己读的是哪一节** ——
+//     那正是「一个瞎掉的检查说自己干净」的形状。
+//   所以:**先定位到那一节的标题,只在它到下一个 `## ` 之间找块**,
+//   于是「正好三个」这条断言**原样保留**,而文档可以继续往后长。
+function sectionOf(md, heading) {
+    const lines = md.split('\n')
+    let start = -1
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('## ') && lines[i].includes(heading)) { start = i; break }
+    }
+    if (start < 0) return null
+    let end = lines.length
+    for (let i = start + 1; i < lines.length; i++) if (lines[i].startsWith('## ')) { end = i; break }
+    return lines.slice(start, end).join('\n')
+}
 function jsonBlocks(md) {
     const out = []
     const re = /```json\n([\s\S]*?)\n```/g
@@ -78,9 +123,17 @@ function jsonBlocks(md) {
 }
 
 const md = readFileSync(BASE_FILE, 'utf8')
-const blocks = jsonBlocks(md)
+// 默认读「机读块」那一节(§6 —— INPUT-0 立的那份基线,INPUT-2 / 2b / 3 三刀共同的参照点)
+const HEADING = arg('--baseline-heading') || '机读块'
+const section = sectionOf(md, HEADING)
+if (!section) {
+    console.error(`✗ ${SELF}:**覆盖断言失败** —— ${BASE_FILE} 里找不到标题含「${HEADING}」的那一节。`)
+    console.error('  ☞ 基线文档的形状变了,而本支还照老样子读。先看那份文档,再决定要不要传 --baseline-heading=。')
+    process.exit(2)
+}
+const blocks = jsonBlocks(section)
 // ── 覆盖断言 ①:基线必须解析出三个块;少一个,下面每一条判据都空转 ──────────
-assertPinned(SELF, 'docs/row-height-baseline.md 里的 ```json 机读块',
+assertPinned(SELF, `docs/row-height-baseline.md 「${HEADING}」那一节里的 \`\`\`json 机读块`,
     blocks.length, 3, '§6.1 首屏 · §6.2 编辑态 · §6.3 溢出 —— 少一个就说明基线的形状变了,而本支还照老样子读。')
 
 let BASE_FIRST, BASE_EDIT, BASE_OVERFLOW
@@ -169,6 +222,23 @@ if (dupWarn.length) {
             + `${d.side === 'baseline' ? ' —— 基线那一侧' : ''} —— 身份退回【同签名里的第几个】。`)
     }
     console.error('  ☞ 只按签名比会把它们静默错配,报出一次【假的】行高变化(INPUT-1 §6.3 踩过)。')
+}
+
+// ── ★ 维度:每一条差别是【横向】还是【竖向】(INPUT-3, Q17)────────────────
+// 判据写死在这一处,不散在下面四个循环里 —— 散开写就会有一条被漏掉,
+// 而漏掉的那一条会安静地落进【竖向】,于是一次真的横向回归被 --row-height=report 放过去。
+const VERTICAL_WHAT = new Set(['表头高', '行数', '最大行高', '编辑态最大行高', '编辑态行数', '编辑态表头高'])
+const HORIZONTAL_WHAT = new Set([
+    '滚动壳内容宽', '编辑态滚动壳内容宽',
+    '整张表不见了', '基线里没有这张表', '编辑态这张表不见了', '这张横滚的表不见了',
+])
+function dimOf(what) {
+    if (VERTICAL_WHAT.has(what)) return 'V'
+    if (HORIZONTAL_WHAT.has(what)) return 'H'
+    // 整页溢出与滚动范围那两组的 what 是带 ★ 的长句,统一算横向
+    if (/整页横向溢出|滚动范围/.test(what)) return 'H'
+    // ★ 认不出来的一律算【横向】—— 宁可多退一次 1,不许静默降级
+    return 'H'
 }
 
 // ── 比:表头高 / 行数 / 最大行高 / 滚动壳内容宽 ──────────────────────────────
@@ -269,6 +339,10 @@ if (EDIT_FILE) {
 const hard = [...diffs, ...ovDiffs.filter((d) => !d.benign), ...scrollDiffs.filter((d) => !d.benign), ...editDiffs]
 const soft = [...ovDiffs.filter((d) => d.benign), ...scrollDiffs.filter((d) => d.benign)]
 
+// ★ 分桶(INPUT-3, Q17):横向任何时候都退 1;竖向由 --row-height 决定
+const hardHorizontal = hard.filter((d) => dimOf(d.what) === 'H')
+const hardVertical = hard.filter((d) => dimOf(d.what) === 'V')
+
 console.log('')
 console.log(`· 比过的表:${compared} / 基线 ${BASET.size} 张`
     + (EDIT_FILE ? `;编辑态 ${editCompared} / ${BASE_EDIT.length} 张` : ';编辑态 (未给 --edit,没有比)'))
@@ -281,19 +355,45 @@ if (soft.length) {
     for (const d of soft) console.log(`    · ${d.route}${d.idx !== undefined ? ' #' + d.idx : ''}:${d.what} ${d.from} → ${d.to}`)
 }
 
-if (hard.length) {
-    console.error('')
-    console.error(`✗ ${SELF}:${hard.length} 处与基线不同`)
-    for (const d of hard) {
-        const where = `${d.route}${d.ord !== undefined ? ` #${d.ord}` : (d.idx !== undefined ? ` #${d.idx}` : '')}`
-        console.error(`   · ${where}:${d.what}  ${d.from} → ${d.to}`)
-        if (d.sig) console.error(`       签名 ${d.sig}`)
+const line = (d) => {
+    const where = `${d.route}${d.ord !== undefined ? ` #${d.ord}` : (d.idx !== undefined ? ` #${d.idx}` : '')}`
+    const rows = [`   · ${where}:${d.what}  ${d.from} → ${d.to}`]
+    if (d.sig) rows.push(`       签名 ${d.sig}`)
+    return rows
+}
+
+// ★ 竖向:自己一段,标题写明它这一次算不算数
+if (hardVertical.length) {
+    const out = ROW_HEIGHT_MODE === 'report' ? console.log : console.error
+    out('')
+    out(`${ROW_HEIGHT_MODE === 'report' ? '·' : '✗'} 竖向差别(表头高 · 行数 · 最大行高,含编辑态):${hardVertical.length} 处`
+        + (ROW_HEIGHT_MODE === 'report'
+            ? ' —— **--row-height=report:报告,不影响退出码**'
+            : ' —— **--row-height=stop(默认):算数**'))
+    for (const d of hardVertical) for (const r of line(d)) out(r)
+    if (ROW_HEIGHT_MODE === 'report') {
+        out('  ☞ 这一档是 INPUT-3 的裁定(Tim 2026-09-11):每一张有控件的表都在 INPUT-3 的路由上,')
+        out('    而标准【按设计】就会改控件的高度 —— 所以行高变化报出来,不停手。**横向不在此列。**')
     }
+}
+
+// ★ 横向:任何档位下都算数
+if (hardHorizontal.length) {
+    console.error('')
+    console.error(`✗ ${SELF}:横向差别 ${hardHorizontal.length} 处(整页溢出 · 滚动范围 · 滚动壳内容宽 · 表不见了)`)
+    for (const d of hardHorizontal) for (const r of line(d)) console.error(r)
+}
+
+const failed = hardHorizontal.length > 0 || (ROW_HEIGHT_MODE === 'stop' && hardVertical.length > 0)
+if (failed) {
     console.error('')
     console.error('☞ 委托书 D.3:【不要】回退、不要调表、不要改列宽 —— 停手,把这份读数交回。')
     process.exit(1)
 }
 
 console.log('')
-console.log(`✓ ${SELF}:${compared} 张含控件的表逐项与基线相同(表头高 · 行数 · 最大行高 · 滚动壳内容宽);`
+console.log(`✓ ${SELF}:${compared} 张含控件的表`
+    + (hardVertical.length
+        ? `:横向四项(滚动壳内容宽 · 表在不在)与基线相同;竖向 ${hardVertical.length} 处变化【报告,不停手】(--row-height=report);`
+        : `逐项与基线相同(表头高 · 行数 · 最大行高 · 滚动壳内容宽);`)
     + `390px 整页溢出没有新增也没有长大;${BASE_OVERFLOW.tableShellOverflow390.length} 张已裁定横滚的表一张都没有多出滚动范围。`)

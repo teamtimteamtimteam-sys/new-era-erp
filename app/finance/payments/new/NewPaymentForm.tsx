@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { CounterpartyOptions, parseCounterparty, counterpartyValue } from '@/app/components/finance/counterpartyOptions'
 // 收付款表单:方向切换(收=客户 / 付=供应商),币种↔银行账户联动(非 USD 出汇率输入),
 // 选定往来单位后列出其未结单据逐张核销('fill' 快捷填充 = min(未结, 未冲销余额)),
@@ -356,7 +357,7 @@ canEdit: boolean
                         name="direction"
                         value={direction}
                         onChange={(e) => onDirectionChange(e.target.value === 'out' ? 'out' : 'in')}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         <option value="in">{t('finance.direction.in')}</option>
                         <option value="out">{t('finance.direction.out')}</option>
@@ -372,7 +373,7 @@ canEdit: boolean
                         required
                         value={partyValue}
                         onChange={(e) => onPartyChange(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="" disabled>
                             {t('finance.selectCounterparty')}
@@ -410,7 +411,7 @@ canEdit: boolean
                         required
                         value={amount}
                         onChange={setAmount}
-                        className="w-36 border border-gray-300 px-3 py-2 rounded"
+                        className="w-36"
                     />
                 </div>
                 {/* 币种 */}
@@ -420,7 +421,7 @@ canEdit: boolean
                         name="currency"
                         value={currency}
                         onChange={(e) => onCurrencyChange(e.target.value)}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         <option value="USD">USD</option>
                         <option value="SGD">SGD</option>
@@ -439,7 +440,7 @@ canEdit: boolean
                             value={fx}
                             onChange={setFx}
                             placeholder={t('finance.actualDealRateHint')}
-                            className="w-32 border border-gray-300 px-3 py-2 rounded"
+                            className="w-32"
                         />
                     </div>
                 )}
@@ -450,7 +451,7 @@ canEdit: boolean
                         name="bank_account"
                         value={bank}
                         onChange={(e) => setBank(e.target.value)}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         <option value="1010">{t('finance.bank.1010')}</option>
                         <option value="1000">{t('finance.bank.1000')}</option>
@@ -468,7 +469,7 @@ canEdit: boolean
                         value={payDate}
                         onChange={(e) => setPayDate(e.target.value)}
                         onBlur={(e) => setPayDate(e.target.value)}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                 </div>
                 {/* 备注 */}
@@ -477,7 +478,7 @@ canEdit: boolean
                     <input
                         type="text"
                         name="notes"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
             </div>
@@ -556,7 +557,7 @@ canEdit: boolean
                                                 onChange={(raw) =>
                                                     setAlloc((a) => ({ ...a, [p.po_id]: raw }))
                                                 }
-                                                className="w-32 border border-gray-300 px-3 py-2 rounded"
+                                                className="w-32"
                                             />
                                             <span className="text-xs text-gray-600 font-mono">{p.currency}</span>
                                             <Button
@@ -622,7 +623,7 @@ canEdit: boolean
                                                 onChange={(raw) =>
                                                     setAlloc((a) => ({ ...a, [i.doc_id]: raw }))
                                                 }
-                                                className="w-32 border border-gray-300 px-3 py-2 rounded"
+                                                className="w-32"
                                             />
                                             {/* 输入的是【单据币种】—— 把它写在框边上,而不是让人推断 */}
                                             <span className="text-xs text-gray-600 font-mono">{i.currency}</span>

@@ -7,6 +7,7 @@
 //     (放开只是让事情回到常态,强制一个没人真想写的字段只会换来一堆 "ok")。
 //   * 因此按钮的禁用条件也不同,而【每一个禁用条件旁边都写着它为什么禁】——
 //     一个灰掉却不说话的按钮,和一个坏掉的按钮在屏幕上是同一样东西。
+import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -66,7 +67,7 @@ export default function HoldReleaseControls({
                         <DecimalInput
                             value={holdQty}
                             onChange={setHoldQty}
-                            className="w-28 border border-gray-300 px-2 py-1 rounded text-sm"
+                            className="w-28"
                         />
                     </div>
                     <div className="flex-1 min-w-[12rem]">
@@ -77,7 +78,7 @@ export default function HoldReleaseControls({
                             type="text"
                             value={holdReason}
                             onChange={(e) => setHoldReason(e.target.value)}
-                            className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
+                            className={`${CONTROL_INPUT} w-full`}
                         />
                     </div>
                     <Button variant="secondary" className="text-sm"
@@ -102,7 +103,7 @@ export default function HoldReleaseControls({
                         <DecimalInput
                             value={relQty}
                             onChange={setRelQty}
-                            className="w-28 border border-gray-300 px-2 py-1 rounded text-sm"
+                            className="w-28"
                         />
                     </div>
                     <div className="flex-1 min-w-[12rem]">
@@ -111,7 +112,7 @@ export default function HoldReleaseControls({
                             type="text"
                             value={relNote}
                             onChange={(e) => setRelNote(e.target.value)}
-                            className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
+                            className={`${CONTROL_INPUT} w-full`}
                         />
                     </div>
                     <Button variant="secondary"

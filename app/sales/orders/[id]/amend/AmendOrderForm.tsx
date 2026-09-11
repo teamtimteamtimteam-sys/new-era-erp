@@ -14,6 +14,7 @@
 // 【永久冻结的五列画出来,而不是省略】客户 / 单据日 / 币种 / 汇率 / 单号 ——
 // 它们【看得见但改不动】,而且旁边写着为什么。省略它们会让人以为这张页面
 // 只是不完整;画成只读并给出理由,才是在回答"我要改客户怎么办"。
+import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
@@ -132,7 +133,7 @@ export default function AmendOrderForm({
                             {t('sales.amend.reason')} <span className="text-red-600">*</span>
                         </label>
                         <input type="text" name="reason" required disabled={frozen}
-                               className="w-full border border-gray-300 px-3 py-2 rounded" />
+                               className={`${CONTROL_INPUT} w-full`} />
                         <p className="text-xs text-gray-500 mt-1">{t('sales.amend.reasonHint')}</p>
                     </div>
                 )}
@@ -213,7 +214,7 @@ export default function AmendOrderForm({
                             // line_remove 携带,所以两档各画一份不会往表单里多塞一格。
                             const removeControl = (
                                 <label className="text-xs">
-                                    <input type="checkbox" checked={gone}
+                                    <input className={CONTROL_CHECKBOX} type="checkbox" checked={gone}
                                         disabled={frozen || addOnly || cannotRemove}
                                         onChange={(e) => setRemove((r) => ({ ...r, [l.id]: e.target.checked }))} />
                                     <span className="ml-1">
@@ -254,7 +255,7 @@ export default function AmendOrderForm({
                                         <DecimalInput name="line_quantity" value={qty[l.id] ?? ''}
                                             onChange={(raw) => setQty((q) => ({ ...q, [l.id]: raw }))}
                                             disabled={lockedRow || billed}
-                                            className="w-24 border border-gray-300 px-2 py-1 rounded text-right" />
+                                            className="w-24 text-right" />
                                         {/* 【硬下限】货已经出去了 */}
                                         {belowShipped && (
                                             <p className="text-xs text-red-600 mt-1">
@@ -281,7 +282,7 @@ export default function AmendOrderForm({
                                         <DecimalInput name="line_price" value={price[l.id] ?? ''}
                                             onChange={(raw) => setPrice((p) => ({ ...p, [l.id]: raw }))}
                                             disabled={lockedRow || billed}
-                                            className="w-24 border border-gray-300 px-2 py-1 rounded text-right" />
+                                            className="w-24 text-right" />
                                     </td>
                                     {/* ★★ TABLE-STYLE-1 / R1(Tim 裁定,2026-09-09):【动作列在手机上不折】。
                                         这一列原来带 hidden sm:table-cell、移除钮叠在物料那一格里;
@@ -320,7 +321,7 @@ export default function AmendOrderForm({
                                     <tr className={tableC.bodyRow} key={i}>
                                         <td className={tableC.cell}>
                                             <select name={`new_material_${i}`} defaultValue=""
-                                                    className="w-full border border-gray-300 px-2 py-1 rounded">
+                                                    className={`${CONTROL_SELECT} w-full`}>
                                                 <option value="">{t('sales.form.selectMaterial')}</option>
                                                 {materials.map((m) => (
                                                     <option key={m.id} value={m.id}>{m.code} — {m.name}</option>
@@ -329,11 +330,11 @@ export default function AmendOrderForm({
                                         </td>
                                         <td className={`${tableC.cell} text-right`}>
                                             <input type="number" step="any" min="0" name={`new_qty_${i}`}
-                                                   className="w-24 border border-gray-300 px-2 py-1 rounded text-right" />
+                                                   className={`${CONTROL_INPUT} w-24 text-right`} />
                                         </td>
                                         <td className={`${tableC.cell} text-right`}>
                                             <input type="number" step="any" min="0" name={`new_price_${i}`}
-                                                   className="w-24 border border-gray-300 px-2 py-1 rounded text-right" />
+                                                   className={`${CONTROL_INPUT} w-24 text-right`} />
                                         </td>
                                     </tr>
                                 ))}
@@ -349,13 +350,13 @@ export default function AmendOrderForm({
                         <p className="text-xs text-gray-500">{t('sales.amend.headerWhy')}</p>
                         <div>
                             <label className="block text-sm font-medium mb-1">{t('sales.form.notes')}</label>
-                            <textarea name="notes" rows={2} defaultValue={notes} disabled={frozen}
-                                      className="w-full border border-gray-300 px-3 py-2 rounded" />
+                            <textarea name="notes" defaultValue={notes} disabled={frozen}
+                                      className={`${CONTROL_TEXTAREA} w-full`} />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">{t('sales.amend.terms')}</label>
-                            <textarea name="terms_text" rows={3} defaultValue={termsText} disabled={frozen}
-                                      className="w-full border border-gray-300 px-3 py-2 rounded" />
+                            <textarea name="terms_text" defaultValue={termsText} disabled={frozen}
+                                      className={`${CONTROL_TEXTAREA} w-full`} />
                             <p className="text-xs text-gray-500 mt-1">{t('sales.amend.termsHint')}</p>
                         </div>
                     </>

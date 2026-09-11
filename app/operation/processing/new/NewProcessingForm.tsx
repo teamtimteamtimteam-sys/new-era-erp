@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import {
@@ -282,7 +283,7 @@ export default function NewProcessingForm({
                     <select
                         value={allocationBasis}
                         onChange={(e) => setAllocationBasis(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="metal_value">{t('processing.allocation.basis.metal_value')}</option>
                         <option value="weight">{t('processing.allocation.basis.weight')}</option>
@@ -303,7 +304,7 @@ export default function NewProcessingForm({
                     <select
                         value={workOrderId}
                         onChange={(e) => setWorkOrderId(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('processing.form.workOrderNone')}</option>
                         {workOrders.map((w) => (
@@ -327,7 +328,7 @@ export default function NewProcessingForm({
                         value={processDate}
                         onChange={(e) => setProcessDate(e.target.value)}
                         onBlur={(e) => setProcessDate(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
 
@@ -340,7 +341,7 @@ export default function NewProcessingForm({
                     <select
                         value={operationCode}
                         onChange={(e) => setOperationCode(e.target.value)}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('processing.form.operationPlaceholder')}</option>
                         {operations.map((o) => (
@@ -389,7 +390,7 @@ export default function NewProcessingForm({
                             qtyNum > selectedBatch.available_qty
                         return (
                             <div key={row.key}>
-                                <div className="flex gap-2 items-start">
+                                <div className="flex flex-wrap gap-2 items-start">
                                     <select
                                         value={row.batch_ref}
                                         onChange={(e) =>
@@ -397,7 +398,7 @@ export default function NewProcessingForm({
                                                 batch_ref: e.target.value,
                                             })
                                         }
-                                        className="flex-1 border border-gray-300 px-3 py-2 rounded"
+                                        className={`${CONTROL_SELECT} flex-1`}
                                     >
                                         <option value="" disabled>
                                             {t('processing.form.selectInboundBatch')}
@@ -438,7 +439,7 @@ export default function NewProcessingForm({
                                                 quantity_consumed: raw,
                                             })
                                         }
-                                        className="w-32 border border-gray-300 px-3 py-2 rounded"
+                                        className="w-32"
                                     />
                                     <Button
                                         variant="secondary"
@@ -484,13 +485,13 @@ export default function NewProcessingForm({
                         </Button>
                     </div>
                     {outputRows.map((row) => (
-                        <div key={row.key} className="flex gap-2 items-start">
+                        <div key={row.key} className="flex flex-wrap gap-2 items-start">
                             <select
                                 value={row.material_id}
                                 onChange={(e) =>
                                     updateOutputRow(row.key, { material_id: e.target.value })
                                 }
-                                className="flex-1 border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_SELECT} flex-1`}
                             >
                                 <option value="" disabled>
                                     {t('processing.form.selectOutputMaterial')}
@@ -505,14 +506,14 @@ export default function NewProcessingForm({
                                 placeholder={t('processing.form.outputQtyPlaceholder')}
                                 value={row.quantity}
                                 onChange={(raw) => updateOutputRow(row.key, { quantity: raw })}
-                                className="w-28 border border-gray-300 px-3 py-2 rounded"
+                                className="w-28"
                             />
                             <select
                                 value={row.unit}
                                 onChange={(e) =>
                                     updateOutputRow(row.key, { unit: e.target.value })
                                 }
-                                className="w-24 border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_SELECT} w-24`}
                             >
                                 {UNIT_OPTIONS.map((u) => (
                                     <option key={u.value} value={u.value}>
@@ -527,7 +528,7 @@ export default function NewProcessingForm({
                                 onChange={(e) =>
                                     updateOutputRow(row.key, { purity: e.target.value })
                                 }
-                                className="w-36 border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_INPUT} w-36`}
                             />
                             <Button
                                 variant="secondary"
@@ -554,7 +555,7 @@ export default function NewProcessingForm({
                             <span className="text-sm text-gray-600 mr-1">{t('processing.form.totalOutputLabel')}</span>
                             <span className="font-medium">{totalOutput}</span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                             <span className="text-sm text-gray-600">{t('processing.form.lossLabel')}</span>
                             {/* 自动损耗可能为负(产出大于投入),显示的就是它 ——
                                 故允许负号,否则用户没法编辑一个负值;
@@ -563,7 +564,7 @@ export default function NewProcessingForm({
                                 allowNegative
                                 value={displayLoss}
                                 onChange={setLossOverride}
-                                className="w-28 border border-gray-300 px-2 py-1 rounded text-sm"
+                                className="w-28"
                             />
                             {lossOverride !== '' && (
                                 <Button
@@ -589,8 +590,7 @@ export default function NewProcessingForm({
                     <textarea
                         value={notes}
                         onChange={(e) => setNotes(e.target.value)}
-                        rows={3}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_TEXTAREA} w-full`}
                     />
                 </div>
 

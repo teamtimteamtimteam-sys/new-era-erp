@@ -5,6 +5,7 @@
 // 一个没有相邻解释的只读控件是个死控件。
 // 【为什么不让它覆盖】一次"粘贴"如果能悄悄改掉上周的牌价,那就是【看起来像录入的
 // 审计线索销毁】。改一条已在册的牌价要说为什么,那条路在单条编辑页上。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
@@ -66,7 +67,7 @@ canEdit: boolean
                 <label htmlFor="ccy" className="text-sm">{t('finance.fxPage.colCurrency')}</label>
                 <select
                     id="ccy" value={currency} onChange={(e) => setCurrency(e.target.value)}
-                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                    className={CONTROL_SELECT}
                 >
                     {currencies.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
@@ -122,7 +123,7 @@ canEdit: boolean
                                                     onChange={(e) =>
                                                         setValues((v) => ({ ...v, [key(d, ty)]: e.target.value }))
                                                     }
-                                                    className="border border-gray-200 rounded px-2 py-1 w-28 font-mono"
+                                                    className={`${CONTROL_INPUT} w-28 font-mono`}
                                                 />
                                             )}
                                         </td>

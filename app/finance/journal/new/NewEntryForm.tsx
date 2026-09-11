@@ -2,6 +2,7 @@
 
 // 手工分录表单:动态行(最少 2 行),科目按类型分组下拉,非 USD 行出汇率输入,
 // 底部实时 Σ借/Σ贷(客户端按 fx 折算预览)+ 平衡指示。提交走 createManualEntry。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createManualEntry, type CreateEntryState } from './actions'
@@ -109,7 +110,7 @@ export default function NewEntryForm(
                         name="entry_date"
                         required
                         defaultValue={todayIsoLocal()}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                 </div>
                 {/* 摘要(必填)*/}
@@ -121,7 +122,7 @@ export default function NewEntryForm(
                         type="text"
                         name="memo"
                         required
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
             </div>
@@ -139,7 +140,7 @@ export default function NewEntryForm(
                                 required
                                 value={r.account_code}
                                 onChange={(e) => updateRow(r.key, { account_code: e.target.value })}
-                                className="w-full border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_SELECT} w-full`}
                             >
                                 <option value="" disabled>
                                     {t('finance.selectAccount')}
@@ -161,7 +162,7 @@ export default function NewEntryForm(
                                 name="side"
                                 value={r.side}
                                 onChange={(e) => updateRow(r.key, { side: e.target.value as Row['side'] })}
-                                className="border border-gray-300 px-3 py-2 rounded"
+                                className={CONTROL_SELECT}
                             >
                                 <option value="debit">{t('finance.debit')}</option>
                                 <option value="credit">{t('finance.credit')}</option>
@@ -173,7 +174,7 @@ export default function NewEntryForm(
                                 name="currency"
                                 value={r.currency}
                                 onChange={(e) => updateRow(r.key, { currency: e.target.value })}
-                                className="border border-gray-300 px-3 py-2 rounded"
+                                className={CONTROL_SELECT}
                             >
                                 <option value="USD">USD</option>
                                 <option value="SGD">SGD</option>
@@ -190,7 +191,7 @@ export default function NewEntryForm(
                                 required
                                 value={r.amount}
                                 onChange={(raw) => updateRow(r.key, { amount: raw })}
-                                className="w-32 border border-gray-300 px-3 py-2 rounded"
+                                className="w-32"
                             />
                         </div>
                         {r.currency !== baseCurrency ? (
@@ -204,7 +205,7 @@ export default function NewEntryForm(
                                     value={r.fx}
                                     onChange={(raw) => updateRow(r.key, { fx: raw })}
                                     placeholder={t('output.sale.fxHint')}
-                                    className="w-32 border border-gray-300 px-3 py-2 rounded"
+                                    className="w-32"
                                 />
                             </div>
                         ) : (
@@ -218,7 +219,7 @@ export default function NewEntryForm(
                                 name="line_memo"
                                 value={r.memo}
                                 onChange={(e) => updateRow(r.key, { memo: e.target.value })}
-                                className="w-full border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_INPUT} w-full`}
                             />
                         </div>
                         <Button

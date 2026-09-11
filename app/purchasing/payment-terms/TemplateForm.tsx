@@ -5,6 +5,7 @@
 // 偏移天数(模板不可能知道具体日期,存"下单日 + N 天",套用时换算)。
 // 比例合计实时显示:<100 只提示(余下部分不列入计划是合法的 —— 尾款常常"按化验实算"),
 // >100 拦下不让交。行序即期次,提交时按行序重排 seq。
+import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_RADIO, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
@@ -116,7 +117,7 @@ canEdit: boolean
                         name="name"
                         required
                         defaultValue={template?.name ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
                 <div className="flex-1 min-w-[16rem]">
@@ -125,11 +126,12 @@ canEdit: boolean
                         type="text"
                         name="description"
                         defaultValue={template?.description ?? ''}
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
                 <label className="flex items-end gap-2 pb-2 text-sm">
                     <input
+                        className={CONTROL_CHECKBOX}
                         type="checkbox"
                         name="is_active"
                         defaultChecked={template?.is_active ?? true}
@@ -151,7 +153,7 @@ canEdit: boolean
                         value={currency}
                         onChange={(e) => setCurrency(e.target.value)}
                         required
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">—</option>
                         {currencies.map((c) => (
@@ -191,13 +193,14 @@ canEdit: boolean
                                     type="text"
                                     value={l.label}
                                     onChange={(e) => patchLine(i, { label: e.target.value })}
-                                    className="w-full border border-gray-300 px-2 py-1 rounded"
+                                    className={`${CONTROL_INPUT} w-full`}
                                 />
                             </td>
                             <td className="border border-gray-300 px-3 py-2">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                     <label className="flex items-center gap-1 text-sm">
                                         <input
+                                            className={CONTROL_RADIO}
                                             type="radio"
                                             checked={l.mode === 'percentage'}
                                             onChange={() => patchLine(i, { mode: 'percentage' })}
@@ -206,6 +209,7 @@ canEdit: boolean
                                     </label>
                                     <label className="flex items-center gap-1 text-sm">
                                         <input
+                                            className={CONTROL_RADIO}
                                             type="radio"
                                             checked={l.mode === 'fixed'}
                                             onChange={() => patchLine(i, { mode: 'fixed' })}
@@ -217,14 +221,14 @@ canEdit: boolean
                                             value={l.percentage}
                                             onChange={(v) => patchLine(i, { percentage: v })}
                                             placeholder={t('purchasing.form.percentage')}
-                                            className="w-24 border border-gray-300 px-2 py-1 rounded"
+                                            className="w-24"
                                         />
                                     ) : (
                                         <DecimalInput
                                             value={l.fixed_amount}
                                             onChange={(v) => patchLine(i, { fixed_amount: v })}
                                             placeholder={t('purchasing.form.fixedAmount')}
-                                            className="w-28 border border-gray-300 px-2 py-1 rounded"
+                                            className="w-28"
                                         />
                                     )}
                                 </div>
@@ -233,7 +237,7 @@ canEdit: boolean
                                 <select
                                     value={l.trigger_event}
                                     onChange={(e) => patchLine(i, { trigger_event: e.target.value })}
-                                    className="border border-gray-300 px-2 py-1 rounded"
+                                    className={CONTROL_SELECT}
                                 >
                                     {triggerEvents.map((ev) => (
                                         <option key={ev.code} value={ev.code}>
@@ -246,7 +250,7 @@ canEdit: boolean
                                         <DecimalInput
                                             value={l.days_offset}
                                             onChange={(v) => patchLine(i, { days_offset: v })}
-                                            className="w-16 border border-gray-300 px-2 py-1 rounded"
+                                            className="w-16"
                                         />
                                         <span className="text-xs text-gray-500">{t('purchasing.daysOffsetHint')}</span>
                                     </span>

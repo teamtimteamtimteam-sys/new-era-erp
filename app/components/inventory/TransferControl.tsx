@@ -5,6 +5,7 @@
 // 【状态原样带过去】—— 转移搬的是位置,不是状态。一批被扣住的货换个货架
 // 仍然是被扣住的,所以这里没有"顺便放开"的选项:那是释放,是另一个动作。
 // 后果写在按钮旁边,禁用条件各自带一句话。
+import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -90,14 +91,14 @@ export default function TransferControl({
             <div className="flex flex-wrap items-end gap-2">
                 <div>
                     <label className="block text-xs text-gray-600 mb-1">{t('stock.transferQty', { unit })}</label>
-                    <DecimalInput value={qty} onChange={setQty} className="w-24 border border-gray-300 px-2 py-1 rounded text-sm" />
+                    <DecimalInput value={qty} onChange={setQty} className="w-24" />
                 </div>
                 <div className="flex-1 min-w-[11rem]">
                     <label className="block text-xs text-gray-600 mb-1">{t('stock.transferTo')}</label>
                     <select
                         value={to}
                         onChange={(e) => setTo(e.target.value)}
-                        className="w-full border border-gray-300 px-2 py-1 rounded text-sm"
+                        className={`${CONTROL_SELECT} w-full`}
                     >
                         <option value="">{t('stock.transferPick')}</option>
                         {targets.map((l) => (
@@ -108,7 +109,7 @@ export default function TransferControl({
                 <div className="flex-1 min-w-[10rem]">
                     <label className="block text-xs text-gray-600 mb-1">{t('stock.transferNote')}</label>
                     <input type="text" value={note} onChange={(e) => setNote(e.target.value)}
-                           className="w-full border border-gray-300 px-2 py-1 rounded text-sm" />
+                           className={`${CONTROL_INPUT} w-full`} />
                 </div>
                 <Button variant="secondary" className="text-sm"
                     type="button"

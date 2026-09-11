@@ -30,6 +30,7 @@
 //   不挂在员工档案上(UI-1d Step 2 的裁定),所以这一段被放在那个早返回
 //   【之前】—— 一个 HR 还没建档的新人照样换得了自己的头像,而他的名字那一行
 //   仍然按 UI-1a 的判据不画。两件事互不牵连,那正是"挂在 auth 账号上"的意思。
+import { CONTROL_FILE_BUTTON } from '@/app/components/ui/control-style'
 import { useActionState, useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import AvatarImage from '@/app/components/nav/AvatarImage'
@@ -94,7 +95,7 @@ export default function AvatarPanel({
                             type="file"
                             name="avatar"
                             accept={AVATAR_ALLOWED_MIME.join(',')}
-                            className="text-sm file:mr-3 file:rounded file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-white hover:file:bg-blue-700"
+                            className={CONTROL_FILE_BUTTON}
                         />
                         {/* 【这句话把三条闸原原本本说出来】2MB、三种格式、会被裁成方的。
                             人在选文件【之前】就知道会被拒什么,比事后一句红字好。 */}

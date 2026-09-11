@@ -9,6 +9,7 @@
 //
 // 【本表单不自己算分摊】金额、拆账、过账全由 record_freight_document 决定;
 // 这里只把选择送下去。两份算术会在写下的那天一致,此后各自漂移。
+import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createFreightDocument, type FreightState } from './actions'
@@ -98,7 +99,7 @@ export default function NewFreightForm({
                     </label>
                     <select name="direction" value={direction}
                         onChange={(e) => setDirection(e.target.value as 'inbound' | 'outbound')}
-                        className="border border-gray-300 px-3 py-2 rounded min-w-96">
+                        className={`${CONTROL_SELECT} min-w-96`}>
                         <option value="inbound">{t('finance.freight.direction.inbound')}</option>
                         <option value="outbound">{t('finance.freight.direction.outbound')}</option>
                     </select>
@@ -111,7 +112,7 @@ export default function NewFreightForm({
                             {t('finance.freight.colDate')} <span className="text-red-600">*</span>
                         </label>
                         <input type="date" name="doc_date" required
-                            className="border border-gray-300 px-3 py-2 rounded" />
+                            className={CONTROL_INPUT} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">
@@ -127,7 +128,7 @@ export default function NewFreightForm({
                             </p>
                         ) : (
                             <select name="supplier_id" required defaultValue=""
-                                className="border border-gray-300 px-3 py-2 rounded min-w-64">
+                                className={`${CONTROL_SELECT} min-w-64`}>
                                 <option value="" disabled>{t('finance.freight.selectForwarder')}</option>
                                 {suppliers.map((s) => (
                                     <option key={s.id} value={s.id}>{s.legal_name}</option>
@@ -143,9 +144,9 @@ export default function NewFreightForm({
                         </label>
                         <div className="flex gap-2">
                             <DecimalInput name="amount" value={amount} onChange={setAmount}
-                                className="w-40 border border-gray-300 px-3 py-2 rounded" />
+                                className="w-40" />
                             <select name="currency" defaultValue={baseCurrency}
-                                className="border border-gray-300 px-3 py-2 rounded">
+                                className={CONTROL_SELECT}>
                                 {currencies.map((c) => (
                                     <option key={c} value={c}>{c}</option>
                                 ))}
@@ -161,7 +162,7 @@ export default function NewFreightForm({
                         {t('finance.freight.colBasis')} <span className="text-red-600">*</span>
                     </label>
                     <select name="allocation_basis" value={basis} onChange={(e) => setBasis(e.target.value)}
-                        className="border border-gray-300 px-3 py-2 rounded">
+                        className={CONTROL_SELECT}>
                         <option value="weight">{t('finance.freight.basis.weight')}</option>
                         <option value="value">{t('finance.freight.basis.value')}</option>
                         <option value="stated">{t('finance.freight.basis.stated')}</option>
@@ -175,7 +176,7 @@ export default function NewFreightForm({
                         <label className="block text-sm font-medium mb-1">{t('finance.freight.colPayment')}</label>
                         <select name="payment_status" value={paid ? 'paid' : 'unpaid'}
                             onChange={(e) => setPaid(e.target.value === 'paid')}
-                            className="border border-gray-300 px-3 py-2 rounded">
+                            className={CONTROL_SELECT}>
                             <option value="unpaid">{t('finance.freight.payment.unpaid')}</option>
                             <option value="paid">{t('finance.freight.payment.paid')}</option>
                         </select>
@@ -184,7 +185,7 @@ export default function NewFreightForm({
                         <div>
                             <label className="block text-sm font-medium mb-1">{t('finance.freight.colBank')}</label>
                             <select name="bank_account_code" defaultValue="1000"
-                                className="border border-gray-300 px-3 py-2 rounded">
+                                className={CONTROL_SELECT}>
                                 <option value="1000">1000</option>
                                 <option value="1010">1010</option>
                             </select>
@@ -204,7 +205,7 @@ export default function NewFreightForm({
                             </p>
                         ) : (
                             <select name="container_id" defaultValue=""
-                                className="border border-gray-300 px-3 py-2 rounded min-w-96">
+                                className={`${CONTROL_SELECT} min-w-96`}>
                                 {/* 【不指定是一个正当选项】—— 单据才是钱的对象 */}
                                 <option value="">{t('finance.freight.selectContainer')}</option>
                                 {containers.map((c) => (
@@ -255,7 +256,7 @@ export default function NewFreightForm({
                                 {batches.map((b) => (
                                     <tr key={b.id} className={tableC.bodyRow}>
                                         <td className={tableC.cell}>
-                                            <input type="checkbox" checked={!!picked[b.id]}
+                                            <input className={CONTROL_CHECKBOX} type="checkbox" checked={!!picked[b.id]}
                                                 onChange={(e) => setPicked((p) => ({ ...p, [b.id]: e.target.checked }))} />
                                             {picked[b.id] && <input type="hidden" name="batch_id" value={b.id} />}
                                         </td>
@@ -281,7 +282,7 @@ export default function NewFreightForm({
                                                     <DecimalInput name="stated_amount"
                                                         value={stated[b.id] ?? ''}
                                                         onChange={(raw) => setStated((s) => ({ ...s, [b.id]: raw }))}
-                                                        className="w-32 border border-gray-300 px-2 py-1 rounded" />
+                                                        className="w-32" />
                                                 )}
                                             </td>
                                         )}
@@ -294,7 +295,7 @@ export default function NewFreightForm({
 
                 <div>
                     <label className="block text-sm font-medium mb-1">{t('finance.freight.colNotes')}</label>
-                    <textarea name="notes" rows={2} className="w-full border border-gray-300 px-3 py-2 rounded" />
+                    <textarea name="notes" className={`${CONTROL_TEXTAREA} w-full`} />
                 </div>
 
                 <div className="flex gap-3 pt-2">

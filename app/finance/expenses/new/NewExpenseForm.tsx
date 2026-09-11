@@ -1,5 +1,6 @@
 'use client'
 
+import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_RADIO, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { CounterpartyOptions } from '@/app/components/finance/counterpartyOptions'
 // 开支表单:费用科目(仅 active expense 科目)、金额/币种/汇率(默认 SGD ——
 // 本地开销多为新币,与销售面板的 USD 默认刻意不同)、付款状态(默认挂账 ——
@@ -200,14 +201,14 @@ canEdit: boolean
                         name="expense_date"
                         required
                         defaultValue={todayIsoLocal()}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_INPUT}
                     />
                 </div>
                 {/* FIN-22:资本性支出开关 —— 勾上后借 1500 而不是费用科目,
                     同一事务生成固定资产台账行(资产不脱离应付/付款存在)*/}
                 <div className="self-end pb-2">
                     <label className="inline-flex items-center gap-2 text-sm font-medium">
-                        <input type="checkbox" name="capital" checked={capital}
+                        <input className={CONTROL_CHECKBOX} type="checkbox" name="capital" checked={capital}
                                onChange={(e) => setCapital(e.target.checked)} />
                         {t('expense.form.capital')}
                     </label>
@@ -223,7 +224,7 @@ canEdit: boolean
                             required
                             value={accountCode}
                             onChange={(e) => setAccountCode(e.target.value)}
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="" disabled>
                                 {t('expense.form.selectAccount')}
@@ -256,7 +257,7 @@ canEdit: boolean
                             name="tax_code"
                             value={effTaxCode}
                             onChange={(e) => { setTaxCodeTouched(true); setTaxCode(e.target.value) }}
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="">{t('expense.form.taxCodePick')}</option>
                             {taxCodes.map((c) => (
@@ -301,7 +302,7 @@ canEdit: boolean
                                 name="wht_nature"
                                 value={whtNature}
                                 onChange={(e) => setWhtNature(e.target.value)}
-                                className="w-full border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_SELECT} w-full`}
                             >
                                 <option value="">{t('expense.form.whtNaturePick')}</option>
                                 {whtNatures.map((n) => (
@@ -321,7 +322,7 @@ canEdit: boolean
                                 name="wht_treaty_rate_pct" type="number" step="0.001" min="0"
                                 value={whtTreatyRate}
                                 onChange={(e) => setWhtTreatyRate(e.target.value)}
-                                className="border border-gray-300 px-3 py-2 rounded w-28"
+                                className={`${CONTROL_INPUT} w-28`}
                             />
                         </div>
                         <div className="flex-1 min-w-[14rem]">
@@ -330,7 +331,7 @@ canEdit: boolean
                                 name="wht_treaty_ref"
                                 value={whtTreatyRef}
                                 onChange={(e) => setWhtTreatyRef(e.target.value)}
-                                className="w-full border border-gray-300 px-3 py-2 rounded"
+                                className={`${CONTROL_INPUT} w-full`}
                             />
                         </div>
                     </div>
@@ -356,7 +357,7 @@ canEdit: boolean
                         required
                         value={amount}
                         onChange={setAmount}
-                        className="w-36 border border-gray-300 px-3 py-2 rounded"
+                        className="w-36"
                     />
                 </div>
                 {/* 币种(默认 SGD)*/}
@@ -366,7 +367,7 @@ canEdit: boolean
                         name="currency"
                         value={currency}
                         onChange={(e) => onCurrencyChange(e.target.value)}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         <option value="SGD">SGD</option>
                         <option value="USD">USD</option>
@@ -383,7 +384,7 @@ canEdit: boolean
                         name="payment_status"
                         value={paymentStatus}
                         onChange={(e) => setPaymentStatus(e.target.value === 'paid' ? 'paid' : 'unpaid')}
-                        className="border border-gray-300 px-3 py-2 rounded"
+                        className={CONTROL_SELECT}
                     >
                         <option value="unpaid">{t('expense.status.unpaid')}</option>
                         <option value="paid">{t('expense.status.paid')}</option>
@@ -397,7 +398,7 @@ canEdit: boolean
                             name="bank_account"
                             value={bank}
                             onChange={(e) => setBank(e.target.value)}
-                            className="border border-gray-300 px-3 py-2 rounded"
+                            className={CONTROL_SELECT}
                         >
                             <option value="1000">{t('finance.bank.1000')}</option>
                             <option value="1010">{t('finance.bank.1010')}</option>
@@ -420,7 +421,7 @@ canEdit: boolean
                             required
                             value={counterparty}
                             onChange={(e) => { setCounterparty(e.target.value); setPoLineId('') }}
-                            className="w-full border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="" disabled>
                                 {t('expense.form.selectCounterparty')}
@@ -447,7 +448,7 @@ canEdit: boolean
                         <input
                             type="text"
                             name="payee_name"
-                            className="w-64 border border-gray-300 px-3 py-2 rounded"
+                            className={`${CONTROL_INPUT} w-64`}
                         />
                     </div>
                 )}
@@ -457,7 +458,7 @@ canEdit: boolean
                     <input
                         type="text"
                         name="notes"
-                        className="w-full border border-gray-300 px-3 py-2 rounded"
+                        className={`${CONTROL_INPUT} w-full`}
                     />
                 </div>
             </div>
@@ -474,7 +475,7 @@ canEdit: boolean
                     <div className="rounded border border-blue-200 bg-blue-50 p-3 space-y-2">
                         {CAPITAL_MODES.map((m) => (
                             <label key={m} className="flex items-start gap-2 text-sm">
-                                <input type="radio" name="capital_mode" value={m} className="mt-1"
+                                <input type="radio" name="capital_mode" value={m} className={`${CONTROL_RADIO} mt-1`}
                                        checked={capitalMode === m}
                                        onChange={() => { setCapitalMode(m); setAssetId(''); setPoLineId('') }} />
                                 <span>
@@ -496,7 +497,7 @@ canEdit: boolean
                                 </label>
                                 <select name="asset_id" required value={assetId}
                                         onChange={(e) => { setAssetId(e.target.value); setPoLineId('') }}
-                                        className="w-full border border-gray-300 px-3 py-2 rounded">
+                                        className={`${CONTROL_SELECT} w-full`}>
                                     <option value="" disabled>—</option>
                                     {assets.map((a) => (
                                         <option key={a.id} value={a.id}>{a.label}</option>
@@ -517,7 +518,7 @@ canEdit: boolean
                                 </label>
                                 <select name="purchase_order_line_id" value={poLineId}
                                         onChange={(e) => setPoLineId(e.target.value)}
-                                        className="w-full border border-gray-300 px-3 py-2 rounded">
+                                        className={`${CONTROL_SELECT} w-full`}>
                                     {/* 【挑它是可选的】没有采购单就买断一台机器是合法的,
                                         record_expense 也允许(那一列可空)。 */}
                                     <option value="">{t('expense.form.poLineNone')}</option>
@@ -553,12 +554,12 @@ canEdit: boolean
                                 {t('assets.colDescription')} <span className="text-red-600">*</span>
                             </label>
                             <input type="text" name="asset_description" required={capital && !isAppend}
-                                   className="w-full border border-gray-300 px-3 py-2 rounded" />
+                                   className={`${CONTROL_INPUT} w-full`} />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">{t('assets.colCategory')}</label>
                             <select name="asset_category" defaultValue="equipment"
-                                    className="border border-gray-300 px-3 py-2 rounded">
+                                    className={CONTROL_SELECT}>
                                 <option value="equipment">{t('assets.category.equipment')}</option>
                                 <option value="vehicle">{t('assets.category.vehicle')}</option>
                                 <option value="office">{t('assets.category.office')}</option>
@@ -568,7 +569,7 @@ canEdit: boolean
                         <div>
                             <label className="block text-sm font-medium mb-1">{t('assets.colInService')}</label>
                             <input type="date" name="asset_in_service_date"
-                                   className="border border-gray-300 px-3 py-2 rounded" />
+                                   className={CONTROL_INPUT} />
                             <p className="text-xs text-gray-500 mt-1">{t('expense.form.inServiceHint')}</p>
                         </div>
                         <div>
@@ -576,14 +577,14 @@ canEdit: boolean
                                 {t('assets.colLife')} <span className="text-red-600">*</span>
                             </label>
                             <input type="number" name="asset_life_months" min={1} step={1} required={capital && !isAppend}
-                                   className="w-28 border border-gray-300 px-3 py-2 rounded" />
+                                   className={`${CONTROL_INPUT} w-28`} />
                         </div>
                         <div>
                             <label className="block text-sm font-medium mb-1">
                                 {t('expense.form.residual', { ccy: baseCurrency })}
                             </label>
                             <DecimalInput name="asset_residual" value={residual} onChange={setResidual}
-                                          className="w-32 border border-gray-300 px-3 py-2 rounded" />
+                                          className="w-32" />
                         </div>
                     </div>
                     )}
