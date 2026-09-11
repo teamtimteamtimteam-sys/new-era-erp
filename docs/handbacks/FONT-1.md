@@ -7,7 +7,7 @@
 > 而 `/login` 与 `/brand-sampler` 一个字节都没有被编辑。
 
 > ## ★ 这一刀【落地了】—— round 2 停在 §5.4(a),Tim 的 T1–T7 把它解开了
-> round 2 的停手记录与它给出的三个选项**原样保留在 §17**,一个字没删。
+> round 2 的停手记录与它给出的三个选项**原样保留在 §19**,一个字没删。
 > **Tim 裁的是 A 的一个更严的版本:** 例外放宽到任何元素(**T1**),
 > ★ **但刻出一条例外的例外** —— **改前是 0 的路由必须修回 0**(CARVE-OUT)。
 > ☞ 于是 `/sales/orders/new` 套例外(已重证),而 `/finance/company` 与 `/me` **真的被修好了**(**T3**)。
@@ -611,7 +611,54 @@ className={`${CONTROL_FILE_BUTTON} w-full`}
 
 ---
 
-## 17 · ★ round 2 的记录 —— **原样保留,一个字没删**(2026-09-11,早些时候)
+## 17 · 提交 · 推送 · 部署
+
+| | |
+|---|---|
+| **提交** | `1eda268cc0b87f179e61deed1b62e217b2de6152` —— **411 个文件**(工作 + 两支量具 + 四份文档 + `AGENTS.md` + 这一份交回报告),`4240 insertions / 1491 deletions`。★ **工作与交回报告在同一个提交里。** |
+| **暂存的办法** | 按**显式路径**:`git add app/ scripts/ docs/ AGENTS.md`。★ 暂存之后核过一遍:**四条路径之外一个文件都没有**;`app/login/` 与 `app/brand-sampler/` 下面 **0 个**;`control-style.ts` / `table-style.ts` / `input.tsx` / `textarea.tsx` **四个都 UNCHANGED**。 |
+| **推送** | `9fb8a54..1eda268  main -> main`,`PUSH_OWN_EXIT=0`(11:39:34 UTC) |
+| ★ **§8.6 的三个 SHA** | `git fetch` 之后:<br>`HEAD        1eda268cc0b87f179e61deed1b62e217b2de6152`<br>`origin/main 1eda268cc0b87f179e61deed1b62e217b2de6152`<br>`ls-remote   1eda268cc0b87f179e61deed1b62e217b2de6152`<br>★ **三个都是同一个 40 字符 SHA。** |
+
+### 17.1 部署
+
+> ★ **先说清楚这一条问的是谁:** `AGENTS.md` 记着「部署的真源是 Vercel,GitHub 的
+> deployment record 是一份【下游登记】,它会滞后、也会干脆不出现」。
+> ★ **本刀重量了那五项** —— `vercel` CLI **没有** · devDependencies 里 **没有** ·
+> `.vercel/project.json` **没有** · `VERCEL_TOKEN` **没有** · `~/.vercel` **没有**。
+> ☞ **于是这一次仍然只能问 GitHub 那一侧**,而这次它**很快就来了**(推送后 **3 分 58 秒**)。
+
+| 步 | 读数 |
+|---|---|
+| ★ **① 先把 deployment id 绑到 SHA**(问那一次部署【自己】,不是问列表最新的那一条) | `id=6392336365` · **`sha=1eda268cc0b87f179e61deed1b62e217b2de6152`** · `env=Production` · `created=2026-09-11T11:43:40Z` |
+| ★ **② 绑好之后才问它的状态** | `2026-09-11T11:43:40Z` · ★ **`success`** · `Production` · `https://new-era-gfnzk3ip6-tim-s-projects7.vercel.app` |
+| ★ **③ 它的状态记录有几条** | ★ **1 条**(只有 `success` 那一条;没有中间态被登记下来) |
+| **等待的办法** | `db/wait_for.sh --timeout 900 --interval 20`,**有上限**,条件写的是**完整 40 字符 SHA** 上的 Production 部署。<br>⚠ **照直说:** 那支轮询进程最后是**我自己 `pkill` 掉的**(退出码 144 = 128+16),因为**它要等的条件在我直接查 API 时已经成立了**。<br>☞ **上面那三行判词来自直接的 API 查询,不来自那支轮询。** 一个被杀掉的等待不是一次成功的等待,两者不许混着报。 |
+
+---
+
+## 18 · 残留
+
+> **本刀(round 3)跑过 8 支带【用完即删 admin】的量具**:取样页读数 ×2 · 改前/改后读数 ×2 ·
+> T3 试打 ×1 · T3 验收 ×1 · 全量 readverify ×1 · 单条补量 ×1,
+> 外加 `--mode=drift` ×2(主跑 + 补量)与 `--mode=edit` ×1。每一支都在 `.ephemeral/` 里
+> 先落一份清理计划再动手。
+
+| 判据 | 读数 | 怎么查的 |
+|---|---|---|
+| ★ **用完即删的账号** | ★ **0** | 列出**全部 6 个**在册账号(分母摆出来),按 **`font1-` · `input0-`/`input2`/`input3` · `probe` · `style-c` · `smoke`** 六个模式比对 → **一个都没命中**。<br>★ 6 个全部是种子账号,建于 **2026-05-30** 与 **2026-09-05**,都在这一刀之前 |
+| ★ **幽灵授权**(`user_roles` 指向一个已不存在的账号) | ★ **0** | `user_roles` 共 **8 行**,**全部**指向在册账号。`/tmp/font1/residue.mjs`,`RESIDUE_OWN_EXIT=0` |
+| ★ **`reap-ephemeral`** | ★ **干净** | 每一支量具起手都跑 `reapStalePlans()`;本轮没有报出任何"上一次没跑完的清理" |
+| ★ **`.ephemeral/`** | ★ **空**(0 个条目) | `ls -A .ephemeral` |
+| **live-lock** | ★ **已释放**(文件不存在) | `ls .live-lock` → 不存在 |
+| ★ **我自己的进程与端口** | ★ **0** | 逐个查 **7 个**端口(HTTP `3196` · `3226` · `3227`;CDP `9335` · `9356` · `9366` · `9367`)→ **每一个 0 个 listener**;`pgrep` 里 `next dev` **0 个**、`chrome-headless-shell` **0 个** |
+| ★ **孤儿 chrome** | ★ **0 —— 没有可杀的,也就不必证明它是孤儿** | `pgrep -fl chrome-headless-shell` 无输出。**本刀一个进程都没有杀**(那支部署轮询除外,而它是我自己起的) |
+| ★ **仓库里的临时文件** | ★ **0** | 提交之后 `git status --porcelain` **一行都没有**;本刀所有量具与中间产物都住在 **`/tmp/font1-r3/`**(仓库外) |
+| ★ **构建产物** | ⚠ **`.next/` 留着**(`npm run build` 的产物,`.gitignore` 里) | 它不是残留,是构建输出;但**下一支探针跑之前要 `rm -rf .next`** —— 那些量具自己那道闸会因为 `.next/BUILD_ID` 存在而拒跑 |
+
+---
+
+## 19 · ★ round 2 的记录 —— **原样保留,一个字没删**(2026-09-11,早些时候)
 
 > ### ☞ 为什么整段留着
 > round 2 **停在 §5.4(a)**,而**那次停手是对的**:它量到了三条长大的溢出,
@@ -1263,7 +1310,7 @@ round 1 的扫描器取 className 的办法是「在整个开标签文本里找�
 
 ---
 
-## 18 · 给测试的一句话
+## 20 · 给测试的一句话
 
 > **counts toward v1.4.18; released after FONT-2**
 >
