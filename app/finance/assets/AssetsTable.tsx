@@ -88,7 +88,7 @@ export default function AssetsTable({
             ),
         },
         {
-            key: 'costBase', header: t('finance.colAmount', { ccy: baseCurrency }), align: 'right', render: (a) => a.costBase,
+            key: 'costBase', header: t('finance.colAmount', { ccy: baseCurrency }), align: 'right', singleValue: true,  /* ★ POLISH-1 R7 · spec §4.3a:这一格是一个数,不是一段文字 */ render: (a) => a.costBase,
         },
         {
             key: 'life', header: t('assets.colLife'), align: 'right',

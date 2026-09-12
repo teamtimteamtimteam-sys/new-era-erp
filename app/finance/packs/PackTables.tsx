@@ -47,7 +47,7 @@ export function ReconTable({ rows }: { rows: ReconRow[] }) {
             key: 'difference', header: t('pack.colDifference'), align: 'right', priority: true, render: (s) => s.difference,
         },
         { key: 'origination', header: t('pack.colOrigination'), align: 'right', render: (s) => s.origination },
-        { key: 'settlement', header: t('pack.colSettlement'), align: 'right', render: (s) => s.settlement },
+        { key: 'settlement', header: t('pack.colSettlement'), align: 'right', singleValue: true,  /* ★ POLISH-1 R7 · spec §4.3a:这一格是一个数,不是一段文字 */ render: (s) => s.settlement },
         { key: 'revaluation', header: t('pack.colRevaluation'), align: 'right', render: (s) => s.revaluation },
         {
             key: 'unexplained', header: t('pack.colUnexplained'), align: 'right', priority: true,

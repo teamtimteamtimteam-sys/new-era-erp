@@ -140,7 +140,7 @@ export default function ForecastGrid({
             key: 'coverToday', header: t('cashForecast.coverToday'), priority: true, align: 'right',
             render: (r) => r.months_cover_today ?? <span className="text-[color:var(--brand-muted-text)]">{t('cashForecast.noOpex')}</span>,
         },
-        { key: 'coverMin', header: t('cashForecast.coverMin'), align: 'right', render: (r) => r.months_cover_min ?? '—' },
+        { key: 'coverMin', header: t('cashForecast.coverMin'), align: 'right', singleValue: true,  /* ★ POLISH-1 R7 · spec §4.3a:这一格是一个数,不是一段文字 */ render: (r) => r.months_cover_min ?? '—' },
     ]
 
     return (
