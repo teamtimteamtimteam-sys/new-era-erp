@@ -63,9 +63,15 @@ const STUBS = {
 //   筛选框现在从它拿类串,而本支靠读类串判断一格在哪个断点上看得见 ——
 //   桩掉它就是自己编一份类名再拿它证明类名是对的,与上面那一条逐字同一个理由。
 //   它是一个只有字符串常量、零 import 的模块,真载进来没有代价。
+// ★ `button.tsx` 同理【不桩】(POLISH-1 round 3,2026-09-13):排序表头与展开箭头
+//   从这一刀起走共享 `<Button>`,而本支靠读【渲染出来的标记】数格子。
+//   桩掉它就是自己编一份按钮再拿它证明标记是对的 —— 与上面两条逐字同一个理由。
+//   ☞ 它真的载得进来:它的 `@/lib/utils` 已经有桩,其余(`react`
+//     `class-variance-authority` `radix-ui`)是真依赖,走 require(id)。
 const REAL = {
     '@/app/components/ui/table-style': 'app/components/ui/table-style.ts',
     '@/app/components/ui/control-style': 'app/components/ui/control-style.ts',
+    '@/app/components/ui/button': 'app/components/ui/button.tsx',
 }
 
 function transpile(file) {

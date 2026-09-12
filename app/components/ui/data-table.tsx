@@ -64,6 +64,8 @@ import { cn } from '@/lib/utils'
 import { compareForSort } from '@/lib/sortCollation'
 import { tableC, TABLE_TEXT } from '@/app/components/ui/table-style'
 import { CONTROL_INPUT, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
+// ★ POLISH-1 round 3(继承的第 ① 件):本文件那几个裸 <button> 走共享档位。
+import { Button } from '@/app/components/ui/button'
 
 export type Column<T> = {
     /** 稳定的列键 —— 排序状态与列显隐都按它记。 */
@@ -651,6 +653,27 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                 </span>
                                             </a>
                                         ) : canSort ? (
+                                            // ★★ POLISH-1 round 3(继承的第 ① 件):这一颗【故意留着裸 <button>】。
+                                            //   转过去试过了,而它被自己的验收判据拦下来 —— 裁定原话:
+                                            //   「每一颗转过去的控件,渲染高度必须逐字不变;共享组件复刻不出来,
+                                            //     就停下来把差值报出来,不要接受它。」
+                                            //
+                                            //   ★ 实测(/brand-sampler,desktop,逐颗比):
+                                            //     高度 21.42 → 23.42px(5 格)· 21.42 → 44.84px(3 格,折成两行);
+                                            //     表头行 42.42 → 65.84px。
+                                            //   ★★ 病因不是谁写错了一个类 —— 它是共享组件的一条【基础声明】:
+                                            //     `buttonVariants` 的基础串里有 `border border-transparent`。
+                                            //     上下各 1px = +2px;左右各 1px 把可用宽压窄 2px,
+                                            //     而那正是三个长表头折行的原因。
+                                            //     ☞ 所以这一条【不是这一颗的事】:任何一个 border-width 为 0 的
+                                            //       裸控件转到共享 Button 上,都要付同样这 2px。
+                                            //       BTN-TRIGGER-1 那 33 处裸触发钮继承这个数。
+                                            //   ★ 而它的射程小到不值得为它改库:客端排序全仓库只有【一个】调用点
+                                            //     (`app/brand-sampler/Base1.tsx:105`),于是这一颗在 141 条静态路由
+                                            //     × 2 视口上渲染 **0 个**;而 `/brand-sampler` 正是停止条件 (e)
+                                            //     的对象 —— 它的读数必须逐字不变。
+                                            //   ☞ 去处:`docs/known-issues.md` 的 POLISH1R3-DATATABLE-PAGER-NO-STEP
+                                            //     (分页那一对是同一次裁定)· `docs/base-components.md` §10.6。
                                             <button
                                                 type="button"
                                                 onClick={() => toggleSort(c.key)}
@@ -696,15 +719,25 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                         )}
                                         {!phoneScroll && <td className={`px-1 align-middle sm:hidden ${TABLE_TEXT}`}>
                                             {restCols.length > 0 && (
-                                                <button
+                                                // ★ POLISH-1 r3:裸 <button> → 共享 Button。
+                                                //   档位 `icon-sm` 就是 `size-7` = 28×28,与它今天
+                                                //   手写的 `h-7 w-7` 逐字同一个几何 —— 这一颗
+                                                //   **不需要**按回高度,只按回字号、字色与 display。
+                                                //   ★ `flex` 那一条不是装饰:共享层是 `inline-flex`,
+                                                //     而一个【行内级】的盒子坐在行盒上,底下会多出
+                                                //     一截 leading —— 那会把它所在的 <td> 顶高,
+                                                //     而行高是停止条件 (c) 的触发器。按回 `flex`。
+                                                <Button
                                                     type="button"
+                                                    variant="ghost"
+                                                    size="icon-sm"
                                                     onClick={() => toggleRow(k)}
                                                     aria-expanded={isOpen}
                                                     aria-label={phoneExpandLabel ?? t('table.expandRow')}
-                                                    className="base-pressable flex h-7 w-7 items-center justify-center rounded text-[color:var(--brand-muted-text)] hover:bg-[color:var(--brand-muted)]"
+                                                    className={`base-pressable flex rounded font-normal text-[color:var(--brand-muted-text)] hover:bg-[color:var(--brand-muted)] hover:text-[color:var(--brand-muted-text)] ${TABLE_TEXT}`}
                                                 >
                                                     <span aria-hidden className={cn('transition-transform', isOpen && 'rotate-90')}>›</span>
-                                                </button>
+                                                </Button>
                                             )}
                                         </td>}
                                         {shownCols.map((c) => (
