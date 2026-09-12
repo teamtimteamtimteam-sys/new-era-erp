@@ -6,6 +6,7 @@
 // check-i18n 按单引号配对切这个 Set,一个落单的单引号会让它把半条注释读成一个键):
 //   grep -rhoE "RAISE EXCEPTION .(CODES)" db/functions/save_counterparty_contact.sql
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 const CONTACT_ERROR_CODES = new Set([
     'CONTACT_NOT_FOUND',
@@ -24,7 +25,7 @@ export async function localizeContactError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
     if (!match || !CONTACT_ERROR_CODES.has(match[1])) {
-        return raw // 真正的非编码错误 —— 原样呈上,不要吞掉
+        return await fallbackForRawError(raw, 'localizeContactError@app/sales/customers/contactErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
     const code = match[1]
     const params: Record<string, string> = {}

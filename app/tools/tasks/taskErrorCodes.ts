@@ -1,4 +1,5 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // app/tools/tasks/taskErrorCodes.ts
 // TASK-1b:任务模块的具名拒绝 → 人话。端口自 deletionErrorCodes.ts。
@@ -56,7 +57,7 @@ export async function localizeTaskError(message: string): Promise<string> {
         return t('common.restricted')
     }
     if (!match || !TASK_ERROR_CODES.has(match[1])) {
-        return raw
+        return await fallbackForRawError(raw, 'localizeTaskError@app/tools/tasks/taskErrorCodes.ts')
     }
     const params: Record<string, string> = {}
     if (match[2]) {

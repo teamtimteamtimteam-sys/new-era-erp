@@ -14,6 +14,7 @@ import {
     buildInboundSearchOr,
 } from '../inboundQuery'
 import { mustRows } from '@/lib/db-helpers'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // FIX-2b:内嵌拿掉之后,这里只剩本表自己的列 + 两个 FK。
 type ExportRow = {
@@ -93,7 +94,8 @@ export async function GET(request: NextRequest) {
     const { data, error } = await applyInboundFilters(baseQuery, params, searchOr)
 
     if (error) {
-        return new Response(`Export failed: ${error.message}`, { status: 500 })
+        // ★ BUGFIX-1b:报错原文不再拼进 HTTP 正文(它会原样出现在浏览器窗口里)。
+        return new Response(`Export failed: ${await fallbackForRawError(error.message, 'inbound/export')}`, { status: 500 })
     }
 
     const rows = (data as unknown as ExportRow[]) ?? []

@@ -1,4 +1,5 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // WHT-1:预提税那一族抛出的错误码(端口自 expenseErrorCodes.ts)。
 //
@@ -59,7 +60,7 @@ export async function localizeWhtError(message: string): Promise<string> {
     const match = raw.match(CODE_RE)
 
     if (!match || !WHT_ERROR_CODES.has(match[1])) {
-        return raw // genuine non-coded DB error → surface verbatim
+        return await fallbackForRawError(raw, 'localizeWhtError@app/finance/whtErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
 
     const code = match[1]

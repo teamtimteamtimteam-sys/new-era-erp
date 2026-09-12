@@ -26,7 +26,7 @@ DO $$
 DECLARE
     v_all uuid := gen_random_uuid();
     r_all uuid;
-    emp_a uuid; emp_b uuid; sup uuid;
+    emp_a uuid; emp_b uuid; emp_c uuid; sup uuid;
     v_exp jsonb; v_pay jsonb; v_claim jsonb;
     exp_emp uuid; exp_sup uuid; claim_id uuid;
     v_msg text; v_denied boolean; n int; v_name text; v_kind text;
@@ -275,6 +275,107 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 90J 已过账付款的 employee_id 必须【改不动】(PAYMENT_IMMUTABLE),实得:%', COALESCE(v_msg,'(没有拒绝)');
     END IF;
     RAISE NOTICE '90J employee_id 在两张不可变凭证上都改不动(枚举 + 兜底,两道闸)✓';
+
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- ★★ K. BUGFIX-1b:【GST 开着时,报销也开得出费用单】★★
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- 【为什么这一臂非有不可 —— 它是本 fixture 自己的盲点】
+    --   上面 H 断言「submit → decide → pay 必须全程走通」,而它跑在
+    --   **GST 关着**那一档(重建库 finance_settings.gst_registered 的引导默认值
+    --   是 false,`grep gst` 在本文件里此前是 0 行)。
+    --   ☞ **它跑的正是这个缺陷唯一不会发作的那一档。**
+    --   线上 `gst_registered()` = true,而 GST 开着时 pay_medical_claim 会走到
+    --   record_expense → resolve_tax_code(NULL, NULL, 'input', 'supplier'),
+    --   抛 TAX_CODE_REQUIRED|supplier,整笔事务回滚,**一笔费用都开不出来**。
+    --   ★ 这与 AGENTS.md「A fixture can be thorough about a rule and blind to the
+    --     case where the rule's SUBJECT IS ABSENT」是同一条:这里缺席的主语是【税】。
+    --
+    -- 【三个子臂,各自会以不同方式坏掉】
+    --   K1 没给税码 → **按名拒**,而且拒的是【这条路自己的码】;
+    --   K2 给了 BL  → 走得通,费用上真的带着那个税码与一个算出来的税额;
+    --   K3 给了一个不存在的码 → 拒,而且拒得**说得出是哪一个码**(TAX_CODE_UNKNOWN|…)。
+    -- ══════════════════════════════════════════════════════════════════════════
+    INSERT INTO employees (code, legal_name, employment_type, work_category, hire_date, employment_status)
+    VALUES ('FX90-E3', 'fixture 90 employee three', 'full_time', 'office', CURRENT_DATE - 400, 'active')
+    RETURNING id INTO emp_c;
+
+    -- 【把开关真的打开】guard_gst_switch 要求开的时候必须有登记号(GST-3)。
+    UPDATE finance_settings SET gst_registered = true, gst_registration_no = 'M9-FIX90-1';
+    IF NOT gst_registered() THEN
+        RAISE EXCEPTION 'FIXTURE 90K 前提失败:GST 开关没有打开 —— 这一臂的全部意义就在这一档';
+    END IF;
+
+    -- K1:没给税码 → 按名拒,而且是【这条路自己的码】
+    v_denied := false; v_msg := NULL;
+    v_claim := submit_medical_claim(
+        p_employee_id := emp_c, p_claim_date := CURRENT_DATE,
+        p_amount_sgd := 30, p_description := 'fixture 90K claim one');
+    claim_id := (v_claim->>'claim_id')::uuid;
+    PERFORM decide_medical_claim(p_claim_id := claim_id, p_approve := true);
+    BEGIN
+        PERFORM pay_medical_claim(p_claim_id := claim_id, p_expense_date := CURRENT_DATE);
+    EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
+    IF NOT v_denied OR position('MEDICAL_CLAIM_TAX_CODE_REQUIRED' in v_msg) = 0 THEN
+        -- 【为什么不接受 TAX_CODE_REQUIRED|supplier】那句话指的方向是错的:
+        -- 这条路上**根本没有供应商**(收款人写死是员工,PAYEE-1a),而
+        -- employees 没有 default_tax_code —— 照它去做的人做不到任何一件事。
+        RAISE EXCEPTION 'FIXTURE 90K1 GST 开着而没给税码,必须按【这条路自己的】名拒(MEDICAL_CLAIM_TAX_CODE_REQUIRED),实得:%',
+            COALESCE(v_msg, '(没有拒绝 —— 那意味着它悄悄开出了一笔没有税码的费用)');
+    END IF;
+    RAISE NOTICE '90K1 GST 开着、没给税码:按名拒 ✓';
+
+    -- K2:给了 BL → 走得通,而且费用上真的带着它
+    v_denied := false; v_msg := NULL;
+    BEGIN
+        v_claim := pay_medical_claim(
+            p_claim_id := claim_id, p_expense_date := CURRENT_DATE, p_tax_code := 'BL');
+    EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
+    IF v_denied THEN
+        RAISE EXCEPTION 'FIXTURE 90K2 GST 开着、给了 BL,报销必须开得出费用单,实得拒绝:%', v_msg;
+    END IF;
+    SELECT count(*) INTO n FROM expenses
+     WHERE id = (v_claim->>'expense_id')::uuid
+       AND employee_id = emp_c AND supplier_id IS NULL
+       AND payment_status = 'unpaid' AND tax_code = 'BL'
+       AND tax_rate_pct IS NOT NULL;
+    IF n <> 1 THEN
+        RAISE EXCEPTION 'FIXTURE 90K2 那笔费用要挂在那个员工身上、没有供应商、并且【带着 BL 与一个算出来的税率】,实得 % 行', n;
+    END IF;
+    IF (v_claim->>'tax_code') IS DISTINCT FROM 'BL' THEN
+        RAISE EXCEPTION 'FIXTURE 90K2 返回值要把用掉的税码说出来(界面据它回话),实得:%',
+            COALESCE(v_claim->>'tax_code', '(NULL)');
+    END IF;
+    RAISE NOTICE '90K2 GST 开着、税码 BL:费用开得出,且带着那个税码 ✓';
+
+    -- K3:给了一个不存在的码 → 拒,而且说得出是哪一个
+    -- 【这一臂守的是【指路】那一半】:一句"出错了"与一句"没有 ZZ 这个税码"
+    -- 在退出码上一样,而只有后者告诉得了人下一步做什么。
+    v_denied := false; v_msg := NULL;
+    v_claim := submit_medical_claim(
+        p_employee_id := emp_c, p_claim_date := CURRENT_DATE,
+        p_amount_sgd := 40, p_description := 'fixture 90K claim two');
+    claim_id := (v_claim->>'claim_id')::uuid;
+    PERFORM decide_medical_claim(p_claim_id := claim_id, p_approve := true);
+    BEGIN
+        PERFORM pay_medical_claim(
+            p_claim_id := claim_id, p_expense_date := CURRENT_DATE, p_tax_code := 'ZZ-NOT-A-CODE');
+    EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
+    IF NOT v_denied OR position('TAX_CODE_UNKNOWN' in v_msg) = 0
+       OR position('ZZ-NOT-A-CODE' in v_msg) = 0 THEN
+        RAISE EXCEPTION 'FIXTURE 90K3 一个不存在的税码必须被拒,而且拒绝要点名【是哪一个码】(TAX_CODE_UNKNOWN|ZZ-NOT-A-CODE),实得:%',
+            COALESCE(v_msg, '(没有拒绝)');
+    END IF;
+    RAISE NOTICE '90K3 不存在的税码:按名拒,并点名那个码 ✓';
+
+    -- ★★【开关【关不回去】了,而这不是缺陷 —— 它是另一道闸在干活】★★
+    --   实测:在 K 的末尾写一句 `SET gst_registered = false` 会被
+    --   `guard_gst_switch` 按名拒:`GST_CANNOT_DISABLE_WITH_CODED_EXPENSES|1|EXP-…`
+    --   —— K2 刚刚开出来的那笔带税码的费用正挡在那里(GST-3 的裁定:
+    --   关掉开关会让它变得不可冲销)。**那道闸是对的,所以这里不绕过它。**
+    --   ☞ 本 fixture 整支 ROLLBACK,所以库里什么都不会留下;
+    --     但**下一个往 K 后面加臂的人要知道:从这里往下 GST 是【开着】的。**
+    --     要在关着的那一档加臂,把它加在 K 【前面】。
 
     RAISE NOTICE 'FIXTURE 90 全部通过';
 END $$;

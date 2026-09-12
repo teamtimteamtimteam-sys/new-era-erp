@@ -6,6 +6,7 @@
 import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { parseSupplierListParams, applySupplierFilters } from '../supplierQuery'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // 导出列(比表格多 —— 导出文件是给 Excel 用的)。顺序即 CSV 列顺序,与下方表头一一对应。
 const EXPORT_COLUMNS =
@@ -63,7 +64,8 @@ export async function GET(request: NextRequest) {
     const { data, error } = await applySupplierFilters(baseQuery, params)
 
     if (error) {
-        return new Response(`Export failed: ${error.message}`, { status: 500 })
+        // ★ BUGFIX-1b:报错原文不再拼进 HTTP 正文(它会原样出现在浏览器窗口里)。
+        return new Response(`Export failed: ${await fallbackForRawError(error.message, 'suppliers/export')}`, { status: 500 })
     }
 
     const rows = data ?? []

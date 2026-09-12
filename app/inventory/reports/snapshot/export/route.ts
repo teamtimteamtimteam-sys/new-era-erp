@@ -24,6 +24,6 @@ export async function GET() {
             ])
         )
     } catch (e) {
-        return exportFailed(e as { message: string })
+        return await exportFailed(e as { message: string })
     }
 }

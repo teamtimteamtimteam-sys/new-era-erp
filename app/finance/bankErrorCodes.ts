@@ -1,4 +1,5 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // 银行对账相关函数抛出的错误码(端口自 paymentErrorCodes.ts)。
 // 覆盖 3a 引擎的【全部】错误码 —— 导入(3b)与逐笔匹配/对账(3c)共用一份,
@@ -35,7 +36,7 @@ export async function localizeBankError(message: string): Promise<string> {
     const match = raw.match(CODE_RE)
 
     if (!match || !BANK_ERROR_CODES.has(match[1])) {
-        return raw // genuine non-coded DB error → surface verbatim
+        return await fallbackForRawError(raw, 'localizeBankError@app/finance/bankErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
 
     const code = match[1]

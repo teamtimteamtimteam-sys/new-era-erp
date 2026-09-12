@@ -865,6 +865,47 @@ read the absence as an oversight and "fix" it.
 > the switch is on, nothing would stop someone updating those seven rows by hand. That is the correct
 > shape: a rule about history cannot be a runtime check.
 
+### 9.1b An employee medical claim carries **BL** — blocked input tax — and the screen pre-selects it but does not decide it. — **SETTLED — 2026-09-12, ruled by Tim (BUGFIX-1b). ⚠ NOT YET CONFIRMED WITH THE ACCOUNTANT.**
+
+**The rule.** Under Singapore GST, **Regulation 26 blocks input tax on staff medical expenses** —
+the purchase is reported, the tax is not claimed — **unless the expense is one the Work Injury
+Compensation Act requires, or one a collective agreement requires.** So the ordinary answer for a
+staff medical claim is the **BL** tax code, and the exceptions are real but rare.
+
+**⚠ This is a general rule, not a checked answer for this company.** Tim gave it and said he will
+take it to the accountant. **A rule waiting to be confirmed and a rule already confirmed look
+identical in the code**, which is why this sentence is here rather than only in a commit message.
+When the accountant answers, amend this entry — do not delete it.
+
+**What the software does with it, and what it deliberately does not do.**
+
+* `pay_medical_claim` takes a tax code and **has no default for it**. While GST is registered, a
+  missing code is refused by name — `MEDICAL_CLAIM_TAX_CODE_REQUIRED|<claim>` — and no expense is
+  created. **The database never picks a tax code.**
+* The **screen** (`/hr/claims/<id>`) pre-selects **BL** in an ordinary, editable dropdown, states
+  the Regulation 26 reason beside it, and a person must confirm before the expense is raised.
+  **A pre-selection a person can see, change and confirm is a suggestion; a default inside a
+  function is a decision nobody was shown.** That distinction is the whole of this entry.
+* The allowed codes come from one place only — `tax_codes` where `is_active` and `side = 'input'` —
+  the same list the expense-claim screen offers and the same list `resolve_tax_code` validates
+  against. If **BL** is ever retired, nothing is pre-selected and the screen says so.
+
+**Why the other claim path answers differently, which is a ruling and not an oversight.**
+`decide_expense_claim` (a general employee **expense claim**) requires an explicit choice and
+**pre-selects nothing**. The two differ because their subjects differ: a medical claim is **one kind
+of expense**, and its tax treatment is the same in the large majority of cases, so showing that
+majority saves time while the confirmation preserves the judgement. An expense claim covers **any**
+kind of spending, where there is no majority to show — pre-selecting there would be making a
+judgement on someone's behalf, which is exactly what the comment in `decide_expense_claim.sql`
+already refuses to do.
+
+> *Enforcement:* `pay_medical_claim` (refusal by name; no default) · `resolve_tax_code` (the code
+> must exist, be active, and be an input-side code) · `db/fixtures/90` arm K (GST on: no code is
+> refused, `BL` posts with a rate, an unknown code is refused by name).
+> *Before BUGFIX-1b this path could not raise an expense at all while GST was registered* — it
+> called `record_expense` without a code, and `resolve_tax_code` refused with
+> `TAX_CODE_REQUIRED|supplier`, a message pointing at a supplier this path does not have.
+
 ### 9.2 There is no multi-entity structure and no consolidation. — **DIVERGES**
 
 > **Doc 3, Phase 3 definition of done:** *"the three statements and a multi-entity consolidation can be

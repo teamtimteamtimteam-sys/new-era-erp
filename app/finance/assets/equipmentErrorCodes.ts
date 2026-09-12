@@ -1,4 +1,5 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // EQP-2d:设备三张表的拒绝 → 人话。
 //
@@ -27,8 +28,9 @@ import { getTranslations } from '@/lib/i18n/server'
 // 是还没到时候。到了。
 //
 // 【判据:约束名出现在消息里就算命中】不用正则抠位置 —— Postgres 把名字原样
-// 印在消息里,而这些名字长得足够特别,不会误伤。命中不了的【原样返回】,
-// 与其余各支同一条:一个认不出的错必须看得见,不能被吞成一句通用的"出错了"。
+// 印在消息里,而这些名字长得足够特别,不会误伤。命中不了的【交给共用兜底 lib/machine-text.ts】,
+// 与其余各支同一条:一个认不出的错必须看得见 —— ★ 而「看得见」今天的意思是
+// 【那个短码留在句子里】,不是把 Postgres 的英文原文摔到操作员脸上(BUGFIX-1b)。
 // ════════════════════════════════════════════════════════════════════════════
 //
 // 【加一条约束 = 来这里加一个名字】check-i18n 的 equipment.errors.* 后缀集合
@@ -116,6 +118,6 @@ export async function localizeEquipmentError(message: string): Promise<string> {
         return t('equipment.errors.' + match[1], params)
     }
 
-    // ③ 认不出的原样返回 —— 一个看不见的错比一个丑陋的错坏得多。
-    return raw
+    // ③ 认不出的交给共用兜底 lib/machine-text.ts —— 一个看不见的错比一个丑陋的错坏得多。
+    return await fallbackForRawError(raw, 'localizeEquipmentError@app/finance/assets/equipmentErrorCodes.ts')
 }

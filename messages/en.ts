@@ -817,6 +817,12 @@ const en = {
         note: 'Unsold batches are not listed here — they have no margin. Ageing stock is on the home dashboard.',
     },
     common: {
+        // ★★ BUGFIX-1b(2026-09-12)· 生码 / 数据库报错的【共用兜底】 ★★
+        //   措辞是 Tim 定的稿(docs/forward-queue.md「BUGFIX-1b 的裁定 · Q14」)。
+        //   两件事它必须同时做到:说人话,而且留下一个能追查的短码。
+        //   ☞ 判据与风险写在 lib/machine-text.ts 的抬头;它【只】换生码与数据库
+        //     报错原文,数据库返回的人话句子原样留着(那归 POLISH-1)。
+        errUnexpected: 'This step could not be completed (code {code}). Please pass this code to your administrator.',
         // ALERT-1 (2026-09-08) · wording for the "telling" family.
         // A refusal states three things: what did not happen, why, and what to do
         // next. The yardstick in this repo is finance.gstSwitch.authUnknown and
@@ -1024,6 +1030,28 @@ const en = {
         needExpenseDate:
             'Enter the expense date first. It decides the posting period and the exchange rate, '
             + 'so the system will not fill in a date for you.',
+        // ════════════════════════════════════════════════════════════════
+        // ★★ BUGFIX-1b(2026-09-12)· GST 之下,这笔开支的税码 ★★
+        // ════════════════════════════════════════════════════════════════
+        // 裁定与依据:docs/accounting-policies.md §9.1b。
+        // 预选 BL,下拉仍可改,而且必须由人点一下确认 —— 预选不等于替人决定。
+        taxCode: 'Tax code',
+        taxCodePick: '— choose a tax code —',
+        taxCodeHint:
+            'GST is on, so this expense needs an input tax code. BL is pre-selected: under Singapore GST, '
+            + 'Regulation 26 blocks input tax on staff medical expenses unless the Work Injury Compensation Act '
+            + 'or a collective agreement requires them. Change it if this claim is one of those cases — and '
+            + 'confirm before the expense is raised.',
+        taxCodeNoDefault:
+            'BL is not in the active input-tax code list, so nothing was pre-selected. Pick a code, or add BL under Finance → GST.',
+        confirmRaiseTitle: 'Raise the expense for this claim?',
+        confirmRaiseBody: 'An unpaid expense dated {date} will be created on 6120. Nothing is paid until the payment run.',
+        confirmRaiseBodyGst:
+            'An unpaid expense dated {date} will be created on 6120 with tax code {code}. '
+            + 'Nothing is paid until the payment run.',
+        errTaxCodeRequired:
+            'Raising the expense for {0} needs a tax code. An employee has no default one, so somebody has to decide '
+            + 'whether the input tax is claimable (TX) or blocked (BL) — that is a finance judgement, not something to default.',
         errNotApproved: 'This claim is {0} — approve it first.',
         errAlreadyPaid: 'An expense ({0}) has already been raised for this claim.',
         errExceedsLimit: 'That exceeds the remaining entitlement: {0} left, {1} claimed.',

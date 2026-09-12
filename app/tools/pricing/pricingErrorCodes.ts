@@ -1,7 +1,8 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // 定价引擎(calculate_metal_price / upsert_metal_prices)抛出的错误码,
-// 端口自 paymentErrorCodes.ts。不在集合内的是真正未编码的 DB 错误,原样返回。
+// 端口自 paymentErrorCodes.ts。不在集合内的是真正未编码的 DB 错误,交给共用兜底 lib/machine-text.ts。
 const PRICING_ERROR_CODES = new Set([
     'REFERENCE_DATE_REQUIRED',
     'FORMULA_NOT_FOUND', 'FORMULA_INACTIVE', 'QUANTITY_INVALID', 'NO_METALS',
@@ -25,7 +26,7 @@ export async function localizePricingError(message: string): Promise<string> {
     const match = raw.match(CODE_RE)
 
     if (!match || !PRICING_ERROR_CODES.has(match[1])) {
-        return raw // genuine non-coded DB error → surface verbatim
+        return await fallbackForRawError(raw, 'localizePricingError@app/tools/pricing/pricingErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
 
     const code = match[1]

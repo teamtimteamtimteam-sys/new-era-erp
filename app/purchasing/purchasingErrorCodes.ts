@@ -1,9 +1,10 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // 采购与预付款相关 DB 函数(create_purchase_order / cancel_purchase_order /
 // apply_payment_term_template / apply_prepayment,以及 record_payment 的 PO 预付分支)
 // 抛出的错误码(端口自 paymentErrorCodes.ts)。
-// 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
+// 不在此集合内的,是真正的(未编码的)DB/约束错误,交给共用兜底 lib/machine-text.ts。
 const PURCHASING_ERROR_CODES = new Set([
     'ORDER_DATE_REQUIRED',
     'FX_RATE_MISSING', 'FX_RATE_NOT_ACCEPTED',
@@ -102,7 +103,7 @@ export async function localizePurchasingError(message: string): Promise<string> 
     }
 
     if (!match || !PURCHASING_ERROR_CODES.has(match[1])) {
-        return raw // genuine non-coded DB error → surface verbatim
+        return await fallbackForRawError(raw, 'localizePurchasingError@app/purchasing/purchasingErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
 
     const code = match[1]

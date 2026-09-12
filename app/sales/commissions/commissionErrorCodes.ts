@@ -17,6 +17,7 @@
 //      三条都由 PostgreSQL 按【约束名】报出来,所以这里按名字认,
 //      而不是去猜错误文本 —— 约束名是我们自己起的,错误文本不是。
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 const COMMISSION_ERROR_CODES = new Set([
     'COMMISSION_AGENT_NOT_SERVICE_VENDOR',
@@ -68,7 +69,7 @@ export async function localizeCommissionError(message: string): Promise<string> 
     // ① 再认具名异常
     const match = raw.match(CODE_RE)
     if (!match || !COMMISSION_ERROR_CODES.has(match[1])) {
-        return raw // 真正的非编码错误 —— 原样呈上,不要吞掉
+        return await fallbackForRawError(raw, 'localizeCommissionError@app/sales/commissions/commissionErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
     const params: Record<string, string> = {}
     if (match[2]) {

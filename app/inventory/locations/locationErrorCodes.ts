@@ -1,8 +1,12 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // 库位相关的数据库错误码。端口自 app/inbound/assayErrorCodes.ts。
-// 不在集合内的是真正未编码的数据库错误,【原样返回】—— 一句看不懂的英文
-// 比一句编出来的中文强,后者会让人以为系统理解了刚才发生的事。
+// 不在集合内的是真正未编码的数据库错误,【交给共用兜底 lib/machine-text.ts】——
+// ★ 兜底【把那个码留在句子里】,所以它不是「一句编出来的中文」:
+//   它既没有假装系统理解了刚才发生的事,也没有把 SQL 原文摔到人脸上。
+//   (BUGFIX-1b:原先这里写的是「一句看不懂的英文比一句编出来的中文强」——
+//    那句话在只有这两个选项时是对的,而现在有第三个。)
 const LOCATION_ERROR_CODES = new Set([
     // 重号:UNIQUE 给保证,触发器给名字(db/tables/storage_locations.sql 有账)
     'LOC_CODE_EXISTS',
@@ -22,7 +26,7 @@ export async function localizeLocationError(message: string): Promise<string> {
     }
 
     if (!match || !LOCATION_ERROR_CODES.has(match[1])) {
-        return raw
+        return await fallbackForRawError(raw, 'localizeLocationError@app/inventory/locations/locationErrorCodes.ts')
     }
 
     const code = match[1]

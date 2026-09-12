@@ -13,6 +13,7 @@ import {
     resolveOutputSearchIds,
     buildOutputSearchOr,
 } from '../outputQuery'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // 带嵌入的导出行类型(FK 嵌入运行时是对象,显式锁住)。customers 可空。
 type ExportRow = {
@@ -93,7 +94,8 @@ export async function GET(request: NextRequest) {
     const { data, error } = await applyOutputFilters(baseQuery, params, searchOr)
 
     if (error) {
-        return new Response(`Export failed: ${error.message}`, { status: 500 })
+        // ★ BUGFIX-1b:报错原文不再拼进 HTTP 正文(它会原样出现在浏览器窗口里)。
+        return new Response(`Export failed: ${await fallbackForRawError(error.message, 'output/export')}`, { status: 500 })
     }
 
     const rows = (data as unknown as ExportRow[]) ?? []

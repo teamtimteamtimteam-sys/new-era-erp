@@ -19,6 +19,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 export type KpiScoreState = { error?: string; success?: boolean }
 
@@ -26,7 +27,7 @@ export type KpiScoreState = { error?: string; success?: boolean }
 export async function localizeKpiError(message: string): Promise<string> {
     const t = await getTranslations()
     const m = (message ?? '').trim().match(/([A-Z_]+)(?:\|(.*))?$/)
-    if (!m) return message
+    if (!m) return await fallbackForRawError(message, 'localizeKpiError@app/hr/kpi/score/actions.ts')
     const p = (m[2] ?? '').split('|')
     switch (m[1]) {
         case 'KPI_ENTRY_NOT_FOUND':
@@ -59,7 +60,7 @@ export async function localizeKpiError(message: string): Promise<string> {
         case 'PERMISSION_DENIED':
             return t('permissions.errDenied')
         default:
-            return message
+            return await fallbackForRawError(message, 'localizeKpiError@app/hr/kpi/score/actions.ts')
     }
 }
 

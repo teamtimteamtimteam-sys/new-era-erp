@@ -1,8 +1,9 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // 化验相关 DB 函数(record_assay_result / apply_assay_result / unapply_assay_result,
 // 以及它们内部调用的 calculate_metal_price 与 reprice_inbound_batch)抛出的错误码。
-// 端口自 paymentErrorCodes.ts。不在集合内的是真正未编码的 DB 错误,原样返回。
+// 端口自 paymentErrorCodes.ts。不在集合内的是真正未编码的 DB 错误,交给共用兜底 lib/machine-text.ts。
 const ASSAY_ERROR_CODES = new Set([
     'INBOUND_NOT_FOUND', 'ASSAY_DATE_INVALID', 'NO_METALS',
     'METAL_INVALID', 'CONTENT_INVALID', 'DUPLICATE_METAL',
@@ -34,7 +35,7 @@ export async function localizeAssayError(message: string): Promise<string> {
     }
 
     if (!match || !ASSAY_ERROR_CODES.has(match[1])) {
-        return raw // genuine non-coded DB error → surface verbatim
+        return await fallbackForRawError(raw, 'localizeAssayError@app/inbound/assayErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
 
     const code = match[1]

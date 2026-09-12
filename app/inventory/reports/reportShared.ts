@@ -1,3 +1,4 @@
+import { fallbackForRawError } from '@/lib/machine-text'
 // app/inventory/reports/reportShared.ts
 // RPT-1:四张报表共用的取数与导出零件。
 //
@@ -46,8 +47,11 @@ export function csvResponse(name: string, headers: string[], rows: unknown[][]):
 
 // 【失败不是空文件】—— 一个 0 行的 CSV 与"确实没有数据"长得一模一样,
 // 而前者是错误。同进料导出:500 + 原因。
-export function exportFailed(error: { message: string }): Response {
-    return new Response(`Export failed: ${error.message}`, { status: 500 })
+// ★ BUGFIX-1b:报错原文不再拼进 HTTP 正文 —— 它会原样出现在浏览器窗口里。
+//   生码 / 数据库报错换成一句人话 + 一个可追查的短码;人话句子原样留着。
+//   ☞ 它因此变成 async:翻译要 await。四个调用点都在 async 函数里。
+export async function exportFailed(error: { message: string }): Promise<Response> {
+    return new Response(`Export failed: ${await fallbackForRawError(error.message, 'inventory/reports/export')}`, { status: 500 })
 }
 
 

@@ -15,6 +15,7 @@
 import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 type Box = { box: string; label_en: string; label_zh: string; value: number }
 type Snap = { box: string; label_en: string; label_zh: string; value_base: number }
@@ -38,7 +39,9 @@ export async function GET(
     // RLS 会把没有 module.finance.view 的人挡在这里 —— 报错,不返回空表。
     // 一份【空的 CSV】读起来像"这一期没有数",那是一句假话。
     if (pErr || !period) {
-        return new Response(`Export failed: ${pErr?.message ?? 'period not found'}`, { status: pErr ? 500 : 404 })
+        // ★ BUGFIX-1b:报错原文不再拼进 HTTP 正文。「period not found」是一句人话,原样留着。
+        const why = pErr ? await fallbackForRawError(pErr.message, 'finance/gst/export') : 'period not found'
+        return new Response(`Export failed: ${why}`, { status: pErr ? 500 : 404 })
     }
 
     const filed = period.status === 'filed'
@@ -55,7 +58,8 @@ export async function GET(
         const { data, error } = await supabase.rpc('f5_return', {
             p_period_start: period.period_start, p_period_end: period.period_end,
         })
-        if (error) return new Response(`Export failed: ${error.message}`, { status: 500 })
+        // ★ BUGFIX-1b:同上。
+        if (error) return new Response(`Export failed: ${await fallbackForRawError(error.message, 'finance/gst/export')}`, { status: 500 })
         rows = ((data as unknown as { boxes: Box[] } | null)?.boxes ?? []).map(b => ({
             box: b.box, label_en: b.label_en, label_zh: b.label_zh, value: b.value,
         }))

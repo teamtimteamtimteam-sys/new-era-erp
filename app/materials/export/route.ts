@@ -5,6 +5,7 @@
 import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { parseMaterialListParams, applyMaterialFilters } from '../materialQuery'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // 导出列。顺序即 CSV 列顺序,与下方表头一一对应。
 // kind_code / chemistry / unit 导出【规范存储值】(而非翻译标签)—— 稳定、机器可读,
@@ -61,7 +62,8 @@ export async function GET(request: NextRequest) {
     const { data, error } = await applyMaterialFilters(baseQuery, params)
 
     if (error) {
-        return new Response(`Export failed: ${error.message}`, { status: 500 })
+        // ★ BUGFIX-1b:报错原文不再拼进 HTTP 正文(它会原样出现在浏览器窗口里)。
+        return new Response(`Export failed: ${await fallbackForRawError(error.message, 'materials/export')}`, { status: 500 })
     }
 
     const rows = data ?? []

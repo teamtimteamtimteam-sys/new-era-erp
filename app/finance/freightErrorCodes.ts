@@ -1,6 +1,7 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
-// record_freight_document 抛出的错误码。未编码的其它错误原样返回。
+// record_freight_document 抛出的错误码。未编码的其它错误交给共用兜底 lib/machine-text.ts。
 // 【每一条都是一次"不猜"的拒绝】—— value 口径遇未计价批次、weight 口径遇混合单位、
 // stated 口径加总对不上、GST 被要求资本化,都是宁可停下也不要给一个看不见的错数。
 const FREIGHT_ERROR_CODES = new Set([
@@ -23,7 +24,7 @@ const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 export async function localizeFreightError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
-    if (!match || !FREIGHT_ERROR_CODES.has(match[1])) return raw
+    if (!match || !FREIGHT_ERROR_CODES.has(match[1])) return await fallbackForRawError(raw, 'localizeFreightError@app/finance/freightErrorCodes.ts')
     const params: Record<string, string> = {}
     if (match[2]) match[2].split('|').forEach((v, i) => { params[String(i)] = v })
     return (await getTranslations())('finance.freight.errors.' + match[1], params)

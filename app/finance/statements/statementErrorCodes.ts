@@ -1,9 +1,10 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // STATEMENT-1:对账单一族 DB 函数(customer_statement_data / issue_customer_statement /
 // record_statement_issue)抛出的错误码。端口自 creditNoteErrorCodes.ts。
 // 【逐条从函数体枚举出来的】,不是从"撞到过哪几条"数的。
-// 不在集合内的是真正未编码的 DB 错误,原样返回。
+// 不在集合内的是真正未编码的 DB 错误,交给共用兜底 lib/machine-text.ts。
 const STATEMENT_ERROR_CODES = new Set([
     'CUSTOMER_NOT_FOUND',
     'STATEMENT_PERIOD_REQUIRED',
@@ -21,12 +22,12 @@ const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 export async function localizeStatementError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
-    if (!match) return raw
+    if (!match) return await fallbackForRawError(raw, 'localizeStatementError@app/finance/statements/statementErrorCodes.ts')
 
     const t = await getTranslations()
     if (match[1] === 'PERMISSION_DENIED') return t('permissions.errDenied')
     if (!STATEMENT_ERROR_CODES.has(match[1])) {
-        return raw // genuine non-coded DB error → surface verbatim
+        return await fallbackForRawError(raw, 'localizeStatementError@app/finance/statements/statementErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
 
     const params: Record<string, string> = {}

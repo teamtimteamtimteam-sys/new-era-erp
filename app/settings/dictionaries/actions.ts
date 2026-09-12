@@ -15,6 +15,7 @@ import { normaliseIdentityText, findNearDuplicate } from '@/lib/nearDuplicate'
 import { getTranslations } from '@/lib/i18n/server'
 import { revalidatePath } from 'next/cache'
 import { DICTIONARIES } from './registry'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 export type DictState = { error?: string; success?: boolean }
 
@@ -138,7 +139,7 @@ export async function setDictActive(input: {
     return { success: true }
 }
 
-/** 把库里的拒绝翻成人话。认不出的原样返回(与其余各支同一条)。 */
+/** 把库里的拒绝翻成人话。认不出的交给共用兜底 lib/machine-text.ts(与其余各支同一条)。 */
 async function dictError(msg: string): Promise<string> {
     const t = await getTranslations()
     const raw = (msg ?? '').trim()
@@ -148,5 +149,5 @@ async function dictError(msg: string): Promise<string> {
         return t('dict.errNoPermission')
     }
     if (/duplicate key/i.test(raw)) return t('dict.errDuplicate')
-    return raw
+    return await fallbackForRawError(raw, 'dictError@app/settings/dictionaries/actions.ts')
 }

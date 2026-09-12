@@ -1,4 +1,5 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // PROC-2b:物料与进料状态轴的拒绝 → 人话。
 //
@@ -75,6 +76,6 @@ export async function localizeMaterialError(message: string): Promise<string> {
         return t('materials.errors.' + match[1], params)
     }
 
-    // ③ 认不出的原样返回 —— 一个看不见的错比一个丑陋的错坏得多。
-    return raw
+    // ③ 认不出的交给共用兜底 lib/machine-text.ts —— 一个看不见的错比一个丑陋的错坏得多。
+    return await fallbackForRawError(raw, 'localizeMaterialError@app/materials/materialErrorCodes.ts')
 }

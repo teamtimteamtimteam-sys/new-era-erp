@@ -27285,6 +27285,7 @@ export type Database = {
           p_claim_id: string
           p_expense_date?: string
           p_fx_rate?: number
+          p_tax_code?: string
         }
         Returns: Json
       }

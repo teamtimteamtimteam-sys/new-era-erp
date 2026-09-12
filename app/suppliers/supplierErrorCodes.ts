@@ -1,4 +1,5 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // SILENT-1(2026-09-08):供应商状态跳转的拒绝 → 人话。
 //
@@ -52,6 +53,9 @@ export async function localizeSupplierError(message: string): Promise<string> {
         return t('suppliers.errors.' + match[1], params)
     }
 
-    // 认不出的原样返回 —— 六支本地化器共用的那条契约,refuseFromCoded 靠它分界。
-    return raw
+    // 认不出的交给共用兜底 lib/machine-text.ts。
+    // ★★ BUGFIX-1b:refuseFromCoded 从前靠「它把原样那一串还回来了」分界,
+    //   而本刀之后它不会了 —— 那一支已经改成再问一次兜底会说什么,
+    //   所以这里【不必】为了迁就它而保留原样返回。见 lib/action-refusal.ts 抬头。
+    return await fallbackForRawError(raw, 'localizeSupplierError@app/suppliers/supplierErrorCodes.ts')
 }

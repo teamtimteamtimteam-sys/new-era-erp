@@ -13,5 +13,5 @@ export async function GET() {
                 ...unconfigured.map((r) => ['unconfigured_location', r.code, r.other, '', r.qty, r.unit]),
                 ...unclassified.map((r) => ['unclassified_material', r.other, r.code, '', r.qty, r.unit]),
             ])
-    } catch (e) { return exportFailed(e as { message: string }) }
+    } catch (e) { return await exportFailed(e as { message: string }) }
 }

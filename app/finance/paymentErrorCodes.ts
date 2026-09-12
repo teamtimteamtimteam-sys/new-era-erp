@@ -1,8 +1,9 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // record_payment / reverse_payment 抛出的错误码(端口自 financeErrorCodes.ts)。
 // FX_RATE_REQUIRED / PERIOD_LOCKED 复用 finance.errors 里已有的文案。
-// 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
+// 不在此集合内的,是真正的(未编码的)DB/约束错误,交给共用兜底 lib/machine-text.ts。
 const PAYMENT_ERROR_CODES = new Set([
     'PAYMENT_DATE_REQUIRED',
     'ALLOC_CURRENCY_MISMATCH', 'TRANSFER_SAME_ACCOUNT', 'TRANSFER_AMOUNTS_UNEQUAL',
@@ -16,7 +17,9 @@ const PAYMENT_ERROR_CODES = new Set([
     // 所以 record_payment 与任何直连写入都会撞上它。解析到 finance.errors.*。
     'SOD_PAYEE_AND_PAY',
     // PAY-1:冲销那条路上的三个码。此前它们【不在集合里】,于是 localize 把原文
-    // 原样返回 —— 屏幕上就是 PAYMENT_ALREADY_REVERSED 这样一串机器串。
+    // 原样吐了回去 —— 屏幕上就是 PAYMENT_ALREADY_REVERSED 这样一串机器串。
+    // (★ 这一句说的是 PAY-1 之前的历史。BUGFIX-1b 之后兜底不再原样吐,
+    //   而【认出这个码】仍然比兜底好:兜底只给码,这里给的是一句说明。)
     // REVERSAL_DATE_REQUIRED 的文案 FIN-10 就写好了(finance.errors 下),
     // 只是没有人把这个码编进任何一个集合,所以那句人话一直没被用上。
     'PAYMENT_NOT_FOUND', 'PAYMENT_ALREADY_REVERSED', 'REVERSAL_DATE_REQUIRED',
@@ -51,7 +54,7 @@ export async function localizePaymentError(message: string): Promise<string> {
     const match = raw.match(CODE_RE)
 
     if (!match || (!PAYMENT_ERROR_CODES.has(match[1]) && !PURCHASING_SIDE_CODES.has(match[1]))) {
-        return raw // genuine non-coded DB error → surface verbatim
+        return await fallbackForRawError(raw, 'localizePaymentError@app/finance/paymentErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
 
     const code = match[1]

@@ -1,8 +1,9 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // HR 相关 DB 函数与触发器(upsert/post/unpost_payroll_period、部门与汇报环路守卫)
 // 抛出的错误码。端口自 paymentErrorCodes.ts。
-// 不在集合内的是真正未编码的 DB 错误,原样返回。
+// 不在集合内的是真正未编码的 DB 错误,交给共用兜底 lib/machine-text.ts。
 const HR_ERROR_CODES = new Set([
     'CLAIM_YEAR_BEFORE_SYSTEM_START',
     'SYSTEM_START_NOT_SET', 'CARRY_FORWARD_BEFORE_SYSTEM_START',
@@ -33,7 +34,7 @@ export async function localizeHrError(message: string): Promise<string> {
     const match = raw.match(CODE_RE)
 
     if (!match || !HR_ERROR_CODES.has(match[1])) {
-        return raw // genuine non-coded DB error → surface verbatim
+        return await fallbackForRawError(raw, 'localizeHrError@app/hr/hrErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
 
     const code = match[1]

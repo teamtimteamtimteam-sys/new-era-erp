@@ -42,6 +42,7 @@ import { compareForSort } from '@/lib/sortCollation'
 import { pMap, DEFAULT_QUERY_CONCURRENCY } from '@/lib/pMap'
 import { can } from '@/lib/permissions'
 import type { CalendarItem } from '@/app/components/calendar/MonthGrid'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 /** 来源键 —— 也是筛选器的取值。**顺序即图例顺序。** */
 export const CALENDAR_KINDS = [
@@ -241,7 +242,15 @@ export async function loadMonth(month: string, locale: string): Promise<{
         // ★【读不到 ≠ 这一类今天没有事】★ 一个被 RLS 拒掉的读者拿到的是【零行】,
         // 那是对的(他本来就不该看见);而一次真正的【错误】必须说出来 ——
         // 两者在日历上长得一模一样,而含义相反(AGENTS.md 的 mustRows 那一条)。
-        if (res.error) { failures.push(`${kind}: ${res.error.message}`); continue }
+        // ★★ BUGFIX-1b:这一处此前把**数据库报错原文**直接拼进横幅 ——
+        //   round 1 的屏幕普查里,141 条静态路由上真的漏到人眼前的生机器字
+        //   【只有这一处】。它连一支映射器都没走过。
+        //   ☞ 现在走共用兜底:生码 / 数据库报错换成一句人话 + 一个可追查的短码;
+        //     数据库返回的人话句子【原样留着】(Tim 的条件,见 lib/machine-text.ts)。
+        if (res.error) {
+            failures.push(`${kind}: ${await fallbackForRawError(res.error.message, `calendar:${kind}`)}`)
+            continue
+        }
         for (const r of res.data ?? []) items.push(...map(r))
     }
     // `date` 是 ISO 日期(ASCII,字序无关);`label` 是人读的字,要显式取字序。

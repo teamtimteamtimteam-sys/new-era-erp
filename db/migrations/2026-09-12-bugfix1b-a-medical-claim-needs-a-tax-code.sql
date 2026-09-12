@@ -1,49 +1,69 @@
--- db/functions/pay_medical_claim.sql
--- 把已批准的报销变成一笔【未付】费用(科目 6120),走既有付款流程结清。
--- 只要 module.finance.edit —— HR 那一半的把关由"必须已批准"这个前置状态保证。
---
--- NOTE: updated by db/migrations/2026-08-02-hr2b-leave-exceptions-and-claims.sql.
---
--- FIN-10(2026-08-05):日期不再有 CURRENT_DATE 默认值 —— 缺了就抛具名错误。
--- 默认成今天永远撞不上 PERIOD_LOCKED,于是留空反而比填对更容易过关,
--- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
--- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
+-- BUGFIX-1b:GST 开着时,一笔医疗报销【开不出费用单】—— 而报销人做什么都修不好
 --
 -- ════════════════════════════════════════════════════════════════════════════
--- ★★ BUGFIX-1b(2026-09-12):GST 开着时,这条路【一笔费用都开不出来】★★
--- ════════════════════════════════════════════════════════════════════════════
--- 【它坏成什么样】本刀之前,这里调 record_expense **不传 p_tax_code**,而收款人
--- 写死是员工(PAYEE-1a),`p_supplier_id := NULL`。于是 GST 开着时:
---     record_expense → 供应商默认税码查出 NULL → resolve_tax_code(NULL, NULL, …)
---     → RAISE 'TAX_CODE_REQUIRED|supplier' → 整笔事务回滚 → 费用单没建出来。
--- ★ 而报销人【做什么都修不好】:界面没有税码字段、RPC 没有税码参数、
---   这条路上根本没有供应商可以去设默认值,而 `employees` 表**没有
---   default_tax_code 这一列** —— 员工这一侧永远解析不出默认值。
--- ★ 那句 `|supplier` 指的方向本身就是错的:这条路上没有供应商。
+-- 【它坏成什么样(round 1 在重建库上真的跑出来过,两臂)】
+--   GST OFF : succeeded=t  -> expense EXP-2026-0001
+--   GST ON  : succeeded=f  -> TAX_CODE_REQUIRED|supplier      ← 整笔事务回滚
 --
--- 【修法:照 decide_expense_claim 的形状】加一个 `p_tax_code`,GST 开着而没给就
--- **按名拒**(有翻译的 `MEDICAL_CLAIM_TAX_CODE_REQUIRED`),再把它传下去。
--- ★ 税码本身的有效性(存在 / 启用 / 侧别 = input)**仍然全归 resolve_tax_code** ——
---   这里不重写一遍税的规矩,只声明一个【这条路特有的前提】:员工没有默认值,
---   所以 override 必填。允许的进项税码那份清单只有一处真源:
---   **`tax_codes` 里 `is_active` 且 `side = 'input'` 的那些**,与报销单
---   (`/finance/claims`)那条路读的是同一处。
+-- 链:
+--   app/hr/claims/[id]/ClaimControls.tsx  payClaim(claimId, date)
+--   app/hr/claims/actions.ts              rpc('pay_medical_claim', {…})
+--   db/functions/pay_medical_claim.sql    record_expense(…, p_supplier_id := NULL,
+--                                                        【没有 p_tax_code】)
+--   db/functions/record_expense.sql  §4b  IF gst_registered() THEN
+--                                         suppliers WHERE id = NULL  → NULL
+--                                         resolve_tax_code(NULL, NULL, 'input', 'supplier')
+--   db/functions/resolve_tax_code.sql     RAISE 'TAX_CODE_REQUIRED|%'
 --
--- 【为什么这里写 `gst_registered()` 而 decide_expense_claim 写的是一句子查询】
--- ★ 因为**下游那个会拒绝我的人读的就是它** —— `record_expense` 第 4b 段的
---   `IF gst_registered() THEN`。两边用同一个谓词,这里的"先拒"与那边的"要码"
---   就不可能各说各话。(两种写法今天同值;同值不是同一个判据。)
+-- ★ 用户不能自救,四条都查过:界面没有税码字段 · RPC 没有税码参数 ·
+--   这条路上没有供应商可以去设默认值 · `employees` **没有 default_tax_code 这一列**。
+-- ★ 而那句 `|supplier` 指的方向本身是错的 —— 这条路上根本没有供应商(PAYEE-1a
+--   把收款人定成员工本人,`p_supplier_id` 写死 NULL)。
+--
+-- ★★ 最值钱的一句:`decide_expense_claim.sql` 的注释**早就整段写出了这个缺陷**
+--    (「employees 没有 default_tax_code —— 员工这一侧永远解析不出默认值」)。
+--    ☞ **那条裁定做到了 expense_claims 上,没有做到 medical_claims 上。**
 --
 -- ════════════════════════════════════════════════════════════════════════════
--- ★★ 政策:这笔开支的税码【预选 BL】,而预选不等于替人决定 ★★
+-- 【这支迁移改什么】
+--   `pay_medical_claim` 加一个 **带默认值的** `p_tax_code text DEFAULT NULL`;
+--   GST 开着而没给就按名拒 `MEDICAL_CLAIM_TAX_CODE_REQUIRED|<报销单号>`(有翻译);
+--   给了就传给 `record_expense`。
+--
+-- ★ `record_expense` 与 `resolve_tax_code` **一个字都没有改** —— 读过了,不必改:
+--   `record_expense` 早就收 `p_tax_code`(GST-2 起),而税码的有效性
+--   (存在 / 启用 / 侧别 = input)全归 `resolve_tax_code`。
+--   ☞ 允许的进项税码只有一处真源:**`tax_codes` 里 `is_active` 且 `side='input'`**,
+--     与报销单(`/finance/claims`)那条路读的是同一处。这里不重写税的规矩,
+--     只声明一个这条路特有的前提:员工没有默认值,所以 override 必填。
+--
+-- ★ `decide_expense_claim` **不动**(Tim 2026-09-12 的裁定):
+--   报销单那条路要一次明确的选择,**不预选**。两条路给不同的答案是一次裁定,
+--   不是一次疏忽 —— 理由写在 `docs/accounting-policies.md` §9.1b。
+--
 -- ════════════════════════════════════════════════════════════════════════════
--- ☞ **裁定与它的依据写在 `docs/accounting-policies.md` §9.1b** ——
---   一般规则是新加坡 GST 的 Reg 26(员工医疗开支的进项税被挡住),
---   而 **预选做在【界面】上,不做在这支函数里**:函数**不给默认值**,
---   没给就按名拒。★ 一个在数据库里的默认值,人是看不见、也确认不了的。
--- ⚠ 那条一般规则**还没有被会计确认**(Tim 2026-09-12 说他会去确认)——
---   §9.1b 把这一行写着,免得下一个读到它的人以为它已经被核过。
+-- 【为什么是 DROP + CREATE,而不是 CREATE OR REPLACE】
+--   加参数 = 换签名 = **重载**,旧签名会原样活在线上变成镜像看不见的漂移(FIN-21)。
+--   `db/preflight_migration.py` 为此**拒绝**这种形状,而 DROP + CREATE 是它唯一
+--   放行的走法(PAYEE-1a 在同一支函数上付过同一笔账,见
+--   `db/migrations/2026-08-18-payee1a-an-employee-can-be-paid-directly.sql:977`)。
+--
 -- ════════════════════════════════════════════════════════════════════════════
+-- ★★【破窗里会发生什么 —— 照直说】★★
+--   窗口 = 这支迁移提交 → 新代码部署成功。期间线上跑的是 **旧代码 + 新函数**。
+--   旧代码那句 `rpc('pay_medical_claim', {p_claim_id, p_expense_date})` 是**按名传参**,
+--   而新增的两个参数都有默认值 → ★ **它仍然解析得到新函数**,走 `p_tax_code = NULL`。
+--   于是 GST 开着时它 **仍然被按名拒、仍然开不出费用单、事务仍然回滚** ——
+--   ☞ **结果与今天【逐字相同】:一笔都开不出来。**
+--   ⚠ **有一处不同,不抹平**:拒绝的**码**从 `TAX_CODE_REQUIRED|supplier`
+--     变成 `MEDICAL_CLAIM_TAX_CODE_REQUIRED|MC-…`。旧代码的 `localizeLeaveError`
+--     两个码都不认识,所以**屏幕上两者都是一串生码** —— 窗口里可见行为不变。
+--   ★ 窗口是良性且可枚举的,而这【不构成】"先推送后跑门"的理由(AGENTS.md,UI-1b 付过账)。
+-- ════════════════════════════════════════════════════════════════════════════
+
+BEGIN;
+
+DROP FUNCTION public.pay_medical_claim(uuid, date, numeric);
 
 CREATE OR REPLACE FUNCTION public.pay_medical_claim(p_claim_id uuid, p_expense_date date DEFAULT NULL::date, p_fx_rate numeric DEFAULT NULL::numeric, p_tax_code text DEFAULT NULL::text)
  RETURNS jsonb
@@ -147,3 +167,5 @@ $function$;
 
 COMMENT ON FUNCTION public.pay_medical_claim(uuid, date, numeric, text) IS
 '把已批准的医疗报销变成一笔未付费用(6120)。GST 开着时 p_tax_code 必给 —— 员工没有默认税码,所以只能由人显式选。★ 走哪个税码是一条【政策】,写在 docs/accounting-policies.md §9.1b(一般规则:新加坡 GST Reg 26 把员工医疗开支的进项税挡住,即 BL;界面预选 BL 但仍要人确认;截至 2026-09-12 该规则尚未经会计确认)。允许的进项税码只有一处真源:tax_codes 里 is_active 且 side=''input'' 的那些,与 decide_expense_claim 那条路同源。';
+
+COMMIT;

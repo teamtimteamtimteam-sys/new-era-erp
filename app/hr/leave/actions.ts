@@ -6,6 +6,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 export type LeaveState = { error?: string; success?: boolean; code?: string }
 
@@ -14,7 +15,7 @@ export type LeaveState = { error?: string; success?: boolean; code?: string }
 export async function localizeLeaveError(message: string): Promise<string> {
     const t = await getTranslations()
     const m = (message ?? '').trim().match(/([A-Z_]+)(?:\|(.*))?$/)
-    if (!m) return message
+    if (!m) return await fallbackForRawError(message, 'localizeLeaveError@app/hr/leave/actions.ts')
     const p = (m[2] ?? '').split('|')
     switch (m[1]) {
         case 'INSUFFICIENT_ACCRUED_LEAVE':
@@ -51,8 +52,30 @@ export async function localizeLeaveError(message: string): Promise<string> {
         // 留着一个抛不出来的分支,与留着一条描述已不存在约束的注释同罪。
         case 'FX_RATE_MISSING':
             return t('claims.errFxMissing', { 0: p[1] ?? '' })
+        // ════════════════════════════════════════════════════════════════════
+        // ★★ BUGFIX-1b(2026-09-12)· 医疗报销 → 费用单,在 GST 之下那一族 ★★
+        // ════════════════════════════════════════════════════════════════════
+        // 【为什么这几支必须在这里接住】`pay_medical_claim` 会传递调用到
+        // `record_expense` → `resolve_tax_code`,而**那才是这些码的出处**。
+        // 本刀之前它们一支都不在这张表里,于是屏幕上出现的是
+        // `TAX_CODE_REQUIRED|supplier` 这样一串生码 —— 而 `expense.errors.*`
+        // 下面那几句人话**一直躺在树里,这条路径够不到它们**。
+        // ☞ 这不是"逐个码补文案"(那一档明确【不在】本刀里):这是把 item b
+        //   这条路上今天真的撞得到的那几支接好,而句子是**现成的**。
+        case 'MEDICAL_CLAIM_TAX_CODE_REQUIRED':
+            return t('claims.errTaxCodeRequired', { 0: p[0] ?? '' })
+        case 'TAX_CODE_REQUIRED':
+            return t('expense.errors.TAX_CODE_REQUIRED')
+        case 'TAX_CODE_UNKNOWN':
+            return t('expense.errors.TAX_CODE_UNKNOWN', { 0: p[0] ?? '' })
+        case 'TAX_CODE_INACTIVE':
+            return t('expense.errors.TAX_CODE_INACTIVE', { 0: p[0] ?? '' })
+        case 'TAX_CODE_WRONG_SIDE':
+            return t('expense.errors.TAX_CODE_WRONG_SIDE', { 0: p[0] ?? '', 1: p[1] ?? '' })
+        case 'GST_NOT_REGISTERED':
+            return t('expense.errors.GST_NOT_REGISTERED', { 0: p[0] ?? '' })
         default:
-            return message
+            return await fallbackForRawError(message, 'localizeLeaveError@app/hr/leave/actions.ts')
     }
 }
 

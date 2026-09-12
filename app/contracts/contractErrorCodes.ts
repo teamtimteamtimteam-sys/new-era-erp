@@ -17,6 +17,7 @@
 //   (直接 POST、或将来别的调用点),以及 RLS 那一条:它【不可能】在应用侧先判,
 //   因为要哪个码取决于对手方选的是供应商还是客户。
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 export const CONTRACT_ERROR_CODES = new Set([
     'CONTRACT_COUNTERPARTY_REQUIRED',
@@ -82,5 +83,5 @@ export async function localizeContractError(message: string): Promise<string> {
         if (m[2]) m[2].split('|').forEach((v, i) => { params[String(i)] = v })
         return t('contracts.errors.' + m[1], params)
     }
-    return raw // 真正的非编码错误 —— 原样呈上,不要吞掉
+    return await fallbackForRawError(raw, 'localizeContractError@app/contracts/contractErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
 }

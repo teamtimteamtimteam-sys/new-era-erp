@@ -1,8 +1,9 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // post_journal_entry / reverse_journal_entry / close_period / reopen_period
 // 抛出的错误码(端口自 processing/errorCodes.ts)。
-// 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
+// 不在此集合内的,是真正的(未编码的)DB/约束错误,交给共用兜底 lib/machine-text.ts。
 const FINANCE_ERROR_CODES = new Set([
     'JE_NOT_FOUND', 'JE_ALREADY_REVERSED', 'PERIOD_LOCKED',
     'ACCOUNT_NOT_FOUND', 'ACCOUNT_INACTIVE', 'FX_RATE_REQUIRED',
@@ -48,7 +49,7 @@ const FINANCE_ERROR_CODES = new Set([
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..." —— 即使 PostgREST 在前面包了前缀,
-// 也能定位到大写下划线的 code 和它后面 |-分隔的参数。找不到已知 code 就原样返回。
+// 也能定位到大写下划线的 code 和它后面 |-分隔的参数。找不到已知 code 就交给共用兜底 lib/machine-text.ts。
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 
 export async function localizeFinanceError(message: string): Promise<string> {
@@ -56,7 +57,7 @@ export async function localizeFinanceError(message: string): Promise<string> {
     const match = raw.match(CODE_RE)
 
     if (!match || !FINANCE_ERROR_CODES.has(match[1])) {
-        return raw // genuine non-coded DB error → surface verbatim
+        return await fallbackForRawError(raw, 'localizeFinanceError@app/finance/financeErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
 
     const code = match[1]

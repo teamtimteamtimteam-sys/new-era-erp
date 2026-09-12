@@ -1,4 +1,5 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // app/components/inventory/deletionErrorCodes.ts
 // AUDEL-1b:软删那扇门(soft_delete_inbound_batch / soft_delete_output_batch)
@@ -27,7 +28,7 @@ export async function localizeDeletionError(message: string): Promise<string> {
         return (await getTranslations())('common.restricted')
     }
     if (!match || !DELETION_ERROR_CODES.has(match[1])) {
-        return raw
+        return await fallbackForRawError(raw, 'localizeDeletionError@app/components/inventory/deletionErrorCodes.ts')
     }
     const code = match[1]
     const params: Record<string, string> = {}

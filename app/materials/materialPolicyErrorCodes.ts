@@ -1,8 +1,9 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // app/materials/materialPolicyErrorCodes.ts
 // ASY-P1 的写入口 set_material_required_metals() 抛出的错误码。
-// 端口自 assayErrorCodes.ts。不在集合内的是真正未编码的 DB 错误,原样返回 ——
+// 端口自 assayErrorCodes.ts。不在集合内的是真正未编码的 DB 错误,交给共用兜底 lib/machine-text.ts ——
 // 一个被翻译器吞掉的陌生错误,比一串机器码更坏(docs/machine-text-reaching-humans.md)。
 const MATERIAL_POLICY_ERROR_CODES = new Set([
     'MATERIAL_REQUIRED',
@@ -25,7 +26,7 @@ export async function localizeMaterialPolicyError(message: string): Promise<stri
     }
 
     if (!match || !MATERIAL_POLICY_ERROR_CODES.has(match[1])) {
-        return raw
+        return await fallbackForRawError(raw, 'localizeMaterialPolicyError@app/materials/materialPolicyErrorCodes.ts')
     }
 
     const code = match[1]

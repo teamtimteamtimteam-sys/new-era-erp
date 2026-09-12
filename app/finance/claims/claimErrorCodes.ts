@@ -1,4 +1,5 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // CLAIM-1:报销那三支函数抛出的错误码。
 //
@@ -30,12 +31,12 @@ const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 export async function localizeExpenseClaimError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
-    if (!match) return raw
+    if (!match) return await fallbackForRawError(raw, 'localizeExpenseClaimError@app/finance/claims/claimErrorCodes.ts')
     const t = await getTranslations()
     if (match[1] === 'PERMISSION_DENIED') return t('permissions.errDenied')
-    // 【期间锁与汇率缺失是别人家的码,原样交出去】PERIOD_LOCKED 归财务那一族、
+    // 【期间锁与汇率缺失是别人家的码,交给共用兜底 lib/machine-text.ts】PERIOD_LOCKED 归财务那一族、
     // FX_RATE_MISSING 归 THE FX RULE 那一族 —— 措辞归它们自己,这里不复述。
-    if (!EXPENSE_CLAIM_ERROR_CODES.has(match[1])) return raw
+    if (!EXPENSE_CLAIM_ERROR_CODES.has(match[1])) return await fallbackForRawError(raw, 'localizeExpenseClaimError@app/finance/claims/claimErrorCodes.ts')
     const params: Record<string, string> = {}
     if (match[2]) match[2].split('|').forEach((v, i) => { params[String(i)] = v })
     return t('expenseClaims.errors.' + match[1], params)

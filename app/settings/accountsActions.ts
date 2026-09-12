@@ -7,6 +7,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 export type ActionState = { error?: string; success?: boolean }
 
@@ -16,7 +17,7 @@ async function localize(message: string): Promise<string> {
     const t = await getTranslations()
     const raw = (message ?? '').trim()
     const code = raw.match(/([A-Z_]+)(?:\|(.*))?$/)
-    if (!code) return raw
+    if (!code) return await fallbackForRawError(raw, 'localize@app/settings/accountsActions.ts')
     switch (code[1]) {
         case 'LAST_ADMIN_PROTECTED':
             return t('permissions.errLastAdmin')
@@ -35,7 +36,7 @@ async function localize(message: string): Promise<string> {
         case 'PERMISSION_NOT_FOUND':
             return t('permissions.errPermissionNotFound', { 0: code[2] ?? '' })
         default:
-            return raw
+            return await fallbackForRawError(raw, 'localize@app/settings/accountsActions.ts')
     }
 }
 

@@ -1,4 +1,5 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // app/logistics/logisticsErrorCodes.ts
 // LOG-1c:物流模块的具名拒绝 → 人话。端口自 taskErrorCodes.ts。
@@ -35,9 +36,10 @@ export async function localizeLogisticsError(message: string): Promise<string> {
     const match = raw.match(CODE_RE)
     if (match && match[1] === 'PERMISSION_DENIED') return t('common.restricted')
     if (!match || !LOGISTICS_ERROR_CODES.has(match[1])) {
-        // 【不在集合里的原样返回】—— 编一句人话去盖一个没见过的错误,
-        // 会让下一个人以为系统认得它。
-        return raw
+        // 【不在集合里的交给共用兜底 lib/machine-text.ts】—— 而兜底【带着那个码】:
+        // 一句泛泛的「出错了」会让下一个人以为系统认得它,一句带码的人话不会。
+        // ☞ BUGFIX-1b 换掉的正是「原样吐生码」与「泛泛一句」之间那个假两难。
+        return await fallbackForRawError(raw, 'localizeLogisticsError@app/logistics/logisticsErrorCodes.ts')
     }
     const params: Record<string, string> = {}
     if (match[2]) match[2].split('|').forEach((v, i) => { params[String(i)] = v })

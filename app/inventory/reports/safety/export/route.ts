@@ -10,5 +10,5 @@ export async function GET() {
                 const short = (r.safety_stock_qty ?? 0) - r.available_qty
                 return [r.code, r.name, r.available_qty, r.safety_stock_qty, short > 0 ? short : '', r.unit]
             }))
-    } catch (e) { return exportFailed(e as { message: string }) }
+    } catch (e) { return await exportFailed(e as { message: string }) }
 }

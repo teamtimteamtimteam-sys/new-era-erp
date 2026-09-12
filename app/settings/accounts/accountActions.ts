@@ -29,13 +29,14 @@ import { canManagePermissions } from '@/lib/permissions'
 import { getTranslations } from '@/lib/i18n/server'
 // 【下限住在一个普通模块里,不在本文件】—— 'use server' 只许导出 async 函数。
 import { MIN_PASSWORD_LENGTH } from '@/lib/passwordPolicy'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 export type AccountState = { error?: string; success?: boolean; email?: string }
 
 async function localize(message: string): Promise<string> {
     const t = await getTranslations()
     const m = (message ?? '').trim().match(/([A-Z_]+)(?:\|(.*))?$/)
-    if (!m) return message
+    if (!m) return await fallbackForRawError(message, 'localize@app/settings/accounts/accountActions.ts')
     switch (m[1]) {
         case 'PERMISSION_DENIED':
             return t('permissions.errDenied')
@@ -46,7 +47,7 @@ async function localize(message: string): Promise<string> {
         case 'EDIT_REQUIRES_VIEW':
             return t('permissions.errEditRequiresView', { 0: m[2] ?? '' })
         default:
-            return message
+            return await fallbackForRawError(message, 'localize@app/settings/accounts/accountActions.ts')
     }
 }
 

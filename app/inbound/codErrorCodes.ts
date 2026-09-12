@@ -1,9 +1,11 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // app/inbound/codErrorCodes.ts
 // COD-1:销毁证书那几支函数抛出的错误码,端口自 traceabilityErrorCodes.ts。
-// 不在集合内的是真正未编码的 DB 错误,原样返回 —— 一个被翻译器吞掉的陌生错误,
-// 比一串机器码更坏。
+// 不在集合内的是真正未编码的 DB 错误,交给共用兜底 lib/machine-text.ts ——
+// ★ 兜底【不吞】那个码,它把码放进一句人话里。一个被翻译器吞掉的陌生错误
+//   比一串机器码更坏,而这两样都不是今天的选项(BUGFIX-1b)。
 //
 // 【为什么这些消息跟【界面语言】,而证书本身一律英文】
 // 两个不同的收件人。证书交到【送料方】手里,他不是这套系统的用户,所以一律英文;
@@ -54,7 +56,7 @@ export async function localizeCodError(message: string): Promise<string> {
         return (await getTranslations())('common.restricted')
     }
 
-    if (!match || !COD_ERROR_CODES.has(match[1])) return raw
+    if (!match || !COD_ERROR_CODES.has(match[1])) return await fallbackForRawError(raw, 'localizeCodError@app/inbound/codErrorCodes.ts')
 
     const code = match[1]
     const parts = match[2] ? match[2].split('|') : []

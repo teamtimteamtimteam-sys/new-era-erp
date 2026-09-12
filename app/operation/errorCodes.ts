@@ -1,10 +1,11 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { STATE_OPTIONS } from '@/app/inbound/options'
 import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
+import { fallbackForRawError, fallbackTextFor } from '@/lib/machine-text'
 
 // commit_processing_run / rollback_processing_run 这两个 DB 函数 RAISE 出来的错误码,
 // 外加工单族与(PROC-SUPPORT-1 起)交接班族的具名拒绝。
-// 不在此集合内的,是真正的(未编码的)DB/约束错误,原样返回。
+// 不在此集合内的,是真正的(未编码的)DB/约束错误,交给共用兜底 lib/machine-text.ts。
 const PROCESSING_ERROR_CODES = new Set([
     'PROCESS_DATE_REQUIRED',
     'COST_ENTRY_ALREADY_SETTLED', 'COST_ENTRY_IS_ESTIMATE', 'COST_ENTRY_NOT_ESTIMATE',
@@ -71,7 +72,7 @@ const PROCESSING_ERROR_CODES = new Set([
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..." —— 即使 PostgREST 在前面包了前缀,
-// 也能定位到大写下划线的 code 和它后面 |-分隔的参数。找不到已知 code 就原样返回。
+// 也能定位到大写下划线的 code 和它后面 |-分隔的参数。找不到已知 code 就交给共用兜底 lib/machine-text.ts。
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 
 export async function localizeProcessingError(message: string): Promise<string> {
@@ -86,10 +87,16 @@ export async function localizeProcessingError(message: string): Promise<string> 
         // 一直是一串机器码】。实测确认,不是推测。
         // 【为什么是链而不是把码抄过来】抄一份就是第二处要跟着字典长的清单,
         // 而 materials.errors.* 已经收着五条轴的全部拒绝(外键、主键、适用性)。
-        // localizeMaterialError 认不出时原样返回,所以这一链是安全的。
+        // ★★ BUGFIX-1b:这一链的判据变了,而【不变的是它的结论】。
+        //   从前 localizeMaterialError 认不出时把原样那一串还回来,于是
+        //   `viaMaterial !== raw` 就等于「它认出来了」。本刀换掉兜底之后,
+        //   它认不出时给的是【共用兜底那句话】—— 那个判据于是永远为真。
+        //   ☞ 拿同一串问一次「走兜底会说什么」,相等就说明它没认出来,继续往下走。
+        //   (与 lib/action-refusal.ts 的 refuseFromCoded 逐字同一条,见那里的抬头。)
         const viaMaterial = await localizeMaterialError(raw)
-        if (viaMaterial !== raw) return viaMaterial
-        return raw // genuine non-coded DB error → surface verbatim
+        const materialFallback = await fallbackTextFor(raw)
+        if (viaMaterial !== raw && viaMaterial !== materialFallback) return viaMaterial
+        return await fallbackForRawError(raw, 'localizeProcessingError@app/operation/errorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
 
     const code = match[1]

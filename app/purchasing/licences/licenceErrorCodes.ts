@@ -10,6 +10,7 @@
 //   ② RLS 的拒绝:写这张表要 module.suppliers.edit,只有 view 的人会撞上它。
 //   ③ 服务端自己先拒的一条(种类必填)与认证够不着那一条。
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 const LICENCE_ERROR_CODES = new Set([
     'LICENCE_KIND_REQUIRED',
@@ -38,5 +39,5 @@ export async function localizeLicenceError(message: string): Promise<string> {
     if (LICENCE_ERROR_CODES.has(raw)) {
         return t('company.licence.errors.' + raw)
     }
-    return raw // 真正的非编码错误 —— 原样呈上,不要吞掉
+    return await fallbackForRawError(raw, 'localizeLicenceError@app/purchasing/licences/licenceErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
 }

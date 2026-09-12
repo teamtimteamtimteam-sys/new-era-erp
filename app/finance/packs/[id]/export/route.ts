@@ -6,6 +6,7 @@ import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { csvRow, csvResponse } from '@/lib/csv'
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 export async function GET(
     _request: NextRequest,
@@ -20,8 +21,9 @@ export async function GET(
         .eq('id', id).single()
     // 一份【空的 CSV】读起来像"这个月没有数",那是一句假话 —— 报错,不返回空表。
     if (error || !data) {
-        return new Response(`Export failed: ${error?.message ?? 'pack not found'}`,
-            { status: error ? 500 : 404 })
+        // ★ BUGFIX-1b:报错原文不再拼进 HTTP 正文。「pack not found」是一句人话,原样留着。
+        const why = error ? await fallbackForRawError(error.message, 'finance/packs/export') : 'pack not found'
+        return new Response(`Export failed: ${why}`, { status: error ? 500 : 404 })
     }
     const p = data.payload as Record<string, never>
     const ccy = String(p.base_currency ?? '')

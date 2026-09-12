@@ -1,7 +1,8 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // STK-1:库存状态(暂扣/释放)相关的数据库错误码。端口自 assayErrorCodes.ts。
-// 不在集合内的是真正未编码的数据库错误,【原样返回】。
+// 不在集合内的是真正未编码的数据库错误,【交给共用兜底 lib/machine-text.ts】。
 const STOCK_ERROR_CODES = new Set([
     'STK_HOLD_EXCEEDS_AVAILABLE',
     'STK_RELEASE_EXCEEDS_HELD',
@@ -65,7 +66,7 @@ export async function localizeStockError(message: string): Promise<string> {
         return (await getTranslations())('common.restricted')
     }
     if (!match || !STOCK_ERROR_CODES.has(match[1])) {
-        return raw
+        return await fallbackForRawError(raw, 'localizeStockError@app/components/inventory/stockErrorCodes.ts')
     }
 
     const code = match[1]
@@ -85,7 +86,9 @@ export async function localizeStockError(message: string): Promise<string> {
 // 操作员看到的是一串机器码。告警比拒绝更容易重蹈覆辙 —— 拒绝会挡住人,漏了
 // 立刻有人喊;告警不挡任何人,漏了就是【无声地不存在】。
 //
-// 未编码的码【原样返回】而不是丢弃,与错误那一侧同一条:看得见才修得掉。
+// 未编码的告警码【原样带出来】而不是丢弃,与错误那一侧同一条:看得见才修得掉。
+// (★ 这一句说的是【告警】那一侧 —— 下面 warningCodesFrom,它不经过任何映射器,
+//   BUGFIX-1b 的兜底也够不到它。)
 // IOD-2:三个建批次 RPC 成功之后都【重定向】走,而告警必须活过那一次重定向 ——
 // 否则"告警在数据库里是对的、在界面上不存在"就原样重演一次(IOD-1b 的形状)。
 // 所以编码进查询串,由落地页翻成句子(翻译留在服务端渲染那一侧)。

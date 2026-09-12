@@ -1,4 +1,5 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // FX-RATES-1:record_fx_rate / withdraw_fx_rate 抛出来的错误码(端口自 bankErrorCodes)。
 // **逐条从函数体里数出来的**,不是从"我这次撞见了哪几条"倒推的:
@@ -19,7 +20,7 @@ export async function localizeFxError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
     if (!match || !FX_ERROR_CODES.has(match[1])) {
-        return raw // 真正的非编码错误,原样交出去
+        return await fallbackForRawError(raw, 'localizeFxError@app/finance/fxErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
     const params: Record<string, string> = {}
     if (match[2]) {

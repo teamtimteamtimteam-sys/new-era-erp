@@ -50,6 +50,30 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
     } | null
     const canFinance = await can('module.finance.edit')
 
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★ BUGFIX-1b(2026-09-12):GST 之下这笔开支要一个进项税码 ★★
+    // ════════════════════════════════════════════════════════════════════════
+    // ★【真源只有一处】允许的进项税码 = `tax_codes` 里 `is_active` 且 `side='input'`
+    //   的那些 —— 与报销单那条路(`app/finance/claims/page.tsx:73`)**逐字同源**,
+    //   也正是 `resolve_tax_code` 在服务端要验的那一份。这里不另造一张清单。
+    // ★ 读 `finance_settings_lookup` 而不是 `finance_settings`:这一页是 HR 的,
+    //   进来的人不一定有财务模块 —— 那张 lookup 视图正是为这种跨模块的一格开的
+    //   (`app/suppliers/[id]/edit/page.tsx:56` 记着它的由来:直接读 finance_settings
+    //   会得零行,而 `.single()` 那时是**报错**,不是 null)。
+    const [gstRes, taxCodesRes] = await Promise.all([
+        supabase.from('finance_settings_lookup').select('gst_registered').limit(1).maybeSingle(),
+        supabase.from('tax_codes').select('code, name_en, name_zh, side, is_active, is_claimable').order('sort_order'),
+    ])
+    const gstRegistered = gstRes.data?.gst_registered ?? false
+    const taxCodes = mustRows(taxCodesRes)
+        .filter((x) => x.is_active && x.side === 'input')
+        .map((x) => ({
+            code: x.code as string,
+            name_en: x.name_en as string,
+            name_zh: x.name_zh as string,
+            is_claimable: x.is_claimable as boolean,
+        }))
+
     const card = 'rounded border border-gray-200 p-4 mb-6'
 
     // 金额一律以【报销单自己的币种】表示 —— 视图的列名就叫 amount_sgd,
@@ -142,9 +166,12 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
             {/* ★ 出口:批准 / 驳回 / 建费用。住 children,而 state 恒为 'ok'。 */}
             <ClaimControls
                 claimId={claim.claim_id as string}
+                claimCode={claim.code as string}
                 status={claim.status as string}
                 alreadyLinked={!!claim.expense_id}
                 canFinance={canFinance}
+                gstRegistered={gstRegistered}
+                taxCodes={taxCodes}
             />
         </ListPage>
     )

@@ -14,5 +14,5 @@ export async function GET(request: NextRequest) {
                 // 类型与状态导出【存储值】,不翻译(机器可读,同进料导出)
                 return [f.date, f.batch, f.material, f.location, f.type, f.status, f.qty, f.notes]
             }))
-    } catch (e) { return exportFailed(e as { message: string }) }
+    } catch (e) { return await exportFailed(e as { message: string }) }
 }

@@ -1,8 +1,9 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // app/output/traceabilityErrorCodes.ts
 // AUD-2:traceability_report_data / record_traceability_report_issue 抛出的错误码。
-// 端口自 assayErrorCodes.ts。不在集合内的是真正未编码的 DB 错误,原样返回 ——
+// 端口自 assayErrorCodes.ts。不在集合内的是真正未编码的 DB 错误,交给共用兜底 lib/machine-text.ts ——
 // 一个被翻译器吞掉的陌生错误,比一串机器码更坏。
 const TRACEABILITY_ERROR_CODES = new Set([
     'BATCH_REQUIRED',
@@ -23,7 +24,7 @@ export async function localizeTraceabilityError(message: string): Promise<string
     }
 
     if (!match || !TRACEABILITY_ERROR_CODES.has(match[1])) {
-        return raw
+        return await fallbackForRawError(raw, 'localizeTraceabilityError@app/output/traceabilityErrorCodes.ts')
     }
 
     const code = match[1]

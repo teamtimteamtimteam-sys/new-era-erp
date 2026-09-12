@@ -1,6 +1,7 @@
 import 'server-only'
 import { getTranslations } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
+import { fallbackTextFor } from '@/lib/machine-text'
 
 // ════════════════════════════════════════════════════════════════════════════
 // ALERT-1(2026-09-08)· 一次拒绝【回给界面的形状】
@@ -135,6 +136,22 @@ export async function refuseNothingChanged(permissionCode: string): Promise<Acti
  *   ② 本地化器认出来了 → 原样用它的话。
  *   ③ 没认出来 → **绝不把那串机器字做标题**:换成一句说得出下一步的话,
  *      原文降级进 detail。
+ *
+ * ════════════════════════════════════════════════════════════════════════════
+ * ★★★【BUGFIX-1b(2026-09-12):上面那条契约【按构造】失效了 —— 照直记】★★★
+ * ════════════════════════════════════════════════════════════════════════════
+ *   本刀把 45 支映射器的兜底从「原样吐生字符串」换成了共用兜底
+ *   (`lib/machine-text.ts`)。于是 **映射器再也不会把原样那一串还回来**,
+ *   而分支 ② 的判据 `localized !== raw` 会【永远】为真。
+ *   ☞ 后果不是一句错话,是 **ALERT-1 的 `detail` 那一格整个消失** ——
+ *     数据库原文本该降级进可展开的细节里,而它会连同分支 ③ 一起被跳过。
+ *   ☞ 改法:拿**同一串**再问一次「走共用兜底会说什么」,相等就说明
+ *     本地化器没认出来,仍然走分支 ③。同一个输入 + 同一种语言 ⇒ 同一句输出,
+ *     所以这个比对是**精确的**,不是启发式的。
+ *   ★ **这三十个调用点的屏幕文字因此【一个字都没有变】** —— 它们守的是
+ *     ALERT-1 的裁定(标题是人话、原文进 detail),那条裁定比本刀早,本刀不动它。
+ *   ⚠ **它是被【读】出来的,不是被测出来的** —— 没有任何一道闸会为这条契约变红:
+ *     它是一条写在注释里的约定,而注释不参与编译。
  */
 export async function refuseFromCoded(
     rawMessage: string,
@@ -150,8 +167,12 @@ export async function refuseFromCoded(
     }
 
     const localized = await localize(raw)
-    if (localized !== raw) return { error: localized }
+    // ★ BUGFIX-1b:两条判据,而第二条是新的(见本函数抬头那一段)。
+    //   `fallbackTextFor(raw)` 给出「这一串走共用兜底会说什么」;
+    //   人话句子它给 null,于是这一支退回成本刀之前那条逐字相同的判据。
+    const fallback = await fallbackTextFor(raw)
+    if (localized !== raw && localized !== fallback) return { error: localized }
 
-    // 走到这里 = 本地化器【没认出来】,照它自己的契约把原文还了回来。
+    // 走到这里 = 本地化器【没认出来】(把原文还了回来,或者只给出了那句共用兜底)。
     return refuseFromDriver(raw)
 }

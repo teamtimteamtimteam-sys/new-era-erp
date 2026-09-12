@@ -1,7 +1,8 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // CN-1:贷项凭证的具名拒绝。【与库存/销售那两族同一个形状】:不在集合里的
-// 是真正未编码的数据库错误,原样返回 —— 看得见才修得掉(IOD-1b 的教训)。
+// 是真正未编码的数据库错误,交给共用兜底 lib/machine-text.ts —— 看得见才修得掉(IOD-1b 的教训)。
 const CREDIT_NOTE_ERROR_CODES = new Set([
     // 【操作员天天会撞上前五条】—— 这张发票不能开贷项凭证(种类不对/已作废/
     // 已结清)、忘了写理由、忘了填单据日、三条天花板中的一条超了。
@@ -42,7 +43,7 @@ export async function localizeCreditNoteError(message: string): Promise<string> 
     const match = raw.match(CODE_RE)
     const t = await getTranslations()
     if (match && match[1] === 'PERMISSION_DENIED') return t('common.restricted')
-    if (!match || !CREDIT_NOTE_ERROR_CODES.has(match[1])) return raw
+    if (!match || !CREDIT_NOTE_ERROR_CODES.has(match[1])) return await fallbackForRawError(raw, 'localizeCreditNoteError@app/finance/creditNoteErrorCodes.ts')
     const params: Record<string, string> = {}
     if (match[2]) match[2].split('|').forEach((v, i) => { params[String(i)] = v })
     return t('cn.errors.' + match[1], params)

@@ -1,10 +1,11 @@
 import { getTranslations } from '@/lib/i18n/server'
+import { fallbackForRawError } from '@/lib/machine-text'
 
 // CHASE-1:催收一族 DB 函数(record_collection_chase / record_promise_outcome /
 // customer_collection_context)抛出的错误码。端口自 statementErrorCodes.ts。
 // 【逐条从函数体枚举出来的】,不是从"撞到过哪几条"数的 —— 后者只会收录
 // 已经出现过的那些,而没出现过的那些正是会以机器文本示人的那些。
-// 不在集合内的是真正未编码的 DB 错误,原样返回。
+// 不在集合内的是真正未编码的 DB 错误,交给共用兜底 lib/machine-text.ts。
 export const CHASE_ERROR_CODES = new Set([
     'CUSTOMER_NOT_FOUND',
     'CHASE_DATE_REQUIRED',
@@ -37,14 +38,14 @@ const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 export async function localizeChaseError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
-    if (!match) return raw
+    if (!match) return await fallbackForRawError(raw, 'localizeChaseError@app/finance/collections/chaseErrorCodes.ts')
 
     const t = await getTranslations()
     if (match[1] === 'PERMISSION_DENIED') return t('permissions.errDenied')
     // 【汇率缺失是别人家的码,原样交给它自己那支】—— 承诺按催收当天折算,
     // 那一天没有汇率时抛的是 FX_RATE_MISSING,而它的措辞归 THE FX RULE 那一族。
     if (!CHASE_ERROR_CODES.has(match[1])) {
-        return raw // genuine non-coded DB error → surface verbatim
+        return await fallbackForRawError(raw, 'localizeChaseError@app/finance/collections/chaseErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }
 
     const params: Record<string, string> = {}
