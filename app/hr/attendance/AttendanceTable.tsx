@@ -51,7 +51,6 @@ export default function AttendanceTable({ rows, empty }: { rows: AttendanceRow[]
         {
             // 【未记行数】而不是"工时之和"—— 后者把"记了、是零"与"没人记过"混成一件事
             key: 'unrecorded', header: t('attendance.colUnrecorded'), priority: true, align: 'right',
-            className: 'font-mono',
             render: (r) => (
                 <span className={(r.unrecordedCount ?? 0) > 0 ? 'text-amber-700 font-medium' : 'text-gray-400'}>
                     {r.unrecordedCount}

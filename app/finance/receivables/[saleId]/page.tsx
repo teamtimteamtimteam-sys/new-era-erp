@@ -206,12 +206,12 @@ export default async function ReceivableDocPage({
                                 {batch ? (
                                     <Link
                                         href={`/output/${batch.id}/edit`}
-                                        className="hover:underline font-mono font-medium app-link app-link-inline"
+                                        className="hover:underline font-medium app-link app-link-inline"
                                     >
                                         {batch.code}
                                     </Link>
                                 ) : (
-                                    <span className="font-mono">—</span>
+                                    <span>—</span>
                                 )}
                                 <span className="text-[color:var(--brand-muted-text)] ml-2">{materialName}</span>
                             </>
@@ -223,15 +223,15 @@ export default async function ReceivableDocPage({
                         label: t('finance.amount'),
                         value: (
                             <>
-                                <span className="font-mono">
+                                <span>
                                     {sale.quantity} × {sale.unit_price}
                                 </span>
                                 {sale.currency !== baseCurrency && (
-                                    <span className="text-[color:var(--brand-muted-text)] ml-1 font-mono">
+                                    <span className="text-[color:var(--brand-muted-text)] ml-1">
                                         {sale.currency} @ {sale.fx_rate}
                                     </span>
                                 )}
-                                <span className="font-mono font-medium ml-1">
+                                <span className="font-medium ml-1">
                                     = {formatMoneyBare(sale.amount_base, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}
                                 </span>
                             </>
@@ -273,7 +273,7 @@ export default async function ReceivableDocPage({
                             {i > 0 && <span className="mx-1 text-gray-300">|</span>}
                             <Link
                                 href={`/finance/journal/${j.id}`}
-                                className="hover:underline font-mono app-link app-link-inline"
+                                className="hover:underline app-link app-link-inline"
                             >
                                 {j.code}
                             </Link>
@@ -288,7 +288,7 @@ export default async function ReceivableDocPage({
                 {invoice ? (
                     <Link
                         href={`/finance/invoices/${invoice.id}`}
-                        className="hover:underline font-mono app-link app-link-inline"
+                        className="hover:underline app-link app-link-inline"
                     >
                         {invoice.code}
                     </Link>

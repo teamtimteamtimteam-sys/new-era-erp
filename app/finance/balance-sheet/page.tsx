@@ -118,7 +118,7 @@ export default async function BalanceSheetPage({
                         起点)—— 见 /finance/ledger/[account] 的抬头:那两件事
                         总是配套的(FIN-23 的不对称),拆开就等于允许对不上的组合。
                         下钻页把区间如实标成"截至 X,累计",不标成一个月份。 */}
-                    <td className={`${tableC.cell} font-mono`}>
+                    <td className={tableC.cell}>
                         <Link
                             href={`/finance/ledger/${encodeURIComponent(r.code)}?mode=bs&as_of=${asOf}`}
                             className="hover:underline app-link"
@@ -128,7 +128,7 @@ export default async function BalanceSheetPage({
                     </td>
                     <td className={tableC.cell}>{accountName(r)}</td>
                     <td
-                        className={`${tableC.cell} ${'text-right font-mono ' +
+                        className={`${tableC.cell} ${'text-right tabular-nums ' +
                             (r.net < 0 ? 'text-red-600' : '')}`}
                     >
                         {formatAmount(r.net, baseCurrency)}
@@ -137,10 +137,10 @@ export default async function BalanceSheetPage({
             ))}
             {extraRow && (
                 <tr className={tableC.bodyRow}>
-                    <td className={`${tableC.cell} font-mono`}>—</td>
+                    <td className={tableC.cell}>—</td>
                     <td className={tableC.cell}>{extraRow.label}</td>
                     <td
-                        className={`${tableC.cell} ${'text-right font-mono ' +
+                        className={`${tableC.cell} ${'text-right tabular-nums ' +
                             (extraRow.value < 0 ? 'text-red-600' : '')}`}
                     >
                         {formatAmount(extraRow.value, baseCurrency)}
@@ -151,7 +151,7 @@ export default async function BalanceSheetPage({
                 <td colSpan={2} className={tableC.cell}>
                     {t(titleKey)} — {t('finance.totalsLabel')}
                 </td>
-                <td className={`${tableC.cell} text-right font-mono`}>
+                <td className={`${tableC.cell} text-right tabular-nums`}>
                     {formatAmount(subtotalOverride ?? s.subtotal, baseCurrency)}
                 </td>
             </tr>
@@ -195,7 +195,7 @@ export default async function BalanceSheetPage({
                         <td colSpan={2} className={tableC.cell}>
                             {t('finance.totalAssets')}
                         </td>
-                        <td className={`${tableC.cell} text-right font-mono`}>
+                        <td className={`${tableC.cell} text-right tabular-nums`}>
                             {formatAmount(bs.total_assets, baseCurrency)}
                         </td>
                     </tr>
@@ -203,7 +203,7 @@ export default async function BalanceSheetPage({
                         <td colSpan={2} className={tableC.cell}>
                             {t('finance.totalLiabEquity')}
                         </td>
-                        <td className={`${tableC.cell} text-right font-mono`}>
+                        <td className={`${tableC.cell} text-right tabular-nums`}>
                             {formatAmount(bs.total_liab_equity, baseCurrency)}
                         </td>
                     </tr>

@@ -64,7 +64,7 @@ export default function BatchAuditTrailTable({ rows }: { rows: readonly AuditTab
             className: 'text-gray-600',
             render: (r) => (
                 <>
-                    <div className="font-mono text-xs">{r.whenText}</div>
+                    <div className="text-xs">{r.whenText}</div>
                     {/* 3b:业务日期与记账时刻【不同时】两个都印。 */}
                     {r.bizDateLine && <div className="text-xs text-gray-500">{r.bizDateLine}</div>}
                 </>
@@ -114,7 +114,6 @@ export default function BatchAuditTrailTable({ rows }: { rows: readonly AuditTab
         {
             key: 'source',
             header: t('auditTrail.colSource'),
-            className: 'font-mono',
             render: (r) =>
                 r.mayView && r.sourceHref ? (
                     <Link href={r.sourceHref} className="hover:underline app-link">

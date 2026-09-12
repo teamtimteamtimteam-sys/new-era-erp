@@ -247,11 +247,11 @@ export default function NewEntryForm(
             <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm items-center">
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.debit')}:</span>
-                    <span className="font-mono font-medium">{formatAmount(sumDebit, baseCurrency)}</span>
+                    <span className="font-medium">{formatAmount(sumDebit, baseCurrency)}</span>
                 </div>
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.credit')}:</span>
-                    <span className="font-mono font-medium">{formatAmount(sumCredit, baseCurrency)}</span>
+                    <span className="font-medium">{formatAmount(sumCredit, baseCurrency)}</span>
                 </div>
                 <span
                     className={

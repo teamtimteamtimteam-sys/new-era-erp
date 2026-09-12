@@ -28,7 +28,7 @@ export default function SafetyTable({ rows }: { rows: SafetyRow[] }) {
             key: 'material', header: t('reports.colMaterial'), priority: true,
             render: (r) => (
                 <>
-                    <span className="font-mono text-xs">{r.code}</span> {r.name}
+                    <span className="text-xs">{r.code}</span> {r.name}
                 </>
             ),
         },

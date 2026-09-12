@@ -58,7 +58,7 @@ export default async function RoleDetailPage({
 
             <h2 className="mb-4">
                 {role.name_en}
-                <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{role.code}</span>
+                <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{role.code}</span>
             </h2>
 
             <RoleForm

@@ -188,7 +188,7 @@ export default async function ExpenseDetailPage({
             label: t('expense.colAccount'),
             value: (
                 <>
-                    <span className="font-mono">{expense.account_code}</span>
+                    <span>{expense.account_code}</span>
                     <span className="ml-1">{accountName}</span>
                 </>
             ),
@@ -197,11 +197,11 @@ export default async function ExpenseDetailPage({
             label: t('expense.colAmount'),
             value: (
                 <>
-                    <span className="font-mono font-medium">
+                    <span className="font-medium">
                         {expense.currency} {formatMoneyBare(expense.amount_ccy, '同格内紧邻的 expense.currency 前缀')}
                     </span>
                     {expense.currency !== baseCurrency && (
-                        <span className="text-[color:var(--brand-muted-text)] ml-1 font-mono">
+                        <span className="text-[color:var(--brand-muted-text)] ml-1">
                             @ {expense.fx_rate} = {formatMoneyBare(expense.amount_base, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}
                         </span>
                     )}
@@ -316,7 +316,7 @@ export default async function ExpenseDetailPage({
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.linkedJournal')}:</span>
                     <Link
                         href={`/finance/journal/${journalRes.data.id}`}
-                        className="hover:underline font-mono app-link app-link-inline"
+                        className="hover:underline app-link app-link-inline"
                     >
                         {journalRes.data.code}
                     </Link>

@@ -115,7 +115,7 @@ export default function CountList({
                         >
                             <div className="flex items-center justify-between gap-3">
                                 <div className="min-w-0">
-                                    <span className="font-mono text-sm">{item.code}</span>
+                                    <span className="text-sm">{item.code}</span>
                                     <span className="ml-2 text-sm text-[color:var(--brand-muted-text)]">{item.material}</span>
                                 </div>
                                 {mode === 'uncounted' ? (

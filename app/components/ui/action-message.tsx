@@ -181,7 +181,7 @@ export function ActionMessageRegion() {
                                     </summary>
                                     <p
                                         data-action-message-detail="1"
-                                        className="mt-1 font-mono text-xs break-all text-[color:var(--brand-text)]"
+                                        className="mt-1 text-xs break-all text-[color:var(--brand-text)]"
                                     >
                                         {e.detail}
                                     </p>

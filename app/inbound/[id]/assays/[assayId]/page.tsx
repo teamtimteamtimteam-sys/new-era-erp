@@ -186,14 +186,14 @@ export default async function AssayDetailPage({
 
             <h1 className="mb-2">
                 {t('assay.detailTitle')}
-                <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{assay.code}</span>
+                <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{assay.code}</span>
             </h1>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
-                <Link href={`/inbound/${id}/edit`} className="hover:underline font-mono app-link app-link-inline">
+                <Link href={`/inbound/${id}/edit`} className="hover:underline app-link app-link-inline">
                     {batch.code}
                 </Link>
                 <span className="mx-2">·</span>
-                <span className="font-mono">
+                <span>
                     {batch.quantity} {batch.unit}
                 </span>
             </p>
@@ -231,7 +231,7 @@ export default async function AssayDetailPage({
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.moisture')}:</span>
                     <span>{assay.moisture_pct === null || assay.moisture_pct === undefined
                         ? <span className="text-amber-700">{t('assay.moistureNotMeasured')}</span>
-                        : <span className="font-mono">{assay.moisture_pct}%</span>}</span>
+                        : <span>{assay.moisture_pct}%</span>}</span>
                 </div>
                 {assay.lab_name && (
                     <div>
@@ -242,13 +242,13 @@ export default async function AssayDetailPage({
                 {assay.certificate_ref && (
                     <div>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.colCertificate')}:</span>
-                        <span className="font-mono">{assay.certificate_ref}</span>
+                        <span>{assay.certificate_ref}</span>
                     </div>
                 )}
                 {assay.sample_ref && (
                     <div>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.colSample')}:</span>
-                        <span className="font-mono">{assay.sample_ref}</span>
+                        <span>{assay.sample_ref}</span>
                     </div>
                 )}
                 <span
@@ -303,17 +303,17 @@ export default async function AssayDetailPage({
                     <div className="bg-gray-50 rounded p-4 text-sm max-w-md space-y-1">
                         <div className="flex justify-between">
                             <span className="text-[color:var(--brand-muted-text)]">{t('assay.currentPrice', { ccy: baseCurrency })}</span>
-                            <span className="font-mono">
+                            <span>
                                 <MaskedValue value={priceChange.old === null ? null : formatUnitCost(priceChange.old)} canView={showPrices} fallback="—" />
                             </span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[color:var(--brand-muted-text)]">{t('assay.newPrice', { ccy: baseCurrency })}</span>
-                            <span className="font-mono font-medium"><MaskedValue value={priceChange.next === null || priceChange.next === undefined ? null : formatUnitCost(priceChange.next)} canView={showPrices} /></span>
+                            <span className="font-medium"><MaskedValue value={priceChange.next === null || priceChange.next === undefined ? null : formatUnitCost(priceChange.next)} canView={showPrices} /></span>
                         </div>
                         <div className="flex justify-between border-t pt-1 font-bold">
                             <span>{t('assay.totalDelta', { ccy: baseCurrency })}</span>
-                            <span className="font-mono">{formatMoneyBare(priceChange.delta, '同行左侧的行标签「调整总额({ccy})」—— ccy 就是本位币')}</span>
+                            <span>{formatMoneyBare(priceChange.delta, '同行左侧的行标签「调整总额({ccy})」—— ccy 就是本位币')}</span>
                         </div>
                         <div className="flex justify-between text-[color:var(--brand-muted-text)]">
                             <span>{t('inbound.pricing.colWhen')}</span>
@@ -337,7 +337,7 @@ export default async function AssayDetailPage({
                                 {priceChange.journalId ? (
                                     <Link
                                         href={`/finance/journal/${priceChange.journalId}`}
-                                        className="hover:underline font-mono app-link app-link-inline"
+                                        className="hover:underline app-link app-link-inline"
                                     >
                                         {priceChange.journalCode}
                                     </Link>

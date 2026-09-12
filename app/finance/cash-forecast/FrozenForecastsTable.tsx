@@ -15,7 +15,7 @@ export default function FrozenForecastsTable({ rows }: { rows: FrozenRow[] }) {
 
     const columns: Column<FrozenRow>[] = [
         {
-            key: 'code', header: t('cashForecast.colCode'), priority: true, className: 'font-mono',
+            key: 'code', header: t('cashForecast.colCode'), priority: true,
             render: (r) => (
                 <>
                     {r.code}
@@ -27,7 +27,7 @@ export default function FrozenForecastsTable({ rows }: { rows: FrozenRow[] }) {
                 </>
             ),
         },
-        { key: 'weekStart', header: t('cashForecast.weekStart'), priority: true, className: 'font-mono text-xs', render: (r) => r.week_start },
+        { key: 'weekStart', header: t('cashForecast.weekStart'), priority: true, className: 'text-xs', render: (r) => r.week_start },
         { key: 'frozenAt', header: t('cashForecast.colFrozen'), className: 'text-xs', render: (r) => r.frozen_at.slice(0, 10) },
     ]
 

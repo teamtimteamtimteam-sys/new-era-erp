@@ -127,7 +127,6 @@ export default function MetalContentPanel({
             align: 'right',
             // ⚠ 转换前是 `text-right font-mono text-sm`;text-sm 没有搬过来
             //   (列描述符不许钉字号 —— 棘轮会红),字号由组件表根给。
-            className: 'font-mono',
             render: (r) => `${r.content_pct.toFixed(2)}%`,
         },
         ...(showSource
@@ -140,7 +139,7 @@ export default function MetalContentPanel({
                               // 化验来源:标签就是单据号,点过去是那份化验
                               <a
                                   href={r.source_href}
-                                  className="px-2 py-0.5 rounded text-xs bg-blue-100 hover:underline font-mono app-link"
+                                  className="px-2 py-0.5 rounded text-xs bg-blue-100 hover:underline app-link"
                               >
                                   {r.source_label}
                               </a>
@@ -231,7 +230,7 @@ export default function MetalContentPanel({
             {/* 合计行:实时反映"保存后"的百分比合计;>100 只警告不拦截 */}
             <p className="text-sm mb-4">
                 <span className="text-[color:var(--brand-muted-text)] mr-1">{t('metalContent.totalLabel')}:</span>
-                <span className={'font-mono ' + (overHundred ? 'text-red-600' : '')}>
+                <span className={(overHundred ? 'text-red-600' : '')}>
                     {projectedTotal.toFixed(2)}%
                 </span>
                 {overHundred && (

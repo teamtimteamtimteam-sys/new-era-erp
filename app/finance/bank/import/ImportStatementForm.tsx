@@ -114,9 +114,9 @@ canEdit: boolean
         { key: 'lineNo', header: t('bank.colLineNo'), priority: true, className: 'text-gray-500', render: (r) => r.line_no },
         { key: 'date', header: t('bank.colDate'), priority: true, render: (r) => r.line_date },
         { key: 'description', header: t('bank.colDescription'), priority: true, render: (r) => r.description ?? '—' },
-        { key: 'reference', header: t('bank.colReference'), className: 'font-mono', render: (r) => r.reference ?? '—' },
+        { key: 'reference', header: t('bank.colReference'), render: (r) => r.reference ?? '—' },
         {
-            key: 'amount', header: t('bank.colAmount'), align: 'right', priority: true, className: 'font-mono',
+            key: 'amount', header: t('bank.colAmount'), align: 'right', priority: true,
             render: (r) => (
                 <span className={r.amount < 0 ? 'text-red-600' : undefined}>{formatAmount(r.amount, null)}</span>
             ),
@@ -384,7 +384,7 @@ canEdit: boolean
                             total: csvRows.length,
                         })}
                         {parsed.rows.length > 0 && (
-                            <span className="ml-3 font-mono">Σ {formatAmount(sum, currency)}</span>
+                            <span className="ml-3">Σ {formatAmount(sum, currency)}</span>
                         )}
                     </p>
 

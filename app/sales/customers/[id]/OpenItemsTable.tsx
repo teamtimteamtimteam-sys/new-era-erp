@@ -35,7 +35,7 @@ export default function OpenItemsTable({
             render: (it) => (
                 <Link
                     href={`/finance/receivables/${it.salesRecordId}`}
-                    className="hover:underline font-mono app-link"
+                    className="hover:underline app-link"
                 >
                     {it.docCode}
                 </Link>
@@ -44,11 +44,10 @@ export default function OpenItemsTable({
         { key: 'date', header: t('customers.status.colDate'), priority: true, render: (it) => it.saleDate },
         {
             key: 'open', header: t('customers.status.colOpen', { ccy: baseCurrency }), align: 'right',
-            priority: true, className: 'font-mono', render: (it) => it.openBase,
+            priority: true, render: (it) => it.openBase,
         },
         {
-            key: 'days', header: t('customers.status.colDays'), align: 'right', priority: true,
-            className: 'font-mono', render: (it) => it.daysOutstanding,
+            key: 'days', header: t('customers.status.colDays'), align: 'right', priority: true, render: (it) => it.daysOutstanding,
         },
     ]
 

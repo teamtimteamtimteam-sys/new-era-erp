@@ -29,12 +29,12 @@ export default function DepreciationPreviewTable({
 
     const columns: Column<DepreciationPreviewRow>[] = [
         {
-            key: 'code', header: t('finance.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('finance.colCode'), priority: true, className: 'text-sm',
             render: (r) => (r.isTotal ? t('finance.totalsLabel') : r.code),
         },
-        { key: 'account', header: t('assets.colAccount'), className: 'font-mono text-sm', render: (r) => r.isTotal ? '' : r.account },
+        { key: 'account', header: t('assets.colAccount'), className: 'text-sm', render: (r) => r.isTotal ? '' : r.account },
         {
-            key: 'delta', header: t('assets.colDelta', { ccy: baseCurrency }), priority: true, align: 'right', className: 'font-mono text-sm',
+            key: 'delta', header: t('assets.colDelta', { ccy: baseCurrency }), priority: true, align: 'right', className: 'text-sm',
             render: (r) => formatMoneyBare(r.deltaBase, '列头 应提(ccy)'),
         },
     ]

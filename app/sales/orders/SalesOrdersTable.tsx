@@ -26,7 +26,7 @@ export default function SalesOrdersTable({ rows, empty }: { rows: SalesOrderRow[
         {
             key: 'code', header: t('sales.colCode'), priority: true,
             render: (r) => (
-                <Link href={`/sales/orders/${r.id}`} className="hover:underline font-mono text-xs app-link">
+                <Link href={`/sales/orders/${r.id}`} className="hover:underline text-xs app-link">
                     {r.code}
                 </Link>
             ),

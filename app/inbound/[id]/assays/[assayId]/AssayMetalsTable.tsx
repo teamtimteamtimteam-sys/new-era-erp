@@ -34,7 +34,7 @@ export function AssayMetalsTable({ rows }: { rows: readonly AssayMetalRow[] }) {
             render: (r) => (
                 <>
                     {r.metalLabel}
-                    <span className="text-gray-400 font-mono text-xs ml-2">{r.metal}</span>
+                    <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
                 </>
             ),
         },
@@ -46,7 +46,6 @@ export function AssayMetalsTable({ rows }: { rows: readonly AssayMetalRow[] }) {
             // ⚠ 转换前这一格是 `font-mono text-sm`。**text-sm 没有搬过来** ——
             //   验收条款「列定义里不许钉字号」。它本来也是多余的:组件表根就是
             //   text-sm(14px),这一格不写字号继承到的是同一个 14px。
-            className: 'font-mono',
             render: (r) => r.contentPct,
         },
     ]

@@ -48,15 +48,15 @@ export default function InvoiceLinesTable({ rows }: { rows: readonly InvoiceLine
             className: 'text-sm',
             render: (r) => r.description,
         },
-        { key: 'qty', header: t('invoice.colQuantity'), align: 'right', className: 'font-mono text-sm', render: (r) => r.qtyText },
-        { key: 'unitPrice', header: t('invoice.colUnitPrice'), align: 'right', className: 'font-mono text-sm', render: (r) => r.unitPriceText },
+        { key: 'qty', header: t('invoice.colQuantity'), align: 'right', className: 'text-sm', render: (r) => r.qtyText },
+        { key: 'unitPrice', header: t('invoice.colUnitPrice'), align: 'right', className: 'text-sm', render: (r) => r.unitPriceText },
         {
             key: 'amount',
             header: t('invoice.colAmount'),
             align: 'right',
             // ★ 一张发票被打开的理由:这一行【多少钱】。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.amountText,
         },
         {

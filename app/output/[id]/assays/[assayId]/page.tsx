@@ -155,14 +155,14 @@ export default async function OutputAssayDetailPage({
 
             <h1 className="mb-2">
                 {t('assay.detailTitle')}
-                <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{assay.code}</span>
+                <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{assay.code}</span>
             </h1>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
-                <Link href={`/output/${id}/edit`} className="hover:underline font-mono app-link app-link-inline">
+                <Link href={`/output/${id}/edit`} className="hover:underline app-link app-link-inline">
                     {batch.code}
                 </Link>
                 <span className="mx-2">·</span>
-                <span className="font-mono">
+                <span>
                     {batch.quantity} {batch.unit}
                 </span>
             </p>
@@ -200,7 +200,7 @@ export default async function OutputAssayDetailPage({
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.moisture')}:</span>
                     <span>{assay.moisture_pct === null || assay.moisture_pct === undefined
                         ? <span className="text-amber-700">{t('assay.moistureNotMeasured')}</span>
-                        : <span className="font-mono">{assay.moisture_pct}%</span>}</span>
+                        : <span>{assay.moisture_pct}%</span>}</span>
                 </div>
                 {assay.lab_name && (
                     <div>
@@ -211,13 +211,13 @@ export default async function OutputAssayDetailPage({
                 {assay.certificate_ref && (
                     <div>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.colCertificate')}:</span>
-                        <span className="font-mono">{assay.certificate_ref}</span>
+                        <span>{assay.certificate_ref}</span>
                     </div>
                 )}
                 {assay.sample_ref && (
                     <div>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.colSample')}:</span>
-                        <span className="font-mono">{assay.sample_ref}</span>
+                        <span>{assay.sample_ref}</span>
                     </div>
                 )}
                 <span
@@ -305,7 +305,7 @@ export default async function OutputAssayDetailPage({
                                             {' '}
                                             <Link
                                                 href={`/operation/processing/${preview.producing_run_id}`}
-                                                className="hover:underline font-mono app-link app-link-inline"
+                                                className="hover:underline app-link app-link-inline"
                                             >
                                                 {preview.producing_run_code}
                                             </Link>

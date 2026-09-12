@@ -172,7 +172,7 @@ export default function LeaveForm({
 
                 <div className="sm:col-span-2 rounded bg-gray-50 px-3 py-2 text-sm">
                     {t('leave.computedDays')}:{' '}
-                    <span className="font-mono font-medium">
+                    <span className="font-medium">
                         {isException ? (exDays === '' ? '—' : exDays) : (days ?? '—')}
                     </span>
                     {isException && <span className="ml-2 text-xs text-purple-800">{t('leave.exceptionManual')}</span>}

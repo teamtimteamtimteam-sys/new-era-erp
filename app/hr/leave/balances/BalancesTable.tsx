@@ -23,14 +23,14 @@ export default function BalancesTable({ rows, empty }: { rows: BalanceRow[]; emp
     //   那一个数字,也就是这张表存在的理由。已授予/已休进展开区。
     const columns: Column<BalanceRow>[] = [
         { key: 'employee', header: t('leave.employee'), priority: true, render: (r) => r.employeeLabel },
-        { key: 'granted', header: t('leave.granted'), align: 'right', className: 'font-mono', render: (r) => r.granted },
-        { key: 'taken', header: t('leave.taken'), align: 'right', className: 'font-mono', render: (r) => r.consumed },
+        { key: 'granted', header: t('leave.granted'), align: 'right', render: (r) => r.granted },
+        { key: 'taken', header: t('leave.taken'), align: 'right', render: (r) => r.consumed },
         {
             key: 'available', header: t('leave.available'), priority: true, align: 'right',
-            className: 'font-mono font-medium', render: (r) => r.available,
+            className: 'font-medium', render: (r) => r.available,
         },
         {
-            key: 'expiring', header: t('leave.expiringSoon'), align: 'right', className: 'font-mono',
+            key: 'expiring', header: t('leave.expiringSoon'), align: 'right',
             render: (r) =>
                 r.expiringSoon > 0 ? (
                     <span className="rounded bg-amber-100 px-2 py-0.5 text-amber-800">{r.expiringSoon}</span>

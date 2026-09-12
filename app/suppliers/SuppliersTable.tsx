@@ -52,7 +52,7 @@ export default function SuppliersTable({
     // ★ 手机上留【编号】与【供应商名】—— 编号是身份,名字是这份名单被打开的理由。
     const columns: Column<SupplierTableRow>[] = [
         {
-            key: 'code', header: t('suppliers.col.code'), priority: true, sortable: true, className: 'font-mono text-sm',
+            key: 'code', header: t('suppliers.col.code'), priority: true, sortable: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/suppliers/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}

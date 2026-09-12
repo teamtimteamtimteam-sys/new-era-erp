@@ -35,7 +35,7 @@ export function ByTaxTable({ rows }: { rows: ByTaxRow[] }) {
     // ★ 手机上留【税号】与【客户】—— 税号是这一条配对的身份(两侧凭它认成同一家),
     //   客户侧是读者手上那一边。供应商侧与两个未结额进展开区。
     const columns: Column<ByTaxRow>[] = [
-        { key: 'taxId', header: t('overlap.colTaxId'), priority: true, className: 'font-mono text-sm', render: (r) => r.taxId },
+        { key: 'taxId', header: t('overlap.colTaxId'), priority: true, className: 'text-sm', render: (r) => r.taxId },
         {
             key: 'customer', header: t('overlap.colCustomer'), priority: true, className: 'text-sm',
             render: (r) => (

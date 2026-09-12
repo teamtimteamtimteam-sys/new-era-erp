@@ -27,10 +27,10 @@ export default function MyClaimsPanel({
 
     // ★ 四列全部 priority —— 见抬头:转换之前手机上就是四列都在。
     const columns: Column<Claim>[] = [
-        { key: 'code', header: t('claims.code'), priority: true, className: 'font-mono', render: (c) => c.code },
+        { key: 'code', header: t('claims.code'), priority: true, render: (c) => c.code },
         { key: 'date', header: t('claims.date'), priority: true, render: (c) => c.claim_date },
         {
-            key: 'amount', header: t('claims.amount'), align: 'right', priority: true, className: 'font-mono',
+            key: 'amount', header: t('claims.amount'), align: 'right', priority: true,
             render: (c) => `${Number(c.amount_sgd).toFixed(2)} SGD`,
         },
         {
@@ -52,11 +52,11 @@ export default function MyClaimsPanel({
             {balance && (
                 <div className="rounded border border-gray-200 p-4 mb-3 grid gap-4 sm:grid-cols-3">
                     <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('claims.limit')}</div>
-                        <div className="text-sm font-mono">{balance.pro_rated_limit_sgd} SGD</div></div>
+                        <div className="text-sm">{balance.pro_rated_limit_sgd} SGD</div></div>
                     <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('claims.claimed')}</div>
-                        <div className="text-sm font-mono">{balance.claimed_sgd} SGD</div></div>
+                        <div className="text-sm">{balance.claimed_sgd} SGD</div></div>
                     <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('claims.remaining')}</div>
-                        <div className="text-lg font-mono font-medium">{balance.remaining_sgd} SGD</div></div>
+                        <div className="text-lg font-medium">{balance.remaining_sgd} SGD</div></div>
                 </div>
             )}
 

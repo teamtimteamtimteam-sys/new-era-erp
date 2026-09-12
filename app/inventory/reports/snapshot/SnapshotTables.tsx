@@ -47,7 +47,7 @@ export function SnapshotGroupTable({ rows }: { rows: SnapshotRow[] }) {
             key: 'material', header: t('reports.colMaterial'), priority: true,
             render: (r) => (
                 <>
-                    <span className="font-mono text-xs">{r.materialCode}</span> {r.materialName}
+                    <span className="text-xs">{r.materialCode}</span> {r.materialName}
                 </>
             ),
         },

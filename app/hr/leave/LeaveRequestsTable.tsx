@@ -35,7 +35,7 @@ export default function LeaveRequestsTable({ rows, empty }: { rows: LeaveRequest
     //   状态就是它存在的理由(谁还等着批)。日期区间进展开区。
     const columns: Column<LeaveRequestRow>[] = [
         {
-            key: 'code', header: t('leave.code'), priority: true, className: 'font-mono text-xs',
+            key: 'code', header: t('leave.code'), priority: true, className: 'text-xs',
             render: (r) => (
                 <>
                     <Link href={`/hr/leave/${r.id}`} className="hover:underline app-link">
@@ -52,7 +52,7 @@ export default function LeaveRequestsTable({ rows, empty }: { rows: LeaveRequest
         { key: 'employee', header: t('leave.employee'), render: (r) => r.employeeLabel },
         { key: 'type', header: t('leave.type'), render: (r) => r.typeLabel },
         { key: 'dates', header: t('leave.dates'), render: (r) => `${r.startDate} → ${r.endDate}` },
-        { key: 'days', header: t('leave.days'), align: 'right', className: 'font-mono', render: (r) => r.days },
+        { key: 'days', header: t('leave.days'), align: 'right', render: (r) => r.days },
         {
             key: 'status', header: t('leave.status'), priority: true,
             render: (r) => (

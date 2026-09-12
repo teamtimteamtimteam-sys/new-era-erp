@@ -53,7 +53,6 @@ export default function AssayRowsTable({
             // ★ 身份 —— 手机上留下。
             priority: true,
             // ⚠ 转换前是 `font-mono`(没有钉字号);原样搬过来。
-            className: 'font-mono',
             render: (r) => (
                 <Link
                     href={`/inbound/${batchId}/assays/${r.id}`}

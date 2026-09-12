@@ -62,8 +62,8 @@ export default async function CashForecastPage() {
             state={{ kind: 'ok' }}
         >
             <p className="mb-4 text-xs text-[color:var(--brand-muted-text)]">
-                {t('cashForecast.weekStart')}: <span className="font-mono">{forecast.week_start}</span>
-                {' → '}<span className="font-mono">{forecast.week_end}</span>
+                {t('cashForecast.weekStart')}: <span>{forecast.week_start}</span>
+                {' → '}<span>{forecast.week_end}</span>
             </p>
 
             <ForecastGrid data={forecast} canFreeze={canEdit} />

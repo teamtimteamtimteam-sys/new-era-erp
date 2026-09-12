@@ -26,7 +26,7 @@ export default function WipTable({ rows, empty }: { rows: WipRow[]; empty: React
     //   "下一炉该跑什么",那个答案就在等待工序这一列里。数量进展开区。
     const columns: Column<WipRow>[] = [
         {
-            key: 'batch', header: t('processing.wip.colBatch'), priority: true, className: 'font-mono text-sm',
+            key: 'batch', header: t('processing.wip.colBatch'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/output/${r.outputBatchId}/edit`} className="hover:underline app-link">
                     {r.batchCode}
@@ -34,7 +34,7 @@ export default function WipTable({ rows, empty }: { rows: WipRow[]; empty: React
             ),
         },
         { key: 'material', header: t('processing.wip.colMaterial'), className: 'text-sm', render: (r) => r.material },
-        { key: 'qty', header: t('processing.wip.colQty'), align: 'right', className: 'font-mono text-sm', render: (r) => r.qty },
+        { key: 'qty', header: t('processing.wip.colQty'), align: 'right', className: 'text-sm', render: (r) => r.qty },
         {
             key: 'awaiting', header: t('processing.wip.colAwaiting'), priority: true, className: 'text-sm',
             render: (r) =>

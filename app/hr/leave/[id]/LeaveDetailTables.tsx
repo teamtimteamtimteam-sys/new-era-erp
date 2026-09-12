@@ -51,15 +51,14 @@ export function GrantBreakdownTable({ rows }: { rows: readonly GrantBreakdownRow
             priority: true,
             render: (r) => r.grantTypeText,
         },
-        { key: 'days', header: t('leave.days'), align: 'right', className: 'font-mono', render: (r) => r.days },
-        { key: 'taken', header: t('leave.taken'), align: 'right', className: 'font-mono', render: (r) => r.consumed },
+        { key: 'days', header: t('leave.days'), align: 'right', render: (r) => r.days },
+        { key: 'taken', header: t('leave.taken'), align: 'right', render: (r) => r.consumed },
         {
             key: 'remaining',
             header: t('leave.remaining'),
             align: 'right',
             // ★ 审批人打开这一段就是为了这个数。
             priority: true,
-            className: 'font-mono',
             render: (r) => r.remaining,
         },
         { key: 'expires', header: t('leave.expires'), render: (r) => r.expiresOn },
@@ -102,10 +101,9 @@ export function ConsumptionTable({ rows }: { rows: readonly ConsumptionRow[] }) 
             align: 'right',
             // ★ 这张表存在的理由:这几天到底从哪几笔授予里扣的、扣了几天。
             priority: true,
-            className: 'font-mono',
             render: (r) => r.days,
         },
-        { key: 'grantId', header: t('leave.grantId'), className: 'font-mono', render: (r) => r.grantIdShort },
+        { key: 'grantId', header: t('leave.grantId'), render: (r) => r.grantIdShort },
         { key: 'notes', header: t('leave.notes'), render: (r) => r.notes },
     ]
 

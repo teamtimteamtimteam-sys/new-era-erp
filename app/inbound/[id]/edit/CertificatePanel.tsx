@@ -104,7 +104,7 @@ export default function CertificatePanel({
                                 <dt className="w-40 opacity-70">{t('cod.verifyUrl')}</dt>
                                 {/* 【核验页是后一刀的事】—— 这里只把网址显示出来,
                                     不做成链接:一个指向 404 的链接比一段文字更坏。 */}
-                                <dd className="break-all font-mono text-xs text-[color:var(--brand-muted-text)]">
+                                <dd className="break-all text-xs text-[color:var(--brand-muted-text)]">
                                     /verify/cod/{data.verificationToken}
                                 </dd>
                             </div>

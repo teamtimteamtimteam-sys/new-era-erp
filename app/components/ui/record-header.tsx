@@ -110,7 +110,7 @@ export function RecordHeader({
                     <span
                         className={cn(
                             'break-words text-[color:var(--brand-text)]',
-                            f.mono && 'font-mono font-medium',
+                            f.mono && 'font-medium',
                         )}
                     >
                         {f.value}

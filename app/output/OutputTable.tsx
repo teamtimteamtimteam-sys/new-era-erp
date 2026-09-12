@@ -53,7 +53,7 @@ export default function OutputTable({
     //   被打开的理由(还能卖/还能投多少)。总量是余量的来源,进展开区。
     const columns: Column<OutputTableRow>[] = [
         {
-            key: 'code', header: t('output.colCode'), priority: true, sortable: true, className: 'font-mono text-sm',
+            key: 'code', header: t('output.colCode'), priority: true, sortable: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/output/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}

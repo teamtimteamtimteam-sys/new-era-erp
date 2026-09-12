@@ -164,7 +164,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
                     {t('common.back')}
                 </Link>
             }
-            title={<span className="font-mono">{wo.code}</span>}
+            title={<span>{wo.code}</span>}
             // 状态徽章转换前住在 h1 右边的 justify-between 里 —— actions 是同一个位置。
             // 它不是一个动作,但它是【标题那一排右边那个东西】,搬进抬头会把它
             // 从"这张单现在怎么样"降级成"另一个字段"。

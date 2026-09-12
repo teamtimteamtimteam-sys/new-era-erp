@@ -126,7 +126,7 @@ export default async function CreditNotesPage({
         if (!c) return <span className="text-gray-400">—</span>
         return (
             <>
-                <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">{c.code}</span> {c.legal_name}
+                <span className="text-xs text-[color:var(--brand-muted-text)]">{c.code}</span> {c.legal_name}
             </>
         )
     }

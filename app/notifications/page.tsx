@@ -85,7 +85,7 @@ export default async function NotificationsPage() {
                                             {href && r.subject_code && (
                                                 <>
                                                     {' · '}
-                                                    <Link href={href} className="hover:underline font-mono app-link app-link-inline">
+                                                    <Link href={href} className="hover:underline app-link app-link-inline">
                                                         {r.subject_code}
                                                     </Link>
                                                 </>

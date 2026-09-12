@@ -177,7 +177,7 @@ export default async function FinanceOverviewPage() {
                                 <span className="font-medium" style={{ color: 'var(--brand-text)' }}>
                                     {t('financeOverview.side.' + s.side)}
                                 </span>
-                                <span className="font-mono text-xs" style={{ color: 'var(--brand-muted-text)' }}>
+                                <span className="text-xs" style={{ color: 'var(--brand-muted-text)' }}>
                                     {s.control_account}
                                 </span>
                             </div>
@@ -190,7 +190,7 @@ export default async function FinanceOverviewPage() {
                                     style={{ background: 'var(--brand-muted)', color: 'var(--brand-text)' }}
                                 >
                                     {t('overview.unanswerable')} — {t('financeOverview.reconRefused')}
-                                    <span className="ml-1 font-mono">({s.refusal})</span>
+                                    <span className="ml-1">({s.refusal})</span>
                                 </p>
                             ) : (
                                 <p className="mt-0.5" style={{ color: 'var(--brand-muted-text)' }}>
@@ -204,7 +204,6 @@ export default async function FinanceOverviewPage() {
                                         没被分类的来源(一笔打进控制科目的手工分录)
                                         会原样留在这里,而它【动得开】。 */}
                                     <span
-                                        className="font-mono"
                                         style={{
                                             color:
                                                 Number(s.unexplained_base) === 0

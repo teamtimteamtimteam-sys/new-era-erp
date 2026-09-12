@@ -73,14 +73,14 @@ export default function ForecastGrid({
     const undatedRows = data.undated.map((u, i) => ({ ...u, _key: String(i) }))
 
     const lineColumns: Column<typeof lineRows[number]>[] = [
-        { key: 'due', header: t('cashForecast.weekOf'), priority: true, className: 'font-mono text-xs', render: (r) => r.due },
+        { key: 'due', header: t('cashForecast.weekOf'), priority: true, className: 'text-xs', render: (r) => r.due },
         {
             key: 'label', header: t('cashForecast.label'), priority: true, className: 'break-words',
             render: (r) => (
                 <>
                     <span className="mr-1 text-xs text-[color:var(--brand-muted-text)]">{t('cashForecast.source_' + r.source)}</span>
                     {r.label}
-                    {r.ref && <span className="ml-1 font-mono text-xs text-[color:var(--brand-muted-text)]">{r.ref}</span>}
+                    {r.ref && <span className="ml-1 text-xs text-[color:var(--brand-muted-text)]">{r.ref}</span>}
                 </>
             ),
         },
@@ -123,7 +123,7 @@ export default function ForecastGrid({
     ]
 
     const bufferColumns: Column<Buffer>[] = [
-        { key: 'currency', header: t('cashForecast.currency'), priority: true, className: 'font-mono', render: (r) => r.currency },
+        { key: 'currency', header: t('cashForecast.currency'), priority: true, render: (r) => r.currency },
         { key: 'opex', header: t('cashForecast.monthlyOpex'), align: 'right', render: (r) => money(r.monthly_fixed_opex) },
         {
             key: 'coverToday', header: t('cashForecast.coverToday'), priority: true, align: 'right',
@@ -164,7 +164,7 @@ export default function ForecastGrid({
                 <div key={ccy} className="mb-8 overflow-x-auto">
                     <h3 className="mb-1">{ccy}</h3>
                     <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">
-                        {t('cashForecast.opening')}: <span className="font-mono">{money(openingOf(ccy))}</span>
+                        {t('cashForecast.opening')}: <span>{money(openingOf(ccy))}</span>
                         {' · '}{t('cashForecast.openingHint')}
                     </p>
                     <table className={`${tableC.root} min-w-max`}>
@@ -186,7 +186,7 @@ export default function ForecastGrid({
                                 <tr key={k} className={`${tableC.bodyRow} ${k === 'closing' ? 'font-medium bg-gray-50' : ''}`}>
                                     <td className={`${tableC.cell} sticky left-0 bg-inherit`}>{t(key)}</td>
                                     {weeks.map((w) => (
-                                        <td key={w} className={`${tableC.cell} text-right font-mono`}>
+                                        <td key={w} className={`${tableC.cell} text-right tabular-nums`}>
                                             {money(Number(bucketOf(ccy, w)?.[k] ?? 0))}
                                         </td>
                                     ))}
@@ -251,9 +251,9 @@ export default function ForecastGrid({
                     <ul className="text-sm mb-8 space-y-1">
                         {data.promises_memo.map((p) => (
                             <li key={p.promise_id} className="text-[color:var(--brand-muted-text)]">
-                                <span className="font-mono">{money(p.amount)} {p.currency}</span>
+                                <span>{money(p.amount)} {p.currency}</span>
                                 {' → '}{p.promised_date}{' · '}{p.customer_name}
-                                <span className="ml-1 font-mono text-xs text-gray-400">{p.chase_code}</span>
+                                <span className="ml-1 text-xs text-gray-400">{p.chase_code}</span>
                             </li>
                         ))}
                     </ul>

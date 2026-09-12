@@ -187,7 +187,7 @@ export default async function EmployeeDetailPage({
             title={
                 <>
                     {emp.legal_name}
-                    <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{emp.code}</span>
+                    <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{emp.code}</span>
                 </>
             }
             // ★ 出口:记一次培训 / 改这名员工。转换前它们画在 h1 右边 ——
@@ -252,13 +252,13 @@ export default async function EmployeeDetailPage({
                         label: t('hr.colAnnualLeaveAvailable'),
                         value: (
                             <>
-                                <span className="font-mono">{emp.annual_leave_available_days ?? '-'}</span>
+                                <span>{emp.annual_leave_available_days ?? '-'}</span>
                                 <span className="text-xs text-[color:var(--brand-muted-text)] ml-1">{t('hr.unitDays')}</span>
                                 <span className="text-[color:var(--brand-muted-text)] ml-4 mr-1">{t('hr.colAnnualLeaveAccrued')}:</span>
-                                <span className="font-mono">{emp.annual_leave_accrued_days ?? '-'}</span>
+                                <span>{emp.annual_leave_accrued_days ?? '-'}</span>
                                 <span className="text-xs text-[color:var(--brand-muted-text)] ml-1">{t('hr.unitDays')}</span>
                                 <span className="text-[color:var(--brand-muted-text)] ml-4 mr-1">{t('hr.colAnnualLeaveRate')}:</span>
-                                <span className="font-mono">{emp.annual_leave_rate_days ?? '-'}</span>
+                                <span>{emp.annual_leave_rate_days ?? '-'}</span>
                                 <span className="text-xs text-[color:var(--brand-muted-text)] ml-1">{t('hr.unitDaysPerYear')}</span>
                             </>
                         ),
@@ -325,7 +325,7 @@ export default async function EmployeeDetailPage({
                     {history.map((h) => (
                         <li key={h.id} className="text-sm">
                             <div className="flex flex-wrap items-baseline gap-2">
-                                <span className="font-mono text-[color:var(--brand-muted-text)]">{h.effective_date}</span>
+                                <span className="text-[color:var(--brand-muted-text)]">{h.effective_date}</span>
                                 <span className="px-2 py-0.5 rounded text-xs bg-gray-200 text-[color:var(--brand-text)]">
                                     {t('hr.changeType.' + h.change_type)}
                                 </span>

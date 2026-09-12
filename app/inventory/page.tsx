@@ -342,7 +342,7 @@ export default async function InventoryPage() {
                 <div className="bg-gray-50 rounded p-4 flex flex-wrap gap-8 text-sm mb-3">
                     <div>
                         <span className="text-[color:var(--brand-muted-text)]">{t('valuation.totalInboundValue')}:</span>{' '}
-                        <span className="font-medium font-mono">
+                        <span className="font-medium">
                             {pricesRestricted
                                 ? <span className="text-gray-400">{t('valuation.priceRestricted')}</span>
                                 : formatAmount(totalInboundValue, baseCurrency)}
@@ -350,7 +350,7 @@ export default async function InventoryPage() {
                     </div>
                     <div>
                         <span className="text-[color:var(--brand-muted-text)]">{t('valuation.totalCostValue')}:</span>{' '}
-                        <span className="font-medium font-mono">
+                        <span className="font-medium">
                             {pricesRestricted
                                 ? <span className="text-gray-400">{t('valuation.priceRestricted')}</span>
                                 : formatAmount(totalCostValue, baseCurrency)}
@@ -372,7 +372,7 @@ export default async function InventoryPage() {
                         ════════════════════════════════════════════════════════════ */}
                     <div className="border-l border-gray-300 pl-8">
                         <span className="text-[color:var(--brand-muted-text)]">{t('valuation.totalMarketValue')}:</span>{' '}
-                        <span className="font-medium font-mono">
+                        <span className="font-medium">
                             {formatMoneyBare(totalMarketValue, '同一格的标签「成品市价价值 (USD)」')}
                         </span>
                         <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-md">{t('valuation.marketValueNote')}</p>

@@ -45,7 +45,6 @@ export default function OutputAssayRowsTable({
             header: t('assay.colCode'),
             // ★ 身份 —— 手机上留下。
             priority: true,
-            className: 'font-mono',
             render: (r) => (
                 <Link
                     href={`/output/${batchId}/assays/${r.id}`}

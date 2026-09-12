@@ -86,7 +86,7 @@ export default async function FinanceSettingsPage() {
             <div className="bg-gray-50 rounded p-4 mb-6 text-sm">
                 <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.lockedBefore')}:</span>
                 {lockedBefore ? (
-                    <span className="font-mono font-medium">{lockedBefore}</span>
+                    <span className="font-medium">{lockedBefore}</span>
                 ) : (
                     <span className="text-gray-400">{t('finance.notSet')}</span>
                 )}

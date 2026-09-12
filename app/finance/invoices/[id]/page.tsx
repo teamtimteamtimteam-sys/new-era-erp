@@ -256,7 +256,7 @@ export default async function InvoiceDetailPage({
             title={
                 <>
                     {t('invoice.detailTitle')}
-                    <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{inv.code}</span>
+                    <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{inv.code}</span>
                     {/* SO-3a:两种发票在列表与详情上都要看得出来 —— sale 头是归拢文件,
                         order 头是过账单据,把它们混着读会把"未收"读成"未确认" */}
                     <span className={'ml-3 px-2 py-0.5 rounded text-xs align-middle ' +
@@ -370,13 +370,13 @@ export default async function InvoiceDetailPage({
                 <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded mb-4 text-sm">
                     {t('invoice.orderKindNote')}{' '}
                     {orderRef ? (
-                        <Link href={`/sales/orders/${orderRef.id}`} className="underline font-mono app-link app-link-inline">{orderRef.code}</Link>
+                        <Link href={`/sales/orders/${orderRef.id}`} className="underline app-link app-link-inline">{orderRef.code}</Link>
                     ) : (
                         <span className="italic">{t('common.restricted')}</span>
                     )}
                     {' · '}
                     {entryRef ? (
-                        <Link href={`/finance/journal/${entryRef.id}`} className="underline font-mono app-link app-link-inline">{entryRef.code}</Link>
+                        <Link href={`/finance/journal/${entryRef.id}`} className="underline app-link app-link-inline">{entryRef.code}</Link>
                     ) : (
                         <span className="italic">—</span>
                     )}
@@ -398,7 +398,7 @@ export default async function InvoiceDetailPage({
                 <div className="border border-gray-300 rounded p-4">
                     <h2 className="mb-2">{t('invoice.billTo')}</h2>
                     <p className="text-sm font-medium">{bill.legal_name ?? '—'}</p>
-                    {bill.code && <p className="text-xs text-[color:var(--brand-muted-text)] font-mono">{bill.code}</p>}
+                    {bill.code && <p className="text-xs text-[color:var(--brand-muted-text)]">{bill.code}</p>}
                     {bill.address && <p className="text-sm text-[color:var(--brand-muted-text)] whitespace-pre-line mt-1">{bill.address}</p>}
                     {bill.country && <p className="text-sm text-[color:var(--brand-muted-text)]">{bill.country}</p>}
                     {bill.contact_person && <p className="text-sm text-[color:var(--brand-muted-text)] mt-1">{bill.contact_person}</p>}
@@ -416,7 +416,7 @@ export default async function InvoiceDetailPage({
                 <div className="border border-gray-300 rounded p-4 text-sm space-y-1">
                     <div className="flex justify-between">
                         <span className="text-[color:var(--brand-muted-text)]">{t('invoice.colCode')}</span>
-                        <span className="font-mono font-medium">{inv.code}</span>
+                        <span className="font-medium">{inv.code}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-[color:var(--brand-muted-text)]">{t('invoice.colIssueDate')}</span>
@@ -446,17 +446,17 @@ export default async function InvoiceDetailPage({
             <div className="mt-4 max-w-sm ml-auto text-sm space-y-1">
                 <div className="flex justify-between">
                     <span className="text-[color:var(--brand-muted-text)]">{t('invoice.subtotal')}</span>
-                    <span className="font-mono">{formatAmount(docTotals?.subtotal_ccy ?? null, inv.currency)}</span>
+                    <span>{formatAmount(docTotals?.subtotal_ccy ?? null, inv.currency)}</span>
                 </div>
                 {Number(docTotals?.tax_ccy ?? 0) !== 0 && (
                     <div className="flex justify-between">
                         <span className="text-[color:var(--brand-muted-text)]">{t('invoice.tax', { rate: inv.tax_rate_pct })}</span>
-                        <span className="font-mono">{formatAmount(docTotals?.tax_ccy ?? null, inv.currency)}</span>
+                        <span>{formatAmount(docTotals?.tax_ccy ?? null, inv.currency)}</span>
                     </div>
                 )}
                 <div className="flex justify-between border-t pt-1 font-bold">
                     <span>{t('invoice.total')}</span>
-                    <span className="font-mono">{formatAmount(total_ccy, inv.currency)}</span>
+                    <span>{formatAmount(total_ccy, inv.currency)}</span>
                 </div>
             </div>
 
@@ -482,7 +482,7 @@ export default async function InvoiceDetailPage({
                 <div className="bg-gray-50 rounded p-4 mb-4 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                     <div>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('invoice.colSettled')}:</span>
-                        <span className="font-mono">{formatAmount(settled, inv.currency)}</span>
+                        <span>{formatAmount(settled, inv.currency)}</span>
                     </div>
                     {/* CN-1:【已贷记单列,而且只在有的时候画】"付过了"与"不用付了"
                         对客户是两件完全不同的事;把它并进已结,这张单据就再也说不出
@@ -491,12 +491,12 @@ export default async function InvoiceDetailPage({
                     {credited > 0 && (
                         <div>
                             <span className="text-[color:var(--brand-muted-text)] mr-1">{t('invoice.colCredited')}:</span>
-                            <span className="font-mono">{formatAmount(credited, inv.currency)}</span>
+                            <span>{formatAmount(credited, inv.currency)}</span>
                         </div>
                     )}
                     <div>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('invoice.colOpen')}:</span>
-                        <span className="font-mono font-bold">{formatAmount(open, inv.currency)}</span>
+                        <span className="font-bold">{formatAmount(open, inv.currency)}</span>
                     </div>
                     <span
                         className={
@@ -548,7 +548,7 @@ export default async function InvoiceDetailPage({
                     ) : (
                         <ul className="text-sm space-y-1">
                             {issues.map((iss) => (
-                                <li key={iss.version} className="font-mono text-xs">
+                                <li key={iss.version} className="text-xs">
                                     <a href={`/finance/invoices/${inv.id}/pdf?version=${iss.version}`}
                                        target="_blank" rel="noopener noreferrer"
                                        className="hover:underline app-link app-link-inline">v{iss.version}</a>

@@ -106,7 +106,7 @@ export default function RequiredMetalsPanel({
                             />
                             <span>
                                 {t(o.labelKey)}{' '}
-                                <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">{o.value}</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)]">{o.value}</span>
                             </span>
                         </label>
                     ))}

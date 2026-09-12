@@ -196,7 +196,7 @@ export default async function CustomerStatusPage({
     const row = (label: string, value: React.ReactNode) => (
         <div className="flex justify-between py-1">
             <span className="text-[color:var(--brand-muted-text)]">{label}</span>
-            <span className="font-mono">{value}</span>
+            <span>{value}</span>
         </div>
     )
 
@@ -211,7 +211,7 @@ export default async function CustomerStatusPage({
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                 <h1 className="">
                     {cust.legal_name}
-                    <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{cust.code}</span>
+                    <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{cust.code}</span>
                 </h1>
                 {/* 【改限额/冻结在别处】这一页不放字段 —— 见文件头 */}
                 <Button asChild variant="outline">

@@ -315,7 +315,7 @@ canEdit: boolean
         // 接受的条件。周五的价用在周六是对的,但操作员有权知道自己在看哪一天。
         const staleDate = !!asOf && !!payDate && asOf !== payDate
         return (
-            <div className={'text-xs mt-1 font-mono ' + (cost === null ? 'text-red-600' : 'text-gray-500')}>
+            <div className={'text-xs mt-1 ' + (cost === null ? 'text-red-600' : 'text-gray-500')}>
                 {t('finance.rowCost', { amount: cost === null ? '—' : formatAmount(cost, currency) })}
                 {/* 【PAY-1:那个红色的破折号此前一个字都不说】
                     cost 为 null 的意思很具体:这张单的币种在结算日【没有牌价】,
@@ -526,7 +526,7 @@ canEdit: boolean
                         <tbody>
                             {pos.map((p) => (
                                 <tr className={tableC.bodyRow} key={p.po_id}>
-                                    <td className={`${tableC.cell} font-mono`}>
+                                    <td className={tableC.cell}>
                                         {p.code}
                                         {/* ★ TABLE-PHONE-4:手机档拿掉的下单日期,带着列头叠在这里。 */}
                                         <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
@@ -541,10 +541,10 @@ canEdit: boolean
                                         存的却是【单据币种】(create_purchase_order 全程不乘汇率,
                                         旧名见 docs/known-issues.md);prepaid_base 是【本位币】。
                                         并排、都不标币种,比未结那一列还容易读错 —— 各标各的。 */}
-                                    <td className={`${tableC.cell} text-right font-mono`}>
+                                    <td className={`${tableC.cell} text-right tabular-nums`}>
                                         {formatAmount(p.estimated_total_ccy, p.currency)}
                                     </td>
-                                    <td className={`${tableC.cell} text-right font-mono`}>
+                                    <td className={`${tableC.cell} text-right tabular-nums`}>
                                         {formatAmount(p.prepaid_base, baseCurrency)}
                                     </td>
                                     <td className={tableC.cell}>
@@ -559,7 +559,7 @@ canEdit: boolean
                                                 }
                                                 className="w-32"
                                             />
-                                            <span className="text-xs text-gray-600 font-mono">{p.currency}</span>
+                                            <span className="text-xs text-gray-600">{p.currency}</span>
                                             <Button
                                                 variant="link"
                                                 size="inline"
@@ -596,7 +596,7 @@ canEdit: boolean
                         <tbody>
                             {items.map((i) => (
                                 <tr className={tableC.bodyRow} key={i.doc_id}>
-                                    <td className={`${tableC.cell} font-mono`}>
+                                    <td className={tableC.cell}>
                                         {i.doc_code}
                                         {/* AP 侧标注单据类别(进料/开支),看清核销对象;AR 全是销售,不标 */}
                                         {i.doc_kind !== 'sale' && (
@@ -608,7 +608,7 @@ canEdit: boolean
                                     <td className={tableC.cell}>{i.doc_date}</td>
                                     {/* 【每行都要带币种】FIN-16 之后这一列按设计就是混币种的,
                                         不标币种的混币种金额列不是显示瑕疵,是陷阱 */}
-                                    <td className={`${tableC.cell} text-right font-mono`}>
+                                    <td className={`${tableC.cell} text-right tabular-nums`}>
                                         {formatAmount(i.open_ccy, i.currency)}
                                     </td>
                                     <td className={tableC.cell}>
@@ -626,7 +626,7 @@ canEdit: boolean
                                                 className="w-32"
                                             />
                                             {/* 输入的是【单据币种】—— 把它写在框边上,而不是让人推断 */}
-                                            <span className="text-xs text-gray-600 font-mono">{i.currency}</span>
+                                            <span className="text-xs text-gray-600">{i.currency}</span>
                                             <Button
                                                 variant="link"
                                                 size="inline"
@@ -669,14 +669,14 @@ canEdit: boolean
                     {/* 【不能用 finance.colAmount】那个键写死了"(SGD)",而这里显示的是
                         【付款币种】的金额 —— 标签说 SGD、数字后面跟着 USD,自相矛盾 */}
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.paymentAmount')}:</span>
-                    <span className="font-mono font-medium">
+                    <span className="font-medium">
                         {formatMoneyBare(amountValid ? amountNum : 0, '同格内紧随其后的 {currency} 后缀')} {currency}
                     </span>
                 </div>
                 {/* 基准额单列一格,并标明是折算值 —— 与上面的付款币种金额不再混为一谈 */}
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.baseEquivalent')}:</span>
-                    <span className="font-mono">
+                    <span>
                         {payBase === null ? '—' : formatAmount(payBase, baseCurrency)}
                         {effectiveFx !== null && (
                             <span className="ml-1 text-xs text-[color:var(--brand-muted-text)]">
@@ -693,7 +693,7 @@ canEdit: boolean
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.totalAllocated')}:</span>
                     {/* 【两边都摆出来】核销的是单据额;消耗的是款额。跨币种时这是两个数,
                         同币种时相等 —— 相等就不必重复显示。 */}
-                    <span className="font-mono font-medium">
+                    <span className="font-medium">
                         {totalConsumed === null ? '—' : formatAmount(totalConsumed, currency)}
                     </span>
                     {/* 【逐币种列出,不再求一个总和】原先这里是 Σ(各单据币种的核销额),
@@ -709,7 +709,7 @@ canEdit: boolean
                 </div>
                 <div className={unallocated !== null && unallocated < 0 ? 'text-red-600' : 'text-gray-500'}>
                     <span className="mr-1">{t('finance.unallocated')}:</span>
-                    <span className="font-mono">
+                    <span>
                         {unallocated === null ? '—' : formatAmount(unallocated, currency)}
                     </span>
                     {unallocated !== null && unallocated < 0 && (

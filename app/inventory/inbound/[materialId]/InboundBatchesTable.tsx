@@ -56,7 +56,7 @@ export default function InboundBatchesTable({ rows }: { rows: readonly InboundBa
             header: t('inbound.colCode'),
             // 身份列 —— 一行在库批次的主语是它的批次号。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => (
                 <Link href={r.href} className="hover:underline app-link">
                     {r.code}

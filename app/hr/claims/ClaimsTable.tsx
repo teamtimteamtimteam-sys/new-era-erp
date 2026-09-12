@@ -36,7 +36,7 @@ export default function ClaimsTable({ rows, empty }: { rows: ClaimRow[]; empty: 
     //   它回答"这笔钱到底付了没有",那是读者打开这一页要问的那一件事。
     const columns: Column<ClaimRow>[] = [
         {
-            key: 'code', header: t('claims.code'), priority: true, className: 'font-mono text-xs',
+            key: 'code', header: t('claims.code'), priority: true, className: 'text-xs',
             render: (r) => (
                 <Link href={`/hr/claims/${r.claimId}`} className="hover:underline app-link">
                     {r.code}
@@ -45,7 +45,7 @@ export default function ClaimsTable({ rows, empty }: { rows: ClaimRow[]; empty: 
         },
         { key: 'employee', header: t('leave.employee'), render: (r) => r.employeeLabel },
         { key: 'date', header: t('claims.date'), render: (r) => r.claimDate },
-        { key: 'amount', header: t('claims.amount'), align: 'right', className: 'font-mono', render: (r) => `${r.amountSgd} SGD` },
+        { key: 'amount', header: t('claims.amount'), align: 'right', render: (r) => `${r.amountSgd} SGD` },
         {
             key: 'state', header: t('claims.state'), priority: true,
             render: (r) => (
@@ -54,7 +54,7 @@ export default function ClaimsTable({ rows, empty }: { rows: ClaimRow[]; empty: 
                 </span>
             ),
         },
-        { key: 'expense', header: t('claims.expense'), className: 'font-mono text-xs', render: (r) => r.expenseCode },
+        { key: 'expense', header: t('claims.expense'), className: 'text-xs', render: (r) => r.expenseCode },
     ]
 
     return (

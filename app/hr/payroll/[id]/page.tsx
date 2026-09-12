@@ -115,10 +115,10 @@ export default async function PayrollDetailPage({
             title={
                 <>
                     {t('hr.payrollDetailTitle')}
-                    <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">
+                    <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">
                         {period.period_month?.slice(0, 7)}
                     </span>
-                    <span className="ml-2 text-sm text-gray-400 font-mono">{period.code}</span>
+                    <span className="ml-2 text-sm text-gray-400">{period.code}</span>
                 </>
             }
             // ★ 出口:改这个期间 / 过账。转换前它们画在 h1 右边 —— actions 是同一个位置,
@@ -180,7 +180,7 @@ export default async function PayrollDetailPage({
                             value: (
                                 <Link
                                     href={`/finance/journal/${jeRes.data.id}`}
-                                    className="hover:underline font-mono app-link app-link-inline"
+                                    className="hover:underline app-link app-link-inline"
                                 >
                                     {jeRes.data.code}
                                 </Link>

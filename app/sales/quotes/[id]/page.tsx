@@ -105,7 +105,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                 </div>
                 <div className="flex items-start justify-between mb-4">
                     <div>
-                        <h1 className="font-mono">{q.code}</h1>
+                        <h1>{q.code}</h1>
                         <p className="text-sm text-[color:var(--brand-muted-text)] mt-1">
                             {q.customer_code} — {q.customer_name}
                         </p>
@@ -134,7 +134,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                         {t('quotes.convertedBanner', { code: q.converted_order_code ?? '—' })}{' '}
                         {q.converted_order_id && (
                             <Link href={`/sales/orders/${q.converted_order_id}`}
-                                  className="hover:underline font-mono app-link app-link-inline">
+                                  className="hover:underline app-link app-link-inline">
                                 {q.converted_order_code}
                             </Link>
                         )}
@@ -154,7 +154,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                     <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colCurrency')}: </dt>
                          <dd className="inline">{q.currency} @ {q.fx_rate}</dd></div>
                     <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('quotes.total')}: </dt>
-                         <dd className="inline font-mono">{formatAmount(total, q.currency)}</dd></div>
+                         <dd className="inline">{formatAmount(total, q.currency)}</dd></div>
                 </dl>
 
                 {/* ── 明细:签发之后仍然改得动 ─────────────────────────────── */}
@@ -244,7 +244,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                 ) : (
                     <ul className="text-sm space-y-1">
                         {issues.map((i) => (
-                            <li key={i.version} className="font-mono text-xs text-[color:var(--brand-muted-text)]">
+                            <li key={i.version} className="text-xs text-[color:var(--brand-muted-text)]">
                                 <a href={`/sales/quotes/${q.quote_id}/pdf?version=${i.version}`}
                                    target="_blank" rel="noopener noreferrer"
                                    className="hover:underline app-link app-link-inline">v{i.version}</a>

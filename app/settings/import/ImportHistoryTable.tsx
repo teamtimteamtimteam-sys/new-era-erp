@@ -26,7 +26,7 @@ export default function ImportHistoryTable({ rows, empty }: { rows: ImportBatchR
         { key: 'table', header: t('import.col.table'), priority: true, render: (r) => r.tableLabel },
         { key: 'file', header: t('import.col.file'), render: (r) => r.fileName },
         { key: 'rows', header: t('import.col.rows'), align: 'right', render: (r) => r.rowCount },
-        { key: 'codeRange', header: t('import.col.codeRange'), className: 'font-mono text-xs', render: (r) => r.codeRange },
+        { key: 'codeRange', header: t('import.col.codeRange'), className: 'text-xs', render: (r) => r.codeRange },
     ]
 
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} />

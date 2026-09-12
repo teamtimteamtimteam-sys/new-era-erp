@@ -254,7 +254,7 @@ export default function AssayForm({
                             <tr className={tableC.bodyRow} key={opt.value}>
                                 <td className={tableC.cell}>
                                     {t(opt.labelKey)}
-                                    <span className="text-gray-400 font-mono text-xs ml-2">{opt.value}</span>
+                                    <span className="text-gray-400 text-xs ml-2">{opt.value}</span>
                                 </td>
                                 <td className={tableC.cell}>
                                     <input type="hidden" name="assay_metal" value={opt.value} />

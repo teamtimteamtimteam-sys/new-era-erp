@@ -65,7 +65,7 @@ export default function MetalPricesTable({
         {
             // METAL-3:列头不再写死 USD —— 币种跟着每一行走。
             key: 'price_usd_per_tonne', header: t('metalPrices.colPricePerTonne'), priority: true, sortable: true,
-            align: 'right', className: 'font-mono text-sm',
+            align: 'right', className: 'text-sm',
             render: (r) => (
                 <>
                     {formatMoneyBare(r.pricePerTonne, '同格内紧跟着币种,见下一段')}

@@ -55,10 +55,10 @@ export function WoVarianceTable({ rows }: { rows: readonly WoVarianceRow[] }) {
             render: (r) => r.material,
         },
         {
-            key: 'planned', header: t('processing.wo.colPlanned'), align: 'right', className: 'font-mono',
+            key: 'planned', header: t('processing.wo.colPlanned'), align: 'right',
             render: (r) => (r.plannedMuted ? <span className="text-gray-500 italic font-sans">{r.plannedText}</span> : r.plannedText),
         },
-        { key: 'actual', header: t('processing.wo.colConsumed'), align: 'right', className: 'font-mono', render: (r) => r.actualText },
+        { key: 'actual', header: t('processing.wo.colConsumed'), align: 'right', render: (r) => r.actualText },
         {
             key: 'variance',
             header: t('processing.wo.colVariance'),
@@ -66,7 +66,6 @@ export function WoVarianceTable({ rows }: { rows: readonly WoVarianceRow[] }) {
             // ★ 这张表存在的理由就是这一列 —— 计划与实际【差了多少】。
             //   把它赶进展开区,等于把这张表的主语拿掉。
             priority: true,
-            className: 'font-mono',
             render: (r) =>
                 r.varianceText == null
                     ? <span className="text-gray-400">—</span>
@@ -93,14 +92,14 @@ export type LineageRow = {
 export function LineageTable({ rows }: { rows: readonly LineageRow[] }) {
     const t = useTranslations()
     const columns: Column<LineageRow>[] = [
-        { key: 'depth', header: t('processing.lineage.colDepth'), className: 'font-mono text-sm', render: (r) => r.depth },
-        { key: 'via', header: t('processing.lineage.colViaRun'), className: 'font-mono text-sm', render: (r) => r.viaRunCode },
+        { key: 'depth', header: t('processing.lineage.colDepth'), className: 'text-sm', render: (r) => r.depth },
+        { key: 'via', header: t('processing.lineage.colViaRun'), className: 'text-sm', render: (r) => r.viaRunCode },
         {
             key: 'parent',
             header: t('processing.lineage.colParent'),
             // 身份列:这一行说的是【哪一批上游料】。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => (
                 <>
                     <Link href={r.parentHref} className="hover:underline app-link">{r.parentCode}</Link>
@@ -114,7 +113,7 @@ export function LineageTable({ rows }: { rows: readonly LineageRow[] }) {
             align: 'right',
             // 血缘表被打开的理由:那一批【进来了多少】。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.qty,
         },
     ]
@@ -144,7 +143,7 @@ export function InputsTable({ rows }: { rows: readonly InputLegRow[] }) {
             header: t('processing.detail.colInboundBatch'),
             // 身份列。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => (
                 <>
                     {r.parentCode == null ? '—'
@@ -201,7 +200,7 @@ export function OutputsTable({ rows, canViewPrices }: { rows: readonly OutputLeg
             header: t('processing.detail.colOutputBatch'),
             // 身份列。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) =>
                 r.batchCode == null ? '—'
                     : r.batchDeleted ? <span className="text-gray-500">{r.batchCode}{r.deletedMarker}</span>
@@ -221,11 +220,11 @@ export function OutputsTable({ rows, canViewPrices }: { rows: readonly OutputLeg
         },
         { key: 'purity', header: t('processing.detail.colPurity'), render: (r) => r.purity },
         {
-            key: 'allocatedCost', header: t('processing.detail.colAllocatedCost'), align: 'right', className: 'font-mono text-sm',
+            key: 'allocatedCost', header: t('processing.detail.colAllocatedCost'), align: 'right', className: 'text-sm',
             render: (r) => <MaskedValue value={r.allocatedCostText} canView={canViewPrices} fallback="—" />,
         },
         {
-            key: 'unitCost', header: t('processing.detail.colUnitCost'), align: 'right', className: 'font-mono text-sm',
+            key: 'unitCost', header: t('processing.detail.colUnitCost'), align: 'right', className: 'text-sm',
             render: (r) => (
                 <>
                     <MaskedValue value={r.unitCostText} canView={canViewPrices} fallback="—" />
@@ -279,7 +278,7 @@ export function RecoveryTable({ rows }: { rows: readonly RecoveryRow[] }) {
             key: 'input', header: t('processing.recovery.colInput'), align: 'right', className: 'text-sm',
             render: (r) => r.inputMeasured ? (
                 <>
-                    <span className="font-mono">{r.inputText}</span>
+                    <span>{r.inputText}</span>
                     <span className="block text-xs text-gray-500">{r.inputSource}</span>
                 </>
             ) : notMeasured,
@@ -288,7 +287,7 @@ export function RecoveryTable({ rows }: { rows: readonly RecoveryRow[] }) {
             key: 'output', header: t('processing.recovery.colOutput'), align: 'right', className: 'text-sm',
             render: (r) => r.outputMeasured ? (
                 <>
-                    <span className="font-mono">{r.outputText}</span>
+                    <span>{r.outputText}</span>
                     <span className="block text-xs text-gray-500">{r.outputSource}</span>
                 </>
             ) : notMeasured,
@@ -301,7 +300,7 @@ export function RecoveryTable({ rows }: { rows: readonly RecoveryRow[] }) {
             priority: true,
             className: 'text-sm',
             render: (r) => r.recoveryPctText != null
-                ? <span className="font-mono">{r.recoveryPctText}</span>
+                ? <span>{r.recoveryPctText}</span>
                 : <span className="text-gray-500 text-xs">{r.blockedReason}</span>,
         },
     ]

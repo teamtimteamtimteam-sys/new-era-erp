@@ -72,11 +72,11 @@ export function BreachesTable({ rows }: { rows: BreachRow[] }) {
     const t = useTranslations()
     // ★ 手机上留【单据】与【实测】—— 单据是身份,实测值是"违反"这件事的证据。
     const columns: Column<BreachRow>[] = [
-        { key: 'doc', header: t('contracts.colDocument'), priority: true, className: 'font-mono text-sm', render: (r) => r.purchaseOrderCode },
-        { key: 'contract', header: t('contracts.colContract'), className: 'font-mono text-sm', render: (r) => r.contractCode },
-        { key: 'batch', header: t('contracts.colBatch'), className: 'font-mono text-sm', render: (r) => r.inboundBatchCode },
+        { key: 'doc', header: t('contracts.colDocument'), priority: true, className: 'text-sm', render: (r) => r.purchaseOrderCode },
+        { key: 'contract', header: t('contracts.colContract'), className: 'text-sm', render: (r) => r.contractCode },
+        { key: 'batch', header: t('contracts.colBatch'), className: 'text-sm', render: (r) => r.inboundBatchCode },
         { key: 'metal', header: t('contracts.colMetal'), className: 'text-sm', render: (r) => r.metal },
-        { key: 'measured', header: t('contracts.colMeasured'), priority: true, align: 'right', className: 'text-sm font-mono', render: (r) => r.contentPct },
+        { key: 'measured', header: t('contracts.colMeasured'), priority: true, align: 'right', className: 'text-sm', render: (r) => r.contentPct },
         { key: 'required', header: t('contracts.colRequired'), className: 'text-sm', render: (r) => r.requiredLabel },
     ]
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.key} phone={{ mode: 'columns' }} className="mb-6" />
@@ -87,7 +87,7 @@ export function ContractListTable({ rows }: { rows: ContractListRow[] }) {
     // ★ 手机上留【合同号】与【标题】—— 合同号是身份,标题是"这是哪一份合同"。
     const columns: Column<ContractListRow>[] = [
         {
-            key: 'code', header: t('contracts.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('contracts.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/contracts/${r.id}`} className="hover:underline app-link">{r.code}</Link>
             ),
@@ -117,7 +117,7 @@ export function PricingTermsTable({ rows }: { rows: PricingTermRow[] }) {
     const t = useTranslations()
     // ★ 手机上留【合同号】与【指数】—— 合同号是身份,指数是"按什么计价"的答案。
     const columns: Column<PricingTermRow>[] = [
-        { key: 'code', header: t('contracts.colCode'), priority: true, className: 'font-mono text-sm', render: (r) => r.contractCode },
+        { key: 'code', header: t('contracts.colCode'), priority: true, className: 'text-sm', render: (r) => r.contractCode },
         { key: 'metal', header: t('contracts.pricing.colMetal'), className: 'text-sm', render: (r) => r.metal },
         { key: 'baseEvent', header: t('contracts.pricing.colBaseEvent'), className: 'text-sm', render: (r) => r.baseEventLabel },
         { key: 'qp', header: t('contracts.pricing.colQp'), className: 'text-sm', render: (r) => r.qpLabel },
@@ -131,7 +131,7 @@ export function SettlementTermsTable({ rows }: { rows: SettleTermRow[] }) {
     const t = useTranslations()
     // ★ 手机上留【合同号】与【计重口径】—— 口径是这一段存在的理由(SETTLE-1)。
     const columns: Column<SettleTermRow>[] = [
-        { key: 'code', header: t('contracts.colCode'), priority: true, className: 'font-mono text-sm', render: (r) => r.contractCode },
+        { key: 'code', header: t('contracts.colCode'), priority: true, className: 'text-sm', render: (r) => r.contractCode },
         { key: 'basis', header: t('contracts.settlement.colBasis'), priority: true, className: 'text-sm', render: (r) => r.basisLabel },
         { key: 'party', header: t('contracts.settlement.colSettlingParty'), className: 'text-sm', render: (r) => r.partyLabel },
         {
@@ -149,7 +149,7 @@ export function SettlementsTable({ rows }: { rows: SettlementRow[] }) {
     const t = useTranslations()
     // ★ 手机上留【合同号】与【金额】—— 4 列表;金额是一条已记录结算的要点。
     const columns: Column<SettlementRow>[] = [
-        { key: 'order', header: t('contracts.settlement.colOrder'), priority: true, className: 'font-mono text-sm', render: (r) => r.contractCode },
+        { key: 'order', header: t('contracts.settlement.colOrder'), priority: true, className: 'text-sm', render: (r) => r.contractCode },
         { key: 'basis', header: t('contracts.settlement.colBasis'), className: 'text-sm', render: (r) => r.basisLabel },
         {
             key: 'party', header: t('contracts.settlement.colUsedParty'), className: 'text-sm',

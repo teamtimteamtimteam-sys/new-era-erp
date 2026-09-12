@@ -257,12 +257,12 @@ canEdit: boolean
                                 <span className="text-gray-400 w-8 shrink-0">{line.line_no}</span>
                                 <span className="w-24 shrink-0">{line.line_date}</span>
                                 <span className="flex-1 min-w-0 truncate">{line.description ?? '—'}</span>
-                                <span className="w-24 shrink-0 font-mono text-xs text-[color:var(--brand-muted-text)] truncate">
+                                <span className="w-24 shrink-0 text-xs text-[color:var(--brand-muted-text)] truncate">
                                     {line.reference ?? ''}
                                 </span>
                                 <span
                                     className={
-                                        'w-28 shrink-0 text-right font-mono ' +
+                                        'w-28 shrink-0 text-right tabular-nums ' +
                                         (line.amount < 0 ? 'text-red-600' : '')
                                     }
                                 >
@@ -279,7 +279,7 @@ canEdit: boolean
                                         <Link
                                             key={m.entry_id}
                                             href={`/finance/journal/${m.entry_id}`}
-                                            className="hover:underline font-mono app-link app-link-inline"
+                                            className="hover:underline app-link app-link-inline"
                                         >
                                             {m.entry_code}
                                         </Link>
@@ -330,12 +330,12 @@ canEdit: boolean
                 <div className="flex flex-wrap gap-x-8 gap-y-2 text-sm items-center mb-3">
                     <Link
                         href={`/finance/bank/statements/${statement.id}`}
-                        className="hover:underline font-mono font-medium app-link app-link-inline"
+                        className="hover:underline font-medium app-link app-link-inline"
                     >
                         {statement.code}
                     </Link>
                     <span>
-                        <span className="font-mono">{statement.bank_account_code}</span>{' '}
+                        <span>{statement.bank_account_code}</span>{' '}
                         {t('finance.bank.' + statement.bank_account_code)}
                         <span className="text-[color:var(--brand-muted-text)] ml-2">{ccy}</span>
                     </span>
@@ -344,11 +344,11 @@ canEdit: boolean
                     </span>
                     <span>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.colOpening')}:</span>
-                        <span className="font-mono">{formatAmount(statement.opening_balance, ccy)}</span>
+                        <span>{formatAmount(statement.opening_balance, ccy)}</span>
                     </span>
                     <span>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.colClosing')}:</span>
-                        <span className="font-mono font-medium">{formatAmount(statement.closing_balance, ccy)}</span>
+                        <span className="font-medium">{formatAmount(statement.closing_balance, ccy)}</span>
                     </span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -387,17 +387,17 @@ canEdit: boolean
                 <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm mb-2">
                     <span>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.bankClosing')}:</span>
-                        <span className="font-mono">{formatAmount(comparison.bank_closing_balance, ccy)}</span>
+                        <span>{formatAmount(comparison.bank_closing_balance, ccy)}</span>
                     </span>
                     <span>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.bookBalance')}:</span>
-                        <span className="font-mono">{formatAmount(comparison.book_balance, ccy)}</span>
+                        <span>{formatAmount(comparison.book_balance, ccy)}</span>
                     </span>
                     <span>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.difference')}:</span>
                         <span
                             className={
-                                'font-mono font-semibold ' +
+                                'font-semibold ' +
                                 (difference === 0 ? 'text-green-800' : 'text-amber-900')
                             }
                         >
@@ -436,7 +436,7 @@ canEdit: boolean
                                     onChange={(e) => updateVarianceItem(item.id, { amount: e.target.value })}
                                     placeholder={t('bank.balancePanel.amount')}
                                     aria-label={t('bank.balancePanel.amount')}
-                                    className={`${CONTROL_INPUT} font-mono w-32`}
+                                    className={`${CONTROL_INPUT} w-32`}
                                 />
                                 <input
                                     type="text"
@@ -467,14 +467,14 @@ canEdit: boolean
                             </Button>
                             <span className="text-sm">
                                 <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.explained')}:</span>
-                                <span className="font-mono">{formatAmount(explained, ccy)}</span>
+                                <span>{formatAmount(explained, ccy)}</span>
                             </span>
                             {unexplained === 0 ? (
                                 <span className="text-sm text-green-800">{t('bank.balancePanel.balanced')}</span>
                             ) : (
                                 <span className="text-sm text-amber-900">
                                     <span className="mr-1">{t('bank.balancePanel.unexplained')}:</span>
-                                    <span className="font-mono font-semibold">{formatAmount(unexplained, ccy)}</span>
+                                    <span className="font-semibold">{formatAmount(unexplained, ccy)}</span>
                                 </span>
                             )}
                         </div>
@@ -511,7 +511,7 @@ canEdit: boolean
                                 {selectedLine.description ?? '—'} ·{' '}
                                 <span
                                     className={
-                                        'font-mono ' + (selectedLine.amount < 0 ? 'text-red-600' : '')
+                                        selectedLine.amount < 0 ? 'text-red-600' : ''
                                     }
                                 >
                                     {formatAmount(selectedLine.amount, ccy)}
@@ -575,7 +575,7 @@ canEdit: boolean
                                                 <Link
                                                     href={`/finance/journal/${c.entry_id}`}
                                                     target="_blank"
-                                                    className="hover:underline font-mono w-28 shrink-0 app-link app-link-inline"
+                                                    className="hover:underline w-28 shrink-0 app-link app-link-inline"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
                                                     {c.entry_code}
@@ -585,7 +585,7 @@ canEdit: boolean
                                                 <span className="w-24 shrink-0 text-xs text-[color:var(--brand-muted-text)]">
                                                     {c.source_type ? t('finance.source.' + c.source_type) : '—'}
                                                 </span>
-                                                <span className="w-24 shrink-0 text-right font-mono">
+                                                <span className="w-24 shrink-0 text-right tabular-nums">
                                                     {formatAmount(c.amount_ccy, null)}
                                                 </span>
                                                 <span className="w-16 shrink-0 text-right tabular-nums">
@@ -611,7 +611,7 @@ canEdit: boolean
                                     })}
                                 </span>
                                 {selectedIds.length > 0 && !amountsAgree && (
-                                    <span className="text-red-600 ml-2 font-mono">
+                                    <span className="text-red-600 ml-2">
                                         ({formatAmount(round2(selectedTotal - target), null)})
                                     </span>
                                 )}

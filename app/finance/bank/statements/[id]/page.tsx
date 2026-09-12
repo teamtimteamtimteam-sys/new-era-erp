@@ -228,19 +228,19 @@ export default async function BankStatementDetailPage({
                             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm mb-3">
                                 <span>
                                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.bankClosing')}:</span>
-                                    <span className="font-mono">
+                                    <span>
                                         {formatAmount(currentRecord.bank_closing_balance, currentRecord.currency)}
                                     </span>
                                 </span>
                                 <span>
                                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.bookBalance')}:</span>
-                                    <span className="font-mono">
+                                    <span>
                                         {formatAmount(currentRecord.book_balance, currentRecord.currency)}
                                     </span>
                                 </span>
                                 <span>
                                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.balancePanel.difference')}:</span>
-                                    <span className="font-mono font-semibold">
+                                    <span className="font-semibold">
                                         {formatAmount(currentRecord.difference, currentRecord.currency)}
                                     </span>
                                 </span>
@@ -252,7 +252,7 @@ export default async function BankStatementDetailPage({
                                 <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm">
                                     <span>
                                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.record.bookNow')}:</span>
-                                        <span className="font-mono">
+                                        <span>
                                             {formatAmount(currentRecord.book_balance_now, currentRecord.currency)}
                                         </span>
                                     </span>
@@ -281,7 +281,7 @@ export default async function BankStatementDetailPage({
                                 <ul className="text-sm space-y-1">
                                     {(itemsByRecon.get(currentRecord.reconciliation_id) ?? []).map((v) => (
                                         <li key={v.item_no} className="flex flex-wrap gap-x-3">
-                                            <span className="font-mono w-32 text-right">
+                                            <span className="tabular-nums w-32 text-right">
                                                 {formatAmount(v.amount, currentRecord.currency)}
                                             </span>
                                             <span className="text-[color:var(--brand-text)]">{t('bank.varianceKind.' + v.item_kind)}</span>
@@ -302,7 +302,7 @@ export default async function BankStatementDetailPage({
                                 {supersededRecords.map((r) => (
                                     <li key={r.reconciliation_id}>
                                         <div className="flex flex-wrap gap-x-6">
-                                            <span className="font-mono">
+                                            <span>
                                                 {formatAmount(r.bank_closing_balance, r.currency)} /{' '}
                                                 {formatAmount(r.book_balance, r.currency)} /{' '}
                                                 {formatAmount(r.difference, r.currency)}
@@ -340,7 +340,7 @@ export default async function BankStatementDetailPage({
                         label: t('bank.colAccount'),
                         value: (
                             <>
-                                <span className="font-mono">{stmt.bank_account_code}</span>{' '}
+                                <span>{stmt.bank_account_code}</span>{' '}
                                 {t('finance.bank.' + stmt.bank_account_code)}
                                 <span className="text-[color:var(--brand-muted-text)] ml-2">{stmt.currency}</span>
                             </>

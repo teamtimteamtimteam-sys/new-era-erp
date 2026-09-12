@@ -79,7 +79,7 @@ export function InputSideTable({ rows }: { rows: readonly FulfilmentRow[] }) {
             ),
         },
         {
-            key: 'planned', header: t('processing.wo.colPlanned'), align: 'right', className: 'font-mono',
+            key: 'planned', header: t('processing.wo.colPlanned'), align: 'right',
             render: (r) => r.plannedText ?? <span className="text-gray-400">—</span>,
         },
         {
@@ -101,14 +101,13 @@ export function InputSideTable({ rows }: { rows: readonly FulfilmentRow[] }) {
                         </>
                     ) : null,
         },
-        { key: 'actual', header: t('processing.wo.colConsumed'), align: 'right', className: 'font-mono', render: (r) => r.actualText },
+        { key: 'actual', header: t('processing.wo.colConsumed'), align: 'right', render: (r) => r.actualText },
         {
             key: 'variance',
             header: t('processing.wo.colVariance'),
             align: 'right',
             // ★ 计划对实际的表,存在的理由就是这一列。
             priority: true,
-            className: 'font-mono',
             render: varianceCell,
         },
     ]
@@ -128,14 +127,14 @@ export function OutputSideTable({ rows }: { rows: readonly FulfilmentRow[] }) {
     const columns: Column<FulfilmentRow>[] = [
         { key: 'material', header: t('processing.wo.colMaterial'), priority: true, render: (r) => r.label },
         {
-            key: 'expected', header: t('processing.wo.colExpected'), align: 'right', className: 'font-mono',
+            key: 'expected', header: t('processing.wo.colExpected'), align: 'right',
             // 【没估过 ≠ 估了零 —— 屏幕上把它说出来】
             render: (r) => r.hasPlan
                 ? r.plannedText
                 : <span className="text-gray-500 italic text-xs">{t('processing.wo.noExpectation')}</span>,
         },
-        { key: 'produced', header: t('processing.wo.colProduced'), align: 'right', className: 'font-mono', render: (r) => r.actualText },
-        { key: 'variance', header: t('processing.wo.colVariance'), align: 'right', priority: true, className: 'font-mono', render: varianceCell },
+        { key: 'produced', header: t('processing.wo.colProduced'), align: 'right', render: (r) => r.actualText },
+        { key: 'variance', header: t('processing.wo.colVariance'), align: 'right', priority: true, render: varianceCell },
     ]
     return (
         <DataTable rows={rows} columns={columns} rowKey={(r) => r.id}
@@ -151,12 +150,11 @@ export function LinkedRunsTable({ rows }: { rows: readonly LinkedRunRow[] }) {
             header: t('processing.colCode'),
             // 身份列。
             priority: true,
-            className: 'font-mono',
             render: (r) => <Link href={r.href} className="hover:underline app-link">{r.code}</Link>,
         },
         { key: 'date', header: t('processing.colProcessDate'), render: (r) => r.processDate },
-        { key: 'in', header: t('processing.colTotalInput'), align: 'right', className: 'font-mono', render: (r) => r.totalInput },
-        { key: 'out', header: t('processing.colTotalOutput'), align: 'right', className: 'font-mono', render: (r) => r.totalOutput },
+        { key: 'in', header: t('processing.colTotalInput'), align: 'right', render: (r) => r.totalInput },
+        { key: 'out', header: t('processing.colTotalOutput'), align: 'right', render: (r) => r.totalOutput },
         {
             key: 'status',
             header: t('processing.colStatus'),

@@ -28,7 +28,7 @@ export default function LocationsTable({ rows, empty }: { rows: LocationRow[]; e
     //   把它挤进展开区,等于让那句提醒在小屏上失去它指的东西。
     const columns: Column<LocationRow>[] = [
         {
-            key: 'code', header: t('locations.colCode'), priority: true, className: 'font-mono',
+            key: 'code', header: t('locations.colCode'), priority: true,
             render: (r) => (
                 <Link href={`/inventory/locations/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}

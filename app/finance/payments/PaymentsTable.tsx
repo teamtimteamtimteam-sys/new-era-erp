@@ -28,7 +28,7 @@ export default function PaymentsTable({ rows, empty }: { rows: PaymentRow[]; emp
     // ★ 手机上留【单号】与【金额】—— 单号是身份,金额是这张登记簿存在的理由。
     const columns: Column<PaymentRow>[] = [
         {
-            key: 'code', header: t('finance.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('finance.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/finance/payments/${r.id}`} className="hover:underline app-link">
                     {r.code}
@@ -46,7 +46,7 @@ export default function PaymentsTable({ rows, empty }: { rows: PaymentRow[]; emp
         },
         { key: 'counterparty', header: t('finance.colCounterparty'), className: 'text-sm', render: (r) => r.counterparty },
         {
-            key: 'amount', header: t('finance.amount'), priority: true, align: 'right', className: 'font-mono text-sm',
+            key: 'amount', header: t('finance.amount'), priority: true, align: 'right', className: 'text-sm',
             render: (r) => (
                 <>
                     {r.currency} {formatMoneyBare(r.amountCcy, '同格内紧邻的 r.currency 前缀')}

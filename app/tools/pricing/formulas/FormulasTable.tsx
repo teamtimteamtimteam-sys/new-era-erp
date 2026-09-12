@@ -31,7 +31,7 @@ export default function FormulasTable({ rows, empty }: { rows: FormulaRow[]; emp
     //   【算的是什么】。加工费与折扣是基准之下的两个参数,进展开区。
     const columns: Column<FormulaRow>[] = [
         {
-            key: 'code', header: t('pricing.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('pricing.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/tools/pricing/formulas/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}
@@ -49,10 +49,10 @@ export default function FormulasTable({ rows, empty }: { rows: FormulaRow[]; emp
         },
         { key: 'basis', header: t('pricing.colBasis'), priority: true, className: 'text-sm', render: (r) => r.basisLabel },
         {
-            key: 'treatment', header: t('pricing.colTreatment'), align: 'right', className: 'font-mono text-sm',
+            key: 'treatment', header: t('pricing.colTreatment'), align: 'right', className: 'text-sm',
             render: (r) => formatMoneyBare(r.treatmentChargeUsdPerTonne, '列头 pricing.colTreatment「加工费 (USD/吨)」'),
         },
-        { key: 'discount', header: t('pricing.colDiscount'), align: 'right', className: 'font-mono text-sm', render: (r) => r.flatDiscountPct },
+        { key: 'discount', header: t('pricing.colDiscount'), align: 'right', className: 'text-sm', render: (r) => r.flatDiscountPct },
         {
             key: 'counterparty', header: t('pricing.colCounterparty'), className: 'text-sm',
             render: (r) => r.counterpartyName ?? <span className="text-gray-500">{t('pricing.generic')}</span>,

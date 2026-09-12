@@ -52,7 +52,7 @@ export default function JournalLinesTable({ rows }: { rows: readonly JournalLine
                     r.accountName
                 ) : (
                     <>
-                        <span className="mr-2 font-mono text-sm">{r.accountCode}</span>
+                        <span className="mr-2 text-sm">{r.accountCode}</span>
                         {r.accountName}
                     </>
                 ),
@@ -67,7 +67,7 @@ export default function JournalLinesTable({ rows }: { rows: readonly JournalLine
             // 那正好毁掉 DataTable 抬头说的「顺着一列往下比」。
             // 代价是手机上是三列而不是两列,已在 survey-phone 上量过不溢出。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.debitText,
         },
         {
@@ -75,7 +75,7 @@ export default function JournalLinesTable({ rows }: { rows: readonly JournalLine
             header: t('finance.credit'),
             align: 'right',
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.creditText,
         },
         {

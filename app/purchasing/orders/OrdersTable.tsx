@@ -49,7 +49,7 @@ export default function OrdersTable({ rows, empty }: { rows: PurchaseOrderRow[];
     //   净额与 GST 是它的两个来源,进展开区。
     const columns: Column<PurchaseOrderRow>[] = [
         {
-            key: 'code', header: t('finance.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('finance.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link
                     href={`/purchasing/orders/${r.poId}`}
@@ -63,19 +63,19 @@ export default function OrdersTable({ rows, empty }: { rows: PurchaseOrderRow[];
         { key: 'orderDate', header: t('purchasing.colOrderDate'), render: (r) => r.orderDate },
         { key: 'expected', header: t('purchasing.colExpectedDelivery'), render: (r) => r.expectedDelivery },
         // PO-GST-1:净额 / GST / 应付总额。
-        { key: 'net', header: t('purchasing.colNetTotal'), align: 'right', className: 'font-mono text-sm', render: (r) => r.netTotal },
+        { key: 'net', header: t('purchasing.colNetTotal'), align: 'right', className: 'text-sm', render: (r) => r.netTotal },
         {
             // 【GST 那一格印「—」不印 0.00】carries_tax 为 false 的行是"没有算过税",
             // 不是"税是零" —— 一个 0.00 会把前者说成后者,而那是这张清单上唯一会撒的谎。
-            key: 'tax', header: t('purchasing.colTaxTotal'), align: 'right', className: 'font-mono text-sm',
+            key: 'tax', header: t('purchasing.colTaxTotal'), align: 'right', className: 'text-sm',
             render: (r) => r.taxTotal ?? '—',
         },
         {
             key: 'gross', header: t('purchasing.colGrossTotal'), priority: true, align: 'right',
-            className: 'font-mono text-sm font-medium', render: (r) => r.grossTotal,
+            className: 'text-sm font-medium', render: (r) => r.grossTotal,
         },
         {
-            key: 'prepaid', header: t('purchasing.colPrepaid'), align: 'right', className: 'font-mono text-sm',
+            key: 'prepaid', header: t('purchasing.colPrepaid'), align: 'right', className: 'text-sm',
             render: (r) => (
                 <>
                     <MaskedValue value={r.prepaid} canView={r.canFinance} fallback="—" />
@@ -105,7 +105,7 @@ export default function OrdersTable({ rows, empty }: { rows: PurchaseOrderRow[];
                                 style={{ width: `${Math.min(100, r.receiptPct)}%`, background: 'var(--brand-forest-fill)' }}
                             />
                         </div>
-                        <span className="text-xs text-gray-600 font-mono">{r.receiptPct}%</span>
+                        <span className="text-xs text-gray-600">{r.receiptPct}%</span>
                     </div>
                 ),
         },

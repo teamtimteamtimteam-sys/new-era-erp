@@ -43,32 +43,32 @@ export default function AssayImpactPreview({
                 </p>
                 <div className="flex justify-between">
                     <span className="text-[color:var(--brand-muted-text)]">{t('assay.currentPrice', { ccy: baseCurrency })}</span>
-                    <span className="font-mono">
+                    <span>
                         {impact.current_unit_price === null ? '—' : formatUnitCost(impact.current_unit_price)}
                     </span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-[color:var(--brand-muted-text)]">{t('assay.newPrice', { ccy: baseCurrency })}</span>
-                    <span className="font-mono font-medium">{formatUnitCost(impact.new_unit_price)}</span>
+                    <span className="font-medium">{formatUnitCost(impact.new_unit_price)}</span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-[color:var(--brand-muted-text)]">{t('assay.priceDelta', { ccy: baseCurrency })}</span>
-                    <span className="font-mono">{formatUnitCost(impact.unit_delta)}</span>
+                    <span>{formatUnitCost(impact.unit_delta)}</span>
                 </div>
                 <div className="flex justify-between border-t pt-1 font-bold">
                     <span>{t('assay.totalDelta', { ccy: baseCurrency })}</span>
-                    <span className="font-mono">{formatMoneyBare(impact.total_delta, '同行左侧的行标签「调整总额({ccy})」+ 本块抬头那句"以下为本位币 {ccy}"')}</span>
+                    <span>{formatMoneyBare(impact.total_delta, '同行左侧的行标签「调整总额({ccy})」+ 本块抬头那句"以下为本位币 {ccy}"')}</span>
                 </div>
                 <div className="flex justify-between text-[color:var(--brand-muted-text)]">
                     <span>
                         {t('assay.inventoryShare', { ccy: baseCurrency })}
                         <span className="text-gray-400 ml-1">({Math.round(impact.in_stock_ratio * 100)}%)</span>
                     </span>
-                    <span className="font-mono">{formatMoneyBare(impact.inventory_share, '同行左侧的行标签「计入存货({ccy})」')}</span>
+                    <span>{formatMoneyBare(impact.inventory_share, '同行左侧的行标签「计入存货({ccy})」')}</span>
                 </div>
                 <div className="flex justify-between text-[color:var(--brand-muted-text)]">
                     <span>{t('assay.costShare', { ccy: baseCurrency })}</span>
-                    <span className="font-mono">{formatMoneyBare(impact.cost_share, '同行左侧的行标签「计入销售成本({ccy})」')}</span>
+                    <span>{formatMoneyBare(impact.cost_share, '同行左侧的行标签「计入销售成本({ccy})」')}</span>
                 </div>
             </div>
             )}

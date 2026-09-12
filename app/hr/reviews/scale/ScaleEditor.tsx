@@ -76,7 +76,7 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
             key: 'code',
             header: t('reviews.scaleCode'),
             priority: true,
-            className: 'font-mono text-gray-500',
+            className: 'text-gray-500',
             render: (r) => r.code,
         },
         {
@@ -111,7 +111,6 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
             key: 'sort',
             header: t('reviews.scaleSort'),
             align: 'right',
-            className: 'font-mono',
             render: (r) => r.sort_order,
             edit: (d, set) => (
                 <input type="number" value={d.sort_order} className={inp + ' text-right tabular-nums'} aria-label={t('reviews.scaleSort')}
@@ -186,7 +185,7 @@ export default function ScaleEditor({ rows }: { rows: ScaleRow[] }) {
                     <label className="">
                         {t('reviews.scaleCode')}
                         <input value={nCode} onChange={(e) => setNCode(e.target.value)}
-                               className={`block ${inp} font-mono`} />
+                               className={`block ${inp}`} />
                     </label>
                     <label className="">
                         {t('permissions.nameEn')}

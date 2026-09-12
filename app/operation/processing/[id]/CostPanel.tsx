@@ -61,7 +61,7 @@ export default function CostPanel({
             align: 'right',
             // ★ 这张表被打开的理由:这一笔【多少钱】。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (e) => (
                 <MaskedValue value={e.amount_base} canView={canViewPrices}
                              format={(v) => formatMoneyBare(v, '列头「金额 (SGD)」')} />
@@ -173,7 +173,7 @@ export default function CostPanel({
             {/* 合计 */}
             <p className="text-sm mb-4">
                 <span className="text-[color:var(--brand-muted-text)] mr-1">{t('processing.cost.sumLabel')}:</span>
-                <span className="font-mono">
+                <span>
                     <MaskedValue
                         value={total}
                         canView={canViewPrices}

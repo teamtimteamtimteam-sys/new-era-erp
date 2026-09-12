@@ -137,12 +137,12 @@ canEdit: boolean
                             {attached.map((s) => {
                                 /* 【两档都要出现的东西，提出来写一次】—— 抄成两份就是让两份
                                    将来各走各的，而漂移在桌面上是看不见的：桌面那一份永远是对的那一份。 */
-                                const orderCodeText = <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">{s.order_code}</span>
+                                const orderCodeText = <span className="text-xs text-[color:var(--brand-muted-text)]">{s.order_code}</span>
                                 const shipDateText = s.ship_date
                                 return (
                                 <tr key={s.id}>
                                     <td className="border border-gray-300 px-2 sm:px-3 py-1">
-                                        <Link href={`/sales/shipments/${s.id}`} className="font-mono text-xs hover:underline app-link">{s.code}</Link>
+                                        <Link href={`/sales/shipments/${s.id}`} className="text-xs hover:underline app-link">{s.code}</Link>
                                         {/* 手机档拿掉的两列，原样叠在这里、各自带着列头——
                                             「拿掉」指的是【那一列】，不是【那个事实】。 */}
                                         <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
@@ -260,7 +260,7 @@ canEdit: boolean
                                 <li key={m.id}
                                     className={'flex gap-3 border-l-2 pl-3 '
                                         + (isOperative ? 'border-gray-400' : 'border-gray-200 text-gray-400')}>
-                                    <span className={'font-mono text-xs w-24 ' + (isOperative ? 'text-gray-600' : 'text-gray-400')}>
+                                    <span className={'text-xs w-24 ' + (isOperative ? 'text-gray-600' : 'text-gray-400')}>
                                         {m.event_date}
                                     </span>
                                     <span className={isOperative ? 'font-medium' : ''}>{m.label}</span>

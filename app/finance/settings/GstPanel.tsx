@@ -92,7 +92,7 @@ canEdit: boolean
                                 value={regNo}
                                 onChange={(e) => setRegNo(e.target.value)}
                                 placeholder={t('finance.gstSwitch.regNoPlaceholder')}
-                                className={`${CONTROL_INPUT} font-mono`}
+                                className={CONTROL_INPUT}
                                 aria-invalid={fieldError ? true : undefined}
                             />
                             {/* ★ 甲类:话贴着那个框。页顶一条横幅会让人回头找是哪个框。 */}

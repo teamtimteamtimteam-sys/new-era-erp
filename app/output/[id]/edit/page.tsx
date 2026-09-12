@@ -308,7 +308,7 @@ export default async function EditOutputPage({
 
             <h1 className="sm:text-2xl mb-2">{t('output.editTitle')}</h1>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
-                <span className="font-mono">{batch.code}</span>
+                <span>{batch.code}</span>
                 <span className="mx-2">·</span>
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
                     {batch.status}
@@ -380,11 +380,11 @@ export default async function EditOutputPage({
                     <div className="max-w-md space-y-1 text-sm">
                         <div className="flex justify-between">
                             <span className="text-[color:var(--brand-muted-text)]">{t('margin.colRevenue')}</span>
-                            <span className="font-mono">{formatAmount(marginRow.revenue_base, baseCurrency)}</span>
+                            <span>{formatAmount(marginRow.revenue_base, baseCurrency)}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[color:var(--brand-muted-text)]">{t('margin.colCost')}</span>
-                            <span className="font-mono">
+                            <span>
                                 {marginRow.margin_status === 'ok'
                                     ? formatAmount(marginRow.cost_current_base, baseCurrency)
                                     : '—'}
@@ -392,7 +392,7 @@ export default async function EditOutputPage({
                         </div>
                         <div className="flex justify-between border-t pt-1 font-bold">
                             <span>{t('margin.colMargin')}</span>
-                            <span className="font-mono">
+                            <span>
                                 {/* 【绝不 0 成本化】算不出就留白,并说出是哪一种算不出 */}
                                 {marginRow.margin_status === 'ok'
                                     ? `${formatAmount(marginRow.margin_base, baseCurrency)}${

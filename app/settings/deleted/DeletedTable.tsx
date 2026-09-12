@@ -38,7 +38,7 @@ export default function DeletedTable({ rows, empty }: { rows: DeletedRow[]; empt
     const columns: Column<DeletedRow>[] = [
         { key: 'kind', header: t('deleted.colKind'), render: (r) => r.kindLabel },
         {
-            key: 'code', header: t('deleted.colCode'), priority: true, className: 'font-mono text-xs',
+            key: 'code', header: t('deleted.colCode'), priority: true, className: 'text-xs',
             render: (r) => (
                 <>
                     {r.href ? (

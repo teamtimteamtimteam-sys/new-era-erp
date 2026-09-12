@@ -34,7 +34,7 @@ export default function KpiMatrixTable({ rows, empty }: { rows: KpiMatrixRow[]; 
             key: 'position', header: t('kpi.colPosition'), priority: true, className: 'text-sm',
             render: (r) => (
                 <>
-                    <span className="font-mono text-xs text-gray-500">{r.positionCode}</span> · {r.positionTitle}
+                    <span className="text-xs text-gray-500">{r.positionCode}</span> · {r.positionTitle}
                 </>
             ),
         },

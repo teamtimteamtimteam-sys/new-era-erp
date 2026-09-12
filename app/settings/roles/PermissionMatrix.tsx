@@ -142,7 +142,7 @@ export default function PermissionMatrix({
                                               ''
                                           )
                                         : m}
-                                    <span className="ml-2 font-mono text-xs text-gray-400">{m}</span>
+                                    <span className="ml-2 text-xs text-gray-400">{m}</span>
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2 text-center">
                                     <input
@@ -197,7 +197,7 @@ export default function PermissionMatrix({
                             <span className="font-medium">
                                 {locale === 'zh' ? p.name_zh : p.name_en}
                             </span>
-                            <span className="ml-2 font-mono text-xs text-gray-400">{p.code}</span>
+                            <span className="ml-2 text-xs text-gray-400">{p.code}</span>
                             <span className="block text-[color:var(--brand-muted-text)]">
                                 {(locale === 'zh' ? p.description_zh : p.description_en) ?? ''}
                             </span>

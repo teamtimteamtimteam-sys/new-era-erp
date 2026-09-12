@@ -40,12 +40,12 @@ export default function ContainersTable({ rows, empty }: { rows: ContainerRow[];
         {
             key: 'code', header: t('logistics.colContainerCode'), priority: true,
             render: (r) => (
-                <Link href={`/logistics/containers/${r.id}`} className="hover:underline font-mono text-xs app-link">
+                <Link href={`/logistics/containers/${r.id}`} className="hover:underline text-xs app-link">
                     {r.code}
                 </Link>
             ),
         },
-        { key: 'number', header: t('logistics.colContainerNumber'), className: 'font-mono text-xs', render: (r) => r.containerNumber },
+        { key: 'number', header: t('logistics.colContainerNumber'), className: 'text-xs', render: (r) => r.containerNumber },
         { key: 'lane', header: t('logistics.colLane'), render: (r) => r.laneLabel },
         { key: 'vessel', header: t('logistics.colVessel'), render: (r) => r.vessel },
         { key: 'departure', header: t('logistics.colDeparture'), render: (r) => r.departureDate },

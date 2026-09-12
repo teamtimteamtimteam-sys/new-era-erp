@@ -45,15 +45,14 @@ export default function FxRatesTable({
     const columns: Column<FxRateRow>[] = [
         {
             key: 'currency', header: t('finance.fxPage.colCurrency'), priority: true, sortable: true,
-            className: 'font-mono text-sm', render: (r) => r.currency,
+            className: 'text-sm', render: (r) => r.currency,
         },
         {
             key: 'rate_type', header: t('finance.fxPage.colType'), sortable: true, align: 'right',
-            className: 'font-mono text-sm', render: (r) => t('finance.fxPage.rateType.' + r.rateType),
+            className: 'text-sm', render: (r) => t('finance.fxPage.rateType.' + r.rateType),
         },
         {
-            key: 'rate_sgd_per_unit', header: t('finance.fxPage.colRate'), priority: true, sortable: true, align: 'right',
-            className: 'font-mono', render: (r) => r.rateSgdPerUnit,
+            key: 'rate_sgd_per_unit', header: t('finance.fxPage.colRate'), priority: true, sortable: true, align: 'right', render: (r) => r.rateSgdPerUnit,
         },
         { key: 'rate_date', header: t('finance.fxPage.colRateDate'), sortable: true, render: (r) => r.rateDate },
         { key: 'source', header: t('finance.fxPage.colSource'), className: 'text-sm text-gray-600', render: (r) => r.source },

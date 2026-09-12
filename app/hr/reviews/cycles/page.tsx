@@ -132,11 +132,11 @@ export default async function ReviewCyclesPage() {
                                     <span className={'inline-block rounded px-2 py-0.5 text-xs ' + statusPillClass(c.status === 'open' ? 'self_review' : c.status === 'closed' ? 'acknowledged' : 'draft')}>
                                         {t(`reviews.cycleStatus_${c.status}`)}
                                     </span>
-                                    <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">
+                                    <span className="text-xs text-[color:var(--brand-muted-text)]">
                                         {c.period_start} → {c.period_end}
                                     </span>
                                     <span className="text-xs text-[color:var(--brand-muted-text)]">
-                                        {t('reviews.dueDate')}: <span className="font-mono">{c.due_date}</span>
+                                        {t('reviews.dueDate')}: <span>{c.due_date}</span>
                                     </span>
                                     <CycleActions cycleId={c.id} status={c.status} />
                                 </div>
@@ -166,7 +166,7 @@ export default async function ReviewCyclesPage() {
                                                                     href={`/hr/reviews/${r.id}`}
                                                                     className="hover:underline app-link"
                                                                 >
-                                                                    <span className="font-mono">{emp?.code ?? '—'}</span>{' '}
+                                                                    <span>{emp?.code ?? '—'}</span>{' '}
                                                                     {emp?.legal_name ?? ''}
                                                                 </Link>
                                                             </td>

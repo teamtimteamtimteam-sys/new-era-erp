@@ -27,7 +27,7 @@ export default function ReviewDiffTable({ rows }: { rows: ReviewDiffRow[] }) {
     //   理由:它只列有差异的行,账面量与实盘量是推导出差异的两个中间量。
     const columns: Column<ReviewDiffRow>[] = [
         {
-            key: 'batch', header: t('stocktakes.colBatch'), priority: true, className: 'font-mono text-sm',
+            key: 'batch', header: t('stocktakes.colBatch'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/${r.side}/${r.batchId}/edit`} className="hover:underline app-link">
                     {r.code}

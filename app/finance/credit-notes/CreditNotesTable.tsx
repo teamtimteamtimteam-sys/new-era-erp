@@ -29,7 +29,7 @@ export default function CreditNotesTable({ rows }: { rows: CreditNoteRow[] }) {
     //   理由都是认出这一行之后才要问的,进展开区。
     const columns: Column<CreditNoteRow>[] = [
         {
-            key: 'code', header: t('cn.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('cn.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/finance/credit-notes/${r.id}`} className="hover:underline app-link">
                     {r.code}
@@ -39,7 +39,7 @@ export default function CreditNotesTable({ rows }: { rows: CreditNoteRow[] }) {
         { key: 'noteDate', header: t('cn.noteDate'), render: (r) => r.noteDate },
         { key: 'customer', header: t('cn.colCustomer'), render: (r) => r.customerCell },
         {
-            key: 'invoice', header: t('cn.againstInvoice'), className: 'font-mono text-sm',
+            key: 'invoice', header: t('cn.againstInvoice'), className: 'text-sm',
             render: (r) =>
                 r.invoiceId ? (
                     <Link href={`/finance/invoices/${r.invoiceId}`} className="hover:underline app-link">
@@ -50,7 +50,7 @@ export default function CreditNotesTable({ rows }: { rows: CreditNoteRow[] }) {
                 ),
         },
         {
-            key: 'total', header: t('cn.totalLabel'), priority: true, align: 'right', className: 'font-mono text-sm',
+            key: 'total', header: t('cn.totalLabel'), priority: true, align: 'right', className: 'text-sm',
             render: (r) => formatAmount(r.total, r.currency),
         },
         {

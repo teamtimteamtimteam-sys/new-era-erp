@@ -79,10 +79,10 @@ export default function WoThresholdPanel({
             ) : (
                 <div className="text-sm space-y-1">
                     <p>{t('processing.wo.settings.inputLabel')}:{' '}
-                       <span className="font-mono">{inputPct}</span>
+                       <span>{inputPct}</span>
                        <span className="text-xs text-[color:var(--brand-muted-text)] ml-2">{t('processing.wo.settings.inputWhen')}</span></p>
                     <p>{t('processing.wo.settings.outputLabel')}:{' '}
-                       <span className="font-mono">{outputPct}</span>
+                       <span>{outputPct}</span>
                        <span className="text-xs text-[color:var(--brand-muted-text)] ml-2">{t('processing.wo.settings.outputWhen')}</span></p>
                     <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.wo.settings.readOnly')}</p>
                 </div>

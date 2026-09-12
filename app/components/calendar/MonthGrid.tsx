@@ -154,7 +154,7 @@ export default function MonthGrid({
                     <ul className="md:hidden" data-calendar-view="list">
                         {busyDays.map((ds) => (
                             <li key={ds} className="border-b py-2" style={{ borderColor: 'var(--brand-border)' }}>
-                                <div className="mb-1 font-mono text-xs" style={{ color: 'var(--brand-muted-text)' }}>{ds}</div>
+                                <div className="mb-1 text-xs" style={{ color: 'var(--brand-muted-text)' }}>{ds}</div>
                                 <div className="flex flex-col gap-1">
                                     {(byDate.get(ds) ?? []).map((it, n) => <Pill key={`${ds}-l-${n}`} it={it} />)}
                                 </div>

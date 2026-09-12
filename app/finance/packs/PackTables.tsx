@@ -40,19 +40,17 @@ export function ReconTable({ rows }: { rows: ReconRow[] }) {
             key: 'side', header: t('pack.colSide'), priority: true,
             render: (s) => t(s.side === 'ar' ? 'pack.sideAr' : 'pack.sideAp'),
         },
-        { key: 'control', header: t('pack.colControl'), className: 'font-mono', render: (s) => s.controlAccount },
-        { key: 'ledger', header: t('pack.colLedger'), align: 'right', className: 'font-mono', render: (s) => s.ledger },
-        { key: 'subledger', header: t('pack.colSubledger'), align: 'right', className: 'font-mono', render: (s) => s.subledger },
+        { key: 'control', header: t('pack.colControl'), render: (s) => s.controlAccount },
+        { key: 'ledger', header: t('pack.colLedger'), align: 'right', render: (s) => s.ledger },
+        { key: 'subledger', header: t('pack.colSubledger'), align: 'right', render: (s) => s.subledger },
         {
-            key: 'difference', header: t('pack.colDifference'), align: 'right', priority: true,
-            className: 'font-mono', render: (s) => s.difference,
+            key: 'difference', header: t('pack.colDifference'), align: 'right', priority: true, render: (s) => s.difference,
         },
-        { key: 'origination', header: t('pack.colOrigination'), align: 'right', className: 'font-mono', render: (s) => s.origination },
-        { key: 'settlement', header: t('pack.colSettlement'), align: 'right', className: 'font-mono', render: (s) => s.settlement },
-        { key: 'revaluation', header: t('pack.colRevaluation'), align: 'right', className: 'font-mono', render: (s) => s.revaluation },
+        { key: 'origination', header: t('pack.colOrigination'), align: 'right', render: (s) => s.origination },
+        { key: 'settlement', header: t('pack.colSettlement'), align: 'right', render: (s) => s.settlement },
+        { key: 'revaluation', header: t('pack.colRevaluation'), align: 'right', render: (s) => s.revaluation },
         {
             key: 'unexplained', header: t('pack.colUnexplained'), align: 'right', priority: true,
-            className: 'font-mono',
             // ★★【那一格的红【是整格的】,而 Column.className 是每列一份静态字符串】★★
             //   转换之前那是 <td className={… + (reconciled ? '' : 'bg-red-50 …')}> ——
             //   **一个【按行】变的格子底色**,而组件今天没有这个口子
@@ -98,15 +96,15 @@ export function SplitPairsTable({ rows }: { rows: SplitRow[] }) {
     //   这张表的一行【就是一对】,所以两个单号一起构成身份:只留一半的话,
     //   剩下的那半没有对手,这张表也就没有意义了。两个日期进展开区。
     const splitColumns: Column<SplitRow>[] = [
-        { key: 'entry', header: t('pack.colEntry'), priority: true, className: 'font-mono', render: (s) => s.entryCode },
-        { key: 'date', header: t('pack.colDate'), className: 'font-mono', render: (s) => s.entryDate },
+        { key: 'entry', header: t('pack.colEntry'), priority: true, render: (s) => s.entryCode },
+        { key: 'date', header: t('pack.colDate'), render: (s) => s.entryDate },
         {
-            key: 'counterpart', header: t('pack.colCounterpart'), priority: true, className: 'font-mono',
+            key: 'counterpart', header: t('pack.colCounterpart'), priority: true,
             render: (s) => s.counterpartCode,
         },
-        { key: 'counterpartDate', header: t('pack.colCounterpartDate'), className: 'font-mono', render: (s) => s.counterpartDate },
+        { key: 'counterpartDate', header: t('pack.colCounterpartDate'), render: (s) => s.counterpartDate },
         {
-            key: 'amount', header: t('pack.colAmount'), align: 'right', priority: true, className: 'font-mono',
+            key: 'amount', header: t('pack.colAmount'), align: 'right', priority: true,
             render: (s) => s.amount,
         },
     ]

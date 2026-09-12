@@ -27,7 +27,7 @@ export default function LedgerTable({ rows, empty }: { rows: LedgerTableRow[]; e
     //   理由(动了多少)。日期与库位是读到这一行之后才要问的,进展开区。
     const columns: Column<LedgerTableRow>[] = [
         { key: 'date', header: t('reports.colDate'), render: (r) => r.date || '—' },
-        { key: 'batch', header: t('reports.colBatch'), priority: true, className: 'font-mono text-xs', render: (r) => r.batch },
+        { key: 'batch', header: t('reports.colBatch'), priority: true, className: 'text-xs', render: (r) => r.batch },
         { key: 'material', header: t('reports.colMaterial'), render: (r) => r.material },
         {
             key: 'location', header: t('reports.colLocation'),

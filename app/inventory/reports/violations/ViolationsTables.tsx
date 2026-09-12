@@ -30,8 +30,8 @@ export function ViolationsTable({ rows, empty }: { rows: ViolationRow[]; empty: 
     // ★ 手机上留【库位】与【物料】—— 一条违规就是"这个物料不该待在这个库位",
     //   身份是这两者【合起来】,少任何一个这一行都读不成话。
     const columns: Column<ViolationRow>[] = [
-        { key: 'location', header: t('reports.colLocation'), priority: true, className: 'font-mono text-xs', render: (r) => r.locationCode },
-        { key: 'material', header: t('reports.colMaterial'), priority: true, className: 'font-mono text-xs', render: (r) => r.materialCode },
+        { key: 'location', header: t('reports.colLocation'), priority: true, className: 'text-xs', render: (r) => r.locationCode },
+        { key: 'material', header: t('reports.colMaterial'), priority: true, className: 'text-xs', render: (r) => r.materialCode },
         { key: 'class', header: t('reports.colClass'), render: (r) => r.classCode },
         { key: 'qty', header: t('reports.colQty'), align: 'right', render: (r) => r.qty },
     ]
@@ -58,7 +58,7 @@ export function UndecidedTable({
             key: 'a', header: colA, priority: true,
             render: (r) => (
                 <>
-                    <span className="font-mono text-xs">{r.code}</span> {r.name}
+                    <span className="text-xs">{r.code}</span> {r.name}
                 </>
             ),
         },

@@ -36,7 +36,7 @@ export default function TrainingTable({ rows, empty }: { rows: TrainingRow[]; em
             render: (r) =>
                 r.employeeId ? (
                     <Link href={`/hr/employees/${r.employeeId}`} className="hover:underline app-link">
-                        <span className="font-mono text-xs text-gray-500 mr-2">{r.employeeCode}</span>
+                        <span className="text-xs text-gray-500 mr-2">{r.employeeCode}</span>
                         {r.employeeName}
                     </Link>
                 ) : (
@@ -66,7 +66,7 @@ export default function TrainingTable({ rows, empty }: { rows: TrainingRow[]; em
             ),
         },
         { key: 'provider', header: t('hr.colProvider'), className: 'text-sm', render: (r) => r.provider },
-        { key: 'cert', header: t('hr.colCertificateRef'), className: 'text-sm font-mono', render: (r) => r.certificateRef },
+        { key: 'cert', header: t('hr.colCertificateRef'), className: 'text-sm', render: (r) => r.certificateRef },
         {
             key: 'actions', header: t('metalPrices.colActions'), className: 'text-sm whitespace-nowrap',
             render: (r) => (

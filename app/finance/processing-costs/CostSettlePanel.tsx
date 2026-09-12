@@ -82,7 +82,7 @@ canEdit: boolean
     )
 
     const columns: Column<Entry>[] = [
-        { key: 'run', header: t('finance.costSettle.colRun'), priority: true, className: 'font-mono', render: (e) => runBy.get(e.run_id) },
+        { key: 'run', header: t('finance.costSettle.colRun'), priority: true, render: (e) => runBy.get(e.run_id) },
         { key: 'type', header: t('finance.costSettle.colCostType'), priority: true, render: (e) => t('processing.costTypes.' + e.cost_type) },
         { key: 'amount', header: t('finance.costSettle.colAmount'), priority: true, align: 'right', render: (e) => formatAmount(e.amount_base, baseCurrency) },
         { key: 'date', header: t('finance.costSettle.colEntryDate'), className: 'text-xs text-gray-500', render: (e) => e.created_at.slice(0, 10) },

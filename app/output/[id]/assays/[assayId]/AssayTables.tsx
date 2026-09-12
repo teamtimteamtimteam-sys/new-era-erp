@@ -35,7 +35,7 @@ export function AssayMetalsTable({ rows }: { rows: readonly AssayMetalRow[] }) {
             render: (r) => (
                 <>
                     {r.metalLabel}
-                    <span className="text-gray-400 font-mono text-xs ml-2">{r.metal}</span>
+                    <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
                 </>
             ),
         },
@@ -46,7 +46,6 @@ export function AssayMetalsTable({ rows }: { rows: readonly AssayMetalRow[] }) {
             priority: true,
             // ⚠ 转换前是 `font-mono text-sm`;text-sm 没有搬过来(列定义不许钉字号),
             //   而组件表根就是 text-sm,不写字号继承到的是同一个 14px。
-            className: 'font-mono',
             render: (r) => r.contentPct,
         },
     ]
@@ -80,7 +79,7 @@ export function ApplyPreviewTable({ rows }: { rows: readonly ApplyPreviewRow[] }
             render: (r) => (
                 <>
                     {r.metalLabel}
-                    <span className="text-gray-400 font-mono text-xs ml-2">{r.metal}</span>
+                    <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
                 </>
             ),
         },
@@ -89,7 +88,6 @@ export function ApplyPreviewTable({ rows }: { rows: readonly ApplyPreviewRow[] }
             header: t('assay.output.colCurrent'),
             align: 'right',
             priority: true,
-            className: 'font-mono',
             render: (r) => r.currentText,
         },
         {
@@ -104,7 +102,7 @@ export function ApplyPreviewTable({ rows }: { rows: readonly ApplyPreviewRow[] }
                         className={
                             'px-2 py-0.5 rounded text-xs ' +
                             (r.sourceKind === 'assay'
-                                ? 'bg-blue-100 text-blue-800 font-mono'
+                                ? 'bg-blue-100 text-blue-800'
                                 : r.sourceKind === 'manual'
                                     ? 'bg-gray-200 text-gray-600'
                                     : 'bg-amber-100 text-amber-800')
@@ -119,7 +117,6 @@ export function ApplyPreviewTable({ rows }: { rows: readonly ApplyPreviewRow[] }
             header: t('assay.output.colAfter'),
             align: 'right',
             priority: true,
-            className: 'font-mono',
             render: (r) =>
                 r.afterText !== null ? (
                     r.afterText

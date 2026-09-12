@@ -30,7 +30,7 @@ export default function StatementsTable({ rows, empty }: { rows: StatementRow[];
     //   理由(人来这一页最常问的是"哪几张还没对完")。其余进展开区。
     const columns: Column<StatementRow>[] = [
         {
-            key: 'code', header: t('bank.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('bank.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/finance/bank/statements/${r.id}`} className="hover:underline app-link">
                     {r.code}
@@ -41,26 +41,26 @@ export default function StatementsTable({ rows, empty }: { rows: StatementRow[];
             key: 'account', header: t('bank.colAccount'), className: 'text-sm',
             render: (r) => (
                 <>
-                    <span className="font-mono">{r.bankAccountCode}</span> {t('finance.bank.' + r.bankAccountCode)}
+                    <span>{r.bankAccountCode}</span> {t('finance.bank.' + r.bankAccountCode)}
                 </>
             ),
         },
         { key: 'period', header: t('bank.colPeriod'), className: 'text-sm', render: (r) => r.period },
         {
-            key: 'opening', header: t('bank.colOpening'), align: 'right', className: 'font-mono text-sm',
+            key: 'opening', header: t('bank.colOpening'), align: 'right', className: 'text-sm',
             render: (r) => formatAmount(r.opening, r.currency),
         },
         {
-            key: 'closing', header: t('bank.colClosing'), align: 'right', className: 'font-mono text-sm',
+            key: 'closing', header: t('bank.colClosing'), align: 'right', className: 'text-sm',
             render: (r) => formatAmount(r.closing, r.currency),
         },
-        { key: 'lines', header: t('bank.colLines'), align: 'right', className: 'font-mono text-sm', render: (r) => r.lineTotal },
-        { key: 'matched', header: t('bank.colMatched'), align: 'right', className: 'font-mono text-sm', render: (r) => r.matched },
+        { key: 'lines', header: t('bank.colLines'), align: 'right', className: 'text-sm', render: (r) => r.lineTotal },
+        { key: 'matched', header: t('bank.colMatched'), align: 'right', className: 'text-sm', render: (r) => r.matched },
         {
-            key: 'unmatched', header: t('bank.colUnmatched'), priority: true, align: 'right', className: 'font-mono text-sm',
+            key: 'unmatched', header: t('bank.colUnmatched'), priority: true, align: 'right', className: 'text-sm',
             render: (r) => <span className={r.unmatched > 0 ? 'text-amber-700 font-medium' : ''}>{r.unmatched}</span>,
         },
-        { key: 'ignored', header: t('bank.colIgnored'), align: 'right', className: 'font-mono text-sm', render: (r) => r.ignored },
+        { key: 'ignored', header: t('bank.colIgnored'), align: 'right', className: 'text-sm', render: (r) => r.ignored },
         {
             key: 'status', header: t('finance.colStatus'),
             render: (r) => (

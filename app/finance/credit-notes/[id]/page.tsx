@@ -122,7 +122,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
                 <Link href={inv ? `/finance/invoices/${inv.id}` : '/finance/invoices'}
                       className="hover:underline text-sm app-link">{t('common.back')}</Link>
             }
-            title={<span className="font-mono">{cn.code}</span>}
+            title={<span>{cn.code}</span>}
             // 转换前这枚徽章画在 h1 的右边 —— actions 槽是同一个位置。
             actions={<span className="px-3 py-1 rounded bg-gray-200 text-sm">{t('cn.badge')}</span>}
             intro={customer ? `${customer.code} — ${customer.legal_name}` : '—'}
@@ -140,7 +140,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
                         label: t('cn.againstInvoice'),
                         value: inv ? (
                             <Link href={`/finance/invoices/${inv.id}`}
-                                  className="font-mono hover:underline app-link app-link-inline">{inv.code}</Link>
+                                  className="hover:underline app-link app-link-inline">{inv.code}</Link>
                         ) : '—',
                     },
                     { label: t('sales.colCurrency'), value: `${cn.currency} @ ${cn.fx_rate}` },
@@ -148,7 +148,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
                         label: t('cn.journal'),
                         value: entry ? (
                             <Link href={`/finance/journal/${entry.id}`}
-                                  className="font-mono hover:underline app-link app-link-inline">{entry.code}</Link>
+                                  className="hover:underline app-link app-link-inline">{entry.code}</Link>
                         ) : '—',
                     },
                     { label: t('cn.reason'), value: cn.reason },
@@ -177,7 +177,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
             ) : (
                 <ul className="text-sm space-y-1">
                     {issues.map((i) => (
-                        <li key={i.version} className="font-mono text-xs text-[color:var(--brand-muted-text)]">
+                        <li key={i.version} className="text-xs text-[color:var(--brand-muted-text)]">
                             <a href={`/finance/credit-notes/${cn.id}/pdf?version=${i.version}`}
                                target="_blank" rel="noopener noreferrer"
                                className="hover:underline app-link app-link-inline">v{i.version}</a>

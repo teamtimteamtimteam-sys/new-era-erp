@@ -175,7 +175,7 @@ export default async function EditSupplierPage({
 
             <h1 className="mb-2">{t('suppliers.editTitle')}</h1>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
-                <span className="font-mono">{supplier.code}</span>
+                <span>{supplier.code}</span>
                 <span className="mx-2">·</span>
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
                     {t('suppliers.status.' + supplier.status)}

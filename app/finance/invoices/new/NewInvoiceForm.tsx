@@ -311,7 +311,7 @@ canEdit: boolean
                                         )}
                                     </td>
                                     <td className={tableC.cell}>
-                                        <span className="font-mono">{s.batch_code}</span>
+                                        <span>{s.batch_code}</span>
                                         {s.material_name && <span className="ml-2">{s.material_name}</span>}
                                         {s.customer_id === null && (
                                             <span className="ml-2 px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-800">
@@ -322,24 +322,24 @@ canEdit: boolean
                                             「拿掉」指的是【那一列】,不是【那个事实】。
                                             带着各自的列头,所以数字不会失去主语。 */}
                                         <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
-                                            <div className="font-mono">
+                                            <div>
                                                 <span className="font-sans text-gray-500">{t('invoice.colQuantity')}: </span>
                                                 {s.quantity} {s.unit}
                                             </div>
-                                            <div className="font-mono">
+                                            <div>
                                                 <span className="font-sans text-gray-500">{t('invoice.colUnitPrice')}: </span>
                                                 {s.currency} {formatMoneyBare(s.unit_price, '同格内紧邻的 s.currency 前缀')}
                                             </div>
                                         </div>
                                     </td>
                                     <td className={tableC.cell}>{s.sale_date}</td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                         {s.quantity} {s.unit}
                                     </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                         {s.currency} {formatMoneyBare(s.unit_price, '同格内紧邻的 s.currency 前缀')}
                                     </td>
-                                    <td className={`${tableC.cell} text-right font-mono`}>
+                                    <td className={`${tableC.cell} text-right tabular-nums`}>
                                         {formatAmount(s.amount_base, s.currency)}
                                     </td>
                                 </tr>
@@ -379,7 +379,7 @@ canEdit: boolean
                 </div>
                 <div className="flex justify-between">
                     <span className="text-[color:var(--brand-muted-text)]">{t('invoice.subtotal')}</span>
-                    <span className="font-mono">{formatAmount(subtotal, currencies[0] ?? null)}</span>
+                    <span>{formatAmount(subtotal, currencies[0] ?? null)}</span>
                 </div>
                 {/* 税行只在已做 GST 登记时出现 */}
                 {gstRegistered && (
@@ -391,14 +391,14 @@ canEdit: boolean
                                 ? t('invoice.taxWithCode', { code: effTaxCode, rate: taxRate })
                                 : t('invoice.taxUnresolved')}
                         </span>
-                        <span className="font-mono">
+                        <span>
                             {effTaxCode && !rateMissing ? formatAmount(tax, currencies[0] ?? null) : '—'}
                         </span>
                     </div>
                 )}
                 <div className="flex justify-between border-t pt-1 font-bold">
                     <span>{t('invoice.total')}</span>
-                    <span className="font-mono">{formatAmount(total, currencies[0] ?? null)}</span>
+                    <span>{formatAmount(total, currencies[0] ?? null)}</span>
                 </div>
             </div>
 

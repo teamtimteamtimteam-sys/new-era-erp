@@ -29,7 +29,7 @@ export default function RolesTable({ rows, empty }: { rows: RoleRow[]; empty: Re
     //   决定了改它的后果有多大,那是打开这一页的人要先知道的事。
     const columns: Column<RoleRow>[] = [
         {
-            key: 'code', header: t('permissions.roleCode'), priority: true, className: 'font-mono text-xs',
+            key: 'code', header: t('permissions.roleCode'), priority: true, className: 'text-xs',
             render: (r) => (
                 <>
                     {r.code}
@@ -44,11 +44,11 @@ export default function RolesTable({ rows, empty }: { rows: RoleRow[]; empty: Re
         { key: 'name', header: t('permissions.roleName'), render: (r) => r.name },
         { key: 'description', header: t('permissions.roleDescription'), className: 'text-gray-600', render: (r) => r.description },
         {
-            key: 'permCount', header: t('permissions.permissionCount'), align: 'right', className: 'font-mono',
+            key: 'permCount', header: t('permissions.permissionCount'), align: 'right',
             render: (r) => r.permissionCount,
         },
         {
-            key: 'userCount', header: t('permissions.userCount'), priority: true, align: 'right', className: 'font-mono',
+            key: 'userCount', header: t('permissions.userCount'), priority: true, align: 'right',
             render: (r) => r.userCount,
         },
         { key: 'active', header: t('permissions.active'), render: (r) => (r.isActive ? t('permissions.yes') : t('permissions.no')) },

@@ -435,7 +435,7 @@ export default async function ProcessingDetailPage({
                         label: t('processing.detail.workOrder'),
                         value: wo
                             ? <Link href={`/operation/orders/${wo.id}`}
-                                    className="hover:underline font-mono app-link app-link-inline">{wo.code}</Link>
+                                    className="hover:underline app-link app-link-inline">{wo.code}</Link>
                             : <span className="text-[color:var(--brand-muted-text)] italic">{t('processing.noWorkOrder')}</span>,
                     },
                     {

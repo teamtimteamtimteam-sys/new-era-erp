@@ -39,7 +39,7 @@ export default function CostEntriesTable({ rows }: { rows: readonly CostEntryRow
             header: t('assets.detail.colExpense'),
             // 身份列 —— 一行成本的主语是那张支出单。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => (
                 <Link href={r.expenseHref} className="underline app-link">
                     {r.expenseCode}

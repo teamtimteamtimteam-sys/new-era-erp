@@ -22,9 +22,9 @@ export default function YearCloseHistoryTable({ rows }: { rows: YearCloseRow[] }
 
     // ★ 手机上留【年末】与【状态】—— 年末是身份,状态是这张表存在的理由。
     const columns: Column<YearCloseRow>[] = [
-        { key: 'yearEnd', header: t('finance.yearClose.colYearEnd'), priority: true, className: 'font-mono text-sm', render: (r) => r.yearEnd },
+        { key: 'yearEnd', header: t('finance.yearClose.colYearEnd'), priority: true, className: 'text-sm', render: (r) => r.yearEnd },
         {
-            key: 'netResult', header: t('finance.yearClose.netResult'), align: 'right', className: 'font-mono text-sm',
+            key: 'netResult', header: t('finance.yearClose.netResult'), align: 'right', className: 'text-sm',
             render: (r) => formatAmount(r.netResult, r.baseCurrency),
         },
         {

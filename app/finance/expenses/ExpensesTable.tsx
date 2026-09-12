@@ -30,7 +30,7 @@ export default function ExpensesTable({ rows, empty }: { rows: ExpenseRow[]; emp
     //   科目、状态、对方、过账态都是认出这一行之后才要问的,进展开区。
     const columns: Column<ExpenseRow>[] = [
         {
-            key: 'code', header: t('expense.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('expense.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/finance/expenses/${r.id}`} className="hover:underline app-link">
                     {r.code}
@@ -42,12 +42,12 @@ export default function ExpensesTable({ rows, empty }: { rows: ExpenseRow[]; emp
             key: 'account', header: t('expense.colAccount'), className: 'text-sm',
             render: (r) => (
                 <>
-                    <span className="font-mono">{r.accountCode}</span> {r.accountName}
+                    <span>{r.accountCode}</span> {r.accountName}
                 </>
             ),
         },
         {
-            key: 'amount', header: t('expense.colAmount'), priority: true, align: 'right', className: 'font-mono text-sm',
+            key: 'amount', header: t('expense.colAmount'), priority: true, align: 'right', className: 'text-sm',
             render: (r) => (
                 <>
                     {r.currency} {formatMoneyBare(r.amountCcy, '同格内紧邻的 r.currency 前缀')}

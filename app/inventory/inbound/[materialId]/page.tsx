@@ -152,10 +152,10 @@ export default async function InboundDrillPage({
                 /* 汇总行:剩余合计 + 库存价值(已计价部分)+ 未计价批数 */
                 <p className="text-sm mb-3">
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('inventory.drill.sumLabel')}:</span>
-                    <span className="font-mono">{total}</span>
+                    <span>{total}</span>
                     <span className="mx-2 text-gray-300">·</span>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('valuation.colStockValue')}:</span>
-                    <span className="font-mono">{formatMoneyBare(totalValue, '紧挨着的行标签「库存价值 (SGD)」')}</span>
+                    <span>{formatMoneyBare(totalValue, '紧挨着的行标签「库存价值 (SGD)」')}</span>
                     {unpricedCount > 0 && (
                         <span className="ml-2 text-gray-400">
                             {t('valuation.unpricedCount', { n: unpricedCount })}

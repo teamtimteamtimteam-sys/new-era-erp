@@ -34,7 +34,7 @@ export default function MyReviewsTable({ rows }: { rows: MyReviewRow[] }) {
             render: (r) => (
                 <>
                     <Link href={`/my-reviews/${r.id}`} className="hover:underline app-link">
-                        <span className="font-mono">{r.employeeCode}</span> {r.employeeName}
+                        <span>{r.employeeCode}</span> {r.employeeName}
                     </Link>
                     {r.subtitle && <span className="ml-2 text-xs text-gray-500">{r.subtitle}</span>}
                 </>
@@ -43,7 +43,7 @@ export default function MyReviewsTable({ rows }: { rows: MyReviewRow[] }) {
         { key: 'type', header: t('reviews.type'), render: (r) => r.typeLabel },
         { key: 'cycle', header: t('reviews.cycle'), render: (r) => r.cycleName },
         {
-            key: 'period', header: t('reviews.period'), className: 'whitespace-nowrap font-mono text-xs',
+            key: 'period', header: t('reviews.period'), className: 'whitespace-nowrap text-xs',
             render: (r) => `${r.periodStart} → ${r.periodEnd}`,
         },
         {

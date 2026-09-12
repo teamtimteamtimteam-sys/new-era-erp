@@ -121,7 +121,7 @@ export default function BulkPricesForm({
                             <tr className={tableC.bodyRow} key={opt.value}>
                                 <td className={tableC.cell}>
                                     {metalLabel(opt.value)}
-                                    <span className="text-gray-400 font-mono text-xs ml-2">{opt.value}</span>
+                                    <span className="text-gray-400 text-xs ml-2">{opt.value}</span>
                                 </td>
                                 <td className={tableC.cell}>
                                     {/* 并列数组:每行都送 metal,价格空串由 DB 侧跳过 */}

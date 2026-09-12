@@ -202,7 +202,7 @@ export default function AmendOrderForm({
                                             删除是能点的控件,所以它单独占一行、标签在左、控件在右 ——
                                             一个被挤在窄缝里的复选框不算"还能用"。 */}
                                         <div className="sm:hidden mt-1 space-y-1 font-sans text-xs text-gray-600">
-                                            <div className="font-mono">
+                                            <div>
                                                 <span className="font-sans text-gray-500">{t('purchasing.amend.colReceived')}: </span>
                                                 {receivedText}
                                             </div>
@@ -224,7 +224,7 @@ export default function AmendOrderForm({
                                             </p>
                                         )}
                                     </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono text-gray-600`}>
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums text-gray-600`}>
                                         {receivedText}
                                     </td>
                                     <td className={`${tableC.cell} text-right tabular-nums`}>
@@ -286,7 +286,7 @@ export default function AmendOrderForm({
                             )}
                             {terms.map((tm, i) => (
                                 <div key={i} className="flex flex-wrap items-end gap-2 border-b border-gray-200 pb-2">
-                                    <span className="font-mono text-sm text-[color:var(--brand-muted-text)] pb-2">{i + 1}.</span>
+                                    <span className="text-sm text-[color:var(--brand-muted-text)] pb-2">{i + 1}.</span>
                                     <div>
                                         <label className="block mb-1">{t('purchasing.form.termLabel')}</label>
                                         <input type="text" name="term_label" value={tm.label} disabled={frozen}

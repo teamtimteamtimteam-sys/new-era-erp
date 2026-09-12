@@ -136,12 +136,12 @@ export default async function ReceivablesPage({
             <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.totalOpen')}:</span>
-                    <span className="font-mono font-bold">{formatAmount(report.total_open_base, baseCurrency)}</span>
+                    <span className="font-bold">{formatAmount(report.total_open_base, baseCurrency)}</span>
                 </div>
                 {BUCKETS.map((b) => (
                     <div key={b}>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.aging.' + b)}:</span>
-                        <span className={'font-mono ' + (b === 'b90_plus' ? 'text-red-600 font-medium' : '')}>
+                        <span className={(b === 'b90_plus' ? 'text-red-600 font-medium' : '')}>
                             {formatAmount(report.buckets[b] ?? 0, baseCurrency)}
                         </span>
                     </div>
@@ -191,7 +191,7 @@ export default async function ReceivablesPage({
                                         <td className={`${tableC.cell} hidden sm:table-cell`}>
                                             {ri === 0 ? g.name : ''}
                                         </td>
-                                        <td className={`${tableC.cell} font-mono`}>
+                                        <td className={tableC.cell}>
                                             {r.doc_kind === 'invoice' ? (
                                                 <Link
                                                     href={`/finance/invoices/${r.invoice_id}`}
@@ -224,7 +224,7 @@ export default async function ReceivablesPage({
                                                     <span className="text-gray-500">{t('finance.colCounterparty')}: </span>
                                                     {g.name}
                                                 </div>
-                                                <div className="font-mono">
+                                                <div>
                                                     <span className="font-sans text-gray-500">{t('invoice.colCode')}: </span>
                                                     {r.invoice_id && r.invoice_code ? r.invoice_code : <span className="text-gray-400">—</span>}
                                                 </div>
@@ -240,21 +240,21 @@ export default async function ReceivablesPage({
                                                         </span>
                                                     )}
                                                 </div>
-                                                <div className="font-mono">
+                                                <div>
                                                     <span className="font-sans text-gray-500">{t('finance.colAmount', { ccy: baseCurrency })}: </span>
                                                     {formatMoneyBare(r.amount_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                                 </div>
-                                                <div className="font-mono">
+                                                <div>
                                                     <span className="font-sans text-gray-500">{t('finance.colSettled')}: </span>
                                                     {formatMoneyBare(r.settled_base, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                                 </div>
-                                                <div className="font-mono">
+                                                <div>
                                                     <span className="font-sans text-gray-500">{t('finance.colCredited')}: </span>
                                                     {formatMoneyBare(r.credited_base, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className={`${tableC.cell} hidden sm:table-cell font-mono`}>
+                                        <td className={`${tableC.cell} hidden sm:table-cell`}>
                                             {r.invoice_id && r.invoice_code ? (
                                                 <Link
                                                     href={`/finance/invoices/${r.invoice_id}`}
@@ -276,16 +276,16 @@ export default async function ReceivablesPage({
                                                 </span>
                                             )}
                                         </td>
-                                        <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                        <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                             {formatMoneyBare(r.amount_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                         </td>
-                                        <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                        <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                             {formatMoneyBare(r.settled_base, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                         </td>
-                                        <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                        <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                             {formatMoneyBare(r.credited_base, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                         </td>
-                                        <td className={`${tableC.cell} text-right font-mono font-medium`}>
+                                        <td className={`${tableC.cell} text-right tabular-nums font-medium`}>
                                             {formatMoneyBare(r.open_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                         </td>
                                         <td className={tableC.cell}>
@@ -304,7 +304,7 @@ export default async function ReceivablesPage({
                                     与明细行同一条规矩:拿掉的是列,不是事实。 */}
                                 <td className={`${tableC.cell} sm:hidden`}>
                                     {g.name} — {t('finance.totalsLabel')}
-                                    <span className="block mt-0.5 font-mono text-[11px] text-gray-600">
+                                    <span className="block mt-0.5 text-[11px] text-gray-600">
                                         {t('finance.colAmount', { ccy: baseCurrency })} {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                         {' · '}
                                         {t('finance.colSettled')} {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
@@ -315,16 +315,16 @@ export default async function ReceivablesPage({
                                 <td className={`${tableC.cell} hidden sm:table-cell`} colSpan={5}>
                                     {g.name} — {t('finance.totalsLabel')}
                                 </td>
-                                <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                     {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                 </td>
-                                <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                     {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                 </td>
-                                <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                     {formatMoneyBare(Math.round(g.credited * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                 </td>
-                                <td className={`${tableC.cell} text-right font-mono`}>
+                                <td className={`${tableC.cell} text-right tabular-nums`}>
                                     {formatMoneyBare(Math.round(g.open * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}
                                 </td>
                                 <td className={tableC.cell} />

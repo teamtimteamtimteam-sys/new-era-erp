@@ -25,12 +25,12 @@ export default function DepartmentsTable({ rows, empty }: { rows: DepartmentRow[
     // ★ 手机上留【编号】与【英文名】—— 编号是身份,而名字是这张登记簿
     //   被打开的理由(找哪个部门)。人数与上级是读到这一行之后才要问的东西。
     const columns: Column<DepartmentRow>[] = [
-        { key: 'code', header: t('hr.colCode'), priority: true, className: 'font-mono text-sm', render: (r) => r.code },
+        { key: 'code', header: t('hr.colCode'), priority: true, className: 'text-sm', render: (r) => r.code },
         { key: 'nameEn', header: t('hr.colNameEn'), priority: true, render: (r) => r.nameEn },
         { key: 'nameZh', header: t('hr.colNameZh'), render: (r) => r.nameZh },
         { key: 'parent', header: t('hr.colParent'), className: 'text-sm text-gray-600', render: (r) => r.parentLabel },
         {
-            key: 'count', header: t('hr.colEmployeeCount'), align: 'right', className: 'font-mono text-sm',
+            key: 'count', header: t('hr.colEmployeeCount'), align: 'right', className: 'text-sm',
             render: (r) => r.employeeCount,
         },
         {

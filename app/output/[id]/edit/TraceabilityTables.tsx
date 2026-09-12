@@ -59,7 +59,6 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
             key: 'step',
             header: t('traceability.colStep'),
             align: 'right',
-            className: 'font-mono',
             render: (c) => c.depth,
         },
         {
@@ -67,7 +66,6 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
             header: t('traceability.colRun'),
             // ★ 这一跳是哪一支加工单 —— 手机上留下。
             priority: true,
-            className: 'font-mono',
             render: (c) => (
                 <Link href={`/operation/processing/${c.runId}`} className="hover:underline app-link">
                     {c.runCode}
@@ -82,7 +80,7 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
             render: (c) => (
                 <>
                     <span className="text-gray-500 mr-1">{c.parentKindLabel}</span>
-                    <Link href={c.parentHref} className="font-mono hover:underline app-link">
+                    <Link href={c.parentHref} className="hover:underline app-link">
                         {c.parentCode}
                     </Link>
                 </>
@@ -92,7 +90,6 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
             key: 'qty',
             header: t('traceability.colQtyConsumed'),
             align: 'right',
-            className: 'font-mono',
             render: (c) => c.quantityConsumed,
         },
         {
@@ -102,7 +99,7 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
             render: (c) =>
                 c.supplierName ? (
                     <>
-                        <span className="font-mono">{c.supplierCode}</span> {c.supplierName}
+                        <span>{c.supplierCode}</span> {c.supplierName}
                     </>
                 ) : (
                     '—'
@@ -111,7 +108,6 @@ export function ChainTable({ rows }: { rows: readonly ChainTableRow[] }) {
         {
             key: 'arrival',
             header: t('traceability.colArrival'),
-            className: 'font-mono',
             render: (c) => c.arrivalDate,
         },
     ]
@@ -174,7 +170,6 @@ export function RecoveryTable({ rows }: { rows: readonly RecoveryTableRow[] }) {
             header: t('traceability.colRun'),
             // ★ 身份之一 —— 手机上留下。
             priority: true,
-            className: 'font-mono',
             render: (r) => r.runCode,
         },
         {
@@ -188,14 +183,12 @@ export function RecoveryTable({ rows }: { rows: readonly RecoveryTableRow[] }) {
             key: 'inputKg',
             header: t('traceability.colInputKg'),
             align: 'right',
-            className: 'font-mono',
             render: (r) => r.inputKg,
         },
         {
             key: 'outputKg',
             header: t('traceability.colOutputKg'),
             align: 'right',
-            className: 'font-mono',
             render: (r) => r.outputKg,
         },
         {
@@ -205,12 +198,15 @@ export function RecoveryTable({ rows }: { rows: readonly RecoveryTableRow[] }) {
             priority: true,
             align: 'right',
             // ⚠ 转换前这一格的 class 是【按行算的】(算不出 → text-gray-500,
-            //   算得出 → font-mono),而组件今天【没有按行的格子 className】
+            //   算得出 → 等宽),而组件今天【没有按行的格子 className】
             //   (已登记的缺口,不在本刀里修)。所以那个条件搬到了格子【里面】那层
-            //   <span> 上 —— 渲染出来是同一件事:灰字的原因与等宽的百分比仍然分得开。
+            //   <span> 上。
+            // ★★ FONT-3(2026-09-12):**等宽那一半没有了** —— 算得出的那一支从
+            //   `font-mono` 变成 `undefined`(不发 class)。三元留着,因为
+            //   **算不出的那一支仍然要灰**;两支之间今天分开的只有颜色,不再有字族。
             render: (r) => (
                 <>
-                    <span className={r.recoveryIsNumeric ? 'font-mono' : 'text-gray-500'}>
+                    <span className={r.recoveryIsNumeric ? undefined : 'text-gray-500'}>
                         {r.recoveryText}
                     </span>
                     {r.conservationFlag && (

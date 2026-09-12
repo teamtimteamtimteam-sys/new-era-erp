@@ -66,7 +66,7 @@ export default function PoPaymentTermsTable({
             key: 'share',
             header: t('purchasing.colShare'),
             align: 'right',
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.shareText,
         },
         {
@@ -75,7 +75,7 @@ export default function PoPaymentTermsTable({
             align: 'right',
             // 这张计划表存在的理由:这一期要付多少。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.amountText,
         },
         {

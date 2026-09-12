@@ -33,7 +33,7 @@ export default function ProcessingTable({ rows, empty }: { rows: ProcessingRunRo
     //   相同的徽章,进展开区。
     const columns: Column<ProcessingRunRow>[] = [
         {
-            key: 'code', header: t('processing.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('processing.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/operation/processing/${r.id}`} className="hover:underline app-link">
                     {r.code}
@@ -51,7 +51,7 @@ export default function ProcessingTable({ rows, empty }: { rows: ProcessingRunRo
         {
             // WO-1c:这次加工算在哪张计划上 —— 【没有就说"无计划",不留空】
             // 空白读起来是"数据缺了",而真相是一个正当的类别。
-            key: 'workOrder', header: t('processing.colWorkOrder'), className: 'font-mono text-sm',
+            key: 'workOrder', header: t('processing.colWorkOrder'), className: 'text-sm',
             render: (r) =>
                 r.workOrderId ? (
                     <Link href={`/operation/orders/${r.workOrderId}`} className="hover:underline app-link">

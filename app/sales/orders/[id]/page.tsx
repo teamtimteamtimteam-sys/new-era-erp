@@ -113,7 +113,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                 </div>
                 <div className="flex items-start justify-between mb-4">
                     <div>
-                        <h1 className="font-mono">{o.code}</h1>
+                        <h1>{o.code}</h1>
                         <p className="text-sm text-[color:var(--brand-muted-text)] mt-1">
                             {o.customers ? `${o.customers.code} — ${o.customers.legal_name}` : '—'}
                         </p>
@@ -131,11 +131,11 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                              <dd className="inline">
                                  {fromQuote ? (
                                      <Link href={`/sales/quotes/${fromQuote.id}`}
-                                           className="font-mono hover:underline app-link app-link-inline">{fromQuote.code}</Link>
+                                           className="hover:underline app-link app-link-inline">{fromQuote.code}</Link>
                                  ) : (
                                      // 【报价读不到时印单号,不留白】读不到与不存在是两件事,
                                      // 而一片空白会被读成"没有出处"
-                                     <span className="font-mono">{fromQuoteCode}</span>
+                                     <span>{fromQuoteCode}</span>
                                  )}
                              </dd></div>
                     )}
@@ -239,7 +239,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                 ) : (
                     <ul className="text-sm space-y-1">
                         {issues.map((i) => (
-                            <li key={i.version} className="font-mono text-xs text-[color:var(--brand-muted-text)]">
+                            <li key={i.version} className="text-xs text-[color:var(--brand-muted-text)]">
                                 <a href={`/sales/orders/${o.id}/pdf?version=${i.version}`} target="_blank"
                                    rel="noopener noreferrer" className="hover:underline app-link app-link-inline">
                                     v{i.version}

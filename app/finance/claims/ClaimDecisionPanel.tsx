@@ -55,12 +55,11 @@ export default function ClaimDecisionPanel({
     //   【状态那一格整块搬过来,一个字没改】—— 它一格里最多能说四句话,
     //   而那四句的层次是 CLAIM-1 的判断,不是本刀的。
     const decidedColumns: Column<ClaimRow>[] = [
-        { key: 'ref', header: t('expenseClaims.colRef'), priority: true, className: 'font-mono text-xs', render: (c) => c.code },
+        { key: 'ref', header: t('expenseClaims.colRef'), priority: true, className: 'text-xs', render: (c) => c.code },
         { key: 'who', header: t('expenseClaims.colWho'), render: (c) => c.employee_name },
-        { key: 'spent', header: t('expenseClaims.colSpent'), className: 'font-mono text-xs', render: (c) => c.spend_date },
+        { key: 'spent', header: t('expenseClaims.colSpent'), className: 'text-xs', render: (c) => c.spend_date },
         {
             key: 'amount', header: t('expenseClaims.colAmount'), priority: true, align: 'right',
-            className: 'font-mono',
             render: (c) => `${money(c.amount_ccy)} ${c.currency}`,
         },
         {
@@ -108,10 +107,10 @@ export default function ClaimDecisionPanel({
                     {pending.map((c) => (
                         <div key={c.claim_id} className="rounded border border-gray-300 p-3">
                             <div className="flex flex-wrap items-baseline gap-2 mb-1">
-                                <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">{c.code}</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)]">{c.code}</span>
                                 <span className="font-medium">{c.employee_name}</span>
-                                <span className="text-xs text-[color:var(--brand-muted-text)] font-mono">{c.employee_code}</span>
-                                <span className="font-mono">{money(c.amount_ccy)} {c.currency}</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)]">{c.employee_code}</span>
+                                <span>{money(c.amount_ccy)} {c.currency}</span>
                                 <span className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.colSpent')} {c.spend_date}</span>
                             </div>
                             <p className="text-sm mb-1">{c.description}</p>

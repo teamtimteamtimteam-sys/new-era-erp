@@ -26,12 +26,12 @@ export default function GstPeriodsTable({ rows }: { rows: GstPeriodRow[] }) {
             key: 'period', header: t('gst.period'), priority: true,
             render: (r) => (
                 <>
-                    <Link href={`/finance/gst/${r.id}`} className="hover:underline font-mono app-link">{r.code}</Link>
+                    <Link href={`/finance/gst/${r.id}`} className="hover:underline app-link">{r.code}</Link>
                     {r.isCorrection && <span className="ml-2 text-xs text-amber-800">{t('gst.isCorrection')}</span>}
                 </>
             ),
         },
-        { key: 'window', header: t('gst.window'), className: 'font-mono text-xs', render: (r) => r.window },
+        { key: 'window', header: t('gst.window'), className: 'text-xs', render: (r) => r.window },
         {
             key: 'status', header: t('gst.status'), priority: true,
             render: (r) => (r.filed ? t('gst.statusFiled') : t('gst.statusOpen')),

@@ -161,7 +161,7 @@ export default async function SalesOverviewPage() {
                         ) : (
                             <span data-overview-restricted="1" style={{ color: 'var(--brand-muted-text)' }}>
                                 {t('salesOverview.stageInvoicesRestricted')}
-                                <span className="ml-1 font-mono opacity-80">(module.finance.view)</span>
+                                <span className="ml-1 opacity-80">(module.finance.view)</span>
                             </span>
                         )}
                     </li>

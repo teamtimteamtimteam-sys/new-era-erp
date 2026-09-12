@@ -137,7 +137,7 @@ export default async function StocktakeReviewPage({
                         </Link>
                     </div>
                     <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
-                        <span className="font-mono">{st.code}</span>
+                        <span>{st.code}</span>
                     </p>
                     {/* 汇总:已录行数 · 差异行数 · 差异合计 */}
                     <div className="bg-gray-50 rounded p-4 mb-4 text-sm">

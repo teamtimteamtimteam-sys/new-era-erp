@@ -46,7 +46,7 @@ export default function CreditNoteLinesTable({
         {
             key: 'lineNo',
             header: '#',
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.lineNo,
         },
         {
@@ -66,7 +66,7 @@ export default function CreditNoteLinesTable({
             key: 'qty',
             header: t('cn.colQty'),
             align: 'right',
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.qtyText,
         },
         {
@@ -75,7 +75,7 @@ export default function CreditNoteLinesTable({
             align: 'right',
             // ★ 这张表存在的理由:**这一行冲掉了多少钱**。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.amountText,
         },
     ]

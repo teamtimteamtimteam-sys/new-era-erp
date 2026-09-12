@@ -73,7 +73,6 @@ export default function MovementTimelineTable({ rows }: { rows: readonly Movemen
             // ★ 结论 —— 手机上留下。
             priority: true,
             align: 'right',
-            className: 'font-mono',
             // ⚠ 转换前颜色按行算(负红/正绿),而组件今天没有按行的格子 className
             //   (已登记的缺口,本刀不修)—— 条件搬进格子里那层 <span>。
             render: (r) => (
@@ -83,7 +82,6 @@ export default function MovementTimelineTable({ rows }: { rows: readonly Movemen
         {
             key: 'run',
             header: t('movements.colRun'),
-            className: 'font-mono',
             render: (r) =>
                 r.runHref && r.runCode ? (
                     <Link href={r.runHref} className="hover:underline app-link">

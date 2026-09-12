@@ -31,7 +31,7 @@ export default function LicenceTable({
             },
         },
         {
-            key: 'no', header: t('company.licence.colNo'), className: 'font-mono',
+            key: 'no', header: t('company.licence.colNo'),
             render: (r) => r.cert_no ?? <span className="text-amber-800">{t('company.licence.notRecorded')}</span>,
         },
         {

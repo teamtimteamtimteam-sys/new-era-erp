@@ -716,7 +716,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                 手写的答案,照抄。合计跟着列一起消失,那张表在手机上
                                                 就不再是试算表。 */}
                                             {L.folded.length > 0 && (
-                                                <span className="mt-0.5 block font-mono text-[11px] font-normal text-[color:var(--brand-muted-text)]">
+                                                <span className="mt-0.5 block text-[11px] font-normal text-[color:var(--brand-muted-text)]">
                                                     {L.folded.map((c, i) => (
                                                         <React.Fragment key={c.key}>
                                                             {i > 0 && ' · '}

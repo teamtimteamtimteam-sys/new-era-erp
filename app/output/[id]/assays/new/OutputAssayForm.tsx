@@ -191,7 +191,7 @@ export default function OutputAssayForm({
                             <tr className={tableC.bodyRow} key={opt.value}>
                                 <td className={tableC.cell}>
                                     {t(opt.labelKey)}
-                                    <span className="text-gray-400 font-mono text-xs ml-2">{opt.value}</span>
+                                    <span className="text-gray-400 text-xs ml-2">{opt.value}</span>
                                 </td>
                                 <td className={tableC.cell}>
                                     <input type="hidden" name="assay_metal" value={opt.value} />
@@ -203,7 +203,7 @@ export default function OutputAssayForm({
                                     />
                                 </td>
                                 {hasCurrent && (
-                                    <td className={`${tableC.cell} text-gray-500 font-mono`}>
+                                    <td className={`${tableC.cell} text-gray-500`}>
                                         {currentMetals[opt.value] !== undefined
                                             ? `${currentMetals[opt.value]}%`
                                             : '—'}

@@ -57,8 +57,8 @@ export default function RecurringLines({
             key: 'amount', header: t('cashForecast.amount'), priority: true, align: 'right',
             render: (r) => cell(r, `${r.direction === 'out' ? `(${Number(r.amount_ccy).toLocaleString()})` : Number(r.amount_ccy).toLocaleString()} ${r.currency}`),
         },
-        { key: 'startDate', header: t('cashForecast.startDate'), className: 'font-mono text-xs', render: (r) => cell(r, r.start_date) },
-        { key: 'endDate', header: t('cashForecast.endDate'), className: 'font-mono text-xs', render: (r) => cell(r, r.end_date ?? '—') },
+        { key: 'startDate', header: t('cashForecast.startDate'), className: 'text-xs', render: (r) => cell(r, r.start_date) },
+        { key: 'endDate', header: t('cashForecast.endDate'), className: 'text-xs', render: (r) => cell(r, r.end_date ?? '—') },
     ]
 
     return (
@@ -119,7 +119,7 @@ export default function RecurringLines({
                             className={`${CONTROL_INPUT} block w-32`} /></label>
                     <label className="">{t('cashForecast.currency')}
                         <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                            className={`${CONTROL_INPUT} block w-20 font-mono`} /></label>
+                            className={`${CONTROL_INPUT} block w-20`} /></label>
                     <label className="">{t('cashForecast.cadence')}
                         <select value={cadence} onChange={(e) => setCadence(e.target.value)}
                             className={`${CONTROL_SELECT} block`}>

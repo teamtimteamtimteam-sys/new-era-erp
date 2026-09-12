@@ -25,24 +25,24 @@ export function WhtLiabilityTable({ rows, empty }: { rows: LiabilityRow[]; empty
 
     // ★ 手机上留【月份】与【未汇缴】—— 未汇缴是这张表存在的理由(还欠多少)。
     const columns: Column<LiabilityRow>[] = [
-        { key: 'month', header: t('wht.colMonth'), priority: true, className: 'font-mono', render: (r) => r.periodMonth.slice(0, 7) },
+        { key: 'month', header: t('wht.colMonth'), priority: true, render: (r) => r.periodMonth.slice(0, 7) },
         {
-            key: 'withheld', header: t('wht.colWithheld'), align: 'right', className: 'font-mono',
+            key: 'withheld', header: t('wht.colWithheld'), align: 'right',
             render: (r) => formatAmount(r.withheldBase, r.baseCurrency),
         },
         {
-            key: 'remitted', header: t('wht.colRemitted'), align: 'right', className: 'font-mono',
+            key: 'remitted', header: t('wht.colRemitted'), align: 'right',
             render: (r) => formatAmount(r.remittedBase, r.baseCurrency),
         },
         {
-            key: 'unremitted', header: t('wht.colUnremitted'), priority: true, align: 'right', className: 'font-mono font-semibold',
+            key: 'unremitted', header: t('wht.colUnremitted'), priority: true, align: 'right', className: 'font-semibold',
             render: (r) => formatAmount(r.unremittedBase, r.baseCurrency),
         },
         {
             key: 'due', header: t('wht.colDue'), className: 'text-xs',
             render: (r) => (
                 <>
-                    <span className="font-mono">{r.dueDate}</span>
+                    <span>{r.dueDate}</span>
                     {r.unremittedBase > 0 && (
                         r.isOverdue
                             ? <span className="ml-2 text-red-700 font-semibold">{t('wht.overdue')}</span>
@@ -71,11 +71,11 @@ export function WhtRemittancesTable({ rows, empty }: { rows: RemittanceRow[]; em
 
     // ★ 手机上留【单号】与【金额】—— 单号是身份,金额是这张登记簿存在的理由。
     const columns: Column<RemittanceRow>[] = [
-        { key: 'code', header: t('wht.colCode'), priority: true, className: 'font-mono', render: (r) => r.code },
-        { key: 'month', header: t('wht.colMonth'), className: 'font-mono', render: (r) => r.periodMonth.slice(0, 7) },
-        { key: 'remittedOn', header: t('wht.colRemittedOn'), className: 'font-mono text-xs', render: (r) => r.remittedOn },
+        { key: 'code', header: t('wht.colCode'), priority: true, render: (r) => r.code },
+        { key: 'month', header: t('wht.colMonth'), render: (r) => r.periodMonth.slice(0, 7) },
+        { key: 'remittedOn', header: t('wht.colRemittedOn'), className: 'text-xs', render: (r) => r.remittedOn },
         {
-            key: 'amount', header: t('wht.colAmount'), priority: true, align: 'right', className: 'font-mono',
+            key: 'amount', header: t('wht.colAmount'), priority: true, align: 'right',
             render: (r) => formatAmount(r.amountBase, r.baseCurrency),
         },
         { key: 'ref', header: t('wht.colIrasRef'), className: 'text-xs', render: (r) => r.filedReference },
@@ -98,7 +98,7 @@ export function WhtRatesTable({ rows }: { rows: WhtRateRow[] }) {
     const columns: Column<WhtRateRow>[] = [
         { key: 'nature', header: t('wht.colNature'), priority: true, render: (r) => r.name },
         {
-            key: 'rate', header: t('wht.colRate'), priority: true, className: 'font-mono text-xs',
+            key: 'rate', header: t('wht.colRate'), priority: true, className: 'text-xs',
             render: (r) => r.rates.map((rt) => (
                 <div key={rt.effective_from}>
                     {Number(rt.rate_pct)}% · {rt.effective_from} → {rt.effective_to ?? '—'}

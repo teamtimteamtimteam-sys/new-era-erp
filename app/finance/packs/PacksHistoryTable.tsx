@@ -24,16 +24,16 @@ export default function PacksHistoryTable({ rows, empty }: { rows: PackRow[]; em
     //   这张登记簿存在的理由。
     const columns: Column<PackRow>[] = [
         {
-            key: 'code', header: t('pack.colCode'), priority: true, className: 'font-mono',
+            key: 'code', header: t('pack.colCode'), priority: true,
             render: (r) => (
-                <Link href={`/finance/packs/${r.id}`} className="hover:underline font-mono app-link">
+                <Link href={`/finance/packs/${r.id}`} className="hover:underline app-link">
                     {r.code}
                 </Link>
             ),
         },
-        { key: 'month', header: t('pack.colMonth'), className: 'font-mono', render: (r) => r.periodMonth },
-        { key: 'produced', header: t('pack.colProduced'), className: 'text-xs font-mono', render: (r) => r.producedAt },
-        { key: 'lockedBefore', header: t('pack.colLockedBefore'), className: 'text-xs font-mono', render: (r) => r.lockedBeforeAt },
+        { key: 'month', header: t('pack.colMonth'), render: (r) => r.periodMonth },
+        { key: 'produced', header: t('pack.colProduced'), className: 'text-xs', render: (r) => r.producedAt },
+        { key: 'lockedBefore', header: t('pack.colLockedBefore'), className: 'text-xs', render: (r) => r.lockedBeforeAt },
         {
             key: 'status', header: t('pack.colStatus'), priority: true, className: 'text-xs',
             render: (r) =>

@@ -82,7 +82,7 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
                 <>
                     <div className="font-medium">{r.employeeName}</div>
                     <div className="text-xs text-gray-500">
-                        <span className="font-mono">{r.positionCode}</span> · <span className="font-mono">{r.kpiRef}</span>
+                        <span>{r.positionCode}</span> · <span>{r.kpiRef}</span>
                     </div>
                 </>
             ),
@@ -119,7 +119,7 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
                     {r.orgTargets.map((o) => (
                         <div key={o.code} className="mt-1.5 border-l-2 border-gray-300 pl-2">
                             <div className="text-[10px] text-gray-500">
-                                <span className="font-mono">{o.code}</span> · {o.title}
+                                <span>{o.code}</span> · {o.title}
                             </div>
                             <div className="text-xs"><span className="text-gray-500">{t('kpi.month3')}:</span> {o.month3}</div>
                             <div className="text-xs"><span className="text-gray-500">{t('kpi.month6')}:</span> {o.month6}</div>
@@ -147,7 +147,7 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
             key: 'weighted',
             header: t('kpi.colWeighted'),
             align: 'right',
-            className: 'align-top font-mono text-xs',
+            className: 'align-top text-xs',
             render: (r) => weightedOf(r.score, r.overrideCap, r.weightPct) ?? '—',
             // 没有 edit —— 「不给 edit 就是这一列不可编辑」。
         },
@@ -185,7 +185,7 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
             render: (r) =>
                 r.overrideCap === null ? '—' : (
                     <>
-                        <div className="font-mono">{r.overrideCap}</div>
+                        <div>{r.overrideCap}</div>
                         <div className="text-[10px] text-gray-600">{r.overrideReason}</div>
                     </>
                 ),

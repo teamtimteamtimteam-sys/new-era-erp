@@ -53,24 +53,20 @@ export default function MyPayslipsTable({ rows, empty }: { rows: PayslipRow[]; e
             ),
         },
         {
-            key: 'gross', header: t('me.gross'), align: 'right', priority: true,
-            className: 'font-mono', render: (l) => l.gross,
+            key: 'gross', header: t('me.gross'), align: 'right', priority: true, render: (l) => l.gross,
         },
         {
-            key: 'employerCpf', header: t('me.employerCpf'), align: 'right',
-            className: 'font-mono', render: (l) => l.employerCpf,
+            key: 'employerCpf', header: t('me.employerCpf'), align: 'right', render: (l) => l.employerCpf,
         },
         {
-            key: 'employeeCpf', header: t('me.employeeCpf'), align: 'right',
-            className: 'font-mono', render: (l) => l.employeeCpf,
+            key: 'employeeCpf', header: t('me.employeeCpf'), align: 'right', render: (l) => l.employeeCpf,
         },
         {
-            key: 'deductions', header: t('me.deductions'), align: 'right',
-            className: 'font-mono', render: (l) => l.deductions,
+            key: 'deductions', header: t('me.deductions'), align: 'right', render: (l) => l.deductions,
         },
         {
             key: 'net', header: t('me.net'), align: 'right', priority: true,
-            className: 'font-mono font-medium', render: (l) => l.net,
+            className: 'font-medium', render: (l) => l.net,
         },
     ]
 

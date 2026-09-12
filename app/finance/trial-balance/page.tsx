@@ -176,17 +176,17 @@ export default async function FinancePage({
                             </tr>
                             {g.rows.map((r) => (
                                 <tr className={tableC.bodyRow} key={r.id}>
-                                    <td className={`${tableC.cell} font-mono`}>
+                                    <td className={tableC.cell}>
                                         {r.code}
                                         {/* ★ 手机档拿掉的借方/贷方叠在这里,各带自己的列头。 */}
                                         <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
                                             <div>
                                                 <span className="text-gray-500">{t('finance.colDebits')}: </span>
-                                                <span className="font-mono">{formatAmount(r.debits, baseCurrency)}</span>
+                                                <span>{formatAmount(r.debits, baseCurrency)}</span>
                                             </div>
                                             <div>
                                                 <span className="text-gray-500">{t('finance.colCredits')}: </span>
-                                                <span className="font-mono">{formatAmount(r.credits, baseCurrency)}</span>
+                                                <span>{formatAmount(r.credits, baseCurrency)}</span>
                                             </div>
                                         </div>
                                     </td>
@@ -198,14 +198,14 @@ export default async function FinancePage({
                                             </span>
                                         )}
                                     </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                         {formatAmount(r.debits, baseCurrency)}
                                     </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                         {formatAmount(r.credits, baseCurrency)}
                                     </td>
                                     <td
-                                        className={`${tableC.cell} ${'text-right font-mono ' +
+                                        className={`${tableC.cell} ${'text-right tabular-nums ' +
                                             (r.net < 0 ? 'text-red-600' : '')}`}
                                     >
                                         {formatAmount(r.net, baseCurrency)}
@@ -233,17 +233,17 @@ export default async function FinancePage({
                             那两列在 390px 上不画,而"借贷相不相等"正是试算表的用处。 */}
                         <td colSpan={2} className={`${tableC.cell} sm:hidden`}>
                             {t('finance.totalsLabel')}
-                            <span className="block mt-0.5 font-mono text-[11px] font-normal text-gray-600">
+                            <span className="block mt-0.5 text-[11px] font-normal text-gray-600">
                                 {t('finance.colDebits')} {formatAmount(totalDebits, baseCurrency)}
                                 {' · '}
                                 {t('finance.colCredits')} {formatAmount(totalCredits, baseCurrency)}
                             </span>
                         </td>
                         <td colSpan={2} className={`${tableC.cell} hidden sm:table-cell`}>{t('finance.totalsLabel')}</td>
-                        <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                        <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                             {formatAmount(totalDebits, baseCurrency)}
                         </td>
-                        <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                        <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                             {formatAmount(totalCredits, baseCurrency)}
                         </td>
                         <td className={tableC.cell} />

@@ -33,7 +33,7 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
     //   存在的理由(这个月到底付出去多少)。应发与人数进展开区。
     const columns: Column<PayrollPeriodRow>[] = [
         {
-            key: 'period', header: t('hr.colPeriod'), priority: true, className: 'font-mono text-sm',
+            key: 'period', header: t('hr.colPeriod'), priority: true, className: 'text-sm',
             render: (r) => (
                 <>
                     <Link href={`/hr/payroll/${r.id}`} className="hover:underline app-link">
@@ -46,15 +46,15 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
         { key: 'paymentDate', header: t('hr.colPaymentDate'), render: (r) => r.paymentDate },
         { key: 'currency', header: t('hr.colCurrency'), render: (r) => r.currency },
         {
-            key: 'gross', header: t('hr.colGrossTotal'), align: 'right', className: 'font-mono text-sm',
+            key: 'gross', header: t('hr.colGrossTotal'), align: 'right', className: 'text-sm',
             render: (r) => formatMoneyBare(r.grossTotal, '同行「币种」列(hr.colCurrency)'),
         },
         {
             key: 'net', header: t('hr.colNetTotal'), priority: true, align: 'right',
-            className: 'font-mono text-sm font-medium',
+            className: 'text-sm font-medium',
             render: (r) => formatMoneyBare(r.netPayTotal, '同行「币种」列(hr.colCurrency)'),
         },
-        { key: 'lines', header: t('hr.colLineCount'), align: 'right', className: 'font-mono text-sm', render: (r) => r.lineCount },
+        { key: 'lines', header: t('hr.colLineCount'), align: 'right', className: 'text-sm', render: (r) => r.lineCount },
         {
             key: 'status', header: t('hr.colStatus'),
             render: (r) => (
@@ -74,7 +74,7 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
                 ) : r.journalCode === 'restricted' ? (
                     <Refusal why={t('hr.payrollEntryRestrictedHint')}>{t('common.restricted')}</Refusal>
                 ) : (
-                    <Link href={`/finance/journal/${r.journalEntryId}`} className="hover:underline font-mono app-link">
+                    <Link href={`/finance/journal/${r.journalEntryId}`} className="hover:underline app-link">
                         {r.journalCode}
                     </Link>
                 ),

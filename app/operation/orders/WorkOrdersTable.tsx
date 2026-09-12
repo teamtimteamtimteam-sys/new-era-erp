@@ -28,7 +28,7 @@ export default function WorkOrdersTable({ rows, empty }: { rows: WorkOrderRow[];
     //   "计划这一侧的入口"存在的理由(还差多少没投)。排期与备注进展开区。
     const columns: Column<WorkOrderRow>[] = [
         {
-            key: 'code', header: t('processing.wo.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('processing.wo.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/operation/orders/${r.id}`} className="hover:underline app-link">
                     {r.code}
@@ -47,7 +47,7 @@ export default function WorkOrdersTable({ rows, empty }: { rows: WorkOrderRow[];
         },
         {
             key: 'progress', header: t('processing.wo.colProgress'), priority: true, align: 'right',
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => (
                 <>
                     {r.progressLabel ?? <span className="text-gray-500">—</span>}

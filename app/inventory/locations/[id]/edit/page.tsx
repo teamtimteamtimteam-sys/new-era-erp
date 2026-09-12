@@ -55,7 +55,7 @@ export default async function EditLocationPage({
 
             <h1 className="mb-2">
                 {t('locations.editTitle')}
-                <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{loc.code}</span>
+                <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{loc.code}</span>
             </h1>
 
             {!loc.is_active && (

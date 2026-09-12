@@ -178,7 +178,7 @@ export default async function PayableDocPage({
                             <>
                                 <Link
                                     href={`/inbound/${batch.id}/edit`}
-                                    className="hover:underline font-mono font-medium app-link app-link-inline"
+                                    className="hover:underline font-medium app-link app-link-inline"
                                 >
                                     {batch.code}
                                 </Link>
@@ -193,15 +193,15 @@ export default async function PayableDocPage({
                         value:
                             amountBase !== null ? (
                                 <>
-                                    <span className="font-mono">
+                                    <span>
                                         {batch.quantity} × {batch.unit_price}
                                     </span>
-                                    <span className="font-mono font-medium ml-1">
+                                    <span className="font-medium ml-1">
                                         = {formatMoneyBare(amountBase, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}
                                     </span>
                                 </>
                             ) : (
-                                <span className="font-mono">—</span>
+                                <span>—</span>
                             ),
                     },
                     { label: t('finance.settledAmount'), value: formatAmount(settled, baseCurrency), mono: true },
@@ -233,7 +233,7 @@ export default async function PayableDocPage({
                             {i > 0 && <span className="mx-1 text-gray-300">|</span>}
                             <Link
                                 href={`/finance/journal/${j.id}`}
-                                className="hover:underline font-mono app-link app-link-inline"
+                                className="hover:underline app-link app-link-inline"
                             >
                                 {j.code}
                             </Link>

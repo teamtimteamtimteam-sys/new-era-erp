@@ -89,7 +89,7 @@ export default async function OrderInvoiceSection({
                 <ul className="text-sm space-y-1 mb-3">
                     {invoices.map((i) => (
                         <li key={i.id} className="flex flex-wrap items-baseline gap-x-3">
-                            <Link href={`/finance/invoices/${i.id}`} className="hover:underline font-mono app-link app-link-inline">
+                            <Link href={`/finance/invoices/${i.id}`} className="hover:underline app-link app-link-inline">
                                 {i.code}
                             </Link>
                             <span className="text-[color:var(--brand-muted-text)]">{new Date(i.issue_date).toLocaleDateString(dl)}</span>
@@ -109,7 +109,7 @@ export default async function OrderInvoiceSection({
             <ul className="text-sm space-y-0.5 mb-3">
                 {lines.map((l) => (
                     <li key={l.id} className="text-[color:var(--brand-muted-text)]">
-                        #{l.line_no} <span className="font-mono">{l.material_code}</span> · {l.quantity} {l.unit} ·{' '}
+                        #{l.line_no} <span>{l.material_code}</span> · {l.quantity} {l.unit} ·{' '}
                         {billedSet.has(l.id) ? (
                             <span className="text-green-800">{t('sales.invoice.lineBilled')}</span>
                         ) : (

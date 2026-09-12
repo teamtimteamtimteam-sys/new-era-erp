@@ -239,11 +239,11 @@ export default async function PaymentDetailPage({
             label: t('finance.amount'),
             value: (
                 <>
-                    <span className="font-mono font-medium">
+                    <span className="font-medium">
                         {payment.currency} {formatMoneyBare(payment.amount_ccy, '同格内紧邻的 payment.currency 前缀')}
                     </span>
                     {payment.currency !== baseCurrency && (
-                        <span className="text-[color:var(--brand-muted-text)] ml-1 font-mono">
+                        <span className="text-[color:var(--brand-muted-text)] ml-1">
                             @ {payment.fx_rate} = {formatMoneyBare(payment.amount_base, '同格内紧随其后的 {baseCurrency} 后缀')} {baseCurrency}
                         </span>
                     )}
@@ -314,7 +314,7 @@ export default async function PaymentDetailPage({
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.linkedJournal')}:</span>
                     <Link
                         href={`/finance/journal/${journalRes.data.id}`}
-                        className="hover:underline font-mono app-link app-link-inline"
+                        className="hover:underline app-link app-link-inline"
                     >
                         {journalRes.data.code}
                     </Link>
@@ -332,7 +332,7 @@ export default async function PaymentDetailPage({
             {/* 未冲销余额(挂账)*/}
             {unallocated > 0 && (
                 <p className="text-sm text-[color:var(--brand-muted-text)] mt-3">
-                    {t('finance.unallocated')}: <span className="font-mono">{formatAmount(unallocated, payment.currency)}</span>
+                    {t('finance.unallocated')}: <span>{formatAmount(unallocated, payment.currency)}</span>
                 </p>
             )}
 

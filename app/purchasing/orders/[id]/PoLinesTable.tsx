@@ -123,7 +123,7 @@ export default function PoLinesTable({
             key: 'qty',
             header: t('purchasing.colQuantity'),
             align: 'right',
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.qtyText,
         },
         // ① 条件列:设备单上这一轴不存在 —— 整列拿掉,不是留着画横杠。
@@ -154,7 +154,7 @@ export default function PoLinesTable({
             key: 'unitPrice',
             header: t('purchasing.colUnitPrice'),
             align: 'right',
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => (
                 <>
                     {r.unitPriceText}
@@ -179,7 +179,7 @@ export default function PoLinesTable({
             //   PO-GST-1 之后有三个金额列,而【行金额】才是这一行的那个数
             //   —— 与 CONV-5 给 /purchasing/orders 列表页挑「应付总额」同一条理由。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.amountText,
         },
     ]

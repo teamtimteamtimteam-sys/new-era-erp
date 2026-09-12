@@ -56,7 +56,16 @@
      ★ 这一串与下面 `body` 那一行【逐字相同】,不是两份定义各写一遍值:
        两处都写 `var(--font-product-sans), Arial, Helvetica, sans-serif`。
      ★ `--font-mono` 一个字节不动 —— 等宽那一族(548 个站点)归另一件事,
-       「要不要换 Google Sans Code」已登记入队列(Tim 2026-09-11, Q10)。 */
+       「要不要换 Google Sans Code」已登记入队列(Tim 2026-09-11, Q10)。
+     ★★【就地更正 —— FONT-3,2026-09-12】上面那一句的【后半】已经发生了,而方向
+       不是 Google Sans Code,是**正文那一种 Google Sans**(Tim 2026-09-12, Q1/Q2)。
+       ☞ 落地的是**调用点**,不是这个 token:`font-mono` 的 829 个在范围内的代码点
+       去掉了 **828** 个,留下 **1** 个 ——
+       `app/settings/reference/PermissionReferenceTable.tsx:29` 的权限码
+       (`module.suppliers.view` 那一族,屏幕上 40 个元素,一条管理页)。
+     ★ `--font-mono` 与 `app/layout.tsx` 的 Geist Mono 都**照旧留着**(Tim, Q18)——
+       ⚠ 但它今天**只剩那一个消费者**,而这一行原来的理由(「还有真正要等宽的消费者」)
+       从 FONT-3 落地那一刻起只对那一个成立。**已登记进 docs/forward-queue.md。** */
   --font-sans: var(--font-product-sans), Arial, Helvetica, sans-serif;
   --font-mono: var(--font-geist-mono);
 }

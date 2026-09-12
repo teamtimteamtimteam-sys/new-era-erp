@@ -64,7 +64,7 @@ export default function LedgerRowsTable({
             header: t('finance.ledgerColEntry'),
             // ★ 身份列 —— 这一页存在的意义就是从数字追到分录。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) =>
                 r.isTotal ? (
                     <span className="font-sans">{r.entryCode}</span>
@@ -109,7 +109,7 @@ export default function LedgerRowsTable({
                         : '—'
                     : r.counterparts.map((c) => (
                           <span key={c.code} className="mr-2 whitespace-nowrap">
-                              <span className="font-mono">{c.code}</span> {c.name}
+                              <span>{c.code}</span> {c.name}
                           </span>
                       )),
         },
@@ -125,7 +125,7 @@ export default function LedgerRowsTable({
             align: 'right',
             // ★ 被追问的那个数。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => (r.negative ? <span className="text-red-600">{r.amountText}</span> : r.amountText),
         },
     ]

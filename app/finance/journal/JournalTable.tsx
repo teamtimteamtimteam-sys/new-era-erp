@@ -26,7 +26,7 @@ export default function JournalTable({ rows, empty, baseCurrency }: { rows: Jour
     // ★ 手机上留【单号】与【金额】—— 单号是身份,金额是这张总账存在的理由。
     const columns: Column<JournalRow>[] = [
         {
-            key: 'code', header: t('finance.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('finance.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/finance/journal/${r.id}`} className="hover:underline app-link">
                     {r.code}
@@ -47,7 +47,7 @@ export default function JournalTable({ rows, empty, baseCurrency }: { rows: Jour
                 ),
         },
         {
-            key: 'amount', header: t('finance.colAmount', { ccy: baseCurrency }), priority: true, align: 'right', className: 'font-mono text-sm',
+            key: 'amount', header: t('finance.colAmount', { ccy: baseCurrency }), priority: true, align: 'right', className: 'text-sm',
             render: (r) => formatMoneyBare(r.amount, '列头 金额 —— 已带本位币'),
         },
         {

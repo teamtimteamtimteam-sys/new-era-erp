@@ -56,24 +56,24 @@ export default function PayrollLinesTable({ rows }: { rows: readonly PayrollLine
                     </>
                 ) : r.employeeHref ? (
                     <Link href={r.employeeHref} className="hover:underline app-link">
-                        <span className="font-mono text-xs text-gray-500 mr-2">{r.employeeCode}</span>
+                        <span className="text-xs text-gray-500 mr-2">{r.employeeCode}</span>
                         {r.employeeName}
                     </Link>
                 ) : (
                     '—'
                 ),
         },
-        { key: 'gross', header: t('hr.colGross'), align: 'right', className: 'font-mono', render: (r) => r.grossText },
-        { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', className: 'font-mono', render: (r) => r.employeeCpfText },
-        { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', className: 'font-mono', render: (r) => r.employerCpfText },
-        { key: 'deductions', header: t('hr.colDeductions'), align: 'right', className: 'font-mono', render: (r) => r.deductionsText },
+        { key: 'gross', header: t('hr.colGross'), align: 'right', render: (r) => r.grossText },
+        { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', render: (r) => r.employeeCpfText },
+        { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', render: (r) => r.employerCpfText },
+        { key: 'deductions', header: t('hr.colDeductions'), align: 'right', render: (r) => r.deductionsText },
         {
             key: 'net',
             header: t('hr.colNet'),
             align: 'right',
             // ★ 这张表存在的理由:这个人这个月实际拿到多少。
             priority: true,
-            className: 'font-mono font-medium',
+            className: 'font-medium',
             render: (r) => r.netText,
         },
     ]

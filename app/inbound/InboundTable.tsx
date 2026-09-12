@@ -90,7 +90,7 @@ export default function InboundTable({
     const columns: Column<InboundTableRow>[] = [
         {
             key: 'code', header: t('inbound.colCode'), priority: true, sortable: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (b) => (
                 <Link href={`/inbound/${b.id}/edit`} className="hover:underline app-link">{b.code}</Link>
             ),

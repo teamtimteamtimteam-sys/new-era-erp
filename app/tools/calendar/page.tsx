@@ -55,7 +55,7 @@ export default async function ToolsCalendarPage({
                     这两条【不转成按钮】(它们是月份导航),但必须有名字。 */}
                 <a className="rounded border px-2 py-1" href={link(mk(prev), active)}
                    aria-label={t('calendar.prevMonth')}>←</a>
-                <span className="font-mono font-semibold">{month}</span>
+                <span className="font-semibold">{month}</span>
                 <a className="rounded border px-2 py-1" href={link(mk(next), active)}
                    aria-label={t('calendar.nextMonth')}>→</a>
                 {/* 【按类型筛选】—— 每一类都在,包括今天是零行的那些:

@@ -92,7 +92,6 @@ export default function PricingPanel({
             header: t('inbound.pricing.colOld'),
             // ★ 位移的起点 —— 手机上留下。
             priority: true,
-            className: 'font-mono',
             render: (h) => (
                 <MaskedValue
                     value={h.old_unit_price}
@@ -107,7 +106,6 @@ export default function PricingPanel({
             header: t('inbound.pricing.colNew'),
             // ★ 位移的终点,也就是此后生效的那个价 —— 手机上留下。
             priority: true,
-            className: 'font-mono',
             render: (h) => (
                 <MaskedValue value={h.new_unit_price} canView={canViewPrices} format={formatUnitCost} />
             ),
@@ -115,7 +113,6 @@ export default function PricingPanel({
         {
             key: 'original',
             header: t('inbound.pricing.colOriginal'),
-            className: 'font-mono',
             render: (h) => (
                 <>
                     <MaskedValue value={h.original_price} canView={canViewPrices} />{' '}
@@ -153,7 +150,7 @@ export default function PricingPanel({
                 {!canViewPrices && unitPrice === null ? (
                     <MaskedValue value={null} canView={false} />
                 ) : unitPrice !== null ? (
-                    <span className="font-medium font-mono">{formatUnitCost(unitPrice)}</span>
+                    <span className="font-medium">{formatUnitCost(unitPrice)}</span>
                 ) : (
                     <span className="text-gray-400">{t('inbound.pricing.notSet')}</span>
                 )}

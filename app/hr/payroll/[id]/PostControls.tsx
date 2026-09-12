@@ -65,9 +65,9 @@ export function PostPayrollButton({
                         {postingLines.map((l) => (
                             <div key={l.acct} className="flex items-baseline justify-between gap-4 px-3 py-1.5 text-sm">
                                 <dt className="text-[color:var(--brand-muted-text)]">
-                                    <span className="font-mono">{l.acct}</span> {l.name}
+                                    <span>{l.acct}</span> {l.name}
                                 </dt>
-                                <dd className="font-mono whitespace-nowrap">{l.amount}</dd>
+                                <dd className="whitespace-nowrap">{l.amount}</dd>
                             </div>
                         ))}
                     </dl>

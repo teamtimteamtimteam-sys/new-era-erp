@@ -186,12 +186,12 @@ export default async function ReservationSection({
                         <div key={l.id} className="border border-gray-300 rounded p-3">
                             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-2">
                                 <span className="font-medium">
-                                    #{l.line_no} <span className="font-mono">{l.material_code}</span>{' '}
+                                    #{l.line_no} <span>{l.material_code}</span>{' '}
                                     <span className="text-[color:var(--brand-muted-text)]">{l.material_name}</span>
                                 </span>
                                 <span className="text-sm">
                                     <span className="text-[color:var(--brand-muted-text)]">{t('sales.reserve.spokenForLabel')}:</span>{' '}
-                                    <span className="font-mono">
+                                    <span>
                                         {reserved + shipped} / {l.quantity} {l.unit}
                                     </span>
                                 </span>
@@ -210,11 +210,11 @@ export default async function ReservationSection({
                                 <ul className="text-sm space-y-2 mb-2">
                                     {active.map((r) => (
                                         <li key={r.id} className="flex flex-wrap items-baseline gap-x-3">
-                                            <span className="font-mono">{r.output_batches?.code ?? '—'}</span>
+                                            <span>{r.output_batches?.code ?? '—'}</span>
                                             <span className="text-[color:var(--brand-muted-text)]">
                                                 {r.storage_locations?.code ?? t('stock.unspecifiedLocation')}
                                             </span>
-                                            <span className="font-mono">
+                                            <span>
                                                 {r.qty} {r.output_batches?.unit ?? l.unit}
                                             </span>
                                             <ReleaseControl
@@ -239,8 +239,8 @@ export default async function ReservationSection({
                                         const shp = shipByReservation.get(r.id) ?? null
                                         return (
                                             <li key={r.id} className="flex flex-wrap items-baseline gap-x-3 text-[color:var(--brand-muted-text)]">
-                                                <span className="font-mono">{r.output_batches?.code ?? '—'}</span>
-                                                <span className="font-mono">
+                                                <span>{r.output_batches?.code ?? '—'}</span>
+                                                <span>
                                                     {r.qty} {r.output_batches?.unit ?? l.unit}
                                                 </span>
                                                 <span>
@@ -268,7 +268,7 @@ export default async function ReservationSection({
                                     <ul className="mt-1 space-y-0.5">
                                         {released.map((r) => (
                                             <li key={r.id}>
-                                                <span className="font-mono">{r.output_batches?.code ?? '—'}</span>{' '}
+                                                <span>{r.output_batches?.code ?? '—'}</span>{' '}
                                                 {r.qty} {r.output_batches?.unit ?? l.unit} ·{' '}
                                                 {new Date(r.released_at as string).toLocaleString(dl)} ·{' '}
                                                 {r.release_reason}

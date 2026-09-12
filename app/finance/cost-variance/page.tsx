@@ -35,7 +35,7 @@ export default async function CostVariancePage() {
                 <table className={`${tableC.root} w-full`}>
                     <thead><tr className={tableC.headRow}>
                         <th className={`${tableC.headCell} text-left`}>{t('finance.variance.type')}</th>
-                        {months.map((m) => <th key={m} className={`${tableC.headCell} text-right font-mono`}>{m}</th>)}
+                        {months.map((m) => <th key={m} className={`${tableC.headCell} text-right tabular-nums`}>{m}</th>)}
                     </tr></thead>
                     <tbody>
                         {types.map((ty) => (
@@ -44,7 +44,7 @@ export default async function CostVariancePage() {
                                 {months.map((m) => {
                                     const r = by.get(ty + '|' + m)
                                     return (
-                                        <td key={m} className={`${tableC.cell} text-right font-mono`}>
+                                        <td key={m} className={`${tableC.cell} text-right tabular-nums`}>
                                             {r ? (
                                                 <span title={`est ${r.estimated_total} / act ${r.actual_total}`}
                                                       className={r.variance > 0 ? 'text-red-700' : r.variance < 0 ? 'text-green-700' : ''}>

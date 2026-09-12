@@ -600,7 +600,7 @@ export default async function EditInboundPage({
 
             <h1 className="sm:text-2xl mb-2">{t('inbound.editTitle')}</h1>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
-                <span className="font-mono">{batch.code}</span>
+                <span>{batch.code}</span>
                 <span className="mx-2">·</span>
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
                     {batch.status}
@@ -632,7 +632,7 @@ export default async function EditInboundPage({
                         {t('inbound.againstPo')}:{' '}
                         <Link
                             href={`/purchasing/orders/${poHeader.po_id}`}
-                            className="hover:underline font-mono app-link app-link-inline"
+                            className="hover:underline app-link app-link-inline"
                         >
                             {poHeader.po_code}
                         </Link>

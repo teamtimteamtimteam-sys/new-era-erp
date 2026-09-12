@@ -206,7 +206,7 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                                     <tr key={f.id as string}>
                                         {/* LOG-2b:运费凭证【有自己的页面】(app/finance/freight/[id]),
                                             所以这里从只读文本变成链接。 */}
-                                        <td className="border border-gray-300 px-3 py-1 font-mono text-xs">
+                                        <td className="border border-gray-300 px-3 py-1 text-xs">
                                             <Link href={`/finance/freight/${f.id}`} className="hover:underline app-link">
                                                 {f.code as string}
                                             </Link>

@@ -109,7 +109,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
         fields.push({
             label: t('finance.freight.colContainer'),
             value: d.containers ? (
-                <Link href={`/logistics/containers/${d.containers.id}`} className="hover:underline font-mono app-link">
+                <Link href={`/logistics/containers/${d.containers.id}`} className="hover:underline app-link">
                     {d.containers.code}
                 </Link>
             ) : (
@@ -125,7 +125,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
         fields.push({
             label: t('finance.freight.colEntry'),
             value: (
-                <Link href={`/finance/journal/${d.journal_entries.id}`} className="hover:underline font-mono app-link">
+                <Link href={`/finance/journal/${d.journal_entries.id}`} className="hover:underline app-link">
                     {d.journal_entries.code}
                 </Link>
             ),
@@ -164,7 +164,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
                             {d.reversal_entry && (
                                 <div>
                                     <span className="text-amber-700">{t('finance.freight.colReversalEntry')}: </span>
-                                    <Link href={`/finance/journal/${d.reversal_entry.id}`} className="hover:underline font-mono app-link app-link-inline">
+                                    <Link href={`/finance/journal/${d.reversal_entry.id}`} className="hover:underline app-link app-link-inline">
                                         {d.reversal_entry.code}
                                     </Link>
                                 </div>

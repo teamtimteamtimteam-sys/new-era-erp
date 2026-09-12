@@ -104,13 +104,13 @@ export default async function NewAssayPage({
 
             <h1 className="mb-2">{t('assay.newTitle')}</h1>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
-                <span className="font-mono">{batch.code}</span>
+                <span>{batch.code}</span>
                 <span className="mx-2">·</span>
                 {materialRes.data?.name ?? '—'}
                 <span className="mx-2">·</span>
                 {supplierRes.data?.legal_name ?? '—'}
                 <span className="mx-2">·</span>
-                <span className="font-mono">
+                <span>
                     {batch.quantity} {batch.unit}
                 </span>
             </p>

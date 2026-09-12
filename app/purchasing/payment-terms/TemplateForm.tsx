@@ -280,7 +280,7 @@ canEdit: boolean
                 ) : pctTotal > 0 && pctTotal < 100 ? (
                     <p className="text-sm text-amber-700">{t('purchasing.pctUnder', { total: pctTotal })}</p>
                 ) : pctTotal === 100 ? (
-                    <p className="text-sm text-[color:var(--brand-muted-text)] font-mono">100%</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">100%</p>
                 ) : null}
             </div>
 

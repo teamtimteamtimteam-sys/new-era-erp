@@ -55,7 +55,7 @@ export default function LocationForm({
                         name="code"
                         defaultValue={defaults.code}
                         required
-                        className={`${CONTROL_INPUT} font-mono w-48`}
+                        className={`${CONTROL_INPUT} w-48`}
                     />
                     {/* "SG-" 是约定不是约束 —— 提示写在这里,数据库【故意】不用
                         CHECK 钉死它(多实体是计划中的,见迁移文件头) */}

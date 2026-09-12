@@ -155,7 +155,7 @@ export default async function HrOverviewPage() {
                     {IN_SERVICE.filter((s) => (byStatus.get(s) ?? 0) > 0).map((s) => (
                         <li key={s}>
                             {t('hr.employmentStatus.' + s)}:
-                            <span className="font-mono ml-1">{byStatus.get(s)}</span>
+                            <span className="ml-1">{byStatus.get(s)}</span>
                         </li>
                     ))}
                     {['office', 'shopfloor']
@@ -163,7 +163,7 @@ export default async function HrOverviewPage() {
                         .map((c) => (
                             <li key={c}>
                                 {t('hr.workCategory.' + c)}:
-                                <span className="font-mono ml-1">{byCategory.get(c)}</span>
+                                <span className="ml-1">{byCategory.get(c)}</span>
                             </li>
                         ))}
                     {/* 【离职的人【说出来】,但不并进总数】—— 一个消失的分母

@@ -46,7 +46,6 @@ export default function PostedLinesTable({ rows }: { rows: readonly PostedLineRo
             priority: true,
             // ⚠ 转换前这一格是 `font-mono text-sm`;text-sm 没有搬过来
             //   (列描述符不许钉字号 —— 棘轮会红),字号由组件的表根给。
-            className: 'font-mono',
             render: (r) => r.code,
         },
         {

@@ -147,7 +147,7 @@ export default async function PurchasingOverviewPage() {
                     {!canSeeMoney ? (
                         <span data-overview-restricted="1">
                             {t('purchasingOverview.valueRestricted')}
-                            <span className="ml-1 font-mono opacity-80">(module.finance.view)</span>
+                            <span className="ml-1 opacity-80">(module.finance.view)</span>
                         </span>
                     ) : mixedCurrency ? (
                         /* 【多币种就不给一个合计】—— 说出来,而不是把三种货币加起来。 */

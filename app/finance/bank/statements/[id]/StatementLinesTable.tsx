@@ -63,7 +63,7 @@ export default function StatementLinesTable({ rows }: { rows: readonly Statement
         {
             key: 'reference',
             header: t('bank.colReference'),
-            className: 'text-sm font-mono',
+            className: 'text-sm',
             render: (r) => r.reference,
         },
         {
@@ -72,7 +72,7 @@ export default function StatementLinesTable({ rows }: { rows: readonly Statement
             align: 'right',
             // ★ 这张表存在的理由:**动了多少钱**。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => (r.negative ? <span className="text-red-600">{r.amountText}</span> : r.amountText),
         },
         {
@@ -109,7 +109,7 @@ export default function StatementLinesTable({ rows }: { rows: readonly Statement
                             <Link
                                 key={m.entryId}
                                 href={`/finance/journal/${m.entryId}`}
-                                className="hover:underline font-mono app-link app-link-inline"
+                                className="hover:underline app-link app-link-inline"
                             >
                                 {m.entryCode}
                             </Link>

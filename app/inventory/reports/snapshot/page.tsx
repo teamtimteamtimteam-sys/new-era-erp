@@ -67,7 +67,7 @@ export default async function SnapshotPage() {
                 <div className="mb-6 flex flex-wrap gap-6 text-sm">
                     <div>
                         <span className="text-[color:var(--brand-muted-text)]">{t('reports.snapshot.totalValue')}:</span>{' '}
-                        <span className="font-medium font-mono">
+                        <span className="font-medium">
                             {totalValue === null
                                 ? <span className="text-gray-400">{t('valuation.priceRestricted')}</span>
                                 : formatAmount(totalValue, v.base_currency)}
@@ -76,7 +76,7 @@ export default async function SnapshotPage() {
                     {/* 【没有成本口径的量单独站一格】它不是"值 0 的货" */}
                     <div>
                         <span className="text-[color:var(--brand-muted-text)]">{t('reports.snapshot.uncostedQty')}:</span>{' '}
-                        <span className="font-medium font-mono">{totalUncosted}</span>
+                        <span className="font-medium">{totalUncosted}</span>
                     </div>
                 </div>
 
@@ -136,12 +136,12 @@ export default async function SnapshotPage() {
                     <div className="flex flex-wrap gap-6 text-sm">
                         <div>
                             <span className="text-[color:var(--brand-muted-text)]">{t('reports.snapshot.producedCosted')}:</span>{' '}
-                            <span className="font-medium font-mono">{money(v.produced.costed_value_base)}</span>
+                            <span className="font-medium">{money(v.produced.costed_value_base)}</span>
                         </div>
                         <div>
                             <span className="text-[color:var(--brand-muted-text)]">{t('reports.snapshot.producedNeverCosted')}:</span>{' '}
                             {/* ★【从未分摊渲染 '—',不是 0.00】不适用不是值零 */}
-                            <span className="font-medium font-mono">
+                            <span className="font-medium">
                                 — <span className="text-[color:var(--brand-muted-text)]">({v.produced.never_costed_qty})</span>
                             </span>
                         </div>
@@ -154,7 +154,7 @@ export default async function SnapshotPage() {
                     <ul className="list-disc pl-6 text-xs text-gray-600 space-y-1">
                         {Object.entries(v.cannotSee).map(([k, val]) => (
                             <li key={k}>
-                                <span className="font-mono">{k}</span>: {Array.isArray(val) ? val.join(' · ') : String(val)}
+                                <span>{k}</span>: {Array.isArray(val) ? val.join(' · ') : String(val)}
                             </li>
                         ))}
                     </ul>

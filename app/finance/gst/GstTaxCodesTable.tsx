@@ -19,7 +19,7 @@ export default function GstTaxCodesTable({ rows }: { rows: TaxCodeRow[] }) {
 
     // ★ 手机上留【税码】与【生效税率】—— 税码是身份,税率是这张参照表存在的理由。
     const columns: Column<TaxCodeRow>[] = [
-        { key: 'code', header: t('gst.code'), priority: true, className: 'font-mono', render: (r) => r.code },
+        { key: 'code', header: t('gst.code'), priority: true, render: (r) => r.code },
         { key: 'side', header: t('gst.side'), render: (r) => (r.side === 'output' ? t('gst.sideOutput') : t('gst.sideInput')) },
         { key: 'name', header: t('gst.name'), render: (r) => r.name },
         {
@@ -33,7 +33,7 @@ export default function GstTaxCodesTable({ rows }: { rows: TaxCodeRow[] }) {
                     <span className="text-amber-700">{t('gst.noRate')}</span>
                 ) : (
                     r.rates.map((rt) => (
-                        <div key={rt.effective_from} className="font-mono text-xs">
+                        <div key={rt.effective_from} className="text-xs">
                             {Number(rt.rate_pct)}% · {rt.effective_from} → {rt.effective_to ?? t('gst.current')}
                         </div>
                     ))

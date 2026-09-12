@@ -48,7 +48,7 @@ export default async function PackDetailPage({
     return (
         <ListPage
             maxWidth="max-w-6xl"
-            title={<span className="font-mono">{data.code}</span>}
+            title={<span>{data.code}</span>}
             intro={t('pack.subtitle')}
             // ★ 两个出口 —— 住 actions 槽,画在状态分支【之前】,任何空态都吃不掉。
             actions={
@@ -73,7 +73,7 @@ export default async function PackDetailPage({
                     <p className="text-sm mb-4 bg-green-50 border border-green-300 text-green-900 px-3 py-2 rounded max-w-3xl">
                         {t('pack.storedMeans')}
                         <br />
-                        <span className="font-mono text-xs">
+                        <span className="text-xs">
                             {t('pack.colLockedBefore')}: {String(data.locked_before_at_production)} ·{' '}
                             {t('pack.colProduced')}: {String(data.produced_at).slice(0, 19).replace('T', ' ')}
                         </span>

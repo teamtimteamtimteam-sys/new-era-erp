@@ -62,7 +62,7 @@ export default function AssetsTable({
     //   ☞ 所以它 priority:true —— "不点就够得着"这件事没有变。
     const columns: Column<AssetsTableRow>[] = [
         {
-            key: 'code', header: t('finance.colCode'), priority: true, className: 'font-mono',
+            key: 'code', header: t('finance.colCode'), priority: true,
             render: (a) => (
                 <Link href={`/finance/assets/${a.id}`} className="hover:underline app-link">
                     {a.code}
@@ -79,7 +79,7 @@ export default function AssetsTable({
                 : <>{a.inServiceText}</>),
         },
         {
-            key: 'cost', header: t('assets.colCost'), align: 'right', className: 'font-mono',
+            key: 'cost', header: t('assets.colCost'), align: 'right',
             render: (a) => (
                 <>
                     {a.costCcy}
@@ -88,20 +88,19 @@ export default function AssetsTable({
             ),
         },
         {
-            key: 'costBase', header: t('finance.colAmount', { ccy: baseCurrency }), align: 'right',
-            className: 'font-mono', render: (a) => a.costBase,
+            key: 'costBase', header: t('finance.colAmount', { ccy: baseCurrency }), align: 'right', render: (a) => a.costBase,
         },
         {
-            key: 'life', header: t('assets.colLife'), align: 'right', className: 'font-mono',
+            key: 'life', header: t('assets.colLife'), align: 'right',
             render: (a) => a.usefulLifeMonths,
         },
         {
-            key: 'accum', header: t('assets.colAccum'), align: 'right', className: 'font-mono',
+            key: 'accum', header: t('assets.colAccum'), align: 'right',
             render: (a) => a.accum,
         },
         {
             key: 'nbv', header: t('assets.colNbv'), align: 'right', priority: true,
-            className: 'font-mono font-medium', render: (a) => a.nbv,
+            className: 'font-medium', render: (a) => a.nbv,
         },
         {
             key: 'status', header: t('finance.colStatus'), priority: true,

@@ -58,12 +58,11 @@ export default function MyLeavePanel({
             render: (b) => t(`leave.grantType_${b.grant_type}`),
         },
         {
-            key: 'days', header: t('leave.days'), align: 'right', className: 'font-mono',
+            key: 'days', header: t('leave.days'), align: 'right',
             render: (b) => b.days,
         },
         {
-            key: 'remaining', header: t('leave.remaining'), align: 'right', priority: true,
-            className: 'font-mono', render: (b) => b.remaining,
+            key: 'remaining', header: t('leave.remaining'), align: 'right', priority: true, render: (b) => b.remaining,
         },
         { key: 'expires', header: t('leave.expires'), render: (b) => b.expires_on ?? '—' },
         {
@@ -73,14 +72,14 @@ export default function MyLeavePanel({
     ]
 
     const requestColumns: Column<Req>[] = [
-        { key: 'code', header: t('leave.code'), priority: true, className: 'font-mono', render: (r) => r.code },
+        { key: 'code', header: t('leave.code'), priority: true, render: (r) => r.code },
         { key: 'type', header: t('leave.type'), render: (r) => typeName(r.leave_type_code) },
         {
             key: 'dates', header: t('leave.dates'),
             render: (r) => `${r.start_date} → ${r.end_date}`,
         },
         {
-            key: 'days', header: t('leave.days'), align: 'right', priority: true, className: 'font-mono',
+            key: 'days', header: t('leave.days'), align: 'right', priority: true,
             render: (r) => r.days,
         },
         {
@@ -103,13 +102,13 @@ export default function MyLeavePanel({
                 <div className="rounded border border-gray-200 p-4 mb-3">
                     <div className="grid gap-4 sm:grid-cols-4 mb-3">
                         <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.granted')}</div>
-                            <div className="text-sm font-mono">{balance.granted}</div></div>
+                            <div className="text-sm">{balance.granted}</div></div>
                         <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.taken')}</div>
-                            <div className="text-sm font-mono">{balance.consumed}</div></div>
+                            <div className="text-sm">{balance.consumed}</div></div>
                         <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.expired')}</div>
-                            <div className="text-sm font-mono">{balance.expired}</div></div>
+                            <div className="text-sm">{balance.expired}</div></div>
                         <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.available')}</div>
-                            <div className="text-lg font-mono font-medium">{balance.available}</div></div>
+                            <div className="text-lg font-medium">{balance.available}</div></div>
                     </div>
                     {/* 【"我的余额为什么是 19.5"就靠这张表回答】 */}
                     <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('me.balanceExplainer')}</p>

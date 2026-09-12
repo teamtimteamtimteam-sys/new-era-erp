@@ -32,7 +32,7 @@ export default function HolidaysTable({
     // ★【手机上留哪两列】日期与名称是身份 —— 没有它们,下面那一行是哪一天、
     // 叫什么都不知道。备注是读到那一天才要问的东西,进展开区。
     const columns: Column<HolidayRow>[] = [
-        { key: 'date', header: t('leave.date'), priority: true, className: 'font-mono', render: (r) => r.holiday_date },
+        { key: 'date', header: t('leave.date'), priority: true, render: (r) => r.holiday_date },
         {
             key: 'name', header: t('leave.holidayName'), priority: true,
             render: (r) => (
@@ -49,7 +49,7 @@ export default function HolidaysTable({
             ),
         },
         {
-            key: 'holidayKey', header: t('leave.holidayKey'), className: 'font-mono text-xs',
+            key: 'holidayKey', header: t('leave.holidayKey'), className: 'text-xs',
             render: (r) => r.holiday_key,
         },
         {

@@ -85,9 +85,9 @@ export default function MyExpenseClaimsPanel({
     )
 
     const columns: Column<Row>[] = [
-        { key: 'ref', header: t('expenseClaims.colRef'), priority: true, className: 'font-mono', render: (r) => r.code },
+        { key: 'ref', header: t('expenseClaims.colRef'), priority: true, render: (r) => r.code },
         {
-            key: 'spent', header: t('expenseClaims.colSpent'), className: 'font-mono',
+            key: 'spent', header: t('expenseClaims.colSpent'),
             render: (r) => r.spend_date,
         },
         {
@@ -108,8 +108,7 @@ export default function MyExpenseClaimsPanel({
             ),
         },
         {
-            key: 'amount', header: t('expenseClaims.colAmount'), align: 'right', priority: true,
-            className: 'font-mono', render: (r) => `${money(r.amount_ccy)} ${r.currency}`,
+            key: 'amount', header: t('expenseClaims.colAmount'), align: 'right', priority: true, render: (r) => `${money(r.amount_ccy)} ${r.currency}`,
         },
         {
             key: 'status', header: t('expenseClaims.colStatus'), priority: true,
@@ -161,7 +160,7 @@ export default function MyExpenseClaimsPanel({
                             className={`${CONTROL_INPUT} block w-32`} /></label>
                     <label className="">{t('expenseClaims.currency')}
                         <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                            className={`${CONTROL_INPUT} block w-20 font-mono`} /></label>
+                            className={`${CONTROL_INPUT} block w-20`} /></label>
                     <label className="flex-1 min-w-[16rem]">{t('expenseClaims.description')}
                         <input value={description} onChange={(e) => setDescription(e.target.value)}
                             className={`${CONTROL_INPUT} block w-full`} />

@@ -53,7 +53,7 @@ export default function InvoicesTable({ rows, empty }: { rows: InvoiceRow[]; emp
     //   客户名进展开区会让人对不上是谁欠的钱,所以也留在手机上。
     const columns: Column<InvoiceRow>[] = [
         {
-            key: 'code', header: t('invoice.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('invoice.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <>
                     <Link
@@ -87,15 +87,15 @@ export default function InvoicesTable({ rows, empty }: { rows: InvoiceRow[]; emp
             ),
         },
         {
-            key: 'total', header: t('invoice.colTotal'), align: 'right', className: 'font-mono text-sm',
+            key: 'total', header: t('invoice.colTotal'), align: 'right', className: 'text-sm',
             render: (r) => formatAmount(r.totalBase, r.baseCurrency),
         },
         {
-            key: 'settled', header: t('invoice.colSettled'), align: 'right', className: 'font-mono text-sm',
+            key: 'settled', header: t('invoice.colSettled'), align: 'right', className: 'text-sm',
             render: (r) => (r.settledBase === null ? '—' : formatAmount(r.settledBase, r.baseCurrency)),
         },
         {
-            key: 'open', header: t('invoice.colOpen'), align: 'right', className: 'font-mono text-sm font-medium',
+            key: 'open', header: t('invoice.colOpen'), align: 'right', className: 'text-sm font-medium',
             render: (r) => (r.openBase === null ? '—' : formatAmount(r.openBase, r.baseCurrency)),
         },
         { key: 'state', header: t('invoice.colState'), render: statePill },

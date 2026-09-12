@@ -104,7 +104,7 @@ export default async function KpiPage() {
                 {orgs.map((o) => (
                     <div key={o.code} className="border border-gray-300 rounded p-4">
                         <div className="flex flex-wrap items-baseline gap-2 mb-2">
-                            <span className="font-mono text-sm text-[color:var(--brand-muted-text)]">{o.code}</span>
+                            <span className="text-sm text-[color:var(--brand-muted-text)]">{o.code}</span>
                             <span className="font-semibold">{o.title}</span>
                             <span className="text-sm text-[color:var(--brand-text)]">— {o.weight_pct}%</span>
                             {/* ★ 4.2:暂定的目标要看得出来,而且要说出【暂定到什么为止】★ */}
@@ -165,7 +165,7 @@ export default async function KpiPage() {
                     <ul className="mt-2 text-sm list-disc list-inside">
                         {vacant.map((p) => (
                             <li key={p.code}>
-                                <span className="font-mono text-xs">{p.code}</span> · {p.title}
+                                <span className="text-xs">{p.code}</span> · {p.title}
                                 {p.source_incumbent_name && (
                                     <span className="text-[color:var(--brand-muted-text)]"> — {t('kpi.staffingNamedInSource', { name: p.source_incumbent_name })}</span>
                                 )}

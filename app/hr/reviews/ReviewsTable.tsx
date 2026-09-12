@@ -35,14 +35,14 @@ export default function ReviewsTable({ rows, empty }: { rows: ReviewsTableRow[];
             key: 'employee', header: t('reviews.employee'), priority: true, className: 'whitespace-nowrap',
             render: (r) => (
                 <Link href={`/hr/reviews/${r.id}`} className="hover:underline app-link">
-                    <span className="font-mono">{r.employeeCode}</span> {r.employeeLabel}
+                    <span>{r.employeeCode}</span> {r.employeeLabel}
                 </Link>
             ),
         },
         { key: 'type', header: t('reviews.type'), render: (r) => r.typeLabel },
         { key: 'cycle', header: t('reviews.cycle'), render: (r) => r.cycleName },
         {
-            key: 'period', header: t('reviews.period'), className: 'whitespace-nowrap font-mono text-xs',
+            key: 'period', header: t('reviews.period'), className: 'whitespace-nowrap text-xs',
             render: (r) => `${r.periodStart} → ${r.periodEnd}`,
         },
         {
@@ -50,7 +50,7 @@ export default function ReviewsTable({ rows, empty }: { rows: ReviewsTableRow[];
             render: (r) =>
                 r.reviewerCode ? (
                     <>
-                        <span className="font-mono">{r.reviewerCode}</span> {r.reviewerName}
+                        <span>{r.reviewerCode}</span> {r.reviewerName}
                     </>
                 ) : (
                     <span className="text-red-700">{t('reviews.noReviewer')}</span>

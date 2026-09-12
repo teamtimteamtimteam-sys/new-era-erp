@@ -112,7 +112,7 @@ export function EmployeeReviewsTable({ rows }: { rows: readonly EmployeeReviewRo
         {
             key: 'period',
             header: t('reviews.period'),
-            className: 'whitespace-nowrap font-mono text-xs',
+            className: 'whitespace-nowrap text-xs',
             render: (r) => r.periodText,
         },
         {
@@ -174,17 +174,17 @@ export function EmployeePayrollTable({ rows }: { rows: readonly EmployeePayRow[]
                 </>
             ),
         },
-        { key: 'gross', header: t('hr.colGross'), align: 'right', className: 'font-mono', render: (r) => r.grossText },
-        { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', className: 'font-mono', render: (r) => r.employerCpfText },
-        { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', className: 'font-mono', render: (r) => r.employeeCpfText },
-        { key: 'deductions', header: t('hr.colDeductions'), align: 'right', className: 'font-mono', render: (r) => r.deductionsText },
+        { key: 'gross', header: t('hr.colGross'), align: 'right', render: (r) => r.grossText },
+        { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', render: (r) => r.employerCpfText },
+        { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', render: (r) => r.employeeCpfText },
+        { key: 'deductions', header: t('hr.colDeductions'), align: 'right', render: (r) => r.deductionsText },
         {
             key: 'net',
             header: t('hr.colNet'),
             align: 'right',
             // ★ 见抬头:那个月实际拿到多少。
             priority: true,
-            className: 'font-mono font-medium',
+            className: 'font-medium',
             render: (r) => r.netText,
         },
         {

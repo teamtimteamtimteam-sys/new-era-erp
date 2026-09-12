@@ -154,7 +154,7 @@ export default async function TraceabilitySection({
             ) : (
                 <ul className="text-sm space-y-1">
                     {issues.map((iss) => (
-                        <li key={iss.version} className="font-mono text-xs text-[color:var(--brand-muted-text)]">
+                        <li key={iss.version} className="text-xs text-[color:var(--brand-muted-text)]">
                             <a
                                 href={`${pdfHref}?version=${iss.version}`}
                                 target="_blank"

@@ -46,7 +46,7 @@ export default function GrantRunner({
             )}
             {log.length > 0 && (
                 <div className="mb-4 rounded border border-gray-200 bg-gray-50 px-3 py-2 text-sm">
-                    {log.map((l, i) => <div key={i} className="font-mono text-xs text-[color:var(--brand-muted-text)]">{l}</div>)}
+                    {log.map((l, i) => <div key={i} className="text-xs text-[color:var(--brand-muted-text)]">{l}</div>)}
                 </div>
             )}
 

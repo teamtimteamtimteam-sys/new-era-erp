@@ -51,7 +51,7 @@ export default function ForwardersTable({
                 </Link>
             ),
         },
-        { key: 'code', header: t('logistics.colCode'), className: 'font-mono text-xs', render: (r) => r.code },
+        { key: 'code', header: t('logistics.colCode'), className: 'text-xs', render: (r) => r.code },
         { key: 'routes', header: t('logistics.colMainRoutes'), render: (r) => r.mainRoutes },
         {
             key: 'terms', header: t('logistics.colPaymentTerms'),

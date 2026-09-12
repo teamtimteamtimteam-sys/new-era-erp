@@ -48,7 +48,7 @@ export default function SettlementHistoryTable({ rows }: { rows: readonly Settle
             header: t('finance.colPayment'),
             // 身份列 —— 一条结算行的主语是"哪一笔付款"。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) =>
                 r.isTotal ? (
                     r.paymentCode
@@ -78,7 +78,7 @@ export default function SettlementHistoryTable({ rows }: { rows: readonly Settle
             align: 'right',
             // ★ 这张表存在的理由:**这一笔结掉了多少**。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => (r.reversed ? <span className="line-through">{r.allocatedText}</span> : r.allocatedText),
         },
         {

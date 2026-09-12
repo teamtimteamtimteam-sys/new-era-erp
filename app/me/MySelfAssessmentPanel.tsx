@@ -106,7 +106,7 @@ export default function MySelfAssessmentPanel({
                 key: 'target',
                 header: t('reviews.colTarget'),
                 align: 'right',
-                className: 'font-mono whitespace-nowrap',
+                className: 'whitespace-nowrap',
                 render: (g) => (g.target_value !== null ? `${g.target_value} ${g.unit ?? ''}` : '—'),
             },
             {
@@ -115,7 +115,7 @@ export default function MySelfAssessmentPanel({
                 align: 'right',
                 render: (g) =>
                     g.actual_value !== null ? (
-                        <span className="font-mono">{`${g.actual_value} ${g.unit ?? ''}`}</span>
+                        <span>{`${g.actual_value} ${g.unit ?? ''}`}</span>
                     ) : (
                         '—'
                     ),
@@ -169,7 +169,7 @@ export default function MySelfAssessmentPanel({
                             <div className="text-sm font-medium">
                                 {t(`reviews.type_${a.review_type}`)}
                                 {a.cycle_name && <span className="ml-2">{a.cycle_name}</span>}
-                                <span className="ml-2 font-mono text-xs text-[color:var(--brand-muted-text)]">
+                                <span className="ml-2 text-xs text-[color:var(--brand-muted-text)]">
                                     {a.period_start} → {a.period_end}
                                 </span>
                             </div>

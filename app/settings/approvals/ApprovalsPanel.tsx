@@ -70,7 +70,7 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
         <div className="flex flex-wrap items-baseline gap-x-2 py-1">
             <span className="text-[color:var(--brand-muted-text)] text-sm">{label}:</span>
             {value ? (
-                <span className="font-mono text-sm">{value}</span>
+                <span className="text-sm">{value}</span>
             ) : (
                 <>
                     <span className="text-amber-800 text-sm font-medium">

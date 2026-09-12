@@ -79,7 +79,7 @@ export default function StatementPanel({
     const row = (label: string, value: number, paren = false) => (
         <div className="flex justify-between py-0.5">
             <span className="text-[color:var(--brand-muted-text)]">{label}</span>
-            <span className="font-mono">{paren ? `(${money(value)})` : money(value)}</span>
+            <span>{paren ? `(${money(value)})` : money(value)}</span>
         </div>
     )
 
@@ -89,7 +89,7 @@ export default function StatementPanel({
     //   原样说了一遍,不是新做了一次判断。
     const columns: Column<Issued>[] = [
         {
-            key: 'code', header: t('statements.colCode'), priority: true, className: 'font-mono',
+            key: 'code', header: t('statements.colCode'), priority: true,
             render: (x) => (
                 <>
                     <Link href={`/finance/statements/${x.id}/pdf`}
@@ -103,12 +103,11 @@ export default function StatementPanel({
             ),
         },
         {
-            key: 'period', header: t('statements.colPeriod'), priority: true, className: 'font-mono',
+            key: 'period', header: t('statements.colPeriod'), priority: true,
             render: (x) => `${x.period_start} → ${x.period_end}`,
         },
         {
-            key: 'closing', header: t('statements.doc.closing'), align: 'right', priority: true,
-            className: 'font-mono', render: (x) => money(x.closing_base),
+            key: 'closing', header: t('statements.doc.closing'), align: 'right', priority: true, render: (x) => money(x.closing_base),
         },
         {
             key: 'issued', header: t('statements.colIssued'), priority: true,
@@ -159,14 +158,14 @@ export default function StatementPanel({
                     {row(t('statements.doc.applied'), preview.applied_base, true)}
                     <div className="flex justify-between border-t border-gray-400 mt-1 pt-1 font-medium">
                         <span>{t('statements.doc.closing')}</span>
-                        <span className="font-mono">{money(preview.closing_base)}</span>
+                        <span>{money(preview.closing_base)}</span>
                     </div>
                     {preview.on_account_base !== 0 && (
                         <>
                             {row(t('statements.doc.onAccount'), preview.on_account_base, true)}
                             <div className="flex justify-between border-t border-gray-400 mt-1 pt-1 font-medium">
                                 <span>{t('statements.doc.netDue')}</span>
-                                <span className="font-mono">{money(preview.net_due_base)}</span>
+                                <span>{money(preview.net_due_base)}</span>
                             </div>
                         </>
                     )}

@@ -78,7 +78,7 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
     // 两者一起才认得出"这是哪一条"。sort_order / inUse / isActive 是读到
     // 这一条之后才要问的东西,进展开区。
     const columns: Column<DictRow>[] = [
-        { key: 'code', header: t('dict.f.code'), priority: true, className: 'font-mono text-xs', render: (r) => r.code },
+        { key: 'code', header: t('dict.f.code'), priority: true, className: 'text-xs', render: (r) => r.code },
         { key: 'name', header: t('dict.f.name'), priority: true, render: (r) => label(r) },
         { key: 'sortOrder', header: t('dict.f.sortOrder'), align: 'right', render: (r) => r.sort_order },
         // D4:停用之前先看见有多少行带着它。
@@ -182,7 +182,7 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                             <span className={flabel}>{t('dict.f.code')}</span>
                             <input value={f.code} disabled={editing !== '__new__'}
                                    onChange={(e) => setF({ ...f, code: e.target.value })}
-                                   className={`${field} font-mono`} />
+                                   className={field} />
                             {/* 【D6:建好之后 code 不能改 —— 说出来,不要只是灰掉】 */}
                             <span className="text-xs text-[color:var(--brand-muted-text)]">
                                 {editing === '__new__' ? t('dict.h.codeNew') : t('dict.h.codeLocked')}

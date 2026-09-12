@@ -110,7 +110,7 @@ export default async function ShippingSection({
                                 一个答案 —— 一份渲染出来的纸。单号现在进详情页,
                                 送货单那条链接留在原处不动。 */}
                             <a href={`/sales/shipments/${s.id}`}
-                               className="font-mono hover:underline app-link app-link-inline">{s.code}</a>
+                               className="hover:underline app-link app-link-inline">{s.code}</a>
                             <span className="text-[color:var(--brand-muted-text)]">{new Date(s.ship_date).toLocaleDateString(dl)}</span>
                             <span className="text-[color:var(--brand-muted-text)]">
                                 {t('sales.ship.lineCount', { n: String((s.shipment_lines ?? []).length) })}
@@ -152,11 +152,11 @@ export default async function ShippingSection({
                         <div key={l.id} className="border border-gray-300 rounded p-3">
                             <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-2">
                                 <span className="font-medium">
-                                    #{l.line_no} <span className="font-mono">{l.material_code}</span>
+                                    #{l.line_no} <span>{l.material_code}</span>
                                 </span>
                                 <span className="text-sm">
                                     <span className="text-[color:var(--brand-muted-text)]">{t('sales.ship.shippedLabel')}:</span>{' '}
-                                    <span className="font-mono">
+                                    <span>
                                         {shipped} / {l.quantity} {l.unit}
                                     </span>
                                 </span>

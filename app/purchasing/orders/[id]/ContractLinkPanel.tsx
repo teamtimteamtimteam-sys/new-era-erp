@@ -70,7 +70,7 @@ export default function ContractLinkPanel({
             {linkedCode ? (
                 <>
                     <p className="text-sm">
-                        <span className="font-mono font-medium">{linkedCode}</span>
+                        <span className="font-medium">{linkedCode}</span>
                     </p>
                     {/* ★【冻的是【挂接】那一刻的条款,不是下单那天的】★
                         CONTRACT-1 刻意允许回填挂接,所以这句话要当场说出来 ——

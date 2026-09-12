@@ -105,7 +105,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
                 </p>
             }
             title={period.code}
-            intro={<span className="font-mono">{period.period_start} → {period.period_end}</span>}
+            intro={<span>{period.period_start} → {period.period_end}</span>}
             // ★★ 详情页恒为 ok —— 这个期间在不在由上面 mustOne + periodMissing 回答。
             state={{ kind: 'ok' }}
             notices={
@@ -158,14 +158,14 @@ export default async function GstPeriodPage({ params, searchParams }: {
                         <p className="mt-1">
                             {ties.agrees_documents_vs_statute ? '✓' : '✗'}{' '}
                             {t('gst.tieDocsVsStatute')}{' '}
-                            <span className="font-mono">
+                            <span>
                                 {String(ties.box6_from_documents)} vs {String(ties.box6_recomputed_from_statute)}
                             </span>
                         </p>
                         <p>
                             {ties.agrees_documents_vs_ledger ? '✓' : '✗'}{' '}
                             {t('gst.tieDocsVsLedger')}{' '}
-                            <span className="font-mono">
+                            <span>
                                 {String(ties.box6_from_documents)} vs {String(ties.box6_from_tax_account)}
                             </span>
                         </p>

@@ -95,7 +95,7 @@ export default function ChasePanel({
     //     (组件把同一个 render 用在行里和展开区)。
     const columns: Column<Chase>[] = [
         {
-            key: 'code', header: t('chases.colCode'), priority: true, className: 'font-mono',
+            key: 'code', header: t('chases.colCode'), priority: true,
             render: (c) => (
                 <>
                     {c.code}
@@ -107,7 +107,7 @@ export default function ChasePanel({
                 </>
             ),
         },
-        { key: 'date', header: t('chases.colDate'), className: 'font-mono', render: (c) => c.chased_on },
+        { key: 'date', header: t('chases.colDate'), render: (c) => c.chased_on },
         { key: 'channel', header: t('chases.colChannel'), render: (c) => t('chases.channel_' + c.channel) },
         {
             key: 'who', header: t('chases.colWho'),
@@ -129,14 +129,13 @@ export default function ChasePanel({
             ),
         },
         {
-            key: 'owed', header: t('chases.owedAtChase'), align: 'right', priority: true,
-            className: 'font-mono', render: (c) => money(c.owed_base),
+            key: 'owed', header: t('chases.owedAtChase'), align: 'right', priority: true, render: (c) => money(c.owed_base),
         },
         {
             key: 'promise', header: t('chases.colPromise'), priority: true,
             render: (c) => (c.promise ? (
                 <>
-                    <span className="font-mono">
+                    <span>
                         {c.promise.promised_amount_ccy.toLocaleString()} {c.promise.currency}
                     </span>
                     <span className="block text-gray-500">→ {c.promise.promised_date}</span>
@@ -168,18 +167,18 @@ export default function ChasePanel({
                     {openPromises.map((p) => (
                         <div key={p.promise_id} className="mb-3 last:mb-0 text-sm">
                             <div className="flex flex-wrap items-baseline gap-2">
-                                <span className="font-mono">{p.promised_amount_ccy.toLocaleString()} {p.currency}</span>
+                                <span>{p.promised_amount_ccy.toLocaleString()} {p.currency}</span>
                                 <span className="text-[color:var(--brand-muted-text)]">→ {p.promised_date}</span>
                                 {p.is_overdue && (
                                     <span className="px-1.5 py-0.5 rounded text-xs bg-red-200 text-red-900">
                                         {t('chases.promiseOverdue')}
                                     </span>
                                 )}
-                                <span className="text-xs text-[color:var(--brand-muted-text)] font-mono">{p.chase_code}</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)]">{p.chase_code}</span>
                             </div>
                             <p className="text-xs text-[color:var(--brand-text)] mt-1">
                                 {t('chases.appliedSince')}:{' '}
-                                <span className="font-mono">{money(p.applied_since_base)} {baseCurrency}</span>
+                                <span>{money(p.applied_since_base)} {baseCurrency}</span>
                             </p>
                             <p className="text-xs text-[color:var(--brand-muted-text)]">{t('chases.appliedSinceHint')}</p>
                             <PermissionGate code="module.finance.edit" allowed={canEdit}>
@@ -274,7 +273,7 @@ export default function ChasePanel({
                             <label className="">
                                 {t('chases.promiseCurrency')}
                                 <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-                                    className={`${CONTROL_INPUT} block w-24 font-mono`} />
+                                    className={`${CONTROL_INPUT} block w-24`} />
                             </label>
                             <label className="">
                                 {t('chases.promiseDate')}
@@ -308,7 +307,7 @@ export default function ChasePanel({
             {/* 冻结的数与今天的数【并排】—— 表里那一列是当时告诉客户的数 */}
             {chases.length > 0 && (
                 <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">
-                    {t('chases.owedToday')}: <span className="font-mono">{money(owedToday)} {baseCurrency}</span>
+                    {t('chases.owedToday')}: <span>{money(owedToday)} {baseCurrency}</span>
                     {' · '}{t('chases.frozenNote', { date: chases[0].chased_on })}
                 </p>
             )}

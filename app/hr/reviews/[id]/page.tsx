@@ -133,7 +133,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
             <div className="flex justify-between items-start mt-2 mb-4">
                 <h1 className="">
                     {subject ? subject.legal_name : t('reviews.detailTitle')}
-                    <span className="ml-2 font-mono text-sm text-[color:var(--brand-muted-text)]">{subject?.code}</span>
+                    <span className="ml-2 text-sm text-[color:var(--brand-muted-text)]">{subject?.code}</span>
                     <span className={'ml-3 align-middle inline-block rounded px-2 py-0.5 text-xs ' + statusPillClass(r.status)}>
                         {t(`reviews.status_${r.status}`)}
                     </span>
@@ -158,13 +158,13 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                 </div>
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.period')}:</span>
-                    <span className="font-mono">{r.period_start} → {r.period_end}</span>
+                    <span>{r.period_start} → {r.period_end}</span>
                 </div>
                 <div className="col-span-2">
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.reviewer')}:</span>
                     {reviewer ? (
                         <>
-                            <span className="font-mono">{reviewer.code}</span> {reviewer.legal_name}{' '}
+                            <span>{reviewer.code}</span> {reviewer.legal_name}{' '}
                         </>
                     ) : (
                         <span className="text-red-700 mr-2">{t('reviews.noReviewer')}</span>
@@ -191,7 +191,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                 {canPay && (r.new_monthly_salary !== null || r.salary_effective_date !== null) && !canHrEdit && (
                     <div>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.newSalary')}:</span>
-                        <span className="font-mono">{formatAmount(r.new_monthly_salary, baseCurrency)}</span>
+                        <span>{formatAmount(r.new_monthly_salary, baseCurrency)}</span>
                         <span className="ml-2 text-[color:var(--brand-muted-text)]">{r.salary_effective_date}</span>
                     </div>
                 )}

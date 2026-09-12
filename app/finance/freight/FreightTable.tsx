@@ -26,7 +26,7 @@ export default function FreightTable({ rows, empty }: { rows: FreightRow[]; empt
     // ★ 手机上留【单号】与【金额】—— 理由同其余登记簿:身份 + 这张表存在的理由。
     const columns: Column<FreightRow>[] = [
         {
-            key: 'code', header: t('finance.freight.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('finance.freight.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/finance/freight/${r.id}`} className="hover:underline app-link">
                     {r.code}
@@ -36,7 +36,7 @@ export default function FreightTable({ rows, empty }: { rows: FreightRow[]; empt
         { key: 'date', header: t('finance.freight.colDate'), render: (r) => r.docDate },
         { key: 'forwarder', header: t('finance.freight.colForwarder'), render: (r) => r.forwarder },
         {
-            key: 'amount', header: t('finance.freight.colAmount'), priority: true, align: 'right', className: 'font-mono text-sm',
+            key: 'amount', header: t('finance.freight.colAmount'), priority: true, align: 'right', className: 'text-sm',
             render: (r) => formatAmount(r.amountBase, r.baseCurrency),
         },
         { key: 'basis', header: t('finance.freight.colBasis'), className: 'text-sm', render: (r) => t('finance.freight.basis.' + r.allocationBasis) },

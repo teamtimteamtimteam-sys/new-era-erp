@@ -24,7 +24,7 @@ export default function StocktakesTable({ rows, empty }: { rows: StocktakeRow[];
     //   过账了没有",那是打开这份清单要问的那一件事。
     const columns: Column<StocktakeRow>[] = [
         {
-            key: 'code', header: t('stocktakes.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('stocktakes.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/stocktakes/${r.id}`} className="hover:underline app-link">
                     {r.code}

@@ -91,12 +91,12 @@ export default function ConverterForm() {
                             aria-label={t('converter.mass.to')}>
                         {UNITS.map((u) => <option key={u} value={u}>{t('converter.unit.' + u)}</option>)}
                     </select>
-                    <span className="font-mono font-semibold ml-2">
+                    <span className="font-semibold ml-2">
                         = {massOk ? show(convertMass(massVal, from, to)) : '—'}
                     </span>
                 </div>
                 {/* 【算式 + 常数的出处】—— 不只给答案 */}
-                <p className="rounded px-2 py-1 text-xs font-mono" style={formulaStyle}>
+                <p className="rounded px-2 py-1 text-xs" style={formulaStyle}>
                     {t('converter.mass.formula')}
                 </p>
                 <p className="text-xs mt-2" style={{ color: 'var(--brand-muted-text)' }}>
@@ -128,7 +128,7 @@ export default function ConverterForm() {
                            }} />
                     <span>g/t</span>
                 </div>
-                <p className="rounded px-2 py-1 text-xs font-mono" style={formulaStyle}>
+                <p className="rounded px-2 py-1 text-xs" style={formulaStyle}>
                     {t('converter.grade.formula', { k: String(GRAMS_PER_TONNE_PER_PERCENT) })}
                 </p>
                 <p className="text-xs mt-2" style={{ color: 'var(--brand-muted-text)' }}>
@@ -173,7 +173,7 @@ export default function ConverterForm() {
                     </p>
                 )}
                 {res && (
-                    <p className="rounded px-3 py-2 text-sm font-mono mb-2" data-converter-result="1"
+                    <p className="rounded px-3 py-2 text-sm mb-2" data-converter-result="1"
                        style={{ background: 'var(--brand-accent)' }}>
                         {t('converter.basis.weight')}: {res.weight === null ? '—' : show(res.weight)}
                         {'   '}
@@ -181,7 +181,7 @@ export default function ConverterForm() {
                     </p>
                 )}
 
-                <p className="rounded px-2 py-1 text-xs font-mono" style={formulaStyle}>
+                <p className="rounded px-2 py-1 text-xs" style={formulaStyle}>
                     {t('converter.basis.formula')}
                 </p>
                 <p className="text-xs mt-2" style={{ color: 'var(--brand-muted-text)' }}>

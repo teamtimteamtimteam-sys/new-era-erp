@@ -59,12 +59,12 @@ export default function MyReviewsPanel({
         },
         {
             key: 'target', header: t('reviews.colTarget'), align: 'right', priority: true,
-            className: 'align-top font-mono whitespace-nowrap',
+            className: 'align-top whitespace-nowrap',
             render: (g) => (g.target_value !== null ? `${g.target_value} ${g.unit ?? ''}` : '—'),
         },
         {
             key: 'actual', header: t('reviews.colActual'), align: 'right', priority: true,
-            className: 'align-top font-mono whitespace-nowrap',
+            className: 'align-top whitespace-nowrap',
             render: (g) => (g.actual_value !== null ? `${g.actual_value} ${g.unit ?? ''}` : '—'),
         },
         {
@@ -100,7 +100,7 @@ export default function MyReviewsPanel({
                     <details key={r.id} className="rounded border border-gray-200 mb-3">
                         <summary className="cursor-pointer px-4 py-3 text-sm flex items-baseline gap-3 flex-wrap">
                             <span className="font-medium">{t(`reviews.type_${r.review_type}`)}</span>
-                            <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">
+                            <span className="text-xs text-[color:var(--brand-muted-text)]">
                                 {r.period_start} → {r.period_end}
                             </span>
                             <span className="font-medium">{ratingName(r.rating_code)}</span>
@@ -140,7 +140,7 @@ export default function MyReviewsPanel({
                                 {r.new_monthly_salary !== null && (
                                     <div>
                                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.newSalary')}:</span>
-                                        <span className="font-mono">
+                                        <span>
                                             {formatAmount(r.new_monthly_salary, baseCurrency)}
                                         </span>
                                         {r.salary_effective_date && (

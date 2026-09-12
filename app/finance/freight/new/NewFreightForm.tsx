@@ -260,20 +260,20 @@ export default function NewFreightForm({
                                                 onChange={(e) => setPicked((p) => ({ ...p, [b.id]: e.target.checked }))} />
                                             {picked[b.id] && <input type="hidden" name="batch_id" value={b.id} />}
                                         </td>
-                                        <td className={`${tableC.cell} font-mono`}>
+                                        <td className={tableC.cell}>
                                             {b.code}
                                             {/* ★ TABLE-PHONE-4:5 列那一支手机档拿掉的「剩余」,带着列头叠在这里。 */}
                                             {stacked && (
                                                 <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
-                                                    <div className="font-mono">
+                                                    <div>
                                                         <span className="font-sans text-gray-500">{t('finance.freight.colRemaining')}: </span>
                                                         {b.remaining_qty}
                                                     </div>
                                                 </div>
                                             )}
                                         </td>
-                                        <td className={`${tableC.cell} text-right font-mono`}>{b.quantity} {b.unit}</td>
-                                        <td className={`${tableC.cell} ${(stacked ? 'hidden sm:table-cell ' : '') + 'text-right font-mono'}`}>
+                                        <td className={`${tableC.cell} text-right tabular-nums`}>{b.quantity} {b.unit}</td>
+                                        <td className={`${tableC.cell} ${(stacked ? 'hidden sm:table-cell ' : '') + 'text-right tabular-nums'}`}>
                                             {b.remaining_qty}
                                         </td>
                                         {basis === 'stated' && (

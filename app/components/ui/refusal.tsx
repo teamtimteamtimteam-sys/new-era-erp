@@ -132,7 +132,7 @@ export function RefusalBlock({
         >
             <p className="font-medium">
                 {statement}
-                {code && <span className="ml-1 font-mono text-xs">({code})</span>}
+                {code && <span className="ml-1 text-xs">({code})</span>}
             </p>
             {hint && <p className="mt-1 text-sm">{hint}</p>}
         </div>

@@ -69,7 +69,7 @@ export default function StatusPanel({
                     </div>
                     <div className="text-lg font-medium">
                         {t('suppliers.status.' + currentStatus)}
-                        <span className="ml-2 text-xs text-gray-400 font-mono">
+                        <span className="ml-2 text-xs text-gray-400">
                             ({currentStatus})
                         </span>
                     </div>

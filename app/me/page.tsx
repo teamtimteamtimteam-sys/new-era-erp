@@ -292,7 +292,7 @@ export default async function MePage() {
             <section className={card + ' mb-6'}>
                 <div className="flex items-baseline gap-3 mb-4">
                     <h2 className="">{p.preferred_name || p.legal_name}</h2>
-                    <span className="font-mono text-sm text-[color:var(--brand-muted-text)]">{p.code}</span>
+                    <span className="text-sm text-[color:var(--brand-muted-text)]">{p.code}</span>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-3">
                     <div>
@@ -319,15 +319,15 @@ export default async function MePage() {
                     </div>
                     <div>
                         <div className={dt}>{t('me.annualLeaveAvailable')}</div>
-                        <div className={dd + ' font-mono'}>{p.annual_leave_available_days ?? 0} {t('me.days')}</div>
+                        <div className={dd}>{p.annual_leave_available_days ?? 0} {t('me.days')}</div>
                     </div>
                     <div>
                         <div className={dt}>{t('me.annualLeaveAccrued')}</div>
-                        <div className={dd + ' font-mono'}>{p.annual_leave_accrued_days ?? 0} {t('me.days')}</div>
+                        <div className={dd}>{p.annual_leave_accrued_days ?? 0} {t('me.days')}</div>
                     </div>
                     <div>
                         <div className={dt}>{t('me.annualLeaveRate')}</div>
-                        <div className={dd + ' font-mono'}>{p.annual_leave_rate_days ?? 0} {t('me.daysPerYear')}</div>
+                        <div className={dd}>{p.annual_leave_rate_days ?? 0} {t('me.daysPerYear')}</div>
                         <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-md">{t('me.annualLeaveHint')}</p>
                     </div>
                     {p.work_pass_type && (
@@ -448,7 +448,7 @@ export default async function MePage() {
                         {myKpi.map((k) => (
                             <div key={k.id} className="border border-gray-300 rounded p-3">
                                 <div className="flex flex-wrap items-baseline gap-2">
-                                    <span className="font-mono text-xs text-[color:var(--brand-muted-text)]">{k.kpi_ref}</span>
+                                    <span className="text-xs text-[color:var(--brand-muted-text)]">{k.kpi_ref}</span>
                                     <span className="font-medium">{k.title}</span>
                                     <span className="text-sm text-[color:var(--brand-text)]">— {k.weight_pct}%</span>
                                     <span className="text-xs text-[color:var(--brand-muted-text)]">{k.org_codes.join(' / ')}</span>
@@ -478,7 +478,7 @@ export default async function MePage() {
                                         <>
                                             {/* ★★ 4.3:算出来的分与人判的分【长得不一样】★★ */}
                                             {k.score_kind === 'computed' ? (
-                                                <span className="inline-flex items-center gap-1 font-mono bg-slate-800 text-white px-2 py-0.5 rounded">
+                                                <span className="inline-flex items-center gap-1 bg-slate-800 text-white px-2 py-0.5 rounded">
                                                     {k.score}/5
                                                     <span className="text-xs font-sans">{t('kpi.computedTag')}</span>
                                                 </span>

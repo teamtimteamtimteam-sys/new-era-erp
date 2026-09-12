@@ -241,7 +241,7 @@ export default async function AccountLedgerPage({
                 <>
                     <div className="mb-4">
                         <p className="text-lg">
-                            <span className="font-mono">{led.account.code}</span>{' '}
+                            <span>{led.account.code}</span>{' '}
                             <span className="font-semibold">{accountName}</span>{' '}
                             <span className="text-[color:var(--brand-muted-text)] text-sm">
                                 ({t('finance.accountType.' + led.account.account_type)})
@@ -262,7 +262,7 @@ export default async function AccountLedgerPage({
                     <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl">
                         <div className="border border-gray-300 rounded px-4 py-3">
                             <p className="text-xs text-[color:var(--brand-muted-text)]">{t('finance.ledgerOwnTotal')}</p>
-                            <p className="font-mono text-lg">
+                            <p className="text-lg">
                                 {formatMoneyBare(led.total, '本块抬头下方一行写明本位币')} {baseCurrency}
                             </p>
                         </div>
@@ -270,7 +270,7 @@ export default async function AccountLedgerPage({
                             <p className="text-xs text-[color:var(--brand-muted-text)]">
                                 {t(mode === 'pnl' ? 'finance.ledgerPnlFigure' : 'finance.ledgerBsFigure')}
                             </p>
-                            <p className="font-mono text-lg">
+                            <p className="text-lg">
                                 {figure === null ? (
                                     // 【报表不报这一行】—— 不写 0.00。见抬头。
                                     <span className="text-[color:var(--brand-muted-text)] text-sm">

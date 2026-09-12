@@ -167,7 +167,7 @@ export function PermissionGate({
                      不该被一条为单句写的规则钉成一行"。 */}
             <Refusal why={why} className={cn('font-normal', alsoAllowedIf && 'whitespace-normal text-left')}>
                 {t('common.permissionGate.needs')}
-                <code className="font-mono text-[0.95em]">{code}</code>
+                <code className="text-[0.95em]">{code}</code>
                 {/* ★ 「或者……」跟在码后面,而【不是】另起一枚药丸:
                        两枚药丸读起来像两条各自独立的拒绝,而它们是【一个】
                        条件的两条路 —— 满足任一条就开。 */}

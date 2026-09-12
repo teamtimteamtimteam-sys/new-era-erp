@@ -135,18 +135,18 @@ export default function SalePanel({
             <div className="bg-gray-50 rounded p-4 mb-4 flex flex-wrap gap-8 text-sm">
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('output.sale.remainingLabel')}:</span>
-                    <span className="font-medium font-mono">{remainingQty} {unit}</span>
+                    <span className="font-medium">{remainingQty} {unit}</span>
                 </div>
                 {/* IOD-1:可售与暂扣分开列。remaining 留着 —— 它回答的是
                     "这批货还剩多少",而可售回答的是"我现在能卖多少",
                     两个问题在有暂扣时答案不同,合成一个数就等于把差额藏起来。 */}
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('stock.saleAvailable')}:</span>
-                    <span className="font-medium font-mono">{availableQty} {unit}</span>
+                    <span className="font-medium">{availableQty} {unit}</span>
                 </div>
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('stock.saleHeld')}:</span>
-                    <span className={'font-medium font-mono ' + (heldQty > 0 ? 'text-amber-800' : '')}>
+                    <span className={'font-medium ' + (heldQty > 0 ? 'text-amber-800' : '')}>
                         {heldQty} {unit}
                     </span>
                 </div>
@@ -154,7 +154,7 @@ export default function SalePanel({
                     (释放在那里,不在这个页面上:撤回一个承诺是销售的动作)。 */}
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('stock.saleCommitted')}:</span>
-                    <span className={'font-medium font-mono ' + (committedQty > 0 ? 'text-blue-800' : '')}>
+                    <span className={'font-medium ' + (committedQty > 0 ? 'text-blue-800' : '')}>
                         {committedQty} {unit}
                     </span>
                     {committedQty > 0 && (

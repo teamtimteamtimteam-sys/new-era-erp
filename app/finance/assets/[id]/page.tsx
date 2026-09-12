@@ -308,7 +308,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             padding="p-6"
             title={
                 <span className="flex flex-wrap items-baseline gap-3">
-                    <span className="font-mono">{asset.code}</span>
+                    <span>{asset.code}</span>
                     <span className="text-lg font-normal">{asset.description}</span>
                 {/* 【FIX-3(C):这一行是【搬过来的】,不是新加的 —— 同一个 inServiceState、
                     同一批 i18n 键、一个字没改。FIX-1(B-D5) 早就把它建好了,它此前是
@@ -382,7 +382,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     {deadClaims.map((c) => (
                         <p key={c.id} className="text-sm text-[color:var(--brand-muted-text)]">
                             <Link href={`/purchasing/orders/${c.purchase_order_id}`}
-                                  className="underline font-mono app-link app-link-inline">
+                                  className="underline app-link app-link-inline">
                                 {c.po?.code ?? '—'}
                             </Link>
                             <span className="ml-2">{t('assets.detail.lineNo', { 0: c.line_no })}</span>
@@ -396,7 +396,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             ) : (
                 <div className="mb-6 text-sm space-y-1">
                     <p>
-                        <Link href={`/purchasing/orders/${line.purchase_order_id}`} className="underline font-mono app-link app-link-inline">
+                        <Link href={`/purchasing/orders/${line.purchase_order_id}`} className="underline app-link app-link-inline">
                             {line.purchase_orders?.code ?? '—'}
                         </Link>
                         <span className="ml-2 text-[color:var(--brand-muted-text)]">{t('assets.detail.lineNo', { 0: line.line_no })}</span>
@@ -417,7 +417,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     {deadClaims.map((c) => (
                         <p key={c.id} className="text-[color:var(--brand-muted-text)]">
                             <Link href={`/purchasing/orders/${c.purchase_order_id}`}
-                                  className="underline font-mono app-link app-link-inline">
+                                  className="underline app-link app-link-inline">
                                 {c.po?.code ?? '—'}
                             </Link>
                             <span className="ml-2">{t('assets.detail.lineNo', { 0: c.line_no })}</span>

@@ -75,7 +75,7 @@ export default async function EditCustomerPage({
 
             <h1 className="mb-2">{t('customers.editTitle')}</h1>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
-                <span className="font-mono">{customer.code}</span>
+                <span>{customer.code}</span>
                 <span className="mx-2">·</span>
                 <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">
                     {customer.status}

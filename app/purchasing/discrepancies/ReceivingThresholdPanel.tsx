@@ -95,11 +95,11 @@ export default function ReceivingThresholdPanel({
                 </form>
             ) : (
                 <div className="text-sm space-y-1">
-                    <p>{t('grn.settings.shortLabel')}:{' '}<span className="font-mono">{shortPct}</span>
+                    <p>{t('grn.settings.shortLabel')}:{' '}<span>{shortPct}</span>
                        <span className="text-xs text-[color:var(--brand-muted-text)] ml-2">{t('grn.settings.shortWhen')}</span></p>
-                    <p>{t('grn.settings.overLabel')}:{' '}<span className="font-mono">{overPct}</span>
+                    <p>{t('grn.settings.overLabel')}:{' '}<span>{overPct}</span>
                        <span className="text-xs text-[color:var(--brand-muted-text)] ml-2">{t('grn.settings.overWhen')}</span></p>
-                    <p>{t('grn.settings.assayLabel')}:{' '}<span className="font-mono">{assayPct}</span>
+                    <p>{t('grn.settings.assayLabel')}:{' '}<span>{assayPct}</span>
                        <span className="text-xs text-[color:var(--brand-muted-text)] ml-2">{t('grn.settings.assayWhen')}</span></p>
                     <p className="text-xs text-[color:var(--brand-muted-text)]">{t('grn.settings.readOnly')}</p>
                 </div>

@@ -156,7 +156,7 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
             {claim.expense_code && (
                 <section className={card}>
                     <h3 className="mb-2">{t('claims.linkedExpense')}</h3>
-                    <Link href="/finance/expenses" className="hover:underline font-mono text-sm app-link app-link-inline">
+                    <Link href="/finance/expenses" className="hover:underline text-sm app-link app-link-inline">
                         {claim.expense_code}
                     </Link>
                     <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('claims.expenseHint')}</p>

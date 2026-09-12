@@ -113,7 +113,7 @@ export default function AmendOrderForm({
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-3 max-w-3xl">{t('sales.amend.frozenWhy')}</p>
                 <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
                     <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colCode')}: </dt>
-                         <dd className="inline font-mono">{code}</dd></div>
+                         <dd className="inline">{code}</dd></div>
                     <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colCustomer')}: </dt>
                          <dd className="inline">{customerLabel}</dd></div>
                     <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colDate')}: </dt>
@@ -230,22 +230,22 @@ export default function AmendOrderForm({
                                         <input type="hidden" name="line_remove" value={gone ? '1' : '0'} />
                                     </td>
                                     <td className={tableC.cell}>
-                                        <span className="font-mono">{l.material_code}</span>{' '}
+                                        <span>{l.material_code}</span>{' '}
                                         <span className="text-gray-500">{l.material_name}</span>
                                         {/* ★ TABLE-PHONE-4:手机档拿掉的四列,带着各自的列头叠在这里。
                                             前三个是读的数,一行一个;最后那个是能点的控件,
                                             所以它单独占一行、标签在左、控件在右 ——
                                             一个被挤在窄缝里的复选框不算"还能用"。 */}
                                         <div className="sm:hidden mt-1 space-y-1 font-sans text-xs text-gray-600">
-                                            <div className="font-mono">
+                                            <div>
                                                 <span className="font-sans text-gray-500">{t('sales.amend.colInvoiced')}: </span>
                                                 {invoicedText}
                                             </div>
-                                            <div className="font-mono">
+                                            <div>
                                                 <span className="font-sans text-gray-500">{t('sales.amend.colReserved')}: </span>
                                                 {reservedText}
                                             </div>
-                                            <div className="font-mono">
+                                            <div>
                                                 <span className="font-sans text-gray-500">{t('sales.amend.colShipped')}: </span>
                                                 {shippedText}
                                             </div>
@@ -269,13 +269,13 @@ export default function AmendOrderForm({
                                             </p>
                                         )}
                                     </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                         {invoicedText}
                                     </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                         {reservedText}
                                     </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                         {shippedText}
                                     </td>
                                     <td className={`${tableC.cell} text-right tabular-nums`}>

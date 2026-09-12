@@ -132,10 +132,10 @@ export default function HrDecisionForm({
                                     type="number"
                                     value={salary}
                                     onChange={(e) => setSalary(e.target.value)}
-                                    className={`${CONTROL_INPUT} block w-32 text-right font-mono`}
+                                    className={`${CONTROL_INPUT} block w-32 text-right tabular-nums`}
                                 />
                             ) : (
-                                <span className="block text-sm py-1 font-mono">
+                                <span className="block text-sm py-1">
                                     {newMonthlySalary ?? '—'}
                                 </span>
                             )}
@@ -150,7 +150,7 @@ export default function HrDecisionForm({
                                     className={`${CONTROL_INPUT} block`}
                                 />
                             ) : (
-                                <span className="block text-sm py-1 font-mono">{salaryEffectiveDate ?? '—'}</span>
+                                <span className="block text-sm py-1">{salaryEffectiveDate ?? '—'}</span>
                             )}
                         </label>
                     </>

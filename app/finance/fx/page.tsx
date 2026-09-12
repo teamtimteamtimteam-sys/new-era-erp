@@ -206,7 +206,7 @@ export default async function FxRatesPage({
                             <ul className="space-y-0.5">
                                 {blocking.map((r) => (
                                     <li key={`${r.month_end}-${r.currency}`}>
-                                        <span className="font-mono">{r.month_end}</span> · {r.currency} ·{' '}
+                                        <span>{r.month_end}</span> · {r.currency} ·{' '}
                                         {t('finance.fxPage.readyMissingMid')}
                                     </li>
                                 ))}
@@ -227,7 +227,7 @@ export default async function FxRatesPage({
                             <ul className="text-sm space-y-0.5">
                                 {gaps.map((g) => (
                                     <li key={g.rate_date + g.currency}>
-                                        <span className="font-mono">{g.rate_date}</span> · {g.currency} ·{' '}
+                                        <span>{g.rate_date}</span> · {g.currency} ·{' '}
                                         {t('finance.fxPage.gapsMissing', { 0: g.missing_types.join(', ') })} ·{' '}
                                         {gapKindLabel(g.gap_source)} ·{' '}
                                         {/* 【两个计数各说各的单位,零的那个不显示】

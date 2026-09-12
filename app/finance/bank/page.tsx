@@ -113,7 +113,7 @@ export default async function BankHomePage() {
                 {rows.map((r) => (
                     <div key={r.account_code} className="border border-gray-300 rounded p-4">
                         <h2 className="mb-3">
-                            <span className="font-mono">{r.account_code}</span>{' '}
+                            <span>{r.account_code}</span>{' '}
                             {t('finance.bank.' + r.account_code)}
                             <span className="ml-2 text-sm text-[color:var(--brand-muted-text)]">{r.currency}</span>
                         </h2>
@@ -121,11 +121,11 @@ export default async function BankHomePage() {
                         <dl className="text-sm space-y-1">
                             <div className="flex justify-between">
                                 <dt className="text-[color:var(--brand-muted-text)]">{t('bank.ledgerBalance')}</dt>
-                                <dd className="font-mono">{formatAmount(r.ledger_balance, r.currency)}</dd>
+                                <dd>{formatAmount(r.ledger_balance, r.currency)}</dd>
                             </div>
                             <div className="flex justify-between">
                                 <dt className="text-[color:var(--brand-muted-text)]">{t('bank.latestStatement')}</dt>
-                                <dd className="font-mono">
+                                <dd>
                                     {r.latest_statement_code ? (
                                         <>
                                             {r.latest_statement_code}
@@ -140,7 +140,7 @@ export default async function BankHomePage() {
                             </div>
                             <div className="flex justify-between">
                                 <dt className="text-[color:var(--brand-muted-text)]">{t('bank.closingBalance')}</dt>
-                                <dd className="font-mono">
+                                <dd>
                                     {r.latest_closing_balance === null
                                         ? '—'
                                         : formatAmount(r.latest_closing_balance, r.currency)}
@@ -150,7 +150,7 @@ export default async function BankHomePage() {
                                 <dt className="text-[color:var(--brand-muted-text)]">{t('bank.difference')}</dt>
                                 <dd
                                     className={
-                                        'font-mono font-bold ' +
+                                        'font-bold ' +
                                         (r.difference !== null && Math.round(r.difference * 100) !== 0
                                             ? 'text-red-600'
                                             : '')
@@ -161,11 +161,11 @@ export default async function BankHomePage() {
                             </div>
                             <div className="flex justify-between">
                                 <dt className="text-[color:var(--brand-muted-text)]">{t('bank.unmatchedStatementLines')}</dt>
-                                <dd className="font-mono">{r.unmatched_statement_lines}</dd>
+                                <dd>{r.unmatched_statement_lines}</dd>
                             </div>
                             <div className="flex justify-between">
                                 <dt className="text-[color:var(--brand-muted-text)]">{t('bank.unmatchedJournalLines')}</dt>
-                                <dd className="font-mono">
+                                <dd>
                                     {r.unmatched_journal_lines}
                                     <span className="text-[color:var(--brand-muted-text)] ml-2">
                                         {formatAmount(r.unmatched_journal_amount, r.currency)}
@@ -188,7 +188,7 @@ export default async function BankHomePage() {
                                             <li key={s.id} className="flex justify-between gap-3">
                                                 <Link
                                                     href={`/finance/bank/statements/${s.id}/reconcile`}
-                                                    className="hover:underline font-mono app-link app-link-inline"
+                                                    className="hover:underline app-link app-link-inline"
                                                 >
                                                     {s.code}
                                                 </Link>

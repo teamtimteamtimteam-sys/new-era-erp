@@ -78,7 +78,7 @@ function NodeBox({ p, t }: { p: Placed; t: (k: string, v?: Record<string, string
             <text x="10" y="19" fontSize="13" fill="var(--brand-text)">
                 {nameOf(p.node).slice(0, 20)}
             </text>
-            <text x="10" y="35" fontSize="10" fill="var(--brand-muted-text)" fontFamily="monospace">
+            <text x="10" y="35" fontSize="10" fill="var(--brand-muted-text)">
                 {p.node.emp.code}
                 {departed ? ` · ${t('org.status.' + p.node.emp.employment_status)}` : ''}
             </text>
@@ -96,7 +96,7 @@ function ListRow({ n, t }: { n: OrgNode; t: (k: string, v?: Record<string, strin
     return (
         <li className="py-1" style={{ paddingLeft: `${(n.depth - 1) * 20}px` }}>
             <span className="text-sm" style={{ color: 'var(--brand-text)' }}>{nameOf(n)}</span>
-            <span className="ml-2 font-mono text-xs" style={{ color: 'var(--brand-muted-text)' }}>
+            <span className="ml-2 text-xs" style={{ color: 'var(--brand-muted-text)' }}>
                 {n.emp.code}
                 {showsStatus(n.emp) && ` · ${t('org.status.' + n.emp.employment_status)}`}
             </span>
@@ -156,7 +156,7 @@ export default async function OrgChart({ tree }: { tree: OrgTree }) {
                     </p>
                     {tree.cycles.map((c, i) => (
                         <div key={i}>
-                            <p className="mt-1 font-mono text-xs" style={{ color: 'var(--brand-text)' }}>
+                            <p className="mt-1 text-xs" style={{ color: 'var(--brand-text)' }}>
                                 {c.members.map((m) => `${nameOf(m)} (${m.emp.code})`).join(' → ')}
                                 {' → '}{nameOf(c.members[0])}
                             </p>

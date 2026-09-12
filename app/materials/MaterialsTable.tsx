@@ -58,7 +58,7 @@ export default function MaterialsTable({
     //   展开区渲染的是同一个 render,所以那条判据在小屏上没有被削掉。
     const columns: Column<MaterialTableRow>[] = [
         {
-            key: 'code', header: t('materials.colCode'), priority: true, sortable: true, className: 'font-mono text-sm',
+            key: 'code', header: t('materials.colCode'), priority: true, sortable: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/materials/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}
@@ -96,7 +96,7 @@ export default function MaterialsTable({
                 r.assayMetals.length === 0 ? (
                     <span className="text-gray-400">{t('materials.assayPolicy.noRequirement')}</span>
                 ) : (
-                    <span className="font-mono text-xs">{r.assayMetals.map((c) => t('metals.' + c)).join(', ')}</span>
+                    <span className="text-xs">{r.assayMetals.map((c) => t('metals.' + c)).join(', ')}</span>
                 ),
         },
         { key: 'unit', header: t('materials.colUnit'), render: (r) => r.unitLabel },

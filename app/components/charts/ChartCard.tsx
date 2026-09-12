@@ -101,7 +101,7 @@ export default async function ChartCard({
                    style={{ background: 'var(--brand-accent)', color: 'var(--brand-text)' }}>
                     <span className="font-medium">{t('common.restricted')}</span>
                     {' — '}{t('dashboard.restrictedHint')}
-                    <span className="ml-1 font-mono text-xs">({state.permission})</span>
+                    <span className="ml-1 text-xs">({state.permission})</span>
                 </p>
             )}
 

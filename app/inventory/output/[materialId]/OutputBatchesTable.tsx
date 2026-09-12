@@ -56,7 +56,7 @@ export default function OutputBatchesTable({ rows }: { rows: readonly OutputBatc
             header: t('output.colCode'),
             // 身份列 —— 一行在库产出的主语是它的批次号。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => (
                 <Link href={r.href} className="hover:underline app-link">
                     {r.code}
@@ -97,7 +97,7 @@ export default function OutputBatchesTable({ rows }: { rows: readonly OutputBatc
             // 而【没有计划】是一个正当的答案,所以它有名字,不是空白。
             key: 'workOrder',
             header: t('processing.colWorkOrder'),
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) =>
                 r.workOrderHref ? (
                     <Link href={r.workOrderHref} className="hover:underline app-link">

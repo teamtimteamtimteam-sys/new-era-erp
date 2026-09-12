@@ -715,7 +715,7 @@ canEdit: boolean
                             )}
                             <div className="text-sm text-[color:var(--brand-muted-text)] pb-1.5">
                                 {t('purchasing.colAmount')}:{' '}
-                                <span className="font-mono font-medium">{formatAmount(lineAmount(l), currency)}</span>
+                                <span className="font-medium">{formatAmount(lineAmount(l), currency)}</span>
                             </div>
                             {/* EQP-1c-b-fu(走查):【每一个禁用都把理由摆在旁边】(CMP-2 的规矩)——
                                 一个按不下去又不说为什么的按钮读起来像是坏了。
@@ -813,7 +813,7 @@ canEdit: boolean
                                               （含那个原样带着的「×」）全部不变；手机档留下的仍然是
                                               金属 · 单价 · 金属价值 三列。 */}
                                         <CalcLinesTable lines={l.calc.lines} />
-                                        <p className="font-mono text-[color:var(--brand-text)]">
+                                        <p className="text-[color:var(--brand-text)]">
                                             {formatMoneyBare(l.calc.gross_value_usd, '同一行末尾的 USD')} − {formatMoneyBare(l.calc.treatment_usd, '同一行末尾的 USD')}{' '}
                                             − {formatMoneyBare(l.calc.discount_usd, '同一行末尾的 USD')} = {formatMoneyBare(l.calc.net_value_usd, '同一行末尾的 USD')} USD →{' '}
                                             <span className="font-medium">
@@ -891,7 +891,7 @@ canEdit: boolean
                                     <div className="sm:hidden mt-1 space-y-1 text-xs text-gray-600">
                                         <div>
                                             <span className="text-gray-500">{t('purchasing.colAmount')}: </span>
-                                            <span className="font-mono">{formatAmount(termAmount(l), currency)}</span>
+                                            <span>{formatAmount(termAmount(l), currency)}</span>
                                         </div>
                                         <div>{removeTermControl(i)}</div>
                                     </div>
@@ -939,7 +939,7 @@ canEdit: boolean
                                         )}
                                     </div>
                                 </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right font-mono text-sm">
+                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right tabular-nums text-sm">
                                     {formatAmount(termAmount(l), currency)}
                                 </td>
                                 <td className="border border-gray-300 px-3 py-2">
@@ -995,7 +995,7 @@ canEdit: boolean
             {/* ── 实时合计 ── */}
             <div className="bg-gray-50 rounded p-4 text-sm">
                 <span className="text-[color:var(--brand-muted-text)] mr-1">{t('purchasing.colEstimatedTotal')}:</span>
-                <span className="font-mono font-medium">{formatAmount(estTotal, currency)}</span>
+                <span className="font-medium">{formatAmount(estTotal, currency)}</span>
             </div>
 
             <div className="flex gap-3 pt-2">
@@ -1045,13 +1045,11 @@ export function CalcLinesTable({ lines }: { lines: CalcLine[] }) {
         {
             key: 'contentPct',
             header: t('purchasing.calcColContentPct'),
-            className: 'font-mono',
             render: (cl) => `${cl.content_pct}%`,
         },
         {
             key: 'payablePct',
             header: t('purchasing.calcColPayablePct'),
-            className: 'font-mono',
             render: (cl) => `× ${cl.payable_pct}%`,
         },
         {
@@ -1059,7 +1057,6 @@ export function CalcLinesTable({ lines }: { lines: CalcLine[] }) {
             header: t('purchasing.calcColUnitPrice'),
             align: 'right',
             priority: true,
-            className: 'font-mono',
             render: (cl) =>
                 cl.price_usd_per_tonne !== null
                     ? formatMoneyBare(cl.price_usd_per_tonne, '本块末行的「… = … USD」—— 计价明细整块是行情口径 USD') + '/t'
@@ -1070,7 +1067,6 @@ export function CalcLinesTable({ lines }: { lines: CalcLine[] }) {
             header: t('purchasing.calcColMetalValue'),
             align: 'right',
             priority: true,
-            className: 'font-mono',
             render: (cl) =>
                 formatMoneyBare(cl.metal_value_usd, '本块末行的「… = … USD」—— 计价明细整块是行情口径 USD'),
         },

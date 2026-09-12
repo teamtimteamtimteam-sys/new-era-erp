@@ -219,7 +219,7 @@ export default function PayrollGrid({
                             return (
                                 <tr key={e.id} className={!check.ok ? 'bg-red-50' : ''}>
                                     <td className="border border-gray-300 px-3 py-1.5">
-                                        <span className="font-mono text-xs text-gray-500 mr-2">{e.code}</span>
+                                        <span className="text-xs text-gray-500 mr-2">{e.code}</span>
                                         {e.legal_name}
                                     </td>
                                     <td className="border border-gray-300 px-2 py-1">
@@ -287,11 +287,11 @@ export default function PayrollGrid({
                                     {t('hr.lineCount', { n: active.length })}
                                 </span>
                             </td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(totals.gross, currency)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(totals.eeCpf, currency)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(totals.erCpf, currency)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(totals.other, currency)}</td>
-                            <td className="border border-gray-300 px-3 py-2 text-right font-mono">{formatAmount(totals.net, currency)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right tabular-nums">{formatAmount(totals.gross, currency)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right tabular-nums">{formatAmount(totals.eeCpf, currency)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right tabular-nums">{formatAmount(totals.erCpf, currency)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right tabular-nums">{formatAmount(totals.other, currency)}</td>
+                            <td className="border border-gray-300 px-3 py-2 text-right tabular-nums">{formatAmount(totals.net, currency)}</td>
                             <td className="border border-gray-300 px-3 py-2" />
                         </tr>
                     </tfoot>

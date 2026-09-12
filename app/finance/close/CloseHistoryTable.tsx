@@ -42,21 +42,17 @@ export default function CloseHistoryTable({
     //     MyExpenseClaimsPanel 撤回钮做的处置逐字同形。
     const columns: Column<CloseHistoryRow>[] = [
         {
-            key: 'periodEnd', header: t('finance.colPeriodEnd'), priority: true,
-            className: 'font-mono', render: (c) => c.periodEnd,
+            key: 'periodEnd', header: t('finance.colPeriodEnd'), priority: true, render: (c) => c.periodEnd,
         },
         { key: 'closedAt', header: t('finance.colClosedAt'), render: (c) => c.closedAt },
         {
-            key: 'entriesCount', header: t('finance.entriesCount'), align: 'right',
-            className: 'font-mono', render: (c) => c.entriesCount,
+            key: 'entriesCount', header: t('finance.entriesCount'), align: 'right', render: (c) => c.entriesCount,
         },
         {
-            key: 'debits', header: t('finance.colDebits'), align: 'right', priority: true,
-            className: 'font-mono', render: (c) => c.debits,
+            key: 'debits', header: t('finance.colDebits'), align: 'right', priority: true, render: (c) => c.debits,
         },
         {
-            key: 'credits', header: t('finance.colCredits'), align: 'right',
-            className: 'font-mono', render: (c) => c.credits,
+            key: 'credits', header: t('finance.colCredits'), align: 'right', render: (c) => c.credits,
         },
         {
             key: 'status', header: t('finance.colStatus'), priority: true,

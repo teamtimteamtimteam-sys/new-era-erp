@@ -100,14 +100,14 @@ canEdit: boolean
                     <tbody>
                         {dates.map((d) => (
                             <tr key={d}>
-                                <td className="border border-gray-300 px-3 py-2 font-mono whitespace-nowrap">{d}</td>
+                                <td className="border border-gray-300 px-3 py-2 whitespace-nowrap">{d}</td>
                                 {TYPES.map((ty) => {
                                     const ex = byKey.get(key(d, ty))
                                     return (
                                         <td key={ty} className="border border-gray-300 px-2 py-1">
                                             {ex ? (
                                                 <span className="flex items-center gap-2">
-                                                    <span className="font-mono text-gray-600">{ex.rate_sgd_per_unit}</span>
+                                                    <span className="text-gray-600">{ex.rate_sgd_per_unit}</span>
                                                     <Link
                                                         href={`/finance/fx/${ex.id}/edit`}
                                                         className="text-xs hover:underline app-link"
@@ -123,7 +123,7 @@ canEdit: boolean
                                                     onChange={(e) =>
                                                         setValues((v) => ({ ...v, [key(d, ty)]: e.target.value }))
                                                     }
-                                                    className={`${CONTROL_INPUT} w-28 font-mono`}
+                                                    className={`${CONTROL_INPUT} w-28`}
                                                 />
                                             )}
                                         </td>

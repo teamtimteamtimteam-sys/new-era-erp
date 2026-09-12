@@ -43,7 +43,7 @@ export default async function MovementTimeline({
             {rows.length > 0 && (
                 <p className="text-sm mt-3">
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('movements.sumLabel')}:</span>
-                    <span className="font-mono">{total} {unit}</span>
+                    <span>{total} {unit}</span>
                 </p>
             )}
         </section>

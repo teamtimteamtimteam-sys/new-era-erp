@@ -114,7 +114,7 @@ export default async function PnlPage({
                         并把它自己的合计与这里这个数字并排显示。
                         mode=pnl 一并决定年结开关(剔除)—— 见那一页的抬头:
                         两者总是配套的,拆成两个参数就等于允许对不上的组合。 */}
-                    <td className={`${tableC.cell} font-mono`}>
+                    <td className={tableC.cell}>
                         <Link
                             href={`/finance/ledger/${encodeURIComponent(r.code)}?mode=pnl&from=${from}&to=${to}`}
                             className="hover:underline app-link"
@@ -124,7 +124,7 @@ export default async function PnlPage({
                     </td>
                     <td className={tableC.cell}>{accountName(r)}</td>
                     <td
-                        className={`${tableC.cell} ${'text-right font-mono ' +
+                        className={`${tableC.cell} ${'text-right tabular-nums ' +
                             (r.amount < 0 ? 'text-red-600' : '')}`}
                     >
                         {formatMoneyBare(r.amount, '列头 金额 ({ccy}) —— 已带本位币')}
@@ -135,7 +135,7 @@ export default async function PnlPage({
                 <td colSpan={2} className={tableC.cell}>
                     {t(titleKey)} — {t('finance.totalsLabel')}
                 </td>
-                <td className={`${tableC.cell} text-right font-mono`}>
+                <td className={`${tableC.cell} text-right tabular-nums`}>
                     {formatMoneyBare(s.subtotal, '列头 金额 ({ccy}) —— 已带本位币')}
                 </td>
             </tr>
@@ -176,7 +176,7 @@ export default async function PnlPage({
                                 <span className="ml-2 text-gray-500 font-normal text-sm">({pnl.margin_pct}%)</span>
                             )}
                         </td>
-                        <td className={`${tableC.cell} text-right font-mono`}>
+                        <td className={`${tableC.cell} text-right tabular-nums`}>
                             {formatMoneyBare(pnl.gross_profit, '列头 金额 ({ccy}) —— 已带本位币')}
                         </td>
                     </tr>
@@ -187,7 +187,7 @@ export default async function PnlPage({
                             {t('finance.netProfit')}
                         </td>
                         <td
-                            className={`${tableC.cell} ${'text-right font-mono ' +
+                            className={`${tableC.cell} ${'text-right tabular-nums ' +
                                 (pnl.net_profit >= 0 ? 'text-green-700' : 'text-red-600')}`}
                         >
                             {formatMoneyBare(pnl.net_profit, '列头 金额 ({ccy}) —— 已带本位币')}

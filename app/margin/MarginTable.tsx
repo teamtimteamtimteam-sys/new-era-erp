@@ -68,23 +68,23 @@ export default function MarginTable({ rows, empty }: { rows: MarginRow[]; empty:
             key: 'batch', header: t('margin.colBatch'), priority: true,
             render: (r) => (
                 <>
-                    <Link href={r.outputHref} className="font-mono text-sm hover:underline app-link">
+                    <Link href={r.outputHref} className="text-sm hover:underline app-link">
                         {r.batchCode}
                     </Link>
                     <span className="block text-xs text-gray-500">{r.materialName}</span>
                 </>
             ),
         },
-        { key: 'run', header: t('margin.colRun'), className: 'font-mono text-sm', render: (r) => r.runCode },
-        { key: 'qty', header: t('margin.colQty'), align: 'right', className: 'font-mono text-sm', render: (r) => r.qtySold },
-        { key: 'revenue', header: t('margin.colRevenue'), align: 'right', className: 'font-mono text-sm', render: (r) => r.revenue },
+        { key: 'run', header: t('margin.colRun'), className: 'text-sm', render: (r) => r.runCode },
+        { key: 'qty', header: t('margin.colQty'), align: 'right', className: 'text-sm', render: (r) => r.qtySold },
+        { key: 'revenue', header: t('margin.colRevenue'), align: 'right', className: 'text-sm', render: (r) => r.revenue },
         // 【算不出来就说算不出来】—— 不是 0,也不是空白
-        { key: 'cost', header: t('margin.colCost'), align: 'right', className: 'font-mono text-sm', render: (r) => r.cost ?? '—' },
+        { key: 'cost', header: t('margin.colCost'), align: 'right', className: 'text-sm', render: (r) => r.cost ?? '—' },
         {
             key: 'margin', header: t('margin.colMargin'), priority: true, align: 'right',
-            className: 'font-mono text-sm', render: (r) => r.margin ?? '—',
+            className: 'text-sm', render: (r) => r.margin ?? '—',
         },
-        { key: 'marginPct', header: t('margin.colMarginPct'), align: 'right', className: 'font-mono text-sm', render: (r) => r.marginPct ?? '—' },
+        { key: 'marginPct', header: t('margin.colMarginPct'), align: 'right', className: 'text-sm', render: (r) => r.marginPct ?? '—' },
         {
             key: 'flags', header: t('margin.colFlags'),
             render: (r) => (

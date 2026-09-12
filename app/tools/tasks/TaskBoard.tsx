@@ -146,7 +146,7 @@ function TaskCard({
             </div>
 
             {/* 编号:更小更淡 */}
-            <div className="mt-0.5 font-mono text-xs text-gray-400">
+            <div className="mt-0.5 text-xs text-gray-400">
                 {task.code}
             </div>
 

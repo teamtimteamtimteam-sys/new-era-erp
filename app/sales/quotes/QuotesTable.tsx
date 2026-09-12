@@ -29,7 +29,7 @@ export default function QuotesTable({ rows }: { rows: QuoteRow[] }) {
     //   取舍的理由是"过期"必须一眼看见 —— 一张过了期而看起来正常的报价会被拿去报价。
     const columns: Column<QuoteRow>[] = [
         {
-            key: 'code', header: t('quotes.colCode'), priority: true, className: 'font-mono',
+            key: 'code', header: t('quotes.colCode'), priority: true,
             render: (r) => (
                 <>
                     <Link href={`/sales/quotes/${r.quote_id}`} className="hover:underline app-link">{r.code}</Link>
@@ -68,7 +68,7 @@ export default function QuotesTable({ rows }: { rows: QuoteRow[] }) {
         },
         { key: 'currency', header: t('sales.colCurrency'), render: (r) => r.currency },
         {
-            key: 'order', header: t('quotes.colOrder'), className: 'font-mono',
+            key: 'order', header: t('quotes.colOrder'),
             render: (r) =>
                 r.converted_order_id ? (
                     <Link href={`/sales/orders/${r.converted_order_id}`} className="hover:underline app-link">

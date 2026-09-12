@@ -248,7 +248,7 @@ export default async function KpiScorePage({
                         {rubric.map((r) => (
                             <div key={r.score} className="border border-gray-300 rounded p-2 text-xs text-[color:var(--brand-muted-text)]">
                                 <div className="flex flex-wrap items-baseline gap-2">
-                                    <span className="font-mono font-semibold">{r.score}</span>
+                                    <span className="font-semibold">{r.score}</span>
                                     <span className="font-semibold">{r.band_en}</span>
                                     <span className="text-[color:var(--brand-text)]">{r.evidence_standard_en}</span>
                                 </div>

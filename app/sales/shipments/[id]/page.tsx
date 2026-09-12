@@ -126,7 +126,7 @@ export default async function ShipmentDetailPage({
             maxWidth="max-w-4xl"
             title={
                 <>
-                    {t('sales.shipDetail.title')} <span className="font-mono">{head.code}</span>
+                    {t('sales.shipDetail.title')} <span>{head.code}</span>
                 </>
             }
             // ★★ 详情页恒为 ok —— 这张发货单在不在由上面的 notFound() 回答。
@@ -150,7 +150,7 @@ export default async function ShipmentDetailPage({
                         label: t('sales.shipDetail.colCustomer'),
                         value: customer ? (
                             <>
-                                <span className="font-mono">{customer.code}</span> {customer.legal_name}
+                                <span>{customer.code}</span> {customer.legal_name}
                             </>
                         ) : (
                             '—'
@@ -165,7 +165,7 @@ export default async function ShipmentDetailPage({
                             label: t('logistics.containerOf'),
                             value: (
                                 <Link href={`/logistics/containers/${head.containers.id}`}
-                                    className="font-mono hover:underline app-link app-link-inline">
+                                    className="hover:underline app-link app-link-inline">
                                     {head.containers.code}
                                 </Link>
                             ),
@@ -208,7 +208,7 @@ export default async function ShipmentDetailPage({
             ) : (
                 <ul className="text-sm space-y-1">
                     {issues.map((iss) => (
-                        <li key={iss.version} className="font-mono text-xs text-[color:var(--brand-muted-text)]">
+                        <li key={iss.version} className="text-xs text-[color:var(--brand-muted-text)]">
                             <a
                                 href={`/sales/shipments/${head.id}/pdf?version=${iss.version}`}
                                 target="_blank"

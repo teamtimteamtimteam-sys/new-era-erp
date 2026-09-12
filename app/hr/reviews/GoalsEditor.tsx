@@ -293,7 +293,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                             {editable && <div>{actionControls}</div>}
                                         </div>
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-1 text-right font-mono">
+                                    <td className="border border-gray-300 px-2 py-1 text-right tabular-nums">
                                         {on && canEditGoals ? (
                                             <input
                                                 type="number"
@@ -317,7 +317,7 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
                                             g.unit ?? '—'
                                         )}
                                     </td>
-                                    <td className="border border-gray-300 px-2 py-1 text-right font-mono">
+                                    <td className="border border-gray-300 px-2 py-1 text-right tabular-nums">
                                         {on && canSetActual ? (
                                             <input
                                                 type="number"

@@ -104,7 +104,7 @@ export default async function CashflowPage({
                 {label}
                 {hint && <span className="block text-xs font-normal text-gray-500 mt-0.5">{hint}</span>}
             </td>
-            <td className={`${tableC.cell} ${'text-right font-mono ' + sign(value)}`}>
+            <td className={`${tableC.cell} ${'text-right tabular-nums ' + sign(value)}`}>
                 {money(value)}
             </td>
         </tr>

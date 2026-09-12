@@ -38,7 +38,7 @@ export default function FreightAllocationsTable({ rows }: { rows: readonly Freig
             header: t('finance.freight.colBatch'),
             // 身份列 —— 分摊行的主语是"分给了哪一批货"。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) =>
                 r.batchHref ? (
                     <Link href={r.batchHref} className="hover:underline app-link">
@@ -52,7 +52,7 @@ export default function FreightAllocationsTable({ rows }: { rows: readonly Freig
             key: 'basisQty',
             header: t('finance.freight.colBasisQty'),
             align: 'right',
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             // stated 口径没有中间量 —— 金额是人直接列明的,空着是【对的】,
             // 所以它画成一句灰色的具名缺席,而不是一个空格子。
             render: (r) =>
@@ -68,14 +68,14 @@ export default function FreightAllocationsTable({ rows }: { rows: readonly Freig
             align: 'right',
             // ★ 这张表存在的理由:**这一批分到了多少钱**。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.amountText,
         },
         {
             key: 'inStock',
             header: t('finance.freight.colInStock'),
             align: 'right',
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.inStockText,
         },
     ]

@@ -35,7 +35,7 @@ export default function PriceBreakdown({
                 —
             </span>
         ) : (
-            <span className="font-mono">{fmt(v)}</span>
+            <span>{fmt(v)}</span>
         )
 
     // EXEC-1b:【窗口太薄】—— ASY-3 的另一半。
@@ -60,7 +60,7 @@ export default function PriceBreakdown({
         if (l.price_usd_per_tonne == null) return <span className="text-gray-400">—</span>
         return (
             <>
-                <span className="font-mono">
+                <span>
                     {formatMoneyBare(l.price_usd_per_tonne, '列头 pricing.colPrice「行情 (USD/吨)」')}
                 </span>
                 <span className="text-[color:var(--brand-muted-text)] text-xs ml-2">
@@ -100,7 +100,7 @@ export default function PriceBreakdown({
             render: (l) => (
                 <>
                     {t('metals.' + l.metal)}
-                    <span className="text-gray-400 font-mono text-xs ml-2">{l.metal}</span>
+                    <span className="text-gray-400 text-xs ml-2">{l.metal}</span>
                 </>
             ),
         },
@@ -109,7 +109,6 @@ export default function PriceBreakdown({
             header: t('pricing.colContent'),
             align: 'right',
             // ⚠ 转换前 `text-right font-mono text-sm` —— text-sm 不搬(列描述符不许钉字号)
-            className: 'font-mono',
             render: (l) => l.content_pct,
         },
         {
@@ -122,7 +121,6 @@ export default function PriceBreakdown({
             key: 'contained',
             header: t('pricing.colContained'),
             align: 'right',
-            className: 'font-mono',
             render: (l) => l.contained_kg,
         },
         {
@@ -154,7 +152,7 @@ export default function PriceBreakdown({
     return (
         <div>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">
-                <span className="font-mono">{res.formula_code}</span> {res.formula_name}
+                <span>{res.formula_code}</span> {res.formula_name}
                 <span className="mx-2">·</span>
                 {res.price_basis === 'average'
                     ? t('pricing.basis.average', { days: res.average_days ?? 0 })
@@ -162,7 +160,7 @@ export default function PriceBreakdown({
                 <span className="mx-2">·</span>
                 {res.reference_date}
                 <span className="mx-2">·</span>
-                <span className="font-mono">{res.quantity_kg} kg</span>
+                <span>{res.quantity_kg} kg</span>
             </p>
 
             {negativeNote}
@@ -191,31 +189,31 @@ export default function PriceBreakdown({
             <div className="mt-4 max-w-md ml-auto text-sm space-y-1">
                 <div className="flex justify-between">
                     <span className="text-[color:var(--brand-muted-text)]">{t('pricing.grossValue')}</span>
-                    <span className="font-mono">
+                    <span>
                         {formatMoneyBare(res.gross_value_usd, SUMMARY_CCY_STATED_IN)}
                     </span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-[color:var(--brand-muted-text)]">{t('pricing.treatmentCharge')}</span>
-                    <span className="font-mono">
+                    <span>
                         −{formatMoneyBare(res.treatment_usd, SUMMARY_CCY_STATED_IN)}
                     </span>
                 </div>
                 <div className="flex justify-between">
                     <span className="text-[color:var(--brand-muted-text)]">{t('pricing.discountAmount')}</span>
-                    <span className="font-mono">
+                    <span>
                         −{formatMoneyBare(res.discount_usd, SUMMARY_CCY_STATED_IN)}
                     </span>
                 </div>
                 <div className="flex justify-between border-t pt-1 font-bold">
                     <span>{t('pricing.netValue')}</span>
-                    <span className={'font-mono ' + (res.negative_value ? 'text-red-600' : '')}>
+                    <span className={(res.negative_value ? 'text-red-600' : '')}>
                         {formatMoneyBare(res.net_value_usd, SUMMARY_CCY_STATED_IN)}
                     </span>
                 </div>
                 <div className="flex justify-between font-bold">
                     <span>{t('pricing.unitPrice')}</span>
-                    <span className={'font-mono ' + (res.negative_value ? 'text-red-600' : '')}>
+                    <span className={(res.negative_value ? 'text-red-600' : '')}>
                         {res.unit_price_usd_per_kg}
                     </span>
                 </div>

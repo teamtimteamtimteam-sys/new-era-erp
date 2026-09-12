@@ -129,12 +129,12 @@ export default async function ReceivingDiscrepanciesPage() {
                             <div key={r.batch_id} className="border border-gray-300 rounded-lg p-4">
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-2 text-sm">
                                     <Link href={`/inbound/${r.batch_id}/edit`}
-                                          className="font-mono hover:underline app-link app-link-inline">
+                                          className="hover:underline app-link app-link-inline">
                                         {r.batch_code}
                                     </Link>
                                     <span className="text-gray-400">·</span>
                                     <Link href={`/purchasing/orders/${r.po_id}`}
-                                          className="font-mono hover:underline app-link app-link-inline">
+                                          className="hover:underline app-link app-link-inline">
                                         {r.po_code}
                                     </Link>
                                     <span className="px-2 py-0.5 bg-gray-200 rounded text-xs">

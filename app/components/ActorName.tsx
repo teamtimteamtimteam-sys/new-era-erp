@@ -152,7 +152,7 @@ export default async function ActorName({
     return (
         <span className="text-[color:var(--brand-muted-text)]">
             {space === 'employee' ? t('actor.employeeGone') : t('actor.noEmployeeRecord')}
-            <span className="ml-1 text-xs text-gray-400 font-mono">{userId.slice(0, 8)}…</span>
+            <span className="ml-1 text-xs text-gray-400">{userId.slice(0, 8)}…</span>
         </span>
     )
 }

@@ -166,11 +166,11 @@ canEdit: boolean
                                         类型是个能点的控件,所以它单独占一行、标签在左、控件在右 ——
                                         一个被挤在窄缝里的 <select> 不算"还能用"。 */}
                                     <div className="sm:hidden mt-1 space-y-1 font-sans text-xs text-gray-600">
-                                        <div className="font-mono">
+                                        <div>
                                             <span className="font-sans text-gray-500">{t('cn.colUnreleased')}: </span>
                                             {unreleasedText}
                                         </div>
-                                        <div className="font-mono">
+                                        <div>
                                             <span className="font-sans text-gray-500">{t('cn.colReleased')}: </span>
                                             {releasedText}
                                         </div>
@@ -180,10 +180,10 @@ canEdit: boolean
                                         </div>
                                     </div>
                                 </td>
-                                <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                     {unreleasedText}
                                 </td>
-                                <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                     {releasedText}
                                 </td>
                                 <td className={`${tableC.cell} hidden sm:table-cell`}>
@@ -215,7 +215,7 @@ canEdit: boolean
             <div className="flex flex-wrap items-baseline gap-x-4 text-sm">
                 <span>
                     <span className="text-[color:var(--brand-muted-text)]">{t('cn.totalLabel')}:</span>{' '}
-                    <span className="font-mono">{formatAmount(total, currency)}</span>
+                    <span>{formatAmount(total, currency)}</span>
                 </span>
                 <span className="text-[color:var(--brand-muted-text)]">
                     {t('cn.openLabel', { amount: formatMoneyBare(openCcy, '本句里紧跟着 {ccy}'), ccy: currency })}

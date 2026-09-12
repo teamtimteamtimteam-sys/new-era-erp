@@ -84,7 +84,7 @@ export default function BarRows({ rows, max }: {
                             而 --brand-destructive #C0635A 只有 4.06:1 —— 它是
                             token 表里写着"文字用"的那一个,**但那是对着别的底**;
                             这里不能用它。 */}
-                        <span className="w-28 shrink-0 text-right font-mono text-xs"
+                        <span className="w-28 shrink-0 text-right tabular-nums text-xs"
                               style={{
                                   color: r.emphasis
                                       ? 'var(--brand-destructive-fill)'

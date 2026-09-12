@@ -37,7 +37,6 @@ export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLi
         {
             key: 'lineNo',
             header: t('sales.shipDetail.colLineNo'),
-            className: 'font-mono',
             render: (r) => r.lineNo,
         },
         {
@@ -48,7 +47,7 @@ export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLi
             render: (r) =>
                 r.materialCode ? (
                     <>
-                        <span className="font-mono">{r.materialCode}</span> {r.materialName}
+                        <span>{r.materialCode}</span> {r.materialName}
                     </>
                 ) : (
                     '—'
@@ -57,7 +56,6 @@ export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLi
         {
             key: 'batch',
             header: t('sales.shipDetail.colBatch'),
-            className: 'font-mono',
             render: (r) => r.batchCode,
         },
         {
@@ -66,7 +64,7 @@ export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLi
             render: (r) =>
                 r.locationCode ? (
                     <>
-                        <span className="font-mono">{r.locationCode}</span> {r.locationName}
+                        <span>{r.locationCode}</span> {r.locationName}
                     </>
                 ) : (
                     '—'
@@ -78,7 +76,6 @@ export default function ShipmentLinesTable({ rows }: { rows: readonly ShipmentLi
             align: 'right',
             // ★ 这张表存在的理由:发了多少。
             priority: true,
-            className: 'font-mono',
             render: (r) => r.qtyText,
         },
     ]

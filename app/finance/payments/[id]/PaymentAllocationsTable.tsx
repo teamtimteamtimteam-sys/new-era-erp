@@ -50,7 +50,7 @@ export default function PaymentAllocationsTable({
             header: docHeader,
             // 身份列 —— 一条核销行的主语是"冲的哪一张单据"。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) =>
                 r.docHref ? (
                     <Link href={r.docHref} className="hover:underline app-link">
@@ -65,7 +65,7 @@ export default function PaymentAllocationsTable({
             header: baseHeader,
             align: 'right',
             priority: true, // ★ 见抬头:两个金额列一起才解释得清那笔汇兑差。
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.allocatedBaseText,
         },
         {
@@ -73,7 +73,7 @@ export default function PaymentAllocationsTable({
             header: payHeader,
             align: 'right',
             priority: true, // ★ 同上。
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.allocatedPayText,
         },
     ]

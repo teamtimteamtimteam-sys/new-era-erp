@@ -54,7 +54,7 @@ export default function PoReceiptsTable({
             header: t('finance.colCode'),
             // 身份列。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => (
                 <Link href={`/inbound/${r.id}/edit`} className="hover:underline app-link">
                     {r.code}
@@ -72,14 +72,14 @@ export default function PoReceiptsTable({
             align: 'right',
             // 这张表存在的理由:到了多少。
             priority: true,
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) => r.qtyText,
         },
         {
             key: 'unitPrice',
             header: t('purchasing.colUnitPrice'),
             align: 'right',
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) =>
                 r.unitPriceText !== null ? (
                     r.unitPriceText
@@ -91,7 +91,7 @@ export default function PoReceiptsTable({
             key: 'applied',
             header: t('purchasing.appliedLabel'),
             align: 'right',
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             // 与右邻那一格同一种画法(MaskedValue),所以「受限」在这张表里
             // 只有一个样子 —— CONV-0 收敛出来的那一个。
             render: (r) => <MaskedValue value={r.appliedText} canView={canFinance} />,
@@ -100,7 +100,7 @@ export default function PoReceiptsTable({
             key: 'open',
             header: t('finance.colOpen'),
             align: 'right',
-            className: 'font-mono text-sm',
+            className: 'text-sm',
             render: (r) =>
                 !r.openApplicable ? '—' : <MaskedValue value={r.openText} canView={canFinance} />,
         },

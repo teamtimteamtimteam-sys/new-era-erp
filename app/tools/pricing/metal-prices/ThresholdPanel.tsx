@@ -67,7 +67,7 @@ export default function ThresholdPanel({
             ) : (
                 <p className="text-sm">
                     {t('metalPrices.settings.label')}:{' '}
-                    <span className="font-mono">{thresholdPct}</span>
+                    <span>{thresholdPct}</span>
                 </p>
             )}
 

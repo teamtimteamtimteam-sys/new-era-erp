@@ -101,7 +101,7 @@ export default async function Figure({
                         why={`${t('dashboard.restrictedHint')}(${state.permission})`}
                     >
                         {t('common.restricted')}
-                        <span className="font-mono opacity-80">({state.permission})</span>
+                        <span className="opacity-80">({state.permission})</span>
                     </Refusal>
                 </p>
             )}

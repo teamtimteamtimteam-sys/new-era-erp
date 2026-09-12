@@ -187,7 +187,7 @@ export default function UserRow({
                                         />
                                         <span>
                                             {locale === 'zh' ? r.name_zh : r.name_en}
-                                            <span className="ml-1 font-mono text-xs text-gray-400">
+                                            <span className="ml-1 text-xs text-gray-400">
                                                 {r.code}
                                             </span>
                                         </span>

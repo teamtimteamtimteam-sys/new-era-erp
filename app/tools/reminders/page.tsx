@@ -252,7 +252,7 @@ export default async function RemindersPage() {
                                         >
                                             {t('dashboard.item.' + reminder.itemType)}
                                         </Link>
-                                        <span className="font-mono text-sm" style={{ color: 'var(--brand-text)' }}>
+                                        <span className="text-sm" style={{ color: 'var(--brand-text)' }}>
                                             {t('reminders.count', { n: String(items.length) })}
                                         </span>
                                         <span className="text-xs" style={{ color: 'var(--brand-muted-text)' }}>
@@ -277,20 +277,19 @@ export default async function RemindersPage() {
                                                     {href ? (
                                                         <Link
                                                             href={href}
-                                                            className="font-mono hover:underline app-link app-link-inline"
+                                                            className="hover:underline app-link app-link-inline"
                                                         >
                                                             {row.item_code}
                                                         </Link>
                                                     ) : (
                                                         <span
-                                                            className="font-mono"
                                                             style={{ color: 'var(--brand-text)' }}
                                                         >
                                                             {row.item_code}
                                                         </span>
                                                     )}
                                                     <span
-                                                        className="text-xs font-mono"
+                                                        className="text-xs"
                                                         style={{ color: 'var(--brand-muted-text)' }}
                                                     >
                                                         {t('reminders.days', { n: String(row.days_waiting) })}
@@ -360,7 +359,7 @@ export default async function RemindersPage() {
                                         <span className="font-semibold" style={{ color: 'var(--brand-text)' }}>
                                             {t('hr.severity.' + sev)}
                                         </span>
-                                        <span className="font-mono text-sm" style={{ color: 'var(--brand-text)' }}>
+                                        <span className="text-sm" style={{ color: 'var(--brand-text)' }}>
                                             {t('reminders.count', { n: String(group.length) })}
                                         </span>
                                     </div>
@@ -373,12 +372,12 @@ export default async function RemindersPage() {
                                                 {a.employee_id ? (
                                                     <Link
                                                         href={`/hr/employees/${a.employee_id}`}
-                                                        className="font-mono hover:underline app-link app-link-inline"
+                                                        className="hover:underline app-link app-link-inline"
                                                     >
                                                         {a.employee_code}
                                                     </Link>
                                                 ) : (
-                                                    <span className="font-mono" style={{ color: 'var(--brand-text)' }}>
+                                                    <span style={{ color: 'var(--brand-text)' }}>
                                                         {a.employee_code}
                                                     </span>
                                                 )}
@@ -427,7 +426,7 @@ export default async function RemindersPage() {
                 <section className="mb-8" data-reminders-quiet={quiet.length + (canHr && hrAlerts.length === 0 ? 1 : 0)}>
                     <h2 className="mb-1" style={{ color: 'var(--brand-text)' }}>
                         {t('reminders.sectionQuiet')}
-                        <span className="ml-2 font-mono font-normal">
+                        <span className="ml-2 font-normal">
                             {t('reminders.count', {
                                 n: String(quiet.length + (canHr && hrAlerts.length === 0 ? 1 : 0)),
                             })}
@@ -464,7 +463,7 @@ export default async function RemindersPage() {
                 <section className="mb-8" data-reminders-restricted={restricted.length}>
                     <h2 className="mb-1" style={{ color: 'var(--brand-text)' }}>
                         {t('reminders.sectionRestricted')}
-                        <span className="ml-2 font-mono font-normal">
+                        <span className="ml-2 font-normal">
                             {t('reminders.count', { n: String(restricted.length) })}
                         </span>
                     </h2>

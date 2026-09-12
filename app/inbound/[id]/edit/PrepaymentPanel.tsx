@@ -102,22 +102,22 @@ canEdit: boolean
                             <span className="text-[color:var(--brand-muted-text)] mr-1">{t('purchasing.orderDetailTitle')}:</span>
                             <Link
                                 href={`/purchasing/orders/${applicable.purchase_order_id}`}
-                                className="hover:underline font-mono app-link app-link-inline"
+                                className="hover:underline app-link app-link-inline"
                             >
                                 {applicable.po_code}
                             </Link>
                         </div>
                         <div>
                             <span className="text-[color:var(--brand-muted-text)] mr-1">{t('purchasing.remainingLabel')}:</span>
-                            <span className="font-mono">{formatAmount(applicable.po_unapplied_prepayment_base, baseCurrency)}</span>
+                            <span>{formatAmount(applicable.po_unapplied_prepayment_base, baseCurrency)}</span>
                         </div>
                         <div>
                             <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.colOpen')}:</span>
-                            <span className="font-mono">{formatAmount(applicable.batch_ap_open_base, baseCurrency)}</span>
+                            <span>{formatAmount(applicable.batch_ap_open_base, baseCurrency)}</span>
                         </div>
                         <div>
                             <span className="text-[color:var(--brand-muted-text)] mr-1">{t('purchasing.applicableAmount')}:</span>
-                            <span className="font-mono font-medium">{formatAmount(applicable.applicable_base, baseCurrency)}</span>
+                            <span className="font-medium">{formatAmount(applicable.applicable_base, baseCurrency)}</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -151,7 +151,7 @@ canEdit: boolean
                         <tbody>
                             {history.map((h) => (
                                 <tr key={h.id} className={tableC.bodyRow}>
-                                    <td className={`${tableC.cell} text-right font-mono w-32`}>
+                                    <td className={`${tableC.cell} text-right tabular-nums w-32`}>
                                         {formatAmount(h.amount_base, baseCurrency)}
                                     </td>
                                     <td className={`${tableC.cell} text-gray-600`}>
@@ -161,7 +161,7 @@ canEdit: boolean
                                         {h.journal_id ? (
                                             <Link
                                                 href={`/finance/journal/${h.journal_id}`}
-                                                className="hover:underline font-mono app-link"
+                                                className="hover:underline app-link"
                                             >
                                                 {h.journal_code}
                                             </Link>

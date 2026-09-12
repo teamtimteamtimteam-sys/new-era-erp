@@ -594,13 +594,13 @@ canEdit: boolean
             {/* 实时预览:USD 金额 + 将要生成的分录说明 */}
             <div className="bg-gray-50 rounded p-4 text-sm space-y-1">
                 <div>
-                    <span className="font-mono font-medium">
+                    <span className="font-medium">
                         {amountSgd !== null
                             ? t('expense.amountPreview', { amount: formatMoneyBare(amountSgd, '同句 amountPreview 文案「金额:{amount} {ccy}」里的 {ccy}'), ccy: baseCurrency })
                             : t('common.fxBoardRateHint')}
                     </span>
                     {currency !== baseCurrency && amountValid && (
-                        <span className="text-[color:var(--brand-muted-text)] ml-2 font-mono">
+                        <span className="text-[color:var(--brand-muted-text)] ml-2">
                             ({currency} {formatMoneyBare(amountNum, '同格内紧邻的 {currency} 前缀')})
                         </span>
                     )}

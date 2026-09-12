@@ -49,7 +49,7 @@ export default function LeaveTypesEditor({ rows }: { rows: LeaveTypeRow[] }) {
             key: 'code',
             header: t('leave.typeCode'),
             priority: true,
-            className: 'font-mono text-gray-500',
+            className: 'text-gray-500',
             render: (r) => r.code,
         },
         {

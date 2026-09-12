@@ -76,7 +76,7 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
 
             <h1 className="mt-2 mb-1">
                 {subject?.employee_name ?? t('reviews.detailTitle')}
-                <span className="ml-2 font-mono text-sm text-[color:var(--brand-muted-text)]">{subject?.employee_code}</span>
+                <span className="ml-2 text-sm text-[color:var(--brand-muted-text)]">{subject?.employee_code}</span>
                 <span className={'ml-3 align-middle inline-block rounded px-2 py-0.5 text-xs ' + statusPillClass(r.status)}>
                     {t(`reviews.status_${r.status}`)}
                 </span>
@@ -101,7 +101,7 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
                 </div>
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.period')}:</span>
-                    <span className="font-mono">{r.period_start} → {r.period_end}</span>
+                    <span>{r.period_start} → {r.period_end}</span>
                 </div>
             </div>
 

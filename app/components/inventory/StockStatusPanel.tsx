@@ -149,18 +149,18 @@ export default async function StockStatusPanel({
                                     t('stock.unspecifiedLocation')
                                 ) : (
                                     <>
-                                        <span className="font-mono">{g.code}</span>
+                                        <span>{g.code}</span>
                                         {g.name && <span className="text-[color:var(--brand-muted-text)] ml-2">{g.name}</span>}
                                     </>
                                 )}
                             </span>
                             <span className="text-sm">
                                 <span className="text-[color:var(--brand-muted-text)]">{t('stock.available')}:</span>{' '}
-                                <span className="font-mono">{g.available} {unit}</span>
+                                <span>{g.available} {unit}</span>
                             </span>
                             <span className="text-sm">
                                 <span className="text-[color:var(--brand-muted-text)]">{t('stock.onHold')}:</span>{' '}
-                                <span className={'font-mono ' + (g.held > 0 ? 'text-amber-800 font-medium' : '')}>
+                                <span className={(g.held > 0 ? 'text-amber-800 font-medium' : '')}>
                                     {g.held} {unit}
                                 </span>
                             </span>
@@ -168,14 +168,14 @@ export default async function StockStatusPanel({
                                 "这些货为什么不能动" —— 只是原因不同。 */}
                             <span className="text-sm">
                                 <span className="text-[color:var(--brand-muted-text)]">{t('stock.committed')}:</span>{' '}
-                                <span className={'font-mono ' + (g.committed > 0 ? 'text-blue-800 font-medium' : '')}>
+                                <span className={(g.committed > 0 ? 'text-blue-800 font-medium' : '')}>
                                     {g.committed} {unit}
                                 </span>
                             </span>
                             {[...g.unknown.entries()].map(([s, q]) => (
                                 <span key={s} className="text-sm">
                                     <span className="text-[color:var(--brand-muted-text)]">{t('stock.unknownStatus', { status: s })}:</span>{' '}
-                                    <span className="font-mono text-red-700">{q} {unit}</span>
+                                    <span className="text-red-700">{q} {unit}</span>
                                 </span>
                             ))}
                         </div>
@@ -250,17 +250,17 @@ export default async function StockStatusPanel({
                                     {p.sales_order_lines?.sales_orders ? (
                                         <Link
                                             href={`/sales/orders/${p.sales_order_lines.sales_orders.id}`}
-                                            className="hover:underline font-mono app-link app-link-inline"
+                                            className="hover:underline app-link app-link-inline"
                                         >
                                             {p.sales_order_lines.sales_orders.code}
                                         </Link>
                                     ) : (
-                                        <span className="font-mono">—</span>
+                                        <span>—</span>
                                     )}
                                     <span className="text-[color:var(--brand-muted-text)]">
                                         #{p.sales_order_lines?.line_no ?? '—'}
                                     </span>
-                                    <span className="font-mono">
+                                    <span>
                                         {p.qty} {unit}
                                     </span>
                                     <span className="text-[color:var(--brand-muted-text)]">

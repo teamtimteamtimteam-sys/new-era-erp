@@ -140,12 +140,12 @@ export default async function PayablesPage({
             <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.totalOpen')}:</span>
-                    <span className="font-mono font-bold">{formatAmount(report.total_open_base, baseCurrency)}</span>
+                    <span className="font-bold">{formatAmount(report.total_open_base, baseCurrency)}</span>
                 </div>
                 {BUCKETS.map((b) => (
                     <div key={b}>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.aging.' + b)}:</span>
-                        <span className={'font-mono ' + (b === 'b90_plus' ? 'text-red-600 font-medium' : '')}>
+                        <span className={(b === 'b90_plus' ? 'text-red-600 font-medium' : '')}>
                             {formatAmount(report.buckets[b] ?? 0, baseCurrency)}
                         </span>
                     </div>
@@ -199,7 +199,7 @@ export default async function PayablesPage({
                                             </>
                                         ) : ''}
                                     </td>
-                                    <td className={`${tableC.cell} font-mono`}>
+                                    <td className={tableC.cell}>
                                         {/* FRT-1:三种单据,三个去处。【认不出的种类不给链接】——
                                             原来是二分的 else,新来的 freight 会被送进
                                             /finance/expenses/<freight-id> 然后 404;而"点开是空的"
@@ -237,7 +237,7 @@ export default async function PayablesPage({
                                                 </span>
                                             </>
                                         ) : (
-                                            <span className="font-mono">{r.doc_code}</span>
+                                            <span>{r.doc_code}</span>
                                         )}
                                         {/* ★ FIX-2b:手机档被拿掉的五列,原样叠在这里 ——
                                             「拿掉」指的是【那一列】,不是【那个事实】。
@@ -262,11 +262,11 @@ export default async function PayablesPage({
                                                     </span>
                                                 )}
                                             </div>
-                                            <div className="font-mono">
+                                            <div>
                                                 <span className="font-sans text-gray-500">{t('finance.colAmount', { ccy: baseCurrency })}: </span>
                                                 {formatMoneyBare(r.doc_value_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                             </div>
-                                            <div className="font-mono">
+                                            <div>
                                                 <span className="font-sans text-gray-500">{t('finance.colSettled')}: </span>
                                                 {formatMoneyBare(r.settled_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                             </div>
@@ -289,13 +289,13 @@ export default async function PayablesPage({
                                             </span>
                                         )}
                                     </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                         {formatMoneyBare(r.doc_value_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                     </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                    <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                         {formatMoneyBare(r.settled_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                     </td>
-                                    <td className={`${tableC.cell} text-right font-mono font-medium`}>
+                                    <td className={`${tableC.cell} text-right tabular-nums font-medium`}>
                                         {formatMoneyBare(r.open_base, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                     </td>
                                     <td className={tableC.cell}>
@@ -312,7 +312,7 @@ export default async function PayablesPage({
                                 <td className={`${tableC.cell} sm:hidden`}>
                                     {g.name} ({t('finance.counterpartyKind.' + g.kind)}) — {t('finance.totalsLabel')}
                                     {/* 手机档「金额 / 已结」两列不画,合计叠在这里 —— 与明细行同一条规矩。 */}
-                                    <span className="block mt-0.5 font-mono text-[11px] text-gray-600">
+                                    <span className="block mt-0.5 text-[11px] text-gray-600">
                                         {t('finance.colAmount', { ccy: baseCurrency })} {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                         {' · '}
                                         {t('finance.colSettled')} {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
@@ -321,13 +321,13 @@ export default async function PayablesPage({
                                 <td className={`${tableC.cell} hidden sm:table-cell`} colSpan={4}>
                                     {g.name} ({t('finance.counterpartyKind.' + g.kind)}) — {t('finance.totalsLabel')}
                                 </td>
-                                <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                     {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                 </td>
-                                <td className={`${tableC.cell} hidden sm:table-cell text-right font-mono`}>
+                                <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                     {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                 </td>
-                                <td className={`${tableC.cell} text-right font-mono`}>
+                                <td className={`${tableC.cell} text-right tabular-nums`}>
                                     {formatMoneyBare(Math.round(g.open * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                 </td>
                                 <td className={tableC.cell} />

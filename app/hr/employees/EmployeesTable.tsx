@@ -42,7 +42,7 @@ export default function EmployeesTable({ rows, empty }: { rows: EmployeeRow[]; e
     //   那是一条"名单上就能看见、不用逐个点开"的警示,藏起来等于取消它。
     const columns: Column<EmployeeRow>[] = [
         {
-            key: 'code', header: t('hr.colCode'), priority: true, className: 'font-mono text-sm',
+            key: 'code', header: t('hr.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <>
                     <Link href={`/hr/employees/${r.employeeId}`} className="hover:underline app-link">

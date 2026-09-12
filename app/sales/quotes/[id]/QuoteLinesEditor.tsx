@@ -146,7 +146,7 @@ export default function QuoteLinesEditor({
                                         金额带着它的列头;末列的列头是真的空,而那两个
                                         按钮各自带着自己的字,所以照画、不现造文案。 */}
                                     <div className="sm:hidden mt-1 space-y-1 font-sans text-xs text-gray-600">
-                                        <div className="font-mono">
+                                        <div>
                                             <span className="font-sans text-gray-500">{t('quotes.colLineTotal')}: </span>
                                             {lineTotalText}
                                         </div>
@@ -160,7 +160,7 @@ export default function QuoteLinesEditor({
                                         <input type="number" step="any" min="0" value={qty[l.id] ?? ''}
                                                onChange={(e) => setQty((s) => ({ ...s, [l.id]: e.target.value }))}
                                                className={`${CONTROL_INPUT} w-24 text-right tabular-nums`} />
-                                    ) : (<span className="font-mono">{l.quantity} {l.unit}</span>)}
+                                    ) : (<span>{l.quantity} {l.unit}</span>)}
                                 </td>
                                 <td className="border border-gray-300 px-2 py-2 text-right tabular-nums">
                                     {editable ? (
@@ -168,12 +168,12 @@ export default function QuoteLinesEditor({
                                                onChange={(e) => setPrice((s) => ({ ...s, [l.id]: e.target.value }))}
                                                className={`${CONTROL_INPUT} w-24 text-right tabular-nums`} />
                                     ) : (
-                                        <span className="font-mono">
+                                        <span>
                                             {formatMoneyBare(l.unit_price, '同表列头 单价({ccy})')}
                                         </span>
                                     )}
                                 </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right font-mono">
+                                <td className="hidden sm:table-cell border border-gray-300 px-2 py-2 text-right tabular-nums">
                                     {lineTotalText}
                                 </td>
                                 {editable && (

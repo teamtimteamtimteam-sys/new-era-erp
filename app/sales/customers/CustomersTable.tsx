@@ -50,7 +50,7 @@ export default function CustomersTable({
         {
             // SAL-B6:编号指向【状况页】,不再直接指向编辑表单 ——
             // 看一个客户的第一件事通常不是改他。
-            key: 'code', header: t('customers.col.code'), priority: true, sortable: true, className: 'font-mono text-sm',
+            key: 'code', header: t('customers.col.code'), priority: true, sortable: true, className: 'text-sm',
             render: (r) => (
                 <Link href={`/sales/customers/${r.id}`} className="hover:underline app-link">
                     {r.code}

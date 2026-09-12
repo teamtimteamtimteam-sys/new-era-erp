@@ -187,14 +187,14 @@ export default async function ContainerFreightPanel({
                                 {docs.map((d) => (
                                     <li key={d.id} className="text-sm flex items-baseline gap-2">
                                         <Link href={`/finance/freight/${d.id}`}
-                                            className="hover:underline font-mono text-xs app-link app-link-inline">
+                                            className="hover:underline text-xs app-link app-link-inline">
                                             {d.code}
                                         </Link>
                                         <span className="text-xs text-[color:var(--brand-muted-text)]">
                                             {t('finance.freight.directionShort.' + d.direction)}
                                         </span>
                                         <span className="text-[color:var(--brand-muted-text)] text-xs">{d.doc_date}</span>
-                                        <span className={'font-mono ml-auto ' + (d.status === 'posted' ? '' : 'line-through text-gray-400')}>
+                                        <span className={'ml-auto ' + (d.status === 'posted' ? '' : 'line-through text-gray-400')}>
                                             {formatAmount(Number(d.amount_ccy), d.currency)}
                                         </span>
                                         {d.status !== 'posted' && (
@@ -206,7 +206,7 @@ export default async function ContainerFreightPanel({
                             {/* 【逐币种列,不求和】—— 两种货币相加是这个仓库点过名的那个错 */}
                             <div className="border-t pt-2 space-y-1">
                                 {actualCurrencies.map((c) => (
-                                    <div key={c} className="flex justify-between text-sm font-mono">
+                                    <div key={c} className="flex justify-between text-sm">
                                         <span>{c}</span>
                                         <span>{formatAmount(totals.get(c) as number, c)}</span>
                                     </div>
@@ -227,7 +227,7 @@ export default async function ContainerFreightPanel({
                         && empty(t('logistics.quoteNotValidOnDeparture', { date: departureDate }))}
                     {quoteState.kind === 'found' && (
                         <>
-                            <div className="flex justify-between text-sm font-mono">
+                            <div className="flex justify-between text-sm">
                                 <span>{quoteState.currency}</span>
                                 <span>{formatAmount(quoteState.amount, quoteState.currency)}</span>
                             </div>

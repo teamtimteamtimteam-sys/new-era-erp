@@ -41,7 +41,7 @@ export default function AllowedClassesPicker({
                             onChange={() => toggle(c.code)}
                         />
                         <span>{locale === 'zh' ? c.name_zh : c.name_en}</span>
-                        <span className="text-gray-400 font-mono text-xs">{c.code}</span>
+                        <span className="text-gray-400 text-xs">{c.code}</span>
                         {/* 受控与否是这一类的语义,合规逻辑读的是它 —— 标出来,
                             免得人以为"重点/非重点"只是两个名字 */}
                         {c.is_controlled && (

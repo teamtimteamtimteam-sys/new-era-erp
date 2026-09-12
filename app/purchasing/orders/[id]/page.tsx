@@ -555,7 +555,7 @@ export default async function PurchaseOrderDetailPage({
             title={
                 <>
                     {t('purchasing.orderDetailTitle')}
-                    <span className="ml-3 font-mono text-sm text-[color:var(--brand-muted-text)]">{po.code}</span>
+                    <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{po.code}</span>
                 </>
             }
             // ★ 详情页恒为 ok —— 记录存在与否由上面的 notFound() 回答。
@@ -791,7 +791,7 @@ export default async function PurchaseOrderDetailPage({
                         {mustRows(issuesRes, 'po_issues').map((iss) => (
                             <li key={iss.version}>
                                 <a href={`/purchasing/orders/${po.id}/pdf?version=${iss.version}`}
-                                   className="hover:underline font-mono app-link app-link-inline">
+                                   className="hover:underline app-link app-link-inline">
                                     v{iss.version}
                                 </a>
                                 <span className="text-[color:var(--brand-muted-text)] ml-2">
@@ -821,7 +821,7 @@ export default async function PurchaseOrderDetailPage({
                     <ul className="text-sm space-y-1">
                         {history.map((h) => (
                             <li key={h.id} className="flex flex-wrap gap-2">
-                                <span className="text-[color:var(--brand-muted-text)] font-mono text-xs">
+                                <span className="text-[color:var(--brand-muted-text)] text-xs">
                                     {new Date(h.changed_at).toISOString().slice(0, 16).replace('T', ' ')}
                                 </span>
                                 <span>{t('purchasing.amend.change.' + h.change_type)}</span>
@@ -836,10 +836,10 @@ export default async function PurchaseOrderDetailPage({
                                     </span>
                                 )}
                                 {h.old_quantity !== null && h.new_quantity !== null && (
-                                    <span className="font-mono text-xs">{h.old_quantity} → {h.new_quantity}</span>
+                                    <span className="text-xs">{h.old_quantity} → {h.new_quantity}</span>
                                 )}
                                 {h.old_quantity !== null && h.new_quantity === null && (
-                                    <span className="font-mono text-xs">{h.old_quantity} →</span>
+                                    <span className="text-xs">{h.old_quantity} →</span>
                                 )}
                                 {h.amend_reason && <span className="text-[color:var(--brand-muted-text)]">— {h.amend_reason}</span>}
                             </li>
@@ -933,19 +933,19 @@ export default async function PurchaseOrderDetailPage({
                     <div className="border border-gray-300 rounded p-4 text-sm space-y-2 h-fit">
                         <div className="flex justify-between">
                             <span className="text-[color:var(--brand-muted-text)]">{t('purchasing.prepaidLabel')}</span>
-                            <span className="font-mono">
+                            <span>
                                 <MaskedValue value={poStatus.prepaid_base === null ? null : formatAmount(poStatus.prepaid_base, baseCurrency)} canView={canFinance} />
                             </span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[color:var(--brand-muted-text)]">{t('purchasing.appliedLabel')}</span>
-                            <span className="font-mono">
+                            <span>
                                 <MaskedValue value={poStatus.prepaid_applied_base === null ? null : formatAmount(poStatus.prepaid_applied_base, baseCurrency)} canView={canFinance} />
                             </span>
                         </div>
                         <div className="flex justify-between font-medium border-t pt-2">
                             <span>{t('purchasing.remainingLabel')}</span>
-                            <span className="font-mono">
+                            <span>
                                 <MaskedValue value={poStatus.prepaid_remaining_base === null ? null : formatAmount(poStatus.prepaid_remaining_base, baseCurrency)} canView={canFinance} />
                             </span>
                         </div>
@@ -983,7 +983,7 @@ export default async function PurchaseOrderDetailPage({
                         <div key={l.id} className="border border-gray-300 rounded-lg p-3">
                             <p className="text-sm mb-2">
                                 <span className="text-[color:var(--brand-muted-text)]">#{l.line_no}</span>
-                                <span className="ml-2 font-mono">{lineName(l)}</span>
+                                <span className="ml-2">{lineName(l)}</span>
                                 <span className="ml-2 text-[color:var(--brand-muted-text)]">
                                     {t('grn.po.orderedLabel', { qty: Number(l.quantity), unit: l.unit ?? 'kg' })}
                                 </span>
@@ -1040,7 +1040,7 @@ export default async function PurchaseOrderDetailPage({
                                         <span key={r.batch_id}>
                                             {i > 0 && ', '}
                                             <Link href={`/inbound/${r.batch_id}/edit`}
-                                                  className="font-mono hover:underline app-link app-link-inline">
+                                                  className="hover:underline app-link app-link-inline">
                                                 {r.batch_code}
                                             </Link>
                                             <span> ({r.received_qty} {r.received_unit})</span>
@@ -1072,7 +1072,7 @@ export default async function PurchaseOrderDetailPage({
                             unit: lines[0]?.unit ?? 'kg',
                         })}
                         {poStatus?.receipt_pct !== null && poStatus?.receipt_pct !== undefined && (
-                            <span className="ml-2 font-mono">({poStatus.receipt_pct}%)</span>
+                            <span className="ml-2">({poStatus.receipt_pct}%)</span>
                         )}
                     </p>
                     <PoReceiptsTable rows={receiptRows} canFinance={canFinance} />

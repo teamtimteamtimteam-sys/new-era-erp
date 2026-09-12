@@ -31,19 +31,19 @@ export default function RevaluationPreviewTable({ rows }: { rows: RevaluationRow
     //   存在的理由(过账会动哪几笔、动多少)。
     const columns: Column<RevaluationRow>[] = [
         {
-            key: 'account', header: t('finance.reval.account'), priority: true, className: 'font-mono',
+            key: 'account', header: t('finance.reval.account'), priority: true,
             render: (r) => (r.isTotal ? t('finance.reval.netTo7110') : `${r.account} · ${r.currency}`),
         },
         {
-            key: 'native', header: t('finance.reval.native'), align: 'right', className: 'font-mono',
+            key: 'native', header: t('finance.reval.native'), align: 'right',
             render: (r) => (r.isTotal || r.native === null ? '' : formatMoneyBare(r.native, '行标签「科目 · 币种」已写明这格的外币')),
         },
         {
-            key: 'carry', header: t('finance.reval.carry'), align: 'right', className: 'font-mono',
+            key: 'carry', header: t('finance.reval.carry'), align: 'right',
             render: (r) => (r.isTotal || r.carryBase === null ? '' : formatAmount(r.carryBase, r.baseCurrency)),
         },
         {
-            key: 'mid', header: t('finance.reval.mid'), align: 'right', className: 'font-mono',
+            key: 'mid', header: t('finance.reval.mid'), align: 'right',
             render: (r) => {
                 if (r.isTotal) return ''
                 return (
@@ -60,7 +60,7 @@ export default function RevaluationPreviewTable({ rows }: { rows: RevaluationRow
             },
         },
         {
-            key: 'adj', header: t('finance.reval.adj'), priority: true, align: 'right', className: 'font-mono font-medium',
+            key: 'adj', header: t('finance.reval.adj'), priority: true, align: 'right', className: 'font-medium',
             render: (r) => {
                 // 【缺牌价时合计不是 0,是不知道】—— 画成 0 会读作"这次重估
                 // 对损益没有影响",而真相是它还算不出来。

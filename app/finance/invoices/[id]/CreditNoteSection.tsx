@@ -131,9 +131,9 @@ export default async function CreditNoteSection({
                         return (
                             <li key={n.id} className="flex flex-wrap items-baseline gap-x-3">
                                 <Link href={`/finance/credit-notes/${n.id}`}
-                                      className="font-mono hover:underline app-link app-link-inline">{n.code}</Link>
+                                      className="hover:underline app-link app-link-inline">{n.code}</Link>
                                 <span className="text-[color:var(--brand-muted-text)]">{new Date(n.note_date).toLocaleDateString(dl)}</span>
-                                <span className="font-mono">−{formatAmount(total, n.currency)}</span>
+                                <span>−{formatAmount(total, n.currency)}</span>
                                 <span className="text-[color:var(--brand-muted-text)]">{n.reason}</span>
                             </li>
                         )

@@ -27,14 +27,14 @@ export default function CashflowEntriesTable({ rows, empty, baseCurrency }: { ro
             key: 'code', header: t('finance.colCode'), priority: true, className: 'text-sm',
             render: (r) => (
                 <>
-                    <span className="font-mono">{r.code}</span>
+                    <span>{r.code}</span>
                     {r.memo && <span className="block text-xs text-gray-500">{r.memo}</span>}
                 </>
             ),
         },
         { key: 'section', header: t('finance.cashflowSection'), render: (r) => t('finance.cashflowSectionName.' + r.section) },
         {
-            key: 'net', header: t('finance.colAmount', { ccy: baseCurrency }), priority: true, align: 'right', className: 'font-mono text-sm',
+            key: 'net', header: t('finance.colAmount', { ccy: baseCurrency }), priority: true, align: 'right', className: 'text-sm',
             render: (r) => <span className={sign(r.net)}>{formatMoneyBare(r.net, '标题下 cashflowDesc「……以 {ccy} 计」')}</span>,
         },
     ]

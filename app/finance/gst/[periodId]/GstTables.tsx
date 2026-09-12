@@ -51,7 +51,6 @@ export function F5BoxesTable({ rows }: { rows: readonly F5BoxRow[] }) {
             header: t('gst.box'),
             // ★ 身份列 —— 见抬头:格号才是标识,这是页面自己写下的判据。
             priority: true,
-            className: 'font-mono',
             render: (r) => r.boxNo,
         },
         {
@@ -71,7 +70,6 @@ export function F5BoxesTable({ rows }: { rows: readonly F5BoxRow[] }) {
             align: 'right',
             // ★ 这张表存在的理由:每一格是多少钱。
             priority: true,
-            className: 'font-mono',
             render: (r) => r.amountText,
         },
         {
@@ -127,10 +125,10 @@ export function F5BoxDetailTable({ rows, empty }: { rows: readonly F5DetailRow[]
             header: t('gst.document'),
             // 身份列 —— 一行钻取明细的主语是那张单据。
             priority: true,
-            className: 'font-mono text-xs',
+            className: 'text-xs',
             render: (r) => r.docCode,
         },
-        { key: 'date', header: t('gst.date'), className: 'font-mono text-xs', render: (r) => r.docDate },
+        { key: 'date', header: t('gst.date'), className: 'text-xs', render: (r) => r.docDate },
         { key: 'memo', header: t('gst.memo'), render: (r) => r.memo },
         { key: 'source', header: t('gst.source'), className: 'text-xs', render: (r) => r.sourceText },
         {
@@ -139,7 +137,6 @@ export function F5BoxDetailTable({ rows, empty }: { rows: readonly F5DetailRow[]
             align: 'right',
             // ★ 钻取存在的理由:这张单据往这一格里贡献了多少。
             priority: true,
-            className: 'font-mono',
             // 贷项凭证是负数 —— 它是一笔【负的供应】,照直印
             render: (r) => r.amountText,
         },
