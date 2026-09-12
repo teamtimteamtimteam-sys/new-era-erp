@@ -101,6 +101,55 @@
 ☞ **它仍然该有自己的一刀。** 今天的上界是 **949 条**(码 × 映射器,静态可达;
 BUGFIX-1 round 1 量的,**是上界不是预测**)。
 
+## ★★ 形态三(POLISH-1 round 3,2026-09-13,item r)—— **机器字【不是漏出来的,是有人手打进词典的】** ★★
+
+> ### ★ 它与上面两种形态【不是同一件事】,所以单列
+> 形态一是「占位符没传」、形态二是「数据库吐出来的码没有文案」——**两种都是机器字【漏】到人面前**。
+> ★ **这一种是有人坐下来,把表名 / 列名 / 库函数名 / 路由路径【打进 `messages/{en,zh}.ts`】**,
+> 而那两个文件里的每一个字都是**写给人读的**。☞ **没有任何一道闸会红:它们是合法的字符串值。**
+
+**分母(POLISH-1 round 1 量的,round 3 复用,`/tmp/polish1/jargon-sweep.txt`):**
+
+| | 个数 | 怎么数的 |
+|---|--:|---|
+| `messages/en.ts` 的叶子字符串值 | **6722** | 分母 |
+| 值里含 **snake_case 标识符** | **16** | |
+| 值里含 **路由路径** | **21 条命中 → ★ 17 条是真路由** | ★ 另 4 条是 `{ccy}/kg` —— **`/kg` 是一个单位,不是一条路由**,扫描器自己的误报 |
+
+### ★ 处置,逐类 —— **16 里改了 11、留了 5;17 条路由全部改掉**
+
+| 类 | 个数 | 处置 |
+|---|--:|---|
+| ★ **权限码** | **5** | ★★ **留着 —— 而这不是偷懒,是一条在案的设计。**<br>`data.view_prices`(×3:`common.dataClassDeniedHint` · `reports.snapshot.priceRestrictedNote` · `auditTrail.seam.amount_restricted`)· `action.bulk_import`(`import.deniedHint`)· `action.manage_permissions`(`permissions.deniedHint`)<br>☞ **理由:`PermissionGate` 本来就【刻意】把权限码印到人眼前**,好让当事人能对管理员说出他缺的到底是哪一个码。那一条的实测代价写在 `docs/handbacks/PERM-CODE-1-round2.md` §2.3:改判之前,屏幕上印的是**他已经持有的那个码**——「一句指着他早就有的权限的话」。<br>★ **判据因此不是「长得像 snake_case 就改」,是「这一串【人要不要拿它去做事】」。** |
+| ★ **表名 / 列名 / 库函数名 / 测试路径** | **11** | ★ **改成人话。** 逐条见下表。 |
+| ★ **路由路径** | **17** | ★ **换成那一页【在导航上的名字】**,而名字**不是手抄的** —— 从 `lib/modules.ts` 的 `navKey` 取,再用 `messages/{en,zh}.ts` 解出来(`$J/navnames.mjs`)。☞ 手抄一份页面名就是仓库里第二份会漂的定义。 |
+
+#### ★ 那 11 处,逐条(键 · 换掉的那一串 · 它是什么)
+
+| 键 | 换掉的 | 它是什么 |
+|---|---|---|
+| `dict.deactivateNotDelete` | `is_active` → 「the Active / Deactivated status」/「「状态」那一栏(启用 / 已停用)」 | **列名**。★ 而这一页自己把它画成「状态」列(`dict.col.isActive` = `Status` / `状态`),值是 `Active` / `Deactivated` —— **人话早就在同一个词典里了。** |
+| `reminders.basis` | `item_date` → 「the date on the item itself」 | 列名 |
+| `reports.snapshot.ageingNote` | `aging_bucket` → 「the single definition the database keeps for ageing」 | 库里的定义名 |
+| `converter.grade.sources` | `assay_result_metals.content_pct` → 整串删掉 | **表.列**;★ 句子本来就已经说了「records assay content in PERCENT everywhere」,那个标识符**没有多告诉人任何事** |
+| `converter.basis.sources` | `sale_settlement_compute` · `convert_weight_basis` · `convert_grade_basis` → 「settlement itself」/「the very routine settlement runs」 | 三个**库函数名** |
+| `assay.impactInBaseAt` | `tt_sell` → `TT sell` | ★ **它有屏幕上的名字**:`fx.kind.tt_sell` = `TT sell (bank sells the foreign currency)` |
+| `finance.fxLookup.missing` | `tt_buy` · `tt_sell` → `TT buy` / `TT sell`;`record_payment` → 「the payment itself is valued by」 | 同上 + 一个**库函数名** |
+| `auditTrail.seam.polymorphic_source` | `source_type` → 「the source type」/「【来源类型】」 | 列名 |
+| `finance.gstSwitch.rateLivesElsewhere` | `tax_rates` → 「the tax-rate history」;`finance_settings.gst_rate_pct` → 「the single rate this page used to carry」 | 表名 + **表.列** |
+| `finance.errors.SYSTEM_START_NOT_SET` | `system_start_date` → 「The system start date」 | ★ **同一棵树的另外两处早就写着人话**(`dashboard.systemStart` · `hr.…system_start_not_set` 都写「System start date」)—— 这一处是**同一件事的第三种写法** |
+| `finance.fxPage.je70Assured` | `source_type "revaluation"` → 「recorded as a revaluation」;★ **`db/fixtures/133 arm C`** → 「the system's own test suite」 | ★★ **最后那一串是【仓库里的一条测试路径】印在了用户屏幕上。** |
+
+> ### ☞ 本条留给下一刀的两句
+> ① ★ **这一族【没有闸】。** 没有任何检查在问「`messages/*.ts` 的值里有没有 snake_case 或路由路径」——
+> 本轮是**手工普查 + 一支一次性脚本**。☞ 要立一道闸的话,判据不能只认形状:
+> **那 5 个权限码按形状全部命中,而它们是对的。** 一道只认形状的闸会把一条在案的设计判成缺陷。
+> ② ★ 顺带量到一处**中文导航名撞车**(不修,登记):`finance.subnav.close` 与 `finance.subnav.monthEnd`
+> **两条子导航的 zh 值都是「月结」**。本轮的 zh 改写因此用了「月结」与「月结枢纽」(`dashboard.monthEnd`)
+> 两个**词典里已有的**名字把它们分开 —— **但那两条导航项本身仍然同名。**
+
+---
+
 **★ 顺带更正本文件一处措辞:** 上面写着「45 是"用户点一下就能撞到、而且会看见裸码"的**下限**」——
 ★ **从 2026-09-12 起,那句话的后半截不再成立**:用户**看不见裸码了**,看见的是一句人话加一个短码。
 **前半截仍然成立**(那些码仍然撞得到,而且仍然没有属于自己的文案)。

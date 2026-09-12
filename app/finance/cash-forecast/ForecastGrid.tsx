@@ -144,7 +144,16 @@ export default function ForecastGrid({
     ]
 
     return (
-        <div>
+        /* ★ POLISH-1 round 3(item x)· `mb-8` —— 这一块的下边距此前是 0,
+           而它下面那个 `<section className="mb-8">` 的第一个孩子是一个 `<h2>`:
+           两个 0 撞在一起,于是那个标题【贴着】这张表。
+           ☞ 实测(本轮 before):那个 h2 的上方气口 `0.00px`,它自己的 margin-top 0、
+             容器 padding-top 0;而同一页其余六个标题读到的是 16 或 32,
+             全树 120 个 h2 的【中位】是 32。
+           ☞ 补的是**它的兄弟们都有的那一个**:这一页上 `<p>` 是 mb-4、
+             `<RecurringLines>` 是 mb-8、末尾那个 `<h2>` 是 mb-2 ——
+             只有这一块没有下边距。**不是给标题挂一个一次性的 mt。** */
+        <div className="mb-8">
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}

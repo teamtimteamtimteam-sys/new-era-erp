@@ -76,10 +76,20 @@ function NodeBox({ p, t }: { p: Placed; t: (k: string, v?: Record<string, string
         <g transform={`translate(${cx},${cy})`}>
             <rect width={BOX_W} height={BOX_H} rx="6"
                   fill="var(--brand-surface)" stroke="var(--brand-border-strong)" />
-            <text x="10" y="19" fontSize="13" fill="var(--brand-text)">
+            {/* ════════════════════════════════════════════════════════════
+                ★ POLISH-1 round 3(item t,Tim 的走查)· 卡片里的字居中
+                ════════════════════════════════════════════════════════════
+                ★★ 这里是 **SVG**,不是 HTML —— 一个 `text-center` 类在这上面
+                  什么都不会发生(`text-align` 不作用于 SVG 文本节点)。
+                  水平位置由两样东西定:`x` 与 `text-anchor`。
+                ☞ 所以两样一起改:`x` 从 10(左内边距)改成卡片中线 `BOX_W / 2`,
+                  `textAnchor` 从默认的 `start` 改成 `middle`。
+                ★ **卡片里两段文字都改** —— 只居中名字会让编号那一行仍然靠左,
+                  而那比两行都靠左更难看,也不是走查要的东西。 */}
+            <text x={BOX_W / 2} y="19" textAnchor="middle" fontSize="13" fill="var(--brand-text)">
                 {nameOf(p.node).slice(0, 20)}
             </text>
-            <text x="10" y="35" fontSize="10" fill="var(--brand-muted-text)">
+            <text x={BOX_W / 2} y="35" textAnchor="middle" fontSize="10" fill="var(--brand-muted-text)">
                 {p.node.emp.code}
                 {departed ? ` · ${t('org.status.' + p.node.emp.employment_status)}` : ''}
             </text>

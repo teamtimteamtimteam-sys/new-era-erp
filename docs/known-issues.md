@@ -202,7 +202,27 @@
 | ⬜ **没修的部分,也就是这一条** | **没有闸。** 下一个人再往映射器的兜底上动手,这条契约会再断一次,而仍然没有东西会红。<br>★ round 1 提过一道闸(AST:`localize*` 家族的兜底不许 `return` 它自己的形参 —— 今天 45/45 会绿)。**本刀没有做它** —— 一道刚被自己绊倒的人现写的闸,没有人验过(AGENTS.md「匆忙的检查者」)。 |
 | **去处** | ⬜ 与上面那条「逐个码补文案」同一刀,或单独一刀。 |
 
-## ★ BUGFIX1B-FALLBACK-DOUBLE-STOP —— **兜底那句话以句号收尾,而调用点的模板又补了一个**(BUGFIX-1b,2026-09-12)
+## ✅ ~~BUGFIX1B-FALLBACK-DOUBLE-STOP~~ —— **★ CLOSED(POLISH-1 round 3,2026-09-13,R22 / 队列的 z⑦)★**
+
+> ### ★ 怎么修的,以及**为什么不是把那个句号删掉**
+> 改的是 `calendar.sourceFailed` 一个键、两种语言:**把 `{list}` 挪到句末。**
+> | | |
+> |---|---|
+> | **改前(en)** | `One or more sources could not be read, so this month is INCOMPLETE: {list}. This is not the same as "nothing scheduled".` |
+> | **改后(en)** | `One or more sources could not be read, so this month is INCOMPLETE — this is not the same as "nothing scheduled". {list}` |
+> | **改前(zh)** | `有来源读不到,所以这个月是【不完整】的:{list}。这与"没有安排"不是一回事。` |
+> | **改后(zh)** | `有来源读不到,所以这个月是【不完整】的 —— 这与"没有安排"不是一回事。{list}` |
+>
+> ★★ **为什么不删那个句号(这是本条唯一值得留下来的一句):**
+> `{list}` 里装的是 `fallbackForRawError()` 的产物,而它**有三种形态**——
+> 生码兜底句(自带句号)· 数据库报错的兜底句(自带句号)· ★ **数据库自己的人话句子(原样留着,标点【不受控】)**。
+> ☞ **删模板那个句号,只治好前两种**:第三种会和后半句**连成一句**。
+> **把 `{list}` 挪到末尾,三种形态一次全治** —— 它后面不再有任何模板标点可以撞上。
+> ★ 这是「一个只治了走过的那条路的修法」那一族的又一例,而这一次它**在修的时候就被看见了**。
+
+---
+
+## ★ BUGFIX1B-FALLBACK-DOUBLE-STOP(原文,保留)—— **兜底那句话以句号收尾,而调用点的模板又补了一个**(BUGFIX-1b,2026-09-12)
 
 | | |
 |---|---|
@@ -7479,6 +7499,57 @@ writeFileSync(BASELINE, JSON.stringify(obj, null, 2) + '\n')
 
 **修法(留给下一刀):**`--update-baseline` 先读回旧文件,把已知维度之外的顶层键
 原样带过去;并对未知键加一条注入格,证明它真的被保住了。
+
+---
+
+## ★★ POLISH1R3-NO-48PX-BUTTON-STEP · 「Cancel Stocktake 要 48px」**做不到,而原因在库里**(POLISH-1 round 3,2026-09-13,item q)
+
+| | |
+|---|---|
+| **走查说的** | `/stocktakes/[id]` 底部那条操作栏上,「Cancel Stocktake」比旁边的「Review & Post」矮。 |
+| ★ **实测(两个视口逐字相同)** | 容器 `<div className="flex gap-3">`:<br>· 「Review & Post」= `a[data-slot=button]` `size="default"` `variant="default"` —— **48px**(来自调用点手写的 `min-h-[48px]`),字号 16px<br>· 「Cancel Stocktake」= `button` `size="default"` `variant="destructive"` —— **32px**,`min-height: auto`,字号 14px |
+| ★★ **为什么没改** | 委托书的裁定是「**用共享 Button 已有的档位**把它带到 48px,**不许手写高度**;如果没有一档是 48px,**停下来把档位报出来,不要发明一档**」。<br>★ **档位逐条量过(读 `app/components/ui/button.tsx` 的 `size` 表):**<br>`xs` = `h-6` **24px** · `sm` = `h-7` **28px** · `default` = `h-8` **32px** · `lg` = `h-9` **36px** · `inline` = `h-auto`(随内容)· `icon` = `size-8` **32px** · `icon-xs` = `size-6` **24px** · `icon-sm` = `size-7` **28px** · `icon-lg` = `size-9` **36px**<br>☞ ★★ **九档里没有 48px,最高的一档是 36px。** 所以这一条**停在裁定自己写下的那道闸上**。 |
+| ★ **而 48px 在这棵树上是【怎么来的】** | 它**从来不是一个档位** —— 它是 **11 处手写的 `min-h-[48px]`**(spec §2A.1 的 E6 已经逐处列过:6 颗按钮 + 9 个输入框)。<br>☞ **「Review & Post」那 48px 本身就是一次手写。** 所以走查看到的不是「一颗按钮掉档了」,是 **E6 这条例外【从来没有一个档位承载它】**。 |
+| ★ **它要的下一步(一次裁定,不是一把刀)** | 二选一,而**两条都超出 item q 的范围**:<br>① 给共享 Button **加一个 E6 触控档**(`h-12` = 48px),然后把那 6 颗手写的一起转过去 —— **那是给库加一档**,spec §2A / §八(b) 的形状;<br>② 或者裁定「E6 就是手写的」,并把「Cancel Stocktake」也手写成 `min-h-[48px]` —— ★ **但那与 item q 明文禁止的「不许手写高度」直接冲突。** |
+| ⚠ **顺带量到的一件,它让这一条更清楚** | ★ **全树 105 个「一个容器里有两颗以上按钮」的地方,高度不一致而其中一颗 ≥44px 的:恰好 1 个** —— 就是走查点到的这一个。<br>☞ 队列要求「把收货与盘点其余各页**同样成对**的按钮找一遍」,**找过了:没有第二处。**<br>`/inbound/receive/done/[id]` 那一对**两颗都是** `min-h-[48px]`(一致);`CountList` · `ReceiveForm` · `StocktakeQuickCount` 那几颗是**整宽单钮**,没有兄弟。 |
+| **去处** | ⬜ **等 Tim 在上面那两条里选一条。** 在那之前**不要**再量一遍:读数在这里。 |
+
+---
+
+## ★ POLISH1R3-DATATABLE-PAGER-NO-STEP · `<DataTable>` 的分页钮是 **30px**,而共享档位里没有 30(POLISH-1 round 3,2026-09-13)
+
+| | |
+|---|---|
+| **它是什么** | 继承的第 ① 件要求 `<DataTable>` 自己那几个裸 `<button>` 走共享 `<Button>`。★ **四个代码点里一个转过去了,三个停住了** —— 转过去的是**展开箭头**;停的是**排序表头钮**(转过去量到 +2px,按回原样)与**分页那一对**(档位里没有 30px)。 |
+| ★ **三档高度,现在量过了**(队列写着「20/28/30px **没有被重量过**」) | · 排序表头钮 **21.42px**(不是 20)—— `size="inline"`(`h-auto`)逐字复刻,因为它今天本来就没有高度类,21.42 就是它的行盒<br>· 展开箭头 **28×28px** —— `size="icon-sm"`(`size-7`)逐字复刻<br>· ★ **分页钮 30px** —— `px-2.5 py-1` + 1px 描边 + 20px 行盒;**九个档位是 24 / 28 / 32 / 36**,★ **没有 30** |
+| ★★ **为什么不凑** | 形状上配得上它的档是 `secondary`(透明底 + 描边 + 400 字重),而 `secondary` 只能配 `sm`(**28px,−2px**)或 `default`(**32px,+2px**)。<br>☞ 裁定写着「**如果共享组件复刻不出当前高度,停下来把差值报出来,不要接受它**」。**差值是 ±2px,报在这里。**<br>⚠ 用 `size="inline"` + 在调用点把 `px-2.5 py-1` 写回去**能**凑出 30px —— **没有这么做**,两个理由:① `inline` 那一档的文档原话是「**一个不是盒子的按钮**」,而分页钮**是**盒子(底 + 描边);② 那等于**在调用点手写几何**,与 item q 明文禁止的那件事同形。 |
+| ★ **它的射程有多小,量过** | ★★ **分页钮与排序钮在这棵树上【只有一个消费者】:`/brand-sampler`。**<br>`pageSize=` 全仓库 **1 个**调用点(`app/brand-sampler/Base1.tsx:107`);`sorting={{ mode: 'client' }}` 也是 **1 个**(同文件 `:105`)。<br>★ 141 条静态路由 × 2 视口上,排序**钮**渲染 **0 个**(渲染出来的 27 个是 `serverSort` 那一支的 `<a>`,不是裸 `<button>`)。<br>☞ 而 `/brand-sampler` 正是停止条件 (e) 的对象:**它的读数必须逐字不变。** 接受一个 ±2px,等于让这一刀自己去踩 (e)。 |
+| ★ **转过去的那两颗,反而是【有真消费者】的** | 展开箭头:**每个视口 480 颗**(phone 上 28×28,desktop 上 `sm:hidden` 高 0)。**它是这四个代码点里唯一一个真的铺在全树上的。** |
+| **去处** | ⬜ 与上面 `POLISH1R3-NO-48PX-BUTTON-STEP` **同一次裁定**:两条问的是同一件事 ——**共享 Button 的档位表要不要为一个已经存在的几何多开一档。** |
+
+---
+
+## ★ POLISH1R3-DESTRUCTIVE-AS-TEXT-4-06 · `--brand-destructive` 当字色用,白底 **4.06:1**,过不了 AA(POLISH-1 round 3,2026-09-13,item y 顺带量到)
+
+| | |
+|---|---|
+| **站点** | `app/finance/page.tsx:206`(`/finance` 模块首页,对账那一段)—— 内联 `style={{ color: Number(s.unexplained_base) === 0 ? 'var(--brand-muted-text)' : 'var(--brand-destructive)' }}` |
+| ★ **读数(本轮自算,与 spec §4.4a 的 R8 逐字吻合)** | `--brand-destructive` **#C0635A** on `#FFFFFF` = **4.059:1 ✗**(AA 要 4.5)<br>对照:`--brand-destructive-fill` **#B75B53** = **4.531:1 ✓** · `--brand-destructive-text` **#AA4F48** = **5.356:1 ✓** |
+| ★ **它为什么到今天还在** | 颜色写在 `style={{ }}` 里,**任何 className 扫描器按构造看不见它**(AGENTS.md,FONT-1 付过这笔账)。而 `app/components/charts/BarRows.tsx:82-86` 的注释**早就把这个数写下来了**并说「这里不能用它」—— ☞ **同一棵树上,一处知道、另一处不知道。** |
+| ★ **为什么本轮没改** | item y 的授权是「**把 round 2 那三条裁定(横幅形状 §4.4a · 卡片标准 §4.4 · 状态片豁免)应用上去;它们没覆盖的,留着并说出它缺哪一条裁定**」。<br>☞ 这一处**两条都沾**:它是一枚**状态色**(0 / 非 0),按状态片豁免该**留**;而它同时**过不了 AA**。★ **「一枚状态色过不了 AA 时该怎么办」——round 2 只对日历那三枚色片裁过(R13:动底、不动字),没有裁成一条通则。** 把 R13 从三枚色片推广到全树,是一次裁定,不是一次转换。 |
+| ★ **给下一刀的一句** | 修法是机械的(`--brand-destructive` → `--brand-destructive-fill`,+0.47),★ **但要先量这个总体**:内联 `style` 里用 `--brand-destructive` 当字色的一共几处?**本轮没有量它** —— item y 的射程是那 20 个站点,不是这个总体。 |
+
+---
+
+## ★ POLISH1R3-RAW-GRAY-600-VS-TOKEN · **100 处 `text-gray-600` 与 `--brand-muted-text` 并存,而换过去会【降低】对比度**(POLISH-1 round 3,2026-09-13,item y)
+
+| | |
+|---|---|
+| **总体** | `grep -rn "text-gray-600" app --include="*.tsx"` = ★ **100 处** |
+| ★ **item y 里撞上它的两处** | `app/materials/[id]/edit/RequiredMetalsPanel.tsx:67`(`initial.length === 0 ? 'text-gray-600 italic' : 'font-medium'`)· `app/notifications/page.tsx:80`(`isUnread ? 'text-sm font-medium' : 'text-sm text-gray-600'`)<br>★ FONT-2 自己标过这两处是「**最容易结清的两个**」,并写着**它们要的是一句裁定,不是一把刀**。 |
+| ★★ **而「顺手换成 token」是错的,这一点是量出来的** | `text-gray-600` = **#4B5563**,白底 **7.557:1**;`--brand-muted-text` = **#62738C**,白底 **4.827:1**。<br>☞ ★ **换过去是一次【降低】对比度的替换(−2.73)** —— 与队列第七节记着的 `text-blue-600 → text-primary` 那一次**同一个形状**。 |
+| ★ **两处都是【状态】色** | 空态(还没选任何金属)· 已读(这条通知你看过了)。按 §4.4a 的状态片豁免判据(「这个颜色在说'这是一条通知',还是在说'这一行是哪一类'?」)**它们说的是后者 → 留着。** |
+| **去处** | ⬜ **一次裁定:那 100 处的灰要不要归到一个 token 上,而归之后【次级色本身】要不要先压深。** 这两件要一起裁 —— 只做前一件会把 100 处的对比度一起拉低。 |
 
 ---
 
