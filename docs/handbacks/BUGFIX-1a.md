@@ -920,15 +920,105 @@ ROWHEIGHT_OWN_EXIT=0
 | ★ **工作提交(工作 + 交回报告同一个)** | ★ **`fde508dab762dcbac6767aaa16a96e010af13868`** —— **16 个文件**,**+2027 / −41** |
 | 暂存的办法 | ★ **逐条显式路径**:`git add -- app lib scripts messages docs AGENTS.md package.json`。<br>★ **`db/` 下一个文件都没有**(提交前后各查一次 `git diff --cached --name-only \| grep "^db/"` → 空) |
 | ★ **`lib/` 实际改了几个文件** | ★ **0** —— 它在暂存清单里是因为委托书点名,而这一刀没有需要改它的东西 |
-| ⚠ **§7.6 推送** | ★★ **没有发生 —— 被自动模式的分类器挡下了。**<br>★ **按在案的办法处理:不自己换着花样重试**(`docs/…` 与记忆里那一条:一次拦下不是一条常设拒绝,而重试变体是不对的做法)。<br>☞ **提交在本地,树是干净的。要 Tim 在对话里把那一行发出去。** |
-| ⬜ **三方 SHA 核对** | **待填** —— 推送之后 `HEAD` / `origin/main` / `git ls-remote` 三个必须是同一个**完整 40 字符** SHA |
+| ⚠ **§7.6 推送** | ★ **第一次尝试被自动模式的分类器挡下**(照在案的办法:**不自己换着花样重试**)。★ **Tim 在 2026-09-12 00:40 UTC 亲手把它推了出去。** |
+| ★ **§7.6 三方 SHA** | ★★ **三个逐字相同,都是完整 40 字符:**<br>`HEAD        dd9be64ec8cfe349de1e80421aae4bfea60d7090`<br>`origin/main dd9be64ec8cfe349de1e80421aae4bfea60d7090`<br>`ls-remote   dd9be64ec8cfe349de1e80421aae4bfea60d7090`<br>(`git fetch` 之后测的,长度逐个数过:40 / 40 / 40) |
+| 推送时刻 | **2026-09-12 00:40:26 UTC** |
 
-### 16.2 §7.7 部署
+### 16.2 §7.7 部署 —— ★★ **失败了。这一刀【没有】上线。** ★★
 
-⬜ **待填 —— 推送还没有发生(见 16.1)。** 部署的读数要等那一次推送真的上线之后才存在。
-★ 办法已经写好,照 FONT-2 §16.2 那一条:
-`db/wait_for.sh --timeout 900 --interval 20` 等**完整 40 字符 SHA** 上的 Production 部署 →
-**先把 deployment id 绑到 SHA** → 绑好之后才问【它】的状态 → 要求 `state=success` → 数它的状态记录条数。
+> ### ★★ 一句话:推送成功,而 **Vercel 的构建失败**。`v1.4.18` 这一半**没有**到生产上。
+> ★ **生产【没有】坏** —— 失败的构建**不会被提升**,别名仍然服务上一次成功的那个版本。
+
+**照委托书 §7.7 的三步做的,读数逐条:**
+
+| 步 | 读数 |
+|---|---|
+| ① **有上限地等**(`db/wait_for.sh --timeout 900 --interval 20`,条件写在**完整 40 字符 SHA** 上) | ★ `✓ 等到了:Production deployment for dd9be64…(1s)`,`WAIT1_OWN_EXIT=0` |
+| ② ★ **先把 deployment id 绑到 SHA**(问那一次部署**自己**,不是列表最新那条) | `id=6404122473` · ★ `sha=dd9be64ec8cfe349de1e80421aae4bfea60d7090` · `env=Production` · `created=2026-09-12T00:40:26Z` |
+| ③ **绑好之后才问【它】的状态** | ★★ **`state=failure`** |
+| ★ **它的状态记录有几条** | ★ **1 条** —— 只有 `failure` 那一条 |
+| 它自己说的话(逐字) | `Deployment has failed — run this Vercel CLI command: npx vercel inspect dpl_5yckcANhgJMAyuoWR2hXt5VxKJEf --logs` |
+| 面板链接 | `https://vercel.com/tim-s-projects7/new-era-erp/5yckcANhgJMAyuoWR2hXt5VxKJEf` |
+
+#### ★ 它是不是本刀造成的 —— 量过,答案是【很可能是】
+
+| 判据 | 读数 |
+|---|---|
+| 前四次 Production 部署的状态 | ★ **`success` · `success` · `success` · `success`**(`6397595033` `6397299064` `6397224637` `6392675820`) |
+| 本刀这一次 | ★ **`failure`** |
+| ☞ | **这是这条时间线上第一次失败,而本刀是第一次把两支新闸放进构建链的提交。** |
+
+#### ★ 生产现在是什么状态 —— 实测,不是推理
+
+| 判据 | 读数 |
+|---|---|
+| ★ **生产别名 `https://new-era-erp.vercel.app/`** | ★★ **HTTP 200**(1.94s) —— **生产是好的**,它服务的仍然是上一次成功的构建 |
+| 失败那一次的部署 URL | `HTTP 302`(登录跳转,正常) |
+
+#### ★★ 我为什么【没有】动手修 —— 以及我排除掉了什么
+
+★ **本机够不到 Vercel 的日志。** AGENTS.md 记着「部署的真源是 Vercel」,而本刀把那五项**逐项重量**,
+与 FONT-2 量到的**逐字相同**:
+
+```
+vercel CLI: ABSENT · vercel in package.json: ABSENT · .vercel/project.json: ABSENT
+VERCEL_TOKEN: ABSENT · ~/.vercel: ABSENT · .env.local 里没有任何 VERCEL 变量
+```
+
+GitHub 那一侧也没有更细的东西:commit status **只有 1 条**(就是上面那句),check-runs **0 条**。
+
+☞ **于是我做了唯一一件能做的事:把 Vercel 的构建在本机【尽可能忠实地】复现一遍。**
+
+| 复现的办法 | 读数 |
+|---|---|
+| 把仓库 clone 到 **`/tmp/bugfix1a/repro`**(★ **不碰 Tim 机器上的 `node_modules`**),checkout 到 `dd9be64…` | ✓ |
+| ★ **冷装:`npm ci`(照 `package-lock.json`,全新 `node_modules`)** | ★ `NPMCI_OWN_EXIT=0` |
+| ★ **冷构建:`npm run build`** | ★★ **`REPROBUILD_OWN_EXIT=0` —— 全绿,26 条静态检查 + `next build` 全过** |
+
+**逐条排除掉的假设(每一条都带读数):**
+
+| 假设 | 判词 |
+|---|---|
+| 我的新闸 `require` 了**没有声明**的 `postcss` / `lightningcss`,冷装解析不到 | ★ **排除** —— 冷装里三个模块**全部 resolve 得到**(`postcss` · `@tailwindcss/postcss` · `lightningcss`)。<br>⚠ **但它们确实【没有声明】**,见下面那条留给下一刀的事 |
+| `lightningcss` 的 **linux-x64 原生包不在锁文件里** | ★ **排除** —— 锁文件里 **12 条** `lightningcss*` 条目,**`lightningcss-linux-x64-gnu` 与 `-musl` 都在** |
+| `@source "../app"` / `"../lib"` 指到一个**没有提交**的目录 | ★ **排除** —— 干净 clone 里 `app/` **901** 个在册文件、`lib/` **46** 个、`scripts/` **71** 个;`git check-ignore` 一个都不命中 |
+| 两支新脚本**没有提交进去** | ★ **排除** —— 干净 clone 里两个文件都在,`scripts/lib/selfproof.mjs` 也在 |
+| `package.json` 的 build 串被我改坏了(隐形字符 / 换行) | ★ **排除** —— 1056 个字符,**非 ASCII 字符 0 个**,纯 `&&` 串 |
+| 大小写陷阱(macOS 不分大小写,Linux 分) | ★ **排除** —— 两支脚本只 import `./lib/selfproof.mjs`,磁盘上逐字是 `scripts/lib/selfproof.mjs` |
+| 换行符是 CRLF | ★ **排除** —— 两个文件 **0 个 `\r`** |
+
+> ### ★★ 于是我停在这里,而【停下来】本身是一条裁定
+> **我能证明的是:这个提交在一次【冷装 + 冷构建】里是绿的(macOS / arm64)。
+> 我不能证明的是:它在 Vercel(Linux / 他们的 Node / 他们的装法)上为什么红。**
+> ☞ **在拿到那份日志之前动手改,就是这个仓库反复付账的那一件事** ——
+> 「一条写进报告的修法读起来像一条裁定,而它仍然只是一个没有被量过的猜测」。
+> **我不打算贡献第二次。**
+
+#### ⬜ 拿到日志之前**不做**、但已经看出来的一件事(留给下一刀,别顺手做)
+
+★ **`postcss` 与 `lightningcss` 在 `package.json` 里【没有声明】**,而
+`scripts/check-generated-css.mjs` **直接 `require` 它们**。
+今天它们靠 npm 的提升(hoisting)落在顶层,冷装实测也 resolve 得到 ——
+**所以这【不是】已证实的病因**。
+☞ 但**一支进构建链的脚本依赖【没有声明】的传递依赖,本身就是一处缺陷** ——
+**它该被声明**。⚠ **而那要改 `package-lock.json`,是一次独立的、要自己验的改动;
+在病因查清之前把它塞进来,只会让下一次失败更难归因。**
+
+#### ☞ 要往下走,需要那份日志(一条命令)
+
+```
+npx vercel inspect dpl_5yckcANhgJMAyuoWR2hXt5VxKJEf --logs
+```
+
+★ **或者面板:** `https://vercel.com/tim-s-projects7/new-era-erp/5yckcANhgJMAyuoWR2hXt5VxKJEf`
+
+#### ⚠ 在修好之前,`main` 是什么状态 —— 照直说
+
+* ★ **生产没坏**(别名 HTTP 200,服务的是上一次成功的构建)。
+* ⚠ **但 `main` 上现在有一个【构建失败】的提交**,而下一刀会从它开始。
+* ★ **要立刻让 `main` 回到绿的**,办法是回退这两条提交:
+  `git revert --no-edit dd9be64ec8cfe349de1e80421aae4bfea60d7090 fde508dab762dcbac6767aaa16a96e010af13868`
+  ☞ **本刀【没有】这么做** —— 那是一次要 Tim 裁的取舍(生产没坏,而回退会把五条修好的东西一起撤掉)。
 
 ### 16.3 §7.8 残留 —— ★ **已经量完了,与推送无关的那一部分**
 
