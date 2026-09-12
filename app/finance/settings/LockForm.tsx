@@ -86,8 +86,8 @@ canEdit: boolean
                     title={t('finance.unlockConfirm')}
                     body={t('finance.unlockConsequence')}
                     confirmLabel={t('finance.unlock')}
-                    tier="reversal"
-                    triggerVariant="reversal"
+                    tier="destructive"
+                    triggerVariant="destructive"
                     disabled={isPending}
                     onConfirm={() => submit(null)}
                 >

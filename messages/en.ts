@@ -4548,7 +4548,15 @@ const en = {
         colFrozen: 'Frozen',
         linesTitle: 'Recurring costs and known one-offs',
         linesHint: 'The forecast can only see what carries a date. Rent, insurance and known one-off payments are entered here \u2014 and the recurring ones are also what the fixed-OPEX cover is measured from.',
-        noLines: 'Nothing recorded yet.',
+        // ★ POLISH-1(2026-09-12,Tim 的裁定 R5)· 这一条【只改这一句】。
+        //   Tim 走查时看见一张空表「什么都不说」。实测:空态文字【是有的】,
+        //   坏的是它说的话 —— 「Nothing recorded yet.」说不出
+        //   ① 这张表管的是什么;② 空在这里是不是正常的。
+        //   ☞ 照本仓库「具名的缺席」那条(`calendar.empty` / `commissions.none`)重写。
+        //   ⚠ Tim 抱怨的【后半句】——「没有数据」与「没加载出来」分不开 ——
+        //     是一个**机制**问题,不在这一刀里:见 `docs/known-issues.md`
+        //     的 `POLISH1-EMPTY-VS-FAILED`。一句文案分不开这两件事。
+        noLines: 'No recurring costs or one-off payments have been entered here yet. That is not the same as \u201cnothing is due\u201d \u2014 it means nobody has written one down, so the forecast below cannot see them.',
         addLine: 'Add a line',
         label: 'Description',
         direction: 'Direction',

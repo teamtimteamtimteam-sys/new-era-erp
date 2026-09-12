@@ -42,6 +42,7 @@ import DiscrepancyKinds, {
     type DiscrepancyRow as GrnRow,
     type ReceivingThresholds as GrnThresholds,
 } from '@/app/components/receiving/DiscrepancyKinds'
+import { Alert } from '@/app/components/ui/alert'
 
 type AssayEntry = { metal: string; content_pct: number }
 
@@ -629,10 +630,20 @@ export default async function PurchaseOrderDetailPage({
                 <>
             {/* A3:拿掉了"收货"这个动作,就得说清楚机器到了该去哪 —— 否则
                 删掉按钮只是把困惑搬了个家。 */}
-            {isEquipmentOrder && (
-                <p className="mb-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+            {/* ★★ POLISH-1(2026-09-12,Tim 的裁定 R12)· info 横幅走库里的 <Alert> ★★
+                   R12 的原话:「**只裁那 ~8 条真正的 info 横幅**,而且要在 R8 的横幅
+                   形状落地【之后】—— 因为一条白底 + 1px 描边的横幅,可能**根本不需要
+                   一个 info 蓝**。」☞ 量下来:**不需要。**
+                   `<Alert>` 的 default 档是 `bg-card`(白)+ `text-card-foreground`
+                   (`--brand-text #182B4B`,白底 **14.13:1 ✓**),描边取 `currentColor`
+                   于是与字同色 —— **「这是一条通知」由那个带描边的盒子说,不由颜色说**。
+                   ☞ 所以这一刀**没有**给 `alert.tsx` 新开一个 `info` 档:
+                     它今天仍然只有 `default` 与 `destructive` 两档。
+                     ★ 少一个没人裁过的状态色,就少一处将来会漂的定义。 */}
+                {isEquipmentOrder && (
+                <Alert className="mb-4">
                     {t('purchasing.equipmentOrderNote')}
-                </p>
+                </Alert>
             )}
 
             {isCancelled && (

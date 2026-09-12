@@ -73,10 +73,24 @@ canEdit: boolean
     const dateField = (id: string, value: string, set: (v: string) => void, labelKey: string, hintKey: string) => (
         <label className="block">
             {t(labelKey)} <span className="text-red-600">*</span>
+            {/* ★★ POLISH-1(2026-09-12,Tim 的裁定 R10 · S3「状态色留着」)★★
+                   ⚠ 本段【刻意不写那个类名的字面】—— 注释里的一个 token 会被
+                     将来对它自己的计数数进去(AGENTS.md · CONFIRM-1/ALERT-1,四次)。
+                   这里原来在调用点上手写了【一个红描边类 + 一个红底类】,而那个描边类
+                   **一个像素都没有画过**:`CONTROL_INPUT` 里有
+                   `aria-invalid:border-destructive`,它的选择器是【类 + 属性】,
+                   特指度压过一个光秃秃的类;而这串类只在 `value === ''` 时挂上,
+                   也就是**只在 aria-invalid 为真的时候** —— 于是它永远是输的那一边。
+                   (round 1 实测:那条边框渲染出来是 `#B75B53`,一个模块值。)
+                   ☞ S3 说【状态色留着】,而一条画不出来的类不是状态色,是死代码:
+                     拿掉那个描边类,**屏幕上零变化**;
+                     留下那个红底类 —— 模块那一支**没有**底色,它是真的在画。
+                   ⚠ 「只读底色该长什么样」那一条(z③)Tim 2026-09-11 已裁**留**,
+                     见 `app/hr/payroll/PayrollGrid.tsx` 那一行的注释。 */}
             <input id={id} type="date" value={value} required aria-invalid={value === ''}
                    onChange={(e) => set(e.target.value)} onBlur={(e) => set(e.target.value)}
                    className={`${CONTROL_INPUT} block`
-                       + (value === '' ? ' border-red-400 bg-red-50' : '')} />
+                       + (value === '' ? ' bg-red-50' : '')} />
             <span className="mt-1 block max-w-[16rem] text-[color:var(--brand-muted-text)]">{t(hintKey)}</span>
         </label>
     )

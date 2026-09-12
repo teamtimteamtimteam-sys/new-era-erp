@@ -18,6 +18,7 @@ import {
 } from '@/lib/convert'
 import { convertBasis } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { Alert } from '@/app/components/ui/alert'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 
 // 【它同时是 check-i18n 的真源】—— 加一个单位,两个语言少一句话就构建变红。
@@ -166,11 +167,24 @@ export default function ConverterForm() {
                     </Button>
                 </div>
 
+                {/* ════════════════════════════════════════════════════════════════
+                ★ POLISH-1(2026-09-12,Tim 的裁定 R8)· 这条横幅换成【取样页的那个形状】
+                ════════════════════════════════════════════════════════════════
+                改前:`--brand-destructive #C0635A` 印在 `--brand-accent #E1F5FF` 上
+                = ★ **3.62:1,过不了 AA 4.5** —— 所以这不只是不好看,它不合规。
+                ★★ **只换颜色不够**:`#C0635A` 就算放到白底上也只有 **4.06:1**。
+                ☞ 所以换的是【形状】:取样页上的横幅(两个变体各三处,round 1 实测)是
+                **白底 · 1px 与字同色的描边 · 圆角 8px · 内边距 8/10px · text-sm**,
+                destructive 那一支的字是 `--color-destructive` = `--brand-destructive-fill`
+                **#B75B53,白底 4.53:1 ✓**。
+                ☞ 而这个形状在库里【已经有了】:`app/components/ui/alert.tsx`。
+                  自己用工具类拼一遍就是仓库里的第二份定义 —— 于是这里走组件。
+                  (Tailwind v4 的 `border` 默认取 `currentColor`,所以「描边与字同色」
+                   不是手写出来的,是组件本来就画成那样,取样页上量到的也是这个。) */}
                 {err && (
-                    <p className="rounded px-3 py-2 text-sm mb-2" data-converter-error="1"
-                       style={{ background: 'var(--brand-accent)', color: 'var(--brand-destructive)' }}>
+                    <Alert variant="destructive" className="mb-2" data-converter-error="1">
                         {err}
-                    </p>
+                    </Alert>
                 )}
                 {res && (
                     <p className="rounded px-3 py-2 text-sm mb-2" data-converter-result="1"

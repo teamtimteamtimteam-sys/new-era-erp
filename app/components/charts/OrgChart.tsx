@@ -29,6 +29,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { getTranslations } from '@/lib/i18n/server'
 import { flattenForList, showsStatus, type OrgNode, type OrgTree } from '@/lib/orgTree'
+import { Alert, AlertTitle } from '@/app/components/ui/alert'
 
 // ── SVG 几何 ────────────────────────────────────────────────────────────────
 const BOX_W = 168
@@ -145,12 +146,27 @@ export default async function OrgChart({ tree }: { tree: OrgTree }) {
             {/* ══ ③ 汇报环 —— 两种宽度【共用】这一块,所以不可能只在一边被记得画 ══
                 一条环是一处【数据错误】,有人得去改它。静默丢掉环上的人是最省事
                 的写法,也是最坏的:那个该去改的人永远不会知道。 */}
+            {/* ════════════════════════════════════════════════════════════════
+                ★ POLISH-1(2026-09-12,Tim 的裁定 R8)· 这条横幅换成【取样页的那个形状】
+                ════════════════════════════════════════════════════════════════
+                改前:标题那一行是 `--brand-destructive #C0635A` 印在
+                `--brand-accent #E1F5FF` 上 = ★ **3.62:1,过不了 AA 4.5**。
+                ★ 这是同一对配色的**第三处**(另两处:`/tools/calendar` 与
+                `/tools/converter`)—— 而队列只点了一处。三处一起改。
+                ★★ **只换颜色不够**:`#C0635A` 放到白底上仍然只有 **4.06:1**。
+                ☞ 换成库里的 `<Alert variant="destructive">`:白底 · 1px 与字同色的
+                  描边 · 圆角 8px · 内边距 8/10px,字是 **#B75B53 白底 4.53:1 ✓**。
+                ⚠ **正文那几行没有跟着变成 `<AlertDescription>`**,理由是它们不是
+                  一句说明,是**一份逐条的名单**(环上的人 + 挂在他们下面的人),
+                  而 `AlertDescription` 会把它们统一染成 `--brand-muted-text`。
+                  把一份【要人照着去改数据】的名单降成次级色,是一次没人要求过的
+                  信息降级。☞ 名单原样留在 `--brand-text`(白底 **14.13:1**)。
+                  只有【标题】走 `<AlertTitle>`。 */}
             {tree.cycles.length > 0 && (
-                <div className="mb-4 rounded border px-3 py-2" data-org-cycle="1"
-                     style={{ borderColor: 'var(--brand-destructive)', background: 'var(--brand-accent)' }}>
-                    <p className="text-sm font-medium" style={{ color: 'var(--brand-destructive)' }}>
+                <Alert variant="destructive" className="mb-4" data-org-cycle="1">
+                    <AlertTitle>
                         {t('org.cycleTitle', { n: String(tree.cycles.length) })}
-                    </p>
+                    </AlertTitle>
                     <p className="text-xs mt-1" style={{ color: 'var(--brand-text)' }}>
                         {t('org.cycleBody')}
                     </p>
@@ -171,7 +187,7 @@ export default async function OrgChart({ tree }: { tree: OrgTree }) {
                             )}
                         </div>
                     ))}
-                </div>
+                </Alert>
             )}
 
             {hasStructure && (

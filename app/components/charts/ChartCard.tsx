@@ -82,16 +82,16 @@ export default async function ChartCard({
             {/* 【出处永远画,连受限和空态也画】—— 一张说不出自己出处的空图,
                 与一张说不出自己出处的满图一样不可信。 */}
             <p className="text-xs mb-3" style={{ color: 'var(--brand-muted-text)' }}>
-                {t('charts.basis.period')}:{basis.period}
+                {t('charts.basis.period')}: {basis.period}
                 <span className="mx-2" aria-hidden="true">·</span>
                 {/* 【mono 包装去掉了】一句人话套在机器字体里,读起来仍然像机器输出 ——
                     换了词却留着那身衣服,等于只改了一半。 */}
-                {t('charts.basis.source')}:{basis.source}
+                {t('charts.basis.source')}: {basis.source}
             </p>
             {basis.provisional && (
                 <p className="text-xs mb-3 rounded px-2 py-1"
                    style={{ background: 'var(--brand-accent)', color: 'var(--brand-text)' }}>
-                    {t('charts.basis.provisional')}:{basis.provisional}
+                    {t('charts.basis.provisional')}: {basis.provisional}
                 </p>
             )}
 

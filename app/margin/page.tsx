@@ -46,6 +46,7 @@ import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import MarginTable, { type MarginRow as MarginTableRow, type MarginFlag } from './MarginTable'
+import { Alert, AlertTitle } from '@/app/components/ui/alert'
 
 type MarginRow = {
     output_batch_id: string
@@ -147,10 +148,15 @@ export default async function MarginPage() {
             notices={
                 <>
                     {/* 【用的是哪一个口径,写在屏幕上,不是写在文档里】 */}
-                    <div className="bg-blue-50 border border-blue-200 text-blue-900 px-4 py-3 rounded mb-6 max-w-3xl text-sm">
-                        <p className="font-medium">{t('margin.basisTitle')}</p>
+                    {/* ★★ POLISH-1(2026-09-12,Tim 的裁定 R12)· info 横幅走库里的 <Alert> ★★
+                   量下来:**白底 + 1px 与字同色的描边,不需要一个 info 蓝**。
+                   `<Alert>` default 档 = `bg-card`(白)+ `--brand-text`(**14.13:1 ✓**)。
+                   ☞ 所以 `alert.tsx` **没有**新开 `info` 档 —— 少一个没人裁过的状态色。
+                   推导与另外 7 处的名单见 `docs/variant-c-spec.md` §4.4a。 */}
+                <Alert className="mb-6 max-w-3xl">
+                        <AlertTitle>{t('margin.basisTitle')}</AlertTitle>
                         <p className="mt-1">{t('margin.basisBody')}</p>
-                    </div>
+                    </Alert>
 
                     {/* 覆盖率:能算的收入占多少 —— 三行 NULL 里藏着的正是最大的一笔,
                         所以这句话必须在表格【上面】,不是脚注 */}

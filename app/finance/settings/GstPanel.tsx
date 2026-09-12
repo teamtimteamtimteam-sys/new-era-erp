@@ -122,15 +122,30 @@ canEdit: boolean
                     {/* 关的那一侧:先说清楚它【可能关不掉】,以及为什么 */}
                     <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('finance.gstSwitch.turningOffHint')}</p>
                     <PermissionGate code="module.finance.edit" allowed={canEdit}>
+                    {/* ══════════════════════════════════════════════════════
+                        ★ POLISH-1(2026-09-12,Tim 的裁定 R3)· 回到标准档 ★
+                        ══════════════════════════════════════════════════════
+                        改前这里**没有 `triggerVariant`**,于是 `confirm-dialog` 渲染的是
+                        一个**裸 `<button>` + 手写 className**:`px-4 py-2` ≈ 38px 高
+                        (标准 32px)、灰描边、`disabled:text-gray-400` = **2.54:1**。
+                        ★ 而它的 `tier` 一直写着 `destructive` —— **语义是破坏档,
+                        画法不是**:它连那条 3px 红竖条都没有。BTN-6 走查时看见的
+                        「浅得几乎没有的那道线」正是这圈灰描边
+                        (见 `docs/base-components.md` §F6)。
+                        ☞ 补上 `triggerVariant="destructive"`,画法就与 `tier` 说的是同一件事了。
+                        ⚠ **隔壁那颗「Turn GST on」不在这一刀里**(它是 R3 点名之外的
+                        41 颗裸触发钮之一,归 `BTN-TRIGGER-1`)。两颗**不会同屏** ——
+                        它们住在 `registered ? … : …` 的两支上,所以这中间不会有
+                        「并排两颗长得不一样」的一屏。 */}
                     <ConfirmButton
                         subject={registrationNo ?? regNo}
                         title={t('finance.gstSwitch.confirmOff')}
                         body={t('finance.gstSwitch.consequenceOff')}
                         confirmLabel={t('finance.gstSwitch.turnOff')}
                         tier="destructive"
+                        triggerVariant="destructive"
                         onConfirm={() => submit(false)}
                         disabled={isPending}
-                        className="border border-gray-400 px-4 py-2 rounded hover:bg-gray-50 disabled:text-gray-400"
                     >
                         {t('finance.gstSwitch.turnOff')}
                     </ConfirmButton>

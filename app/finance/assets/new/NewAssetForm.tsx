@@ -10,6 +10,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { createAsset, type NewAssetState } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { Alert, AlertTitle } from '@/app/components/ui/alert'
 
 const CATEGORIES = ['equipment', 'vehicle', 'office', 'other'] as const
 
@@ -24,8 +25,13 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
         <form action={formAction} className="max-w-2xl space-y-5">
             {/* 【为什么有两扇门】—— 一句话,就在表单旁边。
                 读不出区别的人会选错,而两者的账是不一样的。 */}
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
-                <p className="font-medium">{t('assets.new.twoDoorsTitle')}</p>
+            {/* ★★ POLISH-1(2026-09-12,Tim 的裁定 R12)· info 横幅走库里的 <Alert> ★★
+                   量下来:**白底 + 1px 与字同色的描边,不需要一个 info 蓝**。
+                   `<Alert>` default 档 = `bg-card`(白)+ `--brand-text`(**14.13:1 ✓**)。
+                   ☞ 所以 `alert.tsx` **没有**新开 `info` 档 —— 少一个没人裁过的状态色。
+                   推导与另外 7 处的名单见 `docs/variant-c-spec.md` §4.4a。 */}
+                <Alert>
+                <AlertTitle>{t('assets.new.twoDoorsTitle')}</AlertTitle>
                 <p className="mt-1">{t('assets.new.twoDoorsThis')}</p>
                 <p className="mt-1">
                     {t('assets.new.twoDoorsOther')}{' '}
@@ -33,7 +39,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                         {t('assets.new.twoDoorsOtherLink')}
                     </Link>
                 </p>
-            </div>
+            </Alert>
 
             {state.error && (
                 <p className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">

@@ -41,8 +41,8 @@ canEdit: boolean
             title={t('finance.reverseConfirm')}
             body={t('finance.reverseConsequence')}
             confirmLabel={t('finance.reverse')}
-            tier="reversal"
-            triggerVariant="reversal"
+            tier="destructive"
+            triggerVariant="destructive"
             disabled={isPending}
             onConfirm={doReverse}
         >

@@ -113,9 +113,34 @@ const KNOWN_CONVERSIONS = new Set([
 //
 // 清单上剩下的 6 个组件仍然一个都没被采用,这道闸继续守着它们。
 // 【list-page 从来没有进过这张清单】—— 它是 CONV-1 新建的,建出来就是给页面用的。
+// ★★【POLISH-1(2026-09-12):'alert' 毕业了 —— 与 refusal / data-table 同一条路】★★
+// 本脚本自己写着这条办法:「如果是转换刀,请把那个组件从 GUARDED 里拿掉,
+// 并且【对着那一页重新跑一次视觉证明】。」POLISH-1 正是那一刀:
+//   · **R8** —— 三处手搓的「浅蓝底 + 红字」横幅(`/tools/calendar` ·
+//     `/tools/converter` · `/hr/org`)。它们实测 **3.62:1,过不了 AA 4.5**,
+//     而 ★ **只换颜色救不了**(`#C0635A` 就算放白底也只有 4.06:1)。
+//     换的是【形状】:取样页量到的横幅 = 白底 · 1px 与字同色的描边 · 圆角 8px ·
+//     内边距 8/10px,destructive 那一支的字 **#B75B53 白底 4.53:1 ✓**。
+//     ☞ 那个形状在库里【已经有了】,自己再拼一遍就是仓库里的第二份定义。
+//   · **R12** —— 8 条真正的 info 横幅(见 `docs/variant-c-spec.md` §4.4a 的名单)。
+//     它们此前是 `bg-blue-50 + border-blue-200/300 + text-blue-900` 的手搓盒子,
+//     而「info 用哪一个蓝」**从来没有人裁过**。走 `<Alert>` 的 default 档之后,
+//     那个问题**不需要答**了:白底 + 与字同色的描边,**不需要一个 info 蓝**。
+// ★ **视觉证明**:POLISH-1 的改前/改后读数(`.survey-out/polish1-before` ↔
+//   `.survey-out/polish1-after`),两个视口 141 条路由,连同 `/brand-sampler`
+//   自己的读数 —— 逐条写在 `docs/handbacks/POLISH-1.md` §4。
+//
+// ★【拿掉之后这道闸对 alert 就不再守着什么 —— 说清楚,别高估它】★
+//   它守的是「这个组件还没有人用」,而一个已经被采用的组件**不可能**再满足那条断言。
+//   ☞ 接替它的是【只有一份实现】:横幅的画法从此只住在
+//     `app/components/ui/alert.tsx`,要漂就得改那一个文件。
+//   ⚠ 但**没有**任何一道闸在检查「谁又手搓了一个横幅」—— 与 input/label/select
+//     毕业时那一段是同一句话。登记在 `docs/known-issues.md` 的
+//     `POLISH1-HANDROLLED-BANNERS`(改后树上还剩 22 处泛蓝的非横幅站点,
+//     以及若干手搓的红/琥珀横幅)。
 const GUARDED = [
     'feedback',
-    'alert', 'badge', 'card', 'table', 'textarea',
+    'badge', 'card', 'table', 'textarea',
 ]
 
 const walk = (dir, out = []) => {
@@ -169,7 +194,7 @@ if (badImports.length === 0 && badClasses.length === 0) {
         `取样页与组件目录之外 0 处 import、0 处 base-* 类名。`)
     console.log(`  已登记的既有转换 ${known} 处(全部在 /login,LOGIN-1 做的)——`)
     console.log('  除它之外,没有页面用到【仍在 GUARDED 里的】那些组件。')
-    console.log('  ★ input / label / select(C-1)与 button(C-1b)已毕业:本闸对这四个【不再守着任何东西】。')
+    console.log('  ★ input / label / select(C-1)· button(C-1b)· alert(POLISH-1)已毕业:本闸对这五个【不再守着任何东西】。')
     if (known !== KNOWN_CONVERSIONS.size) {
         console.error(`\n✗ 基线对不上:登记了 ${KNOWN_CONVERSIONS.size} 处,只找到 ${known} 处。`)
         console.error('  一条【比实际宽】的基线会悄悄放过真的违规 —— 请把消失的那一处删掉。')

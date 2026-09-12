@@ -25,6 +25,8 @@
 2A.2 [★★ 日期框 · 数字框 · 勾选框 · 单选框 —— **35px 已撤销**,新裁定在这里](#2A)
 3. [出处:这些数字是怎么来的](#3)
 4. [★ 数值(实测)](#4)
+4.4a. [★★ **横幅(alert)· info 蓝的裁定 · 状态片豁免**(POLISH-1,2026-09-12)](#4)
+4.3a. [★★ **列宽 —— 本仓库第一条**(POLISH-1,2026-09-12)](#4)
 4.7. [★★ **FONT-1(2026-09-11)—— 字体 · 字号表 · 链接色 · 数字等宽**](#4.7)
 5. [★ 按钮:三个尺寸档收敛成 default(Tim 的裁定)](#5)
 6. [★ 取样页【没有】覆盖什么 —— 这些元素今天没有标准](#6)
@@ -743,6 +745,162 @@ STYLE-0 报告说 variant C「只覆盖 A/B/C 之间变化过的那五个轴」,
 A(`shadow-none`)= 只有那条 1px ring;B(`shadow-sm`)= ring + `0 1px 3px / 0 1px 2px`;
 **C(`shadow-md`)= ring + `0 4px 6px -1px / 0 2px 4px -2px`。**
 
+> ### ★★★ 确认(POLISH-1,2026-09-12,Tim 的裁定 R11):**标准就是 C = ring + `shadow-md`** ★★★
+> **A 与 B 是【对照】,不是候选。** 取样页上确实画着三种投影(round 1 在
+> `/brand-sampler` 上实测:12 个带 ring 的卡片容器,三种不同的 `box-shadow` 值)——
+> **取样页给了几个,是这份 spec 把它收敛成一个。** 下一个看到三种投影的人
+> 不必再问一次「到底哪一个是标准」。
+
+> ## ★★★ 那个陷阱,写成【一句话】,不只是一个值 —— R11 ★★★
+>
+> ### **卡片的边是一条 `ring`(投影的第 4 层),【不是 border】。**
+> ### **`border-width` 量出来是 `0px`,而 `border-color` 照样报得出一个值。**
+> ### **☞ 于是任何按 `border-width` 分桶的检查,会报出【零张卡片】。**
+>
+> **这件事已经被重新发现【三次】。** 它每一次都长成同一个样子:
+> 有人写一支普查,问「树里有几张卡片、它们的边是什么样」,判据写成
+> `getComputedStyle(el).borderTopWidth !== '0px'` —— 一个看起来完全正确的判据 ——
+> 然后它在**标准自己那一页上**报 **0**。
+>
+> **为什么 `border-color` 会骗人:** CSS 里一个**没有被使用**的边框颜色**仍然是一个
+> 计算值**。`border-color` 有值 ⇏ 这个元素画了边框。两件事在读数里长得一模一样,
+> 而**只有 `border-width` 那一栏是 0**。
+>
+> **实测(POLISH-1 round 1,`/brand-sampler`,两个视口,916 个元素):**
+> **28 个卡片状容器里,12 个量到 `border-width: 0px` 而 `border-color: rgb(202, 213, 224)`** ——
+> 一个真的颜色,画的是**零个像素**。那条边真正的出处是 `box-shadow` 的第 4 层:
+> `oklab(0.204625 0.00000931323 0.00000409782 / 0.1) 0px 0px 0px 1px`
+> —— 与本节表格里那一行**逐字相同**。
+>
+> ### ☞ 写一支要数卡片的量具时,判据是这两条之一,**不是 `border-width`**:
+> * **源码侧**:`app/components/ui/card.tsx` 的 `ring-1 ring-foreground/10`;
+> * **渲染侧**:`box-shadow` 里那个 `0px 0px 0px 1px` 的扩散层 ——
+>   POLISH-1 的探针同时读 `borderTopWidth` **与** `boxShadow`,两者取或。
+>
+> ### ⚠ 而这一条**不只管卡片**:`ring-*` 是 Tailwind 的一个通用能力。
+> 任何「按 border 找边」的判据,对**每一个**用 `ring` 画边的元素都是瞎的。
+
+### 4.4a ★★ 横幅(alert)—— **形状有标准,而「info 蓝」【没有,也不需要有】**(POLISH-1,2026-09-12)★★
+
+> ### ★ 先更正一句本刀自己在 round 1 写过的话
+> round 1 一度写着「横幅在三个变体里长得一模一样,**所以它不是变体 C 的裁定**」。
+> ★ **那句话是反的。** 三个变体渲染出**同一个**形状,是这份取样页能给出的
+> **最强**的一种回答,不是沉默 —— 它的意思是「这个形状不随变体变化」。
+
+**实测(round 1,`/brand-sampler`,两个视口):7 个横幅元素 = 1 个搜索框 + **6 个 alert**,
+正好是**三对**(每个变体一对:`default` 与 `destructive`)。**六个的几何逐字相同:**
+
+| | 值 |
+|---|---|
+| 底 | **`#FFFFFF`**(`bg-card`)—— ★ **不是淡色底** |
+| 描边 | **1px**,颜色 **= 字色**(Tailwind v4 的 `border` 默认取 `currentColor`) |
+| 圆角 | **8px**(`rounded-lg`) |
+| 内边距 | **8px / 10px**(`py-2 px-2.5`) |
+| 字号 | **14px**(`text-sm`) |
+| `default` 字色 | `--brand-text` **#182B4B**,白底 **14.13:1 ✓** |
+| `destructive` 字色 | `--color-destructive` = `--brand-destructive-fill` **#B75B53**,白底 **4.53:1 ✓** |
+
+#### ★★ R8 —— 三处手搓的「淡蓝底 + 红字」换成这个形状 ★★
+
+| 站点 | 路由 | 改前 | 改后 |
+|---|---|---|---|
+| `app/tools/calendar/page.tsx` | `/tools/calendar` | `--brand-destructive #C0635A` on `--brand-accent #E1F5FF` = **3.62:1 ✗** | `<Alert variant="destructive">` = **4.53:1 ✓** |
+| `app/tools/converter/ConverterForm.tsx` | `/tools/converter` | 同上,**3.62:1 ✗** | 同上 ✓ |
+| `app/components/charts/OrgChart.tsx` | `/hr/org` | 同上,**3.62:1 ✗** | 同上 ✓ |
+
+> ★★ **只换颜色【不够】,这是这条裁定的要点:**
+> `#C0635A` 就算搬到**白底**上也只有 **4.06:1** —— 仍然过不了 AA。
+> ☞ 所以换的是**形状**(白底 + 描边),而**形状带来的那个字色** `#B75B53` 才是过线的那一个。
+>
+> ★ 队列只点了 `/tools/calendar` **一处**;另两处是 round 1 按
+> **`var(--brand-accent)` 这个值**(而不是按 class)扫出来的 —— 一支只看 className
+> 的扫描器**按构造**看不见写在 `style={{ }}` 里的颜色(AGENTS.md,FONT-1 付过这笔账)。
+>
+> ⚠ **`OrgChart` 的正文没有跟着变成 `<AlertDescription>`**:那几行不是一句说明,
+> 是**一份要人照着去改数据的名单**,而 `AlertDescription` 会把它们统一染成次级色。
+> 只有**标题**走 `<AlertTitle>`。理由写在那一行旁边。
+
+#### ★★★ R12 —— 「info 用哪一个蓝」这个问题,**不必回答** ★★★
+
+**背景:** 树里的泛蓝字色(`text-blue-600/700/800/900`)**从来没有人裁过**,
+而 `docs/variant-c-spec.md` §1094 早就白纸黑字写着「**动它就是顺手裁一条没有人裁过的状态色**」。
+
+**POLISH-1 重量了这个总体(改前,`app/**/*.tsx`,排除 `button.tsx`):
+32 行命中 → ★ 其中 2 行是【注释】 → **30 个活的站点**。** 它们**不是一族东西**,而是四族:
+
+| 角色 | 个数 | 这一刀怎么处置 |
+|---|--:|---|
+| ★ **真正的 info 横幅** | **8** | ★ **换成 `<Alert>`(default 档)** —— 见下面的名单 |
+| ★ **状态 / 含义片(chip)** | **13** | ★★ **明确豁免,见下面那一节** |
+| ★ **按钮** | **2** | 归 **`BTN-TRIGGER-1`**,不是一道颜色题 |
+| ★ **行内强调** | **7** | **出局,留在队列里** |
+
+★ 四族相加 **8 + 13 + 2 + 7 = 30** —— **分母对得上**,这一节没有漏掉任何一个站点。
+
+##### ★ 那 8 条 info 横幅(改后全部是 `<Alert>`,default 档)
+
+| # | 站点 | 路由 |
+|---|---|---|
+| 1 | `app/settings/dictionaries/page.tsx` | `/settings/dictionaries` |
+| 2 | `app/purchasing/orders/[id]/page.tsx` | `/purchasing/orders/[id]` |
+| 3 | `app/inbound/[id]/edit/DeepDischargePanel.tsx` | `/inbound/[id]/edit` |
+| 4 | `app/hr/attendance/[id]/AttendanceGrid.tsx` | `/hr/attendance/[id]` |
+| 5 | `app/finance/invoices/[id]/page.tsx` | `/finance/invoices/[id]` |
+| 6 | `app/finance/fx/page.tsx` | `/finance/fx` |
+| 7 | `app/finance/assets/new/NewAssetForm.tsx` | `/finance/assets/new` |
+| 8 | `app/margin/page.tsx` | `/margin` |
+
+> ### ☞ 裁定:**`alert.tsx` 今天仍然只有 `default` 与 `destructive` 两档。没有 `info`。**
+>
+> R12 的原话是:**「只有在 R8 的横幅形状落地【之后】再裁 —— 因为一条白底 + 1px 描边的
+> 横幅,可能根本不需要一个 info 蓝。」** ☞ **量下来:不需要。**
+> `<Alert>` 的 default 档已经是白底 + 与字同色的描边 + `--brand-text`(**14.13:1**),
+> 而**「这是一条通知」是那个带描边的盒子在说,不是颜色在说**。
+> ★ 与 `destructive` 那一档也照样分得开:一个描边是深藏青,一个是砖红。
+> ☞ **少开一档,就少一处将来会漂的定义** —— 而这正是 §1094 那句警告要的结果。
+
+##### ★★ 状态 / 含义片(chip)—— **明确豁免,写下来,别再判第二次** ★★
+
+**S3 在这一刀里仍然有效:「状态色与含义色留着。」**
+下面这 **13** 处的蓝**不是装饰,是一个值**:它在说「这一行处于哪个状态 / 属于哪一类」。
+**把它们一起刷成 info token,等于把一条 KEEP WIN 抹掉。**
+
+| # | 站点 | 它编码的是什么 |
+|---|---|---|
+| 1 | `app/operation/processing/[id]/ProcessingTables.tsx:157` | 一枚状态片 |
+| 2 | `app/purchasing/orders/[id]/RetentionPanel.tsx:53` | `running` |
+| 3 | `app/output/[id]/assays/[assayId]/AssayTables.tsx:108` | 化验状态 |
+| 4 | `app/components/receiving/DiscrepancyKinds.tsx:72` | `material_mismatch` |
+| 5 | `app/components/receiving/DiscrepancyKinds.tsx:77` | `deep_discharge_contradicted` |
+| 6 | `app/inbound/InboundTable.tsx:108` | 来源标签 |
+| 7 | `app/inbound/[id]/edit/SourceReasonPanel.tsx:51` | `fromPo` |
+| 8 | `app/hr/claims/ClaimsTable.tsx:24` | `approved` |
+| 9 | `app/hr/claims/ClaimsTable.tsx:27` | `awaiting_payment_run` |
+| 10 | `app/finance/receivables/page.tsx:211` | 一枚状态片 |
+| 11 | `app/finance/invoices/InvoicesTable.tsx:67` | 一枚状态片 |
+| 12 | `app/finance/invoices/[id]/page.tsx:263` | `isOrderKind` |
+| 13 | `app/tools/tasks/TaskBoard.tsx:71` | `isTeam` |
+
+> ### ☞ 豁免的判据,一句话:**这个蓝在说「这是一条通知」,还是在说「这一行是哪一类」?**
+> 说「哪一类」的,**留着**。下一刀不必再把这 13 处判一遍。
+
+##### ★ 出局的两族,以及它们去哪儿了
+
+* **按钮 2 处** —— `app/suppliers/[id]/edit/StatusPanel.tsx:103` 与
+  `app/components/ui/editable-table.tsx:515`(后者是队列里继承的第 ⑤ 件)。
+  ★ **它们是按钮题,不是颜色题**,归 **`BTN-TRIGGER-1`**。
+* **行内强调 7 处** —— `SalePanel.tsx:157` · `StockStatusPanel.tsx:171` ·
+  `CountList.tsx:126` · `DraftBanner.tsx:54/57/77` · `NewExpenseForm.tsx:483`。
+  ★ **出局,原样留在队列里**(它们是句子里的一个词,不是一个盒子)。
+
+##### ⚠ 这一节【没有】守住的东西 —— 说白,别高估它
+
+`alert` 这一刀从 `scripts/check-base-isolation.mjs` 的 `GUARDED` 里**毕业**了
+(那道闸守的是「还没有人用它」,而一个已经被采用的组件不可能再满足那条断言)。
+☞ **接替它的只有「只有一份实现」**:横幅的画法从此只住在 `app/components/ui/alert.tsx`。
+⚠ **没有任何一道闸在检查「谁又手搓了一个横幅」** —— 登记在
+`docs/known-issues.md` 的 `POLISH1-HANDROLLED-BANNERS`。
+
 ### 4.5 拒绝态 —— 变体 C 的「浅色填充片」
 
 | | **取样页里 C 的那个片** | **仓库里已上线的 `<Refusal>` 组件** |
@@ -1091,7 +1249,7 @@ A(`shadow-none`)= 只有那条 1px ring;B(`shadow-sm`)= ring + `0 1px 3px / 0 1p
 | **红 · 琥珀 · 绿 · `destructive` · `destructive-text`** | ★ **留。** 它们带着含义,转成正文色就是把含义抹掉。 |
 | ★ **那条虚线琥珀的「估价」样式** | ★ **留**(`ExpectedDateControl` 与 `ForecastGrid` 的 `estimated:`;§9 早就单独登记过)。 |
 | ★★ **从一个状态色祖先【继承】下来的文字**(R0) | ★ **留。** 一条 `bg-amber-50 text-amber-900` 的横幅里,那个 `<p className="text-sm">` **自己一个字色类都没有** —— 只看它自己的 class,它与一句普通正文**逐字相同**;而它在屏幕上是琥珀色的。<br>☞ **这正是「同一个字符串,两种身份」,而祖先链把它解开了。** |
-| ⚠ **蓝(非链接的 `text-blue-*`)· `text-purple-800` · `text-sky-800` · `text-emerald-900`** | ★ **这一刀不动,并登记入队。** 它们是**提示横幅**,而「info 这个状态用什么蓝」**没有人裁过** —— 树里今天有好几种蓝。**动它就是顺手裁一条没有人裁过的状态色。** |
+| ⚠ **蓝(非链接的 `text-blue-*`)· `text-purple-800` · `text-sky-800` · `text-emerald-900`** | ~~★ **这一刀不动,并登记入队。** 它们是**提示横幅**,而「info 这个状态用什么蓝」**没有人裁过** —— 树里今天有好几种蓝。**动它就是顺手裁一条没有人裁过的状态色。**~~<br>★★ **【POLISH-1(2026-09-12)就地更正:这个问题已经答了,而答案是「不需要一个 info 蓝」】** —— 8 条真正的 info 横幅换成 `<Alert>` 的 default 档(白底 + 与字同色的 1px 描边),于是那条没人裁过的状态色**不必裁**;13 处**状态片**明确豁免(S3);2 处按钮归 `BTN-TRIGGER-1`;7 处行内强调仍然出局。**逐条名单与分母(30 = 8+13+2+7)见 §4.4a。**<br>⚠ **紫 / 天蓝 / 翠绿那 6 处仍然没有裁** —— 它们不在 R12 的射程里,原样留在队列中。 |
 
 #### 4.7.10.3 ★ 第三档:缺席与分隔(Q3)
 

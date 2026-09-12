@@ -130,6 +130,17 @@ export default function PayrollGrid({
                         required
                         defaultValue={defaults.period_month}
                         readOnly={monthLocked}
+                        /* ★★ POLISH-1(2026-09-12,Tim 的裁定 R10 · S3)· 这一行【留着】★★
+                           它是全系统**唯一**一个带「只读」底色的控件:`control-style.ts`
+                           有 `disabled:` 那一支,**没有 `read-only:` 那一支**
+                           (实测:`read-only:` 在整个 `app/` 里只出现这一次)。
+                           ☞ 剥掉它,一个**只读**的月份框就和一个**可编辑**的框长得一模一样 ——
+                             而这两件事对操作员的含义完全不同。
+                           ☞ Tim 2026-09-11(INPUT-3 Q9)裁【留】,POLISH-1 的 R10 又确认了一次。
+                           ⚠ **不要把它"顺手统一"进 `control-style.ts`**:那等于替 Tim 裁一条
+                             他没有裁的规矩(「这套系统的控件状态有哪几种」),
+                             而那条规矩今天还不存在 —— 见 `docs/known-issues.md` 的
+                             `POLISH1-CONTROL-STATE-VOCAB`。 */
                         className={`${CONTROL_INPUT} read-only:bg-gray-100`}
                     />
                 </div>

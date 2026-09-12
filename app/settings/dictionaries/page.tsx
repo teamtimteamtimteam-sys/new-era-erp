@@ -30,6 +30,7 @@ import { pMap, DEFAULT_QUERY_CONCURRENCY } from '@/lib/pMap'
 import { ListPage } from '@/app/components/ui/list-page'
 import { DICTIONARIES } from './registry'
 import DictSection, { type DictRow } from './DictSection'
+import { Alert } from '@/app/components/ui/alert'
 
 export default async function DictionariesPage() {
     const t = await getTranslations()
@@ -146,9 +147,19 @@ export default async function DictionariesPage() {
             // 【为什么走 notices 而不是 intro 下面直接写】它与 intro 是两句不同的话,
             // 而且哪怕将来某个角色只看得见其中几节,这句话仍然成立 —— 无条件渲染。
             notices={
-                <p className="mb-6 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+                /* ★★ POLISH-1(2026-09-12,Tim 的裁定 R12)· info 横幅走库里的 <Alert> ★★
+                   R12 的原话:「**只裁那 ~8 条真正的 info 横幅**,而且要在 R8 的横幅
+                   形状落地【之后】—— 因为一条白底 + 1px 描边的横幅,可能**根本不需要
+                   一个 info 蓝**。」☞ 量下来:**不需要。**
+                   `<Alert>` 的 default 档是 `bg-card`(白)+ `text-card-foreground`
+                   (`--brand-text #182B4B`,白底 **14.13:1 ✓**),描边取 `currentColor`
+                   于是与字同色 —— **「这是一条通知」由那个带描边的盒子说,不由颜色说**。
+                   ☞ 所以这一刀**没有**给 `alert.tsx` 新开一个 `info` 档:
+                     它今天仍然只有 `default` 与 `destructive` 两档。
+                     ★ 少一个没人裁过的状态色,就少一处将来会漂的定义。 */
+                <Alert className="mb-6">
                     {t('dict.deactivateNotDelete')}
-                </p>
+                </Alert>
             }
             state={{ kind: 'ok' }}
         >

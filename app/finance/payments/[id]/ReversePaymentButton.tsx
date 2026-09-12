@@ -41,8 +41,8 @@ canEdit: boolean
             title={t('finance.reversePaymentConfirm')}
             body={t('finance.reversePaymentConsequence')}
             confirmLabel={t('finance.reversePayment')}
-            tier="reversal"
-            triggerVariant="reversal"
+            tier="destructive"
+            triggerVariant="destructive"
             disabled={isPending}
             onConfirm={doReverse}
         >

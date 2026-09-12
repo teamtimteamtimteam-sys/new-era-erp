@@ -97,7 +97,7 @@ const PAGES = [
     '/hr/reviews', '/hr/reviews/cycles',
     '/finance/revaluation',   // secondary + 禁用态 primary
     '/finance/company',       // primary + destructive
-    '/finance/settings',      // primary + reversal(解锁)
+    '/finance/settings',      // primary + destructive(解锁 —— POLISH-1 R2 之前是 reversal)
     '/finance/assets', '/finance/close', '/finance/journal/new',
     '/materials/new', '/suppliers/new', '/sales/customers/new',
     '/purchasing/payment-terms/new', '/settings/roles/new',
@@ -258,8 +258,32 @@ const UNRENDERABLE = [
          + '☞ 这个【组合】现在由 /settings/roles/{id} 的 Delete 真的渲染并被量到,'
          + '它已进 REQUIRED_GROUPS;这里留下的只是"本调用点走不到"这一件事' },
     // ★★【MANUAL-FIX-1(2026-09-07)新增:reversal/sm 从 REQUIRED_GROUPS 移到这里】★★
-    { k: 'reversal/sm', site: 'app/hr/leave/[id]/DecideControls.tsx:89(/hr/leave/{id})',
-      why: '★ 它此前有两个调用点,而只有一个渲染得出 —— 就是 /settings/roles/{id} 的 Delete。'
+    // ══════════════════════════════════════════════════════════════════════
+    // ★★★ POLISH-1(2026-09-12)· 这一条【两处都错了】,就地更正 ★★★
+    //   ① **它从来不是 `reversal/sm`。** `DecideControls.tsx` 那颗 <Button> 上
+    //      **一个 `size` 属性都没有** → 它是 `default` 号。这句话在 MANUAL-FIX-1
+    //      写下它的那天就已经是假的,而没有任何东西会红:`reversal/sm` 在树上
+    //      压根不存在,于是"渲染不出"永远成立 —— ☞ **一条【按构造永远为真】的
+    //      豁免,与一条命不中任何东西的豁免是同一种坏**(AGENTS.md · assertAllowlistLive)。
+    //   ② **那颗按钮今天是 `destructive`。** Tim 在 POLISH-1 裁定(R2):六颗
+    //      四点虚线钮全部转破坏档,`DecideControls.tsx:90` 是其中之一。
+    //   ☞ 于是 `reversal/sm` 在树上**一个调用点都没有**,这一条豁免的主语不存在了。
+    //     按本文件自己的规矩,它**不删掉**(删掉 = 让"消失"与"绿掉"同一个字节),
+    //     而是改写成它今天真正说的那件事。
+    //   ★ 今天 reversal 在树上只剩 **6 处**:`xs` 2(ContactsPanel · MyExpenseClaimsPanel)·
+    //     `inline` 4(Participants · fx DeleteButton · ReconcileWorkspace ×2)。
+    //     **`default` / `sm` / `lg` 三号一个都没有。**
+    { k: 'reversal/sm', site: '(树上没有这个组合 —— POLISH-1 2026-09-12 核实)',
+      why: '★★ POLISH-1 更正:这一条的原文说它住在 app/hr/leave/[id]/DecideControls.tsx:89,'
+         + '而那颗按钮**从来没有写过 size**,所以它是 reversal/**default**,不是 sm。'
+         + '★ 而 Tim 的 R2 裁定又把它转成了 destructive,于是 reversal/sm 与 reversal/default '
+         + '今天在树上**各有 0 个调用点**。'
+         + '☞ 留着这一条不是为了豁免什么,是为了让下一个人看得见「这个组合曾经被声称存在过,'
+         + '而那句声称是假的」—— 一个消失的组合与一个绿掉的组合,退出码上是同一个字节。'
+         + '★ 撤销档【这一档】仍然活着并被守着:reversal/xs(need 1)与 reversal/inline(need 1)'
+         + '都在 REQUIRED_GROUPS 上,外加不需要线上数据的 L2b 与 L4。'
+         + '【以下为 MANUAL-FIX-1 的原文,保留不删】'
+         + '★ 它此前有两个调用点,而只有一个渲染得出 —— 就是 /settings/roles/{id} 的 Delete。'
          + 'MANUAL-FIX-1 把那一处改成了 destructive(档位由【人能不能撤回】定,而这棵树上'
          + '没有任何一条恢复路径),于是 reversal/sm 只剩下这一个调用点,'
          + '而它要一条 approved 的请假单才画得出来 —— 实测 leave_requests 的 '

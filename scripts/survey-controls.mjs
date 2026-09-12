@@ -17,8 +17,13 @@
 //   我读的是      :chrome-headless-shell 通过 CDP,在**真实渲染并水合之后**的
 //                   DOM 上读 getComputedStyle 的**解析值** —— 高度、内边距、
 //                   边框、圆角、字号、字重、行高、颜色、resize;以及每一个
-//                   `<table>` 的**表头行高与每一行的行高**(getBoundingClientRect)。
-//                   不是 class 串,不是截图,不是从源码推算的。
+//                   `<table>` 的**表头行高与每一行的行高**,以及 ★ **每一列的
+//                   渲染宽度 `colW` 与它的表头文字 `colHdr`**(POLISH-1 加的,
+//                   getBoundingClientRect)。不是 class 串,不是截图,不是从源码推算的。
+//   ★ 我还断言的是:**渲染出来的是我要的那一页** —— 不只是「渲染完了」。
+//                   会话掉了会让每一条路由都变成 `/login`,而 `/login` 渲染得好好的:
+//                   那份读数会是「141/141 ok、表 0 张」的全绿(FONT3-PROBE-LOGIN-FALSE-ZERO)。
+//                   ☞ 见 READY_EXPR 的第四条与 assertSignedIn():它**当场抛**,EXIT 2。
 //   我声称管的是   :这套系统里**单行控件、多行框、勾选框/单选框今天渲染成了
 //                   几种值**,其中**有多少住在表格里**,以及**含控件的表在
 //                   390px 上的行高基线**。
@@ -84,6 +89,13 @@
 //   no-native    原生控件不再被当作控件 —— 空总体断言当场红
 //   no-tables    不再认表格 —— 「住在表里的控件」那条断言当场红
 //   one-viewport 拿掉 390px 那一遍 —— 视口总体断言当场红
+//   signed-out   ★ POLISH-1:**不给浏览器那张会话 cookie** —— 于是每一条路由渲染的是
+//                /login。这是 FONT3-PROBE-LOGIN-FALSE-ZERO 那场事故的【同一机制】复现,
+//                不是一个相似的东西:登录断言必须当场响并 EXIT 2。
+//                ☞ 它与上面那几条不同,它不是给 --mode=compare 用的【拿走成员】型致盲,
+//                  它是登录断言自己那一格故障注入。
+//   no-colw      ★ POLISH-1:把每张表的 colW 清空 —— `colW ↔ 表头格数` 那条钉住当场红。
+//                没有它,colW 可以悄悄变成 [] 而没有任何东西发现。
 
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -106,7 +118,7 @@ const BLIND = arg('--blind') || ''
 const LIMIT = Number(arg('--limit') || 0)
 const ONLY = (arg('--only') || '').split(',').map((s) => s.trim()).filter(Boolean)
 
-const KNOWN_BLINDS = ['', 'noop', 'round-height', 'same-table', 'no-native', 'no-tables', 'one-viewport']
+const KNOWN_BLINDS = ['', 'noop', 'round-height', 'same-table', 'no-native', 'no-tables', 'one-viewport', 'signed-out', 'no-colw']
 if (!KNOWN_BLINDS.includes(BLIND)) { console.error('unknown --blind=' + BLIND); process.exit(2) }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -336,6 +348,30 @@ function buildMeasure({ blind }) {
       shellW: hasShell ? round(shell.getBoundingClientRect().width) : null,
       shellScrollW: hasShell ? shell.scrollWidth : null,
       overflowsShell: hasShell ? (shell.scrollWidth > shell.clientWidth + 1) : null,
+      // ════════════════════════════════════════════════════════════════════
+      // ★★ POLISH-1(2026-09-12)· 列宽 —— 在这之前【没有任何仓库量具看得见它】
+      // ════════════════════════════════════════════════════════════════════
+      // 【为什么加】POLISH-1 裁了本仓库第一条**列宽**规矩(docs/variant-c-spec.md
+      //   §4.3a:一个单值列不得宽过同一张表里最窄的那个文字列)。
+      //   ☞ **一条没有量具看得见的规矩,没有回归闸** —— 下一刀把某一列改宽,
+      //     行高不变、滚动范围不变、整页溢出不变,今天在册的每一条判据都是绿的。
+      // 【它是什么】表头行每一格的**渲染宽度**与**它的字**。
+      //   两个一起存:一串没有表头的宽度,下一刀认不出是哪一列。
+      // 【★ 为什么【没有】colNeed / colShort】round 1 两个都量过,两个都不可靠:
+      //   · colNeed(内容需要多宽)在带 colSpan 的合计行上会报出**整张表的宽度**
+      //     —— /finance/trial-balance 的 Account 列报 need=1376 = 表宽本身;
+      //   · colShort(每一格文字 ≤12 字 ⇒ 单值列)把**空的 <textarea> 列**也
+      //     标成单值(/hr/kpi/score 的 Evidence / Feedback 就是)。
+      //   ☞ 一支**夸大自己**的量具比一支缺席的更坏(AGENTS.md · CCY-VERIFY)。
+      //     所以这里只存**量得准的那两样**,判断留给读它的人。
+      colW: head ? [...head.children].map((th) => BLIND === 'no-colw' ? null : round(th.getBoundingClientRect().width)) : [],
+      colHdr: head ? [...head.children].map((th) => txt(th).slice(0, 40)) : [],
+      // ★ 一条【不经过 head.children 那次 .map】的独立计数,给 assertPinned 用。
+      //   两条路数同一个总体 —— colW 悄悄变空的时候,这一个不会跟着变。
+      //   ⚠ 用 :scope 限定在 head 自己身上,**不是** t.querySelectorAll('thead tr:first-child > *'):
+      //     后者会把【嵌套表】的表头格也数进来,于是一张合法的嵌套表会让这条钉住误红。
+      //     它钉的是「那次 .map 还在不在跑」,**不是**「head 选对了没有」—— 说白,别高估它。
+      nHeadCells: head ? head.querySelectorAll(':scope > *').length : 0,
     };
   });
 
@@ -651,9 +687,16 @@ async function main() {
             width: vp.w, height: vp.h, deviceScaleFactor: vp.dsf, mobile: vp.mobile,
             screenWidth: vp.w, screenHeight: vp.h,
         })
-        await S('Network.setCookies', {
-            cookies: [{ name: cookieName, value: cookieValue, domain: 'localhost', path: '/', httpOnly: false, secure: false }],
-        })
+        // ★ --blind=signed-out:**不给这张 cookie** —— 于是每一条路由渲染 /login。
+        //   这是登录断言那一格故障注入,而且走的是【同一机制】(会话不在),
+        //   不是一个相似的东西(比如把选择器改成 body)。
+        if (BLIND !== 'signed-out') {
+            await S('Network.setCookies', {
+                cookies: [{ name: cookieName, value: cookieValue, domain: 'localhost', path: '/', httpOnly: false, secure: false }],
+            })
+        } else {
+            console.error('  ⚠ --blind=signed-out:会话 cookie 【故意】不发 —— 登录断言应当当场红')
+        }
         // ★★ 水合的证据,不是一次 sleep ★★
         //   在【每一次导航之前】注入一段脚本:它用 requestIdleCallback 之外的
         //   办法证明 React 真的接管过 —— 监听 Next 自己在水合完成后才会挂上的
@@ -685,12 +728,42 @@ async function main() {
     //   悄悄变成「等久一点就好了」,而那正是读数不可信的来源。
     //   连续三次拿不到答复就当场抛,由外层换标签页 / 重开 chrome。
     // ════════════════════════════════════════════════════════════════════════
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★★ POLISH-1(2026-09-12)· 第四条:**这是我要的那一页吗** ★★★
+    //   前三条答的是「渲染完了吗」。它们**答不了**「渲染出来的是哪一页」——
+    //   而那正是 `docs/known-issues.md` 的 **FONT3-PROBE-LOGIN-FALSE-ZERO**:
+    //   会话掉了,每一条路由都静默重定向到 `/login`,而 **`/login` 渲染得好好的**,
+    //   于是 `ready` 一路是 `'ok'`。FONT-3 因此读到 **141/141 ok、表 0 张**,
+    //   ☞ **一份「全绿」的读数,量的是登录页。** 它是被一个对不上的【分母】
+    //     (before 204 / after 102)抓到的,不是被任何一行日志或退出码。
+    //   ★ 判据是 **login 的 CSS-module 类名** —— 它只出现在 `app/login/login.module.css`
+    //     这一处,不依赖任何一句文案(换一句欢迎词不会让它瞎)。
+    //   ★ 而它**不会**在正常一跑里误报:一个**已登录**的会话打开 `/login` 会被
+    //     `LOGIN-1-fu1` 重定向走,于是那一页根本不渲染。
     const READY_EXPR = `(() => {
       if (document.readyState !== 'complete') return 'doc';
       if (!document.body || document.body.innerText.length === 0) return 'empty';
       if (window.__INPUT0_HYDRATED__ !== true) return 'hydrate';
+      if (document.querySelector('[class*="login-module"]')) return 'NOT SIGNED IN';
       return 'ok';
     })()`
+
+    // ★ 【它必须【响亮地】失败,不许返回一个零】★
+    //   把它记成一条 `ready` 就等于把它记成「这一条没量到」,而 FONT-3 那次
+    //   **每一条都没量到**,读起来仍然是一份完整的读数。所以这里【当场抛】:
+    //   抛出去 → `main().catch()` 跑清理(删掉那个一次性 admin)→ **EXIT 2**
+    //   (本仓库第三档:量具自己坏了,这一次读数不作数)。
+    //   ☞ 直接 `process.exit()` 会掐死那次清理(AGENTS.md · LEAK-1),所以是 throw。
+    const assertSignedIn = (route, vpName, ready) => {
+        if (ready !== 'NOT SIGNED IN') return
+        console.error(`✗ ${SELF}:**登录断言失败 —— 这一次读数不作数。**`)
+        console.error(`    ${route} @ ${vpName} 渲染出来的是 /login,不是我要的那一页。`)
+        console.error(`    会话没了(或者从来没建起来),而 /login 自己渲染得好好的 ——`)
+        console.error(`    ☞ 没有这条断言,它会一路报 ready='ok'、表 0 张,而那是一份`)
+        console.error(`      **量的是登录页**的全绿读数(docs/known-issues.md · FONT3-PROBE-LOGIN-FALSE-ZERO)。`)
+        console.error(`    ☞ 继续走下去只会把剩下的路由也量成登录页,所以在这里停。`)
+        throw new Error(`NOT SIGNED IN at ${route} @ ${vpName} — 会话丢了,读数作废`)
+    }
 
     async function go(route) {
         lastDoc = null
@@ -705,6 +778,9 @@ async function main() {
                 consecFail = 0
                 last = r.result.value
                 if (last === 'ok') return { doc: lastDoc, ready: 'ok' }
+                // ★ 这一条不会靠等变好 —— 它是终态,不是一个中间步骤。
+                //   继续轮询 45 秒只是把一次确定的失败变慢。
+                if (last === 'NOT SIGNED IN') return { doc: lastDoc, ready: last }
             } catch (e) {
                 if (++consecFail >= 3) throw new Error(`renderer wedged at ${route}: ${e.message}`)
             }
@@ -731,6 +807,7 @@ async function main() {
         for (const vp of VIEWPORTS) {
             await newTab(vp)
             const { doc, ready } = await go('/brand-sampler')
+            assertSignedIn('/brand-sampler', vp.name, ready)
             if (doc && doc.status >= 400) throw new Error(`/brand-sampler returned HTTP ${doc.status}`)
             if (ready !== 'ok') throw new Error(`/brand-sampler never became ready @ ${vp.name}: stuck at "${ready}"`)
             const r = await S('Runtime.evaluate', { expression: SPEC_MEASURE, returnByValue: true })
@@ -759,6 +836,7 @@ async function main() {
                 let rec = null
                 try {
                     const g = await go(route)
+                    assertSignedIn(route, vp.name, g.ready)
                     if (g.ready !== 'ok') throw new Error('never became ready: ' + g.ready)
                     const before = (await S('Runtime.evaluate', { expression: MEASURE, returnByValue: true }, 30000)).result.value
                     const click = (await S('Runtime.evaluate', { expression: CLICK_EDIT, returnByValue: true }, 30000)).result.value
@@ -801,9 +879,16 @@ async function main() {
                 try {
                     const g = await go(route)
                     doc = g.doc; ready = g.ready
+                    assertSignedIn(route, vp.name, ready)
                     const r = await S('Runtime.evaluate', { expression: MEASURE, returnByValue: true }, 30000)
                     val = r.result && r.result.value
-                } catch (e) { err = e.message }
+                } catch (e) {
+                    // ★ 登录断言【不许】掉进这个 catch 变成「一条量不到的路由」——
+                    //   那正是它存在的理由:一条被记成 failed 的路由,与 140 条
+                    //   被记成 failed 的路由,在读数里长得一模一样。整跑作废。
+                    if (/NOT SIGNED IN/.test(e.message)) throw e
+                    err = e.message
+                }
                 if (!val) {
                     out.routes[vp.name][route] = { failed: true, err: err || 'no value', http: doc ? doc.status : null, ready }
                     console.error(`  !! ${route} @ ${vp.name}: ${err || 'no value'} (ready=${ready})`)
@@ -915,6 +1000,26 @@ async function main() {
         const notHydrated = okRoutes.filter((r) => r.hydrationMark !== true).length
         assertPinned(SELF, '水合过的路由 ↔ 量到的路由', okRoutes.length - notHydrated, okRoutes.length,
             '一条没水合的路由上,客户端组件(Radix 的 SelectTrigger 等)根本没渲染 —— 读数会把它读成不存在。'); ran++
+        // ════════════════════════════════════════════════════════════════════
+        // ★★ POLISH-1 · colW 的钉住 —— 【两条路数同一个总体】★★
+        // ════════════════════════════════════════════════════════════════════
+        // 一个【只在存在时通过、而在坏掉时不吭声】的字段不值一文。
+        //   · 判据那一条走 `head.children` → `colW`;
+        //   · 独立那一条走 `thead tr:first-child > *` → `nHeadCells`。
+        // 两条对不上就红,**两个方向都红**(少了 = 有的表没量到列宽;
+        // 多了 = colW 里混进了不是表头格的东西)。
+        // ☞ 故障注入:`--blind=no-colw` 把 colW 清空,这一条当场 EXIT 2。
+        const allTables = okRoutes.flatMap((r) => r.tables)
+        assertPopulation(SELF, '带 <thead> 的表(colW 的分母)',
+            allTables.filter((t) => t.nHeadCells > 0).length, 1); ran++
+        assertPinned(SELF, '量到的列宽读数 ↔ 表头格数',
+            allTables.reduce((a, t) => a + t.colW.filter((w) => typeof w === 'number').length, 0),
+            allTables.reduce((a, t) => a + t.nHeadCells, 0),
+            'colW 是 POLISH-1 那条列宽规矩(spec §4.3a)唯一的回归闸 —— 它悄悄变空,那条规矩就没有闸了。'); ran++
+        assertPinned(SELF, '列宽读数 ↔ 表头文字读数',
+            allTables.reduce((a, t) => a + t.colW.length, 0),
+            allTables.reduce((a, t) => a + t.colHdr.length, 0),
+            '一串认不出是哪一列的宽度,下一刀比不了。'); ran++
     }
     console.error(`· coverage assertions run: ${ran}`)
 

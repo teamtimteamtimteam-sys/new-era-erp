@@ -40,8 +40,8 @@ canEdit: boolean
             subject={subject}
             title={t('expense.reverseConfirm')}
             confirmLabel={t('expense.reverse')}
-            tier="reversal"
-            triggerVariant="reversal"
+            tier="destructive"
+            triggerVariant="destructive"
             disabled={isPending}
             onConfirm={doReverse}
         >

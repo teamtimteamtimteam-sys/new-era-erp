@@ -3,6 +3,185 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ★★ BTN-TRIGGER-1 —— **`<ConfirmButton>` 的裸触发钮:32 处没有转换,其中 26 处带着 BTN-1 存在的理由本身**(POLISH-1 登记,2026-09-12)
+
+> ### ★ 一句话:这**不是**「有两颗按钮被漏掉了」。它是**一整个被明确延期、然后再没有人打开过的总体**。
+
+### 它是什么
+
+`app/components/ui/confirm-dialog.tsx` 的 `<ConfirmButton>` 有一个 `triggerVariant` prop。
+**给了它** → 触发钮用组件库的 `<Button>`;**不给** → 渲染一个**裸 `<button>` + 调用点手写的 className**。
+那句「不给就保留原样」是 **BTN-2 刻意写下的延期**,而它指向的那一刀**早就收工了** ——
+☞ 一条指向一把已关闭的刀的延期,读起来和一条没人负责的债一模一样。
+
+### 读数(POLISH-1,2026-09-12。**量法写在这里,因为下一个人要重量**)
+
+| | 个数 |
+|---|--:|
+| `<ConfirmButton` 在 `app/**/*.tsx` 里的**原始命中**(含散文) | **71** |
+| …其中在**注释 / JSDoc** 里 | **13** |
+| ★ **真正的调用点** | **58** |
+| …给了 `triggerVariant` | **25** |
+| ★ …**渲染成裸 `<button>`**(R3 转掉 1 处之后) | ★ **33** |
+| ⬜ 本条登记的裸触发钮 | ★ **33**(13 + 13 + 7) |
+
+> ### ★★ 量法(**不是**一条正则,而那一点是承重的)
+> 三件事任何一件都足以让这个数错:
+> * 开标签里有 `{() => submit(false)}` —— 一条**非贪婪到第一个 `>`** 的正则**在箭头函数那里就停了**,
+>   于是 `triggerVariant` / `className` 被截掉;
+> * **注释里**写着这个组件名(本仓库为这一族付过四次账);
+> * `details={<p className="…">}` —— **一个孩子的 `className`** 会被记到触发钮头上。
+>
+> ☞ 判据:剥掉注释 → 从开标签起**逐字符**扫,跟踪引号 / 模板串 / 花括号深度,
+> **深度 0** 上的第一个 `>` 才是开标签的结尾;**属性只读深度 0 那一层**。
+>
+> ⚠ 量具住在仓库**外面**(一刀一份)。要重量,照上面那三条判据重写一支 ——
+> **判据在这里,而判据比脚本活得久。**
+
+> ### ⚠⚠ 一处【对上一份读数的更正】,连同它为什么错
+> POLISH-1 round 1 的元素级解析报的是 **61 调用点 / 19 triggerVariant / 42 裸**,
+> 以及 **12 × `opacity-50` + 5 × `text-gray-400` = 17** 处禁用态缺陷。
+> ★ **重量下来是 58 / 25 / 33,而禁用态缺陷是 13 + 13 = 26。**
+> ☞ **差额的出处查清了,不是两个数打架:** round 1 自己在报告里写着
+> 「18 处 unresolved + 2 处没有 className —— 它们都读到了
+> `text-sm font-medium text-[color:var(--brand-text)]`,那是确认框正文里的一个 `<p>`」。
+> **那正是【孩子的 className 被记到触发钮头上】。** 而被那个 `<p>` 挡在后面的,
+> 恰恰是触发钮自己那串带禁用态缺陷的 className ——
+> ☞ **round 1 诚实标注的「这 20 处要逐处读,不要照这张表报价」,后面藏着 9 处真的缺陷。**
+> ☞ 三处逐个读源码复核过(`materials/DeleteButton.tsx` · `finance/close/YearClosePanel.tsx` ·
+> `settings/dictionaries/DictSection.tsx`),**三处都确认**。
+
+### ⬜ 这一条登记的【无障碍缺陷】—— 禁用态
+
+**26 处**裸触发钮的禁用态用的是 BTN-1 **整刀存在的理由本身**那两种写法。
+
+> ### ★ 比值随【它底下那层墨】变,所以这里按【每一种写法】报,不报一个数
+> | 写法 | 渲染出来是 | 白底 | `--brand-bg #F1F9FE` 上 |
+> |---|---|--:|--:|
+> | `disabled:text-gray-400` | `#99A1AF`(Tailwind **v4** 的 gray-400) | **2.60:1 ✗** | **2.44:1 ✗** |
+> | `disabled:opacity-50` 压在 `text-red-600` 上 | `#F38085` | **2.55:1 ✗** | **2.52:1 ✗** |
+> | `disabled:opacity-50` 压在 `text-red-700` 上 | — | **2.77:1 ✗** | **2.73:1 ✗** |
+> | `disabled:opacity-50` 压在 `text-green-700` 上 | — | **2.10:1 ✗** | **2.04:1 ✗** |
+> | ★ **库给的(BTN-1),也就是【目标】** | `--brand-text #182B4B` on `--color-disabled-bg #DDE7EF` | ★ **11.27:1 ✓** | 同左 |
+>
+> ⚠ **委托书写的两个数,出处查清了,而它们各自只描述【一个站点】:**
+> * **2.54:1** 是 `#9CA3AF` —— Tailwind **v3** 的 gray-400。**这棵树是 v4**(`node_modules/tailwindcss/theme.css`
+>   写的是 `oklch(70.7% 0.022 261.325)`),值是 `#99A1AF` = **2.60:1**。
+> * **2.14:1** 最接近 `text-green-700 @50%` 的 **2.10:1**,也就是
+>   `ApprovalControls.tsx` 那一颗绿色的「批准」。
+> ☞ **`disabled:opacity-50` 没有【一个】比值** —— 它是「把底下那层墨兑一半白」,
+>   结果由那层墨决定。**一个写成单一数字的比值,在这一族上按构造是错的。**
+> ★ **但结论一个字都不用改:上面每一格都在 2.0–2.8 之间,全部过不了 AA 4.5。**
+
+#### `disabled:opacity-50` —— **13 处**
+
+| # | 站点 |
+|---|---|
+| 1 | `app/finance/assets/[id]/ServiceIntervalPanel.tsx:293` |
+| 2 | `app/finance/bank/statements/[id]/UnreconcileControl.tsx:50` |
+| 3 | `app/finance/close/ReopenForm.tsx:56` |
+| 4 | `app/finance/close/YearClosePanel.tsx:72` |
+| 5 | `app/hr/payroll/[id]/PostControls.tsx:120` |
+| 6 | `app/inbound/[id]/assays/[assayId]/ApplyAssayControls.tsx:84` |
+| 7 | `app/output/[id]/assays/[assayId]/OutputApplyControls.tsx:83` |
+| 8 | `app/purchasing/orders/[id]/ApprovalControls.tsx:42` |
+| 9 | `app/purchasing/orders/[id]/CloseReopenControls.tsx:149` |
+| 10 | `app/settings/dictionaries/DictSection.tsx:102` |
+| 11 | `app/tools/pricing/formulas/[id]/edit/DeleteFormulaButton.tsx:17` |
+| 12 | `app/tools/pricing/metal-prices/[id]/edit/DeleteButton.tsx:16` |
+| 13 | `app/tools/tasks/[id]/TaskHeader.tsx:187` |
+
+#### `disabled:text-gray-400` —— **13 处**
+
+| # | 站点 |
+|---|---|
+| 1 | `app/components/finance/FinanceAttachmentsPanel.tsx:227` |
+| 2 | `app/components/metals/MetalContentPanel.tsx:177` |
+| 3 | `app/hr/departments/DeleteDepartmentButton.tsx:20` |
+| 4 | `app/hr/training/DeleteTrainingButton.tsx:19` |
+| 5 | `app/materials/DeleteButton.tsx:22` |
+| 6 | `app/materials/[id]/edit/AttachmentsPanel.tsx:193` |
+| 7 | `app/operation/processing/[id]/CostPanel.tsx:101` |
+| 8 | `app/purchasing/payment-terms/DeleteTemplateButton.tsx:25` |
+| 9 | `app/sales/customers/DeleteButton.tsx:22` |
+| 10 | `app/sales/customers/[id]/edit/AttachmentsPanel.tsx:200` |
+| 11 | `app/suppliers/DeleteButton.tsx:22` |
+| 12 | `app/suppliers/[id]/edit/AttachmentsPanel.tsx:200` |
+| 13 | `app/suppliers/[id]/edit/CompliancePanel.tsx:84` |
+
+#### 两者都没有的裸触发钮 —— **7 处**(仍然不是标准档,只是不带这两个缺陷)
+
+| # | 站点 |
+|---|---|
+| 1 | `app/finance/bank/statements/[id]/reconcile/ReconcileWorkspace.tsx:679` |
+| 2 | `app/finance/invoices/[id]/VoidInvoiceControl.tsx:105` |
+| 3 | `app/finance/receivables/[saleId]/AttributeCustomerControl.tsx:94` |
+| 4 | `app/finance/settings/GstPanel.tsx:102` |
+| 5 | `app/output/[id]/edit/SafetyStatePanel.tsx:89` |
+| 6 | `app/purchasing/orders/[id]/CloseReopenControls.tsx:96` |
+| 7 | `app/suppliers/[id]/edit/StatusPanel.tsx:129` |
+
+### ⬜ 一并归到本条名下的,还有四件
+
+| 它是什么 | 出处 | 为什么在这里 |
+|---|---|---|
+| ★ **没采用共享样式的那颗 `<select>`** | 队列「合并的小件」④ | R10 明写**出局 → BTN-TRIGGER-1** |
+| ★ **`<EditableTable>` 手机档那颗蓝钮**(`editable-table.tsx:515`) | 队列「合并的小件」⑤ | R10 明写**出局 → BTN-TRIGGER-1**;它同时是 z⑥ 那 30 个泛蓝站点里的一个**按钮**,而 R12 明写按钮不是颜色题 |
+| ★ **`suppliers/[id]/edit/StatusPanel.tsx:103` 那颗蓝描边钮** | z⑥ 分类 | 同上:**按钮题,不是颜色题** |
+| ★ **7 个 `tier="reversal"` 而触发钮是裸 `<button>` 的对话框** | POLISH-1 · R2 | 见下面 `POLISH1-REVERSAL-DIALOG-TIERS` |
+
+### 删除条件
+
+**`triggerVariant` 不再是可选的**(或者裸 `<button>` 那条分支不再存在),
+且上面 26 处禁用态全部走库里那一档。**到那时这一条整条删掉,不是划掉。**
+
+## ★ POLISH1-REVERSAL-DIALOG-TIERS —— **7 个对话框的确认钮仍然画四点虚线**(POLISH-1 登记,2026-09-12)
+
+| | |
+|---|---|
+| **它是什么** | `confirm-dialog.tsx:307` 的确认钮写的是 `<Button variant={tier}>`,`size` 取默认 —— 于是一个 `tier="reversal"` 的对话框,**它的确认钮就是一颗四点虚线钮**(default 号 32px,竖条 22px,6px 周期 ⇒ 墨 0-3 / 6-9 / 12-15 / 18-21 = **四段**)。 |
+| ★ **为什么 R2 没有顺手转** | Tim 的 R2 裁的是**他走查时看见的那六颗【触发钮】**。这 7 个的触发钮是裸 `<button>`,画不出竖条 —— **他没有看见它们**。☞ 顺手转 = 替他裁一条他没裁的。 |
+| **逐条** | `CloseReopenControls.tsx:154` · `OutputApplyControls.tsx:88` · `PostControls.tsx:125` · `ApplyAssayControls.tsx:89` · `YearClosePanel.tsx:76` · `ReopenForm.tsx:60` · `UnreconcileControl.tsx:55` |
+| **去处** | ⬜ **BTN-TRIGGER-1**(它们的触发钮本来就在那一条名下,两件一起做才不会量两遍) |
+
+## ★ POLISH1-EMPTY-VS-FAILED —— **「没有数据」与「没加载出来」在屏幕上分不开**(POLISH-1 登记,2026-09-12)
+
+| | |
+|---|---|
+| ★ **它是 Tim 走查那句话的【后半句】** | R5 裁定:`cashForecast.noLines` 那**一句文案**这一刀重写;而「空表说不出自己是空的还是坏的」是一个**机制**问题,**一句文案分不开这两件事**,所以它单独立案。 |
+| **实测的落点** | `app/finance/cash-forecast/RecurringLines.tsx` 走 `<DataTable>` 的 `empty` prop,而 `data-table.tsx` 只要 `visible.length === 0` 就渲染那一句 —— ★ **它【按构造】不知道这个 0 是「查回来就是空的」还是「查失败了」。** |
+| ★ **它属于哪一族** | **错误吞噬那一族**:`AGENTS.md`「一次失败不是一个空集」· `lib/db-helpers.ts` 的 `mustRows/mustOne/mustCount` · `scripts/check-error-swallowing.mjs`。<br>☞ 那一族已经有的处置是**让失败抛出来**;缺的是**列表组件这一层**的表达 —— 一个 `<DataTable>` 今天没有办法说「我这次没读到」。 |
+| ⚠ **不要读成「RecurringLines 坏了」** | 那一页的查询走的是 `mustRows`,**失败会抛**。这一条登记的是**整族列表**的一个表达缺口,`RecurringLines.tsx` 只是 Tim 指到的那一个实例。 |
+| **去处** | ⬜ 与错误吞噬那一族同一刀(`docs/known-issues.md` 的 cleanup A 方向) |
+
+## ★ POLISH1-CONTROL-STATE-VOCAB —— **这套系统的「控件状态」有哪几种,没有人裁过**(POLISH-1 登记,2026-09-12)
+
+| | |
+|---|---|
+| **它是什么** | `app/components/ui/control-style.ts` 今天有 `disabled:` 与 `aria-invalid:` 两支,**没有 `read-only:` 那一支**。而树里恰好有**一处**只读底色:`app/hr/payroll/PayrollGrid.tsx:133`(`read-only:` 在整个 `app/` 里只出现这一次)。 |
+| ★ **R10 的处置:留着** | 剥掉它,一个**只读**的月份框就和一个**可编辑**的框长得一模一样。Tim 2026-09-11(INPUT-3 Q9)裁【留】,R10 又确认了一次。 |
+| ⚠ **为什么不顺手统一进模块** | 那等于替 Tim 裁一条他没裁的规矩。**这条规矩今天不存在**,而造一条出来要的是一次裁定,不是一次重构。 |
+| **去处** | ⬜ 一次「控件状态词汇表」的裁定(未排期) |
+
+## ★ POLISH1-CALENDAR-CHIP-HUES —— **holiday 与 containerEta 两枚色片几乎同色(dE 4.5)**(POLISH-1 登记,2026-09-12)
+
+| | |
+|---|---|
+| **实测** | `holiday = --brand-accent #E1F5FF` 与 `containerEta = --brand-muted #E5EEF4`,CIE76 **dE = 4.5** —— 远低于「看得出不同」通常要的 ~10。 |
+| ★ **它是【改前就有的】,本刀一个字节都没碰这两个 token** | R13 动的是另外三枚(leave / task / invoiceDue),而**那三枚的新值与其余每一枚的 dE 全部 ≥ 15**。这一对是顺手量出来的。 |
+| **为什么不修** | 改它就是裁一次色片配色,而 R13 只裁了**对比度**。**两件事不要合并。** |
+| **去处** | ⬜ 未排期 |
+
+## ★ POLISH1-HANDROLLED-BANNERS —— **`<Alert>` 毕业之后,没有任何一道闸在看「谁又手搓了一个横幅」**(POLISH-1 登记,2026-09-12)
+
+| | |
+|---|---|
+| **它是什么** | `alert` 从 `scripts/check-base-isolation.mjs` 的 `GUARDED` 里毕业了(R8 + R12 是它的转换刀)。那道闸守的是「**还没有人用它**」—— 一个已经被采用的组件**不可能**再满足那条断言。 |
+| ★ **接替它的只有一样东西** | **只有一份实现**:横幅的画法从此只住在 `app/components/ui/alert.tsx`。 |
+| ⚠ **接替不了的那一半,照直说** | **没有任何机器在检查「谁又手搓了一个带底色的通知盒子」。** 与 `input`/`label`/`select`(C-1)、`button`(C-1b)毕业时那一段是**逐字同一句话**。 |
+| **改后树上还剩什么** | 泛蓝的非横幅站点 **22 处**(13 状态片 + 2 按钮 + 7 行内强调,见 `docs/variant-c-spec.md` §4.4a),外加若干手搓的红 / 琥珀横幅(本刀没有清点,**照直记成 NOT MEASURED**)。 |
+| **去处** | ⬜ 未排期 |
+
 ## ★ BUGFIX1B-CODES-WITHOUT-COPY —— **909 个码里 132 个【没有任何一支映射器认得】**(BUGFIX-1b,2026-09-12)
 
 | | |
@@ -64,8 +243,36 @@ body 有文字、React 水合完成 —— 于是探针的 `ready` 判据读出 
 每一条路由在读数之前多问一句 —— `document.querySelector('[class*="login-module"]')`
 命中就**不是 ok**,`why = 'NOT SIGNED IN'`。判据选登录页的 **CSS module 类名**,
 因为它在别处不出现,而且它不依赖任何一句文案。
-⚠ **这一条还没有进仓库里的量具**(`scripts/survey-controls.mjs` 也是同一个形状)——
-登记在这里,给下一刀。
+~~⚠ **这一条还没有进仓库里的量具**(`scripts/survey-controls.mjs` 也是同一个形状)——
+登记在这里,给下一刀。~~
+
+> ### ★★★ 已关闭 —— POLISH-1(2026-09-12,Tim 的裁定 R16(a))★★★
+> **它进仓库了。** `scripts/survey-controls.mjs` 的 `READY_EXPR` 现在有**第四条**:
+> `document.querySelector('[class*="login-module"]')` 命中 ⇒ 返回 `'NOT SIGNED IN'`。
+>
+> ★ **而它【不是】记成一条 `ready` 就算完 —— 那等于把它记成「这一条没量到」,
+> 而这场事故里【每一条都没量到】,读起来仍然是一份完整的读数。**
+> ☞ 所以 `assertSignedIn()` **当场抛**:三个模式(spec / drift / edit)的每一次
+> `go()` 之后都问一遍,抛出去 → `main().catch()` 跑清理(删掉那个一次性 admin)
+> → **EXIT 2**(本仓库第三档:量具自己坏了,这一次读数不作数)。
+> ★ 用 throw 而不是 `process.exit()`,是因为一次同步的 exit 会掐死那次异步清理
+> (AGENTS.md · LEAK-1)。
+>
+> ### ★ 故障注入 —— **同一机制**,不是一个相似的东西
+> 新增 `--blind=signed-out`:**不给浏览器那张会话 cookie**,于是每一条路由渲染 `/login`
+> —— 这**就是**这场事故本身。
+> * **红:** `node scripts/survey-controls.mjs --mode=drift --blind=signed-out --limit=1`
+>   → 日志 `INJA_EXIT=2`,点名 `/ @ desktop`,并说出「继续走下去只会把剩下的路由也量成登录页」。
+> * **绿:** 同一棵树、同两条路由、不致盲 → `R16G_EXIT=0`,覆盖断言跑了 11 条。
+>
+> ### ★ 而这次注入顺带**证明了旧判据会放行**,这一点值得单独写:
+> `'NOT SIGNED IN'` 在 `READY_EXPR` 里是**第四条**,它**只有在前三条全部通过之后**才到得了。
+> ☞ 也就是说注入命中的那一刻,`readyState === 'complete'`、body 有字、
+> `__INPUT0_HYDRATED__ === true` **三条都已经为真** ——
+> **旧的那份表达式在同一个 DOM 上会返回 `'ok'`。** 这不是推理,是那条 return 的位置决定的。
+>
+> ⚠ **它守不住什么,说白:** 它认的是 `/login` 这一页。**别的**「渲染成功但不是我要的那一页」
+> (比如一次静默重定向到首页)它看不见 —— 判据只认登录页那个 CSS module 类名。
 
 **★ 代价:** 一趟 23 分钟的读数作废重量。**便宜,因为它被抓到了。**
 

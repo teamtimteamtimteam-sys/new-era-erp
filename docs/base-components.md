@@ -610,6 +610,58 @@ Tim 的裁定,一句话:**「一个看起来像普通动作的破坏性动作,�
 
 ### 10.2 ★ 撤销档为什么是一个真的档,不是 destructive 的一种写法 ★
 
+> ## ★★★ 就地修订 —— POLISH-1(2026-09-12,Tim 的裁定 R2)★★★
+>
+> ### ⚠ 下面这条判据**今天不再是判据**。它没有被删掉,而是被**收窄**了 ——
+> ### 一条被撤掉的规矩和一条从来没写过的规矩,对下一个人读起来一模一样。
+>
+> **原判据(BTN-1 写的):「它删不删东西 —— 不删任何行、审计痕迹全留着 ⇒ 撤销档」。**
+> ★ **那条判据【按它自己的字面】把六颗按钮判成了撤销档,而 Tim 走查之后裁定这六颗是破坏档。**
+> ☞ 判据与裁定冲突时,**留着两边、让下一个人自己挑**是最坏的处置:
+>   它保证同一个问题会被判两次,而两次都有出处。所以这里改判据,不是加例外。
+>
+> ### ☞ 今天的判据:**撤销档说的是【这个动作在操作员心里有多重】,不是【它删不删行】。**
+>
+> | | `destructive`(实线红竖条) | `reversal`(虚线竖条) |
+> |---|---|---|
+> | **它对操作员意味着** | ★ **「按下去,一件已经生效的事会被推翻,而那件事别人已经在用了」** —— 期间锁、一张已批的假、一笔已过账的凭证 | 「按下去,一个**我自己刚做的、还没扩散出去的**状态回退一格」 |
+> | **谁会受影响** | ★ **他以外的人** —— 账已经锁了、假已经批了、凭证已经进了总账 | **基本只有他自己**,或者一行还没走出这一页的从属记录 |
+> | **它删不删行** | ★ **不再是判据。** 上面这六颗一行都不删,而它们是 destructive | 同左 —— 两档都不删行 |
+> | **今天在册** | 29 处(含 POLISH-1 转过来的 6 处) | ★ **6 处**:`xs` 2 · `inline` 4 —— **`default` 档一颗都没有了** |
+>
+> ### ★ 那六颗,逐条(POLISH-1 转的,file:line 指的是开标签那一行)
+>
+> | # | 站点 | 路由 | 改了什么 |
+> |---|---|---|---|
+> | 1 | `app/hr/leave/[id]/DecideControls.tsx:90` | `/hr/leave/[id]` | `<Button variant>` reversal → destructive |
+> | 2 | `app/hr/attendance/[id]/AttendanceGrid.tsx:104` | `/hr/attendance/[id]` | `<Button variant>` reversal → destructive |
+> | 3 | `app/finance/settings/LockForm.tsx:89-90` | `/finance/settings` | `tier` **与** `triggerVariant` 两个都转 |
+> | 4 | `app/finance/payments/[id]/ReversePaymentButton.tsx:44-45` | `/finance/payments/[id]` | 同上 |
+> | 5 | `app/finance/journal/[id]/ReverseButton.tsx:44-45` | `/finance/journal/[id]` | 同上 |
+> | 6 | `app/finance/expenses/[id]/ReverseExpenseButton.tsx:43-44` | `/finance/expenses/[id]` | 同上 |
+>
+> ★ **为什么 3–6 连 `tier` 一起转:** `confirm-dialog.tsx:307` 的确认钮写的是
+>   `<Button variant={tier}>`,`size` 取默认 —— **它自己也是一颗四点虚线钮。**
+>   只转触发钮会让**同一个动作**在页面上画实线、在对话框里画虚线,
+>   而 Tim 的理由逐字是「**功能相同的按钮必须长得一样**」。
+>
+> ⚠ **没有顺手转的那一族,照直报出来:** 另有 **7 处** `<ConfirmButton tier="reversal">`
+>   的**触发钮是裸 `<button>`**(没有 `triggerVariant`),于是**它们的对话框确认钮
+>   今天仍然画四点虚线**:`CloseReopenControls.tsx:154` · `OutputApplyControls.tsx:88` ·
+>   `PostControls.tsx:125` · `ApplyAssayControls.tsx:89` · `YearClosePanel.tsx:76` ·
+>   `ReopenForm.tsx:60` · `UnreconcileControl.tsx:55`。
+>   ☞ **Tim 裁的是【他看见的那六颗四点触发钮】,不是这七个对话框。**
+>   顺手转它们就是替他裁一条他没裁的 —— 登记在 `docs/known-issues.md`
+>   的 `POLISH1-REVERSAL-DIALOG-TIERS`,归 **BTN-TRIGGER-1**。
+>
+> ★ **量法(两个方向都可复算):** `/tmp` 外的量具是
+>   「在整份源码上走每一个 `<Button` / `<ConfirmButton` 开标签,取
+>   `variant="reversal"` 或 `triggerVariant="reversal"`,再读它的 `size`」——
+>   **按形状,不按名字**,而且**不按行切**(AGENTS.md:按行切会废掉含 `\n` 的字符类)。
+>   改前 12 处(default 6 · xs 2 · inline 4),改后 **6 处(default 0)**。
+
+**【以下为 BTN-1 的原文,保留不删 —— 它是这条判据的出处,也是它为什么要被收窄的论据】**
+
 实测 **57 个按钮**做的是"撤销一个已经过账的状态":`Reopen` · `Unpost` ·
 `Unapply` · `Unreconcile` · `Unmatch` · `Turn GST off`。**它们不删任何东西,
 审计痕迹全留着。**
@@ -617,6 +669,11 @@ Tim 的裁定,一句话:**「一个看起来像普通动作的破坏性动作,�
 > 把它们画成 destructive 红,等于教会操作员**「红 = 我会丢数据」**——
 > 而那句话在他第一次点 `Reopen` 时就是**假的**。
 > **一条被教错的规则,比没有规则更坏。**
+
+★ **POLISH-1 的回答,因为这段论证仍然有一半是对的:** 「红 = 我会丢数据」这句话
+**本来就不是 destructive 档在说的话** —— 它说的是「**红 = 这件事推翻得起别人**」。
+上面那六颗一行都不删,而它们**确实推翻得起别人**(锁住的期间、批过的假、过了账的凭证)。
+☞ 所以要改的不是"红代表什么",是**这段论证给红下的定义**。
 
 它们也不是 `default`:**没有任何一页是为了 Reopen 而存在的。**
 

@@ -87,7 +87,7 @@ export default function DecideControls({
                     </>
                 )}
                 {status === 'approved' && (
-                    <Button variant="reversal"
+                    <Button variant="destructive"
                         type="button"
                         disabled={pending}
                         onClick={() => act(() => cancelLeave(requestId, notes || null))}>

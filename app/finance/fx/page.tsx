@@ -22,6 +22,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { Alert, AlertTitle } from '@/app/components/ui/alert'
 
 type FxRow = {
     id: string
@@ -214,12 +215,17 @@ export default async function FxRatesPage({
                             <p className="text-xs mt-2 opacity-80">{t('finance.fxPage.readyWhy')}</p>
                         </div>
                     )}
-                    {showCorrectionNotice && (
-                        <div className="bg-blue-50 border border-blue-300 text-blue-900 px-4 py-3 rounded mb-4 text-sm">
-                            <p className="font-medium mb-1">{t('finance.fxPage.je70Title')}</p>
+                    {/* ★★ POLISH-1(2026-09-12,Tim 的裁定 R12)· info 横幅走库里的 <Alert> ★★
+                   量下来:**白底 + 1px 与字同色的描边,不需要一个 info 蓝**。
+                   `<Alert>` default 档 = `bg-card`(白)+ `--brand-text`(**14.13:1 ✓**)。
+                   ☞ 所以 `alert.tsx` **没有**新开 `info` 档 —— 少一个没人裁过的状态色。
+                   推导与另外 7 处的名单见 `docs/variant-c-spec.md` §4.4a。 */}
+                {showCorrectionNotice && (
+                        <Alert className="mb-4">
+                            <AlertTitle>{t('finance.fxPage.je70Title')}</AlertTitle>
                             <p>{t('finance.fxPage.je70Body')}</p>
                             <p className="text-xs mt-1 opacity-80">{t('finance.fxPage.je70Assured')}</p>
-                        </div>
+                        </Alert>
                     )}
                     {gaps.length > 0 && (
                         <div className="mb-4 rounded border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">

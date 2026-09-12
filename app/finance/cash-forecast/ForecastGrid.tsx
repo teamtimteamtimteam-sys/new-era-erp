@@ -47,9 +47,20 @@ const money = (n: number) =>
     n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 // 三档的样子【必须不一样】—— 不是三个不同的词,是三种不同的重量
+//
+// ★★ POLISH-1(2026-09-12,Tim 的裁定 R10)· `estimated` 的字色 800 → 900 ★★
+//   「这是估的」这一档在树上有【两处】,而它们**互相不一致**:
+//     · `app/purchasing/orders/[id]/ExpectedDateControl.tsx:56,59` → `text-amber-900`
+//     · 本行(`/finance/cash-forecast`)                            → `text-amber-800`
+//   虚线与 `border-amber-500` 两处逐字相同,**只有字色差一档** ——
+//   于是同一句话「这个数是估的」在两页上是两个颜色,而没有人裁过哪一个是标准。
+//   ☞ Tim 裁:**统一到 900**,理由是它对比度更高。实测(Tailwind v4 的 oklch 值):
+//     `amber-800 #973C00` 白底 **7.09:1** · `--brand-bg` 上 **6.66:1**
+//     `amber-900 #7B3306` 白底 **9.06:1** · `--brand-bg` 上 **8.51:1**
+//   ★ 两个本来都过 AA —— **这一次改的是【一致】,不是【合规】**,照直说。
 const CONF_CLASS: Record<string, string> = {
     committed: 'text-gray-900 font-medium',
-    estimated: 'text-amber-800 border-b border-dashed border-amber-500',
+    estimated: 'text-amber-900 border-b border-dashed border-amber-500',
     manual:    'text-gray-500 italic',
 }
 

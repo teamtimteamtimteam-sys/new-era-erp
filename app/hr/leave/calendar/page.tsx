@@ -19,7 +19,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import MonthGrid, { DOW_KEYS, type CalendarItem } from '@/app/components/calendar/MonthGrid'
-import { expandRange } from '@/app/tools/calendar/sources'
+import { expandRange, KIND_COLOR } from '@/app/tools/calendar/sources'
 import { Button } from '@/app/components/ui/button'
 
 export default async function LeaveCalendarPage({
@@ -86,9 +86,19 @@ export default async function LeaveCalendarPage({
             <MonthGrid
                 month={month}
                 items={items}
+                /* ★★ POLISH-1(2026-09-12,Tim 的裁定 R13)· 这两片【不再自己写颜色】★★
+                   改前这里手抄了一份色片底(`--brand-accent` / `--brand-forest-fill`),
+                   而 `/tools/calendar` 那边有 `KIND_COLOR` —— **同一件事两份定义**,
+                   正是本仓库反复付账的那个形状:R13 改的是 `KIND_COLOR`,
+                   而这一页**按构造不会跟着变**,于是同一个不合规会在这里活下来。
+                   ☞ 实测:`leave` 这一片改前是 `--brand-forest-fill #5E8047`,
+                     配 `--brand-text` = **3.13:1 ✗**;现在走 `KIND_COLOR` = 
+                     `--brand-forest-tint #AFC0A3` = **7.33:1 ✓**。
+                   ☞ 改成【引用那一份】,而不是把新值也抄一遍 —— 抄一遍只是把
+                     同一个缺陷推迟到下一次改色。 */
                 kinds={[
-                    { key: 'holiday', label: t('calendar.kind.holiday'), color: 'var(--brand-accent)' },
-                    { key: 'leave', label: t('calendar.kind.leave'), color: 'var(--brand-forest-fill)' },
+                    { key: 'holiday', label: t('calendar.kind.holiday'), color: KIND_COLOR.holiday },
+                    { key: 'leave', label: t('calendar.kind.leave'), color: KIND_COLOR.leave },
                 ]}
                 emptyText={t('calendar.empty')}
                 dayNames={DOW_KEYS.map((d) => t('calendar.dow.' + d))}

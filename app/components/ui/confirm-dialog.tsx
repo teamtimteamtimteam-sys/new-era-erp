@@ -336,6 +336,17 @@ type ConfirmButtonProps = ConfirmContent & {
      * 【为什么默认是一个素 <button>】本刀【不】改这 34 个触发钮长什么样 ——
      * 那是 BTN-2 的事,而委托书把 BTN-2 明确排除在外。给了这个 prop 的调用点,
      * 是它原来就在用组件库的 <Button>;没给的,原样保留它自己的 className。
+     *
+     * ★★ POLISH-1(2026-09-12)· 这笔债今天有名字了:**`BTN-TRIGGER-1`** ★★
+     *   上面那句「那是 BTN-2 的事」在今天是假的 —— BTN-2 早就收工了,而这一族
+     *   **从来没有被重新打开过**。一条指向一把已经关掉的刀的延期,读起来
+     *   和一条没人负责的债一模一样。
+     *   ☞ 实测(POLISH-1 round 1,按元素解析而不是按行 grep):
+     *     **61 个 `<ConfirmButton>` 调用点,19 个给了 `triggerVariant`,
+     *     42 个渲染成裸 `<button>` + 手写 className。**
+     *   ☞ Tim 的 R3 只裁了其中 **1 个**(`GstPanel` 的 Turn GST off);
+     *     **另外 41 个连同它们的禁用态缺陷,登记在 `docs/known-issues.md`
+     *     的 `BTN-TRIGGER-1`**,那里有逐条名单与量法。
      */
     /**
      * ★ BTN-4:补上 'link' / 'warning' 与 size 'inline'(§八(b),库里缺能力先加进库)。

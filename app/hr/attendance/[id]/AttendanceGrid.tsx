@@ -12,6 +12,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { recordAttendance, completeAttendancePeriod, reopenAttendancePeriod, syncAttendancePeriod } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { Alert } from '@/app/components/ui/alert'
 
 type Row = {
     lineId: string; employeeCode: string; legalName: string
@@ -44,7 +45,17 @@ export default function AttendanceGrid({
     return (
         <>
             {error && <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>}
-            {notice && <div className="mb-3 rounded border border-blue-300 bg-blue-50 px-3 py-2 text-sm text-blue-800">{notice}</div>}
+            {/* ★★ POLISH-1(2026-09-12,Tim 的裁定 R12)· info 横幅走库里的 <Alert> ★★
+                   R12 的原话:「**只裁那 ~8 条真正的 info 横幅**,而且要在 R8 的横幅
+                   形状落地【之后】—— 因为一条白底 + 1px 描边的横幅,可能**根本不需要
+                   一个 info 蓝**。」☞ 量下来:**不需要。**
+                   `<Alert>` 的 default 档是 `bg-card`(白)+ `text-card-foreground`
+                   (`--brand-text #182B4B`,白底 **14.13:1 ✓**),描边取 `currentColor`
+                   于是与字同色 —— **「这是一条通知」由那个带描边的盒子说,不由颜色说**。
+                   ☞ 所以这一刀**没有**给 `alert.tsx` 新开一个 `info` 档:
+                     它今天仍然只有 `default` 与 `destructive` 两档。
+                     ★ 少一个没人裁过的状态色,就少一处将来会漂的定义。 */}
+                {notice && <Alert className="mb-3">{notice}</Alert>}
 
             <table className="w-full text-sm border-collapse mb-4">
                 <thead>
@@ -101,7 +112,7 @@ export default function AttendanceGrid({
                         />
                     </label>
                     <Button
-                        variant="reversal"
+                        variant="destructive"
                         type="button"
                         disabled={pending || reason.trim() === ''}
                         onClick={() => run(() => reopenAttendancePeriod(periodId, reason))}

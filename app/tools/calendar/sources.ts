@@ -51,11 +51,31 @@ export const CALENDAR_KINDS = [
 export type CalendarKind = (typeof CALENDAR_KINDS)[number]
 
 /** 每一类的颜色 —— 全部来自品牌 token,没有第七种颜色被发明出来。 */
+/**
+ * ★★ POLISH-1(2026-09-12,Tim 的裁定 R13)· 三个色片底从 `-fill` 换成 `-tint` ★★
+ *
+ * 小片把 `--brand-text #182B4B` 印在这些底上(`MonthGrid.tsx:80`),
+ * 而 `-fill` 整族是**压到【白字】4.5:1** 定出来的 —— 深色字坐在上面不合规:
+ *
+ * | 色片 | 改前 | vs --brand-text | 改后 | vs --brand-text | 余量 |
+ * |---|---|--:|---|--:|--:|
+ * | leave       | `--brand-forest-fill #5E8047`      | **3.13:1 ✗** | `--brand-forest-tint #AFC0A3`      | **7.33:1 ✓** | +2.83 |
+ * | task        | `--brand-ocean-fill #007FAD`       | **3.12:1 ✗** | `--brand-ocean-tint #80BFD6`       | **6.96:1 ✓** | +2.46 |
+ * | invoiceDue  | `--brand-destructive-fill #B75B53` | **3.12:1 ✗** | `--brand-destructive-tint #DBADA9` | **7.11:1 ✓** | +2.61 |
+ *
+ * ★ 另外三个**改前就过**,一个字节都没碰:`holiday --brand-accent` **12.59:1** ·
+ *   `containerEta --brand-muted` **12.02:1** · `periodClose --brand-border-strong` **7.18:1**。
+ *   ☞ 于是六个色片今天落在同一个带里(6.96–12.59),而不是三个过三个不过。
+ *
+ * ★ 裁定写的是「**压深**」,而**那个方向按构造到不了** —— 推导与算术写在
+ *   `app/brand-tokens.css` 那三个 token 的抬头上。**字没有被漂白**,
+ *   「不许动字」那半条逐字照办。
+ */
 export const KIND_COLOR: Record<CalendarKind, string> = {
     holiday: 'var(--brand-accent)',
-    leave: 'var(--brand-forest-fill)',
-    task: 'var(--brand-ocean-fill)',
-    invoiceDue: 'var(--brand-destructive-fill)',
+    leave: 'var(--brand-forest-tint)',
+    task: 'var(--brand-ocean-tint)',
+    invoiceDue: 'var(--brand-destructive-tint)',
     containerEta: 'var(--brand-muted)',
     periodClose: 'var(--brand-border-strong)',
 }
