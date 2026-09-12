@@ -109,6 +109,9 @@ export default function PriceBreakdown({
             header: t('pricing.colContent'),
             align: 'right',
             // ⚠ 转换前 `text-right font-mono text-sm` —— text-sm 不搬(列描述符不许钉字号)
+            //   ★★ FONT-3(2026-09-12):那个继承来的数今天是 **15px**,不再是 14px ——
+            //     `TABLE_TEXT` 排在组件 `cn()` 的最后(见 table-style.ts)。
+            //     ☞ 这一格**不写字号**仍然是对的做法,而且现在**写了也没有用**。
             render: (l) => l.content_pct,
         },
         {

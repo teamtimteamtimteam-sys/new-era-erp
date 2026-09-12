@@ -94,6 +94,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import type { PhoneTreatment } from '@/app/components/ui/data-table'
+import { TABLE_TEXT } from '@/app/components/ui/table-style'
 
 /**
  * 一列。`render` 是只读时怎么画;`edit` 是编辑时怎么画。
@@ -333,7 +334,7 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                     {caption && <caption className="mt-2 text-sm text-[color:var(--brand-muted-text)]">{caption}</caption>}
                     <thead>
                         <tr className="border-b-2 border-[color:var(--brand-ocean)]">
-                            {!phoneScroll && <th className="w-8 px-1 sm:hidden" />}
+                            {!phoneScroll && <th className={`w-8 px-1 font-medium sm:hidden ${TABLE_TEXT}`} />}
                             {columns.map((c) => (
                                 <th
                                     key={c.key}
@@ -343,20 +344,25 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                         'sm:whitespace-nowrap',
                                         c.align === 'right' ? 'text-right' : 'text-left',
                                         !isPhoneCol(c) && 'hidden sm:table-cell',
-                                        c.className
+                                        c.className,
+                                        // ★★ FONT-3(2026-09-12, Tim Q5/Q11/Q16):**这个组件此前一个字号
+                                        //   token 都没有** —— 表头与表体都退成表根的 text-sm(14px),
+                                        //   于是 /me · /hr/kpi/score · /hr/leave/types · /hr/reviews/scale
+                                        //   四条路由整整比站上每一张表小一档。字号排在最后:调用点压不过它。
+                                        TABLE_TEXT,
                                     )}
                                 >
                                     {c.header}
                                 </th>
                             ))}
                             {/* 动作列在手机上不存在 —— 它正是转换前三页溢出的直接原因。 */}
-                            {showActions && <th scope="col" className="hidden px-3 py-2.5 sm:table-cell" />}
+                            {showActions && <th scope="col" className={`hidden px-3 py-2.5 font-medium sm:table-cell ${TABLE_TEXT}`} />}
                         </tr>
                     </thead>
                     <tbody>
                         {rows.length === 0 && (
                             <tr>
-                                <td colSpan={colCount} className="px-3 py-8 text-center text-[color:var(--brand-muted-text)]">
+                                <td colSpan={colCount} className={`px-3 py-8 text-center text-[color:var(--brand-muted-text)] ${TABLE_TEXT}`}>
                                     {empty ?? t('table.emptyPlain')}
                                 </td>
                             </tr>
@@ -377,7 +383,7 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                 <React.Fragment key={k}>
                                     <tr className="border-b border-[color:var(--brand-border)]">
                                         {!phoneScroll && (
-                                            <td className="px-1 align-middle sm:hidden">
+                                            <td className={`px-1 align-middle sm:hidden ${TABLE_TEXT}`}>
                                                 {hasPhonePanel && (
                                                     <button
                                                         type="button"
@@ -398,7 +404,9 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                                     'px-3 py-2.5 align-top text-[color:var(--brand-text)] break-words',
                                                     c.align === 'right' ? 'text-right tabular-nums' : 'text-left',
                                                     !isPhoneCol(c) && 'hidden sm:table-cell',
-                                                    c.className
+                                                    c.className,
+                                                    // ★★ FONT-3:与表头同一条。
+                                                    TABLE_TEXT,
                                                 )}
                                             >
                                                 {/* ★ ④:桌面在格子里编辑;手机上【格子永远是只读的】,
@@ -415,14 +423,14 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                                 )}
                                                 {/* 「未保存」只画在第一列;画在每一列是噪音。 */}
                                                 {dirty && c.key === columns[0].key && (
-                                                    <span className="ml-2 whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-900">
+                                                    <span className="ml-2 whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-900">
                                                         {labels.unsaved}
                                                     </span>
                                                 )}
                                             </td>
                                         ))}
                                         {showActions && (
-                                            <td className="hidden whitespace-nowrap px-3 py-2.5 align-top sm:table-cell">
+                                            <td className={`hidden whitespace-nowrap px-3 py-2.5 align-top sm:table-cell ${TABLE_TEXT}`}>
                                                 {editing ? (
                                                     <>
                                                         <button

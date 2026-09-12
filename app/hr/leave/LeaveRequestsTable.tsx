@@ -42,7 +42,7 @@ export default function LeaveRequestsTable({ rows, empty }: { rows: LeaveRequest
                         {r.code}
                     </Link>
                     {r.isException && (
-                        <span className="ml-2 rounded bg-purple-100 px-1.5 py-0.5 text-[10px] text-purple-800">
+                        <span className="ml-2 rounded bg-purple-100 px-1.5 py-0.5 text-xs text-purple-800">
                             {t('leave.exception')}
                         </span>
                     )}

@@ -78,7 +78,7 @@ export default function MonthGrid({
 
     const Pill = ({ it }: { it: CalendarItem }) => {
         const style = { background: colorOf.get(it.kind) ?? 'var(--brand-muted)', color: 'var(--brand-text)' }
-        const cls = 'block truncate rounded px-1 py-0.5 text-[11px] leading-tight'
+        const cls = 'block truncate rounded px-1 py-0.5 text-xs leading-tight'
         return it.href
             ? <a href={it.href} className={cls + ' hover:underline'} style={style} title={it.label}>{it.label}</a>
             : <span className={cls} style={style} title={it.label}>{it.label}</span>

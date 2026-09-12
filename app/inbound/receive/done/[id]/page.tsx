@@ -12,7 +12,11 @@
 //     而 ListPage 的容器是左对齐的,它的 <h1> 住在一个
 //     `flex items-baseline justify-between` 里(标题在左、动作在右)。
 //   * 这一屏的"标题"是一个绿色的 ✓ 加一句成功,而【记录的身份】是它下面那个
-//     `text-3xl font-extrabold` 的批次号 —— 那是给仓库里的人隔着一臂读的。
+//     `text-3xl` 的批次号 —— 那是给仓库里的人隔着一臂读的。
+//     ★★ FONT-3(2026-09-12, Tim Q6):字重从 `font-extrabold`(800)回到 **700** ——
+//       取样页实测的 30px 那一档是 **30 / 700 / 36**(两个展示数字),而 800 不是
+//       这套系统量到过的任何一档。字号 30px 与 `<div>` 这个标签**一个字节没动**
+//       (换标签是 S5 禁的,仍然挂在 Tim 名下)。
 //     把它塞进 ListPage 的 title 槽会把这两样东西的主次颠倒过来。
 //   * 两个动作是 `min-h-[48px]` 的整宽按钮(拇指够得着),不是标题右边的小链接。
 //
@@ -79,7 +83,7 @@ export default async function ReceiveDonePage({
             <div className="mt-6 mb-4 text-5xl text-green-600">✓</div>
             <h1 className="text-green-700 mb-6">{t('receive.doneTitle')}</h1>
 
-            <div className="text-3xl font-extrabold break-all mb-3">{batch.code}</div>
+            <div className="text-3xl font-bold break-all mb-3">{batch.code}</div>
             <p className="text-[color:var(--brand-muted-text)] mb-8">
                 {batch.materials?.name ?? '—'} · {batch.quantity} {batch.unit}
             </p>

@@ -100,25 +100,25 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
                         {t('kpi.weightIs', { 0: String(r.weightPct) })}
                     </div>
                     {r.isProvisional && (
-                        <span className="inline-block mt-1 text-[10px] bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded">
+                        <span className="inline-block mt-1 text-xs bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded">
                             {t('kpi.provisionalTag')}
                         </span>
                     )}
                     {r.isProvisional && r.provisionalNote && (
-                        <p className="mt-1 text-[10px] text-amber-900 bg-amber-50 border-l-2 border-amber-400 p-1">
+                        <p className="mt-1 text-xs text-amber-900 bg-amber-50 border-l-2 border-amber-400 p-1">
                             {r.provisionalNote}
                         </p>
                     )}
                     <dl className="mt-1.5 text-xs">
-                        <dt className="text-[10px] text-gray-500">{t('kpi.ownTarget')}</dt>
+                        <dt className="text-xs text-gray-500">{t('kpi.ownTarget')}</dt>
                         <dd className="text-gray-800">{r.targetText}</dd>
-                        <dt className="text-[10px] text-gray-500 mt-1">{t('kpi.evidence')}</dt>
+                        <dt className="text-xs text-gray-500 mt-1">{t('kpi.evidence')}</dt>
                         {/* ★ 三十格全空是原表的事实,不是一个待办 —— 说出来,不留白 */}
                         <dd className="text-gray-800">{r.evidenceSource ?? t('kpi.noEvidenceSource')}</dd>
                     </dl>
                     {r.orgTargets.map((o) => (
                         <div key={o.code} className="mt-1.5 border-l-2 border-gray-300 pl-2">
-                            <div className="text-[10px] text-gray-500">
+                            <div className="text-xs text-gray-500">
                                 <span>{o.code}</span> · {o.title}
                             </div>
                             <div className="text-xs"><span className="text-gray-500">{t('kpi.month3')}:</span> {o.month3}</div>
@@ -186,7 +186,7 @@ export default function ScoreEditor({ rows, canEdit }: { rows: ScoreRow[]; canEd
                 r.overrideCap === null ? '—' : (
                     <>
                         <div>{r.overrideCap}</div>
-                        <div className="text-[10px] text-gray-600">{r.overrideReason}</div>
+                        <div className="text-xs text-gray-600">{r.overrideReason}</div>
                     </>
                 ),
             edit: (d, set) => (

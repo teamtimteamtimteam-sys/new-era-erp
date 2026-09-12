@@ -127,6 +127,9 @@ export default function MetalContentPanel({
             align: 'right',
             // ⚠ 转换前是 `text-right font-mono text-sm`;text-sm 没有搬过来
             //   (列描述符不许钉字号 —— 棘轮会红),字号由组件表根给。
+            //   ★★ FONT-3(2026-09-12):那个继承来的数今天是 **15px**,不再是 14px ——
+            //     `TABLE_TEXT` 排在组件 `cn()` 的最后(见 table-style.ts)。
+            //     ☞ 这一格**不写字号**仍然是对的做法,而且现在**写了也没有用**。
             render: (r) => `${r.content_pct.toFixed(2)}%`,
         },
         ...(showSource

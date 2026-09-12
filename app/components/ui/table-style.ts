@@ -36,7 +36,11 @@
 //     于是两边今天各自保留原样,一个字节都不碰。
 //   ✗ 不管分组抬头行 / tfoot 合计行 / 空态行的底色与字重 —— 取样页里【没有】
 //     这些东西(spec §6),对它们的正确答案是「今天没有标准」,不是一个我挑的值。
-//   ✗ 不管 `font-mono` / `tabular-nums` —— 那是列的意思,不是表的外观。
+//   ✗ 不管 `tabular-nums` —— 那是列的意思,不是表的外观。
+//     ★★【就地更正 —— FONT-3,2026-09-12】这一行原来还写着 `font-mono`。
+//       **`font-mono` 那一族已经不存在了**(范围内 829 个代码点去掉 828 个,
+//       留下 `app/settings/reference/PermissionReferenceTable.tsx:29` 那一个)。
+//     ★ 而【字号】从 FONT-3 起**由本文件管**,见下面 `TABLE_TEXT`。
 //
 // 【出处:每一个值都指向 docs/variant-c-spec.md §4.3 的一行(实测,不是推算)】
 // ════════════════════════════════════════════════════════════════════════════
@@ -54,6 +58,48 @@
  *     </tr></tbody>
  *   </table>
  */
+/**
+ * ★★ FONT-3(2026-09-12)· 表格文字的【那一个字号】—— 一处定义,三个文件都指它 ★★
+ *
+ * 【值】15px。出处 `docs/variant-c-spec.md` §4.3(variant C,MEASURED),
+ *   Tim 2026-09-12 Q5 裁定:**表体与表头都是这一个数**,而它不是取样页的多数派
+ *   (那一页 `<td>` 的多数派是 14px ×92 : 15px ×25 —— spec §2:多数派不是标准)。
+ *
+ * 【★ 它为什么必须排在 `cn()` 的【最后】—— 这是 Tim Q16 的那一半】
+ *   `cn()` = `twMerge(clsx(…))`,而 twMerge 让**同一族里【后面】那一个类赢**。
+ *   于是把这个 token 放在 `c.className` **后面**,一个列定义自己写的
+ *   `text-sm` / `text-xs` 就**再也设不了这一格的字号** —— 而那正是 item i:
+ *   Tim 看到的三处表头不齐,每一处的元凶都是**调用点在列上写了字号**。
+ *   ★ 实测(tailwind-merge 3.6.0,本仓库这一份):
+ *     `twMerge('text-xs','text-[15px]')` → `text-[15px]`;
+ *     `twMerge('text-[color:var(--brand-text)]','text-[15px]')` → **两条都留着**
+ *     (字色与字号不是同一族);
+ *     `twMerge('text-sm font-semibold','text-[15px] font-medium')` → **font-semibold 被吃掉**
+ *     —— ☞ **所以这里只搬【字号】那一个 token,`font-medium` 留在原位**:
+ *     这一刀不裁字重,一个调用点写的 `font-semibold` 照旧赢。
+ *
+ * 【★ 为什么不写成 `@layer base` 里的一条 `td { font-size: 15px }`】
+ *   Tailwind v4 的层序是 theme → base → components → utilities，
+ *   `app/globals.css` 自己那一段注释白纸黑字记着这是**刻意的**:base 压不过工具类。
+ *   ☞ 于是一条 base 规则会**输给每一个调用点的 `text-xs`** —— item i 一处都修不掉。
+ *
+ * 【★ 为什么不把 `c.className` 里的字号 token 剥掉】
+ *   那要在组件里再写一支 class 串解析器(仓库里的第二份),而且它会**悄悄吃掉**
+ *   一个调用点在源码里还看得见的类。排在最后只改一行,而且
+ *   **调用点那 294 个字号类一个都不删**(Tim Q15:删掉它们屏幕上什么都不变,
+ *   却把证据一起删了)。
+ *
+ * 【★ 那几个【不渲染文字】的结构格,为什么也拿这个 token(外加一个 `font-medium`)】
+ *   两个组件里有四个没有内容的 `<th>`(勾选框列 · 手机展开钮 · 动作列 · 空态),
+ *   它们此前渲染成 **UA 默认的 14 / 700 / 20** —— ★ **实测:那正是「改完之后表头
+ *   仍然有第二个值」的那几张表的【全部】原因**(desktop 5 张 · phone 82 张)。
+ *   ☞ 它们**一个字都不渲染**,所以这两个 token 在屏幕上是零像素;
+ *   加上它们,是因为**一条规则不该留四个例外** —— 下一个人不必再判一次
+ *   「这一格算不算表头」。⚠ `font-medium` 是这一刀**唯一**一处越出
+ *   「字族 · 字号 · 行高 · 数字等宽」四个值的改动,而它落在**没有字的格子**上。
+ */
+export const TABLE_TEXT = 'text-[15px]'
+
 export const tableC = {
     /**
      * 表根。`text-sm` 在这里【不是字号,是行高的来源】—— 这一条是量出来的,
@@ -90,20 +136,25 @@ export const tableC = {
      * = data-table.tsx:442 那一段(去掉字色与 `sm:whitespace-nowrap`)。
      * 对齐(`text-left` / `text-right`)由调用方加 —— 那是列的意思。
      */
-    headCell: 'px-3 py-2.5 align-middle text-[15px] font-medium',
+    headCell: `px-3 py-2.5 align-middle ${TABLE_TEXT} font-medium`,
 
     /**
      * 表体格:内边距 10/12 · 15px · 400 · 行高 21.43(继承自 `root` 的无单位倍数)。
      * spec §4.3「表体格字号 / 字重 / 行高」。
      *
-     * ⚠ **这一段与 `data-table.tsx:526` 差【一个 token】:组件那边没有 `text-[15px]`。**
-     *   于是组件的表体今天渲染 **14px**,而标准要 15px —— spec §4.3 自己也记着
-     *   「`<td>` 仍然是 14px(STYLE-2 只动了表头)」。
-     *   **本刀不改组件**(委托书 R5:不许碰 data-table.tsx 的渲染路径),
-     *   所以这是一处【写下来的、两边都量过的】差额,不是一处忘了的:
-     *   组件那边把 `px-3 py-2.5 align-middle` 换成 `tableC.cell`,这一条就合上了。
+     * ⚠⚠ **【就地更正 —— FONT-3,2026-09-12】这一段原来写着:**
+     *   ~~「这一段与 `data-table.tsx:526` 差【一个 token】:组件那边没有 `text-[15px]`,
+     *   于是组件的表体今天渲染 14px,而标准要 15px。本刀不改组件。」~~
+     *   ★★ **那个差额已经合上了,而合它的不是搬 class,是 `TABLE_TEXT`**:
+     *   `data-table.tsx` 与 `editable-table.tsx` 的**表头格与表体格**现在都把
+     *   `TABLE_TEXT` 排在 `cn()` 的最后(见上面 `TABLE_TEXT` 的抬头)。
+     *   ☞ **于是三个文件今天是同一个数,而且调用点【压不过它】。**
+     *   ★ 读数(FONT-3 改前 · desktop · 102 张表):`<td>` 14/400/20 ×3039 ·
+     *     15/400/21.43 ×620 · 12/400/16 ×231;`<th>` 15/500/21.43 ×409 ·
+     *     14/500/20 ×131 · 12/500/16 ×41 · 14/700/20 ×26。改后的读数见
+     *     `docs/handbacks/FONT-3.md`。
      */
-    cell: 'px-3 py-2.5 align-middle text-[15px]',
+    cell: `px-3 py-2.5 align-middle ${TABLE_TEXT}`,
 
     /**
      * 表体行分隔线 1px。spec §4.3「表体行分隔线」。

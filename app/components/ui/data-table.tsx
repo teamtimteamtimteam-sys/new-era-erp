@@ -62,7 +62,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { compareForSort } from '@/lib/sortCollation'
-import { tableC } from '@/app/components/ui/table-style'
+import { tableC, TABLE_TEXT } from '@/app/components/ui/table-style'
 import { CONTROL_INPUT, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 
 export type Column<T> = {
@@ -533,7 +533,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                             {/* ★ 勾选框列 —— 桌面与手机都画,它不走 priority 那套逻辑
                                 (见抬头:选择是这一页存在的理由,不是"读到才要问的东西")。 */}
                             {selection && (
-                                <th className="w-8 px-1 align-middle">
+                                <th className={`w-8 px-1 align-middle font-medium ${TABLE_TEXT}`}>
                                     {selection.onToggleAll && (
                                         <SelectAllCheckbox
                                             total={visible.length}
@@ -546,7 +546,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                             )}
                             {/* 手机上多一格放展开钮;桌面上它不存在。 */}
                             {/* scroll 模式下没有展开钮,所以也不留这一格。 */}
-                            {!phoneScroll && <th className="w-8 px-1 sm:hidden" />}
+                            {!phoneScroll && <th className={`w-8 px-1 font-medium sm:hidden ${TABLE_TEXT}`} />}
                             {shownCols.map((c) => {
                                 const activeClient = clientSort && sort.key === c.key && sort.dir !== 'none'
                                 const activeServer = serverSort?.active?.key === c.key
@@ -576,11 +576,17 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                             //     (Tailwind v4 的任意值字号会把 line-height 一起重置)。
                                             //     ☞ 于是表头四项(字号 15 / 字重 500 / 行高 21.43 / 内边距 10-12)
                                             //       现在【全部】合 §4.3。**推断错了,读数是对的。**
-                                            //   ⚠ 但【调用方写了字号的列不会动】:c.className 排在 cn() 最后,
-                                            //     所以 `className: 'font-mono text-sm'` 这类列的表头仍是 14px。
-                                            //     实测 28 条路由:102 个本组件的表头里 92 个到了 15px,
-                                            //     **10 个没动**,全部是这种列(/finance/fx · /hr/departments · /output)。
-                                            'px-3 py-2.5 align-middle text-[15px] font-medium text-[color:var(--brand-text)]',
+                                            //   ⚠ ~~但【调用方写了字号的列不会动】:c.className 排在 cn() 最后,~~
+                                            //     ~~所以 `className: 'font-mono text-sm'` 这类列的表头仍是 14px。~~
+                                            //   ★★【已被取代 —— FONT-3,2026-09-12,Tim Q5/Q16】★★
+                                            //     **那正是 item i**:Tim 走查看到的三处表头不齐,每一处的元凶
+                                            //     都是调用点在列上写的字号。☞ 于是字号 token 从这一段
+                                            //     **搬到了 cn() 的最后**(下面那一行 `TABLE_TEXT`),
+                                            //     **调用点从此压不过它**。实测改前 desktop 102 张表里
+                                            //     **57 张**表头不止一个字号;改后的读数见 docs/handbacks/FONT-3.md。
+                                            //   ★ 只搬【字号】:`font-medium` 留在这一段里,所以一个调用点写的
+                                            //     `font-semibold` 照旧赢 —— 这一刀不裁字重。
+                                            'px-3 py-2.5 align-middle font-medium text-[color:var(--brand-text)]',
                                             // 表头【桌面上不折行】—— 实测 1280px 下「库存状态」被折成
                                             // 每行一个字。手机上不加这一条:那里是 table-fixed,
                                             // 列宽是平分的,nowrap 会让表头顶出格子。
@@ -588,7 +594,11 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                             c.align === 'right' ? 'text-right' : 'text-left',
                                             // ★ 非 priority 的列在手机上不出现在表里 —— 它们在展开区。
                                             !isPhoneCol(c) && 'hidden sm:table-cell',
-                                            c.className
+                                            c.className,
+                                            // ★★ FONT-3(2026-09-12, Tim Q5/Q16):字号排在【最后】,
+                                            //   于是列定义自己写的 text-sm / text-xs 再也设不了这一格的
+                                            //   字号。理由与实测见 table-style.ts 的 TABLE_TEXT 抬头。
+                                            TABLE_TEXT,
                                         )}
                                     >
                                         {canSort && serverSort ? (
@@ -623,7 +633,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                     <tbody>
                         {visible.length === 0 && (
                             <tr>
-                                <td colSpan={shownCols.length + (phoneScroll ? 0 : 1) + (selection ? 1 : 0)} className="px-3 py-8 text-center text-[color:var(--brand-muted-text)]">
+                                <td colSpan={shownCols.length + (phoneScroll ? 0 : 1) + (selection ? 1 : 0)} className={`px-3 py-8 text-center text-[color:var(--brand-muted-text)] ${TABLE_TEXT}`}>
                                     {empty ?? t('table.empty')}
                                 </td>
                             </tr>
@@ -637,7 +647,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                 <React.Fragment key={k}>
                                     <tr className={cn('border-b border-[color:var(--brand-border)]', rowCls)}>
                                         {selection && (
-                                            <td className="px-1 align-middle">
+                                            <td className={`px-1 align-middle ${TABLE_TEXT}`}>
                                                 <input
                                                     type="checkbox"
                                                     checked={selection.selectedIds.has(k)}
@@ -647,7 +657,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                 />
                                             </td>
                                         )}
-                                        {!phoneScroll && <td className="px-1 align-middle sm:hidden">
+                                        {!phoneScroll && <td className={`px-1 align-middle sm:hidden ${TABLE_TEXT}`}>
                                             {restCols.length > 0 && (
                                                 <button
                                                     type="button"
@@ -667,7 +677,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                     'px-3 py-2.5 align-middle text-[color:var(--brand-text)] break-words',
                                                     c.align === 'right' ? 'text-right tabular-nums' : 'text-left',
                                                     !isPhoneCol(c) && 'hidden sm:table-cell',
-                                                    c.className
+                                                    c.className,
+                                                    // ★★ FONT-3:与表头同一条 —— 字号排在最后,调用点压不过它。
+                                                    TABLE_TEXT,
                                                 )}
                                             >
                                                 {c.render(row)}
@@ -716,7 +728,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                 手写的答案,照抄。合计跟着列一起消失,那张表在手机上
                                                 就不再是试算表。 */}
                                             {L.folded.length > 0 && (
-                                                <span className="mt-0.5 block text-[11px] font-normal text-[color:var(--brand-muted-text)]">
+                                                <span className="mt-0.5 block text-xs font-normal text-[color:var(--brand-muted-text)]">
                                                     {L.folded.map((c, i) => (
                                                         <React.Fragment key={c.key}>
                                                             {i > 0 && ' · '}
@@ -738,7 +750,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
                                                     c.align === 'right' ? 'text-right tabular-nums' : 'text-left',
                                                     // 与表体同一条规矩:非 priority 的列在手机上不出现在表里。
                                                     !isPhoneCol(c) && 'hidden sm:table-cell',
-                                                    c.className
+                                                    c.className,
+                                                    // ★★ FONT-3:与表体同一条。
+                                                    TABLE_TEXT,
                                                 )}
                                             >
                                                 {L.has(c) ? fr.cells[c.key] : null}

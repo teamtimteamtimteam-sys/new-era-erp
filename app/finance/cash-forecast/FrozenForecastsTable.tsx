@@ -20,7 +20,7 @@ export default function FrozenForecastsTable({ rows }: { rows: FrozenRow[] }) {
                 <>
                     {r.code}
                     {r.superseded_at && (
-                        <span className="ml-2 rounded bg-[color:var(--brand-muted)] px-1.5 py-0.5 text-[11px] text-[color:var(--brand-muted-text)]">
+                        <span className="ml-2 rounded bg-[color:var(--brand-muted)] px-1.5 py-0.5 text-xs text-[color:var(--brand-muted-text)]">
                             {t('cashForecast.superseded')}
                         </span>
                     )}

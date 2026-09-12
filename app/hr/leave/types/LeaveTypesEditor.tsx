@@ -59,7 +59,7 @@ export default function LeaveTypesEditor({ rows }: { rows: LeaveTypeRow[] }) {
             render: (r) => (
                 <>
                     <div>{locale === 'zh' ? r.name_zh : r.name_en}</div>
-                    {r.notes && <div className="mt-0.5 text-[10px] text-gray-500">{r.notes}</div>}
+                    {r.notes && <div className="mt-0.5 text-xs text-gray-500">{r.notes}</div>}
                 </>
             ),
             edit: (d, set) => (

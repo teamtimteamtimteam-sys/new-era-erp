@@ -139,7 +139,7 @@ function TaskCard({
             <Link href={`/tools/tasks/${task.id}`} className="block">
             {/* 标题 + 类型 */}
             <div className="flex items-start justify-between gap-2">
-                <div className="text-sm font-medium leading-snug text-[color:var(--brand-text)]">
+                <div className="text-sm font-medium text-[color:var(--brand-text)]">
                     {task.title}
                 </div>
                 <TaskTypeBadge type={task.task_type} />

@@ -100,7 +100,7 @@ export default function ChasePanel({
                 <>
                     {c.code}
                     {c.superseded_at && (
-                        <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] bg-gray-200 text-gray-700">
+                        <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-700">
                             {t('chases.superseded')}
                         </span>
                     )}
@@ -119,7 +119,7 @@ export default function ChasePanel({
                 <>
                     {c.summary}
                     {c.documents.length > 0 && (
-                        <span className="block text-[11px] text-gray-500 mt-1">
+                        <span className="block text-xs text-gray-500 mt-1">
                             {c.documents.map((d) =>
                                 `${t('chases.subject_' + d.subject_type)} ${d.subject_code ?? ''}`.trim()
                             ).join(' · ')}

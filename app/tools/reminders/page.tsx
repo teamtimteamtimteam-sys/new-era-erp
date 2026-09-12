@@ -435,7 +435,7 @@ export default async function RemindersPage() {
                     <p className="text-xs mb-2" style={{ color: 'var(--brand-muted-text)' }}>
                         {t('reminders.quietHint')}
                     </p>
-                    <p className="text-xs leading-6" style={{ color: 'var(--brand-muted-text)' }}>
+                    <p className="text-xs" style={{ color: 'var(--brand-muted-text)' }}>
                         {quiet.map((r, i) => (
                             <span key={r.itemType}>
                                 {i > 0 && <span aria-hidden> · </span>}

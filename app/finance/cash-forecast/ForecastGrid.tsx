@@ -90,7 +90,7 @@ export default function ForecastGrid({
                 <>
                     <span className={CONF_CLASS[r.confidence]}>{t('cashForecast.conf_' + r.confidence)}</span>
                     {r.owner_name && (
-                        <span className="block text-[11px] text-[color:var(--brand-muted-text)]">
+                        <span className="block text-xs text-[color:var(--brand-muted-text)]">
                             {t('cashForecast.owner')}: {r.owner_name}
                         </span>
                     )}
@@ -109,7 +109,7 @@ export default function ForecastGrid({
             render: (r) => (
                 <>
                     {t('cashForecast.source_' + r.source)} × {r.row_count}
-                    <span className="block text-[11px] text-amber-900">
+                    <span className="block text-xs text-amber-900">
                         {t('cashForecast.undated_' + r.why)}
                         {r.owner_name && ` · ${t('cashForecast.owner')}: ${r.owner_name}`}
                     </span>

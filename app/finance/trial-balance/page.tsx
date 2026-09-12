@@ -233,7 +233,7 @@ export default async function FinancePage({
                             那两列在 390px 上不画,而"借贷相不相等"正是试算表的用处。 */}
                         <td colSpan={2} className={`${tableC.cell} sm:hidden`}>
                             {t('finance.totalsLabel')}
-                            <span className="block mt-0.5 text-[11px] font-normal text-gray-600">
+                            <span className="block mt-0.5 text-xs font-normal text-gray-600">
                                 {t('finance.colDebits')} {formatAmount(totalDebits, baseCurrency)}
                                 {' · '}
                                 {t('finance.colCredits')} {formatAmount(totalCredits, baseCurrency)}

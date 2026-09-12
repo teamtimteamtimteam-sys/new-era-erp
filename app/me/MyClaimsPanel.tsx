@@ -56,7 +56,7 @@ export default function MyClaimsPanel({
                     <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('claims.claimed')}</div>
                         <div className="text-sm">{balance.claimed_sgd} SGD</div></div>
                     <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('claims.remaining')}</div>
-                        <div className="text-lg font-medium">{balance.remaining_sgd} SGD</div></div>
+                        <div className="text-lg font-medium leading-6">{balance.remaining_sgd} SGD</div></div>
                 </div>
             )}
 

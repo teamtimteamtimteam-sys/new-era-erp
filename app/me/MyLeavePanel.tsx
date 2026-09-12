@@ -108,7 +108,7 @@ export default function MyLeavePanel({
                         <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.expired')}</div>
                             <div className="text-sm">{balance.expired}</div></div>
                         <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.available')}</div>
-                            <div className="text-lg font-medium">{balance.available}</div></div>
+                            <div className="text-lg font-medium leading-6">{balance.available}</div></div>
                     </div>
                     {/* 【"我的余额为什么是 19.5"就靠这张表回答】 */}
                     <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('me.balanceExplainer')}</p>

@@ -46,6 +46,9 @@ export function AssayMetalsTable({ rows }: { rows: readonly AssayMetalRow[] }) {
             priority: true,
             // ⚠ 转换前是 `font-mono text-sm`;text-sm 没有搬过来(列定义不许钉字号),
             //   而组件表根就是 text-sm,不写字号继承到的是同一个 14px。
+            //   ★★ FONT-3(2026-09-12):那个继承来的数今天是 **15px**,不再是 14px ——
+            //     `TABLE_TEXT` 排在组件 `cn()` 的最后(见 table-style.ts)。
+            //     ☞ 这一格**不写字号**仍然是对的做法,而且现在**写了也没有用**。
             render: (r) => r.contentPct,
         },
     ]

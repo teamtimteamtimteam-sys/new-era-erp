@@ -34,7 +34,7 @@ export default function RolesTable({ rows, empty }: { rows: RoleRow[]; empty: Re
                 <>
                     {r.code}
                     {r.isSystem && (
-                        <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] text-amber-800">
+                        <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">
                             {t('permissions.systemRole')}
                         </span>
                     )}

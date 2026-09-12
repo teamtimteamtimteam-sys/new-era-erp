@@ -36,11 +36,11 @@ export default function ReleasePrepaymentPanel({
             <div className="grid grid-cols-2 gap-4 mb-3 text-sm">
                 <div>
                     <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expense.release.openOnThisInvoice')}</p>
-                    <p className="text-lg">{openCcy.toFixed(2)} {currency}</p>
+                    <p className="text-lg font-medium leading-6">{openCcy.toFixed(2)} {currency}</p>
                 </div>
                 <div>
                     <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expense.release.depositRemaining')}</p>
-                    <p className="text-lg">{remainingBase.toFixed(2)} {baseCurrency}</p>
+                    <p className="text-lg font-medium leading-6">{remainingBase.toFixed(2)} {baseCurrency}</p>
                 </div>
             </div>
             {/* 【两个数不同币种,而这要说出来】否则人会以为可以直接相减。 */}

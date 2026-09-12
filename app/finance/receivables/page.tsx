@@ -304,7 +304,7 @@ export default async function ReceivablesPage({
                                     与明细行同一条规矩:拿掉的是列,不是事实。 */}
                                 <td className={`${tableC.cell} sm:hidden`}>
                                     {g.name} — {t('finance.totalsLabel')}
-                                    <span className="block mt-0.5 text-[11px] text-gray-600">
+                                    <span className="block mt-0.5 text-xs text-gray-600">
                                         {t('finance.colAmount', { ccy: baseCurrency })} {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                         {' · '}
                                         {t('finance.colSettled')} {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/已贷记/未结四列同为本位币')}

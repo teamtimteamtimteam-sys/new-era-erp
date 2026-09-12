@@ -88,7 +88,7 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
                 ].map(([key, val]) => (
                     <div key={key as string} className="border border-gray-300 rounded p-3">
                         <div className="text-xs text-[color:var(--brand-muted-text)]">{t(key as string)}</div>
-                        <div className="text-lg">
+                        <div className="text-lg font-medium leading-6">
                             {val === undefined || val === null
                                 // 【具名的缺席,不是一个 0】读不到与等于零是两件事。
                                 ? <span className="text-[color:var(--brand-muted-text)] text-sm">—</span>

@@ -95,14 +95,14 @@ export default function MyExpenseClaimsPanel({
             render: (r) => (
                 <>
                     {r.description}
-                    <span className="block text-[11px] text-gray-500">
+                    <span className="block text-xs text-gray-500">
                         {r.has_receipt ? t('expenseClaims.hasReceipt')
                             : r.no_receipt_reason
                                 ? `${t('expenseClaims.noReceipt')} — ${r.no_receipt_reason}`
                                 : t('expenseClaims.noReceipt')}
                     </span>
                     {r.decision_notes && (
-                        <span className="block text-[11px] text-gray-600">{r.decision_notes}</span>
+                        <span className="block text-xs text-gray-600">{r.decision_notes}</span>
                     )}
                 </>
             ),
@@ -116,13 +116,13 @@ export default function MyExpenseClaimsPanel({
                 <>
                     {t('expenseClaims.status_' + r.status)}
                     {r.expense_reversed && (
-                        <span className="block text-[11px] text-red-700">{t('expenseClaims.reversed')}</span>
+                        <span className="block text-xs text-red-700">{t('expenseClaims.reversed')}</span>
                     )}
                     {!r.expense_reversed && r.is_owing && (
-                        <span className="block text-[11px] text-amber-800">{t('expenseClaims.owing')}</span>
+                        <span className="block text-xs text-amber-800">{t('expenseClaims.owing')}</span>
                     )}
                     {!r.expense_reversed && r.is_paid && (
-                        <span className="block text-[11px] text-green-700">{t('expenseClaims.paid')}</span>
+                        <span className="block text-xs text-green-700">{t('expenseClaims.paid')}</span>
                     )}
                 </>
             ),

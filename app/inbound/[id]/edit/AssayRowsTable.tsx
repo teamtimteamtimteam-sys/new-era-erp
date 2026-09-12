@@ -53,6 +53,8 @@ export default function AssayRowsTable({
             // ★ 身份 —— 手机上留下。
             priority: true,
             // ⚠ 转换前是 `font-mono`(没有钉字号);原样搬过来。
+            //   ★★ FONT-3(2026-09-12):`font-mono` 已经拿掉了(范围内 829 个代码点
+            //     去掉 828 个),这一格现在是产品字体、15px。
             render: (r) => (
                 <Link
                     href={`/inbound/${batchId}/assays/${r.id}`}

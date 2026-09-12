@@ -193,7 +193,7 @@ export default async function PayablesPage({
                                         {ri === 0 ? (
                                             <>
                                                 {g.name}
-                                                <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] bg-gray-200 text-gray-700">
+                                                <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-700">
                                                     {t('finance.counterpartyKind.' + g.kind)}
                                                 </span>
                                             </>
@@ -246,7 +246,7 @@ export default async function PayablesPage({
                                             <div>
                                                 <span className="text-gray-500">{t('finance.colCounterparty')}: </span>
                                                 {g.name}
-                                                <span className="ml-1 px-1.5 py-0.5 rounded text-[11px] bg-gray-200 text-gray-700">
+                                                <span className="ml-1 px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-700">
                                                     {t('finance.counterpartyKind.' + g.kind)}
                                                 </span>
                                             </div>
@@ -312,7 +312,7 @@ export default async function PayablesPage({
                                 <td className={`${tableC.cell} sm:hidden`}>
                                     {g.name} ({t('finance.counterpartyKind.' + g.kind)}) — {t('finance.totalsLabel')}
                                     {/* 手机档「金额 / 已结」两列不画,合计叠在这里 —— 与明细行同一条规矩。 */}
-                                    <span className="block mt-0.5 text-[11px] text-gray-600">
+                                    <span className="block mt-0.5 text-xs text-gray-600">
                                         {t('finance.colAmount', { ccy: baseCurrency })} {formatMoneyBare(Math.round(g.amount * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}
                                         {' · '}
                                         {t('finance.colSettled')} {formatMoneyBare(Math.round(g.settled * 100) / 100, '同表列头 金额 ({ccy}) —— 金额/已结/未结三列同为本位币')}

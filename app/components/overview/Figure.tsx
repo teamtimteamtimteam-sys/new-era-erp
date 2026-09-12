@@ -122,7 +122,7 @@ export default async function Figure({
 
             {/* 【出处永远画,受限与答不上来也画】—— 一条说不出自己出处的空陈述,
                 与一条说不出自己出处的满陈述一样不可信。ChartCard 同形。 */}
-            <p className="text-xs leading-5" style={{ color: 'var(--brand-muted-text)' }}>
+            <p className="text-xs" style={{ color: 'var(--brand-muted-text)' }}>
                 {t('overview.basis.asOf')}:{basis.asOf}
                 <br />
                 {t('overview.basis.source')}:{basis.source}

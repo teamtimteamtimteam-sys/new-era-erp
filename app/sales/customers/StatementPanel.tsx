@@ -95,7 +95,7 @@ export default function StatementPanel({
                     <Link href={`/finance/statements/${x.id}/pdf`}
                         className="hover:underline app-link">{x.code}</Link>
                     {x.superseded_at && (
-                        <span className="ml-2 px-1.5 py-0.5 rounded text-[11px] bg-gray-200 text-gray-700">
+                        <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-gray-200 text-gray-700">
                             {t('statements.superseded')}
                         </span>
                     )}

@@ -68,16 +68,16 @@ export default function ClaimDecisionPanel({
                 <>
                     {t('expenseClaims.status_' + c.status)}
                     {c.expense_reversed && (
-                        <span className="block text-[11px] text-red-700">{t('expenseClaims.reversed')}</span>
+                        <span className="block text-xs text-red-700">{t('expenseClaims.reversed')}</span>
                     )}
                     {!c.expense_reversed && c.is_owing && (
-                        <span className="block text-[11px] text-amber-800">{t('expenseClaims.owingOther')}</span>
+                        <span className="block text-xs text-amber-800">{t('expenseClaims.owingOther')}</span>
                     )}
                     {!c.expense_reversed && c.is_paid && (
-                        <span className="block text-[11px] text-green-700">{t('expenseClaims.paid')}</span>
+                        <span className="block text-xs text-green-700">{t('expenseClaims.paid')}</span>
                     )}
                     {c.decision_notes && (
-                        <span className="block text-[11px] text-gray-600">{c.decision_notes}</span>
+                        <span className="block text-xs text-gray-600">{c.decision_notes}</span>
                     )}
                 </>
             ),

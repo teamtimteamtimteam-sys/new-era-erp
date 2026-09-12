@@ -487,7 +487,7 @@ function Stat({ label, value }: { label: string; value: string }) {
     return (
         <div className="border border-gray-200 rounded-lg p-3">
             <p className="text-xs text-[color:var(--brand-muted-text)]">{label}</p>
-            <p className="text-lg mt-1">{value}</p>
+            <p className="text-lg font-medium leading-6 mt-1">{value}</p>
         </div>
     )
 }

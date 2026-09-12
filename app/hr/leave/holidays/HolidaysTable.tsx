@@ -41,7 +41,7 @@ export default function HolidaysTable({
                     {/* ★ 补假要看得出来:它与被补的那天共用 holiday_key,
                         所以只看键分不出哪一行是补的 */}
                     {r.is_in_lieu && (
-                        <span className="ml-1 text-[10px] text-[color:var(--brand-muted-text)]">
+                        <span className="ml-1 text-xs text-[color:var(--brand-muted-text)]">
                             {t('leave.inLieuTag')}
                         </span>
                     )}
