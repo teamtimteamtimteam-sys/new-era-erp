@@ -569,7 +569,29 @@ round 1 数「右对齐、还没有 `tabular-nums` 的站点」时,把每个站�
 
 ---
 
-## 13 · 给测试的人的一句话(`v1.4.19`)
+## 13 · 部署与残留
+
+> ### ★ 本节是 2026-09-12 收尾时【补】上去的,不是收工那一刻写的
+> 规矩写着:**一刀的终端活到推送为止,部署由 Tim 自己看**(`AGENTS.md`
+> 「★★★ 一刀的终端活【到推送为止】」,Tim 2026-09-12 立的常设规矩)。
+> ☞ 所以这一格**按设计就是后填的** —— 它不是一次改写,而且它的读数
+> **不是这台机器查出来的**。
+
+| | |
+|---|---|
+| **提交** | ★ **`2b61fe4f3d068006cccd198185e93ad71c6ca3d8`**(字族 + 数字等宽)· ★ **`1195f91d434e2d324af00892672eb523920b6921`**(字号 + 行高 + 文档 + 本报告) |
+| **推送** | ★ **是** —— 推送之后三方完整 40 字符 SHA 逐字相同:`HEAD` · `origin/main` · `git ls-remote origin refs/heads/main` 全部是 `1195f91d434e2d324af00892672eb523920b6921` |
+| ★★ **部署** | ★★ **Deployment: SUCCESS — confirmed by Tim from the Vercel dashboard, 2026-09-12.** |
+| ★★ **这个读数是从哪儿来的** | ★★ **Tim · 2026-09-12 · 他自己在 Vercel 面板上看到的,并转述给我。**<br>⚠⚠ ★ **它【不是】本机发出的一次部署查询。** 本刀在推送之后**没有等部署 · 没有查 `state` · 没有把 deployment id 绑到 SHA · 没有请求生产别名 · 没有复现任何构建**。<br>☞ **一份转述和一次测量在报告里长得很像,而它们不是一回事** —— 所以这一格写着【转述】,而上面「推送」那一格写着的是**本机自己量到的**三方 SHA。两者在同一张表里,标记不同(与 `docs/handbacks/BUGFIX-1b.md` §14 逐字同一个办法)。 |
+| **部署时刻** | ★ **not recorded — not needed without a migration**<br>☞ 早几刀那一栏记着一个时刻,是因为它是**破窗的终点**;这一刀没有破窗(见下一行),于是那个时刻**不参与任何计算**。★ **本刀没有向 Tim 要过这个时刻,也没有替它编一个。** |
+| **破窗** | ★ **没有破窗** —— 这一刀**一次迁移都没有**,`db/` 下一个字节都没有改,所以镜像与线上之间从来没有出现过时间差,**也就没有任何时长可以从中推出来**。(`db/gate.py` 仍然在推送之前跑绿了,四条判词见 §8。) |
+| **一次性账号** | ★ 量具建过的临时管理员会话由 `scripts/ephemeral.mjs` 的清理计划自己收掉(每一趟 `probeF3` / `survey-controls` 收工时 `runPlan()`)。**本刀没有手工建过账号。** |
+| **临时行** | ★ **本刀没有写过任何业务行。** 冒烟报出来的 6 条 `ZZ-SMOKE-*` 滞留行是**在册的旧账**(`docs/known-issues.md` 的 `SMOKE-SCRATCH-ROWS-STALE`),**按它自己的规矩只报告不清扫**。 |
+| **仓库里留下的读数** | `.survey-out/font3-before/` · `font3-after-c1/` · `font3-after-c2/` · `font3-after-c3/` · 三个 `font3-repair-*/` —— ★ 它们**在 `.gitignore` 里**(`.survey-out/`),**一个都没有进提交**。 |
+
+---
+
+## 14 · 给测试的人的一句话(`v1.4.19`)
 
 > **The font unification is now complete — every code, amount, date and table header that used to be
 > set in a typewriter font is now the product font, so please look hard at the numbers and codes on
