@@ -1,3 +1,12 @@
+---
+# ★ 手册【自己的】版本号,不是测试者看到的那个系统版本(Tim 的裁定,SEARCH-1 S8)。
+#   两个读者,一份真源:scripts/build-manual.py 把它们印在封面上,
+#   scripts/gen-manual-index.mjs 把它们带进搜索索引,于是每一条手册结果
+#   都说得出它来自哪一版。改了这两行,记得重跑 gen-manual-index.mjs --write。
+version: v1.0.1
+issued: 2026-09-13
+---
+
 # Evoltrya OS — Operations Manual
 
 ---

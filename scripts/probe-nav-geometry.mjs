@@ -29,8 +29,6 @@
 //                   `getComputedStyle()`,以及 `[data-app-chrome]` 的属性值。
 //   我声称管的是   :① 顶栏自己那个盒子改前改后是什么;
 //                   ② 根布局那个「要不要外壳」的判断,**软导航之后有没有重新求值**。
-//                   ★ 搜索面板那几格【不在这一版里】—— 面板是下一个提交的东西,
-//                     而一条【描述还不存在的东西】的判据,读起来和一条失效的判据一样。
 //   两者不同之处   :★ **我只量顶栏这一条 `<header>`,不量它底下每一个子元素。**
 //                   顶栏里某一格长宽了 1px 而整条 header 高度没变,我看不见 ——
 //                   那一层归 `survey-controls.mjs --mode=drift`(它逐元素读计算值)。
@@ -291,11 +289,53 @@ async function main() {
             ? '★ 读不到 [data-app-chrome] —— 那个判断【没有跟着人走】,它停在会话第一次硬导航那一刻(改前的读数)'
             : `软导航之后根布局判的是 ${JSON.stringify(s_soft.chromePath)},应为 "/me" —— ★ 判断跟着人走了`)
 
-    // ★【下界 6 是【数出来的】,不是挑的】★ 这一版有 6 次 read():
-    //   4 次几何(两视口 × 两路由)+ 2 次 S4(硬进 / 软到)。
-    //   少一次 = 有一段没跑到,而那时上面每一格都可能是绿的 ——
-    //   一次没跑到的测量与一次通过的测量,在退出码上是同一个字节。
-    assertPopulation('probe-nav-geometry', '量到的读数', readings.length, 6)
+    // ── 面板:两个入口是【同一个组件】,而它按三件活定形(S1/S2)────────────
+    await setWidth(1280)
+    await hardGoto('/me')
+    const opened = await evalJs(`(() => {
+        const b = document.querySelector('[data-nav="search-trigger"]')
+        if (!b) return { ok: false, why: '找不到搜索触发钮(改前它是一个 <summary>,没有这个记号)' }
+        b.click()
+        return { ok: true }
+    })()`)
+    await sleep(500)
+    const m_open = await read('1280 面板打开')
+    probe('N7.panel-has-three-slots',
+        opened.ok && m_open.panelOpen &&
+        JSON.stringify(m_open.slots) === JSON.stringify(['records', 'pages', 'manual']),
+        opened.ok
+            ? `面板打开 ${m_open.panelOpen},三节 = ${JSON.stringify(m_open.slots)} —— ★ job ① 那一节【今天就在】,SEARCH-2 填它`
+            : opened.why)
+
+    // ── S3:390px 上顶栏那一格不画,而快捷键跟着它一起不存在 ──────────────────
+    await setWidth(390)
+    await hardGoto('/me')
+    const m390 = await read('390 hard /me (S3)')
+    probe('N8.phone-nav-entry-absent',
+        !!m390.shell && m390.shell.display === 'none',
+        `390px 顶栏搜索格 display=${m390.shell ? m390.shell.display : '(不在 DOM 里)'} —— ` +
+        `★ Tim 裁定接受(S3):手机上进搜索只有首页那一条路`)
+    // 快捷键:按 Cmd-K,面板【不许】开 —— 判据是触发钮此刻看不看得见,一个源。
+    await evalJs(`document.dispatchEvent(new KeyboardEvent('keydown', {key:'k', metaKey:true, bubbles:true}))`)
+    await evalJs(`window.dispatchEvent(new KeyboardEvent('keydown', {key:'k', metaKey:true, bubbles:true}))`)
+    await sleep(300)
+    const m390b = await read('390 ⌘K 之后')
+    probe('N9.phone-shortcut-inert', m390b.panelOpen === false,
+        `390px 上 ⌘K 之后面板 open=${m390b.panelOpen} —— 应当是 false(触发钮 display:none,判据问的就是它)`)
+
+    // ── 首页那一个入口在 390px 上【照画】—— S3 的另一半 ──────────────────────
+    await hardGoto('/')
+    const m390home = await read('390 hard / (S3)')
+    probe('N10.phone-home-entry-present',
+        !!m390home.trigger && m390home.trigger.w > 0 && m390home.trigger.h > 0,
+        `390px 首页那个入口 ${fmtBox(m390home.trigger)} —— ★ 它没有宽度隐藏,手机上是那唯一的一条路`)
+
+    // ★【下界 10 是【数出来的】,不是挑的】★ 这支探针有 10 次 read():
+    //   4 次几何(两视口 × 两路由)+ 2 次 S4(硬进 / 软到)+ 1 次面板 + 3 次手机那三格。
+    //   少一次 = 有一段没跑到(early return / 抛异常之后的 finally),
+    //   而那时上面每一格都可能是绿的 —— 一次没跑到的测量与一次通过的测量,
+    //   在退出码上是同一个字节。**这条断言就是把那两件事分开的那一条。**
+    assertPopulation('probe-nav-geometry', '量到的读数', readings.length, 10)
 }
 
 let cleanedUp = false

@@ -56,20 +56,41 @@
 //       —— 见 app/home.module.css 的 .pulse,那里写着它为什么过得了
 //          BASE-1 的 R1(动效只反馈状态,永不装饰)。
 //
-// ★【它【不许】假装能用 —— 这是 Tim 的明令,也是本页唯一的技术判断】★
-//   实现是 <details>/<summary>,不是 <input>:
-//     · 一个接了 input 的框会【吞掉打进去的字】。打了字、按了回车、什么都没
-//       发生 —— 那是这套系统反复在修的那一类谎的完整形状;
-//     · <summary> 点下去就展开那句实话,**纯 HTML**:不需要 'use client'、
-//       不需要 state、键盘天然可达、读屏读成一个可展开的按钮;
-//     · 右边还挂一个「尚未启用」的标记,**让实话在点之前也在屏幕上** ——
-//       没有人应该先打完一句话才发现它不通。
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【SEARCH-1(2026-09-13):上面那句「本刀只做形状」到此为止 —— 它能搜了】★★
+// ════════════════════════════════════════════════════════════════════════════
+//
+// ★【CONV-6 写下的那条推理【没有被推翻】,是它的前提没了 —— 照直记】★
+//   它当时写的是:**它不许假装能用**,实现因此是 `<details>/<summary>` 而不是
+//   `<input>`,理由逐字是「一个接了 input 的框会吞掉打进去的字;打了字、按了
+//   回车、什么都没发生 —— 那是这套系统反复在修的那一类谎的完整形状」,
+//   而右边那个「尚未启用」的标记是为了**让实话在点之前也在屏幕上**。
+//   ☞ **那三句在它那个年代全都是对的。** SEARCH-1 之后它们一句都不成立了:
+//     这个框打得开一个真的面板,面板真的找得到页面、动作与手册里的段落。
+//   ☞ 所以标记删了,`home.searchNotYetBadge` / `home.searchNotYet` 两个键
+//     也从两个文案文件里删了 —— **留着一句写着「搜索还没有建」的文案,
+//     下一个读到它的人会据此断定这件事还没做。**
+//
+// 【今天这一格是什么】一颗 `<button>`,点开 `app/components/search/SearchEntry.tsx`
+//   那个面板。**顶栏那一格点开的是同一个组件**(Tim 的 S1:一个面板,两个入口)——
+//   而两个入口从来不会同时在屏幕上,因为顶栏那一格在首页上不画。
+//
+// ★【尺寸与 class 一个字没换】★ 触发钮仍然是 `styles.box`,放大镜仍然是
+//   `styles.glyph`,提示语仍然是 `styles.prompt`。**复用的是机制与措辞,
+//   不是尺寸** —— 那句话逐字来自 SearchShell 原来的抬头,而 SEARCH-1 把它
+//   兑现成了一个真的共享组件:两套尺寸各留在各自的入口上,面板不认识它们。
 //
 // 【手机(390px)的处理,照直说】整页单列居中,框宽 = 视口 − 2rem 的边距;
-//   框内三样东西一行放得下(放大镜 1.15rem + 提示语 + 标记),
-//   ★ 收缩时【截断的是提示语,不是那个标记】★ —— 被挤掉的正好会是
-//   "它还不能用"那句话,而那是这个框最要紧的一句。规则写在 .prompt 上。
+//   框内两样东西一行放得下(放大镜 1.15rem + 提示语)。
+//   ★ 那条「收缩时截断的是提示语」的规则仍然写在 `.prompt` 上,而它今天护的
+//     不再是「它还不能用」那句话 —— 标记没了,提示语是那一格唯一的字。
 //   <420px 另有一档:内边距与字号各降一级,那一点的位置抬高,避免它压到框上。
+//
+// ★★【S3:手机上这一格【照画】,而它是手机上唯一的入口】★★
+//   首页这个框**没有宽度隐藏**;顶栏那一格有(`hidden md:block`),
+//   而 Tim 明说接受(S3)。☞ 于是一部手机上进搜索的路恰好有一条:这一页。
+//   判据钉在 `scripts/probe-nav-geometry.mjs` 的 N8/N9/N10 三格上。
+//   **下一次走查读到这里:这是一处有名字的限制,不是一处缺陷。**
 // ════════════════════════════════════════════════════════════════════════════
 import { getTranslations } from '@/lib/i18n/server'
 import { getMyPermissions } from '@/lib/permissions'
@@ -77,6 +98,7 @@ import { getTodaysDoodle } from '@/lib/festivalDoodle'
 import { getHomeGreeting } from '@/lib/homeGreeting'
 import HomeMark from '@/app/components/home/HomeMark'
 import RememberGreeting from '@/app/components/home/RememberGreeting'
+import SearchEntry from '@/app/components/search/SearchEntry'
 import styles from './home.module.css'
 
 export default async function Home() {
@@ -123,31 +145,30 @@ export default async function Home() {
                 </div>
             )}
 
-            {/* ── 搜索外壳:形状是本刀的,内容与行为是 A 刀的 ─────────────── */}
-            <details className={styles.shell} data-home-search="shell">
-                <summary className={styles.box}>
-                    <svg
-                        className={styles.glyph}
-                        viewBox="0 0 20 20"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.6"
-                        aria-hidden="true"
-                    >
-                        <circle cx="8.75" cy="8.75" r="5.25" />
-                        <path d="M12.6 12.6 L16.5 16.5" strokeLinecap="round" />
-                    </svg>
-                    <span className={styles.prompt}>{t('home.searchPrompt')}</span>
-                    {/* 【点之前就说一次】见文件抬头。 */}
-                    <span className={styles.badge} data-home-search="badge">
-                        {t('home.searchNotYetBadge')}
-                    </span>
-                </summary>
-                {/* 【点之后说完整的一句】—— 说的是"还没建",不是"出错了"。 */}
-                <p className={styles.note} data-home-search="note">
-                    {t('home.searchNotYet')}
-                </p>
-            </details>
+            {/* ══ 搜索:★ SEARCH-1 之后它真的能搜,而形状一个像素都没动 ══════
+                【两个入口,一个面板】(Tim 的 S1)。这里画的与顶栏那一格
+                画的是【同一个组件】(app/components/search/SearchEntry.tsx)——
+                Tim 的理由:这个仓库反复为「同一件事建两遍」付账,而两个结果面
+                的措辞会漂。
+
+                ★【class 一个字没换】★ 触发钮仍然戴着 `styles.box`、放大镜仍然是
+                `styles.glyph`、提示语仍然是 `styles.prompt`(那条「收缩时截断的是
+                提示语,不是标记」的规则就写在它上面)。换掉的只有两样:
+                  · `<details>/<summary>` → `<div>/<button>`,因为这一格现在
+                    真的打得开一个面板,而不是展开一句实话;
+                  · **「还没建」那个标记没了** —— 它现在会是一句假话。
+                    `home.searchNotYetBadge` / `home.searchNotYet` 两个键
+                    连同它一起从两个文案文件里删掉了(理由写在 SearchShell.tsx)。
+                ☞ `home.searchPrompt` 留着,而且仍然是两个入口共用的那一句。 */}
+            <SearchEntry
+                variant="home"
+                // ★ 记号与改前【逐字相同】:首页那一格一直戴着它。
+                markers={{ 'data-home-search': 'shell' }}
+                wrapperClassName={styles.shell}
+                triggerClassName={styles.box}
+                glyphClassName={styles.glyph}
+                promptClassName={styles.prompt}
+            />
 
             {/* ★【UI-1b ①:问候语,搜索框【下面】】★
                 Tim 写下的目的是五个字:**给首页增加一些温度。**

@@ -5,7 +5,7 @@
 // 【NAV-REG-1 删掉过一个 moduleForPath,理由是它一个调用者都没有】。本刀重新需要
 // 这件事,于是重新造 —— **并且这一次它有三个调用者**(顶栏活动态、面包屑、dock 的
 // 归属)。那条规矩没变:有读者的东西才留下。
-import { FUNCTIONS, MODULES, type FunctionEntry } from '@/lib/modules'
+import { MENU_FUNCTIONS, MODULES, type FunctionEntry } from '@/lib/modules'
 import { DEEP_ROUTES } from '@/lib/deepRoutes.generated'
 
 const segsOf = (p: string): string[] => p.split('/').filter(Boolean)
@@ -34,11 +34,23 @@ export function deepRoutePattern(pathname: string): string | null {
     return DEEP_ROUTES.find((p) => matchesPattern(pathname, p)) ?? null
 }
 
-/** 这条路径落在哪一条二级条目下(最长前缀优先)。 */
+/**
+ * 这条路径落在哪一条二级条目下(最长前缀优先)。
+ *
+ * ★★【SEARCH-1 · S5:它读 MENU_FUNCTIONS,不读 FUNCTIONS —— 而这是承重的】★★
+ *   面包屑的第二截【就是】这支函数的返回值。注册表扩到 101 条之后,那 18 条
+ *   新条目全部比它们的父更长,于是照 FUNCTIONS 算,最长前缀会挑到它们身上:
+ *     /hr/leave/balances   今天:人力 › 假期 › 余额     改成子条目后:人力 › 假期余额
+ *   实测:29 条深路由里 **25 条**落在这 18 个之下 —— 也就是说读 FUNCTIONS
+ *   会把 25 条路由的面包屑一次改掉,而那不是任何人要的东西
+ *   (它还会丢掉「假期」那一截的链接)。
+ *   ☞ 读 MENU_FUNCTIONS,`MENU_FUNCTIONS` 与这一刀之前的 `FUNCTIONS` 逐字相同,
+ *     **于是面包屑按构造一截都没有变。**
+ */
 export function entryForPath(pathname: string): FunctionEntry | null {
     const segs = segsOf(pathname)
     let best: FunctionEntry | null = null
-    for (const f of FUNCTIONS) {
+    for (const f of MENU_FUNCTIONS) {
         const hs = segsOf(f.href)
         if (isSegmentPrefix(hs, segs) && (!best || hs.length > segsOf(best.href).length)) best = f
     }

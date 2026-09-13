@@ -563,8 +563,6 @@ const en = {
         noModulesHint: 'Your account is signed in but no module has been granted to it. Ask an administrator to assign you a role.',
         // ── CONV-6 ③:搜索外壳。三句都刻意不说「出错」。 ──────────────────
         searchPrompt: 'Search for something',
-        searchNotYetBadge: 'not built',
-        searchNotYet: 'Search is not built yet. This box is where it will live — for now it does nothing, so it does not take what you type either.',
         // ── UI-1b ①②:字标与节日画的可访问名 ──────────────────────────────
         // 【为什么 alt 里没有「OS」】图里就没有。顶栏那个锁定组合才带 OS
         // (evoltrya-os-black.svg);这里是纯字标,与登录页 alt 逐字相同。
@@ -574,6 +572,43 @@ const en = {
         // {name} = 节日名(festival_doodles.name_en / name_zh,按界面语言选一个)。
         // ★ 读屏用户也该知道今天这张画是什么节日 —— 那正是这张画存在的理由。
         doodleAlt: 'EVoltrya — {name}',
+    },
+    // ════════════════════════════════════════════════════════════════════
+    // SEARCH-1 · 搜索面板。**一个面板,两个入口**(顶栏 + 首页),一份措辞。
+    // ════════════════════════════════════════════════════════════════════
+    search: {
+        // 对话框自己的可访问名(屏幕上不画,读屏要读)。
+        title: 'Search',
+        placeholder: 'Search pages, actions and the manual',
+        close: 'Close',
+        searching: 'Searching…',
+        // ★【失败【不许】画成"没找到"】★ 一次查询失败与"这里没有东西"在屏幕上
+        //   必须分得开 —— 这是本仓库反复付账的那一条(lib/permissions.ts 抬头)。
+        failed: 'The search could not be run just now. This is not "nothing found" — try again.',
+        // 三节的标题。顺序固定:单据 → 页面与动作 → 手册。
+        sectionRecords: 'Records',
+        sectionPages: 'Pages and actions',
+        sectionManual: 'Manual',
+        // ★★ job ① 的槽(S2)。它说的是【还没建】,不是【没找到】。
+        //    SEARCH-2 把它换成真的结果时,连这一句一起换掉。
+        recordsNotBuiltYet: 'Searching for records — by document number, or by the last four digits — is not built yet. This is where it will appear.',
+        nonePages: 'No page or action matches.',
+        noneManual: 'No passage in the manual matches.',
+        // ★【不许静默截断】—— 一份看不见截断的结果读起来就是"只有这么多"。
+        moreNotShown: '{count} more matches are not shown here.',
+        // ★★ S9:内容不给,存在说出来。{module} 一定是九个一级模块之一 ——
+        //    薪资不是模块,它住在 HR 底下,所以那句话读作「in HR」(Tim 的 Q6)。
+        withheldOne: '1 more match in {module} — you do not have permission to view it.',
+        withheldMany: '{count} more matches in {module} — you do not have permission to view them.',
+        // ★★ S7:两种语言搜的都是英文手册(Tim 的 Q8)。这一句【常年在】,
+        //    不管有没有命中 —— 一个用中文搜的人在这一节里什么都匹配不到,
+        //    而那读起来是"搜索坏了"。
+        manualEnglishOnly: 'The manual is written in English, so these passages are in English.',
+        // ★ Tim 的裁定 ③:每一条手册结果都要说出它来自哪一版手册。
+        manualVersion: 'Manual {version}, issued {issued}',
+        // 空状态(S10)。**不留白** —— 说清楚现在找得到什么、还找不到什么。
+        emptyWhatYouCanFind: 'Type to find a page, an action, or a passage of the operations manual.',
+        emptyNoRecentsYet: 'There is nothing recent to show here yet — remembering what you last opened is not built.',
     },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。

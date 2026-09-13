@@ -133,11 +133,36 @@ const REGISTRY_RENDERERS = new Set([
 // 第二份定义,它就是同一个模块里的一条普通链接。所以判据收窄到 multi ——
 // **这不是放松,是把它收回到它本来的范围**;跨模块那几条(定价/行情/佣金/收货/
 // 产出/库存报表/运费/毛利/被删记录)一条不漏,全部照旧受管。
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【SEARCH-1 · S5:带 parent 的条目,它【父条目那一页】可以手写它的链接】★★
+// ════════════════════════════════════════════════════════════════════════════
+// 【它为什么不是一次放松】本条不变量禁的是「跨模块条目的入口被手写,于是入口与
+//   权限之间没有任何东西保证同步」。而一条带 `parent` 的条目**按定义不画在任何
+//   菜单里** —— `lib/modules.ts` 的 `MENU_FUNCTIONS` 把它滤掉了。
+//   ☞ **它唯一正当的入口就是它父条目那一页上的那个链接。** 那不是第二份定义,
+//     那是 `parent` 这个字段的意思本身。禁掉它,等于要求一条不画在菜单里的条目
+//     一个入口都不许有。
+// 【射程窄到只有一格】只豁免 `app<父条目 href>/page.tsx` **这一个文件**;
+//   别处再手写同一个链接,照旧红。今天用到这一格的恰好一条:
+//   `/inbound/receive`(parent `/inbound`,由 `app/inbound/page.tsx` 链接)。
+const parentOf = new Map(
+    [...fnBlock.matchAll(/href:\s*'([^']+)'[^}]*?parent:\s*'([^']+)'/g)].map((m) => [m[1], m[2]]),
+)
+// ★【空集不算通过】★ 解析出 0 条 parent 的时候,这一格豁免【什么都没豁免】,
+//   而那和"树里没有 parent 条目"在输出上一模一样。注册表里今天有 18 条。
+if (parentOf.size === 0) {
+    problems.push({
+        axis: '② 一个功能几个模块',
+        msg: 'FUNCTIONS 里解析出 0 条带 parent 的条目 —— 要么解析器坏了,要么那 18 条埋着的屏幕没了。两种都要看一眼。',
+    })
+}
 for (const m of multi) {
     const href = m[1]
+    const parentPage = parentOf.has(href) ? `app${parentOf.get(href)}/page.tsx` : null
     for (const f of FILES) {
         const r = rel(f)
         if (REGISTRY_RENDERERS.has(r)) continue
+        if (parentPage && r === parentPage) continue // ★ 见上面那一段:parent 的意思
         if (r.startsWith(`app${href}/`) || r === `app${href}/page.tsx`) continue // 功能自己那一页
         const body = stripComments(read(f))
         if (new RegExp(`<Link[^>]*href=["']${href}["']`).test(body)) {
@@ -291,7 +316,7 @@ if (guardNames.length > 0) {
 assertPopulation('check-permission-predicate', '守卫的调用点', guardCallSites)
 
 if (problems.length === 0) {
-    console.log(`✓ 权限谓词:求值一处(allows)· FUNCTIONS ${entries.length} 条(${multi.length} 条跨模块)· 受限具名 · 守卫 ${guardNames.length} 支的 ${guardCallSites} 处调用都接住了返回值`)
+    console.log(`✓ 权限谓词:求值一处(allows)· FUNCTIONS ${entries.length} 条(${multi.length} 条跨模块,${parentOf.size} 条带 parent)· 受限具名 · 守卫 ${guardNames.length} 支的 ${guardCallSites} 处调用都接住了返回值`)
     process.exit(0)
 }
 console.log('')

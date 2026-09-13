@@ -312,6 +312,37 @@ export type FunctionEntry = {
     /** 【唯一的一份】判据 */
     permission: PermissionSpec
     /**
+     * ★★【SEARCH-1 · S5:一条【不画在菜单里】的条目,而它仍然是一条真条目】★★
+     *
+     * 【它是什么】`parent` 指着另一条条目的 href。带着它的条目是一个**真的去处**:
+     * 有自己的地址、自己的 navKey、自己的 permission —— 搜索找得到它,
+     * `check-nav-routes` 的判据 ② 认它,面包屑与权限照常走它。
+     * **变的只有一件事:两个导航消费者不把它画成父条目的兄弟。**
+     *
+     * 【为什么需要它 —— 这是一次【量过之后】的判断,不是一次偷懒】
+     *   那 18 个埋着的屏幕**今天每一个都是从它父页面上点进去的**:
+     *   实测(SEARCH-1 开工时,全树)**18/18 各有 ≥1 处链接**,而链接的出处
+     *   一律是它的父页面或父页面的页内子导航(`LeaveSubnav.tsx`、
+     *   `app/inventory/reports/page.tsx` 的 CARDS、`app/tools/pricing/page.tsx` …)。
+     *   ★ 手册自己也是这么写的:§3.10「Twenty-one working pages are not listed in
+     *   any menu. **Each is one click from a page that is.**」
+     *   ☞ 所以把它们平铺进二级菜单,是把一件**已经有入口**的事再做一遍 ——
+     *     人力的二级会从 11 条涨到 18 条,而多出来的 7 条在它们的父页面上已经在了。
+     *   **而"搜不到"那件事,`parent` 一点都没有让步:注册表里有它的名字。**
+     *
+     * 【它守住了什么 —— 两个数,量过的】
+     *   · `MENU_FUNCTIONS` 的条数在这一刀前后【逐字不变】(83 → 83),
+     *     于是顶栏、抽屉、Overview 画出来的东西**按构造**没有变;
+     *   · `entryForPath` 也只看 `MENU_FUNCTIONS`,于是那 25 条深路由的面包屑
+     *     (实测:29 条深路由里 25 条在这 18 个之下)**一截都没有变** ——
+     *     它们仍然读作「人力 › 假期 › 余额」,而不是「人力 › 假期余额」。
+     *
+     * ⚠【它不是一张"隐藏"表】带 parent 的条目在**权限**上没有任何特殊待遇:
+     *   它的 permission 就是它页面守卫用的那个码,进不去照样是进不去。
+     */
+    parent?: string
+
+    /**
      * 第三级分组。**它的意思是"在【属主模块】的第三级里归哪一组"**,
      * 不是"它自带一个层级" —— /finance/freight 同属物流与财务,在财务底下归
      * 「应付」,在物流底下就是平铺的一条。
@@ -418,6 +449,9 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   而 permission 仍然是 module.customers.view,MOD.customers 这个名字也没变
     //   —— 所有 requireModule(MOD.customers) 的调用点一行未改。
     { href: '/sales/customers', navKey: 'nav.customers', modules: ['sales'], permission: P_CUSTOMERS },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    { href: '/sales/customers/overlap', navKey: 'overlap.entryLink', modules: ['sales'], permission: P_CUSTOMERS, parent: '/sales/customers' },
     // ★★【CONV-6 ⑤b:「客户重叠检查」这一条【整条从菜单里删掉】】★★
     //   Tim 的裁定:它是【客户页的孩子】,不是客户的同辈 —— 与 ⑧ 删掉
     //   「每日行情录入」那张卡是同一条判断,只是一个在菜单上、一个在卡片墙上。
@@ -514,6 +548,11 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 【结论】它整个是期末工作,整条搬。判据 P_FINANCE 一个字没动 ——
     // 搬的是【它在哪一组】,与②a 搬定价是同一种改动。
     { href: '/finance/bank', navKey: 'finance.subnav.bank', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    //   ★ 子条目【不带 group】:group 的意思是「在属主模块的第三级里归哪一组」,
+    //     而它根本不画在菜单里 —— 给它一个组名会让下一个人以为它会出现在那一组里。
+    { href: '/finance/bank/statements', navKey: 'bank.statements', modules: ['finance'], permission: P_FINANCE, parent: '/finance/bank' },
     { href: '/finance/settings', navKey: 'finance.subnav.settings', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.config' },
     { href: '/finance/company', navKey: 'finance.subnav.company', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.config' },
     { href: '/finance/fx', navKey: 'finance.subnav.fx', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.config' },
@@ -539,6 +578,14 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 【group 一并去掉,因为它只对财务有意义】只有财务有第三级(FINANCE_MODULE_ID);
     //   留着一个 finance.group.* 而属主里没有 finance,是一个没有读者的字段。
     { href: '/inventory/reports', navKey: 'inventory.subnav.reports', modules: ['inventory'], permission: P_INVENTORY },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    //   顺序【就是】那一页 CARDS 的顺序(app/inventory/reports/page.tsx)——
+    //   两处写着同一份顺序时,至少让它们看起来是同一份。
+    { href: '/inventory/reports/snapshot', navKey: 'reports.snapshot.title', modules: ['inventory'], permission: P_INVENTORY, parent: '/inventory/reports' },
+    { href: '/inventory/reports/violations', navKey: 'reports.violations.title', modules: ['inventory'], permission: P_INVENTORY, parent: '/inventory/reports' },
+    { href: '/inventory/reports/safety', navKey: 'reports.safety.title', modules: ['inventory'], permission: P_INVENTORY, parent: '/inventory/reports' },
+    { href: '/inventory/reports/ledger', navKey: 'reports.ledger.title', modules: ['inventory'], permission: P_INVENTORY, parent: '/inventory/reports' },
 
     // ══ 人力 HR —— 勘察 D3 判定为 DERIVED,逐条取自 app/hr/Subnav.tsx ════════
     { href: '/hr', navKey: 'hr.subnav.overview', modules: ['hr'], permission: P_HR },
@@ -547,10 +594,25 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/hr/attendance', navKey: 'hr.subnav.attendance', modules: ['hr'], permission: P_HR },
     { href: '/hr/payroll', navKey: 'hr.subnav.payroll', modules: ['hr'], permission: P_HR },
     { href: '/hr/leave', navKey: 'hr.subnav.leave', modules: ['hr'], permission: P_HR },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    //   顺序【就是】LeaveSubnav.tsx 里那一份的顺序。
+    { href: '/hr/leave/balances', navKey: 'leave.subnav.balances', modules: ['hr'], permission: P_HR, parent: '/hr/leave' },
+    { href: '/hr/leave/calendar', navKey: 'leave.subnav.calendar', modules: ['hr'], permission: P_HR, parent: '/hr/leave' },
+    { href: '/hr/leave/grants', navKey: 'leave.subnav.grants', modules: ['hr'], permission: P_HR, parent: '/hr/leave' },
+    { href: '/hr/leave/types', navKey: 'leave.subnav.types', modules: ['hr'], permission: P_HR, parent: '/hr/leave' },
+    { href: '/hr/leave/holidays', navKey: 'leave.subnav.holidays', modules: ['hr'], permission: P_HR, parent: '/hr/leave' },
     { href: '/hr/claims', navKey: 'hr.subnav.claims', modules: ['hr'], permission: P_HR },
     { href: '/hr/training', navKey: 'hr.subnav.training', modules: ['hr'], permission: P_HR },
     { href: '/hr/reviews', navKey: 'hr.subnav.reviews', modules: ['hr'], permission: P_HR },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    { href: '/hr/reviews/cycles', navKey: 'reviews.cyclesTitle', modules: ['hr'], permission: P_HR, parent: '/hr/reviews' },
+    { href: '/hr/reviews/scale', navKey: 'reviews.scaleTitle', modules: ['hr'], permission: P_HR, parent: '/hr/reviews' },
     { href: '/hr/kpi', navKey: 'hr.subnav.kpi', modules: ['hr'], permission: P_HR },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    { href: '/hr/kpi/score', navKey: 'hr.subnav.kpiScore', modules: ['hr'], permission: P_HR, parent: '/hr/kpi' },
     // ★★【MANUAL-FIX-1 C:「KPI 打分」从菜单里撤走,改挂在 /hr/kpi 那一页上】★★
     //   它是 /hr/kpi 的【子页】,不是它的同辈:路径上就差一段,而菜单把两者
     //   并排画着,读起来像两件平级的事。全仓库只有两条这样的条目(另一条是
@@ -624,6 +686,14 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 【判据一个字没动】仍然是 module.pricing.view;搬的是【它在哪个菜单里】,
     // 不是【谁进得去】。这与本刀 /margin 那一条是同一条裁定。
     { href: '/tools/pricing', navKey: 'nav.pricing', modules: ['tools'], permission: P_PRICING },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    //   顺序【就是】app/tools/pricing/page.tsx 里 CARDS 的顺序。
+    //   ⚠ 它们仍然【不带 group】—— `tools.group.pricing` 今天一个住户都没有,
+    //     而给这三条挂上它会让那一组重新出现在工具菜单里(CONV-0 ②a 刚把它清空)。
+    { href: '/tools/pricing/formulas', navKey: 'pricing.formulasCard', modules: ['tools'], permission: P_PRICING, parent: '/tools/pricing' },
+    { href: '/tools/pricing/calculator', navKey: 'pricing.calculatorCard', modules: ['tools'], permission: P_PRICING, parent: '/tools/pricing' },
+    { href: '/tools/pricing/metal-prices', navKey: 'pricing.pricesCard', modules: ['tools'], permission: P_PRICING, parent: '/tools/pricing' },
     // ★★【CONV-0 ②a:定价的三个孩子【整批离开菜单】—— Tim 的裁定,2026-09-03】★★
     //
     // 【症状】工具的二级是「任务 · 日历 · 单位换算 · 定价」,而紧贴在「定价」这一条
@@ -812,6 +882,15 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   【它是本注册表里第一条【三】属主的条目】—— 机制本来就没有上限,
     //   modules 是一个数组而不是一对,这一条只是第一次用到第三格。
     { href: '/inbound', navKey: 'nav.inbound', modules: ['purchasing', 'inventory', 'operation'], permission: P_INBOUND },
+    // ★★【SEARCH-1 · S5:埋着的屏幕 —— 它们【一直都在】,只是注册表里没有名字】★★
+    //   带 parent 的条目不画在菜单里(入口在父页面上),而搜索与判据 ② 都认它。
+    //   ★ Tim 自己举的那个例子(「field receiving」)。它的属主【与 /inbound 逐字相同】:
+    //     采购要知道来的是哪张单、库存要知道进了什么、而运营那一个是 Tim 特意加的
+    //     (「车间需要知道什么料到了」)。**现场收货的读者与入库本身的读者是同一批人。**
+    //   ⚠ 它因此是一条【跨模块】条目,而 check-permission-predicate 的判据 ② 禁止
+    //     跨模块条目被手写成 <Link> —— 那条判据为此加了一格例外:**带 parent 的条目,
+    //     它父条目那一页可以手写它的链接**(那正是 parent 的意思)。理由写在那支脚本里。
+    { href: '/inbound/receive', navKey: 'receive.entry', modules: ['purchasing', 'inventory', 'operation'], permission: P_INBOUND, parent: '/inbound' },
     // 【双】产出批次:**这是 Tim 自己举的例子** —— 一批产出既是加工结果,也是可售库存。
     { href: '/output', navKey: 'nav.output', modules: ['operation', 'inventory'], permission: P_OUTPUT },
     // ══ D6 as built【已于 2026-09-02 被 UI-FIX-1 ⑦ 就定价这一件事推翻】═══════
@@ -830,6 +909,31 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
 /** 某个模块名下的二级条目(一个条目会在它每个属主模块下各出现一次 —— 那是要点)。 */
 export function functionsForModule(moduleId: string): FunctionEntry[] {
     return FUNCTIONS.filter((f) => f.modules.includes(moduleId))
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【SEARCH-1 · S5:两个读者,一份清单 —— 而它们读的【不是同一截】】★★
+// ════════════════════════════════════════════════════════════════════════════
+//
+// `FUNCTIONS` 是【每一个可导航的地址】,搜索读它,`check-nav-routes` 的判据 ①②
+// 读它。而**导航那两个消费者**(顶栏/抽屉/Overview 的菜单,以及面包屑的第二截)
+// 要的是**画在菜单上的那一层** —— 带 `parent` 的条目住在它父页面上,不是它的兄弟。
+//
+// ★【为什么派生出一个常量,而不是让每个消费者自己 `.filter()`】★
+//   让每个消费者自己过滤 = 同一条规则三份实现,而它们迟早各错一次 ——
+//   本文件抬头 §一 为这件事付过账(库里放宽了、首页那一份没跟上)。
+//   **这里是同一条规矩用在渲染上:一条规则,一个地方。**
+//
+// ★【它是这一刀"菜单一个字没变"的那份证据】★
+//   SEARCH-1 之前 `FUNCTIONS` 83 条;之后 101 条,而 `MENU_FUNCTIONS` **仍然 83 条**,
+//   顺序逐字相同(新条目一律带 parent,而且一律插在它父条目之后)。
+//   ☞ 于是"菜单没变"不是一句自述,是一个可以数出来的数 ——
+//     `scripts/check-nav-routes.mjs` 把它钉住了。
+export const MENU_FUNCTIONS: readonly FunctionEntry[] = FUNCTIONS.filter((f) => !f.parent)
+
+/** 画在菜单上的那一层,按模块。**顶栏、抽屉、Overview、面包屑都读这一支。** */
+export function menuFunctionsForModule(moduleId: string): FunctionEntry[] {
+    return MENU_FUNCTIONS.filter((f) => f.modules.includes(moduleId))
 }
 
 /**

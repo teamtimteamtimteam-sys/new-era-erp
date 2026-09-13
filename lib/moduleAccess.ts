@@ -11,6 +11,7 @@ import {
     MODULES,
     MODULE_GROUPS,
     allows,
+    menuFunctionsForModule,
     functionsForModule,
     type ModuleEntry,
     type FunctionEntry,
@@ -49,7 +50,17 @@ export type ModuleAccess = {
 export async function getModuleAccess(): Promise<ModuleAccess[]> {
     const perms = await getMyPermissions()
     return MODULES.map((m) => {
-        const entries = functionsForModule(m.id).map((fn) => ({
+        // ★★【SEARCH-1 · S5:菜单画的是 MENU_FUNCTIONS,不是 FUNCTIONS】★★
+        //   注册表从 83 条扩到 101 条,而多出来的 18 条【全部带 parent】——
+        //   它们是埋在父页面底下的屏幕,入口就在那一页上(实测 18/18 各有链接)。
+        //   把它们平铺进二级菜单,是把一件已经有入口的事再做一遍:人力的二级会
+        //   从 11 条涨到 18 条,而多出来的 7 条在假期/评估/KPI 那三页上已经在了。
+        //   ☞ **搜索读 FUNCTIONS(全部 101 条),菜单读 MENU_FUNCTIONS(83 条)** ——
+        //     一份清单,两个读者,而过滤的规则【只有一处实现】(lib/modules.ts)。
+        //   ⚠ 这【不是】R4 说的那种"过滤":R4 禁的是【按可进性】过滤(进不去的
+        //     要画成具名的受限,不许消失)。这里过滤的是【画在哪一层】,
+        //     与谁进得去无关 —— 每一条 menu 条目仍然带着它自己的 allowed。
+        const entries = menuFunctionsForModule(m.id).map((fn) => ({
             fn,
             allowed: allows(fn.permission, perms),
         }))
@@ -105,5 +116,10 @@ export async function canEnter(spec: PermissionSpec): Promise<boolean> {
  */
 export async function getFunctionAccess(moduleId: string): Promise<FunctionAccess[]> {
     const perms = await getMyPermissions()
+    // ★【这一支【故意】仍然读 functionsForModule(全部 101 条),不读 MENU】★
+    //   它的两个调用点都是 `.find(...)` 一条具名的条目(/settings/approvals 与
+    //   /purchasing/licences),问的是「这一条我进得去吗」,不是「菜单画哪几条」。
+    //   收窄成 MENU 会让将来某个人拿它去找一条带 parent 的条目时静默地找不到 ——
+    //   而"找不到"与"没权限"在调用点上长得一模一样。
     return functionsForModule(moduleId).map((fn) => ({ fn, allowed: allows(fn.permission, perms) }))
 }

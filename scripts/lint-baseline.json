@@ -1,8 +1,8 @@
 {
   "__NOTE__": "★ 这份基线【只会缩短】,不会变长。键是【文件路径 + 规则名】,不是行号(行号随每次编辑漂,会让闸天天假红)。error 与 warning 【各记一个数,各自只许降】—— 只冻 error 会让 no-unused-vars 那 63 个 warning 完全不设防,那是一道开着后门的冻结。多一处 → 闸变红并点名文件与规则;少一处 → 用 --update-baseline 顺手收紧。它不是白名单:白名单随新债增长,基线随还债缩短。本刀(PERM-CODE-1 + LINT-FREEZE-1,2026-09-09)只冻结,【一个都没有修】。",
   "totals": {
-    "errors": 42,
-    "warnings": 88
+    "errors": 41,
+    "warnings": 86
   },
   "entries": {
     "app/components/IdleWatcher.tsx": {
@@ -13,12 +13,6 @@
     },
     "app/components/nav/ModuleBar.tsx": {
       "react-hooks/set-state-in-effect": {
-        "errors": 1,
-        "warnings": 0
-      }
-    },
-    "app/components/nav/SearchShell.tsx": {
-      "react-hooks/rules-of-hooks": {
         "errors": 1,
         "warnings": 0
       }
@@ -91,18 +85,6 @@
       "react-hooks/purity": {
         "errors": 1,
         "warnings": 0
-      }
-    },
-    "app/hr/claims/[id]/page.tsx": {
-      "@typescript-eslint/no-unused-vars": {
-        "errors": 0,
-        "warnings": 1
-      }
-    },
-    "app/hr/employees/EmployeeForm.tsx": {
-      "@typescript-eslint/no-unused-vars": {
-        "errors": 0,
-        "warnings": 1
       }
     },
     "app/hr/employees/[id]/page.tsx": {

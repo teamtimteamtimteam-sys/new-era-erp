@@ -378,6 +378,14 @@ section.cover{{page:cover;break-after:page;position:relative;
   letter-spacing:-0.01em}}
 .cover .keel{{position:absolute;left:26mm;top:108mm;
   width:34mm;height:2.4pt;background:{FOREST}}}
+/* SEARCH-1 · S8 -- the manual's OWN version, printed where a reader looks for
+   it. It is not the system version the testers see; Tim ruled those are two
+   different things and must not be coupled. The same two strings go into the
+   search index (scripts/gen-manual-index.mjs), so a passage returned by search
+   names the same edition that is printed here. One source, two readers. */
+.cover .version{{position:absolute;left:26mm;top:152mm;width:150mm;
+  margin:0;font-size:11pt;line-height:1.5;font-weight:700;color:{FOREST};
+  letter-spacing:0.02em}}
 
 h2.toch{{font-size:20pt;font-weight:700;color:{OCEAN};margin:0 0 8mm 0}}
 .tocpart{{font-size:10.5pt;font-weight:700;color:{FOREST};
@@ -471,7 +479,50 @@ def toc_entries(parts):
     return entries
 
 
-def front_html(title, entries, pagemap):
+def strip_front_matter(md):
+    """-> (metadata dict, the markdown body).
+
+    SEARCH-1 · S8. The manual now carries two lines of its own metadata:
+
+        ---
+        version: v1.0.1
+        issued: 2026-09-13
+        ---
+
+    They are stripped here rather than taught to `parse()`, for the same reason
+    the converter raises on anything it does not recognise: front matter is
+    *metadata about the document*, not a block *in* the document, and a parser
+    that treats it as content would typeset `version: v1.0.1` onto page 1.
+
+    `#` lines inside the block are comments and are skipped -- that is where the
+    note about not coupling this to the system version lives, and it belongs
+    next to the values it governs rather than in a separate file.
+
+    Missing front matter is a hard error, not a default: a cover printed with an
+    empty version, and a search result reading "Manual , issued ", are both
+    worse than a build that stops and says which two lines are missing.
+    """
+    m = re.match(r"^---\n(.*?)\n---\n", md, re.S)
+    if not m:
+        raise SystemExit(
+            "docs/manual-draft.md has no front matter. SEARCH-1 (S8) requires\n"
+            "  ---\n  version: v1.0.1\n  issued: 2026-09-13\n  ---\n"
+            "at the top: the cover prints them and the search index carries them."
+        )
+    meta = {}
+    for line in m.group(1).split("\n"):
+        if line.lstrip().startswith("#"):
+            continue
+        kv = re.match(r"^([A-Za-z_]+):\s*(.+?)\s*$", line)
+        if kv:
+            meta[kv.group(1)] = kv.group(2)
+    for key in ("version", "issued"):
+        if not meta.get(key):
+            raise SystemExit(f"docs/manual-draft.md front matter has no `{key}:`")
+    return meta, md[m.end():]
+
+
+def front_html(title, meta, entries, pagemap):
     wordmark = BRAND / "evoltrya-wordmark.svg"
     sphere = BRAND / "evoltrya-sphere.svg"
     for f in (wordmark, sphere):
@@ -486,6 +537,10 @@ def front_html(title, entries, pagemap):
         f'<div class="wordmark"><img src="file://{wordmark}" alt=""></div>',
         '<div class="keel"></div>',
         f"<h1>{html.escape(title)}</h1>",
+        # SEARCH-1 · S8 -- the edition, on the cover, in the same words the
+        # search panel uses for the same passage.
+        f'<p class="version">{html.escape(meta["version"])} &nbsp;·&nbsp; '
+        f'issued {html.escape(meta["issued"])}</p>',
         "</section>",
         "<section><h2 class=\"toch\">Contents</h2>",
     ]
@@ -619,8 +674,14 @@ def font_coverage(md_text):
 
 
 def main():
-    md = SRC.read_text(encoding="utf-8")
+    raw = SRC.read_text(encoding="utf-8")
+    # SEARCH-1 · S8. Strip metadata before anything else touches the text.
+    meta, md = strip_front_matter(raw)
 
+    # Font coverage runs on the BODY, not on `raw`: the front matter is never
+    # typeset, so a character that appears only in its comments needs no glyph.
+    # (The check is otherwise unchanged -- a missing glyph in Chromium is a
+    # blank, not a box, so this is still the only place it would show.)
     gaps = font_coverage(md)
     if gaps:
         raise SystemExit("characters no embedded face can draw: " + repr(gaps))
@@ -634,7 +695,7 @@ def main():
     pagemap = measure_pages(body_pdf, entries)
 
     # Pass 2 -- the front matter, against numbers that can no longer move.
-    front_pdf = render(front_html(title, entries, pagemap), "front")
+    front_pdf = render(front_html(title, meta, entries, pagemap), "front")
 
     merge(front_pdf, body_pdf, OUT)
 
@@ -643,6 +704,7 @@ def main():
     nb = len(PdfReader(str(body_pdf)).pages)
     print(f"front matter {nf} pages · body {nb} pages · {nf + nb} total")
     print(f"contents entries {sum(len(s) for _, s in entries)}")
+    print(f"manual edition {meta['version']} issued {meta['issued']}")
     print(f"wrote {OUT.relative_to(ROOT)}")
 
 

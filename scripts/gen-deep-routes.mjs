@@ -78,11 +78,41 @@ for (const r of rows) histogram[r.depth] = (histogram[r.depth] ?? 0) + 1
 // 而 scripts/check-i18n.mjs 的 MANIFEST 从这里现读,两个语言少一句就构建变红。
 // 【为什么读文本而不是 import】这是一个 .mjs,而 lib/modules.ts 是 TypeScript;
 // 仓库里现成的做法(check-i18n 的 tsRegex)也是读文本 —— 沿用它,不另起一种。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【SEARCH-1 · S5:这里读的是 MENU 那一层,不是【全部】条目 —— 而这是承重的】★★
+// ════════════════════════════════════════════════════════════════════════════
+// 【判据必须与运行时那一支【同源】】面包屑的第二截由 `lib/navTrail.ts` 的
+//   `entryForPath()` 算出来,而它读的是 `MENU_FUNCTIONS`(带 `parent` 的条目不在
+//   里面 —— 它们住在父页面上,不是父的兄弟;整段理由在 lib/modules.ts)。
+//   ☞ 这支生成器如果读【全部 101 条】,两边就会对同一条路由给出不同的"已经有名字
+//     的最长前缀",而这份清单正是据此算出"还缺哪些段名"的。
+//
+// ★【它【真的】会错,而且是这一刀当场量到的】★ 读全部条目时:
+//     BREADCRUMB_SEGMENTS  25 条 → **7 条**(掉了 balances / calendar / statements
+//     / cycles / ledger / overlap / receive … 那 18 段)。
+//   而运行时照旧要 `breadcrumb.balances` —— 于是 `check-i18n` 的 MANIFEST
+//   (它从这份清单现读)会**不再检查那 18 个键**,少一句谁都不会红,
+//   而屏幕上会印出一串 `breadcrumb.balances`。
+//   ☞ **一道闸的射程,被另一处的改动悄悄缩窄了,而两边都没有报错。**
+//     这正是 AGENTS.md「一道闸只守它当时那条路 —— 换了推导来源,闸就要跟着搬」。
 const modulesSrc = readFileSync(join(ROOT, 'lib/modules.ts'), 'utf8')
 const fnBlock = modulesSrc.slice(modulesSrc.indexOf('export const FUNCTIONS'))
-const ENTRY_HREFS = [...fnBlock.matchAll(/href: '([^']+)'/g)].map((m) => m[1])
+// 逐条读:href 与【它有没有 parent】。一条条目的边界是下一条的起点。
+const ALL_ENTRIES = [...fnBlock.matchAll(/\{\s*href:\s*'([^']+)'[\s\S]*?\n/g)]
+    .map((m) => ({ href: m[1], hasParent: /parent:\s*'/.test(m[0]) }))
+const ENTRY_HREFS = ALL_ENTRIES.filter((e) => !e.hasParent).map((e) => e.href)
+const PARENT_HREFS = ALL_ENTRIES.filter((e) => e.hasParent).map((e) => e.href)
 if (ENTRY_HREFS.length === 0) {
     console.log('✗ 从 lib/modules.ts 的 FUNCTIONS 里一条 href 都没解析出来 —— 解析器坏了,不是"没有条目"。')
+    process.exit(1)
+}
+// ★【空集不算通过】★ 解析出 0 条 parent 时,上面那句过滤【什么都没过滤】,
+//   而它与"注册表里没有 parent 条目"在输出上一模一样 —— 两者都要看一眼。
+if (PARENT_HREFS.length === 0) {
+    console.log('✗ FUNCTIONS 里解析出 0 条带 parent 的条目 —— 要么解析器坏了,要么那 18 条埋着的屏幕没了。')
+    console.log('  这条断言在的理由:读【全部条目】会让 BREADCRUMB_SEGMENTS 从 25 条掉到 7 条,')
+    console.log('  而运行时(lib/navTrail.ts 的 entryForPath 读 MENU_FUNCTIONS)照旧要那 18 段。')
     process.exit(1)
 }
 const segsOf = (p) => p.split('/').filter(Boolean)
@@ -143,4 +173,5 @@ if (current !== body) {
     console.log('  修法:node scripts/gen-deep-routes.mjs --write,然后把生成的文件一起提交。')
     process.exit(1)
 }
-console.log(`✓ 深路由:${rows.length} 条路由,深度 ≥3 的 ${deep.length} 条,与生成文件一致`)
+console.log(`✓ 深路由:${rows.length} 条路由,深度 ≥3 的 ${deep.length} 条,与生成文件一致 ` +
+    `(菜单条目 ${ENTRY_HREFS.length} 条 + 带 parent 的 ${PARENT_HREFS.length} 条;面包屑段名 ${BREADCRUMB_SEGMENTS.length} 个)`)
