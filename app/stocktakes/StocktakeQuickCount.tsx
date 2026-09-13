@@ -46,7 +46,7 @@ export default function StocktakeQuickCount({
                     placeholder={t('stocktakes.qtyPlaceholder')}
                     className={`${CONTROL_TOUCH} flex-1 min-w-0 px-3 py-3 text-base min-h-[48px]`}
                 />
-                <Button className="shrink-0 min-h-[48px] text-base"
+                <Button size="touch" className="shrink-0"
                     type="submit"
                     disabled={isPending}>
                     {isPending ? t('common.saving') : t('stocktakes.save')}

@@ -111,6 +111,33 @@ const buttonVariants = cva(
         xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
+        // ── ★★ BTN-SIZE-1(2026-09-13, Tim 的裁定 · 选项甲)· 触控档 ★★ ──────
+        //   【它为什么叫 touch 而不是叫一个数】这一档的理由**不是** 48 这个数字,
+        //   是「站在仓库里拿手机或扫码枪按」。48 是那条理由今天量出来的值;
+        //   名字要指住理由,否则下一次理由变了、名字还钉在旧的数上。
+        //
+        //   【它补的是一个【已经存在了的几何】,不是一个新几何】
+        //   spec §2A.1 的 E6(收货与盘点两页的触控档,Tim 2026-09-10 Q7)
+        //   从立起来那天起就没有档位承载它:它在树上的身份是 **6 处手写的
+        //   `min-h-[48px] text-base`**(POLISH-1 round 3 §2.3 把这件事说准过)。
+        //   ☞ 所以这一行**不设计任何东西**,它只是把那 6 处手写的几何搬进表里:
+        //     `gap-1.5 px-2.5` 与 `default` 逐字相同(那 6 处今天就是 `default` +
+        //     一条 min-height),高度从 `min-h-[48px]` 换成 `h-12` ——
+        //     ★ 两者渲染同一个 48px,而基础串里有 `whitespace-nowrap`,
+        //       所以「min-height 能长高、height 不能」这个差别在这里够不到:
+        //       这一档的内容按构造不会折行。
+        //
+        //   【为什么 `text-base` 在这一档里,而不是留在调用点】
+        //   ① 档位表本来就带字号 —— `xs` 是 `text-xs`、`sm` 是 `text-[0.8rem]`,
+        //      default/lg 继承基础串的 `text-sm`。一个档不带字号才是这张表里的例外。
+        //   ② E6 的裁定原话把三样绑在一起:「**高度 · 上下内边距 · `text-base`
+        //      (16px 字号)—— 一个都不动**」。把字号留在调用点,等于让这一档
+        //      只搬了裁定的一半,而下一个用它的人会拿到一个 48px 高、14px 字的钮。
+        //   ☞ ★ 代价照直说:`/stocktakes/[id]` 的「Cancel Stocktake」转过来之后
+        //     **字号 14 → 16px**(高度 32 → 48px)。那一格正是走查点到的那一颗,
+        //     而它旁边的「Review & Post」今天就是 48px / 16px —— 这一档让它们对齐。
+        touch:
+          "h-12 gap-1.5 px-2.5 text-base has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         // ── ★ BTN-2(2026-09-06):【行内档】—— 一个不是盒子的按钮 ★ ──────────
         //   为什么它非有不可,而不是在 27 个调用点各写一遍 `className="h-auto p-0"`:
         //   本刀要转的 27 处链接态动作,今天是【句子里 / 表格单元格里的一段字】,

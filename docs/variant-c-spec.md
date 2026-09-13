@@ -193,6 +193,25 @@ STYLE-0 报告说 variant C「只覆盖 A/B/C 之间变化过的那五个轴」,
 > (`/inbound/receive/done/[id]` 那一对两颗**都是** 48px;`CountList` · `ReceiveForm` ·
 > `StocktakeQuickCount` 那几颗是**整宽单钮**,没有兄弟可比。)
 
+> ### ★★★ 结清(BTN-SIZE-1,2026-09-13,**TIM'S RULING · 选项甲**)—— **E6 的 48px 现在是一个档位** ★★★
+>
+> 上面那一格留下的二选一,Tim 选了 **①:给共享 Button 加一个触控档,不要裁定「E6 就是手写的」**。
+> 裁定原话的形状:**库里缺这个能力,就先把能力加进库**(§八(b) 第四次运转;
+> 前三次是 `size="inline"`(BTN-2)· 行内的档位(BTN-3)· 撤销档(BTN-1))。
+>
+> | | |
+> |---|---|
+> | **档位叫什么** | ★ **`size="touch"`** —— ☞ **名字指住的是【理由】,不是那个数。** 这一档存在的理由是「站在仓库里拿手机或扫码枪按」(与 E1 逐字同一条);48 是那条理由**今天**量出来的值。名字钉在数上,下一次数变了名字就开始撒谎。 |
+> | **它是什么** | `h-12 gap-1.5 px-2.5 text-base has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2` |
+> | ★ **它【没有设计任何东西】** | `gap-1.5 px-2.5` 与 `default` **逐字相同** —— 那 6 颗今天就是 `size="default"` 再加一条 `min-h-[48px]`。这一档做的只有一件事:**把那 6 次手写搬进表里**。<br>★ `min-h-[48px]` → `h-12`:两者渲染**同一个 48px**,而基础串里有 `whitespace-nowrap`,所以「min-height 能长高、height 不能」这个差别在这一档上**够不到**(内容按构造不折行)。 |
+> | ★ **为什么 `text-base` 在档里** | ① 这张表本来就带字号(`xs`=`text-xs` · `sm`=`text-[0.8rem]` · default/lg 继承基础串的 `text-sm`)—— **一个档不带字号才是例外**;② E6 的裁定原话把三样绑在一起:「**高度 · 上下内边距 · `text-base`(16px)—— 一个都不动**」。字号留在调用点,等于这一档只搬了裁定的一半。 |
+> | ★ **转过去的是哪 6 颗** | `ReceiveForm.tsx` · `done/[id]/page.tsx` ×2 · `CountList.tsx` · `stocktakes/[id]/page.tsx` · `StocktakeQuickCount.tsx` —— ★ **实测渲染高度 48px → 48px,两个视口逐字未变**;唯一动的字段是 `min-height: 48px → auto`(**几何为零**)。 |
+> | ★★ **那 9 个输入框【一个都没转】** | 委托书明文:`<Input>` 与 `control-style.ts` 在 S2 的封存输出里。★ 于是 **E6 今天是【一半档位、一半手写】** —— 6 颗按钮读档,9 个输入框仍然是 `min-h-[48px] py-3 text-base` 手写。**这不是遗漏,是射程**;它单独登记在 `docs/known-issues.md` 的 `BTNSIZE1-E6-INPUTS-STILL-HANDWRITTEN`。 |
+> | ★ **第 7 处那颗裸 `<button>`** | `CountList.tsx` 列表行那一颗(`w-full text-left px-3 py-3 min-h-[48px]`)**没有转** —— 它本来就不在本族(上面那张表自己标着「不在本族」),而且它是一颗裸 `<button>`,归 `BTN-TRIGGER-1`。 |
+>
+> ☞ **于是这一节顶上那句「E6 这条例外从立起来的那天起就没有档位承载它」,在【按钮】那一半上不再成立。**
+> **在【输入框】那一半上它仍然成立**,而这句话现在是精确的。
+
 > ★ **改名记录(INPUT-1):这一条原文写的是「裁成 E5」,而 E5 已经被那条「原生 `<select>` 不换」的裁定占用了。**
 > ★ **STYLE-1 §5.1 那句「这 5 处会从 36px 降到 32px」是错的**(`min-height` 压过 `height`,
 > 它们今天渲染的是 48px)—— 这一条更正留在这里,因为它正是这条例外存在的原因。

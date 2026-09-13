@@ -81,7 +81,7 @@ function CountRow({
             <Button
                 type="submit"
                 disabled={isPending}
-                variant="default" className="w-full min-h-[48px] text-base"
+                variant="default" size="touch" className="w-full"
             >
                 {isPending ? t('common.saving') : t('stocktakes.save')}
             </Button>

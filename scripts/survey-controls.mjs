@@ -78,7 +78,7 @@
 //
 // Usage:
 //   node scripts/survey-controls.mjs --mode=spec   [--blind=NAME]
-//   node scripts/survey-controls.mjs --mode=drift  [--blind=NAME] [--limit=N] [--only=/a,/b]
+//   node scripts/survey-controls.mjs --mode=drift  [--blind=NAME] [--limit=N] [--only=/a,/b] [--urls=/c,/d]
 //   node scripts/survey-controls.mjs --mode=edit   [--blind=NAME]
 //   node scripts/survey-controls.mjs --mode=compare --a=FILE --b=FILE
 //
@@ -96,6 +96,9 @@
 //                  它是登录断言自己那一格故障注入。
 //   no-colw      ★ POLISH-1:把每张表的 colW 清空 —— `colW ↔ 表头格数` 那条钉住当场红。
 //                没有它,colW 可以悄悄变成 [] 而没有任何东西发现。
+//
+// ★ BTN-SIZE-1:`--urls=/a,/b` —— 逐字给路径,追加在静态路由之后(只对 --mode=drift)。
+//   带 `[id]` 的详情页与 `/brand-sampler` 按构造不在 staticRoutes 里,这是够到它们的唯一口子。
 
 import { readFileSync, writeFileSync, readdirSync, statSync, existsSync, mkdirSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -117,6 +120,40 @@ const MODE = arg('--mode') || 'drift'
 const BLIND = arg('--blind') || ''
 const LIMIT = Number(arg('--limit') || 0)
 const ONLY = (arg('--only') || '').split(',').map((s) => s.trim()).filter(Boolean)
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ BTN-SIZE-1(2026-09-13)· `--urls=` —— 一个【逐字给路径】的口子 ★★
+// ════════════════════════════════════════════════════════════════════════════
+// 【为什么加,而且为什么是【现在】加】
+//   本支按构造只走 staticRoutes:**58 条带 `[id]` 的路由一条都走不到**,而
+//   `/brand-sampler` 更是在 walk() 那一层就被跳过了(见第 195 行)。
+//   ☞ 于是本仓库两个反复被点名的量测对象 ——
+//     停止条件 (e) 的主语 `/brand-sampler`,与 item q 那一对按钮所在的
+//     `/stocktakes/[id]` —— **今天都在这支普查的射程之外。**
+//
+// ★★ 【一条要更正的记载】POLISH-1 round 3 的交回报告 §2.1 写着
+//   「本轮的探针加了一个 `--urls=` 口子」,而 BTN-SIZE-1 的委托书照抄了它
+//   (原话:「reach it with the --urls= hatch round 3 added」)。
+//   ☞ **开工前实测:`grep -rn -- '--urls' scripts/` = 0 处。**
+//     那个口子当时开在 round 3 那支**没有进仓库**的一次性探针上
+//     (它自己的 §11.6 记着「它没有进仓库」),不在本支上。
+//   **这是 AGENTS.md「委托书里的【数】/【事实】来自上一份报告」那一条的又一例** ——
+//   差别只在于这一次被抄走的不是一个数,是**一件工具存在与否**。
+//
+// 【它【不】改什么 —— 这一条是它能被加进来的全部理由】
+//   ★ 它只往路由清单里**追加字符串**。`buildMeasure()` 一个字节没动,
+//     `STYLE_KEYS` / `ROLE_SELECTORS` / 成员 id 的构成**全部原样** ——
+//   ☞ 所以 `--mode=compare` 的**成员签名不变**,历史基线仍然比得了。
+//     round 3 §11.6 拒绝的是「给量具**加字段**」(那会动成员签名),
+//     **不是**「让它多走一条路由」。两件事不同,这里只做后一件。
+//
+// 【它带进来的读数【不是】静态普查的一部分,说白】
+//   `--urls` 进来的路由**没有**在 `staticRoutes` 的分母里,
+//   它们各自是一条**手点的**路由。`out.notes.urlsAdded` 把它们逐条记下来,
+//   好让读这份 JSON 的人分得清「141 条普查」与「另外手点的那几条」。
+const URLS = (arg('--urls') || '').split(',').map((s) => s.trim()).filter(Boolean)
+for (const u of URLS) {
+    if (!u.startsWith('/')) { console.error(`✗ ${'survey-controls'}:--urls 里的「${u}」不是以 / 开头 —— 它要的是路径,不是路由名`); process.exit(2) }
+}
 
 const KNOWN_BLINDS = ['', 'noop', 'round-height', 'same-table', 'no-native', 'no-tables', 'one-viewport', 'signed-out', 'no-colw']
 if (!KNOWN_BLINDS.includes(BLIND)) { console.error('unknown --blind=' + BLIND); process.exit(2) }
@@ -865,6 +902,13 @@ async function main() {
     } else {
         let routes = staticRoutes.filter((r) => !ONLY.length || ONLY.some((o) => r === o || r.startsWith(o)))
         if (LIMIT) routes = routes.slice(0, LIMIT)
+        // ★ BTN-SIZE-1:`--urls=` 追加在【切片之后】—— 手点进来的那几条不受 --limit 影响,
+        //   而且**去重**:它已经在静态清单里的话不再走第二遍(走两遍会让同一条路由的
+        //   读数互相覆盖,而覆盖是沉默的)。
+        const urlsAdded = URLS.filter((u) => !routes.includes(u))
+        routes = routes.concat(urlsAdded)
+        out.notes.urlsAdded = urlsAdded
+        out.notes.urlsRequested = URLS
         out.notes.routesAttempted = routes
         out.notes.dynamicRoutesSkipped = dynamicRoutes
         for (const vp of VIEWPORTS) {

@@ -33,6 +33,11 @@ export default function CancelStocktakeButton({ stocktakeId, code }: {
                 tier="destructive"
                 reason={{ placeholder: t('stocktakes.cancelReasonPlaceholder') }}
                 triggerVariant="destructive"
+                // ★ BTN-SIZE-1(2026-09-13, A3):与左边那颗「Review & Post」
+                //   取**同一档**。走查看到的是它矮一截(32 vs 48px)——
+                //   而 POLISH-1 round 3 量清楚了:矮的那一颗没有掉档,是
+                //   **高的那一颗在手写**。现在两颗都读同一个档位。
+                triggerSize="touch"
                 disabled={isPending}
                 onConfirm={(reason) => {
                     setError('')

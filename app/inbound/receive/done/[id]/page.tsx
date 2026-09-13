@@ -18,7 +18,11 @@
 //       这套系统量到过的任何一档。字号 30px 与 `<div>` 这个标签**一个字节没动**
 //       (换标签是 S5 禁的,仍然挂在 Tim 名下)。
 //     把它塞进 ListPage 的 title 槽会把这两样东西的主次颠倒过来。
-//   * 两个动作是 `min-h-[48px]` 的整宽按钮(拇指够得着),不是标题右边的小链接。
+//   * 两个动作是【触控档】的整宽按钮(拇指够得着),不是标题右边的小链接。
+//     ★ BTN-SIZE-1(2026-09-13):这一行原文写的是 `min-h-[48px]` —— 那是它在
+//       调用点手写的时代。今天它是 `size="touch"`(`h-12` = 同一个 48px)。
+//       ☞ 改这一行是因为 AGENTS.md 记着的那一课:**一条承重的契约只写在注释里时,
+//         换掉它描述的那个东西,没有任何一道闸会红** —— 那就手动让它跟上。
 //
 // **也就是说:全仓 37 张详情页里,唯一一张【本来就是照 390px 设计的】,
 //   正是套上这套外壳会被弄坏的那一张。** 硬套会在这一刀里制造出这一刀要修的病。
@@ -96,10 +100,10 @@ export default async function ReceiveDonePage({
             </div>
 
             <div className="space-y-3">
-                <Button asChild variant="default" className="w-full min-h-[48px] text-base">
+                <Button asChild variant="default" size="touch" className="w-full">
                     <a href={`/inbound/${batch.id}/label`} target="_blank" rel="noopener noreferrer">{t('batchLabel.print')}</a>
                 </Button>
-                <Button asChild variant="secondary" className="w-full min-h-[48px] text-base">
+                <Button asChild variant="secondary" size="touch" className="w-full">
                     <Link href="/inbound/receive">{t('receive.next')}</Link>
                 </Button>
             </div>

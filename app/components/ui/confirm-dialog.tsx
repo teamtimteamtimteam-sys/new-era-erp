@@ -359,7 +359,11 @@ type ConfirmButtonProps = ConfirmContent & {
     triggerVariant?:
         | 'default' | 'secondary' | 'destructive' | 'reversal'
         | 'outline' | 'ghost' | 'link' | 'warning'
-    triggerSize?: 'default' | 'sm' | 'xs' | 'lg' | 'inline'
+    // ★ BTN-SIZE-1(2026-09-13):加上 `touch`。这个联合是**手抄**的一份 ——
+    //   它与 `button.tsx` 的 `size` 表之间没有任何机器在对账(§十三 早就记过
+    //   这个联合漏掉过 `link` / `warning` / `inline`)。加一档就要在这里也加一次,
+    //   否则调用点写得出 `triggerSize="touch"` 却过不了类型。
+    triggerSize?: 'default' | 'sm' | 'xs' | 'lg' | 'inline' | 'touch'
 }
 
 export function ConfirmButton({

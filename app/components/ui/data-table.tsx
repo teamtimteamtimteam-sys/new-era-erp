@@ -845,15 +845,28 @@ export function DataTable<T>(props: DataTableProps<T>) {
                             total: sorted.length,
                         })}
                     </span>
+                    {/* ★★ BTN-SIZE-1(2026-09-13, A4):这一对走共享 <Button> ★★
+                        POLISH-1 round 3 在这里停过手,理由是「九个档位是 24/28/32/36,
+                        **没有 30**」,而裁定当时写着「复刻不出当前高度就报出差值,不要接受它」。
+                        ☞ Tim 2026-09-13 的裁定接受了那 +2px:**取现成的 32px 档**。
+
+                        ★ 形状为什么是 `secondary`:它是唯一一个「透明底 + 描边 + 400 字重」的档
+                          —— 与这一对今天的样子同形(r3 §10.6 已经判过这一句)。
+                        ★ 调用点**一条几何都没有按回去**(与排序钮那一颗不同):
+                          基础串的 `text-sm` 与这一对今天从容器继承来的 14px 逐字相同,
+                          字重 400 由 `secondary` 自己给。剩下要留的只有 `type="button"` ——
+                          ★ **共享 <Button> 不设默认 type**,丢掉它在 <form> 里是一次功能回归。
+                        ★ 而它**确实会动** `/brand-sampler` 的读数(那是它唯一的消费者),
+                          动的是哪几个字段、动了多少,逐字段记在 docs/handbacks/BTN-SIZE-1.md。 */}
                     <span className="flex gap-1">
-                        <button
+                        <Button
+                            variant="secondary"
                             type="button" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}
-                            className="base-pressable rounded-[var(--brand-radius)] border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2.5 py-1 disabled:cursor-not-allowed disabled:bg-[color:var(--brand-disabled-bg)] disabled:text-[color:var(--brand-disabled-text)]"
-                        >{t('table.prevPage')}</button>
-                        <button
+                        >{t('table.prevPage')}</Button>
+                        <Button
+                            variant="secondary"
                             type="button" disabled={safePage >= pageCount - 1} onClick={() => setPage(safePage + 1)}
-                            className="base-pressable rounded-[var(--brand-radius)] border border-[color:var(--brand-border)] bg-[color:var(--brand-surface)] px-2.5 py-1 disabled:cursor-not-allowed disabled:bg-[color:var(--brand-disabled-bg)] disabled:text-[color:var(--brand-disabled-text)]"
-                        >{t('table.nextPage')}</button>
+                        >{t('table.nextPage')}</Button>
                     </span>
                 </div>
             )}

@@ -7502,7 +7502,66 @@ writeFileSync(BASELINE, JSON.stringify(obj, null, 2) + '\n')
 
 ---
 
-## ★★ POLISH1R3-NO-48PX-BUTTON-STEP · 「Cancel Stocktake 要 48px」**做不到,而原因在库里**(POLISH-1 round 3,2026-09-13,item q)
+## ⬜ BTNSIZE1-E6-INPUTS-STILL-HANDWRITTEN · **E6 现在是【一半档位、一半手写】** —— 而那一半的数,三个里有三个是错的(BTN-SIZE-1,2026-09-13)
+
+> ### ★ 一句话
+> BTN-SIZE-1 给共享 `<Button>` 加了 `size="touch"`,**6 颗按钮转过去了**。
+> ★ **E6 名下的【非按钮】那一半一个都没转** —— 委托书明文:`<Input>` 与
+> `control-style.ts` 在 **S2 的封存输出**里,停止条件 (d) 钉着它们逐字节不变。
+> ☞ **这不是遗漏,是射程。** 但它留下一条真账:**同一条例外,一半读档、一半手写。**
+
+### ★★ 先把数说准 —— 委托书与 spec §2A.1 给的三个数,三个都要改
+
+委托书原话:「the 11 hand-written `min-h-[48px]` sites (**6 buttons, 9 inputs** per the spec's
+own list — reconcile that count against the tree and report the actual one)」。**照办,逐条量过:**
+
+| 委托书 / spec 说的 | ★ **实测(BTN-SIZE-1 开工前,`grep -rn "min-h-\[48px\]" app`)** |
+|---|---|
+| 「**11 处**手写」 | ★ **10 处是代码,第 11 处是一句【注释】**(`app/inbound/receive/done/[id]/page.tsx` 抬头那一行散文)。<br>☞ **这正是 `AGENTS.md` 记着的「一句注释可以污染将来对它自己的计数」(CONFIRM-1)那一条,第 N 次。**<br>⚠ 而今天 grep 会给出 **12** 个命中 —— 多出来的第 12 个**也是一句注释**(`control-style.ts:173`),它在那张表写下之后才出现。 |
+| 「**6 buttons**」 | ✅ **对。6 颗,全部已转成 `size="touch"`。** |
+| 「**9 inputs**」 | ★★ **不对,两处都不对:实际是 10 个控件,而其中 4 个【不是输入框】。**<br>· `<input>` **6 个**:`CountList` ×2 · `ReceiveForm` ×3 · `StocktakeQuickCount` ×1<br>· ★ **原生 `<select>` 4 个**:`ReceiveForm`(`fieldCls` 那个常量喂了 **7** 个控件,不是 6 个)<br>☞ **那 4 个归 E5 管**(「原生 `<select>` 保持原生」),**不是 E6 的输入框那一半** —— 两条例外压在同一个常量上,而没有任何东西说过这件事。 |
+
+### ★★★ 而最值钱的一格是这个:**那 6 个「48px」的输入框,渲染出来是 50px**
+
+| 控件 | `min-height` | ★ **渲染高度(实测,两个视口逐字相同)** |
+|---|--:|--:|
+| `/inbound/receive` 的 `<input>` ×3 | `48px` | ★★ **50px** |
+| `/inbound/receive` 的原生 `<select>` ×2 | `48px` | **48px** |
+
+☞ **机制:`min-h-[48px] px-3 py-3 text-base` 在 `<input>` 上算出来是 24(行盒)+ 12 + 12 + 1 + 1 = 50px** ——
+**`min-height` 在这里根本没有约束住任何东西**,它是一个**低于实际高度的地板**。
+★ 而原生 `<select>` 落在 48,因为它的 `line-height` 恒为 `normal`(spec §2A.2 / INPUT-1 为同一个机制付过账)。
+★★ **也就是说:E6 那条例外写的是「48px」,而它名下的输入框【从来没有一个渲染成 48px】,
+它们是 50 与 48 两种。** 这一格是 BTN-SIZE-1 顺带量到的,**没有去修** —— 修它要动 S2 的封存输出。
+
+### ⚠ 分母,照直说:**这 10 个里我只量到了 5 个**
+
+本刀的探针只走首屏,而 `CountList` 的那 2 个输入框住在**点开才出现**的 `CountRow` 里,
+`StocktakeQuickCount` 那 1 个在 `/stocktakes/[id]` 首屏上也没有渲染。
+☞ **剩下 5 个是【未测量】,不是【不存在】** —— 上表里 50px 那个数**只对量到的那 3 个 `<input>` 成立**。
+
+### 去处
+
+⬜ **一次裁定,而它要和 S2 的解封一起裁:**
+① 给输入框也开一个触控档(那要动 `control-style.ts`,S2 封着);
+② 还是裁定「输入框那一半就是手写的」,并**把 spec §2A.1 里那个「48px」改成它真实的两个数(50 / 48)」**。
+★ **不要单独裁 ①** —— 先裁「48 还是 50」,否则新开的那一档会把一个**从来没有渲染出来过的数**钉进库里。
+
+---
+
+## ⬜ BTNSIZE1-SHARED-BUTTON-PRESS-NOT-REDUCED-MOTION · 共享 `<Button>` 的按下位移**不在 `prefers-reduced-motion` 的名单里**(BTN-SIZE-1 顺带量到,2026-09-13)
+
+| | |
+|---|---|
+| **它是什么** | `app/base-motion.css` 有一条 `@media (prefers-reduced-motion: reduce)`,它**逐个类名**点名要停掉的动效:`.base-flash-ok` · `.base-nudge-err` · `.base-skeleton` · `.base-spin` · `.base-reveal` · `.base-pressable`。<br>★ 而共享 `<Button>` 的按下位移走的是**基础串里的一条 Tailwind 工具类** `active:not-aria-[haspopup]:translate-y-px` + `transition-all` —— ☞ **它不叫那六个名字里的任何一个,于是那条规则按构造够不到它。** |
+| ★ **本刀怎么撞上它的** | A4 把 `<DataTable>` 分页那一对从裸 `<button class="base-pressable …">` 转成了共享 `<Button>`。**两者的位移量相同(都是 1px)**,所以屏幕上看不出差别 —— ★ **差的是减弱动效之下:`base-pressable` 会停,共享 `<Button>` 不会。** |
+| ★★ **射程比这一对大得多,而这一点才是登记它的理由** | 这**不是** BTN-SIZE-1 造成的,也**不只**关这两颗:**全树每一颗共享 `<Button>` 都是这样**(BTN-1 落地时 187 颗,之后还在长)。☞ 本刀只是**把两颗从守规矩的那一侧挪到了不守规矩的那一侧**,顺手让这件事露了头。 |
+| ⚠ **没有量的那一半,说白** | **本刀没有数**「今天全树共有多少颗共享 `<Button>`」,也**没有**在 `prefers-reduced-motion: reduce` 之下真的量过一次位移。上面那句「够不到」是**读 CSS 读出来的**,不是在浏览器里量出来的。☞ 下一刀要修它,**先补这一次测量** —— 本仓库对「读出来的结论」和「量出来的结论」有过一条明文区分。 |
+| **去处** | ⬜ 修法看起来是一行(把 `.base-pressable` 那条规则改成也覆盖 `[data-slot="button"]`,或给基础串加一个 `motion-reduce:` 前缀)。★ **但它是一次全系统的动效改动**,而这个仓库对「一行修法 × 全系统射程」有过判词:**先量总体,再裁。** |
+
+---
+
+## ~~★★ POLISH1R3-NO-48PX-BUTTON-STEP~~ —— **✅ CLOSED(BTN-SIZE-1,2026-09-13,Tim 的裁定 · 选项甲)** · 「Cancel Stocktake 要 48px」**做不到,而原因在库里**(POLISH-1 round 3,2026-09-13,item q)
 
 | | |
 |---|---|
@@ -7512,11 +7571,24 @@ writeFileSync(BASELINE, JSON.stringify(obj, null, 2) + '\n')
 | ★ **而 48px 在这棵树上是【怎么来的】** | 它**从来不是一个档位** —— 它是 **11 处手写的 `min-h-[48px]`**(spec §2A.1 的 E6 已经逐处列过:6 颗按钮 + 9 个输入框)。<br>☞ **「Review & Post」那 48px 本身就是一次手写。** 所以走查看到的不是「一颗按钮掉档了」,是 **E6 这条例外【从来没有一个档位承载它】**。 |
 | ★ **它要的下一步(一次裁定,不是一把刀)** | 二选一,而**两条都超出 item q 的范围**:<br>① 给共享 Button **加一个 E6 触控档**(`h-12` = 48px),然后把那 6 颗手写的一起转过去 —— **那是给库加一档**,spec §2A / §八(b) 的形状;<br>② 或者裁定「E6 就是手写的」,并把「Cancel Stocktake」也手写成 `min-h-[48px]` —— ★ **但那与 item q 明文禁止的「不许手写高度」直接冲突。** |
 | ⚠ **顺带量到的一件,它让这一条更清楚** | ★ **全树 105 个「一个容器里有两颗以上按钮」的地方,高度不一致而其中一颗 ≥44px 的:恰好 1 个** —— 就是走查点到的这一个。<br>☞ 队列要求「把收货与盘点其余各页**同样成对**的按钮找一遍」,**找过了:没有第二处。**<br>`/inbound/receive/done/[id]` 那一对**两颗都是** `min-h-[48px]`(一致);`CountList` · `ReceiveForm` · `StocktakeQuickCount` 那几颗是**整宽单钮**,没有兄弟。 |
-| **去处** | ⬜ **等 Tim 在上面那两条里选一条。** 在那之前**不要**再量一遍:读数在这里。 |
+| **去处** | ✅ **已结清 —— Tim 选了 ①(给库加一档),BTN-SIZE-1 落地。** |
+
+> ### ★ 结清的读数(BTN-SIZE-1,2026-09-13,实测,两个视口逐字相同)
+>
+> | | 改前 | ★ 改后 |
+> |---|--:|--:|
+> | 「Review & Post」高度 | 48px | ★ **48px**(逐字未变;`min-height` 48px → `auto`,几何为零) |
+> | ★ 「Cancel Stocktake」高度 | **32px** | ★★ **48px** —— **两颗现在同高** |
+> | 「Cancel Stocktake」字号 | 14px | ★ **16px** —— ☞ **这一格是代价,照直记**:`touch` 这一档带着 `text-base`(E6 的裁定把高度 · 上下内边距 · 16px 字号绑在一起),所以转过去的同时字号跟着走。它与旁边那颗 16px 的「Review & Post」现在一致。 |
+> | 两颗的宽 | 557.48 / 134.52(desktop) | 541.41 / 150.59 —— **和仍然相等**(左边那颗 `flex-1`,右边变宽多少它就让出多少);`/stocktakes/[id]` 的 `docScrollW` **390 → 390**,phone 上**没有产生溢出** |
+>
+> ★ **档位叫 `touch`,不叫 `h-12` 也不叫一个数** —— 理由与命名一起写在 `app/components/ui/button.tsx` 那一档的抬头,以及 `docs/variant-c-spec.md` §2A.1 的结清格里。
+> ★ **那 6 颗手写的一起转过去了**,渲染高度 48 → 48px 逐字未变。
+> ⚠ **9 个输入框没有转**(S2 封存),另立一条:`BTNSIZE1-E6-INPUTS-STILL-HANDWRITTEN`。
 
 ---
 
-## ★ POLISH1R3-DATATABLE-PAGER-NO-STEP · `<DataTable>` 的分页钮是 **30px**,而共享档位里没有 30(POLISH-1 round 3,2026-09-13)
+## ~~★ POLISH1R3-DATATABLE-PAGER-NO-STEP~~ —— **✅ CLOSED(BTN-SIZE-1,2026-09-13,Tim 的裁定)** · `<DataTable>` 的分页钮是 **30px**,而共享档位里没有 30(POLISH-1 round 3,2026-09-13)
 
 | | |
 |---|---|
@@ -7525,7 +7597,34 @@ writeFileSync(BASELINE, JSON.stringify(obj, null, 2) + '\n')
 | ★★ **为什么不凑** | 形状上配得上它的档是 `secondary`(透明底 + 描边 + 400 字重),而 `secondary` 只能配 `sm`(**28px,−2px**)或 `default`(**32px,+2px**)。<br>☞ 裁定写着「**如果共享组件复刻不出当前高度,停下来把差值报出来,不要接受它**」。**差值是 ±2px,报在这里。**<br>⚠ 用 `size="inline"` + 在调用点把 `px-2.5 py-1` 写回去**能**凑出 30px —— **没有这么做**,两个理由:① `inline` 那一档的文档原话是「**一个不是盒子的按钮**」,而分页钮**是**盒子(底 + 描边);② 那等于**在调用点手写几何**,与 item q 明文禁止的那件事同形。 |
 | ★ **它的射程有多小,量过** | ★★ **分页钮与排序钮在这棵树上【只有一个消费者】:`/brand-sampler`。**<br>`pageSize=` 全仓库 **1 个**调用点(`app/brand-sampler/Base1.tsx:107`);`sorting={{ mode: 'client' }}` 也是 **1 个**(同文件 `:105`)。<br>★ 141 条静态路由 × 2 视口上,排序**钮**渲染 **0 个**(渲染出来的 27 个是 `serverSort` 那一支的 `<a>`,不是裸 `<button>`)。<br>☞ 而 `/brand-sampler` 正是停止条件 (e) 的对象:**它的读数必须逐字不变。** 接受一个 ±2px,等于让这一刀自己去踩 (e)。 |
 | ★ **转过去的那两颗,反而是【有真消费者】的** | 展开箭头:**每个视口 480 颗**(phone 上 28×28,desktop 上 `sm:hidden` 高 0)。**它是这四个代码点里唯一一个真的铺在全树上的。** |
-| **去处** | ⬜ 与上面 `POLISH1R3-NO-48PX-BUTTON-STEP` **同一次裁定**:两条问的是同一件事 ——**共享 Button 的档位表要不要为一个已经存在的几何多开一档。** |
+| **去处** | ✅ **已结清。** ★ 两条确实是同一次裁定,而**答案对这一条是【不开档】** —— Tim 裁的是「**取现成的 32px 档,接受那 +2px**」,不是为 30px 再开一档。☞ 两条问的是同一个问题,得到的是**两个不同的答案**,而那正是「一起裁」才看得出来的事:48px 承载着一条**无障碍裁定**(E1/E6:44px 是 HIG 与 WCAG 2.5.5 点名的数),30px 背后**没有任何裁定** —— 它只是 `px-2.5 py-1` 加起来的一个数。 |
+
+> ### ★ 结清的读数(BTN-SIZE-1,2026-09-13,实测)
+>
+> | | 改前 | ★ 改后 | 差 |
+> |---|--:|--:|--:|
+> | 分页「上一页」/「下一页」高度 | **30px** | ★ **32px** | ★★ **+2.00px**,两颗、两个视口**四个读数逐字相同** |
+>
+> ★★ **委托书预期的是 `+2`(不是 `−2+2`),而实测就是 `+2`** —— 但**机制要说准,因为委托书给的机制不完全对**:
+> 委托书写的是「它们今天 `border-width: 0`,而基础串的 `border border-transparent` 上下各加 1px」。
+> ☞ ★ **实测:这一对今天的 `border-width` 就是 `1px`**(它们自己写着 `border border-[color:var(--brand-border)]`),**不是 0**。
+> **真正的机制是换了个来源定高**:改前 = 20px 行盒 + `py-1`(4+4) + 边框(1+1) = **30px**;
+> 改后 = `size="default"` 的 **`h-8` 直接把高度钉成 32px**(`box-sizing: border-box`,边框画在里面)。
+> ★ 两条路**得数相同、道理不同**;r3 在排序钮上量到的那条 `+2px` 才是委托书说的那个机制(**那一颗的 `border-width` 确实是 0**)。
+>
+> ### ★ 这一对还动了哪些【非几何】字段 —— 逐个,因为它们是停止条件 (e) 的读数
+> | 字段 | 改前 → 改后 | 判词 |
+> |---|---|---|
+> | `border-radius` | **6px → 8px** | `--brand-radius`(6px)→ `rounded-lg`(8px)。★ 这是**走共享档位的代价**,而 base-components §十四 F1 早就裁过「小控件配小圆角是光学惯例,不是缺陷」——**那条裁定说的是不要去抹平 6 与 8,不是不许一个控件换档**。 |
+> | `padding-top/bottom` | **4px → 0px** | 高度不再由 `py-1` 决定,改由 `h-8` 决定。 |
+> | `background`(启用态) | **#FFFFFF → transparent** | `secondary` 是透明底 —— r3 §10.6 判过「形状上配得上它的档是 `secondary`(透明底 + 描边 + 400 字重)」。 |
+> | `border-color`(启用态) | **#CAD5E0 → #AEBAC9** | `--brand-border` → `border-input`(= `--brand-border-strong`)。**变深,不是变浅**:on `--brand-bg` **1.398 → 1.849:1**。⚠ **两个都低于 WCAG 1.4.11 的 3:1** —— 这不是本刀造成的,`#AEBAC9` 是全库 `border-input` 的值,spec §2A.2 早就为勾选框记过同一个 1.85 并因此给勾选框换了颜色。**本刀只是把这一对挪到了那个已知的值上。** |
+> | `color`(启用态) | **#62738C → #171717** | `--brand-muted-text` → `text-foreground`。★ **两边的底不是同一个,所以要分开说**(本仓库反复付账的那一课):改前那颗钮**有自己的白底**,`#62738C` on `#FFFFFF` = **4.827:1**;改后它是**透明底**,字落在背后那一层上 —— `#171717` on `--brand-bg` `#F1F9FE` = **16.836:1**,on `--brand-surface` `#FFFFFF` = **17.928:1**。☞ **两个候选底都远远够,所以这一次替换【提高】了对比度**,而这句话不依赖我判对了背后是哪一层。 |
+> | `border-color` / `color`(**禁用态**) | **#CAD5E0 → transparent** / **#97A5B7 → #182B4B** | ★★ **这一格值得单独一行**:禁用态的字色从 `#97A5B7`(在 `--brand-disabled-bg` `#DDE7EF` 上 ★ **1.999:1** —— 本刀自算)换成 BTN-1 裁定的 `--brand-text` `#182B4B`(★ **11.273:1**,与 BTN-1 抬头记的 11.27 逐字吻合)。☞ **BTN-1 抬头那一整段就是为这件事写的**:「判据是【清楚地不能按】,不是【淡】」。这一对**此前正是那种淡到看不清的禁用态**,而转到共享档位顺手把它结清了。 |
+> | `display` / `gap` | `block → flex` / `normal → 6px` | 共享层是 `inline-flex gap-1.5`;它坐在一个 `flex` 容器里,**被 flex 项目化(blockify)成 `flex`**。宽度实测 **75.44 / 51.25 逐字未变**。 |
+>
+> ★ **调用点一条几何都没有按回去**(与 r3 排序钮那一颗的处置不同):字号 14px 两边相同(基础串就是 `text-sm`),字重 400 由 `secondary` 自己给。**留下的只有 `type="button"`** —— 共享 `<Button>` 不设默认 `type`,丢掉它在 `<form>` 里是一次功能回归。
+> ★ ⚠ **丢掉的一条,照直记:`base-pressable`。** 共享层用 `active:not-aria-[haspopup]:translate-y-px` 做同一件事(同样 1px),**但它不在 `base-motion.css` 那条 `prefers-reduced-motion` 名单里** —— 见新立的 `BTNSIZE1-SHARED-BUTTON-PRESS-NOT-REDUCED-MOTION`。
 
 ---
 
