@@ -7,8 +7,8 @@ DECLARE v_year integer := EXTRACT(YEAR FROM p_date)::integer; v_seq integer;
 BEGIN
     PERFORM pg_advisory_xact_lock(hashtext('expense_claim_code_' || v_year::text)::bigint);
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1 INTO v_seq
-      FROM expense_claims WHERE code LIKE 'CLM-' || v_year::text || '-%';
-    RETURN 'CLM-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+      FROM expense_claims WHERE code LIKE document_type_prefix('expense_claim') || '-' || v_year::text || '-%';
+    RETURN document_type_prefix('expense_claim') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 END;
 $function$
 

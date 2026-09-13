@@ -3657,6 +3657,45 @@ export type Database = {
           },
         ]
       }
+      document_types: {
+        Row: {
+          key: string
+          label_column: string | null
+          link_mode: string
+          match_columns: string[]
+          numbering: string
+          prefix: string
+          route: string
+          sequence_name: string | null
+          table_name: string
+          view_permission: string[]
+        }
+        Insert: {
+          key: string
+          label_column?: string | null
+          link_mode: string
+          match_columns?: string[]
+          numbering: string
+          prefix: string
+          route: string
+          sequence_name?: string | null
+          table_name: string
+          view_permission: string[]
+        }
+        Update: {
+          key?: string
+          label_column?: string | null
+          link_mode?: string
+          match_columns?: string[]
+          numbering?: string
+          prefix?: string
+          route?: string
+          sequence_name?: string | null
+          table_name?: string
+          view_permission?: string[]
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           anonymised_at: string | null
@@ -26932,6 +26971,7 @@ export type Database = {
         }
         Returns: Json
       }
+      document_type_prefix: { Args: { p_key: string }; Returns: string }
       drain_stock: {
         Args: {
           p_business_date: string
@@ -27884,6 +27924,41 @@ export type Database = {
         }
         Returns: Json
       }
+      search_documents: {
+        Args: { p_limit?: number; p_query: string }
+        Returns: {
+          code: string
+          id: string
+          key: string
+          label: string
+          link_mode: string
+          route: string
+          total: number
+          updated_at: string
+        }[]
+      }
+      search_documents_sql: { Args: { p_kind: string }; Returns: string }
+      search_documents_withheld: {
+        Args: { p_query: string }
+        Returns: {
+          key: string
+          n: number
+          route: string
+        }[]
+      }
+      search_recents: {
+        Args: { p_limit?: number }
+        Returns: {
+          code: string
+          id: string
+          key: string
+          label: string
+          link_mode: string
+          route: string
+          updated_at: string
+        }[]
+      }
+      search_recents_uncovered: { Args: never; Returns: number }
       set_asset_acceptance: {
         Args: { p_acceptance_date: string; p_asset_id: string }
         Returns: Json

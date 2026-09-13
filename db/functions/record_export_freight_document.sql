@@ -67,8 +67,8 @@ BEGIN
     v_year := EXTRACT(YEAR FROM p_doc_date)::integer;
     PERFORM pg_advisory_xact_lock(hashtext('freight_code_' || v_year::text)::bigint);
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1 INTO v_seq
-    FROM freight_documents WHERE code LIKE 'FRT-' || v_year::text || '-%';
-    v_code := 'FRT-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    FROM freight_documents WHERE code LIKE document_type_prefix('freight_document') || '-' || v_year::text || '-%';
+    v_code := document_type_prefix('freight_document') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 
     -- allocation_basis 在本表是 NOT NULL,而出境单据【没有分摊】。
     -- 'stated' 是三个取值里唯一一个不意味着"由系统算一个分法"的:它的意思是

@@ -119,6 +119,22 @@ SEED_TABLES = {
                           "COALESCE(description_en,'') AS description_en, "
                           "COALESCE(description_zh,'') AS description_zh, sort_order"),
     "currencies":  (None, "code, name, is_base"),
+    # ★★ SEARCH-2b(2026-09-13):单据种类目录 —— 与 permissions / tax_codes
+    #   【逐字同一条理由,而且更硬一层】。这 40 行不是参考数据,它们是
+    #   **44 支铸码函数的输入**:document_type_prefix('quote') 读的就是这里。
+    #   仓库与线上在这张表上分家的后果不是"少看见几个数",是
+    #   **生产上开不出那一种单据**(读不到就抛,见 db/functions/document_type_prefix.sql)。
+    #   ☞ 所以逐行比对,而且 route / link_mode / match_columns 也一起比 ——
+    #     它们是【声明】(round 6 实测:route 推导不出来,31 张里至少 8 张会错),
+    #     而一份声明只有在有人核对它的时候才算数。
+    "document_types": (None, "key, prefix, table_name, numbering, "
+                             "COALESCE(sequence_name,'') AS sequence_name, route, link_mode, "
+                             "COALESCE(label_column,'') AS label_column, "
+                             "array_to_string(match_columns, ',') AS match_columns, "
+                             # ★ 模块闸也逐行比:写错一个码,被扣下的计数会去数
+                             #   一道与这张表无关的闸,而屏幕上那个数读起来与正确的
+                             #   一模一样(fixture 101 管它对不对,这里管仓库与线上一不一致)。
+                             "array_to_string(view_permission, ',') AS view_permission"),
     # GST-1:税码与税率是【法定事实】,不是操作员的地盘 —— 仓库与线上不一致
     # 正是必须被抓住的那件事。加一个税码只有在有代码认它、且它进哪一格被写下来
     # 之后才有意义,所以它与 permissions 同一类:扩充目录天生是迁移级动作。

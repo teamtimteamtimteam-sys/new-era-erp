@@ -391,14 +391,52 @@ export default function SearchEntry({
                                     <p className="text-sm text-[color:var(--brand-text)]">
                                         {t('search.emptyWhatYouCanFind')}
                                     </p>
-                                    {/* ★【S10:最近看过 / 限定在本页主语之内,都【不在这一刀里】】★
-                                        它们要 ~21 条索引(SEARCH-0 §Q5 实测:那 21 张表上
-                                        updated_at 索引 0 个、updated_by 索引 0 个),
-                                        而索引是 schema 改动 = SEARCH-2。
-                                        ☞ **说出来,不要留白** —— 一块空白读起来是"这里坏了"。 */}
-                                    <p className={noneLine} data-search-empty-recents="1">
-                                        {t('search.emptyNoRecentsYet')}
-                                    </p>
+                                    {/* ★★【SEARCH-2b:这一格【建起来了】,而空的时候要说出【为什么空】】★★
+                                        SEARCH-1 在这里画的是「还没建」;迁移 C 的 22 条
+                                        (updated_by, updated_at DESC) 索引与迁移 D 的
+                                        search_recents() 下去之后,它画的是真的最近编辑过。
+                                        ☞ 而它【今天对大多数人仍然是空的】,那不是坏了:
+                                          实测 updated_by 填了 135/196 行,但只有 3 个操作者
+                                          还在 auth.users 里(21 个里 18 个是探针残骸)。
+                                          所以空的那一句说的是【你还没编辑过任何东西】(裁定),
+                                          不是"没有结果"。两句话在屏幕上必须分得开。 */}
+                                    {showing && showing.recents.hits.length > 0 ? (
+                                        <section data-search-slot="recents" className="mt-3">
+                                            <h3 className={sectionH}>{t('search.sectionRecents')}</h3>
+                                            <ul className="mt-1 flex flex-col">
+                                                {showing.recents.hits.map((h) => (
+                                                    <li key={h.href}>
+                                                        <Link
+                                                            href={h.href}
+                                                            onClick={() => setOpen(false)}
+                                                            data-search-hit="recent"
+                                                            className="flex flex-wrap items-baseline gap-x-2 rounded px-2 py-1.5 text-sm hover:bg-[color:var(--brand-accent)]"
+                                                        >
+                                                            <span className="text-[color:var(--brand-text)]">{h.code}</span>
+                                                            {h.label !== '' && (
+                                                                <span className="text-[color:var(--brand-text)]">{h.label}</span>
+                                                            )}
+                                                            <span className="text-xs text-[color:var(--brand-muted-text)]">
+                                                                {t(h.moduleNavKey)}
+                                                            </span>
+                                                        </Link>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </section>
+                                    ) : (
+                                        <p className={noneLine} data-search-empty-recents="1">
+                                            {t('search.emptyNoRecentsYet')}
+                                        </p>
+                                    )}
+                                    {/* ★ 未覆盖的那些表【在屏幕上点名】(T3)—— 而那个数
+                                        由数据库现算,不写在这里。裁定当时说 10,分母是
+                                        「31 张有行的表」;按 39 张单据表算是 17。 */}
+                                    {showing && showing.recents.uncovered > 0 && (
+                                        <p className={noneLine} data-search-recents-uncovered={showing.recents.uncovered}>
+                                            {t('search.recentsUncovered', { count: String(showing.recents.uncovered) })}
+                                        </p>
+                                    )}
                                 </div>
                             )}
 
@@ -435,20 +473,45 @@ export default function SearchEntry({
                                         一处缺席不许被渲染成一个答案。 */}
                                     <section data-search-slot="records">
                                         <h3 className={sectionH}>{t('search.sectionRecords')}</h3>
-                                        {!showing || !showing.records.built ? (
+                                        {!showing ? (
+                                            /* 空查询:说出【这里能找到什么】,而不是留白。 */
+                                            <p className={noneLine}>{t('search.emptyWhatYouCanFindRecords')}</p>
+                                        ) : !showing.records.built ? (
+                                            /* ★ 这一支【留着】:它区分的是"这一半还没建"与"没找到",
+                                               而那条区别本身没有过期。今天 built 恒为 true。 */
                                             <p className={noneLine} data-search-records-state="not-built">
                                                 {t('search.recordsNotBuiltYet')}
                                             </p>
+                                        ) : showing.records.hits.length === 0 ? (
+                                            <p className={noneLine}>{t('search.noneRecords')}</p>
                                         ) : (
-                                            <ul className="mt-1">
+                                            <ul className="mt-1 flex flex-col">
                                                 {showing.records.hits.map((h) => (
                                                     <li key={h.href}>
-                                                        <Link href={h.href} onClick={() => setOpen(false)}>
-                                                            {h.code} · {h.label}
+                                                        <Link
+                                                            href={h.href}
+                                                            onClick={() => setOpen(false)}
+                                                            data-search-hit="record"
+                                                            className="flex flex-wrap items-baseline gap-x-2 rounded px-2 py-1.5 text-sm hover:bg-[color:var(--brand-accent)]"
+                                                        >
+                                                            <span className="text-[color:var(--brand-text)]">{h.code}</span>
+                                                            {/* ★ 有标签才给标签(裁定)—— 没有就不拿别的东西顶上。 */}
+                                                            {h.label !== '' && (
+                                                                <span className="text-[color:var(--brand-text)]">{h.label}</span>
+                                                            )}
+                                                            <span className="text-xs text-[color:var(--brand-muted-text)]">
+                                                                {t(h.moduleNavKey)}
+                                                            </span>
                                                         </Link>
                                                     </li>
                                                 ))}
                                             </ul>
+                                        )}
+                                        {/* ★ 不许静默截断 —— more 是【截断之前】的真条数算出来的。 */}
+                                        {showing && showing.records.more > 0 && (
+                                            <p className={noneLine}>
+                                                {t('search.moreNotShown', { count: String(showing.records.more) })}
+                                            </p>
                                         )}
                                         {showing && withheldLines(showing.records.withheld)}
                                     </section>

@@ -64,8 +64,8 @@ BEGIN
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1
     INTO v_seq
     FROM journal_entries
-    WHERE code LIKE 'JE-' || v_year::text || '-%';
-    v_code := 'JE-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    WHERE code LIKE document_type_prefix('journal_entry') || '-' || v_year::text || '-%';
+    v_code := document_type_prefix('journal_entry') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 
     INSERT INTO journal_entries (code, entry_date, memo, source_type, source_id)
     VALUES (v_code, p_entry_date, p_memo, p_source_type, p_source_id)

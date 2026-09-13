@@ -119,6 +119,12 @@ CREATE INDEX idx_expenses_date ON public.expenses (expense_date);
 CREATE INDEX idx_expenses_supplier ON public.expenses (supplier_id);
 CREATE INDEX idx_expenses_payment_status ON public.expenses (payment_status);
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX expenses_code_trgm ON public.expenses USING gin (code extensions.gin_trgm_ops);
 -- ── EQP-1b-ii:硬保证 ──────────────────────────────────────────────────────
 -- (另一个索引 idx_expenses_po_line 与那条外键一起,住在
 --  db/tables/purchase_order_lines.sql 的末尾 —— 理由见上面那段引用环的注释。)

@@ -130,6 +130,16 @@ CREATE POLICY "freight_allocations write by permission"
 
 CREATE INDEX idx_freight_allocations_batch ON public.freight_allocations (inbound_batch_id);
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX freight_documents_code_trgm ON public.freight_documents USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-2b · 迁移 C:「最近编辑过」要的那一条 —— `updated_by = auth.uid()`
+-- 按 updated_at DESC 取前 5(T3)。SEARCH-0 §Q5 实测:这两列上此前一条索引都没有。
+CREATE INDEX freight_documents_recents ON public.freight_documents (updated_by, updated_at DESC);
 -- LOG-4a:出境单据【没有分摊行】—— 在表上拒,不是靠"RPC 没提供那条路"。
 -- RPC 不提供只是没铺路,守卫才是墙,而直插是这套系统里真实存在的一条路。
 CREATE TRIGGER trg_freight_allocations_direction

@@ -118,11 +118,21 @@ COMMENT ON COLUMN public.inbound_batches.declared_qty IS
 
 CREATE INDEX idx_inbound_batches_po ON public.inbound_batches (purchase_order_id);
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX inbound_batches_code_trgm ON public.inbound_batches USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-2b · 迁移 C:「最近编辑过」要的那一条 —— `updated_by = auth.uid()`
+-- 按 updated_at DESC 取前 5(T3)。SEARCH-0 §Q5 实测:这两列上此前一条索引都没有。
+CREATE INDEX inbound_batches_recents ON public.inbound_batches (updated_by, updated_at DESC);
 CREATE OR REPLACE FUNCTION public.generate_inbound_code()
 RETURNS trigger LANGUAGE plpgsql AS $function$
 BEGIN
     IF NEW.code IS NULL OR NEW.code = '' THEN
-        NEW.code := 'IN-' || EXTRACT(YEAR FROM NOW())::TEXT || '-' ||
+        NEW.code := document_type_prefix('inbound_batch') || '-' || EXTRACT(YEAR FROM NOW())::TEXT || '-' ||
                     LPAD(nextval('inbound_code_seq')::TEXT, 4, '0');
     END IF;
     RETURN NEW;

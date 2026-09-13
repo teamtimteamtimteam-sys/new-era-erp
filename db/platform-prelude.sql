@@ -150,3 +150,21 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, au
 -- 【幂等】与本文件其余部分同一条规矩:verify_rebuild 会反复跑它。
 CREATE SCHEMA IF NOT EXISTS extensions;
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
+
+-- ★★ 而光装上它还不够 —— 【读的那一侧】的 search_path 决定了索引长什么样 ★★
+--   实测(2026-09-13,线上回滚掉的事务里):同一条索引,
+--     search_path 里【有】extensions → `USING gin (code gin_trgm_ops)`
+--     search_path 里【没有】        → `USING gin (code extensions.gin_trgm_ops)`
+--   pg_get_indexdef 把【在 search_path 里看得见】的 opclass 省掉架构前缀,
+--   而 db/verify_rebuild.py 与 db/check_mirrors.py 比的正是这段文本。
+--   于是线上(postgres 角色带着 search_path="$user", public, extensions)与
+--   一个裸集群的重建会渲染出两段【不同的字符串】,门报一处漂移 ——
+--   而那处漂移与数据、与镜像都无关,它只是两边的 search_path 不一样。
+--
+--   ☞ 这正是本文件的职责:线上那条 search_path 是【平台给的】
+--     (pg_db_role_setting 里 postgres 角色上的一条,实测),所以它属于
+--     「镜像期待平台提供什么」。裸集群上由这里补齐。
+--   【为什么是 ROLE 级而不是 DATABASE 级】线上就是 ROLE 级的,照抄;
+--     而且 db/gate.py 的 guc 判据只看 `setrole = 0`(库级),
+--     写成库级反而会凭空造出一处 GUC 漂移。
+ALTER ROLE postgres SET search_path TO "$user", public, extensions;

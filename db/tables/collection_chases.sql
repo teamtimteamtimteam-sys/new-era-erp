@@ -41,6 +41,12 @@ CREATE TABLE public.collection_chases (
         CHECK (reached OR contacted_person IS NULL)
 );
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX collection_chases_code_trgm ON public.collection_chases USING gin (code extensions.gin_trgm_ops);
 COMMENT ON TABLE public.collection_chases IS
     'CHASE-1:一次催收 = 一行【不可变】的事件。谁催的(chased_by)、哪一天(chased_on,绝不默认)、走哪条路(channel)、有没有真的联系上人(reached)、接触到谁(contacted_person)、对方说了什么(summary),外加【那一天我们告诉他欠多少】的冻结数字。【为什么冻】六周后回头读这条记录,要看到的是当时谈的那个数,不是今天的余额 —— 与 customer_statements、bank_reconciliations 同一条。【那五个数不是自己算的】它们来自 customer_statement_data(客户, chased_on, chased_on) 的单日窗口,也就是对账单印的那一支函数 —— 一份实现两个调用方,同一个客户不会被报出两个数字。【为什么挂在客户上而不是单据上】实测线上 9 行未结应收里 8 行是未开票的销售,而 sales_records 一列 code 都没有,产出批号还不唯一(OUT-2026-0185/0186 各挂两行)—— 对 99.4% 的金额,"你欠我的那张单据"这句话说不出口。单据引用是可选的一组,在 collection_chase_documents 里。【更正】不改行:新起一行 + 旧行落 superseded_at 与必填理由;可改会让"他确实答应过"这唯一一份证据在他没付之后被抹掉。写入只走 record_collection_chase(SECURITY DEFINER),所以这里只开 SELECT。';
 

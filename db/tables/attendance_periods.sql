@@ -35,6 +35,12 @@ COMMENT ON TABLE public.attendance_periods IS
 
 CREATE INDEX idx_attendance_periods_month ON public.attendance_periods (period_month DESC);
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX attendance_periods_code_trgm ON public.attendance_periods USING gin (code extensions.gin_trgm_ops);
 ALTER TABLE public.attendance_periods ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "attendance_periods select by permission" ON public.attendance_periods

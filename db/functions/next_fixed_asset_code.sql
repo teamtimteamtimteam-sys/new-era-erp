@@ -12,7 +12,7 @@ BEGIN
     SELECT COALESCE(MAX(split_part(fa.code, '-', 3)::integer), 0) + 1
     INTO v_seq
     FROM fixed_assets fa
-    WHERE fa.code LIKE 'FA-' || v_year::text || '-%';
-    RETURN 'FA-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    WHERE fa.code LIKE document_type_prefix('fixed_asset') || '-' || v_year::text || '-%';
+    RETURN document_type_prefix('fixed_asset') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 END;
 $function$;

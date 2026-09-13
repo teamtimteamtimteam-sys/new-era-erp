@@ -107,8 +107,8 @@ BEGIN
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1
     INTO v_seq
     FROM expenses
-    WHERE code LIKE 'EXP-' || v_year::text || '-%';
-    v_mirror_code := 'EXP-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    WHERE code LIKE document_type_prefix('expense') || '-' || v_year::text || '-%';
+    v_mirror_code := document_type_prefix('expense') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 
     -- 【EQP-1b-iii · D3:employee_id 要抄,purchase_order_line_id 【不要】抄】
     -- 抄 employee_id:PAYEE-1a 加了这一列并放宽了 expenses_counterparty_shape

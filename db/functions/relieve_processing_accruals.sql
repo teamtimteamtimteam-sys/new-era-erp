@@ -86,11 +86,11 @@ BEGIN
 
     -- 单据号:与 record_expense 同一套(advisory lock + 年内递增)
     PERFORM pg_advisory_xact_lock(hashtext('expense_code_' || EXTRACT(YEAR FROM p_expense_date)::integer::text)::bigint);
-    SELECT 'EXP-' || EXTRACT(YEAR FROM p_expense_date)::integer::text || '-' ||
+    SELECT document_type_prefix('expense') || '-' || EXTRACT(YEAR FROM p_expense_date)::integer::text || '-' ||
            LPAD((COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1)::text, 4, '0')
     INTO v_code
     FROM expenses
-    WHERE code LIKE 'EXP-' || EXTRACT(YEAR FROM p_expense_date)::integer::text || '-%';
+    WHERE code LIKE document_type_prefix('expense') || '-' || EXTRACT(YEAR FROM p_expense_date)::integer::text || '-%';
     v_je := post_journal_entry(p_expense_date, 'Expense ' || v_code || ' ' || fin_cost_account(v_type),
                                'expense', v_expense_id, v_lines);
 

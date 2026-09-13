@@ -74,7 +74,7 @@ BEGIN
     -- 咨询锁串行化,与 EXP/JE/收付款/汇缴的取号手法一致。
     PERFORM pg_advisory_xact_lock(hashtext('mgmt_pack_' || to_char(v_start, 'YYYY-MM'))::bigint);
     SELECT COUNT(*) + 1 INTO v_seq FROM management_packs WHERE period_month = v_start;
-    v_code := 'PACK-' || to_char(v_start, 'YYYY-MM') ||
+    v_code := document_type_prefix('management_pack') || '-' || to_char(v_start, 'YYYY-MM') ||
               CASE WHEN v_seq > 1 THEN '-' || v_seq::text ELSE '' END;
 
     -- ★【旧的那一份必须【先】落 superseded,而这是探针当场抓到的】★

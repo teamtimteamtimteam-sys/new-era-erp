@@ -13,7 +13,7 @@ BEGIN
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1
     INTO v_seq
     FROM certificates_of_destruction
-    WHERE code LIKE 'COD-' || v_year::text || '-%';
-    RETURN 'COD-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    WHERE code LIKE document_type_prefix('cod') || '-' || v_year::text || '-%';
+    RETURN document_type_prefix('cod') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 END;
 $function$;

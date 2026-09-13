@@ -52,6 +52,12 @@ CREATE TABLE public.certificates_of_destruction (
         status <> 'pending' OR (code IS NULL AND verification_token IS NULL AND snapshot IS NULL))
 );
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX certificates_of_destruction_code_trgm ON public.certificates_of_destruction USING gin (code extensions.gin_trgm_ops);
 -- 【一票货同时只能有一张活证书】作废掉的留着 —— 供应商手里那张纸要查得到。
 CREATE UNIQUE INDEX uq_cod_live_per_batch
     ON public.certificates_of_destruction (inbound_batch_id) WHERE status <> 'void';

@@ -75,8 +75,8 @@ BEGIN
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1
     INTO v_seq
     FROM bank_statements
-    WHERE code LIKE 'BS-' || v_year::text || '-%';
-    v_code := 'BS-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    WHERE code LIKE document_type_prefix('bank_statement') || '-' || v_year::text || '-%';
+    v_code := document_type_prefix('bank_statement') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 
     INSERT INTO bank_statements (id, code, bank_account_code, currency, period_start, period_end,
                                  opening_balance, closing_balance, file_name)

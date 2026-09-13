@@ -11,8 +11,8 @@ BEGIN
     PERFORM pg_advisory_xact_lock(hashtext('chase_code_' || v_year::text)::bigint);
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1 INTO v_seq
       FROM collection_chases
-     WHERE code LIKE 'CHASE-' || v_year::text || '-%';
-    RETURN 'CHASE-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+     WHERE code LIKE document_type_prefix('collection_chase') || '-' || v_year::text || '-%';
+    RETURN document_type_prefix('collection_chase') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 END;
 $function$
 

@@ -89,12 +89,22 @@ CREATE INDEX idx_contracts_customer ON public.contracts (customer_id) WHERE dele
 CREATE INDEX idx_contracts_supplier ON public.contracts (supplier_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_contracts_status ON public.contracts (status) WHERE deleted_at IS NULL;
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX contracts_code_trgm ON public.contracts USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-2b · 迁移 C:「最近编辑过」要的那一条 —— `updated_by = auth.uid()`
+-- 按 updated_at DESC 取前 5(T3)。SEARCH-0 §Q5 实测:这两列上此前一条索引都没有。
+CREATE INDEX contracts_recents ON public.contracts (updated_by, updated_at DESC);
 -- 取号:与 customers / suppliers 同一形状
 CREATE OR REPLACE FUNCTION public.assign_contract_code()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
 BEGIN
     IF NEW.code IS NULL OR NEW.code = '' THEN
-        NEW.code := 'CON-' || to_char(COALESCE(NEW.effective_from, CURRENT_DATE), 'YYYY')
+        NEW.code := document_type_prefix('contract') || '-' || to_char(COALESCE(NEW.effective_from, CURRENT_DATE), 'YYYY')
                     || '-' || lpad(nextval('public.contract_code_seq')::text, 4, '0');
     END IF;
     RETURN NEW;

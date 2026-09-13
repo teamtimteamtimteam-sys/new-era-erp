@@ -26,18 +26,24 @@
 //     这条条目被扣下,正因为他一个属主都进不去,那条规则在这里【没有答案】。
 //     所以取 modules[0],并且把这句话写在这里。
 //
-// ── ★ 一个【没有量的数】,照直说 ────────────────────────────────────────────
-//   本支每次调用读一次 `getMyPermissions()`(React cache 在一次请求内只打一次库)。
-//   **一次搜索在生产上要多久,本刀没有量,而且今天量不了** ——
-//   SEARCH-0 §4.2 记着理由:那 21 张单据表今天合计 196 行,`EXPLAIN` 出来全是
-//   Seq Scan,那次测量量的是【形状】不是【成本】。报一个毫秒数就是编一个数。
-//   ☞ job ② 与 job ③ 【一行数据库都不读】(注册表在内存里、手册索引在内存里),
-//     所以今天这支的成本 = 一次权限查询。job ① 进来那天,这句话要重写。
+// ── ★ 一个【没有量的数】,照直说 —— 而 job ① 进来之后这句话【已经重写过】 ──
+//   SEARCH-1 在这里写着「job ① 进来那天,这句话要重写」。那天是 2026-09-13。
+//   **改写之后的事实:** 本支每次调用打四次库 ——
+//     ① `current_user_permissions`(React cache,一次请求内只打一次);
+//     ② `search_documents`      —— 一支跨 39 张表的 UNION ALL;
+//     ③ `search_documents_withheld` —— 逐个模块闸,闸不通过才去 count;
+//     ④ `search_recents` + `search_recents_uncovered`(空查询时也打)。
+//   ★★ 而【要多久】仍然没有量,而且理由和 SEARCH-0 §4.2 那条一模一样:
+//     39 张单据表今天合计 319 行,规划器在这个体量上【永远】选 Seq Scan ——
+//     迁移 A 的抬头把这件事量过并写下来了(合成 20 万行时 trigram 才有 2.8×)。
+//     **在 319 行上测出来的毫秒数,量的是往返,不是这支查询的成本。**
+//     所以这里仍然不报一个毫秒数;要报,得先有数据。
 import { getMyPermissions } from '@/lib/permissions'
 import { getTranslations } from '@/lib/i18n/server'
 import { FUNCTIONS, MODULES, allows } from '@/lib/modules'
 import { MANUAL_PASSAGES, MANUAL_VERSION, MANUAL_ISSUED } from '@/data/manualIndex.generated'
 import { terms, matchesAll, snippet, hrefWords } from '@/lib/search/match'
+import { searchRecords, recentRecords } from '@/lib/search/records'
 import type { SearchResults, PageHit, ManualHit, WithheldCount } from '@/lib/search/types'
 
 /**
@@ -72,11 +78,16 @@ export async function searchEverything(query: string): Promise<SearchResults> {
     const ts = terms(query)
     const t = await getTranslations()
 
+    // ★ 「最近编辑过」在【空查询时也要有】—— 它答的是「我上次在弄什么」,
+    //   不是「我搜了什么」。所以它在早退之前就取。
+    const recents = await recentRecords()
+
     const empty: SearchResults = {
         query,
-        records: { built: false, hits: [], withheld: [], more: 0 },
+        records: { built: true, hits: [], withheld: [], more: 0 },
         pages: { hits: [], withheld: [], more: 0 },
         manual: { hits: [], more: 0, version: MANUAL_VERSION, issued: MANUAL_ISSUED },
+        recents,
     }
     // 【空查询不是一次搜索】—— 不查库、不扫手册。面板的空状态自己会说话。
     if (ts.length === 0) return empty
@@ -87,6 +98,13 @@ export async function searchEverything(query: string): Promise<SearchResults> {
     //   **一次瞬时故障与一次蓄意收权在屏幕上长得一模一样。**
     //   这里【不接】那个异常,让它落到错误边界上。
     const perms = await getMyPermissions()
+
+    // ══ ① 找单据 ════════════════════════════════════════════════════════════
+    // ★ 整支匹配 + 排序 + 计数都在数据库里(lib/search/records.ts 的抬头说了
+    //   为什么不是这里循环 39 次)。这里只做 href / 模块名那一层翻译。
+    // ★ 用【原样的查询串】,不是 terms —— code 匹配无下限(裁定),
+    //   而 terms 会把 "PO-2026-0001" 切成词。切了就找不回那张单据。
+    const records = await searchRecords(query)
 
     // ══ ② 找页面与动作 ══════════════════════════════════════════════════════
     // 匹配两样:译好的标签,以及地址里的词(`/inbound/receive` → "inbound receive")。
@@ -144,17 +162,12 @@ export async function searchEverything(query: string): Promise<SearchResults> {
 
     return {
         query,
-        // ══ ① 找单据 —— ★ SEARCH-2 的槽 ★ ══════════════════════════════════
-        // 【为什么是 built: false 而不是一个空数组】一个空数组读起来是"没找到",
-        // 而事实是"这一半还没建"。**一处缺席不许被渲染成一个答案** ——
-        // 这是本仓库反复付账的那一条,而这里是它最容易再发生一次的地方。
-        //
-        // ★★ SEARCH-2:**把 hits/withheld/more 填在这里,把 built 改成 true。**
-        //   那一刀要的三样东西(document_types 前缀表 · pg_trgm + GIN ·
-        //   ~21 条 updated_at/updated_by 索引)全部是迁移,所以它们不在本刀里
-        //   —— SEARCH-0 §5 的分刀理由。**但槽在这里,面板那一节也在,
-        //   所以那一刀是【填】,不是【再开一个面板】。**
-        records: { built: false, hits: [], withheld: [], more: 0 },
+        // ══ ① 找单据 —— SEARCH-1 留的槽,SEARCH-2b(2026-09-13)填上了 ═══════
+        // 【built 这个字段为什么还在】它曾经用来区分"这一半还没建"与"没找到"——
+        // 那条区别本身没有过期,只是今天答案变了:三支迁移都下去了,所以是 true。
+        // ★ 它留着,因为面板那一节仍然靠它分辨这两句话;删掉它等于把区别删掉。
+        records: { built: true, ...records },
+        recents,
         pages: {
             hits: ranked.slice(0, PAGE_LIMIT),
             withheld: rollUp(withheldModules),

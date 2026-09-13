@@ -11,7 +11,7 @@ DECLARE v_year integer := EXTRACT(YEAR FROM p_date)::integer; v_seq integer;
 BEGIN
     PERFORM pg_advisory_xact_lock(hashtext('medical_claim_code_' || v_year::text)::bigint);
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1 INTO v_seq
-    FROM medical_claims WHERE code LIKE 'MC-' || v_year::text || '-%';
-    RETURN 'MC-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    FROM medical_claims WHERE code LIKE document_type_prefix('medical_claim') || '-' || v_year::text || '-%';
+    RETURN document_type_prefix('medical_claim') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 END;
 $function$;

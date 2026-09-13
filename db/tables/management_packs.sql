@@ -76,6 +76,12 @@ CREATE UNIQUE INDEX idx_management_packs_live_month
     ON public.management_packs (period_month) WHERE superseded_at IS NULL;
 CREATE INDEX idx_management_packs_month ON public.management_packs (period_month);
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX management_packs_code_trgm ON public.management_packs USING gin (code extensions.gin_trgm_ops);
 -- 只可追加:一个包是一件产出过的东西。放行的【只有】那一次 superseded 转移,
 -- 其余列逐列锁死 —— 与 payments / collection_chases 的守卫同形。
 CREATE OR REPLACE FUNCTION public.guard_management_pack_mutation()

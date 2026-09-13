@@ -590,8 +590,18 @@ const en = {
         sectionPages: 'Pages and actions',
         sectionManual: 'Manual',
         // ★★ job ① 的槽(S2)。它说的是【还没建】,不是【没找到】。
-        //    SEARCH-2 把它换成真的结果时,连这一句一起换掉。
+        //    ☞ SEARCH-2b(2026-09-13)之后 built 恒为 true,所以这一句在屏幕上
+        //      【今天画不出来】。它留着,因为分支留着:那条区别本身没有过期,
+        //      而删掉文案等于把"还没建"与"没找到"重新合成一句话。
         recordsNotBuiltYet: 'Searching for records — by document number, or by the last four digits — is not built yet. This is where it will appear.',
+        // SEARCH-2b:单据那一节的三句话。
+        noneRecords: 'No document matches.',
+        emptyWhatYouCanFindRecords: 'Type a document number — the whole thing, or just the last four digits.',
+        sectionRecents: 'Recently edited',
+        // ★ {count} 由数据库现算(search_recents_uncovered()),【不写死】——
+        //   裁定当时说的是 10,而那个 10 的分母是「31 张有行的表」;
+        //   按 39 张单据表算,同一个判据给出 17。
+        recentsUncovered: '{count} kinds of document cannot appear here yet — they do not record who last edited them.',
         nonePages: 'No page or action matches.',
         noneManual: 'No passage in the manual matches.',
         // ★【不许静默截断】—— 一份看不见截断的结果读起来就是"只有这么多"。

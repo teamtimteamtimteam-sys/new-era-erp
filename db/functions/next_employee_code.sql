@@ -10,8 +10,8 @@ BEGIN
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1
     INTO v_seq
     FROM employees
-    WHERE code LIKE 'EMP-' || v_year::text || '-%';
-    RETURN 'EMP-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    WHERE code LIKE document_type_prefix('employee') || '-' || v_year::text || '-%';
+    RETURN document_type_prefix('employee') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 END;
 $function$
 

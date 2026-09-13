@@ -197,8 +197,8 @@ BEGIN
     v_year := EXTRACT(YEAR FROM p_issue_date)::integer;
     PERFORM pg_advisory_xact_lock(hashtext('invoice_code_' || v_year::text)::bigint);
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1 INTO v_seq
-    FROM invoices WHERE code LIKE 'INV-' || v_year::text || '-%';
-    v_code := 'INV-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    FROM invoices WHERE code LIKE document_type_prefix('invoice') || '-' || v_year::text || '-%';
+    v_code := document_type_prefix('invoice') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 
     -- 【过账:借 1100 应收 / 贷 2500 合同负债】单据币种,按订单抄来的汇率。
     -- 期间锁/年结闸由 post_journal_entry 对 p_issue_date 统一执行。

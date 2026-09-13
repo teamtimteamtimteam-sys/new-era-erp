@@ -10,7 +10,7 @@ BEGIN
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1
     INTO v_seq
     FROM purchase_orders
-    WHERE code LIKE 'PO-' || v_year::text || '-%';
-    RETURN 'PO-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    WHERE code LIKE document_type_prefix('purchase_order') || '-' || v_year::text || '-%';
+    RETURN document_type_prefix('purchase_order') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 END;
 $function$

@@ -11,8 +11,8 @@ BEGIN
     PERFORM pg_advisory_xact_lock(hashtext('statement_code_' || v_year::text)::bigint);
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1 INTO v_seq
       FROM customer_statements
-     WHERE code LIKE 'STMT-' || v_year::text || '-%';
-    RETURN 'STMT-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+     WHERE code LIKE document_type_prefix('customer_statement') || '-' || v_year::text || '-%';
+    RETURN document_type_prefix('customer_statement') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 END;
 $function$
 

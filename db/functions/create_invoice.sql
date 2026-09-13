@@ -105,8 +105,8 @@ BEGIN
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1
     INTO v_seq
     FROM invoices
-    WHERE code LIKE 'INV-' || v_year::text || '-%';
-    v_code := 'INV-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    WHERE code LIKE document_type_prefix('invoice') || '-' || v_year::text || '-%';
+    v_code := document_type_prefix('invoice') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 
     -- 5. 第一趟:逐张销售校验(存在 → 归属 → 未被占用 → 币种一致)并累计金额。
     FOREACH v_sale_id IN ARRAY p_sales_record_ids

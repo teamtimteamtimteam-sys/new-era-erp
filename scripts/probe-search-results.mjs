@@ -122,6 +122,9 @@ const READ = `(() => {
         manualSectionText: txt(sec('manual')),
         recordsState: document.querySelector('[data-search-records-state]')?.getAttribute('data-search-records-state') ?? null,
         recordsText: txt(document.querySelector('[data-search-records-state]')),
+        // SEARCH-2b:单据那一节现在【真的有命中】,所以要读得到它们。
+        recordHits: [...(sec('records')?.querySelectorAll('[data-search-hit="record"]') ?? [])].map(txt),
+        recentHits: [...(sec('recents')?.querySelectorAll('[data-search-hit="recent"]') ?? [])].map(txt),
         withheld: [...document.querySelectorAll('[data-search-withheld]')]
             .map((e) => ({ module: e.getAttribute('data-search-withheld'), text: txt(e) })),
         emptyRecents: txt(document.querySelector('[data-search-empty-recents]')),
@@ -277,10 +280,39 @@ async function main() {
         r2.manualHits.length > 0 && versionShown,
         `「partially shipped」→ 手册 ${r2.manualHits.length} 段 · 版本行里有 v1.0.1:${versionShown} · 首条:${(r2.manualHits[0] ?? '').slice(0, 120)}`)
 
-    // R3 · ★ job ① 的槽:它说的是【还没建】,不是【没找到】
-    probe('R3.records-slot-says-not-built',
-        r2.recordsState === 'not-built' && r2.recordsText.length > 0,
-        `单据那一节 state=${r2.recordsState} —— 「${r2.recordsText.slice(0, 90)}」`)
+    // R3 · ★★ job ① 的槽 —— **SEARCH-2b(2026-09-13)把它从"还没建"换成了真结果**
+    //
+    // 【这一格原来断言的是什么,以及为什么换掉】SEARCH-1 写的是
+    //   `recordsState === 'not-built'` —— 它钉住的是「这一半还没建」与「没找到」
+    //   **必须分得开**。那条区别今天一个字都没变,**变的是答案**:三支迁移
+    //   (document_types · pg_trgm+GIN · 22 条 recents 索引)下去之后,
+    //   `built` 恒为 true,于是 `data-search-records-state` 这个属性**根本不再渲染**。
+    //   ☞ 所以原样留着它,就是留下一条【永远红】的判据;而把它删掉,
+    //     就是把"找得到单据"这件事变成没有人看着。**两个都不对,所以是换。**
+    //
+    // 【换成什么 —— 而这一格必须用一个【真的存在的】单据号】
+    //   探针自己不建单据(建一张真单据要走整条业务路径,还会烧号 —— 那 9 支
+    //   触发器用 nextval,不回滚)。所以它拿 admin 身份搜一个**线上真有的前缀**,
+    //   断言:① 不再画「还没建」;② 至少一条命中;③ 命中里带着那个号。
+    // ★ 号从【线上现读】,不写死一个。写死的那一刻起,它就是一条会在
+    //   某张单据被删掉的那天为了错的理由变红的判据 —— 而那天没有人会知道
+    //   红的是"搜索坏了"还是"那一行没了"。
+    const probeCode = await (async () => {
+        const r = await rest('/rest/v1/quotes?select=code&order=code.desc&limit=1')
+        const rows = await r.json()
+        if (!r.ok || !Array.isArray(rows) || rows.length === 0 || !rows[0].code) {
+            throw new Error(`R3 取不到一个真的单据号(HTTP ${r.status}) —— `
+                + `这不是"搜索坏了",是探针自己拿不到判据的输入,不许当成通过`)
+        }
+        return rows[0].code
+    })()
+    const RECORD_PROBE_CODE = probeCode
+    const r3 = await type(RECORD_PROBE_CODE)
+    probe('R3.records-slot-is-built-and-finds-one',
+        r3.recordsState === null && r3.recordHits.length > 0
+            && r3.recordHits.some((h) => h.includes(RECORD_PROBE_CODE)),
+        `单据那一节 state=${r3.recordsState}(built ⇒ 不该再有 not-built)· `
+        + `命中 ${r3.recordHits.length} 条:${r3.recordHits.slice(0, 3).map((h) => `「${h.slice(0, 48)}」`).join(' · ')}`)
 
     // R4 · ★ S7 那条【Tim 没说、而面板必须处理】的后果:中文搜手册,匹配不到
     const r4 = await type('入库批次')

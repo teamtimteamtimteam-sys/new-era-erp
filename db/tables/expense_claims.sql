@@ -64,6 +64,12 @@ COMMENT ON COLUMN public.expense_claims.posting_date IS
 CREATE INDEX idx_expense_claims_employee ON public.expense_claims (employee_id, spend_date DESC);
 CREATE INDEX idx_expense_claims_open ON public.expense_claims (status) WHERE status = 'submitted';
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX expense_claims_code_trgm ON public.expense_claims USING gin (code extensions.gin_trgm_ops);
 ALTER TABLE public.expense_claims ENABLE ROW LEVEL SECURITY;
 
 -- 【读:财务看得见全部,员工看得见自己的】与 my_profile / medical 同一条思路。

@@ -87,6 +87,12 @@ CREATE TRIGGER trg_journal_entries_immutable
 -- 要问好几次,做期间对比再翻一倍。此前这张表上只有 pkey 与 code 的唯一索引。
 CREATE INDEX idx_journal_entries_entry_date ON public.journal_entries (entry_date);
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX journal_entries_code_trgm ON public.journal_entries USING gin (code extensions.gin_trgm_ops);
 CREATE TRIGGER trg_journal_entries_period
     BEFORE INSERT ON public.journal_entries
     FOR EACH ROW EXECUTE FUNCTION public.guard_journal_entry_period();

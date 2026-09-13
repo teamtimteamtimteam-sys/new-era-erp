@@ -134,8 +134,8 @@ BEGIN
     v_year := EXTRACT(YEAR FROM p_doc_date)::integer;
     PERFORM pg_advisory_xact_lock(hashtext('freight_code_' || v_year::text)::bigint);
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1 INTO v_seq
-    FROM freight_documents WHERE code LIKE 'FRT-' || v_year::text || '-%';
-    v_code := 'FRT-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    FROM freight_documents WHERE code LIKE document_type_prefix('freight_document') || '-' || v_year::text || '-%';
+    v_code := document_type_prefix('freight_document') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 
     -- ── 单据先落地,分录号后补 ───────────────────────────────────────────────
     -- 【顺序是被外键逼出来的,不是风格】freight_allocations 的外键指向本单,

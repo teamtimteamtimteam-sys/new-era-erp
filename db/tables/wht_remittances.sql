@@ -37,6 +37,12 @@ CREATE TABLE public.wht_remittances (
 
 CREATE INDEX idx_wht_remittances_month ON public.wht_remittances (period_month);
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX wht_remittances_code_trgm ON public.wht_remittances USING gin (code extensions.gin_trgm_ops);
 -- 只可追加:一次汇款是一件发生过的事。**改正的走法是冲销那张分录**,
 -- 而不是改这一行 —— 见 wht_liability_by_month 的视图注释:已汇金额是从
 -- 【总账】读的,所以冲销分录会让这一笔自动不作数,不需要在这里标任何状态。

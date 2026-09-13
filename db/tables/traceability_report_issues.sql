@@ -24,6 +24,12 @@ CREATE TABLE public.traceability_report_issues (
     UNIQUE (code, version)
 );
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX traceability_report_issues_code_trgm ON public.traceability_report_issues USING gin (code extensions.gin_trgm_ops);
 COMMENT ON TABLE public.traceability_report_issues IS
     'AUD-1:客户审计报告(可追溯报告)的签发档,形状逐字取自 so_issues / po_issues / shipment_issues / cn_issues / qt_issues / invoice_issues(这是第七份)。谁、何时、第几版、哪个产出批、字节摘要。【快照就是那份字节】—— 不另存一份推导结果:报告的每一个输入(血缘、回收率、含量出处)都可能随后续录入而变,而客户手里那一份必须停在发出去的那一刻。code = TRC-YYYY-NNNN,属于【这个批次的报告】而不是每一版:第 1 版铸号,重发沿用,客户的引用因此不会失效。【没有"已发送"标志】—— 系统不知道对方收没收到。';
 

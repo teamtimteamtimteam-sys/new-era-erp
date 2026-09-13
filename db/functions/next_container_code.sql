@@ -11,8 +11,8 @@ BEGIN
     v_year := EXTRACT(YEAR FROM p_date)::integer;
     PERFORM pg_advisory_xact_lock(hashtext('container_code_' || v_year::text)::bigint);
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1 INTO v_seq
-    FROM containers WHERE code LIKE 'CTR-' || v_year::text || '-%';
-    RETURN 'CTR-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    FROM containers WHERE code LIKE document_type_prefix('container') || '-' || v_year::text || '-%';
+    RETURN document_type_prefix('container') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 END;
 $function$
 

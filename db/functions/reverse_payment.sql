@@ -33,7 +33,7 @@ BEGIN
     v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, CURRENT_DATE, 'Payment reversal ' || v_orig.code);
 
     -- 镜像收付款单(现金退回),挂冲销分录,不带核销行
-    v_mirror_code := fin_next_payment_code(CASE WHEN v_orig.direction = 'in' THEN 'RCPT' ELSE 'PMT' END, CURRENT_DATE);
+    v_mirror_code := fin_next_payment_code(CASE WHEN v_orig.direction = 'in' THEN document_type_prefix('payment_receipt') ELSE document_type_prefix('payment_out') END, CURRENT_DATE);
 
     -- SOD-1:告诉 guard_payment_sod 这是一次【冲销】,不是一次付款。
     PERFORM set_config('evoltrya.payment_reversal_ctx', '1', true);

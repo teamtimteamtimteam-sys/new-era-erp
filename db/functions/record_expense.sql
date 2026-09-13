@@ -396,8 +396,8 @@ BEGIN
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1
     INTO v_seq
     FROM expenses
-    WHERE code LIKE 'EXP-' || v_year::text || '-%';
-    v_code := 'EXP-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    WHERE code LIKE document_type_prefix('expense') || '-' || v_year::text || '-%';
+    v_code := document_type_prefix('expense') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 
     -- 6. 先过分录(source_id = 预生成的 expense id,无需回填),期间锁在此生效。
     --    paid → 贷银行;unpaid → 贷 2000 应付。行走原币。

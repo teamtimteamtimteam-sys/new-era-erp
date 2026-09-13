@@ -39,6 +39,16 @@ CREATE TABLE public.work_orders (
     )
 );
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX work_orders_code_trgm ON public.work_orders USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-2b · 迁移 C:「最近编辑过」要的那一条 —— `updated_by = auth.uid()`
+-- 按 updated_at DESC 取前 5(T3)。SEARCH-0 §Q5 实测:这两列上此前一条索引都没有。
+CREATE INDEX work_orders_recents ON public.work_orders (updated_by, updated_at DESC);
 COMMENT ON TABLE public.work_orders IS
     'WO-1a:工单 = 一份【打算加工什么、多少、什么时候】的计划。实绩在 processing_runs 那一侧,两者由 processing_runs.work_order_id 相连(该列 WO-1a 建出、WO-1b 才由 commit_processing_run 写入)。';
 COMMENT ON COLUMN public.work_orders.status IS

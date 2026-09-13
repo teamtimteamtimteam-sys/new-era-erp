@@ -21,7 +21,7 @@ BEGIN
             (SELECT code FROM attendance_periods WHERE period_month = v_m);
     END IF;
 
-    v_code := 'ATT-' || to_char(v_m, 'YYYY-MM');
+    v_code := document_type_prefix('attendance_period') || '-' || to_char(v_m, 'YYYY-MM');
     INSERT INTO attendance_periods (code, period_month, opened_by)
     VALUES (v_code, v_m, auth.uid()) RETURNING id INTO v_id;
 

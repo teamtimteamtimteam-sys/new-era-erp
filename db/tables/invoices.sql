@@ -73,6 +73,12 @@ CREATE INDEX idx_invoices_issue_date ON public.invoices (issue_date);
 
 CREATE INDEX idx_invoices_order ON public.invoices (sales_order_id);
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX invoices_code_trgm ON public.invoices USING gin (code extensions.gin_trgm_ops);
 CREATE OR REPLACE FUNCTION public.guard_invoice_mutation()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
 BEGIN

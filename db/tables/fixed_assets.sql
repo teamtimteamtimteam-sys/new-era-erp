@@ -95,6 +95,12 @@ COMMENT ON CONSTRAINT fixed_assets_residual_below_cost ON public.fixed_assets IS
 CREATE INDEX idx_fixed_assets_expense ON public.fixed_assets (expense_id);
 CREATE INDEX idx_fixed_assets_status ON public.fixed_assets (status);
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX fixed_assets_code_trgm ON public.fixed_assets USING gin (code extensions.gin_trgm_ops);
 ALTER TABLE public.fixed_assets ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "fixed_assets select by permission" ON public.fixed_assets
     AS PERMISSIVE FOR SELECT TO authenticated

@@ -38,6 +38,12 @@ COMMENT ON COLUMN public.credit_notes.note_date IS
 CREATE INDEX idx_credit_notes_invoice ON public.credit_notes (invoice_id);
 CREATE INDEX idx_credit_notes_date    ON public.credit_notes (note_date DESC);
 
+
+-- SEARCH-2 · 迁移 A:code 上的 trigram GIN —— 买的是【后缀匹配】(`%0001`)。
+-- btree 服务得了后缀(强制走索引时规划器会选 code_key 做 Bitmap Index Scan),
+-- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
+-- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
+CREATE INDEX credit_notes_code_trgm ON public.credit_notes USING gin (code extensions.gin_trgm_ops);
 CREATE TRIGGER trg_credit_notes_append_only
     BEFORE UPDATE OR DELETE ON public.credit_notes
     FOR EACH ROW EXECUTE FUNCTION public.guard_credit_note_append_only();

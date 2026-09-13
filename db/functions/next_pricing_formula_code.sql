@@ -10,7 +10,7 @@ BEGIN
     SELECT COALESCE(MAX(split_part(code, '-', 3)::integer), 0) + 1
     INTO v_seq
     FROM pricing_formulas
-    WHERE code LIKE 'PF-' || v_year::text || '-%';
-    RETURN 'PF-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
+    WHERE code LIKE document_type_prefix('pricing_formula') || '-' || v_year::text || '-%';
+    RETURN document_type_prefix('pricing_formula') || '-' || v_year::text || '-' || LPAD(v_seq::text, 4, '0');
 END;
 $function$

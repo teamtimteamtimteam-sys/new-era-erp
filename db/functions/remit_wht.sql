@@ -112,7 +112,7 @@ BEGIN
     -- 咨询锁串行化,与 EXP/JE/收付款的取号手法一致。
     PERFORM pg_advisory_xact_lock(hashtext('wht_remit_' || to_char(v_month, 'YYYY-MM'))::bigint);
     SELECT COUNT(*) + 1 INTO v_seq FROM wht_remittances WHERE period_month = v_month;
-    v_code := 'WHT-' || to_char(v_month, 'YYYY-MM') ||
+    v_code := document_type_prefix('wht_remittance') || '-' || to_char(v_month, 'YYYY-MM') ||
               CASE WHEN v_seq > 1 THEN '-' || v_seq::text ELSE '' END;
 
     INSERT INTO wht_remittances (id, code, period_month, remitted_on, amount_base,

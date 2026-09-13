@@ -559,7 +559,15 @@ const zh = {
         sectionPages: '页面与动作',
         sectionManual: '手册',
         // ★★ job ① 的槽(S2)。它说的是【还没建】,不是【没找到】。
+        //    ☞ SEARCH-2b 之后 built 恒为 true,这一句今天画不出来;它留着是因为
+        //      分支留着 —— 删掉文案等于把"还没建"与"没找到"重新合成一句话。
         recordsNotBuiltYet: '按单据号找单据(以及"以 0001 结尾"那一种找法)还没有建。它会出现在这里。',
+        // SEARCH-2b:单据那一节的三句话。
+        noneRecords: '没有单据匹配。',
+        emptyWhatYouCanFindRecords: '打一个单据号 —— 整个都行,只打后四位也行。',
+        sectionRecents: '最近编辑过',
+        // ★ {count} 由数据库现算,不写死(理由见 en.ts 同一条)。
+        recentsUncovered: '还有 {count} 类单据不会出现在这里 —— 它们没有记下最后是谁改的。',
         nonePages: '没有页面或动作匹配。',
         noneManual: '手册里没有匹配的段落。',
         moreNotShown: '还有 {count} 条没有列在这里。',

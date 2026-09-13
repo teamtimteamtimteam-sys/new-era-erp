@@ -23,7 +23,7 @@ BEGIN
     IF EXISTS (SELECT 1 FROM gst_periods WHERE period_start = p_period_start AND corrects_period_id IS NULL) THEN
         RAISE EXCEPTION 'GST_PERIOD_EXISTS|%', p_period_start;
     END IF;
-    v_code := 'GST-' || to_char(p_period_start,'YYYY') || '-Q'
+    v_code := document_type_prefix('gst_period') || '-' || to_char(p_period_start,'YYYY') || '-Q'
               || EXTRACT(quarter FROM p_period_start)::text;
     INSERT INTO gst_periods (code, period_start, period_end, status)
     VALUES (v_code, p_period_start, p_period_end, 'open') RETURNING id INTO v_id;
