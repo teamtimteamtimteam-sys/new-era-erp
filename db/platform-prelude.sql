@@ -133,3 +133,20 @@ GRANT USAGE ON SCHEMA public TO authenticated, anon, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated, service_role;
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 4. 扩展。★ SEARCH-2(2026-09-13):pg_trgm —— 本仓库自己装的【第一个】扩展 ★
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【为什么它必须在这里,而不只在那支迁移里】`db/verify_rebuild.py` 从本文件建库,
+--   然后重放 db/tables/*.sql —— 而 SEARCH-2 之后那 31 张单据表的镜像里各带一条
+--   `USING gin (code extensions.gin_trgm_ops)`。本文件不提供 pg_trgm,
+--   重建就在建索引那一步失败,判词【可重建性】退 2。
+--   AGENTS.md:本文件是「镜像期待平台提供什么」的**唯一书面记录**,而这条期待是新的。
+--
+-- 【为什么是 extensions 架构】线上三个既有扩展都在那里(pgcrypto · uuid-ossp ·
+--   pg_stat_statements,实测)。重建要与线上一致,就得装在同一个地方 ——
+--   装进 public 会让镜像里的 `extensions.gin_trgm_ops` 解析不到。
+--
+-- 【幂等】与本文件其余部分同一条规矩:verify_rebuild 会反复跑它。
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA extensions;
