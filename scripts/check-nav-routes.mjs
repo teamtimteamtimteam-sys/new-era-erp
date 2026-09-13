@@ -163,6 +163,9 @@ function sourceFiles(dir, out = []) {
 }
 
 const problems = []
+// ⑦(SEARCH-1 · S4)的两个读数 —— 判词那一行要印出来,否则一个“0 处”看不出它量过没有。
+let bareArmChecked = 0
+let bareArmHits = 0
 
 // ── 读注册表(正则读源码,与 check-permission-predicate 同一条路子:
 //    这些检查跑在 plain node 上,不 import TypeScript)────────────────────────
@@ -557,6 +560,80 @@ try {
     try { unlinkSync(probePath) } catch { /* 探针本来就可能没建成 */ }
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// ★★【⑦ SEARCH-1 · S4:通往 bare 路径的导航【必须是硬导航】】★★
+// ════════════════════════════════════════════════════════════════════════════
+//
+// 【它守的那条缺陷】`app/layout.tsx` 从 `x-pathname` 这个请求头算「这一页要不要
+//   应用外壳」,而 **App Router 软导航时不重画根布局** —— 那个布尔在会话的第一次
+//   硬导航上求值一次,然后跟着这个人走遍整个系统。
+//   登记在 `docs/known-issues.md` 的 `CONFIRM-1-ROOT-LAYOUT-HEADER`。
+//
+// 【为什么这条判据是"不许软导航到 bare 路径",而不是别的】
+//   那条缺陷有两个方向,而它们要两种不同的药:
+//     · 走【进】bare 路径时外壳还跟着 —— `app/components/AppChrome.tsx` 治它
+//       (客户端用 `usePathname()` 重新求值);
+//     · 从 bare 路径软导航【出去】时外壳回不来 —— ★ **客户端治不了**:
+//       服务端那一刻没画外壳,客户端就没有外壳可显。
+//   ☞ 唯一能让第二个方向【不可能发生】的,是让通往 bare 路径的导航一律是
+//     **硬导航**(`<a href>` / 中间件重定向 / 表单提交 / server action)。
+//     那正是今天树上的实况 —— ★ **实测:`<Link href>` 指向 bare 路径 0 处、
+//     `router.push` 0 处**。本条把那个 0 从一次观察变成一条不变量。
+//
+// 【说白它守不住什么】它读的是**源码文本**里的字面量。
+//   `<Link href={someVar}>` 与 `router.push(variable)` 它看不见 ——
+//   那要跟着变量走,是类型/数据流分析,不是文本匹配。**别高估它。**
+//   (与 `check-error-swallowing` 对那第三种形状的处置逐字同一条:
+//    说清楚边界,不假装看得见。)
+{
+    const loginSrc = readFileSync(join(ROOT, 'lib/loginRoute.ts'), 'utf8')
+    // 真源只有一份:BARE_CHROME_PATHS 自己。不在这里抄第二份名单。
+    const bareBlock = loginSrc.slice(loginSrc.indexOf('export const BARE_CHROME_PATHS'))
+    const publicBlock = loginSrc.slice(
+        loginSrc.indexOf('export const PUBLIC_PATHS'),
+        loginSrc.indexOf('export function isPublicPath'),
+    )
+    const barePaths = [
+        ...new Set([
+            ...[...publicBlock.matchAll(/'(\/[^']*)'/g)].map((m) => m[1]),
+            ...[...bareBlock.slice(0, bareBlock.indexOf(']')).matchAll(/'(\/[^']*)'/g)].map((m) => m[1]),
+        ]),
+    ]
+    // ★【空集不算通过】★ 解析不出 bare 路径 = 解析器坏了,不是"没有 bare 路径"。
+    assertPopulation('check-nav-routes', 'lib/loginRoute.ts 里解析出的 bare 路径', barePaths.length)
+    let softNavSites = 0
+    for (const root of ['app', 'lib'].map((d) => join(ROOT, d))) {
+        for (const file of sourceFiles(root)) {
+            const rel_ = relative(ROOT, file)
+            if (rel_ === 'scripts/check-nav-routes.mjs') continue
+            const src = readFileSync(file, 'utf8')
+            const lines = src.split('\n')
+            lines.forEach((line, i) => {
+                // 注释不算实现 —— 讲这条规矩的注释里必然写着被禁的那个字面量。
+                if (/^\s*(\/\/|\*)/.test(line)) return
+                for (const p of barePaths) {
+                    const esc = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+                    const asLink = new RegExp(`<Link[^>]*href=["']${esc}(?:["'/])`)
+                    const asPush = new RegExp(`router\\s*\\.\\s*(?:push|replace)\\s*\\(\\s*["']${esc}(?:["'/])`)
+                    if (asLink.test(line) || asPush.test(line)) {
+                        softNavSites++
+                        problems.push({
+                            arm: '⑦ bare 路径只许硬导航',
+                            msg: `${rel_}:${i + 1}  软导航到 bare 路径 ${p} —— 根布局【软导航时不重画】,` +
+                                 `所以走进去时应用外壳会跟着进去、走出来时又回不来(CONFIRM-1-ROOT-LAYOUT-HEADER)。\n` +
+                                 `      改成一次【硬导航】:<a href="${p}"> / 中间件重定向 / 表单提交 / server action。\n      ${line.trim().slice(0, 120)}`,
+                        })
+                    }
+                }
+            })
+        }
+    }
+    // 这一条的"零"是【应当为零】,所以它不能用空集断言来自证 ——
+    // 自证走的是上面那条 assertPopulation(名单解析得出来),外加下面这行读数。
+    bareArmChecked = barePaths.length
+    bareArmHits = softNavSites
+}
+
 // ── 判词 ───────────────────────────────────────────────────────────────────
 if (problems.length) {
     console.error(`✗ 导航与路由:${problems.length} 处\n`)
@@ -566,5 +643,6 @@ if (problems.length) {
 console.log(
     `✓ 导航与路由:注册表 ${entryHrefs.length} 条 · 路由 ${routes.length} 条 · 范围 ${scopeIds.length} 个 · ` +
     `例外 ${EXCEPTIONS.size} 条(各带理由)· 退休路径 0 处 · 带参数的站内链接 ${queryLinks} 条(目标页都读得懂)· ` +
-    `活动模块解析:规则穷举 + 3 组实跑 · null 两侧各验一遍(无属主 ${unownedChecked} 条 · 矛盾 ${contradictionChecked} 条)`,
+    `活动模块解析:规则穷举 + 3 组实跑 · null 两侧各验一遍(无属主 ${unownedChecked} 条 · 矛盾 ${contradictionChecked} 条) · ` +
+    `bare 路径 ${bareArmChecked} 条,软导航到它们的 ${bareArmHits} 处`,
 )

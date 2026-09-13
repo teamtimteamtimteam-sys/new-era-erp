@@ -7,6 +7,7 @@ import { ActionMessageRegion } from "@/app/components/ui/action-message";
 import { I18nProvider } from "@/lib/i18n/client";
 import { getLocale } from "@/lib/i18n/server";
 import { isBareChromePath } from "@/lib/loginRoute";
+import AppChrome from "@/app/components/AppChrome";
 import { getModuleAccess } from "@/lib/moduleAccess";
 import { headers } from "next/headers";
 import "./globals.css";
@@ -115,6 +116,26 @@ export default async function RootLayout({
   // (Tim 的裁定:那一页的人已经完成设置,只是还没被授权)。
   // 对登出状态的人屏幕上没有任何变化 —— TopNav 本来就返回 null。
   // ══════════════════════════════════════════════════════════════════════════
+  // ════════════════════════════════════════════════════════════════════════
+  // ★★【SEARCH-1 · S4:这一行【求值一次,管一整个会话】—— 而那是一条在册的缺陷】★★
+  // ════════════════════════════════════════════════════════════════════════
+  //   `docs/known-issues.md` 的 `CONFIRM-1-ROOT-LAYOUT-HEADER`(CONFIRM-1 实测,
+  //   Tim 裁定排队)。机制:**App Router 在客户端软导航时不重画根布局**,
+  //   所以这个布尔在【本次会话第一次硬导航】那一刻算一次,然后跟着这个人走遍全系统。
+  //   同一条结构此前在 `SearchShell` 上真的坏在生产上过。
+  //
+  // ★【这一行【留着】,而它不再是唯一的一道 —— 两道治的是两个方向】★
+  //   · 服务端这一道(下面这个 `bare`)负责【结构性地排除】:`/login` 与
+  //     `/set-password` 上顶栏根本不被渲染,于是它们不跑权限查询、不跑档案查询,
+  //     RSC 载荷里也没有那一段导航。**那正是 LOGIN-1-fu1 要的东西**,
+  //     而把外壳无条件交给客户端去藏会把它弄丢(整段理由在 AppChrome.tsx)。
+  //   · 客户端那一道(`<AppChrome>`)用 `usePathname()` 【每次软导航重新求值】,
+  //     于是"走进一条 bare 路径时外壳还跟着"那一半不可能再发生。
+  //   · 而"从 bare 路径软导航【出去】时外壳回不来"那一半,客户端治不了
+  //     (服务端那一刻没画,客户端就没有外壳可显)——
+  //     ★ 它由 `scripts/check-nav-routes.mjs` 的判据 ⑦ 治:
+  //       **任何 `<Link>` / `router.push` 指向 bare 路径都变红。**
+  //       实测本刀开工时全树 0 处,于是那条路今天走不到,而判据 ⑦ 让它走不成。
   const pathname = (await headers()).get("x-pathname") ?? "";
   const bare = isBareChromePath(pathname);
 
@@ -141,20 +162,24 @@ export default async function RootLayout({
               【登录页不挂它】:那里没有会话可以超时,而它要监视的「还有两分钟」
               在一张登录表单上没有意义。草稿的清理由 /login 自己的
               ClearRestrictedDrafts 负责,与这一个无关。 */}
-          {!bare && <IdleWatcher />}
-          {!bare && <TopNav />}
-          {/* ★【CONV-6 ①:dock 删掉了 —— 这里从前是它与正文的那个 flex 行】★
-              Tim 的裁定(2026-09-04):二级菜单已经足够直接、模块划分足够清楚,
-              dock 只是把界面弄复杂、还吃掉屏幕面积。它【推翻】了 D1 的后半,
-              也【推翻】了 UI-FIX-1 把它挪成左侧竖栏那一次补救 ——
-              那一次修的是"它读起来像第三层菜单",而这一次答的是它该不该存在。
-              于是外壳回到 dock 之前的形状:顶栏 → 面包屑 → 正文,没有中间那一层。 */}
-          {!bare && <Breadcrumbs openModuleIds={openModuleIds} />}
-          {/* ALERT-1:【告知】的页级位置。与 IdleWatcher 同一个形状 ——
-              平时画一个空的活动区域(它必须常驻,否则插进来的内容播报不出),
-              有话说的时候才出现一条横幅。**它不挡人**:确认才挡人,而确认在
-              <ConfirmButton> 里,不在这里。 */}
-          {!bare && <ActionMessageRegion />}
+          {!bare && (
+            <AppChrome>
+              <IdleWatcher />
+              <TopNav />
+            {/* ★【CONV-6 ①:dock 删掉了 —— 这里从前是它与正文的那个 flex 行】★
+                Tim 的裁定(2026-09-04):二级菜单已经足够直接、模块划分足够清楚,
+                dock 只是把界面弄复杂、还吃掉屏幕面积。它【推翻】了 D1 的后半,
+                也【推翻】了 UI-FIX-1 把它挪成左侧竖栏那一次补救 ——
+                那一次修的是"它读起来像第三层菜单",而这一次答的是它该不该存在。
+                于是外壳回到 dock 之前的形状:顶栏 → 面包屑 → 正文,没有中间那一层。 */}
+              <Breadcrumbs openModuleIds={openModuleIds} />
+            {/* ALERT-1:【告知】的页级位置。与 IdleWatcher 同一个形状 ——
+                平时画一个空的活动区域(它必须常驻,否则插进来的内容播报不出),
+                有话说的时候才出现一条横幅。**它不挡人**:确认才挡人,而确认在
+                <ConfirmButton> 里,不在这里。 */}
+              <ActionMessageRegion />
+            </AppChrome>
+          )}
           {children}
         </I18nProvider>
       </body>

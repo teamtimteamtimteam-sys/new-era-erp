@@ -6907,7 +6907,41 @@ UI-1d 自己的 `/me` 头像面板**没有照抄这一处**:`AvatarPanel.tsx` �
 
 ---
 
-## CONFIRM-1-ROOT-LAYOUT-HEADER · 根布局里读 `x-pathname` 做【逐路由】判断,会被冻住一整个会话
+## ~~CONFIRM-1-ROOT-LAYOUT-HEADER~~ · ★ 已修(SEARCH-1,2026-09-13)—— 两道,治的是两个方向
+
+> ### ★ 修了什么,以及【什么没修】—— 两句话,不要只读第一句
+>
+> · **走【进】一条 bare 路径时外壳还跟着** → 修了:`app/components/AppChrome.tsx`
+>   用 `usePathname()` 在**每一次软导航**上重新求值。
+> · **从 bare 路径软导航【出去】时外壳回不来** → ★ **客户端治不了**
+>   (服务端那一刻没画外壳,客户端就没有外壳可显),所以它由**一道闸**治:
+>   `scripts/check-nav-routes.mjs` 的**判据 ⑦** —— 任何 `<Link>` / `router.push`
+>   指向 bare 路径都变红。**于是那条路走不成,而不是"今天碰巧没人走"。**
+>
+> **判据(改前/改后,`scripts/probe-nav-geometry.mjs` 的 N5 / N6b,同一支探针):**
+>
+> | | 硬进 `/` | 点着走到 `/me`(★ 真软导航,记号验过) |
+> |---|---|---|
+> | **改前** | `[data-app-chrome]` **读不到** | **读不到** —— 根布局不记录它按哪条路径判的,**因为它只判过一次** |
+> | **改后** | `data-app-chrome="/"` | ★ **`data-app-chrome="/me"`** —— 判断跟着人走了 |
+>
+> **改前 `NAVBEFORE_EXIT=1`(13 格 3 红)· 改后 `NAVAFTER_EXIT=0`(13 格 0 红)。**
+>
+> ★ **顺带更正一条【已经过期】的记载:** 本条原文说「这与 `SearchShell` 那一处是
+> 同一个结构 —— 后者已经实测坏在生产上」。**SearchShell 那一半在 CONFIRM-1
+> 那一刀里就修好了**:SEARCH-1 开工时重跑 `scripts/probe-search-shell.mjs`,
+> **七格全绿(`PROBEBEFORE_EXIT=0`)**,`S3b` 报的是 `present=true visible=true
+> box=200x32`。AGENTS.md 与 SEARCH-1 的委托书都还照着 CONFIRM-1 当天那份读数写着
+> 「软导航 not in DOM」—— **那是一个正确诞生、然后安静过期的数。**
+>
+> ⚠ **服务端那一行 `bare` 【留着】,而且是故意的。** 把外壳无条件交给客户端去藏,
+> 会让 `/login` 与 `/set-password` 照样跑一遍权限/档案/未读数查询,并把整段导航
+> 渲进 RSC 载荷 —— 而 `/set-password` 上那个人**是登录着的**。
+> LOGIN-1-fu1 要的是**结构性地排除**,不是"画出来再藏起来"。整段推理写在
+> `app/components/AppChrome.tsx` 的抬头里。
+
+<details>
+<summary>原文(留档)</summary>
 
 **发现于 CONFIRM-1(2026-09-06),实测,未修 —— Tim 裁定排队,理由写在下面。**
 
@@ -6930,6 +6964,8 @@ UI-1d 自己的 `/me` 头像面板**没有照抄这一处**:`AvatarPanel.tsx` �
 **修法(与 SearchShell 同一条):**「这是哪一页」这个问题若要**逐路由**回答,
 就不能在根布局里靠请求头回答 —— 要么下沉到客户端组件用 `usePathname()`,
 要么把那个判断移出根布局。
+
+</details>
 
 ---
 
