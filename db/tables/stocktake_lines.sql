@@ -28,6 +28,11 @@ CREATE TABLE public.stocktake_lines (
 
 CREATE INDEX idx_stocktake_lines_stocktake ON public.stocktake_lines (stocktake_id);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX stocktake_lines_inbound_batch_id_rel ON public.stocktake_lines (inbound_batch_id);
+CREATE INDEX stocktake_lines_output_batch_id_rel ON public.stocktake_lines (output_batch_id);
+
 ALTER TABLE public.stocktake_lines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "stocktake_lines select by permission"
     ON public.stocktake_lines

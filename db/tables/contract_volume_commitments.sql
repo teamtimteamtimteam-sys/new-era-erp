@@ -40,6 +40,10 @@ CREATE TABLE public.contract_volume_commitments (
 
 CREATE INDEX idx_contract_volume_contract ON public.contract_volume_commitments (contract_id);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX contract_volume_commitments_material_id_rel ON public.contract_volume_commitments (material_id);
+
 ALTER TABLE public.contract_volume_commitments ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "contract volume select by owner permission"
     ON public.contract_volume_commitments AS PERMISSIVE FOR SELECT TO authenticated

@@ -23,6 +23,11 @@ CREATE TABLE public.processing_inputs (
 
 CREATE INDEX idx_processing_inputs_output ON public.processing_inputs (output_batch_id);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX processing_inputs_inbound_batch_id_rel ON public.processing_inputs (inbound_batch_id);
+CREATE INDEX processing_inputs_run_id_rel ON public.processing_inputs (run_id);
+
 COMMENT ON COLUMN public.processing_inputs.output_batch_id IS
     '再加工投料:消耗的上游产出批(FIN-25)。与 inbound_batch_id 恰一非空。估值用上游 processing_outputs.unit_cost_base,解除的是 1220 而非 1200。';
 

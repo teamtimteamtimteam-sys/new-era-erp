@@ -140,6 +140,13 @@ CREATE INDEX freight_documents_code_trgm ON public.freight_documents USING gin (
 -- SEARCH-2b · 迁移 C:「最近编辑过」要的那一条 —— `updated_by = auth.uid()`
 -- 按 updated_at DESC 取前 5(T3)。SEARCH-0 §Q5 实测:这两列上此前一条索引都没有。
 CREATE INDEX freight_documents_recents ON public.freight_documents (updated_by, updated_at DESC);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX freight_documents_container_id_rel ON public.freight_documents (container_id);
+CREATE INDEX freight_documents_journal_entry_id_rel ON public.freight_documents (journal_entry_id);
+CREATE INDEX freight_documents_reversal_entry_id_rel ON public.freight_documents (reversal_entry_id);
+CREATE INDEX freight_documents_supplier_id_rel ON public.freight_documents (supplier_id);
 -- LOG-4a:出境单据【没有分摊行】—— 在表上拒,不是靠"RPC 没提供那条路"。
 -- RPC 不提供只是没铺路,守卫才是墙,而直插是这套系统里真实存在的一条路。
 CREATE TRIGGER trg_freight_allocations_direction

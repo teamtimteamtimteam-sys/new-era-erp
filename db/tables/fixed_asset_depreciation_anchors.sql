@@ -66,6 +66,10 @@ CREATE TABLE public.fixed_asset_depreciation_anchors (
 
 CREATE INDEX idx_fa_depr_anchors_asset ON public.fixed_asset_depreciation_anchors (asset_id, effective_from DESC);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX fixed_asset_depreciation_anchors_expense_id_rel ON public.fixed_asset_depreciation_anchors (expense_id);
+
 -- 只可追加:一次估计变更是一件发生过的事,改它等于改写历史。
 CREATE OR REPLACE FUNCTION public.guard_depreciation_anchor_append_only()
  RETURNS trigger

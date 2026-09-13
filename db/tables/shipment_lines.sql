@@ -36,6 +36,10 @@ COMMENT ON TABLE public.shipment_lines IS
 CREATE INDEX idx_shipment_lines_shipment ON public.shipment_lines (shipment_id);
 CREATE INDEX idx_shipment_lines_order_line ON public.shipment_lines (sales_order_line_id);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX shipment_lines_output_batch_id_rel ON public.shipment_lines (output_batch_id);
+
 CREATE TRIGGER trg_shipment_lines_append_only
     BEFORE UPDATE OR DELETE ON public.shipment_lines
     FOR EACH ROW EXECUTE FUNCTION public.guard_shipment_append_only();

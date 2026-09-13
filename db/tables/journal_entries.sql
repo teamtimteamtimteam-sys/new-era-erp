@@ -93,6 +93,10 @@ CREATE INDEX idx_journal_entries_entry_date ON public.journal_entries (entry_dat
 -- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
 -- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
 CREATE INDEX journal_entries_code_trgm ON public.journal_entries USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX journal_entries_reversed_by_rel ON public.journal_entries (reversed_by);
 CREATE TRIGGER trg_journal_entries_period
     BEFORE INSERT ON public.journal_entries
     FOR EACH ROW EXECUTE FUNCTION public.guard_journal_entry_period();

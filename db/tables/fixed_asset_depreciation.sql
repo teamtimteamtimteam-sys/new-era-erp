@@ -22,6 +22,10 @@ COMMENT ON TABLE public.fixed_asset_depreciation IS
 
 CREATE INDEX idx_fa_depreciation_asset ON public.fixed_asset_depreciation (asset_id);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX fixed_asset_depreciation_journal_entry_id_rel ON public.fixed_asset_depreciation (journal_entry_id);
+
 ALTER TABLE public.fixed_asset_depreciation ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "fa_depreciation select by permission" ON public.fixed_asset_depreciation
     AS PERMISSIVE FOR SELECT TO authenticated

@@ -49,6 +49,10 @@ CREATE INDEX idx_prepayment_applications_po ON public.prepayment_applications (p
 CREATE INDEX idx_prepayment_applications_inbound ON public.prepayment_applications (inbound_batch_id);
 CREATE INDEX idx_prepayment_applications_expense ON public.prepayment_applications (expense_id);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX prepayment_applications_journal_entry_id_rel ON public.prepayment_applications (journal_entry_id);
+
 CREATE OR REPLACE FUNCTION public.reject_prepayment_application_mutation()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
 BEGIN

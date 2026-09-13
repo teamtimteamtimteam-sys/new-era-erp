@@ -146,6 +146,57 @@ function describeViewport(g) {
         (insideViewport(g) ? '整个在视口里' : '★ 越出视口')
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ SEARCH-4 · 停止条件 (g):下拉【自己的高度】,而它只在【打了字之后】才成立
+// ════════════════════════════════════════════════════════════════════════════
+//   V1 让每条命中带上它的关联分组,于是结果按设计变高(实测一条命中最多 7 组)。
+//   ⚠ 而上面那三格 panelReadings 量的是【空查询】的面板 —— 空的时候一个分组行
+//     都没有,**那个高度证明不了任何关于 V1 的事**。
+//   ☞ 所以这一支多走一步:在同一个视口、同一个入口上把字打进去,等这一次的答案
+//     回来,再量一次盒子。**改前 / 改后两册各自成立,而可比的是同一册。**
+const GROW_QUERY = 'Acme'
+// ★★ 第二个刺激:**今天【最高】的那个下拉**,而它是量出来的、不是挑的 ★★
+//   委托书点名的例子是 "Acme",而 Acme 今天只有 **1 条命中 / 4 个分组行** ——
+//   拿它量 (g) 会得出一个好看却没有判别力的读数。
+//   ☞ 于是对着线上把 14 个候选查询逐个跑过 `search_documents(q,5)` +
+//     `search_related()`,取"命中行 + 分组行"最大的那一个:
+//       in  5 命中 / 16 组 = 21 行   ← 就是它
+//       o   5 / 16 = 21 · PO 5 / 13 = 18 · e 5 / 12 = 17 · SUP 5 / 11 = 16
+//       Acme 1 / 4 = 5
+//   ⚠ 而这仍然**不是结构上的最坏**(5 × 7 = 35 行分组行)—— 今天的数据到不了那里。
+//     两个数都报,不许拿前者冒充后者。
+//   ★ 这个串是一个【刺激】,不是一个期望值 —— 它不会因为数据变了而为了错的理由变红
+//     (断言是"跑不跑出屏幕底下",对任何刺激都成立);它只会变得不那么尖锐,
+//     而上面那张表就是下一个人重新挑它的依据。
+const TALL_QUERY = 'in'
+async function typeAndSettle(evalJs, sleep, q) {
+    await evalJs(`(() => {
+        const el = document.querySelector('[data-search-input]')
+        if (!el) throw new Error('面板里找不到输入框')
+        const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set
+        setter.call(el, ${JSON.stringify(q)})
+        el.dispatchEvent(new Event('input', { bubbles: true }))
+    })()`)
+    // 等【这一次的】答案 —— 等一个固定毫秒数会把"还没回来"读成"没找到"
+    //(probe-search-results 的同一条教训,逐字)。
+    const t0 = Date.now()
+    for (;;) {
+        const a = await evalJs(`(() => { const e = document.querySelector('[data-search-answered]');
+            return e ? e.getAttribute('data-search-answered') : null })()`)
+        if (a === q) return
+        if (Date.now() - t0 > 20000) throw new Error(`打「${q}」之后 20s 还没有这一次的答案(answered=${JSON.stringify(a)})`)
+        await sleep(150)
+    }
+}
+function fitsViewport(g) {
+    return !!g && !!g.panel && g.panel.bottom <= g.vh + 0.5
+}
+function describeFit(g, label) {
+    if (!g || !g.panel) return `${label}:面板不在 DOM 里 —— 这一格没有主语`
+    return `${label}:下拉 ${g.panel.w}x${g.panel.h} top=${g.panel.top} bottom=${g.panel.bottom} ` +
+        `· 视口高 ${g.vh} · ` + (fitsViewport(g) ? '整个在视口里' : '★ 跑出屏幕底下')
+}
+
 async function waitPort(port, ms) {
     const t0 = Date.now()
     for (;;) {
@@ -231,6 +282,24 @@ const PANELGEO = `(() => {
         inputCursor: input ? getComputedStyle(input).cursor : null,
         inputPresent: !!input,
         panelPosition: panel ? getComputedStyle(panel).position : null,
+        // ★★ SEARCH-4 · (g) 的第二半:它【夹到视口】之后,内容还够不够得着 ★★
+        //   place() 写的是 maxHeight = vh - top - 16,className 里是 overflow-y-auto。
+        //   于是"跑不出屏幕底下"是【按构造】成立的 —— 而那句话只有在它**真的会滚**
+        //   的时候才是好消息:一个夹住了却不滚的面板,把结果安静地裁掉,
+        //   而它在"跑出底下=false"那一格上和一个装得下的面板长得一模一样。
+        // ★ 这一刀【自己】给下拉加了多少高:关联块逐个量,再求和。
+        //   没有它,「内容高 1716」说不清有多少是本刀的、有多少是 2 个字符的查询
+        //   本来就会匹配一大片页面与手册段落 —— 而那两件事的处置完全不同。
+        relatedH: [...document.querySelectorAll('[data-search-related]')]
+            .reduce((a, e) => a + e.getBoundingClientRect().height, 0),
+        relatedBlocks: document.querySelectorAll('[data-search-related]').length,
+        relatedGroups: document.querySelectorAll('[data-search-related-group]').length,
+        panelScroll: panel
+            ? { scrollH: Math.round(panel.scrollHeight), clientH: Math.round(panel.clientHeight),
+                scrolls: panel.scrollHeight > panel.clientHeight + 0.5,
+                overflowY: getComputedStyle(panel).overflowY,
+                maxH: getComputedStyle(panel).maxHeight }
+            : null,
     }
 })()`
 
@@ -513,6 +582,12 @@ async function main() {
     // ════════════════════════════════════════════════════════════════════════
     const g_nav = await evalJs(PANELGEO)
     panelReadings.push({ label: '1280 /me 顶栏', ...g_nav })
+    await typeAndSettle(evalJs, sleep, GROW_QUERY)
+    const g_nav_full = await evalJs(PANELGEO)
+    panelReadings.push({ label: `1280 /me 顶栏 · 打了「${GROW_QUERY}」`, ...g_nav_full })
+    await typeAndSettle(evalJs, sleep, TALL_QUERY)
+    const g_nav_tall = await evalJs(PANELGEO)
+    panelReadings.push({ label: `1280 /me 顶栏 · 打了「${TALL_QUERY}」`, ...g_nav_tall })
     console.log(`   · 1280 /me  field=${fmtRect(g_nav.field)}  panel=${fmtRect(g_nav.panel)}  ` +
         `overlay=${g_nav.hasOverlay} position=${g_nav.panelPosition} cursor=${g_nav.fieldCursor}`)
 
@@ -564,6 +639,12 @@ async function main() {
     await openHere('390 /')
     const g_home390 = await evalJs(PANELGEO)
     panelReadings.push({ label: '390 / 首页', ...g_home390 })
+    await typeAndSettle(evalJs, sleep, GROW_QUERY)
+    const g_home390_full = await evalJs(PANELGEO)
+    panelReadings.push({ label: `390 / 首页 · 打了「${GROW_QUERY}」`, ...g_home390_full })
+    await typeAndSettle(evalJs, sleep, TALL_QUERY)
+    const g_home390_tall = await evalJs(PANELGEO)
+    panelReadings.push({ label: `390 / 首页 · 打了「${TALL_QUERY}」`, ...g_home390_tall })
     console.log(`   · 390 /     field=${fmtRect(g_home390.field)}  panel=${fmtRect(g_home390.panel)}  ` +
         `overlay=${g_home390.hasOverlay} position=${g_home390.panelPosition} cursor=${g_home390.fieldCursor}`)
     probe('N12.home-field-cursor-is-text', g_home390.fieldCursor === 'text',
@@ -579,6 +660,12 @@ async function main() {
     await openHere('1280 /')
     const g_home = await evalJs(PANELGEO)
     panelReadings.push({ label: '1280 / 首页', ...g_home })
+    await typeAndSettle(evalJs, sleep, GROW_QUERY)
+    const g_home_full = await evalJs(PANELGEO)
+    panelReadings.push({ label: `1280 / 首页 · 打了「${GROW_QUERY}」`, ...g_home_full })
+    await typeAndSettle(evalJs, sleep, TALL_QUERY)
+    const g_home_tall = await evalJs(PANELGEO)
+    panelReadings.push({ label: `1280 / 首页 · 打了「${TALL_QUERY}」`, ...g_home_tall })
     console.log(`   · 1280 /    field=${fmtRect(g_home.field)}  panel=${fmtRect(g_home.panel)}  ` +
         `overlay=${g_home.hasOverlay} position=${g_home.panelPosition}`)
     probe('N15b.dropdown-inside-viewport-1280-home', insideViewport(g_home),
@@ -596,6 +683,43 @@ async function main() {
         `重叠处取 ${gp.points} 个点:最上面是【问候语】的 ${gp.overGreeting} 个 · 是【搜索面】的 ${gp.inEntry} 个` +
         (gp.overGreeting ? ` —— ★ 问候语压在搜索面上面(Tim 的 U3)。样点 ${JSON.stringify(gp.sample)}` : ''))
 
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★ SEARCH-4 · 停止条件 (g):下拉【自己的高度】,三个位置各量【两次】★★
+    // ════════════════════════════════════════════════════════════════════════
+    //   ⚠ 这一格拦的不是"变高" —— V1 让它变高**是设计**。它拦的是
+    //     **变高到跑出屏幕底下**,而 390 那一侧是这条规则真正会被绊到的地方。
+    console.log('   · (g) 下拉自己的盒子,空查询 vs 打了字:')
+    for (const r of panelReadings) {
+        console.log(`     - ${String(r.label).padEnd(30)} panel=${fmtRect(r.panel)} 视口高=${r.vh}`
+            + ` 跑出底下=${r.panel ? r.panel.bottom > r.vh + 0.5 : '(无面板)'}`
+            + ` maxH=${r.panelScroll?.maxH} 内容高=${r.panelScroll?.scrollH}`
+            + ` 会滚=${r.panelScroll?.scrolls}`
+            + ` · 本刀加的高=${Math.round(r.relatedH)}px`
+            + `(${r.relatedBlocks} 块 / ${r.relatedGroups} 组)`)
+    }
+    // ★★ 夹住了就必须滚 —— 否则结果被安静地裁掉 ★★
+    //   判据只对【真的被夹住的】那几格成立(scrollH > clientH 才谈得上滚)。
+    const clamped = panelReadings.filter((r) => r.panelScroll && r.panelScroll.scrolls)
+    probe('N18d.a-clamped-dropdown-scrolls',
+        clamped.length > 0 && clamped.every((r) => r.panelScroll.overflowY === 'auto'
+            || r.panelScroll.overflowY === 'scroll'),
+        clamped.length === 0
+            ? '★ 九格读数里【没有一格】内容高过面板 —— 这一格今天没有主语,'
+              + '而那说明刺激不够高,不是"不会裁"。下次挑一个更高的查询'
+            : `被夹住的 ${clamped.length} 格:`
+              + clamped.map((r) => `${r.label}(内容 ${r.panelScroll.scrollH} > 可视 `
+                  + `${r.panelScroll.clientH},overflow-y=${r.panelScroll.overflowY})`).join(' · '))
+    probe('N18a.dropdown-fits-1280-nav', fitsViewport(g_nav_full) && fitsViewport(g_nav_tall),
+        describeFit(g_nav_tall, `1280 顶栏 · 打了「${TALL_QUERY}」(今天最高的那个下拉)`)
+        + ` · 「${GROW_QUERY}」时 h=${g_nav_full.panel?.h} · 空查询时 h=${g_nav.panel?.h}`)
+    // ★ 390 是这条规则真正会被绊到的地方 —— 视口最矮,而下拉的顶边最低。
+    probe('N18b.dropdown-fits-390-home', fitsViewport(g_home390_full) && fitsViewport(g_home390_tall),
+        describeFit(g_home390_tall, `390 首页 · 打了「${TALL_QUERY}」(今天最高的那个下拉)`)
+        + ` · 「${GROW_QUERY}」时 h=${g_home390_full.panel?.h} · 空查询时 h=${g_home390.panel?.h}`)
+    probe('N18c.dropdown-fits-1280-home', fitsViewport(g_home_full) && fitsViewport(g_home_tall),
+        describeFit(g_home_tall, `1280 首页 · 打了「${TALL_QUERY}」(今天最高的那个下拉)`)
+        + ` · 「${GROW_QUERY}」时 h=${g_home_full.panel?.h} · 空查询时 h=${g_home.panel?.h}`)
+
     // ★【下界 10 是【数出来的】,不是挑的】★ 这支探针有 10 次 read():
     //   4 次几何(两视口 × 两路由)+ 2 次 S4(硬进 / 软到)+ 1 次面板 + 3 次手机那三格。
     //   少一次 = 有一段没跑到(early return / 抛异常之后的 finally),
@@ -603,7 +727,9 @@ async function main() {
     //   在退出码上是同一个字节。**这条断言就是把那两件事分开的那一条。**
     assertPopulation('probe-nav-geometry', '量到的读数', readings.length, 10)
     // ★ 下界 3 也是【数出来的】:顶栏 /me · 首页 390 · 首页 1280,各一次。
-    assertPopulation('probe-nav-geometry', '下拉那几格的读数', panelReadings.length, 3)
+    // ★ 下界从 3 加到 6 —— SEARCH-4 让三个位置各多量一次【打了字之后】的盒子。
+    //   数出来的:三个位置 ×(空查询 · 「Acme」· 今天最高的那个查询)= 9。
+    assertPopulation('probe-nav-geometry', '下拉那几格的读数', panelReadings.length, 9)
 }
 
 let cleanedUp = false

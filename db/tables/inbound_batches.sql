@@ -128,6 +128,12 @@ CREATE INDEX inbound_batches_code_trgm ON public.inbound_batches USING gin (code
 -- SEARCH-2b · 迁移 C:「最近编辑过」要的那一条 —— `updated_by = auth.uid()`
 -- 按 updated_at DESC 取前 5(T3)。SEARCH-0 §Q5 实测:这两列上此前一条索引都没有。
 CREATE INDEX inbound_batches_recents ON public.inbound_batches (updated_by, updated_at DESC);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX inbound_batches_material_id_rel ON public.inbound_batches (material_id);
+CREATE INDEX inbound_batches_pricing_formula_id_rel ON public.inbound_batches (pricing_formula_id);
+CREATE INDEX inbound_batches_supplier_id_rel ON public.inbound_batches (supplier_id);
 CREATE OR REPLACE FUNCTION public.generate_inbound_code()
 RETURNS trigger LANGUAGE plpgsql AS $function$
 BEGIN

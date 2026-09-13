@@ -39,6 +39,10 @@ CREATE TABLE public.task_history (
 
 CREATE INDEX idx_task_history_task ON public.task_history (task_id, changed_at DESC);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX task_history_employee_id_rel ON public.task_history (employee_id);
+
 COMMENT ON TABLE public.task_history IS
 '团队任务的变更记录。**私人任务不写这里** —— 一个人不需要一份关于自己的审计。
 【为什么是成对的、带类型的列,而不是 (字段名, 旧值, 新值) 三元组,更不是 jsonb 或一句人话】:与 sales_order_history 同一条 —— 机器读得懂的历史才查得了、比得了。而在这张表上还多一层:old_done / new_done 是真的 boolean,所以「哪些步骤被取消勾选、谁干的」是一次查询,不是一次阅读。

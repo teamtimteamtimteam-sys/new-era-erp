@@ -61,6 +61,10 @@ CREATE TABLE public.contract_grade_specs (
 
 CREATE INDEX idx_contract_grade_specs_contract ON public.contract_grade_specs (contract_id);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX contract_grade_specs_material_id_rel ON public.contract_grade_specs (material_id);
+
 -- ★【同一种元素只规定一次 —— 两个部分索引,因为 NULL ≠ NULL】★
 -- 指定了料号的那些:同一份合同 + 同一料号 + 同一元素只一行。
 CREATE UNIQUE INDEX contract_grade_specs_one_per_material_metal

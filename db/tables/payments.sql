@@ -48,6 +48,14 @@ CREATE TABLE public.payments (
 -- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
 -- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
 CREATE INDEX payments_code_trgm ON public.payments USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX payments_customer_id_rel ON public.payments (customer_id);
+CREATE INDEX payments_employee_id_rel ON public.payments (employee_id);
+CREATE INDEX payments_journal_entry_id_rel ON public.payments (journal_entry_id);
+CREATE INDEX payments_reversed_by_payment_rel ON public.payments (reversed_by_payment);
+CREATE INDEX payments_supplier_id_rel ON public.payments (supplier_id);
 -- 守卫:只放行 posted→reversed 且首挂 reversed_by_payment,其余列逐列锁死
 CREATE OR REPLACE FUNCTION public.guard_payment_mutation()
  RETURNS trigger

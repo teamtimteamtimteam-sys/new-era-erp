@@ -42,6 +42,10 @@ CREATE TABLE public.output_batch_metals (
      OR (content_source = 'manual' AND source_assay_id IS NULL))
 );
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX output_batch_metals_source_assay_id_rel ON public.output_batch_metals (source_assay_id);
+
 COMMENT ON COLUMN public.output_batch_metals.content_source IS
     'PROC-1:这行含量【是谁说的】—— assay(实验室,source_assay_id 指向那份单据)或 manual(人填的)。既有行回填 manual 是【可证明的】:产出化验在 PROC-1 之前不可能存在。';
 

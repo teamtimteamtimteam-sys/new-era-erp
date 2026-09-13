@@ -36,6 +36,10 @@ COMMENT ON TABLE public.sales_order_lines IS
 
 CREATE INDEX idx_sales_order_lines_order ON public.sales_order_lines (sales_order_id, line_no);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX sales_order_lines_material_id_rel ON public.sales_order_lines (material_id);
+
 CREATE TRIGGER trg_sales_order_lines_confirmed_immutable
     BEFORE INSERT OR UPDATE OR DELETE ON public.sales_order_lines
     FOR EACH ROW EXECUTE FUNCTION public.guard_sales_order_line_confirmed_immutable();

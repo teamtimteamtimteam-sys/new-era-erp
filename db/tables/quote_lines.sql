@@ -32,6 +32,10 @@ COMMENT ON TABLE public.quote_lines IS
 
 CREATE INDEX idx_quote_lines_quote ON public.quote_lines (quote_id, line_no);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX quote_lines_material_id_rel ON public.quote_lines (material_id);
+
 CREATE TRIGGER trg_quote_lines_converted_immutable
     BEFORE INSERT OR UPDATE OR DELETE ON public.quote_lines
     FOR EACH ROW EXECUTE FUNCTION public.guard_quote_line_converted_immutable();

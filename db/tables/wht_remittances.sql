@@ -43,6 +43,10 @@ CREATE INDEX idx_wht_remittances_month ON public.wht_remittances (period_month);
 -- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
 -- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
 CREATE INDEX wht_remittances_code_trgm ON public.wht_remittances USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX wht_remittances_journal_entry_id_rel ON public.wht_remittances (journal_entry_id);
 -- 只可追加:一次汇款是一件发生过的事。**改正的走法是冲销那张分录**,
 -- 而不是改这一行 —— 见 wht_liability_by_month 的视图注释:已汇金额是从
 -- 【总账】读的,所以冲销分录会让这一笔自动不作数,不需要在这里标任何状态。

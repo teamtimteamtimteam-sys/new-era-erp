@@ -130,6 +130,12 @@ CREATE INDEX idx_equipment_maintenance_equipment ON public.equipment_maintenance
 CREATE INDEX idx_equipment_maintenance_downtime ON public.equipment_maintenance (downtime_id);
 CREATE INDEX idx_equipment_maintenance_expense ON public.equipment_maintenance (expense_id);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX equipment_maintenance_capitalised_expense_id_rel ON public.equipment_maintenance (capitalised_expense_id);
+CREATE INDEX equipment_maintenance_performed_by_employee_id_rel ON public.equipment_maintenance (performed_by_employee_id);
+CREATE INDEX equipment_maintenance_performed_by_supplier_id_rel ON public.equipment_maintenance (performed_by_supplier_id);
+
 ALTER TABLE public.equipment_maintenance ENABLE ROW LEVEL SECURITY;
 
 -- 【D6:照抄 EQP-2a 的停机表,一个字都没改】读是两个模块的 OR,写是加工侧。

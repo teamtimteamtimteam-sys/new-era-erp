@@ -20,6 +20,11 @@ CREATE TABLE public.processing_outputs (
     cost_incomplete boolean NOT NULL DEFAULT false
 );
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX processing_outputs_output_batch_id_rel ON public.processing_outputs (output_batch_id);
+CREATE INDEX processing_outputs_run_id_rel ON public.processing_outputs (run_id);
+
 COMMENT ON COLUMN public.processing_outputs.cost_incomplete IS
     '本产出的单位成本含【计 0 的无价投料】或【上游产出自己带着此标记】(FIN-25)。零永不静默,层层传染;上游补分摊后本单过期(状态视图第三支),重跑分摊即清。';
 

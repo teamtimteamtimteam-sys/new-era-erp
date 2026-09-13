@@ -108,6 +108,10 @@ CREATE INDEX processing_runs_code_trgm ON public.processing_runs USING gin (code
 -- SEARCH-2b · 迁移 C:「最近编辑过」要的那一条 —— `updated_by = auth.uid()`
 -- 按 updated_at DESC 取前 5(T3)。SEARCH-0 §Q5 实测:这两列上此前一条索引都没有。
 CREATE INDEX processing_runs_recents ON public.processing_runs (updated_by, updated_at DESC);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX processing_runs_capitalization_entry_id_rel ON public.processing_runs (capitalization_entry_id);
 CREATE OR REPLACE FUNCTION public.generate_processing_code()
 RETURNS trigger LANGUAGE plpgsql AS $function$
 BEGIN

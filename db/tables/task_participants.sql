@@ -13,6 +13,10 @@ CREATE TABLE public.task_participants (
     CHECK ((removed_at IS NULL) = (removed_by IS NULL))
 );
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX task_participants_employee_id_rel ON public.task_participants (employee_id);
+
 -- 同一个人可以【离开后再回来】,所以不是 (task_id, employee_id) 全局唯一 ——
 -- 那样"重新加入"只能靠清掉 removed_at,而那会抹掉他离开过这件事。
 -- 唯一性只管【同时在场】:一个人在一张任务上最多一条活跃行。

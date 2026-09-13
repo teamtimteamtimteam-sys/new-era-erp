@@ -100,6 +100,12 @@ COMMENT ON COLUMN public.purchase_order_lines.deep_discharge_judgement_code IS
 
 CREATE INDEX idx_purchase_order_lines_po ON public.purchase_order_lines (purchase_order_id);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX purchase_order_lines_asset_id_rel ON public.purchase_order_lines (asset_id);
+CREATE INDEX purchase_order_lines_material_id_rel ON public.purchase_order_lines (material_id);
+CREATE INDEX purchase_order_lines_pricing_formula_id_rel ON public.purchase_order_lines (pricing_formula_id);
+
 ALTER TABLE public.purchase_order_lines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "purchase_order_lines select by permission"
     ON public.purchase_order_lines

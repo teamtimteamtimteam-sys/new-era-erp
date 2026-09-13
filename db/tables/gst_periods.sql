@@ -55,6 +55,10 @@ CREATE TABLE public.gst_periods (
 -- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
 -- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
 CREATE INDEX gst_periods_code_trgm ON public.gst_periods USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX gst_periods_corrects_period_id_rel ON public.gst_periods (corrects_period_id);
 ALTER TABLE public.gst_periods ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "gst_periods select by permission"
     ON public.gst_periods

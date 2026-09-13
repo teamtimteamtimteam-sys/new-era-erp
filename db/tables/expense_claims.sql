@@ -70,6 +70,10 @@ CREATE INDEX idx_expense_claims_open ON public.expense_claims (status) WHERE sta
 -- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
 -- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
 CREATE INDEX expense_claims_code_trgm ON public.expense_claims USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX expense_claims_expense_id_rel ON public.expense_claims (expense_id);
 ALTER TABLE public.expense_claims ENABLE ROW LEVEL SECURITY;
 
 -- 【读:财务看得见全部,员工看得见自己的】与 my_profile / medical 同一条思路。

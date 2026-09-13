@@ -27,6 +27,11 @@ COMMENT ON TABLE public.year_closes IS
 
 CREATE UNIQUE INDEX idx_year_closes_active ON public.year_closes (year_end) WHERE reopened_at IS NULL;
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX year_closes_closing_journal_id_rel ON public.year_closes (closing_journal_id);
+CREATE INDEX year_closes_reversal_journal_id_rel ON public.year_closes (reversal_journal_id);
+
 -- IMMUTABLE:只放行"重开盖章"这一种 UPDATE(reopened_at NULL→非空,同一动作里
 -- 记下冲销分录),其余列锁死;禁 DELETE。period_closes 同款。
 CREATE OR REPLACE FUNCTION public.reject_year_close_mutation()

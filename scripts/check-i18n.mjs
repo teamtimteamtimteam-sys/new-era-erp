@@ -352,6 +352,11 @@ const MANIFEST = {
     // 漏写别名的支会被 normalize 成 AS text,从这里【静默消失】。全部漏写才会
     // 触发下面的 0 后缀 FAIL —— 漏写【一支】只会让那一支的键失守,所以新支必须
     // 带显式别名,这句话就是写给加支的人看的。)
+    // ★★ SEARCH-4:关联记录那一行的单据种类名 —— 后缀集合就是登记表自己 ★★
+    //   `search.docType.<key>` 的 key 集合 = document_types 种子的 40 个 key。
+    //   加一种单据而少一句译文,这里当场红 —— 屏幕上那一行否则会画一个空标签,
+    //   而一个空标签与"这一类没有关联记录"在读的人眼里分不开。
+    'search.docType.':      { kind: 'enum', values: () => sqlSeedCodes('db/tables/document_types.sql', 'document_types') },
     'dashboard.item.':      { kind: 'enum', values: () => sqlLiteralAs('db/views/operations_now.sql', 'item_type') },
     // ── CONV-6 ⑨:运营 Overview 的「投入 / 产出」──────────────────────────
     // 后缀集合是 work_order_fulfilment 那两支的 side 别名 —— 从视图镜像现读。

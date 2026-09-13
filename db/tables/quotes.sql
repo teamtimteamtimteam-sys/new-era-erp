@@ -70,6 +70,10 @@ CREATE INDEX quotes_code_trgm ON public.quotes USING gin (code extensions.gin_tr
 -- SEARCH-2b · 迁移 C:「最近编辑过」要的那一条 —— `updated_by = auth.uid()`
 -- 按 updated_at DESC 取前 5(T3)。SEARCH-0 §Q5 实测:这两列上此前一条索引都没有。
 CREATE INDEX quotes_recents ON public.quotes (updated_by, updated_at DESC);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX quotes_converted_order_id_rel ON public.quotes (converted_order_id);
 -- 【converted 之后整行冻住】它已经变成一张订单了,再改它就是让"当初报的是什么"
 -- 与"照它下的单是什么"分家。converted_order_id 的【只写一次】也落在这里。
 -- 【draft / issued 【不】上冻结守卫,这是设计】—— 见表注释:报价是谈判过程中的

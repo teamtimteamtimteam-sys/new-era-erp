@@ -65,6 +65,10 @@ CREATE INDEX assay_results_code_trgm ON public.assay_results USING gin (code ext
 -- SEARCH-2b · 迁移 C:「最近编辑过」要的那一条 —— `updated_by = auth.uid()`
 -- 按 updated_at DESC 取前 5(T3)。SEARCH-0 §Q5 实测:这两列上此前一条索引都没有。
 CREATE INDEX assay_results_recents ON public.assay_results (updated_by, updated_at DESC);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX assay_results_superseded_by_rel ON public.assay_results (superseded_by);
 COMMENT ON COLUMN public.assay_results.output_batch_id IS
     'PROC-1:产出批父(与 inbound_batch_id 二选一,num_nonnulls = 1 —— processing_inputs 的形状)。挂产出批的化验由 apply_output_assay 应用:只抄含量、不动定价 —— 产出批没有一张应付可以重述。';
 

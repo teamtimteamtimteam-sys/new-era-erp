@@ -63,6 +63,10 @@ CREATE UNIQUE INDEX uq_cod_live_per_batch
     ON public.certificates_of_destruction (inbound_batch_id) WHERE status <> 'void';
 -- 号在全库唯一(无缝编号的另一半:MAX+1 靠它不出现重号)。
 CREATE UNIQUE INDEX uq_cod_code ON public.certificates_of_destruction (code) WHERE code IS NOT NULL;
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX certificates_of_destruction_replaced_by_cod_id_rel ON public.certificates_of_destruction (replaced_by_cod_id);
 CREATE UNIQUE INDEX uq_cod_token
     ON public.certificates_of_destruction (verification_token) WHERE verification_token IS NOT NULL;
 

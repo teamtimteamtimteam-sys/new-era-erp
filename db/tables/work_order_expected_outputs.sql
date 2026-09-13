@@ -18,6 +18,10 @@ CREATE TABLE public.work_order_expected_outputs (
     CONSTRAINT work_order_expected_one_per_material UNIQUE (work_order_id, material_id)
 );
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX work_order_expected_outputs_material_id_rel ON public.work_order_expected_outputs (material_id);
+
 -- 【这一条必须是【单独一句 ALTER】,不能写进 CREATE TABLE 里】
 -- CREATE TABLE 内联的 CHECK 【拿不到 NOT VALID】—— 建表时它一律被标成已校验,
 -- 于是重建出来的库与线上差一个 NOT VALID 标记,而 gate 的镜像判词当场点名。

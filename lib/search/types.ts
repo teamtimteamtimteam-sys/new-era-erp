@@ -65,6 +65,31 @@ export type ManualHit = {
     snippet: string
 }
 
+/**
+ * ★ SEARCH-4:一条命中带出来的【一组】关联记录 —— 按目标单据种类分组。
+ *
+ * ★★【为什么是一个分组行,而不是把行摊开】★★ Tim 的裁定(Q7),连理由一起:
+ *   **「一个分组行答得出『这个供应商现在什么情况』,而 11 行批号答不出。」**
+ *   那正是他否掉小改法(把供应商名加进 inbound 的 match_columns)时说的同一句话。
+ *   ☞ 于是这里【只有一个数】,一行业务数据都没有取回来 —— `search_related()`
+ *     用的是相关子查询,不是 join 回表。
+ *
+ * ★ 实测(2026-09-13,39 张表 320 行逐行跑了一遍):一条命中最多 **7** 组、
+ *   最多 30 行;组数中位数是 **1**。不按目标种类去重的话最多是 24 组 ——
+ *   「按目标单据种类去重」把最坏情况从 24 压到 7,而且它读起来才是人话
+ *   (「3 个任务」,不是「1 个 owner_id、2 个 task_history、…」)。
+ */
+export type RelatedGroup = {
+    /**
+     * `document_types.key`。文案键 `search.docType.<typeKey>` 由它现拼 ——
+     * ★ 后缀集合由 check-i18n 从 `db/tables/document_types.sql` 的种子**现读**,
+     *   所以加一种单据时,少一句译文会当场红,而不是在屏幕上画一个空标签。
+     */
+    typeKey: string
+    /** 你**看得见**几条。★ INVOKER —— 见 db/functions/search_related.sql 的抬头。 */
+    count: number
+}
+
 /** ① 找单据 —— **SEARCH-1 的槽,SEARCH-2 填**。 */
 export type RecordHit = {
     /** 单据号,例如 PO-2026-0001。 */
@@ -73,6 +98,17 @@ export type RecordHit = {
     label: string
     moduleId: string
     moduleNavKey: string
+    /**
+     * ★ SEARCH-4:这一条命中的关联记录,按目标单据种类分组,**按条数降序**。
+     *
+     * ★★【空数组说的是「这张单据没有关联记录」,不是「这一半还没建」】★★
+     *   SEARCH-3 刚刚为了同一条理由删掉 `records.built` 与
+     *   `search.recordsNotBuiltYet` —— 一处缺席不许被渲染成"还没做"。
+     *   ⚠ 而空有两种来源,**而屏幕上那句话对两种都成立**:
+     *     · 结构上就没有关联(实测今天 1 张:`bank_statements`);
+     *     · 有关联的路,今天一条关联记录都没有(中位数 1 组,所以这很常见)。
+     */
+    related: RelatedGroup[]
 }
 
 export type SearchResults = {

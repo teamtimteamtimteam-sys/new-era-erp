@@ -572,6 +572,59 @@ export default function SearchEntry({
                                                             {t(h.moduleNavKey)}
                                                         </span>
                                                     </Link>
+                                                    {/* ════════════════════════════════════════════
+                                                        ★★ SEARCH-4:这一条命中的【关联记录】★★
+                                                        ════════════════════════════════════════════
+                                                        【形状,连同它的理由】按目标单据种类分组,
+                                                        **每组一行一个计数,不展开行**。Tim 的裁定
+                                                        (Q7),逐字:「一个分组行答得出『这个供应商
+                                                        现在什么情况』,而 11 行批号答不出。」
+
+                                                        ★【为什么这些行【不是链接】—— 这是一次刻意的
+                                                          取舍,写在这里免得下一个人以为是漏了】
+                                                          一条「进料批 11」要链去哪?目标列表页按
+                                                          `?q=` 过滤的是**单据号**,没有一条"这个
+                                                          供应商的进料批"的地址;链到未过滤的列表
+                                                          就是 records.ts 抬头点名拒绝过的那种
+                                                          「差不多的地方」。而在下拉里就地展开是
+                                                          另一个面板的活,这一刀明写不开第二个面板。
+                                                          ☞ 所以它们是**读数**,不是去处;去处仍然
+                                                            是上面那一条命中。
+
+                                                        ★ flex-wrap:实测一条命中最多 7 组,而停止
+                                                          条件 (a) 只允许 flex-wrap 这一种修法。 */}
+                                                    {h.related.length > 0 ? (
+                                                        <ul
+                                                            data-search-related={h.code}
+                                                            data-search-related-groups={h.related.length}
+                                                            className="mb-1 ml-2 flex flex-wrap items-baseline gap-x-3 gap-y-0.5 px-2"
+                                                        >
+                                                            {h.related.map((g) => (
+                                                                <li
+                                                                    key={g.typeKey}
+                                                                    data-search-related-group={g.typeKey}
+                                                                    data-search-related-count={g.count}
+                                                                    className="text-xs text-[color:var(--brand-muted-text)]"
+                                                                >
+                                                                    {t(`search.docType.${g.typeKey}`)}
+                                                                    {' '}
+                                                                    <span className="text-[color:var(--brand-text)]">{g.count}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    ) : (
+                                                        /* ★★【空 = 「这张单据没有关联记录」,不是「还没建」】★★
+                                                            SEARCH-3 刚刚为了同一条理由删掉 records.built
+                                                            与 search.recordsNotBuiltYet。一处缺席不许被
+                                                            渲染成"这一半还没做"。 */
+                                                        <p
+                                                            data-search-related={h.code}
+                                                            data-search-related-groups="0"
+                                                            className="mb-1 ml-2 px-2 text-xs text-[color:var(--brand-muted-text)]"
+                                                        >
+                                                            {t('search.noRelated')}
+                                                        </p>
+                                                    )}
                                                 </li>
                                             ))}
                                         </ul>
@@ -583,6 +636,26 @@ export default function SearchEntry({
                                         </p>
                                     )}
                                     {showing && withheldLines(showing.records.withheld)}
+                                    {/* ════════════════════════════════════════════════
+                                        ★★ Q8:一个不提"还有你看不到的"的计数,会被当成全部 ★★
+                                        ════════════════════════════════════════════════
+                                        `search_related()` 是 INVOKER —— 它数的是**你看得见
+                                        的那些**,而被行级规则挡下的那几条它一声不吭。
+                                        ☞ 裁定:说,而且**不带数**(T4 不许数它 —— 数它要逐行
+                                          读内容)。理由与 SEARCH-2b §7.2 那条逐字同族:
+                                          **一个说了个小数的截断提示,与一个不提截断的结果,
+                                          读起来一样错。**
+                                        ★ 而这一句挂在【整节】上,不挂在某一行上 —— departure,
+                                          理由整段写在 docs/handbacks/SEARCH-4.md §6:
+                                          要按行说,就得先判定某一类的策略是在闸【之内】收窄
+                                          还是在闸【之外】放宽(实测 8 张表命中这个形状,而其中
+                                          4 张是 OR 放宽、并不扣任何行)。一个会在【沉默那一侧】
+                                          判错的标记,正好把 Q8 要防的那个缺陷原样再发一次。 */}
+                                    {showing && showing.records.hits.some((h) => h.related.length > 0) && (
+                                        <p className={noneLine} data-search-related-partial="1">
+                                            {t('search.relatedOnlyWhatYouCanSee')}
+                                        </p>
+                                    )}
                                 </section>
 
                                 {/* ── ② 找页面与动作 ───────────────────────── */}

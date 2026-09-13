@@ -43,6 +43,11 @@ CREATE TABLE public.processing_cost_entries (
     relief_expense_id         uuid REFERENCES public.expenses (id)
 );
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX processing_cost_entries_relief_expense_id_rel ON public.processing_cost_entries (relief_expense_id);
+CREATE INDEX processing_cost_entries_remitted_journal_entry_id_rel ON public.processing_cost_entries (remitted_journal_entry_id);
+
 -- 2. BEFORE UPDATE trigger -> reuse the existing shared update_updated_at() (do NOT redefine it)
 CREATE OR REPLACE FUNCTION public.guard_cost_entry_settled()
 RETURNS trigger LANGUAGE plpgsql AS $fn$

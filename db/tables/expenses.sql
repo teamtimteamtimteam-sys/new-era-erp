@@ -125,6 +125,12 @@ CREATE INDEX idx_expenses_payment_status ON public.expenses (payment_status);
 -- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
 -- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
 CREATE INDEX expenses_code_trgm ON public.expenses USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX expenses_employee_id_rel ON public.expenses (employee_id);
+CREATE INDEX expenses_journal_entry_id_rel ON public.expenses (journal_entry_id);
+CREATE INDEX expenses_reversed_by_expense_rel ON public.expenses (reversed_by_expense);
 -- ── EQP-1b-ii:硬保证 ──────────────────────────────────────────────────────
 -- (另一个索引 idx_expenses_po_line 与那条外键一起,住在
 --  db/tables/purchase_order_lines.sql 的末尾 —— 理由见上面那段引用环的注释。)

@@ -63,6 +63,11 @@ CREATE INDEX output_batches_code_trgm ON public.output_batches USING gin (code e
 -- SEARCH-2b · 迁移 C:「最近编辑过」要的那一条 —— `updated_by = auth.uid()`
 -- 按 updated_at DESC 取前 5(T3)。SEARCH-0 §Q5 实测:这两列上此前一条索引都没有。
 CREATE INDEX output_batches_recents ON public.output_batches (updated_by, updated_at DESC);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX output_batches_customer_id_rel ON public.output_batches (customer_id);
+CREATE INDEX output_batches_material_id_rel ON public.output_batches (material_id);
 COMMENT ON COLUMN public.output_batches.awaiting_operation_type_code IS
 'PROC-WIRE-1B-ii(R3):这一批在等【哪一道】工序。**可空。**
 

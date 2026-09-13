@@ -36,6 +36,10 @@ CREATE INDEX idx_cash_forecasts_week ON public.cash_forecasts (week_start DESC);
 -- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
 -- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
 CREATE INDEX cash_forecasts_code_trgm ON public.cash_forecasts USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX cash_forecasts_superseded_by_rel ON public.cash_forecasts (superseded_by);
 ALTER TABLE public.cash_forecasts ENABLE ROW LEVEL SECURITY;
 
 -- 没有 INSERT/UPDATE/DELETE 策略:唯一写入口是 freeze_cash_forecast(属主权限)

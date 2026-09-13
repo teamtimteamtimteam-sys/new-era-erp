@@ -165,3 +165,5 @@
 2026-09-13T18:19:30+0800	2026-09-13-search2b-document-types.sql	fce6827
 2026-09-13T18:40:51+0800	2026-09-13-search2c-recents-indexes.sql	fce6827
 2026-09-13T18:49:22+0800	2026-09-13-search2d-search-functions.sql	fce6827
+2026-09-13T23:55:21+0800	2026-09-13-search4a-document-relations.sql	6b42932
+2026-09-13T23:56:14+0800	2026-09-13-search4b-relation-indexes.sql	6b42932

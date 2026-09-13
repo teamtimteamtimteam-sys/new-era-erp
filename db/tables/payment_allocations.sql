@@ -60,6 +60,10 @@ CREATE INDEX idx_payment_allocations_expense ON public.payment_allocations (expe
 CREATE INDEX idx_payment_allocations_po ON public.payment_allocations (purchase_order_id);
 CREATE INDEX idx_payment_allocations_invoice ON public.payment_allocations (invoice_id);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX payment_allocations_freight_document_id_rel ON public.payment_allocations (freight_document_id);
+
 CREATE OR REPLACE FUNCTION public.reject_payment_allocation_mutation()
 RETURNS trigger LANGUAGE plpgsql AS $fn$
 BEGIN

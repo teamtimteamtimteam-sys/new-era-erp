@@ -130,6 +130,33 @@ const READ = `(() => {
         withheld: [...document.querySelectorAll('[data-search-withheld]')]
             .map((e) => ({ module: e.getAttribute('data-search-withheld'), text: txt(e) })),
         emptyRecents: txt(document.querySelector('[data-search-empty-recents]')),
+        // ★ SEARCH-4:一条命中带出来的关联分组,按单据号收起来。
+        //   groups 是那一条命中【声明】自己有几组,items 是真的画出来的几行 ——
+        //   两个数合起来才拦得住"属性写对了、行没画出来"那一种。
+        related: [...document.querySelectorAll('[data-search-related]')].map((e) => ({
+            code: e.getAttribute('data-search-related'),
+            groups: Number(e.getAttribute('data-search-related-groups')),
+            items: [...e.querySelectorAll('[data-search-related-group]')].map((g) => ({
+                key: g.getAttribute('data-search-related-group'),
+                n: Number(g.getAttribute('data-search-related-count')),
+                text: txt(g),
+            })),
+            text: txt(e),
+        })),
+        relatedPartialLine: txt(document.querySelector('[data-search-related-partial]')),
+        // ★★ 停止条件 (g):下拉【自己的高度】。V1 让结果按设计变高,而一个
+        //   跑出 390px 屏幕底下的下拉,就是这一刀版本的溢出。
+        panel: (() => {
+            const p = document.querySelector('[data-search-panel]')
+                   ?? document.querySelector('[role="dialog"]')
+            if (!p) return null
+            const r = p.getBoundingClientRect()
+            return { w: Math.round(r.width * 100) / 100, h: Math.round(r.height * 100) / 100,
+                     top: Math.round(r.top * 100) / 100, bottom: Math.round(r.bottom * 100) / 100,
+                     viewportH: window.innerHeight,
+                     overflowsBottom: r.bottom > window.innerHeight + 0.5,
+                     scrolls: p.scrollHeight > p.clientHeight + 0.5 }
+        })(),
         failed: !!document.querySelector('[data-search-failed]'),
         // ★★ SEARCH-3 · U1:**你在【你点的那一格】里打字。**
         //   两个读数合起来才是那句话:① 全页只有【一个】输入框;
@@ -351,6 +378,82 @@ async function main() {
         `单据那一节 state=${r3.recordsState}(built ⇒ 不该再有 not-built)· `
         + `命中 ${r3.recordHits.length} 条:${r3.recordHits.slice(0, 3).map((h) => `「${h.slice(0, 48)}」`).join(' · ')}`)
 
+    // ══ ★★ R7 族 · SEARCH-4:一条命中【带着它的关联记录】★★ ═══════════════
+    //
+    // 【这一格必须真的找到东西】一个"搜了、没红"的格子与一个"搜了、什么都没有"
+    //   的格子在退出码上一模一样。所以它挑的是一个**今天真的有一叠关联**的对象,
+    //   而"有多少"由探针**在跑的时候现读**。
+    //
+    // ★★【为什么不把 11 / 8 / 4 / 3 写死 —— SEARCH-3 的 R3 教训,逐字同一条】★★
+    //   一个写死的计数会在某天多一行的时候为了【错的理由】变红,
+    //   而那天没有人分得出红的是"搜索坏了"还是"数据动了"。
+    //   ☞ 所以期望值走一条**独立的路**取:REST 直查那张表的行数
+    //     (探针身份是 service role,而 UI 那一侧是 admin —— 两条路不共用代码)。
+    const ACME = await (async () => {
+        const r = await rest('/rest/v1/suppliers?select=id,code,legal_name&legal_name=ilike.*Acme*&limit=1')
+        const rows = await r.json()
+        if (!r.ok || !Array.isArray(rows) || rows.length === 0) {
+            // ★ 这是【量具拿不到输入】,不是"关联搜索坏了"。两种必须分开报。
+            throw new Error(`R7 取不到那个供应商(HTTP ${r.status})—— `
+                + `探针自己拿不到判据的输入,不许当成通过`)
+        }
+        return rows[0]
+    })()
+    // 期望值:逐表现读,**不写死**。四张表都以 supplier_id 指向 suppliers。
+    const acmeExpect = {}
+    for (const t of ['inbound_batches', 'payments', 'purchase_orders', 'expenses']) {
+        const r = await rest(`/rest/v1/${t}?select=id&supplier_id=eq.${ACME.id}`,
+            { headers: { Prefer: 'count=exact' } })
+        const rows = await r.json()
+        if (!r.ok || !Array.isArray(rows)) throw new Error(`R7 数不出 ${t} 的行数(HTTP ${r.status})`)
+        acmeExpect[t] = rows.length
+    }
+    const EXPECT_KEY = { inbound_batches: 'inbound_batch', payments: 'payment_out',
+                         purchase_orders: 'purchase_order', expenses: 'expense' }
+    const r7 = await type('Acme')
+    const acmeRow = r7.related.find((x) => x.code === ACME.code)
+    const shown = Object.fromEntries((acmeRow?.items ?? []).map((i) => [i.key, i.n]))
+    // ★ 只比对【探针独立数得出来】的那四类;UI 可能还带着别的组(经桥的那些),
+    //   而那几组这里没有独立的期望值 —— 不比对它们,并且把它们报出来。
+    const mismatches = Object.entries(acmeExpect)
+        .filter(([t]) => acmeExpect[t] > 0)
+        .filter(([t]) => shown[EXPECT_KEY[t]] !== acmeExpect[t])
+        .map(([t]) => `${t}: 屏幕 ${shown[EXPECT_KEY[t]] ?? '(没有这一组)'} ≠ 现读 ${acmeExpect[t]}`)
+    probe('R7.a-hit-carries-its-grouped-relations',
+        r7.recordHits.some((h) => h.includes(ACME.code)) && !!acmeRow
+            && acmeRow.groups > 0 && mismatches.length === 0,
+        `搜「Acme」→ 命中 ${r7.recordHits.length} 条 · ${ACME.code} 带 ${acmeRow?.groups ?? 0} 组:`
+        + `${(acmeRow?.items ?? []).map((i) => `${i.key} ${i.n}`).join(' · ') || '(零)'}`
+        + ` · 现读期望 ${JSON.stringify(acmeExpect)}`
+        + (mismatches.length ? ` · ★ 对不上:${mismatches.join(' ; ')}` : ''))
+
+    // R7b · ★ 两种状态【穷尽】:要么有分组,要么那句「没有关联记录」——
+    //   而【都不许】是一块白,更不许是"还没建"。SEARCH-3 刚为同一条理由
+    //   删掉 records.built 与 search.recordsNotBuiltYet。
+    probe('R7b.every-hit-says-one-of-the-two-things',
+        r7.recordHits.length > 0
+            && r7.related.length === r7.recordHits.length
+            && r7.related.every((x) => (x.groups > 0 && x.items.length === x.groups)
+                                       || (x.groups === 0 && x.text.trim().length > 0)),
+        `命中 ${r7.recordHits.length} 条 · 关联块 ${r7.related.length} 个 · `
+        + r7.related.map((x) => `${x.code}:${x.groups} 组/${x.items.length} 行`).join(' · '))
+
+    // R7c · ★ Q8:一个不提"还有你看不到的"的计数会被当成全部。
+    probe('R7c.counts-say-they-are-only-what-you-can-see',
+        (r7.related.some((x) => x.groups > 0)) === (r7.relatedPartialLine.trim().length > 0),
+        `有分组:${r7.related.some((x) => x.groups > 0)} · 那一句:`
+        + `${r7.relatedPartialLine ? `「${r7.relatedPartialLine.slice(0, 80)}」` : '★ 不在'}`)
+
+    // R7d · ★★ 停止条件 (g):下拉【自己的高度】。V1 让结果按设计变高。
+    //   ⚠ 这一格量的是**探针这一侧的视口(1280×900)**;390 那一侧由
+    //     scripts/probe-nav-geometry.mjs 量,两支各管一个,谁都不冒充对方。
+    probe('R7d.panel-does-not-run-off-the-bottom',
+        !!r7.panel && !r7.panel.overflowsBottom,
+        r7.panel
+            ? `面板 ${r7.panel.w}×${r7.panel.h} · top=${r7.panel.top} bottom=${r7.panel.bottom} `
+              + `· 视口高 ${r7.panel.viewportH} · 跑出底下:${r7.panel.overflowsBottom} · 自己滚:${r7.panel.scrolls}`
+            : '★ 读不到面板的盒子 —— [data-search-panel] 不在')
+
     // R4 · ★ S7 那条【Tim 没说、而面板必须处理】的后果:中文搜手册,匹配不到
     const r4 = await type('入库批次')
     probe('R4.chinese-query-says-manual-is-english',
@@ -383,10 +486,12 @@ async function main() {
         `${r5d.pageHits.slice(0, 3).join(' | ').slice(0, 160) || '(零)'} · ` +
         `被扣下 ${r5d.withheld.length} 行 ${JSON.stringify(r5d.withheld)} · answered=${JSON.stringify(r5d.answered)} · 手册 ${r5d.manualHits.length} 段`)
 
-    // ★ 下界从 9 加到 10 —— SEARCH-3 多了 R6。**这个数是数出来的,不是估的:**
-    //   R6 · R0 · R1 · R1b · R2 · R3 · R4 · R5 · R5b · R5c · R5d = 11 格,
-    //   而下界取 10 是因为 R5c 在被扣下 0 行时是一条空真断言(它仍然会跑)。
-    assertPopulation('probe-search-results', '跑过的格子', results.length, 10)
+    // ★ 下界从 10 加到 14 —— SEARCH-4 多了 R7 · R7b · R7c · R7d。
+    //   **这个数是数出来的,不是估的:**
+    //   R6 · R0 · R1 · R1b · R2 · R3 · R7 · R7b · R7c · R7d · R4 · R5 · R5b ·
+    //   R5c · R5d = 15 格,而下界取 14 是因为 R5c 在被扣下 0 行时是一条
+    //   空真断言(它仍然会跑)—— 同 SEARCH-3 留那一格余量的理由,一字不改。
+    assertPopulation('probe-search-results', '跑过的格子', results.length, 14)
 }
 
 let cleanedUp = false

@@ -3657,6 +3657,42 @@ export type Database = {
           },
         ]
       }
+      document_relation_exceptions: {
+        Row: {
+          column_a: string
+          column_b: string
+          owner_table: string
+          reason: string
+        }
+        Insert: {
+          column_a: string
+          column_b?: string
+          owner_table: string
+          reason: string
+        }
+        Update: {
+          column_a?: string
+          column_b?: string
+          owner_table?: string
+          reason?: string
+        }
+        Relationships: []
+      }
+      document_type_exceptions: {
+        Row: {
+          reason: string
+          table_name: string
+        }
+        Insert: {
+          reason: string
+          table_name: string
+        }
+        Update: {
+          reason?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       document_types: {
         Row: {
           key: string
@@ -19258,6 +19294,22 @@ export type Database = {
         }
         Relationships: []
       }
+      document_relations: {
+        Row: {
+          from_column: string | null
+          from_table: string | null
+          kind: string | null
+          owner_column_a: string | null
+          owner_column_b: string | null
+          owner_table: string | null
+          to_column: string | null
+          to_table: string | null
+          via_from_column: string | null
+          via_table: string | null
+          via_to_column: string | null
+        }
+        Relationships: []
+      }
       employee_directory: {
         Row: {
           annual_leave_accrued_days: number | null
@@ -27959,6 +28011,16 @@ export type Database = {
         }[]
       }
       search_recents_uncovered: { Args: never; Returns: number }
+      search_related: {
+        Args: { p_id: string; p_key: string }
+        Returns: {
+          link_mode: string
+          n: number
+          route: string
+          target_key: string
+          target_table: string
+        }[]
+      }
       set_asset_acceptance: {
         Args: { p_acceptance_date: string; p_asset_id: string }
         Returns: Json

@@ -44,6 +44,10 @@ CREATE INDEX idx_credit_notes_date    ON public.credit_notes (note_date DESC);
 -- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
 -- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
 CREATE INDEX credit_notes_code_trgm ON public.credit_notes USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX credit_notes_entry_id_rel ON public.credit_notes (entry_id);
 CREATE TRIGGER trg_credit_notes_append_only
     BEFORE UPDATE OR DELETE ON public.credit_notes
     FOR EACH ROW EXECUTE FUNCTION public.guard_credit_note_append_only();

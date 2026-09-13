@@ -45,6 +45,11 @@ CREATE TABLE public.sales_records (
 
 CREATE INDEX idx_sales_records_batch ON public.sales_records (output_batch_id);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX sales_records_cogs_entry_id_rel ON public.sales_records (cogs_entry_id);
+CREATE INDEX sales_records_customer_id_rel ON public.sales_records (customer_id);
+
 -- cut 2a:放宽一个精确迁移 —— cogs_entry_id 首挂(NULL → 非 NULL),其余列逐列锁死。
 CREATE OR REPLACE FUNCTION public.reject_sales_record_mutation()
 RETURNS trigger LANGUAGE plpgsql AS $fn$

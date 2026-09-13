@@ -17,6 +17,10 @@ CREATE TABLE public.work_order_lines (
     CONSTRAINT work_order_lines_one_per_material UNIQUE (work_order_id, material_id)
 );
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX work_order_lines_material_id_rel ON public.work_order_lines (material_id);
+
 COMMENT ON TABLE public.work_order_lines IS
     'WO-1a:计划投料。【按物料,不按批次】—— 排计划的时候批次往往还不存在;挑批次是开工当天的决定。与实绩相比时的唯一读法由 (work_order_id, material_id) 的唯一约束保证。';
 

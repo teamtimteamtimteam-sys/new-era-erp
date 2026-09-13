@@ -41,6 +41,10 @@ CREATE TABLE public.inbound_batch_metals (
      OR (content_source IS NULL    AND source_assay_id IS NULL))
 );
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX inbound_batch_metals_source_assay_id_rel ON public.inbound_batch_metals (source_assay_id);
+
 -- 新行必填、老行放过(FIN-32 的形状):19 行既有进料含量【出处未知】,不回填
 ALTER TABLE public.inbound_batch_metals
     ADD CONSTRAINT inbound_batch_metals_content_source_required

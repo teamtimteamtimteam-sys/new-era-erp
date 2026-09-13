@@ -607,6 +607,71 @@ const en = {
         //   `match_columns`(名称、描述、备注那一类标签列)。
         //   ☞ 一句只提号的提示,会让人以为记不住号就搜不到 —— 而他记得住名字。
         emptyWhatYouCanFindRecords: 'Type a document number — the whole thing or just the last few digits — or a name from the document itself.',
+        // ════════════════════════════════════════════════════════════════
+        // ★★ SEARCH-4:关联记录 —— 一条命中带着「它现在什么情况」★★
+        // ════════════════════════════════════════════════════════════════
+        // 【为什么是【分组行】,不是把行摊开】Tim 的裁定(Q7),逐字:
+        //   **「一个分组行答得出『这个供应商现在什么情况』,而 11 行批号答不出。」**
+        //   那正是他否掉小改法时说的同一句话。
+        // 【空的时候说什么】「这张单据没有关联记录」—— **不许说"还没建"**。
+        //   SEARCH-3 刚刚为了同一条理由删掉 records.built 与 recordsNotBuiltYet。
+        noRelated: 'No related records.',
+        // ★★ Q8:一个不提"还有你看不到的"的计数,会被当成全部 ★★
+        //   search_related() 是 INVOKER:它数的是你看得见的那些,被行级规则挡下的
+        //   那几条它一声不吭。裁定:**说,而且不带数** —— T4 不许数它(数它要
+        //   逐行读内容),而一个说了个小数的提示与一个不提的结果读起来一样错。
+        relatedOnlyWhatYouCanSee: 'These counts show only the records you are allowed to see.',
+        // ── 单据种类的名字 ────────────────────────────────────────────────
+        // ★ 后缀集合【不写死在这里】:check-i18n 从 db/tables/document_types.sql
+        //   的种子现读那 40 个 key(MANIFEST 的 'search.docType.')。
+        //   加一种单据而少一句译文 = 当场红,而不是屏幕上一个空标签。
+        // ★ 为什么非要 40 个名字,而不复用导航标签:route 不是一对一的 ——
+        //   40 个 key 只有 33 条不同的 route(/inbound 同时是化验单与进料批,
+        //   /output 同时是销毁证书、产出批与追溯报告,/finance/payments 同时是
+        //   付款与收款)。拿 route 当名字,那几组会显示成同一个词。
+        // ★ 复数式:这一行后面跟着一个计数(「Inbound batches 11」)。
+        docType: {
+            assay_result:        'Assay results',
+            attendance_period:   'Attendance periods',
+            bank_statement:      'Bank statements',
+            cash_forecast:       'Cash forecasts',
+            cod:                 'Destruction certificates',
+            collection_chase:    'Collection chases',
+            container:           'Containers',
+            contract:            'Contracts',
+            credit_note:         'Credit notes',
+            customer:            'Customers',
+            customer_statement:  'Customer statements',
+            employee:            'Employees',
+            expense:             'Expenses',
+            expense_claim:       'Expense claims',
+            fixed_asset:         'Fixed assets',
+            freight_document:    'Freight documents',
+            gst_period:          'GST periods',
+            inbound_batch:       'Inbound batches',
+            invoice:             'Invoices',
+            journal_entry:       'Journal entries',
+            leave_request:       'Leave requests',
+            management_pack:     'Management packs',
+            material:            'Materials',
+            medical_claim:       'Medical claims',
+            output_batch:        'Output batches',
+            payment_out:         'Payments',
+            payment_receipt:     'Receipts',
+            payroll_period:      'Payroll periods',
+            pricing_formula:     'Pricing formulas',
+            processing_run:      'Processing runs',
+            purchase_order:      'Purchase orders',
+            quote:               'Quotes',
+            sales_order:         'Sales orders',
+            shipment:            'Shipments',
+            stocktake:           'Stocktakes',
+            supplier:            'Suppliers',
+            task:                'Tasks',
+            traceability_report: 'Traceability reports',
+            wht_remittance:      'WHT remittances',
+            work_order:          'Work orders',
+        },
         sectionRecents: 'Recently edited',
         // ★ {count} 由数据库现算(search_recents_uncovered()),【不写死】——
         //   裁定当时说的是 10,而那个 10 的分母是「31 张有行的表」;

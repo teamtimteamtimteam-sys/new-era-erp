@@ -31,6 +31,11 @@ CREATE TABLE public.bank_transfers (
 
 CREATE INDEX idx_bank_transfers_date ON public.bank_transfers (transfer_date);
 
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX bank_transfers_journal_entry_id_rel ON public.bank_transfers (journal_entry_id);
+CREATE INDEX bank_transfers_reversal_entry_id_rel ON public.bank_transfers (reversal_entry_id);
+
 ALTER TABLE public.bank_transfers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "bank_transfers select by permission"
     ON public.bank_transfers AS PERMISSIVE FOR SELECT TO authenticated

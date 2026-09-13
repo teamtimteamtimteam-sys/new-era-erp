@@ -45,6 +45,10 @@ CREATE TABLE public.customer_statements (
 -- 但它 seek 不了;今天 319 行上量不出差别,合成 20 万行时 12.0ms vs 33.4ms。
 -- 扩展由 db/platform-prelude.sql §4 提供(连同那条 search_path)。
 CREATE INDEX customer_statements_code_trgm ON public.customer_statements USING gin (code extensions.gin_trgm_ops);
+
+-- SEARCH-4 · 迁移 B:关联搜索走这一列。为将来的体量建,不为今天的毫秒数
+--(320 行上规划器一律 Seq Scan;理由与迁移 A/C 逐字同族)。
+CREATE INDEX customer_statements_superseded_by_rel ON public.customer_statements (superseded_by);
 COMMENT ON TABLE public.customer_statements IS
     'STATEMENT-1:一份对账单 = 一行,而那一行是【抄下来的】。签发那一刻把期初/发生/贷记/收款/期末五个本位币数、每币种分段、期末账龄四档、以及【明细行】一起冻在这里;此后底下的收款与贷项凭证再动,这一行一个字不动 —— 与 bank_reconciliations、gst_return_boxes 同一条规矩,理由也是同一个:「我们当时寄出去的是什么」与「今天重算是多少」是两个问题,日后客户问的一定是前一个。【为什么是一行一次事件,不是可改的列】同一段期间数字变了再出一次,是【另一份文件】,不是把上一份改掉:新起一行,旧行落 superseded_at + 理由。写入只走 issue_customer_statement(SECURITY DEFINER),所以这里只开 SELECT。PDF 的版本在 statement_issues 里另算一层。';
 
