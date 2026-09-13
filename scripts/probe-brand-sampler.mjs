@@ -264,6 +264,10 @@ async function main() {
     await reapStalePlans()
     if (!existsSync(join(ROOT, '.next/BUILD_ID')))
         throw new Error('.next/BUILD_ID 不在 —— 这一支要跑在【生产构建】上。先 npm run build。')
+    // ★★ SEARCH-3:把它读到的 `.next/BUILD_ID` 印出来 —— SEARCH-1 §6 末尾那一次
+    //   「对着旧构建量出一个干净的零」就是这么发生的(`git stash pop` 之后没重建)。
+    //   一份读数必须说得出【它量的是哪一次构建】。
+    console.log(`· .next/BUILD_ID = ${readFileSync(join(ROOT, '.next/BUILD_ID'), 'utf8').trim()}`)
     if (!existsSync(CHROME)) throw new Error('chrome-headless-shell not at ' + CHROME)
     try { execSync(`lsof -ti tcp:${PORT} | xargs -r kill -9`, { stdio: 'ignore' }) } catch {}
 

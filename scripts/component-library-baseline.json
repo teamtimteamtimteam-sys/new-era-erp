@@ -42,7 +42,6 @@
     "app/components/nav/AvatarMenu.tsx": 3,
     "app/components/nav/ModuleBar.tsx": 4,
     "app/components/nav/ToolsMenu.tsx": 1,
-    "app/components/search/SearchEntry.tsx": 1,
     "app/output/[id]/edit/PurposePanel.tsx": 3,
     "app/output/[id]/edit/SafetyStatePanel.tsx": 1,
     "app/purchasing/orders/new/NewOrderForm.tsx": 1,

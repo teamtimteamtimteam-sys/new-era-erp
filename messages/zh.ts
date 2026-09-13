@@ -550,21 +550,22 @@ const zh = {
     // ════════════════════════════════════════════════════════════════════
     search: {
         title: '搜索',
-        placeholder: '搜页面、动作,以及手册',
-        close: '关闭',
+        // ★ SEARCH-3 · U4:此前是「搜页面、动作,以及手册」—— 漏了【单据】。
+        placeholder: '搜单据、页面、动作,以及手册',
+        // ★ SEARCH-3:`close` 删了 —— 下拉没有那颗「关闭」钮了(理由见 en.ts)。
         searching: '正在搜…',
         // ★【失败【不许】画成"没找到"】★ 一次查询失败与"这里没有东西"必须分得开。
         failed: '这一次没搜成 —— 这【不是】"没找到"。再试一次。',
         sectionRecords: '单据',
         sectionPages: '页面与动作',
         sectionManual: '手册',
-        // ★★ job ① 的槽(S2)。它说的是【还没建】,不是【没找到】。
-        //    ☞ SEARCH-2b 之后 built 恒为 true,这一句今天画不出来;它留着是因为
-        //      分支留着 —— 删掉文案等于把"还没建"与"没找到"重新合成一句话。
-        recordsNotBuiltYet: '按单据号找单据(以及"以 0001 结尾"那一种找法)还没有建。它会出现在这里。',
+        // ★★ SEARCH-3 · U4:`recordsNotBuiltYet` 删了 —— 那一半已经建起来了,
+        //    而它的分支写死在 `built: true` 底下,永远画不出来。理由见 en.ts 同一处。
         // SEARCH-2b:单据那一节的三句话。
         noneRecords: '没有单据匹配。',
-        emptyWhatYouCanFindRecords: '打一个单据号 —— 整个都行,只打后四位也行。',
+        // ★ SEARCH-3 · U4:此前只说【号】,而 SEARCH-2b 同时匹配每张表自己
+        //   声明的 `match_columns`(名称/描述/备注那一类标签列)。
+        emptyWhatYouCanFindRecords: '打一个单据号 —— 整个都行,只打后几位也行;打单据上的名字也找得到。',
         sectionRecents: '最近编辑过',
         // ★ {count} 由数据库现算,不写死(理由见 en.ts 同一条)。
         recentsUncovered: '还有 {count} 类单据不会出现在这里 —— 它们没有记下最后是谁改的。',
@@ -579,8 +580,14 @@ const zh = {
         // ★ Tim 的裁定 ③:每一条手册结果都要说出它来自哪一版手册。
         manualVersion: '手册 {version},{issued} 签发',
         // 空状态(S10)。**不留白**。
-        emptyWhatYouCanFind: '打字找一个页面、一个动作,或者操作手册里的一段解释。',
-        emptyNoRecentsYet: '这里还没有"最近看过" —— 记住你上次打开了什么这件事还没有建。',
+        // ★ SEARCH-3 · U4:此前这一句漏掉了【单据】。
+        emptyWhatYouCanFind: '打字找一张单据、一个页面、一个动作,或者操作手册里的一段解释。',
+        // ★ SEARCH-3 · U4:【页面那一节】自己的空状态 —— 此前它复用上面那一句,
+        //   于是在「页面与动作」的标题底下说"也能找单据和手册"。两句话拆开。
+        emptyWhatYouCanFindPages: '打一个页面或动作的名字 —— 打它地址里的一段也行。',
+        // ★★ SEARCH-3 · U4:此前这一句写着「……这件事**还没有建**」,而
+        //   SEARCH-2b 的迁移 C 与 D 把它建起来了。理由整段写在 en.ts 同一处。
+        emptyNoRecentsYet: '这里还是空的 —— 你编辑过的单据会出现在这里。',
     },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。

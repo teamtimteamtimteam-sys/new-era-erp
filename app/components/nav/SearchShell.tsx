@@ -7,9 +7,16 @@
 //
 // 【这个文件今天负责什么】
 //   ① **在首页让位**(UI-1c ③)—— 首页自己有一个大框,一页上同一件事不说两遍;
-//   ② **给共享面板一套顶栏尺寸的 class**。
+//   ② **给共享组件一套顶栏尺寸的 class**。
 //   面板本身、匹配、权限、措辞,全部住在 `app/components/search/SearchEntry.tsx`
 //   —— **一个面板,两个入口**(Tim 的 S1)。
+//
+// ★★【SEARCH-3(2026-09-13):那个面板变成了一个【下拉】,而这个文件改了两行】★★
+//   Tim 的 U1:**你在【你点的那一格】里打字,结果贴着它往下展开。**
+//   ☞ 这一格因此从"一颗点开模态的按钮"变成"一个真的输入框",
+//     而**这个文件仍然只传 class** —— 下拉的摆放、宽度、夹取全在共享组件里,
+//     两个入口一份实现。**「一个面板,两个入口」这句话一个字都没有变松。**
+//   ☞ 怎么在三十秒内确认它仍然只有一个:`SearchEntry.tsx` 抬头列了三条数得出来的验法。
 //
 // ════════════════════════════════════════════════════════════════════════════
 // ★★【它此前是一个 <details>,而那个判断在它那个年代【是对的】】★★
@@ -77,12 +84,31 @@ export default function SearchShell() {
             markers={{ 'data-nav': 'search-shell' }}
             wrapperClassName="relative hidden md:block"
             // ★【尺寸由入口给,不由面板给】★ 这一串与改前那个 <summary> 上的
-            //   **逐字相同**(只去掉了 `list-none` 与 `[&::-webkit-details-marker]:hidden`
-            //   那两个只对 <summary> 有意义的类)。于是顶栏这一格的渲染几何不变,
-            //   而版式普查那一边的差额只剩"真的变了的那几样"。
-            triggerClassName="flex h-8 w-[200px] cursor-pointer items-center gap-2 rounded-full border border-[color:var(--brand-border)] px-3 text-sm text-[color:var(--brand-muted-glass)] hover:bg-[color:var(--brand-accent)]"
+            //   **逐字相同**,只换了一个字:`cursor-pointer` → `cursor-text`。
+            //   ☞ **SEARCH-3 · Tim 的 U2:它是一个输入框,不是一个链接。**
+            //     手型光标在说"点我会跳到别处去",而点它只会让你开始打字。
+            //   ⚠ `cursor` 不参与任何一处版式 —— 顶栏这一格的盒子仍然是 200x32
+            //     (判据 N1–N4 与 probe-brand-sampler 的十项计算值都不含 cursor,
+            //     所以这一句改动【量得到的只有 N11 那一格】,那正是它该出现的地方)。
+            // ★★【`font-normal` 是【逐元素普查】抓出来的,不是顺手加的】★★
+            //   这一格今天是一个 `<label>`,而 `app/globals.css` 的 base 层写着
+            //   `label { font-weight: 500 }`。☞ 于是它连同里面那个放大镜一起
+            //   **从 400 变成了 500** —— 实测:`probe-brand-sampler` 的顶栏那一堆
+            //   报出 `svg|…|500` 多一个、`svg|…|400` 少一个(circle / path 同)。
+            //   ★ 那正是 FONT-1 T4 记下的那一族:**一次没有人裁过的继承。**
+            //     它当时的药是 `input, select, textarea { font-weight: 400 }`,
+            //     那条今天仍然管着里面那个输入框(实测它是 400);**够不着的是
+            //     label 自己和它的 svg 子元素。**
+            //   ☞ 所以在【调用点】挡一次(utilities 层排在 base 之后,压得过它),
+            //     而 `app/globals.css` 是 S2 的关闭输出(停止条件 (d)),一个字节都不碰。
+            triggerClassName="flex h-8 w-[200px] cursor-text items-center gap-2 rounded-full border border-[color:var(--brand-border)] px-3 text-sm font-normal text-[color:var(--brand-muted-glass)] hover:bg-[color:var(--brand-accent)]"
             glyphClassName="h-4 w-4 shrink-0"
-            promptClassName="truncate"
+            // ★【打进去的字用正文色,而【占位符】用改前那句提示语的颜色】★
+            //   改前那一格里是一个 `<span>`,整串字都是 `--brand-muted-glass` ——
+            //   它是一句**提示**。今天它分成了两样:提示语(占位符)照旧那个颜色,
+            //   **而打进去的字是内容**,内容用 `--brand-text`。
+            //   ☞ 把打进去的字也留在 muted-glass 上,就是让人读自己刚打的字费劲。
+            inputClassName="truncate text-[color:var(--brand-text)] placeholder:text-[color:var(--brand-muted-glass)]"
         />
     )
 }

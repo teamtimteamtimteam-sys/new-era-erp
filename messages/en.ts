@@ -579,8 +579,14 @@ const en = {
     search: {
         // 对话框自己的可访问名(屏幕上不画,读屏要读)。
         title: 'Search',
-        placeholder: 'Search pages, actions and the manual',
-        close: 'Close',
+        // ★ SEARCH-3 · U4:这一句此前写的是「pages, actions and the manual」——
+        //   ★ 它漏掉了【单据】,而 SEARCH-2b 把单据那一半建起来了。
+        //   ⚠ 它是【可访问名】,不是屏幕上那句占位符(那一句是 home.searchPrompt,
+        //     必须短到放得进 200px 的那一格)。读屏用户该听见的是完整的那一句。
+        placeholder: 'Search documents, pages, actions and the manual',
+        // ★ SEARCH-3:`close` 删了 —— 下拉没有那颗「关闭」钮了。
+        //   一个下拉的关法是 Esc / 点别处 / Tab 出去,而那一格【自己】始终在屏幕上。
+        //   ⚠ 留一个没人用的键,下一个人会以为屏幕上还有那颗钮。
         searching: 'Searching…',
         // ★【失败【不许】画成"没找到"】★ 一次查询失败与"这里没有东西"在屏幕上
         //   必须分得开 —— 这是本仓库反复付账的那一条(lib/permissions.ts 抬头)。
@@ -589,14 +595,18 @@ const en = {
         sectionRecords: 'Records',
         sectionPages: 'Pages and actions',
         sectionManual: 'Manual',
-        // ★★ job ① 的槽(S2)。它说的是【还没建】,不是【没找到】。
-        //    ☞ SEARCH-2b(2026-09-13)之后 built 恒为 true,所以这一句在屏幕上
-        //      【今天画不出来】。它留着,因为分支留着:那条区别本身没有过期,
-        //      而删掉文案等于把"还没建"与"没找到"重新合成一句话。
-        recordsNotBuiltYet: 'Searching for records — by document number, or by the last four digits — is not built yet. This is where it will appear.',
+        // ★★ SEARCH-3 · U4:`recordsNotBuiltYet` 删了。
+        //    它说的是「…is not built yet」,而那一半 SEARCH-2b 已经建起来了;
+        //    它的分支写死在 `built: true` 底下,**永远画不出来**。
+        //    先例逐字可抄:SEARCH-1 删 `home.searchNotYet` 时写的是「留着一句写着
+        //    『搜索还没有建』的文案,下一个读到它的人会据此断定这件事还没做」。
         // SEARCH-2b:单据那一节的三句话。
         noneRecords: 'No document matches.',
-        emptyWhatYouCanFindRecords: 'Type a document number — the whole thing, or just the last four digits.',
+        // ★ SEARCH-3 · U4:此前这一句只说【号】(「Type a document number …」),
+        //   而 SEARCH-2b 的 `search_documents()` 同时匹配每张表自己声明的
+        //   `match_columns`(名称、描述、备注那一类标签列)。
+        //   ☞ 一句只提号的提示,会让人以为记不住号就搜不到 —— 而他记得住名字。
+        emptyWhatYouCanFindRecords: 'Type a document number — the whole thing or just the last few digits — or a name from the document itself.',
         sectionRecents: 'Recently edited',
         // ★ {count} 由数据库现算(search_recents_uncovered()),【不写死】——
         //   裁定当时说的是 10,而那个 10 的分母是「31 张有行的表」;
@@ -617,8 +627,24 @@ const en = {
         // ★ Tim 的裁定 ③:每一条手册结果都要说出它来自哪一版手册。
         manualVersion: 'Manual {version}, issued {issued}',
         // 空状态(S10)。**不留白** —— 说清楚现在找得到什么、还找不到什么。
-        emptyWhatYouCanFind: 'Type to find a page, an action, or a passage of the operations manual.',
-        emptyNoRecentsYet: 'There is nothing recent to show here yet — remembering what you last opened is not built.',
+        // ★ SEARCH-3 · U4:此前这一句是「a page, an action, or a passage …」——
+        //   ★ 同样漏掉了【单据】。它是面板顶上那一句,读的人拿它当这里能干什么的清单。
+        emptyWhatYouCanFind: 'Type to find a document, a page, an action, or a passage of the operations manual.',
+        // ★ SEARCH-3 · U4:【页面那一节】自己的空状态。
+        //   此前那一节复用了上面那一句,于是它在一节标着「Pages and actions」的
+        //   标题底下说「也能找单据和手册」—— 一句放错了节的话,读起来像这一节
+        //   什么都找得到。**两句话拆开,各说各那一节。**
+        emptyWhatYouCanFindPages: 'Type the name of a page or an action — or a piece of its address.',
+        // ★★ SEARCH-3 · U4:此前这一句写的是「remembering what you last opened
+        //   **is not built**」—— ★ 而 SEARCH-2b 的迁移 C(22 条 `(updated_by,
+        //   updated_at DESC)` 索引)与迁移 D(`search_recents()`)把它建起来了。
+        //   SEARCH-2b 的交回报告 §7.1 写着这一格空的时候该说「**因为你还没编辑过
+        //   任何东西**」,而文案文件里那一句【没有跟着改】。这是这一刀在这一族里
+        //   找到的最硬的一处:**一句在册的、今天是假的话。**
+        //   ⚠ 它对大多数人本来就是空的(实测 updated_by 填了 135/196 行,
+        //     而只有 3 个操作者还在 auth.users 里)—— 所以这一句必须说出【为什么空】,
+        //     不能读成"搜索坏了"。
+        emptyNoRecentsYet: 'Nothing here yet — this fills up with the documents you edit.',
     },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。

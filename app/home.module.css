@@ -136,19 +136,40 @@
 }
 
 /* ── 搜索外壳 ──────────────────────────────────────────────────────────── */
+/* ★★★【SEARCH-3 · Tim 的 U3:z-index 从 1 抬到 2,而这一句是承重的】★★★
+   【被修的那件事,一句话】`position: relative` + `z-index: 1` 让这一层成为一个
+   **层叠上下文**。搜索的结果面写在它里面,于是它自己的 `z-[150]` 被关在里面 ——
+   对外,整个外壳只值 `z-index: 1`。而下面那行问候语 `.greeting` 也是 `z-index: 1`,
+   **并且排在它后面**:同级同值,后来者在上。☞ 问候语因此画在搜索面【上面】。
+   ★ 实测(scripts/probe-nav-geometry.mjs 的 N16,改前):在两者重叠的那一片上
+     取 9 个点,**9 个点最上面的都是那一行问候语,0 个是搜索面。**
+   ☞ 抬到 2 就够了,而"够"是有分母的:这一页上会造层叠上下文的只有三个 ——
+     `.mark`(1)· `.shell` · `.greeting`(1),`.pulse` 没有 z-index。
+     **不写一个 999**:一个凭感觉的大数字会在下一次有人排层叠时说不出理由。 */
 .shell {
     position: relative;
-    z-index: 1;
+    z-index: 2;
     width: 100%;
     max-width: 34rem;
 }
 
-/* ★【它是 <summary>,不是 <input> —— 而那是本刀最要紧的一处刻意】★
-   Tim:**这个框不许假装能用。** 一个接了 <input> 的框会吞掉打进去的字,
-   而"打了字、按了回车、什么都没发生"是这套系统反复在修的那一类谎的完整形状。
-   <details>/<summary> 让"点它 → 它说实话"成为【纯 HTML】的行为:
-   不需要 'use client',不需要一个 state,键盘(Enter/Space)天然可达,
-   读屏把它读成一个可展开的按钮 —— 而它确实就是。 */
+/* ★【它曾经是 <summary>,而那个判断在它那个年代【是对的】】★
+   CONV-6 写下的理由逐字是:**这个框不许假装能用。** 一个接了 <input> 的框会
+   吞掉打进去的字,而"打了字、按了回车、什么都没发生"是这套系统反复在修的
+   那一类谎的完整形状。
+   ☞ **那条推理没有被推翻,是它的前提没了**:SEARCH-1/2b 之后这个框真的能搜,
+     所以一个接了字的框不再是一句谎。
+   ★★【SEARCH-3(2026-09-13):它现在是一个包着 <input> 的 <label>】★★
+     Tim 的 U1:**你在【你点的那一格】里打字。** 点 `<label>` 就聚焦它包着的那个
+     控件 —— 这是 HTML 自带的,不需要一个 onClick 去 focus()。
+   ★ 尺寸【一个像素都没动】:padding / border / border-radius / gap 逐字未改,
+     而那个 <input> 的行高与改前那个 <span> 是同一个算式(字号 × 继承来的
+     `line-height` 比值 20/14)。实测 390px 上 `358x49.02`,与 SEARCH-2b 相同。
+   ★★ `cursor: pointer` → `cursor: text`(Tim 的 U2):手型光标在说"点我会跳到
+     别处去",而点它只会让你开始打字。**它是一个输入框,不是一个链接。**
+   ⚠ `list-style: none` 与下面那条 `::-webkit-details-marker` 是 <summary> 年代
+     留下的,今天【无害且无用】。本刀不清扫它们 —— 一次顺手的删除会让下一个人
+     以为有人核过整个文件(AGENTS.md:报告,不清扫)。登记在交回报告里。 */
 .box {
     display: flex;
     align-items: center;
@@ -160,7 +181,11 @@
     border-radius: 999px;
     background: var(--brand-surface);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -18px rgba(0, 0, 0, 0.35);
-    cursor: pointer;
+    cursor: text;
+    /* ★ 同一条理由,首页这一侧:这一格今天是 `<label>`,而 globals 的 base 层
+       写着 `label { font-weight: 500 }`。**没有人裁过这一格要变粗** ——
+       FONT-1 T4 为同一族付过账。CSS module 不进 @layer,所以这一句压得过它。 */
+    font-weight: 400;
     text-align: left;
     list-style: none;
     transition: box-shadow 160ms ease-out, border-color 160ms ease-out;
@@ -173,7 +198,12 @@
     border-color: var(--brand-border-strong);
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 10px 30px -18px rgba(0, 0, 0, 0.45);
 }
-.box:focus-visible {
+/* ★ 焦点环现在要画在【那一格】上,而焦点落在它里面那个 <input> 上 ——
+   所以判据从 `:focus-visible` 换成 `:focus-within`。
+   ⚠ 两条都留着:`:focus-visible` 在这一格自己拿到焦点时仍然成立(读屏、
+   以及将来任何把 tabindex 挂回这一层的写法),而删掉它买不到任何东西。 */
+.box:focus-visible,
+.box:focus-within {
     outline: 2px solid var(--brand-ocean-fill);
     outline-offset: 2px;
 }
@@ -185,16 +215,41 @@
     color: var(--brand-muted-text);
 }
 
+/* ★ SEARCH-3:这个类今天挂在【那个 <input>】上,不再挂在一个 <span> 上。
+   两条承重的规则一个字没改(字号、截断),所以那一格的高度也没改。
+   ★★ 而颜色分成了两样,这是【它从"一句提示"变成"一个能装内容的框"】的直接后果:
+     · 打进去的字 = **内容**,走正文色 `--brand-text`;
+     · 提示语     = 占位符,走改前那一整串字的颜色 `--brand-muted-text`。
+   ☞ 把打进去的字也留在次级色上,是让人读自己刚打的字费劲。 */
 .prompt {
     flex: 1 1 auto;
     min-width: 0;
     font-size: 1rem;
-    color: var(--brand-muted-text);
-    /* 【390px 上的行为:提示语截断,而右边那个标记【不许】被挤掉】——
-       被挤掉的正好是那句"它还不能用",而那是这个框最要紧的一句话。 */
+    /* ★★★【这一行是停止条件 (f) 抓出来的,而它的机制值得读两遍】★★★
+       改前这一格里是一个 `<span>`,它从 `<body>` 继承 `line-height`,而那是一个
+       **比值**(`calc(20 / 14)`,见 app/globals.css 的那一整段)—— 比值继承下去,
+       每个元素拿【自己的】字号去乘。于是这个 1rem 的 span 高 16 × 1.428571 ≈ 22.86px。
+       ★ 换成 `<input>` 之后,Tailwind preflight 给表单控件写的是 `font: inherit`,
+         而 `font:` 的简写继承的是父元素的**计算值** —— 父元素 `.box` 是 14px 字号,
+         它的计算 line-height 是 **20px(一个长度)**。☞ 那个长度不再随字号走。
+       ★ 实测代价(probe-nav-geometry,同一支探针改前改后):
+           390px  首页那一格 49.02 → **47.59**(矮 1.43px)
+           1280px 同一格     53.63 → **50.78**(矮 2.85px)
+         两处的差额都恰好是「22.86 − 20」与「21.43 − 20」。
+       ☞ 修法是把那个**比值**再写一次,并且【读同一个变量】,不抄一个数字:
+         于是它仍然只有一个源,而这一格的高度回到逐字相同。 */
+    line-height: var(--text-sm--line-height, calc(20 / 14));
+    color: var(--brand-text);
+    /* 【390px 上的行为:提示语截断】—— 那一格最窄的时候先截提示语。 */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.prompt::placeholder {
+    color: var(--brand-muted-text);
+    /* Firefox 给占位符一个默认的 opacity —— 不写这一句,颜色就不是它看起来那个。 */
+    opacity: 1;
 }
 
 /* 【在点之前就说一次】Tim 要求的是"点下去要说实话";这一格让实话在

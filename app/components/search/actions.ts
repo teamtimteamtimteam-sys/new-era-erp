@@ -84,7 +84,7 @@ export async function searchEverything(query: string): Promise<SearchResults> {
 
     const empty: SearchResults = {
         query,
-        records: { built: true, hits: [], withheld: [], more: 0 },
+        records: { hits: [], withheld: [], more: 0 },
         pages: { hits: [], withheld: [], more: 0 },
         manual: { hits: [], more: 0, version: MANUAL_VERSION, issued: MANUAL_ISSUED },
         recents,
@@ -163,10 +163,9 @@ export async function searchEverything(query: string): Promise<SearchResults> {
     return {
         query,
         // ══ ① 找单据 —— SEARCH-1 留的槽,SEARCH-2b(2026-09-13)填上了 ═══════
-        // 【built 这个字段为什么还在】它曾经用来区分"这一半还没建"与"没找到"——
-        // 那条区别本身没有过期,只是今天答案变了:三支迁移都下去了,所以是 true。
-        // ★ 它留着,因为面板那一节仍然靠它分辨这两句话;删掉它等于把区别删掉。
-        records: { built: true, ...records },
+        // ★ SEARCH-3 把 `built: true` 删了 —— 一个**写死成 true** 的布尔配一条
+        //   永远画不出来的分支,理由整段写在 `lib/search/types.ts` 的 records 上面。
+        records,
         recents,
         pages: {
             hits: ranked.slice(0, PAGE_LIMIT),

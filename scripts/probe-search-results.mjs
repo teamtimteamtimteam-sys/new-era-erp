@@ -24,7 +24,9 @@
 //                   `[data-search-withheld]` 那几行的文字、手册那一节的版本行。
 //   我声称管的是   :① 面板找得到页面与手册段落;② 被扣下的结果**说出了存在**,
 //                   而且那句话里的模块名是九个一级模块之一;③ 中文搜手册匹配不到时,
-//                   屏幕上那句「这一节是英文的」在。
+//                   屏幕上那句「这一节是英文的」在;
+//                   ★ ④(SEARCH-3)**打字发生在【你点的那一格】里** —— 全页只有
+//                   一个 `[data-search-input]`,而它住在触发格里面(R6)。
 //   两者不同之处   :★ **我量的是一个 operations 角色看到的东西,不是每一个角色。**
 //                   别的角色被扣下多少条,我没量。
 //                   ★ 我也**不判排序好不好** —— 排序的规则只有一条(标题命中的在前),
@@ -129,6 +131,17 @@ const READ = `(() => {
             .map((e) => ({ module: e.getAttribute('data-search-withheld'), text: txt(e) })),
         emptyRecents: txt(document.querySelector('[data-search-empty-recents]')),
         failed: !!document.querySelector('[data-search-failed]'),
+        // ★★ SEARCH-3 · U1:**你在【你点的那一格】里打字。**
+        //   两个读数合起来才是那句话:① 全页只有【一个】输入框;
+        //   ② 而它就住在【你点的那一格】里面。
+        //   ⚠ 缺了 ① 那一半,「输入框在触发格里」在一个同时还开着第二个输入框的
+        //     面板上照样成立 —— 而那正是改前那个模态的形状。
+        inputCount: document.querySelectorAll('[data-search-input]').length,
+        inputInsideField: (() => {
+            const f = document.querySelector('[data-nav="search-trigger"]')
+            const i = document.querySelector('[data-search-input]')
+            return !!(f && i && f.contains(i))
+        })(),
     }
 })()`
 
@@ -138,6 +151,10 @@ async function main() {
     await reapStalePlans()
     if (!existsSync(join(ROOT, '.next/BUILD_ID')))
         throw new Error('.next/BUILD_ID 不在 —— 这一支要跑在【生产构建】上。先 npm run build。')
+    // ★★ SEARCH-3:把它读到的 `.next/BUILD_ID` 印出来 —— SEARCH-1 §6 末尾那一次
+    //   「对着旧构建量出一个干净的零」就是这么发生的(`git stash pop` 之后没重建)。
+    //   一份读数必须说得出【它量的是哪一次构建】。
+    console.log(`· .next/BUILD_ID = ${readFileSync(join(ROOT, '.next/BUILD_ID'), 'utf8').trim()}`)
     if (!existsSync(CHROME)) throw new Error('chrome-headless-shell not at ' + CHROME)
     try { execSync(`lsof -ti tcp:${PORT} | xargs -r kill -9`, { stdio: 'ignore' }) } catch {}
 
@@ -216,7 +233,13 @@ async function main() {
             if (Date.now() - t0 > 25000) throw new Error(`${path}:触发钮没有水合`)
             await sleep(200)
         }
-        await evalJs(`document.querySelector('[data-nav="search-trigger"]').click()`)
+        // ★ 两种写法都认:改前触发格是一颗 <button>,改后它是一个包着输入框的
+        //   <label>(点它 = 聚焦那个输入框)。一支只认一种写法的探针量不了另一边。
+        await evalJs(`(() => {
+            document.querySelector('[data-nav="search-trigger"]').click()
+            const i = document.querySelector('[data-search-input]')
+            if (i) i.focus()
+        })()`)
         await sleep(300)
     }
 
@@ -252,6 +275,20 @@ async function main() {
     // ══ admin ════════════════════════════════════════════════════════════
     await setCookie(adminCookie)
     await openPanelOn('/me')
+
+    // ══ ★★ R6 · SEARCH-3 · U1:你在【你点的那一格】里打字 ★★ ══════════════
+    //
+    // 【这一格换掉了什么】SEARCH-1/2b 的这支探针从来没有问过"输入框在哪"——
+    //   它只问"打进去之后找不找得到东西"。而改前的答案是:**你点的那一格在一层
+    //   遮罩底下待着,真正接字的是模态里【另一个】输入框。**
+    //   ☞ Tim 的 U1 把这件事变成一条可以量的判据,所以它在这里,不在注释里。
+    //   ★ 改前这一格【必红】:那时 `[data-search-input]` 住在 `[data-search-panel]`
+    //     里面,而 `[data-nav="search-trigger"]` 是它外面那颗按钮。
+    const u1 = await evalJs(READ)
+    probe('R6.you-type-in-the-field-you-clicked',
+        u1.inputCount === 1 && u1.inputInsideField === true,
+        `全页 [data-search-input] ${u1.inputCount} 个 · 它在触发格里面:${u1.inputInsideField}` +
+        ` —— ★ 一个输入框,而它就是你点的那一格`)
 
     // R0 · 空状态:三节都在,而且「最近看过」那一句说出来了(S10)
     const empty = await evalJs(READ)
@@ -346,7 +383,10 @@ async function main() {
         `${r5d.pageHits.slice(0, 3).join(' | ').slice(0, 160) || '(零)'} · ` +
         `被扣下 ${r5d.withheld.length} 行 ${JSON.stringify(r5d.withheld)} · answered=${JSON.stringify(r5d.answered)} · 手册 ${r5d.manualHits.length} 段`)
 
-    assertPopulation('probe-search-results', '跑过的格子', results.length, 9)
+    // ★ 下界从 9 加到 10 —— SEARCH-3 多了 R6。**这个数是数出来的,不是估的:**
+    //   R6 · R0 · R1 · R1b · R2 · R3 · R4 · R5 · R5b · R5c · R5d = 11 格,
+    //   而下界取 10 是因为 R5c 在被扣下 0 行时是一条空真断言(它仍然会跑)。
+    assertPopulation('probe-search-results', '跑过的格子', results.length, 10)
 }
 
 let cleanedUp = false
