@@ -157,6 +157,37 @@ for (const vp of viewports) {
 //     · tablesCompared —— tables 那一段没解析到(比如字段改名);
 //     · fieldComparisons —— 上面两者任一为 0 时它也为 0,但它还能抓住
 //       "路由在、表在、而每一格比较都被跳过了"那一种。
+// ════════════════════════════════════════════════════════════════════════════
+// ★★★【SEARCH-3(2026-09-13):(b) 点名的那几条,必须【逐条证明它被量过】】★★★
+// ════════════════════════════════════════════════════════════════════════════
+//   SEARCH-2b 实测撞上过这一幕,而它当时是靠**人眼读 notes** 接住的:
+//   改后那一趟 `phone /finance/freight/new` 整格 `failed`(渲染器卡死),
+//   于是它落进 `blindRoutes`、只出现在 notes 里,**而退出码照样是 0**。
+//   ☞ 那个 0 的意思是「比过的都没踩」,**不是**「那条路由没长大」——
+//     而 `/finance/freight/new` 正是 (b) 点名的 5 条之一。
+//
+//   ★ 本仓库对这一族有明文:**一份「0 个不合规」的读数,它的分母是【它量过的
+//     那些】**;以及「覆盖率本身必须是一条断言 —— 一个瞎掉的检查必须说『我瞎了』」。
+//   ☞ 所以这里不再只是打印一行提示:**改前已经在溢出的每一条路由,两侧都必须
+//     量到。少一条 → 退 2(量具瞎了),而不是退 0(干净)。**
+//   ⚠ 判据用的是【改前那份读数算出来的名单】,不是一张写死的 5 条清单 ——
+//     写死的名单会在树变了的那天悄悄过期,而它过期的样子正是这条断言要防的。
+const notMeasured = [...alreadyOverflowing.keys()].filter((k) => {
+    const [vp, route] = [k.slice(0, k.indexOf('|')), k.slice(k.indexOf('|') + 1)]
+    const a = A.routes?.[vp]?.[route], b = B.routes?.[vp]?.[route]
+    return !a || !b || a.failed || b.failed
+})
+if (notMeasured.length) {
+    console.error(`✗ ${SELF}:**覆盖断言失败 —— 这一次读数不作数。**`)
+    console.error(`    (b) 点名的「改前就在溢出」的路由共 ${alreadyOverflowing.size} 条,`
+        + `其中 ${notMeasured.length} 条【只有一侧量到】:`)
+    for (const k of notMeasured) console.error(`      · ${k}`)
+    console.error(`  ☞ 一个绿色的退出码在这里会读成「它没长大」,而真相是「我没量它」。`)
+    console.error(`  ☞ 修法:对这几条定点复读(survey-controls --mode=drift --only=…)再合并回来。`)
+    process.exit(2)
+}
+console.log(`   ★ (b) 点名的 ${alreadyOverflowing.size} 条【两侧都量到了】—— 逐条断言过,不是打印过。`)
+
 assertPopulation(SELF, '两侧都量到的路由×视口', routesCompared)
 assertPopulation(SELF, '两侧都量到的表', tablesCompared)
 assertPopulation(SELF, '字段比较次数', fieldComparisons)
