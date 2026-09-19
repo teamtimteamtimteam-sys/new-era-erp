@@ -26,7 +26,7 @@ export default function DeleteFormulaButton({ formulaId, subject }: { formulaId:
             confirmLabel={t('common.delete')}
             tier="destructive"
             disabled={isPending}
-            className="border border-red-300 text-red-600 px-3 py-2 rounded hover:bg-red-50 disabled:opacity-50"
+            triggerVariant="destructive"
             onConfirm={() => {
                 startTransition(async () => {
                     const result = await deleteFormula(formulaId)

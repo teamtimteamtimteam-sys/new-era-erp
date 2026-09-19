@@ -61,6 +61,12 @@ canEdit: boolean
                 reason={{ placeholder: t('finance.reopenReason') }}
                 disabled={isPending}
                 onConfirm={doReopen}
+                // ★ BTN-TRIGGER-1(2026-09-20):这一处【转过去了 → 量了 → 按回来了】。
+                //   ★ 它【渲染在一张表的格子里】—— CloseHistoryTable.tsx:75 逐行渲染它,
+                //     而从调用点这一侧看不出来这件事。`triggerVariant="reversal"` 把它
+                //     30px → 32px,实测 /finance/close 的表体行高 52.92 → 53.50(**+0.58px**)。
+                //   委托书 §3 与停止条件 (c):报出差值,不要接受它。
+                //   ☞ `disabled:opacity-50` 因此【活着】(2.557 白底 / 2.525 品牌底,都过不了 AA)。
                 className="border border-red-300 text-red-600 px-3 py-1 rounded hover:bg-red-50 disabled:opacity-50"
             >
                 {isPending ? t('common.saving') : t('finance.reopenButton')}

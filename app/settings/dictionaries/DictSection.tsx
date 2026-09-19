@@ -107,7 +107,7 @@ export default function DictSection({ spec, rows, usage, locale, readOnly = fals
                             tier="destructive"
                             disabled={pending}
                             onConfirm={() => run(() => setDictActive({ table: spec.table, code: r.code, active: false }))}
-                            className="rounded border border-[color:var(--brand-border)] px-2 py-0.5 text-xs hover:bg-[color:var(--brand-muted)] disabled:opacity-50">
+                            triggerVariant="destructive" triggerSize="xs">
                             {t('dict.deactivate')}
                         </ConfirmButton>
                     ) : (

@@ -106,7 +106,7 @@ canEdit: boolean
                             tier="destructive"
                             onConfirm={() => submit(true)}
                             disabled={isPending || regNoBlank}
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400"
+                            triggerVariant="destructive"
                         >
                             {t('finance.gstSwitch.turnOn')}
                         </ConfirmButton>

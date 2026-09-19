@@ -191,7 +191,7 @@ export default function TaskHeader({
                     confirmLabel={labels.confirmDelete}
                     tier="destructive"
                     disabled={pending}
-                    className="text-sm text-red-700 hover:underline disabled:opacity-50"
+                    triggerVariant="destructive" triggerSize="inline"
                     onConfirm={() =>
                         start(async () => {
                             const res = await softDeleteTask(task.id)

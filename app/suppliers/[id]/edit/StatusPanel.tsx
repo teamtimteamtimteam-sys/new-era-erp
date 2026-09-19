@@ -98,9 +98,6 @@ export default function StatusPanel({
                     <div className="flex flex-wrap gap-2">
                         {allowedTargets.map((target) => {
                             const isDestructive = DESTRUCTIVE_TRANSITIONS.has(target)
-                            const cls = isDestructive
-                                ? 'border border-red-300 text-red-700 bg-white px-3 py-1.5 rounded text-sm hover:bg-red-50 disabled:opacity-50'
-                                : 'border border-blue-300 text-blue-700 bg-white px-3 py-1.5 rounded text-sm hover:bg-blue-50 disabled:opacity-50'
                             const face = (
                                 <>
                                     {isPending
@@ -143,7 +140,7 @@ export default function StatusPanel({
                                     tier="destructive"
                                     disabled={isPending}
                                     onConfirm={() => handleClick(target)}
-                                    className={cls}
+                                    triggerVariant="destructive"
                                 >
                                     {face}
                                 </ConfirmButton>

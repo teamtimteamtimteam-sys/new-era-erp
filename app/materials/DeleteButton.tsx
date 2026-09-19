@@ -31,7 +31,7 @@ export default function DeleteButton({
             confirmLabel={t('common.delete')}
             tier="destructive"
             disabled={isPending}
-            className="text-red-600 hover:underline disabled:text-gray-400"
+            triggerVariant="destructive" triggerSize="inline"
             onConfirm={() => {
                 startTransition(async () => {
                     const result = await softDeleteMaterial(id)

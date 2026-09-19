@@ -109,7 +109,7 @@ canEdit: boolean
                 tier="destructive"
                 disabled={!reason.trim() || (needsReversalDate && !reversalDate.trim()) || isPending}
                 onConfirm={handleSubmit}
-                className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 disabled:bg-gray-400 text-sm"
+                triggerVariant="destructive"
             >
                 {t('invoice.void')}
             </ConfirmButton>

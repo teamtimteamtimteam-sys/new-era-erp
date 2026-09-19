@@ -19,7 +19,7 @@ export default function DeleteButton({ id, subject }: { id: string; subject: str
             confirmLabel={t('common.delete')}
             tier="destructive"
             disabled={isPending}
-            className="text-sm border border-red-300 text-red-600 px-3 py-1 rounded hover:bg-red-50 disabled:opacity-50"
+            triggerVariant="destructive"
             onConfirm={() => {
                 startTransition(async () => {
                     // 成功时服务端 redirect 接管;仅失败时才会返回带 error 的对象。

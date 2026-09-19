@@ -95,7 +95,7 @@ export default function CompliancePanel({
             confirmLabel={t('suppliers.compliance.deleteCert')}
             tier="destructive"
             disabled={isPending}
-            className="text-red-600 text-sm hover:underline disabled:text-gray-400"
+            triggerVariant="destructive" triggerSize="inline"
             onConfirm={() => handleDelete(row.id)}
         >
             {t('suppliers.compliance.deleteCert')}

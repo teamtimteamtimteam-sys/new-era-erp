@@ -89,7 +89,7 @@ export function UnapplyOutputAssayControl({
                     reason={{ placeholder: t('assay.unapplyReason') }}
                     onConfirm={onUnapply}
                     disabled={isPending}
-                    className="border border-red-300 text-red-600 px-3 py-1.5 rounded hover:bg-red-50 text-sm disabled:opacity-50"
+                    triggerVariant="reversal"
                 >
                     {t('assay.unapply')}
                 </ConfirmButton>

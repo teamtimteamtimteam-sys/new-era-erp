@@ -31,6 +31,13 @@ export default function DeleteButton({
             confirmLabel={t('common.delete')}
             tier="destructive"
             disabled={isPending}
+            // ★ BTN-TRIGGER-1(2026-09-20):这一处【转过去了 → 量了 → 按回来了】。
+            //   `triggerVariant="destructive" triggerSize="inline"` 会把它从 20px 变成 22px,
+            //   而实测 /sales/customers 的表体行高因此 42.42 → 43.42(**+1.00px,逐行**)。
+            //   委托书 §3:「共享组件复刻不出当前几何就停下来把差值报出来,不要接受它」——
+            //   这正是 POLISH-1 对排序表头钮做过的那一步。行高是停止条件 (c) 的触发器。
+            //   ☞ 代价照直记:它那处 `disabled:text-gray-400` 因此【活着】(2.602 白底 / 2.443 品牌底,都过不了 AA)。
+            //   登记在 docs/known-issues.md 的 BTNTRIGGER1-INLINE-ADDS-1PX-IN-LIST-ROWS。
             className="text-red-600 hover:underline disabled:text-gray-400"
             onConfirm={() => {
                 startTransition(async () => {

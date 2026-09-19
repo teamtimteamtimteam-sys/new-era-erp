@@ -297,7 +297,7 @@ export default function ServiceIntervalPanel({
                                             confirmLabel={t('equipment.intervals.stop')}
                                             tier="destructive"
                                             disabled={pending}
-                                            className="border border-gray-400 px-2 py-0.5 rounded text-xs hover:bg-gray-50 disabled:opacity-50"
+                                            triggerVariant="destructive" triggerSize="xs"
                                             onConfirm={() => run(() => deleteServiceInterval(assetId, r.interval_id as string))}
                                         >
                                             {t('equipment.intervals.stop')}

@@ -29,7 +29,7 @@ export default function DeleteDepartmentButton({ id, name }: { id: string; name:
                 confirmLabel={t('common.delete')}
                 tier="destructive"
                 disabled={isPending}
-                className="text-red-600 hover:underline disabled:text-gray-400"
+                triggerVariant="destructive" triggerSize="inline"
                 onConfirm={() => {
                     setError('')
                     startTransition(async () => {

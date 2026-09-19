@@ -186,7 +186,7 @@ export default function MetalContentPanel({
                     confirmLabel={t('common.delete')}
                     tier="destructive"
                     disabled={isPending}
-                    className="text-red-600 text-sm hover:underline disabled:text-gray-400"
+                    triggerVariant="destructive" triggerSize="inline"
                     onConfirm={() => handleDelete(r.metal)}
                 >
                     {t('common.delete')}

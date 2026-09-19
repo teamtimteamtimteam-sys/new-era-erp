@@ -56,7 +56,7 @@ canEdit: boolean
             reason={{ placeholder: t('bank.unreconcileReasonPlaceholder') }}
             disabled={isPending}
             onConfirm={doUnreconcile}
-            className="border border-gray-300 px-3 py-1 rounded hover:bg-gray-50 text-sm disabled:opacity-50"
+            triggerVariant="reversal"
         >
             {isPending ? t('common.saving') : t('bank.unreconcile')}
         </ConfirmButton>

@@ -84,7 +84,7 @@ export default function YearClosePanel({
                                 else router.refresh()
                             })
                         }}
-                        className="border border-red-300 text-red-700 px-3 py-1 rounded text-sm disabled:opacity-50"
+                        triggerVariant="reversal"
                     >
                         {t('finance.yearClose.reopen')}
                     </ConfirmButton>

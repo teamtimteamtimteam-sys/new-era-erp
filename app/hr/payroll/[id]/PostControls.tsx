@@ -126,7 +126,7 @@ export function UnpostPayrollControl({
                     reason={{ placeholder: t('hr.unpostReason') }}
                     onConfirm={onUnpost}
                     disabled={isPending}
-                    className="border border-red-300 text-red-600 px-3 py-1.5 rounded hover:bg-red-50 text-sm disabled:opacity-50"
+                    triggerVariant="reversal"
                 >
                     {t('hr.unpostPayroll')}
                 </ConfirmButton>

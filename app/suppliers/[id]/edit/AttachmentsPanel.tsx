@@ -204,7 +204,7 @@ export default function AttachmentsPanel({
                         confirmLabel={t('suppliers.attachments.deleteFile')}
                         tier="destructive"
                         disabled={isPending}
-                        className="text-red-600 text-sm hover:underline disabled:text-gray-400"
+                        triggerVariant="destructive" triggerSize="inline"
                         onConfirm={() => handleDelete(row.id)}
                     >
                         {t('suppliers.attachments.deleteFile')}

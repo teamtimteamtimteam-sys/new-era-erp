@@ -101,7 +101,7 @@ canEdit: boolean
                     tier="destructive"
                     onConfirm={onClose}
                     disabled={isPending || !canSubmit}
-                    className="bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700 disabled:bg-gray-400"
+                    triggerVariant="destructive"
                 >
                     {t('purchasing.close')}
                 </ConfirmButton>
@@ -155,7 +155,7 @@ export function ReopenOrderControl({ poId, subject, canEdit }: { poId: string; s
                 reason={{ placeholder: t('purchasing.reopenReason') }}
                 onConfirm={onReopen}
                 disabled={isPending}
-                className="border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50 text-sm disabled:opacity-50"
+                triggerVariant="reversal"
             >
                 {t('purchasing.reopen')}
             </ConfirmButton>

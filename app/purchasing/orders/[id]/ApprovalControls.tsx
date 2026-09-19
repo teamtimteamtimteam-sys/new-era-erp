@@ -46,7 +46,7 @@ export default function ApprovalControls({ poId, subject }: { poId: string; subj
                     confirmLabel={t('purchasing.approveOrder')}
                     tier="destructive"
                     disabled={isPending}
-                    className="border border-green-500 text-green-700 px-3 py-1.5 rounded text-sm hover:bg-green-50 disabled:opacity-50"
+                    triggerVariant="destructive"
                     onConfirm={doApprove}
                 >
                     {isPending ? t('common.saving') : t('purchasing.approveOrder')}
