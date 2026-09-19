@@ -167,3 +167,5 @@
 2026-09-13T18:49:22+0800	2026-09-13-search2d-search-functions.sql	fce6827
 2026-09-13T23:55:21+0800	2026-09-13-search4a-document-relations.sql	6b42932
 2026-09-13T23:56:14+0800	2026-09-13-search4b-relation-indexes.sql	6b42932
+2026-09-19T22:43:04+0800	2026-09-19-search5-related-rows.sql	7f1eb46f
+2026-09-19T22:46:09+0800	2026-09-19-search5-related-rows-fu1.sql	7f1eb46f

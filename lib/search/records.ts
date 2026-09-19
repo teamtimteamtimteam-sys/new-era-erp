@@ -32,6 +32,7 @@ import { createClient } from '@/lib/supabase/server'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import { FUNCTIONS, MODULES } from '@/lib/modules'
 import type { RecordHit, RelatedGroup, WithheldCount } from '@/lib/search/types'
+import { documentHref } from '@/lib/search/documentHref'
 
 /**
  * 一次显示几条。
@@ -97,19 +98,21 @@ function moduleNavKey(id: string): string {
     return m.navKey
 }
 
-/** link_mode → 这条单据点开去哪。三种,登记表里声明,由闸核对。 */
+/**
+ * link_mode → 这条单据点开去哪。
+ *
+ * ★★【SEARCH-5:这一段【搬走了】,而这不是整理,是它长出了第二个调用点】★★
+ *   关联页(`app/components/related/related-records.tsx`)表格里的每一行
+ *   要回答同一个问题。留在这里就得抄一遍,而本仓库为"两份实现在写下来那天
+ *   一致、之后悄悄分开"付过四次账。
+ *   ☞ 它现在住在 `lib/search/documentHref.ts`,连同第四种 `type_list`
+ *     与一条【不再静默回落】的 default(旧写法是 `return row.route`)。
+ */
 function hrefFor(row: Row): string {
-    switch (row.link_mode) {
-        case 'detail':
-            return `${row.route}/${row.id}`
-        case 'list_q':
-            // ★ 没有详情页的那些:落在列表页上,并把 code 带进 ?q= ——
-            //   实测那些列表页读 q 并按 code.ilike 过滤,所以这是一个【可用的落点】,
-            //   不是一个"差不多的地方"。
-            return `${row.route}?q=${encodeURIComponent(row.code)}`
-        default:
-            return row.route
-    }
+    return documentHref({
+        key: row.key, route: row.route, linkMode: row.link_mode,
+        id: row.id, code: row.code,
+    })
 }
 
 function toHit(row: Row, related: RelatedGroup[] = []): RecordHit {
@@ -182,7 +185,18 @@ async function relatedFor(
     //   一次失败若被读成空数组,屏幕上会说「这张单据没有关联记录」,
     //   而那是一句【关于数据的断言】,不是一句关于查询的断言。
     const rows = mustRows(res as { data: RelatedRow[] | null; error: DbError }, 'search_related')
-    return rows.map((r) => ({ typeKey: r.target_key, count: Number(r.n) }))
+    // ★★ SEARCH-5:每一组带上【它自己那一页】的地址 ★★
+    //   SEARCH-4 的注释在这里写着这些行为什么【不是】链接:「一条『进料批 11』
+    //   要链去哪?目标列表页按 ?q= 过滤的是单据号,没有一条『这个供应商的进料批』
+    //   的地址」。☞ **那句话在它写下的那天是对的,而这一刀造的正是那条地址。**
+    //   地址三段,主语用 uuid:uuid 是不透明的,URL 本身不披露任何业务内容
+    //   (`/me/avatar` 那条裁定逐字写着「能由会话决定的,就不要写进地址」——
+    //   这里主语必须写进地址,而写成 uuid 是那条规矩允许的最小披露)。
+    return rows.map((r) => ({
+        typeKey: r.target_key,
+        count: Number(r.n),
+        href: `/related/${row.key}/${row.id}/${r.target_key}`,
+    }))
 }
 
 /** 被扣下的按模块合并 —— 与 job ② 的 rollUp 同一个形状,同一条规则。 */

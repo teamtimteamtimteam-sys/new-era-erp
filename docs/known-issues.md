@@ -3,6 +3,116 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ★ SEARCH5-CONTAINER-CODE-IS-AN-ERROR-BLOB —— **一行 `containers` 把一段 42501 报错 JSON 存成了单据号**(SEARCH-5 登记,2026-09-19)
+
+### 它是什么
+
+```
+id   = f21b293a-bc5c-46de-9b54-3f1a8a4e1329
+code = {"code":"42501","details":null,"hint":null,
+        "message":"permission denied for function next_container_code"}
+```
+
+**106 个字符,`containers` 18 行里的 1 行。** 铸码那一步被权限挡下,而**调用方把
+那个错误对象当成号写了进去** —— `docs/machine-text-reaching-humans.md` 那一族的现场。
+
+### 为什么它要紧,而不只是难看
+
+★ **`code` 是搜索的匹配面。** `search_documents()` 按 `document_types` 现算要查哪些表,
+于是**这一行会作为一条单据进入搜索结果**,屏幕上印出那一段 JSON。
+SEARCH-5 之后它还多一个落点:它会出现在 `/related/…/container` 与
+`/documents/container` 的单据号那一列里。
+
+### ★ 为什么这一刀【不清扫】
+
+**处置由人决定,而一次清扫要依据两件它无法安全知道的事:**
+① **归属** —— 这一行代表一只真的货柜吗?还是一次失败录入的残骸?
+② **年龄与来源** —— 谁在什么时候写的,那次操作的其余部分落库了没有。
+☞ 编一个号给它、或者删掉它,都是**在没有这两个答案的情况下动手**。
+本仓库对这个区别有成文的规矩:**临时行报告,不清扫** —— 而这一行连"临时"都判不出来。
+
+### 重量的办法
+
+```sql
+SELECT id, code FROM public.containers WHERE code !~ '^[A-Z0-9-]+$' OR length(code) > 30;
+```
+
+---
+
+## ★ SEARCH5-EXPENSE-CLAIM-ROUTE —— **`expense_claim` 登记在 `/hr/claims`,而它的列表在 `/finance/claims`**(SEARCH-5 登记,2026-09-19)
+
+### 它是什么(实测,2026-09-19)
+
+| | |
+|---|---|
+| `document_types` 里 `expense_claim.route` | **`/hr/claims`** |
+| `app/hr/claims/page.tsx` 实际读的表 | ★ **`medical_claim_status`** —— 医疗申报,**不是**报销单 |
+| 报销单的列表真正住在 | ★ **`app/finance/claims/page.tsx`**(读 `expense_claim_status`) |
+
+☞ 也就是说 `medical_claim` 与 `expense_claim` **两个 key 登记了同一条 route**,
+而那条 route 上的页面只列其中一个。
+
+### 它今天造成什么
+
+`link_mode='list'`,所以一条报销单的命中链接落在 `/hr/claims` —— **一张列着医疗申报的表**。
+它不是空的(所以它不像坏的),它只是**列着别的东西**。
+★ 而 `moduleForRoute()` 也据此把报销单归到 **HR** 模块下,而它的模块闸是 `module.finance.view`。
+
+### ★ 为什么这一刀【不修】
+
+**改这一行登记是它自己的一次裁定,不是这一刀的。** 三条路各有各的代价:
+① 把 route 改成 `/finance/claims` —— 那 `/hr/claims` 上那条「报销」入口要不要撤?
+② 把 `/hr/claims` 改成两种申报都列 —— 那是一次产品裁定,不是一次登记修正;
+③ 给报销单单开一条 route —— 多一页。
+☞ 三条都要有人拍板。**而它今天不产生错的数据,只产生一次走错的跳转。**
+
+⚠ **顺带,这一条是 `check-search-registry` 判据 ① 【按构造看不见】的那一类**:
+它问的是「`app/<route>/page.tsx` 在不在」,而那一页**在**。
+
+---
+
+## ★★ SEARCH5-LIST-Q-DOES-NOT-CHECK-THE-TABLE —— **`check-search-registry` 判据 ② 问「读不读 q」,不问「列的是不是这张表」**(SEARCH-5 登记,2026-09-19)
+
+### 它是什么
+
+判据 ② 对 `link_mode='list_q'` 断言目标页**真的读 `q`**。★ **它不问那一页列的是哪张表。**
+于是 5 种单据带着一个**结构上永远 0 行**的落点绿了一整周:
+
+| 单据 | 链到 | 那一页的 `?q=` 实际过滤的是 | 前缀 |
+|---|---|---|---|
+| `assay_result` | `/inbound` | `inbound_batches.code.ilike` | ASY vs **IN** |
+| `cod` | `/output` | `output_batches.code.ilike` | COD vs **OUT** |
+| `traceability_report` | `/output` | 同上 | TRC vs **OUT** |
+| `collection_chase` | `/sales/customers` | `customers` 的五列 | CHASE vs **CUS** |
+| `customer_statement` | `/sales/customers` | 同上 | STMT vs **CUS** |
+
+**前缀一个都不重叠 ⇒ 不是"今天恰好没有",是结构上匹配不上。**
+
+### 今天的状态
+
+★ **SEARCH-5 把这 5 种改成了 `link_mode='type_list'`,所以今天这个盲区【没有受害者】。**
+**但判据本身没有变窄** —— 下一次有人把一种单据写成 `list_q` 而那一页不列它,它照样绿。
+
+### ★ 为什么这一刀【没有顺手补上】—— 量过两种代理,两种都不准
+
+| 代理判据 | 它在今天的树上错在哪 |
+|---|---|
+| 「路由目录里提没提这张表名」(必要条件) | ★ **对 `collection_chase` 假阴性**:`app/sales/customers/contactActions.ts` 提了 `collection_chases`,**而 `/sales/customers` 那张列表并不列它**。实测:assay 0 · cod 0 · trc 0 · stmt 0 · **chase 1** |
+| 反过来当 `type_list` 的必要条件 | 同一处变成**假阳性** |
+
+☞ **一道在它存在的理由上会判错的闸,比没有闸更坏** —— 本仓库的成文规矩
+(「一个喊狼来了的检查,与一个被人关掉的检查是同一种坏」)。
+**所以它在这里等一个准的判据,而不是在脚本里凑一个。**
+
+### 一个准的判据可能长什么样(给下一刀的起点,**没有实现**)
+
+问「那一页的取数链最终落在哪张表/视图上」—— 这要跟着 `supabase.from(...)` 的
+**变量与视图名**走一跳(`/inbound` 读的是视图,不是 `inbound_batches` 本身)。
+**那是一次数据流分析,不是一条文本匹配** —— 与本仓库拒绝机械化
+「未解构的 error」那一条是同一个理由。
+
+---
+
 ## ★★ BTN-TRIGGER-1 —— **`<ConfirmButton>` 的裸触发钮:32 处没有转换,其中 26 处带着 BTN-1 存在的理由本身**(POLISH-1 登记,2026-09-12)
 
 > ### ★ 一句话:这**不是**「有两颗按钮被漏掉了」。它是**一整个被明确延期、然后再没有人打开过的总体**。

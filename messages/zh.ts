@@ -638,6 +638,29 @@ const zh = {
         //   SEARCH-2b 的迁移 C 与 D 把它建起来了。理由整段写在 en.ts 同一处。
         emptyNoRecentsYet: '这里还是空的 —— 你编辑过的单据会出现在这里。',
     },
+    // ★★ SEARCH-5:关联记录那一页(理由整段见 en.ts 同一处)★★
+    related: {
+        // ★ 语序与英文不同 —— 所以标题必须是一句可翻译的话,不能在代码里拼。
+        titleOf: '{subject} 的{target}',
+        // ★【结构上没有边】与【有边但今天没有行】是两件事,两句话。
+        noEdge: '这两种单据之间没有关联。',
+        // ★★ 现在时,肯定句 —— **不许写「还没建」**(理由见 en.ts)。
+        noneNow: '这张单据现在没有关联的{target}。',
+        noneOfType: '现在一张{target}都没有。',
+        // ★ 主语读不到 ⇒ 整页拒绝:标题里印着主语的标签,那句话本身就是一次披露。
+        subjectUnreadable: '你没有查看这一页所讲的那张单据的权限。',
+        subjectUnreadableHint: '这一页是以那张单据命名的,所以它整页都不能显示 —— 连一张空列表都不行。',
+        colCode: '单据号',
+        // ★「标签」是登记表自己的词(document_types.label_column)。
+        colLabel: '标签',
+        // ★★「显示 n 条,共 T 条」而不是「第 m–n 条」:keyset 的页答不出自己的
+        //    偏移量,而一个从 URL 反推出来的 m 是这一页核对不了的数(见 en.ts)。
+        showing: '显示 {shown} 条,共 {total} 条。',
+        nextPage: '下一页',
+        firstPage: '回到第一页',
+        // ★ 返回路:回主语的详情页,不放「回到搜索」—— 下拉没有可返回的地址。
+        backToSubject: '回到 {subject}',
+    },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
     dashboard: {

@@ -88,6 +88,24 @@ export type RelatedGroup = {
     typeKey: string
     /** 你**看得见**几条。★ INVOKER —— 见 db/functions/search_related.sql 的抬头。 */
     count: number
+    /**
+     * ★★【SEARCH-5:这一行现在【是一个去处】,而 SEARCH-4 明写它不是】★★
+     *
+     * SEARCH-4 在 `SearchEntry.tsx` 里留了一段注释说明这些行为什么不是链接,
+     * 逐字:「一条『进料批 11』要链去哪?目标列表页按 `?q=` 过滤的是**单据号**,
+     * 没有『这个供应商的进料批』这个地址;链到未过滤的列表就是 records.ts
+     * 抬头点名拒绝过的那种『差不多的地方』。」
+     * ☞ **那句话在它写下的那天是对的。** 这一刀造的正是那条缺掉的地址:
+     *   `/related/<subjectKey>/<subjectId>/<targetKey>`。
+     *
+     * ★ 主语用 **uuid**,不用单据号:uuid 不透明,URL 本身不披露任何业务内容。
+     *   换成单据号会让一个只看得见链接的人(聊天记录、工单、浏览器历史、
+     *   Referer)**不用打开就知道存在这张单据**。
+     *   ⚠ 照直说:今天仍有 4 种 `list_q` 单据把单据号放在 `?q=` 里 ——
+     *     那是一处**既存的**披露,本刀不扩大它;而本刀把原先 9 种里的 5 种
+     *     改成了 `type_list`,地址里只剩单据种类的 key,**披露少了 5 种**。
+     */
+    href: string
 }
 
 /** ① 找单据 —— **SEARCH-1 的槽,SEARCH-2 填**。 */

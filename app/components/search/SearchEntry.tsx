@@ -580,16 +580,29 @@ export default function SearchEntry({
                                                         (Q7),逐字:「一个分组行答得出『这个供应商
                                                         现在什么情况』,而 11 行批号答不出。」
 
-                                                        ★【为什么这些行【不是链接】—— 这是一次刻意的
-                                                          取舍,写在这里免得下一个人以为是漏了】
-                                                          一条「进料批 11」要链去哪?目标列表页按
-                                                          `?q=` 过滤的是**单据号**,没有一条"这个
-                                                          供应商的进料批"的地址;链到未过滤的列表
-                                                          就是 records.ts 抬头点名拒绝过的那种
-                                                          「差不多的地方」。而在下拉里就地展开是
-                                                          另一个面板的活,这一刀明写不开第二个面板。
-                                                          ☞ 所以它们是**读数**,不是去处;去处仍然
-                                                            是上面那一条命中。
+                                                        ★★【SEARCH-5:这些行【现在是链接】—— 而
+                                                          SEARCH-4 在这里写着它们为什么不是】★★
+                                                          它当时写的是:「一条『进料批 11』要链去哪?
+                                                          目标列表页按 `?q=` 过滤的是**单据号**,
+                                                          没有一条『这个供应商的进料批』的地址;
+                                                          链到未过滤的列表就是 records.ts 抬头
+                                                          点名拒绝过的那种『差不多的地方』。」
+                                                          ☞ **那句话在它写下的那天是对的,而它今天
+                                                            不再对了:这一刀造的正是那条缺掉的地址**
+                                                            `/related/<subjectKey>/<subjectId>/<targetKey>`。
+                                                            (与 SEARCH-2b 把 recents 字段加进
+                                                            types.ts 时那段说明同形:一句话可以在
+                                                            写下的那天为真、在某一刀之后为假,而
+                                                            **替换它的是那一刀,不是一次顺手清扫**。)
+                                                          ★ 在下拉里【就地展开】仍然不做 —— 那是
+                                                            第二个面板的活,那一条裁定没有被重开。
+                                                          ★★【几何不许变】★★ 停止条件 (g) 盯着
+                                                            下拉自己的高度。所以链接是**行内的**:
+                                                            `<li>` 的类一个字没动,`<a>` 不加 block、
+                                                            不加内边距、不加行高 —— 它只多一条下划线。
+                                                            两个视口两个入口各量一遍(probe-nav-geometry
+                                                            与 probe-search-results 的 R7d),
+                                                            **不靠"看起来没变"**。
 
                                                         ★ flex-wrap:实测一条命中最多 7 组,而停止
                                                           条件 (a) 只允许 flex-wrap 这一种修法。 */}
@@ -606,9 +619,22 @@ export default function SearchEntry({
                                                                     data-search-related-count={g.count}
                                                                     className="text-xs text-[color:var(--brand-muted-text)]"
                                                                 >
-                                                                    {t(`search.docType.${g.typeKey}`)}
-                                                                    {' '}
-                                                                    <span className="text-[color:var(--brand-text)]">{g.count}</span>
+                                                                    {/* ★ 行内链接:不带 block / 内边距 / 行高,
+                                                                        于是这一行的盒子与 SEARCH-4 那一版逐字相同。
+                                                                        ★ onClick 关下拉 —— 与上面那条命中链接同一句。
+                                                                          ⚠ 而它【必须】写:SearchShell 住在根布局里,
+                                                                            App Router 的软导航**不重画根布局**
+                                                                            (CONFIRM-1 那一课),所以面板不会自己关。 */}
+                                                                    <Link
+                                                                        href={g.href}
+                                                                        onClick={() => setOpen(false)}
+                                                                        data-search-related-link={g.typeKey}
+                                                                        className="hover:underline"
+                                                                    >
+                                                                        {t(`search.docType.${g.typeKey}`)}
+                                                                        {' '}
+                                                                        <span className="text-[color:var(--brand-text)]">{g.count}</span>
+                                                                    </Link>
                                                                 </li>
                                                             ))}
                                                         </ul>

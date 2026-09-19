@@ -711,6 +711,54 @@ const en = {
         //     不能读成"搜索坏了"。
         emptyNoRecentsYet: 'Nothing here yet — this fills up with the documents you edit.',
     },
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★ SEARCH-5:关联记录那一页 —— 搜索面板上那一行「Output batches 10」
+    //    点开之后落的地方 ★★
+    // ════════════════════════════════════════════════════════════════════════
+    // 【为什么它有自己的一节,而不是塞进 search.*】它不是搜索面板上的字,
+    //   它是一整页的字。而那一页有**两种形状**(有主语 / 无主语),
+    //   两种形状的空态说的**不是同一句话** —— 那正是这一节要承担的东西。
+    related: {
+        // ★ 两个参数。zh 的语序不同(「{subject} 的{target}」),所以它必须是
+        //   一句可翻译的话,不能在代码里拼。
+        titleOf: '{target} of {subject}',
+        // ── 四种零里的三句话(第四种「主语读不到」是整页拒绝,在下面)──────
+        // ★【结构上没有边】与【有边但今天没有行】是两件事。一句话盖住两件,
+        //   就是把一处缺席画成一个答案。
+        noEdge: 'These two kinds of document are never related to each other.',
+        // ★★【现在时,肯定句 —— 不许写「还没建」】★★ SEARCH-3 为同一条理由
+        //    删掉过 `search.recordsNotBuiltYet`;SEARCH-1 删 `home.searchNotYet`
+        //    时写的理由逐字可抄:「留着一句写着『还没有建』的文案,下一个读到它
+        //    的人会据此断定这件事还没做。」
+        noneNow: 'This document has no related {target} right now.',
+        // 无主语那一形状的空态:它说的是这一**种**单据一张都没有。
+        noneOfType: 'There are no {target} yet.',
+        // ── 主语读不到 ⇒ 整页拒绝,不是空列表 ────────────────────────────
+        // ★ 理由:标题里印着主语的标签(「Output batches of NMC Cathode Foil」),
+        //   那句话本身就是一次披露。所以这一层不是防御性的,
+        //   **它是这个地址能不能存在的前提。**
+        subjectUnreadable: 'You do not have permission to see the document this page is about.',
+        subjectUnreadableHint: 'The page is named after that document, so it cannot be shown at all — not even as an empty list.',
+        // ── 表 ───────────────────────────────────────────────────────────
+        colCode: 'Document number',
+        // ★「Label」是登记表自己的词(document_types.label_column)——
+        //   它底下装的是 notes / legal_name / name / title / reason / memo…
+        //   每一种单据一个词。一个通用的表头是诚实的;编一个更具体的词不是。
+        colLabel: 'Label',
+        // ── 分页 ─────────────────────────────────────────────────────────
+        // ★★【为什么是「n of T」,不是「第 m–n 条」】★★
+        //   一份 keyset 的页**知道**自己画了几条(n),也知道一共有几条
+        //   (T,由 `count(*) OVER ()` 在翻页之前求出),**但它不知道自己的
+        //   偏移量**。要印出 m,只能从 URL 里那个游标反推、或另存一个 `from=41`
+        //   —— 而一个手改过的 `from` 会让这一页印出一个它**没法核对**的数。
+        //   ☞ 与「不许静默截断」是同一条的另一半:**说得出的才说。**
+        showing: 'Showing {shown} of {total}.',
+        nextPage: 'Next page',
+        firstPage: 'Back to the first page',
+        // ★ 返回路(Q11):回主语的详情页,**不放「回到搜索」** ——
+        //   搜索是一个下拉,它没有一个可以返回的地址。
+        backToSubject: 'Back to {subject}',
+    },
     // OPS-18:运营看板。dashboard.item.* 的后缀集合 = db/views/operations_now.sql 里
     // item_type 的字面量集合(check-i18n MANIFEST 现读那个文件,加一支自动变宽)。
     dashboard: {

@@ -877,6 +877,16 @@ const SPECIAL_ID_ROUTES = new Set([
     // ID_SOURCES 一律 select=id,所以它结构上走不了那条路(known-issues 记过)。
     // 主循环里现造一枚,并且【只读地证明它匹配不到任何一张证书】。
     '/verify/cod/[token]',
+    // ★★ SEARCH-5(2026-09-19):关联记录那两条地址 ★★
+    //   段里放的是 `document_types.key`(文本),**不是任何一行的 id** ——
+    //   ID_SOURCES 一律 `select=id`,所以它们结构上走不了那条路,
+    //   与上面科目号 / 表名 / 令牌三条同理。
+    //   ☞ 而取值【必须落在一个非空的页面上】:这两页对一个不存在关联的三元组
+    //     照样 200(那是它们具名的空态),于是取错一组就是一次假绿 ——
+    //     与 `/finance/ledger/[account]` 那条「取到一个没有分录的科目」逐字同族。
+    //     主循环里因此**现读**一组真的有行的三元组,取不到就【中止】,不算跳过。
+    '/documents/[key]',
+    '/related/[subject]/[id]/[target]',
 ])
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -1915,6 +1925,62 @@ async function main() {
             // IMPORT-1:模板路由 —— 段是表名,不是 id。用一个固定的、一定存在的表。
             if (route === '/settings/import/template/[table]') {
                 url = route.replace('[table]', 'suppliers')
+            }
+            // ★★ SEARCH-5:无主语那一页 —— 段是单据种类的 key ★★
+            //   取值【现读】:在 `link_mode='type_list'` 的那几种里挑第一个
+            //   **表里真的有行**的。写死一个 key 会在那种单据清零的那天
+            //   为了【错的理由】变红(SEARCH-3 的 R3 教训)。
+            if (route === '/documents/[key]') {
+                const types = await restRows(
+                    '/rest/v1/document_types?select=key,table_name&link_mode=eq.type_list&order=key',
+                    `${route} ← document_types`)
+                let picked = null
+                for (const t of types) {
+                    const rows = await restRows(
+                        `/rest/v1/${t.table_name}?select=id&limit=1`, `${route} ← ${t.table_name}`)
+                    if (rows.length > 0) { picked = t.key; break }
+                }
+                if (!picked) { skipped.add(route); console.log(`  SKIP ${route}  (type_list 的那几张表今天都是空的)`); continue }
+                url = route.replace('[key]', encodeURIComponent(picked))
+            }
+            // ★★ SEARCH-5:有主语那一页 —— 三段全是动态的 ★★
+            //   **必须落在一个真的有关联行的三元组上**,否则这条路由走过的是
+            //   它的空态,而空态与"关联页坏了"在 2xx 上分不开。
+            //   ☞ 取法:拿 `search_related()` 自己去问 —— 它只返回 n>0 的分组,
+            //     所以第一个回得出分组的主语,就是一个保证非空的三元组。
+            //     **上限 8 个候选**:一个没有上界的搜索会把冒烟拖成一次普查。
+            if (route === '/related/[subject]/[id]/[target]') {
+                const types = await restRows(
+                    '/rest/v1/document_types?select=key,table_name&order=key', `${route} ← document_types`)
+                let triple = null
+                let tried = 0
+                for (const t of types) {
+                    if (tried >= 8) break
+                    const rows = await restRows(
+                        `/rest/v1/${t.table_name}?select=id&limit=1`, `${route} ← ${t.table_name}`)
+                    if (rows.length === 0) continue
+                    tried += 1
+                    // ★ GET,不是 POST:`search_related` 是 STABLE,PostgREST 因此
+                    //   允许用 GET 调它 —— 而 restRows 只会 GET(它不带 options),
+                    //   写成 POST 会被静默降级成一次 GET 而参数全丢。
+                    const groups = await restRows(
+                        `/rest/v1/rpc/search_related?p_key=${encodeURIComponent(t.key)}`
+                        + `&p_id=${encodeURIComponent(rows[0].id)}`,
+                        `${route} ← search_related(${t.key})`)
+                    if (Array.isArray(groups) && groups.length > 0) {
+                        triple = { subject: t.key, id: rows[0].id, target: groups[0].target_key }
+                        break
+                    }
+                }
+                if (!triple) {
+                    // ★ 这是【量具拿不到判据的输入】,不是"这条路由没数据" ——
+                    //   两者必须分开报(本文件对 restRows 记的那一条)。
+                    throw new Error(`${route}:试了 ${tried} 个主语,一个带关联的三元组都取不到 —— `
+                        + `这不是"没有数据",这是这条冒烟【证明不了任何东西】,不许当成跳过`)
+                }
+                url = route.replace('[subject]', encodeURIComponent(triple.subject))
+                          .replace('[id]', triple.id)
+                          .replace('[target]', encodeURIComponent(triple.target))
             }
             // ★ COD-2:核验页 —— 造一枚【证明了匹配不到任何一张证书】的随机令牌。
             //   【为什么不取一枚真令牌】线上有真证书(COD-2026-0001 / -0002,issued)。

@@ -28021,6 +28021,21 @@ export type Database = {
           target_table: string
         }[]
       }
+      search_related_rows: {
+        Args: {
+          p_after_code?: string
+          p_id?: string
+          p_key?: string
+          p_limit?: number
+          p_target_key?: string
+        }
+        Returns: {
+          code: string
+          id: string
+          label: string
+          total: number
+        }[]
+      }
       set_asset_acceptance: {
         Args: { p_acceptance_date: string; p_asset_id: string }
         Returns: Json

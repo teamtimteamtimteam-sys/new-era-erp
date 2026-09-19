@@ -22,7 +22,9 @@
 --
 -- 对应迁移:db/migrations/2026-09-13-search2b-document-types.sql(表 + 种子 + 44 支函数体)
 --           db/migrations/2026-09-13-search2d-search-functions.sql(view_permission 列)
+--           db/migrations/2026-09-19-search5-related-rows.sql(link_mode 的第四种 + 5 行重指)
 -- 行为断言:db/fixtures/100-every-document-code-still-mints-identically.sql
+--           db/fixtures/199-rows-and-counts-are-one-visibility-and-the-negative-control-proves-it.sql
 
 CREATE TABLE public.document_types (
     key           text PRIMARY KEY,
@@ -34,7 +36,12 @@ CREATE TABLE public.document_types (
     numbering     text NOT NULL CHECK (numbering IN ('gapless', 'gapped')),
     sequence_name text,
     route         text NOT NULL,
-    link_mode     text NOT NULL CHECK (link_mode IN ('detail', 'list', 'list_q')),
+    -- ★ SEARCH-5(2026-09-19)加了第四种 `type_list`。它【不是】一个新写法,
+    --   它是一条修正:那 5 种单据的登记路由上,列表页列的【不是它们那张表】,
+    --   于是 `?q=<code>` 按前缀结构上永远匹配不到(ASY vs IN、COD/TRC vs OUT、
+    --   CHASE/STMT vs CUS)—— 一个看起来像落点、实际永远 0 行的地址。
+    --   `type_list` 落在 /documents/<key>,那一页列的就是它自己。
+    link_mode     text NOT NULL CHECK (link_mode IN ('detail', 'list', 'list_q', 'type_list')),
     label_column  text,
     match_columns text[] NOT NULL DEFAULT '{}'::text[],
     -- ★ SEARCH-2b · 迁移 D:这一类单据的【模块闸】,ANY 语义 ——
@@ -55,6 +62,15 @@ CREATE TABLE public.document_types (
 COMMENT ON TABLE public.document_types IS
     'SEARCH-2:这套系统能铸的单据种类。前缀是数据,不是字面量(T1)。'
     '定义的是【能铸什么】,不是【铸过什么】—— 8 张今天还没有行的表照样在册。';
+
+COMMENT ON COLUMN public.document_types.link_mode IS
+    'SEARCH-2b/SEARCH-5:一条命中点开去哪。四种,由 scripts/check-search-registry.mjs 核对。'
+    '  detail    → <route>/<id>'
+    '  list      → <route>'
+    '  list_q    → <route>?q=<code>(那一页真的读 q,而且列的【就是这张表】)'
+    '  type_list → /documents/<key> —— ★ SEARCH-5:登记路由上那张列表【不列这张表】'
+    '              的那些种类。它们此前是 list_q,而 ?q= 指着别的表的 code,'
+    '              前缀不重叠 ⇒ 结构上永远 0 行。';
 
 COMMENT ON COLUMN public.document_types.view_permission IS
     '这一类单据的【模块闸】:ANY 语义 —— 一个码都不持有就一条都看不见。'
@@ -91,9 +107,9 @@ REVOKE ALL ON public.document_types FROM anon;
 INSERT INTO public.document_types
     (key, prefix, table_name, numbering, sequence_name, route, link_mode, label_column, match_columns, view_permission)
 VALUES
-    ('assay_result', 'ASY', 'assay_results', 'gapless', NULL, '/inbound', 'list_q', 'notes', ARRAY['lab_name', 'certificate_ref', 'sample_ref', 'notes']::text[], ARRAY['module.inbound.view','module.output.view']::text[]),
-    ('collection_chase', 'CHASE', 'collection_chases', 'gapless', NULL, '/sales/customers', 'list_q', NULL, '{}'::text[], ARRAY['module.finance.view']::text[]),
-    ('cod', 'COD', 'certificates_of_destruction', 'gapless', NULL, '/output', 'list_q', 'void_reason', ARRAY['void_reason']::text[], ARRAY['action.issue_cod']::text[]),
+    ('assay_result', 'ASY', 'assay_results', 'gapless', NULL, '/inbound', 'type_list', 'notes', ARRAY['lab_name', 'certificate_ref', 'sample_ref', 'notes']::text[], ARRAY['module.inbound.view','module.output.view']::text[]),
+    ('collection_chase', 'CHASE', 'collection_chases', 'gapless', NULL, '/sales/customers', 'type_list', NULL, '{}'::text[], ARRAY['module.finance.view']::text[]),
+    ('cod', 'COD', 'certificates_of_destruction', 'gapless', NULL, '/output', 'type_list', 'void_reason', ARRAY['void_reason']::text[], ARRAY['action.issue_cod']::text[]),
     ('container', 'CTR', 'containers', 'gapless', NULL, '/logistics/containers', 'detail', 'notes', ARRAY['container_number', 'vessel', 'voyage', 'bl_number', 'notes']::text[], ARRAY['module.logistics.view']::text[]),
     ('credit_note', 'CN', 'credit_notes', 'gapless', NULL, '/finance/credit-notes', 'list', 'reason', ARRAY['reason']::text[], ARRAY['module.finance.view']::text[]),
     ('employee', 'EMP', 'employees', 'gapless', NULL, '/hr/employees', 'detail', 'legal_name', ARRAY['legal_name', 'preferred_name', 'notes']::text[], ARRAY['module.hr.view']::text[]),
@@ -108,8 +124,8 @@ VALUES
     ('quote', 'QT', 'quotes', 'gapless', NULL, '/sales/quotes', 'detail', 'notes', ARRAY['terms_text', 'notes', 'decline_reason']::text[], ARRAY['module.sales.view']::text[]),
     ('sales_order', 'SO', 'sales_orders', 'gapless', NULL, '/sales/orders', 'detail', 'notes', ARRAY['terms_text', 'notes', 'cancel_reason']::text[], ARRAY['module.sales.view']::text[]),
     ('shipment', 'SHP', 'shipments', 'gapless', NULL, '/sales/shipments', 'detail', 'notes', ARRAY['notes']::text[], ARRAY['module.sales.view']::text[]),
-    ('customer_statement', 'STMT', 'customer_statements', 'gapless', NULL, '/sales/customers', 'list_q', NULL, '{}'::text[], ARRAY['module.finance.view']::text[]),
-    ('traceability_report', 'TRC', 'traceability_report_issues', 'gapless', NULL, '/output', 'list_q', NULL, '{}'::text[], ARRAY['module.sales.view','module.processing.view']::text[]),
+    ('customer_statement', 'STMT', 'customer_statements', 'gapless', NULL, '/sales/customers', 'type_list', NULL, '{}'::text[], ARRAY['module.finance.view']::text[]),
+    ('traceability_report', 'TRC', 'traceability_report_issues', 'gapless', NULL, '/output', 'type_list', NULL, '{}'::text[], ARRAY['module.sales.view','module.processing.view']::text[]),
     ('work_order', 'WO', 'work_orders', 'gapless', NULL, '/operation/orders', 'detail', 'notes', ARRAY['notes', 'close_reason']::text[], ARRAY['module.processing.view']::text[]),
     ('contract', 'CON', 'contracts', 'gapped', 'contract_code_seq', '/contracts', 'list', NULL, '{}'::text[], ARRAY['module.customers.view','module.suppliers.view']::text[]),
     ('customer', 'CUS', 'customers', 'gapped', 'customer_code_seq', '/sales/customers', 'detail', 'legal_name', ARRAY['legal_name', 'short_name', 'address', 'country', 'tax_id', 'notes']::text[], ARRAY['module.customers.view']::text[]),

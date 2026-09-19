@@ -19,8 +19,25 @@
 //   ① route 指向的页面【真的存在】——
 //        link_mode='detail'          → app/<route>/[id]/page.tsx
 //        link_mode='list' | 'list_q' → app/<route>/page.tsx
+//        link_mode='type_list'       → ★ app/documents/[key]/page.tsx(SEARCH-5)
+//          —— **不看 r.route**:这个取值的意思就是「登记路由上那张列表不列
+//          这张表」,拿 r.route 去找 page.tsx 会找到一张存在但无关的页面,
+//          于是这一格会因为错的理由变绿。
 //   ② link_mode='list_q' 的那些,列表页【真的读 q】——
 //        否则 `?q=<code>` 是一个看起来像落点、实际什么都不做的地址。
+//     ⚠★【这条判据有一处【已知的盲区】,SEARCH-5 量出来并且【没有修】】★
+//        它问的是「那一页读不读 q」,**不问「那一页列的是不是这张表」**。
+//        于是 5 种单据带着一个结构上永远 0 行的落点绿了一整周:
+//        /inbound 读 q(过滤 inbound_batches.code),而化验单的号是 ASY-,
+//        两个前缀不重叠 ⇒ 永远匹配不上。SEARCH-5 把这 5 种改成了 type_list,
+//        **所以今天的树上这个盲区没有受害者** —— 但判据本身没有变窄。
+//        ☞ 为什么不顺手补上:量过两种可机读的代理,两种都不准 ——
+//          「路由目录里提没提这张表名」对 collection_chase **假阴性**
+//          (app/sales/customers/contactActions.ts 提了 collection_chases,
+//          而 /sales/customers 那张列表并不列它);反过来写成 type_list 的
+//          必要条件,同一处就变成**假阳性**。
+//          **一道在它存在的理由上会判错的闸,比没有闸更坏**(本仓库的成文规矩),
+//          所以它留在 docs/known-issues.md 里等一个准的判据,不在这里凑一个。
 //   ③ 覆盖率本身是一条断言:读到的行数必须是 40。
 //      **一个瞎掉的解析器和一份干净的登记表都打印 EXIT 0**,所以它必须先说出
 //      自己看了多少行,数出 0(或者不是 40)就是失败,不是"没发现问题"。
@@ -47,6 +64,8 @@ import { join } from 'node:path'
 const ROOT = new URL('..', import.meta.url).pathname
 const MIRROR = join(ROOT, 'db/tables/document_types.sql')
 const EXPECTED_ROWS = 40
+// ★ SEARCH-5:`type_list` 那 5 种单据的落点。**一张共享页,不是每种一张。**
+const TYPE_LIST_PAGE = join(ROOT, 'app/documents/[key]/page.tsx')
 
 const sql = readFileSync(MIRROR, 'utf8')
 const insertAt = sql.indexOf('INSERT INTO public.document_types')
@@ -90,6 +109,16 @@ for (const r of rows) {
         if (!existsSync(detailPage)) {
             problems.push(`${r.key}: link_mode='detail' 但 app${r.route}/[id]/page.tsx 不存在`)
         }
+    } else if (r.linkMode === 'type_list') {
+        // ── 判据 ①c ★ SEARCH-5 的第四种 ────────────────────────────────────
+        // 【它为什么不看 r.route】`type_list` 的意思**就是**「登记路由上那张
+        //   列表不列这张表」。拿 r.route 去找 page.tsx 会找到一张【存在的、
+        //   而且与这一类单据无关的】页面,于是这一格会因为错的理由变绿 ——
+        //   那正是这个 link_mode 要修的缺陷本身。落点是那一张共享页。
+        if (!existsSync(TYPE_LIST_PAGE)) {
+            problems.push(`${r.key}: link_mode='type_list' 但 app/documents/[key]/page.tsx 不存在`
+                + ` —— 那 5 种单据的落点整个没有了`)
+        }
     } else {
         if (!existsSync(listPage)) {
             problems.push(`${r.key}: link_mode='${r.linkMode}' 但 app${r.route}/page.tsx 不存在`)
@@ -110,11 +139,13 @@ for (const r of rows) {
 
 const byMode = rows.reduce((a, r) => ((a[r.linkMode] = (a[r.linkMode] ?? 0) + 1), a), {})
 console.log(`search registry: 覆盖断言 两条路各读到 ${rows.length}/${keyLines} 行 · detail ${byMode.detail ?? 0}`
-    + ` · list ${byMode.list ?? 0} · list_q ${byMode.list_q ?? 0}`)
+    + ` · list ${byMode.list ?? 0} · list_q ${byMode.list_q ?? 0}`
+    + ` · type_list ${byMode.type_list ?? 0}`)
 
 if (problems.length > 0) {
     console.error(`✗ ${problems.length} 处:`)
     for (const p of problems) console.error(`  ${p}`)
     process.exit(1)
 }
-console.log('✓ 每一条 route 都落在一个真的页面上;每一个 list_q 的列表页都读 q')
+console.log('✓ 每一条 route 都落在一个真的页面上;每一个 list_q 的列表页都读 q;'
+    + ' 每一个 type_list 都落在 app/documents/[key]/page.tsx 上')

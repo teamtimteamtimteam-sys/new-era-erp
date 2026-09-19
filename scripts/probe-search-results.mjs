@@ -454,6 +454,91 @@ async function main() {
               + `· 视口高 ${r7.panel.viewportH} · 跑出底下:${r7.panel.overflowsBottom} · 自己滚:${r7.panel.scrolls}`
             : '★ 读不到面板的盒子 —— [data-search-panel] 不在')
 
+    // ══ ★★★ R8 族 · SEARCH-5:那一行【点得动】,而且点的是【软导航】★★★ ═══
+    //
+    // ★★【为什么这一格必须【点】,不许 `goto` —— 本仓库最贵的那一课】★★
+    //   CONFIRM-1:`<SearchShell>` 住在**根布局**里,而 App Router 在客户端换页时
+    //   **不重画根布局**。于是一次 `page.goto` 的读数【对每一个真实会话都不作数】——
+    //   那一刀实测同一条路由、同一个会话、同一个宽度,硬导航 `present=true`、
+    //   软导航 `present=false`。**判据没有错,它被指向了一个没有人住的状态。**
+    //   ☞ 所以这里:等水合收尾 → 在 window 上盖一个记号 → **点那一行** →
+    //     断言记号还在(文档没有重新加载)。
+    //   ⚠ 没有那个记号,一次悄悄退化成【硬导航】的点击会让这一格假绿 ——
+    //     那正是本格要抓的缺陷,穿着本格自己的衣服回来。
+    //
+    // ★【期望值现读,不写死】SEARCH-3 的 R3 教训:一个写死的计数会在某天多一行时
+    //   为了【错的理由】变红,而那天没有人分得出红的是"搜索坏了"还是"数据动了"。
+    //   这里的期望值就是 R7 已经独立数过的 `acmeExpect.inbound_batches`(走 REST +
+    //   service role,与屏幕那一侧的 admin 会话 + search_related 不共用代码)。
+    {
+        // 水合收尾才点 —— 不然那次点击不会被 <Link> 接管,它会悄悄变成一次硬导航。
+        const t0 = Date.now()
+        for (;;) {
+            const hydrated = await evalJs(`(() => {
+                const a = document.querySelector('[data-search-related-link]')
+                return !!a && Object.keys(a).some((k) => k.startsWith('__react'))
+            })()`)
+            if (hydrated) break
+            if (Date.now() - t0 > 20000) throw new Error('R8:关联分组那一行 20s 还没有水合')
+            await sleep(150)
+        }
+
+        const clicked = await evalJs(`(() => {
+            // ★ 记号盖在 window 上:软导航不重建 window,硬导航会。
+            window.__search5SoftNav = 'stamped'
+            const ul = document.querySelector('[data-search-related="${ACME.code}"]')
+            const a = ul && ul.querySelector('[data-search-related-link="inbound_batch"]')
+            if (!a) return { ok: false, why: '那一行不是链接(找不到 [data-search-related-link])' }
+            const href = a.getAttribute('href')
+            a.click()
+            return { ok: true, href }
+        })()`)
+        if (!clicked.ok) throw new Error('R8 量具拿不到判据的输入:' + clicked.why)
+
+        // 等那一页画出来。判据是**它自己说出来的那个总数**在 DOM 上,不是一个 sleep。
+        let landed = null
+        const t1 = Date.now()
+        for (;;) {
+            landed = await evalJs(`(() => ({
+                url: location.pathname,
+                stamp: window.__search5SoftNav ?? null,
+                rows: [...document.querySelectorAll('[data-related-row]')].map((e) => e.getAttribute('data-related-row')),
+                shown: document.querySelector('[data-related-showing]')?.getAttribute('data-related-showing') ?? null,
+                total: document.querySelector('[data-related-total]')?.getAttribute('data-related-total') ?? null,
+                panelOpen: !!document.querySelector('[data-search-panel]'),
+            }))()`)
+            if (landed.total !== null) break
+            if (Date.now() - t1 > 25000) throw new Error(
+                `R8:点下去 25s 还没有落到关联页(url=${landed.url} stamp=${landed.stamp})`)
+            await sleep(150)
+        }
+
+        const want = acmeExpect.inbound_batches
+        probe('R8.grouped-line-is-a-link-and-lands-on-its-rows',
+            landed.url === clicked.href.split('?')[0]
+                && Number(landed.total) === want
+                && landed.rows.length === Math.min(want, 20),
+            `点「${ACME.code} 的进料批」→ ${landed.url} · 画出 ${landed.rows.length} 行 · `
+            + `自报 total=${landed.total} · 现读期望 ${want} · 首行 ${landed.rows[0] ?? '(零)'}`)
+
+        // ★★ 这一格才是那一课:**文档没有重新加载。**
+        //   记号还在 = 这是一次软导航,也就是【人真的走的那条路】。
+        probe('R8b.it-was-a-soft-navigation-not-a-reload',
+            landed.stamp === 'stamped',
+            `window 上的记号:${landed.stamp ?? '★ 没了 —— 文档重新加载过,这次读数【不作数】'}`
+            + ` —— ★ CONFIRM-1:SearchShell 住在根布局里,软导航不重画它`)
+
+        // ★ 点一行分组行要关掉下拉 —— 而它【必须】由 onClick 关:
+        //   软导航不重画根布局,面板不会自己关(同一课的另一半)。
+        probe('R8c.the-dropdown-closed-behind-the-click',
+            landed.panelOpen === false,
+            `落地之后下拉还开着:${landed.panelOpen} —— ★ 软导航不重画根布局,`
+            + `所以这一句只能由那一行自己的 onClick 负责`)
+
+        // 回到面板那一侧,后面几格还要用它。
+        await openPanelOn('/me')
+    }
+
     // R4 · ★ S7 那条【Tim 没说、而面板必须处理】的后果:中文搜手册,匹配不到
     const r4 = await type('入库批次')
     probe('R4.chinese-query-says-manual-is-english',
@@ -486,12 +571,12 @@ async function main() {
         `${r5d.pageHits.slice(0, 3).join(' | ').slice(0, 160) || '(零)'} · ` +
         `被扣下 ${r5d.withheld.length} 行 ${JSON.stringify(r5d.withheld)} · answered=${JSON.stringify(r5d.answered)} · 手册 ${r5d.manualHits.length} 段`)
 
-    // ★ 下界从 10 加到 14 —— SEARCH-4 多了 R7 · R7b · R7c · R7d。
+    // ★ 下界从 14 加到 17 —— SEARCH-5 多了 R8 · R8b · R8c。
     //   **这个数是数出来的,不是估的:**
-    //   R6 · R0 · R1 · R1b · R2 · R3 · R7 · R7b · R7c · R7d · R4 · R5 · R5b ·
-    //   R5c · R5d = 15 格,而下界取 14 是因为 R5c 在被扣下 0 行时是一条
-    //   空真断言(它仍然会跑)—— 同 SEARCH-3 留那一格余量的理由,一字不改。
-    assertPopulation('probe-search-results', '跑过的格子', results.length, 14)
+    //   R6 · R0 · R1 · R1b · R2 · R3 · R7 · R7b · R7c · R7d · ★ R8 · R8b · R8c ·
+    //   R4 · R5 · R5b · R5c · R5d = 18 格,而下界取 17 是因为 R5c 在被扣下 0 行时
+    //   是一条空真断言(它仍然会跑)—— 同 SEARCH-3/4 留那一格余量的理由,一字不改。
+    assertPopulation('probe-search-results', '跑过的格子', results.length, 17)
 }
 
 let cleanedUp = false
