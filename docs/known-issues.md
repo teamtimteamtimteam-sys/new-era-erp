@@ -113,137 +113,121 @@ SELECT id, code FROM public.containers WHERE code !~ '^[A-Z0-9-]+$' OR length(co
 
 ---
 
-## ★★ BTN-TRIGGER-1 —— **`<ConfirmButton>` 的裸触发钮:32 处没有转换,其中 26 处带着 BTN-1 存在的理由本身**(POLISH-1 登记,2026-09-12)
+## ~~★★ BTN-TRIGGER-1~~ ◑ **做了一大半(BTN-TRIGGER-1,2026-09-20)—— 33 处裸触发钮转了 29,余 4 处逐条写明**
 
-> ### ★ 一句话:这**不是**「有两颗按钮被漏掉了」。它是**一整个被明确延期、然后再没有人打开过的总体**。
+> ### ★ 结清口径:**这一条【不】整条删除,因为它没有整条做完。**
+> 删除条件写的是「`triggerVariant` 不再是可选的(或者裸 `<button>` 那条分支不再存在),
+> 且上面 26 处禁用态全部走库里那一档」。
+> ☞ **两半都没有满足:** ① `triggerVariant` 今天**仍然是可选的**,裸 `<button>` 那条分支
+> **还在**(`confirm-dialog.tsx:409`);② 禁用态还剩 **1 处**(下面 ③)。
+> **所以这里改成"做了什么 / 还剩什么",而不是划掉。**
 
-### 它是什么
+### 做掉了什么
 
-`app/components/ui/confirm-dialog.tsx` 的 `<ConfirmButton>` 有一个 `triggerVariant` prop。
-**给了它** → 触发钮用组件库的 `<Button>`;**不给** → 渲染一个**裸 `<button>` + 调用点手写的 className**。
-那句「不给就保留原样」是 **BTN-2 刻意写下的延期**,而它指向的那一刀**早就收工了** ——
-☞ 一条指向一把已关闭的刀的延期,读起来和一条没人负责的债一模一样。
+| | 改前 | 改后 |
+|---|--:|--:|
+| `<ConfirmButton>` 真调用点 | **58** | 58 |
+| …给了 `triggerVariant` | **25** | ★ **54** |
+| ★ …渲染成裸 `<button>` | ★ **33** | ★ **4** |
+| ★ 禁用态过不了 AA 的站点 × 底(33 × 2) | ★ **66 / 66 红** | ★ **8 / 66 红**(剩下那 4 处 × 两种底) |
 
-### 读数(POLISH-1,2026-09-12。**量法写在这里,因为下一个人要重量**)
+★ **档位判读(33 处全部判过):`destructive` 25 · `reversal` 7 · 不转 1。**
+★ **而【落地】的是 29 处** —— 另外 3 处**转过去、量了、按回来了**(它们推动了表格行高,
+见下面 ④ 与委托书 §3 的处置)。落地那 29 处按档位是 `destructive` 23 · `reversal` 6;
+按档位号是 `inline` 12 · `xs` 2 · `default` 15。
+逐条判读与每一处的**改前改后渲染高度 / border-width / 实测对比度**见
+`docs/handbacks/BTN-TRIGGER-1.md` §4–§5 与 §7.1。
 
-| | 个数 |
-|---|--:|
-| `<ConfirmButton` 在 `app/**/*.tsx` 里的**原始命中**(含散文) | **71** |
-| …其中在**注释 / JSDoc** 里 | **13** |
-| ★ **真正的调用点** | **58** |
-| …给了 `triggerVariant` | **25** |
-| ★ …**渲染成裸 `<button>`**(R3 转掉 1 处之后) | ★ **33** |
-| ⬜ 本条登记的裸触发钮 | ★ **33**(13 + 13 + 7) |
+### ★★ 三处【对本条自己读数的更正】,而它们的错法比数值值钱
 
-> ### ★★ 量法(**不是**一条正则,而那一点是承重的)
-> 三件事任何一件都足以让这个数错:
-> * 开标签里有 `{() => submit(false)}` —— 一条**非贪婪到第一个 `>`** 的正则**在箭头函数那里就停了**,
->   于是 `triggerVariant` / `className` 被截掉;
-> * **注释里**写着这个组件名(本仓库为这一族付过四次账);
-> * `details={<p className="…">}` —— **一个孩子的 `className`** 会被记到触发钮头上。
->
-> ☞ 判据:剥掉注释 → 从开标签起**逐字符**扫,跟踪引号 / 模板串 / 花括号深度,
-> **深度 0** 上的第一个 `>` 才是开标签的结尾;**属性只读深度 0 那一层**。
->
-> ⚠ 量具住在仓库**外面**(一刀一份)。要重量,照上面那三条判据重写一支 ——
-> **判据在这里,而判据比脚本活得久。**
+1. **「26 处禁用态缺陷」少了 2 处,而少的方式是【按构造】的。**
+   26 = 13 + 13,两个 13 来自一支**读 `className` 属性文本**的扫描器。
+   树上有**两处** `className={cls}` —— **一个标识符**,而它的值里就写着
+   `disabled:opacity-50`(`SafetyStatePanel.tsx:89` · `StatusPanel.tsx:129`)。
+   ☞ 真值:`opacity-50` **15** · `text-gray-400` **13** = **28**。
+   ★ **量法要加一层:把 `className={X}` 回溯到同文件的 `const X =` 再判。**
+2. ★★ **真正的总体是 33,不是 28 —— 剩下 5 处带着【第三种写法】。**
+   `disabled:bg-gray-400`(白字 on Tailwind v4 的 `#99A1AF` = **2.602:1**)。
+   ☞ 它**不是**一条新标准:`button.tsx` 的抬头亲自点名过它
+   (「它要取代的那 62 处手写按钮用的是 `disabled:bg-gray-400` → 2.54:1」)——
+   **BTN-1 整刀就是为取代它而存在的**,本条登记时漏掉了这一种。
+   (2.54 是 **v3** 的 `#9CA3AF`;这棵树是 **v4**。)
+3. ★ **`suppliers/[id]/edit/StatusPanel.tsx:103` 那颗蓝描边钮:主语已经没了。**
+   本条把它列为「一并归到本条名下」的四件之一。实测:早前某一刀已经把
+   `!isDestructive` 那一支换成了 `<Button variant="secondary">`,
+   于是那串蓝 class **是一段到不了的三元分支**。本刀顺手删掉了那段死代码。
 
-> ### ⚠⚠ 一处【对上一份读数的更正】,连同它为什么错
-> POLISH-1 round 1 的元素级解析报的是 **61 调用点 / 19 triggerVariant / 42 裸**,
-> 以及 **12 × `opacity-50` + 5 × `text-gray-400` = 17** 处禁用态缺陷。
-> ★ **重量下来是 58 / 25 / 33,而禁用态缺陷是 13 + 13 = 26。**
-> ☞ **差额的出处查清了,不是两个数打架:** round 1 自己在报告里写着
-> 「18 处 unresolved + 2 处没有 className —— 它们都读到了
-> `text-sm font-medium text-[color:var(--brand-text)]`,那是确认框正文里的一个 `<p>`」。
-> **那正是【孩子的 className 被记到触发钮头上】。** 而被那个 `<p>` 挡在后面的,
-> 恰恰是触发钮自己那串带禁用态缺陷的 className ——
-> ☞ **round 1 诚实标注的「这 20 处要逐处读,不要照这张表报价」,后面藏着 9 处真的缺陷。**
-> ☞ 三处逐个读源码复核过(`materials/DeleteButton.tsx` · `finance/close/YearClosePanel.tsx` ·
-> `settings/dictionaries/DictSection.tsx`),**三处都确认**。
+### ⬜ 还剩什么(三件,逐条)
 
-### ⬜ 这一条登记的【无障碍缺陷】—— 禁用态
+#### ① `triggerVariant` 仍然是可选的,裸 `<button>` 那条分支还在
+★ **4 个消费者**(下面 ② 与 ④)。这一条要等 ②④ 都有裁定之后才动得了。
 
-**26 处**裸触发钮的禁用态用的是 BTN-1 **整刀存在的理由本身**那两种写法。
+#### ② ★★ `app/output/[id]/edit/SafetyStatePanel.tsx:89` —— **故意不转**
+它是**一个切换控件的一半**:`on ? <ConfirmButton> : <button>`,两支共用同一个 `cls`。
+**另一半在 `docs/base-components.md` §16.4 A 的余量表上**(多选切换组),
+也在 `check-component-library` 的基线里。
+☞ 只转 `on` 那一支,会让**同一个控件的两个状态长得不一样** ——
+而 Tim 在 POLISH-1 R2 给的理由逐字是「**功能相同的按钮必须长得一样**」。
+★ **代价:它那处 `disabled:opacity-50` 活着。实测 2.722:1(白底)/ 2.757:1(`--brand-bg`),两个都过不了 AA。**
+**去处:** 与 §16.4 A 那个真选择控件(`role="radio"` / `aria-pressed` / 方向键)同一刀。
 
-> ### ★ 比值随【它底下那层墨】变,所以这里按【每一种写法】报,不报一个数
-> | 写法 | 渲染出来是 | 白底 | `--brand-bg #F1F9FE` 上 |
-> |---|---|--:|--:|
-> | `disabled:text-gray-400` | `#99A1AF`(Tailwind **v4** 的 gray-400) | **2.60:1 ✗** | **2.44:1 ✗** |
-> | `disabled:opacity-50` 压在 `text-red-600` 上 | `#F38085` | **2.55:1 ✗** | **2.52:1 ✗** |
-> | `disabled:opacity-50` 压在 `text-red-700` 上 | — | **2.77:1 ✗** | **2.73:1 ✗** |
-> | `disabled:opacity-50` 压在 `text-green-700` 上 | — | **2.10:1 ✗** | **2.04:1 ✗** |
-> | ★ **库给的(BTN-1),也就是【目标】** | `--brand-text #182B4B` on `--color-disabled-bg #DDE7EF` | ★ **11.27:1 ✓** | 同左 |
->
-> ⚠ **委托书写的两个数,出处查清了,而它们各自只描述【一个站点】:**
-> * **2.54:1** 是 `#9CA3AF` —— Tailwind **v3** 的 gray-400。**这棵树是 v4**(`node_modules/tailwindcss/theme.css`
->   写的是 `oklch(70.7% 0.022 261.325)`),值是 `#99A1AF` = **2.60:1**。
-> * **2.14:1** 最接近 `text-green-700 @50%` 的 **2.10:1**,也就是
->   `ApprovalControls.tsx` 那一颗绿色的「批准」。
-> ☞ **`disabled:opacity-50` 没有【一个】比值** —— 它是「把底下那层墨兑一半白」,
->   结果由那层墨决定。**一个写成单一数字的比值,在这一族上按构造是错的。**
-> ★ **但结论一个字都不用改:上面每一格都在 2.0–2.8 之间,全部过不了 AA 4.5。**
+#### ③ ★★★ 三处触发钮的档位【没有裁】—— 而裁它要连它的对话框一起裁
+`PostControls.tsx:120`(撤销已过账薪资)· `ReopenForm.tsx:56`(重开已关期间)·
+`YearClosePanel.tsx:72`(重开已关财年)。
+照 **POLISH-1 收窄之后**的判据,三处读起来都是 `destructive`
+(Tim 把 `LockForm` 期间锁、`ReverseButton` 总账冲销都判成了 destructive)。
+☞ 但它们的对话框 `tier="reversal"`,而那 7 个对话框在
+`POLISH1-REVERSAL-DIALOG-TIERS` 名下、**明写不在 BTN-TRIGGER-1 范围内**。
+**本刀取 `triggerVariant="reversal"`** —— 也就是对话框今天已经带着的那个档,
+**于是触发钮与确认钮画同一根虚线,没有产生任何分歧,也没有替 Tim 裁一条他没裁的。**
+★ 同一形状的第四处:`GstPanel.tsx:102`(Turn GST **on**)照字面读是 `default`,
+本刀取 `destructive` 以与它的对话框一致。
+**去处:** 与 `POLISH1-REVERSAL-DIALOG-TIERS` 同一次裁定。
 
-#### `disabled:opacity-50` —— **13 处**
+#### ④ ★★★ 三处【转过去了、量了、按回来了】—— 停止条件 (c) 的处置,不是遗漏
 
-| # | 站点 |
+| 站点 | 档位判读 | 它会把什么推高 | 它今天的缺陷 |
+|---|---|---|---|
+| `app/sales/customers/DeleteButton.tsx:22` | `destructive` / `inline` | `/sales/customers` 表体行高 **42.42 → 43.42(+1.00,逐行)** | `disabled:text-gray-400` **2.602 / 2.443** ✗ |
+| `app/suppliers/DeleteButton.tsx:22` | `destructive` / `inline` | `/suppliers` 表体行高 **+1.00,八行全中** | 同上 |
+| ★ `app/finance/close/ReopenForm.tsx:56` | `reversal` / `default` | `/finance/close` 表体行高 **52.92 → 53.50(+0.58)** | `disabled:opacity-50` **2.557 / 2.525** ✗ |
+
+★★ **第三处值得单独记:`ReopenForm` 【渲染在一张表的格子里】** ——
+`CloseHistoryTable.tsx:75` 逐行渲染它,而**从它自己那个调用点完全看不出这件事**。
+☞ 「它在一个 flex 行里,不在表里」这句判断,**要读过它的消费者之后才成立**。
+
+★ **为什么是"库复刻不出",不是"挑错了档":** 两处文字链今天 **20px**(零边框的行盒),
+`ReopenForm` 今天 **30px**(20px 行盒 + `py-1` + 2×1px 边框);
+而档位是 24 / 28 / 32 / 36 / 48 与 `inline`(`h-auto` + 基础串那 1px 边框 ⇒ **22px**)。
+**20 与 30 都不在表里。** 与 `POLISH1R3-DATATABLE-PAGER-NO-STEP`、
+`BTNTRIGGER1-EDITABLETABLE-NO-44-STEP` 是同一族。
+
+**要 Tim 裁的那一句:** 「接受这三处的 +1.00 / +1.00 / +0.58px 行高」——
+接受了,这三处一行改动就能补上,而那 6 个红的对比度读数跟着结清。
+
+---
+
+## ★★★ BTNTRIGGER1-EDITABLETABLE-NO-44-STEP —— **`<EditableTable>` 手机档那颗钮:档位表里没有 44px**(BTN-TRIGGER-1 登记,2026-09-20)
+
+| | |
 |---|---|
-| 1 | `app/finance/assets/[id]/ServiceIntervalPanel.tsx:293` |
-| 2 | `app/finance/bank/statements/[id]/UnreconcileControl.tsx:50` |
-| 3 | `app/finance/close/ReopenForm.tsx:56` |
-| 4 | `app/finance/close/YearClosePanel.tsx:72` |
-| 5 | `app/hr/payroll/[id]/PostControls.tsx:120` |
-| 6 | `app/inbound/[id]/assays/[assayId]/ApplyAssayControls.tsx:84` |
-| 7 | `app/output/[id]/assays/[assayId]/OutputApplyControls.tsx:83` |
-| 8 | `app/purchasing/orders/[id]/ApprovalControls.tsx:42` |
-| 9 | `app/purchasing/orders/[id]/CloseReopenControls.tsx:149` |
-| 10 | `app/settings/dictionaries/DictSection.tsx:102` |
-| 11 | `app/tools/pricing/formulas/[id]/edit/DeleteFormulaButton.tsx:17` |
-| 12 | `app/tools/pricing/metal-prices/[id]/edit/DeleteButton.tsx:16` |
-| 13 | `app/tools/tasks/[id]/TaskHeader.tsx:187` |
+| **它是什么** | `app/components/ui/editable-table.tsx` 手机展开区那颗「编辑」钮。`min-h-11` = **44px**,而内容只有 34px ⇒ ★ **这个高度是 `min-height` 给的,不是内容给的**。 |
+| ★ **为什么停住** | 档位表是 `h-6`/`h-7`/`h-8`/`h-9`/`h-12` = **24 / 28 / 32 / 36 / 48**。**没有 44。** |
+| ★ **三条路,全部改变行高(实测,两个视口逐字相同)** | `secondary`+`touch` → 钮 48 / 行 **92.5 → 96.5(+4.0)**,且**字号 14 → 16px**;<br>`secondary`+`default` → 钮 32 / 行 **80.5(−12.0)**,★ **掉到 44px 触控靶以下**(WCAG 2.5.5 / Apple HIG);<br>`secondary`+`lg` → 钮 36 / 行 **84.5(−8.0)**,同上。 |
+| **射程** | `<EditableTable>` 的 **4 条路由**:`/me` · `/hr/kpi/score` · `/hr/leave/types` · `/hr/reviews/scale`。**那是停止条件 (c)。** |
+| ★★ **而在册的量具看不见它** | 那颗钮住在 `{isOpen && hasPhonePanel && (…)}` 里 —— **点开才渲染**,而 `survey-controls --mode=drift` **只量首屏**。☞ **一个绿的 (c) 不覆盖这一格。** |
+| **它是哪一族** | 与 `POLISH1R3-DATATABLE-PAGER-NO-STEP` 逐字同形(「档位里没有这个数」)。★ 而那一条**是等到 Tim 裁定之后**才由 BTN-SIZE-1 落地的。**这里没有对应的裁定。** |
+| **要 Tim 裁的那一句** | 「取 `touch`(48px),接受 +4px 行高与 16px 字号」/「为 44px 开一档」/「照旧手写」。 |
 
-#### `disabled:text-gray-400` —— **13 处**
+## ★ BTNTRIGGER1-SURVEY-EDIT-PROSE-STALE —— **`survey-controls.mjs` 抬头写着一条已经不成立的判据**(BTN-TRIGGER-1 登记,2026-09-20)
 
-| # | 站点 |
+| | |
 |---|---|
-| 1 | `app/components/finance/FinanceAttachmentsPanel.tsx:227` |
-| 2 | `app/components/metals/MetalContentPanel.tsx:177` |
-| 3 | `app/hr/departments/DeleteDepartmentButton.tsx:20` |
-| 4 | `app/hr/training/DeleteTrainingButton.tsx:19` |
-| 5 | `app/materials/DeleteButton.tsx:22` |
-| 6 | `app/materials/[id]/edit/AttachmentsPanel.tsx:193` |
-| 7 | `app/operation/processing/[id]/CostPanel.tsx:101` |
-| 8 | `app/purchasing/payment-terms/DeleteTemplateButton.tsx:25` |
-| 9 | `app/sales/customers/DeleteButton.tsx:22` |
-| 10 | `app/sales/customers/[id]/edit/AttachmentsPanel.tsx:200` |
-| 11 | `app/suppliers/DeleteButton.tsx:22` |
-| 12 | `app/suppliers/[id]/edit/AttachmentsPanel.tsx:200` |
-| 13 | `app/suppliers/[id]/edit/CompliancePanel.tsx:84` |
+| **它是什么** | `scripts/survey-controls.mjs` **第 70–74 行**(§EDIT 那段散文)写着候选判据是「住在 `tbody tr` 里、**className 含 `text-blue-600`**、且文字等于 `labels.edit`」。 |
+| ★ **而活着的代码不是这么写的** | FONT-1(2026-09-11)**已经把判据从颜色换成内容**,`:437` 起那一整段就是它的更正记录,`clickEditExpr`(`:450`)今天认的是**文字**,不是 class。 |
+| ★ **为什么登记而不是顺手改** | 它是**量具**,而本刀正被它量。改一支正在给自己出读数的量具,是本仓库明令不做的事。 |
+| ⚠ **为什么它要紧** | 那段散文正是下一个人判断「改掉 `text-blue-600` 会不会弄瞎 `--mode=edit`」的依据。**今天答案是不会** —— 但照那段散文读,答案是会。**一条已经不成立的话,读起来和一条成立的话一模一样。** |
 
-#### 两者都没有的裸触发钮 —— **7 处**(仍然不是标准档,只是不带这两个缺陷)
-
-| # | 站点 |
-|---|---|
-| 1 | `app/finance/bank/statements/[id]/reconcile/ReconcileWorkspace.tsx:679` |
-| 2 | `app/finance/invoices/[id]/VoidInvoiceControl.tsx:105` |
-| 3 | `app/finance/receivables/[saleId]/AttributeCustomerControl.tsx:94` |
-| 4 | `app/finance/settings/GstPanel.tsx:102` |
-| 5 | `app/output/[id]/edit/SafetyStatePanel.tsx:89` |
-| 6 | `app/purchasing/orders/[id]/CloseReopenControls.tsx:96` |
-| 7 | `app/suppliers/[id]/edit/StatusPanel.tsx:129` |
-
-### ⬜ 一并归到本条名下的,还有四件
-
-| 它是什么 | 出处 | 为什么在这里 |
-|---|---|---|
-| ★ **没采用共享样式的那颗 `<select>`** | 队列「合并的小件」④ | R10 明写**出局 → BTN-TRIGGER-1** |
-| ★ **`<EditableTable>` 手机档那颗蓝钮**(`editable-table.tsx:515`) | 队列「合并的小件」⑤ | R10 明写**出局 → BTN-TRIGGER-1**;它同时是 z⑥ 那 30 个泛蓝站点里的一个**按钮**,而 R12 明写按钮不是颜色题 |
-| ★ **`suppliers/[id]/edit/StatusPanel.tsx:103` 那颗蓝描边钮** | z⑥ 分类 | 同上:**按钮题,不是颜色题** |
-| ★ **7 个 `tier="reversal"` 而触发钮是裸 `<button>` 的对话框** | POLISH-1 · R2 | 见下面 `POLISH1-REVERSAL-DIALOG-TIERS` |
-
-### 删除条件
-
-**`triggerVariant` 不再是可选的**(或者裸 `<button>` 那条分支不再存在),
-且上面 26 处禁用态全部走库里那一档。**到那时这一条整条删掉,不是划掉。**
 
 ## ★ POLISH1-REVERSAL-DIALOG-TIERS —— **7 个对话框的确认钮仍然画四点虚线**(POLISH-1 登记,2026-09-12)
 
