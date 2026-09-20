@@ -51,12 +51,82 @@
 //       ② `get()` 的具名字段 —— 拿到的是【第一个】,也就是桌面那一份;
 //          而手机上人打的字在展开区那一份里。**于是手机上打的字整个丢掉。**
 //
-//   ☞ 今天这件事【没有发生过】:四个调用点(`/me` · `/hr/kpi/score` ·
-//     `/hr/leave/types` · `/hr/reviews/scale`)**一个 `name=` 都没有**(实测)。
+//   ☞ 今天这件事【仍然没有发生过】:**七个调用点一个 `name=` 都没有**
+//     (DRAFT-2 实测 2026-09-21,7/7 全 0;DRAFT-1 量的是当时的 4 个)。
 //     它是一个**埋着的坑**,不是一个在流血的伤口。
 //   ☞ 已在册:`docs/known-issues.md` 的 `EDITABLETABLE-NAME-DOUBLE-SUBMIT`。
-//     怎么治(页面持有 + 一座 JSON 桥,还是每个断点只画一份)**Tim 已裁定押后**,
-//     要在**八张并列数组表**面前一次裁完,不在这里零敲碎打。
+//
+// ────────────────────────────────────────────────────────────────────────────
+// ★★★【DRAFT-2 · Tim 的 Q1 裁定(2026-09-21):治法是 **(b)**,八张一次裁完】★★★
+//
+//   八张并列数组表(`#18` `#20` `#21` `#22` `#23` `#24` `#26` `#27`)此前全卡在上面
+//   那条坑上,而 DRAFT-1 把治法押后,要一次裁完。**裁定是 (b):页面持有那个数组,
+//   草稿经表【外面】一个隐藏的 `*_json` 交出去,格子里不再有具名输入。**
+//
+//   ★★ **说清楚 (b) 做了什么、没做什么 —— 这是这条裁定最容易被读错的地方:**
+//     **(b) 不修上面那个机制,它拿走那个机制的燃料。** 两份 `c.edit(...)` 照旧都在
+//     DOM 里;变的是格子里不再有 `name=`,而那座桥画在表外面,**只画一遍**。
+//   ☞ 所以**这个文件里没有一行代码是为 (b) 改的** —— 它改的是调用点的形状。
+//
+//   ★ **Tim 的三条理由,照他的话记:**
+//     ① **它已经是这棵树的形状** —— 六座桥住在五个文件里(`TemplateForm:108` ·
+//        `NewOrderForm:371,372` · `PayrollGrid:119` · `ImportStatementForm:177,178`),
+//        服务端逐个 `JSON.parse` 收回去。**(b) 不是一个新花样,它是现成那个。**
+//     ② **(c) 会在手机转屏时把打的字弄丢。** `sm` = 40rem = **640px**(Tailwind v4 默认,
+//        `app/globals.css` 里没有覆盖);一台 390×844 的手机转成横屏是 **844px 宽,
+//        它跨过 `sm`**。(c) 在那一刻把活着的那一份卸载、把另一份挂上,而一个**非受控**
+//        的 `<input name=…>` 挂上来带的是 `defaultValue` —— **字没了。**
+//        ★ **今天的代码【不会】丢**(藏起来的那一份还在 DOM 里拿着那些字)。
+//        ☞ **(c) 等于拿一个安静写错数的坑,换一个安静丢字的坑,而后者今天并不存在。**
+//     ③ **(c) 要修两遍。** `data-table.tsx` 的同一个机制
+//        (`DATATABLE-UNCONTROLLED-NAME-DOUBLE-SUBMIT`)是同一件事的另一头;
+//        (b) 让两头对那八张同时失效,因为具名输入根本不进格子。
+//
+//   ⚠ **(b) 之后这条规矩【没有任何东西守着】,所以它有一道闸:**
+//     `scripts/check-editable-name.mjs`(在 `npm run build` 链里)——
+//     `<EditableTable>` 的 `columns` 区段里出现 `name=` 就变红。
+//     ★ **`render` 与 `edit` 一视同仁**(组件对两者都画两遍);
+//     ★ **`footer` 【不】在判据内,而那是刻意的** —— 表尾画在表外面只画一遍,
+//       那正是这座 JSON 桥该待的地方。拦下 footer 等于拦掉解法本身。
+//     ☞ 实测(DRAFT-2,故障注入):往一个格子里放一个 `name=` → **退出码 1**,
+//       点名 `GoalsEditor.tsx:146`;放进 `footer` → **退出码 0**;撤掉 → **0**。
+//
+//   ⚠ **照直记一句,免得下一个人把它读成"已经验过了":这条裁定【没有】一个
+//     跑在真路由上的红→绿测试。** 今天七个调用点一个 `name=` 都没有,所以没有一页
+//     今天是红的;而一个数 DOM 的探针**在 (b) 之下会一直红**,因为 (b) 不改那个双渲染。
+//     ☞ **那道闸是这条裁定唯一一个真的红得起来的测试。** 浏览器那份证明是
+//       **正面证据**(每个字段只提交一次、带着那个断点上打的字),**不是红→绿。**
+//
+// ────────────────────────────────────────────────────────────────────────────
+// ★★【DRAFT-1 欠下的那一处落点,DRAFT-2 付掉了 —— `mode:'page-owned'` 为什么留着】★★
+//
+//   DRAFT-1 把 `mode:'page-owned'` 建下来时**一个消费者都没有**,而本仓库为
+//   「加了一个没有消费者的能力」记过一笔(TABLE-FOOTER-1 的表尾至今零消费者)。
+//   那一刀是纯文档刀,不许动 `.tsx`,所以裁定**没有落到这里**;
+//   队列第 4 行把这笔账记成「下一刀【凡是打开 editable-table.tsx 的那一刀】来付」。
+//
+//   ★ **措辞照抄 `docs/handbacks/DRAFT-1.md` §3.1,一字不改:**
+//
+//     > ### ★★ Tim 的裁定(2026-09-21):**这件零消费者的能力【留着】**
+//     > **理由是他的,照他的话记:** 它的消费者 —— **#6 · #7 · #8 · #9 —— 已经排在下一刀了。
+//     > 也就是说这是一件【等着一个已排期消费者】的能力,不是一件照着猜建的能力。**
+//     > ☞ ★ **这正是它与 TABLE-FOOTER-1 那个表尾的分别:那一件建下来的时候,
+//     > 后面【一张排期的表都没有】。**
+//
+//   ☞ **兑现到哪一步了(DRAFT-2,2026-09-21):** 第一个消费者是 **`#24 NewQuoteForm`**
+//     (`app/sales/quotes/new/NewQuoteForm.tsx`)—— 它同时是**验证那条 (b) 裁定的那一张**。
+//     **#6 · #7 · #8 · #9 顺延到下一刀**,按 Tim 的停止线:它们**从来不在那条坑的射程里**
+//     (#6/#7 连 `<form>` 都没有,#8/#9 早就坐在 JSON 桥上)。
+//
+// ────────────────────────────────────────────────────────────────────────────
+// ★【DRAFT-2 · Q6:`page-owned` 只收得到一个 `expand` 标签】
+//
+//   那一模式下 `showActions = canEdit && !!onSave` 恒为假(它那一支没有 `onSave`),
+//   而逐行的 `dirty` 恒为 `false` —— 于是 `edit` / `save` / `saving` / `cancel` /
+//   `unsaved` 这五个标签**一个都渲染不到**。收着它们只会让每个调用点去编五个
+//   **永远不会出现在屏幕上**的译文键。
+//   ☞ 所以 `labels` 住在判别式里:那一支只要 `{ expand }`。
+//     **与 `sorting?: never` 同一条道理 —— 写在类型上,不是写在注释里。**
 //
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -177,6 +247,12 @@ type Labels = {
     expand: string
 }
 
+/**
+ * ★ DRAFT-2 / Q6:`'page-owned'` 那一支只要得到这一个。
+ * 另外五个在那一模式下【渲染不到】—— 理由写在本文件抬头的 Q6 那一段。
+ */
+type PageOwnedLabels = Pick<Labels, 'expand'>
+
 type EditableTableCommon<T, D> = {
     rows: readonly T[]
     columns: ReadonlyArray<EditableColumn<T, D>>
@@ -204,7 +280,8 @@ type EditableTableCommon<T, D> = {
      * ★ Q5:脏是算出来的,组件里没有任何 dirty flag。
      */
     isDirty?: (draft: D, row: T) => boolean
-    labels: Labels
+    /* ★ DRAFT-2 / Q6:`labels` 不住在这里 —— 它住在下面那个判别式里,
+       因为两种模式画得出来的标签【不是同一组】。 */
     caption?: React.ReactNode
     /** 空集不是失败,但它要说出自己是空的。 */
     empty?: React.ReactNode
@@ -269,6 +346,8 @@ export type EditableTableProps<T, D> = EditableTableCommon<T, D> &
                */
               onSave?: (draft: D, row: T) => Promise<SaveResult>
               dirty?: never
+              /** 前两种模式画得出全部六个。 */
+              labels: Labels
           }
         | {
               /**
@@ -285,6 +364,8 @@ export type EditableTableProps<T, D> = EditableTableCommon<T, D> &
               onSave?: never
               /** ★ 必填:这张表现在有没有没保存的东西。它只喂 `beforeunload`。 */
               dirty: boolean
+              /** ★ DRAFT-2 / Q6:这一支只要一个 `expand` —— 另外五个渲染不到。 */
+              labels: PageOwnedLabels
           }
     )
 
@@ -304,9 +385,17 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
     const t = useTranslations()
     const {
         rows, columns, rowKey, phone,
-        footer, canEdit = true, isDirty, labels, caption, empty, className,
+        footer, canEdit = true, isDirty, caption, empty, className,
         rowActions, rowClassName, canSave,
     } = props
+
+    // ★ DRAFT-2 / Q6:`'page-owned'` 只交一个 `expand` 上来。那五个在那一模式下
+    //   【渲染不到】(见抬头 Q6),所以这里补的空串**进不了 DOM** —— 补它们是为了
+    //   让下面的读取处只有一个形状,而不是让屏幕上多出五个空。
+    const labels: Labels =
+        props.mode === 'page-owned'
+            ? { edit: '', save: '', saving: '', cancel: '', unsaved: '', ...props.labels }
+            : props.labels
 
     // ★ DRAFT-1:模式是判别式,三种在这里分岔一次,下面全用分岔后的值。
     const pageOwned = props.mode === 'page-owned'
