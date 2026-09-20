@@ -86,9 +86,33 @@ export function businessToday(): string {
     return new Intl.DateTimeFormat('en-CA', { timeZone: BUSINESS_TIMEZONE }).format(new Date())
 }
 
-// formatTimestamp:ISO 时间戳 → 业务时区的本地化字符串。
-// null/undefined 返回 '—'(与 formatAmount 同约定)。
+// ════════════════════════════════════════════════════════════════════════════
+// formatTimestamp —— ★ DATE-1(2026-09-20)起,它是一层【转发】,不是一份实现。
+// ════════════════════════════════════════════════════════════════════════════
+// 【它从前做什么,以及为什么那是错的】
+//   从前:`new Date(iso).toLocaleString(locale, { timeZone })`
+//   于是同一个审计戳在英文界面上是 `9/1/2026, 2:33:00 PM`,
+//   在中文界面上是 `2026/9/1 14:33:00` —— ★ **而它还随【浏览器】的 locale 变。**
+//   ☞ 那正是 Tim 抱怨的「同一个日期读出三种样子」里的**第二种**。
+//
+// 【Tim 的 D2 怎么裁的,以及本刀量到的事实】
+//   他裁的是:**审计戳保持 `YYYY-MM-DD HH:MM`** —— 因为它们是给查账的人和机器看的,
+//   那个格式可排序、可复制、可粘回一条查询里。
+//   ★★ 而实测:这支函数的调用点【39 处,100% 是 `*_at` 审计戳】,
+//   **没有一处今天真的印着 `YYYY-MM-DD HH:MM`。** 也就是说「保持」那句话
+//   在落地之前对这 39 处**是假的**。本刀让它变成真的。
+//
+// 【为什么保留签名,而不是删掉这支函数】
+//   删掉它要同时改 39 个调用点;保留一层转发,**改动落在一处**,
+//   而一次回退也只回退一处。`locale` 参数刻意留着并 void 掉 ——
+//   ★ **一个审计戳不随语言变,这件事本身就是那条裁定**,
+//   写成 `void locale` 比删掉参数更能把这句话留在下一个读者眼前
+//   (与 formatMoneyBare 的 `ccyStatedIn` 同一个手法)。
+//
+// ☞ 实现只有一份,在 `lib/dates.ts` 的 formatAuditStamp() 里。
+import { formatAuditStamp } from './dates'
+
 export function formatTimestamp(iso: string | null | undefined, locale: string): string {
-    if (!iso) return '—'
-    return new Date(iso).toLocaleString(locale, { timeZone: BUSINESS_TIMEZONE })
+    void locale   // ★ 审计戳【不随界面语言变】—— 这是 D2,不是疏忽
+    return formatAuditStamp(iso)
 }

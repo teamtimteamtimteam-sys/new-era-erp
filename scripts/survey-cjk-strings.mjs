@@ -28,7 +28,7 @@ function* walk(d) {
     }
 }
 // 沿祖先链判断这个字面量【落在什么位置】
-function classify(node, rel) {
+function classify(node, rel, text = '') {
     if (rel.startsWith('app/brand-sampler/')) return 'A-sampler'
     // E:formatMoneyBare 的第 2 个参数 —— 它在 lib/format.ts 里被 `void` 掉,
     //    只是留在调用点的一句交代,【永远不渲染】。
@@ -43,6 +43,22 @@ function classify(node, rel) {
     }
     // G:语言切换器【本来就该】用目标语言写自己
     if (rel.endsWith('LanguageSwitcher.tsx')) return 'G-by-design'
+    // ════════════════════════════════════════════════════════════════════════
+    // H:★ 日期格式化里那三个字(DATE-1,2026-09-20)
+    // ════════════════════════════════════════════════════════════════════════
+    // `lib/dates.ts` 是这套系统里【唯一】一份日期显示格式化,而 Tim 的 D4 裁的是:
+    //     英文 `01 Sep 2026`   ·   ★ 中文 `2026年9月1日`
+    // 那三个字**只在 isZh(locale) 为真的那一支里渲染** —— 它与 G 是同一件事:
+    // **界面是哪一种语言,就说哪一种语言的话。**
+    // ☞ 它【不该】进 messages:一个日期的写法是这支函数的实现,不是一条文案;
+    //   把 `年` 做成一个 i18n 键,等于让人有机会把它翻译成别的东西。
+    // ⚠ 判据写得【很窄】,而窄正是它不放过别的东西的全部依据:
+    //   **只有这一个文件,而且只有这三个字**。这个文件里写别的中文照样会红。
+    // ⚠ 判据读的是【解码后的文本】,不是 node.getText():
+    //   一个 TemplateMiddle 的源码文本是 `}年${`,永远不会是一个光秃秃的 `年`。
+    //   ☞ 与 AGENTS.md 那条「一支扫描器的【切词】那一层可以和它的【读取】那一层
+    //     不一样瞎」同族 —— 这一次瞎的是【读取那一层拿错了东西】。
+    if (rel === 'lib/dates.ts' && /^[年月日]+$/.test(text.trim())) return 'H-date-particle'
     let n = node.parent
     let depth = 0
     while (n && depth++ < 14) {
@@ -69,7 +85,7 @@ for (const file of walk(ROOT)) {
     const add = (node, kind, text) => {
         if (!CJK.test(text)) return
         const { line } = sf.getLineAndCharacterOfPosition(node.getStart(sf))
-        let cat = classify(node, rel)
+        let cat = classify(node, rel, text)
         // B:刻意双语 —— 同一个字面量里既有 CJK 又有拉丁字母,且带分隔符
         // B:刻意双语 —— 同一字面量里 CJK 与拉丁并存(分隔符可以是 / | ( 或空格)
         if (!cat && /[A-Za-z]/.test(text) && /[\/|( ]/.test(text)) cat = 'B-bilingual'
