@@ -14,10 +14,25 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { createQuote, type QuoteFormState } from '../actions'
 import { Button } from '@/app/components/ui/button'
-import { tableC } from '@/app/components/ui/table-style'
+import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 
 const initialState: QuoteFormState = {}
 const LINE_SLOTS = 5
+
+/** 一个报价行槽。★ 这就是交给服务端的那个形状 —— `lines_json` 里逐字是它。 */
+type LineDraft = { material_id: string; qty: string; price: string }
+/**
+ * ★ 画在表里的那一行 = 草稿 + 它的槽号。
+ *
+ * 【为什么把下标烧进行里,而不是用 `rows.indexOf(row)` 捞回来】
+ * `EditableTable` 的 `render(row)` / `edit(draft, set)` **都收不到下标**,而
+ * `'page-owned'` 下页面必须走自己的 setter(`set` 是一条按名拒绝)——
+ * 也就是说这一格非知道「我是第几槽」不可。捞回来要靠引用相等,那是一条
+ * **看不见的、一次 `map` 就会断掉的**依赖;烧进行里是一条看得见的。
+ * ☞ 它**不进** `lines_json`:交出去的是 `lines`,`i` 只活在渲染这一侧。
+ */
+type LineRow = LineDraft & { i: number }
+const emptyLine = (): LineDraft => ({ material_id: '', qty: '', price: '' })
 
 export default function NewQuoteForm({
     customers, materials, currencies,
@@ -30,6 +45,87 @@ export default function NewQuoteForm({
     const [state, formAction, isPending] = useActionState(createQuote, initialState)
     const [quoteDate, setQuoteDate] = useState('')
     const [validUntil, setValidUntil] = useState('')
+    // ★★ DRAFT-2 / Tim 的 Q1 裁定 (b):**这个数组由页面持有**,草稿经表【外面】
+    //   一个隐藏的 `lines_json` 交出去。格子里因此一个 `name=` 都没有 ——
+    //   而那正是 `EDITABLETABLE-NAME-DOUBLE-SUBMIT` 那条坑的燃料。
+    //   先例:`TemplateForm:108` · `NewOrderForm:371,372` · `PayrollGrid:119`。
+    const [lines, setLines] = useState<LineDraft[]>(() =>
+        Array.from({ length: LINE_SLOTS }, emptyLine))
+
+    function patchLine(i: number, patch: Partial<LineDraft>) {
+        setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)))
+    }
+
+    // ★ Q5 的必填 `dirty`:这张表现在有没有没保存的东西。它只喂 `beforeunload`。
+    //   ☞【它盖不住的那一半,照直说】站内 <Link>(下面那颗「取消」)**不会拦** ——
+    //     那是组件抬头声明过的限制,而对一颗取消钮来说那也正是对的:
+    //     **明说要走的人不该被再问一遍。**
+    const linesDirty = lines.some(
+        (l) => l.material_id !== '' || l.qty.trim() !== '' || l.price.trim() !== '')
+
+    const rows: LineRow[] = lines.map((l, i) => ({ ...l, i }))
+    const materialLabel = (id: string) => {
+        const m = materials.find((x) => x.id === id)
+        return m ? `${m.code} — ${m.name}` : '—'
+    }
+
+    /* ★ DRAFT-2 / Q4:**序号那一列是新加的,今天这张表没有它。**
+       建单页的五个空槽内容完全相同 —— 手机上留下来的那一列如果只有物料,
+       没挑之前五行全是「—」,**屏幕上认不出在改哪一行**。序号把它们分开,
+       而这正是 `#8 NewOrderForm` 与 `#9 TemplateForm` 已经有的那一列(「序号」)。 */
+    const lineColumns: EditableColumn<LineRow, LineRow>[] = [
+        {
+            key: 'seq',
+            header: t('sales.colSeq'),
+            priority: true,
+            className: 'w-10',
+            render: (r) => (
+                <span className="text-[color:var(--brand-muted-text)]">{r.i + 1}</span>
+            ),
+        },
+        {
+            key: 'material',
+            header: t('sales.colMaterial'),
+            priority: true,
+            render: (r) => materialLabel(r.material_id),
+            // ★ `'page-owned'` 下 `edit` 的第一个参数【就是那一行】,而那个 `set`
+            //   是一条按名拒绝 —— 页面走自己的 `patchLine`。
+            edit: (r) => (
+                <select value={r.material_id} aria-label={t('sales.colMaterial')}
+                        onChange={(e) => patchLine(r.i, { material_id: e.target.value })}
+                        className={`${CONTROL_SELECT} w-full`}>
+                    <option value="">{t('sales.form.selectMaterial')}</option>
+                    {materials.map((m) => (
+                        <option key={m.id} value={m.id}>{m.code} — {m.name}</option>
+                    ))}
+                </select>
+            ),
+        },
+        {
+            key: 'qty',
+            header: t('sales.form.qty'),
+            align: 'right',
+            render: (r) => (r.qty.trim() === '' ? '—' : r.qty),
+            edit: (r) => (
+                <input type="number" step="any" min="0" value={r.qty}
+                       aria-label={t('sales.form.qty')}
+                       onChange={(e) => patchLine(r.i, { qty: e.target.value })}
+                       className={`${CONTROL_INPUT} w-28 text-right tabular-nums`} />
+            ),
+        },
+        {
+            key: 'price',
+            header: t('sales.form.unitPrice'),
+            align: 'right',
+            render: (r) => (r.price.trim() === '' ? '—' : r.price),
+            edit: (r) => (
+                <input type="number" step="any" min="0" value={r.price}
+                       aria-label={t('sales.form.unitPrice')}
+                       onChange={(e) => patchLine(r.i, { price: e.target.value })}
+                       className={`${CONTROL_INPUT} w-28 text-right tabular-nums`} />
+            ),
+        },
+    ]
 
     // 【两个日期都空着就不给按】它们都决定一件真实的事,而服务端也【独立】拒空
     // (AGENTS.md:两道闸,UI 那道不是保护)。
@@ -126,38 +222,22 @@ export default function NewQuoteForm({
                 {state.fieldErrors?.lines && (
                     <p className="text-xs text-red-600">{state.fieldErrors.lines}</p>
                 )}
-                <table className={`${tableC.root} w-full`}>
-                    <thead>
-                        <tr className={tableC.headRow}>
-                            <th className={`${tableC.headCell} text-left`}>{t('sales.colMaterial')}</th>
-                            <th className={`${tableC.headCell} text-right tabular-nums`}>{t('sales.form.qty')}</th>
-                            <th className={`${tableC.headCell} text-right tabular-nums`}>{t('sales.form.unitPrice')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {Array.from({ length: LINE_SLOTS }, (_, i) => (
-                            <tr className={tableC.bodyRow} key={i}>
-                                <td className={tableC.cell}>
-                                    <select name={`line_material_${i}`} defaultValue=""
-                                            className={`${CONTROL_SELECT} w-full`}>
-                                        <option value="">{t('sales.form.selectMaterial')}</option>
-                                        {materials.map((m) => (
-                                            <option key={m.id} value={m.id}>{m.code} — {m.name}</option>
-                                        ))}
-                                    </select>
-                                </td>
-                                <td className={`${tableC.cell} text-right tabular-nums`}>
-                                    <input type="number" step="any" min="0" name={`line_qty_${i}`}
-                                           className={`${CONTROL_INPUT} w-28 text-right tabular-nums`} />
-                                </td>
-                                <td className={`${tableC.cell} text-right tabular-nums`}>
-                                    <input type="number" step="any" min="0" name={`line_price_${i}`}
-                                           className={`${CONTROL_INPUT} w-28 text-right tabular-nums`} />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                {/* ★★ (b) 那座桥 —— **画在表外面,只画一遍**。
+                    组件把列回调画两遍(桌面格 + 手机展开区),所以具名输入不许进格子;
+                    这一个不在格子里,于是它在 FormData 里**只出现一次**。
+                    `scripts/check-editable-name.mjs` 守着前半句,footer/表外刻意不在它判据内。 */}
+                <input type="hidden" name="lines_json" value={JSON.stringify(lines)} />
+                <EditableTable<LineRow, LineRow>
+                    rows={rows}
+                    columns={lineColumns}
+                    // 槽号即键:这张表没有加行/删行,所以下标不会在行底下挪动。
+                    rowKey={(r) => String(r.i)}
+                    phone={{ mode: 'columns' }}
+                    mode="page-owned"
+                    dirty={linesDirty}
+                    // ★ Q6:`'page-owned'` 只要一个 `expand` —— 另外五个渲染不到。
+                    labels={{ expand: t('common.expandRow') }}
+                />
 
                 <div>
                     <label className="block mb-1">{t('sales.form.notes')}</label>

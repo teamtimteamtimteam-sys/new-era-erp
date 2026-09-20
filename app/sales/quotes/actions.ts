@@ -47,11 +47,37 @@ export async function createQuote(
     const fx = Number(fx_raw)
     if (!fx_raw || Number.isNaN(fx) || fx <= 0) fieldErrors.fx_rate = t('quotes.form.errFxRate')
 
+    // ★★ DRAFT-2 / Tim 的 Q1 裁定 (b):行**不再走并列的具名字段**,它们经一座
+    //   JSON 桥过来(`lines_json`,页面持有那个数组)。
+    //
+    //   【为什么换】`EditableTable` 把列回调画【两遍】(桌面格 `hidden sm:block` +
+    //   手机展开区),于是一个放在格子里的 `name=` 在 `FormData` 里出现两次。
+    //   这一页从前的形状(`line_material_${i}` + `get()`)撞的正是第②种坏法:
+    //   **`get()` 拿到的是桌面那一份,而手机上人打的字在展开区那一份里** ——
+    //   **手机上打的字会整个丢掉**,而且不报错。
+    //   ☞ 立案:`docs/known-issues.md` 的 `EDITABLETABLE-NAME-DOUBLE-SUBMIT`。
+    //
+    //   ★ **收参的形状照抄这棵树已有的那几座桥**(`purchasing/orders/new/actions.ts:88-94`
+    //     与 `payment-terms/actions.ts:47-55`):`try { JSON.parse } catch`,再 `Array.isArray`。
+    //   ★★ **逐行的判据一个字没改** —— 空槽照旧跳过,数量/单价照旧独立拒空拒负。
+    //     ⚠ 那是 AGENTS.md 的两道闸:**界面那一道不是保护,这一道才是。**
+    //     (界面今天也【不】按行拦 —— 它只按两个日期禁用提交钮。)
     const lines: LineInput[] = []
-    for (let i = 0; i < 20; i++) {
-        const m = String(formData.get(`line_material_${i}`) ?? '')
-        const q = String(formData.get(`line_qty_${i}`) ?? '')
-        const p = String(formData.get(`line_price_${i}`) ?? '')
+    let slots: Partial<Record<'material_id' | 'qty' | 'price', unknown>>[] = []
+    try {
+        const parsed: unknown = JSON.parse(String(formData.get('lines_json') ?? '[]'))
+        // ★ 一个坏掉的 / 不是数组的载荷是【这座桥新带来的】那一面,照直拒绝,
+        //   而不是当成"没有行"—— 两者不是同一件事,错得也不是同一个方向。
+        if (!Array.isArray(parsed)) throw new Error('not an array')
+        slots = parsed
+    } catch {
+        fieldErrors.lines = t('quotes.form.errLine')
+        slots = []
+    }
+    for (const slot of slots) {
+        const m = String(slot?.material_id ?? '')
+        const q = String(slot?.qty ?? '')
+        const p = String(slot?.price ?? '')
         if (!m && !q && !p) continue
         const qn = Number(q), pn = Number(p)
         if (!m || Number.isNaN(qn) || qn <= 0 || Number.isNaN(pn) || pn <= 0) {

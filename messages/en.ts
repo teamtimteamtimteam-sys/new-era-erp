@@ -3574,6 +3574,7 @@ const en = {
         colStatus: 'Status',
         colCurrency: 'Currency',
         colMaterial: 'Material',
+        colSeq: '#',
         cancelReason: 'Cancellation reason',
         issues: 'Issued versions',
         issuesNote: 'Each re-issue appends a new version; older versions are kept because the copy the customer holds is a specific version. There is no "sent" flag — the system does not know what the counterparty received.',

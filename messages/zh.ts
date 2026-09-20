@@ -3478,6 +3478,7 @@ const zh = {
         colStatus: '状态',
         colCurrency: '币种',
         colMaterial: '物料',
+        colSeq: '序号',
         cancelReason: '作废理由',
         issues: '签发版本',
         issuesNote: '每次重新签发都【追加】一个新版本,旧版本原样留着 —— 客户手里那份是某个具体版本。【没有"已发送"标志】:系统不知道对方收没收到。',
