@@ -19,6 +19,47 @@
 //     它们服务两种契约,而这个仓库为"一个组件伺候两个主人"付过五次账。
 //
 // ────────────────────────────────────────────────────────────────────────────
+// ★★ DRAFT-1(2026-09-21,Tim 的 R8)· 这一刀让它更像 DataTable 了 ——
+//    **而那条分叉的理由【一个字都没有动】** ★★
+//
+//   本刀给它加了 `rowActions`(能力 A)、`rowClassName`(能力 B)、
+//   `canSave`(能力 E)与 `mode: 'page-owned'`。前两件 `DataTable` 也有,
+//   于是两个组件在【功能清单】上更靠近了一步。
+//
+//   ☞ **那不是分叉的判据,从来都不是。** 判据是【列描述符的契约】:
+//        DataTable   `render: (row) => ReactNode`      —— 纯只读,没地方放草稿
+//        EditableTable `edit: (draft, set) => ReactNode` —— 编辑态的投影
+//     本刀加的四件**没有一件碰到这条分界**:`rowActions` 收的是 `row`,
+//     `rowClassName` 收的是 `row`,两件都是只读投影;`canSave` 收的是 `draft`,
+//     它只在可编辑那一侧有意义;`'page-owned'` 动的是【谁持有草稿】,
+//     而不是【格子回调长什么样】。
+//   ☞ 所以那条警告照旧成立:**功能多寡不是合并的理由,契约才是。**
+//
+// ────────────────────────────────────────────────────────────────────────────
+// ★★★【DRAFT-1 的警告:`edit()` 里【不许】放带 `name` 的输入】★★★
+//
+//   这个组件把 `c.edit(...)` 画【两遍】:`:418` 桌面格(`hidden sm:block` ——
+//   **CSS 藏起来,不是移出 DOM**)与 `:489` 手机展开区(`isOpen` 时挂载)。
+//   两份读写同一个 store,所以【受控 state】一点问题都没有 —— 这正是
+//   DRAFT-0 §3.1 说的那件"双渲染已经解掉了"。
+//
+//   ⚠ **但那句话只对受控 state 成立,对 `FormData` 不成立。**
+//     一个带 `name=` 的输入放进 `edit()`,展开那一行之后它在文档里【有两份】,
+//     于是提交时它在 `FormData` 里【出现两次】。两种坏法,都不报错:
+//       ① `getAll()` 的并列数组 —— 多出来的那一格把几条数组【错位】,
+//          于是 A 行的数量写到 B 行上。**它安静地写错数。**
+//       ② `get()` 的具名字段 —— 拿到的是【第一个】,也就是桌面那一份;
+//          而手机上人打的字在展开区那一份里。**于是手机上打的字整个丢掉。**
+//
+//   ☞ 今天这件事【没有发生过】:四个调用点(`/me` · `/hr/kpi/score` ·
+//     `/hr/leave/types` · `/hr/reviews/scale`)**一个 `name=` 都没有**(实测)。
+//     它是一个**埋着的坑**,不是一个在流血的伤口。
+//   ☞ 已在册:`docs/known-issues.md` 的 `EDITABLETABLE-NAME-DOUBLE-SUBMIT`。
+//     怎么治(页面持有 + 一座 JSON 桥,还是每个断点只画一份)**Tim 已裁定押后**,
+//     要在**八张并列数组表**面前一次裁完,不在这里零敲碎打。
+//
+
+// ────────────────────────────────────────────────────────────────────────────
 // ★ Tim 的 Q3:【一次只编辑一行】是默认,【全行同时编辑】是显式的第二种模式 ★
 //
 //   两种模式**共用同一个状态形状** —— `Record<行键, 草稿>`。
@@ -136,25 +177,17 @@ type Labels = {
     expand: string
 }
 
-export type EditableTableProps<T, D> = {
+type EditableTableCommon<T, D> = {
     rows: readonly T[]
     columns: ReadonlyArray<EditableColumn<T, D>>
-    rowKey: (row: T) => string
+    /**
+     * 稳定的行键。★ DRAFT-1:**第二个参数是下标** —— 建单页那种
+     * `Array.from({length: N})` 的空槽行,行与行的内容完全相同,
+     * 光看 `row` 生不出一个互不相同的键(于是草稿会塌成一个)。
+     */
+    rowKey: (row: T, index: number) => string
     /** ★ 390px 上怎么办。**必填**,与 DataTable 同一个类型、同一条裁定。 */
     phone: PhoneTreatment
-    /** 进入编辑时,把这一行拷成一份草稿。 */
-    toDraft: (row: T) => D
-    /**
-     * ★ Q3:`'one-row'`(默认)= 那个 Record 至多一个键。
-     *   `'all-rows'` = 每一行开局就带草稿,没有「编辑」钮 —— 给
-     *   /me 那种【长得像表格的表单】用,不是给账簿用。
-     */
-    mode?: 'one-row' | 'all-rows'
-    /**
-     * 整行保存。**失败请返回 `{ error }`** —— 组件会把字留住、行留在编辑态。
-     * `'all-rows'` 模式下不给它,由 `footer` 里页面自己的提交负责。
-     */
-    onSave?: (draft: D, row: T) => Promise<SaveResult>
     /**
      * ★★【/me 逼出来的槽 —— 与 CONV-1 的 notices 同源】★★
      * `'all-rows'` 模式下,那一次提交【不属于这张表】:/me 的提交同时带着
@@ -177,12 +210,83 @@ export type EditableTableProps<T, D> = {
     empty?: React.ReactNode
     className?: string
 
+    /**
+     * ★★ DRAFT-1 · 能力 A —— **页面自己的行内动作,一个槽,不是三件功能** ★★
+     * 画在动作列里,**挨着**组件自己的保存/取消/编辑,不是替掉它们。
+     * ☞ 组件【不知道】这颗钮是什么意思:删一行、标记删除、复制一行,
+     *   在这里都只是「页面画了点东西」。**业务规则一个字都不进来。**
+     * ⚠ 勘察(DRAFT-0 §2.2)把「加行」也算进这一件,但逐张读下来
+     *   **没有一张表是在表【内】加行的** —— 三张的加行表单都在表【下面】,
+     *   而那正是 `footer` 已经能画的地方。所以这里没有 `onAddRow`。
+     */
+    rowActions?: (row: T, ctx: { editing: boolean; dirty: boolean; saving: boolean }) => React.ReactNode
+    /**
+     * ★ DRAFT-1 · 能力 B —— 按行涂色。与 `DataTable` 同一个签名(`data-table.tsx:306`)。
+     * 消费者:`AttendanceGrid`(没录过的行 `bg-amber-50`)。
+     */
+    rowClassName?: (row: T) => string | undefined
+    /**
+     * ★★ DRAFT-1 · 能力 E —— **这一行现在能不能保存,以及【为什么不能】** ★★
+     * 不给 = 只看脏不脏(旧行为)。给了 = `ok` 为假时保存钮按不动,
+     * 并且 `why` 就画在钮旁边。
+     * ☞ 它存在的理由是 CMP-2 的那条房规:**一个按不下去又不说为什么的钮,
+     *   读起来就是坏的。** `GoalsEditor` 的「有数字就必须有单位」是第一个消费者
+     *   (约束 `review_goals_unit_required` 的镜像)。
+     */
+    canSave?: (draft: D, row: T) => { ok: boolean; why?: React.ReactNode }
+
     // ── ★ Q4:排序与分页在这里【不存在】,而且是编译期不存在 ★ ──────────────
     /** 可编辑的表不排序 —— 见抬头 Q4。写上去编译不过。 */
     sorting?: never
     /** 可编辑的表不分页 —— 见抬头 Q4。写上去编译不过。 */
     pageSize?: never
 }
+
+/**
+ * ★★★ DRAFT-1:三种模式,而第三种【必须被声明】,不许靠 `toDraft` 恒等推断出来 ★★★
+ *
+ *   前两种**组件自己持有草稿**,所以「脏」算得出来。
+ *   第三种**页面自己持有那个数组**,组件一个草稿都不存 —— 于是「脏」它算不出来,
+ *   必须由页面说。**那个 `dirty` 是必填的,不是可选的**:
+ *   一个可选的 `dirty` 会让「这张表不需要未保存提醒」和「有人忘了传」
+ *   在屏幕上长得一模一样,而 R7 要的正是这两者分得开。
+ */
+export type EditableTableProps<T, D> = EditableTableCommon<T, D> &
+    (
+        | {
+              /**
+               * `'one-row'`(默认)= 那个 Record 至多一个键。
+               * `'all-rows'` = 每一行开局就带草稿,没有「编辑」钮。
+               */
+              mode?: 'one-row' | 'all-rows'
+              /** 进入编辑时,把这一行拷成一份草稿。 */
+              toDraft: (row: T) => D
+              /**
+               * 整行保存。**失败请返回 `{ error }`** —— 组件会把字留住、行留在编辑态。
+               * ★ DRAFT-1 / Q3:`'all-rows'` 模式下**也可以给它** —— 那就是
+               *   「整格都在编辑态,而每一行有自己的保存钮」,
+               *   `AttendanceGrid` 与 `QuoteLinesEditor` 今天就是这个形状。
+               */
+              onSave?: (draft: D, row: T) => Promise<SaveResult>
+              dirty?: never
+          }
+        | {
+              /**
+               * ★ `'page-owned'` —— **页面持有那个数组,这张表只负责画。**
+               * 逼出它的是建单页那几张:它们的值要在表【外面】被读到
+               * (`TemplateForm` 的 `hasFixed` 决定表上面那个币种字段要不要出现;
+               *  `NewOrderForm` 的金额列由【另一张表】的合计算出来),
+               * 而 `footer(drafts)` 只够到表【下面】。
+               * ☞ 这一模式下 `edit(draft, set)` 的 `draft` **就是那一行本身**,
+               *   `set` 是一条【按名拒绝】:页面必须走自己的 setter。
+               */
+              mode: 'page-owned'
+              toDraft?: never
+              onSave?: never
+              /** ★ 必填:这张表现在有没有没保存的东西。它只喂 `beforeunload`。 */
+              dirty: boolean
+          }
+    )
 
 /** 浅比较:草稿 vs 由当前这一行现算出来的草稿。 */
 function shallowSame<D extends object>(a: D, b: D): boolean {
@@ -199,9 +303,22 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
     // COPY-1:空态那一句从前只有中文。
     const t = useTranslations()
     const {
-        rows, columns, rowKey, phone, toDraft, mode = 'one-row',
-        onSave, footer, canEdit = true, isDirty, labels, caption, empty, className,
+        rows, columns, rowKey, phone,
+        footer, canEdit = true, isDirty, labels, caption, empty, className,
+        rowActions, rowClassName, canSave,
     } = props
+
+    // ★ DRAFT-1:模式是判别式,三种在这里分岔一次,下面全用分岔后的值。
+    const pageOwned = props.mode === 'page-owned'
+    const mode = props.mode ?? 'one-row'
+    // `'page-owned'` 下草稿【就是那一行本身】—— 页面持有它,组件不拷贝。
+    // ★ 恒等那一支要是稳定引用:它进 `rowIsDirty` 的依赖表,
+    //   每渲染新造一个会让那个 useCallback 每次都变。
+    const identityDraft = React.useCallback((r: T) => r as unknown as D, [])
+    const toDraft: (row: T) => D =
+        props.mode === 'page-owned' ? identityDraft : props.toDraft
+    const onSave = props.mode === 'page-owned' ? undefined : props.onSave
+    const pageDirty = props.mode === 'page-owned' ? props.dirty : false
 
     const phoneScroll = phone.mode === 'scroll'
     const isPhoneCol = (c: EditableColumn<T, D>) => phoneScroll || !!c.priority
@@ -226,9 +343,10 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
     }
 
     // ★★ Q3:两种模式【同一个状态形状】—— 一次一行就是它至多一个键。 ★★
+    // ★ DRAFT-1:`'page-owned'` 不进这个容器 —— 它一个草稿都不存。
     const [drafts, setDrafts] = React.useState<Record<string, D>>(() =>
         mode === 'all-rows'
-            ? Object.fromEntries(rows.map((r) => [rowKey(r), toDraft(r)]))
+            ? Object.fromEntries(rows.map((r, i) => [rowKey(r, i), toDraft(r)]))
             : {}
     )
     const [savingKey, setSavingKey] = React.useState<string | null>(null)
@@ -237,14 +355,15 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
 
     // all-rows:行的【集合】变了(增行/删行)才补草稿。
     // **不按值重置** —— 那会在保存之后把人正在打的字冲掉。
-    const keySig = rows.map(rowKey).join(' ')
+    const keySig = rows.map((r, i) => rowKey(r, i)).join(' ')
     React.useEffect(() => {
         if (mode !== 'all-rows') return
         setDrafts((prev) => {
             const next: Record<string, D> = {}
             let changed = false
-            for (const r of rows) {
-                const k = rowKey(r)
+            for (let i = 0; i < rows.length; i++) {
+                const r = rows[i]
+                const k = rowKey(r, i)
                 if (k in prev) next[k] = prev[k]
                 else { next[k] = toDraft(r); changed = true }
             }
@@ -255,14 +374,15 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
     }, [keySig, mode])
 
     // ★ Q5:脏 = 现算的比较,不是存下来的 flag。
-    const rowIsDirty = React.useCallback((row: T): boolean => {
-        const k = rowKey(row)
+    const rowIsDirty = React.useCallback((row: T, index: number): boolean => {
+        const k = rowKey(row, index)
         const d = drafts[k]
         if (!d) return false
         return isDirty ? isDirty(d, row) : !shallowSame(d, toDraft(row))
     }, [drafts, isDirty, rowKey, toDraft])
 
-    const anyDirty = rows.some(rowIsDirty)
+    // ★ DRAFT-1:`'page-owned'` 算不出脏 —— 它【由页面说】,见那一支的 `dirty`。
+    const anyDirty = pageOwned ? pageDirty : rows.some((r, i) => rowIsDirty(r, i))
 
     // ★ Q7:脏着关标签页 / 刷新 —— 浏览器自己的那个提示。**它的措辞我们拥有不了。**
     //   见抬头「记录在案的例外」。站内 <Link> 跳走【盖不住】,那是声明过的限制。
@@ -273,8 +393,8 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
         return () => window.removeEventListener('beforeunload', onBeforeUnload)
     }, [anyDirty])
 
-    function begin(row: T) {
-        const k = rowKey(row)
+    function begin(row: T, index: number) {
+        const k = rowKey(row, index)
         setRowErrors((e) => { const n = { ...e }; delete n[k]; return n })
         // ★★ 这一行【就是】Q3 那条约束:整个 Record 被换成【只有一个键】。 ★★
         setDrafts({ [k]: toDraft(row) })
@@ -282,10 +402,17 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
         setOpen(new Set([k]))
     }
 
-    function cancel(row: T) {
-        const k = rowKey(row)
-        setDrafts((d) => { const n = { ...d }; delete n[k]; return n })
+    function cancel(row: T, index: number) {
+        const k = rowKey(row, index)
         setRowErrors((e) => { const n = { ...e }; delete n[k]; return n })
+        if (mode === 'all-rows') {
+            // ★ DRAFT-1:整格模式下「取消」不是退出编辑态(没有编辑态可退)——
+            //   它是【把这一行退回服务端的值】。删掉键,下面那个 effect 会照
+            //   `toDraft(row)` 重新播一份。
+            setDrafts((d) => { const n = { ...d }; n[k] = toDraft(row); return n })
+            return
+        }
+        setDrafts((d) => { const n = { ...d }; delete n[k]; return n })
         setOpen((s) => { const n = new Set(s); n.delete(k); return n })
     }
 
@@ -293,9 +420,28 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
         setDrafts((d) => (d[k] ? { ...d, [k]: { ...d[k], ...p } } : d))
     }
 
-    async function save(row: T) {
+    /**
+     * ★ 交给 `edit()` 的那个 `set`。`'page-owned'` 下它是一条【按名拒绝】——
+     *   那一模式的约定是页面走自己的 setter,而一个默默什么都不做的 `set`
+     *   会让「打的字没进去」看起来像组件坏了。
+     */
+    function setFor(k: string) {
+        return (p: Partial<D>) => {
+            if (pageOwned) {
+                throw new Error(
+                    'EDITABLETABLE_PAGE_OWNED_SET:这张表声明了 mode="page-owned",也就是说' +
+                    '【那个数组由页面持有】,组件一个草稿都不存 —— 所以 edit() 收到的 set 无处可写。' +
+                    '请在 edit() 里直接调页面自己的 setter(它本来就在闭包里),' +
+                    '或者去掉 mode="page-owned" 改用 all-rows 让组件持有草稿。'
+                )
+            }
+            patch(k, p)
+        }
+    }
+
+    async function save(row: T, index: number) {
         if (!onSave) return
-        const k = rowKey(row)
+        const k = rowKey(row, index)
         const d = drafts[k]
         if (!d) return
         setSavingKey(k)
@@ -308,9 +454,17 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                 setRowErrors((e) => ({ ...e, [k]: r.error as string }))
                 return
             }
-            // 成功才收草稿。router.refresh() 由页面自己的 onSave 在成功那一支里调。
-            setDrafts((cur) => { const n = { ...cur }; delete n[k]; return n })
-            setOpen((s) => { const n = new Set(s); n.delete(k); return n })
+            // ★★ DRAFT-1 / Q3:整格模式下【草稿不收】★★
+            //   收掉它会把这一行踢出编辑态,而整格模式里【每一行本来就该是编辑态】;
+            //   而且那个按键集补种的 effect 只在【键集变了】时跑,键集没变,
+            //   它补不回来 —— 于是那一行会变成一行读不了也改不了的空壳。
+            //   留着草稿是对的:它此刻等于刚存进去的值,页面 refresh 回来之后
+            //   `rowIsDirty` 自然变假,「未保存」那块牌子自己就灭了。
+            if (mode !== 'all-rows') {
+                // 成功才收草稿。router.refresh() 由页面自己的 onSave 在成功那一支里调。
+                setDrafts((cur) => { const n = { ...cur }; delete n[k]; return n })
+                setOpen((s) => { const n = new Set(s); n.delete(k); return n })
+            }
         } finally {
             setSavingKey(null)
         }
@@ -319,10 +473,17 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
     const toggleRow = (k: string) =>
         setOpen((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n })
 
-    const showActions = canEdit && mode === 'one-row' && !!onSave
+    // ★★ DRAFT-1 / Q3:**`showActions` 不再问模式** ★★
+    //   它从前写着 `mode === 'one-row'`,于是整格模式下整条动作列【根本不存在】。
+    //   而 `AttendanceGrid` 与 `QuoteLinesEditor` 今天就是「整格都在编辑态 +
+    //   每一行一颗保存钮」—— 那条 `mode ===` 把它们挡在门外。
+    const showActions = canEdit && !!onSave
+    // ★ 能力 A:页面自己的动作,与上面那一组【并存】,不是二选一。
+    const showRowActions = canEdit && !!rowActions
+    const showActionCol = showActions || showRowActions
     const editableCols = columns.filter((c) => c.edit)
     // 桌面上有动作列;手机上它不出现(动作在展开区末尾)。
-    const colCount = columns.length + (showActions ? 1 : 0) + (phoneScroll ? 0 : 1)
+    const colCount = columns.length + (showActionCol ? 1 : 0) + (phoneScroll ? 0 : 1)
 
     return (
         <div className={cn('w-full', className)}>
@@ -357,7 +518,7 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                 </th>
                             ))}
                             {/* 动作列在手机上不存在 —— 它正是转换前三页溢出的直接原因。 */}
-                            {showActions && <th scope="col" className={`hidden px-3 py-2.5 font-medium sm:table-cell ${TABLE_TEXT}`} />}
+                            {showActionCol && <th scope="col" className={`hidden px-3 py-2.5 font-medium sm:table-cell ${TABLE_TEXT}`} />}
                         </tr>
                     </thead>
                     <tbody>
@@ -368,21 +529,30 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                 </td>
                             </tr>
                         )}
-                        {rows.map((row) => {
-                            const k = rowKey(row)
-                            const draft = drafts[k]
+                        {rows.map((row, index) => {
+                            const k = rowKey(row, index)
+                            // ★ `'page-owned'`:草稿【就是那一行】,而且每一行恒在编辑态。
+                            const draft = pageOwned ? toDraft(row) : drafts[k]
                             const editing = !!draft && canEdit
-                            const dirty = rowIsDirty(row)
+                            const dirty = pageOwned ? false : rowIsDirty(row, index)
                             const isOpen = open.has(k)
                             const err = rowErrors[k]
                             const restCols = phoneScroll ? [] : columns.filter((c) => !c.priority)
                             // 手机展开区里画什么:编辑态是【全部可编辑字段】,
                             // 只读态是【其余各列】。
                             const phoneCols = editing ? editableCols : restCols
-                            const hasPhonePanel = phoneCols.length > 0 || showActions
+                            const hasPhonePanel = phoneCols.length > 0 || showActionCol
+                            // ★ 能力 E:这一行能不能存,以及【为什么不能】。
+                            const verdict = canSave && draft ? canSave(draft, row) : null
+                            const blocked = !!verdict && !verdict.ok
+                            const saveDisabled = savingKey === k || !dirty || blocked
+                            const actions = showRowActions
+                                ? rowActions!(row, { editing, dirty, saving: savingKey === k })
+                                : null
                             return (
                                 <React.Fragment key={k}>
-                                    <tr className="border-b border-[color:var(--brand-border)]">
+                                    {/* ★ 能力 B:按行涂色。与 DataTable 同一个签名。 */}
+                                    <tr className={cn('border-b border-[color:var(--brand-border)]', rowClassName?.(row))}>
                                         {!phoneScroll && (
                                             <td className={`px-1 align-middle sm:hidden ${TABLE_TEXT}`}>
                                                 {hasPhonePanel && (
@@ -415,7 +585,7 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                                 {editing && c.edit ? (
                                                     <>
                                                         <span className="hidden sm:block">
-                                                            {c.edit(draft, (p) => patch(k, p))}
+                                                            {c.edit(draft, setFor(k))}
                                                         </span>
                                                         <span className="sm:hidden">{c.render(row)}</span>
                                                     </>
@@ -430,19 +600,19 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                                 )}
                                             </td>
                                         ))}
-                                        {showActions && (
+                                        {showActionCol && (
                                             <td className={`hidden whitespace-nowrap px-3 py-2.5 align-top sm:table-cell ${TABLE_TEXT}`}>
-                                                {editing ? (
+                                                {showActions && (editing ? (
                                                     <>
                                                         <button
-                                                            type="button" onClick={() => void save(row)}
-                                                            disabled={savingKey === k || !dirty}
+                                                            type="button" onClick={() => void save(row, index)}
+                                                            disabled={saveDisabled}
                                                             className="base-pressable mr-2 rounded px-1 hover:underline disabled:cursor-not-allowed disabled:text-[color:var(--brand-disabled-text)] disabled:no-underline app-link"
                                                         >
                                                             {savingKey === k ? labels.saving : labels.save}
                                                         </button>
                                                         <button
-                                                            type="button" onClick={() => cancel(row)} disabled={savingKey === k}
+                                                            type="button" onClick={() => cancel(row, index)} disabled={savingKey === k}
                                                             className="base-pressable rounded px-1 text-[color:var(--brand-muted-text)] hover:underline"
                                                         >
                                                             {labels.cancel}
@@ -450,11 +620,17 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                                     </>
                                                 ) : (
                                                     <button
-                                                        type="button" onClick={() => begin(row)}
+                                                        type="button" onClick={() => begin(row, index)}
                                                         className="base-pressable rounded px-1 hover:underline app-link"
                                                     >
                                                         {labels.edit}
                                                     </button>
+                                                ))}
+                                                {/* ★ 能力 A:页面自己的动作,挨着上面那一组。 */}
+                                                {actions && <span className={showActions ? 'ml-2' : ''}>{actions}</span>}
+                                                {/* ★ 能力 E:按不动就把理由摆在旁边(CMP-2)。 */}
+                                                {blocked && verdict?.why && (
+                                                    <p className="mt-1 whitespace-normal text-xs text-red-700">{verdict.why}</p>
                                                 )}
                                             </td>
                                         )}
@@ -486,7 +662,7 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                                             <React.Fragment key={c.key}>
                                                                 <dt className="text-[color:var(--brand-muted-text)]">{c.phoneLabel ?? c.header}</dt>
                                                                 <dd className="text-[color:var(--brand-text)]">
-                                                                    {editing && c.edit ? c.edit(draft, (p) => patch(k, p)) : c.render(row)}
+                                                                    {editing && c.edit ? c.edit(draft, setFor(k)) : c.render(row)}
                                                                 </dd>
                                                             </React.Fragment>
                                                         ))}
@@ -495,20 +671,28 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                                 {showActions && editing && (
                                                     <div className="mt-3 flex flex-wrap gap-2">
                                                         <button
-                                                            type="button" onClick={() => void save(row)}
-                                                            disabled={savingKey === k || !dirty}
+                                                            type="button" onClick={() => void save(row, index)}
+                                                            disabled={saveDisabled}
                                                             className="base-pressable min-h-11 rounded bg-blue-600 px-3 py-1.5 text-sm text-white disabled:cursor-not-allowed disabled:bg-[color:var(--brand-disabled-bg)] disabled:text-[color:var(--brand-disabled-text)]"
                                                         >
                                                             {savingKey === k ? labels.saving : labels.save}
                                                         </button>
                                                         <button
-                                                            type="button" onClick={() => cancel(row)} disabled={savingKey === k}
+                                                            type="button" onClick={() => cancel(row, index)} disabled={savingKey === k}
                                                             className="base-pressable min-h-11 rounded border border-[color:var(--brand-border)] px-3 py-1.5 text-sm"
                                                         >
                                                             {labels.cancel}
                                                         </button>
                                                     </div>
                                                 )}
+                                                {/* ★ 能力 E:手机上同样把理由摆出来 —— 桌面有、手机没有,
+                                                    就是让 390px 上那颗钮变回「按不动又不说为什么」。 */}
+                                                {blocked && verdict?.why && (
+                                                    <p className="mt-2 text-xs text-red-700">{verdict.why}</p>
+                                                )}
+                                                {/* ★ 能力 A:页面自己的动作,画在展开区末尾 ——
+                                                    与组件自己那一组同一处,理由见抬头 ④。 */}
+                                                {actions && <div className="mt-3 flex flex-wrap gap-2">{actions}</div>}
                                                 {/* ★★ BTN-FOLLOWUP(2026-09-20)· Tim 的裁定:这一颗取【触控档】★★
                                                     BTN-TRIGGER-1 §6.2 把它停住了,理由是**档位表里没有 44px**:
                                                     今天这颗的 44 是 `min-h-11` 给的,不是内容给的(内容只有 34px),
@@ -531,7 +715,7 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                                     <div className="mt-3">
                                                         <Button
                                                             type="button" variant="secondary" size="touch"
-                                                            onClick={() => begin(row)}
+                                                            onClick={() => begin(row, index)}
                                                         >
                                                             {labels.edit}
                                                         </Button>
