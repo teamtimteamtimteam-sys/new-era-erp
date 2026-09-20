@@ -6965,6 +6965,108 @@ U2(表比一个**不滚动**的祖先宽)是**安静的那种失败,也是更坏
 
 ---
 
+## ★★★ EDITABLETABLE-NAME-DOUBLE-SUBMIT —— **`<EditableTable>` 的 `edit()` 里放一个带 `name` 的输入,它会被提交【两次】**(DRAFT-1,2026-09-21)
+
+> **这一条是【埋着的坑】,不是在流血的伤口。** 今天四个调用点(`/me` · `/hr/kpi/score` ·
+> `/hr/leave/types` · `/hr/reviews/scale`)**一个 `name=` 都没有**(实测 `grep -n 'name="' ` 四个文件全部 0 命中),
+> 所以它**一次都还没有发生过**。记在这里,是因为搬表那几刀会一张一张地走到它跟前。
+
+### 机制
+
+`editable-table.tsx` 把 `c.edit(...)` 画**两遍**,而**两遍都在 DOM 里**:
+
+| 落点 | 代码 | 在不在 DOM 里 |
+|---|---|---|
+| 桌面格 | `:418` `<span className="hidden sm:block">{c.edit(draft, setFor(k))}</span>` | ★ **在** —— `hidden` 是 **CSS 藏起来,不是移出 DOM** |
+| 手机展开区 | `:489` `<dd>{c.edit(draft, setFor(k))}</dd>` | ★ 展开(`isOpen`)时**在**,而展开在**任何视口**上都做得到 |
+
+☞ **对【受控 React state】这毫无问题** —— 两份读写同一个 `drafts` store,那正是
+DRAFT-0 §3.1 说的「双渲染已经解掉了」,而那句话**只对受控 state 成立**。
+⚠ **对 `FormData` 不成立:一个带 `name=` 的输入,展开那一行之后在文档里有两份,
+提交时它在 `FormData` 里【出现两次】。**
+
+### 两种坏法,都不报错
+
+| 读法 | 坏法 |
+|---|---|
+| `formData.getAll('x')` —— **并列数组** | 多出来的那一格把几条数组**错位**,于是 A 行的数量写到 B 行上。★ **它安静地写错数。** |
+| `formData.get('x')` —— 具名字段 | 拿到的是**第一个**,也就是**桌面**那一份;而手机上人打的字在**展开区**那一份里。★ **于是手机上打的字整个丢掉。** |
+
+### 它挡下了哪三张(DRAFT-1,Tim 的 Q1 裁定 (a))
+
+`#22` `#23` sales `AmendOrderForm` 与 `#24` `NewQuoteForm` 本来排在 DRAFT-1 里,**因为这一条被移出去了**:
+
+* **#22** 走 `formData.getAll('line_id' / 'line_quantity' / 'line_price' / 'line_remove')` ——
+  **四条 index 对齐的并列数组**(`app/sales/orders/[id]/amend/actions.ts:31-34`);
+* **#23 / #24** 走带下标的名字 + `formData.get()`(`actions.ts:53-55`)。
+
+⚠ **而 #22 今天的 markup 是【刻意】防着这件事的**:`AmendOrderForm.tsx:176-185` 的注释
+逐字写着「带 name 的两个(line_quantity / line_price)都留在明面上,**没有一个被复制**」,
+而那个删除勾选框**特意不带 name**。**搬到 `EditableTable` 上会把这道防线拆掉。**
+
+### ★ 怎么治 —— **Tim 已裁定押后,要一次裁完,不许零敲碎打**
+
+两条路,各有代价:
+
+| 路 | 做什么 | 代价 |
+|---|---|---|
+| **(b)** 页面持有 + 一座 JSON 桥 | 那几张表不再用 `name=`,草稿经 `footer` 里一个 `<input type="hidden" name="*_json">` 交出去 | **动服务端 action 的收参形状**(`getAll` 的并列数组 → 一次 `JSON.parse`) |
+| **(c)** 每个断点只画一份 | 让组件在手机上真的把桌面那一份**移出 DOM** | 要一次 JS 媒体查询 —— **SSR / 水合的老坑**,本仓库别处避着它 |
+
+★ **要在【八张并列数组表】面前一次裁完**:`#18` `AssayForm` · `#20` `OutputAssayForm` ·
+`#26` `FormulaForm` · `#27` `BulkPricesForm` · `#22` · `#23` · `#24`,加上 `#21` 采购侧的 `AmendOrderForm`。
+**一张一张地治,会得到八个不一样的答案。**
+
+---
+
+## ★★ DATATABLE-UNCONTROLLED-NAME-DOUBLE-SUBMIT —— **格子里是【非受控具名输入】的表,被 `DataTable` 的双渲染拦着,搬没搬都一样**(DRAFT-1,2026-09-21)
+
+> **上一条说的是 `EditableTable`(搬过去之后的危险)。这一条说的是 `DataTable`(不搬也在的危险)。
+> 两条是同一个机制的两头,所以并排放。**
+
+`data-table.tsx` 对**每一个非 priority 列**把 `c.render(row)` 画两遍 ——
+`:755` 桌面格(`hidden sm:table-cell`,**CSS 藏起来,不是移出 DOM**,见 `:749`)与
+`:771` 展开区的 `<dd>`(`:760`,`isOpen` 时挂载)。
+
+☞ **于是:任何一张【格子里是非受控具名输入】的表,只要它的那一列不是 priority,
+同一个 `name` 在 `FormData` 里就会出现两次** —— 后果与上一条逐字相同
+(并列数组错位;或者 `get()` 拿到空的那一份)。
+
+★★ **要紧的是这一句:这件事【与那张表有没有搬到组件上无关】。**
+它是 `DataTable` 的性质,今天就成立;一张还没搬的手搓表之所以安全,
+靠的是**它自己没有把同一个具名输入画两遍**,而那是一个**没有任何检查在守的**巧合
+(`AmendOrderForm.tsx:176-185` 是全树唯一一处把这件事写下来的地方)。
+
+☞ 与 `TABLE-STYLE-1` 抬头点名的「14 张的并列数组提交会被拆坏」是**同一件事**。
+☞ 处置与上一条共用那次裁定(见上面的 (b) / (c)),**不单独修**。
+
+---
+
+## ★★ IDLE-DRAFT-GRID-HALF-RESTORE —— **`NewOrderForm` / `FormulaForm` 恢复草稿,抬头字段回来了,那张网格没回来**(DRAFT-1,2026-09-21 立案,**不在这一刀修**)
+
+> ⚠ ★★ **`NOT MEASURED`** —— 本条是**读两份源码推出来的**,
+> **没有在浏览器里复现过**。写下这一行是因为本仓库的规矩:
+> **一个没有量过的结论要标出来,否则下一个人会把它当成一次测量。**
+
+两张表挂着 `useFormDraft`(IDLE-DRAFT),而按 `editable-table.tsx:51-73` 写下的**四条机械理由**,
+IDLE-DRAFT **按构造盖不住格子里的草稿**:
+
+| # | 理由(逐字来自那段抬头) |
+|--:|---|
+| ① | `useFormDraft` 靠 `new FormData(form)` 取值 —— 网格那一侧**没有 `<form>` 元素** |
+| ② | 它靠往 `form.elements.namedItem(name)` 写 `el.value` 恢复 —— 这里的输入是 **React 受控的**,直接写 DOM 会在下一次渲染被丢掉,**永远到不了 draft 里** |
+| ③ | 它按 `name` 属性认字段 —— 这里的输入**没有 name** |
+| ④ | 它的 `subject` 是**一条**记录的 `updated_at` —— 一张网格有 N 行 N 个指纹,那个陈旧性判据**没有一个单一的值可以落** |
+
+☞ **后果:恢复一份草稿,抬头字段回来了、那张网格丢了,而屏幕上没有一个字说这件事。**
+★ 比「什么都没恢复」更坏 —— 它看起来像一次**成功的**恢复。
+
+**★ 为什么不在 DRAFT-1 里修(Tim 的 R9):** 修它要么让 IDLE-DRAFT 认识网格草稿
+(那是给 `useFormDraft` 加一个**新契约**),要么让 `EditableTable` 自己存草稿
+(那是它抬头 Q7 那条**明文限制**的反面)—— **两条都比那一刀大。**
+
+---
+
 ## ~~TABLE-CONVERT-SWEEP~~ —— **★ CLOSED(2026-09-10,TABLE-CONVERT-7)★** 手搓 `<table>` 换成组件:**转了 37 张,停在 39 张,而最后一刀能转的是【0 张】**
 
 > **这一条是"外观那一族"的结案条。** 与上面 `RAW-TABLE-PHONE-SWEEP` 同一个写法:
@@ -6976,8 +7078,24 @@ U2(表比一个**不滚动**的祖先宽)是**安静的那种失败,也是更坏
 | | |
 |---|---|
 | `<DataTable>` 调用点 | **159 处 / 131 个文件** |
-| `<EditableTable>` 调用点 | **6 处** |
+| `<EditableTable>` 调用点 | ~~**6 处**~~ → ★ **4 处**(DRAFT-1,2026-09-21) |
 | **手搓 `<table>` 余量** | **39 处 / 35 个文件** |
+
+> ★★ **DRAFT-1(2026-09-21)更正上面那一行的 6:真数是【4】,而 6 是 `grep -c` 的假象。**
+>
+> ```
+> grep -c "<EditableTable"  →  6   ← 它数的是【命中的行】
+> 真的 JSX 调用点            →  4
+> ```
+> 多出来的两处是 `LeaveTypesEditor.tsx:6` 与 `ScaleEditor.tsx:7` —— **两句注释**。
+> `git grep` 到 TABLE-CONVERT-7 那个提交(`1ae378fc`)结果逐字相同,
+> **这不是后来改掉的,是当时就数错了。**
+> ★ 四个真调用点:`app/me/MySelfAssessmentPanel.tsx` · `app/hr/kpi/score/ScoreEditor.tsx` ·
+>   `app/hr/leave/types/LeaveTypesEditor.tsx` · `app/hr/reviews/scale/ScaleEditor.tsx`。
+> ☞ 于是「从 6 个调用点扩到 ~17 个」**两头都要改**:起点是 4;
+>   DRAFT-1 之后是 **7**(#2 · #4 · #10 三张搬了进来)。
+> ★ 这正是本文件反复记的那一条:**一个数错的常见原因不是数错了,
+>   是它数的东西和它的名字对不上** —— 这里它数的是「命中的行」,名字写的是「调用点」。
 | ↳ **穿着 `tableC`** | **26 处** |
 | ↳ **仍是变体 A(没穿)** | **13 处** ← ★ 见下面第三节,**"每张表不是组件就是 tableC"这句话今天【不成立】** |
 
@@ -7009,7 +7127,25 @@ TABLE-FOOTER-1 加了表尾能力并**刻意用在零处**;TABLE-CONVERT-7 是�
 
 | 类 | 处数 | 是什么 |
 |---|--:|---|
-| **B 类(格子里有受控输入)** | **11** | `BulkFxGrid:88` · `AttendanceGrid:48` · `PayrollGrid:202` · `GoalsEditor:153` · `ContainerPanels:120` · `NewWorkOrderForm:95` 与 `:134` · `NewOrderForm:866` · `TemplateForm:167` · `QuoteLinesEditor:81` · `PermissionMatrix:120` |
+| **B 类(格子里有受控输入)** | ~~**11**~~ → ★ **10**(DRAFT-1,2026-09-21) | `BulkFxGrid:88` · `AttendanceGrid:48` · `PayrollGrid:202` · `GoalsEditor:153` · ~~`ContainerPanels:120`~~ · `NewWorkOrderForm:95` 与 `:134` · `NewOrderForm:866` · `TemplateForm:167` · `QuoteLinesEditor:81` · `PermissionMatrix:120` |
+
+> ### ★★ DRAFT-1(2026-09-21)· 上面那一行的两处更正 —— **划掉留着,不删** ★★
+>
+> ★ **① `ContainerPanels:120` 是假阳性,所以这一族是 10 张,不是 11。**
+>   按这一行自己写的判据(「格子里有受控输入」),那一格里**一个受控输入都没有**:
+>   它是一个只在 `detaching === s.id` 时出现的**行内拆离确认表单**
+>   (`ContainerPanels.tsx:165-180`,`name="reason"`,**非受控**)。
+>   ☞ 它是一次**行内一次性动作**,不是一格草稿 —— 于是它**不进草稿模型那一刀**。
+>   ★ 为什么划掉而不删:**一条被悄悄改掉的旧读数,和一条从来没写过的读数,
+>     在读的人眼里没有区别。**
+>
+> ★ **② 而这份名单的【判据本身】含一个外观条件,所以它不是草稿模型那一刀的分母。**
+>   判据是「手搓 `<table>` · 格子里有输入 · **而且仍是变体 A**」。
+>   **一张穿着 `tableC` 的表被双渲染拦得和变体 A 一样死** ——
+>   ☞ 按**行为**重数,真集是 **27 张 / 23 个文件**(DRAFT-0 §1.2 逐张列出)。
+>   **这 10 张是一份【外观债】名单,那 27 张才是那一刀的分母。**
+>   ★ Tim 2026-09-20 裁定:**分母取 27;25 与 11 都划掉留着,把重建出来的规则
+>   与它的两处缺陷写在旁边**(那两处缺陷正是本节 §五-①③ 自己写过的)。
 | **TABLE-STYLE-2 量出会变差、停下的** | **2** | `ForwarderPanels:167` · `forwarders/page:203` |
 
 * **11 张 B 类是【刻意】不穿的:** TABLE-STYLE-1 的工作单是「**转不动**的那 23 张」,

@@ -63,6 +63,19 @@
 > **「行从哪来」写的是【行的供给方式】,不是行数。** 行数取决于线上有多少数据,
 > 而**本刀一次线上查询都没有发** —— ⚠ **所有「典型显示几行」一律 `NOT MEASURED`。**
 > 写供给方式比写一个猜出来的行数有用:它决定这张表要不要加行、要不要空态。
+>
+> ★★ **DRAFT-1(2026-09-21)· R11 的只读计数把这一句的【一部分】兑现了。**
+> 那一次计数问的是「每张表背后的源今天有几行」,**一次写都没有发**。
+> ☞ **五个源是空的:`attendance_lines` · `attendance_periods` · `performance_reviews` ·
+> `review_cycles` · `review_goals`** —— 也就是说第 **2 · 4 · 17** 行这三张表
+> **今天在线上没有任何一个屏幕能看见它们**。
+> ★ 其余的:`substances` 7 · `materials` 9 · `quote_lines` 3 · `sales_order_lines` 6 ·
+> `purchase_order_lines` 11 · `invoice_lines` 9 · `credit_note_lines` 1 ·
+> `payment_term_template_lines` 3 · `purchase_order_payment_terms` 24 ·
+> `inbound_batches` 24 · `container_milestones` 17 · `employees` 22 · `permissions` 40 ·
+> `fx_rates` 12 · `metal_prices` 12 · `work_order_lines` 2。
+> ⚠ **这仍然不是「典型显示几行」** —— 它是**源表的总行数**;一张表屏幕上显示几行
+> 还要看它自己的筛选(例如第 17 行只列**没有评估人**的那些)。**两者不要混读。**
 
 | # | file:line | 路由 | 变体 | 行从哪来 | 每行受控格 | 输入改的是什么 | 保存形状 |
 |--:|---|---|:-:|---|--:|---|---|
@@ -82,7 +95,7 @@
 | 14 | `app/finance/invoices/new/NewInvoiceForm.tsx:284` | `/finance/invoices/new` | C | `visible`(销售记录) | 1 | 选哪几条进这张发票 | 甲 · `createInvoice` |
 | 15 | `app/finance/payments/new/NewPaymentForm.tsx:519` | `/finance/payments/new` | C | `pos`(采购单) | 3 | 这笔付款摊到哪几张单、各摊多少 | 甲 · `createPayment` |
 | 16 | `app/finance/payments/new/NewPaymentForm.tsx:590` | 同上 | C | `items` | 3 | 同上(第二张表,同一次提交) | 同上 |
-| 17 | `app/hr/reviews/cycles/page.tsx:161` | `/hr/reviews/cycles` | C | `noReviewer` | 1 | 指派评估人 | **乙 · 逐行** `setReviewer(reviewId, value)` |
+| ~~17~~ | ~~`app/hr/reviews/cycles/page.tsx:161`~~ | ~~`/hr/reviews/cycles`~~ | ~~C~~ | ~~`noReviewer`~~ | ~~1~~ | ~~指派评估人~~ | ~~**乙 · 逐行** `setReviewer(reviewId, value)`~~ ← ★ **划掉,见下** |
 | 18 | `app/inbound/[id]/assays/new/AssayForm.tsx:245` | `/inbound/[id]/assays/new` | C | `substanceOptions`(活跃物质字典) | 1 | 化验含量 | 甲 · ★ **并列数组**:每行一个隐藏 `name="assay_metal"` + 一个 `name="assay_content"` |
 | 19 | `app/logistics/containers/[id]/ContainerPanels.tsx:311` | `/logistics/containers/[id]` | C | 里程碑 | **0** | ★ **不是草稿格** —— 表下的加一行表单(非受控) | 丙 · 行内 action |
 | 20 | `app/output/[id]/assays/new/OutputAssayForm.tsx:179` | `/output/[id]/assays/new` | C | `substanceOptions` | 1 | 产出化验含量 | 甲 · 并列数组 |
@@ -93,6 +106,25 @@
 | 25 | `app/tools/pricing/calculator/CalculatorForm.tsx:159` | `/tools/pricing/calculator` | C | `substanceOptions` | 1 | 试算用的化验值 | ★★ **它【不保存】** —— `calculatePrice` 只算不写 |
 | 26 | `app/tools/pricing/formulas/FormulaForm.tsx:356` | `/tools/pricing/formulas/new` · `/[id]/edit` | C | `substanceOptions` | 1 | 计价公式的应付比例 | 甲 · 并列数组 |
 | 27 | `app/tools/pricing/metal-prices/bulk/BulkPricesForm.tsx:107` | `/tools/pricing/metal-prices/bulk` | C | `substanceOptions` | 1 | 批量金属价 | 甲 · `saveBulkPrices`,并列数组 |
+
+> ### ★★ DRAFT-1(2026-09-21)· 第 17 行划掉 —— **它两条都记错了,而其中一条是在案的裁定** ★★
+>
+> ★ **① 它不属于这一族,而那句话【已经写在它自己的文件抬头里】。**
+> `app/hr/reviews/cycles/page.tsx:4-25`(CONV-5)逐字写着:
+> **「它既不属于 DataTable,也不属于 EditableTable。硬套任何一个都会把一个
+> 『就地补一个人』的小修口,压成一张它不是的表。」**
+> 理由也在那里:这一页的主体是**一叠卡片**;页面里唯一的 `<table>` 是一个
+> **没有表头的排版表格**,嵌在每张卡里那块红色「还没有评估人」的告警框内。
+> ☞ **Tim 2026-09-21 裁定:CONV-5 成立,不推翻。**
+>
+> ★ **② 它也不是「乙 · 逐行保存」。** 那一格里是 `<SetReviewerControl>` ——
+> 一个**自带下拉 + 自带保存钮 + 自带三种禁用理由 + 自带错误行**的完整控件,
+> 而且它**与 `/hr/reviews/[id]` 两页共用**(`SetReviewerControl.tsx:66-67`)。
+> 把它塞进 `edit()` 会让**一行上出现两颗保存钮**,而组件的草稿/脏值/逐行保存
+> 整套机器**一件都用不上**;要拆开它,就得同时改另一页。
+>
+> ⚠ **划掉留着,不删** —— 一条被悄悄改掉的旧读数,和一条从来没写过的读数,
+> 在读的人眼里没有区别。**分母仍然按 27 记**,只是第 17 行不再是一个搬家对象。
 
 > ★ **那 11 张变体 A 的子名单(= `known-issues` 逐名相同,行号漂了 1–12 行):**
 > 第 1 · 2 · 3 · 4 · 5 · 6 · 7 · 8 · 9 · 10 · 11 行。
