@@ -113,23 +113,25 @@ SELECT id, code FROM public.containers WHERE code !~ '^[A-Z0-9-]+$' OR length(co
 
 ---
 
-## ~~★★ BTN-TRIGGER-1~~ ◑ **做了一大半(BTN-TRIGGER-1,2026-09-20)—— 33 处裸触发钮转了 29,余 4 处逐条写明**
+## ~~★★ BTN-TRIGGER-1~~ ◑ **只差一个消费者(BTN-FOLLOWUP,2026-09-20)—— 33 处裸触发钮转了 32,余 1 处且【故意】**
 
-> ### ★ 结清口径:**这一条【不】整条删除,因为它没有整条做完。**
+> ### ★ 结清口径:**这一条【仍然不】整条删除,而它离删除只差一格。**
 > 删除条件写的是「`triggerVariant` 不再是可选的(或者裸 `<button>` 那条分支不再存在),
 > 且上面 26 处禁用态全部走库里那一档」。
-> ☞ **两半都没有满足:** ① `triggerVariant` 今天**仍然是可选的**,裸 `<button>` 那条分支
-> **还在**(`confirm-dialog.tsx:409`);② 禁用态还剩 **1 处**(下面 ③)。
-> **所以这里改成"做了什么 / 还剩什么",而不是划掉。**
+> ☞ ① `triggerVariant` 今天**仍然是可选的**,裸 `<button>` 那条分支**还在**
+> (`confirm-dialog.tsx:409`);② 禁用态还剩 **1 处**,而那一处是**故意不转的**(下面 ②)。
+> ★★ **也就是说:那条分支今天只剩【一个】消费者。** 它一旦有了裁定,
+> `triggerVariant` 就可以变成必填、裸分支可以整段删掉,本条随之结清 ——
+> **这是下一刀在这一族里最便宜的一格。**
 
 ### 做掉了什么
 
-| | 改前 | 改后 |
-|---|--:|--:|
-| `<ConfirmButton>` 真调用点 | **58** | 58 |
-| …给了 `triggerVariant` | **25** | ★ **54** |
-| ★ …渲染成裸 `<button>` | ★ **33** | ★ **4** |
-| ★ 禁用态过不了 AA 的站点 × 底(33 × 2) | ★ **66 / 66 红** | ★ **8 / 66 红**(剩下那 4 处 × 两种底) |
+| | 改前 | BTN-TRIGGER-1 之后 | ★ BTN-FOLLOWUP 之后 |
+|---|--:|--:|--:|
+| `<ConfirmButton>` 真调用点 | **58** | 58 | 58 |
+| …给了 `triggerVariant` | **25** | **54** | ★ **57** |
+| ★ …渲染成裸 `<button>` | ★ **33** | **4** | ★ **1**(只剩 `SafetyStatePanel`) |
+| ★ 禁用态过不了 AA 的站点 × 底(33 × 2) | ★ **66 / 66 红** | **8 / 66 红** | ★ **2 / 66 红**(剩下那 1 处 × 两种底) |
 
 ★ **档位判读(33 处全部判过):`destructive` 25 · `reversal` 7 · 不转 1。**
 ★ **而【落地】的是 29 处** —— 另外 3 处**转过去、量了、按回来了**(它们推动了表格行高,
@@ -160,7 +162,9 @@ SELECT id, code FROM public.containers WHERE code !~ '^[A-Z0-9-]+$' OR length(co
 ### ⬜ 还剩什么(三件,逐条)
 
 #### ① `triggerVariant` 仍然是可选的,裸 `<button>` 那条分支还在
-★ **4 个消费者**(下面 ② 与 ④)。这一条要等 ②④ 都有裁定之后才动得了。
+★★ **BTN-FOLLOWUP(2026-09-20)之后只剩【1 个】消费者** —— 下面 ② 那一处。
+④ 的三处已经由 Tim 裁定并转过去了(见下面那一小节的结清记录)。
+☞ **这一条现在只等 ② 的裁定。**
 
 #### ② ★★ `app/output/[id]/edit/SafetyStatePanel.tsx:89` —— **故意不转**
 它是**一个切换控件的一半**:`on ? <ConfirmButton> : <button>`,两支共用同一个 `cls`。
@@ -184,40 +188,79 @@ SELECT id, code FROM public.containers WHERE code !~ '^[A-Z0-9-]+$' OR length(co
 本刀取 `destructive` 以与它的对话框一致。
 **去处:** 与 `POLISH1-REVERSAL-DIALOG-TIERS` 同一次裁定。
 
-#### ④ ★★★ 三处【转过去了、量了、按回来了】—— 停止条件 (c) 的处置,不是遗漏
+#### ~~④ 三处【转过去了、量了、按回来了】~~ ✔ **结清(BTN-FOLLOWUP,2026-09-20)—— Tim 接受了那三个行高差**
 
-| 站点 | 档位判读 | 它会把什么推高 | 它今天的缺陷 |
+> ★ **Tim 的裁定逐字:1px 在屏幕上看不见,而它买到的是三颗
+> 「禁用之后不再读成【这里什么都没有】」的控件。**
+
+| 站点 | 落到哪一档 | 行高差(**实测复核过,与登记逐字相同**) | 它那处缺陷 |
 |---|---|---|---|
-| `app/sales/customers/DeleteButton.tsx:22` | `destructive` / `inline` | `/sales/customers` 表体行高 **42.42 → 43.42(+1.00,逐行)** | `disabled:text-gray-400` **2.602 / 2.443** ✗ |
-| `app/suppliers/DeleteButton.tsx:22` | `destructive` / `inline` | `/suppliers` 表体行高 **+1.00,八行全中** | 同上 |
-| ★ `app/finance/close/ReopenForm.tsx:56` | `reversal` / `default` | `/finance/close` 表体行高 **52.92 → 53.50(+0.58)** | `disabled:opacity-50` **2.557 / 2.525** ✗ |
+| `app/sales/customers/DeleteButton.tsx` | `destructive` / `inline` | `/sales/customers` **42.92/42.42 → 43.92/43.42(+1.00,逐行)** | `disabled:text-gray-400` 2.602 / 2.443 ✗ → ★ **14.132 / 13.272 ✓** |
+| `app/suppliers/DeleteButton.tsx` | `destructive` / `inline` | `/suppliers` **+1.00,八行全中** | 同上 → ★ **14.132 / 13.272 ✓** |
+| ★ `app/finance/close/ReopenForm.tsx` | `reversal` / `default` | `/finance/close` **52.92 → 53.50(+0.58)** | `disabled:opacity-50` 2.557 / 2.525 ✗ → ★ **11.273 ✓** |
 
-★★ **第三处值得单独记:`ReopenForm` 【渲染在一张表的格子里】** ——
+★ **顺带一条同时结清的读数:** `/finance/close` 在 phone 上 `shellScrollW` **343 → 336** ——
+**滚动范围【变小】,不是长大**,而 (c) 判的是长大。
+
+★★ **第三处那一课【不结清,留着】:`ReopenForm` 渲染在一张表的格子里** ——
 `CloseHistoryTable.tsx:75` 逐行渲染它,而**从它自己那个调用点完全看不出这件事**。
 ☞ 「它在一个 flex 行里,不在表里」这句判断,**要读过它的消费者之后才成立**。
+**这一句留在这里,因为下一个改 `ReopenForm` 的人需要它** —— 同样的话也写进了那个文件的注释里。
 
-★ **为什么是"库复刻不出",不是"挑错了档":** 两处文字链今天 **20px**(零边框的行盒),
-`ReopenForm` 今天 **30px**(20px 行盒 + `py-1` + 2×1px 边框);
-而档位是 24 / 28 / 32 / 36 / 48 与 `inline`(`h-auto` + 基础串那 1px 边框 ⇒ **22px**)。
-**20 与 30 都不在表里。** 与 `POLISH1R3-DATATABLE-PAGER-NO-STEP`、
-`BTNTRIGGER1-EDITABLETABLE-NO-44-STEP` 是同一族。
+★ **而「库复刻不出它今天的几何」那一条仍然是真的,只是不再是停手的理由:**
+两处文字链改前 **20px**、`ReopenForm` 改前 **30px**,而档位是 24 / 28 / 32 / 36 / 48
+与 `inline`(22px)—— **20 与 30 都不在表里**。**Tim 裁的是"接受最接近的那一档",不是"库里补一档"。**
+与 `POLISH1R3-DATATABLE-PAGER-NO-STEP` 是同一族,而**那一条今天仍然开着**。
 
-**要 Tim 裁的那一句:** 「接受这三处的 +1.00 / +1.00 / +0.58px 行高」——
-接受了,这三处一行改动就能补上,而那 6 个红的对比度读数跟着结清。
+**落地读数与断言(204 张表里恰好这 3 张动了,其余 201 张逐字未变):**
+`docs/handbacks/BTN-FOLLOWUP.md` §3。
 
 ---
 
-## ★★★ BTNTRIGGER1-EDITABLETABLE-NO-44-STEP —— **`<EditableTable>` 手机档那颗钮:档位表里没有 44px**(BTN-TRIGGER-1 登记,2026-09-20)
+## ~~★★★ BTNTRIGGER1-EDITABLETABLE-NO-44-STEP~~ ✔ **结清(BTN-FOLLOWUP,2026-09-20)—— Tim 裁了 `touch`**
 
-| | |
-|---|---|
-| **它是什么** | `app/components/ui/editable-table.tsx` 手机展开区那颗「编辑」钮。`min-h-11` = **44px**,而内容只有 34px ⇒ ★ **这个高度是 `min-height` 给的,不是内容给的**。 |
-| ★ **为什么停住** | 档位表是 `h-6`/`h-7`/`h-8`/`h-9`/`h-12` = **24 / 28 / 32 / 36 / 48**。**没有 44。** |
-| ★ **三条路,全部改变行高(实测,两个视口逐字相同)** | `secondary`+`touch` → 钮 48 / 行 **92.5 → 96.5(+4.0)**,且**字号 14 → 16px**;<br>`secondary`+`default` → 钮 32 / 行 **80.5(−12.0)**,★ **掉到 44px 触控靶以下**(WCAG 2.5.5 / Apple HIG);<br>`secondary`+`lg` → 钮 36 / 行 **84.5(−8.0)**,同上。 |
-| **射程** | `<EditableTable>` 的 **4 条路由**:`/me` · `/hr/kpi/score` · `/hr/leave/types` · `/hr/reviews/scale`。**那是停止条件 (c)。** |
-| ★★ **而在册的量具看不见它** | 那颗钮住在 `{isOpen && hasPhonePanel && (…)}` 里 —— **点开才渲染**,而 `survey-controls --mode=drift` **只量首屏**。☞ **一个绿的 (c) 不覆盖这一格。** |
-| **它是哪一族** | 与 `POLISH1R3-DATATABLE-PAGER-NO-STEP` 逐字同形(「档位里没有这个数」)。★ 而那一条**是等到 Tim 裁定之后**才由 BTN-SIZE-1 落地的。**这里没有对应的裁定。** |
-| **要 Tim 裁的那一句** | 「取 `touch`(48px),接受 +4px 行高与 16px 字号」/「为 44px 开一档」/「照旧手写」。 |
+> ★ **Tim 的裁定与他的理由:取 48px 的 `touch` 档。理由不是"48 最接近 44",
+> 是 32 与 36 都会把它掉到 44px 触控靶以下(WCAG 2.5.5 / Apple HIG)——
+> 【宁可让它长高,也不要让它掉到一条标准以下】。**
+> ⚠ **代价是被告知之后接受的:钮 44 → 48px,而 `touch` 档同时带着 `text-base`,
+> 所以字号 14 → 16px。**
+
+**★ 落地时【真实路由上】量到的(不是复刻格里的):** `/hr/leave/types` 面板 `<tr>` **223 → 227**、
+`/hr/reviews/scale` **231 → 235** —— **两条都恰好 +4.00**,与登记时在复刻格里量到的
+「行 92.5 → 96.5(+4.0)」对上。两条的 390px 整页溢出 **0 → 0**。
+
+### ★★ 结清之前先更正它自己的一栏:**射程是 3 条,不是 4 条**
+
+本条原本写着「`<EditableTable>` 的 **4 条路由**」。★ **实测 `/me` 上那颗钮按构造不存在:**
+`editable-table.tsx:321` 是 `showActions = canEdit && mode === 'one-row' && !!onSave`,
+而 `/me` 的 `MySelfAssessmentPanel.tsx:192` 传的是 **`mode="all-rows"`** 且**不传 `onSave`**
+(它用 `footer` 自己画提交区)⇒ `showActions === false`,那一支永远不渲染。
+
+| 路由 | 有这颗钮吗 | 本刀量到 |
+|---|---|---|
+| `/me` | ★ **没有** | — |
+| `/hr/kpi/score` | 有 | 0 行(一次性 admin 在这一页上看不到数据,**本刀没量到,照直说**) |
+| `/hr/leave/types` | 有 | ★ 13 行,**+4.00** |
+| `/hr/reviews/scale` | 有 | ★ 4 行,**+4.00** |
+
+☞ **这是「委托书里的数来自上一份报告」那一族的又一次,而错的不是一个数,是一个【射程】。**
+判据便宜得很:`showActions` 那一行,连着每个消费者传的 `mode` 与 `onSave` 一起读。
+
+### ★★ 而这一格的那一课【不结清,留着】:在册的量具看不见它
+
+那颗钮住在 `{isOpen && hasPhonePanel && (…)}` 里 —— **点开才渲染**,
+而 `survey-controls --mode=drift` 自己的 AIM 写着**只量首屏**。
+☞ **一个绿的 (c) 不覆盖这一格。** BTN-FOLLOWUP 为它另写了第七支一次性探针
+(390px、真的点开、逐格量),读数在 `docs/handbacks/BTN-FOLLOWUP.md` §2。
+**下一刀改这个组件的手机展开区时,在册的闸仍然是瞎的。**
+
+### ★ 顺带查实、此前没有登记过的一件事
+
+那颗钮**启用态**的字色是 `text-blue-600`(`#155DFC`),坐在手机展开区自己的
+`--brand-muted`(`#E5EEF4`)上 —— ★ **实测 4.463:1,过不了 AA。**
+转成 `secondary` 之后 **15.254:1**。
+☞ **BTN-TRIGGER-1 那一轮只量了禁用态,所以它的分母里没有启用态** ——
+下一族控件的普查值得两态都量。
 
 ## ★ BTNTRIGGER1-SURVEY-EDIT-PROSE-STALE —— **`survey-controls.mjs` 抬头写着一条已经不成立的判据**(BTN-TRIGGER-1 登记,2026-09-20)
 
@@ -227,7 +270,19 @@ SELECT id, code FROM public.containers WHERE code !~ '^[A-Z0-9-]+$' OR length(co
 | ★ **而活着的代码不是这么写的** | FONT-1(2026-09-11)**已经把判据从颜色换成内容**,`:437` 起那一整段就是它的更正记录,`clickEditExpr`(`:450`)今天认的是**文字**,不是 class。 |
 | ★ **为什么登记而不是顺手改** | 它是**量具**,而本刀正被它量。改一支正在给自己出读数的量具,是本仓库明令不做的事。 |
 | ⚠ **为什么它要紧** | 那段散文正是下一个人判断「改掉 `text-blue-600` 会不会弄瞎 `--mode=edit`」的依据。**今天答案是不会** —— 但照那段散文读,答案是会。**一条已经不成立的话,读起来和一条成立的话一模一样。** |
+| ★★ **BTN-FOLLOWUP(2026-09-20)复核** | **本刀真的把那个 `text-blue-600` 从 `editable-table.tsx` 上改掉了,而 `--mode=edit` 没有瞎** —— 活着的判据认的是文字,不是 class。☞ **这条登记因此从"理论上要紧"变成了"已经被验过一次"**,而那段散文**仍然是假的**。不改量具,登记照旧。 |
 
+## ★★ BTNFOLLOWUP-NEXTDEV-WEDGE-NOT-ROUTE-SPECIFIC —— **`next dev` 的渲染器偶发卡死,而它【不挑路由】**(BTN-FOLLOWUP 登记,2026-09-20)
+
+| | |
+|---|---|
+| **此前的说法** | 「`/finance/freight/new` 在 `next dev` 下把渲染器卡死 —— **连着四刀**」,于是委托书逐刀写着「单独再读一遍那一条、把那一格并回去」。 |
+| ★ **本刀的读数** | **两跑都没有卡在 freight 上**(它两侧都是整跑读到的,phone 溢出 **27 → 27**),<br>而**两跑各在另外一条路由上卡了一次**:改前 `/finance/fx/new` @ phone,改后 `/finance/fx/bulk` @ phone。**两次不是同一条。** |
+| ★★ **判词** | 「freight 会卡死」这句话更准的说法是「**渲染器会偶发卡死,而它不挑路由**」。连着四刀落在同一条上是一个**足够强的印象**,而本刀两跑一次都没有复现它。<br>⚠ **这是一个读数,不是一个结论** —— 两跑不足以证明它与路由无关,只足以证明**它不只落在 freight 上**。 |
+| ★ **处置(给下一刀的)** | **不要只去补读 freight。** 补读的对象应当是**那一跑真的报了 FAILED 的那些格**,由读数决定,不由委托书点名。 |
+| ★★ **而补读的格子能不能并排比,本刀量了** | 同一棵树、同一个提交,**整跑的格子 vs `--only` 补读的格子:5 个格子逐字相同,0 处差异**(`PATHPROOF_CELLS_COMPARED=5 PATHPROOF_DIFFERENCES=0`)。☞ **并回去不会引入一处假的差异** —— 此前这一步是当成显然的,现在它有读数了。 |
+| ⚠ **一条要照直说的** | `--only=<单条没有表的路由>` 会红在**覆盖断言的下界**上(`量到的表格:实测 0 个,而 1 是下界`,实测 `FX_BEFORE_DRIFT_OWN_EXIT=2`)。**那个 2 说的是「这一跑的总体太小,我不敢替整跑背书」,不是「这一格没读出来」。**<br>☞ 补读时**把几条路由凑成一跑**(本刀改后那次三条一跑,`POINTWISE_AFTER_OWN_EXIT=0`),或者读懂那个 2 再决定信不信它。 |
+| **去处** | ⬜ 未定。它不挡任何一刀,但**每一刀都在为它付一次额外的跑**。 |
 
 ## ★ POLISH1-REVERSAL-DIALOG-TIERS —— **7 个对话框的确认钮仍然画四点虚线**(POLISH-1 登记,2026-09-12)
 
