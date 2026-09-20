@@ -2220,6 +2220,17 @@ opposite things: `ALLOWLIST` asserts *this is not a defect*; `QUEUED` asserts
 believe someone checked it.** Queued entries print on every run with their reason
 and destination (cleanup A — permissions and error handling).
 
+## ★★★ 线上的每一行都是测试数据(Tim 裁定,2026-09-20)
+
+**线上系统里【没有】真实的库存、物料、批次、客户或交易 —— 一行都没有。全部是测试数据。**
+☞ **一行没有 `ZZ-` 前缀,不代表它是真的**:它同样是测试数据。`ZZ-*` 那些是
+**验证工具的残留**,是测试数据的**另一种**,**不是**「真实数据」的对照面 ——
+把 `ZZ-` 当成"假的、其余是真的"那条线去读,正是这条规矩要拦住的误读。
+**后果要照着写:任何一句"这押着 N 公斤真实库存""这挡着一条真实产线"都是【假】的**,
+不管它在文档里被抄了多少遍;要说的是它挡着**一条测试数据上的路径**。
+⚠ **这【不】意味着可以随手改线上** —— 备份闸、破窗、还原,规矩一条不减:
+测试数据也是 Tim 在用的那个系统的状态。变的只是**那些数字读起来是什么意思**。
+
 ## Test data that reads wrong on purpose
 
 Anything that looks wrong in the test database but is known, accepted, and
