@@ -7067,6 +7067,120 @@ IDLE-DRAFT **按构造盖不住格子里的草稿**:
 
 ---
 
+## ★★ PROBE-UNBOUNDED-CDP-WAIT —— **一次没有上限的 CDP 等待,挂死时是【沉默】的;它连外层那道 60s 闸都到不了**(DRAFT-1 登记,2026-09-21)
+
+> **这一条不是一处待修的缺陷** —— `scripts/probe-draft1.mjs` 里它已经改掉了。
+> 它立在这里,是因为**下一个写探针的人会去抄一支现成的探针**,而这个形状抄得走。
+
+### 发生了什么(DRAFT-1 实测,2026-09-21)
+
+第一版的 `send()` 是一条裸 promise:一个 id 进 `pending` 表,**没有任何东西会把它取出来**。
+于是 1280 那一臂**挂住不动** —— `Runtime.evaluate` 的 promise 永不落地。
+
+★★ **而外层 `waitFor()` 的 60 秒上限【根本到不了】,因为它等的正是这个永不落地的 promise。**
+最后收场的是 `run_detached` 在它自己的上限处把整支砍掉。
+
+☞ ★ **一个没有失败分支的等待,挂死时不报错、不超时、也不打印 —— 它只是不动。**
+**沉默的挂死比一次失败坏**,因为一次失败至少说得出自己失败了。
+
+### ★ 要避开的形状
+
+```js
+// ✗ 不许:id 进表,而没有任何东西会把它取出来
+const send = (method, params) => new Promise((res, rej) => {
+    const id = ++msgId
+    pending.set(id, { res, rej })
+    sock.send(JSON.stringify({ id, method, params }))
+})
+```
+
+### ★ 安全的形状(`scripts/probe-draft1.mjs:89-96` 今天的样子)
+
+```js
+const send = (method, params = {}, sessionId) => new Promise((res, rej) => {
+    const id = ++msgId
+    const timer = setTimeout(() => {
+        if (pending.delete(id)) rej(new Error(`CDP 超时(30s):${method}`))
+    }, 30000)
+    pending.set(id, { res: (v) => { clearTimeout(timer); res(v) },
+                      rej: (e) => { clearTimeout(timer); rej(e) } })
+    sock.send(JSON.stringify({ id, method, params, sessionId }))
+})
+```
+
+★★ **上限要落在【每一次 CDP 调用】上,不是落在外层那个 `waitFor` 上。**
+**外层的闸守不住一个它自己正在等的 promise。**
+
+☞ **同族在案,而它答的是另一个方向:** `LEAK-1 ①` 逐个读过 `survey-phone.mjs`,
+结论是**那支里每一个 await 都走得到那 60 秒**,真正无界的只有启动时的 `ws.onopen`。
+**同一个问题问在两支脚本上,答案不一样 —— 所以它每一支都要【逐个读】,不能照搬判词。**
+
+---
+
+## ★★★ PROBE-LSOF-KILLS-ITSELF —— **收尾那句 `lsof -ti tcp:<port> | xargs kill -9` 把探针自己 SIGKILL 掉了:九条断言全绿,而清理一步都没跑**(DRAFT-1 登记,2026-09-21)
+
+> 同上 —— **已改,立在这里是因为它抄得走。**
+
+### 发生了什么(DRAFT-1 实测,2026-09-21)
+
+收尾那一句要清掉端口上的残留进程:
+
+```
+lsof -ti tcp:9338 | xargs kill -9
+```
+
+★★ **而 `lsof -ti tcp:9338` 会把【本进程那条 CDP 客户端 socket】也列出来** ——
+探针自己连着那个端口。于是它在收尾时把自己 `SIGKILL` 掉了。
+
+**实测 `PROBE_EXIT=137`,而屏幕上九条断言【全绿】** ——
+★ 绿是真的(断言在它自杀之前就跑完了),**而 `runPlan()` 一步都没跑**:
+线上留下**一个一次性 admin 和它的那条授权**。
+☞ **这是最难认的一种失败:输出全对,退出码是 137,而没有人会去读一份全绿报告的退出码。**
+
+### ★ 要避开的形状
+
+```js
+// ✗ 不许:本进程那条客户端 socket 也在这份名单里
+execSync(`lsof -ti tcp:${p} | xargs -r kill -9`)   // ← 在【收尾】处,进程已经连上了
+```
+
+### ★ 安全的形状(`scripts/probe-draft1.mjs:203` 今天的样子)
+
+```js
+execSync(`lsof -ti tcp:${p} | grep -v '^${process.pid}$' | xargs -r kill -9`, { stdio: 'ignore' })
+```
+
+⚠ **开跑前那一句(`:49`)不带这道 `grep -v`,而它是对的** ——
+那时候本进程**还没有连上任何一个端口**,所以它不在 `lsof` 的名单里。
+☞ **危险只在【收尾】那一侧。两处长得几乎一样,而只有一处需要那道 grep。**
+
+### ★★ 救回它的是 LEAK-1,**也就是说那道防线【真的挡住了一次】**
+
+`SIGKILL` 捕获不到,第 ② 层跑不到 —— **而 LEAK-1 的第 ① 层是【清理计划先于它要清的东西落盘】**,
+计划原样留在盘上。**下一次运行照计划把它收走了:`REAPED {"reaped":1,"failed":0}`。**
+收尾复核:**幽灵授权 0 · 残留账号 0。**
+
+☞ ★ **记这一条,不只是记一个坑,是记一次【防御生效】的实例** ——
+LEAK-1 那份设计的全部理由就是「不依赖进程活到最后」,而这一次进程**真的没有活到最后**。
+
+---
+
+## ★ PROBE-COPY-TRIPS-LINT-FREEZE —— **从 `probe-avatar.mjs` 逐字抄来的语句三元会咬下一个人,因为基线是【按文件】记的**(DRAFT-1 登记,2026-09-21)
+
+DRAFT-1 收尾时 eslint 冻结闸咬了一次:新探针里一句 `cond ? a() : b()` **当语句用**
+(`@typescript-eslint/no-unused-expressions`)。
+
+★ **那一句是从 `scripts/probe-avatar.mjs:152` 逐字抄来的**
+(`d.error ? rej(new Error(JSON.stringify(d.error))) : res(d.result)`),
+**而它在那里不红** —— `scripts/lint-baseline.json` 为 `scripts/probe-avatar.mjs` 记着
+`"@typescript-eslint/no-unused-expressions": { "errors": 0, "warnings": 1 }`。
+
+☞ ★★ **基线是按【文件】记的,所以「它在源文件里是绿的」证明不了「抄过去也是绿的」。**
+**下一个抄这支探针的人会被同一句咬一次** —— 这就是把它写下来的全部理由。
+★ 改法一行:`if (d.error) rej(...); else res(...)`。改完回到基线 `error 41 · warning 86`。
+
+---
+
 ## ~~TABLE-CONVERT-SWEEP~~ —— **★ CLOSED(2026-09-10,TABLE-CONVERT-7)★** 手搓 `<table>` 换成组件:**转了 37 张,停在 39 张,而最后一刀能转的是【0 张】**
 
 > **这一条是"外观那一族"的结案条。** 与上面 `RAW-TABLE-PHONE-SWEEP` 同一个写法:
