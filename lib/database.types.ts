@@ -28044,6 +28044,10 @@ export type Database = {
         Args: { p_asset_id: string; p_date: string }
         Returns: Json
       }
+      set_asset_planned_in_service: {
+        Args: { p_asset_id: string; p_date: string }
+        Returns: Json
+      }
       set_goal_actual_value: {
         Args: { p_actual_value: number; p_goal_id: string }
         Returns: Json

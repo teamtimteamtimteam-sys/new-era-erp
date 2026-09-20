@@ -8080,6 +8080,8 @@ const en = {
             DOWNTIME_END_IN_FUTURE: 'That downtime ends at {0}, which has not happened yet. Record the end when the machine actually comes back; leaving it open is what "still down" looks like.',
             DOWNTIME_OVERLAPS: 'This period overlaps one already recorded for this machine: {0} to {1}. A machine cannot be down twice over the same minutes. Close or correct that period first. (Two periods MAY touch - one ending exactly when the next begins.)',
             ASSET_IN_SERVICE_IN_FUTURE: 'You entered {0} as the in-service date, and that day has not arrived. Commissioning is something that HAPPENED. If you are recording that the line will be commissioned then, that is the planned date - it locks nothing and drives nothing.',
+            // B3: set_asset_planned_in_service could not find the card.
+            ASSET_NOT_FOUND: 'No such asset card ({0}). It may have been deleted, or this link came from a stale page - go back to the asset list and open it again.',
             equipment_maintenance_performer_shape: 'Say who did this work \u2014 exactly one of: an employee, a supplier, or a name you type. Not two of them, and not none.',
             equipment_maintenance_capitalisation_reason: 'Capitalising needs a reason. A judgement with no reason behind it reads as a mistake to whoever comes next \u2014 say what was extended or improved.',
             equipment_maintenance_capitalised_expense: 'A capitalised expense can only be attached to work that is actually marked as capitalised.',

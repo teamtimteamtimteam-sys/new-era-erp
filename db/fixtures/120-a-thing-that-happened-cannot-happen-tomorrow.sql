@@ -187,9 +187,35 @@ BEGIN
     -- 只有把每一个函数体与视图定义扫一遍才证明得了。
     -- 它一旦被某条规则读了,就又变回了 in_service_date 那个问题:
     -- 一个"打算"开始产生"已经发生"才该有的后果。
+    --
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★★【B3 更正(2026-09-20):判据多了【一个具名豁免】,而承诺一个字没变】★★
+    -- ════════════════════════════════════════════════════════════════════════
+    -- 【原判据(2026-09-08 落地,原样留着):】
+    --     扫全库的函数体与视图定义,**出现这一列的名字就算数,必须是 0 处**。
+    --   那一天它是精确的 —— 因为当时**唯一**写这一列的地方是应用里一条直连
+    --   `from('fixed_assets').update(...)`,它不是函数,于是照不进目录里。
+    --
+    -- 【为什么今天要改:B3 把那条直连写换成了一支函数(Tim 裁定 C1)】
+    --   `fixed_assets` 开着 RLS 而全表只有一条 SELECT 策略 —— 那条直连 UPDATE
+    --   对所有人都改零行,那扇门从落地那天起就是死的。Tim 裁定走函数而不是补
+    --   一条 UPDATE 策略(这张表其余 16 支写函数全是 SECURITY DEFINER;补策略
+    --   会造出第二扇门,而且这张表没有 updated_by/updated_at)。
+    --   ☞ **于是这一列从此【必然】有一支函数提到它的名字** —— 任何形状的
+    --     函数门都会撞上一条纯文本扫描。原判据不是错了,是它的**实现**
+    --     (文本包含)比它的**承诺**(没有规则【读】它)宽,而那个差额以前是 0。
+    --
+    -- 【承诺没有被放松,而这里用两条判据把豁免钉死】
+    --   ① 除 `set_asset_planned_in_service` 之外,仍然是 **0 处** —— 逐字同原判据。
+    --   ② ★ 那支被豁免的函数**自己也不许【读】它**:它拿了整行
+    --     (`v_a fixed_assets%ROWTYPE`),所以它要读的话只能写成 `v_a.<列名>`。
+    --     禁掉那一个形状 = 它只能【赋值】,不能【据此判断】。
+    --     ☞ 将来谁在那支函数里加一句 "IF v_a.planned_in_service_date ... THEN",
+    --       这一臂当场红 —— 而那正是本臂从第一天起要拦的那件事。
     SELECT count(*) INTO v_n FROM (
         SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
          WHERE n.nspname = 'public' AND p.prokind = 'f'
+           AND p.proname <> 'set_asset_planned_in_service'
            AND regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g')
                LIKE '%planned_in_service_date%'
         UNION ALL
@@ -197,7 +223,23 @@ BEGIN
          WHERE n.nspname = 'public' AND c.relkind IN ('v','m')
            AND pg_get_viewdef(c.oid) LIKE '%planned_in_service_date%') x;
     IF v_n <> 0 THEN
-        RAISE EXCEPTION 'FIXTURE 120F5 失败:进入 F5(d)—— **不该有任何函数或视图读 planned_in_service_date**,实得 % 处。那一列是一个【计划】:它一旦被规则读了,就又变回了 in_service_date 当初那个问题 —— 一个"打算"开始产生"已经发生"才该有的后果(线上那台机器就是这么被锁死的)', v_n;
+        RAISE EXCEPTION 'FIXTURE 120F5 失败:进入 F5(d)—— **除那支具名的设值函数外,不该有任何函数或视图读 planned_in_service_date**,实得 % 处。那一列是一个【计划】:它一旦被规则读了,就又变回了 in_service_date 当初那个问题 —— 一个"打算"开始产生"已经发生"才该有的后果(线上那台机器就是这么被锁死的)', v_n;
+    END IF;
+
+    -- ② 被豁免的那一支,自己不许读这一列。
+    IF EXISTS (
+        SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+         WHERE n.nspname = 'public' AND p.proname = 'set_asset_planned_in_service'
+           AND regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g')
+               LIKE '%v\_a.planned\_in\_service\_date%') THEN
+        RAISE EXCEPTION 'FIXTURE 120F5 失败:进入 F5(d②)—— set_asset_planned_in_service 【读】了 planned_in_service_date(`v_a.planned_in_service_date`)。它被豁免的前提就是它只【赋值】、不【据此判断】。一个"打算"不许产生"已经发生"才该有的后果';
+    END IF;
+
+    -- ③ 而那支函数必须真的【在】(否则 ① 的豁免与 ② 的 EXISTS 都是空转,
+    --    这一臂会在函数被误删之后继续打印绿色)。
+    IF NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+                    WHERE n.nspname = 'public' AND p.proname = 'set_asset_planned_in_service') THEN
+        RAISE EXCEPTION 'FIXTURE 120F5 失败:进入 F5(d③)—— 豁免名单上的 set_asset_planned_in_service 不存在了。一个指向空处的豁免会让 ① 与 ② 两条判据都变成空转';
     END IF;
 END $$;
 ROLLBACK;

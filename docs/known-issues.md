@@ -995,7 +995,38 @@ Tim 在 ALERT-1 闸上明确把它切成独立一刀(要一次迁移,而 ALERT-1
 
 ---
 
-## ★★ FIXED-ASSETS-NO-UPDATE-POLICY —— `fixed_assets` 【一条写策略都没有】,于是那个"计划投用日"对**所有人**都是死的(DBLOCK-1 查出,2026-09-08)
+## ~~FIXED-ASSETS-NO-UPDATE-POLICY~~ —— **✅ 已关闭(B3,2026-09-20)**
+
+**关闭方式不是「补上那条策略」,而是【换一扇门】** —— Tim 的裁定(BLOCKERS-0 §6 Q3)。
+
+```
+今天的线上,B3 迁移之后:
+  pg_policies WHERE tablename='fixed_assets'   → 仍然只有那一条 SELECT ★【有意如此】
+  新增 public.set_asset_planned_in_service(uuid, date)
+       SECURITY DEFINER · require_permission('module.finance.edit')
+  app/finance/assets/[id]/actions.ts  .from().update() → .rpc()
+```
+
+**三条证据,不是品味(全部为 B3 开工前复测,2026-09-20):**
+① 这张表上碰它的函数 **16 支,`prosecdef` 全部为 true** —— 补一条策略会造出
+   **第二扇门、两套规矩**,而 `known-issues` 的 `LINK-1` 正是为这个形状立的案;
+② 这张表**没有 `updated_by` / `updated_at`**(23 列,一列都没有)—— 补策略要么不留痕,
+   要么把一次迁移变成两次;
+③ 这张表**没有 `enforce_write_permission` 触发器**(只有两支不管权限的守卫触发器)——
+   所以补策略之后,被拒的写在**库那侧仍然是静默的零行**。
+   ☞ **函数买到的是「按名拒」**:`PERMISSION_DENIED|module.finance.edit`,
+     经 `refuseFromCoded` 落到屏幕上,中英双语。
+
+**钉住它的是 `db/fixtures/200`**,七臂,其中三臂是这一条的要害:
+**D** 没有 `module.finance.edit` 的会话**按名被拒且数据未动**(反面对照)·
+**B** 一个**未来**的计划日**被接受**(计划 ≠ 事件)·
+**G** 同一个会话里老那条直连 UPDATE **仍然 0 行**(证明角色切换真的生效,其余各臂才算数)。
+
+⚠ **它没有全部做完:留痕这一半没有落地** —— 另立一条,见下面的
+`FIXED-ASSETS-PLANNED-DATE-NOT-LOGGED`。
+
+<details><summary>原文(关闭前,2026-09-08 DBLOCK-1 写下)</summary>
+
 
 **线上实测(不是从镜像推的):**
 
@@ -1031,6 +1062,39 @@ pg_policies WHERE tablename='fixed_assets'
 **但要先量**:`fixed_assets` 上别的写路径全走 DEFINER 函数,所以直连表这一条是不是
 本来就该存在,本身是个要裁的问题 —— 也可能正解是**删掉这个控件**,
 让计划投用日也走一支函数)。**两条路都没量过,不要照着上面那句猜的判据就写。**
+
+</details>
+
+> ★ **那句「两条路都没量过」在 2026-09-19 被量了**(BLOCKERS-0 §3 B3),
+> 而它最后那个括号里的猜测——「也可能正解是让计划投用日也走一支函数」——**猜对了**。
+
+---
+
+## ★ FIXED-ASSETS-PLANNED-DATE-NOT-LOGGED —— 谁改了「计划投用日」,**没有任何地方记得**(B3 立,2026-09-20)
+
+**这是一个【具名的缺口】,不是一次疏忽。** Tim 的裁定 C5 要的是:在函数体里记下
+**谁设的、什么时候**,而**不加列、不新建表**。B3 把全库找了一遍,**没有一个够得着的落点**,
+于是按 C5 自己写的那一条办:**说出来,而不是发明一张表。**
+
+**找过的地方,以及每一处为什么不行(全部为线上实测,2026-09-20):**
+
+| 落点 | 为什么不行 |
+|---|---|
+| `fixed_assets.updated_by` / `updated_at` | ★ **不存在**(23 列)。加它们正是委托书 §3 明令**不做**的那一条 —— 那是第二个迁移面 |
+| 11 张 `*_history` 影子表 | 这个库里每一条留痕都是**一张表配一张影子表**(各带 `changed_by`)。`fixed_assets` **没有**影子表,而新建一张正是 C5 禁止的「发明一张表」 |
+| `approval_log` | **被两条 CHECK 锁死**:`subject_type` 的 9 个取值里没有资产,`decision` 的 7 个取值全是审批动词(submitted/approved/rejected/…)。塞进去要**改别的子系统的约束**(第二个迁移面),而且「设一个计划日」**不是一次审批决定** —— 那会让审批流里出现一条假记录 |
+| `notifications` | 它是**告警流**(全库只有 `notify_class_violations` / `notify_landing_warnings` 写它)。把一次例行编辑塞进告警流,是拿别人的收件箱当日志 |
+| `RAISE LOG` | **全库零先例**(178 支函数里一支都没有),而且 Supabase 的 Postgres 日志不是一份查得出来的业务记录 |
+
+**☞ 而这不是这支新函数的失职 —— 这张表从来就没有过留痕:**
+`create_fixed_asset` · `set_asset_in_service` · `set_asset_acceptance` ·
+`dispose_fixed_asset` · `depreciate_fixed_assets` —— **五支写函数,没有一支写任何历史**(实测)。
+**所以真正要答的问题比「计划投用日」大**:`fixed_assets` 要不要一张影子表。
+
+**删除条件(两条路,都要一句裁定):**
+① 给 `fixed_assets` 加 `updated_by`/`updated_at` —— 便宜,但只记得住**最后一次**;
+② 建一张 `fixed_asset_history` 影子表 —— 与这个库其余 11 处同形,记得住每一次。
+**不要在没有裁定的情况下挑一条**:这两条的差别是「谁改的」还是「改过几次」,而那是业务问题。
 
 ---
 

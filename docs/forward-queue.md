@@ -138,6 +138,13 @@
   `equipment_downtime`,一行一段,开口的一段表示得出来;与保养记录的那条外键
   刻意留给 EQP-2b(留一个指向不存在的表的空列,读起来像"忘了填")。
 
+* ★★ **【已被覆盖,2026-08-31】下面这一段正文写于 MKT-CCY-1 立项当天,而它描述的缺陷在 `f8a2f028`(FX-DISPLAY-1,2026-08-31)那一刀就被修好了。**
+  **原文原样留在下面、不删** —— 本仓库的规矩是【旧的数连同它的日期一起留着,更正另起一块】,因为一段被悄悄删掉的过期正文,与一段从来没写过的正文,在读的人眼里没有区别。
+  ☞ **今天还开着的是另一句话**:市价要不要【折算】成本位币,以哪一天的汇率为准 ——那是一句裁定,不是一个缺陷(BLOCKERS-0 §6 Q1/Q2)。
+  ☞ 复测于 2026-09-19(BLOCKERS-0 勘察)与 2026-09-20(B3)。
+
+  <details><summary>原文(2026-08-31 之前成立,原样保留)</summary>
+
 * ★ **市价列的币种标错了 —— `MKT-CCY-1`,紧接 INV-VAL-1 的下一刀。**
   `marketValuePerKg()` 返回 **USD/kg**(`metal_prices.price_usd_per_tonne`,全程无折算),
   而 `/inventory` 用 `formatAmount(…, baseCurrency)` 标成 **SGD**,
@@ -147,6 +154,8 @@
   INV-VAL-1 刻意没有折进它(那是一次更正,不是估值建设),而且
   **没有让新的估值面去消费它** —— 成本报表按裁定不放市价(A0)。
   所以这一刀是干净的:只动 `lib/valuation.ts` 与那两个消费方。
+
+  </details>
 
 ## 阶段 1 · 把设备模块做完
 
@@ -3915,11 +3924,11 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 
 | 条目 | 一句话 | 它等什么 | 正文在哪 |
 |---|---|---|---|
-| ★★ **MKT-CCY-1** | `marketValuePerKg()` 返回 **USD/kg**,而 `/inventory` 把它标成 **SGD**,**就摆在两个真 SGD 合计旁边**;按 1.28 少报约 **22%** | **没有前置** | 本文件「阶段 0」 |
-| ★★ **合同单据挂接** | `link_document_to_contract` 收得下合同了,而 `app/` 与 `lib/` 里**一个调用点都没有** —— 合同条款抄不到任何单据上,覆盖率永远 0 / N | **没有前置** | 「MANUAL-FIX-1 交出来的队列」3b |
+| ~~★★ **MKT-CCY-1**~~ | ~~`marketValuePerKg()` 返回 **USD/kg**,而 `/inventory` 把它标成 **SGD**;按 1.28 少报约 **22%**~~ ★★ **它在 2026-08-31 就被 `f8a2f028`(FX-DISPLAY-1)修好了** —— BLOCKERS-0 勘察查出,B3 复测确认。原文留着划掉,理由同上一行。☞ 今天还开着的**不是这一条**,而是【折不折算】那一句裁定(见 BLOCKERS-0 §3 B1 与 §6 Q1/Q2)。 | — | ~~本文件「阶段 0」~~ |
+| ~~★★ **合同单据挂接**~~ | ~~`link_document_to_contract` 收得下合同了,而 `app/` 与 `lib/` 里**一个调用点都没有**~~ ★★ **这一句在今天是【假的】—— BLOCKERS-0 勘察(2026-09-19)查出,B3 当场复测(2026-09-20)确认。** 原文按本仓库的规矩留在这里、只划掉,因为一条【被悄悄删掉的错记载】与一条【从来没写过的记载】读起来一模一样。 **实测:`app/purchasing/orders/[id]/contractActions.ts:41` 就是 `rpc('link_document_to_contract')`**,外加一块 `ContractLinkPanel.tsx`、一段 `page.tsx:140` 的礼貌前置判断、以及 `contractErrorCodes.ts` 里为它写的五条人话。☞ **所以它不属于【甲】** —— 没有人因为它打不开或按不动任何东西。⚠ 原文那句「覆盖率永远 0 / N」**本刀没有复测**(那是一个数据问题,不是一个调用点问题)—— `NOT MEASURED`。 | — | ~~「MANUAL-FIX-1 交出来的队列」3b~~ |
 | ★ **合同状态机没有出口** | 建成什么就是什么:写 `contracts.status` 的函数**零支**,界面上也没有 | ★ **一句裁定**(谁可以挪、算不算留痕) | 同上,第 9 条 |
 | ★★ **KPI 打分没有界面** | `score_kpi_entry` / `assign_position_kpis` 在库里,`app/` 底下**零个调用者** —— KPI 定得出来、看得见,**没有任何人打得了分** | **没有前置**;Tim 已把它放进「发账号之前」 | 「内部验收」(甲) |
-| ★★ **`FIXED-ASSETS-NO-UPDATE-POLICY`** | RLS 开着而 `fixed_assets` **一条 UPDATE 策略都没有** → 那个「计划投用日」控件对**所有人**改零行。DBLOCK-1 让它不再假装成功,**门仍然是关的** | ★ **一次迁移 + 一次裁定**(补策略,还是把这个控件整个删掉走函数)| `known-issues` 同名条 |
+| ~~★★ **`FIXED-ASSETS-NO-UPDATE-POLICY`**~~ | ~~RLS 开着而 `fixed_assets` **一条 UPDATE 策略都没有** → 那个「计划投用日」控件对**所有人**改零行~~ ★★ **B3 已修(2026-09-20)。** Tim 裁定走函数、不补策略:新增 `set_asset_planned_in_service()`(SECURITY DEFINER + `require_permission('module.finance.edit')`),`actions.ts` 从直连表换成 `.rpc()`。☞ **策略仍然只有那一条 SELECT** —— 这是【有意的】:这张表从此只有一扇写门。⚠ **本刀没有做到留痕** —— 见 `known-issues` 的 `FIXED-ASSETS-PLANNED-DATE-NOT-LOGGED`。 | — | ~~`known-issues` 同名条~~ |
 | ★★ **线上八行物料全部改不动** | `materials_kind_stated` 是 NOT VALID CHECK,而 **NOT VALID 的 CHECK 整行重算** → 8/8 行改名字、改安全库存、改备注一律被拒。**同一个根因也关着加工** | ★ **有人说出那八行物料的种类** | `known-issues` 同名条 |
 | ★ **收货库位录不进去** | ctx 机制到不了 PostgREST 的插入 | 未做 | `known-issues`(IOD-1)|
 | ★ **`shipped` 上的加行没有入口** | 引擎有、页面有、**入口没有** | 未做 | `known-issues`(SO-1b)|

@@ -94,6 +94,12 @@ const EQUIPMENT_ERROR_CODES = new Set([
     'MAINTENANCE_ALREADY_CAPITALISED', 'MAINTENANCE_NOT_APPLICABLE',
     'ASSET_LIFE_EXHAUSTED', 'DEPRECIATION_ANCHOR_IMMUTABLE',
     'ASSET_DISPOSED',
+    // ── B3(2026-09-20):set_asset_planned_in_service 抛的那一条 ──────────────
+    // 【为什么这里只多了一条,而不是两条】那支函数抛两种:ASSET_NOT_FOUND 与
+    // require_permission 的 PERMISSION_DENIED|<码>。后者【不进这个集合】——
+    // 它由 refuseFromCoded 的分支 ① 在本地化器【之前】接住(六个本地化器都
+    // 没有那一支,这是那个函数抬头逐字记着的分工)。放进来会是第二份实现。
+    'ASSET_NOT_FOUND',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
