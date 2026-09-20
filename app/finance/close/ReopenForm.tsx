@@ -61,13 +61,15 @@ canEdit: boolean
                 reason={{ placeholder: t('finance.reopenReason') }}
                 disabled={isPending}
                 onConfirm={doReopen}
-                // ★ BTN-TRIGGER-1(2026-09-20):这一处【转过去了 → 量了 → 按回来了】。
+                // ★★ BTN-FOLLOWUP(2026-09-20)· Tim 接受了这 +0.58px ★★
                 //   ★ 它【渲染在一张表的格子里】—— CloseHistoryTable.tsx:75 逐行渲染它,
-                //     而从调用点这一侧看不出来这件事。`triggerVariant="reversal"` 把它
-                //     30px → 32px,实测 /finance/close 的表体行高 52.92 → 53.50(**+0.58px**)。
-                //   委托书 §3 与停止条件 (c):报出差值,不要接受它。
-                //   ☞ `disabled:opacity-50` 因此【活着】(2.557 白底 / 2.525 品牌底,都过不了 AA)。
-                className="border border-red-300 text-red-600 px-3 py-1 rounded hover:bg-red-50 disabled:opacity-50"
+                //     而从调用点这一侧看不出来这件事。BTN-TRIGGER-1 §7.1 是读了消费者才知道的,
+                //     **下一个改这里的人要先读那一处,再判"它在不在表里"。**
+                //   `reversal` / default 把它 30px → 32px,/finance/close 表体行高 52.92 → 53.50。
+                //   ☞ `disabled:opacity-50`(2.557 / 2.525,都过不了 AA)结清:盒子档实测 11.273 ✓。
+                //   ★ 档位取 `reversal` 而不是 `destructive`,与对话框今天的 tier 一致 ——
+                //     那 7 个 reversal 对话框在 POLISH1-REVERSAL-DIALOG-TIERS 名下,不在本刀范围。
+                triggerVariant="reversal"
             >
                 {isPending ? t('common.saving') : t('finance.reopenButton')}
             </ConfirmButton>

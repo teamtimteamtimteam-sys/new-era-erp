@@ -31,11 +31,12 @@ export default function DeleteButton({
             confirmLabel={t('common.delete')}
             tier="destructive"
             disabled={isPending}
-            // ★ BTN-TRIGGER-1(2026-09-20):这一处【转过去了 → 量了 → 按回来了】。
-            //   实测 /suppliers 的表体行高 42.42 → 43.42(**+1.00px,逐行,8 行全中**)。
-            //   与 app/sales/customers/DeleteButton.tsx 是同一格同一个理由,见那里的注释。
-            //   ☞ `disabled:text-gray-400` 因此【活着】(2.602 / 2.443,都过不了 AA)。
-            className="text-red-600 hover:underline disabled:text-gray-400"
+            // ★★ BTN-FOLLOWUP(2026-09-20)· Tim 接受了这 +1.00px ★★
+            //   /suppliers 的表体行高 42.42 → 43.42(**+1.00px,逐行**)。
+            //   与 app/sales/customers/DeleteButton.tsx 是同一格同一条裁定,理由见那里。
+            //   ☞ `disabled:text-gray-400`(2.602 / 2.443)结清:行内档实测 14.132 / 13.272 ✓。
+            triggerVariant="destructive"
+            triggerSize="inline"
             onConfirm={() => {
                 startTransition(async () => {
                     const result = await softDeleteSupplier(id)
