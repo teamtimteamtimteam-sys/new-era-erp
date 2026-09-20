@@ -14,6 +14,7 @@ import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditio
 import type { SafetyState, Certainty } from '../IntakeConditionFields'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_TOUCH } from '@/app/components/ui/control-style'
+import { formatDate } from '@/lib/dates'
 
 const initialState: ReceiveState = {}
 
@@ -99,7 +100,7 @@ export default function ReceiveForm({
     const supplierPos = supplierPoLines.reduce<{ po_id: string; po_code: string; order_date: string }[]>(
         (acc, l) => {
             if (!acc.some((p) => p.po_id === l.po_id)) {
-                acc.push({ po_id: l.po_id, po_code: l.po_code, order_date: l.order_date })
+                acc.push({ po_id: l.po_id, po_code: l.po_code, order_date: formatDate(l.order_date, locale) })
             }
             return acc
         },
@@ -189,7 +190,7 @@ export default function ReceiveForm({
                         <option value="">—</option>
                         {supplierPos.map((p) => (
                             <option key={p.po_id} value={p.po_id}>
-                                {p.po_code} · {p.order_date}
+                                {p.po_code} · {formatDate(p.order_date, locale)}
                             </option>
                         ))}
                     </select>
@@ -333,7 +334,7 @@ export default function ReceiveForm({
                     {t('inbound.form.blockedCertExpired', {
                         supplier: blocked.supplier_code,
                         cert: locale === 'zh' ? blocked.name_zh : blocked.name_en,
-                        date: blocked.valid_until,
+                        date: formatDate(blocked.valid_until, locale),
                     })}
                 </div>
             )}

@@ -18,6 +18,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 export type ClaimRow = {
     claim_id: string; code: string; employee_code: string; employee_name: string
@@ -39,6 +41,7 @@ export default function ClaimDecisionPanel({
     taxCodes: { code: string; name_en: string }[]
     canDecide: boolean; baseCurrency: string
 }) {
+    const locale = useLocale()
     const t = useTranslations()
     const [sel, setSel] = useState<Record<string, { acct: string; tax: string; post: string; notes: string }>>({})
     const [error, setError] = useState<string | null>(null)
@@ -111,7 +114,7 @@ export default function ClaimDecisionPanel({
                                 <span className="font-medium">{c.employee_name}</span>
                                 <span className="text-xs text-[color:var(--brand-muted-text)]">{c.employee_code}</span>
                                 <span>{money(c.amount_ccy)} {c.currency}</span>
-                                <span className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.colSpent')} {c.spend_date}</span>
+                                <span className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.colSpent')} {formatDate(c.spend_date, locale)}</span>
                             </div>
                             <p className="text-sm mb-1">{c.description}</p>
                             {/* 【凭据是哪一种,审批人必须看得见】 */}

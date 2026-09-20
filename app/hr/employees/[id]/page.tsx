@@ -16,6 +16,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import { EmployeeTrainingTable, EmployeeReviewsTable, EmployeePayrollTable, type TrainingRow, type EmployeeReviewRow, type EmployeePayRow } from './EmployeeTables'
+import { formatDate, formatMonth } from '@/lib/dates'
 
 export default async function EmployeeDetailPage({
     params,
@@ -145,8 +146,8 @@ export default async function EmployeeDetailPage({
         name: tr.training_name,
         href: `/hr/training/${tr.id}/edit`,
         categoryText: tr.category ? t('hr.trainingCategory.' + tr.category) : '—',
-        completedDate: tr.completed_date,
-        expiryDate: tr.expiry_date ?? '—',
+        completedDate: formatDate(tr.completed_date, locale),
+        expiryDate: formatDate(tr.expiry_date, locale) ?? '—',
         expired: !!tr.expiry_date && tr.expiry_date < today,
         provider: tr.provider ?? '—',
     }))
@@ -164,7 +165,7 @@ export default async function EmployeeDetailPage({
 
     const payRows: EmployeePayRow[] = payroll.map((p) => ({
         id: p.id,
-        periodLabel: p.payroll_periods?.period_month?.slice(0, 7) ?? '—',
+        periodLabel: formatMonth(p.payroll_periods?.period_month, locale) ?? '—',
         periodHref: p.payroll_periods ? `/hr/payroll/${p.payroll_periods.id}` : null,
         currency: p.payroll_periods?.currency ?? '',
         grossText: formatAmount(p.gross_pay, p.payroll_periods?.currency),
@@ -239,10 +240,10 @@ export default async function EmployeeDetailPage({
                         label: t('hr.colHireDate'),
                         value: (
                             <>
-                                {emp.hire_date}
+                                {formatDate(emp.hire_date, locale)}
                                 {emp.probation_end_date && (
                                     <span className="text-[color:var(--brand-muted-text)] ml-2">
-                                        {t('hr.colProbationEnd')}: {emp.probation_end_date}
+                                        {t('hr.colProbationEnd')}: {formatDate(emp.probation_end_date, locale)}
                                     </span>
                                 )}
                             </>
@@ -270,7 +271,7 @@ export default async function EmployeeDetailPage({
                                 {emp.residency_status ? t('hr.residency.' + emp.residency_status) : '—'}
                                 {emp.work_pass_type && (
                                     <span className="ml-2">
-                                        {emp.work_pass_type} · {emp.work_pass_expiry_date}
+                                        {emp.work_pass_type} · {formatDate(emp.work_pass_expiry_date, locale)}
                                         {dir?.work_pass_alert && (
                                             <span
                                                 className={
@@ -295,7 +296,7 @@ export default async function EmployeeDetailPage({
                             label: t('hr.colSeparationDate'),
                             value: (
                                 <>
-                                    {emp.separation_date ?? '—'}
+                                    {formatDate(emp.separation_date, locale) ?? '—'}
                                     {emp.separation_type && (
                                         <span className="ml-2">{t('hr.separationType.' + emp.separation_type)}</span>
                                     )}
@@ -325,7 +326,7 @@ export default async function EmployeeDetailPage({
                     {history.map((h) => (
                         <li key={h.id} className="text-sm">
                             <div className="flex flex-wrap items-baseline gap-2">
-                                <span className="text-[color:var(--brand-muted-text)]">{h.effective_date}</span>
+                                <span className="text-[color:var(--brand-muted-text)]">{formatDate(h.effective_date, locale)}</span>
                                 <span className="px-2 py-0.5 rounded text-xs bg-gray-200 text-[color:var(--brand-text)]">
                                     {t('hr.changeType.' + h.change_type)}
                                 </span>
@@ -361,7 +362,7 @@ export default async function EmployeeDetailPage({
             {canHrEdit && emp.employment_status === 'probation' && (
                 <RaiseProbationReview
                     employeeId={id}
-                    probationEndDate={emp.probation_end_date as string | null}
+                    probationEndDate={emp.probation_end_date ? formatDate(emp.probation_end_date, locale) : null}
                 />
             )}
             <div className="mb-6">

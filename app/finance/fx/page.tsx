@@ -23,6 +23,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { Alert, AlertTitle } from '@/app/components/ui/alert'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type FxRow = {
     id: string
@@ -44,6 +46,7 @@ export default async function FxRatesPage({
         page?: string
     }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -168,7 +171,7 @@ export default async function FxRatesPage({
         currency: r.currency,
         rateType: r.rate_type,
         rateSgdPerUnit: r.rate_sgd_per_unit,
-        rateDate: r.rate_date,
+        rateDate: formatDate(r.rate_date, locale),
         source: r.source,
         notes: r.notes,
     }))
@@ -232,8 +235,8 @@ export default async function FxRatesPage({
                             <p className="font-medium mb-1">{t('finance.fxPage.gapsTitle', { n: gaps.length })}</p>
                             <ul className="text-sm space-y-0.5">
                                 {gaps.map((g) => (
-                                    <li key={g.rate_date + g.currency}>
-                                        <span>{g.rate_date}</span> · {g.currency} ·{' '}
+                                    <li key={formatDate(g.rate_date, locale) + g.currency}>
+                                        <span>{formatDate(g.rate_date, locale)}</span> · {g.currency} ·{' '}
                                         {t('finance.fxPage.gapsMissing', { 0: g.missing_types.join(', ') })} ·{' '}
                                         {gapKindLabel(g.gap_source)} ·{' '}
                                         {/* 【两个计数各说各的单位,零的那个不显示】

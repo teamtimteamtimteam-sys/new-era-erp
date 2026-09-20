@@ -11,11 +11,12 @@
 import { useTranslations } from '@/lib/i18n/client'
 import type { DraftState } from '@/lib/useFormDraft'
 import { Button } from '@/app/components/ui/button'
+import { formatAuditStamp } from '@/lib/dates'
 
 function when(ts: number, locale: string) {
-    return new Date(ts).toLocaleString(locale === 'en' ? 'en-SG' : 'zh-SG', {
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-    })
+    // DATE-1:草稿的保存时刻是【系统记下的那一刻】—— 审计戳那一族。
+    void locale
+    return formatAuditStamp(new Date(ts))
 }
 
 export default function DraftBanner({ draft, locale = 'zh' }: { draft: DraftState; locale?: string }) {

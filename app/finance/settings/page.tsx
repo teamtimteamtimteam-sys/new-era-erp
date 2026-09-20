@@ -14,8 +14,11 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
 import { getFunctionAccess } from '@/lib/moduleAccess'
 import { can } from '@/lib/permissions'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function FinanceSettingsPage() {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -86,7 +89,7 @@ export default async function FinanceSettingsPage() {
             <div className="bg-gray-50 rounded p-4 mb-6 text-sm">
                 <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.lockedBefore')}:</span>
                 {lockedBefore ? (
-                    <span className="font-medium">{lockedBefore}</span>
+                    <span className="font-medium">{formatDate(lockedBefore, locale)}</span>
                 ) : (
                     <span className="text-gray-400">{t('finance.notSet')}</span>
                 )}
@@ -123,7 +126,7 @@ export default async function FinanceSettingsPage() {
                 </p>
             )}
 
-            <LockForm canEdit={canEditGate} lockedBefore={lockedBefore} />
+            <LockForm canEdit={canEditGate} lockedBefore={lockedBefore ? formatDate(lockedBefore, locale) : null} />
 
             {/* 手动锁是覆盖手段;正常关账走月结页 */}
             <p className="text-sm text-[color:var(--brand-muted-text)] mt-4">

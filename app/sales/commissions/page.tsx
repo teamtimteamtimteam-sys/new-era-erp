@@ -18,6 +18,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import CommissionsTable, { type CommissionRow } from './CommissionsTable'
 import Link from 'next/link'
 import { Button } from '@/app/components/ui/button'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type Agreement = {
     id: string
@@ -35,6 +37,7 @@ type Agreement = {
 }
 
 export default async function CommissionsPage() {
+    const locale = await getLocale()
     const denied = await requireModule(MOD.suppliers)
     if (denied) return denied
 
@@ -55,7 +58,7 @@ export default async function CommissionsPage() {
         id: r.id, side: r.side, basis: r.basis,
         rate_pct: r.rate_pct, amount_ccy: r.amount_ccy, currency: r.currency,
         recognition_trigger: r.recognition_trigger,
-        valid_from: r.valid_from, valid_to: r.valid_to, remarks: r.remarks,
+        valid_from: formatDate(r.valid_from, locale), valid_to: formatDate(r.valid_to, locale), remarks: r.remarks,
         agentCode: r.suppliers?.code ?? null,
         agentName: r.suppliers?.legal_name ?? null,
     }))

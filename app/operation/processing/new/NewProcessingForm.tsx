@@ -11,6 +11,7 @@ import { UNIT_OPTIONS } from '../../../materials/options'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import DecimalInput from '../../../components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
+import { formatDate } from '@/lib/dates'
 
 export type InboundBatchOption = {
     id: string
@@ -309,7 +310,7 @@ export default function NewProcessingForm({
                         <option value="">{t('processing.form.workOrderNone')}</option>
                         {workOrders.map((w) => (
                             <option key={w.id} value={w.id}>
-                                {w.code}{w.scheduled_date ? ` — ${w.scheduled_date}` : ''}
+                                {w.code}{w.scheduled_date ? ` — ${formatDate(w.scheduled_date, locale)}` : ''}
                             </option>
                         ))}
                     </select>

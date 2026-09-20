@@ -19,6 +19,8 @@ import {
     BreachesTable, ContractListTable, PricingTermsTable, SettlementTermsTable, SettlementsTable,
     type BreachRow, type ContractListRow, type PricingTermRow, type SettleTermRow, type SettlementRow,
 } from './ContractsTables'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type Contract = {
     id: string; code: string; side: string; kind: string; title: string
@@ -54,6 +56,7 @@ type Breach = {
 }
 
 export default async function ContractsPage() {
+    const locale = await getLocale()
     const denied = await requireModule(MOD.suppliers)
     if (denied) return denied
 
@@ -154,9 +157,9 @@ export default async function ContractsPage() {
         code: c.code,
         sideLabel: t(`contracts.side.${c.side}`),
         title: c.title,
-        effectiveFrom: c.effective_from,
+        effectiveFrom: formatDate(c.effective_from, locale),
         // 【无固定期限不是"忘了填"】给 null,由表说那句话
-        effectiveTo: c.effective_to,
+        effectiveTo: c.effective_to ? formatDate(c.effective_to, locale) : null,
         statusLabel: t(`contracts.status.${c.status}`),
         termsLabel:
             [c.incoterm, c.currency, c.payment_terms_days != null
@@ -305,8 +308,8 @@ export default async function ContractsPage() {
                         <li key={idx}>
                             {t('contracts.pricing.calendarLoaded', {
                                 index: idx, days: String(rows.length),
-                                from: rows[0].calendar_date,
-                                to: rows[rows.length - 1].calendar_date,
+                                from: formatDate(rows[0].calendar_date, locale),
+                                to: formatDate(rows[rows.length - 1].calendar_date, locale),
                                 trading: String(rows.filter((r) => r.is_trading_day).length),
                             })}
                         </li>

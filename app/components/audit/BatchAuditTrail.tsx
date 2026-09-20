@@ -21,6 +21,7 @@ import { createClient } from '@/lib/supabase/server'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { UNREACHABLE_HISTORY_TABLES, type AuditTrailRow } from './auditTrailTypes'
 import BatchAuditTrailTable, { type AuditTableRow } from './BatchAuditTrailTable'
+import { formatAuditStamp } from '@/lib/dates'
 
 export default async function BatchAuditTrail({ rows }: { rows: AuditTrailRow[] }) {
     const t = await getTranslations()
@@ -57,7 +58,7 @@ export default async function BatchAuditTrail({ rows }: { rows: AuditTrailRow[] 
     const tableRows: AuditTableRow[] = rows.map((r, i) => ({
         key: `${r.source_table}-${r.source_id ?? i}`,
         mayView: r.may_view,
-        whenText: r.occurred_at.slice(0, 16).replace('T', ' '),
+        whenText: formatAuditStamp(r.occurred_at),
         bizDateLine:
             r.business_date && r.business_date !== r.occurred_at.slice(0, 10)
                 ? `${t('auditTrail.bizDate')}: ${r.business_date}`

@@ -17,6 +17,8 @@ import InvoicesTable, { type InvoiceRow } from './InvoicesTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 const PAGE_SIZE = 20
 
@@ -46,6 +48,7 @@ export default async function InvoicesPage({
 }: {
     searchParams: Promise<{ date_from?: string; date_to?: string; state?: string; status?: string; page?: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -101,8 +104,8 @@ export default async function InvoicesPage({
             code: i.code,
             kind: i.kind,
             customer_name: i.customers?.legal_name ?? null,
-            issue_date: i.issue_date,
-            due_date: i.due_date,
+            issue_date: formatDate(i.issue_date, locale),
+            due_date: formatDate(i.due_date, locale),
             total_base: i.total_base,
             settled_base: null,
             open_base: null,
@@ -143,8 +146,8 @@ export default async function InvoicesPage({
                 code: i.code,
                 kind: i.kind,
                 customer_name: i.customers?.legal_name ?? null,
-                issue_date: i.issue_date,
-                due_date: i.due_date,
+                issue_date: formatDate(i.issue_date, locale),
+                due_date: formatDate(i.due_date, locale),
                 total_base: i.total_base,
                 settled_base: null,
                 open_base: null,
@@ -173,8 +176,8 @@ export default async function InvoicesPage({
         code: r.code,
         kind: r.kind,
         customerName: r.customer_name,
-        issueDate: r.issue_date,
-        dueDate: r.due_date,
+        issueDate: formatDate(r.issue_date, locale),
+        dueDate: formatDate(r.due_date, locale),
         daysOverdue: r.days_overdue,
         overdue: r.overdue,
         totalBase: r.total_base,

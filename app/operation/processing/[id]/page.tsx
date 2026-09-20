@@ -29,6 +29,7 @@ import {
     OutputsTable, type OutputLegRow,
     RecoveryTable, type RecoveryRow,
 } from './ProcessingTables'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 type ProcessingInputRow = {
@@ -221,7 +222,7 @@ export default async function ProcessingDetailPage({
         amount_base: c.amount_base,
         is_estimate: c.is_estimate,
         notes: c.notes,
-        created_at_display: formatTimestamp(c.created_at, dateLocale),
+        created_at_display: formatAuditStamp(c.created_at),
         edited_at_display: c.updated_at !== c.created_at
             ? formatTimestamp(c.updated_at, dateLocale) : null,
         // 三态,与 ActorName 同形:查得到印名字 · 查不到但看得见人事 = 真的没这个人
@@ -421,7 +422,7 @@ export default async function ProcessingDetailPage({
                             </span>
                         ),
                     },
-                    { label: t('processing.detail.processDate'), value: run.process_date ?? '—' },
+                    { label: t('processing.detail.processDate'), value: formatDate(run.process_date, dateLocale) ?? '—' },
                     { label: t('processing.detail.totalInput'), value: run.total_input ?? '—' },
                     { label: t('processing.detail.totalOutput'), value: run.total_output ?? '—' },
                     {

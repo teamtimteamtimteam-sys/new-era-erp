@@ -17,6 +17,8 @@ import TaskModal from './TaskModal'
 import { STATUS_VALUES, type Task } from './types'
 import { Button } from '@/app/components/ui/button'
 import { showActionMessage } from '@/app/components/ui/action-message'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 const PRIORITY_STYLES: Record<string, string> = {
     high: 'bg-red-100 text-red-700',
@@ -107,6 +109,7 @@ function TaskCard({
     task: Task
     today: string | null
 }) {
+    const locale = useLocale()
     const t = useTranslations()
     const { attributes, listeners, setNodeRef, transform, isDragging } =
         useDraggable({ id: task.id })
@@ -157,7 +160,7 @@ function TaskCard({
                     <span className="flex items-center gap-1">
                         {task.reminder_at && <BellIcon />}
                         {task.due_date && (
-                            <DueDate due={task.due_date} today={today} />
+                            <DueDate due={formatDate(task.due_date, locale)} today={today} />
                         )}
                     </span>
                 )}

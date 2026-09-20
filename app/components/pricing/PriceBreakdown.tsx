@@ -8,6 +8,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import type { CalcResult, CalcLine } from '@/app/tools/pricing/calculator/actions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 // 汇总这四行(毛值/加工费/折扣/净值)不各自带币种,因为紧接着的最后一行写着
 // 「单价 (USD/公斤)」,而金属计价【全程 USD 进 USD 出】(市场惯例,见 AGENTS.md
@@ -23,6 +25,7 @@ export default function PriceBreakdown({
     // 所以由调用方给,位置固定在抬头行之后。
     negativeNote?: React.ReactNode
 }) {
+    const locale = useLocale()
     const t = useTranslations()
 
     // ASY-2:【未列明 ≠ 零】。条款没提到这个金属时 DB 给 NULL,这里渲染成"—"
@@ -64,7 +67,7 @@ export default function PriceBreakdown({
                     {formatMoneyBare(l.price_usd_per_tonne, '列头 pricing.colPrice「行情 (USD/吨)」')}
                 </span>
                 <span className="text-[color:var(--brand-muted-text)] text-xs ml-2">
-                    {l.price_date ?? (l.price_from ? `${l.price_from} – ${l.price_to}` : '')}
+                    {formatDate(l.price_date, locale) ?? (l.price_from ? `${l.price_from} – ${l.price_to}` : '')}
                 </span>
                 {thinWindow(l) && (
                     <span className="text-amber-700 text-xs ml-2" title={t('pricing.thinWindowWhy')}>

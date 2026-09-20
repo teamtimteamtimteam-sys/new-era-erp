@@ -27,6 +27,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import ReportDocument from '@/app/inventory/reports/ReportDocument'
 import { localizeTraceabilityError } from '@/app/output/traceabilityErrorCodes'
 import { loadDocumentCompany, COMPANY_MISSING_MESSAGE } from '@/app/components/pdf/company'
+import { formatAuditStamp } from '@/lib/dates'
 import {
     fetchTraceability,
     chainRows,
@@ -56,7 +57,7 @@ async function render(rep: TraceabilityReport): Promise<Buffer> {
             noSignature={t('pdf.noSignature.report')}
             title={t('traceability.pdfTitle', { code: b.code })}
             generatedAtLabel={t('reports.pdfGeneratedAt')}
-            generatedAt={new Date().toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US')}
+            generatedAt={formatAuditStamp(new Date())}
             // 【表头块要说清这份东西是关于哪一批料的】—— 客户手里只有这张纸。
             filtersLabel={t('traceability.pdfBatchLabel')}
             filters={`${b.code} · ${b.material_code ?? '—'} ${b.material_name ?? ''} · ${b.quantity} ${b.unit ?? ''}`}

@@ -3,7 +3,6 @@
 // 端口自 inbound 列表:supplier→customer、stage→state。customer_id 可空(未售出批次无客户)。
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
-import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
@@ -25,6 +24,7 @@ import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 // FK 嵌入运行时是对象;TS 默认猜数组(无生成 DB 类型),用显式类型 + cast 锁住。
 // customers 可空:库存中的批次还没指派客户。
@@ -197,7 +197,7 @@ export default async function OutputPage({
         customerName: b.customers?.legal_name ?? '—',
         quantity: `${b.quantity} ${b.unit}`,
         remaining: `${b.remaining_qty} ${b.unit}`,
-        outputDate: b.output_date ?? '—',
+        outputDate: formatDate(b.output_date, dateLocale) ?? '—',
         stateLabel: stateLabel(b.state),
         // PROC-WIRE-1A:用途角标的语言在服务端选好;可售的批次没有这个角标
         purposeTag:
@@ -205,7 +205,7 @@ export default async function OutputPage({
                 ? (locale === 'zh' ? b.output_batch_purposes.name_zh : b.output_batch_purposes.name_en)
                 : null,
         status: b.status,
-        createdLabel: formatTimestamp(b.created_at, dateLocale),
+        createdLabel: formatAuditStamp(b.created_at),
     }))
 
     // 排序链接要原样带上的筛选参数 —— 【URL 名,不是变量名】,

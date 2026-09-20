@@ -16,6 +16,8 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 const PAGE_SIZE = 20
 
@@ -29,6 +31,7 @@ export default async function PaymentsListPage({
 }: {
     searchParams: Promise<{ date_from?: string; date_to?: string; direction?: string; page?: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -126,7 +129,7 @@ export default async function PaymentsListPage({
     const tableRows: PaymentRow[] = rows.map((r) => ({
         id: r.id,
         code: r.code,
-        paymentDate: r.payment_date,
+        paymentDate: formatDate(r.payment_date, locale),
         direction: r.direction,
         counterparty: nameById.get(r.customer_id ?? r.supplier_id ?? '') ?? '—',
         amountCcy: r.amount_ccy,

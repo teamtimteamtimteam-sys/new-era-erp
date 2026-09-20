@@ -22,6 +22,8 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 export type RetentionRow = {
     retention_id: string
@@ -99,6 +101,7 @@ function RetentionCard({
 }: {
     poId: string; r: RetentionRow; canEdit: boolean; currency: string; canSeePrices: boolean
 }) {
+    const locale = useLocale()
     const t = useTranslations()
     const [released, setReleased] = useState('')
     const [withheld, setWithheld] = useState('')
@@ -140,7 +143,7 @@ function RetentionCard({
                 ) : (
                     <span>
                         {t('purchasing.retention.derivedFrom', {
-                            0: r.acceptance_date,
+                            0: formatDate(r.acceptance_date, locale),
                             1: r.maturity_date ?? '—',
                         })}
                     </span>

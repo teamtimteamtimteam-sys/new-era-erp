@@ -17,7 +17,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
-import { formatTimestamp } from '@/lib/format'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { workOrderStatusKey } from '../woTypes'
@@ -29,7 +28,8 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import {
     InputSideTable, OutputSideTable, LinkedRunsTable,
     type FulfilmentRow, type LinkedRunRow,
-} from './WorkOrderTables' 
+} from './WorkOrderTables'
+import { formatAuditStamp, formatDate } from '@/lib/dates' 
 
 type FulfilRow = {
     side: string; material_id: string
@@ -45,7 +45,6 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
     const { id } = await params
     const t = await getTranslations()
     const locale = await getLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-US'
     const supabase = await createClient()
 
     const wo = mustOne(
@@ -147,7 +146,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
         id: r.id,
         code: r.code,
         href: `/operation/processing/${r.id}`,
-        processDate: r.process_date ?? '—',
+        processDate: formatDate(r.process_date, locale) ?? '—',
         totalInput: r.total_input == null ? '—' : String(r.total_input),
         totalOutput: r.total_output == null ? '—' : String(r.total_output),
         reversed: r.status === 'reversed',
@@ -183,14 +182,14 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
                     {wo.closed_at && (
                         <div className="bg-gray-50 border border-gray-300 text-[color:var(--brand-text)] px-4 py-3 rounded mb-4">
                             {t('processing.wo.closedBanner', {
-                                at: formatTimestamp(wo.closed_at, dl), reason: wo.close_reason ?? '—',
+                                at: formatAuditStamp(wo.closed_at), reason: wo.close_reason ?? '—',
                             })}
                         </div>
                     )}
                     {wo.cancelled_at && (
                         <div className="bg-gray-50 border border-gray-300 text-[color:var(--brand-text)] px-4 py-3 rounded mb-4">
                             {t('processing.wo.cancelledBanner', {
-                                at: formatTimestamp(wo.cancelled_at, dl), reason: wo.cancel_reason ?? '—',
+                                at: formatAuditStamp(wo.cancelled_at), reason: wo.cancel_reason ?? '—',
                             })}
                         </div>
                     )}
@@ -203,7 +202,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
                     {
                         label: t('processing.wo.colScheduled'),
                         value: wo.scheduled_date
-                            ? new Date(wo.scheduled_date).toLocaleDateString(dl)
+                            ? formatDate(wo.scheduled_date, locale)
                             : <span className="text-[color:var(--brand-muted-text)] italic">{t('processing.wo.noSchedule')}</span>,
                     },
                     { label: t('processing.wo.colNotes'), value: wo.notes ?? '—' },
@@ -265,7 +264,7 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
             <ul className="text-sm space-y-1">
                 {history.map((h, i) => (
                     <li key={i} className="text-[color:var(--brand-muted-text)]">
-                        {formatTimestamp(h.changed_at, dl)}
+                        {formatAuditStamp(h.changed_at)}
                         {/* 动态前缀,后缀集合接 work_order_history 的 CHECK(check-i18n 的清单) */}
                         {' · '}{t('processing.wo.changeType.' + h.change_type)}
                         {h.old_qty != null || h.new_qty != null

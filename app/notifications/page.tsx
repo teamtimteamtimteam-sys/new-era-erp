@@ -6,18 +6,17 @@
 // 而这两件事在屏幕上长得一模一样(moduleGuard 的老病)。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { subjectHref, eventParams, type NotificationRow } from './notificationTypes'
 import MarkReadButtons from './MarkReadButtons'
+import { formatAuditStamp } from '@/lib/dates'
 
 // 有界:一页 50 条。更早的属于报表中心那一刀,不属于收件箱。
 const PAGE_LIMIT = 50
 
 export default async function NotificationsPage() {
     const t = await getTranslations()
-    const locale = await getLocale()
-    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
     const supabase = await createClient()
     const {
         data: { user },
@@ -81,7 +80,7 @@ export default async function NotificationsPage() {
                                             {t('notifications.event.' + r.event_type, eventParams(r))}
                                         </p>
                                         <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
-                                            {new Date(r.occurred_at).toLocaleString(dateLocale)}
+                                            {formatAuditStamp(r.occurred_at)}
                                             {href && r.subject_code && (
                                                 <>
                                                     {' · '}

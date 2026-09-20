@@ -17,6 +17,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { Button } from '@/app/components/ui/button'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 const JOURNAL_PAGE_SIZE = 20
 
@@ -30,6 +32,7 @@ export default async function JournalListPage({
 }: {
     searchParams: Promise<{ date_from?: string; date_to?: string; page?: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -117,7 +120,7 @@ export default async function JournalListPage({
     const tableRows: JournalRow[] = rows.map((r) => ({
         id: r.id,
         code: r.code,
-        entryDate: r.entry_date,
+        entryDate: formatDate(r.entry_date, locale),
         memo: r.memo,
         sourceType: r.source_type,
         sourceHref: hrefs.get(sourceHrefKey(r)) ?? null,

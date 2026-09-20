@@ -19,6 +19,8 @@ import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { tableC } from '@/app/components/ui/table-style'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 type Bucket = { currency: string; week_no: number; week_start: string; week_end: string
                 inflow: number; outflow: number; net: number; closing: number }
@@ -67,6 +69,7 @@ const CONF_CLASS: Record<string, string> = {
 export default function ForecastGrid({
     data, canFreeze,
 }: { data: ForecastData; canFreeze: boolean }) {
+    const locale = useLocale()
     const t = useTranslations()
     const [reason, setReason] = useState('')
     const [error, setError] = useState<string | null>(null)
@@ -164,7 +167,7 @@ export default function ForecastGrid({
                     {t('cashForecast.noBaseTotal', {
                         ccy: data.base_currency,
                         missing: data.base_total_missing_fx.join(', '),
-                        date: data.as_of,
+                        date: formatDate(data.as_of, locale),
                     })}
                 </p>
             )}
@@ -195,7 +198,7 @@ export default function ForecastGrid({
                                 </th>
                                 {weeks.map((w) => (
                                     <th key={w} className={`${tableC.headCell} text-right whitespace-nowrap tabular-nums`}>
-                                        {bucketOf(ccy, w)?.week_start ?? ''}
+                                        {formatDate(bucketOf(ccy, w)?.week_start, locale) ?? ''}
                                     </th>
                                 ))}
                             </tr>
@@ -272,7 +275,7 @@ export default function ForecastGrid({
                         {data.promises_memo.map((p) => (
                             <li key={p.promise_id} className="text-[color:var(--brand-muted-text)]">
                                 <span>{money(p.amount)} {p.currency}</span>
-                                {' → '}{p.promised_date}{' · '}{p.customer_name}
+                                {' → '}{formatDate(p.promised_date, locale)}{' · '}{p.customer_name}
                                 <span className="ml-1 text-xs text-gray-400">{p.chase_code}</span>
                             </li>
                         ))}
@@ -304,7 +307,7 @@ export default function ForecastGrid({
                         onClick={() => {
                             setError(null)
                             startTransition(async () => {
-                                const r = await freezeForecast(data.week_start, reason)
+                                const r = await freezeForecast(formatDate(data.week_start, locale), reason)
                                 if (r.error) setError(r.error)
                             })
                         }}

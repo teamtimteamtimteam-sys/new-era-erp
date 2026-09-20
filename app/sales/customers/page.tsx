@@ -3,7 +3,6 @@
 // 端口自 suppliers 列表,去掉状态筛选(客户没有状态机)。
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
-import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
@@ -17,10 +16,11 @@ import {
     CUSTOMER_PAGE_SIZE,
     type CustomerSortCol,
 } from './customerQuery'
-import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { mustRows } from '@/lib/db-helpers'
+import { formatAuditStamp } from '@/lib/dates'
 
 export default async function CustomersPage({
     searchParams,
@@ -41,8 +41,6 @@ export default async function CustomersPage({
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
-    const locale = await getLocale()
-    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     // 解析并校验 URL 参数(都给安全默认值)—— 与导出路由共用同一份逻辑
     const { q, sort, dir } = parseCustomerListParams(sp)
@@ -136,7 +134,7 @@ export default async function CustomersPage({
             types: c.customer_types?.join(', ') ?? '',
             status: c.status,
             // 时间戳按 locale 格式化在服务端做完 —— dateLocale 不过 RSC 边界
-            createdLabel: formatTimestamp(c.created_at, dateLocale),
+            createdLabel: formatAuditStamp(c.created_at),
         }
     })
 

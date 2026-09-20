@@ -25,6 +25,7 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import ConvertControl from './ConvertControl'
 import DeclineControl from './DeclineControl'
 import QuoteLinesEditor from './QuoteLinesEditor'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 export default async function QuotePage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.sales)
@@ -33,7 +34,6 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
     const { id } = await params
     const t = await getTranslations()
     const locale = await getLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-US'
     const supabase = await createClient()
 
     const q = mustOne(
@@ -148,9 +148,9 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
 
                 <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm mb-6">
                     <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('quotes.colQuoteDate')}: </dt>
-                         <dd className="inline">{new Date(q.quote_date).toLocaleDateString(dl)}</dd></div>
+                         <dd className="inline">{formatDate(q.quote_date, locale)}</dd></div>
                     <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('quotes.colValidUntil')}: </dt>
-                         <dd className="inline">{new Date(q.valid_until).toLocaleDateString(dl)}</dd></div>
+                         <dd className="inline">{formatDate(q.valid_until, locale)}</dd></div>
                     <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colCurrency')}: </dt>
                          <dd className="inline">{q.currency} @ {q.fx_rate}</dd></div>
                     <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('quotes.total')}: </dt>
@@ -209,7 +209,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                             convertible={q.convertible}
                             status={q.status}
                             expired={q.expired}
-                            validUntil={q.valid_until}
+                            validUntil={formatDate(q.valid_until, locale)}
                             convertedOrderCode={q.converted_order_code}
                         />
                         {q.status === 'issued' && <DeclineControl quoteId={q.quote_id} />}
@@ -248,7 +248,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                                 <a href={`/sales/quotes/${q.quote_id}/pdf?version=${i.version}`}
                                    target="_blank" rel="noopener noreferrer"
                                    className="hover:underline app-link app-link-inline">v{i.version}</a>
-                                {' · '}{new Date(i.issued_at).toLocaleString(dl)} · {i.sha256.slice(0, 12)}…
+                                {' · '}{formatAuditStamp(i.issued_at)} · {i.sha256.slice(0, 12)}…
                             </li>
                         ))}
                     </ul>
@@ -258,7 +258,7 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                 <ul className="text-sm space-y-1">
                     {history.map((h, i) => (
                         <li key={i} className="text-[color:var(--brand-muted-text)]">
-                            {new Date(h.changed_at).toLocaleString(dl)}
+                            {formatAuditStamp(h.changed_at)}
                             {/* 动态前缀,后缀集合接 quote_history 的 CHECK(check-i18n 的清单) */}
                             {' · '}{t('quotes.changeType.' + h.change_type)}
                             {h.detail ? ` · ${h.detail}` : ''}

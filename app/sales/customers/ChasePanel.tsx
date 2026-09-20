@@ -21,6 +21,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 type OpenPromise = {
     promise_id: string; chase_id: string; chase_code: string; chased_on: string
@@ -58,6 +60,7 @@ export default function ChasePanel({
     baseCurrency: string
     canEdit: boolean
 }) {
+    const locale = useLocale()
     const t = useTranslations()
     const [open, setOpen] = useState(false)
     // 【日期【不】预填成今天】AGENTS.md:一个记录"世界上哪一天发生了什么"的
@@ -138,7 +141,7 @@ export default function ChasePanel({
                     <span>
                         {c.promise.promised_amount_ccy.toLocaleString()} {c.promise.currency}
                     </span>
-                    <span className="block text-gray-500">→ {c.promise.promised_date}</span>
+                    <span className="block text-gray-500">→ {formatDate(c.promise.promised_date, locale)}</span>
                     {c.promise.outcome && (
                         <span className="block">{t('chases.outcome_' + c.promise.outcome)}</span>
                     )}
@@ -168,7 +171,7 @@ export default function ChasePanel({
                         <div key={p.promise_id} className="mb-3 last:mb-0 text-sm">
                             <div className="flex flex-wrap items-baseline gap-2">
                                 <span>{p.promised_amount_ccy.toLocaleString()} {p.currency}</span>
-                                <span className="text-[color:var(--brand-muted-text)]">→ {p.promised_date}</span>
+                                <span className="text-[color:var(--brand-muted-text)]">→ {formatDate(p.promised_date, locale)}</span>
                                 {p.is_overdue && (
                                     <span className="px-1.5 py-0.5 rounded text-xs bg-red-200 text-red-900">
                                         {t('chases.promiseOverdue')}
@@ -308,7 +311,7 @@ export default function ChasePanel({
             {chases.length > 0 && (
                 <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">
                     {t('chases.owedToday')}: <span>{money(owedToday)} {baseCurrency}</span>
-                    {' · '}{t('chases.frozenNote', { date: chases[0].chased_on })}
+                    {' · '}{t('chases.frozenNote', { date: formatDate(chases[0].chased_on, locale) })}
                 </p>
             )}
         </section>

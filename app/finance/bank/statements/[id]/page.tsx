@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatAmount, formatTimestamp } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
 import DeleteStatementButton from './DeleteStatementButton'
 import UnreconcileControl from './UnreconcileControl'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -17,6 +17,7 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import StatementLinesTable, { type StatementLineRow } from './StatementLinesTable'
 import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 type MatchRow = {
     statement_line_id: string
@@ -146,7 +147,7 @@ export default async function BankStatementDetailPage({
     const tableRows: StatementLineRow[] = rows.map((r) => ({
         id: r.id,
         lineNo: String(r.line_no),
-        lineDate: r.line_date,
+        lineDate: formatDate(r.line_date, dateLocale),
         description: r.description ?? '—',
         reference: r.reference ?? '—',
         amountText: formatAmount(r.amount, null),
@@ -203,7 +204,7 @@ export default async function BankStatementDetailPage({
                             <span>
                                 {t('bank.reconciledBanner', {
                                     when: stmt.reconciled_at
-                                        ? formatTimestamp(stmt.reconciled_at, dateLocale)
+                                        ? formatAuditStamp(stmt.reconciled_at)
                                         : '—',
                                 })}
                             </span>
@@ -222,7 +223,7 @@ export default async function BankStatementDetailPage({
                         <>
                             <p className="text-sm text-[color:var(--brand-text)] mb-1">
                                 {t('bank.record.frozenTitle', {
-                                    when: formatTimestamp(currentRecord.reconciled_at, dateLocale),
+                                    when: formatAuditStamp(currentRecord.reconciled_at),
                                 })}
                             </p>
                             <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm mb-3">
@@ -268,7 +269,7 @@ export default async function BankStatementDetailPage({
                                 </div>
                                 {currentRecord.book_balance_drift !== 0 && (
                                     <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
-                                        {t('bank.record.driftNote', { date: currentRecord.period_end })}
+                                        {t('bank.record.driftNote', { date: formatDate(currentRecord.period_end, dateLocale) })}
                                     </p>
                                 )}
                             </div>
@@ -310,7 +311,7 @@ export default async function BankStatementDetailPage({
                                             <span className="text-[color:var(--brand-muted-text)]">
                                                 {t('bank.record.superseded', {
                                                     when: r.superseded_at
-                                                        ? formatTimestamp(r.superseded_at, dateLocale)
+                                                        ? formatAuditStamp(r.superseded_at)
                                                         : '—',
                                                     reason: r.superseded_reason ?? '—',
                                                 })}
@@ -346,7 +347,7 @@ export default async function BankStatementDetailPage({
                             </>
                         ),
                     },
-                    { label: t('bank.colPeriod'), value: `${stmt.period_start} – ${stmt.period_end}` },
+                    { label: t('bank.colPeriod'), value: `${formatDate(stmt.period_start, dateLocale)} – ${formatDate(stmt.period_end, dateLocale)}` },
                     { label: t('bank.colOpening'), value: formatAmount(stmt.opening_balance, stmt.currency), mono: true },
                     {
                         label: t('bank.colClosing'),
@@ -372,7 +373,7 @@ export default async function BankStatementDetailPage({
                         ),
                     },
                     ...(stmt.reconciled_at
-                        ? [{ label: t('bank.reconciledAt'), value: formatTimestamp(stmt.reconciled_at, dateLocale) }]
+                        ? [{ label: t('bank.reconciledAt'), value: formatAuditStamp(stmt.reconciled_at) }]
                         : []),
                 ]}
                 actions={stmt.status === 'open' ? <DeleteStatementButton canEdit={canEditGate} statementId={stmt.id} subject={stmt.code} /> : undefined}

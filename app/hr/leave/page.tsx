@@ -15,6 +15,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import LeaveRequestsTable, { type LeaveRequestRow } from './LeaveRequestsTable'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { formatDate } from '@/lib/dates'
 
 type Row = {
     request_id: string
@@ -83,8 +84,8 @@ export default async function LeaveRequestsPage({
             employeeLabel: e ? `${e.code} — ${e.legal_name}` : '—',
             // 假期类型名的语言在服务端选好 —— locale 不过 RSC 边界
             typeLabel: ty ? (locale === 'zh' ? ty.name_zh : ty.name_en) : r.leave_type_code,
-            startDate: r.start_date,
-            endDate: r.end_date,
+            startDate: formatDate(r.start_date, locale),
+            endDate: formatDate(r.end_date, locale),
             days: r.days,
             status: r.status,
         }

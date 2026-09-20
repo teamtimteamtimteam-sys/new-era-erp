@@ -12,6 +12,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import StocktakesTable, { type StocktakeRow } from './StocktakesTable'
 import { Button } from '@/app/components/ui/button'
+import { formatAuditStamp } from '@/lib/dates'
 
 const STOCKTAKE_PAGE_SIZE = 20
 
@@ -93,7 +94,7 @@ export default async function StocktakesPage({
         code: r.code,
         statusLabel: statusLabel(r.status),
         // 时间戳按 locale 格式化在服务端做完 —— dateLocale 不过 RSC 边界
-        startedLabel: formatTimestamp(r.started_at, dateLocale),
+        startedLabel: formatAuditStamp(r.started_at),
         postedLabel: r.posted_at ? formatTimestamp(r.posted_at, dateLocale) : null,
         notes: r.notes ?? '—',
     }))

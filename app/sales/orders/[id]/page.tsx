@@ -14,6 +14,7 @@ import OrderInvoiceSection from './OrderInvoiceSection'
 import ShippingSection from './ShippingSection'
 import OrderLinesTable, { type OrderLineRow } from './OrderLinesTable'
 import { Button } from '@/app/components/ui/button'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 export default async function SalesOrderPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.sales)
@@ -74,7 +75,6 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
             .eq('sales_order_id', id).order('version', { ascending: false }),
         'so_issues') as { version: number; file_path: string; sha256: string; issued_at: string }[]
 
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-US'
     const nextStates = SO_ALLOWED_NEXT[o.status] ?? []
 
     // ════════════════════════════════════════════════════════════════════════
@@ -123,7 +123,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
 
                 <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm mb-6">
                     <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colDate')}: </dt>
-                         <dd className="inline">{new Date(o.order_date).toLocaleDateString(dl)}</dd></div>
+                         <dd className="inline">{formatDate(o.order_date, locale)}</dd></div>
                     <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colCurrency')}: </dt>
                          <dd className="inline">{o.currency} @ {o.fx_rate}</dd></div>
                     {fromQuoteCode && (
@@ -244,7 +244,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                                    rel="noopener noreferrer" className="hover:underline app-link app-link-inline">
                                     v{i.version}
                                 </a>
-                                {' · '}{new Date(i.issued_at).toLocaleString(dl)} · {i.sha256.slice(0, 12)}…
+                                {' · '}{formatAuditStamp(i.issued_at)} · {i.sha256.slice(0, 12)}…
                             </li>
                         ))}
                     </ul>
@@ -262,7 +262,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                             moves.push(`@ ${h.old_unit_price ?? '—'} → ${h.new_unit_price ?? '—'}`)
                         return (
                             <li key={i} className="text-[color:var(--brand-muted-text)]">
-                                {new Date(h.changed_at).toLocaleString(dl)}
+                                {formatAuditStamp(h.changed_at)}
                                 {/* 动态前缀,后缀集合接 sales_order_history 的 CHECK(check-i18n 的清单) */}
                                 {' · '}{t('sales.changeType.' + h.change_type)}
                                 {h.line_no !== null ? ` · #${h.line_no}` : ''}

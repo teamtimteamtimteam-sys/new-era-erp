@@ -24,6 +24,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { formatDate } from '@/lib/dates'
 
 const PAGE_SIZE = 20
 
@@ -152,7 +153,7 @@ export default async function ExpensesListPage({
     const tableRows: ExpenseRow[] = rows.map((r) => ({
         id: r.id,
         code: r.code,
-        expenseDate: r.expense_date,
+        expenseDate: formatDate(r.expense_date, locale),
         accountCode: r.account_code,
         accountName: accountNameByCode.get(r.account_code) ?? '',
         amountCcy: r.amount_ccy,

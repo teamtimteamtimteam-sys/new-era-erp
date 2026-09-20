@@ -20,6 +20,8 @@ import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 export type StatementLine = {
     id: string
@@ -97,6 +99,7 @@ canEdit
 
 canEdit: boolean
 }) {
+    const locale = useLocale()
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState<string | null>(null)
@@ -255,7 +258,7 @@ canEdit: boolean
                         >
                             <div className="flex items-center gap-3">
                                 <span className="text-gray-400 w-8 shrink-0">{line.line_no}</span>
-                                <span className="w-24 shrink-0">{line.line_date}</span>
+                                <span className="w-24 shrink-0">{formatDate(line.line_date, locale)}</span>
                                 <span className="flex-1 min-w-0 truncate">{line.description ?? '—'}</span>
                                 <span className="w-24 shrink-0 text-xs text-[color:var(--brand-muted-text)] truncate">
                                     {line.reference ?? ''}
@@ -340,7 +343,7 @@ canEdit: boolean
                         <span className="text-[color:var(--brand-muted-text)] ml-2">{ccy}</span>
                     </span>
                     <span>
-                        {statement.period_start} – {statement.period_end}
+                        {formatDate(statement.period_start, locale)} – {formatDate(statement.period_end, locale)}
                     </span>
                     <span>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('bank.colOpening')}:</span>
@@ -381,7 +384,7 @@ canEdit: boolean
                 <div className="flex flex-wrap items-baseline gap-x-3 mb-2">
                     <h2 className="">{t('bank.balancePanel.title')}</h2>
                     <span className="text-xs text-[color:var(--brand-muted-text)]">
-                        {t('bank.balancePanel.asOf', { date: statement.period_end })}
+                        {t('bank.balancePanel.asOf', { date: formatDate(statement.period_end, locale) })}
                     </span>
                 </div>
                 <div className="flex flex-wrap gap-x-8 gap-y-1 text-sm mb-2">
@@ -580,7 +583,7 @@ canEdit: boolean
                                                 >
                                                     {c.entry_code}
                                                 </Link>
-                                                <span className="w-24 shrink-0">{c.entry_date}</span>
+                                                <span className="w-24 shrink-0">{formatDate(c.entry_date, locale)}</span>
                                                 <span className="flex-1 min-w-0 truncate">{c.memo ?? '—'}</span>
                                                 <span className="w-24 shrink-0 text-xs text-[color:var(--brand-muted-text)]">
                                                     {c.source_type ? t('finance.source.' + c.source_type) : '—'}

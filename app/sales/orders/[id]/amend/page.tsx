@@ -22,8 +22,11 @@ import { mustRows, mustOne } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { requireEditPermission } from '@/app/components/moduleGuard'
 import AmendOrderForm, { type AmendLine } from './AmendOrderForm'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function AmendSalesOrderPage({ params }: { params: Promise<{ id: string }> }) {
+    const locale = await getLocale()
     const denied = await requireEditPermission('module.sales.edit', 'nav.sales')
     if (denied) return denied
 
@@ -149,7 +152,7 @@ export default async function AmendSalesOrderPage({ params }: { params: Promise<
                     status={o.status}
                     currency={o.currency}
                     customerLabel={o.customers ? `${o.customers.code} — ${o.customers.legal_name}` : '—'}
-                    orderDate={o.order_date}
+                    orderDate={formatDate(o.order_date, locale)}
                     fxRate={String(o.fx_rate)}
                     notes={o.notes ?? ''}
                     termsText={o.terms_text ?? ''}

@@ -13,6 +13,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import FreightTable, { type FreightRow } from './FreightTable'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type FreightQueryRow = {
     id: string
@@ -26,6 +28,7 @@ type FreightQueryRow = {
 }
 
 export default async function FreightListPage() {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
@@ -47,7 +50,7 @@ export default async function FreightListPage() {
     const tableRows: FreightRow[] = rows.map((r) => ({
         id: r.id,
         code: r.code,
-        docDate: r.doc_date,
+        docDate: formatDate(r.doc_date, locale),
         forwarder: r.suppliers?.legal_name ?? '—',
         amountBase: r.amount_base,
         baseCurrency,

@@ -26,6 +26,7 @@ import { can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import HandoversTable, { type HandoverRow } from './HandoversTable'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 export default async function HandoversPage() {
     const denied = await requireModule(MOD.processing)
@@ -33,7 +34,6 @@ export default async function HandoversPage() {
 
     const t = await getTranslations()
     const locale = await getLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-US'
     const supabase = await createClient()
     const canEdit = await can('module.processing.edit')
 
@@ -76,7 +76,7 @@ export default async function HandoversPage() {
 
     const tableRows: HandoverRow[] = rows.map((r) => ({
         id: r.id,
-        handoverDate: r.handover_date,
+        handoverDate: formatDate(r.handover_date, locale),
         shiftLabel: shiftOf(r.shift_code),
         fromName: nameOf(r.outgoing_employee_id),
         toName: nameOf(r.incoming_employee_id),
@@ -85,7 +85,7 @@ export default async function HandoversPage() {
         acknowledgedLabel: r.acknowledged_at
             ? t('processing.handover.acknowledgedBy', {
                   who: nameOf(r.acknowledged_by),
-                  when: new Date(r.acknowledged_at).toLocaleString(dl),
+                  when: formatAuditStamp(r.acknowledged_at),
               })
             : null,
     }))

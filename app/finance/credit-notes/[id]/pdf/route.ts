@@ -18,10 +18,13 @@ import CreditNoteDocument, { type CnDocData } from './CreditNoteDocument'
 import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 import { loadDocumentCompany, companyPdfStrings, COMPANY_MISSING_MESSAGE } from '@/app/components/pdf/company'
 import { localizeCreditNoteError } from '../../../creditNoteErrorCodes'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'cn-documents'
 
 async function loadDoc(id: string): Promise<CnDocData | null> {
+    const locale = await getLocale()
     const supabase = await createClient()
     const cn = mustOne(
         await supabase.from('credit_notes')
@@ -60,11 +63,11 @@ async function loadDoc(id: string): Promise<CnDocData | null> {
     const bill = inv.bill_to_snapshot ?? {}
     return {
         code: cn.code,
-        note_date: cn.note_date,
+        note_date: formatDate(cn.note_date, locale),
         reason: cn.reason,
         currency: cn.currency,
         invoice_code: inv.code,
-        invoice_issue_date: inv.issue_date,
+        invoice_issue_date: formatDate(inv.issue_date, locale),
         customer: {
             code: bill.code ?? '—',
             legal_name: bill.legal_name ?? '—',

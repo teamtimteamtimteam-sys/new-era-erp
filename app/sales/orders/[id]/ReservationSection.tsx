@@ -13,13 +13,14 @@
 // 全部理由(0 与"你看不见"在屏幕上一模一样)。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { soStatusKey } from '../salesOrderTypes'
 import ReserveControl, { type BucketOption } from './ReserveControl'
 import ReleaseControl from './ReleaseControl'
 import { Button } from '@/app/components/ui/button'
+import { formatAuditStamp } from '@/lib/dates'
 
 export type ReservationLine = {
     id: string
@@ -63,8 +64,6 @@ export default async function ReservationSection({
     lines: ReservationLine[]
 }) {
     const t = await getTranslations()
-    const locale = await getLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-US'
     const supabase = await createClient()
 
     const lineIds = lines.map((l) => l.id)
@@ -270,7 +269,7 @@ export default async function ReservationSection({
                                             <li key={r.id}>
                                                 <span>{r.output_batches?.code ?? '—'}</span>{' '}
                                                 {r.qty} {r.output_batches?.unit ?? l.unit} ·{' '}
-                                                {new Date(r.released_at as string).toLocaleString(dl)} ·{' '}
+                                                {formatAuditStamp(r.released_at)} ·{' '}
                                                 {r.release_reason}
                                             </li>
                                         ))}

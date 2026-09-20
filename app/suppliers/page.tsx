@@ -2,7 +2,6 @@
 // 供应商列表页:URL 驱动的搜索 / 状态筛选 / 排序(全部在服务端的 Supabase 查询里完成)
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
-import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import DeleteButton from './DeleteButton'
@@ -16,9 +15,10 @@ import {
     SUPPLIER_PAGE_SIZE,
     type SupplierSortCol,
 } from './supplierQuery'
-import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
+import { formatAuditStamp } from '@/lib/dates'
 
 export default async function SuppliersPage({
     searchParams,
@@ -40,8 +40,6 @@ export default async function SuppliersPage({
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
-    const locale = await getLocale()
-    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     // 解析并校验 URL 参数(都给安全默认值)—— 与导出路由共用同一份逻辑
     const { q, status, sort, dir } = parseSupplierListParams(sp)
@@ -113,7 +111,7 @@ export default async function SuppliersPage({
         types: s.supplier_types?.join(', ') ?? '',
         status: s.status,
         // 时间戳按 locale 格式化在服务端做完 —— dateLocale 不过 RSC 边界
-        createdLabel: formatTimestamp(s.created_at, dateLocale),
+        createdLabel: formatAuditStamp(s.created_at),
     }))
 
     const filterQuery: Record<string, string> = {}

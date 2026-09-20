@@ -14,8 +14,11 @@ import { can } from '@/lib/permissions'
 import { Refusal } from '@/app/components/ui/refusal'
 import { formatAmount } from '@/lib/format'
 import ForwarderPanels from './ForwarderPanels'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function ForwarderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const locale = await getLocale()
     const denied = await requireModule(MOD.logistics)
     if (denied) return denied
     const canEditGate = await can('module.purchasing.edit')
@@ -162,8 +165,8 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                     lane_id: q.lane_id as string,
                     amount_ccy: String(q.amount_ccy),
                     currency: q.currency as string,
-                    valid_from: q.valid_from as string,
-                    valid_to: q.valid_to as string,
+                    valid_from: formatDate(q.valid_from, locale),
+                    valid_to: formatDate(q.valid_to, locale),
                     // 【null 要原样传到底】—— 用 ?? 0 顶一下,三态就在这里塌成两态
                     free_days: q.free_days === null ? null : Number(q.free_days),
                 }))}
@@ -216,7 +219,7 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                                         <td className="border border-gray-300 px-3 py-1 text-xs text-gray-600">
                                             {t('finance.freight.directionShort.' + (f.direction as string))}
                                         </td>
-                                        <td className="border border-gray-300 px-3 py-1">{f.doc_date}</td>
+                                        <td className="border border-gray-300 px-3 py-1">{formatDate(f.doc_date, locale)}</td>
                                         <td className="border border-gray-300 px-3 py-1 text-right tabular-nums">
                                             {formatAmount(Number(f.amount_ccy), f.currency as string)}
                                         </td>

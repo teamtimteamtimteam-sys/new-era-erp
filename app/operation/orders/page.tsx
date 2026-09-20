@@ -23,6 +23,7 @@ import { workOrderStatusKey } from './woTypes'
 import WoThresholdPanel from './WoThresholdPanel'
 import { ListPage } from '@/app/components/ui/list-page'
 import WorkOrdersTable, { type WorkOrderRow } from './WorkOrdersTable'
+import { formatDate } from '@/lib/dates'
 
 export default async function WorkOrdersPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
@@ -31,7 +32,6 @@ export default async function WorkOrdersPage() {
 
     const t = await getTranslations()
     const locale = await getLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-US'
     const supabase = await createClient()
 
     const orders = mustRows(
@@ -80,7 +80,7 @@ export default async function WorkOrdersPage() {
             code: o.code,
             statusLabel: t(workOrderStatusKey(o.status)),
             // 日期按 locale 格式化在服务端做完 —— dl 不过 RSC 边界
-            scheduledLabel: o.scheduled_date ? new Date(o.scheduled_date).toLocaleDateString(dl) : null,
+            scheduledLabel: o.scheduled_date ? formatDate(o.scheduled_date, locale) : null,
             progressLabel: !p || p.planned === 0 ? null : `${p.consumed} / ${p.planned}`,
             unplannedMaterials: p?.unplannedMaterials ?? 0,
             notes: o.notes ?? '—',

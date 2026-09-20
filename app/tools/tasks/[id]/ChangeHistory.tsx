@@ -1,6 +1,7 @@
 import { getTranslations } from '@/lib/i18n/server'
 import ActorName, { type ActorNameMap } from '@/app/components/ActorName'
 import ChangeHistoryTable, { type ChangeHistoryTableRow } from './ChangeHistoryTable'
+import { formatAuditStamp } from '@/lib/dates'
 
 // app/tools/tasks/[id]/ChangeHistory.tsx
 // TASK-1b:【变更记录】。只读,倒序,形状照 MovementTimeline。
@@ -69,7 +70,7 @@ export default async function ChangeHistory({
     //   不能、也不该在客户端重写。所以这里把它渲染好,当 ReactNode 递过去。
     const tableRows: ChangeHistoryTableRow[] = rows.map((r) => ({
         id: r.id,
-        when: r.changed_at.slice(0, 16).replace('T', ' '),
+        when: formatAuditStamp(r.changed_at),
         what: t('tasks.history.type.' + r.change_type),
         detail: detail(r),
         // 【空绝不留空】:没有 changed_by 的那一行是本模块开始记人之前留下的,

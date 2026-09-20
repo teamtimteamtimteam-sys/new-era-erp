@@ -8,7 +8,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatAmount, formatMoneyBare, formatTimestamp } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
 import AttributeCustomerControl from './AttributeCustomerControl'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { unmasked } from '@/lib/maskedRows'
@@ -21,6 +21,7 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import SettlementHistoryTable, { type SettlementRow } from '@/app/components/finance/SettlementHistoryTable'
 import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 type AllocRow = {
     id: string
@@ -129,7 +130,7 @@ export default async function ReceivableDocPage({
         mime_type: a.mime_type,
         doc_type: a.doc_type,
         notes: a.notes,
-        created_at_display: formatTimestamp(a.created_at, dateLocale),
+        created_at_display: formatAuditStamp(a.created_at),
     }))
 
     const journals = [
@@ -163,7 +164,7 @@ export default async function ReceivableDocPage({
         id: a.id,
         paymentCode: a.payments?.code ?? '—',
         paymentHref: a.payments ? `/finance/payments/${a.payments.id}` : null,
-        paymentDate: a.payments?.payment_date ?? '—',
+        paymentDate: formatDate(a.payments?.payment_date, dateLocale) ?? '—',
         allocatedText: formatAmount(a.allocated_base, baseCurrency),
         reversed: a.payments?.status === 'reversed',
     }))
@@ -218,7 +219,7 @@ export default async function ReceivableDocPage({
                         ),
                     },
                     { label: t('finance.colCounterparty'), value: customerRes.data?.legal_name ?? '—' },
-                    { label: t('finance.colDate'), value: sale.sale_date },
+                    { label: t('finance.colDate'), value: formatDate(sale.sale_date, dateLocale) },
                     {
                         label: t('finance.amount'),
                         value: (
@@ -253,7 +254,7 @@ export default async function ReceivableDocPage({
                   恒为 'ok',children 永远画,所以它不可能被空分支吃掉。 */}
             {attributable && (
                 <div className="mb-6">
-                    <AttributeCustomerControl canEdit={canEditGate} saleId={sale.id} subject={batch ? `${batch.code} · ${sale.sale_date}` : sale.sale_date} customers={customerOptions} />
+                    <AttributeCustomerControl canEdit={canEditGate} saleId={sale.id} subject={batch ? `${batch.code} · ${formatDate(sale.sale_date, dateLocale)}` : formatDate(sale.sale_date, dateLocale)} customers={customerOptions} />
                 </div>
             )}
 

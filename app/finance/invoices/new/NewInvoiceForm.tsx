@@ -12,6 +12,7 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { tableC } from '@/app/components/ui/table-style'
+import { formatDate } from '@/lib/dates'
 
 const initialState: CreateInvoiceState = {}
 
@@ -332,7 +333,7 @@ canEdit: boolean
                                             </div>
                                         </div>
                                     </td>
-                                    <td className={tableC.cell}>{s.sale_date}</td>
+                                    <td className={tableC.cell}>{formatDate(s.sale_date, locale)}</td>
                                     <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
                                         {s.quantity} {s.unit}
                                     </td>

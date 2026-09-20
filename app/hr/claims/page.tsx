@@ -15,10 +15,13 @@ import { ListPage } from '@/app/components/ui/list-page'
 import ClaimsTable, { type ClaimRow } from './ClaimsTable'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function ClaimsPage({
     searchParams,
 }: { searchParams: Promise<{ status?: string; employee?: string; year?: string }> }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.hr)
@@ -45,7 +48,7 @@ export default async function ClaimsPage({
         claimId: r.claim_id as string,
         code: r.code as string,
         employeeLabel: `${r.employee_code} — ${r.legal_name}`,
-        claimDate: r.claim_date as string,
+        claimDate: r.claim_date ? formatDate(r.claim_date, locale) : '—',
         amountSgd: Number(r.amount_sgd).toFixed(2),
         settlementState: (r.settlement_state ?? '') as string,
         expenseCode: (r.expense_code ?? '—') as string,

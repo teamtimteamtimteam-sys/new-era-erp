@@ -31,6 +31,7 @@ import {
     type ChainTableRow,
     type RecoveryTableRow,
 } from './TraceabilityTables'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 export type IssueRow = { code: string; version: number; issued_at: string; sha256: string }
 
@@ -49,7 +50,6 @@ export default async function TraceabilitySection({
 }) {
     const t = await getTranslations()
     const locale = await getLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-SG'
     const pdfHref = `/output/${batchId}/traceability/pdf`
 
     const failed = 'error' in report
@@ -82,7 +82,7 @@ export default async function TraceabilitySection({
               quantityConsumed: String(c.quantity_consumed),
               supplierCode: c.supplier_code,
               supplierName: c.supplier_name,
-              arrivalDate: c.arrival_date ?? '—',
+              arrivalDate: formatDate(c.arrival_date, locale) ?? '—',
           }))
 
     const recoveryRows: RecoveryTableRow[] = failed
@@ -164,7 +164,7 @@ export default async function TraceabilitySection({
                                 {iss.code} v{iss.version}
                             </a>
                             {' · '}
-                            {new Date(iss.issued_at).toLocaleString(dl)} · {iss.sha256.slice(0, 12)}…
+                            {formatAuditStamp(iss.issued_at)} · {iss.sha256.slice(0, 12)}…
                         </li>
                     ))}
                 </ul>

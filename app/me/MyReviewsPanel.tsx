@@ -24,6 +24,7 @@ import type { GoalRow, ReviewRow } from '@/app/hr/reviews/reviewShared'
 import type { RatingOption } from '@/app/hr/reviews/ConclusionForm'
 import { Button } from '@/app/components/ui/button'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { formatDate } from '@/lib/dates'
 
 export default function MyReviewsPanel({
     reviews,
@@ -101,7 +102,7 @@ export default function MyReviewsPanel({
                         <summary className="cursor-pointer px-4 py-3 text-sm flex items-baseline gap-3 flex-wrap">
                             <span className="font-medium">{t(`reviews.type_${r.review_type}`)}</span>
                             <span className="text-xs text-[color:var(--brand-muted-text)]">
-                                {r.period_start} → {r.period_end}
+                                {formatDate(r.period_start, locale)} → {formatDate(r.period_end, locale)}
                             </span>
                             <span className="font-medium">{ratingName(r.rating_code)}</span>
                             {r.status === 'approved' ? (
@@ -145,7 +146,7 @@ export default function MyReviewsPanel({
                                         </span>
                                         {r.salary_effective_date && (
                                             <span className="ml-2 text-[color:var(--brand-muted-text)]">
-                                                {t('reviews.salaryEffective')} {r.salary_effective_date}
+                                                {t('reviews.salaryEffective')} {formatDate(r.salary_effective_date, locale)}
                                             </span>
                                         )}
                                     </div>

@@ -8,7 +8,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatAmount, formatMoneyBare, formatTimestamp } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
 import ReversePaymentButton from './ReversePaymentButton'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { mustRows } from '@/lib/db-helpers'
@@ -18,6 +18,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader, type RecordField } from '@/app/components/ui/record-header'
 import PaymentAllocationsTable, { type PaymentAllocRow } from './PaymentAllocationsTable'
 import { can } from '@/lib/permissions'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 type AllocRow = {
     id: string
@@ -185,7 +186,7 @@ export default async function PaymentDetailPage({
         mime_type: a.mime_type,
         doc_type: a.doc_type,
         notes: a.notes,
-        created_at_display: formatTimestamp(a.created_at, dateLocale),
+        created_at_display: formatAuditStamp(a.created_at),
     }))
 
 
@@ -217,7 +218,7 @@ export default async function PaymentDetailPage({
     // 抬头字段逐页不同 —— RecordHeader 只管盒子(见组件抬头)。
     const fields: RecordField[] = [
         { label: t('finance.colCode'), value: payment.code, mono: true },
-        { label: t('finance.paymentDate'), value: payment.payment_date },
+        { label: t('finance.paymentDate'), value: formatDate(payment.payment_date, dateLocale) },
         {
             // finance.side —— 与 /finance/payments 列表页那一列同一个键,不新造。
             label: t('finance.side'),

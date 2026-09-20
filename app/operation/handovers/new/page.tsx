@@ -6,6 +6,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import NewHandoverForm from './NewHandoverForm'
+import { formatAuditStamp } from '@/lib/dates'
 
 export default async function NewHandoverPage() {
     // 与 /operation/orders/new 同一形状:模块把关在这里,
@@ -63,7 +64,7 @@ export default async function NewHandoverPage() {
                 }))}
                 downtime={downtime.map((d) => ({
                     id: d.id,
-                    label: `${new Date(d.started_at).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US')} — ${d.reason}`
+                    label: `${formatAuditStamp(d.started_at)} — ${d.reason}`
                         + (d.ended_at ? '' : ` (${t('processing.handover.downtimeOngoing')})`),
                 }))}
             />

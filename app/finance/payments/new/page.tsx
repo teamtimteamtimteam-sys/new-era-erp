@@ -14,6 +14,8 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 // 视图列生成类型全可空;行进视图即非空,取用列本地锁死
 type ArItem = {
@@ -45,6 +47,7 @@ export default async function NewPaymentPage({
 }: {
     searchParams: Promise<{ direction?: string; supplier?: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -184,7 +187,7 @@ export default async function NewPaymentPage({
         doc_kind: (r.doc_kind === 'invoice' ? 'invoice' : 'sale') as OpenItem['doc_kind'],
         party_id: r.customer_id ?? '',
         doc_code: r.doc_code,
-        doc_date: r.sale_date,
+        doc_date: formatDate(r.sale_date, locale),
         open_ccy: r.open_ccy,
         currency: r.currency,
     }))
@@ -193,7 +196,7 @@ export default async function NewPaymentPage({
         doc_kind: r.doc_kind,
         party_id: r.counterparty_id,
         doc_code: r.doc_code,
-        doc_date: r.doc_date,
+        doc_date: formatDate(r.doc_date, locale),
         open_ccy: r.open_ccy,
         currency: r.currency,
     }))
@@ -209,7 +212,7 @@ export default async function NewPaymentPage({
         po_id: r.po_id,
         party_id: r.supplier_id ?? '',
         code: r.code,
-        order_date: r.order_date,
+        order_date: formatDate(r.order_date, locale),
         estimated_total_ccy: r.estimated_total_ccy,
         prepaid_base: r.prepaid_base,
         currency: r.currency,

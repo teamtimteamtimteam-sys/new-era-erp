@@ -6,6 +6,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { notFound } from 'next/navigation'
 import CommissionForm, { type Agent, type Currency } from '../../CommissionForm'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type Row = {
     id: string; agent_supplier_id: string; side: string; basis: string
@@ -15,6 +17,7 @@ type Row = {
 }
 
 export default async function EditCommissionPage({ params }: { params: Promise<{ id: string }> }) {
+    const locale = await getLocale()
     const denied = await requireModule(MOD.suppliers)
     if (denied) return denied
 
@@ -63,8 +66,8 @@ export default async function EditCommissionPage({ params }: { params: Promise<{
                     amount_ccy: row.amount_ccy === null ? '' : String(row.amount_ccy),
                     currency: row.currency ?? '',
                     recognition_trigger: row.recognition_trigger,
-                    valid_from: row.valid_from,
-                    valid_to: row.valid_to,
+                    valid_from: formatDate(row.valid_from, locale),
+                    valid_to: formatDate(row.valid_to, locale),
                     remarks: row.remarks ?? '',
                 }}
             />

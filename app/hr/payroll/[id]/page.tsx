@@ -16,12 +16,15 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import PayrollLinesTable, { type PayrollLineRow } from './PayrollLinesTable'
 import { Button } from '@/app/components/ui/button'
+import { formatDate, formatMonth } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function PayrollDetailPage({
     params,
 }: {
     params: Promise<{ id: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.hr)
@@ -116,7 +119,7 @@ export default async function PayrollDetailPage({
                 <>
                     {t('hr.payrollDetailTitle')}
                     <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">
-                        {period.period_month?.slice(0, 7)}
+                        {formatMonth(period.period_month, locale)}
                     </span>
                     <span className="ml-2 text-sm text-gray-400">{period.code}</span>
                 </>
@@ -135,7 +138,7 @@ export default async function PayrollDetailPage({
                         </Button>
                         <PostPayrollButton
                             periodId={id}
-                            subject={`${period.period_month?.slice(0, 7)} · ${period.code}`}
+                            subject={`${formatMonth(period.period_month, locale)} · ${period.code}`}
                             currency={period.currency}
                             bankAccount={bankAccount}
                             totals={{
@@ -156,7 +159,7 @@ export default async function PayrollDetailPage({
                 标题那一排(见 actions),所以抬头不给 actions 槽。 */}
             <RecordHeader
                 fields={[
-                    { label: t('hr.colPaymentDate'), value: period.payment_date },
+                    { label: t('hr.colPaymentDate'), value: formatDate(period.payment_date, locale) },
                     { label: t('hr.colCurrency'), value: `${period.currency} @ ${period.fx_rate}`, mono: true },
                     {
                         // hr.colStatus —— 工资期间列表页同一件事的现成键,不新造。
@@ -218,7 +221,7 @@ export default async function PayrollDetailPage({
 
             {/* ★ 出口检查:反过账控件只在已过账时出现,住 children;
                   state 恒为 'ok',所以它不可能被空分支吃掉。 */}
-            {isPosted && <UnpostPayrollControl periodId={id} subject={`${period.period_month?.slice(0, 7)} · ${period.code}`} />}
+            {isPosted && <UnpostPayrollControl periodId={id} subject={`${formatMonth(period.period_month, locale)} · ${period.code}`} />}
         </ListPage>
     )
 }

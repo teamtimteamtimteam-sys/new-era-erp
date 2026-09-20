@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatAmount, formatTimestamp } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
 import { checkInvoicePdfCoverage } from '@/lib/pdfFontCoverage'
 import VoidInvoiceControl from './VoidInvoiceControl'
 import CreditNoteSection from './CreditNoteSection'
@@ -25,6 +25,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
 import { Alert } from '@/app/components/ui/alert'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 type BillTo = {
     code?: string | null
@@ -176,8 +177,8 @@ export default async function InvoiceDetailPage({
             ? checkInvoicePdfCoverage({
                   invoice: {
                       code: inv.code,
-                      issue_date: inv.issue_date,
-                      due_date: inv.due_date,
+                      issue_date: formatDate(inv.issue_date, dateLocale),
+                      due_date: formatDate(inv.due_date, dateLocale),
                       payment_terms_days: inv.payment_terms_days,
                       currency: inv.currency,
                       tax_rate_pct: Number(inv.tax_rate_pct),
@@ -241,7 +242,7 @@ export default async function InvoiceDetailPage({
         id: a.id,
         paymentCode: a.payments?.code ?? '—',
         paymentHref: a.payments ? `/finance/payments/${a.payments.id}` : null,
-        paymentDate: a.payments?.payment_date ?? '—',
+        paymentDate: formatDate(a.payments?.payment_date, dateLocale) ?? '—',
         allocatedText: formatAmount(a.allocated_ccy, inv.currency),
         reversed: a.payments?.status === 'reversed',
     }))
@@ -393,7 +394,7 @@ export default async function InvoiceDetailPage({
             {isVoid && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
                     {t('invoice.voidedBanner', {
-                        date: inv.voided_at ? formatTimestamp(inv.voided_at, dateLocale) : '—',
+                        date: inv.voided_at ? formatAuditStamp(inv.voided_at) : '—',
                         reason: inv.void_reason ?? '—',
                     })}
                 </div>
@@ -426,11 +427,11 @@ export default async function InvoiceDetailPage({
                     </div>
                     <div className="flex justify-between">
                         <span className="text-[color:var(--brand-muted-text)]">{t('invoice.colIssueDate')}</span>
-                        <span>{inv.issue_date}</span>
+                        <span>{formatDate(inv.issue_date, dateLocale)}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-[color:var(--brand-muted-text)]">{t('invoice.colDueDate')}</span>
-                        <span>{inv.due_date}</span>
+                        <span>{formatDate(inv.due_date, dateLocale)}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-[color:var(--brand-muted-text)]">{t('invoice.form.termsDays')}</span>
@@ -558,7 +559,7 @@ export default async function InvoiceDetailPage({
                                     <a href={`/finance/invoices/${inv.id}/pdf?version=${iss.version}`}
                                        target="_blank" rel="noopener noreferrer"
                                        className="hover:underline app-link app-link-inline">v{iss.version}</a>
-                                    {' · '}{formatTimestamp(iss.issued_at, dateLocale)}
+                                    {' · '}{formatAuditStamp(iss.issued_at)}
                                     {' · '}<ActorName userId={iss.issued_by} names={issuerNames} />
                                     {' · '}{iss.sha256.slice(0, 12)}…
                                 </li>

@@ -3,10 +3,9 @@
 // open = 点数界面(汇总条 + 已盘/未盘列表 + 底部粘性操作条);posted/cancelled = 只读行表。
 import { Button } from '@/app/components/ui/button'
 import Link from 'next/link'
-import { formatTimestamp } from '@/lib/format'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { getTranslations } from '@/lib/i18n/server'
 import { stocktakeStatusLabelKey } from '../status'
 import { qtyDelta, formatSigned } from '../delta'
 import CountList, { type CountItem } from '../CountList'
@@ -16,6 +15,7 @@ import { mustRows } from '@/lib/db-helpers'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { formatAuditStamp } from '@/lib/dates'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type BatchFetchRow = {
@@ -39,8 +39,6 @@ export default async function StocktakeDetailPage({
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()
-    const locale = await getLocale()
-    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const [stRes, linesRes, inboundRes, outputRes] = await Promise.all([
         supabase
@@ -181,7 +179,7 @@ export default async function StocktakeDetailPage({
                     <>
                         <span className="mx-2">·</span>
                         <span>
-                            {t('stocktakes.cancelledAt')}: {formatTimestamp(st.cancelled_at, dateLocale)}
+                            {t('stocktakes.cancelledAt')}: {formatAuditStamp(st.cancelled_at)}
                             {' · '}
                             <ActorName userId={st.cancelled_by} names={cancelNames} />
                         </span>
@@ -191,7 +189,7 @@ export default async function StocktakeDetailPage({
                     <>
                         <span className="mx-2">·</span>
                         <span>
-                            {t('stocktakes.colPosted')}: {formatTimestamp(st.posted_at, dateLocale)}
+                            {t('stocktakes.colPosted')}: {formatAuditStamp(st.posted_at)}
                         </span>
                     </>
                 )}

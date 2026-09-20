@@ -17,10 +17,13 @@ import SalesOrderDocument, { type SoDocData } from './SalesOrderDocument'
 import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 import { loadDocumentCompany, companyPdfStrings, COMPANY_MISSING_MESSAGE } from '@/app/components/pdf/company'
 import { localizeSalesOrderError } from '../../salesOrderErrorCodes'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'so-documents'
 
 async function loadDoc(id: string): Promise<SoDocData | null> {
+    const locale = await getLocale()
     const supabase = await createClient()
     const o = mustOne(
         await supabase.from('sales_orders')
@@ -38,7 +41,7 @@ async function loadDoc(id: string): Promise<SoDocData | null> {
             line_no: number; quantity: number; unit_price: number
             materials: { code: string; name: string } | null }[]
     return {
-        code: row.code, status: row.status, order_date: row.order_date, currency: row.currency,
+        code: row.code, status: row.status, order_date: formatDate(row.order_date, locale), currency: row.currency,
         customer: row.customers ?? { code: '—', legal_name: '—' },
         lines: lines.map((l) => ({
             line_no: l.line_no, quantity: l.quantity, unit_price: l.unit_price,

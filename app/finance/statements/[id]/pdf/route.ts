@@ -22,6 +22,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import StatementDocument, { type StatementDocData, type StatementLine } from './StatementDocument'
 import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 import { localizeStatementError } from '../../statementErrorCodes'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'statement-documents'
 
@@ -37,6 +39,7 @@ type Row = {
 }
 
 async function loadDoc(id: string): Promise<StatementDocData | null> {
+    const locale = await getLocale()
     const supabase = await createClient()
     const t = await getTranslations()
 
@@ -80,8 +83,8 @@ async function loadDoc(id: string): Promise<StatementDocData | null> {
     return {
         code: st.code,
         customer: cust,
-        period_start: st.period_start,
-        period_end: st.period_end,
+        period_start: formatDate(st.period_start, locale),
+        period_end: formatDate(st.period_end, locale),
         base_currency: st.base_currency,
         opening_base: Number(st.opening_base),
         charges_base: Number(st.charges_base),
@@ -93,10 +96,15 @@ async function loadDoc(id: string): Promise<StatementDocData | null> {
         closing_base: Number(st.closing_base),
         no_movement: Number(st.charges_base) === 0 && Number(st.credits_base) === 0
                      && Number(st.receipts_base) === 0,
-        lines: (st.lines ?? []) as StatementLine[],
+        // ★ DATE-1:明细行的日期也跟着走 —— 一张纸上不许两种日期长相。
+        lines: ((st.lines ?? []) as StatementLine[]).map((l) => ({
+            ...l,
+            doc_date: formatDate(l.doc_date, locale),
+            due_date: l.due_date ? formatDate(l.due_date, locale) : l.due_date,
+        })),
         by_currency: (st.by_currency ?? []) as { currency: string; closing_ccy: number }[],
         buckets: (st.buckets ?? {}) as Record<string, number>,
-        issued_at: st.issued_at,
+        issued_at: formatAuditStamp(st.issued_at),
         superseded: st.superseded_at !== null,
         company,
         // 【按界面语言选一条,不拼接】—— check-bilingual-concat 拒绝把 zh 与 en 拼起来印
@@ -116,7 +124,7 @@ async function loadDoc(id: string): Promise<StatementDocData | null> {
             openItems: t('statements.doc.openItems'),
             nothingOutstanding: t('statements.doc.nothingOutstanding'),
             ageing: t('statements.doc.ageing'),
-            frozenNote: t('statements.doc.frozenNote', { at: st.issued_at.slice(0, 10) }),
+            frozenNote: t('statements.doc.frozenNote', { at: formatAuditStamp(st.issued_at) }),
             noDueDate: t('statements.doc.noDueDate'),
             // CONV-0 ②f:无需签章那一句。本份单据【跟随界面语言】,
             // 所以它走 t() 而不是 noSignatureEn() —— 八份里只有它与可追溯报告如此。

@@ -3,7 +3,6 @@
 // 端口自 materials 列表,适配事务表:关联方(供应商/物料)用 FK-id 下拉,嵌入仅用于展示。
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
-import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 import InboundTable, { type InboundTableRow } from './InboundTable'
@@ -23,6 +22,7 @@ import { mustCount, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 // FK 嵌入运行时是对象;TS 默认猜数组(无生成 DB 类型),用显式类型 + cast 锁住。
 type InboundRow = {
@@ -251,12 +251,12 @@ export default async function InboundPage({
             quantity: b.quantity,
             remaining: b.remaining_qty,
             unit: b.unit,
-            arrivalDate: b.arrival_date,
+            arrivalDate: b.arrival_date ? formatDate(b.arrival_date, dateLocale) : null,
             stageLabel: stageLabel(b.stage),
             status: b.status,
             pricingStatus: b.pricing_status,
             hasUnappliedAssay: unappliedByBatch.has(b.id),
-            createdLabel: formatTimestamp(b.created_at, dateLocale),
+            createdLabel: formatAuditStamp(b.created_at),
         }
     })
 

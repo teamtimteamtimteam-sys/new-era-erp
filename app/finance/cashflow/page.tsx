@@ -23,6 +23,8 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import CashflowEntriesTable, { type CashflowEntryRow } from './CashflowEntriesTable'
 import { tableC } from '@/app/components/ui/table-style'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type Cf = {
     period_from: string
@@ -46,6 +48,7 @@ export default async function CashflowPage({
 }: {
     searchParams: Promise<{ date_from?: string; date_to?: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -112,7 +115,7 @@ export default async function CashflowPage({
 
     const entryRows: CashflowEntryRow[] = cf.entries.map((e) => ({
         code: e.code,
-        entryDate: e.entry_date,
+        entryDate: formatDate(e.entry_date, locale),
         memo: e.memo,
         section: e.section,
         net: e.net,

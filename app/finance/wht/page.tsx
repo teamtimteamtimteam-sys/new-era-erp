@@ -26,6 +26,7 @@ import { formatAmount } from '@/lib/format'
 import { RemitControl } from './WhtControls'
 import { ListPage } from '@/app/components/ui/list-page'
 import { WhtLiabilityTable, WhtRemittancesTable, WhtRatesTable, type LiabilityRow, type RemittanceRow, type WhtRateRow } from './WhtTables'
+import { formatMonth } from '@/lib/dates'
 
 export default async function WhtPage() {
     const denied = await requireModule(MOD.finance)
@@ -159,8 +160,11 @@ export default async function WhtPage() {
             <div className="mb-6">
                 <RemitControl canEdit={canEditGate}
                     months={owing.map((r) => ({
+                        // ★ month 是【数据】—— 它是 <option value>,一路走到
+                        //   remitWht() 的 p_period_month。**这一格不许格式化。**
                         month: String(r.period_month).slice(0, 10),
-                        label: String(r.period_month).slice(0, 7),
+                        // label 才是给人看的那一格。
+                        label: r.period_month ? formatMonth(r.period_month, locale) : '—',
                         amount: formatAmount(Number(r.unremitted_base), base),
                     }))}
                 />

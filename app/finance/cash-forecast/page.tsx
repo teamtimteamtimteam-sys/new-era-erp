@@ -25,8 +25,11 @@ import { ListPage } from '@/app/components/ui/list-page'
 import ForecastGrid, { type ForecastData } from './ForecastGrid'
 import RecurringLines from './RecurringLines'
 import FrozenForecastsTable, { type FrozenRow } from './FrozenForecastsTable'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function CashForecastPage() {
+    const locale = await getLocale()
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
     const t = await getTranslations()
@@ -62,7 +65,7 @@ export default async function CashForecastPage() {
             state={{ kind: 'ok' }}
         >
             <p className="mb-4 text-xs text-[color:var(--brand-muted-text)]">
-                {t('cashForecast.weekStart')}: <span>{forecast.week_start}</span>
+                {t('cashForecast.weekStart')}: <span>{formatDate(forecast.week_start, locale)}</span>
                 {' → '}<span>{forecast.week_end}</span>
             </p>
 

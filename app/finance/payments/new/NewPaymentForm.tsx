@@ -17,6 +17,8 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { tableC } from '@/app/components/ui/table-style'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 const initialState: CreatePaymentState = {}
 
@@ -85,6 +87,7 @@ canEdit
 
 canEdit: boolean
 }) {
+    const locale = useLocale()
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createPayment, initialState)
 
@@ -532,11 +535,11 @@ canEdit: boolean
                                         <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
                                             <div>
                                                 <span className="text-gray-500">{t('purchasing.colOrderDate')}: </span>
-                                                {p.order_date}
+                                                {formatDate(p.order_date, locale)}
                                             </div>
                                         </div>
                                     </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell`}>{p.order_date}</td>
+                                    <td className={`${tableC.cell} hidden sm:table-cell`}>{formatDate(p.order_date, locale)}</td>
                                     {/* 【这两列不是同一种币】estimated_total_ccy 名字里带 usd,
                                         存的却是【单据币种】(create_purchase_order 全程不乘汇率,
                                         旧名见 docs/known-issues.md);prepaid_base 是【本位币】。
@@ -605,7 +608,7 @@ canEdit: boolean
                                             </span>
                                         )}
                                     </td>
-                                    <td className={tableC.cell}>{i.doc_date}</td>
+                                    <td className={tableC.cell}>{formatDate(i.doc_date, locale)}</td>
                                     {/* 【每行都要带币种】FIN-16 之后这一列按设计就是混币种的,
                                         不标币种的混币种金额列不是显示瑕疵,是陷阱 */}
                                     <td className={`${tableC.cell} text-right tabular-nums`}>

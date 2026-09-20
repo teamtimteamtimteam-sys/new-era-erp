@@ -8,6 +8,8 @@
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { formatDate, formatMonth } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 export type LiabilityRow = {
     periodMonth: string
@@ -22,10 +24,11 @@ export type LiabilityRow = {
 
 export function WhtLiabilityTable({ rows, empty }: { rows: LiabilityRow[]; empty: React.ReactNode }) {
     const t = useTranslations()
+    const locale = useLocale()
 
     // ★ 手机上留【月份】与【未汇缴】—— 未汇缴是这张表存在的理由(还欠多少)。
     const columns: Column<LiabilityRow>[] = [
-        { key: 'month', header: t('wht.colMonth'), priority: true, render: (r) => r.periodMonth.slice(0, 7) },
+        { key: 'month', header: t('wht.colMonth'), priority: true, render: (r) => formatMonth(r.periodMonth, locale) },
         {
             key: 'withheld', header: t('wht.colWithheld'), align: 'right',
             render: (r) => formatAmount(r.withheldBase, r.baseCurrency),
@@ -68,11 +71,12 @@ export type RemittanceRow = {
 
 export function WhtRemittancesTable({ rows, empty }: { rows: RemittanceRow[]; empty: React.ReactNode }) {
     const t = useTranslations()
+    const locale = useLocale()
 
     // ★ 手机上留【单号】与【金额】—— 单号是身份,金额是这张登记簿存在的理由。
     const columns: Column<RemittanceRow>[] = [
         { key: 'code', header: t('wht.colCode'), priority: true, render: (r) => r.code },
-        { key: 'month', header: t('wht.colMonth'), render: (r) => r.periodMonth.slice(0, 7) },
+        { key: 'month', header: t('wht.colMonth'), render: (r) => formatMonth(r.periodMonth, locale) },
         { key: 'remittedOn', header: t('wht.colRemittedOn'), className: 'text-xs', render: (r) => r.remittedOn },
         {
             key: 'amount', header: t('wht.colAmount'), priority: true, align: 'right',
@@ -92,6 +96,7 @@ export type WhtRateRow = {
 }
 
 export function WhtRatesTable({ rows }: { rows: WhtRateRow[] }) {
+    const locale = useLocale()
     const t = useTranslations()
 
     // ★ 手机上留【类别】与【税率】—— 类别是身份,税率是这张参照表存在的理由。
@@ -100,8 +105,8 @@ export function WhtRatesTable({ rows }: { rows: WhtRateRow[] }) {
         {
             key: 'rate', header: t('wht.colRate'), priority: true, className: 'text-xs',
             render: (r) => r.rates.map((rt) => (
-                <div key={rt.effective_from}>
-                    {Number(rt.rate_pct)}% · {rt.effective_from} → {rt.effective_to ?? '—'}
+                <div key={formatDate(rt.effective_from, locale)}>
+                    {Number(rt.rate_pct)}% · {formatDate(rt.effective_from, locale)} → {formatDate(rt.effective_to, locale) ?? '—'}
                 </div>
             )),
         },

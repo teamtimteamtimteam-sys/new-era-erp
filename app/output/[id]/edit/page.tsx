@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { formatTimestamp, formatAmount } from '@/lib/format'
+import { formatAmount } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
 import { canViewPrices, can } from '@/lib/permissions'
 import { notFound } from 'next/navigation'
@@ -27,6 +27,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
 import { loadSubstanceLabels, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
 import { Button } from '@/app/components/ui/button'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -217,7 +218,7 @@ export default async function EditOutputPage({
     const metalRows: MetalContentRow[] = ((mustRows(metalsRes)) as unknown as MetalFetchRow[]).map((m) => ({
         metal: m.metal,
         content_pct: m.content_pct,
-        updated_at_display: formatTimestamp(m.updated_at, dateLocale),
+        updated_at_display: formatAuditStamp(m.updated_at),
         source_kind: m.content_source === 'assay' ? 'assay' : m.content_source === 'manual' ? 'manual' : 'unknown',
         source_label:
             m.content_source === 'assay'
@@ -274,9 +275,9 @@ export default async function EditOutputPage({
         movement_type: m.movement_type,
         qty_delta: m.qty_delta,
         stock_status: m.stock_status,
-        business_date: m.business_date,
+        business_date: m.business_date ? formatDate(m.business_date, dateLocale) : null,
         notes: m.notes,
-        occurred_at_display: formatTimestamp(m.occurred_at, dateLocale),
+        occurred_at_display: formatAuditStamp(m.occurred_at),
         run: m.processing_runs,
     }))
 

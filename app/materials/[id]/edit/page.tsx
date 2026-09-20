@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { formatTimestamp } from '@/lib/format'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditMaterialForm from './EditMaterialForm'
@@ -15,6 +14,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { MOD } from '@/lib/modules'
 import { loadSubstances, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
 import { loadBatteryChemistries, toDictOptions } from '@/app/components/dictionaries/dictionaryQuery'
+import { formatAuditStamp } from '@/lib/dates'
 
 export default async function EditMaterialPage({
     params,
@@ -38,7 +38,6 @@ export default async function EditMaterialPage({
     const wasteClasses = await getWasteClassifications()
     const kinds = await getMaterialKinds()
     const axes = await getMaterialAxes()
-    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const { data: material, error } = await supabase
         .from('materials')
@@ -79,7 +78,7 @@ export default async function EditMaterialPage({
         file_size: a.file_size,
         doc_category: a.doc_category,
         storage_path: a.storage_path,
-        created_at_display: formatTimestamp(a.created_at, dateLocale),
+        created_at_display: formatAuditStamp(a.created_at),
     }))
 
     return (

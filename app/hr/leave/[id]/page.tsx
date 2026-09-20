@@ -15,6 +15,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import { GrantBreakdownTable, ConsumptionTable, type GrantBreakdownRow, type ConsumptionRow } from './LeaveDetailTables'
+import { formatDate } from '@/lib/dates'
 
 export default async function LeaveRequestDetail({
     params,
@@ -74,7 +75,7 @@ export default async function LeaveRequestDetail({
         days: String(b.days),
         consumed: String(b.consumed),
         remaining: String(b.remaining),
-        expiresOn: b.expires_on ?? '—',
+        expiresOn: formatDate(b.expires_on, locale) ?? '—',
         statusText: t(`leave.grantStatus_${b.status}`),
     }))
 
@@ -128,7 +129,7 @@ export default async function LeaveRequestDetail({
                         label: t('leave.type'),
                         value: ty ? (locale === 'zh' ? ty.name_zh : ty.name_en) : req.leave_type_code,
                     },
-                    { label: t('leave.dates'), value: `${req.start_date} → ${req.end_date}` },
+                    { label: t('leave.dates'), value: `${formatDate(req.start_date, locale)} → ${formatDate(req.end_date, locale)}` },
                     { label: t('leave.days'), value: String(req.days), mono: true },
                     { label: t('leave.status'), value: t(`leave.status_${req.status}`) },
                     ...(req.reason ? [{ label: t('leave.reason'), value: req.reason }] : []),

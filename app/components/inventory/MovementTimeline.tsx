@@ -4,6 +4,8 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { type MovementRow } from './movementTypes'
 import MovementTimelineTable, { type MovementTableRow } from './MovementTimelineTable'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function MovementTimeline({
     rows,
@@ -12,6 +14,7 @@ export default async function MovementTimeline({
     rows: MovementRow[]
     unit: string
 }) {
+    const locale = await getLocale()
     const t = await getTranslations()
     const total = rows.reduce((s, r) => s + r.qty_delta, 0)
 
@@ -27,7 +30,7 @@ export default async function MovementTimeline({
         qtyNegative: r.qty_delta < 0,
         runHref: r.run ? `/operation/processing/${r.run.id}` : null,
         runCode: r.run ? r.run.code : null,
-        businessDate: r.business_date ?? '—',
+        businessDate: formatDate(r.business_date, locale) ?? '—',
         notes: r.notes ?? '—',
     }))
 

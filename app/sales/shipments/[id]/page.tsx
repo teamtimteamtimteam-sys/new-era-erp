@@ -25,6 +25,7 @@ import { notFound } from 'next/navigation'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import ShipmentLinesTable, { type ShipmentLineRow } from './ShipmentLinesTable'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 export default async function ShipmentDetailPage({
     params,
@@ -39,7 +40,6 @@ export default async function ShipmentDetailPage({
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-SG'
 
     const head = mustOne(
         await supabase
@@ -157,7 +157,7 @@ export default async function ShipmentDetailPage({
                         ),
                     },
                     // 物理事件日 —— 货是哪天离开仓库的,同时决定收入落进哪个期间
-                    { label: t('sales.shipDetail.colShipDate'), value: head.ship_date, mono: true },
+                    { label: t('sales.shipDetail.colShipDate'), value: formatDate(head.ship_date, locale), mono: true },
                     // LOG-2b:【装箱了才出现】。没装箱时这里【什么都不画】——
                     // 一个空的"集装箱:—"会让人以为漏填了,而真相是这张单还没装箱。
                     ...(head.containers
@@ -171,7 +171,7 @@ export default async function ShipmentDetailPage({
                             ),
                           }]
                         : []),
-                    { label: t('sales.shipDetail.colCreatedAt'), value: new Date(head.created_at).toLocaleString(dl) },
+                    { label: t('sales.shipDetail.colCreatedAt'), value: formatAuditStamp(head.created_at) },
                     ...(head.notes ? [{ label: t('sales.shipDetail.colNotes'), value: head.notes }] : []),
                 ]}
             />
@@ -218,7 +218,7 @@ export default async function ShipmentDetailPage({
                                 v{iss.version}
                             </a>
                             {' · '}
-                            {new Date(iss.issued_at).toLocaleString(dl)} · {iss.sha256.slice(0, 12)}…
+                            {formatAuditStamp(iss.issued_at)} · {iss.sha256.slice(0, 12)}…
                         </li>
                     ))}
                 </ul>

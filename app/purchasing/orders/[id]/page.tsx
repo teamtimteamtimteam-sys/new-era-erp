@@ -43,6 +43,7 @@ import DiscrepancyKinds, {
     type ReceivingThresholds as GrnThresholds,
 } from '@/app/components/receiving/DiscrepancyKinds'
 import { Alert } from '@/app/components/ui/alert'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 type AssayEntry = { metal: string; content_pct: number }
 
@@ -53,6 +54,7 @@ export default async function PurchaseOrderDetailPage({
 }: {
     params: Promise<{ id: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.purchasing)
@@ -433,7 +435,7 @@ export default async function PurchaseOrderDetailPage({
             ? commitmentByLine.has(l.id)
                 ? t('purchasing.terms.committed', {
                       code: commitmentByLine.get(l.id)!.source_formula_code,
-                      on: String(commitmentByLine.get(l.id)!.committed_at).slice(0, 10),
+                      on: formatDate(commitmentByLine.get(l.id)!.committed_at, locale),
                   })
                 : t('purchasing.terms.notCommitted')
             : null,
@@ -517,16 +519,16 @@ export default async function PurchaseOrderDetailPage({
             '头卡「币种」—— 付款计划按估算总额折算,同为单据币种',
         ),
         triggerText: triggerNames.get(l.trigger_event) ?? l.trigger_event,
-        dueDateText: l.due_date ?? '—',
+        dueDateText: formatDate(l.due_date, locale) ?? '—',
         triggerEvent: l.trigger_event,
-        expectedDate: l.expected_date ?? null,
+        expectedDate: formatDate(l.expected_date, locale) ?? null,
         ownerName: eventOwners[l.trigger_event] ?? null,
     }))
 
     const receiptRows: PoReceiptRow[] = receipts.map((r) => ({
         id: r.id,
         code: r.code,
-        arrivalDateText: r.arrival_date ?? '—',
+        arrivalDateText: formatDate(r.arrival_date, locale) ?? '—',
         qtyText: `${Number(r.quantity)} ${r.unit}`,
         unitPriceText: r.unit_price !== null ? formatUnitCost(r.unit_price) : null,
         // CCY-1:抵扣额与敞口是本位币 —— 上方头卡说的是单据币种,不能借它。
@@ -649,7 +651,7 @@ export default async function PurchaseOrderDetailPage({
             {isCancelled && (
                 <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
                     {t('purchasing.status.cancelled')}
-                    {po.cancelled_at ? ` · ${po.cancelled_at.slice(0, 10)}` : ''}
+                    {po.cancelled_at ? ` · ${formatAuditStamp(po.cancelled_at)}` : ''}
                     {/* AUDEL-2:取消要看得见【谁】和【为什么】,不只是"已取消"这个事实。
                         AUDEL-3:取名与兜底移进 app/components/ActorName.tsx ——
                         此前这里写着"反查不到就印 uuid",那句话已经不成立了,
@@ -681,8 +683,8 @@ export default async function PurchaseOrderDetailPage({
                             </Link>
                         ),
                     },
-                    { label: t('purchasing.colOrderDate'), value: po.order_date },
-                    { label: t('purchasing.colExpectedDelivery'), value: po.expected_delivery_date ?? '—' },
+                    { label: t('purchasing.colOrderDate'), value: formatDate(po.order_date, locale) },
+                    { label: t('purchasing.colExpectedDelivery'), value: formatDate(po.expected_delivery_date, locale) ?? '—' },
                     {
                         label: t('purchasing.form.currency'),
                         value: (
@@ -767,7 +769,7 @@ export default async function PurchaseOrderDetailPage({
             <ContractLinkPanel
                 poId={po.id}
                 linkedCode={linkedContractCode}
-                linkedAt={linkedContract?.linked_at ?? null}
+                linkedAt={formatAuditStamp(linkedContract?.linked_at) ?? null}
                 options={contractOptions}
                 canSeeContracts={canSeeContracts}
                 registerIsEmpty={contractRegisterIsEmpty}
@@ -806,7 +808,7 @@ export default async function PurchaseOrderDetailPage({
                                     v{iss.version}
                                 </a>
                                 <span className="text-[color:var(--brand-muted-text)] ml-2">
-                                    {t('purchasing.doc.issuedAt', { at: new Date(iss.issued_at).toISOString().slice(0, 16).replace('T', ' ') })}
+                                    {t('purchasing.doc.issuedAt', { at: formatAuditStamp(iss.issued_at) })}
                                 </span>
                             </li>
                         ))}
@@ -833,7 +835,7 @@ export default async function PurchaseOrderDetailPage({
                         {history.map((h) => (
                             <li key={h.id} className="flex flex-wrap gap-2">
                                 <span className="text-[color:var(--brand-muted-text)] text-xs">
-                                    {new Date(h.changed_at).toISOString().slice(0, 16).replace('T', ' ')}
+                                    {formatAuditStamp(h.changed_at)}
                                 </span>
                                 <span>{t('purchasing.amend.change.' + h.change_type)}</span>
                                 {h.line_no !== null && (

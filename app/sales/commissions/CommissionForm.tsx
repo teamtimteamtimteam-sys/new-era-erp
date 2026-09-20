@@ -14,6 +14,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { saveCommissionAgreement, type CommissionInput } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 export type Agent = { id: string; code: string; legal_name: string }
 export type Currency = { code: string }
@@ -31,6 +33,7 @@ export default function CommissionForm({
     currencies: Currency[]
     initial?: Partial<CommissionInput> & { id?: string }
 }) {
+    const locale = useLocale()
     const t = useTranslations()
     const router = useRouter()
     const [error, setError] = useState<string | null>(null)
@@ -46,8 +49,8 @@ export default function CommissionForm({
         rate_pct: initial?.rate_pct ?? '',
         amount_ccy: initial?.amount_ccy ?? '',
         currency: initial?.currency ?? '',
-        valid_from: initial?.valid_from ?? '',
-        valid_to: initial?.valid_to ?? '',
+        valid_from: formatDate(initial?.valid_from, locale) ?? '',
+        valid_to: formatDate(initial?.valid_to, locale) ?? '',
         remarks: initial?.remarks ?? '',
     })
 

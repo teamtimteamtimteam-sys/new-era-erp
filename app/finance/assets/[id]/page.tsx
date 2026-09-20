@@ -37,6 +37,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import CostEntriesTable, { type CostEntryRow } from './CostEntriesTable'
+import { formatDate } from '@/lib/dates'
 
 export default async function AssetPage({ params }: { params: Promise<{ id: string }> }) {
     const denied = await requireModule(MOD.finance)
@@ -262,7 +263,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
         capitalised_expense_id: string | null }[]).map((m) => {
         const adv = adviceById.get(m.id)
         return {
-            id: m.id, performed_on: m.performed_on, kind: m.kind, description: m.description,
+            id: m.id, performed_on: formatDate(m.performed_on, locale), kind: m.kind, description: m.description,
             capitalised: m.capitalised, capitalisation_reason: m.capitalisation_reason,
             capitalised_expense_id: m.capitalised_expense_id,
             // 【谁做的:三种来源,认不出的那一种要说出来,不要留白】
@@ -293,7 +294,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             id: e.id,
             expenseCode: exp?.code ?? '—',
             expenseHref: `/finance/expenses/${e.expense_id}`,
-            expenseDate: exp?.expense_date ?? '—',
+            expenseDate: formatDate(exp?.expense_date, locale) ?? '—',
             amountCcyText: e.amount_ccy !== null ? formatAmount(Number(e.amount_ccy), String(e.currency)) : '—',
             amountBaseText: formatAmount(Number(e.amount_base), baseCurrency),
             reversed: exp?.status === 'reversed',
@@ -326,7 +327,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             }
             intro={
                 <>
-                    {t('assets.category.' + asset.category)} · {t('assets.detail.acquired')} {asset.acquisition_date}
+                    {t('assets.category.' + asset.category)} · {t('assets.detail.acquired')} {formatDate(asset.acquisition_date, locale)}
                     {' · '}
                     {asset.expense_id
                         ? <Link href={`/finance/expenses/${asset.expense_id}`} className="underline app-link">{t('assets.detail.bornFromExpense')}</Link>
@@ -431,8 +432,8 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
             <h2 className="mb-2">{t('assets.detail.commissioning')}</h2>
             <AssetActions assetId={asset.id} code={asset.code} status={asset.status}
                 hasCost={Number(asset.cost_base) > 0}
-                inServiceDate={asset.in_service_date} plannedInServiceDate={asset.planned_in_service_date}
-                acquisitionDate={asset.acquisition_date}
+                inServiceDate={asset.in_service_date ? formatDate(asset.in_service_date, locale) : null} plannedInServiceDate={asset.planned_in_service_date ? formatDate(asset.planned_in_service_date, locale) : null}
+                acquisitionDate={formatDate(asset.acquisition_date, locale)}
                 canEdit={canEdit} bankAccounts={['1000', '1010']} />
 
             {/* ══ EQP-2d:投用【之后】的一生 ═══════════════════════════════════
@@ -443,7 +444,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                 <ServiceIntervalPanel
                     assetId={asset.id}
                     rows={statusRows as unknown as IntervalRow[]}
-                    acquisitionDate={asset.acquisition_date}
+                    acquisitionDate={formatDate(asset.acquisition_date, locale)}
                     runsBeforeAcquisition={runsBeforeAcquisition}
                     priorRunsRestricted={!canSeeProcessingRuns}
                     kgSinceAcquisition={kgSinceAcquisition}
@@ -463,7 +464,7 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                     expenses={expenseOpts}
                     canEdit={canRecordEquipment}
                     canCapitalise={canEdit}
-                    inServiceDate={asset.in_service_date}
+                    inServiceDate={asset.in_service_date ? formatDate(asset.in_service_date, locale) : null}
                     capitalisePct={Number(settingsRes.data?.capitalise_pct_of_cost ?? 0)}
                     capitaliseFloor={Number(settingsRes.data?.capitalise_floor_base ?? 0)}
                     equipmentCostBase={Number(asset.cost_base)}

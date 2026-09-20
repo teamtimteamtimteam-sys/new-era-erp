@@ -36,6 +36,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { tableC } from '@/app/components/ui/table-style'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type CycleRow = {
     id: string
@@ -56,6 +58,7 @@ type CycleReview = {
 }
 
 export default async function ReviewCyclesPage() {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.hr)
@@ -133,10 +136,10 @@ export default async function ReviewCyclesPage() {
                                         {t(`reviews.cycleStatus_${c.status}`)}
                                     </span>
                                     <span className="text-xs text-[color:var(--brand-muted-text)]">
-                                        {c.period_start} → {c.period_end}
+                                        {formatDate(c.period_start, locale)} → {formatDate(c.period_end, locale)}
                                     </span>
                                     <span className="text-xs text-[color:var(--brand-muted-text)]">
-                                        {t('reviews.dueDate')}: <span>{c.due_date}</span>
+                                        {t('reviews.dueDate')}: <span>{formatDate(c.due_date, locale)}</span>
                                     </span>
                                     <CycleActions cycleId={c.id} status={c.status} />
                                 </div>

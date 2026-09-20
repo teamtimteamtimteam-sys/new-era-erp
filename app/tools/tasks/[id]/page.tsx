@@ -18,8 +18,11 @@ import TaskHeader from './TaskHeader'
 import { loadActorNames } from '@/app/components/ActorName'
 import { STATUS_VALUES, PRIORITY_VALUES } from '../types'
 import { ListPage } from '@/app/components/ui/list-page'
+import { formatDate, formatDateTime } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const locale = await getLocale()
     const denied = await requireModule(MOD.tasks)
     if (denied) return denied
 
@@ -127,7 +130,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                 <>
                     {task.code} · {t('tasks.type.' + task.task_type)} · {t('tasks.status.' + task.status)} ·{' '}
                     {t('tasks.priority.' + task.priority)}
-                    {task.due_date ? ` · ${t('tasks.form.dueDate')} ${task.due_date}` : ''}
+                    {task.due_date ? ` · ${t('tasks.form.dueDate')} ${formatDate(task.due_date, locale)}` : ''}
                 </>
             }
             // ★★ 详情页恒为 ok —— 这张任务在不在由上面的 notFound() 回答。
@@ -147,8 +150,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                     description: task.description,
                     status: task.status,
                     priority: task.priority,
-                    due_date: task.due_date,
-                    reminder_at: task.reminder_at,
+                    due_date: task.due_date ? formatDate(task.due_date, locale) : null,
+                    reminder_at: task.reminder_at ? formatDateTime(task.reminder_at, locale) : null,
                     tags: task.tags,
                 }}
                 labels={{

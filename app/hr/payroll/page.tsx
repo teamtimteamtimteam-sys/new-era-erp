@@ -14,8 +14,11 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import PayrollPeriodsTable, { type PayrollPeriodRow } from './PayrollPeriodsTable'
+import { formatDate, formatMonth } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function PayrollListPage() {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.hr)
@@ -60,8 +63,8 @@ export default async function PayrollListPage() {
     const tableRows: PayrollPeriodRow[] = periods.map((p) => ({
         id: p.id,
         code: p.code,
-        periodMonth: p.period_month ?? '',
-        paymentDate: p.payment_date,
+        periodMonth: formatMonth(p.period_month, locale) ?? '',
+        paymentDate: formatDate(p.payment_date, locale),
         currency: p.currency,
         grossTotal: p.gross_total,
         netPayTotal: p.net_pay_total,

@@ -8,7 +8,7 @@ import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatAmount, formatMoneyBare, formatTimestamp } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import ReverseExpenseButton from './ReverseExpenseButton'
 import ReleasePrepaymentPanel from './ReleasePrepaymentPanel'
@@ -19,6 +19,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader, type RecordField } from '@/app/components/ui/record-header'
 import SettlementHistoryTable, { type SettlementRow } from '@/app/components/finance/SettlementHistoryTable'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 type AllocRow = {
     id: string
@@ -154,7 +155,7 @@ export default async function ExpenseDetailPage({
         mime_type: a.mime_type,
         doc_type: a.doc_type,
         notes: a.notes,
-        created_at_display: formatTimestamp(a.created_at, dateLocale),
+        created_at_display: formatAuditStamp(a.created_at),
     }))
 
 
@@ -164,7 +165,7 @@ export default async function ExpenseDetailPage({
         id: a.id,
         paymentCode: a.payments?.code ?? '—',
         paymentHref: a.payments ? `/finance/payments/${a.payments.id}` : null,
-        paymentDate: a.payments?.payment_date ?? '—',
+        paymentDate: formatDate(a.payments?.payment_date, dateLocale) ?? '—',
         allocatedText: formatAmount(a.allocated_base, baseCurrency),
         reversed: a.payments?.status === 'reversed',
     }))
@@ -183,7 +184,7 @@ export default async function ExpenseDetailPage({
     // 抬头字段逐页不同 —— RecordHeader 只管盒子(见组件抬头)。
     const fields: RecordField[] = [
         { label: t('expense.colCode'), value: expense.code, mono: true },
-        { label: t('expense.colDate'), value: expense.expense_date },
+        { label: t('expense.colDate'), value: formatDate(expense.expense_date, dateLocale) },
         {
             label: t('expense.colAccount'),
             value: (

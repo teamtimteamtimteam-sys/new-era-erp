@@ -44,6 +44,8 @@ import { FN } from '@/lib/modules'
 import { mustOne } from '@/lib/db-helpers'
 import { formatAmount, businessToday } from '@/lib/format'
 import Figure from '@/app/components/overview/Figure'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 // gl_control_reconciliation 的形状。**四条腿,每条自带一个 refusal** ——
 // 那一格不是错误,是「这一条腿此刻答不上来」,而答不上来 ≠ 对不上(见该函数抬头:
@@ -63,6 +65,7 @@ type ReconSide = {
 type Recon = { as_of: string; base_currency: string; sides: ReconSide[] }
 
 export default async function FinanceOverviewPage() {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireFunction(FN.financeHome)
@@ -127,7 +130,7 @@ export default async function FinanceOverviewPage() {
             <Figure
                 title={t('financeOverview.periodTitle')}
                 basis={{
-                    asOf: asOfLabel,
+                    asOf: formatDate(asOfLabel, locale),
                     source: t('financeOverview.periodSource'),
                     spans: t('financeOverview.periodSpans'),
                 }}
@@ -140,13 +143,13 @@ export default async function FinanceOverviewPage() {
             >
                 <p className="text-sm" style={{ color: 'var(--brand-text)' }}>
                     {settings?.locked_before
-                        ? t('financeOverview.lockedBefore', { date: settings.locked_before })
+                        ? t('financeOverview.lockedBefore', { date: formatDate(settings.locked_before, locale) })
                         : /* 【没有封账日不是"封到了 0 年"】—— 说出来,别印一个空 */
                           t('financeOverview.lockedNone')}
                 </p>
                 {settings?.system_start_date && (
                     <p className="text-sm mt-1" style={{ color: 'var(--brand-muted-text)' }}>
-                        {t('financeOverview.systemStart', { date: settings.system_start_date })}
+                        {t('financeOverview.systemStart', { date: formatDate(settings.system_start_date, locale) })}
                     </p>
                 )}
             </Figure>
@@ -160,7 +163,7 @@ export default async function FinanceOverviewPage() {
             <Figure
                 title={t('financeOverview.reconTitle')}
                 basis={{
-                    asOf: asOfLabel,
+                    asOf: formatDate(asOfLabel, locale),
                     source: t('financeOverview.reconSource'),
                     spans: t('financeOverview.reconSpans'),
                 }}
@@ -226,7 +229,7 @@ export default async function FinanceOverviewPage() {
             <Figure
                 title={t('financeOverview.netTitle')}
                 basis={{
-                    asOf: asOfLabel,
+                    asOf: formatDate(asOfLabel, locale),
                     source: t('financeOverview.netSource'),
                     spans: t('financeOverview.netSpans'),
                 }}

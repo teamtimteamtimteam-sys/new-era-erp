@@ -17,10 +17,13 @@ import DeliveryNoteDocument, { type DeliveryNoteData } from './DeliveryNoteDocum
 import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 import { loadDocumentCompany, companyPdfStrings, COMPANY_MISSING_MESSAGE } from '@/app/components/pdf/company'
 import { localizeSalesOrderError } from '@/app/sales/orders/salesOrderErrorCodes'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'shipment-documents'
 
 async function loadDoc(id: string): Promise<DeliveryNoteData | null> {
+    const locale = await getLocale()
     const supabase = await createClient()
     const s = mustOne(
         await supabase.from('shipments')
@@ -55,7 +58,7 @@ async function loadDoc(id: string): Promise<DeliveryNoteData | null> {
 
     return {
         code: row.code,
-        ship_date: row.ship_date,
+        ship_date: formatDate(row.ship_date, locale),
         order_code: row.sales_orders?.code ?? '—',
         customer: row.sales_orders?.customers ?? { code: '—', legal_name: '—' },
         lines: lines.map((l, i) => {

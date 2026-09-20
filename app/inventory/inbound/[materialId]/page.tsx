@@ -13,6 +13,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import InboundBatchesTable, { type InboundBatchRow } from './InboundBatchesTable'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type Row = {
     id: string
@@ -42,6 +44,7 @@ export default async function InboundDrillPage({
 }: {
     params: Promise<{ materialId: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.inventory)
@@ -122,7 +125,7 @@ export default async function InboundDrillPage({
             quantityText: `${r.quantity} ${r.unit}`,
             remainingText: `${r.remaining_qty} ${r.unit}`,
             stageLabel: stageLabel(r.stage),
-            arrivalDate: r.arrival_date ?? '—',
+            arrivalDate: formatDate(r.arrival_date, locale) ?? '—',
             unitPriceText:
                 v?.landed_unit_cost != null
                     ? formatMoneyBare(v.landed_unit_cost, '列头「到岸单位成本 (SGD)」')

@@ -33,6 +33,7 @@ import { docStyles, DocumentLetterhead, DocumentFooter, NoSignatureNote } from '
 import { BRAND } from '@/app/components/pdf/theme'
 import Stamp from '@/app/components/pdf/Stamp'
 import type { LetterheadCompany } from '@/app/components/CompanyLetterhead'
+import { formatAuditStamp } from '@/lib/dates'
 
 export type CertificateData = {
     inbound_batch: {
@@ -257,7 +258,7 @@ export default function CertificateDocument({
                                         <Text style={s.verifyUrl}>Verify at {verifyHost}</Text>
                                     ) : null}
                                     <Text style={s.verifyUrl}>
-                                        Issued {data.certificate?.issued_at?.slice(0, 10) ?? dash}
+                                        Issued {formatAuditStamp(data.certificate?.issued_at) ?? dash}
                                     </Text>
                                 </View>
                             </View>

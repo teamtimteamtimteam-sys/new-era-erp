@@ -11,6 +11,8 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type SaleFetchRow = {
     id: string
@@ -28,6 +30,7 @@ type SaleFetchRow = {
 }
 
 export default async function NewInvoicePage() {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -96,7 +99,7 @@ export default async function NewInvoicePage() {
             customer_id: s.customer_id,
             batch_code: s.output_batches?.code ?? '—',
             material_name: s.output_batches?.materials?.name ?? null,
-            sale_date: s.sale_date,
+            sale_date: formatDate(s.sale_date, locale),
             quantity: s.quantity,
             unit: s.output_batches?.unit ?? 'kg',
             unit_price: s.unit_price,
@@ -117,8 +120,8 @@ export default async function NewInvoicePage() {
                 taxRates={mustRows(ratesRes).map((r) => ({
                     tax_code: r.tax_code,
                     rate_pct: Number(r.rate_pct),
-                    effective_from: r.effective_from,
-                    effective_to: r.effective_to,
+                    effective_from: formatDate(r.effective_from, locale),
+                    effective_to: r.effective_to ? formatDate(r.effective_to, locale) : null,
                 }))}
             />
         </div>

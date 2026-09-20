@@ -7,6 +7,8 @@
 import { formatAmount } from '@/lib/format'
 import { getTranslations } from '@/lib/i18n/server'
 import { ReconTable, SplitPairsTable, type ReconRow, type SplitRow } from './PackTables'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type Recon = {
     side: string; control_account: string
@@ -33,6 +35,7 @@ export type PackPayload = {
 }
 
 export default async function PackBody({ payload }: { payload: PackPayload }) {
+    const locale = await getLocale()
     const t = await getTranslations()
     const ccy = payload.base_currency
     const sides = payload.control_reconciliation?.sides ?? []
@@ -70,7 +73,7 @@ export default async function PackBody({ payload }: { payload: PackPayload }) {
     }))
     const splitRows: SplitRow[] = (payload.split_reversal_pairs ?? []).map((s) => ({
         entryCode: s.entry_code,
-        entryDate: s.entry_date,
+        entryDate: formatDate(s.entry_date, locale),
         counterpartCode: s.counterpart_code,
         counterpartDate: s.counterpart_date,
         amount: formatAmount(s.amount_base, ccy),

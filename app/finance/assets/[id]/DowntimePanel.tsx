@@ -31,6 +31,7 @@ import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { openDowntime, closeDowntime } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { formatAuditStamp } from '@/lib/dates'
 
 export type DowntimeRow = {
     id: string
@@ -46,6 +47,12 @@ export default function DowntimePanel({
 }: {
     assetId: string; rows: DowntimeRow[]; canEdit: boolean; locale: string
 }) {
+    // ★ DATE-1:停机的起止时刻走【审计戳】那一族,而审计戳**不随界面语言变**(D2)。
+    //   于是这个 prop 不再被用到 —— 但它【留着】:调用点一直在传,
+    //   而把它从签名里拿掉是一次与本刀无关的接口改动。
+    //   ☞ 写成 `void locale` 而不是删掉,是为了让这句话留在下一个读者眼前
+    //     (与 lib/format.ts 的 formatTimestamp、formatMoneyBare 同一个手法)。
+    void locale
     const t = useTranslations()
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -58,8 +65,9 @@ export default function DowntimePanel({
     // FIX-2(F):结束早于开始 —— 这正是 Tim 撞上的那一条,而屏幕此前一个字都没说。
     // (datetime-local 给的是本地时间串;与开始时刻同口径比较即可。)
     const endBeforeStart = !!(openRow && endAt && new Date(endAt) < new Date(openRow.started_at))
-    const fmt = (iso: string) => new Date(iso).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-GB',
-        { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    // DATE-1:停机的起止时刻是【系统记下的那一刻】—— 走审计戳那一族,
+    // 于是它可排序、可复制、也不随界面语言变。
+    const fmt = (iso: string) => formatAuditStamp(iso)
 
     function run(fn: () => Promise<{ error?: string }>) {
         setError(null)
@@ -136,7 +144,7 @@ export default function DowntimePanel({
             {openRow && (
                 <div className="border-2 border-amber-400 bg-amber-50 rounded p-3 mb-3 text-sm">
                     <p className="font-medium text-amber-900">
-                        {t('equipment.down.openNow', { since: fmt(openRow.started_at) })}
+                        {t('equipment.down.openNow', { since: fmt(formatAuditStamp(openRow.started_at)) })}
                     </p>
                     <p className="text-[color:var(--brand-text)] mt-1">{openRow.reason}</p>
                     {/* 【时长这一栏说"还在停",不是空白、不是 0】—— duration 的列注释
@@ -160,7 +168,7 @@ export default function DowntimePanel({
                             {!endAt && <span className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.down.needEnd')}</span>}
                             {endAt && endBeforeStart && (
                                 <span className="text-xs text-amber-700">
-                                    {t('equipment.down.endBeforeStart', { start: fmt(openRow.started_at) })}
+                                    {t('equipment.down.endBeforeStart', { start: fmt(formatAuditStamp(openRow.started_at)) })}
                                 </span>
                             )}
                         </div>

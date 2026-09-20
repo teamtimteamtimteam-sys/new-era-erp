@@ -25,6 +25,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import ReviewsTable, { type ReviewsTableRow } from './ReviewsTable'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type EmployeeOpt = { id: string; code: string; legal_name: string }
 type CycleOpt = { id: string; name: string }
@@ -34,6 +36,7 @@ export default async function ReviewsPage({
 }: {
     searchParams: Promise<{ cycle?: string; type?: string; status?: string; employee?: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.hr)
@@ -80,8 +83,8 @@ export default async function ReviewsPage({
             employeeLabel: emp?.legal_name ?? '',
             typeLabel: t(`reviews.type_${r.review_type}`),
             cycleName: r.cycle_id ? (cycleById.get(r.cycle_id) ?? '—') : '—',
-            periodStart: r.period_start,
-            periodEnd: r.period_end,
+            periodStart: formatDate(r.period_start, locale),
+            periodEnd: formatDate(r.period_end, locale),
             reviewerCode: rev?.code ?? null,
             reviewerName: rev?.legal_name ?? null,
             status: r.status,

@@ -13,8 +13,11 @@ import type { Tables } from '@/lib/database.types'
 import AmendOrderForm, { type AmendLine, type AmendTerm } from './AmendOrderForm'
 import { requireEditPermission } from '@/app/components/moduleGuard'
 import { applicableTriggers, loadPaymentTriggerEvents, type OrderKind } from '@/lib/paymentTriggers'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function AmendOrderPage({ params }: { params: Promise<{ id: string }> }) {
+    const locale = await getLocale()
     const denied = await requireEditPermission('module.purchasing.edit', 'nav.purchasing')
     if (denied) return denied
 
@@ -80,7 +83,7 @@ export default async function AmendOrderPage({ params }: { params: Promise<{ id:
         percentage: r.percentage === null ? '' : String(r.percentage),
         fixed_amount: r.fixed_amount_ccy === null ? '' : String(r.fixed_amount_ccy),
         trigger_event: (r.trigger_event as string) ?? '',
-        due_date: (r.due_date as string | null) ?? '',
+        due_date: formatDate(r.due_date, locale) ?? '',
     }))
 
     // 【这张单是材料单还是设备单】由它的行决定 —— purchase_orders 上没有类型列
@@ -95,8 +98,8 @@ export default async function AmendOrderPage({ params }: { params: Promise<{ id:
                 code={po.code as string}
                 status={po.status as string}
                 currency={po.currency as string}
-                orderDate={po.order_date as string}
-                expectedDelivery={(po.expected_delivery_date as string | null) ?? ''}
+                orderDate={po.order_date ? formatDate(po.order_date, locale) : '—'}
+                expectedDelivery={formatDate(po.expected_delivery_date, locale) ?? ''}
                 incoterm={(po.incoterm as string | null) ?? ''}
                 notes={(po.notes as string | null) ?? ''}
                 deliveryLocation={(po.delivery_location as string | null) ?? ''}

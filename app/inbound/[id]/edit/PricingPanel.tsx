@@ -10,6 +10,8 @@ import { formatUnitCost } from '@/lib/format'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { Button } from '@/app/components/ui/button'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 const initialState: SetPriceState = {}
 
@@ -47,6 +49,7 @@ export default function PricingPanel({
     extraAction?: React.ReactNode
     baseCurrency: string
 }) {
+    const locale = useLocale()
     const t = useTranslations()
     const setWithId = setInboundPrice.bind(null, batchId)
     const [st, formAction, isPending] = useActionState(setWithId, initialState)
@@ -124,9 +127,9 @@ export default function PricingPanel({
                     {h.currency !== baseCurrency && h.fx_rate !== null && h.rate_type && (
                         <span className="ml-1 text-xs text-gray-500">{h.rate_type}</span>
                     )}
-                    {h.currency !== baseCurrency && h.rate_as_of && h.priced_date && h.rate_as_of !== h.priced_date && (
+                    {h.currency !== baseCurrency && formatDate(h.rate_as_of, locale) && h.priced_date && h.rate_as_of !== h.priced_date && (
                         <span className="ml-1 px-1 rounded bg-amber-100 text-amber-800 text-xs font-sans">
-                            {t('finance.fxLookup.asOf', { 0: h.rate_as_of })}
+                            {t('finance.fxLookup.asOf', { 0: h.rate_as_of ? formatDate(h.rate_as_of, locale) : '—' })}
                         </span>
                     )}
                 </>

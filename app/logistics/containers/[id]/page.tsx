@@ -11,8 +11,11 @@ import ContainerPanels from './ContainerPanels'
 import ContainerFreightPanel from './ContainerFreightPanel'
 import { operativeMilestoneIds } from './operativeMilestone'
 import { can } from '@/lib/permissions'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function ContainerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const locale = await getLocale()
     const denied = await requireModule(MOD.logistics)
     if (denied) return denied
     const canEditGate = await can('module.purchasing.edit')
@@ -66,7 +69,7 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
     // CTN-OP:【哪一条算数】只判一次,判据在 operativeMilestone.ts —— 显示顺序
     // 仍然是上面那句 order by event_date,两件事分开。
     const operativeIds = [...operativeMilestoneIds(milestones.map((m) => ({
-        id: m.id as string, milestone: m.milestone as string, recorded_at: m.recorded_at as string,
+        id: m.id as string, milestone: m.milestone as string, recorded_at: formatAuditStamp(m.recorded_at),
     })))]
 
     const documents = mustRows(
@@ -83,7 +86,7 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
     //   屏幕说【这只箱子里什么都没装】。订单号与客户名在 shipment_lookup 上是
     //   【摊平的两列】,判据因此只有一处:那张视图的体内谓词。
     const shape = (r: Record<string, unknown>) => ({
-        id: r.id as string, code: r.code as string, ship_date: r.ship_date as string,
+        id: r.id as string, code: r.code as string, ship_date: formatDate(r.ship_date as string, locale),
         order_code: (r.sales_order_code as string | null) ?? '—',
         customer: (r.customer_legal_name as string | null) ?? '—',
     })
@@ -95,7 +98,7 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
             </div>
             <h1 className="mb-1">{head.data.code}</h1>
             <p className="mb-4 text-sm text-[color:var(--brand-muted-text)]">
-                {t('logistics.colDeparture')}: {head.data.departure_date}
+                {t('logistics.colDeparture')}: {formatDate(head.data.departure_date, locale)}
             </p>
 
             <ContainerPanels canEdit={canEditGate}
@@ -106,7 +109,7 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                     voyage: head.data.voyage,
                     bl_number: head.data.bl_number,
                     notes: head.data.notes,
-                    expected_arrival_date: head.data.expected_arrival_date as string | null,
+                    expected_arrival_date: head.data.expected_arrival_date ? formatDate(head.data.expected_arrival_date, locale) : null,
                     forwarder_id: fwdId,
                     forwarder_name: forwarderName,
                 }}
@@ -117,7 +120,7 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                 attachable={attachable.map((r) => shape(r as Record<string, unknown>))}
                 milestones={milestones.map((m) => ({
                     id: m.id as string, milestone: m.milestone as string,
-                    event_date: m.event_date as string, note: (m.note as string | null) ?? null,
+                    event_date: formatDate(m.event_date, locale), note: (m.note as string | null) ?? null,
                     label: t('logistics.milestoneLabel.' + (m.milestone as string)),
                 }))}
                 documents={documents.map((d) => ({
@@ -174,7 +177,7 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                 containerId={id}
                 laneId={head.data.lane_id as string | null}
                 forwarderId={head.data.forwarder_id as string | null}
-                departureDate={head.data.departure_date as string}
+                departureDate={formatDate(head.data.departure_date, locale)}
             />
         </div>
     )

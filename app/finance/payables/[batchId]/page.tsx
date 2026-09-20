@@ -8,7 +8,7 @@ import { notFound } from 'next/navigation'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatAmount, formatMoneyBare, formatTimestamp } from '@/lib/format'
+import { formatAmount, formatMoneyBare } from '@/lib/format'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -19,6 +19,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import SettlementHistoryTable, { type SettlementRow } from '@/app/components/finance/SettlementHistoryTable'
 import { can } from '@/lib/permissions'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 type AllocRow = {
     id: string
@@ -118,7 +119,7 @@ export default async function PayableDocPage({
         mime_type: a.mime_type,
         doc_type: a.doc_type,
         notes: a.notes,
-        created_at_display: formatTimestamp(a.created_at, dateLocale),
+        created_at_display: formatAuditStamp(a.created_at),
     }))
 
     const materialName =
@@ -136,7 +137,7 @@ export default async function PayableDocPage({
         id: a.id,
         paymentCode: a.payments?.code ?? '—',
         paymentHref: a.payments ? `/finance/payments/${a.payments.id}` : null,
-        paymentDate: a.payments?.payment_date ?? '—',
+        paymentDate: formatDate(a.payments?.payment_date, dateLocale) ?? '—',
         allocatedText: formatAmount(a.allocated_base, baseCurrency),
         reversed: a.payments?.status === 'reversed',
     }))

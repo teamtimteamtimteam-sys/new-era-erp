@@ -34,6 +34,8 @@ import { collectionContext } from '../chaseActions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type CreditRow = {
     customer_id: string
@@ -84,6 +86,7 @@ export default async function CustomerStatusPage({
 }: {
     params: Promise<{ id: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。
     const denied = await requireModule(MOD.customers)
     if (denied) return denied
@@ -137,7 +140,7 @@ export default async function CustomerStatusPage({
     const openItemRows: OpenItemRow[] = openItems.map((it) => ({
         salesRecordId: it.sales_record_id,
         docCode: it.doc_code,
-        saleDate: it.sale_date,
+        saleDate: formatDate(it.sale_date, locale),
         openBase: formatAmount(it.open_base, baseCurrency),
         daysOutstanding: it.days_outstanding,
     }))

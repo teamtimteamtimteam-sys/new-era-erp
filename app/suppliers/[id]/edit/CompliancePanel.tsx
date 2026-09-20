@@ -7,6 +7,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { Button } from '@/app/components/ui/button'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { formatDate } from '@/lib/dates'
 
 type ComplianceRow = {
     id: string
@@ -139,7 +140,7 @@ export default function CompliancePanel({
                 const expired = row.valid_until !== null && new Date(row.valid_until) < now
                 const text = (
                     <>
-                        {row.valid_from || '—'} ~ {row.valid_until || '—'}
+                        {formatDate(row.valid_from, locale) || '—'} ~ {formatDate(row.valid_until, locale) || '—'}
                         {expired && t('suppliers.compliance.expired')}
                     </>
                 )

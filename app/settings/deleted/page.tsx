@@ -47,9 +47,8 @@
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { getTranslations } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
-import { formatTimestamp } from '@/lib/format'
 import { isYmd } from '@/lib/dateFilter'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -57,6 +56,7 @@ import DeletedTable, { type DeletedRow } from './DeletedTable'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
+import { formatAuditStamp } from '@/lib/dates'
 
 type Row = {
     record_kind: string
@@ -95,8 +95,6 @@ export default async function DeletedRecordsPage({
     const sp = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
-    const locale = await getLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-SG'
 
     const kind = KINDS.includes(sp.kind ?? '') ? (sp.kind as string) : ''
     const from = isYmd(sp.from ?? '') ? (sp.from as string) : ''
@@ -142,7 +140,7 @@ export default async function DeletedRecordsPage({
         code: r.code,
         detail: r.detail ?? null,
         href: KIND_HREF[r.record_kind]?.(r.record_id) ?? null,
-        whenLabel: formatTimestamp(r.deleted_at, dl),
+        whenLabel: formatAuditStamp(r.deleted_at),
         // 服务端渲染好的四态元素 —— 判据不过边界,元素过(见 DeletedTable 抬头)
         whoCell: (
             <ActorName

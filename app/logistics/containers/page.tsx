@@ -14,8 +14,11 @@ import NewContainerForm from './NewContainerForm'
 import { ListPage } from '@/app/components/ui/list-page'
 import ContainersTable, { type ContainerRow } from './ContainersTable'
 import { can } from '@/lib/permissions'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function ContainersPage() {
+    const locale = await getLocale()
     const denied = await requireModule(MOD.logistics)
     if (denied) return denied
     const canEditGate = await can('module.purchasing.edit')
@@ -68,7 +71,7 @@ export default async function ContainersPage() {
             containerNumber: (r.container_number as string) ?? '—',
             laneLabel: laneLabel(r.lane_id as string | null),
             vessel: (r.vessel as string) ?? '—',
-            departureDate: r.departure_date as string,
+            departureDate: r.departure_date ? formatDate(r.departure_date, locale) : '—',
             milestoneLabel: r.latest_milestone
                 ? `${t('logistics.milestoneLabel.' + (r.latest_milestone as string))} · ${r.latest_milestone_date as string}`
                 : null,

@@ -27,6 +27,7 @@ import { mustRows } from '@/lib/db-helpers'
 import AvatarPanel from './AvatarPanel'
 import { initialsOf } from '@/lib/initials'
 import { AVATAR_ROUTE, AVATAR_VERSION_COOKIE } from '@/lib/avatar'
+import { formatDate, formatMonth } from '@/lib/dates'
 
 type MyKpiRow = {
     id: string; cycle_name: string; cycle_status: string; gate: string | null
@@ -49,8 +50,7 @@ export default async function MePage() {
     // 调薪没有随行币种 —— 那是本位币的月薪。
     const baseCurrency = await getBaseCurrency()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
-    const fmtDate = (v: string | null) =>
-        v ? new Date(v).toLocaleDateString(dateLocale) : '—'
+
 
     const { data: profileRows } = await supabase.from('my_profile').select('*').limit(1)
 
@@ -185,7 +185,7 @@ export default async function MePage() {
     const myAttendance = myLines
         .map((l) => ({
             code: attPeriodById.get(l.period_id)?.code ?? '—',
-            periodMonth: attPeriodById.get(l.period_id)?.period_month ?? '',
+            periodMonth: formatMonth(attPeriodById.get(l.period_id)?.period_month, dateLocale) ?? '',
             status: attPeriodById.get(l.period_id)?.status ?? '',
             normal: Number(l.ot_normal_hours ?? 0),
             restDay: Number(l.ot_rest_day_hours ?? 0),
@@ -264,7 +264,7 @@ export default async function MePage() {
         return {
             id: l.id ?? `payslip-${i}`,
             periodCode: per ? per.code : '—',
-            periodMonthLabel: per?.period_month ? fmtDate(per.period_month) : null,
+            periodMonthLabel: per?.period_month ? formatMonth(per.period_month, locale) : null,
             gross: formatAmount(l.gross_pay, per?.currency),
             employerCpf: formatAmount(l.employer_cpf, per?.currency),
             employeeCpf: formatAmount(l.employee_cpf, per?.currency),
@@ -276,8 +276,8 @@ export default async function MePage() {
         id: r.id,
         trainingName: r.training_name,
         provider: r.provider,
-        completedLabel: fmtDate(r.completed_date),
-        expiryLabel: fmtDate(r.expiry_date),
+        completedLabel: formatDate(r.completed_date, dateLocale),
+        expiryLabel: r.expiry_date ? formatDate(r.expiry_date, dateLocale) : '—',
         expiry: expiryState(r.expiry_date),
     }))
 
@@ -315,7 +315,7 @@ export default async function MePage() {
                     </div>
                     <div>
                         <div className={dt}>{t('me.hireDate')}</div>
-                        <div className={dd}>{fmtDate(p.hire_date)}</div>
+                        <div className={dd}>{formatDate(p.hire_date, dateLocale)}</div>
                     </div>
                     <div>
                         <div className={dt}>{t('me.annualLeaveAvailable')}</div>
@@ -339,9 +339,9 @@ export default async function MePage() {
                             <div>
                                 <div className={dt}>{t('me.workPassExpiry')}</div>
                                 <div className={dd}>
-                                    {fmtDate(p.work_pass_expiry_date)}
+                                    {formatDate(p.work_pass_expiry_date, dateLocale)}
                                     {(() => {
-                                        const s = expiryState(p.work_pass_expiry_date)
+                                        const s = expiryState(formatDate(p.work_pass_expiry_date, dateLocale))
                                         return s ? (
                                             <span className={`ml-2 rounded px-1.5 py-0.5 text-xs ${s.cls}`}>
                                                 {t(s.key)}
@@ -380,7 +380,7 @@ export default async function MePage() {
                                 <div className="text-sm font-medium">
                                     {t(`hr.changeType.${h.change_type}`)}
                                     <span className="ml-2 text-xs text-[color:var(--brand-muted-text)]">
-                                        {fmtDate(h.effective_date)}
+                                        {formatDate(h.effective_date, dateLocale)}
                                     </span>
                                 </div>
                                 <div className="text-sm text-[color:var(--brand-muted-text)]">

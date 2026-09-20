@@ -19,6 +19,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import RevaluationPreviewTable, { type RevaluationRow } from './RevaluationPreviewTable'
 import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type PreviewRow = {
     account: string
@@ -38,6 +40,7 @@ type Preview = {
 }
 
 export default async function RevaluationPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -73,7 +76,7 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
             native: p.native,
             carryBase: p.carry_base,
             rate: p.rate,
-            rateAsOf: p.rate_as_of,
+            rateAsOf: p.rate_as_of ? formatDate(p.rate_as_of, locale) : null,
             periodEnd: d,
             adjustment: p.adjustment,
             baseCurrency,

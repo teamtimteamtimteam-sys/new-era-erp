@@ -42,6 +42,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import LedgerRowsTable, { type LedgerTableRow } from './LedgerRowsTable'
+import { formatDate } from '@/lib/dates'
 
 type Counterpart = { code: string; name_en: string; name_zh: string }
 type LedgerRow = {
@@ -197,7 +198,7 @@ export default async function AccountLedgerPage({
     // ★【行数据在服务端压平】locale、来源链接解析、金额格式都只有服务端知道。
     const tableRows: LedgerTableRow[] = led.rows.map((r) => ({
         id: r.line_id,
-        entryDate: r.entry_date,
+        entryDate: formatDate(r.entry_date, locale),
         entryCode: r.entry_code,
         entryHref: `/finance/journal/${r.entry_id}`,
         reversed: r.entry_status === 'reversed',

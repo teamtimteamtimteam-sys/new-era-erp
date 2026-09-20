@@ -12,7 +12,6 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatTimestamp } from '@/lib/format'
 import { metalLabelKey } from '@/app/tools/pricing/metal-prices/options'
 import { AssayMetalsTable, ApplyPreviewTable } from './AssayTables'
 import { localizeAssayError } from '@/app/inbound/assayErrorCodes'
@@ -20,6 +19,7 @@ import { ApplyOutputAssayButton, UnapplyOutputAssayControl } from './OutputApply
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 type PreviewCurrentRow = {
     metal: string
@@ -178,7 +178,7 @@ export default async function OutputAssayDetailPage({
             <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.colDate')}:</span>
-                    <span>{assay.assay_date}</span>
+                    <span>{formatDate(assay.assay_date, dateLocale)}</span>
                 </div>
                 {/* PROC-6:基准与出具方【总是显示】—— 它们是解读这些数字的前提,
                     不是可有可无的补充。历史化验单没有基准,那就照直说「没有记过」,
@@ -235,7 +235,7 @@ export default async function OutputAssayDetailPage({
                     }
                 >
                     {isApplied
-                        ? `${t('assay.applied')} · ${formatTimestamp(assay.applied_at!, dateLocale)}`
+                        ? `${t('assay.applied')} · ${formatAuditStamp(assay.applied_at)}`
                         : t('assay.notApplied')}
                 </span>
                 {supersederRes.data && (

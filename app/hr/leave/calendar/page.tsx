@@ -21,6 +21,7 @@ import { MOD } from '@/lib/modules'
 import MonthGrid, { DOW_KEYS, type CalendarItem } from '@/app/components/calendar/MonthGrid'
 import { expandRange, KIND_COLOR } from '@/app/tools/calendar/sources'
 import { Button } from '@/app/components/ui/button'
+import { businessToday } from '@/lib/format'
 
 export default async function LeaveCalendarPage({
     searchParams,
@@ -30,8 +31,22 @@ export default async function LeaveCalendarPage({
     if (denied) return denied
 
     const sp = await searchParams
-    const now = new Date()
-    const month = sp.month ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★【DATE-1 · §3 ③:这个 month 键此前【一个字的校验都没有】】★★
+    // ════════════════════════════════════════════════════════════════════════
+    // 从前写的是 `const month = sp.month ?? <今天的月份>`,然后直接
+    //     `${month}-01` / `month.split('-').map(Number)`
+    // 拼出查询区间。于是 `?month=2026年9月` 会让 first 变成 `2026年9月-01`、
+    // 让 `new Date(NaN, NaN, 0).getDate()` 变成 NaN,last 变成 `2026年9月-NaN` ——
+    // ★ **而这两个串照样被送进查询,不报错。** 它正是 DATE-0 §5.2 ④ 点名的
+    //   那条【安静】的路。
+    //
+    // 处置:**不认识的就不认**,退回本月;而"本月"取【业务时区】的今天 ——
+    // `new Date().getFullYear()` 读的是渲染进程碰巧继承的时区,
+    // 而 CONV-7 ② 已经为同一件事付过一次账(见 lib/format.ts 的 businessToday)。
+    const thisMonth = businessToday().slice(0, 7)
+    const requested = sp.month ?? ''
+    const month = /^\d{4}-\d{2}$/.test(requested) ? requested : thisMonth
     const first = `${month}-01`
     const [y, m] = month.split('-').map(Number)
     const last = `${month}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`

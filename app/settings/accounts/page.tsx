@@ -9,6 +9,7 @@ import { requireManagePermissions } from '../guard'
 import UserRow, { type DirectoryRow, type RoleOption, type EmployeeOption } from './UserRow'
 import CreateAccountPanel from './CreateAccountPanel'
 import { mustRows } from '@/lib/db-helpers'
+import { formatAuditStamp } from '@/lib/dates'
 
 export default async function PermissionUsersPage() {
     const denied = await requireManagePermissions()
@@ -68,7 +69,7 @@ export default async function PermissionUsersPage() {
                             roles={roles}
                             employees={employees}
                             lastSignInDisplay={fmt(r.last_sign_in_at)}
-                            createdDisplay={fmt(r.created_at)}
+                            createdDisplay={fmt(formatAuditStamp(r.created_at))}
                         />
                     ))}
                 </div>

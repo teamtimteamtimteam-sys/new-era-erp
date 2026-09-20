@@ -26,6 +26,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { saveSelfAssessment } from '@/app/hr/reviews/actions'
 import { Button } from '@/app/components/ui/button'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 export type SelfAssessment = {
     review_id: string
@@ -58,6 +60,7 @@ export default function MySelfAssessmentPanel({
     assessments: SelfAssessment[]
     goals: SelfAssessmentGoal[]
 }) {
+    const locale = useLocale()
     const t = useTranslations()
     const router = useRouter()
     const [pending, startTransition] = useTransition()
@@ -170,7 +173,7 @@ export default function MySelfAssessmentPanel({
                                 {t(`reviews.type_${a.review_type}`)}
                                 {a.cycle_name && <span className="ml-2">{a.cycle_name}</span>}
                                 <span className="ml-2 text-xs text-[color:var(--brand-muted-text)]">
-                                    {a.period_start} → {a.period_end}
+                                    {formatDate(a.period_start, locale)} → {formatDate(a.period_end, locale)}
                                 </span>
                             </div>
                             {locked && (

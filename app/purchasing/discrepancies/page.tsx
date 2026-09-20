@@ -28,8 +28,11 @@ import ReceivingThresholdPanel from './ReceivingThresholdPanel'
 import DiscrepancyKinds, {
     type DiscrepancyRow, type ReceivingThresholds,
 } from '@/app/components/receiving/DiscrepancyKinds'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function ReceivingDiscrepanciesPage() {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推(这一页尤其:视图对无权者就是 0 行)。
     const denied = await requireModule(MOD.purchasing)
@@ -142,7 +145,7 @@ export default async function ReceivingDiscrepanciesPage() {
                                     </span>
                                     <span className="text-[color:var(--brand-muted-text)]">#{r.line_no}</span>
                                     {r.supplier_name && <span className="text-[color:var(--brand-muted-text)]">{r.supplier_name}</span>}
-                                    {r.arrival_date && <span className="text-[color:var(--brand-muted-text)]">{r.arrival_date}</span>}
+                                    {r.arrival_date && <span className="text-[color:var(--brand-muted-text)]">{formatDate(r.arrival_date, locale)}</span>}
                                 </div>
                                 {settings && (
                                     <DiscrepancyKinds

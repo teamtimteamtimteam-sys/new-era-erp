@@ -17,6 +17,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
 import { tableC } from '@/app/components/ui/table-style'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 export type BatchOption = {
     id: string
@@ -50,6 +52,7 @@ export default function NewFreightForm({
     baseCurrency: string
     containers: ContainerOption[]
 }) {
+    const locale = useLocale()
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createFreightDocument, initialState)
     // LOG-4b:【方向不是一个标签,它决定这笔钱去哪里】。没有默认成"进货"的诱惑:
@@ -210,7 +213,7 @@ export default function NewFreightForm({
                                 <option value="">{t('finance.freight.selectContainer')}</option>
                                 {containers.map((c) => (
                                     <option key={c.id} value={c.id}>
-                                        {c.code}{c.lane ? ` · ${c.lane}` : ''} · {c.departure_date}
+                                        {c.code}{c.lane ? ` · ${c.lane}` : ''} · {formatDate(c.departure_date, locale)}
                                     </option>
                                 ))}
                             </select>

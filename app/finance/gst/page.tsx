@@ -15,6 +15,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import GstTaxCodesTable, { type TaxCodeRow } from './GstTaxCodesTable'
 import GstPeriodsTable, { type GstPeriodRow } from './GstPeriodsTable'
 import { can } from '@/lib/permissions'
+import { formatDate } from '@/lib/dates'
 
 export default async function GstPage() {
     const denied = await requireModule(MOD.finance)
@@ -60,7 +61,7 @@ export default async function GstPage() {
         isCorrection: !!p.corrects_period_id,
         window: `${p.period_start} → ${p.period_end}`,
         filed: p.status === 'filed',
-        filedOn: p.filed_on,
+        filedOn: p.filed_on ? formatDate(p.filed_on, locale) : null,
         filedReference: p.filed_reference,
     }))
 

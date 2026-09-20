@@ -14,6 +14,7 @@ import { IMPORT_TABLES, type TemplateColumn } from '@/lib/importTables'
 import ImportForm from './ImportForm'
 import { ListPage } from '@/app/components/ui/list-page'
 import ImportHistoryTable, { type ImportBatchRow } from './ImportHistoryTable'
+import { formatAuditStamp } from '@/lib/dates'
 
 export default async function ImportPage() {
     const t = await getTranslations()
@@ -63,7 +64,7 @@ export default async function ImportPage() {
     // (【第三种空】还没有导入过任何东西)由 DataTable 自己的 empty 说。
     const tableRows: ImportBatchRow[] = batches.map((b) => ({
         id: b.id as string,
-        whenLabel: new Date(b.imported_at as string).toLocaleString(),
+        whenLabel: formatAuditStamp(b.imported_at),
         tableLabel: t(`import.table.${b.target_table}`),
         fileName: b.file_name as string,
         rowCount: b.row_count as number,

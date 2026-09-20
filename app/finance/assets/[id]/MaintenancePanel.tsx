@@ -55,6 +55,8 @@ import { recordMaintenance, capitaliseMaintenance } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_RADIO, CONTROL_INPUT, CONTROL_SELECT, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 export type MaintRow = {
     id: string
@@ -99,6 +101,7 @@ export default function MaintenancePanel({
     baseCurrency: string
     currencies: string[]
 }) {
+    const locale = useLocale()
     const t = useTranslations()
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -211,7 +214,7 @@ export default function MaintenancePanel({
                    权限交给 CapitaliseControl 里面那两道闸。 */
                 r.capitalised && !r.capitalised_expense_id && inServiceDate ? (
                     <CapitaliseControl canCapitalise={canCapitalise} assetId={assetId} maintenanceId={r.id}
-                                       performedOn={r.performed_on}
+                                       performedOn={formatDate(r.performed_on, locale)}
                                        suppliers={suppliers} baseCurrency={baseCurrency}
                                        currencies={currencies} />
                 ) : r.capitalised_expense_id ? (

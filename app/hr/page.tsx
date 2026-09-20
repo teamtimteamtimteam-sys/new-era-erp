@@ -47,6 +47,8 @@ import { getMyPermissions } from '@/lib/permissions'
 import { mustRows, mustCount } from '@/lib/db-helpers'
 import { formatAmount, businessToday } from '@/lib/format'
 import Figure from '@/app/components/overview/Figure'
+import { formatMonth } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type DirectoryRow = { employment_status: string; work_category: string }
 type PayrollRow = { period_month: string; status: string }
@@ -59,6 +61,7 @@ type SalaryRow = { monthly_salary: number | null; monthly_salary_set: boolean | 
 const IN_SERVICE = ['probation', 'active', 'notice']
 
 export default async function HrOverviewPage() {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.hr)
     if (denied) return denied
@@ -194,7 +197,7 @@ export default async function HrOverviewPage() {
                 <p className="text-sm" style={{ color: 'var(--brand-text)' }}>
                     {payroll
                         ? t('hrOverview.payrollLatest', {
-                              month: payroll.period_month.slice(0, 7),
+                              month: formatMonth(payroll.period_month, locale),
                               status: t('hrOverview.payrollStatus.' + payroll.status),
                           })
                         : /* ★【一期都没有跑过 ≠ 这个月没跑】说出是哪一种】★ */

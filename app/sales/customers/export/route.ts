@@ -6,6 +6,7 @@ import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { parseCustomerListParams, applyCustomerFilters } from '../customerQuery'
 import { fallbackForRawError } from '@/lib/machine-text'
+import { formatCsvTimestamp } from '@/lib/dates'
 
 // 导出列(比表格多 —— 导出文件是给 Excel 用的)。顺序即 CSV 列顺序,与下方表头一一对应。
 // 即便不按 status 筛选,导出里仍保留 status —— 它也是数据。
@@ -36,16 +37,23 @@ function csvCell(value: unknown): string {
 }
 
 // created_at 转成稳定、Excel 友好的格式(UTC,避免服务器时区歧义)。
-function formatDate(value: string | null): string {
-    if (!value) return ''
-    const d = new Date(value)
-    if (Number.isNaN(d.getTime())) return value
-    const pad = (n: number) => String(n).padStart(2, '0')
-    return (
-        `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}` +
-        ` ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
-    )
-}
+// ════════════════════════════════════════════════════════════════════════════
+// ★★★【导出里的日期【不跟】屏幕改 —— Tim 的裁定 D3,理由写在这里】★★★
+// ════════════════════════════════════════════════════════════════════════════
+// > **Excel 把 `2026-09-01` 认成【日期】(可排序、可算差);
+// > 把 `01 Sep 2026` 认成【一串文字】,而文字是按字母排的:Apr < Aug < Dec …**
+// >
+// > **导出的用途是【再算一次】,不是【读】。屏幕跟人走,导出跟机器走。**
+//
+// ☞ 这**不是**一处"还没改到的地方",是一条裁定。下一刀看见屏幕上是
+//   `01 Sep 2026` 而这里是 `2026-09-01`,那不是不一致 —— **那是两个读者。**
+// ☞ DATE-1 把从前那【五份逐字节相同的本地 formatDate】合并成了
+//   `lib/dates.ts` 的 `formatCsvTimestamp()`,而它**逐字节吐与从前相同的串**。
+//   合并是为了只剩一份,**不是为了顺手把它改好看**。
+//   ⚠ 它用的是 **UTC**(那五份复制从第一天起就是),而屏幕走业务时区 ——
+//     这件事立案在 docs/known-issues.md 的 DATE1-CSV-UTC,**本刀不动它**:
+//     动它就是动导出的字节,而那正是 D3 裁的东西。
+// ════════════════════════════════════════════════════════════════════════════
 
 // 文件名里的日期戳:customers-YYYY-MM-DD.csv(本地日期)
 function todayStamp(): string {
@@ -86,7 +94,7 @@ export async function GET(request: NextRequest) {
                 csvCell(r.incoterm),
                 csvCell(r.credit_rating),
                 csvCell(r.address),
-                csvCell(formatDate(r.created_at)),
+                csvCell(formatCsvTimestamp(r.created_at)),
             ].join(',')
         )
     }

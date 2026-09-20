@@ -21,6 +21,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import PacksHistoryTable, { type PackRow } from './PacksHistoryTable'
 import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
+import { formatAuditStamp } from '@/lib/dates'
 
 function monthOf(v: string | undefined): string {
     // 【只认 YYYY-MM;认不出就用上个月】上个月是"最可能已经关账"的那一个,
@@ -73,7 +74,7 @@ export default async function PacksPage({
         periodMonth: String(p.period_month).slice(0, 7),
         producedAt: String(p.produced_at).slice(0, 19).replace('T', ' '),
         lockedBeforeAt: String(p.locked_before_at_production),
-        supersededAt: p.superseded_at as string | null,
+        supersededAt: p.superseded_at ? formatAuditStamp(p.superseded_at) : null,
         supersededReason: p.superseded_reason as string | null,
     }))
 

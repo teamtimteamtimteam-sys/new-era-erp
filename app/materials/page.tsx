@@ -3,7 +3,6 @@
 // 端口自 suppliers 列表,字段适配 materials(种类筛选用 kind_code — PROC-1)。
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
-import { formatTimestamp } from '@/lib/format'
 import { createClient } from '@/lib/supabase/server'
 import { mustRows } from '@/lib/db-helpers'
 import Link from 'next/link'
@@ -28,6 +27,7 @@ import {
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { formatAuditStamp } from '@/lib/dates'
 
 export default async function MaterialsPage({
     searchParams,
@@ -53,7 +53,6 @@ export default async function MaterialsPage({
     // PROC-5:化学体系显示名来自字典。**连停用的一起读** —— 一条记着已停用
     // 取值的历史行必须照样显示得出名字,否则看起来像数据坏了。
     const chemistryLabel = dictLabeller(toDictOptions(await loadBatteryChemistries(supabase), locale))
-    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     // 把存储值反查成本地化文案;自定义自由文本(无 key)原样显示
     const display = (options: MaterialSelectOption[], value: string | null) => {
@@ -161,7 +160,7 @@ export default async function MaterialsPage({
             safetyStockLabel:
                 m.safety_stock_qty === null ? null : `${m.safety_stock_qty} ${display(UNIT_OPTIONS, m.unit)}`,
             status: m.status,
-            createdLabel: formatTimestamp(m.created_at, dateLocale),
+            createdLabel: formatAuditStamp(m.created_at),
         }
     })
 

@@ -10,7 +10,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { formatMoneyBare, formatUnitCost, formatTimestamp } from '@/lib/format'
+import { formatMoneyBare, formatUnitCost } from '@/lib/format'
 import { metalLabelKey } from '@/app/tools/pricing/metal-prices/options'
 import { AssayMetalsTable } from './AssayMetalsTable'
 import { localizeAssayError } from '../../../assayErrorCodes'
@@ -27,6 +27,7 @@ import { MaskedValue } from '@/app/components/MaskedValue'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 export default async function AssayDetailPage({
     params,
@@ -136,7 +137,7 @@ export default async function AssayDetailPage({
                     row.new_unit_price === null
                         ? null
                         : Math.round(Number(batch.quantity) * (Number(row.new_unit_price) - Number(row.old_unit_price ?? 0)) * 100) / 100,
-                when: formatTimestamp(row.created_at, dateLocale),
+                when: formatAuditStamp(row.created_at),
                 journalId: je?.[0]?.id ?? null,
                 journalCode: je?.[0]?.code ?? null,
             }
@@ -209,7 +210,7 @@ export default async function AssayDetailPage({
             <div className="bg-gray-50 rounded p-4 mb-6 flex flex-wrap gap-x-8 gap-y-2 text-sm items-center">
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('assay.colDate')}:</span>
-                    <span>{assay.assay_date}</span>
+                    <span>{formatDate(assay.assay_date, dateLocale)}</span>
                 </div>
                 {/* PROC-6:基准与出具方【总是显示】—— 它们是解读这些数字的前提,
                     不是可有可无的补充。历史化验单没有基准,那就照直说「没有记过」,
@@ -266,7 +267,7 @@ export default async function AssayDetailPage({
                     }
                 >
                     {isApplied
-                        ? `${t('assay.applied')} · ${formatTimestamp(assay.applied_at!, dateLocale)}`
+                        ? `${t('assay.applied')} · ${formatAuditStamp(assay.applied_at)}`
                         : t('assay.notApplied')}
                 </span>
                 {supersederRes.data && (

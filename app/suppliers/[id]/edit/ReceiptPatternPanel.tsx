@@ -23,6 +23,8 @@
 // 区别,人一眼就看得出来。
 import Link from 'next/link'
 import { getTranslations } from '@/lib/i18n/server'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export type PatternRow = {
     window_days: number
@@ -64,6 +66,7 @@ export default async function ReceiptPatternPanel({
     /** 读者持不持 module.purchasing.view。**不是从 row 是否为 null 倒推的。** */
     canSee: boolean
 }) {
+    const locale = await getLocale()
     const t = await getTranslations()
 
     return (
@@ -169,7 +172,7 @@ export default async function ReceiptPatternPanel({
                                             {r.batch_code}
                                         </Link>
                                         {r.arrival_date && (
-                                            <span className="text-[color:var(--brand-muted-text)] ml-2">{r.arrival_date}</span>
+                                            <span className="text-[color:var(--brand-muted-text)] ml-2">{formatDate(r.arrival_date, locale)}</span>
                                         )}
                                         <span className="ml-2">
                                             {r.kinds.map((k) => t('grn.kind.' + k)).join(t('common.listSep'))}

@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { quoteStatusKey } from './quoteTypes'
+import { formatDate } from '@/lib/dates'
 
 export type QuoteRow = {
     quote_id: string; code: string; customer_code: string; customer_name: string
@@ -18,7 +19,6 @@ export type QuoteRow = {
 export default function QuotesTable({ rows }: { rows: QuoteRow[] }) {
     const t = useTranslations()
     const locale = useLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     // ★【手机上留哪两列】★ 7 列里留【报价号】与【有效期至】:
     //   · 报价号是身份,而且是人嘴里说的那个东西(「Q-2026-0031 那张」);
@@ -43,13 +43,13 @@ export default function QuotesTable({ rows }: { rows: QuoteRow[] }) {
         },
         {
             key: 'quoteDate', header: t('quotes.colQuoteDate'),
-            render: (r) => new Date(r.quote_date).toLocaleDateString(dl),
+            render: (r) => formatDate(r.quote_date, locale),
         },
         {
             key: 'validUntil', header: t('quotes.colValidUntil'), priority: true,
             render: (r) => (
                 <>
-                    {new Date(r.valid_until).toLocaleDateString(dl)}
+                    {formatDate(r.valid_until, locale)}
                     {/* 【过期是派生的,不是一个存下来的状态】—— 与 status 那一列【并列】
                         而不是替代它:存的那个说"人做了什么",这个说"日历走到哪了"。
                         (原页面这一段一个字没改。) */}

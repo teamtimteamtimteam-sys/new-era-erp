@@ -1,13 +1,13 @@
 import Link from 'next/link'
 import { mustRows } from '@/lib/db-helpers'
-import { formatTimestamp } from '@/lib/format'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import EditCustomerForm from './EditCustomerForm'
 import AttachmentsPanel from './AttachmentsPanel'
-import { getTranslations, getLocale } from '@/lib/i18n/server'
+import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { formatAuditStamp } from '@/lib/dates'
 
 export default async function EditCustomerPage({
     params,
@@ -22,8 +22,6 @@ export default async function EditCustomerPage({
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()
-    const locale = await getLocale()
-    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const { data: customer, error } = await supabase
         .from('customers')
@@ -59,7 +57,7 @@ export default async function EditCustomerPage({
         file_size: a.file_size,
         doc_category: a.doc_category,
         storage_path: a.storage_path,
-        created_at_display: formatTimestamp(a.created_at, dateLocale),
+        created_at_display: formatAuditStamp(a.created_at),
     }))
 
     return (

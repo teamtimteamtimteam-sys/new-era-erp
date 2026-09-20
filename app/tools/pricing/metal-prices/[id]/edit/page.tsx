@@ -7,6 +7,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireEditPermission } from '@/app/components/moduleGuard'
 import { getMetalPriceIndices } from '../../indexQuery'
 import { loadSubstances, toOptions } from '../../substanceQuery'
+import { formatDate } from '@/lib/dates'
 
 export default async function EditMetalPricePage({
     params,
@@ -66,7 +67,7 @@ export default async function EditMetalPricePage({
 
             <div className="flex items-start justify-between mb-6">
                 <h1 className="">{t('metalPrices.editTitle')}</h1>
-                <DeleteButton id={row.id} subject={`${row.metal} · ${row.price_date}`} />
+                <DeleteButton id={row.id} subject={`${row.metal} · ${formatDate(row.price_date, locale)}`} />
             </div>
 
             <EditMetalPriceForm substanceOptions={substanceOptions} indices={indices} locale={locale} row={row} />

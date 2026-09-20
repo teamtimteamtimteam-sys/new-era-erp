@@ -19,6 +19,8 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import CreditNotesTable, { type CreditNoteRow } from './CreditNotesTable'
 import { Button } from '@/app/components/ui/button'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 const PAGE_SIZE = 20
 
@@ -32,6 +34,7 @@ export default async function CreditNotesPage({
 }: {
     searchParams: Promise<{ page?: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
@@ -140,7 +143,7 @@ export default async function CreditNotesPage({
         return {
             id: n.id,
             code: n.code,
-            noteDate: n.note_date,
+            noteDate: formatDate(n.note_date, locale),
             customerCell: customerCell(n.invoice_id),
             invoiceId: inv?.id ?? null,
             invoiceCode: inv?.code ?? null,

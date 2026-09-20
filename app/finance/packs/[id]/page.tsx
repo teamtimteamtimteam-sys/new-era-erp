@@ -19,10 +19,13 @@ import { MOD } from '@/lib/modules'
 import PackBody, { type PackPayload } from '../PackBody'
 import { ListPage } from '@/app/components/ui/list-page'
 import { Button } from '@/app/components/ui/button'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function PackDetailPage({
     params,
 }: { params: Promise<{ id: string }> }) {
+    const locale = await getLocale()
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
     const { id } = await params
@@ -74,8 +77,8 @@ export default async function PackDetailPage({
                         {t('pack.storedMeans')}
                         <br />
                         <span className="text-xs">
-                            {t('pack.colLockedBefore')}: {String(data.locked_before_at_production)} ·{' '}
-                            {t('pack.colProduced')}: {String(data.produced_at).slice(0, 19).replace('T', ' ')}
+                            {t('pack.colLockedBefore')}: {String(formatDate(data.locked_before_at_production, locale))} ·{' '}
+                            {t('pack.colProduced')}: {formatAuditStamp(data.produced_at)}
                         </span>
                     </p>
                     {data.superseded_at && (

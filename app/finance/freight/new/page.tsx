@@ -5,8 +5,11 @@ import { getBaseCurrency, getCurrencyCodes } from '@/lib/currency'
 import { mustRows } from '@/lib/db-helpers'
 import NewFreightForm, { type BatchOption } from './NewFreightForm'
 import { requireEditPermission } from '@/app/components/moduleGuard'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function NewFreightPage() {
+    const locale = await getLocale()
     // 【写页面按 module.finance.edit 把关】—— 与 metal_prices 那四页同一条规矩:
     // 守卫跟着数据自己的 RLS 走,而 freight_documents 的写策略就是这个码。
     const denied = await requireEditPermission('module.finance.edit', 'finance.subnav.freight')
@@ -90,7 +93,7 @@ export default async function NewFreightPage() {
                     code: c.code,
                     // 【箱号 + 航段】—— 一个只有 CTR- 号的下拉,人分不出哪个是哪个
                     lane: laneLabel(c.lane_id),
-                    departure_date: c.departure_date,
+                    departure_date: formatDate(c.departure_date, locale),
                 }))}
             />
         </div>

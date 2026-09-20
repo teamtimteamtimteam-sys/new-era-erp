@@ -19,6 +19,7 @@ import { REVIEW_COLUMNS, type GoalRow, type ReviewRow, daysInState, statusPillCl
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 export default async function ReviewDetailPage({ params }: { params: Promise<{ id: string }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -158,7 +159,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                 </div>
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.period')}:</span>
-                    <span>{r.period_start} → {r.period_end}</span>
+                    <span>{formatDate(r.period_start, locale)} → {formatDate(r.period_end, locale)}</span>
                 </div>
                 <div className="col-span-2">
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.reviewer')}:</span>
@@ -192,18 +193,18 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                     <div>
                         <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.newSalary')}:</span>
                         <span>{formatAmount(r.new_monthly_salary, baseCurrency)}</span>
-                        <span className="ml-2 text-[color:var(--brand-muted-text)]">{r.salary_effective_date}</span>
+                        <span className="ml-2 text-[color:var(--brand-muted-text)]">{formatDate(r.salary_effective_date, locale)}</span>
                     </div>
                 )}
             </div>
 
             {/* 自评 */}
-            {(r.self_assessment_text || r.self_assessment_submitted_at) && (
+            {(r.self_assessment_text || formatAuditStamp(r.self_assessment_submitted_at)) && (
                 <div className="mb-6">
                     <h2 className="mb-1">{t('reviews.selfAssessmentTitle')}</h2>
                     {r.self_assessment_submitted_at && (
                         <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">
-                            {t('reviews.selfAssessmentSubmittedAt', { 0: r.self_assessment_submitted_at.slice(0, 10) })}
+                            {t('reviews.selfAssessmentSubmittedAt', { 0: formatAuditStamp(r.self_assessment_submitted_at) })}
                         </p>
                     )}
                     <p className="text-sm whitespace-pre-wrap">{r.self_assessment_text ?? '—'}</p>
@@ -274,7 +275,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                     reviewType={r.review_type}
                     probationOutcome={r.probation_outcome}
                     newMonthlySalary={r.new_monthly_salary}
-                    salaryEffectiveDate={r.salary_effective_date}
+                    salaryEffectiveDate={r.salary_effective_date ? formatDate(r.salary_effective_date, locale) : null}
                     canPay={canPay}
                     editable={preApproval}
                 />

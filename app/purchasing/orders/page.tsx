@@ -23,6 +23,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import OrdersTable, { type PurchaseOrderRow } from './OrdersTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 const PAGE_SIZE = 20
 
@@ -57,6 +59,7 @@ export default async function PurchaseOrdersPage({
 }: {
     searchParams: Promise<{ date_from?: string; date_to?: string; supplier?: string; status?: string; page?: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.purchasing)
@@ -113,8 +116,8 @@ export default async function PurchaseOrdersPage({
             po_id: r.id,
             code: r.code,
             supplier_name: r.suppliers?.legal_name ?? null,
-            order_date: r.order_date,
-            expected_delivery_date: r.expected_delivery_date,
+            order_date: formatDate(r.order_date, locale),
+            expected_delivery_date: r.expected_delivery_date ? formatDate(r.expected_delivery_date, locale) : null,
             currency: r.currency,
             estimated_total_ccy: r.estimated_total_ccy,
             tax_total_ccy: r.tax_total_ccy,
@@ -181,8 +184,8 @@ export default async function PurchaseOrdersPage({
         code: r.code,
         status: r.status,
         supplierName: r.supplier_name ?? '—',
-        orderDate: r.order_date,
-        expectedDelivery: r.expected_delivery_date ?? '—',
+        orderDate: formatDate(r.order_date, locale),
+        expectedDelivery: formatDate(r.expected_delivery_date, locale) ?? '—',
         netTotal: formatAmount(r.estimated_total_ccy, r.currency),
         // 【没有算过税】给 null,由表印「—」;绝不折成 0.00
         taxTotal: r.carries_tax ? formatAmount(r.tax_total_ccy ?? 0, r.currency) : null,

@@ -26,6 +26,7 @@ import { mustOne } from '@/lib/db-helpers'
 import ThresholdPanel from './ThresholdPanel'
 import type { AnomalyVerdict } from './anomaly'
 import { loadSubstances, toOptions } from './substanceQuery'
+import { formatDate } from '@/lib/dates'
 
 type MetalPriceRow = {
     id: string
@@ -196,7 +197,7 @@ export default async function MetalPricesPage({
         metalLabel: metalLabel(r.metal),
         pricePerTonne: r.price_usd_per_tonne,
         quoteCurrency: r.metal_price_indices?.quote_currency ?? null,
-        priceDate: r.price_date,
+        priceDate: formatDate(r.price_date, locale),
         priceIndex: r.price_index ?? null,
         sourceLabel: t(sourceLabelKey(r.source)),
         notes: r.notes ?? '—',

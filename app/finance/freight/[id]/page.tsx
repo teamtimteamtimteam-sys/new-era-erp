@@ -24,6 +24,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader, type RecordField } from '@/app/components/ui/record-header'
 import FreightAllocationsTable, { type FreightAllocRow } from './FreightAllocationsTable'
 import { can } from '@/lib/permissions'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type AllocRow = {
     id: string
@@ -34,6 +36,7 @@ type AllocRow = {
 }
 
 export default async function FreightDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
@@ -93,7 +96,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
 
     // 抬头字段逐页不同 —— RecordHeader 只管盒子,不认识它们(见组件抬头)。
     const fields: RecordField[] = [
-        { label: t('finance.freight.colDate'), value: d.doc_date },
+        { label: t('finance.freight.colDate'), value: formatDate(d.doc_date, locale) },
         // 【货代,不是材料供应商】—— 这一行就是那个最要紧的区别
         { label: t('finance.freight.colForwarder'), value: d.suppliers?.legal_name ?? '—' },
         { label: t('finance.freight.colAmount'), value: formatAmount(d.amount_base, baseCurrency), mono: true },
@@ -160,7 +163,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
                         {/* flex-wrap,不是 grid-cols-2:390px 上两列会把这一块顶宽,
                             而那正是 CONV-8 §⑥ 量到的「元凶多数不是表」那一族。 */}
                         <div className="flex flex-wrap gap-x-8 gap-y-1">
-                            <div><span className="text-amber-700">{t('finance.freight.colReversedAt')}: </span>{d.reversed_at ?? '—'}</div>
+                            <div><span className="text-amber-700">{t('finance.freight.colReversedAt')}: </span>{formatAuditStamp(d.reversed_at) ?? '—'}</div>
                             {d.reversal_entry && (
                                 <div>
                                     <span className="text-amber-700">{t('finance.freight.colReversalEntry')}: </span>

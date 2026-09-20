@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { formatTimestamp } from '@/lib/format'
 import { getBaseCurrency } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -42,6 +41,7 @@ import DiscrepancyKinds, {
     type ReceivingThresholds as GrnThresholds,
 } from '@/app/components/receiving/DiscrepancyKinds'
 import { Button } from '@/app/components/ui/button'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -408,7 +408,7 @@ export default async function EditInboundPage({
         }[]).map((h) => ({
             id: h.id,
             amount_base: h.amount_base,
-            created_at_display: formatTimestamp(h.created_at, dateLocale),
+            created_at_display: formatAuditStamp(h.created_at),
             journal_id: h.journal_entries?.id ?? null,
             journal_code: h.journal_entries?.code ?? null,
         }))
@@ -479,11 +479,11 @@ export default async function EditInboundPage({
         fx_rate: h.fx_rate,
         // FIN-21:牌价取自哪一天、哪一侧。定价日(SG 日历)用来判断要不要标"取自":
         // PostgREST 现按业务时区吐 +08:00 偏移,slice(0,10) 即 SG 日期。
-        rate_as_of: h.rate_as_of,
+        rate_as_of: h.rate_as_of ? formatDate(h.rate_as_of, dateLocale) : null,
         rate_type: h.rate_type,
-        priced_date: h.created_at?.slice(0, 10) ?? null,
+        priced_date: formatAuditStamp(h.created_at) ?? null,
         notes: h.notes,
-        created_at_display: formatTimestamp(h.created_at, dateLocale),
+        created_at_display: formatAuditStamp(h.created_at),
     }))
 
     // 金属含量行:服务端预格式化 updated_at,避免客户端水合不一致。
@@ -500,7 +500,7 @@ export default async function EditInboundPage({
     const metalRows: MetalContentRow[] = ((mustRows(metalsRes)) as unknown as MetalFetchRow[]).map((m) => ({
         metal: m.metal,
         content_pct: m.content_pct,
-        updated_at_display: formatTimestamp(m.updated_at, dateLocale),
+        updated_at_display: formatAuditStamp(m.updated_at),
         source_kind: m.content_source === 'assay' ? 'assay' : m.content_source === 'manual' ? 'manual' : 'unknown',
         source_label:
             m.content_source === 'assay'
@@ -520,9 +520,9 @@ export default async function EditInboundPage({
         movement_type: m.movement_type,
         qty_delta: m.qty_delta,
         stock_status: m.stock_status,
-        business_date: m.business_date,
+        business_date: m.business_date ? formatDate(m.business_date, dateLocale) : null,
         notes: m.notes,
-        occurred_at_display: formatTimestamp(m.occurred_at, dateLocale),
+        occurred_at_display: formatAuditStamp(m.occurred_at),
         run: m.processing_runs,
     }))
 
@@ -557,7 +557,7 @@ export default async function EditInboundPage({
         if (cod && cod.status !== 'void') {
             codPanel = {
                 codId: cod.id, code: cod.code, status: cod.status,
-                issuedAt: cod.issued_at, completedOn: cod.completed_on,
+                issuedAt: cod.issued_at ? formatAuditStamp(cod.issued_at) : null, completedOn: cod.completed_on ? formatDate(cod.completed_on, dateLocale) : null,
                 verificationToken: cod.verification_token,
                 voidReason: cod.void_reason, blockedBecause: null,
             }
@@ -579,7 +579,7 @@ export default async function EditInboundPage({
             codPanel = {
                 codId: cod?.id ?? null, code: cod?.code ?? null,
                 status: cod?.status ?? null,
-                issuedAt: cod?.issued_at ?? null, completedOn: cod?.completed_on ?? null,
+                issuedAt: formatAuditStamp(cod?.issued_at) ?? null, completedOn: formatDate(cod?.completed_on, dateLocale) ?? null,
                 verificationToken: cod?.verification_token ?? null,
                 voidReason: cod?.void_reason ?? null,
                 blockedBecause: whyErr ? await localizeCodError(whyErr.message) : null,
@@ -830,7 +830,7 @@ export default async function EditInboundPage({
             <ImportDiligencePanel batchId={id}
                 imported={batch.imported ?? null}
                 permitRef={batch.import_permit_ref ?? null}
-                verifiedAt={batch.import_permit_verified_at ?? null}
+                verifiedAt={formatAuditStamp(batch.import_permit_verified_at) ?? null}
                 canEdit={canEditInbound} />
 
             {/* RECV-SOURCE-1:这张收货从哪来 —— 未说明(琥珀)/ 采购行 / 理由,
@@ -840,7 +840,7 @@ export default async function EditInboundPage({
                 poLabel={poHeader?.po_code ?? null}
                 reasonCode={batch.source_reason_code ?? null}
                 reasonNote={batch.source_reason_note ?? null}
-                recordedAt={batch.source_reason_recorded_at ?? null}
+                recordedAt={formatAuditStamp(batch.source_reason_recorded_at) ?? null}
                 reasons={sourceReasons}
                 canEdit={canEditInbound} />
 

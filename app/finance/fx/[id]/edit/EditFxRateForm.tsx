@@ -10,6 +10,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { can } from '@/lib/permissions'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 const initialState: UpdateFxRateState = {}
 
@@ -33,6 +35,7 @@ canEdit
 
 canEdit: boolean
 }) {
+    const locale = useLocale()
     const t = useTranslations()
     const updateWithId = updateFxRate.bind(null, rate.id)
     const [state, formAction, isPending] = useActionState(updateWithId, initialState)
@@ -55,7 +58,7 @@ canEdit: boolean
                         rate_type: rate.rate_type,
                         rate_sgd_per_unit: rate.rate_sgd_per_unit,
                         source: rate.source,
-                        rate_date: rate.rate_date,
+                        rate_date: formatDate(rate.rate_date, locale),
                         notes: rate.notes,
                     }}
                 />
@@ -115,7 +118,7 @@ canEdit: boolean
                         「哪一个?」这个问题在一张十行的表里答得出来。 */}
                     <DeleteButton canEdit={canEdit}
                         id={rate.id}
-                        subject={`${rate.currency} · ${rate.rate_type} · ${rate.rate_date}`}
+                        subject={`${rate.currency} · ${rate.rate_type} · ${formatDate(rate.rate_date, locale)}`}
                     />
                 </div>
             </form>

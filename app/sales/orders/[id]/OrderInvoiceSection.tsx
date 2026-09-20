@@ -14,6 +14,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import CreateOrderInvoiceControl from './CreateOrderInvoiceControl'
+import { formatDate } from '@/lib/dates'
 
 type InvoiceRow = {
     id: string
@@ -36,7 +37,6 @@ export default async function OrderInvoiceSection({
 }) {
     const t = await getTranslations()
     const locale = await getLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     const canSeeFinance = await can('module.finance.view')
     const canBill = await can('module.finance.edit')
@@ -92,7 +92,7 @@ export default async function OrderInvoiceSection({
                             <Link href={`/finance/invoices/${i.id}`} className="hover:underline app-link app-link-inline">
                                 {i.code}
                             </Link>
-                            <span className="text-[color:var(--brand-muted-text)]">{new Date(i.issue_date).toLocaleDateString(dl)}</span>
+                            <span className="text-[color:var(--brand-muted-text)]">{formatDate(i.issue_date, locale)}</span>
                             {i.status === 'void' ? (
                                 <span className="text-red-700 text-xs">
                                     {t('sales.invoice.voided')}{i.void_reason ? ` · ${i.void_reason}` : ''}

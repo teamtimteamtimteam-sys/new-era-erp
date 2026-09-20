@@ -29,6 +29,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { tableC } from '@/app/components/ui/table-style'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 // ★ CONV-4:不套 DataTable —— 按往来对象【动态分组】+ 组内小计,与
 //   balance-sheet/pnl/trial-balance 撞见的同一个分组缺口(见那三页顶注)。
@@ -51,6 +53,7 @@ export default async function PayablesPage({
 }: {
     searchParams: Promise<{ as_of?: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -112,7 +115,7 @@ export default async function PayablesPage({
                     {t('finance.payablesTitle')}
                     {report.is_past && (
                         <span className="ml-3 align-middle text-sm font-normal text-amber-700">
-                            {t('finance.agingAsOf.headingSuffix', { date: report.as_of })}
+                            {t('finance.agingAsOf.headingSuffix', { date: formatDate(report.as_of, locale) })}
                         </span>
                     )}
                 </>
@@ -124,14 +127,14 @@ export default async function PayablesPage({
             }
             state={{ kind: 'ok' }}
         >
-            <AgingAsOfControl asOf={report.as_of} today={report.today} exportHref={exportHref} />
+            <AgingAsOfControl asOf={formatDate(report.as_of, locale)} today={report.today} exportHref={exportHref} />
 
             <AgingAsOfNotice
-                asOf={report.as_of}
+                asOf={formatDate(report.as_of, locale)}
                 today={report.today}
                 isPast={report.is_past}
                 beforeSystemStart={report.before_system_start}
-                systemStartDate={report.system_start_date}
+                systemStartDate={report.system_start_date ? formatDate(report.system_start_date, locale) : null}
                 amountBasis={report.amount_basis}
                 unpricedExcluded={report.unpriced_excluded}
             />
@@ -252,11 +255,11 @@ export default async function PayablesPage({
                                             </div>
                                             <div>
                                                 <span className="text-gray-500">{t('finance.colDate')}: </span>
-                                                {r.doc_date}
+                                                {formatDate(r.doc_date, locale)}
                                             </div>
                                             <div>
                                                 <span className="text-gray-500">{t('finance.agingAsOf.colDueDate')}: </span>
-                                                {r.due_date ?? (
+                                                {formatDate(r.due_date, locale) ?? (
                                                     <span className="text-gray-400" title={t('finance.agingAsOf.noDueDateWhy')}>
                                                         {t('finance.agingAsOf.noDueDate')}
                                                     </span>
@@ -272,7 +275,7 @@ export default async function PayablesPage({
                                             </div>
                                         </div>
                                     </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell`}>{r.doc_date}</td>
+                                    <td className={`${tableC.cell} hidden sm:table-cell`}>{formatDate(r.doc_date, locale)}</td>
                                     {/* 【空的时候说出【为什么】空,不留一个破折号】AP 三支今天一张
                                         到期日都没有 —— 而一个光秃秃的「—」读起来像"数据没填",
                                         实情是这套系统里【还没有】这个事实(供应商账期 0/8 填了)。
@@ -283,7 +286,7 @@ export default async function PayablesPage({
                                         手机档这一列整格不画(内容叠在单据格里),U1 的
                                         480px 溢出由此闭合。 */}
                                     <td className={`${tableC.cell} hidden sm:table-cell`}>
-                                        {r.due_date ?? (
+                                        {formatDate(r.due_date, locale) ?? (
                                             <span className="text-gray-400" title={t('finance.agingAsOf.noDueDateWhy')}>
                                                 {t('finance.agingAsOf.noDueDate')}
                                             </span>
@@ -339,13 +342,13 @@ export default async function PayablesPage({
                             {/* colSpan 不能随断点变 —— 手机档三列,桌面档八列。 */}
                             <td colSpan={3} className="px-3 py-8 align-middle sm:hidden text-center text-gray-500">
                                 {report.is_past
-                                    ? t('finance.agingAsOf.noOpenItemsAsOf', { date: report.as_of })
+                                    ? t('finance.agingAsOf.noOpenItemsAsOf', { date: formatDate(report.as_of, locale) })
                                     : t('finance.noOpenItems')}
                             </td>
                             <td colSpan={8} className="px-3 py-8 align-middle hidden sm:table-cell text-center text-gray-500">
                                 {/* 【一个过去的时点上"没有"与今天"没有"不是同一句话】*/}
                                 {report.is_past
-                                    ? t('finance.agingAsOf.noOpenItemsAsOf', { date: report.as_of })
+                                    ? t('finance.agingAsOf.noOpenItemsAsOf', { date: formatDate(report.as_of, locale) })
                                     : t('finance.noOpenItems')}
                             </td>
                         </tr>

@@ -10,6 +10,8 @@ import {
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { tableC } from '@/app/components/ui/table-style'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 type Ship = { id: string; code: string; ship_date: string; order_code: string; customer: string }
 type Ms = { id: string; milestone: string; event_date: string; note: string | null; label: string }
@@ -35,6 +37,7 @@ canEdit
 
 canEdit: boolean
 }) {
+    const locale = useLocale()
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
     const [detaching, setDetaching] = useState<string | null>(null)
@@ -138,7 +141,7 @@ canEdit: boolean
                                 /* 【两档都要出现的东西，提出来写一次】—— 抄成两份就是让两份
                                    将来各走各的，而漂移在桌面上是看不见的：桌面那一份永远是对的那一份。 */
                                 const orderCodeText = <span className="text-xs text-[color:var(--brand-muted-text)]">{s.order_code}</span>
-                                const shipDateText = s.ship_date
+                                const shipDateText = formatDate(s.ship_date, locale)
                                 return (
                                 <tr key={s.id}>
                                     <td className="border border-gray-300 px-2 sm:px-3 py-1">
@@ -152,13 +155,13 @@ canEdit: boolean
                                             </div>
                                             <div>
                                                 <span className="text-gray-500">{labels.colShipDate}: </span>
-                                                {shipDateText}
+                                                {formatDate(shipDateText, locale)}
                                             </div>
                                         </div>
                                     </td>
                                     <td className="hidden sm:table-cell border border-gray-300 px-3 py-1">{orderCodeText}</td>
                                     <td className="border border-gray-300 px-2 sm:px-3 py-1">{s.customer}</td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-1">{shipDateText}</td>
+                                    <td className="hidden sm:table-cell border border-gray-300 px-3 py-1">{formatDate(shipDateText, locale)}</td>
                                     <td className="border border-gray-300 px-2 sm:px-3 py-1">
                                         {detaching === s.id ? (
                                             <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
@@ -261,7 +264,7 @@ canEdit: boolean
                                     className={'flex gap-3 border-l-2 pl-3 '
                                         + (isOperative ? 'border-gray-400' : 'border-gray-200 text-gray-400')}>
                                     <span className={'text-xs w-24 ' + (isOperative ? 'text-gray-600' : 'text-gray-400')}>
-                                        {m.event_date}
+                                        {formatDate(m.event_date, locale)}
                                     </span>
                                     <span className={isOperative ? 'font-medium' : ''}>{m.label}</span>
                                     {isOperative

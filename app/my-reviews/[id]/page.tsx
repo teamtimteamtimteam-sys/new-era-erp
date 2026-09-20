@@ -18,6 +18,7 @@ import {
     type ReviewRow,
     statusPillClass,
 } from '@/app/hr/reviews/reviewShared'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 export default async function MyReviewDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -101,16 +102,16 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
                 </div>
                 <div>
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('reviews.period')}:</span>
-                    <span>{r.period_start} → {r.period_end}</span>
+                    <span>{formatDate(r.period_start, locale)} → {formatDate(r.period_end, locale)}</span>
                 </div>
             </div>
 
-            {(r.self_assessment_text || r.self_assessment_submitted_at) && (
+            {(r.self_assessment_text || formatAuditStamp(r.self_assessment_submitted_at)) && (
                 <div className="mb-6">
                     <h2 className="mb-1">{t('reviews.selfAssessmentTitle')}</h2>
                     {r.self_assessment_submitted_at && (
                         <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">
-                            {t('reviews.selfAssessmentSubmittedAt', { 0: r.self_assessment_submitted_at.slice(0, 10) })}
+                            {t('reviews.selfAssessmentSubmittedAt', { 0: formatAuditStamp(r.self_assessment_submitted_at) })}
                         </p>
                     )}
                     <p className="text-sm whitespace-pre-wrap">{r.self_assessment_text ?? '—'}</p>

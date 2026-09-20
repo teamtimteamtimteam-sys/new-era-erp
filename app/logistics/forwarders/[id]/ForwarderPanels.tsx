@@ -5,6 +5,8 @@ import { saveForwarderDetails, addRateQuote, removeRateQuote } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 // LOG-1c:物流属性 + 报价。
 //
@@ -30,6 +32,7 @@ canEdit
 
 canEdit: boolean
 }) {
+    const locale = useLocale()
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
     const field = `${CONTROL_INPUT} w-full`
@@ -173,7 +176,7 @@ canEdit: boolean
                                     <tr key={q.id}>
                                         <td className="border border-gray-300 px-3 py-1">{laneLabel.get(q.lane_id) ?? q.lane_id}</td>
                                         <td className="border border-gray-300 px-3 py-1 text-right tabular-nums">{q.amount_ccy} {q.currency}</td>
-                                        <td className="border border-gray-300 px-3 py-1">{q.valid_from} → {q.valid_to}</td>
+                                        <td className="border border-gray-300 px-3 py-1">{formatDate(q.valid_from, locale)} → {formatDate(q.valid_to, locale)}</td>
                                         {/* 【三态各有各的样子】数字 / "未写明"。
                                             空单元格会被读成 0,而 0 是另一件事。 */}
                                         <td className="border border-gray-300 px-3 py-1 text-right tabular-nums">

@@ -20,6 +20,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
 import { mustRows } from '@/lib/db-helpers'
 import { operativeOf } from './operativeMilestone'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type Doc = {
     id: string; code: string; doc_date: string
@@ -34,6 +36,7 @@ export default async function ContainerFreightPanel({
     forwarderId: string | null
     departureDate: string
 }) {
+    const locale = await getLocale()
     const supabase = await createClient()
     const t = await getTranslations()
 
@@ -107,7 +110,7 @@ export default async function ContainerFreightPanel({
             const hit = quotes.find((q) => q.valid_from <= departureDate && departureDate <= q.valid_to)
             quoteState = hit
                 ? { kind: 'found', amount: Number(hit.amount_ccy), currency: hit.currency,
-                    from: hit.valid_from, to: hit.valid_to,
+                    from: formatDate(hit.valid_from, locale), to: formatDate(hit.valid_to, locale),
                     free_days: hit.free_days === null ? null : Number(hit.free_days) }
                 : { kind: 'not_valid_on_departure' }
         }
@@ -193,7 +196,7 @@ export default async function ContainerFreightPanel({
                                         <span className="text-xs text-[color:var(--brand-muted-text)]">
                                             {t('finance.freight.directionShort.' + d.direction)}
                                         </span>
-                                        <span className="text-[color:var(--brand-muted-text)] text-xs">{d.doc_date}</span>
+                                        <span className="text-[color:var(--brand-muted-text)] text-xs">{formatDate(d.doc_date, locale)}</span>
                                         <span className={'ml-auto ' + (d.status === 'posted' ? '' : 'line-through text-gray-400')}>
                                             {formatAmount(Number(d.amount_ccy), d.currency)}
                                         </span>
@@ -232,7 +235,7 @@ export default async function ContainerFreightPanel({
                                 <span>{formatAmount(quoteState.amount, quoteState.currency)}</span>
                             </div>
                             <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
-                                {t('logistics.quoteValidRange', { from: quoteState.from, to: quoteState.to })}
+                                {t('logistics.quoteValidRange', { from: formatDate(quoteState.from, locale), to: formatDate(quoteState.to, locale) })}
                             </p>
                         </>
                     )}

@@ -5,6 +5,8 @@
 
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 export type TaxCodeRow = {
     code: string
@@ -15,6 +17,7 @@ export type TaxCodeRow = {
 }
 
 export default function GstTaxCodesTable({ rows }: { rows: TaxCodeRow[] }) {
+    const locale = useLocale()
     const t = useTranslations()
 
     // ★ 手机上留【税码】与【生效税率】—— 税码是身份,税率是这张参照表存在的理由。
@@ -33,8 +36,8 @@ export default function GstTaxCodesTable({ rows }: { rows: TaxCodeRow[] }) {
                     <span className="text-amber-700">{t('gst.noRate')}</span>
                 ) : (
                     r.rates.map((rt) => (
-                        <div key={rt.effective_from} className="text-xs">
-                            {Number(rt.rate_pct)}% · {rt.effective_from} → {rt.effective_to ?? t('gst.current')}
+                        <div key={formatDate(rt.effective_from, locale)} className="text-xs">
+                            {Number(rt.rate_pct)}% · {formatDate(rt.effective_from, locale)} → {formatDate(rt.effective_to, locale) ?? t('gst.current')}
                         </div>
                     ))
                 ),

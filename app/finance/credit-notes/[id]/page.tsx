@@ -23,6 +23,7 @@ import IssuePanel from '@/app/components/IssuePanel'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import CreditNoteLinesTable, { type CreditNoteLineRow } from './CreditNoteLinesTable'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 export default async function CreditNotePage({ params }: { params: Promise<{ id: string }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
@@ -32,7 +33,6 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
     const { id } = await params
     const t = await getTranslations()
     const locale = await getLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-US'
     const supabase = await createClient()
 
     const cn = mustOne(
@@ -134,7 +134,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
                 四种抬头写法之一(见 record-header.tsx 抬头的那张表)。 */}
             <RecordHeader
                 fields={[
-                    { label: t('cn.noteDate'), value: new Date(cn.note_date).toLocaleDateString(dl) },
+                    { label: t('cn.noteDate'), value: formatDate(cn.note_date, locale) },
                     // 【它冲的是哪一张发票】—— 这一页最要紧的一个链接
                     {
                         label: t('cn.againstInvoice'),
@@ -181,7 +181,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
                             <a href={`/finance/credit-notes/${cn.id}/pdf?version=${i.version}`}
                                target="_blank" rel="noopener noreferrer"
                                className="hover:underline app-link app-link-inline">v{i.version}</a>
-                            {' · '}{new Date(i.issued_at).toLocaleString(dl)} · {i.sha256.slice(0, 12)}…
+                            {' · '}{formatAuditStamp(i.issued_at)} · {i.sha256.slice(0, 12)}…
                         </li>
                     ))}
                 </ul>

@@ -11,6 +11,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { F5BoxesTable, F5BoxDetailTable, type F5BoxRow, type F5DetailRow } from './GstTables'
 import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
+import { formatDate } from '@/lib/dates'
 
 type Box = { box: string; label_en: string; label_zh: string; value: number; derived: boolean; note_zh?: string; note_en?: string }
 
@@ -63,9 +64,9 @@ export default async function GstPeriodPage({ params, searchParams }: {
 
     // 申报被挡住时的【具体】理由,而不是一个析取式
     const blockedWhy =
-        filed ? t('gst.blockedAlreadyFiled', { on: period.filed_on ?? '' })
+        filed ? t('gst.blockedAlreadyFiled', { on: formatDate(period.filed_on, locale) ?? '' })
         : (!lockedBefore || lockedBefore <= period.period_end)
-            ? t('gst.blockedNotLocked', { end: period.period_end, locked: lockedBefore ?? t('finance.notSet') })
+            ? t('gst.blockedNotLocked', { end: formatDate(period.period_end, locale), locked: formatDate(lockedBefore, locale) ?? t('finance.notSet') })
             : undefined
 
 
@@ -89,7 +90,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
     ).map((d, i) => ({
         id: d.doc_id + d.doc_code + i,
         docCode: d.doc_code,
-        docDate: d.doc_date,
+        docDate: formatDate(d.doc_date, locale),
         memo: d.memo,
         sourceText: t('gst.docKind.' + d.doc_kind) + (d.tax_code ? ` · ${d.tax_code}` : ''),
         amountText: Number(d.amount_base).toFixed(2),
@@ -105,7 +106,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
                 </p>
             }
             title={period.code}
-            intro={<span>{period.period_start} → {period.period_end}</span>}
+            intro={<span>{formatDate(period.period_start, locale)} → {formatDate(period.period_end, locale)}</span>}
             // ★★ 详情页恒为 ok —— 这个期间在不在由上面 mustOne + periodMissing 回答。
             state={{ kind: 'ok' }}
             notices={
@@ -117,7 +118,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
                     )}
                     {filed && (
                         <p className="text-sm mb-4 bg-green-50 border border-green-300 text-green-900 px-3 py-2 rounded">
-                            {t('gst.filedOnBanner', { on: period.filed_on ?? '', ref: period.filed_reference ?? '—' })}
+                            {t('gst.filedOnBanner', { on: formatDate(period.filed_on, locale) ?? '', ref: period.filed_reference ?? '—' })}
                         </p>
                     )}
                 </>

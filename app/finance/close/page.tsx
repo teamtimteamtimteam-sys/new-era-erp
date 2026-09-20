@@ -32,6 +32,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import YearCloseHistoryTable, { type YearCloseRow } from './YearCloseHistoryTable'
 import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type CloseRow = {
     id: string
@@ -53,6 +55,7 @@ export default async function ClosePage({
 }: {
     searchParams: Promise<{ period?: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -101,8 +104,8 @@ export default async function ClosePage({
     //   时间与金额在这一侧格好再过界 —— 屏幕上的字因此一个都没变。
     const closeHistoryRows: CloseHistoryRow[] = closes.map((c) => ({
         id: c.id,
-        periodEnd: c.period_end,
-        closedAt: c.closed_at.slice(0, 16).replace('T', ' '),
+        periodEnd: formatDate(c.period_end, locale),
+        closedAt: formatAuditStamp(c.closed_at),
         entriesCount: c.entries_count,
         debits: formatAmount(c.total_debits, baseCurrency),
         credits: formatAmount(c.total_credits, baseCurrency),
@@ -124,7 +127,7 @@ export default async function ClosePage({
     for (let i = 0; i < 12; i++) {
         const periodEnd = ymdUtc(new Date(Date.UTC(y, m - i + 1, 0)))
         options.push({
-            value: periodEnd,
+            value: formatDate(periodEnd, locale),
             disabled:
                 periodEnd > todayYmd
                 || activeCloses.has(periodEnd)
@@ -189,7 +192,7 @@ export default async function ClosePage({
 
     const yearCloseRows: YearCloseRow[] = yearCloses.map((c) => ({
         id: c.id,
-        yearEnd: c.year_end,
+        yearEnd: formatDate(c.year_end, locale),
         netResult: c.net_result,
         baseCurrency,
         reopened: !!c.reopened_at,
@@ -202,7 +205,7 @@ export default async function ClosePage({
             <div className="bg-gray-50 rounded p-4 mb-6 text-sm">
                 <span className="text-[color:var(--brand-muted-text)] mr-1">{t('finance.lockedBefore')}:</span>
                 {lockedBefore ? (
-                    <span className="font-medium">{lockedBefore}</span>
+                    <span className="font-medium">{formatDate(lockedBefore, locale)}</span>
                 ) : (
                     <span className="text-gray-400">{t('finance.notSet')}</span>
                 )}

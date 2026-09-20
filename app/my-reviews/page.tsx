@@ -20,6 +20,7 @@ import {
 } from '@/app/hr/reviews/reviewShared'
 import { ListPage } from '@/app/components/ui/list-page'
 import MyReviewsTable, { type MyReviewRow } from './MyReviewsTable'
+import { formatDate } from '@/lib/dates'
 
 type SubjectRow = {
     review_id: string
@@ -81,8 +82,8 @@ export default async function MyReviewsPage() {
             subtitle: s?.job_title ? `${s.job_title}${dept ? ` · ${dept}` : ''}` : null,
             typeLabel: t(`reviews.type_${r.review_type}`),
             cycleName: s?.cycle_name ?? '—',
-            periodStart: r.period_start,
-            periodEnd: r.period_end,
+            periodStart: formatDate(r.period_start, locale),
+            periodEnd: formatDate(r.period_end, locale),
             status: r.status,
             statusCls: statusPillClass(r.status),
             daysInState: daysInState(r),

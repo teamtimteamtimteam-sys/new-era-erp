@@ -23,6 +23,8 @@ import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import LicenceTable from './LicenceTable'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 export type LicenceRow = {
     id: string
@@ -50,6 +52,7 @@ const EMPTY: LicenceInput = {
 export default function LicencePanel({
     rows, certTypes, canEdit,
 }: { rows: LicenceRow[]; certTypes: CertType[]; canEdit: boolean }) {
+    const locale = useLocale()
     const t = useTranslations()
     const router = useRouter()
     const [form, setForm] = useState<LicenceInput | null>(null)
@@ -66,9 +69,9 @@ export default function LicencePanel({
             cert_no: r.cert_no ?? '',
             issuing_body: r.issuing_body ?? '',
             status: r.status ?? '',
-            issue_date: r.issue_date ?? '',
-            valid_from: r.valid_from ?? '',
-            valid_until: r.valid_until ?? '',
+            issue_date: formatDate(r.issue_date, locale) ?? '',
+            valid_from: formatDate(r.valid_from, locale) ?? '',
+            valid_until: formatDate(r.valid_until, locale) ?? '',
             approved_storage_limit_tonnes:
                 r.approved_storage_limit_tonnes === null ? '' : String(r.approved_storage_limit_tonnes),
             scope: r.scope ?? '',

@@ -14,6 +14,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import ShipControl, { type ShipOption } from './ShipControl'
 import { Button } from '@/app/components/ui/button'
+import { formatDate } from '@/lib/dates'
 
 type ResRow = {
     id: string
@@ -43,7 +44,6 @@ export default async function ShippingSection({
 }) {
     const t = await getTranslations()
     const locale = await getLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-US'
     const supabase = await createClient()
 
     const lineIds = lines.map((l) => l.id)
@@ -111,7 +111,7 @@ export default async function ShippingSection({
                                 送货单那条链接留在原处不动。 */}
                             <a href={`/sales/shipments/${s.id}`}
                                className="hover:underline app-link app-link-inline">{s.code}</a>
-                            <span className="text-[color:var(--brand-muted-text)]">{new Date(s.ship_date).toLocaleDateString(dl)}</span>
+                            <span className="text-[color:var(--brand-muted-text)]">{formatDate(s.ship_date, locale)}</span>
                             <span className="text-[color:var(--brand-muted-text)]">
                                 {t('sales.ship.lineCount', { n: String((s.shipment_lines ?? []).length) })}
                             </span>

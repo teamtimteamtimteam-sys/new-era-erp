@@ -16,6 +16,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { formatAmount } from '@/lib/format'
 import CreateCreditNoteControl, { type CnLineOption } from './CreateCreditNoteControl'
+import { formatDate } from '@/lib/dates'
 
 export default async function CreditNoteSection({
     invoiceId, invoiceCode, currency, isOrderKind, isVoid, openCcy,
@@ -32,7 +33,6 @@ export default async function CreditNoteSection({
 }) {
     const t = await getTranslations()
     const locale = await getLocale()
-    const dl = locale === 'zh' ? 'zh-CN' : 'en-US'
     const supabase = await createClient()
 
     // 【sale 型不列这一区,而且要说出为什么】它什么都不过账,应收长在
@@ -132,7 +132,7 @@ export default async function CreditNoteSection({
                             <li key={n.id} className="flex flex-wrap items-baseline gap-x-3">
                                 <Link href={`/finance/credit-notes/${n.id}`}
                                       className="hover:underline app-link app-link-inline">{n.code}</Link>
-                                <span className="text-[color:var(--brand-muted-text)]">{new Date(n.note_date).toLocaleDateString(dl)}</span>
+                                <span className="text-[color:var(--brand-muted-text)]">{formatDate(n.note_date, locale)}</span>
                                 <span>−{formatAmount(total, n.currency)}</span>
                                 <span className="text-[color:var(--brand-muted-text)]">{n.reason}</span>
                             </li>

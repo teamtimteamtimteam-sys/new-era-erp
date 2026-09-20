@@ -19,6 +19,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { formatDate } from '@/lib/dates'
 
 const PAGE_SIZE = 20
 
@@ -130,7 +131,7 @@ export default async function EmployeesPage({
         employmentTypeLabel: t('hr.employmentType.' + r.employment_type),
         workCategoryLabel: t('hr.workCategory.' + r.work_category),
         employmentStatus: r.employment_status,
-        hireDate: r.hire_date,
+        hireDate: formatDate(r.hire_date, locale),
         workPassAlert: r.work_pass_alert,
         daysToWorkPassExpiry: r.days_to_work_pass_expiry,
     }))

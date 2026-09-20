@@ -4,6 +4,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import ReportDocument, { type ReportColumn } from './ReportDocument'
 import { todayStamp } from './reportShared'
 import type { ReactElement } from 'react'
+import { formatAuditStamp } from '@/lib/dates'
 
 // 【生成时刻按请求方的语言格式化】—— 报表是给打开它的人看的(见 ReportDocument 抬头)
 export async function renderReport(opts: {
@@ -19,7 +20,7 @@ export async function renderReport(opts: {
         <ReportDocument
             title={t(opts.titleKey)}
             generatedAtLabel={t('reports.pdfGeneratedAt')}
-            generatedAt={new Date().toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US')}
+            generatedAt={formatAuditStamp(new Date())}
             filtersLabel={t('reports.pdfFilters')}
             filters={opts.filters || t('reports.pdfNoFilters')}
             localeLabel={t('reports.pdfLocale')}

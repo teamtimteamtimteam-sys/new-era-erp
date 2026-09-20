@@ -8,6 +8,8 @@ import { formatMoneyBare, formatUnitCost } from '@/lib/format'
 import PriceBreakdown from '@/app/components/pricing/PriceBreakdown'
 import type { CalcResult } from '@/app/tools/pricing/calculator/actions'
 import type { AssayImpact } from './actions'
+import { formatDate } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 export default function AssayImpactPreview({
     res,
@@ -22,6 +24,7 @@ export default function AssayImpactPreview({
     // 不是常量 —— 面板【在这里换单位】,上半截是行情口径的 USD,这一块是本位币。
     baseCurrency: string
 }) {
+    const locale = useLocale()
     const t = useTranslations()
 
     return (
@@ -38,7 +41,7 @@ export default function AssayImpactPreview({
                         : t('assay.impactInBaseAt', {
                               ccy: baseCurrency,
                               rate: impact.fx_rate,
-                              date: impact.rate_as_of,
+                              date: formatDate(impact.rate_as_of, locale),
                           })}
                 </p>
                 <div className="flex justify-between">

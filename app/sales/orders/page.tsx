@@ -15,6 +15,7 @@ import { MOD } from '@/lib/modules'
 import { soStatusKey } from './salesOrderTypes'
 import { ListPage } from '@/app/components/ui/list-page'
 import SalesOrdersTable, { type SalesOrderRow } from './SalesOrdersTable'
+import { formatDate } from '@/lib/dates'
 
 type Row = {
     id: string; code: string; order_date: string; status: string
@@ -43,7 +44,7 @@ export default async function SalesOrdersPage() {
         code: r.code,
         customerLabel: r.customers ? `${r.customers.code} — ${r.customers.legal_name}` : '—',
         // 日期按 locale 格式化在服务端做完 —— locale 不过 RSC 边界
-        orderDateLabel: new Date(r.order_date).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US'),
+        orderDateLabel: formatDate(r.order_date, locale),
         statusLabel: t(soStatusKey(r.status)),
         currency: r.currency,
     }))

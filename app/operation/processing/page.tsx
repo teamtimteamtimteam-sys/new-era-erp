@@ -23,6 +23,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import ProcessingTable, { type ProcessingRunRow } from './ProcessingTable'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 export default async function ProcessingPage({
     searchParams,
@@ -35,6 +37,7 @@ export default async function ProcessingPage({
         page?: string
     }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.processing)
@@ -115,7 +118,7 @@ export default async function ProcessingPage({
     const tableRows: ProcessingRunRow[] = (runs ?? []).map((r) => ({
         id: r.id,
         code: r.code,
-        processDate: r.process_date ?? '—',
+        processDate: formatDate(r.process_date, locale) ?? '—',
         totalInput: r.total_input != null ? String(r.total_input) : '—',
         totalOutput: r.total_output != null ? String(r.total_output) : '—',
         lossLabel:

@@ -11,6 +11,8 @@ import TransferForm from './TransferForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 // 视图列生成类型全可空;取用列本地锁死
 type StatusRow = {
@@ -28,6 +30,7 @@ type StatusRow = {
 }
 
 export default async function BankHomePage() {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -193,7 +196,7 @@ export default async function BankHomePage() {
                                                     {s.code}
                                                 </Link>
                                                 <span className="text-[color:var(--brand-muted-text)]">
-                                                    {s.period_end} ·{' '}
+                                                    {formatDate(s.period_end, locale)} ·{' '}
                                                     {t('bank.outstandingCount', {
                                                         n: outstandingById.get(s.id) ?? 0,
                                                     })}

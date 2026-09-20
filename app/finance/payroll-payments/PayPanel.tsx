@@ -18,6 +18,8 @@ import { payLines, payCpf, payDeductions } from '../month-end/actions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_CHECKBOX, CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { formatAuditStamp, formatMonth } from '@/lib/dates'
+import { useLocale } from '@/lib/i18n/client'
 
 type Period = { id: string; code: string; period_month: string; net_pay_total: number
     employer_cpf_total: number; employee_cpf_total: number; other_deductions_total: number
@@ -34,6 +36,7 @@ function cpfDue(periodMonth: string): string {
 // (「汇 CPF {amount}」「汇代扣款 {amount}」)也只有数字。所以每个金额自己带币种,
 // 币种来自数据(currencies.is_base),由页面传入(CCY-1)。
 export default function PayPanel({ periods, lines, employees, baseCurrency }: { periods: Period[]; lines: Line[]; employees: Emp[]; baseCurrency: string }) {
+    const locale = useLocale()
     const t = useTranslations()
     const router = useRouter()
     const [pending, start] = useTransition()
@@ -115,7 +118,7 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                     {
                         key: 'status', header: '',
                         render: (l) => l.paid_at
-                            ? <span className="text-green-700 text-xs">{t('finance.payrollPay.paidOn', { 0: l.paid_at.slice(0, 10) })}</span>
+                            ? <span className="text-green-700 text-xs">{t('finance.payrollPay.paidOn', { 0: formatAuditStamp(l.paid_at) })}</span>
                             : <span className="text-amber-700 text-xs">{t('finance.payrollPay.outstanding')}</span>,
                     },
                 ]
@@ -123,7 +126,7 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                 return (
                     <section key={p.id} className="rounded border border-gray-200 p-4 mb-4">
                         <h3 className="mb-2">{p.code}
-                            <span className="ml-2 text-xs text-[color:var(--brand-muted-text)] font-normal">{p.period_month.slice(0, 7)}</span>
+                            <span className="ml-2 text-xs text-[color:var(--brand-muted-text)] font-normal">{formatMonth(p.period_month, locale)}</span>
                         </h3>
                         <div className="mb-3">
                             <DataTable
@@ -139,14 +142,14 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                                 {t('finance.payrollPay.paySelected', { n: chosen.length })}
                             </Button>
                             {cpf > 0 && (p.cpf_paid_at
-                                ? <span className="text-xs text-green-700">{t('finance.payrollPay.cpfPaid', { 0: p.cpf_paid_at })}</span>
+                                ? <span className="text-xs text-green-700">{t('finance.payrollPay.cpfPaid', { 0: formatAuditStamp(p.cpf_paid_at) })}</span>
                                 : <Button type="button" disabled={pending || date === ''}
                                     onClick={() => run(() => payCpf(p.id, date))}
                                     variant="secondary">
-                                    {t('finance.payrollPay.payCpf', { amount: formatAmount(cpf, baseCurrency), due: cpfDue(p.period_month) })}
+                                    {t('finance.payrollPay.payCpf', { amount: formatAmount(cpf, baseCurrency), due: cpfDue(formatMonth(p.period_month, locale)) })}
                                   </Button>)}
                             {Number(p.other_deductions_total ?? 0) > 0 && (p.deductions_paid_at
-                                ? <span className="text-xs text-green-700">{t('finance.payrollPay.dedPaid', { 0: p.deductions_paid_at })}</span>
+                                ? <span className="text-xs text-green-700">{t('finance.payrollPay.dedPaid', { 0: formatAuditStamp(p.deductions_paid_at) })}</span>
                                 : <Button type="button" disabled={pending || date === ''}
                                     onClick={() => run(() => payDeductions(p.id, date))}
                                     variant="secondary">

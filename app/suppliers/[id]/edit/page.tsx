@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { formatTimestamp } from '@/lib/format'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
@@ -16,6 +15,7 @@ import ContactsPanel, { type ContactRow } from '@/app/sales/customers/ContactsPa
 import ReceiptPatternPanel, {
     type PatternRow, type ContributingReceipt,
 } from './ReceiptPatternPanel'
+import { formatAuditStamp } from '@/lib/dates'
 
 export default async function EditSupplierPage({
     params,
@@ -31,7 +31,6 @@ export default async function EditSupplierPage({
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
-    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
     // PARTY-1:这家供应商的联系人们(软删的不列)
     const canEditSupplier = await can('module.suppliers.edit')
@@ -159,7 +158,7 @@ export default async function EditSupplierPage({
         file_size: a.file_size,
         doc_category: a.doc_category,
         storage_path: a.storage_path,
-        created_at_display: formatTimestamp(a.created_at, dateLocale),
+        created_at_display: formatAuditStamp(a.created_at),
     }))
 
     return (

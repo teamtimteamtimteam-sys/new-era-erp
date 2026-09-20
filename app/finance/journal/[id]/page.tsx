@@ -19,6 +19,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import JournalLinesTable, { type JournalLineRow } from './JournalLinesTable'
 import { can } from '@/lib/permissions'
+import { formatDate } from '@/lib/dates'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type LineRow = {
@@ -164,7 +165,7 @@ export default async function JournalDetailPage({
             <RecordHeader
                 fields={[
                     { label: t('finance.colCode'), value: entry.code, mono: true },
-                    { label: t('finance.entryDate'), value: entry.entry_date },
+                    { label: t('finance.entryDate'), value: formatDate(entry.entry_date, locale) },
                     {
                         label: t('finance.colSource'),
                         value: entry.source_type ? (

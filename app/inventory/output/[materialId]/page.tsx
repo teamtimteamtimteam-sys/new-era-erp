@@ -18,6 +18,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import OutputBatchesTable, { type OutputBatchRow } from './OutputBatchesTable'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type Row = {
     id: string
@@ -42,6 +44,7 @@ export default async function OutputDrillPage({
 }: {
     params: Promise<{ materialId: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.inventory)
@@ -164,7 +167,7 @@ export default async function OutputDrillPage({
         remaining_qty: b.remaining_qty,
         unit: b.unit,
         state: b.state,
-        output_date: b.output_date,
+        output_date: b.output_date ? formatDate(b.output_date, locale) : null,
         customers: b.customer_id ? { legal_name: custName.get(b.customer_id) ?? '' } : null,
         processing_outputs_masked: legsByBatch.get(b.id) ?? [],
         output_batch_metals: metalsByBatch.get(b.id) ?? [],
@@ -230,7 +233,7 @@ export default async function OutputDrillPage({
             quantityText: `${r.quantity} ${r.unit}`,
             remainingText: `${r.remaining_qty} ${r.unit}`,
             stateLabel: stateLabel(r.state),
-            outputDate: r.output_date ?? '—',
+            outputDate: formatDate(r.output_date, locale) ?? '—',
             unitCostText: r.unitCost !== null ? `${formatUnitCost(r.unitCost)} /kg` : '—',
             costValueText: r.costValue !== null ? formatMoneyBare(r.costValue, '列头「成本价值 (SGD)」') : '—',
             // FX-DISPLAY-1:这个数从来就是 USD,列头那个键现在也写着 (USD)。

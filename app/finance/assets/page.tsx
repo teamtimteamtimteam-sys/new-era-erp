@@ -40,6 +40,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import DepreciationPreviewTable, { type DepreciationPreviewRow } from './DepreciationPreviewTable'
 import AssetsTable, { type AssetsTableRow } from './AssetsTable'
 import { Button } from '@/app/components/ui/button'
+import { formatDate } from '@/lib/dates'
+import { getLocale } from '@/lib/i18n/server'
 
 type AssetRow = {
     id: string
@@ -81,6 +83,7 @@ export default async function AssetsPage({
 }: {
     searchParams: Promise<{ date?: string }>
 }) {
+    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -140,7 +143,7 @@ export default async function AssetsPage({
             code: a.code,
             description: a.description,
             category: a.category,
-            acquisitionDate: a.acquisition_date,
+            acquisitionDate: formatDate(a.acquisition_date, locale),
             inServiceText: inSvcState.params ? t(inSvcState.key, inSvcState.params) : t(inSvcState.key),
             inServicePending: !a.in_service_date,
             costCcy: formatAmount(a.cost_ccy, a.currency),
@@ -150,8 +153,8 @@ export default async function AssetsPage({
             accum: formatAmount(accum, baseCurrency),
             nbv: formatAmount(Math.round((a.cost_base - accum) * 100) / 100, baseCurrency),
             status: a.status,
-            inServiceDate: a.in_service_date,
-            plannedInServiceDate: a.planned_in_service_date,
+            inServiceDate: a.in_service_date ? formatDate(a.in_service_date, locale) : null,
+            plannedInServiceDate: a.planned_in_service_date ? formatDate(a.planned_in_service_date, locale) : null,
             hasCost: Number(a.cost_base) > 0,
         }
     })
