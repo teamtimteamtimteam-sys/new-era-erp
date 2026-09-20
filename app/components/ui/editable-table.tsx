@@ -93,6 +93,7 @@
 import { useTranslations } from '@/lib/i18n/client'
 import * as React from 'react'
 import { cn } from '@/lib/utils'
+import { Button } from '@/app/components/ui/button'
 import type { PhoneTreatment } from '@/app/components/ui/data-table'
 import { TABLE_TEXT } from '@/app/components/ui/table-style'
 
@@ -508,14 +509,32 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                                                         </button>
                                                     </div>
                                                 )}
+                                                {/* ★★ BTN-FOLLOWUP(2026-09-20)· Tim 的裁定:这一颗取【触控档】★★
+                                                    BTN-TRIGGER-1 §6.2 把它停住了,理由是**档位表里没有 44px**:
+                                                    今天这颗的 44 是 `min-h-11` 给的,不是内容给的(内容只有 34px),
+                                                    而档位是 24 / 28 / 32 / 36 / 48。三条路都改行高。
+
+                                                    ★ Tim 裁的是 `touch`(48px),而他裁的理由不是"48 最接近 44" ——
+                                                    是 **32 与 36 都会把它掉到 44px 触控靶以下**(WCAG 2.5.5 / Apple HIG),
+                                                    而**宁可让它长高,也不要让它掉到一条标准以下**。
+
+                                                    ⚠ **代价是量过的、并且是被告知之后接受的,不是被忽略的:**
+                                                    `touch` 档同时带着 `text-base` —— 所以这颗钮 **44 → 48px(+4)**,
+                                                    **字号 14 → 16px**。那不是这一刀顺手加的:`button.tsx` 抬头写明
+                                                    「E6 的裁定原话把三样绑在一起……把字号留在调用点,等于让这一档只搬了裁定的一半」。
+
+                                                    ★★ **在册的量具看不见这一格** —— 它住在 `{isOpen && hasPhonePanel && …}` 里,
+                                                    点开才渲染,而 `survey-controls --mode=drift` 只量首屏。
+                                                    ☞ 所以本刀另写了一支探针,在 390px 上真的把行点开再量;读数逐条写在
+                                                    `docs/handbacks/BTN-FOLLOWUP.md` §2。**一个绿的 (c) 不覆盖这一格。** */}
                                                 {showActions && !editing && (
                                                     <div className="mt-3">
-                                                        <button
-                                                            type="button" onClick={() => begin(row)}
-                                                            className="base-pressable min-h-11 rounded border border-[color:var(--brand-border)] px-3 py-1.5 text-sm text-blue-600"
+                                                        <Button
+                                                            type="button" variant="secondary" size="touch"
+                                                            onClick={() => begin(row)}
                                                         >
                                                             {labels.edit}
-                                                        </button>
+                                                        </Button>
                                                     </div>
                                                 )}
                                             </td>
