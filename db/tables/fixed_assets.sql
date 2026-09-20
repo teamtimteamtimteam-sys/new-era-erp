@@ -180,3 +180,30 @@ purchase_order_retention_status 把它画成 clock_not_started,这句话今天�
 【永不默认】不从 in_service_date、不从 acquisition_date、不从任何东西推出来。
 它只能由人明确填写(set_asset_acceptance)。一个被默认出来的验收日,
 是在替一个没发生过的验收签字。';
+
+-- ── FA-HIST-1(2026-09-20)追加的两支触发器 ──────────────────────────────────
+-- ★【留痕:一张表上的一支触发器,不是七支函数里的七条 INSERT】★
+--   线上目录扫描(2026-09-20)实测:碰这张表的写语句是 **7 支函数 / 8 条语句**
+--   —— create_fixed_asset · record_expense(新建支 + 追加成本支)· reverse_expense ·
+--   set_asset_in_service · set_asset_acceptance · set_asset_planned_in_service ·
+--   dispose_fixed_asset。⚠ **depreciate_fixed_assets 不在其中**(它只写
+--   fixed_asset_depreciation),而 **record_expense / reverse_expense 从来不在
+--   任何一份名单上** —— 偏偏这两支动的是钱(cost_base)。
+--   ☞ 名单会错,而且已经错了两次。触发器不会漏掉第八个写入者。
+--   函数体在 db/functions/trg_fixed_assets_history.sql,影子表见
+--   db/tables/fixed_asset_history.sql;★ 那支函数【不提本表的任何列名】,
+--   理由(fixtures/120 F5(d))写在那两份文件的抬头里。
+CREATE TRIGGER trg_fixed_assets_history
+    AFTER INSERT OR UPDATE ON public.fixed_assets
+    FOR EACH ROW EXECUTE FUNCTION public.trg_fixed_assets_history();
+
+-- ★【硬删:拦住,而不是记下来】★(Tim 裁定,2026-09-20)
+--   影子表带外键指向本表,于是一次硬删会撞外键 —— 而那句报错既不说是哪张卡、
+--   也不说规矩(FIN-31 那一条),对一张还没有过任何改动的卡更是完全不拦。
+--   所以照 guard_purchase_order_no_hard_delete / trg_tasks_no_hard_delete 两处
+--   先例,在这里加一支【自己报名】的守卫。
+--   ⚠ 它拦的是一扇今天就开着的门:authenticated 手上【有】表级 DELETE 授权
+--     (Supabase 默认),今天挡住它的只是"这张表没有 DELETE 策略"这一件事。
+CREATE TRIGGER trg_fixed_assets_no_hard_delete
+    BEFORE DELETE ON public.fixed_assets
+    FOR EACH ROW EXECUTE FUNCTION public.guard_fixed_assets_no_hard_delete();

@@ -5487,6 +5487,203 @@ export type Database = {
           },
         ]
       }
+      fixed_asset_history: {
+        Row: {
+          change_type: string
+          changed_at: string
+          changed_by: string | null
+          changed_by_kind: string
+          changed_columns: string[]
+          fixed_asset_id: string
+          id: string
+          new_acceptance_date: string | null
+          new_acquisition_date: string | null
+          new_category: string | null
+          new_code: string | null
+          new_cost_base: number | null
+          new_cost_ccy: number | null
+          new_created_at: string | null
+          new_created_by: string | null
+          new_currency: string | null
+          new_depreciation_account_code: string | null
+          new_description: string | null
+          new_disposal_date: string | null
+          new_disposal_journal_id: string | null
+          new_disposal_proceeds_base: number | null
+          new_expense_id: string | null
+          new_fx_rate: number | null
+          new_id: string | null
+          new_in_service_date: string | null
+          new_notes: string | null
+          new_planned_in_service_date: string | null
+          new_residual_base: number | null
+          new_status: string | null
+          new_useful_life_months: number | null
+          old_acceptance_date: string | null
+          old_acquisition_date: string | null
+          old_category: string | null
+          old_code: string | null
+          old_cost_base: number | null
+          old_cost_ccy: number | null
+          old_created_at: string | null
+          old_created_by: string | null
+          old_currency: string | null
+          old_depreciation_account_code: string | null
+          old_description: string | null
+          old_disposal_date: string | null
+          old_disposal_journal_id: string | null
+          old_disposal_proceeds_base: number | null
+          old_expense_id: string | null
+          old_fx_rate: number | null
+          old_id: string | null
+          old_in_service_date: string | null
+          old_notes: string | null
+          old_planned_in_service_date: string | null
+          old_residual_base: number | null
+          old_status: string | null
+          old_useful_life_months: number | null
+        }
+        Insert: {
+          change_type: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_kind: string
+          changed_columns: string[]
+          fixed_asset_id: string
+          id?: string
+          new_acceptance_date?: string | null
+          new_acquisition_date?: string | null
+          new_category?: string | null
+          new_code?: string | null
+          new_cost_base?: number | null
+          new_cost_ccy?: number | null
+          new_created_at?: string | null
+          new_created_by?: string | null
+          new_currency?: string | null
+          new_depreciation_account_code?: string | null
+          new_description?: string | null
+          new_disposal_date?: string | null
+          new_disposal_journal_id?: string | null
+          new_disposal_proceeds_base?: number | null
+          new_expense_id?: string | null
+          new_fx_rate?: number | null
+          new_id?: string | null
+          new_in_service_date?: string | null
+          new_notes?: string | null
+          new_planned_in_service_date?: string | null
+          new_residual_base?: number | null
+          new_status?: string | null
+          new_useful_life_months?: number | null
+          old_acceptance_date?: string | null
+          old_acquisition_date?: string | null
+          old_category?: string | null
+          old_code?: string | null
+          old_cost_base?: number | null
+          old_cost_ccy?: number | null
+          old_created_at?: string | null
+          old_created_by?: string | null
+          old_currency?: string | null
+          old_depreciation_account_code?: string | null
+          old_description?: string | null
+          old_disposal_date?: string | null
+          old_disposal_journal_id?: string | null
+          old_disposal_proceeds_base?: number | null
+          old_expense_id?: string | null
+          old_fx_rate?: number | null
+          old_id?: string | null
+          old_in_service_date?: string | null
+          old_notes?: string | null
+          old_planned_in_service_date?: string | null
+          old_residual_base?: number | null
+          old_status?: string | null
+          old_useful_life_months?: number | null
+        }
+        Update: {
+          change_type?: string
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_kind?: string
+          changed_columns?: string[]
+          fixed_asset_id?: string
+          id?: string
+          new_acceptance_date?: string | null
+          new_acquisition_date?: string | null
+          new_category?: string | null
+          new_code?: string | null
+          new_cost_base?: number | null
+          new_cost_ccy?: number | null
+          new_created_at?: string | null
+          new_created_by?: string | null
+          new_currency?: string | null
+          new_depreciation_account_code?: string | null
+          new_description?: string | null
+          new_disposal_date?: string | null
+          new_disposal_journal_id?: string | null
+          new_disposal_proceeds_base?: number | null
+          new_expense_id?: string | null
+          new_fx_rate?: number | null
+          new_id?: string | null
+          new_in_service_date?: string | null
+          new_notes?: string | null
+          new_planned_in_service_date?: string | null
+          new_residual_base?: number | null
+          new_status?: string | null
+          new_useful_life_months?: number | null
+          old_acceptance_date?: string | null
+          old_acquisition_date?: string | null
+          old_category?: string | null
+          old_code?: string | null
+          old_cost_base?: number | null
+          old_cost_ccy?: number | null
+          old_created_at?: string | null
+          old_created_by?: string | null
+          old_currency?: string | null
+          old_depreciation_account_code?: string | null
+          old_description?: string | null
+          old_disposal_date?: string | null
+          old_disposal_journal_id?: string | null
+          old_disposal_proceeds_base?: number | null
+          old_expense_id?: string | null
+          old_fx_rate?: number | null
+          old_id?: string | null
+          old_in_service_date?: string | null
+          old_notes?: string | null
+          old_planned_in_service_date?: string | null
+          old_residual_base?: number | null
+          old_status?: string | null
+          old_useful_life_months?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_asset_history_fixed_asset_id_fkey"
+            columns: ["fixed_asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_history_fixed_asset_id_fkey"
+            columns: ["fixed_asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_history_fixed_asset_id_fkey"
+            columns: ["fixed_asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_asset_history_fixed_asset_id_fkey"
+            columns: ["fixed_asset_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+        ]
+      }
       fixed_assets: {
         Row: {
           acceptance_date: string | null

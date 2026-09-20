@@ -53,7 +53,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 
 // ★ 声明的表数。改了这个数就是改了一次口径 —— 这个摩擦是刻意的
 //   (同 check-search-registry 的 EXPECTED_ROWS = 40)。
-const EXPECTED_TABLES = 220
+// FA-HIST-1(2026-09-20):220 → 221。新增 `fixed_asset_history`(固定资产台账的
+// 变更留痕),见 db/tables/fixed_asset_history.sql。**它没有 code 列**,所以
+// EXPECTED_CODE_TABLES 不动 —— 两个数各自对着一件事,一起改才是可疑的。
+const EXPECTED_TABLES = 221
 const EXPECTED_CODE_TABLES = 75
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

@@ -7721,6 +7721,49 @@ const en = {
             blockerAlreadyInService: 'Already in service since {0}. Commissioning happens once; changing the date is a correction made by manual journal.',
             blockerDisposed: 'This asset has been disposed.',
         },
+        // ── FA-HIST-1:变更留痕 ─────────────────────────────────────────────
+        history: {
+            title: 'Change history',
+            // ★ 具名空状态 —— 「没改过」与「那时候没人在记」是两件事。
+            empty: 'Nothing has been recorded against this machine yet.',
+            emptySince: 'This trail starts on {date}, the day it was built. Changes made before that date were never recorded anywhere \u2014 that is not the same as there having been none.',
+            sinceNote: 'This trail starts on {date}. Anything done to this machine before that day was never recorded.',
+            truncated: 'Showing the latest {shown} of {total} entries.',
+            // 一格没有值 —— 印这个,不印空白。
+            emptyValue: 'not set',
+            // ★ auth.uid() 为 NULL 的那一种【自己有名字】。不叫 system:
+            //   这个库里没有任何系统写入者(没有 pg_cron,折旧也不写这张表)。
+            noSession: 'Direct database session (not a login)',
+            type: {
+                created: 'Card created',
+                updated: 'Changed',
+            },
+            field: {
+                id: 'Card ID',
+                code: 'Asset number',
+                description: 'Description',
+                category: 'Category',
+                acquisition_date: 'Acquisition date',
+                in_service_date: 'In-service date',
+                cost_ccy: 'Cost (transaction currency)',
+                currency: 'Currency',
+                fx_rate: 'FX rate at acquisition',
+                cost_base: 'Cost (base currency)',
+                useful_life_months: 'Useful life (months)',
+                residual_base: 'Residual value',
+                depreciation_account_code: 'Depreciation account',
+                status: 'Status',
+                disposal_date: 'Disposal date',
+                disposal_proceeds_base: 'Disposal proceeds',
+                disposal_journal_id: 'Disposal journal entry',
+                expense_id: 'Originating expense',
+                notes: 'Notes',
+                created_at: 'Card created at',
+                created_by: 'Card created by',
+                planned_in_service_date: 'Planned in-service date',
+                acceptance_date: 'Acceptance date',
+            },
+        },
         colActions: 'Actions',
         needsFinanceEdit: 'requires Finance (edit)',
         actions: {

@@ -219,6 +219,18 @@ function sqlEnumAnywhere(file, col) {
     if (vals.length === 0) throw new Error(`${file} 的 ${col} IN (...) 解析出 0 个取值`)
     return vals
 }
+// FA-HIST-1:影子表里【成对列】的字段名 —— 从 old_<列> 那一侧现读。
+// 【为什么真源是影子表,不是 fixed_assets】屏幕画的是 fixed_asset_history 的
+// old_/new_ 两格;能画出来的字段就是这张表配了对的那些。而"每一列都配上了对"
+// 由 db/fixtures/201 的 P1 臂守着 —— 两条判据各守一头,不重复。
+// 【解析不出来就抛,不返回空集】—— 与 sqlEnum / sqlCaseAs 同一条:
+// 一个 0 必须是一次测量,不是一次缺席。
+function sqlPairFields(file) {
+    const src = readFileSync(join(ROOT, file), 'utf8')
+    const names = [...new Set([...src.matchAll(/^\s{4}old_(\w+)\s+\w/gm)].map((x) => x[1]))]
+    if (names.length === 0) throw new Error(`${file} 里解析出 0 个 old_<列> 成对列`)
+    return names
+}
 function sqlLiteralAs(file, alias) {
     const src = readFileSync(join(ROOT, file), 'utf8')
     return [...new Set([...src.matchAll(new RegExp(String.raw`'(\w+)'::text AS ${alias}`, 'g'))].map((x) => x[1]))]
@@ -716,6 +728,14 @@ const MANIFEST = {
     'assets.category.':     { kind: 'enum', values: () => sqlEnum('db/tables/fixed_assets.sql', 'category') },
     'processing.lineage.kind_': { kind: 'enum', values: () => ['inbound', 'output'] },
     'assets.status.':       { kind: 'enum', values: () => sqlEnum('db/tables/fixed_assets.sql', 'status') },
+    // ── FA-HIST-1:变更留痕 ──────────────────────────────────────────────────
+    // 两条都【从数据库现读】,一条抄一份清单在这里都不行:
+    //   · type.  —— change_type 的 CHECK(今天两个取值);
+    //   · field. —— 影子表的 old_<列>(今天 23 个)。
+    // ☞ 明天给 fixed_assets 加第 24 列、影子表配上一对,这里【不用改】,
+    //   而 `npm run build` 会当场点名"少了一条文案" —— 屏幕不会先长出一个裸列名。
+    'assets.history.type.':  { kind: 'enum', values: () => sqlEnum('db/tables/fixed_asset_history.sql', 'change_type') },
+    'assets.history.field.': { kind: 'enum', values: () => sqlPairFields('db/tables/fixed_asset_history.sql') },
     'finance.status.':      { kind: 'enum', values: () => sqlEnum('db/tables/expenses.sql', 'status') }, // posted/reversed,与 payments/journal 同形
     'finance.bank.':        { kind: 'enum', values: () => sqlEnum('db/tables/bank_statements.sql', 'bank_account_code') },
     'finance.docKind.':     { kind: 'enum', values: union(

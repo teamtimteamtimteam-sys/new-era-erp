@@ -7527,6 +7527,48 @@ const zh = {
             blockerAlreadyInService: '已于 {0} 投用。投用只发生一次;要改这个日期是一次更正,走人工分录。',
             blockerDisposed: '这台资产已经处置。',
         },
+        // ── FA-HIST-1:变更留痕 ─────────────────────────────────────────────
+        history: {
+            title: '变更留痕',
+            // ★ 具名空状态 —— 「没改过」与「那时候没人在记」是两件事。
+            empty: '这台机器还没有留下任何变更记录。',
+            emptySince: '留痕从 {date} 起算,那是它建成的那一天。在那之前对这台机器做过的改动,从来没有任何地方记下来过 \u2014\u2014 那与「没有改过」不是一回事。',
+            sinceNote: '留痕从 {date} 起算;在那之前对这台机器做过的改动没有被记录过。',
+            truncated: '显示最近 {shown} 条,共 {total} 条。',
+            emptyValue: '未填',
+            // ★ auth.uid() 为 NULL 的那一种【自己有名字】。不叫「系统」:
+            //   这个库里没有任何系统写入者(没有 pg_cron,折旧也不写这张表)。
+            noSession: '数据库直连(不经过登录)',
+            type: {
+                created: '建卡',
+                updated: '改动',
+            },
+            field: {
+                id: '卡片 ID',
+                code: '资产编号',
+                description: '描述',
+                category: '类别',
+                acquisition_date: '购置日',
+                in_service_date: '投用日',
+                cost_ccy: '成本(原币)',
+                currency: '币种',
+                fx_rate: '购置日汇率',
+                cost_base: '成本(本位币)',
+                useful_life_months: '使用年限(月)',
+                residual_base: '残值',
+                depreciation_account_code: '折旧科目',
+                status: '状态',
+                disposal_date: '处置日',
+                disposal_proceeds_base: '处置收款',
+                disposal_journal_id: '处置分录',
+                expense_id: '出生凭证(支出)',
+                notes: '备注',
+                created_at: '建卡时间',
+                created_by: '建卡人',
+                planned_in_service_date: '计划投用日',
+                acceptance_date: '验收合格日',
+            },
+        },
         colActions: '动作',
         needsFinanceEdit: '需要财务(编辑)权限',
         actions: {

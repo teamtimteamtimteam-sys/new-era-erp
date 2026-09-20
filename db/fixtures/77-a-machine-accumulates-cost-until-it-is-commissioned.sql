@@ -239,9 +239,25 @@ BEGIN
 
     -- ③ 根本没有资产 → 放行(na,与月结中枢那三态口径一致)
     UPDATE finance_settings SET locked_before = NULL;
+    -- ★★【FA-HIST-1(2026-09-20):这三条 DELETE 是【脚手架】,不是一条业务路径】★★
+    --   本臂要的只是"一台资产都没有"那个状态。而 FA-HIST-1 之后这条路上站了三样东西,
+    --   **三样都是有意的,一样都不放松**:
+    --     · fixed_assets 上的 guard_fixed_assets_no_hard_delete —— 硬删按名拒;
+    --     · fixed_asset_history 上的只增不改守卫 —— DELETE 也拒;
+    --     · fixed_asset_history 指向 fixed_assets 的外键 —— 留痕要比它记的东西活得久。
+    --   ☞ 所以这里【就地、只在这四条语句上】把那两支守卫关掉再打开,
+    --     而**不是**去给守卫本身开一个"fixture 例外" ——
+    --     一个写在守卫里的例外会活得比这支 fixture 久,而且下一个人读不出它是为谁开的。
+    ALTER TABLE public.fixed_asset_history DISABLE TRIGGER trg_fixed_asset_history_append_only;
+    ALTER TABLE public.fixed_assets        DISABLE TRIGGER trg_fixed_assets_no_hard_delete;
     DELETE FROM fixed_asset_depreciation;
     DELETE FROM fixed_asset_cost_entries;
+    DELETE FROM fixed_asset_history;
     DELETE FROM fixed_assets;
+    -- 【立刻打开 —— 本文件后面还有两个注入臂会再建资产】关着走完全文,
+    -- 等于让那两臂在一个没有守卫的库上通过。
+    ALTER TABLE public.fixed_assets        ENABLE TRIGGER trg_fixed_assets_no_hard_delete;
+    ALTER TABLE public.fixed_asset_history ENABLE TRIGGER trg_fixed_asset_history_append_only;
     v_r := close_period('2026-05-31', 'fixture 77 no assets');
     IF (v_r->>'locked_before') <> '2026-06-01' THEN
         RAISE EXCEPTION 'FIXTURE 77E 失败:一台资产都没有时,这道闸不该拦,实得 %', v_r::text;

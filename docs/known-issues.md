@@ -1070,7 +1070,28 @@ pg_policies WHERE tablename='fixed_assets'
 
 ---
 
-## ★ FIXED-ASSETS-PLANNED-DATE-NOT-LOGGED —— 谁改了「计划投用日」,**没有任何地方记得**(B3 立,2026-09-20)
+## ~~★ FIXED-ASSETS-PLANNED-DATE-NOT-LOGGED~~ —— **✅ 已关闭(FA-HIST-1,2026-09-20)**
+
+**这一条要的那句裁定,Tim 给了,而且给的是【比两条选项都大的那一条】。**
+
+* **裁定(Tim,2026-09-20)**:① 建影子表(选项 ②),不是加两列;
+  ② **覆盖这张表的【每一次】写入**,不只是那个计划投用日;
+  ③ **操作员要读得到** —— 一份只活在数据库里的留痕不算做到。
+* **落地**:`fixed_asset_history`(23 对带类型的成对列)+ 基表上的
+  `trg_fixed_assets_history`(AFTER INSERT OR UPDATE)+ `/finance/assets/[id]`
+  末尾的留痕面板(中英双语,带具名空状态)。
+  迁移 `db/migrations/2026-09-20-fahist1-fixed-asset-history.sql`,
+  判据 `db/fixtures/201`(P1/P2 + A–N 共 16 臂,8 条写语句逐条走过)。
+* ★ **捕获用触发器,不在七支函数里逐支写 INSERT** —— 理由见下面那块更正:
+  **那份名单错过两次**,而触发器不会漏掉第八个写入者。
+* ★ **`db/fixtures/120` 一个字节都没有改** —— 捕获触发器【不提任何一个列名】,
+  于是那条"没有一条规则读计划投用日"的承诺**没有被放松,也没有被加豁免**。
+* ⚠ **不回填**:线上两行是测试数据,**没有给它们发明历史**。面板的空状态
+  照直说留痕是从哪一天起算的。
+
+<details><summary>原文(关闭前,B3 于 2026-09-20 立)—— ★ 其中那个「五支写函数」已更正,见本节末</summary>
+
+### ★ FIXED-ASSETS-PLANNED-DATE-NOT-LOGGED —— 谁改了「计划投用日」,**没有任何地方记得**(B3 立,2026-09-20)
 
 **这是一个【具名的缺口】,不是一次疏忽。** Tim 的裁定 C5 要的是:在函数体里记下
 **谁设的、什么时候**,而**不加列、不新建表**。B3 把全库找了一遍,**没有一个够得着的落点**,
@@ -1091,10 +1112,45 @@ pg_policies WHERE tablename='fixed_assets'
 `dispose_fixed_asset` · `depreciate_fixed_assets` —— **五支写函数,没有一支写任何历史**(实测)。
 **所以真正要答的问题比「计划投用日」大**:`fixed_assets` 要不要一张影子表。
 
+> ### ★★★ 【就地更正 —— 谁:FA-HIST-1(线上目录扫描);哪一天:2026-09-20】上面这个「五支」是【错】的,而它错在两个方向 ★★★
+>
+> **原文一个字没改、留在上面** —— 一条被悄悄改掉的旧读数,与一条从来没写过的
+> 读数,在读的人眼里没有区别(本仓库对这件事有成文的处置)。
+>
+> **实测方法**:`pg_proc.prosrc` 正则命中 `INSERT INTO / UPDATE / DELETE FROM`
+> 后接 `fixed_assets`,全库扫,不是读镜像推的。
+>
+> **真集是 7 支函数 / 8 条写语句 / 0 条 DELETE:**
+>
+> | # | 函数 | 语句 | 写什么 |
+> |---|---|---|---|
+> | ① | `create_fixed_asset` | INSERT | 整行诞生 |
+> | ② | `record_expense`(资本**新建**支) | INSERT | 整行诞生 |
+> | ③ | `record_expense`(**追加成本**支) | UPDATE | `cost_base` |
+> | ④ | `reverse_expense` | UPDATE | `cost_base` |
+> | ⑤ | `set_asset_in_service` | UPDATE | `in_service_date` |
+> | ⑥ | `set_asset_acceptance` | UPDATE | `acceptance_date` |
+> | ⑦ | `set_asset_planned_in_service` | UPDATE | `planned_in_service_date` |
+> | ⑧ | `dispose_fixed_asset` | UPDATE | `status` / `disposal_*` |
+>
+> ⚠ **`depreciate_fixed_assets` 根本不写 `fixed_assets`** —— 它唯一的 INSERT 落在
+> `fixed_asset_depreciation`。它在三份文档的名单上白站了。
+>
+> ⚠⚠ **而 `record_expense` / `reverse_expense` 从来【不在】任何一份名单上** ——
+> 偏偏这两支动的是【钱】(`cost_base`)。☞ **照这份五支的名单建出来的留痕,
+> 会对成本变动全盲。** 这不是一处字面更正:它改变了这一刀要覆盖的范围。
+>
+> ☞ 这也正是 FA-HIST-1 采用【基表上的触发器】而不是【在七支函数里逐支写 INSERT】
+> 的第一条理由:**名单会错,而且已经错了两次;触发器不会漏掉第八个写入者。**
+
 **删除条件(两条路,都要一句裁定):**
 ① 给 `fixed_assets` 加 `updated_by`/`updated_at` —— 便宜,但只记得住**最后一次**;
 ② 建一张 `fixed_asset_history` 影子表 —— 与这个库其余 11 处同形,记得住每一次。
 **不要在没有裁定的情况下挑一条**:这两条的差别是「谁改的」还是「改过几次」,而那是业务问题。
+
+☞ **那句裁定后来给了,选的是 ②,而且比 ② 更大** —— 见本节抬头。
+
+</details>
 
 ---
 
