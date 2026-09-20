@@ -4108,6 +4108,8 @@ const zh = {
         recordedYes: '已记',
         recordedNo: '未记',
         saveLine: '保存',
+        // DRAFT-1:搬到 EditableTable 之后,空集要自己说出它是空的(组件的 empty 槽)。
+        noLines: '这个考勤期还没有任何员工行。',
         completeBtn: '标记完成',
         completeHint: '标记完成会冻住这份底稿,那个月的工资才能过账',
         completeBlocked: '还有 {count} 行没有人给过答案 —— 记一个 0 是答案,空着不是',

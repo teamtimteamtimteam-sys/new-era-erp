@@ -6,6 +6,33 @@
 // 【target 与 unit 一起给】新增与编辑都把指标和单位摆在同一行:
 // 一条没有单位的目标之后【永远】填不进数字 —— 约束会拒,而两条写实际值的路
 // (save_self_assessment / set_goal_actual_value)都碰不到 unit。
+//
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ DRAFT-1(2026-09-21)· 这张表搬到了 `<EditableTable>` 上 ★★
+// ════════════════════════════════════════════════════════════════════════════
+//   搬家换掉的是【壳】,不是【规矩】—— 三支 action 的分流、按权限分列、
+//   「有数字就要有单位」这三件一个字都没改,只是各自挪到了组件给的那个口子上:
+//
+//     · 三支 action   → `onSave(draft, row)` 里,原样的三段 if(见下);
+//     · 按权限分列     → **不给 `edit` 就是这一列不可编辑**(组件抬头写着的那条),
+//                        于是 `canEditGoals` / `canSetActual` / `canAssess`
+//                        各自决定它那几列给不给 `edit` —— 不再是格子里的三元表达式;
+//     · 单位配套校验   → `canSave`(DRAFT-1 的能力 E)。★ 它比从前多做一件事:
+//                        **理由跟着钮走**。从前那句 `reviews.unitRequired` 只画在
+//                        桌面档的动作格里,390px 上那颗钮按不动而屏幕上一个字都没有;
+//                        现在两个断点都印(CMP-2:按不动的钮要说出为什么)。
+//     · 删除          → `rowActions`(能力 A)。同一颗 `ConfirmButton`,同一次硬删,
+//                        组件只借给它一个位置,不知道它是什么。
+//     · 加目标         → `footer`。它本来就在表【外面】,搬家前后都是。
+//
+//   ★ 顺带收下的两件(**不是本刀的目标,是搬家的副产品**):
+//     ① 错误从【页顶一个红 div】变成【那一行下面,带 role="alert"】——
+//        这张表此前 `role="alert"` 是 0 个;
+//     ② 脏着关标签页会拦一下(组件自带的 `beforeunload`)。
+//        ⚠ 它盖不住站内 <Link> 跳走,那是一条声明过的限制(组件抬头 Q7)。
+//   ★ 变体 A → variant C:整张表此前是 `border border-gray-300` 的全边框,
+//     组件自己的表体就是 variant C 的那一套,所以这件衣服是【跟着搬家免费换的】。
+// ════════════════════════════════════════════════════════════════════════════
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -14,6 +41,7 @@ import type { GoalRow } from './reviewShared'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
+import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 
 // ════════════════════════════════════════════════════════════════════════════
 // ★★【ALERT-2d(2026-09-09):这三个 prop 现在【只装记录状态】,不装权限】★★
@@ -46,6 +74,14 @@ type Props = {
     stateNote?: string | null
 }
 
+type Draft = {
+    objective: string
+    target: string
+    unit: string
+    actual: string
+    assessment: string
+}
+
 const inp = `${CONTROL_INPUT} w-full`
 const ta = `${CONTROL_TEXTAREA} w-full`
 
@@ -53,73 +89,16 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
     const t = useTranslations()
     const router = useRouter()
     const [pending, startTransition] = useTransition()
+    // ★ 这个 error 现在只装【加行 / 删行】那两支的失败 —— 逐行保存的失败
+    //   由组件画在那一行下面。两者不再共用一个页顶红框。
     const [error, setError] = useState<string | null>(null)
-
-    const [editing, setEditing] = useState<string | null>(null)
-    const [draft, setDraft] = useState<{
-        objective: string
-        target: string
-        unit: string
-        actual: string
-        assessment: string
-    } | null>(null)
 
     const [newObjective, setNewObjective] = useState('')
     const [newTarget, setNewTarget] = useState('')
     const [newUnit, setNewUnit] = useState('')
 
     const editable = canEditGoals || canAssess || canSetActual
-
-    function begin(g: GoalRow) {
-        setEditing(g.id)
-        setError(null)
-        setDraft({
-            objective: g.objective_text,
-            target: g.target_value === null ? '' : String(g.target_value),
-            unit: g.unit ?? '',
-            actual: g.actual_value === null ? '' : String(g.actual_value),
-            assessment: g.reviewer_assessment_text ?? '',
-        })
-    }
-
-    // 编辑态里数字/单位是否配套(约束 review_goals_unit_required 的镜像)
-    const draftUnitMissing =
-        !!draft && (draft.target.trim() !== '' || draft.actual.trim() !== '') && draft.unit.trim() === ''
     const newUnitMissing = newTarget.trim() !== '' && newUnit.trim() === ''
-
-    function save(g: GoalRow) {
-        if (!draft) return
-        setError(null)
-        startTransition(async () => {
-            // 只把改动过且当前身份写得动的部分递给对应的函数
-            if (canEditGoals) {
-                const target = draft.target.trim() === '' ? null : Number(draft.target)
-                const unit = draft.unit.trim() === '' ? null : draft.unit.trim()
-                if (
-                    draft.objective !== g.objective_text ||
-                    target !== g.target_value ||
-                    unit !== (g.unit ?? null)
-                ) {
-                    const r = await updateGoal(reviewId, g.id, draft.objective, target, unit)
-                    if (r.error) { setError(r.error); return }
-                }
-            }
-            if (canSetActual) {
-                const actual = draft.actual.trim() === '' ? null : Number(draft.actual)
-                if (actual !== g.actual_value) {
-                    const r = await setGoalActual(reviewId, g.id, actual)
-                    if (r.error) { setError(r.error); return }
-                }
-            }
-            if (canAssess && draft.assessment !== (g.reviewer_assessment_text ?? '')) {
-                const r = await setGoalAssessment(reviewId, g.id, draft.assessment)
-                if (r.error) { setError(r.error); return }
-            }
-            setEditing(null)
-            setDraft(null)
-            router.refresh()
-        })
-    }
 
     function remove(goalId: string) {
         setError(null)
@@ -144,266 +123,257 @@ export default function GoalsEditor({ reviewId, goals, canEditGoals, canAssess, 
         })
     }
 
+    // ── 列 ──────────────────────────────────────────────────────────────────
+    // ★ priority 的那四列 = 今天 390px 上留着的那四列(# · 目标 · 指标 · 实绩)。
+    //   指标与实绩一起留:少了任何一个,另一个都判断不了。
+    //   单位 / 本人小结 / 评价下到展开区,各带各的标签 —— 拿掉的是那一列,不是那个事实。
+    const columns: EditableColumn<GoalRow, Draft>[] = [
+        {
+            key: 'seq',
+            header: '#',
+            priority: true,
+            className: 'w-8 text-[color:var(--brand-muted-text)]',
+            render: (g) => g.sequence,
+        },
+        {
+            key: 'objective',
+            header: t('reviews.colObjective'),
+            priority: true,
+            render: (g) => <span className="whitespace-pre-wrap">{g.objective_text}</span>,
+            ...(canEditGoals && {
+                edit: (d, set) => (
+                    <textarea
+                        value={d.objective}
+                        aria-label={t('reviews.colObjective')}
+                        onChange={(e) => set({ objective: e.target.value })}
+                        className={ta}
+                    />
+                ),
+            }),
+        },
+        {
+            key: 'target',
+            header: t('reviews.colTarget'),
+            priority: true,
+            align: 'right',
+            render: (g) => g.target_value ?? '—',
+            ...(canEditGoals && {
+                edit: (d, set) => (
+                    <input
+                        type="number"
+                        value={d.target}
+                        aria-label={t('reviews.colTarget')}
+                        onChange={(e) => set({ target: e.target.value })}
+                        className={`${inp} text-right tabular-nums`}
+                    />
+                ),
+            }),
+        },
+        {
+            key: 'unit',
+            header: t('reviews.colUnit'),
+            render: (g) => g.unit ?? '—',
+            ...(canEditGoals && {
+                edit: (d, set) => (
+                    <input
+                        value={d.unit}
+                        aria-label={t('reviews.colUnit')}
+                        placeholder={t('reviews.colUnit')}
+                        onChange={(e) => set({ unit: e.target.value })}
+                        className={inp}
+                    />
+                ),
+            }),
+        },
+        {
+            key: 'actual',
+            header: t('reviews.colActual'),
+            priority: true,
+            align: 'right',
+            render: (g) => g.actual_value ?? '—',
+            ...(canSetActual && {
+                edit: (d, set) => (
+                    <input
+                        type="number"
+                        value={d.actual}
+                        aria-label={t('reviews.colActual')}
+                        onChange={(e) => set({ actual: e.target.value })}
+                        className={`${inp} text-right tabular-nums`}
+                    />
+                ),
+            }),
+        },
+        {
+            // 本人小结:两种身份都改不动它(它走 save_self_assessment),所以没有 edit。
+            key: 'employeeResult',
+            header: t('reviews.colEmployeeResult'),
+            render: (g) => <span className="whitespace-pre-wrap">{g.employee_result_text ?? '—'}</span>,
+        },
+        {
+            key: 'assessment',
+            header: t('reviews.colAssessment'),
+            render: (g) => <span className="whitespace-pre-wrap">{g.reviewer_assessment_text ?? '—'}</span>,
+            ...(canAssess && {
+                edit: (d, set) => (
+                    <textarea
+                        value={d.assessment}
+                        aria-label={t('reviews.colAssessment')}
+                        onChange={(e) => set({ assessment: e.target.value })}
+                        className={ta}
+                    />
+                ),
+            }),
+        },
+    ]
+
     return (
         <div className="mb-6">
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
-            {goals.length === 0 ? (
-                <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('reviews.noGoals')}</p>
-            ) : (
-                <table className="w-full border-collapse border border-gray-300 text-sm mb-3">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-2 py-1 text-left w-8">#</th>
-                            <th className="border border-gray-300 px-2 py-1 text-left">{t('reviews.colObjective')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-right tabular-nums">{t('reviews.colTarget')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-left">{t('reviews.colUnit')}</th>
-                            <th className="border border-gray-300 px-2 py-1 text-right tabular-nums">{t('reviews.colActual')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-left">{t('reviews.colEmployeeResult')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 text-left">{t('reviews.colAssessment')}</th>
-                            {editable && <th className="hidden sm:table-cell border border-gray-300 px-2 py-1 w-28"></th>}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {goals.map((g) => {
-                            const on = editing === g.id
-                            /* ★ TABLE-PHONE-3:同一组控件要在两个断点各画一次(桌面档在自己那一列,
-                               手机档叠在「目标」格里),所以提到这里定义一次 —— 免得两处日后走散。
-                               动作一个字没改:还是同一个 save / begin / remove。 */
-                            const actionControls = (
-                                <>
-                                {on ? (
-                                    <>
-                                        <Button
-                                            variant="link"
-                                            size="inline"
-                                            type="button"
-                                            onClick={() => save(g)}
-                                            disabled={pending || draftUnitMissing}
-                                            className="mr-2"
-                                        >
-                                            {t('common.save')}
-                                        </Button>
-                                        <Button
-                                            variant="secondary"
-                                            type="button"
-                                            onClick={() => { setEditing(null); setDraft(null) }}
-                                        >
-                                            {t('common.cancel')}
-                                        </Button>
-                                        {draftUnitMissing && (
-                                            <p className="text-xs text-red-700 mt-1">{t('reviews.unitRequired')}</p>
-                                        )}
-                                    </>
-                                ) : (
-                                    <>
-                                        <Button
-                                            variant="link"
-                                            size="inline"
-                                            type="button"
-                                            onClick={() => begin(g)}
-                                            className="mr-2"
-                                        >
-                                            {t('reviews.edit')}
-                                        </Button>
-                                        {/* ★★ ALERT-2a:这一处【此前没有任何确认步骤,而它是一次硬删除】★★
-                                            `removeGoal` → `app/hr/reviews/actions.ts:68`
-                                            → rpc `remove_review_goal`
-                                            → `DELETE FROM review_goals`。**行没了。**
-                                            ☞ ALERT-2a 的委托书把它归进了「说 Delete 其实是软删」那一族,
-                                              并要给它挂上 `common.softDeleteNote`(「数据保留…可以恢复」)——
-                                              **那句话在这里是假的**,而在一个一按就永久销毁的钮上
-                                              印一句"可以恢复",比什么都不说更坏。闸上更正,归到这一族。
-                                            ☞ 动作一个字没改:同一个 `remove(g.id)`。 */}
-                                        {canEditGoals && (
-                                            <ConfirmButton
-                                                subject={g.objective_text}
-                                                title={t('reviews.goalDeleteTitle')}
-                                                body={t('common.hardDeleteNote')}
-                                                details={
-                                                    <p className="text-sm font-medium text-[color:var(--brand-text)]">
-                                                        {t('reviews.goalDeleteConsequence')}
-                                                    </p>
-                                                }
-                                                confirmLabel={t('common.delete')}
-                                                tier="destructive"
-                                                disabled={pending}
-                                                triggerVariant="destructive"
-                                                triggerSize="inline"
-                                                onConfirm={() => remove(g.id)}
-                                            >
-                                                {t('common.delete')}
-                                            </ConfirmButton>
-                                        )}
-                                    </>
-                                )}
-                                </>
-                            )
-                            return (
-                                <tr key={g.id} className="align-top">
-                                    <td className="border border-gray-300 px-2 py-1 text-gray-500">{g.sequence}</td>
-                                    <td className="border border-gray-300 px-2 py-1">
-                                        {on && canEditGoals ? (
-                                            <textarea
-                                                value={draft!.objective}
-                                                onChange={(e) => setDraft({ ...draft!, objective: e.target.value })}
-                                                className={ta}
-                                            />
-                                        ) : (
-                                            <span className="whitespace-pre-wrap">{g.objective_text}</span>
-                                        )}
-                                        {/* ★ TABLE-PHONE-3:手机档被拿掉的列(单位 / 本人小结 / 评价,
-                                            以及那一列【桌面档本来就没有列头】的动作),原样叠在这里,
-                                            各带各的列头 —— 拿掉的是那一列,不是那个事实。
-                                            指标与实绩留在列上:少了任何一个,另一个都判断不了。 */}
-                                        <div className="sm:hidden mt-1 space-y-1 text-xs text-gray-600">
-                                            <div>
-                                                <span className="text-gray-500">{t('reviews.colUnit')}: </span>
-                                                {on && canEditGoals ? (
-                                                    <input
-                                                        value={draft!.unit}
-                                                        onChange={(e) => setDraft({ ...draft!, unit: e.target.value })}
-                                                        placeholder={t('reviews.colUnit')}
-                                                        className={`${inp} w-16`}
-                                                    />
-                                                ) : (
-                                                    g.unit ?? '—'
-                                                )}
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-500">{t('reviews.colEmployeeResult')}: </span>
-                                                <span className="whitespace-pre-wrap">{g.employee_result_text ?? '—'}</span>
-                                            </div>
-                                            <div>
-                                                <span className="text-gray-500">{t('reviews.colAssessment')}: </span>
-                                                {on && canAssess ? (
-                                                    <textarea
-                                                        value={draft!.assessment}
-                                                        onChange={(e) => setDraft({ ...draft!, assessment: e.target.value })}
-                                                        className={ta}
-                                                    />
-                                                ) : (
-                                                    <span className="whitespace-pre-wrap">{g.reviewer_assessment_text ?? '—'}</span>
-                                                )}
-                                            </div>
-                                            {/* 这一条【没有标签,而它在桌面档也没有】—— 钮面上自己带着字
-                                                (common.save / common.cancel / reviews.edit / common.delete),
-                                                所以这里【不另造一句话】。 */}
-                                            {editable && <div>{actionControls}</div>}
-                                        </div>
-                                    </td>
-                                    <td className="border border-gray-300 px-2 py-1 text-right tabular-nums">
-                                        {on && canEditGoals ? (
-                                            <input
-                                                type="number"
-                                                value={draft!.target}
-                                                onChange={(e) => setDraft({ ...draft!, target: e.target.value })}
-                                                className={`${inp} text-right w-20 tabular-nums`}
-                                            />
-                                        ) : (
-                                            g.target_value ?? '—'
-                                        )}
-                                    </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-1">
-                                        {on && canEditGoals ? (
-                                            <input
-                                                value={draft!.unit}
-                                                onChange={(e) => setDraft({ ...draft!, unit: e.target.value })}
-                                                placeholder={t('reviews.colUnit')}
-                                                className={`${inp} w-16`}
-                                            />
-                                        ) : (
-                                            g.unit ?? '—'
-                                        )}
-                                    </td>
-                                    <td className="border border-gray-300 px-2 py-1 text-right tabular-nums">
-                                        {on && canSetActual ? (
-                                            <input
-                                                type="number"
-                                                value={draft!.actual}
-                                                onChange={(e) => setDraft({ ...draft!, actual: e.target.value })}
-                                                className={`${inp} text-right w-20 tabular-nums`}
-                                            />
-                                        ) : (
-                                            g.actual_value ?? '—'
-                                        )}
-                                    </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-1">
-                                        <span className="whitespace-pre-wrap">{g.employee_result_text ?? '—'}</span>
-                                    </td>
-                                    <td className="hidden sm:table-cell border border-gray-300 px-2 py-1">
-                                        {on && canAssess ? (
-                                            <textarea
-                                                value={draft!.assessment}
-                                                onChange={(e) => setDraft({ ...draft!, assessment: e.target.value })}
-                                                className={ta}
-                                            />
-                                        ) : (
-                                            <span className="whitespace-pre-wrap">{g.reviewer_assessment_text ?? '—'}</span>
-                                        )}
-                                    </td>
-                                    {editable && (
-                                        <td className="hidden sm:table-cell border border-gray-300 px-2 py-1 whitespace-nowrap">
-                                            {actionControls}
-                                        </td>
-                                    )}
-                                </tr>
-                            )
-                        })}
-                    </tbody>
-                </table>
-            )}
 
-            {/* ★ ALERT-2d:`canEditGoals` 为假时这一块【原本整个消失,一个字都没有】。
-                   它今天为假只剩一个原因(记录状态),所以就地说出那个原因 ——
-                   而不是让"这份考核已经提交了"和"这个功能不存在"在屏幕上长得一样。 */}
-            {!canEditGoals && stateNote && (
-                <p className="text-sm text-[color:var(--brand-muted-text)]" data-state-note="goals">{stateNote}</p>
-            )}
-            {canEditGoals && (
-                <div className="rounded border border-gray-200 p-4">
-                    <h3 className="mb-1">{t('reviews.addGoal')}</h3>
-                    {/* 指标与单位一起定:此刻不填单位,以后就没有任何一条路能补上它 */}
-                    <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('reviews.addGoalHint')}</p>
-                    <div className="flex gap-2 flex-wrap items-end">
-                        <label className="grow min-w-64">
-                            {t('reviews.colObjective')}
-                            <textarea
-                                value={newObjective}
-                                onChange={(e) => setNewObjective(e.target.value)}
-                                className={`block ${ta}`}
-                            />
-                        </label>
-                        <label className="">
-                            {t('reviews.colTarget')}
-                            <input
-                                type="number"
-                                value={newTarget}
-                                onChange={(e) => setNewTarget(e.target.value)}
-                                className={`block ${inp} w-24 text-right tabular-nums`}
-                            />
-                        </label>
-                        <label className="">
-                            {t('reviews.colUnit')}
-                            <input
-                                value={newUnit}
-                                onChange={(e) => setNewUnit(e.target.value)}
-                                placeholder="% / kg / 天"
-                                className={`block ${inp} w-24`}
-                            />
-                        </label>
-                        <Button
-                            type="button"
-                            onClick={add}
-                            disabled={pending || newObjective.trim() === '' || newUnitMissing}
-                        >
-                            {t('common.save')}
-                        </Button>
-                    </div>
-                    {newUnitMissing && <p className="text-xs text-red-700 mt-2">{t('reviews.unitRequired')}</p>}
-                </div>
-            )}
+            <EditableTable<GoalRow, Draft>
+                rows={goals}
+                columns={columns}
+                rowKey={(g) => g.id}
+                phone={{ mode: 'columns' }}
+                canEdit={editable}
+                className="mb-3"
+                empty={t('reviews.noGoals')}
+                toDraft={(g) => ({
+                    objective: g.objective_text,
+                    target: g.target_value === null ? '' : String(g.target_value),
+                    unit: g.unit ?? '',
+                    actual: g.actual_value === null ? '' : String(g.actual_value),
+                    assessment: g.reviewer_assessment_text ?? '',
+                })}
+                labels={{
+                    edit: t('reviews.edit'), save: t('common.save'), saving: t('common.saving'),
+                    cancel: t('common.cancel'), unsaved: t('common.unsavedRow'), expand: t('common.expandRow'),
+                }}
+                // ★ 编辑态里数字/单位是否配套(约束 review_goals_unit_required 的镜像)。
+                //   能力 E 让这条校验【连着它的理由】一起挂在保存钮上。
+                canSave={(d) =>
+                    (d.target.trim() !== '' || d.actual.trim() !== '') && d.unit.trim() === ''
+                        ? { ok: false, why: t('reviews.unitRequired') }
+                        : { ok: true }
+                }
+                // ★★ 一行散成最多【三支】action —— 原样搬过来的那三段 if。 ★★
+                //   只把改动过、且当前身份写得动的那一部分递给对应的函数。
+                onSave={async (d, g) => {
+                    if (canEditGoals) {
+                        const target = d.target.trim() === '' ? null : Number(d.target)
+                        const unit = d.unit.trim() === '' ? null : d.unit.trim()
+                        if (
+                            d.objective !== g.objective_text ||
+                            target !== g.target_value ||
+                            unit !== (g.unit ?? null)
+                        ) {
+                            const r = await updateGoal(reviewId, g.id, d.objective, target, unit)
+                            if (r.error) return { error: r.error }
+                        }
+                    }
+                    if (canSetActual) {
+                        const actual = d.actual.trim() === '' ? null : Number(d.actual)
+                        if (actual !== g.actual_value) {
+                            const r = await setGoalActual(reviewId, g.id, actual)
+                            if (r.error) return { error: r.error }
+                        }
+                    }
+                    if (canAssess && d.assessment !== (g.reviewer_assessment_text ?? '')) {
+                        const r = await setGoalAssessment(reviewId, g.id, d.assessment)
+                        if (r.error) return { error: r.error }
+                    }
+                    router.refresh()
+                }}
+                /* ★★ ALERT-2a:这一处【此前没有任何确认步骤,而它是一次硬删除】★★
+                    `removeGoal` → `app/hr/reviews/actions.ts:68` → rpc `remove_review_goal`
+                    → `DELETE FROM review_goals`。**行没了。**
+                    ☞ ALERT-2a 的委托书把它归进了「说 Delete 其实是软删」那一族,
+                      并要给它挂上 `common.softDeleteNote`(「数据保留…可以恢复」)——
+                      **那句话在这里是假的**,而在一个一按就永久销毁的钮上
+                      印一句"可以恢复",比什么都不说更坏。闸上更正,归到这一族。
+                    ☞ 动作一个字没改:同一个 `remove(g.id)`。DRAFT-1 只换了它挂的地方。 */
+                rowActions={
+                    canEditGoals
+                        ? (g, ctx) =>
+                              ctx.editing ? null : (
+                                  <ConfirmButton
+                                      subject={g.objective_text}
+                                      title={t('reviews.goalDeleteTitle')}
+                                      body={t('common.hardDeleteNote')}
+                                      details={
+                                          <p className="text-sm font-medium text-[color:var(--brand-text)]">
+                                              {t('reviews.goalDeleteConsequence')}
+                                          </p>
+                                      }
+                                      confirmLabel={t('common.delete')}
+                                      tier="destructive"
+                                      disabled={pending}
+                                      triggerVariant="destructive"
+                                      triggerSize="inline"
+                                      onConfirm={() => remove(g.id)}
+                                  >
+                                      {t('common.delete')}
+                                  </ConfirmButton>
+                              )
+                        : undefined
+                }
+                /* ★ 加目标的表单【本来就在表外面】,搬家前后都是。footer 就是它的位置。 */
+                footer={() => (
+                    <>
+                        {/* ★ ALERT-2d:`canEditGoals` 为假时这一块【原本整个消失,一个字都没有】。
+                               它今天为假只剩一个原因(记录状态),所以就地说出那个原因 ——
+                               而不是让"这份考核已经提交了"和"这个功能不存在"在屏幕上长得一样。 */}
+                        {!canEditGoals && stateNote && (
+                            <p className="text-sm text-[color:var(--brand-muted-text)]" data-state-note="goals">{stateNote}</p>
+                        )}
+                        {canEditGoals && (
+                            <div className="rounded border border-gray-200 p-4">
+                                <h3 className="mb-1">{t('reviews.addGoal')}</h3>
+                                {/* 指标与单位一起定:此刻不填单位,以后就没有任何一条路能补上它 */}
+                                <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('reviews.addGoalHint')}</p>
+                                <div className="flex gap-2 flex-wrap items-end">
+                                    <label className="grow min-w-64">
+                                        {t('reviews.colObjective')}
+                                        <textarea
+                                            value={newObjective}
+                                            onChange={(e) => setNewObjective(e.target.value)}
+                                            className={`block ${ta}`}
+                                        />
+                                    </label>
+                                    <label className="">
+                                        {t('reviews.colTarget')}
+                                        <input
+                                            type="number"
+                                            value={newTarget}
+                                            onChange={(e) => setNewTarget(e.target.value)}
+                                            className={`block ${inp} w-24 text-right tabular-nums`}
+                                        />
+                                    </label>
+                                    <label className="">
+                                        {t('reviews.colUnit')}
+                                        <input
+                                            value={newUnit}
+                                            onChange={(e) => setNewUnit(e.target.value)}
+                                            placeholder="% / kg / 天"
+                                            className={`block ${inp} w-24`}
+                                        />
+                                    </label>
+                                    <Button
+                                        type="button"
+                                        onClick={add}
+                                        disabled={pending || newObjective.trim() === '' || newUnitMissing}
+                                    >
+                                        {t('common.save')}
+                                    </Button>
+                                </div>
+                                {newUnitMissing && <p className="text-xs text-red-700 mt-2">{t('reviews.unitRequired')}</p>}
+                            </div>
+                        )}
+                    </>
+                )}
+            />
         </div>
     )
 }

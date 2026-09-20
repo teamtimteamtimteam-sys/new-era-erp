@@ -4199,6 +4199,8 @@ const en = {
         recordedYes: 'Recorded',
         recordedNo: 'Not recorded',
         saveLine: 'Save',
+        // DRAFT-1:搬到 EditableTable 之后,空集要自己说出它是空的(组件的 empty 槽)。
+        noLines: 'This period has no employee lines yet.',
         completeBtn: 'Mark complete',
         completeHint: 'Marking complete freezes this sheet and lets that month\u2019s payroll be posted',
         completeBlocked: '{count} line(s) still have nobody\u2019s answer \u2014 recording zero is an answer, leaving it blank is not',
