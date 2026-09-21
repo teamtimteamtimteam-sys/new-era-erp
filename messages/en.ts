@@ -2919,6 +2919,9 @@ const en = {
         },
     },
     processing: {
+        // ★ DRAFT-3:#6 / #7 的只读序号列(Tim 的 Q6)——
+        //   与 `sales.colSeq` / `purchasing.colSeq` 同深度、同拼写。
+        colSeq: '#',
         loss: {
             title: 'Loss breakdown',
             intro: 'Loss is not one number. Water and volatiles leave but the METAL STAYS; dust and spillage take the metal WITH them; residue sent for disposal is NOT A LOSS AT ALL. Collapsed into one number, recovery can never be right. What is recorded here is the part of that number whose destination we can state — the run\u2019s own loss total is left untouched.',
