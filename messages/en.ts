@@ -3663,6 +3663,9 @@ const en = {
             terms: 'Terms text',
             termsHint: 'This is printed on the PDF the customer holds. Changing it after the order was issued does not update their copy — re-issue to give them the new version.',
             colOrdered: 'Ordered',
+            // ★ DRAFT-4:JSON 桥读不懂时的按名拒 —— 不能当成空集。
+            //   空集会让服务端「什么都没改」地成功返回,而真相是这次提交没被读懂。
+            errPayloadUnreadable: 'The amended lines could not be read. Nothing was changed — please reload the page and amend it again.',
             colInvoiced: 'Invoiced',
             colReserved: 'Reserved',
             colShipped: 'Shipped',

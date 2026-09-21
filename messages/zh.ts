@@ -3567,6 +3567,8 @@ const zh = {
             terms: '条款正文',
             termsHint: '它会印在客户手里那份 PDF 上。签发之后再改【不会】更新他手里那一份 —— 重新签发才会给他新版本。',
             colOrdered: '已订',
+            // ★ DRAFT-4:JSON 桥读不懂时的按名拒 —— 不能当成空集。
+            errPayloadUnreadable: '改单明细没有读出来,这一次什么都没有改。请重新加载本页再改一遍。',
             colInvoiced: '已开票',
             colReserved: '已预留',
             colShipped: '已发',
