@@ -3794,6 +3794,8 @@ const zh = {
         openLabel: '这张发票还欠:{amount} {ccy}',
         overOpen: '这超过了这张发票还欠的数。贷项凭证不能把一张发票冲到零以下 —— 超出的那一半是【退款】,而这个系统还没有它。',
         overCeiling: '按所选类型,这一行最多能冲 {ceiling}。',
+        // ★ DRAFT-5:JSON 桥读不懂时的按名拒 —— 不能当成空集。
+        errLinesUnreadable: '贷项明细没有读出来,这一次什么都没有建。请重新加载本页再填一遍。',
         consequence: '会对 {code} 过一笔分录,并减少客户在它上面欠的钱。贷项凭证过账之后【不能改、也不能作废】。',
         blockedNoDate: '不能过账:凭证日期还空着。',
         blockedVoid: '这张发票已作废 —— 没有什么可冲的了。',
@@ -7259,6 +7261,8 @@ const zh = {
         errTreatment: '加工费不能为负',
         errDiscount: '折扣必须在 0 到 100 之间',
         errPayable: '计价比例必须在 0 到 100 之间',
+        // ★ DRAFT-5:计价器那座 JSON 桥读不懂时的按名拒 —— 不能落到 NO_METALS。
+        errAssayUnreadable: '化验含量没有读出来,这一次什么都没有算。请重新加载本页再填一遍。',
         // ★ DRAFT-4:JSON 桥读不懂时的按名拒 —— 不能当成空集。
         errPayablesUnreadable: '计价比例没有读出来,这一次什么都没有改。请重新加载本页再填一遍。',
         errCounterparty: '请选择往来单位',

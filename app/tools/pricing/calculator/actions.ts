@@ -61,16 +61,38 @@ export async function calculatePrice(
         return { error: t('finance.errDate') }
     }
 
-    // 化验行:并列数组,空含量的行整行忽略(不是 0,是"没测")
-    const metals = formData.getAll('assay_metal').map(String)
-    const contents = formData.getAll('assay_content').map(String)
+    // ★★ DRAFT-5(2026-09-21):并列数组 → 一座 JSON 桥(Tim 的 (b) 裁定)。
+    //   变的【只有行从哪来】—— 下面那个循环体一个字都没改:
+    //   空含量的行整行忽略(不是 0,是"没测")、非数字整行忽略。
+    //   ★ 这一支与 `#18` 的 `submitAssay` 是孪生,**而它们各有各的收参点** ——
+    //     别把两边合起来"整理":那一边收 `Record`、还有第二个调用方(预览),
+    //     这一边收数组、而且【不写库】。
+    //   ⚠ ★★ **读不懂的桥不当空集,哪怕这一页不写库。**
+    //     空集会让它落到下面那句 `NO_METALS`,而那句话说的是
+    //     「你一个含量都没填」—— 那是**一句关于操作员的断言**,
+    //     而真相是「这一次提交没有被读懂」。两件事不是同一件,按名拒。
+    //     ☞ 不写库不等于没有后果:一个**看起来算完了**的报价,
+    //       比一次说得出理由的失败坏得多。
+    let metalLines: { metal: string; content: string }[]
+    try {
+        const parsed: unknown = JSON.parse(String(formData.get('assay_metals_json') ?? '[]'))
+        if (!Array.isArray(parsed)) throw new Error('not an array')
+        metalLines = parsed.flatMap((el) => {
+            if (el === null || typeof el !== 'object') return []
+            const row = el as { metal?: unknown; content?: unknown }
+            const metal = String(row.metal ?? '')
+            return metal === '' ? [] : [{ metal, content: String(row.content ?? '') }]
+        })
+    } catch {
+        return { error: t('pricing.errAssayUnreadable') }
+    }
     const payload: { metal: string; content_pct: number }[] = []
-    for (let i = 0; i < metals.length; i++) {
-        const raw = (contents[i] ?? '').trim()
+    for (const line of metalLines) {
+        const raw = line.content.trim()
         if (raw === '') continue
         const n = Number(raw)
         if (Number.isNaN(n)) continue
-        payload.push({ metal: metals[i], content_pct: n })
+        payload.push({ metal: line.metal, content_pct: n })
     }
     if (payload.length === 0) return { error: t('pricing.errors.NO_METALS') }
 

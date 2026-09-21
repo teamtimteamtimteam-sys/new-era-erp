@@ -13,7 +13,15 @@ import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import PriceBreakdown from '@/app/components/pricing/PriceBreakdown'
 import { calculatePrice, type CalculatorState } from './actions'
 import { Button } from '@/app/components/ui/button'
-import { tableC } from '@/app/components/ui/table-style'
+import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+
+/** 桥上交出去的一行 —— 与搬家前那两条并列数组逐字同构。
+ *  ★ 这一张是 `#18 AssayForm` 的【孪生】:同样的字段名、同样的字典行、
+ *    同样的受控 Record。**而它自己有一处收参点**,所以 DRAFT-4 那句
+ *    「按字段名 grep 会把它扫进来,别碰」一分钱都没白付 —— 今天轮到它了。 */
+type MetalLine = { metal: string; content: string }
+/** 渲染用的行:多带一个 labelKey,而它【不进桥】。 */
+type MetalRow = MetalLine & { labelKey: string }
 
 const initialState: CalculatorState = {}
 
@@ -45,6 +53,56 @@ export default function CalculatorForm({
     const [copied, setCopied] = useState(false)
 
     const res = state.result
+
+    // ★★★ 桥的行从【页面画出来的那一份 active 名单】来,不从整个 Record 来。
+    //   `assay` 的起点是 `prefill.assay`(从 `?ni=&co=…` 查询串带进来的),
+    //   它**可以带着一个物质已被停用的金属** —— 那样的金属没有一行画出来,
+    //   搬家前也就没有被提交。照整个 Record 造桥,它会**开始被算进价里**。
+    const activeOptions = substanceOptions.filter((s) => s.isActive)
+    const assayRows: MetalRow[] = activeOptions.map((opt) => ({
+        metal: opt.value,
+        labelKey: opt.labelKey,
+        content: assay[opt.value] ?? '',
+    }))
+
+    /* ★ Q5 的必填 `dirty` —— 与进门时那一份比。
+       这一页可以带着 `?ni=12.5` 进来,于是**进门时格子里就有字**;
+       按「有没有字」算会一进门就脏。
+       ⚠ ★★ 照直记一句:**这一页【不写库】** —— `calculatePrice` 只算不写
+       (DRAFT-0 §1.2 就是这么记的)。所以这里的 `beforeunload` 拦下的是
+       「一次还没算的试算」,不是「一份还没存的数据」。**它仍然值得拦**
+       (谈判时手敲七个含量不便宜),而它的份量与别处不同,写下来免得被读重。 */
+    const assayDirty = assayRows.some((r) => r.content !== (prefill.assay[r.metal] ?? ''))
+
+    /* ★ 身份列 `priority: true`(Tim 的 Q1):`page-owned` 下展开区只画
+       【有 `edit` 的列】(`editable-table.tsx:632`),一个只读且非 priority 的列
+       在 390px 上整个消失 —— 金属名是这一行唯一的主语。 */
+    const assayColumns: EditableColumn<MetalRow, MetalRow>[] = [
+        {
+            key: 'metal',
+            header: t('pricing.form.colMetal'),
+            priority: true,
+            render: (r) => (
+                <>
+                    {t(r.labelKey)}
+                    <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
+                </>
+            ),
+        },
+        {
+            key: 'content',
+            header: t('pricing.colContent'),
+            // 留空 = 没测,整行忽略 —— 那句话在表上面的抬头里写着,不在格子里重复。
+            render: (r) => (r.content.trim() === '' ? '—' : r.content),
+            edit: (r) => (
+                <DecimalInput
+                    value={r.content}
+                    onChange={(raw) => setAssay((a) => ({ ...a, [r.metal]: raw }))}
+                    className="w-28"
+                />
+            ),
+        },
+    ]
 
     // 按方向分组,谈采购时不会误选销售公式
     const grouped = [
@@ -156,33 +214,26 @@ export default function CalculatorForm({
 
                 <div>
                     <h2 className="mb-2">{t('pricing.calcAssay')}</h2>
-                    <table className={`${tableC.root} w-full max-w-md`}>
-                        <thead>
-                            <tr className={tableC.headRow}>
-                                <th className={`${tableC.headCell} text-left`}>{t('pricing.form.colMetal')}</th>
-                                <th className={`${tableC.headCell} text-left`}>{t('pricing.colContent')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {substanceOptions.filter((s) => s.isActive).map((opt) => (
-                                <tr className={tableC.bodyRow} key={opt.value}>
-                                    <td className={tableC.cell}>
-                                        {t(opt.labelKey)}
-                                        <span className="text-gray-400 text-xs ml-2">{opt.value}</span>
-                                    </td>
-                                    <td className={tableC.cell}>
-                                        <input type="hidden" name="assay_metal" value={opt.value} />
-                                        <DecimalInput
-                                            name="assay_content"
-                                            value={assay[opt.value] ?? ''}
-                                            onChange={(raw) => setAssay((a) => ({ ...a, [opt.value]: raw }))}
-                                            className="w-28"
-                                        />
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    {/* ★★ (b) 那座桥 —— **画在表外面,只画一遍**(Tim 2026-09-21 的 Q1 裁定)。
+                        组件把列回调画两遍(桌面格 `hidden sm:block` + 手机展开区),
+                        所以具名输入不许进格子;这一个不在格子里,于是它在 `FormData` 里
+                        **只出现一次**。★ 交出去的是 `MetalLine`,`labelKey` 不在里面。 */}
+                    <input
+                        type="hidden"
+                        name="assay_metals_json"
+                        value={JSON.stringify(assayRows.map((r) => ({ metal: r.metal, content: r.content })))}
+                    />
+                    <EditableTable<MetalRow, MetalRow>
+                        rows={assayRows}
+                        columns={assayColumns}
+                        // 金属码即键:行来自物质字典,**定长,不加行不删行** —— 不需要 uid。
+                        rowKey={(r) => r.metal}
+                        phone={{ mode: 'columns' }}
+                        mode="page-owned"
+                        dirty={assayDirty}
+                        labels={{ expand: t('common.expandRow') }}
+                        className="max-w-md"
+                    />
                 </div>
 
                 <Button

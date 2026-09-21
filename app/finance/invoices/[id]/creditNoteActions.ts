@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { localizeCreditNoteError } from '../../creditNoteErrorCodes'
+import { getTranslations } from '@/lib/i18n/server'
 
 export type CreditNoteState = { error?: string }
 
@@ -22,21 +23,45 @@ export async function createCreditNote(
     const noteDate = String(formData.get('note_date') ?? '').trim()
     const reason = String(formData.get('reason') ?? '').trim()
 
-    const ids = formData.getAll('cn_line_id').map(String)
-    const kinds = formData.getAll('cn_kind').map(String)
-    const amounts = formData.getAll('cn_amount').map(String)
-    const qtys = formData.getAll('cn_qty').map(String)
+    // ★★ DRAFT-5(2026-09-21):四条按下标配对的并列数组 → 一座 JSON 桥
+    //   (Tim 的 (b) 裁定)。**变的只有行从哪来** —— 下面整段循环体一个字没改:
+    //   整行留空 = 这一行不冲;填了一半的行原样递过去,由 CN_LINE_INVALID
+    //   点名是哪一格(在这里悄悄丢掉它,人会以为自己填过了)。
+    //   ⚠ **`qty` 那一句的 `...(q === '' ? {} : { qty })` 是【键在不在】,不是值** ——
+    //     写成 `null` 或 `undefined` 都不是同一件事。原样留着。
+    //   ⚠ **读不懂的桥不当空集**:空集会让下面那个 `lines` 是空的,
+    //     而 `create_credit_note` 收到一张没有行的凭证 —— 那是一次
+    //     **说不出话的提交**,不是一次「哪一行都不冲」。按名拒。
+    let slots: { invoice_line_id: string; kind: string; amount: string; qty: string }[]
+    try {
+        const parsed: unknown = JSON.parse(String(formData.get('cn_lines_json') ?? '[]'))
+        if (!Array.isArray(parsed)) throw new Error('not an array')
+        slots = parsed.flatMap((el) => {
+            if (el === null || typeof el !== 'object') return []
+            const row = el as Record<string, unknown>
+            const id = String(row.invoice_line_id ?? '')
+            return id === '' ? [] : [{
+                invoice_line_id: id,
+                kind: String(row.kind ?? ''),
+                amount: String(row.amount ?? ''),
+                qty: String(row.qty ?? ''),
+            }]
+        })
+    } catch {
+        const t = await getTranslations()
+        return { error: t('cn.errLinesUnreadable') }
+    }
 
     const lines: CnLine[] = []
-    for (let i = 0; i < ids.length; i++) {
-        const raw = (amounts[i] ?? '').trim()
+    for (const slot of slots) {
+        const raw = slot.amount.trim()
         // 【整行留空 = 这一行不冲】而填了一半的行【原样递过去】,由
         // CN_LINE_INVALID 点名是哪一格 —— 在这里悄悄丢掉它,人会以为自己填过了。
         if (raw === '') continue
-        const q = (qtys[i] ?? '').trim()
+        const q = slot.qty.trim()
         lines.push({
-            invoice_line_id: ids[i],
-            kind: kinds[i],
+            invoice_line_id: slot.invoice_line_id,
+            kind: slot.kind,
             amount: Number(raw),
             ...(q === '' ? {} : { qty: Number(q) }),
         })

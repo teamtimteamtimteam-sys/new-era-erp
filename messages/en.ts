@@ -3891,6 +3891,10 @@ const en = {
         openLabel: 'open on this invoice: {amount} {ccy}',
         overOpen: 'That is more than this invoice still has open. A credit note cannot take an invoice below zero — the excess would be a refund, which this system does not model yet.',
         overCeiling: 'At most {ceiling} can be credited on this line under the reason type selected.',
+        // ★ DRAFT-5:JSON 桥读不懂时的按名拒 —— 不能当成空集。
+        //   空集 = 一张没有行的贷项凭证,而那是一次说不出话的提交,
+        //   不是一次「哪一行都不冲」。
+        errLinesUnreadable: 'The credit note lines could not be read. Nothing was created — please reload the page and enter them again.',
         consequence: 'Posts a journal entry against {code} and reduces what the customer owes on it. A credit note cannot be edited or voided afterwards.',
         blockedNoDate: 'Post is disabled: the credit note date is not filled in.',
         blockedVoid: 'This invoice is void — there is nothing left to credit.',
@@ -7451,6 +7455,10 @@ const en = {
         errTreatment: 'Treatment charge cannot be negative',
         errDiscount: 'Discount must be between 0 and 100',
         errPayable: 'Payable % must be between 0 and 100',
+        // ★ DRAFT-5:计价器那座 JSON 桥读不懂时的按名拒。
+        //   ⚠ **不能落到 NO_METALS** —— 那句话说的是「你一个含量都没填」,
+        //   是一句关于操作员的断言;而真相是这一次提交没有被读懂。
+        errAssayUnreadable: 'The assay values could not be read, so nothing was calculated. Please reload the page and enter them again.',
         // ★ DRAFT-4:JSON 桥读不懂时的按名拒。**不能当成空集** ——
         //   空集会让一次读不懂的提交看起来像「什么都没改」,而比例一格都没动。
         errPayablesUnreadable: 'The payable percentages could not be read. Nothing was changed — please reload the page and enter them again.',
