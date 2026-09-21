@@ -5477,6 +5477,12 @@ const en = {
             remove: 'remove this line',
             cannotRemove: 'received — cannot remove',
             belowReceived: 'Below the {received} already received — the server will refuse this.',
+            // ★★ DRAFT-7(2026-09-21)· 两座桥各自的按名拒绝 —— **分开写,不合并**。
+            //   读不懂的提交绝不当空集:明细那一座退空集是「什么都没改却报成功」,
+            //   而付款计划那一座退空集在 DB 那一侧的意思是【把整份计划清掉】。
+            //   ☞ 两者坏掉的后果不是同一件事,所以文案也不是同一句。
+            errLinesUnreadable: 'The amended lines could not be read, so nothing was changed. Reload the page and amend it again.',
+            errTermsUnreadable: 'The payment schedule could not be read, so nothing was changed. It was refused rather than submitted as an empty schedule, which would have removed every instalment from this order. Reload the page and amend it again.',
             editTerms: 'Also change the payment schedule',
             editTermsHint: 'Leave this unticked and the payment schedule is not touched. Tick it and the schedule below is submitted as it stands \u2014 including an empty one, which means this order no longer has instalments. Every change is recorded against your reason, the same as any other amendment.',
             termsEmptyWarning: 'The schedule is empty. Saving now removes every instalment from this order.',
