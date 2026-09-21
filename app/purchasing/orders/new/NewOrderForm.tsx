@@ -38,6 +38,7 @@ import {
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 
 const initialState: CreateOrderState = {}
 
@@ -135,6 +136,29 @@ function emptyTerm(): OrderTermInput {
     return { label: '', mode: 'percentage', percentage: '', fixed_amount: '', trigger_event: 'on_order', due_date: '' }
 }
 
+/**
+ * ★★ DRAFT-3 / G4:行键【不用下标】—— 用一个只活在渲染这一侧的 uid ★★
+ *
+ * `EditableTable` 的展开态按 `rowKey` 存(`editable-table.tsx:443`)。这张表有
+ * **两处**会让下标底下换一行内容:删一期,以及 `onApplyTemplate`【整个数组换掉】。
+ * 用下标做键时,**一行展开着,显示的却是另一行**(DRAFT-2 的 G4)。
+ * 数组由这一页持有,所以**数据是安全的**;这是观感问题,而一个稳定的键让它
+ * 【构造上】不会发生。★ 套模板时每一行都是新 uid,于是展开态整个归零 —— 那正是对的:
+ * 那一刻表里的行**确实**不再是刚才那几行。
+ *
+ * ★★★【uid 不进 `terms_json`】★★★ 它放在那一行【旁边】,不放进它里面,
+ * 于是交出去的那个对象**从头到尾没有被碰过** —— 载荷与搬家前逐字节相同,
+ * 服务端(`orders/new/actions.ts:137` 的 `JSON.parse`)**一个字都不用改**。
+ * ☞ 桥那一处写的是 `x.line`,**没有任何剥离动作**:不是"记得剥掉",是剥不掉。
+ * ★ 计数器而不是 `crypto.randomUUID()`:计数器在服务端渲染与客户端水合两侧
+ *   给出同一串值,随机数不会。
+ * ⚠ **`#6` / `#7` 不需要它,别去"统一"** —— 那两张是定长空槽(5 / 3),
+ *   既不加行也不删行。**这里的 uid 是为【删行 + 套模板】付的账。**
+ */
+type TermLine = { uid: string; line: OrderTermInput }
+/** 画在表里的那一行 = 那一期的内容 + 它的 uid + 它的期次序号。★ 两者都不进载荷。 */
+type TermRow = OrderTermInput & { uid: string; i: number }
+
 export default function NewOrderForm({
     substanceOptions,
     suppliers,
@@ -200,7 +224,13 @@ canEdit: boolean
         () => applicableTriggers(triggerEvents, orderKind),
         [triggerEvents, orderKind]
     )
-    const [terms, setTerms] = useState<OrderTermInput[]>([])
+    // ★ DRAFT-3:uid 的来源。开局是空表,所以计数器从 0 起;它只在事件处理器里推进
+    //   —— `react-hooks/refs` 按名拒「渲染期读 ref」。
+    const termUidSeq = useRef(0)
+    const nextTermUid = () => `t${termUidSeq.current++}`
+    const withUids = (ls: OrderTermInput[]): TermLine[] =>
+        ls.map((line) => ({ uid: nextTermUid(), line }))
+    const [terms, setTerms] = useState<TermLine[]>([])
     // 切换种类时,已经选好的里程碑可能【不再适用】(材料 → 设备时的 after assay)。
     // 【不许留在那儿等服务端拒】那正是上面那段注释反对的"打完字之后才到来的拒绝";
     // 也【不许悄悄换掉】—— 所以换掉之后当场说出来。
@@ -211,10 +241,12 @@ canEdit: boolean
         const fallback = applicableTriggers(triggerEvents, next)[0]?.code ?? ''
         setTerms((ts) => {
             let n = 0
-            const out = ts.map((l) => {
-                if (ok.has(l.trigger_event)) return l
+            // ★ DRAFT-3:【等长改写】—— 每一行的 uid 原样留着。行没有挪位置,
+            //   挪的是它自己的内容,所以展开态跟着它是对的。
+            const out = ts.map((x) => {
+                if (ok.has(x.line.trigger_event)) return x
                 n++
-                return { ...l, trigger_event: fallback, due_date: '' }
+                return { uid: x.uid, line: { ...x.line, trigger_event: fallback, due_date: '' } }
             })
             setTriggersReset(n)
             return out
@@ -242,7 +274,7 @@ canEdit: boolean
         const tplId = suppliers.find((s) => s.id === id)?.default_template_id
         const tpl = tplId ? templates.find((x) => x.id === tplId) : undefined
         if (tpl) {
-            setTerms(termsFromTemplate(tpl, orderDate))
+            setTerms(withUids(termsFromTemplate(tpl, orderDate)))
             setTemplateSel(tpl.id)
         }
     }
@@ -251,7 +283,7 @@ canEdit: boolean
         setTemplateSel(id)
         const tpl = templates.find((x) => x.id === id)
         if (tpl) {
-            setTerms(termsFromTemplate(tpl, orderDate))
+            setTerms(withUids(termsFromTemplate(tpl, orderDate)))
             setTermsEdited(true) // 手选模板 = 明确表态,换供应商不再覆盖
         }
     }
@@ -259,28 +291,29 @@ canEdit: boolean
     function patchLine(i: number, patch: Partial<LineRow>) {
         setLines((ls) => ls.map((l, j) => (j === i ? { ...l, ...patch } : l)))
     }
-    function patchTerm(i: number, patch: Partial<OrderTermInput>) {
+    /* ★★ DRAFT-3:每一处 `edit()` 都走这里,【不许】走裸 setter ——
+       这一句 `setTermsEdited(true)` 是「换供应商不再自动覆盖已手改的计划」那条规矩
+       的全部依据(`onSupplierChange:241`)。绕过它,一次手改会被下一次换供应商
+       安静地冲掉。 */
+    function patchTerm(uid: string, patch: Partial<OrderTermInput>) {
         setTermsEdited(true)
-        setTerms((ts) => ts.map((l, j) => (j === i ? { ...l, ...patch } : l)))
+        setTerms((ts) => ts.map((x) => (x.uid === uid ? { uid: x.uid, line: { ...x.line, ...patch } } : x)))
     }
 
-    /* ★ TABLE-PHONE-3:同一个删除钮要在两个断点各画一次(桌面档在自己那一列,
-       手机档叠在「序号」格里),所以在这里定义一次 —— 免得两处日后走散。
-       动作一个字没改:还是同一个 setTermsEdited + filter。 */
-    const removeTermControl = (i: number) => (
-        <Button
-            variant="secondary"
-            size="inline"
-            type="button"
-            onClick={() => {
-                setTermsEdited(true)
-                setTerms((ts) => ts.filter((_, j) => j !== i))
-            }}
-            className="text-sm"
-        >
-            {t('purchasing.form.removeLine')}
-        </Button>
-    )
+    /* ★★ DRAFT-3:那块 `TABLE-PHONE-3` 注释【拆掉了,而它记的事没有丢】★★
+       它记的是「手机档被拿掉的两列(**金额** / 删除)原样叠在序号那一格里 ——
+       拿掉的是那一列,不是那个事实」。两件各有各的去处,而它们【不一样】:
+         · **金额** —— 仍然留在手机那一行上,靠的是 `priority: true`(Tim 的 Q1)。
+           ⚠ 它**不能**靠展开区:`page-owned` 下每一行恒在编辑态,而展开区画的是
+           `editableCols`(`editable-table.tsx:632`)——**一个只读列在手机上会整个消失**。
+         · **删除** —— 进 `rowActions`,手机上画在展开区末尾。
+       逐字的理由搬进了 `docs/handbacks/DRAFT-3.md`,不许成孤儿。
+       ⚠ **代价照直记:** 删除钮从【零次点按】变成【一次点按】(先展开那一行);
+       而**金额一次点按都不要**,与搬家前相同。 */
+    const removeTerm = (uid: string) => {
+        setTermsEdited(true)
+        setTerms((ts) => ts.filter((x) => x.uid !== uid))
+    }
 
     async function onComputeEstimate(i: number) {
         const l = lines[i]
@@ -351,9 +384,147 @@ canEdit: boolean
         return pct !== null ? round2((estTotal * pct) / 100) : 0
     }
     const pctTotal = round2(
-        terms.reduce((s, l) => (l.mode === 'percentage' ? s + (parseDecimal(l.percentage) ?? 0) : s), 0)
+        terms.reduce((s, { line: l }) => (l.mode === 'percentage' ? s + (parseDecimal(l.percentage) ?? 0) : s), 0)
     )
     const pctOver = pctTotal > 100
+
+    // ★★ DRAFT-3:交出去的那一份【逐字节】还是搬家前那一份 —— uid 在旁边,没进去。
+    const termsJson = JSON.stringify(terms.map((x) => x.line))
+    /**
+     * ★ `mode:'page-owned'` 的必填 `dirty`。**这张表的判据是【有没有期次】**,
+     * 而不是「与进门时那一份比」—— 它是一张建单页,进门时 `terms` 恒为空,
+     * 两种判据在这里是同一件事,取简单的那个。
+     * ★ 套模板自动填上的那几期**也算脏**,而这是刻意的:屏幕上确实有一份
+     *   没保存的付款计划,离开就没了。**判据问的是"会不会丢东西",不是"谁填的"。**
+     * ⚠【它盖不住的三半,照直说】
+     *   ① 站内 <Link>(下面那颗「取消」)不拦 —— 组件抬头声明过的限制,
+     *      而对一颗取消钮那也正是对的:**明说要走的人不该被再问一遍**;
+     *   ② 这一页**别的**字段(供应商 / 日期 / 采购行)**不在这张表里**,
+     *      只改它们不会有提醒。**这张表的 `dirty` 只说这张表的事。**
+     *   ③ ★★ 它对 `IDLE-DRAFT-GRID-HALF-RESTORE` 是**缓解,不是修复** ——
+     *      见 `docs/known-issues.md` 那一条。
+     */
+    const termsDirty = terms.length > 0
+
+    const rows: TermRow[] = terms.map((x, i) => ({ ...x.line, uid: x.uid, i }))
+
+    const triggerText = (l: OrderTermInput) => {
+        const ev = triggerOptions.find((e) => e.code === l.trigger_event)
+        const base = ev ? triggerLabel(ev, locale) : l.trigger_event
+        return l.trigger_event === 'fixed_date' && l.due_date ? `${base} · ${l.due_date}` : base
+    }
+    const shareText = (l: OrderTermInput) =>
+        l.mode === 'percentage'
+            ? (l.percentage.trim() === '' ? '—' : `${l.percentage}%`)
+            : (l.fixed_amount.trim() === '' ? '—' : l.fixed_amount)
+
+    /* ★ 闸的要求:`columns` 必须是【同一个文件里定位得到的标识符】——
+       写成内联数组字面量时 `check-editable-name.mjs` 记一条 `unresolved`
+       **并且照旧退出 0**(`:187` / `:244`),那张表就悄悄没人守了。 */
+    const termColumns: EditableColumn<TermRow, TermRow>[] = [
+        {
+            key: 'seq',
+            header: t('purchasing.colSeq'),
+            priority: true,
+            className: 'w-10',
+            render: (r) => <span className="text-[color:var(--brand-muted-text)]">{r.i + 1}</span>,
+        },
+        {
+            key: 'label',
+            header: t('purchasing.colLabel'),
+            priority: true,
+            render: (r) => (r.label.trim() === '' ? '—' : r.label),
+            edit: (r) => (
+                <input
+                    type="text"
+                    value={r.label}
+                    aria-label={t('purchasing.colLabel')}
+                    onChange={(e) => patchTerm(r.uid, { label: e.target.value })}
+                    className={`${CONTROL_INPUT} w-full`}
+                />
+            ),
+        },
+        {
+            key: 'share',
+            header: t('purchasing.colShare'),
+            render: (r) => shareText(r),
+            edit: (r) => (
+                <div className="flex flex-wrap items-center gap-2">
+                    <label className="flex items-center gap-1">
+                        <input
+                            className={CONTROL_RADIO}
+                            type="radio"
+                            checked={r.mode === 'percentage'}
+                            onChange={() => patchTerm(r.uid, { mode: 'percentage' })}
+                        />
+                        {t('purchasing.form.modePct')}
+                    </label>
+                    <label className="flex items-center gap-1">
+                        <input
+                            className={CONTROL_RADIO}
+                            type="radio"
+                            checked={r.mode === 'fixed'}
+                            onChange={() => patchTerm(r.uid, { mode: 'fixed' })}
+                        />
+                        {t('purchasing.form.modeFixed')}
+                    </label>
+                    {r.mode === 'percentage' ? (
+                        <DecimalInput
+                            value={r.percentage}
+                            onChange={(v) => patchTerm(r.uid, { percentage: v })}
+                            className="w-20"
+                        />
+                    ) : (
+                        <DecimalInput
+                            value={r.fixed_amount}
+                            onChange={(v) => patchTerm(r.uid, { fixed_amount: v })}
+                            className="w-24"
+                        />
+                    )}
+                </div>
+            ),
+        },
+        {
+            /* ★★ Tim 的 Q1:这一列 **priority**,而它**没有 `edit`** —— 算出来的金额
+               读一眼不该要一次点按,搬家前那块 TABLE-PHONE-3 注释护的就是这件事。
+               ⚠ 它**只能**靠 priority 留在手机上(理由见上面 `removeTerm` 那一段)。 */
+            key: 'amount',
+            header: t('purchasing.colAmount'),
+            priority: true,
+            align: 'right',
+            render: (r) => formatAmount(termAmount(r), currency),
+        },
+        {
+            key: 'trigger',
+            header: t('purchasing.colTrigger'),
+            render: (r) => triggerText(r),
+            edit: (r) => (
+                <>
+                    <select
+                        value={r.trigger_event}
+                        aria-label={t('purchasing.colTrigger')}
+                        onChange={(e) => patchTerm(r.uid, { trigger_event: e.target.value })}
+                        className={CONTROL_SELECT}
+                    >
+                        {triggerOptions.map((ev) => (
+                            <option key={ev.code} value={ev.code}>
+                                {triggerLabel(ev, locale)}
+                            </option>
+                        ))}
+                    </select>
+                    {r.trigger_event === 'fixed_date' && (
+                        <input
+                            type="date"
+                            value={r.due_date}
+                            aria-label={t('purchasing.colTrigger')}
+                            onChange={(e) => patchTerm(r.uid, { due_date: e.target.value })}
+                            className={`${CONTROL_INPUT} ml-2`}
+                        />
+                    )}
+                </>
+            ),
+        },
+    ]
 
     const assayCount = (l: LineRow) =>
         Object.values(l.assay).filter((v) => parseDecimal(v) !== null).length
@@ -369,7 +540,7 @@ canEdit: boolean
             )}
 
             <input type="hidden" name="lines_json" value={JSON.stringify(linesPayload)} />
-            <input type="hidden" name="terms_json" value={JSON.stringify(terms)} />
+            <input type="hidden" name="terms_json" value={termsJson} />
 
             {/* ── 头部 ── */}
             <div className="flex flex-wrap gap-4">
@@ -865,111 +1036,29 @@ canEdit: boolean
                     {t('purchasing.form.triggersResetNotice', { 0: triggersReset })}
                 </p>
             )}
+            {/* ★ 这个条件【留着】(Tim 的 Q7 之外的一条):没有期次就不画表,
+                也不造一个空态 —— 「还没排付款计划」本来就是一张采购单的合法状态。 */}
             {terms.length > 0 && (
-                <table className="w-full border-collapse border border-gray-300">
-                    <thead className="bg-gray-100">
-                        <tr>
-                            <th className="border border-gray-300 px-3 py-2 text-left w-10">{t('purchasing.colSeq')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colLabel')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colShare')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right tabular-nums">{t('purchasing.colAmount')}</th>
-                            <th className="border border-gray-300 px-3 py-2 text-left">{t('purchasing.colTrigger')}</th>
-                            <th className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-left w-16" />
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {terms.map((l, i) => (
-                            <tr key={i}>
-                                <td className="border border-gray-300 px-3 py-2 text-sm text-gray-500">
-                                    {i + 1}
-                                    {/* ★ TABLE-PHONE-3:手机档被拿掉的两列(金额 / 删除),原样叠在这里 ——
-                                        拿掉的是那一列,不是那个事实。金额带着自己的列头;删除钮在桌面档
-                                        本来就没有列头,钮面上自己带着字,所以【不另造一句话】。
-                                        这张表按 R-Q4 留四列:序号 + 名目 + 比例/金额 + 触发 —— 与
-                                        payment-terms 模板那一张【选的是同一组】,两张一起判的。
-                                        算出来的金额是只读的,读一眼不花点按次数,所以让它下来。 */}
-                                    <div className="sm:hidden mt-1 space-y-1 text-xs text-gray-600">
-                                        <div>
-                                            <span className="text-gray-500">{t('purchasing.colAmount')}: </span>
-                                            <span>{formatAmount(termAmount(l), currency)}</span>
-                                        </div>
-                                        <div>{removeTermControl(i)}</div>
-                                    </div>
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    <input
-                                        type="text"
-                                        value={l.label}
-                                        onChange={(e) => patchTerm(i, { label: e.target.value })}
-                                        className={`${CONTROL_INPUT} w-full`}
-                                    />
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    <div className="flex items-center gap-2">
-                                        <label className="flex items-center gap-1">
-                                            <input
-                                                className={CONTROL_RADIO}
-                                                type="radio"
-                                                checked={l.mode === 'percentage'}
-                                                onChange={() => patchTerm(i, { mode: 'percentage' })}
-                                            />
-                                            {t('purchasing.form.modePct')}
-                                        </label>
-                                        <label className="flex items-center gap-1">
-                                            <input
-                                                className={CONTROL_RADIO}
-                                                type="radio"
-                                                checked={l.mode === 'fixed'}
-                                                onChange={() => patchTerm(i, { mode: 'fixed' })}
-                                            />
-                                            {t('purchasing.form.modeFixed')}
-                                        </label>
-                                        {l.mode === 'percentage' ? (
-                                            <DecimalInput
-                                                value={l.percentage}
-                                                onChange={(v) => patchTerm(i, { percentage: v })}
-                                                className="w-20"
-                                            />
-                                        ) : (
-                                            <DecimalInput
-                                                value={l.fixed_amount}
-                                                onChange={(v) => patchTerm(i, { fixed_amount: v })}
-                                                className="w-24"
-                                            />
-                                        )}
-                                    </div>
-                                </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2 text-right tabular-nums text-sm">
-                                    {formatAmount(termAmount(l), currency)}
-                                </td>
-                                <td className="border border-gray-300 px-3 py-2">
-                                    <select
-                                        value={l.trigger_event}
-                                        onChange={(e) => patchTerm(i, { trigger_event: e.target.value })}
-                                        className={CONTROL_SELECT}
-                                    >
-                                        {triggerOptions.map((ev) => (
-                                            <option key={ev.code} value={ev.code}>
-                                                {triggerLabel(ev, locale)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    {l.trigger_event === 'fixed_date' && (
-                                        <input
-                                            type="date"
-                                            value={l.due_date}
-                                            onChange={(e) => patchTerm(i, { due_date: e.target.value })}
-                                            className={`${CONTROL_INPUT} ml-2`}
-                                        />
-                                    )}
-                                </td>
-                                <td className="hidden sm:table-cell border border-gray-300 px-3 py-2">
-                                    {removeTermControl(i)}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                <EditableTable<TermRow, TermRow>
+                    rows={rows}
+                    columns={termColumns}
+                    rowKey={(r) => r.uid}
+                    phone={{ mode: 'columns' }}
+                    mode="page-owned"
+                    dirty={termsDirty}
+                    rowActions={(r) => (
+                        <Button
+                            variant="secondary"
+                            size="inline"
+                            type="button"
+                            onClick={() => removeTerm(r.uid)}
+                            className="text-sm"
+                        >
+                            {t('purchasing.form.removeLine')}
+                        </Button>
+                    )}
+                    labels={{ expand: t('common.expandRow') }}
+                />
             )}
             <div className="flex items-center justify-between">
                 <Button
@@ -978,7 +1067,7 @@ canEdit: boolean
                     type="button"
                     onClick={() => {
                         setTermsEdited(true)
-                        setTerms((ts) => [...ts, emptyTerm()])
+                        setTerms((ts) => [...ts, { uid: nextTermUid(), line: emptyTerm() }])
                     }}
                 >
                     {t('purchasing.form.addTerm')}
