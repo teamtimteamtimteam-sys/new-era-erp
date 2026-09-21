@@ -16,7 +16,12 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import type { FormulaState } from './actions'
 import { Button } from '@/app/components/ui/button'
-import { tableC } from '@/app/components/ui/table-style'
+import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+
+/** 桥上交出去的一行 —— 与搬家前 `payable_metal[]` / `payable_pct[]` 逐字同构。 */
+type PayableLine = { metal: string; pct: string }
+/** 渲染用的行。`labelKey` 不进桥。 */
+type PayableRow = PayableLine & { labelKey: string }
 
 const initialState: FormulaState = {}
 
@@ -110,6 +115,74 @@ export default function FormulaForm({
     const [payables, setPayables] = useState<Record<string, string>>(defaults.payables)
 
     const err = (k: string) => state.fieldErrors?.[k]
+
+    // ★★★ 桥的行从【页面画出来的那一份名单】来,不从整个 Record 来。
+    //   ⚠ 这一张比 `#18` 更要紧一格,因为**空在这里是一次写**:
+    //   服务端读到空会 `clears.push(metal)` → **删掉那个金属既有的计价行**
+    //   (`actions.ts:94-97`)。一个**物质已被停用**的金属今天没有一行画出来,
+    //   所以它的旧计价行**永远不会被清掉**;照整个 Record 造桥,它会**开始被清掉**。
+    //   ☞ 那不是一次显示上的差别,那是一次**悄悄的删除**。
+    const activeOptions = substanceOptions.filter((s) => s.isActive)
+    const payableRows: PayableRow[] = activeOptions.map((opt) => ({
+        metal: opt.value,
+        labelKey: opt.labelKey,
+        pct: payables[opt.value] ?? '',
+    }))
+
+    /* ★ Q5 的必填 `dirty` —— 与进门时那一份比。这张表单同时服务
+       `/new` 与 `/[id]/edit`;按「有没有字」算,编辑一个既有公式会一进门就脏。
+       ☞ 站内 `<Link>`(取消钮)不拦 —— 声明过的限制。
+       ⚠ **这一张另有一条:它是本刀六张里唯一挂着 IDLE-DRAFT 的**(`:86-87`),
+         所以它从今天起落进 `IDLE-DRAFT-GRID-HALF-RESTORE` 的射程 ——
+         见 `docs/known-issues.md`。`beforeunload` 是**缓解**,不是修复。 */
+    const payablesDirty = payableRows.some(
+        (r) => r.pct !== (defaults.payables[r.metal] ?? ''))
+
+    /* ★ 身份列 `priority: true`(Tim 的 Q1):`page-owned` 下展开区只画
+       【有 `edit` 的列】(`editable-table.tsx:632`),一个只读且非 priority 的列
+       在 390px 上整个消失 —— 金属名是这一行唯一的主语。 */
+    const payableColumns: EditableColumn<PayableRow, PayableRow>[] = [
+        {
+            key: 'metal',
+            header: t('pricing.form.colMetal'),
+            priority: true,
+            render: (r) => (
+                <>
+                    {t(r.labelKey)}
+                    <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
+                </>
+            ),
+        },
+        {
+            key: 'payable',
+            header: t('pricing.form.colPayable'),
+            /* ★★★ 空在这里【写那句话本身,永不 `—`】(Tim 的 Q4,DRAFT-3 立的先例,
+               DRAFT-4 的 Q3 把它用到这一张上)。
+               理由:这一格的空**不是一个没用上的槽**,它是一次**决定** ——
+               「这个金属不计价」,而服务端读到它会**删掉那个金属既有的计价行**。
+               ☞ 一个 `—` 读起来像「这一栏不重要」;而这一栏说的是一件会落库的事。 */
+            render: (r) => (
+                r.pct.trim() === ''
+                    ? <span className="text-[color:var(--brand-muted-text)]">{t('pricing.form.notPayable')}</span>
+                    : r.pct
+            ),
+            edit: (r) => (
+                <>
+                    <DecimalInput
+                        value={r.pct}
+                        onChange={(raw) => setPayables((p) => ({ ...p, [r.metal]: raw }))}
+                        className="w-28"
+                    />
+                    {/* ⚠ 逐格的服务端报错跟着格子走,于是它在手机上**进了展开区**
+                        —— **0 → 1 次点按**。照直记在 `DRAFT-4.md` 里,
+                        这一页没有页级的汇总句替它说话。 */}
+                    {err('payable_' + r.metal) && (
+                        <p className="text-red-600 text-sm mt-1">{err('payable_' + r.metal)}</p>
+                    )}
+                </>
+            ),
+        },
+    ]
 
     return (
         <form ref={formRef} action={formAction} className="space-y-5 max-w-3xl">
@@ -353,38 +426,26 @@ export default function FormulaForm({
             <div>
                 <h2 className="mb-1">{t('pricing.form.payableTitle')}</h2>
                 <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('pricing.payableBlankHint')}</p>
-                <table className={`${tableC.root} w-full max-w-md`}>
-                    <thead>
-                        <tr className={tableC.headRow}>
-                            <th className={`${tableC.headCell} text-left`}>{t('pricing.form.colMetal')}</th>
-                            <th className={`${tableC.headCell} text-left`}>{t('pricing.form.colPayable')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {substanceOptions.filter((s) => s.isActive).map((opt) => (
-                            <tr className={tableC.bodyRow} key={opt.value}>
-                                <td className={tableC.cell}>
-                                    {t(opt.labelKey)}
-                                    <span className="text-gray-400 text-xs ml-2">{opt.value}</span>
-                                </td>
-                                <td className={tableC.cell}>
-                                    <input type="hidden" name="payable_metal" value={opt.value} />
-                                    <DecimalInput
-                                        name="payable_pct"
-                                        value={payables[opt.value] ?? ''}
-                                        onChange={(raw) =>
-                                            setPayables((p) => ({ ...p, [opt.value]: raw }))
-                                        }
-                                        className="w-28"
-                                    />
-                                    {err('payable_' + opt.value) && (
-                                        <p className="text-red-600 text-sm mt-1">{err('payable_' + opt.value)}</p>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                {/* ★ 桥读不懂时的那一句 —— 它不属于任何一格,所以画在表上面。
+                    形状与 `#24` 的 `state.fieldErrors?.lines` 相同。 */}
+                {err('payables') && <p className="text-red-600 text-sm mb-2">{err('payables')}</p>}
+                {/* ★★ (b) 那座桥 —— 画在表外面,只画一遍。理由见 `#18` 同一处。 */}
+                <input
+                    type="hidden"
+                    name="payables_json"
+                    value={JSON.stringify(payableRows.map((r) => ({ metal: r.metal, pct: r.pct })))}
+                />
+                <EditableTable<PayableRow, PayableRow>
+                    rows={payableRows}
+                    columns={payableColumns}
+                    // 金属码即键:行来自物质字典,定长,不加行不删行 —— 不需要 uid。
+                    rowKey={(r) => r.metal}
+                    phone={{ mode: 'columns' }}
+                    mode="page-owned"
+                    dirty={payablesDirty}
+                    labels={{ expand: t('common.expandRow') }}
+                    className="max-w-md"
+                />
             </div>
 
             <div className="flex gap-3 pt-2">

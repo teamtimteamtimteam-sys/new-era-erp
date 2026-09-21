@@ -32,13 +32,30 @@ export async function saveBulkPrices(
     // METAL-2:一次批量录入属于【一个指数】—— 一天的行情单来自一个市场。
     const priceIndex = parseIndexField(formData.get('price_index'))
 
-    const metals = formData.getAll('metal').map(String)
-    const prices = formData.getAll('price').map(String)
+    // ★★ DRAFT-4(2026-09-21):并列数组 → 一座 JSON 桥(Tim 的 (b) 裁定)。
+    //   变的【只有行从哪来】—— 下面那一句映射一个字都没改:
+    //   空串原样送出,DB 侧把 null/空当作「这个金属今天没填」,计入 skipped。
+    //   ⚠ **读不懂的桥不当空集**:空集会让 `upsert_metal_prices` 收到一张空单,
+    //     屏幕上回一句「0 条」,读起来像「今天什么都没填」—— 而真相是
+    //     「这一次提交没有被读懂」。两件事不是同一件,按名拒。
+    let lines: { metal: string; price: string }[]
+    try {
+        const parsed: unknown = JSON.parse(String(formData.get('metal_prices_json') ?? '[]'))
+        if (!Array.isArray(parsed)) throw new Error('not an array')
+        lines = parsed.flatMap((el) => {
+            if (el === null || typeof el !== 'object') return []
+            const row = el as { metal?: unknown; price?: unknown }
+            const metal = String(row.metal ?? '')
+            return metal === '' ? [] : [{ metal, price: String(row.price ?? '') }]
+        })
+    } catch {
+        return { error: t('metalPrices.form.errPricesUnreadable') }
+    }
 
-    const payload = metals.map((metal, i) => ({
+    const payload = lines.map(({ metal, price }) => ({
         metal,
         // 空串原样送出:DB 侧把 null/空当作"这个金属今天没填",计入 skipped
-        price_usd_per_tonne: (prices[i] ?? '').trim() || null,
+        price_usd_per_tonne: price.trim() || null,
     }))
 
     const supabase = await createClient()

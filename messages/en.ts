@@ -6018,6 +6018,9 @@ const en = {
             errMetal: 'Please select a valid metal',
             errPrice: 'Price must be a number greater than 0',
             errPriceDate: 'A valid price date is required',
+            // ★ DRAFT-4:JSON 桥读不懂时的按名拒 —— 不能当成空集。
+            //   空集会回一句「0 条」,读起来像「今天什么都没填」。
+            errPricesUnreadable: 'The prices could not be read. Nothing was saved — please reload the page and enter them again.',
             saveError: 'Save failed: {message}',
         },
         errors: {
@@ -7403,6 +7406,10 @@ const en = {
             payableTitle: 'Payable percentages',
             colMetal: 'Metal',
             colPayable: 'Payable %',
+            // ★ DRAFT-4 / Tim 的 Q3:空格子写【那句话本身】,永不 '—' ——
+            //   这一格的空是一次决定(「这个金属不计价」),而服务端读到它会
+            //   **删掉那个金属既有的计价行**。一个 '—' 读起来像「这一栏不重要」。
+            notPayable: 'Not payable',
             submit: 'Save',
         },
         payableBlankHint: 'Leave blank for metals you do not pay for.',
@@ -7441,6 +7448,9 @@ const en = {
         errTreatment: 'Treatment charge cannot be negative',
         errDiscount: 'Discount must be between 0 and 100',
         errPayable: 'Payable % must be between 0 and 100',
+        // ★ DRAFT-4:JSON 桥读不懂时的按名拒。**不能当成空集** ——
+        //   空集会让一次读不懂的提交看起来像「什么都没改」,而比例一格都没动。
+        errPayablesUnreadable: 'The payable percentages could not be read. Nothing was changed — please reload the page and enter them again.',
         errCounterparty: 'Please select a counterparty',
         errFormulaRequired: 'Please select a formula',
         errors: {

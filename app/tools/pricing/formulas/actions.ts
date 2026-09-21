@@ -86,14 +86,37 @@ async function parseForm(formData: FormData): Promise<{ parsed?: Parsed; fieldEr
     const allowedMetals = new Set(
         (await loadSubstances(await createClient())).map((r) => r.code)
     )
-    const pMetals = formData.getAll('payable_metal').map(String)
-    const pPcts = formData.getAll('payable_pct').map(String)
+    // ★★ DRAFT-4(2026-09-21):并列数组 → 一座 JSON 桥(Tim 的 (b) 裁定)。
+    //   变的【只有行从哪来】—— 下面整段循环体一个字都没改:
+    //   字典没认的金属跳过、留空 = 不计价 → `clears`、越界 → 逐格报错。
+    //   ⚠ **读不懂的桥不当空集**:那会让「一次说不出话的提交」看起来像
+    //     「所有金属都不计价」,而那一支是**删光所有计价行**。按名拒。
+    let pLines: { metal: string; pct: string }[]
+    try {
+        const parsed: unknown = JSON.parse(String(formData.get('payables_json') ?? '[]'))
+        if (!Array.isArray(parsed)) throw new Error('not an array')
+        pLines = parsed.flatMap((el) => {
+            if (el === null || typeof el !== 'object') return []
+            const row = el as { metal?: unknown; pct?: unknown }
+            const metal = String(row.metal ?? '')
+            return metal === '' ? [] : [{ metal, pct: String(row.pct ?? '') }]
+        })
+    } catch {
+        // ★ 形状照抄这棵树已有的那几座桥(`sales/quotes/actions.ts:67-76`):
+        //   一个坏掉的 / 不是数组的载荷**照直拒绝**,而不是当成「没有行」。
+        //   ⚠ 这一张上两者的差别【特别大】:当成空集 = 一个金属都没送上来
+        //   = 一个 `clears` 都不产生……而那恰好**看起来像什么都没发生**,
+        //   于是一次读不懂的提交会**静悄悄地把公式存下来、而比例一格都没动**。
+        //   **按名拒,摆在表上面。**
+        fieldErrors.payables = t('pricing.errPayablesUnreadable')
+        pLines = []
+    }
     const payables: { metal: string; payable_pct: number }[] = []
     const clears: string[] = []
-    for (let i = 0; i < pMetals.length; i++) {
-        const metal = pMetals[i]
+    for (const line of pLines) {
+        const metal = line.metal
         if (!allowedMetals.has(metal)) continue
-        const raw = (pPcts[i] ?? '').trim()
+        const raw = line.pct.trim()
         if (raw === '') {
             clears.push(metal) // 留空 = 不计价 → 删掉可能存在的旧行
             continue

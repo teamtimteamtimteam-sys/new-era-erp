@@ -24,7 +24,14 @@ import {
     type PreviewState,
 } from '../actions'
 import { Button } from '@/app/components/ui/button'
-import { tableC } from '@/app/components/ui/table-style'
+import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+
+/** 桥上交出去的一行。★ 形状与搬家前那两条并列数组【逐字同构】:
+ *  一个金属码 + 一个含量字符串,一行一对。服务端因此只换【行从哪来】,
+ *  那个 `Record<metal, content>` 与 `metalsPayload` 一个字都没有动。 */
+type MetalLine = { metal: string; content: string }
+/** 渲染用的行:多带一个 labelKey,而它【不进桥】—— 译名是画出来的,不是交出去的。 */
+type MetalRow = MetalLine & { labelKey: string }
 
 const initialState: SubmitAssayState = {}
 
@@ -127,6 +134,62 @@ export default function AssayForm({
     // 屏幕上说清了,这里只让按钮跟着它走 —— 不另写一句话。
     // 【警告不是拒绝】净值 ≤ 0(negative)照旧可应用:含量要落地,只是不定价。
     const applyBlocked = !!preview.error
+
+    // ★★★【桥的行从【页面画出来的那一份名单】来,不从整个 Record 来】★★★
+    //   `metals` 这个 Record 的起点是 `currentMetals` —— 批次上【已经录过】的含量。
+    //   一个金属当初录过、而它的物质后来被停用,它在这个 Record 里【还在】,
+    //   却【没有一行画出来】(下面这条 `isActive` 过滤)。
+    //   ☞ 搬家前那两条并列数组只收得到画出来的那些,所以那个停用金属
+    //     **在提交时是被丢掉的**;桥如果照着整个 Record 造,它会**开始被写进去**。
+    //   ⚠ 照直记一句,免得下一个人以为这是本刀弄出来的:
+    //     **提交与预览今天就对不上** —— `previewAssayPrice` 收的是整个 `metals`
+    //     (`:85`),提交收的是过滤后的那一份。**本刀不改这件事,只是不让它变形。**
+    const activeOptions = substanceOptions.filter((s) => s.isActive)
+    const rows: MetalRow[] = activeOptions.map((opt) => ({
+        metal: opt.value,
+        labelKey: opt.labelKey,
+        content: metals[opt.value] ?? '',
+    }))
+
+    /* ★ Q5 的必填 `dirty`:它只喂 `beforeunload`。
+       ☞【判据是「与进门时那一份比」,不是「有没有字」】这一页进门时
+         **格子里就有字**(`currentMetals` 是批次当前已录的含量,化验多半是
+         对既有数字的更正)。按"有没有字"算,一进门就是脏的,提醒立刻变噪音。
+         —— 与 `#9 TemplateForm` 同一条判据,理由也是同一条。
+       ☞【它盖不住的那一半,照直说】站内 `<Link>`(下面那颗「取消」/ 返回)不拦,
+         那是组件抬头声明过的限制。 */
+    const metalsDirty = rows.some((r) => r.content !== (currentMetals[r.metal] ?? ''))
+
+    /* ★ 列。**身份列 `priority: true`**(Tim 的 Q1,DRAFT-4):
+       `page-owned` 下 `editing` 恒为真,而展开区只画【有 `edit` 的列】
+       (`editable-table.tsx:632`)—— 一个只读且非 priority 的列在 390px 上
+       **整个消失**。金属名是这一行唯一的主语,它一消失,展开区就没有主语了。 */
+    const metalColumns: EditableColumn<MetalRow, MetalRow>[] = [
+        {
+            key: 'metal',
+            header: t('assay.colMetal'),
+            priority: true,
+            render: (r) => (
+                <>
+                    {t(r.labelKey)}
+                    <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
+                </>
+            ),
+        },
+        {
+            key: 'content',
+            header: t('assay.colContent'),
+            // 留空 = 没测,整行忽略 —— 那句话在表上面那个标题旁边写着,不在格子里重复。
+            render: (r) => (r.content.trim() === '' ? '—' : r.content),
+            edit: (r) => (
+                <DecimalInput
+                    value={r.content}
+                    onChange={(raw) => setMetals((m) => ({ ...m, [r.metal]: raw }))}
+                    className="w-28"
+                />
+            ),
+        },
+    ]
 
     return (
         <form action={formAction} className="space-y-6">
@@ -242,33 +305,29 @@ export default function AssayForm({
             {/* ── 金属表(留空 = 没测,整行忽略)── */}
             <div>
                 <h2 className="mb-2">{t('assay.title')}</h2>
-                <table className={`${tableC.root} w-full max-w-md`}>
-                    <thead>
-                        <tr className={tableC.headRow}>
-                            <th className={`${tableC.headCell} text-left`}>{t('assay.colMetal')}</th>
-                            <th className={`${tableC.headCell} text-left`}>{t('assay.colContent')}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {substanceOptions.filter((s) => s.isActive).map((opt) => (
-                            <tr className={tableC.bodyRow} key={opt.value}>
-                                <td className={tableC.cell}>
-                                    {t(opt.labelKey)}
-                                    <span className="text-gray-400 text-xs ml-2">{opt.value}</span>
-                                </td>
-                                <td className={tableC.cell}>
-                                    <input type="hidden" name="assay_metal" value={opt.value} />
-                                    <DecimalInput
-                                        name="assay_content"
-                                        value={metals[opt.value] ?? ''}
-                                        onChange={(raw) => setMetals((m) => ({ ...m, [opt.value]: raw }))}
-                                        className="w-28"
-                                    />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                {/* ★★ (b) 那座桥 —— **画在表外面,只画一遍**(Tim 2026-09-21 的 Q1 裁定)。
+                    组件把列回调画两遍(桌面格 `hidden sm:block` + 手机展开区),
+                    所以具名输入不许进格子;这一个不在格子里,于是它在 `FormData` 里
+                    **只出现一次**。`scripts/check-editable-name.mjs` 守着前半句。
+                    ★ 交出去的是 `MetalLine`,**`labelKey` 不在里面** —— 那是画出来的,
+                      不是交出去的(与 `#24` 的 `i` 同一条:它不进 `lines_json`)。 */}
+                <input
+                    type="hidden"
+                    name="assay_metals_json"
+                    value={JSON.stringify(rows.map((r) => ({ metal: r.metal, content: r.content })))}
+                />
+                <EditableTable<MetalRow, MetalRow>
+                    rows={rows}
+                    columns={metalColumns}
+                    // 金属码即键:这张表的行来自物质字典,**定长,不加行不删行**
+                    // —— 下标从头到尾指着同一个槽,所以它不需要 uid(与 `#6`/`#7` 同理)。
+                    rowKey={(r) => r.metal}
+                    phone={{ mode: 'columns' }}
+                    mode="page-owned"
+                    dirty={metalsDirty}
+                    labels={{ expand: t('common.expandRow') }}
+                    className="max-w-md"
+                />
             </div>
 
             {/* ── 实时预览 ── */}

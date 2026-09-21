@@ -5840,6 +5840,8 @@ const zh = {
             errMetal: '请选择有效的金属',
             errPrice: '价格必须为大于 0 的数字',
             errPriceDate: '请填写有效的价格日期',
+            // ★ DRAFT-4:JSON 桥读不懂时的按名拒 —— 不能当成空集。
+            errPricesUnreadable: '价格没有读出来,这一次什么都没有保存。请重新加载本页再填一遍。',
             saveError: '保存失败:{message}',
         },
         errors: {
@@ -7214,6 +7216,9 @@ const zh = {
             payableTitle: '计价比例',
             colMetal: '金属',
             colPayable: '计价 %',
+            // ★ DRAFT-4 / Tim 的 Q3:空格子写【那句话本身】,永不「—」——
+            //   这一格的空是一次决定,而服务端读到它会删掉那个金属既有的计价行。
+            notPayable: '不计价',
             submit: '保存',
         },
         payableBlankHint: '不计价的金属留空即可。',
@@ -7252,6 +7257,8 @@ const zh = {
         errTreatment: '加工费不能为负',
         errDiscount: '折扣必须在 0 到 100 之间',
         errPayable: '计价比例必须在 0 到 100 之间',
+        // ★ DRAFT-4:JSON 桥读不懂时的按名拒 —— 不能当成空集。
+        errPayablesUnreadable: '计价比例没有读出来,这一次什么都没有改。请重新加载本页再填一遍。',
         errCounterparty: '请选择往来单位',
         errFormulaRequired: '请选择定价公式',
         errors: {

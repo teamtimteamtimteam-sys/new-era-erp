@@ -14,15 +14,42 @@ import { localizeAssayError } from '@/app/inbound/assayErrorCodes'
 export type SubmitOutputAssayState = { error?: string }
 
 // 表单里的化验行 → metals 载荷(空含量整行忽略 —— 空 = 没测;与进料侧同构)
-function metalsPayload(metalNames: string[], contents: string[]): { metal: string; content_pct: number }[] {
+// ★★ DRAFT-4(2026-09-21):收的从【两条按下标配对的数组】换成【自带配对的行】。
+//   ☞ **循环体一个字都没改** —— 空含量整行忽略、非数字整行忽略,判据原样。
+//   变的只是那一对 `(metal, content)` 从哪里来:从前要靠下标把两条数组对起来,
+//   现在它本来就在同一行里。**这个组件因此不再有「数组长度对不上」这个失败模式。**
+//   ★ 这里【不是】进料那一侧的同名函数:那一个收 `Record<metal, content>`,
+//     而且还有第二个调用方(预览),所以那一个的签名刻意没动。两个文件各一份,
+//     是 `DRAFT-0` 就记着的刻意重复,不要顺手合并。
+function metalsPayload(lines: { metal: string; content: string }[]): { metal: string; content_pct: number }[] {
     const out: { metal: string; content_pct: number }[] = []
-    metalNames.forEach((metal, i) => {
-        const s = (contents[i] ?? '').trim()
+    lines.forEach(({ metal, content }) => {
+        const s = (content ?? '').trim()
         if (s === '') return
         const n = Number(s)
         if (Number.isNaN(n)) return
         out.push({ metal, content_pct: n })
     })
+    return out
+}
+
+/** 桥 → 行。⚠ **读不懂的桥不当空集** —— 那是一次说不出话的提交,不是「没测」。 */
+function parseMetalLines(raw: string): { metal: string; content: string }[] | null {
+    let parsed: unknown
+    try {
+        parsed = JSON.parse(raw)
+    } catch {
+        return null
+    }
+    if (!Array.isArray(parsed)) return null
+    const out: { metal: string; content: string }[] = []
+    for (const el of parsed) {
+        if (el === null || typeof el !== 'object') continue
+        const row = el as { metal?: unknown; content?: unknown }
+        const metal = String(row.metal ?? '')
+        if (metal === '') continue
+        out.push({ metal, content: String(row.content ?? '') })
+    }
     return out
 }
 
@@ -48,10 +75,9 @@ export async function submitOutputAssay(
         return { error: t('assay.errors.ASSAY_DATE_INVALID', { 0: assayDate || '?' }) }
     }
 
-    const payload = metalsPayload(
-        formData.getAll('assay_metal').map(String),
-        formData.getAll('assay_content').map(String)
-    )
+    const metalLines = parseMetalLines(String(formData.get('assay_metals_json') ?? '[]'))
+    if (metalLines === null) return { error: t('assay.errors.NO_METALS') }
+    const payload = metalsPayload(metalLines)
     if (payload.length === 0) return { error: t('assay.errors.NO_METALS') }
 
     // PROC-6:三个新字段。基准与出具方必填(服务端也独立拒一次);

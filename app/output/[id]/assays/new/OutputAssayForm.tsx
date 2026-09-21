@@ -15,7 +15,13 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import { submitOutputAssay, type SubmitOutputAssayState } from '../actions'
 import { Button } from '@/app/components/ui/button'
-import { tableC } from '@/app/components/ui/table-style'
+import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+
+/** 桥上交出去的一行 —— 与搬家前那两条并列数组逐字同构。 */
+type MetalLine = { metal: string; content: string }
+/** 渲染用的行。`labelKey` 与 `current` 都【不进桥】:一个是译名,一个是对照值,
+ *  两个都是画出来的,不是交出去的。 */
+type MetalRow = MetalLine & { labelKey: string; current: string | null }
 
 const initialState: SubmitOutputAssayState = {}
 
@@ -53,6 +59,89 @@ export default function OutputAssayForm({
     const [metals, setMetals] = useState<Record<string, string>>(currentMetals)
 
     const hasCurrent = Object.keys(currentMetals).length > 0
+
+    // ★★★ 桥的行从【页面画出来的那一份名单】来,不从整个 Record 来 ——
+    //   理由与 `#18` 逐字相同(见 `AssayForm.tsx` 同一处):`currentMetals` 里
+    //   可能有一个**物质已被停用**的金属,它没有一行画出来,搬家前也就没有被提交。
+    //   照整个 Record 造桥,它会**开始被写进去**。
+    const activeOptions = substanceOptions.filter((s) => s.isActive)
+    const rows: MetalRow[] = activeOptions.map((opt) => ({
+        metal: opt.value,
+        labelKey: opt.labelKey,
+        content: metals[opt.value] ?? '',
+        current: currentMetals[opt.value] ?? null,
+    }))
+
+    /* ★ Q5 的必填 `dirty` —— 判据是「与进门时那一份比」。
+       这一页进门时格子里就有字(`currentMetals` 是录入起点),
+       按"有没有字"算会一进门就脏。站内 `<Link>` 不拦,是声明过的限制。 */
+    const metalsDirty = rows.some((r) => r.content !== (currentMetals[r.metal] ?? ''))
+
+    /* ★★★【有条件的那一列写成【数组字面量里的一段展开】,不写成函数,也不写成三元式】★★★
+       这张表的对照列是**有条件的**(`hasCurrent`),而三种写法对【两道闸】不是同一回事:
+
+       | 写法(⚠ 照描述写,**不逐字抄那个属性** —— 两道闸都在扫这个区段) | `check-editable-name` | `check-datatable-phone` |
+       |---|---|---|
+       | 三元式在两个标识符之间挑 | ✗ 定位不到 | ✗ 定位不到 |
+       | 一个**返回列数组的函数调用** | ✓ 认得 `IDENT(...)` 那一种 | ⚠ **不认** —— 实测记一条 `unresolved` |
+       | ★ **一个具名的数组字面量** + 有条件那一列在字面量里展开 | ✓ | ✓ |
+
+       ⚠ **实测(DRAFT-4):写成函数那一版,`check-datatable-phone` 记下
+         `OutputAssayForm.tsx:266 columns 不是一个可静态定位的标识符`,
+         而它【照常退出 0】** —— 也就是 DRAFT-3 §0 的 G3 那条坑,换了一道闸回来:
+         **一张没有人守着的表,而构建是绿的。**
+       ☞ 所以这里退回最朴素的那一种:**一个具名的数组字面量**,
+         有条件的那一列用 `...(cond ? [x] : [])` 展开在**字面量里面** ——
+         于是两道闸都定位得到,而且**它们扫的区段把那一列也包进去了**。
+
+       ★★★ 三列的 390px 处置(Tim 的 Q1 / Q2,DRAFT-4):
+       · 金属名 `priority` —— 它是这一行的主语;
+       · ★ **对照值 `priority`** —— `page-owned` 下展开区只画【有 `edit` 的列】
+         (`editable-table.tsx:632`),一个只读且非 priority 的列在 390px 上
+         **整个消失**。而这一页的抬头写着:含量是**整体替换**当前数,
+         对照值就在每行旁边、它是录入起点。**那个数消失,上面那句琥珀色的
+         「替换」警告就失去了它的宾语。** 与 `#8` 的金额列同一条裁定。 */
+    const assayCols: EditableColumn<MetalRow, MetalRow>[] = [
+        {
+            key: 'metal',
+            header: t('assay.colMetal'),
+            priority: true,
+            render: (r) => (
+                <>
+                    {t(r.labelKey)}
+                    <span className="text-gray-400 text-xs ml-2">{r.metal}</span>
+                </>
+            ),
+        },
+        {
+            key: 'content',
+            header: t('assay.colContent'),
+            render: (r) => (r.content.trim() === '' ? '—' : r.content),
+            edit: (r) => (
+                <DecimalInput
+                    value={r.content}
+                    onChange={(raw) => setMetals((m) => ({ ...m, [r.metal]: raw }))}
+                    className="w-28"
+                />
+            ),
+        },
+        ...(hasCurrent
+            ? [
+                  {
+                      key: 'current',
+                      header: t('assay.output.colCurrent'),
+                      priority: true,
+                      className: 'text-gray-500',
+                      /* ★ 这里的 `—` 是**对的**,而这一句要写下来,免得 Tim 的 Q4 裁定
+                         (`#7`:空要写那句话本身,永不 `—`)被抄到一个它不管的地方。
+                         `#7` 的空是**一句话**(「没有预期」/「还没有人说过」);
+                         这一格的空是**真的没有**:这个金属此前没有录过任何含量。
+                         **一个真的没有,写 `—` 就是对的。** 同一个符号,两种案情。 */
+                      render: (r: MetalRow) => (r.current === null ? '—' : `${r.current}%`),
+                  },
+              ]
+            : []),
+    ]
 
     return (
         <form action={formAction} className="space-y-6">
@@ -176,43 +265,23 @@ export default function OutputAssayForm({
                 {hasCurrent && (
                     <p className="text-xs text-amber-800 mb-2">{t('assay.output.replacesAll')}</p>
                 )}
-                <table className={`${tableC.root} w-full max-w-xl`}>
-                    <thead>
-                        <tr className={tableC.headRow}>
-                            <th className={`${tableC.headCell} text-left`}>{t('assay.colMetal')}</th>
-                            <th className={`${tableC.headCell} text-left`}>{t('assay.colContent')}</th>
-                            {hasCurrent && (
-                                <th className={`${tableC.headCell} text-left`}>{t('assay.output.colCurrent')}</th>
-                            )}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {substanceOptions.filter((s) => s.isActive).map((opt) => (
-                            <tr className={tableC.bodyRow} key={opt.value}>
-                                <td className={tableC.cell}>
-                                    {t(opt.labelKey)}
-                                    <span className="text-gray-400 text-xs ml-2">{opt.value}</span>
-                                </td>
-                                <td className={tableC.cell}>
-                                    <input type="hidden" name="assay_metal" value={opt.value} />
-                                    <DecimalInput
-                                        name="assay_content"
-                                        value={metals[opt.value] ?? ''}
-                                        onChange={(raw) => setMetals((m) => ({ ...m, [opt.value]: raw }))}
-                                        className="w-28"
-                                    />
-                                </td>
-                                {hasCurrent && (
-                                    <td className={`${tableC.cell} text-gray-500`}>
-                                        {currentMetals[opt.value] !== undefined
-                                            ? `${currentMetals[opt.value]}%`
-                                            : '—'}
-                                    </td>
-                                )}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+                {/* ★★ (b) 那座桥 —— 画在表外面,只画一遍。理由见 `#18` 同一处。 */}
+                <input
+                    type="hidden"
+                    name="assay_metals_json"
+                    value={JSON.stringify(rows.map((r) => ({ metal: r.metal, content: r.content })))}
+                />
+                <EditableTable<MetalRow, MetalRow>
+                    rows={rows}
+                    columns={assayCols}
+                    // 金属码即键:行来自物质字典,定长,不加行不删行 —— 不需要 uid。
+                    rowKey={(r) => r.metal}
+                    phone={{ mode: 'columns' }}
+                    mode="page-owned"
+                    dirty={metalsDirty}
+                    labels={{ expand: t('common.expandRow') }}
+                    className="max-w-xl"
+                />
             </div>
 
             {/* ── 应用的后果(服务端问库;试算失败不挡记录,但要说"后果未知")── */}

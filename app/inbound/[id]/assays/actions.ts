@@ -159,13 +159,32 @@ export async function submitAssay(
         return { error: t('assay.errors.ASSAY_DATE_INVALID', { 0: assayDate || '?' }) }
     }
 
-    // 并列数组 → metals 载荷(与计价器同构:空含量整行忽略)
-    const metalNames = formData.getAll('assay_metal').map(String)
-    const contents = formData.getAll('assay_content').map(String)
+    // ★★ DRAFT-4(2026-09-21):并列数组 → **一座 JSON 桥**(Tim 的 (b) 裁定)。
+    //   变的【只有行从哪来】:从 `getAll('assay_metal')/getAll('assay_content')`
+    //   两条按下标配对的数组,换成一个自带配对的 `assay_metals_json`。
+    //   ☞ **下面那个 `Record<metal, content>` 与 `metalsPayload` 一个字都没有改** ——
+    //     空含量整行忽略、非数字整行忽略,判据全在 `metalsPayload` 里,原样跑。
+    //   ★ `metalsPayload` 的签名【刻意没动】:它还有第二个调用方
+    //     `previewAssayPrice`(`:116`),而那一个收的是带类型的实参、不是 FormData。
+    //     动签名就会把预览一起拖下水,而预览这一刀一个字都不该改。
+    //   ⚠ **解析失败不当空集**:一个读不懂的桥是一次【说不出话】的提交,
+    //     不是一次「什么都没测」。按名拒,和 DB 那一侧同一个口径。
     const metals: Record<string, string> = {}
-    metalNames.forEach((m, i) => {
-        metals[m] = contents[i] ?? ''
-    })
+    const metalsRaw = String(formData.get('assay_metals_json') ?? '[]')
+    let metalLines: unknown
+    try {
+        metalLines = JSON.parse(metalsRaw)
+    } catch {
+        return { error: t('assay.errors.NO_METALS') }
+    }
+    if (!Array.isArray(metalLines)) return { error: t('assay.errors.NO_METALS') }
+    for (const el of metalLines) {
+        if (el === null || typeof el !== 'object') continue
+        const row = el as { metal?: unknown; content?: unknown }
+        const m = String(row.metal ?? '')
+        if (m === '') continue
+        metals[m] = String(row.content ?? '')
+    }
     const payload = metalsPayload(metals)
     if (payload.length === 0) return { error: t('assay.errors.NO_METALS') }
 
