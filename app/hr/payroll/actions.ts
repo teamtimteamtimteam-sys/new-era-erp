@@ -60,11 +60,21 @@ export async function savePayrollPeriod(
     }
 
     let lines: PayrollLineInput[]
+    // ★★ DRAFT-6 / Tim 的 Q9(2026-09-21):**读不懂的桥按名拒,而且是【它自己】那一句。**
+    //   此前这里与下面「一行都没填」共用 `NO_LINES`,于是两件完全不同的事说同一句话:
+    //     · 「一个员工都没填」—— 操作员做的事,改法是去填;
+    //     · 「这次提交没有被读懂」—— 这一页坏了,改法是刷新 / 报告。
+    //   ☞ 共用一句话会让第二种伪装成第一种,于是人去重填一张他其实已经填好的表。
+    //   ☞ 这正是 DRAFT-5 §2.3 为五张表各发一条「读不懂」文案的同一条理由
+    //     (`docs/handbacks/DRAFT-5.md`:「空集在每一张表上变成的是【不同的谎】」)。
     try {
         lines = JSON.parse(String(formData.get('lines_json') ?? '[]'))
     } catch {
-        return { error: t('hr.errors.NO_LINES') }
+        return { error: t('hr.errors.LINES_UNREADABLE') }
     }
+    // ★ 而「不是一个数组」与「解析不了」是同一件事 —— 桥交出来的形状不对,
+    //   底下那句 `.filter` 会当场抛,而抛出来的样子不是一句拒绝。
+    if (!Array.isArray(lines)) return { error: t('hr.errors.LINES_UNREADABLE') }
     const payload = lines
         .filter((l) => !isBlank(l))
         .map((l) => ({

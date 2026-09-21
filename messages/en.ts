@@ -4593,6 +4593,12 @@ const en = {
             PAYROLL_DEDUCTIONS_PAID: 'Period {0} has had its deductions remitted — reverse that first',
             PAYROLL_NOTHING_TO_PAY: 'Period {0} has nothing to pay here',
             NO_LINES: 'Enter at least one employee row',
+            // ★★ DRAFT-6 / Tim 的 Q9(2026-09-21):**读不懂的桥,与一张真的空单,
+            //   不是同一件事** —— 此前两者共用上面那一句。
+            //   ☞ 「一个员工都没填」是操作员做的事;「这次提交没有被读懂」是这一页坏了。
+            //     共用一句话会把后者说成前者,于是人会去重填一遍一张他其实已经填好的表。
+            //   ☞ 同族先例:DRAFT-5 为五张表各发一条「读不懂的桥」,理由逐字相同。
+            LINES_UNREADABLE: 'This payroll could not be read — the form sent something the server could not parse. Nothing was saved. Reload the page and enter the rows again; if it happens twice, report it.',
             PERIOD_MONTH_INVALID: 'Period must be a whole month (got {0})',
             PAYMENT_DATE_REQUIRED: 'A payment date is required',
             EMPLOYEE_NOT_FOUND: 'Employee not found: {0}',

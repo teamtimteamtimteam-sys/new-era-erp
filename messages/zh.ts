@@ -4479,6 +4479,8 @@ const zh = {
             PAYROLL_DEDUCTIONS_PAID: '期间 {0} 的代扣款已汇出 —— 先冲那笔汇款',
             PAYROLL_NOTHING_TO_PAY: '期间 {0} 没有可汇的金额',
             NO_LINES: '请至少录入一名员工的数据',
+            // ★★ DRAFT-6 / Tim 的 Q9(2026-09-21):见 en.ts 同一处的理由。
+            LINES_UNREADABLE: '这份工资单读不懂 —— 表单送上来的内容服务端解析不了,什么都没有保存。请刷新页面重新录入;如果再次出现,请报告。',
             PERIOD_MONTH_INVALID: '期间必须是完整月份(当前为 {0})',
             PAYMENT_DATE_REQUIRED: '发薪日期必填',
             EMPLOYEE_NOT_FOUND: '员工不存在:{0}',

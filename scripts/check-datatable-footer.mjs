@@ -116,12 +116,31 @@ function cells(fragment) {
     }
     return out
 }
-// 手机档看得见 = 身上没有「桌面才出现」的类;桌面档看得见 = 身上没有 sm:hidden。
-const onPhone = (c) => !/\bhidden sm:table-cell\b/.test(c.cls) && !/\bhidden sm:table-row\b/.test(c.cls)
-const onDesktop = (c) => !/\bsm:hidden\b/.test(c.cls)
+// 手机档看得见 = 身上没有「桌面才出现」的那一对类;桌面档看得见 = 身上没有 sm:hidden。
+//
+// ★★【DRAFT-6:判据从「相邻的字面」改成「两个 token 各自在不在」】★★
+//   旧写法是 `/\bhidden sm:table-cell\b/` —— 它要求那两个词**紧挨着**。
+//   `DataTable` 的非 priority 格子恰好就是紧挨着写的,所以它一直是对的;
+//   ⚠ 而 `editable-table.tsx` 的动作列表头写的是
+//     `hidden px-3 py-2.5 font-medium sm:table-cell` —— **中间隔着三个类**,
+//     于是旧判据把一个【桌面才出现】的格子读成了手机上也在。
+//   ☞ 这是本仓库那条「按行切开再匹配,会废掉一个含 `\n` 的字符类」的邻居:
+//     **一条认【相邻字面】的判据,认的是调用点碰巧的书写顺序,不是那件事本身。**
+//   ★ 改成 token 判据对 `DataTable` 那两张样例**逐字等价**(两个词紧挨着时,
+//     两种写法答案相同),而下面那三条钉死的表头格数会当场证明这一点。
+const hasClass = (cls, tok) =>
+    new RegExp(`(?:^|\\s)${tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\s|$)`).test(cls)
+const onPhone = (c) =>
+    !(hasClass(c.cls, 'hidden') && (hasClass(c.cls, 'sm:table-cell') || hasClass(c.cls, 'sm:table-row')))
+const onDesktop = (c) => !hasClass(c.cls, 'sm:hidden')
 const width = (list, at) => list.filter(at === 'phone' ? onPhone : onDesktop).reduce((n, c) => n + c.span, 0)
 
 const { DataTable } = loadComponent(SRC)
+// ★★ DRAFT-6 · 能力 C:`EditableTable` 从这一刀起也有 `<tfoot>`,
+//   而它的两个 `colSpan` 同样是【算出来的数】—— 与 `DataTable` 那一份
+//   同一个机制、同一个失败形式(合计整行右移一列,而表看起来完全正常)。
+//   ☞ 所以它进同一支量具,不另开一支:**一个机制一支量具,两个组件两组样例。**
+const { EditableTable } = loadComponent(join(ROOT, 'app/components/ui/editable-table.tsx'))
 const h = React.createElement
 
 // ── 两张样例表 ─────────────────────────────────────────────────────────────
@@ -226,8 +245,99 @@ check(section(plain, 'tfoot') === null,
     '没给 footer 的表也长出了 <tfoot> —— 160 个调用点的渲染被改动了。')
 want += 1
 
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ DRAFT-6 · 能力 C:`EditableTable` 的表尾 —— 同一个机制,第二个组件
+// ════════════════════════════════════════════════════════════════════════════
+// ★★★【为什么是两张,而第二张是【带动作列】那一张】★★★
+//   `EditableTable` 的动作列**不在 `columns` 里** —— 它是组件自己加的第 N+1 格
+//   (`editable-table.tsx` 的 `colCount`)。于是表尾必须自己补一个空的桌面格,
+//   而**漏掉它的样子是:桌面档表尾比表头少一格,整行合计右移一列** ——
+//   一张排得整整齐齐、而每一个数都落错了列的表。
+//   ☞ 第一张(PayrollGrid 形状)**没有动作列**,补不补它都跨得满 ——
+//     也就是说**一张不带动作列的样例,证不出这一格**。这与上面那两张
+//     `DataTable` 样例的分工逐字同源。
+//   ⚠ 而这一格在 DRAFT-6 落地时是【零消费者】的(`#3` 没有 `rowActions`)——
+//     所以它**只有这支量具看得见**。
+const E_SCENARIOS = [
+    {
+        name: '★ EditableTable / PayrollGrid 形状(4 列 · 前导里夹着一列非 priority · 无动作列)',
+        rowActions: null,
+        headDesktop: 4, headPhone: 3,
+        folded: ['G_7000'],
+    },
+    {
+        name: '★★ EditableTable / 带 rowActions(动作列是组件自己加的第 N+1 格)',
+        rowActions: () => h('button', { type: 'button' }, 'REMOVE'),
+        headDesktop: 5, headPhone: 3,
+        folded: ['G_7000'],
+    },
+]
+
+const E_ROWS = [
+    { id: 'a', name: 'Ang', dept: 'Ops', gross: '3000', net: '2400' },
+    { id: 'b', name: 'Bala', dept: 'Fin', gross: '4000', net: '3200' },
+]
+// ★ 至少一列要有 `edit`(否则组件按名拒:那是 DataTable 的活),
+//   至少一列要 priority(否则组件按名拒:展开区就没有主语了)。
+const E_COLUMNS = [
+    { key: 'name', header: 'Employee', priority: true, render: (r) => r.name },
+    // ★ 这一列不 priority,而且【在前导里】—— 它就是让两种 colSpan 算法分叉的那一列。
+    { key: 'dept', header: 'Dept', render: (r) => r.dept },
+    { key: 'gross', header: 'Gross', align: 'right', render: (r) => r.gross, edit: (r) => h('input', { defaultValue: r.gross }) },
+    { key: 'net', header: 'Net', align: 'right', priority: true, render: (r) => r.net, edit: (r) => h('input', { defaultValue: r.net }) },
+]
+const E_TOTALS = [{ key: 'totals', label: 'EPAY_TOTALS', cells: { gross: 'G_7000', net: 'N_5600' } }]
+
+for (const sc of E_SCENARIOS) {
+    const props = {
+        rows: E_ROWS, columns: E_COLUMNS, rowKey: (r) => r.id,
+        phone: { mode: 'columns' }, mode: 'page-owned', dirty: false,
+        labels: { expand: 'EXPAND' },
+        ...(sc.rowActions ? { rowActions: sc.rowActions } : {}),
+    }
+    const html = renderToStaticMarkup(h(EditableTable, { ...props, totals: E_TOTALS }))
+
+    const head = cells(section(html, 'thead') ?? '')
+    assertPinned(SELF, `${sc.name}:桌面档表头格数`, width(head, 'desktop'), sc.headDesktop,
+        '对不上就是扫描器读错了类名,这一次读数不作数。')
+    assertPinned(SELF, `${sc.name}:手机档表头格数(展开格 + priority 列)`,
+        width(head, 'phone'), sc.headPhone, '同上。')
+
+    const foot = section(html, 'tfoot')
+    check(foot !== null, `${sc.name}:给了 totals,渲染出来【没有 <tfoot>】—— 能力 C 没有落地。`)
+    want += 1
+    if (!foot) continue
+
+    const fc = cells(foot)
+    check(fc.length > 0, `${sc.name}:<tfoot> 里一个格子都没有。`)
+    check(width(fc, 'desktop') === width(head, 'desktop'),
+        `${sc.name}:桌面档表尾跨了 ${width(fc, 'desktop')} 格,表头是 ${width(head, 'desktop')} 格 —— 合计会落错列。`)
+    check(width(fc, 'phone') === width(head, 'phone'),
+        `${sc.name}:手机档表尾跨了 ${width(fc, 'phone')} 格,表头是 ${width(head, 'phone')} 格 —— 合计会落错列。`)
+
+    const phoneText = fc.filter(onPhone).map((c) => c.inner).join('')
+    for (const token of sc.folded) {
+        check(phoneText.includes(token),
+            `${sc.name}:手机档找不到被折走那一列的合计(${token})—— 合计在 390px 上凭空消失了。`)
+        want += 1
+    }
+    check(fc.filter(onPhone).some((c) => c.inner.includes('EPAY_TOTALS')), `${sc.name}:手机档表尾标签不见了。`)
+    check(fc.filter(onDesktop).some((c) => c.inner.includes('EPAY_TOTALS')), `${sc.name}:桌面档表尾标签不见了。`)
+    want += 5
+}
+
+// ── ⑥ 不给 totals 的 EditableTable,一个 <tfoot> 都不许长 ───────────────────
+//    24 个既有调用点一个都不该因为这一件而长出表尾。
+const ePlain = renderToStaticMarkup(h(EditableTable, {
+    rows: E_ROWS, columns: E_COLUMNS, rowKey: (r) => r.id,
+    phone: { mode: 'columns' }, mode: 'page-owned', dirty: false, labels: { expand: 'EXPAND' },
+}))
+check(section(ePlain, 'tfoot') === null,
+    '没给 totals 的可编辑表也长出了 <tfoot> —— 24 个既有调用点的渲染被改动了。')
+want += 1
+
 // ── 覆盖断言:上面每一条判据都真的求值过 ────────────────────────────────────
-assertPopulation(SELF, '跑过的样例表', SCENARIOS.length, 2)
+assertPopulation(SELF, '跑过的样例表', SCENARIOS.length + E_SCENARIOS.length, 4)
 assertAssertionsRan(SELF, ran, want)
 
 if (problems.length) {

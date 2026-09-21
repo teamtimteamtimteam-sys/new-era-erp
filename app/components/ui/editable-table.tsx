@@ -228,14 +228,76 @@
 //   ☞ 后来的人:**这条例外只属于 `EditableTable`。** `DataTable` 与手搓表上
 //     R1 一个字都没有变 —— 那两处的格子在手机上不是强制只读的。
 // ────────────────────────────────────────────────────────────────────────────
+// ★★★【DRAFT-6 · 能力 C:`totals` —— 表尾合计行。**`footer` 一个字都没动**】★★★
+//    (Tim 的 Q5 裁定,DRAFT-5;形状与落地由 DRAFT-6 的 grilling Q5 / Q6 裁定)
+//
+//   ⚠ **先把两个槽分开,因为它们的名字很像而做的事完全不同:**
+//     · `footer(drafts, anyDirty)` —— 画在 **`</table>` 之后**,是**页面的提交区**
+//       (/me 逼出来的那个槽)。**它不是 `<tfoot>`,它一格都不对位。**
+//     · `totals` —— 画在 **`<tbody>` 之后的 `<tfoot>` 里**,**按列对位**,
+//       两个断点的 `colSpan` 由组件自己数。
+//   ☞ 所以这一件**不是**把 `footer` 改宽,是在它旁边开第二个槽。**`footer` 原样不动。**
+//
+//   ★ **① 形状照抄 `DataTable` 的 `FooterRow`,而且是【同一个类型】,不是同一份抄写。**
+//     `import type { FooterRow } from './data-table'` —— 两个组件的表尾从此
+//     **不可能漂开**。理由见本文件抬头的 FORK DECISION:分叉的判据是
+//     **列描述符的契约**,而 `FooterRow` 里一个回调都没有,它两边同义。
+//
+//   ★★ **② 而它【不收回调】—— 这是与 `DataTable` 唯一的形状差,连理由一起写下来。**
+//     `DataTable` 的是 `footer?: (rendered) => FooterRow[]`,那个回调存在的唯一理由是
+//     **筛选 / 排序 / 分页让「画出来的行」不等于 `rows`**(见 `data-table.tsx`
+//     `FooterRow` 抬头最后一段:拿全体的合计配一屏的行,是 A1 裁定骂的那种静默的谎)。
+//     ☞ **这个组件没有那三件事,而且是【编译期】没有**(`sorting?: never` ·
+//       `pageSize?: never`,见下面 Q4;filter 从来没有过)。**于是 `rows` 就是
+//       画出来的那些行**,一个回调只会**暗示一个不存在的子集**。
+//     ☞ 所以这里是 `totals?: ReadonlyArray<FooterRow>`。**合计仍然由调用方自己算** ——
+//       组件一个数都不加总,与 `DataTable` 逐字同一条。
+//
+//   ★★★ **③「390px 上哪几列还在」这件事,本文件只有【一个】定义,而 `totals` 用的就是它。**
+//     `isPhoneCol(c) = phoneScroll || !!c.priority`(见下面那一行)——
+//     表头、表体、展开区的 `colSpan`、空态,今天全部问它。**表尾也问它。**
+//     ☞ **这是 DRAFT-6 grilling Q6 的裁定,而它防的是一件具体的事:**
+//       表尾若自己写一份「哪几列算数」的判断,那份判断会与表头**在写下的那天一致、
+//       此后各自漂移** —— 而漂移的样子是**一张排得整整齐齐、合计却落错列的表**。
+//
+//   ★ **④ 与 `DataTable` 那份 `footerLayout` 的三处差额,逐条写出来:**
+//     · `shownCols` → `columns` —— 这个组件**没有列显隐**(`columnToggle` 不存在);
+//     · `selection` 那一格 → **没有** —— 这个组件没有勾选列;
+//     · ★ **多一格**:`showActionCol` 为真时,表尾末尾补一个**空的、桌面档才出现**的
+//       格子。`DataTable` 的动作列是普通列(它在 `columns` 里),而这个组件的动作列
+//       是**组件自己加的第 N+1 格**(见下面 `colCount`)—— 不补它,桌面档的表尾
+//       **比表头少一格**,于是整行合计右移。
+//       ⚠ **本刀第一个消费者 `#3 PayrollGrid` 没有动作列**(它没有 `rowActions`、
+//       也没有 `onSave`),所以这一格**在本刀是零消费者的**。照直记:
+//       **它仍然要建**,因为它错的时候是「整行合计悄悄移一列」,而不是一次报错。
+//
+//   ★ **⑤ 手机档被折走的那几列,它们的合计叠进手机档那个标签格** ——
+//     `DataTable` 照 `trial-balance:234` 手写的答案照抄了一遍,这里再照抄一遍。
+//     ☞ 理由同源:**合计跟着列一起消失,那张表在手机上就不再是那张表**。
+//     ⚠ **不是塞进展开区** —— 展开区是**每一行自己的**,而表尾没有行。
+//
+//   ⚠ **⑥ 两条按名拒绝一起搬过来,而它们正是这一件唯一会【静默】出错的地方:**
+//     · `EDITABLETABLE_TOTALS_UNKNOWN_COLUMN` —— 合计挂在一个不存在的列 key 上。
+//       静默忽略 = 一个「调用方以为自己写了、而屏幕上没有」的合计。
+//     · `EDITABLETABLE_TOTALS_NO_LABEL_ROOM` —— 合计挂在【第一列】上,前导标签没有
+//       格子可待(`colSpan={0}` 不是一个合法的格子)。
+//     ☞ 与本组件已有的两条(`EDITABLETABLE_NO_PHONE_COLUMNS` ·
+//       `EDITABLETABLE_NO_EDITABLE_COLUMN`)同一族:**一次响亮的拒绝,
+//       好过一个无声消失的数。**
+//
+//   ⚠ **⑦ `label` 会被渲染两遍**(手机一份、桌面一份,靠 `sm:hidden` /
+//     `hidden sm:table-cell` 分开)。☞ **所以 `label` 里放受控输入会得到两份
+//     互不相同的 state** —— 与本文件抬头那条 `edit()` 双渲染警告同一个形状。
+//     表尾放输入本来就不是这一件的用途,而这条陷阱写下来,不留给下一个人踩。
+// ────────────────────────────────────────────────────────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 
 import { useTranslations } from '@/lib/i18n/client'
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/app/components/ui/button'
-import type { PhoneTreatment } from '@/app/components/ui/data-table'
-import { TABLE_TEXT } from '@/app/components/ui/table-style'
+import type { PhoneTreatment, FooterRow } from '@/app/components/ui/data-table'
+import { TABLE_TEXT, tableC } from '@/app/components/ui/table-style'
 
 /**
  * 一列。`render` 是只读时怎么画;`edit` 是编辑时怎么画。
@@ -327,6 +389,22 @@ type EditableTableCommon<T, D> = {
      */
     rowActions?: (row: T, ctx: { editing: boolean; dirty: boolean; saving: boolean }) => React.ReactNode
     /**
+     * ★★ DRAFT-6 · 能力 C —— **表尾合计行。与 `footer` 是两个槽,不是一个。**
+     *
+     * `footer` 画在 `</table>` 之后(页面的提交区,不对位);
+     * **这一个画在 `<tfoot>` 里,按列 key 对位**,两个断点的 `colSpan` 由组件数。
+     * ☞ 完整理由、与 `DataTable` 的三处差额、两条按名拒绝,见本文件抬头
+     *   「DRAFT-6 · 能力 C」那一段。
+     *
+     * ★ **它不收回调,而 `DataTable` 的收** —— 那边的回调只为了把「这一屏真的
+     *   画出来的行」交回调用方(筛选/排序/分页),而这个组件**编译期就没有**
+     *   那三件事(`sorting?: never` · `pageSize?: never`,也从来没有 filter)。
+     *   **于是 `rows` 就是画出来的那些行**,一个回调只会暗示一个不存在的子集。
+     *
+     * ⚠ **合计的数由调用方自己算,组件一个字都不加总** —— 与 `DataTable` 同一条。
+     */
+    totals?: ReadonlyArray<FooterRow>
+    /**
      * ★ DRAFT-1 · 能力 B —— 按行涂色。与 `DataTable` 同一个签名(`data-table.tsx:306`)。
      * 消费者:`AttendanceGrid`(没录过的行 `bg-amber-50`)。
      */
@@ -415,7 +493,7 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
     const {
         rows, columns, rowKey, phone,
         footer, canEdit = true, isDirty, caption, empty, className,
-        rowActions, rowClassName, canSave,
+        rowActions, rowClassName, canSave, totals,
     } = props
 
     // ★ DRAFT-2 / Q6:`'page-owned'` 只交一个 `expand` 上来。那五个在那一模式下
@@ -458,6 +536,23 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
             '只读账簿请用 <DataTable> —— 两个组件是【刻意的】一对(见本文件抬头的 FORK DECISION),' +
             '拿可编辑的那个去画只读表,会让后来的人以为它们是重复的。'
         )
+    }
+    // ★★ DRAFT-6 · 能力 C 的第一条按名拒绝:合计挂在一个【不存在的列】上。
+    //   静默忽略它 = 一个「调用方以为自己写了、而屏幕上没有」的合计。
+    //   与上面两条同一族,也与 `data-table.tsx` 的 `DATATABLE_FOOTER_UNKNOWN_COLUMN`
+    //   逐字同源 —— 两个组件对同一件事给同一句拒绝。
+    if (totals && totals.length > 0) {
+        const known = new Set(columns.map((c) => c.key))
+        for (const fr of totals) {
+            const bad = Object.keys(fr.cells).find((k) => !known.has(k))
+            if (bad) {
+                throw new Error(
+                    `EDITABLETABLE_TOTALS_UNKNOWN_COLUMN:表尾行「${fr.key}」把一个合计挂在列「${bad}」上,` +
+                    '而这张表没有这一列。合计是按【列 key】对位的 —— 拼错一个 key,' +
+                    '那个数会从屏幕上无声消失,而表看起来完全正常。'
+                )
+            }
+        }
     }
 
     // ★★ Q3:两种模式【同一个状态形状】—— 一次一行就是它至多一个键。 ★★
@@ -602,6 +697,40 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
     const editableCols = columns.filter((c) => c.edit)
     // 桌面上有动作列;手机上它不出现(动作在展开区末尾)。
     const colCount = columns.length + (showActionCol ? 1 : 0) + (phoneScroll ? 0 : 1)
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★ DRAFT-6 · 能力 C:一行表尾在两个断点上各自怎么排
+    // ════════════════════════════════════════════════════════════════════════
+    // ★★★ **格数从 `isPhoneCol` 数出来,而那是本文件【唯一】一处
+    //   「390px 上哪几列还在」的定义**(`:520`)—— 表头、表体、展开区的 colSpan
+    //   与空态今天全部问它。**表尾再写一份判断,就是让合计与表头各自漂移。**
+    // ★ 与 `data-table.tsx:464` 那一份的三处差额(无列显隐 / 无勾选列 /
+    //   多一格动作列)逐条写在本文件抬头「能力 C」④。
+    const totalsLayout = (fr: FooterRow) => {
+        const has = (c: EditableColumn<T, D>) =>
+            Object.prototype.hasOwnProperty.call(fr.cells, c.key)
+        const firstIdx = columns.findIndex(has)
+        if (firstIdx === 0) {
+            throw new Error(
+                `EDITABLETABLE_TOTALS_NO_LABEL_ROOM:表尾行「${fr.key}」把合计挂在了【第一列】,` +
+                '于是前导标签没有格子可待。表尾的形状是「标签 + 从某一列起的合计」——' +
+                '要让第一列也带数,把标签写进那一格的 cells 里,或者给第一列留空。'
+            )
+        }
+        // 一个合计都没有:标签一路跨到底。
+        const cut = firstIdx === -1 ? columns.length : firstIdx
+        const tail = columns.slice(cut)
+        return {
+            has,
+            tail,
+            // 桌面档:展开钮那一格是 sm:hidden,不算它。动作列在【末尾】,不进前导。
+            desktopLead: cut,
+            // 手机档:前导里只有留在表内的列在场,再加展开钮那一格。
+            phoneLead: columns.slice(0, cut).filter(isPhoneCol).length + (phoneScroll ? 0 : 1),
+            // 390px 上不画、却有合计的那几列 —— 它们的数叠进手机档标签格。
+            folded: tail.filter((c) => !isPhoneCol(c) && has(c)),
+        }
+    }
 
     return (
         <div className={cn('w-full', className)}>
@@ -846,6 +975,66 @@ export function EditableTable<T, D extends object>(props: EditableTableProps<T, 
                             )
                         })}
                     </tbody>
+                    {/* ── ★★ 表尾:合计行(能力 C)────────────────────────────
+                        ★ 不给 `totals` 时【整段不存在】—— 与 `DataTable` 同一条,
+                          24 个调用点里今天只有一个长得出 `<tfoot>`。 */}
+                    {totals && totals.length > 0 && columns.length > 0 && (
+                        <tfoot>
+                            {totals.map((fr) => {
+                                const L = totalsLayout(fr)
+                                return (
+                                    <tr key={fr.key} className={cn(tableC.bodyRow, fr.className)}>
+                                        {/* ★ 标签格【写两份】—— 两份的字一模一样,分开的只是它跨几格。
+                                            ★★ 两个数都是组件自己数出来的,调用方一个数字都不写。 */}
+                                        <td colSpan={L.phoneLead} className={cn(tableC.cell, 'sm:hidden')}>
+                                            {fr.label}
+                                            {/* ★ 390px 上不画的那几列,合计叠在这里 ——
+                                                `trial-balance:234` 手写的答案,`DataTable` 照抄过一次,
+                                                这里照抄第二次。**合计跟着列一起消失,
+                                                那张表在手机上就不再是那张表。** */}
+                                            {L.folded.length > 0 && (
+                                                <span className="mt-0.5 block text-xs font-normal text-[color:var(--brand-muted-text)]">
+                                                    {L.folded.map((c, i) => (
+                                                        <React.Fragment key={c.key}>
+                                                            {i > 0 && ' · '}
+                                                            {c.phoneLabel ?? c.header}{' '}
+                                                            {fr.cells[c.key]}
+                                                        </React.Fragment>
+                                                    ))}
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td colSpan={L.desktopLead} className={cn(tableC.cell, 'hidden sm:table-cell')}>
+                                            {fr.label}
+                                        </td>
+                                        {L.tail.map((c) => (
+                                            <td
+                                                key={c.key}
+                                                className={cn(
+                                                    tableC.cell,
+                                                    c.align === 'right' ? 'text-right tabular-nums' : 'text-left',
+                                                    // 与表体同一条规矩:非 priority 的列在手机上不出现在表里。
+                                                    !isPhoneCol(c) && 'hidden sm:table-cell',
+                                                    c.className,
+                                                    // ★★ FONT-3:与表体同一条。
+                                                    TABLE_TEXT,
+                                                )}
+                                            >
+                                                {L.has(c) ? fr.cells[c.key] : null}
+                                            </td>
+                                        ))}
+                                        {/* ★★ 与 `DataTable` 唯一的形状差:这个组件的动作列是
+                                            【组件自己加的第 N+1 格】,不在 `columns` 里。
+                                            不补它,桌面档的表尾比表头少一格,整行合计右移一列。
+                                            ⚠ 本刀第一个消费者没有动作列 —— 照直记,它仍然要建。 */}
+                                        {showActionCol && (
+                                            <td className={cn(tableC.cell, 'hidden sm:table-cell')} />
+                                        )}
+                                    </tr>
+                                )
+                            })}
+                        </tfoot>
+                    )}
                 </table>
             </div>
 
