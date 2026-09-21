@@ -2220,6 +2220,42 @@ opposite things: `ALLOWLIST` asserts *this is not a defect*; `QUEUED` asserts
 believe someone checked it.** Queued entries print on every run with their reason
 and destination (cleanup A — permissions and error handling).
 
+## ★★★ 一个「0 行」的读数,先问它是【谁】读的(DRAFT-5 立,DRAFT-6 复核,2026-09-21)
+
+> ### **一个「0 行」的读数,先问它是【谁】读的 —— 一次【测量】与一次【权限拒绝】,
+> ### 在 `[]` 这个字节上长得一模一样。**
+
+**成因量出来了,一行 SQL:** 库里那些带 `has_permission()` 谓词的视图
+(`po_prepayment_applicable` · `ap_open_items` · `ar_open_items` 是实测过的三张),
+判据解析的是 `auth.uid()`;而 **Management API 跑的是 `postgres`,没有 JWT** ——
+于是 `auth.uid() is null`,谓词恒假,**那张视图对它恒空,与线上有没有数据【无关】**。
+
+★★ **它差一步就把一件【证得了】的事写成了「证不了」:** DRAFT-5 开工前照这样的
+读数把**委托书点名的重点证明**整臂改写成了「源是空的,NOT MEASURED」,并且已经跑过一轮;
+**浏览器里带着真会话一看,那两张表 2 行与 8 行,一直在那儿。**
+☞ **一份说「NOT MEASURED」的报告读起来很诚实,而它那一次会是假的。**
+
+### 判据(便宜,两句话)
+
+1. ★ **报一个行数,就把【读它的身份】写在同一句话里。** 不是「`fx_rates` 0 行」,
+   是「**以 `postgres` 身份读、`rolbypassrls = true`,`fx_rates` 窗口内 0 行**」。
+   ☞ 这与本文件那条「一个数写进报告时,把它是怎么量出来的和它写在一起」是同一条;
+     **量法说的是"怎么数的",身份说的是"谁数的"** —— 而这一族里身份才是那个变量。
+2. ★★ **先问那个对象是【基表】还是【视图】。** 一行 SQL:
+   `select relkind from pg_class …` —— `'r'` 是基表,`'v'` 是视图。
+   ★ **基表 + 一个 `rolbypassrls` 的角色 = 真行数**(RLS 整个不参与);
+   ★ **视图 = 它自己的谓词说了算**,而那个谓词可能问的是「你是谁」。
+
+> ★ **DRAFT-6 的复核(2026-09-21):DRAFT-1 那五个「空源」的记录【成立】。**
+> `attendance_lines` · `attendance_periods` · `performance_reviews` ·
+> `review_cycles` · `review_goals` —— **五个 `relkind` 全是 `'r'`(基表)**,
+> 读它们的 `postgres` **`rolbypassrls = true`**,于是那五个 0 是**真行数**,
+> 不是一次权限拒绝。**DRAFT-1 的记录不需要更正。**
+> ☞ 记在这里是因为:**「复核下来是对的」也是一次测量,而它同样要留下痕迹** ——
+>   否则下一个人会以为没有人查过。
+
+---
+
 ## ★★★ 线上的每一行都是测试数据(Tim 裁定,2026-09-20)
 
 **线上系统里【没有】真实的库存、物料、批次、客户或交易 —— 一行都没有。全部是测试数据。**
