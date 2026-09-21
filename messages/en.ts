@@ -6551,6 +6551,11 @@ const en = {
             colBatch: 'Batch',
             colQty: 'Quantity',
             colRemaining: 'Remaining',
+            // ★ DRAFT-5:没挑中的行没有「分得」可填 —— 这一格的空是
+            //   「这一行不在这次分摊里」,不是「还没填」(Tim 的「空要写那句话」)。
+            shareNeedsPick: 'Pick this batch first',
+            // ★ DRAFT-5:JSON 桥读不懂时的按名拒 —— 不能当成空集。
+            errAllocUnreadable: 'The batch allocation could not be read. Nothing was created — please reload the page and pick them again.',
             colBasisQty: 'Computed from',
             colShare: 'Share',
             colInStock: 'In stock at posting',
@@ -7283,6 +7288,9 @@ const en = {
             submit: 'Issue invoice',
             submitting: 'Issuing…',
             noSales: 'No uninvoiced sales for this customer',
+            // ★ DRAFT-5:JSON 桥读不懂时的按名拒 —— 不能落到「你一票都没勾」,
+            //   那是一句关于操作员的断言,而真相是这次提交没被读懂。
+            errSalesUnreadable: 'The selected sales could not be read. Nothing was created — please reload the page and pick them again.',
         },
         termsLabel: 'Terms',
         unassignedSale: 'No customer recorded on this sale',

@@ -6367,6 +6367,11 @@ const zh = {
             colBatch: '批次',
             colQty: '数量',
             colRemaining: '剩余',
+            // ★ DRAFT-5:没挑中的行没有「分得」可填 —— 这一格的空是
+            //   「这一行不在这次分摊里」,不是「还没填」。
+            shareNeedsPick: '先勾选这一批',
+            // ★ DRAFT-5:JSON 桥读不懂时的按名拒 —— 不能当成空集。
+            errAllocUnreadable: '批次分摊没有读出来,这一次什么都没有建。请重新加载本页再勾一遍。',
             colBasisQty: '据以计算',
             colShare: '分得',
             colInStock: '过账时在库',
@@ -7090,6 +7095,8 @@ const zh = {
             submit: '开具发票',
             submitting: '开具中…',
             noSales: '该客户没有待开票的销售',
+            // ★ DRAFT-5:JSON 桥读不懂时的按名拒 —— 不能落到「你一票都没勾」。
+            errSalesUnreadable: '勾选的销售没有读出来,这一次什么都没有建。请重新加载本页再勾一遍。',
         },
         termsLabel: '条款',
         unassignedSale: '该销售未记录客户',

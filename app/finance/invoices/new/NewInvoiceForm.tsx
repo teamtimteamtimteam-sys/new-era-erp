@@ -11,7 +11,7 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { tableC } from '@/app/components/ui/table-style'
+import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { formatDate } from '@/lib/dates'
 
 const initialState: CreateInvoiceState = {}
@@ -138,6 +138,111 @@ canEdit: boolean
     }
 
     const selected = visible.filter((s) => checked[s.sales_record_id])
+
+    /* ★★ 桥的载荷。**只送勾中的那些** —— 与搬家前逐字同构:
+       那个具名隐藏输入搬家前就是条件渲染的(`{checked[…] && <input name="sale_id">}`),
+       所以数组里本来就只有勾中的行。
+       ★ 这一座桥**不是**按下标配对的那一族:服务端读的是
+       `getAll('sale_id').filter(Boolean)` —— 一份单纯的 id 名单,没有第二条数组
+       要跟它对齐。**所以这一张本来就没有错位的风险**,照直记,
+       免得下一个人以为每一张表都带着 `SALES-AMEND-DISABLED-ARRAY-SHIFT` 那条病。 */
+    const salePayload = visible
+        .filter((s) => checked[s.sales_record_id])
+        .map((s) => s.sales_record_id)
+
+    /* ★ Q5 的必填 `dirty` —— 这张表单开局一票都没勾。 */
+    const salesDirty = selected.length > 0
+
+    /* ════════════════════════════════════════════════════════════════════════
+       ★★★【勾选框【就是】这张表的可编辑列 —— Tim 的 Q2 裁定(DRAFT-5)】★★★
+       这张表**一个要打字的格子都没有**,而 `EditableTable` 对「一列都不可编辑」
+       是按名拒绝的(`EDITABLETABLE_NO_EDITABLE_COLUMN`:那是 `DataTable` 的活)。
+       ☞ 裁定:**勾一票【就是】在改这份草稿**,所以勾选框是 `edit`,
+         `render` 画它的只读投影(✓ / —)。
+       ⚠ ★★ **而这一条带来一个照直记的代价:** 旧注释写着
+         「这张表【要点的就是第一列那个勾】—— 它必须留在看得见的地方」,
+         而 `page-owned` 下**手机档的格子恒为只读**(`editable-table.tsx:676-679`),
+         所以那个勾**在 390px 上从明面移进了展开区:0 → 1 次点按。**
+         ☞ 这是 Tim 的 Q7 裁定在这一张上的又一次落地 ——
+           **R1 不是被投票投掉的,是在这个组件上做不到。** 留在明面上的
+           只会是一个**画出来却按不动**的勾。
+       ★ 两列只读的数(数量 / 单价)照旧叠进品名那一格 —— 零次点按。
+       ════════════════════════════════════════════════════════════════════════ */
+    const saleColumns: EditableColumn<SaleOption, SaleOption>[] = [
+        {
+            key: 'pick',
+            header: '',
+            priority: true,
+            render: (s) => (checked[s.sales_record_id]
+                ? <span aria-label={t('common.yes')}>✓</span>
+                : <span className="text-gray-400" aria-label={t('common.no')}>—</span>),
+            edit: (s) => (
+                <input
+                    className={CONTROL_CHECKBOX}
+                    type="checkbox"
+                    aria-label={s.batch_code}
+                    checked={!!checked[s.sales_record_id]}
+                    onChange={(e) =>
+                        setChecked((c) => ({ ...c, [s.sales_record_id]: e.target.checked }))
+                    }
+                />
+            ),
+        },
+        {
+            key: 'description',
+            header: t('invoice.colDescription'),
+            priority: true,
+            render: (s) => (
+                <>
+                    <span>{s.batch_code}</span>
+                    {s.material_name && <span className="ml-2">{s.material_name}</span>}
+                    {s.customer_id === null && (
+                        <span className="ml-2 px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-800">
+                            {t('invoice.unassignedSale')}
+                        </span>
+                    )}
+                    {/* ★ TABLE-PHONE-4:手机档拿掉的两列,原样叠在这里 ——
+                        「拿掉」指的是【那一列】,不是【那个事实】。
+                        带着各自的列头,所以数字不会失去主语。 */}
+                    <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                        <div>
+                            <span className="font-sans text-gray-500">{t('invoice.colQuantity')}: </span>
+                            {s.quantity} {s.unit}
+                        </div>
+                        <div>
+                            <span className="font-sans text-gray-500">{t('invoice.colUnitPrice')}: </span>
+                            {s.currency} {formatMoneyBare(s.unit_price, '同格内紧邻的 s.currency 前缀')}
+                        </div>
+                    </div>
+                </>
+            ),
+        },
+        {
+            key: 'date',
+            header: t('finance.colDate'),
+            priority: true,
+            render: (s) => formatDate(s.sale_date, locale),
+        },
+        {
+            key: 'quantity',
+            header: t('invoice.colQuantity'),
+            align: 'right',
+            render: (s) => <>{s.quantity} {s.unit}</>,
+        },
+        {
+            key: 'unitPrice',
+            header: t('invoice.colUnitPrice'),
+            align: 'right',
+            render: (s) => <>{s.currency} {formatMoneyBare(s.unit_price, '同格内紧邻的 s.currency 前缀')}</>,
+        },
+        {
+            key: 'amount',
+            header: t('invoice.colAmount'),
+            align: 'right',
+            priority: true,
+            render: (s) => formatAmount(s.amount_base, s.currency),
+        },
+    ]
     const subtotal = round2(selected.reduce((sum, s) => sum + s.amount_base, 0))
     const currencies = Array.from(new Set(selected.map((s) => s.currency)))
     const mixedCurrency = currencies.length > 1
@@ -272,81 +377,21 @@ canEdit: boolean
                 ) : visible.length === 0 ? (
                     <p className="text-sm text-[color:var(--brand-muted-text)]">{t('invoice.form.noSales')}</p>
                 ) : (
-                    /* ════════════════════════════════════════════════════════════════
-                        ★ TABLE-PHONE-4:六列 → 手机档留四列(勾选 · 品名 · 日期 · 金额)。
-                        录入表留四列不留三列(Tim 裁定):把控件收进折叠区等于填一格要点两下,
-                        而这张表【要点的就是第一列那个勾】—— 它必须留在看得见的地方。
-                        被拿掉的两列(数量 / 单价)一个字段都没丢:它们带着各自的列头
-                        叠在品名那一格里,见下面 sm:hidden 的那一块。
-                        ☞ 留金额不留数量×单价:勾这一票的人核的是"这笔会开多少钱",
-                          而数量与单价是它的来路 —— 来路读得到就够,不必占住一列。
-                        ════════════════════════════════════════════════════════════════ */
-                    <table className={`${tableC.root} w-full`}>
-                        <thead>
-                            <tr className={tableC.headRow}>
-                                <th className={`${tableC.headCell} w-8`} />
-                                <th className={`${tableC.headCell} text-left`}>{t('invoice.colDescription')}</th>
-                                <th className={`${tableC.headCell} text-left`}>{t('finance.colDate')}</th>
-                                <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('invoice.colQuantity')}</th>
-                                <th className={`${tableC.headCell} hidden sm:table-cell text-right tabular-nums`}>{t('invoice.colUnitPrice')}</th>
-                                <th className={`${tableC.headCell} text-right tabular-nums`}>{t('invoice.colAmount')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {visible.map((s) => (
-                                <tr className={tableC.bodyRow} key={s.sales_record_id}>
-                                    <td className={`${tableC.cell} text-center`}>
-                                        <input
-                                            className={CONTROL_CHECKBOX}
-                                            type="checkbox"
-                                            checked={!!checked[s.sales_record_id]}
-                                            onChange={(e) =>
-                                                setChecked((c) => ({
-                                                    ...c,
-                                                    [s.sales_record_id]: e.target.checked,
-                                                }))
-                                            }
-                                        />
-                                        {checked[s.sales_record_id] && (
-                                            <input type="hidden" name="sale_id" value={s.sales_record_id} />
-                                        )}
-                                    </td>
-                                    <td className={tableC.cell}>
-                                        <span>{s.batch_code}</span>
-                                        {s.material_name && <span className="ml-2">{s.material_name}</span>}
-                                        {s.customer_id === null && (
-                                            <span className="ml-2 px-2 py-0.5 rounded text-xs bg-amber-100 text-amber-800">
-                                                {t('invoice.unassignedSale')}
-                                            </span>
-                                        )}
-                                        {/* ★ TABLE-PHONE-4:手机档拿掉的两列,原样叠在这里 ——
-                                            「拿掉」指的是【那一列】,不是【那个事实】。
-                                            带着各自的列头,所以数字不会失去主语。 */}
-                                        <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
-                                            <div>
-                                                <span className="font-sans text-gray-500">{t('invoice.colQuantity')}: </span>
-                                                {s.quantity} {s.unit}
-                                            </div>
-                                            <div>
-                                                <span className="font-sans text-gray-500">{t('invoice.colUnitPrice')}: </span>
-                                                {s.currency} {formatMoneyBare(s.unit_price, '同格内紧邻的 s.currency 前缀')}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className={tableC.cell}>{formatDate(s.sale_date, locale)}</td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
-                                        {s.quantity} {s.unit}
-                                    </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell text-right tabular-nums`}>
-                                        {s.currency} {formatMoneyBare(s.unit_price, '同格内紧邻的 s.currency 前缀')}
-                                    </td>
-                                    <td className={`${tableC.cell} text-right tabular-nums`}>
-                                        {formatAmount(s.amount_base, s.currency)}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <>
+                        {/* ★★ (b) 那座桥 —— 画在表外面,只画一遍。
+                            ★ 它交出去的是一份**单纯的 id 名单**,不是按下标配对的行;
+                              服务端那一侧原本就是 `getAll('sale_id').filter(Boolean)`。 */}
+                        <input type="hidden" name="sale_ids_json" value={JSON.stringify(salePayload)} />
+                        <EditableTable<SaleOption, SaleOption>
+                            rows={visible}
+                            columns={saleColumns}
+                            rowKey={(s) => s.sales_record_id}
+                            phone={{ mode: 'columns' }}
+                            mode="page-owned"
+                            dirty={salesDirty}
+                            labels={{ expand: t('common.expandRow') }}
+                        />
+                    </>
                 )}
             </div>
 

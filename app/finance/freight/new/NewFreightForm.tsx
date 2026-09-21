@@ -16,7 +16,7 @@ import { createFreightDocument, type FreightState } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
-import { tableC } from '@/app/components/ui/table-style'
+import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
 
@@ -74,6 +74,116 @@ export default function NewFreightForm({
     //   另外两支 4 列,本来就在免修档里。折叠只在 5 列那一支生效,写在这里一处,
     //   列头与单元格共用它 —— 两边各写一个条件,就是让它们将来各走各的。
     const stacked = basis === 'stated'
+
+    /* ★★ 桥的载荷。**只送挑中的批次** —— 与搬家前逐字同构:
+       那两个具名输入搬家前就是**条件渲染**的(`{picked[b.id] && …}`),
+       所以数组里本来就只有挑中的行。这里保留同一条判据。
+       ★ `amount` 那个键**跟着口径走**:服务端 `actions.ts:31-33` 写的是
+       `...(basis === 'stated' ? { amount_base: … } : {})` —— **键在不在**,
+       而不是值。所以这里也只在 'stated' 那一支送它。 */
+    const allocPayload = batches
+        .filter((b) => picked[b.id])
+        .map((b) => ({
+            inbound_batch_id: b.id,
+            ...(stacked ? { stated_amount: stated[b.id] ?? '' } : {}),
+        }))
+
+    /* ★ Q5 的必填 `dirty` —— 这张表单开局一个批次都没挑,
+       所以「挑了没有 / 填了没有」就是「与进门时那一份比」。 */
+    const allocDirty = batches.some(
+        (b) => !!picked[b.id] || (stated[b.id] ?? '').trim() !== '')
+
+    /* ════════════════════════════════════════════════════════════════════════
+       ★★★【勾选框【就是】这张表的可编辑列 —— Tim 的 Q2 裁定(DRAFT-5)】★★★
+       这张表在 `basis !== 'stated'` 那两支里**一个要打字的格子都没有**,
+       而 `EditableTable` 对「一列都不可编辑」是**按名拒绝**的
+       (`EDITABLETABLE_NO_EDITABLE_COLUMN`:那是 `DataTable` 的活)。
+       ☞ 裁定:**挑一行【就是】在改这份草稿**,所以勾选框是 `edit`,
+         而 `render` 画它的只读投影(✓ / —)。
+       ☞ 于是四列那两支也有一列可编辑,组件不再有理由拒绝,
+         而这句话是**真的**,不是为了绕过一道闸编出来的。
+
+       ★★ 只读列的 390px 处置(Tim 的 Q2):照这个文件**今天已经在做的**那样 ——
+         「剩余」带着列头叠进批次那一格(`stacked` 那一支),
+         桌面照旧是列,手机零次点按看得见。**不新增 priority 列。**
+       ★ 「数量」留在明面上的理由照抄旧注释:分摊运费分的是【这一票走了多少】,
+         数量就是分母;剩余是仓里还剩多少,那是另一件事。
+       ════════════════════════════════════════════════════════════════════════ */
+    const batchColumns: EditableColumn<BatchOption, BatchOption>[] = [
+        {
+            key: 'pick',
+            header: '',
+            priority: true,
+            render: (b) => (picked[b.id]
+                ? <span aria-label={t('common.yes')}>✓</span>
+                : <span className="text-gray-400" aria-label={t('common.no')}>—</span>),
+            edit: (b) => (
+                <input className={CONTROL_CHECKBOX} type="checkbox" checked={!!picked[b.id]}
+                       aria-label={b.code}
+                       onChange={(e) => setPicked((p) => ({ ...p, [b.id]: e.target.checked }))} />
+            ),
+        },
+        {
+            key: 'batch',
+            header: t('finance.freight.colBatch'),
+            priority: true,
+            render: (b) => (
+                <>
+                    {b.code}
+                    {/* ★ TABLE-PHONE-4:5 列那一支手机档拿掉的「剩余」,带着列头叠在这里。 */}
+                    {stacked && (
+                        <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                            <div>
+                                <span className="font-sans text-gray-500">{t('finance.freight.colRemaining')}: </span>
+                                {b.remaining_qty}
+                            </div>
+                        </div>
+                    )}
+                </>
+            ),
+        },
+        {
+            key: 'qty',
+            header: t('finance.freight.colQty'),
+            align: 'right',
+            priority: true,
+            render: (b) => <>{b.quantity} {b.unit}</>,
+        },
+        {
+            key: 'remaining',
+            header: t('finance.freight.colRemaining'),
+            align: 'right',
+            // 4 列那两支它本来就不折叠;5 列那一支叠进批次格里(见上面)。
+            priority: !stacked,
+            render: (b) => b.remaining_qty,
+        },
+        ...(stacked
+            ? [
+                  {
+                      key: 'share',
+                      header: t('finance.freight.colShare'),
+                      align: 'right' as const,
+                      render: (b: BatchOption) =>
+                          ((stated[b.id] ?? '').trim() === '' ? '—' : stated[b.id]),
+                      edit: (b: BatchOption) => (
+                          picked[b.id] ? (
+                              <DecimalInput
+                                  value={stated[b.id] ?? ''}
+                                  onChange={(raw) => setStated((s) => ({ ...s, [b.id]: raw }))}
+                                  className="w-32" />
+                          ) : (
+                              /* ★ 没挑中就没有「分得」可填 —— 这一格的空是
+                                 「这一行不在这次分摊里」,不是「还没填」。
+                                 搬家前它也是条件渲染的,这里逐字同构。 */
+                              <span className="text-[color:var(--brand-muted-text)] text-xs">
+                                  {t('finance.freight.shareNeedsPick')}
+                              </span>
+                          )
+                      ),
+                  },
+              ]
+            : []),
+    ]
 
     return (
         <div className="max-w-4xl">
@@ -232,67 +342,21 @@ export default function NewFreightForm({
                         </div>
                     )}
                     <div className="border border-gray-300 rounded max-h-96 overflow-y-auto">
-                        {/* ════════════════════════════════════════════════════════════════
-                            ★ TABLE-PHONE-4:这张表【列数是有条件的】(GoalsEditor 的先例):
-                            basis === 'stated' 时 5 列,否则 4 列。**四列那一支本来就免修**,
-                            所以折叠【只在 5 列那一支生效】—— 一张已经合格的表不该被这一刀改掉。
-                            5 列那一支手机档留四列(勾选 · 批次 · 数量 · 分得):
-                            被拿掉的「剩余」带着列头叠在批次那一格里。
-                            ☞ 留数量不留剩余:分摊运费分的是【这一票走了多少】,数量就是分母;
-                              剩余是仓里还剩多少,那是另一件事。而末列是唯一要打字的地方,必留。
-                            ════════════════════════════════════════════════════════════════ */}
-                        <table className={`${tableC.root} w-full`}>
-                            <thead className="sticky top-0">
-                                <tr className={tableC.headRow}>
-                                    <th className={`${tableC.headCell} text-left w-10`} />
-                                    <th className={`${tableC.headCell} text-left`}>{t('finance.freight.colBatch')}</th>
-                                    <th className={`${tableC.headCell} text-right tabular-nums`}>{t('finance.freight.colQty')}</th>
-                                    <th className={`${tableC.headCell} ${(stacked ? 'hidden sm:table-cell ' : '') + 'text-right'}`}>
-                                        {t('finance.freight.colRemaining')}
-                                    </th>
-                                    {basis === 'stated' && (
-                                        <th className={`${tableC.headCell} text-right tabular-nums`}>{t('finance.freight.colShare')}</th>
-                                    )}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {batches.map((b) => (
-                                    <tr key={b.id} className={tableC.bodyRow}>
-                                        <td className={tableC.cell}>
-                                            <input className={CONTROL_CHECKBOX} type="checkbox" checked={!!picked[b.id]}
-                                                onChange={(e) => setPicked((p) => ({ ...p, [b.id]: e.target.checked }))} />
-                                            {picked[b.id] && <input type="hidden" name="batch_id" value={b.id} />}
-                                        </td>
-                                        <td className={tableC.cell}>
-                                            {b.code}
-                                            {/* ★ TABLE-PHONE-4:5 列那一支手机档拿掉的「剩余」,带着列头叠在这里。 */}
-                                            {stacked && (
-                                                <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
-                                                    <div>
-                                                        <span className="font-sans text-gray-500">{t('finance.freight.colRemaining')}: </span>
-                                                        {b.remaining_qty}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className={`${tableC.cell} text-right tabular-nums`}>{b.quantity} {b.unit}</td>
-                                        <td className={`${tableC.cell} ${(stacked ? 'hidden sm:table-cell ' : '') + 'text-right tabular-nums'}`}>
-                                            {b.remaining_qty}
-                                        </td>
-                                        {basis === 'stated' && (
-                                            <td className={`${tableC.cell} text-right tabular-nums`}>
-                                                {picked[b.id] && (
-                                                    <DecimalInput name="stated_amount"
-                                                        value={stated[b.id] ?? ''}
-                                                        onChange={(raw) => setStated((s) => ({ ...s, [b.id]: raw }))}
-                                                        className="w-32" />
-                                                )}
-                                            </td>
-                                        )}
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        {/* ★★ (b) 那座桥 —— 画在表外面,只画一遍。
+                            ★ 搬家前那两个具名输入(`batch_id` / `stated_amount`)
+                              **都是条件渲染**的 —— 只有挑中的行才进数组,
+                              两条数组因此对齐。桥把「对齐」这件事整个取消了:
+                              每一行自己带着自己的值。 */}
+                        <input type="hidden" name="alloc_json" value={JSON.stringify(allocPayload)} />
+                        <EditableTable<BatchOption, BatchOption>
+                            rows={batches}
+                            columns={batchColumns}
+                            rowKey={(b) => b.id}
+                            phone={{ mode: 'columns' }}
+                            mode="page-owned"
+                            dirty={allocDirty}
+                            labels={{ expand: t('common.expandRow') }}
+                        />
                     </div>
                 </div>}
 

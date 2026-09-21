@@ -24,7 +24,21 @@ export async function createInvoice(
     const termsRaw = String(formData.get('terms_days') ?? '').trim()
     const notes = String(formData.get('notes') ?? '').trim()
     const termsText = String(formData.get('terms_text') ?? '').trim()
-    const saleIds = formData.getAll('sale_id').map(String).filter(Boolean)
+    // ★★ DRAFT-5(2026-09-21):具名隐藏输入 → 一座 JSON 桥(Tim 的 (b) 裁定)。
+    //   ★ 这一座与别处不同:它交的是**一份单纯的 id 名单**,不是按下标配对的行
+    //     —— 搬家前也没有第二条数组要跟它对齐。**所以这一张从来没有错位的风险**,
+    //     写下来免得下一个人以为每一张表都带着那条病。
+    //   ⚠ **读不懂的桥不当空集**:空集会走到下面那句「至少勾一票」的拒绝,
+    //     而那句话说的是「你一票都没勾」—— 一句关于操作员的断言,
+    //     真相是这一次提交没有被读懂。按名拒。
+    let saleIds: string[]
+    try {
+        const parsed: unknown = JSON.parse(String(formData.get('sale_ids_json') ?? '[]'))
+        if (!Array.isArray(parsed)) throw new Error('not an array')
+        saleIds = parsed.map(String).filter(Boolean)
+    } catch {
+        return { error: (await getTranslations())('invoice.form.errSalesUnreadable') }
+    }
     // GST-2:税码。未注册时这一格根本不渲染,所以这里是空串 —— 送 undefined,
     // 让数据库那边走"未注册"的分支。**不在这里替人挑一个** —— 猜一个税码
     // 与猜一个汇率是同一种谎。

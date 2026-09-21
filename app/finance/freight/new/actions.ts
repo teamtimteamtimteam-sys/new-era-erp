@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { localizeFreightError } from '../../freightErrorCodes'
+import { getTranslations } from '@/lib/i18n/server'
 
 export type FreightState = { error?: string }
 
@@ -25,12 +26,33 @@ export async function createFreightDocument(
     const notes = String(formData.get('notes') ?? '').trim() || null
 
     // 并列数组:勾选的批次 + (stated 口径时)逐批金额
-    const batchIds = formData.getAll('batch_id').map(String)
-    const stated = formData.getAll('stated_amount').map(String)
-    const allocations = batchIds.map((id, i) => ({
-        inbound_batch_id: id,
-        ...(basis === 'stated' ? { amount_base: (stated[i] ?? '').trim() || null } : {}),
-    }))
+    // ★★ DRAFT-5(2026-09-21):两条按下标配对的并列数组 → 一座 JSON 桥
+    //   (Tim 的 (b) 裁定)。**变的只有行从哪来** —— 下面那句映射一个字没改。
+    //   ⚠ **`amount_base` 是【键在不在】,不是值**:只有 'stated' 那一支送它。
+    //     原样保留 —— 另外两个口径由服务端自己按重量/价值算,
+    //     送一个 null 过去会让「没填」和「不按这个口径」长得一模一样。
+    //   ⚠ **读不懂的桥不当空集**:空集 = 一张一个批次都没摊到的运费单,
+    //     而那是一次说不出话的提交,不是一次「谁都不摊」。按名拒。
+    let allocations: { inbound_batch_id: string; amount_base?: string | null }[]
+    try {
+        const parsed: unknown = JSON.parse(String(formData.get('alloc_json') ?? '[]'))
+        if (!Array.isArray(parsed)) throw new Error('not an array')
+        allocations = parsed.flatMap((el) => {
+            if (el === null || typeof el !== 'object') return []
+            const row = el as Record<string, unknown>
+            const id = String(row.inbound_batch_id ?? '')
+            if (id === '') return []
+            return [{
+                inbound_batch_id: id,
+                ...(basis === 'stated'
+                    ? { amount_base: String(row.stated_amount ?? '').trim() || null }
+                    : {}),
+            }]
+        })
+    } catch {
+        const tt = await getTranslations()
+        return { error: tt('finance.freight.errAllocUnreadable') }
+    }
 
     const supabase = await createClient()
 
