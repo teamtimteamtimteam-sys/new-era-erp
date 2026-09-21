@@ -39,9 +39,20 @@ export default async function BulkFxPage() {
         .filter((c) => !c.is_base)
         .map((c) => c.code)
 
+    // ★★【DRAFT-6 / Tim 的 Q19(2026-09-21):窗口查询跟着收窄到【这张表画得出来的
+    //   那几种币】】★★
+    //   ☞ 它与 `BulkFxGrid` 那一处的键修法是**一件事的两头**:那边把币种加回键里
+    //     (此前一格 USD 的牌价会让同一天的 CNY 那一格显示成「已在册」,
+    //     并且让它**永远填不进去**);这边保证递下去的那一份名单里,
+    //     **不会有一行是这张表根本选不到的币**(例如本位币,或者将来被停用的币)。
+    //   ⚠ **本位币【不在】 `currencies` 里**(上面那一句 `.filter((c) => !c.is_base)`),
+    //     所以这一条同时把「本位币自己的牌价行」挡在外面 —— 那一行对这张表没有意义。
+    //   ★ 币种由**客户端下拉**切换,所以这里【不能】只取那一种:一收窄到单一币种,
+    //     切换下拉就要走一次服务端往返,而今天它是即时的。收窄到"这几种"是对的。
     const existingRes = await supabase
         .from('fx_rates')
         .select('id, currency, rate_date, rate_type, rate_sgd_per_unit')
+        .in('currency', currencies)
         .gte('rate_date', dates[0])
         .lte('rate_date', dates[dates.length - 1])
         .is('deleted_at', null)
