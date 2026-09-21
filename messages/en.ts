@@ -1493,6 +1493,19 @@ const en = {
         // ★ MANUAL-FIX-1 A:目录里没有 module.<模块>.edit 的那一行,Edit 那一格
         //   画一条短横并挂上这句话,而不是画一个勾得上、存不下的框。
         noEditCapability: 'This module has no separate edit permission — its View permission is the whole of it.',
+        // ★★【DRAFT-6 / Tim 的 Q1+Q2 裁定(2026-09-21):这两句话是【手机上】
+        //   唯一分得开「没勾」与「没有这样东西」的东西】★★
+        //   搬到 `EditableTable` 之后,模块是唯一留在 390px 那一行上的列,
+        //   View / Edit 两列的答案**叠进它那一格**(TABLE-PHONE-4 的做法)。
+        //   ☞ 而它们【必须是话,不能是符号】:草稿模型那一族的只读投影惯用
+        //     `✓ / —`(`#12` / `#14`,Tim 的 Q2,DRAFT-5),那里的 `—` 读作
+        //     **「没勾」**;而这张表的 `—` 是 Tim 的 Q6 裁定,读作
+        //     **「这个模块没有『编辑』这样东西」**。
+        //   ⚠ **同一个字形,同一列,两种意思** —— 照搬那个惯用法会把 Q6
+        //     那条例外自己的理由(「短横读起来像这里没有这样东西」)当场推翻。
+        //   ☞ 所以这一格用话不用字形,而 `—` 原样留在桌面那一列里。
+        granted: 'granted',
+        notGranted: 'not granted',
         editRequiresViewHint: 'Edit requires View: a role that can change records but not read them cannot save at all, because writes read the row back. Ticking Edit ticks View; unticking View unticks Edit.',
         dataAndActions: 'Data and action permissions',
         dataAndActionsHint: 'These cut across every module. Read what each one reveals before granting it.',
