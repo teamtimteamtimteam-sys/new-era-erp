@@ -16,7 +16,7 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
-import { tableC } from '@/app/components/ui/table-style'
+import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
 
@@ -284,6 +284,152 @@ canEdit: boolean
     // 折不出来就连"填满"也不能按 —— 填一个编出来的数,比不填坏得多
     const canFill = (docCcy: string) => docCcy === currency || (payRate !== null && !!docRates[docCcy])
 
+    /* ════════════════════════════════════════════════════════════════════════
+       ★★★【两张表,两座桥 —— 而服务端靠 `alloc_kind` 分辨,不靠位置】★★★
+       搬家前这两张表**共用三条并列数组**(`alloc_id` / `alloc_kind` /
+       `alloc_amount`),按下标配对;而 `direction === 'out'` 时**两张表同时渲染**
+       (`pos` 是采购单,`items` 是 apItems),于是那三条数组里是两张表的行**接在一起**。
+       ☞ 服务端 `actions.ts:75-85` 逐行读的是 `allocKinds[i]` —— **它本来就按
+         `alloc_kind` 分辨,不按位置**。桥因此可以分成两座而不改那段判据:
+         每一行自己带着自己的 `kind`,两座桥在服务端**先拼起来再走同一个循环**。
+       ☞ **为什么是两座而不是一座:** 两张表的列不是同一组(采购单有「预付」
+         与两种不同的币;未结单据有「未结」与单据类别),行类型也不同。
+         合成一个联合数组会让一半的列在另一半上没有意义 —— 与 `#22`/`#23` 同一条裁定。
+       ════════════════════════════════════════════════════════════════════════ */
+    const poAllocPayload = pos
+        .filter((p) => (alloc[p.po_id] ?? '').trim() !== '')
+        .map((p) => ({ id: p.po_id, kind: 'purchase_order', amount: alloc[p.po_id] ?? '' }))
+    const itemAllocPayload = items
+        .filter((i) => (alloc[i.doc_id] ?? '').trim() !== '')
+        .map((i) => ({ id: i.doc_id, kind: i.doc_kind, amount: alloc[i.doc_id] ?? '' }))
+
+    /* ★ Q5 的必填 `dirty` —— 这张表单开局一个核销额都没填。
+       ☞ 两张表**各自一个 `dirty`**,谁都不替谁说话:组件是每个实例各挂一个
+         `beforeunload`,而浏览器无论几个监听器调了 `preventDefault` 只弹一个框
+         (DRAFT-3 §3.1 为 `#6`/`#7` 量过同一件事)。合并只会让一张表
+         声称另一张表的状态。 */
+    const poDirty = pos.some((p) => (alloc[p.po_id] ?? '').trim() !== '')
+    const itemsDirty = items.some((i) => (alloc[i.doc_id] ?? '').trim() !== '')
+
+    /* ★★ `#15` 采购单预付那张表的列。
+       ★ 「下单日期」照这个文件今天的做法叠进单据那一格(TABLE-PHONE-4),
+         桌面照旧是列,手机零次点按看得见 —— 不新增 priority 列(Tim 的 Q2)。
+       ★★ 而「预估总额」与「已预付」**两列都 priority**:旧注释白纸黑字写着
+         **它们不是同一种币**(前者是单据币种,后者是本位币),
+         而「两个数缺一个这一格就填不成」。☞ 它们要是掉进展开区就会整个消失
+         (`page-owned` 下展开区只画有 `edit` 的列),那一格也就填不成了。
+       ★ 「填满」那颗钮走 `rowActions`(能力 A)—— 于是手机上它在展开区末尾,
+         与核销输入框挨在一起,正是按它的时候手指所在的地方(Tim 的 Q7)。 */
+    const poColumns: EditableColumn<PoItem, PoItem>[] = [
+        {
+            key: 'doc',
+            header: t('finance.colDocument'),
+            priority: true,
+            render: (p) => (
+                <>
+                    {p.code}
+                    {/* ★ TABLE-PHONE-4:手机档拿掉的下单日期,带着列头叠在这里。 */}
+                    <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
+                        <div>
+                            <span className="text-gray-500">{t('purchasing.colOrderDate')}: </span>
+                            {formatDate(p.order_date, locale)}
+                        </div>
+                    </div>
+                </>
+            ),
+        },
+        {
+            key: 'orderDate',
+            header: t('purchasing.colOrderDate'),
+            render: (p) => formatDate(p.order_date, locale),
+        },
+        /* 【这两列不是同一种币】estimated_total_ccy 名字里带 usd,存的却是
+           【单据币种】(create_purchase_order 全程不乘汇率,旧名见 known-issues);
+           prepaid_base 是【本位币】。并排、都不标币种,比未结那一列还容易读错 ——
+           各标各的。 */
+        {
+            key: 'estimated',
+            header: t('purchasing.colEstimatedTotal'),
+            align: 'right',
+            priority: true,
+            render: (p) => formatAmount(p.estimated_total_ccy, p.currency),
+        },
+        {
+            key: 'prepaid',
+            header: t('purchasing.colPrepaid'),
+            align: 'right',
+            priority: true,
+            render: (p) => formatAmount(p.prepaid_base, baseCurrency),
+        },
+        {
+            key: 'allocate',
+            header: t('finance.colAllocate'),
+            render: (p) => ((alloc[p.po_id] ?? '').trim() === '' ? '—' : alloc[p.po_id]),
+            edit: (p) => (
+                <div className="flex items-center gap-1">
+                    <DecimalInput
+                        value={alloc[p.po_id] ?? ''}
+                        onChange={(raw) => setAlloc((a) => ({ ...a, [p.po_id]: raw }))}
+                        className="w-32"
+                    />
+                    <span className="text-xs text-gray-600">{p.currency}</span>
+                </div>
+            ),
+        },
+    ]
+
+    /* ★ `#16` 未结单据那张表的列。未结额**每行带着自己的币种**(FIN-16 之后
+       这一列按设计就是混币种的,不标币种的混币种金额列不是显示瑕疵,是陷阱)。 */
+    const itemColumns: EditableColumn<OpenItem, OpenItem>[] = [
+        {
+            key: 'doc',
+            header: t('finance.colDocument'),
+            priority: true,
+            render: (i) => (
+                <>
+                    {i.doc_code}
+                    {/* AP 侧标注单据类别(进料/开支),看清核销对象;AR 全是销售,不标 */}
+                    {i.doc_kind !== 'sale' && (
+                        <span className="ml-2 px-2 py-0.5 rounded text-xs bg-gray-200 text-gray-500 font-sans">
+                            {t('finance.docKind.' + i.doc_kind)}
+                        </span>
+                    )}
+                </>
+            ),
+        },
+        {
+            key: 'date',
+            header: t('finance.colDate'),
+            priority: true,
+            render: (i) => formatDate(i.doc_date, locale),
+        },
+        {
+            key: 'open',
+            header: t('finance.colOpen'),
+            align: 'right',
+            priority: true,
+            render: (i) => formatAmount(i.open_ccy, i.currency),
+        },
+        {
+            key: 'allocate',
+            header: t('finance.colAllocate'),
+            render: (i) => ((alloc[i.doc_id] ?? '').trim() === '' ? '—' : alloc[i.doc_id]),
+            edit: (i) => (
+                <div className="flex items-center gap-1">
+                    {/* 上限不再由 max 属性约束(text 输入无此语义);
+                        超额由 DB 的 ALLOC_EXCEEDS 拦下,口径不变 */}
+                    <DecimalInput
+                        value={alloc[i.doc_id] ?? ''}
+                        onChange={(raw) => setAlloc((a) => ({ ...a, [i.doc_id]: raw }))}
+                        className="w-32"
+                    />
+                    {/* 输入的是【单据币种】—— 把它写在框边上,而不是让人推断 */}
+                    <span className="text-xs text-gray-600">{i.currency}</span>
+                </div>
+            ),
+        },
+    ]
+
     function fill(item: OpenItem) {
         // 【两边都要换算】others 是其它行消耗掉的【付款额】;剩余款额再换回单据币种,
         // 才能与 open_ccy(单据币种)比大小。原先两边直接相减,跨币种时按汇率错。
@@ -516,70 +662,28 @@ canEdit: boolean
                         ★ 那两列【不是同一种币】(见下面原注),所以两列各自带着币种 ——
                           折叠区里也一样,formatAmount 原样搬过去。
                         ════════════════════════════════════════════════════════════════ */}
-                    <table className={`${tableC.root} w-full`}>
-                        <thead>
-                            <tr className={tableC.headRow}>
-                                <th className={`${tableC.headCell} text-left`}>{t('finance.colDocument')}</th>
-                                <th className={`${tableC.headCell} hidden sm:table-cell text-left`}>{t('purchasing.colOrderDate')}</th>
-                                <th className={`${tableC.headCell} text-right tabular-nums`}>{t('purchasing.colEstimatedTotal')}</th>
-                                <th className={`${tableC.headCell} text-right tabular-nums`}>{t('purchasing.colPrepaid')}</th>
-                                <th className={`${tableC.headCell} text-left`}>{t('finance.colAllocate')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {pos.map((p) => (
-                                <tr className={tableC.bodyRow} key={p.po_id}>
-                                    <td className={tableC.cell}>
-                                        {p.code}
-                                        {/* ★ TABLE-PHONE-4:手机档拿掉的下单日期,带着列头叠在这里。 */}
-                                        <div className="sm:hidden mt-1 space-y-0.5 font-sans text-xs text-gray-600">
-                                            <div>
-                                                <span className="text-gray-500">{t('purchasing.colOrderDate')}: </span>
-                                                {formatDate(p.order_date, locale)}
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className={`${tableC.cell} hidden sm:table-cell`}>{formatDate(p.order_date, locale)}</td>
-                                    {/* 【这两列不是同一种币】estimated_total_ccy 名字里带 usd,
-                                        存的却是【单据币种】(create_purchase_order 全程不乘汇率,
-                                        旧名见 docs/known-issues.md);prepaid_base 是【本位币】。
-                                        并排、都不标币种,比未结那一列还容易读错 —— 各标各的。 */}
-                                    <td className={`${tableC.cell} text-right tabular-nums`}>
-                                        {formatAmount(p.estimated_total_ccy, p.currency)}
-                                    </td>
-                                    <td className={`${tableC.cell} text-right tabular-nums`}>
-                                        {formatAmount(p.prepaid_base, baseCurrency)}
-                                    </td>
-                                    <td className={tableC.cell}>
-                                        <input type="hidden" name="alloc_id" value={p.po_id} />
-                                        <input type="hidden" name="alloc_kind" value="purchase_order" />
-                                        <div className="flex items-center gap-1">
-                                            <DecimalInput
-                                                name="alloc_amount"
-                                                value={alloc[p.po_id] ?? ''}
-                                                onChange={(raw) =>
-                                                    setAlloc((a) => ({ ...a, [p.po_id]: raw }))
-                                                }
-                                                className="w-32"
-                                            />
-                                            <span className="text-xs text-gray-600">{p.currency}</span>
-                                            <Button
-                                                variant="link"
-                                                size="inline"
-                                                type="button"
-                                                onClick={() => fillPo(p)}
-                                                disabled={!canFill(p.currency)}
-                                                className="ml-1"
-                                            >
-                                                {t('finance.fillAll')}
-                                            </Button>
-                                        </div>
-                                        <RowCost docCcy={p.currency} docId={p.po_id} />
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    {/* ★★ (b) 那座桥 —— 画在表外面,只画一遍。见上面「两张表,两座桥」那一段。 */}
+                    <input type="hidden" name="po_alloc_json" value={JSON.stringify(poAllocPayload)} />
+                    <EditableTable<PoItem, PoItem>
+                        rows={pos}
+                        columns={poColumns}
+                        rowKey={(p) => p.po_id}
+                        phone={{ mode: 'columns' }}
+                        mode="page-owned"
+                        dirty={poDirty}
+                        labels={{ expand: t('common.expandRow') }}
+                        /* ★ 能力 A:「填满」走 rowActions —— 手机上它在展开区末尾,
+                           与核销输入框挨在一起,正是按它的时候手指所在的地方。 */
+                        rowActions={(p) => (
+                            <>
+                                <Button variant="link" size="inline" type="button"
+                                        onClick={() => fillPo(p)} disabled={!canFill(p.currency)}>
+                                    {t('finance.fillAll')}
+                                </Button>
+                                <RowCost docCcy={p.currency} docId={p.po_id} />
+                            </>
+                        )}
+                    />
                     <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('purchasing.prepaymentNote')}</p>
                 </div>
             )}
@@ -587,66 +691,27 @@ canEdit: boolean
             {/* 核销:选定往来单位后列其未结单据 */}
             {partyId && (
                 items.length > 0 ? (
-                    <table className={`${tableC.root} w-full`}>
-                        <thead>
-                            <tr className={tableC.headRow}>
-                                <th className={`${tableC.headCell} text-left`}>{t('finance.colDocument')}</th>
-                                <th className={`${tableC.headCell} text-left`}>{t('finance.colDate')}</th>
-                                <th className={`${tableC.headCell} text-right tabular-nums`}>{t('finance.colOpen')}</th>
-                                <th className={`${tableC.headCell} text-left`}>{t('finance.colAllocate')}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {items.map((i) => (
-                                <tr className={tableC.bodyRow} key={i.doc_id}>
-                                    <td className={tableC.cell}>
-                                        {i.doc_code}
-                                        {/* AP 侧标注单据类别(进料/开支),看清核销对象;AR 全是销售,不标 */}
-                                        {i.doc_kind !== 'sale' && (
-                                            <span className="ml-2 px-2 py-0.5 rounded text-xs bg-gray-200 text-gray-500 font-sans">
-                                                {t('finance.docKind.' + i.doc_kind)}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className={tableC.cell}>{formatDate(i.doc_date, locale)}</td>
-                                    {/* 【每行都要带币种】FIN-16 之后这一列按设计就是混币种的,
-                                        不标币种的混币种金额列不是显示瑕疵,是陷阱 */}
-                                    <td className={`${tableC.cell} text-right tabular-nums`}>
-                                        {formatAmount(i.open_ccy, i.currency)}
-                                    </td>
-                                    <td className={tableC.cell}>
-                                        <input type="hidden" name="alloc_id" value={i.doc_id} />
-                                        <input type="hidden" name="alloc_kind" value={i.doc_kind} />
-                                        {/* 上限不再由 max 属性约束(text 输入无此语义);
-                                            超额由 DB 的 ALLOC_EXCEEDS 拦下,口径不变 */}
-                                        <div className="flex items-center gap-1">
-                                            <DecimalInput
-                                                name="alloc_amount"
-                                                value={alloc[i.doc_id] ?? ''}
-                                                onChange={(raw) =>
-                                                    setAlloc((a) => ({ ...a, [i.doc_id]: raw }))
-                                                }
-                                                className="w-32"
-                                            />
-                                            {/* 输入的是【单据币种】—— 把它写在框边上,而不是让人推断 */}
-                                            <span className="text-xs text-gray-600">{i.currency}</span>
-                                            <Button
-                                                variant="link"
-                                                size="inline"
-                                                type="button"
-                                                onClick={() => fill(i)}
-                                                disabled={!canFill(i.currency)}
-                                                className="ml-1"
-                                            >
-                                                {t('finance.fillAll')}
-                                            </Button>
-                                        </div>
-                                        <RowCost docCcy={i.currency} docId={i.doc_id} />
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    <>
+                    <input type="hidden" name="item_alloc_json" value={JSON.stringify(itemAllocPayload)} />
+                    <EditableTable<OpenItem, OpenItem>
+                        rows={items}
+                        columns={itemColumns}
+                        rowKey={(i) => i.doc_id}
+                        phone={{ mode: 'columns' }}
+                        mode="page-owned"
+                        dirty={itemsDirty}
+                        labels={{ expand: t('common.expandRow') }}
+                        rowActions={(i) => (
+                            <>
+                                <Button variant="link" size="inline" type="button"
+                                        onClick={() => fill(i)} disabled={!canFill(i.currency)}>
+                                    {t('finance.fillAll')}
+                                </Button>
+                                <RowCost docCcy={i.currency} docId={i.doc_id} />
+                            </>
+                        )}
+                    />
+                    </>
                 ) : (
                     <p className="text-sm text-[color:var(--brand-muted-text)]">{t('finance.noOpenItems')}</p>
                 )

@@ -6310,6 +6310,8 @@ const zh = {
         colDays: '账龄(天)',
         colAllocate: '本次冲销',
         fillAll: '填满',
+        // ★ DRAFT-5:两座核销桥读不懂时的按名拒 —— 不能当成空集。
+        errAllocUnreadable: '核销明细没有读出来,这一次什么都没有记。请重新加载本页再填一遍。',
         unallocated: '未冲销(预收/预付)',
         totalAllocated: '冲销合计',
         settlesDocuments: '(结掉单据各自币种的 {list})',

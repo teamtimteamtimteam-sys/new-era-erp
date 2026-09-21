@@ -60,9 +60,43 @@ export async function createPayment(
     // 送下去。运费行于是以 inbound_batch_id 的名义发出,批次查不到 →
     // ALLOC_INVALID:一次按名拒绝,但它拒绝的名字指着错的东西。
     // 新增的种类要在这里【显式】接一支,而不是靠兜底 —— 兜底能接住的只有"猜"。
-    const allocIds = formData.getAll('alloc_id').map(String)
-    const allocKinds = formData.getAll('alloc_kind').map(String)
-    const allocAmounts = formData.getAll('alloc_amount').map(String)
+    // ★★ DRAFT-5(2026-09-21):三条按下标配对的并列数组 → **两座 JSON 桥**
+    //   (Tim 的 (b) 裁定)。采购单预付走 `po_alloc_json`,未结单据走 `item_alloc_json`。
+    //
+    //   ★★★【为什么是两座,而下面这段循环【一个字都没改】】
+    //   搬家前那三条数组是**两张表的行接在一起**的(`direction === 'out'` 时
+    //   两张表同时渲染)。而这段循环逐行读的是 `allocKinds[i]` ——
+    //   **它本来就按 `kind` 分辨,不按位置**。所以两座桥在这里**先拼起来**,
+    //   再原样走同一个循环:判据一个字不动,而每一行自己带着自己的 `kind`。
+    //   ☞ 分成两座的理由是【页面那一侧】:两张表的列不是同一组,
+    //     合成一个联合数组会让一半的列在另一半上没有意义(与 `#22`/`#23` 同一条)。
+    //
+    //   ⚠ **读不懂的桥不当空集**:空集 = 一次一张单据都没核销的付款,
+    //     而那是一次说不出话的提交,不是一次「谁都不核销」。按名拒。
+    type AllocIn = { id: string; kind: string; amount: string }
+    const readBridge = (key: string): AllocIn[] | null => {
+        try {
+            const parsed: unknown = JSON.parse(String(formData.get(key) ?? '[]'))
+            if (!Array.isArray(parsed)) return null
+            return parsed.flatMap((el) => {
+                if (el === null || typeof el !== 'object') return []
+                const row = el as Record<string, unknown>
+                const id = String(row.id ?? '')
+                return id === '' ? [] : [{ id, kind: String(row.kind ?? ''), amount: String(row.amount ?? '') }]
+            })
+        } catch {
+            return null
+        }
+    }
+    const poBridge = readBridge('po_alloc_json')
+    const itemBridge = readBridge('item_alloc_json')
+    if (poBridge === null || itemBridge === null) {
+        return { error: (await getTranslations())('finance.errAllocUnreadable') }
+    }
+    const bridged = [...poBridge, ...itemBridge]
+    const allocIds = bridged.map((a) => a.id)
+    const allocKinds = bridged.map((a) => a.kind)
+    const allocAmounts = bridged.map((a) => a.amount)
     type Alloc = {
         sales_record_id?: string
         invoice_id?: string

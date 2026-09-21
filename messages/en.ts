@@ -6494,6 +6494,9 @@ const en = {
         colDays: 'Days',
         colAllocate: 'Allocate',
         fillAll: 'Fill',
+        // ★ DRAFT-5:两座核销桥读不懂时的按名拒 —— 不能当成空集。
+        //   空集 = 一次一张单据都没核销的付款,而那是一次说不出话的提交。
+        errAllocUnreadable: 'The allocations could not be read. Nothing was recorded — please reload the page and enter them again.',
         unallocated: 'Unallocated (on account)',
         totalAllocated: 'Allocated',
         settlesDocuments: '(settles {list} in their own currencies)',
