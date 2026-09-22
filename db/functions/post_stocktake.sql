@@ -1,3 +1,35 @@
+-- db/functions/post_stocktake.sql
+-- 盘点过账。cut 2a 建的;★ APR-3(2026-09-22)把它接上审批引擎。
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- ★★ APR-3 在这里加了两样,而【没有】加第三样 ★★(Tim 的 Q4 裁定)
+-- ════════════════════════════════════════════════════════════════════════════
+-- 加的:① 四眼(只有 raiser 那条腿 —— 一次盘点【不是关于某个人的】,
+--          与工单同形,第二个入参传 NULL,而 NULL 一律不匹配);
+--        ② 一行 approval_log 留痕。
+--
+-- ★【没有加按角色分级,而这是一条裁定,不是遗漏】盘点【没有金额】——
+--   stocktakes 表上一个金额列都没有(id/code/status/notes/时间戳/人)。
+--   按 Tim 修订后的 N7:按角色分级只管带钱的单据;不带钱的,谁能批仍由它
+--   自己的模块权限说了算,这里就是 module.stocktakes.edit。
+--   ☞ 所以本函数【不】调 require_approver_for,也因此【不】进
+--     approval_chain_gates() 那张名册 —— fixture 203 的 E 臂把名册与
+--     「prosrc 里真的调了它的那组函数」钉成逐字相等,加错一行当场红。
+--
+-- ★【留痕永远写 approved,永远不写 auto_approved】过账是一个人按下去的动作,
+--   开着还是关着都是。这与 HR 三条链、以及 APR-3 同时修好的工单放行,
+--   是同一条裁定(Tim 的 Q7)。level 恒为 NULL —— 写一个级别就是声称有过
+--   一次按级别的授权,而这条链没有。
+--
+-- ⚠★【它对线上 5 张 open 的盘点是有后果的,照直说】线上 ST-2026-0082…0086
+--   五张都是 admin@swm-os.test 建的,于是从本刀起 **admin 自己过不了这五张**。
+--   过得了的是另外五个持 module.stocktakes.edit 的人(chooer · fusheng ·
+--   phua · sandra · vince)。这是四眼原则要的效果,不是一次回归。
+--
+-- ★【open 不算"在途待批"】approval_pending_documents() 里【没有】盘点 ——
+--   open 的意思是"正在点",不是"在等人批";盘点在点完与过账之间没有那一格。
+--   把 5 张 open 数成在途,会让屏幕说一句假话。理由写在那个函数的抬头。
+
 CREATE OR REPLACE FUNCTION public.post_stocktake(p_stocktake_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -21,7 +53,7 @@ DECLARE
     v_je_lines       jsonb := '[]'::jsonb;
 BEGIN
     PERFORM require_permission('module.stocktakes.edit');
-    SELECT id, code, status, deleted_at INTO v_st
+    SELECT id, code, status, deleted_at, created_by INTO v_st
     FROM stocktakes WHERE id = p_stocktake_id FOR UPDATE;
     IF NOT FOUND OR v_st.deleted_at IS NOT NULL THEN
         RAISE EXCEPTION 'STOCKTAKE_NOT_FOUND|%', p_stocktake_id;
@@ -29,6 +61,11 @@ BEGIN
     IF v_st.status <> 'open' THEN
         RAISE EXCEPTION 'STOCKTAKE_NOT_OPEN|%', v_st.status;
     END IF;
+
+    -- ★ APR-3:四眼。判据只有一份定义,两条腿的顺序也只在那里定。
+    -- 第二个入参是 NULL —— 一次盘点是关于一批货的,不是关于某个人的,
+    -- 所以它没有"这张单说的是谁"那条腿;而 NULL 一律不匹配。
+    PERFORM forbid_self_approval(v_st.created_by, NULL::uuid);
 
     FOR v_line IN SELECT * FROM stocktake_lines WHERE stocktake_id = p_stocktake_id
     LOOP
@@ -134,6 +171,10 @@ BEGIN
             'stocktake', p_stocktake_id,
             v_je_lines);
     END IF;
+
+    -- ★ APR-3:留痕。恒 approved、level 恒 NULL(理由在文件抬头)。
+    PERFORM record_approval_decision('stocktake', p_stocktake_id, 'approved', NULL::smallint,
+        format('盘点过账:%s 行有差异,合计 %s', v_lines_adjusted, v_total_delta));
 
     RETURN jsonb_build_object(
         'stocktake_id', p_stocktake_id,

@@ -96,6 +96,14 @@ BEGIN
         -- 而那会让 H1 为【错的理由】变红。
         (r_l1,   'data.view_prices'),
         (r_l2,   'data.view_prices'),
+        -- ★★ APR-3(2026-09-22):报销单那条链接上了引擎,它的门是
+        --   module.finance.view + data.view_prices。两级都要补上 module.finance.view,
+        --   ☞ 【否则 H1 报出来的会是报销那条链,而不是本臂刻意造出来的采购那条】——
+        --     那样这一臂仍然会绿,而它证的已经是另一件事了。
+        --   ★ 本臂刻意留着的缺口【只有一个】:r_l1 不持 module.purchasing.view。
+        --     H2 随后把它补上,于是"补齐就开得起来"证的是那一个码,不是一堆码。
+        (r_l1,   'module.finance.view'),
+        (r_l2,   'module.finance.view'),
         -- ★ 二级这一支【一开始就配齐】,于是 H1 报出来的必然是一级那一条,
         --   而不是一句含混的"某一级不行"。
         (r_l2,   'module.purchasing.view');

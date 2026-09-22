@@ -3,6 +3,21 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ~~★ APR2-WORK-ORDER-AUTO-APPROVED-IS-A-HUMAN-PRESS~~ —— ✅ **关闭:APR-3 修了它(2026-09-22)**
+
+> ★★ **Tim 的 Q7 裁定:取出路 ①。** `release_work_order` 两条分支现在都写
+> `decision = 'approved'`、`actor_user_id = auth.uid()`、`level = NULL`;只有 note 不同,
+> 而它现在说的是真话(**没有跑过按级别的授权步骤**),不再说"没有人做过这个决定"。
+> ★ `approval_log.decision` 那一列的注释**收窄**成:`auto_approved` = 单据**生下来就是
+> approved**,没有任何人按过任何东西 —— 采购单那条路仍然符合,工单不再符合。
+> ⚠ **线上 2026-08-16 那一行【没有】被改写。** 本表只增不改,而改写一条当时真实记下来的
+> 记录等于伪造。**所以这一列会同时存在两种写法,分界是一个【日期】不是一条规则** ——
+> 列注释里逐字写着这句话。
+> ★ 由 `db/fixtures/204` 的 G 臂与迁移自证 ⑧ 两头钉住(一条断言【有】 approved,
+> 一条断言【没有】 auto_approved —— "没有"那种断言最容易空转,所以两个方向一起钉)。
+
+**以下为原条目,保留 —— 它是那条裁定的论据:**
+
 ## ★ APR2-WORK-ORDER-AUTO-APPROVED-IS-A-HUMAN-PRESS —— **一句留痕在说假话,而本刀【没有】修它**(APR-2 登记,2026-09-22)
 
 `release_work_order` 在审批**关着**时写的留痕是:

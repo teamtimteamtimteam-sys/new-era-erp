@@ -21,11 +21,28 @@ Mechanism and history: `docs/approvals-scoping.md` (note its §3 and decision ro
 | **threshold** | **SGD 1,000** — `finance_settings.approval_threshold_base = 1000` | |
 
 **The threshold is in BASE currency, and the base currency is SGD** (`currencies.is_base`,
-measured 2026-08-30). `approval_level_for(p_amount_base)` compares `p_amount_base >= v_threshold`,
-so **"at or above" is exact**: 999.99 → level 1, **1000.00 → level 2**, 1000.01 → level 2. Pinned by
-`db/fixtures/151` arm T, with a fault injection that flips `>=` to `>` and asserts the
+measured 2026-08-30). ~~`approval_level_for(p_amount_base)` compares `p_amount_base >= v_threshold`~~
+— ★ **APR-3 (2026-09-22) moved that one comparison into `approval_level_at(amount, threshold)`**, and
+`approval_level_for(amount)` now delegates to it. **The rule did not change a character**: `>=`, so
+**"at or above" is exact** — 999.99 → level 1, **1000.00 → level 2**, 1000.01 → level 2.
+
+> **Why it moved, because "tidying" is the wrong reason and someone will assume it.**
+> `guard_approvals_switch` is a `BEFORE UPDATE` trigger, so a function that reads
+> `finance_settings` itself sees the **OLD** row. `APPROVALS_POLICY_WOULD_STRAND` has to re-tier
+> pending documents under the **NEW** threshold — with the old entry point it would have judged the
+> previous policy and gone green. Same trap `approval_gate_intersections` records in its own header,
+> same remedy: pass the NEW value in as a parameter.
+> ☞ **The repository still contains exactly one `>=` for tiering**, and the migration's self-proof
+> ⑩ asserts both halves: it is present in `approval_level_at` **and absent from
+> `approval_level_for`**. Without the second half, an implementation with two copies would pass.
+
+Pinned by `db/fixtures/151` arm T, with a fault injection that flips `>=` to `>` and asserts the
 exactly-at-threshold case degrades — because that single value is the only one of the three that can
-tell the two implementations apart.
+tell the two implementations apart. ★ **APR-3 re-pointed that injection at `approval_level_at`**:
+the predicate moved house, so the injection had to move with it, or it would have replaced nothing
+and the arm would have gone quiet. (The same lesson C-1 left in that file when the holder predicate
+moved to `real_role_grants`.) **The assertions still call `approval_level_for`** — the production
+entry point — so the arm still proves what it claims to.
 
 **`cfo` was created holding exactly two permission codes** — `module.purchasing.view` and
 `data.view_prices` — which is the measured minimum to approve a purchase order (`approve_purchase_order`
@@ -606,15 +623,40 @@ and documents are pending?
 > (`APPROVALS_POLICY_WOULD_STRAND`), and everything else stays allowed. The pending count shown
 > beside the form widens to cover every wired chain rather than purchase orders alone.
 
-★ **NOT BUILT IN APR-2 — Tim trimmed it out to keep that cut to one session.** It is queued for
-**APR-3** in `docs/forward-queue.md`. Until then the screen keeps saying what it says today: editing
-the policy while approvals are in force re-routes what is still pending, nothing locks it, and
-`finance_settings_history` records the change.
+~~★ **NOT BUILT IN APR-2 — Tim trimmed it out to keep that cut to one session.**~~
+★★ **BUILT IN APR-3 (2026-09-22).** The refusal is `APPROVALS_POLICY_WOULD_STRAND`, and Tim
+sharpened the rule when it was built (Q8):
+
+> **Judge the roles and the threshold TOGETHER.** Re-tier every pending document under the NEW
+> policy and refuse if any of them lands on a level that has no approver. Name the document, the
+> level, the role and the missing permission codes in the refusal.
+
+**Why the coarse version is not enough, and it is a measurement rather than a preference.** A rule
+that only asks *"does every chain have an approver at every level"* passes a **threshold** edit that
+pushes a waiting document into a level nobody holds — and live carries exactly that document:
+`CLM-2026-0004` sits at **1000.00 base, exactly on the threshold**, so any threshold edit moves it
+between levels.
+
+**How it reuses the intersection check rather than defining a second rule:** it calls
+`approval_gate_intersections(NEW.level1, NEW.level2)` — the same function, with the **NEW** role
+codes, for the same reason `APPROVALS_CHAIN_HAS_NO_APPROVER` already passes them (the guard is
+`BEFORE UPDATE`, so reading the table gives OLD and it would judge the previous policy and pass).
+The tiering comparison also stays single-sourced: `approval_level_at(amount, threshold)` is the
+only `>=` in the repository, and `approval_level_for(amount)` now delegates to it.
+
+☞ **A document whose base amount cannot be resolved is judged at LEVEL 2** — reusing N4's ruling
+(*"the safe direction for an unknown amount is upward"*) rather than inventing a second rule.
+Today no pending document is in that state.
+
+★ **And the opposite direction is pinned too** (`db/fixtures/204` arm J2): a **harmless** policy
+edit is allowed. Without that arm, an implementation that refuses every policy edit would go green
+— and that is precisely the blanket lock this ruling rejects.
 
 ### The cut split
 
 **APR-0 §6.2's APR-2 → APR-6 split stands**, with N2's sales-order release approval joining
 **APR-5**.
+
 
 ---
 
@@ -664,6 +706,235 @@ with an empty `created_by`, the raiser leg does not apply.
 differs. The raiser finds a colleague. The subject has to find someone who is neither of them, and
 there may be no second holder of that permission at all, which is a real configuration problem a
 generic sentence would hide.
+
+---
+
+## 3e · APR-3 (2026-09-22) — what the engine now covers, and the three chains that could NOT be wired
+
+**Tim's rulings, recorded here because they were made in conversation and must not live only there.
+Sequencing lives in `docs/forward-queue.md`; the reasoning lives here.**
+
+### ★★★ Q1 — the approver's gate on a MONEY chain is `module.finance.view` + `data.view_prices`, **never** `module.finance.edit`
+
+**This is the most important sentence in this cut, and it exists because a premise handed to the
+cut as settled turned out to be false in the dangerous direction.**
+
+The brief said: *"cfo does not hold `module.finance.edit`, so the intersection for level 2 on these
+chains looks empty."* **The first half is true. The second half is false.** Measured 2026-09-22 as
+`postgres`, reading the tables `user_roles` / `role_permissions` / `auth.users`:
+
+| | real holders |
+|---|---|
+| `module.finance.edit` | admin · chooer · vince |
+| `cfo` (the configured LEVEL 2) | ★ **admin@swm-os.test — the same account** |
+| ⇒ level 2 ∩ `module.finance.edit` | **1, non-empty** |
+
+☞ **So a chain gated on `module.finance.edit` goes GREEN today — and it is green only because of
+the §0b holder collision.** `cfo`'s sole real holder is the `admin` account, which carries
+`module.finance.edit` through the `admin` role, and the intersection is counted **per person, as
+the union of their roles** (the mirror of the defect APR-2 §6⑤ caught in its own fixture).
+
+★★ **And Tim has already ruled that he will break exactly that collision** — see the CFO-account
+ruling below. **The day `cfo` is revoked from `admin`, a chain gated on `.edit` goes to zero
+approvers**, `APPROVALS_CHAIN_HAS_NO_APPROVER` makes approvals unswitchable-back-on, and nothing
+would have named this cut as the cause.
+
+**So the gate is the purchase-order shape, copied verbatim:** `approve_purchase_order` requires
+`module.purchasing.view` + `data.view_prices` and **deliberately not** `.edit`, on §0's principle
+— *an approver who can raise the document he approves is not a control.* Measured: `cfo` holds
+`module.finance.view` **and** `data.view_prices`, so **a cfo-only account still counts as a level-2
+approver**. It changes nothing today (chooer and admin both hold `.edit` anyway) and everything on
+the day it is supposed to.
+
+> ### ☞ Write this down for whoever provisions the CFO account
+> **A payment / expense / expense-claim approver needs `module.finance.view`, NOT
+> `module.finance.edit`.** Grant `.edit` to a CFO account and you hand the approver the ability to
+> raise the documents they approve — which is the control this chain exists to be.
+
+⚠ **The cost, stated plainly because it is real.** `decide_expense_claim` is `SECURITY DEFINER` and
+its approve branch creates an expense through `record_expense`. So a person holding
+`module.finance.view` + `data.view_prices` but **not** `module.finance.edit` can, through this one
+path, cause an expense to exist — on live that is `phua` and `sandra`. **That is the ruling, not an
+oversight:** the person who decides and the person who does are meant to be different, and the
+"doing" here is the engine acting on a decision, not that person writing to the table.
+
+★ Pinned by `db/fixtures/204` arm E and the migration's self-proof ⑤, both of which fail if the
+registry ever names `module.finance.edit` on this chain.
+
+### ★★ Q2 — `payment` and `expense` are NOT wired, and the reason is modelling, not wiring
+
+**Measured:** `payments.status` and `expenses.status` are each `('posted','reversed')`. **There is
+no pending state.** `record_payment` (796 lines) creates the payment, the journal entry, the
+allocations and the FX realisation in one transaction; `record_expense` does the same.
+
+APR-0 §3.2's cell ③ is *"the submit path reads `approvals_enabled()` and forks into wait-for-approval
+/ auto_approved stamp"*. **There is nothing to fork into.** Cells ① ② ④ really are in place — the
+enum value, the `CASE` branch, the `approval_log` RLS branch — which is what made APR-0 §6.2 call
+this "only ③ is missing"; **that premise is false for these two.**
+
+> **Tim's ruling: take them out of APR-3 and give them their own cut.** The control he wants stated
+> in his words: **approval BEFORE the money leaves** — a *payment request → approve → pay*
+> lifecycle. That cut means a real pending state, journal posting deferred to approval time,
+> decision functions and screens.
+
+☞ **Why wiring them anyway would have been worse than not wiring them:** the only cheap options
+were (a) gate at creation, where the raiser *is* the decider so the self-approval refusal can never
+fire, or (b) approve after the money has already moved. **Both ship a control that cannot refuse
+anything**, while the enum name makes the next reader believe the path is connected — the exact
+failure APR-0 §1.2 named about these four subject types in the first place.
+
+### ★ Q3 — `pricing_formula` is dropped, by N2's own test
+
+**Measured:** `pricing_formulas` has **no status column at all** (`is_active` boolean,
+`deleted_at`, and nothing else), and it is written by **direct table INSERT/UPDATE from a server
+action** (`app/tools/pricing/formulas/actions.ts`) — there is no RPC. `commit_pricing_terms` is
+**not** its approval: it copies a formula's terms onto a PO line or an inbound batch, and its
+subject is a `pricing_term_commitments` row.
+
+☞ **Approving it would mean first inventing a lifecycle for it — which is word for word the test
+N2 used to throw "container loading" and "shipments" off the approval list.** Same ruling, same
+reason, recorded beside it.
+
+★ **If the business control is wanted, the honest target is the pricing-terms COMMITMENT** — a real
+decision that fixes what will be paid — and that belongs with the purchasing batch in **APR-4**, not
+here. Queued in `docs/forward-queue.md`.
+
+⚠ **The enum value `pricing_formula` stays in `approval_log`'s CHECK**, unwritten, exactly as
+`payment` and `expense` do. **A name in the enum makes a reader believe that path is connected**
+(APR-0 §1.2), so the fact that it is *not*, and *why*, is written here rather than left to be
+rediscovered.
+
+### ★ Q4 — `stocktake` is wired, and `open` is deliberately NOT "pending"
+
+`post_stocktake` is a real decision point with a real screen (`/stocktakes/[id]/review`). It gets
+the switch, the trail and the self-approval refusal — **and no tiered routing**, because a stocktake
+has no amount (the table has no money column at all), so revised-N7 leaves `module.stocktakes.edit`
+as the definition of who may approve. Its `approval_log` row carries `level = NULL`.
+
+★ **`open` means "being counted", not "waiting for a decision".** A stocktake has no state between
+counting and posting. So `approval_pending_documents()` does **not** list stocktakes — counting the
+five open ones as in-flight would put a false sentence on the screen and, if it also fed the
+disable gate, would lock approvals on.
+
+⚠ **The consequence on live data, stated because it lands the day this ships.** All five open
+stocktakes — **ST-2026-0082 · 0083 · 0084 · 0085 · 0086** — were created by **`admin@swm-os.test`**,
+and in fact every stocktake on live was. **So `admin` can no longer post any of them.** The five
+other real holders of `module.stocktakes.edit` can: `chooer` · `fusheng` · `phua` · `sandra` ·
+`vince`. That is the four-eyes rule doing its job, not a regression.
+
+### ★★ Q5 — the expense-claim chain had a SECOND definition of four-eyes, and its copy lied
+
+`decide_expense_claim` refused self-approval through
+`assert_segregated('EXPENSE_CLAIM_SELF_APPROVAL', [beneficiary, raiser], code)` — the same two legs
+as `forbid_self_approval`, under a different name, pre-dating §3d's "one definition, one place".
+**Measured live from `pg_proc.prosrc` before the change:** `decide_leave_request` called
+`forbid_self_approval`; `decide_expense_claim` did not, and called `assert_segregated` instead.
+
+★ **And one of its two legs said something false on screen.** The single shared sentence was
+*"You submitted claim {0}, so you cannot be the one who approves it."* When the refusal fired
+because the approver was the **beneficiary** rather than the submitter, that sentence was wrong —
+and it sent the reader to fix the wrong thing. **That is precisely why §3d split the message in
+two**: the raiser finds a colleague; the subject has to find someone who is neither of them, and
+there may be no second holder of that permission at all.
+
+**APR-3 replaces the call with `forbid_self_approval` and retires `EXPENSE_CLAIM_SELF_APPROVAL`
+together with both its message entries, in the same commit.** `assert_segregated` itself stays — it
+has three other legitimate callers (`guard_payment_sod`, `guard_finance_settings_sod`,
+`sod_supplier_creator`).
+
+### ★★ Q6 — "how many are waiting" and "what would be stranded" are TWO questions, from ONE function
+
+APR-2's pending count did two jobs at once: it was printed on `/settings/approvals`, and it fed
+`can_disable` and the disable gate. Widening it to every wired chain would have merged two
+different questions — **and on today's data it would have locked approvals ON permanently**, because
+live carries one `submitted` expense claim.
+
+> **The rule, written down so the next cut can apply it without re-deriving it:**
+> **Does this chain's decision function still run while approvals are OFF?**
+> * **No** → its pending documents set `blocks_disable = true`. (Purchase orders:
+>   `approve_purchase_order` raises `APPROVALS_NOT_ENABLED` at its top, and a `pending` PO only
+>   exists because approvals were on — switch off and nobody can move it.)
+> * **Yes** → `false`. (Expense claims: `submitted` means an employee filed a claim, which has
+>   nothing to do with the switch; `decide_expense_claim` decides either way, and only the
+>   *tiering* step is conditional.)
+
+**Both numbers come out of `approval_pending_documents()`**, so the screen and the gate cannot read
+two different judgements — the property `approvals_readiness()`'s own header has always claimed and
+`db/fixtures/203` arm I pins. The screen shows a per-chain breakdown (including how many documents
+cannot be valued in base currency, reported separately rather than counted as zero); `can_disable`
+and `guard_approvals_switch` read only the `blocks_disable` subset.
+
+### ★ Q7 — work-order release writes `approved`, not `auto_approved`
+
+Closes `APR2-WORK-ORDER-AUTO-APPROVED-IS-A-HUMAN-PRESS`. Releasing a work order is a person pressing
+a button — and since APR-2 that person must also clear four-eyes — so the note saying *"the system
+stamped this, nobody made this decision"* was false, with the decider's id recorded beside it. Both
+branches now write `approved` with `actor_user_id = auth.uid()` and `level = NULL`; only the note
+differs, and it now says what is actually true (no level-based authorisation step ran).
+
+★ **The 2026-08-16 row is NOT rewritten.** `approval_log` is append-only by design, and rewriting a
+record that was true when it was made is forgery. **So the column carries two spellings, and the
+boundary between them is a DATE rather than a rule** — the column comment now says so, and the
+definition of `auto_approved` is narrowed to what remains true of it: *the document was born
+approved; nobody pressed anything.*
+
+### ★ Q9 — an exemption for system-created documents is an explicit PARAMETER, never a GUC
+
+Moot in this cut (Q2 took `expense` out of scope), **recorded so the payment-request cut inherits
+it rather than re-deciding it.** When `expense` is wired, three writers must be exempted —
+`decide_expense_claim`, `pay_medical_claim` and `relieve_processing_accruals` (month-end, N5's
+reasoning verbatim) — and the mechanism must be an explicit parameter on `record_expense` that every
+call site passes. **A custom-namespace GUC is not a permission**: APR-1 §3b measured that anybody
+with a SQL channel can set one. An explicit parameter makes every exemption state itself in the
+source, the same reasoning as `check-anon-grant-decision`: refuse silence.
+
+★ **And one correction to the record while it is here.** The brief listed "payments generated by
+payroll" among the system paths. **Measured: it does not exist** — `pay_payroll_lines`,
+`pay_payroll_cpf` and `pay_payroll_deductions` write neither `payments` nor `expenses`. The only
+system writer of `payments` is `reverse_payment`.
+
+---
+
+## 3f · TWO STANDING RULINGS ABOUT PEOPLE, not code (Tim, 2026-09-22)
+
+### ★★ There is no human walk after each cut. The whole chain gets walked ONCE, after APR-6.
+
+**Tim cannot operate his colleagues' accounts**, so the per-cut hand-walk that earlier handbacks
+asked for cannot happen. **Until the colleagues walk the chain end to end after APR-6, each cut's
+live evidence is its refusal-only live proof** — refusals demonstrated in a rolled-back transaction,
+with before/after readings proving nothing landed.
+
+☞ **State this in every handback rather than implying a walk happened.** A refusal-only proof is
+honest evidence of a narrower thing, and the narrower thing has to be named.
+
+> ### ★★ This closes the APR-1 reconciliation gap, with a fact rather than a sentence
+> `docs/handbacks/APR-1.md` §2b records that APR-1's purchase-order walk **left no trace on live**,
+> and it has stood as OPEN ever since. **The explanation is now known: that walk was done in a TEST
+> ENVIRONMENT.** So there is no missing live trace to find — **no human walk has yet happened on
+> live at all.** The gap is closed by that fact, not by a measurement, and it is recorded here
+> because it was the kind of discrepancy later cuts would otherwise keep reasoning from.
+
+### ★★ The CFO account: the ORDER matters, and so does what follows it
+
+Tim will get a **separate CFO-only account**, after which `cfo` is removed from
+`admin@swm-os.test`. **Approvals are ON, so the order is not cosmetic:**
+
+| # | step | why this order |
+|--:|---|---|
+| ① | create the account | — |
+| ② | sign in once | an account that has never confirmed is **not** a holder — `real_role_holders` clause ② exists for exactly this, and §3's expired blocker is the story of getting it wrong |
+| ③ | confirm `/settings/approvals` shows it as a **real level-2 holder** | the screen and the gate read one judgement, so this is the gate's own answer |
+| ④ | **only then** revoke `cfo` from `admin` | revoking first would take level 2 to zero real holders while approvals are on |
+
+> ### ★★ And the rule that follows from it, which is easy to miss
+> **The `admin` account must not raise business documents.**
+> **The self-approval refusal is judged per ACCOUNT, not per person.** Once Tim holds two accounts,
+> a document raised from `admin` and approved from the CFO account passes four-eyes — both legs
+> compare `auth.uid()`, and those are two different uuids belonging to one person. The database
+> cannot see that, and §0b already rules that a machine rule here would be a second, narrower
+> definition of who may approve. **The protection is that it is written here.**
+
+★ **This is Tim's action, not the terminal's** — no cut creates accounts or revokes roles.
 
 ---
 

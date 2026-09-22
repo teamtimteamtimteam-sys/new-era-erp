@@ -109,8 +109,13 @@ BEGIN
     END IF;
 
     -- ════════ E. adjustment:盘点过账日 ══════════════════════════════════════
+    -- ★★ APR-3(2026-09-22):盘点过账现在拒自批(只有 raiser 那条腿)。
+    --   这一臂要证的是【业务日期从哪里来】,建单的是谁与它无关 ——
+    --   所以这里显式给一个【别人】当建单人,而不是把那条规矩放松。
+    --   ☞ 这个 uuid 在 auth.users 里【没有对应的行】,于是 real_role_holders
+    --     不会把他算进任何计数里,本支里任何按"真持有人"计数的断言都不受影响。
     INSERT INTO stocktakes (code, status, created_by, updated_by)
-    VALUES ('FIXT-ST25', 'open', v_uid, v_uid) RETURNING id INTO v_st;
+    VALUES ('FIXT-ST25', 'open', gen_random_uuid(), v_uid) RETURNING id INTO v_st;
     INSERT INTO stocktake_lines (stocktake_id, output_batch_id, book_qty, counted_qty, created_by)
     VALUES (v_st, v_ob, 70, 65, v_uid);
     PERFORM post_stocktake(v_st);

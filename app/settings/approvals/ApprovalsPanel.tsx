@@ -27,6 +27,18 @@ type Readiness = {
     level2_real_holders: number
     level2_can_see_amounts: boolean
     pending_purchase_orders: number
+    // ★★ APR-3(Tim 的 Q6):逐链的在途张数,与【会挡住关闭的】那个数。
+    //   两个长得一样的数,问的不是同一件事,所以它们是两个字段 ——
+    //   而两个都出自同一支函数(approval_pending_documents),于是屏幕与闸
+    //   不可能各读一份判据。判别的那一句话:**这条链的决定函数,在审批关着
+    //   的时候还跑不跑得动?** 跑不动才算"会被搁死"。
+    pending_by_chain: {
+        subject_type: string
+        pending: number
+        blocks_disable: boolean
+        amount_unknown: number
+    }[]
+    pending_blocking_disable: number
     // ★ APR-2:逐条"这条链有几个人批得动"。**一个数,不是一个布尔** ——
     //   要分开的是"哪一条链死了、死在哪一级、缺的是哪个码"。
     chain_gates: {
@@ -199,6 +211,52 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
                                   })}
                         </p>
                     ))}
+                </div>
+            </div>
+
+            {/* ════════════════════════════════════════════════════════════════
+                ★★ APR-3:逐链的在途张数 ★★
+                ════════════════════════════════════════════════════════════════
+                此前这块屏幕只说"有几张采购单在等",而审批已经管着好几条链了 ——
+                一个只数其中一条的数,读起来像"总共就这些"。
+                ★ 而【会挡住关闭的】是另一个更窄的问题,所以它单独一行写出来:
+                  两个数不一样的时候,人要看得见差在哪条链上,而不是猜。 */}
+            <div className="mt-3">
+                <p className="text-xs font-medium text-[color:var(--brand-text)]">
+                    {t('finance.approvals.pendingTitle')}
+                </p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-1">
+                    {t('finance.approvals.pendingWhy')}
+                </p>
+                <div className="ml-4 space-y-1">
+                    {(r.pending_by_chain ?? []).length === 0 ? (
+                        <p className="text-xs text-[color:var(--brand-muted-text)]">
+                            {t('finance.approvals.pendingNone')}
+                        </p>
+                    ) : (
+                        (r.pending_by_chain ?? []).map((c) => (
+                            <p key={c.subject_type} className="text-xs text-[color:var(--brand-text)]">
+                                {t(
+                                    c.blocks_disable
+                                        ? 'finance.approvals.pendingBlocks'
+                                        : 'finance.approvals.pendingFree',
+                                    {
+                                        subject: t('finance.approvals.subject_' + c.subject_type),
+                                        n: String(c.pending),
+                                    }
+                                )}
+                                {/* ★ 分不出档的那些单独说 —— 把它们混进计数里读成零,
+                                    就是把"我不知道"说成"没有" */}
+                                {c.amount_unknown > 0 && (
+                                    <span className="ml-1 text-amber-800">
+                                        {t('finance.approvals.pendingUnknownAmount', {
+                                            n: String(c.amount_unknown),
+                                        })}
+                                    </span>
+                                )}
+                            </p>
+                        ))
+                    )}
                 </div>
             </div>
 

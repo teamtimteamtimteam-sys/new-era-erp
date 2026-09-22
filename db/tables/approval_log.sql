@@ -47,6 +47,12 @@ CREATE TABLE public.approval_log (
                             'leave_request', 'medical_claim', 'performance_review',
                             'purchase_order', 'payment', 'expense',
                             'pricing_formula', 'stocktake',
+                            -- ★ APR-3:报销单。它是【唯一一个形状就是审批、却漏在
+                            -- 这份枚举外】的单据(APR-0 §3.1 量出来的),而它自己的
+                            -- status 就是审批态(submitted/withdrawn/approved/rejected)。
+                            -- 加一个取值要动四处,而其中只有【读策略那一支】漏掉了
+                            -- 不会有任何东西变红 —— 见本文件末尾那条策略里的同名分支。
+                            'expense_claim',
                             -- WO-1b:工单。可审批的动作是【放行】—— 不是新建
                             -- (草稿谁都可以写),也不是收工(那是事后记录)。
                             'work_order')),
@@ -57,8 +63,37 @@ CREATE TABLE public.approval_log (
     -- ── 决定 ────────────────────────────────────────────────────────────────
     -- countersigned:Doc 1 点名的"会签",【预留取值,本切没有路径写它】——
     -- 与 purchase_orders.approval_status 同一个性质:先把词定下来,免得下一切另起一个。
-    -- auto_approved:不是有人做的决定,而是【系统在没有审批流时盖的章】。
-    -- 三张既有采购单就是这样来的,回填时用的正是这个值(见文件尾)。
+    -- auto_approved:不是有人做的决定,而是【单据生下来就是 approved】——
+    -- 没有任何人按过任何东西。三张既有采购单就是这样来的
+    -- (create_purchase_order 在审批关着时让单据直接生成 confirmed/approved),
+    -- 回填时用的正是这个值(见文件尾)。
+    -- ★★ APR-3(Tim 的 Q7)把这句定义【收窄】了,而收窄之前它是错的:
+    --   工单放行此前在审批关着时也写 auto_approved,note 里逐字写着
+    --   「没有人做过这个决定」—— 而放行是一个人按下去的动作,旁边就记着是谁。
+    --   从 APR-3 起 release_work_order 两条分支都写 approved(与 HR 三条链、
+    --   与盘点过账同一条裁定:开着还是关着,决定都是人做的)。
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★★【HR 那三条链【永远】不写 auto_approved —— 而这是一条裁定,不是巧合】
+    -- ════════════════════════════════════════════════════════════════════════
+    -- (Tim 的 Q3,APR-2 落地;APR-3 把同一条推广到工单与盘点。)
+    -- 【理由,一句话】请假 · 医疗申报 · 绩效评估【自带引擎】:它们的决定路径
+    -- (decide_leave_request / decide_medical_claim / approve_review)从来不读
+    -- approvals_enabled() —— 一个人打开那张单、看过、按了准或不准,
+    -- **审批开关开着还是关着,这件事都发生了,而且是同一个人做的**。
+    -- ☞ 于是写 auto_approved 会是一句【关于内控的假话】:它声称"没有人做过
+    --   这个决定",而同一行的 actor_user_id 里就记着是谁。
+    -- 【对照:采购单为什么可以写】create_purchase_order 在审批关着时让单据
+    --   **生下来就是 approved** —— 那条路上确实没有任何人按过任何东西。
+    --   ★ 区别不在"开关开没开",在【有没有一个人做过这个动作】。
+    -- 【它的代价,照直说】approvals_enabled 为 false 时,HR 那三条链的留痕
+    --   与 true 时【长得一模一样】(都是 approved / level 为 NULL)——
+    --   也就是说这张表回答不了"这个决定是在审批生效期间做的吗"。
+    --   那个问题要靠 finance_settings_history 的时间线去交叉,而那是对的:
+    --   **一行留痕该说的是那一刻真的发生了什么,不是当时的配置是什么。**
+    -- ⚠★【线上那一行历史数据【没有】被改写,这是刻意的】2026-08-16 有一行
+    --   work_order / auto_approved。本表只增不改,而改写它等于伪造一条
+    --   当时真实记下来的记录。☞ 所以这张表会同时存在两种写法,而它们的
+    --   分界是一个【日期】不是一条规则:APR-3 之前的工单留痕按旧定义读。
     decision            text NOT NULL CHECK (decision IN (
                             'submitted', 'approved', 'rejected',
                             'acknowledged', 'countersigned', 'auto_approved',
@@ -105,6 +140,14 @@ CREATE INDEX idx_approval_log_subject
 CREATE INDEX idx_approval_log_actor
     ON public.approval_log (actor_user_id, decided_at DESC);
 
+-- ★★ APR-3(Tim 的 Q7):`auto_approved` 的定义【收窄】了,而这句话必须住在
+--   数据库里,不只住在上面那段源码注释里 —— 一条 COMMENT ON COLUMN 是写在库里的
+--   规格说明,而 `db/gate.py` 的判词二【会比它】。本刀正是被它抓到一次:
+--   迁移把注释写上了线上,而镜像里没有,于是重建出来的库【整条丢失】这句定义。
+--   (AGENTS.md 记着 OPS-1 那次:7 条 COMMENT ON COLUMN 只存在于线上。)
+COMMENT ON COLUMN public.approval_log.decision IS
+    'APR-1 建;★ APR-3(Tim 的 Q7)收窄了 auto_approved 的定义。auto_approved = 【单据生下来就是 approved】,没有任何人按过任何东西(create_purchase_order 在审批关着时就是这样)。★ 它【不】包括"一个人按了按钮,而当时审批恰好关着" —— 工单放行此前写的正是后者,note 里逐字写着「没有人做过这个决定」,而旁边就记着是谁。从 APR-3 起 release_work_order 两条分支都写 approved,与 HR 三条链、与盘点过账同一条裁定。⚠ 线上 2026-08-16 那一行 work_order / auto_approved 【没有】被改写(本表只增不改),所以这一列会同时存在两种写法,分界是一个日期不是一条规则。';
+
 COMMENT ON TABLE public.approval_log IS
     '审批留痕,只增不改(APR-1)。谁、对什么、做了什么决定、什么时候、当时值多少。三条 HR 链保留各自的引擎但写这里;采购单等动作在 APR-2 起接入。主体是 (subject_type, subject_id) 而非可空外键 XOR —— 取舍与代价见 docs/approvals-scoping.md。';
 
@@ -134,6 +177,16 @@ CREATE POLICY "approval_log select by permission"
             WHEN 'purchase_order'     THEN has_permission('module.purchasing.view'::text)
             WHEN 'payment'            THEN has_permission('module.finance.view'::text)
             WHEN 'expense'            THEN has_permission('module.finance.view'::text)
+            -- ★★ APR-3:报销单那一支 —— 这是 APR-0 §3.2 点名的第 ④ 格,
+            --   也是四格里【唯一一个漏掉也不会有任何东西变红】的那一格:
+            --   写得进、读不出,对每一个人都是 0 行,而且不报错。
+            --   WO-1b 正是在这一格上漏了一次(APR0-WORK-ORDER-APPROVALS-INVISIBLE)。
+            --   取的码与 expense_claims 自己的读策略同源(module.finance.view)——
+            --   ⚠ 照直说:那张表的策略还有【或者这张单说的就是你】那一条腿,
+            --   而留痕这一支【没有】给员工本人开口子。理由:一行留痕会说出
+            --   "谁批的、什么级别",那是内控记录,不是自助查询;员工在 /me 上
+            --   看得见自己那张单的状态,那条路没有变。
+            WHEN 'expense_claim'      THEN has_permission('module.finance.view'::text)
             WHEN 'pricing_formula'    THEN has_permission('module.pricing.view'::text)
             WHEN 'stocktake'          THEN has_permission('module.stocktakes.view'::text)
             -- ★ APR-1:WO-1b 漏掉的那一支(APR0-WORK-ORDER-APPROVALS-INVISIBLE)。

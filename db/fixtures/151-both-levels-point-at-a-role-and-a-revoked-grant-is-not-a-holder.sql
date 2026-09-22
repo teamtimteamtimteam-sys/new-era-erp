@@ -224,8 +224,20 @@ BEGIN
     -- 【为什么这个注入是必需的】上面三条断言里,只有【恰好等于】那一条能分辨
     --   >= 与 > ;另外两条对两种实现都成立。不注入的话,这一臂看起来测了三个数,
     --   实际上只有一个数在干活 —— 而注入把这件事证出来。
-    v_def := pg_get_functiondef('public.approval_level_for(numeric)'::regprocedure);
-    v_inj := replace(v_def, 'p_amount_base >= v_threshold', 'p_amount_base > v_threshold');
+    -- ★★ APR-3(2026-09-22):【注入的目标从 approval_level_for 换成了
+    --   approval_level_at】。那一次比较搬进了 approval_level_at(numeric, numeric)
+    --   —— 搬家的理由是 guard_approvals_switch 是 BEFORE UPDATE,它要拿 NEW 的
+    --   门槛重新分档,而 approval_level_for 自己去读表读到的是 OLD 那一行。
+    --   ☞ **判据一个字都没改,只是换了住处**,所以注入的目标必须跟着搬:
+    --     照着旧目标注入会【什么也替换不掉】—— 而这正是本文件上面那段 C-1
+    --     记下的同一件事(real_role_holders → real_role_grants 那一次)。
+    --   ★ 断言仍然全部走 approval_level_for(numeric) 这个【产品入口】,
+    --     所以这一臂证的依然是"线上那条路上的比较号",不是一支内层函数的性质。
+    v_def := pg_get_functiondef('public.approval_level_at(numeric, numeric)'::regprocedure);
+    -- ★ APR-3:变量名跟着一起搬了 —— approval_level_at 的第二个入参叫 p_threshold,
+    --   不叫 v_threshold。照旧串注入会【什么也替换不掉】,而下面那一条
+    --   『这个注入什么也没删』的自检会当场抓住它(本刀写这一段时就被它抓过一次)。
+    v_inj := replace(v_def, 'p_amount_base >= p_threshold', 'p_amount_base > p_threshold');
     IF v_inj = v_def THEN
         RAISE EXCEPTION 'FIXTURE 151 注入④ 失败:没找到 >= 那一句 —— 这个注入什么也没删'; END IF;
     EXECUTE v_inj;

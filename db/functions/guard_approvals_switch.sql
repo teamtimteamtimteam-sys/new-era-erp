@@ -27,6 +27,8 @@ DECLARE
     v_total   integer;
     v_real    integer;
     v_gap     record;
+    v_doc     record;
+    v_thr     numeric;
 BEGIN
     -- ── 开:策略必须齐,两级都必须【有人批】而且【看得见金额】 ──
     IF NEW.approvals_enabled AND NOT OLD.approvals_enabled THEN
@@ -102,17 +104,36 @@ BEGIN
         END LOOP;
     END IF;
 
-    -- ── 关:在途的 pending 单会被永远搁死,所以先点名(原样保留)──
+    -- ── 关:会被永远搁死的在途单据,先点名 ──
+    -- ★★ APR-3(Tim 的 Q6):判据从"数采购单"换成 approval_pending_documents()
+    --    里 blocks_disable 为真的那些 —— 而今天这两件事【算出同一个数】。
+    --    换它不是为了换出一个新数字,是为了让这道闸与屏幕读【同一支函数】:
+    --    APR-3 把屏幕上的在途张数放宽到了每一条链,而这道闸【没有】跟着放宽,
+    --    两个数从此不同。它们必须出自同一个定义,否则下一个读代码的人无从
+    --    知道哪一个才是拦人的那个。
+    -- ★【为什么不是"每一条链都算"】那会当场把审批锁死在开着的状态:线上今天
+    --    有一张 submitted 的报销单,而一张 submitted 的报销单在审批关着时
+    --    【照样批得了】(decide_expense_claim 只有分档那一步是条件性的)。
+    --    判别的那一句话写在 approval_pending_documents 的抬头,
+    --    下一刀接一条链时照它回答一次:**这条链的决定函数,在审批关着的时候
+    --    还跑不跑得动?**
     IF OLD.approvals_enabled AND NOT NEW.approvals_enabled THEN
-        SELECT count(*), string_agg(code, ', ' ORDER BY code)
+        SELECT count(*)::integer, string_agg(d.code, ', ' ORDER BY d.code)
           INTO v_pending, v_codes
-          FROM purchase_orders WHERE approval_status = 'pending' AND deleted_at IS NULL;
+          FROM approval_pending_documents() d
+         WHERE d.blocks_disable;
         IF COALESCE(v_pending, 0) > 0 THEN
             RAISE EXCEPTION 'APPROVALS_CANNOT_DISABLE_WITH_PENDING|%|%', v_pending, v_codes;
         END IF;
     END IF;
 
     -- ── 开着的时候不许把策略值抽走 ──
+    -- ★★ APR-3 把这一段【提到 WOULD_STRAND 之前】,而这不是排版:
+    --   抽走门槛(NEW 为 NULL)时,下面那一段会拿一个 NULL 门槛去重新分档,
+    --   于是每一张在途单据都被当成二级判 —— 二级碰巧没有人批得动时,
+    --   它会抛出 WOULD_STRAND,而**这次编辑真正的毛病是"你不能在开着的时候
+    --   把这个值抽走"**。☞ 一条更含糊的拒绝盖住一条更准的拒绝,
+    --   在屏幕上就是一句指错路的话。**结构上就不合法的那一种,先拒。**
     IF NEW.approvals_enabled THEN
         IF NEW.approval_level1_role_code IS NULL AND OLD.approval_level1_role_code IS NOT NULL THEN
             RAISE EXCEPTION 'APPROVALS_POLICY_LOCKED_WHILE_ON|approval_level1_role_code';
@@ -123,6 +144,61 @@ BEGIN
         IF NEW.approval_level2_role_code IS NULL AND OLD.approval_level2_role_code IS NOT NULL THEN
             RAISE EXCEPTION 'APPROVALS_POLICY_LOCKED_WHILE_ON|approval_level2_role_code';
         END IF;
+    END IF;
+
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★★★ APR-3:APPROVALS_POLICY_WOULD_STRAND —— 一条【定向】拒绝 ★★★
+    -- ════════════════════════════════════════════════════════════════════════
+    -- Tim 的 N8 裁定:**不做一刀切的锁。** 最需要改策略的时刻,正是某条链配错了、
+    -- 单据卡住的时刻;锁住它会把一个救得回来的状态变成一个救不回来的状态,
+    -- 而那正是本函数抬头那句「拒绝要给出路,不是给一堵墙」。
+    --
+    -- ★【它判的是什么】审批【开着】,而这次编辑动了角色或门槛:拿【新策略】
+    --   把每一张在途单据重新分一次档,再问那一档那条链有没有人批得动。
+    --   有一张落在没人批得动的档上 → 按名拒,并【点出那张单、那一级、那个角色】。
+    --   其余一律放行 —— 包括"把某一级换成一个更窄的角色"这种一般性的改动,
+    --   只要今天在途的这些单据都还有人批。
+    --
+    -- ★★【为什么必须拿 NEW 的门槛,而不是让 approval_level_for 自己去读表】
+    --   本触发器是 BEFORE UPDATE:读 finance_settings 读到的是 OLD 那一行。
+    --   于是"重新分档"会拿【旧门槛】去分,并且全绿 —— 与上面那道
+    --   APPROVALS_CHAIN_HAS_NO_APPROVER 传 NEW 角色码是逐字同一个陷阱。
+    --   分档那个比较号只有一份定义(approval_level_at),这里传参用它。
+    --
+    -- ★【金额分不出来的那一张,按二级判】Tim 的 N4 原话:「不明金额的安全方向
+    --   是往上」。一张查不到牌价的报销单分不了档,这里不放它过去,也不发明
+    --   一个新规矩 —— 复用那一条。今天线上没有这样的单据。
+    --
+    -- ★【它不重复定义"谁批得动"】那一句仍然只有 approval_gate_intersections()
+    --   一份实现,这里只是按 (subject_type, level) 去查它的答案。
+    IF NEW.approvals_enabled AND OLD.approvals_enabled
+       AND (NEW.approval_level1_role_code IS DISTINCT FROM OLD.approval_level1_role_code
+         OR NEW.approval_level2_role_code IS DISTINCT FROM OLD.approval_level2_role_code
+         OR NEW.approval_threshold_base   IS DISTINCT FROM OLD.approval_threshold_base) THEN
+        v_thr := NEW.approval_threshold_base;
+        FOR v_doc IN
+            SELECT d.subject_type, d.code,
+                   CASE WHEN d.amount_base IS NULL OR v_thr IS NULL
+                        THEN 2::smallint
+                        ELSE approval_level_at(d.amount_base, v_thr) END AS lvl
+              FROM approval_pending_documents() d
+             ORDER BY d.subject_type, d.code
+        LOOP
+            FOR v_gap IN
+                SELECT i.action_function, i.role_code,
+                       array_to_string(i.gate_permissions, '+') AS perms
+                  FROM approval_gate_intersections(NEW.approval_level1_role_code,
+                                                   NEW.approval_level2_role_code) i
+                 WHERE i.subject_type = v_doc.subject_type
+                   AND i.level = v_doc.lvl
+                   AND i.approvers = 0
+                 ORDER BY i.action_function
+                 LIMIT 1
+            LOOP
+                RAISE EXCEPTION 'APPROVALS_POLICY_WOULD_STRAND|%|%|%|%|%',
+                    v_doc.code, v_doc.lvl, v_gap.role_code, v_gap.action_function, v_gap.perms;
+            END LOOP;
+        END LOOP;
     END IF;
 
     RETURN NEW;

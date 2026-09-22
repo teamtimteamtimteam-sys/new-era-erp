@@ -4741,7 +4741,13 @@ const zh = {
             EXPENSE_CLAIM_ACCOUNT_REQUIRED: '批准 {0} 要给科目 —— 这笔成本总得落在某处,而随手猜一个比问一句更坏。',
             EXPENSE_CLAIM_TAX_CODE_REQUIRED: '批准 {0} 要给税码。员工没有默认税码,所以必须有人判断这笔进项税可抵(TX)还是不可抵(BL)—— 那是一个财务判断,不是一个可以默认的东西。',
             EXPENSE_CLAIM_NO_EVIDENCE: '报销 {0} 既没有收据,也没有说明为什么没有。批它等于什么都没批。',
-            EXPENSE_CLAIM_SELF_APPROVAL: '报销 {0} 是你提的,所以批它的不能是你。',
+            // ★ APR-3:报销接上按金额分档之后,它会为两个新理由拒绝。
+            //   两句话都说出【下一步做什么】—— 一条不指路的拒绝买到的是绕过它的办法。
+            // 抛出来的形状是 APPROVAL_NOT_AUTHORISED|<级别>|<角色码>:{0} 是级别,{1} 是角色。
+            // ★ 它【不带】单据编号 —— 别往句子里写一个它给不出来的东西。
+            APPROVAL_NOT_AUTHORISED: '这张报销单归第 {0} 级审批,而你不在 {1} 这个角色里。请持有它的人来做这个决定。',
+            APPROVALS_NOT_ENABLED: '审批流没有生效,所以这里没有什么可批的。',
+            EXPENSE_CLAIM_AMOUNT_BASE_UNRESOLVED: '报销 {0} 折不出本位币金额,于是它分不了档。这是一个不该发生的状态 —— 请报上来,不要绕过去。',
         },
     },
     chases: {
@@ -6645,6 +6651,32 @@ const zh = {
             adminWarning:
                 '★ 两级都【不许】指向管理系统的角色 —— admin,以及同样持有「管理角色与权限」的 cco。这是一条裁定,不是一条机器规则;这里【故意】把它们列出来而不是藏掉:一个悄悄把它们去掉的下拉框,在执行这条规矩的同时不留下任何痕迹。能给自己授任何权限的人,不该同时是批准花钱的那个人。',
             // ── APR-2:每一条接上引擎的链,真的有人批得动吗?
+            // ★★ APR-3(Tim 的 Q6):在途张数放宽到每一条接上引擎的链。
+            // 两个长得一样、问的不是同一件事的数,所以是两个字段 ——
+            // 而两个都出自【同一支函数】,于是屏幕与闸不可能各读一份判据。
+            pendingTitle: '有什么在等人批',
+            pendingWhy:
+                '逐条链数。一条链出现在这里,与"关掉审批会不会把它搁死"是两个问题 \u2014\u2014 而开关问的是后一个。',
+            pendingNone: '每一条接上引擎的链上都没有在等的单据。',
+            pendingBlocks:
+                '{subject}:{n} 张在等。\u2605 关掉审批会把它们搁死 \u2014\u2014 审批不生效时那条决定路径会按名拒。',
+            pendingFree:
+                '{subject}:{n} 张在等。关掉审批【不会】把它们搁死 \u2014\u2014 照样做得了决定,只是不再分档。',
+            pendingUnknownAmount:
+                '(其中 {n} 张还折不出本位币金额,于是分不了档。)',
+            // 上面那一行里单据类型的名字。后缀集合在检查时【现读】approval_log 的
+            // CHECK 枚举 —— 下一刀接一条链却忘了给它取名,构建当场红,
+            // 而不是在屏幕上冒出一个 subject_type 的原文。
+            subject_leave_request: '请假申请',
+            subject_medical_claim: '医疗申报',
+            subject_performance_review: '绩效评估',
+            subject_purchase_order: '采购单',
+            subject_payment: '收付款',
+            subject_expense: '开支',
+            subject_expense_claim: '报销单',
+            subject_pricing_formula: '计价公式',
+            subject_stocktake: '盘点',
+            subject_work_order: '工单',
             chainGatesTitle: '真的有人批得动吗?',
             chainGatesWhy:
                 '持有审批角色只是一半 —— 那个人还得持有这个动作自己要的权限,否则他连那张单据都打不开。此前没有任何东西在看这件事,于是一条【谁都过不去】的工单审批链就这么上线了。',

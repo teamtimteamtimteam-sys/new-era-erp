@@ -46,6 +46,23 @@ BEGIN
             SELECT true, e.code, e.amount_ccy, e.currency, e.fx_rate, e.amount_base
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base
               FROM expenses e WHERE e.id = p_subject_id;
+        WHEN 'expense_claim' THEN
+            -- ★ APR-3:报销单。expense_claims 上【没有 fx_rate,也没有 amount_base】,
+            -- 所以这四列要算 —— 而算它的判据只有一份(expense_claim_amount_base),
+            -- 与 decide_expense_claim 分档、approval_pending_documents 列在途读的是
+            -- 同一支。三处各算一遍就是三份会漂开的数,而"屏幕上说的档次"与"真正
+            -- 拦人的那一档"漂开,是一句关于内控的假话。
+            -- 【牌价查不到时四列一起留空,而不是塞一个数进去】approval_log 的
+            -- amount_shape 约束要的就是"全有或全无";留空的意思是【这一张当时
+            -- 分不了档】,而那是真的。要按名拒的那一支是 decide_expense_claim。
+            SELECT true, c.code, b.amount_ccy, b.currency, b.fx_rate, b.amount_base
+              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base
+              FROM expense_claims c
+              LEFT JOIN LATERAL expense_claim_amount_base(c.id) b ON true
+             WHERE c.id = p_subject_id;
+            IF v_rate IS NULL THEN
+                v_amt := NULL; v_ccy := NULL; v_base := NULL;
+            END IF;
         WHEN 'pricing_formula' THEN
             SELECT true, f.code INTO v_ok, v_code
               FROM pricing_formulas f WHERE f.id = p_subject_id;

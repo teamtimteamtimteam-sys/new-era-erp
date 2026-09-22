@@ -47,6 +47,8 @@ type Readiness = {
     level2_role_code: string | null
     threshold_base: string | number | null
     pending_purchase_orders: number
+    // ★ APR-3:这一页只把它透传给 <ApprovalsPanel>(那里有完整的形状),
+    //   自己不读逐链那一块 —— 它要的只有表单那几个值。
     blocking: string[]
     can_enable: boolean
     can_disable: boolean

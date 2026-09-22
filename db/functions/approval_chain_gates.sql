@@ -23,7 +23,8 @@
 --   而 WO-1b 把那一行 require_approver_for(1) 写下去的时候,三道闸全绿。
 --   今天 work_orders 里 draft = 0,所以没有单据卡住;下一张就再也放行不了。
 --   ★ APR-2 的处置是把工单从这台引擎的【路由】那一半摘下来(Tim 的 Q1 裁定:
---     按角色分级只管【带钱的单据】),于是本表今天只剩采购单两支。
+--     按角色分级只管【带钱的单据】),于是 APR-2 结束时本表只剩采购单两支。
+-- ★ APR-3(2026-09-22)加进报销单两行 —— 本仓库第二条接上按角色分级的链。
 --
 -- ════════════════════════════════════════════════════════════════════════════
 -- 【这是一张手写的名册,所以它必须被核对,不能被相信】
@@ -60,9 +61,26 @@ AS $function$
         ('purchase_order'::text, 'reject_purchase_order'::text, 1::smallint,
             ARRAY['module.purchasing.view']::text[]),
         ('purchase_order'::text, 'reject_purchase_order'::text, 2::smallint,
-            ARRAY['module.purchasing.view']::text[])
+            ARRAY['module.purchasing.view']::text[]),
+        -- ★★ APR-3(Tim 的 Q1):报销单。门是【module.finance.view + data.view_prices】,
+        --    【不是】module.finance.edit —— 采购单那条链的形状,原样照搬。
+        --    两条理由,都在 docs/approvals.md §0 与 §5 里已经成立:
+        --    ① 批的人不该是提得了这张单的人(edit 就是提单的那个码);
+        --    ② R4:批的人必须看得见他批的那个数,而这条链【按金额分档】。
+        --    ★ 实测的第三条,也是决定性的那条:cfo 持 module.finance.view 与
+        --      data.view_prices,【不持】module.finance.edit。写成 edit 的话,
+        --      今天二级之所以还有一个人,靠的只是 cfo 的唯一真持有人就是 admin
+        --      账号(§0b 记着的那次撞车)—— Tim 一拿到独立的 CFO 账号、把 cfo
+        --      从 admin 上收回,二级当场归零,而那一天没有任何东西会说是这一刀
+        --      造成的。写成 view + prices,那一天它仍然是 1。
+        --    【approve 与 reject 不分两行】与采购单不同:本链两支分支【都】分档
+        --    (驳回也落一行带 level 的留痕),所以两边都要看得见金额,门一样宽。
+        ('expense_claim'::text, 'decide_expense_claim'::text, 1::smallint,
+            ARRAY['module.finance.view', 'data.view_prices']::text[]),
+        ('expense_claim'::text, 'decide_expense_claim'::text, 2::smallint,
+            ARRAY['module.finance.view', 'data.view_prices']::text[])
       ) AS v(subject_type, action_function, level, gate_permissions)
 $function$;
 
 COMMENT ON FUNCTION public.approval_chain_gates() IS
-'APR-2:接上了 require_approver_for 的链,以及每一支动作【自己的】模块门(可能是几个码的合取)。★ 它存在是因为 WO-1b 实测在线上造出过一个死锁:一级审批角色 finance 的唯一真持有人不持 module.processing.edit,于是审批一开,工单谁都放行不了,而三道闸全绿。这张名册是手写的,所以 db/fixtures/203 有一条目录派生的断言钉住它与 pg_proc 里真正调用 require_approver_for 的那组函数逐字相等 —— 加一条链就要在这里加一行。';
+'APR-2(APR-3 加进报销单两行):接上了 require_approver_for 的链,以及每一支动作【自己的】模块门(可能是几个码的合取)。★ 它存在是因为 WO-1b 实测在线上造出过一个死锁:一级审批角色 finance 的唯一真持有人不持 module.processing.edit,于是审批一开,工单谁都放行不了,而三道闸全绿。这张名册是手写的,所以 db/fixtures/203 有一条目录派生的断言钉住它与 pg_proc 里真正调用 require_approver_for 的那组函数逐字相等 —— 加一条链就要在这里加一行。★ APR-3 的报销单两行取的门是 module.finance.view + data.view_prices,【不是】module.finance.edit —— 写成 edit 的话,今天二级还有一个人靠的只是 cfo 的唯一真持有人就是 admin 账号(§0b 那次撞车),而独立 CFO 账号一落地它就归零。';

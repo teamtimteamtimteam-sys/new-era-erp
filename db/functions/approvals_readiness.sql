@@ -40,6 +40,8 @@ DECLARE
     v_l1_sees    boolean := false;
     v_l2_sees    boolean := false;
     v_pending    integer := 0;
+    v_blocking_p integer := 0;
+    v_pendchains jsonb   := '[]'::jsonb;
     v_chains     jsonb   := '[]'::jsonb;
     v_deadchains integer := 0;
 BEGIN
@@ -108,8 +110,40 @@ BEGIN
         END IF;
     END IF;
 
-    SELECT count(*) INTO v_pending
-      FROM purchase_orders WHERE approval_status = 'pending' AND deleted_at IS NULL;
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★★ APR-3(Tim 的 Q6):在途张数放宽到【每一条接上引擎的链】,
+    --    而 can_disable 仍然只看【关掉之后会批不动的那些】 ★★
+    -- ════════════════════════════════════════════════════════════════════════
+    -- 两个数长得一样,问的不是同一件事,所以它们是两个字段 ——
+    -- 而【两个都出自同一支函数】(approval_pending_documents),于是屏幕与闸
+    -- 不可能各读一份判据。那一句判别写在那个函数的抬头,下一刀照它回答一次:
+    --   **这条链的决定函数,在审批关着的时候还跑不跑得动?**
+    --
+    -- ★【为什么不把 can_disable 一起放宽】线上今天有一张 submitted 的报销单,
+    --   而报销在审批关着时照常批得了 —— 把它算进去会让审批从此【关不掉】,
+    --   一个没有人要求过的新约束,而且它看起来会像一个 bug。
+    --
+    -- ⚠【pending_purchase_orders 这个字段名保留】它喂的是屏幕上那一句
+    --   「关掉会怎样」,而那句话说的正是采购单。改名要连着文案一起改,
+    --   而本刀没有理由动它 —— 它今天仍然逐字等于 blocks_disable 的那个数,
+    --   因为今天只有采购单 blocks_disable。
+    SELECT count(*) FILTER (WHERE d.subject_type = 'purchase_order'),
+           count(*) FILTER (WHERE d.blocks_disable)
+      INTO v_pending, v_blocking_p
+      FROM approval_pending_documents() d;
+
+    SELECT COALESCE(jsonb_agg(x ORDER BY x->>'subject_type'), '[]'::jsonb)
+      INTO v_pendchains
+      FROM (
+        SELECT jsonb_build_object(
+                   'subject_type',    d.subject_type,
+                   'pending',         count(*),
+                   'blocks_disable',  bool_or(d.blocks_disable),
+                   -- 分不出档的那些单独报出来,不混进计数里读成零
+                   'amount_unknown',  count(*) FILTER (WHERE d.amount_base IS NULL)) AS x
+          FROM approval_pending_documents() d
+         GROUP BY d.subject_type
+      ) g;
 
     -- ════════════════════════════════════════════════════════════════════════
     -- ★★ APR-2:屏幕上也要看得见「这条链真的有人批得动吗」 ★★
@@ -160,6 +194,10 @@ BEGIN
         'level2_real_holders',     v_l2_real,
         'level2_can_see_amounts',  v_l2_sees,
         'pending_purchase_orders', v_pending,
+        -- ★ APR-3:逐链的在途张数(屏幕用),与【会挡住关闭的】那个数(闸用)。
+        --   两个都从 approval_pending_documents() 来 —— 一份判据,两个问题。
+        'pending_by_chain',        v_pendchains,
+        'pending_blocking_disable', v_blocking_p,
         -- ★ APR-2:逐条给出"这条链有几个人批得动",而不是一个布尔 ——
         --   与两级持有人给两个数、不给一个布尔是同一条理由:
         --   要分开的是"哪一条链死了、死在哪一级、缺的是哪个码"。
@@ -167,7 +205,9 @@ BEGIN
         'chains_without_approver', v_deadchains,
         'blocking',                to_jsonb(v_blocking),
         'can_enable',              (NOT v_s.approvals_enabled AND cardinality(v_blocking) = 0),
-        'can_disable',             (v_s.approvals_enabled AND v_pending = 0),
+        -- ★ APR-3:判据换成【会被搁死的那些】,与 guard_approvals_switch 的
+        --   关闭那一支逐字同源(它读的是同一支函数的同一个过滤条件)。
+        'can_disable',             (v_s.approvals_enabled AND v_blocking_p = 0),
         -- 跟着数字走的那句话,不只躺在文档里(与 PARTY-1 的处置同形)
         'no_deputy_by_decision',   true);
 END;

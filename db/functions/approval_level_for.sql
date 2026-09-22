@@ -1,3 +1,13 @@
+-- db/functions/approval_level_for.sql
+-- 按【已落库的策略】给一笔本位币金额分档。
+--
+-- ★ APR-3(2026-09-22):那一次比较搬去了 approval_level_at(numeric, numeric) ——
+--   本函数的签名、两句按名拒绝、以及它对调用方的意思【一个字都没有变】,
+--   它只是把 >= 交给那支唯一的定义。搬家的理由写在 approval_level_at 的抬头
+--   (一句话:BEFORE UPDATE 的闸读不到 NEW 的门槛)。
+--   ☞ 本文件里【不再出现】那个比较号,这是有意的 —— db/fixtures/151 注入④
+--     的目标因此跟着搬到了 approval_level_at。
+
 CREATE OR REPLACE FUNCTION public.approval_level_for(p_amount_base numeric)
  RETURNS smallint
  LANGUAGE plpgsql
@@ -15,7 +25,7 @@ BEGIN
     IF p_amount_base IS NULL THEN
         RAISE EXCEPTION 'APPROVAL_AMOUNT_REQUIRED';
     END IF;
-    -- 「10k 及以上归 CFO」—— Doc 1 的原话是"10k and above",所以是 >=
-    RETURN CASE WHEN p_amount_base >= v_threshold THEN 2 ELSE 1 END;
+    -- APR-3:分档的判据只有一份,在 approval_level_at 里。
+    RETURN approval_level_at(p_amount_base, v_threshold);
 END;
 $function$;

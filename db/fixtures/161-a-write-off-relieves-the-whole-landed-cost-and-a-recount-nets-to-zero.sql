@@ -126,7 +126,12 @@ BEGIN
     SELECT COALESCE(SUM(signed_base),0) INTO v_a
       FROM journal_activity_lines(NULL, NULL, true) WHERE account_code = '1200';
 
-    INSERT INTO stocktakes (code, status) VALUES ('ZZ161-ST1', 'open') RETURNING id INTO v_st;
+    -- ★★ APR-3(2026-09-22):盘点过账现在拒自批(只有 raiser 那条腿)。
+    --   本支三处盘点要证的是【计值】(落地成本、盘盈盘亏两个方向、1200 回到起点),
+    --   建单的是谁与它无关 —— 所以显式给一个【别人】当建单人。
+    --   ☞ 那个 uuid 在 auth.users 里没有对应的行,于是它不会被任何按
+    --     "真持有人"计数的判据算进去。
+    INSERT INTO stocktakes (code, status, created_by) VALUES ('ZZ161-ST1', 'open', gen_random_uuid()) RETURNING id INTO v_st;
     INSERT INTO stocktake_lines (stocktake_id, inbound_batch_id, book_qty, counted_qty)
     VALUES (v_st, v_ib, 100, 50);
     PERFORM post_stocktake(v_st);
@@ -173,7 +178,7 @@ BEGIN
     SELECT COALESCE(SUM(signed_base),0) INTO v_a
       FROM journal_activity_lines(NULL, NULL, true) WHERE account_code = '1200';
 
-    INSERT INTO stocktakes (code, status) VALUES ('ZZ161-ST2', 'open') RETURNING id INTO v_st;
+    INSERT INTO stocktakes (code, status, created_by) VALUES ('ZZ161-ST2', 'open', gen_random_uuid()) RETURNING id INTO v_st;
     INSERT INTO stocktake_lines (stocktake_id, inbound_batch_id, book_qty, counted_qty)
     VALUES (v_st, v_ib, 100, 50);
     PERFORM post_stocktake(v_st);
@@ -184,7 +189,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 161C 前置失败:盘亏 50kg 应按落地成本解除 450.00(= 50 × 9.00),实得 %', v_a - v_b;
     END IF;
 
-    INSERT INTO stocktakes (code, status) VALUES ('ZZ161-ST3', 'open') RETURNING id INTO v_st;
+    INSERT INTO stocktakes (code, status, created_by) VALUES ('ZZ161-ST3', 'open', gen_random_uuid()) RETURNING id INTO v_st;
     INSERT INTO stocktake_lines (stocktake_id, inbound_batch_id, book_qty, counted_qty)
     VALUES (v_st, v_ib, 50, 100);
     PERFORM post_stocktake(v_st);

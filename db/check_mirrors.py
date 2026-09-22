@@ -345,6 +345,15 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 是瞎的"那条病。
     "purchase_order_kind": "EXECUTE revoked from PUBLIC/authenticated/anon; its only caller is the owner-run trigger guard_payment_term_applicable, and postgres has no claims so a permission check would raise on every payment-terms write",
     "real_role_holders": "EXECUTE revoked from authenticated; callers guard_approvals_switch / approvals_readiness / require_approver_for are all definer and each checks its own caller",
+    # APR-3(2026-09-22):「哪些单据正在等人批」。与 real_role_holders 逐字同源同
+    # 理由 —— 它横跨采购与财务两张表,EXECUTE 已从 authenticated 收回
+    # (db/views/zzz_function_grants.sql),所以 gate 的 B2(definer-unchecked-
+    # and-CALLABLE)是 0,靠的就是【调不到】。
+    # 【它不能自己查权限】三个调用方里两个是属主身份跑的触发器分支
+    # (guard_approvals_switch 的关闭那一支与 APPROVALS_POLICY_WOULD_STRAND),
+    # 属主没有 claims,加一道门会在每一次写审批策略的路上抛权限错;
+    # 第三个 approvals_readiness 开头就查 action.manage_permissions。
+    "approval_pending_documents": "EXECUTE revoked from authenticated; two of its three callers are owner-run trigger branches in guard_approvals_switch (postgres has no claims, so a permission check would raise on every approvals-policy write) and the third, approvals_readiness, checks action.manage_permissions itself",
     # APR-2(2026-09-22):「这条链真的有几个人批得动」。与 real_role_holders
     # 逐字同源同理由 —— 它经 real_role_grants 读 auth.users 的登录状态,并把整张
     # role_permissions 摊平成「谁真的持有哪个码」,比单独任何一支都宽。

@@ -47,14 +47,23 @@ BEGIN
     VALUES ('fixture-35-approver', 'f', 'f', true) RETURNING id INTO r_l1;
     -- CHAIN-BUILD-1(R4):审批角色必须【看得见金额】—— approve_purchase_order 现在
     -- 要 data.view_prices,而开关那道闸也会为看不见金额的角色按名拒。
+    -- ★★ APR-3(2026-09-22):报销单那条链也接上了引擎,它的门是
+    --   module.finance.view + data.view_prices。开关那道闸要求【每一条】登记在
+    --   approval_chain_gates() 里的链在两级上都有人批得动 —— 所以两级都要补上
+    --   module.finance.view,否则本支【打不开审批】,而它要验的采购单分档
+    --   会为一个与采购无关的理由整支红掉。
+    --   ☞ 这不是把本支的范围扩大了:它要的前提一直是"审批开得起来",
+    --     而那个前提的内容随着引擎接上的链一起长。
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_l1, unnest(ARRAY['module.purchasing.view','module.purchasing.edit','data.view_prices']);
+    SELECT r_l1, unnest(ARRAY['module.purchasing.view','module.purchasing.edit','data.view_prices',
+                              'module.finance.view']);
     -- CHAIN-BUILD-1(R1):二级也是一个【角色】。**它与一级是两个不同的角色** ——
     -- R2 说得很死:加第二个审批人是【分工】,不是【互为代理】。
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-35-l2', 'f', 'f', true) RETURNING id INTO r_l2;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_l2, unnest(ARRAY['module.purchasing.view','data.view_prices']);
+    SELECT r_l2, unnest(ARRAY['module.purchasing.view','data.view_prices',
+                              'module.finance.view']);   -- ★ APR-3:同上
     -- 【SOD-1:一级审批角色必须有【真的登录得了的】持有人】
     -- trg_approvals_switch 数的是 user_roles ⋈ auth.users —— 一个只由幽灵持有的
     -- 角色是一个永远不会有人来批的队列(线上有 66 条认不到人的授权,

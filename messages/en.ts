@@ -4879,7 +4879,14 @@ const en = {
             EXPENSE_CLAIM_ACCOUNT_REQUIRED: 'Approving {0} needs an account \u2014 the cost has to land somewhere, and guessing one is worse than asking.',
             EXPENSE_CLAIM_TAX_CODE_REQUIRED: 'Approving {0} needs a tax code. An employee has no default one, so somebody has to decide whether the input tax is claimable (TX) or blocked (BL) \u2014 that is a finance judgement, not something to default.',
             EXPENSE_CLAIM_NO_EVIDENCE: 'Claim {0} has neither a receipt nor a reason there isn\u2019t one. Approving it would be approving nothing in particular.',
-            EXPENSE_CLAIM_SELF_APPROVAL: 'You submitted claim {0}, so you cannot be the one who approves it.',
+            // ★ APR-3: the expense-claim chain now routes by amount, so it can refuse
+            // for two new reasons. Both sentences name the NEXT STEP — a refusal that
+            // does not say what to do next buys the way around it, not the control.
+            // Raised as APPROVAL_NOT_AUTHORISED|<level>|<role> — {0} is the level, {1} the
+            // role code. There is no claim code in it, so do not write one into the sentence.
+            APPROVAL_NOT_AUTHORISED: 'This claim routes to approval level {0}, and you are not in the {1} role. Ask somebody who holds it to decide this one.',
+            APPROVALS_NOT_ENABLED: 'Approvals are not in force, so there is nothing to approve here.',
+            EXPENSE_CLAIM_AMOUNT_BASE_UNRESOLVED: 'Claim {0} could not be valued in the base currency, so it cannot be routed to an approval level. This should not happen — report it rather than working around it.',
         },
     },
     chases: {
@@ -6845,6 +6852,34 @@ const en = {
             adminWarning:
                 '★ Neither level may be pointed at a role that administers the system — admin, or cco, which also holds manage roles & permissions. That is a ruling, not a machine rule, and the roles are listed here on purpose rather than hidden: a dropdown that quietly drops them enforces the rule while leaving no trace of it. The person who can grant themselves any permission must not also be the person who approves the spending.',
             // ── APR-2: does each wired chain actually have someone who can approve it?
+            // ★★ APR-3(Tim 的 Q6): the pending count, widened to every wired chain.
+            // Two counts that look alike and are not the same question, so they are
+            // two fields — and both come out of ONE function, so the screen and the
+            // gate cannot read two different judgements.
+            pendingTitle: 'What is waiting to be approved',
+            pendingWhy:
+                'Counted per chain. A chain is listed here whether or not turning approvals off would strand it \u2014 those are two different questions, and the second one is the one the switch asks.',
+            pendingNone: 'Nothing is waiting on any wired chain.',
+            pendingBlocks:
+                '{subject}: {n} waiting. \u2605 Turning approvals off would strand them \u2014 the decision path refuses while approvals are not in force.',
+            pendingFree:
+                '{subject}: {n} waiting. Turning approvals off would not strand them \u2014 they can still be decided, only without a level.',
+            pendingUnknownAmount:
+                '({n} of them cannot be valued in the base currency yet, so they cannot be routed to a level.)',
+            // Subject names for the line above. The suffix set is read from
+            // approval_log's CHECK enum at check time, so wiring a new chain and
+            // forgetting its name turns the build red rather than printing a raw
+            // subject_type on screen.
+            subject_leave_request: 'Leave requests',
+            subject_medical_claim: 'Medical claims',
+            subject_performance_review: 'Performance reviews',
+            subject_purchase_order: 'Purchase orders',
+            subject_payment: 'Payments',
+            subject_expense: 'Expenses',
+            subject_expense_claim: 'Expense claims',
+            subject_pricing_formula: 'Pricing formulas',
+            subject_stocktake: 'Stocktakes',
+            subject_work_order: 'Work orders',
             chainGatesTitle: 'Can anyone actually approve it?',
             chainGatesWhy:
                 'Holding the approver role is only half of it — the person also has to hold the permission the action itself requires, or they cannot open the document. Nothing checked that until now, and a work order chain shipped that literally nobody could pass.',

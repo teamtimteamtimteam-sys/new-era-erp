@@ -8,8 +8,10 @@
 --   · **批准那一刻【同时】记成本与记债** —— 批之前账上没有,批之后有一笔
 --     unpaid、挂这名员工、入账日等于【花钱那天】的费用。
 --   · **自己不能批自己** —— 而这条只有在【设了 claims】时才测得到:
---     assert_segregated 在 auth.uid() 为 NULL 时【直接返回】,所以不设 claims
+--     四眼判据读的是 auth.uid(),它为 NULL 时【一律放行】,所以不设 claims
 --     的臂是空转的(fixture 127 立的那条,AGENTS.md 反复记过)。
+--     ★ APR-3:这条链换成了全库唯一那份判据 forbid_self_approval(两条腿),
+--       而此前它有自己的一份(带自己的码)—— 换掉的理由见 docs/approvals.md §3e Q5。
 --   · **凭据有两条路,而"两条都没有"按名拒** —— 一条没有例外出口的规矩会被绕过。
 --   · **付了没有是【推导】的** —— 冲销那笔费用,claim 的状态跟着走。
 --
@@ -150,28 +152,38 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════════════
     -- C 臂 · ★【自己不能批自己】★ —— 而这条只有设了 claims 才测得到
     -- ══════════════════════════════════════════════════════════════════════
-    -- assert_segregated 在 auth.uid() 为 NULL 时【直接返回】。所以:
+    -- 四眼判据读的是 auth.uid(),它为 NULL 时【一律放行】。所以:
     -- ① 先证明 claims 真的设上了(否则这一臂是空转的,fixture 127 那一课);
     -- ② 再证明【有权限但是本人】的那个人被拒 —— 拒的必须是"职责分离",
     --    不是"没权限"。两个人在布景里都拿了全权限,正是为了这一点。
     IF NULLIF(current_setting('request.jwt.claims', true), '') IS NULL THEN
-        RAISE EXCEPTION 'FIXTURE 140C 失败(空转):claims 没设,assert_segregated 会直接返回 —— 这一臂什么都没测';
+        RAISE EXCEPTION 'FIXTURE 140C 失败(空转):claims 没设,四眼判据会直接放行 —— 这一臂什么都没测';
     END IF;
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_claimant), true);
     v_res := submit_expense_claim(v_emp, d_spend, 60, v_base, '自己批自己的那一笔', '小额无票');
     v_c2 := (v_res->>'claim_id')::uuid;
-    -- 先证明这个人【确实有权批】—— 否则下面拒的是权限,不是职责分离
-    IF NOT has_permission('module.finance.edit') THEN
-        RAISE EXCEPTION 'FIXTURE 140C 失败(空转):提报人没有 finance.edit —— 那么被拒的是权限,而不是职责分离';
+    -- 先证明这个人【确实有权批】—— 否则下面拒的是权限,不是职责分离。
+    -- ★★ APR-3(Tim 的 Q1):这条链的门换了 —— 从 module.finance.edit 换成
+    --   module.finance.view + data.view_prices(采购单那条链的形状)。
+    --   ☞ 这一句【必须跟着换】,否则它证的是一个已经不在这条路上的码:
+    --     一个"确实有权批"的断言,钉着一个与这次拒绝无关的权限,
+    --     等于没有钉 —— 而它仍然会全绿。
+    IF NOT (has_permission('module.finance.view') AND has_permission('data.view_prices')) THEN
+        RAISE EXCEPTION 'FIXTURE 140C 失败(空转):提报人不持 module.finance.view + data.view_prices —— 那么被拒的是权限,而不是四眼';
     END IF;
     BEGIN
         PERFORM decide_expense_claim(v_c2, true, v_acct, 'TX', NULL, NULL);
         RAISE EXCEPTION 'FIXTURE 140C 失败:提报人批了自己那一笔';
     EXCEPTION WHEN OTHERS THEN
         GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
-        IF v_msg NOT LIKE 'EXPENSE_CLAIM_SELF_APPROVAL%' THEN
-            RAISE EXCEPTION 'FIXTURE 140C 失败:应报 EXPENSE_CLAIM_SELF_APPROVAL,实得 %', v_msg;
+        -- ★★ APR-3(Tim 的 Q5):这条链此前有【第二份】四眼判据
+        --   (assert_segregated + 一个自己的码),而 APR-2 §3d 的全部论证就是
+        --   "一条写成两遍的规矩,第三条链会漏掉它"。它现在调全库唯一那一份。
+        -- ★ 这里【raiser】先判:这一臂里提报人与受益人是同一个人,
+        --   两条腿同时成立,而顺序是定的(APR-2 §3.5)。
+        IF v_msg <> 'SELF_APPROVAL_FORBIDDEN|raiser' THEN
+            RAISE EXCEPTION 'FIXTURE 140C 失败:应报 SELF_APPROVAL_FORBIDDEN|raiser,实得 %', v_msg;
         END IF;
     END;
     -- 换个人批就过 —— 证明拒的是【那个人】,不是这条路
@@ -384,8 +396,10 @@ BEGIN
               FROM regexp_split_to_table(
                      pg_get_functiondef('public.decide_expense_claim(uuid,boolean,text,text,date,text)'::regprocedure),
                      E'\n') AS l) q;
-    IF v_src NOT LIKE '%assert_segregated(''EXPENSE_CLAIM_SELF_APPROVAL'', v_actors, v_c.code)%' THEN
-        RAISE EXCEPTION 'FIXTURE 140J 失败:decide_expense_claim 里【没有】那一次 assert_segregated 调用 —— 而 guard_payment_sod 明确豁免了付给员工的款,上游这道闸一撤,自己批自己就通了';
+    -- ★★ APR-3:判据换成了全库唯一那一份,两条腿一次传进去
+    --   (提报人 created_by · 单据说的那位 employee_id)。
+    IF v_src NOT LIKE '%forbid_self_approval(v_c.created_by, v_c.employee_id)%' THEN
+        RAISE EXCEPTION 'FIXTURE 140J 失败:decide_expense_claim 里【没有】那一次四眼调用 —— 而 guard_payment_sod 明确豁免了付给员工的款,上游这道闸一撤,自己批自己就通了';
     END IF;
     -- 【对齐用的空格数不算数,绑定关系才算数】第一版把 p_employee_id 与 :=
     -- 之间的空格数写死成三个,而 pg_get_functiondef 存的是四个 —— 断言于是

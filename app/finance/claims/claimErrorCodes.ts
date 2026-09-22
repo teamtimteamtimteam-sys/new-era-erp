@@ -1,5 +1,6 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { fallbackForRawError } from '@/lib/machine-text'
+import { localizeSelfApproval } from '@/lib/selfApproval'
 
 // CLAIM-1:报销那三支函数抛出的错误码。
 //
@@ -22,7 +23,14 @@ export const EXPENSE_CLAIM_ERROR_CODES = new Set([
     'EXPENSE_CLAIM_ACCOUNT_REQUIRED',
     'EXPENSE_CLAIM_TAX_CODE_REQUIRED',
     'EXPENSE_CLAIM_NO_EVIDENCE',
-    'EXPENSE_CLAIM_SELF_APPROVAL',
+    // ★ APR-3:EXPENSE_CLAIM_AMOUNT_BASE_UNRESOLVED —— 一个【不该发生】的状态:
+    //   牌价查得到,而本位币金额仍然算不出来。按名拒而不是继续往下走。
+    'EXPENSE_CLAIM_AMOUNT_BASE_UNRESOLVED',
+    // ★ APR-3:接上审批引擎之后,这条路会抛按级别授权的拒绝。
+    //   它不归报销这一族所有(每一条接上引擎的链都抛它),但报销的屏幕
+    //   要能把它说成人话,否则它会退到共用兜底。
+    'APPROVAL_NOT_AUTHORISED',
+    'APPROVALS_NOT_ENABLED',
     'EMPLOYEE_NOT_FOUND',
 ])
 
@@ -33,6 +41,16 @@ export async function localizeExpenseClaimError(message: string): Promise<string
     const match = raw.match(CODE_RE)
     if (!match) return await fallbackForRawError(raw, 'localizeExpenseClaimError@app/finance/claims/claimErrorCodes.ts')
     const t = await getTranslations()
+    // ★★ APR-3(Tim 的 Q5):四眼那两句话跨模块【只写一遍】(lib/selfApproval.ts)。
+    //   此前这条链抛的是 EXPENSE_CLAIM_SELF_APPROVAL —— 一条两条腿共用一句话的码,
+    //   而那句话写的是「这张单是你提的」。当拒绝的理由是【你就是这张单说的那个人】
+    //   时,那句话是【假的】,并且把人指去修错的东西:提单人要找同事批,
+    //   而单据的主角要找的是"既不是他、也不是提单人"的第三个人 —— 那个人
+    //   可能根本不存在,那是一次真的配置问题。
+    //   ☞ 那个码连同它的两条文案在 APR-3 同一个提交里退休了。
+    if (match[1] === 'SELF_APPROVAL_FORBIDDEN') {
+        return await localizeSelfApproval((match[2] ?? '').split('|')[0] || null)
+    }
     if (match[1] === 'PERMISSION_DENIED') return t('permissions.errDenied')
     // 【期间锁与汇率缺失是别人家的码,交给共用兜底 lib/machine-text.ts】PERIOD_LOCKED 归财务那一族、
     // FX_RATE_MISSING 归 THE FX RULE 那一族 —— 措辞归它们自己,这里不复述。

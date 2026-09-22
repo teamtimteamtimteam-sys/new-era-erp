@@ -81,18 +81,17 @@ BEGIN
     INSERT INTO work_order_history (work_order_id, change_type, changed_by)
     VALUES (p_work_order_id, 'released', v_user);
 
-    -- 【关着的时候也要留痕,而且要说实话】—— 与 create_purchase_order 逐字同一句:
-    -- 记录真实发生的事,不要把"系统直接盖章"伪装成一次人的决定。
-    IF v_appr_on THEN
-        -- ★ APR-2:层级写 NULL,不写 1。此前写的是 1,而那是一句【假记录】——
-        -- 今天这条路上【没有跑过任何一级授权检查】(上面那一段说明了为什么),
-        -- 于是"level = 1"会让留痕声称发生过一件没有发生的事。
-        -- 与 HR 三条链同形:它们也一律 NULL(approval_log 的 level 列注释)。
-        PERFORM record_approval_decision('work_order', p_work_order_id, 'approved', NULL::smallint, NULL);
-    ELSE
-        PERFORM record_approval_decision('work_order', p_work_order_id, 'auto_approved', NULL,
-            '审批流未启用(finance_settings.approvals_enabled = false)—— 系统直接盖章,没有人做过这个决定');
-    END IF;
+    -- 【留痕要说实话】—— 而 APR-3(Tim 的 Q7)把"实话"这一句本身改了。
+    -- ★ 两条分支现在写的是【同一个决定值】:放行是一个人按下去的动作,
+    --   审批开着还是关着都是;开关只改变"有没有一道按级别的授权",
+    --   不改变"有没有人做过这个决定"。
+    -- ★ 层级恒 NULL,不写 1。此前写的是 1,而那是一句【假记录】——
+    --   这条路上【没有跑过任何一级授权检查】(上面那一段说明了为什么),
+    --   于是 level = 1 会让留痕声称发生过一件没有发生的事。
+    --   与 HR 三条链同形:它们也一律 NULL(approval_log 的 level 列注释)。
+    PERFORM record_approval_decision('work_order', p_work_order_id, 'approved', NULL::smallint,
+        CASE WHEN v_appr_on THEN NULL
+             ELSE '审批流未启用(finance_settings.approvals_enabled = false)—— 没有按级别的授权步骤,而放行是这个人按下去的' END);
 
     RETURN jsonb_build_object('work_order_id', p_work_order_id, 'code', v_wo.code,
                               'status', 'released', 'approvals_enabled', v_appr_on);

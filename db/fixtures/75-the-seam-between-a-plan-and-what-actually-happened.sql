@@ -416,11 +416,35 @@ BEGIN
     END IF;
 
     -- ══════════ E. 审批主体 ═══════════════════════════════════════════════════
-    -- 关着的时候也要留痕,而且要说实话(与 create_purchase_order 逐字同一句)
+    -- 关着的时候也要留痕,而且要说实话。
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★★★ APR-3(Tim 的 Q7):这一臂断言的那个值【改了】,而改的是规矩本身。
+    -- ════════════════════════════════════════════════════════════════════════
+    -- 此前这里断言的是 auto_approved,理由写着「不能把"系统盖章"伪装成没发生过」。
+    -- ★ 那句话对了一半:留痕确实必须在。而【值】选错了 ——
+    --   auto_approved 那一列的定义是「单据生下来就是 approved,没有任何人按过
+    --   任何东西」(采购单就是这样)。**而放行工单是一个人按下去的动作**,
+    --   旁边就记着 actor_user_id 是谁,APR-2 起他还要先过四眼那道闸。
+    --   ☞ 于是旧的那一行留痕在说一句假话:它声称没有人做过这个决定。
+    -- ★ 新规矩与 HR 三条链、与盘点过账逐字同源:**开着还是关着,决定都是人做的**,
+    --   两条分支都写 approved,只有 note 不同(它现在说的是"没有跑过按级别的
+    --   授权步骤",而那是真的)。
+    -- ★★【两个方向一起钉】"没有 auto_approved" 这种断言最容易空转 ——
+    --   一个根本不写留痕的实现也满足它。所以先断言【有】一行 approved。
     IF NOT EXISTS (SELECT 1 FROM approval_log
                     WHERE subject_type = 'work_order' AND subject_id = woOK
-                      AND decision = 'auto_approved') THEN
-        RAISE EXCEPTION 'FIXTURE 75E 失败:审批关着时放行也要留一条 auto_approved 痕 —— 不能把"系统盖章"伪装成没发生过';
+                      AND decision = 'approved') THEN
+        RAISE EXCEPTION 'FIXTURE 75E 失败:审批关着时放行也要留一条 approved 痕 —— 放行是一个人按下去的,不留痕等于那件事没发生过';
+    END IF;
+    IF EXISTS (SELECT 1 FROM approval_log
+                WHERE subject_type = 'work_order' AND subject_id = woOK
+                  AND decision = 'auto_approved') THEN
+        RAISE EXCEPTION 'FIXTURE 75E 失败:★ 工单还在写 auto_approved —— 那个值的意思是"没有人做过这个决定",而这一行旁边就记着是谁按的';
+    END IF;
+    -- ★ 而【决定人】必须在:一行说"是人做的"却说不出是谁的留痕,等于没说。
+    IF (SELECT actor_user_id FROM approval_log
+         WHERE subject_type='work_order' AND subject_id=woOK LIMIT 1) IS NULL THEN
+        RAISE EXCEPTION 'FIXTURE 75E 失败:留痕写了 approved 却没有决定人 —— 那正是它刚刚不再声称的那件事';
     END IF;
     -- 【工单没有金额 —— 那四列留空,不是塞 0】0 会让它在按金额筛的报表里排到最前面
     IF (SELECT amount_base FROM approval_log

@@ -429,6 +429,13 @@ const MANIFEST = {
     'chases.channel_':      { kind: 'enum', values: () => sqlCheckIn('db/tables/collection_chases.sql', 'channel') },
     'chases.outcome_':      { kind: 'enum', values: () => sqlCheckIn('db/tables/collection_promises.sql', 'outcome') },
     'chases.subject_':      { kind: 'enum', values: () => sqlCheckIn('db/tables/collection_chase_documents.sql', 'subject_type') },
+    // ★★ APR-3(2026-09-22):/settings/approvals 上那块逐链在途张数,按
+    //   subject_type 现读文案。真源是 approval_log 的 CHECK 枚举 ——
+    //   与 approval_pending_documents() 认得的那些是同一份词汇表。
+    //   ☞ 接进来的话【故意】取整份枚举而不是今天真的会出现的那两个:
+    //     下一刀接一条链上引擎、却忘了写它的中文名,这里当场红,
+    //     而不是等到屏幕上冒出一个 subject_type 的原文。
+    'finance.approvals.subject_': { kind: 'enum', values: () => sqlCheckIn('db/tables/approval_log.sql', 'subject_type') },
     // CASHFLOW-1:四个前缀,四个真源都在库那一侧 —— 加一种频率/来源/理由,
     // 键检查【自动跟着变宽】,而不是等着谁记得来补一行。
     'cashForecast.errors.':  { kind: 'enum', values: () => tsSet('app/finance/cashForecastErrorCodes.ts', 'CASH_FORECAST_ERROR_CODES') },

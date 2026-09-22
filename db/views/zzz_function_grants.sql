@@ -123,6 +123,22 @@ REVOKE EXECUTE ON FUNCTION public.record_approval_decision(text, uuid, text, sma
 -- 它们各自 require_permission。给了 authenticated 就等于把阈值和授权判断敞开。
 REVOKE EXECUTE ON FUNCTION public.approval_level_for(numeric) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.require_approver_for(smallint) FROM authenticated;
+-- ★ APR-3:分档那个比较号搬出来单独成一支(approval_level_at)。它【不是】DEFINER
+-- (它一个东西都不读:两个入参,一次比较),所以 gate 的 B2 与它无关;收权是为了
+-- 与它的公开入口 approval_level_for 一致 —— 两支答的是同一个问题,不该一支敞着。
+REVOKE EXECUTE ON FUNCTION public.approval_level_at(numeric, numeric) FROM authenticated;
+-- ★ APR-3:一张报销单值多少本位币。【不是】DEFINER —— 它读 expense_claims 与
+-- fx_rates,而那两张表的 RLS 正是这个问题该有的答案。收权的理由不是安全(RLS
+-- 已经管住了),是【它是一支内层算子】:它的三个调用方都以属主身份跑,而一个
+-- 敞着的内层算子迟早会长出第四个调用方,那时谁也说不清它该答什么。
+REVOKE EXECUTE ON FUNCTION public.expense_claim_amount_base(uuid) FROM authenticated;
+-- ★★ APR-3:哪些单据正在等人批。SECURITY DEFINER 且【没有】调用者检查,
+-- 与 real_role_holders / approval_gate_intersections 逐字同源同理由:它的三个
+-- 调用方里两个是【属主身份跑的触发器】(guard_approvals_switch 的关闭那一支与
+-- APPROVALS_POLICY_WOULD_STRAND),属主没有 claims,加一道门会在每一次写策略的
+-- 路上抛权限错;第三个 approvals_readiness 自己开头就查 action.manage_permissions。
+-- 给了 authenticated 就等于把采购与财务两个模块的在途单据编号一起敞开。
+REVOKE EXECUTE ON FUNCTION public.approval_pending_documents() FROM authenticated;
 -- SAL-B:客户敞口算子。无调用者检查,靠调不到 —— 消费方是 record_output_sale
 -- (definer)与 operations_now(属主视图),两者都以属主身份执行。给了
 -- authenticated 就等于把任意客户的应收敞口敞开给没有财务权限的人。

@@ -26771,7 +26771,21 @@ export type Database = {
           subject_type: string
         }[]
       }
+      approval_level_at: {
+        Args: { p_amount_base: number; p_threshold: number }
+        Returns: number
+      }
       approval_level_for: { Args: { p_amount_base: number }; Returns: number }
+      approval_pending_documents: {
+        Args: never
+        Returns: {
+          amount_base: number
+          blocks_disable: boolean
+          code: string
+          doc_id: string
+          subject_type: string
+        }[]
+      }
       approvals_enabled: { Args: never; Returns: boolean }
       approvals_readiness: { Args: never; Returns: Json }
       approve_purchase_order: {
@@ -27304,6 +27318,15 @@ export type Database = {
       ensure_task_owner_participant: {
         Args: { p_actor?: string; p_owner_emp: string; p_task_id: string }
         Returns: string
+      }
+      expense_claim_amount_base: {
+        Args: { p_claim_id: string }
+        Returns: {
+          amount_base: number
+          amount_ccy: number
+          currency: string
+          fx_rate: number
+        }[]
       }
       explain_inbound_source: {
         Args: { p_batch_id: string; p_note?: string; p_reason_code: string }
