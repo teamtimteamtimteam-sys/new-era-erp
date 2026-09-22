@@ -21,6 +21,15 @@ BEGIN
     IF NOT FOUND THEN RAISE EXCEPTION 'REQUEST_NOT_FOUND'; END IF;
     IF v_req.status <> 'pending' THEN RAISE EXCEPTION 'REQUEST_NOT_PENDING|%', v_req.status; END IF;
 
+    -- ★ APR-2:四眼。此前这条链【一条自批判据都没有】——
+    -- 一个持 module.hr.edit 的人批得了自己的假(APR-0 §1.5 实测)。
+    -- 两条腿,判据只有一份定义(见 forbid_self_approval 的抬头):
+    --   ① 提这张单的人;② 这张单【说的是谁】。
+    -- ★ 第二条在这里是承重的:HR 可以【代人】提单,那时 created_by 是 HR、
+    --   employee_id 是员工本人 —— 只判第一条的话,那位员工(若他持
+    --   module.hr.edit)照样批得了自己的假。
+    PERFORM forbid_self_approval(v_req.created_by, v_req.employee_id);
+
     SELECT * INTO v_type FROM leave_types WHERE code = v_req.leave_type_code;
 
     IF NOT p_approve THEN

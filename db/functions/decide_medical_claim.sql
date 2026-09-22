@@ -12,6 +12,10 @@ BEGIN
     IF NOT FOUND THEN RAISE EXCEPTION 'CLAIM_NOT_FOUND'; END IF;
     IF v_claim.status <> 'submitted' THEN RAISE EXCEPTION 'CLAIM_NOT_SUBMITTED|%', v_claim.status; END IF;
 
+    -- ★ APR-2:四眼,与 decide_leave_request 逐字同一支判据、同样两条腿。
+    -- 这条链此前也一条都没有 —— 而它【是真的在批钱】(amount_sgd)。
+    PERFORM forbid_self_approval(v_claim.created_by, v_claim.employee_id);
+
     IF NOT p_approve THEN
         UPDATE medical_claims SET status='rejected', decided_at=now(), decided_by=auth.uid(),
                decision_notes=p_notes, updated_by=auth.uid() WHERE id = p_claim_id;

@@ -26,6 +26,7 @@ DECLARE
     v_role    text;
     v_total   integer;
     v_real    integer;
+    v_gap     record;
 BEGIN
     -- ── 开:策略必须齐,两级都必须【有人批】而且【看得见金额】 ──
     IF NEW.approvals_enabled AND NOT OLD.approvals_enabled THEN
@@ -69,6 +70,35 @@ BEGIN
             IF NOT role_can_see_amounts(v_role) THEN
                 RAISE EXCEPTION 'APPROVALS_LEVEL%_ROLE_CANNOT_SEE_AMOUNTS|%', v_lvl, v_role;
             END IF;
+        END LOOP;
+
+        -- ════════════════════════════════════════════════════════════════════
+        -- ★★★ APR-2:每一条接上引擎的链,都必须【真的有人批得动】 ★★★
+        -- ════════════════════════════════════════════════════════════════════
+        -- 上面那一段问的是"这一级的角色有没有真人、看不看得见金额" ——
+        -- 两个都是【关于角色的】问题。而它们全部为真时,这条链仍然可以是死的:
+        -- 一个持有那个角色的人,可能根本进不了那张单据所在的模块。
+        -- ★ 这不是假设:WO-1b 就是这么在线上造出一把锁的,而当时三道闸全绿
+        --   (逐项实测写在 db/functions/approval_chain_gates.sql 的抬头)。
+        --
+        -- ★★ 传的是 NEW 的两个角色码,【不能】让它自己去读表:本触发器是
+        --    BEFORE UPDATE,而策略四列是一起写的 —— 读表读到的是 OLD,
+        --    于是这道闸会去判上一版策略,并且全绿。
+        --
+        -- 【为什么是拒绝,不是忠告】与本函数抬头那句话同一条:把"开着但没人批"
+        -- 做成一个【到不了】的状态,而不是【到了才发现】。后者的代价是一批
+        -- 永远停在 pending 的单据,而开关此时已经关不掉了(下面那道闸)。
+        FOR v_gap IN
+            SELECT i.action_function, i.level, i.role_code,
+                   array_to_string(i.gate_permissions, '+') AS perms
+              FROM approval_gate_intersections(NEW.approval_level1_role_code,
+                                               NEW.approval_level2_role_code) i
+             WHERE i.approvers = 0
+             ORDER BY i.action_function, i.level
+             LIMIT 1
+        LOOP
+            RAISE EXCEPTION 'APPROVALS_CHAIN_HAS_NO_APPROVER|%|%|%|%',
+                v_gap.action_function, v_gap.level, v_gap.role_code, v_gap.perms;
         END LOOP;
     END IF;
 

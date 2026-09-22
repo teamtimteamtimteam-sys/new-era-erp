@@ -7,6 +7,7 @@ import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { fallbackForRawError } from '@/lib/machine-text'
+import { localizeSelfApproval } from '@/lib/selfApproval'
 
 export type LeaveState = { error?: string; success?: boolean; code?: string }
 
@@ -39,6 +40,11 @@ export async function localizeLeaveError(message: string): Promise<string> {
             return t('leave.errCarryExists', { 0: p[0] ?? '', 1: p[1] ?? '' })
         case 'REQUEST_NOT_PENDING':
             return t('leave.errNotPending', { 0: p[0] ?? '' })
+        // ★ APR-2:四眼。请假与医疗申报走的是同一支 localizer(claims/actions.ts
+        // 直接 import 它),所以这一支同时服务两条链。两句话的区别与理由写在
+        // lib/selfApproval.ts。
+        case 'SELF_APPROVAL_FORBIDDEN':
+            return await localizeSelfApproval(p[0])
         case 'PERMISSION_DENIED':
             return t('permissions.errDenied')
         case 'CLAIM_NOT_APPROVED':

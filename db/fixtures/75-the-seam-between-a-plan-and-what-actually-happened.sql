@@ -45,6 +45,10 @@ DECLARE
     def_commit text; def_cancel text;
     v_def text; v_inj text;
     d date := CURRENT_DATE;
+    u_apr2  uuid := gen_random_uuid();   -- APR-2 四眼:替本支做决定的【第二个人】
+    r_apr2  uuid;
+    c_apr2  text;
+    c_was   text;                        -- 切过去之前的 claims,原样切回来
 BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-75', 'f', 'f', true) RETURNING id INTO r_all;
@@ -122,7 +126,26 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'expected_qty', 90, 'basis', 'planner_estimate')),
         d, 'f75 OK');
     woOK := (v_res->>'work_order_id')::uuid;
+    -- ════════════════════════════════════════════════════════════════════
+    -- ★ APR-2(2026-09-22):四眼 —— 【批的人不能是提的人】
+    -- ════════════════════════════════════════════════════════════════════
+    -- 本支验的不是审批,而它调的那支函数从 APR-2 起会拒绝"自己批自己提的单"。
+    -- 所以这里造一个【第二个人】去做那个决定,本支原有的断言一个字不动。
+    -- 【为什么复制权限而不是挑几个码】本支要的是"他不是提单人",不是"他权限窄";
+    -- 挑码会让下一次改权限时这一支为一个与它无关的理由变红。
+    -- ★ 他【没有】auth.users 那一行 —— 于是 real_role_holders 不会把他算进去,
+    --   本支里任何按"真持有人"计数的断言都不受影响。
+    -- 判据本身由 db/fixtures/203 专门钉住,不在这里重复。
+    INSERT INTO roles (code, name_en, name_zh, is_active)
+      VALUES ('fx75-apr2-rel', 'f', 'f', true) RETURNING id INTO r_apr2;
+    INSERT INTO role_permissions (role_id, permission_code) SELECT r_apr2, code FROM permissions;
+    INSERT INTO user_roles (user_id, role_id) VALUES (u_apr2, r_apr2);
+    c_apr2 := format('{"sub":"%s","role":"authenticated"}', u_apr2);
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     PERFORM release_work_order(woOK);
+    PERFORM set_config('request.jwt.claims', c_was, true);
 
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
@@ -215,7 +238,11 @@ BEGIN
     v_res := create_work_order(
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 10)), NULL, NULL, 'f75 closed');
     woClosed := (v_res->>'work_order_id')::uuid;
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     PERFORM release_work_order(woClosed);
+    PERFORM set_config('request.jwt.claims', c_was, true);
     PERFORM close_work_order(woClosed, 'f75:先收工');
     v_denied := false; v_msg := NULL;
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
@@ -286,7 +313,11 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 50)),
         NULL, NULL, 'f75 no expectation');
     woNoExp := (v_res->>'work_order_id')::uuid;
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     PERFORM release_work_order(woNoExp);
+    PERFORM set_config('request.jwt.claims', c_was, true);
     -- PROC-3:同上 —— 这一臂之前又造了新批次,补上可投料的安全状态。
     INSERT INTO inbound_batch_safety_states (inbound_batch_id, safety_state_code)
     SELECT ib.id, 'discharged_verified'
@@ -323,7 +354,11 @@ BEGIN
     v_res := create_work_order(
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 100)), NULL, d, 'f75 rev');
     woRev := (v_res->>'work_order_id')::uuid;
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     PERFORM release_work_order(woRev);
+    PERFORM set_config('request.jwt.claims', c_was, true);
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
     VALUES ('ZZ75-IB4', v_matA, v_sup, 100, 100, 'kg', d, 'other', 'fixture 75 自带数据') RETURNING id INTO v_ib3;
     PERFORM reprice_inbound_batch(v_ib3, 1, 'SGD', NULL, 'f75 price');
@@ -522,7 +557,11 @@ $g$, '');
         v_res := create_work_order(
             jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 30)), NULL, d, 'f75 rev2');
         woRev2 := (v_res->>'work_order_id')::uuid;
+        -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+        c_was := current_setting('request.jwt.claims', true);
+        PERFORM set_config('request.jwt.claims', c_apr2, true);
         PERFORM release_work_order(woRev2);
+        PERFORM set_config('request.jwt.claims', c_was, true);
         INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
         VALUES ('ZZ75-IB5', v_matA, v_sup, 50, 50, 'kg', d, 'other', 'fixture 75 自带数据') RETURNING id INTO v_ibx;
         PERFORM reprice_inbound_batch(v_ibx, 1, 'SGD', NULL, 'f75 price');

@@ -50,6 +50,10 @@ DECLARE
         'stocktake_open','work_order_overdue','work_order_variance_beyond'];
     -- 只持 module.inbound.view 的读者应看见的三支(同源 batch_assay_status,互斥)
     v_inbound_only text[] := ARRAY['assay_unapplied','awaiting_assay','batch_unpriced'];
+    u_apr2  uuid := gen_random_uuid();   -- APR-2 四眼:替本支做决定的【第二个人】
+    r_apr2  uuid;
+    c_apr2  text;
+    c_was   text;                        -- 切过去之前的 claims,原样切回来
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
     -- 成本条目会触发自动应计过账 —— 锁不能挡住 fixture 自己的日期(回滚,无副作用)
@@ -317,7 +321,26 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_mat2, 'planned_qty', 100)),
         NULL, CURRENT_DATE + 5, 'f30 variance');
     v_wo2 := (v_res_wo->>'work_order_id')::uuid;
+    -- ════════════════════════════════════════════════════════════════════
+    -- ★ APR-2(2026-09-22):四眼 —— 【批的人不能是提的人】
+    -- ════════════════════════════════════════════════════════════════════
+    -- 本支验的不是审批,而它调的那支函数从 APR-2 起会拒绝"自己批自己提的单"。
+    -- 所以这里造一个【第二个人】去做那个决定,本支原有的断言一个字不动。
+    -- 【为什么复制权限而不是挑几个码】本支要的是"他不是提单人",不是"他权限窄";
+    -- 挑码会让下一次改权限时这一支为一个与它无关的理由变红。
+    -- ★ 他【没有】auth.users 那一行 —— 于是 real_role_holders 不会把他算进去,
+    --   本支里任何按"真持有人"计数的断言都不受影响。
+    -- 判据本身由 db/fixtures/203 专门钉住,不在这里重复。
+    INSERT INTO roles (code, name_en, name_zh, is_active)
+      VALUES ('fx30-apr2-rel', 'f', 'f', true) RETURNING id INTO r_apr2;
+    INSERT INTO role_permissions (role_id, permission_code) SELECT r_apr2, code FROM permissions;
+    INSERT INTO user_roles (user_id, role_id) VALUES (u_apr2, r_apr2);
+    c_apr2 := format('{"sub":"%s","role":"authenticated"}', u_apr2);
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     PERFORM release_work_order(v_wo2);
+    PERFORM set_config('request.jwt.claims', c_was, true);
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
     -- 【为什么是一条带 JOIN 的 SELECT,而不是逐个批次写死】本支里哪些批次【吃】
     -- 状态轴,由 material_kinds 回答 —— 实测 ewaste 可加工却【没有】状态轴,

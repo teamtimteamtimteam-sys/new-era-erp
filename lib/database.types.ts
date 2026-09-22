@@ -26751,6 +26751,26 @@ export type Database = {
         }
         Returns: Json
       }
+      approval_chain_gates: {
+        Args: never
+        Returns: {
+          action_function: string
+          gate_permissions: string[]
+          level: number
+          subject_type: string
+        }[]
+      }
+      approval_gate_intersections: {
+        Args: { p_level1_role?: string; p_level2_role?: string }
+        Returns: {
+          action_function: string
+          approvers: number
+          gate_permissions: string[]
+          level: number
+          role_code: string
+          subject_type: string
+        }[]
+      }
       approval_level_for: { Args: { p_amount_base: number }; Returns: number }
       approvals_enabled: { Args: never; Returns: boolean }
       approvals_readiness: { Args: never; Returns: Json }
@@ -27318,6 +27338,10 @@ export type Database = {
       fin_next_payment_code: {
         Args: { p_date: string; p_prefix: string }
         Returns: string
+      }
+      forbid_self_approval: {
+        Args: { p_raiser_user: string; p_subject_employee: string }
+        Returns: undefined
       }
       freeze_cash_forecast: {
         Args: { p_supersede_reason?: string; p_week_start?: string }

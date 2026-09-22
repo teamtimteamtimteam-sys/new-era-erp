@@ -345,6 +345,15 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 是瞎的"那条病。
     "purchase_order_kind": "EXECUTE revoked from PUBLIC/authenticated/anon; its only caller is the owner-run trigger guard_payment_term_applicable, and postgres has no claims so a permission check would raise on every payment-terms write",
     "real_role_holders": "EXECUTE revoked from authenticated; callers guard_approvals_switch / approvals_readiness / require_approver_for are all definer and each checks its own caller",
+    # APR-2(2026-09-22):「这条链真的有几个人批得动」。与 real_role_holders
+    # 逐字同源同理由 —— 它经 real_role_grants 读 auth.users 的登录状态,并把整张
+    # role_permissions 摊平成「谁真的持有哪个码」,比单独任何一支都宽。
+    # 它【不能】自己查权限:两个调用方一个是 approvals_readiness(自己带
+    # require_permission('action.manage_permissions')),另一个是属主身份跑的触发器
+    # guard_approvals_switch —— 而属主(postgres)没有 claims,加一道门会让
+    # 每一次写审批策略都抛权限错(与 purchase_order_kind / gst_registered 同形)。
+    # 收权写在 db/views/zzz_function_grants.sql。
+    "approval_gate_intersections": "EXECUTE revoked from authenticated; callers approvals_readiness (checks action.manage_permissions) and the owner-run trigger guard_approvals_switch, where postgres has no claims so a permission check would raise on every approval-policy write",
     # COD-1(2026-09-07):销毁证书的两支内层函数。EXECUTE 已从 authenticated 收回
     # (db/views/zzz_function_grants.sql,逐条理由在那里),所以 gate 的 B2
     # (definer-unchecked-and-CALLABLE)两侧都是 0 —— 靠的就是【调不到】。

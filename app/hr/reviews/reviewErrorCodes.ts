@@ -1,5 +1,6 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { fallbackForRawError } from '@/lib/machine-text'
+import { localizeSelfApproval } from '@/lib/selfApproval'
 
 // 绩效评估一族 DB 函数(add/update/remove_review_goal、set_goal_assessment、
 // set_goal_actual_value、set_review_conclusion、open_for_self_assessment、
@@ -36,6 +37,14 @@ export async function localizeReviewError(message: string): Promise<string> {
     const t = await getTranslations()
     // 权限一族的通用码不归本模块,给通用文案
     if (match[1] === 'PERMISSION_DENIED') return t('permissions.errDenied')
+    // ★ APR-2:四眼的两句话跨模块共用一份(lib/selfApproval.ts)。
+    //   approve_review 现在抛带后缀的码(|raiser / |subject)—— ★ 而 |subject
+    //   那一条是 APR-2 【新补上】的腿:此前"别人提交、被评的那位自己批准"
+    //   一路通到底,而这条路会写 employees.monthly_salary。
+    //   下面 REVIEW_ERROR_CODES 里那个裸码留着,是为了接住任何一条还没改的路。
+    if (match[1] === 'SELF_APPROVAL_FORBIDDEN') {
+        return await localizeSelfApproval((match[2] ?? '').split('|')[0] || null)
+    }
     if (!REVIEW_ERROR_CODES.has(match[1])) {
         return await fallbackForRawError(raw, 'localizeReviewError@app/hr/reviews/reviewErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)
     }

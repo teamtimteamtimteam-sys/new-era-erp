@@ -55,8 +55,11 @@ BEGIN
 
     -- ══════════ A. 驳回 → 再提 → 批准:留痕【两行】,不是一行被覆盖 ══════════
     -- 医疗报销走这一臂:它的决定函数最短,而且带金额(D 臂要用)。
-    INSERT INTO medical_claims (code, employee_id, claim_date, claim_year, amount_sgd)
-    VALUES ('ZZFIX32-MC1', v_emp, '2027-03-01', 2027, 120) RETURNING id INTO v_claim;
+    -- ★ APR-2:显式给一个【别人】当提单人。created_by 默认是 auth.uid(),
+    --   那样 u_hr 就成了"自己批自己提的单",而 APR-2 起那会被按名拒 ——
+    --   本臂要验的是【留痕不覆盖】,不是四眼(四眼在 db/fixtures/203)。
+    INSERT INTO medical_claims (code, employee_id, claim_date, claim_year, amount_sgd, created_by)
+    VALUES ('ZZFIX32-MC1', v_emp, '2027-03-01', 2027, 120, gen_random_uuid()) RETURNING id INTO v_claim;
 
     PERFORM decide_medical_claim(v_claim, false, 'fixture 32: missing receipt');
 
@@ -119,8 +122,9 @@ BEGIN
     END IF;
 
     -- ══════════ D. 金额冻结在决定当时 ═══════════════════════════════════════
-    INSERT INTO medical_claims (code, employee_id, claim_date, claim_year, amount_sgd)
-    VALUES ('ZZFIX32-MC2', v_emp, '2027-04-01', 2027, 200) RETURNING id INTO v_claim2;
+    -- ★ APR-2:同上 —— 提单人显式给一个别人,否则四眼那道闸会先响。
+    INSERT INTO medical_claims (code, employee_id, claim_date, claim_year, amount_sgd, created_by)
+    VALUES ('ZZFIX32-MC2', v_emp, '2027-04-01', 2027, 200, gen_random_uuid()) RETURNING id INTO v_claim2;
     PERFORM decide_medical_claim(v_claim2, true, 'fixture 32: frozen amount');
 
     SELECT amount_base INTO v_frozen FROM approval_log

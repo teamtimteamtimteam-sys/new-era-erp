@@ -43,6 +43,10 @@ DECLARE
     -- 那一份,于是第二个注入实际少了两道门,它证明的就不再是「这一道门有牙」。
     def_create text; def_release text; def_close text; def_cancel text; def_amend text;
     d date := CURRENT_DATE;
+    u_apr2  uuid := gen_random_uuid();   -- APR-2 四眼:替本支做决定的【第二个人】
+    r_apr2  uuid;
+    c_apr2  text;
+    c_was   text;                        -- 切过去之前的 claims,原样切回来
 BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-74', 'f', 'f', true) RETURNING id INTO r_all;
@@ -204,15 +208,38 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 74C 失败:草稿不能收工(要 cancel),实得 %', COALESCE(v_msg,'(关掉了)');
     END IF;
 
+    -- ════════════════════════════════════════════════════════════════════
+    -- ★ APR-2(2026-09-22):四眼 —— 【批的人不能是提的人】
+    -- ════════════════════════════════════════════════════════════════════
+    -- 本支验的不是审批,而它调的那支函数从 APR-2 起会拒绝"自己批自己提的单"。
+    -- 所以这里造一个【第二个人】去做那个决定,本支原有的断言一个字不动。
+    -- 【为什么复制权限而不是挑几个码】本支要的是"他不是提单人",不是"他权限窄";
+    -- 挑码会让下一次改权限时这一支为一个与它无关的理由变红。
+    -- ★ 他【没有】auth.users 那一行 —— 于是 real_role_holders 不会把他算进去,
+    --   本支里任何按"真持有人"计数的断言都不受影响。
+    -- 判据本身由 db/fixtures/203 专门钉住,不在这里重复。
+    INSERT INTO roles (code, name_en, name_zh, is_active)
+      VALUES ('fx74-apr2-rel', 'f', 'f', true) RETURNING id INTO r_apr2;
+    INSERT INTO role_permissions (role_id, permission_code) SELECT r_apr2, code FROM permissions;
+    INSERT INTO user_roles (user_id, role_id) VALUES (u_apr2, r_apr2);
+    c_apr2 := format('{"sub":"%s","role":"authenticated"}', u_apr2);
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     v_res := release_work_order(woA);
+    PERFORM set_config('request.jwt.claims', c_was, true);
     IF (v_res->>'status') <> 'released' THEN
         RAISE EXCEPTION 'FIXTURE 74C 失败:放行之后应当是 released,实得 %', v_res::text;
     END IF;
 
     -- 放行过的不能再放行
     v_denied := false; v_msg := NULL;
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     BEGIN PERFORM release_work_order(woA);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
+    PERFORM set_config('request.jwt.claims', c_was, true);
     IF NOT v_denied OR v_msg NOT LIKE 'WO_NOT_DRAFT|%|released' THEN
         RAISE EXCEPTION 'FIXTURE 74C 失败:放行过的不该再放行,实得 %', COALESCE(v_msg,'(又放行了一次)');
     END IF;
@@ -240,8 +267,12 @@ BEGIN
     END IF;
     -- 终态之后任何动作都拒
     v_denied := false; v_msg := NULL;
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     BEGIN PERFORM release_work_order(woB);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
+    PERFORM set_config('request.jwt.claims', c_was, true);
     IF NOT v_denied OR v_msg NOT LIKE 'WO_NOT_DRAFT|%|cancelled' THEN
         RAISE EXCEPTION 'FIXTURE 74C 失败:取消了的单子不该还能放行,实得 %', COALESCE(v_msg,'(放行了)');
     END IF;
@@ -268,7 +299,11 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 100)),
         NULL, d, 'fixture 74 D');
     woC := (v_res->>'work_order_id')::uuid;
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     PERFORM release_work_order(woC);
+    PERFORM set_config('request.jwt.claims', c_was, true);
 
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
     -- 【为什么是一条带 JOIN 的 SELECT,而不是逐个批次写死】本支里哪些批次【吃】
@@ -414,6 +449,9 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 74G 失败:只读的角色不该建得了工单,实得 %', COALESCE(v_msg,'(建成了)');
     END IF;
     v_denied := false; v_msg := NULL;
+    -- ★ APR-2:这一臂【刻意不换人】—— 它验的正是"只读的角色放行不了工单",
+    --   而换成那个全权限的第二个人会让它成功,于是这条断言当场失去意义。
+    --   (权限门在 release_work_order 里排在四眼【之前】,所以它仍然先响。)
     BEGIN PERFORM release_work_order(woD);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'PERMISSION_DENIED%' THEN
@@ -468,7 +506,11 @@ BEGIN
     v_res := create_work_order(
         jsonb_build_array(jsonb_build_object('material_id', v_matA, 'planned_qty', 80)), NULL, d, 'f74 inj');
     woE := (v_res->>'work_order_id')::uuid;
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     PERFORM release_work_order(woE);
+    PERFORM set_config('request.jwt.claims', c_was, true);
     -- 【这里也不再直改】另起一次真加工,照 woE 做 —— 走的同样是那第七个参数。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
     VALUES ('ZZ74-IB2', v_matA, v_sup, 100, 100, 'kg', d, 'other', 'fixture 74 自带数据') RETURNING id INTO v_ib;
@@ -535,7 +577,11 @@ $g$, '');
     v_res := create_work_order(
         jsonb_build_array(jsonb_build_object('material_id', v_matC, 'planned_qty', 3)), NULL, NULL, 'f74 inj3');
     woD := (v_res->>'work_order_id')::uuid;
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     PERFORM release_work_order(woD);
+    PERFORM set_config('request.jwt.claims', c_was, true);
     v_def := def_close;
     v_inj := replace(v_def,
 $g$    IF p_reason IS NULL OR btrim(p_reason) = '' THEN
@@ -653,7 +699,11 @@ $g$, '');
     v_res := create_work_order(
         jsonb_build_array(jsonb_build_object('material_id', v_matC, 'planned_qty', 4)), NULL, NULL, 'f74 inj7');
     woE := (v_res->>'work_order_id')::uuid;
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     PERFORM release_work_order(woE);
+    PERFORM set_config('request.jwt.claims', c_was, true);
     UPDATE work_orders SET updated_by = NULL WHERE id = woE;   -- 让"写没写"看得见
     IF (SELECT status FROM work_orders WHERE id = woE) <> 'released'
        OR (SELECT updated_by FROM work_orders WHERE id = woE) IS NOT NULL THEN
@@ -668,7 +718,11 @@ $g$, '');
         RAISE EXCEPTION 'FIXTURE 74 注入7 失败:在函数定义里没找到 release 那道状态门的原文 —— 这个注入什么也没删';
     END IF;
     EXECUTE v_inj;
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     PERFORM release_work_order(woE);
+    PERFORM set_config('request.jwt.claims', c_was, true);
     -- 【状态本来就是 released,所以"状态变了"验不出来 —— 验那次写入落地了没有】
     -- updated_by 被清空过,函数会把它写回来;还有多出来的那条 released 痕。
     IF (SELECT updated_by FROM work_orders WHERE id = woE) IS NULL THEN

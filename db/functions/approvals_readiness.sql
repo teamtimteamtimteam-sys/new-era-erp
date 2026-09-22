@@ -40,6 +40,8 @@ DECLARE
     v_l1_sees    boolean := false;
     v_l2_sees    boolean := false;
     v_pending    integer := 0;
+    v_chains     jsonb   := '[]'::jsonb;
+    v_deadchains integer := 0;
 BEGIN
     -- ★ APR-1(N6):此前这里要求 module.finance.view,而 /settings/approvals
     --   那一页的闸是 action.manage_permissions —— **两个码守同一块屏幕**。
@@ -109,6 +111,42 @@ BEGIN
     SELECT count(*) INTO v_pending
       FROM purchase_orders WHERE approval_status = 'pending' AND deleted_at IS NULL;
 
+    -- ════════════════════════════════════════════════════════════════════════
+    -- ★★ APR-2:屏幕上也要看得见「这条链真的有人批得动吗」 ★★
+    -- ════════════════════════════════════════════════════════════════════════
+    -- 本函数的抬头写着"屏幕与闸读同一份判据"。APR-2 给 guard_approvals_switch
+    -- 加了一道新闸(链的模块门 ∩ 那一级的角色持有人 = 空 → 按名拒),
+    -- ★ 所以那道闸【必须】同时出现在这里 —— 否则就又是一块说"可以开"、
+    --   而闸会拒绝的屏幕,也就是本函数存在的全部理由的反面。
+    --
+    -- ⚠ 这里【不】传参,读的是已经落库的那两个角色码 —— 面板说的是
+    --   "以现在这条策略,能不能开"。闸那一侧传的是 NEW(它判的是正要写下去的
+    --   那条策略),两者的差别写在 approval_gate_intersections 的抬头。
+    -- ★★ 只在【两级角色都已经设好】时才问这个问题 —— 而这不是为了少说一句话,
+    --    是为了与闸【同序】:guard_approvals_switch 先抛 APPROVALS_POLICY_INCOMPLETE,
+    --    根本走不到这道新闸。策略整个没设时,role_code 是 NULL,求交必然全 0,
+    --    于是 blocking 会多出第四条 —— 一句【真的、但重复的】话,
+    --    它说的还是上面那三条已经说过的事,而它会把"策略没设"与
+    --    "策略设好了却没有人批得动"这两种完全不同的状态搅在一起。
+    IF v_s.approval_level1_role_code IS NOT NULL
+       AND v_s.approval_level2_role_code IS NOT NULL THEN
+        SELECT COALESCE(jsonb_agg(jsonb_build_object(
+                   'subject_type',     i.subject_type,
+                   'action_function',  i.action_function,
+                   'level',            i.level,
+                   'role_code',        i.role_code,
+                   'gate_permissions', to_jsonb(i.gate_permissions),
+                   'approvers',        i.approvers)
+                   ORDER BY i.subject_type, i.action_function, i.level), '[]'::jsonb),
+               count(*) FILTER (WHERE i.approvers = 0)
+          INTO v_chains, v_deadchains
+          FROM approval_gate_intersections() i;
+
+        IF v_deadchains > 0 THEN
+            v_blocking := v_blocking || 'approval_chain_has_no_approver'::text;
+        END IF;
+    END IF;
+
     RETURN jsonb_build_object(
         'enabled',                 v_s.approvals_enabled,
         'level1_role_code',        v_s.approval_level1_role_code,
@@ -122,6 +160,11 @@ BEGIN
         'level2_real_holders',     v_l2_real,
         'level2_can_see_amounts',  v_l2_sees,
         'pending_purchase_orders', v_pending,
+        -- ★ APR-2:逐条给出"这条链有几个人批得动",而不是一个布尔 ——
+        --   与两级持有人给两个数、不给一个布尔是同一条理由:
+        --   要分开的是"哪一条链死了、死在哪一级、缺的是哪个码"。
+        'chain_gates',             v_chains,
+        'chains_without_approver', v_deadchains,
         'blocking',                to_jsonb(v_blocking),
         'can_enable',              (NOT v_s.approvals_enabled AND cardinality(v_blocking) = 0),
         'can_disable',             (v_s.approvals_enabled AND v_pending = 0),

@@ -212,6 +212,25 @@ REVOKE EXECUTE ON FUNCTION public.resolve_tax_code(text, text, text, text) FROM 
 REVOKE EXECUTE ON FUNCTION public.real_role_holders(text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.role_can_see_amounts(text) FROM authenticated;
 
+-- ★ APR-2(2026-09-22):approval_gate_intersections —— 与上面这两支【同源同理由】。
+-- 它经 real_role_grants 读 auth.users 的登录状态,并把整张 role_permissions
+-- 摊平成"谁真的持有哪个码"。给了 authenticated 就等于把账号目录 + 权限矩阵
+-- 一次问出来 —— 比单独任何一支都宽。
+-- 【唯一的两个调用方】approvals_readiness(自己有 require_permission)与
+-- guard_approvals_switch(属主身份跑的触发器),两者都是 SECURITY DEFINER,
+-- 收回之后照常工作,靠的就是调不到。
+-- ⚠【为什么这一行必须在这里】C-1 的 real_role_grants 实测过:
+--   apply_migration.sh 在 COMMIT 【之前】重放本文件,而本文件第一句是
+--   REVOKE EXECUTE ON ALL FUNCTIONS ... FROM PUBLIC 后面跟着 GRANT ... TO authenticated
+--   —— 只写在迁移里的那次 REVOKE 会被原样冲掉,而迁移报告成功。
+REVOKE EXECUTE ON FUNCTION public.approval_gate_intersections(text, text) FROM authenticated;
+
+-- ★ APR-2:approval_chain_gates 与 forbid_self_approval 【故意不收】。
+--   两支都【不是】SECURITY DEFINER,也都不读任何受 RLS 约束的东西:
+--   前者是一张常量名册,后者只比较 auth.uid() 与两个传进来的 uuid。
+--   ☞ 照直写下来,免得下一个人以为它们是被漏掉的 —— 一份"该收而没收"的
+--     清单与一份"想过、不收"的清单,在文件里长得一模一样。
+
 -- ★ C-1(2026-09-04):real_role_grants —— 与上面 real_role_holders 【同源同理由】。
 -- 它就是那四条判据的行级形状(返回 grant_id + user_id),real_role_holders 如今
 -- 是它的投影。所以它读的东西一字不差:auth.users 的确认/封禁/删除 + user_roles。

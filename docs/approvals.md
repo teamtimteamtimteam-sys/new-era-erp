@@ -142,6 +142,29 @@ the switch to flip, and it is **rejected on principle**:
 > holder") is the kind of premise later cuts reason *from*. It was true when written. This file
 > has now been caught twice carrying a stale fact past its expiry — see the strike in §3.
 
+> ### ★★ APR-2 (2026-09-22): the rule is satisfied in its LETTER and violated in its SUBSTANCE — **the `cfo` role's only real holder IS the `admin` account**
+>
+> **Measured as `postgres`, reading the tables `user_roles` / `roles` / `role_permissions` /
+> `auth.users` through `real_role_holders()`:**
+>
+> | role | real holders |
+> |---|---|
+> | `admin` | 1 — `admin@swm-os.test` |
+> | ★ `cfo` (the configured LEVEL 2) | 1 — ★ **`admin@swm-os.test`, the same account** |
+>
+> §0b is a rule about **role codes**, and by that measure it is kept: level 2 points at `cfo`, not
+> at `admin`. **The collision is one level down, at the HOLDER.** The sentence this section is
+> built on — *"the person who can grant themselves any permission must not also be the person who
+> approves the spending"* — is about a **person**, and today that is one person.
+>
+> ★ **Recorded as a known fact awaiting Tim, NOT fixed in APR-2 and NOT to be machine-blocked.**
+> The remedy is a second human holding `cfo`, which is Tim's call and not a code change; and §0b
+> already rules that a machine rule here would be a second, narrower definition of who may approve.
+> ☞ It is written down for the same reason as the strike in §3 and the correction above:
+> **this file has now been caught three times carrying a premise past its expiry.** Whoever reads
+> "level 2 is `cfo`, so system administration and spending approval are separated" is reasoning
+> from something that is not true of the live data on 2026-09-22.
+
 This was already the position in `docs/approvals-scoping.md` §3, and **that part of §3 is not
 superseded** — only the rows about *who* level 2 is were.
 
@@ -178,6 +201,15 @@ deputy arrangement.
 **How the stall is made visible instead of routed around:** the settings panel names the role for
 each level, says how many people hold it, and distinguishes the three states below. The stall is
 therefore *named*, which is the only thing this design owes you.
+
+> ### ★ APR-2 (2026-09-22) adds the half this paragraph could not see
+>
+> "How many people hold the role" is **not** the same question as "how many people can actually
+> approve". A holder who cannot open the document approves nothing. `/settings/approvals` now shows,
+> per wired chain and level, **how many real people hold the approver role AND the permission the
+> action itself requires** — and the switch refuses to turn on while any of those is zero.
+> ☞ Without it, "the stall is named" was only true of the stalls this paragraph imagined.
+> The work-order chain stalled for a reason nothing named (see §3c N7).
 
 ---
 
@@ -492,10 +524,146 @@ would stall month-end itself**, because manual journals are the vehicle those me
 `journal_entries` also carries the largest blast radius in the system (`balance_sheet`,
 `pnl_statement`, `account_ledger`, `cash_flow_statement` all read it) and the most rows.
 
+### ★★★ N7 — **STRUCK AND REVISED:** ~~a document with no amount routes to LEVEL 1~~ — role-based tiering applies to **MONEY documents only** (Tim, 2026-09-22, APR-2)
+
+> **The earlier rule — "a document with no amount routes to level 1" — is struck in place rather
+> than edited away.** It was Tim's ruling and it was applied (WO-1b put `require_approver_for(1)`
+> into `release_work_order` on exactly that reasoning). Deleting it would leave the next reader
+> unable to understand why the code ever looked like that.
+
+**What replaced it:**
+
+> **The approvals engine gives every chain three things: the on/off switch, the `approval_log`
+> trail, and the universal self-approval refusal. It gives ROLE-BASED TIERED ROUTING
+> (`require_approver_for`) to MONEY documents only. A document with no money amount keeps its own
+> module permission as the definition of who may approve it.**
+
+**Why the earlier rule had to be revised — and it is a measurement, not a preference.**
+`require_approver_for(N)` asks *"are you in level N's ROLE?"*. Every decision function separately
+asks *"do you hold this MODULE's permission?"*. **Nothing anywhere asserted those two sets
+intersect.** Measured 2026-09-22 (as `postgres`, reading the tables `user_roles`,
+`role_permissions`, `auth.users`, plus `require_approver_for`'s own per-user verdict):
+
+| chain | module gate | real holders of that gate | level-1 role `finance` | ∩ |
+|---|---|---|---|---|
+| purchase order | `module.purchasing.view` + `data.view_prices` | admin · chooer · phua · sandra · vince | chooer | **chooer ✓** |
+| ★ **work order** | `module.processing.edit` | admin · phua · sandra · vince | chooer | ★ **EMPTY** |
+| leave / claim / review | `module.hr.edit` | admin · sandra · vince | chooer | ★ **EMPTY** |
+
+★ **So from the moment approvals were switched on (12:25:06 on 2026-09-22) nobody on live could
+release a work order** — the screen would have said `APPROVAL_NOT_AUTHORISED|1|finance`, a sentence
+that sounds like "your level is too low" and was in fact true of every single person. Work orders in
+`draft` were 0 at the time, so nothing was stranded; the next one could never have been released.
+**WO-1b shipped that with all three gates green.** The purchase-order chain works only because
+`finance` happens to hold `module.purchasing.view` — alignment by luck, not by design.
+
+**What APR-2 did with it:** `release_work_order` no longer calls `require_approver_for`. It keeps
+`module.processing.edit`, gains the self-approval refusal, and its `approval_log` row now carries
+`level = NULL` (writing `1` claimed an authorisation step that no longer runs — a false record).
+
+☞ **The cost, stated plainly: work orders lost a nominal level-1 gate that nobody could pass.**
+Giving them a real one means giving them their own approver role — a modelling change, not putting
+that line back. Queued in `docs/forward-queue.md`.
+
+**And the class of defect is now machine-checked, which is the durable half:**
+`approval_chain_gates()` names every chain wired to `require_approver_for` and its own module gate;
+`approval_gate_intersections()` counts, per chain and level, how many real people hold **both**;
+`guard_approvals_switch` refuses to switch approvals **on** while any of them is zero
+(`APPROVALS_CHAIN_HAS_NO_APPROVER|<function>|<level>|<role>|<permissions>`); and
+`approvals_readiness()` puts the same figures on `/settings/approvals`, so the screen and the gate
+read one judgement. `db/fixtures/203` pins the registry against `pg_proc` — **add a chain to
+`require_approver_for` without registering it and the fixture goes red.**
+
+### ★ The medical-claim threshold collides with the medical-claim LIMIT — both are 1000
+
+**Measured 2026-09-22.** `hr_settings.medical_annual_limit_sgd = 1000` and
+`finance_settings.approval_threshold_base = 1000` are **the same number**, and
+`decide_medical_claim` refuses anything above the employee's remaining entitlement
+(`CLAIM_EXCEEDS_LIMIT`). With `system_start_date = 2026-08-01` the 2026 limits pro-rate to
+**333–417 per employee**.
+
+☞ **So for 2026, level 2 is UNREACHABLE for medical claims**: every claim that can be approved at
+all is below 1000, and every claim at or above 1000 is refused before routing. From 2027 the branch
+is reachable at exactly one value — a claim of precisely 1000.00 against an untouched annual
+entitlement.
+
+**It is recorded rather than fixed** because under N7 medical claims are not tiered at all (no
+money-tiered routing for HR documents). **If HR is ever folded into tiered routing, the medical
+threshold must be a different number from the annual limit, or the tier is decoration.**
+
+### N8 — no blanket lock on policy edits; the refusal is TARGETED (Tim, 2026-09-22) — **queued for APR-3**
+
+The question deferred from APR-1: should the roles and threshold be frozen while approvals are on
+and documents are pending?
+
+> **Tim's ruling: NO blanket lock.** The case where you most need to edit the policy is exactly the
+> case where a chain is mis-configured and documents are stuck — a lock turns a recoverable state
+> into an unrecoverable one, which is the failure `guard_approvals_switch`'s own header says it
+> exists to avoid (*"拒绝要给出路,不是给一堵墙"*).
+>
+> **The right shape is one targeted refusal:** a policy edit that would leave a chain with pending
+> documents and no possible approver is refused by name
+> (`APPROVALS_POLICY_WOULD_STRAND`), and everything else stays allowed. The pending count shown
+> beside the form widens to cover every wired chain rather than purchase orders alone.
+
+★ **NOT BUILT IN APR-2 — Tim trimmed it out to keep that cut to one session.** It is queued for
+**APR-3** in `docs/forward-queue.md`. Until then the screen keeps saying what it says today: editing
+the policy while approvals are in force re-routes what is still pending, nothing locks it, and
+`finance_settings_history` records the change.
+
 ### The cut split
 
 **APR-0 §6.2's APR-2 → APR-6 split stands**, with N2's sales-order release approval joining
 **APR-5**.
+
+---
+
+## 3d · FOUR EYES — one definition, two legs, every chain (APR-2, 2026-09-22)
+
+**Tim's ruling (APR-0 Q6, sharpened by Q8 on 2026-09-22):** self-approval is refused **universally**,
+reusing `SELF_APPROVAL_FORBIDDEN`, in every chain that exists and every chain added later.
+**And "self" is TWO people, not one.**
+
+| leg | who | code |
+|---|---|---|
+| **raiser** | whoever raised it — `created_by` / `submitted_by` | `SELF_APPROVAL_FORBIDDEN\|raiser` |
+| ★ **subject** | whoever the document is **about** — the employee on the leave request, the claim, the review | `SELF_APPROVAL_FORBIDDEN\|subject` |
+
+**One definition, one place:** `db/functions/forbid_self_approval.sql`. Not five copies of an `IF`
+— a rule written five times is a rule the sixth chain will be missing, and the shape of that miss is
+**nothing happening at all**.
+
+### ★★ The subject leg is new, and it closed a live path that moved money
+
+`approve_review` refused only `submitted_by`. So **"someone else submits, the person being reviewed
+approves it"** ran end to end — and `approve_review` writes `employees.monthly_salary` and an
+`employment_history` salary-change row. **A person could approve their own pay rise.** Measured
+2026-09-22: all three live holders of `module.hr.edit` are on the employee register, so this was
+reachable, not theoretical.
+
+### What each chain refuses now
+
+| chain | raiser | subject | note |
+|---|---|---|---|
+| leave request | ✓ `created_by` | ✓ `employee_id` | ★ both legs matter: HR raises on an employee's behalf, so the two are different people |
+| medical claim | ✓ `created_by` | ✓ `employee_id` | — |
+| performance review | ✓ `submitted_by` | ★ ✓ `employee_id` | the leg that closed the pay-rise path |
+| work order release | ✓ `created_by` | — | a work order is about a batch of material, not a person; the second argument is `NULL`, and `NULL` never matches |
+| purchase order approve / reject | ✓ `created_by` (bare code, unchanged) | — | ★ **deliberately not touched** (Tim: *leave them*). A PO has no subject person, so there was no gap — only the code shape differs, and all three mappers accept the bare form as well as the suffixed one |
+
+**Order is fixed and stated:** raiser is judged first. When both are true the screen says `|raiser`,
+because that is the earlier, narrower and more intelligible sentence ("you raised this"). It is not
+left to chance.
+
+**`NULL` never matches, on purpose.** An old row with no `created_by`, or a decider who is not on the
+employee register, passes that leg. Comparing two `NULL`s to refuse would turn *"I don't know"* into
+*"it is you"* — the shape this repository keeps paying for. ★ The cost, stated: for historical rows
+with an empty `created_by`, the raiser leg does not apply.
+
+**Two sentences on screen, not one with a parameter** (`lib/selfApproval.ts`) — because the NEXT STEP
+differs. The raiser finds a colleague. The subject has to find someone who is neither of them, and
+there may be no second holder of that permission at all, which is a real configuration problem a
+generic sentence would hide.
 
 ---
 

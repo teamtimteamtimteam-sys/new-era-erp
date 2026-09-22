@@ -1,0 +1,68 @@
+-- db/functions/approval_chain_gates.sql
+-- APR-2:【哪些链接上了 require_approver_for,以及那条链自己的门是什么】
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- ★★★ 它存在的理由,是一个【实测出来的、当时活在线上的】死锁 ★★★
+-- ════════════════════════════════════════════════════════════════════════════
+-- `require_approver_for(N)` 问的是「你在不在第 N 级那个【角色】里」。
+-- 而每一支决定函数【另外】问一句「你持不持有本模块的那个【权限码】」。
+-- ★ 在 APR-2 之前,【没有任何东西断言这两个集合有交集】。
+--
+-- 实测(2026-09-22,以 postgres 读 user_roles / role_permissions / auth.users 基表,
+-- 以及 require_approver_for 自己的答案):
+--
+--   一级 = finance = chooer@evoltrya.test  —— 他【不】持 module.processing.edit
+--   二级 = cfo     = admin@swm-os.test
+--
+--   | 链           | 模块门                              | 持有人                  | ∩ 一级 |
+--   |--------------|-------------------------------------|-------------------------|--------|
+--   | 采购单       | purchasing.view + data.view_prices  | admin chooer phua sandra vince | chooer ✓ |
+--   | ★ 工单       | processing.edit                     | admin phua sandra vince | ★ 空   |
+--
+-- ☞ 也就是说:**审批一打开,线上就没有任何人放行得了一张工单** ——
+--   而 WO-1b 把那一行 require_approver_for(1) 写下去的时候,三道闸全绿。
+--   今天 work_orders 里 draft = 0,所以没有单据卡住;下一张就再也放行不了。
+--   ★ APR-2 的处置是把工单从这台引擎的【路由】那一半摘下来(Tim 的 Q1 裁定:
+--     按角色分级只管【带钱的单据】),于是本表今天只剩采购单两支。
+--
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【这是一张手写的名册,所以它必须被核对,不能被相信】
+-- ════════════════════════════════════════════════════════════════════════════
+-- 一张与代码分开维护的清单,迟早与代码漂开,而漂开的那一刻它仍然全绿。
+-- 所以 db/fixtures/203 有一条【目录派生】的断言:
+--     SELECT proname FROM pg_proc WHERE prosrc LIKE '%require_approver_for%'
+-- 那个集合必须与本函数的 action_function 列【逐字相等】。
+-- ☞ 加一条链接上 require_approver_for,就要在这里加一行,否则 fixture 当场变红。
+--
+-- 【为什么门是一个数组,不是一个码】approve_purchase_order 要【两个】:
+-- module.purchasing.view(进得了模块)+ data.view_prices(看得见他要批的那个数,
+-- R4)。而 reject_purchase_order 只要前一个 —— 驳回不需要看见金额。
+-- **两支函数的门不一样,所以它们各占一行,不合并。**
+--
+-- 【为什么不是 SECURITY DEFINER】它是一张常量表,不读任何东西。
+--
+-- NOTE: introduced by db/migrations/2026-09-22-apr2-self-approval-and-the-approver-that-nobody-is.sql.
+
+CREATE OR REPLACE FUNCTION public.approval_chain_gates()
+ RETURNS TABLE(subject_type text, action_function text, level smallint, gate_permissions text[])
+ LANGUAGE sql
+ IMMUTABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+    SELECT v.subject_type, v.action_function, v.level, v.gate_permissions
+      FROM (VALUES
+        ('purchase_order'::text, 'approve_purchase_order'::text, 1::smallint,
+            ARRAY['module.purchasing.view', 'data.view_prices']::text[]),
+        ('purchase_order'::text, 'approve_purchase_order'::text, 2::smallint,
+            ARRAY['module.purchasing.view', 'data.view_prices']::text[]),
+        -- 驳回【不】要 data.view_prices —— 它仍然按金额分级(所以两级都在),
+        -- 而它不显示那个金额。门窄一格,所以它自己一行。
+        ('purchase_order'::text, 'reject_purchase_order'::text, 1::smallint,
+            ARRAY['module.purchasing.view']::text[]),
+        ('purchase_order'::text, 'reject_purchase_order'::text, 2::smallint,
+            ARRAY['module.purchasing.view']::text[])
+      ) AS v(subject_type, action_function, level, gate_permissions)
+$function$;
+
+COMMENT ON FUNCTION public.approval_chain_gates() IS
+'APR-2:接上了 require_approver_for 的链,以及每一支动作【自己的】模块门(可能是几个码的合取)。★ 它存在是因为 WO-1b 实测在线上造出过一个死锁:一级审批角色 finance 的唯一真持有人不持 module.processing.edit,于是审批一开,工单谁都放行不了,而三道闸全绿。这张名册是手写的,所以 db/fixtures/203 有一条目录派生的断言钉住它与 pg_proc 里真正调用 require_approver_for 的那组函数逐字相等 —— 加一条链就要在这里加一行。';

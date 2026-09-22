@@ -27,6 +27,17 @@ type Readiness = {
     level2_real_holders: number
     level2_can_see_amounts: boolean
     pending_purchase_orders: number
+    // ★ APR-2:逐条"这条链有几个人批得动"。**一个数,不是一个布尔** ——
+    //   要分开的是"哪一条链死了、死在哪一级、缺的是哪个码"。
+    chain_gates: {
+        subject_type: string
+        action_function: string
+        level: number
+        role_code: string | null
+        gate_permissions: string[]
+        approvers: number
+    }[]
+    chains_without_approver: number
     blocking: string[]
     can_enable: boolean
     can_disable: boolean
@@ -145,6 +156,51 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
                     {t('finance.approvals.noEligibleApprover', { role: r.level1_role_code })}
                 </p>
             )}
+
+            {/* ════════════════════════════════════════════════════════════════
+                ★★ APR-2:每一条接上引擎的链,真的有人批得动吗 ★★
+                ════════════════════════════════════════════════════════════════
+                上面那两块问的是【角色】:有没有真人、看不看得见金额。
+                两个都为真时,这条链仍然可以是死的 —— 持有那个角色的人,
+                可能根本进不了那张单据所在的模块。
+                ★ 这不是假设:WO-1b 就是这么在线上造出一把锁的,而三道闸全绿。
+                ☞ 所以它【印在屏幕上】,而不是只活在闸里:一块说"可以开"、
+                  而闸会拒绝的屏幕,正是这块面板存在理由的反面。 */}
+            <div className="mt-3">
+                <p className="text-xs font-medium text-[color:var(--brand-text)]">
+                    {t('finance.approvals.chainGatesTitle')}
+                </p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-1">
+                    {t('finance.approvals.chainGatesWhy')}
+                </p>
+                <div className="ml-4 space-y-1">
+                    {(r.chain_gates ?? []).map((c) => (
+                        <p
+                            key={`${c.action_function}-${c.level}`}
+                            className={
+                                'text-xs rounded px-2 py-1 border ' +
+                                (c.approvers > 0
+                                    ? 'text-green-800 bg-green-50 border-green-200'
+                                    : 'text-red-800 bg-red-50 border-red-300')
+                            }
+                        >
+                            {c.approvers > 0
+                                ? t('finance.approvals.chainGateOk', {
+                                      action: c.action_function,
+                                      level: String(c.level),
+                                      role: c.role_code ?? '—',
+                                      n: String(c.approvers),
+                                  })
+                                : t('finance.approvals.chainGateDead', {
+                                      action: c.action_function,
+                                      level: String(c.level),
+                                      role: c.role_code ?? '—',
+                                      perms: c.gate_permissions.join(' + '),
+                                  })}
+                        </p>
+                    ))}
+                </div>
+            </div>
 
             {/* 【开关翻过去会发生什么】—— 两个方向都写,因为会搁死单据的是【关】那一边 */}
             <div className="mt-3 text-xs text-[color:var(--brand-text)] space-y-1">

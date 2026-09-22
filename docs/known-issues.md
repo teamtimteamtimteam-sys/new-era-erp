@@ -3,6 +3,35 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ★ APR2-WORK-ORDER-AUTO-APPROVED-IS-A-HUMAN-PRESS —— **一句留痕在说假话,而本刀【没有】修它**(APR-2 登记,2026-09-22)
+
+`release_work_order` 在审批**关着**时写的留痕是:
+
+```
+decision = 'auto_approved'
+note     = '审批流未启用(finance_settings.approvals_enabled = false)—— 系统直接盖章,没有人做过这个决定'
+```
+
+`approval_log.decision` 那一列的注释把 `auto_approved` 定义为
+「**不是有人做的决定,而是系统在没有审批流时盖的章**」。
+★ **对采购单这是真的**(`create_purchase_order` 让单据【生下来就是 approved】,没有人按过任何东西);
+★ **对工单这是假的** —— 放行是一个**人**按下去的动作,而且从 APR-2 起那个人还要过四眼那道闸。
+也就是说:那一行留痕声称"没有人做过这个决定",而它旁边就记着是谁做的。
+
+**这与 APR-2 给 HR 三条链定的规矩【正面冲突】**(Tim 的 Q3):HR 三条链一律写
+`approved` / `rejected`,**永远不写 `auto_approved`**,理由逐字就是这一条 ——
+开着还是关着,决定都是人做的。**工单与它们是同一个形状,而它的写法还是老的。**
+
+**为什么本刀不修:** 它不在 Tim 划的范围里,而改它会改变【已经落库的那一类行】将来怎么被读
+(线上今天有 1 行 `work_order` / `auto_approved`,2026-08-16)。
+☞ **两条出路,都要 Tim 裁:**
+① 关着时也写 `approved`(与 HR 同形),`auto_approved` 从此只属于"单据自己生成 approved"那一类;
+② 保留现状,并把 `auto_approved` 的定义**放宽**成"审批流未生效期间落的章" —— 那要改列注释,
+   而那句注释今天是采购单那条链的判据来源。
+**触发条件:APR-3 动 `record_approval_decision` 的任何一支时,顺手裁掉它。**
+
+---
+
 ## ~~★★ APR0-WORK-ORDER-APPROVALS-INVISIBLE~~ —— **✅ 已关闭(APR-1,2026-09-22)**
 
 **做法:**`approval_log` 的 SELECT 策略补上那一支 ——

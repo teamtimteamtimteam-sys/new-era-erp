@@ -172,3 +172,4 @@
 2026-09-20T17:52:55+0800	2026-09-20-b3-set-asset-planned-in-service.sql	f6b5d8e4
 2026-09-20T21:25:02+0800	2026-09-20-fahist1-fixed-asset-history.sql	0dc731c9
 2026-09-22T11:25:45+0800	2026-09-22-apr1-the-approvals-switch-gets-a-door.sql	5d67336d
+2026-09-22T21:29:01+0800	2026-09-22-apr2-self-approval-and-the-approver-that-nobody-is.sql	196f579c

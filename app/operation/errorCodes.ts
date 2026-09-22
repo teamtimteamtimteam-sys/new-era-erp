@@ -2,6 +2,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { STATE_OPTIONS } from '@/app/inbound/options'
 import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
 import { fallbackForRawError, fallbackTextFor } from '@/lib/machine-text'
+import { localizeSelfApproval } from '@/lib/selfApproval'
 
 // commit_processing_run / rollback_processing_run 这两个 DB 函数 RAISE 出来的错误码,
 // 外加工单族与(PROC-SUPPORT-1 起)交接班族的具名拒绝。
@@ -78,6 +79,14 @@ const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 export async function localizeProcessingError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
+
+    // ★ APR-2:放行工单现在也拒自批(只有 raiser 那一条腿 —— 一张工单没有
+    //   "它说的是谁")。两句话跨模块共用一份,见 lib/selfApproval.ts。
+    //   ⚠ 它挡在 PROCESSING_ERROR_CODES 之前,与 review 那一支同形:
+    //     这个码不归任何一个模块所有,它是一条横跨所有链的规矩。
+    if (match && match[1] === 'SELF_APPROVAL_FORBIDDEN') {
+        return await localizeSelfApproval((match[2] ?? '').split('|')[0] || null)
+    }
 
     if (!match || !PROCESSING_ERROR_CODES.has(match[1])) {
         // ── PROC-3:先问一句物料那一支,再判定"这是一条没编码的错" ──────────

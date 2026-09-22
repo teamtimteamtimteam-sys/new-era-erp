@@ -23,11 +23,17 @@ BEGIN
         RAISE EXCEPTION 'REVIEW_BAD_STATUS|%', v_r.status;
     END IF;
 
-    -- 【提交人不能自批】四眼原则。与"评估人不能是本人"是两条不同的规则:
-    -- 一条防自我评价,这一条防自我批准。
-    IF v_r.submitted_by IS NOT NULL AND v_r.submitted_by = auth.uid() THEN
-        RAISE EXCEPTION 'SELF_APPROVAL_FORBIDDEN';
-    END IF;
+    -- 【四眼原则】与"评估人不能是本人"是两条不同的规则:一条防自我评价
+    -- (表上的 CHECK:reviewer_employee_id IS DISTINCT FROM employee_id),
+    -- 这一条防自我批准。
+    --
+    -- ★★ APR-2 把它换成了全库唯一的那支判据,而这【不是】重构 ——
+    -- 它补上了本函数缺的那条腿。此前只拒 submitted_by,于是这条路一直是通的:
+    --   【别人提交、被评的那位自己批准】。
+    -- 而本函数会写 employees.monthly_salary 与一行 employment_history 调薪记录,
+    -- 也就是说 **一个人批得了自己的加薪**。线上三个持 module.hr.edit 的人
+    -- 全部是在册员工(实测 2026-09-22),所以它不是理论上的。
+    PERFORM forbid_self_approval(v_r.submitted_by, v_r.employee_id);
 
     SELECT * INTO v_emp FROM employees WHERE id = v_r.employee_id FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'EMPLOYEE_NOT_FOUND'; END IF;

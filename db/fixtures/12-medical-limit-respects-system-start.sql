@@ -52,8 +52,12 @@ BEGIN
     --    报一笔介于"折算后额度"与"整份额度"之间的钱:必须被 CLAIM_EXCEEDS_LIMIT 拒。
     --    少了这一条,②可能只是改了个显示字段而闸门照旧。
     -- code 由取号触发器填,但它只在空值时才动;这里显式给一个,避免烧掉无缝号
-    INSERT INTO medical_claims (code, employee_id, claim_date, claim_year, amount_sgd, status)
-    VALUES ('ZZ-FIXT-12', v_emp, '2026-08-10', 2026, v_limit_part + 50, 'submitted')
+    -- ★ APR-2:created_by 默认取 auth.uid(),那样【提单人就是决定人】,
+    --   而 decide_medical_claim 从 APR-2 起会先抛 SELF_APPROVAL_FORBIDDEN|raiser ——
+    --   于是本臂要验的 CLAIM_EXCEEDS_LIMIT 根本走不到。显式给一个【别人】。
+    --   (四眼那条判据由 db/fixtures/203 专门钉住,不在这里重复。)
+    INSERT INTO medical_claims (code, employee_id, claim_date, claim_year, amount_sgd, status, created_by)
+    VALUES ('ZZ-FIXT-12', v_emp, '2026-08-10', 2026, v_limit_part + 50, 'submitted', gen_random_uuid())
     RETURNING id INTO v_claim;
     v_ok := false;
     BEGIN

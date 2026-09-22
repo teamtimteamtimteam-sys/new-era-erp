@@ -1078,6 +1078,18 @@ const en = {
         // Shown in place of a figure the signed-in user has no permission to see.
         // Deliberately NOT a blank (reads as missing data) and NOT a zero (a lie).
         restricted: 'Restricted',
+        // ── APR-2: four eyes. Two sentences, not one with a parameter, because the
+        //    NEXT STEP differs: the raiser goes and finds a colleague; the subject of
+        //    the document has to find someone who is neither of them — and there may
+        //    not be a second holder of that permission at all, which is a real
+        //    configuration problem the generic sentence would hide.
+        //    The database side has exactly one definition too: forbid_self_approval().
+        selfApprovalRaiser:
+            'You raised this, so you cannot be the one to approve it. Four eyes: the person who asks and the person who agrees have to be two people. Ask another holder of this permission to decide it.',
+        selfApprovalSubject:
+            'This document is about you, so you cannot be the one to approve it — even though you did not raise it. Four eyes: nobody approves their own leave, their own claim or their own review. Ask another holder of this permission to decide it. ★ If there is no one else who holds it, that is the thing to fix — not this refusal.',
+        selfApprovalGeneric:
+            'You cannot approve this one yourself. Four eyes: the person who asks and the person who agrees have to be two people.',
         // 一级之上的同一条道理:整个模块进不去时,说出来,而不是渲染一张空表。
         moduleDenied: 'You do not have access to this module.',
         moduleDeniedHint: 'This is a permission answer, not an empty result — ask an administrator to grant you access to this module.',
@@ -6832,6 +6844,14 @@ const en = {
             rolePickNone: '— not decided —',
             adminWarning:
                 '★ Neither level may be pointed at a role that administers the system — admin, or cco, which also holds manage roles & permissions. That is a ruling, not a machine rule, and the roles are listed here on purpose rather than hidden: a dropdown that quietly drops them enforces the rule while leaving no trace of it. The person who can grant themselves any permission must not also be the person who approves the spending.',
+            // ── APR-2: does each wired chain actually have someone who can approve it?
+            chainGatesTitle: 'Can anyone actually approve it?',
+            chainGatesWhy:
+                'Holding the approver role is only half of it — the person also has to hold the permission the action itself requires, or they cannot open the document. Nothing checked that until now, and a work order chain shipped that literally nobody could pass.',
+            chainGateOk:
+                '{action}, level {level} → role "{role}": {n} person/people hold both the role and the permission this action requires.',
+            chainGateDead:
+                '★ {action}, level {level} → role "{role}": NOBODY holds both. This step needs {perms}, and no real holder of "{role}" has it. Approvals cannot be switched on while this is true.',
             whileOnPending:
                 'Approvals are in force right now and {n} purchase order(s) are awaiting approval. Changing the roles or the threshold re-routes what is still pending — it does not re-open anything already decided. Nothing locks that today; whether it should is an open question for the next cut.',
             save: 'Save the approval policy',
@@ -6971,6 +6991,8 @@ const en = {
                 '{0} cannot be cleared while approvals are in force — an enabled control with no policy refuses every request. Switch approvals off first, then change the policy.',
             APPROVALS_POLICY_DIRECT_WRITE:
                 'The approval policy ({0}) can only be changed from Settings → Approvals, by someone who can manage roles and permissions. It deliberately cannot be changed by editing finance settings directly — the level-1 approver holds that permission, and a control its own approver can rewrite is not a control.',
+            APPROVALS_CHAIN_HAS_NO_APPROVER:
+                '★ Approvals cannot be switched on: nobody can approve {0} at level {1}. That step routes to the role "{2}", and no real login account holds that role AND the permission the action itself requires ({3}). Both halves are needed — holding the approver role is not enough if the person cannot open the document. Grant the missing permission to a holder of "{2}", or point that level at a role whose holders already have it.',
             APPROVALS_SETTINGS_MISSING:
                 'The finance settings row is missing, so there is no approval policy to change. This is a broken install, not an empty policy — do not re-create the row from this screen.',
             GST_NOT_REGISTERED: 'A tax code ({0}) was given, but this company is not registered for GST. While it is unregistered the system behaves exactly as it did before GST was built — a tagged line cannot be written at all.',

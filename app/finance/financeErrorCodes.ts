@@ -38,6 +38,15 @@ const FINANCE_ERROR_CODES = new Set([
     'APPROVALS_POLICY_LOCKED_WHILE_ON',
     // APR-1:写闸自己的拒绝,以及单行表那一行不见了的那一条。
     'APPROVALS_POLICY_DIRECT_WRITE', 'APPROVALS_SETTINGS_MISSING',
+    // APR-2:开关的第十条具名拒绝 —— 这条链没有人批得动。
+    //   它的参数里带一个数字(级别),所以它【依赖 APR-1 那次把码正则的字符类
+    //   放宽到含数字的修复】;在那之前它会被截成尾巴一段而到不了屏幕
+    //   (APR-1 §3.1 记的九条里六条就是这么丢的)。
+    //   ⚠ 本行注释【刻意不写出那个被截出来的字符串】:check-i18n 的 tsSet
+    //     把这个 Set 块里【每一对单引号】都当成一个码收走,注释也不例外 ——
+    //     第一版写了,于是它当场为一个不存在的码报"缺翻译"。
+    //     AGENTS.md「一句注释可以污染将来对它自己的计数」,这是它的第五次。
+    'APPROVALS_CHAIN_HAS_NO_APPROVER',
     // GST-1:税码/税率/申报期间的十七条拒绝。**逐条从函数体枚举出来的**,
     // 不是从"撞到过哪几条"数的 —— 它们会从 tax_rate_for、f5_return、
     // f5_box_detail、open_gst_period、file_gst_return、correct_gst_return

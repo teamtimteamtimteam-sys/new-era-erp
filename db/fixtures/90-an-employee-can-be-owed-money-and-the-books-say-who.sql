@@ -30,6 +30,10 @@ DECLARE
     v_exp jsonb; v_pay jsonb; v_claim jsonb;
     exp_emp uuid; exp_sup uuid; claim_id uuid;
     v_msg text; v_denied boolean; n int; v_name text; v_kind text;
+    u_apr2  uuid := gen_random_uuid();   -- APR-2 四眼:替本支做决定的【第二个人】
+    r_apr2  uuid;
+    c_apr2  text;
+    c_was   text;                        -- 切过去之前的 claims,原样切回来
 BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-90', 'f', 'f', true) RETURNING id INTO r_all;
@@ -213,7 +217,26 @@ BEGIN
             p_employee_id := emp_b, p_claim_date := CURRENT_DATE,
             p_amount_sgd := 120, p_description := 'fixture 90 claim');
         claim_id := (v_claim->>'claim_id')::uuid;
+    -- ════════════════════════════════════════════════════════════════════
+    -- ★ APR-2(2026-09-22):四眼 —— 【批的人不能是提的人】
+    -- ════════════════════════════════════════════════════════════════════
+    -- 本支验的不是审批,而它调的那支函数从 APR-2 起会拒绝"自己批自己提的单"。
+    -- 所以这里造一个【第二个人】去做那个决定,本支原有的断言一个字不动。
+    -- 【为什么复制权限而不是挑几个码】本支要的是"他不是提单人",不是"他权限窄";
+    -- 挑码会让下一次改权限时这一支为一个与它无关的理由变红。
+    -- ★ 他【没有】auth.users 那一行 —— 于是 real_role_holders 不会把他算进去,
+    --   本支里任何按"真持有人"计数的断言都不受影响。
+    -- 判据本身由 db/fixtures/203 专门钉住,不在这里重复。
+    INSERT INTO roles (code, name_en, name_zh, is_active)
+      VALUES ('fx90-apr2-dec', 'f', 'f', true) RETURNING id INTO r_apr2;
+    INSERT INTO role_permissions (role_id, permission_code) SELECT r_apr2, code FROM permissions;
+    INSERT INTO user_roles (user_id, role_id) VALUES (u_apr2, r_apr2);
+    c_apr2 := format('{"sub":"%s","role":"authenticated"}', u_apr2);
+        -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+        c_was := current_setting('request.jwt.claims', true);
+        PERFORM set_config('request.jwt.claims', c_apr2, true);
         PERFORM decide_medical_claim(p_claim_id := claim_id, p_approve := true);
+        PERFORM set_config('request.jwt.claims', c_was, true);
         v_claim := pay_medical_claim(p_claim_id := claim_id, p_expense_date := CURRENT_DATE);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF v_denied THEN
@@ -312,7 +335,11 @@ BEGIN
         p_employee_id := emp_c, p_claim_date := CURRENT_DATE,
         p_amount_sgd := 30, p_description := 'fixture 90K claim one');
     claim_id := (v_claim->>'claim_id')::uuid;
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     PERFORM decide_medical_claim(p_claim_id := claim_id, p_approve := true);
+    PERFORM set_config('request.jwt.claims', c_was, true);
     BEGIN
         PERFORM pay_medical_claim(p_claim_id := claim_id, p_expense_date := CURRENT_DATE);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
@@ -356,7 +383,11 @@ BEGIN
         p_employee_id := emp_c, p_claim_date := CURRENT_DATE,
         p_amount_sgd := 40, p_description := 'fixture 90K claim two');
     claim_id := (v_claim->>'claim_id')::uuid;
+    -- ★ APR-2 四眼:换【第二个人】来做这个决定(见本支 DECLARE 上方那一段)
+    c_was := current_setting('request.jwt.claims', true);
+    PERFORM set_config('request.jwt.claims', c_apr2, true);
     PERFORM decide_medical_claim(p_claim_id := claim_id, p_approve := true);
+    PERFORM set_config('request.jwt.claims', c_was, true);
     BEGIN
         PERFORM pay_medical_claim(
             p_claim_id := claim_id, p_expense_date := CURRENT_DATE, p_tax_code := 'ZZ-NOT-A-CODE');
