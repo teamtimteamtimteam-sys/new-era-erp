@@ -46,6 +46,21 @@ checks both; the document page needs the first). **It deliberately does NOT hold
 > | `data.view_pay` | — | **✓** |
 > | total | 2 | **4** — the migration's own self-check refuses any other number |
 >
+> > ### ★ APR-0 (2026-09-22): **`cfo` holds FIVE codes today, not four.**
+> > Measured as `postgres` from `role_permissions`: `data.view_pay` · `data.view_prices` ·
+> > `module.finance.view` · ★ **`module.logistics.view`** · `module.purchasing.view`.
+> > ☞ **The fifth is accounted for and is not a drift**: `2026-09-01-navreg1-logistics-gets-its-own-code.sql`
+> > carved logistics out into its own permission code **the same day**, granting it to the six roles
+> > that could already see those pages — its own header says 「可见性不变」. So `cfo` gained a code
+> > and gained **no** new visibility.
+> > ★ **What IS worth keeping:** that migration's self-check "refuses any other number" was true for
+> > about as long as it took a second migration on the same date to make it false. **A self-check
+> > pinned to a total is pinned to a number that another cut can move for an unrelated and perfectly
+> > good reason** — and the sentence it leaves behind reads like an invariant.
+> > ☞ **The structural thing this table asserts is still true and is the part that matters:**
+> > `cfo` still does **not** hold `module.purchasing.edit`. The approver still cannot raise the
+> > document he approves.
+>
 > **Why the CFO sees INDIVIDUAL pay figures and not an aggregate staff-cost line.**
 > Reviewing payroll expenditure means being able to answer *"why is this month twenty
 > thousand higher?"* — and that answer is always one person's one item: a raise, a bonus,
@@ -101,6 +116,31 @@ the switch to flip, and it is **rejected on principle**:
 > Making it an approval level conflates "can configure the system" with "can commit the company's
 > money".** The person who can grant themselves any permission must not also be the person who
 > approves the spending.
+
+> ### ★★ APR-0 (2026-09-22): **`admin` is NOT the only holder of `action.manage_permissions`. `cco` holds it too — and that is now a RECORDED DECISION, not a discovery left lying around.**
+>
+> **Measured as `postgres`, reading the tables `roles` / `role_permissions` / `user_roles`:**
+>
+> | role | `action.manage_permissions` | `module.finance.edit` | real holders | total codes |
+> |---|---|---|---|---|
+> | `admin` | ✓ | ✓ | 1 (`admin@swm-os.test`) | — |
+> | ★ `cco` | ★ **✓** | ✗ | 1 (`sandra@evoltrya.test`) | ★ **37** |
+>
+> ☞ **`cco` is admin-equivalent in every way that matters to this page**: it can open
+> `/settings/approvals` (gated on `action.manage_permissions`), and it also holds
+> `module.purchasing.edit` **and** `data.view_prices` — so it can raise a purchase order *and*
+> see its amount.
+>
+> ★ **Tim's ruling, 2026-09-22: ACCEPT this for now, and WRITE IT DOWN. Do not revoke in this
+> work** — revoking `action.manage_permissions` from a 37-code role has a blast radius far beyond
+> approvals and belongs to its own cut.
+>
+> ☞ **What this does NOT change:** §0b still stands in full. Neither approval *level* may be
+> pointed at `admin` — **or at `cco`**, for the identical reason and now with a sharper edge:
+> `cco` can raise the document it would approve, which `cfo` deliberately cannot.
+> ☞ **Why it is recorded rather than noted in passing:** the sentence above ("it is the only
+> holder") is the kind of premise later cuts reason *from*. It was true when written. This file
+> has now been caught twice carrying a stale fact past its expiry — see the strike in §3.
 
 This was already the position in `docs/approvals-scoping.md` §3, and **that part of §3 is not
 superseded** — only the rows about *who* level 2 is were.
@@ -170,7 +210,53 @@ is not a gate.
 
 ---
 
-## 3 · TODAY, APPROVALS CANNOT BE SWITCHED ON — and that is the control working
+## 3 · ~~TODAY, APPROVALS CANNOT BE SWITCHED ON~~ — ★ **THE BLOCKER EXPIRED. APPROVALS CAN BE SWITCHED ON TODAY** (APR-0, 2026-09-22)
+
+> ### ★★ **APR-0 (2026-09-22) — struck in place, with the receipt** ★★
+>
+> **The blocker this section named is gone. `can_enable` is `true`.** Not because anything was
+> loosened — **because the expiry condition written below was met and nobody noticed.**
+>
+> **Measured 2026-09-22, as `postgres` over the Management API (RLS bypassed), reading the
+> TABLES `auth.users` and `user_roles` and the function `real_role_holders()`:**
+>
+> | level | role | holders_total | real_holders | can_see_amounts | state |
+> |---|---|---|---|---|---|
+> | 1 | `finance` | 1 | ★ **1** ★ | true | **a working holder** — `chooer@evoltrya.test` |
+> | 2 | `cfo` | 1 | **1** | true | a working holder — `admin@swm-os.test` |
+>
+> **All six live accounts are confirmed, none banned, none deleted.** So
+> `blocking = []` · **`can_enable = true`** · `pending_purchase_orders = 0` · **`can_disable = true`**.
+>
+> **Read what that second pair means before flipping anything:** nothing is in flight, so turning
+> approvals ON strands no document, and turning them back OFF is free **for exactly as long as that
+> stays true**. The moment one purchase order is pending, `guard_approvals_switch` refuses to
+> disable by name (`APPROVALS_CANNOT_DISABLE_WITH_PENDING`).
+>
+> **The account named below as the expiry condition is not the one that satisfied it.** This section
+> said the nearest candidate was `chef1949@126.com` confirming her email. Live carries no such
+> account today; `finance` is held by **`chooer@evoltrya.test`**, which **is** confirmed. Whether
+> that is the same person on a new address or a different grant entirely is not something this
+> survey can tell from the schema, and it is **not** guessed at here.
+>
+> ### ☞ The lesson, which is why this is struck in place rather than rewritten
+>
+> ★ **An expiry condition written into a document does not fire.** This one was stated precisely,
+> it came true, and the document went on asserting the opposite for three weeks — while
+> `docs/approvals.md` §3 is the exact page someone reads to answer "can we turn approvals on yet".
+> The three cuts between CHAIN-CONFIG-1 and APR-0 all read this section and all inherited a
+> blocker that had expired.
+> ☞ **Nothing in this repository watches an expiry condition.** The cheap habit is the one this
+> cut used: **a survey re-measures every premise its brief hands it, including the ones that are
+> written down as settled facts** — and APR-0's brief handed it this one as a settled fact.
+>
+> **APR-1 is the cut that acts on this** (the RPC, the guard, the history table, the write path).
+> **Approvals stay OFF until then** — Tim's ruling, 2026-09-22: they get turned on **once, from a
+> screen, by a person**, not by a direct database write. Turning them on today by hand would be the
+> very thing that cut exists to end.
+
+<details>
+<summary>★ The original note, kept verbatim — it is the argument for why the refusal was honest while it lasted</summary>
 
 > **Updated 2026-08-30 (CHAIN-CONFIG-1): the chain is now CONFIGURED, and it still cannot be
 > enabled — for a sharper reason than before.** The blocker is no longer "nothing is set"; it is
@@ -197,8 +283,18 @@ is not a gate.
 > cut. When it happens, `finance` gains a real holder and the chain becomes enableable with no code
 > change.
 
-**The original note below is kept — it is why the refusal is honest rather than a bug.**
+</details>
 
+**The original note below is kept — it is why the refusal was honest rather than a bug.**
+
+> ### ★ APR-0 (2026-09-22): **the three readings below are SUPERSEDED. The reasoning is not.**
+> **`finance` reads `real_holders = 1` today, not 0, and `admin` is no longer the only role that
+> passes.** So the sentence *"pointing either level at any role other than `admin` will refuse on
+> enable"* and the sentence *"the truth is that nobody can approve"* are **both false as of
+> 2026-09-22** — see the struck section at the top of §3 for the measured replacement.
+> ☞ **What survives unchanged is everything the block was actually arguing**: the four-clause
+> predicate, why ② matters, and the `Do not` list that follows it. **Those were never about the
+> numbers.** The numbers were the occasion; the predicate is the point.
 
 **Present state, measured 2026-08-30. EXPECTED. Do not "fix" it by loosening the predicate.**
 
@@ -219,6 +315,9 @@ it out loud, at the moment the state is fully knowable and the consequence is to
 > The nearest one is `chef1949@126.com` (Choo Er Teh, holds `finance`), whose email has never been
 > confirmed. That is an open item owned by Tim and is **deliberately not touched by any cut** —
 > confirming it is not an engineering decision.
+>
+> ★ **APR-0: this condition has been MET** (by `chooer@evoltrya.test`, not by the account named
+> here). It is the second time in this file that a written expiry condition came true silently.
 
 **Do not**, in order to make the switch flippable today: loosen `real_role_holders`, add an
 override flag, add a "force enable", or point a level at `admin` merely because it is the role that

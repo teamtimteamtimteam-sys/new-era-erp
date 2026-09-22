@@ -3,6 +3,123 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ★★ APR0-WORK-ORDER-APPROVALS-INVISIBLE —— **`approval_log` 的读策略没有 `work_order` 这一支,于是工单的审批留痕【对每一个人都是零行】**(APR-0 登记,2026-09-22)
+
+### 它是什么(实测,2026-09-22)
+
+`WO-1b`(`2026-08-16-wo1b-the-seam.sql`)把 `'work_order'` 加进了 `approval_log.subject_type`
+的 CHECK 枚举,也在 `record_approval_decision` 里加了对应的一支。**而它没有动那张表的
+RLS 读策略。** 线上原文(读 `pg_policies`,系统视图):
+
+```
+CASE subject_type
+    WHEN 'leave_request'      THEN has_permission('module.hr.view')
+    ...
+    WHEN 'stocktake'          THEN has_permission('module.stocktakes.view')
+    ELSE false            ← ★ work_order 落在这里
+END
+```
+
+**于是工单的审批留痕写得进去、读不出来。** 以 `postgres` 身份(RLS 绕过)读
+`approval_log` 这张**表**,今天有 **1 行** `work_order`(decision = `auto_approved`);
+**任何 `authenticated` 身份读到的都是 0 行,而且不报错。**
+
+### ★ 为什么它比「少一行」更要紧
+
+☞ **它的失败方式是一个安静的零。** 一张「这张工单谁放行的」的留痕页会渲染成
+**一片正确的空白** —— 与「这张工单还没有被放行过」在屏幕上逐字相同。
+★ 这正是本仓库反复付账的那个形状(`mustRows` / 空集不是"没有" / DRAFT-5 的
+「一个 0 行的读数,先问它是谁读的」),而这一次它**写在一条 `ELSE false` 里**。
+
+### ★★ 它对 APR-2 的用处,才是登记它的主要理由
+
+**扩一个 subject_type 要动【四处】,而上一次扩的那一刀只动了两处半:**
+
+| # | 要动的地方 | WO-1b 动了吗 |
+|---|---|---|
+| ① | `approval_log.subject_type` 的 CHECK 枚举 | ✓ |
+| ② | `record_approval_decision` 的 `CASE` 分支 | ✓ |
+| ③ | 提交路径 / 决定函数(`release_work_order`) | ✓ |
+| ④ | ★ **`approval_log` 的 RLS 读策略那一支** | ★ **✗** |
+
+☞ **APR-2 每加一个单据类型,这张表都要逐项走一遍。** 而 ④ 是唯一一个
+**不做也不会报错、不会变红、不会有人发现**的。
+
+### 为什么这一刀【不修】
+
+APR-0 是一次只读勘察,除文档外不动任何东西(委托书的开头就这么写着)。
+☞ **去处:APR-1** —— 它已经因为别的理由要动这张表一侧的东西,而 Tim 在 2026-09-22
+把这一条点名放进了 APR-1 的范围。
+
+### 重量的办法
+
+```sql
+SELECT qual FROM pg_policies WHERE tablename = 'approval_log';   -- 找 'work_order'
+SELECT count(*) FROM approval_log WHERE subject_type = 'work_order';  -- 以 postgres 身份
+```
+
+---
+
+## ★★ APR0-APPROVALS-SWITCH-WRITE-GATE —— **审批开关的【写】闸是 `module.finance.edit`,而一级审批人自己就持有它**(APR-0 登记,2026-09-22)
+
+### 它是什么(实测,2026-09-22)
+
+审批开关那四列住在 `finance_settings` 上,而那张表的写闸是一条**表级**触发器:
+
+```
+CREATE TRIGGER enforce_write_permission BEFORE DELETE OR UPDATE ON public.finance_settings
+    FOR EACH STATEMENT EXECUTE FUNCTION enforce_write_permission('module.finance.edit')
+```
+
+**而 D7 / IA-BUILD-1 把那块面板搬去 `/settings/approvals` 时,用的是另一个码** ——
+`action.manage_permissions`。**两个码,两批人,而它们不是同一批:**
+
+| 角色 | 看得见那一页(`action.manage_permissions`) | 写得了 `finance_settings`(`module.finance.edit`) | 真持有人 |
+|---|---|---|---|
+| `admin` | ✓ | ✓ | 1 |
+| `cco` | ✓ | ✗ | 1 |
+| ★ `finance` | ✗ | ★ **✓** | 1 —— ★ **这就是一级审批人** |
+| `gm` | ✗ | **✓** | 1 |
+
+### ★★ 为什么它要紧
+
+★ **`finance` 是被裁定的一级审批角色,而它持有那张表的写权限。**
+也就是说:**约束她的那条策略,写闸这一侧对她是开着的。**
+
+⚠ **把话说准 —— 今天它【不可达】,所以登记成结构问题而不是事故:**
+`app/` 底下**没有任何东西**写那四列(实测:`app/finance/settings/actions.ts` 只导出
+`setPeriodLock`;那块面板是**只读**的)。所以今天 `finance` 在界面上**没有路**去翻那个开关。
+☞ **它是一个【等着被打开】的洞:APR-1 一旦加上写路径,若那条写路径只在 UI 那一侧
+按 `action.manage_permissions` 把关,而表的写闸仍是 `module.finance.edit`,
+那么分离就只存在于屏幕上。**
+
+### ★ 这一条的形状,本仓库已经付过账
+
+**一道闸只守它当时那条路** —— 而这一次是反过来:**一道闸守的是【另一条路】**。
+UI 那一侧问的是「你能不能管权限」,库那一侧问的是「你能不能编辑财务设置」;
+**两句话在今天碰巧都拦得住(因为根本没有写路径),而它们问的不是同一件事。**
+
+### 处置(Tim 裁定,2026-09-22)——【不在这一刀做】
+
+* 一支 `set_approvals_policy(...)`,`SECURITY DEFINER`,检查 **`action.manage_permissions`**;
+* ★ **外加一道 `finance_settings` 上的守卫:审批策略那四列,凡不经该 RPC 的改动一律【按名拒绝】** ——
+  否则一个持 `module.finance.edit` 的人(包括一级审批人本人)仍可直接写。
+  ★ **守卫【不许】碰其余各列** —— `setPeriodLock` 与任何别的 `finance_settings` 写入照常工作。
+
+☞ **去处:APR-1。** 详见 `docs/handbacks/APR-0.md` Q2。
+
+### 重量的办法
+
+```sql
+SELECT tgname, pg_get_triggerdef(t.oid) FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid
+ WHERE c.relname='finance_settings' AND NOT t.tgisinternal;
+SELECT r.code, bool_or(rp.permission_code='module.finance.edit') AS finance_edit,
+       bool_or(rp.permission_code='action.manage_permissions')   AS manage_perms
+  FROM roles r LEFT JOIN role_permissions rp ON rp.role_id=r.id WHERE r.is_active GROUP BY r.code;
+```
+
+---
+
 ## ★ SEARCH5-CONTAINER-CODE-IS-AN-ERROR-BLOB —— **一行 `containers` 把一段 42501 报错 JSON 存成了单据号**(SEARCH-5 登记,2026-09-19)
 
 ### 它是什么
