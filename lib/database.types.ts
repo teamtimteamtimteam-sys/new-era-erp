@@ -5246,6 +5246,48 @@ export type Database = {
           },
         ]
       }
+      finance_settings_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          new_approval_level1_role_code: string | null
+          new_approval_level2_role_code: string | null
+          new_approval_threshold_base: number | null
+          new_approvals_enabled: boolean | null
+          old_approval_level1_role_code: string | null
+          old_approval_level2_role_code: string | null
+          old_approval_threshold_base: number | null
+          old_approvals_enabled: boolean | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_approval_level1_role_code?: string | null
+          new_approval_level2_role_code?: string | null
+          new_approval_threshold_base?: number | null
+          new_approvals_enabled?: boolean | null
+          old_approval_level1_role_code?: string | null
+          old_approval_level2_role_code?: string | null
+          old_approval_threshold_base?: number | null
+          old_approvals_enabled?: boolean | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          new_approval_level1_role_code?: string | null
+          new_approval_level2_role_code?: string | null
+          new_approval_threshold_base?: number | null
+          new_approvals_enabled?: boolean | null
+          old_approval_level1_role_code?: string | null
+          old_approval_level2_role_code?: string | null
+          old_approval_threshold_base?: number | null
+          old_approvals_enabled?: boolean | null
+        }
+        Relationships: []
+      }
       fixed_asset_cost_entries: {
         Row: {
           amount_base: number
@@ -28232,6 +28274,15 @@ export type Database = {
           label: string
           total: number
         }[]
+      }
+      set_approvals_policy: {
+        Args: {
+          p_enabled: boolean
+          p_level1_role_code: string
+          p_level2_role_code: string
+          p_threshold_base: number
+        }
+        Returns: Json
       }
       set_asset_acceptance: {
         Args: { p_acceptance_date: string; p_asset_id: string }

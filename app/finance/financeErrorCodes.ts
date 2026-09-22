@@ -25,9 +25,19 @@ const FINANCE_ERROR_CODES = new Set([
     'SOD_POST_AND_CLOSE', 'SOD_PAYEE_AND_PAY',
     // SOD-1:审批开关的两道闸。前三条管【开】,第四条管【关】(关掉会搁死在途单据),
     // 第五条管【开着的时候不许抽走策略】。
-    'APPROVALS_POLICY_INCOMPLETE', 'APPROVALS_LEVEL1_ROLE_UNHELD',
-    'APPROVALS_LEVEL2_USER_UNKNOWN', 'APPROVALS_CANNOT_DISABLE_WITH_PENDING',
+    // ★ APR-1:这一族是从 guard_approvals_switch 的函数体里【逐条枚举】出来的,
+    //   不是从"撞到过哪几条"数的。此前这里只有三条真的会出现的码,而那支守卫
+    //   抛得出【九条】;另外两条里,APPROVALS_LEVEL2_USER_UNKNOWN 是
+    //   CHAIN-BUILD-1 把二级从【人】改成【角色】时就退役了的码 ——
+    //   一条已经不存在的拒绝,躺在集合里也躺在两本词典里。已删。
+    'APPROVALS_POLICY_INCOMPLETE',
+    'APPROVALS_LEVEL1_ROLE_UNHELD', 'APPROVALS_LEVEL2_ROLE_UNHELD',
+    'APPROVALS_LEVEL1_HOLDER_CANNOT_SIGN_IN', 'APPROVALS_LEVEL2_HOLDER_CANNOT_SIGN_IN',
+    'APPROVALS_LEVEL1_ROLE_CANNOT_SEE_AMOUNTS', 'APPROVALS_LEVEL2_ROLE_CANNOT_SEE_AMOUNTS',
+    'APPROVALS_CANNOT_DISABLE_WITH_PENDING',
     'APPROVALS_POLICY_LOCKED_WHILE_ON',
+    // APR-1:写闸自己的拒绝,以及单行表那一行不见了的那一条。
+    'APPROVALS_POLICY_DIRECT_WRITE', 'APPROVALS_SETTINGS_MISSING',
     // GST-1:税码/税率/申报期间的十七条拒绝。**逐条从函数体枚举出来的**,
     // 不是从"撞到过哪几条"数的 —— 它们会从 tax_rate_for、f5_return、
     // f5_box_detail、open_gst_period、file_gst_return、correct_gst_return
@@ -50,7 +60,20 @@ const FINANCE_ERROR_CODES = new Set([
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..." —— 即使 PostgREST 在前面包了前缀,
 // 也能定位到大写下划线的 code 和它后面 |-分隔的参数。找不到已知 code 就交给共用兜底 lib/machine-text.ts。
-const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ APR-1(2026-09-22)· 这个字符类里【没有数字】,而每一条带级别的审批拒绝
+//    都带着一个 1 或 2 —— 于是它们【一条都到不了屏幕】。实测,不是推的:
+//       'APPROVALS_LEVEL1_ROLE_UNHELD|finance'  →  抓出 '_ROLE_UNHELD'
+//       'APPROVALS_LEVEL1_HOLDER_CANNOT_SIGN_IN|finance|1' → '_HOLDER_CANNOT_SIGN_IN'
+//    抓出来的那一串谁的集合里都没有,于是走共用兜底 —— 屏幕上说的是
+//    「这一步没有发生」,而数据库说的是「一级审批角色的唯一持有人登录不了」。
+//    ☞ 一条【写过、翻译过、却永远显示不出来】的句子,比没有那条句子更坏:
+//      它让人以为这件事已经被照顾到了。
+//    ★ 全库扫过:除审批这一族外,带数字的码【全部】是迁移自证,到不了屏幕。
+//      所以本刀只改这两个映射器;其余 44 个同款正则登记在 docs/known-issues.md
+//      的 ERRCODE-DIGIT-UNREACHABLE 条,触发条件写在那里。
+// ════════════════════════════════════════════════════════════════════════════
+const CODE_RE = /([A-Z0-9_]+)(?:\|(.*))?$/
 
 export async function localizeFinanceError(message: string): Promise<string> {
     const raw = (message ?? '').trim()

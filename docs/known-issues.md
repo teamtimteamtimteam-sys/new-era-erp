@@ -3,7 +3,30 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
-## ★★ APR0-WORK-ORDER-APPROVALS-INVISIBLE —— **`approval_log` 的读策略没有 `work_order` 这一支,于是工单的审批留痕【对每一个人都是零行】**(APR-0 登记,2026-09-22)
+## ~~★★ APR0-WORK-ORDER-APPROVALS-INVISIBLE~~ —— **✅ 已关闭(APR-1,2026-09-22)**
+
+**做法:**`approval_log` 的 SELECT 策略补上那一支 ——
+`WHEN 'work_order' THEN has_permission('module.processing.view')`。
+★ **取的码与 `work_orders` 自己的读策略【同一个】**(`db/tables/work_orders.sql:68`)——
+读工单的判据只该有一份定义;另铸一个更宽的码,就是在这张表上开第二条读路。
+
+⚠ **照直说一件本条原文没有说、而它现在成立的事:`cfo` 【不】持 `module.processing.view`**
+(实测 2026-09-22,读 `role_permissions` 基表:持有它的是 `admin` · `auditor` · `cco` ·
+`cto` · `finance` · `gm`)。**于是二级审批人仍然读不到工单的审批留痕。**
+那不是这一刀漏掉的一格 —— 它是"读工单"这件事本来就有的边界,而审批留痕跟着它走。
+
+**钉住它的地方:**`db/fixtures/202` 的 H 臂,两侧都有对照 ——
+持码的人读得到工单那一行【而且只读得到它那一支】(所以那个 1 不是"还在 postgres 身上"),
+不持码的人读不到工单【而读得到自己那一支】(所以那个 0 是"不该你看",不是"这张表读不了")。
+
+> ### ☞ 这一条留下来的那句话,比这一条本身耐用
+> ★ **加一个 `subject_type` 要动【四处】,而 ④ 是唯一一个不做也不会有任何东西变红的。**
+> APR-2 起每加一个单据类型,都要逐格走一遍 ①枚举 ②`record_approval_decision` 的分支
+> ③提交路径 ④**RLS 读策略那一支**。这一条就是 ④ 被漏掉一次的现场。
+
+<details><summary>原文(关闭前)</summary>
+
+### ~~★★ APR0-WORK-ORDER-APPROVALS-INVISIBLE~~(**原文,一个字没改 —— 已关闭,见上一节**)—— **`approval_log` 的读策略没有 `work_order` 这一支,于是工单的审批留痕【对每一个人都是零行】**(APR-0 登记,2026-09-22)
 
 ### 它是什么(实测,2026-09-22)
 
@@ -60,7 +83,62 @@ SELECT count(*) FROM approval_log WHERE subject_type = 'work_order';  -- 以 pos
 
 ---
 
-## ★★ APR0-APPROVALS-SWITCH-WRITE-GATE —— **审批开关的【写】闸是 `module.finance.edit`,而一级审批人自己就持有它**(APR-0 登记,2026-09-22)
+</details>
+
+---
+
+## ~~★★ APR0-APPROVALS-SWITCH-WRITE-GATE~~ —— **✅ 已关闭(APR-1,2026-09-22)**
+
+**做法:**一支 `set_approvals_policy(...)`(SECURITY DEFINER,查 `action.manage_permissions`)
+成为那四列的唯一写入口;`finance_settings` 上加一道**列作用域**的写闸
+`trg_approvals_policy_write_gate` → `guard_approvals_policy_write()`,
+不经该 RPC 的改动一律抛 `APPROVALS_POLICY_DIRECT_WRITE|<变了的那几列>`。
+
+★★ **守卫靠什么认出"这是 RPC 写的" —— 两道测试,而载重的是【身份】那一道** ★★
+
+| 测试 | 它是什么 | 举得起来吗 |
+|---|---|---|
+| `row_security_active(TG_RELID)` | 一件关于【调用者是谁】的事实 | ★ **举不起来** |
+| 事务局部的旗子 `evoltrya.approvals_policy_ctx` | 一个值 | ★ **举得起来** —— 实测 |
+
+**APR-1 实测(2026-09-22,一次回滚掉的探针,`postgres` 经 Management API):**
+
+```
+row_security_active(finance_settings)  as postgres      →  f
+                                       as authenticated →  t
+set_config('evoltrya.apr1_forge_probe','1',true) as authenticated
+                                       →  成功,读回 '1',无错      ★ 旗子举得起来
+SET LOCAL row_security = off            as authenticated
+                                       →  接受,但 row_security_active 仍然是 t,
+                                          而任何一次读当场报
+   "query would be affected by row-level security policy for table finance_settings"
+```
+
+☞ **所以一个自定义命名空间的 GUC 不是一项权限,它是一个谁都写得进的值 ——
+边界不能建在它上面。** 旗子留下来只做一件事:要求任何一条直写这四列的路
+(迁移、fixture)在源码里【说出这句话】。守卫在放行的那一行上把旗放倒
+(用完即焚)—— 那是 PUR2-FU2「`set_config(..., true)` 是事务局部」那一课的修法。
+
+★ **守卫是 INVOKER,不是 DEFINER**(`enforce_write_permission` 的同一条理由):
+`row_security_active` 必须反映【调用者】的视角。一支 DEFINER 的守卫问的是它自己,
+于是它会放行一切【而且全绿】。`db/fixtures/202` 的 P 臂钉这一条。
+
+★★ **它【不】拦 `postgres`,而且没有任何东西拦得住** —— 属主可以 DROP 掉这个触发器。
+它建起来的边界是:**任何受 RLS 约束的调用者都改不动这四列,包括持
+`module.finance.edit` 的一级审批人本人。** 这正是本条原文点名的那个洞。
+
+**留痕:**新建 `finance_settings_history`,只增不改,由同一支 RPC 写。
+★ **它【不记】属主直接改库的那几次** —— 线上那一行(`false · finance · cfo · 1000`)
+就是那样来的,所以本表在 APR-1 之后是【空的】,而那不是缺陷。空白好过编造。
+
+**曾被考虑并否决的做法:**`REVOKE UPDATE (那四列) ON finance_settings FROM authenticated`。
+它是一道真的权限边界,**而列权限在触发器之前判**,于是调用者拿到的是
+`42501 permission denied for table finance_settings` —— 一句**没有名字**的机器话,
+它会把那条具名拒绝抢在前面吃掉。Tim 裁定(2026-09-22):不做。
+
+<details><summary>原文(关闭前)</summary>
+
+### ~~★★ APR0-APPROVALS-SWITCH-WRITE-GATE~~(**原文,一个字没改 —— 已关闭,见上一节**)—— **审批开关的【写】闸是 `module.finance.edit`,而一级审批人自己就持有它**(APR-0 登记,2026-09-22)
 
 ### 它是什么(实测,2026-09-22)
 
@@ -119,6 +197,70 @@ SELECT r.code, bool_or(rp.permission_code='module.finance.edit') AS finance_edit
 ```
 
 ---
+
+</details>
+
+---
+
+## ★★ ERRCODE-DIGIT-UNREACHABLE —— **44 个错误码映射器的正则里【没有数字】,带数字的码永远到不了屏幕**(APR-1 登记,2026-09-22)
+
+### 它是什么(实测,2026-09-22)
+
+全库 46 个 `*ErrorCodes.ts` / 动作文件共用同一行:
+
+```js
+const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
+```
+
+`[A-Z_]` **不含数字**。于是一条名字里带 `1` 或 `2` 的码抓不出来 ——
+抓出来的是它尾巴上那一截。把九条真的会抛出来的审批拒绝喂进这行正则,实测:
+
+| 数据库抛出的 | 正则抓出来的 |
+|---|---|
+| `APPROVALS_LEVEL1_ROLE_UNHELD\|finance` | ★ `_ROLE_UNHELD` |
+| `APPROVALS_LEVEL1_HOLDER_CANNOT_SIGN_IN\|finance\|1` | ★ `_HOLDER_CANNOT_SIGN_IN` |
+| `APPROVALS_LEVEL2_ROLE_CANNOT_SEE_AMOUNTS\|cfo` | ★ `_ROLE_CANNOT_SEE_AMOUNTS` |
+
+抓出来的那一串谁的集合里都没有,于是走共用兜底 —— 屏幕上说的是
+「这一步没有发生」,而数据库说的是「一级审批角色的唯一持有人登录不了」。
+
+★ **更难发现的一半:`APPROVALS_LEVEL1_ROLE_UNHELD` 当时【在】集合里,也【在】
+两本词典里。** 有人写过那句话、翻译过那句话,而它一次也显示不出来。
+☞ **一条写过、翻译过、却永远显示不出来的句子,比没有那条句子更坏:
+它让下一个人以为这件事已经被照顾到了。**
+
+### APR-1 修掉了哪一半,以及为什么只修那一半
+
+**修掉的:**`app/finance/financeErrorCodes.ts` 与 `app/purchasing/purchasingErrorCodes.ts`
+两支的字符类改成 `[A-Z0-9_]`,并按【函数体】逐条补齐审批那一族的码与文案
+(此前 9 条里只有 3 条到得了屏幕),同时退役两条【已经不存在】的码:
+`APPROVALS_LEVEL2_USER_UNKNOWN` 与 `APPROVAL_LEVEL2_USER_NOT_SET`
+—— 二级在 CHAIN-BUILD-1 就从【人】改成了【角色】。
+
+**没修的:另外 44 支同款正则。** 理由是量出来的,不是懒:
+扫过 `db/` 里每一条 `RAISE EXCEPTION '<码>'`,**带数字的码除审批这一族之外
+【全部】是迁移自证**(`FIN19_SELFCHECK_FAILED` · `TIDY1_LABELS_NOT_APPLIED` …),
+它们到不了任何屏幕。所以今天那 44 支【没有一支】看得见一个带数字的码。
+
+### ★ 删除条件(也就是它什么时候会咬人)
+
+> **任何一支【运行期】函数开始抛一个名字里带数字的码。**
+
+那一天,那个模块的映射器会安静地退回兜底 —— 而且**没有任何一道闸会变红**:
+码在集合里、文案在词典里、正则在文件里,三样都在,只是接不上。
+☞ 便宜的做法:新铸的码**不要带数字**(本刀自己的 `APPROVALS_POLICY_DIRECT_WRITE`
+就是照这条起的名);要带,就把那一支的字符类一起改掉。
+
+### 重量的办法
+
+```bash
+grep -rln "(\[A-Z_\]+)" app/ lib/            # 还剩几支没改
+grep -rhoE "RAISE EXCEPTION '[A-Z_]*[0-9][A-Z_0-9]*" db/functions db/tables   # 运行期带数字的码
+```
+
+---
+
+
 
 ## ★ SEARCH5-CONTAINER-CODE-IS-AN-ERROR-BLOB —— **一行 `containers` 把一段 42501 报错 JSON 存成了单据号**(SEARCH-5 登记,2026-09-19)
 

@@ -10,7 +10,9 @@
 -- 线上五个 test.local 走查账号都持 admin,任何按账号数的判据都会因为它们而通过,
 -- 也就是为了错的理由通过。那一条留在 docs/fresh-install-checklist.md 里由人判断。
 --
--- NOTE: introduced by db/migrations/2026-08-24-sod1-one-rule-two-questions.sql.
+-- NOTE: introduced by db/migrations/2026-08-24-sod1-one-rule-two-questions.sql;
+-- 内检的权限码由 db/migrations/2026-09-22-apr1-the-approvals-switch-gets-a-door.sql
+-- 从 module.finance.view 换成 action.manage_permissions(APR-0 的 N6)。
 --
 -- 【fu2:一个【非阻塞】的忠告字段 level1_holders_who_cannot_raise】
 -- 独立复测量到:`finance` 角色自己就持 module.purchasing.edit,于是被裁定的
@@ -39,7 +41,12 @@ DECLARE
     v_l2_sees    boolean := false;
     v_pending    integer := 0;
 BEGIN
-    PERFORM require_permission('module.finance.view');
+    -- ★ APR-1(N6):此前这里要求 module.finance.view,而 /settings/approvals
+    --   那一页的闸是 action.manage_permissions —— **两个码守同一块屏幕**。
+    --   今天 admin 与 cco 两个码都持有,所以看不出问题;哪一天有人持前者而不持
+    --   后者,那一页会渲染成 readError,而那读起来像"读不到",不像"你没权限"。
+    --   这支函数的抬头自己就写着"屏幕与闸读同一份判据"。
+    PERFORM require_permission('action.manage_permissions');
 
     SELECT approvals_enabled, approval_level1_role_code, approval_threshold_base,
            approval_level2_role_code

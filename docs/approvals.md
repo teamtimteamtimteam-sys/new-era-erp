@@ -327,6 +327,178 @@ rejected on principle, and that part of §3 is **not** superseded.
 
 ---
 
+## 3b · THE SWITCH NOW HAS A DOOR — and the door is `action.manage_permissions` (APR-1, 2026-09-22)
+
+**Ruled by Tim, 2026-09-22 (APR-0 Q2). Built by APR-1.** Approvals were still **OFF** when this
+shipped and this cut deliberately never turned them on: Tim turns them on himself, once, from the
+screen.
+
+### What exists now
+
+| | |
+|---|---|
+| **the only write path** | `set_approvals_policy(enabled, level1, level2, threshold)` — `SECURITY DEFINER`, checks **`action.manage_permissions`** |
+| **the guard** | `trg_approvals_policy_write_gate` → `guard_approvals_policy_write()` on `finance_settings`, **column-scoped**, refuses by name: `APPROVALS_POLICY_DIRECT_WRITE|<the columns that changed>` |
+| **the trail** | `finance_settings_history`, append-only, written by the same RPC |
+| **the screen** | `/settings/approvals` — reads, writes, and shows the last ten changes |
+
+**Why the code is `action.manage_permissions` and not `module.finance.edit`.** The table's own
+write gate is `enforce_write_permission('module.finance.edit')`, and that code is held by
+`admin`, `finance` and `gm` — ★ **`finance` is the ruled level-1 approver.** A control its own
+approver can rewrite is not a control. That is the whole of `APR0-APPROVALS-SWITCH-WRITE-GATE`.
+
+### ★★ How the guard knows a change came through the RPC — and the part that is NOT the boundary
+
+**Two tests. The load-bearing one is identity; the marker is precision inside the owner boundary
+and could never have been the boundary.** This is written out rather than summarised, because the
+tempting design is the other way round.
+
+**Measured live, 2026-09-22, in a rolled-back probe, as `postgres` over the Management API:**
+
+```
+row_security_active('public.finance_settings')   as postgres       →  false
+                                                 as authenticated  →  true
+set_config('evoltrya.apr1_forge_probe','1',true) as authenticated  →  ★ SUCCEEDED,
+                                                    read back '1', no error
+SET LOCAL row_security = off                     as authenticated  →  accepted, but
+   row_security_active is STILL true, and any read errors with
+   "query would be affected by row-level security policy for table finance_settings"
+```
+
+☞ **A custom-namespace GUC is not a permission. It is a value anybody with a SQL channel can
+write.** So the flag can only ever mean *"this write path said out loud that it is writing these
+four columns"* — it can never mean *"this caller is allowed to"*.
+
+☞ **`row_security_active` cannot be armed.** It is not a value; it is a fact about who the caller
+is. Becoming exempt means *being* the table owner or running inside a `SECURITY DEFINER` function
+owned by it — a grant, not a setting. The obvious attack closes the door harder rather than
+opening it.
+
+★ **The guard is INVOKER-rights, deliberately.** `row_security_active` has to reflect the
+**caller**; `enforce_write_permission` carries the identical sentence in its own header and is the
+only other guard in the repository that is not `SECURITY DEFINER`. A `DEFINER` guard here would ask
+about itself, answer "RLS is not in force", and **pass everything while staying green**.
+`db/fixtures/202` arm P pins it.
+
+★ **Consumed on use.** `set_config(..., true)` is **transaction**-local, not statement-local —
+PUR2-FU2 (2026-08-11) was caught by its own probe on exactly this. So the guard clears the flag on
+the first row it passes: one arming authorises one write, never "the rest of the transaction".
+`finance_settings` is a single-row table, so one statement is one row and this is exact.
+
+### ★★ SAY THIS PLAINLY: the guard does NOT stop `postgres`, and nothing can
+
+The owner can drop the trigger. **The boundary this builds is: no RLS-bound caller can change
+those four columns — including the level-1 approver who holds `module.finance.edit`.** That is the
+hole that was registered, and it is the hole that is closed.
+
+Migrations and fixtures can still write those columns directly, and they must **arm the flag** to
+do it — which means every direct write states its intent in the source. **Five fixtures do, at 23 sites** (`35`×3 · `52`×1 · `75`×1 · `127`×8 · `151`×10). That is the
+same idiom as `evoltrya.po_status_ctx` in fixture 127. A 24th arming lives in fixture `202` and is
+not a legitimate write: it is the **forgery attempt** — arm the flag as `authenticated` and confirm
+the write is still refused, because the boundary is not that value.
+
+### Considered and rejected: revoking the column privilege
+
+`REVOKE UPDATE (the four columns) ON finance_settings FROM authenticated` is a real privilege
+boundary. **Column privileges are checked before triggers fire**, so the caller would get
+`42501 permission denied for table finance_settings` — an **unnamed** refusal that eats the named
+one. Tim ruled against it, 2026-09-22: the named refusal is the requirement.
+
+### What the screen says, and to whom
+
+* **All four values are saved together**, because `guard_approvals_switch` judges them together.
+* **`can_enable` / `can_disable` and their reasons are shown before anything is pressed**, read
+  from the same `approvals_readiness()` the gate reads. The screen is not a second gate — bypass
+  it and the database still refuses by name.
+* ★ **`admin` and `cco` ARE listed in the role pickers**, with §0b's sentence beside them. §0b
+  rules that this must not be machine-blocked; **a dropdown that quietly drops them enforces the
+  rule while leaving no trace of it**, and the next reader would assume the database refuses it.
+* ★ **There is no read-only viewer of this page, by construction.** The page gate, the RPC gate and
+  (after N6) `approvals_readiness()`'s internal check are the **same code**. The screen says so.
+* **Editing the policy while approvals are ON is allowed** and says what it does to pending
+  documents. Whether it should be locked is an open question for APR-2 — `guard_approvals_switch`
+  only forbids *clearing* a value while on.
+
+### N6 — the screen and the function it calls now read one judgement
+
+`approvals_readiness()`'s internal check moved from `module.finance.view` to
+**`action.manage_permissions`**, matching the page gate. Today `admin` and `cco` hold both, so
+nothing visible changed; the day someone holds one and not the other, that page would have
+rendered as `readError` — which reads like "could not load", not like "you may not".
+
+### The trail is deliberately empty on the day it shipped
+
+`finance_settings_history` records changes **made through the RPC**. The live row
+(`false · finance · cfo · 1000`) was set by a direct database change before this screen existed,
+and **that change is not invented here**. Blank is better than fabricated — the same rule as
+`pricing_formula_history`'s "edits before the trigger have no rows". The screen's empty state says
+this in words, because an empty trail otherwise reads as *"this policy has never been changed"*,
+which is a false assertion about internal control.
+
+---
+
+## 3c · RULINGS THAT SHAPE APR-2 ONWARD — Tim, 2026-09-22
+
+**Recorded here because they were made in conversation and must not live only there.** They answer
+the six open questions APR-0 §5.2 handed back. **Sequencing lives in `docs/forward-queue.md`; the
+reasoning lives here.**
+
+### N1 — documents with no header total get a maintained base-currency total
+
+`sales_orders`, `quotes`, `credit_notes` (and `journal_entries` when its turn comes) **get a
+maintained base-currency header total, the same shape as `purchase_orders.estimated_total_ccy`**.
+Schema change plus maintenance triggers — **its own cut.**
+
+**Why, and it is not tidiness:** `void_approval_on_amount_increase` — "an increase to a higher tier
+voids and re-routes" — reads the **header column's** OLD/NEW. Compute the total on the fly instead,
+and a line-level edit is **invisible to that trigger**: an approved document could be edited up into
+a higher tier with nothing voiding it. That is precisely the thing this engine already built a
+mechanism to prevent.
+
+### N2 — "container loading" and "shipments" are removed from the approval list
+
+They are **records of events, not documents**. There is no `load_container()`; `containers` has no
+status column and loading is a `container_milestones` row. `shipments` has no status column at all.
+Approving them would mean **first inventing a lifecycle for them**, which changes what they *are*.
+
+**The business need behind them is met instead by a pre-shipment release approval on the SALES
+ORDER** — which is a document, has a status, and is where "someone must approve before goods leave"
+actually belongs. It joins **APR-5**.
+
+### N3 — purchase-order amendments keep the existing mechanism
+
+An increase to a higher tier voids and re-routes; the same tier or lower does not. **No second
+approval mechanism.** Two mechanisms governing one event would disagree on the down-tier case (the
+existing one says no re-approval is needed; a new one would say every amendment needs approval).
+If "every amendment needs a nod" is ever wanted, it **replaces** that trigger's rule rather than
+stacking on it — and the replacement has to rule on the case it currently handles.
+
+### N4 — payroll routes on `gross_total`; an incomplete processing cost routes to LEVEL 2
+
+**Payroll routes on `gross_total`** — the most direct statement of "what this period commits to
+paying". Net is moved by deductions, so the same employment cost would land in different tiers.
+
+**A processing run whose cost is incomplete (`cost_incomplete`) routes to LEVEL 2 and is labelled
+cost-incomplete.** ★ **Never refused** — production is not blocked — and **never routed low on a
+figure that is not yet true.** This is Tim's ruling and it departs from APR-0's recommendation
+(which was to refuse): refusing stops the factory, and the safe direction for an unknown amount is
+*upward*.
+
+### N5 — journal entries come last, in their own cut, after N1
+
+Only **manually entered** journals need approval. **System-generated journals are exempt** —
+month-end, FX revaluation, year-end close and similar. ★ **Without that distinction, approvals
+would stall month-end itself**, because manual journals are the vehicle those mechanisms use.
+`journal_entries` also carries the largest blast radius in the system (`balance_sheet`,
+`pnl_statement`, `account_ledger`, `cash_flow_statement` all read it) and the most rows.
+
+### The cut split
+
+**APR-0 §6.2's APR-2 → APR-6 split stands**, with N2's sales-order release approval joining
+**APR-5**.
+
+---
+
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
 **Found while building CHAIN-BUILD-1; folded into the same predicate.**

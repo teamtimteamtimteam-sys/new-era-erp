@@ -4,35 +4,53 @@
 //     module.finance.view  →  action.manage_permissions
 // ════════════════════════════════════════════════════════════════════════════
 //
-// ★★【必须照直说的一件事,而且它更正了 Tim 自己写下的一句话】★★
-// D7 的裁定里写着"配置审批链从此是系统管理员的事,而不是财务的事",并接受了
-// 「Choo-er TEH 不再配置她自己是一级审批人的那条链」这个后果。
-// **实测:那句话的后半在这一刀之后仍然不成立 —— 因为它本来就不成立。**
+// ★★【APR-1(2026-09-22):这一页从此【有写路径】—— 上面那段历史因此要改口】★★
+// D7 的时候这块面板是只读的,而这个文件抬头曾经逐字记着:
+//   「app/ 底下没有任何东西写那四列」「配置审批链仍然不是任何人在界面上做的事」。
+// **那两句今天不成立了,而它们正是本刀做掉的那件事。** 留着它们比删掉更坏 ——
+// 一句留在代码里的过期断言,下一个读的人会当成前提去推理(docs/approvals.md §3
+// 刚刚为完全相同的形状付过一次账:一条写下来的到期条件成真了三个星期没人发现)。
 //
-//   * 这块面板是【只读】的,它自己的抬头写着为什么(打开审批要同时配齐三个值,
-//     其中两个是业务决定,所以不给一个按下去就会被拒的按钮);
-//   * `app/` 底下【没有任何东西】写 approvals_enabled / approval_level1_role_code /
-//     approval_level2_role_code / approval_threshold_base 这四列 ——
-//     app/finance/settings/actions.ts 只导出一个 setPeriodLock;
-//   * 线上那一行(enabled=false · level1=finance · level2=cfo · threshold=1000)
-//     是【直接改库】改出来的。
+// 【这一页现在做三件事】
+//   ① 读:就绪状态(ApprovalsPanel,原样不动)—— 屏幕与闸读同一份判据;
+//   ② 写:四个值一起保存(ApprovalsForm → set_approvals_policy);
+//   ③ 留痕:经这块屏幕做过的每一次改动(ApprovalsHistory)。
+//      ★ ③ 不是装饰:本刀同时在修"留痕写得进读不出"那条已知问题,
+//        新建一张史表却没有任何地方读它,等于当场把同一个形状再造一遍。
 //
-// 所以本刀搬走的是【那扇窗】,不是一个控制器:在这之后,配置审批链仍然【不是
-// 任何人在界面上做的事】。Tim 已确认按这个措辞记录(A1),并把
-// 「审批链没有配置界面」记成一条排队事项 —— 触发点是同事测试轮要试审批,
-// 而今天开启审批 = 一次数据库操作 + Choo-er TEH 的邮箱确认。
+// 【判据只有一个码 —— 看得见这一页 = 改得动它】(Tim 裁定,Q4)
+//   页面的闸是 action.manage_permissions,RPC 的闸【逐字同一个】,
+//   approvals_readiness 的内检在本刀也换成了它(N6)。
+//   ☞ 于是"只读的观众"这个人今天【不存在】,而这一页把这件事印在屏幕上,
+//     不留给人去猜(finance.approvals.seeingIsChanging)。
 //
-// 【谁因此少看见了东西 —— 这一条是真的有人受影响】
-//   之前:任何持 module.finance.view 的人(admin · gm · finance · auditor · cfo)
-//   之后:持 action.manage_permissions 的人(**live 只有 admin**)
-//   → gm · finance · auditor · cfo 看不到这块只读状态面板了。
-//   live 的真人:finance 一名、cfo 一名 —— 两位都受影响,逐角色表见
-//   docs/information-architecture.md。**这正是 Tim 要的那条分离。**
+// 【谁看得见 —— 这一条是真的有人受影响,原样留着】
+//   持 action.manage_permissions 的人:live 是 admin 与 cco。
+//   gm · finance · auditor · cfo 看不到这块面板。**这正是 Tim 要的那条分离** ——
+//   而 finance 就是一级审批角色,她不该改得动那条约束她自己的策略。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import ApprovalsPanel from './ApprovalsPanel'
+import ApprovalsForm, { type RoleOption } from './ApprovalsForm'
+import ApprovalsHistory, { type PolicyChange } from './ApprovalsHistory'
+// ★【查询失败必须【失败】,不许读成空】mustRows 抛,`?? []` 不抛 ——
+//   而这一页上两处空集各自都有一句【错误的】读法在等着:
+//   角色清单读成空 = "系统里没有角色";留痕读成空 = "这条策略从来没有被人动过"。
+//   后者正是本刀同时在修的那条已知问题的形状(写得进、读不出、安静的零)。
+import { mustRows } from '@/lib/db-helpers'
+
+type Readiness = {
+    enabled: boolean
+    level1_role_code: string | null
+    level2_role_code: string | null
+    threshold_base: string | number | null
+    pending_purchase_orders: number
+    blocking: string[]
+    can_enable: boolean
+    can_disable: boolean
+}
 
 export default async function ApprovalsSettingsPage() {
     // 【判据来自注册表,不写在这一页里】—— 与入口用的是同一条 FN.approvals,
@@ -46,21 +64,71 @@ export default async function ApprovalsSettingsPage() {
     // SOD-1:审批开关的状态,以及"能不能开"。屏幕与闸读【同一份判据】。
     const readinessRes = await supabase.rpc('approvals_readiness')
 
+    // 角色清单:下拉框的选项。★ admin / cco 【不】在这里过滤掉 —— §0b 的裁定
+    //   有意不做成机器规则,而一个悄悄少了两项的下拉框是同一条规则的隐身版本。
+    const roles = mustRows<RoleOption>(await supabase
+        .from('roles')
+        .select('code, name_en, name_zh, sort_order')
+        .eq('is_active', true)
+        .is('deleted_at', null), 'roles for the approval policy pickers')
+
+    // 经这块屏幕做过的改动。十条 —— 这是一条一年翻不了几次的策略。
+    const historyRows = mustRows<PolicyChange>(await supabase
+        .from('finance_settings_history')
+        .select('id, changed_at, changed_by, old_approvals_enabled, new_approvals_enabled, old_approval_level1_role_code, new_approval_level1_role_code, old_approval_level2_role_code, new_approval_level2_role_code, old_approval_threshold_base, new_approval_threshold_base')
+        .order('changed_at', { ascending: false })
+        .limit(10), 'approval policy changes')
+
+    // 谁改的 —— user_directory 的闸【就是】action.manage_permissions,
+    // 也就是能看到这一页的那批人,所以这次查询不会为了权限而空手而归。
+    const actorIds = Array.from(new Set(
+        historyRows.map((r) => r.changed_by).filter((v): v is string => !!v)))
+    // user_directory 是一个视图,生成的类型把每一列都标成可空。这里【不】假装
+    // user_id 不会是 null —— 拿不到 id 的那一行直接跳过,它认不出是谁。
+    type Actor = { user_id: string | null; email: string | null; employee_name: string | null }
+    const actors: Actor[] = actorIds.length === 0 ? [] : mustRows<Actor>(
+        await supabase.from('user_directory')
+            .select('user_id, email, employee_name')
+            .in('user_id', actorIds), 'who changed the approval policy')
+    const whoByUserId: Record<string, string> = {}
+    for (const u of actors) {
+        if (!u.user_id) continue
+        whoByUserId[u.user_id] = u.employee_name || u.email || u.user_id
+    }
+
+    const r = readinessRes.data as Readiness | null
+
     return (
         <div className="p-8">
             <h1 className="mb-4">{t('finance.approvals.title')}</h1>
             {/* 【读失败不许读成"没有面板"】一块悄悄消失的面板,与一块说"审批未生效"
-                的面板在屏幕上长得一模一样 —— 而后者是一句关于内控的断言。 */}
-            {readinessRes.error ? (
+                的面板在屏幕上长得一模一样 —— 而后者是一句关于内控的断言。
+                ★ 写那一半也一并不渲染:不知道现在是什么状态的时候,
+                  一个预填好的表单会把【上一次的状态】当成【现在的状态】交上去。 */}
+            {readinessRes.error || !r ? (
                 <p className="text-sm text-red-700 bg-red-50 border border-red-300 rounded px-3 py-2 mb-6">
                     {t('finance.approvals.readError')}
                 </p>
             ) : (
-                <ApprovalsPanel r={readinessRes.data as never} />
+                <>
+                    <ApprovalsPanel r={readinessRes.data as never} />
+                    <ApprovalsForm
+                        enabled={r.enabled}
+                        level1RoleCode={r.level1_role_code}
+                        level2RoleCode={r.level2_role_code}
+                        thresholdBase={r.threshold_base === null ? null : String(r.threshold_base)}
+                        roles={[...roles].sort(
+                            (a, b) => (a.sort_order - b.sort_order) || a.code.localeCompare(b.code))}
+                        canEnable={r.can_enable}
+                        canDisable={r.can_disable}
+                        blocking={r.blocking ?? []}
+                        pendingPurchaseOrders={r.pending_purchase_orders}
+                    />
+                    <ApprovalsHistory rows={historyRows} whoByUserId={whoByUserId} />
+                </>
             )}
-            {/* ★ 把"这里没有配置控件"写在屏幕上,而不是只写在注释里 ★
-                一块只读的状态面板,与一块"控件坏了/我没权限"的面板长得一样。
-                来这里想改审批链的人必须读到:今天这件事不在界面上做。 */}
+            {/* ★ 这一段【不再】说"这里没有配置控件" —— 它现在说的是
+                「这就是那块屏幕,而且是唯一的一块」。见 finance.approvals.noConfigUi。 */}
             <p className="mt-6 max-w-2xl text-sm text-[color:var(--brand-text)] bg-amber-50 border border-amber-200 rounded px-3 py-2">
                 {t('finance.approvals.noConfigUi')}
             </p>

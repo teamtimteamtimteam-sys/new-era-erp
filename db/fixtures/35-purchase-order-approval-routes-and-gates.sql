@@ -88,6 +88,7 @@ BEGIN
     -- 【所以这一臂改成断言那道更早的闸】,而不是断言一个再也不会发生的状态。
     v_denied := false;
     BEGIN
+        PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
         UPDATE finance_settings SET approvals_enabled = true;
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
@@ -97,6 +98,7 @@ BEGIN
     END IF;
 
     -- 配齐,然后打开 —— 三个策略值与开关【一起】设(fresh-install-checklist 的规矩)
+    PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
     UPDATE finance_settings
     SET approval_threshold_base = 10000,
         approval_level1_role_code = 'fixture-35-approver',
@@ -250,6 +252,7 @@ BEGIN
     -- ══════════ F. 审批【未生效】时:直接建成 confirmed/approved,且说得出口 ══════
     -- 【第三种状态,不是"配置漏了"】四眼在只有一个用户的系统里跑不起来,而
     -- "没配就拒绝"会把采购整个停掉 —— 空配置与不能用的系统是同一个结果。
+    PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
     UPDATE finance_settings SET approvals_enabled = false;
 
     PERFORM set_config('request.jwt.claims',

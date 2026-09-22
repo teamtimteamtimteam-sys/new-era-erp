@@ -44,6 +44,11 @@ BEGIN
       VALUES ('fixture-127','f','f',true) RETURNING id INTO r_ok;
     INSERT INTO role_permissions (role_id,permission_code)
       SELECT r_ok, unnest(ARRAY['module.finance.view','module.finance.edit',
+                                -- ★ APR-1(N6):approvals_readiness 的内检从
+                                --   module.finance.view 换成了 action.manage_permissions
+                                --   —— 与 /settings/approvals 那一页的闸同一个码。
+                                --   C8 调它,所以这个演员必须持有它。
+                                'action.manage_permissions',
                                 'module.suppliers.view','module.suppliers.edit',
                                 'module.purchasing.view','module.purchasing.edit',
                                 -- CHAIN-BUILD-1(R4):审批角色必须看得见金额,
@@ -243,6 +248,7 @@ BEGIN
     -- ═════════ C1 · 三个策略值都没设,开关【开不起来】 ═════════
     v_denied := false;
     BEGIN
+        PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
         UPDATE finance_settings SET approvals_enabled = true;
     EXCEPTION WHEN OTHERS THEN
         v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'APPROVALS_POLICY_INCOMPLETE|%');
@@ -255,6 +261,7 @@ BEGIN
     -- ═════════ C2 · 一级角色【没有真人持有】—— 那是一个永远不会有人来批的队列 ═════════
     v_denied := false;
     BEGIN
+        PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
         UPDATE finance_settings
            SET approval_level1_role_code='fixture-127-empty',
                approval_threshold_base=25000, approval_level2_role_code='fixture-127',
@@ -273,6 +280,7 @@ BEGIN
     -- 二级角色有没有真的持有人。两级同等对待,正是本刀要的。
     v_denied := false;
     BEGIN
+        PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
         UPDATE finance_settings
            SET approval_level1_role_code='fixture-127',
                approval_threshold_base=25000, approval_level2_role_code='fixture-127-empty',
@@ -287,6 +295,7 @@ BEGIN
 
     -- ═════════ C4 · 【会通过】的那一臂:三样都对,开得起来 ═════════
     -- 少了它,一个"永远不许开"的实现能让 C1/C2/C3 全绿。
+    PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
     UPDATE finance_settings
        SET approval_level1_role_code='fixture-127',
            approval_threshold_base=25000, approval_level2_role_code='fixture-127',
@@ -303,6 +312,7 @@ BEGIN
       RETURNING id INTO v_po;
     v_denied := false;
     BEGIN
+        PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
         UPDATE finance_settings SET approvals_enabled = false;
     EXCEPTION WHEN OTHERS THEN
         v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'APPROVALS_CANNOT_DISABLE_WITH_PENDING|%');
@@ -318,6 +328,7 @@ BEGIN
     -- ═════════ C6 · 开着的时候不许把策略值抽走 ═════════
     v_denied := false;
     BEGIN
+        PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
         UPDATE finance_settings SET approval_threshold_base = NULL;
     EXCEPTION WHEN OTHERS THEN
         v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'APPROVALS_POLICY_LOCKED_WHILE_ON|%');
@@ -335,6 +346,7 @@ BEGIN
     PERFORM set_config('evoltrya.po_status_ctx', '1', true);
     UPDATE purchase_orders SET approval_status='approved' WHERE id = v_po;
     PERFORM set_config('evoltrya.po_status_ctx', '', true);
+    PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
     UPDATE finance_settings SET approvals_enabled = false;
     IF (SELECT approvals_enabled FROM finance_settings) THEN
         RAISE EXCEPTION 'C7 失败:没有在途单据时应当关得掉';
@@ -343,6 +355,7 @@ BEGIN
 
     -- ═════════ C8 · readiness 与闸【读的是同一件事】 ═════════
     -- 一个屏幕上说"可以开"、闸却拒绝的系统,比两者都拒绝更坏。
+    PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
     UPDATE finance_settings SET approval_level1_role_code=NULL,
         approval_threshold_base=NULL, approval_level2_role_code=NULL;
     IF (approvals_readiness()->>'can_enable')::boolean THEN

@@ -67,6 +67,7 @@ BEGIN
     -- 【审批显式设成关闭】(README 第 5 条:前提要自己设,哪怕默认值恰好合用)
     -- 放行这一刀之后会走审批分支,而 approvals_enabled 是一个运营可改的开关 ——
     -- 不显式设,这份 fixture 的绿会取决于线上此刻有没有人打开过它。
+    PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
     UPDATE finance_settings SET approvals_enabled = false;
 
     -- 【原样定义在任何注入之前取齐】fixture 74 学到的:临用临取会取到已经被

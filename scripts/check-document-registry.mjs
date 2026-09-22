@@ -56,7 +56,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // FA-HIST-1(2026-09-20):220 → 221。新增 `fixed_asset_history`(固定资产台账的
 // 变更留痕),见 db/tables/fixed_asset_history.sql。**它没有 code 列**,所以
 // EXPECTED_CODE_TABLES 不动 —— 两个数各自对着一件事,一起改才是可疑的。
-const EXPECTED_TABLES = 221
+// APR-1(2026-09-22):221 → 222。新增 `finance_settings_history`(审批策略那四列的
+// 变更留痕),见 db/tables/finance_settings_history.sql。**它没有 code 列**
+// (它记的是一张单行配置表的变更,没有单据号),所以 EXPECTED_CODE_TABLES 不动。
+const EXPECTED_TABLES = 222
 const EXPECTED_CODE_TABLES = 75
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

@@ -55,8 +55,12 @@ BEGIN
                         unnest(ARRAY['module.purchasing.view','data.view_prices']) p;
     -- 就绪面板要 module.finance.view(它自己查权限)—— 给一级角色带上,
     -- 这样下面那一句 approvals_readiness() 读的是【这个人真的看得到的东西】。
+    -- ★ APR-1(N6):approvals_readiness 的内检换成了 action.manage_permissions
+    --   —— 与 /settings/approvals 那一页的闸同一个码(APR-0 的 N6:两个码守同一块
+    --   屏幕,而今天两个码碰巧同一批人持有,所以看不出问题)。下面那一句
+    --   `v_rdy := approvals_readiness()` 因此要这个码。
     INSERT INTO role_permissions (role_id, permission_code)
-      SELECT r_l1, 'module.finance.view';
+      SELECT r_l1, unnest(ARRAY['module.finance.view','action.manage_permissions']);
     INSERT INTO role_permissions (role_id, permission_code)
       SELECT r_blind, unnest(ARRAY['module.purchasing.view']);
     INSERT INTO role_permissions (role_id, permission_code)
@@ -91,6 +95,7 @@ BEGIN
     -- 【而开关也必须为它按名拒】—— 计数对了不等于闸用了它
     v_denied := false;
     BEGIN
+        PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
         UPDATE finance_settings SET approval_level1_role_code='fx151-rev',
             approval_threshold_base=10000, approval_level2_role_code='fx151-l2', approvals_enabled=true;
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'APPROVALS_LEVEL1_ROLE_UNHELD|%'); END;
@@ -100,6 +105,7 @@ BEGIN
     -- ══════════ C 二级角色【没有人持有】→ 按名拒(与一级同形)══════════
     v_denied := false;
     BEGIN
+        PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
         UPDATE finance_settings SET approval_level1_role_code='fx151-l1',
             approval_threshold_base=10000, approval_level2_role_code='fx151-empty', approvals_enabled=true;
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'APPROVALS_LEVEL2_ROLE_UNHELD|%'); END;
@@ -120,6 +126,7 @@ BEGIN
 
     v_denied := false;
     BEGIN
+        PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
         UPDATE finance_settings SET approval_level1_role_code='fx151-unconf',
             approval_threshold_base=10000, approval_level2_role_code='fx151-l2', approvals_enabled=true;
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
@@ -142,6 +149,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 151E 失败:fx151-blind 不该看得见金额'; END IF;
     v_denied := false;
     BEGIN
+        PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
         UPDATE finance_settings SET approval_level1_role_code='fx151-blind',
             approval_threshold_base=10000, approval_level2_role_code='fx151-l2', approvals_enabled=true;
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'APPROVALS_LEVEL1_ROLE_CANNOT_SEE_AMOUNTS|%'); END;
@@ -149,6 +157,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 151E 失败:看不见金额的角色不该当审批人(实得 %)', COALESCE(v_msg,'(没有报错)'); END IF;
 
     -- ══════════ B/F 【会成功】的那一臂 —— 少了它,一个"永远不许开"的实现全绿 ══════════
+    PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
     UPDATE finance_settings SET approval_level1_role_code='fx151-l1',
         approval_threshold_base=10000, approval_level2_role_code='fx151-l2', approvals_enabled=true;
     IF NOT (SELECT approvals_enabled FROM finance_settings) THEN
@@ -202,6 +211,7 @@ BEGIN
     --   而那正是最容易被写错、也最难被看出来的一个数:它只在恰好等于时错。
     -- 【这一臂自己设门槛】重建出来的库里 finance_settings 是没配的,
     --   所以不能依赖线上的值 —— 依赖它,这一臂在重建库上就是一句空话。
+    PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
     UPDATE finance_settings SET approval_threshold_base = 1000;
     IF approval_level_for(999.99::numeric)  <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 151T 失败:999.99 在门槛【之下】,应走一级,实得 %', approval_level_for(999.99::numeric); END IF;
@@ -229,6 +239,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 151 注入④ 失败:恢复定义之后,恰好等于门槛的那一笔应当又走二级'; END IF;
 
     -- ══════════ 注入① 撤销那一条判据(证明 A 臂有管辖权)══════════
+    PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
     UPDATE finance_settings SET approvals_enabled=false, approval_level1_role_code=NULL,
         approval_threshold_base=NULL, approval_level2_role_code=NULL;
     -- ★ C-1(2026-09-04):【注入的目标从 real_role_holders 换成了 real_role_grants】
@@ -261,6 +272,7 @@ BEGIN
     EXECUTE v_inj;
     v_denied := false;
     BEGIN
+        PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
         UPDATE finance_settings SET approval_level1_role_code='fx151-unconf',
             approval_threshold_base=10000, approval_level2_role_code='fx151-l2', approvals_enabled=true;
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
@@ -271,6 +283,7 @@ BEGIN
     -- 恢复之后必须【又】说得出中间态 —— 否则"放回去了"只是一句话
     v_denied := false;
     BEGIN
+        PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
         UPDATE finance_settings SET approval_level1_role_code='fx151-unconf',
             approval_threshold_base=10000, approval_level2_role_code='fx151-l2', approvals_enabled=true;
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
@@ -290,6 +303,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 151 注入③ 失败:恢复定义之后 fx151-blind 应当又是看不见'; END IF;
 
     -- 收尾:把链恢复成【没有配】的样子(本刀不配置任何东西)
+    PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
     UPDATE finance_settings SET approvals_enabled=false, approval_level1_role_code=NULL,
         approval_threshold_base=NULL, approval_level2_role_code=NULL;
 END $$;

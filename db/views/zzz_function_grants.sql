@@ -44,7 +44,9 @@ REVOKE EXECUTE ON FUNCTION public.reverse_journal_entry_internal(uuid, date, tex
 -- 三支都只从 guard_payment_sod / guard_finance_settings_sod 的函数体内被调用,
 -- 而那两个是属主身份跑的触发器 —— 所以收回之后照常工作,靠的就是调不到。
 -- (approvals_readiness 不在此列:它【要】被页面调用,所以走的是另一半保证 ——
---  fu2 给它加了 require_permission('module.finance.view')。)
+--  fu2 给它加了 require_permission(...)。★ APR-1(N6)把那个码从 module.finance.view
+--  换成了 action.manage_permissions —— 与 /settings/approvals 那一页的闸同一个码,
+--  于是屏幕与它调的函数不再是两个码守同一块屏幕。)
 REVOKE EXECUTE ON FUNCTION public.assert_segregated(text, uuid[], text) FROM authenticated;
 
 -- GST-1(2026-08-24):两支查表函数。**gate 的 definer 判词点了它们的名**。

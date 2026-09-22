@@ -76,6 +76,17 @@ CREATE TRIGGER trg_finance_settings_sod
     BEFORE UPDATE ON public.finance_settings
     FOR EACH ROW EXECUTE FUNCTION public.guard_finance_settings_sod();
 
+-- ②a APR-1:审批策略那四列的【写闸】—— 不经 set_approvals_policy 的改动按名拒绝。
+--    ★【名字排在 trg_approvals_switch 之前是设计的一部分】触发器按名开火,
+--      "po" < "sw",所以一次直连写拿到的是"你不该直接写这四列",而不是一句
+--      关于策略完整性的、会把人带偏的话。
+--    ★【为什么这道闸非有不可】本表的表级写闸是下面那个 module.finance.edit,
+--      而 finance —— 被裁定的一级审批角色 —— 自己就持有它。
+--      判据见 db/functions/guard_approvals_policy_write.sql 的抬头。
+CREATE TRIGGER trg_approvals_policy_write_gate
+    BEFORE UPDATE ON public.finance_settings
+    FOR EACH ROW EXECUTE FUNCTION public.guard_approvals_policy_write();
+
 -- ② 审批开关:开之前策略必须配齐且指向真的人(于是"开着但没配"【到不了】);
 --    关之前在途的 pending 单必须清空(否则它们会永远停在 pending)。
 CREATE TRIGGER trg_approvals_switch

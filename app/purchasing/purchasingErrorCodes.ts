@@ -75,13 +75,30 @@ const PURCHASING_ERROR_CODES = new Set([
     // 不是从"我碰巧撞到过哪几条"。审批一旦打开,操作员撞见的就是这些码本身。
     'APPROVALS_NOT_ENABLED', 'PO_NOT_PENDING', 'SELF_APPROVAL_FORBIDDEN',
     'REJECT_REASON_REQUIRED', 'APPROVAL_NOT_AUTHORISED',
-    'APPROVAL_LEVEL1_ROLE_NOT_SET', 'APPROVAL_LEVEL2_USER_NOT_SET',
+    // ★ APR-1:require_approver_for 抛的是 APPROVAL_LEVEL2_ROLE_NOT_SET ——
+    //   APPROVAL_LEVEL2_USER_NOT_SET 在 CHAIN-BUILD-1(二级从【人】改成
+    //   【角色】)那一刀就不存在了。一条已退役的码占着位置,而真的会抛出来
+    //   的那一条不在集合里。已对调。
+    'APPROVAL_LEVEL1_ROLE_NOT_SET', 'APPROVAL_LEVEL2_ROLE_NOT_SET',
     'APPROVAL_THRESHOLD_NOT_SET', 'APPROVAL_AMOUNT_REQUIRED', 'APPROVAL_LEVEL_INVALID',
     'APPROVAL_SUBJECT_NOT_FOUND', 'APPROVAL_SUBJECT_TYPE_UNKNOWN',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。
-const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
+// ════════════════════════════════════════════════════════════════════════════
+// ★★ APR-1(2026-09-22)· 这个字符类里【没有数字】,而每一条带级别的审批拒绝
+//    都带着一个 1 或 2 —— 于是它们【一条都到不了屏幕】。实测,不是推的:
+//       'APPROVALS_LEVEL1_ROLE_UNHELD|finance'  →  抓出 '_ROLE_UNHELD'
+//       'APPROVALS_LEVEL1_HOLDER_CANNOT_SIGN_IN|finance|1' → '_HOLDER_CANNOT_SIGN_IN'
+//    抓出来的那一串谁的集合里都没有,于是走共用兜底 —— 屏幕上说的是
+//    「这一步没有发生」,而数据库说的是「一级审批角色的唯一持有人登录不了」。
+//    ☞ 一条【写过、翻译过、却永远显示不出来】的句子,比没有那条句子更坏:
+//      它让人以为这件事已经被照顾到了。
+//    ★ 全库扫过:除审批这一族外,带数字的码【全部】是迁移自证,到不了屏幕。
+//      所以本刀只改这两个映射器;其余 44 个同款正则登记在 docs/known-issues.md
+//      的 ERRCODE-DIGIT-UNREACHABLE 条,触发条件写在那里。
+// ════════════════════════════════════════════════════════════════════════════
+const CODE_RE = /([A-Z0-9_]+)(?:\|(.*))?$/
 
 export async function localizePurchasingError(message: string): Promise<string> {
     const raw = (message ?? '').trim()

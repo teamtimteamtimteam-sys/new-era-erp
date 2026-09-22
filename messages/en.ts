@@ -1027,6 +1027,8 @@ const en = {
                 notSwitched: 'The GST registration switch did not change',
                 notLocked: 'The lock date did not change',
                 notMoved: 'This task did not move',
+                // APR-1:审批策略的保存。用完成体说【什么没有做成】,不用"失败"两个字了事。
+                notPolicySaved: 'The approval policy did not change',
             },
             dismiss: 'Got it',
             technicalDetail: 'Technical detail (for your administrator)',
@@ -5657,11 +5659,11 @@ const en = {
             REJECT_REASON_REQUIRED: 'A reason is required to reject an order',
             APPROVAL_NOT_AUTHORISED: 'You are not the level-{0} approver ({1})',
             APPROVAL_LEVEL1_ROLE_NOT_SET:
-                'The level-1 approver role is not set, so this order cannot be routed. Set it in Finance → Settings.',
-            APPROVAL_LEVEL2_USER_NOT_SET:
-                'The level-2 approver is not set, so an above-threshold order cannot be routed. Set it in Finance → Settings.',
+                'The level-1 approver role is not set, so this order cannot be routed. Set it in Settings → Approvals.',
+            APPROVAL_LEVEL2_ROLE_NOT_SET:
+                'The level-2 approver role is not set, so an above-threshold order cannot be routed. Set it in Settings → Approvals.',
             APPROVAL_THRESHOLD_NOT_SET:
-                'The approval threshold is not set, so this order cannot be routed to a level. Set it in Finance → Settings.',
+                'The approval threshold is not set, so this order cannot be routed to a level. Set it in Settings → Approvals.',
             APPROVAL_AMOUNT_REQUIRED:
                 'This document has no base-currency amount, so it cannot be routed by value',
             APPROVAL_LEVEL_INVALID: 'Approval level {0} does not exist in this system',
@@ -6795,7 +6797,10 @@ const en = {
             // IA-BUILD-1 / D7:面板搬到设置去了,这两句留在原处指路。
             movedToSettings: 'The approval chain now lives under Settings',
             // ★ 把"这里没有配置控件"写在屏幕上,不是只写在注释里 ★
-            noConfigUi: 'This panel is read-only. There is no screen anywhere in the system for configuring the approval chain — the live values were set by a direct database change, and enabling approvals today is a database operation, not a button. Raise it before the colleague test round if approvals need to be exercised.',
+            // ★ APR-1(2026-09-22):这句话原来说"系统里根本没有配置审批链的界面"。
+            //   本刀把那件事做掉了,所以这句话也跟着改 —— 一句留在屏幕上的
+            //   过期断言,比没有那句话更坏(docs/approvals.md §3 刚为此付过账)。
+            noConfigUi: 'This IS the screen that configures the approval chain, and it is the only one. The policy cannot be changed by editing finance settings directly — the database refuses that by name, deliberately, because the level-1 approver holds the permission that would otherwise allow it. Every change made here is recorded below.',
             title: 'Approvals',
             on: 'Approvals are IN FORCE — purchase orders are raised as drafts and must be approved before goods can be received against them.',
             off: 'Approvals are NOT in force. Orders are stamped approved by the system when they are raised; nobody decides them. This is a state the system says out loud, not a silent permissiveness.',
@@ -6816,7 +6821,36 @@ const en = {
             canEnable: 'Policy is complete: approvals could be switched on.',
             cannotEnable: 'Approvals cannot be switched on yet — still unset or unusable: {what}',
             howToTurnOn:
-                'Whether approvals are in force is a business decision. Turning them on is a deliberate database change that sets all three policy values and the flag together; this page reports the state, it does not flip it.',
+                'Whether approvals are in force is a business decision, not a technical one. All four values are saved together, because the database judges them together — "on but unconfigured" is a state it will not let you reach.',
+            editTitle: 'Change the approval policy',
+            seeingIsChanging:
+                'Seeing this page means being able to change it: the permission that opens it (manage roles & permissions) is exactly the permission that saves it. There is no read-only view of this screen.',
+            enabledLabel: 'Approvals are in force',
+            level1Pick: 'Level-1 approver role',
+            level2Pick: 'Level-2 approver role (at or above the threshold)',
+            thresholdPick: 'Threshold, in base currency',
+            rolePickNone: '— not decided —',
+            adminWarning:
+                '★ Neither level may be pointed at a role that administers the system — admin, or cco, which also holds manage roles & permissions. That is a ruling, not a machine rule, and the roles are listed here on purpose rather than hidden: a dropdown that quietly drops them enforces the rule while leaving no trace of it. The person who can grant themselves any permission must not also be the person who approves the spending.',
+            whileOnPending:
+                'Approvals are in force right now and {n} purchase order(s) are awaiting approval. Changing the roles or the threshold re-routes what is still pending — it does not re-open anything already decided. Nothing locks that today; whether it should is an open question for the next cut.',
+            save: 'Save the approval policy',
+            confirmSaveTitle: 'Save this approval policy?',
+            saved: 'The approval policy was saved.',
+            savedNothingChanged: 'Nothing was different, so nothing was written and no history row was added.',
+            thresholdInvalid: 'Enter the threshold as a number greater than zero',
+            level1Missing: 'Pick the level-1 approver role, or leave the whole policy undecided',
+            enableBlockedWhy: 'Approvals cannot be switched on yet — the database would refuse: {what}',
+            disableBlockedWhy: 'Approvals cannot be switched off while {n} order(s) are still awaiting approval — switching off would strand them.',
+            historyTitle: 'Changes to this policy',
+            historyEmpty:
+                'No changes have been recorded. This does NOT mean the policy has never changed — it means it has never been changed through this screen. The values above were set by a direct database change before this screen existed, and that change is deliberately not invented here.',
+            historyBy: '{who} · {when}',
+            historyWhoUnknown: 'unknown account',
+            historyOn: 'in force',
+            historyOff: 'not in force',
+            historyUnset: 'not decided',
+            historyArrow: '{field}: {from} → {to}',
             holdersOk: '{n} person/people currently hold {role} and can sign in.',
             holdersCannotSignIn: '\u2605 {role} IS held by {n} account(s), but none of them can sign in \u2014 so nobody can actually approve at this level. Granting the role again will change nothing; the account needs to be able to sign in. Approvals cannot be switched on while this is true.',
             holdersNone: 'Nobody holds {role}, so there is no approver at this level. Approvals cannot be switched on while this is true.',
@@ -6921,12 +6955,24 @@ const en = {
                 'Approvals cannot be switched on until the policy is complete — still unset: {0}. Set the level-1 role, the threshold and the level-2 approver in one change, then switch it on.',
             APPROVALS_LEVEL1_ROLE_UNHELD:
                 'No real login account holds the level-1 approver role "{0}", so every request would queue with nobody able to approve it. Grant that role to someone first.',
-            APPROVALS_LEVEL2_USER_UNKNOWN:
-                'The level-2 approver ({0}) is not a real login account. Choose someone who can actually sign in.',
+            APPROVALS_LEVEL2_ROLE_UNHELD:
+                'No real login account holds the level-2 approver role "{0}", so every above-threshold request would queue with nobody able to approve it. Grant that role to someone first.',
+            APPROVALS_LEVEL1_HOLDER_CANNOT_SIGN_IN:
+                '★ The level-1 role "{0}" IS held — by {1} account(s) — but none of them can sign in. This is NOT "nobody holds it": granting the role again changes nothing. The account itself has to become able to sign in.',
+            APPROVALS_LEVEL2_HOLDER_CANNOT_SIGN_IN:
+                '★ The level-2 role "{0}" IS held — by {1} account(s) — but none of them can sign in. This is NOT "nobody holds it": granting the role again changes nothing. The account itself has to become able to sign in.',
+            APPROVALS_LEVEL1_ROLE_CANNOT_SEE_AMOUNTS:
+                'The level-1 role "{0}" cannot see amounts — it lacks price visibility. Approval routes by amount, so a holder of this role would be approving a figure rendered to them as restricted. Grant price visibility to that role, or choose a different one.',
+            APPROVALS_LEVEL2_ROLE_CANNOT_SEE_AMOUNTS:
+                'The level-2 role "{0}" cannot see amounts — it lacks price visibility. Approval routes by amount, so a holder of this role would be approving a figure rendered to them as restricted. Grant price visibility to that role, or choose a different one.',
             APPROVALS_CANNOT_DISABLE_WITH_PENDING:
                 'Approvals cannot be switched off while {0} purchase order(s) still await approval: {1}. Switching off would strand them — they could never be approved, and goods could never be received against them. Approve or reject them first.',
             APPROVALS_POLICY_LOCKED_WHILE_ON:
                 '{0} cannot be cleared while approvals are in force — an enabled control with no policy refuses every request. Switch approvals off first, then change the policy.',
+            APPROVALS_POLICY_DIRECT_WRITE:
+                'The approval policy ({0}) can only be changed from Settings → Approvals, by someone who can manage roles and permissions. It deliberately cannot be changed by editing finance settings directly — the level-1 approver holds that permission, and a control its own approver can rewrite is not a control.',
+            APPROVALS_SETTINGS_MISSING:
+                'The finance settings row is missing, so there is no approval policy to change. This is a broken install, not an empty policy — do not re-create the row from this screen.',
             GST_NOT_REGISTERED: 'A tax code ({0}) was given, but this company is not registered for GST. While it is unregistered the system behaves exactly as it did before GST was built — a tagged line cannot be written at all.',
             TAX_CODE_REQUIRED: 'A tax code is required — a rate alone cannot say whether 0% means zero-rated, exempt or out of scope, and those go in different boxes of the return.',
             TAX_CODE_UNKNOWN: 'There is no tax code "{0}". Pick one from the tax code list.',

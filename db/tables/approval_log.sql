@@ -136,6 +136,13 @@ CREATE POLICY "approval_log select by permission"
             WHEN 'expense'            THEN has_permission('module.finance.view'::text)
             WHEN 'pricing_formula'    THEN has_permission('module.pricing.view'::text)
             WHEN 'stocktake'          THEN has_permission('module.stocktakes.view'::text)
+            -- ★ APR-1:WO-1b 漏掉的那一支(APR0-WORK-ORDER-APPROVALS-INVISIBLE)。
+            --   它写得进、读不出:线上有 1 行 work_order 留痕,而任何 authenticated
+            --   身份读到的都是 0 行【而且不报错】—— 一片正确的空白,与"这张工单
+            --   还没有被放行过"在屏幕上逐字相同。
+            --   取的码与 work_orders 自己的读策略【同一个】:读工单的判据只该有一份定义。
+            --   ⚠ 照直说:cfo 不持 module.processing.view,所以二级审批人仍然读不到它。
+            WHEN 'work_order'         THEN has_permission('module.processing.view'::text)
             ELSE false
         END
     );
