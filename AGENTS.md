@@ -128,74 +128,7 @@ python3 db/gate.py --offline  # 迁移【之前】的一相。44s 实测 2026-09
 > 每 7 刀里命中 1 次就回本,而 C-2 那一刀的命中率是 100%。
 > **省下的秒同时也是风险:那一轮重跑发生在破窗里(C-2 破窗 1h05m57s)。**
 
-> **The cost, re-measured (PROC-1b, 2026-08-12): 247s wall clock, not the ~32s
-> this line said for months.** The 32s was true when it was written and OPS-6 had
-> just cut the 40-minute pooler replay down to one local rebuild; what grew since
-> is the third verdict — **54 fixtures now, against 25 when that number was
-> written** — and each one is a full behavioural run against the rebuild. Nobody
-> re-measured, because the fixtures were added one at a time and no single one
-> ever felt like it cost anything. Same disease as `--reach`'s "ten to fifteen
-> minutes", found the same way: someone finally timed it. It is still fast enough
-> to run on every database-touching cut, which is what matters — but **a
-> written-down cost must be a measured cost**, so this one is now dated and says
-> what it was measured against.
->
-> **Re-measured (SO-2, 2026-08-14): 191s wall clock, 64 fixtures.** Ten more
-> fixtures than the line above and it got *faster*, which is worth a sentence
-> rather than a shrug: the 247s figure was one measurement on one machine on one
-> day, and the honest reading is that this gate costs **two to four minutes**,
-> not that it has a single true number. Keep dating them; do not average them.
->
-> **Re-measured again (WO-1a / WO-1a-fu, 2026-08-16): 74 fixtures, and four runs
-> the same afternoon came in at 130s, 152s, 379s and 266s.** The 379s is the one
-> worth naming: it is 2.5× the 130s measured two hours earlier on the *same
-> machine* with the same fixture count ±1. Nothing in the repo explains it — the
-> new fixture's `pg_get_functiondef` captures are catalog reads costing
-> milliseconds, and the run before it was cold too. The likeliest cause is the
-> pooler/network, which this machine has already been observed to degrade on
-> (see the INV-2a smoke episode). **So the honest reading is now a range with a
-> fat tail: two to six minutes, occasionally worse, and the variance is not in
-> the fixture count.** If a run ever exceeds ~400s, measure before assuming the
-> gate got heavier — the variance so far has been environmental, and mistaking it
-> for growth is how someone ends up "optimising" a gate that is not slow.
->
-> **Re-measured (GRN-1a, 2026-08-17): 87 fixtures, 483s — one run, and it is the
-> slowest yet recorded.** It crosses the ~400s line the paragraph above draws, so
-> the line was honoured rather than shrugged at: 87 fixtures against 74 is +18%,
-> and 483s against the 130s measured the same month is +270%. **The growth in
-> fixture count does not come close to explaining it**, which is the same
-> conclusion the 379s run reached by a different road. Recorded as one dated
-> measurement, not averaged into the others, and **not** treated as evidence that
-> the gate now costs eight minutes — the next run may well be two. The range
-> stands: two to six minutes with a fat tail. What would change the reading is a
-> *run of* slow measurements, not this one.
->
-> **Re-measured (GRN-1b, 2026-08-17, same day, same machine): 87 fixtures — the
-> identical set — in 155s.** That is 3.1× faster than the 483s logged hours
-> earlier with **the same fixture count**, so it closes the question the previous
-> paragraph left open: the 483s was **environmental, not growth**. Same-day
-> corroboration: `select 1` against the pooler measured **2.9–4.4s** during the
-> slow window (see the NET-CHECK entry in `docs/known-issues.md` — this machine's
-> own egress, not the database). **Two measurements of the same set, 3× apart, are
-> the strongest evidence in this table that fixture count is not the variable.**
-> The range still reads two to six minutes with a fat tail; nobody should
-> "optimise" this gate.
->
-> **Re-measured (AUDIT-1, 2026-09-01): 181 fixtures in 461s.** Twice the fixture
-> count of the FIX-1 line above and 3.5× its wall clock — but read it against the
-> *same-era* runs, not against August: the GRN-1a/GRN-1b pair proved 3× swings at
-> an identical fixture count on this machine. 461s sits just under the 483s record
-> and inside the fat tail, so **the honest reading is still "two to six minutes,
-> occasionally worse", now measured at roughly double the fixtures.** One
-> measurement, dated, not averaged. What would change the reading is a run of slow
-> measurements at this count, not this one.
->
-> **Re-measured (FIX-1, 2026-08-18): 91 fixtures — four more than the pair
-> above — in 133s.** That is the **fastest run yet recorded at the highest
-> fixture count yet**: +4 fixtures against GRN-1b's 87, and 22s *faster*. It is
-> the cleanest single refutation in this table of the idea that the gate is
-> growing, and it changes nothing else — **two to six minutes with a fat tail,
-> and the variance is environmental**.
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G01
 
 One LOCAL rebuild, two separately-reported verdicts (OPS-6 merged the two older
 tools — their build steps were identical and check_mirrors was shipping a
@@ -600,18 +533,7 @@ node scripts/smoke-routes.mjs --reach         # all three roles (~100 min; a del
 
 ### ★★ `--reach` cannot validate navigation on this tree (C-1b, 2026-09-04)
 
-**It reports ~96 routes unreachable no matter what your cut did. That is the tool, not
-the app.** Do not spend a session rediscovering this.
-
-**Mechanism.** `hrefsIn()` (`scripts/smoke-routes.mjs:1506`) is a single regex —
-`/href="([^"]+)"/g` — run over **server-rendered HTML**. Since IA-BUILD-1 the navigation
-is `app/components/nav/ModuleBar.tsx`, a `'use client'` component whose **top level is a
-`<button>`, not an `<a href>`**, and whose second-level links render only after an
-`onClick` state change. **The entire nav is therefore invisible to the crawler.** The
-~39 routes it does reach are links embedded in page bodies.
-
-**Measured 2026-09-04 (`--reach=admin`):** `SMOKE_EXIT=1` · crawler walked **320 pages** ·
-137 openable static routes · **98 reported unreachable**.
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G02
 
 **A low number is not evidence of a broken app.** The crawler reaching 320 pages proves
 sessions and middleware are fine.
@@ -622,10 +544,7 @@ here. Second-level navigation work needs **static registry assertions**
 (`docs/manual-walk-list.md`). Do not read a green `--reach` as nav coverage, and do not
 read a red one as a regression.
 
-**This was a known boundary from the start**, written down when the mechanism was scoped:
-`docs/per-role-reachability-scoping.md` §边界 — *"客户端交互之后才出现的入口(下拉、
-弹窗、条件按钮)不在覆盖内"*. It only surfaced now because `--reach` defaults to off and
-the cut before C-1a skipped it, so there was never a green baseline.
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G03
 
 **Fixing it is a separate decision Tim has not made** — it means either Playwright (the
 scoping doc estimates two days → one week) or teaching `hrefsIn` to read the ModuleBar
@@ -639,100 +558,14 @@ registry. Until then: **do not run `--reach`.**
 node scripts/smoke-routes.mjs --reach=finance      # admin | operations | finance
 ```
 
-Duration per role, all measured: **admin ~63 min** and **operations ~17 min**
-(2026-08-11, 1,018 fetches); **finance 59m47s** (GUARD-FIX-1 — 3587s,
-verdict `REACHFIN2_EXIT=0`; walked 457 pages, tried 145 static routes, 88
-openable, 3 unreachable = the expected set); **operations 25m28s** (CHART-0,
-2026-09-02 — 1528s, verdict `SMOKE_EXIT=0`; walked 187 pages, tried 147 static
-routes, 36 openable, 3 unreachable = the expected set). **operations 已经从
-~17 min 长到 25m28s** —— 路由从 1,018 次抓取那一版长了不少,别再照 2026-08-11 那个数设超时。
-
-> ★【CHART-0 更正一处措辞与一处顺序】★ 上面 finance 那次【不是】"this cut" ——
-> 写下它的是 GUARD-FIX-1(`7759848`),而 `7759848` **早于** LOGIN-1-fu1(`210c4d6`)。
-> 这件事要紧,因为 `210c4d6` 让已登录的人打开 `/login` 时重定向走,而
-> `EXPECTED_UNREACHABLE` 的判据此前把"打不开"读成了"走得到" ——
-> **从那一刀起这个检查对三个角色必然误报,而它默认不跑,于是躺了五刀没人发现。**
-> CHART-0 修了判据(`gone` 改为直接问 `seen.has(x)`),完整的实测与推理写在
-> `docs/information-architecture.md` §12.6。修完重跑 operations:187 / 36 / 3,
-> **与误报那一次的三个数字逐字相同** —— 只有那一行假警报没了。 **Do NOT extrapolate a role's cost
-from fetch ratios — that is how this cut got it wrong the first time.** Extrapolating from the 2026-08-11 ratios gave "~20–25 min",
-a 3600s limit was set from it, and the run was on course to be killed at ~65 min
-of real work — the GST-2 false-kill shape again, a limit derived from an
-*estimated* cost rather than a *measured* one. Measured crawl rate: **10
-pages/min**. A misspelt role **exits 2 loudly** rather than running
-zero roles and printing a green line — a check that verifies nothing while
-claiming to pass is the failure mode this repo keeps paying for.
-
-**Why it was split, rather than given a longer timeout.** The all-roles run no
-longer fits: admin alone ate ~63 of the 90 minutes and the route frontier grew
-475 → 563 mid-crawl, so `finance` was killed part-way. **A three-hour check is a
-check nobody runs** — and GUARD-FIX-1's two discarded guards survived four days
-for exactly that reason, because `--reach` is the only thing that sees them and
-nobody could afford to run it. Splitting also means a cut that changes one role's
-access can exercise just that role.
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G04
 
 **Do not "optimise" this into a crawl phase and a try-open phase.** That split
 yields two runs *neither of which can fail*: the verdict is
 `unreachable = openable − seen`, and both sets must come from the same role in
 the same run. Splitting by role is the only split that still produces a verdict.
 
-> **`--reach` catches a page whose guard was discarded — and until
-> NAV-CLEANUP-1 it was the only check that caught an openable-but-unreachable
-> page.** The ordinary smoke asserts 2xx, and by its own documented blind spot a
-> page rendering an error box is still 200. `check-permission-predicate` ④
-> catches the *spelling* of a discarded guard at build time; it cannot tell you
-> whether a page actually refuses. Run `--reach=<role>` after touching
-> navigation, `lib/modules.ts`, a permission guard, or that role's grants — and
-> after adding a page.
->
-> ★★【NAV-CLEANUP-1(2026-09-03)更正这句"唯一",而更正的方向是【它变弱了】】★★
-> **两件事一起发生,所以这句话在今天是假的:**
-> * **它结构上看不见【第二级】** —— 顶栏的模块菜单是点开才渲染的
->   (`ModuleBar` 的 `{isOpen && …}`),爬虫点不了。UI-FIX-1 为此付过账:
->   它据此删掉一条 `--reach` 断言,检查当场变红。
-> * **NAV-CLEANUP-1 ② 又拿走了它的前沿** —— 页内的同级导航行整批删掉了
->   (10 个组件、121 页),而那正是它此前赖以扩散的东西。
->   今天它靠的是 dock 那几条 + 页内链接 + 三张【落地页】
->   (`/finance` `/operation` `/settings`,各自把本模块的注册表条目画成 `<Link>`)。
->
-> **接替它的是 `scripts/check-nav-routes.mjs`(NAV-CLEANUP-1 ⑥,进 `npm run build`,
-> 不碰数据库,秒级)**:注册表每条 href 都有路由 · 每条路由要么在注册表要么在
-> 带理由的例外表 · 退休路径不许出现(点名文件与行) · 范围 id 是真实前缀 ·
-> 活动模块解析器**真的跑一遍**。五条判据全部做过故障注入。
->
-> **★ 但它们答的不是同一个问题,谁都不许冒充谁 ★**
-> 静态检查答**注册表与文件系统对不对得上**;`--reach` 答**一个【会话】走不走得到**。
-> **而"一个人点不点得到"两者都答不了** —— 那要人走一遍
-> (见 `docs/information-architecture.md` §17.7 那份清单)。
-
-> **快的那一半也重新量过(BANK-REC,2026-08-26):16m47s,192 条路由**
-> (23:25:37 → 23:42:24,判词 `SMOKE_EXIT=0`,191 ok / 3 skipped / 0 FAILED;
-> 同时段隧道 `select 1` 为 2.97 / 6.11 / 3.67s)。
-> 上面那句「~2-4 min」写的是 **~135 条路由**那个时代,而路由数长了四成、
-> 隧道也没那么快了 —— **它不是写错了,是写下来那天是对的,后来没人再量。**
-> 与 `--reach` 那句"十到十五分钟"同一种过期,只是幅度小些。
-> 记在这里是因为**决定"这一刀要不要等冒烟跑完"的人读的就是这个数**:
-> 在两分钟它是顺手一跑,在十七分钟它要排进节奏里。
-
-**The `--reach` half is opt-in on purpose.** It walks from `/` as `admin`,
-`operations` and `finance`, following only the links each role's pages actually
-render, and asserts the set each role can *open* but cannot *reach* — the check
-that would name a page with no entry point. **It costs upwards of two hours — 65m 44s measured on 2026-08-11 across 139
-routes, but OVER 2 HOURS on 2026-08-24 across 189 routes with the tunnel degraded
-(`select 1` at 7.05 / 4.61 / 5.91s against 3.1–4.1s earlier the same day).** This file said
-"ten to fifteen minutes" until then: that figure was an early estimate nobody went
-back and measured, and it was off by four to five times. The number matters because
-it is what someone deciding whether this cut needs `--reach` actually reads — at
-fifteen minutes you run it out of habit, at an hour you first ask whether the cut
-touched navigation, which is exactly the judgement making it opt-in was meant to
-produce. **A written-down cost must be a measured cost.** It costs about an hour, and
-it was briefly the default: that made every commit wait on it, which is the same
-cost that kept it out of `db/gate.py` in the first place, arriving by another
-road. **A check too slow to run every time ends up never run**, so the cadence is
-written down instead: run it when navigation, subnavs, `lib/modules.ts` or a
-permission guard changed; after adding a page; before a push that accumulated
-several page-touching cuts; or when someone reports they cannot reach something.
-Not after every edit — the fast half already renders every route on every run.
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G05
 
 ### 一条正确的检查放错了相位,就是一条慢检查
 
@@ -798,21 +631,7 @@ Not after every edit — the fast half already renders every route on every run.
 **"提早"与"少跑几遍"之外,还有第三条省时间的路,而它是最容易被漏掉的那条:
 把一条判据说不清楚的话说清楚。**(VERIFY-1,2026-09-05)
 
-前两种形状的代价是"跑得太久"或"跑得太多遍";这一种的代价是**你不得不再跑一遍
-才知道刚才那次是什么意思**。FIX-2a 实测付过这笔账:`GATE3_EXIT=2` 印着
-【仓库建不出库】,而**同一份日志里写着 `REBUILD OK`** —— 真正挂掉的是随后对线上
-的比对(SSL connection closed)。原样重跑 `GATE4_EXIT=0`。**一次网络抖动被报成
-了仓库坏了,代价是一整轮门(实测 310s),外加读日志分辨真假的时间。**
-
-处置(VERIFY-1):`db/verify_rebuild.py:signature()` 够不到线上时改退 **5**,
-而不是混进 2;`db/gate.py` 认得 5 并单独出一句判词。**这不取消任何断言 ——
-它只是让那条断言说得出自己抓到了什么。**
-
-★ 而这一条最值得记的不是缺陷本身,是**它就写在一条已经点名了同一个病形的注释
-底下**:`signature()` 上方那条注释提醒 `statement_timeout` 被掐断"看起来像比对
-失败而不是超时",然后紧接着的那个分支,在【连接】这一层上犯了同一个错。
-**一条点名了病形却漏掉自己兄弟的警告,与没有警告差不多。** 写下一条警告的时候,
-顺手问一句:同一个形状在这附近还有没有第二处?
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G06
 
 **Its blind spot bit within the hour it was written**, so treat this as load-bearing
 rather than a caveat: dynamic routes (`/customers/[id]`) are excluded from the
@@ -858,34 +677,7 @@ without anything being broken, so `sm:hidden` / `hidden sm:` on a *navigation*
 element deserves the same hand-check an `[id]` page gets: open it at the width
 the person actually uses.
 
-Builds compile pages but never render them — two pages were broken for months
-with every gate green (an RSC serialization error and an inverted currency
-filter), each found by a human clicking. This script starts the dev server,
-signs in with a throwaway admin session, requests every route under app/
-with real ids pulled live from the database, and for each failure captures
-the SERVER-side error and stack, not the browser message. It also runs one
-REVIEWER-VIEW check: /my-reviews/[id] is a contract-404 for admin, so it
-would otherwise never render — the script builds a scratch fixture (two
-ZZ-SMOKE-* employees plus one probation review; scratch business rows are
-NAMED as scratch because they surface on HR screens) and requests the page
-as the actual reviewer, expecting exactly 200. Status-guarded routes get
-their expected status COMPUTED from the picked row's status column, not a
-loose "either is fine" list. Design redirects and contract-404s are declared
-in the script's EXPECTED map — each entry was individually verified before
-being allowed. Cleanup runs at START as well as at end: a finally block
-does not survive a kill, and this script drives HTTP against a live server,
-so a startup sweep of smoke-*/ZZ-SMOKE-* leftovers is the only rollback it
-can have.
-The skip list is ASSERTED, not printed: EXPECTED_SKIPS names the routes
-allowed to skip for lack of data, and drift in either direction fails the
-run — a route moving from ok to skipped is a coverage regression that looks
-identical to "no data yet" (four finance routes silently lost coverage that
-way). For the same reason a failed id query aborts loudly naming the route
-and error instead of counting as a skip: a failed query is not an empty
-table, just as a resolver parsing zero suffixes is not an empty set.
-Deliberately NOT part of db/gate.py: it needs a dev server and minutes — a
-slow gate is a skipped gate (the check_mirrors lesson). Run it after touching
-page-level rendering, and after any bug a human finds by clicking.
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G07
 
 ### 临时行:报告,不清扫 —— 而这条区别本身就是判据
 
@@ -983,19 +775,7 @@ is `(NOT granted AND NOT in_view) OR (has_view AND NOT in_view)`: **once a table
 has a `_masked` companion, every column must be in that view, grant or no grant.**
 `fu2` closed it.
 
-The documentation above was already there and already clear; what was missing was
-a check that fires at the right *time*. **That pre-flight scan now exists (CHECK-1,
-2026-08-31) — the QUEUED note that stood here is retired.**
-
-`db/preflight_migration.py` prints a **`masked`** line and **refuses (exit 2)** when
-a migration `ADD COLUMN`s onto a table that has a `_masked` companion on live without
-putting the column into that view in the same migration. Historical replay, run before
-trusting it: the two defective main-cut migrations
-(`procwire1bi`, `proc1biii`) are refused and all three columns named, while both `fu1`
-migrations pass. Sweeping all 33 migrations dated 2026-08-30/31 refuses **three** and
-passes the other 30 — and the third is a **fourth occurrence nobody had counted**:
-`cmpl1` added four columns to `inbound_batches` and `cmpl1-fu2` cleaned up after it.
-So the tally in this section is **four in three days, not three**.
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F01
 
 **Two corrections to how this gap was described, because believing either of them
 produces the wrong check:**
@@ -1056,10 +836,7 @@ FX-DISPLAY-1 实测换成 `processing_outputs_masked ( … )` 之后同一条查
 of its branches — the column *is* revoked and *is* in the masked view — so the
 verdict stays green while **every authenticated caller gets `42501`**.
 
-`processing_cost_variance` was exactly this, and had never worked since the day it
-shipped: the page returned a clean HTTP 200 with an empty table, because the
-page's `?? []` swallowed the error and the route smoke test asserts 2xx. Three
-checks looked straight at it and saw nothing.
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F02
 
 The `colreader` line closes it, on both live and rebuild: for every
 `security_invoker` view, every column it depends on must be readable by
@@ -1116,27 +893,7 @@ nulls it, an aggregate counts it as zero — and the view's derived columns are
 computed from exactly those rows. No error is raised. **Every reader gets a
 different answer, and nothing says so.**
 
-The survey found **11 of 15** invoker views spanning modules, and **five were
-already wrong on live** (all probed, all rolled back):
-
-* `processing_run_allocation_status` — `safe_to_reallocate` was `true` as postgres
-  and **`NULL` as `operations`**; the run page branches on that boolean and `NULL`
-  is falsy, so a run that was perfectly safe wore the **red** "cannot re-allocate"
-  banner. And `price_history` is `module.inbound.view` — it is one of three
-  staleness sources, so `is_stale` **under-reported**: a stale run read as fresh.
-* `purchase_order_status` — PO prepayment read **35,000.00** as `admin` and
-  **0.00** as `procurement`.
-* `ap_open_items` — a payable 30,000 settled read as **0 settled / fully open** to
-  `procurement`.
-* `hr_alerts` — `system_start_not_set` is written `NOT EXISTS (SELECT 1 FROM
-  finance_settings …)`. The row vanishes for a non-finance reader, so the condition
-  is **vacuously true**: the date *was* set, and the `hr` role saw a permanent false
-  alarm **it could never clear**, because the table driving it was unreadable.
-  Note the direction — a vanishing row produced a **false positive** here and a
-  false negative above. Same disease, both ways.
-* `batch_assay_status` — `INNER JOIN suppliers`: **10 rows as `admin`, 0 as
-  `warehouse`**, who can see all 10 batches. The inbound list uses it for the
-  "unapplied assay" badge, so those roles were never told.
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F03
 
 **Two remedies, not interchangeable:**
 
@@ -1163,17 +920,7 @@ for existing is that `null` already means something else.
 > 它会渲染成那个合法状态,于是没有任何人、任何时候会看见它。
 > **这与"返回 0"是同一个缺陷,只是换了一件衣服。这一类必须 `RAISE`。**
 
-实测出来的三个「NULL 已经有主」:
-
-| 对象 | 它的 `NULL` 本来是什么意思 | 谁在读那个意思 |
-|---|---|---|
-| `inbound_batch_landed_unit_cost` | 「这批货真的没有金额」 | `inbound_batch_valuation.unpriced` **就定义为**它 `IS NULL` |
-| `resolve_review_reviewer` | 「解析不出评估人」 | `hr_alerts` 的 `review_no_reviewer` 一支专门等它 |
-| `previewLeaveDays`(前端) | 「两头日期还没填全」 | `LeaveForm` 把它印成 `—` |
-
-「NULL 没有主」的那一类,`NULL` 才是可用的"受限"信号 —— `bank_book_balance_asof`
-与 `attendance_unpaid_days` 都 `COALESCE(…, 0)`,今天**根本产生不出 `NULL`**,
-所以那个值是空着的,可以拿来用。
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F04
 
 `RETURNS void` 仍然必须 `RAISE`,但那只是本判据的一个**推论**,不是判据本身:
 一支 void 函数的"沉默"与"成功"是同一个字节,所以它的 `NULL` 永远有主。
@@ -1211,21 +958,7 @@ deliberately excluded because their gating is a `has_permission()` predicate —
 resolves per caller and never drops rows silently, which is the *intended*
 mechanism, not the disease.
 
-**Measured, so the gap is a size rather than a worry (2026-08-09).** Six views reach
-a module *only* through another view: `employee_directory` (hr → hides finance),
-`ap_open_items` (hides inbound), `batch_assay_status` (hides purchasing+pricing),
-`po_prepayment_applicable`, `po_receivable_lines` and `purchase_order_status` (each
-hides purchasing+inbound). **Five of the six are owner rights after OPS-14, so they
-are immune by construction** — the disease needs invoker semantics. The one that is
-still `security_invoker` is `employee_directory`, and it was probed rather than
-assumed: an `hr`-only reader gets **the row, with `current_gross_pay` NULL** — that
-is `data.view_pay` masking working correctly, not row loss — and a
-`finance+view_pay` reader gets zero rows because `employees_masked` gates on
-`module.hr.view`. Its hidden finance branch is an `OR` that only *widens*. So the
-blind spot is **bounded at one view today and that view is not defective — but the
-mechanism is general**: any new invoker view over a `_masked` view inherits it.
-The cheap defence is to prefer owner rights for anything cross-module, which is what
-the remedy table above already says.
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F05
 
 **Two traps, both inherited from OPS-13 and both re-verified before trusting a
 zero:** `security_invoker` is spelled `'on'` **or** `'true'` in `reloptions`, and
@@ -1243,19 +976,7 @@ cannot see a view nobody reads yet.
 
 ### A fixture can be thorough about a rule and blind to the case where the rule's SUBJECT IS ABSENT
 
-`db/fixtures/39` tests the credit limit from every angle that occurred to its author: NULL limit
-versus zero limit, base currency versus document currency, cumulative exposure, hold with no
-exposure, the history rows, the dashboard arm. **Every one of its arms passes an explicit
-customer.** None asks what happens when there is no customer at all — and the answer was that
-`record_output_sale` skips the entire credit block (`IF p_customer_id IS NOT NULL THEN`), so an
-ownerless sale of any size is never checked. A 1,397 sale against a 1,000 limit went through, and
-the fixture stayed green because the situation it created was one the fixture never described.
-
-**This is not the empty-set vacuity already listed above.** There, the set was empty and the
-assertion looped over nothing. Here the set is full, the arithmetic is exercised, the refusals fire
-— and the *subject the rule is about* is missing, so the rule is not reached at all. A test suite
-shaped entirely around "the rule applies, does it apply correctly?" cannot see "does the rule apply
-at all?".
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F06
 
 **The check to run on any new rule: what is this rule's subject, and is that subject optional?**
 If a customer, a supplier, an employee, a batch or a formula can be NULL on the row the rule guards,
@@ -1263,9 +984,7 @@ there must be an arm for the NULL. Its assertion is usually not "it refuses" —
 legitimate and must be *allowed* (SAL-C) — but the fixture must state which of the two it is, because
 otherwise the behaviour is whatever the guard's opening `IF` happens to do, and nobody has read it.
 
-The same question applies to the fix: SAL-C's `attribute_sale_customer` exists precisely because
-the subject can be absent and later become known, and its fixture arms cover *both* the absence
-(recorded without a check) and the transition (attached, logged, exposure moves, one-way).
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F07
 
 > **Fixtures run as `postgres`, which BYPASSES RLS.** The first draft of fixture 26
 > did not switch roles, so arms A and C were **vacuous** — the fault injection turned
@@ -1464,17 +1183,7 @@ one OPS-17 made — point one side at a genuinely separate implementation
 (`balance_sheet(p_to)`), then **reintroduce the original defect and watch the flag
 go false**. It did, on all three probed periods.
 
-**The survey OPS-17 ran, so the class is bounded rather than worried about
-(2026-08-09).** Every comparison of this shape in `db/functions` and `db/views`:
-
-| site | two sides independent? | can it fail? |
-|---|---|---|
-| `cash_flow_statement.ties` | **now yes** — `balance_sheet()` is a separate function | yes, fault-injected |
-| `preview_close_financial_year.trial_balanced` | yes — `SUM(debit)` vs `SUM(credit)`, different columns | **no, structurally**: `trg_journal_lines_balance` is a DEFERRABLE constraint trigger enforcing Σd=Σc per entry at commit, so committed data cannot fail it |
-| `balance_sheet.balanced` | yes — assets vs liabilities+equity+earnings, disjoint account sets | **no, structurally**: same trigger, same reason (the identity follows from Σ(debit−credit)=0 over all accounts) |
-| `allocate_processing_costs` → `ALLOCATION_LEDGER_DIVERGED` | yes — a stored `capitalized_cost_base` vs the capitalisation entry's **status in the GL** | yes; it is the one remaining red by design |
-| `preview_close_financial_year.revaluation_level` / `.depreciation_level` | n/a — **not comparisons**: readiness flags read off one derivation | n/a |
-| `revalue_foreign_balances`, `close_financial_year`, `depreciate_fixed_assets` calling their previews | n/a — **one implementation, two callers**, which is the intended pattern | n/a — there is no second derivation to drift |
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F08
 
 #### 一个带【兜底桶】的分项分解,会把余额逼成零 —— 同一个病的第三种穿法(GLEXPORT-1,2026-08-28)
 
@@ -1542,16 +1251,8 @@ The asymmetry is the whole problem. Both halves being missing would be visibly
 wrong; only the recorded half being missing looks *exactly like a new employee
 with a clean slate*, and produces a plausible number with no error.
 
-Instances found so far, all the same shape:
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F09
 
-* **annual leave carry-forward** — accrual runs from hire date whether or not
-  this database was operating that year, so a 2020 hire gets a full year
-  conjured out of a year that never happened here (HR-5, now refuses);
-* **medical claim limit** — the annual allowance is derived from
-  `hr_settings`, consumption comes from `medical_claims` rows, so pre-cutover
-  claims are invisible and the *entire* allowance becomes available again.
-  Worse than display: `decide_medical_claim` gates approval on that figure, so
-  it approves claims it should refuse (HR-6, now bounded);
 * **monthly leave accrual** when the start date falls mid-year — accrues
   January onward for months this database did not cover. **Closed by HR-7**:
   `accrued_annual_leave_detail` now takes `GREATEST` of all THREE dates — hire
@@ -1598,116 +1299,7 @@ python3 db/gate.py     # 0 clean · 1 mirror drift · 2 cannot build
                        # 3 B1/B2 invariant · 4 behavioural fixture failed
 ```
 
-Twenty-five fixtures, ~128 assertions, on the paths where a silent break costs money:
-settlement closing to exactly zero (including cross-currency), revaluation
-idempotence, confirmation not touching leave, accrual not applying a category
-change retroactively, one bank line per employee, realised 7100 never crossing
-unrealised 7110, period lock, over-allocation in both currency spaces, the
-bounded FX reach-back, the three `system_start_date` bounds, the database's
-"today" being Singapore's today (config + semantics + both walk-observed
-symptoms; a fixture cannot move the server clock, so the config arm is the
-24-hour guard and the behaviour arms gain full discrimination during the
-00:00–08:00 SG window), and a fully
-allocated payment leaving **exactly zero** on account even when the rate moved
-between booking and settlement (FIN-18 — that one asserts the *old* formula
-differs too, so it cannot pass by both answers agreeing), and fixed assets
-(FIN-22: depreciation from the in-service date not the acquisition date,
-idempotent by arithmetic, capped at cost minus residual, non-monetary and
-invisible to revaluation, disposal clearing 1500/1510 exactly, locked periods
-refused by name), and year-end close (FIN-23: P&L accounts derived by
-account_type never a code range — the FX arm posts to 7100 and a 4000-6999
-implementation fails it; balance-sheet accounts untouched as one snapshot;
-idempotent by arithmetic; the closed year's P&L still reproducible — the
-report EXCLUDES year_close entries while the balance sheet INCLUDES them,
-deliberately asymmetric, comments cross-referenced in both queries; the
-YEAR_CLOSED guard in post_journal_entry is independent of locked_before, so
-month-level reopen_period cannot pierce a closed year — the fixture's E arm
-walks exactly that path; reopen reverses the closing entry with a reason and
-restores the trial balance to the cent), and allocation's delta split
-(FIN-24: re-allocation posts target-minus-recorded per OUTPUT BATCH — in-stock
-share to 1220, sold-with-COGS share to 5000, written-off share to 5200 — the
-material delta credits 5000 where repricing parks the consumed share, so the
-two mechanisms compose instead of double-counting; repricing an input now
-flags consuming runs stale; the one remaining red is a manually-reversed
-capitalization entry, ALLOCATION_LEDGER_DIVERGED), and re-processing (FIN-25:
-output batches feed further runs — two-sourced recovery arithmetic asserted
-against hand-computed figures, cost relieved from 1220 not 1200, upstream
-deltas propagating one edge per re-allocation through the stale flags with no
-recursion, unpriced upstreams allowed but marked cost_incomplete and never
-silent, reversal and self-consumption guards, and the metal_value arm on
-fixture 18 that numerically separates per-batch from run-level ratios —
-62.50 vs 27.50 — where the weight basis provably cannot), and PO price
-provenance (FIN-26: price_source is RECORDED, never inferred from
-expected_assay; a computed line carries enough to re-derive the number and
-the fixture actually re-derives it; existing rows stay NULL and display as
-unknown — a fabricated provenance record is worse than a blank), and committed
-pricing terms (FIN-27: a formula referenced by a deal cannot change under it,
-because the terms are COPIED onto the committing record and settlement reads the
-copy — the fixture commits, edits the formula, settles, and asserts the
-*committed* number, with the live-formula number computed alongside and asserted
-to differ, so the arm cannot pass by both answers agreeing; a deal raised AFTER
-the same edit uses the NEW terms, which is what stops "never update anything"
-from passing too; a reference with no copy is refused BY NAME on both settlement
-paths rather than silently falling back to the live formula; and a formula edit
-writes an append-only history row with old and new — including the metals
-sub-table, where the UI expresses "no longer payable" by DELETING the row, so a
-header-only history would be silent about the most drastic edit there is).
-and a payment term
-template's fixed instalment (FIN-29: a template belongs to no order, so its fixed
-amount had no currency at all — and `apply_payment_term_template` copies
-VERBATIM, no rate is consulted, so "deposit 10,000" landed as 10,000 on a USD
-order and on an SGD one alike and read correct on both. The template now declares
-its own currency and a different-currency order is refused BY NAME rather than
-converted — a payment term is a negotiated commitment, not a computed quantity,
-the same reasoning as FIN-27. The declaration is CONDITIONAL: percentage-only
-templates need no currency and must not be forced to invent one, which is what
-the third arm holds — a "currency always required" implementation passes the
-other three. Enforced by a guard trigger on BOTH parent and child, because the
-rule spans two tables and a CHECK cannot see another table; and the validation
-runs BEFORE the delete, so "refused means nothing was written" is structural
-rather than a rollback artifact — the second arm asserts the order's own plan
-survives the refusal intact).
-and the cash flow statement (FIN-30: the hard part is
-not the arithmetic, it is what counts as a cash flow. 1010 is revalued each
-period end — its BASE-currency carrying value moves while no money does, and a
-statement derived from base-currency movements prints that as a phantom cash
-flow that balances perfectly. Revaluation is therefore a separate reconciling
-line below the three sections, keyed off the entry's DECLARED source_type;
-year_close is excluded, manual entries carry nothing so they are shown as their
-own "unclassified" line rather than assumed operating, and which accounts are
-cash / investing / financing is DECLARED on the account (`is_cash`,
-`cash_flow_section`) instead of hardcoded — the year-close code-range defect
-again. Self-checking: opening + sections + FX = closing, AND closing equals the
-balance-sheet cash figure — **which was NOT "computed independently" until OPS-17,
-though this paragraph said it was.** Both sides came out of the same function body
-and the same arithmetic, so `ties` moved with the defect and could never report
-false; live returned `ties=true` for all five probed periods, including one that
-split a reversal pair across the period boundary. OPS-17 pointed it at
-`balance_sheet(p_to)` — a different function, a different aggregation path — so the
-sentence is now true. When they disagree the page says so instead of printing a
-number that does not tie. Note the third arm was
-VACUOUS on first write — a realistic year-close touches no cash, so it could
-never enter the "entries that moved cash" set and the exclusion was untested;
-deleting the filter left the fixture green. It now also posts a MALFORMED
-cash-touching year-close and asserts the statement reports ties=false, which is
-what makes the filter load-bearing).
-and the inventory ledger's business date (FIN-32:
-`business_date` is the day the thing HAPPENED, not the day it was keyed in — and
-it was 58% empty, in a pattern: writeoff / reversal_void / reversal_restore were
-100% empty because those paths never wrote it, and receipts were 80% empty
-because they copy a nullable `arrival_date`. Both ends closed. The decision worth
-knowing is the reversal's date: a rollback is NOT a physical event — batteries
-that were processed stay processed — it corrects a mis-recorded run, so it takes
-the ORIGINAL run's `process_date`, which makes the error and its correction
-cancel on the same day and stops the intervening days showing stock that was
-never really absent. Writeoff is the opposite — a real physical event — so it
-takes `deleted_at::date`, read from the row rather than the clock. New rows are
-required via `CHECK (...) NOT VALID`, which enforces on insert while leaving the
-15 historical nulls untouched: they are history, not a bug, and backfilling them
-would invent a fact nobody recorded).
-Deliberately small: every retained fixture is
-maintenance on every schema move, and the HR-2c accrual change already cost one
-round of "is this staleness or regression?" judgement.
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F10
 
 **Read `db/fixtures/README.md` before adding one.** Four rules, each of which
 this repo learned the hard way:
@@ -1749,26 +1341,7 @@ match workbench's **candidate list**, and `match_bank_line` refuses a line whose
 entry is reversed (`JL_ENTRY_REVERSED`) — the view filtering to `posted` is that
 same eligibility rule, asked earlier.
 
-**Four occurrences of the aggregate mistake so far, and it keeps coming back:**
-
-| | where | found | state |
-|---|---|---|---|
-| ① | `cash_flow_statement` | OPS-17 | fixed |
-| ② | `f5_return` / `f5_box_detail` | GST-2 | fixed, with the reasoning left in the function body |
-| ③ | `bank_reconciliation_status.ledger_balance` | BANK-REC (2026-08-26) | fixed — **and it had been wrong on the live bank page the whole time** |
-| ④ | `preview_revalue_foreign_balances` (**two** filters, not one) | BANK-REC, while fixing ③ | fixed by FXREV-1 (2026-08-27) — **and it had already posted a wrong entry: SGD 56,532.48** |
-
-**③ was measured, not inferred (2026-08-26):** account `1010` carries 2 reversed
-journal lines, so the bank page was showing **−31,338.70 where the ledger actually
-says −29,753.70 — out by USD 1,585.00 in production.** `1000` happened to have no
-reversals and was correct by luck, which is why nobody saw it.
-
-**④ is the one that reached the ledger, and it is worth knowing how far.** The
-misstatement was **SGD 56,532.48** on `JE-2026-0024` (FX revaluation as at
-2026-07-31) — an overstated unrealised FX loss, posted because two reversed
-originals on `2000` were dropped while their reversals were kept. It was
-corrected forward by `JE-2026-0070` on 2026-08-27; July itself stays as it was.
-Full record: `docs/fx-revaluation-misstatement-2026-07.md`.
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F11
 
 **Two things FXREV-1 added to the rule itself:**
 
@@ -1814,24 +1387,8 @@ at a time; a new screen should inherit the rule rather than rediscover it.
   The original FIN-0 defect was that the nearest-date lookup was **silent**,
   not that it reached back at all.
 
-  > **How FIN-13 was wrong, because the shape recurs.** It said "every day
-  > *strictly between* the rate and the transaction must be a non-business
-  > day" and implemented `generate_series(v_when + 1, p_date - 1)`. For
-  > **consecutive dates that interval is empty**, so the condition is
-  > vacuously true and *every* business day silently accepted yesterday's
-  > rate. That is the exact silent nearest-date lookup FIN-0 removed from
-  > `pay_medical_claim`, reintroduced with a blessing on it — and it read as
-  > a strict rule, which is why nobody re-derived it. Live proof: 5 Aug had a
-  > rate, 6 Aug did not, and a 6 Aug receipt booked at 5 Aug's 1.24.
-  > **A guard phrased over the interior of a range is vacuous at the
-  > boundary. State such conditions over the closed range and check the
-  > endpoint explicitly.** The fix was one token; finding it took a human
-  > noticing a number on a screen.
-  >
-  > Note this also made the London/Singapore bullet below *true for the first
-  > time*: before FIN-19, a UK bank holiday that SG treats as a business day
-  > did not produce a conservative refusal — it silently took the previous
-  > day's rate whenever one existed.
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F12
+
 * **The London/Singapore calendar is a deliberate approximation.** Metal
   quotes follow London; the only holiday table we have is Singapore's. The
   failure mode is a false *refusal* on a UK bank holiday — conservative and
@@ -1983,12 +1540,7 @@ batch page and the AR document page. Two manual sweeps had missed all six.
 **"Currency clean" meant less than it looked; assume the next blind spot is
 whatever the check does not parse rather than whatever nobody wrote.**
 
-Why a check and not care: FIN-0 changed the base from USD to SGD, and the
-constants left behind broke four screens over four separate sweeps —
-`/finance/payments` valued a base-currency payment at 0.00 and a USD one at
-1:1 (FIN-12), and manual journal entry demanded an FX rate for base-currency
-lines. Two full manual sweeps each missed a site. The check found 32 in one
-run, including one I had just written myself.
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F13
 
 **Message files too — and until CHECK-1 (2026-08-31) nothing scanned them.**
 `check-i18n` validates that a key exists, never what it says, so `'Amount (SGD)'`
@@ -2001,15 +1553,7 @@ unless the string is genuinely about one currency by decision — metal prices a
 quoted `USD/t` by market convention, and account names like `Bank – SGD` are proper
 nouns. Those stay.
 
-**76 instances were already there** (en 40, zh 36), so it is a **ratchet, not a
-wall**: `scripts/currency-messages-baseline.json` holds today's count per
-⟨file · key⟩ and the 77th turns it red — the same medicine `check-masked-reads`
-took for its 71, and for the same reason (a check that reddens 76 lines on day one
-teaches people to skip the gate). The report groups them **by shape** so a later
-reader can tell the disease from the truth without re-deriving it: **36 `label`**
-(currency baked into a column header — the FIN-0 disease), **20 `unit`**
-(`USD/t`, `USD/kg`, `USD/吨` — genuinely dollars), **16 `prose`**, **4
-`account-name`**. Full list in `docs/known-issues.md` under CHECK-1-MSG.
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F14
 
 > ★ **CCY-VERIFY — a permanent limitation, not a to-do.** This check verifies that
 > a currency is **stated**. It does **not** verify that the number really is in
@@ -2212,13 +1756,7 @@ paragraph used to list and closed two of them:**
   convention instead:** *a query result must have had its `error` looked at before
   anything optional-chains it.*
 
-**The two live instances are on the books, and the shape of that record matters.**
-They are in the script's `QUEUED` list, **not** its `ALLOWLIST`, and the two mean
-opposite things: `ALLOWLIST` asserts *this is not a defect*; `QUEUED` asserts
-*this is a defect, just not fixed in this cut* and must name where it goes.
-**Recording something uncertified as allowlisted is how the next reader comes to
-believe someone checked it.** Queued entries print on every run with their reason
-and destination (cleanup A — permissions and error handling).
+> ↪ moved verbatim → docs/agents/finance-and-schema-history.md § ↩ F15
 
 ## ★★★ 一个「0 行」的读数,先问它是【谁】读的(DRAFT-5 立,DRAFT-6 复核,2026-09-21)
 
@@ -2282,22 +1820,7 @@ accepted for now, to be fixed deliberately — live next door in
 ~/evoltrya-backups/backup.sh        # ~10 min measured 2026-08-14, over the pooler
 ```
 
-> **重新测过(TASK-1a,2026-08-18):同一台机器、同一天、同一条连接串,
-> 一次 8 分钟(20:13 起,EXIT=0,2.3M),一次跑到 34 分钟仍未结束(20:37 起,
-> 最后被主动杀掉)。** 所以上面那个「~10 min」是【一次取样】,不是一个上界 ——
-> 与 `db/gate.py` 那张表得到的是同一个结论,而这已经是本周第二次
-> **一个过时的耗时估计参与了决策**(第一次是 gate 的 483s)。
->
-> **两件事因此要分开说:**
-> * **备份要多久,没有一个可以照着规划的数。** 要等它,就用它自己的退出码等,
->   并且准备好它可能是 8 分钟也可能是半小时。
-> * **慢的是【连接池那条传输】,不一定是"网络坏了"。** 同一时刻实测
->   REST 后续请求中位数 **412 ms**(健康档),而 pg_dump 走 5432 的那条路
->   慢到四倍以上 —— 正是 SMOKE-CONN-1 那条「量错了传输层」的同一个区别。
->   **判断"能不能干活"之前,先问这件活走的是哪条路。**
->
-> 顺带,那次主动杀掉把 BK-FIX 的三道检查【实测跑了一遍】:
-> `BACKUP_EXIT=1`、失败分支按名说了原因、0 字节的残骸被删掉。它是好用的。
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G08
 
 **A backup taken after `apply_migration.sh` is not a rollback — it is a snapshot of the
 thing you might need to roll back.** The migration path is atomic (one connection, one
@@ -2305,10 +1828,7 @@ transaction), so a *failed* migration needs no backup; the backup is there for t
 gates cannot see — a migration that succeeds and is wrong. For that case, taking it
 afterwards buys nothing at all.
 
-**SO-2 (2026-08-14) ran it after. That was a slip, recorded as a slip** — not a new order of
-operations, and not something to copy from the git history. It cost nothing that day because
-the cut turned out fine, which is exactly why it is written down instead of forgotten: the
-run where the order matters is the run where you have already lost.
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G09
 
 > **备份要【跑完】,不是【起过】—— SO-3b 实测(2026-08-14)。**
 > `pg_dump` 在跑的时候对每一张表持着 ACCESS SHARE 锁,而 `ALTER TABLE` 要的是
@@ -2324,21 +1844,8 @@ run where the order matters is the run where you have already lost.
 >
 > ### 判据是【脚本的退出码】,不是 `! pgrep -x pg_dump`(BK-FIX,2026-08-16)
 >
-> 这里原本写的是:
-> ```
-> db/wait_for.sh --timeout 1800 --label "备份 pg_dump 收尾" -- sh -c '! pgrep -x pg_dump >/dev/null'
-> ```
-> **那个判据分不出【跑完了】与【死了】** —— pg_dump 一旦中途断线,pgrep 立刻查不到
-> 进程,这个等待当场变绿,而磁盘上留下的是一个残缺的文件。
->
-> 2026-08-16 实测到了这一幕:pg_dump 在隧道上断线
-> (`server closed the connection unexpectedly`),留下一个 **0 字节**、名字完全正常的
-> `.dump`。更坏的是 `backup.sh` 自己 —— 它印着「❌ 备份失败」,**却退出 0**
-> (失败分支里没有 `exit 1`)。于是"备份成功了吗"这个问题,当时【每一条判据都答错】:
-> 脚本说 0、pgrep 说没进程了、`ls -t` 说有一份最新的备份。
-> 这正是本文件那条"**一个报告了却不拦的判词不是闸**",出现在这套系统最不能出错
-> 的地方 —— **备份就是回滚**。
->
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G10
+
 > **现在的判据:直接看脚本的退出码。**
 > ```
 > ~/evoltrya-backups/backup.sh || { echo "备份失败 —— 不要动库"; exit 1; }
@@ -2347,56 +1854,12 @@ run where the order matters is the run where you have already lost.
 > 体积下限(取自实测历史,见脚本抬头)、以及 `pg_restore --list` 读不读得出来。
 > 三道都做过故障注入。
 >
-> ★★【CHECK-1(2026-08-31):那三道检查都是对的,而它们【跑不到】】★★
-> 它们全都写在 pg_dump **返回之后**,于是共享一个前提:**这个脚本还活着。**
-> 而实测的事故打碎的正是这个前提 —— **备份被一次工具超时连进程一起杀掉,
-> 那几行一行都没执行**,磁盘上留下一个 0 字节、顶着完全正常名字的 dump。
-> **顺序错了,不是检查错了:** 旧写法是「用好名字落盘 → 再验证」,
-> 于是从 pg_dump 开始写的那一刻起,磁盘上就躺着一个**名字合格、内容未经检验**的文件。
->
-> **现在是隔离名优先:** pg_dump 写的是 `<好名字>.INCOMPLETE`(它**不**匹配
-> `evoltrya-backup-*.dump`),四道检查全过之后才 `mv` 成好名字。`mv` 在同一文件系统上
-> 是原子的,所以**"叫 evoltrya-backup-*.dump" 与 "验证过" 从此是同一件事**,
-> 任何一刻被 `kill -9` 都只留下一个不可能被误认的 `.INCOMPLETE`。
->
-> **实测对照(CHECK-1,用真的 dump 做桩,写到一半 `kill -9`):**
->
-> | | 磁盘上留下 | `ls -t evoltrya-backup-*.dump \| head -1` 给出 |
-> |---|---|---|
-> | 旧顺序 | `…-2058.dump`,**550,000 字节** | **那个残骸**(顶着好名字) |
-> | 新顺序 | `…-2059.dump.INCOMPLETE` | 上一份**好的**备份,3,947,752 字节 |
->
-> **第四道检查:TOC 条目数 vs 上一份成功备份**,跌超 10% 即拒。加它是因为
-> **本文件下面那段说"目录区在文件尾部"是错的** —— 自定义格式的 TOC 写在**文件头**
-> (2026-08-24 那份残骸头里印着 `Archive created at 10:51:17`,正是开跑那一刻),
-> 所以 `pg_restore --list` 抓的是**头部损坏**,不是截断。阈值 10% 是量出来的:
-> 实测 14 份连续备份的条目数增量全部为正(+6 … +63,最大约 1.3%),
-> 所以它不可能对正常备份误报。**六个分支都做了故障注入**
-> (正常 / pg_dump 失败 / 体积过小 / 随机垃圾 / **真的那份 08-24 残缺 dump**
->  4018 vs 5071 当场拒 / 写到一半被 kill -9)。
-> **它仍然不是"备份一定是好的"** —— 唯一完整的证据仍是那一行 `BACKUP_EXIT=0`。
->
-> **`backup.sh` 住在仓库【外面】(`~/evoltrya-backups/`),所以这几行字是本仓库对它
-> 唯一的把手。** 换一台机器、或者有人重装了那个脚本,这里写的东西就是要重新做一遍的
-> 清单 —— 而不是"上次好像修过"。
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G11
 >
 > #### 那条判据【在后台跑的时候会失效】—— 拿到的是启动器的退出码(TASK-1a,2026-08-18)
 >
-> BK-FIX 定下的规矩是对的:**看脚本自己的退出码**。但它写的那一行
-> (`backup.sh || { …; exit 1; }`)默认备份跑在**前台**。**一旦把它放到后台,
-> 那条规矩就静默地失效了** —— 你读到的 0 是【启动它的那个东西】的,不是它的。
->
-> 实测:用 `( backup.sh > backup.log 2>&1; echo "EXIT=$?" >> backup.log ) &` 起了备份,
-> 几秒后收到「completed (exit code 0)」。那个 0 是外层那句 `echo` 的。当时的真实状态是:
->
-> ```
-> pg_dump ALIVE — backup still running
-> evoltrya-backup-2026-08-18-2013.dump   0 字节
-> ```
->
-> **又是一个 0 字节、名字完全正常的 dump,配一个绿色的退出码** —— 与 BK-FIX 那次
-> 一模一样的画面,只是这次的假绿灯来自【启动方式】,不是脚本本身。
->
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G12
+
 > **判据补一句,把后台这条路堵上:**
 >
 > > **备份跑完的唯一证据,是 `backup.log` 里那一行【脚本自己打出来的退出码】。**
@@ -2411,12 +1874,7 @@ run where the order matters is the run where you have already lost.
 > grep -q "^BACKUP_EXIT=0$" /tmp/backup.log || { echo "备份失败 —— 不要动库"; exit 1; }
 > ```
 >
-> **这是同一个形状的第三次,所以按规律记而不是按事故记:一个判词答的不是它标签
-> 上写的那个问题。** 前两次是 `! pgrep`(答的是"进程还在吗",标签写的是"备份好了吗")
-> 与 `backup.sh` 自己失败还退 0;这一次是**启动器的退出码冒充了脚本的退出码**。
-> 与部署那条(GitHub 的登记冒充 Vercel 的状态)、与 `?sha=` 缩写(空集冒充"还没到")
-> 是同一族。**每加一条等待或一条判据,把标签念出来,再把判据念出来,
-> 两句话说的是同一件事吗?**
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G13
 
 #### 网络掉线之后,后台那支活可能攥着一个【死掉的 socket】(PDPA-1,2026-08-24)
 
@@ -2436,22 +1894,7 @@ run where the order matters is the run where you have already lost.
 **要做的是:退出这次会话、开一个新的、先跑一次【只读】的状态检查再决定。**
 读到什么、不读到什么,那次检查的清单就是这一节上面那两条判据。
 
-> **代价与那个必须记住的意外发现。** 起 10:51,最后一个字节 10:56,12:14 被终止;
-> 上一次会话把这场僵持记成 **59 分钟**。留在磁盘上的是一份 **2,813,952 字节**的 dump,
-> 而同一天跑成功的那份是 2,925,407 —— **少了 111,455 字节**。
->
-> **而它【通过】了 `pg_restore --list`:退出 0,4025 条 TOC,与好的那份一模一样。**
->
-> **所以 `backup.sh` 抬头第 3 条那句话是错的。** 它写着"自定义格式的 dump 尾部有目录区,
-> 断在中间的文件可能很大、却读不出来" —— **目录区不在尾部**:那份 dump 的头里印着
-> `Archive created at 2026-08-24 10:51:17`,也就是**开跑那一刻**就写好了 TOC。
-> 于是 `pg_restore --list` 抓不到"跑到一半断掉"这种截断,它只抓得住头部就坏了的文件。
-> **这套系统里【唯一】拦住那份残缺备份的,是那一行没有出现的 `BACKUP_EXIT=`。**
-> 体积下限(100KB)也没拦住 —— 残缺的那份是 2.8MB。
->
-> **别去"修"那条检查然后以为完事**:一个"体积比上一份少 3%"式的判据会在库缩小的
-> 那天(生产全新重建之后)天天误报,而误报的闸最后一定被绕过。
-> 今天成立的结论是更窄也更硬的那一条:**备份跑完的证据只有脚本自己那一行。**
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G14
 
 #### 到点之后,那支活可能【活过了监督它的人】—— **已于 2026-08-29 做成机制(OPS-TIMEOUT)**
 
@@ -2472,45 +1915,7 @@ run where the order matters is the run where you have already lost.
 > 3. **ppid=1 的孤儿今天不该再出现了。** 真出现了,那是一个【新的】发现,
 >    不是这一条 —— 按名报出来。
 
-**【以下为历史,记录 2026-08-24 与 2026-08-25 那两次】**
-
-**这是同一族的第五次,而方向【反过来了】。** 上一条(死 socket)是
-**死掉的孩子看起来还活着**;这一条是**活着的孩子熬死了它的监督者**。
-
-**机制(实测,不是推理)。** `db/run_detached.sh` 到点之后跑的是:
-
-```
-kill "$CHILD"          # 第 87 行
-... exit 3             # 判词【未知】,这一半是对的
-```
-
-而 `$CHILD` 是那个**子壳**,不是真正在干活的进程。子壳长这样:
-
-```
-( "$@" >> "$LOG" 2>&1; echo "${MARK}$?" >> "$LOG" )
-```
-
-于是 SIGTERM 打在子壳上,屏幕上留下
-`db/run_detached.sh: line 93: 24884 Terminated: 15`,
-而 `node scripts/smoke-routes.mjs --reach`(24886)**没有死,它认了 init 当父亲**
-—— `ps` 里 ppid 从 24884 变成 **1**,日志继续在长。
-
-**后果比一次普通超时更坏,而且坏在一个不显眼的地方:**
-**被杀掉的那个子壳,正是【将来要写 `echo "${MARK}$?"` 那一行的人】。**
-判词那一行的作者死了,活还在干 —— 于是这一跑**永远不会有 `SMOKE_EXIT=`**,
-不是"还没打",是"再也不会打"。而活本身跑完了、结论也打进了日志,
-只是没有那一行机器读得懂的判词。
-
-**发生时要查的两件事(答得出来才知道自己在等谁):**
-1. **日志还在长吗?** 长 = 活还在干,只是没人监督了。
-   (静止**不**等于死 —— 它可能卡在一次慢渲染上;要连采几次。)
-2. **那支 node 的父进程是不是 1 了?** 是 = 它已经孤儿化,
-   没有任何 `run_detached` 还在等它。用 `ps -p <pid> -o ppid=` 直接问。
-
-**这一次的处置:让它跑完,判词从日志里那行【总结】读**
-(`== N routes …: N ok, N skipped, N FAILED`),
-**并在报告与提交信息里写明判词是从哪儿来的。**
-一个来路不明的判词才是问题;这一个来路是清楚的,写下来就不算不明。
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G15
 
 ~~**不要在踩到它的这一刀里顺手修 `run_detached.sh`。**~~ **那条克制已经兑现了
 (OPS-TIMEOUT,2026-08-29):修法没有在踩到它的那一刀里顺手做,而是单独一刀,
@@ -2520,24 +1925,11 @@ kill "$CHILD"          # 第 87 行
 已经做了**,而且实测走的正是 SIGKILL 那一支:宽限 5s 之后进程组还在,改发
 SIGKILL,收干净,判词 `E_EXIT=124` 在日志里。
 
-> **顺带记下那一跑的真实代价,因为【写错的成本正是这个仓库反复付账的那个缺陷】。**
-> `--reach` 那一跑实测 **2 小时以上**(139 条路由时代量到的是 65m44s),
-> 而当天隧道是**退化**的:`select 1` 三次量到 **7.05s / 4.61s / 5.91s**,
-> 对比同一天早些时候的 3.1–4.1s。`--reach` 的每一步都是一次真的服务端渲染、
-> 每一次渲染都打远端库,所以隧道一退化,这一跑的时长就跟着乘上去。
-> **决定"这一刀要不要跑 --reach"的人读的就是这个数** —— 它必须是量过的,
-> 而且必须连着当天的链路状况一起读。
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G16
 
 ##### ★【同一天里的【第二次】—— 到这里就不该再写文档了,该把它做成机制】★(GST-2,2026-08-25)
 
-**第一次是 GST-1 的冒烟(2026-08-24 深夜),第二次是 GST-2 的 `check_mirrors`
-(2026-08-25 凌晨)。同一支脚本、同一个机制、不到一天。**
-
-第二次的形状与上面逐字相同,只换了被等的那支活:
-`--timeout 900` 到点,`kill "$CHILD"` 打在子壳上,而 `check_mirrors` 活了下来、
-**在到点之后一分钟把结论写完了**(日志 mtime 01:58:06,而 900s 的点在 01:57)。
-于是那一跑的判词行【永远不会出现】,而在等它的那个循环
-**又轮询了一小时二十七分钟**,直到有人去看。
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G17
 
 > **本仓库自己的门槛是:同一个形状撞第二次,就不再写注解,而是换成机制。**
 > OPS-7 用脚本替掉两句"记得检查";`db/wait_for.sh` 替掉"记得给等待加上限";
@@ -2570,11 +1962,7 @@ SIGKILL,收干净,判词 `E_EXIT=124` 在日志里。
 
 ##### 第二条教训,与上面那条【无关】:一个低于实测成本的上限,是一次必然的误杀
 
-**这一次真正的错误不是等待器,是那个 `--timeout 900`。**
-`check_mirrors` 在这条隧道上要跑 **十五分钟左右**(它重放整套镜像再逐项比对),
-而 900s = 15 分钟 —— **上限与实测成本【一样长】,一点余量都没有**。
-于是它在活干完之前一分钟到点,把一次【本来会成功的】运行变成了一次误杀。
-同一天后面的四次 gate 用的是 2700s,一次都没有碰到过上限。
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G18
 
 > **规矩:上限【从实测成本推出来,加余量】,不是挑一个看起来够大的整数。**
 > 挑出来的数没有来路,而没有来路的数会在两个方向上都出错:
@@ -2591,15 +1979,7 @@ SIGKILL,收干净,判词 `E_EXIT=124` 在日志里。
 
 **这一条不是关于 GST,是关于【怎么读一份走查报告】。**
 
-Tim 报「F5 的每一个『打开』点了都没反应」。我去看那一页,看到钻取渲染了一段
-**正确的空**,于是断定"没有坏,只是反馈不明显",并据此改了反馈。
-**而他点的时候 box1 是 1143.00** —— 他在 17.11 里把那张发票作废了,
-我的观察发生在作废【之后】。**我用一个状态解释了另一个状态。**
-
-> **更难看的是:我在同一份报告里,上一段刚刚承认过同一个错**
-> (「我引用了一个已经变过的线上值」),下一段就又犯了一次,而且是更大的一次 ——
-> 第一次只是引错一个数,第二次是**据此下了一个错的诊断,并按那个诊断改了代码**。
-> 一条被写下来的教训,如果下一段就违反,那它没有被学会,只是被记下了。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M01
 
 **规矩(形状,不是这一次):**
 > **一份走查报告与你的观察对不上时,【中间发生了什么】才是问题,
@@ -2620,16 +2000,7 @@ Tim 报「F5 的每一个『打开』点了都没反应」。我去看那一页,
 
 **同一族的又一次,而这一次它藏在一个 `&&` 里。**
 
-`VoidInvoiceControl` 决定要不要显示【冲销日】那一栏,判据写的是 `kind === 'order'`。
-那在当时是对的 —— 只有 order 型发票过分录,而"过了分录"才需要冲销日。
-**但 `kind === 'order'` 从来不是那条规矩,它只是那条规矩当时的【代名词】。**
-真正的规矩住在 `void_invoice` 里:`IF v_inv.entry_id IS NOT NULL`。
-
-GST-2 让【带税的 sale 型发票】也过一张分录。数据库那一侧自动跟上了
-(它问的是 entry_id);屏幕那一侧没有,因为它问的是 kind。
-后果:**一张带税的 sale 发票在界面上根本作废不了** —— 它要求冲销日,
-而界面从不给出那个输入框。而作废又正好是关闭 GST 开关的必经之路,
-于是"关"的整个方向在屏幕上是断的,直到 GST-3 走那条路时撞上。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M02
 
 > **判据:一个前端条件,是在【复述】某条服务端规矩,还是在【代指】它?**
 > 复述(同一个字段、同一个比较)会随字段一起改;
@@ -2643,23 +2014,7 @@ GST-2 让【带税的 sale 型发票】也过一张分录。数据库那一侧�
 
 #### 一道闸只守它当时那条路 —— **换了推导来源,闸就要跟着搬**(GST-2,2026-08-25)
 
-**同一刀里撞到两次,方向相同,而两次都不是"新功能没做",是"旧保证悄悄缩水了"。**
-
-GST-1 立过一条硬保证:**未注册时,带税码的行写不进去**
-(`post_journal_entry` 的 `GST_NOT_REGISTERED`)。那时 F5 九格【全部】从总账推导,
-所以"总账里没有带税码的行" ⇔ "F5 全零" —— 一道闸守住了全部入口,保证是完整的。
-
-**GST-2 把销项侧改成从 `invoice_lines` 推导。就在那一刻,那道闸只剩半个。**
-一个盖在发票行上的税码【根本不经过 post_journal_entry】,却足以让 box1 不为零。
-闸没有坏、没人改它、它仍然对着它守的那条路一字不差 —— **变的是它守的东西
-多了一个入口**。处置:保证跟着搬到三张单据表上
-(`guard_document_tax_code`,invoice_lines / expenses / credit_note_lines)。
-
-**第二次是同一件事的下游:`reverse_journal_entry_internal` 翻边时【不抄 tax_code】。**
-GST-1 时代这不要紧(没有任何一行带税码);GST-2 之后 box5 是
-`Σ(借−贷) FILTER (tax_code IN (TX,ZP,BL))`,冲销行不带码就冲不掉那笔采购 ——
-**一笔已经冲销的进货会永远留在 box5 里,而总账本身是平的、借贷相等、
-没有任何东西看起来不对。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M03
 
 > **要问的那一句,在【改推导来源】的那一刀里问,不是在下一刀:**
 > **"这个新来源上,原来那些不变量还成立吗?"**
@@ -2676,13 +2031,7 @@ GST-1 时代这不要紧(没有任何一行带税码);GST-2 之后 box5 是
 **上面两条问的是「闸守住今天所有的入口了吗」。还要再问一句:
 【那些入口里,有没有一个是不需要任何人做任何事就会走上的?】**
 
-WHT-1 建代扣时撞上这一条。`record_expense` 的签名是
-`p_payment_status text DEFAULT 'paid'`,而 `'paid'` 那一支
-**借 6xxx / 贷银行一步到位** —— 不产生应付、不产生 payments 行、
-**不经过 record_payment**,也就是不经过唯一知道怎么把一笔付款劈成
-「净额出银行 + 代扣挂负债」的那段代码。
-
-于是对非居民当场付清一笔咨询费,会**一分钱都不代扣**。而它的位置是最坏的:
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M04
 
 > **一个走默认参数值就能到达的漏洞,【不需要任何人输入任何东西】就会被触发。**
 > 所有"谁会那样填呢"的直觉在它面前都不成立 —— 那正是它的默认值。
@@ -2718,19 +2067,7 @@ than as a preference:**
 asymmetry is the whole rule, and it does not depend on how bad any particular
 window is.
 
-**Measured occurrence (UI-1b, 2026-09-05).** The migration went in at 17:55:51.
-The window was analysed as **benign and the analysis was correct** — the migration
-only *added* objects (two tables, one nullable column, one `hr_alerts` arm) that
-the deployed code never reads, so nothing in production could break. On that
-reasoning the push was sequenced **ahead** of the gate, to close the window early.
-The gate then came back `GATE_EXIT=1` — `1 DIFFERENCE(S)`, `employees.columns` —
-and by then `e6a0812` was already on `origin/main` carrying an incomplete mirror.
-
-**Note what did NOT go wrong, because that is the trap:** the reasoning about the
-window was sound, the window really was harmless, and closing it early really was
-cheaper *for the window*. **The judgement was right about the thing it was
-weighing and wrong about the thing it was not.** A correct risk assessment of one
-cost is not a reason to accept an unmeasured second one.
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G19
 
 **The lever for window length is `C-1b`'s, not this one:** *code first, migrate
 last.* Do every non-DDL thing — the components, the messages, the docs, the
@@ -2789,22 +2126,7 @@ opens a window in which **production runs old code against a new database** — 
 that window is invisible from this machine, because the local tree, the local gate
 and the local dev server all agree with each other perfectly.
 
-**IOD-2 spent an afternoon inside that window (2026-08-13).** Two migrations were
-applied to live and both commits sat unpushed. Tim hand-walked the new behaviour on
-the production URL and got machine text twice. Two diagnoses were wrong before the
-dev-server logs settled it — **across two rounds there had never been a single POST**,
-because his clicks were never reaching this machine at all. The measured damage:
-
-* `/inbound/receive` was **broken in production**, not merely unlocalized. IOD-2
-  changed three RPCs from `RETURNS uuid` to `RETURNS jsonb`; the deployed code was
-  `redirect(\`…/done/${data}\`)` guarded by `if (error || !data)`. An object is truthy,
-  so the guard passed and the URL became `/done/[object Object]` → `notFound()`.
-  **The batch was created first**, so an operator saw a 404 after a successful
-  receipt — the exact shape that produces duplicate receipts.
-* The IOD-2 warnings did not exist in production at all: the deployed callers read
-  only `error` and discarded `data`.
-* Two named refusals rendered as raw codes, because the deployed `STOCK_ERROR_CODES`
-  predated them.
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G20
 
 **The tell, so the next person recognises it in one step:** a raw error string on a
 screen that contains a code the local tree has *just* taught the database to raise.
@@ -2839,16 +2161,7 @@ IOD-2 那次是【事后被人发现的】9 小时;SO-2 的预留那一刀报的
 **报告要同时说【多长】和【期间什么是坏的】**,两者缺一个都不成立:
 一个只说时长的报告不知道该不该紧张,一个只说影响的报告不知道紧张了多久。
 
-已测:
-* **IOD-2 ≈ 9 小时** —— 事后被人发现的,不是量出来的。
-* **SO-2(预留)—— 量不出来了。** 那份报告写的是"不到一小时",而那是一个
-  **上界**;迁移提交的时刻没有任何东西记下来,现在无从复原。**这一条留在这里
-  不是为了自责,是这条规矩最有力的论据**:一个听起来已经量过的数字,和一个
-  真的量过的数字,在报告里长得一模一样,而只有后者能被拿来比较。
-* **SO-2b ≈ 25 分钟**(17:05 撤掉 INSERT 策略 → 17:30:29 部署 success)。
-  起点是从 `sales_record_movements.created_at`(17:09:22,第二支迁移的提交
-  时刻)往回推出来的,精度到分钟 —— 那一刀跑的时候脚本还没有打时间戳。
-  **下一刀起,起点由脚本直接打印,不再需要反推。**
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G21
 
 ## Migrations apply over direct psql, never the Management API
 
@@ -2900,14 +2213,7 @@ the note was missing — this repo has now paid for that twice, so:
 `PREFLIGHT=0` skips the scan; the only honest reason to use it is that the
 pre-flight itself is broken, and then the thing to fix is the pre-flight.
 
-> **The instruction this replaces.** `fd84dc7` (FIN-23) closes with *"the lesson
-> is now: new functions and newly hardcoded accounts get B1 and `is_system`
-> checked BEFORE the migration"*, and `FIN-22b` says the same thing. **Those
-> sentences are retired as of OPS-7** — a commit message cannot be edited, so
-> the retirement is recorded here, where the reader who followed the reference
-> will arrive. Do not re-adopt them as a manual step: the first is now
-> impossible to get wrong and the second is checked for you. Following them by
-> hand costs the time and proves nothing the tool has not already proven.
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G22
 
 ## The i18n key check runs on every cut that touches the app
 
@@ -2958,16 +2264,7 @@ Incrementing compounds: HR-3a was dated 2026-08-03 while the clock said 2026-08-
 every later cut stepped forward from the *filename* rather than the clock, reaching
 2026-08-10 on a day the clock said 2026-08-03.
 
-**Known discrepancy, left in place deliberately.** `2026-08-03-hr3a` through
-`2026-08-09-hr3c` were all committed on **2026-08-02** (verifiable with
-`git log --diff-filter=A -- db/migrations/<file>`). Their dates are fiction; their
-*sequence* is correct. Renaming them to the true date would collapse seven files onto
-`2026-08-02`, and the resulting alphabetical order —
-`hr2c-fu1, hr2c-fu2, hr2c, hr3a, hr3b, hr3c, ops1` — contradicts the real order
-`hr3a, hr3b, ops1, hr2c, hr2c-fu1, hr2c-fu2, hr3c`. Renaming any subset is worse still,
-inverting the relationship with the files left alone. Since nothing replays migrations
-by filename (they are changelog-only; the install path is entirely mirror-based), the
-misleading dates cost nothing while a rename would destroy real ordering information.
+> ↪ moved verbatim → docs/agents/gate-and-tooling-history.md § ↩ G23
 
 ## ★★ 委托书描述的是【上一刀的小结】,不是树本身 —— 开工前先量(UI-1d,2026-09-05)
 
@@ -2983,17 +2280,7 @@ misleading dates cost nothing while a rename would destroy real ordering informa
 站到了【它所小结的那个东西】前面,并且每转述一次就硬一点。**
 委托书是同一族的载体:它由上一刀的报告写成,而报告写的是那一刀看见的树。
 
-| 例 | 委托书说的 | 树里实际是什么 |
-|---|---|---|
-| **FIX-2a** | 「§71 写明不给 `data.view_banking`」 | §71 写的是「那句话里**没提**」—— 一处沉默被读成了一个决定 |
-| **UI-1c** | 四条假断言 | 其中一份文件**两刀之前就被删了**,一个 export 名**不存在** |
-| **UI-1d** | 「没有任何一处 upload panel 碰图片字节」「图片处理是全新的」「那套做法是浏览器直传」 | **`app/finance/company/actions.ts:105` 的 `uploadLogo` 一直在传图片**:≤2MB、PNG/JPG、**服务端收字节**,理由就写在那一行旁边:「文件不大,不必走浏览器直传」 |
-| **CONFIRM-1** | 「56 处 `window.confirm` / 37 个文件」「两处手写的点两次确认」 | **40 处 / 35 个文件 / 一处**。三个数,三个都错 —— 而它们不是三次口误,是同一个机制的三次输出(见下一节) |
-
-UI-1d 那一栏的代价说得具体一点:委托书的 READ FIRST 把人支去读**三份
-`AttachmentsPanel`**,而它们共同的形状(浏览器直传 + 私有桶 + 一张元数据表)
-**恰好是这一刀不该抄的那一个**。真正的先例在另一个模块里,而且已经是
-Step 1 要的形状 —— 于是「加一套新机器」其实是「照 logo 那一处再写一遍,多一句 sharp」。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M05
 
 ### 处置:委托书里的每一条【事实】,开工前当场量一遍
 
@@ -3026,25 +2313,7 @@ Step 1 要的形状 —— 于是「加一套新机器」其实是「照 logo �
 
 ### 三刀连着命中,而 CONFIRM-1 这一刀三个数【全】错
 
-| 刀 | 委托书里的数 | 实测 | 那个数是打哪儿来的 |
-|---|---|---|---|
-| **UI-1c** | 四条断言 | 一份文件两刀前已删,一个 export 名不存在 | 上一刀报告里的文件清单 |
-| **UI-1d** | 「≈30MB 新依赖」「没有任何 upload panel 碰图片字节」 | `sharp` **早就在 `node_modules` 里**(next 的 optional 依赖),边际磁盘 **0**;`uploadLogo` 一直在传图片 | 上一刀报告里的估算 |
-| **CONFIRM-1** | 56 处 / 37 个文件 / 两处点两次 | **40 / 35 / 一处** | **BTN-1 的报告** —— 而 BTN-1 自己在同一份报告里写着「我在闸上报的 19 处是错的,真数是 56/37」 |
-| **INPUT-1**(2026-09-10) | 三条「已经量过了」的前提:「库与取样页已经一致(32px / **圆角 6px** / 1px 灰边)」「~415 个控件、**12** 个走共享组件」「单行输入框**统一 32px,已经是对的**、不存在 42px 那一群」 | ★ **22 条断言里 10 条是假的**:圆角是 **8px**;走共享组件的是 **2** 个(那个 12 是 `grep -o "<Input"` 的子串命中);540 个单行控件里 32px 的有 **3** 个,而 **42px 有 150 个**。原生 select 的「35px / 多 3px 内边距」在树里**一个都找不到**(9 种高度,35px 是 0 个) | 上一刀报告里的数,抄进委托书之后**只剩一个光秃秃的整数** |
-| **INPUT-2**(2026-09-10) | 「**五颗** `min-h-[48px]` 的收货/盘点钮」 | ★ **是六颗** —— 而且**另有三处手搓输入框常量**(覆盖 9 个输入框)带着同一个 48px,委托书一处都没提。那份「五颗」的名单是 STYLE-2 按 `size="lg"` 数出来的,**它数的是档位,不是 `min-h-[48px]`** | 一个数**数的东西和它的名字对不上**(见本节处置 ②) |
-| **INPUT-2b**(2026-09-10) | 「Chromium 给原生 `<select>` 的箭头留的保留区 **~27px**」—— 它写在 `docs/variant-c-spec.md` §4.1b 与 INPUT-2 的交回报告里,**而整条「这颗下拉装不装得下」的判据建在它上面** | ★★ **实测 20.2–20.3px**(5 种配置 × 2 视口,**对内边距不敏感** —— 那正是「保留区在 padding 之外」应有的样子);再用 3 颗「选中项恰好是最长项」的真 select 反证(20.39 / 20.97 / 20.75)。<br>★ **代价是量出来的:** 用 27px,INPUT-2b 名下 58 条路由报 **14 颗**装不下;用 20.3px 报 **4 颗**(其中 3 颗差不到 0.3px)—— **一个错了 6.7px 的常量,把一份不合清单放大了 3.5 倍** | ★ **一个【看起来像实测的】常量**:它是 INPUT-2 从两颗**真页面上的** select 自动宽反算的,而 `<select>` 的宽度由**最长那条 option** 定、不由选中项定 —— 于是式子里的「文字宽」**不是量出来的,是假定的**。<br>☞ **两次反算「算出同一个数」曾被当成自证**,而两次用的是同一个错的假定,所以它们必然一致。**一次自我一致的错误比一次孤立的错误更硬。** |
-| ★ **INPUT-3**(2026-09-11) | 三个数,而三个都不是它们名字说的那件事:①「`/finance/freight/new` **大约差 1px 就会横滚**」②「`<DataTable>` 自己的按钮**约 15 个**」③「**36 个**控件从 `tableC` 的格子里继承字号」 | ★★ ① **方向是反的** —— 实测壳 **326** / 内容 **327**:**它【已经在滚】,滚动范围恰好 1px**。☞ 后果不是「还有 1px 余量」,而是**一条【已经开着】的停止条件**,再宽一个像素就响(而它真的响了:16×16 的勾选框把内容宽推到 **330**)。<br>★ ② **作为代码点是假的**:`grep -c '<button' app/components/ui/data-table.tsx` = **4**。**15 是一次【渲染计数】**(排序头 × 列 · 展开箭头 × 行 · 分页),两个数不是同一个东西;三档高度 20/28/30px 本刀**没有重量**。<br>★ ③ **实测是 51 个**,不是 36 —— 那 36 是 INPUT-0 在**另一个 HEAD** 上量的,而这中间表格与控件两族各动过一轮 | ① 一句**措辞**(不是一个整数)把一条**已触发**的停止条件读成一条**还有余量**的 —— 见下面单列的那一节<br>② 一个数**数的东西和它的名字对不上**(本节处置 ②)<br>③ 一个数**在另一个 HEAD 上量的**,抄过来时时间戳掉了 |
-| ★ **FONT-1**(2026-09-11) | 三个数 / 断言:①「约 **242** 个站点今天用一个泛蓝」②「标准是 `/brand-sampler` 的 **variant C 那一节**」③「round 1 大约要 **1.25–1.75 小时**」★ ④「`/finance/company`、`/me`、`/sales/orders/new` 三条的溢出**合法的修法是给那一行容器加 `flex-wrap`**」<br>★ **round 3 的委托书又添两条:** ⑤「**先加 `max-w-full`**,到不了 0 再换 `w-full`」 ⑥「**round 2 没有写文档**」 | ★★ ① **两种口径都不是 242**:落在 `<a>`/`<Link>` 上的泛蓝 **248**(`text-blue-600` 233 · `-700` 14 · `-800` 1);**任何**角色上的泛蓝 **300**。<br>★ 而委托书据此写的「248 + **29** 个经组件 prop 到达 = **277**」**也是错的**:那 29 里 **23 个是同一个 `<Link>` 被数了两遍**(扫描器在 `<ListPage breadcrumb={<Link className="…">}>` 里把**内层**的 className 记到了**外层**标签头上),另外 **2 个根本不是链接**(`<p>`/`<div>` 上的 `text-blue-900` 提示横幅)。**真正的分母是 248 + 3 个链接态 `<button>` = 251。**<br>★ ② **spec §2 白纸黑字写的是「整张取样页」**,而不是那一节 —— 而这条措辞差**会改变这一刀的形状**:实测 C 节里的标题**只有 `h2`**,`h1` 与 `h3` 都在 C 节外面。照「variant C 那一节」的字面,h1/h3 **没有标准可抄**。<br>★ ③ **实测约 2.5 小时**(round 1 的量具自己的时间合计 **8521 秒 ≈ 142 分**)。<br>★★ ④ **三条【全部】修不了** —— 实测那三处的元凶各自是**一个原子控件**(两个 `<input type="file">` + 一颗原生 `<select>`),而**包着它们的容器今天就已经写着 `flex-wrap`**(`/me` 实测:`<form class="flex flex-wrap …">` 的 min-content **等于那一颗文件钮自己的 min-content**)。**换行分不开一个原子控件 —— 再给谁加一次 `flex-wrap`,这个数一个像素都不会动。**<br>★★ ⑤ **`max-w-full` 一点作用都没有** —— 实测(同一棵 DOM 上逐个注入再量,两条路由各四种):`max-w-full` → 整页溢出**仍然 27**;`w-full` → **0**;`min-width:0` 给父元素 → **27**。机制:百分比 `max-width` 在**内在尺寸计算**里当 `none`,挡不住 `<fieldset>` 那条 UA 的 `min-width: min-content`。<br>★★ ⑥ **round 2 【写了】文档** —— `variant-c-spec.md` +185 行 · `forward-queue.md` +159 · `row-height-baseline.md` +568 · `known-issues.md` +10 · `AGENTS.md` +63,合计约 **985 行**,全部在未提交的工作区里。 | ① ★★ **一个数【数的东西和它的名字对不上】的又一张脸,而这一次是【重复计数】:**一个自制解析器"在整个开标签文本里找第一个 `className=`",而 JSX 的开标签**可以包着别的标签**。<br>② **一句【口径】被抄窄了一格** —— 数字是对的,范围不是<br>③ 估价来自上一份报告,而**没有一次是实测**<br>★★ ④ **一次"有合法修法"的判断,和一次【真的去量那个修法有没有效果】,是两件事** —— 见下面单列的那一节<br>★★ ⑤ **同一族的第二次,而这一次错的是【委托书指定的那个修法本身】** —— 一条写进委托书的修法读起来像一条裁定,而它仍然只是一个**没有被量过的猜测**。☞ 处置:**照它做之前先花两分钟注入一次**;量出来无效就报出来,别把无效的那一个硬套上去。<br>★★ ⑥ **一条【关于上一刀做了什么】的断言,和一条【关于树里有什么】的断言,一样会错** —— 而它更难发现:数字会被重量,**"上一刀没做 X" 却常常被直接照做**。☞ 处置:**委托书说上一刀没做某件事时,先 `git diff --stat` 看一眼** —— 本刀因此把「从零写文档」换成了「逐条核对 + 补五个缺口」。 |
-| ★★ **FONT-2**(2026-09-11) | **六个数 / 断言**:①「约 **998** 个站点要逐处判」②「次级的**字号还没有裁**,到闸上问」③「§3 的停止规则**与 FONT-1 最后那一版相同**」④ §1.3 点名的两个读数文件路径 ⑤「`text-foreground` 原始 grep **35** 处,**注释里 2** 处」⑥ `app/globals.css` 那句注释「`text-foreground` 那 **23** 个站点」 | ★★ ① **998 是【全角色】的 B+C 合计**(body 541 · **link 287** · table 75 · other 63 · control 16 · button 12 · heading 3 · label 1),**其中 287 个链接 FONT-1 自己已经改完了**;★ 范围内要逐处判的是 **725**(分母 **3423**)。<br>★ ② **它早就裁过了** —— `docs/variant-c-spec.md` §4.7.3 白纸黑字写着 **12 / 400 / 16**,身份 **TIM'S RULING**;`docs/forward-queue.md` 还加了一句「FONT-2 只管落地,不用再裁一次值」。**委托书把一条在案的裁定报成了一个待办。**<br>★★ ③ **不是相同,是【互为反面】** —— §4.7.7 明写「由**字号 / 行高 / 字重** / 内边距造成的增长**仍然是停手**」,而委托书 §3 的例外**恰恰覆盖**那一族。**这一刀改的正是字号与行高。**<br>★ ④ **两个路径都不存在**(`/tmp/font1-r3/probeAfter.mjs` · `/tmp/font1-r3/after-routes.jsonl`);真的在 `/tmp/font1/probeAfter.mjs` 与 `/tmp/font1-r3/r3-readverify.jsonl`。<br>★ ⑤ **原始 34 处、注释里 1 处** —— 两个分量都不对,**而结果 33 是对的**。<br>★ ⑥ **33**。 | ①③⑤⑥ **一个数【数的东西和它的名字对不上】的又一张脸**,而 ⑤ 值得读两遍:**两个错的分量算出一个对的结果**,于是没有人会去核对它们。<br>★★ ② **一条在案的裁定被委托书报成了「还没裁」** —— 这与 INPUT-1 那次「一条裁定只活在聊天里」**是同一枚硬币的另一面**:那次是**裁过了却没写下来**,这次是**写下来了却没有人去读**。☞ 处置逐字同一条:**动手之前先去 spec 里把那一行调出来。**<br>★★ ③ **一条「与上一刀相同」的断言,和一条「树里有什么」的断言一样会错 —— 而它更险**:数字会被重量,**「规则与上一刀相同」却常常被直接照做**。☞ 处置:**委托书说「停止规则与上一刀相同」时,把上一刀那一节调出来逐字读一遍,不许照做。** |
-| ★★ **BUGFIX-1a**(2026-09-12) | **三个数 / 断言**:①「旧的 `FIX-1` 被引用**约 94 处 / 15 个文档**」②「静态路由 **141** —— 而探针的 glob **漏掉 `app/page.tsx`**,所以真数是 **142**,多的是首页 `/`」③「`container_no` 是**被删或被改名**的那一列」 | ★ ① **157 行 / 59 个在册文件**(`.md` 9 · **`app/` 下 32 个代码文件**)—— 低估,而且**口径漏掉了代码文件**;量法:`git grep`(只看在册文件)。⚠ 同一条命令在 `next dev` 跑过之后给 **174** —— 差的 17 是 `.next/` 里的开发产物。<br>★★ ② **两半都错。** 实测 `/` **【在】名单里**;141 与 142 的差额是 **`/brand-sampler`**,不是首页:<br>&nbsp;&nbsp;`skip brand-sampler : static 141 · has "/" = true`<br>&nbsp;&nbsp;`include brand-sampler: static 142 · has "/" = true`<br>而 `/brand-sampler` 被跳过是**一个决定**(取样页是标准的载体),不是一处 glob 缺陷。<br>★★ ③ **它从来没有存在过** —— `git log -G'container_no'` 在 `db/` 下 **0 次提交**;TOOLS-1(2026-09-03)一出生就拼错。 | ① **一个数【数的东西和它的名字对不上】**:「文档」这个口径把 32 个代码文件排除在外,而它们同样会被读到。<br>★★ ② **这一条值得读两遍:它是一次【被更正过的更正】。** round 1 发现 141 与 142 对不上是**对的**,而它替这个差额编的**机制是错的**(「glob 漏掉首页」)。☞ **一个数字的差额被发现,不等于它的原因被查清** ——而那个没被查清的原因会原样抄进下一份委托书,变成一句更硬的断言。<br>★★ ③ **「回归」与「从来没成过」是两件不同的事,而它们在屏幕上长得一模一样。** 前者要去找那次迁移;后者要问的是**「为什么一条死查询能活 8 天」** —— 两个问题的答案落在完全不同的地方(而后者的答案是:三道闸没有一道结构上看得见它,挡住类型闸的是 6 句 `as never`)。 |
-| ★★ **BUGFIX-1b**(2026-09-12) | **三个数**:①「**42** 支 `localize*Error`,其中 **41** 支的兜底是原样吐生字符串」②「**两条**导出路由把报错拼进 HTTP 正文」③ CCY-1 的 **300 / 90 / 45** | ★ ① **按名字数是 43 支 / 40 支原样返回;按【形状】数是 45 支。** 差的 5 支叫 `localize`(三处)、`dictError`(一处)、以及 `app/settings/accounts/accountActions.ts` 里的 `localize` —— **它们一个字都不叫 `localize*Error`**。★ 另有 **2 支**把生字符串**塞进一句模板**(`t('…saveError', {message: raw})`)后返回 —— **按「return raw」数,它们按构造数不到,而它们照样把生码送上屏幕。**<br>★ ② **是 9 处 / 8 个文件**(`Export failed: ${error.message}` 这一形状),round 1 只点了其中 2 条。<br>★ ③ **909 / 132 / 68**(量法与分母见 `docs/machine-text-reaching-humans.md`)。<br>⚠ **「949 条上界」本刀【没有重量】** —— 它不是本刀任何一条判据的阈值,照直记成 NOT RE-MEASURED。 | ★★ ① **「一次勘察只看得见代码碰巧给它起的名字」的又一次**(见下面那一节),而这一次它**同时**是「一个数【数的东西和它的名字对不上】」:判据写的是 `return raw` 这个**写法**,而要数的是「**兜底把生字符串送出去**」这件**事**。☞ 处置:**按形状枚举,不按名字枚举** —— 本刀的量具因此改成「一支函数,入参是一个字符串,函数体里有一句 `return <入参>`」,与名字无关。<br>★ ② 一个数**被上一份报告点名的两条**当成了全部 —— 而它当时**只是举例**,不是清点。<br>★ ③ 见 CCY-1 自己那份文档:两个方向都错,而**错的不是算术,是口径**。 |
-| ★★ **FONT-3**(2026-09-12) | ★ **Tim 自己在停止闸上点名的三条,加上 round 2 自己撞到的两条**:①「FONT-2 的 **20** 个判不出来的站点,**以及**那 **1** 个画成标题的」②「**复用 BUGFIX-1b 的改后读数**」③ 队列条目里两处 `messages/en.ts` 的**行号** ★ ④ round 1 自己报的「数字等宽落在 **54** 个站点上」★ ⑤ 队列/round 1 记的 `tools/reminders` 那个 `leading-6` 在 **439** 行 | ★ ① **是 20,不是 21** —— 那个「画成标题」的站点**就在那 20 个里面**(`/tmp/font2/classification-final.json`,`action === 'listed'` 恰好 20 行,第 12 行就是它)。<br>★ ② **BUGFIX-1b 没有改后读数可复用** —— `grep -n "survey-controls\|SURVEY_OUT" docs/handbacks/BUGFIX-1b.md` → **0 命中**,那一刀**一次浏览器都没开**。round 1 只好自己量了一份改前读数(**22 分钟**)。<br>★ ③ **行号错,字符串对**:`weekStart: 'Starting Monday'` 是 **4508** 不是 4511(4511 是 `inflow: 'In'`);`linesTitle: 'Recurring costs and known one-offs'` 是 **4549** 不是 4517(4517 是 `undated_no_date`)。<br>★★ ④ **是 61,不是 54** —— 而这一个**是 round 1 自己量出来的**,不是抄来的:7 个站点把 `text-right font-mono` 写在一段**嵌套的 `${'…'}`** 里,**按空白切词的那支量具按构造看不见它们**(见下面单列的那一节)。**其中 3 个在 Tim 点名走查过的 `/finance/trial-balance` 与资产负债表上。**<br>★ ⑤ **438,不是 439。** | ①③⑤ **一个数【数的东西和它的名字对不上】**的又几张脸,而 ③⑤ 是最便宜的那一种:**行号会漂,字符串不会** —— ☞ 处置:**委托书引用一行代码时,连那一行的【字符串】一起写**,读的人才能在行号漂掉之后还找得到它。<br>★ ② **「上一刀做过 X」是一条会错的断言,而这一次它错得【贵】** —— 委托书给的是一条**分叉**(「diff 为空就复用,否则自己量」),而分叉的**两个前提都成立**却还是走不通:diff 确实是空的,**可那份要复用的读数根本不存在**。☞ 处置:**一条「复用上一刀的 X」的指示,先去看 X 在不在**,再看 diff。<br>★★ ④ **这一条是新的一族,值得单列**:错的不是抄来的数,是**自己那支量具的【切词】那一层** —— 见下面「一支扫描器的【切词】那一层」。 |
-
-★ **CONFIRM-1 那一行是这条法则最好的证据,值得读两遍:**
-BTN-1 **知道**自己上一个数错了,**更正了它**,而**更正出来的那个数【也是错的】** ——
-因为更正用的还是 grep,还是没有把注释和调用点分开数。
-**于是一个被郑重更正过的数,反而比一个没人更正过的数更容易被信。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M06
 
 ### 为什么它专挑「数」下手
 
@@ -3094,34 +2363,14 @@ Tim 在 2026-09-09 已经裁了输入框的高度(32px)。**那条裁定没有�
 
 ## ★★ 一次样式改动落在【没有宽度类的原生控件】上,就是一次版式改动(INPUT-2,2026-09-10)
 
-**「一个宽度类都没有碰」不等于「一个渲染宽度都没有变」。** 一个没有宽度类的
-原生 `<input>` / `<select>`,它的宽度是浏览器**按字号与内边距**替它算出来的:
-`<input>` 是 `size`(默认 20)个字符宽,`<select>` 是最长那一条选项宽。
-INPUT-2 把手机字号 14→16px、左内边距 8→10px、下拉右内边距 →24px,
-于是**没有宽度类的控件当场变宽** —— 实测(2112 个成员逐个比)**220 个成员的渲染宽度变了**,
-其中 107 个是包着控件的 `<label>`,**控件本身 113 个**;变化量 **−24 ~ +52px**
-(文本框多为 +4 / +24,原生下拉最多 +52),而**逐字未变的 1762 个里,写了宽度类的一个都没动**。
-`/logistics/lanes` 上那两张**不换行的** flex 表单把 390px 的整页溢出从 +12px 推到 +76px。
-INPUT-2 的委托书写着「模块不带宽度类,所以渲染宽度不会变」,**而那句话按构造是错的**,
-这一刀因此停过一轮。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M07
+
 ☞ **处置:停止条件盯的是【整页横向溢出】与【表的行高 / 滚动范围】,不是控件宽度。**
 控件变宽是标准的必然结果,报出来即可;**页面被撑破才是停手的理由。**
 
 ### ★★★ 放宽(INPUT-2b,2026-09-10):**【写了宽度类也一样】—— `flex-1` 与 `w-full` 都挡不住** ★★★
 
-**上面这一整条把危险形状写成「【没有宽度类】的原生控件」。★ 那个限定词是错的,
-而它的代价是量出来的:INPUT-2b 的普查照这个限定词过滤,于是【放过了两条后来真的炸掉的路由】。**
-
-| 路由 | 390px 整页溢出 | 元凶 | 它有宽度类吗 | 检出器为什么放行 |
-|---|--:|---|---|---|
-| `/sales/orders/new` | **205 → 262(+57)** | 一颗原生 `<select>`,循环里渲染 5 次,每颗 **307 → 364** | ★ **有 —— `flex-1`** | 判据要求「没有宽度类」→ 被过滤掉 |
-| `/hr/attendance` | **0 → 14(新增)** | 一个 `input type="month"`,**168 → 191** | 没有 | 判据要求「≥2 个控件并排」,而那一行只有 **1 个**(旁边是 `<Button>`,按钮不是控件) |
-
-★★ **机制:`flex: 1 1 0%` 配 `min-width: auto` 时,一个 flex 项目【不能被压到自己的
-`min-content` 以下】。** 而原生 `<select>` 的 `min-content` = **最长那条 option 的文字宽
-+ 左右内边距 + 边框 + 箭头保留区**。把右内边距 12→24、手机字号 14→16
-(后者同时放大最长那条 option 的文字宽)→ `min-content` 长了 **57px**,
-而 `flex-1` 只能分配**剩余**空间,压不到最小内容宽以下。**`w-full` 同理。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M08
 
 > ### ☞ 判据改成这一句
 > **在一个【不换行】的容器里,有任何一个【内在尺寸由内容决定】的原生控件 —— 就是危险形状。**
@@ -3152,25 +2401,11 @@ INPUT-2b 那个检出器问的是「有没有写宽度类」与「并排够不�
 > ☞ INPUT-2b 的代价:一次报「0 个危险形状」的普查,后面跟着**两条真的炸掉的路由**,
 > 而两条**都在它扫过的 58 条里**。**它扫到了,它没问对。**
 
-★ **后来怎么收场的(2026-09-11):Tim 裁了一条修复次序(先给那一行 `flex-wrap`,不够再谈停手),
-两条路由分别从 14 → 0 与 262 → 6,INPUT-2b 随即上线。** 见 `docs/variant-c-spec.md` §4.1d。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M09
 
 ## ★★ 一个数被抄走时,它的【分母】掉了(FONT-1,2026-09-11)
 
-**INPUT-3 的 §5.7 报的是「390px 首屏 **25** 颗原生 `<select>` 装不下」。**
-**FONT-1 的委托书把那个 25 抄了过去,而抄过去之后它读起来像【全系统 25 颗】。**
-
-★ **实测:那 25 颗是【22 条路由】上的 25 颗。** INPUT-3 那支探针走的是
-`/tmp/input3/probe-routes.json` 里的 **22 条**静态路由;FONT-1 走的是**全部 141 条**,
-同一条判据下量到的是 **phone 38 颗装不下 / 168 颗里**(其中**真的被截掉字**的 21 颗)、
-**desktop 5 颗 / 168 颗**(真被截 1 颗)。
-
-| | |
-|---|---|
-| **原句读起来是** | 一个**全系统**的数 —— 「25 颗下拉有问题」 |
-| ★ **实际是** | 一个**子集**上的数 —— 「**22 条路由上的** 25 颗」 |
-| ★ **代价** | 两个数**看起来可比,其实不可比**。照 25 排期,会把一件 38 颗的活按 25 颗报价;
-反过来,看到 38 会以为「又变坏了 13 颗」,而**那 13 颗从来没有被前一支量具看过**。 |
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M10
 
 > ### ☞ 机制,一句话
 > **一个整数是一个【比】的分子。抄走分子、丢掉分母,那个数就变成了另一个数,而它看起来一模一样。**
@@ -3191,17 +2426,7 @@ INPUT-2b 那个检出器问的是「有没有写宽度类」与「并排够不�
 
 ## ★★ 一条判据吊在一个【这一刀自己要改掉】的样式类上(FONT-1,2026-09-11)
 
-**`scripts/survey-controls.mjs --mode=edit` 挑「编辑」按钮的判据,此前含一条:
-`className` 里要有 **`text-blue-600`**。**
-★ **而 `text-blue-600` 正是 FONT-1 要从 `editable-table.tsx` 那几颗按钮上换掉的 class。**
-
-| | |
-|---|---|
-| **如果不一起改** | `--mode=edit` **一个候选都挑不到**,而它的失败方式是 ——<br>★ **一个安静的零**:每一条路由都记成 `clickHadNoEffect: true`,而那**与「这一页本来就没有可编辑的行」在读数里逐字相同**。 |
-| ★ **后果** | `docs/row-height-baseline.md` §7.2.2 那两张编辑态表**从此量不到**,而下一刀会拿到一份**看起来干净**的编辑态读数。 |
-| ★ **为什么现成的断言拦不住** | 那支普查已经有一条「双向钉住」:**每条路由要么点出了控件,要么明写 `clickHadNoEffect`**。<br>★ **判据瞎掉时它【全绿】** —— 因为"没点出控件"确实被明写了。**它区分不开【真的零】与【瞎了】。** |
-| ★ **改成什么** | ① 判据换成**按内容定位**(`tbody tr` 里 + 文字等于 `<EditableTable>` 自己那个 `labels.edit`,而那个词从 `messages/en.ts` 里**取**,不写死);<br>② 加一条**点名两条路由**的覆盖断言:`/hr/leave/types` 与 `/hr/reviews/scale` **今天各有可编辑的行**,它们**必须**各挑到 ≥1 个候选,否则 **EXIT 2**。<br>★ 而 `/hr/kpi/score` 与 `/me` **今天没有可编辑的行** —— 它们**报出来,不断言**,把它们写进断言就是把一个**真的零**当成故障。 |
-| ★ **两条都证过了** | · 改完之后在**未改动的树**上跑:与 round 1 的改前读数**成员 118 / 118,多 0 少 0 变 0**;<br>· **局部致盲**(只让 `/hr/reviews/scale` 挑不到候选):`/hr/leave/types` 仍然点到 1 颗,**老断言照常全绿**,而新断言 **EXIT 2** 并点名了那一条路由。 |
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M11
 
 > ### ☞ 机制,一句话
 > **一条判据认了一个【属于别人的】性质。** 颜色是设计要改的东西;
@@ -3218,15 +2443,7 @@ INPUT-2b 那个检出器问的是「有没有写宽度类」与「并排够不�
 
 ## ★★ 一次修法被判成【合法】,而没有人去看那个容器【今天是不是已经在换行】(FONT-1,2026-09-11)
 
-**FONT-1 round 1 对三条长大的整页溢出下的判词是:「✓ 合法 —— 不在表里,给那一行容器加 `flex-wrap`」。**
-★ **那句话是错的,而它错的地方不是【结论】,是【它根本没有去量】。**
-
-| | |
-|---|---|
-| ★ **实测(round 2)** | 三处的元凶各自是**一个原子控件** —— 两个 `<input type="file">` 与一颗原生 `<select>`;<br>★ 而**包着它们的容器今天就已经写着 `flex-wrap`**:`/me` 上 `<form class="flex flex-wrap …">` 与外层 `<div class="flex flex-wrap …">` 的 **min-content 等于那一颗文件钮自己的 min-content**(产品字体 **350** vs Arial **303**,而可用宽度只有 **326**)。 |
-| ★★ **于是那条修法的效果是【零】** | **换行分不开一个原子控件。** 再给谁加一次 `flex-wrap`,这个数**一个像素都不会动** —— 而 round 3 把它量出来了:给父元素 `min-width: 0` 之后整页溢出**仍然是 27**。 |
-| ★ **它为什么读起来像一次真的判断** | 「不在表里」是**量过的**(那三条路由上确实一张表都没有),而「加 `flex-wrap`」是**这个仓库里真的存在的一条标准修法**(spec §4.1d)。<br>☞ **一个量过的前提 + 一条在案的修法 = 一句读起来完全可信的判词**,而中间缺的那一步(**这条修法用在这里有没有用**)没有留下任何痕迹。 |
-| ★★ **代价** | round 2 **照着那句判词去修,修不动,然后停手** —— 一整刀停在这里,要 Tim 裁一次(T1/T3)。**那次停手是对的;可以省掉的是 round 1 少做的那一次测量。** |
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M12
 
 > ### ☞ 机制,一句话
 > **「存在一条合法的修法」与「这条修法在这里有效」是两个不同的命题,而前者读起来和后者一模一样。**
@@ -3245,19 +2462,7 @@ INPUT-2b 那个检出器问的是「有没有写宽度类」与「并排够不�
 
 ## ★★ 写在 `style={{ }}` 里的颜色,任何 className 扫描器【按构造】看不见(FONT-1,2026-09-11)
 
-**FONT-1 round 2 的判据是「**泛蓝的字色 class**」,它逐字符扫每一个 JSX 开标签的 `className`,
-遮掉注释与字符串,只在嵌套深度 0 上取词 —— 一支相当仔细的扫描器。**
-★ **而树里有 14 处链接把颜色写在内联 `style` 里,它一个都没看见:**
-
-```jsx
-<Link className="font-mono hover:underline" style={{ color: 'var(--brand-ocean-fill)' }}>
-```
-
-| | |
-|---|---|
-| ★ **失败的形状** | **不是漏扫,是【判据的主语错了】。** 判据问的是「这个标签有没有一个泛蓝的 class」,<br>而真正要问的是「**这个链接渲染出来是什么颜色**」。**两个问题在 95% 的落点上答案相同**,所以它看起来一直是对的。 |
-| ★★ **代价是【看得见】的** | 转过去的 358 个链接是 `#00709D`(白底 **5.52:1**),而这 14 处渲染出来的 71 个是 `#007FAD`(白底 **4.527:1**,**过 AA 只过了 0.027**)。<br>☞ **屏幕上于是有两种品牌蓝的链接,而窄的那一种恰好是贴着合规线的那一种** —— 一次**本来要做归一的改动,自己造出了一处新的不一致**。 |
-| ★ **它是怎么被抓到的** | **不是被扫描器抓到的** —— 是**改后那一趟探针读 `getComputedStyle` 的颜色直方图**时,冒出一档「71 个 `#007FAD`」而没有人认得它。<br>☞ **一个读【渲染结果】的量具,抓到了一个读【源码】的量具漏掉的东西。** |
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M13
 
 **处置(两条):**
 
@@ -3268,13 +2473,7 @@ INPUT-2b 那个检出器问的是「有没有写宽度类」与「并排够不�
 
 ## ★★ 一次【按回原样】的证明,要么撤多了,要么只撤了第一个(FONT-1,2026-09-11)
 
-**「把字按回 Arial,看溢出回不回得去」是 FONT-1 那条例外的全部证明。
-★ 这个证明本身错过两次,而两次都是【同一个形状】。**
-
-| # | 错在哪 | 它报出了什么 | 改法 |
-|--:|---|---|---|
-| ① ★ **撤多了** | 用的是一条 CSS 规则 `table, table * { font-family: Arial }` —— **它把格子里本来就是 `Geist Mono` 的批号与金额也按成了 Arial**,而**等宽那一族这一刀一个字节都没动** | `/finance/cash-forecast` 的内容宽 1678 →(按回)**1432**,★ **比改前还窄 246px**;**6 张表"证不住"** | 改成**逐元素**:只把**今天真的渲染成产品字体**的按回去,`Geist Mono` 的**原样不动** |
-| ② ★ **只撤了第一个** | `document.querySelector(sel)` | 一页三张表时另外两张"证不住",**4 张** | `querySelectorAll` |
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M14
 
 > ### ☞ 机制,一句话
 > **一个证明的名字说的是「这一刀造成了多少」,而它实际问的是别的问题。**
@@ -3294,14 +2493,7 @@ INPUT-2b 那个检出器问的是「有没有写宽度类」与「并排够不�
 
 ## ★★ 一条【已经触发】的停止条件,被措辞读成一条【还有余量】的(INPUT-3,2026-09-11)
 
-**委托书 A.4 的原话是:「`/finance/freight/new` 在 390px 上**大约差 1px 就会横滚**」。**
-**★ 实测:滚动壳 326 / 内容 327 —— 它【已经在滚】,而滚动范围恰好是那 1px。**
-
-| | |
-|---|---|
-| **原句读起来是** | 一条**还没触发**的条件,外加一格**余量** → 「小心别越过它」 |
-| ★ **实际是** | 一条**已经触发**的条件,余量 **0** → 「再宽一个像素就是【多出滚动范围】,而那是 R6(c) 的字面停手」 |
-| ★ **代价** | 那一页的勾选框拿到 R5/R6 裁的 16×16 之后,列的 `min-content` **37 → 40**,内容宽 **327 → 330**,滚动范围 **1 → 4**。<br>**一条本以为有余量的路线,实际上从第一步就在红线外面** —— 这一刀因此必须停在闸上,要 Tim 单独裁一条例外(现在住在 `docs/variant-c-spec.md` §4.1e)。 |
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M15
 
 > ### ☞ 机制,一句话
 > **「差 N 就会 X」与「已经 X 了 N」在数值上只差一个符号,在【要不要停手】上差一整刀。**
@@ -3319,14 +2511,7 @@ INPUT-2b 那个检出器问的是「有没有写宽度类」与「并排够不�
 
 ## ★★ 同一个组件里的三个同类控件,可以有【两种几何】(INPUT-3,2026-09-11)
 
-**委托书与 forward-queue 都把 `<DataTable>` 的三枚勾选框当成同一类东西**
-(「`<DataTable>` 那一批勾选框是浏览器默认 13×13」)。★ **实测:三枚里两枚今天就是 16×16。**
-
-| 那一枚 | 它的 className | ★ 实测几何 |
-|---|---|---|
-| 表头全选(唯一的 `indeterminate` 消费者) | `base-pressable h-4 w-4` | **16×16** |
-| 每一行的选择框 | `base-pressable h-4 w-4` | **16×16** |
-| ★ 列显隐面板里的那一枚 | ★ **一个 className 都没有** | ★ **13×13**(浏览器默认) |
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M16
 
 > ### ☞ 机制
 > **「同一个组件」是一个【文件】边界,不是一个【样式】边界。**
@@ -3334,11 +2519,7 @@ INPUT-2b 那个检出器问的是「有没有写宽度类」与「并排够不�
 > 一份按**文件**做的清点(「`data-table.tsx` 的勾选框」)会把它们合成一格,
 > 而**真正决定屏幕的是三行,不是一个文件**。
 
-**后果是具体的,不是理论上的:** forward-queue 据此预告「勾选框 13→16 会推高
-`/finance/processing-costs` 那两张 81 / 81.5px 的表」——
-★ **那件事在那一页上【不会发生】**(它们本来就是 16px,实测行高 **81.5 → 81.5 逐字不变**);
-它落到了**另一页的列宽**上(`/finance/freight/new`,min-content **37→40**)。
-**一次归错类的预测,同时【多报】了一处风险、又【漏报】了真正会响的那一处。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M17
 
 **处置:**
 
@@ -3354,10 +2535,7 @@ INPUT-2b 那个检出器问的是「有没有写宽度类」与「并排够不�
 多一个账号、长一个邮箱、改一个角色名,那一页在 390px 上就宽 1px。
 ☞ **所以一条停止条件要拿【这一刀自己的改前读数】去比,而基线文档里那个值是【报出来的】,不是【被执行的】。**
 
-**这条规矩是被一次实测逼出来的:** INPUT-2b 在**一个字节都没改的干净树上**跑行高比对器,
-它对着 `docs/row-height-baseline.md` 退 **1** —— `/settings/accounts` 的整页溢出 35 → 36。
-而同一刀 15 分钟后复量同一条路由读到的是 **35**:**同一个 HEAD、同一支量法,两次读数差 1px。**
-那 1px 还落在一个 `<button>`(「Edit」)上,**根本不是控件**,而那一页首屏渲染 **0 个控件**。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M18
 
 > **判据一句话:拿一个 ±1px 不稳的量去当停手判据,停的会是运气,不是回归。**
 
@@ -3401,20 +2579,7 @@ UPDATE materials SET deleted_at = now() WHERE id = $1;
 于是不满足 `p` 的人先卡在 USING 上:那一行根本没有进入这条语句的视野,
 **`WITH CHECK` 永远没有机会抛 42501**。
 
-活库实测(真账号,无编辑权,`BEGIN…ROLLBACK`),十张表全部 `rows=0 raised=NONE`。
-
-**它在应用层长成什么样:**
-
-```ts
-const { error } = await supabase.from('materials').update({...}).eq('id', id)
-if (error) return { error: ... }     // ← 永远不进
-return { success: true }             // ← 一次被拒绝的写,报告成功
-```
-
-页面照常 `revalidatePath`,记录纹丝不动,**屏幕上一个字都没有**。
-ALERT-1 之前十个调用点是这个形状;最难看的一个在任务看板 ——
-乐观更新的回滚判据写的是「出错了才回滚」,于是卡片**留在数据库拒绝的那一列里**。
-**那已经不是少了一条消息,是屏幕主动说了一句假话。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M19
 
 **处置(三条,由外向内):**
 * **客户端**:乐观更新的回滚判据写成【没确认落地就回滚】,不是【出错才回滚】。
@@ -3435,13 +2600,7 @@ ALERT-1 之前十个调用点是这个形状;最难看的一个在任务看板 �
 **图失败得比水合快时,那次 error 事件没有人接,而 React 不会补发它。**
 于是"取不到图就回落"这条路**永远不会被走到**,屏幕上留下一个破图图标。
 
-实测(`scripts/probe-avatar.mjs`,`PROBE_DELAY_JS=3000` 把 `_next/static/*`
-每个请求延后 3 秒,于是 404 一定早于水合;**两臂唯一的变量是那道兜底**):
-
-| | 水合完成后 DOM 里的 `<img>` |
-|---|---|
-| 只有 `onError` | **2 个都还在**,`complete=true` 而 `naturalWidth=0` —— 两张破图 |
-| 加上挂载时自查 | **0 个** —— 回落走到了,画的是首字母 |
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M20
 
 **处置:挂载时自己问一遍,不等事件。**
 `img.complete === true && img.naturalWidth === 0` 就是"已经失败过了";
@@ -3450,13 +2609,7 @@ ALERT-1 之前十个调用点是这个形状;最难看的一个在任务看板 �
 
 ### ★ 而这一条的判据,前两次都量错了 —— 错法比结论更值得记
 
-**第一次(掐 CPU)**:`Emulation.setCPUThrottlingRate` 20×,有兜底没兜底**都绿**。
-那不是"兜底没用",是**那一档没把赛跑翻过来** —— 掐的是 CPU,而图片走的是网络。
-
-**第二次(延后 JS,但量得太早)**:有兜底没兜底**都红**。
-探针那时等的是 `document.querySelector('[data-panel="avatar"] button')` ——
-**那是服务端渲染出来的 HTML,JS 一行都还没跑它就成立了**。
-于是判词下在水合之前,而 `onError` 与挂载自查**都要水合之后才存在**。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M21
 
 > ★★【**一个分不出两臂的判据,不是判据** —— 无论它是全绿还是全红】★★
 > 全绿会被读成"这条兜底没必要"(于是被删掉),
@@ -3488,36 +2641,7 @@ return !!b && Object.keys(b).some(k => k.startsWith('__react'))
 > 「★★★ 覆盖率本身必须是一条断言」。那一条不是这一条的推论,是它的反面:
 > 前五例问「判据看得见那个性质吗」,第六例问「判据【看得见它自己在不在看】吗」。
 
-**前四例是【判据看不见它要证的那个性质】。这一例不一样,而区别正是它的价值:
-判据【看得见】那个性质,只是被指向了一个【人永远不会到达的状态】。**
-
-| 例 | 判据 | 它为什么红不了 |
-|---|---|---|
-| ① BTN-1 | `getComputedStyle` 读对比度 | 读回来的是没淡化的颜色 —— 看不见那个性质 |
-| ② FIX-2b | HTTP 200 | 一页渲染着错误框也是 200 —— 看不见那个性质 |
-| ③ UI-1d fu2 | 固定 `sleep` + 服务端 HTML 里的按钮 | 判词下在水合之前 —— 看不见那个性质 |
-| ④ COPY-1 | **DOM 计数** | `hidden md:block` 在任何宽度上都数成 1 —— 看不见那个性质 |
-| ⑤ **本例** | **一次 `fetch` / `page.goto`** | **看得见,但那是【硬导航】—— 人从来不走那条路** |
-| ⑥ CONFIRM-1 的闸 | **一个自制解析器数出来的 N** | **它看不见【自己有没有在看】** —— 漏抓与干净,输出都是 `EXIT 0`(单独一节) |
-
-**实测(`scripts/probe-search-shell.mjs`,同一个会话、同一个宽度、同一条路由,
-唯一的变量是【怎么到达】):**
-
-```
-S2  /me @1280 硬导航   present=true  visible=true  box=200x32     ← COPY-1 量到的
-S3b /me @1280 软导航   present=false visible=false "not in DOM"   ← 人看到的
-```
-
-**机制:`<SearchShell>` 住在【根布局】里,而 App Router 在客户端换页时不重画根布局。**
-人登录后落在 `/`(`lib/loginRoute.ts:148`,UI-1b 把落点从 `/me` 改成了 `/`),
-根布局那一次求值得到 `null`,然后他点着 `<Link>` 走遍整个系统 ——
-**那个 `null` 跟着他一整个会话。** 而脚本每次都是新的硬导航,根布局当场重画。
-
-> ★★【说清楚:两边都没有撒谎】★★ COPY-1 报的
-> 「`/` → 0 · `/me`、`/settings/accounts`、`/purchasing/orders` → 1 each」
-> **是真的,是绿的,而它量的那棵树对每一个人都已经是坏的。**
-> 这比"那条检查写错了"是更好的教训:**一次脚本 fetch 每次都把布局重画一遍,
-> 而一个人【从来不会】。** 判据没有错,它被指向了一个没有人住的状态。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M22
 
 **所以规矩是(Tim 在 CONFIRM-1 第二轮裁定,而它不止管这一刀):**
 
@@ -3543,12 +2667,7 @@ S3b /me @1280 软导航   present=false visible=false "not in DOM"   ← 人看�
 
 > **一次勘察的完整性,只能强到它的搜索【独立于代码自己那套词汇】的程度。**
 
-`app/components/ReasonPrompt.tsx`(AUDEL-2)是一个货真价实的确认界面:
-触发 → 就地展开 → 标题 + 后果 + **必填理由** + 确认/取消 + 就地报错,
-理由为空时确认钮不可按。**它八个调用点,而 CONFIRM-1 的 Step 2 报告说
-「树里没有确认组件,只有两处先例」—— 那句话是错的,当时是【三处】。**
-它没被找到,不是因为它藏起来了,是因为它的文件名叫 `ReasonPrompt`,
-既不是 modal 也不是 dialog,而它渲染的是一个 `<div>`,不带 `role="dialog"`。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M23
 
 **补救:至少按【行为】搜一遍,不要只按名字搜。**
 名字问「它自称是什么」,行为问「它实际做了什么」:
@@ -3562,15 +2681,7 @@ S3b /me @1280 软导航   present=false visible=false "not in DOM"   ← 人看�
 
 ### ★ 第三次(BUGFIX-1b,2026-09-12):**42 支 → 45 支,差的 5 支不叫那个名字**
 
-round 1 按 `localize[A-Za-z]*Error` 数出 **42** 支「码 → 人话」的映射器。
-★ **按【形状】重数是 45 支**:三支叫 `localize`、一支叫 `dictError`、
-还有一支也叫 `localize`(`app/settings/accounts/accountActions.ts`)。
-**它们做的是一模一样的事,而且五支全都以「原样吐生字符串」收尾** ——
-按名字改的那一刀会把它们**整整齐齐地漏掉**。
-★ **形状判据只有一行**:*一支函数,入参是一个字符串,函数体里有一句 `return <那个入参>`*
-(量具 `/tmp/bugfix1b/scan-mappers2.mjs`)。**它与名字无关,所以下一次改名也漏不掉。**
-☞ 与本节上面两例的区别值得记:那两例是**搜索**漏了;这一例是**分母**错了 ——
-而一个错的分母会安静地变成下一份委托书里一个"已经量过"的整数。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M24
 
 ## ★★★ 问「有没有哪一处满足 P」时,枚举 **P 住的那个空间**,不要枚举调用点(BTN-2,2026-09-06)
 
@@ -3579,32 +2690,7 @@ round 1 按 `localize[A-Za-z]*Error` 数出 **42** 支「码 → 人话」的映
 
 > ### **调用点是开放集合,目录是闭合集合。能对着闭合集合问的问题,别对着开放集合问。**
 
-**它是怎么被逼出来的。** BTN-2 要回答:「树里有哪些图标按钮**没有可访问的名字**?」
-委托书带来的数是 **43 处,其中 41 处没有名字**(来自 BTN-1)。
-对着**调用点**问这个问题,做了两版,**两版都错,而且错在相反的方向**:
-
-| 版本 | 判据 | 结果 | 为什么错 |
-|---|---|---|---|
-| 第一版 | 子节点里没有裸文本 = 没有名字 | **40 处** | `{labels.save}`、`{t('common.save')}` 都不是裸文本节点 —— 把**有名字**的按钮数成了没名字的 |
-| 第二版 | 有任何 `{…}` 子表达式 = 有名字 | **0 处** | `{l.assayOpen ? '▾' : '▸'}` 也是一个表达式 —— 把**真没名字**的按钮数成了有名字的 |
-
-★ **一个静态解析器判不出 `{expr}` 会不会渲染出文字。** 两版都在猜,
-而猜错的方向由启发式的写法决定,不由树决定。
-
-**换枚举对象之后,问题当场变成有限的:** 名字最终来自 `messages/*.ts`。
-于是不去数按钮,去**把整本目录摊平,找出【任一语言里不含任何字母】的词条**:
-
-```
-6506 个键 × 2 种语言  →  6 个不含字母的值
-  common.listSep ", "/"、"   purchasing.colSeq "#"   purchasing.form.modePct "%"
-  invoice.colLineNo "#"      ★ tasks.nodes.up "↑"    ★ tasks.nodes.down "↓"
-```
-
-**其中落在按钮上的只有两个。** 43/41 的真值是 **2**。
-再补两遍**同一次运行里的**旁路把口子封死:tag 上的 `aria-label` 扫一遍(4 处)、
-子节点里的字面字形扫一遍(7 个候选,4 个即上面那 4 处,2 个字形后面还跟着真文字)。
-**三条路合起来是【构造上穷尽】的,不是【尽力而为】的** ——
-没有任何一个按钮能带着一个我没读到的 i18n 名字存在,因为目录被整本读完了。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M25
 
 **判别式,写给下一刀:**
 
@@ -3622,16 +2708,7 @@ round 1 按 `localize[A-Za-z]*Error` 数出 **42** 支「码 → 人话」的映
 **一次勘察的准确度,取决于【代码选择提到哪些词】。所以一条点名某个机制的注释,
 会污染将来对那个机制的计数。**
 
-CONFIRM-1 的委托书说树里有 **56 处 `window.confirm`**。实际是 **40 处**,
-而那 16 处差额【全是注释】—— 每一个转换过的文件顶上都写着一句
-「本组件的确认走 window.confirm」,`grep -c` 一视同仁地数了进去。
-同一次 grep 还**漏掉了一处** `confirm(`(没有 `window.` 前缀):
-**那个数在两个方向上都是错的。**
-
-★ **而这一刀差点原样再种一次:** 转换那六个文件时,第一版注释写的是
-「原来是 `window.confirm(t('materials.deleteConfirm', { name }))`」——
-grep 于是在每一个【已经转换完的】文件里又数到 1。
-**一刀的头号发现是"那 56 个数的是注释",而它的第一版注释正在重新制造那个数。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M26
 
 **处置(两条,第二条更要紧):**
 * 注释里**不写那个字面 token** —— 写「原来走的是原生确认框,消息键 `xxx.deleteConfirm`」。
@@ -3644,18 +2721,7 @@ grep 于是在每一个【已经转换完的】文件里又数到 1。
 
 ### ★★ 第三次与第四次:ALERT-1(2026-09-08)——【而这一次注释咬的是改写脚本,不是计数】
 
-同一条法则,同一族机制(原生对话框),两天后又中两次:
-
-* **第三次(计数)**:委托书说 18 个文件里有 19 处 `alert()`。裸 `grep` 说 20。
-  真数是 **18** —— 多出来的两处,是 BTN-4 在 `app/finance/fx/[id]/edit/DeleteButton.tsx`
-  顶上写下的两句注释,为了说明"哪一句留着"而把 `alert(result.error)` **逐字抄了进去**。
-  ☞ 而那个 19 【不是错的,是过期的】:BTN-4 之前的树逐字就是 19/18
-  (`git grep` 在 `3547e37` 上可复算)。**一个数可以正确地诞生,然后安静地过期。**
-
-* **★ 第四次(改写)—— 这一次的后果比数错大**:ALERT-1 用一个正则脚本批量把
-  那 18 处换成横幅调用。脚本在那个文件里**先撞上注释里那句逐字的调用**,
-  于是**改了注释、放过了真代码**,当场把文件改成语法错。
-  **一句注释不只会被【数】进去,它会被【改】。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M27
 
 **处置(在 CONFIRM-1 那两条之外,再加两条):**
 * **批量改写【不许用正则找调用点】** —— 用 AST。注释不进 AST,这是结构性的免疫,
@@ -3686,10 +2752,7 @@ grep 于是在每一个【已经转换完的】文件里又数到 1。
 
 ### 实测(这条法则是怎么被抓到的)
 
-`scripts/check-confirm-subject.mjs` 头一版报 **43 处**,而 `grep -c '<ConfirmButton'`
-数出 **48 处**。差额查明是【注释里提到组件名】,**代码确实是干净的**。
-可要紧的不是这次的结论 —— **是当时没有任何东西能证明它。**
-那 5 处的差额是人眼看出来的,而人眼下一次不会看。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M28
 
 ### 法则
 
@@ -3723,13 +2786,7 @@ resolver 必须失败」(`check-i18n`)· 「零必须是一次测量,不是一�
 
 ### ★ 第五次,而这一次【那条断言自己写松了】(ALERT-1,2026-09-08)
 
-ALERT-1 照这条法则写了 `scripts/survey-native-dialogs.mjs`:AST 解析,
-走过的 identifier 少于 1000 就喊「我瞎了」并退出 3。**那一半是对的,它救过场。**
-
-**但它的第二条断言写松了:** 解析失败的门槛是「诊断条数 > 20」。
-而同一刀的改写脚本把一个文件改成语法错之后,那个文件只有 **3 条**诊断 ——
-低于门槛,`parseFailures` 仍是 0,普查照常打印「0 处」,**看起来干干净净**。
-那一刻 18 处已经改完、其中一处坏着,而量具说一切正常。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M29
 
 > **一个阈值型的健康检查,等于一条【自己给自己留了余地】的断言。**
 > 「超过 20 个才算坏」的言下之意是「20 个以内不算坏」—— 而这句话没有人论证过。
@@ -3757,13 +2814,7 @@ ALERT-1 照这条法则写了 `scripts/survey-native-dialogs.mjs`:AST 解析,
 在字符类那里**匹配不上**:行尾没有字符,`[\s>]` 无处可落。
 **后果不是"数字偏小",是这条判据对多行写法【完全失效】。**
 
-**三次记录,同一个形状:**
-
-| | 谁 | 症状 |
-|---|---|---|
-| ① | BTN-1 的棘轮 `/<button[\s>]/` 逐行 `test` | 266 处只看得见 108 处;改成 `(?=[\s>]\|$)` |
-| ② | BTN-2 的注入格 B | 把正则退回①,101 对 205 —— **同一个坑换了个身份** |
-| ③ | BTN-3 自己的 `<form>` 嵌套判据 `/<form(?=[\s>])/` 逐行 `match` | 24 个无 `type` 的按钮**全部**被判成"不在表单里",而其中 8 个就在表单里 |
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M30
 
 **改法一律是 `(?=[\s>]|$)`** —— 行尾也算一个合法的边界。
 **或者根本不要按行切**:对整份源码跑正则时,`\n` 真的是 `\s`,这个陷阱不存在
@@ -3773,10 +2824,7 @@ ALERT-1 照这条法则写了 `scripts/survey-native-dialogs.mjs`:AST 解析,
 
 ### ★ 而比陷阱更值钱的是它【怎么被抓到的】:一格没有咬人的注入
 
-BTN-3 的解析器有四格注入,其中一格是「把路径 A 弄瞎」,**它回来是绿的**。
-按理它必须红 —— 于是去查为什么,才发现「弄瞎」那一版**根本没瞎**
-(整份源码上 `[\s>]` 与 `(?=[\s>]|$)` 等价),而真正的瞎法是 `/<button /`。
-换上之后四格是 `0 / 3 / 3 / 0`,而那一格红得干净利落。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M31
 
 > **一次没有咬人的故障注入是【信息】,不是麻烦。**
 > 它说的是下面两件事之一,而两件都要紧:
@@ -3801,10 +2849,7 @@ for (const sig of ['SIGINT','SIGTERM']) process.on(sig, async () => { await clea
 process.on(sig, () => { release(); process.exit(130) })   // ← 同步
 ```
 
-Node **按注册顺序**调用监听器:清理那个先跑,它在第一个 `await` 上让出;
-于是第二个监听器立刻 `process.exit(130)`,**进程当场消失,四次 REST 一次没跑。**
-实测:SIGTERM 之后约 3 秒进程没了,线上留下 `ZZ-SMOKE-SURVEY-1/2`、
-一个**活着的** `survey-*@test.local` admin、以及一份评估。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M32
 
 > **判据:一支脚本里有几个东西会调 `process.exit`?**
 > 多于一个,就必须指定【谁最后动手】。`liveLock.acquireOrExit` 因此多了
@@ -3836,11 +2881,7 @@ Node **按注册顺序**调用监听器:清理那个先跑,它在第一个 `awai
 
 ## ★★ 一次按【症状】立案的勘察,看不见【正常路径】上的同一个后果(LEAK-1,2026-09-06)
 
-`docs/known-issues.md` 的 PROBE-KILL-LEAK 按「探针被杀 → 清理跑不到 → 留下授权」
-立案,于是修的人去查的是**信号处理器**。而那 28 条幽灵授权最大的产地
-`scripts/probe-button-tiers.mjs` **根本不在那一族里**:它的收尾只删账号、
-**整份文件里 `user_roles` 只出现过一次,就是那条 INSERT** ——
-**每一次跑完都漏一条,退出码 0,没有人被杀,没有任何东西报红。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M33
 
 > **判据:立案的那句因果链,是不是把"后果"绑死在了一条特定的"路径"上?**
 > 是的话,先对着**后果**再搜一遍,不要只对着路径搜。
@@ -3852,9 +2893,7 @@ Node **按注册顺序**调用监听器:清理那个先跑,它在第一个 `awai
 
 ## 一次性账号的清理要【在被杀掉的时候】也跑得到(UI-1d,2026-09-05)
 
-`scripts/probe-avatar.mjs` 的输出被 `| head -8` 截断,进程写 stdout 吃了 EPIPE
-当场死掉,**`finally` 没跑** —— 线上留下一个一次性 admin、一条 **admin 授权**
-和一个头像对象。那正是 PRE-ACCOUNT-1 整整一刀在收拾的东西。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M34
 
 **「记得别用 `head`」是一条要人记的规矩,不是机制。** 处置:清理抽成一个
 只跑一次的函数,`SIGINT/SIGTERM/SIGHUP/SIGPIPE` 与 `process.stdout` 的 EPIPE
@@ -3864,19 +2903,7 @@ Node **按注册顺序**调用监听器:清理那个先跑,它在第一个 `awai
 
 ## ★★ 一支扫描器的【分桶】那一层,可以和它的【读取】那一层不一样瞎(FONT-2,2026-09-11)
 
-FONT-2 的扫描器**特地**去读了内联 `style={{ … }}` 里的 `color` —— 因为 FONT-1 刚刚在
-「14 处链接色写在 `style` 里,className 扫描器按构造看不见」上付过一次账。
-★ **而它读到了,却在分桶的时候【只看 class】** —— 于是
-`MonthGrid.tsx` 那一处(颜色写在 `style={{ color:'var(--brand-muted-text)' }}` 里、
-className 上一个字色类都没有)掉进了 `OTHER` 桶,而它明明是一句次级文字。
-
-同一支扫描器还漏了第二层、第三层,而三层是**同一个病**:
-
-| 它读得到 | 它漏掉的 |
-|---|---|
-| `style={{ color: 'var(--brand-text)' }}` —— **对象字面量** | ★ `style={formulaStyle}` —— **一个变量**。3 个 `<p>` 的颜色与底色都住在那个变量里,扫描器把它读成 `null`,于是它们掉进 SECONDARY,而它们本来就是正文色坐在浅底上。 |
-| 祖先 class 串里**孤立**的状态色 token | ★ 写在 `cn('… text-amber-900', className)` 里的同一个 token —— 判据写的是 `(?:^|\s)text-amber-900(?=\s|$)`,而那里它后面跟着的是一个 `'`。**一个琥珀色警示框里的字,被判成了普通正文。** |
-| 祖先**自己**的 class | ★ 祖先的**内联底色**(`style={{ background:'var(--brand-accent)' }}`)—— 那正是这一刀点名「不许用次级色」的四种浅底之一。 |
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M35
 
 > ### ☞ 判词
 > ★ **「我读到了」不等于「我用上了」;「我认得这一种写法」不等于「我认得这件事」。**
@@ -3894,20 +2921,7 @@ className 上一个字色类都没有)掉进了 `OTHER` 桶,而它明明是一�
 
 ## ★★ 一条按 class 选元素的注入 / 规则,会顺着 class 走进【这一刀根本不许碰的组件】里(FONT-2,2026-09-11)
 
-FONT-2 round 1 要预测「把不在标准上的字号类改成标准档」会动多少东西,
-做法是**在同一棵 DOM 上真的注入一张样式表再量**。第一版的注入层写着:
-
-```
-.text-\[15px\] { font-size: 14px !important }
-.text-base     { font-size: 14px !important }
-```
-
-★ **实测后果:desktop 上 1014 个元素、phone 上 602 个元素从 15px 被改成了 14px。**
-而 `text-[15px]` 在全树**只写在三处** —— `table-style.ts` 的 `headCell` / `cell`、
-`data-table.tsx`、`app/login/SubmitButton.tsx` —— ★ **三处【全部】是关掉的。**
-也就是说那一版注入**一次改掉了每一个表格单元格**。
-`.text-base` 同样够得着 `control-style.ts` 的 `text-base md:text-sm` ——
-★ **手机上的输入框就是 16px**,那是一条关掉的输出,动它直接是一次停手。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M36
 
 > ### ☞ 判词
 > ★ **一个 class 不知道自己的主人是谁。**
@@ -3932,18 +2946,7 @@ FONT-2 round 1 要预测「把不在标准上的字号类改成标准档」会�
 
 ## ★★ 一个【上界】层的读数,被当成了一次【窄得多的】改动的预测(FONT-2,2026-09-11)
 
-`docs/forward-queue.md` 的 FONT-2 条目里写着一条**点名的**预测:
-
-> 「`body { font-size: 14px }` 会让 `/settings/dictionaries` 新增 **+12px** 的 390px 整页溢出
-> (round 1 的 L3 层量过)」
-
-★ **实测:它一个像素都没有动。** 全树 140 条 phone 路由里,**0 条**出现「改前 0 → 改后 >0」,
-**0 条**长大。
-
-★★ **为什么 round 1 量到了而 FONT-2 量不到 —— 两个层量的不是同一件事:**
-round 1 的 **L3 是一个【上界】层** —— 它用 `!important` 把**元素选择器上的字号**
-一起顶掉了,于是它动的是 `span.text-xs` 那一处**自己写着字号类**的元素;
-而 FONT-2 的 P1 层**只动 `body`**,`body` 的继承**按构造够不着**一个自己写着 `text-xs` 的元素。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M37
 
 > ### ☞ 判词
 > ★ **一个【上界】层回答的是「最多会动多少」,不是「这一刀会动多少」。**
@@ -3969,15 +2972,7 @@ round 1 的 **L3 是一个【上界】层** —— 它用 `!important` 把**元�
 > `return raw // genuine non-coded DB error → surface verbatim`
 > 也就是说 **"认出来了"与"没认出来"的分界,就是它返回的是不是原样那一串**。
 
-BUGFIX-1b 把 **45 支**映射器的兜底从「原样吐生字符串」换成了共用兜底。
-★ **那条契约于是【按构造】失效** —— 映射器再也不会把原样那一串还回来,
-而 `localized !== raw` 会**永远**为真。
-☞ **后果不是一句错话,是 ALERT-1 的 `detail` 那一格整个消失**:数据库原文本该降级进
-可展开的细节里,而它会连同分支 ③ 一起被跳过,**30 个调用点全受影响**。
-★★ **`tsc` 绿、`npm run build` 绿、193 支 fixture 绿。它是【读】出来的,不是量出来的** ——
-改一句注释时,那句注释自己写着「refuseFromCoded 靠它分界」。
-★ 同一个形状在 `app/operation/errorCodes.ts` 还有**第二处**(`viaMaterial !== raw`),
-也是照着注释找到的,**而不是照着任何一道闸找到的**。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M38
 
 > ### **判据一句话:一条契约如果只由【注释】承载,那么改掉它描述的那个东西时,
 > 你唯一的检查是【把那些注释读一遍】—— 而读注释不是一道闸。**
@@ -4000,13 +2995,7 @@ BUGFIX-1b 把 **45 支**映射器的兜底从「原样吐生字符串」换成�
 
 ## ★★ 一份【文档】里的散文,会被扫进生产 CSS —— 于是一个"纯文档"的提交可以改变渲染(BUGFIX-1a,2026-09-12)
 
-Tailwind v4 的**自动源探测**把整个项目当类名来源,**包括 `docs/*.md`**。FONT-2 的交回报告里有一句
-散文,把「品牌色那一族的任意值类名」写成一个带星号通配的简写;Tailwind 把它**当成一个真的工具类
-生成了出来**,产出一条 `color:` 值里带着裸星号的非法声明。结果:**`next dev` 上每一条路由 500**
-(实测 141/142 条),而 `npm run build` 只把同一条降级成一句 warning —— **线上一直是好的**。
-代价不是"开发体验":`smoke-routes.mjs` 与 `survey-phone.mjs` **都跑在 `next dev` 上**,
-于是**下一刀的冒烟闸跑不起来**。而 FONT-2 的冒烟是绿的 —— **那句散文是在冒烟跑完之后才落盘的**,
-没有任何一道闸问过它。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M39
 
 > ### **判据一句话:只要扫描源没有被限住,「哪些文件能改变渲染」这个集合就【不是】你以为的那个。**
 
@@ -4017,10 +3006,7 @@ Tailwind v4 的**自动源探测**把整个项目当类名来源,**包括 `docs/
 
 ## ★★ 一句为了让类型过关而加的 cast,关掉的正是那个会抓住这个错的检查(BUGFIX-1a,2026-09-12)
 
-`app/tools/calendar/sources.ts` 读了 `containers.container_no` —— **一列从来没有存在过的列**。
-它活了 8 天。而 `supabase-js` 的生成类型**本来就抓得到它**:实测把那 6 句 `as never` 拿掉,
-`tsc` 当场报 `SelectQueryError<"column 'container_no' does not exist on 'containers'.">`。
-**挡住那道闸的,正是那 6 句 cast。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M40
 
 > ### **判据一句话:一句 `as never` / `as any` 不是"让类型闭嘴",是【把一道闸关掉】——
 > 而关掉的那道闸,通常正是唯一看得见这一处的那一道。**
@@ -4033,11 +3019,7 @@ Tailwind v4 的**自动源探测**把整个项目当类名来源,**包括 `docs/
 
 ## ★★ 一道 i18n 闸【从一个源枚举】,而值由【另一个源】产生 —— 它按构造看不见那个差集(BUGFIX-1a,2026-09-12)
 
-`check-i18n` 的 `leave.grantType_` 从 `leave_grants` 表上的 `CHECK` 枚举后缀,拿到 4 个值,
-**每一个都有翻译,于是它报「缺键 0」**。而屏幕上真正用到的是第 5 个值 `monthly_accrual` ——
-它由 `leave_balance_internal` 用 `jsonb_build_object` **在函数体里现合成**,**不在那条 CHECK 里**。
-实测:今天余额表上 **6/6 行**用的全是那个没有翻译的值;**有翻译的那四个键渲染 0 次。**
-☞ **那道闸不是漏判了,它是【按构造】看不见** —— 而它照常发一张"全都在"的证明。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M41
 
 > ### **判据一句话:一道枚举型的检查,要接的是【产生这个值的那个源】,不是【看起来像真源的那个源】。**
 
@@ -4047,22 +3029,13 @@ Tailwind v4 的**自动源探测**把整个项目当类名来源,**包括 `docs/
 
 ## ★★★ 一道闸在【本机】与在【Vercel】上不是同一道闸 —— `NODE_ENV=production` 会换掉它读的东西(BUGFIX-1a,2026-09-12)
 
-BUGFIX-1a 新加的 `scripts/check-generated-css.mjs` 在本机绿、在 **Vercel 上把整次部署弄红了**。
-★ **三件事叠在一起,而每一件单独看都无害:**
-
-1. **Vercel 给整条 `npm run build` 导出 `NODE_ENV=production`**;
-2. `@tailwindcss/postcss` 的 `optimize` 默认值就是 `NODE_ENV === 'production'` ——
-   于是**在 Vercel 上它把生成出来的 CSS 压缩了**,而在本机没有;
-3. 那支闸的覆盖断言,第二条路是**按行**数规则(`一行以 { 收尾`)——
-   ★ **压缩之后整份 CSS 几乎没有换行,它一条都数不到:实测 `判据数出 922,独立计数是 0`,退 2。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M42
 
 > ### ★ 第一条教训:**一条覆盖断言的第二条路,如果对【排版】敏感,那它就不是一条独立的路。**
 > 它只是同一件事的另一种写法,外加一个**没有人论证过的排版假设**。
 > ☞ 处置:改成**按字符**走(认转义、认字符串、认注释、认花括号深度,**不认换行**)。
 
-★★ **而第二条教训比第一条贵得多,它是修第一条的时候才露出来的:**
-把那支闸放到 `NODE_ENV=production` 下重跑**故障注入**,它对着**自己存在的唯一理由**报绿 ——
-`EXIT=0`。**因为优化器会把那条非法声明【悄悄丢掉】。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M43
 
 > ### ★★★ **那正是这条缺陷当初的样子:`next build` 只是一句 warning,而 `next dev` 每条路由 500。**
 > **坏掉的是【没有优化过】的那一份 CSS,所以要判的也是那一份。**
@@ -4078,20 +3051,11 @@ BUGFIX-1a 新加的 `scripts/check-generated-css.mjs` 在本机绿、在 **Verce
 3. ★ **凡是"按构建的走法编译一遍"这种说法,都要说清楚【哪一个走法】** ——
    `next dev` 与 `next build` 读的不是同一份 CSS,而缺陷只在其中一份里看得见。
 
-⚠ **代价照直记:一次失败的生产部署。** 生产没有坏(失败的构建不会被提升),
-但 `main` 上带着一个构建不过的提交,直到修法推上去为止。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M44
 
 ## ★★ 一次长量具的读数,可以被【别处一条毫不相干的命令】悄悄废掉(BUGFIX-1a,2026-09-12)
 
-`scripts/smoke-routes.mjs` 抬头写着:**一棵树同一时刻只跑一个冒烟**,理由之一是
-`npm run build` **会重写 `.next`,把正在跑的 dev server 搞死**。
-BUGFIX-1a 在冒烟跑到一半时踩了它,而**踩法是新的**:一条 `python3 -c "…"` 的参数里
-留了一对**反引号**,zsh 把它当成命令替换执行了 —— 跑掉的正是 `npm run build`。
-
-★ **要命的一格:第一趟冒烟的日志里没有任何一行说「我的服务器被换掉了」。**
-它会照常跑下去、照常给一个数,而那个数已经不作数了。
-☞ **处置:那一趟整趟作废重跑** —— 而重跑之前先证明活下来的 `next dev` / `next-server`
-是 `ppid=1` 的孤儿(它们确实是),再杀。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M45
 
 > ### **判据一句话:一支长量具在跑的时候,别的地方【任何】会写 `.next` / 会连库 / 会抢锁的命令,
 > 都要当成【把那次读数作废】来对待 —— 而"我没有故意跑它"不是一个论据,
@@ -4104,16 +3068,7 @@ Tailwind 的字面量类名),这是同一族在 **shell** 上的那一张脸。
 
 ## ★★ 一条正例只证明【它自己走过的那条路】—— 三条判据就要三条正例(BUGFIX-1a 复述并再付一次账,2026-09-12)
 
-round 1 的文本探针有三条判据(生错误码 · 数据库报错 · i18n 键)。**同机制正例在页面层是响了的**
-(`/tools/calendar` 被标了出来)—— ★ **而它掩盖了另一条判据是死的**:i18n 键那条正则写的是
-`[a-z][a-zA-Z0-9]*`,**不含下划线**,于是它按构造抓不到任何一个真键。第一趟报的
-「i18n-key 0 条」**是一个瞎的零**,而那条正例只走了 `db-error` 那条路。
-
-**BUGFIX-1a 在同一族上又付了一次账,而这一次是【正着】用它:**
-量 `max-w-full` 那几个候选宣告时,每一条都**回读了一次 `getComputedStyle`**。
-结果抓到一次真的失效:`el.style.setProperty('maxWidth', …)` —— **驼峰名 `setProperty` 不认**,
-于是那一轮"三个候选全都无效"的读数里,**有三个根本没有被应用过**。
-★ **一个没有被应用的声明,和一个无效的声明,在读数上长得一模一样。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M46
 
 > ### **判据一句话:①每一条判据都要有【它自己】的正例;②每一次"它没有效果"的结论,
 > 都要先证明【它真的生效了】。**
@@ -4122,19 +3077,7 @@ round 1 的文本探针有三条判据(生错误码 · 数据库报错 · i18n �
 
 **FONT-2 记过「读取 / 归一 / 分桶三层,每一层都能单独瞎掉」。这是第四层:【切词】。**
 
-FONT-3 round 1 要数「右对齐、且还没有 `tabular-nums` 的站点」,做法是把每一个站点的
-`className` 表达式**按空白切成 token** 再找 `text-right`。★ **它读到了每一个站点**
-(3015 个,一个不漏),**分桶也没有错** —— 而它**数出来是 54,真数是 61**。
-
-★ **漏掉的那 7 个,每一个都长这样:**
-
-```
-className={`${tableC.cell} ${'text-right font-mono ' + (r.net < 0 ? 'text-red-600' : '')}`}
-```
-
-`text-right` 住在一段**嵌套的 `${'…'}`** 里。按空白切词,它被切成
-`` `${tableC.cell} ``、`` ${'text-right ``、`font-mono` …… —— ★ **`text-right` 前面粘着
-一个 `'`,于是那个 token 不叫 `text-right`,它叫 `${'text-right`。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M47
 
 > ### ☞ 判词
 > ★ **一个 token 的【边界】是一次判断,不是一个事实。**
@@ -4150,25 +3093,13 @@ className={`${tableC.cell} ${'text-right font-mono ' + (r.net < 0 ? 'text-red-60
 >    行号不是同一个数(一个多行的标签差 1~3 行)。FONT-3 第一版就是这么少了 7 个:
 >    两张单子都是对的,**是把它们钉在一起的那把钉子错了**。按【行区间】对,不要按行对。
 
-★ **代价,照直说:** 那 7 个里有 3 个在 `/finance/trial-balance` 与资产负债表上 ——
-**Tim 自己点名走查过的两页**。照 54 落地会把同一个缺陷原样留在那里,而**交回报告会说它做完了**。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M48
 
 ---
 
 ## ★★ 一个「不一致」的计数,可以数进【屏幕上根本没有字】的那几格(FONT-3,2026-09-12)
 
-FONT-3 的验收之一是「57 张表头字号不齐的表全部修好」。量法是:每一张表把可见 `<th>` 的
-(字号/字重/行高)分组,组数 > 1 就算不齐。**改完之后仍然有 5 张过不去**,而逐张看下去:
-
-| 剩下的那一格是什么 | 它有字吗 |
-|---|---|
-| `data-table.tsx` 的**勾选框列表头**(`<th className="w-8 px-1 align-middle">`) | ★ **没有** —— 里面是一颗勾选框 |
-| `data-table.tsx` / `editable-table.tsx` 的**手机展开钮那一格**(`<th className="w-8 px-1 sm:hidden" />`) | ★ **没有,它是空的** |
-| `editable-table.tsx` 的**动作列表头**(`<th scope="col" … />`) | ★ **没有,它是空的** |
-| `/finance/wht` 上一个调用点写的 `font-semibold` | 有字 —— ★ **而它差的是【字重】,不是字号** |
-
-★ **那四个空格子渲染成 UA 默认的 14 / 700 / 20**,于是它们在直方图里是**第二个字号**——
-**而屏幕上一个像素的差别都看不见。**
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M49
 
 > ### ☞ 判词
 > ★ **一个「有几种值」的计数,数的是【元素】,而人看见的是【字】。两者的差额可以整个吃掉一条验收。**
@@ -4184,15 +3115,7 @@ FONT-3 的验收之一是「57 张表头字号不齐的表全部修好」。量�
 
 ## ★★ 一次【按回原样】的证明,当这一刀改掉的正是【选中它们的那个类】时(FONT-3,2026-09-12)
 
-FONT-1 记过「一次按回原样的证明,要么撤多了,要么只撤了第一个」。FONT-3 撞到第三种:
-★ **连"撤哪些元素"都选不出来了。**
-
-`docs/variant-c-spec.md` §4.7.7 的证明写着:把那个元素**连同它的全部后代**按回改前那一档,
-等 500ms,宽度必须回到改前的读数。**FONT-1 / FONT-2 能这么做,是因为它们改的是【值】** ——
-元素还在,类还在,选得出来。★ **FONT-3 改掉的是 `font-mono` 这个类本身** ——
-证明的时候,那个类**在页面上已经不存在了**,`querySelectorAll('.font-mono')` 命中 **0 个**。
-而「把整张表连后代一起按回等宽」是**撤多了**:那张表里本来就有大半格子从来不是等宽的,
-按回去之后宽度**不会**回到改前,于是一次本来成立的证明会**判成不成立**。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M50
 
 > ### ☞ 处置:**匹配判据从【改前那一份读数】里来,不从现在这棵 DOM 里来。**
 > FONT-3 的改前读数(`monoCensus`)为每一个等宽元素记下了 **它自己的文字** 与
@@ -4209,15 +3132,7 @@ FONT-1 记过「一次按回原样的证明,要么撤多了,要么只撤了第�
 
 ## ★★ 一份「0 个不合规」的读数,它的分母是【它量过的那些视口】(FONT-2,2026-09-11)
 
-FONT-2 round 1 的对比度普查报的是:**首屏次级桶文字元素 694 个,26 个过不了 4.5:1**,
-并按 Tim 的裁定把那 26 个分两族处置完了。★ **那份读数只量了 `phone` 首屏。**
-
-round 2 把同一支普查扩到**两个视口**,当场多出 **14 个**不合规的元素:
-`/hr/leave/calendar` 与 `/tools/calendar` 的**星期表头**(`Mon`…`Sun`),
-`#62738C` 坐在 `--brand-muted` `#E5EEF4` 上 = **4.11:1**。
-
-★★ **而它们【按构造】不可能出现在 round 1 那份读数里** —— 那一格写着 `hidden md:block`,
-**它是宽屏视图**。手机上根本不渲染它。
+> ↪ moved verbatim → docs/agents/measurement-lessons-history.md § ↩ M51
 
 > ### ☞ 判词
 > ★ **「0 个不合规」这句话的分母,不是"全站",是"我量过的那些视口 × 那些路由 × 首屏"。**

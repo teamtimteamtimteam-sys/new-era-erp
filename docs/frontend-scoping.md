@@ -697,7 +697,7 @@ logistics(5 页)→ customers/suppliers/materials(11 页)→ inbound/output(12 �
 
 3. **哪些页从任何入口都到不了?**
    *FE-0 交底:* 需要把 187 个 `page.tsx` 与 `lib/modules.ts` 的 `href` 加上
-   页内链接做可达性对图。`AGENTS.md:597` 记着这条路踩过一次
+   页内链接做可达性对图。AGENTS.md §「★ 第三种形状」(「A second blind spot」那一段) 记着这条路踩过一次
    (「一个被 CSS 藏起来的链接对走查器是可达的,对人是看不见的」),
    **所以这个测量要按「人看得见」判,不是按「DOM 里有」判**。
    `NavLinks.tsx` 抬头点名 `/margin` 与 `/deleted`

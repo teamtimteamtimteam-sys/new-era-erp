@@ -19,13 +19,13 @@ shape almost every number below:
 * **R5** — **re-derive** routes, permissions, refusals and state machines (a reader follows
   those as instructions). **Cite** existing docs for rationale and history.
 
-`--reach` was **not run** (AGENTS.md:553 forbids it; 63 min/role). Everything below is static
+`--reach` was **not run** (AGENTS.md §"★★ `--reach` cannot validate navigation on this tree" forbids it; 63 min/role). Everything below is static
 or a `SELECT`.
 
 ### Where my own measurements were blind, and how I know
 
 This survey's counts come from scripts I wrote this session. Three of them were **wrong on
-the first pass**, and each was caught by making coverage itself an assertion (AGENTS.md:3133):
+the first pass**, and each was caught by making coverage itself an assertion (AGENTS.md §"★★★ 覆盖率本身必须是一条断言"):
 
 | Pass | Blind spot | How it surfaced | Corrected |
 |---|---|---|---|
@@ -670,7 +670,7 @@ repo cannot be in.
    `PROBATION_NO_ANNUAL_LEAVE` → `leave.errProbation`, `OVERLAPPING_REQUEST` → `leave.errOverlap`.
    **These have sentences but `check-i18n` does not know they exist**, so adding a new code
    there and forgetting the sentence is silent. 42 codes are in this shape. This is the
-   "second hand-copied list" pattern the repo has paid for repeatedly (AGENTS.md:3133).
+   "second hand-copied list" pattern the repo has paid for repeatedly (AGENTS.md §"★★★ 覆盖率本身必须是一条断言").
 3. **Nothing** — 121 codes.
 
 Of the 121, by shape: 29 immutability/append-only guards, 9 `_NOT_FOUND`, 9 `_REQUIRED`,
