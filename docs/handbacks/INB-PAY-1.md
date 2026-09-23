@@ -6,7 +6,7 @@
 **★ Broken window start** (the line `db/apply_migration.sh` prints itself):
 ### `2026-09-23 16:16:20 CST`
 (`migration applied at 16:15:57`; committed and "库已经是新的了" at 16:16:20; on disk in `db/migration-windows.tsv`
-as `2026-09-23T16:16:20+0800`.) **End: PENDING** — Tim's reading from the Vercel panel.
+as `2026-09-23T16:16:20+0800`.) **End: closed — an UPPER BOUND, not a measurement** (ROLE-MATRIX-0, 2026-09-23): Tim relayed "INB-PAY-1 deployed"; the clock reading taken with that relay already in hand is **16:47:53 CST** (`date`, ROLE-MATRIX-0 opening gate). ☞ **Window ≤ 31 min 33 s.** The real end (Vercel Ready) can only be earlier; the commit is 16:42:50, so it cannot be earlier than the push after that.
 
 **★★ What is broken during the window, approvals ON.** The database is new; production runs the old code.
 
@@ -142,5 +142,5 @@ outputs: empty.**
   `docs/known-wrong-until-cutover.md` (Tim Q4 — leave and label; repricing can't post them, the difference is 0).
 
 ## §6 · Commit, push, three SHAs
-Reported in the terminal at push time. **Broken window: start 2026-09-23 16:16:20 CST, end PENDING (Tim's reading from
-the Vercel panel).**
+Reported in the terminal at push time. **Broken window: start 2026-09-23 16:16:20 CST, end ≤ 16:47:53 CST — an upper bound (Tim relayed
+"deployed"; the clock reading is ROLE-MATRIX-0's), so ≤ 31 min 33 s.**
