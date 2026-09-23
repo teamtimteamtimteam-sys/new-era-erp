@@ -13,12 +13,15 @@ DECLARE
     v_confirmed boolean := false;
     v_salaried  boolean := false;
 BEGIN
-    PERFORM require_permission('module.hr.edit');
-
     SELECT * INTO v_r FROM performance_reviews WHERE id = p_review_id FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'REVIEW_NOT_FOUND|%', COALESCE(p_review_id::text, '?');
     END IF;
+
+    -- ★ ROLE-1(Tim 的矩阵,2026-09-23):批评估的是 CFO;CFO 是这张评估的
+    --   提交人或主角时,改由 cco 批。【谁批】只有一份定义:review_approval_code。
+    --   它要先读到这一行才答得出,所以门排在 SELECT 之后。
+    PERFORM require_permission(review_approval_code(v_r.submitted_by, v_r.employee_id));
     IF v_r.status <> 'submitted' THEN
         RAISE EXCEPTION 'REVIEW_BAD_STATUS|%', v_r.status;
     END IF;

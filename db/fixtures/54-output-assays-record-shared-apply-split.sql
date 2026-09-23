@@ -64,7 +64,9 @@ BEGIN
     SELECT r1, unnest(ARRAY['module.processing.edit','module.processing.view',
                             'module.inbound.edit','module.inbound.view',
                             'module.output.edit','module.output.view',
-                            'module.finance.view','data.view_prices']);
+                            'module.finance.view','data.view_prices',
+                            -- ROLE-1(2026-09-23):加工成本分摊改归财务(allocate_processing_costs 的门)
+                            'module.finance.edit']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u1, r1);
 
     INSERT INTO roles (code, name_en, name_zh, is_active)

@@ -3,6 +3,56 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ★ ROLE1-PO-DOCUMENT-DATA-PRICES · 采购单文档数据对只持 `purchasing.view` 的人吐出单价(ROLE-1 Step 0 登记,2026-09-23)
+
+`po_document_data`(SECURITY DEFINER)只检查 `module.purchasing.view`,返回的 jsonb 里带着未遮蔽的
+采购单金额、行单价、行金额与税额(函数体第 19、49–54、107 行附近)。`/purchasing/orders/[id]` 与采购单 PDF 都读它。
+今天持 `purchasing.view` 的人恰好都持 `data.view_prices`,所以**没有人真的多看见了什么** ——
+它在 ROLE-1 Batch 4 给仓库开采购价之前必须先想清楚:那一刀之后,仓库看得见采购价是【裁定】,
+而这支函数不问价格码这件事就不再是空的。**删除条件:** 函数按价格码遮蔽金额(或 B4 明确裁定它归采购价那一侧)。
+
+## ROLE1-SALES-ORDER-QUOTE-PRICES-UNMASKED · 销售订单与报价的单价没有任何价格遮蔽(ROLE-1 Step 0 登记,2026-09-23)
+
+`sales_order_lines.unit_price` 与 `quote_lines.unit_price` 对任何持 `module.sales.view` 的人都读得到
+(RLS 只问模块码,没有 `_masked` 视图)。今天仓库不持 `module.sales.view`,所以【仓库看不见销售价】这条
+在今天成立;但它成立靠的是模块码,不是价格码。**删除条件:** 销售侧单价走 `data.view_prices`(或 B4 定的销售价码)遮蔽。
+
+## ROLE1-EXPENSE-CLAIM-DECIDE-BUTTON-WRONG-CODE · 报销单的决定按钮挂在错的码上(ROLE-1 Step 0 登记,2026-09-23)
+
+`app/finance/claims/page.tsx:36` 与 `ClaimDecisionPanel.tsx:128` 用 `module.finance.edit` 决定画不画批准 / 驳回;
+`decide_expense_claim` 真正的门是 `module.finance.view` + `data.view_prices` 加审批级别(APR-3 Q1 的裁定:
+审批人的门【不是】`.edit`)。后果:tim@(cfo,不持 `finance.edit`)在屏幕上被说成"缺 module.finance.edit",
+而数据库其实会放他批 —— **说错原因比不说更坏**。线上在途 CLM-2026-0004 的唯一决定人正是 tim@。
+**删除条件:** 按钮按 `approval_deciders` / 同一门判断,或至少按 `finance.view + view_prices` 画。
+
+## ★ ROLE1-BOOTSTRAP-MISSING-ROLES · 引导默认值里没有 `cco` / `cfo` / `cto`,而 ROLE-1 的新码只有它们持(ROLE-1 登记,2026-09-23)
+
+`db/tables/roles.sql` 与 `role_permissions.sql` 的引导默认值里没有 `cfo`、`cco`、`cto`(APR-0 已记 `cfo` 那一半)。
+ROLE-1 Batch 1 之后后果变重了:**全新安装里没有任何人持 `action.finance_reopen` / `action.approve_review` /
+`action.hr_reviews`** —— 重开已关的月、年结、批绩效评估、做绩效评估,在一个照镜像重建的库里谁都做不了。
+引导里的 `admin` 已按 Tim 的 Q8 改成只剩三码,`finance` 已接过人事(见那个文件里的注释)。
+**删除条件:** 引导默认值补上 `cfo` / `cco` / `cto` 三个角色与它们的授权(Tim 要先裁引导是否照线上的七个职位走)。
+
+## ROLE1-PAY-OWN-MEDICAL-CLAIM · 财务可以付【自己的】已批医疗申报 —— 已知、按矩阵允许、不改(ROLE-1 登记,2026-09-23)
+
+`pay_medical_claim` 只要 `module.finance.edit`,没有"付给自己"的检查。线上 MC-2026-0001(Choo Er 本人的,已批未付)
+付款人只有 chooer@(以 `postgres` 读基表并按 `real_role_grants` 算)。Tim 的矩阵:医疗申报付款 = 财务,不批 ——
+批准那一步已经由别人做过。**记下来,不改。** 若将来要改,它属于付款申请那一刀([LC])。
+
+## ROLE1-UNHELD-HR-ROLE-LOST-REVIEWS · 无人持有的 `hr` 角色随拆分失去了绩效评估与请假决定(ROLE-1 登记,2026-09-23)
+
+`hr` 角色(线上 0 个持有人)持 `module.hr.edit`。ROLE-1 把评估与 KPI 拆成 `action.hr_reviews`、把请假与医疗决定
+拆成 `action.decide_hr_requests`,**本批没有给无人持有的角色补新码**(Tim 的矩阵只裁了有人的七个职位)。
+所以将来谁拿到 `hr`,他做得了工资与档案、做不了评估也决定不了请假。**删除条件:** Tim 裁定 `hr` / `procurement` /
+`sales` / `auditor` / `employee` 这几个空角色在新矩阵下是什么。
+
+## ROLE1-HR-CONTROLS-RENDER-TO-READERS · `/hr` 多数页面对只读的人也画写控件(ROLE-1 登记,2026-09-23;先于本刀存在)
+
+进 `/hr` 只要 `module.hr.view`,而工资、考勤、员工档案、假别与假期、部门、培训这几页【不判】`module.hr.edit`,
+控件照画、靠数据库拒(ROLE-1 的 HR 勘察实测)。ROLE-1 之前 `gm` 就是这样读的;**本刀之后 cco 与 cfo 也持
+`hr.view` 而不持 `hr.edit`,于是他们也会看到按了必拒的钮。** 本刀只把请假 / 医疗的决定按钮、评估与 KPI、
+月薪那一格改成 DBLOCK-1 的样子(看得见、按不动、说出码)。**删除条件:** 其余那几页按 DBLOCK-1 过一遍。
+
 ## ★ APR4-DISPOSAL-REVERSAL-LEAVES-ASSET-DISPOSED · 冲销处置分录,资产仍是 `disposed`(APR-4 登记,2026-09-23)
 
 处置分录可以用通用的 `reverse_journal_entry` 冲掉(只要 `module.finance.edit`,不看 `source_type`;

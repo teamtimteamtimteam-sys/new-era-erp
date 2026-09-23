@@ -2136,7 +2136,7 @@ const en = {
         cappedAt: 'capped at {cap} by a safety/regulatory override',
         // ── C-2:月度录入那一屏 ─────────────────────────────────────────
         scoreTitle: 'Score a month',
-        readOnlyNotice: 'You can see this month but not score it — scoring needs HR edit permission. The buttons are hidden rather than shown and then refused by the database.',
+        readOnlyNotice: 'You can see this month but not score it — scoring needs the Performance reviews & KPI permission (action.hr_reviews). The buttons are hidden rather than shown and then refused by the database.',
         // FIX-2b: entering this screen and reading its rows are two different permissions.
         scoresRestricted: 'Individual KPI entries need the review-data permission, which you do not have — so apart from your own, none are listed here. An empty list on this screen is a permission answer, not a month in which nobody was scored.',
         scoreWhat: 'One entry session is one month. Pick the month explicitly — it is never filled in for you, because the month you are scoring is a fact about a period that has already happened, not a timestamp the system may guess. Enter the score, the evidence and your feedback; the weighted score is computed, never typed.',
@@ -4379,6 +4379,16 @@ const en = {
         },
     },
     hr: {
+        // ROLE-1(Tim 的矩阵 · Q7):一个人的第一份月薪 —— 录一次,之后走绩效评估
+        initialSalary: {
+            title: 'Monthly salary',
+            hint: 'No monthly salary is on file yet. Record the first one here — this can be done once. Every change after that goes through a performance review (or, once it exists, a salary-change request), approved by the CFO.',
+            amount: 'Monthly salary ({ccy})',
+            effectiveDate: 'First payroll month',
+            pickMonth: 'Choose a month',
+            submit: 'Record first salary',
+            changeRoute: 'Changes go through a performance review, approved by the CFO.',
+        },
         subnav: {
         leave: 'Leave',
         claims: 'Claims',
@@ -4666,6 +4676,13 @@ const en = {
             ATTENDANCE_REOPEN_REASON_REQUIRED: 'Give a reason for reopening {0}',
             ATTENDANCE_PERIOD_LOCKED_BY_PAYROLL: 'Payroll {1} for {0} is already posted — unpost it first; a posted payslip cannot have its basis changed underneath it',
             PAYROLL_ATTENDANCE_NOT_COMPLETE: 'Nobody has said the {1} attendance sheet is complete, so {0} cannot be posted — posting it would silently treat unknown absence as full attendance',
+            SALARY_DIRECT_WRITE_REFUSED: 'A monthly salary cannot be written directly. The first salary is recorded once on the employee page; every later change goes through a performance review (or, once it exists, a salary-change request), approved by the CFO.',
+            SALARY_ALREADY_SET: '{0} already has a monthly salary. A salary is recorded here only once — every change after that goes through a performance review or a salary-change request, approved by the CFO.',
+            SALARY_AMOUNT_INVALID: 'Enter a monthly salary of zero or more.',
+            SALARY_EFFECTIVE_DATE_REQUIRED: 'Enter the date the salary takes effect — it decides which payroll period it first applies to, so it is never filled in for you.',
+            SALARY_EFFECTIVE_IN_POSTED_PERIOD: 'The salary effective date falls in posted payroll period {0}',
+            EMPLOYEE_SEPARATED: 'Employee {0} has left the company',
+            PDPA_ALREADY_ANONYMISED: 'This employee record was anonymised on {0}; it can no longer be changed.',
             REASON_REQUIRED: 'A reason is required',
             PERIOD_LOCKED: 'Period is closed: {0} is before the lock date {1}',
             DEPARTMENT_CYCLE: 'A department cannot be its own parent',
@@ -6851,7 +6868,7 @@ const en = {
         selfApproved: {
             title: 'Self-approved decisions',
             why:
-                'Nobody may decide their own documents — with one exception, chosen deliberately for traceability rather than prevention: the holder of the top approval level may decide their own expense claims and medical claims. Every such decision is recorded as self-approved and listed here. Payroll, performance reviews, salary changes and leave are never covered.',
+                'Nobody may decide their own documents — with one exception, chosen deliberately for traceability rather than prevention: the holder of the top approval level may decide their own expense claims, medical claims and leave requests. Every such decision is recorded as self-approved and listed here. Payroll, performance reviews and salary changes are never covered.',
             empty: 'Nobody has decided their own claim. This list is complete: every self-approved decision is recorded as such at the moment it is made.',
             colDecidedAt: 'Decided at',
             colDocument: 'Document',
@@ -7066,6 +7083,8 @@ const en = {
                 'Segregation of duties: you posted a manual journal entry in the period ending {0}, so you cannot be the one to close it. Ask another holder of Finance (edit) to close this period.',
             SOD_PAYEE_AND_PAY:
                 'Segregation of duties: you created supplier {0}, so you cannot be the one to pay it. Ask another holder of Finance (edit) to record this payment.',
+            REOPEN_THROUGH_CLOSE_ONLY:
+                'Moving the lock date back past {0} would reopen a closed month. Only the CFO can reopen a closed month, and only through Month-end close → Reopen, which records who reopened it and why.',
             APPROVALS_POLICY_INCOMPLETE:
                 'Approvals cannot be switched on until the policy is complete — still unset: {0}. Set the level-1 role, the threshold and the level-2 approver in one change, then switch it on.',
             APPROVALS_LEVEL1_ROLE_UNHELD:

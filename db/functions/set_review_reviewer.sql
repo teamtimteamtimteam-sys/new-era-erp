@@ -15,7 +15,7 @@ DECLARE
     v_r   performance_reviews%ROWTYPE;
     v_rev record;
 BEGIN
-    PERFORM require_permission('module.hr.edit');
+    PERFORM require_permission('action.hr_reviews');
 
     SELECT * INTO v_r FROM performance_reviews WHERE id = p_review_id FOR UPDATE;
     IF NOT FOUND THEN

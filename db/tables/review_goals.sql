@@ -65,13 +65,13 @@ CREATE POLICY "review_goals select own approved"
 
 CREATE POLICY "review_goals insert by permission"
     ON public.review_goals AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'));
+    WITH CHECK (has_permission('action.hr_reviews'));
 CREATE POLICY "review_goals update by permission"
     ON public.review_goals AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit')) WITH CHECK (has_permission('module.hr.edit'));
+    USING (has_permission('action.hr_reviews')) WITH CHECK (has_permission('action.hr_reviews'));
 CREATE POLICY "review_goals delete by permission"
     ON public.review_goals AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'));
+    USING (has_permission('action.hr_reviews'));
 GRANT SELECT (target_value, actual_value, unit) ON public.review_goals TO authenticated;
 COMMENT ON COLUMN public.review_goals.target_value IS
     '期初定下的量化指标。【可选】—— 数字编不出来就不编,这一行仍然只靠 objective_text 说清楚。';
@@ -88,4 +88,4 @@ COMMENT ON COLUMN public.review_goals.unit IS
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.review_goals
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.hr.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.hr_reviews');

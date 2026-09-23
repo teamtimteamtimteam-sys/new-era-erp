@@ -66,7 +66,7 @@ DECLARE
     v_sc_basis_total       numeric;
     v_sc_rows              jsonb;
 BEGIN
-    PERFORM require_permission('module.processing.edit');
+    PERFORM require_permission('module.finance.edit');
     -- 1. Lock the run; must exist and be a live committed run.
     SELECT * INTO v_run FROM processing_runs WHERE id = p_run_id FOR UPDATE;
     IF NOT FOUND THEN

@@ -40,7 +40,7 @@ DECLARE
     v_emp    employees%ROWTYPE;
     v_due    date;
 BEGIN
-    PERFORM require_permission('module.hr.edit');
+    PERFORM require_permission('action.anonymise_employee');
 
     IF p_reason IS NULL OR btrim(p_reason) = '' THEN
         RAISE EXCEPTION 'PDPA_REASON_REQUIRED';

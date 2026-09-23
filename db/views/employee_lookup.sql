@@ -12,9 +12,9 @@ CREATE VIEW public.employee_lookup WITH (security_invoker = off) AS
     user_id,
     deleted_at
    FROM employees e
-  WHERE has_permission('module.hr.view'::text) OR has_permission('module.finance.view'::text);
+  WHERE has_permission('module.hr.view'::text) OR has_permission('module.finance.view'::text) OR has_permission('action.manage_permissions'::text);
 
 COMMENT ON VIEW public.employee_lookup IS
-    'FIX-2a:员工的【查名】视图 —— id / 工号 / 称呼名 / 法定名 / 登录账号。Tim 的 Q2 裁定:只有名字。付款、费用与薪资三处要把一份单据指向一个人。【没有】monthly_salary / identity_no / work_pass_* / residency_status / department_id / position_id / hire_date / separation_* / work_email / work_phone —— 那些才是人事事实,而 data.view_pay 与 data.view_identity 管着它们。行谓词 hr.view OR finance.view。与 ActorName 的分工:那一个答"谁做的",这一张答"这份单据指向谁"。';
+    'FIX-2a:员工的【查名】视图 —— id / 工号 / 称呼名 / 法定名 / 登录账号。Tim 的 Q2 裁定:只有名字。付款、费用与薪资三处要把一份单据指向一个人。【没有】monthly_salary / identity_no / work_pass_* / residency_status / department_id / position_id / hire_date / separation_* / work_email / work_phone —— 那些才是人事事实,而 data.view_pay 与 data.view_identity 管着它们。行谓词 hr.view OR finance.view OR action.manage_permissions(ROLE-1:系统管理员账号不再持任何业务码,而账号↔员工关联归它 —— /settings/accounts 要列出可关联的人,只要名字)。与 ActorName 的分工:那一个答"谁做的",这一张答"这份单据指向谁"。';
 
 GRANT SELECT ON public.employee_lookup TO authenticated;

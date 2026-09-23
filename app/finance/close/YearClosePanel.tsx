@@ -26,7 +26,8 @@ export default function YearClosePanel({
     // ★★【canClose 与 canEdit 是两件事,而把它们混起来会说出一句假话】★★
     //   canClose = `hardChecks.every(ok)` —— 月锁、试算、重估、折旧【全做完了没有】,
     //     那是一个**业务状态**,与这个人是谁无关。
-    //   canEdit  = 他有没有 module.finance.edit,那是一个**权限**。
+    //   canEdit  = 他有没有 action.finance_reopen(ROLE-1 起年结与重开年度只归 CFO;
+    //              此前是 module.finance.edit),那是一个**权限**。
     //   DBLOCK-1 的探针 B 臂当场抓到了这次混用:一个【持有 finance.edit】的人
     //   看到的是「需要权限 module.finance.edit」—— 而他明明有,真正拦他的是
     //   年结前置条件还没做完。**说错原因比不说更坏**,因为他会去找管理员要一个
@@ -46,7 +47,7 @@ export default function YearClosePanel({
                 <div className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
             {!alreadyClosed ? (
-                <PermissionGate code="module.finance.edit" allowed={canEdit}>
+                <PermissionGate code="action.finance_reopen" allowed={canEdit}>
                 <ConfirmButton
                     subject={yearEnd}
                     title={t('finance.yearClose.confirm', { 0: yearEnd })}
@@ -68,7 +69,7 @@ export default function YearClosePanel({
                 </PermissionGate>
             ) : (
                 <div className="flex items-center gap-2">
-                    <PermissionGate code="module.finance.edit" allowed={canEdit}>
+                    <PermissionGate code="action.finance_reopen" allowed={canEdit}>
                     <ConfirmButton
                         subject={yearEnd}
                         title={t('finance.yearClose.reopenConfirm', { 0: yearEnd })}

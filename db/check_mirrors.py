@@ -523,6 +523,9 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 遮蔽保护的是"别人看不到",不是"他自己看不到"。范围与待决项见 docs/pdpa.md;
     # "只导出调用者自己"这件事由 db/fixtures/126 的 G 臂断言(含 pronargs = 0)。
     "export_my_personal_data": "no requirable permission exists: the subject IS the caller (auth.uid()), no arguments; DEFINER only bypasses column masking (PDPA-1)",
+    # ROLE-1(2026-09-23):与 db/verify_rebuild.py 的 DEFINER_UNCHECKED_EXEC_ALLOWED 同改,理由见那里。
+    "period_close_floor": "ROLE-1: called by an INVOKER trigger, so EXECUTE must stay with the caller; returns one date already shown on the close page",
+    "review_approval_code": "ROLE-1: returns only the NAME of the permission code that approves a review; no review data",
     # PROC-COST-2(2026-08-31):两支【计值读取器】与它们共用的单位落地成本。
     # **它们【必须】没有调用者检查,而这一条与上面每一条的理由都不同 ——
     # 不是"加了门会在属主身份下抛错",是【加了门就是缺陷本身】。**

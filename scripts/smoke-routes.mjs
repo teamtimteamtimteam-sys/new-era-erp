@@ -1770,9 +1770,25 @@ async function main() {
         body: JSON.stringify({ email, password: 'smoke-pass-1', email_confirm: true }) }, '建 admin 账号')).json()
     planDelete(`/rest/v1/user_roles?user_id=eq.${cu.id}`, '收尾:收回一次性 admin 授权', ORDER.GRANT)
     planDelete(`/auth/v1/admin/users/${cu.id}`, '收尾:删一次性 admin 账号', ORDER.ACCOUNT)
-    const roleRows = await restRows('/rest/v1/roles?select=id&code=eq.admin', 'roles ← admin')
+    // ★ ROLE-1(Tim 的矩阵 · Q8,2026-09-23):`admin` 从此【只做系统管理】—— 三个码,
+    //   一个业务码都没有,也读不到任何业务数据。这里此前借它当"什么都看得见"的会话,
+    //   于是冒烟会以一个受限读者的身份走完 218 条路由、每一页都是「受限」,而退出码照样是 0。
+    //   现在造一个【一次性的全码角色】(与 fixture 的 r_all 同一个形状),不借任何一个真角色 ——
+    //   尤其不借 finance / cfo:那两个是审批角色,借了它,一次性账号在冒烟期间就是一个
+    //   真的审批人(real_role_holders 认它)。计划先落盘,再造(LEAK-1)。
+    const allRoleCode = `probe-smoke-all-${stamp}`
+    planDelete(`/rest/v1/roles?code=eq.${allRoleCode}`, '收尾:删一次性全码角色(role_permissions 级联)', ORDER.ROLE)
+    const allRole = (await (await restOk('/rest/v1/roles', { method: 'POST',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({ code: allRoleCode, name_en: 'smoke (all codes)', name_zh: '冒烟(全码)', is_active: true }) },
+        '建一次性全码角色')).json())[0]
+    const permCodes = await restRows('/rest/v1/permissions?select=code', 'permissions ← 全部码')
+    if (!permCodes.length) throw new Error('permissions 读回 0 行 —— 一个零码的"全码角色"会让整趟冒烟以受限读者跑完')
+    await restOk('/rest/v1/role_permissions', { method: 'POST',
+        body: JSON.stringify(permCodes.map((p) => ({ role_id: allRole.id, permission_code: p.code }))) },
+        '给一次性角色授全部码')
     await restOk('/rest/v1/user_roles', { method: 'POST',
-        body: JSON.stringify(ephemeralGrantBody(cu.id, roleRows[0].id)) }, '授 admin 角色')
+        body: JSON.stringify(ephemeralGrantBody(cu.id, allRole.id)) }, '授一次性全码角色')
     const adminSession = await signInSession(email, 'smoke-pass-1')
     const cookie = adminSession.cookie
 

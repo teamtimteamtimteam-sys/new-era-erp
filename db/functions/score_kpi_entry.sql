@@ -38,7 +38,7 @@ DECLARE
     v_e     kpi_entries%ROWTYPE;
     v_cycle kpi_cycles%ROWTYPE;
 BEGIN
-    PERFORM require_permission('module.hr.edit');
+    PERFORM require_permission('action.hr_reviews');
 
     SELECT * INTO v_e FROM kpi_entries WHERE id = p_entry_id FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'KPI_ENTRY_NOT_FOUND|%', p_entry_id; END IF;

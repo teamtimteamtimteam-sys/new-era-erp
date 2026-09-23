@@ -53,7 +53,10 @@ BEGIN
                                 'module.purchasing.view','module.purchasing.edit',
                                 -- CHAIN-BUILD-1(R4):审批角色必须看得见金额,
                                 -- 否则开关会以 ..._CANNOT_SEE_AMOUNTS 按名拒。
-                                'data.view_prices']);
+                                'data.view_prices',
+                                -- ★ ROLE-1(2026-09-23):A5 经 reopen_period 重开 —— 那扇门
+                                --   如今是 action.finance_reopen(CFO)。
+                                'action.finance_reopen']);
     INSERT INTO user_roles (user_id,role_id) VALUES (v_a,r_ok),(v_b,r_ok);
 
     -- 一个【没有任何真人持有】的角色 —— C2 用它
@@ -149,12 +152,30 @@ BEGIN
     END IF;
     r := r || jsonb_build_object('A4_non_manual_does_not_block', true);
 
-    -- ═════════ A5 · 方向:把锁【往回】搬不受管 ═════════
-    -- 解锁与 reopen 不隐藏任何东西,拦它只会把纠错的路堵死。
-    EXECUTE 'SET LOCAL ROLE authenticated';
-    UPDATE finance_settings SET locked_before = v_m1 + 1;
-    EXECUTE 'RESET ROLE';
-    r := r || jsonb_build_object('A5_moving_the_lock_back_is_free', true);
+    -- ═════════ A5 · 方向:把锁【往回】搬,职责分离不管 —— 但【重开】只走一扇门 ═════════
+    -- SOD_POST_AND_CLOSE 只管前进的锁:解锁与 reopen 不隐藏任何东西。那一句仍然成立。
+    -- ★ ROLE-1(Tim 的矩阵,2026-09-23)在它旁边加了另一条【不同的】规矩:重开一个已关的月
+    --   只有 CFO 能做,并且只走 reopen_period(盖戳、要理由)。此前这一臂写的是
+    --   「把锁往回搬不受管」,并直连 UPDATE 把锁搬回 m1 —— 那一下跨过了 m2 的关账,
+    --   也就是一次不留戳的重开。它现在按名拒绝;同一个结果经 reopen_period 拿到。
+    v_denied := false;
+    BEGIN
+        EXECUTE 'SET LOCAL ROLE authenticated';
+        UPDATE finance_settings SET locked_before = v_m1 + 1;
+        EXECUTE 'RESET ROLE';
+    EXCEPTION WHEN OTHERS THEN
+        EXECUTE 'RESET ROLE';
+        v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'REOPEN_THROUGH_CLOSE_ONLY|%');
+    END;
+    IF NOT v_denied THEN
+        RAISE EXCEPTION 'A5 失败:直连把锁搬回到一个已关的月之前,应当报 REOPEN_THROUGH_CLOSE_ONLY(msg=%)',
+            COALESCE(v_msg, '(没有报错)');
+    END IF;
+    PERFORM reopen_period(v_m2, 'fixture 127 A5 经正门重开');
+    IF (SELECT locked_before FROM finance_settings) <> v_m1 + 1 THEN
+        RAISE EXCEPTION 'A5 失败:reopen_period 之后锁应当回到 m1 的次日';
+    END IF;
+    r := r || jsonb_build_object('A5_reopen_goes_through_the_door', v_msg);
 
     -- ═════════ B1 · A 建的供应商,A 不许付款给它(后门,直连 INSERT) ═════════
     v_denied := false;

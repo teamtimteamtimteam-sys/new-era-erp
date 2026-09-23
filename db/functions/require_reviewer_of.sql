@@ -17,7 +17,7 @@ BEGIN
     IF NOT FOUND THEN
         RAISE EXCEPTION 'REVIEW_NOT_FOUND|%', COALESCE(p_review_id::text, '?');
     END IF;
-    IF NOT (has_permission('module.hr.edit')
+    IF NOT (has_permission('action.hr_reviews')
             OR is_reviewer_of(v_r.reviewer_employee_id)) THEN
         RAISE EXCEPTION 'NOT_REVIEW_REVIEWER';
     END IF;

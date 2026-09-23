@@ -143,13 +143,13 @@ CREATE POLICY "performance_reviews select own approved"
 
 CREATE POLICY "performance_reviews insert by permission"
     ON public.performance_reviews AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'));
+    WITH CHECK (has_permission('action.hr_reviews'));
 CREATE POLICY "performance_reviews update by permission"
     ON public.performance_reviews AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit')) WITH CHECK (has_permission('module.hr.edit'));
+    USING (has_permission('action.hr_reviews')) WITH CHECK (has_permission('action.hr_reviews'));
 CREATE POLICY "performance_reviews delete by permission"
     ON public.performance_reviews AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'));
+    USING (has_permission('action.hr_reviews'));
 
 -- 字段级遮蔽:表级 SELECT 授权【蕴含所有列】,所以先整表收回,再把非敏感列逐列授回。
 -- new_monthly_salary 在 PostgREST 上是 42501 硬报错(不是静悄悄的泄露)。
@@ -175,4 +175,4 @@ COMMENT ON COLUMN public.performance_reviews.self_assessment_submitted_at IS
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.performance_reviews
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.hr.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.hr_reviews');

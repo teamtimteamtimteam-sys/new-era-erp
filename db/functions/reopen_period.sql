@@ -8,7 +8,7 @@ DECLARE
     v_close_id uuid;
     v_new_lock date;
 BEGIN
-    PERFORM require_permission('module.finance.edit');
+    PERFORM require_permission('action.finance_reopen');
     IF p_reason IS NULL OR btrim(p_reason) = '' THEN
         RAISE EXCEPTION 'REASON_REQUIRED';
     END IF;

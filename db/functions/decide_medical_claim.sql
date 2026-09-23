@@ -6,7 +6,7 @@ CREATE OR REPLACE FUNCTION public.decide_medical_claim(p_claim_id uuid, p_approv
 AS $function$
 DECLARE v_claim record; v_bal jsonb; v_remaining numeric;
 BEGIN
-    PERFORM require_permission('module.hr.edit');
+    PERFORM require_permission('action.decide_hr_requests');
 
     SELECT * INTO v_claim FROM medical_claims WHERE id = p_claim_id AND deleted_at IS NULL FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'CLAIM_NOT_FOUND'; END IF;

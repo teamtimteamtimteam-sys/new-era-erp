@@ -68,7 +68,9 @@ BEGIN
         (r_l2, 'module.finance.view'), (r_l2, 'data.view_prices'), (r_l2, 'module.purchasing.view'),
         (r_adm, 'action.manage_permissions'), (r_adm, 'module.finance.view'),
         (r_adm, 'module.purchasing.edit'), (r_adm, 'module.suppliers.edit'),
-        (r_hr, 'module.hr.edit'), (r_hr, 'module.hr.view');
+        (r_hr, 'module.hr.edit'), (r_hr, 'module.hr.view'),
+        -- ROLE-1(2026-09-23):请假与医疗申报的决定门换成 action.decide_hr_requests
+        (r_hr, 'action.decide_hr_requests');
 
     -- ★ 二级:u_second(人甲)· u_main(人甲)· u_l2b(人乙)= 3 个账号、2 个人(R 臂)
     INSERT INTO user_roles (user_id, role_id) VALUES
@@ -259,9 +261,9 @@ BEGIN
     v_msg := NULL; v_denied := false;
     BEGIN
         PERFORM decide_leave_request(lv_id, false, 'x');
-    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM = 'PERMISSION_DENIED|module.hr.edit'); END;
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM = 'PERMISSION_DENIED|action.decide_hr_requests'); END;
     IF NOT v_denied THEN
-        RAISE EXCEPTION 'FIXTURE 206M 失败:只持 gm 的人决定请假应当报 PERMISSION_DENIED|module.hr.edit,实得 %', COALESCE(v_msg,'(没有报错)'); END IF;
+        RAISE EXCEPTION 'FIXTURE 206M 失败:只持 gm 的人决定请假应当报 PERMISSION_DENIED|action.decide_hr_requests,实得 %', COALESCE(v_msg,'(没有报错)'); END IF;
     EXECUTE 'SET LOCAL ROLE authenticated';
     IF auth.uid() IS DISTINCT FROM u_gm THEN
         EXECUTE 'RESET ROLE';

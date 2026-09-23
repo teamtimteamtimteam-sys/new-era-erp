@@ -67,7 +67,7 @@ export default async function KpiPage() {
     // ★ MANUAL-FIX-1 C:打分屏的入口跟着 module.hr.edit 走 —— 与它从前作为
     //   注册表条目时的门【逐字相同】(见 lib/modules.ts 那条 C-2 注释)。
     //   只有 view 的人(auditor)照旧看不到这个入口。
-    const mayScore = await can('module.hr.edit')
+    const mayScore = await can('action.hr_reviews')
 
     const matrixRows: KpiMatrixRow[] = matrix.map((m) => ({
         positionCode: m.position_code,

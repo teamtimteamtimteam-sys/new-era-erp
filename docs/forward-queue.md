@@ -6177,6 +6177,72 @@ INPUT-0 §9 Q8「归本族还是归字体那一刀」到此关闭。
   **所以改写出来的每一条短规矩,要先交 Tim 批准,才能落地。**
 * 为什么现在不做:TRIM-1 的裁定是「每一条规矩都留在 AGENTS.md,包括那 47 条的判词与处置」(Q1 选 a,目标改为 ≤140k)。
 
+## ⬜ ★★ ROLE-1 · 角色与审批矩阵 —— Batch 1 已上线;Batch 2–5 与 [LC] 队列(Tim 2026-09-23)
+
+**矩阵本身、每一行的状态:`docs/role-matrix.md`(唯一参照)。本节只回答【先做哪个】。**
+Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13;每一批一刀,一刀一个会话。**
+★ Step 0 的估计:整件 5 个会话(区间 4–7)。**B2–B5 每一批都要先读 `docs/handbacks/ROLE-1.md` §3 那张"每个码被谁读"的表** ——
+那是三次勘察的结果,文件与行号在那里,不必再勘一遍(但委托书里的数照样要重量,AGENTS.md「委托书里的数」)。
+
+### ⬜ Batch 2 —— 主数据与 CFO 专属的几件、供应商审批、合同条款、定价、直接销售、化验
+* **财务设置 / 主数据只归 CFO**:新码(工作名 `action.finance_settings`)—— 科目表、币种、公司资料(含银行明细)、
+  GST 登记开关、其余 `finance_settings` 列(**锁定日除外**,它归财务)。`finance_settings` 的授权是表级的,
+  所以要一支按列的守卫(与 `guard_lock_reopen_path` 同形),不是改一条策略。`accounts` / `currencies` 今天**没有写屏幕**。
+* **客户信用额度与冻结只归 CFO**:`customers.credit_limit_base` / `credit_hold` 的列守卫 + 新码(工作名 `action.customer_credit`);
+  今天是 `app/sales/customers/[id]/edit/actions.ts` 在 `customers.edit` 之下的直连 UPDATE。
+* **供应商状态拆开(Q11)**:批准 / 驳回 / 拉黑 / 恢复 → CFO(工作名 `action.supplier_approve`);
+  送审 / 启用 / 暂停 / 归档 → `suppliers.edit`;**建档人永远不能批自己建的**(`suppliers.created_by` 由触发器盖章,
+  线上 8 家旧户为 NULL → 那条腿不适用,NULL 永不匹配)。今天状态是一句直连 UPDATE,要一支触发器。
+* **合同条款归 cco**(工作名 `action.contract_terms`;今天 `contracts` 的写门按侧别借 `suppliers.edit` / `customers.edit`)。
+* **定价拆开**:金属价格 → 财务(工作名 `action.metal_prices`);定价公式留在 `pricing.edit`,只 cco 持有(cto 与 finance 拿掉)。
+* **直接销售只归 cco**:`record_output_sale` 的门从 `output.edit` 换成新码(工作名 `action.direct_sale`)。
+* **化验归 cto**:`apply_assay_result` / `unapply_assay_result` / `record_assay_result` 换成新码(工作名 `action.apply_assay`)。
+  ⚠ 化验会【改价】(按已提交的条款重算)—— Step 0 已点名,B2 开工前要 Tim 确认"cto 应用化验、价随之重算"是他要的。
+
+### ⬜ Batch 3 —— 仓库那一侧:收货、盘点、工单、加工提交,以及 [LC] 的临时持有人
+* **收货建单归仓库**:`create_inbound_batch` / `receive_inbound_batch_against_po` 换成新码(工作名 `action.receive_goods`)。
+* **盘点:录数归仓库、过账归财务,录过数的人永远不能过账**。`stocktake_lines` 只记最后一个 `created_by`、重录会覆盖 ——
+  **先要一份"谁数过"的记录**(按行追加),再把 `post_stocktake` 的四眼从"开单人"改成"开单人 + 所有录过数的人"。
+  线上 5 张在途盘点(ST-2026-0082…0086)都是 0 行,没有历史要回填。
+* **工单**:建 / 改 / 取消 / 关闭 → 仓库;下达 → 财务;加工提交 → 仓库。仓库今天【没有】`module.processing.view`,要一起给。
+* **临时持有人(Q10)**:删批次(报废入口)、加工回滚、作废 COD —— 在各自的生命周期之前只归仓库;发货在 APR-5 之前 cco 保留。
+
+### ⬜ Batch 4 —— 采购价可见性(Q9)与"看不见价格的人不能定价"
+* 新码 `data.view_purchase_prices`(工作名):采购单与采购行、质保金、付款条款、定价公式与条款承诺、计价器、
+  收货单价与改价历史、应付账龄 → 采购价;销售、发票、应收、到岸成本、存货计值、加工成本、毛利 → 留在 `data.view_prices`。
+  今天持 `view_prices` 的人一并拿到新码(谁都不少看一格);仓库只拿新码。约 16 张视图 + 6 支函数 + `lib/permissions.ts`。
+* **收货定价与改价归财务,而且在库里挡"看不见价格的人不能定价"**:`set_inbound_unit_price` / `reprice_*` /
+  建单带价,门换成新码(工作名 `action.price_receipts`)并同时要求采购价可见。
+* 先处理 `docs/known-issues.md` 的 ROLE1-PO-DOCUMENT-DATA-PRICES 与 ROLE1-SALES-ORDER-QUOTE-PRICES-UNMASKED ——
+  仓库一旦看得见采购价,这两条就从"空的"变成"实的"。
+* 附表那一条:**每一个和价格有关的动作都从仓库拿掉**(直接销售在 B2 已经拿掉;收货定价在这一批)。
+
+### ⬜ Batch 5 —— 采购单品类与按品类开单(Q12)
+* `purchase_orders` 加一列品类(工厂耗材 / 设备与货物 / 办公用品),开单人在表单上选;**带资产行的只能是"设备与货物"**。
+* 每类一个开单码(工作名 `action.raise_po_consumables` → 仓库 · `action.raise_po_equipment` → cco · `action.raise_po_office` → 财务)。
+* 旧单回填:有资产行 → 设备与货物,其余 → 工厂耗材。
+* **修改 / 取消 / 关闭只归开单人**(按人认,`account_person`)。分级审批不变:< 1,000 财务、≥ 1,000 CFO。
+
+### ⬜ [LC] 队列 —— 按风险排(钱出去的先),粗估大小
+**每一条都是"申请 → 批准 → 执行"的一次建模改动(在途态 · 把过账推迟到批准那一刻 · 拒绝的路 · 屏幕),不是接线。**
+与上面 3b-order 的关系:**付款申请本来就是下一刀**;其余几条插在哪里,**待 Tim 定序** —— 下表只是按风险的建议。
+
+| # | 生命周期 | 覆盖矩阵里的哪几行 | 大小 |
+|--:|---|---|---|
+| 1 | **付款申请**(已排队,3b-order 的下一刀)| 付款与冲销、银行转账、预扣税缴纳、采购质保金释放 | L(约 2 个会话)|
+| 2 | 工资过账申请 | 工资过账与撤销 | M |
+| 3 | 调薪申请 | 调薪(第一份月薪以外的每一次)| M |
+| 4 | GST 申报审批 | GST 申报与更正 | M |
+| 5 | 收货定价审批 | 收货定价与改价(每一次都过应付)| M–L |
+| 6 | APR-5(已排队)| 贷项通知、作废发票、发货前放行 | L |
+| 7 | 固定资产处置申请(已排队)| 资产处置 | M |
+| 8 | APR-6(已排队)| 手工凭证与冲销 | L |
+| 9 | 删批次(报废)申请 | 删除进料 / 产出批次 | M |
+| 10 | 加工回滚申请 | 加工回滚 | M |
+| 11 | 合同条款审批 | 合同条款 | M |
+| 12 | 定价公式审批 | 定价公式 | M |
+| 13 | COD 作废申请 | 作废销毁证书 | S |
+
 ## 维护规则
 
 > **一刀关闭,就在【关闭它的那一次提交里】把它从所在阶段划掉。**

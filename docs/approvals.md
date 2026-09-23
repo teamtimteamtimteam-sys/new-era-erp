@@ -1150,6 +1150,55 @@ the payment request, because it produces a wrong number — ~~live instances IN-
 
 ---
 
+## 3i · ROLE-1 Batch 1 (2026-09-23) — Tim's role matrix: who decides the HR chains now, and what `admin` no longer is
+
+The matrix itself is `docs/role-matrix.md`; the cut is `docs/handbacks/ROLE-1.md`. This section records only what
+changes **for approvals**.
+
+### The HR chains have their own decision codes now
+| chain | decided by (code) | held by | the designated approver is the subject → |
+|---|---|---|---|
+| leave request | `action.decide_hr_requests` | finance · cfo | the CFO decides it (Q4: the CFO may decide any) |
+| medical claim | `action.decide_hr_requests` | finance · cfo | the same |
+| performance review | `review_approval_code(submitted_by, employee_id)` → `action.approve_review` | cfo | **cco** decides it (`action.hr_reviews`) when the CFO is the **submitter or** the subject (Q5) |
+
+☞ `review_approval_code` is the single definition; `approve_review` and both review pages ask it. "The CFO" is the
+same predicate R2 uses: a real holder of `finance_settings.approval_level2_role_code`, **by person**.
+☞ Why "submitter OR subject", not just subject: Choo Er's manager is Tim, so Tim is the reviewer who **submits** her
+review, and the raiser leg would refuse him (measured at Step 0 from `employees.manager_id`).
+
+### R2 now covers the CFO's own leave
+§3g R2 said the exception "never covers … leave". **Tim reversed that for leave only** ("Tim's own leave — Tim approves it
+himself, flagged self_decided"). `self_approval_exception` lists `leave_request`; `approval_log_self_decided_scope` allows
+it; `self_approved_decisions()` names the subject of a leave row. Payroll, performance reviews and salary changes are still
+never covered. ~~The exception never covers leave~~ — struck, not deleted, because a withdrawn rule and a never-written
+rule read the same.
+☞ **R2 on medical claims finally reaches the CFO account.** Before, `decide_medical_claim` required `module.hr.edit`
+first and a cfo-only account never got as far as the exception (§3g Q5). The CFO now holds the decide code.
+
+### `admin` holds no business code — and `cco` no longer holds `action.manage_permissions`
+* `admin`: `action.manage_permissions`, `action.bulk_import`, `action.anonymise_employee`, **nothing else** (Q8).
+  **admin@ can no longer read business data; Tim does all business reading and deciding as tim@.**
+  ☞ §3f's standing rule — *"the admin account must not raise business documents"* — is now enforced by the grants
+  rather than only written down. The Step 0 gap *"a PO admin@ raises at ≥ 1,000 has nobody to decide it"* cannot arise.
+* `cco`: `action.manage_permissions` removed. **APR-0's "cco is admin-equivalent … ACCEPT this for now" (§0b) is
+  superseded** — the approvals switch, the policy and every grant are admin-only again.
+* **The approvals switch and policy were not touched.** Level 1 `finance`, level 2 `cfo`, threshold SGD 1,000, ON.
+
+### No pending document lost its decider — measured before and after
+`approval_deciders` answers the tiered chains only (it reads `approval_chain_gates()`); the HR, work-order and stocktake
+chains were measured from the same parts (`real_role_grants`, `self_leg`, `self_approval_exception`) against each decision
+function's real gate. As `postgres` (`rolbypassrls = t`), base tables, 2026-09-23:
+
+| pending item | before | after |
+|---|---|---|
+| CLM-2026-0004 (expense claim, Choo Er's own, SGD 1,000 → level 2) | tim@ | tim@ |
+| LV-2026-0001 · LV-2026-0003 (Choo Er's own leave) | admin@ · sandra@ | **tim@** |
+| MC-2026-0001 (approved, unpaid — payment) | admin@ · chooer@ | chooer@ (no self-check on payment; recorded in known-issues) |
+| ST-2026-0082…0086 (open stocktakes, raised by admin@) | chooer@ · fusheng@ · phua@ · sandra@ | the same |
+
+The migration asserts this in its own transaction: any pending item with zero deciders rolls the whole cut back.
+
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
 **Found while building CHAIN-BUILD-1; folded into the same predicate.**

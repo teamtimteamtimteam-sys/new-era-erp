@@ -9,6 +9,9 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
 import { statusPillClass } from '../../reviews/reviewShared'
 import RaiseProbationReview from '../RaiseProbationReview'
+import InitialSalaryForm from '../InitialSalaryForm'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { getBaseCurrency } from '@/lib/currency'
 import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -16,7 +19,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import { EmployeeTrainingTable, EmployeeReviewsTable, EmployeePayrollTable, type TrainingRow, type EmployeeReviewRow, type EmployeePayRow } from './EmployeeTables'
-import { formatDate, formatMonth } from '@/lib/dates'
+import { formatDate, formatMonth, toYearMonth } from '@/lib/dates'
 
 export default async function EmployeeDetailPage({
     params,
@@ -77,7 +80,27 @@ export default async function EmployeeDetailPage({
     // 绩效评估(HR-3d):没有 module.hr.view + data.view_reviews 的读者在这里是零行,
     // 整节隐去 —— 一个空表头对读不到内容的人只是噪音。
     // PROBATION-1:发起转正评估的门要 module.hr.edit —— 读得到不等于写得了。
+    // ★ ROLE-1(2026-09-23):评估那一块拆成 action.hr_reviews(cco),门跟着换。
     // 与 /hr/reviews/[id] 同一个惯用法(can() 来自 lib/permissions)。
+    // ROLE-1:第一份月薪(Q7)—— 人事那一半的写码,以及看得见工资
+    const [canHrWrite, canPay, baseCurrency] = await Promise.all([
+        can('module.hr.edit'), can('data.view_pay'), getBaseCurrency(),
+    ])
+    // 第一份月薪可选的起算月:入职那个月(最多往回 12 个月)到下两个月。整月 —— 工资按整月算。
+    //   月份字符串一律经 lib/dates 的 toYearMonth 取(不手写 getUTCFullYear / padStart);
+    //   取每月 15 号造 Date,离月界足够远,不受业务时区影响。
+    const salaryMonths: { value: string; label: string }[] = (() => {
+        const ymIndex = (ym: string) => Number(ym.slice(0, 4)) * 12 + Number(ym.slice(5, 7)) - 1
+        const endIdx = ymIndex(toYearMonth(new Date())) + 2
+        const hireYm = toYearMonth(emp.hire_date)
+        const startIdx = Math.max(hireYm ? ymIndex(hireYm) : endIdx - 2, endIdx - 14)
+        const out: { value: string; label: string }[] = []
+        for (let i = startIdx; i <= endIdx; i++) {
+            const value = toYearMonth(new Date(Date.UTC(Math.floor(i / 12), i % 12, 15))) + '-01'
+            out.push({ value, label: formatMonth(value, locale) })
+        }
+        return out
+    })()
     const [empReviewsRes, ratingScaleRes, canHrEdit] = await Promise.all([
         supabase
             .from('performance_reviews_masked')
@@ -85,7 +108,7 @@ export default async function EmployeeDetailPage({
             .eq('employee_id', id)
             .order('period_end', { ascending: false }),
         supabase.from('review_rating_scale').select('code, name_en, name_zh'),
-        can('module.hr.edit'),
+        can('action.hr_reviews'),
     ])
     type EmpReview = {
         id: string
@@ -357,6 +380,28 @@ export default async function EmployeeDetailPage({
                 ★ CONV-9:表格现在【无条件】画,空态由它自己说(DataTable 的 empty)——
                   这与 PROBATION-1 的方向一致,而不是把那道门又藏回去。
                 canHrEdit 那一半保持原样 —— 读得到不等于写得了。 */}
+            {/* ── 月薪(ROLE-1 · Tim 的 Q7)──────────────────────────────────────
+                直连写月薪一律被拒;第一份月薪由财务在这里录【一次】,之后的变动走绩效评估
+                (或将来的调薪申请)由 CFO 批。三种状态各说各的话:
+                  · 已有且看得见 → 数字 + 一句"之后怎么改";
+                  · 已有但看不见(没有 data.view_pay)→ 「受限」,不是空白;
+                  · 还没有 → 录入表单,外面两道门:先要看得见工资(data.view_pay),再要 module.hr.edit。 */}
+            <h2 className="mb-3">{t('hr.initialSalary.title')}</h2>
+            {emp.monthly_salary_set ? (
+                <p className="mb-6 text-sm">
+                    {emp.monthly_salary !== null
+                        ? formatAmount(emp.monthly_salary, baseCurrency)
+                        : t('common.restricted')}
+                    <span className="ml-3 text-xs text-[color:var(--brand-muted-text)]">{t('hr.initialSalary.changeRoute')}</span>
+                </p>
+            ) : (
+                <PermissionGate code="data.view_pay" allowed={canPay} className="mb-6 flex w-full items-stretch">
+                    <PermissionGate code="module.hr.edit" allowed={canHrWrite} className="flex w-full items-stretch">
+                        <InitialSalaryForm employeeId={id} currency={baseCurrency} months={salaryMonths} />
+                    </PermissionGate>
+                </PermissionGate>
+            )}
+
             <h2 className="mb-3">{t('reviews.sectionTitle')}</h2>
             {/* ★ 出口:发起转正评估。住 children,而 state 恒为 'ok'。 */}
             {canHrEdit && emp.employment_status === 'probation' && (

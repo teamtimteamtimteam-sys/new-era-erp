@@ -4,13 +4,17 @@
 -- ════════════════════════════════════════════════════════════════════════════
 -- 【Tim 的裁定,原样】最高一级审批角色的持有人(今天是 cfo),可以决定
 -- 【他自己的】报销单与医疗申报。每一次这样的决定都在 approval_log 里标成自批,
--- 并有一张报表列出全部自批。**这个例外永远不覆盖**薪资、绩效、调薪、请假,
+-- 并有一张报表列出全部自批。**这个例外永远不覆盖**薪资、绩效、调薪,
 -- 或任何别的单据类型。Tim 选它而不选"把自己的单送给 MD",是有意识地选了
 -- 【可追溯】而不是【可防止】。
+-- ★ ROLE-1(Tim 的矩阵,2026-09-23):**请假加进来了,只对 CFO** ——
+--   「Tim 自己的假,Tim 自己批,标成 self_decided」。上面那句原来写着"永远不覆盖
+--   ……请假",那一句到此为止;划掉而不是删掉的理由与 approvals.md 同一条:
+--   一条被收回的规矩与一条从来没写过的规矩,读起来一模一样。
 -- ════════════════════════════════════════════════════════════════════════════
 --
 -- 【三个条件,缺一不可】(Q3)
---   ① 单据类型是 expense_claim 或 medical_claim —— 写死在这里,★ 而且只写在这里;
+--   ① 单据类型是 expense_claim、medical_claim 或(ROLE-1 起)leave_request —— 写死在这里,★ 而且只写在这里;
 --      approval_log 上的 CHECK(approval_log_self_decided_scope)是同一句话的
 --      第二道保险:哪一天别的路径让一次自批漏过去,落留痕那一刻当场报错。
 --   ② 这个账号属于【单据说的那个人】(经 account_person 按人认)。
@@ -19,8 +23,9 @@
 --
 -- 【它【不】放宽任何模块门】(Q5)本函数只回答"自批这一条拒不拒";
 -- 能不能走到这一步,仍然由每一支决定函数自己的 require_permission 决定。
--- ☞ 于是医疗申报上:一个只持 cfo 的账号在 module.hr.edit 那一行就被拒,
---   根本到不了这里。
+-- ☞ ROLE-1 之前,医疗申报上一个只持 cfo 的账号在 module.hr.edit 那一行就被拒,
+--   根本到不了这里。ROLE-1 把请假与医疗申报的决定门换成 action.decide_hr_requests,
+--   并授给了 cfo(Tim 的 Q4:CFO 可以决定任何一张)—— 于是 R2 在这两类上第一次真的走得到。
 --
 -- 【raiser 那条腿什么时候一起被豁免】只有当提单的人【也是】这个人。
 -- 本函数的条件②已经要求"主角就是我",所以 forbid_self_approval 里
@@ -40,7 +45,7 @@ CREATE OR REPLACE FUNCTION public.self_approval_exception(p_subject_type text, p
  SET search_path TO 'public', 'pg_temp'
 AS $function$
     SELECT COALESCE(
-               p_subject_type IN ('expense_claim', 'medical_claim')
+               p_subject_type IN ('expense_claim', 'medical_claim', 'leave_request')
            AND p_subject_employee IS NOT NULL
            AND p_user IS NOT NULL
            AND p_level2_role IS NOT NULL
@@ -50,4 +55,4 @@ AS $function$
 $function$;
 
 COMMENT ON FUNCTION public.self_approval_exception(text, uuid, uuid, text) IS
-'APR-ROUTE-1(R2):"不许自己批自己"的唯一例外 —— 单据是 expense_claim 或 medical_claim、这个账号属于单据说的那个人、并且它此刻是二级审批角色的真持有人。永不返回 NULL。它不放宽任何模块门:能不能走到这一步仍由决定函数自己的 require_permission 决定。approval_log 上的 approval_log_self_decided_scope 是同一句话的第二道保险。EXECUTE 已从 authenticated 收回。';
+'APR-ROUTE-1(R2),ROLE-1 扩到请假:"不许自己批自己"的唯一例外 —— 单据是 expense_claim、medical_claim 或 leave_request、这个账号属于单据说的那个人、并且它此刻是二级审批角色的真持有人。永不返回 NULL。它不放宽任何模块门:能不能走到这一步仍由决定函数自己的 require_permission 决定。approval_log 上的 approval_log_self_decided_scope 是同一句话的第二道保险。EXECUTE 已从 authenticated 收回。';

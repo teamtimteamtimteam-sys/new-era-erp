@@ -27876,6 +27876,7 @@ export type Database = {
         }
         Returns: Json
       }
+      period_close_floor: { Args: never; Returns: string }
       pnl_statement: { Args: { p_from: string; p_to: string }; Returns: Json }
       po_document_data: { Args: { p_po_id: string }; Returns: Json }
       post_journal_entry: {
@@ -28393,6 +28394,10 @@ export type Database = {
         Args: { p_memo?: string; p_payment_id: string }
         Returns: Json
       }
+      review_approval_code: {
+        Args: { p_employee_id: string; p_submitted_by: string }
+        Returns: string
+      }
       role_can_see_amounts: { Args: { p_role_code: string }; Returns: boolean }
       rollback_processing_run: {
         Args: { p_reason: string; p_run_id: string }
@@ -28579,6 +28584,15 @@ export type Database = {
           p_inbound_batch_id: string
           p_notes?: string
           p_unit_price: number
+        }
+        Returns: Json
+      }
+      set_initial_salary: {
+        Args: {
+          p_amount: number
+          p_effective_date: string
+          p_employee_id: string
+          p_notes?: string
         }
         Returns: Json
       }

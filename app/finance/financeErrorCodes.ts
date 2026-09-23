@@ -23,6 +23,9 @@ const FINANCE_ERROR_CODES = new Set([
     // close_period、/finance/settings 的手动锁、以及 record_payment 三条路上冒出来 ——
     // 一条规矩,两个问法(db/functions/assert_segregated.sql)。
     'SOD_POST_AND_CLOSE', 'SOD_PAYEE_AND_PAY',
+    // ROLE-1(Tim 的矩阵,2026-09-23):重开已关的月只归 CFO、只走 reopen_period。
+    //   手动锁的直连写若越过一个已关的月,trg_lock_reopen_path 按名拒。
+    'REOPEN_THROUGH_CLOSE_ONLY',
     // SOD-1:审批开关的两道闸。前三条管【开】,第四条管【关】(关掉会搁死在途单据),
     // 第五条管【开着的时候不许抽走策略】。
     // ★ APR-1:这一族是从 guard_approvals_switch 的函数体里【逐条枚举】出来的,

@@ -88,6 +88,11 @@ BEGIN
     INSERT INTO role_permissions (role_id, permission_code) VALUES
         (r_hr,   'module.hr.edit'),
         (r_hr,   'module.hr.view'),
+        -- ROLE-1(2026-09-23):决定请假/医疗、做与批绩效评估各自有了自己的码。
+        --   这份 fixture 问的是【四眼】,不是谁持哪个码 —— 所以 HR 演员三个都拿。
+        (r_hr,   'action.decide_hr_requests'),
+        (r_hr,   'action.hr_reviews'),
+        (r_hr,   'action.approve_review'),
         (r_proc, 'module.processing.edit'),
         (r_proc, 'module.processing.view'),
         (r_adm,  'action.manage_permissions'),

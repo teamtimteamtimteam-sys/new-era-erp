@@ -404,6 +404,20 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
     "export_my_personal_data":
         "no requirable permission exists: the subject IS the caller (auth.uid()), no arguments; "
         "returns PDPA_NO_EMPLOYEE_RECORD for anon; DEFINER only bypasses column masking (PDPA-1)",
+    # ROLE-1(2026-09-23):两支都【不能】加调用者检查,也【不能】收回 EXECUTE ——
+    #   理由不同,各写一句。两处 allowlist 必须一致(db/check_mirrors.py 同改)。
+    # period_close_floor:调它的是一支 INVOKER 触发器(guard_lock_reopen_path),EXECUTE 按
+    #   当前用户判 —— 收回它,每一次手动锁都 42501;加 has_permission 门,一个持
+    #   finance.edit 的写入者照样过、一个不持的人本来就被 RLS 挡在 UPDATE 外,门什么都不守。
+    #   它吐出的只有一个日期(最新生效关账的次日),那个日期在关账页上本来就看得见。
+    "period_close_floor":
+        "ROLE-1: called by an INVOKER trigger, so EXECUTE must stay with the caller; "
+        "returns one date already shown on the close page",
+    # review_approval_code:它答的是"批这张评估要哪一个码"—— 返回值只是一个权限码的名字,
+    #   不含任何评估内容;页面要问它才画得出"按钮为什么按不了",approve_review 要问它才知道门。
+    "review_approval_code":
+        "ROLE-1: returns only the NAME of the permission code that approves a review; "
+        "no review data; the page and approve_review both ask it",
 }
 
 # AUD-1(2026-08-17):加 has_any_permission —— 它是 has_permission 的析取,

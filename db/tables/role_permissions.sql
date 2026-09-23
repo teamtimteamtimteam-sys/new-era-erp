@@ -56,26 +56,17 @@ CREATE POLICY "role_permissions delete by permission"
 -- 【自己验一遍】—— 一份连自己的规则都不满足的起点,比没有起点更糟。
 -- ═══════════════════════════════════════════════════════════════════════════
 
--- admin(35):全部 —— 定义上如此,不然它就不是管理员。
+-- admin:【只做系统管理】—— ★ ROLE-1(Tim 的角色与审批矩阵,2026-09-23 · Q8)。
+--   此前这里写着「admin(35):全部 —— 定义上如此,不然它就不是管理员」。Tim 裁定相反:
+--   系统管理员账号只管权限、账号、角色码、账号↔员工关联、审批开关与策略、批量导入、
+--   员工匿名化;【一个业务码都不持】,也【不读任何业务数据】。
+--   Tim 的一切业务阅读与决定走他的 CFO 账号(tim@),不走 admin@。
+--   ☞ 这不是减法里顺手的一步:admin@ 持全部业务码,才让"系统管理员建单、CFO 批"
+--     在四眼上被当成自批拒掉(同一个人两个账号)—— 拿掉它们,那一整类尴尬就不存在了。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'action.bulk_import', 'action.manage_permissions', 'data.view_banking', 'data.view_identity', 'data.view_pay',
-        'data.view_prices', 'data.view_reviews', 'data.view_sales', 'module.customers.edit',
-        'module.customers.view', 'module.finance.edit', 'module.finance.view', 'module.hr.edit',
-        'module.hr.view', 'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
-        'module.inventory.view', 'module.materials.edit', 'module.materials.view',
-        'module.output.edit', 'module.output.view', 'module.pricing.edit',
-        'module.pricing.view', 'module.processing.edit', 'module.processing.view',
-        'module.purchasing.edit', 'module.purchasing.view', 'module.stocktakes.edit',
-        'module.stocktakes.view', 'module.suppliers.edit', 'module.suppliers.view',
-        'module.tasks.edit', 'module.tasks.view',
-        'module.sales.edit', 'module.sales.view',
-        'module.logistics.view',
-        'data.view_deleted',
-        -- COD-1:签发销毁证书。
-        'action.issue_cod',
-        -- APR-ROUTE-1(R2 · Q4):自批报表。
-        'data.view_self_approvals') WHERE r.code = 'admin';
+        'action.manage_permissions', 'action.bulk_import', 'action.anonymise_employee'
+) WHERE r.code = 'admin';
 
 -- gm:看得见整个生意,包括成本与利润;【但不操作任何东西】。
 -- ★★ APR-ROUTE-1 Batch B(Tim 裁定,2026-09-23):gm 变成【只读】。
@@ -102,9 +93,16 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- APR-ROUTE-1(R2 · Q4):自批报表。Tim 的 MD 是 Vince,他持 gm。
         'data.view_self_approvals') WHERE r.code = 'gm';
 
--- finance(23):总账、应付应收、开票收付款 + 全部成本可见。【不含 HR】—— 薪酬与员工档案不是财务的工作对象。
+-- finance:总账、应付应收、开票收付款 + 全部成本可见。
+-- ★ ROLE-1(Tim 的矩阵,2026-09-23):此前这里写着「【不含 HR】—— 薪酬与员工档案不是财务的工作对象」。
+--   Tim 裁定相反:除 KPI 与绩效评估(归 cco)以外的全部人事与薪资工作归财务 ——
+--   工资期、算薪、考勤、员工档案(月薪除外)、请假与医疗申报的决定。
+--   于是加 module.hr.edit / module.hr.view / data.view_identity(身份信息从此只归财务,Q6)/
+--   data.view_pay / action.decide_hr_requests。(线上的 finance 另持 action.bulk_import,ROLE-1 在线上拿掉 —— 批量导入只归 admin;本文件里它本来就没有。)
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'module.hr.edit', 'module.hr.view', 'data.view_identity', 'data.view_pay',
+        'action.decide_hr_requests',
         'data.view_banking', 'data.view_prices', 'data.view_sales', 'module.customers.edit',
         'module.customers.view', 'module.finance.edit', 'module.finance.view',
         'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',

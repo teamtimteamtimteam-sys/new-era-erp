@@ -52,6 +52,7 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
         pro_rated_limit_sgd: number; claimed_sgd: number; remaining_sgd: number; months_of_service: number
     } | null
     const canFinance = await can('module.finance.edit')
+    const canDecide = await can('action.decide_hr_requests')   // ROLE-1
 
     // ════════════════════════════════════════════════════════════════════════
     // ★★ BUGFIX-1b(2026-09-12):GST 之下这笔开支要一个进项税码 ★★
@@ -173,6 +174,7 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
                 status={claim.status as string}
                 alreadyLinked={!!claim.expense_id}
                 canFinance={canFinance}
+                canDecide={canDecide}
                 gstRegistered={gstRegistered}
                 taxCodes={taxCodes}
             />

@@ -25,9 +25,12 @@
 --      这一臂是【这一刀不许把事情弄得更糟】的那道闸,所以它注入一个窄白名单
 --      并断言它确实变了 —— 一个不会变的注入证明不了任何事。
 --
--- 【为什么白名单里有 module.processing.edit】allocate_processing_costs 第一行就是
--- require_permission('module.processing.edit'),所以它的调用者【必然】持有它 ——
+-- 【白名单里哪一格承重】allocate_processing_costs 的调用者【必然】读得到这支函数 ——
 -- 于是材料成本表达式里这一支【按构造】不可能是 NULL。这不是宽松,是承重。
+-- ★ ROLE-1(2026-09-23):此前承重的是 module.processing.edit(分摊的门就是它)。
+--   分摊改归财务,门换成 module.finance.edit,edit 蕴含 view,于是承重的换成
+--   module.finance.view 那一格。D 臂的注入跟着换:拿掉的是 finance.view,
+--   分摊的人是一个【只持 finance.edit + finance.view】的人(分摊今天真实的最小调用者)。
 --
 -- 日期:自带。
 BEGIN;
@@ -37,7 +40,7 @@ DECLARE
     v_proc   uuid := gen_random_uuid();   -- 只有 module.processing.view
     v_inb    uuid := gen_random_uuid();   -- 只有 module.inbound.view
     v_other  uuid := gen_random_uuid();   -- 只有 module.hr.view(与这件事无关)
-    v_edit   uuid := gen_random_uuid();   -- 只有 module.processing.edit
+    v_edit   uuid := gen_random_uuid();   -- 只有 module.finance.edit + module.finance.view(ROLE-1:分摊的最小调用者)
     r_all uuid; r_proc uuid; r_inb uuid; r_oth uuid; r_edit uuid;
     v_ccy text; v_sup uuid; v_fwd uuid; v_mat uuid; v_matout uuid;
     v_ib uuid; v_run1 uuid; v_run2 uuid; v_d date := DATE '2027-12-06';
@@ -59,7 +62,7 @@ BEGIN
     INSERT INTO role_permissions (role_id,permission_code) VALUES (r_oth,'module.hr.view');
     INSERT INTO user_roles (user_id,role_id) VALUES (v_other,r_oth);
     INSERT INTO roles (code,name_en,name_zh,is_active) VALUES ('fixture-163-edit','f','f',true) RETURNING id INTO r_edit;
-    INSERT INTO role_permissions (role_id,permission_code) VALUES (r_edit,'module.processing.edit');
+    INSERT INTO role_permissions (role_id,permission_code) VALUES (r_edit,'module.finance.edit'), (r_edit,'module.finance.view');
     INSERT INTO user_roles (user_id,role_id) VALUES (v_edit,r_edit);
 
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}',v_full), true);
@@ -118,7 +121,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id',v_matout,'quantity',80,'unit','kg')),
         'weight',NULL,NULL,'battery_powder_line');
 
-    -- 【由一个【只持 processing.edit】的人来分摊】—— 那正是白名单里那一格挡的场景
+    -- 【由一个【只持 finance.edit + finance.view】的人来分摊】—— 那正是白名单里承重那一格挡的场景
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}',v_edit), true);
     PERFORM allocate_processing_costs(v_run1,'weight');
     SELECT material_cost_base INTO v_m FROM processing_runs WHERE id=v_run1;
@@ -126,14 +129,15 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 163D 前置失败:正确白名单下材料成本应为 750.00(= 100 × (5 + 500/200)),实得 % —— 前置不成立,后面的注入证明不了任何事', v_m;
     END IF;
 
-    -- 注入:把 processing.view / processing.edit 从白名单里拿掉
+    -- 注入:把承重的 finance.view 从白名单里拿掉(ROLE-1 之前拿掉的是 processing.view / processing.edit)
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}',v_full), true);
     CREATE OR REPLACE FUNCTION public.batch_freight_base(p_inbound_batch_id uuid)
     RETURNS numeric LANGUAGE sql STABLE SECURITY DEFINER
     SET search_path TO 'public','pg_temp' AS $inj$
         SELECT CASE
             WHEN has_permission('module.inbound.view')
-              OR has_permission('module.finance.view')
+              OR has_permission('module.processing.view')
+              OR has_permission('module.processing.edit')
             THEN batch_freight_base_all(p_inbound_batch_id)
             ELSE NULL
         END;
@@ -143,7 +147,7 @@ BEGIN
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}',v_edit), true);
     v_x := batch_freight_base(v_ib);
     IF v_x IS NOT NULL THEN
-        RAISE EXCEPTION 'FIXTURE 163D 注入无效:窄白名单下只持 processing.edit 的人应读到 NULL,实得 % —— 这一臂在空转', v_x;
+        RAISE EXCEPTION 'FIXTURE 163D 注入无效:窄白名单下只持 finance.edit + finance.view 的人应读到 NULL,实得 % —— 这一臂在空转', v_x;
     END IF;
 
     PERFORM allocate_processing_costs(v_run2,'weight');
@@ -154,7 +158,7 @@ BEGIN
     IF v_m <> 0.00 THEN
         RAISE EXCEPTION 'FIXTURE 163D 失败:窄白名单下材料成本应整条腿消失(0.00),实得 % —— 断言的是【机制】:一个 NULL 加数让 SUM 跳过整条投料腿,连它的 unit_price(500)一起', v_m;
     END IF;
-    RAISE NOTICE 'fixture 163D · 已证:白名单开窄一格,材料成本从 750.00 掉到 0.00 —— 连采购价一起丢掉。这就是白名单里 processing.edit 那一格挡的事。';
+    RAISE NOTICE 'fixture 163D · 已证:白名单开窄一格,材料成本从 750.00 掉到 0.00 —— 连采购价一起丢掉。这就是白名单里 finance.view 那一格(ROLE-1 前是 processing.edit)挡的事。';
 
     RAISE NOTICE 'fixture 163 · 全部通过';
 END $$;

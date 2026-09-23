@@ -16,6 +16,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import { GrantBreakdownTable, ConsumptionTable, type GrantBreakdownRow, type ConsumptionRow } from './LeaveDetailTables'
 import { formatDate } from '@/lib/dates'
+import { can } from '@/lib/permissions'
 
 export default async function LeaveRequestDetail({
     params,
@@ -172,6 +173,7 @@ export default async function LeaveRequestDetail({
                 status={req.status}
                 available={ty?.is_accrued ? (bal?.available ?? null) : null}
                 requested={req.days}
+                canDecide={await can('action.decide_hr_requests')}
             />
         </ListPage>
     )

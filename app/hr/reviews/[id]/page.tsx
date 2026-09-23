@@ -65,7 +65,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                 : Promise.resolve({ data: null, error: null }),
             supabase.rpc('current_user_employee'),
             supabase.auth.getUser(),
-            can('module.hr.edit'),
+            can('action.hr_reviews'),
             can('data.view_pay'),
         ])
 
@@ -84,6 +84,20 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
     const isReviewer = myEmployeeId !== null && r.reviewer_employee_id === myEmployeeId
     const canWrite = canHrEdit || isReviewer
     const isSubmitter = r.submitted_by !== null && r.submitted_by === uid
+    // ★ ROLE-1(Tim 的矩阵 · Q5):批这张评估要哪一个码,问数据库 —— review_approval_code 是
+    //   approve_review 自己的门,页面不在 TypeScript 里重算"CFO 是不是提交人或主角"。
+    //   只在【已提交、有提交人】时才问 —— 批准按钮也只在那时出现;别的状态下这两个值用不上。
+    const approveCode =
+        r.status === 'submitted' && r.submitted_by !== null
+            ? (mustOne(
+                  await supabase.rpc('review_approval_code', {
+                      p_submitted_by: r.submitted_by,
+                      p_employee_id: r.employee_id,
+                  }),
+                  'review_approval_code',
+              ) as string)
+            : ''
+    const canApprove = approveCode !== '' && (await can(approveCode))
     const preApproval = ['draft', 'self_review', 'submitted'].includes(r.status)
 
     // ════════════════════════════════════════════════════════════════════════
@@ -227,7 +241,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                 // 状态已经把所有人挡在外面时,不再叠一句权限的话(见上面的理由)。
                 return stateGoals || stateAssess || stateActual ? (
                     <PermissionGate
-                        code="module.hr.edit"
+                        code="action.hr_reviews"
                         allowed={canWrite}
                         alsoAllowedIf={orReviewer}
                         className="flex w-full items-stretch"
@@ -256,7 +270,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                 )
                 return stateConclusion ? (
                     <PermissionGate
-                        code="module.hr.edit"
+                        code="action.hr_reviews"
                         allowed={canWrite}
                         alsoAllowedIf={orReviewer}
                         className="flex w-full items-stretch"
@@ -302,6 +316,8 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                 canWrite={canWrite}
                 canHrEdit={canHrEdit}
                 isSubmitter={isSubmitter}
+                approveCode={approveCode}
+                canApprove={canApprove}
             />
         </div>
     )

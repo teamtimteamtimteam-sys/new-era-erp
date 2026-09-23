@@ -245,6 +245,8 @@ export default async function PurchaseOrderDetailPage({
             .map((o) => [o.trigger_event, o.owner_name])
     ) as Record<string, string>
     const canEditPurchasing = await can('module.purchasing.edit')
+    // ROLE-1:质保金释放归财务(release_purchase_order_retention 的门是 module.finance.edit)
+    const canReleaseRetention = await can('module.finance.edit')
     const poStatus = statusRes.data
     const receipts = maskedRows<Tables<'inbound_batches'>, 'unit_price'>(mustRows(receiptsRes))
 
@@ -932,7 +934,7 @@ export default async function PurchaseOrderDetailPage({
                             poId={po.id}
                             rows={retentions}
                             isEquipmentOrder={isEquipmentOrder}
-                            canEdit={canEditPurchasing}
+                            canEdit={canReleaseRetention}
                             currency={po.currency}
                             canSeePrices={canSeePrices}
                         />

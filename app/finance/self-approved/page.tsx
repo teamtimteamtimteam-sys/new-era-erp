@@ -40,6 +40,8 @@ type Row = {
 function hrefFor(r: Row): string | null {
     if (r.subject_type === 'medical_claim') return `/hr/claims/${r.subject_id}`
     if (r.subject_type === 'expense_claim') return '/finance/claims'
+    // ROLE-1:R2 扩到 CFO 自己的请假
+    if (r.subject_type === 'leave_request') return `/hr/leave/${r.subject_id}`
     return null
 }
 

@@ -24,7 +24,7 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
  *   情况下是同一个。**两条路给不同的答案是一次裁定,不是一次疏忽**(Tim 2026-09-12)。
  */
 export default function ClaimControls({
-    claimId, claimCode, status, alreadyLinked, canFinance, gstRegistered, taxCodes,
+    claimId, claimCode, status, alreadyLinked, canFinance, canDecide, gstRegistered, taxCodes,
 }: {
     claimId: string
     /** 单号 —— 确认对话框的主语必须点得出【是哪一张】(CONFIRM-1)。 */
@@ -32,6 +32,9 @@ export default function ClaimControls({
     status: string
     alreadyLinked: boolean
     canFinance: boolean
+    /** ROLE-1:决定医疗申报的门是 action.decide_hr_requests(finance 与 cfo)。
+     *  此前这两颗按钮对进得了 /hr 的每个人都画着、靠服务端拒 —— 按 DBLOCK-1 改成看得见、按不动、说出码。 */
+    canDecide: boolean
     /** GST 关着时这颗下拉根本不画:传一个税码进去会被 record_expense 按名拒。 */
     gstRegistered: boolean
     /** ★ 与报销单那条路【同一处真源】:tax_codes 里 is_active 且 side='input' 的那些。 */
@@ -70,6 +73,7 @@ export default function ClaimControls({
                     <label className="block mb-3">{t('leave.decisionNotes')}
                         <input value={notes} onChange={(e) => setNotes(e.target.value)}
                                className={`${CONTROL_INPUT} mt-1 w-full`} /></label>
+                    <PermissionGate code="action.decide_hr_requests" allowed={canDecide} inline>
                     <div className="flex gap-3">
                         <Button type="button" disabled={pending}
                                 onClick={() => run(() => decideClaim(claimId, true, notes || null))}>
@@ -81,6 +85,7 @@ export default function ClaimControls({
                             {t('leave.reject')}
                         </Button>
                     </div>
+                    </PermissionGate>
                 </>
             )}
 

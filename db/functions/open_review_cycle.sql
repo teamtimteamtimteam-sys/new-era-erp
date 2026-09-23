@@ -30,7 +30,7 @@ DECLARE
     v_noreviewer integer;
     v_exempt     integer;
 BEGIN
-    PERFORM require_permission('module.hr.edit');
+    PERFORM require_permission('action.hr_reviews');
 
     SELECT * INTO v_c FROM review_cycles WHERE id = p_cycle_id FOR UPDATE;
     IF NOT FOUND THEN

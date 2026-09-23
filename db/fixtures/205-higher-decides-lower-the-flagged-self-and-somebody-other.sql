@@ -13,11 +13,17 @@
 --   R2c ★ 医疗申报:二级持有人(另持 hr.edit)自己的 → 批得动、self_decided = true
 --   R2d ★ 【对照】一个【不是】二级持有人的 hr.edit 持有人,自己的医疗申报 → |raiser
 --        ☞ 少了它,R2c 证明的可能只是"医疗申报根本不判自批"
---   R2e ★★ 例外【永远不覆盖】请假:二级持有人自己的请假 → |raiser
+--   R2e ★★ ~~例外【永远不覆盖】请假~~ —— ★ ROLE-1(Tim 的矩阵,2026-09-23)把请假加进来了,只对 CFO:
+--        二级持有人自己的请假 → 决定得了,self_decided = TRUE
+--   R2e′ ★【对照】一个【不是】二级持有人的决定人,自己的请假 → 照拒 |raiser
+--        ☞ 少了它,R2e 证明的可能只是"请假根本不判自批"
 --   R2f ★★ 一个【只持二级角色】的账号(独立 CFO 账号的形状)批自己的医疗申报 →
---        PERMISSION_DENIED|module.hr.edit —— 例外不放宽任何模块门(Q5)
---   R2g ★ approval_log_self_decided_scope:往请假上写一行 self_decided = true → 当场拒
---   R2h ★★ 报表:没有码 → RAISE(不是零行);有码 → 读得到 R2a 与 R2c 那两行,
+--        PERMISSION_DENIED|action.decide_hr_requests —— 例外不放宽任何模块门(Q5)
+--        (ROLE-1 之前那个门是 module.hr.edit;线上的 cfo 从 ROLE-1 起持有决定码,
+--         而这里的二级角色刻意不持 —— 这一臂问的是"例外会不会替你开门")
+--   R2g ★ approval_log_self_decided_scope:往绩效评估上写一行 self_decided = true → 当场拒
+--        (ROLE-1 之前用的是请假;请假如今在范围之内,于是换一个仍在范围之外的类型)
+--   R2h ★★ 报表:没有码 → RAISE(不是零行);有码 → 读得到 R2a、R2c 与 R2e 那三行,
 --        带主角的名字;【而一行非自批都没有】
 --   R4a ★★ 面板:二级只有一个人时,own_document_gaps 点名他 ——
 --        采购那两条链 self_exception = false(他的单会搁死),
@@ -64,9 +70,10 @@ DECLARE
     mc_hrown  uuid := gen_random_uuid();
     mc_cfoown uuid := gen_random_uuid();
     lv_l2own  uuid := gen_random_uuid();
+    lv_hrown  uuid := gen_random_uuid();   -- ROLE-1 · R2e′
     v_base text;
     v_n integer; v_m integer; v_msg text; v_denied boolean;
-    v_lvl smallint; v_self boolean; v_name text;
+    v_lvl smallint; v_self boolean; v_name text; v_name2 text;
     v_read jsonb; v_gap jsonb;
 BEGIN
     SELECT code INTO v_base FROM currencies WHERE is_base;
@@ -90,6 +97,8 @@ BEGIN
         (r_l1, 'module.finance.view'), (r_l1, 'data.view_prices'), (r_l1, 'module.purchasing.view'),
         (r_l2, 'module.finance.view'), (r_l2, 'data.view_prices'), (r_l2, 'module.purchasing.view'),
         (r_hr, 'module.hr.edit'), (r_hr, 'module.hr.view'),
+        -- ROLE-1(2026-09-23):请假与医疗申报的决定门换成 action.decide_hr_requests
+        (r_hr, 'action.decide_hr_requests'),
         (r_adm, 'action.manage_permissions'), (r_adm, 'module.finance.view'),
         (r_aud, 'data.view_self_approvals'), (r_aud, 'module.finance.view');
 
@@ -122,6 +131,9 @@ BEGIN
       VALUES ('fx205-lv', 'f', 'f', false, true);
     INSERT INTO leave_requests (id, code, employee_id, leave_type_code, start_date, end_date, days, status, created_by)
       VALUES (lv_l2own, 'FX205-LV-1', e2, 'fx205-lv', DATE '2030-03-04', DATE '2030-03-04', 1, 'pending', u_l2);
+    -- ROLE-1 · R2e′ 的对照:一个不是二级持有人的决定人(u_hr,E3)自己的请假
+    INSERT INTO leave_requests (id, code, employee_id, leave_type_code, start_date, end_date, days, status, created_by)
+      VALUES (lv_hrown, 'FX205-LV-2', e3, 'fx205-lv', DATE '2030-03-05', DATE '2030-03-05', 1, 'pending', u_hr);
 
     -- 策略:两级各一个真持有人,门槛 1000,审批【开着】。直写四列要显式举旗(APR-1)。
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);
@@ -225,25 +237,35 @@ BEGIN
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 205R2d 失败:一个不持二级角色的 hr.edit 持有人批自己的医疗申报应当报 |raiser,实得 %', COALESCE(v_msg,'(没有报错)'); END IF;
 
-    -- ══════════════════════ R2e ★★ 例外永远不覆盖请假 ══════════════════════
-    v_msg := NULL; v_denied := false;
+    -- ══════════════════════ R2e ★★ ROLE-1:例外覆盖 CFO 自己的请假 ══════════════════════
+    -- 此前这一臂断言"二级持有人批自己的请假 → |raiser"。Tim 的矩阵(2026-09-23)反过来:
+    -- 「Tim 自己的假,Tim 自己批,标成 self_decided」。旧的断言如今是【错的规矩】,不是回归。
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_l2), true);
+    PERFORM decide_leave_request(lv_l2own, false, '自己的假,自己拒');
+    SELECT self_decided INTO v_self FROM approval_log WHERE subject_type = 'leave_request' AND subject_id = lv_l2own;
+    IF v_self IS DISTINCT FROM true THEN
+        RAISE EXCEPTION 'FIXTURE 205R2e 失败:二级持有人决定自己的请假应当成功并标记 self_decided,实得 %', v_self; END IF;
+
+    -- ══════════════════════ R2e′ ★ 对照:不是二级持有人 → 自己的请假照拒 ══════════════
+    v_msg := NULL; v_denied := false;
+    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_hr), true);
     BEGIN
-        PERFORM decide_leave_request(lv_l2own, false, 'x');
+        PERFORM decide_leave_request(lv_hrown, false, 'x');
     EXCEPTION WHEN OTHERS THEN
         v_msg := SQLERRM; v_denied := (SQLERRM = 'SELF_APPROVAL_FORBIDDEN|raiser'); END;
     IF NOT v_denied THEN
-        RAISE EXCEPTION 'FIXTURE 205R2e 失败:★ 二级持有人批自己的请假应当报 |raiser —— 例外只有报销与医疗,实得 %', COALESCE(v_msg,'(没有报错)'); END IF;
+        RAISE EXCEPTION 'FIXTURE 205R2e′ 失败:一个不持二级角色的决定人批自己的请假应当报 |raiser —— 例外只给 CFO,实得 %', COALESCE(v_msg,'(没有报错)'); END IF;
 
     -- ══════════════════════ R2g ★ 范围 CHECK:第二道保险 ══════════════════════
+    -- ROLE-1:请假如今在范围之内,换一个仍在范围之外的类型(绩效评估 —— 例外永远不覆盖它)。
     v_msg := NULL; v_denied := false;
     BEGIN
         INSERT INTO approval_log (subject_type, subject_id, subject_code, decision, actor_user_id, self_decided)
-        VALUES ('leave_request', lv_l2own, 'FX205-LV-1', 'approved', u_l2, true);
+        VALUES ('performance_review', gen_random_uuid(), 'FX205-PR-X', 'approved', u_l2, true);
     EXCEPTION WHEN check_violation THEN
         v_msg := SQLERRM; v_denied := (SQLERRM LIKE '%approval_log_self_decided_scope%'); END;
     IF NOT v_denied THEN
-        RAISE EXCEPTION 'FIXTURE 205R2g 失败:往请假上写 self_decided=true 应当撞 approval_log_self_decided_scope,实得 %', COALESCE(v_msg,'(没有报错)'); END IF;
+        RAISE EXCEPTION 'FIXTURE 205R2g 失败:往绩效评估上写 self_decided=true 应当撞 approval_log_self_decided_scope,实得 %', COALESCE(v_msg,'(没有报错)'); END IF;
 
     -- ══════════════════════ R2h ★★ 报表:没码就拒,有码就读得到那两行 ══════════════
     v_msg := NULL; v_denied := false;
@@ -261,13 +283,15 @@ BEGIN
     IF auth.uid() IS DISTINCT FROM u_aud THEN
         EXECUTE 'RESET ROLE';
         RAISE EXCEPTION 'FIXTURE 205R2h 布景失败:auth.uid() 没有切到审计者'; END IF;
-    SELECT count(*), count(*) FILTER (WHERE subject_id IN (c_l2own, mc_l2own)),
-           max(subject_name) FILTER (WHERE subject_id = c_l2own)
-      INTO v_n, v_m, v_name
+    SELECT count(*), count(*) FILTER (WHERE subject_id IN (c_l2own, mc_l2own, lv_l2own)),
+           max(subject_name) FILTER (WHERE subject_id = c_l2own),
+           max(subject_name) FILTER (WHERE subject_id = lv_l2own)
+      INTO v_n, v_m, v_name, v_name2
       FROM self_approved_decisions() WHERE subject_code LIKE 'FX205-%';
     EXECUTE 'RESET ROLE';
-    IF v_n <> 2 OR v_m <> 2 OR v_name IS DISTINCT FROM 'E2 two' THEN
-        RAISE EXCEPTION 'FIXTURE 205R2h 失败:报表应当恰好是 R2a 与 R2c 那两行、带主角名 E2 two;实得 % 行 / 命中 % / 名字 %', v_n, v_m, v_name; END IF;
+    -- ROLE-1:第三行是 R2e 那张请假;它的主角名要读得出来(self_approved_decisions 加了 leave_requests 那一支)
+    IF v_n <> 3 OR v_m <> 3 OR v_name IS DISTINCT FROM 'E2 two' OR v_name2 IS DISTINCT FROM 'E2 two' THEN
+        RAISE EXCEPTION 'FIXTURE 205R2h 失败:报表应当恰好是 R2a、R2c 与 R2e 那三行、主角名都是 E2 two;实得 % 行 / 命中 % / 名字 % / 请假主角 %', v_n, v_m, v_name, v_name2; END IF;
 
     -- ══════════════════════ R4b ★★★ WOULD_STRAND 按【这一张】判 ══════════════════
     -- 在途:c_hi_pl(E4 自己提,二级)与 c_l2for4(u_l2 替 E4 提,二级)。
@@ -299,9 +323,9 @@ BEGIN
     BEGIN
         PERFORM decide_medical_claim(mc_cfoown, false, 'x');
     EXCEPTION WHEN OTHERS THEN
-        v_msg := SQLERRM; v_denied := (SQLERRM = 'PERMISSION_DENIED|module.hr.edit'); END;
+        v_msg := SQLERRM; v_denied := (SQLERRM = 'PERMISSION_DENIED|action.decide_hr_requests'); END;
     IF NOT v_denied THEN
-        RAISE EXCEPTION 'FIXTURE 205R2f 失败:★ 一个只持二级角色的账号批自己的医疗申报应当撞 PERMISSION_DENIED|module.hr.edit —— 例外不放宽任何模块门,实得 %', COALESCE(v_msg,'(没有报错)'); END IF;
+        RAISE EXCEPTION 'FIXTURE 205R2f 失败:★ 一个只持二级角色的账号批自己的医疗申报应当撞 PERMISSION_DENIED|action.decide_hr_requests —— 例外不放宽任何模块门,实得 %', COALESCE(v_msg,'(没有报错)'); END IF;
 
     -- ══════════════════════ R5 ★★★ expense_claim_status 只给本人与财务 ══════════════
     -- 本支的四张报销单:E1 一张、E2 一张、E4 两张。

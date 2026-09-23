@@ -19,9 +19,9 @@ BEGIN
         RAISE EXCEPTION 'REVIEW_NOT_FOUND|%', COALESCE(p_review_id::text, '?');
     END IF;
 
-    IF NOT (has_permission('module.hr.edit')
+    IF NOT (has_permission('action.hr_reviews')
             OR is_reviewer_of(v_r.reviewer_employee_id)) THEN
-        RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.edit';
+        RAISE EXCEPTION 'PERMISSION_DENIED|action.hr_reviews';
     END IF;
 
     IF v_r.status NOT IN ('draft','self_review') THEN

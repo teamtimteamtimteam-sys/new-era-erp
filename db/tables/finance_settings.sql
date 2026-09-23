@@ -76,6 +76,13 @@ CREATE TRIGGER trg_finance_settings_sod
     BEFORE UPDATE ON public.finance_settings
     FOR EACH ROW EXECUTE FUNCTION public.guard_finance_settings_sod();
 
+-- ROLE-1(2026-09-23):重开已关的月只走 reopen_period(action.finance_reopen,CFO)。
+-- 手动锁的直连写若把 locked_before 搬到最新生效关账之前(或清空)→ REOPEN_THROUGH_CLOSE_ONLY。
+-- 见 db/functions/guard_lock_reopen_path.sql 的抬头。
+CREATE TRIGGER trg_lock_reopen_path
+    BEFORE UPDATE OF locked_before ON public.finance_settings
+    FOR EACH ROW EXECUTE FUNCTION public.guard_lock_reopen_path();
+
 -- ②a APR-1:审批策略那四列的【写闸】—— 不经 set_approvals_policy 的改动按名拒绝。
 --    ★【名字排在 trg_approvals_switch 之前是设计的一部分】触发器按名开火,
 --      "po" < "sw",所以一次直连写拿到的是"你不该直接写这四列",而不是一句

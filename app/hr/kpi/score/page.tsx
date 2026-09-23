@@ -62,7 +62,7 @@ export default async function KpiScorePage({
     // ★【读得进来 ≠ 改得动】module.hr.view 的人(auditor)可以看这一屏,
     //   但不该看到一排会被数据库 42501 掉的编辑钮。导航项挂在 edit 上,
     //   而直接敲 URL 进来的人在这里落到只读 —— 两道都要,因为导航只是界面的门。
-    const mayScore = await can('module.hr.edit')
+    const mayScore = await can('action.hr_reviews')
     // ★★【FIX-2b:进得来这一屏 ≠ 看得见这一屏的行】★★
     //   kpi_entries 的策略是 (module.hr.view AND data.view_reviews) OR 自己那一行。
     //   auditor 持 module.hr.view(所以 requireModule 放他进来)而【不持
@@ -262,7 +262,7 @@ export default async function KpiScorePage({
                     </div>
 
                     {/* ★ 权限归闸、记录状态归 disabled —— 两者不再相乘。 */}
-                    <PermissionGate code="module.hr.edit" allowed={mayScore} className="flex w-full items-stretch">
+                    <PermissionGate code="action.hr_reviews" allowed={mayScore} className="flex w-full items-stretch">
                         <GenerateMissing people={missing} cycleId={chosen.id} disabled={!stateAllowsScoring} />
                     </PermissionGate>
 
@@ -273,7 +273,7 @@ export default async function KpiScorePage({
                     {/* ★ 同上。表格里的【取消】只在按过「编辑」之后才画,而「编辑」
                            就在这层 fieldset 里 —— 没有权限的人翻不开编辑态,
                            不会被关在一个既存不了也关不掉的行里(DBLOCK-1 第一条边界)。 */}
-                    <PermissionGate code="module.hr.edit" allowed={mayScore} className="flex w-full items-stretch">
+                    <PermissionGate code="action.hr_reviews" allowed={mayScore} className="flex w-full items-stretch">
                         <ScoreEditor rows={rows} canEdit={stateAllowsScoring} />
                     </PermissionGate>
                 </>

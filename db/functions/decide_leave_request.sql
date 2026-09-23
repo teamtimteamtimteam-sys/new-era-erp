@@ -15,7 +15,7 @@ DECLARE
     g        record;
     v_used   jsonb := '[]'::jsonb;
 BEGIN
-    PERFORM require_permission('module.hr.edit');
+    PERFORM require_permission('action.decide_hr_requests');
 
     SELECT * INTO v_req FROM leave_requests WHERE id = p_request_id AND deleted_at IS NULL FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'REQUEST_NOT_FOUND'; END IF;

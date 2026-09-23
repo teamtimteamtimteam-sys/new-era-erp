@@ -22,6 +22,10 @@
 -- 【名字跟着单据走】(Standing decision 3)决定人与主角的【显示名】随行返回;
 -- 别的员工属性一概不带。
 --
+-- ★ ROLE-1(2026-09-23):R2 扩到请假(只对 CFO),于是主角的 LATERAL 多一支 leave_requests ——
+--   不加它,Tim 自批的假在报表上会有一个空白的主角。admin 不再持 data.view_self_approvals
+--   (Tim 的 Q8:admin 只做系统管理),读者剩 gm 与 auditor。
+--
 -- NOTE: introduced by db/migrations/2026-09-23-aproute1a-higher-decides-lower-and-the-flagged-self.sql.
 
 CREATE OR REPLACE FUNCTION public.self_approved_decisions()
@@ -49,6 +53,9 @@ BEGIN
             UNION ALL
             SELECT m.employee_id FROM medical_claims m
              WHERE a.subject_type = 'medical_claim' AND m.id = a.subject_id
+            UNION ALL
+            SELECT l.employee_id FROM leave_requests l
+             WHERE a.subject_type = 'leave_request' AND l.id = a.subject_id
       ) s ON true
       LEFT JOIN employees se ON se.id = s.employee_id
      WHERE a.self_decided
@@ -57,4 +64,4 @@ END;
 $function$;
 
 COMMENT ON FUNCTION public.self_approved_decisions() IS
-'APR-ROUTE-1(R2 · Q4):自批报表 —— approval_log 里 self_decided 的每一行,带决定人与主角的显示名。门只有一个:data.view_self_approvals(admin · gm · auditor);没有它就 RAISE,不返回零行(零行在这里的意思是"没有人自批过")。以属主身份读,因为 approval_log 的读策略按单据类型分门,一个只持本码的审计者经由那张表会静默读到零行。';
+'APR-ROUTE-1(R2 · Q4):自批报表 —— approval_log 里 self_decided 的每一行,带决定人与主角的显示名。门只有一个:data.view_self_approvals(ROLE-1 起:gm · auditor —— admin 不再持任何业务码);没有它就 RAISE,不返回零行(零行在这里的意思是"没有人自批过")。以属主身份读,因为 approval_log 的读策略按单据类型分门,一个只持本码的审计者经由那张表会静默读到零行。';

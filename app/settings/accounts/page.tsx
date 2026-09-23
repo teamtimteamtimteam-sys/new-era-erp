@@ -28,8 +28,12 @@ export default async function PermissionUsersPage() {
             .is('deleted_at', null)
             .eq('is_active', true)
             .order('sort_order'),
+        // ★ ROLE-1(Tim 的 Q8):系统管理员账号不再持 module.hr.view,而 employees 的读策略
+        //   要它 —— 那样这里会【安静地】只剩自己那一行(RLS 不报错,只是少行)。
+        //   账号↔员工关联归 admin,它要的只是名字:employee_lookup 对
+        //   action.manage_permissions 放行,只有 id / 工号 / 名字 / 账号。
         supabase
-            .from('employees')
+            .from('employee_lookup')
             .select('id, code, legal_name, user_id')
             .is('deleted_at', null)
             .order('code'),

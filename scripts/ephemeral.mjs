@@ -93,7 +93,10 @@ export function openPlan(script) {
  *   于是清理"失败"了,而失败的那几步里就有那条 admin 授权。
  *   所以每一步带一个档位,执行前按档位【稳定排序】。
  */
-export const ORDER = { REVIEW: 10, EMPLOYEE: 20, GRANT: 30, ACCOUNT: 40, OTHER: 25 }
+// ROLE: 35 —— ROLE-1(2026-09-23):冒烟不再能借 `admin` 当"什么都看得见"的钥匙
+//   (Tim 的 Q8:admin 只剩系统管理三码),于是它自己造一个一次性的全码角色。
+//   删角色要排在【收回授权】之后(user_roles 指着它)、删账号之前;role_permissions 随角色级联。
+export const ORDER = { REVIEW: 10, EMPLOYEE: 20, GRANT: 30, ROLE: 35, ACCOUNT: 40, OTHER: 25 }
 
 /**
  * 往计划里【追加一步,并当场落盘】。

@@ -253,18 +253,27 @@ BEGIN
             v_row.capped_count, v_row.computed_count, v_row.judged_count; END IF;
 
     -- ══════════ F. 权限 —— 真的换一个没权限的角色去调 ═══════════════════════
+    -- ★ ROLE-1(2026-09-23):KPI 与绩效评估从 module.hr.edit 拆成 action.hr_reviews(cco 的那一块)。
+    --   这一臂问的仍是同一件事 —— "没有那把钥匙就打不了分" —— 钥匙换了名字。
+    --   ☞ 反方向也要钉:只拿走 module.hr.edit、留着 action.hr_reviews,打分【照样】成立 ——
+    --     否则一个"两个码都要"的实现(拆了等于没拆)在这里也会绿。
     DELETE FROM role_permissions WHERE role_id = r_all AND permission_code = 'module.hr.edit';
+    v_r := score_kpi_entry(v_tpl, 3, 'judged');
+    IF (v_r->>'score')::int <> 3 THEN
+        RAISE EXCEPTION 'FIXTURE 146F 失败:只持 action.hr_reviews(没有 module.hr.edit)应当打得了分 —— 拆开之后 KPI 不再归 hr.edit'; END IF;
+    DELETE FROM role_permissions WHERE role_id = r_all AND permission_code = 'action.hr_reviews';
     v_denied := false; v_msg := NULL;
     BEGIN PERFORM score_kpi_entry(v_tpl, 3, 'judged');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'PERMISSION_DENIED%' THEN
-        RAISE EXCEPTION 'FIXTURE 146F 失败:没有 hr.edit 不该打得了分,实得 %', COALESCE(v_msg,'(打了)'); END IF;
+        RAISE EXCEPTION 'FIXTURE 146F 失败:没有 action.hr_reviews 不该打得了分,实得 %', COALESCE(v_msg,'(打了)'); END IF;
     v_denied := false; v_msg := NULL;
     BEGIN PERFORM assign_position_kpis(v_emp, v_cycle);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'PERMISSION_DENIED%' THEN
-        RAISE EXCEPTION 'FIXTURE 146F 失败:没有 hr.edit 不该生成得了条目,实得 %', COALESCE(v_msg,'(生成了)'); END IF;
+        RAISE EXCEPTION 'FIXTURE 146F 失败:没有 action.hr_reviews 不该生成得了条目,实得 %', COALESCE(v_msg,'(生成了)'); END IF;
     -- 【补回权限就放行 —— 证明上面两个拒绝不是"函数本来就不工作"】
+    INSERT INTO role_permissions (role_id, permission_code) VALUES (r_all, 'action.hr_reviews');
     INSERT INTO role_permissions (role_id, permission_code) VALUES (r_all, 'module.hr.edit');
     v_r := score_kpi_entry(v_tpl, 3, 'judged');
     IF (v_r->>'score')::int <> 3 THEN

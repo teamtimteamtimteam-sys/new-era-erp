@@ -40,7 +40,9 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-32-hr', 'f', 'f', true) RETURNING id INTO r_hr;
     INSERT INTO role_permissions (role_id, permission_code)
-    VALUES (r_hr, 'module.hr.edit'), (r_hr, 'module.hr.view');
+    VALUES (r_hr, 'module.hr.edit'), (r_hr, 'module.hr.view'),
+           -- ROLE-1(2026-09-23):请假与医疗申报的决定门换成 action.decide_hr_requests
+           (r_hr, 'action.decide_hr_requests');
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-32-none', 'f', 'f', true) RETURNING id INTO r_none;
     INSERT INTO role_permissions (role_id, permission_code) VALUES (r_none, 'module.finance.view');

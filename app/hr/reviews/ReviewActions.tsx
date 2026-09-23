@@ -33,9 +33,13 @@ type Props = {
     reviewType: string
     probationOutcome: string | null
     selfAssessmentLocked: boolean
-    canWrite: boolean // 本行的评估人,或 module.hr.edit
-    canHrEdit: boolean
+    canWrite: boolean // 本行的评估人,或 action.hr_reviews(ROLE-1 前是 module.hr.edit)
+    canHrEdit: boolean // action.hr_reviews —— 做评估的那个码(cco)
     isSubmitter: boolean // submitted_by === 当前账号
+    // ★ ROLE-1(Tim 的矩阵 · Q5):批准要的码【因单而异】—— CFO 批;CFO 是提交人或主角时 cco 批。
+    //   由 review_approval_code 回答(approve_review 自己的门),页面只转述。
+    approveCode: string
+    canApprove: boolean
 }
 
 export default function ReviewActions({
@@ -47,6 +51,8 @@ export default function ReviewActions({
     canWrite,
     canHrEdit,
     isSubmitter,
+    approveCode,
+    canApprove,
 }: Props) {
     const t = useTranslations()
     const router = useRouter()
@@ -99,7 +105,7 @@ export default function ReviewActions({
                         {t('reviews.stateFlowLocked', { 0: statusName })}
                     </p>
                 ) : (
-                    <PermissionGate code="module.hr.edit" allowed={canWrite} alsoAllowedIf={orReviewer} inline>
+                    <PermissionGate code="action.hr_reviews" allowed={canWrite} alsoAllowedIf={orReviewer} inline>
                         <Button variant="secondary"
                             type="button"
                             onClick={() => run(() => openSelfAssessment(reviewId))}
@@ -125,7 +131,7 @@ export default function ReviewActions({
                        第三类那一句本来就在下面,只是它原先还要求 canHrEdit ——
                        于是一个【没有 HR 权限的提交人】三句话一句都读不到。 */}
                 {status === 'submitted' && !isSubmitter && (
-                    <PermissionGate code="module.hr.edit" allowed={canHrEdit} inline>
+                    <PermissionGate code={approveCode} allowed={canApprove} inline>
                         <Button
                             type="button"
                             onClick={() => run(() => approveReview(reviewId))}
@@ -156,14 +162,14 @@ export default function ReviewActions({
             {/* ★★ ALERT-2d ①:`canHrEdit && status !== 'void'` 拆成两半。
                    已经作废的考核【谁都作废不了第二次】,所以那时只说状态;
                    还没作废时,缺的就只是权限 —— 看得见、按不动、点名那个码。
-                   ☞ 这里【不带】alsoAllowedIf:作废真的只有 module.hr.edit 一条路,
+                   ☞ 这里【不带】alsoAllowedIf:作废真的只有 action.hr_reviews 一条路(ROLE-1 前是 module.hr.edit),
                      评估人开不了它。写一条不存在的第二条路,与写错原因是同一种坏。 */}
             {status === 'void' ? (
                 <p className="mt-4 text-sm text-[color:var(--brand-muted-text)]" data-state-note="void">
                     {t('reviews.stateAlreadyVoid')}
                 </p>
             ) : (
-                <PermissionGate code="module.hr.edit" allowed={canHrEdit} className="mt-4 flex w-full items-stretch">
+                <PermissionGate code="action.hr_reviews" allowed={canHrEdit} className="mt-4 flex w-full items-stretch">
                 <div className="flex gap-2 items-end mt-4">
                     <label className="">
                         {t('reviews.voidReason')}

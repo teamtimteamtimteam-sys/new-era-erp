@@ -23,7 +23,7 @@ DECLARE
     v_je       jsonb;
     v_close_id uuid := gen_random_uuid();
 BEGIN
-    PERFORM require_permission('module.finance.edit');
+    PERFORM require_permission('action.finance_reopen');
     IF p_year_end IS NULL THEN
         RAISE EXCEPTION 'DATE_REQUIRED';
     END IF;

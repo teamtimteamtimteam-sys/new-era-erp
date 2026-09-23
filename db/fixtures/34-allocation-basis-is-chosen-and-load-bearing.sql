@@ -38,7 +38,9 @@ BEGIN
     INSERT INTO role_permissions (role_id, permission_code)
     VALUES (r, 'module.processing.edit'), (r, 'module.processing.view'),
            (r, 'module.inbound.edit'), (r, 'module.inbound.view'),
-           (r, 'module.finance.view'), (r, 'data.view_prices');
+           (r, 'module.finance.view'), (r, 'data.view_prices'),
+           -- ROLE-1(2026-09-23):加工成本分摊改归财务 —— allocate_processing_costs 的门是 module.finance.edit
+           (r, 'module.finance.edit');
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)

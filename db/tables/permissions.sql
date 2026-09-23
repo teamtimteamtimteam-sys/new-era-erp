@@ -70,7 +70,7 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     ('module.finance.view', 'module', 'Finance (view)', '财务(查看)', 'Ledger, receivables, payables, payments — read only', '总账、应收、应付与收付款 —— 只读', 110),
     ('module.finance.edit', 'module', 'Finance (edit)', '财务(编辑)', 'Ledger, receivables, payables, payments — create, change, remove', '总账、应收、应付与收付款 —— 新建、修改、删除', 111),
     ('module.hr.view', 'module', 'HR (view)', '人力资源(查看)', 'Employees, payroll and training — read only', '员工、薪资与培训 —— 只读', 120),
-    ('module.hr.edit', 'module', 'HR (edit)', '人力资源(编辑)', 'Employees, payroll and training — create, change, remove', '员工、薪资与培训 —— 新建、修改、删除', 121),
+    ('module.hr.edit', 'module', 'HR (edit)', '人力资源(编辑)', 'Employees, payroll, attendance, leave and training — create, change, remove. Not performance reviews or KPI (ROLE-1).', '员工、薪资、考勤、假期与培训 —— 新建、修改、删除。不含绩效评估与 KPI(ROLE-1)。', 121),
     ('module.tasks.view', 'module', 'Tasks (view)', '任务(查看)', 'Task board — read only', '任务板 —— 只读', 130),
     ('module.tasks.edit', 'module', 'Tasks (edit)', '任务(编辑)', 'Task board — create, change, remove', '任务板 —— 新建、修改、删除', 131),
     -- TASK-1a:一把【点名的】钥匙,默认没有任何角色持有(role_permissions 里查不到它)。
@@ -112,4 +112,12 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- 签发的人本来就站在收货那张页面上,他缺的不是「进得去哪个模块」,而是
     -- 「可不可以把这张纸寄出去」。能力够得着的正好是证书需要的:供应商的
     -- 【名字】与这票货背后的加工事实,一格都不多(见 cod_certificate_data)。
-    ('action.issue_cod', 'action', 'Issue certificate of destruction', '签发销毁证书', 'Issue a certificate of destruction to the supplier who delivered the material.', '向送料方签发销毁证书', 920);
+    ('action.issue_cod', 'action', 'Issue certificate of destruction', '签发销毁证书', 'Issue a certificate of destruction to the supplier who delivered the material.', '向送料方签发销毁证书', 920),
+    -- ★ ROLE-1(Tim 的角色与审批矩阵,2026-09-23 · docs/role-matrix.md):一个码管一整族动作,
+    --   矩阵要把同一族里的几件事交给不同的人,于是拆出下面五个【点名的】动作码。
+    --   每一个的描述都照直说它放行的是哪几件事 —— 读授权清单的人要一眼看出给出去的是什么。
+    ('action.finance_reopen', 'action', 'Reopen closed months; close and reopen financial years', '重开已关的月;年结与重开年度', 'Reopen a closed month, close a financial year, reopen a closed financial year. Month-end close itself stays with Finance (edit).', '重开一个已关的月、年结、重开一个已结的年度。月结本身仍归「财务(编辑)」。', 930),
+    ('action.approve_review', 'action', 'Approve performance reviews', '批准绩效评估', 'Approve a submitted performance review — which can change the person''s monthly salary. When the holder of this code is the review''s submitter or subject, the review is approved under "Performance reviews & KPI" instead.', '批准一张已提交的绩效评估 —— 它可以改变那个人的月薪。持有本码的人是这张评估的提交人或主角时,改由「绩效评估与 KPI」批准。', 940),
+    ('action.decide_hr_requests', 'action', 'Decide leave requests and medical claims', '决定请假与医疗申报', 'Approve or reject leave requests and medical claims. Nobody decides their own, except the top approval level, whose own decisions are flagged.', '批准或驳回请假与医疗申报。没有人决定自己的单 —— 最高一级审批例外,每一次都被标记。', 950),
+    ('action.hr_reviews', 'action', 'Performance reviews & KPI', '绩效评估与 KPI', 'Run the KPI and performance-review work: cycles, goals, scoring, reviewers, conclusions and the salary proposal. Does not include any other HR or payroll work.', '做 KPI 与绩效评估这一块:周期、目标、打分、评估人、结论与调薪建议。不含任何其他人事或薪资工作。', 960),
+    ('action.anonymise_employee', 'action', 'Anonymise an employee record', '匿名化员工档案', 'Irreversibly anonymise a separated employee''s personal data. System administration only.', '不可逆地抹去一名离职员工的个人数据。仅限系统管理。', 970);

@@ -100,6 +100,11 @@ CREATE TRIGGER trg_employment_history_immutable
     BEFORE UPDATE OR DELETE ON public.employment_history
     FOR EACH ROW EXECUTE FUNCTION public.reject_employment_history_mutation();
 
+-- ROLE-1:直连插入带薪资数字的履历一律拒绝 —— 调薪留痕只由属主路径自己写。
+CREATE TRIGGER trg_employment_history_salary_write
+    BEFORE INSERT ON public.employment_history
+    FOR EACH ROW EXECUTE FUNCTION public.guard_employment_history_salary_write();
+
 ALTER TABLE public.employment_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "employment_history select by permission"
     ON public.employment_history

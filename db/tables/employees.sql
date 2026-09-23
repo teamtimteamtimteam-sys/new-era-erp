@@ -182,6 +182,12 @@ CREATE TRIGGER trg_employees_user_not_additional
     BEFORE INSERT OR UPDATE OF user_id ON public.employees
     FOR EACH ROW EXECUTE FUNCTION public.guard_employee_user_not_additional();
 
+-- ROLE-1(Tim 的矩阵,2026-09-23):对 monthly_salary 的直连写一律拒绝 —— 调薪只走
+-- approve_review,第一份月薪只走 set_initial_salary(Q7)。见 guard_employee_salary_write 的抬头。
+CREATE TRIGGER trg_employees_salary_write
+    BEFORE INSERT OR UPDATE ON public.employees
+    FOR EACH ROW EXECUTE FUNCTION public.guard_employee_salary_write();
+
 ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "employees select by permission"
     ON public.employees

@@ -10,17 +10,23 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { decideLeave, cancelLeave } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export default function DecideControls({
     requestId,
     status,
     available,
     requested,
+    canDecide,
 }: {
     requestId: string
     status: string
     available: number | null
     requested: number
+    // ★ ROLE-1(Tim 的矩阵,2026-09-23):决定请假的门是 action.decide_hr_requests(finance 与 cfo)。
+    //   此前这两颗按钮对任何进得了 /hr 的人都画着、靠服务端拒;按 DBLOCK-1 改成看得见、按不动、说出码。
+    //   【取消】不在门里:cancel_leave_request 是 module.hr.edit 或本人,另一扇门。
+    canDecide: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -68,7 +74,7 @@ export default function DecideControls({
 
             <div className="flex gap-3 flex-wrap">
                 {status === 'pending' && (
-                    <>
+                    <PermissionGate code="action.decide_hr_requests" allowed={canDecide} inline>
                         <Button
                             type="button"
                             disabled={pending}
@@ -84,7 +90,7 @@ export default function DecideControls({
                         >
                             {t('leave.reject')}
                         </Button>
-                    </>
+                    </PermissionGate>
                 )}
                 {status === 'approved' && (
                     <Button variant="destructive"

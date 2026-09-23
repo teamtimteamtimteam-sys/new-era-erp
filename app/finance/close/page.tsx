@@ -61,6 +61,10 @@ export default async function ClosePage({
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
     const canEditGate = await can('module.finance.edit')
+    // ★ ROLE-1(Tim 的矩阵,2026-09-23):月结仍归财务(module.finance.edit);
+    //   【重开已关的月、年结、重开年度】只归 CFO —— action.finance_reopen。
+    //   这一页原来一个布尔管三件事,那正是要拆开的东西。
+    const canReopenGate = await can('action.finance_reopen')
 
     const sp = await searchParams
     const supabase = await createClient()
@@ -274,7 +278,7 @@ export default async function ClosePage({
             <h2 className="mb-3">{t('finance.closeHistory')}</h2>
             <CloseHistoryTable
                 rows={closeHistoryRows}
-                canEdit={canEditGate}
+                canEdit={canReopenGate}
                 empty={t('finance.closeHistoryEmpty')}
             />
 
@@ -312,7 +316,7 @@ export default async function ClosePage({
                             </span>
                         )}
                     </div>
-                    <YearClosePanel canEdit={canEditGate} yearEnd={yp.expected_year_end} canClose={canCloseYear}
+                    <YearClosePanel canEdit={canReopenGate} yearEnd={yp.expected_year_end} canClose={canCloseYear}
                                     alreadyClosed={yp.already_closed} />
                 </div>
             )}

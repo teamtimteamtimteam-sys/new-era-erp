@@ -18,7 +18,7 @@ DECLARE
     v_l     record;
     v_je    jsonb;
 BEGIN
-    PERFORM require_permission('module.finance.edit');
+    PERFORM require_permission('action.finance_reopen');
     IF p_reason IS NULL OR btrim(p_reason) = '' THEN
         RAISE EXCEPTION 'REASON_REQUIRED';
     END IF;

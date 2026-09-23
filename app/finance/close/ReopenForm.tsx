@@ -52,7 +52,7 @@ canEdit: boolean
 
     return (
         <div className="flex items-center gap-2">
-            <PermissionGate code="module.finance.edit" allowed={canEdit}>
+            <PermissionGate code="action.finance_reopen" allowed={canEdit}>
             <ConfirmButton
                 subject={periodEnd}
                 title={t('finance.reopenConfirm')}

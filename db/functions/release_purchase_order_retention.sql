@@ -11,7 +11,7 @@ DECLARE
     v_maturity date;
     v_user     uuid := auth.uid();
 BEGIN
-    PERFORM require_permission('module.purchasing.edit');
+    PERFORM require_permission('module.finance.edit');
 
     -- ★【为什么这里【不】读 purchase_order_retention_status】★ 那张视图体内带着
     -- has_permission('module.purchasing.view') 与按 data.view_prices 的金额遮蔽。

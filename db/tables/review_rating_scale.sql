@@ -12,7 +12,7 @@
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【运行期配置 / RUNTIME CONFIG —— 下面的种子是"全新安装的默认值",不是线上快照】
--- 写入策略是特意开的(module.hr.edit 的 insert/update/delete),界面在 HR-3c 落地;HR-3a 的 fixture 已经证明加一档、停用一档都不需要改代码。
+-- 写入策略是特意开的(module.hr.edit 的 insert/update/delete;ROLE-1 起是 action.hr_reviews),界面在 HR-3c 落地;HR-3a 的 fixture 已经证明加一档、停用一档都不需要改代码。
 -- 所以【线上与本文件不一致是正常的,不是漂移】,check_mirrors.py 不把本表与线上比对。
 -- 它只保证镜像这一套自己首尾相顾(本文件引用到的码/科目都存在于对应的种子里)。
 -- ═══════════════════════════════════════════════════════════════════════════
@@ -41,17 +41,17 @@ ALTER TABLE public.review_rating_scale ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "review_rating_scale select by permission"
     ON public.review_rating_scale AS PERMISSIVE FOR SELECT TO authenticated
     -- HR-3d:档位目录人人可读(同 leave_types)——评估人要挑档位,
-    -- 被评估人在批准之后要读得出自己那一档的名字。写入仍是 module.hr.edit。
+    -- 被评估人在批准之后要读得出自己那一档的名字。写入仍是 action.hr_reviews(ROLE-1 前是 module.hr.edit)。
     USING (true);
 CREATE POLICY "review_rating_scale insert by permission"
     ON public.review_rating_scale AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'));
+    WITH CHECK (has_permission('action.hr_reviews'));
 CREATE POLICY "review_rating_scale update by permission"
     ON public.review_rating_scale AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit')) WITH CHECK (has_permission('module.hr.edit'));
+    USING (has_permission('action.hr_reviews')) WITH CHECK (has_permission('action.hr_reviews'));
 CREATE POLICY "review_rating_scale delete by permission"
     ON public.review_rating_scale AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'));
+    USING (has_permission('action.hr_reviews'));
 
 -- 四档,sort_order 由高到低排列(升序取出即为 OUTSTANDING → BELOW,同 leave_types 的用法)
 INSERT INTO public.review_rating_scale
@@ -79,4 +79,4 @@ INSERT INTO public.review_rating_scale
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.review_rating_scale
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.hr.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.hr_reviews');

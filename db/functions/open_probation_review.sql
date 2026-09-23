@@ -28,7 +28,7 @@ DECLARE
     v_ex_stat  text;
 BEGIN
     -- 与 open_review_cycle 同一道门:发起一次转正评估是 HR 的动作。
-    PERFORM require_permission('module.hr.edit');
+    PERFORM require_permission('action.hr_reviews');
 
     SELECT * INTO v_e FROM employees
      WHERE id = p_employee_id AND deleted_at IS NULL;

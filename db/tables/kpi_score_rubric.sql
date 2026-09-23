@@ -5,7 +5,7 @@
 -- 【运行期配置 / RUNTIME CONFIG —— 下面的种子是"全新安装的默认值",不是线上快照】
 -- ★ 与 public_holidays 同一条论证:**打分的规则必须能【不发版】就改正。**
 --   写死在 messages/*.ts 里的话,改一个档位的措辞要走一次部署 —— 而这是一条
---   六个人都被它约束的规则。module.hr.edit 可改;线上与本文件不一致是正常的。
+--   六个人都被它约束的规则。action.hr_reviews 可改(ROLE-1 前是 module.hr.edit);线上与本文件不一致是正常的。
 --   check_mirrors.py 因此不把本表与线上逐行比对(见 RUNTIME_CONFIG_TABLES)。
 -- ═══════════════════════════════════════════════════════════════════════════
 --
@@ -50,16 +50,16 @@ CREATE POLICY "kpi_score_rubric select all"
     ON public.kpi_score_rubric AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 CREATE POLICY "kpi_score_rubric insert by permission"
     ON public.kpi_score_rubric AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'));
+    WITH CHECK (has_permission('action.hr_reviews'));
 CREATE POLICY "kpi_score_rubric update by permission"
     ON public.kpi_score_rubric AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit')) WITH CHECK (has_permission('module.hr.edit'));
+    USING (has_permission('action.hr_reviews')) WITH CHECK (has_permission('action.hr_reviews'));
 CREATE POLICY "kpi_score_rubric delete by permission"
     ON public.kpi_score_rubric AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'));
+    USING (has_permission('action.hr_reviews'));
 
 COMMENT ON TABLE public.kpi_score_rubric IS
-    'C-2:0–5 打分刻度与安全/监管否决 —— 原表第六页逐格转录。★**它是【数据】不是文案**★:与公共假期同一条论证,打分的规则必须能不发版就改正(module.hr.edit 可改)。★**否决那一栏落在每一行上,因为它对每一档都成立**★ —— 原表把「Does not override a major safety/regulatory breach」写在 5 分那一行、把「Any unauthorized operation = 0」写在 1 分那一行,而它们说的是同一条规矩的不同侧面。屏幕上把它贴在每一档旁边,是为了让打分的人在【按下 4 分的那一刻】看见它,而不是记得它。';
+    'C-2:0–5 打分刻度与安全/监管否决 —— 原表第六页逐格转录。★**它是【数据】不是文案**★:与公共假期同一条论证,打分的规则必须能不发版就改正(action.hr_reviews 可改 —— ROLE-1 前是 module.hr.edit)。★**否决那一栏落在每一行上,因为它对每一档都成立**★ —— 原表把「Does not override a major safety/regulatory breach」写在 5 分那一行、把「Any unauthorized operation = 0」写在 1 分那一行,而它们说的是同一条规矩的不同侧面。屏幕上把它贴在每一档旁边,是为了让打分的人在【按下 4 分的那一刻】看见它,而不是记得它。';
 COMMENT ON COLUMN public.kpi_score_rubric.veto_rule_en IS
     'C-2:原表第六页 `Critical safety/regulatory override` 那一栏的原文。★**封顶是一个【动作】,不是一个分数**★ —— kpi_entries.override_cap 与 override_reason 才是它的落点,而原始分留在行上,所以事后分得清「本来就 2 分」与「被封到 2 分」。';
 
@@ -104,4 +104,4 @@ INSERT INTO public.kpi_score_rubric
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.kpi_score_rubric
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.hr.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.hr_reviews');

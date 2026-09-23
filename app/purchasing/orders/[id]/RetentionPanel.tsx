@@ -174,7 +174,9 @@ function RetentionCard({
                        "看得见、按不动、说出为什么"。现在它走 <PermissionGate>。
                    ☞ 这一块里没有【取消】,所以包住它不触 DBLOCK-1 的第一条边界。 */}
             {r.retention_state === 'awaiting_confirmation' && (
-                <PermissionGate code="module.purchasing.edit" allowed={canEdit} className="mt-2 flex w-full items-stretch">
+                // ★ ROLE-1(Tim 的矩阵,2026-09-23):释放质保金是【付钱出去】,改归财务 ——
+                //   release_purchase_order_retention 的门从 module.purchasing.edit 换成 module.finance.edit。
+                <PermissionGate code="module.finance.edit" allowed={canEdit} className="mt-2 flex w-full items-stretch">
                 <div className="mt-2 border-t border-amber-200 pt-2">
                     <p className="text-xs mb-2 text-[color:var(--brand-muted-text)]">{t('purchasing.retention.confirmPrompt')}</p>
                     <div className="flex flex-wrap items-center gap-2">

@@ -31,7 +31,7 @@ DECLARE
     v_codes  text[];
 BEGIN
     -- 【SECURITY DEFINER 自己查权限】属主权限绕过 RLS,所以这一句不是礼节。
-    PERFORM require_permission('module.hr.edit');
+    PERFORM require_permission('action.hr_reviews');
 
     SELECT * INTO v_emp FROM employees WHERE id = p_employee_id AND deleted_at IS NULL;
     IF NOT FOUND THEN

@@ -352,3 +352,31 @@ export async function deleteEmployee(employeeId: string): Promise<{ error?: stri
     revalidatePath('/hr/employees')
     return {}
 }
+
+// ROLE-1(Tim 的矩阵 · Q7,2026-09-23):一个人的第一份月薪。走 set_initial_salary ——
+// 直连写 monthly_salary 从 ROLE-1 起一律被 guard_employee_salary_write 拒。
+// 服务端【独立】拒空:生效日与金额决定工资从哪一期、按多少起算,不给默认值,
+// 按钮按不动只是第二道(AGENTS.md「Dates and amounts that decide a period」)。
+export async function setInitialSalary(
+    employeeId: string,
+    amount: string,
+    effectiveDate: string,
+): Promise<{ error?: string }> {
+    const t = await getTranslations()
+    const n = Number(amount)
+    if (amount.trim() === '' || !Number.isFinite(n) || n < 0) {
+        return { error: t('hr.errors.SALARY_AMOUNT_INVALID') }
+    }
+    if (!effectiveDate) {
+        return { error: t('hr.errors.SALARY_EFFECTIVE_DATE_REQUIRED') }
+    }
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('set_initial_salary', {
+        p_employee_id: employeeId,
+        p_amount: n,
+        p_effective_date: effectiveDate,
+    })
+    if (error) return { error: await localizeHrError(error.message) }
+    revalidatePath(`/hr/employees/${employeeId}`)
+    return {}
+}

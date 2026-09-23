@@ -181,6 +181,8 @@ export default async function ProcessingDetailPage({
     // PROC-BUILD-1:损耗分类。字典【现读】—— 加一种损耗是往 loss_categories 加一行,
     // 屏幕不该是第二份权威(materials 那五条轴立的同一条先例)。
     const canEditRun = await can('module.processing.edit')
+    // ROLE-1:分摊归财务(allocate_processing_costs 的门是 module.finance.edit)
+    const canAllocate = await can('module.finance.edit')
     const [lossCatRes, lossRowRes] = await Promise.all([
         supabase.from('loss_categories')
             .select('code, name_en, name_zh, metal_fate, is_true_loss')
@@ -526,7 +528,7 @@ export default async function ProcessingDetailPage({
                         )}
                         {/* ★ 出口:重跑分摊。住 children,靠 state 恒为 'ok' 撑着;
                             它的守卫是 isCommitted —— 记录的状态,不是一个集合空不空。 */}
-                        <AllocateButton runId={run.id} />
+                        <AllocateButton runId={run.id} canAllocate={canAllocate} />
                     </div>
                 )}
 

@@ -53,7 +53,7 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
             .order('sort_order'),
         supabase.from('my_review_subjects').select('*').eq('review_id', id).maybeSingle(),
         supabase.auth.getUser(),
-        can('module.hr.edit'),
+        can('action.hr_reviews'),
     ])
 
     const goals = mustRows(goalsRes, 'review_goals') as unknown as GoalRow[]
@@ -68,6 +68,19 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
     } | null
     const uid = userRes.data.user?.id ?? null
     const isSubmitter = r.submitted_by !== null && r.submitted_by === uid
+    // ROLE-1(Q5):批这张评估要哪一个码,问数据库(review_approval_code),与 /hr/reviews/[id] 同一个问法
+    //   只在【已提交、有提交人】时才问 —— 批准按钮也只在那时出现;别的状态下这两个值用不上。
+    const approveCode =
+        r.status === 'submitted' && r.submitted_by !== null
+            ? (mustOne(
+                  await supabase.rpc('review_approval_code', {
+                      p_submitted_by: r.submitted_by,
+                      p_employee_id: r.employee_id,
+                  }),
+                  'review_approval_code',
+              ) as string)
+            : ''
+    const canApprove = approveCode !== '' && (await can(approveCode))
 
     return (
         <div className="p-8 max-w-6xl">
@@ -161,6 +174,8 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
                 canWrite={true}
                 canHrEdit={canHrEdit}
                 isSubmitter={isSubmitter}
+                approveCode={approveCode}
+                canApprove={canApprove}
             />
         </div>
     )

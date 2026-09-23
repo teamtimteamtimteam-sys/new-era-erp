@@ -18,9 +18,9 @@ BEGIN
     IF NOT FOUND THEN RAISE EXCEPTION 'GOAL_NOT_FOUND|%', COALESCE(p_goal_id::text,'?'); END IF;
     SELECT * INTO v_r FROM performance_reviews WHERE id = v_g.review_id;
 
-    IF NOT (has_permission('module.hr.edit')
+    IF NOT (has_permission('action.hr_reviews')
             OR is_reviewer_of(v_r.reviewer_employee_id)) THEN
-        RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.edit';
+        RAISE EXCEPTION 'PERMISSION_DENIED|action.hr_reviews';
     END IF;
 
     IF v_r.status NOT IN ('draft','submitted') THEN
