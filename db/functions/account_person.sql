@@ -8,11 +8,13 @@
 -- 那些判据全部经由本函数问"这是谁",于是 Batch B 给一个人加第二个账号时,
 -- ★ 要改的只有本函数的函数体 ★,而不是二十处 JOIN。
 --
--- 【Batch A 的形状 —— 照直说】本刀它只读 employees.user_id(那张表上有
--- partial unique index,一个账号最多属于一名员工、一名员工最多一个账号)。
--- Batch B 加 employee_accounts 之后,它回落到那张表。在那之前,
--- "同一个人的两个账号"在库里根本表达不出来,所以本函数今天等价于
--- current_user_employee() 对任意一个账号的版本。
+-- 【Batch B(2026-09-23)之后的形状】先查主账号(employees.user_id),
+-- 查不到再回落到 employee_accounts(额外账号)。两处不可能同时登记同一个账号
+-- (两道守卫,见 employee_accounts 的抬头),所以先后只决定【读哪张表】,
+-- 不决定【答案】。current_user_employee() 从此就是 account_person(auth.uid()) ——
+-- 于是 58 个调用方、所有"本人行"的策略,对第二个账号自动成立(Tim 的 Q7)。
+-- 【Batch A 的形状,留作记录】那时它只读 employees.user_id;"同一个人的两个账号"
+-- 在库里还表达不出来,所以它等价于 current_user_employee() 对任意一个账号的版本。
 --
 -- 【返回 NULL = 这个账号不属于任何在册员工】不是"不知道"。调用方
 -- (self_leg · approval_deciders)把 NULL 当成"这个账号就是它自己这个人",
@@ -31,10 +33,15 @@ CREATE OR REPLACE FUNCTION public.account_person(p_user uuid)
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-    SELECT e.id FROM employees e
-     WHERE p_user IS NOT NULL AND e.user_id = p_user AND e.deleted_at IS NULL
-     LIMIT 1;
+    SELECT COALESCE(
+        (SELECT e.id FROM employees e
+          WHERE p_user IS NOT NULL AND e.user_id = p_user AND e.deleted_at IS NULL
+          LIMIT 1),
+        -- ★ Batch B:额外账号。一个已删的员工不是一个"人"(与主账号那一支同一条)。
+        (SELECT e.id FROM employee_accounts ea
+           JOIN employees e ON e.id = ea.employee_id AND e.deleted_at IS NULL
+          WHERE p_user IS NOT NULL AND ea.user_id = p_user));
 $function$;
 
 COMMENT ON FUNCTION public.account_person(uuid) IS
-'APR-ROUTE-1(R3):"这个账号是哪一个人"的唯一定义 —— 返回它所属的在册员工 id,不属于任何员工时返回 NULL。自批拒绝(self_leg)、R2 的自批标记与 R4 的"别人批得动吗"(approval_deciders)全部经由它认人。★ Batch A 只读 employees.user_id;Batch B 加 employee_accounts 之后只改本函数的函数体。EXECUTE 已从 authenticated 收回 —— 它回答任意一个账号是谁。';
+'APR-ROUTE-1(R3):"这个账号是哪一个人"的唯一定义 —— 返回它所属的在册员工 id(先查主账号 employees.user_id,再回落到额外账号 employee_accounts),不属于任何员工时返回 NULL。current_user_employee()、自批拒绝(self_leg)、R2 的自批标记与 R4 的"别人批得动吗"(approval_deciders)全部经由它认人。EXECUTE 已从 authenticated 收回 —— 它回答任意一个账号是谁。';

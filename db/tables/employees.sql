@@ -175,6 +175,13 @@ CREATE TRIGGER trg_employees_no_manager_cycle
     BEFORE INSERT OR UPDATE OF manager_id ON public.employees
     FOR EACH ROW EXECUTE FUNCTION public.guard_manager_cycle();
 
+-- ★ APR-ROUTE-1 Batch B(R3):一个账号不许既是这里的主账号、又是 employee_accounts
+--   里某人的额外账号。另一侧的守卫挂在 employee_accounts 上;理由见
+--   db/functions/guard_employee_user_not_additional.sql。
+CREATE TRIGGER trg_employees_user_not_additional
+    BEFORE INSERT OR UPDATE OF user_id ON public.employees
+    FOR EACH ROW EXECUTE FUNCTION public.guard_employee_user_not_additional();
+
 ALTER TABLE public.employees ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "employees select by permission"
     ON public.employees

@@ -9,7 +9,11 @@ Batch B (R3, one person with several accounts) is still owed. §7 lists exactly 
 **★ Broken window start** (from the line `db/apply_migration.sh` prints itself):
 ### `2026-09-23 11:41:37 CST`
 Recorded to disk in `db/migration-windows.tsv` as `2026-09-23T11:42:09+0800` (the line the script writes after COMMIT).
-**End: PENDING.** It closes when Tim sees the deployment succeed in the Vercel panel.
+**End: closed (recorded in Batch B, 2026-09-23). ★ This is an upper bound, not a measurement.**
+> In the Batch B brief Tim said Batch A was deployed, without a clock time. The tightest bound this machine can read
+> is the moment that brief was already in hand: Batch B's opening gate ran `date` and read **`2026-09-23 12:11:29 CST`**.
+> ☞ **Window ≤ 29 min 52 s** (11:41:37 → ≤ 12:11:29).
+> **Kinds:** the clock time is measured here; "deployed" is relayed by Tim. The real end (Vercel Ready) can only be earlier.
 
 **★★ What is broken during the window.** Approvals are ON. The database is new and production still runs the old code:
 
@@ -183,3 +187,142 @@ Tim accepted all thirteen recommendations (Q1–Q13). They are recorded in `docs
 ## §8 · Commit, push, three SHAs
 
 Reported in the terminal at push time: `HEAD`, `origin/main` and `git ls-remote origin main`. **Broken window: start 2026-09-23 11:41:37 CST, end PENDING (Tim's reading from the Vercel panel).**
+
+---
+
+# Batch B — one person, several accounts (R3), and `gm` made read-only (2026-09-23)
+
+**Opening gate (passed):** tree clean; `HEAD` = `origin/main` = `ls-remote` = `08cf488c1ab816c60953dced69f47a10f0bf22d8`.
+
+**★ Broken window start** (from the line `db/apply_migration.sh` prints itself):
+### `2026-09-23 12:55:01 CST`
+Recorded in `db/migration-windows.tsv` as `2026-09-23T12:55:30+0800`. **End: PENDING** (Tim's reading from the Vercel panel).
+
+**★★ What is broken during the window.** Approvals are ON:
+
+| what | during the window |
+|---|---|
+| ★ **Vince (gm)** | **Read-only immediately.** The permission change lives in the database, so it does not wait for the deploy. Every write he tries is refused by the database, and the old screens still show the refusal. Old pages that gate their controls in the UI now render them disabled (they read permissions live). |
+| ★ **hr decisions** | leave · medical · reviews: deciders shrink from {admin, sandra, vince} to **{admin, sandra}**. No pending document is affected (none was raised by Vince or is about him). |
+| **R3** | **Changes nobody's answer today.** `employee_accounts` is empty, and `account_person()` gives every existing account exactly the answer it gave before (migration self-check ⑤). The raiser checks are person-aware, but with one account per person they decide exactly as before. |
+| `/settings/accounts` | The old screen has no "additional account" control and never calls the new functions. Saving roles on it keeps working, because no account is an additional account yet. |
+| `/settings/approvals` | The old panel doesn't render the new people count; `approvals_readiness()` returns extra fields that the old page ignores. **No error.** |
+| the switch | ★ **Still ON.** Never touched. |
+
+☞ **In one line:** the only change that lands before the deploy is the one Tim ruled on: Vince can read but not write.
+
+## B.1 · Findings recorded (Tim accepted all five)
+
+1. **gm held 34 codes on live: 14 `module.*.edit`, no `action.*`.** This cut removed the 14 and kept 20 (15 `module.*.view`, plus `data.view_banking`, `view_prices`, `view_reviews`, `view_sales` and `view_self_approvals`). Nothing was added.
+2. **This supersedes C-1's "gm stays exactly as it is"** (`docs/accounts-roles-and-permissions.md` §三 Q3). That note answered whether to *add* codes to gm, not whether to remove them.
+3. **Why live never matched the 2026-09-03 "MD read-only" ruling:** it was applied to one page only (NAV-CLEANUP-1 kept `data.view_deleted` from gm). A day later, C-1 put Vince on the existing gm role with its 14 edit codes, and nothing narrowed gm after that.
+4. **Vince can no longer create even personal tasks.** `tasks` inserts require `module.tasks.edit`, with no own-task exception. An own-task exception is registered in `docs/forward-queue.md` as a possible future cut, **pending Tim**. No write code was kept on gm to work around it.
+5. **Batch A's broken window is closed with a measured upper bound** (above).
+
+## B.2 · Tim's answers (Q1–Q6), as built
+
+| Q | built as |
+|---|---|
+| Q1 | `link_additional_account` refuses **`ACCOUNT_HAS_DECISIONS|n`** when the account has any `approval_log` rows as the decider |
+| Q2 | `unlink_additional_account`, on the same control (with a confirmation that names the consequence); every link and unlink writes a row to **`employee_account_history`**, which is append-only (`HISTORY_APPEND_ONLY`). Past `self_decided` values are kept (fixture 206 U) |
+| Q3 | `approvals_readiness()` returns `level1_people` / `level2_people` next to the account counts; the panel prints both |
+| Q4 | `module.tasks.edit` removed with the rest; the own-task exception is registered, pending |
+| Q5 | live proof as written (§B.4) |
+| Q6 | one session; no split needed |
+
+## B.3 · What shipped
+
+- **Tables:**
+  - `employee_accounts` (additional accounts; primary key `user_id`; read by people with `hr.view` or `manage_permissions`, and by the account itself);
+  - `employee_account_history` (append-only).
+- **Two guards, one on each side:**
+  - `ACCOUNT_IS_PRIMARY`: a main account cannot be added as an additional one;
+  - `ACCOUNT_IS_ADDITIONAL`: an additional account cannot become anyone's main account, whether written directly or through `set_user_employee_link`.
+- **"Which person":** `account_person()` falls back to the new table; `current_user_employee()` = `account_person(auth.uid())`.
+- **Person-aware checks:**
+  - `approve_purchase_order` and `reject_purchase_order` use `self_leg` (they keep the bare `SELF_APPROVAL_FORBIDDEN` code);
+  - `assert_segregated`;
+  - `export_my_personal_data`, via `current_user_employee()`.
+- **Display:**
+  - `user_directory` has a new last column, `account_kind` (`primary` / `additional` / null);
+  - `batch_audit_trail` treats an additional account as resolvable;
+  - `ActorName` resolves additional accounts, in the same by-id query, so the masked-read baseline is unchanged;
+  - the processing-page editor names now come from `loadActorNames`.
+
+  The two owner-rights views join the link table directly rather than calling `account_person`: an owner-rights view substitutes the owner for tables, not for function EXECUTE.
+- **`/settings/accounts`:**
+  - an unlinked account gets an "Additional account of…" picker, listing only people who already have a main account (`ADDITIONAL_NEEDS_PRIMARY` otherwise);
+  - an additional account shows whose it is and gets an "Unlink" button with a confirmation;
+  - saving roles on an additional account skips the main-link call.
+- **gm:** the 14 edit codes are deleted on live, and the gm list in `db/tables/role_permissions.sql` is rewritten to match (runtime config, bootstrap still **correct**: it now says exactly what live holds).
+- **Fixture 206**, 12 arms. **Fault injection on a throwaway rebuild: 9 of 9 injections went red, each at the arm meant to catch it:**
+  - account lookup without the fallback → L2
+  - purchase-order check by account → P3
+  - segregation-of-duties check by account → P4
+  - no Q1 refusal → H
+  - guard on one side only → G
+  - gm keeps an edit code → M
+  - directory blind to additional accounts → D
+  - people counted as accounts → R
+  - unlink without history → U
+
+  The clean run passed.
+
+## B.4 · Verification — every figure is the script's own exit line
+
+| step | result |
+|---|---|
+| `db/gate.py --offline` | `GATE_OFFLINE_EXIT=0` on the first run |
+| preflight | `PREFLIGHT_OWN_EXIT=0`: 13 functions (8 replaced, 5 new) |
+| backup | `BACKUP_EXIT=0` (the script's own line): `evoltrya-backup-2026-09-23-1244.dump`, TOC 5,931 entries (previous 5,911, floor 5,319) |
+| dry run on live, `COMMIT`→`ROLLBACK` | all 7 self-checks passed; `employee_accounts` absent afterwards |
+| `db/apply_migration.sh` | `APPLY_OWN_EXIT=0`; all 7 self-checks passed. BEFORE: gm 34 codes / 14 write · AFTER: gm 20 / 0 · `employee_accounts` 0 · approval_log 14 → 14 |
+| types | `NOTIFY pgrst`, then `db/wait_for.sh` until the new table and functions appeared (8s) |
+| `npx tsc --noEmit` | `TSC_OWN_EXIT=0` |
+| `npm run build` | `BUILD_OWN_EXIT=0`. It went red twice first, both correctly: a third direct `employees` read in `ActorName` (merged into the existing by-id query), and the document registry's pinned table count (222 → 224, for the two new tables) |
+| `db/gate.py` full | `GATE_EXIT=0`: all four verdicts green (rebuildability · mirrors vs live · fixtures · anonymous surface), wall-clock 466s |
+| `check-i18n` · `check-error-swallowing` | `I18N_OWN_EXIT=0` · `SWALLOW_OWN_EXIT=0` |
+| smoke (detached) | **First run: `SMOKE_EXIT=124`**. `db/run_detached.sh` stopped it at its 2,400-second limit, before any route was requested. The timeout line was written 55 minutes after the start, which points to the machine sleeping while Tim had paused the session; that is an inference, not a measurement. ★ **It left two throwaway accounts on live** (`smoke-1790140062250@test.local`, **holding `admin`**, and its `-reviewer` twin) plus a cleanup plan in `.ephemeral/13794.json`. I cleared them with the repo's own tool, `node scripts/reap-ephemeral.mjs` → `REAP_OWN_EXIT=0` (1 plan reaped, 0 failed). Re-read as `postgres` from the base tables: **0 accounts, 0 active grants.** **One immediate retry: `SMOKE_EXIT=0`**. 232 routes plus probes, **251 ok, 6 skipped (no data), 0 FAILED**; no plan and no lock left behind |
+
+### Live proof — one transaction, ROLLBACK, identity at each block
+| block | identity (each with its own `auth.uid()` control = t) | result |
+|---|---|---|
+| AFTER-0 | `postgres` (bypass), base tables | approvals `t` · approval_log 14 · gm **20 codes, 0 write codes** · `employee_accounts` 0 |
+| setup | `postgres` | scratch account created **inside the transaction**, given `cfo` |
+| link | admin: `postgres` + JWT | `link_additional_account` → linked to **EMP-2026-0002**; history 1 row |
+| directory · readiness | admin: `authenticated` + JWT | `account_kind = additional`, `EMP-2026-0002` · level 2: **2 accounts / 1 person** · chain level-2 lines: 1 person each |
+| who am I | scratch account: `postgres` + JWT, then `authenticated` | `current_user_employee()` = Tim's employee · under RLS: **own row 1, others 0** |
+| refusal 1 | scratch account decides a claim **admin@ raised for chooer** | `SELF_APPROVAL_FORBIDDEN\|raiser`, because it is the same person |
+| refusal 2 | scratch account, `assert_segregated` with first step by admin@ | `PROOF_SOD\|proof` (refused) |
+| refusal 3 | scratch account rejects a scratch pending PO **raised by admin@** | `SELF_APPROVAL_FORBIDDEN` (the account got a scratch role with `purchasing.view` for this block: `cfo` alone has none) |
+| R2 by person | scratch account (`cfo`) rejects **Tim's own** claim | succeeds; log row level 1, **`self_decided = t`**, actor = scratch account |
+| Vince | vince: `postgres` + JWT, then `authenticated` | `decide_leave_request` on a scratch leave → **`PERMISSION_DENIED\|module.hr.edit`**. `module.finance.view` still t; `hr.edit`, `purchasing.edit` and `tasks.edit` are f. He reads `expense_claim_status` (6 rows = 4 live + 2 scratch) |
+| unlink | admin | `linked = false` · history 2 rows · the account belongs to nobody · **earlier `self_decided` kept (t)** |
+| AFTER-ROLLBACK | `postgres`, read-only | approvals `t` · approval_log **14** · self_decided rows 0 · all pending counts unchanged (0 · 1 · 2 · 0 · 0 · 5 · 0) · `employee_accounts` 0 · link history 0 · scratch account **0** · **CLM-2026-0004: submitted** · gm 20 / 0 |
+
+**gm's permission list, before → after (read by `postgres`, base tables):** 34 codes (14 write) → **20 codes (0 write)**:
+`data.view_banking, data.view_prices, data.view_reviews, data.view_sales, data.view_self_approvals` plus the 15 `module.*.view` codes
+(customers, finance, hr, inbound, inventory, logistics, materials, output, pricing, processing, purchasing, sales, stocktakes, suppliers, tasks).
+
+## B.5 · ★★ Tim's CFO-only account: the exact steps, once Batch B is deployed
+
+> ### ★★ Read this first: a decision only Tim can make
+> **The `cfo` role cannot decide purchase orders.** It holds `module.finance.view` and `data.view_prices`, but **not
+> `module.purchasing.view`**, which both purchase-order actions require. Today purchase-order level 2 is decided
+> through `admin@swm-os.test` only because that account also holds `admin`. **Measured:** `cfo`'s grants on live are exactly `data.view_prices` and `module.finance.view` (read by `postgres`, `rolbypassrls = t`, from the base tables `role_permissions` and `roles`). In the live proof, the scratch CFO account needed a scratch role holding `module.purchasing.view` before `reject_purchase_order` would even reach its raiser check. ☞ The proof's chain count cannot show this on its own: with `admin@` still holding `cfo`, the CFO account and `admin@` count as **one person**.
+> **So step ⑤ would leave purchase-order level 2 with nobody.** Before step ⑤, Tim chooses one:
+> **(a)** grant `module.purchasing.view` to the `cfo` role (on `/settings/roles`); or **(b)** keep `cfo` on `admin@` for now
+> and skip step ⑤. I haven't done either: no ruling covers the `cfo` role.
+
+| # | step | what Tim should see |
+|--:|---|---|
+| ① | **Create the account** on `/settings/accounts` → *Create account*, holding **only** the `cfo` role, with **no** employee picked. | A new row with the amber "not signed in yet" badge. Under the email: "not linked to an employee". Roles: `CFO` only. |
+| ② | **Sign in once** with that account (a private window), then sign out. | The badge disappears after the next reload of `/settings/accounts`. **Until this step the account is not a real holder:** `real_role_holders` ignores accounts that have never confirmed. |
+| ③ | **Link it** (signed in as `admin@`): open the new row → *Edit* → **Additional account of…** → pick `EMP-2026-0002 — Tim` → **Link as additional account**. | "Saved." The row now reads **"Additional account of EMP-2026-0002 — Tim"**, and the edit panel offers *Unlink this additional account* instead of the employee picker. If it has already decided anything, the link is refused with a sentence saying so (Q1). Signed in as the new account, `/me` shows Tim's own profile. |
+| ④ | **Confirm on `/settings/approvals`** that the CFO account is a real level-2 holder. | Level 2 (`cfo`): **"2 account(s) currently hold cfo and can sign in — 1 person/people."** Two accounts, one person, is correct. The chain lines: `decide_expense_claim` level 2 still says **1** person (it counts people). **Also look at `approve_purchase_order` / `reject_purchase_order` level 2: they still say 1 person, and that person is reached only through `admin@`** (see the box above). |
+| ⑤ | **Only then, and only after choosing (a) or (b) above:** revoke `cfo` from `admin@swm-os.test` (its row → *Edit* → untick `CFO` → a reason → *Save*). | With (a): the level-2 lines stay green with **1 person** (the CFO account), and the "whose own documents" block still lists Tim's own purchase orders, because the CFO account and `admin@` are the same person. With (b): skip this step. **If any level-2 line turns red "NOBODY holds both", tick `CFO` back on `admin@` straight away.** |
+
+After step ⑤ with (a): Tim's own expense claims can be decided by the CFO account as a flagged self-approval (R2), and every such decision appears on `/finance/self-approved`. Neither of his accounts can decide a document the other raised.
+
+## B.6 · Commit, push, three SHAs
+Reported in the terminal at push time. **Broken window: start 2026-09-23 12:55:01 CST, end PENDING.**

@@ -1485,6 +1485,24 @@ const zh = {
         errCreateRolledBackFailed: '账号没有配置完成({0}),而【清理也失败了】({1})。现在 {2} 是一个已经建出来、但没有角色的账号 —— 请立刻在 Supabase 控制台里把它删掉。',
         errEmployeeLinked: '该员工已关联到另一个账号({0}),请先在那边解绑。',
         errEmployeeNotFound: '该员工档案已不存在。',
+        // APR-ROUTE-1 Batch B(R3):一个人,几个账号。
+        additionalTitle: '作为谁的额外账号……',
+        additionalPick: '选这个账号属于哪一个人',
+        additionalWhy:
+            '一个人有不止一个账号时用它(例如一个单独的、只持 CFO 角色的账号)。系统从此把这两个账号当成同一个人:谁都不许决定另一个账号提的、或说的就是这个人的单据;任何一个账号的自批都会被标记。一个已经做过任何决定的账号不能被链接。',
+        additionalAccountOf: '{code} — {name} 的额外账号',
+        linkAdditional: '链接为额外账号',
+        unlinkAdditional: '解除这个额外账号',
+        unlinkConfirmTitle: '解除这个额外账号?',
+        unlinkConfirmBody:
+            '从现在起这个账号不再算作 {code}。它已经做过的决定,保留当时被标上的自批记号。如果它在链接之后做过任何决定,它就再也不能被链接到任何人。',
+        errAdditionalNeedsPrimary: '{0} 还没有主账号。请把这个账号作为他的主账号来关联。',
+        errAccountIsPrimary: '这个账号已经是 {0} 的主账号。',
+        errAccountAlreadyAdditional: '这个账号已经是 {0} 的额外账号。',
+        errAccountIsAdditional: '这个账号是 {0} 的额外账号。请先在那里解除。',
+        errAccountHasDecisions:
+            '这个账号已经决定过 {0} 张单据。现在把它链到某个人身上,会让其中一些过去的决定变成【从没被标记过的自批】,而审批留痕改不了。请改用一个新账号。',
+        errAccountNotAdditional: '这个账号不是任何人的额外账号。',
     },
     suppliers: {
         noGoodsSuppliers: '没有可收货的供应商 —— 收货只列【会供货】的往来户。',
@@ -6729,7 +6747,7 @@ const zh = {
             historyOff: '未生效',
             historyUnset: '尚未决定',
             historyArrow: '{field}:{from} → {to}',
-            holdersOk: '目前有 {n} 人持有 {role},而且登录得了。',
+            holdersOkPeople: '目前有 {n} 个账号持有 {role},而且登录得了 —— 合计 {people} 个人。同一个人的两个账号只算一个人。',
             holdersCannotSignIn: '\u2605 {role} 【确实有】 {n} 个持有人,但没有一个登录得了 \u2014\u2014 所以这一级实际上没有人批得了。再授一次权不会有任何变化;要解决的是那个账号登录不了。这一条为真时,审批开不起来。',
             holdersNone: '没有人持有 {role},这一级没有审批人。这一条为真时,审批开不起来。',
             cannotSeeAmounts: '\u2605 {role} 看不见金额(它没有价格可见权限)。审批是【按金额】分级的,所以这个角色的持有人批的是一个自己读不到的数字。这一条为真时,审批开不起来。',

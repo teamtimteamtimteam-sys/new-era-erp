@@ -1008,6 +1008,34 @@ exception applies). It counts **people**, not accounts. Three readers:
 **once the CFO-only account exists and level 2 has a second person.** Blocking today would flag the
 live policy itself.
 
+### ★★ Batch B (2026-09-23) — one person, several accounts; and `gm` made read-only (Tim's rulings)
+- **R3, done.** Additional accounts live in `employee_accounts` (the main account stays
+  `employees.user_id`); two guards stop one account from sitting in both places; `account_person()`
+  falls back to the new table and `current_user_employee()` **is** `account_person(auth.uid())`.
+  The raiser check (`self_leg`), the two bare purchase-order checks, `assert_segregated` and the R2
+  flag all recognise the **person**. Linking and unlinking go through `link_additional_account` /
+  `unlink_additional_account` (`action.manage_permissions`, on `/settings/accounts`), each writing an
+  append-only `employee_account_history` row. **An account that already has `approval_log` rows as
+  the decider cannot be linked (Q1)** — its past decisions about that person would become unflagged
+  self-approvals that the append-only log cannot correct. Unlinking keeps past `self_decided` values.
+  The readiness panel now shows **accounts and people** per level (Q3).
+- **`gm` is read-only (Tim, 2026-09-23).** All 14 `module.*.edit` codes removed; 20 read codes kept;
+  nothing added. Decision effects: leave · medical · performance reviews go from {admin, sandra,
+  vince} to **{admin, sandra}** (Tim's own medical claim now goes to Sandra, or admin@ as a flagged
+  self-approval); work-order release {admin, phua, sandra}; stocktake posting 5 people; the tiered
+  chains (expense, purchase orders) are unchanged — gm holds neither approver role. No chain is left
+  with only its subject; no pending document on live was raised by Vince or is about him.
+  Supersedes C-1's "gm stays exactly as it is" (`docs/accounts-roles-and-permissions.md` §三 Q3).
+
+### ★★ Finding (Batch B live proof): the `cfo` role cannot decide purchase orders
+`cfo` holds `module.finance.view` and `data.view_prices` only — **not `module.purchasing.view`**,
+which both purchase-order actions require. Today purchase-order level 2 is decided through
+`admin@swm-os.test` only because that account also holds `admin`. **A CFO-only account will decide
+expense claims at level 2, but not purchase orders** — so revoking `cfo` from `admin@` would leave
+purchase-order level 2 with nobody. This is a decision for Tim (grant `module.purchasing.view` to
+`cfo`, or keep `cfo` on `admin@` for now); the CFO steps in `docs/handbacks/APR-ROUTE-1.md` stop at
+exactly that point.
+
 ### R5 — `expense_claim_status` carries its own row predicate (F1)
 `has_permission('module.finance.view') OR employee_id = current_user_employee()` — the same shape as
 `medical_claim_status`. Before it, any signed-in user could read every expense claim through

@@ -1,6 +1,10 @@
 -- db/views/batch_audit_trail.sql
 -- AUDIT-1:跨模块审计轨迹,**键在批次上**(batch_kind + batch_id)。
 --
+-- ★ APR-ROUTE-1 Batch B(2026-09-23,R3):actor_unresolvable 从此也认【额外账号】
+--   (employee_accounts)。一个人的第二个账号做的事不是"认不出的人"。直接连表而不调
+--   account_person():属主视图替得了表,替不了函数的 EXECUTE。
+--
 -- 【两层判据,各管一件事】(Tim 的 R5)
 --   外层 WHERE has_any_permission([...])  → admission:进不进得来。
 --   逐行 may_view = has_permission(module_code) → 这一段是【内容】还是【「受限」】。
@@ -60,7 +64,9 @@ CREATE VIEW public.batch_audit_trail WITH (security_invoker = off) AS
         CASE
             WHEN actor_id IS NOT NULL AND NOT (EXISTS ( SELECT 1
                FROM employees e
-              WHERE e.user_id = t.actor_id)) THEN ARRAY['actor_unresolvable'::text]
+              WHERE e.user_id = t.actor_id)) AND NOT (EXISTS ( SELECT 1
+               FROM employee_accounts ea
+              WHERE ea.user_id = t.actor_id)) THEN ARRAY['actor_unresolvable'::text]
             ELSE ARRAY[]::text[]
         END AS seams
    FROM batch_audit_trail_all t

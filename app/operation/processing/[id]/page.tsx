@@ -30,6 +30,7 @@ import {
     RecoveryTable, type RecoveryRow,
 } from './ProcessingTables'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { loadActorNames } from '@/app/components/ActorName'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 type ProcessingInputRow = {
@@ -208,13 +209,10 @@ export default async function ProcessingDetailPage({
     //     真的扩权(把整份员工名册给运营),不是换一个读法。所以走 (b):
     //     判据取一次,读不到时印一句具名的「受限」。
     const canSeeEmployees = await can('module.hr.view')
-    const editorName = new Map<string, string>()
-    if (editorIds.length) {
-        for (const e of mustRows(await supabase.from('employees')
-            .select('user_id, legal_name').in('user_id', editorIds), 'employees editors')) {
-            if (e.user_id) editorName.set(e.user_id, e.legal_name)
-        }
-    }
+    // ★ APR-ROUTE-1 Batch B(R3):名字表改由 loadActorNames 取 —— "谁做的"只有
+    //   app/components/ActorName.tsx 一份实现,而它认得【额外账号】(employee_accounts)。
+    //   此前这里自己查 employees.user_id,一个人用第二个账号改过的条目会印成空。
+    const editorName = (await loadActorNames(supabase, editorIds)).names
 
     const costRows: CostEntryRow[] = rawCosts.map((c) => ({
         id: c.id,

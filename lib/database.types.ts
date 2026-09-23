@@ -3735,6 +3735,149 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_account_history: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          changed_at: string
+          employee_id: string
+          id: string
+          seq: number
+          user_id: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          changed_at?: string
+          employee_id: string
+          id?: string
+          seq?: number
+          user_id: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          changed_at?: string
+          employee_id?: string
+          id?: string
+          seq?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      employee_accounts: {
+        Row: {
+          employee_id: string
+          linked_at: string
+          linked_by: string | null
+          user_id: string
+        }
+        Insert: {
+          employee_id: string
+          linked_at?: string
+          linked_by?: string | null
+          user_id: string
+        }
+        Update: {
+          employee_id?: string
+          linked_at?: string
+          linked_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "user_directory"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           anonymised_at: string | null
@@ -26587,6 +26730,7 @@ export type Database = {
       }
       user_directory: {
         Row: {
+          account_kind: string | null
           created_at: string | null
           email: string | null
           employee_code: string | null
@@ -27576,6 +27720,10 @@ export type Database = {
       line_spoken_for: {
         Args: { p_sales_order_line_id: string }
         Returns: number
+      }
+      link_additional_account: {
+        Args: { p_employee_id: string; p_user_id: string }
+        Returns: Json
       }
       link_document_to_contract: {
         Args: {
@@ -28573,6 +28721,7 @@ export type Database = {
         Args: { p_statement_line_id: string }
         Returns: undefined
       }
+      unlink_additional_account: { Args: { p_user_id: string }; Returns: Json }
       unmatch_bank_line: {
         Args: { p_statement_line_id: string }
         Returns: undefined

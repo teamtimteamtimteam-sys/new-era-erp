@@ -23,7 +23,8 @@ BEGIN
     IF v_po.approval_status <> 'pending' THEN
         RAISE EXCEPTION 'PO_NOT_PENDING|%|%', v_po.code, v_po.approval_status;
     END IF;
-    IF v_po.created_by IS NOT NULL AND v_po.created_by = auth.uid() THEN
+    -- ★ APR-ROUTE-1 Batch B(R3):按【人】认 —— 与 approve_purchase_order 同一句。
+    IF self_leg(v_po.created_by, NULL::uuid, auth.uid()) <> 'none' THEN
         RAISE EXCEPTION 'SELF_APPROVAL_FORBIDDEN';
     END IF;
     IF p_reason IS NULL OR btrim(p_reason) = '' THEN

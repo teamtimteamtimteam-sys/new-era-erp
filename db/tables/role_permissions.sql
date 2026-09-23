@@ -77,25 +77,29 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- APR-ROUTE-1(R2 · Q4):自批报表。
         'data.view_self_approvals') WHERE r.code = 'admin';
 
--- gm(30):看得见整个生意,包括成本与利润;【但不能改权限】—— 没有 action.manage_permissions。
+-- gm:看得见整个生意,包括成本与利润;【但不操作任何东西】。
+-- ★★ APR-ROUTE-1 Batch B(Tim 裁定,2026-09-23):gm 变成【只读】。
+--   Tim 的 MD(Vince)持 gm,他的工作是读,不是操作。于是 gm 上【每一个】
+--   会写或会做决定的码都拿掉 —— 全部 *.edit(14 个)与 action.*(线上本来就 0 个);
+--   保留全部 module.*.view、data.view_* 与 data.view_self_approvals。
+--   ☞ 这一条【取代】C-1(2026-09-04)Q3 那句「gm 一个字不动」—— 那一句答的是
+--     "要不要给 gm【加】码",不是"要不要从 gm【拿掉】码"。
+--   ☞ 2026-09-03 NAV-CLEANUP-1 记过"MD 被另行裁定为只读",而那一条此前只落在
+--     一个页面上(不给 gm data.view_deleted)—— 所以线上的 gm 从来没有对上它。
+--   ★ 【不要为了补偿而给 gm 加任何东西】—— cco 刻意比 gm 宽(C-1 Q2/Q3),
+--     不要"修"那个不对称。
+--   ⚠ 一个真实的后果,照直写:tasks 表的插入要 module.tasks.edit、没有"自己的
+--     任务"那一支,所以 Vince 从此连【个人任务】都建不了。自有任务的例外登记为
+--     一刀可能的后续(docs/forward-queue.md),待 Tim 定。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'data.view_banking', 'data.view_prices', 'data.view_reviews', 'data.view_sales',
-        'module.customers.edit', 'module.customers.view', 'module.finance.edit',
-        'module.finance.view', 'module.hr.edit', 'module.hr.view', 'module.inbound.edit',
-        'module.inbound.view', 'module.inventory.edit', 'module.inventory.view',
-        'module.materials.edit', 'module.materials.view', 'module.output.edit',
-        'module.output.view', 'module.pricing.edit', 'module.pricing.view',
-        'module.processing.edit', 'module.processing.view', 'module.purchasing.edit',
-        'module.purchasing.view', 'module.stocktakes.edit', 'module.stocktakes.view',
-        'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit',
-        'module.tasks.view',
-        'module.sales.edit', 'module.sales.view',
-        'module.logistics.view',
-        -- ★ APR-ROUTE-1(Tim 的 R2 · Q4):自批报表。Tim 的 MD 是 Vince,他持 gm
-        --   (grilling 当天对 live 实测)。⚠ NAV-CLEANUP-1 记过"一份过期文档把 gm 写成 MD、
-        --   而那个人另被裁定为只读"—— 本码同时授给了 auditor,所以无论 MD 最后坐在哪个
-        --   角色上,他都看得见;授给 gm 是 Tim 在 Q4 里点名的。
+        'module.customers.view', 'module.finance.view', 'module.hr.view',
+        'module.inbound.view', 'module.inventory.view', 'module.materials.view',
+        'module.output.view', 'module.pricing.view', 'module.processing.view',
+        'module.purchasing.view', 'module.stocktakes.view', 'module.suppliers.view',
+        'module.tasks.view', 'module.sales.view', 'module.logistics.view',
+        -- APR-ROUTE-1(R2 · Q4):自批报表。Tim 的 MD 是 Vince,他持 gm。
         'data.view_self_approvals') WHERE r.code = 'gm';
 
 -- finance(23):总账、应付应收、开票收付款 + 全部成本可见。【不含 HR】—— 薪酬与员工档案不是财务的工作对象。

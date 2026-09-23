@@ -18,6 +18,8 @@ type Readiness = {
     level1_role_code: string | null
     level1_holders_total: number
     level1_real_holders: number
+    // ★ APR-ROUTE-1 Batch B(Q3):同一个人的两个账号只算一个人 —— 与账号数并排
+    level1_people: number
     level1_can_see_amounts: boolean
     level1_holders_who_cannot_raise: number
     threshold_base: string | number | null
@@ -25,6 +27,7 @@ type Readiness = {
     level2_role_code: string | null
     level2_holders_total: number
     level2_real_holders: number
+    level2_people: number
     level2_can_see_amounts: boolean
     pending_purchase_orders: number
     // ★★ APR-3(Tim 的 Q6):逐链的在途张数,与【会挡住关闭的】那个数。
@@ -72,13 +75,15 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
     const t = await getTranslations()
 
     // ★【三种状态,三句不同的话 —— 这是本刀在屏幕上的全部要点】★
-    const HolderState = ({ role, total, real, sees }: {
-        role: string; total: number; real: number; sees: boolean
+    const HolderState = ({ role, total, real, people, sees }: {
+        role: string; total: number; real: number; people: number; sees: boolean
     }) => (
         <div className="ml-4 mb-1 space-y-1">
             {real > 0 ? (
+                /* ★ APR-ROUTE-1 Batch B(Q3):账号数与人数【并排】。独立 CFO 账号落地之后,
+                   二级是 2 个账号、1 个人 —— 前者证"那个账号是真的",后者说"二级仍然只有一个人"。 */
                 <p className="text-xs text-green-800">
-                    {t('finance.approvals.holdersOk', { n: String(real), role })}
+                    {t('finance.approvals.holdersOkPeople', { n: String(real), role, people: String(people) })}
                 </p>
             ) : total > 0 ? (
                 /* ★ 中间态:有人持有,但他登录不了。**不是"没有人"** ★ */
@@ -149,6 +154,7 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
                     role={r.level1_role_code}
                     total={r.level1_holders_total}
                     real={r.level1_real_holders}
+                    people={r.level1_people}
                     sees={r.level1_can_see_amounts}
                 />
             )}
@@ -167,6 +173,7 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
                     role={r.level2_role_code}
                     total={r.level2_holders_total}
                     real={r.level2_real_holders}
+                    people={r.level2_people}
                     sees={r.level2_can_see_amounts}
                 />
             )}

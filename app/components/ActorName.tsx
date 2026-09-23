@@ -79,16 +79,38 @@ export async function loadActorNames(
             if (r.user_id) map.names.set(r.user_id, r.preferred_name || r.legal_name)
         }
     }
+    // ★ APR-ROUTE-1 Batch B(R3):一个人可以有【额外账号】(employee_accounts)。
+    //   主账号那一支没认出来的 id,再到链接表里问一次它属于哪个人 —— 否则一个人用
+    //   第二个账号做的事会落进状态 ②「该账号未关联员工档案」,而那是一句假话。
+    //   链接表的读策略与 employees 同一批人(人事 · 管账号的 · 这个账号自己),
+    //   所以受限读者在这里同样拿到零行,仍由 restricted 那一句说实话(抬头 ④)。
+    //   ☞ 名字从下面【同一次】按 id 的查询里取 —— 不另开第三处直读 employees
+    //     (check-masked-reads 的基线把这个文件钉在两处)。
+    const missing = unique.filter((id) => !map.names.has(id))
+    const links = missing.length === 0 ? [] : mustRows(
+        await supabase.from('employee_accounts').select('user_id, employee_id').in('user_id', missing),
+        'additional-account links for actor names'
+    )
     // 员工空间的那一批:同一张表、同一份兜底,认的是 id 这一列。
     // 两个空间的 uuid 放进同一张表不会撞:它们来自不同的生成域,
     // 而调用方本来就知道自己传的是哪一种(见 ActorName 的 space)。
-    if (uniqueEmp.length > 0) {
+    const byId = [...new Set([...uniqueEmp, ...links.map((l) => l.employee_id)])]
+    if (byId.length > 0) {
         const rows = mustRows(
-            await supabase.from('employees').select('id, legal_name, preferred_name').in('id', uniqueEmp),
+            await supabase.from('employees').select('id, legal_name, preferred_name').in('id', byId),
             'employees actor names (employee space)'
         )
+        const nameOf = new Map<string, string>()
         for (const r of rows) {
-            if (r.id) map.names.set(r.id, r.preferred_name || r.legal_name)
+            if (r.id) nameOf.set(r.id, r.preferred_name || r.legal_name)
+        }
+        for (const id of uniqueEmp) {
+            const n = nameOf.get(id)
+            if (n) map.names.set(id, n)
+        }
+        for (const l of links) {
+            const n = nameOf.get(l.employee_id)
+            if (n) map.names.set(l.user_id, n)
         }
     }
     return map

@@ -40,7 +40,11 @@ BEGIN
         RETURN;
     END IF;
 
-    IF v_actor = ANY (p_first_actors) THEN
+    -- ★ APR-ROUTE-1 Batch B(Tim 的 Q8):按【人】认,不按账号认。
+    --   同一个人的另一个账号做了第一步,第二步照拒 —— 否则独立 CFO 账号
+    --   能给 admin 账号建的供应商付款。"同一个人"只有 self_leg 一份定义。
+    IF EXISTS (SELECT 1 FROM unnest(p_first_actors) AS a(u)
+                WHERE self_leg(a.u, NULL::uuid, v_actor) <> 'none') THEN
         RAISE EXCEPTION '%|%', p_code, COALESCE(p_subject, '?');
     END IF;
 END;

@@ -37,6 +37,18 @@ BEGIN
         END IF;
     END IF;
 
+    -- ★ APR-ROUTE-1 Batch B(R3):一个额外账号不许再被设成主账号 ——
+    --   先解除那条额外链接(/settings/accounts 的同一块控件)。
+    --   employees 上的守卫也会拦,这里先说人话。
+    IF p_employee_id IS NOT NULL THEN
+        SELECT e.code INTO v_code
+          FROM employee_accounts ea JOIN employees e ON e.id = ea.employee_id
+         WHERE ea.user_id = p_user_id;
+        IF FOUND THEN
+            RAISE EXCEPTION 'ACCOUNT_IS_ADDITIONAL|%', v_code;
+        END IF;
+    END IF;
+
     SELECT id INTO v_prev FROM employees WHERE user_id = p_user_id;
 
     -- 解绑旧的 + 绑上新的。两条 UPDATE 在同一个函数体里,

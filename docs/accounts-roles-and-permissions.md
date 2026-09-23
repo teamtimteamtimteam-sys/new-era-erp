@@ -76,7 +76,7 @@ C-1 的委托书写着"建两张新屏幕"。**实测:两张都已经存在。**
 
 | 人 | 角色 | 新建? | 判据(按工作对象,不按职级) |
 |---|---|---|---|
-| Vince Goh(CEO) | `gm` | 既有 | 「看得见整个生意,包括成本与利润;但不能改任何人的权限」—— 权限由 Tim 管 |
+| Vince Goh(CEO / Tim 称之为 MD) | `gm` | 既有 | 「看得见整个生意,包括成本与利润;但不能改任何人的权限」—— 权限由 Tim 管。★★ **2026-09-23 起 `gm` 只读**(见下面 Q3 之后那一条) |
 | Tim Chen(CFO) | **`admin` + `cfo`** | 既有 | 见下面 Q1:**这是一处刻意的双角色** |
 | Sandra Yap(CCO 兼 HR 负责人) | **`cco`** | **新建** | 商务 + 人 + 整个设置模块;其余模块只读 |
 | Cheng Siong Phua(CTO) | `operations` | 既有 | 「加工、库存与盘点:管数量、产出与回收率,不涉及价格」 |
@@ -194,6 +194,21 @@ Tim 线上持 `admin` + `cfo`。丢掉 `cfo` 会让 `cfo` 变成零持有人,
 **Q3 —— CEO(`gm`)要不要 `data.view_deleted` / `view_pay` / `view_identity`?**
 *我的建议:* 不动 `gm` —— 两处排除都是有记录的刻意决定。
 > **裁定:`gm` 一个字不动。** 不要为了消除与 `cco` 的不对称而给它加任何东西。
+>
+> ★★ **被取代(Tim,2026-09-23,APR-ROUTE-1 Batch B):`gm` 变成【只读】。**
+> 上面那一句答的是「要不要给 gm【加】码」,不是「要不要从 gm【拿掉】码」—— 新裁定取代它。
+> Tim 的 MD(Vince)持 `gm`,他的工作是读,不是操作。于是 `gm` 上每一个会写或会做决定的码
+> 都拿掉了:**14 个 `module.*.edit`**(customers · finance · hr · inbound · inventory · materials ·
+> output · pricing · processing · purchasing · sales · stocktakes · suppliers · tasks);
+> `action.*` 线上本来就是 0 个。**保留 20 个**:15 个 `module.*.view`,以及 `data.view_banking` ·
+> `view_prices` · `view_reviews` · `view_sales` · `view_self_approvals`。
+> **后半句仍然有效:不为补偿而给 `gm` 加任何东西** —— `cco` 刻意比 `gm` 宽。
+> ☞ **为什么线上此前没有对上 2026-09-03 那条"MD 另被裁定为只读"**:那一条只落在一个页面上
+> (NAV-CLEANUP-1 不给 `gm` `data.view_deleted`);一天之后 C-1 把 Vince 放进了既有的 `gm`,
+> 连同它 14 个写码,而之后没有任何一刀收窄过 `gm`。线上与 C-1 的引导逐字一致。
+> ⚠ **一个真实的后果,照直写:** `tasks` 的插入要 `module.tasks.edit`,没有"自己的任务"那一支,
+> 所以 **Vince 从此连个人任务都建不了。** 自有任务的例外登记为一刀可能的后续,待 Tim 定
+> (`docs/forward-queue.md`)。**不为它在 `gm` 上保留任何写码。**
 
 **Q4 —— CTO 要不要看得见价格?** `operations` 刻意没有 `data.view_prices`。
 > **裁定:初期不给。** 加回来便宜,看过了就收不回。

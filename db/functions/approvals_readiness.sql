@@ -36,6 +36,8 @@ DECLARE
     v_blocking   text[] := '{}';
     v_l1_total   integer := 0;  v_l1_real integer := 0;
     v_l2_total   integer := 0;  v_l2_real integer := 0;
+    -- APR-ROUTE-1 Batch B(Tim 的 Q3):每一级的【人】数,与账号数并排
+    v_l1_people  integer := 0;  v_l2_people integer := 0;
     v_l1_norais  integer := 0;
     v_l1_sees    boolean := false;
     v_l2_sees    boolean := false;
@@ -62,6 +64,9 @@ BEGIN
         v_blocking := v_blocking || 'approval_level1_role_code'::text;
     ELSE
         SELECT count(*) INTO v_l1_real FROM real_role_holders(v_s.approval_level1_role_code);
+        -- ★ Batch B(Q3):同一个人的两个账号只算一个人 —— 经 account_person 认人。
+        SELECT count(DISTINCT COALESCE(account_person(h.user_id)::text, 'account:' || h.user_id::text))
+          INTO v_l1_people FROM real_role_holders(v_s.approval_level1_role_code) h;
         SELECT count(*) INTO v_l1_total
           FROM user_roles ur JOIN roles r ON r.id = ur.role_id
          WHERE r.code = v_s.approval_level1_role_code AND r.is_active AND ur.revoked_at IS NULL;
@@ -96,6 +101,8 @@ BEGIN
         v_blocking := v_blocking || 'approval_level2_role_code'::text;
     ELSE
         SELECT count(*) INTO v_l2_real FROM real_role_holders(v_s.approval_level2_role_code);
+        SELECT count(DISTINCT COALESCE(account_person(h.user_id)::text, 'account:' || h.user_id::text))
+          INTO v_l2_people FROM real_role_holders(v_s.approval_level2_role_code) h;
         SELECT count(*) INTO v_l2_total
           FROM user_roles ur JOIN roles r ON r.id = ur.role_id
          WHERE r.code = v_s.approval_level2_role_code AND r.is_active AND ur.revoked_at IS NULL;
@@ -235,12 +242,16 @@ BEGIN
         'level1_role_code',        v_s.approval_level1_role_code,
         'level1_holders_total',    v_l1_total,
         'level1_real_holders',     v_l1_real,
+        -- ★ APR-ROUTE-1 Batch B(Q3):账号数与人数并排。独立 CFO 账号落地之后,
+        --   二级会是【2 个账号、1 个人】—— 前者说"那个账号是真的",后者说"二级仍然只有一个人"。
+        'level1_people',           v_l1_people,
         'level1_can_see_amounts',  v_l1_sees,
         'level1_holders_who_cannot_raise', v_l1_norais,
         'threshold_base',          v_s.approval_threshold_base,
         'level2_role_code',        v_s.approval_level2_role_code,
         'level2_holders_total',    v_l2_total,
         'level2_real_holders',     v_l2_real,
+        'level2_people',           v_l2_people,
         'level2_can_see_amounts',  v_l2_sees,
         'pending_purchase_orders', v_pending,
         -- ★ APR-3:逐链的在途张数(屏幕用),与【会挡住关闭的】那个数(闸用)。

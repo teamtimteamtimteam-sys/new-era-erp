@@ -21,7 +21,9 @@ DECLARE
     v_emp employees%ROWTYPE;
 BEGIN
     -- 【它只导出【调用者自己】的数据】—— 没有参数,拿不到别人的。
-    SELECT * INTO v_emp FROM employees WHERE user_id = auth.uid() AND deleted_at IS NULL;
+    -- ★ APR-ROUTE-1 Batch B(R3):经 current_user_employee() 认人 —— 一个人的
+    --   第二个账号导出的也是【他自己】的数据,而不是一句"没有员工档案"。
+    SELECT * INTO v_emp FROM employees WHERE id = current_user_employee() AND deleted_at IS NULL;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'PDPA_NO_EMPLOYEE_RECORD';
     END IF;

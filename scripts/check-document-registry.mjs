@@ -59,7 +59,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // APR-1(2026-09-22):221 → 222。新增 `finance_settings_history`(审批策略那四列的
 // 变更留痕),见 db/tables/finance_settings_history.sql。**它没有 code 列**
 // (它记的是一张单行配置表的变更,没有单据号),所以 EXPECTED_CODE_TABLES 不动。
-const EXPECTED_TABLES = 222
+// APR-ROUTE-1 Batch B(2026-09-23):222 → 224。新增 `employee_accounts`(一个人的额外账号)
+// 与 `employee_account_history`(链接与解除的只增不改留痕),见 db/tables/ 同名文件。
+// **两张都没有 code 列**(它们记的是"账号属于谁",不是单据),所以 EXPECTED_CODE_TABLES 不动。
+const EXPECTED_TABLES = 224
 const EXPECTED_CODE_TABLES = 75
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

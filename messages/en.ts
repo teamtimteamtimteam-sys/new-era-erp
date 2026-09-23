@@ -1569,6 +1569,24 @@ const en = {
         errCreateRolledBackFailed: 'The account could not be finished ({0}), and cleaning it up ALSO failed ({1}). {2} now exists as an account with no role — delete it in the Supabase dashboard immediately.',
         errEmployeeLinked: 'That employee is already linked to another account ({0}). Unlink it there first.',
         errEmployeeNotFound: 'That employee record no longer exists.',
+        // APR-ROUTE-1 Batch B (R3): one person, several accounts.
+        additionalTitle: 'Additional account of…',
+        additionalPick: 'Choose the person this account belongs to',
+        additionalWhy:
+            'Use this when one person has more than one account (for example a separate CFO-only account). The system then treats both accounts as the same person: neither may decide a document the other raised or that is about that person, and a self-approval from either is flagged. An account that has already decided anything cannot be linked.',
+        additionalAccountOf: 'Additional account of {code} — {name}',
+        linkAdditional: 'Link as additional account',
+        unlinkAdditional: 'Unlink this additional account',
+        unlinkConfirmTitle: 'Unlink this additional account?',
+        unlinkConfirmBody:
+            'From now on this account no longer counts as {code}. Decisions it already made keep the self-approval marks they were given at the time. If it has decided anything since it was linked, it cannot be linked to anyone again.',
+        errAdditionalNeedsPrimary: '{0} has no main account yet. Link this account to them as their main account instead.',
+        errAccountIsPrimary: 'This account is already the main account of {0}.',
+        errAccountAlreadyAdditional: 'This account is already an additional account of {0}.',
+        errAccountIsAdditional: 'This account is an additional account of {0}. Unlink it there first.',
+        errAccountHasDecisions:
+            'This account has already decided {0} document(s). Linking it to a person now would turn some of those past decisions into self-approvals that were never flagged, and the approval log cannot be changed. Use a new account instead.',
+        errAccountNotAdditional: 'This account is not an additional account of anyone.',
     },
     suppliers: {
         noGoodsSuppliers: 'No goods suppliers yet — receiving only lists vendors we actually take delivery from.',
@@ -6932,7 +6950,7 @@ const en = {
             historyOff: 'not in force',
             historyUnset: 'not decided',
             historyArrow: '{field}: {from} → {to}',
-            holdersOk: '{n} person/people currently hold {role} and can sign in.',
+            holdersOkPeople: '{n} account(s) currently hold {role} and can sign in — {people} person/people. Two accounts belonging to one person count once.',
             holdersCannotSignIn: '\u2605 {role} IS held by {n} account(s), but none of them can sign in \u2014 so nobody can actually approve at this level. Granting the role again will change nothing; the account needs to be able to sign in. Approvals cannot be switched on while this is true.',
             holdersNone: 'Nobody holds {role}, so there is no approver at this level. Approvals cannot be switched on while this is true.',
             cannotSeeAmounts: '\u2605 {role} cannot see amounts (it lacks price visibility). Approval routes by amount, so a holder of this role would be approving a figure they cannot read. Approvals cannot be switched on while this is true.',

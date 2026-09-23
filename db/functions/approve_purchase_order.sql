@@ -42,7 +42,9 @@ BEGIN
     END IF;
 
     -- 【四眼】提单的人不能自己批。与 approve_review 的 SELF_APPROVAL_FORBIDDEN 同名同理。
-    IF v_po.created_by IS NOT NULL AND v_po.created_by = auth.uid() THEN
+    -- ★ APR-ROUTE-1 Batch B(R3):按【人】认,不按账号认 —— self_leg 是那一份定义。
+    --   同一个人的另一个账号提的单,这里照拒。裸码保留(APR-2 §3)。
+    IF self_leg(v_po.created_by, NULL::uuid, auth.uid()) <> 'none' THEN
         RAISE EXCEPTION 'SELF_APPROVAL_FORBIDDEN';
     END IF;
 

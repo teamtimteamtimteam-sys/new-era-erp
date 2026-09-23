@@ -4,7 +4,8 @@
 // 一个系统账号一行,展开后是编辑面板:勾选角色 + 关联员工档案。
 import { useState, useTransition } from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
-import { saveUserRoles } from '../accountsActions'
+import { saveUserRoles, linkAdditionalAccount, unlinkAdditionalAccount } from '../accountsActions'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 
@@ -17,6 +18,8 @@ export type DirectoryRow = {
     employee_code: string | null
     employee_name: string | null
     roles: { role_id: string; code: string; name_en: string; name_zh: string }[]
+    /** APR-ROUTE-1 Batch B(R3):'primary' | 'additional' | null(没关联任何人) */
+    account_kind: 'primary' | 'additional' | null
 }
 export type RoleOption = {
     id: string
@@ -60,6 +63,43 @@ export default function UserRow({
     // 所以选项里【排除已经绑给别人的员工】,并在提示里说明为什么它们不在列表上。
     const options = employees.filter((e) => e.user_id === null || e.id === row.employee_id)
 
+    // ★ APR-ROUTE-1 Batch B(R3):额外账号。
+    //   · 这一行【就是】某人的额外账号 → 不给"关联员工档案"那个下拉(它设的是主账号),
+    //     给一个"解除"钮;
+    //   · 这一行【谁都不属于】 → 除了设主账号,还可以把它链成某人的额外账号。
+    //     候选只列【已经有主账号】的人 —— 一个人只有额外账号、没有主账号,
+    //     是函数会按名拒绝的形状(ADDITIONAL_NEEDS_PRIMARY)。
+    const isAdditional = row.account_kind === 'additional'
+    const isUnlinked = row.account_kind === null
+    const additionalOptions = employees.filter((e) => e.user_id !== null)
+    const [additionalOf, setAdditionalOf] = useState<string>('')
+
+    function linkAdditional() {
+        setError(null)
+        setDone(false)
+        startTransition(async () => {
+            const res = await linkAdditionalAccount(row.user_id, additionalOf)
+            if (res.error) setError(res.error)
+            else {
+                setDone(true)
+                setOpen(false)
+            }
+        })
+    }
+
+    function unlinkAdditional() {
+        setError(null)
+        setDone(false)
+        startTransition(async () => {
+            const res = await unlinkAdditionalAccount(row.user_id)
+            if (res.error) setError(res.error)
+            else {
+                setDone(true)
+                setOpen(false)
+            }
+        })
+    }
+
     function toggle(id: string) {
         setChecked((c) => (c.includes(id) ? c.filter((x) => x !== id) : [...c, id]))
     }
@@ -72,7 +112,8 @@ export default function UserRow({
                 row.user_id,
                 checked,
                 reason,
-                employeeId === '' ? null : employeeId
+                employeeId === '' ? null : employeeId,
+                isAdditional
             )
             if (res.error) setError(res.error)
             else {
@@ -106,7 +147,10 @@ export default function UserRow({
                         )}
                     </div>
                     <div className="text-sm text-[color:var(--brand-muted-text)]">
-                        {row.employee_code ? (
+                        {row.employee_code && isAdditional ? (
+                            // ★ R3:不许读成"这就是他的主账号" —— 说出它是哪一种
+                            <>{t('permissions.additionalAccountOf', { code: row.employee_code, name: row.employee_name ?? '' })}</>
+                        ) : row.employee_code ? (
                             <>
                                 {row.employee_code} — {row.employee_name}
                             </>
@@ -197,24 +241,84 @@ export default function UserRow({
                         </div>
 
                         <div>
-                            <h3 className="mb-2">
-                                {t('permissions.linkEmployee')}
-                            </h3>
-                            <select
-                                value={employeeId}
-                                onChange={(e) => setEmployeeId(e.target.value)}
-                                className={`${CONTROL_SELECT} w-full`}
-                            >
-                                <option value="">{t('permissions.noEmployee')}</option>
-                                {options.map((e) => (
-                                    <option key={e.id} value={e.id}>
-                                        {e.code} — {e.legal_name}
-                                    </option>
-                                ))}
-                            </select>
-                            <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">
-                                {t('permissions.linkEmployeeHint')}
-                            </p>
+                            {isAdditional ? (
+                                <>
+                                    <h3 className="mb-2">{t('permissions.additionalTitle')}</h3>
+                                    <p className="text-sm">
+                                        {t('permissions.additionalAccountOf', { code: row.employee_code ?? '', name: row.employee_name ?? '' })}
+                                    </p>
+                                    <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">
+                                        {t('permissions.additionalWhy')}
+                                    </p>
+                                    <div className="mt-2">
+                                        <ConfirmButton
+                                            subject={row.email ?? row.user_id}
+                                            title={t('permissions.unlinkConfirmTitle')}
+                                            body={t('permissions.unlinkConfirmBody', { code: row.employee_code ?? '' })}
+                                            confirmLabel={t('permissions.unlinkAdditional')}
+                                            tier="reversal"
+                                            triggerVariant="secondary"
+                                            disabled={pending}
+                                            onConfirm={() => unlinkAdditional()}
+                                        >
+                                            {t('permissions.unlinkAdditional')}
+                                        </ConfirmButton>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <h3 className="mb-2">
+                                        {t('permissions.linkEmployee')}
+                                    </h3>
+                                    <select
+                                        value={employeeId}
+                                        onChange={(e) => setEmployeeId(e.target.value)}
+                                        className={`${CONTROL_SELECT} w-full`}
+                                    >
+                                        <option value="">{t('permissions.noEmployee')}</option>
+                                        {options.map((e) => (
+                                            <option key={e.id} value={e.id}>
+                                                {e.code} — {e.legal_name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">
+                                        {t('permissions.linkEmployeeHint')}
+                                    </p>
+                                </>
+                            )}
+
+                            {isUnlinked && (
+                                <div className="mt-4">
+                                    <h3 className="mb-2">{t('permissions.additionalTitle')}</h3>
+                                    <select
+                                        value={additionalOf}
+                                        onChange={(e) => setAdditionalOf(e.target.value)}
+                                        className={`${CONTROL_SELECT} w-full`}
+                                        aria-label={t('permissions.additionalTitle')}
+                                    >
+                                        <option value="">{t('permissions.additionalPick')}</option>
+                                        {additionalOptions.map((e) => (
+                                            <option key={e.id} value={e.id}>
+                                                {e.code} — {e.legal_name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">
+                                        {t('permissions.additionalWhy')}
+                                    </p>
+                                    <div className="mt-2">
+                                        <Button
+                                            type="button"
+                                            variant="secondary"
+                                            onClick={linkAdditional}
+                                            disabled={pending || additionalOf === ''}
+                                        >
+                                            {t('permissions.linkAdditional')}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
 
                             <label className="mt-4 block">
                                 {t('permissions.revokeReason')}
