@@ -22,6 +22,7 @@ import { can } from '@/lib/permissions'
 import { RefusalBlock } from '@/app/components/ui/refusal'
 import { mustRows, mustCount } from '@/lib/db-helpers'
 import { getBaseCurrency } from '@/lib/currency'
+import Link from 'next/link'
 import { formatAmount } from '@/lib/format'
 import { RemitControl } from './WhtControls'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -45,7 +46,7 @@ export default async function WhtPage() {
             .select('period_month, withheld_base, remitted_base, unremitted_base, due_date, is_overdue')
             .order('period_month', { ascending: false }),
         supabase.from('wht_remittances')
-            .select('id, code, period_month, remitted_on, amount_base, filed_reference, notes')
+            .select('id, code, period_month, remitted_on, amount_base, filed_reference, notes, journal_entry_id')
             .order('period_month', { ascending: false }).order('remitted_on', { ascending: false }),
         supabase.from('wht_natures')
             .select('code, name_en, name_zh, statute_ref, sort_order').eq('is_active', true).order('sort_order'),
@@ -76,9 +77,30 @@ export default async function WhtPage() {
     const rates = mustRows(ratesRes)
     const residenceGap = canSuppliers ? mustCount(gapRes) : null
 
+    // ★ PAY-REQ-1 · Batch B:未了结的缴纳与冲销申请,以及每笔缴纳的分录是不是已被冲销。
+    //   一个有未了结缴纳申请的月份不再进下拉(再提一张只会撞 WHT_REMITTANCE_ALREADY_REQUESTED),
+    //   而是列在下拉上方,链到那张申请。
+    const entryIds = remittances.map((r) => r.journal_entry_id as string)
+    const [openReqRes, entriesRes] = await Promise.all([
+        supabase.from('payment_requests')
+            .select('id, code, kind, status, period_month, wht_remittance_id, amount_ccy')
+            .in('kind', ['wht_remittance', 'wht_remittance_reversal'])
+            .in('status', ['submitted', 'approved']),
+        entryIds.length
+            ? supabase.from('journal_entries').select('id, status').in('id', entryIds)
+            : Promise.resolve({ data: [] as { id: string; status: string }[], error: null }),
+    ])
+    const openReqs = mustRows(openReqRes)
+    const entryStatus = new Map(mustRows(entriesRes).map((e) => [e.id, e.status]))
+    const openMonthReqs = openReqs.filter((q) => q.kind === 'wht_remittance')
+    const openMonths = new Set(openMonthReqs.map((q) => String(q.period_month).slice(0, 10)))
+    const openReversalBy = new Map(openReqs.filter((q) => q.kind === 'wht_remittance_reversal')
+        .map((q) => [q.wht_remittance_id as string, q]))
+
     // 【只有真的欠着的月份才进汇缴下拉】—— 让屏幕offer 一个服务端一定会拒的动作,
     // 是本仓库记过的那条"页面不该给出只会报错的按钮"。
-    const owing = liability.filter((r) => Number(r.unremitted_base) > 0)
+    const owing = liability.filter((r) => Number(r.unremitted_base) > 0
+        && !openMonths.has(String(r.period_month).slice(0, 10)))
 
     const liabilityRows: LiabilityRow[] = liability.map((r) => ({
         periodMonth: String(r.period_month),
@@ -99,6 +121,9 @@ export default async function WhtPage() {
         amountBase: Number(r.amount_base),
         baseCurrency: base,
         filedReference: r.filed_reference as string,
+        reversed: entryStatus.get(r.journal_entry_id as string) !== 'posted',
+        openRequestId: (openReversalBy.get(r.id as string)?.id as string | undefined) ?? null,
+        openRequestCode: (openReversalBy.get(r.id as string)?.code as string | undefined) ?? null,
     }))
 
     const rateRows: WhtRateRow[] = natures.map((n) => ({
@@ -157,6 +182,22 @@ export default async function WhtPage() {
 
             {/* ── 汇缴 ───────────────────────────────────────────────────────── */}
             <h2 className="mb-2">{t('wht.remitHeading')}</h2>
+            {openMonthReqs.length > 0 && (
+                <ul className="text-sm mb-3 space-y-1">
+                    {openMonthReqs.map((q) => (
+                        <li key={q.id as string}>
+                            <Link href={`/finance/payment-requests/${q.id}`} className="hover:underline app-link app-link-inline">
+                                {t('wht.openRequest', {
+                                    code: q.code as string,
+                                    month: formatMonth(String(q.period_month), locale),
+                                    amount: formatAmount(Number(q.amount_ccy), base),
+                                    status: t('finance.paymentRequests.status.' + q.status),
+                                })}
+                            </Link>
+                        </li>
+                    ))}
+                </ul>
+            )}
             <div className="mb-6">
                 <RemitControl canEdit={canEditGate}
                     months={owing.map((r) => ({
@@ -172,7 +213,7 @@ export default async function WhtPage() {
 
             <h2 className="mb-2">{t('wht.remittancesHeading')}</h2>
             <div className="mb-6">
-                <WhtRemittancesTable rows={remittanceRows} empty={t('wht.noRemittances')} />
+                <WhtRemittancesTable rows={remittanceRows} empty={t('wht.noRemittances')} canEdit={canEditGate} />
             </div>
 
             {/* ── 法定税率:一张【待核对】的表 ─────────────────────────────────── */}

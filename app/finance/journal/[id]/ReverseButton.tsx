@@ -14,9 +14,9 @@ export default function ReverseButton({ entryId, subject ,
 canEdit, sourcePath,
 }: { entryId: string; subject: string 
 canEdit: boolean
-/** PAY-REQ-1:付款或转账过出来的分录不许在这里冲 —— reverse_journal_entry 按名拒
+/** PAY-REQ-1:付款、转账或(Batch B 起)代扣税缴纳过出来的分录不许在这里冲 —— reverse_journal_entry 按名拒
  *  (JE_REVERSE_USE_SOURCE_PATH)。给了它,钮【看得见、按不动、带理由】(DBLOCK-1)。 */
-sourcePath?: 'payment' | 'transfer'
+sourcePath?: 'payment' | 'transfer' | 'wht_remittance'
 }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
@@ -38,7 +38,7 @@ sourcePath?: 'payment' | 'transfer'
     // ★ PAY-REQ-1(Tim 2026-09-23):钱离开之前要先批。一笔付款的分录若能在这里冲,
     //   就绕开了冲销申请那一道审批 —— 所以库拒它,而屏幕【在按之前】就说出来:
     //   钮留着、灰掉、旁边一行说去哪冲。不藏(DBLOCK-1:藏起来教给人的是"这件事不存在")。
-    //   判据与库同源:source_type 是 'payment' 或 'transfer'。
+    //   判据与库同源:source_type 是 'payment'、'transfer' 或(Batch B 起)'wht_remittance'。
     if (sourcePath) {
         return (
             <span className="inline-flex flex-col items-start gap-1.5">
@@ -48,7 +48,9 @@ sourcePath?: 'payment' | 'transfer'
                 <span className="text-xs text-[color:var(--brand-muted-text)] max-w-xs">
                     {sourcePath === 'payment'
                         ? t('finance.reverseUseSourcePathPayment')
-                        : t('finance.reverseUseSourcePathTransfer')}
+                        : sourcePath === 'transfer'
+                            ? t('finance.reverseUseSourcePathTransfer')
+                            : t('finance.reverseUseSourcePathWht')}
                 </span>
             </span>
         )

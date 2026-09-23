@@ -10,6 +10,10 @@
 //
 // 【权限的那一半看得见、按不动、带理由】(DBLOCK-1)—— 批/驳要 data.view_prices
 // (能进这一页的人已经持有 module.finance.view,那是另一半);撤回与付款要 module.finance.edit。
+//
+// ★ PAY-REQ-1 · Batch B:执行那一格按种类说话 —— 出款要付款日(可带成交价);付款冲销不收日期;
+//   转账、代扣税缴纳与它们的冲销都要【日期】(转账日 / 缴纳日 / 冲销日 —— 它决定期间,
+//   永远不替人填),不收汇率。文案一种一组,写在下面那张表里(键全写出来,check-i18n 看得见)。
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -19,6 +23,40 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { PaymentDateInput } from '@/app/components/finance/PaymentDateInput'
 import { decidePaymentRequest, withdrawPaymentRequest, payPaymentRequest } from './actions'
+
+// 每一种申请在执行那一格说的话。键全写成字面量,check-i18n 逐个核对两种语言都在。
+const PAY_COPY: Record<string, { hint: string; dateLabel: string; confirm: string; body: string; label: string }> = {
+    payment_out: {
+        hint: 'finance.paymentRequests.payHint', dateLabel: 'finance.paymentDate',
+        confirm: 'finance.paymentRequests.payConfirm', body: 'finance.paymentRequests.payBody',
+        label: 'finance.paymentRequests.pay',
+    },
+    payment_reversal: {
+        hint: 'finance.paymentRequests.payReversalHint', dateLabel: 'finance.paymentDate',
+        confirm: 'finance.paymentRequests.payReversalConfirm', body: 'finance.paymentRequests.payReversalBody',
+        label: 'finance.paymentRequests.payReversal',
+    },
+    bank_transfer: {
+        hint: 'finance.paymentRequests.payTransferHint', dateLabel: 'finance.paymentRequests.transferDate',
+        confirm: 'finance.paymentRequests.payTransferConfirm', body: 'finance.paymentRequests.payTransferBody',
+        label: 'finance.paymentRequests.payTransfer',
+    },
+    bank_transfer_reversal: {
+        hint: 'finance.paymentRequests.payTransferReversalHint', dateLabel: 'finance.paymentRequests.reversalDate',
+        confirm: 'finance.paymentRequests.payReversalConfirm', body: 'finance.paymentRequests.payDatedReversalBody',
+        label: 'finance.paymentRequests.payReversal',
+    },
+    wht_remittance: {
+        hint: 'finance.paymentRequests.payWhtHint', dateLabel: 'finance.paymentRequests.remitDate',
+        confirm: 'finance.paymentRequests.payWhtConfirm', body: 'finance.paymentRequests.payWhtBody',
+        label: 'finance.paymentRequests.payWht',
+    },
+    wht_remittance_reversal: {
+        hint: 'finance.paymentRequests.payWhtReversalHint', dateLabel: 'finance.paymentRequests.reversalDate',
+        confirm: 'finance.paymentRequests.payReversalConfirm', body: 'finance.paymentRequests.payDatedReversalBody',
+        label: 'finance.paymentRequests.payReversal',
+    },
+}
 
 export default function RequestActions({
     requestId,
@@ -53,8 +91,11 @@ export default function RequestActions({
     }
 
     const isOut = kind === 'payment_out'
-    // 出款的付款日必填 —— 空着就按不下去,并且把理由摆在旁边(CMP-2 的房规)。
-    const payBlocked = isOut && payDate.trim() === ''
+    // 除了付款冲销,每一种执行都要一个日期 —— 空着就按不下去,并且把理由摆在旁边(CMP-2 的房规)。
+    const needsDate = kind !== 'payment_reversal'
+    const payBlocked = needsDate && payDate.trim() === ''
+    const copy = PAY_COPY[kind] ?? PAY_COPY.payment_out
+    const isReversalKind = kind.endsWith('_reversal')
 
     return (
         <div className="space-y-4">
@@ -100,43 +141,40 @@ export default function RequestActions({
                 <section className="border border-blue-300 bg-blue-50 rounded p-4">
                     <h2 className="mb-1">{t('finance.paymentRequests.payTitle')}</h2>
                     <p className="text-xs text-[color:var(--brand-text)] mb-3">
-                        {isOut ? t('finance.paymentRequests.payHint') : t('finance.paymentRequests.payReversalHint')}
+                        {t(copy.hint)}
                     </p>
                     <PermissionGate code="module.finance.edit" allowed={canEdit}>
                         <div className="flex flex-wrap items-end gap-4">
+                            {needsDate && (
+                                <div>
+                                    <label className="block mb-1">
+                                        {t(copy.dateLabel)} <span className="text-red-600">*</span>
+                                    </label>
+                                    <PaymentDateInput name="payment_date" value={payDate} onChange={setPayDate} />
+                                </div>
+                            )}
                             {isOut && (
-                                <>
-                                    <div>
-                                        <label className="block mb-1">
-                                            {t('finance.paymentDate')} <span className="text-red-600">*</span>
-                                        </label>
-                                        <PaymentDateInput name="payment_date" value={payDate} onChange={setPayDate} />
-                                    </div>
-                                    <div>
-                                        <label className="block mb-1">{t('finance.paymentRequests.dealtRate')}</label>
-                                        <DecimalInput name="fx_rate" value={fxRate} onChange={setFxRate} className="w-32" />
-                                    </div>
-                                </>
+                                <div>
+                                    <label className="block mb-1">{t('finance.paymentRequests.dealtRate')}</label>
+                                    <DecimalInput name="fx_rate" value={fxRate} onChange={setFxRate} className="w-32" />
+                                </div>
                             )}
                             <ConfirmButton
                                 subject={code}
-                                title={isOut ? t('finance.paymentRequests.payConfirm') : t('finance.paymentRequests.payReversalConfirm')}
-                                body={isOut
-                                    ? t('finance.paymentRequests.payBody', { date: payDate })
-                                    : t('finance.paymentRequests.payReversalBody')}
-                                confirmLabel={isOut ? t('finance.paymentRequests.pay') : t('finance.paymentRequests.payReversal')}
-                                tier={isOut ? 'default' : 'reversal'}
-                                triggerVariant={isOut ? 'default' : 'reversal'}
+                                title={t(copy.confirm)}
+                                body={t(copy.body, { date: payDate })}
+                                confirmLabel={t(copy.label)}
+                                tier={isReversalKind ? 'reversal' : 'default'}
+                                triggerVariant={isReversalKind ? 'reversal' : 'default'}
                                 disabled={pending || payBlocked}
                                 onConfirm={() => run(t('common.actionMessage.headline.notPaid'),
                                     () => payPaymentRequest(requestId, payDate, fxRate))}
                             >
-                                {pending ? t('common.saving')
-                                    : isOut ? t('finance.paymentRequests.pay') : t('finance.paymentRequests.payReversal')}
+                                {pending ? t('common.saving') : t(copy.label)}
                             </ConfirmButton>
                         </div>
                         {isOut && <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('finance.paymentRequests.dealtRateHint')}</p>}
-                        {payBlocked && <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('finance.paymentRequests.payNeedDate')}</p>}
+                        {payBlocked && <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t(isOut ? 'finance.paymentRequests.payNeedDate' : 'finance.paymentRequests.payNeedExecDate')}</p>}
                     </PermissionGate>
                 </section>
             )}

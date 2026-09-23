@@ -1,6 +1,7 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { fallbackForRawError } from '@/lib/machine-text'
 import { localizeSelfApproval } from '@/lib/selfApproval'
+import { localizeWhtError } from './whtErrorCodes'
 
 // record_payment / reverse_payment 抛出的错误码(端口自 financeErrorCodes.ts)。
 // FX_RATE_REQUIRED / PERIOD_LOCKED 复用 finance.errors 里已有的文案。
@@ -52,6 +53,10 @@ const PAYMENT_ERROR_CODES = new Set([
     // 批准那一步走 require_approver_for(2):不是二级审批角色的人按名拒;审批关着时
     // 申请生下来就是 approved,decide 那一支按名拒。
     'APPROVAL_NOT_AUTHORISED', 'APPROVALS_NOT_ENABLED',
+    // PAY-REQ-1 · Batch B:转账与代扣税缴纳也经申请。不认识的种类按名拒(此前会被当成付款冲销);
+    // 转账、代扣税与它们的冲销执行时不收汇率;两种冲销的理由必填;一笔转账一张冲销申请。
+    'PAYMENT_REQUEST_KIND_UNKNOWN', 'PAYMENT_REQUEST_TAKES_NO_RATE',
+    'REVERSAL_REASON_REQUIRED', 'TRANSFER_REVERSAL_ALREADY_REQUESTED',
 ])
 
 // cut 4b:record_payment 的 PO 预付分支抛的码,文案住在 purchasing.errors 下
@@ -69,6 +74,12 @@ export async function localizePaymentError(message: string): Promise<string> {
     //   decide_payment_request 抛 SELF_APPROVAL_FORBIDDEN|raiser(这张申请是你提的)。
     if (match && match[1] === 'SELF_APPROVAL_FORBIDDEN') {
         return await localizeSelfApproval((match[2] ?? '').split('|')[0] || null)
+    }
+
+    // ★ PAY-REQ-1 · Batch B:代扣税缴纳也经付款申请执行,所以申请页上会冒出 WHT_* ——
+    //   它们的文案住在 wht.errors,交给那一族自己的本地化器,不在这里抄第二份。
+    if (match && match[1].startsWith('WHT_')) {
+        return await localizeWhtError(raw)
     }
 
     if (!match || (!PAYMENT_ERROR_CODES.has(match[1]) && !PURCHASING_SIDE_CODES.has(match[1]))) {

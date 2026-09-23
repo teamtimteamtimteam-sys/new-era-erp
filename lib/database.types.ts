@@ -10881,9 +10881,11 @@ export type Database = {
           allocations: Json
           amount_base: number
           amount_ccy: number
+          amount_in: number | null
           bank_account_code: string | null
+          bank_reference: string | null
           code: string
-          counterparty_type: string
+          counterparty_type: string | null
           created_at: string
           created_by: string
           currency: string
@@ -10892,6 +10894,7 @@ export type Database = {
           decided_by: string | null
           decision_notes: string | null
           employee_id: string | null
+          filed_reference: string | null
           fx_rate: number | null
           id: string
           kind: string
@@ -10899,10 +10902,16 @@ export type Database = {
           paid_at: string | null
           paid_by: string | null
           payment_id: string | null
+          period_month: string | null
           planned_date: string | null
+          result_journal_entry_id: string | null
           result_payment_id: string | null
+          result_transfer_id: string | null
           status: string
           supplier_id: string | null
+          to_account_code: string | null
+          transfer_id: string | null
+          wht_remittance_id: string | null
           withdrawn_at: string | null
           withdrawn_by: string | null
         }
@@ -10910,9 +10919,11 @@ export type Database = {
           allocations?: Json
           amount_base: number
           amount_ccy: number
+          amount_in?: number | null
           bank_account_code?: string | null
+          bank_reference?: string | null
           code: string
-          counterparty_type: string
+          counterparty_type?: string | null
           created_at?: string
           created_by: string
           currency: string
@@ -10921,6 +10932,7 @@ export type Database = {
           decided_by?: string | null
           decision_notes?: string | null
           employee_id?: string | null
+          filed_reference?: string | null
           fx_rate?: number | null
           id?: string
           kind: string
@@ -10928,10 +10940,16 @@ export type Database = {
           paid_at?: string | null
           paid_by?: string | null
           payment_id?: string | null
+          period_month?: string | null
           planned_date?: string | null
+          result_journal_entry_id?: string | null
           result_payment_id?: string | null
+          result_transfer_id?: string | null
           status?: string
           supplier_id?: string | null
+          to_account_code?: string | null
+          transfer_id?: string | null
+          wht_remittance_id?: string | null
           withdrawn_at?: string | null
           withdrawn_by?: string | null
         }
@@ -10939,9 +10957,11 @@ export type Database = {
           allocations?: Json
           amount_base?: number
           amount_ccy?: number
+          amount_in?: number | null
           bank_account_code?: string | null
+          bank_reference?: string | null
           code?: string
-          counterparty_type?: string
+          counterparty_type?: string | null
           created_at?: string
           created_by?: string
           currency?: string
@@ -10950,6 +10970,7 @@ export type Database = {
           decided_by?: string | null
           decision_notes?: string | null
           employee_id?: string | null
+          filed_reference?: string | null
           fx_rate?: number | null
           id?: string
           kind?: string
@@ -10957,10 +10978,16 @@ export type Database = {
           paid_at?: string | null
           paid_by?: string | null
           payment_id?: string | null
+          period_month?: string | null
           planned_date?: string | null
+          result_journal_entry_id?: string | null
           result_payment_id?: string | null
+          result_transfer_id?: string | null
           status?: string
           supplier_id?: string | null
+          to_account_code?: string | null
+          transfer_id?: string | null
+          wht_remittance_id?: string | null
           withdrawn_at?: string | null
           withdrawn_by?: string | null
         }
@@ -11092,10 +11119,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "payment_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payment_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "payment_requests_result_payment_id_fkey"
             columns: ["result_payment_id"]
             isOneToOne: false
             referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_result_transfer_id_fkey"
+            columns: ["result_transfer_id"]
+            isOneToOne: false
+            referencedRelation: "bank_transfers"
             referencedColumns: ["id"]
           },
           {
@@ -11117,6 +11165,20 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_transfer_id_fkey"
+            columns: ["transfer_id"]
+            isOneToOne: false
+            referencedRelation: "bank_transfers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_wht_remittance_id_fkey"
+            columns: ["wht_remittance_id"]
+            isOneToOne: false
+            referencedRelation: "wht_remittances"
             referencedColumns: ["id"]
           },
         ]
@@ -28340,6 +28402,18 @@ export type Database = {
         }
         Returns: Json
       }
+      record_bank_transfer_internal: {
+        Args: {
+          p_amount_in: number
+          p_amount_out: number
+          p_bank_reference?: string
+          p_from_account: string
+          p_notes?: string
+          p_to_account: string
+          p_transfer_date: string
+        }
+        Returns: Json
+      }
       record_cn_issue: {
         Args: {
           p_credit_note_id: string
@@ -28583,6 +28657,17 @@ export type Database = {
         }
         Returns: Json
       }
+      remit_wht_internal: {
+        Args: {
+          p_bank_account?: string
+          p_expected_amount?: number
+          p_filed_reference?: string
+          p_notes?: string
+          p_period_month: string
+          p_remitted_on?: string
+        }
+        Returns: Json
+      }
       remove_review_goal: { Args: { p_goal_id: string }; Returns: Json }
       reopen_attendance_period: {
         Args: { p_period_id: string; p_reason: string }
@@ -28671,6 +28756,14 @@ export type Database = {
         }
         Returns: Json
       }
+      reverse_bank_transfer_internal: {
+        Args: {
+          p_memo?: string
+          p_reversal_date?: string
+          p_transfer_id: string
+        }
+        Returns: Json
+      }
       reverse_expense: {
         Args: { p_expense_id: string; p_memo?: string }
         Returns: Json
@@ -28693,6 +28786,14 @@ export type Database = {
       }
       reverse_payment_internal: {
         Args: { p_memo?: string; p_payment_id: string }
+        Returns: Json
+      }
+      reverse_wht_remittance_internal: {
+        Args: {
+          p_memo?: string
+          p_remittance_id: string
+          p_reversal_date?: string
+        }
         Returns: Json
       }
       review_approval_code: {
@@ -28969,6 +29070,22 @@ export type Database = {
         Args: { p_batch_id: string; p_reason: string }
         Returns: Json
       }
+      submit_bank_transfer_request: {
+        Args: {
+          p_amount_in: number
+          p_amount_out: number
+          p_bank_reference?: string
+          p_from_account: string
+          p_notes?: string
+          p_planned_date: string
+          p_to_account: string
+        }
+        Returns: Json
+      }
+      submit_bank_transfer_reversal_request: {
+        Args: { p_notes: string; p_transfer_id: string }
+        Returns: Json
+      }
       submit_expense_claim: {
         Args: {
           p_amount: number
@@ -29036,6 +29153,20 @@ export type Database = {
           p_shift_code: string
         }
         Returns: string
+      }
+      submit_wht_remittance_request: {
+        Args: {
+          p_bank_account?: string
+          p_filed_reference?: string
+          p_notes?: string
+          p_period_month: string
+          p_planned_date?: string
+        }
+        Returns: Json
+      }
+      submit_wht_remittance_reversal_request: {
+        Args: { p_notes: string; p_remittance_id: string }
+        Returns: Json
       }
       sync_attendance_period: { Args: { p_period_id: string }; Returns: Json }
       task_is_own: {

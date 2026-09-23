@@ -10,6 +10,8 @@ import { formatAmount } from '@/lib/format'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { formatDate, formatMonth } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
+import Link from 'next/link'
+import { RequestWhtReversalButton } from './WhtControls'
 
 export type LiabilityRow = {
     periodMonth: string
@@ -67,9 +69,14 @@ export type RemittanceRow = {
     amountBase: number
     baseCurrency: string
     filedReference: string
+    /** PAY-REQ-1 · Batch B:它的分录已被冲销(这一行从"已汇"里掉出来了) */
+    reversed: boolean
+    /** 未了结的冲销申请(有就给链接,不再给钮) */
+    openRequestId: string | null
+    openRequestCode: string | null
 }
 
-export function WhtRemittancesTable({ rows, empty }: { rows: RemittanceRow[]; empty: React.ReactNode }) {
+export function WhtRemittancesTable({ rows, empty, canEdit }: { rows: RemittanceRow[]; empty: React.ReactNode; canEdit: boolean }) {
     const t = useTranslations()
     const locale = useLocale()
 
@@ -83,6 +90,18 @@ export function WhtRemittancesTable({ rows, empty }: { rows: RemittanceRow[]; em
             render: (r) => formatAmount(r.amountBase, r.baseCurrency),
         },
         { key: 'ref', header: t('wht.colIrasRef'), className: 'text-xs', render: (r) => r.filedReference },
+        {
+            key: 'action', header: t('wht.colStatus'),
+            render: (r) => r.reversed ? (
+                <span className="px-2 py-1 rounded text-xs bg-gray-200 text-gray-700">{t('wht.reversed')}</span>
+            ) : r.openRequestId ? (
+                <Link href={`/finance/payment-requests/${r.openRequestId}`} className="hover:underline app-link app-link-inline">
+                    {t('wht.reversalRequested', { code: r.openRequestCode ?? '' })}
+                </Link>
+            ) : (
+                <RequestWhtReversalButton remittanceId={r.id} code={r.code} canEdit={canEdit} />
+            ),
+        },
     ]
 
     return <DataTable rows={rows} columns={columns} rowKey={(r) => r.id} phone={{ mode: 'columns' }} empty={empty} />

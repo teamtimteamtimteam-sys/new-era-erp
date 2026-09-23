@@ -4,6 +4,9 @@
 //       └──驳回(要理由)/ 撤回
 // 这一页说清楚【批的是什么】(收款人、金额、要结清的单据),并把三个动作摆在它们
 // 适用的那个状态上。谁能批由数据库裁,这里不预判(见 RequestActions 抬头)。
+// ★ PAY-REQ-1 · Batch B:同一页也承载行内转账、代扣税缴纳与它们的冲销 —— 这四种没有收款人,
+//   各自印出批的是什么(两个户与两边金额 / 代扣月与 IRAS 回执号 / 被冲的那一笔),执行之后
+//   链到它过账的那张分录。
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
@@ -18,6 +21,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader, type RecordField } from '@/app/components/ui/record-header'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import RequestActions from './RequestActions'
+import { requestSubjectLabel } from '../requestSubject'
 import RequestAllocationsTable, { type RequestAllocRow } from './RequestAllocationsTable'
 
 // allocations 的形状与 record_payment 收的那一组相同:每行恰好一个单据键 + amount_doc。
@@ -31,7 +35,7 @@ type AllocIn = {
 
 // 与 mustOne 的其它调用点同一写法(app/operation/orders/[id]/page.tsx):单行在取用处本地锁死类型。
 type RequestRow = {
-    id: string; code: string; kind: string; status: string; counterparty_type: string
+    id: string; code: string; kind: string; status: string; counterparty_type: string | null
     supplier_id: string | null; employee_id: string | null; customer_id: string | null
     amount_ccy: number; currency: string; amount_base: number; fx_rate: number | null
     bank_account_code: string | null; planned_date: string | null; allocations: unknown
@@ -39,6 +43,9 @@ type RequestRow = {
     decided_at: string | null; decided_by: string | null; decision_notes: string | null
     withdrawn_at: string | null; paid_at: string | null; result_payment_id: string | null
     created_at: string
+    to_account_code: string | null; amount_in: number | null; bank_reference: string | null
+    transfer_id: string | null; period_month: string | null; filed_reference: string | null
+    wht_remittance_id: string | null; result_transfer_id: string | null; result_journal_entry_id: string | null
 }
 
 export default async function PaymentRequestDetailPage({
@@ -60,7 +67,7 @@ export default async function PaymentRequestDetailPage({
     const r = mustOne(
         await supabase
             .from('payment_requests')
-            .select('id, code, kind, status, counterparty_type, supplier_id, employee_id, customer_id, amount_ccy, currency, amount_base, fx_rate, bank_account_code, planned_date, allocations, payment_id, notes, decided_at, decided_by, decision_notes, withdrawn_at, paid_at, result_payment_id, created_at')
+            .select('id, code, kind, status, counterparty_type, supplier_id, employee_id, customer_id, amount_ccy, currency, amount_base, fx_rate, bank_account_code, planned_date, allocations, payment_id, notes, decided_at, decided_by, decision_notes, withdrawn_at, paid_at, result_payment_id, created_at, to_account_code, amount_in, bank_reference, transfer_id, period_month, filed_reference, wht_remittance_id, result_transfer_id, result_journal_entry_id')
             .eq('id', id)
             .maybeSingle(),
         'payment request'
@@ -69,20 +76,37 @@ export default async function PaymentRequestDetailPage({
 
     // ── 收款人名、原付款(冲销申请)、结果付款(已付)────────────────────────
     type NameRow = { legal_name: string }
+    // Batch B:没有收款人的四种不去查名(此前会拿 '' 当 uuid 去查客户,整页报错)。
+    const noName = Promise.resolve({ data: null as NameRow | null, error: null })
     const nameQuery = r.supplier_id
         ? supabase.from('supplier_lookup').select('legal_name').eq('id', r.supplier_id).maybeSingle()
         : r.employee_id
             ? supabase.from('employee_lookup').select('legal_name').eq('id', r.employee_id).maybeSingle()
-            : supabase.from('customer_lookup').select('legal_name').eq('id', r.customer_id ?? '').maybeSingle()
+            : r.customer_id
+                ? supabase.from('customer_lookup').select('legal_name').eq('id', r.customer_id).maybeSingle()
+                : noName
     const payIds = [r.payment_id, r.result_payment_id].filter(Boolean) as string[]
-    const [nameRes, paymentsRes] = await Promise.all([
+    type CodeRow0 = { id: string; code: string }
+    const noCodes = Promise.resolve({ data: [] as CodeRow0[], error: null })
+    const [nameRes, paymentsRes, entryRes, transferRes, remitRes] = await Promise.all([
         nameQuery,
-        payIds.length
-            ? supabase.from('payments').select('id, code').in('id', payIds)
-            : Promise.resolve({ data: [] as { id: string; code: string }[], error: null }),
+        payIds.length ? supabase.from('payments').select('id, code').in('id', payIds) : noCodes,
+        r.result_journal_entry_id
+            ? supabase.from('journal_entries').select('id, code').eq('id', r.result_journal_entry_id)
+            : noCodes,
+        r.transfer_id
+            ? supabase.from('bank_transfers').select('id, transfer_date').eq('id', r.transfer_id)
+            : Promise.resolve({ data: [] as { id: string; transfer_date: string }[], error: null }),
+        r.wht_remittance_id
+            ? supabase.from('wht_remittances').select('id, code').eq('id', r.wht_remittance_id)
+            : noCodes,
     ])
-    const payee = (mustOne(nameRes, 'payee name') as unknown as NameRow | null)?.legal_name ?? '—'
+    const subject = requestSubjectLabel(t, locale, r)
+    const payee = subject ?? (mustOne(nameRes, 'payee name') as unknown as NameRow | null)?.legal_name ?? '—'
     const paymentCode = new Map(mustRows(paymentsRes, 'linked payments').map((p) => [p.id, p.code]))
+    const entryCode = (mustRows(entryRes, 'result journal entry') as CodeRow0[])[0]?.code ?? null
+    const reversedTransferDate = (mustRows(transferRes, 'reversed transfer') as { transfer_date: string }[])[0]?.transfer_date ?? null
+    const reversedRemitCode = (mustRows(remitRes, 'reversed remittance') as CodeRow0[])[0]?.code ?? null
 
     // ── 要结清的单据:编号按种类反查(与付款详情页同一套来源)──────────────────
     const allocs: AllocIn[] = Array.isArray(r.allocations) ? (r.allocations as AllocIn[]) : []
@@ -120,7 +144,9 @@ export default async function PaymentRequestDetailPage({
         }
     })
 
-    const isReversal = r.kind === 'payment_reversal'
+    const isReversal = r.kind === 'payment_reversal' || r.kind === 'bank_transfer_reversal' || r.kind === 'wht_remittance_reversal'
+    const isTransfer = r.kind === 'bank_transfer' || r.kind === 'bank_transfer_reversal'
+    const isWht = r.kind === 'wht_remittance' || r.kind === 'wht_remittance_reversal'
     const statusClass =
         r.status === 'submitted' ? 'bg-amber-100 text-amber-800'
         : r.status === 'approved' ? 'bg-blue-100 text-blue-800'
@@ -151,7 +177,25 @@ export default async function PaymentRequestDetailPage({
             ),
         },
     ]
-    if (r.bank_account_code) fields.push({ label: t('finance.bankAccount'), value: t('finance.bank.' + r.bank_account_code) })
+    if (isTransfer && r.to_account_code && r.amount_in !== null) {
+        // 转入那一边照水单,是转入户本币 —— 币种从转入户读,不在这里写死。
+        fields.push({
+            label: t('finance.transfer.amountIn'),
+            value: <>{t('finance.bank.' + r.to_account_code)} · {formatMoneyBare(r.amount_in, '同格内紧邻的转入户名(户名即币种)')}</>,
+        })
+        if (r.bank_reference) fields.push({ label: t('finance.transfer.reference'), value: r.bank_reference })
+    }
+    if (isWht && r.filed_reference) fields.push({ label: t('wht.colIrasRef'), value: r.filed_reference })
+    if (r.kind === 'bank_transfer_reversal' && reversedTransferDate) {
+        fields.push({ label: t('finance.paymentRequests.reversesTransfer'), value: formatDate(reversedTransferDate, locale) })
+    }
+    if (r.kind === 'wht_remittance_reversal' && r.wht_remittance_id) {
+        fields.push({
+            label: t('finance.paymentRequests.reversesRemittance'),
+            value: <Link href="/finance/wht" className="hover:underline app-link app-link-inline">{reversedRemitCode ?? r.wht_remittance_id}</Link>,
+        })
+    }
+    if (r.bank_account_code) fields.push({ label: isTransfer ? t('finance.transfer.from') : t('finance.bankAccount'), value: t('finance.bank.' + r.bank_account_code) })
     if (r.planned_date) fields.push({ label: t('finance.plannedPaymentDate'), value: formatDate(r.planned_date, locale) })
     if (isReversal && r.payment_id) {
         fields.push({
@@ -177,7 +221,16 @@ export default async function PaymentRequestDetailPage({
             // 详情页恒为 ok —— 记录在不在由 notFound() 回答。
             state={{ kind: 'ok' }}
             notices={
-                r.status === 'paid' && r.result_payment_id && r.paid_at ? (
+                r.status === 'paid' && r.result_journal_entry_id && r.paid_at ? (
+                    <div className="bg-green-50 border border-green-300 text-green-900 px-4 py-3 rounded mb-4 text-sm">
+                        <Link href={`/finance/journal/${r.result_journal_entry_id}`} className="hover:underline app-link">
+                            {t('finance.paymentRequests.postedAs', {
+                                code: entryCode ?? r.result_journal_entry_id,
+                                when: formatAuditStamp(r.paid_at),
+                            })}
+                        </Link>
+                    </div>
+                ) : r.status === 'paid' && r.result_payment_id && r.paid_at ? (
                     <div className="bg-green-50 border border-green-300 text-green-900 px-4 py-3 rounded mb-4 text-sm">
                         <Link href={`/finance/payments/${r.result_payment_id}`} className="hover:underline app-link">
                             {t('finance.paymentRequests.paidAs', {
@@ -200,7 +253,8 @@ export default async function PaymentRequestDetailPage({
                 </p>
             )}
 
-            {r.currency !== baseCurrency && (
+            {/* 试算说明只属于出款:转账的本位币额就是那两边金额本身,代扣税只收本位币。 */}
+            {r.currency !== baseCurrency && r.kind === 'payment_out' && (
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-4">{t('finance.paymentRequests.baseNote')}</p>
             )}
 
@@ -240,7 +294,7 @@ export default async function PaymentRequestDetailPage({
                 />
             </div>
 
-            {!isReversal && (
+            {r.kind === 'payment_out' && (
                 <>
                     <h2 className="mb-2">{t('finance.paymentRequests.allocTitle')}</h2>
                     <RequestAllocationsTable rows={allocRows} empty={t('finance.paymentRequests.allocEmpty')} />

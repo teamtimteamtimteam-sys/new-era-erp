@@ -2,11 +2,14 @@
 
 // app/finance/wht/WhtControls.tsx
 // WHT-1:汇缴控件。**禁用一律说出为什么**(CMP-2 的规矩);拒绝就地显示。
+// ★ PAY-REQ-1 · Batch B:它提的是一张【缴纳申请】(CFO 批准后由财务在申请页上执行,
+//   执行时给实际缴纳日);成功由 action 跳到那张申请。日期因此是【计划】缴纳日。
 import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { remitWht } from './actions'
+import { submitWhtRemittanceRequest, requestWhtReversal } from './actions'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
+import { showActionMessage } from '@/app/components/ui/action-message'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
@@ -18,14 +21,12 @@ canEdit
 canEdit: boolean
 }) {
     const t = useTranslations()
-    const router = useRouter()
     const [month, setMonth] = useState('')
     const [on, setOn] = useState('')
     const [ref, setRef] = useState('')
     const [bank, setBank] = useState('')
     const [notes, setNotes] = useState('')
     const [err, setErr] = useState('')
-    const [ok, setOk] = useState('')
     const [busy, start] = useTransition()
 
     // 【没有欠款时不给按钮,而是说出为什么】一个点下去只会得到
@@ -56,7 +57,7 @@ canEdit: boolean
                     </select>
                 </div>
                 <div>
-                    <label className="block mb-1">{t('wht.remitOn')}</label>
+                    <label className="block mb-1">{t('wht.remitPlannedOn')}</label>
                     <input type="date" value={on} onChange={(e) => setOn(e.target.value)}
                            className={CONTROL_INPUT} />
                 </div>
@@ -85,20 +86,10 @@ canEdit: boolean
                 <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <Button type="button" disabled={incomplete || busy}
                         onClick={() => start(async () => {
-                            const r = await remitWht(month, on, ref, bank, notes)
-                            if (r.error) { setErr(r.error); setOk('') }
-                            else {
-                                setErr('')
-                                setOk(t('wht.remitDone', {
-                                    amount: String(r.amount ?? ''),
-                                    month: month.slice(0, 7),
-                                    code: r.code ?? '',
-                                }))
-                                setMonth(''); setOn(''); setRef(''); setNotes('')
-                                router.refresh()
-                            }
+                            const r = await submitWhtRemittanceRequest(month, on, ref, bank, notes)
+                            if (r?.error) setErr(r.error)
                         })}>
-                    {busy ? t('common.saving') : t('wht.remitSubmit')}
+                    {busy ? t('common.saving') : t('wht.remitSubmitRequest')}
                 </Button>
                 </PermissionGate>
                 {/* 【禁用要说出理由,而不是把控件藏起来】 */}
@@ -108,8 +99,44 @@ canEdit: boolean
                     </span>
                 )}
             </div>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('wht.remitRequestNotice')}</p>
             {err && <p className="text-sm text-red-700 mt-2">{err}</p>}
-            {ok && <p className="text-sm text-green-700 mt-2">{ok}</p>}
         </div>
+    )
+}
+
+// ★ PAY-REQ-1 · Batch B(Tim 的 Q3):更正一笔缴纳 —— 提一张冲销申请(理由必填);
+//   CFO 批准后由财务在申请页上执行并给出冲销日。通用冲销口对它关了门。
+export function RequestWhtReversalButton({ remittanceId, code, canEdit }: {
+    remittanceId: string; code: string; canEdit: boolean
+}) {
+    const t = useTranslations()
+    const [pending, start] = useTransition()
+    return (
+        <PermissionGate code="module.finance.edit" allowed={canEdit}>
+            <ConfirmButton
+                subject={code}
+                title={t('wht.requestReversalConfirm')}
+                body={t('wht.requestReversalBody')}
+                confirmLabel={t('finance.requestReversal')}
+                tier="reversal"
+                reason={{ placeholder: t('finance.requestReversalPlaceholder') }}
+                triggerVariant="reversal"
+                disabled={pending}
+                onConfirm={(reason) => start(async () => {
+                    const r = await requestWhtReversal(remittanceId, reason)
+                    if (r?.error) {
+                        showActionMessage({
+                            subject: code,
+                            headline: t('common.actionMessage.headline.notReversalRequested'),
+                            body: r.error,
+                            detail: r.detail,
+                        })
+                    }
+                })}
+            >
+                {pending ? t('common.saving') : t('finance.requestReversal')}
+            </ConfirmButton>
+        </PermissionGate>
     )
 }

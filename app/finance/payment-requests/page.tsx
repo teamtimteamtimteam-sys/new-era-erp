@@ -13,6 +13,7 @@ import PaymentRequestsTable, { type PaymentRequestRow } from './PaymentRequestsT
 import { mustCount, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { requestSubjectLabel } from './requestSubject'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatDate } from '@/lib/dates'
 
@@ -64,7 +65,7 @@ export default async function PaymentRequestsPage({
         await applyFilters(
             supabase
                 .from('payment_requests')
-                .select('id, code, kind, status, counterparty_type, supplier_id, employee_id, customer_id, amount_ccy, currency, created_at')
+                .select('id, code, kind, status, counterparty_type, supplier_id, employee_id, customer_id, amount_ccy, currency, created_at, bank_account_code, to_account_code, period_month')
         )
             .order('created_at', { ascending: false })
             .range(from, from + PAGE_SIZE - 1),
@@ -93,7 +94,8 @@ export default async function PaymentRequestsPage({
         id: r.id,
         code: r.code,
         kind: r.kind,
-        payee: nameById.get(r.supplier_id ?? r.employee_id ?? r.customer_id ?? '') ?? '—',
+        // Batch B:转账与代扣税没有收款人 —— 印它挪的是什么(requestSubject.ts)
+        payee: requestSubjectLabel(t, locale, r) ?? nameById.get(r.supplier_id ?? r.employee_id ?? r.customer_id ?? '') ?? '—',
         amountCcy: r.amount_ccy,
         currency: r.currency,
         status: r.status,

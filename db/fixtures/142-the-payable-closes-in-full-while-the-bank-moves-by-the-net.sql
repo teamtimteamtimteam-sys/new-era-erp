@@ -383,8 +383,10 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 142G 失败(空转):本月未汇缴额是 % —— 没有欠款就测不出"汇缴清得掉"', v_unrem;
     END IF;
 
-    v_remit := remit_wht(p_period_month := v_month, p_remitted_on := d_doc,
-                         p_filed_reference := 'ZZ-F142-IRAS', p_bank_account := v_bank);
+    -- ★ PAY-REQ-1 Batch B:remit_wht 只剩按名拒绝的外壳,缴纳经申请执行 —— 这里测的是
+    --   【缴纳引擎】与欠款视图的关系,所以直接调引擎(同 Batch A 对付款的处置)。
+    v_remit := remit_wht_internal(p_period_month := v_month, p_remitted_on := d_doc,
+                                  p_filed_reference := 'ZZ-F142-IRAS', p_bank_account := v_bank);
     SELECT unremitted_base INTO v_unrem FROM wht_liability_by_month WHERE period_month = v_month;
     IF v_unrem <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 142G 失败:汇缴之后仍然欠 %', v_unrem;
@@ -393,9 +395,18 @@ BEGIN
     -- ★ 反向:冲销那张汇款分录,欠款【回来】。这一句证的是"清除挂在钱上,
     --   不挂在一个标志上" —— 一个把 remitted 记成 wht_remittances 行数、
     --   或记成一个 boolean 的实现,在这里不会回涨。
+    -- ★ PAY-REQ-1 Batch B(Tim 的 Q3):更正一笔缴纳【不再】走通用冲销口 —— 那扇门关了,
+    --   先断言它关着(按名拒、指路),再走缴纳自己的冲销引擎(执行一张已批准的冲销申请时调的就是它)。
     SELECT (v_remit->>'journal_code') INTO v_msg;
     SELECT id INTO v_je FROM journal_entries WHERE code = v_msg;
-    PERFORM reverse_journal_entry(v_je, d_doc, 'fixture 142 reversal');
+    BEGIN
+        PERFORM reverse_journal_entry(v_je, d_doc, 'fixture 142 reversal');
+        RAISE EXCEPTION 'FIXTURE 142G 失败:通用冲销口冲掉了一张代扣税缴纳的分录 —— 那扇门应当关着';
+    EXCEPTION WHEN OTHERS THEN
+        GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
+        IF v_msg NOT LIKE 'JE_REVERSE_USE_SOURCE_PATH|%|wht_remittance' THEN RAISE; END IF;
+    END;
+    PERFORM reverse_wht_remittance_internal((v_remit->>'remittance_id')::uuid, d_doc, 'fixture 142 reversal');
     SELECT unremitted_base INTO v_unrem FROM wht_liability_by_month WHERE period_month = v_month;
     IF v_unrem <> v_ledger THEN
         RAISE EXCEPTION 'FIXTURE 142G 失败:冲销汇款之后欠款是 %,应回到 % —— 清除没有挂在钱上',

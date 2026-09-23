@@ -327,6 +327,8 @@ BEGIN
     END IF;
 
     -- F6b 银行转账:同样两个方向
+    -- ★ PAY-REQ-1 Batch B:record_bank_transfer 只剩按名拒绝的外壳,转账经申请执行 ——
+    --   这里测的是【过账引擎】对期间锁的反应,所以直接调引擎(同 Batch A 对付款的处置)。
     -- SOD-1:设锁是【布景】,没有主语 —— 见本文件抬头。
     PERFORM set_config('request.jwt.claims', '', true);
     UPDATE finance_settings SET locked_before = NULL;
@@ -334,7 +336,7 @@ BEGIN
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
     IF v_b2 IS NOT NULL THEN
         BEGIN
-            PERFORM record_bank_transfer(v_open, v_b1, v_b2, 5, 5, 'fixture 122', NULL);
+            PERFORM record_bank_transfer_internal(v_open, v_b1, v_b2, 5, 5, 'fixture 122', NULL);
         EXCEPTION WHEN OTHERS THEN
             RAISE EXCEPTION 'FIXTURE 122 F6b 前提失败:期间开着时 record_bank_transfer 本应过得了账,实际被拒:%', SQLERRM;
         END;
@@ -345,7 +347,7 @@ BEGIN
             format('{"sub":"%s","role":"authenticated"}', v_user), true);
         v_denied := false;
         BEGIN
-            PERFORM record_bank_transfer(v_shut, v_b1, v_b2, 5, 5, 'fixture 122', NULL);
+            PERFORM record_bank_transfer_internal(v_shut, v_b1, v_b2, 5, 5, 'fixture 122', NULL);
         EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
         END;
         IF NOT v_denied OR split_part(v_msg,'|',1) <> 'PERIOD_LOCKED' THEN

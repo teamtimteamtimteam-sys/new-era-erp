@@ -24,6 +24,8 @@ function refresh(requestId: string) {
     revalidatePath('/finance/payments')
     revalidatePath('/finance/payables')
     revalidatePath('/finance/journal')
+    revalidatePath('/finance/bank')
+    revalidatePath('/finance/wht')
 }
 
 export async function decidePaymentRequest(
@@ -57,7 +59,8 @@ export async function payPaymentRequest(
     const t = await getTranslations()
     const supabase = await createClient()
 
-    // 种类从库里读,不信客户端传来的 —— 两种申请的参数形状不同(冲销不收日期也不收汇率)。
+    // 种类从库里读,不信客户端传来的 —— 各种申请的参数形状不同:出款收日期与(可选)成交价;
+    // 付款冲销两样都不收;转账、代扣税缴纳与它们的冲销只收日期(PAY-REQ-1 Batch B)。
     const req = mustOne(
         await supabase.from('payment_requests').select('kind').eq('id', requestId).maybeSingle(),
         'payment request kind'
@@ -65,13 +68,13 @@ export async function payPaymentRequest(
     if (!req) return { error: t('finance.errors.PAYMENT_REQUEST_NOT_FOUND', { 0: requestId }) }
 
     let args: { p_request_id: string; p_payment_date?: string; p_fx_rate?: number } = { p_request_id: requestId }
-    if (req.kind === 'payment_out') {
+    if (req.kind !== 'payment_reversal') {
         const date = paymentDate.trim()
         if (!date || Number.isNaN(Date.parse(date))) {
             return { error: t('finance.errors.PAYMENT_DATE_REQUIRED'), field: 'payment_date' }
         }
         let fx: number | undefined
-        if (fxRateRaw.trim() !== '') {
+        if (req.kind === 'payment_out' && fxRateRaw.trim() !== '') {
             fx = Number(fxRateRaw)
             if (!Number.isFinite(fx) || fx <= 0) {
                 return { error: t('finance.errors.FX_RATE_INVALID', { 0: fxRateRaw }), field: 'fx_rate' }
@@ -85,6 +88,7 @@ export async function payPaymentRequest(
     if (error) return await refuseFromCoded(error.message, localizePaymentError)
 
     refresh(requestId)
+    // 付款两种跳到那一笔付款;另外四种留在申请页(它现在链到过账的那张分录)。
     const paymentId = (data as { result_payment_id?: string } | null)?.result_payment_id
     if (paymentId) redirect(`/finance/payments/${paymentId}`)
     return { success: true }

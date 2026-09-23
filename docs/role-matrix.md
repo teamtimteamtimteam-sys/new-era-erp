@@ -11,8 +11,8 @@ answers (Q1–Q13) are in `docs/handbacks/ROLE-1.md` §0.
 
 | 标记 · Mark | 意思 · Meaning |
 |---|---|
-| **✅ done** | 已在线上生效(ROLE-1 Batch 1 / PAY-REQ-1 Batch A,2026-09-23)· live since ROLE-1 Batch 1 or PAY-REQ-1 Batch A |
-| **B2 … B5** | 本矩阵里【不需要新生命周期】的部分,排在 ROLE-1 的第 2–5 批 · in scope of ROLE-1, a later batch |
+| **✅ done** | 已在线上生效(ROLE-1 Batch 1 / PAY-REQ-1 Batch A / Batch B,2026-09-23)· live since ROLE-1 Batch 1 or PAY-REQ-1 Batch A or B |
+| **B2a · B2b … B5** | 本矩阵里【不需要新生命周期】的部分,排在 ROLE-1 的第 2–5 批;第 2 批拆成两刀(Tim 2026-09-23,Batch B grilling Q1):**B2a** = 财务设置 · 客户信用 · 供应商审批 + 未批准供应商不付款;**B2b** = 合同条款 · 定价 · 直接销售 · 化验 · in scope of ROLE-1, a later batch |
 | **[LC]** | 要先造一个「申请 → 批准 → 执行」的生命周期,不在 ROLE-1 里 · needs a request → approve lifecycle; queued separately |
 | **= 不变 / unchanged** | 矩阵说保持现状 · the matrix keeps the status quo |
 
@@ -37,7 +37,7 @@ MD = `gm`(Vince,只读)。
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
 | 付款与冲销付款 · payments and their reversals | 财务 · finance | CFO | 做:= 不变 · 批:✅ done(PAY-REQ-1 Batch A:付款申请 → CFO 批每一张 → 财务付;收款、整笔付已批准的报销 / 医疗申报不批)|
-| 银行转账、预扣税缴纳 · bank transfers, WHT remittance | 财务 · finance | CFO | 做:= 不变 · 批:[LC] PAY-REQ-1 Batch B(**在它之前照旧不经批准离开**)|
+| 银行转账、预扣税缴纳 · bank transfers, WHT remittance | 财务 · finance | CFO | 做:= 不变 · 批:✅ done(PAY-REQ-1 Batch B:转账与其冲销、预扣税缴纳与其冲销都经付款申请 → CFO 批每一张 → 财务执行;缴纳冻结提交时的应缴额)|
 | 采购质保金释放 · PO retention release | 财务 · finance | ~~CFO~~ **不批 · none** | 做:✅ done(门从 `purchasing.edit` 换成 `finance.edit`)· ~~批:[LC] 付款申请~~ **撤回(Tim,PAY-REQ-1 Q5,2026-09-23):释放不动钱、也不生应付(`release_purchase_order_retention` 只盖一个决定的戳,不过分录),所以没有东西可批;钱在它真正被付出去的那一刻受控 —— 那一笔走付款申请** · **withdrawn: release moves no money and creates no payable; the money is controlled when it is actually paid** |
 | 费用、医疗申报付款、预付款冲抵、销售发票、运费单据、汇率 · expenses, medical-claim payment, prepayment application, sales invoices, freight documents, FX rates | 财务 · finance | 不批 · none | = 不变 · unchanged。★ PAY-REQ-1(Q2(c)):费用单与运费单**不许生下来就已付** —— 一律挂账,钱经付款申请离开 · expenses and freight documents are always recorded unpaid; the money leaves through a payment request |
 | 贷项通知、作废发票 · credit notes, invoice voids | 财务 · finance | CFO | 做:= 不变 · 批:[LC] APR-5 |
@@ -86,16 +86,16 @@ MD = `gm`(Vince,只读)。
 |---|---|---|---|
 | 开采购单,按品类 · raising a PO, by category | 工厂耗材:仓库 · 设备与货物:cco · 办公用品:财务 | 分级不变:< 1,000 财务、≥ 1,000 CFO | B5(品类列 + 每类一个开单码,Q12)|
 | 修改、取消、关闭采购单 · amend, cancel, close | 开单人 · the raiser | — | B5 |
-| 供应商建档 · supplier creation | cco · 仓库 · 财务 | — | B2 |
-| 供应商批准、拉黑、恢复 · supplier approval, blacklisting, restoring | — | CFO;**建档人永远不能批自己建的** | B2(Q11:批准 / 驳回 / 拉黑 / 恢复归 CFO;送审 / 启用 / 暂停 / 归档归 `suppliers.edit`)|
-| 合同条款 · contract terms | cco | CFO | 做:B2 · 批:[LC] |
+| 供应商建档 · supplier creation | cco · 仓库 · 财务 | — | B2a |
+| 供应商批准、拉黑、恢复 · supplier approval, blacklisting, restoring | — | CFO;**建档人永远不能批自己建的** | B2a(Q11:批准 / 驳回 / 拉黑 / 恢复归 CFO;送审 / 启用 / 暂停 / 归档归 `suppliers.edit`)。★ **Tim 2026-09-23:供应商批准落地之后,给一家【未批准】的供应商,付款申请提不了、批不了、付不了**;新开采购单也拒(Batch B grilling Q5–Q9)|
+| 合同条款 · contract terms | cco | CFO | 做:B2b · 批:[LC] |
 
 ## 7 · 定价 · Pricing
 
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
-| 金属价格 · metal prices | 财务 · finance | — | B2 |
-| 定价公式 · pricing formulas | cco | CFO | 做:B2 · 批:[LC] |
+| 金属价格 · metal prices | 财务 · finance | — | B2b |
+| 定价公式 · pricing formulas | cco | CFO | 做:B2b · 批:[LC] |
 
 ## 8 · 进料、库存、盘点 · Inbound, stock, stocktake
 
@@ -103,7 +103,7 @@ MD = `gm`(Vince,只读)。
 |---|---|---|---|
 | 建收货单 · goods-receipt creation | 仓库 · warehouse | — | B3 |
 | 收货定价与改价 · receipt pricing and repricing | 财务 · finance | CFO | 做:B4(**看不见价格的人不能定价,在库里挡**)· 批:[LC] |
-| 应用化验结果 · assay application | cto | — | B2 |
+| 应用化验结果 · assay application | cto | — | B2b(Tim 2026-09-23 确认:cto 应用化验,价随之重算并过应付)|
 | 删除批次(报废入口)· batch deletion, the write-off path | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10):B3 · 批:[LC] |
 | 盘点录数 · stocktake counting | 仓库 · warehouse | — | B3 |
 | 盘点过账 · stocktake posting | 财务 · finance;**录过数的人永远不能过账**(系统先要记下谁数的)| — | B3 |
@@ -120,10 +120,10 @@ MD = `gm`(Vince,只读)。
 
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
-| 从产出批次直接销售 · direct sale from an output batch | cco 一个 · cco only | — | B2 |
+| 从产出批次直接销售 · direct sale from an output batch | cco 一个 · cco only | — | B2b |
 | 销售订单 · sales orders | cco | — | = 不变(`sales.edit` 本来只有 admin 与 cco;admin 已拿掉)|
 | 发货 · shipping | 仓库执行,在 CFO 放行之后 · warehouse, after CFO release | CFO | 在生命周期之前 cco 保留(Q10)· 放行:[LC] APR-5 |
-| 客户信用额度与冻结 · customer credit limits and holds | **CFO 一个** · CFO only | — | B2 |
+| 客户信用额度与冻结 · customer credit limits and holds | **CFO 一个** · CFO only | — | B2a |
 
 ## 11 · 合规 · Compliance
 
@@ -137,7 +137,7 @@ MD = `gm`(Vince,只读)。
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
 | 批量导入 · bulk import | admin | — | ✅ done(cco / cto / finance 交出 `action.bulk_import`;导入不许带月薪)|
-| 科目表、币种、公司银行资料、GST 登记、其余财务设置 · chart of accounts, currencies, company bank details, GST registration, other finance settings | **CFO 一个** · CFO only | — | B2 |
+| 科目表、币种、公司银行资料、GST 登记、其余财务设置 · chart of accounts, currencies, company bank details, GST registration, other finance settings | **CFO 一个** · CFO only | — | B2a(码名 `action.finance_settings`,Batch B grilling Q10)|
 
 ## 13 · 看得见什么 · Visibility
 

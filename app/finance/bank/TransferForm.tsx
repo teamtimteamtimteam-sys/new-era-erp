@@ -2,10 +2,11 @@
 
 // 行内转账表单(FIN-1b 遗留的 UI)。两边金额照银行水单录入 —— 不给汇率框,
 // 不从牌价折算任何一边(C4);跨币种的隐含汇率由 DB 落账,分录两条银行线各记本币。
+// ★ PAY-REQ-1 · Batch B:这张表单提的是一张【转账申请】,不再直接记账 —— CFO 批准之后,
+//   财务在申请页上执行并给出实际转账日;分录只在执行那一刻过账。成功由 action 跳到那张申请。
 import { useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { recordTransfer } from './transferActions'
+import { submitTransferRequest } from './transferActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
@@ -23,36 +24,35 @@ function todayIsoLocal(): string {
 
 export default function TransferForm({ canEdit }: { canEdit: boolean }) {
     const t = useTranslations()
-    const router = useRouter()
     const [pending, start] = useTransition()
     const [error, setError] = useState<string | null>(null)
     const [from, setFrom] = useState('1010')
     const [to, setTo] = useState('1000')
     const [out, setOut] = useState('')
     const [inn, setInn] = useState('')
-    // 预填今天是【便利】不是默认值(清空即禁钮并点名):录转账的通常就是刚在
-    // 银行端做完转账的人 —— 这是公司自己的当天动作,不像到货是发生在别处的事。
+    // 预填今天是【便利】不是默认值(清空即禁钮并点名)。Batch B 起它是【计划】转账日 ——
+    // 实际转账日在执行那一步给(必填),两者可以不同。
     const [date, setDate] = useState(todayIsoLocal)
     const [ref, setRef] = useState('')
 
     function submit() {
         setError(null)
         start(async () => {
-            const r = await recordTransfer({ date, from, to, amountOut: out, amountIn: inn, reference: ref })
-            if (r.error) setError(r.error)
-            else { setOut(''); setInn(''); setRef(''); router.refresh() }
+            const r = await submitTransferRequest({ date, from, to, amountOut: out, amountIn: inn, reference: ref })
+            if (r?.error) setError(r.error)
         })
     }
 
     return (
         <div className="rounded border border-gray-200 p-4 mb-6">
             <h3 className="mb-1">{t('finance.transfer.title')}</h3>
-            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('finance.transfer.hint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-1">{t('finance.transfer.hint')}</p>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('finance.transfer.requestNotice')}</p>
             {error && (
                 <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
             <div className="flex gap-2 flex-wrap items-end text-xs text-[color:var(--brand-muted-text)]">
-                <label>{t('finance.transfer.date')}
+                <label>{t('finance.transfer.plannedDate')}
                     <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`block ${inp}`} />
                 </label>
                 <label>{t('finance.transfer.from')}
@@ -78,7 +78,7 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
                 </label>
                 <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <Button type="button" onClick={submit} disabled={pending || !date || !out || !inn}>
-                    {t('common.save')}
+                    {pending ? t('common.saving') : t('finance.transfer.submitRequest')}
                 </Button>
                 </PermissionGate>
             </div>

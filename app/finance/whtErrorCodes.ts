@@ -39,6 +39,12 @@ const WHT_ERROR_CODES = new Set([
     'WHT_FILED_REFERENCE_REQUIRED',
     'WHT_REMIT_BANK_NOT_BASE',
     'WHT_NOTHING_TO_REMIT',
+    // ── PAY-REQ-1 · Batch B:缴纳与其冲销经付款申请 ─────────────────────────
+    'WHT_REMIT_AMOUNT_CHANGED',
+    'WHT_REMITTANCE_ALREADY_REQUESTED',
+    'WHT_REMITTANCE_NOT_FOUND',
+    'WHT_REMITTANCE_ALREADY_REVERSED',
+    'WHT_REVERSAL_ALREADY_REQUESTED',
     // ── wht_rate_for:税率解析(与 tax_rate_for / fx_rate_for 同一条规矩)──
     'WHT_NATURE_UNKNOWN',
     'WHT_NATURE_INACTIVE',
@@ -50,6 +56,8 @@ const WHT_ERROR_CODES = new Set([
     'PERIOD_LOCKED',
     'BANK_INVALID',
     'PERMISSION_DENIED',
+    // Batch B:缴纳申请的提交与执行还会冒出这两条(日期、冲销理由)
+    'REVERSAL_DATE_REQUIRED',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeExpenseError)。

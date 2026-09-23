@@ -9313,12 +9313,6 @@ Tim 的 Q2(d):**按裁定留着**。`post_journal_entry` 的手工分录可以�
 关它的是 APR-6(手工凭证与冲销走 CFO 批准)。在那之前,这是"钱离开之前要先批"旁边**唯一一扇
 按裁定开着**的门,点名在这里,不是没看见。
 
-## PAYREQ1-TRANSFERS-AND-WHT-UNAPPROVED —— 两批之间,转账与代扣税照旧不经批准(PAY-REQ-1,2026-09-23)
-
-Tim 的 Q15:Batch A 只做付款与冲销付款。`record_bank_transfer` / `reverse_bank_transfer` / `remit_wht`
-仍是一步生效。★ 代扣税的更正今天走 `reverse_journal_entry` —— Batch A **故意没有**把 `wht_remittance`
-加进 `JE_REVERSE_USE_SOURCE_PATH`,否则更正无路可走。去处:`docs/forward-queue.md` § PAY-REQ-1 Batch B。
-
 ## PAYREQ1-EXEMPTION-IS-NARROW —— 跨币种付报销、带挂账余额的员工出款也要申请(PAY-REQ-1,2026-09-23)
 
 `payment_request_required()` 只在【同币种、核销合计恰好等于付款额、每一条都是已批准报销单 / 医疗申报生成的费用】
@@ -9349,3 +9343,28 @@ PAY-REQ-1 让冒烟与三支探针(probe-role-crash / render-pdf-samples / probe
 probe-search-results · probe-search-shell · probe-draft1–7 · probe-draft3-before)**没有逐支审**;
 它们的残留今天由下一次开跑时的 `reapStalePlans` 收。另一个边:SIGTERM 落在"建账号"与"登记进计划"之间那一次
 await 上,只有冒烟有按名字的兜底清扫,探针没有。
+
+## PAYREQB-COMPANY-ASSETS-BUCKET-UNGATED —— 公司资料的存储桶没有权限门(Batch B grilling 读出,2026-09-23)
+
+`company-assets` 存储桶的 insert / update / delete 策略只要求登录(`2026-07-31-phase4-cut3-company-profile.sql:26-40`)——
+任何一个登录用户都能换掉公司 logo 那个文件;只有 `company_profile.logo_path` 那一列有门。
+去处:ROLE-1 Batch 2a (a)(Tim 2026-09-23,Q10:门换成 `action.finance_settings`)。
+
+## PAYREQB-FORMULA-PAGES-NO-DISABLED-GATE —— 定价公式页没有"看得见、按不动、带理由"的门(Batch B grilling 读出,2026-09-23)
+
+`app/tools/pricing/formulas/` 的页面只用 `requireModule`(读码)把关,写的控件没有 `PermissionGate`:没有 `pricing.edit` 的人
+按得下去,由库按名拒(`actions.ts:268`)。DBLOCK-1 要的是按之前就说出来。去处:ROLE-1 Batch 2b (e)(Q13)。
+
+## PAYREQB-SALES-RECORDS-FINANCE-INSERT —— 财务能直接往 sales_records 插一行(Batch B grilling 读出,2026-09-23)
+
+`sales_records` 的 INSERT 策略是 `module.finance.edit`(`db/tables/sales_records.sql:104-107`)—— 持码的人能不经
+`record_output_sale` 直接插一行销售(不动库存、不过账;唯一的检查是 `guard_batch_form_saleable`)。
+去处:ROLE-1 Batch 2b (f)(Q14:建的时候先确认没有正当的直写,再关)。
+
+## PAYREQB-AP-VIEW-DISAGREES-WITH-GL-2000 —— 应付未清视图与 2000 科目余额对不上(Batch B grilling 量出,2026-09-23)
+
+两条读数,**都没有核对过原因**:
+* `ap_open_items`(视图;以 tim@ 身份在 `SET LOCAL ROLE authenticated` 下读)供应商一侧合计 **416,837.62**;
+  科目 2000 的余额(以 postgres 读 `journal_lines` 基表,全部行、不按 status 过滤)是 **−376,404.42**。差 40,433.20。
+* `EXP-2026-0001`:视图说还开着 **0.96**;以 postgres 读基表,已过账的 `payment_allocations` 合计是 **3.70**(= 票面,全额结清)。
+★ Tim 要求:**本刀之后立刻做一次只读的小勘察**(`docs/forward-queue.md` 抬头)。

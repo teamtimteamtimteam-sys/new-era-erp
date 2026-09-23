@@ -8,6 +8,8 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
 import TransferForm from './TransferForm'
+import TransfersTable, { type TransferRow } from './TransfersTable'
+import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
@@ -78,6 +80,41 @@ export default async function BankHomePage() {
               .in('statement_id', openIds)
               .eq('match_status', 'unmatched')
         : { data: [] as { statement_id: string; match_status: string }[] }
+
+    // ★ PAY-REQ-1 · Batch B:最近的行内转账 + 它们未了结的冲销申请(每行一个「申请冲销」)。
+    const transfers = mustRows(
+        await supabase
+            .from('bank_transfers')
+            .select('id, transfer_date, from_account, to_account, amount_out, amount_in, bank_reference, reversed_at')
+            .order('transfer_date', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(50),
+        'bank transfers'
+    )
+    const openReversals = mustRows(
+        await supabase
+            .from('payment_requests')
+            .select('id, code, transfer_id')
+            .eq('kind', 'bank_transfer_reversal')
+            .in('status', ['submitted', 'approved']),
+        'open transfer reversal requests'
+    )
+    const openByTransfer = new Map(openReversals.map((r) => [r.transfer_id, r]))
+    const ccyOf = (acct: string) => rows.find((r) => r.account_code === acct)?.currency ?? ''
+    const transferRows: TransferRow[] = transfers.map((x) => ({
+        id: x.id,
+        dateText: formatDate(x.transfer_date, locale),
+        fromAccount: x.from_account,
+        toAccount: x.to_account,
+        fromCurrency: ccyOf(x.from_account),
+        toCurrency: ccyOf(x.to_account),
+        amountOut: x.amount_out,
+        amountIn: x.amount_in,
+        reference: x.bank_reference,
+        reversed: x.reversed_at !== null,
+        openRequestId: openByTransfer.get(x.id)?.id ?? null,
+        openRequestCode: openByTransfer.get(x.id)?.code ?? null,
+    }))
 
     const outstandingById = new Map<string, number>()
     for (const l of openLines ?? []) {
@@ -208,6 +245,12 @@ export default async function BankHomePage() {
                         )}
                     </div>
                 ))}
+            </div>
+
+            <h2 className="mb-2">{t('finance.transfer.listTitle')}</h2>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('finance.transfer.listHint')}</p>
+            <div className="mb-6">
+                <TransfersTable rows={transferRows} canEdit={canEditGate} />
             </div>
 
             <p className="text-sm text-[color:var(--brand-muted-text)] max-w-3xl">{t('bank.identityNote')}</p>

@@ -3,6 +3,14 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
+> ### ★ 下一刀(Tim 2026-09-23,PAY-REQ-1 Batch B 交回时定)
+> 1. **⬜ AP-RECON-0 —— 应付未清视图与 2000 科目对不上,一次只读的小勘察,紧接 Batch B 之后。**
+>    `ap_open_items`(以 tim@ 读)供应商一侧合计 416,837.62,而 2000 余额是 −376,404.42;
+>    `EXP-2026-0001` 视图说开着 0.96,基表说已全额结清(3.70)。只读、只量、只报原因 —— 规格与量法见
+>    `docs/known-issues.md` § PAYREQB-AP-VIEW-DISAGREES-WITH-GL-2000。
+> 2. **⬜ ROLE-1 Batch 2a** —— (a) 财务设置 · (b) 客户信用 · (c) 供应商审批 + 未批准供应商不付款(下文 § ROLE-1 Batch 2a)。
+> 3. **⬜ ROLE-1 Batch 2b** —— (d) 合同条款 · (e) 定价 · (f) 直接销售 · (g) 化验(下文 § ROLE-1 Batch 2b)。
+
 ## 与 `Evoltrya-OS-Doc3-Roadmap.pdf` 的分工 —— 说的是【角色】,不是名字
 
 > **这份文件从前叫 `docs/roadmap.md`,QUEUE-DOC 之后的第一刀把它改成了现在这个名字。**
@@ -370,7 +378,7 @@
 
    **3b-order ★★★ 从这里往后的顺序 —— Tim 裁定,2026-09-23(APR-ROUTE-1 委托书)**
 
-   > **APR-ROUTE-1 → APR-4 → ✅ 收货建单带价不记应付(INB-PAY-1,2026-09-23 做完)→ ✅ 付款申请 Batch A(PAY-REQ-1,2026-09-23)→ ⬜ 付款申请 Batch B(转账 · 代扣税)→ APR-5 → APR-6 →
+   > **APR-ROUTE-1 → APR-4 → ✅ 收货建单带价不记应付(INB-PAY-1,2026-09-23 做完)→ ✅ 付款申请 Batch A(PAY-REQ-1,2026-09-23)→ ✅ 付款申请 Batch B(转账 · 代扣税,2026-09-23)→ APR-5 → APR-6 →
    > EMP-SELF-1(余下部分)→ Tim 开独立 CFO 账号与同事账号 → 同事端到端走一遍 →
    > 整条审批链【一个版本号】,附详细说明。**
    >
@@ -6185,6 +6193,22 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 那是三次勘察的结果,文件与行号在那里,不必再勘一遍(但委托书里的数照样要重量,AGENTS.md「委托书里的数」)。
 
 ### ⬜ Batch 2 —— 主数据与 CFO 专属的几件、供应商审批、合同条款、定价、直接销售、化验
+
+> ★ **Grilling 已做(2026-09-23,与 PAY-REQ-1 Batch B 同一次 Step 0);Tim 接受 Q5–Q15 全部推荐。** 它不装得进一个会话
+> (估 2.5 个,区间 2–3),**拆成两刀**,答复逐条记在 `docs/handbacks/ROLE-1.md` § Batch 2:
+> * **⬜ Batch 2a**(下一会话):(a) 财务设置(码名 **`action.finance_settings`**,不是带两个点的那个;`finance_settings` 用一支
+>   `set_finance_settings` + 列守卫,锁定日与审批四列不动;`accounts` / `currencies` / `company_profile` 换策略与触发器;
+>   `company-assets` 存储桶一起上门;不新建科目表 / 币种的屏幕)· (b) 客户信用(`set_customer_credit` + 列守卫;编辑表单不再送
+>   这两列;批量导入禁这两列)· (c) 供应商审批(转移表见 Q8:批准 / 驳回 / 拉黑 / 从黑名单归档归 CFO,其余归 `suppliers.edit`;
+>   `created_by` 不可改、直插必须是 draft、按人认;不是审批引擎的一条链:盖 `approved_by/at`、`operations_now` 一支、`approval_log`
+>   加 `supplier`)· ★ **未批准供应商不付款**(Tim 2026-09-23):只有 `approved` / `active` 且未删的供应商付得了 —— 付款申请的提、批、付
+>   都按名拒;付款冲销不拦;**新开采购单也拒**(已开的四张照收);**迁移里不替任何人批**,落地后 Choo Er 送审、Tim 批
+>   (Acme / Bosch / Ever Higher 是仅有的三家带应付的 draft;在批准之前 377,164.50 付不了 —— 交回报告要写进破窗那一节)。
+> * **⬜ Batch 2b**(再下一会话):(d) 合同条款(`action.contract_terms` 管建合同与 7 张条款表;**把单据挂到合同上不算**,留在单据的码上)·
+>   (e) 定价(`metal_prices` / `pricing_settings` / `index_market_calendar` / **`metal_price_indices`** → `action.metal_prices`;
+>   `pricing.edit` 从 cto 与 finance 拿掉;公式页补门)· (f) 直接销售(`action.direct_sale`;确认没有正当直写后关掉
+>   `sales_records` 对 finance.edit 的 INSERT)· (g) 化验(`action.apply_assay` 管应用与撤销、进料与产出、连同预览;**录入**化验
+>   结果留在 `inbound.edit` / `output.edit`;★ **Tim 确认 cto 应用化验、价随之重算并过应付**;嵌套的 reprice 检查登记给 Batch 4)。
 * **财务设置 / 主数据只归 CFO**:新码(工作名 `action.finance_settings`)—— 科目表、币种、公司资料(含银行明细)、
   GST 登记开关、其余 `finance_settings` 列(**锁定日除外**,它归财务)。`finance_settings` 的授权是表级的,
   所以要一支按列的守卫(与 `guard_lock_reopen_path` 同形),不是改一条策略。`accounts` / `currencies` 今天**没有写屏幕**。
@@ -6229,7 +6253,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 
 | # | 生命周期 | 覆盖矩阵里的哪几行 | 大小 |
 |--:|---|---|---|
-| 1 | **付款申请** —— ✅ **Batch A 已上线(PAY-REQ-1,2026-09-23)**:付款与冲销付款 · ⬜ **Batch B**:银行转账与其冲销、预扣税缴纳(**在它之前照旧不经批准离开**)· ~~采购质保金释放~~ 撤回(Tim 的 Q5:不动钱、不生应付)| Batch B:M(一个会话)|
+| 1 | **付款申请** —— ✅ **Batch A 已上线(PAY-REQ-1,2026-09-23)**:付款与冲销付款 · ✅ **Batch B 已推送(2026-09-23)**:银行转账与其冲销、预扣税缴纳与其冲销 · ~~采购质保金释放~~ 撤回(Tim 的 Q5:不动钱、不生应付)| 做完 |
 | 2 | 工资过账申请 | 工资过账与撤销 | M |
 | 3 | 调薪申请 | 调薪(第一份月薪以外的每一次)| M |
 | 4 | GST 申报审批 | GST 申报与更正 | M |
@@ -6256,16 +6280,8 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   在,就指过去。
 
 
-## ⬜ ★★ PAY-REQ-1 · Batch B —— 银行转账与其冲销、预扣税缴纳走付款申请(Tim 2026-09-23 的 Q15)
+## ✅ PAY-REQ-1 · Batch B —— 银行转账与其冲销、预扣税缴纳与其冲销,都走付款申请(2026-09-23 做完)
 
-Batch A(付款与冲销付款)见 `docs/handbacks/PAY-REQ-1.md` 与 `docs/approvals.md` §3j。**两批之间,银行转账与代扣税缴纳
-照旧不经批准离开** —— Tim 知情并接受。Batch B 要做的,照 Batch A 的形状:
-* `payment_requests.kind` 扩成 `bank_transfer` · `bank_transfer_reversal` · `wht_remittance`(CHECK 与形状约束);
-* `record_bank_transfer` / `reverse_bank_transfer` / `remit_wht` 各拆一层 `*_internal`(authenticated 调不到),
-  外壳按名拒 `PAYMENT_REQUEST_REQUIRED|<kind>`;`pay_payment_request` 与 `payment_request_dry_run` 各加一支;
-* **代扣税的金额是推导出来的**(`wht_liability_by_month.unremitted_base`)—— 申请冻结的是提交那一刻的数,
-  付款时推导值不同就按名拒(Step 0 Q4 已答);
-* **代扣税的更正今天走 `reverse_journal_entry`** —— Batch A 故意没有把 `wht_remittance` 加进
-  `JE_REVERSE_USE_SOURCE_PATH`(那会让更正无路可走)。Batch B 要给它一条冲销申请的路,再关这扇门;
-* `reverse_bank_transfer` 今天**没有任何屏幕**调它(grilling 实测)—— Batch B 决定要不要给它一个入口;
-* 屏幕:`/finance/bank` 的转账表单与 `/finance/wht` 改成"提申请";详情页的"付"一支按 kind 分派。
+见 `docs/handbacks/PAY-REQ-1.md` § Batch B 与 `docs/approvals.md` §3k。本节原来的施工清单全部落地:四种申请、三支外壳按名拒、
+四支内层引擎、逐种分派且不认识的种类按名拒、缴纳冻结提交时的应缴额、代扣税的更正走冲销申请并关掉通用冲销口、
+`/finance/bank` 的转账列表每行「申请冲销」。

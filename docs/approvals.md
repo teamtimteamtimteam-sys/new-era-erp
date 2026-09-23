@@ -1253,8 +1253,41 @@ time (`PAYMENT_REQUEST_TARGET_RESERVED`), and a **blacklisted or suspended** sup
 (`PAYMENT_REQUEST_SUPPLIER_BLOCKED`, Q4). Rejecting is never checked — rejecting a broken request is the way out.
 
 ### Not in this batch
-Bank transfers and WHT remittance are **Batch B** — until it ships they still leave **without approval**. PO retention
-release was **withdrawn** from the lifecycle (Q5): it moves no money and creates no payable.
+~~Bank transfers and WHT remittance are **Batch B** — until it ships they still leave **without approval**.~~ **Shipped in
+Batch B — see §3k.** PO retention release was **withdrawn** from the lifecycle (Q5): it moves no money and creates no payable.
+
+### Four build decisions Batch A took on its own — **accepted by Tim (2026-09-23)**
+1. An **approved** request can be withdrawn too, not only a submitted one.
+2. **One open request per document** (`PAYMENT_REQUEST_TARGET_RESERVED`).
+3. The **Q1 exemption is narrow**: same currency, allocations summing exactly to the amount.
+4. Only **blacklisted or suspended** suppliers are refused. ☞ Superseded for the next session: once the CFO approves
+   suppliers (ROLE-1 Batch 2 (c)), **no payment may be requested, approved or paid to a supplier that is not approved**
+   (Tim, 2026-09-23; `docs/forward-queue.md` § ROLE-1 Batch 2a).
+
+## 3k · PAY-REQ-1 Batch B (2026-09-23) — bank transfers and WHT remittance through the same chain
+
+The cut is `docs/handbacks/PAY-REQ-1.md` § Batch B; this section records only what changes **for approvals**.
+
+**Nothing in the engine changed.** Four new kinds of `payment_requests` — `bank_transfer`, `bank_transfer_reversal`,
+`wht_remittance`, `wht_remittance_reversal` — ride the chain §3j built: same `decide_payment_request` (level 2, every one,
+no threshold; the raiser can never approve), same `approval_pending_documents` arm (`blocks_disable = true`,
+`fixed_level = 2`), same `approval_chain_gates` row, same `approval_log` subject type. Each of those reads only the columns
+every request has (`status`, `created_by`, `amount_ccy`, `currency`, `amount_base`), and each was read to confirm it.
+
+* **No payee.** Transfers move money between the company's own accounts; WHT is paid to IRAS. `counterparty_type` is NULL
+  for these four kinds, so the payee checks do not apply and the approval subject (`employee_id`) is NULL — the only
+  four-eyes leg is the raiser.
+* **What the CFO approves is frozen.** A transfer: both accounts, both amounts (each in its own account's currency), the bank
+  reference. A WHT remittance: the month and **the amount owed at the moment it was raised**, read from
+  `wht_liability_by_month`. If what is owed changes before payment, approve and pay both refuse by name
+  (`WHT_REMIT_AMOUNT_CHANGED`) — nobody can pay an amount nobody approved.
+* **Execution takes a date and nothing else.** Transfer date, remittance date or reversal date — required, never defaulted
+  (FIN-10); no exchange rate (`PAYMENT_REQUEST_TAKES_NO_RATE`).
+* **One open request at a time** per transfer (reversal), per WHT month (remittance) and per remittance (reversal).
+* **Correcting a WHT remittance** now goes through a `wht_remittance_reversal` request; `reverse_journal_entry` refuses a
+  `wht_remittance` entry by name, as it already did for payments and transfers.
+* **An unknown kind is refused by name** (`PAYMENT_REQUEST_KIND_UNKNOWN`) at dry run and at pay. Batch A's bare `ELSE` would
+  have treated any new kind as a payment reversal; fixture 211 F injects one to prove the refusal.
 
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 

@@ -46,7 +46,7 @@ CREATE POLICY "bank_transfers select by permission"
 --   SECURITY DEFINER,以属主身份写,不需要策略。转账本身的批准在 PAY-REQ-1 Batch B。
 
 COMMENT ON TABLE public.bank_transfers IS
-    '行内转账。两边金额照银行实际;分录两条银行线各记本币,供两边对账单各自认领。更正靠 reverse_bank_transfer。';
+    '行内转账。两边金额照银行实际;分录两条银行线各记本币,供两边对账单各自认领。PAY-REQ-1 Batch B 起:转账与其冲销都经付款申请(提 → CFO 批 → 执行),执行时调 record_bank_transfer_internal / reverse_bank_transfer_internal。';
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在

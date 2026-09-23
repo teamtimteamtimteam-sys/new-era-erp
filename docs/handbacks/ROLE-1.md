@@ -201,3 +201,66 @@ What is broken while production runs the old app against the new database (appro
 
 Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
 (a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
+
+---
+
+# Batch 2 — Step 0 done, build split in two (2026-09-23, with PAY-REQ-1 Batch B)
+
+Batch 2 was grilled in the same Step 0 as PAY-REQ-1 Batch B. **Tim accepted all sixteen recommendations** (Q1–Q16; Q1–Q4
+and Q16 belong to Batch B, see `docs/handbacks/PAY-REQ-1.md` § Batch B). **Nothing in Batch 2 was built in that session.**
+The build is split (Q1): **Batch 2a** next session, **Batch 2b** the one after — `docs/forward-queue.md` § ROLE-1.
+
+## What grilling found (read from the code; live figures read as `postgres`, `rolbypassrls = t`, from base tables unless named)
+1. **The CFO holds no `.edit` code.** So, for the three CFO-only splits, changing which code a gate checks is not enough —
+   row-level security would still refuse the CFO. Each needs its own function plus a column guard.
+2. **Tables that mix a moving part with a staying part:**
+   * `finance_settings`: the lock stays with finance; the approval columns are already admin-only.
+   * `customers`: only the credit columns move.
+   * `suppliers`: the status moves are split.
+   * inbound/output metal content: manual entry stays; assay application moves.
+3. **The creator-may-not-approve rule has three holes today:**
+   * a direct INSERT can set `created_by` to anyone;
+   * a direct UPDATE can rewrite `created_by` or set it to NULL;
+   * a direct INSERT can create an `approved` or `active` supplier, because the transition trigger skips inserts.
+4. **Applying an assay reprices the batch and posts to 2000** (`apply_assay_result` → `reprice_inbound_batch`, a
+   journal entry dated today). The nested check inside `reprice_inbound_batch` looks at the caller, so it collides with Batch 4.
+5. **Found in passing; registered in `docs/known-issues.md`, not fixed:**
+   * `PAYREQB-COMPANY-ASSETS-BUCKET-UNGATED`
+   * `PAYREQB-FORMULA-PAGES-NO-DISABLED-GATE`
+   * `PAYREQB-SALES-RECORDS-FINANCE-INSERT`
+   * `PAYREQB-AP-VIEW-DISAGREES-WITH-GL-2000`, which Tim wants surveyed read-only straight after Batch B.
+
+## The unapproved-supplier rule on live (read at Step 0, 2026-09-23 ~23:05 CST)
+* **Suppliers:** 8 live `draft`, 1 live `approved` (SUP-2026-0003), 0 live `active`; 4 deleted `draft`, 4 deleted `active`.
+  Query: `select status, count(*) filter (where deleted_at is null) … from suppliers group by status`.
+* **Payments:** all 9 outgoing supplier payments went to `draft` suppliers (6 posted, SGD 153,970.68).
+* **What stops being payable** (read from `ap_open_items`, a view, as tim@ under `SET LOCAL ROLE authenticated`):
+  10 open items, 377,164.50 in total, across three drafts:
+  * SUP-0002 Acme — 97,063.52
+  * SUP-0095 Bosch — 280,000.00
+  * SUP-0445 Ever Higher — 100.00
+* **Open POs to draft suppliers:** PO-0002 and PO-0005 (receiving), PO-0007 and PO-0011 (confirmed).
+* **Who can approve them:** 7 of the 8 live drafts have `created_by = NULL`, and SUP-0445 was created by chooer@, so tim@
+  can approve all of them.
+
+## Tim's answers (all as recommended)
+* **Q5.** Payable means `approved` or `active`, and not deleted. The check runs at submit, approve and pay; payment reversals
+  are exempt.
+* **Q6.** The migration approves nobody. After the deploy, Choo Er submits the three suppliers and Tim approves them. Until
+  then, 377,164.50 cannot be paid, and the Batch 2a report says so in its window section.
+* **Q7.** New POs to an unapproved supplier are refused. Open POs keep receiving, and receipts and expenses are not refused.
+* **Q8.** The CFO owns `→ approved`, `→ rejected`, `→ blacklisted`, and `blacklisted → archived` (the "restore").
+  `suppliers.edit` owns every other move. `created_by` is immutable, a direct INSERT must be `draft`, and the rule compares
+  people, not accounts.
+* **Q9.** Supplier approval is not an approval-engine chain: it gets an `approved_by/at` stamp, an `operations_now` entry,
+  and `supplier` in `approval_log`.
+* **Q10.** The code is named `action.finance_settings`. `set_finance_settings` plus a column guard;
+  `accounts` / `currencies` / `company_profile` swap their policy and trigger; the bucket gets gated; no new screens.
+* **Q11.** `set_customer_credit` plus a column guard. The edit form stops sending the credit fields, and bulk import can no
+  longer set them.
+* **Q12.** Linking a document to a contract is not "contract terms".
+* **Q13.** `metal_price_indices` goes with metal prices (finance). `pricing.edit` goes to cco only, and the formula pages get
+  their gate.
+* **Q14.** `action.direct_sale` (cco). The `sales_records` INSERT is closed if the build confirms nothing legitimate writes there.
+* **Q15.** **Tim confirms cto applies assays, knowing it reprices and posts to the supplier payable.** Applying and
+  unapplying (inbound and output, previews included) move to cto; recording a lab result stays where it is.

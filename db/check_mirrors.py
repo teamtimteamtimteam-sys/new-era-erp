@@ -561,6 +561,12 @@ DEFINER_NO_CHECK_ALLOWED = {
     "record_payment_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "reverse_payment_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "payment_request_dry_run": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # PAY-REQ-1 Batch B:转账与代扣税缴纳的内层引擎,同一条理由(CFO 批准时要试跑;
+    # 外门 pay_payment_request 查 finance.edit)。remit_wht_internal 不在这里:
+    # 它留着一句 finance.view 检查(那是这次读的前提),于是认得出调用者检查。
+    "record_bank_transfer_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "reverse_bank_transfer_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "reverse_wht_remittance_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",

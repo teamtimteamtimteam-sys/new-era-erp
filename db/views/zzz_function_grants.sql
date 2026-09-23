@@ -379,3 +379,12 @@ REVOKE EXECUTE ON FUNCTION public.reverse_payment_internal(uuid, text) FROM auth
 REVOKE EXECUTE ON FUNCTION public.payment_request_dry_run(uuid, date, numeric) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.payment_request_conflict(jsonb, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.payment_request_payee_check(text, uuid) FROM authenticated;
+
+-- PAY-REQ-1 · Batch B(2026-09-23):行内转账、转账冲销、代扣税缴纳与其冲销的内层引擎。
+--   同一条理由:它们拿掉了权限检查(CFO 批准时要用它们试跑,而 CFO 不持 finance.edit),
+--   靠的就是调不到。唯一的外门是 pay_payment_request(一张已批准的申请);
+--   record_bank_transfer / reverse_bank_transfer / remit_wht 只剩按名拒绝的外壳。
+REVOKE EXECUTE ON FUNCTION public.record_bank_transfer_internal(date, text, text, numeric, numeric, text, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.reverse_bank_transfer_internal(uuid, date, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.remit_wht_internal(date, date, text, text, text, numeric) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.reverse_wht_remittance_internal(uuid, date, text) FROM authenticated;
