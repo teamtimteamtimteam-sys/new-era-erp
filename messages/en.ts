@@ -2725,6 +2725,8 @@ const en = {
         errDeclaredQty: 'Declared quantity must be a number greater than 0, or left blank',
         errQuantityPositive: 'Quantity must be a number greater than 0',
             errUnitPrice: 'Unit price must be a number',
+            // INB-PAY-1:填了单价,建单就同时定价 —— 与之后在批次页上定价过同一条账
+            unitPricePostsHint: 'Optional. Entering a price here prices the receipt at once: it records the supplier payable and a price-history entry, exactly as pricing it later on the batch page would.',
             saveError: 'Save failed: {message}',
             blockedArrivalDate: 'Save is disabled: the arrival date is not filled in.',
             blockedCertExpired: 'Receiving from {supplier} is blocked: {cert} expired on {date}. Renew it under Suppliers → Compliance before receiving.',

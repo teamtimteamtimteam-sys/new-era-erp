@@ -1110,7 +1110,7 @@ found false.
 ### ★ Q3 — five findings from the survey, registered, none fixed here
 
 `docs/known-issues.md`: `APR4-RECEIPT-PRICED-AT-CREATION-NO-PAYABLE` (★ **the next cut**, ahead of
-the payment request, because it produces a wrong number — live instances IN-2026-0011 / 0012) ·
+the payment request, because it produces a wrong number — ~~live instances IN-2026-0011 / 0012~~ ★ **INB-PAY-1 corrected this: those two were priced through the pricing step on 2026-07-05, before payable posting began; no live receipt was ever priced at creation. Fixed and closed by INB-PAY-1**, `docs/handbacks/INB-PAY-1.md`) ·
 `APR4-DISPOSAL-REVERSAL-LEAVES-ASSET-DISPOSED` · `APR4-RECEIPT-SUPPLIER-CHANGEABLE` ·
 `APR4-RECEIPT-DEAD-STATUS-COLUMN` · `APR4-FREIGHT-REVERSAL-DATED-TODAY`.
 

@@ -9,6 +9,7 @@ import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
 import { isStockErrorCode, localizeStockError, warningCodesFrom, warnQuery } from '@/app/components/inventory/stockErrorCodes'
 import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
 import { CERTAINTY_UNCHOSEN, FIELD_SAFETY_STATES, FIELD_CERTAINTY } from '../IntakeConditionFields'
+import { isPricingErrorCode, localizePricingError } from '../pricingErrorCodes'
 
 export type CreateInboundState = {
     error?: string
@@ -35,7 +36,11 @@ export async function createInbound(
     // 独立会话,而 set_config 本身也不可调,实测 404 PGRST202)。
     const location_id = (formData.get('location_id') as string)?.trim() || null
     const stage = (formData.get('stage') as string)?.trim() || '待加工'
-    const unit_price_raw = (formData.get('unit_price') as string) || ''
+    const unit_price_raw = (formData.get('unit_price') as string)?.trim() || ''
+    // INB-PAY-1:单价的币种。填了单价,建单就在同一事务里经 reprice_inbound_batch
+    // 定价 —— 与之后在批次页上定价【同一条账】。币种决定汇率,所以【不在服务端
+    // 补默认值】:表单的选择器默认本位币,空着就交给库里按名拒 CURRENCY_INVALID。
+    const currency = (formData.get('currency') as string)?.trim() || null
     const notes = (formData.get('notes') as string)?.trim() || null
     // 关联采购单(cut 4c,可选;成对出现 —— 表单只在选了行时才携带)
     const purchase_order_id = (formData.get('purchase_order_id') as string) || null
@@ -82,6 +87,10 @@ export async function createInbound(
         const n = Number(unit_price_raw)
         if (Number.isNaN(n)) {
             fieldErrors.unit_price = t('inbound.form.errUnitPrice')
+        } else if (n <= 0) {
+            // INB-PAY-1:0 与负价此前原样落库;现在库里按名拒 PRICE_INVALID,
+            // 这里在字段上先说同一句话(服务端这一道独立于表单)。
+            fieldErrors.unit_price = t('inbound.pricing.errors.PRICE_INVALID')
         } else {
             unit_price = n
         }
@@ -124,6 +133,8 @@ export async function createInbound(
         ...(arrival_date ? { p_arrival_date: arrival_date } : {}),
         p_stage: stage,
         ...(unit_price === null ? {} : { p_unit_price: unit_price }),
+        // INB-PAY-1:只有带价时币种才有意义;不带价就不传
+        ...(unit_price === null || currency === null ? {} : { p_currency: currency }),
         ...(notes === null ? {} : { p_notes: notes }),
         ...(purchase_order_id ? { p_purchase_order_id: purchase_order_id } : {}),
         ...(purchase_order_line_id ? { p_purchase_order_line_id: purchase_order_line_id } : {}),
@@ -144,6 +155,12 @@ export async function createInbound(
         // IOD-1b/IOD-2:库存侧的具名拒绝一律翻成人话。判据来自 STOCK_ERROR_CODES
         // 本身(isStockErrorCode)—— 手抄一份正则到三个 action 里,就是第二份会漂开
         // 的清单,而漏掉的那一处会把机器码原样端给操作员。
+
+        // INB-PAY-1:带价建单的定价拒绝(PRICE_INVALID / CURRENCY_INVALID / FX_RATE_MISSING)
+        // 与批次页上定价是同一个函数抛的,所以翻成同一句话、画在单价那一格上。
+        if (isPricingErrorCode(error.message)) {
+            return { fieldErrors: { unit_price: await localizePricingError(error.message) } }
+        }
 
         if (isStockErrorCode(error?.message)) {
 

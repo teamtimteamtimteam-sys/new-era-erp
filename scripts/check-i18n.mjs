@@ -666,7 +666,7 @@ const MANIFEST = {
     'assay.party_':         { kind: 'enum', values: () => sqlEnumAnywhere('db/tables/assay_results.sql', 'result_party') },
     'pricing.direction.':   { kind: 'enum', values: () => sqlEnum('db/tables/pricing_formulas.sql', 'direction') },
     'assay.pricingStatus.': { kind: 'enum', values: () => sqlEnum('db/tables/inbound_batches.sql', 'pricing_status') },
-    'inbound.pricing.errors.': { kind: 'enum', values: () => tsSet('app/inbound/[id]/edit/pricingActions.ts', 'PRICING_ERROR_CODES') },
+    'inbound.pricing.errors.': { kind: 'enum', values: () => tsSet('app/inbound/pricingErrorCodes.ts', 'PRICING_ERROR_CODES') },
     'output.sale.errors.':  { kind: 'enum', values: () => tsSet('app/output/[id]/edit/saleErrorCodes.ts', 'SALE_ERROR_CODES') },
     // ASY-P2:化验要求写入口的具名拒绝。接真源 —— 往那个 Set 里加一个码,
     // 检查自动跟上,不需要有人记得回来改这一行。

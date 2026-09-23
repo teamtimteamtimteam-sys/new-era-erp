@@ -27298,6 +27298,7 @@ export type Database = {
         Args: {
           p_arrival_date?: string
           p_chemistry_certainty?: string
+          p_currency?: string
           p_declared_qty?: number
           p_location_id?: string
           p_material_id: string

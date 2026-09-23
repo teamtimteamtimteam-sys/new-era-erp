@@ -5,7 +5,7 @@
 
 **★ Broken window start** (from the line `db/apply_migration.sh` prints itself):
 ### `2026-09-23 15:19:53 CST`
-Recorded to disk in `db/migration-windows.tsv` as `2026-09-23T15:20:25+0800`. **End: PENDING** (Tim's reading from the Vercel panel).
+Recorded to disk in `db/migration-windows.tsv` as `2026-09-23T15:20:25+0800`. **End: closed — an UPPER BOUND, not a measurement** (INB-PAY-1, 2026-09-23): Tim relayed "APR-4 deployed"; the latest clock reading taken before that relay reached this machine is **15:54:19 CST** (`date`, INB-PAY-1 Step 0). ☞ **Window ≤ 34 min 26 s.** The real end (Vercel Ready) can only be earlier; the commit is 15:45:57, so it cannot be earlier than the push after that.
 
 **★★ What is broken during the window.** Approvals are ON and this cut never touches them. The database is new; production runs the old code:
 
@@ -217,4 +217,4 @@ participant on TASK-2026-0006.
 ---
 
 ## §6 · Commit, push, three SHAs
-Reported in the terminal at push time. **Broken window: start 2026-09-23 15:19:53 CST, end PENDING (Tim's reading from the Vercel panel).**
+Reported in the terminal at push time. **Broken window: start 2026-09-23 15:19:53 CST, end ≤ 15:54:19 CST — an upper bound (Tim relayed "deployed"; the clock reading is INB-PAY-1's), so ≤ 34 min 26 s.**

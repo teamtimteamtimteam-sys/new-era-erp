@@ -3,21 +3,6 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
-## ★★ APR4-RECEIPT-PRICED-AT-CREATION-NO-PAYABLE · 收货【建单时带价】不记应付、不写价格史(APR-4 登记,2026-09-23)
-
-**Tim 的 Q3:登记,本刀不修;排成 APR-4 之后的【第一刀】,在付款申请之前 —— 因为它产生一个错的数字。**
-
-`create_inbound_batch` 收下 `p_unit_price` 直接写进 `inbound_batches.unit_price`:
-**没有 `purchase` 分录(没有 Cr 2000 应付),没有 `price_history` 行。** 插入路径上没有任何东西碰总账 ——
-`emit_batch_receipt_movement` 只写 `inventory_movements`,`guard_inbound_price_change` 对 INSERT 放行
-(注释原话「建单定价是正常路径」)。应付只在 `reprice_inbound_batch` 里产生,而这一条路绕过了它。
-`/inbound/new` 的桌面表单提供单价输入框,并把它传进去(`app/inbound/new/actions.ts:126`)。
-
-**线上实例**(以 `postgres` 读基表 `inbound_batches` 与 `journal_entries`,`rolbypassrls = t`):
-**IN-2026-0011(150)· IN-2026-0012(200)** —— 有价、没有 `purchase` 分录;两张都建于 2026-07-03,
-**早于**代码注释里「cut 2a(2026-07-06)」那一刀,所以可能是遗留。**但照读代码,今天一张桌面建单照样会这样**
-(没有在线上试过)。其余 7 张有价的活批次每张都有一条 `purchase` 分录。
-
 ## ★ APR4-DISPOSAL-REVERSAL-LEAVES-ASSET-DISPOSED · 冲销处置分录,资产仍是 `disposed`(APR-4 登记,2026-09-23)
 
 处置分录可以用通用的 `reverse_journal_entry` 冲掉(只要 `module.finance.edit`,不看 `source_type`;

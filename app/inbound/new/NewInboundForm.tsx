@@ -57,6 +57,8 @@ export default function NewInboundForm({
     certainties,
     materialAxes,
     sourceReasons,
+    baseCurrency,
+    currencies,
     initialPoId = '',
 }: {
     // IOD-1b:收货库位的可选清单(在用库位),由页面取好传进来
@@ -71,6 +73,10 @@ export default function NewInboundForm({
     materialAxes: Record<string, MaterialAxis>
     // RECV-SOURCE-1:无单收货的理由字典(R1:采购行或理由,永不两者皆无)
     sourceReasons: SourceReasonOption[]
+    // INB-PAY-1:单价的币种。建单带价与之后再定价走【同一个】定价函数,
+    // 它要一个币种(决定汇率,不给默认值);选择器默认本位币。
+    baseCurrency: string
+    currencies: string[]
     initialPoId?: string
 }) {
     const t = useTranslations()
@@ -83,6 +89,7 @@ export default function NewInboundForm({
     // ?po= 预选(采购单详情"按此单收货"入口):供应商随之带出
     const initialPo = initialPoId ? poLines.find((l) => l.po_id === initialPoId) : undefined
     const [arrivalDate, setArrivalDate] = useState('')
+    const [priceCurrency, setPriceCurrency] = useState(baseCurrency)
     const [supplierId, setSupplierId] = useState(initialPo?.supplier_id ?? '')
     const [poId, setPoId] = useState(initialPo ? initialPoId : '')
     const [lineId, setLineId] = useState('')
@@ -378,15 +385,37 @@ export default function NewInboundForm({
                     </select>
                 </div>
 
-                {/* 单价 */}
+                {/* 单价 + 币种 —— INB-PAY-1:填了单价,建单就是【建单 + 定价】,
+                    与之后在批次页上定价过同一条账(应付 + 价格史)。 */}
                 <div>
                     <label className="block mb-1">{t('inbound.form.unitPrice')}</label>
-                    <input
-                        type="number"
-                        name="unit_price"
-                        step="any"
-                        className={`${CONTROL_INPUT} w-full`}
-                    />
+                    <div className="flex flex-wrap gap-2">
+                        <input
+                            type="number"
+                            name="unit_price"
+                            step="any"
+                            min="0"
+                            className={`${CONTROL_INPUT} flex-1 min-w-[8rem]`}
+                        />
+                        <select
+                            name="currency"
+                            aria-label={t('inbound.pricing.currency')}
+                            value={priceCurrency}
+                            onChange={(e) => setPriceCurrency(e.target.value)}
+                            className={CONTROL_SELECT}
+                        >
+                            {currencies.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
+                        {t('inbound.form.unitPricePostsHint')}
+                    </p>
+                    {/* FIN-0:外币按定价日行方卖出价(tt_sell)自动估值,当天没牌价直接拒 */}
+                    {priceCurrency !== baseCurrency && (
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('common.fxBoardRateHint')}</p>
+                    )}
                     {state.fieldErrors?.unit_price && (
                         <p className="text-red-600 text-xs mt-1">
                             {state.fieldErrors.unit_price}

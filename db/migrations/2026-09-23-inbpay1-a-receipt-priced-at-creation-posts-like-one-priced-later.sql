@@ -1,3 +1,36 @@
+-- INB-PAY-1(2026-09-23):建单时带价的收货,与之后再定价的收货【过同一条账】
+--
+-- 【缺陷】create_inbound_batch 把 p_unit_price 直接写进 inbound_batches.unit_price:
+-- 没有 purchase 分录(没有 Cr 2000 应付)、没有 price_history 行。之后再对它定价,
+-- reprice_inbound_batch 只按【价差】过账(新价 − 旧价)× 数量 —— 于是建单时那一段
+-- 旧价 × 数量【永远不进总账】,而 ap_open_items / apply_prepayment 按
+-- 数量 × 单价认欠款:明细账与总账 2000 各说各话。
+--
+-- 【线上没有实例】(以 postgres 读基表,rolbypassrls = t):有价而无 price_history 行
+-- 的批次 0 张;每张有价批次的第一条 price_history 都从 old_unit_price = NULL 起。
+-- IN-2026-0011 / 0012 不是本缺陷 —— 它们在 2026-07-05 经定价那一步定的价,
+-- 早于 2026-07-06 开始过应付(见 docs/known-wrong-until-cutover.md)。
+--
+-- 【修法 · Tim Q2 = A】建单【先不带价落库】,再在同一事务里调 reprice_inbound_batch ——
+-- 与定价那一步是【同一份实现】:同一张分录、同一行价格史、同一组拒绝
+-- (PRICE_INVALID / CURRENCY_INVALID / FX_RATE_MISSING)。本函数一个字都不重复它们。
+-- 任何一条拒绝 = 整笔建单回滚,不会留下一张没价的半截批次。
+--
+-- 【新增尾部参数 p_currency】价格的币种。【没有默认值】:币种决定汇率,
+-- 而汇率决定入账金额 —— AGENTS.md 那条"决定汇率的字段不给服务端默认值"。
+-- 带价而不给币种 → reprice_inbound_batch 按名拒 CURRENCY_INVALID|?。
+-- 不带价时 p_currency 不被读取(表单总是带着币种选择器的值)。
+--
+-- 【过账日】沿用"记于定价日"(Tim Q5):reprice_inbound_batch 按 CURRENT_DATE 入账
+-- 并按 CURRENT_DATE 的 tt_sell 估值 —— 与之后再定价逐字相同。
+--
+-- 签名变了(多一个尾部参数),照 PROC-2c / RECV-SOURCE-1 的先例:DROP + CREATE,
+-- 再把 EXECUTE 收回、授出。
+
+BEGIN;
+
+DROP FUNCTION public.create_inbound_batch(uuid, uuid, numeric, text, date, text, numeric, text, uuid, uuid, uuid, numeric, text[], text, text, text);
+
 CREATE OR REPLACE FUNCTION public.create_inbound_batch(p_material_id uuid, p_supplier_id uuid, p_quantity numeric, p_unit text DEFAULT 'kg'::text, p_arrival_date date DEFAULT NULL::date, p_stage text DEFAULT '待加工'::text, p_unit_price numeric DEFAULT NULL::numeric, p_notes text DEFAULT NULL::text, p_purchase_order_id uuid DEFAULT NULL::uuid, p_purchase_order_line_id uuid DEFAULT NULL::uuid, p_location_id uuid DEFAULT NULL::uuid, p_declared_qty numeric DEFAULT NULL::numeric, p_safety_states text[] DEFAULT NULL::text[], p_chemistry_certainty text DEFAULT NULL::text, p_source_reason_code text DEFAULT NULL::text, p_source_reason_note text DEFAULT NULL::text, p_currency text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -72,6 +105,9 @@ BEGIN
     RETURN jsonb_build_object('batch_id', v_id, 'warnings', to_jsonb(v_warn),
                               'pricing', v_pricing);
 END;
-$function$
+$function$;
 
-;
+REVOKE EXECUTE ON FUNCTION public.create_inbound_batch(uuid, uuid, numeric, text, date, text, numeric, text, uuid, uuid, uuid, numeric, text[], text, text, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_inbound_batch(uuid, uuid, numeric, text, date, text, numeric, text, uuid, uuid, uuid, numeric, text[], text, text, text, text) TO authenticated, service_role;
+
+COMMIT;

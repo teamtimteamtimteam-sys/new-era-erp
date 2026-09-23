@@ -2625,6 +2625,8 @@ const zh = {
         errDeclaredQty: '申报量要么留空,要么是大于 0 的数',
         errQuantityPositive: '数量必须是大于0的数字',
             errUnitPrice: '单价必须是数字',
+            // INB-PAY-1:填了单价,建单就同时定价 —— 与之后在批次页上定价过同一条账
+            unitPricePostsHint: '可不填。在这里填了单价,这张收货就同时完成定价:记下对供应商的应付和一条价格记录,与之后在批次页上定价完全相同。',
             saveError: '保存失败：{message}',
             blockedArrivalDate: '保存钮不可用：到货日期还没填。',
             blockedCertExpired: '{supplier} 的收货已被拦截：{cert} 已于 {date} 过期。请先在 供应商 → 合规 里续期，才能收货。',

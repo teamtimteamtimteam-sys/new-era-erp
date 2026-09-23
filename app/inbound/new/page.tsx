@@ -9,6 +9,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { loadIntakeConditionOptions, loadMaterialAxes } from '../intakeConditionQuery'
 import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
+import { getBaseCurrency, getCurrencyCodes } from '@/lib/currency'
 
 export default async function NewInboundPage({
     searchParams,
@@ -109,10 +110,14 @@ export default async function NewInboundPage({
         // RECV-SOURCE-1:无单收货的理由字典
         loadSourceReasons(supabase, locale),
     ])
+    // INB-PAY-1:单价的币种选择器 —— 本位币是数据(currencies.is_base),不是字面量
+    const [baseCurrency, currencies] = await Promise.all([getBaseCurrency(), getCurrencyCodes()])
 
     return (
         <NewInboundForm
             sourceReasons={sourceReasons}
+            baseCurrency={baseCurrency}
+            currencies={currencies}
             safetyStates={condition.states}
             certainties={condition.certainties}
             materialAxes={materialAxes}
