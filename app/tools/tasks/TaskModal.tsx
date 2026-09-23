@@ -12,6 +12,7 @@ import {
 } from './types'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 // 逗号分隔字符串 -> 去重去空的标签数组
 function parseTags(raw: string): string[] {
@@ -44,10 +45,13 @@ const labelCls = 'block text-sm font-medium mb-1'
 export default function TaskModal({
     onClose,
     onSaved,
+    mayCreateTeam,
 }: {
     mode?: 'create'
     onClose: () => void
     onSaved: (task: Task) => void
+    /** APR-4:没有 module.tasks.edit 的人只能建【自己的私人任务】—— 类型锁在 personal。 */
+    mayCreateTeam: boolean
 }) {
     const t = useTranslations()
     const [error, setError] = useState<string | null>(null)
@@ -180,17 +184,36 @@ export default function TaskModal({
                             <label className={labelCls}>
                                 {t('tasks.form.type')}
                             </label>
-                            <select
-                                name="task_type"
-                                defaultValue="personal"
-                                className={selectCls}
-                            >
-                                {TASK_TYPE_VALUES.map((v) => (
-                                    <option key={v} value={v}>
-                                        {t('tasks.type.' + v)}
-                                    </option>
-                                ))}
-                            </select>
+                            {/* APR-4:锁住时【仍然画出来】,禁用并说出缺哪个码(DBLOCK-1)。
+                                ★ 被 <fieldset disabled> 禁用的 select【不进 FormData】,
+                                  所以锁住时值由旁边那个 hidden 带过去 —— 否则提交的是 null,
+                                  而服务端会把它报成"无效的类型",说错了原因。 */}
+                            {mayCreateTeam ? (
+                                <select
+                                    name="task_type"
+                                    defaultValue="personal"
+                                    className={selectCls}
+                                >
+                                    {TASK_TYPE_VALUES.map((v) => (
+                                        <option key={v} value={v}>
+                                            {t('tasks.type.' + v)}
+                                        </option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <>
+                                    <input type="hidden" name="task_type" value="personal" />
+                                    <PermissionGate code="module.tasks.edit" allowed={false}>
+                                        <select value="personal" onChange={() => {}} className={selectCls}>
+                                            {TASK_TYPE_VALUES.map((v) => (
+                                                <option key={v} value={v}>
+                                                    {t('tasks.type.' + v)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </PermissionGate>
+                                </>
+                            )}
                         </div>
                     </div>
 

@@ -158,10 +158,20 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 95C1 失败:非参与者读不到团队任务(实得 % 行)', v_n;
     END IF;
 
-    EXECUTE 'SET LOCAL ROLE authenticated';
-    UPDATE tasks SET title = 'ZZ95 team hijacked' WHERE id = v_team;
-    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    -- APR-4:这一行对他【看得见】,所以拒绝不再是一次静默零行,而是具名的
+    --   TASK_NOT_EDITABLE(他持 module.tasks.edit,只是不在这张任务上 / 不是归属人)。
+    --   两件事都断言:按名拒了,而且一行都没改。
+    v_msg := NULL; v_rows := 0;
+    BEGIN
+        EXECUTE 'SET LOCAL ROLE authenticated';
+        UPDATE tasks SET title = 'ZZ95 team hijacked' WHERE id = v_team;
+        GET DIAGNOSTICS v_rows = ROW_COUNT;
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
+    END;
     RESET ROLE;
+    IF v_msg IS NULL OR v_msg NOT LIKE 'TASK_NOT_EDITABLE|%' THEN
+        RAISE EXCEPTION 'FIXTURE 95 APR-4 失败:看得见却改不了的一行,应当按名拒 TASK_NOT_EDITABLE,实得 %', COALESCE(v_msg, '(没有报错 —— 静默零行?)');
+    END IF;
     IF v_rows <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 95C2 失败:非参与者改得动团队任务(实改 % 行)', v_rows;
     END IF;
@@ -261,10 +271,20 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 95E2 失败:view_all 是一把读的钥匙,它应当读得到无主任务(实得 % 行)', v_n;
     END IF;
 
-    EXECUTE 'SET LOCAL ROLE authenticated';
-    UPDATE tasks SET title = 'ZZ95 orphan touched by viewall' WHERE id = v_null;
-    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    -- APR-4:这一行对他【看得见】,所以拒绝不再是一次静默零行,而是具名的
+    --   TASK_NOT_EDITABLE(他持 module.tasks.edit,只是不在这张任务上 / 不是归属人)。
+    --   两件事都断言:按名拒了,而且一行都没改。
+    v_msg := NULL; v_rows := 0;
+    BEGIN
+        EXECUTE 'SET LOCAL ROLE authenticated';
+        UPDATE tasks SET title = 'ZZ95 orphan touched by viewall' WHERE id = v_null;
+        GET DIAGNOSTICS v_rows = ROW_COUNT;
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
+    END;
     RESET ROLE;
+    IF v_msg IS NULL OR v_msg NOT LIKE 'TASK_NOT_EDITABLE|%' THEN
+        RAISE EXCEPTION 'FIXTURE 95 APR-4 失败:看得见却改不了的一行,应当按名拒 TASK_NOT_EDITABLE,实得 %', COALESCE(v_msg, '(没有报错 —— 静默零行?)');
+    END IF;
     IF v_rows <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 95E2 失败:持 view_all 的人改动了无主任务(实改 % 行)—— view_all 只是读的钥匙', v_rows;
     END IF;
@@ -327,9 +347,11 @@ BEGIN
     IF NOT v_caught THEN
         RAISE EXCEPTION 'FIXTURE 95H 前提不成立:摘掉创建门之后归属人竟然写得进 task_nodes —— 那 H 证明不了任何事';
     END IF;
-    -- 【拒绝必须是 RLS 那一种】,不是别的错。行级策略拒插入时 PostgreSQL 抛
-    -- 42501 "new row violates row-level security policy"。
-    IF v_msg NOT LIKE '%row-level security%' THEN
+    -- 【拒绝必须是"写不进这张任务"那一种】,不是别的错。
+    -- APR-4 之前是行级策略抛的 42501 "new row violates row-level security policy";
+    -- APR-4 起逐行守卫 trg_task_nodes_guard_write 先于 WITH CHECK 触发,按名抛
+    -- TASK_NOT_EDITABLE(他持 module.tasks.edit,只是不是活跃参与者)。同一个拒绝,有了名字。
+    IF v_msg NOT LIKE 'TASK_NOT_EDITABLE|%' THEN
         RAISE EXCEPTION 'FIXTURE 95H 前提可疑:拒绝不是 RLS 那一种,而是:%', v_msg;
     END IF;
     r := r || jsonb_build_object('H_premise_without_door_owner_is_rls_refused', 'ok');

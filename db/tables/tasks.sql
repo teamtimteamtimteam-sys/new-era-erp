@@ -99,20 +99,39 @@ CREATE POLICY "tasks select by predicate"
         )
     );
 
+-- APR-4(Tim 的 Q4–Q7):三条写策略改了,理由写在一处 ——
+--   · 插入:归属人【只能是自己】(对每一个人,Q6-i);没有 module.tasks.edit 的人
+--     只能建自己的私人任务(task_is_own,Q4)。按【手里这一行】判 —— 不能写成
+--     can_write_task(id):那一行此刻还不在自己这条命令的快照里(与上面那条 select
+--     策略同一个理由)。
+--   · 更新 / 删除的 USING 放宽到【你看得见的、未软删的行】,判定交给逐行的
+--     trg_tasks_guard_write:行级触发器在零行时根本不触发,于是只有让被拒的那一行
+--     进到语句里,它才会被【按名】拒,而不是一次静默的零行(SILENT-1 那一课)。
+--     删除一律由 trg_tasks_no_hard_delete 按名拒,放宽它只是让那句话说得出来。
+--   · 更新的 WITH CHECK = can_write_task(id):按 id 回表,看到的是更新前那一行 ——
+--     与此前的 can_edit_task(id) 同一个语义,只多了自己的任务例外。新行上的约束
+--     (归属人冻结、类型不许由例外改)由守卫按名说。
 CREATE POLICY "tasks insert by permission"
     ON public.tasks
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.tasks.edit'::text));
+    WITH CHECK (
+        owner_id = current_user_employee()
+        AND (
+            has_permission('module.tasks.edit'::text)
+            OR (has_permission('module.tasks.view'::text) AND task_is_own(task_type, owner_id))
+        )
+    );
 
 CREATE POLICY "tasks update by predicate"
     ON public.tasks
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (can_edit_task(id)) WITH CHECK (can_edit_task(id));
+    USING (deleted_at IS NULL AND (can_edit_task(id) OR can_view_task(id)))
+    WITH CHECK (can_write_task(id));
 
 CREATE POLICY "tasks delete by predicate"
     ON public.tasks
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (can_edit_task(id));
+    USING (can_edit_task(id) OR can_view_task(id));
 
 -- 7. TASK-1c-a:visibility / shared_with / editors / assigned_to / entity 五列已退役。
 -- 它们从来没有被任何代码路径读过,线上也【一行都没有用过】(勘察实测),
@@ -174,6 +193,18 @@ COMMENT ON COLUMN public.tasks.task_type IS
 -- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
 -- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+-- ★ APR-4:它多认一个 module.tasks.view —— 自己的任务例外要从这里过去。
+--   一个持 view 的人对别人任务的写不会因此变成静默零行:USING 放宽到"看得见的行"之后,
+--   那一行会进到下面的 trg_tasks_guard_write 并被按名拒。连 view 都不持的人,
+--   这一支照旧按名拒(PERMISSION_DENIED|module.tasks.edit,码取第一个参数)。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.tasks
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.tasks.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.tasks.edit', 'module.tasks.view');
+
+-- ═══ APR-4 ═════════════════════════════════════════════════════════════════
+-- 逐行写闸:归属人只能是自己、归属人冻结、自己的任务例外、其余按名拒。
+-- 【名字排在 trg_tasks_owner_required / trg_tasks_type_transition 之前是承重的】,
+-- 理由见函数注释。
+CREATE TRIGGER trg_tasks_guard_write
+    BEFORE INSERT OR UPDATE ON public.tasks
+    FOR EACH ROW EXECUTE FUNCTION trg_tasks_guard_write();

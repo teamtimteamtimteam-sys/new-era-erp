@@ -4,6 +4,8 @@ import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { addParticipant, removeParticipant, promoteToTeam, correctType } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { TaskEditGate } from '../TaskEditGate'
+import type { TaskEditState } from '@/lib/taskAccess'
 
 // app/tools/tasks/[id]/Participants.tsx
 // TASK-1b:参与者面板。
@@ -39,8 +41,10 @@ type Labels = {
 }
 
 export default function Participants({
-    taskId, rows, assignable, mayAssign, canEdit, myEmployeeId, correctable, labels,
+    taskId, rows, assignable, mayAssign, canEdit, manageState, myEmployeeId, correctable, labels,
 }: {
+    /** APR-4:参与者不在自己的任务例外里。needs_code 与 not_on_task 是两句不同的话。 */
+    manageState: TaskEditState
     taskId: string; rows: ParticipantRow[]; assignable: AssignableRow[]
     // 【权限自己回答能不能看】,不由 assignable 是不是空来倒推
     mayAssign: boolean
@@ -117,7 +121,16 @@ export default function Participants({
                    都以 `canEdit &&` 开头。于是一个不在这张任务上的人看到的是
                    **一片空白**,和"这个功能不存在"长得一模一样。
                    ☞ 改成一条四选一:四个原因,四句话,永远命中一句。 */}
-            {!canEdit ? (
+            {/* APR-4:第五种原因 —— 他【在】任务上,但不持 module.tasks.edit(gm 只读的 Vince)。
+                以前 canEdit 取的是 iAmParticipant,于是他被递上服务端必拒的控件;
+                现在控件照样画出来、按不动,说的是缺哪个码 —— 那是一个管理员给得了的东西。 */}
+            {!canEdit && manageState === 'needs_code' ? (
+                <div className="mt-4">
+                    <TaskEditGate state="needs_code">
+                        <Button variant="default" size="xs" className="text-xs">{labels.add}</Button>
+                    </TaskEditGate>
+                </div>
+            ) : !canEdit ? (
                 <p className="mt-4 text-sm text-[color:var(--brand-muted-text)]" data-state-note="not-on-task">{labels.notOnTask}</p>
             ) : !mayAssign ? (
                 <p className="mt-4 text-sm text-[color:var(--brand-muted-text)]">{labels.noAssignPermission}</p>
@@ -160,7 +173,7 @@ export default function Participants({
                     variant="reversal"
                     size="inline"
                     className="text-xs"
-                    disabled={pending || !correctable}
+                    disabled={pending || !correctable || !canEdit}
                     onClick={() => run(() => correctType(taskId))}
                 >
                     {labels.correctType}

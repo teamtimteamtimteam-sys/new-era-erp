@@ -25,6 +25,10 @@ const TASK_ERROR_CODES = new Set([
     'TASK_CREATOR_NOT_AN_EMPLOYEE',
     'TASK_TYPE_LOCKED_PARTICIPANTS',
     'TASK_TYPE_TRANSITION_UNKNOWN',
+    // APR-4:归属人只能是自己 / 归属人不许改 / 持码却不在这张任务上(不是缺码 —— 说成缺码就说错了原因)
+    'TASK_OWNER_NOT_SELF',
+    'TASK_OWNER_IMMUTABLE',
+    'TASK_NOT_EDITABLE',
     // 约束兜底(见文件头)——不是数据库抛的字面量,是本文件按约束名派生的
     'TASK_NODE_SHAPE_REFUSED',
 ])

@@ -6,6 +6,8 @@ import TaskBoard from './TaskBoard'
 import { TASK_COLUMNS } from './types'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
+import { TASKS_EDIT } from '@/lib/taskAccess'
 
 export default async function TasksPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -27,7 +29,8 @@ export default async function TasksPage() {
     // 视图不吐的列;算法仍然只有 task_board_rows 那一处。
     const { data: derived, error: derivedError } = await supabase
         .from('task_board_rows')
-        .select('id, node_count, done_count, steps_overrun_due_date')
+        // APR-4:may_write 是【数据库的】"能不能改"判据(can_write_task),卡片按它决定能不能拖。
+        .select('id, node_count, done_count, steps_overrun_due_date, may_write')
 
     if (error || derivedError) {
         return (
@@ -52,13 +55,18 @@ export default async function TasksPage() {
             node_count: d?.node_count ?? 0,
             done_count: d?.done_count ?? 0,
             steps_overrun_due_date: d?.steps_overrun_due_date ?? null,
+            // 视图里读不到这一行 = 没有被确认可写。缺席按"不可写"处理,不按"可写"。
+            may_write: d?.may_write === true,
         }
     })
+
+    // 只用来说对【原因】(缺码 vs 不在任务上),不用来判能不能改 —— 那一半是 may_write。
+    const holdsEditCode = await can(TASKS_EDIT)
 
     return (
         <div className="p-8">
             <h1 className="mb-4">{t('tasks.pageTitle')}</h1>
-            <TaskBoard tasks={merged} />
+            <TaskBoard tasks={merged} holdsEditCode={holdsEditCode} />
         </div>
     )
 }

@@ -800,6 +800,8 @@ reason, recorded beside it.
 ★ **If the business control is wanted, the honest target is the pricing-terms COMMITMENT** — a real
 decision that fixes what will be paid — and that belongs with the purchasing batch in **APR-4**, not
 here. Queued in `docs/forward-queue.md`.
+⚠ **APR-4 (2026-09-23) did NOT take it up** — the APR-4 brief named five documents and not this one.
+It is still queued, unscheduled, for Tim to place (§3h).
 
 ⚠ **The enum value `pricing_formula` stays in `approval_log`'s CHECK**, unwritten, exactly as
 `payment` and `expense` do. **A name in the enum makes a reader believe that path is connected**
@@ -1027,19 +1029,124 @@ live policy itself.
   with only its subject; no pending document on live was raised by Vince or is about him.
   Supersedes C-1's "gm stays exactly as it is" (`docs/accounts-roles-and-permissions.md` §三 Q3).
 
-### ★★ Finding (Batch B live proof): the `cfo` role cannot decide purchase orders
-`cfo` holds `module.finance.view` and `data.view_prices` only — **not `module.purchasing.view`**,
+### ~~★★ Finding (Batch B live proof): the `cfo` role cannot decide purchase orders~~ — ★★ **FALSE. Corrected by APR-4 (2026-09-23).**
+
+> **Measured (APR-4, 2026-09-23, as `postgres`, `rolbypassrls = t`, base table `role_permissions`):
+> `cfo` holds FIVE codes — `data.view_pay`, `data.view_prices`, `module.finance.view`,
+> `module.logistics.view`, `module.purchasing.view`.** Their `created_at` is 2026-08-30 / 2026-09-01,
+> before APR-3; no migration since has touched `cfo`'s grants. **APR-3's reading was right.**
+> **The Batch B claim below was never measured:** its live-proof script contains no query of `cfo`'s
+> codes — the claim is a comment, written before a scratch role with `purchasing.view` was added
+> pre-emptively. **A CFO-only account CAN decide purchase orders. No decision and no fix is needed.**
+> ☞ The lesson: **a handback's "Measured" must cite the query that measured it** (written into
+> `docs/handbacks/APR-4.md` and the AGENTS.md family "委托书里的数来自上一份报告").
+> The original text is kept, struck, because a removed claim and a never-made claim read the same:
+
+~~`cfo` holds `module.finance.view` and `data.view_prices` only — **not `module.purchasing.view`**,
 which both purchase-order actions require. Today purchase-order level 2 is decided through
 `admin@swm-os.test` only because that account also holds `admin`. **A CFO-only account will decide
 expense claims at level 2, but not purchase orders** — so revoking `cfo` from `admin@` would leave
 purchase-order level 2 with nobody. This is a decision for Tim (grant `module.purchasing.view` to
 `cfo`, or keep `cfo` on `admin@` for now); the CFO steps in `docs/handbacks/APR-ROUTE-1.md` stop at
-exactly that point.
+exactly that point.~~
 
 ### R5 — `expense_claim_status` carries its own row predicate (F1)
 `has_permission('module.finance.view') OR employee_id = current_user_employee()` — the same shape as
 `medical_claim_status`. Before it, any signed-in user could read every expense claim through
 PostgREST; only `/me`'s own page filter hid it.
+
+---
+
+## 3h · APR-4 (2026-09-23) — the five documents that do not wait, and the own-task exception
+
+### ★★★ Q1 — none of the five can be wired, for the reason APR-3 dropped payments
+
+The brief asked for goods receipts, invoices, freight documents, fixed-asset disposals and
+processing-run commits, each through APR-0 §3.2's four cells. **The test is the one APR-3 used:
+does the document have a state in which it waits for someone, or is creating it the act?**
+**Measured, all five: creating it is the act.** Status constraints read from the live catalog
+(`pg_constraint`); row counts as `postgres` (`rolbypassrls = t`) from the base tables:
+
+| document | status on live | what creating it does | live rows | waiting |
+|---|---|---|---|---|
+| goods receipt · `inbound_batches` | `status` has **no CHECK and is never written** — `draft` on all 24 rows; the only constrained column is `pricing_status` | the insert moves stock at once (trigger); the payable is posted later when a price is set, and setting it *is* the posting (`reprice_inbound_batch`) | 24 (15 live) | none — no such state |
+| invoice · `invoices` | `issued` / `void` | born `issued`; `create_order_invoice` posts to the GL in the same transaction; a trigger freezes every column except `issued → void` | 9 | none |
+| freight document · `freight_documents` | `posted` / `reversed` | born `posted`; posts the journal and capitalises into inventory in the same transaction | 4 (all reversed) | none |
+| fixed-asset disposal · `fixed_assets` | `active` / `disposed` | `dispose_fixed_asset` posts the journal and sets `disposed` in one step; no "disposal requested" state | 2 (both active; 0 ever disposed) | none |
+| processing run · `processing_runs` | `committed` / `reversed` (the table says so: 没有'编辑中'状态) | commit creates the run, consumes stock and creates output batches in one transaction; cost allocation is a separate, repeatable act | 14 (10 committed) | none |
+
+The only later transition on any of them is a **correction by one person** (void · reverse ·
+soft-delete · roll back), not a decision on somebody else's document.
+
+> **Tim's ruling (Q1): drop all five from the approval extension. `approval_log`'s subject-type list
+> stays untouched** — APR-3 already found three names in it that nothing writes (§3e Q2/Q3), and five
+> more would make the "a name in the enum means the path is connected" misreading worse.
+
+**APR-0 §6.2's premise for APR-4** — *"these five have usable header amounts or clearly none, so no
+new routing ruling is needed"* — is **true and beside the point**: routing was never the obstacle;
+there is nothing waiting to route. Recorded in `docs/handbacks/APR-4.md` as a claim measured and
+found false.
+
+**Consequences that fall out, recorded so nobody re-derives them:**
+* **No system-created path needs an exemption** — every one of the five is created only by a
+  signed-in person through a server action (grep of `db/functions` for INSERTs + callers).
+* **No chain joins the disable gate** (`approval_pending_documents`) — nothing is added.
+* **N4 cannot be judged at commit time as it stands.** `processing_outputs.cost_incomplete` is
+  per output leg and written only by `allocate_processing_costs`; cost entries can only be added
+  after the run exists, and allocation goes stale later. **If a processing run is ever given a real
+  decision point, N4 needs a trigger point other than commit.** N4's ruling stands; its assumption
+  about *when* the figure is known does not.
+
+### ★ Q2 — one lifecycle candidate queued; two named, not queued
+
+* **Queued:** a **fixed-asset disposal request** (request → approve → dispose). Today one
+  `module.finance.edit` holder can write off a 400k asset in one click; 0 disposals so far, so no
+  history to migrate.
+* **Named, not queued:** goods-receipt **pricing** (setting a price posts the payable) and
+  processing-run **cost allocation** (posts the capitalisation journal). Both are one person
+  finishing their own entry today.
+* Tim may add any of the five later as its own lifecycle cut. `docs/forward-queue.md`.
+
+### ★ Q3 — five findings from the survey, registered, none fixed here
+
+`docs/known-issues.md`: `APR4-RECEIPT-PRICED-AT-CREATION-NO-PAYABLE` (★ **the next cut**, ahead of
+the payment request, because it produces a wrong number — live instances IN-2026-0011 / 0012) ·
+`APR4-DISPOSAL-REVERSAL-LEAVES-ASSET-DISPOSED` · `APR4-RECEIPT-SUPPLIER-CHANGEABLE` ·
+`APR4-RECEIPT-DEAD-STATUS-COLUMN` · `APR4-FREIGHT-REVERSAL-DATED-TODAY`.
+
+### ★★ Q4–Q8 — the own-task exception (built)
+
+> **Tim (2026-09-23):** Vince keeps his personal to-dos; `gm` stays read-only — do **not** give it
+> `module.tasks.edit` back. Instead: a person may create and edit tasks that are their own.
+
+* **Own task = `task_type = 'personal' AND owner_id = current_user_employee()`** — one definition,
+  `task_is_own(task_type, owner_id)`, judged on the row's own columns. Not `created_by` (account
+  space, client-writable, forgeable); not "participant" (would let a read-only person edit someone
+  else's team task).
+* **Allowed without `module.tasks.edit`** (still needs `module.tasks.view`): create a task (forced
+  personal, owned by yourself) · edit its header and status · add / edit / tick / delete its steps ·
+  soft-delete it. **Not allowed:** promote it to a team task · add participants · change its owner.
+* **For everyone, editors included:** a new task's owner must be yourself (`TASK_OWNER_NOT_SELF`);
+  an owner never changes (`TASK_OWNER_IMMUTABLE`). No feature transfers tasks, so nothing loses a path.
+* **Mechanism.** `can_write_task(id)` = `can_edit_task(id)` OR the own-task exception — read by
+  the write policies, the per-row guards and `task_board_rows.may_write`. Three per-row BEFORE
+  guards (`trg_tasks_guard_write`, `trg_task_nodes_guard_write`, `trg_task_participants_guard_write`)
+  refuse by name.
+  ★ **One deviation from Q7's wording, forced by a measurement:** the statement-level
+  `enforce_write_permission` could not simply be replaced — row triggers **do not fire on zero rows**
+  (its own header), and fixture 198 requires a trigger of that name on every table with a write
+  policy. So it stays (on `tasks` / `task_nodes` it also accepts `module.tasks.view`), and the
+  UPDATE/DELETE `USING` widens to "rows you can see" so a refused row reaches the per-row guard and
+  is **refused by name** instead of vanishing as a silent zero-row success. Net effect is what Q7
+  asked for.
+* **Behaviour change for editors, named:** an editor who is **not on** a visible team task used to
+  get a silent 0-row update; now it is `TASK_NOT_EDITABLE`. Fixtures 92 and 95 asserted the old
+  zero and were updated to assert the named refusal (and still assert nothing changed).
+* **Screens:** one "may edit this task" source — `lib/taskAccess.ts` reads `may_write` / `may_manage`
+  from the database; it never compares permission codes to decide. Controls stay visible, disabled,
+  with the reason (DBLOCK-1) — two different reasons, two sentences: *needs `module.tasks.edit`
+  (or it is your own personal task)* vs *not on this task* (not something an administrator grants).
+* **Proof:** `db/fixtures/207`, 8 of 8 fault injections red at the arm meant to catch each.
 
 ---
 

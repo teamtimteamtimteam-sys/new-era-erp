@@ -127,10 +127,20 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 92B 失败:持 module.tasks.view_all 的人读不到别人私人任务的步骤(% 行)—— 这把钥匙就是为离职者的任务这类事留的', v_n;
     END IF;
 
-    EXECUTE 'SET LOCAL ROLE authenticated';
-    UPDATE task_nodes SET title = 'ZZ92 viewall wrote' WHERE task_id = v_task;
-    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    -- APR-4:这一行对他【看得见】,所以拒绝不再是一次静默零行,而是具名的
+    --   TASK_NOT_EDITABLE(他持 module.tasks.edit,只是不在这张任务上 / 不是归属人)。
+    --   两件事都断言:按名拒了,而且一行都没改。
+    v_msg := NULL; v_rows := 0;
+    BEGIN
+        EXECUTE 'SET LOCAL ROLE authenticated';
+        UPDATE task_nodes SET title = 'ZZ92 viewall wrote' WHERE task_id = v_task;
+        GET DIAGNOSTICS v_rows = ROW_COUNT;
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
+    END;
     RESET ROLE;
+    IF v_msg IS NULL OR v_msg NOT LIKE 'TASK_NOT_EDITABLE|%' THEN
+        RAISE EXCEPTION 'FIXTURE 92 APR-4 失败:看得见却改不了的一行,应当按名拒 TASK_NOT_EDITABLE,实得 %', COALESCE(v_msg, '(没有报错 —— 静默零行?)');
+    END IF;
     IF v_rows <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 92B 失败:view_all 让人【写】了别人私人任务的步骤(实改 % 行)—— 它只该是一把读的钥匙;这个读者持有 module.tasks.edit,所以挡住他的必须是"不是归属人"', v_rows;
     END IF;
@@ -153,10 +163,20 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 92C 失败:团队任务的步骤对一个非参与者不可见(% 行)—— 私人=只有我看得见,团队=大家看得见、参与者能改', v_n;
     END IF;
     -- 非参与者:改不了
-    EXECUTE 'SET LOCAL ROLE authenticated';
-    UPDATE task_nodes SET title = 'ZZ92 outsider wrote' WHERE task_id = v_team;
-    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    -- APR-4:这一行对他【看得见】,所以拒绝不再是一次静默零行,而是具名的
+    --   TASK_NOT_EDITABLE(他持 module.tasks.edit,只是不在这张任务上 / 不是归属人)。
+    --   两件事都断言:按名拒了,而且一行都没改。
+    v_msg := NULL; v_rows := 0;
+    BEGIN
+        EXECUTE 'SET LOCAL ROLE authenticated';
+        UPDATE task_nodes SET title = 'ZZ92 outsider wrote' WHERE task_id = v_team;
+        GET DIAGNOSTICS v_rows = ROW_COUNT;
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
+    END;
     RESET ROLE;
+    IF v_msg IS NULL OR v_msg NOT LIKE 'TASK_NOT_EDITABLE|%' THEN
+        RAISE EXCEPTION 'FIXTURE 92 APR-4 失败:看得见却改不了的一行,应当按名拒 TASK_NOT_EDITABLE,实得 %', COALESCE(v_msg, '(没有报错 —— 静默零行?)');
+    END IF;
     IF v_rows <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 92C 失败:非参与者改动了团队任务的步骤(实改 % 行)', v_rows;
     END IF;
@@ -183,10 +203,20 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 92C 失败:前参与者读不到自己参与过的任务的步骤(% 行)—— 把他贡献过的东西藏起来读起来像抹掉', v_n;
     END IF;
 
-    EXECUTE 'SET LOCAL ROLE authenticated';
-    UPDATE task_nodes SET title = 'ZZ92 ex-participant wrote' WHERE task_id = v_team;
-    GET DIAGNOSTICS v_rows = ROW_COUNT;
+    -- APR-4:这一行对他【看得见】,所以拒绝不再是一次静默零行,而是具名的
+    --   TASK_NOT_EDITABLE(他持 module.tasks.edit,只是不在这张任务上 / 不是归属人)。
+    --   两件事都断言:按名拒了,而且一行都没改。
+    v_msg := NULL; v_rows := 0;
+    BEGIN
+        EXECUTE 'SET LOCAL ROLE authenticated';
+        UPDATE task_nodes SET title = 'ZZ92 ex-participant wrote' WHERE task_id = v_team;
+        GET DIAGNOSTICS v_rows = ROW_COUNT;
+    EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM;
+    END;
     RESET ROLE;
+    IF v_msg IS NULL OR v_msg NOT LIKE 'TASK_NOT_EDITABLE|%' THEN
+        RAISE EXCEPTION 'FIXTURE 92 APR-4 失败:看得见却改不了的一行,应当按名拒 TASK_NOT_EDITABLE,实得 %', COALESCE(v_msg, '(没有报错 —— 静默零行?)');
+    END IF;
     IF v_rows <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 92C 失败:已退出的人还改得动这张任务的步骤(实改 % 行)—— 读是,写不是', v_rows;
     END IF;

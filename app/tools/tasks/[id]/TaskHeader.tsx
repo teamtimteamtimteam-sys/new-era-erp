@@ -7,6 +7,8 @@ import { STATUS_VALUES, PRIORITY_VALUES } from '../types'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
+import { TaskEditGate } from '../TaskEditGate'
+import type { TaskEditState } from '@/lib/taskAccess'
 
 // app/tools/tasks/[id]/TaskHeader.tsx
 // TASK-1c-b:表头编辑。弹窗退休成【只建不改】之后,这七个字段搬到了这里。
@@ -54,7 +56,10 @@ function toLocalInput(iso: string | null): string {
 export default function TaskHeader({
     task,
     labels,
+    access,
 }: {
+    /** APR-4:数据库的 may_write(can_write_task)。表头与软删都属于"内容",对自己的私人任务开放。 */
+    access: TaskEditState
     task: {
         id: string
         title: string
@@ -103,13 +108,15 @@ export default function TaskHeader({
                 {error ? (
                     <div className="mb-3 rounded border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
                 ) : null}
-                <Button
-                    variant="link"
-                    size="inline"
-                    onClick={() => { setError(null); setOpen(true) }}
-                >
-                    {labels.edit}
-                </Button>
+                <TaskEditGate state={access} ownTaskPath>
+                    <Button
+                        variant="link"
+                        size="inline"
+                        onClick={() => { setError(null); setOpen(true) }}
+                    >
+                        {labels.edit}
+                    </Button>
+                </TaskEditGate>
             </div>
         )
     }

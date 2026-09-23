@@ -3,6 +3,47 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ★★ APR4-RECEIPT-PRICED-AT-CREATION-NO-PAYABLE · 收货【建单时带价】不记应付、不写价格史(APR-4 登记,2026-09-23)
+
+**Tim 的 Q3:登记,本刀不修;排成 APR-4 之后的【第一刀】,在付款申请之前 —— 因为它产生一个错的数字。**
+
+`create_inbound_batch` 收下 `p_unit_price` 直接写进 `inbound_batches.unit_price`:
+**没有 `purchase` 分录(没有 Cr 2000 应付),没有 `price_history` 行。** 插入路径上没有任何东西碰总账 ——
+`emit_batch_receipt_movement` 只写 `inventory_movements`,`guard_inbound_price_change` 对 INSERT 放行
+(注释原话「建单定价是正常路径」)。应付只在 `reprice_inbound_batch` 里产生,而这一条路绕过了它。
+`/inbound/new` 的桌面表单提供单价输入框,并把它传进去(`app/inbound/new/actions.ts:126`)。
+
+**线上实例**(以 `postgres` 读基表 `inbound_batches` 与 `journal_entries`,`rolbypassrls = t`):
+**IN-2026-0011(150)· IN-2026-0012(200)** —— 有价、没有 `purchase` 分录;两张都建于 2026-07-03,
+**早于**代码注释里「cut 2a(2026-07-06)」那一刀,所以可能是遗留。**但照读代码,今天一张桌面建单照样会这样**
+(没有在线上试过)。其余 7 张有价的活批次每张都有一条 `purchase` 分录。
+
+## ★ APR4-DISPOSAL-REVERSAL-LEAVES-ASSET-DISPOSED · 冲销处置分录,资产仍是 `disposed`(APR-4 登记,2026-09-23)
+
+处置分录可以用通用的 `reverse_journal_entry` 冲掉(只要 `module.finance.edit`,不看 `source_type`;
+分录详情页对任何已过账分录都给"冲销"钮)。冲完之后成本与累计折旧回到账上,而 `fixed_assets.status`
+仍是 `disposed`,折旧预览(`status = 'active'`)跳过它 —— **资产台账与总账各说各话**。
+**潜伏的**:线上从来没有处置过任何资产(以 `postgres` 读基表:`disposed` 0 行,`asset_disposal` 分录 0 行)。
+
+## APR4-RECEIPT-SUPPLIER-CHANGEABLE · 收货的供应商可以直接改(APR-4 登记,2026-09-23)
+
+`app/inbound/[id]/edit/actions.ts` 在 `module.inbound.edit` 的 RLS 之下对 `inbound_batches` 做直接 `.update()`,
+字段里有 `supplier_id`。改它就是改【这笔应付是谁的】,而这一步不经过任何函数、不留专门的痕。
+
+## APR4-RECEIPT-DEAD-STATUS-COLUMN · 收货的 `status` 是一列死列;`pricing_status` 从不取 `unpriced`(APR-4 登记,2026-09-23)
+
+`inbound_batches.status` 默认 `'draft'`,**没有 CHECK,没有任何函数或动作写它**,线上 24 行全是 `draft`
+(以 `postgres` 读基表)。列表把它画成一枚灰药丸,读起来像一个生命周期 —— 它不是。
+`pricing_status` 默认 `'provisional'`,两支建单函数都不设 `'unpriced'`,于是 6 张没有价的活批次显示为
+`provisional`。按 `pricing_status` 筛"未定价"会一张都筛不出来;要用 `unit_price IS NULL`。
+
+## APR4-FREIGHT-REVERSAL-DATED-TODAY · 货运单据冲销按【今天】入账(APR-4 登记,2026-09-23)
+
+`reverse_freight_document` 以 `CURRENT_DATE` 调 `reverse_journal_entry_internal`,不取单据日期,也不让人选。
+于是冲销**永远落在今天所在的期间**,而不是原单据的期间 —— 一个人没有办法把一张错单冲在它自己的月份里。
+这与 AGENTS.md「决定期间的日期必填、绝不默认成今天」是同一族;勘察子代理原话说"期间锁可能拒它",
+**那句话不对**(今天所在的期间一般是开着的),真正的后果是【冲错期间】,而且不报错。
+
 ## ~~★ APR2-WORK-ORDER-AUTO-APPROVED-IS-A-HUMAN-PRESS~~ —— ✅ **关闭:APR-3 修了它(2026-09-22)**
 
 > ★★ **Tim 的 Q7 裁定:取出路 ①。** `release_work_order` 两条分支现在都写

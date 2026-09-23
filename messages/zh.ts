@@ -5536,6 +5536,16 @@ const zh = {
         },
     },
     tasks: {
+        // APR-4:「自己的任务」例外 —— 两种原因两句话(缺码 / 不在任务上),见 TaskEditGate。
+        access: {
+            readOnly: '只读',
+            ownTaskAlt: '这是你自己的私人任务',
+            ownTaskWhy:
+                '能打开任务模块的人都可以建私人任务、改自己的 —— 标题、状态、步骤、删除。团队任务、别人的任务、升级为团队任务、加参与者,要 module.tasks.edit。',
+            notYours: '不在这张任务上',
+            notYoursWhy:
+                '你改得了自己在上面的团队任务、以及自己名下的私人任务。这一张你不在上面,所以对你是只读的。请让已经在上面的人把你加进来 —— 这一条不是管理员能给的权限。',
+        },
         card: {
             stepsOverrun: '步骤排到了截止日之后',
             openDetail: '打开详情 →',
@@ -5619,6 +5629,10 @@ const zh = {
             TASK_TYPE_LOCKED_PARTICIPANTS: '{0} 上有 {1} 个别人来过。改成私人会让他们读不到自己参与过的东西。',
             TASK_TYPE_TRANSITION_UNKNOWN: '无法识别的任务类型变更({0} → {1})。',
             TASK_NODE_SHAPE_REFUSED: '一个步骤只能挂在【同一张任务】的顶层步骤下面 —— 步骤只有一层,也不能挪到别的任务上。',
+            // APR-4
+            TASK_OWNER_NOT_SELF: '新建的任务只能归你自己。先自己建,再在团队任务上把对方加成参与者。',
+            TASK_OWNER_IMMUTABLE: '{0} 的归属人不能改 —— 这个系统里没有任何功能把任务转给别人。',
+            TASK_NOT_EDITABLE: '你不在这张任务上,所以改不了它。团队任务由参与者改,私人任务由归属人改。什么都没有改动。',
         },
         pageTitle: '任务',
         loadError: '任务加载失败',

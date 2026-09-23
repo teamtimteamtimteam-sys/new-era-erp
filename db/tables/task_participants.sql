@@ -58,3 +58,10 @@ CREATE TRIGGER trg_task_participants_history
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.task_participants
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.tasks.edit');
+
+-- ═══ APR-4 ═════════════════════════════════════════════════════════════════
+-- 参与者【不在】自己的任务例外里。策略与语句级那一支一字未改;这一支只是让
+-- 一个不持码的人插参与者时撞上的是一句具名拒绝,而不是无名的 RLS 违例。
+CREATE TRIGGER trg_task_participants_guard_write
+    BEFORE INSERT OR UPDATE ON public.task_participants
+    FOR EACH ROW EXECUTE FUNCTION trg_task_participants_guard_write();

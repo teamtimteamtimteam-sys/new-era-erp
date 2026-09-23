@@ -26319,6 +26319,8 @@ export type Database = {
           done_count: number | null
           due_date: string | null
           id: string | null
+          may_manage: boolean | null
+          may_write: boolean | null
           node_count: number | null
           owner_id: string | null
           priority: string | null
@@ -27137,6 +27139,7 @@ export type Database = {
       }
       can_edit_task: { Args: { p_task_id: string }; Returns: boolean }
       can_view_task: { Args: { p_task_id: string }; Returns: boolean }
+      can_write_task: { Args: { p_task_id: string }; Returns: boolean }
       cancel_leave_request: {
         Args: { p_reason?: string; p_request_id: string }
         Returns: Json
@@ -28701,6 +28704,10 @@ export type Database = {
         Returns: string
       }
       sync_attendance_period: { Args: { p_period_id: string }; Returns: Json }
+      task_is_own: {
+        Args: { p_owner_id: string; p_task_type: string }
+        Returns: boolean
+      }
       tax_amount_for: {
         Args: { p_amount: number; p_rate_pct: number }
         Returns: number

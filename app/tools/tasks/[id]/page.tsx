@@ -20,6 +20,8 @@ import { STATUS_VALUES, PRIORITY_VALUES } from '../types'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatDate, formatDateTime } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { loadTaskAccess, NO_ACCESS, TASKS_EDIT } from '@/lib/taskAccess'
+import { TaskEditGate } from '../TaskEditGate'
 
 export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const locale = await getLocale()
@@ -68,7 +70,11 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
     // has_permission 写在 WHERE 里,所以【没有权限的人拿到的是零行,不是报错】——
     // 照着渲染就是一个空下拉,读起来是"没有人可选",而真相可能是"你不被允许看"。
     // 权限由权限本身回答,列表只负责列(与员工表单那个账号选择器同一条)。
-    const mayAssign = isTeam ? await can('module.tasks.edit') : false
+    // APR-4:这张任务上【能不能改】由数据库回答(may_write / may_manage);
+    // holdsEditCode 只用来说对原因。
+    const holdsEditCode = await can(TASKS_EDIT)
+    const access = (await loadTaskAccess(supabase, [id], holdsEditCode)).get(id) ?? NO_ACCESS(holdsEditCode)
+    const mayAssign = isTeam ? holdsEditCode : false
     const assignable = isTeam && mayAssign
         ? mustRows<AssignableRow>(
               await supabase
@@ -98,7 +104,6 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
 
     const me = await supabase.rpc('current_user_employee')
     const myEmployeeId = (me.data as string | null) ?? null
-    const iAmParticipant = participants.some((p) => !!myEmployeeId && p.employee_id === myEmployeeId && !p.removed_at)
 
     // 【选错类型的那扇门只在它开着的时候出现】——「有别人来过」之后就关上了,
     // 而关上之后类型是一段文字,不是一个下拉框:不提供做不到的手势。
@@ -144,6 +149,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
             {/* TASK-1c-b:表头七个字段 + 软删,从退休的弹窗搬过来。
                 【类型不在这里】—— personal ↔ team 只剩参与者面板上那两扇具名的门。 */}
             <TaskHeader
+                access={access.write}
                 task={{
                     id: task.id,
                     title: task.title,
@@ -180,6 +186,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
             />
 
             <NodeTree
+                access={access.write}
                 taskId={task.id}
                 nodes={nodes}
                 labels={{
@@ -209,7 +216,11 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                     rows={participants}
                     assignable={assignable}
                     mayAssign={mayAssign}
-                    canEdit={iAmParticipant}
+                    // APR-4:以前是 iAmParticipant —— 一个【只读】的参与者(Vince 在
+                    // TASK-2026-0006 上)于是被递上了服务端必拒的"退出 / 移出"。
+                    // 现在是数据库的 may_manage(can_edit_task),与参与者表的写策略同一个判据。
+                    canEdit={access.manage === 'allowed'}
+                    manageState={access.manage}
                     myEmployeeId={myEmployeeId}
                     correctable={correctable}
                     labels={{
@@ -231,7 +242,7 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                     }}
                 />
             ) : (
-                <PromotePanel taskId={task.id} canPromote={myEmployeeId !== null} />
+                <PromotePanel taskId={task.id} canPromote={myEmployeeId !== null} manageState={access.manage} />
             )}
 
             {/* 【私人任务不显示变更记录,而这是有意的不对称】—— 见上面取数处的理由。 */}
@@ -250,7 +261,16 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
 }
 
 // 私人任务:升级是一条【单向】的路,所以这里只有一个按钮,没有"改回私人"。
-async function PromotePanel({ taskId, canPromote }: { taskId: string; canPromote: boolean }) {
+async function PromotePanel({
+    taskId,
+    canPromote,
+    manageState,
+}: {
+    taskId: string
+    canPromote: boolean
+    /** APR-4:升级【不在】自己的任务例外里 —— 只有完整编辑人(can_edit_task)开得了。 */
+    manageState: import('@/lib/taskAccess').TaskEditState
+}) {
     const t = await getTranslations()
     const Client = (await import('./Participants')).PromoteButton
     return (
@@ -267,7 +287,9 @@ async function PromotePanel({ taskId, canPromote }: { taskId: string; canPromote
                     {t('tasks.participants.promoteBlockedNoEmployee')}
                 </p>
             )}
-            <Client taskId={taskId} label={t('tasks.participants.promote')} disabled={!canPromote} />
+            <TaskEditGate state={manageState}>
+                <Client taskId={taskId} label={t('tasks.participants.promote')} disabled={!canPromote} />
+            </TaskEditGate>
         </section>
     )
 }

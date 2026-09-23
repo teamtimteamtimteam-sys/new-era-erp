@@ -5,6 +5,8 @@ import { addNode, renameNode, setNodeDate, setNodeDone, removeNode, moveNode } f
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { CONTROL_CHECKBOX, CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { TaskEditGate } from '../TaskEditGate'
+import type { TaskEditState } from '@/lib/taskAccess'
 
 // app/tools/tasks/[id]/NodeTree.tsx
 // TASK-1b:步骤树。一层嵌套 —— 而【做不到的手势这里根本不出现】:
@@ -44,8 +46,12 @@ type Labels = {
 const today = () => new Date().toISOString().slice(0, 10)
 
 export default function NodeTree({
-    taskId, nodes, labels,
-}: { taskId: string; nodes: NodeRow[]; labels: Labels }) {
+    taskId, nodes, labels, access,
+}: {
+    taskId: string; nodes: NodeRow[]; labels: Labels
+    /** APR-4:数据库的 may_write。步骤跟着任务走 —— 自己的私人任务上的步骤,没有码也改得动。 */
+    access: TaskEditState
+}) {
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
     const [addingUnder, setAddingUnder] = useState<string | null | undefined>(undefined)
@@ -211,15 +217,18 @@ export default function NodeTree({
                 <div className="mb-3 rounded border border-red-400 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             ) : null}
 
-            {total === 0 ? <p className="text-sm text-[color:var(--brand-muted-text)]">{labels.empty}</p> : <ul>{tops.map((n) => row(n, false))}</ul>}
+            {/* APR-4:步骤的每一个控件都在这一道闸里 —— 改不动时照样画出来、按不动、说出原因。 */}
+            <TaskEditGate state={access} ownTaskPath>
+                {total === 0 ? <p className="text-sm text-[color:var(--brand-muted-text)]">{labels.empty}</p> : <ul>{tops.map((n) => row(n, false))}</ul>}
 
-            {addingUnder === null ? (
-                addForm(null)
-            ) : (
-                <Button variant="link" size="inline" className="mt-3 text-sm" onClick={() => { setAddingUnder(null); setDraftTitle(''); setDraftDate('') }}>
-                    {labels.add}
-                </Button>
-            )}
+                {addingUnder === null ? (
+                    addForm(null)
+                ) : (
+                    <Button variant="link" size="inline" className="mt-3 text-sm" onClick={() => { setAddingUnder(null); setDraftTitle(''); setDraftDate('') }}>
+                        {labels.add}
+                    </Button>
+                )}
+            </TaskEditGate>
         </section>
     )
 }

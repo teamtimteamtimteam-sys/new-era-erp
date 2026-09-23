@@ -5713,6 +5713,16 @@ const en = {
         },
     },
     tasks: {
+        // APR-4:「自己的任务」例外 —— 两种原因两句话(缺码 / 不在任务上),见 TaskEditGate。
+        access: {
+            readOnly: 'Read only',
+            ownTaskAlt: 'it is your own personal task',
+            ownTaskWhy:
+                'Anyone who can open Tasks can create personal tasks and edit their own — title, status, steps, delete. Team tasks, other people\'s tasks, making a task a team task and adding participants need module.tasks.edit.',
+            notYours: 'Not on this task',
+            notYoursWhy:
+                'You can edit team tasks you are on and personal tasks you own. You are not on this one, so it is read only for you. Ask someone already on it to add you — an administrator cannot grant this.',
+        },
         card: {
             stepsOverrun: 'Steps run past the due date',
             openDetail: 'Open detail →',
@@ -5799,6 +5809,10 @@ const en = {
             TASK_TYPE_LOCKED_PARTICIPANTS: '{1} other person/people have been on {0}. Making it personal would leave them unable to read what they worked on.',
             TASK_TYPE_TRANSITION_UNKNOWN: 'Unrecognised task type change ({0} → {1}).',
             TASK_NODE_SHAPE_REFUSED: 'A step can only sit under a top-level step of the same task — steps go one level deep, and cannot move to another task.',
+            // APR-4
+            TASK_OWNER_NOT_SELF: 'A new task can only be your own. Create it yourself, then add the other person as a participant on a team task.',
+            TASK_OWNER_IMMUTABLE: 'The owner of {0} cannot be changed. Nothing in this system transfers a task to someone else.',
+            TASK_NOT_EDITABLE: 'You are not on this task, so you cannot change it. Team tasks are edited by their participants and personal tasks by their owner. Nothing was changed.',
         },
         pageTitle: 'Tasks',
         loadError: 'Failed to load tasks',

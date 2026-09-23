@@ -58,12 +58,15 @@ ALTER TABLE public.task_nodes ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "task_nodes select" ON public.task_nodes
     FOR SELECT TO authenticated USING (can_view_task(task_id));
+-- APR-4:步骤跟着任务走,写判据是 can_write_task(含自己的任务例外)。
+-- 更新 / 删除的 USING 放宽到 can_view_task,让被拒的行进到 trg_task_nodes_guard_write
+-- 被按名拒 —— 理由与 tasks 那三条策略相同,写在 db/tables/tasks.sql。
 CREATE POLICY "task_nodes insert" ON public.task_nodes
-    FOR INSERT TO authenticated WITH CHECK (can_edit_task(task_id));
+    FOR INSERT TO authenticated WITH CHECK (can_write_task(task_id));
 CREATE POLICY "task_nodes update" ON public.task_nodes
-    FOR UPDATE TO authenticated USING (can_edit_task(task_id)) WITH CHECK (can_edit_task(task_id));
+    FOR UPDATE TO authenticated USING (can_view_task(task_id)) WITH CHECK (can_write_task(task_id));
 CREATE POLICY "task_nodes delete" ON public.task_nodes
-    FOR DELETE TO authenticated USING (can_edit_task(task_id));
+    FOR DELETE TO authenticated USING (can_view_task(task_id));
 
 CREATE TRIGGER trg_task_nodes_touch
     BEFORE INSERT OR UPDATE ON public.task_nodes
@@ -83,6 +86,12 @@ CREATE TRIGGER trg_task_nodes_history
 -- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
 -- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+-- ★ APR-4:多认 module.tasks.view,理由同 tasks。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.task_nodes
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.tasks.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.tasks.edit', 'module.tasks.view');
+
+-- ═══ APR-4 ═════════════════════════════════════════════════════════════════
+CREATE TRIGGER trg_task_nodes_guard_write
+    BEFORE INSERT OR UPDATE OR DELETE ON public.task_nodes
+    FOR EACH ROW EXECUTE FUNCTION trg_task_nodes_guard_write();

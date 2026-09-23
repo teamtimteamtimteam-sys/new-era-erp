@@ -17,6 +17,7 @@ import TaskModal from './TaskModal'
 import { STATUS_VALUES, type Task } from './types'
 import { Button } from '@/app/components/ui/button'
 import { showActionMessage } from '@/app/components/ui/action-message'
+import { Refusal } from '@/app/components/ui/refusal'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
 
@@ -105,14 +106,19 @@ function DueDate({ due, today }: { due: string; today: string | null }) {
 function TaskCard({
     task,
     today,
+    holdsEditCode,
 }: {
     task: Task
     today: string | null
+    holdsEditCode: boolean
 }) {
     const locale = useLocale()
     const t = useTranslations()
+    // APR-4:改不动的卡片【拖不动】—— 而且卡片上写着为什么(下面那枚「只读」),
+    // 不是等人拖过去、再被弹回来。判据是数据库的 may_write,不是这里现算的。
+    const writable = task.may_write === true
     const { attributes, listeners, setNodeRef, transform, isDragging } =
-        useDraggable({ id: task.id })
+        useDraggable({ id: task.id, disabled: !writable })
 
     const style = transform
         ? { transform: `translate3d(${transform.x}px, ${transform.y}px, 0)` }
@@ -128,7 +134,8 @@ function TaskCard({
             {...listeners}
             {...attributes}
             className={
-                'cursor-grab touch-none rounded-md border border-gray-200 bg-white p-3 shadow-sm hover:shadow ' +
+                (writable ? 'cursor-grab ' : 'cursor-default ') +
+                'touch-none rounded-md border border-gray-200 bg-white p-3 shadow-sm hover:shadow ' +
                 (isDragging ? 'opacity-50' : '')
             }
         >
@@ -152,6 +159,19 @@ function TaskCard({
             <div className="mt-0.5 text-xs text-gray-400">
                 {task.code}
             </div>
+
+            {/* APR-4:拖不动的原因写在卡片上。两种原因两句话 —— 缺码的人可以去要码
+                (或者建自己的私人任务);持码却不在这张团队任务上的人,要的不是码。 */}
+            {writable ? null : (
+                <div className="mt-1">
+                    <Refusal
+                        data-task-readonly="1"
+                        why={holdsEditCode ? t('tasks.access.notYoursWhy') : t('tasks.access.ownTaskWhy')}
+                    >
+                        {t('tasks.access.readOnly')}
+                    </Refusal>
+                </div>
+            )}
 
             {/* 优先级 + 截止日期 + 提醒 */}
             <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -203,11 +223,13 @@ function Column({
     label,
     tasks,
     today,
+    holdsEditCode,
 }: {
     id: string
     label: string
     tasks: Task[]
     today: string | null
+    holdsEditCode: boolean
 }) {
     const t = useTranslations()
     const { setNodeRef, isOver } = useDroppable({ id })
@@ -229,6 +251,7 @@ function Column({
                         key={task.id}
                         task={task}
                         today={today}
+                        holdsEditCode={holdsEditCode}
                     />
                 ))}
                 {tasks.length === 0 && (
@@ -244,7 +267,14 @@ function Column({
 // TASK-1c-b:弹窗只剩【新建】。改任务在 /tools/tasks/[id] —— 一个事实一个入口。
 type ModalState = { mode: 'create' } | null
 
-export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
+export default function TaskBoard({
+    tasks: initialTasks,
+    holdsEditCode,
+}: {
+    tasks: Task[]
+    /** 只用来说对原因、以及锁住新建弹窗的类型;能不能改每一张卡由 may_write 回答。 */
+    holdsEditCode: boolean
+}) {
     const t = useTranslations()
     const [tasks, setTasks] = useState<Task[]>(initialTasks)
     const [, startTransition] = useTransition()
@@ -284,6 +314,7 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
         const newStatus = String(over.id)
         const task = tasks.find((t) => t.id === taskId)
         if (!task || task.status === newStatus) return
+        if (task.may_write !== true) return   // 拖不动的卡本来就拖不起来;这里只是不信任手势
 
         // 乐观更新:先移动卡片
         const prevStatus = task.status
@@ -328,11 +359,14 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
     const closeModal = useCallback(() => setModal(null), [])
 
     // 新建/编辑成功:存在则替换,不存在则插到最前(列表按 created_at 倒序)
+    // 新建的任务一定归自己(数据库按名拒替别人建:TASK_OWNER_NOT_SELF),
+    // 所以它刚回来时 may_write 为真是【事实】,不是乐观假设;revalidate 之后由视图重给。
     const handleSaved = useCallback((saved: Task) => {
+        const row = { ...saved, may_write: true }
         setTasks((prev) =>
-            prev.some((t) => t.id === saved.id)
-                ? prev.map((t) => (t.id === saved.id ? saved : t))
-                : [saved, ...prev]
+            prev.some((t) => t.id === row.id)
+                ? prev.map((t) => (t.id === row.id ? row : t))
+                : [row, ...prev]
         )
     }, [])
 
@@ -361,6 +395,7 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
                             label={t('tasks.status.' + status)}
                             tasks={tasks.filter((task) => task.status === status)}
                             today={today}
+                            holdsEditCode={holdsEditCode}
                         />
                     ))}
                 </div>
@@ -371,6 +406,7 @@ export default function TaskBoard({ tasks: initialTasks }: { tasks: Task[] }) {
                     mode="create"
                     onClose={closeModal}
                     onSaved={handleSaved}
+                    mayCreateTeam={holdsEditCode}
                 />
             )}
         </>

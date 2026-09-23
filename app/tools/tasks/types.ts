@@ -27,6 +27,10 @@ export type Task = {
     node_count?: number
     done_count?: number
     steps_overrun_due_date?: boolean | null
+    // APR-4:数据库的"能不能改这张任务的内容"(task_board_rows.may_write = can_write_task)。
+    // 同样【可选】:新建返回的是 tasks 的行,身上没有它 —— 新建出来的一定是自己的任务,
+    // 看板把缺席的它按"可写"处理只在那一处成立,见 TaskBoard 的 handleSaved。
+    may_write?: boolean
 }
 
 // 表单提交给 action 的结构化输入

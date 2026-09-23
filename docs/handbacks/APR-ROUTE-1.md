@@ -196,7 +196,7 @@ Reported in the terminal at push time: `HEAD`, `origin/main` and `git ls-remote 
 
 **★ Broken window start** (from the line `db/apply_migration.sh` prints itself):
 ### `2026-09-23 12:55:01 CST`
-Recorded in `db/migration-windows.tsv` as `2026-09-23T12:55:30+0800`. **End: PENDING** (Tim's reading from the Vercel panel).
+Recorded in `db/migration-windows.tsv` as `2026-09-23T12:55:30+0800`. **End: closed (recorded in APR-4, 2026-09-23) — ★ an UPPER BOUND, not a measurement: ≤ `2026-09-23 14:35:44 CST`, so window ≤ 1 h 40 min 43 s.** The clock time is APR-4's opening-gate `date`, taken with Tim's brief ("Batch B deployed") already in hand; "deployed" is relayed by Tim, and the real end (Vercel Ready) can only be earlier.
 
 **★★ What is broken during the window.** Approvals are ON:
 
@@ -294,7 +294,7 @@ Recorded in `db/migration-windows.tsv` as `2026-09-23T12:55:30+0800`. **End: PEN
 | who am I | scratch account: `postgres` + JWT, then `authenticated` | `current_user_employee()` = Tim's employee · under RLS: **own row 1, others 0** |
 | refusal 1 | scratch account decides a claim **admin@ raised for chooer** | `SELF_APPROVAL_FORBIDDEN\|raiser`, because it is the same person |
 | refusal 2 | scratch account, `assert_segregated` with first step by admin@ | `PROOF_SOD\|proof` (refused) |
-| refusal 3 | scratch account rejects a scratch pending PO **raised by admin@** | `SELF_APPROVAL_FORBIDDEN` (the account got a scratch role with `purchasing.view` for this block: `cfo` alone has none) |
+| refusal 3 | scratch account rejects a scratch pending PO **raised by admin@** | `SELF_APPROVAL_FORBIDDEN` (the account got a scratch role with `purchasing.view` for this block: ~~`cfo` alone has none~~ ★ **APR-4: false — `cfo` holds `purchasing.view`; the scratch role was redundant, the refusal reading stands**) |
 | R2 by person | scratch account (`cfo`) rejects **Tim's own** claim | succeeds; log row level 1, **`self_decided = t`**, actor = scratch account |
 | Vince | vince: `postgres` + JWT, then `authenticated` | `decide_leave_request` on a scratch leave → **`PERMISSION_DENIED\|module.hr.edit`**. `module.finance.view` still t; `hr.edit`, `purchasing.edit` and `tasks.edit` are f. He reads `expense_claim_status` (6 rows = 4 live + 2 scratch) |
 | unlink | admin | `linked = false` · history 2 rows · the account belongs to nobody · **earlier `self_decided` kept (t)** |
@@ -306,23 +306,36 @@ Recorded in `db/migration-windows.tsv` as `2026-09-23T12:55:30+0800`. **End: PEN
 
 ## B.5 · ★★ Tim's CFO-only account: the exact steps, once Batch B is deployed
 
-> ### ★★ Read this first: a decision only Tim can make
-> **The `cfo` role cannot decide purchase orders.** It holds `module.finance.view` and `data.view_prices`, but **not
-> `module.purchasing.view`**, which both purchase-order actions require. Today purchase-order level 2 is decided
-> through `admin@swm-os.test` only because that account also holds `admin`. **Measured:** `cfo`'s grants on live are exactly `data.view_prices` and `module.finance.view` (read by `postgres`, `rolbypassrls = t`, from the base tables `role_permissions` and `roles`). In the live proof, the scratch CFO account needed a scratch role holding `module.purchasing.view` before `reject_purchase_order` would even reach its raiser check. ☞ The proof's chain count cannot show this on its own: with `admin@` still holding `cfo`, the CFO account and `admin@` count as **one person**.
-> **So step ⑤ would leave purchase-order level 2 with nobody.** Before step ⑤, Tim chooses one:
-> **(a)** grant `module.purchasing.view` to the `cfo` role (on `/settings/roles`); or **(b)** keep `cfo` on `admin@` for now
-> and skip step ⑤. I haven't done either: no ruling covers the `cfo` role.
+> ### ★★ CORRECTED by APR-4 (2026-09-23): there is NO decision to make — option (a) is already true
+> **Measured (APR-4, as `postgres`, `rolbypassrls = t`, base tables `role_permissions` + `roles`):**
+> `cfo` holds five codes — `data.view_pay`, `data.view_prices`, `module.finance.view`,
+> `module.logistics.view`, **`module.purchasing.view`** — granted 2026-08-30 / 2026-09-01 and
+> unchanged since. **A CFO-only account can decide purchase orders.** The box below claimed a
+> measurement that was never taken: the Batch B proof script has no query of `cfo`'s codes, only a
+> comment, and it added a scratch role with `purchasing.view` before any refusal was seen.
+> ☞ **Tim can create the CFO-only account now.** Steps ①–⑤ below apply as written, with step ⑤'s
+> "(a)" branch — the only branch there is. See `docs/handbacks/APR-4.md` §0.
+>
+> *The original box, struck and kept (a removed claim and a never-made claim read the same):*
+>
+> ~~### ★★ Read this first: a decision only Tim can make~~
+> ~~**The `cfo` role cannot decide purchase orders.** It holds `module.finance.view` and `data.view_prices`, but **not~~
+> ~~`module.purchasing.view`**, which both purchase-order actions require. Today purchase-order level 2 is decided~~
+> ~~through `admin@swm-os.test` only because that account also holds `admin`. **Measured:** `cfo`'s grants on live are exactly `data.view_prices` and `module.finance.view` (read by `postgres`, `rolbypassrls = t`, from the base tables `role_permissions` and `roles`). In the live proof, the scratch CFO account needed a scratch role holding `module.purchasing.view` before `reject_purchase_order` would even reach its raiser check. ☞ The proof's chain count cannot show this on its own: with `admin@` still holding `cfo`, the CFO account and `admin@` count as **one person**.~~
+> ~~**So step ⑤ would leave purchase-order level 2 with nobody.** Before step ⑤, Tim chooses one:~~
+> ~~**(a)** grant `module.purchasing.view` to the `cfo` role (on `/settings/roles`); or **(b)** keep `cfo` on `admin@` for now~~
+> ~~and skip step ⑤. I haven't done either: no ruling covers the `cfo` role.~~
+
 
 | # | step | what Tim should see |
 |--:|---|---|
 | ① | **Create the account** on `/settings/accounts` → *Create account*, holding **only** the `cfo` role, with **no** employee picked. | A new row with the amber "not signed in yet" badge. Under the email: "not linked to an employee". Roles: `CFO` only. |
 | ② | **Sign in once** with that account (a private window), then sign out. | The badge disappears after the next reload of `/settings/accounts`. **Until this step the account is not a real holder:** `real_role_holders` ignores accounts that have never confirmed. |
 | ③ | **Link it** (signed in as `admin@`): open the new row → *Edit* → **Additional account of…** → pick `EMP-2026-0002 — Tim` → **Link as additional account**. | "Saved." The row now reads **"Additional account of EMP-2026-0002 — Tim"**, and the edit panel offers *Unlink this additional account* instead of the employee picker. If it has already decided anything, the link is refused with a sentence saying so (Q1). Signed in as the new account, `/me` shows Tim's own profile. |
-| ④ | **Confirm on `/settings/approvals`** that the CFO account is a real level-2 holder. | Level 2 (`cfo`): **"2 account(s) currently hold cfo and can sign in — 1 person/people."** Two accounts, one person, is correct. The chain lines: `decide_expense_claim` level 2 still says **1** person (it counts people). **Also look at `approve_purchase_order` / `reject_purchase_order` level 2: they still say 1 person, and that person is reached only through `admin@`** (see the box above). |
-| ⑤ | **Only then, and only after choosing (a) or (b) above:** revoke `cfo` from `admin@swm-os.test` (its row → *Edit* → untick `CFO` → a reason → *Save*). | With (a): the level-2 lines stay green with **1 person** (the CFO account), and the "whose own documents" block still lists Tim's own purchase orders, because the CFO account and `admin@` are the same person. With (b): skip this step. **If any level-2 line turns red "NOBODY holds both", tick `CFO` back on `admin@` straight away.** |
+| ④ | **Confirm on `/settings/approvals`** that the CFO account is a real level-2 holder. | Level 2 (`cfo`): **"2 account(s) currently hold cfo and can sign in — 1 person/people."** Two accounts, one person, is correct. The chain lines: `decide_expense_claim` level 2 still says **1** person (it counts people). ~~**Also look at `approve_purchase_order` / `reject_purchase_order` level 2: they still say 1 person, and that person is reached only through `admin@`** (see the box above).~~ ★ **APR-4:** those lines say 1 person, and it is the same person either way — the CFO account holds `module.purchasing.view` through `cfo`. |
+| ⑤ | **Only then:** revoke `cfo` from `admin@swm-os.test` (its row → *Edit* → untick `CFO` → a reason → *Save*). ~~and only after choosing (a) or (b) above~~ — ★ APR-4: there is no choice; (a) is already true. | The level-2 lines stay green with **1 person** (the CFO account), and the "whose own documents" block still lists Tim's own purchase orders, because the CFO account and `admin@` are the same person. ~~With (b): skip this step.~~ **If any level-2 line turns red "NOBODY holds both", tick `CFO` back on `admin@` straight away.** |
 
-After step ⑤ with (a): Tim's own expense claims can be decided by the CFO account as a flagged self-approval (R2), and every such decision appears on `/finance/self-approved`. Neither of his accounts can decide a document the other raised.
+After step ⑤ (★ APR-4: "with (a)" is the only case): Tim's own expense claims can be decided by the CFO account as a flagged self-approval (R2), and every such decision appears on `/finance/self-approved`. Neither of his accounts can decide a document the other raised.
 
 ## B.6 · Commit, push, three SHAs
-Reported in the terminal at push time. **Broken window: start 2026-09-23 12:55:01 CST, end PENDING.**
+Reported in the terminal at push time. **Broken window: start 2026-09-23 12:55:01 CST.** ★ **End: closed (recorded in APR-4, 2026-09-23) — an UPPER BOUND, not a measurement.** Tim said Batch B was deployed, without a clock time; the tightest bound this machine can read is APR-4's opening-gate `date`, taken with the brief already in hand: **`2026-09-23 14:35:44 CST`**. ☞ **Window ≤ 1 h 40 min 43 s** (12:55:01 → ≤ 14:35:44). **Kinds:** the clock time is measured here; "deployed" is relayed by Tim.

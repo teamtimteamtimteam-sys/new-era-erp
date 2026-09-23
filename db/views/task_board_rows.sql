@@ -18,7 +18,13 @@ SELECT
     -- 没有截止日、或者没有带日期的步骤时,它是 NULL(什么都不说),
     -- 不是 false(那会读成"一切正常")。
     CASE WHEN t.due_date IS NULL OR n.max_node_date IS NULL THEN NULL
-         ELSE n.max_node_date > t.due_date END AS steps_overrun_due_date
+         ELSE n.max_node_date > t.due_date END AS steps_overrun_due_date,
+    -- APR-4:屏幕上"能不能改这张任务"的判据【就是】数据库那一个 ——
+    -- may_write = can_write_task(内容:表头 / 状态 / 步骤 / 软删,含自己的任务例外);
+    -- may_manage = can_edit_task(升级为团队任务 / 参与者,只有完整编辑人)。
+    -- lib/taskAccess.ts 只读这两列,不自己比权限码。
+    can_write_task(t.id) AS may_write,
+    can_edit_task(t.id) AS may_manage
 FROM public.tasks t
 LEFT JOIN LATERAL (
     SELECT count(*)::int AS node_count,
@@ -32,4 +38,5 @@ COMMENT ON VIEW public.task_board_rows IS
 【一处实现,两个调用者】—— 把 3/5 算在 TaskBoard.tsx 里,详情页就会算第二遍,然后两份实现从写下的第二天开始漂移(这个仓库为这件事付过四次学费:化验预览、GrantRunner、重估预览、/finance/payments)。
 【security_invoker = on 是【有意】的,而它的 61 个邻居都是 off】:这张视图的行过滤【就是】RLS 本身。把它改成 off,视图对读者依旧工作得完美无缺 —— 只是每一张任务对每一个持 module.tasks.view 的人都可见了,而且不报任何错。绿的,却对某一类读者是错的:这正是 OPS-14 那五处 xmodule 缺陷的签名。要改它之前,先想清楚谁来做行过滤。
 【owner_id 自 TASK-1c-a 起是员工空间(employees.id)】,不再是 auth.uid();这里只投影它,不比较它。
+APR-4:末尾两列 may_write / may_manage 是屏幕上"能不能改"的唯一来源(can_write_task / can_edit_task),页面不自己比权限码。
 注意 reloptions 里 security_invoker 可能写成 on 也可能写成 true —— 任何用 grep 找它的检查两种都要认(processing_metal_recovery 是本仓库唯一的 true)。';
