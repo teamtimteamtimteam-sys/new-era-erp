@@ -47,10 +47,16 @@
 --   EXECUTE 已从 authenticated 收回(db/views/zzz_function_grants.sql)——
 --   与 real_role_holders / approval_gate_intersections 逐字同源同理由。
 --
+-- ★ APR-ROUTE-1(2026-09-23,R4):多了两列 raiser_user_id / subject_employee_id。
+--   APPROVALS_POLICY_WOULD_STRAND 从此问的是"【这一张】除了它自己的提单人与主角,
+--   还有没有人批得动"(approval_deciders),所以它要知道每一张的双方是谁 ——
+--   而"在途单据是哪些"仍然只有这一份定义,不另起一支去查双方。
+--   ☞ 返回类型变了,所以迁移里是 DROP + CREATE(两个调用方都是 plpgsql,按名调用)。
+--   采购单没有"主角"(它不说任何一名员工),那一列是 NULL,不是"不知道"。
 -- NOTE: introduced by db/migrations/2026-09-22-apr3-the-claim-the-count-and-the-edit-that-strands.sql.
 
 CREATE OR REPLACE FUNCTION public.approval_pending_documents()
- RETURNS TABLE(subject_type text, doc_id uuid, code text, amount_base numeric, blocks_disable boolean)
+ RETURNS TABLE(subject_type text, doc_id uuid, code text, amount_base numeric, blocks_disable boolean, raiser_user_id uuid, subject_employee_id uuid)
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
@@ -59,13 +65,15 @@ AS $function$
     -- 按名拒(APPROVALS_NOT_ENABLED)—— 关掉审批,这些单据就没有人推得动。
     SELECT 'purchase_order'::text, po.id, po.code,
            round(po.estimated_total_ccy * po.fx_rate, 2),
-           true
+           true,
+           po.created_by, NULL::uuid
       FROM purchase_orders po
      WHERE po.approval_status = 'pending' AND po.deleted_at IS NULL
     UNION ALL
     -- 报销单:submitted 是员工交了一张单,与审批开关无关;decide_expense_claim
     -- 开着关着都做得了决定(只有分档那一步是条件性的)。所以它【不】挡关闭。
-    SELECT 'expense_claim'::text, c.id, c.code, b.amount_base, false
+    SELECT 'expense_claim'::text, c.id, c.code, b.amount_base, false,
+           c.created_by, c.employee_id
       FROM expense_claims c
       LEFT JOIN LATERAL expense_claim_amount_base(c.id) b ON true
      WHERE c.status = 'submitted'

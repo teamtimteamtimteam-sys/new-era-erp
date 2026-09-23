@@ -83,6 +83,7 @@ export type Database = {
           level: number | null
           note: string | null
           reconstruction_note: string | null
+          self_decided: boolean
           seq: number
           subject_code: string | null
           subject_id: string
@@ -102,6 +103,7 @@ export type Database = {
           level?: number | null
           note?: string | null
           reconstruction_note?: string | null
+          self_decided?: boolean
           seq?: number
           subject_code?: string | null
           subject_id: string
@@ -121,6 +123,7 @@ export type Database = {
           level?: number | null
           note?: string | null
           reconstruction_note?: string | null
+          self_decided?: boolean
           seq?: number
           subject_code?: string | null
           subject_id?: string
@@ -26655,6 +26658,7 @@ export type Database = {
         }
         Returns: Json
       }
+      account_person: { Args: { p_user: string }; Returns: string }
       accrued_annual_leave: {
         Args: { p_as_of?: string; p_employee_id: string }
         Returns: number
@@ -26760,6 +26764,22 @@ export type Database = {
           subject_type: string
         }[]
       }
+      approval_deciders: {
+        Args: {
+          p_action_function: string
+          p_level: number
+          p_level1_role: string
+          p_level2_role: string
+          p_raiser: string
+          p_subject_employee: string
+          p_subject_type: string
+        }
+        Returns: {
+          person_key: string
+          user_id: string
+          via_self_exception: boolean
+        }[]
+      }
       approval_gate_intersections: {
         Args: { p_level1_role?: string; p_level2_role?: string }
         Returns: {
@@ -26775,6 +26795,12 @@ export type Database = {
         Args: { p_amount_base: number; p_threshold: number }
         Returns: number
       }
+      approval_level_eligible: {
+        Args: { p_level: number; p_level1_role: string; p_level2_role: string }
+        Returns: {
+          user_id: string
+        }[]
+      }
       approval_level_for: { Args: { p_amount_base: number }; Returns: number }
       approval_pending_documents: {
         Args: never
@@ -26783,6 +26809,8 @@ export type Database = {
           blocks_disable: boolean
           code: string
           doc_id: string
+          raiser_user_id: string
+          subject_employee_id: string
           subject_type: string
         }[]
       }
@@ -27363,7 +27391,11 @@ export type Database = {
         Returns: string
       }
       forbid_self_approval: {
-        Args: { p_raiser_user: string; p_subject_employee: string }
+        Args: {
+          p_raiser_user: string
+          p_subject_employee: string
+          p_subject_type: string
+        }
         Returns: undefined
       }
       freeze_cash_forecast: {
@@ -28321,6 +28353,39 @@ export type Database = {
           label: string
           total: number
         }[]
+      }
+      self_approval_exception: {
+        Args: {
+          p_level2_role: string
+          p_subject_employee: string
+          p_subject_type: string
+          p_user: string
+        }
+        Returns: boolean
+      }
+      self_approved_decisions: {
+        Args: never
+        Returns: {
+          actor_name: string
+          actor_user_id: string
+          amount_base: number
+          amount_ccy: number
+          currency: string
+          decided_at: string
+          decision: string
+          level: number
+          note: string
+          seq: number
+          subject_code: string
+          subject_employee_id: string
+          subject_id: string
+          subject_name: string
+          subject_type: string
+        }[]
+      }
+      self_leg: {
+        Args: { p_raiser: string; p_subject_employee: string; p_user: string }
+        Returns: string
       }
       set_approvals_policy: {
         Args: {

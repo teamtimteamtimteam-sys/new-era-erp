@@ -86,7 +86,7 @@ BEGIN
     -- 【两条腿各是谁】raiser = 提这张单的人(代人录入时不是员工本人);
     -- subject = 这张单【说的是谁】,也就是拿到这笔钱的那位员工。
     -- 顺序是定的:raiser 先判(APR-2 §3.5)。
-    PERFORM forbid_self_approval(v_c.created_by, v_c.employee_id);
+    PERFORM forbid_self_approval(v_c.created_by, v_c.employee_id, 'expense_claim');
 
     -- ══ ★③ 分档 ★ ════════════════════════════════════════════════════════
     -- 【只在审批开着时问这一句】关着的时候,分档是一个没有意义的动作:

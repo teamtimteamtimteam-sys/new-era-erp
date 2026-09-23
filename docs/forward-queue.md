@@ -354,12 +354,47 @@
    |---|---|---|
    | **APR-2** | ✅ **做完了(2026-09-22)** —— 四眼统一拒(两条腿:提单人 + 单据的主角)· ★ **工单从按角色分级上摘下来**(N7 修订)· `approval_chain_gates` / `approval_gate_intersections` / 开关那道新闸 / 面板 · `check-anon-grant-decision` | — |
    | **APR-3** | ✅ **做完了(2026-09-22)** —— ★ **报销单**(新枚举,四格逐格走完,按金额分档)· **盘点**(不分档)· `APPROVALS_POLICY_WOULD_STRAND` · 逐链在途 · 工单写 `approved`<br>★★ **而委托书里的另外三条【没有接上】,理由是建模不是接线** —— 见下面 3b-iii | — |
-   | ★★ **付款申请那一刀** | ★ `payment` + `expense`,**先做一次建模改动**:真的在途态 · 分录推迟到批准那一刻 · 决定函数 · 屏幕。Tim 的说法:**要的是【钱出去之前有人点头】** —— 申请 → 批 → 付 | ★ 它**不是**接线,与 N1 那一刀同级。排在 APR-4 前后都可以,**不要折进任何一刀** |
+   | **APR-ROUTE-1** | ✅ **Batch A 做完了(2026-09-23)** —— R1 高一级批低一级 · R2 二级持有人的标记自批 + 自批报表 · R4 "除了主角还有没有人批得动" · R5/F1 报销视图行谓词。★ **Batch B(R3,一人多账号)还欠着** —— 见下面 3b-route | — |
+   | ★★ **付款申请那一刀** | ★ `payment` + `expense`,**先做一次建模改动**:真的在途态 · 分录推迟到批准那一刻 · 决定函数 · 屏幕。Tim 的说法:**要的是【钱出去之前有人点头】** —— 申请 → 批 → 付。★ **Tim 于 2026-09-23 确认了这个说法。** | ★ 它**不是**接线,与 N1 那一刀同级。★ **排在 APR-4 之后**(Tim 2026-09-23 定序,见 3b-order)。**不要折进任何一刀** |
    | **APR-4** | 采购收货 · 发票 · 货运单据 · 固定资产处置 · 加工单提交<br>★ **外加:计价条款【承诺】**(见 3b-iii) | APR-3 之后。★ 这五项**都不碰 N1** |
    | **N1 那一刀** | 给 `sales_orders` / `quotes` / `credit_notes` 加一列维护出来的本位币合计 + 维护触发器 | ★ **APR-5 的前置** —— 它是 schema 改动,不是接线 |
    | **APR-5** | 销售订单 · 报价 · 贷项通知单 · 销售订单变更 + ★ **N2 的销售订单发货前放行** | **N1 落地之后** |
    | **APR-6** | 记账凭证 | ★ **N1 落地之后**,而且要先分清"人敲的"与"系统过的"(N5) |
    | — | 薪资(按 `gross_total`,N4)· 加工单成本不全(走二级并标注,N4)· 采购单变更(沿用现有机制,N3) | 跟着 APR-4 走,不单独排刀 |
+
+   **3b-order ★★★ 从这里往后的顺序 —— Tim 裁定,2026-09-23(APR-ROUTE-1 委托书)**
+
+   > **APR-ROUTE-1 → APR-4 → 付款申请(申请 → 批 → 付)→ APR-5 → APR-6 →
+   > EMP-SELF-1(余下部分)→ Tim 开独立 CFO 账号与同事账号 → 同事端到端走一遍 →
+   > 整条审批链【一个版本号】,附详细说明。**
+   >
+   > * APR-ROUTE-1 本身分两批:**Batch A 已推送;Batch B(R3)仍在 APR-4 之前**(它是 APR-ROUTE-1 的一部分)。
+   > * ★ **Tim 在 APR-ROUTE-1 的 Batch B 落地之前【不会】开独立 CFO 账号**(R3)。
+   > * 版本号:**整条审批链一个**,APR-6 之后公布 —— 在那之前任何一刀都不分配版本号。
+   > * N1 那一刀仍是 APR-5 的前置(上表),它插在付款申请与 APR-5 之间。
+
+   **3b-emp ★ EMP-SELF-0 的答复 —— Tim,2026-09-23**
+
+   > * **接受 Q1–Q7、Q9、Q11 的推荐答案。**
+   > * **Q10(F1)在 APR-ROUTE-1 里修了**(R5 —— `expense_claim_status` 行谓词)。
+   > * **Q8 被 APR-ROUTE-1 的 R1–R4 取代**(单持有人级别的问题由"高一级批低一级"+"标记自批"+"除了主角还有没有人"解决)。
+   > * **EMP-SELF-1 余下的部分**(G1 可找到性 · G2 决定人与备注 · G3 撤回/取消 · Q9 NULL 臂加固)
+   >   **排在 APR-6 之后、同事端到端测试之前。**
+   > * **Q11:** 同事各自一个账号,各自绑到自己的员工档案,**只持 `employee` 角色** —— Tim 在那次测试之前开好。
+
+   **3b-route ★★ APR-ROUTE-1 Batch B 还欠的东西(R3:一人多账号)—— 在 APR-4 之前**
+
+   | 欠的 | 为什么 |
+   |---|---|
+   | `employee_accounts (user_id PK, employee_id)` + 一道守卫(一个账号不许既在 `employees.user_id` 又在这张表里) | Tim 的 Q6 |
+   | `account_person()` 回落到那张表 —— ★ **只改这一支的函数体** | Batch A 已经让 `self_leg` / `approval_deciders` / 自批标记全部经由它认人 |
+   | `current_user_employee()` 改成 `account_person(auth.uid())` | 第二个账号看得见它主人的 `/me`(Q7);58 个调用方与所有"本人行"策略因此自动正确 |
+   | `approve_purchase_order` / `reject_purchase_order` 那两句裸的 `created_by = auth.uid()` 改成按人认 | 它们没有走 `forbid_self_approval`(APR-2 §3 保留裸码),Batch A 没碰 |
+   | `assert_segregated` 按人认(Q8) | 否则 CFO 账号能给 admin 建的供应商付款 |
+   | `export_my_personal_data` 改用 `current_user_employee()` | 它直读 `employees.user_id = auth.uid()`,第二个账号导出会是空的 |
+   | `user_directory` · `ActorName.tsx` · 加工页的编辑人名字 · `batch_audit_trail` 的 `actor_unresolvable` | 第二个账号的动作显示成邮箱 / 被标成认不出的人 |
+   | `/settings/accounts` 上一个最小的「另一个账号属于……」控件,闸 `action.manage_permissions`(Q9) | Tim 没有别的办法调那支函数 |
+   | 一支 fixture:第二个账号批主人的单被拒、R2 的标记按人记、`/me` 与本人行策略对第二个账号成立 | — |
 
    **3b-0 ★★ 一条【被划掉又被改写】的规矩,连同它的两段历史 —— 读这一节之前先读它**
 

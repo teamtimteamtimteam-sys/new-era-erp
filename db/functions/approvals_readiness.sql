@@ -44,6 +44,7 @@ DECLARE
     v_pendchains jsonb   := '[]'::jsonb;
     v_chains     jsonb   := '[]'::jsonb;
     v_deadchains integer := 0;
+    v_owngaps    jsonb   := '[]'::jsonb;
 BEGIN
     -- ★ APR-1(N6):此前这里要求 module.finance.view,而 /settings/approvals
     --   那一页的闸是 action.manage_permissions —— **两个码守同一块屏幕**。
@@ -179,6 +180,54 @@ BEGIN
         IF v_deadchains > 0 THEN
             v_blocking := v_blocking || 'approval_chain_has_no_approver'::text;
         END IF;
+
+        -- ════════════════════════════════════════════════════════════════════
+        -- ★★ APR-ROUTE-1(Tim 的 R4 · Q10):【他自己的单,谁来批】—— 忠告,不拦 ★★
+        -- ════════════════════════════════════════════════════════════════════
+        -- 上面那一段问"这一级有没有任何人"。它答"有"的时候,那个人自己提的、
+        -- 或者说的就是他自己的单据,仍然可以没有人批:提单人那条腿拦他,
+        -- 而这一级只有他一个人(EMP-SELF-0 的 F2;线上 admin 的大额采购单正是这样)。
+        -- 所以这里把每一个【批得动这一级的人】逐个代入成"提单人兼主角",
+        -- 再问一次 approval_deciders:除了他自己,还有没有人?
+        --   · 没有,而 R2 的例外也不覆盖他  → self_exception = false(他的单会搁死)
+        --   · 没有,但 R2 的例外让他自己批  → self_exception = true(只能自批,并被标记)
+        -- ★【为什么是忠告】(Tim 的 Q10)线上今天就有这样的格子,而把它做成拦
+        --   会让一条 Tim 自己裁定的策略开不起来。★ 等独立 CFO 账号落地、二级有了
+        --   第二个人,Tim 会再看一次要不要把它改成拦 —— docs/approvals.md 记着这句。
+        -- 【判据只有一份】approval_deciders;这里只是换了一组参数去问它。
+        SELECT COALESCE(jsonb_agg(jsonb_build_object(
+                   'subject_type',    x.subject_type,
+                   'action_function', x.action_function,
+                   'level',           x.level,
+                   'role_code',       x.role_code,
+                   'user_id',         x.user_id,
+                   'who',             x.who,
+                   'self_exception',  x.self_only)
+                   ORDER BY x.subject_type, x.action_function, x.level, x.who), '[]'::jsonb)
+          INTO v_owngaps
+          FROM (
+            SELECT i.subject_type, i.action_function, i.level, i.role_code, p.user_id,
+                   COALESCE(e.legal_name, u.email, p.user_id::text) AS who,
+                   EXISTS (SELECT 1 FROM approval_deciders(i.subject_type, i.action_function, i.level,
+                                             p.user_id, account_person(p.user_id),
+                                             v_s.approval_level1_role_code, v_s.approval_level2_role_code) d
+                            WHERE d.via_self_exception) AS self_only
+              FROM approval_gate_intersections() i
+              -- 每一个批得动这一级的【人】,取他的一个账号代入
+              CROSS JOIN LATERAL (
+                  SELECT DISTINCT ON (d0.person_key) d0.user_id
+                    FROM approval_deciders(i.subject_type, i.action_function, i.level,
+                                           NULL::uuid, NULL::uuid,
+                                           v_s.approval_level1_role_code, v_s.approval_level2_role_code) d0
+                   ORDER BY d0.person_key, d0.user_id) p
+              LEFT JOIN auth.users u ON u.id = p.user_id
+              LEFT JOIN employees e ON e.id = account_person(p.user_id)
+             WHERE NOT EXISTS (
+                     SELECT 1 FROM approval_deciders(i.subject_type, i.action_function, i.level,
+                                        p.user_id, account_person(p.user_id),
+                                        v_s.approval_level1_role_code, v_s.approval_level2_role_code) d
+                      WHERE NOT d.via_self_exception)
+          ) x;
     END IF;
 
     RETURN jsonb_build_object(
@@ -203,6 +252,11 @@ BEGIN
         --   要分开的是"哪一条链死了、死在哪一级、缺的是哪个码"。
         'chain_gates',             v_chains,
         'chains_without_approver', v_deadchains,
+        -- ★ APR-ROUTE-1(R4):一个人自己的单,除了他自己没有人批得动 —— 逐格点名。
+        --   忠告,不进 blocking(Tim 的 Q10);own_document_gaps_block = false 跟着返回值走,
+        --   与 no_deputy_by_decision 同形:一句只躺在文档里的"这是裁定"会被当成遗漏。
+        'own_document_gaps',       v_owngaps,
+        'own_document_gaps_block', false,
         'blocking',                to_jsonb(v_blocking),
         'can_enable',              (NOT v_s.approvals_enabled AND cardinality(v_blocking) = 0),
         -- ★ APR-3:判据换成【会被搁死的那些】,与 guard_approvals_switch 的

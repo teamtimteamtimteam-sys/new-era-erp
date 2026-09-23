@@ -33,7 +33,7 @@ BEGIN
     -- 而本函数会写 employees.monthly_salary 与一行 employment_history 调薪记录,
     -- 也就是说 **一个人批得了自己的加薪**。线上三个持 module.hr.edit 的人
     -- 全部是在册员工(实测 2026-09-22),所以它不是理论上的。
-    PERFORM forbid_self_approval(v_r.submitted_by, v_r.employee_id);
+    PERFORM forbid_self_approval(v_r.submitted_by, v_r.employee_id, 'performance_review');
 
     SELECT * INTO v_emp FROM employees WHERE id = v_r.employee_id FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'EMPLOYEE_NOT_FOUND'; END IF;

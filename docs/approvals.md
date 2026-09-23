@@ -774,7 +774,9 @@ this "only ③ is missing"; **that premise is false for these two.**
 
 > **Tim's ruling: take them out of APR-3 and give them their own cut.** The control he wants stated
 > in his words: **approval BEFORE the money leaves** — a *payment request → approve → pay*
-> lifecycle. That cut means a real pending state, journal posting deferred to approval time,
+> lifecycle. ★ **CONFIRMED by Tim, 2026-09-23 (APR-ROUTE-1 brief).** Until then this was his
+> phrasing relayed through the APR-3 handback; it is now his confirmed framing, and the payment
+> request cut is scheduled after APR-4 (`docs/forward-queue.md`). That cut means a real pending state, journal posting deferred to approval time,
 > decision functions and screens.
 
 ☞ **Why wiring them anyway would have been worse than not wiring them:** the only cheap options
@@ -933,8 +935,83 @@ Tim will get a **separate CFO-only account**, after which `cfo` is removed from
 > compare `auth.uid()`, and those are two different uuids belonging to one person. The database
 > cannot see that, and §0b already rules that a machine rule here would be a second, narrower
 > definition of who may approve. **The protection is that it is written here.**
+>
+> ★★ **Superseded in part by Tim's R3 (APR-ROUTE-1, 2026-09-23):** the self-approval refusal and
+> the R2 flag must recognise the **person**, not only the account. APR-ROUTE-1 Batch A put the one
+> definition in place (`account_person` → `self_leg`); **Batch B** teaches it that one employee can
+> own several accounts. **Until Batch B ships, the paragraph above is still literally true**, and
+> Tim will not create the CFO-only account before then — so the gap never opens on live.
+
+> ### ★★ Finding from the APR-ROUTE-1 grilling (2026-09-23) — the rule above already bites TODAY
+> **A purchase order the `admin` account raises at 1,000 SGD or more can be approved by nobody.**
+> Level 2's only real holder is `admin@swm-os.test` (the `cfo` role), the raiser leg refuses him on
+> his own document, and **R2's exception does not cover purchase orders** — only expense claims and
+> medical claims. Measured as `postgres` (`rolbypassrls = t`) against `real_role_holders('cfo')` and
+> `approval_chain_gates()`; `/settings/approvals` now shows it as a red line under
+> *"Whose own documents have nobody else to decide them?"* (`approvals_readiness().own_document_gaps`,
+> `approve_purchase_order` and `reject_purchase_order` at level 2, `self_exception = false`).
+> ☞ **This is why the standing rule holds: the `admin` account must not raise business documents.**
+> It stops being true only when level 2 has a second person.
 
 ★ **This is Tim's action, not the terminal's** — no cut creates accounts or revokes roles.
+
+---
+
+## 3g · APR-ROUTE-1 (2026-09-23) — higher decides lower, one flagged exception, "someone OTHER than the subject"
+
+Tim's rulings R1–R5, closed before the cut. Batch A shipped R1, R2, R4 and R5. **R3 (one person,
+several accounts) is Batch B** — Batch A only laid the single definition it will change.
+
+### R1 — a level-2 holder may decide level-1 documents (tiered money chains only)
+**One definition: `approval_level_eligible(level, l1, l2)`** = the level's own role holders, plus
+the level-2 holders when the level is 1. `require_approver_for` (the runtime check) and
+`approval_deciders` (→ `approval_gate_intersections`, the switch guard and the panel) both read it.
+☞ **A chain added later inherits R1 by doing what it must do anyway:** call `require_approver_for`
+and add its row to `approval_chain_gates()` (fixture 203 E pins "roster = catalogue").
+It exists so that a level-1 holder's own documents have a decider — `chooer`'s own expense claims
+under 1,000 SGD could be decided by nobody (EMP-SELF-0 F2). **It points down only**: a level-1
+holder still gets `APPROVAL_NOT_AUTHORISED|2|<role>` on a level-2 document.
+
+### R2 — the one exception to "nobody decides their own": flagged, never prevented
+- **Rule:** `self_approval_exception(type, subject, user, l2)` — the document is an `expense_claim`
+  or `medical_claim`, the account belongs to the person the document is about, and it is a real
+  holder of the level-2 role **at decision time**. Nothing else is ever covered: payroll,
+  performance reviews, salary changes, leave and every other type stay refused.
+- **The raiser leg is waived only when the raiser is that same person.** A claim the level-2 holder
+  raised *for someone else* is still `SELF_APPROVAL_FORBIDDEN|raiser`.
+- **It never widens a module gate (Q5).** `decide_medical_claim` checks `module.hr.edit` first, so a
+  CFO-only account (which holds no `hr.edit`) is refused before the exception is ever asked.
+  **Who actually decides Tim's own medical claim:** any other `module.hr.edit` holder — on live
+  today `sandra` (cco) or `vince` (gm). `admin@swm-os.test` also holds `hr.edit` and could decide
+  it itself; that decision would be flagged.
+- **Fact, not rule:** `approval_log.self_decided` is computed by `record_approval_decision` for
+  `approved` / `rejected` as "was the decider the raiser or the subject (by person)". The CHECK
+  `approval_log_self_decided_scope` allows `true` only on the two covered types — if any other path
+  ever lets a self-decision through, the log insert fails loudly.
+- **Report:** `/finance/self-approved` (registered under finance **and** HR), reading
+  `self_approved_decisions()`, gated by the new code **`data.view_self_approvals`** — granted to
+  `admin`, `gm` (the MD, Vince) and `auditor`. A reader without it gets `PERMISSION_DENIED`, never
+  zero rows (zero rows there means "nobody has self-approved").
+
+### R4 — "can anyone decide it" asks for someone OTHER than the subject
+**One definition: `approval_deciders(subject_type, action_function, level, raiser, subject, l1, l2)`**
+= eligible (R1) ∩ holds the chain's gate ∩ (not the raiser or subject **by person**, or the R2
+exception applies). It counts **people**, not accounts. Three readers:
+
+| reader | asks with | effect |
+|---|---|---|
+| `approval_gate_intersections` → switch guard `APPROVALS_CHAIN_HAS_NO_APPROVER` and the panel | no raiser, no subject | "does this level have anyone at all" (now counting people, R1 included) |
+| `approvals_readiness().own_document_gaps` | each decider in turn as raiser + subject | **advisory**: whose own documents have no other decider (`self_exception` = only R2 lets them self-decide) |
+| `APPROVALS_POLICY_WOULD_STRAND` | each pending document's real raiser and subject | refuses a policy edit that leaves a pending document with nobody but its own parties |
+
+★ **Readiness is advisory, not blocking — Tim's ruling (Q10).** Tim will revisit making it block
+**once the CFO-only account exists and level 2 has a second person.** Blocking today would flag the
+live policy itself.
+
+### R5 — `expense_claim_status` carries its own row predicate (F1)
+`has_permission('module.finance.view') OR employee_id = current_user_employee()` — the same shape as
+`medical_claim_status`. Before it, any signed-in user could read every expense claim through
+PostgREST; only `/me`'s own page filter hid it.
 
 ---
 

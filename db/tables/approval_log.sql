@@ -125,6 +125,9 @@ CREATE TABLE public.approval_log (
 
     created_at          timestamptz NOT NULL DEFAULT now(),
 
+    -- APR-ROUTE-1(R2):ALTER 加的列,按线上序号排在最后
+    self_decided        boolean NOT NULL DEFAULT false,
+
     CONSTRAINT approval_log_amount_shape CHECK (
         (amount_ccy IS NULL AND currency IS NULL AND fx_rate IS NULL AND amount_base IS NULL)
         OR
@@ -132,6 +135,12 @@ CREATE TABLE public.approval_log (
     ),
     CONSTRAINT approval_log_reconstruction_shape CHECK (
         NOT is_reconstructed OR reconstruction_note IS NOT NULL
+    ),
+    -- ★ APR-ROUTE-1(R2):自批只可能出现在报销单与医疗申报上 —— Tim 的例外只有这两类。
+    --   self_approval_exception 是【规则】,这一条是【第二道保险】:哪一天别的路径
+    --   让一次自批漏过来,落留痕这一行当场报错,而不是写下一行看起来正常的记录。
+    CONSTRAINT approval_log_self_decided_scope CHECK (
+        NOT self_decided OR subject_type IN ('expense_claim', 'medical_claim')
     )
 );
 
@@ -203,5 +212,9 @@ CREATE POLICY "approval_log select by permission"
 REVOKE SELECT ON public.approval_log FROM authenticated, anon;
 GRANT SELECT (id, seq, subject_type, subject_id, subject_code, decision, level,
               actor_user_id, decided_at, note, amount_ccy, currency, fx_rate,
-              amount_base, is_reconstructed, reconstruction_note, created_at)
+              amount_base, is_reconstructed, reconstruction_note, created_at,
+              self_decided)
     ON public.approval_log TO authenticated;
+
+COMMENT ON COLUMN public.approval_log.self_decided IS
+    'APR-ROUTE-1(Tim 的 R2):按下去的这个人,是不是这张单据的提单人或主角(按人认,经 self_leg)。★ 记的是【事实】不是【规则】:由 record_approval_decision 对 approved / rejected 两种决定计算;auto_approved 与 approval_voided 不是一次决定,恒为 false。唯一允许它为 true 的是 Tim 的例外(二级审批角色的持有人决定自己的报销单或医疗申报),approval_log_self_decided_scope 把它钉在这两类上。自批报表 self_approved_decisions() 读它。★ 加列时线上 14 行里没有一行是"决定人 = 主角"的决定(APR-ROUTE-1 grilling 实测),所以 DEFAULT false 对历史行是真话,不是回填。';

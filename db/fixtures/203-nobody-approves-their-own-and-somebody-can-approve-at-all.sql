@@ -100,13 +100,18 @@ BEGIN
         --   module.finance.view + data.view_prices。两级都要补上 module.finance.view,
         --   ☞ 【否则 H1 报出来的会是报销那条链,而不是本臂刻意造出来的采购那条】——
         --     那样这一臂仍然会绿,而它证的已经是另一件事了。
-        --   ★ 本臂刻意留着的缺口【只有一个】:r_l1 不持 module.purchasing.view。
-        --     H2 随后把它补上,于是"补齐就开得起来"证的是那一个码,不是一堆码。
+        --   ★ 本臂刻意留着的缺口【只有一个码】:module.purchasing.view(两级都不持,
+        --     理由见下)。H2 随后只补给二级,于是"补齐就开得起来"证的是那一个码 ——
+        --     并且顺带证了 R1:一级那条链靠的是二级的人。
         (r_l1,   'module.finance.view'),
-        (r_l2,   'module.finance.view'),
-        -- ★ 二级这一支【一开始就配齐】,于是 H1 报出来的必然是一级那一条,
-        --   而不是一句含混的"某一级不行"。
-        (r_l2,   'module.purchasing.view');
+        (r_l2,   'module.finance.view');
+        -- ★★ APR-ROUTE-1(R1,2026-09-23):二级这一支【不再】一开始就配齐。
+        --   R1 之后一级的有资格名单 = 一级持有人 ∪ 二级持有人;二级若先持
+        --   module.purchasing.view,一级那条采购链就经由 u_l2 有了批得动的人,
+        --   H1 当场变成空转(开关开起来了)—— 与本文件上面 u_l2 那段注释
+        --   是同一个形状:求交按【人】算,而 R1 让二级的人也站进了一级。
+        --   ☞ 所以 H1 时两级都缺这个码(报出来的仍然是 approve_purchase_order|1,
+        --     按 action_function、level 排序的第一格);H2 只补给【二级】。
 
     INSERT INTO user_roles (user_id, role_id) VALUES
         (u_hrA, r_hr), (u_hrB, r_hr), (u_hrC, r_hr),
@@ -313,7 +318,9 @@ BEGIN
 
     -- ══════════════════════ H2 ★★ 把缺的码补上 → 开得起来 ══════════════════
     -- 【少了这一臂,一个"永远不许开"的实现会全绿】—— 与 fixture 202 的 G 同一条。
-    INSERT INTO role_permissions (role_id, permission_code) VALUES (r_l1, 'module.purchasing.view');
+    -- ★ APR-ROUTE-1(R1):只补给【二级】。一级那条采购链从此经由 u_l2 批得动 ——
+    --   R1 之前这一行补在 r_l1 上;补在 r_l2 上还开得起来,正是 R1 生效的读数。
+    INSERT INTO role_permissions (role_id, permission_code) VALUES (r_l2, 'module.purchasing.view');
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_adm), true);
     EXECUTE 'SET LOCAL ROLE authenticated';
     PERFORM set_approvals_policy(true, 'fx203-l1', 'fx203-l2', 1000);

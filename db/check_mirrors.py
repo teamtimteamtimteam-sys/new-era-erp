@@ -363,6 +363,18 @@ DEFINER_NO_CHECK_ALLOWED = {
     # 每一次写审批策略都抛权限错(与 purchase_order_kind / gst_registered 同形)。
     # 收权写在 db/views/zzz_function_grants.sql。
     "approval_gate_intersections": "EXECUTE revoked from authenticated; callers approvals_readiness (checks action.manage_permissions) and the owner-run trigger guard_approvals_switch, where postgres has no claims so a permission check would raise on every approval-policy write",
+    # ── APR-ROUTE-1(2026-09-23)────────────────────────────────────────────
+    # 五支内层函数,与 approval_gate_intersections 逐字同一条理由:EXECUTE 已从
+    # authenticated 收回(db/views/zzz_function_grants.sql),gate 的 B2 靠的是【调不到】。
+    # 【它们不能自己查权限】调用方里有属主身份跑的触发器 guard_approvals_switch
+    # (postgres 没有 claims),也有【决定单据的那个人】的会话(require_approver_for /
+    # forbid_self_approval / record_approval_decision)—— 那个人不持 action.manage_permissions,
+    # 加一道门会让"批一张单"这个动作本身抛权限错。
+    "account_person": "EXECUTE revoked from authenticated; answers which employee ANY account belongs to, so it must stay unreachable. Callers are self_leg / approval_deciders / self_approved_decisions / approvals_readiness, all definer and run in the deciding user's or the owner's session",
+    "self_leg": "EXECUTE revoked from authenticated; the one definition of 'is this account the raiser or the subject', read by forbid_self_approval and record_approval_decision inside the deciding user's session, and by approval_deciders",
+    "self_approval_exception": "EXECUTE revoked from authenticated; Tim's R2 exception, read by forbid_self_approval inside the deciding user's session and by approval_deciders; reads the approver list via real_role_holders",
+    "approval_level_eligible": "EXECUTE revoked from authenticated; R1's 'who may decide this level', read by require_approver_for in the deciding user's session and by approval_deciders; reads the approver list via real_role_holders",
+    "approval_deciders": "EXECUTE revoked from authenticated; R4's 'who other than the subject can decide', read by approval_gate_intersections, approvals_readiness (checks action.manage_permissions) and the owner-run trigger guard_approvals_switch, where postgres has no claims",
     # COD-1(2026-09-07):销毁证书的两支内层函数。EXECUTE 已从 authenticated 收回
     # (db/views/zzz_function_grants.sql,逐条理由在那里),所以 gate 的 B2
     # (definer-unchecked-and-CALLABLE)两侧都是 0 —— 靠的就是【调不到】。

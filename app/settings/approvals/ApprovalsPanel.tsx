@@ -50,6 +50,18 @@ type Readiness = {
         approvers: number
     }[]
     chains_without_approver: number
+    // ★ APR-ROUTE-1(R4):逐个批得动的人代入成"提单人兼主角",除了他自己没有人批的格子。
+    //   忠告,不进 blocking(Tim 的 Q10);self_exception = 只能靠 R2 的例外自批。
+    own_document_gaps: {
+        subject_type: string
+        action_function: string
+        level: number
+        role_code: string | null
+        user_id: string
+        who: string
+        self_exception: boolean
+    }[]
+    own_document_gaps_block: boolean
     blocking: string[]
     can_enable: boolean
     can_disable: boolean
@@ -211,6 +223,55 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
                                   })}
                         </p>
                     ))}
+                </div>
+            </div>
+
+            {/* ════════════════════════════════════════════════════════════════
+                ★★ APR-ROUTE-1(R4):他自己的单,谁来批 ★★
+                ════════════════════════════════════════════════════════════════
+                上面那块问"这一级有没有任何人"。它答"有"的时候,那个人【自己的】
+                单据仍然可以没有人批 —— 提单人那条腿拦他,而这一级只有他一个。
+                ★ 忠告,不拦(Tim 的 Q10)。独立 CFO 账号落地、二级有了第二个人之后,
+                  Tim 会再看一次要不要把它改成拦。
+                ☞ 红与黄是两种不同的事:红 = 那个人的单会永远停在待批;
+                  黄 = 只有他自己批得了,而那是 R2 允许的、每一次都被标记的自批。 */}
+            <div className="mt-3">
+                <p className="text-xs font-medium text-[color:var(--brand-text)]">
+                    {t('finance.approvals.ownGapsTitle')}
+                </p>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-1">
+                    {t('finance.approvals.ownGapsWhy')}
+                </p>
+                <div className="ml-4 space-y-1">
+                    {(r.own_document_gaps ?? []).length === 0 ? (
+                        <p className="text-xs rounded px-2 py-1 border text-green-800 bg-green-50 border-green-200">
+                            {t('finance.approvals.ownGapsNone')}
+                        </p>
+                    ) : (
+                        (r.own_document_gaps ?? []).map((g) => (
+                            <p
+                                key={`${g.action_function}-${g.level}-${g.user_id}`}
+                                className={
+                                    'text-xs rounded px-2 py-1 border ' +
+                                    (g.self_exception
+                                        ? 'text-amber-800 bg-amber-50 border-amber-200'
+                                        : 'text-red-800 bg-red-50 border-red-300')
+                                }
+                            >
+                                {g.self_exception
+                                    ? t('finance.approvals.ownGapSelfOnly', {
+                                          action: g.action_function,
+                                          level: String(g.level),
+                                          who: g.who,
+                                      })
+                                    : t('finance.approvals.ownGapStrands', {
+                                          action: g.action_function,
+                                          level: String(g.level),
+                                          who: g.who,
+                                      })}
+                            </p>
+                        ))
+                    )}
                 </div>
             </div>
 

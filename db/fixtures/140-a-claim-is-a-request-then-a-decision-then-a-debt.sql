@@ -398,7 +398,9 @@ BEGIN
                      E'\n') AS l) q;
     -- ★★ APR-3:判据换成了全库唯一那一份,两条腿一次传进去
     --   (提报人 created_by · 单据说的那位 employee_id)。
-    IF v_src NOT LIKE '%forbid_self_approval(v_c.created_by, v_c.employee_id)%' THEN
+    -- ★ APR-ROUTE-1(2026-09-23):多了第三个参数 —— 单据类型,没有默认值。
+    --   R2 的例外按类型判,所以这一句钉的也是"它说出了自己是报销单"。
+    IF v_src NOT LIKE '%forbid_self_approval(v_c.created_by, v_c.employee_id, ''expense_claim'')%' THEN
         RAISE EXCEPTION 'FIXTURE 140J 失败:decide_expense_claim 里【没有】那一次四眼调用 —— 而 guard_payment_sod 明确豁免了付给员工的款,上游这道闸一撤,自己批自己就通了';
     END IF;
     -- 【对齐用的空格数不算数,绑定关系才算数】第一版把 p_employee_id 与 :=

@@ -73,7 +73,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.logistics.view',
         'data.view_deleted',
         -- COD-1:签发销毁证书。
-        'action.issue_cod') WHERE r.code = 'admin';
+        'action.issue_cod',
+        -- APR-ROUTE-1(R2 · Q4):自批报表。
+        'data.view_self_approvals') WHERE r.code = 'admin';
 
 -- gm(30):看得见整个生意,包括成本与利润;【但不能改权限】—— 没有 action.manage_permissions。
 INSERT INTO public.role_permissions (role_id, permission_code)
@@ -89,7 +91,12 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit',
         'module.tasks.view',
         'module.sales.edit', 'module.sales.view',
-        'module.logistics.view') WHERE r.code = 'gm';
+        'module.logistics.view',
+        -- ★ APR-ROUTE-1(Tim 的 R2 · Q4):自批报表。Tim 的 MD 是 Vince,他持 gm
+        --   (grilling 当天对 live 实测)。⚠ NAV-CLEANUP-1 记过"一份过期文档把 gm 写成 MD、
+        --   而那个人另被裁定为只读"—— 本码同时授给了 auditor,所以无论 MD 最后坐在哪个
+        --   角色上,他都看得见;授给 gm 是 Tim 在 Q4 里点名的。
+        'data.view_self_approvals') WHERE r.code = 'gm';
 
 -- finance(23):总账、应付应收、开票收付款 + 全部成本可见。【不含 HR】—— 薪酬与员工档案不是财务的工作对象。
 INSERT INTO public.role_permissions (role_id, permission_code)
@@ -171,7 +178,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.logistics.view',
         -- ★ NAV-CLEANUP-1 ①:被删记录。auditor 与 admin 是【仅有的】两个持有者;
         --   gm 刻意不给 —— 理由在那支迁移的抬头(一份过期文档仍把 gm 写成 MD)。
-        'data.view_deleted') WHERE r.code = 'auditor';
+        'data.view_deleted',
+        -- APR-ROUTE-1(R2 · Q4):自批报表 —— 审计性质,正是审计角色要看的那一类。
+        'data.view_self_approvals') WHERE r.code = 'auditor';
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- NAV-REG-1 / R2:module.logistics.view 授给了上面 8 个角色中的每一个。

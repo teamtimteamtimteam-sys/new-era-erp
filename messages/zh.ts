@@ -6177,6 +6177,7 @@ const zh = {
             cashflow: '现金流量表',
             cashForecast: '现金预测',
             expenseClaims: '费用报销',
+            selfApproved: '自批记录',
             receivables: '应收',
             invoices: '发票',
             creditNotes: '贷项凭证',
@@ -6611,6 +6612,23 @@ const zh = {
         reopenConfirm: '重开该期间?其分录将恢复可改。',
         closeHistoryEmpty: '暂无关账记录',
         useClosePage: '正常关账请走月结页面;此处为手动覆盖。',
+        // APR-ROUTE-1(Tim 的 R2 · Q4):自批记录那一页。
+        selfApproved: {
+            title: '自批记录',
+            why:
+                '没有人可以决定自己的单据 —— 只有一个例外,是为了【可追溯】而不是【可防止】有意识地选的:最高审批级别的持有人可以决定他自己的报销单与医疗申报。每一次这样的决定都被记为自批,并列在这里。薪资、绩效、调薪与请假永远不在例外之内。',
+            empty: '没有人决定过自己的单据。这张表是完整的:每一次自批都在做出的那一刻就被记为自批。',
+            colDecidedAt: '决定时间',
+            colDocument: '单据',
+            colDecision: '决定',
+            colDecider: '决定人',
+            colSubject: '单据说的是',
+            colAmount: '金额',
+            colNote: '备注',
+            decisionApproved: '批准',
+            decisionRejected: '驳回',
+            level: '第 {level} 级',
+        },
         approvals: {
             // IA-BUILD-1 / D7:面板搬到设置去了,这两句留在原处指路。
             movedToSettings: '审批链已经搬到「设置」底下',
@@ -6681,9 +6699,17 @@ const zh = {
             chainGatesWhy:
                 '持有审批角色只是一半 —— 那个人还得持有这个动作自己要的权限,否则他连那张单据都打不开。此前没有任何东西在看这件事,于是一条【谁都过不去】的工单审批链就这么上线了。',
             chainGateOk:
-                '{action},第 {level} 级 → 角色「{role}」:有 {n} 个人同时持有那个角色与这个动作要的权限。',
+                '{action},第 {level} 级 → 角色「{role}」:有 {n} 个人批得动 —— 他们持有这个动作要的权限,并且持有这一级或更高一级的角色(二级审批人也可以批一级的单)。同一个人的两个账号只算一个。',
             chainGateDead:
                 '★ {action},第 {level} 级 → 角色「{role}」:【一个人都没有】。这一步要 {perms},而「{role}」的真持有人里没有人持有它。这一条成立的时候,审批开不起来。',
+            ownGapsTitle: '谁自己的单,没有别人批得动?',
+            ownGapsWhy:
+                '上面问的是"这一步有没有任何人批得动"。这里问更难的那一句:对每一个批得动的人,如果单据是他提的、或者说的就是他,还有没有【他以外】的人?没有人批自己的单,所以一个只有一个人的级别,会让那个人自己的单一直等着。这是一个忠告,不是一道闸;二级有了第二个人之后会再看一次。',
+            ownGapsNone: '每一位审批人自己的单,都有别人批得动。',
+            ownGapStrands:
+                '★ {action},第 {level} 级:{who} 自己的单【没有任何别人】批得动,会永远停在待批。要么这一级再有一个人,要么 {who} 不该提这类单。',
+            ownGapSelfOnly:
+                '{action},第 {level} 级:{who} 自己的单只有 {who} 本人批得了。对报销单与医疗申报,最高一级审批人这样做是允许的 —— 每一次都会被标成自批,并列进自批报表。',
             whileOnPending:
                 '审批现在正生效,而且有 {n} 张采购单在等审批。改角色或改门槛会把【还在途】的那些重新路由 —— 已经决定过的不会被重新打开。今天没有任何东西锁住这件事;该不该锁,是留给下一刀的一个未决问题。',
             save: '保存审批策略',

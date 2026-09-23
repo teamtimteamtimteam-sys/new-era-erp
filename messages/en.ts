@@ -6375,6 +6375,7 @@ const en = {
             cashflow: 'Cash flow',
             cashForecast: 'Cash forecast',
             expenseClaims: 'Expense claims',
+            selfApproved: 'Self-approved decisions',
             receivables: 'Receivables',
             invoices: 'Invoices',
             creditNotes: 'Credit notes',
@@ -6812,6 +6813,23 @@ const en = {
         reopenConfirm: 'Reopen this period? Its entries become editable again.',
         closeHistoryEmpty: 'No closes yet',
         useClosePage: 'Month-end close is the normal way to lock periods — use the Close page.',
+        // APR-ROUTE-1(Tim 的 R2 · Q4):自批记录那一页。
+        selfApproved: {
+            title: 'Self-approved decisions',
+            why:
+                'Nobody may decide their own documents — with one exception, chosen deliberately for traceability rather than prevention: the holder of the top approval level may decide their own expense claims and medical claims. Every such decision is recorded as self-approved and listed here. Payroll, performance reviews, salary changes and leave are never covered.',
+            empty: 'Nobody has decided their own claim. This list is complete: every self-approved decision is recorded as such at the moment it is made.',
+            colDecidedAt: 'Decided at',
+            colDocument: 'Document',
+            colDecision: 'Decision',
+            colDecider: 'Decided by',
+            colSubject: 'About',
+            colAmount: 'Amount',
+            colNote: 'Note',
+            decisionApproved: 'Approved',
+            decisionRejected: 'Rejected',
+            level: 'level {level}',
+        },
         approvals: {
             // IA-BUILD-1 / D7:面板搬到设置去了,这两句留在原处指路。
             movedToSettings: 'The approval chain now lives under Settings',
@@ -6884,9 +6902,17 @@ const en = {
             chainGatesWhy:
                 'Holding the approver role is only half of it — the person also has to hold the permission the action itself requires, or they cannot open the document. Nothing checked that until now, and a work order chain shipped that literally nobody could pass.',
             chainGateOk:
-                '{action}, level {level} → role "{role}": {n} person/people hold both the role and the permission this action requires.',
+                '{action}, level {level} → role "{role}": {n} person/people can decide it — they hold the permission this action requires, and either this level\'s role or a higher level\'s (a level-2 approver may also decide level-1 documents). Two accounts belonging to one person count once.',
             chainGateDead:
                 '★ {action}, level {level} → role "{role}": NOBODY holds both. This step needs {perms}, and no real holder of "{role}" has it. Approvals cannot be switched on while this is true.',
+            ownGapsTitle: 'Whose own documents have nobody else to decide them?',
+            ownGapsWhy:
+                'Above asks whether anyone at all can decide each step. This asks the harder question: for each person who can, if they raised the document — or it is about them — is there someone OTHER than them? Nobody decides their own documents, so a step with one person leaves that person\'s own documents waiting. This is a warning, not a block; it will be revisited once level 2 has a second person.',
+            ownGapsNone: 'Every approver\'s own documents have someone else who can decide them.',
+            ownGapStrands:
+                '★ {action}, level {level}: {who}\'s own documents have NO other decider. They would wait forever. Either someone else needs this approval level, or {who} should not raise these documents.',
+            ownGapSelfOnly:
+                '{action}, level {level}: only {who} can decide {who}\'s own claims. That is allowed for expense and medical claims decided by the top approval level — and every such decision is flagged as self-approved and listed in the self-approval report.',
             whileOnPending:
                 'Approvals are in force right now and {n} purchase order(s) are awaiting approval. Changing the roles or the threshold re-routes what is still pending — it does not re-open anything already decided. Nothing locks that today; whether it should is an open question for the next cut.',
             save: 'Save the approval policy',

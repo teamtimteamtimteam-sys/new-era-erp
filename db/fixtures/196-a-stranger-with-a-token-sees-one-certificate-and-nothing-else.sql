@@ -418,6 +418,13 @@ BEGIN
     -- 【前提自证:基表【真的】有行,而视图【真的】吐得出内容】
     -- 没有这两句,下面那两个 0 可能只是因为库里什么都没有 —— 而那正是
     -- 这两张视图当初躲过所有人的方式。
+    -- ★ APR-ROUTE-1(F1,Tim 的 Q11):expense_claim_status 从此带行谓词
+    --   has_permission('module.finance.view') OR employee_id = current_user_employee()。
+    --   以 postgres、清空 claims 的身份读它,两半都为假 → 0 行,F0b 会为一个
+    --   【与本 fixture 无关】的理由报"前提不成立"。所以前提自证改用一个持
+    --   module.finance.view 的真身份(v_issuer 持全部权限)。下面匿名那一臂
+    --   照旧自己清空 claims 再读 —— 那一半要证的正是"无身份读不到"。
+    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_issuer), true);
     SELECT count(*) INTO v_rows FROM collection_promise_status;
     IF v_rows = 0 THEN RAISE EXCEPTION 'F0a 前提不成立:属主读 collection_promise_status 也是空的'; END IF;
     SELECT count(*) INTO v_rows FROM expense_claim_status;

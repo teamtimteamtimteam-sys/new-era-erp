@@ -13,6 +13,10 @@ DECLARE
     v_ok   boolean := false;
     v_id   uuid;
     v_base_ccy text;
+    -- APR-ROUTE-1(R2):这一张单据的提单人与主角,为了 self_decided
+    v_raiser   uuid;
+    v_subject  uuid;
+    v_self     boolean := false;
 BEGIN
     SELECT code INTO v_base_ccy FROM currencies WHERE is_base;
 
@@ -21,22 +25,22 @@ BEGIN
     CASE p_subject_type
         WHEN 'leave_request' THEN
             -- 请假没有金额:天数不是钱,不塞进币种列
-            SELECT true, r.code INTO v_ok, v_code
+            SELECT true, r.code, r.created_by, r.employee_id INTO v_ok, v_code, v_raiser, v_subject
               FROM leave_requests r WHERE r.id = p_subject_id;
         WHEN 'medical_claim' THEN
             -- amount_sgd 已经是本位币口径(列名是 FIN-0 之前留下的字面量,不是新的判断)
-            SELECT true, c.code, c.amount_sgd, v_base_ccy, 1, c.amount_sgd
-              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base
+            SELECT true, c.code, c.amount_sgd, v_base_ccy, 1, c.amount_sgd, c.created_by, c.employee_id
+              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser, v_subject
               FROM medical_claims c WHERE c.id = p_subject_id;
         WHEN 'performance_review' THEN
-            SELECT true, e.code INTO v_ok, v_code
+            SELECT true, e.code, r.submitted_by, r.employee_id INTO v_ok, v_code, v_raiser, v_subject
               FROM performance_reviews r JOIN employees e ON e.id = r.employee_id
              WHERE r.id = p_subject_id;
         WHEN 'purchase_order' THEN
             -- 【用单据自己存的汇率】(决定 3)—— 审批档次因此不会随行情事后漂移
             SELECT true, po.code, po.estimated_total_ccy, po.currency, po.fx_rate,
-                   round(po.estimated_total_ccy * po.fx_rate, 2)
-              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base
+                   round(po.estimated_total_ccy * po.fx_rate, 2), po.created_by
+              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser
               FROM purchase_orders po WHERE po.id = p_subject_id;
         WHEN 'payment' THEN
             SELECT true, p.code, p.amount_ccy, p.currency, p.fx_rate, p.amount_base
@@ -55,8 +59,9 @@ BEGIN
             -- 【牌价查不到时四列一起留空,而不是塞一个数进去】approval_log 的
             -- amount_shape 约束要的就是"全有或全无";留空的意思是【这一张当时
             -- 分不了档】,而那是真的。要按名拒的那一支是 decide_expense_claim。
-            SELECT true, c.code, b.amount_ccy, b.currency, b.fx_rate, b.amount_base
-              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base
+            SELECT true, c.code, b.amount_ccy, b.currency, b.fx_rate, b.amount_base,
+                   c.created_by, c.employee_id
+              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser, v_subject
               FROM expense_claims c
               LEFT JOIN LATERAL expense_claim_amount_base(c.id) b ON true
              WHERE c.id = p_subject_id;
@@ -67,14 +72,14 @@ BEGIN
             SELECT true, f.code INTO v_ok, v_code
               FROM pricing_formulas f WHERE f.id = p_subject_id;
         WHEN 'stocktake' THEN
-            SELECT true, s.code INTO v_ok, v_code
+            SELECT true, s.code, s.created_by INTO v_ok, v_code, v_raiser
               FROM stocktakes s WHERE s.id = p_subject_id;
         WHEN 'work_order' THEN
             -- WO-1b:工单【没有金额】—— 它是一份要做什么的计划,不是一笔钱。
             -- 与 leave_request / performance_review / stocktake 同一类:
             -- 只冻结编号,金额那四列留空,而不是塞一个 0 进去
             -- (0 会让它在按金额筛的报表里排到最前面,那是一句假话)。
-            SELECT true, w.code INTO v_ok, v_code
+            SELECT true, w.code, w.created_by INTO v_ok, v_code, v_raiser
               FROM work_orders w WHERE w.id = p_subject_id;
         ELSE
             RAISE EXCEPTION 'APPROVAL_SUBJECT_TYPE_UNKNOWN|%', p_subject_type;
@@ -84,10 +89,28 @@ BEGIN
         RAISE EXCEPTION 'APPROVAL_SUBJECT_NOT_FOUND|%|%', p_subject_type, p_subject_id;
     END IF;
 
+    -- ════════════════════════════════════════════════════════════════════
+    -- ★★ APR-ROUTE-1(Tim 的 R2 · Q2):self_decided 记的是【事实】,不是【规则】 ★★
+    -- ════════════════════════════════════════════════════════════════════
+    -- 它问的是"按下去的这个人,是不是这张单的提单人或主角(按人认)",
+    -- 而【不】问"例外成不成立"。两者今天算出同一个答案 —— 因为 forbid_self_approval
+    -- 只在例外成立时才让"自己"走到这里。
+    -- ★ 分开写的理由:哪一天另一条路径让一次自批漏了过来,这一格照样是 true,
+    --   而 approval_log_self_decided_scope 那条 CHECK 会在【这一行 INSERT】上
+    --   当场拒绝 —— 漏洞变成一次响亮的失败,而不是一行看起来正常的留痕。
+    -- 【只看 approved / rejected】auto_approved 是"没有人按过任何东西"
+    --   (create_purchase_order 在审批关着时由提单人自己的会话写),
+    --   approval_voided 是系统作废 —— 两者都不是一次决定,不该被问"是不是自批"。
+    IF p_decision IN ('approved', 'rejected') THEN
+        v_self := self_leg(v_raiser, v_subject, auth.uid()) <> 'none';
+    END IF;
+
     INSERT INTO approval_log (subject_type, subject_id, subject_code, decision, level,
-                              actor_user_id, note, amount_ccy, currency, fx_rate, amount_base)
+                              actor_user_id, note, amount_ccy, currency, fx_rate, amount_base,
+                              self_decided)
     VALUES (p_subject_type, p_subject_id, v_code, p_decision, p_level,
-            auth.uid(), p_note, v_amt, v_ccy, v_rate, v_base)
+            auth.uid(), p_note, v_amt, v_ccy, v_rate, v_base,
+            v_self)
     RETURNING id INTO v_id;
 
     RETURN v_id;

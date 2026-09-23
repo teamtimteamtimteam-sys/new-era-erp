@@ -6,6 +6,36 @@
 -- 照它重建镜像会把两样都悄悄丢掉（AGENTS.md 为前者记过一次；后者是
 -- STATEMENT-1 漏过、CHASE-1-FU 补上的那一条）。
 --
+-- ════════════════════════════════════════════════════════════════════════════
+-- ★★★ APR-ROUTE-1 · F1(Tim 的 R5,2026-09-23):这张视图此前把【每一笔】报销
+--     交给【任何一个】登录的人 ★★★
+-- ════════════════════════════════════════════════════════════════════════════
+-- 【它是什么形状】属主权限(security_invoker = off),于是 expense_claims 的 RLS
+-- 根本不参与;而函数体【没有任何行谓词】。EMP-SELF-0 §3 以 fusheng(warehouse,
+-- 不持 module.finance.view)的真身份实测:看得见 4 行 —— 线上全部 4 行,
+-- 跨 2 名员工,带姓名、金额、事由。/me 只是因为页面自己加了
+-- `.eq('employee_id', …)` 才没有在屏幕上露出来 —— 一道只在【页面】上的过滤,
+-- 对一个直接调 PostgREST 的人什么都不是。
+--
+-- 【谓词】与 medical_claim_status 逐字同形:财务看全部,其余每个人只看自己的。
+--   has_permission('module.finance.view') OR employee_id = current_user_employee()
+-- ★ 两个都按【调用者】求值(两者都是 SECURITY DEFINER、读 auth.uid()),
+--   所以属主权限不会把它们变成"属主看得见的一切"。
+--
+-- 【下面 COD-2 那段理由,在这张视图上是【假】的,照直更正】它说"本视图要喂
+-- operations_now,加谓词会让没有财务权限的人的行静默消失"。EMP-SELF-0 §3 与
+-- APR-ROUTE-1 grilling 各查一遍:`grep expense_claim_status` 在 db/views、
+-- db/functions、app、lib 里只命中两处 —— app/me/page.tsx(本人)与
+-- app/finance/claims/page.tsx(页闸 module.finance.view)。**没有任何视图或函数
+-- 读它。** 于是这一句谓词没有让任何一个合法读者少一行。
+-- ☞ 那段话大概是从 collection_promise_status(同一次 COD-2 一起收权的另一张)
+--   上抄过来的。它留在下面,因为 REVOKE FROM anon 那一句仍然对 —— 错的只是理由。
+--
+-- 【一个读者真的少了行:db/fixtures/196 的 F0b】它以 postgres、清空 claims 的身份
+-- 读这张视图来自证"视图里有东西"。postgres 没有 JWT → has_permission 恒假、
+-- current_user_employee() 为 NULL → 0 行 → F0b 响亮地报"前提不成立"。
+-- 同一刀里改成以一个持 module.finance.view 的身份读(Tim 的 Q11)。
+--
 -- NOTE: introduced by db/migrations/2026-08-28-claim1-employee-expense-claims.sql.
 
 CREATE VIEW public.expense_claim_status WITH (security_invoker = off) AS
@@ -41,10 +71,11 @@ SELECT c.id AS claim_id,
      LEFT JOIN LATERAL ( SELECT round(sum(pa.allocated_ccy), 2) AS settled_ccy
            FROM payment_allocations pa
              JOIN payments p ON p.id = pa.payment_id
-          WHERE pa.expense_id = c.expense_id AND p.status = 'posted'::text) a ON true;
+          WHERE pa.expense_id = c.expense_id AND p.status = 'posted'::text) a ON true
+  WHERE has_permission('module.finance.view'::text) OR c.employee_id = current_user_employee();
 
 COMMENT ON VIEW public.expense_claim_status IS
-    'CLAIM-1:每一笔报销一行,而【付了没有是推导出来的】—— 与 medical_claim_status 同一条:付款状态归 expenses 所有,存一份副本第一次冲销付款时两边就分家。expense_reversed 单独露出来,因为"批准被撤销"在本刀里【没有】自己的机制:改法是冲销那笔费用(expenses 本来就有冲销路径与 reversed_by_expense),claim 的状态跟着它走 —— 两个撤销机制会对"这笔钱还欠不欠"各说各话。属主权限(security_invoker = off):它横跨 finance 与 hr(employees 有 RLS),invoker 会让读者无权的那一侧静默丢掉行,而行消失在这里意味着"少了一笔欠员工的钱"(OPS-14 修法 (a));调用方按 module.finance.view 或本人把关。';
+    'CLAIM-1:每一笔报销一行,而【付了没有是推导出来的】—— 与 medical_claim_status 同一条:付款状态归 expenses 所有,存一份副本第一次冲销付款时两边就分家。expense_reversed 单独露出来,因为"批准被撤销"在本刀里【没有】自己的机制:改法是冲销那笔费用(expenses 本来就有冲销路径与 reversed_by_expense),claim 的状态跟着它走 —— 两个撤销机制会对"这笔钱还欠不欠"各说各话。属主权限(security_invoker = off):它横跨 finance 与 hr(employees 有 RLS),invoker 会让读者无权的那一侧静默丢掉行,而行消失在这里意味着"少了一笔欠员工的钱"(OPS-14 修法 (a))。★ APR-ROUTE-1(F1,Tim 的 R5):行谓词写在视图里 —— has_permission(''module.finance.view'') OR employee_id = current_user_employee(),与 medical_claim_status 同形;此前它把每一笔报销交给任何一个登录的人,只靠页面自己的过滤挡着。';
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- ★ COD-2(2026-09-08):从 anon 手里收回 —— 这一行必须在镜像里,不能只在迁移里 ★

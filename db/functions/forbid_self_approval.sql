@@ -35,24 +35,49 @@
 -- 不声明 DEFINER,gate 的 B2(DEFINER 且无调用者检查)就与它无关 ——
 -- 少一个需要在 zzz_function_grants 里解释的对象。
 --
+-- ════════════════════════════════════════════════════════════════════════════
+-- ★★ APR-ROUTE-1(2026-09-23):一个例外,以及"自己"从此按【人】认 ★★
+-- ════════════════════════════════════════════════════════════════════════════
+--   ① 【唯一的例外】(Tim 的 R2 · Q3):二级审批角色的持有人可以决定【他自己的】
+--      报销单与医疗申报 —— 判据住在 self_approval_exception,不住在这里。
+--      那一次决定照常落留痕,并被 record_approval_decision 标成 self_decided。
+--      ☞ 所以本函数多了第三个参数 p_subject_type,而它【没有默认值】:
+--        下一条接进来的链必须说出自己是什么类型,才调得动这支函数 ——
+--        一个默认值会让它在不知不觉中落进(或落出)例外。
+--   ② 【"自己"的判据搬去了 self_leg】(R3):同一个人的另一个账号也是"自己"。
+--      两条腿的先后、NULL 不匹配,与上面写的一字不差。
+--   ③ 【两条腿什么时候一起被豁免】例外要求"主角就是我",所以
+--      "raiser 腿成立 且 例外成立"只可能是"我提的、说的也是我"。
+--      一张我替别人提的单,例外不成立,|raiser 照拒。
+--   ★ 它【仍然不是】SECURITY DEFINER —— 它读的三样东西(self_leg、
+--     self_approval_exception、finance_settings)在调用它的 DEFINER 决定函数里
+--     以属主身份执行;fixture 203 的 P 臂钉着这一条。
+--
 -- NOTE: introduced by db/migrations/2026-09-22-apr2-self-approval-and-the-approver-that-nobody-is.sql.
 
-CREATE OR REPLACE FUNCTION public.forbid_self_approval(p_raiser_user uuid, p_subject_employee uuid)
+CREATE OR REPLACE FUNCTION public.forbid_self_approval(p_raiser_user uuid, p_subject_employee uuid, p_subject_type text)
  RETURNS void
  LANGUAGE plpgsql
  STABLE
  SET search_path TO 'public', 'pg_temp'
 AS $function$
+DECLARE
+    v_leg text;
+    v_l2  text;
 BEGIN
-    -- ① 提单的人。与 approve_purchase_order 的那一句同源(它保留裸码,见 APR-2 §3)。
-    IF p_raiser_user IS NOT NULL AND p_raiser_user = auth.uid() THEN
-        RAISE EXCEPTION 'SELF_APPROVAL_FORBIDDEN|raiser';
+    -- 两条腿:raiser 先判,"同一个人"按人认(self_leg)。
+    v_leg := self_leg(p_raiser_user, p_subject_employee, auth.uid());
+    IF v_leg = 'none' THEN
+        RETURN;
     END IF;
 
-    -- ② 单据说的是谁。★ 这一条是 APR-2 新加的,而它此前全库都没有。
-    IF p_subject_employee IS NOT NULL
-       AND p_subject_employee = current_user_employee() THEN
-        RAISE EXCEPTION 'SELF_APPROVAL_FORBIDDEN|subject';
+    -- ★ APR-ROUTE-1(R2):唯一的例外。它要求"主角就是我",所以一张我替别人提的单
+    --   不会从这里漏过去 —— 那一张的 raiser 腿照拒。
+    SELECT approval_level2_role_code INTO v_l2 FROM finance_settings LIMIT 1;
+    IF self_approval_exception(p_subject_type, p_subject_employee, auth.uid(), v_l2) THEN
+        RETURN;
     END IF;
+
+    RAISE EXCEPTION 'SELF_APPROVAL_FORBIDDEN|%', v_leg;
 END;
 $function$;

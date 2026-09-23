@@ -10,6 +10,10 @@
 -- pending(approve_purchase_order 抛 APPROVALS_NOT_ENABLED)。所以关闭同样有闸,
 -- 并且【点名】还剩几张、是哪几张 —— 拒绝要给出路,不是给一堵墙。
 --
+-- ★ APR-ROUTE-1(2026-09-23,Tim 的 R4 · Q10):开的那道闸与 WOULD_STRAND 都读
+--   approval_deciders —— 前者经 approval_gate_intersections(不传双方,问"有没有任何人"),
+--   后者逐张传入在途单据的提单人与主角(问"除了它自己,还有没有人")。
+--   R1(高一级可以批低一级)与 R2(二级持有人自批报销/医疗)在两处都算数。
 -- NOTE: introduced by db/migrations/2026-08-24-sod1-one-rule-two-questions.sql.
 
 CREATE OR REPLACE FUNCTION public.guard_approvals_switch()
@@ -177,13 +181,19 @@ BEGIN
          OR NEW.approval_threshold_base   IS DISTINCT FROM OLD.approval_threshold_base) THEN
         v_thr := NEW.approval_threshold_base;
         FOR v_doc IN
-            SELECT d.subject_type, d.code,
+            SELECT d.subject_type, d.code, d.raiser_user_id, d.subject_employee_id,
                    CASE WHEN d.amount_base IS NULL OR v_thr IS NULL
                         THEN 2::smallint
                         ELSE approval_level_at(d.amount_base, v_thr) END AS lvl
               FROM approval_pending_documents() d
              ORDER BY d.subject_type, d.code
         LOOP
+            -- ★★ APR-ROUTE-1(R4 · Q10):问的是【这一张】—— 除了它自己的提单人与
+            --    主角,新策略下还有没有人批得动(R1 与 R2 算数)。此前问的是
+            --    "这一级有没有任何持有人",于是一张只有它自己的提单人批得动的单
+            --    会被当成"有人批"放过去。判据只有 approval_deciders 一份。
+            -- 【角色与缺的码照旧从名册取】拒绝要点出那一级的角色与那条链的门,
+            --   而这两样是 approval_gate_intersections 已经给出的东西。
             FOR v_gap IN
                 SELECT i.action_function, i.role_code,
                        array_to_string(i.gate_permissions, '+') AS perms
@@ -191,7 +201,12 @@ BEGIN
                                                    NEW.approval_level2_role_code) i
                  WHERE i.subject_type = v_doc.subject_type
                    AND i.level = v_doc.lvl
-                   AND i.approvers = 0
+                   AND NOT EXISTS (
+                         SELECT 1 FROM approval_deciders(
+                                    i.subject_type, i.action_function, i.level,
+                                    v_doc.raiser_user_id, v_doc.subject_employee_id,
+                                    NEW.approval_level1_role_code,
+                                    NEW.approval_level2_role_code))
                  ORDER BY i.action_function
                  LIMIT 1
             LOOP

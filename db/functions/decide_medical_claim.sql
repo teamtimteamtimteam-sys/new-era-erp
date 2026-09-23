@@ -14,7 +14,7 @@ BEGIN
 
     -- ★ APR-2:四眼,与 decide_leave_request 逐字同一支判据、同样两条腿。
     -- 这条链此前也一条都没有 —— 而它【是真的在批钱】(amount_sgd)。
-    PERFORM forbid_self_approval(v_claim.created_by, v_claim.employee_id);
+    PERFORM forbid_self_approval(v_claim.created_by, v_claim.employee_id, 'medical_claim');
 
     IF NOT p_approve THEN
         UPDATE medical_claims SET status='rejected', decided_at=now(), decided_by=auth.uid(),

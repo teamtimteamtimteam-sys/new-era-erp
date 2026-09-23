@@ -246,6 +246,10 @@ REVOKE EXECUTE ON FUNCTION public.approval_gate_intersections(text, text) FROM a
 --   前者是一张常量名册,后者只比较 auth.uid() 与两个传进来的 uuid。
 --   ☞ 照直写下来,免得下一个人以为它们是被漏掉的 —— 一份"该收而没收"的
 --     清单与一份"想过、不收"的清单,在文件里长得一模一样。
+--   ★ APR-ROUTE-1 之后【后半句不再逐字成立】:forbid_self_approval 现在经
+--     self_leg 与 self_approval_exception 去问(两者都已收回)。它仍然【不收】——
+--     它自己不是 DEFINER,一个 authenticated 直接调它会在那两支上撞 42501,
+--     什么都探不到;而它唯一的调用方是 DEFINER 决定函数,以属主身份执行。
 
 -- ★ C-1(2026-09-04):real_role_grants —— 与上面 real_role_holders 【同源同理由】。
 -- 它就是那四条判据的行级形状(返回 grant_id + user_id),real_role_holders 如今
@@ -342,3 +346,22 @@ GRANT EXECUTE ON FUNCTION public.cod_verification(text) TO anon;
 -- 问出来。唯一的两个调用方 issue_cod 与 cod_certificate_data 都是 DEFINER、
 -- 各自 require action.issue_cod,以属主身份执行,收回之后照常工作。
 REVOKE EXECUTE ON FUNCTION public.cod_governing_licence(date) FROM authenticated;
+
+-- ★ APR-ROUTE-1(2026-09-23):五支新的内层函数,全部【收回】。
+--   五支都是 SECURITY DEFINER、没有调用者检查,靠的就是【调不到】:
+--     account_person          —— 回答【任意一个账号】是哪一名员工(账号目录);
+--     self_leg                —— 经它能逐个探测"某账号是不是某单据的提单人/主角";
+--     self_approval_exception —— 经 real_role_holders 读审批人名单;
+--     approval_level_eligible —— 同上;
+--     approval_deciders       —— 读 auth.users 的登录状态与整张权限矩阵。
+--   调用方(forbid_self_approval 在 DEFINER 决定函数里、record_approval_decision、
+--   require_approver_for、approval_gate_intersections、approvals_readiness、
+--   guard_approvals_switch)全部以属主身份执行,收回之后照常工作。
+--   ⚠ 写在这里而不是只写在迁移里:理由见上面 approval_gate_intersections 那一段。
+--   ☞ self_approved_decisions【不收】:它有自己的调用者检查
+--     (require_permission('data.view_self_approvals')),而 /finance/self-approved 要调它。
+REVOKE EXECUTE ON FUNCTION public.account_person(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.self_leg(uuid, uuid, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.self_approval_exception(text, uuid, uuid, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.approval_level_eligible(smallint, text, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.approval_deciders(text, text, smallint, uuid, uuid, text, text) FROM authenticated;

@@ -384,6 +384,10 @@ const P_MANAGE_PERMISSIONS = 'action.manage_permissions'
 /** NAV-CLEANUP-1 ①:被删记录【自己的】码。只授 admin 与 auditor —— 理由见那一条。 */
 const P_VIEW_DELETED = 'data.view_deleted'
 const P_BULK_IMPORT = 'action.bulk_import'
+/** APR-ROUTE-1(Tim 的 R2 · Q4):自批记录【自己的】码。只授 admin · gm · auditor ——
+ *  不借 module.finance.view / module.hr.view,因为被这张表报告的那个人(二级审批角色
+ *  的持有人)自己就持有那两个,而 Tim 要的读者是另外那几位。 */
+const P_VIEW_SELF_APPROVALS = 'data.view_self_approvals'
 
 export const FUNCTIONS: readonly FunctionEntry[] = [
     // ══ 采购 Purchasing ═════════════════════════════════════════════════════
@@ -904,6 +908,10 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   /inbound(本刀刚变成三属主)、/output、下面的 /finance/freight 都是。
     // 【双】运费单:既是一笔应付,也是一票货的成本 —— 勘察 C2。
     { href: '/finance/freight', navKey: 'finance.subnav.freight', modules: ['logistics', 'finance'], permission: P_FINANCE, group: 'finance.group.payables' },
+    // 【双】自批记录(APR-ROUTE-1,R2):一张报销单属于财务,一张医疗申报属于人力,
+    // 而 Tim 的例外同时覆盖这两类 —— 所以它在两个模块下各出现一次(Q4)。
+    // 判据【只有】data.view_self_approvals 一个码,不借任何模块码。
+    { href: '/finance/self-approved', navKey: 'finance.subnav.selfApproved', modules: ['finance', 'hr'], permission: P_VIEW_SELF_APPROVALS, group: 'finance.group.reports' },
 ]
 
 /** 某个模块名下的二级条目(一个条目会在它每个属主模块下各出现一次 —— 那是要点)。 */
@@ -981,6 +989,8 @@ export const FN = {
     output: fnByHref('/output'),
     licences: fnByHref('/purchasing/licences'),
     approvals: fnByHref('/settings/approvals'),
+    /** APR-ROUTE-1:自批记录 —— 跨财务与人力两个模块,判据按条目取。 */
+    selfApproved: fnByHref('/finance/self-approved'),
     /** NAV-CLEANUP-1:落地页的判据 —— 页面守卫按名取,拼错是编译期错误。
      *  【CONV-6 ④:settingsHome 删了】那一页与那条条目一起没了;
      *  留着一个指向不存在条目的名字,fnByHref 会在【模块加载时】抛。

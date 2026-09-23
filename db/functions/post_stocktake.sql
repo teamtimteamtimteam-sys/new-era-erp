@@ -65,7 +65,7 @@ BEGIN
     -- ★ APR-3:四眼。判据只有一份定义,两条腿的顺序也只在那里定。
     -- 第二个入参是 NULL —— 一次盘点是关于一批货的,不是关于某个人的,
     -- 所以它没有"这张单说的是谁"那条腿;而 NULL 一律不匹配。
-    PERFORM forbid_self_approval(v_st.created_by, NULL::uuid);
+    PERFORM forbid_self_approval(v_st.created_by, NULL::uuid, 'stocktake');
 
     FOR v_line IN SELECT * FROM stocktake_lines WHERE stocktake_id = p_stocktake_id
     LOOP

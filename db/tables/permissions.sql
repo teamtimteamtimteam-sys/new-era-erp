@@ -99,6 +99,10 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- **只授 admin 与 auditor。审计性质,不是日常权限。**
     ('data.view_deleted', 'data', 'View deleted records', '查看已删除记录', 'The deleted-records register: what was removed, by whom and why, across every module. Audit-natured — not a day-to-day permission.', '被删记录台账:跨模块地看"什么被删了、谁删的、为什么"。审计性质 —— 不是一条日常权限。', 260),
     ('data.view_reviews', 'data', 'View performance review content', '查看绩效评估正文', 'Ratings, written conclusions, self-assessments and goal results in performance reviews', '绩效评估中的评级、书面结论、自评与目标结果', 250),
+    -- ★ APR-ROUTE-1(Tim 的 R2 · Q4):自批报表自己的码。只授 admin · gm · auditor。
+    --   不借 module.finance.view / module.hr.view —— 被这张表报告的人(二级审批角色
+    --   的持有人)自己就持有那两个,而 Tim 要的读者是另外那几位。
+    ('data.view_self_approvals', 'data', 'View self-approved decisions', '查看自批记录', 'Every expense claim or medical claim decided by the person it is about — the one exception to "nobody decides their own", open to the top approval level only and flagged every time', '每一张由单据主角本人决定的报销单或医疗申报 —— "没有人批自己的单"的唯一例外,只对最高审批级别开放,每一次都被标记', 270),
     ('action.manage_permissions', 'action', 'Manage roles & permissions', '管理角色与权限', 'Create roles and change who holds what', '新建角色、调整授权', 300),
     -- IMPORT-1:批量导入自己一个码。**不复用 action.manage_permissions** ——
     -- 那会重演 DICT-ADMIN 之前的缺陷(一个物料编辑员永远够不到物料那张屏),

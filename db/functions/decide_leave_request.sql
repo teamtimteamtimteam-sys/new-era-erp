@@ -28,7 +28,7 @@ BEGIN
     -- ★ 第二条在这里是承重的:HR 可以【代人】提单,那时 created_by 是 HR、
     --   employee_id 是员工本人 —— 只判第一条的话,那位员工(若他持
     --   module.hr.edit)照样批得了自己的假。
-    PERFORM forbid_self_approval(v_req.created_by, v_req.employee_id);
+    PERFORM forbid_self_approval(v_req.created_by, v_req.employee_id, 'leave_request');
 
     SELECT * INTO v_type FROM leave_types WHERE code = v_req.leave_type_code;
 

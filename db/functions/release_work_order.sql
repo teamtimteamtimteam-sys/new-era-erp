@@ -64,7 +64,7 @@ BEGIN
     -- ★ APR-2:四眼。判据只有一份定义(forbid_self_approval)。
     -- 【只有一条腿】—— 工单没有"这张单说的是谁"(它说的是一批料,不是一个人),
     -- 所以第二个参数是 NULL,而 NULL 一律不匹配。不硬塞一个主语进去。
-    PERFORM forbid_self_approval(v_wo.created_by, NULL::uuid);
+    PERFORM forbid_self_approval(v_wo.created_by, NULL::uuid, 'work_order');
 
     -- 【放行是那个要有人负责的动作】(WO-1b)Doc 2 点名要"who approved the work
     -- order"。可审批的是放行 —— 不是新建(草稿谁都可以写),也不是收工(事后记录)。
