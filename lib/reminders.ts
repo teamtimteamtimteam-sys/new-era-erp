@@ -223,6 +223,10 @@ export const REMINDERS = [
     //   而这正是它躺了这么久没人发现的原因。
     { itemType: 'wht_due', permission: 'module.finance.view', href: '/finance/wht',
       itemHref: () => '/finance/wht' },
+    // PAY-REQ-1:等 CFO 批的付款申请。finance 与 cfo 都看得见(module.finance.view);
+    //   谁能批由 decide_payment_request 在服务端裁 —— 这里只指路,不预判。
+    { itemType: 'payment_request_pending', permission: 'module.finance.view', href: '/finance/payment-requests',
+      itemHref: (r: OpsRow) => `/finance/payment-requests/${r.item_id}` },
 ] as const satisfies readonly Reminder[]
 
 /**

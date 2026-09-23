@@ -381,12 +381,17 @@ const P_PRICING = 'module.pricing.view'
  *  他们看到的是【只读】的字典页。Tim 知情并接受(C-1b 的 Q4)。 */
 const P_DICTIONARIES = { all: [], any: ['module.materials.view', 'module.inbound.view'] } as const
 const P_MANAGE_PERMISSIONS = 'action.manage_permissions'
-/** NAV-CLEANUP-1 ①:被删记录【自己的】码。只授 admin 与 auditor —— 理由见那一条。 */
+/** NAV-CLEANUP-1 ①:被删记录【自己的】码。当初只授 admin 与 auditor —— 理由见那一条。
+ *  ★ PAY-REQ-1(Tim 2026-09-23)取代了那句「只授」:cfo 持有每一个 view 码(只读),
+ *  所以它也持这个。ROLE-1 之后 admin 已不持任何业务码,今天的持有人是 auditor 与 cfo。 */
 const P_VIEW_DELETED = 'data.view_deleted'
 const P_BULK_IMPORT = 'action.bulk_import'
-/** APR-ROUTE-1(Tim 的 R2 · Q4):自批记录【自己的】码。只授 admin · gm · auditor ——
+/** APR-ROUTE-1(Tim 的 R2 · Q4):自批记录【自己的】码。当初只授 admin · gm · auditor ——
  *  不借 module.finance.view / module.hr.view,因为被这张表报告的那个人(二级审批角色
- *  的持有人)自己就持有那两个,而 Tim 要的读者是另外那几位。 */
+ *  的持有人)自己就持有那两个,而 Tim 要的读者是另外那几位。
+ *  ★ PAY-REQ-1(Tim 2026-09-23):cfo 持有每一个 view 码,这个也在内 —— 被报告的人
+ *  从此读得到这份报告。读它不改变它:self_decided 由 record_approval_decision 写,
+ *  没有人能改;gm 与 auditor 仍然读得到同一份。它【仍然】不借模块码 —— 那条理由不变。 */
 const P_VIEW_SELF_APPROVALS = 'data.view_self_approvals'
 
 export const FUNCTIONS: readonly FunctionEntry[] = [
@@ -520,6 +525,9 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/finance/invoices', navKey: 'finance.subnav.invoices', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.receivables' },
     { href: '/finance/credit-notes', navKey: 'finance.subnav.creditNotes', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.receivables' },
     { href: '/finance/payables', navKey: 'finance.subnav.payables', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
+    // PAY-REQ-1(Tim 2026-09-23):钱离开之前要先批 —— 出款与冲销先成一张付款申请,
+    //   CFO 批准后由财务在申请页上付。读的门与付款登记簿同一个(module.finance.view)。
+    { href: '/finance/payment-requests', navKey: 'finance.subnav.paymentRequests', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
     { href: '/finance/payments', navKey: 'finance.subnav.payments', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
     { href: '/finance/expenses', navKey: 'finance.subnav.expenses', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
     { href: '/finance/claims', navKey: 'finance.subnav.expenseClaims', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
@@ -853,6 +861,8 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   值得有自己的码。**此后它的可见集不会再因为别人的权限变动而被顺带改掉。**
     //
     // 【铸出来的码】data.view_deleted —— 只授给 admin 与 auditor。
+    //   ★ PAY-REQ-1(Tim 2026-09-23)取代了「只授」这一句:cfo 持有每一个 view 码(只读),
+    //   这个也在内;ROLE-1 之后 admin 已不持业务码。
     //   迁移:db/migrations/2026-09-03-navcleanup1-*.sql(备份在前,单事务)。
     //   ★ gm 【不授】★ —— docs/exec-views-plan.md 那份【已经过期】的文档仍把 gm
     //     写成 MD,而 Tim 已另行裁定那个人是只读的;今天授给 gm,等于在发账号那天

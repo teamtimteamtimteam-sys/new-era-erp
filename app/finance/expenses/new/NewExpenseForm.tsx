@@ -11,7 +11,6 @@ import { useActionState, useState } from 'react'
 import { useRef } from 'react'
 import { useFormDraft } from '@/lib/useFormDraft'
 import DraftBanner from '@/app/components/DraftBanner'
-import { bankAccountFor, currencyOfBank } from '@/lib/currencyMap'
 import Link from 'next/link'
 import { createExpense, type CreateExpenseState } from './actions'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
@@ -113,7 +112,8 @@ canEdit: boolean
     const [whtTreatyRef, setWhtTreatyRef] = useState('')
     const [amount, setAmount] = useState('')
     const [currency, setCurrency] = useState('SGD') // 本地开销默认新币(销售面板默认 USD,刻意不同)
-    const [paymentStatus, setPaymentStatus] = useState<'paid' | 'unpaid'>('unpaid')
+    // ★ PAY-REQ-1(Tim 2026-09-23):开支【永远】记成欠收款人的 —— 「已付」那一支退休了。
+    //   钱离开要先批:付它走一张付款申请(CFO 批准后由财务付),record_expense 对 'paid' 按名拒。
     // FIN-22:资本性支出 —— 勾上后科目固定 1500(隐藏域),同一事务生成台账行
     const [capital, setCapital] = useState(false)
     // ── EQP-1c-c:资本支出的【两扇门,由人明选】────────────────────────────
@@ -127,12 +127,10 @@ canEdit: boolean
     const [poLineId, setPoLineId] = useState('')
     const [counterparty, setCounterparty] = useState('')
     const [residual, setResidual] = useState('')
-    const [bank, setBank] = useState('1000') // 初始币种 SGD → 1000
 
     // 银行账户默认跟随币种(SGD → 1000,USD → 1010),之后仍可手动改
     function onCurrencyChange(c: string) {
         setCurrency(c)
-        setBank(bankAccountFor(c))
     }
 
     // 实时预览只对本位币直给;外币的 SGD 值由当日牌价决定(DB 侧),预览不猜数
@@ -340,9 +338,6 @@ canEdit: boolean
                         默认参数值那条路,而一条在默认路径上才现身的拒绝最该被提前说明。
                         这【不是】重复实现规则:服务端仍然拒(那是把关的那一道),
                         这里只是把"该怎么走"说在人按下按钮之前。 */}
-                    {whtNature && whtNature !== 'none' && paymentStatus === 'paid' && (
-                        <p className="text-xs text-red-700 mt-2">{t('expense.form.whtPaidBlocked')}</p>
-                    )}
                 </div>
             )}
 
@@ -377,34 +372,7 @@ canEdit: boolean
                 {currency !== baseCurrency && (
                     <p className="text-xs text-[color:var(--brand-muted-text)] self-end pb-2 max-w-56">{t('common.fxBoardRateHint')}</p>
                 )}
-                {/* 付款状态(默认挂账)*/}
-                <div>
-                    <label className="block mb-1">{t('expense.form.paymentStatus')}</label>
-                    <select
-                        name="payment_status"
-                        value={paymentStatus}
-                        onChange={(e) => setPaymentStatus(e.target.value === 'paid' ? 'paid' : 'unpaid')}
-                        className={CONTROL_SELECT}
-                    >
-                        <option value="unpaid">{t('expense.status.unpaid')}</option>
-                        <option value="paid">{t('expense.status.paid')}</option>
-                    </select>
-                </div>
-                {/* paid → 银行账户(默认随币种);unpaid → 供应商(必选)*/}
-                {paymentStatus === 'paid' ? (
-                    <div>
-                        <label className="block mb-1">{t('expense.form.bankAccount')}</label>
-                        <select
-                            name="bank_account"
-                            value={bank}
-                            onChange={(e) => setBank(e.target.value)}
-                            className={CONTROL_SELECT}
-                        >
-                            <option value="1000">{t('finance.bank.1000')}</option>
-                            <option value="1010">{t('finance.bank.1010')}</option>
-                        </select>
-                    </div>
-                ) : (
+                {/* PAY-REQ-1:往来对象恒必选 —— 开支永远挂账,付款走付款申请 */}
                     <div className="flex-1 min-w-[16rem]">
                         {/* PAYEE-1b:挂账的往来对象 —— 供应商【或】员工(报销)。
                             一个下拉、两组选项:一次选择就是一个不可分割的答案,
@@ -436,22 +404,11 @@ canEdit: boolean
                                     ? t('suppliers.pickerEmptyGoods')
                                     : t('suppliers.pickerRestricted')} />
                         </select>
+                        <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('expense.form.alwaysUnpaidHint')}</p>
                     </div>
-                )}
             </div>
 
             <div className="flex flex-wrap gap-4">
-                {/* 收款方(paid 时可选的自由文本)*/}
-                {paymentStatus === 'paid' && (
-                    <div>
-                        <label className="block mb-1">{t('expense.form.payeeName')}</label>
-                        <input
-                            type="text"
-                            name="payee_name"
-                            className={`${CONTROL_INPUT} w-64`}
-                        />
-                    </div>
-                )}
                 {/* 备注 */}
                 <div className="flex-1 min-w-[12rem]">
                     <label className="block mb-1">{t('expense.form.notes')}</label>
@@ -606,12 +563,7 @@ canEdit: boolean
                     )}
                 </div>
                 <p className="text-[color:var(--brand-muted-text)]">
-                    {paymentStatus === 'paid'
-                        ? t('expense.previewPaid', {
-                              account: previewAccount,
-                              bank: t('finance.bank.' + bank),
-                          })
-                        : t('expense.previewUnpaid', { account: previewAccount })}
+                    {t('expense.previewUnpaid', { account: previewAccount })}
                 </p>
             </div>
 

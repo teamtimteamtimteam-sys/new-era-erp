@@ -146,4 +146,6 @@ VALUES
     ('freight_document', 'FRT', 'freight_documents', 'gapless', NULL, '/finance/freight', 'detail', 'notes', ARRAY['notes', 'reversal_reason']::text[], ARRAY['module.inbound.view','module.finance.view']::text[]),
     ('wht_remittance', 'WHT', 'wht_remittances', 'gapless', NULL, '/finance/wht', 'list', NULL, '{}'::text[], ARRAY['module.finance.view']::text[]),
     ('payment_receipt', 'RCPT', 'payments', 'gapless', NULL, '/finance/payments', 'detail', 'notes', ARRAY['notes']::text[], ARRAY['module.finance.view']::text[]),
-    ('payment_out', 'PMT', 'payments', 'gapless', NULL, '/finance/payments', 'detail', 'notes', ARRAY['notes']::text[], ARRAY['module.finance.view']::text[]);
+    ('payment_out', 'PMT', 'payments', 'gapless', NULL, '/finance/payments', 'detail', 'notes', ARRAY['notes']::text[], ARRAY['module.finance.view']::text[]),
+    -- PAY-REQ-1(2026-09-23):付款申请 —— 钱离开之前的那一格在途态
+    ('payment_request', 'PREQ', 'payment_requests', 'gapless', NULL, '/finance/payment-requests', 'detail', 'notes', ARRAY['notes', 'decision_notes']::text[], ARRAY['module.finance.view']::text[]);

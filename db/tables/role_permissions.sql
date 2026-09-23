@@ -97,7 +97,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
 -- ★ ROLE-1(Tim 的矩阵,2026-09-23):此前这里写着「【不含 HR】—— 薪酬与员工档案不是财务的工作对象」。
 --   Tim 裁定相反:除 KPI 与绩效评估(归 cco)以外的全部人事与薪资工作归财务 ——
 --   工资期、算薪、考勤、员工档案(月薪除外)、请假与医疗申报的决定。
---   于是加 module.hr.edit / module.hr.view / data.view_identity(身份信息从此只归财务,Q6)/
+--   于是加 module.hr.edit / module.hr.view / data.view_identity(身份信息从此只归财务,Q6;
+--   ★ PAY-REQ-1(Tim 2026-09-23)把这句收窄了:cfo 也持 data.view_identity —— 只读,
+--   Tim 裁定 cfo 持有每一个 view 码。【录入与改动】身份信息仍只归财务)/
 --   data.view_pay / action.decide_hr_requests。(线上的 finance 另持 action.bulk_import,ROLE-1 在线上拿掉 —— 批量导入只归 admin;本文件里它本来就没有。)
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (

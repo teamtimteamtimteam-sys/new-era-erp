@@ -297,9 +297,13 @@ BEGIN
     SELECT code INTO v_b2 FROM accounts WHERE is_cash AND is_active AND code<>v_b1 ORDER BY code LIMIT 1;
 
     -- F6a 费用:开着 → 落账
+    -- ★ PAY-REQ-1(Tim 的 Q2(c)):费用单不许生下来就已付 —— 从此挂账,收款方是一家供应商。
+    --   本臂测的是期间锁,已付/未付与它无关;两个方向的判据一个字不变。
+    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
+    VALUES ('ZZFIX122-S', 'fixture 122 收款方', 'SG', 'service_vendor');
     BEGIN
         v_je2 := record_expense(v_open, v_exp, 25, base_currency_code(),
-                                NULL, 'paid', v_b1, NULL, 'fixture 122 收款方');
+                                NULL, 'unpaid', NULL, (SELECT id FROM suppliers WHERE code = 'ZZFIX122-S'), 'fixture 122 收款方');
     EXCEPTION WHEN OTHERS THEN
         RAISE EXCEPTION 'FIXTURE 122 F6a 前提失败:期间开着时 record_expense 本应过得了账,实际被拒:%', SQLERRM;
     END;
@@ -315,7 +319,7 @@ BEGIN
     v_denied := false;
     BEGIN
         PERFORM record_expense(v_shut, v_exp, 25, base_currency_code(),
-                               NULL, 'paid', v_b1, NULL, 'fixture 122 收款方');
+                               NULL, 'unpaid', NULL, (SELECT id FROM suppliers WHERE code = 'ZZFIX122-S'), 'fixture 122 收款方');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR split_part(v_msg,'|',1) <> 'PERIOD_LOCKED' THEN

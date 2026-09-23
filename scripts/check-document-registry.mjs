@@ -62,8 +62,11 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // APR-ROUTE-1 Batch B(2026-09-23):222 → 224。新增 `employee_accounts`(一个人的额外账号)
 // 与 `employee_account_history`(链接与解除的只增不改留痕),见 db/tables/ 同名文件。
 // **两张都没有 code 列**(它们记的是"账号属于谁",不是单据),所以 EXPECTED_CODE_TABLES 不动。
-const EXPECTED_TABLES = 224
-const EXPECTED_CODE_TABLES = 75
+// PAY-REQ-1(2026-09-23):224 → 225,75 → 76。新增 `payment_requests`(付款申请),
+// 见 db/tables/payment_requests.sql。**它有 code 列**(PREQ-YYYY-NNNN,登记在
+// document_types 的 'payment_request'),所以两个数一起动 —— 这一次一起动是对的。
+const EXPECTED_TABLES = 225
+const EXPECTED_CODE_TABLES = 76
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))
 assertPopulation(SCRIPT, 'db/tables/ 里的镜像文件', files.length, 2)

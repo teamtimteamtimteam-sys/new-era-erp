@@ -1,4 +1,7 @@
 -- 100 未付运费单【结得掉】—— 而且门是【新开的那一扇】,不是把旧的那扇拓宽
+-- ★ PAY-REQ-1(2026-09-23):出款与冲销从此只经付款申请 → CFO 批准 → 付款。本文件测的是
+--   【过账的算术】,不是审批,所以它直接调引擎(record_payment_internal /
+--   reverse_payment_internal —— 以属主身份跑,authenticated 调不到)。审批那一半在 fixture 210。
 --
 -- 【这份 fixture 存在的理由】FRT-1 之后,payment_allocations 的 CHECK 是六选一
 -- (含 freight_document_id)、ap_open_items 的运费支按 pa.freight_document_id 去减
@@ -87,7 +90,7 @@ BEGIN
     END IF;
 
     -- ── 第一笔:部分付 400 ──────────────────────────────────────────────────
-    v_res := record_payment('out', v_fwd, 400, v_ccy, NULL, v_bank, DATE '2027-03-10',
+    v_res := record_payment_internal('out', v_fwd, 400, v_ccy, NULL, v_bank, DATE '2027-03-10',
         'fixture 100 A partial',
         jsonb_build_array(jsonb_build_object('freight_document_id', v_fd1, 'amount_doc', 400)),
         'supplier');
@@ -111,7 +114,7 @@ BEGIN
     -- 会变成一张负敞口 —— 账龄表上那一行直接消失,没有任何错误。
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_payment('out', v_fwd, 700, v_ccy, NULL, v_bank, DATE '2027-03-12',
+        PERFORM record_payment_internal('out', v_fwd, 700, v_ccy, NULL, v_bank, DATE '2027-03-12',
             'fixture 100 A overshoot',
             jsonb_build_array(jsonb_build_object('freight_document_id', v_fd1, 'amount_doc', 700)),
             'supplier');
@@ -130,7 +133,7 @@ BEGIN
     END IF;
 
     -- ── 第三笔:付清剩下的 600 → 账龄里没有这一行了 ────────────────────────
-    PERFORM record_payment('out', v_fwd, 600, v_ccy, NULL, v_bank, DATE '2027-03-15',
+    PERFORM record_payment_internal('out', v_fwd, 600, v_ccy, NULL, v_bank, DATE '2027-03-15',
         'fixture 100 A settle',
         jsonb_build_array(jsonb_build_object('freight_document_id', v_fd1, 'amount_doc', 600)),
         'supplier');
@@ -165,7 +168,7 @@ BEGIN
 
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_payment('out', v_fwd, 100, v_ccy, NULL, v_bank, DATE '2027-04-10',
+        PERFORM record_payment_internal('out', v_fwd, 100, v_ccy, NULL, v_bank, DATE '2027-04-10',
             'fixture 100 B1',
             jsonb_build_array(jsonb_build_object('freight_document_id', v_fd2, 'amount_doc', 100)),
             'supplier');
@@ -177,26 +180,23 @@ BEGIN
     END IF;
 
     -- B2 已付(payment_status = 'paid')—— 它从来没有进过应付,再付一次是凭空多一笔
+    -- ★ PAY-REQ-1(Tim 的 Q2(c),2026-09-23):运费单从此【生不出】已付的那一种 ——
+    --   'paid' 在建单那一刻就按名拒。于是这一臂从"已付的单不许再付"改成"已付的单根本
+    --   建不出来"。record_payment_internal 运费支里 payment_status = 'unpaid' 那一条
+    --   筛选【照旧留着】:它守的是历史行(线上今天 0 张已付运费单,以 postgres 读基表实测)。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price, source_reason_code, source_reason_note)
     VALUES ('ZZFIX100-IB3', v_mat, v_sup, 100, 100, DATE '2027-04-01', 10, 'other', 'fixture 100 自带数据') RETURNING id INTO v_b3;
-    v_res := record_freight_document(DATE '2027-04-06', v_fwd, 500, v_ccy, 'weight',
-        'paid', v_bank, jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b3)),
-        'fixture 100 B2', NULL);
-    v_fd3 := (v_res->>'freight_document_id')::uuid;
-    v_c3  := v_res->>'code';
-
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_payment('out', v_fwd, 100, v_ccy, NULL, v_bank, DATE '2027-04-11',
-            'fixture 100 B2',
-            jsonb_build_array(jsonb_build_object('freight_document_id', v_fd3, 'amount_doc', 100)),
-            'supplier');
+        PERFORM record_freight_document(DATE '2027-04-06', v_fwd, 500, v_ccy, 'weight',
+            'paid', v_bank, jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b3)),
+            'fixture 100 B2', NULL);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
-    IF NOT v_denied OR v_msg NOT LIKE 'ALLOC_INVALID|%' THEN
-        RAISE EXCEPTION 'FIXTURE 100B2 失败:【当场付掉】的运费单 % 应按名拒 ALLOC_INVALID,实得 denied=% msg=% —— 只判 status 不判 payment_status 的实现在这里放行,而那是凭空多出来的一笔付款',
-            v_c3, v_denied, COALESCE(v_msg, '(收下了)');
+    IF NOT v_denied OR v_msg <> 'FREIGHT_PAID_AT_CREATION_REFUSED' THEN
+        RAISE EXCEPTION 'FIXTURE 100B2 失败:运费单生下来就已付,应按名拒 FREIGHT_PAID_AT_CREATION_REFUSED,实得 denied=% msg=%',
+            v_denied, COALESCE(v_msg, '(收下了)');
     END IF;
 
     -- B3 已软删 —— 与 ap_open_items 的运费支第三个条件对上
@@ -212,7 +212,7 @@ BEGIN
 
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_payment('out', v_fwd, 100, v_ccy, NULL, v_bank, DATE '2027-04-12',
+        PERFORM record_payment_internal('out', v_fwd, 100, v_ccy, NULL, v_bank, DATE '2027-04-12',
             'fixture 100 B3',
             jsonb_build_array(jsonb_build_object('freight_document_id', v_fd4, 'amount_doc', 100)),
             'supplier');
@@ -237,7 +237,7 @@ BEGIN
     -- C1 旧路径:运费单的 uuid 当成 inbound_batch_id —— 必须【仍然】被拒
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_payment('out', v_fwd, 800, v_ccy, NULL, v_bank, DATE '2027-05-10',
+        PERFORM record_payment_internal('out', v_fwd, 800, v_ccy, NULL, v_bank, DATE '2027-05-10',
             'fixture 100 C old path',
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_fd5, 'amount_doc', 800)),
             'supplier');
@@ -251,7 +251,7 @@ BEGIN
     -- C2 新路径:同一张单,走 freight_document_id —— 必须成功
     -- 【两半合起来才是"门移动了"】只有 C2 的实现,可以是"把 inbound 那一支放宽"
     -- 做出来的;只有 C1 的实现,就是今天这个洞本身。
-    PERFORM record_payment('out', v_fwd, 800, v_ccy, NULL, v_bank, DATE '2027-05-11',
+    PERFORM record_payment_internal('out', v_fwd, 800, v_ccy, NULL, v_bank, DATE '2027-05-11',
         'fixture 100 C new path',
         jsonb_build_array(jsonb_build_object('freight_document_id', v_fd5, 'amount_doc', 800)),
         'supplier');

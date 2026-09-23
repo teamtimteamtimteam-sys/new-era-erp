@@ -1,4 +1,7 @@
 -- 101 出口运费是【费用】,而且【进不去】存货、进不去材料成本、进不去毛利
+-- ★ PAY-REQ-1(2026-09-23):出款与冲销从此只经付款申请 → CFO 批准 → 付款。本文件测的是
+--   【过账的算术】,不是审批,所以它直接调引擎(record_payment_internal /
+--   reverse_payment_internal —— 以属主身份跑,authenticated 调不到)。审批那一半在 fixture 210。
 --
 -- 【这份 fixture 的形状由 LOG-3-SURVEY §3 决定】那份勘察点名了三个陷阱 ——
 -- 不是三种"可能出错",是三条【已经铺好、形状恰好接得上】的路径。
@@ -270,7 +273,7 @@ BEGIN
     v_res := record_export_freight_document(DATE '2027-06-09', v_fwd, 500, v_ccy,
         'unpaid', NULL, v_ctr, 'fixture 101 settle me');
     v_fd_pay := (v_res->>'freight_document_id')::uuid;
-    PERFORM record_payment('out', v_fwd, 200, v_ccy, NULL, v_bank, DATE '2027-06-10',
+    PERFORM record_payment_internal('out', v_fwd, 200, v_ccy, NULL, v_bank, DATE '2027-06-10',
         'fixture 101 partial',
         jsonb_build_array(jsonb_build_object('freight_document_id', v_fd_pay, 'amount_doc', 200)),
         'supplier');
@@ -279,7 +282,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 101G 失败:出境单据付掉 200 后敞口应为 300,实得 %',
             COALESCE(v_open::text, '(没有这一行)');
     END IF;
-    PERFORM record_payment('out', v_fwd, 300, v_ccy, NULL, v_bank, DATE '2027-06-11',
+    PERFORM record_payment_internal('out', v_fwd, 300, v_ccy, NULL, v_bank, DATE '2027-06-11',
         'fixture 101 settle',
         jsonb_build_array(jsonb_build_object('freight_document_id', v_fd_pay, 'amount_doc', 300)),
         'supplier');

@@ -1,4 +1,7 @@
 -- 67 订单流开票(SO-3a):发票过账、敞口跟着走,而【面板与闸是同一个数】
+-- ★ PAY-REQ-1(2026-09-23):出款与冲销从此只经付款申请 → CFO 批准 → 付款。本文件测的是
+--   【过账的算术】,不是审批,所以它直接调引擎(record_payment_internal /
+--   reverse_payment_internal —— 以属主身份跑,authenticated 调不到)。审批那一半在 fixture 210。
 --
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【这份 fixture 钉住的五件事】
@@ -264,7 +267,7 @@ BEGIN
         IF SQLERRM NOT LIKE 'INVOICE_HAS_SETTLEMENTS%' THEN RAISE; END IF;
     END;
     -- 冲掉收款 → 作废通过,分录对冲,行可再开
-    PERFORM reverse_payment((v_pay->>'payment_id')::uuid, 'fixture 67');
+    PERFORM reverse_payment_internal((v_pay->>'payment_id')::uuid, 'fixture 67');
     PERFORM void_invoice(inv_id, 'fixture 67 void', d);
     SELECT je.status, rev.code INTO v_msg, rev_code
       FROM journal_entries je LEFT JOIN journal_entries rev ON rev.id = je.reversed_by

@@ -1,12 +1,15 @@
 -- db/functions/reverse_payment.sql
--- SOD-1(2026-08-24):这支函数现在【声明】自己在冲销。
--- guard_payment_sod 会拦住"建收款人的人付款给该收款人",而冲销的镜像行
--- direction/counterparty 与原单相同,会走到那道闸上。冲销是把钱【收回来】的
--- 更正动作 —— 拦住它只会把一笔记错的付款锁死在账上,而且拦不住任何舞弊。
--- 所以由调用方显式声明,不由守卫去猜(po_status_ctx / close_ctx / alloc_ctx 同一惯用法)。
--- 【用完立刻清掉】set_config(..., true) 是【事务】局部,不是语句局部 ——
--- 只设不清,同一事务里后面任何一笔直连 INSERT 都会畅通无阻(APR-2c fu2 实测过)。
--- fixture 127 的 B5 臂把"立起来"与"落下去"一起断言。
+-- PAY-REQ-1(2026-09-23,Tim 的 Q6):每一次冲销付款 —— 不论收款还是出款 ——
+-- 都要走一张冲销申请,经 CFO 批准,再由财务执行(pay_payment_request)。
+--
+-- 这支函数因此只剩一件事:按名拒绝,并指出走法。函数体搬进了
+-- reverse_payment_internal(EXECUTE 已从 authenticated 收回)。
+--
+-- 【为什么不干脆删掉它】删掉之后,旧页面(破窗期间线上跑的那一版)按下"冲销"
+-- 会撞 42883 function does not exist —— 一句不指路的报错。留一个按名拒绝的外壳,
+-- 旧页面拿到的就是一句能照着做的话。签名不变,所以 CREATE OR REPLACE 即可。
+--
+-- NOTE: shell introduced by db/migrations/2026-09-23-payreq1a-money-leaves-only-after-approval.sql.
 
 CREATE OR REPLACE FUNCTION public.reverse_payment(p_payment_id uuid, p_memo text DEFAULT NULL::text)
  RETURNS jsonb
@@ -14,49 +17,9 @@ CREATE OR REPLACE FUNCTION public.reverse_payment(p_payment_id uuid, p_memo text
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-DECLARE
-    v_orig        payments%ROWTYPE;
-    v_mirror_id   uuid := gen_random_uuid();
-    v_mirror_code text;
-    v_je          jsonb;
 BEGIN
     PERFORM require_permission('module.finance.edit');
-    SELECT * INTO v_orig FROM payments WHERE id = p_payment_id FOR UPDATE;
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'PAYMENT_NOT_FOUND|%', p_payment_id;
-    END IF;
-    IF v_orig.status <> 'posted' OR v_orig.reversed_by_payment IS NOT NULL THEN
-        RAISE EXCEPTION 'PAYMENT_ALREADY_REVERSED|%', v_orig.code;
-    END IF;
-
-    -- 冲其分录(冲销日 = 今天;期间锁在 post_journal_entry 内生效)
-    v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, CURRENT_DATE, 'Payment reversal ' || v_orig.code);
-
-    -- 镜像收付款单(现金退回),挂冲销分录,不带核销行
-    v_mirror_code := fin_next_payment_code(CASE WHEN v_orig.direction = 'in' THEN document_type_prefix('payment_receipt') ELSE document_type_prefix('payment_out') END, CURRENT_DATE);
-
-    -- SOD-1:告诉 guard_payment_sod 这是一次【冲销】,不是一次付款。
-    PERFORM set_config('evoltrya.payment_reversal_ctx', '1', true);
-    INSERT INTO payments (id, code, direction, counterparty_type, customer_id, supplier_id,
-                          amount_ccy, currency, fx_rate, amount_base, bank_account_code,
-                          payment_date, notes, journal_entry_id, created_by)
-    VALUES (v_mirror_id, v_mirror_code, v_orig.direction, v_orig.counterparty_type,
-            v_orig.customer_id, v_orig.supplier_id,
-            v_orig.amount_ccy, v_orig.currency, v_orig.fx_rate, v_orig.amount_base,
-            v_orig.bank_account_code, CURRENT_DATE,
-            'REVERSAL: ' || v_orig.code || COALESCE(' — ' || p_memo, ''),
-            (v_je->>'reversal_id')::uuid, auth.uid());
-    -- 【立刻清掉】—— 事务局部,不清就一直开着。
-    PERFORM set_config('evoltrya.payment_reversal_ctx', '', true);
-
-    UPDATE payments
-    SET status = 'reversed', reversed_by_payment = v_mirror_id
-    WHERE id = p_payment_id;
-
-    RETURN jsonb_build_object(
-        'reversal_payment_id', v_mirror_id,
-        'code', v_mirror_code,
-        'journal_code', v_je->>'code'
-    );
+    RAISE EXCEPTION 'PAYMENT_REQUEST_REQUIRED|payment_reversal'
+      USING HINT = '冲销付款要先提冲销申请、经 CFO 批准,再执行(PAY-REQ-1)';
 END;
 $function$;

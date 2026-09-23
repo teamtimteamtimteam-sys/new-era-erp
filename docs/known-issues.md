@@ -9304,3 +9304,48 @@ function todayIsoLocal(): string {
    `lib/format.ts` 的 `businessToday()` 抬头记着 CONV-7 ② 为同一个形状付过的账
    (SGT 上午八点之前,`toISOString().slice(0,10)` 比业务日期早一天)。
 ☞ 棘轮已经保证**不再长第 37 处**。合并它们是一次独立的、纯数据侧的刀。
+
+---
+
+## PAYREQ1-MANUAL-JOURNAL-CREDITS-BANK —— 手工分录仍能贷银行(PAY-REQ-1,2026-09-23)
+
+Tim 的 Q2(d):**按裁定留着**。`post_journal_entry` 的手工分录可以贷 1000 / 1010,不经付款申请。
+关它的是 APR-6(手工凭证与冲销走 CFO 批准)。在那之前,这是"钱离开之前要先批"旁边**唯一一扇
+按裁定开着**的门,点名在这里,不是没看见。
+
+## PAYREQ1-TRANSFERS-AND-WHT-UNAPPROVED —— 两批之间,转账与代扣税照旧不经批准(PAY-REQ-1,2026-09-23)
+
+Tim 的 Q15:Batch A 只做付款与冲销付款。`record_bank_transfer` / `reverse_bank_transfer` / `remit_wht`
+仍是一步生效。★ 代扣税的更正今天走 `reverse_journal_entry` —— Batch A **故意没有**把 `wht_remittance`
+加进 `JE_REVERSE_USE_SOURCE_PATH`,否则更正无路可走。去处:`docs/forward-queue.md` § PAY-REQ-1 Batch B。
+
+## PAYREQ1-EXEMPTION-IS-NARROW —— 跨币种付报销、带挂账余额的员工出款也要申请(PAY-REQ-1,2026-09-23)
+
+`payment_request_required()` 只在【同币种、核销合计恰好等于付款额、每一条都是已批准报销单 / 医疗申报生成的费用】
+时豁免。跨币种付一张报销,或者员工出款里带一笔挂账余额,会被要求走申请 —— 刻意写窄
+(窄的那一边错了,代价是多提一张申请;宽的那一边错了,代价是一笔没批过的钱走了)。
+★ 线上今天 4 张报销单里有 **1 张是 USD**、3 张 SGD(以 postgres 读 expense_claims 基表,
+`select currency, count(*) from expense_claims group by 1`)—— 那张若被批准、并从 SGD 户付出,要走申请。
+
+## PAYREQ1-CLAIM-PAYER-MAY-BE-PAYEE —— 财务可以把已批准的报销付给自己(PAY-REQ-1,2026-09-23)
+
+Q1 的豁免按裁定成立:整笔付一张已批准报销单生成的费用,不要申请、不查付款人是谁。于是 Choo Er
+(唯一的财务)付她自己那张已批准的 CLM-2026-0002 是一步生效(线上证明的对照格正是它,整支回滚)。
+那张单【已经】被另一个人批过同一个数(报销单的四眼),所以这不是一扇没人看的门 —— 记在这里,
+是因为"付款人 = 收款人"这件事本身没有被任何规矩拦过,下一个读代码的人不该以为它被拦了。
+
+## PAYREQ1-OPEN-REQUEST-HOLDS-ITS-DOCUMENTS —— 一张单据同时只能挂一张未了结的申请(PAY-REQ-1,2026-09-23)
+
+`payment_request_conflict` 的规矩:submitted / approved 的出款申请占着它核销的每一张单据,第二张按名拒
+(`PAYMENT_REQUEST_TARGET_RESERVED|<那张的编号>`)。分次付款照样可以 —— 一张付完再提下一张。
+代价:两笔并行的部分付款(比如同一张大单一半这周、一半下周)不能同时排队。
+这是【选最简单的那一版】买来的,不是没想到;要放宽,得把"已预留额"算进试跑,那是第二份算术。
+
+## PAYREQ1-OTHER-SCRIPTS-DIRECT-EXIT —— 另外约 15 支造账号的脚本,出口是否都接了清理,没有逐支审过(PAY-REQ-1,2026-09-23)
+
+PAY-REQ-1 让冒烟与三支探针(probe-role-crash / render-pdf-samples / probe-permission-gate)的每一条出口
+都走 `exitAfterCleanup`,并用强制失败逐格证过。其余调 `openPlan` 且含直接 `process.exit` 的脚本
+(probe-avatar · survey-phone · survey-controls · survey-variant-c · probe-brand-sampler · probe-nav-geometry ·
+probe-search-results · probe-search-shell · probe-draft1–7 · probe-draft3-before)**没有逐支审**;
+它们的残留今天由下一次开跑时的 `reapStalePlans` 收。另一个边:SIGTERM 落在"建账号"与"登记进计划"之间那一次
+await 上,只有冒烟有按名字的兜底清扫,探针没有。

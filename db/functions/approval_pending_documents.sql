@@ -53,10 +53,13 @@
 --   而"在途单据是哪些"仍然只有这一份定义,不另起一支去查双方。
 --   ☞ 返回类型变了,所以迁移里是 DROP + CREATE(两个调用方都是 plpgsql,按名调用)。
 --   采购单没有"主角"(它不说任何一名员工),那一列是 NULL,不是"不知道"。
+-- ★ PAY-REQ-1(2026-09-23):多了一列 fixed_level —— 一条【不按金额分档】的链在这里说出
+--   它的那一级(付款申请恒为 2),其余链为 NULL(照旧按金额分)。返回类型又变了,
+--   迁移里仍是 DROP + CREATE;两个 plpgsql 调用方按列名读,不受影响。
 -- NOTE: introduced by db/migrations/2026-09-22-apr3-the-claim-the-count-and-the-edit-that-strands.sql.
 
 CREATE OR REPLACE FUNCTION public.approval_pending_documents()
- RETURNS TABLE(subject_type text, doc_id uuid, code text, amount_base numeric, blocks_disable boolean, raiser_user_id uuid, subject_employee_id uuid)
+ RETURNS TABLE(subject_type text, doc_id uuid, code text, amount_base numeric, blocks_disable boolean, raiser_user_id uuid, subject_employee_id uuid, fixed_level smallint)
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
@@ -66,17 +69,28 @@ AS $function$
     SELECT 'purchase_order'::text, po.id, po.code,
            round(po.estimated_total_ccy * po.fx_rate, 2),
            true,
-           po.created_by, NULL::uuid
+           po.created_by, NULL::uuid, NULL::smallint
       FROM purchase_orders po
      WHERE po.approval_status = 'pending' AND po.deleted_at IS NULL
     UNION ALL
     -- 报销单:submitted 是员工交了一张单,与审批开关无关;decide_expense_claim
     -- 开着关着都做得了决定(只有分档那一步是条件性的)。所以它【不】挡关闭。
     SELECT 'expense_claim'::text, c.id, c.code, b.amount_base, false,
-           c.created_by, c.employee_id
+           c.created_by, c.employee_id, NULL::smallint
       FROM expense_claims c
       LEFT JOIN LATERAL expense_claim_amount_base(c.id) b ON true
      WHERE c.status = 'submitted'
+    UNION ALL
+    -- ★ PAY-REQ-1:付款申请。blocks_disable = true —— decide_payment_request 在审批
+    --   关着时按名拒(APPROVALS_NOT_ENABLED),与采购单同一个答案(Tim 的 Q7)。
+    --   fixed_level = 2:这条链不按金额分档,CFO 批每一张。WOULD_STRAND 读它,
+    --   而不是拿金额去重新分档 —— 否则一张小额申请会被分到一级,一级没有这条链的
+    --   名册行,于是那一格什么都不判就放过去。
+    --   主角 = 收款员工(付给员工时);付给供应商时为 NULL。
+    SELECT 'payment_request'::text, r.id, r.code, r.amount_base, true,
+           r.created_by, r.employee_id, 2::smallint
+      FROM payment_requests r
+     WHERE r.status = 'submitted'
 $function$;
 
 COMMENT ON FUNCTION public.approval_pending_documents() IS

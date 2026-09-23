@@ -2906,6 +2906,15 @@ process.on(sig, () => { release(); process.exit(130) })   // ← 同步
 只跑一次的函数,`SIGINT/SIGTERM/SIGHUP/SIGPIPE` 与 `process.stdout` 的 EPIPE
 都接到它上面。**演练过**:故意 `| head -6` 跑一次,残留 0 对象 / 0 账号 / 0 授权。
 
+**★ PAY-REQ-1(2026-09-23,Tim:冒烟【不论成败】都要收走它的一次性账号、角色与授权)——
+上面那句"接到它上面"【漏了脚本自己的 `process.exit`】。** `main().catch → process.exit(1)` 与
+"dev server 没起来"那一支都不跑清理计划,于是一次在布景里失败的冒烟两次把一个持 admin 的账号留在线上。
+现在:**脚本自己的每一条出口都走 `scripts/ephemeral.mjs` 的 `exitAfterCleanup(code)`**(清理 → 收子进程 →
+放锁 → 退出),冒烟的 finally 里每一句删除各自兜住,`runPlan` 一定走到。强制失败四格
+(`SMOKE_FORCE_FAIL_AT=after-grant|dev-not-ready|in-finally` + 一次 SIGTERM)逐格读回线上 0 残留,
+旧脚本在同一注入下留下账号 / 角色 / 授权(对照)。**写一支新的造账号脚本:出口一律用 `exitAfterCleanup`,
+不许直接 `process.exit`。**
+
 ---
 
 ## ★★ 一支扫描器的【分桶】那一层,可以和它的【读取】那一层不一样瞎(FONT-2,2026-09-11)

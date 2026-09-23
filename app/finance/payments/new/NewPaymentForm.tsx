@@ -14,6 +14,7 @@ import { createPayment, lookupFxRate, lookupRatesFor, type CreatePaymentState } 
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
+import { PaymentDateInput } from '@/app/components/finance/PaymentDateInput'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
@@ -498,6 +499,15 @@ canEdit: boolean
                 </div>
             )}
 
+            {/* ★ PAY-REQ-1(Tim 2026-09-23):钱离开之前要先批。出款在这里提成一张付款申请,
+                CFO 批准后由财务在申请页上付;豁免的那一种(全额付给员工、核销的全是已批报销)
+                照旧当场记账 —— 判据只在数据库里(payment_request_required),这里只把话说在前面。 */}
+            {direction === 'out' && (
+                <p className="text-sm bg-amber-50 border border-amber-300 text-amber-900 px-3 py-2 rounded">
+                    {t('finance.outNeedsApprovalNotice')}
+                </p>
+            )}
+
             <div className="flex flex-wrap gap-4">
                 {/* 方向 */}
                 <div>
@@ -609,17 +619,10 @@ canEdit: boolean
                 {/* 收付日期(默认今天)*/}
                 <div>
                     <label className="block mb-1">
-                        {t('finance.paymentDate')} <span className="text-red-600">*</span>
+                        {/* PAY-REQ-1:出款先成一张申请,这一天是【计划】付款日;真正的付款日在付的那一刻填。 */}
+                        {direction === 'out' ? t('finance.plannedPaymentDate') : t('finance.paymentDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
-                        name="payment_date"
-                        required
-                        value={payDate}
-                        onChange={(e) => setPayDate(e.target.value)}
-                        onBlur={(e) => setPayDate(e.target.value)}
-                        className={CONTROL_INPUT}
-                    />
+                    <PaymentDateInput name="payment_date" value={payDate} onChange={setPayDate} />
                 </div>
                 {/* 备注 */}
                 <div className="flex-1 min-w-[12rem]">
@@ -796,7 +799,7 @@ canEdit: boolean
                         || docFxError !== null || unallocated === null || unallocated < 0
                     }
                 >
-                    {isPending ? t('common.saving') : t('finance.submitPayment')}
+                    {isPending ? t('common.saving') : direction === 'out' ? t('finance.submitPaymentRequest') : t('finance.submitPayment')}
                 </Button>
                 <Button asChild variant="secondary">
                     <Link

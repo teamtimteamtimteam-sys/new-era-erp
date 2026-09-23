@@ -60,7 +60,6 @@ export default function NewFreightForm({
     const [direction, setDirection] = useState<'inbound' | 'outbound'>('inbound')
     const outbound = direction === 'outbound'
     const [basis, setBasis] = useState('weight')
-    const [paid, setPaid] = useState(false)
     const [picked, setPicked] = useState<Record<string, boolean>>({})
     const [stated, setStated] = useState<Record<string, string>>({})
     const [amount, setAmount] = useState('')
@@ -283,28 +282,9 @@ export default function NewFreightForm({
                     <p className="text-xs text-[color:var(--brand-muted-text)] mt-1 max-w-3xl">{t('finance.freight.basisHint')}</p>
                 </div>}
 
-                {/* 付款方式 */}
-                <div className="flex flex-wrap gap-4 items-end">
-                    <div>
-                        <label className="block mb-1">{t('finance.freight.colPayment')}</label>
-                        <select name="payment_status" value={paid ? 'paid' : 'unpaid'}
-                            onChange={(e) => setPaid(e.target.value === 'paid')}
-                            className={CONTROL_SELECT}>
-                            <option value="unpaid">{t('finance.freight.payment.unpaid')}</option>
-                            <option value="paid">{t('finance.freight.payment.paid')}</option>
-                        </select>
-                    </div>
-                    {paid && (
-                        <div>
-                            <label className="block mb-1">{t('finance.freight.colBank')}</label>
-                            <select name="bank_account_code" defaultValue="1000"
-                                className={CONTROL_SELECT}>
-                                <option value="1000">1000</option>
-                                <option value="1010">1010</option>
-                            </select>
-                        </div>
-                    )}
-                </div>
+                {/* ★ PAY-REQ-1(Tim 2026-09-23):运费单【永远】记成欠货代的 —— 「已付」那一支退休了。
+                    钱离开之前要先批:付它走一张付款申请,CFO 批准后由财务付。 */}
+                <p className="text-xs text-[color:var(--brand-muted-text)] max-w-3xl">{t('finance.freight.alwaysUnpaidHint')}</p>
 
                 {/* 【出境:集装箱选择器,而且【没有】任何分摊 UI】。
                     不是"分摊那一段禁用了",是它根本不在这张表单上 —— 出口运费

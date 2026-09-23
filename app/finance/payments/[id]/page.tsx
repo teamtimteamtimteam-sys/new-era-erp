@@ -62,7 +62,7 @@ export default async function PaymentDetailPage({
     }
 
     // 往来单位名 / 关联分录 / 核销行 / 镜像单,页级小查询
-    const [partyRes, journalRes, allocsRes, reversedByRes] = await Promise.all([
+    const [partyRes, journalRes, allocsRes, reversedByRes, openReversalRes] = await Promise.all([
         payment.direction === 'in'
             ? supabase.from('customer_lookup').select('legal_name').eq('id', payment.customer_id ?? '').single()
             : supabase.from('supplier_lookup').select('legal_name').eq('id', payment.supplier_id ?? '').single(),
@@ -77,7 +77,17 @@ export default async function PaymentDetailPage({
         payment.reversed_by_payment
             ? supabase.from('payments').select('id, code').eq('id', payment.reversed_by_payment).single()
             : Promise.resolve({ data: null, error: null }),
+        // ★ PAY-REQ-1:这笔付款有没有一张【未了结】的冲销申请。有 → 指过去,不再给「申请冲销」
+        //   (库里一笔付款同时只许一张未了结的冲销申请:payment_requests_one_open_reversal)。
+        supabase
+            .from('payment_requests')
+            .select('id, code, status')
+            .eq('payment_id', id)
+            .eq('kind', 'payment_reversal')
+            .in('status', ['submitted', 'approved'])
+            .limit(1),
     ])
+    const openReversal = mustRows(openReversalRes, 'open reversal request (PAY-REQ-1)')[0] ?? null
 
     const allocs = ((allocsRes.data as AllocRow[] | null) ?? [])
 
@@ -299,7 +309,16 @@ export default async function PaymentDetailPage({
                 转换前它就在这一块 div 里(CONV-8 §③ 记的那个实测)。 */}
             <RecordHeader
                 fields={fields}
-                actions={payment.status === 'posted' ? <ReversePaymentButton canEdit={canEditGate} paymentId={payment.id} subject={payment.code} /> : undefined}
+                actions={payment.status !== 'posted' ? undefined
+                    : openReversal ? (
+                        <Link href={`/finance/payment-requests/${openReversal.id}`} className="hover:underline app-link text-sm">
+                            {t('finance.reversalRequestOpen', {
+                                code: openReversal.code,
+                                status: t('finance.paymentRequests.status.' + openReversal.status),
+                            })}
+                        </Link>
+                    )
+                    : <ReversePaymentButton canEdit={canEditGate} paymentId={payment.id} subject={payment.code} />}
             />
 
             {payment.notes && (

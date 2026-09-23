@@ -113,10 +113,11 @@ CREATE POLICY "payments select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text));
 
-CREATE POLICY "payments insert by permission"
-    ON public.payments
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+-- ★ PAY-REQ-1(Tim 的 Q2(a),2026-09-23):"payments insert by permission" 已拆除。
+--   它让任何持 module.finance.edit 的人绕开 record_payment 直接往这张表里插一行 ——
+--   没有分录、没有申请、没有批准。写这张表的只有 SECURITY DEFINER 的引擎
+--   (record_payment_internal / reverse_payment_internal),它们以属主身份写,不需要策略。
+--   guard_payment_sod 那支触发器【留着】:它是第二道保险,也管引擎自己写的那一行。
 
 -- FIN-1a:改名列的注释(说明写在数据库里,重建出来的库也带着)
 COMMENT ON COLUMN public.payments.amount_base IS '本位币金额(以 currencies.is_base 为币种 —— 不写死币种;FIN-1a 前列名 amount_usd)。';

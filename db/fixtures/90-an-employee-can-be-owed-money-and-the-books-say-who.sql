@@ -1,4 +1,7 @@
 -- 90 一个员工可以被欠钱,而账上说得出【是谁】
+-- ★ PAY-REQ-1(2026-09-23):出款与冲销从此只经付款申请 → CFO 批准 → 付款。本文件测的是
+--   【过账的算术】,不是审批,所以它直接调引擎(record_payment_internal /
+--   reverse_payment_internal —— 以属主身份跑,authenticated 调不到)。审批那一半在 fixture 210。
 --
 -- 【它守的是什么】PAYEE-1a 之前,两条 CHECK 逼着每一笔未付费用与每一笔出款
 -- 都挂一个供应商。于是员工报销只能借一个假供应商("Staff Reimbursements"),
@@ -164,7 +167,7 @@ BEGIN
     -- 而"一条报了红却说不出是哪一条断言"的检查,与不报是两回事但同样难用。
     v_denied := false; v_msg := NULL;
     BEGIN
-        v_pay := record_payment(
+        v_pay := record_payment_internal(
             p_direction := 'out', p_counterparty_id := emp_a, p_amount := 500,
             p_currency := 'SGD', p_bank_account := '1000', p_payment_date := CURRENT_DATE,
             p_counterparty_kind := 'employee',
@@ -195,7 +198,7 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════════════════
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_payment(
+        PERFORM record_payment_internal(
             p_direction := 'out', p_counterparty_id := emp_b, p_amount := 700,
             p_currency := 'SGD', p_bank_account := '1000', p_payment_date := CURRENT_DATE,
             p_counterparty_kind := 'employee',
@@ -259,8 +262,12 @@ BEGIN
     RAISE NOTICE '90H 报销 submit→decide→pay 全程无供应商,应付按员工姓名入账龄 ✓';
 
     -- ══════════════════════════════════════════════════════════════════════════
-    -- I. 【已付费用不要求往来对象】—— 线上就有这样的历史行(2 笔),
-    --    把"从不两个"误写成"永远必须有一个"会把它们全部挡下
+    -- I. 【已付费用不要求往来对象】—— 这一臂原来断言"一张没有往来对象的已付费用照样
+    --    建得出来"(线上有 2 笔这样的历史行)。
+    --    ★ PAY-REQ-1(Tim 的 Q2(c),2026-09-23)把这条【建单的路】整条关了:费用单
+    --    一律挂账,钱经付款申请离开。那 2 笔历史行【不受影响】—— expenses 的形状 CHECK
+    --    一个字没改,它们仍然合法;变的只是"今天还能不能再建一张"。
+    --    所以这一臂改成断言那条路【按名关着】,而不是断言它通。
     -- ══════════════════════════════════════════════════════════════════════════
     v_denied := false; v_msg := NULL;
     BEGIN
@@ -269,10 +276,10 @@ BEGIN
             p_amount := 60, p_currency := 'SGD', p_payment_status := 'paid',
             p_bank_account := '1000');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
-    IF v_denied OR (v_exp->>'expense_id') IS NULL THEN
-        RAISE EXCEPTION 'FIXTURE 90I 已付费用【不】要求往来对象(线上 2 笔历史行正是这个形状)—— 把"从不两个"误写成"永远必须有一个"会把它们全部挡下。实得:%', COALESCE(v_msg,'(建不出来)');
+    IF NOT v_denied OR v_msg <> 'EXPENSE_PAID_AT_CREATION_REFUSED' THEN
+        RAISE EXCEPTION 'FIXTURE 90I 已付费用从此建不出来(PAY-REQ-1 Q2(c)),应按名拒 EXPENSE_PAID_AT_CREATION_REFUSED。实得:%', COALESCE(v_msg,'(建出来了)');
     END IF;
-    RAISE NOTICE '90I 已付费用无往来对象:仍然接受 ✓';
+    RAISE NOTICE '90I 已付费用:建单那一刻按名拒 ✓';
 
     -- ══════════════════════════════════════════════════════════════════════════
     -- J. employee_id 【也不可改】—— 由【两道闸】共同保证

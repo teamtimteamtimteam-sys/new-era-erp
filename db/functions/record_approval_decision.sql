@@ -46,6 +46,14 @@ BEGIN
             SELECT true, p.code, p.amount_ccy, p.currency, p.fx_rate, p.amount_base
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base
               FROM payments p WHERE p.id = p_subject_id;
+        -- ★ PAY-REQ-1:付款申请。提单人 = created_by;主角 = 收款员工(付给供应商时 NULL)。
+        --   金额冻结的是【申请上】那一组(审批人批的就是它);本位币额是提交时的试算值。
+        WHEN 'payment_request' THEN
+            SELECT true, r.code, r.amount_ccy, r.currency,
+                   CASE WHEN r.amount_ccy > 0 THEN r.amount_base / r.amount_ccy END,
+                   r.amount_base, r.created_by, r.employee_id
+              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser, v_subject
+              FROM payment_requests r WHERE r.id = p_subject_id;
         WHEN 'expense' THEN
             SELECT true, e.code, e.amount_ccy, e.currency, e.fx_rate, e.amount_base
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base

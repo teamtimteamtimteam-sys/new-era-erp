@@ -21,8 +21,7 @@ export async function createFreightDocument(
     const currency = String(formData.get('currency') ?? '').trim()
     const basis = String(formData.get('allocation_basis') ?? '').trim()
     const direction = String(formData.get('direction') ?? '').trim()
-    const paymentStatus = String(formData.get('payment_status') ?? 'unpaid').trim()
-    const bank = String(formData.get('bank_account_code') ?? '').trim() || null
+    // ★ PAY-REQ-1(Tim 2026-09-23):运费单恒为 unpaid —— 付款走付款申请(函数对 'paid' 按名拒)。
     const notes = String(formData.get('notes') ?? '').trim() || null
 
     // 并列数组:勾选的批次 + (stated 口径时)逐批金额
@@ -70,8 +69,7 @@ export async function createFreightDocument(
             p_supplier_id: supplierId,
             p_amount: amount ? Number(amount) : 0,
             p_currency: currency,
-            p_payment_status: paymentStatus,
-            p_bank_account: bank ?? undefined,
+            p_payment_status: 'unpaid',
             // 【空字符串不是"没选"的合法表达】—— 空串送下去会被当成一个 uuid 解析失败;
             // 不选就是不送(docs/empty-string-to-rpc-audit.md 那一族)。
             p_container_id: containerId || undefined,
@@ -92,8 +90,7 @@ export async function createFreightDocument(
         p_amount: amount ? Number(amount) : 0,
         p_currency: currency,
         p_allocation_basis: basis,
-        p_payment_status: paymentStatus,
-        p_bank_account: bank ?? undefined,
+        p_payment_status: 'unpaid',
         p_allocations: allocations,
         p_notes: notes ?? undefined,
     })

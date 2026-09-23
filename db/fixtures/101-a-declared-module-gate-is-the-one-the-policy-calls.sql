@@ -59,8 +59,9 @@ BEGIN
 
     -- ★ 覆盖率本身是一条断言 —— 一个瞎掉的循环与一份正确的登记表都打印"通过"。
     --   实测 2026-09-13:40 种单据 / 39 张表,去重后 43 组(表,码)。
-    IF v_n <> 43 THEN
-        RAISE EXCEPTION 'FIXTURE 101 失败:只检查了 %(表,码)组,期待 43 —— '
+    -- ★ PAY-REQ-1(2026-09-23):43 → 44 —— payment_requests 登记了 module.finance.view。
+    IF v_n <> 44 THEN
+        RAISE EXCEPTION 'FIXTURE 101 失败:只检查了 %(表,码)组,期待 44 —— '
                         '判据瞎了,或者登记表真的变了(那就同时改这个数与切次报告)', v_n;
     END IF;
 
@@ -71,7 +72,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 101 失败:% 种单据一道模块闸都没声明', v_n;
     END IF;
 
-    RAISE NOTICE 'FIXTURE 101 全部通过:43 组(表,模块闸)逐组对上了策略自己调的谓词。';
+    RAISE NOTICE 'FIXTURE 101 全部通过:44 组(表,模块闸)逐组对上了策略自己调的谓词。';
 END
 $fixture$;
 

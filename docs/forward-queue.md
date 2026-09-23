@@ -370,7 +370,7 @@
 
    **3b-order ★★★ 从这里往后的顺序 —— Tim 裁定,2026-09-23(APR-ROUTE-1 委托书)**
 
-   > **APR-ROUTE-1 → APR-4 → ✅ 收货建单带价不记应付(INB-PAY-1,2026-09-23 做完)→ 付款申请(申请 → 批 → 付)→ APR-5 → APR-6 →
+   > **APR-ROUTE-1 → APR-4 → ✅ 收货建单带价不记应付(INB-PAY-1,2026-09-23 做完)→ ✅ 付款申请 Batch A(PAY-REQ-1,2026-09-23)→ ⬜ 付款申请 Batch B(转账 · 代扣税)→ APR-5 → APR-6 →
    > EMP-SELF-1(余下部分)→ Tim 开独立 CFO 账号与同事账号 → 同事端到端走一遍 →
    > 整条审批链【一个版本号】,附详细说明。**
    >
@@ -6229,7 +6229,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 
 | # | 生命周期 | 覆盖矩阵里的哪几行 | 大小 |
 |--:|---|---|---|
-| 1 | **付款申请**(已排队,3b-order 的下一刀)| 付款与冲销、银行转账、预扣税缴纳、采购质保金释放 | L(约 2 个会话)|
+| 1 | **付款申请** —— ✅ **Batch A 已上线(PAY-REQ-1,2026-09-23)**:付款与冲销付款 · ⬜ **Batch B**:银行转账与其冲销、预扣税缴纳(**在它之前照旧不经批准离开**)· ~~采购质保金释放~~ 撤回(Tim 的 Q5:不动钱、不生应付)| Batch B:M(一个会话)|
 | 2 | 工资过账申请 | 工资过账与撤销 | M |
 | 3 | 调薪申请 | 调薪(第一份月薪以外的每一次)| M |
 | 4 | GST 申报审批 | GST 申报与更正 | M |
@@ -6254,3 +6254,18 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 * **重新排名是 Tim 的事**;每次重排**记下日期**。
 * **新增条目之前**,先按上面那张表查一遍它的规格是不是已经在别处 ——
   在,就指过去。
+
+
+## ⬜ ★★ PAY-REQ-1 · Batch B —— 银行转账与其冲销、预扣税缴纳走付款申请(Tim 2026-09-23 的 Q15)
+
+Batch A(付款与冲销付款)见 `docs/handbacks/PAY-REQ-1.md` 与 `docs/approvals.md` §3j。**两批之间,银行转账与代扣税缴纳
+照旧不经批准离开** —— Tim 知情并接受。Batch B 要做的,照 Batch A 的形状:
+* `payment_requests.kind` 扩成 `bank_transfer` · `bank_transfer_reversal` · `wht_remittance`(CHECK 与形状约束);
+* `record_bank_transfer` / `reverse_bank_transfer` / `remit_wht` 各拆一层 `*_internal`(authenticated 调不到),
+  外壳按名拒 `PAYMENT_REQUEST_REQUIRED|<kind>`;`pay_payment_request` 与 `payment_request_dry_run` 各加一支;
+* **代扣税的金额是推导出来的**(`wht_liability_by_month.unremitted_base`)—— 申请冻结的是提交那一刻的数,
+  付款时推导值不同就按名拒(Step 0 Q4 已答);
+* **代扣税的更正今天走 `reverse_journal_entry`** —— Batch A 故意没有把 `wht_remittance` 加进
+  `JE_REVERSE_USE_SOURCE_PATH`(那会让更正无路可走)。Batch B 要给它一条冲销申请的路,再关这扇门;
+* `reverse_bank_transfer` 今天**没有任何屏幕**调它(grilling 实测)—— Batch B 决定要不要给它一个入口;
+* 屏幕:`/finance/bank` 的转账表单与 `/finance/wht` 改成"提申请";详情页的"付"一支按 kind 分派。

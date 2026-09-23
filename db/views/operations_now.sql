@@ -1,4 +1,6 @@
 -- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- ★ PAY-REQ-1(2026-09-23):加一支 payment_request_pending —— 等 CFO 批的付款申请
+--   (module.finance.view;finance 与 cfo 都看得见,点进去由 decide_payment_request 裁谁能批)。
 --
 -- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
 -- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
@@ -532,7 +534,20 @@ CREATE VIEW public.operations_now AS
             ib.arrival_date AS item_date
            FROM inbound_batches ib
              JOIN suppliers s ON s.id = ib.supplier_id
-          WHERE ib.deleted_at IS NULL AND ib.imported IS TRUE AND ib.import_permit_verified_at IS NULL) a
+          WHERE ib.deleted_at IS NULL AND ib.imported IS TRUE AND ib.import_permit_verified_at IS NULL
+        UNION ALL
+         SELECT 'payment_request_pending'::text AS item_type,
+            'module.finance.view'::text AS permission,
+            pr.id AS item_id,
+            NULL::text AS doc_kind,
+            pr.code AS item_code,
+            COALESCE(s.legal_name, e.legal_name, c.legal_name) AS subject,
+            pr.created_at::date AS item_date
+           FROM payment_requests pr
+             LEFT JOIN suppliers s ON s.id = pr.supplier_id
+             LEFT JOIN employees e ON e.id = pr.employee_id
+             LEFT JOIN customers c ON c.id = pr.customer_id
+          WHERE pr.status = 'submitted'::text) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type))) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;

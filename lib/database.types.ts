@@ -10876,6 +10876,251 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_requests: {
+        Row: {
+          allocations: Json
+          amount_base: number
+          amount_ccy: number
+          bank_account_code: string | null
+          code: string
+          counterparty_type: string
+          created_at: string
+          created_by: string
+          currency: string
+          customer_id: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          employee_id: string | null
+          fx_rate: number | null
+          id: string
+          kind: string
+          notes: string | null
+          paid_at: string | null
+          paid_by: string | null
+          payment_id: string | null
+          planned_date: string | null
+          result_payment_id: string | null
+          status: string
+          supplier_id: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          allocations?: Json
+          amount_base: number
+          amount_ccy: number
+          bank_account_code?: string | null
+          code: string
+          counterparty_type: string
+          created_at?: string
+          created_by: string
+          currency: string
+          customer_id?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          employee_id?: string | null
+          fx_rate?: number | null
+          id?: string
+          kind: string
+          notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_id?: string | null
+          planned_date?: string | null
+          result_payment_id?: string | null
+          status?: string
+          supplier_id?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          allocations?: Json
+          amount_base?: number
+          amount_ccy?: number
+          bank_account_code?: string | null
+          code?: string
+          counterparty_type?: string
+          created_at?: string
+          created_by?: string
+          currency?: string
+          customer_id?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          employee_id?: string | null
+          fx_rate?: number | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          paid_at?: string | null
+          paid_by?: string | null
+          payment_id?: string | null
+          planned_date?: string | null
+          result_payment_id?: string | null
+          status?: string
+          supplier_id?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_requests_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payment_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_billing_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_credit_status"
+            referencedColumns: ["customer_id"]
+          },
+          {
+            foreignKeyName: "payment_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customer_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payment_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "payment_requests_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_result_payment_id_fkey"
+            columns: ["result_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_requests_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "payment_requests_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_term_template_lines: {
         Row: {
           created_at: string
@@ -26955,6 +27200,7 @@ export type Database = {
           blocks_disable: boolean
           code: string
           doc_id: string
+          fixed_level: number
           raiser_user_id: string
           subject_employee_id: string
           subject_type: string
@@ -27440,6 +27686,10 @@ export type Database = {
         Args: { p_approve: boolean; p_claim_id: string; p_notes?: string }
         Returns: Json
       }
+      decide_payment_request: {
+        Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
+        Returns: Json
+      }
       decline_quote: {
         Args: { p_quote_id: string; p_reason: string }
         Returns: Json
@@ -27807,6 +28057,7 @@ export type Database = {
       next_forecast_code: { Args: { p_date?: string }; Returns: string }
       next_leave_request_code: { Args: { p_date?: string }; Returns: string }
       next_medical_claim_code: { Args: { p_date?: string }; Returns: string }
+      next_payment_request_code: { Args: { p_date?: string }; Returns: string }
       next_payroll_code: { Args: { p_date?: string }; Returns: string }
       next_pricing_formula_code: { Args: { p_date?: string }; Returns: string }
       next_purchase_order_code: { Args: { p_date?: string }; Returns: string }
@@ -27851,6 +28102,14 @@ export type Database = {
         }
         Returns: Json
       }
+      pay_payment_request: {
+        Args: {
+          p_fx_rate?: number
+          p_payment_date?: string
+          p_request_id: string
+        }
+        Returns: Json
+      }
       pay_payroll_cpf: {
         Args: {
           p_bank_account?: string
@@ -27875,6 +28134,29 @@ export type Database = {
           p_payroll_period_id: string
         }
         Returns: Json
+      }
+      payment_request_conflict: {
+        Args: { p_allocations: Json; p_self: string }
+        Returns: string
+      }
+      payment_request_dry_run: {
+        Args: { p_date?: string; p_fx_rate?: number; p_request_id: string }
+        Returns: Json
+      }
+      payment_request_payee_check: {
+        Args: { p_kind: string; p_supplier_id: string }
+        Returns: undefined
+      }
+      payment_request_required: {
+        Args: {
+          p_allocations: Json
+          p_amount: number
+          p_counterparty_id: string
+          p_counterparty_kind: string
+          p_currency: string
+          p_direction: string
+        }
+        Returns: boolean
       }
       period_close_floor: { Args: never; Returns: string }
       pnl_statement: { Args: { p_from: string; p_to: string }; Returns: Json }
@@ -28183,6 +28465,21 @@ export type Database = {
         }
         Returns: Json
       }
+      record_payment_internal: {
+        Args: {
+          p_allocations?: Json
+          p_amount: number
+          p_bank_account?: string
+          p_counterparty_id: string
+          p_counterparty_kind?: string
+          p_currency: string
+          p_direction: string
+          p_fx_rate?: number
+          p_notes?: string
+          p_payment_date?: string
+        }
+        Returns: Json
+      }
       record_po_issue: {
         Args: { p_file_path: string; p_po_id: string; p_sha256: string }
         Returns: Json
@@ -28391,6 +28688,10 @@ export type Database = {
         Returns: Json
       }
       reverse_payment: {
+        Args: { p_memo?: string; p_payment_id: string }
+        Returns: Json
+      }
+      reverse_payment_internal: {
         Args: { p_memo?: string; p_payment_id: string }
         Returns: Json
       }
@@ -28705,6 +29006,24 @@ export type Database = {
         }
         Returns: Json
       }
+      submit_payment_request: {
+        Args: {
+          p_allocations?: Json
+          p_amount: number
+          p_bank_account?: string
+          p_counterparty_id: string
+          p_counterparty_kind?: string
+          p_currency: string
+          p_fx_rate?: number
+          p_notes?: string
+          p_planned_date?: string
+        }
+        Returns: Json
+      }
+      submit_payment_reversal_request: {
+        Args: { p_notes: string; p_payment_id: string }
+        Returns: Json
+      }
       submit_review: { Args: { p_review_id: string }; Returns: Json }
       submit_shift_handover: {
         Args: {
@@ -28813,6 +29132,10 @@ export type Database = {
       withdraw_fx_rate: {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
+      }
+      withdraw_payment_request: {
+        Args: { p_request_id: string }
+        Returns: Json
       }
     }
     Enums: {

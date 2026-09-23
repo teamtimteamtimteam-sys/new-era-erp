@@ -8,11 +8,15 @@ import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { Button } from '@/app/components/ui/button'
 
 export default function ReverseButton({ entryId, subject ,
-canEdit
+canEdit, sourcePath,
 }: { entryId: string; subject: string 
 canEdit: boolean
+/** PAY-REQ-1:付款或转账过出来的分录不许在这里冲 —— reverse_journal_entry 按名拒
+ *  (JE_REVERSE_USE_SOURCE_PATH)。给了它,钮【看得见、按不动、带理由】(DBLOCK-1)。 */
+sourcePath?: 'payment' | 'transfer'
 }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
@@ -29,6 +33,25 @@ canEdit: boolean
                 })
             }
         })
+    }
+
+    // ★ PAY-REQ-1(Tim 2026-09-23):钱离开之前要先批。一笔付款的分录若能在这里冲,
+    //   就绕开了冲销申请那一道审批 —— 所以库拒它,而屏幕【在按之前】就说出来:
+    //   钮留着、灰掉、旁边一行说去哪冲。不藏(DBLOCK-1:藏起来教给人的是"这件事不存在")。
+    //   判据与库同源:source_type 是 'payment' 或 'transfer'。
+    if (sourcePath) {
+        return (
+            <span className="inline-flex flex-col items-start gap-1.5">
+                <Button type="button" variant="destructive" disabled>
+                    {t('finance.reverse')}
+                </Button>
+                <span className="text-xs text-[color:var(--brand-muted-text)] max-w-xs">
+                    {sourcePath === 'payment'
+                        ? t('finance.reverseUseSourcePathPayment')
+                        : t('finance.reverseUseSourcePathTransfer')}
+                </span>
+            </span>
+        )
     }
 
     // CONFIRM-1:★ 撤销档,不是破坏档 —— 冲销【不删任何东西】,原件与冲销件

@@ -441,6 +441,9 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
     // 【按不下去的时候把理由摆在旁边】—— AssetActions 立的规矩。
     const why = !f.expenseDate ? t('equipment.maint.capNeedDate')
               : !f.amount || !(Number(f.amount) > 0) ? t('equipment.maint.capNeedAmount')
+              // PAY-REQ-1:这笔支出【永远】挂在供应商名下(付款走付款申请),所以供应商必选 ——
+              //   record_expense 对没有往来对象的挂账按名拒(COUNTERPARTY_REQUIRED_FOR_UNPAID)。
+              : !f.supplierId ? t('equipment.maint.capNeedSupplier')
               : ''
 
     function submit() {
@@ -495,7 +498,7 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
                     {t('equipment.maint.capSupplier')}
                     <select value={f.supplierId} onChange={(e) => setF({ ...f, supplierId: e.target.value })}
                             className={`${CONTROL_SELECT} block w-full`}>
-                        <option value="">{t('equipment.maint.capNoSupplier')}</option>
+                        <option value="" disabled>{t('equipment.maint.capNoSupplier')}</option>
                         {suppliers.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
                     </select>
                 </label>

@@ -1,5 +1,6 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { fallbackForRawError } from '@/lib/machine-text'
+import { localizeSelfApproval } from '@/lib/selfApproval'
 
 // record_payment / reverse_payment 抛出的错误码(端口自 financeErrorCodes.ts)。
 // FX_RATE_REQUIRED / PERIOD_LOCKED 复用 finance.errors 里已有的文案。
@@ -40,6 +41,17 @@ const PAYMENT_ERROR_CODES = new Set([
     // 任何东西说得出它对应哪一项供应),所以它被【按名拦住】而不是无声放过。
     // 文案在 finance.errors 下,与这个本地化器的其余码同一处。
     'GST_UNALLOCATED_RECEIPT_UNSUPPORTED',
+    // PAY-REQ-1(Tim 2026-09-23):钱离开之前要先批。出款与冲销从此经一张付款申请
+    // (提 → CFO 批 → 付),record_payment 对非豁免的出款、reverse_payment 对一切冲销
+    // 按名拒并指路;申请本身的生命周期那几个码也在这里。【每一条都要说出下一步】。
+    'PAYMENT_REQUEST_REQUIRED', 'PAYMENT_REQUEST_NOT_REQUIRED', 'PAYMENT_REQUEST_TARGET_RESERVED',
+    'PAYMENT_REQUEST_NOT_FOUND', 'PAYMENT_REQUEST_NOT_OPEN', 'PAYMENT_REQUEST_NOT_SUBMITTED',
+    'PAYMENT_REQUEST_NOT_APPROVED', 'PAYMENT_REQUEST_REJECT_REASON_REQUIRED',
+    'PAYMENT_REQUEST_SUPPLIER_BLOCKED', 'PAYMENT_REVERSAL_REASON_REQUIRED',
+    'PAYMENT_REVERSAL_ALREADY_REQUESTED', 'PAYMENT_REVERSAL_TAKES_NO_DATE',
+    // 批准那一步走 require_approver_for(2):不是二级审批角色的人按名拒;审批关着时
+    // 申请生下来就是 approved,decide 那一支按名拒。
+    'APPROVAL_NOT_AUTHORISED', 'APPROVALS_NOT_ENABLED',
 ])
 
 // cut 4b:record_payment 的 PO 预付分支抛的码,文案住在 purchasing.errors 下
@@ -52,6 +64,12 @@ const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 export async function localizePaymentError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
+
+    // ★ PAY-REQ-1:四眼那两句话跨模块【只写一遍】(lib/selfApproval.ts)——
+    //   decide_payment_request 抛 SELF_APPROVAL_FORBIDDEN|raiser(这张申请是你提的)。
+    if (match && match[1] === 'SELF_APPROVAL_FORBIDDEN') {
+        return await localizeSelfApproval((match[2] ?? '').split('|')[0] || null)
+    }
 
     if (!match || (!PAYMENT_ERROR_CODES.has(match[1]) && !PURCHASING_SIDE_CODES.has(match[1]))) {
         return await fallbackForRawError(raw, 'localizePaymentError@app/finance/paymentErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)

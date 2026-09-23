@@ -1,4 +1,7 @@
 -- 135 【截至某一天】的账龄不是"今天的账龄换个抬头"(AGING-1)
+-- ★ PAY-REQ-1(2026-09-23):出款与冲销从此只经付款申请 → CFO 批准 → 付款。本文件测的是
+--   【过账的算术】,不是审批,所以它直接调引擎(record_payment_internal /
+--   reverse_payment_internal —— 以属主身份跑,authenticated 调不到)。审批那一半在 fixture 210。
 --
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 勘察说"as-at 今天做不到",给了两条理由:CURRENT_DATE 焊在视图体里,
@@ -262,7 +265,7 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════════════
     -- B 臂 · ② 结清:d3 那天付的钱,不许渗回 d3 之前
     -- ══════════════════════════════════════════════════════════════════════
-    v_res := record_payment('out', v_sup, PAYAMT, v_ccy, NULL, v_bank, d3,
+    v_res := record_payment_internal('out', v_sup, PAYAMT, v_ccy, NULL, v_bank, d3,
         'fixture 135 部分付',
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'amount_doc', PAYAMT)),
         'supplier');
@@ -296,7 +299,7 @@ BEGIN
     -- status='posted' 过滤"这件事在 as-at 上的落点 —— 不注入就永远不会被验到。
     -- reverse_payment 把镜像单记成 CURRENT_DATE,所以冲销日恒为【今天】> d3。
     -- ══════════════════════════════════════════════════════════════════════
-    PERFORM reverse_payment(v_pay, 'fixture 135 冲销');
+    PERFORM reverse_payment_internal(v_pay, 'fixture 135 冲销');
 
     SELECT (e->>'settled_base')::numeric INTO v_right
       FROM jsonb_array_elements(ap_aging_asof(d3)->'rows') e

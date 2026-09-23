@@ -1,4 +1,6 @@
 -- ════════════════════════════════════════════════════════════════════════════
+-- ★ PAY-REQ-1(2026-09-23):40 → 41 —— 新增 payment_request / PREQ(无洞,next_payment_request_code)。
+--   它是新单据,没有"变换之前"的字面量可比;锚里那一条就是它今天的前缀。
 -- fixture 100 —— 停止条件 (g):【每一个单据码仍然铸得一模一样】,逐前缀,40 个
 -- ════════════════════════════════════════════════════════════════════════════
 --
@@ -72,7 +74,8 @@ DECLARE
         ['attendance_period','ATT'],       ['gst_period','GST'],
         ['journal_entry','JE'],            ['expense','EXP'],
         ['freight_document','FRT'],        ['wht_remittance','WHT'],
-        ['payment_receipt','RCPT'],        ['payment_out','PMT']
+        ['payment_receipt','RCPT'],        ['payment_out','PMT'],
+        ['payment_request','PREQ']
     ];
 
     -- 铸码的【形状】—— 与 numbering 是两件事,不要合并。
@@ -94,7 +97,7 @@ DECLARE
         ['invoice','seq_year'],            ['bank_statement','seq_year'],
         ['journal_entry','seq_year'],      ['expense','seq_year'],
         ['freight_document','seq_year'],   ['payment_receipt','seq_year'],
-        ['payment_out','seq_year'],
+        ['payment_out','seq_year'],        ['payment_request','seq_year'],
         ['contract','nextval_year'],       ['customer','nextval_year'],
         ['inbound_batch','nextval_year'],  ['material','nextval_year'],
         ['output_batch','nextval_year'],   ['processing_run','nextval_year'],
@@ -126,16 +129,17 @@ DECLARE
         ['shipment','next_shipment_code'],
         ['customer_statement','next_statement_code'],
         ['traceability_report','next_traceability_report_code'],
-        ['work_order','next_work_order_code']
+        ['work_order','next_work_order_code'],
+        ['payment_request','next_payment_request_code']
     ];
 BEGIN
     -- ══ 第 1 臂 · 登记表的形状 ══════════════════════════════════════════════
     SELECT count(*) INTO v_n FROM document_types;
-    IF v_n <> 40 THEN
-        RAISE EXCEPTION 'FIXTURE 100/1 失败:document_types 应有 40 行,实有 %', v_n;
+    IF v_n <> 41 THEN
+        RAISE EXCEPTION 'FIXTURE 100/1 失败:document_types 应有 41 行,实有 %', v_n;
     END IF;
     SELECT count(DISTINCT prefix) INTO v_n FROM document_types;
-    IF v_n <> 40 THEN
+    IF v_n <> 41 THEN
         RAISE EXCEPTION 'FIXTURE 100/1 失败:前缀不唯一(distinct %)', v_n;
     END IF;
     SELECT count(*) INTO v_n FROM document_types WHERE numbering = 'gapped';
@@ -166,8 +170,8 @@ BEGIN
                 ANCHOR[v_n][1], ANCHOR[v_n][2], v_actual;
         END IF;
     END LOOP;
-    IF array_length(ANCHOR, 1) <> 40 THEN
-        RAISE EXCEPTION 'FIXTURE 100/2 失败:锚只有 % 条,不是 40', array_length(ANCHOR, 1);
+    IF array_length(ANCHOR, 1) <> 41 THEN
+        RAISE EXCEPTION 'FIXTURE 100/2 失败:锚只有 % 条,不是 41', array_length(ANCHOR, 1);
     END IF;
     -- ★ 覆盖率本身是一条断言:登记表里若出现一个锚里没有的 key,这一臂必须红,
     --   而不是安静地不检查它。
@@ -231,8 +235,8 @@ BEGIN
             v_codes := v_codes || (k || ' → ' || v_expect);
         END;
     END LOOP;
-    IF array_length(v_codes, 1) <> 40 THEN
-        RAISE EXCEPTION 'FIXTURE 100/3 失败:只算出 % 个前缀的号,不是 40', array_length(v_codes, 1);
+    IF array_length(v_codes, 1) <> 41 THEN
+        RAISE EXCEPTION 'FIXTURE 100/3 失败:只算出 % 个前缀的号,不是 41', array_length(v_codes, 1);
     END IF;
 
     -- ══ 第 4 臂 · 那 22 支【真的调用一遍】,与公式对上 ══════════════════════
@@ -310,8 +314,9 @@ BEGIN
     END IF;
     -- ★ 覆盖率本身是一条断言:一个瞎掉的扫描器和一棵干净的树都打印"通过"。
     --   实测(2026-09-13,变换前后同一个数):30 支。少于 30 = 判据瞎了,不是变干净了。
-    IF v_n <> 30 THEN
-        RAISE EXCEPTION 'FIXTURE 100/5 失败:按 MAX(split_part(code)) 取号的函数应有 30 支,这次只看见 % 支'
+    -- ★ PAY-REQ-1:30 → 31(next_payment_request_code)。
+    IF v_n <> 31 THEN
+        RAISE EXCEPTION 'FIXTURE 100/5 失败:按 MAX(split_part(code)) 取号的函数应有 31 支,这次只看见 % 支'
                         ' —— 判据瞎了,不是树干净了', v_n;
     END IF;
 

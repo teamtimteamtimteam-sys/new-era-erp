@@ -182,7 +182,9 @@ BEGIN
         v_thr := NEW.approval_threshold_base;
         FOR v_doc IN
             SELECT d.subject_type, d.code, d.raiser_user_id, d.subject_employee_id,
-                   CASE WHEN d.amount_base IS NULL OR v_thr IS NULL
+                   -- ★ PAY-REQ-1:不分档的链(付款申请)说出它自己的那一级,不按金额重分
+                   CASE WHEN d.fixed_level IS NOT NULL THEN d.fixed_level
+                        WHEN d.amount_base IS NULL OR v_thr IS NULL
                         THEN 2::smallint
                         ELSE approval_level_at(d.amount_base, v_thr) END AS lvl
               FROM approval_pending_documents() d

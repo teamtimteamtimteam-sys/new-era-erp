@@ -1,4 +1,7 @@
 -- 143 报表包:一份【文书】,以及一条【动得开】的勾稽(GLEXPORT-1)
+-- ★ PAY-REQ-1(2026-09-23):出款与冲销从此只经付款申请 → CFO 批准 → 付款。本文件测的是
+--   【过账的算术】,不是审批,所以它直接调引擎(record_payment_internal /
+--   reverse_payment_internal —— 以属主身份跑,authenticated 调不到)。审批那一半在 fixture 210。
 --
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【这份 fixture 钉八件事】
@@ -151,7 +154,7 @@ BEGIN
     --   结算差异变成 12,000(总账冲了 12,000,单据侧冲了 0)。
     --   那个 12,000 并不是错的,勾稽的未解释余额照样是 0;错的是我的期望值。
     --   **留一笔敞口,这个分项才量得到它要量的那件事。**
-    PERFORM record_payment(
+    PERFORM record_payment_internal(
         p_direction := 'out', p_counterparty_id := v_sup, p_amount := 5000,
         p_currency := v_base, p_payment_date := d_in,
         p_allocations := jsonb_build_array(

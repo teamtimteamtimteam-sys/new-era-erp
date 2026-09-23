@@ -555,6 +555,12 @@ DEFINER_NO_CHECK_ALLOWED = {
     "batch_freight_base_all": "EXECUTE revoked from PUBLIC/authenticated/anon; a VALUATION reader must not depend on who pressed the button (PROC-COST-2)",
     "batch_processing_cost_base_all": "EXECUTE revoked from PUBLIC/authenticated/anon; a VALUATION reader must not depend on who pressed the button (PROC-COST-2)",
     "inbound_batch_landed_unit_cost_all": "EXECUTE revoked from PUBLIC/authenticated/anon; the POSTING primitive - the amount that reaches the ledger must not depend on who pressed the button (PROC-COST-2 / CLEANUP-A fu1)",
+    # PAY-REQ-1:付款引擎的内层与申请的试跑。它们【必须】没有调用者检查 ——
+    # CFO 批准时要以同一支引擎试跑一张申请,而 CFO 不持 module.finance.edit;
+    # 外门(record_payment / pay_payment_request)各自查权限。靠"调不到"。
+    "record_payment_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "reverse_payment_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "payment_request_dry_run": "EXECUTE revoked from PUBLIC/authenticated/anon",
 }
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",

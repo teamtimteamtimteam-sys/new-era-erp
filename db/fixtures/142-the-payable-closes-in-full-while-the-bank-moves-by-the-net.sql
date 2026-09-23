@@ -1,4 +1,7 @@
 -- 142 预提税:债【全额】结清,而银行只走【净额】(WHT-1)
+-- ★ PAY-REQ-1(2026-09-23):出款与冲销从此只经付款申请 → CFO 批准 → 付款。本文件测的是
+--   【过账的算术】,不是审批,所以它直接调引擎(record_payment_internal /
+--   reverse_payment_internal —— 以属主身份跑,authenticated 调不到)。审批那一半在 fixture 210。
 --
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【这份 fixture 钉十件事】
@@ -120,7 +123,7 @@ BEGIN
             v_gross, v_net, v_wht;
     END IF;
 
-    v_pay := record_payment(
+    v_pay := record_payment_internal(
         p_direction := 'out', p_counterparty_id := v_sup, p_amount := v_net,
         p_currency := v_base, p_payment_date := d_doc,
         p_allocations := jsonb_build_array(
@@ -190,7 +193,7 @@ BEGIN
             v_frozen, v_live;
     END IF;
 
-    v_pay := record_payment(
+    v_pay := record_payment_internal(
         p_direction := 'out', p_counterparty_id := v_sup, p_amount := v_net,
         p_currency := v_base, p_payment_date := d_doc,
         p_allocations := jsonb_build_array(
@@ -218,7 +221,7 @@ BEGIN
     -- 两次各结一半。一个"第一次就把整张单的税全扣掉"的实现会在第一次
     -- 就得到 v_wht,当场红。
     FOR v_n IN 1..2 LOOP
-        PERFORM record_payment(
+        PERFORM record_payment_internal(
             p_direction := 'out', p_counterparty_id := v_sup,
             p_amount := round(v_net / 2, 2), p_currency := v_base, p_payment_date := d_doc,
             p_allocations := jsonb_build_array(
@@ -272,7 +275,11 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 142E3 失败:一笔【当场付清】的费用做了代扣裁定却没有拒 —— 那条路不经过 record_payment,于是一分钱都不会被扣';
     EXCEPTION WHEN OTHERS THEN
         GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
-        IF v_msg NOT LIKE 'WHT_ON_PAID_EXPENSE_UNSUPPORTED%' THEN RAISE; END IF;
+        -- ★ PAY-REQ-1(Tim 的 Q2(c)):'paid' 这条路整条关了 —— 一张费用单不许生下来就已付。
+        --   于是这一臂拿到的是【更早、更宽】的那一句拒绝;A2 那个洞从此不是被 WHT 这道闸
+        --   补上的,而是那条路不存在了。两句都认,因为两句都说"这笔钱不能这样走"。
+        IF v_msg NOT LIKE 'EXPENSE_PAID_AT_CREATION_REFUSED%'
+           AND v_msg NOT LIKE 'WHT_ON_PAID_EXPENSE_UNSUPPORTED%' THEN RAISE; END IF;
     END;
     -- ④ 协定税率高于法定 → WHT_TREATY_RATE_ABOVE_STATUTORY
     BEGIN
@@ -321,9 +328,11 @@ BEGIN
     --    **一个两边都堵死的问题不是一道闸,是一堵墙**,而它会让人去改数据绕开。
     --    这一臂是【正着断言】的:它要求这条路【通】。任何把谓词退回
     --    "给了性质就拒"的实现,在这里当场红。
+    -- ★ PAY-REQ-1(Q2(c)):'paid' 整条关了,于是【通】的那一条改走挂账 —— 判据不变:
+    --   非居民 + 回答"不适用"必须放行,否则这是一堵墙。
     PERFORM record_expense(p_expense_date := d_doc, p_account_code := '6400',
-        p_amount := 100, p_currency := v_base, p_payment_status := 'paid',
-        p_bank_account := v_bank, p_supplier_id := v_sup,
+        p_amount := 100, p_currency := v_base, p_payment_status := 'unpaid',
+        p_supplier_id := v_sup,
         p_wht_nature := 'none');
     -- ★ 自证非空转:同一条路上,把性质换成一个【真的要扣钱】的,必须【拒】——
     --   否则上面那次放行只说明这道闸根本不存在。
@@ -335,7 +344,8 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 142E8 失败(空转):要代扣的 paid 费用单也放行了 —— 上面那次放行证明不了谓词在起作用';
     EXCEPTION WHEN OTHERS THEN
         GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
-        IF v_msg NOT LIKE 'WHT_ON_PAID_EXPENSE_UNSUPPORTED%' THEN RAISE; END IF;
+        IF v_msg NOT LIKE 'EXPENSE_PAID_AT_CREATION_REFUSED%'
+           AND v_msg NOT LIKE 'WHT_ON_PAID_EXPENSE_UNSUPPORTED%' THEN RAISE; END IF;
     END;
 
     -- ══════════════════════════════════════════════════════════════════════
@@ -399,7 +409,7 @@ BEGIN
     --   record_payment 的注释里出现好几次,匹配子串会守住措辞而不是行为。
     SELECT pg_get_functiondef(p.oid) INTO v_def
       FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-     WHERE n.nspname = 'public' AND p.proname = 'record_payment';
+     WHERE n.nspname = 'public' AND p.proname = 'record_payment_internal';  -- PAY-REQ-1:函数体搬到了这里
     SELECT string_agg(ln, E'\n') INTO v_body
       FROM (SELECT ln FROM regexp_split_to_table(v_def, E'\n') AS ln
              WHERE btrim(ln) NOT LIKE '--%') s;

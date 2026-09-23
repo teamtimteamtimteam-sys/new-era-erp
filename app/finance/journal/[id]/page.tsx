@@ -196,7 +196,8 @@ export default async function JournalDetailPage({
                         ),
                     },
                 ]}
-                actions={entry.status === 'posted' ? <ReverseButton canEdit={canEditGate} entryId={entry.id} subject={entry.code} /> : undefined}
+                actions={entry.status === 'posted' ? <ReverseButton canEdit={canEditGate} entryId={entry.id} subject={entry.code}
+                    sourcePath={entry.source_type === 'payment' || entry.source_type === 'transfer' ? entry.source_type : undefined} /> : undefined}
             />
 
             {entry.memo && (

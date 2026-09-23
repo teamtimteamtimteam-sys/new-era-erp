@@ -55,7 +55,11 @@ CREATE TABLE public.approval_log (
                             'expense_claim',
                             -- WO-1b:工单。可审批的动作是【放行】—— 不是新建
                             -- (草稿谁都可以写),也不是收工(那是事后记录)。
-                            'work_order')),
+                            'work_order',
+                            -- PAY-REQ-1:付款申请(出款与冲销付款)—— CFO 批每一张。
+                            -- 'payment' 那一格是 APR-1 预留的,从来没有路径写它;
+                            -- 被批的是【申请】,不是付款行(付款行生下来就已经过账)。
+                            'payment_request')),
     subject_id          uuid NOT NULL,
     -- 人读的编号,冻结在当时 —— 单据可以改名/作废,留痕不跟着变
     subject_code        text,
@@ -206,6 +210,9 @@ CREATE POLICY "approval_log select by permission"
             --   取的码与 work_orders 自己的读策略【同一个】:读工单的判据只该有一份定义。
             --   ⚠ 照直说:cfo 不持 module.processing.view,所以二级审批人仍然读不到它。
             WHEN 'work_order'         THEN has_permission('module.processing.view'::text)
+            -- ★ PAY-REQ-1:付款申请那一支 —— 与 payment_requests 自己的读策略同一个码。
+            --   漏掉它,写得进、读不出、不报错(APR-3 在报销单上记过的那一格)。
+            WHEN 'payment_request'    THEN has_permission('module.finance.view'::text)
             ELSE false
         END
     );

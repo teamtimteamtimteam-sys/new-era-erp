@@ -147,8 +147,9 @@ BEGIN
     -- (e) 费用单那一条路同样堵死
     v_denied := false;
     BEGIN
-        PERFORM record_expense(v_inv_date, v_exp_acct, 100, v_base, NULL, 'paid', NULL,
-                               NULL, NULL, NULL, NULL, NULL, NULL, 'TX');
+        -- PAY-REQ-1:费用单不许生下来就已付(Q2(c))—— 挂账给 v_sup;本臂测的是税码,与付没付无关
+        PERFORM record_expense(v_inv_date, v_exp_acct, 100, v_base, NULL, 'unpaid', NULL,
+                               v_sup, NULL, NULL, NULL, NULL, NULL, 'TX');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'GST_NOT_REGISTERED|%'); END;
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 129 F1e 失败:未注册却给费用单递了税码,实得 %',
@@ -273,7 +274,7 @@ BEGIN
     -- D · 进项侧:可抵与不可抵走两条【不同】的路
     -- ════════════════════════════════════════════════════════════════════════
     -- (a) TX 可抵:净额 200 进 box5,税 18 进 box7
-    v_exp := record_expense(v_inv_date, v_exp_acct, 200, v_base, NULL, 'paid', NULL,
+    v_exp := record_expense(v_inv_date, v_exp_acct, 200, v_base, NULL, 'unpaid', NULL,
                             v_sup, NULL, NULL, NULL, NULL, NULL, NULL);   -- 税码走供应商默认 TX
     SELECT tax_code, tax_rate_pct, tax_base, amount_ccy INTO v_row
       FROM expenses WHERE id = (v_exp->>'expense_id')::uuid;
@@ -283,7 +284,7 @@ BEGIN
     END IF;
 
     -- (b) BL 不可抵:净额 100 【照样】进 box5,税 9 【不】进 box7,而是进开支本身
-    v_exp2 := record_expense(v_inv_date, v_exp_acct, 100, v_base, NULL, 'paid', NULL,
+    v_exp2 := record_expense(v_inv_date, v_exp_acct, 100, v_base, NULL, 'unpaid', NULL,
                              v_sup, NULL, NULL, NULL, NULL, NULL, 'BL');
     v_r := f5_return(v_q2s, v_q2e);
     SELECT (b->>'value')::numeric INTO v_n

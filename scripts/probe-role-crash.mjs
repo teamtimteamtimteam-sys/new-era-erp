@@ -37,7 +37,7 @@ import { spawn, execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
 
 const ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 const PORT = 3197            // 不是 3198(版式探针的),也不是 3199(冒烟的)
@@ -104,7 +104,7 @@ function sweepStalePort() {
     try {
         pids = execSync(`lsof -ti tcp:${PORT} || true`, { encoding: 'utf8' })
             .split('\n').map((s) => s.trim()).filter(Boolean)
-    } catch { return }
+    } catch { return true }
     for (const pid of pids) {
         let ppid = null
         try { ppid = execSync(`ps -o ppid= -p ${pid}`, { encoding: 'utf8' }).trim() } catch { continue }
@@ -114,9 +114,10 @@ function sweepStalePort() {
         } else {
             console.error(`✗ 端口 ${PORT} 被 pid=${pid}(父进程 ${ppid} 还活着)占着 —— 那是别人正在跑的东西,不杀。`)
             console.log('ROLE_PROBE_EXIT=2')
-            process.exit(2)
+            return false        // PAY-REQ-1:计划已开,退出交给 exitAfterCleanup
         }
     }
+    return true
 }
 
 const failures = []
@@ -156,7 +157,7 @@ async function main() {
     acquireOrExit('scripts/probe-role-crash.mjs', { ownExit: false })
     openPlan('scripts/probe-role-crash.mjs')
     await reapStalePlans()
-    sweepStalePort()
+    if (sweepStalePort() === false) return exitAfterCleanup(2)
 
     // ── 按名挑受测的行(不赌)────────────────────────────────────────────────
     const withPo = await restRows(
@@ -168,7 +169,7 @@ async function main() {
     if (!withPo.length || !withoutPo.length) {
         console.error('✗ 线上找不到"挂着采购单"与"没挂"各一条批次 —— 这支探针的两条对照臂缺了一边。')
         console.log('ROLE_PROBE_EXIT=2')
-        process.exit(2)
+        return exitAfterCleanup(2)
     }
     const withOutputBatch = await restRows(
         '/rest/v1/output_batches?select=id,code&deleted_at=is.null&limit=1', '产出批次')
@@ -206,6 +207,7 @@ async function main() {
     // ── dev server ──────────────────────────────────────────────────────────
     const logChunks = []
     const dev = spawn('npx', ['next', 'dev', '-p', String(PORT)], { cwd: ROOT })
+    devProc = dev               // PAY-REQ-1:任何出口的 onFinish 都收得到它
     dev.stdout.on('data', (d) => logChunks.push(d.toString()))
     dev.stderr.on('data', (d) => logChunks.push(d.toString()))
     const READY_TIMEOUT_MS = 90_000
@@ -219,9 +221,8 @@ async function main() {
     if (!ready) {
         dev.kill()
         console.error('✗ dev server 没起来:\n' + logChunks.join('').split('\n').slice(-25).join('\n'))
-        await runPlan()
         console.log('ROLE_PROBE_EXIT=2')
-        process.exit(2)
+        return exitAfterCleanup(2)      // PAY-REQ-1:跑计划、收子进程、放锁,再退
     }
 
     const poBatch = INJECT === 'no-po-batch' ? withoutPo[0] : withPo[0]
@@ -269,21 +270,29 @@ async function main() {
         console.error(`\n✗ ${failures.length} 条断言失败:`)
         for (const f of failures) console.error('   · ' + f)
         console.log('ROLE_PROBE_EXIT=1')
-        process.exit(1)
+        return exitAfterCleanup(1)
     }
     console.log(`\n✓ ${results.length} 条断言全过(角色:${ROLES.join('、')})`)
-    console.log('ROLE_PROBE_EXIT=0')
-    process.exit(0)
+    // 计划已在 finally 里跑过 —— 没清干净时 runPlan 置了 exitCode=1,判词要说实话。
+    const code = process.exitCode || 0
+    console.log(`ROLE_PROBE_EXIT=${code}`)
+    return exitAfterCleanup(code)
 }
 
 // ★ LEAK-1(2026-09-06):清理【两半】的那份实现搬去了 scripts/ephemeral.mjs。
 //   原来这里的信号处理器只 release() 就 exit —— 账号与授权一个都不收,
 //   于是一次 Ctrl-C 留下三个账号、三条授权。现在退出归 ephemeral 管:
 //   它跑完计划、放锁,才退。
-installExitHooks({ onFinish: () => { try { release() } catch {} } })
+// ★ PAY-REQ-1(2026-09-23):catch 与各失败分支此前是直接 process.exit —— 同步 exit 不经过
+//   任何钩子,于是"建完账号与授权之后炸了"一步都不清。现在每条出口都走 exitAfterCleanup。
+let devProc = null
+installExitHooks({ onFinish: () => {
+    try { if (devProc && devProc.exitCode === null) devProc.kill() } catch {}
+    try { release() } catch {}
+} })
 
 main().catch(async (e) => {
     console.error('✗ 探针自己坏了:' + (e?.stack || e))
     console.log('ROLE_PROBE_EXIT=2')
-    process.exit(2)
+    return exitAfterCleanup(2)
 })

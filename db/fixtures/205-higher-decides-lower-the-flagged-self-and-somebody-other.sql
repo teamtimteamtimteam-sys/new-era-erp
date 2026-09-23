@@ -156,11 +156,13 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 205R4a 失败:own_document_gaps 应当是忠告(block = false),实得 %', v_read->>'own_document_gaps_block'; END IF;
     IF (v_read->>'chains_without_approver')::integer <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 205R4a 失败:每一条链都应当有人批得动,面板说 % 条没有', v_read->>'chains_without_approver'; END IF;
-    -- 二级的三条链各有一格,且点名的都是 u_l2
+    -- 二级的四条链各有一格,且点名的都是 u_l2
+    -- ★ PAY-REQ-1(2026-09-23):三 → 四 —— 付款申请只有二级那一行,而它没有自批例外,
+    --   所以 u_l2 自己提的付款申请同样没人替他批(那一格与采购单同形:self_exception=false)。
     SELECT count(*) INTO v_n FROM jsonb_array_elements(v_read->'own_document_gaps') g
      WHERE (g->>'level')::int = 2 AND (g->>'user_id')::uuid = u_l2;
-    IF v_n <> 3 THEN
-        RAISE EXCEPTION 'FIXTURE 205R4a 失败:二级三条链应当各点名 u_l2 一次,实得 %;全部 = %', v_n, v_read->'own_document_gaps'; END IF;
+    IF v_n <> 4 THEN
+        RAISE EXCEPTION 'FIXTURE 205R4a 失败:二级四条链应当各点名 u_l2 一次,实得 %;全部 = %', v_n, v_read->'own_document_gaps'; END IF;
     -- 一级一格都没有:R1 让二级的人替一级持有人批,一级持有人也替二级持有人的一级单批
     SELECT count(*) INTO v_n FROM jsonb_array_elements(v_read->'own_document_gaps') g WHERE (g->>'level')::int = 1;
     IF v_n <> 0 THEN

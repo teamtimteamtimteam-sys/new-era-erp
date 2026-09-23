@@ -30,7 +30,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { createConnection } from 'node:net'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+import { openPlan, planDelete, ephemeralGrantBody, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3205, CDP_PORT = 9341
@@ -239,10 +239,12 @@ try {
     console.log('\n════ 结果 ════')
     console.log(`${results.filter((r) => r.ok).length}/${results.length} 通过`)
     if (fail.length) { console.log('\n红:'); fail.forEach((f) => console.log('  ✗ ' + f)) }
-    killChildren(); try { release() } catch {}
-    process.exit(fail.length ? 1 : 0)
+    // ★ PAY-REQ-1(2026-09-23):这里此前是 killChildren + release + process.exit ——
+    //   这一支【从来没有调过 runPlan】,于是每一次【正常】跑完都把两个一次性账号和它们的
+    //   授权(auditor / finance)留在线上,只等下一支脚本开跑时收割。现在两条出口都走
+    //   exitAfterCleanup:先跑计划,再收子进程(onFinish)、放锁,最后退。
+    await exitAfterCleanup(fail.length ? 1 : 0)
 } catch (e) {
     console.error('\n探针自己炸了(这【不是】一次通过):', e.message)
-    killChildren(); try { release() } catch {}
-    process.exit(2)
+    await exitAfterCleanup(2)
 }

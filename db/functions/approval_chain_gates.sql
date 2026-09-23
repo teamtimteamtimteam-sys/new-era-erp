@@ -25,6 +25,7 @@
 --   ★ APR-2 的处置是把工单从这台引擎的【路由】那一半摘下来(Tim 的 Q1 裁定:
 --     按角色分级只管【带钱的单据】),于是 APR-2 结束时本表只剩采购单两支。
 -- ★ APR-3(2026-09-22)加进报销单两行 —— 本仓库第二条接上按角色分级的链。
+-- ★ PAY-REQ-1(2026-09-23)加进付款申请【一行】(只有二级:CFO 批每一张)。
 --
 -- ════════════════════════════════════════════════════════════════════════════
 -- 【这是一张手写的名册,所以它必须被核对,不能被相信】
@@ -78,6 +79,13 @@ AS $function$
         ('expense_claim'::text, 'decide_expense_claim'::text, 1::smallint,
             ARRAY['module.finance.view', 'data.view_prices']::text[]),
         ('expense_claim'::text, 'decide_expense_claim'::text, 2::smallint,
+            ARRAY['module.finance.view', 'data.view_prices']::text[]),
+        -- ★★ PAY-REQ-1(Tim 的矩阵:付款与冲销付款,CFO 批每一张,不分档):
+        --    【只有二级这一行】。decide_payment_request 直接要二级审批人(不按金额分档),
+        --    (★ 这句注释【不写】那支函数的名字:203E 按 prosrc 数它的调用方,注释也算。)
+        --    从不经 approval_level_for —— 所以一级那一行不存在,而不是"门一样宽所以省了"。
+        --    门与报销单同一对码,理由同上(提单的码是 edit;R4 要看得见金额)。
+        ('payment_request'::text, 'decide_payment_request'::text, 2::smallint,
             ARRAY['module.finance.view', 'data.view_prices']::text[])
       ) AS v(subject_type, action_function, level, gate_permissions)
 $function$;

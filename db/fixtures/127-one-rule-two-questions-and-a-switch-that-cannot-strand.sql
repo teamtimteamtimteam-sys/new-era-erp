@@ -177,10 +177,33 @@ BEGIN
     END IF;
     r := r || jsonb_build_object('A5_reopen_goes_through_the_door', v_msg);
 
-    -- ═════════ B1 · A 建的供应商,A 不许付款给它(后门,直连 INSERT) ═════════
+    -- ═════════ B0 · PAY-REQ-1(Tim 的 Q2(a)):authenticated 直连 INSERT 一律进不去 ═════════
+    --   "payments insert by permission" 已拆除。下面 B1–B5 原本以 authenticated 直写,
+    --   现在改以属主身份写 —— guard_payment_sod 读的是 claims 里的 auth.uid(),
+    --   与角色无关,所以那几臂仍然在测同一支守卫(它也管引擎自己写的那一行)。
+    -- 以 B 的身份试(B 不是建户人,守卫放行)—— 于是拦下它的只可能是 RLS。
+    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_b), true);
     v_denied := false;
     BEGIN
         EXECUTE 'SET LOCAL ROLE authenticated';
+        INSERT INTO payments (code,direction,counterparty_type,supplier_id,amount_ccy,currency,
+                              fx_rate,amount_base,bank_account_code,payment_date)
+          VALUES ('ZZ-SOD1-P0','out','supplier',v_sup_a,10,v_ccy,1,10,v_bank,v_d2);
+        EXECUTE 'RESET ROLE';
+    EXCEPTION WHEN OTHERS THEN
+        EXECUTE 'RESET ROLE';
+        v_msg := SQLERRM; v_denied := (SQLSTATE = '42501');
+    END;
+    IF NOT v_denied THEN
+        RAISE EXCEPTION 'B0 失败:authenticated 直连 INSERT payments 应当被 RLS 拒(msg=%)', COALESCE(v_msg,'(没有报错)');
+    END IF;
+    r := r || jsonb_build_object('B0_direct_insert_refused', v_msg);
+    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_a), true);
+
+    -- ═════════ B1 · A 建的供应商,A 不许付款给它(后门,直连 INSERT) ═════════
+    v_denied := false;
+    BEGIN
+        -- PAY-REQ-1:直写策略已拆 —— 以属主身份写,守卫照样按 claims 里的 auth.uid() 判
         INSERT INTO payments (code,direction,counterparty_type,supplier_id,amount_ccy,currency,
                               fx_rate,amount_base,bank_account_code,payment_date)
           VALUES ('ZZ-SOD1-P1','out','supplier',v_sup_a,10,v_ccy,1,10,v_bank,v_d2);
@@ -196,7 +219,7 @@ BEGIN
 
     -- ═════════ B2 · 【会通过】的那一臂:B 付得了 A 建的户 ═════════
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_b), true);
-    EXECUTE 'SET LOCAL ROLE authenticated';
+    -- PAY-REQ-1:直写策略已拆 —— 以属主身份写,守卫照样按 claims 里的 auth.uid() 判
     INSERT INTO payments (code,direction,counterparty_type,supplier_id,amount_ccy,currency,
                           fx_rate,amount_base,bank_account_code,payment_date)
       VALUES ('ZZ-SOD1-P2','out','supplier',v_sup_a,10,v_ccy,1,10,v_bank,v_d2);
@@ -208,7 +231,7 @@ BEGIN
     INSERT INTO suppliers (code, legal_name, country, counterparty_type)
       VALUES ('ZZ-SOD1-B', 'ZZ SOD1 B', 'SG', 'goods_supplier') RETURNING id INTO v_sup_b;
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_a), true);
-    EXECUTE 'SET LOCAL ROLE authenticated';
+    -- PAY-REQ-1:直写策略已拆 —— 以属主身份写,守卫照样按 claims 里的 auth.uid() 判
     INSERT INTO payments (code,direction,counterparty_type,supplier_id,amount_ccy,currency,
                           fx_rate,amount_base,bank_account_code,payment_date)
       VALUES ('ZZ-SOD1-P3','out','supplier',v_sup_b,10,v_ccy,1,10,v_bank,v_d2);
@@ -232,7 +255,7 @@ BEGIN
     IF (SELECT created_by FROM suppliers WHERE id=v_sup_null) IS NOT NULL THEN
         RAISE EXCEPTION 'B4 前提失败:这一臂需要一家 created_by 为 NULL 的供应商';
     END IF;
-    EXECUTE 'SET LOCAL ROLE authenticated';
+    -- PAY-REQ-1:直写策略已拆 —— 以属主身份写,守卫照样按 claims 里的 auth.uid() 判
     INSERT INTO payments (code,direction,counterparty_type,supplier_id,amount_ccy,currency,
                           fx_rate,amount_base,bank_account_code,payment_date)
       VALUES ('ZZ-SOD1-P4','out','supplier',v_sup_null,10,v_ccy,1,10,v_bank,v_d2);
@@ -243,7 +266,7 @@ BEGIN
     -- 两句话一起断言,因为它们是一对:旗立不起来,冲销被拦死;旗落不下来,
     -- 同一事务里后面每一笔直连 INSERT 都畅通无阻(APR-2c fu2 实测过的那一幕)。
     PERFORM set_config('evoltrya.payment_reversal_ctx', '1', true);
-    EXECUTE 'SET LOCAL ROLE authenticated';
+    -- PAY-REQ-1:直写策略已拆 —— 以属主身份写,守卫照样按 claims 里的 auth.uid() 判
     INSERT INTO payments (code,direction,counterparty_type,supplier_id,amount_ccy,currency,
                           fx_rate,amount_base,bank_account_code,payment_date)
       VALUES ('ZZ-SOD1-P5','out','supplier',v_sup_a,10,v_ccy,1,10,v_bank,v_d2);
@@ -252,7 +275,7 @@ BEGIN
 
     v_denied := false;
     BEGIN
-        EXECUTE 'SET LOCAL ROLE authenticated';
+        -- PAY-REQ-1:直写策略已拆 —— 以属主身份写,守卫照样按 claims 里的 auth.uid() 判
         INSERT INTO payments (code,direction,counterparty_type,supplier_id,amount_ccy,currency,
                               fx_rate,amount_base,bank_account_code,payment_date)
           VALUES ('ZZ-SOD1-P6','out','supplier',v_sup_a,10,v_ccy,1,10,v_bank,v_d2);

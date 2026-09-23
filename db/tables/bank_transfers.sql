@@ -40,12 +40,10 @@ ALTER TABLE public.bank_transfers ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "bank_transfers select by permission"
     ON public.bank_transfers AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text));
-CREATE POLICY "bank_transfers insert by permission"
-    ON public.bank_transfers AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
-CREATE POLICY "bank_transfers update by permission"
-    ON public.bank_transfers AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+-- ★ PAY-REQ-1(Tim 的 Q2(a),2026-09-23):写策略(INSERT 与 UPDATE)已拆除。
+--   它们让持 module.finance.edit 的人不经 record_bank_transfer / reverse_bank_transfer
+--   直接写这张表(插一行没有分录的转账、把 reversed_at 改掉)。两支函数都是
+--   SECURITY DEFINER,以属主身份写,不需要策略。转账本身的批准在 PAY-REQ-1 Batch B。
 
 COMMENT ON TABLE public.bank_transfers IS
     '行内转账。两边金额照银行实际;分录两条银行线各记本币,供两边对账单各自认领。更正靠 reverse_bank_transfer。';

@@ -126,6 +126,53 @@ export async function createPayment(
     }
 
     const supabase = await createClient()
+
+    // ════════════════════════════════════════════════════════════════════════
+    // ★ PAY-REQ-1(Tim 2026-09-23):钱离开之前要先批。
+    //   出款先问数据库「这一笔要不要走申请」—— 豁免(全额付给员工、核销的全是已批
+    //   报销/医疗报销生出来的开支)只有一份实现,它在 payment_request_required 里;
+    //   这里【不】自己再判一遍。要 → 提一张付款申请(计划付款日 = 表单上的日期),
+    //   跳到申请页,CFO 批准后由财务在那里付;不要 → 照旧直接记账。
+    //   收款('in')一步没变。
+    // ════════════════════════════════════════════════════════════════════════
+    if (direction === 'out') {
+        const { data: required, error: reqErr } = await supabase.rpc('payment_request_required', {
+            p_direction: direction,
+            p_counterparty_kind: party?.kind ?? '',
+            p_counterparty_id: counterpartyId,
+            p_amount: amount,
+            p_currency: currency,
+            p_allocations: allocations,
+        })
+        if (reqErr) {
+            return { error: await localizePaymentError(reqErr.message) }
+        }
+        if (required === true) {
+            const { data: reqData, error: subErr } = await supabase.rpc('submit_payment_request', {
+                p_counterparty_id: counterpartyId,
+                p_counterparty_kind: party?.kind,
+                p_amount: amount,
+                p_currency: currency,
+                p_fx_rate: fxRate,
+                p_bank_account: bank || undefined,
+                p_planned_date: paymentDate,
+                p_notes: notes || undefined,
+                p_allocations: allocations,
+            })
+            if (subErr) {
+                return { error: await localizePaymentError(subErr.message) }
+            }
+            const requestId = (reqData as { request_id?: string } | null)?.request_id
+            revalidatePath('/finance')
+            revalidatePath('/finance/payment-requests')
+            revalidatePath('/finance/payables')
+            if (requestId) {
+                redirect(`/finance/payment-requests/${requestId}`)
+            }
+            redirect('/finance/payment-requests')
+        }
+    }
+
     const { data, error } = await supabase.rpc('record_payment', {
         p_direction: direction,
         p_counterparty_id: counterpartyId,

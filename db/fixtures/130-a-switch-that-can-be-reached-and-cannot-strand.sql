@@ -90,7 +90,8 @@ BEGIN
     rep := rep || jsonb_build_object('R3_switch_on_with_number_succeeds', true);
 
     -- ══════════ S1 · 带税码的费用单挡住关闭(机械) ══════════
-    v_exp := record_expense(v_d, v_exp_acct, 200, v_base, NULL, 'paid', NULL,
+    -- PAY-REQ-1:费用单不许生下来就已付(Q2(c));本臂测的是 GST 开关,与付没付无关
+    v_exp := record_expense(v_d, v_exp_acct, 200, v_base, NULL, 'unpaid', NULL,
                             v_sup, NULL, NULL, NULL, NULL, NULL, NULL);
     v_denied := false; v_msg := NULL;   -- 【每一臂自带干净的 v_msg】残留上一臂的消息会让失败文本把人送去查错地方
     BEGIN UPDATE finance_settings SET gst_registered = false WHERE id;

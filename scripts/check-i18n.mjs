@@ -731,6 +731,9 @@ const MANIFEST = {
     'finance.accountType.': { kind: 'enum', values: () => sqlEnum('db/tables/accounts.sql', 'account_type') },
     'finance.aging.':       { kind: 'enum', values: () => tsArray('app/finance/agingBuckets.ts', 'BUCKETS') },
     'finance.direction.':   { kind: 'enum', values: () => sqlEnum('db/tables/payments.sql', 'direction') },
+    // PAY-REQ-1:付款申请的状态与种类,接真源的 CHECK —— 加一个状态,这里自动变宽。
+    'finance.paymentRequests.status.': { kind: 'enum', values: () => sqlEnum('db/tables/payment_requests.sql', 'status') },
+    'finance.paymentRequests.kind.':   { kind: 'enum', values: () => sqlEnum('db/tables/payment_requests.sql', 'kind') },
     'finance.source.':      { kind: 'enum', values: () => sqlEnum('db/tables/journal_entries.sql', 'source_type') },
     'assets.category.':     { kind: 'enum', values: () => sqlEnum('db/tables/fixed_assets.sql', 'category') },
     'processing.lineage.kind_': { kind: 'enum', values: () => ['inbound', 'output'] },

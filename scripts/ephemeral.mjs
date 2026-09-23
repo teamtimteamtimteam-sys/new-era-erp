@@ -215,22 +215,60 @@ export async function reapStalePlans({ quiet = false } = {}) {
  * uncaughtException、unhandledRejection、以及正常跑完。
  * **SIGKILL 不在此列,它捕获不到** —— 那一条交给 reapStalePlans。
  */
-export function installExitHooks({ onFinish = () => {} } = {}) {
-    let exiting = false
-    const finish = async (code) => {
-        if (exiting) return
-        exiting = true
-        await runPlan()
-        // ★ onFinish 跑在 runPlan【之后】—— 这个顺序就是 LEAK-1 的修法本身:
-        //   收子进程(chrome / dev server)与放锁都要等清理的 REST 往返跑完。
-        //   ★ 而它【必须存在】:第一版只放了锁、没收子进程,实测 SIGTERM 之后
-        //     `next dev` 与 chrome 双双 ppid=1 活了下来 —— 在上限处消灭一个孤儿、
-        //     同时在信号处造出两个,与 AGENTS.md 记的 run_detached 那一课同形。
-        try { onFinish() } catch (e) { console.error('  ✗ onFinish 失败:' + e?.message) }
-        process.exit(process.exitCode || code)
-    }
+// ★ PAY-REQ-1(2026-09-23,Tim 裁定:冒烟【无论成败】都要把一次性账号、角色、授权收干净)★
+//   installExitHooks 只接了信号与未捕获异常。而脚本自己的失败分支写的是
+//   `main().catch(() => process.exit(1))` —— **同步的 process.exit 不经过任何一个钩子**,
+//   于是"建完账号 + 授权之后,设置阶段炸了"这一条最常见的失败路径,计划一步都没跑。
+//   ROLE-1 那一跑就是这么在线上留下一个持全码角色的账号的(两次)。
+//   ☞ 所以退出不再有第二种写法:脚本里【开了计划之后】的每一条出口都调 exitAfterCleanup(code)。
+let onFinishHook = () => {}
+let beforeFinishHook = async () => {}
+let exitingPromise = null
+
+/**
+ * 【唯一的退出口】跑计划 → 跑 beforeFinish(异步,名字兜底的清扫之类)→ 跑 onFinish
+ * (收子进程、放锁)→ 退出。**重入安全**:第二次调用拿到的是同一个 promise,
+ * 不会把清理跑两遍,也不会被第二个信号提前掐断。
+ * ★ 顺序即 LEAK-1 的修法:网络往返先跑完,再收子进程,最后才 exit。
+ * 退出码:调用方给的非零码优先(信号 143 仍是 143、失败仍是失败);调用方给 0 而清理
+ * 没清干净(runPlan 置 process.exitCode = 1)时退 1 —— 一次"成功"不许把一条留下来的授权盖掉。
+ */
+export function exitAfterCleanup(code = 0) {
+    if (exitingPromise) return exitingPromise
+    exitingPromise = (async () => {
+        try { await runPlan() } catch (e) { console.error('  ✗ runPlan 抛出:' + (e?.message ?? e)); process.exitCode = 1 }
+        try { await beforeFinishHook() } catch (e) { console.error('  ✗ 收尾清扫抛出:' + (e?.message ?? e)); process.exitCode = 1 }
+        // ★ onFinish 跑在清理【之后】—— 收子进程(chrome / dev server)与放锁都要等
+        //   清理的 REST 往返跑完。★ 而它【必须存在】:第一版只放了锁、没收子进程,
+        //   实测 SIGTERM 之后 `next dev` 与 chrome 双双 ppid=1 活了下来。
+        try { onFinishHook() } catch (e) { console.error('  ✗ onFinish 失败:' + e?.message) }
+        process.exit(code || process.exitCode || 0)
+    })()
+    return exitingPromise
+}
+
+/**
+ * ★ 这一支【自己拥有退出】★ —— 它必须是最后一个动手的。
+ *
+ * 【为什么要接管 liveLock 的退出】见文件抬头:liveLock 的信号处理器是
+ * 同步的 `process.exit(130)`,它会把还在 await 的清理【当场掐死】。
+ * 所以用了本支的脚本要调 `acquireOrExit(holder, { ownExit: false })`,
+ * 把"什么时候退出"交给这里 —— 清理跑完、锁放掉,才退。
+ *
+ * 覆盖的出口:SIGINT / SIGTERM / SIGHUP / SIGPIPE(UI-1d 的 EPIPE 就是这一条)、
+ * uncaughtException、unhandledRejection。**脚本自己的出口(正常跑完、catch 到的失败、
+ * 任何一条失败分支)必须自己调 exitAfterCleanup(code)** —— 一句直接的 process.exit
+ * 会绕过这里的一切(PAY-REQ-1)。
+ * **SIGKILL 不在此列,它捕获不到** —— 那一条交给 reapStalePlans。
+ *
+ * beforeFinish:可选的异步收尾(在 runPlan 之后、onFinish 之前),给"按名字兜底"的清扫用 ——
+ * 计划里还没来得及登记的那一行(造出来 → 登记之间的那一个 await)由它接住。
+ */
+export function installExitHooks({ onFinish = () => {}, beforeFinish = async () => {} } = {}) {
+    onFinishHook = onFinish
+    beforeFinishHook = beforeFinish
     for (const [sig, code] of [['SIGINT', 130], ['SIGTERM', 143], ['SIGHUP', 129], ['SIGPIPE', 141]])
-        process.on(sig, () => { finish(code) })
-    process.on('uncaughtException', (e) => { console.error('\n!! uncaught:', e?.stack || e); finish(1) })
-    process.on('unhandledRejection', (e) => { console.error('\n!! unhandled rejection:', e?.stack || e); finish(1) })
+        process.on(sig, () => { console.error(`\n!! 收到 ${sig} —— 先清理,再退出`); exitAfterCleanup(code) })
+    process.on('uncaughtException', (e) => { console.error('\n!! uncaught:', e?.stack || e); exitAfterCleanup(1) })
+    process.on('unhandledRejection', (e) => { console.error('\n!! unhandled rejection:', e?.stack || e); exitAfterCleanup(1) })
 }

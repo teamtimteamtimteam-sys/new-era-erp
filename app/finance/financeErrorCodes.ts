@@ -6,6 +6,8 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,交给共用兜底 lib/machine-text.ts。
 const FINANCE_ERROR_CODES = new Set([
     'JE_NOT_FOUND', 'JE_ALREADY_REVERSED', 'PERIOD_LOCKED',
+    // PAY-REQ-1:付款与转账的分录不许从分录页冲 —— 冲付款走冲销申请,冲转账走转账本身。
+    'JE_REVERSE_USE_SOURCE_PATH',
     'ACCOUNT_NOT_FOUND', 'ACCOUNT_INACTIVE', 'FX_RATE_REQUIRED',
     'JOURNAL_UNBALANCED',
     'NOT_MONTH_END', 'ALREADY_CLOSED', 'TRIAL_BALANCE_UNBALANCED',

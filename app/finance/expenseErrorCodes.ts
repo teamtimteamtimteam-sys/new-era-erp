@@ -58,6 +58,8 @@ const EXPENSE_ERROR_CODES = new Set([
     // GST-2:费用单从此携带进项税码。
     'GST_NOT_REGISTERED', 'TAX_CODE_REQUIRED', 'TAX_CODE_UNKNOWN',
     'TAX_CODE_INACTIVE', 'TAX_CODE_WRONG_SIDE', 'TAX_RATE_NOT_FOUND',
+    // PAY-REQ-1:开支不再能在建单时记成已付 —— 付款走付款申请。
+    'EXPENSE_PAID_AT_CREATION_REFUSED',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

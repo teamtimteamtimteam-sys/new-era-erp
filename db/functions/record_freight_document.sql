@@ -31,6 +31,14 @@ DECLARE
     v_last      uuid;
 BEGIN
     PERFORM require_permission('module.finance.edit');
+    -- ★★ PAY-REQ-1(Tim 的 Q2(c),2026-09-23):运费单【不许生下来就是已付】——
+    --   'paid' 直接贷银行、不经 payments / SOD / 批准,是一扇侧门。从此一律挂账,
+    --   钱经付款申请 → CFO 批准 → 付款离开。下面 'paid' 那一支因此到不了。
+    --   (放在最前面:它是一句【不论单据内容】都成立的拒绝,不该排在批次校验后面。)
+    IF p_payment_status = 'paid' THEN
+        RAISE EXCEPTION 'FREIGHT_PAID_AT_CREATION_REFUSED'
+          USING HINT = '运费单先挂账(未付),再提付款申请、经 CFO 批准后付款(PAY-REQ-1)';
+    END IF;
 
     -- ── 必填项:日期决定期间与汇率,绝不默认(FIN-10)────────────────────────
     IF p_doc_date IS NULL THEN

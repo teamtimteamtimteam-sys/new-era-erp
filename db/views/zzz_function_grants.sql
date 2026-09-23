@@ -365,3 +365,17 @@ REVOKE EXECUTE ON FUNCTION public.self_leg(uuid, uuid, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.self_approval_exception(text, uuid, uuid, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.approval_level_eligible(smallint, text, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.approval_deciders(text, text, smallint, uuid, uuid, text, text) FROM authenticated;
+
+-- PAY-REQ-1(2026-09-23):付款申请的内层引擎与算子。**这几支没有调用者检查,靠的就是调不到。**
+--   record_payment_internal / reverse_payment_internal —— 原 record_payment / reverse_payment
+--     的函数体,拿掉了 require_permission(CFO 批准时要用它们试跑,而 CFO 不持 finance.edit)。
+--     留着 authenticated 的 EXECUTE,任何登录用户都能不经申请直接出款 —— 本刀要关的正是这扇门。
+--     唯一的外门:record_payment(收款 + 豁免出款)与 pay_payment_request(已批准的申请)。
+--   payment_request_dry_run —— 按 id 试跑一张申请再回滚;无检查,只从申请函数体内调用。
+--   payment_request_conflict / payment_request_payee_check —— 申请函数体内的两个判断。
+--   调用方全部是 SECURITY DEFINER,以属主身份执行,收回之后照常工作。
+REVOKE EXECUTE ON FUNCTION public.record_payment_internal(text, uuid, numeric, text, numeric, text, date, text, jsonb, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.reverse_payment_internal(uuid, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.payment_request_dry_run(uuid, date, numeric) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.payment_request_conflict(jsonb, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.payment_request_payee_check(text, uuid) FROM authenticated;

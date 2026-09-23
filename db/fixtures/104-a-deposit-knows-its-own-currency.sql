@@ -1,4 +1,7 @@
 -- 104 一笔定金知道自己是什么币种 —— 两条支路,一条拒绝
+-- ★ PAY-REQ-1(2026-09-23):出款与冲销从此只经付款申请 → CFO 批准 → 付款。本文件测的是
+--   【过账的算术】,不是审批,所以它直接调引擎(record_payment_internal /
+--   reverse_payment_internal —— 以属主身份跑,authenticated 调不到)。审批那一半在 fixture 210。
 --
 -- 【这份 fixture 自带全部数据】重建出来的库【一行业务数据都没有】,所以每一臂
 -- 自己造:一家供货商、一个物料、若干采购单与定金、进料批次与费用单,以及它
@@ -89,7 +92,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'unit', 'kg', 'estimated_unit_price', 20)));
     po1 := (v_res->>'purchase_order_id')::uuid;
-    PERFORM record_payment('out', v_sup, 1000, v_base, NULL, NULL, DATE '2027-02-01',
+    PERFORM record_payment_internal('out', v_sup, 1000, v_base, NULL, NULL, DATE '2027-02-01',
         'fixture 104 A deposit',
         jsonb_build_array(jsonb_build_object('purchase_order_id', po1, 'amount_doc', 1000)),
         'supplier');
@@ -147,7 +150,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000,
                                              'unit', 'kg', 'estimated_unit_price', 50)));
     po2 := (v_res->>'purchase_order_id')::uuid;
-    PERFORM record_payment('out', v_sup, 10000, 'USD', NULL, NULL, DATE '2027-02-01',
+    PERFORM record_payment_internal('out', v_sup, 10000, 'USD', NULL, NULL, DATE '2027-02-01',
         'fixture 104 B deposit',
         jsonb_build_array(jsonb_build_object('purchase_order_id', po2, 'amount_doc', 10000)),
         'supplier');
@@ -207,7 +210,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000,
                                              'unit', 'kg', 'estimated_unit_price', 50)));
     po3 := (v_res->>'purchase_order_id')::uuid;
-    PERFORM record_payment('out', v_sup, 10000, 'USD', NULL, NULL, DATE '2027-02-01',
+    PERFORM record_payment_internal('out', v_sup, 10000, 'USD', NULL, NULL, DATE '2027-02-01',
         'fixture 104 D deposit',
         jsonb_build_array(jsonb_build_object('purchase_order_id', po3, 'amount_doc', 10000)),
         'supplier');
@@ -250,7 +253,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000,
                                              'unit', 'kg', 'estimated_unit_price', 50)));
     po4 := (v_res->>'purchase_order_id')::uuid;
-    PERFORM record_payment('out', v_sup, 5000, 'USD', NULL, NULL, DATE '2027-02-01',
+    PERFORM record_payment_internal('out', v_sup, 5000, 'USD', NULL, NULL, DATE '2027-02-01',
         'fixture 104 E deposit',
         jsonb_build_array(jsonb_build_object('purchase_order_id', po4, 'amount_doc', 5000)),
         'supplier');
@@ -316,7 +319,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000,
                                              'unit', 'kg', 'estimated_unit_price', 50)));
     po5 := (v_res->>'purchase_order_id')::uuid;
-    PERFORM record_payment('out', v_sup, 5000, 'USD', NULL, NULL, DATE '2027-02-01',
+    PERFORM record_payment_internal('out', v_sup, 5000, 'USD', NULL, NULL, DATE '2027-02-01',
         'fixture 104 H deposit',
         jsonb_build_array(jsonb_build_object('purchase_order_id', po5, 'amount_doc', 5000)),
         'supplier');

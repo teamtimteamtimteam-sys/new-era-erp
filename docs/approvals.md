@@ -763,6 +763,9 @@ registry ever names `module.finance.edit` on this chain.
 
 ### ★★ Q2 — `payment` and `expense` are NOT wired, and the reason is modelling, not wiring
 
+> ★ **Built by PAY-REQ-1 Batch A (2026-09-23) — see §3j.** The reasoning below stands: the chain was not wired onto
+> `payments`; a pending state (`payment_requests`) was built in front of it. Bank transfers and WHT remittance follow in Batch B.
+
 **Measured:** `payments.status` and `expenses.status` are each `('posted','reversed')`. **There is
 no pending state.** `record_payment` (796 lines) creates the payment, the journal entry, the
 allocations and the FX realisation in one transaction; `record_expense` does the same.
@@ -1198,6 +1201,60 @@ function's real gate. As `postgres` (`rolbypassrls = t`), base tables, 2026-09-2
 | ST-2026-0082…0086 (open stocktakes, raised by admin@) | chooer@ · fusheng@ · phua@ · sandra@ | the same |
 
 The migration asserts this in its own transaction: any pending item with zero deciders rolls the whole cut back.
+
+## 3j · PAY-REQ-1 Batch A (2026-09-23) — money leaves only after approval: the payment-request chain
+
+§3e Q2 dropped payments because *"recording a payment IS the payment"* — there was no state in which a payment existed
+and had not yet moved money. **PAY-REQ-1 built that state** (`payment_requests`), so the chain can now refuse something.
+The cut is `docs/handbacks/PAY-REQ-1.md`; this section records only what changes **for approvals**.
+
+### The lifecycle
+`submitted → approved → paid`, plus `rejected` (reason required) and `withdrawn` (submitted **or approved** — an approved
+request whose document was voided or paid elsewhere would otherwise hold that document forever).
+* **Raise:** finance (`module.finance.edit`). `submit_payment_request` (an outgoing payment, same arguments as
+  `record_payment`, with a *planned* date) and `submit_payment_reversal_request` (any posted payment, in **or** out — Q6;
+  a reason is required).
+* **Approve:** the CFO, **every one, no threshold**. `decide_payment_request` calls `require_approver_for(2)` directly and
+  never calls `approval_level_for` — so there is still **one** definition of routing (`approval_level2_role_code`), and a
+  level-1 holder cannot decide it (R1 lifts level-2 holders into level 1, never the reverse).
+* **Pay:** finance, the raiser included (Q3). `pay_payment_request` hands the frozen arguments to the posting engine; the
+  payer supplies only the actual payment date (required — no default to today) and, cross-currency, the bank's dealt rate.
+  **The journal posts here and nowhere else** — submit and approve touch no ledger row (fixture 210 B1/C3 assert it).
+* **Approvals OFF:** a request is **born approved** with an `auto_approved` log row — the purchase-order shape (Q8).
+  Nobody pressed "approve", so the log must not say anyone did.
+
+### How it registers in the engine
+| piece | what was added |
+|---|---|
+| `approval_chain_gates()` | **one** row: `payment_request / decide_payment_request / level 2 / {module.finance.view, data.view_prices}` — the expense-claim gate, for the same two reasons (edit is the raiser's code; R4) |
+| `approval_pending_documents()` | an arm for `status = 'submitted'`, `blocks_disable = true` (the decide function refuses while approvals are off → switching off would strand them), and a **new column `fixed_level`** |
+| `guard_approvals_switch` / `APPROVALS_POLICY_WOULD_STRAND` | reads `fixed_level` before re-tiering by amount — **the trap Step 0 found**: without it a SGD 100 request re-tiers to level 1, finds no level-1 gate row, and passes unchecked |
+| `approval_log` | subject type `payment_request` (CHECK, `record_approval_decision` branch with `created_by` as raiser and the payee employee as subject, RLS read branch on `module.finance.view`) |
+| `self_approval_exception` | **unchanged** — `payment_request` is not in it, so R2 does not apply: a level-2 holder can never approve a request they raised (fixture 210 C1) |
+
+### What does NOT need a request
+* receipts (`direction = 'in'`);
+* **Q1:** an outgoing payment to an employee **wholly** allocated to expenses created by an approved expense claim or by
+  `pay_medical_claim` — same currency, allocations summing exactly to the amount. `payment_request_required()` is the one
+  judgement; `record_payment` refuses on it and the payment form asks it. Cross-currency claim payments and payments with an
+  unallocated remainder need a request (written narrow on purpose: a wrong answer on the narrow side costs one extra request);
+* payroll, CPF, deduction, processing-fee payments — their functions never go through `record_payment`.
+
+### No bypass parameter (Q9)
+No function pays money without a person (measured at Step 0: `record_payment` had one caller, the payments form). The only
+doors are `record_payment` (receipts + the Q1 exemption) and `pay_payment_request`; the engine bodies
+(`record_payment_internal`, `reverse_payment_internal`, `payment_request_dry_run`) are revoked from `authenticated`.
+
+### Before approval, the request is checked by the engine that will pay it
+Submit and approve each **dry-run** the real engine inside a sub-transaction that always rolls back (`payment_request_dry_run`):
+over-allocation, a voided document, a closed period, a missing rate — the refusal the CFO sees is the engine's own words,
+not a second copy of its rules. Two further checks the dry run cannot see: a document may sit on **one** open request at a
+time (`PAYMENT_REQUEST_TARGET_RESERVED`), and a **blacklisted or suspended** supplier is refused at submit, approve and pay
+(`PAYMENT_REQUEST_SUPPLIER_BLOCKED`, Q4). Rejecting is never checked — rejecting a broken request is the way out.
+
+### Not in this batch
+Bank transfers and WHT remittance are **Batch B** — until it ships they still leave **without approval**. PO retention
+release was **withdrawn** from the lifecycle (Q5): it moves no money and creates no payable.
 
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 

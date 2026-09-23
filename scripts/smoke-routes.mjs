@@ -60,6 +60,15 @@
 // 路由前沿爬到一半从 475 涨到 563,finance 被半路杀掉)。角色名拼错会响亮退出 2,
 // 不会当成"零个角色"悄悄绿。可选:admin / operations / finance。
 // 退出码 0 = 全通;1 = 有失败 / 跳过清单漂移(EXPECTED_SKIPS)/ 脚本自身查询炸了
+// 【故障注入:SMOKE_FORCE_FAIL_AT】(PAY-REQ-1,2026-09-23)——证明"无论成败都收干净"用的,平时不设。
+//   after-grant    一次性全码角色授给一次性账号之后,当场抛一个具名错误(设置阶段失败的形状 ——
+//                  ROLE-1 那一跑就是这么在线上留下一个持全码角色的账号的)
+//   dev-not-ready  不等 dev server,直接走"没起来"那一支
+//   in-finally     跳过路由主体直达 finally,并让 finally 里【第一句】显式删除抛出
+//   三格都必须退 1,且线上 smoke-* 账号 / probe-smoke-all-* 角色 / 它们的授权 /
+//   ZZ-SMOKE-* 员工 / .ephemeral 计划文件全部为 0。机制:开了计划之后的每一条出口都走
+//   exitAfterCleanup(scripts/ephemeral.mjs)—— 一句直接的 process.exit 会绕过清理。
+//   写错的值响亮退 2,不会被当成"不注入"悄悄跑完整趟。
 // 【不进 db/gate.py】整跑十几分钟(见上面的实测)且要起 dev server —— 慢门会被跳过,
 // check_mirrors 的教训。按需跑:每次改了页面渲染层,或 Tim 又用手找到一只虫之后。
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
@@ -67,7 +76,7 @@ import { spawn, execSync } from 'node:child_process'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
 
 // ★ LEAK-1(2026-09-06):这一支从前【一个信号处理器都没有】。
 //   它的 sweepScratch 兜得住自己那两个命名空间(smoke-* 账号 + ZZ-SMOKE-* 员工),
@@ -75,7 +84,28 @@ import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, inst
 //   而中间那段时间线上躺着一个密码写在仓库正文里的 admin。
 //   计划机制把那段时间缩短到"下一支脚本开跑"为止,并且覆盖 sweepScratch
 //   看不见的那一半(账号已删、授权还在 —— 也就是幽灵授权的来源)。
-installExitHooks({ onFinish: () => { try { release() } catch {} } })
+// ★ PAY-REQ-1:dev server 的句柄放在模块层,于是【任何】出口(信号、catch、失败分支)的
+//   onFinish 都够得着它 —— 此前它是 main() 的局部变量,只有 finally 收得到。
+//   beforeFinish 按名字再扫一遍:计划是"造出来之后才知道 id"的那几行(账号)在
+//   【造出 → 登记】之间那一个 await 上有一个缝,名字兜底接住它。live-lock 让冒烟独占,
+//   所以按名字扫不会扫到另一次正在跑的冒烟(sweepScratch 抬头那条规矩)。
+let devProc = null
+let sweepAtExit = false          // 只有开跑清扫之后才按名字扫(之前扫,等于替上一次收尾 —— 开跑那次会做)
+installExitHooks({
+    beforeFinish: async () => { if (sweepAtExit) await sweepScratch('收尾兜底') },
+    onFinish: () => {
+        try { if (devProc && devProc.exitCode === null) devProc.kill('SIGTERM') } catch {}
+        try { release() } catch {}
+    },
+})
+const FORCE_FAIL_AT = process.env.SMOKE_FORCE_FAIL_AT ?? ''
+if (FORCE_FAIL_AT && !['after-grant', 'dev-not-ready', 'in-finally'].includes(FORCE_FAIL_AT)) {
+    console.error(`✗ SMOKE_FORCE_FAIL_AT=${FORCE_FAIL_AT}:不认识。可选 after-grant / dev-not-ready / in-finally。`)
+    process.exit(2)             // 还没开计划、没拿锁,直接退是对的
+}
+class ForcedFailure extends Error {
+    constructor(at) { super(`SMOKE_FORCE_FAIL_AT=${at}:故障注入,不是真的失败`); this.name = 'ForcedFailure' }
+}
 
 const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3199
@@ -124,6 +154,10 @@ const ID_SOURCES = {
         // 月份还没有人存过),故同时列在 EXPECTED_SKIPS 里。
         '/finance/packs': 'management_packs',
         '/finance/payments': 'payments', '/hr/claims': 'medical_claims',
+        // PAY-REQ-1:付款申请详情。'/finance/payment-requests' 与 '/finance/payments'
+        // 不是彼此的前缀(payment- ≠ payments),所以它必须自己登记。
+        // 线上零行(机制与屏幕同刀落地),故同时列在 EXPECTED_SKIPS 里。
+        '/finance/payment-requests': 'payment_requests',
         '/hr/departments': 'departments', '/hr/employees': 'employees',
         '/hr/leave': 'leave_requests', '/hr/payroll': 'payroll_periods',
         // ATTEND-1:考勤底稿。前缀取最长匹配,所以它不会被 '/hr/' 底下别的条目吃掉。
@@ -978,6 +1012,11 @@ const EXPECTED_SKIPS = new Set([
     // 【注意它跳过的是明细页,不是列表页】/hr/attendance 每一跑都真的渲染,
     // 而且下面有一条【内容】断言与一条【可达性】断言钉着它。
     '/hr/attendance/[id]',
+    // PAY-REQ-1:线上还没有一张付款申请 —— payment_requests 只由
+    // submit_payment_request / submit_payment_reversal_request 写入,而这一刀是
+    // 机制与屏幕同刀落地。提出第一张的那天,这条断言会报「预期会 SKIP 的路由
+    // 跑起来了」,逼人把它删掉。列表页 /finance/payment-requests 每一跑都真的渲染。
+    '/finance/payment-requests/[id]',
     // GLEXPORT-1:线上还没有一份【存档】的包。management_packs 只由
     // freeze_management_pack 写入,而它只受理【已关账】的月份;唯一符合条件的
     // 2026-07 至今没有人存过。存下第一份的那天,这条断言会报「预期会 SKIP 的
@@ -1391,7 +1430,7 @@ function sweepStalePort() {
     let pids = []
     try {
         pids = execSync(`lsof -ti:${PORT}`, { encoding: 'utf8' }).trim().split('\n').filter(Boolean)
-    } catch { return }          // lsof 无匹配时退出码非 0 —— 没人占端口,正常
+    } catch { return true }     // lsof 无匹配时退出码非 0 —— 没人占端口,正常
     for (const pid of pids) {
         let ppid = '', cmd = ''
         try {
@@ -1408,15 +1447,16 @@ function sweepStalePort() {
             console.error(`  一棵树同一时刻只能跑一个冒烟(共享 live 库 + sweepScratch 无归属过滤),`)
             console.error(`  理由见 docs/concurrency-one-tree-one-smoke.md。等它跑完,或去确认它真的是孤儿:`)
             console.error(`    ps -o ppid,lstart -p ${pid}   ·   lsof -p ${pid} -a -d 1`)
-            process.exit(1)
+            return false        // PAY-REQ-1:退出交给调用方的 exitAfterCleanup,不在这里 process.exit
         }
     }
+    return true
 }
 
 // 【开跑先扫,不只收尾再删】finally 挡不住 kill:上次崩掉的残留必须在开跑时清掉,
 // 否则一次崩溃就把临时行永久留在库里 —— 别处的 fixture 靠事务回滚兜底,
 // 本脚本驱动 HTTP 打真服务器,回滚不存在,清扫就是它唯一的机制。
-async function sweepScratch() {
+async function sweepScratch(label = '清扫上次残留') {
     const emps = await restRows(`/rest/v1/employees?select=id&code=like.${SCRATCH_EMP_PREFIX}*`, '清扫 ← employees')
     if (emps.length) {
         const ids = emps.map((e) => e.id).join(',')
@@ -1434,8 +1474,16 @@ async function sweepScratch() {
             `清扫授权 ${u.email}`)
         await restOk(`/auth/v1/admin/users/${u.id}`, { method: 'DELETE' }, `清扫账号 ${u.email}`)
     }
-    if (emps.length || stale.length)
-        console.log(`  清扫上次残留:${emps.length} 员工行 / ${stale.length} 账号`)
+    // ★ PAY-REQ-1:一次性全码角色(ROLE-1 起才有)此前不在清扫范围里 —— 计划没跑到时,
+    //   它会连同 role_permissions 里【每一个码】一起躺在线上。先收回指着它的授权,再删角色
+    //   (role_permissions 随角色级联)。只认 probe-smoke-all-* 这个本脚本自己的命名空间。
+    const roles = await restRows('/rest/v1/roles?select=id,code&code=like.probe-smoke-all-*', '清扫 ← 一次性全码角色')
+    for (const r of roles) {
+        await restCleanup(`/rest/v1/user_roles?role_id=eq.${r.id}`, { method: 'DELETE' }, `清扫授权 ← 角色 ${r.code}`)
+        await restOk(`/rest/v1/roles?id=eq.${r.id}`, { method: 'DELETE' }, `清扫角色 ${r.code}`)
+    }
+    if (emps.length || stale.length || roles.length)
+        console.log(`  ${label}:${emps.length} 员工行 / ${stale.length} 账号 / ${roles.length} 一次性角色`)
 }
 
 
@@ -1719,7 +1767,7 @@ function preflightIdSources(routes) {
             if (!hit) problems.push({ route, seg, branch: 'A' })
         }
     }
-    if (problems.length === 0) return
+    if (problems.length === 0) return true
     console.error(`\n✗ 预检不通过:${problems.length} 条动态路由取不到 id —— 【还没起 dev server,现在改还不费什么】`)
     for (const { route, seg, branch } of problems) {
         if (branch === 'A') {
@@ -1733,7 +1781,7 @@ function preflightIdSources(routes) {
             console.error(`      修:在 ID_SOURCES 里加 '${seg}' 这一段,给它前缀 → 表名`)
         }
     }
-    process.exit(1)
+    return false                // PAY-REQ-1:计划已经开了,退出走 exitAfterCleanup
 }
 
 async function main() {
@@ -1747,7 +1795,7 @@ async function main() {
     // 【最先跑,而且在 sweepStalePort / next dev 之前】—— 见 preflightIdSources 抬头:
     // 这是一个静态问题,不该等到起了服务器、建了会话、扫过临时行之后才回答。
     PROGRESS.phase = '静态预检(ID_SOURCES)'
-    preflightIdSources(routes)
+    if (!preflightIdSources(routes)) return exitAfterCleanup(1)
     // 【临时行体检:报告,不动手】就在这里跑一次 —— 正要再造一批临时行之前,
     // 是最该知道"上一次留下了什么"的时刻。
     // 它【不中止冒烟】:滞留的临时行是家务,不是路由的正确性问题,
@@ -1759,8 +1807,9 @@ async function main() {
         console.log('  (临时行体检报了滞留行 —— 见上;冒烟继续,处置由人决定)')
     }
     PROGRESS.phase = '清扫端口与临时行'
-    sweepStalePort()   // 端口先扫:库里的行扫干净了,端口被占住照样开不了跑
+    if (sweepStalePort() === false) return exitAfterCleanup(1)   // 端口先扫:库里的行扫干净了,端口被占住照样开不了跑
     await sweepScratch()
+    sweepAtExit = true
 
     // ── 一次性 admin 会话 ────────────────────────────────────────────────────
     PROGRESS.phase = '建一次性会话'
@@ -1789,6 +1838,8 @@ async function main() {
         '给一次性角色授全部码')
     await restOk('/rest/v1/user_roles', { method: 'POST',
         body: JSON.stringify(ephemeralGrantBody(cu.id, allRole.id)) }, '授一次性全码角色')
+    console.log(`  一次性会话已授权:${email} ← ${allRoleCode}(${permCodes.length} 码)`)
+    if (FORCE_FAIL_AT === 'after-grant') throw new ForcedFailure('after-grant')
     const adminSession = await signInSession(email, 'smoke-pass-1')
     const cookie = adminSession.cookie
 
@@ -1802,6 +1853,9 @@ async function main() {
         body: JSON.stringify({ email: email2, password: 'smoke-pass-2', email_confirm: true }) }, '建评估人账号')).json()
     planDelete(`/rest/v1/user_roles?user_id=eq.${cu2.id}`, '收尾:收回评估人授权(应为空)', ORDER.GRANT)
     planDelete(`/auth/v1/admin/users/${cu2.id}`, '收尾:删评估人账号', ORDER.ACCOUNT)
+    // ★ PAY-REQ-1:临时员工此前【不在计划里】,只靠 finally 里那句显式删除 + 下一次开跑的清扫。
+    //   按前缀登记(造出来之前就知道),于是 finally 没跑到、或跑到一半抛了,计划照样删得到。
+    planDelete(`/rest/v1/employees?code=like.${SCRATCH_EMP_PREFIX}*`, '收尾:删临时员工(按前缀)', ORDER.EMPLOYEE)
     const mkEmp = async (n, extra) => (await (await restOk('/rest/v1/employees', { method: 'POST',
         headers: { Prefer: 'return=representation' },
         body: JSON.stringify({ code: `${SCRATCH_EMP_PREFIX}${n}`, legal_name: `${SCRATCH_NAME} ${n}`,
@@ -1824,6 +1878,8 @@ async function main() {
         // 到期日 ≤ 入职 + 3 个月,所以取 03-31。
         probation_end_date: '2026-03-31',
     })
+    // 评估行由 open_probation_review 造,id 在造出来之前不知道 —— 按受评人登记(它先于评估存在)。
+    planDelete(`/rest/v1/performance_reviews?employee_id=eq.${reviewee.id}`, '收尾:删试用期评估', ORDER.REVIEW)
     const reviewer = await mkEmp(2, { user_id: cu2.id })
 
     // 【负臂先跑】一个没有到期日的人必须被【按名】拒。
@@ -1864,6 +1920,7 @@ async function main() {
     // ── dev server ───────────────────────────────────────────────────────────
     const logChunks = []
     const dev = spawn('npx', ['next', 'dev', '-p', String(PORT)], { cwd: ROOT })
+    devProc = dev                // 同步赋值:任何出口的 onFinish 从这一刻起都收得到它
     dev.stdout.on('data', (d) => logChunks.push(d.toString()))
     dev.stderr.on('data', (d) => logChunks.push(d.toString()))
     // 【等待要有上限,而且到了上限要报名字】原先这里 for 60 次、每次 1 秒,
@@ -1874,19 +1931,22 @@ async function main() {
     const READY_TIMEOUT_MS = 90_000
     const readyStart = Date.now()
     let ready = false
-    while (Date.now() - readyStart < READY_TIMEOUT_MS) {
+    while (FORCE_FAIL_AT !== 'dev-not-ready' && Date.now() - readyStart < READY_TIMEOUT_MS) {
         await new Promise((r) => setTimeout(r, 1000))
         if (logChunks.join('').includes('Ready in')) { ready = true; break }
         if (dev.exitCode !== null) break          // 进程死了就不必等满
     }
     if (!ready) {
-        const why = dev.exitCode !== null
+        const why = FORCE_FAIL_AT === 'dev-not-ready' ? new ForcedFailure('dev-not-ready').message
+            : dev.exitCode !== null
             ? `next dev 退出了(code ${dev.exitCode})`
             : `${Math.round((Date.now() - readyStart) / 1000)}s 内没有看到 "Ready in"`
         dev.kill()
         console.error(`✗ dev server 没起来:${why}`)
         console.error(logChunks.join('').split('\n').slice(-30).join('\n'))
-        process.exit(1)
+        // ★ PAY-REQ-1:这里此前是 process.exit(1) —— 那时一次性账号、全码角色、授权、
+        //   临时员工与评估【全都已经造好了】,而一句直接的 exit 一行都不删。
+        return exitAfterCleanup(1)
     }
 
     const failures = []
@@ -1902,6 +1962,8 @@ async function main() {
             || errLog.split('\n').filter((l) => /Error|error|⨯/.test(l)).slice(0, 8).join('\n')
     }
     try {
+        // in-finally 注入:不走路由主体,直达 finally(整趟 12 分钟与这一格要证的事无关)。
+        if (FORCE_FAIL_AT === 'in-finally') throw new ForcedFailure('in-finally(跳过路由主体,直达 finally)')
         PROGRESS.phase = '逐条走路由'
         for (const route of routes.sort()) {
             let url = route
@@ -2628,15 +2690,26 @@ async function main() {
                 `reach:删账号 ${id}`)
         }
     } finally {
-        dev.kill('SIGTERM')
-        await rest(`/rest/v1/performance_reviews?id=eq.${review.id}`, { method: 'DELETE' })
+        // ★ PAY-REQ-1:finally 里的每一句显式删除都包一层 —— 此前任何一句抛出(网络),
+        //   后面几句【和 runPlan() 一起】被跳过。现在一句抛了记账、继续往下,runPlan 必到。
+        const guarded = async (ctx, fn) => {
+            try { await fn() } catch (e) {
+                cleanupFailures.push(`${ctx}: ${e?.message ?? e}`)
+                console.error(`  ✗ 清理失败(继续清,但记账):${ctx} → ${e?.message ?? e}`)
+            }
+        }
+        try { dev.kill('SIGTERM') } catch {}
+        await guarded('收尾:删试用期评估', async () => {
+            if (FORCE_FAIL_AT === 'in-finally') throw new ForcedFailure('in-finally')
+            await rest(`/rest/v1/performance_reviews?id=eq.${review.id}`, { method: 'DELETE' })
+        })
         // ★ PROBATION-1 的清理【漏了 noDate】★ 那一刀新造了第三名临时员工
         // (ZZ-SMOKE-3,负臂用的"没有到期日的人"),却没有把它加进这一行,
         // 于是每一跑都在 HR 屏幕上多留一名幽灵试用期员工。STATEMENT-1 补上。
         // 记在这里而不是默默改掉:**新造一行临时数据,和删掉它,是同一件事的两半**,
         // 而漏掉的那一半不会报错 —— 它只是慢慢堆起来。
-        await rest(`/rest/v1/employees?id=in.(${reviewee.id},${reviewer.id},${noDate.id})`,
-            { method: 'DELETE' })
+        await guarded('收尾:删临时员工', () => rest(`/rest/v1/employees?id=in.(${reviewee.id},${reviewer.id},${noDate.id})`,
+            { method: 'DELETE' }))
         // cu2(评估人)【没有被授任何角色】,所以它只有账号那一半要删。
         await restCleanup(`/auth/v1/admin/users/${cu2.id}`, { method: 'DELETE' }, '收尾:删评估人账号')
         // cu 持【真的 admin 角色】—— 这两行的顺序与成败就是幽灵授权的来源。
@@ -2648,7 +2721,7 @@ async function main() {
         //   它存在的意义在【非正常】那一侧:计划是造出每一行【之前】就落的盘,
         //   所以上面任何一行没跑到,这里都还兜得住;而这里也没跑到的话,
         //   计划留在盘上,下一支脚本开跑时照它补删。
-        await runPlan()
+        await guarded('收尾:runPlan', () => runPlan())
     }
 
     // 【总结行把带查询串的探针【单独数出来】】把它们混进 routes 的计数里,
@@ -2696,11 +2769,16 @@ async function main() {
         for (const c of cleanupFailures) console.log('   ' + c)
         console.log('   处置:node scripts/check-scratch-rows.mjs 会把幽灵授权按名报出来。')
     }
-    process.exit(failures.length || extraSkips.length || goneSkips.length
+    return exitAfterCleanup(failures.length || extraSkips.length || goneSkips.length
         || reachFailures.length || cleanupFailures.length ? 1 : 0)
 }
 main().catch((e) => {
-    console.error(`\n✗ 冒烟中止(脚本自身的查询炸了,不是路由失败):\n${e.message ?? e}`)
+    console.error(e?.name === 'ForcedFailure'
+        ? `\n✗ 冒烟中止(${e.message})`
+        : `\n✗ 冒烟中止(脚本自身的查询炸了,不是路由失败):\n${e.message ?? e}`)
+    if (cleanupFailures.length) console.error(`  另有清理失败 ${cleanupFailures.length} 处(见上)`)
     printProgress()
-    process.exit(1)
+    // ★ PAY-REQ-1(Tim 裁定):这里此前是 process.exit(1) —— 同步 exit 不经过任何钩子,
+    //   于是"建完账号与授权之后设置阶段炸了"这条路径一步都不清。ROLE-1 第一跑就是这么漏的。
+    return exitAfterCleanup(1)
 })

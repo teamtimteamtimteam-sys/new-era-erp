@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'paid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb, p_employee_id uuid DEFAULT NULL::uuid, p_purchase_order_line uuid DEFAULT NULL::uuid, p_tax_code text DEFAULT NULL::text, p_wht_nature text DEFAULT NULL::text, p_wht_rate_pct numeric DEFAULT NULL::numeric, p_wht_treaty_ref text DEFAULT NULL::text, p_maintenance_id uuid DEFAULT NULL::uuid)
+CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'unpaid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb, p_employee_id uuid DEFAULT NULL::uuid, p_purchase_order_line uuid DEFAULT NULL::uuid, p_tax_code text DEFAULT NULL::text, p_wht_nature text DEFAULT NULL::text, p_wht_rate_pct numeric DEFAULT NULL::numeric, p_wht_treaty_ref text DEFAULT NULL::text, p_maintenance_id uuid DEFAULT NULL::uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -199,6 +199,18 @@ BEGIN
     -- 3. 支付状态
     IF p_payment_status IS NULL OR p_payment_status NOT IN ('paid','unpaid') THEN
         RAISE EXCEPTION 'PAYMENT_STATUS_INVALID|%', COALESCE(p_payment_status, '?');
+    END IF;
+    -- ★★ PAY-REQ-1(Tim 的 Q2(c),2026-09-23):一张费用单【不许生下来就是已付】。
+    --   'paid' 这条路直接贷银行、不经 payments、不经 SOD、不经任何批准 ——
+    --   是"钱离开之前要先批"那条规矩旁边的一扇侧门。从此费用一律挂账(unpaid),
+    --   钱经付款申请 → CFO 批准 → 付款离开。默认值也从 'paid' 改成了 'unpaid'
+    --   (一个走默认值就撞拒绝的参数,是 WHT-1 记过的那种坑)。
+    --   已批准的流程生成的费用(报销单、医疗申报)本来就传 'unpaid',不受影响;
+    --   加工费付款(relieve_processing_accruals)直接写 expenses、不经本函数,也不受影响。
+    --   下面 'paid' 那一支因此到不了,留着是为了让这一刀只改一句判断。
+    IF p_payment_status = 'paid' THEN
+        RAISE EXCEPTION 'EXPENSE_PAID_AT_CREATION_REFUSED'
+          USING HINT = '费用先挂账(未付),再提付款申请、经 CFO 批准后付款(PAY-REQ-1)';
     END IF;
 
     IF p_payment_status = 'paid' THEN

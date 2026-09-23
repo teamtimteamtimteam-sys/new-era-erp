@@ -33,7 +33,7 @@
 //   「幽灵 admin 授权」一节(66 → 21 → 8 三次清扫)。
 import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, ORDER } from './ephemeral.mjs'
+import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
 
 // ★ LEAK-1(2026-09-06):这一支从前【一个信号处理器都没有】—— finally 里的
 //   两句 DELETE 只在正常跑完时管用,Ctrl-C / 管道断掉一律留下一个一次性 admin。
@@ -193,4 +193,6 @@ const main = async () => {
     // 它记账、逐条印出来、并且把 process.exitCode 置 1。
 }
 
-main().catch((e) => { console.error(e); process.exit(1) })
+// ★ PAY-REQ-1(2026-09-23):catch 此前是直接 process.exit(1) —— 同步 exit 不经过任何钩子,
+//   于是"账号建好、授权授了、然后登录失败"这条路径一步都不清。两条出口都走 exitAfterCleanup。
+main().then(() => exitAfterCleanup(0), (e) => { console.error(e); return exitAfterCleanup(1) })

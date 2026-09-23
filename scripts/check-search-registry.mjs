@@ -63,7 +63,8 @@ import { join } from 'node:path'
 
 const ROOT = new URL('..', import.meta.url).pathname
 const MIRROR = join(ROOT, 'db/tables/document_types.sql')
-const EXPECTED_ROWS = 40
+// PAY-REQ-1(2026-09-23):40 → 41。新增 'payment_request'(/finance/payment-requests,detail)。
+const EXPECTED_ROWS = 41
 // ★ SEARCH-5:`type_list` 那 5 种单据的落点。**一张共享页,不是每种一张。**
 const TYPE_LIST_PAGE = join(ROOT, 'app/documents/[key]/page.tsx')
 
