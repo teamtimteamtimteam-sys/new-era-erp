@@ -1243,6 +1243,9 @@ const en = {
         monthsOfService: 'Pro-rated over {0} months of service',
         expense: 'Expense', linkedExpense: 'Linked expense',
         expenseHint: 'The claim is settled when this expense is paid through the normal payment run.',
+        // CLAIM-GST-1:申报额是收据上的总额(含 GST);建费用时税从里面拆出来。
+        amountHint: 'The total on the receipt, GST included. When the expense is raised the GST is backed out of this amount, not added on top.',
+        expenseSplit: '{net} net + {tax} GST ({total} in all \u2014 the amount claimed)',
         createExpense: 'Raise expense', expenseDate: 'Expense date', counterparty: 'Pay to',
         createExpenseHint: 'Creates an unpaid expense on 6120 Staff Welfare & Medical, settled through the usual payment flow. Nothing is posted until then.',
         expenseCreated: 'Expense {0} raised.',
@@ -1270,6 +1273,8 @@ const en = {
         confirmRaiseBody: 'An unpaid expense dated {date} will be created on 6120. Nothing is paid until the payment run.',
         confirmRaiseBodyGst:
             'An unpaid expense dated {date} will be created on 6120 with tax code {code}. '
+            + 'The claim amount is the receipt total: the GST is backed out of it, not added on top, '
+            + 'so the employee is owed exactly the amount claimed. '
             + 'Nothing is paid until the payment run.',
         errTaxCodeRequired:
             'Raising the expense for {0} needs a tax code. An employee has no default one, so somebody has to decide '
@@ -4897,7 +4902,9 @@ const en = {
         submit: 'Submit a claim',
         spendDate: 'Date you spent it',
         spendDateHint: 'The day it actually happened \u2014 not today by default. A future date is not a claim.',
-        amount: 'Amount',
+        // CLAIM-GST-1:员工报的是收据上的总额(含 GST)。标签把这句话说出来,税由财务在批准时拆出来。
+        amount: 'Amount on the receipt (incl. GST)',
+        amountHint: 'The total you paid, as printed on the receipt. Do not take the GST off \u2014 finance backs it out when the claim is approved.',
         currency: 'Currency',
         description: 'What it was for',
         descriptionHint: 'The only thing the approver has to go on.',
@@ -4912,6 +4919,10 @@ const en = {
         accountCodeHint: 'Which account this cost belongs to. Set by the approver \u2014 the claimant is not expected to know the chart of accounts.',
         taxCode: 'Tax code',
         taxCodeHint: 'Required while GST is registered: an employee has no default tax code, so someone must decide whether the input tax is claimable (TX) or blocked (BL).',
+        // CLAIM-GST-1(Tim Q7):批准那一格没有确认框,所以这句话写在批准按钮下面。
+        gstBackedOutHint: 'The amount claimed is the receipt total, GST included. Approving backs the GST out of it at the chosen code\u2019s rate \u2014 it is not added on top \u2014 so the employee is owed exactly the amount claimed.',
+        // 批准之后:员工报的总额被拆成了什么(读费用单上落库的两个数)。
+        splitNetGst: '{net} net + {tax} GST',
         postingDate: 'Posting date',
         postingDateHint: 'Defaults to the date it was spent, because that is the period the cost belongs to. Supply a different one only when that period is closed.',
         decisionNotes: 'Notes',

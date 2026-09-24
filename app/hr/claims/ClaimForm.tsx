@@ -59,7 +59,9 @@ export default function ClaimForm({
                     <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={field} /></label>
                 <label className="">{t('claims.amountSgd')}
                     <input type="number" step="0.01" min="0.01" value={amount}
-                           onChange={(e) => setAmount(e.target.value)} className={field} /></label>
+                           onChange={(e) => setAmount(e.target.value)} className={field} />
+                    {/* CLAIM-GST-1:申报额是收据上的总额(含 GST),税在建费用时从里面拆出来 */}
+                    <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('claims.amountHint')}</span></label>
                 <label className="sm:col-span-2">{t('claims.description')}
                     <input value={desc} onChange={(e) => setDesc(e.target.value)} className={field} /></label>
                 <label className="sm:col-span-2">{t('claims.receipt')}

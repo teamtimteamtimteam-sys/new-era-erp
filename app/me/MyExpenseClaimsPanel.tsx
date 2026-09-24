@@ -35,6 +35,8 @@ type Row = {
     is_owing: boolean; is_paid: boolean; has_receipt: boolean
     no_receipt_reason: string | null; decision_notes: string | null
     expense_reversed: boolean | null
+    // CLAIM-GST-1:批准之后那张费用单上的净额与税(expense_claim_status 末尾追加的两列)
+    expense_net_ccy: number | null; expense_tax_ccy: number | null
 }
 
 const money = (n: number) =>
@@ -108,7 +110,18 @@ export default function MyExpenseClaimsPanel({
             ),
         },
         {
-            key: 'amount', header: t('expenseClaims.colAmount'), align: 'right', priority: true, render: (r) => `${money(r.amount_ccy)} ${r.currency}`,
+            key: 'amount', header: t('expenseClaims.colAmount'), align: 'right', priority: true,
+            // CLAIM-GST-1:报的是含税总额;批准之后说出它被拆成了什么 —— 读落库的两个数,不在这里再算。
+            render: (r) => (
+                <>
+                    {money(r.amount_ccy)} {r.currency}
+                    {r.expense_tax_ccy != null && Number(r.expense_tax_ccy) > 0 && r.expense_net_ccy != null && (
+                        <span className="block text-xs text-[color:var(--brand-muted-text)]">
+                            {t('expenseClaims.splitNetGst', { net: money(r.expense_net_ccy), tax: money(r.expense_tax_ccy) })}
+                        </span>
+                    )}
+                </>
+            ),
         },
         {
             key: 'status', header: t('expenseClaims.colStatus'), priority: true,
@@ -157,7 +170,8 @@ export default function MyExpenseClaimsPanel({
                     <label className="">{t('expenseClaims.amount')}
                         <input type="number" step="0.01" min="0" value={amount}
                             onChange={(e) => setAmount(e.target.value)}
-                            className={`${CONTROL_INPUT} block w-32`} /></label>
+                            className={`${CONTROL_INPUT} block w-32`} />
+                        <span className="block text-xs text-[color:var(--brand-muted-text)] max-w-[16rem]">{t('expenseClaims.amountHint')}</span></label>
                     <label className="">{t('expenseClaims.currency')}
                         <input value={currency} onChange={(e) => setCurrency(e.target.value.toUpperCase())}
                             className={`${CONTROL_INPUT} block w-20`} /></label>

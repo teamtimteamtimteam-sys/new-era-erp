@@ -534,7 +534,13 @@ The fixture was clean again after restore.
 | `npm run build` | `BUILD_OWN_EXIT=0` |
 | `node scripts/check-i18n.mjs` / `check-error-swallowing.mjs` | `I18N_OWN_EXIT=0` / `SWALLOW_OWN_EXIT=0` |
 | `db/gate.py` full (`db/run_detached.sh`, token GATE) | **`GATE_EXIT=0`**, 369 s wall-clock — 可重建性 ✓ · 镜像 vs 线上 ✓ · 行为断言 ✓ · 匿名面 ✓ (baseline 327) |
-| smoke (`db/run_detached.sh`, token SMOKE, `--timeout 2400`) | **`SMOKE_EXIT=124` — the supervisor's timeout, NOT a pass.** The route walk itself completed: 235 routes + probes, **253 ok · 7 skipped (no data) · 0 FAILED**, 228 timed routes 557.4 s. After the summary, the final clean-up printed `✗ 收尾清扫抛出:fetch failed` and the process did not exit until `run_detached` killed it at the 2,400 s limit. Clean-up read afterwards at 14:05:23 CST as postgres from base tables (`auth.users`, `roles`, `user_roles`): this run's user **0**, its role **0**, any `smoke-%` user **0**, any `probe-%` role **0**, orphan grants **0**; `.ephemeral/` empty; no smoke or `next dev` process left. So nothing was left on live, but the verdict line is 124, and this handback does not report it as a pass. The pre-run scratch-row report listed 6 stale rows (525–1,167 h old, pre-existing, report-only). |
+| smoke (`db/run_detached.sh`, token SMOKE, `--timeout 2400`) | **`SMOKE_EXIT=124` — the supervisor's timeout, NOT a pass.** The route walk itself completed: 235 routes + probes, **253 ok · 7 skipped (no data) · 0 FAILED**, 228 timed routes 557.4 s. After the summary, the final clean-up printed `✗ 收尾清扫抛出:fetch failed` and the process did not exit until `run_detached` killed it at the 2,400 s limit. Clean-up read afterwards at 14:05:23 CST as postgres from base tables (`auth.users`, `roles`, `user_roles`): this run's user **0**, its role **0**, any `smoke-%` user **0**, any `probe-%` role **0**, orphan grants **0**; `.ephemeral/` empty; no smoke or `next dev` process left. So nothing was left on live, but the verdict line is 124, and this handback does not report it as a pass. **Why it hung (found in CLAIM-GST-1, 2026-09-24, from this run's own log):** the order of the last two lines is
+`SMOKE_EXIT=124` *then* `✗ 收尾清扫抛出:fetch failed`. The process had printed its summary and was inside
+`exitAfterCleanup` → the name-based sweep (`beforeFinish` → `sweepScratch`), waiting on a REST call with **no timeout**.
+It was not the error that hung it; the error was printed only after `run_detached`'s SIGTERM. The SIGTERM itself could
+not cut it short, because `exitAfterCleanup` is re-entrant by design (a second call gets the same promise, which was
+still waiting). CLAIM-GST-1 bounds the clean-up: 15 s per call, 120 s for the phase, exit **6** naming what was left
+(`docs/handbacks/CLAIM-GST-1.md` §S). The pre-run scratch-row report listed 6 stale rows (525–1,167 h old, pre-existing, report-only). |
 
 ### §BP · Live proof
 
@@ -575,7 +581,14 @@ Fixture 213 F proves it.
 
 **Start: 2026-09-24 12:00:00 CST.** This is `db/apply_migration.sh`'s own line ("库已经是新的了 12:00:00"), in
 `db/migration-windows.tsv`. The script's "applied at" line reads 11:59:30; the commit came at 12:00:00.
-**End: PENDING. Tim reads it from Vercel.**
+**End: between 14:06:06 and 14:12:29 CST — bounds, not a measurement** (closed in CLAIM-GST-1, 2026-09-24). Tim
+confirmed the deploy on 2026-09-24 without a timestamp:
+- **Lower bound, measured:** 14:06:06. origin/main moved to `e8fcfb6c` at this time (git's remote-ref log,
+  "update by push"). A deploy cannot finish before its push.
+- **Upper bound, derived:** 14:12:29. Tim's confirmation came before the CLAIM-GST-1 session began; that session's first
+  live read was stamped 14:12:29 by the database clock (as postgres, Management API).
+**Length: 2 h 06 min 06 s to 2 h 12 min 29 s.** Most of it is the gate, the smoke (which ran to its 2,400 s limit —
+see §BV) and the docs, all of which ran before the push, as AGENTS.md orders.
 
 What the old app does against the new database while the window is open (approvals ON):
 - **Nothing is mis-posted and no figure moves.** Every list and ledger reading above is unchanged.

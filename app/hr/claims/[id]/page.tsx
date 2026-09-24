@@ -163,6 +163,17 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
                     <Link href="/finance/expenses" className="hover:underline text-sm app-link app-link-inline">
                         {claim.expense_code}
                     </Link>
+                    {/* CLAIM-GST-1:申报额是含税总额,建费用时税从里面拆出来 —— 说出拆成了什么,
+                        读 medical_claim_status 上费用单落库的两个数(本位币;医疗申报只收本位币),不在页面上再算。 */}
+                    {Number(claim.expense_tax_base ?? 0) > 0 && claim.expense_amount_base != null && (
+                        <p className="mt-1 text-sm font-mono">
+                            {t('claims.expenseSplit', {
+                                net: Number(claim.expense_amount_base).toFixed(2),
+                                tax: Number(claim.expense_tax_base).toFixed(2),
+                                total: Number(claim.amount_sgd).toFixed(2),
+                            })}
+                        </p>
+                    )}
                     <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('claims.expenseHint')}</p>
                 </section>
             )}

@@ -48,6 +48,11 @@
 --   让审批人挑自己的权限)。查不到牌价时它返回 NULL,由【这里】按名拒:
 --   那句 FX_RATE_MISSING 归 fx_rate_for() 那一份定义所有,本函数不复述它。
 
+-- CLAIM-GST-1(2026-09-24):报销单的 amount_ccy 是【收据上的总额】,已含 GST。
+-- 此前它被当成净额、在上面再加 9%(TX 时那 9% 进 1400):报 100 记成欠员工 109(CLM-2026-0002 →
+-- EXP-2026-0007,留作测试数据残留,见 docs/known-wrong-until-cutover.md)。现在调 record_expense 时
+-- 传 p_amount_includes_tax := true,税从总额里拆出来,欠员工的恰好是收据上的数。
+--
 CREATE OR REPLACE FUNCTION public.decide_expense_claim(p_claim_id uuid, p_approve boolean, p_account_code text DEFAULT NULL::text, p_tax_code text DEFAULT NULL::text, p_posting_date date DEFAULT NULL::date, p_notes text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -189,7 +194,9 @@ BEGIN
         p_employee_id    := v_c.employee_id,
         p_payee_name     := v_emp.legal_name,
         p_notes          := format('Expense claim %s (%s) — %s', v_c.code, v_emp.code, v_c.description),
-        p_tax_code       := NULLIF(btrim(COALESCE(p_tax_code, '')), ''));
+        p_tax_code       := NULLIF(btrim(COALESCE(p_tax_code, '')), ''),
+        -- CLAIM-GST-1(Tim Q3):员工报上来的是【收据上的总额】,已含 GST —— 税从里面拆出来,不加在上面。
+        p_amount_includes_tax := true);
 
     UPDATE expense_claims
        SET status = 'approved', decided_at = now(), decided_by = auth.uid(),

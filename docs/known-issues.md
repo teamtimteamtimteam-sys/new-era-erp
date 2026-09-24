@@ -9376,15 +9376,30 @@ await 上,只有冒烟有按名字的兜底清扫,探针没有。
 > 0.96 是 FIN-2 回填 `allocated_ccy = allocated_base` 留下的单位错。
 > 全文 `docs/handbacks/AP-RECON-0.md`;修法 `docs/handbacks/AP-RECON-1.md`;残留逐行在 `docs/known-wrong-until-cutover.md`。
 
-## APRECON1-CLAIM-GST-ADDED-ON-TOP —— 员工报销的税被【加在】报销额之上,而不是从里面【拆出来】(AP-RECON-1,2026-09-24)
+## ~~APRECON1-CLAIM-GST-ADDED-ON-TOP~~ —— 【已关闭:CLAIM-GST-1,2026-09-24】员工报销的税被【加在】报销额之上,而不是从里面【拆出来】
 
-`decide_expense_claim` 把报销单的 `amount_ccy` 当【净额】传给 `record_expense`(`p_amount := v_c.amount_ccy`),
-带 TX / BL 码时 `record_expense` 再**在上面加** 9% 的税。而员工报上来的数是**收据上的总额**(已含税)。
-线上两笔:EXP-2026-0007(报 100 → 记 109)、EXP-2026-0008(报 30 → 记 32.70),**多记 11.70**,
-其中 9.00 的进项税(TX)还进了 1400、会进 F5 的 box7。以 `postgres` 读基表 `expense_claims` / `expenses` / `journal_lines` 量得。
-**AP-RECON-1 Batch A 之后,清单如实显示这两笔欠员工 109.00 与 32.70** —— 那正是总账 2000 上记的数(Tim AP-RECON-0 Q1);
-错的是【记进去的那个数】,不是清单。**去处:Tim 裁定 AP-RECON-1 之后【立刻】单独一刀**(`docs/forward-queue.md` 头条)。
-那一刀要回答:税从总额里拆(净 = 总 / (1 + 税率))之后,两笔既有的记错了的单子怎么处置(测试数据,多半是记下不修)。
+**原缺陷:** `decide_expense_claim` 与 `pay_medical_claim` 把员工报的数当【净额】传给 `record_expense`,带 TX / BL 码时
+再在上面加 9%。员工报的是收据总额(已含 GST)。
+**关掉它的是:** `record_expense` 的末位参数 `p_amount_includes_tax`(只有这两条报销路传 true),税由
+`tax_included_in(总额, 税率) = round(总额 × 税率 / (100 + 税率), 2)` 从总额里拆出来,净额取差 —— 净 + 税 恒等于 总额。
+**拆出来的税不一定等于 `tax_amount_for(净额)`**(9% 时约 8.3% 的总额写不成 净 + round(净 × 9%);10.11 → 9.28 + 0.83,
+而 tax_amount_for(9.28) = 0.84),所以税落进新列 `expenses.tax_ccy`,五个读者改读 `amount_ccy + tax_ccy`,
+`expense_payable_ccy` 删掉。行为断言:db/fixtures/215(A/A2/B/C/D/E/F/G)与 140 G。
+**更正上面那段的数:** 两张线上单多记的 11.70 全在 2000;**进项税(1400)只多 0.74,不是 9.00**
+(EXP-0007 正确是 91.74 + 8.26;EXP-0008 是 BL,2.70 进的是 6120,不是 1400)。拆开是 2000 +11.70 · 6120 +10.96 · 1400 +0.74。
+两张按 Tim CLAIM-GST-1 Q6【记下不改】—— 见 `docs/known-wrong-until-cutover.md` 的 EXP-2026-0007 / 0008 两行。
+★ **没有变的:** 费用表单与供应商账单(`record_expense` 默认)仍是【净额 + 税另算】—— 表单上那句
+「Enter the amount NET of GST」照旧成立。一张【含税】的供应商收据走费用表单时,要由录入人自己拆;
+这是这一刀刻意没有碰的范围(Tim CLAIM-GST-1 Q3:只有两条报销路传 true)。
+
+## CLAIMGST1-SMOKE-WALK-CALLS-UNBOUNDED —— 冒烟【走查期间】的 REST 往返仍然没有单次上限(CLAIM-GST-1,2026-09-24)
+
+CLAIM-GST-1(Tim Q8)给【收尾】加了界:每次往返 15s、整个收尾阶段 120s、没完成退 6 并点名留下了什么
+(`scripts/ephemeral.mjs` 抬头)。**走查那一段(取 id、建会话、页面探针的 REST 读)仍然没有单次上限** ——
+那里挂住时,兜底的是 `db/run_detached.sh` 的总上限(到点写 `SMOKE_EXIT=124`、按进程组收尾),
+而收尾那一段现在会在 120s 之内自己结束。**为什么这一刀不做:** 委托书与 Tim 的 Q8 说的是收尾;
+给走查的每一次往返加上限会改变一整趟冒烟的失败形状(慢的一次读会从"慢"变成"失败"),那需要先量一次走查里
+REST 往返的最慢值再定上限(AGENTS.md「上限从实测成本推出来」)。删除条件:量过、定了上限、并有一次注入证明它会咬人。
 
 ## ~~APRECON1-FOREIGN-TAXED-EXPENSE-CENT~~ —— 【已关闭:AP-RECON-1 Batch B,2026-09-24】外币单据结清时控制科目上留一分钱
 

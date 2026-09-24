@@ -4835,6 +4835,7 @@ export type Database = {
           status: string
           supplier_id: string | null
           tax_base: number
+          tax_ccy: number
           tax_code: string | null
           tax_rate_pct: number | null
           wht_amount_ccy: number
@@ -4865,6 +4866,7 @@ export type Database = {
           status?: string
           supplier_id?: string | null
           tax_base?: number
+          tax_ccy?: number
           tax_code?: string | null
           tax_rate_pct?: number | null
           wht_amount_ccy?: number
@@ -4895,6 +4897,7 @@ export type Database = {
           status?: string
           supplier_id?: string | null
           tax_base?: number
+          tax_ccy?: number
           tax_code?: string | null
           tax_rate_pct?: number | null
           wht_amount_ccy?: number
@@ -20687,7 +20690,9 @@ export type Database = {
           employee_id: string | null
           employee_name: string | null
           expense_id: string | null
+          expense_net_ccy: number | null
           expense_reversed: boolean | null
+          expense_tax_ccy: number | null
           has_receipt: boolean | null
           is_owing: boolean | null
           is_paid: boolean | null
@@ -22162,6 +22167,7 @@ export type Database = {
           expense_amount_base: number | null
           expense_code: string | null
           expense_id: string | null
+          expense_tax_base: number | null
           legal_name: string | null
           linked_to_expense: boolean | null
           receipt_ref: string | null
@@ -27846,10 +27852,6 @@ export type Database = {
           fx_rate: number
         }[]
       }
-      expense_payable_ccy: {
-        Args: { p_amount_ccy: number; p_tax_rate_pct: number }
-        Returns: number
-      }
       explain_inbound_source: {
         Args: { p_batch_id: string; p_note?: string; p_reason_code: string }
         Returns: undefined
@@ -28489,6 +28491,7 @@ export type Database = {
         Args: {
           p_account_code: string
           p_amount: number
+          p_amount_includes_tax?: boolean
           p_asset?: Json
           p_bank_account?: string
           p_currency: string
@@ -29220,6 +29223,10 @@ export type Database = {
       }
       tax_amount_for: {
         Args: { p_amount: number; p_rate_pct: number }
+        Returns: number
+      }
+      tax_included_in: {
+        Args: { p_gross: number; p_rate_pct: number }
         Returns: number
       }
       tax_rate_for: {

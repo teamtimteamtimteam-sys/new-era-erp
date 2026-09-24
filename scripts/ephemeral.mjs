@@ -51,9 +51,69 @@ const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
 const URL_ = env.match(/NEXT_PUBLIC_SUPABASE_URL=(\S+)/)[1]
 const SERVICE = env.match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)[1]
 
+// ════════════════════════════════════════════════════════════════════════════
+// ★ CLAIM-GST-1(2026-09-24,Tim Q8):收尾【有界】—— 每一次网络往返有自己的上限,整个收尾阶段也有 ★
+//
+// 【为什么】AP-RECON-1 Batch B 的冒烟:路由走查 253 ok / 0 失败,总结行打完之后进程停在
+//   exitAfterCleanup 的按名兜底清扫(beforeFinish → sweepScratch)里一次【没有上限】的 fetch 上,
+//   一直挂到 run_detached 在 2,400s 把它 SIGTERM 掉(SMOKE_EXIT=124)。日志里 `SMOKE_EXIT=124`
+//   排在「✗ 收尾清扫抛出:fetch failed」【之前】—— 先挂住,后报错,报错是被杀的那一下带出来的。
+//   而那一记 SIGTERM 救不了它:exitAfterCleanup 是重入安全的,第二次调用拿到的是同一个 promise,
+//   它照旧等着那次挂住的往返。
+//
+// 【现在】三层:
+//   ① 每一次收尾往返带 AbortSignal.timeout(15s)(del / req,以及调用方经 cleanupSignal() 拿的);
+//   ② 整个收尾阶段(runPlan → beforeFinish)一个 120s 的截止时刻 —— 到点就 abort 掉还在飞的往返、
+//      不再等;第二个信号改变不了它(重入拿到的仍是同一个 promise,而那个 promise 自己会到点);
+//   ③ 收尾没完成 → 退【6】(EXIT_CLEANUP_INCOMPLETE),并【逐条点名】没删掉的东西:
+//      计划里没确认删掉的每一步(ctx + 路径)、以及没跑完的按名兜底清扫。计划文件留在盘上,
+//      下一次开跑或 `npm run reap:ephemeral` 照它补删。6 压过 1(路由失败)与信号码,两者都打进日志。
+//   为什么是 6:冒烟用 0 / 1 / 2 与信号码(129–143),run_detached 用 124 —— 6 在这支脚本里没有别的意思。
+// ════════════════════════════════════════════════════════════════════════════
+export const CLEANUP_CALL_TIMEOUT_MS = 15_000
+// 截止时刻默认 120s。EPHEMERAL_CLEANUP_DEADLINE_MS 只为【故障注入的证明】开 —— 让截止那一支
+// 在注入的那一跑里真的被走到(三步 × 15s 超过 30s);平时不设。写错的值响亮退出,不当成默认。
+export const CLEANUP_PHASE_DEADLINE_MS = (() => {
+    const v = process.env.EPHEMERAL_CLEANUP_DEADLINE_MS
+    if (v === undefined || v === '') return 120_000
+    if (!/^[1-9][0-9]*$/.test(v)) { console.error(`✗ EPHEMERAL_CLEANUP_DEADLINE_MS=${v}:不是正整数毫秒`); process.exit(2) }
+    return Number(v)
+})()
+export const EXIT_CLEANUP_INCOMPLETE = 6
+const phaseAbort = new AbortController()
+let inCleanupPhase = false
+/** 收尾从这一刻开始:之后调用方的往返经 cleanupSignal() 拿上限。 */
+export function beginCleanupPhase() { inCleanupPhase = true }
+export function isCleanupPhase() { return inCleanupPhase }
+/** 一次收尾往返的信号:15s 自己的上限,或整个收尾阶段到点 —— 哪个先到算哪个。 */
+export function cleanupSignal() {
+    return AbortSignal.any([AbortSignal.timeout(CLEANUP_CALL_TIMEOUT_MS), phaseAbort.signal])
+}
+
+// 【故障注入:收尾阶段的网络】只给证明用(冒烟的 SMOKE_FORCE_FAIL_AT=cleanup-hang / cleanup-refused)。
+//   hang    —— 发往库的往返永远不回,只认 abort(复现 Batch B 那次挂住的形状);
+//   refused —— 立刻抛 TypeError('fetch failed')(复现"网络断了")。
+//   只拦发往 NEXT_PUBLIC_SUPABASE_URL 的请求。装上之后,这一进程里其余的收尾都在故障之下跑。
+export function installCleanupNetworkFault(mode) {
+    const real = globalThis.fetch
+    globalThis.fetch = (input, init) => {
+        const url = typeof input === 'string' ? input : (input?.url ?? String(input))
+        if (!url.startsWith(URL_)) return real(input, init)
+        if (mode === 'refused') return Promise.reject(new TypeError('fetch failed(故障注入:cleanup-refused)'))
+        return new Promise((_, reject) => {
+            const sig = init?.signal
+            if (!sig) return   // 没有上限的往返:永远挂着 —— 正是这一刀要消灭的形状
+            if (sig.aborted) return reject(sig.reason ?? new Error('aborted'))
+            sig.addEventListener('abort', () => reject(sig.reason ?? new Error('aborted')), { once: true })
+        })
+    }
+    console.error(`  !! 故障注入:收尾阶段发往库的每一次往返都${mode === 'refused' ? '立刻失败' : '挂住(只认 abort)'}`)
+}
+
 const del = (path) => fetch(URL_ + path, {
     method: 'DELETE',
     headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}` },
+    signal: cleanupSignal(),
 })
 
 // ★ BTN-4:一步不一定是 DELETE —— 软删的表(tasks)硬删不掉,见 planDelete 的 how。
@@ -61,6 +121,7 @@ const req = (path, how) => fetch(URL_ + path, {
     method: how.method || 'DELETE',
     headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json' },
     ...(how.body ? { body: how.body } : {}),
+    signal: cleanupSignal(),
 })
 
 function procName(pid) {
@@ -127,13 +188,23 @@ export function ephemeralGrantBody(userId, roleId) {
 
 // ── 执行 ────────────────────────────────────────────────────────────────────
 const failures = []
+// CLAIM-GST-1:【确认删掉了】的步(2xx / 404 / 406)。收尾没完成时,计划里不在这里的每一步都要点名。
+const confirmed = new Set()
+// CLAIM-GST-1:本进程自己的收尾有没有没完成的地方(与 reapStalePlans 替别人补删的失败分开记)。
+const incompleteNotes = []
 
 async function runSteps(steps, label) {
     for (const s of steps) {
+        // 截止时刻到了:后面的步不再发起(每一步都会立刻被 abort),留给点名与下一次补删。
+        if (phaseAbort.signal.aborted) {
+            failures.push(`${s.ctx}: 收尾阶段已到截止时刻,这一步没有发起`)
+            continue
+        }
         try {
             // 默认 DELETE;带 how 的走它自己那一句(见 planDelete 的 how)。
             const r = s.how ? await req(s.path, s.how) : await del(s.path)
             // 404/406 = 已经没有了,那正是我们要的终局,不算失败
+            if (r.ok || r.status === 404 || r.status === 406) confirmed.add(s)
             if (!r.ok && r.status !== 404 && r.status !== 406) {
                 const body = (await r.text()).slice(0, 200)
                 failures.push(`${s.ctx}: HTTP ${r.status} ${body}`)
@@ -153,7 +224,9 @@ export function runPlan() {
     if (cleaning) return cleaning
     cleaning = (async () => {
         if (!plan || !plan.steps.length) { if (planPath && existsSync(planPath)) unlinkSync(planPath); return }
+        const before = failures.length
         await runSteps(inDeleteOrder(plan.steps), '清理')
+        if (failures.length > before) incompleteNotes.push(`计划里有 ${failures.length - before} 步没确认删掉`)
         if (failures.length) {
             // ★ 承诺没兑现必须让退出码说出来 ★「用完即删」是这几支自己许下的承诺,
             //   而一条留下来的 admin 授权不是一条日志。
@@ -235,14 +308,50 @@ let exitingPromise = null
  */
 export function exitAfterCleanup(code = 0) {
     if (exitingPromise) return exitingPromise
+    beginCleanupPhase()
     exitingPromise = (async () => {
-        try { await runPlan() } catch (e) { console.error('  ✗ runPlan 抛出:' + (e?.message ?? e)); process.exitCode = 1 }
-        try { await beforeFinishHook() } catch (e) { console.error('  ✗ 收尾清扫抛出:' + (e?.message ?? e)); process.exitCode = 1 }
+        const t0 = Date.now()
+        // ★ CLAIM-GST-1:收尾阶段有一个截止时刻。到点就 abort 掉还在飞的往返,不再等 ——
+        //   这个 promise 自己会到点,所以第二个信号(重入拿到的是同一个 promise)改变不了它。
+        let timer
+        const deadline = new Promise((res) => { timer = setTimeout(() => res('deadline'), CLEANUP_PHASE_DEADLINE_MS) })
+        const work = (async () => {
+            try { await runPlan() } catch (e) {
+                console.error('  ✗ runPlan 抛出:' + (e?.message ?? e)); process.exitCode = 1
+                incompleteNotes.push('runPlan 抛出:' + (e?.message ?? e))
+            }
+            try { await beforeFinishHook() } catch (e) {
+                console.error('  ✗ 收尾清扫抛出:' + (e?.message ?? e)); process.exitCode = 1
+                incompleteNotes.push('按名兜底清扫没有跑完(smoke-*@test.local 账号 / ZZ-SMOKE-* 员工 / probe-smoke-all-* 角色 '
+                    + '这几个命名空间没有被确认扫干净):' + (e?.message ?? e))
+            }
+            return 'done'
+        })()
+        const how = await Promise.race([work, deadline])
+        clearTimeout(timer)
+        if (how === 'deadline') {
+            phaseAbort.abort(new Error(`收尾阶段到了 ${CLEANUP_PHASE_DEADLINE_MS / 1000}s 截止时刻`))
+            incompleteNotes.push(`收尾阶段到了 ${CLEANUP_PHASE_DEADLINE_MS / 1000}s 截止时刻,还在飞的往返被中止`)
+        }
+        const incomplete = incompleteNotes.length > 0
+        if (incomplete) {
+            // ★ 点名:没确认删掉的每一步。计划是【先于它要清的东西】落盘的,所以它就是那张清单。
+            const left = plan ? inDeleteOrder(plan.steps).filter((st) => !confirmed.has(st)) : []
+            console.error(`\n✗ 收尾没有完成(${((Date.now() - t0) / 1000).toFixed(1)}s)—— 退 ${EXIT_CLEANUP_INCOMPLETE}。没能确认删掉的:`)
+            for (const st of left) console.error(`   · ${st.ctx}  →  ${st.how?.method ?? 'DELETE'} ${st.path}`)
+            if (!left.length) console.error('   · (计划里的每一步都确认删掉了)')
+            for (const n of incompleteNotes) console.error(`   · ${n}`)
+            if (planPath && existsSync(planPath))
+                console.error(`  计划留在 ${planPath} —— 下一次开跑会照它补删;也可以手工:npm run reap:ephemeral`)
+            const was = code || process.exitCode || 0
+            if (was && was !== EXIT_CLEANUP_INCOMPLETE)
+                console.error(`  (这一跑本来的退出码是 ${was};收尾没完成优先,退 ${EXIT_CLEANUP_INCOMPLETE} —— 两件事都在上面)`)
+        }
         // ★ onFinish 跑在清理【之后】—— 收子进程(chrome / dev server)与放锁都要等
         //   清理的 REST 往返跑完。★ 而它【必须存在】:第一版只放了锁、没收子进程,
         //   实测 SIGTERM 之后 `next dev` 与 chrome 双双 ppid=1 活了下来。
         try { onFinishHook() } catch (e) { console.error('  ✗ onFinish 失败:' + e?.message) }
-        process.exit(code || process.exitCode || 0)
+        process.exit(incomplete ? EXIT_CLEANUP_INCOMPLETE : (code || process.exitCode || 0))
     })()
     return exitingPromise
 }

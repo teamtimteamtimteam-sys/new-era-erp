@@ -60,12 +60,18 @@
 // 路由前沿爬到一半从 475 涨到 563,finance 被半路杀掉)。角色名拼错会响亮退出 2,
 // 不会当成"零个角色"悄悄绿。可选:admin / operations / finance。
 // 退出码 0 = 全通;1 = 有失败 / 跳过清单漂移(EXPECTED_SKIPS)/ 脚本自身查询炸了
+//        6 = 收尾没完成(CLAIM-GST-1)—— 有一次性账号 / 角色 / 授权没确认删掉,日志逐条点名,压过 1。
 // 【故障注入:SMOKE_FORCE_FAIL_AT】(PAY-REQ-1,2026-09-23)——证明"无论成败都收干净"用的,平时不设。
 //   after-grant    一次性全码角色授给一次性账号之后,当场抛一个具名错误(设置阶段失败的形状 ——
 //                  ROLE-1 那一跑就是这么在线上留下一个持全码角色的账号的)
 //   dev-not-ready  不等 dev server,直接走"没起来"那一支
 //   in-finally     跳过路由主体直达 finally,并让 finally 里【第一句】显式删除抛出
-//   三格都必须退 1,且线上 smoke-* 账号 / probe-smoke-all-* 角色 / 它们的授权 /
+//   cleanup-hang    同 after-grant,并且【收尾阶段】发往库的每一次往返都挂住、只认 abort
+//                   (CLAIM-GST-1:复现 AP-RECON-1 Batch B 那次挂到 2,400s 的形状)
+//   cleanup-refused 同 after-grant,并且收尾阶段发往库的每一次往返都立刻 `fetch failed`
+//   ☞ 这两格必须退【6】(收尾没完成),在上限之内退,并逐条点名没删掉的东西;
+//     计划留在盘上 —— 跑完立刻 `npm run reap:ephemeral`,再读线上确认 0 残留。
+//   前三格都必须退 1,且线上 smoke-* 账号 / probe-smoke-all-* 角色 / 它们的授权 /
 //   ZZ-SMOKE-* 员工 / .ephemeral 计划文件全部为 0。机制:开了计划之后的每一条出口都走
 //   exitAfterCleanup(scripts/ephemeral.mjs)—— 一句直接的 process.exit 会绕过清理。
 //   写错的值响亮退 2,不会被当成"不注入"悄悄跑完整趟。
@@ -76,7 +82,8 @@ import { spawn, execSync } from 'node:child_process'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { acquireOrExit, release } from './liveLock.mjs'
-import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER } from './ephemeral.mjs'
+import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER,
+    beginCleanupPhase, isCleanupPhase, cleanupSignal, installCleanupNetworkFault } from './ephemeral.mjs'
 
 // ★ LEAK-1(2026-09-06):这一支从前【一个信号处理器都没有】。
 //   它的 sweepScratch 兜得住自己那两个命名空间(smoke-* 账号 + ZZ-SMOKE-* 员工),
@@ -99,8 +106,8 @@ installExitHooks({
     },
 })
 const FORCE_FAIL_AT = process.env.SMOKE_FORCE_FAIL_AT ?? ''
-if (FORCE_FAIL_AT && !['after-grant', 'dev-not-ready', 'in-finally'].includes(FORCE_FAIL_AT)) {
-    console.error(`✗ SMOKE_FORCE_FAIL_AT=${FORCE_FAIL_AT}:不认识。可选 after-grant / dev-not-ready / in-finally。`)
+if (FORCE_FAIL_AT && !['after-grant', 'dev-not-ready', 'in-finally', 'cleanup-hang', 'cleanup-refused'].includes(FORCE_FAIL_AT)) {
+    console.error(`✗ SMOKE_FORCE_FAIL_AT=${FORCE_FAIL_AT}:不认识。可选 after-grant / dev-not-ready / in-finally / cleanup-hang / cleanup-refused。`)
     process.exit(2)             // 还没开计划、没拿锁,直接退是对的
 }
 class ForcedFailure extends Error {
@@ -1272,7 +1279,11 @@ const MSG_PACK_STORED_MEANS = (() => {
 const SCRATCH_NAME = '【SMOKE 冒烟脚本临时行 · 勿动 · 随时可删】'
 
 async function rest(path, opts = {}) {
+    // ★ CLAIM-GST-1(Tim Q8):收尾开始之后,每一次往返都带上限(15s,或整个收尾阶段到点)——
+    //   Batch B 那一跑就是挂在这里一次没有上限的往返上(sweepScratch 经 restRows / restOk 走的正是它)。
+    //   走查期间的往返照旧不设上限:那一半的挂住由 run_detached 的总上限兜着,不在这一刀。
     const r = await fetch(URL_ + path, { ...opts,
+        ...(isCleanupPhase() && !opts.signal ? { signal: cleanupSignal() } : {}),
         headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, 'Content-Type': 'application/json', ...(opts.headers ?? {}) } })
     return r
 }
@@ -1840,6 +1851,10 @@ async function main() {
         body: JSON.stringify(ephemeralGrantBody(cu.id, allRole.id)) }, '授一次性全码角色')
     console.log(`  一次性会话已授权:${email} ← ${allRoleCode}(${permCodes.length} 码)`)
     if (FORCE_FAIL_AT === 'after-grant') throw new ForcedFailure('after-grant')
+    if (FORCE_FAIL_AT === 'cleanup-hang' || FORCE_FAIL_AT === 'cleanup-refused') {
+        installCleanupNetworkFault(FORCE_FAIL_AT === 'cleanup-hang' ? 'hang' : 'refused')
+        throw new ForcedFailure(FORCE_FAIL_AT)
+    }
     const adminSession = await signInSession(email, 'smoke-pass-1')
     const cookie = adminSession.cookie
 
@@ -2690,6 +2705,7 @@ async function main() {
                 `reach:删账号 ${id}`)
         }
     } finally {
+        beginCleanupPhase()   // CLAIM-GST-1:从这里起,rest() 的每一次往返都带上限
         // ★ PAY-REQ-1:finally 里的每一句显式删除都包一层 —— 此前任何一句抛出(网络),
         //   后面几句【和 runPlan() 一起】被跳过。现在一句抛了记账、继续往下,runPlan 必到。
         const guarded = async (ctx, fn) => {

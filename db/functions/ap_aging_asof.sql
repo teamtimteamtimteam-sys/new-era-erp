@@ -114,10 +114,10 @@ BEGIN
                round((COALESCE(s.settled, 0) + COALESCE(pp.applied, 0)) * e.fx_rate, 2),
                CASE WHEN (COALESCE(s.settled, 0) + COALESCE(pp.applied, 0)) = 0
                     THEN e.amount_base + COALESCE(e.tax_base, 0)
-                    ELSE round((expense_payable_ccy(e.amount_ccy, e.tax_rate_pct) - COALESCE(s.settled, 0) - COALESCE(pp.applied, 0)) * e.fx_rate, 2)
+                    ELSE round((e.amount_ccy + e.tax_ccy - COALESCE(s.settled, 0) - COALESCE(pp.applied, 0)) * e.fx_rate, 2)
                END,
                e.currency,
-               round(expense_payable_ccy(e.amount_ccy, e.tax_rate_pct) - COALESCE(s.settled, 0) - COALESCE(pp.applied, 0), 2),
+               round(e.amount_ccy + e.tax_ccy - COALESCE(s.settled, 0) - COALESCE(pp.applied, 0), 2),
                (v_as_of - e.expense_date),
                aging_bucket(v_as_of - e.expense_date),
                CASE WHEN e.employee_id IS NOT NULL THEN 'employee' ELSE 'supplier' END::text,

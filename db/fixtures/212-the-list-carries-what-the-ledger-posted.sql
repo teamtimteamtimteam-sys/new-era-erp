@@ -132,7 +132,7 @@ BEGIN
     SELECT COALESCE(sum(l.credit - l.debit), 0) INTO v_x
       FROM journal_lines l JOIN accounts a ON a.id = l.account_id
      WHERE l.entry_id = v_je AND a.code = '2000';
-    SELECT round(expense_payable_ccy(amount_ccy, tax_rate_pct) * fx_rate, 2) INTO v_z FROM expenses WHERE id = v_exp2;
+    SELECT round((amount_ccy + tax_ccy) * fx_rate, 2) INTO v_z FROM expenses WHERE id = v_exp2;
     -- ★ 非空转:那个"看起来对"的乘积真的与总账差一分。
     IF v_z = v_x THEN
         RAISE EXCEPTION 'FIXTURE 212A2 失败(空转):round((净+税)×汇率) = % 恰好等于总账 % —— 这组数分不开两种算法', v_z, v_x;

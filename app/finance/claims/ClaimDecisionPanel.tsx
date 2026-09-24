@@ -28,6 +28,8 @@ export type ClaimRow = {
     decision_notes: string | null; account_code: string | null; tax_code: string | null
     posting_date: string | null; is_owing: boolean; is_paid: boolean
     expense_reversed: boolean | null
+    // CLAIM-GST-1:批准之后那张费用单上的净额与税(expense_claim_status 末尾追加的两列)
+    expense_net_ccy: number | null; expense_tax_ccy: number | null
 }
 
 const money = (n: number) =>
@@ -63,7 +65,17 @@ export default function ClaimDecisionPanel({
         { key: 'spent', header: t('expenseClaims.colSpent'), className: 'text-xs', render: (c) => c.spend_date },
         {
             key: 'amount', header: t('expenseClaims.colAmount'), priority: true, align: 'right',
-            render: (c) => `${money(c.amount_ccy)} ${c.currency}`,
+            // CLAIM-GST-1:报的是含税总额;批准之后说出它被拆成了什么 —— 读落库的两个数,不在这里再算。
+            render: (c) => (
+                <>
+                    {money(c.amount_ccy)} {c.currency}
+                    {c.expense_tax_ccy != null && Number(c.expense_tax_ccy) > 0 && c.expense_net_ccy != null && (
+                        <span className="block text-xs text-[color:var(--brand-muted-text)]">
+                            {t('expenseClaims.splitNetGst', { net: money(c.expense_net_ccy), tax: money(c.expense_tax_ccy) })}
+                        </span>
+                    )}
+                </>
+            ),
         },
         {
             key: 'status', header: t('expenseClaims.colStatus'),
@@ -172,6 +184,7 @@ export default function ClaimDecisionPanel({
                             </PermissionGate>
                             <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('expenseClaims.postingDateHint')}</p>
                             <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.taxCodeHint')}</p>
+                            <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.gstBackedOutHint')}</p>
                         </div>
                     ))}
                 </div>

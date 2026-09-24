@@ -3,14 +3,16 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定)
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;CLAIM-GST-1 交回时更新:下一刀是 ROLE-1 Batch 2a)
 > 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(`fa7821ab`)·
 >    **✅ AP-RECON-1 Batch B** —— 残留登记表 + 常设勾稽 + 月结那一行 + 严格相等的 fixture 213 + 那一分钱 +
 >    带税订单发票 + **三条日期规矩与 32 份 fixture 的日期挪回真实的过去**(Tim 2026-09-24:日期规矩属于 AP-RECON-1,
 >    在这一刀落地 —— 原先的 AP-RECON-1c 一条并入,不再单列)。见 `docs/handbacks/AP-RECON-1.md` §B。
-> 1. **⬜ CLAIM-GST-1 —— 员工报销的税是从报销额里【拆出来】,不是【加上去】。★ Tim:【立刻】做。**
->    缺陷与线上两笔(EXP-2026-0007 / 0008 多记 11.70)见 `docs/known-issues.md` § APRECON1-CLAIM-GST-ADDED-ON-TOP。
-> 2. **⬜ ROLE-1 Batch 2a** —— (a) 财务设置 · (b) 客户信用 · (c) 供应商审批 + 未批准供应商不付款(下文 § ROLE-1 Batch 2a)。
+> 1. **✅ CLAIM-GST-1**(2026-09-24)—— 员工报销与医疗申报的金额是收据总额,税从里面【拆出来】
+>    (`tax_included_in`、`expenses.tax_ccy`、`record_expense` 的 `p_amount_includes_tax`;fixture 215)。
+>    EXP-2026-0007 / 0008 记下不改(`docs/known-wrong-until-cutover.md`)。冒烟收尾有界:15s / 120s / 退 6。
+>    订单发票的税:核实过,AP-RECON-1 Batch B 已落地(fixture 213 C11–C11g)。见 `docs/handbacks/CLAIM-GST-1.md`。
+> 2. **⬜ ROLE-1 Batch 2a ← 下一刀** —— (a) 财务设置 · (b) 客户信用 · (c) 供应商审批 + 未批准供应商不付款(下文 § ROLE-1 Batch 2a)。
 > 3. **⬜ ROLE-1 Batch 2b** —— (d) 合同条款 · (e) 定价 · (f) 直接销售 · (g) 化验(下文 § ROLE-1 Batch 2b)。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**
@@ -20,6 +22,8 @@
 >   `pay_payroll_deductions` · `remit_processing_costs` · `remit_wht_internal` · `record_bank_transfer_internal`
 >   今天只受"不晚于本月末"约束。见 `docs/known-issues.md` § APRECON1B-CASH-DOORS-DATE-RULE。
 >   ☞ 那一刀要先跑一次 `db/gate.py --offline` 量一下会红多少份 fixture,再报价 —— Batch B 的 32 份就是这么量出来的。
+> * **⬜ 冒烟走查期间的 REST 往返加单次上限**(CLAIM-GST-1 只给了收尾):先量一次走查里最慢的往返,再定上限。
+>   见 `docs/known-issues.md` § CLAIMGST1-SMOKE-WALK-CALLS-UNBOUNDED。
 > * (挡不挡关账 —— 清单 ↔ 总账有未解释的差时 `close_period` 要不要拒 —— 是 Tim 的一句裁定,不是一刀;
 >   见 `docs/known-issues.md` § APRECON1B-CHECK-DOES-NOT-BLOCK-CLOSE。)
 

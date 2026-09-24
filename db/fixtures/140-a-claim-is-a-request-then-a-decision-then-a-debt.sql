@@ -36,6 +36,7 @@ DECLARE
     v_exp       uuid;
     v_n int; v_n2 int; v_before int; v_after int; v_msg text; v_src text;
     v_ap_emp numeric; v_ap_sup int;
+    v_x numeric; v_y numeric;   -- CLAIM-GST-1:G 臂读那张费用单的净额与税
     v_post date; v_owing boolean; v_paid boolean;
 BEGIN
     -- ══════════════════ 布景 ══════════════════
@@ -298,16 +299,22 @@ BEGIN
             v_owing, v_paid;
     END IF;
     -- 付掉它 —— 出款给【员工】那条路(record_payment 显式允许 employee)
-    -- ★ AP-RECON-1(2026-09-24):付的是【应付额】= 净额 + 进项税(expense_payable_ccy),
-    --   即总账 2000 上为这张单记下的全部。此前这里付 120.50(净额)就算"付清",
-    --   而 TX 那笔税还挂在 2000 上 —— 这一臂当时断言的正是那条缺陷。
-    --   (报销额里的税该【加上去】还是【拆出来】是另一件事,见 docs/forward-queue.md 头条。)
-    PERFORM record_payment('out', v_emp,
-        (SELECT expense_payable_ccy(amount_ccy, tax_rate_pct) FROM expenses WHERE id = v_exp),
+    -- ★ AP-RECON-1(2026-09-24):付的是【应付额】= 净额 + 进项税,即总账 2000 上为这张单记下的全部。
+    --   此前这里付净额就算"付清",而 TX 那笔税还挂在 2000 上 —— 这一臂当时断言的正是那条缺陷。
+    -- ★ CLAIM-GST-1(2026-09-24):税是从报销额里【拆出来】的,所以应付额 = 员工报的那个数,一分不差。
+    --   报 120.50、TX 9% → 税 round(120.50 × 9/109) = 9.95、净 110.55,合计 120.50。
+    --   (改之前这里记的是 120.50 + 10.85 = 131.35 —— 多欠员工 10.85。)
+    SELECT amount_ccy, tax_ccy INTO v_x, v_y FROM expenses WHERE id = v_exp;
+    IF v_y <= 0 THEN
+        RAISE EXCEPTION 'FIXTURE 140G 失败(空转):TX 报销的税是 % —— 这一臂分不开"拆出来"与"加上去"', v_y;
+    END IF;
+    IF v_x + v_y <> 120.50 OR v_x <> 110.55 OR v_y <> 9.95 THEN
+        RAISE EXCEPTION 'FIXTURE 140G 失败:报 120.50(TX 9%%)应当记 净 110.55 + 税 9.95 = 120.50,实得 净 % + 税 %', v_x, v_y;
+    END IF;
+    PERFORM record_payment('out', v_emp, 120.50,
         v_base, NULL, v_bank, CURRENT_DATE,
         'fixture 140 报销付款',
-        jsonb_build_array(jsonb_build_object('expense_id', v_exp, 'amount_doc',
-            (SELECT expense_payable_ccy(amount_ccy, tax_rate_pct) FROM expenses WHERE id = v_exp))),
+        jsonb_build_array(jsonb_build_object('expense_id', v_exp, 'amount_doc', 120.50)),
         'employee');
     SELECT is_owing, is_paid INTO v_owing, v_paid
       FROM expense_claim_status WHERE claim_id = v_c1;

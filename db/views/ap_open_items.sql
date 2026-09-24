@@ -65,7 +65,9 @@
 -- 记下的全部(record_expense 贷两条腿)。此前只认净额,一张带税的账单付到净额就从本视图
 -- 消失,那一笔税在 2000 上永远挂着(AP-RECON-0 类别 C;Tim AP-RECON-0 Q1)。
 --   · doc_value_base = amount_base + tax_base —— 过账时【存下来的】两个本位币数,逐分相同;
---   · open_ccy 用 expense_payable_ccy(与过账同一个表达式);
+--   · open_ccy 用 amount_ccy + tax_ccy —— CLAIM-GST-1(2026-09-24)起读【落库的】税,不再重算:
+--     报销单的税是从含税总额里拆出来的,而 净 + round(净 × 税率) 凑不回约 8% 的总额
+--     (见 db/functions/tax_included_in.sql)。此前的 expense_payable_ccy 已删;
 --   · open_base 在【一分未结】时直接取 doc_value_base:round((净+税)×汇率) 与
 --     round(净×汇率)+round(税×汇率) 可以差一分,而未结的那一刻它必须与总账逐分相同。
 -- 【列集一字未动】→ 迁移走 CREATE OR REPLACE。
@@ -127,10 +129,10 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
             round((COALESCE(s.settled, 0::numeric) + COALESCE(pp.applied, 0::numeric)) * e.fx_rate, 2) AS settled_base,
                 CASE
                     WHEN (COALESCE(s.settled, 0::numeric) + COALESCE(pp.applied, 0::numeric)) = 0::numeric THEN e.amount_base + COALESCE(e.tax_base, 0::numeric)
-                    ELSE round((expense_payable_ccy(e.amount_ccy, e.tax_rate_pct) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric)) * e.fx_rate, 2)
+                    ELSE round((e.amount_ccy + e.tax_ccy - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric)) * e.fx_rate, 2)
                 END AS open_base,
             e.currency,
-            round(expense_payable_ccy(e.amount_ccy, e.tax_rate_pct) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_ccy,
+            round(e.amount_ccy + e.tax_ccy - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_ccy,
                 CASE
                     WHEN e.employee_id IS NOT NULL THEN 'employee'::text
                     ELSE 'supplier'::text

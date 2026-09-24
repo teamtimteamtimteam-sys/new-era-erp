@@ -328,3 +328,29 @@ COMMENT ON COLUMN public.expenses.wht_treaty_ref IS
 而是一次逐笔的判断,必须留下它凭什么成立的痕迹。
 **这个仓库不判断协定适不适用**,它只保证:低于法定就必须说出凭据,而且
 永远不许高于法定(WHT_TREATY_RATE_ABOVE_STATUTORY)。判断是人的。';
+
+-- ── CLAIM-GST-1(2026-09-24):本单【过账时】的进项税,以单据币种计(ALTER 加的列排在末尾)──
+ALTER TABLE public.expenses
+    ADD COLUMN tax_ccy numeric NOT NULL DEFAULT 0;
+
+-- 【与 expenses_tax_shape 同一件事的第四列】没有税码就没有税;有税码时税 ≥ 0
+-- (ZP / EP / OP 是 0%,税码在、税为 0 —— 那是合法的)。
+ALTER TABLE public.expenses
+    ADD CONSTRAINT expenses_tax_ccy_shape CHECK (
+        (tax_code IS NULL AND tax_ccy = 0)
+     OR (tax_code IS NOT NULL AND tax_ccy >= 0));
+
+COMMENT ON COLUMN public.expenses.tax_ccy IS
+'CLAIM-GST-1:本单过账时记下的进项税,以【单据币种】计 —— 就是 record_expense 贷 2000 的那条
+''GST on EXP-…'' 腿的原币金额。应付额 = amount_ccy + tax_ccy,清单(ap_open_items)、账龄、
+付款上限、预付冲抵上限、报销单"付清了没有"都读它。
+
+【为什么存,而不是像 AP-RECON-1 那样用 tax_amount_for(amount_ccy, tax_rate_pct) 算回来】
+报销单与医疗申报的金额是【收据上的总额】,税是从里面【拆出来】的(tax_included_in:
+税 = round(总额 × 税率 / (100 + 税率), 2),净额 = 总额 − 税)。而拆出来的税【不一定】等于
+tax_amount_for(净额):9% 时约 8.3% 的总额写不成 净 + round(净 × 9%)(10.11 → 9.28 + 0.83,
+而 tax_amount_for(9.28) = 0.84)。重算会让清单比总账多一分钱。所以这里存下过账用的那一个数,
+读者读它 —— 一份数,不是两份算术。
+
+【既有行】由 CLAIM-GST-1 迁移从各自分录里那条 ''GST on <code>'' 贷方腿回填(当时 3 行,
+逐行等于 tax_amount_for(amount_ccy, tax_rate_pct),迁移里断言过);冲销镜像单不带税码,为 0。';

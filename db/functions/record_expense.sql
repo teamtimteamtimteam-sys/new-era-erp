@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'unpaid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb, p_employee_id uuid DEFAULT NULL::uuid, p_purchase_order_line uuid DEFAULT NULL::uuid, p_tax_code text DEFAULT NULL::text, p_wht_nature text DEFAULT NULL::text, p_wht_rate_pct numeric DEFAULT NULL::numeric, p_wht_treaty_ref text DEFAULT NULL::text, p_maintenance_id uuid DEFAULT NULL::uuid)
+CREATE OR REPLACE FUNCTION public.record_expense(p_expense_date date, p_account_code text, p_amount numeric, p_currency text, p_fx_rate numeric DEFAULT NULL::numeric, p_payment_status text DEFAULT 'unpaid'::text, p_bank_account text DEFAULT NULL::text, p_supplier_id uuid DEFAULT NULL::uuid, p_payee_name text DEFAULT NULL::text, p_notes text DEFAULT NULL::text, p_asset jsonb DEFAULT NULL::jsonb, p_employee_id uuid DEFAULT NULL::uuid, p_purchase_order_line uuid DEFAULT NULL::uuid, p_tax_code text DEFAULT NULL::text, p_wht_nature text DEFAULT NULL::text, p_wht_rate_pct numeric DEFAULT NULL::numeric, p_wht_treaty_ref text DEFAULT NULL::text, p_maintenance_id uuid DEFAULT NULL::uuid, p_amount_includes_tax boolean DEFAULT false)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -9,6 +9,7 @@ DECLARE
     v_account    record;
     v_fx         numeric;
     v_amount_base numeric;
+    v_net        numeric;   -- CLAIM-GST-1:这张单的【不含税净额】—— 落进 amount_ccy 的那一个
     v_bank       text;
     v_expense_id uuid := gen_random_uuid();
     v_year       integer;
@@ -251,10 +252,15 @@ BEGIN
         v_bank := NULL;
     END IF;
 
-    -- 4. USD 金额。**p_amount 始终是【不含税净额】** —— 供应商账单上的总额
+    -- 4. 净额。**amount_ccy 始终是【不含税净额】** —— 供应商账单上的总额
     --    是净额 + 税,而这一列记的是开支本身的价值。GST 关着时两者相等,
     --    所以这条口径对既有行为是恒等的。
-    v_amount_base := round(p_amount * v_fx, 2);
+    --    CLAIM-GST-1(Tim Q3):p_amount 的含义由 p_amount_includes_tax 说出来。
+    --      · false(默认,费用表单、供应商账单):p_amount 就是净额,税在上面另算;
+    --      · true(只有报销单与医疗申报两条路传):p_amount 是【收据上的总额】,
+    --        税从里面拆出来(tax_included_in),净额 = 总额 − 税。
+    --    净额要等税率解析出来才知道,所以本位币净额挪到 4b 之后算。
+    v_net := p_amount;
 
     -- ════════════════════════════════════════════════════════════════════════
     -- 4b. GST-2:进项税码 —— 【供应商默认 + 本单改写】,税率按【费用日】解析。
@@ -271,7 +277,14 @@ BEGIN
         v_tax_rate := tax_rate_for(v_tax_code, p_expense_date);
         -- PO-GST-1:提取成 tax_amount_for —— 【表达式一个字符都没变】,
         -- 只是这一行此前在三处各写了一遍。见该函数抬头。
-        v_tax_ccy  := tax_amount_for(p_amount, v_tax_rate);
+        -- CLAIM-GST-1:含税总额 → 先定税(IRAS 税分数)、净额取差,于是 净 + 税 恒等于 总额;
+        -- 不含税净额 → 税在上面另算,与此前逐字相同。
+        IF p_amount_includes_tax THEN
+            v_tax_ccy := tax_included_in(p_amount, v_tax_rate);
+            v_net     := p_amount - v_tax_ccy;
+        ELSE
+            v_tax_ccy := tax_amount_for(p_amount, v_tax_rate);
+        END IF;
         v_tax_base := round(v_tax_ccy * v_fx, 2);
         SELECT is_claimable INTO v_claimable FROM tax_codes WHERE code = v_tax_code;
     ELSE
@@ -280,6 +293,7 @@ BEGIN
             RAISE EXCEPTION 'GST_NOT_REGISTERED|%', p_tax_code;
         END IF;
     END IF;
+    v_amount_base := round(v_net * v_fx, 2);
 
     -- ════════════════════════════════════════════════════════════════════════
     -- 4c. WHT-1:预提税 —— **这张单要不要替收款人代扣,以及扣多少**。
@@ -380,7 +394,7 @@ BEGIN
         END IF;
 
         -- 【预期值:全额结清时会扣多少】真正的代扣按实付部分算,见 record_payment。
-        v_wht_ccy := round(p_amount * v_wht_rate / 100.0, 2);
+        v_wht_ccy := round(v_net * v_wht_rate / 100.0, 2);
     ELSE
         -- ── 没有给性质 ──────────────────────────────────────────────────
         IF p_wht_rate_pct IS NOT NULL OR v_wht_ref IS NOT NULL THEN
@@ -399,7 +413,7 @@ BEGIN
 
     -- ════════════════════════════════════════════════════════════════════════
     -- AP-RECON-1(Tim AP-RECON-1 Q2):【同一张单既要代扣又带进项税 —— 按名拒】
-    --   应付额现在是 净额 + 税(expense_payable_ccy),而代扣按【实付的核销额】× 税率算
+    --   应付额现在是 净额 + 税(amount_ccy + tax_ccy),而代扣按【实付的核销额】× 税率算
     --   (record_payment)。两者同在一张单上,代扣就会把 GST 也扣进去,Σ 代扣超过这里冻下的
     --   wht_amount_ccy(fixture 142 D 臂钉的那个等式)。
     --   而这个组合在现实里本不该出现:要代扣的是【非居民】收款人,非居民供应商不收新加坡 GST
@@ -417,7 +431,7 @@ BEGIN
     -- 【为什么不在这里按名拒掉 BL + 资本】那会把一个【有确定答案的】会计问题
     -- 说成一个待裁决的问题。ASSET_ALREADY_IN_SERVICE 那条拒绝之所以成立,
     -- 是因为"投用后的追加是资本化改良还是当期费用"真的需要人来判;这一条不需要。
-    v_cost_ccy  := round(p_amount    + CASE WHEN v_claimable THEN 0 ELSE v_tax_ccy  END, 2);
+    v_cost_ccy  := round(v_net       + CASE WHEN v_claimable THEN 0 ELSE v_tax_ccy  END, 2);
     v_cost_base := round(v_amount_base + CASE WHEN v_claimable THEN 0 ELSE v_tax_base END, 2);
 
     -- 5. 无缝编号:咨询锁串行化"取当年最大号+1"(同 JE/收付款编号手法);失败回滚会释放号码。
@@ -436,7 +450,7 @@ BEGIN
     -- 所以它报的是【采购净额】,这正是 IRAS 要的"应税采购总额"。
     v_jlines := jsonb_build_array(
         jsonb_build_object('account_code', p_account_code, 'side', 'debit',
-                           'currency', p_currency, 'amount_ccy', p_amount, 'fx_rate', v_fx,
+                           'currency', p_currency, 'amount_ccy', v_net, 'fx_rate', v_fx,
                            'tax_code', v_tax_code));
     IF v_tax_ccy > 0 THEN
         IF v_claimable THEN
@@ -460,7 +474,7 @@ BEGIN
     v_jlines := v_jlines || jsonb_build_object(
         'account_code', CASE WHEN p_payment_status = 'paid' THEN v_bank ELSE '2000' END,
         'side', 'credit',
-        'currency', p_currency, 'amount_ccy', p_amount, 'fx_rate', v_fx);
+        'currency', p_currency, 'amount_ccy', v_net, 'fx_rate', v_fx);
     IF v_tax_ccy > 0 THEN
         v_jlines := v_jlines || jsonb_build_object(
             'account_code', CASE WHEN p_payment_status = 'paid' THEN v_bank ELSE '2000' END,
@@ -481,19 +495,19 @@ BEGIN
                           amount_base, payment_status, bank_account_code, supplier_id, employee_id,
                           payee_name, notes, journal_entry_id, created_by,
                           purchase_order_line_id,
-                          tax_code, tax_rate_pct, tax_base,
+                          tax_code, tax_rate_pct, tax_base, tax_ccy,
                           -- WHT-1:裁定冻在债务上。居民身份是【抄下来的一份】,
                           -- 不是一个指向 suppliers 的引用 —— 供应商日后迁走管理与
                           -- 控制、身份跟着变,不能倒过来改写一张已经记下的债务。
                           wht_payee_residence, wht_nature, wht_rate_pct,
                           wht_amount_ccy, wht_treaty_ref)
-    VALUES (v_expense_id, v_code, p_expense_date, p_account_code, p_amount, p_currency, v_fx,
+    VALUES (v_expense_id, v_code, p_expense_date, p_account_code, v_net, p_currency, v_fx,
             v_amount_base, p_payment_status, v_bank, p_supplier_id, p_employee_id,
             p_payee_name, p_notes, (v_je->>'entry_id')::uuid, v_user,
             p_purchase_order_line,
             v_tax_code,
             CASE WHEN v_tax_code IS NULL THEN NULL ELSE v_tax_rate END,
-            v_tax_base,
+            v_tax_base, v_tax_ccy,
             -- 【只有做过裁定的单据才带身份】没有裁定时这四列全空,与
             -- expenses_wht_shape 那条 CHECK 的第一支逐字对应。居民收款人、
             -- 员工报销、身份未申报 —— 三种情况在这里都是空,而它们的
@@ -735,6 +749,8 @@ BEGIN
         'asset_id', v_asset_id, 'asset_code', v_asset_code,
         'code', v_code,
         'amount_base', v_amount_base,
+        -- CLAIM-GST-1:净额与税分开回给调用方(含税总额进来时,屏幕要说得出拆成了什么)
+        'amount_ccy', v_net, 'tax_ccy', v_tax_ccy,
         'journal_code', v_je->>'code',
         'payment_status', p_payment_status,
         -- WHT-1:把裁定回给调用方,让屏幕说得出"这张单付的时候会扣多少" ——

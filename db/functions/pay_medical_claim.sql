@@ -45,6 +45,11 @@
 --   §9.1b 把这一行写着,免得下一个读到它的人以为它已经被核过。
 -- ════════════════════════════════════════════════════════════════════════════
 
+-- CLAIM-GST-1(2026-09-24):医疗申报的 amount_sgd 是【收据上的总额】,已含 GST。
+-- 此前它被当成净额、在上面再加 9%(BL 时那 9% 进 6120):报 30 记成欠员工 32.70(MC-2026-0001 →
+-- EXP-2026-0008,留作测试数据残留,见 docs/known-wrong-until-cutover.md)。现在调 record_expense 时
+-- 传 p_amount_includes_tax := true,税从总额里拆出来,欠员工的恰好是收据上的数。
+--
 CREATE OR REPLACE FUNCTION public.pay_medical_claim(p_claim_id uuid, p_expense_date date DEFAULT NULL::date, p_fx_rate numeric DEFAULT NULL::numeric, p_tax_code text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -124,7 +129,9 @@ BEGIN
         p_employee_id   := v_claim.employee_id,
         p_payee_name    := v_emp.legal_name,
         p_notes         := format('Medical claim %s (%s)', v_claim.code, v_emp.code),
-        p_tax_code      := v_tax);
+        p_tax_code      := v_tax,
+        -- CLAIM-GST-1(Tim Q3):员工报上来的是【收据上的总额】,已含 GST —— 税从里面拆出来,不加在上面。
+        p_amount_includes_tax := true);
 
     -- 【状态仍然是 approved,不是 paid】。
     -- 这笔费用刚建出来是 unpaid —— 员工手里一分钱还没拿到。此刻把报销标成

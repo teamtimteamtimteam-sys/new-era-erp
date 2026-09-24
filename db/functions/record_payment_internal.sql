@@ -474,10 +474,10 @@ BEGIN
             -- PAYEE-1a:往来对象二选一,所以 party_id 取"那一个"。
             -- CHECK 保证 num_nonnulls(supplier_id, employee_id) = 1,于是 COALESCE
             -- 不会把两个混起来 —— 它挑的是唯一非空的那个。
-            -- AP-RECON-1:应付额 = 净额 + 进项税(expense_payable_ccy,与过账同一个表达式;
+            -- AP-RECON-1:应付额 = 净额 + 进项税(CLAIM-GST-1 起读落库的 amount_ccy + tax_ccy —— 就是过账的两条贷方腿;
             -- Tim AP-RECON-0 Q1)。只认净额时,一张带税账单的那笔税永远付不进来。
             SELECT e.id, e.code AS doc_code, COALESCE(e.supplier_id, e.employee_id) AS party_id,
-                   expense_payable_ccy(e.amount_ccy, e.tax_rate_pct) AS doc_value,
+                   e.amount_ccy + e.tax_ccy AS doc_value,
                    e.currency AS doc_ccy, e.fx_rate AS doc_fx,
                    -- WHT-1:代扣率来自【债务自己冻下来的那一个】,不在这里重新解析。
                    -- 重新解析 = 第二份实现,而它会在法定税率某天变动之后,

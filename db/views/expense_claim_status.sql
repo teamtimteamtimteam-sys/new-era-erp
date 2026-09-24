@@ -38,10 +38,14 @@
 --
 -- NOTE: introduced by db/migrations/2026-08-28-claim1-employee-expense-claims.sql.
 
--- AP-RECON-1(2026-09-24):「付清了没有」对着【净额 + 进项税】判(expense_payable_ccy)——
+-- AP-RECON-1(2026-09-24):「付清了没有」对着【净额 + 进项税】判(CLAIM-GST-1 起读 amount_ccy + tax_ccy,
+-- 落库的那一笔税;此前是 expense_payable_ccy 重算)——
+-- CLAIM-GST-1 还在末尾【追加】两列 expense_net_ccy / expense_tax_ccy(费用单上的净额与税):
+-- 批准之后,屏幕要说得出员工报的那个总额被拆成了什么 —— 读落库的两个数,不在页面上再算一遍。
+-- 只追加、不动既有列序 → 迁移走 CREATE OR REPLACE。
 -- 那是总账 2000 上欠员工的全部;只对着净额判,会在那笔税还欠着的时候说"已付"。
--- (报销的税是【加在】报销额之上还是【从里面拆出来】,是另一件事,Tim 裁定为
---  AP-RECON-1 之后紧接的一刀,见 docs/forward-queue.md 头条。)
+-- (报销的税是【从报销额里拆出来】的 —— CLAIM-GST-1,2026-09-24:decide_expense_claim 传
+--  p_amount_includes_tax := true,于是 amount_ccy + tax_ccy 恰好等于员工报的那个总额。)
 
 CREATE VIEW public.expense_claim_status WITH (security_invoker = off) AS
 SELECT c.id AS claim_id,
@@ -65,11 +69,13 @@ SELECT c.id AS claim_id,
     x.payment_status,
     x.status = 'reversed'::text AS expense_reversed,
     COALESCE(a.settled_ccy, 0::numeric) AS settled_ccy,
-    c.status = 'approved'::text AND x.status = 'posted'::text AND COALESCE(a.settled_ccy, 0::numeric) >= expense_payable_ccy(x.amount_ccy, x.tax_rate_pct) AS is_paid,
-    c.status = 'approved'::text AND x.status = 'posted'::text AND COALESCE(a.settled_ccy, 0::numeric) < expense_payable_ccy(x.amount_ccy, x.tax_rate_pct) AS is_owing,
+    c.status = 'approved'::text AND x.status = 'posted'::text AND COALESCE(a.settled_ccy, 0::numeric) >= (x.amount_ccy + x.tax_ccy) AS is_paid,
+    c.status = 'approved'::text AND x.status = 'posted'::text AND COALESCE(a.settled_ccy, 0::numeric) < (x.amount_ccy + x.tax_ccy) AS is_owing,
     (EXISTS ( SELECT 1
            FROM finance_attachments fa
-          WHERE fa.claim_id = c.id AND fa.deleted_at IS NULL)) AS has_receipt
+          WHERE fa.claim_id = c.id AND fa.deleted_at IS NULL)) AS has_receipt,
+    x.amount_ccy AS expense_net_ccy,
+    x.tax_ccy AS expense_tax_ccy
    FROM expense_claims c
      JOIN employees e ON e.id = c.employee_id
      LEFT JOIN expenses x ON x.id = c.expense_id

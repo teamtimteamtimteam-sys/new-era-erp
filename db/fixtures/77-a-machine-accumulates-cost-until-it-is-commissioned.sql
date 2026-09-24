@@ -51,14 +51,15 @@ BEGIN
     -- GST-2:再多一个 p_tax_code(进项税码),第三次跟着改 —— 见下面那段话。
     -- WHT-1:再多三个(p_wht_nature / p_wht_rate_pct / p_wht_treaty_ref),第四次跟着改。
     -- CAPEX-1:再多一个 p_maintenance_id(那条【标了资本化】的维修记录),第五次跟着改。
+    -- CLAIM-GST-1:再多一个 p_amount_includes_tax(报销额是含税总额),第六次跟着改。
     -- **这一次它又红了,而它红得对** —— 下面那句"一定会在这里红一次"是五刀前
     -- 写下来的预言,五次全中。改签名的人读到这里就知道自己要确认什么。
     --【它把签名钉死是对的】—— 注入要替换的就是这一个具体的函数。
     -- 【所以改 record_expense 的签名,一定会在这里红一次,而那是【对的】】
-    -- 五次都是这样(PAYEE-1a、EQP-1b-ii、GST-2、WHT-1、CAPEX-1),所以它是规律不是意外:regprocedure 找不到
+    -- 六次都是这样(PAYEE-1a、EQP-1b-ii、GST-2、WHT-1、CAPEX-1、CLAIM-GST-1),所以它是规律不是意外:regprocedure 找不到
     -- 那个签名就当场报错,于是"签名动了"永远不会静悄悄地过去。改签名的人在这里
     -- 补一个类型,顺带确认自己知道这份 fixture 在注入什么。
-    'public.record_expense(date,text,numeric,text,numeric,text,text,uuid,text,text,jsonb,uuid,uuid,text,text,numeric,text,uuid)'::regprocedure);
+    'public.record_expense(date,text,numeric,text,numeric,text,text,uuid,text,text,jsonb,uuid,uuid,text,text,numeric,text,uuid,boolean)'::regprocedure);
     def_close := pg_get_functiondef('public.close_period(date,text)'::regprocedure);
     def_sis   := pg_get_functiondef('public.set_asset_in_service(uuid,date)'::regprocedure);
 
