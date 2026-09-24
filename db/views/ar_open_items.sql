@@ -62,6 +62,19 @@
 -- 这张视图仍有别的消费方(看板 ar_over_90 等),所以留着;
 -- db/fixtures/135 的 A 臂断言函数【截至今天】与它逐行逐列相同,两个方向差集都为空。
 
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 【AP-RECON-1(2026-09-24):第三支 —— sale 型发票的销项税,doc_kind 'invoice_gst'】
+-- create_invoice 给一笔直销开票时,【只过税】:借 1100 / 贷 2100,以【本位币】(即便那笔
+-- 销售是 USD)。而第一支只认 数量×单价 —— 于是那笔税在 1100 上躺着、在应收上不存在,
+-- 收款也核销不进去(INV-2026-0009 的 102.87,AR 侧的类别 C)。
+-- Tim AP-RECON-1 Q5:这笔税是【它自己的一项应收】,本位币,上限就是它的税额;
+-- 销售那一行照旧以自己的币种列着。两行按构造不相交:净额只核销到 sales_record_id,
+-- 税只核销到 invoice_id(record_payment_internal 的发票支)。
+-- 【为什么不把税折进销售那一行】USD 销售上的本位币税要折成 USD 才加得进去,那一折是有损的,
+-- 而且会让同一张单据带两种币。单独一行,数与过账时存下的 invoices.tax_base 逐分相同。
+-- 门与第二支同:finance.view + data.view_prices。作废的发票不列(它的税已随作废冲回)。
+-- ═══════════════════════════════════════════════════════════════════════════
+
 CREATE VIEW public.ar_open_items WITH (security_invoker = off) AS
  SELECT sr.id AS sales_record_id,
     ob.code AS doc_code,
@@ -118,4 +131,33 @@ UNION ALL
     o.credited_base
    FROM order_invoice_open_all o
      LEFT JOIN customers c ON c.id = o.customer_id
-  WHERE has_permission('module.finance.view'::text) AND has_permission('data.view_prices'::text);
+  WHERE has_permission('module.finance.view'::text) AND has_permission('data.view_prices'::text)
+UNION ALL
+ SELECT NULL::uuid AS sales_record_id,
+    i.code AS doc_code,
+    i.customer_id,
+    c.legal_name AS customer_name,
+    i.issue_date AS sale_date,
+    i.tax_base AS amount_base,
+    ( SELECT cur.code
+           FROM currencies cur
+          WHERE cur.is_base) AS currency,
+    i.tax_base AS amount_ccy,
+    round(COALESCE(s.settled, 0::numeric), 2) AS settled_ccy,
+    round(i.tax_base - COALESCE(s.settled, 0::numeric), 2) AS open_ccy,
+    round(i.tax_base - COALESCE(s.settled, 0::numeric), 2) AS open_base,
+    CURRENT_DATE - i.issue_date AS days_outstanding,
+    aging_bucket(CURRENT_DATE - i.issue_date) AS bucket,
+    i.id AS invoice_id,
+    i.code AS invoice_code,
+    'invoice_gst'::text AS doc_kind,
+    round(COALESCE(s.settled, 0::numeric), 2) AS settled_base,
+    0::numeric AS credited_ccy,
+    0::numeric AS credited_base
+   FROM invoices i
+     LEFT JOIN customers c ON c.id = i.customer_id
+     LEFT JOIN LATERAL ( SELECT sum(pa.allocated_ccy) AS settled
+           FROM payment_allocations pa
+             JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'::text
+          WHERE pa.invoice_id = i.id) s ON true
+  WHERE i.kind = 'sale'::text AND i.status = 'issued'::text AND i.tax_base > 0::numeric AND round(i.tax_base - COALESCE(s.settled, 0::numeric), 2) > 0::numeric AND has_permission('module.finance.view'::text) AND has_permission('data.view_prices'::text);

@@ -92,6 +92,12 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 161A 前置失败:三项应把 1150.00 送进 1200,实得 % —— 起点非零是这一臂不空转的前提', v_a - v_0;
     END IF;
 
+    -- ★ AP-RECON-1(2026-09-24):还欠着供应商钱的已计价收货不许注销(INBOUND_HAS_OPEN_PAYABLE)。
+    --   本 fixture 钉的是【存货】那一侧(1200 解除多少),不是应付 —— 所以先把采购价付清,
+    --   再注销。付款只动 2000 与银行,不碰 1200,A–D 臂的每一条断言都不受影响。
+    PERFORM record_payment_internal(p_direction := 'out', p_counterparty_id := v_sup,
+        p_amount := 500, p_currency := v_ccy, p_payment_date := v_d,
+        p_allocations := jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'amount_doc', 500)));
     PERFORM soft_delete_inbound_batch(v_ib, 'f161 整批注销');
     SELECT COALESCE(SUM(signed_base),0) INTO v_b
       FROM journal_activity_lines(NULL, NULL, true) WHERE account_code = '1200';
@@ -148,6 +154,12 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 161B 失败(剩余侧):**剩下的一半必须还在 1200 上**,应为 575.00,实得 % —— 一个"部分注销就解除全部"的实现在这里红,而它通过了解除侧那一句', v_b - v_0;
     END IF;
 
+    -- ★ AP-RECON-1(2026-09-24):还欠着供应商钱的已计价收货不许注销(INBOUND_HAS_OPEN_PAYABLE)。
+    --   本 fixture 钉的是【存货】那一侧(1200 解除多少),不是应付 —— 所以先把采购价付清,
+    --   再注销。付款只动 2000 与银行,不碰 1200,A–D 臂的每一条断言都不受影响。
+    PERFORM record_payment_internal(p_direction := 'out', p_counterparty_id := v_sup,
+        p_amount := 500, p_currency := v_ccy, p_payment_date := v_d,
+        p_allocations := jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'amount_doc', 500)));
     PERFORM soft_delete_inbound_batch(v_ib, 'f161 剩余注销');
     SELECT COALESCE(SUM(signed_base),0) INTO v_c
       FROM journal_activity_lines(NULL, NULL, true) WHERE account_code = '1200';

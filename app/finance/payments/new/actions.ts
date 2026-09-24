@@ -112,7 +112,9 @@ export async function createPayment(
         if (!allocIds[i] || !allocAmounts[i] || Number.isNaN(v) || v <= 0) continue
         if (direction === 'in') {
             // SO-3a:应收两种单据 —— 订单流发票核销直指发票本身
-            if (allocKinds[i] === 'invoice') allocations.push({ invoice_id: allocIds[i], amount_doc: v })
+            // AP-RECON-1:第三种 'invoice_gst'(sale 型发票的销项税)也核销到发票本身;
+            // 服务端按发票的 kind 认它是订单流发票还是只收它那笔税。
+            if (allocKinds[i] === 'invoice' || allocKinds[i] === 'invoice_gst') allocations.push({ invoice_id: allocIds[i], amount_doc: v })
             else allocations.push({ sales_record_id: allocIds[i], amount_doc: v })
         } else if (allocKinds[i] === 'expense') {
             allocations.push({ expense_id: allocIds[i], amount_doc: v })

@@ -240,13 +240,27 @@ BEGIN
                 -- 只认 kind='order' 且在册:sale 头的应收在 sales_records 上,
                 -- 拿它的发票来核销就是同一笔债的第二个入口(ALLOC_INVALID)。
                 -- ════════════════════════════════════════════════════════════
+                -- ════════════════════════════════════════════════════════════
+                -- AP-RECON-1(Tim AP-RECON-1 Q5):sale 型发票的【销项税】是它自己的
+                -- 一项应收。create_invoice 在开票时借 1100 那一笔税(以本位币,即便
+                -- 销售是 USD),而销售记录的上限只认 数量×单价 —— 那笔税此前没有任何
+                -- 入口能收。所以 sale 型发票现在【只作为它那笔税】被核销:
+                --   doc_value = invoices.tax_base(过账时存下的那个数),币种 = 本位币,
+                --   汇率 = 1。净额仍然只在销售记录上收 —— 同一笔债不开第二个入口,
+                --   上面那段话的原意不变,变的只是"税"这一笔此前根本没有入口。
+                -- 不带税的 sale 型发票照旧 ALLOC_INVALID。
+                -- ════════════════════════════════════════════════════════════
                 SELECT i.id, i.code AS doc_code, i.customer_id AS party_id,
-                       (SELECT COALESCE(sum(il.amount_ccy), 0) FROM invoice_lines il
-                         WHERE il.invoice_id = i.id) AS doc_value,
-                       i.currency AS doc_ccy, i.fx_rate AS doc_fx
+                       CASE WHEN i.kind = 'order'
+                            THEN (SELECT COALESCE(sum(il.amount_ccy), 0) FROM invoice_lines il
+                                   WHERE il.invoice_id = i.id)
+                            ELSE i.tax_base END AS doc_value,
+                       CASE WHEN i.kind = 'order' THEN i.currency ELSE v_base END AS doc_ccy,
+                       CASE WHEN i.kind = 'order' THEN i.fx_rate ELSE 1::numeric END AS doc_fx
                 INTO v_doc
                 FROM invoices i
-                WHERE i.id = v_invoice_id AND i.kind = 'order' AND i.status = 'issued';
+                WHERE i.id = v_invoice_id AND i.status = 'issued'
+                  AND (i.kind = 'order' OR (i.kind = 'sale' AND i.tax_base > 0));
                 IF NOT FOUND THEN
                     RAISE EXCEPTION 'ALLOC_INVALID|%', v_invoice_id;
                 END IF;
@@ -436,8 +450,11 @@ BEGIN
             -- PAYEE-1a:往来对象二选一,所以 party_id 取"那一个"。
             -- CHECK 保证 num_nonnulls(supplier_id, employee_id) = 1,于是 COALESCE
             -- 不会把两个混起来 —— 它挑的是唯一非空的那个。
+            -- AP-RECON-1:应付额 = 净额 + 进项税(expense_payable_ccy,与过账同一个表达式;
+            -- Tim AP-RECON-0 Q1)。只认净额时,一张带税账单的那笔税永远付不进来。
             SELECT e.id, e.code AS doc_code, COALESCE(e.supplier_id, e.employee_id) AS party_id,
-                   e.amount_ccy AS doc_value, e.currency AS doc_ccy, e.fx_rate AS doc_fx,
+                   expense_payable_ccy(e.amount_ccy, e.tax_rate_pct) AS doc_value,
+                   e.currency AS doc_ccy, e.fx_rate AS doc_fx,
                    -- WHT-1:代扣率来自【债务自己冻下来的那一个】,不在这里重新解析。
                    -- 重新解析 = 第二份实现,而它会在法定税率某天变动之后,
                    -- 让一张旧债务按新税率被代扣 —— 算得出数,没有任何报错。
@@ -460,6 +477,13 @@ BEGIN
             FROM payment_allocations pa
             JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
             WHERE pa.expense_id = v_expense_id;
+            -- AP-RECON-1(Tim AP-RECON-1 Q4):预付冲抵也在还这张单 —— ap_open_items 与
+            -- apply_prepayment 早就这么算,只有这里漏了。漏掉时 EXP-2026-0006
+            -- (400,000,已冲定金 120,000)在这里能再付 400,000,而清单上它只欠 280,000。
+            -- 进料支(见上)一直是加上的;这里补成同一条。
+            v_settled := v_settled + COALESCE(
+                (SELECT SUM(ppa.amount_ccy) FROM prepayment_applications ppa
+                  WHERE ppa.expense_id = v_expense_id), 0);
         END IF;
 
         -- ════════════════════════════════════════════════════════════════════

@@ -59,6 +59,7 @@ const en = {
         ratesUnverifiedBody: 'The shape of this table is an engineering decision and it is finished. The numbers in it are not: they were seeded from the statutory references shown, and each carries a baseline start date rather than a researched commencement date. Confirm every row before the first real payment to a non-resident.',
         errors: {
             WHT_PAYEE_NOT_A_SUPPLIER: 'A withholding decision can only be recorded against a supplier on file. Employee reimbursements and free-text payees are outside this path ({0}).',
+            EXPENSE_WHT_WITH_GST: 'This expense both withholds tax ({0}) and carries GST ({1}). A non-resident payee who is subject to withholding does not charge Singapore GST — check the tax code.',
             WHT_RESIDENCE_NOT_STATED: 'This supplier has not stated a tax residence. Set it on the supplier record first, then record this document.',
             WHT_PAYEE_IS_RESIDENT: 'This supplier is recorded as a Singapore tax resident, so no tax is withheld from payments to them ({1}).',
             WHT_ON_PAID_EXPENSE_UNSUPPORTED: 'An expense that attracts withholding tax cannot be recorded as already paid. Record it as unpaid, then pay it — the withholding happens at the payment, where there is exactly one implementation of the split.',
@@ -6030,6 +6031,7 @@ const en = {
             INBOUND_NOT_FOUND: 'That inbound batch does not exist, or is already deleted: {0}',
             OUTPUT_NOT_FOUND: 'That output batch does not exist, or is already deleted: {0}',
             BATCH_NO_HARD_DELETE: 'Batch {0} cannot be permanently deleted — use delete (which keeps the record and writes a write-off movement).',
+            INBOUND_HAS_OPEN_PAYABLE: '{0} still owes the supplier {1} — deleting it would drop that debt from the payables list while it stays in the ledger. Settle it, or correct its price, first; a physical loss is not a reason to delete the record.',
             STOCKTAKE_NO_HARD_DELETE: 'Stocktake {0} cannot be permanently deleted — cancel it instead, which records who and why.',
             PO_NO_HARD_DELETE: 'Purchase order {0} cannot be permanently deleted — cancel it instead, which records who and why.',
             SO_BATCH_HAS_RESERVATIONS: 'Batch {0} still has {1} live reservation(s) on order(s) {2} — release them first.',
@@ -6766,6 +6768,7 @@ const en = {
             // SO-3a:the AR side now has two document kinds too
             sale: 'Sale',
             invoice: 'Order invoice',
+            invoice_gst: 'Invoice GST',
         },
         aging: {
             b0_30: '0–30 days',
@@ -8310,6 +8313,7 @@ const en = {
             ACCOUNT_NOT_FOUND: 'Account not found: {0}',
             ACCOUNT_INACTIVE: 'Account inactive: {0}',
             ACCOUNT_NOT_EXPENSE: 'Account {0} is not an expense account',
+            EXPENSE_WHT_WITH_GST: 'This expense both withholds tax ({0}) and carries GST ({1}). A non-resident payee who is subject to withholding does not charge Singapore GST — check the tax code.',
             AMOUNT_INVALID: 'Amount must be greater than 0',
             FX_RATE_REQUIRED: 'Exchange rate required for {0}',
             PAYMENT_STATUS_INVALID: 'Invalid payment status: {0}',

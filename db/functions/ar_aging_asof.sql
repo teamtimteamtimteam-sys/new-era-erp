@@ -146,6 +146,48 @@ BEGIN
            -- 第一支靠 sales_records_masked 把 unit_price 遮成 NULL 自然消失,
            -- 两支对同一读者同进同退。
            AND has_permission('data.view_prices')
+
+        UNION ALL
+
+        -- ── AP-RECON-1:第三支 —— sale 型发票的销项税(与 ar_open_items 第三支同义)──
+        -- 本位币、上限即税额;在不在与作废的回推逐字照抄第二支(作废分录的分录日),
+        -- 结清按收款日回推与前两支同一条。
+        SELECT NULL::uuid, i.code, i.customer_id, c.legal_name,
+               i.issue_date, i.due_date,
+               i.tax_base,
+               v_base, i.tax_base,
+               round(COALESCE(s.settled, 0), 2),
+               round(i.tax_base - COALESCE(s.settled, 0), 2),
+               round(i.tax_base - COALESCE(s.settled, 0), 2),
+               (v_as_of - i.issue_date),
+               aging_bucket(v_as_of - i.issue_date),
+               i.id, i.code, 'invoice_gst'::text,
+               round(COALESCE(s.settled, 0), 2),
+               0::numeric,
+               0::numeric
+          FROM invoices i
+          LEFT JOIN customers c ON c.id = i.customer_id
+          LEFT JOIN LATERAL (
+                SELECT sum(pa.allocated_ccy) AS settled
+                  FROM payment_allocations pa
+                  JOIN payments p ON p.id = pa.payment_id
+                  LEFT JOIN payments rev ON rev.id = p.reversed_by_payment
+                 WHERE pa.invoice_id = i.id
+                   AND p.payment_date <= v_as_of
+                   AND (p.status = 'posted'
+                        OR (p.status = 'reversed' AND rev.payment_date > v_as_of))
+          ) s ON true
+         WHERE i.kind = 'sale'
+           AND i.tax_base > 0
+           AND i.issue_date <= v_as_of
+           AND (i.status = 'issued'
+                OR (i.status = 'void'
+                    AND COALESCE((SELECT r.entry_date
+                                    FROM journal_entries o
+                                    JOIN journal_entries r ON r.id = o.reversed_by
+                                   WHERE o.id = i.entry_id),
+                                 i.voided_at::date) > v_as_of))
+           AND has_permission('data.view_prices')
       ) x
      WHERE x.open_ccy > 0;
 
@@ -181,4 +223,4 @@ END;
 $function$;
 
 COMMENT ON FUNCTION public.ar_aging_asof(date) IS
-    'AGING-1:AR 账龄【截至某一天】。两支:直接销售记录 + 订单流发票。结清按收款日回推、贷记按 note_date 回推、发票在不在按【作废分录的分录日】回推(晚于 D 的作废不回溯)。第二支把 order_invoice_balance_all 的算术抄了下来而不是引用它 —— 那张视图是「现在」的算术且接不了参数,正是本刀存在的理由再出现一次;两处注释互指,一边改另一边必须跟着改。到期日:发票支取 invoices.due_date,销售支取它挂着的在册发票的 due_date(实测 6/6 已填);【档位仍按单据日,不按到期日】。p_as_of 默认今天,等于今天时逐行复现今天那张视图 —— db/fixtures/135 的 A 臂钉住。';
+    'AGING-1:AR 账龄【截至某一天】。三支:直接销售记录 + 订单流发票 + sale 型发票的销项税(AP-RECON-1,本位币,与 ar_open_items 第三支同义)。结清按收款日回推、贷记按 note_date 回推、发票在不在按【作废分录的分录日】回推(晚于 D 的作废不回溯)。第二支把 order_invoice_balance_all 的算术抄了下来而不是引用它 —— 那张视图是「现在」的算术且接不了参数,正是本刀存在的理由再出现一次;两处注释互指,一边改另一边必须跟着改。到期日:发票支取 invoices.due_date,销售支取它挂着的在册发票的 due_date(实测 6/6 已填);【档位仍按单据日,不按到期日】。p_as_of 默认今天,等于今天时逐行复现今天那张视图 —— db/fixtures/135 的 A 臂钉住。';

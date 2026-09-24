@@ -5,6 +5,9 @@
 --
 -- NOTE: updated by db/migrations/2026-08-02-hr2b-leave-exceptions-and-claims.sql.
 
+-- AP-RECON-1(2026-09-24):「付清」对着【净额 + 进项税】的本位币判(amount_base + tax_base,
+-- 过账时存下的两个数)—— 与 ap_open_items 的费用支 doc_value_base 同一个数。
+
 CREATE VIEW public.medical_claim_status WITH (security_invoker = off) AS
  SELECT mc.id AS claim_id,
     mc.code,
@@ -26,7 +29,7 @@ CREATE VIEW public.medical_claim_status WITH (security_invoker = off) AS
         CASE
             WHEN mc.status <> 'approved'::text THEN mc.status
             WHEN mc.expense_id IS NULL THEN 'awaiting_payment_run'::text
-            WHEN COALESCE(pay.settled_base, 0::numeric) >= ex.amount_base THEN 'paid'::text
+            WHEN COALESCE(pay.settled_base, 0::numeric) >= (ex.amount_base + COALESCE(ex.tax_base, 0::numeric)) THEN 'paid'::text
             WHEN COALESCE(pay.settled_base, 0::numeric) > 0::numeric THEN 'part_paid'::text
             ELSE 'expense_raised'::text
         END AS settlement_state

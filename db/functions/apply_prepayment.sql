@@ -141,7 +141,7 @@ BEGIN
         v_open := round(v_value - v_settled, 2);
         v_dest_code := v_batch.code;
     ELSE
-        SELECT e.id, e.code, e.currency, e.fx_rate, e.amount_ccy,
+        SELECT e.id, e.code, e.currency, e.fx_rate, e.amount_ccy, e.tax_rate_pct,
                e.supplier_id, e.status, e.payment_status
         INTO v_exp
         FROM expenses e WHERE e.id = p_expense_id;
@@ -177,7 +177,9 @@ BEGIN
         v_settled := v_settled + COALESCE(
             (SELECT SUM(ppa.amount_ccy) FROM prepayment_applications ppa
               WHERE ppa.expense_id = p_expense_id), 0);
-        v_open := round(v_exp.amount_ccy - v_settled, 2);
+        -- AP-RECON-1:应付额是【净额 + 进项税】(expense_payable_ccy,与过账同一个表达式)——
+        -- 只认净额的上限会让定金冲不掉那张单上的税,而那一笔税就挂在 2000 上没人能动。
+        v_open := round(expense_payable_ccy(v_exp.amount_ccy, v_exp.tax_rate_pct) - v_settled, 2);
         v_dest_code := v_exp.code;
     END IF;
 

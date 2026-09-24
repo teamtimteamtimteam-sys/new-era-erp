@@ -54,6 +54,7 @@ const zh = {
         ratesUnverifiedBody: '这张表的【形状】是工程判断,已经做完了;里面的【数字】不是。它们按所示的法令出处种下,而每一行带的是一个基线起始日,不是查证过的法令生效日。第一笔真实的非居民付款之前,请逐行核对。',
         errors: {
             WHT_PAYEE_NOT_A_SUPPLIER: '代扣裁定只能落在一个在册供应商上。员工报销与只有名字的收款人不在这条路上({0})。',
+            EXPENSE_WHT_WITH_GST: '这张费用单既要代扣预提税({0})又带进项税({1})。要代扣的非居民收款人不会收新加坡 GST —— 请核对税码。',
             WHT_RESIDENCE_NOT_STATED: '这家供应商还没有申报税务居民身份。请先在供应商档案上填写,再记这张单。',
             WHT_PAYEE_IS_RESIDENT: '这家供应商登记为新加坡税务居民,付给他的款不代扣({1})。',
             WHT_ON_PAID_EXPENSE_UNSUPPORTED: '要代扣的费用不能记成【已付】。请先记成未付(挂应付),再用付款功能付掉 —— 代扣发生在付款那一步,而劈账的实现只有那一份。',
@@ -5835,6 +5836,7 @@ const zh = {
             INBOUND_NOT_FOUND: '该进料批次不存在,或已删除:{0}',
             OUTPUT_NOT_FOUND: '该产出批次不存在,或已删除:{0}',
             BATCH_NO_HARD_DELETE: '批次 {0} 不能被永久删除 —— 请用删除(它保留记录,并写一条注销流水)。',
+            INBOUND_HAS_OPEN_PAYABLE: '{0} 还欠供应商 {1} —— 注销会让这笔债从应付清单上消失,而它仍在总账上。请先付清,或先更正价格;实物损失不是注销单据的理由。',
             STOCKTAKE_NO_HARD_DELETE: '盘点单 {0} 不能被永久删除 —— 请改用取消,那样会记下谁和为什么。',
             PO_NO_HARD_DELETE: '采购单 {0} 不能被永久删除 —— 请改用取消,那样会记下谁和为什么。',
             SO_BATCH_HAS_RESERVATIONS: '批次 {0} 上还有 {1} 条活预留(订单 {2})—— 请先释放。',
@@ -6567,6 +6569,7 @@ const zh = {
             // SO-3a:应收侧也有两种单据了
             sale: '销售记录',
             invoice: '订单发票',
+            invoice_gst: '发票销项税',
         },
         aging: {
             b0_30: '0–30 天',
@@ -8089,6 +8092,7 @@ const zh = {
             ACCOUNT_NOT_FOUND: '科目不存在:{0}',
             ACCOUNT_INACTIVE: '科目已停用:{0}',
             ACCOUNT_NOT_EXPENSE: '科目 {0} 不是费用科目',
+            EXPENSE_WHT_WITH_GST: '这张费用单既要代扣预提税({0})又带进项税({1})。要代扣的非居民收款人不会收新加坡 GST —— 请核对税码。',
             AMOUNT_INVALID: '金额必须大于 0',
             FX_RATE_REQUIRED: '{0} 需要提供汇率',
             PAYMENT_STATUS_INVALID: '付款状态无效:{0}',

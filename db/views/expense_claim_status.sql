@@ -38,6 +38,11 @@
 --
 -- NOTE: introduced by db/migrations/2026-08-28-claim1-employee-expense-claims.sql.
 
+-- AP-RECON-1(2026-09-24):「付清了没有」对着【净额 + 进项税】判(expense_payable_ccy)——
+-- 那是总账 2000 上欠员工的全部;只对着净额判,会在那笔税还欠着的时候说"已付"。
+-- (报销的税是【加在】报销额之上还是【从里面拆出来】,是另一件事,Tim 裁定为
+--  AP-RECON-1 之后紧接的一刀,见 docs/forward-queue.md 头条。)
+
 CREATE VIEW public.expense_claim_status WITH (security_invoker = off) AS
 SELECT c.id AS claim_id,
     c.code,
@@ -60,8 +65,8 @@ SELECT c.id AS claim_id,
     x.payment_status,
     x.status = 'reversed'::text AS expense_reversed,
     COALESCE(a.settled_ccy, 0::numeric) AS settled_ccy,
-    c.status = 'approved'::text AND x.status = 'posted'::text AND COALESCE(a.settled_ccy, 0::numeric) >= x.amount_ccy AS is_paid,
-    c.status = 'approved'::text AND x.status = 'posted'::text AND COALESCE(a.settled_ccy, 0::numeric) < x.amount_ccy AS is_owing,
+    c.status = 'approved'::text AND x.status = 'posted'::text AND COALESCE(a.settled_ccy, 0::numeric) >= expense_payable_ccy(x.amount_ccy, x.tax_rate_pct) AS is_paid,
+    c.status = 'approved'::text AND x.status = 'posted'::text AND COALESCE(a.settled_ccy, 0::numeric) < expense_payable_ccy(x.amount_ccy, x.tax_rate_pct) AS is_owing,
     (EXISTS ( SELECT 1
            FROM finance_attachments fa
           WHERE fa.claim_id = c.id AND fa.deleted_at IS NULL)) AS has_receipt

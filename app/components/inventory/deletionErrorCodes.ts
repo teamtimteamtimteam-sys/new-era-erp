@@ -6,6 +6,8 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // 与守卫 guard_soft_delete_provenance 抛出的错误码。端口自 assayErrorCodes.ts。
 // 【进料与产出共用一份】两边的门是同一个形状,分成两份只会各自漂开。
 const DELETION_ERROR_CODES = new Set([
+    // AP-RECON-1:清单与总账那一刀加的拒绝 —— 成句子。
+    'INBOUND_HAS_OPEN_PAYABLE',
     'DELETE_REASON_REQUIRED',
     'SOFT_DELETE_NO_DIRECT_UPDATE',
     'INBOUND_NOT_FOUND',

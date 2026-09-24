@@ -61,6 +61,15 @@
 -- 这张视图仍有别的消费方(看板 ap_over_90 等),所以留着;
 -- db/fixtures/135 的 A 臂断言函数【截至今天】与它逐行逐列相同,两个方向差集都为空。
 
+-- AP-RECON-1(2026-09-24):费用支的应付额 = 【净额 + 进项税】,即总账 2000 上为这张单
+-- 记下的全部(record_expense 贷两条腿)。此前只认净额,一张带税的账单付到净额就从本视图
+-- 消失,那一笔税在 2000 上永远挂着(AP-RECON-0 类别 C;Tim AP-RECON-0 Q1)。
+--   · doc_value_base = amount_base + tax_base —— 过账时【存下来的】两个本位币数,逐分相同;
+--   · open_ccy 用 expense_payable_ccy(与过账同一个表达式);
+--   · open_base 在【一分未结】时直接取 doc_value_base:round((净+税)×汇率) 与
+--     round(净×汇率)+round(税×汇率) 可以差一分,而未结的那一刻它必须与总账逐分相同。
+-- 【列集一字未动】→ 迁移走 CREATE OR REPLACE。
+
 CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
  SELECT doc_kind,
     doc_id,
@@ -114,11 +123,14 @@ CREATE VIEW public.ap_open_items WITH (security_invoker = off) AS
             e.supplier_id,
             sup.legal_name AS supplier_name,
             e.expense_date AS doc_date,
-            e.amount_base AS doc_value_base,
+            e.amount_base + COALESCE(e.tax_base, 0::numeric) AS doc_value_base,
             round((COALESCE(s.settled, 0::numeric) + COALESCE(pp.applied, 0::numeric)) * e.fx_rate, 2) AS settled_base,
-            round((e.amount_ccy - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric)) * e.fx_rate, 2) AS open_base,
+                CASE
+                    WHEN (COALESCE(s.settled, 0::numeric) + COALESCE(pp.applied, 0::numeric)) = 0::numeric THEN e.amount_base + COALESCE(e.tax_base, 0::numeric)
+                    ELSE round((expense_payable_ccy(e.amount_ccy, e.tax_rate_pct) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric)) * e.fx_rate, 2)
+                END AS open_base,
             e.currency,
-            round(e.amount_ccy - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_ccy,
+            round(expense_payable_ccy(e.amount_ccy, e.tax_rate_pct) - COALESCE(s.settled, 0::numeric) - COALESCE(pp.applied, 0::numeric), 2) AS open_ccy,
                 CASE
                     WHEN e.employee_id IS NOT NULL THEN 'employee'::text
                     ELSE 'supplier'::text

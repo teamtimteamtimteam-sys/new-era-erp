@@ -182,9 +182,10 @@ export default async function NewPaymentPage({
         .map((e) => ({ id: e.id, name: e.legal_name }))
     // SO-3a:应收有两种单据('sale' 销售记录 / 'invoice' 订单流发票),
     // doc_kind 由视图自己给(ap 的先例),doc_id 相应二选一。
+    // AP-RECON-1:第三种 'invoice_gst' —— sale 型发票的销项税,本位币一行,doc_id 是发票。
     const arItems: OpenItem[] = ((arRes.data as unknown as ArItem[] | null) ?? []).map((r) => ({
-        doc_id: r.doc_kind === 'invoice' ? (r.invoice_id as string) : r.sales_record_id,
-        doc_kind: (r.doc_kind === 'invoice' ? 'invoice' : 'sale') as OpenItem['doc_kind'],
+        doc_id: r.doc_kind === 'invoice' || r.doc_kind === 'invoice_gst' ? (r.invoice_id as string) : r.sales_record_id,
+        doc_kind: (r.doc_kind === 'invoice' || r.doc_kind === 'invoice_gst' ? r.doc_kind : 'sale') as OpenItem['doc_kind'],
         party_id: r.customer_id ?? '',
         doc_code: r.doc_code,
         doc_date: formatDate(r.sale_date, locale),

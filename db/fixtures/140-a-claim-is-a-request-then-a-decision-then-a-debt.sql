@@ -298,9 +298,16 @@ BEGIN
             v_owing, v_paid;
     END IF;
     -- 付掉它 —— 出款给【员工】那条路(record_payment 显式允许 employee)
-    PERFORM record_payment('out', v_emp, 120.50, v_base, NULL, v_bank, CURRENT_DATE,
+    -- ★ AP-RECON-1(2026-09-24):付的是【应付额】= 净额 + 进项税(expense_payable_ccy),
+    --   即总账 2000 上为这张单记下的全部。此前这里付 120.50(净额)就算"付清",
+    --   而 TX 那笔税还挂在 2000 上 —— 这一臂当时断言的正是那条缺陷。
+    --   (报销额里的税该【加上去】还是【拆出来】是另一件事,见 docs/forward-queue.md 头条。)
+    PERFORM record_payment('out', v_emp,
+        (SELECT expense_payable_ccy(amount_ccy, tax_rate_pct) FROM expenses WHERE id = v_exp),
+        v_base, NULL, v_bank, CURRENT_DATE,
         'fixture 140 报销付款',
-        jsonb_build_array(jsonb_build_object('expense_id', v_exp, 'amount_doc', 120.50)),
+        jsonb_build_array(jsonb_build_object('expense_id', v_exp, 'amount_doc',
+            (SELECT expense_payable_ccy(amount_ccy, tax_rate_pct) FROM expenses WHERE id = v_exp))),
         'employee');
     SELECT is_owing, is_paid INTO v_owing, v_paid
       FROM expense_claim_status WHERE claim_id = v_c1;

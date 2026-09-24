@@ -9368,3 +9368,44 @@ await 上,只有冒烟有按名字的兜底清扫,探针没有。
   科目 2000 的余额(以 postgres 读 `journal_lines` 基表,全部行、不按 status 过滤)是 **−376,404.42**。差 40,433.20。
 * `EXP-2026-0001`:视图说还开着 **0.96**;以 postgres 读基表,已过账的 `payment_allocations` 合计是 **3.70**(= 票面,全额结清)。
 ★ Tim 要求:**本刀之后立刻做一次只读的小勘察**(`docs/forward-queue.md` 抬头)。
+
+> **✅ 已拆完(AP-RECON-0,2026-09-24)· 活的那两条已修(AP-RECON-1 Batch A,2026-09-24)。**
+> 那个 416,837.62 是**只算供应商**的合计(漏了两笔员工报销共 130.00);重量是 416,967.62,差 **40,563.20**,
+> 逐单据、逐分钱拆完:四张切换前定的价(+49,204.00)· 一张已注销仍欠钱的收货(−4,032.00)·
+> 带税费用的税(−20.70,**活缺陷,已修**)· FIN-0 的 USD 重估(−4,590.00)· EXP-2026-0001(+1.90)。
+> 0.96 是 FIN-2 回填 `allocated_ccy = allocated_base` 留下的单位错。
+> 全文 `docs/handbacks/AP-RECON-0.md`;修法 `docs/handbacks/AP-RECON-1.md`;残留逐行在 `docs/known-wrong-until-cutover.md`。
+
+## APRECON1-CLAIM-GST-ADDED-ON-TOP —— 员工报销的税被【加在】报销额之上,而不是从里面【拆出来】(AP-RECON-1,2026-09-24)
+
+`decide_expense_claim` 把报销单的 `amount_ccy` 当【净额】传给 `record_expense`(`p_amount := v_c.amount_ccy`),
+带 TX / BL 码时 `record_expense` 再**在上面加** 9% 的税。而员工报上来的数是**收据上的总额**(已含税)。
+线上两笔:EXP-2026-0007(报 100 → 记 109)、EXP-2026-0008(报 30 → 记 32.70),**多记 11.70**,
+其中 9.00 的进项税(TX)还进了 1400、会进 F5 的 box7。以 `postgres` 读基表 `expense_claims` / `expenses` / `journal_lines` 量得。
+**AP-RECON-1 Batch A 之后,清单如实显示这两笔欠员工 109.00 与 32.70** —— 那正是总账 2000 上记的数(Tim AP-RECON-0 Q1);
+错的是【记进去的那个数】,不是清单。**去处:Tim 裁定 AP-RECON-1 之后【立刻】单独一刀**(`docs/forward-queue.md` 头条)。
+那一刀要回答:税从总额里拆(净 = 总 / (1 + 税率))之后,两笔既有的记错了的单子怎么处置(测试数据,多半是记下不修)。
+
+## APRECON1-FOREIGN-TAXED-EXPENSE-CENT —— 外币带税费用单一次付清时,2000 上可以剩一分钱(AP-RECON-1,2026-09-24)
+
+挂账时 2000 贷 `round(净×汇率) + round(税×汇率)`(两条腿,`record_expense` 为借贷平衡刻意拆开);
+付清时 `record_payment_internal` 借 2000 `round((净+税)×汇率)`(一条核销)。两者可以差一分:
+fixture 212 A2 那组数(USD 10.04 + 0.90,牌价 1.2345)记 12.39 + 1.11 = **13.50**,一次付清借 **13.51**。
+单据闭合、清单归零,2000 上留 −0.01。**线上 0 张外币带税费用单**(`postgres` 读 `expenses`:7 张未付的全是 SGD 或无税)。
+清单那一侧 Batch A 已经对齐(未结时直接取存下的两腿之和,fixture 212 A2 钉住);**付款那一侧留给 Batch B** ——
+它的常设勾稽 fixture 要逐条过账路径断言 清单 = 总账,这一分钱正是它要逼出来的那一类。修法候选:闭合那一笔核销取【剩余的存下本位币】而不是重乘。
+
+## APRECON1-GL-CONTROL-RECON-HIDES-DEFECTS —— `gl_control_reconciliation` 的三个分项把缺陷吸进去了(AP-RECON-1 grilling,2026-09-24)
+
+它按【机制】分类(起单 / 结算 / 重估),而不是按【已知的残留】。于是在它报 `reconciled = true` 的同时,
+应付的"起单差异" 48,854.98 里装着:49,204.00 的切换前单据 + (−4,032.00)注销仍欠钱的收货 + (−20.70)带税费用的税(活缺陷)
++ 3,703.68 的 2027 运费原件(它截在"今天",原件在未来、冲销件在过去)—— 四项之和逐分等于 48,854.98。
+**它的表头(2026-08-28)写着差额"逐分钱解释干净",那句话不成立。** 去处:AP-RECON-1 **Batch B**(Tim Q8:
+签名与键不动、表头改正、新的常设勾稽另起一支函数、管理包那一版的改基排进队列)。
+
+## APRECON1-PAYMENT-REQUEST-SNAPSHOTS-THE-AMOUNT —— 付款申请冻住的是提交那一刻的核销额(AP-RECON-1,2026-09-24)
+
+`payment_requests` 把核销行以 jsonb 快照存下(`amount_doc`),本身不设上限,批准与付款时经 `payment_request_dry_run` /
+`pay_payment_request` 走 `record_payment_internal` 的同一套上限。**Batch A 之前提交的**一张给带税费用单的申请,
+会按净额付、那笔税照旧开着 —— 不报错。线上 **0 张**付款申请(`postgres` 读 `payment_requests` 基表,2026-09-24 10:12),
+所以没有任何一张受影响;记下是为了下一个看见"付了之后还欠 9 块"的人知道从哪里来。

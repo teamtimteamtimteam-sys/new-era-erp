@@ -27,7 +27,21 @@ AS $function$
         ) x), 0)
     + COALESCE((
         SELECT sum(o.open_base) FROM order_invoice_open_all o
-        WHERE o.customer_id = p_customer_id), 0);
+        WHERE o.customer_id = p_customer_id), 0)
+    -- AP-RECON-1:第三项 —— sale 型发票上【未收的销项税】(本位币)。它在 1100 上,
+    -- 客户欠着它,ar_open_items 的第三支列着它;敞口不算它,面板与闸就会比账龄少一截。
+    + COALESCE((
+        SELECT sum(round(i.tax_base - COALESCE(s.settled, 0), 2))
+        FROM invoices i
+        LEFT JOIN LATERAL (
+            SELECT sum(pa.allocated_ccy) AS settled
+            FROM payment_allocations pa
+            JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
+            WHERE pa.invoice_id = i.id
+        ) s ON true
+        WHERE i.customer_id = p_customer_id
+          AND i.kind = 'sale' AND i.status = 'issued' AND i.tax_base > 0
+          AND round(i.tax_base - COALESCE(s.settled, 0), 2) > 0), 0);
 $function$
 
 ;

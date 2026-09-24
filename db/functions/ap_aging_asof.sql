@@ -109,11 +109,15 @@ BEGIN
         SELECT 'expense'::text, e.id, e.code, NULL::uuid,
                e.supplier_id, sup.legal_name,
                e.expense_date, NULL::date,
-               e.amount_base,
+               -- AP-RECON-1:净额 + 进项税,与 ap_open_items 费用支逐字同一套(见该视图抬头)。
+               e.amount_base + COALESCE(e.tax_base, 0),
                round((COALESCE(s.settled, 0) + COALESCE(pp.applied, 0)) * e.fx_rate, 2),
-               round((e.amount_ccy - COALESCE(s.settled, 0) - COALESCE(pp.applied, 0)) * e.fx_rate, 2),
+               CASE WHEN (COALESCE(s.settled, 0) + COALESCE(pp.applied, 0)) = 0
+                    THEN e.amount_base + COALESCE(e.tax_base, 0)
+                    ELSE round((expense_payable_ccy(e.amount_ccy, e.tax_rate_pct) - COALESCE(s.settled, 0) - COALESCE(pp.applied, 0)) * e.fx_rate, 2)
+               END,
                e.currency,
-               round(e.amount_ccy - COALESCE(s.settled, 0) - COALESCE(pp.applied, 0), 2),
+               round(expense_payable_ccy(e.amount_ccy, e.tax_rate_pct) - COALESCE(s.settled, 0) - COALESCE(pp.applied, 0), 2),
                (v_as_of - e.expense_date),
                aging_bucket(v_as_of - e.expense_date),
                CASE WHEN e.employee_id IS NOT NULL THEN 'employee' ELSE 'supplier' END::text,

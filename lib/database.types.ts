@@ -27816,6 +27816,10 @@ export type Database = {
           fx_rate: number
         }[]
       }
+      expense_payable_ccy: {
+        Args: { p_amount_ccy: number; p_tax_rate_pct: number }
+        Returns: number
+      }
       explain_inbound_source: {
         Args: { p_batch_id: string; p_note?: string; p_reason_code: string }
         Returns: undefined

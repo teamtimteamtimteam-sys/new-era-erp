@@ -3,13 +3,25 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-23,PAY-REQ-1 Batch B 交回时定)
-> 1. **⬜ AP-RECON-0 —— 应付未清视图与 2000 科目对不上,一次只读的小勘察,紧接 Batch B 之后。**
->    `ap_open_items`(以 tim@ 读)供应商一侧合计 416,837.62,而 2000 余额是 −376,404.42;
->    `EXP-2026-0001` 视图说开着 0.96,基表说已全额结清(3.70)。只读、只量、只报原因 —— 规格与量法见
->    `docs/known-issues.md` § PAYREQB-AP-VIEW-DISAGREES-WITH-GL-2000。
-> 2. **⬜ ROLE-1 Batch 2a** —— (a) 财务设置 · (b) 客户信用 · (c) 供应商审批 + 未批准供应商不付款(下文 § ROLE-1 Batch 2a)。
-> 3. **⬜ ROLE-1 Batch 2b** —— (d) 合同条款 · (e) 定价 · (f) 直接销售 · (g) 化验(下文 § ROLE-1 Batch 2b)。
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch A 交回时定)
+> 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(四条活缺陷,见 `docs/handbacks/AP-RECON-1.md`)。
+> 1. **⬜ AP-RECON-1 Batch B —— 残留登记表 + 常设勾稽 + 月结那一行 + 证明 Batch A 修好的不会再坏的 fixture。**
+>    规格与 Tim 的 Q6 / Q8–Q11 裁定全在 `docs/handbacks/AP-RECON-1.md` §B。要一并处理:
+>    `docs/known-issues.md` 的 APRECON1-GL-CONTROL-RECON-HIDES-DEFECTS(改表头)与 APRECON1-FOREIGN-TAXED-EXPENSE-CENT(那一分钱)。
+> 2. **⬜ CLAIM-GST-1 —— 员工报销的税是从报销额里【拆出来】,不是【加上去】。★ Tim:AP-RECON-1 之后【立刻】做。**
+>    缺陷与线上两笔(EXP-2026-0007 / 0008 多记 11.70)见 `docs/known-issues.md` § APRECON1-CLAIM-GST-ADDED-ON-TOP。
+> 3. **⬜ AP-RECON-1c —— 三条日期规矩(Tim AP-RECON-1 Q7),Tim 2026-09-24 裁定从 Batch A 挪出来单独做。**
+>    业务单据(运费、出口运费、费用、发票、收付款)日期晚于今天按名拒;`assert_posting_allowed` 拒晚于本月末的分录;
+>    冲销不许早于原分录(薪资撤回取 GREATEST(今天, 原分录日))。**挪出来的理由是量出来的**:
+>    这三条落下去,215 份 fixture 里 **32 份**红 —— 它们刻意把过账记进 2027–2030
+>    (11 份撞"单据日期晚于今天"、21 份撞"晚于本月末";`db/gate.py --offline` 实测,2026-09-24)。
+>    那一刀要连同这 32 份的日期一起改(星期/假日敏感的 FX 臂与年结臂要逐份看),**不许**加测试专用的时钟开关。
+>    Batch A 里写过又拿掉的实现(函数体、错误码、en/zh 文案、fixture 212 的 F 臂)在 AP-RECON-1 的交回里有记。
+>    ★ 与 2 的先后:Tim 说 CLAIM-GST-1 紧接 AP-RECON-1;1c 算不算 AP-RECON-1 的一部分,**等 Tim 一句话**。
+> 4. **⬜ 管理包那一版 `gl_control_reconciliation` 的改基**(Tim AP-RECON-1 Q8):冻在 `management_packs` 里的包读它的三个键,
+>    Batch B 不动它的签名与键;改基是单独一件,排在 Batch B 之后。
+> 5. **⬜ ROLE-1 Batch 2a** —— (a) 财务设置 · (b) 客户信用 · (c) 供应商审批 + 未批准供应商不付款(下文 § ROLE-1 Batch 2a)。
+> 6. **⬜ ROLE-1 Batch 2b** —— (d) 合同条款 · (e) 定价 · (f) 直接销售 · (g) 化验(下文 § ROLE-1 Batch 2b)。
 
 ## 与 `Evoltrya-OS-Doc3-Roadmap.pdf` 的分工 —— 说的是【角色】,不是名字
 

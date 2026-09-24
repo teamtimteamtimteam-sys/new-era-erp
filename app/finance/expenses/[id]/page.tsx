@@ -13,7 +13,7 @@ import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachments
 import ReverseExpenseButton from './ReverseExpenseButton'
 import ReleasePrepaymentPanel from './ReleasePrepaymentPanel'
 import { can } from '@/lib/permissions'
-import { mustRows } from '@/lib/db-helpers'
+import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -144,7 +144,21 @@ export default async function ExpenseDetailPage({
                 .filter((a) => a.payments?.status === 'posted')
                 .reduce((s, a) => s + a.allocated_base, 0) * 100
         ) / 100
-    const open = Math.round((expense.amount_base - settled) * 100) / 100
+    // ★ AP-RECON-1:【未结额问 ap_open_items,不在页面上自己减】
+    //   这里原先是 amount_base − 已核销 —— 第二份实现,而且错两处:它不认进项税
+    //   (应付额是 净额 + 税,那是总账 2000 上为这张单记下的全部),也不认预付冲抵。
+    //   视图里没有这一行 = 已经结清(或已冲销)→ 0。本页的门就是 module.finance.view,
+    //   与视图同一道门,所以"查不到"不会是"没有权限"的另一种说法。
+    const openRow = mustOne(
+        await supabase
+            .from('ap_open_items')
+            .select('open_base')
+            .eq('doc_kind', 'expense')
+            .eq('doc_id', expense.id)
+            .maybeSingle(),
+        'ap_open_items (expense open amount)',
+    ) as { open_base: number } | null
+    const open = Number(openRow?.open_base ?? 0)
 
     // 在服务端按当前语言格式化时间,再传给客户端面板 —— 避免客户端水合不一致
     const attachments = (mustRows(attachRes)).map((a) => ({

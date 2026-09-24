@@ -195,7 +195,8 @@ export default async function ReceivablesPage({
                                             {ri === 0 ? g.name : ''}
                                         </td>
                                         <td className={tableC.cell}>
-                                            {r.doc_kind === 'invoice' ? (
+                                            {/* AP-RECON-1:'invoice_gst' —— sale 型发票的销项税,它的单据就是那张发票 */}
+                                            {r.doc_kind === 'invoice' || r.doc_kind === 'invoice_gst' ? (
                                                 <Link
                                                     href={`/finance/invoices/${r.invoice_id}`}
                                                     className="hover:underline app-link"
@@ -210,9 +211,9 @@ export default async function ReceivablesPage({
                                                     {r.doc_code}
                                                 </Link>
                                             )}
-                                            {r.doc_kind === 'invoice' && (
+                                            {(r.doc_kind === 'invoice' || r.doc_kind === 'invoice_gst') && (
                                                 <span className="ml-2 px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-800">
-                                                    {t('finance.docKind.invoice')}
+                                                    {t('finance.docKind.' + r.doc_kind)}
                                                 </span>
                                             )}
                                             {/* ★ TABLE-PHONE-1:手机档被拿掉的七列,原样叠在这里 ——

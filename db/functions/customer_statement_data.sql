@@ -86,6 +86,9 @@ BEGIN
     -- 所以它们【也能够】对不上 —— 那正是这条勾稽有意义的原因(OPS-17)。
     SELECT COALESCE(round(sum(
                CASE WHEN pa.sales_record_id IS NOT NULL THEN pa.allocated_ccy * sr.fx_rate
+                    -- AP-RECON-1:sale 型发票只作为它那笔【本位币】销项税被核销 —— 汇率恒 1
+                    -- (sale 型发票没有 fx_rate,乘它会得 NULL,整笔收款从"已核销"里静默消失)。
+                    WHEN i.kind = 'sale' THEN pa.allocated_ccy
                     ELSE pa.allocated_ccy * i.fx_rate END), 2), 0)
       INTO v_applied
       FROM payment_allocations pa
@@ -162,7 +165,20 @@ BEGIN
                 FROM sales_records sr
                WHERE sr.customer_id = p_customer_id
                  AND sr.sales_order_line_id IS NULL
-                 AND sr.sale_date BETWEEN p_from AND p_to), 2), 0)
+                 AND sr.sale_date BETWEEN p_from AND p_to)
+           -- AP-RECON-1:sale 型发票的销项税是一笔【发生】—— 账龄的第三支列着它,
+           -- 对账单不把它算进发生额,期初 + 发生 − 收款 就对不上期末(不寄)。
+           -- 在不在与作废的回推照抄订单流发票那一项。
+           + (SELECT COALESCE(sum(i.tax_base), 0)
+                FROM invoices i
+               WHERE i.customer_id = p_customer_id AND i.kind = 'sale' AND i.tax_base > 0
+                 AND i.issue_date BETWEEN p_from AND p_to
+                 AND (i.status = 'issued'
+                      OR (i.status = 'void'
+                          AND COALESCE((SELECT r.entry_date FROM journal_entries o
+                                          JOIN journal_entries r ON r.id = o.reversed_by
+                                         WHERE o.id = i.entry_id),
+                                       i.voided_at::date) > p_to))), 2), 0)
       INTO v_charges;
 
     -- ══ 勾稽:两份独立推导必须相等 ══════════════════════════════════════════

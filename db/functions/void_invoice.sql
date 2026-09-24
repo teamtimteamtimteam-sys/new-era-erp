@@ -63,6 +63,16 @@ BEGIN
         IF p_reversal_date IS NULL THEN
             RAISE EXCEPTION 'REVERSAL_DATE_REQUIRED';
         END IF;
+        -- AP-RECON-1:sale 型发票的销项税现在【可以被核销】(record_payment_internal 的
+        -- 发票支)。于是这一支也要 order 支那条规矩:有活核销就不作废 —— 否则冲回了税,
+        -- 收进来的那笔钱却还核销在一张已作废的发票上。先冲收款,再作废。
+        SELECT count(*) INTO v_n
+        FROM payment_allocations pa
+        JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
+        WHERE pa.invoice_id = p_invoice_id;
+        IF v_n > 0 THEN
+            RAISE EXCEPTION 'INVOICE_HAS_SETTLEMENTS|%|%', v_inv.code, v_n;
+        END IF;
         v_rev := reverse_journal_entry_internal(v_inv.entry_id, p_reversal_date, 'Void ' || v_inv.code);
     ELSE
         -- 不带税的 sale 头没有分录可冲 —— 收下一个日期再忽略它,是在骗调用方
