@@ -127,16 +127,17 @@ CREATE POLICY "contracts select by owner permission"
     ON public.contracts AS PERMISSIVE FOR SELECT TO authenticated
     USING ((customer_id IS NOT NULL AND has_permission('module.customers.view'::text))
         OR (supplier_id IS NOT NULL AND has_permission('module.suppliers.view'::text)));
+-- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q12 · Batch 2b grilling Q1):**写合同只归 cco**
+--   (action.contract_terms)。读仍跟着归属那一侧走(上面那一条不变);把一张单据挂到合同上
+--   仍归开那张单据的码(link_document_to_contract,SECURITY DEFINER,门不变)。
+--   策略名保留原样(改名是另一件事,且会让镜像与线上的历史对不上)。
 CREATE POLICY "contracts insert by owner permission"
     ON public.contracts AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK ((customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-             OR (supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)));
+    WITH CHECK (has_permission('action.contract_terms'::text));
 CREATE POLICY "contracts update by owner permission"
     ON public.contracts AS PERMISSIVE FOR UPDATE TO authenticated
-    USING ((customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-        OR (supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))
-    WITH CHECK ((customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-             OR (supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)));
+    USING (has_permission('action.contract_terms'::text))
+    WITH CHECK (has_permission('action.contract_terms'::text));
 
 COMMENT ON TABLE public.contracts IS
     'CONTRACT-1:合同登记簿 —— **一份合同,不是一张单据**。采购单是在一份关系之下开出来的单据,长期供货协议才是那份关系;此前本仓库只有单据与不挂对手方、没有期限的可复用条款集。★**它凭什么不是文件柜**★:purchase_orders / sales_orders 各带一列 contract_id,而 link_document_to_contract 有两条拒绝 —— 对手方对不上、合同不是 active。**两条都是【不一致】不是【政策】**(AGENTS.md 给 ALLOC_CURRENCY_MISMATCH 与 ALLOC_EXCEEDS 划的那条线)。★**刻意不拒的那一条**★:单据日期落在合同期之外【不拒】—— 回填是正当操作,而"能不能背靠一份未生效的合同下单"没有人裁过,没裁定就按名拒买到的是绕过它的办法。★**而覆盖率必须被说出来**★:没有任何东西强制一张单据挂合同(现货采购本来就没有),所以"没有合同被违反"很可能只是"没有人挂过东西" —— /contracts 那一页给出【挂了几张 / 一共几张】。★**它不是一方两身那个结构**★(原样搬自 PARTY-1):一行恰好属于一边,**它不把任何客户与任何供应商连起来**;同一家公司同时在两侧时会有两份合同,而那是对的,因为那两份协议本来就是两份。★**条款是兄弟,不是本表上越加越多的列**★:品位规格 / 保险义务 / 数量承诺各是一张挂 contract_id 的子表,**第 4 刀的指数挂钩定价应当落成第四个兄弟(建议 `contract_pricing_terms`,同样以 contract_id 为键)** —— 本刀刻意不预建那张空表(没有写入方的空表是 PARTY-1 点名过的"写给谁都不看的表单"),也刻意不把定价的列加在本表上"留着以后用"(那正是第 4 刀要迁走的形状)。';
@@ -157,4 +158,4 @@ COMMENT ON COLUMN public.contracts.effective_to IS
 -- 这道闸【只】管模块级的没权限;这张表的策略还判【行】,那一半仍由应用层兜着。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.contracts
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.customers.edit', 'module.suppliers.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.contract_terms');

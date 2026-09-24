@@ -1,4 +1,6 @@
 -- 42 发票按【单据币种】开:客户账单上的数 = 数量 × 单价,与汇率无关
+-- ROLE-1 Batch 2b(2026-09-24):record_output_sale 的门从 module.output.edit 换成 action.direct_sale,
+-- 所以本 fixture 里会卖货的角色多带一个 action.direct_sale(断言一条没动)。
 -- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【判别臂是 A:汇率 ≠ 1】INV-1 之前,发票页与 PDF 拿 invoices.currency 去标
@@ -30,7 +32,7 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-42', 'f', 'f', true) RETURNING id INTO r;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r, unnest(ARRAY['module.output.edit','module.output.view','module.finance.edit',
+    SELECT r, unnest(ARRAY['module.output.edit','action.direct_sale','module.output.view','module.finance.edit',
                            'module.finance.view','module.customers.view','data.view_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 

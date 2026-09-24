@@ -47,14 +47,11 @@ CREATE POLICY "contract refining charges select by owner permission"
     USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
                      AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.view'::text))
                        OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.view'::text)))));
+-- ★ ROLE-1 Batch 2b(Batch 2 grilling Q12 · Batch 2b grilling Q1):写条款只归 cco(action.contract_terms)。
 CREATE POLICY "contract refining charges write by owner permission"
     ON public.contract_refining_charges AS PERMISSIVE FOR ALL TO authenticated
-    USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))))
-    WITH CHECK (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))));
+    USING (has_permission('action.contract_terms'::text))
+    WITH CHECK (has_permission('action.contract_terms'::text));
 
 COMMENT ON TABLE public.contract_refining_charges IS
     'SETTLE-1:精炼费(RC),**按【含金属】吨数收**,逐金属一行。★**它不能用 flat_discount_pct 冒充**★:那一列按 gross 的**比例**走,而 RC 按**含金属单位**收、与价格无关 —— **拿折扣冒充 RC,价格一动那个数字就错**。本刀因此**不碰** flat_discount_pct(它有活着的使用者,FIN-27 的已承诺副本必须保持原义;动它还会碰到采购侧,而那是 index-pricing-spec §9 留给 Tim 的)。顺带分清另一件:`treatment_charge_usd_per_tonne`(TC)按**物料**吨数收,RC 按**含金属**吨数收 —— **两者吨的主语不同**,而这正是湿基与干基会结算出不同金额的原因(按物料吨数的费用随基准变,按含金属吨数的不变)。★**值未知、轴现在建**★:Tim 没有给条款清单,本表出厂是空的;而**空不许被读成"没有精炼费"** —— 那由 contract_settlement_terms.refining_charge_basis 来说。';
@@ -69,4 +66,4 @@ COMMENT ON TABLE public.contract_refining_charges IS
 -- 这道闸【只】管模块级的没权限;这张表的策略还判【行】,那一半仍由应用层兜着。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.contract_refining_charges
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.customers.edit', 'module.suppliers.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.contract_terms');

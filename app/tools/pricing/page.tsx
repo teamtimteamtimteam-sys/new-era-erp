@@ -40,7 +40,7 @@
 //      所以撤掉这张卡付出的代价是【多点一次】,不是【找不到】。
 //   ② ★ 而只留录入那一张卡,对一个真实角色是【一张必然被拒的卡】★
 //      实测 live 授权:auditor 持有 module.pricing.view 而【没有】
-//      module.pricing.edit,而 bulk 那一页由 requireEditPermission 把门。
+//      action.metal_prices(ROLE-1 Batch 2b 之前是 module.pricing.edit),而 bulk 那一页由 requireEditPermission 把门。
 //      也就是说撤菜单之前,审计员在这一页上看到的三张卡里,有一张点进去必然
 //      是拒绝页,而他【真正读得了】的那一页藏在灰链接后面。
 //      这正是 AGENTS.md「永远不要为服务端必然拒绝的动作渲染提交控件」那一族。

@@ -119,7 +119,7 @@ export async function requireFunction(fn: FunctionEntry) {
 
 /**
  * 【读的那一半之外,还有写的那一半】
- *     const denied = await requireEditPermission('module.pricing.edit', 'nav.metalPrices')
+ *     const denied = await requireEditPermission('action.metal_prices', 'nav.metalPrices')
  *     if (denied) return denied
  *
  * requireModule 问的是"你进得来这个模块吗",对应基表的 SELECT 策略。本函数问的是

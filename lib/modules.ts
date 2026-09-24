@@ -115,10 +115,10 @@ export const SCOPES: readonly AccessScope[] = [
     // (db/tables/metal_prices.sql):
     //
     //   SELECT               USING (true)                                → 公开
-    //   INSERT/UPDATE/DELETE has_permission('module.pricing.edit')       → 受管
+    //   INSERT/UPDATE/DELETE has_permission('action.metal_prices')       → 受管
     //
     // 所以金属行情底下四页带着【两种守卫】:列表页不设守卫,
-    // {new,bulk,[id]/edit} 走 requireEditPermission('module.pricing.edit', …)。
+    // {new,bulk,[id]/edit} 走 requireEditPermission('action.metal_prices', …)。
     // 给列表页挂上 module.pricing.view,屏幕上就会对一个数据库愿意完整回答的人
     // 显示"你没有权限",那是【UI 比数据严】,而且严得没有任何东西背书。
     // ★ UI-FIX-1 ⑦(2026-09-02):它在【导航】上现在只属于【工具】。
@@ -765,7 +765,7 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     //   **metal_prices 的 RLS 仍然是 `USING (true)`,一个字没动。**
     //   数据在库那一层仍然对任何登录用户可读 —— 谁要是后来把这条读成
     //   "金属行情是受控数据",那就读错了。写那一半照旧由
-    //   requireEditPermission('module.pricing.edit') 把关。
+    //   requireEditPermission('action.metal_prices') 把关。
     //
     // 【失去它的五个角色(实测,不是手写)】cfo · employee · hr · operations · warehouse
     //   —— 逐角色的前后对照见本刀报告与 docs/nav-registry.md。

@@ -82,14 +82,11 @@ CREATE POLICY "contract grade specs select by owner permission"
     USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
                      AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.view'::text))
                        OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.view'::text)))));
+-- ★ ROLE-1 Batch 2b(Batch 2 grilling Q12 · Batch 2b grilling Q1):写条款只归 cco(action.contract_terms)。
 CREATE POLICY "contract grade specs write by owner permission"
     ON public.contract_grade_specs AS PERMISSIVE FOR ALL TO authenticated
-    USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))))
-    WITH CHECK (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))));
+    USING (has_permission('action.contract_terms'::text))
+    WITH CHECK (has_permission('action.contract_terms'::text));
 
 COMMENT ON TABLE public.contract_grade_specs IS
     'CONTRACT-1:目标品位与公差 —— **一条合同条款**,不是物料主数据上的字段(同一种物料在两份合同下可以有两套规格,而 materials.spec 是自由文本且一种物料只有一份)。★**min/max,不是 target ± tolerance**★:真实合同多半是单边的(Ni ≥ 18%、Cu ≤ 0.5%),而 target±tolerance 是 min/max 的对称特例 —— 用 min/max 表达得了,反过来不行,**两种都存就是同一个事实两个写法**。至少要有一个界,因为两边都不设限的规格什么也没规定。★★**它报告违反,不拒绝交货,而理由是具体的**★★:化验回来时**货已经在场上**,而这套系统里没有"质量暂扣"这个状态(阶段 6 的 G29)—— **拒绝一样自己没有地方安放的东西不是控制**,只是把物理上已在仓库的货的单据流程堵住。违反做成具名发现(contract_grade_breaches),升成闸的触发条件是 G29 落地。它拿 assay_result_metals.content_pct 去比 —— 那是这套系统里真正量出来的含量。**G11 此前被 U8 挡着,而 U8 的触发条件写的正是「第一份带规格的供货合同」—— 本刀建的就是那个。**';
@@ -107,4 +104,4 @@ COMMENT ON COLUMN public.contract_grade_specs.max_pct IS
 -- 这道闸【只】管模块级的没权限;这张表的策略还判【行】,那一半仍由应用层兜着。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.contract_grade_specs
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.customers.edit', 'module.suppliers.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.contract_terms');

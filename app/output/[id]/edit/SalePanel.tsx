@@ -11,6 +11,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare, formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const initialState: SaleState = {}
 
@@ -50,6 +51,7 @@ export default function SalePanel({
     baseCurrency,
     formulas,
     formulasRestricted = false,
+    canSell,
 }: {
     // 【无权时拿不到行,而不是拿到 0】—— 面板据此渲染「受限」
     canSeeCredit: boolean
@@ -73,6 +75,9 @@ export default function SalePanel({
     formulas: { id: string; code: string; name: string }[]
     /** ★ FIX-2b:「这张下拉是空的」有两种意思,而只有页面答得出是哪一种。 */
     formulasRestricted?: boolean
+    /** ROLE-1 Batch 2b(Q14):直接销售只归 action.direct_sale(cco)。由页面 `can()` 算好传进来;
+     *  没有它的人看见同一张表单,按钮按不动、说出码。 */
+    canSell: boolean
 }) {
     const t = useTranslations()
     const recordWithId = recordSale.bind(null, batchId)
@@ -329,12 +334,14 @@ export default function SalePanel({
                             className={`${CONTROL_INPUT} w-full`}
                         />
                     </div>
-                    <Button
-                        type="submit"
-                        disabled={isPending || creditBlocked}
-                    >
-                        {t('output.sale.button')}
-                    </Button>
+                    <PermissionGate code="action.direct_sale" allowed={canSell}>
+                        <Button
+                            type="submit"
+                            disabled={isPending || creditBlocked}
+                        >
+                            {t('output.sale.button')}
+                        </Button>
+                    </PermissionGate>
                 </div>
                 {/* ── SAL-B6:信用状况,在录入之前 ────────────────────────────
                     SAL-B 建了管控却没有任何一块屏把限额与敞口放在一起,于是唯一

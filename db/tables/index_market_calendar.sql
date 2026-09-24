@@ -74,10 +74,12 @@ ALTER TABLE public.index_market_calendar ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "index market calendar select by pricing permission"
     ON public.index_market_calendar AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.pricing.view'::text));
+-- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q13):金属行情、指数、指数交易日历与报价阈值归财务 ——
+--   写权从 module.pricing.edit 换成 action.metal_prices;定价公式仍在 module.pricing.edit(只归 cco)。
 CREATE POLICY "index market calendar write by pricing permission"
     ON public.index_market_calendar AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.pricing.edit'::text))
-    WITH CHECK (has_permission('module.pricing.edit'::text));
+    USING (has_permission('action.metal_prices'::text))
+    WITH CHECK (has_permission('action.metal_prices'::text));
 
 COMMENT ON TABLE public.index_market_calendar IS
     'PRICE-1:一个指数哪几天开市 —— **这套系统里唯一能说出「那天市场是关着的」的东西**。★**为什么不拿 public_holidays 凑合**★:那份日历只有新加坡(实测 14 行全是 SG),而 is_business_day(date,country) 带国别参数却没有任何非 SG 的行,所以 is_business_day(d,''GB'') 对每一个英国银行假日都返回 true —— 一次**空集造成的假答案**。★★**而拿它当代理,失败的方向是错的**★★:某天市场开着、新加坡放假,SG 代理会把**一个真实的交易日静悄悄从均值里剔掉**,于是均价由"碰巧有的那些天"撑起来 —— 正是本刀要消灭的那个缺陷。对比 FX 那条回溯用同一份 SG 日历:**它失败的方向是【拒绝】**,保守且自己会喊。同一份坏日历,在那里买到一次多余的拒绝,在这里买到一个**错的数字**,而错的数字不会喊、会被开成发票。★**为什么逐日存,不只存休市日**★:只存休市日的话"没有行"就等于"开市",于是一张空日历会宣称每天都开市 —— 同一堵空集的墙。逐日之后三态才分得开:有行+true=开市、有行+false=**关市**、**没有行=我们不知道** → 均价按名拒(QP_CALENDAR_NOT_COVERED)。★**出厂是空的,刻意的**★:本刀没有灌 LME/SMM 的假日,因为手上没有权威来源,而编一份正是把待答问题伪装成已完成数据。**实际后果:在有人加载日历之前,任何计价期均价都会按名拒** —— 那是对的。**它不是「没有写入方的空表」**:CONTRACT-1 拒绝预建 contract_pricing_terms 是因为那张表既无写入方也无读者;这一张**从第一天起就有读者**(那条拒绝就读它)。';
@@ -93,4 +95,4 @@ COMMENT ON COLUMN public.index_market_calendar.is_trading_day IS
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.index_market_calendar
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.pricing.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.metal_prices');

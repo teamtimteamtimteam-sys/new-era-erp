@@ -101,15 +101,17 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
 --   ★ PAY-REQ-1(Tim 2026-09-23)把这句收窄了:cfo 也持 data.view_identity —— 只读,
 --   Tim 裁定 cfo 持有每一个 view 码。【录入与改动】身份信息仍只归财务)/
 --   data.view_pay / action.decide_hr_requests。(线上的 finance 另持 action.bulk_import,ROLE-1 在线上拿掉 —— 批量导入只归 admin;本文件里它本来就没有。)
+-- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q13):金属行情归财务,定价公式只归 cco ——
+--   module.pricing.edit 换成 action.metal_prices(行情、指数、指数交易日历、报价阈值)。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.hr.edit', 'module.hr.view', 'data.view_identity', 'data.view_pay',
-        'action.decide_hr_requests',
+        'action.decide_hr_requests', 'action.metal_prices',
         'data.view_banking', 'data.view_prices', 'data.view_sales', 'module.customers.edit',
         'module.customers.view', 'module.finance.edit', 'module.finance.view',
         'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
         'module.inventory.view', 'module.materials.edit', 'module.materials.view',
-        'module.output.edit', 'module.output.view', 'module.pricing.edit',
+        'module.output.edit', 'module.output.view',
         'module.pricing.view', 'module.purchasing.edit', 'module.purchasing.view',
         'module.suppliers.edit', 'module.suppliers.view', 'module.tasks.edit',
         'module.tasks.view', 'module.logistics.view'

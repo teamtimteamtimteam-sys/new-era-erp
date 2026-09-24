@@ -6,7 +6,8 @@
 
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【运行期配置 / RUNTIME CONFIG —— 下面的种子是"全新安装的默认值",不是线上快照】
--- 写入策略特意开在 module.pricing.edit 上:改阈值与录行情是同一件工作,同一个码。
+-- 写入策略特意与录行情同一个码:改阈值与录行情是同一件工作。ROLE-1 Batch 2b 起那个码是
+-- action.metal_prices(之前是 module.pricing.edit)。
 -- 读给所有登录用户 —— 阈值不是秘密,录入页要把它显示在提示里。
 -- 所以【线上与本文件不一致是正常的,不是漂移】,check_mirrors.py 不把本表与线上
 -- 逐行比对(它只保证这一套镜像自己首尾相顾)。
@@ -53,10 +54,12 @@ ALTER TABLE public.pricing_settings ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "pricing_settings select"
     ON public.pricing_settings AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 
+-- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q13):金属行情、指数、指数交易日历与报价阈值归财务 ——
+--   写权从 module.pricing.edit 换成 action.metal_prices;定价公式仍在 module.pricing.edit(只归 cco)。
 CREATE POLICY "pricing_settings update by permission"
     ON public.pricing_settings AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.pricing.edit'))
-    WITH CHECK (has_permission('module.pricing.edit'));
+    USING (has_permission('action.metal_prices'))
+    WITH CHECK (has_permission('action.metal_prices'));
 
 -- ── 引导 ────────────────────────────────────────────────────────────────────
 -- 【50 是默认值,不是决定】证据(线上实测,2026-08-11):真实的相邻报价变动是
@@ -94,4 +97,4 @@ COMMENT ON COLUMN public.pricing_settings.metal_quote_stale_days IS
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.pricing_settings
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.pricing.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.metal_prices');

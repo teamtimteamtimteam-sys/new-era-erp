@@ -1,4 +1,6 @@
 -- 38 卖方报价:换算在 tt_buy 那一边;现货是预设不是分支;出处可重导;缺价缺汇点名拒
+-- ROLE-1 Batch 2b(2026-09-24):record_output_sale 的门从 module.output.edit 换成 action.direct_sale,
+-- 所以本 fixture 里会卖货的角色多带一个 action.direct_sale(断言一条没动)。
 -- ★ AP-RECON-1 Batch B(2026-09-24):日期从 2027 挪到 2025(真实的过去;销售按销售日过账,分录不许晚于本月末,没有测试开关)。两个探针另挑:缺金属探针 2024-12-31(早于第一条 ni 报价),缺汇率探针 2025-06-10(周二,工作日,距牌价日五天)。
 --
 -- 【判别臂是 A:汇率的边】买方报价按 tt_sell 折算(付钱出去),销售收钱进来按
@@ -31,7 +33,7 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-38', 'f', 'f', true) RETURNING id INTO r;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r, unnest(ARRAY['data.view_prices','module.output.view','module.output.edit',
+    SELECT r, unnest(ARRAY['data.view_prices','module.output.view','module.output.edit','action.direct_sale',
                            'module.pricing.view','module.finance.view']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 

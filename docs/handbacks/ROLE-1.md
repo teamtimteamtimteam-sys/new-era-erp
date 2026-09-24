@@ -532,3 +532,223 @@ What the old app does against the new database (approvals ON):
 - **Choo Er's GST switch** is refused by name (`FINANCE_SETTINGS_THROUGH_FUNCTION_ONLY|…`). **Her company-profile Save and logo upload** are refused (`PERMISSION_DENIED|action.finance_settings` / a storage RLS error), and the old page shows the raw text. **tim@ has no controls for these until the deploy.**
 - **The old customer edit form** still sends `credit_limit_base` and `credit_hold`. A save that leaves them unchanged passes. Changing either is refused by name, and the old form prints it inside "Save failed: …".
 - **Unaffected:** approvals of every other kind, the reminders page (the old app doesn't list the new entry, which is harmless), and every posting path.
+
+---
+
+# Batch 2b — contract terms to cco, metal prices to finance, direct sale to cco, assay application to cto (2026-09-24)
+
+**Opening gate:** tree clean; `HEAD` = `origin/main` = `ls-remote` = `b2038f3bdb4e45318d5d6e16ade14ab38c75024d` (ROLE-1 Batch 2a).
+**Approvals were ON and stayed ON.** Every figure below is a script's own exit line or a query named with its identity.
+
+## §W · Batch 2a's broken window — closed with bounds
+
+Tim confirmed the Batch 2a deploy on 2026-09-24. **Start 19:37:12 CST** (`db/apply_migration.sh`'s own line).
+The end lies **between 20:05:40 CST** (*measured*: `origin/main` → `b2038f3b` in git's remote-ref log,
+`git reflog show refs/remotes/origin/main`) **and 20:15:55 CST** (*derived*: the first live read of this session,
+database clock `now()` as `postgres`; Tim had confirmed the deploy before this session began). So the window lasted
+**between 28 min 28 s and 38 min 43 s**. These are bounds, not a measurement.
+
+## §0 · Step 0 (grilling) and Tim's answers
+
+**What grilling found** (read as `postgres`, `rolbypassrls = t`, base tables, `relkind = 'r'` checked):
+- **Contracts had no code of their own.** `contracts` and the seven term tables were written under `customers.edit` or
+  `suppliers.edit` (policy and `enforce_write_permission`), so finance, cto and — since Batch 2a — warehouse could all create
+  contracts. Live: **0 contracts, 0 term rows, 0 document links.** `/contracts/new` had no edit gate.
+- **Metal prices:** 12 rows (10 live), all by admin@, last 2026-08-10; 2 indices; 0 calendar rows; `pricing_settings` last
+  written 2026-09-03 with no recorded updater. `pricing.edit` holders: admin · cco · cto · finance · procurement · sales.
+- **Direct sale:** 9 `sales_records` (8 by admin@, last 2026-08-26; 1 by an account that no longer exists). **All four
+  writers are `SECURITY DEFINER`** (`record_output_sale` · `ship_order` · `attribute_sale_customer` · `allocate_processing_costs`,
+  `pg_proc.prosecdef = t`); no screen writes the table. The UPDATE policy's only remaining use past `reject_sales_record_mutation`
+  was forging `cogs_entry_id` (NULL → any entry).
+- **Assay:** 4 applied inbound assays (all by admin@, last 2026-08-10), 0 output. **Warehouse held both `inbound.edit` and
+  `output.edit`, so it could apply an assay — reprice a batch and post to 2000.** Two side doors bypassed the functions: the
+  `assay_results` UPDATE policy let a recorder set `applied_at` / `applied_by` / `superseded_by`, and the metals tables accepted a
+  direct row with `content_source = 'assay'` + `source_assay_id`.
+- The "record and apply" button on the new-assay form runs both in one action.
+
+**Tim's answers (all six as recommended):**
+
+| Q | ruling | where it landed |
+|---|---|---|
+| Q1 | policy **and** `enforce_write_permission` → `action.contract_terms` on all eight tables; `/contracts/new` disabled control; `link_document_to_contract` unchanged | mirrors of the 8 tables; `NewContractForm` |
+| Q2 | leave `pricing.edit` on the unheld procurement / sales roles; register | `docs/known-issues.md` § ROLE1B2B-UNHELD-PRICING-EDIT |
+| Q3 | close both INSERT and UPDATE on `sales_records` | policies dropped; `guard_sales_record_direct_write` |
+| Q4 | close both assay side doors, each by name | `guard_assay_applied_columns` · `guard_batch_metals_assay_source` |
+| Q5 | "Record and apply" disabled with the reason; "Record" stays live | both new-assay forms |
+| Q6 | `reprice_from_committed_terms` and its preview stay on `inbound.edit` (Batch 4) | untouched |
+| fold-in | **admin keeps every code; every new code also to admin, same migration** (Tim, 2026-09-24, closed) | migration §7; `docs/role-matrix.md` §13 |
+
+## §1 · What shipped
+
+**Migration:** `db/migrations/2026-09-24-role1b2b-contracts-prices-direct-sale-and-assay.sql`, assembled from the mirrors by
+`db/scripts/build_role1b2b_migration.py` (every policy and trigger is extracted verbatim from its mirror). One transaction.
+**Its own proof block** rolls everything back if: the grants differ from "before + the ruled grants − exactly the two
+`pricing.edit`"; admin lacks any new code or loses any code it had; `pricing.edit` holders are not `admin cco procurement sales`;
+an edit code lacks its view; approvals are off; a pending document changed; `approval_log`, `journal_entries`, contracts, metal
+prices, indices, sales records, assays or applied assays changed count; `sales_records` still has a write policy; or any pending
+document has no decider.
+
+**New codes:** `action.contract_terms` (cco) · `action.metal_prices` (finance) · `action.direct_sale` (cco) ·
+`action.apply_assay` (cto) — **each also to `admin`**, together with Batch 2a's three (admin held none of them; read as
+`postgres` from base `role_permissions` before the cut). `module.pricing.edit` and `module.output.edit` re-described.
+
+- **(d) Contracts:** `contracts` insert/update and the seven term tables' write policy → `has_permission('action.contract_terms')`;
+  their `enforce_write_permission` → the same code.
+- **(e) Metal prices:** `metal_prices` (3 policies) · `metal_price_indices` · `index_market_calendar` · `pricing_settings` policies
+  and triggers, and `upsert_metal_prices` → `action.metal_prices`. `pricing.edit` taken from finance and cto.
+- **(f) Direct sale:** `record_output_sale` → `action.direct_sale`. `sales_records` INSERT and UPDATE policies dropped; the old
+  `enforce_write_permission('module.finance.edit')` trigger replaced by a statement-level `trg_sales_records_direct_write`
+  (`SALE_THROUGH_FUNCTION_ONLY`, fires on zero rows too — without it a direct UPDATE would be a silent no-op).
+- **(g) Assay:** `apply_assay_result` · `apply_output_assay` · `unapply_assay_result` · `preview_assay_price` ·
+  `preview_apply_output_assay` → `action.apply_assay`. Recording stays on `inbound.edit` / `output.edit`.
+  `trg_assay_results_applied_columns` (`ASSAY_APPLY_THROUGH_FUNCTION_ONLY`) and `trg_{inbound,output}_batch_metals_assay_source`
+  (`ASSAY_CONTENT_THROUGH_FUNCTION_ONLY`); owner paths pass.
+- **Bootstrap:** `db/tables/role_permissions.sql` finance swaps `module.pricing.edit` for `action.metal_prices` — still its
+  meaning. The bootstrap `admin` stays "system administration only": the live admin-holds-everything is Tim's ruling for testing,
+  not a fresh install's start (say if that is wrong). cco / cto / cfo are still absent from the bootstrap
+  (`ROLE1-BOOTSTRAP-MISSING-ROLES`).
+
+**Screens** (DBLOCK-1: visible, disabled, naming the code):
+- `/contracts/new`: Save gated on `action.contract_terms` (the page could not judge before — the code depended on the side;
+  now there is one code).
+- Metal prices: new / bulk / edit pages and the edit action → `action.metal_prices`. **The threshold panel used to hide its
+  form from non-holders; it now shows it disabled with the reason.**
+- Formula new / edit: Save and Delete gated on `module.pricing.edit` (closes `PAYREQB-FORMULA-PAGES-NO-DISABLED-GATE`).
+- Output batch sale panel: the sell button gated on `action.direct_sale`.
+- Inbound and output assay detail pages: Apply and Unapply gated on `action.apply_assay`; the preview is **not asked** for a
+  non-holder and a "belongs to the CTO" line replaces it (never "no pricing formula" — that would be a data claim).
+- Both new-assay forms: "Record and apply" gated; "Record only" becomes the primary button for non-holders.
+- Copy (en + zh): `CONTRACT_NOT_PERMITTED` rewritten for the new code; `assay.previewRestricted(+Hint)`;
+  `ASSAY_APPLY_THROUGH_FUNCTION_ONLY` · `ASSAY_CONTENT_THROUGH_FUNCTION_ONLY` · `SALE_THROUGH_FUNCTION_ONLY`.
+
+**Fixtures:**
+- **New: 217**, arms A–E, including two fault injections: with `trg_assay_results_applied_columns` disabled the direct
+  `applied_at` write goes in; with `trg_sales_records_direct_write` disabled a direct UPDATE falls back to a silent zero-row no-op.
+- **Updated because the gate moved (no assertion changed):** the selling role in 38, 39, 42, 44, 45, 46 (two roles), 47, 129,
+  130 gains `action.direct_sale`; the applying role in 40 and 54 gains `action.apply_assay`.
+
+**Decisions made during the build, not asked (say if any is wrong):**
+- **admin never held `module.tasks.view_all`** (reading other people's personal tasks) — it was not among the 45 codes Tim
+  restored. The ruling is "keep + every new code", so this cut did not add it; the migration asserts admin lacks nothing it did
+  not already lack. Recorded in `docs/role-matrix.md` §13.
+- Term-table write policies became plain `has_permission('action.contract_terms')` (the `EXISTS` on the parent contract was only
+  there to pick the side's code). Policy names kept.
+- The dry run showed one defect before it shipped: the first proof block asserted "admin holds every catalogue code" and failed
+  on `module.tasks.view_all` (above).
+
+## §2 · Verification — every figure is the script's own exit line
+
+| step | result |
+|---|---|
+| `db/gate.py --offline` | first run `GATE_EXIT=4` (11 fixtures on the moved gates), then 4 (fixture 217's own check read `metal_prices.created_by`, which is not stamped), then **`GATE_EXIT=0`**; re-run after the screen changes, **`GATE_EXIT=0`** |
+| dry run on live (migration with `ROLLBACK`) | `DRY_OWN_EXIT=0`; every pending document has a decider |
+| rehearsal on live (migration + live proof in one transaction, `ROLLBACK`) | `REHEARSE_OWN_EXIT=0`, 32/32 cells |
+| backup | `BACKUP_EXIT=0` — `evoltrya-backup-2026-09-24-2052.dump`, TOC 6138 (previous 6092, floor 5482) |
+| `db/apply_migration.sh` | `APPLY_OWN_EXIT=0`. Pre-flight: 11 CREATE FUNCTION (7 replace · 4 new), 4 account codes all `is_system`, no columns. **Window start 2026-09-24 22:07:50 CST** (the script's "applied at" line reads 22:06:57) |
+| `NOTIFY pgrst` + `npm run types:gen` | `TYPES_OWN_EXIT=0`; `lib/database.types.ts` byte-identical (no signature changed) |
+| `npx tsc --noEmit` | `TSC_OWN_EXIT=0` |
+| `npm run build` | `BUILD_OWN_EXIT=0` |
+| `node scripts/check-i18n.mjs` | `I18N_OWN_EXIT=0` |
+| `node scripts/check-error-swallowing.mjs` | `SWALLOW_OWN_EXIT=0` |
+| `db/gate.py` (full) | **`GATE_EXIT=0`**, 513 s: rebuild ✓ · mirrors vs live ✓ (permissions seed 53/53, drift 0) · fixtures ✓ (217 included) · anon surface ✓ (baseline 327) |
+| smoke (`db/run_detached.sh`, token SMOKE, `--timeout 2400`, started 22:21:17) | **`SMOKE_EXIT=0`**: 235 routes + probes, **253 ok · 7 skipped (no data) · 0 FAILED**; 228 timed routes, 777.8 s total, median 3,186 ms; the disposable session got the 53-code probe role. **Clean-up, read at 22:38:16 as `postgres` from base tables:** `smoke-%` users **0** · `probe-%` / `fixture-%` roles **0** · orphan grants **0** · `ZZ-SMOKE-%` employees **0**; `.ephemeral/` empty; no smoke process left. The scratch check reported 6 stale `ZZ-SMOKE-*` rows aged 535–1,177 h (5 still referenced) — they predate this cut; reported, not touched |
+
+## §3 · Live proof
+
+**Script:** `db/scripts/2026-09-24-role1b2b-live-proof.sql`. One transaction, `ROLLBACK`, run as `postgres` (`rolbypassrls = t`);
+each cell sets `request.jwt.claims` to a real account and runs under `SET LOCAL ROLE authenticated`.
+**Result:** `PROOF_OWN_EXIT=0`, **32 of 32 cells**, finished 22:08:26 CST (inside the window, right after the migration).
+Leftovers afterwards, read as `postgres` from base tables: `ZZ-B2B%` contracts **0** · `ZZ-B2B%` formulas **0** ·
+ASY-2026-0004 still applied by admin@ (the proof's unapply was rolled back). `journal_entries` numbering is MAX+1, so nothing
+rolled back used up a number.
+
+| account | cell | result |
+|---|---|---|
+| chooer@ · phua@ · fusheng@ | create a contract | `new row violates row-level security policy for table "contracts"` ×3 |
+| sandra@ | create a contract; write a grade term on it | passes ×2 |
+| chooer@ | write a grade term on sandra@'s contract | RLS refusal on `contract_grade_specs` |
+| fusheng@ | edit that contract | `PERMISSION_DENIED|action.contract_terms` |
+| admin@ | create a contract | passes (admin holds every new code) |
+| phua@ · sandra@ | `upsert_metal_prices` | `PERMISSION_DENIED|action.metal_prices` ×2 |
+| sandra@ | change the stale-quote threshold | `PERMISSION_DENIED|action.metal_prices` |
+| chooer@ | `upsert_metal_prices`; change the threshold | passes ×2 |
+| chooer@ · phua@ | create a pricing formula | RLS refusal ×2 |
+| sandra@ | create a pricing formula | passes |
+| chooer@ · phua@ · fusheng@ | `record_output_sale` | `PERMISSION_DENIED|action.direct_sale` ×3 |
+| sandra@ | control: `record_output_sale` on an unknown batch | passes the gate → `OUTPUT_NOT_FOUND|…` |
+| chooer@ | direct INSERT into `sales_records`; direct UPDATE touching zero rows | `SALE_THROUGH_FUNCTION_ONLY` ×2 |
+| chooer@ · sandra@ · fusheng@ | unapply ASY-2026-0004 | `PERMISSION_DENIED|action.apply_assay` ×3 |
+| chooer@ | `preview_assay_price` | `PERMISSION_DENIED|action.apply_assay` |
+| fusheng@ | `preview_apply_output_assay` | `PERMISSION_DENIED|action.apply_assay` |
+| fusheng@ | direct UPDATE setting `applied_at` | `ASSAY_APPLY_THROUGH_FUNCTION_ONLY` |
+| fusheng@ | direct INSERT of an assay-sourced metal row | `ASSAY_CONTENT_THROUGH_FUNCTION_ONLY` |
+| fusheng@ | control: record a lab result | passes |
+| phua@ | unapply ASY-2026-0004 | passes |
+| phua@ | re-apply ASY-2026-0004 | **passes `action.apply_assay` and the nested `inbound.edit` check in `reprice_inbound_batch`, then stops on data: `FX_RATE_MISSING|USD|2026-09-24|tt_sell`**. There is no USD selling rate for today on live (test data), so the reprice and its journal entry could not be shown; the proof does not invent a rate. `journal_entries` 82 → 82 inside the proof |
+
+### Before / after
+
+**Script:** `db/scripts/2026-09-24-role1b2b-readings.sql`, which states the identity for every part.
+**Timing:** before at 20:47:34 CST; after at 22:08:41 CST.
+
+| reading | identity · object | before | after |
+|---|---|---:|---:|
+| `approvals_enabled` / l1 / l2 / threshold | postgres · base `finance_settings` | t / finance / cfo / 1000 | **t / finance / cfo / 1000** |
+| pending: claims submitted · leave · medical submitted · medical approved-unpaid · reviews · work orders · stocktakes · POs · payment requests | postgres · base | 1 · 2 · 0 · 1 · 0 · 0 · 5 · 0 · 0 | **the same** |
+| `approval_log` rows · `journal_entries` | postgres · base | 14 · 82 | **14 · 82** |
+| contracts · term rows · metal prices · indices · calendar · formulas · sales records · applied assays | postgres · base | 0 · 0 · 12 · 2 · 0 · 1 · 9 · 4 | **the same** |
+| account 1100 · 2000 (debit − credit) | postgres · base `journal_lines` | 43,002.12 · −376,404.42 | **the same** |
+| codes per role: **admin** · **cco** · cfo · cto · finance · gm · warehouse · operations | postgres · base `role_permissions` | 45 · 34 · 29 · 31 · 34 · 20 · 14 · 15 | **52 · 36** · 29 · 31 · 34 · 20 · 14 · 15 |
+| unheld roles: auditor · employee · hr · procurement · sales | postgres · base | 19 · 0 · 7 · 15 · 16 | unchanged |
+| `module.pricing.edit` held by | postgres · base | admin cco cto finance procurement sales | **admin cco procurement sales** |
+| catalogue · what admin lacks | postgres · base | 49 · `customer_credit finance_settings supplier_approve tasks.view_all` | **53 · `module.tasks.view_all`** |
+| `ap_open_items` n · Σ | tim@ · **view** | 16 · 416,988.32 | 16 · 416,988.32 |
+| `ar_open_items` n · Σ | tim@ · **view** | 10 · 57,545.87 | 10 · 57,545.87 |
+| list-vs-ledger AP: list / ledger / **unexplained** | tim@ · `list_ledger_reconciliation()` | 416,988.32 / 376,404.42 / **0.00** | 416,988.32 / 376,404.42 / **0.00** |
+| list-vs-ledger AR: list / ledger / **unexplained** | tim@ · same | 57,545.87 / 43,002.12 / **0.00** | 57,545.87 / 43,002.12 / **0.00** |
+| `current_user_permissions()`: admin@ · chooer@ · fusheng@ · phua@ · sandra@ · tim@ · vince@ | each account as itself | 45 · 34 · 14 · 31 · 34 · 29 · 20 | **52** · 34 · 14 · 31 · **36** · 29 · 20 |
+
+cto and finance stay at 31 and 34: each gained one code and lost `module.pricing.edit`.
+
+**Pending documents and their deciders** (the migration's proof, counted by person): CLM-2026-0004 → tim@ ·
+LV-2026-0001 / 0003 → admin@, tim@ · MC-2026-0001 (pay) → admin@, chooer@ · ST-2026-0082…0086 → chooer@, fusheng@, phua@, sandra@.
+**No pending document is left without a decider, and nothing new was left pending on live.**
+
+## §4 · What each person can no longer do
+
+- **Choo Er (finance):** create or edit contracts and their terms; create, edit or delete pricing formulas; sell directly from an
+  output batch; apply or unapply assays or see their previews; insert or update `sales_records` directly. **Keeps and now owns**
+  metal prices, indices, the market calendar and the stale-quote threshold (`action.metal_prices`). Still records lab results.
+- **Phua (cto):** contracts; metal prices and the threshold; pricing formulas; direct sale. **Gains** applying and unapplying
+  assays with their previews (`action.apply_assay`).
+- **Sandra (cco):** metal prices and the threshold; applying or unapplying assays and their previews. **Gains** contracts and
+  terms (`action.contract_terms`) and direct sale (`action.direct_sale`); keeps pricing formulas. Still records lab results.
+- **Fu Sheng (warehouse):** contracts (held only since Batch 2a); direct sale; applying or unapplying assays — **which until now
+  let the warehouse reprice a batch and post to the supplier payable**. Still records lab results.
+- **Tim as admin@:** loses nothing; gains the four new codes and Batch 2a's three.
+- **Tim as tim@, Vince:** no change.
+
+## §5 · The broken window — started, end PENDING
+
+**Start: 2026-09-24 22:07:50 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at"
+line reads 22:06:57). **End: PENDING — Tim reads it from Vercel.**
+
+What the old app does against the new database (approvals ON):
+- **Nobody except admin@ can enter metal prices or change the threshold.** The old metal-price pages gate on `module.pricing.edit`,
+  which finance no longer holds, so Choo Er gets the page-level refusal; Sandra still sees the pages and the form, and the database
+  refuses her (`PERMISSION_DENIED|action.metal_prices`).
+- **Refused with a raw or generic error, controls still pressable:** pricing formulas for Choo Er and Phua (the old formula pages
+  had no gate — RLS refusal); contract creation for Choo Er, Phua and Fu Sheng (the rewritten `CONTRACT_NOT_PERMITTED` copy only
+  ships with the deploy); the sell button for Choo Er, Phua and Fu Sheng; Apply / Unapply for Choo Er, Sandra and Fu Sheng.
+  "Record and apply" by any of those three records the result and then shows the apply refusal on the detail page.
+- **Assay previews** refuse anyone but Phua and admin@. On the inbound detail page the old localiser turns the refusal into
+  「受限 / Restricted」 in the red box and, because a preview error blocks the button, the old Apply button goes disabled with no
+  code named. The old new-assay forms show "impact unknown" (output) or the same restricted box (inbound).
+- **Unaffected:** approvals of every kind, every posting path, Sandra's contract creation and direct sale, Phua's assays.
+  Nothing in these areas is pending on live (0 contracts, no unapplied assays).
+
+## §6 · Commit, push, three SHAs
+
+Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
+(a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
+Next cut: payroll-posting approval (`docs/forward-queue.md`).

@@ -94,14 +94,11 @@ CREATE POLICY "contract settlement terms select by owner permission"
     USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
                      AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.view'::text))
                        OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.view'::text)))));
+-- ★ ROLE-1 Batch 2b(Batch 2 grilling Q12 · Batch 2b grilling Q1):写条款只归 cco(action.contract_terms)。
 CREATE POLICY "contract settlement terms write by owner permission"
     ON public.contract_settlement_terms AS PERMISSIVE FOR ALL TO authenticated
-    USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))))
-    WITH CHECK (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))));
+    USING (has_permission('action.contract_terms'::text))
+    WITH CHECK (has_permission('action.contract_terms'::text));
 
 COMMENT ON TABLE public.contract_settlement_terms IS
     'SETTLE-1:结算口径 —— 合同的第五个兄弟子表,一份合同一行,冻结时刻与品位规格/计价条款相同(挂接那一刻),**一份合同不许有两套冻结语义**。★★**本表的中心句**★★:**【没有声明】与【声明了"没有"】是两个不同的事实,而只有后者可以拿来算。** 那正是 assay_results.weight_basis 已经在用的规矩(PROC-6:留空 = 没人说过),本表把它推到精炼费与惩罚的口径声明上 —— refining_charge_basis = ''none_agreed'' 是一次**声明**,不是一次留空。★**为什么不让"没有子行"当成零**★:黑粉承购里精炼费近乎普遍,把没有子行读成没有精炼费,会算出一张**看起来完全正常而金额是错的发票**,不是任何人会注意到的那种错误。★**为什么也不一律拒**★:一份真的没有精炼费的合同必须仍然结算得了 —— 一条在正当情形上开火的拒绝,教会的是绕过它的办法。★**splitting_limit_pct 可空,而空永远不会变成一个决定**★:让系统按容差自动选,等于**让系统决定谁的数字是钱**,而容差为空时它还得**编一个默认值**才做得到 —— 所以它只用来指出差距,永远不自己选;有分歧又没声明容差时结算按名拒。★**留样**★:这里记的是**合同要不要求留样**(一条条款),不是样品在哪 —— 实物模型属于实验室工作流(N26),**而它今天不存在,所以仲裁路径有一个【说出来的】未满足前提:第三方复检要有一个罐子,而系统说不出某个样品还在不在**。';
@@ -122,4 +119,4 @@ COMMENT ON COLUMN public.contract_settlement_terms.settling_party IS
 -- 这道闸【只】管模块级的没权限;这张表的策略还判【行】,那一半仍由应用层兜着。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.contract_settlement_terms
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.customers.edit', 'module.suppliers.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.contract_terms');

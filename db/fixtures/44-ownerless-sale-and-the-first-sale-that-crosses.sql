@@ -1,4 +1,6 @@
 -- 44 信用管控的两个空白:【本单自己越限】与【规则的主语缺席】
+-- ROLE-1 Batch 2b(2026-09-24):record_output_sale 的门从 module.output.edit 换成 action.direct_sale,
+-- 所以本 fixture 里会卖货的角色多带一个 action.direct_sale(断言一条没动)。
 -- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【A 臂是那条一直没人测的规则】没有任何既往敞口、单笔销售【自己】就超过限额 ——
@@ -30,7 +32,7 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-44', 'f', 'f', true) RETURNING id INTO r;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r, unnest(ARRAY['module.output.edit','module.output.view','module.finance.edit',
+    SELECT r, unnest(ARRAY['module.output.edit','action.direct_sale','module.output.view','module.finance.edit',
                            'module.finance.view','module.customers.view','data.view_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 

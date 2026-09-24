@@ -1988,7 +1988,7 @@ const en = {
             CONTRACT_PERIOD_ORDER: 'The end of the term is earlier than its start, so nothing was saved. Correct one of the two dates, or leave the end blank if the agreement has no fixed end.',
             CONTRACT_PAYMENT_TERMS_INVALID: 'Payment terms must be a whole number of days between 0 and 365. Nothing was saved. Leave it blank if the agreement does not state one.',
             // ★ RLS 那一条:要哪个码取决于对手方选了谁,所以两边都说出来
-            CONTRACT_NOT_PERMITTED: 'Recording a contract needs permission to edit whichever side it is with \u2014 supplier records for a contract with a supplier, customer records for one with a customer \u2014 and you do not have it for the party you chose. Nothing was saved. Ask a system administrator for edit access to that module, or record the contract against a party you can edit.',
+            CONTRACT_NOT_PERMITTED: 'Recording a contract or its terms needs the contract-terms permission (action.contract_terms), which belongs to the CCO. Nothing was saved. Ask a system administrator if you should have it.',
         
 
             SETTLEMENT_ARGUMENTS_REQUIRED: 'A sales order, an output batch and an assay result are all required to settle.',
@@ -2963,6 +2963,7 @@ const en = {
             errors: {
                 OUTPUT_NOT_FOUND: 'Output batch not found',
                 SALE_DATE_REQUIRED: 'A sale date is required — it decides the FX rate, the movement date, and the period both journals post to.',
+                SALE_THROUGH_FUNCTION_ONLY: 'A sale can only be recorded through the sale form (it moves the stock and posts revenue and cost of goods) — not by writing the sales record directly. Nothing was saved.',
                 OUTPUT_DELETED: 'Batch has been deleted',
                 SALE_QTY_INVALID: 'Invalid sale quantity',
                 SALE_EXCEEDS_REMAINING: 'Quantity ({0}) exceeds remaining stock ({1})',
@@ -5332,6 +5333,9 @@ const en = {
         pricingRestricted: 'Pricing for this batch is withheld from this account.',
         pricingRestrictedHint:
             'The pricing formula sits behind the pricing module, which you do not have access to. That is a permission answer — it is not a statement that this batch has no pricing formula. Recording the assay still works; the price is settled by someone who can see it.',
+        previewRestricted: 'Applying an assay, and the preview of what applying would do, belong to the CTO (action.apply_assay). Recording the lab result still works; someone who can apply it will see the preview.',
+        previewRestrictedHint:
+            'This is a permission answer, not a statement that this batch has no pricing formula. Applying an inbound assay reprices the batch and posts to the supplier payable, so it sits with its own permission (action.apply_assay).',
         saveOnly: 'Record only',
         saveAndApply: 'Record and apply',
         impactPreview: 'If applied',
@@ -5361,6 +5365,8 @@ const en = {
         },
         errors: {
             ASSAY_BASIS_REQUIRED: 'Say which weight this assay was reported on - as-received (wet) or dry. A figure whose basis nobody stated cannot be interpreted later: 30% dry and 30% as-received are different numbers, and how different depends on the moisture.',
+            ASSAY_APPLY_THROUGH_FUNCTION_ONLY: 'Whether an assay is applied can only change by applying or unapplying it (the Apply and Unapply buttons, which need action.apply_assay) — not by editing the assay record directly. Nothing was saved.',
+            ASSAY_CONTENT_THROUGH_FUNCTION_ONLY: 'A metal content marked as coming from an assay can only be written by applying that assay (action.apply_assay). Enter a figure by hand instead — it is then recorded as manual. Nothing was saved.',
             ASSAY_RESULT_PARTY_REQUIRED: 'Say whose result this is - ours, the counterparty\'s, or an umpire\'s. There is deliberately no default: defaulting to "ours" would let a forgotten field become a claim that we measured it.',
             INBOUND_NOT_FOUND: 'Inbound batch not found',
             ASSAY_DATE_INVALID: 'Assay date {0} is invalid or in the future',

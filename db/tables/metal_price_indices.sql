@@ -9,7 +9,7 @@
 -- 【运行期配置 / RUNTIME CONFIG —— 下面的种子是"全新安装的默认值",不是线上快照】
 -- 加第三个指数(Fastmarkets、Asian Metal)应当是【加一行】,不是跑一次迁移 ——
 -- 与 certificate_types 同一条。所以它是表,不是 CHECK 约束。
--- 写入策略开在 module.pricing.edit;读给所有登录用户(行情是市场事实,OPS-15)。
+-- 写入策略开在 action.metal_prices(ROLE-1 Batch 2b 之前是 module.pricing.edit);读给所有登录用户(行情是市场事实,OPS-15)。
 -- 【线上与本文件不一致是正常的】,check_mirrors.py 不逐行比对本表。
 -- ═══════════════════════════════════════════════════════════════════════════
 --
@@ -69,10 +69,12 @@ ALTER TABLE public.metal_price_indices ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "metal_price_indices select"
     ON public.metal_price_indices AS PERMISSIVE FOR SELECT TO authenticated USING (true);
 
+-- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q13):金属行情、指数、指数交易日历与报价阈值归财务 ——
+--   写权从 module.pricing.edit 换成 action.metal_prices;定价公式仍在 module.pricing.edit(只归 cco)。
 CREATE POLICY "metal_price_indices write by permission"
     ON public.metal_price_indices AS PERMISSIVE FOR ALL TO authenticated
-    USING (has_permission('module.pricing.edit'))
-    WITH CHECK (has_permission('module.pricing.edit'));
+    USING (has_permission('action.metal_prices'))
+    WITH CHECK (has_permission('action.metal_prices'));
 
 -- ── 引导 ────────────────────────────────────────────────────────────────────
 INSERT INTO public.metal_price_indices (code, name_en, name_zh, quote_currency, quote_currency_basis, sort_order, notes) VALUES
@@ -89,4 +91,4 @@ INSERT INTO public.metal_price_indices (code, name_en, name_zh, quote_currency, 
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.metal_price_indices
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.pricing.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.metal_prices');

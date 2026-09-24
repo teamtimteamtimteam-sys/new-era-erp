@@ -7,10 +7,12 @@ import { getMetalPriceIndices } from '@/app/tools/pricing/metal-prices/indexQuer
 import FormulaForm, { type FormulaDefaults, type PartyOption, type QuoteDate } from '../../FormulaForm'
 import { updateFormula } from '../../actions'
 import DeleteFormulaButton from './DeleteFormulaButton'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
+import { can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
 import { loadSubstances, toOptions } from '../../../metal-prices/substanceQuery'
 
@@ -23,6 +25,8 @@ export default async function EditFormulaPage({
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.pricing)
     if (denied) return denied
+    // ROLE-1 Batch 2b(Q13):写公式只归 module.pricing.edit(cco)—— 控件看得见、按不动、说出码。
+    const canEdit = await can('module.pricing.edit')
 
     const { id } = await params
     const supabase = await createClient()
@@ -98,7 +102,9 @@ export default async function EditFormulaPage({
                     {t('pricing.listTitle')}
                     <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{formula.code}</span>
                 </h1>
-                <DeleteFormulaButton formulaId={formula.id} subject={formula.code} />
+                <PermissionGate code="module.pricing.edit" allowed={canEdit}>
+                    <DeleteFormulaButton formulaId={formula.id} subject={formula.code} />
+                </PermissionGate>
             </div>
             <FormulaForm
                 substanceOptions={substanceOptions}
@@ -109,6 +115,7 @@ export default async function EditFormulaPage({
                 suppliers={suppliers}
                 customers={customers}
                 quoteDates={quoteDates}
+                canEdit={canEdit}
             />
         </div>
     )

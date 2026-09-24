@@ -12,7 +12,7 @@ DECLARE
     v_count integer;
     v_run   record;
 BEGIN
-    PERFORM require_permission('module.output.edit');
+    PERFORM require_permission('action.apply_assay');
     SELECT * INTO v_assay FROM assay_results
     WHERE id = p_assay_result_id AND deleted_at IS NULL
     FOR UPDATE;

@@ -14,11 +14,9 @@
 //   active,那么这扇门通向的是一间谁也进不去的屋子。
 //
 // ★【写入的门【不是】这一页的门】/contracts 由 module.suppliers.view 把着(读),
-//   而 INSERT 策略要的是【归属那一侧】的 edit:买方合同要 module.suppliers.edit,
-//   卖方合同要 module.customers.edit。**哪一个,取决于对手方选了谁** ——
-//   所以应用侧【判不了】,只能让策略回答,再把那句 42501 翻译成人话。
-//   (T4:挡住持客户编辑权的人、或把只有查看权的人领进一张必被拒的表单,
-//    两者都比让策略作答更坏。)
+//   而 INSERT 策略要 action.contract_terms(ROLE-1 Batch 2b:合同条款归 cco;此前是
+//   归属那一侧的 suppliers.edit / customers.edit)。页面把保存钮按这个码关上并说出它;
+//   这里仍然让策略作最后的回答,再把那句 42501 翻译成人话。
 import { createClient } from '@/lib/supabase/server'
 import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'

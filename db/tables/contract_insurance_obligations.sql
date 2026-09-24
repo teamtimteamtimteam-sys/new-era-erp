@@ -60,14 +60,11 @@ CREATE POLICY "contract insurance select by owner permission"
     USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
                      AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.view'::text))
                        OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.view'::text)))));
+-- ★ ROLE-1 Batch 2b(Batch 2 grilling Q12 · Batch 2b grilling Q1):写条款只归 cco(action.contract_terms)。
 CREATE POLICY "contract insurance write by owner permission"
     ON public.contract_insurance_obligations AS PERMISSIVE FOR ALL TO authenticated
-    USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))))
-    WITH CHECK (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))));
+    USING (has_permission('action.contract_terms'::text))
+    WITH CHECK (has_permission('action.contract_terms'::text));
 
 COMMENT ON TABLE public.contract_insurance_obligations IS
     'CONTRACT-1:合同里那条「谁来投保、保到多少」的义务。★★**它不是保险登记簿的第二个家 —— 两件事,判据是它们能各自为真**★★(Tim 2026-08-29):**我们持有的保单**是一件有到期日的东西,由既有机制管着(certificate_types 是 RUNTIME CONFIG,加一种证书是界面上加一行;company_compliance 已有 cert_no/issuing_body/scope/valid_from/valid_until/document_path,且已经有两个消费方 —— operations_now 的看板臂与 supplier_receiving_blocked 的收货闸)。**给保险再造一套到期机制,就是把那两样又写一遍。** 而**合同里那条义务没有自己的到期日**,它约束对手方,被违反的方式是**一份保单不存在**而不是一份保单过期。两者能各自为真:可以持有保单而无合同要求,也可以有要求而一张保单都没有。★**本刀刻意不建那条连接(哪份保单满足哪条义务)**★ —— 那是一次判断(险种、保额、保障区间、被保险人),没有人裁过,而一条猜出来的自动连接会把一份没有保障的合同报成已保障,比不连坏得多;记在 known-issues,附上它需要什么才答得了。';
@@ -82,4 +79,4 @@ COMMENT ON TABLE public.contract_insurance_obligations IS
 -- 这道闸【只】管模块级的没权限;这张表的策略还判【行】,那一半仍由应用层兜着。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.contract_insurance_obligations
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.customers.edit', 'module.suppliers.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.contract_terms');

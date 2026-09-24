@@ -66,6 +66,8 @@ export default async function EditOutputPage({
     // 所以它挂 module.output.edit —— 与 output_batch_safety_states 的写策略同一个码,
     // 而【不是】工序权限:把一批货许给产线是工序决定,看见它鼓包了不是。
     const canEditSafety = await can('module.output.edit')
+    // ROLE-1 Batch 2b(Q14):直接销售归 action.direct_sale(cco),不再是 output.edit
+    const canSell = await can('action.direct_sale')
     // ★ FIX-2b:「有没有一张盘点在进行」也是一句权限答复(finance 读不到 stocktakes)。
     const canSeeStocktakes = await can('module.stocktakes.view')
     // ★ FIX-2b:卖方计价公式走 pricing_formulas_masked,谓词 module.pricing.view。
@@ -479,6 +481,7 @@ export default async function EditOutputPage({
                     batchCustomerId={batch.customer_id}
                     formulas={sellFormulas}
                     formulasRestricted={!canSeePricingFormulas}
+                    canSell={canSell}
                 />
             ) : (
                 <section className="mt-8 pt-8 border-t">

@@ -87,3 +87,10 @@ CREATE POLICY "output_batch_metals delete by permission"
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.output_batch_metals
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.output.edit');
+
+-- ── ROLE-1 Batch 2b(Batch 2b grilling Q4)· 出自化验的含量只由应用化验写出 ──────────
+-- 手工录入(manual、source_assay_id 为空)照旧归 output.edit;直连写一行 content_source =
+-- 'assay' 或带 source_assay_id → ASSAY_CONTENT_THROUGH_FUNCTION_ONLY。
+CREATE TRIGGER trg_output_batch_metals_assay_source
+    BEFORE INSERT OR UPDATE ON public.output_batch_metals
+    FOR EACH ROW EXECUTE FUNCTION public.guard_batch_metals_assay_source();

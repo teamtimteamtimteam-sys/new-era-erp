@@ -12,7 +12,7 @@ DECLARE
     v_unit   numeric;
     v_impact jsonb := NULL;
 BEGIN
-    PERFORM require_permission('module.inbound.edit');
+    PERFORM require_permission('action.apply_assay');
     IF p_reference_date IS NULL THEN
         RAISE EXCEPTION 'REFERENCE_DATE_REQUIRED';
     END IF;

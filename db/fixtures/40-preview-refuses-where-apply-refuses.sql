@@ -28,7 +28,9 @@ BEGIN
     VALUES ('fixture-40', 'f', 'f', true) RETURNING id INTO r;
     INSERT INTO role_permissions (role_id, permission_code)
     SELECT r, unnest(ARRAY['data.view_prices','module.inbound.edit','module.inbound.view',
-                           'module.finance.edit','module.finance.view','module.pricing.view']);
+                           'module.finance.edit','module.finance.view','module.pricing.view',
+                           -- ROLE-1 Batch 2b(2026-09-24):试算与应用化验改归 action.apply_assay
+                           'action.apply_assay']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)

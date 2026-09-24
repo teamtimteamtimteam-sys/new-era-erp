@@ -20,6 +20,8 @@ const ASSAY_ERROR_CODES = new Set([
     'ASSAY_ONE_PARENT', 'OUTPUT_NOT_FOUND', 'ASSAY_IS_OUTPUT', 'ASSAY_IS_INBOUND',
     // PROC-6:基准与出具方。两条都【没有默认值】,所以两条都到得了屏幕。
     'ASSAY_BASIS_REQUIRED', 'ASSAY_RESULT_PARTY_REQUIRED',
+    // ROLE-1 Batch 2b(Q4):应用标记与出自化验的含量只走应用函数 —— 两扇侧门按名关
+    'ASSAY_APPLY_THROUGH_FUNCTION_ONLY', 'ASSAY_CONTENT_THROUGH_FUNCTION_ONLY',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

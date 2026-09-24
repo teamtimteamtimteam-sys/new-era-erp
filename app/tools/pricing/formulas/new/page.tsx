@@ -7,6 +7,7 @@ import FormulaForm, { EMPTY_FORMULA, type PartyOption, type QuoteDate } from '..
 import { createFormula } from '../actions'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
+import { can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
 import { loadSubstances, toOptions } from '../../metal-prices/substanceQuery'
 
@@ -15,6 +16,8 @@ export default async function NewFormulaPage() {
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.pricing)
     if (denied) return denied
+    // ROLE-1 Batch 2b(Q13):写公式只归 module.pricing.edit(cco)—— 控件看得见、按不动、说出码。
+    const canEdit = await can('module.pricing.edit')
 
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
@@ -57,6 +60,7 @@ export default async function NewFormulaPage() {
                 suppliers={suppliers}
                 customers={customers}
                 quoteDates={quoteDates}
+                canEdit={canEdit}
             />
         </div>
     )

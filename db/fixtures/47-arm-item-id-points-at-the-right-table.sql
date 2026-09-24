@@ -1,4 +1,6 @@
 -- 47 看板每一支的门牌:item_id 落在【这一支该落的那张表】里
+-- ROLE-1 Batch 2b(2026-09-24):record_output_sale 的门从 module.output.edit 换成 action.direct_sale,
+-- 所以本 fixture 里会卖货的角色多带一个 action.direct_sale(断言一条没动)。
 --
 -- 【这一刀唯一能造出的无声失败】(LINKS-1)。接错的 join 给出的仍是一个合法 uuid,
 -- 没有类型错误、没有约束冲突、没有 42501 —— 它只是【打开了别人的单据】。
@@ -72,7 +74,7 @@ BEGIN
     -- 不是视图少了一支。两者的红长得一样,所以这一行的理由写在这里。
     SELECT r_all, unnest(ARRAY['module.inbound.view','module.processing.view',
         'module.processing.edit','module.purchasing.view','module.stocktakes.view',
-        'module.hr.view','module.output.view','module.output.edit',
+        'module.hr.view','module.output.view','module.output.edit','action.direct_sale',
         'module.finance.view','module.suppliers.view','module.customers.view',
         'module.inventory.view','data.view_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (v_user, r_all);

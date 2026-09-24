@@ -101,18 +101,13 @@ CREATE POLICY "sales_records select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text));
 
-CREATE POLICY "sales_records insert by permission"
-    ON public.sales_records
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
-
-CREATE POLICY "sales_records update by permission"
-    ON public.sales_records
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
-
--- cut 2a:窄用途 UPDATE 策略 —— 仅为 SECURITY INVOKER 函数补挂 cogs_entry_id 放行;
--- 列级限制由上面的守卫触发器执行(除 COGS 首挂外一律 SALE_IMMUTABLE)。
+-- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q14 · Batch 2b grilling Q3):**没有写策略**。
+--   原来的 INSERT / UPDATE 两条(都开在 module.finance.edit 上)拿掉了:写本表的四支函数
+--   (record_output_sale · ship_order · attribute_sale_customer · allocate_processing_costs)
+--   全是 SECURITY DEFINER(线上 prosecdef = t,2026-09-24 实测),没有一个屏幕直连写它。
+--   原 UPDATE 那一条的注释说它"为 SECURITY INVOKER 函数补挂 cogs_entry_id 放行"——
+--   今天已经没有那样的函数;它还放行的只剩伪造 cogs_entry_id。
+--   直连写由下面的 trg_sales_records_direct_write 按名拒(SALE_THROUGH_FUNCTION_ONLY)。
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 sales_records_masked 读取。
@@ -141,12 +136,11 @@ CREATE TRIGGER trg_sales_records_form_saleable
     BEFORE INSERT ON public.sales_records
     FOR EACH ROW EXECUTE FUNCTION public.guard_batch_form_saleable();
 
--- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
--- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
--- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
--- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
--- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
--- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
-CREATE TRIGGER enforce_write_permission
-    BEFORE UPDATE OR DELETE ON public.sales_records
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.finance.edit');
+-- ── ROLE-1 Batch 2b · 直连写一律按名拒(取代 SILENT-1 那支 enforce_write_permission)──────
+-- 没有写策略时,直连 UPDATE / DELETE 是零行、不报错;这支语句级触发器零行也照样触发,
+-- 抛 SALE_THROUGH_FUNCTION_ONLY。它由 row_security_active() 守着,属主 / SECURITY DEFINER
+-- 那些路一律放行。原来那支 enforce_write_permission('module.finance.edit') 会让财务过关、
+-- 再被 RLS 静默吞掉,所以换掉而不是留着。
+CREATE TRIGGER trg_sales_records_direct_write
+    BEFORE INSERT OR UPDATE OR DELETE ON public.sales_records
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_sales_record_direct_write();

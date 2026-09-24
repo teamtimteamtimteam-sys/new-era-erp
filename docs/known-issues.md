@@ -9344,16 +9344,12 @@ probe-search-results · probe-search-shell · probe-draft1–7 · probe-draft3-b
 它们的残留今天由下一次开跑时的 `reapStalePlans` 收。另一个边:SIGTERM 落在"建账号"与"登记进计划"之间那一次
 await 上,只有冒烟有按名字的兜底清扫,探针没有。
 
-## PAYREQB-FORMULA-PAGES-NO-DISABLED-GATE —— 定价公式页没有"看得见、按不动、带理由"的门(Batch B grilling 读出,2026-09-23)
+## ROLE1B2B-UNHELD-PRICING-EDIT —— 两个没人持有的角色仍带着 `module.pricing.edit`(ROLE-1 Batch 2b,Tim grilling Q2,2026-09-24)
 
-`app/tools/pricing/formulas/` 的页面只用 `requireModule`(读码)把关,写的控件没有 `PermissionGate`:没有 `pricing.edit` 的人
-按得下去,由库按名拒(`actions.ts:268`)。DBLOCK-1 要的是按之前就说出来。去处:ROLE-1 Batch 2b (e)(Q13)。
-
-## PAYREQB-SALES-RECORDS-FINANCE-INSERT —— 财务能直接往 sales_records 插一行(Batch B grilling 读出,2026-09-23)
-
-`sales_records` 的 INSERT 策略是 `module.finance.edit`(`db/tables/sales_records.sql:104-107`)—— 持码的人能不经
-`record_output_sale` 直接插一行销售(不动库存、不过账;唯一的检查是 `guard_batch_form_saleable`)。
-去处:ROLE-1 Batch 2b (f)(Q14:建的时候先确认没有正当的直写,再关)。
+矩阵 §7 说定价公式只归 cco。Batch 2b 从 cto 与 finance 拿掉了 `module.pricing.edit`,而 **`procurement` 与 `sales` 两个角色仍持有它** ——
+以 postgres 读基表 `role_permissions` / `user_roles`(过滤 `revoked_at IS NULL`):两个角色今天**没有一个持有人**。照 Batch 1 的先例
+(无人持有的角色不动,`ROLE1-UNHELD-HR-ROLE-LOST-REVIEWS`)不碰,登记在这里。**风险只在有人被授予这两个角色的那一刻出现**:
+那个人就能写定价公式。删除条件:这两个角色被删除,或者 Tim 裁定它们的码表。
 
 ## PAYREQB-AP-VIEW-DISAGREES-WITH-GL-2000 —— 应付未清视图与 2000 科目余额对不上(Batch B grilling 量出,2026-09-23)
 

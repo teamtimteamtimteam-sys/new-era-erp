@@ -47,14 +47,11 @@ CREATE POLICY "contract penalty elements select by owner permission"
     USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
                      AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.view'::text))
                        OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.view'::text)))));
+-- ★ ROLE-1 Batch 2b(Batch 2 grilling Q12 · Batch 2b grilling Q1):写条款只归 cco(action.contract_terms)。
 CREATE POLICY "contract penalty elements write by owner permission"
     ON public.contract_penalty_elements AS PERMISSIVE FOR ALL TO authenticated
-    USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))))
-    WITH CHECK (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))));
+    USING (has_permission('action.contract_terms'::text))
+    WITH CHECK (has_permission('action.contract_terms'::text));
 
 COMMENT ON TABLE public.contract_penalty_elements IS
     'SETTLE-1:有害元素惩罚 —— **物质 + 阈值 + 费率**,三样都是合同条款,逐物质一行。前置条件(substances 字典)已完成,所以这里挂的是**外键而不是又一列自由文本**(F7:自由文本迟早要变字典,拖延很贵)。★★**费率的形状是【一种】写法,不是唯一一种**★★:本表表达「超过阈值后,每超 1 个百分点、每吨**结算重量**收多少美元」;真实合同还有阶梯、封顶、按批一口价等写法 —— **Tim 没有给条款清单**,所以本刀只建这一种,并把这句话写在这里,好让下一个拿到真合同的人知道该在哪儿加,而不是以为这就是全部。★**惩罚按结算重量收,所以它随湿基/干基变**★(与 RC 相反,RC 按含金属吨数、而含金属是不变量)—— 两条合起来解释了为什么同一批货按湿基与按干基结算出**不同的金额**。★**具名的缺席**★:访谈点名的头两个惩罚元素是**氟与氯**,而它们**今天不在 substances 里**(在册 7 条:al/co/cu/fe/li/mn/ni)—— 所以一条氟或氯的惩罚条款**今天填不进来**,那不是本表的缺陷,是字典还缺两行。';
@@ -72,4 +69,4 @@ COMMENT ON COLUMN public.contract_penalty_elements.usd_per_tonne_per_pct_over IS
 -- 这道闸【只】管模块级的没权限;这张表的策略还判【行】,那一半仍由应用层兜着。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.contract_penalty_elements
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.customers.edit', 'module.suppliers.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.contract_terms');

@@ -15,6 +15,7 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import { submitOutputAssay, type SubmitOutputAssayState } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 
 /** 桥上交出去的一行 —— 与搬家前那两条并列数组逐字同构。 */
@@ -36,6 +37,7 @@ export default function OutputAssayForm({
     batchId,
     currentMetals,
     impact,
+    canApply,
 }: {
     // PROC-5:实验室字典(值 + 已翻好的名字),由页面读好传进来
     labOptions: DictOption[]
@@ -52,6 +54,9 @@ export default function OutputAssayForm({
         producing_run_basis: string | null
         will_flag_stale: boolean
     } | null
+    /** ROLE-1 Batch 2b(Q15 · Q5):应用与试算归 action.apply_assay(cto)。没有它的人:
+     *  后果不去问,「记录并应用」看得见、按不动、说出码,「仅记录」成为主按钮。 */
+    canApply: boolean
 }) {
     const t = useTranslations()
     const bound = submitOutputAssay.bind(null, batchId)
@@ -285,7 +290,11 @@ export default function OutputAssayForm({
             </div>
 
             {/* ── 应用的后果(服务端问库;试算失败不挡记录,但要说"后果未知")── */}
-            {impact === null ? (
+            {!canApply ? (
+                <p className="text-sm text-[color:var(--brand-muted-text)]" data-state-note="preview-restricted">
+                    {t('assay.previewRestricted')}
+                </p>
+            ) : impact === null ? (
                 <p className="text-sm text-amber-800 bg-amber-50 border border-amber-300 rounded px-3 py-2">
                     {t('assay.output.impactUnavailable')}
                 </p>
@@ -301,21 +310,23 @@ export default function OutputAssayForm({
 
             {/* ── 提交 ── */}
             <div className="flex flex-wrap gap-3 pt-2 border-t">
-                <Button variant="secondary"
+                <Button variant={canApply ? 'secondary' : 'default'}
                     type="submit"
                     name="intent"
                     value="record"
                     disabled={isPending}>
                     {t('assay.saveOnly')}
                 </Button>
-                <Button
-                    type="submit"
-                    name="intent"
-                    value="record_apply"
-                    disabled={isPending}
-                >
-                    {isPending ? t('common.saving') : t('assay.saveAndApply')}
-                </Button>
+                <PermissionGate code="action.apply_assay" allowed={canApply}>
+                    <Button variant={canApply ? 'default' : 'secondary'}
+                        type="submit"
+                        name="intent"
+                        value="record_apply"
+                        disabled={isPending}
+                    >
+                        {isPending ? t('common.saving') : t('assay.saveAndApply')}
+                    </Button>
+                </PermissionGate>
                 <Button asChild variant="secondary">
                     <Link
                         href={`/output/${batchId}/edit`}

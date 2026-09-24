@@ -28,6 +28,7 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export default async function AssayDetailPage({
     params,
@@ -97,6 +98,9 @@ export default async function AssayDetailPage({
     //   —— 整行消失。屏幕于是说「这次改价没有过账」,而它过了。
     //   ★ 补法是 (b):总账在财务那道门后面,把它给现场是扩权,不是查名。
     const canSeeJournal = await can('module.finance.view')
+    // ROLE-1 Batch 2b(Q15):应用、撤销应用与它们的试算归 action.apply_assay(cto)。
+    //   没有它的人:试算不去问(问了也是 PERMISSION_DENIED),两颗钮看得见、按不动、说出码。
+    const canApply = await can('action.apply_assay')
     const batch = maskedExcept<Tables<'inbound_batches'>, 'unit_price'>(batchRes.data)
     if (!batch) notFound()
 
@@ -148,7 +152,7 @@ export default async function AssayDetailPage({
     //    (录入页那边含量在动,才需要防抖的实时预览)──
     let preview: { result: CalcResult; impact?: AssayImpact } | null = null
     let previewError: string | null = null
-    if (!isApplied && metals.length > 0) {
+    if (!isApplied && metals.length > 0 && canApply) {
         // FIN-27:承诺解析 + 算价 + 拆账试算全在 preview_assay_price 里 ——
         // 与 apply_assay_result 逐字同构,所以这一页展示的数就是按下"应用"会落的数。
         // 有公式引用却没有承诺副本时它点名拒,错误照原样显示给操作员。
@@ -362,7 +366,13 @@ export default async function AssayDetailPage({
                             {previewError}
                         </div>
                     )}
-                    {preview ? (
+                    {!canApply ? (
+                        // ★ 没问试算,所以【不许】说"没有公式"—— 那是一句关于数据的话,
+                        //   而这里真实的原因是权限(一个「0 行」先问是谁读的)。
+                        <p className="text-sm text-[color:var(--brand-muted-text)]" data-state-note="preview-restricted">
+                            {t('assay.previewRestricted')}
+                        </p>
+                    ) : preview ? (
                         <AssayImpactPreview res={preview.result} impact={preview.impact} baseCurrency={baseCurrency} />
                     ) : (
                         <p className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded text-sm">
@@ -372,7 +382,9 @@ export default async function AssayDetailPage({
                     {/* ASY-1:预览报错 = 应用一定会失败(试算与提交同一段算术、同一批闸)。
                         理由横幅就在上面,按钮跟着它走 —— 不提供服务端保证会拒的控件。 */}
                     <div className="mt-4">
-                        <ApplyNowButton assayId={assayId} batchId={id} blocked={!!previewError} />
+                        <PermissionGate code="action.apply_assay" allowed={canApply}>
+                            <ApplyNowButton assayId={assayId} batchId={id} blocked={!!previewError} />
+                        </PermissionGate>
                     </div>
                 </section>
             )}
@@ -380,7 +392,9 @@ export default async function AssayDetailPage({
             {/* 最近一次已应用的化验可以撤销(不回价 —— 控件里挂着提醒)*/}
             {isLatestApplied && (
                 <section className="border-t pt-6">
-                    <UnapplyControl assayId={assayId} batchId={id} subject={`${assay.code} · ${batch.code}`} />
+                    <PermissionGate code="action.apply_assay" allowed={canApply}>
+                        <UnapplyControl assayId={assayId} batchId={id} subject={`${assay.code} · ${batch.code}`} />
+                    </PermissionGate>
                 </section>
             )}
         </div>

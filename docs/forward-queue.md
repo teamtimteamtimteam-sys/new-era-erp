@@ -3,7 +3,7 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;ROLE-1 Batch 2a 交回时更新:下一刀是 ROLE-1 Batch 2b)
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;ROLE-1 Batch 2b 交回时更新:下一刀是工资过账审批)
 > 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(`fa7821ab`)·
 >    **✅ AP-RECON-1 Batch B** —— 残留登记表 + 常设勾稽 + 月结那一行 + 严格相等的 fixture 213 + 那一分钱 +
 >    带税订单发票 + **三条日期规矩与 32 份 fixture 的日期挪回真实的过去**(Tim 2026-09-24:日期规矩属于 AP-RECON-1,
@@ -15,7 +15,11 @@
 > 2. **✅ ROLE-1 Batch 2a**(2026-09-24)—— (a) 财务设置 · (b) 客户信用 · (c) 供应商审批 + 未批准供应商不付款、不开新单。
 >    见 `docs/handbacks/ROLE-1.md` § Batch 2a。★ **落地之后:Choo Er 送审 Acme / Bosch / Ever Higher,Tim(tim@)批准 ——
 >    在那之前 377,173.50 付不出去**(外加已删的 ZZ1B-GDS 500.00,永远付不出去,记在 known-wrong)。
-> 3. **⬜ ROLE-1 Batch 2b ← 下一刀** —— (d) 合同条款 · (e) 金属价格 · (f) 直接销售 · (g) 化验(下文 § ROLE-1 Batch 2b)。
+> 3. **✅ ROLE-1 Batch 2b**(2026-09-24)—— (d) 合同条款 `action.contract_terms` → cco · (e) 金属行情 `action.metal_prices` → 财务、
+>    定价公式只剩 cco · (f) 直接销售 `action.direct_sale` → cco、`sales_records` 没有直连写 · (g) 应用化验 `action.apply_assay` → cto;
+>    ★ Tim 的常设裁定落地:**admin 角色持每一个码,每一个新码在同一支迁移里一并授给它**。见 `docs/handbacks/ROLE-1.md` § Batch 2b。
+> 4. **⬜ 工资过账审批 ← 下一刀** —— [LC] 队列第 2 条(下文 § ROLE-1 [LC] 队列):工资过账与撤销,财务做、CFO 批。
+>    ★ 它是 ROLE-1 之后的第一条生命周期;新码照 Tim 的常设裁定一并授给 admin。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**
 > * **⬜ 管理包那一版 `gl_control_reconciliation` 的改基**(Tim AP-RECON-1 Q8):冻在 `management_packs` 里的包读它的三个键;
@@ -6222,7 +6226,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 >   加 `supplier`)· ★ **未批准供应商不付款**(Tim 2026-09-23):只有 `approved` / `active` 且未删的供应商付得了 —— 付款申请的提、批、付
 >   都按名拒;付款冲销不拦;**新开采购单也拒**(已开的四张照收);**迁移里不替任何人批**,落地后 Choo Er 送审、Tim 批
 >   (Acme / Bosch / Ever Higher 是仅有的三家带应付的 draft;在批准之前 377,164.50 付不了 —— 交回报告要写进破窗那一节)。
-> * **⬜ Batch 2b ← 下一会话**:(d) 合同条款(`action.contract_terms` 管建合同与 7 张条款表;**把单据挂到合同上不算**,留在单据的码上)·
+> * **✅ Batch 2b**(2026-09-24,`docs/handbacks/ROLE-1.md` § Batch 2b):(d) 合同条款(`action.contract_terms` 管建合同与 7 张条款表;**把单据挂到合同上不算**,留在单据的码上)·
 >   (e) 定价(`metal_prices` / `pricing_settings` / `index_market_calendar` / **`metal_price_indices`** → `action.metal_prices`;
 >   `pricing.edit` 从 cto 与 finance 拿掉;公式页补门)· (f) 直接销售(`action.direct_sale`;确认没有正当直写后关掉
 >   `sales_records` 对 finance.edit 的 INSERT)· (g) 化验(`action.apply_assay` 管应用与撤销、进料与产出、连同预览;**录入**化验
@@ -6278,7 +6282,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 | # | 生命周期 | 覆盖矩阵里的哪几行 | 大小 |
 |--:|---|---|---|
 | 1 | **付款申请** —— ✅ **Batch A 已上线(PAY-REQ-1,2026-09-23)**:付款与冲销付款 · ✅ **Batch B 已推送(2026-09-23)**:银行转账与其冲销、预扣税缴纳与其冲销 · ~~采购质保金释放~~ 撤回(Tim 的 Q5:不动钱、不生应付)| 做完 |
-| 2 | 工资过账申请 | 工资过账与撤销 | M |
+| 2 | 工资过账申请 **← 下一刀**(ROLE-1 Batch 2b 交回时定)| 工资过账与撤销 | M |
 | 3 | 调薪申请 | 调薪(第一份月薪以外的每一次)| M |
 | 4 | GST 申报审批 | GST 申报与更正 | M |
 | 5 | 收货定价审批 | 收货定价与改价(每一次都过应付)| M–L |

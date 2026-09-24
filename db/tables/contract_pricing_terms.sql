@@ -71,14 +71,11 @@ CREATE POLICY "contract pricing terms select by owner permission"
     USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
                      AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.view'::text))
                        OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.view'::text)))));
+-- ★ ROLE-1 Batch 2b(Batch 2 grilling Q12 · Batch 2b grilling Q1):写条款只归 cco(action.contract_terms)。
 CREATE POLICY "contract pricing terms write by owner permission"
     ON public.contract_pricing_terms AS PERMISSIVE FOR ALL TO authenticated
-    USING (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))))
-    WITH CHECK (EXISTS (SELECT 1 FROM contracts c WHERE c.id = contract_id
-                     AND ((c.customer_id IS NOT NULL AND has_permission('module.customers.edit'::text))
-                       OR (c.supplier_id IS NOT NULL AND has_permission('module.suppliers.edit'::text)))));
+    USING (has_permission('action.contract_terms'::text))
+    WITH CHECK (has_permission('action.contract_terms'::text));
 
 COMMENT ON TABLE public.contract_pricing_terms IS
     'PRICE-1:指数挂钩定价的条款 —— **合同的第四个兄弟子表**,位置是 CONTRACT-1 的 contracts 表注指定的(定价的列**不**加在 contracts 那一行上,那正是本刀要迁走的形状)。装的是【条款】:base_event(§6.1 基准月由哪个事件定义 —— **逐合同不同**)与 payable_pct(§6.3 计价系数 —— **写在合同里**),外加 M+n 与指数序列。★★**它没有暂定价那一列,而那个缺席是本表最要紧的一件事**★★:§6 第 2 条裁定暂定价**逐笔谈**、不设固定折扣、**也不设合同级默认值** —— 在这里加一列哪怕留空,都会变成一个看起来该填的格子,而一旦有人填了它,「逐笔谈」在事实上就变成了「合同级默认值」,正是那条裁定明说不要的东西。**逐元素一行**,跟 pricing_formula_metals 既有形状走。★**它不表达什么,而这些是没人裁过、不是漏了**★:按料号分别定价(粒度没人裁过);**采购侧** —— §9 明说采购侧要不要用指数联动「本文件没有答案,需要 Tim 说明」,所以本刀只做卖方向,并**刻意不扩 pricing_term_commitments**(买方向的承诺表),因为扩它等于**替 Tim 把那个问题答了**,而**一条被暗示的裁定比一个敞着的问题坏**。';
@@ -99,4 +96,4 @@ COMMENT ON COLUMN public.contract_pricing_terms.qp_months IS
 -- 这道闸【只】管模块级的没权限;这张表的策略还判【行】,那一半仍由应用层兜着。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.contract_pricing_terms
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.customers.edit', 'module.suppliers.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.contract_terms');

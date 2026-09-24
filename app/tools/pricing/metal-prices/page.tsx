@@ -86,8 +86,8 @@ export default async function MetalPricesPage({
     if (denied) return denied
 
     //   写(new / bulk / [id]/edit) 那三页的守卫一个字没动:
-    //   写(new / bulk / [id]/edit) INSERT|UPDATE|DELETE ... has_permission('module.pricing.edit')
-    //                             → requireEditPermission('module.pricing.edit', ...)
+    //   写(new / bulk / [id]/edit) INSERT|UPDATE|DELETE ... has_permission('action.metal_prices')
+    //                             → requireEditPermission('action.metal_prices', ...)
     //
     // (策略原文见 db/tables/metal_prices.sql;完整理由见 lib/modules.ts 的 /tools/pricing 那一条。)
     //
@@ -141,7 +141,7 @@ export default async function MetalPricesPage({
     )
     const rows = data as unknown as MetalPriceRow[] | null
 
-    // METAL-1:阈值(人人可读)+ 能不能改(module.pricing.edit,与 RLS 同码)。
+    // METAL-1:阈值(人人可读)+ 能不能改(action.metal_prices,与 RLS 同码)。
     // mustOne:引导必须给出这一行,读不到要炸,不能当成"没有配置"悄悄过去。
     const settingsRes = await supabase
         .from('pricing_settings')
@@ -155,7 +155,7 @@ export default async function MetalPricesPage({
         // 以 PRICING_SETTINGS_MISSING 拒答。
         throw new Error('pricing_settings 引导行缺失:异常提示的阈值读不到')
     }
-    const canEditPrices = await can('module.pricing.edit')
+    const canEditPrices = await can('action.metal_prices')
 
     // metal 存储值反查成本地化文案;未知值原样显示
     const metalLabel = (value: string) => {

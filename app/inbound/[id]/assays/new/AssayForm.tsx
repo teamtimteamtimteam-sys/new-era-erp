@@ -25,6 +25,7 @@ import {
 } from '../actions'
 import { Button } from '@/app/components/ui/button'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 /** 桥上交出去的一行。★ 形状与搬家前那两条并列数组【逐字同构】:
  *  一个金属码 + 一个含量字符串,一行一对。服务端因此只换【行从哪来】,
@@ -48,6 +49,7 @@ export default function AssayForm({
     pricingRestricted = false,
     currentMetals,
     baseCurrency,
+    canApply,
 }: {
     // PROC-5:实验室字典(值 + 已翻好的名字),由页面读好传进来
     labOptions: DictOption[]
@@ -70,6 +72,9 @@ export default function AssayForm({
     currentMetals: Record<string, string>
     // ASY-3:影响块用它标出自己的货币(面板在那里换单位)
     baseCurrency: string
+    /** ROLE-1 Batch 2b(Q15 · Q5):应用化验与它的试算归 action.apply_assay(cto)。没有它的人:
+     *  试算不去问,「记录并应用」看得见、按不动、说出码,「仅记录」照常是主按钮。 */
+    canApply: boolean
 }) {
     const t = useTranslations()
     const bound = submitAssay.bind(null, batch.id)
@@ -83,7 +88,7 @@ export default function AssayForm({
     // 含量/日期变化 → 防抖重算预览。setState 都发生在异步回调里,不在 effect 主体中。
     const metalsKey = JSON.stringify(metals)
     useEffect(() => {
-        if (!formula) return
+        if (!formula || !canApply) return
         let cancelled = false
         const timer = setTimeout(() => {
             setPreviewing(true)
@@ -122,7 +127,7 @@ export default function AssayForm({
             cancelled = true
             clearTimeout(timer)
         }
-    }, [batch.id, formula, metalsKey, assayDate, t])
+    }, [batch.id, formula, canApply, metalsKey, assayDate, t])
 
     const res = preview.result
     const impact = preview.impact
@@ -133,7 +138,7 @@ export default function AssayForm({
     // "记录并应用"不该再摆成主按钮:不提供服务端保证会拒的控件。理由横幅已经在
     // 屏幕上说清了,这里只让按钮跟着它走 —— 不另写一句话。
     // 【警告不是拒绝】净值 ≤ 0(negative)照旧可应用:含量要落地,只是不定价。
-    const applyBlocked = !!preview.error
+    const applyBlocked = !!preview.error || !canApply
 
     // ★★★【桥的行从【页面画出来的那一份名单】来,不从整个 Record 来】★★★
     //   `metals` 这个 Record 的起点是 `currentMetals` —— 批次上【已经录过】的含量。
@@ -340,6 +345,13 @@ export default function AssayForm({
                     hint={t('assay.pricingRestrictedHint')}
                     code="module.pricing.view"
                 />
+            ) : !canApply ? (
+                /* ROLE-1 Batch 2b:试算归 action.apply_assay。没问它,所以不许说"没有公式"。 */
+                <RefusalBlock
+                    statement={t('assay.previewRestricted')}
+                    hint={t('assay.previewRestrictedHint')}
+                    code="action.apply_assay"
+                />
             ) : !formula ? (
                 <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded text-sm">
                     {t('assay.noFormula')}
@@ -379,13 +391,15 @@ export default function AssayForm({
                     disabled={isPending}>
                     {t('assay.saveOnly')}
                 </Button>
-                <Button variant={applyBlocked ? 'secondary' : 'default'}
-                    type="submit"
-                    name="intent"
-                    value="record_apply"
-                    disabled={isPending || applyBlocked}>
-                    {isPending ? t('common.saving') : t('assay.saveAndApply')}
-                </Button>
+                <PermissionGate code="action.apply_assay" allowed={canApply}>
+                    <Button variant={applyBlocked ? 'secondary' : 'default'}
+                        type="submit"
+                        name="intent"
+                        value="record_apply"
+                        disabled={isPending || applyBlocked}>
+                        {isPending ? t('common.saving') : t('assay.saveAndApply')}
+                    </Button>
+                </PermissionGate>
                 <Button asChild variant="secondary">
                     <Link
                         href={`/inbound/${batch.id}/edit`}

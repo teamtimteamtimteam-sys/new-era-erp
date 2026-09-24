@@ -1,4 +1,6 @@
 -- 129 供应报在【开票】那一期,而 F5 的销项侧从单据推导(GST-2)
+-- ROLE-1 Batch 2b(2026-09-24):record_output_sale 的门从 module.output.edit 换成 action.direct_sale,
+-- 所以本 fixture 里会卖货的角色多带一个 action.direct_sale(断言一条没动)。
 --
 -- 【这份 fixture 要钉住的六件事】
 --   (A) 单据【携带】税:税码与税率在开票那一刻【冻在行上】,按发票自己的
@@ -41,7 +43,7 @@ BEGIN
       RETURNING id INTO r_fin;
     INSERT INTO role_permissions (role_id,permission_code)
       SELECT r_fin, unnest(ARRAY['module.finance.view','module.finance.edit',
-                                 'module.output.view','module.output.edit',
+                                 'module.output.view','module.output.edit','action.direct_sale',
                                  'module.sales.view','module.sales.edit',
                                  'module.customers.view','data.view_prices']);
     INSERT INTO user_roles (user_id,role_id) VALUES (v_user,r_fin);

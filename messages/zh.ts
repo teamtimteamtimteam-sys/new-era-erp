@@ -1889,7 +1889,7 @@ const zh = {
             CONTRACT_STATUS_INVALID: '合同只能登记成【草稿】或【生效中】。什么都没有保存。',
             CONTRACT_PERIOD_ORDER: '到期日早于生效日,所以什么都没有保存。请改正其中一个日期;协议没有固定期限的话,把到期日留空。',
             CONTRACT_PAYMENT_TERMS_INVALID: '付款期要是 0 到 365 之间的整天数。什么都没有保存。协议没写就留空。',
-            CONTRACT_NOT_PERMITTED: '登记一份合同,需要它【所属那一侧】的编辑权限 —— 与供应商签的要供应商档案编辑权,与客户签的要客户档案编辑权 —— 而你对刚才选的那一方没有。什么都没有保存。请让系统管理员授予你那个模块的编辑权限,或者改为登记一份你有权编辑的对手方的合同。',
+            CONTRACT_NOT_PERMITTED: '登记一份合同或写它的条款,需要合同条款权限(action.contract_terms),它归 CCO。什么都没有保存。如果你应当有这项权限,请找系统管理员。',
         
 
             SETTLEMENT_ARGUMENTS_REQUIRED: '结算要同时给出销售单、产出批次与一份化验结果。',
@@ -2852,6 +2852,7 @@ const zh = {
             errors: {
                 OUTPUT_NOT_FOUND: '产出批次不存在',
                 SALE_DATE_REQUIRED: '销售日期必填 —— 它决定汇率、库存流水的业务日期,以及收入与 COGS 两张分录的期间。',
+                SALE_THROUGH_FUNCTION_ONLY: '一笔销售只能经由销售表单记录(它会动库存、过收入与销货成本)—— 不能直接写销售记录。什么都没有保存。',
                 OUTPUT_DELETED: '批次已被删除',
                 SALE_QTY_INVALID: '售出数量无效',
                 SALE_EXCEEDS_REMAINING: '售出数量({0})超过剩余库存({1})',
@@ -5168,6 +5169,9 @@ const zh = {
         pricingRestricted: '本批次的计价对该账号受限。',
         pricingRestrictedHint:
             '计价公式属于定价模块,而你没有它的访问权。这是一句权限答复 —— 不是说这批货没有计价公式。化验结果照常记录得下;价格由看得见它的人来定。',
+        previewRestricted: '应用化验、以及「应用后会怎样」的试算,归 CTO(action.apply_assay)。化验结果照常记录得下;试算由能应用它的人看。',
+        previewRestrictedHint:
+            '这是一句权限答复,不是说这批货没有计价公式。应用一份进料化验会给批次重新定价、并过到供应商应付,所以它有自己的权限(action.apply_assay)。',
         saveOnly: '仅记录',
         saveAndApply: '记录并应用',
         impactPreview: '应用后的影响',
@@ -5192,6 +5196,8 @@ const zh = {
         },
         errors: {
             ASSAY_BASIS_REQUIRED: '说明这份化验按的是哪种重量 —— 收到时(湿基)还是烘干后(干基)。**一份没说明基准的数字事后还原不出来**:干基 30% 与湿基 30% 是两个数,差多少取决于水分。',
+            ASSAY_APPLY_THROUGH_FUNCTION_ONLY: '一份化验是否已应用,只能经由「应用」与「撤销应用」改变(要 action.apply_assay)—— 不能直接改化验记录。什么都没有保存。',
+            ASSAY_CONTENT_THROUGH_FUNCTION_ONLY: '标着「出自化验」的金属含量,只能由应用那份化验写出(要 action.apply_assay)。请改为手工录入 —— 它会记作手工。什么都没有保存。',
             ASSAY_RESULT_PARTY_REQUIRED: '说明这份结果是谁出的 —— 我们、对手方、还是仲裁实验室。**刻意没有默认值**:默认成"我们"会让一个忘了改的字段变成"这是我们测的"这句话。',
             INBOUND_NOT_FOUND: '进料批次不存在',
             ASSAY_DATE_INVALID: '化验日期 {0} 无效或晚于今天',

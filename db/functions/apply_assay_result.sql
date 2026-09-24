@@ -23,7 +23,7 @@ DECLARE
     v_prior    uuid;
     v_note     text := NULL;
 BEGIN
-    PERFORM require_permission('module.inbound.edit');
+    PERFORM require_permission('action.apply_assay');
     SELECT * INTO v_assay FROM assay_results
     WHERE id = p_assay_result_id AND deleted_at IS NULL
     FOR UPDATE;

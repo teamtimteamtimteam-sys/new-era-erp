@@ -1,7 +1,10 @@
 'use client'
 
 // METAL-1:阈值面板。人人看得见(阈值不是秘密,提示里就印着它),
-// 有 module.pricing.edit 的人改得动。
+// 有 action.metal_prices 的人改得动(ROLE-1 Batch 2b:金属行情与阈值归财务;此前是
+// module.pricing.edit)。没有这个码的人看见的是【同一张表单,按不动,说出码】
+// (DBLOCK-1 的 PermissionGate)—— 此前这里对他们整块换成一行只读文字,那正是
+// "一个藏起来的钮教给人的是这个功能不存在"。
 //
 // 【为什么把它摆在行情列表页上】改阈值的人就是录行情的人 —— 把这个数字放进
 // /finance/settings 会让它归到另一批人名下,而他们不看这块屏。
@@ -10,6 +13,7 @@ import { useActionState } from 'react'
 import { updateAnomalyThreshold, type ThresholdState } from './thresholdActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const initialState: ThresholdState = {}
 
@@ -41,7 +45,7 @@ export default function ThresholdPanel({
                 </div>
             )}
 
-            {canEdit ? (
+            <PermissionGate code="action.metal_prices" allowed={canEdit}>
                 <form action={formAction} className="flex flex-wrap items-end gap-3">
                     <div>
                         <label className="block mb-1">
@@ -64,12 +68,7 @@ export default function ThresholdPanel({
                         {isPending ? t('common.saving') : t('common.save')}
                     </Button>
                 </form>
-            ) : (
-                <p className="text-sm">
-                    {t('metalPrices.settings.label')}:{' '}
-                    <span>{thresholdPct}</span>
-                </p>
-            )}
+            </PermissionGate>
 
             {/* 引导里那一行自带的说明 —— "这是默认值,不是决定"就写在数据里,
                 而不是只写在某次提交的说明里 */}

@@ -8,6 +8,7 @@ import DraftBanner from '@/app/components/DraftBanner'
 import { useTranslations } from '@/lib/i18n/client'
 import { createContract, type CreateContractState } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 const initialState: CreateContractState = {}
@@ -21,6 +22,7 @@ export default function NewContractForm({
     customers,
     canSeeSuppliers,
     canSeeCustomers,
+    canWriteContracts,
     currencies,
 }: {
     suppliers: PartyOption[]
@@ -28,6 +30,8 @@ export default function NewContractForm({
     /** ★ 看不看得见【不等于】列表是空的 —— 见下面那两句具名的缺席。 */
     canSeeSuppliers: boolean
     canSeeCustomers: boolean
+    /** ROLE-1 Batch 2b:写合同只归 action.contract_terms(cco)。由页面 `can()` 算好传进来。 */
+    canWriteContracts: boolean
     currencies: string[]
 }) {
     const t = useTranslations()
@@ -209,9 +213,11 @@ export default function NewContractForm({
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                    <Button type="submit" disabled={isPending}>
-                        {isPending ? t('common.saving') : t('common.save')}
-                    </Button>
+                    <PermissionGate code="action.contract_terms" allowed={canWriteContracts}>
+                        <Button type="submit" disabled={isPending}>
+                            {isPending ? t('common.saving') : t('common.save')}
+                        </Button>
+                    </PermissionGate>
                     <Button asChild variant="secondary">
                         <Link href="/contracts">{t('common.cancel')}</Link>
                     </Button>

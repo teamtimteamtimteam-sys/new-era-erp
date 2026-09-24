@@ -17,6 +17,7 @@ import { MOD } from '@/lib/modules'
 import { loadSubstances, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
 import { getLocale } from '@/lib/i18n/server'
 import { loadLaboratories, toDictOptions } from '@/app/components/dictionaries/dictionaryQuery'
+import { can } from '@/lib/permissions'
 
 export default async function NewOutputAssayPage({
     params,
@@ -57,9 +58,12 @@ export default async function NewOutputAssayPage({
 
     // 应用的后果【问库】:产出它的加工单是谁、"记录并应用"会不会让分摊过期。
     // 谓词与过期视图第六源同一条(preview_apply_output_assay 的注释里有账)。
-    const { data: impactRaw, error: impactErr } = await supabase.rpc('preview_apply_output_assay', {
-        p_output_batch_id: id,
-    })
+    // ROLE-1 Batch 2b(Q15):试算归 action.apply_assay(cto)。没有它的人不去问 —— 问了是
+    //   PERMISSION_DENIED,而表单会把那读成"后果未知";它真实的意思是"这不归你看"。
+    const canApply = await can('action.apply_assay')
+    const { data: impactRaw, error: impactErr } = canApply
+        ? await supabase.rpc('preview_apply_output_assay', { p_output_batch_id: id })
+        : { data: null, error: null }
     // 试算失败不挡记录:化验单是实验室出的客观事实,先落库;后果说明缺席时
     // 表单顶部会说明"后果未知",applying 仍走服务端的同一套闸。
     const impact = impactErr
@@ -102,6 +106,7 @@ export default async function NewOutputAssayPage({
                 batchId={batch.id}
                 currentMetals={currentMetals}
                 impact={impact}
+                canApply={canApply}
             />
         </div>
     )

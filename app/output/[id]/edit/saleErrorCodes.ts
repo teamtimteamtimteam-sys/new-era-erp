@@ -5,6 +5,8 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // 镜像 app/operation/errorCodes.ts 的 CODE|params 宽松解析。
 const SALE_ERROR_CODES = new Set([
     'SALE_DATE_REQUIRED',
+    // ROLE-1 Batch 2b(Q3):sales_records 没有直连写 —— 直写按名拒
+    'SALE_THROUGH_FUNCTION_ONLY',
     'FX_RATE_MISSING', 'FX_RATE_NOT_ACCEPTED',
     'OUTPUT_NOT_FOUND', 'OUTPUT_DELETED', 'SALE_QTY_INVALID', 'SALE_EXCEEDS_REMAINING',
     // cut 1 — 销售必须带价

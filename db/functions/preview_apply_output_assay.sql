@@ -12,7 +12,7 @@ DECLARE
     v_next    jsonb := NULL;
 BEGIN
     -- 试算给要按"应用"的人看 —— 权限同 apply_output_assay
-    PERFORM require_permission('module.output.edit');
+    PERFORM require_permission('action.apply_assay');
 
     SELECT * INTO v_batch FROM output_batches
     WHERE id = p_output_batch_id AND deleted_at IS NULL;

@@ -19,6 +19,8 @@ import { ApplyOutputAssayButton, UnapplyOutputAssayControl } from './OutputApply
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 type PreviewCurrentRow = {
@@ -105,7 +107,10 @@ export default async function OutputAssayDetailPage({
     // ── 未应用:"应用会怎样"问库(与应用同一串拒绝;拒绝原样显示)──
     let preview: ApplyPreview | null = null
     let previewError: string | null = null
-    if (!isApplied) {
+    // ROLE-1 Batch 2b(Q15):应用、撤销应用与试算归 action.apply_assay(cto)。没有它的人:
+    //   试算不去问(问了也是 PERMISSION_DENIED),两颗钮看得见、按不动、说出码。
+    const canApply = await can('action.apply_assay')
+    if (!isApplied && canApply) {
         const { data: prevRaw, error: prevErr } = await supabase.rpc('preview_apply_output_assay', {
             p_output_batch_id: id,
             p_assay_result_id: assayId,
@@ -274,6 +279,11 @@ export default async function OutputAssayDetailPage({
                             {previewError}
                         </div>
                     )}
+                    {!canApply && (
+                        <p className="text-sm text-[color:var(--brand-muted-text)] mb-3" data-state-note="preview-restricted">
+                            {t('assay.previewRestricted')}
+                        </p>
+                    )}
                     {preview && (
                         <>
                             <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('assay.output.replacesAll')}</p>
@@ -320,14 +330,18 @@ export default async function OutputAssayDetailPage({
                         </>
                     )}
                     {/* 试算报错 = 应用一定会失败(同一串拒绝)。理由横幅在上面,按钮跟着走 */}
-                    <ApplyOutputAssayButton assayId={assayId} batchId={id} blocked={!!previewError} />
+                    <PermissionGate code="action.apply_assay" allowed={canApply}>
+                        <ApplyOutputAssayButton assayId={assayId} batchId={id} blocked={!!previewError} />
+                    </PermissionGate>
                 </section>
             )}
 
             {/* 最近一次已应用的化验可以撤销(不回含量 —— 控件里挂着提醒)*/}
             {isLatestApplied && (
                 <section className="border-t pt-6">
-                    <UnapplyOutputAssayControl assayId={assayId} batchId={id} subject={`${assay.code} · ${batch.code}`} />
+                    <PermissionGate code="action.apply_assay" allowed={canApply}>
+                        <UnapplyOutputAssayControl assayId={assayId} batchId={id} subject={`${assay.code} · ${batch.code}`} />
+                    </PermissionGate>
                 </section>
             )}
         </div>

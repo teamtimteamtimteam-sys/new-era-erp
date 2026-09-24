@@ -21,15 +21,15 @@ export default async function BulkPricesPage({
 }: {
     searchParams: Promise<{ date?: string; index?: string }>
 }) {
-    // 【本页把关用 module.pricing.edit,不是 module.pricing.view。这是那条规矩的「写」那一半】
+    // 【本页把关用 action.metal_prices,不是 module.pricing.view。这是那条规矩的「写」那一半】
     // 规矩只有一条:【守卫跟着数据自己的 RLS 走,不跟模块目录走】。
     // 而一张表的 RLS 本来就有读、写两个答案,metal_prices 的这两个答案【不一样】——
     // 所以 app/tools/pricing/metal-prices/ 底下四页带着两种守卫,那是【同一条规则的两半,不是例外】:
     //
     //   读(列表页 /tools/pricing/metal-prices)  SELECT ... USING (true)
     //                             → 不设守卫
-    //   写(new / bulk / [id]/edit) INSERT|UPDATE|DELETE ... has_permission('module.pricing.edit')
-    //                             → requireEditPermission('module.pricing.edit', ...)
+    //   写(new / bulk / [id]/edit) INSERT|UPDATE|DELETE ... has_permission('action.metal_prices')
+    //                             → requireEditPermission('action.metal_prices', ...)
     //
     // (策略原文见 db/tables/metal_prices.sql;完整理由见 lib/modules.ts 的 /tools/pricing 那一条。)
     //
@@ -38,7 +38,7 @@ export default async function BulkPricesPage({
     // 再被数据库以 42501 拒收。不设守卫则只错后一头。边界仍然是那几条 WITH CHECK 策略;
     // 这里只是不要把一张注定被拒收的表单摆到人面前。
 
-    const denied = await requireEditPermission('module.pricing.edit', 'nav.metalPrices')
+    const denied = await requireEditPermission('action.metal_prices', 'nav.metalPrices')
     if (denied) return denied
 
     const sp = await searchParams

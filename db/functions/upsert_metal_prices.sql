@@ -15,7 +15,7 @@ DECLARE
     v_skipped  integer := 0;
     v_was_ins  boolean;
 BEGIN
-    PERFORM require_permission('module.pricing.edit');
+    PERFORM require_permission('action.metal_prices');
     -- METAL-2:录入的是【哪个指数】的行情。NULL = 未声明(老序列),它是一个
     -- 可表示的状态而不是默认值 —— 界面上是一个必须选的下拉,而不是留空就当某个值。
     IF p_price_index IS NOT NULL

@@ -1,4 +1,6 @@
 -- 130 一个够得着、又搁不死东西的开关(GST-3)
+-- ROLE-1 Batch 2b(2026-09-24):record_output_sale 的门从 module.output.edit 换成 action.direct_sale,
+-- 所以本 fixture 里会卖货的角色多带一个 action.direct_sale(断言一条没动)。
 --
 -- 【这份 fixture 钉住的四件事】
 --   (R) 打开的前置:**登记号必须在册**。IRAS 要求税务发票上印它,而发票 PDF
@@ -29,7 +31,7 @@ BEGIN
       RETURNING id INTO r_fin;
     INSERT INTO role_permissions (role_id,permission_code)
       SELECT r_fin, unnest(ARRAY['module.finance.view','module.finance.edit',
-                                 'module.output.view','module.output.edit',
+                                 'module.output.view','module.output.edit','action.direct_sale',
                                  'module.customers.view','data.view_prices']);
     INSERT INTO user_roles (user_id,role_id) VALUES (v_user,r_fin);
 

@@ -66,7 +66,9 @@ BEGIN
                             'module.output.edit','module.output.view',
                             'module.finance.view','data.view_prices',
                             -- ROLE-1(2026-09-23):加工成本分摊改归财务(allocate_processing_costs 的门)
-                            'module.finance.edit']);
+                            'module.finance.edit',
+                            -- ROLE-1 Batch 2b(2026-09-24):应用 / 撤销 / 试算化验改归 action.apply_assay
+                            'action.apply_assay']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u1, r1);
 
     INSERT INTO roles (code, name_en, name_zh, is_active)

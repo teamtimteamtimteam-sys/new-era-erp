@@ -16,11 +16,7 @@ BEGIN
     IF NOT FOUND OR v_assay.applied_at IS NULL THEN
         RAISE EXCEPTION 'ASSAY_NOT_FOUND|%', COALESCE(p_assay_result_id::text, '?');
     END IF;
-    IF v_assay.inbound_batch_id IS NOT NULL THEN
-        PERFORM require_permission('module.inbound.edit');
-    ELSE
-        PERFORM require_permission('module.output.edit');
-    END IF;
+    PERFORM require_permission('action.apply_assay');
     IF p_reason IS NULL OR btrim(p_reason) = '' THEN
         RAISE EXCEPTION 'REASON_REQUIRED';
     END IF;

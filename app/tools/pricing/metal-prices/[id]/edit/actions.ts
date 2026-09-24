@@ -137,7 +137,7 @@ export async function softDeleteMetalPrice(id: string): Promise<ActionOutcome> {
     }
 
     if (!data || data.length === 0) {
-        return await refuseNothingChanged('module.pricing.edit')
+        return await refuseNothingChanged('action.metal_prices')
     }
 
     revalidatePath('/tools/pricing/metal-prices')

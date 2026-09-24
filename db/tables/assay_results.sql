@@ -218,3 +218,11 @@ COMMENT ON COLUMN public.assay_results.superseded_by IS
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.assay_results
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.inbound.edit', 'module.output.edit');
+
+-- ── ROLE-1 Batch 2b(Batch 2b grilling Q4)· 应用标记只走函数 ─────────────────────
+-- 记录结果仍归 inbound.edit / output.edit(上面的策略不变);applied_at / applied_by /
+-- superseded_by 三列只由 apply_assay_result / apply_output_assay / unapply_assay_result
+-- (action.apply_assay,cto)写。直连写改动它们 → ASSAY_APPLY_THROUGH_FUNCTION_ONLY。
+CREATE TRIGGER trg_assay_results_applied_columns
+    BEFORE INSERT OR UPDATE ON public.assay_results
+    FOR EACH ROW EXECUTE FUNCTION public.guard_assay_applied_columns();

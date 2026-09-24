@@ -1,4 +1,6 @@
 -- 45 跨两个模块的看板支:视图裁决"缺席"与页面裁决"受限",对同一个人必须同答案
+-- ROLE-1 Batch 2b(2026-09-24):record_output_sale 的门从 module.output.edit 换成 action.direct_sale,
+-- 所以本 fixture 里会卖货的角色多带一个 action.direct_sale(断言一条没动)。
 --
 -- 【判别臂是 C:有 prices、两个模块都没有】这正是合成一个新权限码那条路会错的地方,
 -- 也是单码支表达不了的地方。live 的 procurement 与 sales 就是这个形状:持有
@@ -77,7 +79,7 @@ BEGIN
     -- 两批都卖掉一点(batch_margin 只看已售批次)
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_fin), true);
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_fin, unnest(ARRAY['module.output.edit','module.output.view']);
+    SELECT r_fin, unnest(ARRAY['module.output.edit','action.direct_sale','module.output.view']);
     PERFORM record_output_sale(ob_alloc, 10, 20, v_base, NULL, v_cust, CURRENT_DATE, NULL, 'manual', NULL);
     PERFORM record_output_sale(ob_norun, 10, 20, v_base, NULL, v_cust, CURRENT_DATE, NULL, 'manual', NULL);
 

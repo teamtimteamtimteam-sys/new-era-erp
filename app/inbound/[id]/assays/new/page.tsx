@@ -82,6 +82,8 @@ export default async function NewAssayPage({
     //     (「初期不给。加回来便宜，看过了就收不回」)。所以本刀【不放宽】，
     //     只把那句假话换成一句真话：这一块被扣下了，不是不存在。
     const canPricing = await can('module.pricing.view')
+    // ROLE-1 Batch 2b(Q15 · Q5):应用与它的试算归 action.apply_assay(cto);记录仍归 inbound.edit。
+    const canApply = await can('action.apply_assay')
     // 公式解析顺序与 apply_assay_result 一致：批次 → 采购单明细行
     const formulaId = batch.pricing_formula_id ?? lineRes.data?.pricing_formula_id ?? null
     const { data: formula } = canPricing && formulaId
@@ -130,6 +132,7 @@ export default async function NewAssayPage({
                 pricingRestricted={!canPricing}
                 baseCurrency={baseCurrency}
                 currentMetals={currentMetals}
+                canApply={canApply}
             />
         </div>
     )

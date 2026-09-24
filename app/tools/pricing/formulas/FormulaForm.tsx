@@ -10,6 +10,7 @@ import { useFormDraft } from '@/lib/useFormDraft'
 import DraftBanner from '@/app/components/DraftBanner'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import IndexPicker from '@/app/tools/pricing/metal-prices/IndexPicker'
 import type { MetalPriceIndex } from '@/app/tools/pricing/metal-prices/indexOptions'
 import DecimalInput from '@/app/components/forms/DecimalInput'
@@ -70,6 +71,7 @@ export default function FormulaForm({
     quoteDates,
     indices,
     locale,
+    canEdit,
 }: {
     // PROC-4:物质清单由页面从 substances 那张字典读好传进来。
     // 【表单不再自己拿着一份清单】那份清单曾经是这份名单的第五个副本,
@@ -82,6 +84,9 @@ export default function FormulaForm({
     quoteDates: QuoteDate[]
     indices: MetalPriceIndex[]
     locale: string
+    /** ROLE-1 Batch 2b(Q13):定价公式只归 module.pricing.edit(cco)。由页面 `can()` 算好传进来;
+     *  没有它的人看见同一张表单,保存钮按不动、说出码(关掉 PAYREQB-FORMULA-PAGES-NO-DISABLED-GATE)。 */
+    canEdit: boolean
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(action, initialState)
@@ -449,12 +454,14 @@ export default function FormulaForm({
             </div>
 
             <div className="flex gap-3 pt-2">
-                <Button
-                    type="submit"
-                    disabled={isPending}
-                >
-                    {isPending ? t('common.saving') : t('pricing.form.submit')}
-                </Button>
+                <PermissionGate code="module.pricing.edit" allowed={canEdit}>
+                    <Button
+                        type="submit"
+                        disabled={isPending}
+                    >
+                        {isPending ? t('common.saving') : t('pricing.form.submit')}
+                    </Button>
+                </PermissionGate>
                 <Button asChild variant="secondary">
                     <Link href="/tools/pricing/formulas">
                         {t('common.cancel')}

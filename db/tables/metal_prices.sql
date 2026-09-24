@@ -106,20 +106,22 @@ CREATE POLICY "metal_prices select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (true);
 
+-- ★ ROLE-1 Batch 2b(Tim,Batch 2 grilling Q13):金属行情、指数、指数交易日历与报价阈值归财务 ——
+--   写权从 module.pricing.edit 换成 action.metal_prices;定价公式仍在 module.pricing.edit(只归 cco)。
 CREATE POLICY "metal_prices insert by permission"
     ON public.metal_prices
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.pricing.edit'::text));
+    WITH CHECK (has_permission('action.metal_prices'::text));
 
 CREATE POLICY "metal_prices update by permission"
     ON public.metal_prices
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.pricing.edit'::text)) WITH CHECK (has_permission('module.pricing.edit'::text));
+    USING (has_permission('action.metal_prices'::text)) WITH CHECK (has_permission('action.metal_prices'::text));
 
 CREATE POLICY "metal_prices delete by permission"
     ON public.metal_prices
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.pricing.edit'::text));
+    USING (has_permission('action.metal_prices'::text));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
@@ -129,4 +131,4 @@ CREATE POLICY "metal_prices delete by permission"
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.metal_prices
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.pricing.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.metal_prices');

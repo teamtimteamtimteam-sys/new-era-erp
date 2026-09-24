@@ -1,11 +1,12 @@
 // MANUAL-FIX-2:新建合同(服务端壳)。结构取自 app/suppliers/new/page.tsx。
 //
-// ★【本页的门是【查看】级,写入的门由策略回答 —— Tim 的裁定 T4】★
-//   /contracts 由 module.suppliers.view 把着,而 INSERT 策略要的是归属那一侧的
-//   edit(买方要 suppliers.edit,卖方要 customers.edit)。**哪一个,要等对手方
-//   选完才知道**,所以这里不预判:挡住一个持客户编辑权的人,与把一个只有查看权
-//   的人领进必被拒的表单,两者都比让策略作答更坏。被拒时那句话是人话,
-//   不是 42501(见 app/contracts/contractErrorCodes.ts)。
+// ★【本页的门是【查看】级;写入要 action.contract_terms —— ROLE-1 Batch 2b】★
+//   /contracts 由 module.suppliers.view 把着(读)。此前 INSERT 策略要的是归属那一侧的
+//   edit(买方要 suppliers.edit,卖方要 customers.edit),要等对手方选完才知道是哪一个,
+//   所以这一页当时不预判(Tim 的 T4)。**Batch 2b 之后写合同只有一个码**(Tim,Batch 2
+//   grilling Q12 · Batch 2b grilling Q1:合同条款归 cco),于是这一页【判得了】了:
+//   保存钮看得见、按不动、说出码(DBLOCK-1 的 PermissionGate)。库里那道门不变 ——
+//   被拒时那句话仍是人话,不是 42501(见 app/contracts/contractErrorCodes.ts)。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -28,9 +29,10 @@ export default async function NewContractPage() {
     //   【零行】,而零行与"一个客户都还没建"在屏幕上长得一模一样。
     //   这正是本仓库反复付账的 OPS-14(跨模块的行会无声消失),
     //   所以这两个布尔量【要传到表单里去】,由它画出一句具名的缺席。
-    const [canSeeSuppliers, canSeeCustomers] = await Promise.all([
+    const [canSeeSuppliers, canSeeCustomers, canWriteContracts] = await Promise.all([
         can('module.suppliers.view'),
         can('module.customers.view'),
+        can('action.contract_terms'),
     ])
 
     const [supRes, custRes, ccyRes] = await Promise.all([
@@ -69,6 +71,7 @@ export default async function NewContractPage() {
                 customers={customers}
                 canSeeSuppliers={canSeeSuppliers}
                 canSeeCustomers={canSeeCustomers}
+                canWriteContracts={canWriteContracts}
                 currencies={currencies}
             />
         </div>

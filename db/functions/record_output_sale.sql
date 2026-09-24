@@ -24,7 +24,7 @@ DECLARE
     v_je1           jsonb;
     v_je2           jsonb;
 BEGIN
-    PERFORM require_permission('module.output.edit');
+    PERFORM require_permission('action.direct_sale');
     IF p_sale_date IS NULL THEN
         RAISE EXCEPTION 'SALE_DATE_REQUIRED';
     END IF;

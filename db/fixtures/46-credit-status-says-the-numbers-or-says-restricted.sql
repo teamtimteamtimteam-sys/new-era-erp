@@ -1,4 +1,6 @@
 -- 46 信用状况:有限额就把三个数说全;无权【拿不到行】而不是拿到 0;必拒时说得出必拒
+-- ROLE-1 Batch 2b(2026-09-24):record_output_sale 的门从 module.output.edit 换成 action.direct_sale,
+-- 所以本 fixture 里会卖货的角色多带一个 action.direct_sale(断言一条没动)。
 -- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【判别臂是 C:无权者拿到的是"没有行",不是 0】0 在信用面板上读作
@@ -34,7 +36,7 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-46-ok','f','f',true) RETURNING id INTO r_ok;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_ok, unnest(ARRAY['module.customers.view','module.output.edit','module.output.view',
+    SELECT r_ok, unnest(ARRAY['module.customers.view','module.output.edit','action.direct_sale','module.output.view',
                               'module.finance.view','module.finance.edit','data.view_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u_ok, r_ok);
 
@@ -42,7 +44,7 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-46-blind','f','f',true) RETURNING id INTO r_blind;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_blind, unnest(ARRAY['module.output.edit','module.output.view']);
+    SELECT r_blind, unnest(ARRAY['module.output.edit','action.direct_sale','module.output.view']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u_blind, r_blind);
 
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZFIX46-M','f', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
