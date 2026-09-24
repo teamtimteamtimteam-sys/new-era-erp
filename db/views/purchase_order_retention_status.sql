@@ -1,4 +1,6 @@
 -- db/views/purchase_order_retention_status.sql
+-- ★ ROLE-1 Batch 4a(2026-09-25,Tim 的 Q9 线):本视图是【采购那一侧】的价格 —— 遮蔽码从 data.view_prices
+--   换成 data.view_purchase_prices(今天持 view_prices 的每一个角色一并拿到它,仓库只拿它)。
 -- EQP-PAY-1:每一条质保金【现在】处在什么状态。
 --
 -- ★【maturity_date 是算出来的,不是存下来的】★ fixed_assets.acceptance_date 一改,
@@ -44,21 +46,21 @@ CREATE VIEW public.purchase_order_retention_status WITH (security_invoker = off)
         END AS retention_state,
     r.percentage,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN r.fixed_amount_ccy
+            WHEN has_permission('data.view_purchase_prices'::text) THEN r.fixed_amount_ccy
             ELSE NULL::numeric
         END AS fixed_amount_ccy,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN COALESCE(r.fixed_amount_ccy, round(pol.estimated_amount_ccy * r.percentage / 100.0, 2))
+            WHEN has_permission('data.view_purchase_prices'::text) THEN COALESCE(r.fixed_amount_ccy, round(pol.estimated_amount_ccy * r.percentage / 100.0, 2))
             ELSE NULL::numeric
         END AS retention_amount_ccy,
     r.released_at,
     r.released_by,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN r.released_amount_ccy
+            WHEN has_permission('data.view_purchase_prices'::text) THEN r.released_amount_ccy
             ELSE NULL::numeric
         END AS released_amount_ccy,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN r.withheld_amount_ccy
+            WHEN has_permission('data.view_purchase_prices'::text) THEN r.withheld_amount_ccy
             ELSE NULL::numeric
         END AS withheld_amount_ccy,
     r.withholding_reason

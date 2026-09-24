@@ -221,7 +221,13 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                                         </td>
                                         <td className="border border-gray-300 px-3 py-1">{formatDate(f.doc_date, locale)}</td>
                                         <td className="border border-gray-300 px-3 py-1 text-right tabular-nums">
-                                            {formatAmount(Number(f.amount_ccy), f.currency as string)}
+                                            {/* ROLE-1 Batch 4a(grilling Q10):运费单据的金额留在 data.view_prices
+                                                (到岸成本的一部分),freight_document_lookup 对没有它的人给 NULL ——
+                                                基表上这一列 NOT NULL,所以这里的 NULL 只可能是「受限」。
+                                                此前 Number(null) 把它画成 0.00:一句关于生意的假话。 */}
+                                            {f.amount_ccy === null
+                                                ? <Refusal>{t('common.restricted')}</Refusal>
+                                                : formatAmount(Number(f.amount_ccy), f.currency as string)}
                                         </td>
                                         <td className="border border-gray-300 px-3 py-1">{f.payment_status}</td>
                                     </tr>

@@ -54,12 +54,12 @@ BEGIN
     INSERT INTO roles (code,name_en,name_zh,is_active) VALUES ('fx210-none','f','f',true) RETURNING id INTO r_none;
     INSERT INTO roles (code,name_en,name_zh,is_active) VALUES ('fx210-l2bad','f','f',true) RETURNING id INTO r_l2bad;
     INSERT INTO role_permissions (role_id, permission_code) VALUES
-        (r_fin, 'module.finance.view'), (r_fin, 'module.finance.edit'), (r_fin, 'data.view_prices'),
+        (r_fin, 'module.finance.view'), (r_fin, 'module.finance.edit'), (r_fin, 'data.view_prices'), (r_fin, 'data.view_purchase_prices'),
         (r_fin, 'module.suppliers.view'), (r_fin, 'module.suppliers.edit'),
-        (r_l1,  'module.finance.view'), (r_l1,  'data.view_prices'), (r_l1, 'module.purchasing.view'),
-        (r_l2,  'module.finance.view'), (r_l2,  'data.view_prices'), (r_l2, 'module.purchasing.view'),
+        (r_l1,  'module.finance.view'), (r_l1, 'data.view_prices'), (r_l1, 'data.view_purchase_prices'), (r_l1, 'module.purchasing.view'),
+        (r_l2,  'module.finance.view'), (r_l2, 'data.view_prices'), (r_l2, 'data.view_purchase_prices'), (r_l2, 'module.purchasing.view'),
         -- 看得见金额、进得了采购,但进不了财务 —— 付款申请这条链在它手里没人批得动
-        (r_l2bad, 'data.view_prices'), (r_l2bad, 'module.purchasing.view');
+        (r_l2bad, 'data.view_prices'), (r_l2bad, 'data.view_purchase_prices'), (r_l2bad, 'module.purchasing.view');
     INSERT INTO user_roles (user_id, role_id) VALUES
         (u_fin, r_fin), (u_fin2, r_fin), (u_cfo, r_l2), (u_cfo2, r_l2), (u_cfo2, r_fin),
         (u_l1, r_l1), (u_none, r_none);

@@ -14,7 +14,7 @@ DECLARE
     v_split     jsonb;
     v_delta     numeric;
 BEGIN
-    PERFORM require_permission('data.view_prices');
+    PERFORM require_permission('data.view_purchase_prices');
     SELECT unit_price, quantity, remaining_qty
     INTO v_old, v_qty, v_remaining
     FROM inbound_batches

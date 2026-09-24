@@ -191,8 +191,11 @@ admin@, tim@ · MC-2026-0001 (pay) → admin@, chooer@ · ST-2026-0082…0086 �
 ## §5 · The broken window — started, end PENDING
 
 **Start: 2026-09-25 00:12:32 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at"
-line reads 00:11:45). The failed attempt 1 at 00:08:14 committed nothing and opened no window. **End: PENDING — Tim reads it
-from Vercel.**
+line reads 00:11:45). The failed attempt 1 at 00:08:14 committed nothing and opened no window. ~~**End: PENDING — Tim reads it
+from Vercel.**~~ **Closed with bounds (ROLE-1 Batch 4a, 2026-09-25; Tim confirmed the deploy before that session began).** The end lies
+**between 00:51:49 CST** (*measured*: `origin/main` → `5322fe4d` in git's remote-ref log) **and 01:14:12 CST** (*derived*: the first
+live read of the Batch 4a session, database clock `now()` as `postgres` — a relayed confirmation, not a measurement of Vercel).
+So the window lasted **between 39 min 17 s and 61 min 40 s**. These are bounds, not a measurement.
 
 What the old app does against the new database (approvals ON):
 - **Payroll cannot be posted or unposted at all.** The old period page has only Post / Unpost buttons and no way to raise a

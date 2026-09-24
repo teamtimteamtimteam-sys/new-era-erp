@@ -18,7 +18,7 @@ import CancelOrderControl from './CancelOrderControl'
 import ApprovalControls from './ApprovalControls'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { CloseOrderControl, ReopenOrderControl } from './CloseReopenControls'
-import { can, canViewPrices } from '@/lib/permissions'
+import { can, canViewPurchasePrices } from '@/lib/permissions'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { maskedExcept, maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -78,7 +78,7 @@ export default async function PurchaseOrderDetailPage({
 
     // cut 2b:改读遮蔽视图。fx_rate / estimated_total_ccy 会被遮蔽(没有 data.view_prices
     // 时为 null),其余列恢复基表类型 —— 视图带来的"人人可空"只是类型噪音。
-    const showPrices = await canViewPrices()
+    const showPrices = await canViewPurchasePrices()
     // OPS-14:预付三列与 ap_open_items 现在都挂 module.finance.view —— 没有它读到的是
     // NULL / 0 行,【那是"看不见",不是"没有"】。取一次权限码,才能把两者分开渲染。
     const canFinance = await can('module.finance.view')
@@ -294,7 +294,7 @@ export default async function PurchaseOrderDetailPage({
               .order('line_no')
         : { data: [] as RetentionRow[], error: null }
     const retentions = mustRows(retentionRes) as RetentionRow[]
-    const canSeePrices = await canViewPrices()
+    const canSeePrices = await canViewPurchasePrices()
     // ★★【FIX-2b:这一页有四处零行,而它们各自被渲染成一句关于生意的话】★★
     //   本页的门是 module.purchasing.view,而下面四张表/视图各自挂在别的门上:
     //     · inbound_batches_masked  → module.inbound.view   (收货记录)

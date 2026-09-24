@@ -1,4 +1,6 @@
 -- db/views/batch_audit_trail.sql
+-- ★ ROLE-1 Batch 4a(2026-09-25,grilling Q11):amount_restricted 按【事件】问码 —— 收货改价
+--   (price_change,采购那一侧)问 data.view_purchase_prices;成本分录与销售仍问 data.view_prices。
 -- AUDIT-1:跨模块审计轨迹,**键在批次上**(batch_kind + batch_id)。
 --
 -- ★ APR-ROUTE-1 Batch B(2026-09-23,R3):actor_unresolvable 从此也认【额外账号】
@@ -58,7 +60,11 @@ CREATE VIEW public.batch_audit_trail WITH (security_invoker = off) AS
         END AS detail,
     (seams ||
         CASE
-            WHEN ('has_masked_amount'::text = ANY (seams)) AND NOT has_permission('data.view_prices'::text) THEN ARRAY['amount_restricted'::text]
+            WHEN ('has_masked_amount'::text = ANY (seams)) AND NOT has_permission(
+                CASE
+                    WHEN event_kind = 'price_change'::text THEN 'data.view_purchase_prices'::text
+                    ELSE 'data.view_prices'::text
+                END) THEN ARRAY['amount_restricted'::text]
             ELSE ARRAY[]::text[]
         END) ||
         CASE

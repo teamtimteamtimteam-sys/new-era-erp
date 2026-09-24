@@ -53,7 +53,7 @@ BEGIN
                                 'module.purchasing.view','module.purchasing.edit',
                                 -- CHAIN-BUILD-1(R4):审批角色必须看得见金额,
                                 -- 否则开关会以 ..._CANNOT_SEE_AMOUNTS 按名拒。
-                                'data.view_prices',
+                                'data.view_prices', 'data.view_purchase_prices',
                                 -- ★ ROLE-1(2026-09-23):A5 经 reopen_period 重开 —— 那扇门
                                 --   如今是 action.finance_reopen(CFO)。
                                 'action.finance_reopen']);

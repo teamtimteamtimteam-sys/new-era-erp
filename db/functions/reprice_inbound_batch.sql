@@ -27,7 +27,13 @@ DECLARE
     v_lines     jsonb;
     v_je        jsonb := NULL;
 BEGIN
-    PERFORM require_permission('module.inbound.edit');
+    -- ★ ROLE-1 Batch 4a(Tim 2026-09-24:看不见价格的人不能定价,【在库里】挡):这是每一条定价路径
+    --   (建单带价、定价面板、按已承诺条款改价、应用化验)都落进来的那一支引擎,所以
+    --   "看得见采购价"在这里问【按按钮的那个人】(DEFINER 不改 auth.uid())。它原来那道嵌套的
+    --   module.inbound.edit 拆掉(ROLE-1 Batch 2 grilling 第 4 条登记给 Batch 4 的那一处):
+    --   谁能定价由各自的门说 —— 手工定价 action.price_receipts,应用化验 action.apply_assay。
+    --   本支的 EXECUTE 已从 authenticated 收回(侧门 (c)),只经那几扇门进来。
+    PERFORM require_permission('data.view_purchase_prices');
     SELECT unit_price, deleted_at, quantity, remaining_qty, code
     INTO v_old, v_deleted, v_qty, v_remaining, v_code
     FROM inbound_batches WHERE id = p_inbound_batch_id FOR UPDATE;

@@ -38,7 +38,7 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-110-np', 'f', 'f', true) RETURNING id INTO r_np;
     INSERT INTO role_permissions (role_id, permission_code)
-        SELECT r_np, code FROM permissions WHERE code <> 'data.view_prices';
+        SELECT r_np, code FROM permissions WHERE code NOT IN ('data.view_prices', 'data.view_purchase_prices');
     INSERT INTO user_roles (user_id, role_id) VALUES (v_noprice, r_np);
 
     PERFORM set_config('request.jwt.claims',

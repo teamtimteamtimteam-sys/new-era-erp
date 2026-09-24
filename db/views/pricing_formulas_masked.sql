@@ -1,4 +1,7 @@
 -- db/views/pricing_formulas_masked.sql
+-- ★ ROLE-1 Batch 4a(2026-09-25,grilling Q9,Tim 裁定按行遮):条款数字按公式的 direction 遮 ——
+--   'sale' → data.view_prices;'purchase' / 'both' → data.view_purchase_prices。判据只有一份:
+--   pricing_formula_terms_visible(direction)。
 -- 遮蔽伴生视图:pricing_formulas 的每一列都在,敏感列按 has_permission() 置空。
 --   遮蔽的列:flat_discount_pct → data.view_prices, treatment_charge_usd_per_tonne → data.view_prices
 --
@@ -19,11 +22,11 @@ CREATE VIEW public.pricing_formulas_masked WITH (security_invoker = off) AS
     price_basis,
     average_days,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN treatment_charge_usd_per_tonne
+            WHEN pricing_formula_terms_visible(direction) THEN treatment_charge_usd_per_tonne
             ELSE NULL::numeric
         END AS treatment_charge_usd_per_tonne,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN flat_discount_pct
+            WHEN pricing_formula_terms_visible(direction) THEN flat_discount_pct
             ELSE NULL::numeric
         END AS flat_discount_pct,
     supplier_id,

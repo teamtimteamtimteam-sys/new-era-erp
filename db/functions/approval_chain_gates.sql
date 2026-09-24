@@ -54,9 +54,11 @@ AS $function$
     SELECT v.subject_type, v.action_function, v.level, v.gate_permissions
       FROM (VALUES
         ('purchase_order'::text, 'approve_purchase_order'::text, 1::smallint,
-            ARRAY['module.purchasing.view', 'data.view_prices']::text[]),
+            ARRAY['module.purchasing.view', 'data.view_purchase_prices']::text[]),
         ('purchase_order'::text, 'approve_purchase_order'::text, 2::smallint,
-            ARRAY['module.purchasing.view', 'data.view_prices']::text[]),
+            ARRAY['module.purchasing.view', 'data.view_purchase_prices']::text[]),
+        -- ★ ROLE-1 Batch 4a(2026-09-25):采购单的金额是【采购那一侧】的价格 —— 批准的门换成
+        --   data.view_purchase_prices(今天持 view_prices 的每一个角色一并拿到它)。报销单与付款申请不动。
         -- 驳回【不】要 data.view_prices —— 它仍然按金额分级(所以两级都在),
         -- 而它不显示那个金额。门窄一格,所以它自己一行。
         ('purchase_order'::text, 'reject_purchase_order'::text, 1::smallint,

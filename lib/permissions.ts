@@ -27,7 +27,14 @@ import { createClient } from '@/lib/supabase/server'
 // 不要只给一句警告 —— 这不是偏好问题,是坏配置。
 // ════════════════════════════════════════════════════════════════════════════
 
+// ★ ROLE-1 Batch 4a(2026-09-25,Tim 的 Q9 线):价格码一分为二。DATA_VIEW_PRICES 从此只管销售与成本那一侧
+// (销售、发票、应收、到岸成本、存货计值、加工成本、毛利);采购那一侧(采购单、质保金、付款条款、
+// 公式与条款承诺、计价器、收货单价与改价历史、应付账龄)是 DATA_VIEW_PURCHASE_PRICES。
+// 今天持前者的每一个角色都持后者;仓库只持后者。
 export const DATA_VIEW_PRICES = 'data.view_prices'
+export const DATA_VIEW_PURCHASE_PRICES = 'data.view_purchase_prices'
+// 收货定价与改价(财务)。库里同时要 DATA_VIEW_PURCHASE_PRICES —— 看不见价格的人不能定价。
+export const ACTION_PRICE_RECEIPTS = 'action.price_receipts'
 export const DATA_VIEW_PAY = 'data.view_pay'
 export const DATA_VIEW_IDENTITY = 'data.view_identity'
 export const DATA_VIEW_BANKING = 'data.view_banking'
@@ -53,6 +60,14 @@ export async function can(code: string): Promise<boolean> {
 // 三个数据权限的便捷读取,页面里读起来比字符串字面量清楚。
 export async function canViewPrices(): Promise<boolean> {
     return can(DATA_VIEW_PRICES)
+}
+export async function canViewPurchasePrices(): Promise<boolean> {
+    return can(DATA_VIEW_PURCHASE_PRICES)
+}
+/** 收货定价要【两个码】(ROLE-1 Batch 4a,Q1):`allowed` 与按不动时该点名的那个码(先缺哪个说哪个)。 */
+export async function receiptPricingGate(): Promise<{ allowed: boolean; code: string }> {
+    const [price, see] = await Promise.all([can(ACTION_PRICE_RECEIPTS), can(DATA_VIEW_PURCHASE_PRICES)])
+    return { allowed: price && see, code: price ? DATA_VIEW_PURCHASE_PRICES : ACTION_PRICE_RECEIPTS }
 }
 export async function canViewPay(): Promise<boolean> {
     return can(DATA_VIEW_PAY)

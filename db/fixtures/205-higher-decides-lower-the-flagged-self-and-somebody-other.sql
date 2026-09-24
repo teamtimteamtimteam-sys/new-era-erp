@@ -94,8 +94,8 @@ BEGIN
     -- 两级都持报销与采购两条链的门(否则开关会为【别的链】变红);
     -- ★ 二级角色【不】持 hr.edit —— R2f 要一个只持它的账号走不进医疗申报。
     INSERT INTO role_permissions (role_id, permission_code) VALUES
-        (r_l1, 'module.finance.view'), (r_l1, 'data.view_prices'), (r_l1, 'module.purchasing.view'),
-        (r_l2, 'module.finance.view'), (r_l2, 'data.view_prices'), (r_l2, 'module.purchasing.view'),
+        (r_l1, 'module.finance.view'), (r_l1, 'data.view_prices'), (r_l1, 'data.view_purchase_prices'), (r_l1, 'module.purchasing.view'),
+        (r_l2, 'module.finance.view'), (r_l2, 'data.view_prices'), (r_l2, 'data.view_purchase_prices'), (r_l2, 'module.purchasing.view'),
         (r_hr, 'module.hr.edit'), (r_hr, 'module.hr.view'),
         -- ROLE-1(2026-09-23):请假与医疗申报的决定门换成 action.decide_hr_requests
         (r_hr, 'action.decide_hr_requests'),

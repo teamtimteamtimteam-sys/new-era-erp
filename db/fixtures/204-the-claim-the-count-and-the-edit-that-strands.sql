@@ -111,13 +111,13 @@ BEGIN
     --   两级都要 data.view_prices,否则开关会先撞上 ..._CANNOT_SEE_AMOUNTS(R4),
     --   而那会让下面的臂为【错的理由】变红。
     INSERT INTO role_permissions (role_id, permission_code) VALUES
-        (r_l1,  'module.finance.view'), (r_l1,  'data.view_prices'),
-        (r_l2,  'module.finance.view'), (r_l2,  'data.view_prices'),
-        (r_fin, 'module.finance.view'), (r_fin, 'data.view_prices'),
+        (r_l1,  'module.finance.view'), (r_l1, 'data.view_prices'), (r_l1, 'data.view_purchase_prices'),
+        (r_l2,  'module.finance.view'), (r_l2, 'data.view_prices'), (r_l2, 'data.view_purchase_prices'),
+        (r_fin, 'module.finance.view'), (r_fin, 'data.view_prices'), (r_fin, 'data.view_purchase_prices'),
         (r_fin, 'module.stocktakes.edit'), (r_fin, 'module.stocktakes.view'),
         (r_fin, 'module.processing.edit'),
         (r_adm, 'action.manage_permissions'),
-        (r_adm, 'module.finance.view'), (r_adm, 'data.view_prices'),
+        (r_adm, 'module.finance.view'), (r_adm, 'data.view_prices'), (r_adm, 'data.view_purchase_prices'),
         -- 采购单那条链今天也在名册里,两级都必须有人批得动,
         -- 否则开关那道闸会为【别的链】变红,而 J 臂要的是报销那一条。
         (r_l1,  'module.purchasing.view'), (r_l2,  'module.purchasing.view'),
@@ -394,7 +394,7 @@ BEGIN
     -- 它看得见金额(否则会先撞上 R4 那道闸,而那会让 J1 为【错的理由】变红),
     -- 也进得了采购模块(否则采购那条链先红),★ 但它【不持 module.finance.view】。
     INSERT INTO role_permissions (role_id, permission_code) VALUES
-        (r_l2b, 'data.view_prices'), (r_l2b, 'module.purchasing.view');
+        (r_l2b, 'data.view_prices'), (r_l2b, 'data.view_purchase_prices'), (r_l2b, 'module.purchasing.view');
     -- ★★★【这个角色必须由一个【只持它】的人持有,而这一格本刀自己先踩了一次】★★★
     --   第一版把 fx204-l2b 授给了 u_l2 —— 而他已经持着 fx204-l2(带 module.finance.view)。
     --   **求交是按【人】算的,不是按角色算的:一个人的权限是他所有角色的并集。**

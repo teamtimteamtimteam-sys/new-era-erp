@@ -184,7 +184,8 @@ export default async function MonthEndPage({
         {
             // AP-RECON-1 Batch B:每一边的未解释数,链到明细页。【只有 done / outstanding】——
             // 它不挡 close_period(Tim Q11),所以这里画不出 blocked;答不上来(没有
-            // data.view_prices)时是 outstanding 并照直说出来,而不是一个假的 done。
+            // 那一边的价格码 —— AP 是 data.view_purchase_prices、AR 是 data.view_prices,ROLE-1 Batch 4a)时
+            // 是 outstanding 并照直说出来,而不是一个假的 done。
             key: 'listVsLedger', href: '/finance/list-vs-ledger',
             state: reconAgrees ? 'done' : 'outstanding',
             detail: reconRefused ? t('finance.monthEnd.listVsLedgerRestricted')

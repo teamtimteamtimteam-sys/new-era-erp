@@ -1,4 +1,7 @@
 -- db/views/pricing_formula_metals_masked.sql
+-- ★ ROLE-1 Batch 4a(2026-09-25,grilling Q9,Tim 裁定按行遮):条款数字按公式的 direction 遮 ——
+--   'sale' → data.view_prices;'purchase' / 'both' → data.view_purchase_prices。判据只有一份:
+--   pricing_formula_terms_visible(direction)。
 -- 遮蔽伴生视图:pricing_formula_metals 的每一列都在,敏感列按 has_permission() 置空。
 --   遮蔽的列:payable_pct → data.view_prices
 --
@@ -15,7 +18,9 @@ CREATE VIEW public.pricing_formula_metals_masked WITH (security_invoker = off) A
  SELECT formula_id,
     metal,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN payable_pct
+            WHEN pricing_formula_terms_visible(( SELECT f.direction
+                   FROM pricing_formulas f
+                  WHERE f.id = pricing_formula_metals.formula_id)) THEN payable_pct
             ELSE NULL::numeric
         END AS payable_pct,
     created_at,

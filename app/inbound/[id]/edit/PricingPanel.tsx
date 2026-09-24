@@ -11,6 +11,7 @@ import { MaskedValue } from '@/app/components/MaskedValue'
 import { Button } from '@/app/components/ui/button'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { formatDate } from '@/lib/dates'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { useLocale } from '@/lib/i18n/client'
 
 const initialState: SetPriceState = {}
@@ -37,14 +38,17 @@ export default function PricingPanel({
     unitPrice,
     history,
     canViewPrices,
+    pricingGate,
     extraAction,
     baseCurrency,
 }: {
     batchId: string
     unitPrice: number | null
     history: PriceHistoryRow[]
-    /** cut 2b:当前登录者是否持有 data.view_prices。为 false 时价格显示「受限」。 */
+    /** 当前登录者看不看得见【采购价】(ROLE-1 Batch 4a 起是 data.view_purchase_prices)。为 false 时显示「受限」。 */
     canViewPrices: boolean
+    /** ROLE-1 Batch 4a:定价要 action.price_receipts + data.view_purchase_prices;按不动时点名先缺的那个。 */
+    pricingGate: { allowed: boolean; code: string }
     // cut 5b:批次有定价公式时,页面在这里塞进"按当前含量重新计价"
     extraAction?: React.ReactNode
     baseCurrency: string
@@ -167,6 +171,8 @@ export default function PricingPanel({
                 </div>
             )}
 
+            {/* ROLE-1 Batch 4a:定价归财务,库里挡;这里看得见、按不动、说出码(DBLOCK-1)。 */}
+            <PermissionGate code={pricingGate.code} allowed={pricingGate.allowed}>
             <form key={formKey} action={formAction} className="flex flex-wrap gap-2 items-end mb-6">
                 <div>
                     <label className="block mb-1">
@@ -212,6 +218,7 @@ export default function PricingPanel({
                     {isPending ? t('common.saving') : t('inbound.pricing.submit')}
                 </Button>
             </form>
+            </PermissionGate>
 
             <h3 className="mb-2">{t('inbound.pricing.historyTitle')}</h3>
             {/* TABLE-CONVERT-5:空态搬进了 DataTable 的 empty prop(同一个

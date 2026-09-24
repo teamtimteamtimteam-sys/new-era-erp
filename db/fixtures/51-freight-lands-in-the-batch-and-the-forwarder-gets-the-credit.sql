@@ -56,7 +56,7 @@ BEGIN
     INSERT INTO role_permissions (role_id, permission_code)
     SELECT r_all, unnest(ARRAY['module.finance.edit','module.finance.view','module.inbound.view',
         'module.inbound.edit','module.processing.view','module.processing.edit',
-        'module.output.view','module.output.edit','data.view_prices']);
+        'module.output.view','module.output.edit','data.view_prices', 'data.view_purchase_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (v_user, r_all);
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);

@@ -2796,6 +2796,7 @@ const en = {
             errUnitPrice: 'Unit price must be a number',
             // INB-PAY-1:填了单价,建单就同时定价 —— 与之后在批次页上定价过同一条账
             unitPricePostsHint: 'Optional. Entering a price here prices the receipt at once: it records the supplier payable and a price-history entry, exactly as pricing it later on the batch page would.',
+            unitPriceFinancePrices: 'Receipts are priced by Finance (action.price_receipts, together with seeing purchase prices). This receipt will be created without a price; Finance prices it on the batch page.',
             saveError: 'Save failed: {message}',
             blockedArrivalDate: 'Save is disabled: the arrival date is not filled in.',
             blockedCertExpired: 'Receiving from {supplier} is blocked: {cert} expired on {date}. Renew it under Suppliers → Compliance before receiving.',
@@ -7282,7 +7283,7 @@ const en = {
             PAYMENT_REVERSAL_TAKES_NO_DATE: 'Reversal request {0} takes no payment date — the reversal is dated the day it is carried out.',
             APPROVAL_NOT_AUTHORISED: 'Only the level-{0} approver ({1}) can decide this. Ask someone who holds that role.',
             APPROVALS_NOT_ENABLED: 'Approvals are not in force, so there is nothing to decide — this request was approved automatically when it was raised.',
-            JE_REVERSE_USE_SOURCE_PATH: 'Entry {0} was posted by a payment, a bank transfer, a withholding tax remittance or a payroll posting, so it cannot be reversed here. Use "Request reversal" on the payment, the transfer (Finance → Bank) or the remittance (Finance → Withholding tax), or "Request unposting" on the payroll period (HR → Payroll); the CFO approves it first.',
+            JE_REVERSE_USE_SOURCE_PATH: 'Entry {0} was posted by a payment, a bank transfer, a withholding tax remittance, a payroll posting or the pricing of a goods receipt, so it cannot be reversed here. Use "Request reversal" on the payment, the transfer (Finance → Bank) or the remittance (Finance → Withholding tax), or "Request unposting" on the payroll period (HR → Payroll); the CFO approves it first. A receipt\'s price is corrected by repricing it on the receipt (Inbound).',
             PAYMENT_ALREADY_REVERSED: 'Payment {0} has already been reversed — a reversal reverses the original once, and reversing it twice would restore the amount it removed.',
             REVERSAL_DATE_REQUIRED: 'A reversal date is required — it decides which period the reversing entry lands in. It is never defaulted to today: a defaulted date can never hit PERIOD_LOCKED, so the correct closed-period date would fail loudly while a blank one glided into the open month.',
             ASSET_NOT_FOUND: 'Asset {0} does not exist.',

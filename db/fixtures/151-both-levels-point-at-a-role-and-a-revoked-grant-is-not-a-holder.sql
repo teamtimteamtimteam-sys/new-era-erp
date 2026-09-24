@@ -52,7 +52,7 @@ BEGIN
     -- 看得见金额的四个;fx151-blind 【故意】不给 data.view_prices
     INSERT INTO role_permissions (role_id, permission_code)
       SELECT r, p FROM unnest(ARRAY[r_l1,r_l2,r_rev,r_revctl,r_unconf]) r,
-                        unnest(ARRAY['module.purchasing.view','data.view_prices']) p;
+                        unnest(ARRAY['module.purchasing.view','data.view_prices', 'data.view_purchase_prices']) p;
     -- 就绪面板要 module.finance.view(它自己查权限)—— 给一级角色带上,
     -- 这样下面那一句 approvals_readiness() 读的是【这个人真的看得到的东西】。
     -- ★ APR-1(N6):approvals_readiness 的内检换成了 action.manage_permissions
@@ -64,7 +64,7 @@ BEGIN
     INSERT INTO role_permissions (role_id, permission_code)
       SELECT r_blind, unnest(ARRAY['module.purchasing.view']);
     INSERT INTO role_permissions (role_id, permission_code)
-      SELECT r_empty, unnest(ARRAY['module.purchasing.view','data.view_prices']);
+      SELECT r_empty, unnest(ARRAY['module.purchasing.view','data.view_prices', 'data.view_purchase_prices']);
 
     INSERT INTO user_roles (user_id, role_id) VALUES
         (u_live, r_l1), (u_live, r_blind),          -- 能登录的人持有 l1 与 blind

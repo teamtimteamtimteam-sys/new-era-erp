@@ -20,7 +20,10 @@ BEGIN
     --   ★ PAY-REQ-1 Batch B(Tim 的 Q3):代扣税缴纳也关在这里 —— 它的更正从此走
     --   wht_remittance_reversal 申请(reverse_wht_remittance_internal),经 CFO 批准。
     SELECT source_type, code INTO v_src, v_code FROM journal_entries WHERE id = p_entry_id;
-    IF v_src IN ('payment', 'transfer', 'wht_remittance') THEN
+    -- ★ ROLE-1 Batch 4a(侧门 (b)):收货定价的 purchase 分录也关在这里 —— 从这里冲掉它,2000 回来了,
+    --   收货单的单价与改价历史却不动,ap_open_items 照样说欠着,清单与总账从此各说各话。
+    --   更正走改价(定价面板;Batch 4b 起经 CFO 批准的定价申请)。
+    IF v_src IN ('payment', 'transfer', 'wht_remittance', 'purchase') THEN
         RAISE EXCEPTION 'JE_REVERSE_USE_SOURCE_PATH|%|%', v_code, v_src;
     END IF;
     -- ★ PAYROLL-APR-1(Tim 的 Q5):工资期的【过账】分录也关在这里 —— 从这里冲掉它,总账回来了,

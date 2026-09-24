@@ -22,10 +22,12 @@ import { mustRows } from '@/lib/db-helpers'
 import { operativeOf } from './operativeMilestone'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { Refusal } from '@/app/components/ui/refusal'
 
 type Doc = {
     id: string; code: string; doc_date: string
-    amount_ccy: number; currency: string; status: string; direction: string
+    // ROLE-1 Batch 4a(grilling Q10):金额按 data.view_prices 遮;基表上 NOT NULL,所以 null 只可能是「受限」
+    amount_ccy: number | null; currency: string; status: string; direction: string
 }
 
 export default async function ContainerFreightPanel({
@@ -51,10 +53,13 @@ export default async function ContainerFreightPanel({
 
     // 【只有 posted 的进合计】已冲销的单据仍然列出来(它发生过),但它不欠钱、
     // 也不该被算进"我们被收了多少" —— 两件事,所以行在、数不在。
-    const totals = new Map<string, number>()
+    const totals = new Map<string, number | null>()
     for (const d of docs) {
         if (d.status !== 'posted') continue
-        totals.set(d.currency, (totals.get(d.currency) ?? 0) + Number(d.amount_ccy))
+        // ★ ROLE-1 Batch 4a:一张被遮的单据让那一币种的合计【答不上来】(null),而不是少算它 ——
+        //   此前 Number(null) = 0,合计于是自信地少报。
+        const prev = totals.has(d.currency) ? totals.get(d.currency)! : 0
+        totals.set(d.currency, prev === null || d.amount_ccy === null ? null : prev + Number(d.amount_ccy))
     }
     const actualCurrencies = [...totals.keys()].sort()
 
@@ -198,7 +203,9 @@ export default async function ContainerFreightPanel({
                                         </span>
                                         <span className="text-[color:var(--brand-muted-text)] text-xs">{formatDate(d.doc_date, locale)}</span>
                                         <span className={'ml-auto ' + (d.status === 'posted' ? '' : 'line-through text-gray-400')}>
-                                            {formatAmount(Number(d.amount_ccy), d.currency)}
+                                            {d.amount_ccy === null
+                                                ? <Refusal>{t('common.restricted')}</Refusal>
+                                                : formatAmount(Number(d.amount_ccy), d.currency)}
                                         </span>
                                         {d.status !== 'posted' && (
                                             <span className="text-xs text-amber-700">{t('logistics.freightReversedNote')}</span>
@@ -211,7 +218,9 @@ export default async function ContainerFreightPanel({
                                 {actualCurrencies.map((c) => (
                                     <div key={c} className="flex justify-between text-sm">
                                         <span>{c}</span>
-                                        <span>{formatAmount(totals.get(c) as number, c)}</span>
+                                        <span>{totals.get(c) === null
+                                            ? <Refusal>{t('common.restricted')}</Refusal>
+                                            : formatAmount(totals.get(c) as number, c)}</span>
                                     </div>
                                 ))}
                             </div>

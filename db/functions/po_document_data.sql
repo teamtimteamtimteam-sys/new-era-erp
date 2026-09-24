@@ -11,6 +11,10 @@ DECLARE
     v_terms jsonb;
     -- PUR-1:这张单挂在哪一份合同之下 —— 读的是【抄下来的那一份】。
     v_contract_code text;
+    -- ★ ROLE-1 Batch 4a(2026-09-25,关掉 ROLE1-PO-DOCUMENT-DATA-PRICES):本函数以属主权限读【基表】,
+    --   所以遮蔽视图挡不住它 —— 价格在这里自己按 data.view_purchase_prices 置空(NULL = 受限,
+    --   不是 0;prices_visible 说出来是哪一种)。定价【状态】不是价格,照印。
+    v_see  boolean := has_permission('data.view_purchase_prices');
 BEGIN
     PERFORM require_permission('module.purchasing.view');
 
@@ -46,12 +50,12 @@ BEGIN
         'material_name', COALESCE(m.name, fa.description),
         'quantity', l.quantity,
         'unit', l.unit,
-        'unit_price', l.estimated_unit_price,          -- 单据币种;可空
-        'amount_ccy', l.estimated_amount_ccy,
+        'unit_price', CASE WHEN v_see THEN l.estimated_unit_price END,          -- 单据币种;可空
+        'amount_ccy', CASE WHEN v_see THEN l.estimated_amount_ccy END,
         -- PO-GST-1:行上的税 —— 供应商手里那张纸要逐行看得见它。
         'tax_code', l.tax_code,
         'tax_rate_pct', l.tax_rate_pct,
-        'tax_amount_ccy', l.tax_amount_ccy,
+        'tax_amount_ccy', CASE WHEN v_see THEN l.tax_amount_ccy END,
         'expected_assay', l.expected_assay,
         'notes', l.notes,
         -- 【FIN-26 的那次误读,在这里终结】价格是不是手填的【估算】是记录下来的
@@ -82,10 +86,10 @@ BEGIN
             'source_formula_name', c.source_formula_name,
             'price_basis', c.price_basis,
             'average_days', c.average_days,
-            'treatment_charge_usd_per_tonne', c.treatment_charge_usd_per_tonne,
-            'flat_discount_pct', c.flat_discount_pct,
+            'treatment_charge_usd_per_tonne', CASE WHEN v_see THEN c.treatment_charge_usd_per_tonne END,
+            'flat_discount_pct', CASE WHEN v_see THEN c.flat_discount_pct END,
             'metals', (SELECT COALESCE(jsonb_agg(jsonb_build_object(
-                           'metal', cm.metal, 'payable_pct', cm.payable_pct)
+                           'metal', cm.metal, 'payable_pct', CASE WHEN v_see THEN cm.payable_pct END)
                            ORDER BY cm.metal), '[]'::jsonb)
                        FROM pricing_term_commitment_metals cm
                        WHERE cm.commitment_id = c.id)
@@ -104,7 +108,7 @@ BEGIN
     -- ── 付款计划(FIN-29 的承诺分期,原样印)────────────────────────────────
     SELECT COALESCE(jsonb_agg(jsonb_build_object(
         'seq', t.seq, 'label', t.label, 'percentage', t.percentage,
-        'fixed_amount_ccy', t.fixed_amount_ccy,
+        'fixed_amount_ccy', CASE WHEN v_see THEN t.fixed_amount_ccy END,
         'trigger_event', t.trigger_event, 'trigger_phrase', pte.phrase_en,
         'due_date', t.due_date, 'notes', t.notes
     ) ORDER BY t.seq), '[]'::jsonb)
@@ -135,9 +139,10 @@ BEGIN
         -- 落在同一列上,所以【碰巧】一致;加了税之后再各算各的,迟早各说各话。
         -- 【含税额在这里加一次】gross = net + COALESCE(tax, 0),不另存一列:
         -- 存第三个数就是给自己第三个会漂的地方。
-        'estimated_total_ccy', v_po.estimated_total_ccy,
-        'tax_total_ccy', v_po.tax_total_ccy,
-        'gross_total_ccy', v_po.estimated_total_ccy + COALESCE(v_po.tax_total_ccy, 0),
+        'estimated_total_ccy', CASE WHEN v_see THEN v_po.estimated_total_ccy END,
+        'tax_total_ccy', CASE WHEN v_see THEN v_po.tax_total_ccy END,
+        'gross_total_ccy', CASE WHEN v_see THEN v_po.estimated_total_ccy + COALESCE(v_po.tax_total_ccy, 0) END,
+        'prices_visible', v_see,
         -- 【这张单带不带税】NULL 的税额合计不是零税:它是"这张单开在采购单携带税
         -- 之前,或开在 GST 未注册的时候"。PDF 与屏幕对这两种情形说的话不一样。
         'carries_tax', (v_po.tax_total_ccy IS NOT NULL),

@@ -1,4 +1,6 @@
 -- db/views/prepayment_applications_masked.sql
+-- ★ ROLE-1 Batch 4a(2026-09-25,Tim 的 Q9 线):本视图是【采购那一侧】的价格 —— 遮蔽码从 data.view_prices
+--   换成 data.view_purchase_prices(今天持 view_prices 的每一个角色一并拿到它,仓库只拿它)。
 -- 遮蔽伴生视图:prepayment_applications 的每一列都在,敏感列按 has_permission() 置空。
 --   遮蔽的列:amount_base → data.view_prices
 --
@@ -16,7 +18,7 @@ CREATE VIEW public.prepayment_applications_masked WITH (security_invoker = off) 
     purchase_order_id,
     inbound_batch_id,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN amount_base
+            WHEN has_permission('data.view_purchase_prices'::text) THEN amount_base
             ELSE NULL::numeric
         END AS amount_base,
     notes,
@@ -26,7 +28,7 @@ CREATE VIEW public.prepayment_applications_masked WITH (security_invoker = off) 
     expense_id,
     currency,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN amount_ccy
+            WHEN has_permission('data.view_purchase_prices'::text) THEN amount_ccy
             ELSE NULL::numeric
         END AS amount_ccy
    FROM prepayment_applications

@@ -76,7 +76,7 @@ BEGIN
         'module.processing.edit','module.purchasing.view','module.stocktakes.view',
         'module.hr.view','module.output.view','module.output.edit','action.direct_sale',
         'module.finance.view','module.suppliers.view','module.customers.view',
-        'module.inventory.view','data.view_prices']);
+        'module.inventory.view','data.view_prices', 'data.view_purchase_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (v_user, r_all);
 
     -- 【PROC-WIRE-1B-ii:建数据这一段也要有身份】sales_records 的可售性断言现在

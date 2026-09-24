@@ -97,10 +97,10 @@ BEGIN
         (r_proc, 'module.processing.view'),
         (r_adm,  'action.manage_permissions'),
         (r_adm,  'module.finance.view'),
-        -- 两级都要 data.view_prices,否则开关会先撞上 ..._CANNOT_SEE_AMOUNTS(R4),
+        -- 两级都要 data.view_prices(ROLE-1 Batch 4a 起:与 data.view_purchase_prices 两个都要),否则开关会先撞上 ..._CANNOT_SEE_AMOUNTS(R4),
         -- 而那会让 H1 为【错的理由】变红。
-        (r_l1,   'data.view_prices'),
-        (r_l2,   'data.view_prices'),
+        (r_l1, 'data.view_prices'), (r_l1, 'data.view_purchase_prices'),
+        (r_l2, 'data.view_prices'), (r_l2, 'data.view_purchase_prices'),
         -- ★★ APR-3(2026-09-22):报销单那条链接上了引擎,它的门是
         --   module.finance.view + data.view_prices。两级都要补上 module.finance.view,
         --   ☞ 【否则 H1 报出来的会是报销那条链,而不是本臂刻意造出来的采购那条】——

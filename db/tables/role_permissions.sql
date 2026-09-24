@@ -84,7 +84,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
 --     一刀可能的后续(docs/forward-queue.md),待 Tim 定。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'data.view_banking', 'data.view_prices', 'data.view_reviews', 'data.view_sales',
+        'data.view_banking', 'data.view_prices', 'data.view_purchase_prices', 'data.view_reviews', 'data.view_sales',
         'module.customers.view', 'module.finance.view', 'module.hr.view',
         'module.inbound.view', 'module.inventory.view', 'module.materials.view',
         'module.output.view', 'module.pricing.view', 'module.processing.view',
@@ -107,7 +107,9 @@ INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.hr.edit', 'module.hr.view', 'data.view_identity', 'data.view_pay',
         'action.decide_hr_requests', 'action.metal_prices',
-        'data.view_banking', 'data.view_prices', 'data.view_sales', 'module.customers.edit',
+        -- ★ ROLE-1 Batch 4a(Tim 2026-09-25,grilling Q1):收货定价与改价归财务。
+        'action.price_receipts',
+        'data.view_banking', 'data.view_prices', 'data.view_purchase_prices', 'data.view_sales', 'module.customers.edit',
         'module.customers.view', 'module.finance.edit', 'module.finance.view',
         'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
         'module.inventory.view', 'module.materials.edit', 'module.materials.view',
@@ -120,7 +122,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
 -- procurement(14):议价、下采购单,看得见价格。【完全没有 finance】—— 定价的人不能同时把钱付出去(不相容职务分离)。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'data.view_prices', 'module.inbound.edit', 'module.inbound.view',
+        'data.view_prices', 'data.view_purchase_prices', 'module.inbound.edit', 'module.inbound.view',
         'module.inventory.view', 'module.materials.edit', 'module.materials.view',
         'module.pricing.edit', 'module.pricing.view', 'module.purchasing.edit',
         'module.purchasing.view', 'module.suppliers.edit', 'module.suppliers.view',
@@ -130,7 +132,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
 -- sales(13):客户、产出批次与销售。【开票归财务】,所以没有 finance。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'data.view_prices', 'data.view_sales', 'module.customers.edit', 'module.customers.view',
+        'data.view_prices', 'data.view_purchase_prices', 'data.view_sales', 'module.customers.edit', 'module.customers.view',
         'module.inventory.edit', 'module.inventory.view', 'module.materials.view',
         'module.output.edit', 'module.output.view', 'module.pricing.edit',
         'module.pricing.view', 'module.tasks.edit', 'module.tasks.view',
@@ -168,7 +170,13 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- 那句话说的是 COD-1 的时候;从这一刀起仓库读得到供应商表。证书那条路不变,
         -- 仍经 cod_certificate_data(fixture 195 的 J2 改为从复制出来的角色里拿掉这两个码,
         -- 以继续钉住"证书不需要读供应商表"这一句)。
-        'module.suppliers.view', 'module.suppliers.edit'
+        'module.suppliers.view', 'module.suppliers.edit',
+        -- ── ROLE-1 Batch 4a(Tim 的 Q9 线,2026-09-25)──────────────────────────────
+        -- ★ 这一行【推翻】了上面那句「不给任何数据类权限」:仓库看得见【采购那一侧】的价格
+        -- (采购单、收货单价与改价历史、公式与条款承诺、应付账龄),好开它的采购单。
+        -- 销售、发票、应收、到岸成本、存货计值、加工成本与毛利仍按 data.view_prices,仓库不拿。
+        -- 看得见不等于定得了价:收货定价要 action.price_receipts(只归财务)。
+        'data.view_purchase_prices'
 ) WHERE r.code = 'warehouse';
 
 -- hr(7):人力资源 + 薪酬 + 身份信息 + 绩效正文。这四类正是 HR 的工作对象,也正是别人不该看见的。
@@ -181,7 +189,7 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
 -- auditor(16):全部模块【只给 .view】+ 价格 + 销售。【不给 data.view_reviews】—— 绩效是一个人对另一个人的评价,不是可审计的账;也不给薪酬与银行明细。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
-        'data.view_prices', 'data.view_sales', 'module.customers.view', 'module.finance.view',
+        'data.view_prices', 'data.view_purchase_prices', 'data.view_sales', 'module.customers.view', 'module.finance.view',
         'module.hr.view', 'module.inbound.view', 'module.inventory.view',
         'module.materials.view', 'module.output.view', 'module.pricing.view',
         'module.processing.view', 'module.purchasing.view', 'module.stocktakes.view',

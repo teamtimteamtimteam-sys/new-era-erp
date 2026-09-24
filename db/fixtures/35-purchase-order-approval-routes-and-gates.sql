@@ -55,14 +55,14 @@ BEGIN
     --   ☞ 这不是把本支的范围扩大了:它要的前提一直是"审批开得起来",
     --     而那个前提的内容随着引擎接上的链一起长。
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_l1, unnest(ARRAY['module.purchasing.view','module.purchasing.edit','data.view_prices',
+    SELECT r_l1, unnest(ARRAY['module.purchasing.view','module.purchasing.edit','data.view_prices', 'data.view_purchase_prices',
                               'module.finance.view']);
     -- CHAIN-BUILD-1(R1):二级也是一个【角色】。**它与一级是两个不同的角色** ——
     -- R2 说得很死:加第二个审批人是【分工】,不是【互为代理】。
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-35-l2', 'f', 'f', true) RETURNING id INTO r_l2;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_l2, unnest(ARRAY['module.purchasing.view','data.view_prices',
+    SELECT r_l2, unnest(ARRAY['module.purchasing.view','data.view_prices', 'data.view_purchase_prices',
                               'module.finance.view']);   -- ★ APR-3:同上
     -- 【SOD-1:一级审批角色必须有【真的登录得了的】持有人】
     -- trg_approvals_switch 数的是 user_roles ⋈ auth.users —— 一个只由幽灵持有的

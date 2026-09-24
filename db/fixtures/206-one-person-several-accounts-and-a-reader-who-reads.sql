@@ -64,8 +64,8 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 206 布景失败:引导数据里没有 gm 角色'; END IF;
 
     INSERT INTO role_permissions (role_id, permission_code) VALUES
-        (r_l1, 'module.finance.view'), (r_l1, 'data.view_prices'), (r_l1, 'module.purchasing.view'),
-        (r_l2, 'module.finance.view'), (r_l2, 'data.view_prices'), (r_l2, 'module.purchasing.view'),
+        (r_l1, 'module.finance.view'), (r_l1, 'data.view_prices'), (r_l1, 'data.view_purchase_prices'), (r_l1, 'module.purchasing.view'),
+        (r_l2, 'module.finance.view'), (r_l2, 'data.view_prices'), (r_l2, 'data.view_purchase_prices'), (r_l2, 'module.purchasing.view'),
         (r_adm, 'action.manage_permissions'), (r_adm, 'module.finance.view'),
         (r_adm, 'module.purchasing.edit'), (r_adm, 'module.suppliers.edit'),
         (r_hr, 'module.hr.edit'), (r_hr, 'module.hr.view'),

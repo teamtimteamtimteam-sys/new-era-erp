@@ -69,12 +69,12 @@ BEGIN
     INSERT INTO roles (code,name_en,name_zh,is_active) VALUES ('fx218-l2','f','f',true)  RETURNING id INTO r_l2;
     INSERT INTO role_permissions (role_id, permission_code) VALUES
         (r_fin, 'module.hr.view'), (r_fin, 'module.hr.edit'), (r_fin, 'data.view_pay'),
-        (r_fin, 'module.finance.view'), (r_fin, 'module.finance.edit'), (r_fin, 'data.view_prices'),
+        (r_fin, 'module.finance.view'), (r_fin, 'module.finance.edit'), (r_fin, 'data.view_prices'), (r_fin, 'data.view_purchase_prices'),
         -- 一级:审批开得了(每条分档链的门它都持),也看得见工资 —— 批不了工资申请只能因为【级别】
-        (r_l1, 'module.purchasing.view'), (r_l1, 'data.view_prices'), (r_l1, 'module.finance.view'),
+        (r_l1, 'module.purchasing.view'), (r_l1, 'data.view_prices'), (r_l1, 'data.view_purchase_prices'), (r_l1, 'module.finance.view'),
         (r_l1, 'module.hr.view'), (r_l1, 'data.view_pay'),
         -- 二级:CFO 的形状 —— 读得到、看得见,【没有】hr.edit
-        (r_l2, 'module.purchasing.view'), (r_l2, 'data.view_prices'), (r_l2, 'module.finance.view'),
+        (r_l2, 'module.purchasing.view'), (r_l2, 'data.view_prices'), (r_l2, 'data.view_purchase_prices'), (r_l2, 'module.finance.view'),
         (r_l2, 'module.hr.view'), (r_l2, 'data.view_pay');
     INSERT INTO user_roles (user_id, role_id) VALUES
         (u_fin, r_fin), (u_cfo, r_l2), (u_cfo2, r_fin), (u_l1, r_l1);

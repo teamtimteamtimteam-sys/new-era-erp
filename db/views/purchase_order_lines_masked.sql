@@ -1,4 +1,6 @@
 -- db/views/purchase_order_lines_masked.sql
+-- ★ ROLE-1 Batch 4a(2026-09-25,Tim 的 Q9 线):本视图是【采购那一侧】的价格 —— 遮蔽码从 data.view_prices
+--   换成 data.view_purchase_prices(今天持 view_prices 的每一个角色一并拿到它,仓库只拿它)。
 -- 遮蔽伴生视图:purchase_order_lines 的每一列都在,敏感列按 has_permission() 置空。
 --   遮蔽的列:estimated_amount_ccy → data.view_prices, estimated_unit_price → data.view_prices,
 --             price_provenance → data.view_prices, tax_amount_ccy → data.view_prices(PO-GST-1)
@@ -23,11 +25,11 @@ CREATE VIEW public.purchase_order_lines_masked WITH (security_invoker = off) AS
     unit,
     pricing_formula_id,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN estimated_unit_price
+            WHEN has_permission('data.view_purchase_prices'::text) THEN estimated_unit_price
             ELSE NULL::numeric
         END AS estimated_unit_price,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN estimated_amount_ccy
+            WHEN has_permission('data.view_purchase_prices'::text) THEN estimated_amount_ccy
             ELSE NULL::numeric
         END AS estimated_amount_ccy,
     expected_assay,
@@ -36,7 +38,7 @@ CREATE VIEW public.purchase_order_lines_masked WITH (security_invoker = off) AS
     created_by,
     price_source,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN price_provenance
+            WHEN has_permission('data.view_purchase_prices'::text) THEN price_provenance
             ELSE NULL::jsonb
         END AS price_provenance,
     asset_id,
@@ -49,7 +51,7 @@ CREATE VIEW public.purchase_order_lines_masked WITH (security_invoker = off) AS
     tax_code,
     tax_rate_pct,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN tax_amount_ccy
+            WHEN has_permission('data.view_purchase_prices'::text) THEN tax_amount_ccy
             ELSE NULL::numeric
         END AS tax_amount_ccy,
     -- PUR-1(2026-09-08):这一行的定价状态选择。**新列加在末尾**(同上一条)。

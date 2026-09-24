@@ -78,9 +78,9 @@ BEGIN
     -- 审批角色要看得见金额(R4),否则开关会以 ..._CANNOT_SEE_AMOUNTS 按名拒
     INSERT INTO role_permissions (role_id, permission_code)
       SELECT r, p FROM unnest(ARRAY[r_l1, r_l2]) r,
-                       unnest(ARRAY['module.purchasing.view','data.view_prices']) p;
+                       unnest(ARRAY['module.purchasing.view','data.view_prices', 'data.view_purchase_prices']) p;
     INSERT INTO role_permissions (role_id, permission_code)
-      SELECT r_empty, unnest(ARRAY['module.purchasing.view','data.view_prices']);
+      SELECT r_empty, unnest(ARRAY['module.purchasing.view','data.view_prices', 'data.view_purchase_prices']);
 
     INSERT INTO user_roles (user_id, role_id) VALUES
         (u_adm, r_adm), (u_fin, r_fin), (u_proc, r_proc), (u_hr, r_hr),

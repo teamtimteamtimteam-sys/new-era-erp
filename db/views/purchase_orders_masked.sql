@@ -1,4 +1,6 @@
 -- db/views/purchase_orders_masked.sql
+-- ★ ROLE-1 Batch 4a(2026-09-25,Tim 的 Q9 线):本视图是【采购那一侧】的价格 —— 遮蔽码从 data.view_prices
+--   换成 data.view_purchase_prices(今天持 view_prices 的每一个角色一并拿到它,仓库只拿它)。
 -- 遮蔽伴生视图:purchase_orders 的每一列都在,敏感列按 has_permission() 置空。
 --   遮蔽的列:estimated_total_ccy → data.view_prices, fx_rate → data.view_prices,
 --             tax_total_ccy → data.view_prices(PO-GST-1)
@@ -20,11 +22,11 @@ CREATE VIEW public.purchase_orders_masked WITH (security_invoker = off) AS
     expected_delivery_date,
     currency,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN fx_rate
+            WHEN has_permission('data.view_purchase_prices'::text) THEN fx_rate
             ELSE NULL::numeric
         END AS fx_rate,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN estimated_total_ccy
+            WHEN has_permission('data.view_purchase_prices'::text) THEN estimated_total_ccy
             ELSE NULL::numeric
         END AS estimated_total_ccy,
     status,
@@ -55,7 +57,7 @@ CREATE VIEW public.purchase_orders_masked WITH (security_invoker = off) AS
     -- PO-GST-1(2026-09-03):这张单的税额合计。**是钱** —— 与 estimated_total_ccy
     -- 同一扇门。净额那一列一个字节没动,含税额在读的那一侧相加(见列注释)。
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN tax_total_ccy
+            WHEN has_permission('data.view_purchase_prices'::text) THEN tax_total_ccy
             ELSE NULL::numeric
         END AS tax_total_ccy,
     -- PO-GST-1-fu2:含税额 —— **屏幕读这一列,自己不做加法**。
@@ -63,7 +65,7 @@ CREATE VIEW public.purchase_orders_masked WITH (security_invoker = off) AS
     -- 而 gross = net + tax 这次加法若两边各写一遍,就是第二份实现。
     -- 【不落库成第三列】导出量不存;存了就会有"净额改了而它没跟上"的错数。
     -- 遮蔽自然传导:分量为 NULL 时整个表达式就是 NULL。
-        CASE WHEN has_permission('data.view_prices'::text)
+        CASE WHEN has_permission('data.view_purchase_prices'::text)
              THEN estimated_total_ccy + COALESCE(tax_total_ccy, 0)
              ELSE NULL::numeric END AS gross_total_ccy,
     -- 这张单【算过税吗】—— NULL 的税额合计【不是】零税:它是"开在 PO-GST-1 之前,

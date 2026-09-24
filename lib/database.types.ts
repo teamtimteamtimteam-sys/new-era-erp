@@ -28519,6 +28519,10 @@ export type Database = {
         }
         Returns: Json
       }
+      pricing_formula_terms_visible: {
+        Args: { p_direction: string }
+        Returns: boolean
+      }
       pricing_terms_of_commitment: {
         Args: { p_commitment_id: string }
         Returns: Json

@@ -26,7 +26,8 @@ import SourceReasonPanel from './SourceReasonPanel'
 import CertificatePanel, { type CertificatePanelData } from './CertificatePanel'
 import { localizeCodError } from '@/app/inbound/codErrorCodes'
 import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
-import { can, canViewPrices } from '@/lib/permissions'
+import { can, canViewPrices, canViewPurchasePrices, receiptPricingGate } from '@/lib/permissions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { Refusal } from '@/app/components/ui/refusal'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -466,7 +467,11 @@ export default async function EditInboundPage({
     }
 
     // 价格历史行:服务端预格式化 created_at
-    const showPrices = await canViewPrices()
+    // ★ ROLE-1 Batch 4a:这一页有【两侧】的价格 —— 落地成本面板是 data.view_prices(到岸成本留在销售与
+    //   成本那一侧),计价面板(收货单价与改价历史)是 data.view_purchase_prices。一个旗子喂两个面板,
+    //   仓库就会要么看不见自己该看的单价、要么看见它不该看的落地成本。
+    const [showPrices, showPurchasePrices, pricingGate] = await Promise.all([
+        canViewPrices(), canViewPurchasePrices(), receiptPricingGate()])
     const priceHistoryRows: PriceHistoryRow[] = maskedRows<
         Tables<'price_history'>,
         'old_unit_price' | 'new_unit_price' | 'original_price' | 'fx_rate'
@@ -751,13 +756,16 @@ export default async function EditInboundPage({
 
             <PricingPanel
                 baseCurrency={baseCurrency}
-                        canViewPrices={showPrices}
+                        canViewPrices={showPurchasePrices}
+                        pricingGate={pricingGate}
                         batchId={batch.id}
                 unitPrice={batch.unit_price}
                 history={priceHistoryRows}
                 extraAction={
                     commitment ? (
-                        <RepriceFromContentPanel batchId={batch.id} baseCurrency={baseCurrency} />
+                        <PermissionGate code={pricingGate.code} allowed={pricingGate.allowed}>
+                            <RepriceFromContentPanel batchId={batch.id} baseCurrency={baseCurrency} />
+                        </PermissionGate>
                     ) : resolvedFormulaId ? (
                         /* 有公式、没有副本 = FIN-27 之前留下的引用。不回填猜测的条款,
                            也不摆一个服务端保证会拒的按钮 —— 说清楚,指出手工定价这条路。 */

@@ -11,6 +11,13 @@ DECLARE
     v_pricing jsonb := NULL;
 BEGIN
     PERFORM require_permission('module.inbound.edit');
+    -- ★ ROLE-1 Batch 4a(grilling Q4):建单【带价】就是定价 —— 要 action.price_receipts 与
+    --   data.view_purchase_prices,在【写入之前】按名拒,整笔建单回滚;绝不悄悄丢掉那个价。
+    --   不带价的建单只要 module.inbound.edit(仓库照建)。
+    IF p_unit_price IS NOT NULL THEN
+        PERFORM require_permission('action.price_receipts');
+        PERFORM require_permission('data.view_purchase_prices');
+    END IF;
 
     -- IOD-2-fu1:到货日【按名】必填。不写这一句,漏出去的是 FIN-32 的约束原文。
     -- 【不给默认值】:CURRENT_DATE 会让留空比填对更容易通过。

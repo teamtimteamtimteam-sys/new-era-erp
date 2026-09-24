@@ -32,7 +32,8 @@
 -- 它的"起单差异"会把缺陷一起吸进去(AP-RECON-1 §3)。本函数按【已知残留】分类,
 -- 不截日,不吸任何东西。
 --
--- 【两道门】module.finance.view(require_permission);清单的金额还要 data.view_prices ——
+-- 【两道门】module.finance.view(require_permission);清单的金额还要看得见那一侧的价格 ——
+-- AP 要 data.view_purchase_prices、AR 要 data.view_prices(ROLE-1 Batch 4a 起按边分开)——
 -- 进料批、销售记录与发票的价格列都是遮蔽的,没有这个码的人读到的清单是残缺的,
 -- 拿它去减总账会得到一个自信的假"未解释"。所以此时两边都【按名拒】:
 -- refusal = 'PRICES_RESTRICTED',数字为 NULL —— 答不上来不是对不上。
@@ -69,7 +70,11 @@ BEGIN
     FOREACH v_side IN ARRAY ARRAY['ap', 'ar'] LOOP
         v_acct := CASE WHEN v_side = 'ap' THEN '2000' ELSE '1100' END;
 
-        IF NOT has_permission('data.view_prices') THEN
+        -- ★ ROLE-1 Batch 4a(grilling Q11):每一边问【它自己那一侧】的价格码 —— AP 清单的金额只经
+        --   inbound_batches_masked 与 prepayment_applications_masked 遮(两张一起搬到了
+        --   data.view_purchase_prices);AR 清单仍按 data.view_prices 遮。
+        IF NOT has_permission(CASE WHEN v_side = 'ap' THEN 'data.view_purchase_prices'
+                                   ELSE 'data.view_prices' END) THEN
             v_sides := v_sides || jsonb_build_object(
                 'side', v_side, 'control_account', v_acct,
                 'refusal', 'PRICES_RESTRICTED',

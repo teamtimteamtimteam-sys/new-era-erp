@@ -18,7 +18,7 @@ import { ApplyNowButton, UnapplyControl } from './ApplyAssayControls'
 import AssayImpactPreview from '../AssayImpactPreview'
 import { repricePreview, type AssayImpact } from '../actions'
 import type { CalcResult } from '@/app/tools/pricing/calculator/actions'
-import { can, canViewPrices } from '@/lib/permissions'
+import { can, canViewPurchasePrices } from '@/lib/permissions'
 import { Refusal } from '@/app/components/ui/refusal'
 import { getBaseCurrency } from '@/lib/currency'
 import { maskedExcept } from '@/lib/maskedRows'
@@ -90,7 +90,7 @@ export default async function AssayDetailPage({
             .limit(1),
     ])
 
-    const showPrices = await canViewPrices()
+    const showPrices = await canViewPurchasePrices()
     // ★★【FIX-2b:那条分录链接【消失】的时候,它说的是一句假话】★★
     //   journal_entries 的 RLS 是 module.finance.view,而本页的门是进料。
     //   实测:operations / warehouse / procurement 读它得 **0 行**,于是

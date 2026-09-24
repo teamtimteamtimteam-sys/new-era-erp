@@ -76,9 +76,9 @@ BEGIN
           FROM inbound_batches_masked ib
           JOIN suppliers sup ON sup.id = ib.supplier_id
           -- 价格:D 那天的价,再套上与 inbound_batches_masked.unit_price
-          -- 【逐字同源】的那道 data.view_prices 遮罩(见抬头)。
+          -- 【逐字同源】的那道 data.view_purchase_prices 遮罩(ROLE-1 Batch 4a 起)(见抬头)。
           CROSS JOIN LATERAL (
-                SELECT CASE WHEN has_permission('data.view_prices')
+                SELECT CASE WHEN has_permission('data.view_purchase_prices')
                             THEN inbound_unit_price_asof(ib.id, v_as_of)
                        END AS price
           ) pr
@@ -228,9 +228,9 @@ BEGIN
 
     -- 【被"那天还没有价"挡掉的批次有几张】—— 一个缺席要说得出数目,
     -- 否则它与"本来就没有这笔应付"在屏幕上长得一模一样。
-    -- 没有 data.view_prices 时这个数是 NULL 而不是 0:那不是"零张",
+    -- 没有 data.view_purchase_prices 时这个数是 NULL 而不是 0:那不是"零张",
     -- 是"你看不到这一栏",与价格本身遮成 NULL 同一个道理。
-    IF has_permission('data.view_prices') THEN
+    IF has_permission('data.view_purchase_prices') THEN
         SELECT count(*) INTO v_unpriced
           FROM inbound_batches ib
          WHERE (ib.deleted_at IS NULL OR ib.deleted_at::date > v_as_of)

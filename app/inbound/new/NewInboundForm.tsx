@@ -17,6 +17,7 @@ import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditio
 import type { SafetyState, Certainty } from '../IntakeConditionFields'
 import { Button } from '@/app/components/ui/button'
 import { formatDate } from '@/lib/dates'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const initialState: CreateInboundState = {}
 
@@ -59,6 +60,7 @@ export default function NewInboundForm({
     sourceReasons,
     baseCurrency,
     currencies,
+    pricingGate,
     initialPoId = '',
 }: {
     // IOD-1b:收货库位的可选清单(在用库位),由页面取好传进来
@@ -77,6 +79,9 @@ export default function NewInboundForm({
     // 它要一个币种(决定汇率,不给默认值);选择器默认本位币。
     baseCurrency: string
     currencies: string[]
+    /** ROLE-1 Batch 4a(grilling Q4):建单带价就是定价 —— 要 action.price_receipts + data.view_purchase_prices。
+     *  没有的人:价格框看得见、按不动、说出码;被禁用的输入不随表单提交,收货单于是【不带价】建成。 */
+    pricingGate: { allowed: boolean; code: string }
     initialPoId?: string
 }) {
     const t = useTranslations()
@@ -389,6 +394,7 @@ export default function NewInboundForm({
                     与之后在批次页上定价过同一条账(应付 + 价格史)。 */}
                 <div>
                     <label className="block mb-1">{t('inbound.form.unitPrice')}</label>
+                    <PermissionGate code={pricingGate.code} allowed={pricingGate.allowed}>
                     <div className="flex flex-wrap gap-2">
                         <input
                             type="number"
@@ -409,8 +415,9 @@ export default function NewInboundForm({
                             ))}
                         </select>
                     </div>
+                    </PermissionGate>
                     <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
-                        {t('inbound.form.unitPricePostsHint')}
+                        {pricingGate.allowed ? t('inbound.form.unitPricePostsHint') : t('inbound.form.unitPriceFinancePrices')}
                     </p>
                     {/* FIN-0:外币按定价日行方卖出价(tt_sell)自动估值,当天没牌价直接拒 */}
                     {priceCurrency !== baseCurrency && (

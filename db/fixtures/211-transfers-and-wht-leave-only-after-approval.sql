@@ -49,9 +49,9 @@ BEGIN
     INSERT INTO roles (code,name_en,name_zh,is_active) VALUES ('fx211-l2','f','f',true)   RETURNING id INTO r_l2;
     INSERT INTO roles (code,name_en,name_zh,is_active) VALUES ('fx211-none','f','f',true) RETURNING id INTO r_none;
     INSERT INTO role_permissions (role_id, permission_code) VALUES
-        (r_fin, 'module.finance.view'), (r_fin, 'module.finance.edit'), (r_fin, 'data.view_prices'),
-        (r_l1,  'module.finance.view'), (r_l1,  'data.view_prices'), (r_l1, 'module.purchasing.view'),
-        (r_l2,  'module.finance.view'), (r_l2,  'data.view_prices'), (r_l2, 'module.purchasing.view');
+        (r_fin, 'module.finance.view'), (r_fin, 'module.finance.edit'), (r_fin, 'data.view_prices'), (r_fin, 'data.view_purchase_prices'),
+        (r_l1,  'module.finance.view'), (r_l1, 'data.view_prices'), (r_l1, 'data.view_purchase_prices'), (r_l1, 'module.purchasing.view'),
+        (r_l2,  'module.finance.view'), (r_l2, 'data.view_prices'), (r_l2, 'data.view_purchase_prices'), (r_l2, 'module.purchasing.view');
     INSERT INTO user_roles (user_id, role_id) VALUES
         (u_fin, r_fin), (u_cfo, r_l2), (u_cfo2, r_l2), (u_cfo2, r_fin), (u_l1, r_l1), (u_none, r_none);
 

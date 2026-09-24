@@ -1,4 +1,6 @@
 -- db/views/price_history_masked.sql
+-- ★ ROLE-1 Batch 4a(2026-09-25,Tim 的 Q9 线):本视图是【采购那一侧】的价格 —— 遮蔽码从 data.view_prices
+--   换成 data.view_purchase_prices(今天持 view_prices 的每一个角色一并拿到它,仓库只拿它)。
 -- 遮蔽伴生视图:price_history 的每一列都在,敏感列按 has_permission() 置空。
 --   遮蔽的列:fx_rate → data.view_prices, new_unit_price → data.view_prices, old_unit_price → data.view_prices, original_price → data.view_prices
 --
@@ -15,20 +17,20 @@ CREATE VIEW public.price_history_masked WITH (security_invoker = off) AS
  SELECT id,
     inbound_batch_id,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN old_unit_price
+            WHEN has_permission('data.view_purchase_prices'::text) THEN old_unit_price
             ELSE NULL::numeric
         END AS old_unit_price,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN new_unit_price
+            WHEN has_permission('data.view_purchase_prices'::text) THEN new_unit_price
             ELSE NULL::numeric
         END AS new_unit_price,
     currency,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN original_price
+            WHEN has_permission('data.view_purchase_prices'::text) THEN original_price
             ELSE NULL::numeric
         END AS original_price,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN fx_rate
+            WHEN has_permission('data.view_purchase_prices'::text) THEN fx_rate
             ELSE NULL::numeric
         END AS fx_rate,
     notes,

@@ -1,4 +1,7 @@
 -- db/views/pricing_formula_history_masked.sql
+-- ★ ROLE-1 Batch 4a(2026-09-25,grilling Q9,Tim 裁定按行遮):条款数字按公式的 direction 遮 ——
+--   'sale' → data.view_prices;'purchase' / 'both' → data.view_purchase_prices。判据只有一份:
+--   pricing_formula_terms_visible(direction)。
 -- 遮蔽伴生视图:pricing_formula_history 的每一列都在,敏感列按 has_permission() 置空。
 --   遮蔽的列:old/new_payable_pct、old/new_treatment_charge_usd_per_tonne、
 --             old/new_flat_discount_pct —— 与它们的源列同口径,归 data.view_prices。
@@ -14,11 +17,15 @@ CREATE VIEW public.pricing_formula_history_masked WITH (security_invoker = off) 
     change_type,
     metal,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN old_payable_pct
+            WHEN (pricing_formula_terms_visible(( SELECT f.direction
+                   FROM pricing_formulas f
+                  WHERE f.id = pricing_formula_history.formula_id)) AND pricing_formula_terms_visible(COALESCE(old_direction, 'both'::text)) AND pricing_formula_terms_visible(COALESCE(new_direction, 'both'::text))) THEN old_payable_pct
             ELSE NULL::numeric
         END AS old_payable_pct,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN new_payable_pct
+            WHEN (pricing_formula_terms_visible(( SELECT f.direction
+                   FROM pricing_formulas f
+                  WHERE f.id = pricing_formula_history.formula_id)) AND pricing_formula_terms_visible(COALESCE(old_direction, 'both'::text)) AND pricing_formula_terms_visible(COALESCE(new_direction, 'both'::text))) THEN new_payable_pct
             ELSE NULL::numeric
         END AS new_payable_pct,
     old_name,
@@ -30,19 +37,27 @@ CREATE VIEW public.pricing_formula_history_masked WITH (security_invoker = off) 
     old_average_days,
     new_average_days,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN old_treatment_charge_usd_per_tonne
+            WHEN (pricing_formula_terms_visible(( SELECT f.direction
+                   FROM pricing_formulas f
+                  WHERE f.id = pricing_formula_history.formula_id)) AND pricing_formula_terms_visible(COALESCE(old_direction, 'both'::text)) AND pricing_formula_terms_visible(COALESCE(new_direction, 'both'::text))) THEN old_treatment_charge_usd_per_tonne
             ELSE NULL::numeric
         END AS old_treatment_charge_usd_per_tonne,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN new_treatment_charge_usd_per_tonne
+            WHEN (pricing_formula_terms_visible(( SELECT f.direction
+                   FROM pricing_formulas f
+                  WHERE f.id = pricing_formula_history.formula_id)) AND pricing_formula_terms_visible(COALESCE(old_direction, 'both'::text)) AND pricing_formula_terms_visible(COALESCE(new_direction, 'both'::text))) THEN new_treatment_charge_usd_per_tonne
             ELSE NULL::numeric
         END AS new_treatment_charge_usd_per_tonne,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN old_flat_discount_pct
+            WHEN (pricing_formula_terms_visible(( SELECT f.direction
+                   FROM pricing_formulas f
+                  WHERE f.id = pricing_formula_history.formula_id)) AND pricing_formula_terms_visible(COALESCE(old_direction, 'both'::text)) AND pricing_formula_terms_visible(COALESCE(new_direction, 'both'::text))) THEN old_flat_discount_pct
             ELSE NULL::numeric
         END AS old_flat_discount_pct,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN new_flat_discount_pct
+            WHEN (pricing_formula_terms_visible(( SELECT f.direction
+                   FROM pricing_formulas f
+                  WHERE f.id = pricing_formula_history.formula_id)) AND pricing_formula_terms_visible(COALESCE(old_direction, 'both'::text)) AND pricing_formula_terms_visible(COALESCE(new_direction, 'both'::text))) THEN new_flat_discount_pct
             ELSE NULL::numeric
         END AS new_flat_discount_pct,
     old_is_active,

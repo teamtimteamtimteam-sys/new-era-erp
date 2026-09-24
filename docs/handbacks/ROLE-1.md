@@ -756,3 +756,221 @@ What the old app does against the new database (approvals ON):
 Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
 (a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
 Next cut: payroll-posting approval (`docs/forward-queue.md`).
+
+---
+
+# Batch 4 — Step 0, and Batch 4a: purchase prices are their own code; only finance prices a receipt (2026-09-25)
+
+**Opening gate:** tree clean; `HEAD` = `origin/main` = `ls-remote` = `5322fe4ddee380e01d8b0bbfd49d55712432bb4a`
+(PAYROLL-APR-1). **Approvals were ON and stayed ON.** Every figure below is a script's own exit line or a query named with its
+identity. The matrix lines are `docs/role-matrix.md` §8, §13, §14; the approvals effects are `docs/approvals.md` §3m.
+
+## §W · PAYROLL-APR-1's broken window — closed with bounds, labelled by kind
+
+Tim confirmed the PAYROLL-APR-1 deploy on 2026-09-25, before this session began.
+
+| | time (CST) | kind |
+|---|---|---|
+| start | 2026-09-25 00:12:32 | `db/apply_migration.sh`'s own line (`db/migration-windows.tsv`) |
+| end, lower bound | 00:51:49 | **measured**: the push moved `origin/main` → `5322fe4d` (`git reflog show --date=iso refs/remotes/origin/main`) — no deploy can precede it |
+| end, upper bound | 01:14:12 | **derived**: this session's first live read, database clock `now()` as `postgres`, taken after Tim's "deployed" confirmation had arrived — **a relayed confirmation, not a measurement of Vercel** |
+
+**Window: at least 39 min 17 s, at most 61 min 40 s.** Also written into `docs/handbacks/PAYROLL-APR-1.md` §5.
+
+## §0 · Step 0 (grilling) and Tim's answers
+
+**What grilling found** (read as `postgres`, `rolbypassrls = t`, base tables, `relkind = 'r'` checked; code read from the mirrors):
+1. **One function does all the pricing.** `reprice_inbound_batch` is the only writer of `inbound_batches.unit_price` and
+   `price_history`, and the only thing that posts a `purchase` entry. The desk form (`create_inbound_batch`), the pricing panel
+   (`set_inbound_unit_price`), repricing from committed terms and applying an assay all call it. It posts
+   (new − old) × the **whole** quantity (1200 in-stock share, 5000 consumed share, Cr 2000), dated the pricing day at that day's
+   tt_sell. `receive_inbound_batch_against_po` never prices; unapplying an assay changes no price and reverses no entry.
+2. **Four side doors were open:**
+   * `price_history` had an INSERT policy on `module.inbound.edit` — live `has_table_privilege('authenticated','price_history','INSERT')`
+     = t — and `inbound_unit_price_asof` rebuilds past prices from it, so a made-up row moved AP ageing as-of;
+   * `reverse_journal_entry` did not refuse `purchase` entries (`reverse_journal_entry.sql:23-43`): reversing one takes 2000 away
+     while `ap_open_items` still shows the debt;
+   * `reprice_inbound_batch` and `set_inbound_unit_price` were both executable by `authenticated` (live, `has_function_privilege`);
+   * a receipt's supplier, PO line and hand-entered metal content can be changed after pricing.
+3. **A paid receipt can be repriced below what was paid** — repricing never reads payments or `pricing_status`, and a manual price
+   can overwrite a `final` assay price.
+4. **What warehouse actually gains is smaller than the ruling implies.** Warehouse holds none of `module.purchasing.view`,
+   `module.pricing.view`, `module.finance.view`; `data.view_purchase_prices` changes only what it sees on receipt screens
+   (unit price, price history, assay repricing old/new). POs, formulas and AP ageing stay closed to it until Batch 5.
+5. **Landed cost already reaches warehouse, by design** (`inbound_batch_landed_unit_cost` lets `module.stocktakes.edit` through;
+   the two cost readers answer anyone with `inbound.view`).
+6. **An existing display bug:** the forwarder page and the container freight panel drew a masked freight amount as 0.00.
+7. **It does not fit one session** — two cuts.
+
+**Live readings at Step 0** (01:14–01:20 CST, `postgres`, base tables): 15 live receipts — 9 priced, 6 unpriced (IN-2026-0153,
+0179, 0180, 0258, 0321, 0322), all created by admin@; 9 of 15 on `draft` suppliers; `price_history` 14 rows, last 2026-08-31;
+`purchase` entries 10, last 2026-08-31; 4 inbound assays, all applied (last 2026-08-10), 0 waiting; 0 output assays;
+`pricing_term_commitments` 1. Nothing about pricing was pending; nothing could be stranded.
+
+**Tim accepted all thirteen recommendations (2026-09-25):**
+
+| Q | ruling | where |
+|---|---|---|
+| Q1 | `action.price_receipts` to finance and admin, **with** `data.view_purchase_prices`, both checked in the database | 4a |
+| Q2 | (A) `submitted → approved`, the CFO's approval posting at once; rejected, withdrawn; price frozen in its original currency; posted on the approval day at that day's rate; dry run at submit and approve; born approved with `auto_approved` when approvals are off | 4b |
+| Q3 | the assay applies in full and raises a pricing request in the same transaction; `RECEIPT_PRICE_REQUEST_OPEN` if a manual request is open; unapplying withdraws that assay's open request | 4b |
+| Q4 | the desk-form price box stays; a holder's price submits a request; for everyone else it is disabled with the reason; a non-holder's price is refused by name in the database | 4a (the refusal and the disabled box) · 4b (the request) |
+| Q5 | while a request waits: supplier / PO / PO line / metal content / soft delete / a second request refused (`RECEIPT_PRICE_REQUEST_OPEN`); fingerprint re-checked at approval (`RECEIPT_PRICE_CHANGED_SINCE_REQUEST`); supplier approval status not checked | 4b |
+| Q6 | refuse at submit and at approve: `RECEIPT_PRICE_BELOW_SETTLED` | 4b (registered: `ROLE1B4A-REPRICE-BELOW-SETTLED`) |
+| Q7 | close (a) the `price_history` INSERT policy, (b) `purchase` reversal, (c) the engine's EXECUTE; register (d) the forgeable `purchase` journal and supplier change on a priced receipt | 4a |
+| Q8 | engine registration as PAY-REQ-1 / PAYROLL-APR-1 (`require_approver_for(2)`, `blocks_disable`, `fixed_level = 2`, gate `module.inbound.view + data.view_purchase_prices`, raiser judged per person, no subject) | 4b |
+| Q9 | pricing formulas masked **per row** (sale → `view_prices`; purchase / both → the purchase code) | 4a |
+| Q10 | freight documents stay on `view_prices`; the 0.00 display reads "restricted" | 4a |
+| Q11 | yes to every split; `inbound_batches_masked` and `prepayment_applications_masked` move together; rewrite the sales-order / quote note | 4a |
+| Q12 | register the landed-cost exception; fix it in Batch 3 | registered |
+| Q13 | **two cuts**: this session builds and ships 4a and stops at the push; **4b, the pricing-approval lifecycle, is the next cut**. Between the two, finance prices without approval (the usual [LC] interim) | — |
+| standing | every new code also to `admin`, same migration | 4a |
+
+## §1 · What 4a shipped
+
+**Migration** `db/migrations/2026-09-25-role1b4a-purchase-prices-and-who-prices-a-receipt.sql`, assembled from the mirrors by
+`db/scripts/build_role1b4a_migration.py`. One transaction. Its self-proof asserts, in the same transaction: the grants are exactly
+"before + the ruled grants", nothing removed; every role holding `data.view_prices` holds the purchase code; warehouse holds the
+purchase code and not `view_prices`; `action.price_receipts` is held by exactly `admin finance`; approvals still ON; pending documents
+unchanged; `approval_log`, `journal_entries`, `price_history`, receipts and priced receipts unchanged; `price_history` has no write
+policy; `authenticated` cannot execute the engine; the PO approval gate rows name the purchase code; both PO approval levels still have
+a real decider; every pending document still has a decider who is not its own party.
+
+| piece | what |
+|---|---|
+| codes | `data.view_purchase_prices` → admin · auditor · cco · cfo · cto · finance · gm · procurement · sales (every `view_prices` holder) + **warehouse**; `action.price_receipts` → finance · admin. `data.view_prices` renamed "View sales prices & costs" and re-described |
+| 12 views → purchase code | `purchase_orders_masked` · `purchase_order_lines_masked` · `purchase_order_payment_terms_masked` · `payment_term_template_lines_masked` · `purchase_order_line_retentions_masked` · `purchase_order_retention_status` · `pricing_term_commitments_masked` · `pricing_term_commitment_metals_masked` · `inbound_batches_masked` · `inbound_batch_lookup` · `price_history_masked` · `prepayment_applications_masked` |
+| per row (Q9) | `pricing_formulas_masked` · `pricing_formula_metals_masked` · `pricing_formula_history_masked` through one new judgement `pricing_formula_terms_visible(direction)`; `calculate_metal_price` asks by the formula's direction |
+| per event | `batch_audit_trail`: `amount_restricted` asks the purchase code for `price_change`, `view_prices` for cost entries and sales |
+| functions | `ap_aging_asof` · `approve_purchase_order` · `preview_reprice_inbound_batch` → purchase code; `approval_chain_gates` PO-approve rows → purchase code; `role_can_see_amounts` requires both codes; `list_ledger_reconciliation` asks per side (AP purchase, AR `view_prices`); `po_document_data` nulls its prices without the purchase code and says `prices_visible` (closes ROLE1-PO-DOCUMENT-DATA-PRICES) |
+| who prices (Q1 · Q4) | `set_inbound_unit_price` · `reprice_from_committed_terms` · `preview_reprice_from_committed_terms` require `action.price_receipts` + `data.view_purchase_prices`; `create_inbound_batch` requires both **only when a price is given**, before anything is written; the engine `reprice_inbound_batch` drops its nested `module.inbound.edit` and asks `data.view_purchase_prices` of whoever pressed the button — so applying an assay also needs to see purchase prices |
+| side doors (Q7) | (a) `price_history insert by permission` dropped; (b) `reverse_journal_entry` refuses `purchase` with `JE_REVERSE_USE_SOURCE_PATH`; (c) EXECUTE on `reprice_inbound_batch` revoked from `authenticated` (`db/views/zzz_function_grants.sql`) |
+| bootstrap | `role_permissions` bootstrap: the five `view_prices` roles + warehouse get the purchase code; finance gets `action.price_receipts` |
+
+**Screens (en + zh):**
+- Receipt page: two flags instead of one — the landed-cost panel on `data.view_prices`, the pricing panel (unit price and history)
+  on `data.view_purchase_prices`. The price form and "Reprice from content" are visible, disabled, naming the first missing code
+  (`action.price_receipts`, then `data.view_purchase_prices`) — `receiptPricingGate()` in `lib/permissions.ts`.
+- Desk form `/inbound/new`: the price box and currency are visible and disabled for non-holders; a line says Finance prices receipts
+  and this one will be created without a price (a disabled input is not submitted, so the receipt is created unpriced).
+- Assay detail (old / new price) and the PO page (retentions) read the purchase code.
+- Forwarder page and container freight panel: a masked freight amount reads **Restricted**, and a currency total with a masked
+  document reads Restricted instead of a confident smaller sum.
+- Copy: `inbound.form.unitPriceFinancePrices`; `JE_REVERSE_USE_SOURCE_PATH` now names the pricing of a goods receipt and where to
+  correct it.
+
+**Fixtures:** new **219** (arms A–J, one fault injection: put the `price_history` INSERT policy back and the direct insert goes
+through). **Updated because a gate moved (no assertion changed):** eighteen fixtures whose synthetic roles held `data.view_prices`
+now also hold `data.view_purchase_prices` — 30 · 35 · 40 · 47 · 51 · 52 · 110 · 127 · 151 · 194 · 202 · 203 · 204 · 205 · 206 · 210 ·
+211 · 218 (fixture 110's "no prices" reader now excludes both codes).
+
+**Known issues:** closed ROLE1-PO-DOCUMENT-DATA-PRICES; rewrote ROLE1-SALES-ORDER-QUOTE-PRICES-UNMASKED; registered
+ROLE1B4A-REPRICE-BELOW-SETTLED (4b) · ROLE1B4A-PURCHASE-JOURNAL-FORGEABLE (APR-6) · ROLE1B4A-RECEIPT-SUPPLIER-CHANGE-AFTER-PRICING
+(Batch 3 / 4b) · ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION (Batch 3).
+
+## §2 · Verification — every figure is the script's own exit line
+
+| step | result |
+|---|---|
+| `db/gate.py --offline` (detached), run 1 | **`GATEOFF_EXIT=4`** — 18 fixtures red, every one because a synthetic role held `data.view_prices` but not the new code: 12 × `APPROVALS_LEVEL1_ROLE_CANNOT_SEE_AMOUNTS` (the switch now wants both codes), 30 `PERMISSION_DENIED\|data.view_purchase_prices`, 40 the preview refusal, 47 / 51 AP rows masked, 110C / 194D3 the reader shapes. 219 ✓ |
+| `db/gate.py --offline`, run 2 (after the eighteen fixture updates) | **`GATEOFF_EXIT=0`** — pre-migration phase clean |
+| dry run on live (`COMMIT` → probe `SELECT` + `ROLLBACK`) | **`DRY_OWN_EXIT=0`**; self-proof notices printed, every pending document with a decider; 12 new-code grants inside the transaction |
+| backup (`db/run_detached.sh`, token BACKUP) | **`BACKUP_EXIT=0`** — `evoltrya-backup-2026-09-25-0143.dump`, 4.7 MB, TOC 6,186 (previous 6,148, floor 5,533); `pg_restore --list` 6,201 lines |
+| rehearsal: migration + live proof in one transaction, `ROLLBACK` | **`REHEARSE_OWN_EXIT=0`**, 17 of 17 cells — the proof script tested before the real apply |
+| `db/apply_migration.sh` | **`APPLY_OWN_EXIT=0`**. Pre-flight: 16 CREATE FUNCTION (14 replace · 2 new), 4 account codes all `is_system`, no columns added. **Window start 2026-09-25 01:58:16 CST** (the "applied at" line reads 01:57:30) |
+| `NOTIFY pgrst, 'reload schema'` · `npm run types:gen` | `TYPES_OWN_EXIT=0`; one addition: `pricing_formula_terms_visible` |
+| `npx tsc --noEmit` | `TSC_OWN_EXIT=0` |
+| `npm run build` | `BUILD_OWN_EXIT=0` |
+| `db/gate.py` full (detached) | **`GATE_EXIT=0`**, 496 s wall clock: rebuildable ✓ · mirrors vs live ✓ (`NO DIFFERENCES`) · fixtures ✓ (**222 passed, 0 failed**, 219 included) · anon surface ✓ (live ⊆ baseline, 327); B2 allowlist 9, 0 unchecked callable definers |
+| `node scripts/check-i18n.mjs` | `I18N_OWN_EXIT=0` |
+| `node scripts/check-error-swallowing.mjs` | `SWALLOW_OWN_EXIT=0` — 0 unallowed |
+| smoke (`db/run_detached.sh`, token SMOKE, `--timeout 2400`, started 02:09:50) | **`SMOKE_EXIT=0`** at 02:20:38: 235 routes + probes, **253 ok · 7 skipped (no data) · 0 FAILED**; 228 timed routes, 505.5 s, median 2,086 ms. **Clean-up, read at 02:21:04 as `postgres` from base tables:** `smoke-%` users **0** · `probe-%` / `fixture-%` / `fx%` roles **0** · orphan grants (no user / no role) **0 / 0** · `ZZ-SMOKE-%` employees **0** · `idle in transaction` **0**; `.ephemeral/` empty; no smoke or `next dev` process left. The pre-run scratch-row report listed the same 6 stale `ZZ-SMOKE-*` rows as earlier cuts (report-only, pre-existing) |
+
+## §3 · Live proof
+
+**Script:** `db/scripts/2026-09-25-role1b4a-live-proof.sql`. One transaction, `ROLLBACK`, run as `postgres` (`rolbypassrls = t`);
+each cell sets `request.jwt.claims` to a real account and runs under `SET LOCAL ROLE authenticated`.
+**Result: `PROOF_OWN_EXIT=0`, 17 of 17 cells**, finished 02:21:15 CST (inside the window, after the smoke).
+
+| account | cell | result |
+|---|---|---|
+| fusheng@ (warehouse) | `inbound_batches_masked` IN-2026-0011 (view) | unit price **150.0000** — visible since this cut |
+| fusheng@ | `price_history_masked` IN-2026-0011 (view) | 1 of 1 rows carry a price |
+| fusheng@ | `output_batch_valuation` (view) | 14 rows, **0** with a unit cost — valuation stays on `view_prices` |
+| fusheng@ | price IN-2026-0153 · reprice from committed terms | `PERMISSION_DENIED\|action.price_receipts` ×2 |
+| fusheng@ | desk receipt **with** a price | `PERMISSION_DENIED\|action.price_receipts`; receipts for that supplier 7 → 7 (nothing written) |
+| sandra@ (cco) · phua@ (cto) | price IN-2026-0153 | `PERMISSION_DENIED\|action.price_receipts` ×2 |
+| chooer@ (finance) | price IN-2026-0153 at 2 SGD | **JE-2026-0080**; 2000 credit +1,360.00 = 680 × 2 (inside the transaction) |
+| chooer@ | `reverse_journal_entry` on that entry | `JE_REVERSE_USE_SOURCE_PATH\|JE-2026-0080\|purchase` |
+| chooer@ | direct INSERT into `price_history` | `42501` row-level security |
+| chooer@ | call `reprice_inbound_batch` directly | `42501 permission denied for function reprice_inbound_batch` |
+| vince@ (gm) | `inbound_batches_masked` IN-2026-0011 (view) | 150.0000 — nobody sees one cell less |
+| tim@ (cfo) | `list_ledger_reconciliation()` | `ap=answered ar=answered` |
+| postgres | `approval_deciders` for `approve_purchase_order` | level 1: chooer@, tim@ · level 2: tim@ |
+
+JE-2026-0080 existed only inside the rolled-back transaction (the same number PAYROLL-APR-1's proof consumed and rolled back).
+**What this proof is and is not:** refusals and read-backs as the real accounts, inside a transaction that was rolled back. No human
+walk has happened (the standing ruling: the whole chain is walked once after APR-6).
+
+### Before / after
+
+**Script:** `db/scripts/2026-09-25-role1b4a-readings.sql`, which states the identity for every part.
+**Timing:** before at 01:43:08 CST; after at 02:21:28 CST (after the migration, the smoke and the proof's ROLLBACK).
+**`diff` of the two outputs: only the read time, the two new codes' holders, and the eleven roles / seven accounts that gained them.**
+
+| reading | identity · object | before | after |
+|---|---|---:|---:|
+| `approvals_enabled` / l1 / l2 / threshold | postgres · base `finance_settings` | t / finance / cfo / 1000 | **t / finance / cfo / 1000** |
+| pending: claims submitted · leave · medical submitted · medical approved-unpaid · reviews · work orders · stocktakes · POs · payment requests · payroll requests | postgres · base | 1 · 2 · 0 · 1 · 0 · 0 · 5 · 0 · 0 · 0 | **the same — nothing new pending on live** |
+| `approval_log` · `journal_entries` · payroll entries | postgres · base | 14 · 82 · 4 | **14 · 82 · 4** |
+| account 1100 · 1200 · 2000 · 2200 · 2300 · 2400 · 5000 (debit − credit) | postgres · base `journal_lines` | 43,002.12 · 61,387.92 · −376,404.42 · −1,597.47 · 4,677.00 · 156.00 · 809.14 | **the same** |
+| `price_history` · priced receipts / all receipts · `purchase` entries | postgres · base | 14 · 12 / 24 · 10 | **14 · 12 / 24 · 10** |
+| `data.view_purchase_prices` holders | postgres · base `role_permissions` | (code absent) | admin auditor cco cfo cto finance gm procurement sales **warehouse** |
+| `action.price_receipts` holders | postgres · base | (code absent) | **admin finance** |
+| `data.view_prices` holders | postgres · base | admin auditor cco cfo cto finance gm procurement sales | **the same** |
+| codes per role (n): admin · auditor · cco · cfo · cto · employee · finance · gm · hr · operations · procurement · sales · warehouse | postgres · base | 52 · 19 · 36 · 29 · 31 · 0 · 34 · 20 · 7 · 15 · 15 · 16 · 14 | **54 · 20 · 37 · 30 · 32 · 0 · 36 · 21 · 7 · 15 · 16 · 17 · 15** (employee, hr, operations md5 identical) |
+| unrevoked grants | postgres · base `user_roles` | admin@ admin · chooer@ finance · fusheng@ warehouse · phua@ cto · sandra@ cco · tim@ cfo · vince@ gm | **the same** |
+| `ap_open_items` n · Σ | tim@ · **view** | 16 · 416,988.32 | **16 · 416,988.32** |
+| `ar_open_items` n · Σ | tim@ · **view** | 10 · 57,545.87 | **10 · 57,545.87** |
+| list-vs-ledger AP: list / ledger / **unexplained** | tim@ · `list_ledger_reconciliation()` | 416,988.32 / 376,404.42 / **0.00** | 416,988.32 / 376,404.42 / **0.00** |
+| list-vs-ledger AR: list / ledger / **unexplained** | tim@ · same | 57,545.87 / 43,002.12 / **0.00** | 57,545.87 / 43,002.12 / **0.00** |
+| `current_user_permissions()`: admin@ · chooer@ · fusheng@ · phua@ · sandra@ · tim@ · vince@ | each account as itself | 52 · 34 · 14 · 31 · 36 · 29 · 20 | **54 · 36 · 15 · 32 · 37 · 30 · 21** |
+
+**Pending documents and their deciders** (the migration's own proof, by person): CLM-2026-0004 → tim@ · LV-2026-0001 / 0003 →
+admin@, tim@ · MC-2026-0001 (pay) → admin@, chooer@ · ST-2026-0082…0086 → chooer@, fusheng@, phua@, sandra@.
+**No pending document is left without a decider, and nothing new is pending on live.**
+
+## §4 · What each person gains and loses
+
+- **Fu Sheng (warehouse):** **gains** the purchase code — receipt unit prices, price history and assay old / new prices on the
+  receipt screens (POs, formulas and AP ageing stay closed: no purchasing / pricing / finance view code). **Loses** pricing and repricing
+  receipts, reprice from committed terms, a desk receipt with a price (the box is now disabled with the reason) and the direct
+  `price_history` insert. Still creates receipts without a price.
+- **Sandra (cco) · Phua (cto):** lose pricing receipts (they had it through `inbound.edit`). Phua still applies assays — which still
+  reprice and post, because he sees purchase prices; that price becomes a request in 4b.
+- **Choo Er (finance):** gains `action.price_receipts`; prices exactly as before, in one step, **without approval until 4b**. Loses
+  reversing a receipt-pricing entry from the journal screen and the direct `price_history` insert.
+- **Tim as tim@ · Vince (gm) · the auditor role:** gain the purchase code; no visible change. **Tim as admin@:** gains both new codes.
+- **Unheld procurement / sales roles:** gain the purchase code; procurement loses pricing (it held `inbound.edit`).
+
+## §5 · The broken window — started, end PENDING
+
+**Start: 2026-09-25 01:58:16 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line
+reads 01:57:30). **End: PENDING — Tim reads it from Vercel.**
+
+What the old app does against the new database (approvals ON):
+- **Only Choo Er (and admin@) can price a receipt.** The old pricing panel and desk form show their price inputs to everyone:
+  Sandra, Phua and Fu Sheng get `PERMISSION_DENIED|action.price_receipts` in the shared fallback sentence; a desk receipt **with**
+  a price from them is refused whole (nothing written) — leaving the box empty still creates it. "Reprice from content" the same.
+- **Fu Sheng sees receipt prices** on the old receipt page too — the ruled outcome, arriving early: the data now comes back
+  unmasked for him, and the old `MaskedValue` says "Restricted" only when the value is null, so the old panel shows the numbers.
+- Reversing a receipt-pricing entry from the journal screen is refused by name; the old copy for `JE_REVERSE_USE_SOURCE_PATH`
+  does not mention receipt pricing — the deployed copy does.
+- **Unaffected:** approvals of every kind (no chain, switch or policy touched; nothing pending changed), every payment path,
+  Phua's assay application, Choo Er's pricing, every other screen (the smoke above ran the new code against the new database).
+
+## §6 · Commit, push, three SHAs
+
+Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
+(a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
+**Next cut: ROLE-1 Batch 4b — receipt-pricing approval** (`docs/forward-queue.md` item 6); then ROLE-1 Batch 3.

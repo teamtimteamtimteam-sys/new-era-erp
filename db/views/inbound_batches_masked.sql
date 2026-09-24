@@ -1,4 +1,6 @@
 -- db/views/inbound_batches_masked.sql
+-- ★ ROLE-1 Batch 4a(2026-09-25,Tim 的 Q9 线):本视图是【采购那一侧】的价格 —— 遮蔽码从 data.view_prices
+--   换成 data.view_purchase_prices(今天持 view_prices 的每一个角色一并拿到它,仓库只拿它)。
 -- 【PROC-2:多一列 chemistry_certainty_code】遮蔽表加一列是三件事,这是第三件 ——
 -- gate 的 colgrant 判据是「一张表一旦有 _masked 伴生,每一列都必须在那张视图里,
 -- 授权与否都一样」,所以这一列即便是非敏感的、已经列级授权了,也必须在这里出现。
@@ -39,7 +41,7 @@ CREATE VIEW public.inbound_batches_masked WITH (security_invoker = off) AS
     arrival_date,
     stage,
         CASE
-            WHEN has_permission('data.view_prices'::text) THEN unit_price
+            WHEN has_permission('data.view_purchase_prices'::text) THEN unit_price
             ELSE NULL::numeric
         END AS unit_price,
     notes,

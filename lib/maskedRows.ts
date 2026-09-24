@@ -14,6 +14,9 @@
 //    这样做是【有前提的】,前提今天成立并且被 fixture 量过:
 //        能读 module.finance.view / module.pricing.view 的角色
 //        (admin / finance / auditor)【全都持有 data.view_prices】,
+//        ★ ROLE-1 Batch 4a 起价格码分两侧:这些页面读的采购那一侧(应付明细的收货单价、
+//        公式条款)按 data.view_purchase_prices 遮 —— 而持 view_prices 的每一个角色都持它
+//        (那支迁移的自证在同一笔事务里断言这一句;仓库只持采购码,但它没有 finance.view / pricing.view),
 //    所以这些页面上的敏感列永远不会是 null;它们改读遮蔽视图,单纯是因为
 //    cut 2b 把基表的原始敏感列 SELECT 收回了。
 //

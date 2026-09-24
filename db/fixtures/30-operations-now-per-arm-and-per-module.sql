@@ -73,7 +73,7 @@ BEGIN
     -- (支挂的都是 .view),arm B 用的也是另一个角色。
     SELECT r_all, unnest(ARRAY['module.inbound.view','module.processing.view',
         'module.purchasing.view','module.purchasing.edit','module.stocktakes.view','module.hr.view',
-        'module.output.view','module.finance.view','data.view_prices',
+        'module.output.view','module.finance.view','data.view_prices', 'data.view_purchase_prices',
         -- EXEC-1a:两支新臂各自的门
         'module.pricing.view','module.sales.view',
         -- EXEC-3a:资质两支挂 suppliers,工单两支挂 processing

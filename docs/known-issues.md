@@ -3,19 +3,47 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
-## ★ ROLE1-PO-DOCUMENT-DATA-PRICES · 采购单文档数据对只持 `purchasing.view` 的人吐出单价(ROLE-1 Step 0 登记,2026-09-23)
+## ROLE1B4A-REPRICE-BELOW-SETTLED · 一张已付款的收货还能被改价到比已付的更低(ROLE-1 Batch 4 Step 0 登记,2026-09-25)
 
-`po_document_data`(SECURITY DEFINER)只检查 `module.purchasing.view`,返回的 jsonb 里带着未遮蔽的
-采购单金额、行单价、行金额与税额(函数体第 19、49–54、107 行附近)。`/purchasing/orders/[id]` 与采购单 PDF 都读它。
-今天持 `purchasing.view` 的人恰好都持 `data.view_prices`,所以**没有人真的多看见了什么** ——
-它在 ROLE-1 Batch 4 给仓库开采购价之前必须先想清楚:那一刀之后,仓库看得见采购价是【裁定】,
-而这支函数不问价格码这件事就不再是空的。**删除条件:** 函数按价格码遮蔽金额(或 B4 明确裁定它归采购价那一侧)。
+`reprice_inbound_batch` 不看付款、不看 `pricing_status`:一张已付(或已抵预付)的收货可以被改到 数量 × 新价 < 已付,
+于是付出去的比欠的多,而没有任何东西会说出来;手工定价也能盖掉一个 `final` 的化验价,状态仍写着 `final`。
+Tim 的裁定(Batch 4 grilling Q6):**提交与批准时都按名拒 `RECEIPT_PRICE_BELOW_SETTLED`** —— 那是定价申请的一部分,
+落在 **Batch 4b**。4a 与 4b 之间它照旧(与"财务定价不经批准"同一个过渡期)。**删除条件:** 4b 上线。
 
-## ROLE1-SALES-ORDER-QUOTE-PRICES-UNMASKED · 销售订单与报价的单价没有任何价格遮蔽(ROLE-1 Step 0 登记,2026-09-23)
+## ROLE1B4A-PURCHASE-JOURNAL-FORGEABLE · 持 `finance.edit` 的人能直接过一条 `source_type = 'purchase'` 的分录(ROLE-1 Batch 4 登记,2026-09-25)
+
+`post_journal_entry` 是 SECURITY INVOKER、`authenticated` 可执行;`journal_entries` / `journal_lines` 的 INSERT 策略只问
+`module.finance.edit`。于是一条指向任意收货单的 `purchase` 分录可以不经定价而直接过进 2000 —— 收货单价与改价历史
+不动,清单与总账从此各说各话(与 Batch 4a 关掉的冲销侧门对称的那一半)。Tim 的裁定(Batch 4 grilling Q7 (d)):
+**登记,不在本刀修** —— 手工凭证是 APR-6 那一刀的事。**删除条件:** 手工凭证不能再带 `purchase`(或任何有自己入口的
+`source_type`)过账。
+
+## ROLE1B4A-RECEIPT-SUPPLIER-CHANGE-AFTER-PRICING · 一张已定价的收货还能换供应商 / 换采购行(ROLE-1 Batch 4 登记,2026-09-25)
+
+`inbound_batches` 的 UPDATE 策略只问 `module.inbound.edit`;收货编辑表单(`app/inbound/[id]/edit/actions.ts`)与直连写
+都能改 `supplier_id`,直连写还能改 `purchase_order_line_id`。唯一的守卫是 `supplies_goods` 与采购行匹配 —— **没有
+任何东西检查它是不是已定价、已付款**,也不检查它与采购单的供应商是否一致(采购单本身的 `supplier_id` 是改不了的)。
+应付于是跟着搬到另一家供应商名下;换采购行会换掉下一次改价所用的承诺条款。Tim 的裁定(Q7 (d)):**登记,不在本刀修**;
+定价申请等待期间的冻结(Q5)在 4b 落地,收货编辑本身归 **Batch 3**。**删除条件:** 已定价的收货不能再换供应商与采购行
+(或经一条有留痕的路)。
+
+## ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION · 到岸成本经盘点那一条例外对仓库是看得见的(ROLE-1 Batch 4 登记,2026-09-25)
+
+Tim 的 Q9 线:到岸成本与存货计值留在 `data.view_prices`,仓库不拿。**但它今天就读得到**,而且不是 Batch 4a 造成的:
+`inbound_batch_landed_unit_cost` 放行 `data.view_prices` **或** `module.stocktakes.edit`(盘点 / 注销那条路要它),仓库持后者;
+`batch_freight_base` 与 `batch_processing_cost_base` 对任何持 `module.inbound.view` 的人给真数。4a 之后仓库又看得见
+收货单价,于是 单价 + (运费 + 加工费) / 数量 = 到岸单位成本 —— 那条减法 `LandedCostPanel.tsx` 抬头早就写着。
+Tim 的裁定(Batch 4 grilling Q12):**登记,在 Batch 3 修** —— 那一批把盘点过账交给财务,`stocktakes.edit` 的意思随之改变;
+现在就关它会弄坏仓库仍然拥有的盘点这条路。**删除条件:** 到岸成本的三个读者不再对不持 `data.view_prices` 的人给真数。
+
+## ROLE1-SALES-ORDER-QUOTE-PRICES-UNMASKED · 销售订单与报价的单价没有任何价格遮蔽(ROLE-1 Step 0 登记,2026-09-23;Batch 4a 改写,2026-09-25)
 
 `sales_order_lines.unit_price` 与 `quote_lines.unit_price` 对任何持 `module.sales.view` 的人都读得到
-(RLS 只问模块码,没有 `_masked` 视图)。今天仓库不持 `module.sales.view`,所以【仓库看不见销售价】这条
-在今天成立;但它成立靠的是模块码,不是价格码。**删除条件:** 销售侧单价走 `data.view_prices`(或 B4 定的销售价码)遮蔽。
+(RLS 只问模块码,没有 `_masked` 视图)。**Batch 4a 之后销售那一侧的价格码就是 `data.view_prices`**(采购那一侧拆成了
+`data.view_purchase_prices`,仓库只拿后者)。所以【仓库看不见销售价】在今天仍然成立 —— 而它成立靠的仍是模块码:
+仓库不持 `module.sales.view`。今天持 `module.sales.view` 的角色(admin · auditor · cco · cfo · gm · sales)全都持
+`data.view_prices`,所以**没有人真的多看见了什么**。**删除条件:** 这两列按 `data.view_prices` 遮蔽(`_masked` 视图 +
+收回原始列),或持 `module.sales.view` 却不持 `data.view_prices` 的角色出现之前修好。
 
 ## ROLE1-EXPENSE-CLAIM-DECIDE-BUTTON-WRONG-CODE · 报销单的决定按钮挂在错的码上(ROLE-1 Step 0 登记,2026-09-23)
 

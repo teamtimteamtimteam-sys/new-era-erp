@@ -9,7 +9,7 @@
 // 【缺席要报数】那一天还没有价的批次不进这份账龄(它当时确实还不是一笔可计量
 // 应付)。但"没有这一行"与"本来就没有这笔钱"在屏幕上长得一模一样,
 // 所以缺席必须说得出数目 —— 这是本仓库「命名的缺席,绝不是空白」那一条。
-// 没有 data.view_prices 时这个数是 null,那不是"零张"而是"你看不到这一栏",
+// 没有 data.view_purchase_prices(ROLE-1 Batch 4a 起;此前是 data.view_prices)时这个数是 null,那不是"零张"而是"你看不到这一栏",
 // 于是它诚实地不显示,而不是显示成 0。
 import { getTranslations } from '@/lib/i18n/server'
 import type { AmountBasis } from './agingAsOf'

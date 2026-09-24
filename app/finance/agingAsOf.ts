@@ -85,7 +85,7 @@ export type AgingReport<R> = {
     base_currency: string
     /** 机器令牌,不是给人读的句子 —— 措辞按语言在 messages/ 里选一条 */
     amount_basis: AmountBasis
-    /** AP 专有:那一天【还没有价】而被挡掉的单据数。无 data.view_prices 时为 null */
+    /** AP 专有:那一天【还没有价】而被挡掉的单据数。无 data.view_purchase_prices 时为 null(ROLE-1 Batch 4a 起) */
     unpriced_excluded: number | null
     total_open_base: number
     buckets: Record<string, number>

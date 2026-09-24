@@ -1354,6 +1354,30 @@ columns, and an INSERT born posted) · `PAYROLL_LINES_FROZEN` (lines and approve
 **payment** entries are left open on purpose: they have no proper reversal path (`docs/known-issues.md` §
 PAYROLL-PAYMENT-NO-REVERSAL-PATH).
 
+## 3m · ROLE-1 Batch 4a (2026-09-25) — two price codes, and what that does to the approval gates
+
+The cut is `docs/handbacks/ROLE-1.md` § Batch 4a; this section records only what changes **for approvals**. Tim accepted all
+thirteen grilling recommendations (Q1–Q13) and split the cut in two (Q13): **4a** (this one) moves no approval; **4b**, next,
+adds the receipt-pricing chain.
+
+* **Two price codes.** `data.view_prices` now covers the sales-and-cost side only; `data.view_purchase_prices` covers the
+  purchase side (POs and their lines, retentions, payment terms, purchase formulas and committed terms, the calculator, receipt
+  unit prices and price history, AP ageing). **Every role that held `data.view_prices` was given the new code in the same
+  migration** (the migration's own proof asserts it), and warehouse got only the new one.
+* **`approve_purchase_order`'s gate** — both rows in `approval_chain_gates()` — is now `module.purchasing.view` +
+  `data.view_purchase_prices` (a PO's amounts are purchase prices). `reject_purchase_order`, the expense-claim rows and the
+  payment-request row are unchanged (`data.view_prices`). The migration asserts both PO levels still have a real decider.
+* **`role_can_see_amounts(role)` now requires both codes.** The two approval levels are shared by every chain, so a level role
+  must see PO amounts *and* claim / payment amounts; the switch refuses `APPROVALS_LEVEL{1,2}_ROLE_CANNOT_SEE_AMOUNTS` otherwise.
+  ☞ **Consequence for fixtures:** every fixture that switches approvals on must give its level roles both codes; eighteen were
+  updated (the same shape as PAYROLL-APR-1's eleven).
+* **`list_ledger_reconciliation()` asks per side**: AP needs `data.view_purchase_prices`, AR `data.view_prices` — each side's
+  list is masked only by its own code (`inbound_batches_masked` and `prepayment_applications_masked` moved together, so AP
+  never reads a masked prepayment as 0).
+* **No switch, policy, chain or pending document was touched.** Before and after, as `postgres` from base tables:
+  `approvals_enabled` t; every pending document unchanged and each still has a decider who is not its own party.
+* **Between 4a and 4b, receipts are priced by finance in one step, without approval** — the matrix's usual [LC] interim.
+
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
 **Found while building CHAIN-BUILD-1; folded into the same predicate.**

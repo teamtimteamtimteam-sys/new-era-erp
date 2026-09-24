@@ -49,7 +49,7 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fx194-finp','f','f',true) RETURNING id INTO r_finp;
     INSERT INTO role_permissions (role_id, permission_code)
-    VALUES (r_finp, 'module.finance.view'), (r_finp, 'data.view_pay'), (r_finp, 'data.view_prices');
+    VALUES (r_finp, 'module.finance.view'), (r_finp, 'data.view_pay'), (r_finp, 'data.view_prices'), (r_finp, 'data.view_purchase_prices');
 
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fx194-none','f','f',true) RETURNING id INTO r_none;

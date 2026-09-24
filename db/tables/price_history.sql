@@ -46,10 +46,11 @@ CREATE POLICY "price_history select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.inbound.view'::text));
 
-CREATE POLICY "price_history insert by permission"
-    ON public.price_history
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.inbound.edit'::text));
+-- ★ ROLE-1 Batch 4a(侧门 (a),Tim 2026-09-25):原来这里有一条 INSERT 策略
+--   (WITH CHECK has_permission('module.inbound.edit'))—— 任何持 inbound.edit 的人都能直接插一行
+--   编造的改价历史(连 created_at / old_unit_price 都能编),而 inbound_unit_price_asof 就从这张表
+--   重建过去的价格,账龄 as-of 于是跟着动。唯一合法的写入方是 reprice_inbound_batch
+--   (SECURITY DEFINER,以属主身份写,不经 RLS),所以策略拿掉,authenticated 从此一行都插不进。
 
 -- 直改拦截(挂在 inbound_batches 上;INSERT 带价仍允许 —— 建单定价是正常路径)
 CREATE OR REPLACE FUNCTION public.guard_inbound_price_change()

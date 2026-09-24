@@ -402,3 +402,11 @@ REVOKE EXECUTE ON FUNCTION public.post_payroll_period_internal(uuid) FROM authen
 REVOKE EXECUTE ON FUNCTION public.unpost_payroll_period_internal(uuid, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.payroll_request_dry_run(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.payroll_period_fingerprint(uuid) FROM authenticated;
+
+-- ROLE-1 Batch 4a(2026-09-25,侧门 (c)):reprice_inbound_batch 是每一条定价路径落进来的那支【引擎】
+--   (写 unit_price、price_history,过 purchase 分录)。它留着 authenticated 的 EXECUTE,就是
+--   set_inbound_unit_price 之外的第二扇公开的定价门。外门只剩:set_inbound_unit_price ·
+--   reprice_from_committed_terms · create_inbound_batch(带价)—— 各问 action.price_receipts ——
+--   与 apply_assay_result(action.apply_assay)。引擎自己仍问 data.view_purchase_prices
+--   (看不见价格的人不能定价),所以它【有】调用者检查;收回是再加的一道,不是唯一的一道。
+REVOKE EXECUTE ON FUNCTION public.reprice_inbound_batch(uuid, numeric, text, numeric, text) FROM authenticated;
