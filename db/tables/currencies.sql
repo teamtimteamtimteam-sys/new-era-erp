@@ -38,20 +38,21 @@ CREATE POLICY "currencies select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (true);
 
+-- ROLE-1 Batch 2a(Q10):写权从「财务(编辑)」换到 action.finance_settings(CFO 一个)。
 CREATE POLICY "currencies insert by permission"
     ON public.currencies
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+    WITH CHECK (has_permission('action.finance_settings'::text));
 
 CREATE POLICY "currencies update by permission"
     ON public.currencies
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+    USING (has_permission('action.finance_settings'::text)) WITH CHECK (has_permission('action.finance_settings'::text));
 
 CREATE POLICY "currencies delete by permission"
     ON public.currencies
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.finance.edit'::text));
+    USING (has_permission('action.finance_settings'::text));
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
@@ -61,4 +62,4 @@ CREATE POLICY "currencies delete by permission"
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.currencies
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.finance.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.finance_settings');

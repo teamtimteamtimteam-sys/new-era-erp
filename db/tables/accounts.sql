@@ -99,20 +99,21 @@ CREATE POLICY "accounts select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (true);
 
+-- ROLE-1 Batch 2a(Q10):写权从「财务(编辑)」换到 action.finance_settings(CFO 一个)。
 CREATE POLICY "accounts insert by permission"
     ON public.accounts
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+    WITH CHECK (has_permission('action.finance_settings'::text));
 
 CREATE POLICY "accounts update by permission"
     ON public.accounts
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+    USING (has_permission('action.finance_settings'::text)) WITH CHECK (has_permission('action.finance_settings'::text));
 
 CREATE POLICY "accounts delete by permission"
     ON public.accounts
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.finance.edit'::text));
+    USING (has_permission('action.finance_settings'::text));
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 【安装种子:34 个引擎依赖科目】。逐行跟踪线上,check_mirrors 逐行比对。
@@ -243,4 +244,4 @@ COMMENT ON COLUMN public.accounts.is_system IS
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.accounts
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.finance.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.finance_settings');

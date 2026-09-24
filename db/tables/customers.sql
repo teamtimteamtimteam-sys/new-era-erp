@@ -109,6 +109,13 @@ CREATE POLICY "customers delete by permission"
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.customers.edit'::text));
 
+-- ROLE-1 Batch 2a(Q11):信用限额与冻结只归 CFO —— 直连写改动这两列按名拒,
+-- 只走 set_customer_credit(函数体在 db/functions/guard_customer_credit_write.sql)。
+-- 名字排在 trg_customers_credit_history 之后:被拒的那一次,留痕行随语句一起回滚。
+CREATE TRIGGER trg_customers_credit_write
+    BEFORE INSERT OR UPDATE ON public.customers
+    FOR EACH ROW EXECUTE FUNCTION public.guard_customer_credit_write();
+
 -- SAL-B:限额/冻结变动留痕(函数体在 db/functions/log_customer_credit_change.sql)
 CREATE TRIGGER trg_customers_credit_history
     BEFORE UPDATE OF credit_limit_base, credit_hold ON public.customers

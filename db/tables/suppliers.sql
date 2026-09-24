@@ -62,7 +62,14 @@ CREATE TABLE public.suppliers (
     -- 这一家在【新加坡所得税】上是不是居民。三态,NULL = 没有人回答过。
     -- **它不是 country** —— 详见列注释,那是本列存在的全部理由。
     tax_residence                    text
-                                     CHECK (tax_residence IS NULL OR tax_residence IN ('resident', 'non_resident'))
+                                     CHECK (tax_residence IS NULL OR tax_residence IN ('resident', 'non_resident')),
+    -- ── ROLE-1 Batch 2a 追加的列(ALTER 加的列排在末尾)──────────────────────
+    -- 谁、何时批准了这一家(Q4:只在【批准】时盖;回到 draft 时清空,所以它永远说的是
+    -- 【此刻生效】的那一次批准)。盖章与清空由 validate_supplier_status_transition 做,
+    -- 直连写这两列由 guard_supplier_direct_write 按名拒。不挂 auth.users 外键
+    -- (后来的表都只存 uuid;fixture 会用不在 auth.users 里的 uuid 做 claims)。
+    approved_by                      uuid,
+    approved_at                      timestamptz
 );
 
 COMMENT ON COLUMN public.suppliers.counterparty_type IS
@@ -115,7 +122,7 @@ RETURNS trigger LANGUAGE plpgsql
 SET search_path TO 'public', 'pg_temp'
 AS $function$
 BEGIN
-  -- INSERT 时不检查
+  -- INSERT 时不检查(直连 INSERT 必须是 draft 由 guard_supplier_direct_write 管)
   IF TG_OP = 'INSERT' THEN
     RETURN NEW;
   END IF;
@@ -125,18 +132,20 @@ BEGIN
     RETURN NEW;
   END IF;
 
-  -- 定义合法跳转
-  IF NOT (
-    (OLD.status = 'draft'          AND NEW.status IN ('pending_review', 'archived')) OR
-    (OLD.status = 'pending_review' AND NEW.status IN ('approved', 'rejected', 'draft')) OR
-    (OLD.status = 'rejected'       AND NEW.status IN ('draft', 'archived')) OR
-    (OLD.status = 'approved'       AND NEW.status IN ('active', 'suspended', 'archived')) OR
-    (OLD.status = 'active'         AND NEW.status IN ('suspended', 'blacklisted', 'archived')) OR
-    (OLD.status = 'suspended'      AND NEW.status IN ('active', 'blacklisted', 'archived')) OR
-    (OLD.status = 'blacklisted'    AND NEW.status IN ('archived')) OR
-    (OLD.status = 'archived'       AND NEW.status IN ('draft'))  -- 归档后可恢复为草稿
-  ) THEN
+  -- ROLE-1 Batch 2a:合法跳转读 supplier_status_moves() —— 与 set_supplier_status、
+  -- 状态面板读的是同一张表(此前这里写着一份、页面上另抄一份)。跳转图一步没改。
+  IF NOT EXISTS (SELECT 1 FROM supplier_status_moves() m
+                  WHERE m.from_status = OLD.status::text AND m.to_status = NEW.status::text) THEN
     RAISE EXCEPTION 'INVALID_STATUS_TRANSITION|%|%', OLD.status, NEW.status;
+  END IF;
+
+  -- ROLE-1 Batch 2a(Q4):批准时盖戳;回到草稿时清空 —— 戳永远说的是此刻生效的那一次批准。
+  IF NEW.status = 'approved' THEN
+    NEW.approved_by := auth.uid();
+    NEW.approved_at := now();
+  ELSIF NEW.status = 'draft' THEN
+    NEW.approved_by := NULL;
+    NEW.approved_at := NULL;
   END IF;
 
   RETURN NEW;
@@ -150,6 +159,19 @@ CREATE TRIGGER trg_generate_supplier_code
 CREATE TRIGGER trg_suppliers_status_transition
     BEFORE UPDATE ON public.suppliers
     FOR EACH ROW EXECUTE FUNCTION validate_supplier_status_transition();
+
+-- ROLE-1 Batch 2a:created_by 不可改;直连写不许改状态、不许生出非 draft、不许伪造建档人
+-- (函数体在 db/functions/guard_supplier_direct_write.sql)。名字排在 trg_supplier_creator
+-- 之后(字典序),所以它看到的是建档人落笔之后的值。
+CREATE TRIGGER trg_suppliers_direct_write
+    BEFORE INSERT OR UPDATE ON public.suppliers
+    FOR EACH ROW EXECUTE FUNCTION public.guard_supplier_direct_write();
+
+-- ROLE-1 Batch 2a(Q3):状态每变一次记一行(函数体在 db/functions/log_supplier_status_change.sql)
+CREATE TRIGGER trg_suppliers_status_history
+    AFTER UPDATE OF status ON public.suppliers
+    FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status)
+    EXECUTE FUNCTION public.log_supplier_status_change();
 
 CREATE TRIGGER trg_suppliers_updated_at
     BEFORE UPDATE ON public.suppliers
@@ -254,3 +276,8 @@ country 是账单地址;税务居民身份取决于【管理与控制在哪里�
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.suppliers
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.suppliers.edit');
+
+COMMENT ON COLUMN public.suppliers.approved_by IS
+    'ROLE-1 Batch 2a(Q4):批准这一家的人(CFO,action.supplier_approve)。只在状态进入 approved 时由 validate_supplier_status_transition 盖;回到 draft 时清空,所以它说的永远是此刻生效的那一次批准。驳回、拉黑、恢复不盖它 —— 它们记在 approval_log 与 supplier_status_history。';
+COMMENT ON COLUMN public.suppliers.approved_at IS
+    'ROLE-1 Batch 2a(Q4):批准的时刻。与 approved_by 同盖同清。';

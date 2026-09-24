@@ -166,12 +166,16 @@ canEdit: boolean
                     field('invoice_footer_text', 'company.invoiceFooterText', { textarea: true, rows: 2 })
                 )}
 
+                {/* ROLE-1 Batch 2a:保存钮此前【没有门】—— 没有写权的人按下去才知道。
+                    现在看得见、按不下、说出缺的是 action.finance_settings(CFO)。 */}
+                <PermissionGate code="action.finance_settings" allowed={canEdit}>
                 <Button
                     type="submit"
                     disabled={isPending}
                 >
                     {isPending ? t('common.saving') : t('common.save')}
                 </Button>
+                </PermissionGate>
             </form>
 
             {/* logo:独立小表单,上传即生效 */}
@@ -194,7 +198,7 @@ canEdit: boolean
                     <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('company.noLogo')}</p>
                 )}
 
-                <PermissionGate code="module.finance.edit" allowed={canEdit}>
+                <PermissionGate code="action.finance_settings" allowed={canEdit}>
                 <form action={logoAction} className="flex flex-wrap items-end gap-3">
                     <div>
                         <label className="block mb-1">

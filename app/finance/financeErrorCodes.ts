@@ -30,6 +30,9 @@ const FINANCE_ERROR_CODES = new Set([
     // ROLE-1(Tim 的矩阵,2026-09-23):重开已关的月只归 CFO、只走 reopen_period。
     //   手动锁的直连写若越过一个已关的月,trg_lock_reopen_path 按名拒。
     'REOPEN_THROUGH_CLOSE_ONLY',
+    // ROLE-1 Batch 2a(Q10):财务设置只归 CFO —— 直连写的守卫与 set_finance_settings 的拒绝
+    'FINANCE_SETTINGS_THROUGH_FUNCTION_ONLY', 'FINANCE_SETTINGS_KEY_NOT_HERE',
+    'FINANCE_SETTINGS_KEY_UNKNOWN', 'FINANCE_SETTINGS_NOTHING_TO_CHANGE', 'FINANCE_SETTINGS_ROW_MISSING',
     // SOD-1:审批开关的两道闸。前三条管【开】,第四条管【关】(关掉会搁死在途单据),
     // 第五条管【开着的时候不许抽走策略】。
     // ★ APR-1:这一族是从 guard_approvals_switch 的函数体里【逐条枚举】出来的,

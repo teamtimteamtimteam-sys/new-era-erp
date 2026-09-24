@@ -8,43 +8,47 @@
 //     真正的几行 <p>。**一个字都没有改写** —— 只是不再被压成一段。
 import { useTransition } from 'react'
 import { changeSupplierStatus } from './statusActions'
-import { ALLOWED_TRANSITIONS, DESTRUCTIVE_TRANSITIONS } from './statusMachine'
+import { DESTRUCTIVE_TRANSITIONS } from './statusMachine'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import type { Database } from '@/lib/database.types'
 import { Button } from '@/app/components/ui/button'
 import { Refusal } from '@/app/components/ui/refusal'
 import { showActionMessage } from '@/app/components/ui/action-message'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 type SupplierStatus = Database['public']['Enums']['supplier_status']
+
+/** ROLE-1 Batch 2a:这一家此刻能走的一步 —— 由页面向 supplier_status_moves() 要来,
+ *  连同【那一步要的码】与【这个人持不持有它】。本组件不自己判,只画。 */
+export type SupplierStatusMove = {
+    to: SupplierStatus
+    code: string
+    allowed: boolean
+}
 
 export default function StatusPanel({
     id,
     subject,
     currentStatus,
-    canEdit,
+    moves,
 }: {
     id: string
     /** CONFIRM-1:这一次改的是【哪一家】—— 供应商代号,抬头里就印着它。 */
     subject: string
     currentStatus: SupplierStatus
     /**
-     * ★★【ALERT-1:丁类 —— 而这一处是全库唯一一个【当场成立】的丁类】★★
-     *   这一页【本来就算过】这个答案:page.tsx:37 `await can('module.suppliers.edit')`,
-     *   而且它已经把这个值交给了同一页上的 <ContactsPanel canEdit=…>(:217)。
-     *   只有本组件没拿到 —— 于是没有编辑权的人照样按得下这些钮,
-     *   而按下去等来的是一片安静(suppliers 的 UPDATE 策略 USING(p) WITH CHECK(p),
-     *   零行、不抛异常。实测 rows=0 raised=NONE)。
-     *
-     *   丁类的处置不是【把那条消息画好看】,是【这个钮本来就不该按得下】,
-     *   而且【理由要在按之前就看得见】——「禁用必须说出为什么」(CMP-2)。
+     * ★★ ROLE-1 Batch 2a(Tim,Q8 / Q2):此前这里是一个 `canEdit` 布尔,而一个布尔答不了
+     *   "这一步归谁" —— 批准、驳回、拉黑、恢复归 CFO(action.supplier_approve),其余归
+     *   module.suppliers.edit。所以每一步自带它的码与答案:持有的按得下;不持有的
+     *   【看得见、按不下、说出缺哪个码】(DBLOCK-1 的规矩,PermissionGate)。
+     *   ALERT-1 那条丁类的理由照旧成立 —— 理由在按之前就看得见,只是现在是逐钮的。
      */
-    canEdit: boolean
+    moves: SupplierStatusMove[]
 }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
 
-    const allowedTargets = ALLOWED_TRANSITIONS[currentStatus] ?? []
 
     function handleClick(targetStatus: SupplierStatus) {
         startTransition(async () => {
@@ -59,6 +63,8 @@ export default function StatusPanel({
             }
         })
     }
+
+    const deniedCodes = [...new Set(moves.filter((m) => !m.allowed).map((m) => m.code))]
 
     return (
         <div className="border border-gray-300 rounded p-4 mb-6 bg-gray-50">
@@ -76,17 +82,20 @@ export default function StatusPanel({
                 </div>
             </div>
 
-            {!canEdit ? (
-                /* ★ 丁类:控件不出现,理由出现在【动作之前】。
-                   一句「受限」不够 —— 它既没说做不成什么,也没说怎么才做得成
-                   (与 purchasingErrorCodes 那条注释同一个理由)。 */
-                <div className="flex flex-wrap items-center gap-2">
+            {/* ★ 丁类:一步都走不了的时候,理由出现在面板上、在【动作之前】—— 并且说出
+                缺的是哪一个码。每一枚钮自己也带着它的码(PermissionGate);这一行是给
+                "整块都按不下"的人的一句总话。 */}
+            {moves.length > 0 && deniedCodes.length > 0 && moves.every((m) => !m.allowed) && (
+                <div className="flex flex-wrap items-center gap-2 mb-3">
                     <Refusal>{t('common.restricted')}</Refusal>
                     <p className="text-sm text-[color:var(--brand-text)]" data-status-panel-denied="1">
-                        {t('suppliers.statusPanel.needsEditPermission')}
+                        {deniedCodes.length === 1 && deniedCodes[0] === 'module.suppliers.edit'
+                            ? t('suppliers.statusPanel.needsEditPermission')
+                            : t('suppliers.statusPanel.needsPermission', { codes: deniedCodes.join(' · ') })}
                     </p>
                 </div>
-            ) : allowedTargets.length === 0 ? (
+            )}
+            {moves.length === 0 ? (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">
                     {t('suppliers.statusPanel.noActions')}
                 </p>
@@ -96,7 +105,7 @@ export default function StatusPanel({
                         {t('suppliers.statusPanel.availableChanges')}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        {allowedTargets.map((target) => {
+                        {moves.map(({ to: target, code, allowed }) => {
                             const isDestructive = DESTRUCTIVE_TRANSITIONS.has(target)
                             const face = (
                                 <>
@@ -110,10 +119,12 @@ export default function StatusPanel({
                             )
                             if (!isDestructive) {
                                 return (
-                                    <Button variant="secondary" key={target} type="button" disabled={isPending}
-                                            onClick={() => handleClick(target)}>
-                                        {face}
-                                    </Button>
+                                    <PermissionGate key={target} code={code} allowed={allowed} inline>
+                                        <Button variant="secondary" type="button" disabled={isPending}
+                                                onClick={() => handleClick(target)}>
+                                            {face}
+                                        </Button>
+                                    </PermissionGate>
                                 )
                             }
                             // 那条消息原样取出来,再按它自己的换行拆成几行 —— 词不动,只是不再被压平。
@@ -123,8 +134,8 @@ export default function StatusPanel({
                                 next: t('suppliers.status.' + target),
                             }).split('\n\n')
                             return (
+                                <PermissionGate key={target} code={code} allowed={allowed} inline>
                                 <ConfirmButton
-                                    key={target}
                                     subject={subject}
                                     title={blocks[0]}
                                     details={
@@ -144,6 +155,7 @@ export default function StatusPanel({
                                 >
                                     {face}
                                 </ConfirmButton>
+                                </PermissionGate>
                             )
                         })}
                     </div>

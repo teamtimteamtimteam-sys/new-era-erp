@@ -8,12 +8,14 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { revalidatePath } from 'next/cache'
 import { can, DATA_VIEW_BANKING } from '@/lib/permissions'
+import { refuseFromCoded } from '@/lib/action-refusal'
+import { localizeFinanceError } from '../financeErrorCodes'
 
 const BUCKET = 'company-assets'
 const MAX_LOGO_BYTES = 2 * 1024 * 1024
 const ALLOWED_LOGO_MIME = ['image/png', 'image/jpeg']
 
-export type CompanyState = { error?: string; success?: boolean }
+export type CompanyState = { error?: string; detail?: string; success?: boolean }
 
 const TEXT_FIELDS = [
     'legal_name',
@@ -96,7 +98,9 @@ export async function saveCompanyProfile(
         .update({ ...patch, updated_by: user?.id ?? null })
         .eq('id', true)
 
-    if (error) return { error: error.message }
+    // ROLE-1 Batch 2a:写权换到 action.finance_settings 之后,被拒的人拿到的是
+    // PERMISSION_DENIED|action.finance_settings —— 翻成那句"缺哪个码"的话,不印生码。
+    if (error) return await refuseFromCoded(error.message, localizeFinanceError)
 
     revalidatePath('/finance/company')
     return { success: true }
@@ -138,7 +142,9 @@ export async function uploadLogo(
         .from('company_profile')
         .update({ logo_path: path, updated_by: user?.id ?? null })
         .eq('id', true)
-    if (error) return { error: error.message }
+    // ROLE-1 Batch 2a:写权换到 action.finance_settings 之后,被拒的人拿到的是
+    // PERMISSION_DENIED|action.finance_settings —— 翻成那句"缺哪个码"的话,不印生码。
+    if (error) return await refuseFromCoded(error.message, localizeFinanceError)
 
     revalidatePath('/finance/company')
     return { success: true }
@@ -155,7 +161,9 @@ export async function removeLogo(): Promise<CompanyState> {
         .from('company_profile')
         .update({ logo_path: null, updated_by: user?.id ?? null })
         .eq('id', true)
-    if (error) return { error: error.message }
+    // ROLE-1 Batch 2a:写权换到 action.finance_settings 之后,被拒的人拿到的是
+    // PERMISSION_DENIED|action.finance_settings —— 翻成那句"缺哪个码"的话,不印生码。
+    if (error) return await refuseFromCoded(error.message, localizeFinanceError)
 
     revalidatePath('/finance/company')
     return { success: true }

@@ -56,20 +56,21 @@ CREATE POLICY "company_profile select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (true);
 
+-- ROLE-1 Batch 2a(Q10):写权从「财务(编辑)」换到 action.finance_settings(CFO 一个)。
 CREATE POLICY "company_profile insert by permission"
     ON public.company_profile
     AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+    WITH CHECK (has_permission('action.finance_settings'::text));
 
 CREATE POLICY "company_profile update by permission"
     ON public.company_profile
     AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+    USING (has_permission('action.finance_settings'::text)) WITH CHECK (has_permission('action.finance_settings'::text));
 
 CREATE POLICY "company_profile delete by permission"
     ON public.company_profile
     AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.finance.edit'::text));
+    USING (has_permission('action.finance_settings'::text));
 
 -- cut 3 银行明细遮蔽:收回原始银行列。表级 SELECT 蕴含所有列,
 -- 所以先整表收回,再把非银行列逐列授回。银行列只能经 company_profile_masked 读取。
@@ -87,4 +88,4 @@ GRANT SELECT (id, legal_name, registration_no, address_lines, city, postal_code,
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.company_profile
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.finance.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.finance_settings');

@@ -46,8 +46,10 @@ BEGIN
     UPDATE receiving_settings
        SET grn_short_pct = 10, grn_over_pct = 10, grn_assay_tolerance_pct = 10;
 
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-    VALUES ('FX168-SUP', 'fixture 168 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+    VALUES ('active', 'FX168-SUP', 'fixture 168 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
     -- 【whole_pack 需要 size_format_code】guard_material_condition_axes 要它:
     -- 这个形态要拆解,拆解工作量由"来自哪一类应用"决定。
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, size_format_code)

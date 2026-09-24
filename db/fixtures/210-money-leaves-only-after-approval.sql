@@ -78,10 +78,12 @@ BEGIN
 
     -- 供应商由 u_fin2 建(u_fin 付款给它不撞 SOD)
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_fin2), true);
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-      VALUES ('FX210-SUP', 'FX210 Supplier', 'SG', 'service_vendor') RETURNING id INTO v_sup;
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-      VALUES ('FX210-SUP2', 'FX210 Supplier 2', 'SG', 'service_vendor') RETURNING id INTO v_sup2;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+      VALUES ('active', 'FX210-SUP', 'FX210 Supplier', 'SG', 'service_vendor') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+      VALUES ('active', 'FX210-SUP2', 'FX210 Supplier 2', 'SG', 'service_vendor') RETURNING id INTO v_sup2;
 
     -- 挂账的费用单(五张给供应商、一张给员工)
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_fin), true);
@@ -321,9 +323,8 @@ BEGIN
     v_req6 := (submit_payment_request(v_sup2, 500, v_base, NULL, NULL, d_pay, 'fx210 I',
         jsonb_build_array(jsonb_build_object('expense_id', v_exp5, 'amount_doc', 500)), 'supplier')->>'request_id')::uuid;
     PERFORM set_config('request.jwt.claims', '', true);
-    UPDATE suppliers SET status = 'pending_review' WHERE id = v_sup2;
-    UPDATE suppliers SET status = 'approved' WHERE id = v_sup2;
-    UPDATE suppliers SET status = 'active' WHERE id = v_sup2;
+    -- ROLE-1 Batch 2a:FX210-SUP2 生下来就是 active(未批准的供应商连提交都提不了),
+    -- 所以这里只走 active → blacklisted 这一步(属主路径,跳转触发器照样把关)。
     UPDATE suppliers SET status = 'blacklisted' WHERE id = v_sup2;
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_cfo), true);
     v_denied := false; v_msg := NULL;

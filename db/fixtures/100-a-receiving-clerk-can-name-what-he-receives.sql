@@ -4,7 +4,7 @@
 -- 【钉四件事,两个方向都要】
 --   A 正对照:warehouse 现在【叫得出】供应商 / 物料 / 客户 / 可收货的采购单行;
 --   B 反对照:hr 与一个零权限账号【仍然叫不出】—— 四张视图对他们都是 0 行;
---   C ★ 窄对照:warehouse 【仍然读不到】suppliers / materials / customers 基表。
+--   C ★ 窄对照:warehouse 【仍然读不到】materials / customers 基表(suppliers 自 ROLE-1 Batch 2a 起读得到,Q5)。
 --     没有这一条,A 就只证明了"他现在看得见",没有证明"他没有多看见"。
 --     「A proof that passes by refusing everything is not a proof.」——
 --     而它的对偶同样成立:一个只证明放行的证明,证明不了没有放宽。
@@ -51,8 +51,10 @@ BEGIN
     --   自己造行,两个问题一起没有了:它在线上与在重建库上跑出同一个结论。
     -- supplies_goods 是【生成列】(= counterparty_type = 'goods_supplier'),写不得 ——
     -- 所以这里给的是 counterparty_type,供货这件事由库自己推出来。
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-        VALUES ('ZZ-FIX1-SUP', 'ZZ FIX1 Supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+        VALUES ('active', 'ZZ-FIX1-SUP', 'ZZ FIX1 Supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     -- materials_kind_stated:kind_code 与 may_be_processed 两个都要说出来。
     -- 取 consumable 而【不是】battery_material:后者被 guard_material_condition_axes
     -- 要求同时说出形态与来源(MATERIAL_CONDITION_AXES_REQUIRED),而本 fixture
@@ -94,8 +96,11 @@ BEGIN
 
     -- ══ C · 窄对照 —— 他【没有】因此读到基表 ════════════════════════════════
     -- ★ 这四条是"没有把任何人的数据面放宽到需要之外"的全部证据。
+    -- ★ ROLE-1 Batch 2a(Tim,Q5 · 矩阵 §6「供应商建档:cco · 仓库 · 财务」):warehouse 从这一刀起
+    --   持 module.suppliers.view / .edit —— 它【读得到】供应商基表是一条裁定,不是这支视图开的门。
+    --   所以供应商这一格翻过来:读得到才对;物料 / 客户 / 带价的采购行三格照旧是窄对照。
     SELECT count(*) INTO n FROM suppliers WHERE id = v_sup;   r := r || jsonb_build_object('C_wh_suppliers_base', n);
-    IF n <> 0 THEN RAISE EXCEPTION 'FIX1_C_FAILED|warehouse can now read the suppliers base table'; END IF;
+    IF n <> 1 THEN RAISE EXCEPTION 'FIX1_C_FAILED|warehouse should read the suppliers base table since ROLE-1 Batch 2a (Q5), got %', n; END IF;
     SELECT count(*) INTO n FROM materials WHERE id = v_mat;   r := r || jsonb_build_object('C_wh_materials_base', n);
     IF n <> 0 THEN RAISE EXCEPTION 'FIX1_C_FAILED|warehouse can now read the materials base table'; END IF;
     SELECT count(*) INTO n FROM customers WHERE id = v_cus;   r := r || jsonb_build_object('C_wh_customers_base', n);

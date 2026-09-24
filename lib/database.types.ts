@@ -17321,9 +17321,63 @@ export type Database = {
           },
         ]
       }
+      supplier_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          from_status: string
+          id: string
+          note: string | null
+          supplier_id: string
+          to_status: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status: string
+          id?: string
+          note?: string | null
+          supplier_id: string
+          to_status: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          from_status?: string
+          id?: string
+          note?: string | null
+          supplier_id?: string
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_status_history_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_status_history_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_receipt_pattern"
+            referencedColumns: ["supplier_id"]
+          },
+          {
+            foreignKeyName: "supplier_status_history_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           address: string | null
+          approved_at: string | null
+          approved_by: string | null
           code: string
           counterparty_type: string
           country: string
@@ -17350,6 +17404,8 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           code: string
           counterparty_type: string
           country: string
@@ -17376,6 +17432,8 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
           code?: string
           counterparty_type?: string
           country?: string
@@ -29015,6 +29073,15 @@ export type Database = {
         Args: { p_asset_id: string; p_date: string }
         Returns: Json
       }
+      set_customer_credit: {
+        Args: {
+          p_credit_hold: boolean
+          p_credit_limit_base: number
+          p_customer_id: string
+        }
+        Returns: Json
+      }
+      set_finance_settings: { Args: { p_changes: Json }; Returns: Json }
       set_goal_actual_value: {
         Args: { p_actual_value: number; p_goal_id: string }
         Returns: Json
@@ -29080,6 +29147,10 @@ export type Database = {
       }
       set_sales_order_status: {
         Args: { p_order_id: string; p_reason?: string; p_to: string }
+        Returns: Json
+      }
+      set_supplier_status: {
+        Args: { p_note?: string; p_supplier_id: string; p_to: string }
         Returns: Json
       }
       set_user_employee_link: {
@@ -29215,6 +29286,14 @@ export type Database = {
       submit_wht_remittance_reversal_request: {
         Args: { p_notes: string; p_remittance_id: string }
         Returns: Json
+      }
+      supplier_status_moves: {
+        Args: never
+        Returns: {
+          from_status: string
+          required_code: string
+          to_status: string
+        }[]
       }
       sync_attendance_period: { Args: { p_period_id: string }; Returns: Json }
       task_is_own: {

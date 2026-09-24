@@ -160,7 +160,13 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- fixture 195 的 J2 / J3 两臂就是钉这一句的:名字拿得到,表读不到。
         -- 【为什么是仓储现场】过磅收货的人就是知道这票货处理完了的人;
         -- 而证书住在进料批页上,他本来就持有 module.inbound.view。
-        'action.issue_cod'
+        'action.issue_cod',
+        -- ── ROLE-1 Batch 2a(Tim,Batch 2a grilling Q5 · 矩阵 §6「供应商建档:cco · 仓库 · 财务」)──
+        -- 仓储现场建供应商档案。★ 这一行【推翻】了上面 COD-1 那句「suppliers 对仓储现场仍然是零行」——
+        -- 那句话说的是 COD-1 的时候;从这一刀起仓库读得到供应商表。证书那条路不变,
+        -- 仍经 cod_certificate_data(fixture 195 的 J2 改为从复制出来的角色里拿掉这两个码,
+        -- 以继续钉住"证书不需要读供应商表"这一句)。
+        'module.suppliers.view', 'module.suppliers.edit'
 ) WHERE r.code = 'warehouse';
 
 -- hr(7):人力资源 + 薪酬 + 身份信息 + 绩效正文。这四类正是 HR 的工作对象,也正是别人不该看见的。

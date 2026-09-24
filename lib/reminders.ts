@@ -227,6 +227,9 @@ export const REMINDERS = [
     //   谁能批由 decide_payment_request 在服务端裁 —— 这里只指路,不预判。
     { itemType: 'payment_request_pending', permission: 'module.finance.view', href: '/finance/payment-requests',
       itemHref: (r: OpsRow) => `/finance/payment-requests/${r.item_id}` },
+    // ROLE-1 Batch 2a(Q9):CFO 的供应商队列 —— 只有能批的人看得见(action.supplier_approve)
+    { itemType: 'supplier_pending_approval', permission: 'action.supplier_approve', href: '/suppliers',
+      itemHref: (r: OpsRow) => `/suppliers/${r.item_id}/edit` },
 ] as const satisfies readonly Reminder[]
 
 /**

@@ -76,8 +76,10 @@ BEGIN
     VALUES (u_req, now()), (u_l1, now()), (u_l2, now());
     INSERT INTO user_roles (user_id, role_id) VALUES (u_req, r_req), (u_l1, r_l1), (u_l2, r_l2);
 
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-    VALUES ('ZZFIX35-S', 'fixture 35 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+    VALUES ('active', 'ZZFIX35-S', 'fixture 35 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZFIX35-M', 'fixture 35 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     -- 外币牌价:1 外币 = 1.26 本位币(FIN-35 起外币单必须有真汇率)

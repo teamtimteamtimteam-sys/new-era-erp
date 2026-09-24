@@ -231,7 +231,11 @@ Fixture 215 C and E prove them on the rebuilt database.
 
 **Start: 2026-09-24 15:06:18 CST** — `db/apply_migration.sh`'s own line ("库已经是新的了 15:06:18"), in
 `db/migration-windows.tsv`. (The script's "applied at" line reads 15:05:44; the commit came at 15:06:18.)
-**End: PENDING — Tim reads it from Vercel.**
+~~**End: PENDING — Tim reads it from Vercel.**~~ **Closed with bounds (recorded by ROLE-1 Batch 2a, 2026-09-24):** Tim confirmed
+the deploy on 2026-09-24. The end lies **between 15:34:32 CST** (*measured*: `origin/main` → `3397eb89` in git's remote-ref
+log, `git reflog show refs/remotes/origin/main`) **and 18:29:17 CST** (*derived*: the first live read of the ROLE-1 Batch 2a
+session, database clock `now()` as `postgres`; Tim had confirmed the deploy before that session began). So the window lasted
+**between 28 min 14 s and 3 h 22 min 59 s**. These are bounds, not a measurement.
 
 What the old app does against the new database while the window is open (approvals ON):
 - **Nothing is mis-posted, and no list or ledger figure moves.** The backfilled `tax_ccy` equals what the old readers

@@ -114,6 +114,13 @@ CREATE TRIGGER trg_gst_switch
     FOR EACH ROW EXECUTE FUNCTION public.guard_gst_switch();
 
 ALTER TABLE public.finance_settings ENABLE ROW LEVEL SECURITY;
+-- ROLE-1 Batch 2a(Q10):锁期与审批四列以外的每一列只归 CFO —— 直连写改到它们按名拒,
+-- 只走 set_finance_settings(函数体在 db/functions/guard_finance_settings_cfo_columns.sql)。
+-- 写策略【不换】:锁期仍归财务(module.finance.edit),它要直连写这一行。
+CREATE TRIGGER trg_finance_settings_cfo_columns
+    BEFORE INSERT OR UPDATE ON public.finance_settings
+    FOR EACH ROW EXECUTE FUNCTION public.guard_finance_settings_cfo_columns();
+
 CREATE POLICY "finance_settings select by permission"
     ON public.finance_settings
     AS PERMISSIVE FOR SELECT TO authenticated

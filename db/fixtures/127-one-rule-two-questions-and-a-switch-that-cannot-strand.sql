@@ -228,8 +228,10 @@ BEGIN
 
     -- ═════════ B3 · 范围:规矩问的是【这一家】的建户人,不是"A 不许付任何款" ═════════
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_b), true);
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-      VALUES ('ZZ-SOD1-B', 'ZZ SOD1 B', 'SG', 'goods_supplier') RETURNING id INTO v_sup_b;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+      VALUES ('active', 'ZZ-SOD1-B', 'ZZ SOD1 B', 'SG', 'goods_supplier') RETURNING id INTO v_sup_b;
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_a), true);
     -- PAY-REQ-1:直写策略已拆 —— 以属主身份写,守卫照样按 claims 里的 auth.uid() 判
     INSERT INTO payments (code,direction,counterparty_type,supplier_id,amount_ccy,currency,

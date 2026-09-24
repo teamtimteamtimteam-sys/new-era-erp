@@ -728,6 +728,7 @@ const zh = {
             bank_unmatched: '银行未匹配行',
             wht_due: '预提税待汇缴 IRAS',
             payment_request_pending: '待批付款申请',
+            supplier_pending_approval: '待批准的供应商',
         },
         // LINKS-1:一块牌子只列前几件,其余交给那一支自己的列表
         andMore: '还有 {n} 件',
@@ -1620,6 +1621,17 @@ const zh = {
         // SILENT-1:状态跳转触发器现在抛的是【码】,不是那句中文散文。
         errors: {
             INVALID_STATUS_TRANSITION: '供应商不能从{0}直接变为{1}。',
+            // ROLE-1 Batch 2a:状态只有一扇门;直连写的守卫。
+            SUPPLIER_STATUS_THROUGH_FUNCTION_ONLY: '供应商的状态只能在它的状态面板上改。什么都没有改。',
+            SUPPLIER_CREATED_BY_IMMUTABLE: '供应商的建档人永远不能改 —— 批准要靠它认人。什么都没有改。',
+            SUPPLIER_CREATED_BY_FORGED: '新建的供应商,建档人一律记成你自己。什么都没有保存。',
+            SUPPLIER_INSERT_MUST_BE_DRAFT: '新建的供应商从「草稿」开始,不能直接建成「{0}」。什么都没有保存。',
+            SUPPLIER_APPROVAL_STAMP_THROUGH_FUNCTION_ONLY: '谁批准了这家供应商由批准这一步自己记下,不能编辑。什么都没有改。',
+            SUPPLIER_STATUS_UNKNOWN: '「{0}」不是供应商的状态。什么都没有改。',
+            SUPPLIER_NOT_FOUND: '这家供应商已不存在或已被删除。什么都没有改。',
+            SELF_APPROVAL_FORBIDDEN:
+                '这家供应商是你建的,所以你不能批准或驳回它 —— 用你的哪一个账号都不行。'
+                + '要由另一位持有「供应商审批」权限的人来决定。',
         },
         status: {
             draft: '草稿',
@@ -1647,6 +1659,11 @@ const zh = {
             needsEditPermission:
                 '改变供应商状态需要「module.suppliers.edit」权限,而你的账号没有 —— '
                 + '这一页你看得到,但改不了。要改的话,请管理员在「设置 → 角色」里授予这一项。',
+            // ROLE-1 Batch 2a:这里的每一步都要一个你的账号没有的码。
+            needsPermission:
+                '从这里起的每一步状态变更都需要你的账号没有的权限({codes})。'
+                + '批准、驳回、拉黑与恢复供应商归 CFO;其余各步需要「module.suppliers.edit」。管理员在「设置 → 角色」里授予。',
+            approvedStamp: '批准于 {at}',
             noActions: '当前状态没有可执行的操作。',
             availableChanges: '可执行的状态变更：',
             processing: '处理中…',
@@ -2113,6 +2130,19 @@ const zh = {
         errWeightsNot100: '职位 {0} 的模板权重合计是 {1},不是 100。照它复制出去的条目永远算不出可比的分数,而它算得出数、不报错。',
     },
     customers: {
+        // ROLE-1 Batch 2a(Q11):客户页上的信用那一块 —— 只归 CFO(action.customer_credit)。
+        creditPanel: {
+            title: '设定信用限额与冻结',
+            who: '客户的信用限额与冻结只由 CFO 设定。每一次改动都留痕,记下是谁改的。',
+            save: '保存信用设定',
+            saved: '信用设定已保存。',
+        },
+        creditErrors: {
+            CUSTOMER_CREDIT_THROUGH_FUNCTION_ONLY: '客户的信用限额与冻结只能由 CFO 在客户页的信用那一块里改。什么都没有改。',
+            CUSTOMER_CREDIT_HOLD_REQUIRED: '要说明这个客户是否冻结。什么都没有改。',
+            CUSTOMER_CREDIT_LIMIT_INVALID: '信用限额不能是负数({0})。不设限就留空,现款现货就填 0。什么都没有改。',
+            CUSTOMER_NOT_FOUND: '这个客户已不存在或已被删除。什么都没有改。',
+        },
         status: {
             creditTitle: '信用仓位',
             exposureIncludesInvoiced: '敞口 = 未结清销售 +【已开票未发货】的订单发票 —— 这里显示的数与拒绝时用的数按构造是同一个。',
@@ -2186,6 +2216,8 @@ const zh = {
             creditLimitHint: '留空 = 【没设限额】(放行);0 = 【现款现货】(任何赊销都拒)—— 二者相反。全部既有客户为空:管控按客户逐个启用。变动会留痕。',
             creditHold: '信用冻结(停止发货)',
             creditHoldHint: '无论敞口多少都拦 —— 例如客户争议发票期间。解除同样留痕。',
+            // ROLE-1 Batch 2a(Q11):信用限额与冻结搬离这张表单 —— 它们只归 CFO。
+            creditMovedHint: '信用限额与冻结不在这张表单上。它们由 CFO 在客户页的「信用仓位」一块里设定。',
             // GST-2:这个客户的默认销项税码。
             defaultTaxCode: '默认税码',
             defaultTaxCodeNone: '—— 未设 ——',
@@ -5521,6 +5553,8 @@ const zh = {
             FX_RATE_MISSING: '缺 {0} 在 {1} 的当日牌价({2})—— 先到 财务 → 汇率 录入当天的牌价。',
             FX_RATE_NOT_ACCEPTED: '这里不接受手工汇率 —— 外币金额按当日牌价自动估值。',
             SUPPLIER_NOT_FOUND: '供应商不存在',
+            // ROLE-1 Batch 2a:新采购单要一家已批准的供应商;既有的单照常收货。
+            PO_SUPPLIER_NOT_APPROVED: '供应商 {0} 的状态是「{1}」,不能给它开新的采购单。要先送审、由 CFO 批准(「供应商」→ 它的状态面板)。已经开给它的单不受影响。',
             NO_LINES: '请至少添加一行明细',
             MATERIAL_NOT_FOUND: '物料不存在:{0}',
             ORDER_DATE_REQUIRED: '下单日期必填 —— 它决定用哪天的汇率给订单估值。',
@@ -6796,6 +6830,7 @@ const zh = {
             subject_stocktake: '盘点',
             subject_work_order: '工单',
             subject_payment_request: '付款申请',
+            subject_supplier: '供应商',
             chainGatesTitle: '真的有人批得动吗?',
             chainGatesWhy:
                 '持有审批角色只是一半 —— 那个人还得持有这个动作自己要的权限,否则他连那张单据都打不开。此前没有任何东西在看这件事,于是一条【谁都过不去】的工单审批链就这么上线了。',
@@ -6956,7 +6991,8 @@ const zh = {
             PAYMENT_REQUEST_NOT_SUBMITTED: '付款申请 {0} 已经不在待批状态 —— 已经有人决定或撤回了它。请刷新页面查看它现在的状态。',
             PAYMENT_REQUEST_NOT_APPROVED: '付款申请 {0} 还没有批准,不能付款。请刷新页面查看它现在的状态。',
             PAYMENT_REQUEST_REJECT_REASON_REQUIRED: '驳回付款申请 {0} 要写明理由 —— 提出申请的人需要知道要改什么。',
-            PAYMENT_REQUEST_SUPPLIER_BLOCKED: '供应商 {0} 已被停用({1}),不能对它提付款申请或付款。请先在「供应商」里处理它的状态。',
+            // ROLE-1 Batch 2a:可付 = 已批准或活跃、且没被删;其余每一种状态按名拒。
+            PAYMENT_REQUEST_SUPPLIER_BLOCKED: '供应商 {0} 还不能收款(状态:{1}),所以对它的付款申请提不了、批不了、也付不了。CFO 批准这家供应商之后才可付(「供应商」→ 它的状态面板)。',
             PAYMENT_REVERSAL_REASON_REQUIRED: '申请冲销付款 {0} 要写明理由。',
             PAYMENT_REVERSAL_ALREADY_REQUESTED: '付款 {0} 已经有一张未了结的冲销申请。请从付款单上打开那一张,不要再提一张。',
             PAYMENT_REVERSAL_TAKES_NO_DATE: '冲销申请 {0} 不收付款日 —— 冲销的日期就是执行它的那一天。',
@@ -7054,6 +7090,13 @@ const zh = {
                 '职责分离:结束于 {0} 的这个期间里有你自己记的手工凭证,所以关账不能由你来做。请另一位持【财务(编辑)】权限的同事来关这个期间。',
             SOD_PAYEE_AND_PAY:
                 '职责分离:供应商 {0} 是你自己建的,所以付款不能由你来做。请另一位持【财务(编辑)】权限的同事来记这笔付款。',
+            // ROLE-1 Batch 2a(Q10):锁期以外的财务设置只归 CFO。
+            FINANCE_SETTINGS_THROUGH_FUNCTION_ONLY:
+                '这一项财务设置({0})只由 CFO 在财务设置页上改。财务直接改的只有锁期这一项。什么都没有改。',
+            FINANCE_SETTINGS_KEY_NOT_HERE: '{0} 不在这里改 —— 它有自己的地方(锁期与月结,或审批设置)。什么都没有改。',
+            FINANCE_SETTINGS_KEY_UNKNOWN: '{0} 不是一项财务设置。什么都没有改。',
+            FINANCE_SETTINGS_NOTHING_TO_CHANGE: '没有送来要改的内容。',
+            FINANCE_SETTINGS_ROW_MISSING: '财务设置那一行不在 —— 这个库没有建全。什么都没有改。',
             REOPEN_THROUGH_CLOSE_ONLY:
                 '把锁定日往回搬过 {0},等于重开一个已关的月。重开已关的月只有 CFO 能做,而且只能在「月结 → 重开」里做 —— 那里会记下是谁、为什么重开。',
             APPROVALS_POLICY_INCOMPLETE:

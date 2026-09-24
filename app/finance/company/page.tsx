@@ -15,7 +15,9 @@ export default async function CompanyPage() {
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
-    const canEditGate = await can('module.finance.edit')
+    // ★ ROLE-1 Batch 2a(Tim,Q10):公司资料(含银行资料与标志)只归 CFO —— action.finance_settings。
+    //   company_profile 的写策略与 company-assets 桶的写策略都换到了这个码。
+    const canEditGate = await can('action.finance_settings')
 
     const supabase = await createClient()
     const t = await getTranslations()

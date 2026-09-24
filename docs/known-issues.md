@@ -9344,12 +9344,6 @@ probe-search-results · probe-search-shell · probe-draft1–7 · probe-draft3-b
 它们的残留今天由下一次开跑时的 `reapStalePlans` 收。另一个边:SIGTERM 落在"建账号"与"登记进计划"之间那一次
 await 上,只有冒烟有按名字的兜底清扫,探针没有。
 
-## PAYREQB-COMPANY-ASSETS-BUCKET-UNGATED —— 公司资料的存储桶没有权限门(Batch B grilling 读出,2026-09-23)
-
-`company-assets` 存储桶的 insert / update / delete 策略只要求登录(`2026-07-31-phase4-cut3-company-profile.sql:26-40`)——
-任何一个登录用户都能换掉公司 logo 那个文件;只有 `company_profile.logo_path` 那一列有门。
-去处:ROLE-1 Batch 2a (a)(Tim 2026-09-23,Q10:门换成 `action.finance_settings`)。
-
 ## PAYREQB-FORMULA-PAGES-NO-DISABLED-GATE —— 定价公式页没有"看得见、按不动、带理由"的门(Batch B grilling 读出,2026-09-23)
 
 `app/tools/pricing/formulas/` 的页面只用 `requireModule`(读码)把关,写的控件没有 `PermissionGate`:没有 `pricing.edit` 的人

@@ -13,7 +13,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { revalidatePath } from 'next/cache'
 import { localizeFinanceError } from '../financeErrorCodes'
-import { refuseFromCoded, refuseNothingChanged } from '@/lib/action-refusal'
+import { refuseFromCoded } from '@/lib/action-refusal'
 
 export type GstSwitchState = { error?: string; detail?: string; field?: string }
 
@@ -44,29 +44,23 @@ export async function setGstRegistration(
         return { error: t('finance.errors.GST_REGISTRATION_NO_REQUIRED'), field: 'registrationNo' }
     }
 
-    // 【一次 UPDATE 同时写两列】号码与开关必须在同一条语句里落地,
+    // 【一次写同时落两列】号码与开关必须在同一条语句里落地,
     // 否则"先写号码、再开开关"中间存在一个【已注册但没有号】的瞬间,
     // 而那正是这条规矩要消灭的状态。触发器也是按 NEW 的两列一起判的。
-    const { data, error } = await supabase
-        .from('finance_settings')
-        .update({
+    // ★ ROLE-1 Batch 2a(Tim,Q10):GST 登记归 CFO(action.finance_settings)。CFO 不持
+    //   module.finance.edit,所以这一步不再是直连 UPDATE,而走 set_finance_settings
+    //   (SECURITY DEFINER,要那个码,并照样经过 trg_gst_switch)。直连改这两列会被
+    //   guard_finance_settings_cfo_columns 按名拒 —— 锁期仍是财务直连写的那一列。
+    //   函数要么写成、要么抛,所以不再需要"零行 = 没改成"那一支。
+    const { error } = await supabase.rpc('set_finance_settings', {
+        p_changes: {
             gst_registered: on,
             gst_registration_no: trimmed === '' ? null : trimmed,
-            updated_by: user.id,
-        })
-        .eq('id', true)
-        // ★ ALERT-1:见 app/materials/actions.ts 的注释。没有这一行,一个没有
-        //   module.finance.edit 的人按下开关会得到【一片安静】,而上面那条状态
-        //   横幅仍然写着旧状态 —— 屏幕看起来像是"什么都没发生",而那正是事实,
-        //   只是没有人说出来。
-        .select('id')
+        },
+    })
 
     if (error) {
         return await refuseFromCoded(error.message, localizeFinanceError)
-    }
-
-    if (!data || data.length === 0) {
-        return await refuseNothingChanged('module.finance.edit')
     }
 
     // 开关一翻,这些页面的渲染【形状】就变了(税码那一格出现或消失),

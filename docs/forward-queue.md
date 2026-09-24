@@ -3,7 +3,7 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;CLAIM-GST-1 交回时更新:下一刀是 ROLE-1 Batch 2a)
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;ROLE-1 Batch 2a 交回时更新:下一刀是 ROLE-1 Batch 2b)
 > 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(`fa7821ab`)·
 >    **✅ AP-RECON-1 Batch B** —— 残留登记表 + 常设勾稽 + 月结那一行 + 严格相等的 fixture 213 + 那一分钱 +
 >    带税订单发票 + **三条日期规矩与 32 份 fixture 的日期挪回真实的过去**(Tim 2026-09-24:日期规矩属于 AP-RECON-1,
@@ -12,8 +12,10 @@
 >    (`tax_included_in`、`expenses.tax_ccy`、`record_expense` 的 `p_amount_includes_tax`;fixture 215)。
 >    EXP-2026-0007 / 0008 记下不改(`docs/known-wrong-until-cutover.md`)。冒烟收尾有界:15s / 120s / 退 6。
 >    订单发票的税:核实过,AP-RECON-1 Batch B 已落地(fixture 213 C11–C11g)。见 `docs/handbacks/CLAIM-GST-1.md`。
-> 2. **⬜ ROLE-1 Batch 2a ← 下一刀** —— (a) 财务设置 · (b) 客户信用 · (c) 供应商审批 + 未批准供应商不付款(下文 § ROLE-1 Batch 2a)。
-> 3. **⬜ ROLE-1 Batch 2b** —— (d) 合同条款 · (e) 定价 · (f) 直接销售 · (g) 化验(下文 § ROLE-1 Batch 2b)。
+> 2. **✅ ROLE-1 Batch 2a**(2026-09-24)—— (a) 财务设置 · (b) 客户信用 · (c) 供应商审批 + 未批准供应商不付款、不开新单。
+>    见 `docs/handbacks/ROLE-1.md` § Batch 2a。★ **落地之后:Choo Er 送审 Acme / Bosch / Ever Higher,Tim(tim@)批准 ——
+>    在那之前 377,173.50 付不出去**(外加已删的 ZZ1B-GDS 500.00,永远付不出去,记在 known-wrong)。
+> 3. **⬜ ROLE-1 Batch 2b ← 下一刀** —— (d) 合同条款 · (e) 金属价格 · (f) 直接销售 · (g) 化验(下文 § ROLE-1 Batch 2b)。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**
 > * **⬜ 管理包那一版 `gl_control_reconciliation` 的改基**(Tim AP-RECON-1 Q8):冻在 `management_packs` 里的包读它的三个键;
@@ -6212,7 +6214,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 
 > ★ **Grilling 已做(2026-09-23,与 PAY-REQ-1 Batch B 同一次 Step 0);Tim 接受 Q5–Q15 全部推荐。** 它不装得进一个会话
 > (估 2.5 个,区间 2–3),**拆成两刀**,答复逐条记在 `docs/handbacks/ROLE-1.md` § Batch 2:
-> * **⬜ Batch 2a**(下一会话):(a) 财务设置(码名 **`action.finance_settings`**,不是带两个点的那个;`finance_settings` 用一支
+> * **✅ Batch 2a**(2026-09-24,`docs/handbacks/ROLE-1.md` § Batch 2a):(a) 财务设置(码名 **`action.finance_settings`**,不是带两个点的那个;`finance_settings` 用一支
 >   `set_finance_settings` + 列守卫,锁定日与审批四列不动;`accounts` / `currencies` / `company_profile` 换策略与触发器;
 >   `company-assets` 存储桶一起上门;不新建科目表 / 币种的屏幕)· (b) 客户信用(`set_customer_credit` + 列守卫;编辑表单不再送
 >   这两列;批量导入禁这两列)· (c) 供应商审批(转移表见 Q8:批准 / 驳回 / 拉黑 / 从黑名单归档归 CFO,其余归 `suppliers.edit`;
@@ -6220,7 +6222,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 >   加 `supplier`)· ★ **未批准供应商不付款**(Tim 2026-09-23):只有 `approved` / `active` 且未删的供应商付得了 —— 付款申请的提、批、付
 >   都按名拒;付款冲销不拦;**新开采购单也拒**(已开的四张照收);**迁移里不替任何人批**,落地后 Choo Er 送审、Tim 批
 >   (Acme / Bosch / Ever Higher 是仅有的三家带应付的 draft;在批准之前 377,164.50 付不了 —— 交回报告要写进破窗那一节)。
-> * **⬜ Batch 2b**(再下一会话):(d) 合同条款(`action.contract_terms` 管建合同与 7 张条款表;**把单据挂到合同上不算**,留在单据的码上)·
+> * **⬜ Batch 2b ← 下一会话**:(d) 合同条款(`action.contract_terms` 管建合同与 7 张条款表;**把单据挂到合同上不算**,留在单据的码上)·
 >   (e) 定价(`metal_prices` / `pricing_settings` / `index_market_calendar` / **`metal_price_indices`** → `action.metal_prices`;
 >   `pricing.edit` 从 cto 与 finance 拿掉;公式页补门)· (f) 直接销售(`action.direct_sale`;确认没有正当直写后关掉
 >   `sales_records` 对 finance.edit 的 INSERT)· (g) 化验(`action.apply_assay` 管应用与撤销、进料与产出、连同预览;**录入**化验
@@ -6238,6 +6240,12 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 * **直接销售只归 cco**:`record_output_sale` 的门从 `output.edit` 换成新码(工作名 `action.direct_sale`)。
 * **化验归 cto**:`apply_assay_result` / `unapply_assay_result` / `record_assay_result` 换成新码(工作名 `action.apply_assay`)。
   ⚠ 化验会【改价】(按已提交的条款重算)—— Step 0 已点名,B2 开工前要 Tim 确认"cto 应用化验、价随之重算"是他要的。
+
+* **⬜ 改了一家已批准供应商的法定名 / 税号 / 类型,它就回到待审**(Tim,ROLE-1 Batch 2a grilling Q8:本刀不做,登记在这里)。
+  今天 `suppliers.edit` 可以在一家 `approved` / `active` 供应商上改 `legal_name` / `tax_id` / `counterparty_type`,而批准照旧有效 ——
+  批的是"这一家",改完之后它可能已经不是那一家。`suppliers` 上【没有】银行资料列,所以这条路改不了收款账户;
+  风险是"批过的身份被换掉"。做法候选:一支 BEFORE UPDATE 守卫把这三列的改动连同状态一起退回 `pending_review`
+  (并清批准戳),或者直接拒、要求先撤回批准。要 Tim 选。
 
 ### ⬜ Batch 3 —— 仓库那一侧:收货、盘点、工单、加工提交,以及 [LC] 的临时持有人
 * **收货建单归仓库**:`create_inbound_batch` / `receive_inbound_batch_against_po` 换成新码(工作名 `action.receive_goods`)。

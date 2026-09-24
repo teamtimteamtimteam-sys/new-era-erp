@@ -19,6 +19,7 @@
 //   明细 —— ar_open_items(module.finance.view)—— 【看得见限额不等于看得见账】,
 //           所以这一段单独把关,无权时整段是「受限」,不是一张空表。
 import Link from 'next/link'
+import CreditPanel from './CreditPanel'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -107,6 +108,8 @@ export default async function CustomerStatusPage({
     const canFinance = await can('module.finance.view')
     // PARTY-1:联系人的编辑权按【归属那一侧】—— 与 save_counterparty_contact 里那句同源
     const canEditCustomer = await can('module.customers.edit')
+    // ROLE-1 Batch 2a(Tim,Q11):信用限额与冻结只归 CFO —— 本页上单独一块(CreditPanel)。
+    const canSetCredit = await can('action.customer_credit')
 
     const { data: cust, error } = await supabase
         .from('customers')
@@ -270,6 +273,10 @@ export default async function CustomerStatusPage({
                             </p>
                         )}
                     </div>
+                )}
+                {credit !== null && (
+                    <CreditPanel customerId={cust.id} creditLimitBase={credit.credit_limit_base}
+                        creditHold={credit.credit_hold} canSetCredit={canSetCredit} />
                 )}
             </section>
 

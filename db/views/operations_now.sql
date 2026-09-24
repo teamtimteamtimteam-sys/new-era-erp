@@ -1,4 +1,7 @@
 -- OPS-18(Phase 6):operations_now —— 全站"正在等人处理的事",一件一行
+-- ★ ROLE-1 Batch 2a(2026-09-24,Q9):加一支 supplier_pending_approval —— 等 CFO 批的供应商
+--   (action.supplier_approve;只有持这个码的人看得见,点进去由 set_supplier_status 裁)。
+--   等了多久从【最后一次送审】起算(supplier_status_history),没有那一行时退回 updated_at。
 -- ★ PAY-REQ-1(2026-09-23):加一支 payment_request_pending —— 等 CFO 批的付款申请
 --   (module.finance.view;finance 与 cfo 都看得见,点进去由 decide_payment_request 裁谁能批)。
 --
@@ -547,7 +550,19 @@ CREATE VIEW public.operations_now AS
              LEFT JOIN suppliers s ON s.id = pr.supplier_id
              LEFT JOIN employees e ON e.id = pr.employee_id
              LEFT JOIN customers c ON c.id = pr.customer_id
-          WHERE pr.status = 'submitted'::text) a
+          WHERE pr.status = 'submitted'::text
+        UNION ALL
+         SELECT 'supplier_pending_approval'::text AS item_type,
+            'action.supplier_approve'::text AS permission,
+            s.id AS item_id,
+            NULL::text AS doc_kind,
+            s.code AS item_code,
+            s.legal_name AS subject,
+            COALESCE(( SELECT max(h.changed_at) AS max
+                   FROM supplier_status_history h
+                  WHERE h.supplier_id = s.id AND h.to_status = 'pending_review'::text), s.updated_at)::date AS item_date
+           FROM suppliers s
+          WHERE s.status = 'pending_review'::supplier_status AND s.deleted_at IS NULL) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type))) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;

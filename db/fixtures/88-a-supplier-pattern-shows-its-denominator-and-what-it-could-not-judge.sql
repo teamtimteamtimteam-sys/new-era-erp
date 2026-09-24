@@ -61,8 +61,10 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════════════════
     -- A. 5 次里 1 次短 —— 原始计数,不是一个布尔量
     -- ══════════════════════════════════════════════════════════════════════════
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-    VALUES ('FX88-S1', 'fixture 88 supplier 1of5', 'SG', 'goods_supplier') RETURNING id INTO sup_1of5;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+    VALUES ('active', 'FX88-S1', 'fixture 88 supplier 1of5', 'SG', 'goods_supplier') RETURNING id INTO sup_1of5;
 
     -- 窗口取视图自己返回的那个数 —— 【不在 fixture 里写第二个 180】。
     -- 写死一份就是第二个定义,而视图哪天改了窗口,这份 fixture 会因为一个
@@ -113,8 +115,10 @@ BEGIN
     --    【两家并存正是这一臂的意义】任何把计数压成布尔量的实现,都会让
     --    A 与 B 在某个阈值两侧变成"一样"或"截然不同";原始计数下它们是 1 与 4。
     -- ══════════════════════════════════════════════════════════════════════════
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-    VALUES ('FX88-S4', 'fixture 88 supplier 4of5', 'SG', 'goods_supplier') RETURNING id INTO sup_4of5;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+    VALUES ('active', 'FX88-S4', 'fixture 88 supplier 4of5', 'SG', 'goods_supplier') RETURNING id INTO sup_4of5;
     INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
     VALUES ('FX88-PO4', sup_4of5, CURRENT_DATE, 'USD', 1.3, 'receiving', 'approved') RETURNING id INTO po_4;
 
@@ -266,8 +270,10 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════════════════
     -- E. 窗口边界:两边各钉一天,【边界当天必须在内】(谓词是 >=)
     -- ══════════════════════════════════════════════════════════════════════════
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-    VALUES ('FX88-SW', 'fixture 88 supplier window', 'SG', 'goods_supplier') RETURNING id INTO sup_win;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+    VALUES ('active', 'FX88-SW', 'fixture 88 supplier window', 'SG', 'goods_supplier') RETURNING id INTO sup_win;
     INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
     VALUES ('FX88-POW', sup_win, CURRENT_DATE - v_win - 5, 'USD', 1.3, 'receiving', 'approved')
     RETURNING id INTO po_win;

@@ -43,8 +43,10 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-    VALUES ('FX84-SUP', 'fixture 84 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+    VALUES ('active', 'FX84-SUP', 'fixture 84 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('FX84-M', 'fixture 84 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO mat;
 

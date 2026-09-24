@@ -43,8 +43,10 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, unit)
     VALUES ('ZZ184-M', 'fixture 184 material', 'battery_material', true, 'black_mass', 'end_of_life', 'kg')
     RETURNING id INTO v_mat;
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-    VALUES ('ZZ184-S', 'fixture 184 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+    VALUES ('active', 'ZZ184-S', 'fixture 184 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
     VALUES ('ZZ184-PO', v_sup, d, 'USD', 1.3, 'receiving', 'approved') RETURNING id INTO v_po;
     INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, quantity, unit)

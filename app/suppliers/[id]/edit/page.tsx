@@ -67,6 +67,19 @@ export default async function EditSupplierPage({
         notFound()
     }
 
+    // ★ ROLE-1 Batch 2a:这一家此刻能走哪几步、每一步要哪个码 —— 问库里那一份定义
+    //   (supplier_status_moves),不在页面上再抄一份跳转图。每个码问一次 can()。
+    const moveRows = mustRows(await supabase.rpc('supplier_status_moves'), 'supplier_status_moves')
+        .filter((m) => m.from_status === supplier.status)
+    const canApproveSupplier = await can('action.supplier_approve')
+    const statusMoves = moveRows.map((m) => ({
+        to: m.to_status as typeof supplier.status,
+        code: m.required_code,
+        allowed: m.required_code === 'action.supplier_approve' ? canApproveSupplier
+            : m.required_code === 'module.suppliers.edit' ? canEditSupplier
+            : false,
+    }))
+
     const { data: complianceRows } = await supabase
         .from('supplier_compliance')
         .select('id, cert_type_code, cert_no, issuing_body, valid_from, valid_until, notes, document_id')
@@ -185,7 +198,14 @@ export default async function EditSupplierPage({
                 交给了下面的 <ContactsPanel permissionCode="module.suppliers.edit">。本组件此前【没有】拿到它,于是没有
                 编辑权的人按得下状态钮,按下去一片安静。补上的是一个 prop。 */}
             <StatusPanel id={supplier.id} subject={supplier.code} currentStatus={supplier.status}
-                canEdit={canEditSupplier} />
+                moves={statusMoves} />
+            {supplier.approved_at && (
+                <p className="text-xs text-[color:var(--brand-muted-text)] -mt-4 mb-6" data-supplier-approved-stamp="1">
+                    {t('suppliers.statusPanel.approvedStamp', {
+                        at: formatAuditStamp(supplier.approved_at),
+                    })}
+                </p>
+            )}
             {/* GRN-2:摆在编辑表单【之前】—— 决定要不要再跟这家下单的人,
                 该先读到这家的收货记录,而不是先看到一堆可改的字段。 */}
             <ReceiptPatternPanel

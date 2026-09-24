@@ -12,9 +12,12 @@ AS $function$
         'status',                   -- suppliers.status 由 validate_supplier_status_transition 管
                                     -- 跳转规则;导入直接落一个状态会绕过那条规矩
         'default_payment_term_template_id', -- 指向 payment_term_templates,本刀范围外
-        'monthly_salary'            -- ROLE-1(Tim 的矩阵):月薪只走 set_initial_salary(第一份)
+        'monthly_salary',           -- ROLE-1(Tim 的矩阵):月薪只走 set_initial_salary(第一份)
                                     -- 与绩效评估 / 调薪申请。master_import_apply 是属主路径,
                                     -- guard_employee_salary_write 看不见它 —— 不在这里挡,
                                     -- 一份员工 CSV 就能绕过整条规矩。
+        'credit_limit_base','credit_hold', -- ROLE-1 Batch 2a(Q11):客户信用只走 set_customer_credit
+                                    -- (CFO)。同一个理由:导入是属主路径,guard_customer_credit_write 看不见它。
+        'approved_by','approved_at' -- ROLE-1 Batch 2a:供应商的批准戳只由 set_supplier_status 盖
     ];
 $function$

@@ -68,7 +68,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // AP-RECON-1 Batch B(2026-09-24):225 → 226。新增 `list_ledger_residue`(清单 ↔ 总账的逐单据残留,
 // 只有迁移能写),见 db/tables/list_ledger_residue.sql。**它没有 code 列**(单据编号列叫 doc_code,
 // 它记的是"哪一张单据的哪一笔差",不是一张单据),所以 EXPECTED_CODE_TABLES 不动。
-const EXPECTED_TABLES = 226
+// ROLE-1 Batch 2a(2026-09-24):226 → 227。新增 `supplier_status_history`(供应商状态每一步的
+// 只增不改留痕,Tim 的 Q3),见 db/tables/supplier_status_history.sql。**它没有 code 列**
+// (它记的是"哪一家从什么状态到什么状态",不是一张单据),所以 EXPECTED_CODE_TABLES 不动。
+const EXPECTED_TABLES = 227
 const EXPECTED_CODE_TABLES = 76
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

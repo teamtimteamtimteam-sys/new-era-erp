@@ -42,8 +42,10 @@ BEGIN
            (r, 'module.suppliers.view'), (r, 'data.view_prices');
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-    VALUES ('ZZFIX33-S', 'fixture 33 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+    VALUES ('active', 'ZZFIX33-S', 'fixture 33 supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZFIX33-M', 'fixture 33 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
 

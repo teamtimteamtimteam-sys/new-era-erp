@@ -820,6 +820,7 @@ const en = {
             bank_unmatched: 'Unmatched bank lines',
             wht_due: 'Withholding tax due to IRAS',
             payment_request_pending: 'Payment requests awaiting approval',
+            supplier_pending_approval: 'Suppliers awaiting approval',
         },
         // LINKS-1:一块牌子只列前几件,其余交给那一支自己的列表
         andMore: '+{n} more',
@@ -1708,6 +1709,22 @@ const en = {
         // same labels the status panel shows before they reach this sentence.
         errors: {
             INVALID_STATUS_TRANSITION: 'A supplier cannot go from {0} to {1}.',
+            // ROLE-1 Batch 2a: the one door for status changes and the guard on direct writes.
+            SUPPLIER_STATUS_THROUGH_FUNCTION_ONLY:
+                'A supplier\'s status can only be changed from its status panel. Nothing was changed.',
+            SUPPLIER_CREATED_BY_IMMUTABLE:
+                'Who created a supplier can never be changed — approval depends on it. Nothing was changed.',
+            SUPPLIER_CREATED_BY_FORGED:
+                'A new supplier is always recorded as created by you. Nothing was saved.',
+            SUPPLIER_INSERT_MUST_BE_DRAFT:
+                'A new supplier starts as Draft; it cannot be created as {0}. Nothing was saved.',
+            SUPPLIER_APPROVAL_STAMP_THROUGH_FUNCTION_ONLY:
+                'Who approved a supplier is recorded by the approval itself and cannot be edited. Nothing was changed.',
+            SUPPLIER_STATUS_UNKNOWN: '"{0}" is not a supplier status. Nothing was changed.',
+            SUPPLIER_NOT_FOUND: 'This supplier no longer exists or has been deleted. Nothing was changed.',
+            SELF_APPROVAL_FORBIDDEN:
+                'You created this supplier, so you cannot approve or reject it — on any of your accounts. '
+                + 'Someone else with the supplier-approval permission has to decide it.',
         },
         status: {
             draft: 'Draft',
@@ -1737,6 +1754,12 @@ const en = {
                 'Changing a supplier\'s status needs the "module.suppliers.edit" permission, which '
                 + 'your account does not have — you can see this page but not change it. To change it, '
                 + 'ask an administrator to grant that permission under Settings → Roles.',
+            // ROLE-1 Batch 2a: when every step from here needs a code this account lacks.
+            needsPermission:
+                'Every status change from here needs a permission your account does not have ({codes}). '
+                + 'Approving, rejecting, blacklisting and restoring a supplier belong to the CFO; '
+                + 'the other steps need "module.suppliers.edit". An administrator grants these under Settings → Roles.',
+            approvedStamp: 'Approved {at}',
             noActions: 'No actions available for the current status.',
             availableChanges: 'Available status changes:',
             processing: 'Processing…',
@@ -2213,6 +2236,20 @@ const en = {
         errWeightsNot100: 'The template weights for position {0} total {1}, not 100. Entries copied from it could never produce a comparable score — and they would still compute a number without erroring.',
     },
     customers: {
+        // ROLE-1 Batch 2a (Q11): the credit panel on the customer page — CFO only (action.customer_credit).
+        creditPanel: {
+            title: 'Set credit limit and hold',
+            who: 'Only the CFO sets a customer\'s credit limit and hold. Every change is logged with who made it.',
+            save: 'Save credit settings',
+            saved: 'Credit settings saved.',
+        },
+        creditErrors: {
+            CUSTOMER_CREDIT_THROUGH_FUNCTION_ONLY:
+                'A customer\'s credit limit and hold can only be changed in the credit panel on the customer page, by the CFO. Nothing was changed.',
+            CUSTOMER_CREDIT_HOLD_REQUIRED: 'Say whether the customer is on credit hold. Nothing was changed.',
+            CUSTOMER_CREDIT_LIMIT_INVALID: 'A credit limit cannot be negative ({0}). Leave it empty for no limit, or enter 0 for cash only. Nothing was changed.',
+            CUSTOMER_NOT_FOUND: 'This customer no longer exists or has been deleted. Nothing was changed.',
+        },
         status: {
             creditTitle: 'Credit position',
             exposureIncludesInvoiced: 'Exposure counts unsettled sales AND posted order invoices not yet shipped — the figure shown here and the one the refusals use are the same number by construction.',
@@ -2286,6 +2323,8 @@ const en = {
             creditLimitHint: 'Empty = NO LIMIT (sales pass). Zero = CASH ONLY (every credit sale refused). They are opposites. Every existing customer starts empty — the control is opt-in per customer. Changes are logged.',
             creditHold: 'Credit hold (freeze shipments)',
             creditHoldHint: 'Blocks sales regardless of exposure — e.g. while an invoice is disputed. Clearing it is a logged change.',
+            // ROLE-1 Batch 2a (Q11): credit limit and hold moved off this form — they belong to the CFO.
+            creditMovedHint: 'The credit limit and the credit hold are not on this form. They are set by the CFO in the Credit position section of the customer page.',
             // GST-2:这个客户的默认销项税码。
             defaultTaxCode: 'Default tax code',
             defaultTaxCodeNone: '— none set —',
@@ -5700,6 +5739,8 @@ const en = {
             FX_RATE_MISSING: 'No {0} board rate on file for {1} ({2}) — enter the day\u2019s rate under Finance \u2192 FX first.',
             FX_RATE_NOT_ACCEPTED: 'A manual rate is not accepted here \u2014 foreign amounts are valued at the day\u2019s board rate automatically.',
             SUPPLIER_NOT_FOUND: 'Supplier not found',
+            // ROLE-1 Batch 2a: a NEW purchase order needs an approved supplier; existing orders keep receiving.
+            PO_SUPPLIER_NOT_APPROVED: 'Supplier {0} is {1}, so no new purchase order can be raised to it. It has to be submitted for review and approved by the CFO first (Suppliers → its status panel). Existing orders to it are not affected.',
             NO_LINES: 'Add at least one line',
             MATERIAL_NOT_FOUND: 'Material not found: {0}',
             ORDER_DATE_REQUIRED: 'An order date is required — it decides which FX rate values the order.',
@@ -7003,6 +7044,7 @@ const en = {
             subject_stocktake: 'Stocktakes',
             subject_work_order: 'Work orders',
             subject_payment_request: 'Payment requests',
+            subject_supplier: 'Suppliers',
             chainGatesTitle: 'Can anyone actually approve it?',
             chainGatesWhy:
                 'Holding the approver role is only half of it — the person also has to hold the permission the action itself requires, or they cannot open the document. Nothing checked that until now, and a work order chain shipped that literally nobody could pass.',
@@ -7163,7 +7205,8 @@ const en = {
             PAYMENT_REQUEST_NOT_SUBMITTED: 'Payment request {0} is no longer awaiting approval — someone has already decided or withdrawn it. Reload the page to see where it stands.',
             PAYMENT_REQUEST_NOT_APPROVED: 'Payment request {0} is not approved, so it cannot be paid. Reload the page to see where it stands.',
             PAYMENT_REQUEST_REJECT_REASON_REQUIRED: 'A reason is required to reject payment request {0} — whoever raised it needs to know what to fix.',
-            PAYMENT_REQUEST_SUPPLIER_BLOCKED: 'Supplier {0} is blocked ({1}), so no payment to it can be requested or made. Its status has to be cleared under Suppliers first.',
+            // ROLE-1 Batch 2a: payable means Approved or Active and not deleted — every other status is refused by name.
+            PAYMENT_REQUEST_SUPPLIER_BLOCKED: 'Supplier {0} is not approved for payment (status: {1}), so no payment to it can be requested, approved or made. A supplier becomes payable once the CFO approves it (Suppliers → its status panel).',
             PAYMENT_REVERSAL_REASON_REQUIRED: 'A reason is required to request the reversal of payment {0}.',
             PAYMENT_REVERSAL_ALREADY_REQUESTED: 'Payment {0} already has an open reversal request. Open it from the payment page instead of raising another.',
             PAYMENT_REVERSAL_TAKES_NO_DATE: 'Reversal request {0} takes no payment date — the reversal is dated the day it is carried out.',
@@ -7257,6 +7300,13 @@ const en = {
                 'Segregation of duties: you posted a manual journal entry in the period ending {0}, so you cannot be the one to close it. Ask another holder of Finance (edit) to close this period.',
             SOD_PAYEE_AND_PAY:
                 'Segregation of duties: you created supplier {0}, so you cannot be the one to pay it. Ask another holder of Finance (edit) to record this payment.',
+            // ROLE-1 Batch 2a (Q10): finance settings other than the period lock belong to the CFO.
+            FINANCE_SETTINGS_THROUGH_FUNCTION_ONLY:
+                'This finance setting ({0}) is changed by the CFO only, from the finance settings page. The period lock is the one setting Finance changes directly. Nothing was changed.',
+            FINANCE_SETTINGS_KEY_NOT_HERE: '{0} is not changed here — it has its own place (the period lock and month-end close, or the approvals settings). Nothing was changed.',
+            FINANCE_SETTINGS_KEY_UNKNOWN: '{0} is not a finance setting. Nothing was changed.',
+            FINANCE_SETTINGS_NOTHING_TO_CHANGE: 'Nothing was sent to change.',
+            FINANCE_SETTINGS_ROW_MISSING: 'The finance settings record is missing — this database was not set up completely. Nothing was changed.',
             REOPEN_THROUGH_CLOSE_ONLY:
                 'Moving the lock date back past {0} would reopen a closed month. Only the CFO can reopen a closed month, and only through Month-end close → Reopen, which records who reopened it and why.',
             APPROVALS_POLICY_INCOMPLETE:

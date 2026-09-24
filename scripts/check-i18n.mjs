@@ -695,6 +695,8 @@ const MANIFEST = {
     'invoice.errors.':      { kind: 'enum', values: () => tsSet('app/finance/invoiceErrorCodes.ts', 'INVOICE_ERROR_CODES') },
     // PARTY-1:联系人那条路上的具名拒绝 —— 后缀从那张 Set 现读(加一个码就自动加宽)
     'contacts.errors.':     { kind: 'enum', values: () => tsSet('app/sales/customers/contactErrorCodes.ts', 'CONTACT_ERROR_CODES') },
+    // ROLE-1 Batch 2a:客户信用那条路的具名拒绝
+    'customers.creditErrors.': { kind: 'enum', values: () => tsSet('app/sales/customers/creditErrorCodes.ts', 'CREDIT_ERROR_CODES') },
     'expense.errors.':      { kind: 'enum', values: () => tsSet('app/finance/expenseErrorCodes.ts', 'EXPENSE_ERROR_CODES') },
     'pricing.errors.':      { kind: 'enum', values: () => tsSet('app/tools/pricing/pricingErrorCodes.ts', 'PRICING_ERROR_CODES') },
     'assay.errors.':        { kind: 'enum', values: () => tsSet('app/inbound/assayErrorCodes.ts', 'ASSAY_ERROR_CODES') },

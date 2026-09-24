@@ -39,12 +39,10 @@ export async function updateCustomer(
     const dtc_raw = (formData.get('default_tax_code') as string)?.trim() ?? ''
     const default_tax_code = dtc_raw === '' ? null : dtc_raw
 
-    const limit_raw = (formData.get('credit_limit_base') as string)?.trim() ?? ''
-    const credit_limit_base = limit_raw === '' ? null : Number(limit_raw)
-    if (credit_limit_base !== null && (!Number.isFinite(credit_limit_base) || credit_limit_base < 0)) {
-        return { error: t('customers.form.errCreditLimit') }
-    }
-    const credit_hold = formData.get('credit_hold') === 'on'
+    // ★ ROLE-1 Batch 2a(Tim,Q11):信用限额与冻结【不再】从这张表单走 —— 它们只归 CFO,
+    //   在客户页的信用那一块用 set_customer_credit 改。这里连读都不读那两格:
+    //   一张【总是】带着 credit_hold 的表单(未勾 = false),会把一次普通的改电话
+    //   变成一次"把冻结解开"的尝试(guard_customer_credit_write 会按名拒)。
     const notes = (formData.get('notes') as string)?.trim() || null
     const customer_types = formData.getAll('customer_types') as string[]
 
@@ -79,8 +77,6 @@ export async function updateCustomer(
             payment_terms_days,
             incoterm,
             credit_rating,
-            credit_limit_base,
-            credit_hold,
             default_tax_code,
             notes,
             updated_by: user?.id ?? null,

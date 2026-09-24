@@ -25,6 +25,16 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // ════════════════════════════════════════════════════════════════════════════
 const SUPPLIER_ERROR_CODES = new Set([
     'INVALID_STATUS_TRANSITION',
+    // ROLE-1 Batch 2a:set_supplier_status 与 guard_supplier_direct_write 的拒绝
+    'SUPPLIER_STATUS_THROUGH_FUNCTION_ONLY',
+    'SUPPLIER_CREATED_BY_IMMUTABLE',
+    'SUPPLIER_CREATED_BY_FORGED',
+    'SUPPLIER_INSERT_MUST_BE_DRAFT',
+    'SUPPLIER_APPROVAL_STAMP_THROUGH_FUNCTION_ONLY',
+    'SUPPLIER_STATUS_UNKNOWN',
+    'SUPPLIER_NOT_FOUND',
+    // 建档人不能批自己建的(按人认:一个人的两个账号算一个人)。参数是那条腿(raiser)。
+    'SELF_APPROVAL_FORBIDDEN',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

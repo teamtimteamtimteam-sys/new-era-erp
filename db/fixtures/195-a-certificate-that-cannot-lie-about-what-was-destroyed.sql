@@ -61,7 +61,11 @@ BEGIN
     VALUES ('fixture-195-warehouse', 'fixture', 'fixture', true) RETURNING id INTO v_role_wh;
     INSERT INTO role_permissions (role_id, permission_code)
     SELECT v_role_wh, rp.permission_code FROM role_permissions rp
-      JOIN roles ro ON ro.id = rp.role_id WHERE ro.code = 'warehouse';
+      JOIN roles ro ON ro.id = rp.role_id WHERE ro.code = 'warehouse'
+       -- ROLE-1 Batch 2a(Tim,Q5):warehouse 起持 module.suppliers.view / .edit(建供应商档案)。
+       -- J2 钉的是"证书【不需要】读供应商表",所以这里把那两个码拿掉,仍然问同一句话;
+       -- 仓库今天读得到供应商,是矩阵的裁定,不是证书开的门。
+       AND rp.permission_code NOT LIKE 'module.suppliers.%';
     INSERT INTO user_roles (user_id, role_id) VALUES (v_wh, v_role_wh);
 
     INSERT INTO roles (code, name_en, name_zh, is_active)

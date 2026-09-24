@@ -28,9 +28,7 @@ type Customer = {
     payment_terms_days: number | null
     incoterm: string | null
     credit_rating: string | null
-    credit_limit_base: number | null
     default_tax_code: string | null
-    credit_hold: boolean | null
     notes: string | null
 }
 
@@ -202,29 +200,11 @@ export default function EditCustomerForm({ customer, gstRegistered, taxCodes }: 
                     />
                 </div>
 
-                <div>
-                    <label className="block mb-1">{t('customers.form.creditLimit')}</label>
-                    {/* SAL-B:【留空 = 没设限额(放行);0 = 现款现货(任何赊销都拒)——
-                        相反,不是相近】。全部既有客户为空:管控按客户逐个启用。 */}
-                    <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        name="credit_limit_base"
-                        defaultValue={customer.credit_limit_base ?? ''}
-                        placeholder={t('customers.form.creditLimitPlaceholder')}
-                        className={`${CONTROL_INPUT} w-full`}
-                    />
-                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('customers.form.creditLimitHint')}</p>
-                </div>
-
-                <div>
-                    <label className="inline-flex items-center gap-2">
-                        <input type="checkbox" className={CONTROL_CHECKBOX} name="credit_hold" defaultChecked={customer.credit_hold ?? false} />
-                        {t('customers.form.creditHold')}
-                    </label>
-                    <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('customers.form.creditHoldHint')}</p>
-                </div>
+                {/* ROLE-1 Batch 2a(Tim,Q11):信用限额与冻结只归 CFO,在客户页的信用那一块改 ——
+                    这张表单不再带这两格(带着就是一次"每次保存都改信用"的尝试)。 */}
+                <p className="text-xs text-[color:var(--brand-muted-text)]" data-credit-moved="1">
+                    {t('customers.form.creditMovedHint')}
+                </p>
 
                 {/* ★【GST-2:这个客户的默认销项税码 —— 只在已注册时出现】★
                     未注册时这一格根本不长出来:那时税码写不进任何地方,

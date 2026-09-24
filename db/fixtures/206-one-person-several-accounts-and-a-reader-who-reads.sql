@@ -91,8 +91,10 @@ BEGIN
         (c_ctl,  'FX206-C-CTL',  e_c, DATE '2030-03-01', 50.00, v_base, 'ctl',   'none', 'submitted', u_main);
 
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_main), true);
-    INSERT INTO suppliers (id, code, legal_name, country, counterparty_type)
-      VALUES (sup_id, 'FX206-SUP', 'Sup', 'SG', 'goods_supplier');
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, id, code, legal_name, country, counterparty_type)
+      VALUES ('active', sup_id, 'FX206-SUP', 'Sup', 'SG', 'goods_supplier');
     INSERT INTO purchase_orders (id, code, supplier_id, order_date, currency, fx_rate,
                                  estimated_total_ccy, status, approval_status, created_by)
       VALUES (po_id, 'FX206-PO-1', sup_id, DATE '2030-03-01', v_base, 1, 50.00, 'draft', 'pending', u_main);

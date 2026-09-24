@@ -18,17 +18,9 @@ export const SUPPLIER_STATUSES: SupplierStatus[] = [
     'archived',
 ]
 
-// 合法状态流转表(必须跟数据库 trigger 一致)
-export const ALLOWED_TRANSITIONS: Record<SupplierStatus, SupplierStatus[]> = {
-    draft: ['pending_review', 'archived'],
-    pending_review: ['approved', 'rejected', 'draft'],
-    rejected: ['draft', 'archived'],
-    approved: ['active', 'suspended', 'archived'],
-    active: ['suspended', 'blacklisted', 'archived'],
-    suspended: ['active', 'blacklisted', 'archived'],
-    blacklisted: ['archived'],
-    archived: ['draft'],
-}
+// ★ ROLE-1 Batch 2a:合法状态流转表【不再住在这里】。它此前是数据库触发器体里那一份的
+//   手抄本("必须跟数据库 trigger 一致" —— 一句要人记着的话)。现在唯一的定义是
+//   supplier_status_moves()(库里),状态面板由页面向它要【这一家此刻能走哪几步、每一步要哪个码】。
 
 // 需要二次确认的"重要"流转
 export const DESTRUCTIVE_TRANSITIONS = new Set<SupplierStatus>([

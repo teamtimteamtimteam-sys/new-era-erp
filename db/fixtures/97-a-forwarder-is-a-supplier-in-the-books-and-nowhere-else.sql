@@ -34,10 +34,12 @@ BEGIN
     -- 而在那个状态下这条规矩【不适用】(见 docs/known-issues.md 的 SOD-1-BLIND 条)。
     -- 本 fixture 测的是"货代在账上就是一家供应商",不是职责分离;
     -- 职责分离由 db/fixtures/127 自己测,那里 B1 臂走的正是这条路。
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-    VALUES ('FX97-GOODS', 'fixture 97 goods supplier', 'SG', 'goods_supplier') RETURNING id INTO s_goods;
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-    VALUES ('FX97-FWD', 'fixture 97 forwarder', 'SG', 'forwarder') RETURNING id INTO s_fwd;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+    VALUES ('active', 'FX97-GOODS', 'fixture 97 goods supplier', 'SG', 'goods_supplier') RETURNING id INTO s_goods;
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+    VALUES ('active', 'FX97-FWD', 'fixture 97 forwarder', 'SG', 'forwarder') RETURNING id INTO s_fwd;
 
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_fin), true);
 

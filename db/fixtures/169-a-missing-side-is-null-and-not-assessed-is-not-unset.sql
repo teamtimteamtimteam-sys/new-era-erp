@@ -65,8 +65,10 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 169 前置失败:字典的 is_a_claim 起点不对 —— can/cannot 必须是主张,not_assessed 必须不是';
     END IF;
 
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-    VALUES ('FX169-SUP', 'fixture 169 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+    VALUES ('active', 'FX169-SUP', 'fixture 169 supplier', 'SG', 'goods_supplier') RETURNING id INTO sup;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, size_format_code)
     VALUES ('FX169-M', 'fixture 169 pack', 'battery_material', true, 'whole_pack', 'end_of_life', 'ev_traction')
     RETURNING id INTO mat;

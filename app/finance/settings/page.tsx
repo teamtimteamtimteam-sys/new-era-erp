@@ -23,7 +23,10 @@ export default async function FinanceSettingsPage() {
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
+    // ★ ROLE-1 Batch 2a(Tim,Q10):这一页拆成【两道门】—— 锁期仍归财务(module.finance.edit),
+    //   GST 登记与其余财务设置归 CFO(action.finance_settings)。两块各拿自己那一道。
     const canEditGate = await can('module.finance.edit')
+    const canEditSettings = await can('action.finance_settings')
 
     const supabase = await createClient()
     const t = await getTranslations()
@@ -139,7 +142,7 @@ export default async function FinanceSettingsPage() {
 
             {/* GST-3:注册开关。**这一页此前完全没有它** —— 而 GST-1/GST-2 建的
                 每一样东西都挂在它后面,于是两刀的成果一个人也碰不到。 */}
-            <GstPanel canEdit={canEditGate}
+            <GstPanel canEdit={canEditSettings}
                 registered={data?.gst_registered ?? false}
                 registrationNo={data?.gst_registration_no ?? null}
             />

@@ -98,7 +98,7 @@ canEdit: boolean
                             {/* ★ 甲类:话贴着那个框。页顶一条横幅会让人回头找是哪个框。 */}
                             <FieldMessage field="registrationNo">{fieldError}</FieldMessage>
                         </div>
-                        <PermissionGate code="module.finance.edit" allowed={canEdit}>
+                        <PermissionGate code="action.finance_settings" allowed={canEdit}>
                         <ConfirmButton
                             subject={regNo}
                             title={t('finance.gstSwitch.confirmOn')}
@@ -121,7 +121,7 @@ canEdit: boolean
                 <>
                     {/* 关的那一侧:先说清楚它【可能关不掉】,以及为什么 */}
                     <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('finance.gstSwitch.turningOffHint')}</p>
-                    <PermissionGate code="module.finance.edit" allowed={canEdit}>
+                    <PermissionGate code="action.finance_settings" allowed={canEdit}>
                     {/* ══════════════════════════════════════════════════════
                         ★ POLISH-1(2026-09-12,Tim 的裁定 R3)· 回到标准档 ★
                         ══════════════════════════════════════════════════════

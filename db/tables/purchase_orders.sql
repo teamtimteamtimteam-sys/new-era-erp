@@ -176,6 +176,12 @@ CREATE TRIGGER trg_purchase_orders_soft_delete_provenance
 -- ═══ LOG-1a ════════════════════════════════════════════════════════════════
 -- 货代不能当采购单的供应商。【界面同时会把货代从选择器里排除(LOG-1b),
 -- 但那是体贴,不是边界】—— 谁都可以直接打 PostgREST,所以判据装在触发器上。
+-- ROLE-1 Batch 2a(Q7 / Q1):新采购单的供应商必须已批准(approved / active,且没被删)。
+-- 只挂 INSERT —— 既有采购单照常收货;每一条路径都拦,直连 INSERT 策略那扇门也在内。
+CREATE TRIGGER trg_purchase_orders_supplier_approved
+    BEFORE INSERT ON public.purchase_orders
+    FOR EACH ROW EXECUTE FUNCTION public.guard_po_supplier_approved();
+
 CREATE TRIGGER trg_purchase_orders_vendor_not_forwarder
     BEFORE INSERT OR UPDATE ON public.purchase_orders
     FOR EACH ROW EXECUTE FUNCTION guard_po_vendor_not_forwarder();

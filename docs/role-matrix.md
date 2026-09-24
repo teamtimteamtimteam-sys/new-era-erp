@@ -11,7 +11,7 @@ answers (Q1–Q13) are in `docs/handbacks/ROLE-1.md` §0.
 
 | 标记 · Mark | 意思 · Meaning |
 |---|---|
-| **✅ done** | 已在线上生效(ROLE-1 Batch 1 / PAY-REQ-1 Batch A / Batch B,2026-09-23)· live since ROLE-1 Batch 1 or PAY-REQ-1 Batch A or B |
+| **✅ done** | 已在线上生效(ROLE-1 Batch 1 / PAY-REQ-1 Batch A / Batch B,2026-09-23;ROLE-1 Batch 2a,2026-09-24)· live since ROLE-1 Batch 1 or PAY-REQ-1 Batch A or B |
 | **B2a · B2b … B5** | 本矩阵里【不需要新生命周期】的部分,排在 ROLE-1 的第 2–5 批;第 2 批拆成两刀(Tim 2026-09-23,Batch B grilling Q1):**B2a** = 财务设置 · 客户信用 · 供应商审批 + 未批准供应商不付款;**B2b** = 合同条款 · 定价 · 直接销售 · 化验 · in scope of ROLE-1, a later batch |
 | **[LC]** | 要先造一个「申请 → 批准 → 执行」的生命周期,不在 ROLE-1 里 · needs a request → approve lifecycle; queued separately |
 | **= 不变 / unchanged** | 矩阵说保持现状 · the matrix keeps the status quo |
@@ -86,8 +86,8 @@ MD = `gm`(Vince,只读)。
 |---|---|---|---|
 | 开采购单,按品类 · raising a PO, by category | 工厂耗材:仓库 · 设备与货物:cco · 办公用品:财务 | 分级不变:< 1,000 财务、≥ 1,000 CFO | B5(品类列 + 每类一个开单码,Q12)|
 | 修改、取消、关闭采购单 · amend, cancel, close | 开单人 · the raiser | — | B5 |
-| 供应商建档 · supplier creation | cco · 仓库 · 财务 | — | B2a |
-| 供应商批准、拉黑、恢复 · supplier approval, blacklisting, restoring | — | CFO;**建档人永远不能批自己建的** | B2a(Q11:批准 / 驳回 / 拉黑 / 恢复归 CFO;送审 / 启用 / 暂停 / 归档归 `suppliers.edit`)。★ **Tim 2026-09-23:供应商批准落地之后,给一家【未批准】的供应商,付款申请提不了、批不了、付不了**;新开采购单也拒(Batch B grilling Q5–Q9)|
+| 供应商建档 · supplier creation | cco · 仓库 · 财务 | — | ✅ done(ROLE-1 Batch 2a:warehouse 拿到 `module.suppliers.view` + `.edit`,Q5;cto 保留它的宽码)|
+| 供应商批准、拉黑、恢复 · supplier approval, blacklisting, restoring | — | CFO;**建档人永远不能批自己建的** | ✅ done(ROLE-1 Batch 2a:`action.supplier_approve` · `set_supplier_status` · `supplier_status_moves()` · 按人拒自批 · `created_by` 不可改 · `approval_log` 加 `supplier` · `supplier_status_history` · `operations_now` 的 `supplier_pending_approval`;付款申请提 / 批 / 付与新采购单都按名拒未批准的供应商)。原计划:B2a(Q11:批准 / 驳回 / 拉黑 / 恢复归 CFO;送审 / 启用 / 暂停 / 归档归 `suppliers.edit`)。★ **Tim 2026-09-23:供应商批准落地之后,给一家【未批准】的供应商,付款申请提不了、批不了、付不了**;新开采购单也拒(Batch B grilling Q5–Q9)|
 | 合同条款 · contract terms | cco | CFO | 做:B2b · 批:[LC] |
 
 ## 7 · 定价 · Pricing
@@ -123,7 +123,7 @@ MD = `gm`(Vince,只读)。
 | 从产出批次直接销售 · direct sale from an output batch | cco 一个 · cco only | — | B2b |
 | 销售订单 · sales orders | cco | — | = 不变(`sales.edit` 本来只有 admin 与 cco;admin 已拿掉)|
 | 发货 · shipping | 仓库执行,在 CFO 放行之后 · warehouse, after CFO release | CFO | 在生命周期之前 cco 保留(Q10)· 放行:[LC] APR-5 |
-| 客户信用额度与冻结 · customer credit limits and holds | **CFO 一个** · CFO only | — | B2a |
+| 客户信用额度与冻结 · customer credit limits and holds | **CFO 一个** · CFO only | — | ✅ done(ROLE-1 Batch 2a:`action.customer_credit` · `set_customer_credit` · 列守卫;客户页上的信用一块;编辑表单与批量导入不再带这两列)|
 
 ## 11 · 合规 · Compliance
 
@@ -137,7 +137,7 @@ MD = `gm`(Vince,只读)。
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
 | 批量导入 · bulk import | admin | — | ✅ done(cco / cto / finance 交出 `action.bulk_import`;导入不许带月薪)|
-| 科目表、币种、公司银行资料、GST 登记、其余财务设置 · chart of accounts, currencies, company bank details, GST registration, other finance settings | **CFO 一个** · CFO only | — | B2a(码名 `action.finance_settings`,Batch B grilling Q10)|
+| 科目表、币种、公司银行资料、GST 登记、其余财务设置 · chart of accounts, currencies, company bank details, GST registration, other finance settings | **CFO 一个** · CFO only | — | ✅ done(ROLE-1 Batch 2a:`action.finance_settings`;`accounts` / `currencies` / `company_profile` 写权换码;`finance_settings` 列守卫 + `set_finance_settings`,锁期仍归财务;`company-assets` 桶的写上门)|
 
 ## 13 · 看得见什么 · Visibility
 
@@ -168,3 +168,11 @@ warehouse (B4). cto and cco keep their broad `.edit` codes for these.
 | `action.hr_reviews` | KPI 与绩效评估这一块;CFO 是提交人或主角时的批准 | cco |
 | `action.anonymise_employee` | 员工匿名化 | admin |
 | `module.hr.edit`(改义:不再含评估与 KPI)| 其余人事与薪资 | finance(cco 与 admin 已拿掉)|
+| `action.finance_settings` | 科目表、币种、公司资料(含银行资料与标志)、GST 登记与其余财务设置(锁期除外)(Batch 2a)| cfo |
+| `action.customer_credit` | 客户信用限额与冻结(Batch 2a)| cfo |
+| `action.supplier_approve` | 供应商批准、驳回、拉黑、恢复(拉黑后归档)(Batch 2a)| cfo |
+| `module.suppliers.view` / `.edit`(新增持有人)| 供应商建档与编辑(Batch 2a,Q5)| + warehouse |
+
+> ★ **更正(ROLE-1 Batch 2a,2026-09-24,以 postgres 读基表 `user_roles` 实测):admin@ 的 `cfo` 授权【已撤销】**
+> (`revoked_at = 2026-09-23 15:00:48 CST`)。Batch 2a Step 0 说"admin@ 同时持 cfo"—— 那条查询没有过滤 `revoked_at`,是错的。
+> admin@ 今天只持 `admin` 角色(45 码),**不**持本批三个新码。

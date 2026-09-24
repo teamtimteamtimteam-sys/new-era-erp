@@ -64,10 +64,12 @@ BEGIN
     UPDATE finance_settings SET locked_before = NULL;
     def_link := pg_get_functiondef('public.link_document_to_contract(text,uuid,uuid)'::regprocedure);
 
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type, default_tax_code)
-    VALUES ('ZZ147-S1', 'Fixture 147 Supplier', 'SG', 'goods_supplier', 'TX') RETURNING id INTO v_sup;
-    INSERT INTO suppliers (code, legal_name, country, counterparty_type)
-    VALUES ('ZZ147-S2', 'Fixture 147 Other Supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup2;
+    -- ROLE-1 Batch 2a:新采购单 / 付款申请要一家【已批准】的供应商(approved / active)。
+    -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type, default_tax_code)
+    VALUES ('active', 'ZZ147-S1', 'Fixture 147 Supplier', 'SG', 'goods_supplier', 'TX') RETURNING id INTO v_sup;
+    INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
+    VALUES ('active', 'ZZ147-S2', 'Fixture 147 Other Supplier', 'SG', 'goods_supplier') RETURNING id INTO v_sup2;
     INSERT INTO customers (code, legal_name, country, payment_terms_days)
     VALUES ('ZZ147-C1', 'Fixture 147 Customer', 'SG', 30) RETURNING id INTO v_cust;
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)

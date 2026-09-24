@@ -89,6 +89,11 @@ BEGIN
             -- (0 会让它在按金额筛的报表里排到最前面,那是一句假话)。
             SELECT true, w.code, w.created_by INTO v_ok, v_code, v_raiser
               FROM work_orders w WHERE w.id = p_subject_id;
+        WHEN 'supplier' THEN
+            -- ROLE-1 Batch 2a(Q3 / Q9):供应商的送审、批准、驳回。没有金额 —— 批的是
+            -- "可以跟这一家做生意",不是一笔钱;提单人 = 建档人(created_by)。
+            SELECT true, s.code, s.created_by INTO v_ok, v_code, v_raiser
+              FROM suppliers s WHERE s.id = p_subject_id;
         ELSE
             RAISE EXCEPTION 'APPROVAL_SUBJECT_TYPE_UNKNOWN|%', p_subject_type;
     END CASE;
