@@ -43,6 +43,10 @@ BEGIN
     IF p_issue_date IS NULL THEN
         RAISE EXCEPTION 'INVOICE_DATE_REQUIRED';
     END IF;
+    -- AP-RECON-1 Batch B(Tim AP-RECON-1 Q7):这张发票开票即过账(借 1100),一个明天的日期就是一笔明天的应收与一个还没到的税点,日期晚于今天按名拒。
+    IF p_issue_date > CURRENT_DATE THEN
+        RAISE EXCEPTION 'DOCUMENT_DATE_IN_FUTURE|invoice|%|%', p_issue_date, CURRENT_DATE;
+    END IF;
 
     SELECT * INTO v_order FROM sales_orders WHERE id = p_sales_order_id AND deleted_at IS NULL;
     IF NOT FOUND THEN

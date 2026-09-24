@@ -56,6 +56,10 @@ BEGIN
     SELECT * INTO v_contact FROM counterparty_contacts
      WHERE customer_id = v_cust.id AND is_primary AND deleted_at IS NULL;
 
+    -- AP-RECON-1 Batch B(Tim AP-RECON-1 Q7):税点就是开票日,一张明天的发票会把销项税记进一个还没到的期间,日期晚于今天按名拒。
+    IF v_issue > CURRENT_DATE THEN
+        RAISE EXCEPTION 'DOCUMENT_DATE_IN_FUTURE|invoice|%|%', v_issue, CURRENT_DATE;
+    END IF;
     IF p_sales_record_ids IS NULL OR array_length(p_sales_record_ids, 1) IS NULL THEN
         RAISE EXCEPTION 'NO_LINES';
     END IF;

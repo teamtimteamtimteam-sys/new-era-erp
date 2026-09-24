@@ -533,6 +533,8 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/finance/claims', navKey: 'finance.subnav.expenseClaims', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
     { href: '/finance/assets', navKey: 'finance.subnav.assets', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.payables' },
     { href: '/finance/month-end', navKey: 'finance.subnav.monthEnd', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
+    // AP-RECON-1 Batch B:清单 ↔ 总账的常设勾稽。月结页那一步链到这里;读的门与月结同一个。
+    { href: '/finance/list-vs-ledger', navKey: 'finance.subnav.listVsLedger', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
     { href: '/finance/payroll-payments', navKey: 'finance.subnav.payrollPay', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
     { href: '/finance/processing-costs', navKey: 'finance.subnav.costSettle', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },
     { href: '/finance/revaluation', navKey: 'finance.subnav.reval', modules: ['finance'], permission: P_FINANCE, group: 'finance.group.periodEnd' },

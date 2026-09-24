@@ -1,4 +1,5 @@
 -- 157 第四条拒绝,而它【不许】说"这个东西不许卖" —— PROC-WIRE-1A 的工序投料指定
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【这份 fixture 自带全部数据】重建库里没有业务数据(README 第 2 条)。
 --
@@ -31,7 +32,7 @@ DECLARE
     v_weak uuid := gen_random_uuid();
     r_all uuid; r_weak uuid; v_ccy text; v_cust uuid;
     v_mat uuid; v_mat_ano uuid; v_ob uuid; v_line uuid; v_so uuid;
-    v_d date := DATE '2027-08-04';
+    v_d date := DATE '2025-08-04';
     v_denied boolean; v_msg text; v_sale jsonb;
     v_m_earmark text; v_m_notsaleable text; v_m_notset text; v_m_stock text;
     v_n int;
@@ -135,6 +136,13 @@ BEGIN
     IF v_m_earmark IS NULL OR v_m_notsaleable IS NULL OR v_m_stock IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 157G5 失败:三条拒绝必须都【真的被触发过】才谈得上比较。已许给工序「%」/ 不可售「%」/ 库存「%」—— 其中为空的那一条根本没有发生',
             COALESCE(v_m_earmark,'(没有发生)'), COALESCE(v_m_notsaleable,'(没有发生)'), COALESCE(v_m_stock,'(没有发生)');
+    END IF;
+    -- AP-RECON-1 Batch B(Tim Q10):每一条要【就是】它自己那一条,不只是三条互不相同 —— 只比"不相同"时,
+    -- 一道先拦下的别的闸(比如日期闸)给出的码也"不相同",这一臂会为错的理由变绿。
+    IF v_m_earmark NOT LIKE 'SALE_BATCH_EARMARKED|%' OR v_m_notsaleable NOT LIKE 'SALE_FORM_NOT_SALEABLE|%'
+       OR v_m_stock NOT LIKE 'IOD_SALE_EXCEEDS_AVAILABLE|%' THEN
+        RAISE EXCEPTION 'FIXTURE 157G5 失败:三条应当依次是 SALE_BATCH_EARMARKED / SALE_FORM_NOT_SALEABLE / IOD_SALE_EXCEEDS_AVAILABLE,实得「%」/「%」/「%」',
+            v_m_earmark, v_m_notsaleable, v_m_stock;
     END IF;
     IF split_part(v_m_earmark,'|',1) = split_part(v_m_notsaleable,'|',1)
        OR split_part(v_m_earmark,'|',1) = split_part(v_m_stock,'|',1)

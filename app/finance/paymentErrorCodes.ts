@@ -7,6 +7,8 @@ import { localizeWhtError } from './whtErrorCodes'
 // FX_RATE_REQUIRED / PERIOD_LOCKED 复用 finance.errors 里已有的文案。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,交给共用兜底 lib/machine-text.ts。
 const PAYMENT_ERROR_CODES = new Set([
+    // AP-RECON-1 Batch B:三条日期规矩(Tim AP-RECON-1 Q7)—— 每一条都成句子。
+    'POSTING_DATE_BEYOND_CURRENT_MONTH', 'DOCUMENT_DATE_IN_FUTURE', 'REVERSAL_BEFORE_ORIGINAL',
     'PAYMENT_DATE_REQUIRED',
     'ALLOC_CURRENCY_MISMATCH', 'TRANSFER_SAME_ACCOUNT', 'TRANSFER_AMOUNTS_UNEQUAL',
     'TRANSFER_NOT_FOUND', 'TRANSFER_ALREADY_REVERSED', 'DATE_REQUIRED',

@@ -44,6 +44,10 @@ BEGIN
     IF p_payment_status = 'unpaid' AND p_supplier_id IS NULL THEN
         RAISE EXCEPTION 'SUPPLIER_REQUIRED_FOR_UNPAID';
     END IF;
+    -- AP-RECON-1 Batch B(Tim AP-RECON-1 Q7):这里直接写一张费用单(不经 record_expense),记的同样是【已经发生】的一张发票(Tim Batch B Q6),日期晚于今天按名拒。
+    IF p_expense_date > CURRENT_DATE THEN
+        RAISE EXCEPTION 'DOCUMENT_DATE_IN_FUTURE|expense|%|%', p_expense_date, CURRENT_DATE;
+    END IF;
 
     FOR v_e IN SELECT * FROM processing_cost_entries WHERE id = ANY (p_entry_ids) FOR UPDATE
     LOOP

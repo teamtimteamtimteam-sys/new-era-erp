@@ -1,4 +1,5 @@
 -- 103 采购单装得下一台机器 —— 而门是【移动】了,不是【拓宽】了
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【这份 fixture 自带全部数据】线上 fixed_assets / fixed_asset_cost_entries /
 -- fixed_asset_depreciation 三张表都是 0 行,而重建库【连业务数据都没有】。
@@ -45,7 +46,7 @@ BEGIN
     VALUES ('ZZFIX103-M', 'fixture 103 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
 
     -- 一台【已经建了卡】的资产 —— D1:行引用它,行不创建它
-    v_res := record_expense(DATE '2027-01-05', '1500', 50000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-01-05', '1500', 50000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 103 machine',
         jsonb_build_object('description', 'fixture 103 press', 'useful_life_months', 120), NULL);
     SELECT id INTO v_asset FROM fixed_assets WHERE expense_id = (v_res->>'expense_id')::uuid;
@@ -54,7 +55,7 @@ BEGIN
     END IF;
 
     -- ══════════ F1 · XOR 两个方向 ═══════════════════════════════════════════
-    v_res := create_purchase_order(v_sup, DATE '2027-01-10', DATE '2027-03-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'fixture 103 material PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'estimated_unit_price', 10)));
@@ -93,7 +94,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 103F3 前提失败:普通材料行应当照旧建得出来(1 行),实得 % 行', v_n;
     END IF;
     UPDATE purchase_orders SET status = 'confirmed' WHERE id = po_mat;
-    v_res := receive_inbound_batch_against_po(v_mat, v_sup, 40, DATE '2027-02-01',
+    v_res := receive_inbound_batch_against_po(v_mat, v_sup, 40, DATE '2025-02-01',
         'fixture 103 receipt', po_mat, line_mat, NULL, NULL);
     SELECT count(*) INTO v_n FROM inbound_batches
      WHERE purchase_order_line_id = line_mat AND deleted_at IS NULL;
@@ -117,7 +118,7 @@ BEGIN
     END IF;
 
     -- 【反方向】设备单上加材料行 —— 对称性才是证明
-    v_res := create_purchase_order(v_sup, DATE '2027-01-11', DATE '2027-06-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-01-11', DATE '2025-06-01', v_ccy, NULL,
         NULL, NULL, 'fixture 103 equipment PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
                                              'unit', 'unit', 'estimated_unit_price', 50000)));
@@ -144,7 +145,7 @@ BEGIN
     UPDATE purchase_orders SET status = 'confirmed' WHERE id = po_eqp;
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM receive_inbound_batch_against_po(v_mat, v_sup, 1, DATE '2027-06-05',
+        PERFORM receive_inbound_batch_against_po(v_mat, v_sup, 1, DATE '2025-06-05',
             'fixture 103 machine receipt', po_eqp, line_eqp, NULL, NULL);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
@@ -177,7 +178,7 @@ BEGIN
     -- A4 · 【前提先立】材料行照旧:'kg' + 任意数量,插得进去
     -- 【自己一张单】—— 第一版往 po_mat 上加行,把 F6 那条"单据恰一行"的前提搅了
     -- (README 第 2 条:用例之间不共享可变状态,否则会因为错的理由红/绿)。
-    v_res := create_purchase_order(v_sup, DATE '2027-01-12', DATE '2027-04-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-01-12', DATE '2025-04-01', v_ccy, NULL,
         NULL, NULL, 'fixture 103 A4 material PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 250,
                                              'unit', 'kg', 'estimated_unit_price', 3)));

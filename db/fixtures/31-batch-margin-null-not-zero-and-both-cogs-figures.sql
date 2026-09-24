@@ -1,4 +1,5 @@
 -- 31 批次毛利:没有成本时【NULL,不是 100%】;限定词跟着行走;总账与管理两个口径
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --    都在;单模块读者照样拿得到这个数
 --
 -- 【为什么值得常设(OPS-20)】这张视图最可能坏的方式【不报错】:
@@ -14,7 +15,7 @@
 -- has_permission —— 按【调用者】解析,与 fixture 以 postgres 跑无关;切角色是为了
 -- 让断言走过与真实读者相同的门(GRANT SELECT TO authenticated 也顺带被验证)。
 --
--- 【日期自设】(README 第 4 条)。业务行落在 2027,locked_before 显式清空。
+-- 【日期自设】(README 第 4 条)。业务行落在 2025,locked_before 显式清空。
 BEGIN;
 DO $$
 DECLARE
@@ -71,39 +72,39 @@ BEGIN
 
     -- ── 批次 1:有收入、【根本没有加工单】────────────────────────────────────
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
-    VALUES ('ZZFIX31-OB-NORUN', v_mat, 100, 100, '2027-02-01') RETURNING id INTO ob_norun;
+    VALUES ('ZZFIX31-OB-NORUN', v_mat, 100, 100, '2025-02-01') RETURNING id INTO ob_norun;
     INSERT INTO sales_records (output_batch_id, customer_id, quantity, unit_price,
         currency, fx_rate, amount_base, sale_date)
-    VALUES (ob_norun, v_cust, 100, 10, v_ccy, 1, 1000, '2027-02-10') RETURNING id INTO sr_norun;
+    VALUES (ob_norun, v_cust, 100, 10, v_ccy, 1, 1000, '2025-02-10') RETURNING id INTO sr_norun;
 
     -- ── 批次 2:有加工单、有单位成本 —— 唯一算得出毛利的一个 ──────────────────
     -- 收入 2000,成本 100 × 4 = 400 → 毛利 1600,毛利率 80.0%
     -- FIN-36:allocation_basis 不再有 schema 默认值 —— 直插就得自己选。
     -- 'metal_value' 是这些 fixture 在 FIN-36 之前拿到的那个值,语义不变。
     INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code)
-    VALUES ('ZZFIX31-RUN-OK', 'committed', '2027-03-01', 'metal_value', 'manual_disassembly') RETURNING id INTO run_costed;
+    VALUES ('ZZFIX31-RUN-OK', 'committed', '2025-03-01', 'metal_value', 'manual_disassembly') RETURNING id INTO run_costed;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
-    VALUES ('ZZFIX31-OB-OK', v_mat, 100, 100, '2027-03-01') RETURNING id INTO ob_costed;
+    VALUES ('ZZFIX31-OB-OK', v_mat, 100, 100, '2025-03-01') RETURNING id INTO ob_costed;
     INSERT INTO processing_outputs (run_id, output_batch_id, quantity_produced,
         allocated_cost_base, unit_cost_base, cost_incomplete)
     VALUES (run_costed, ob_costed, 100, 400, 4, false);
     INSERT INTO sales_records (output_batch_id, customer_id, quantity, unit_price,
         currency, fx_rate, amount_base, sale_date)
-    VALUES (ob_costed, v_cust, 100, 20, v_ccy, 1, 2000, '2027-03-10') RETURNING id INTO sr_costed;
+    VALUES (ob_costed, v_cust, 100, 20, v_ccy, 1, 2000, '2025-03-10') RETURNING id INTO sr_costed;
 
     -- ── 批次 3:有单位成本,但分摊【之后】成本又动了 → is_stale ────────────────
     INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code)
-    VALUES ('ZZFIX31-RUN-STALE', 'committed', '2027-04-01', 'metal_value', 'manual_disassembly') RETURNING id INTO run_stale;
+    VALUES ('ZZFIX31-RUN-STALE', 'committed', '2025-04-01', 'metal_value', 'manual_disassembly') RETURNING id INTO run_stale;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
-    VALUES ('ZZFIX31-OB-STALE', v_mat, 50, 50, '2027-04-01') RETURNING id INTO ob_stale;
+    VALUES ('ZZFIX31-OB-STALE', v_mat, 50, 50, '2025-04-01') RETURNING id INTO ob_stale;
     INSERT INTO processing_outputs (run_id, output_batch_id, quantity_produced,
         allocated_cost_base, unit_cost_base, cost_incomplete)
     VALUES (run_stale, ob_stale, 50, 250, 5, true);   -- cost_incomplete 一并置起
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, created_at, updated_at)
-    VALUES (run_stale, 'electricity', 60, '2027-05-01', '2027-05-01');   -- 晚于 allocated_at
+    VALUES (run_stale, 'electricity', 60, '2025-05-01', '2025-05-01');   -- 晚于 allocated_at
     INSERT INTO sales_records (output_batch_id, customer_id, quantity, unit_price,
         currency, fx_rate, amount_base, sale_date)
-    VALUES (ob_stale, v_cust, 50, 30, v_ccy, 1, 1500, '2027-04-10') RETURNING id INTO sr_stale;
+    VALUES (ob_stale, v_cust, 50, 30, v_ccy, 1, 1500, '2025-04-10') RETURNING id INTO sr_stale;
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u_fin), true);
@@ -151,7 +152,7 @@ BEGIN
     -- ══════════ B. 限定词跟着行走:is_stale 与 cost_incomplete ════════════════
     SELECT * INTO v_rec FROM batch_margin WHERE batch_code = 'ZZFIX31-OB-STALE';
     IF NOT v_rec.is_stale THEN
-        RAISE EXCEPTION 'FIXTURE 31B 失败:分摊(2027-04-01)之后成本又动了(2027-05-01),is_stale 应为 true —— false 意味着屏幕上是一个过期单位成本算出的毛利,而没有任何提示';
+        RAISE EXCEPTION 'FIXTURE 31B 失败:分摊(2025-04-01)之后成本又动了(2025-05-01),is_stale 应为 true —— false 意味着屏幕上是一个过期单位成本算出的毛利,而没有任何提示';
     END IF;
     IF NOT v_rec.cost_incomplete THEN
         RAISE EXCEPTION 'FIXTURE 31B 失败:cost_incomplete 应原样带出(有未计价输入按零计入 → 毛利被高估)';
@@ -167,7 +168,7 @@ BEGIN
     -- 造一笔当时过账的 COGS:400(卖出时的成本),此后重分摊把单位成本改成 6 →
     -- 当前口径 600。两个数都对,视图必须【同时给出】并标出不同。
     INSERT INTO journal_entries (code, entry_date, memo, source_type)
-    VALUES ('ZZFIX31-COGS', '2027-03-10', 'fixture 31 cogs at sale', 'sale') RETURNING id INTO je_cogs;
+    VALUES ('ZZFIX31-COGS', '2025-03-10', 'fixture 31 cogs at sale', 'sale') RETURNING id INTO je_cogs;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     SELECT je_cogs, a.id, x.d, x.c, v_ccy, 400, 1
     FROM (VALUES ('5000', 400.0, 0.0), ('1220', 0.0, 400.0)) x(code, d, c)

@@ -19,6 +19,7 @@ import { Button } from '@/app/components/ui/button'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
+import { businessToday } from '@/lib/format'
 
 export type BatchOption = {
     id: string
@@ -223,7 +224,9 @@ export default function NewFreightForm({
                         <label className="block mb-1">
                             {t('finance.freight.colDate')} <span className="text-red-600">*</span>
                         </label>
-                        <input type="date" name="doc_date" required
+                        {/* AP-RECON-1 Batch B(Tim Q7):运费单记的是已经发生的一笔,日期不许晚于今天 —— 服务端按名拒
+                            DOCUMENT_DATE_IN_FUTURE,这里先不给选。FRT-2027-* 就是没有这道闸时进的真账。 */}
+                        <input type="date" name="doc_date" required max={businessToday()}
                             className={CONTROL_INPUT} />
                     </div>
                     <div>

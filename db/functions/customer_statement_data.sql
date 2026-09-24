@@ -84,12 +84,11 @@ BEGIN
     -- —— 与 ar_aging_asof 的 settled_base 同一口径,所以两边【能够】对上;
     -- 而它走的是 payment_allocations 这条路,与那支函数按单据算未结额【不是同一次推导】,
     -- 所以它们【也能够】对不上 —— 那正是这条勾稽有意义的原因(OPS-17)。
-    SELECT COALESCE(round(sum(
-               CASE WHEN pa.sales_record_id IS NOT NULL THEN pa.allocated_ccy * sr.fx_rate
-                    -- AP-RECON-1:sale 型发票只作为它那笔【本位币】销项税被核销 —— 汇率恒 1
-                    -- (sale 型发票没有 fx_rate,乘它会得 NULL,整笔收款从"已核销"里静默消失)。
-                    WHEN i.kind = 'sale' THEN pa.allocated_ccy
-                    ELSE pa.allocated_ccy * i.fx_rate END), 2), 0)
+    -- AP-RECON-1 Batch B:取 allocated_base —— 它现在【就是】这一笔让清单少显示的本位币
+    -- (record_payment_internal 按 list_open_base 前后之差解除)。此前在这里重乘
+    -- allocated_ccy × 入账汇率:外币单据部分结清时,与账龄那一侧的期末差一分,对账单不寄。
+    -- (sale 型发票的税:allocated_base 本来就是本位币,那个"乘 NULL"的坑随之消失。)
+    SELECT COALESCE(round(sum(pa.allocated_base), 2), 0)
       INTO v_applied
       FROM payment_allocations pa
       JOIN payments p ON p.id = pa.payment_id
@@ -130,9 +129,14 @@ BEGIN
     -- 少任何一条,一张期末之前就作废了的发票上的贷项凭证会只出现在这一侧,
     -- 而它出现的方式是【等式差了那么多】—— 那时 STATEMENT_DOES_NOT_TIE 会拦住它,
     -- 但拦住不等于对:该做的是两边问同一个问题。
-    SELECT COALESCE(round(sum(cl.amount * cn.fx_rate), 2), 0) INTO v_credits
-      FROM credit_note_lines cl
-      JOIN credit_notes cn ON cn.id = cl.credit_note_id
+    -- AP-RECON-1 Batch B:一张贷项凭证减掉的应收 = 它的分录贷 1100 的那两条腿(净额 + 税),
+    -- 按总账读 —— create_credit_note 按清单前后之差解除,所以这就是账龄那一侧少掉的数。
+    -- 此前是 Σ 行净额 × 汇率:带税的凭证漏掉税,外币部分结清后再贷记差一分。
+    SELECT COALESCE(round(sum((SELECT COALESCE(sum(jl.credit - jl.debit), 0)
+                                 FROM journal_lines jl JOIN accounts a ON a.id = jl.account_id
+                                WHERE jl.entry_id = cn.entry_id AND a.code = '1100')), 2), 0)
+      INTO v_credits
+      FROM credit_notes cn
       JOIN invoices i ON i.id = cn.invoice_id
      WHERE i.customer_id = p_customer_id
        AND i.kind = 'order'
@@ -148,7 +152,8 @@ BEGIN
     -- 【两支互斥,与 ar_open_items 同一条谓词】发货产生的销售记录带着
     -- sales_order_line_id,那笔债在开票当刻已经记过,不能再记一次。
     SELECT COALESCE(round(
-             (SELECT COALESCE(sum(round(l.amount_ccy * i.fx_rate, 2)), 0)
+             -- AP-RECON-1 Batch B:订单发票的发生 = 过账时借 1100 的两条腿(净额 + 税)。
+             (SELECT COALESCE(sum(round(l.amount_ccy * i.fx_rate, 2) + COALESCE(i.tax_base, 0)), 0)
                 FROM invoices i
                 JOIN LATERAL (SELECT COALESCE(sum(il.amount_ccy),0) AS amount_ccy
                                 FROM invoice_lines il WHERE il.invoice_id = i.id) l ON true

@@ -10,6 +10,10 @@ DECLARE
     v_cn_id    uuid := gen_random_uuid();
     v_code     text;
     v_open     numeric;
+    v_amt      numeric;   -- AP-RECON-1 Batch B:发票净额(单据币种),清单的分母
+    v_relief   numeric;   -- AP-RECON-1 Batch B:1100 净额腿解除的本位币
+    v_a_base   numeric;
+    v_birth    numeric;   -- AP-RECON-1 Batch B:这张发票过账时 1100 上的本位币(净额腿 + 税腿)
     v_el       jsonb;
     v_line_id  uuid;
     v_kind     text;
@@ -67,7 +71,7 @@ BEGIN
     -- 读的是那一处不带过滤的算术(order_invoice_balance_all)。带过滤的那张
     -- 在 open = 0 时【没有行】,而把"没有行"读成 0 正是本仓库反复修的毛病 ——
     -- 这里要的恰恰是那个 0,并且要为它给出一个【专门的名字】。
-    SELECT open_ccy INTO v_open FROM order_invoice_balance_all WHERE invoice_id = p_invoice_id;
+    SELECT open_ccy, amount_ccy, birth_base INTO v_open, v_amt, v_birth FROM order_invoice_balance_all WHERE invoice_id = p_invoice_id;
     IF v_open IS NULL THEN
         -- issued + order 型必有一行(上面两条已经排除了别的情形)。走到这里
         -- 说明视图的前提变了 —— 当场炸,不要把它当成 0(那会让天花板消失)。
@@ -178,15 +182,31 @@ BEGIN
     -- 【0 金额的腿一条都不发】post_journal_entry 的 amount_ccy > 0 会拒,
     -- 而且一条 0 的腿在分录上读起来像"这一段发生了但金额为零"。
     v_code := next_credit_note_code(p_note_date);
+    -- ════════════════════════════════════════════════════════════════════════
+    -- AP-RECON-1 Batch B:1100 解除的本位币 = 清单在这张凭证【之前】与【之后】
+    -- 显示的差(list_open_base,与 record_payment_internal 的解除同一个式子);
+    -- 税那条腿按它自己逐行取整的数,净额腿(v_relief)取其余。
+    -- 此前是 round(合计 × 汇率):外币发票部分收过款之后再贷记,清单(round(剩余 × 汇率))
+    -- 与总账差一分(fixture 213 C9)。借方跟着它走:有两条借方腿时,已释放那条
+    -- (4000)取 解除额 − 未释放那条,于是分录按构造平衡;本位币(汇率 1)逐字节不变。
+    -- 腿的 fx 写成 目标基准额 ÷ 原币额 —— 除后反乘取整恰好还原(record_payment 同一手)。
+    -- ════════════════════════════════════════════════════════════════════════
+    -- 带税时这张凭证解除的是 净额 + 税;税那条腿照旧逐行取整(F5 读它),净额腿取余下的。
+    v_relief := list_open_base(v_open, v_amt, v_birth, v_inv.fx_rate)
+              - list_open_base(round(v_open - v_total - v_tax_total, 2), v_amt, v_birth, v_inv.fx_rate)
+              - round(v_tax_base_total, 2);
+    v_a_base := CASE WHEN v_b_total > 0 THEN round(round(v_a_total, 2) * v_inv.fx_rate, 2) ELSE v_relief END;
     v_jlines := '[]'::jsonb;
     IF v_a_total > 0 THEN
         v_jlines := v_jlines || jsonb_build_object('account_code', '2500', 'side', 'debit',
-            'currency', v_inv.currency, 'amount_ccy', round(v_a_total, 2), 'fx_rate', v_inv.fx_rate,
+            'currency', v_inv.currency, 'amount_ccy', round(v_a_total, 2),
+            'fx_rate', v_a_base / round(v_a_total, 2),
             'line_memo', 'unshipped cancelled');
     END IF;
     IF v_b_total > 0 THEN
         v_jlines := v_jlines || jsonb_build_object('account_code', '4000', 'side', 'debit',
-            'currency', v_inv.currency, 'amount_ccy', round(v_b_total, 2), 'fx_rate', v_inv.fx_rate,
+            'currency', v_inv.currency, 'amount_ccy', round(v_b_total, 2),
+            'fx_rate', (v_relief - CASE WHEN v_a_total > 0 THEN v_a_base ELSE 0 END) / round(v_b_total, 2),
             'line_memo', 'revenue reduction');
     END IF;
     -- 【GST-2:退回去的税借 2100】—— 一张贷项凭证在 F5 上是一笔【负的供应】,
@@ -204,7 +224,7 @@ BEGIN
     -- 【净额与税分成两条贷方腿】逐行 round(原币 × 汇率) 之下,一条合并腿会与
     -- 借方两条差一分钱 —— 与 record_expense / create_order_invoice 同一条理由。
     v_jlines := v_jlines || jsonb_build_object('account_code', '1100', 'side', 'credit',
-        'currency', v_inv.currency, 'amount_ccy', round(v_total, 2), 'fx_rate', v_inv.fx_rate);
+        'currency', v_inv.currency, 'amount_ccy', round(v_total, 2), 'fx_rate', v_relief / round(v_total, 2));
     IF round(v_tax_total, 2) > 0 THEN
         v_jlines := v_jlines || jsonb_build_object('account_code', '1100', 'side', 'credit',
             'currency', v_inv.currency, 'amount_ccy', round(v_tax_total, 2),

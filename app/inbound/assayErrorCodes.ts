@@ -5,6 +5,8 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // 以及它们内部调用的 calculate_metal_price 与 reprice_inbound_batch)抛出的错误码。
 // 端口自 paymentErrorCodes.ts。不在集合内的是真正未编码的 DB 错误,交给共用兜底 lib/machine-text.ts。
 const ASSAY_ERROR_CODES = new Set([
+    // AP-RECON-1 Batch B:三条日期规矩(Tim AP-RECON-1 Q7)—— 每一条都成句子。
+    'POSTING_DATE_BEYOND_CURRENT_MONTH',
     'INBOUND_NOT_FOUND', 'ASSAY_DATE_INVALID', 'NO_METALS',
     'METAL_INVALID', 'CONTENT_INVALID', 'DUPLICATE_METAL',
     'ASSAY_NOT_FOUND', 'ASSAY_ALREADY_APPLIED', 'NOT_LATEST_ASSAY',

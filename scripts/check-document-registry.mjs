@@ -65,7 +65,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // PAY-REQ-1(2026-09-23):224 → 225,75 → 76。新增 `payment_requests`(付款申请),
 // 见 db/tables/payment_requests.sql。**它有 code 列**(PREQ-YYYY-NNNN,登记在
 // document_types 的 'payment_request'),所以两个数一起动 —— 这一次一起动是对的。
-const EXPECTED_TABLES = 225
+// AP-RECON-1 Batch B(2026-09-24):225 → 226。新增 `list_ledger_residue`(清单 ↔ 总账的逐单据残留,
+// 只有迁移能写),见 db/tables/list_ledger_residue.sql。**它没有 code 列**(单据编号列叫 doc_code,
+// 它记的是"哪一张单据的哪一笔差",不是一张单据),所以 EXPECTED_CODE_TABLES 不动。
+const EXPECTED_TABLES = 226
 const EXPECTED_CODE_TABLES = 76
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

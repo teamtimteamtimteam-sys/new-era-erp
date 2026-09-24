@@ -194,11 +194,15 @@ BEGIN
         amount_base, payment_status, supplier_id)
     VALUES ('ZZFIX47-EXP', CURRENT_DATE - 200, '6100', 300, v_ccy, 1, 300, 'unpaid', v_sup);
 
-    -- ── fx_rate_gap:未来的工作日有外币过账、无牌价 ──────────────────────────
-    -- 【未来日期是有意的】本支限 rate_date >= CURRENT_DATE - 45,未来日期恒在界内,
-    -- fixture 便不依赖"跑在哪一天"(同 fixture 30)。
+    -- ── fx_rate_gap:今天或之前最近的一个工作日有外币过账、无牌价 ────────────
+    -- 本支限 rate_date >= CURRENT_DATE - 45,所以这一天必须相对今天。此前用的是 2027-03-03
+    -- (未来日期恒在界内);AP-RECON-1 Batch B 之后分录不许晚于本月末(没有测试开关,
+    -- Tim Q7),于是在 fixture 里【算】出来,与 fixture 30 同一句(Tim Batch B Q7)。
     INSERT INTO journal_entries (code, entry_date, memo, source_type)
-    VALUES ('ZZFIX47-JE', '2027-03-03', 'fixture 47 fx gap', 'manual') RETURNING id INTO v_je;
+    VALUES ('ZZFIX47-JE',
+            (SELECT max(g::date) FROM generate_series(CURRENT_DATE - 10, CURRENT_DATE, interval '1 day') g
+              WHERE is_business_day(g::date)),
+            'fixture 47 fx gap', 'manual') RETURNING id INTO v_je;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     SELECT v_je, a.id, x.d, x.c, 'USD', 100, 1.3
     FROM (VALUES ('1010', 130.0, 0.0), ('4000', 0.0, 130.0)) x(code, d, c)

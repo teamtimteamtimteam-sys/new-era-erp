@@ -1,4 +1,5 @@
 -- 181 一笔被冲销的分录,轨迹上【两条都在】—— 过账,以及它的冲销
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- AUDIT-1 · 定义之完成第二条。这是本刀最想消灭的那个「错的好消息」:
 --
@@ -38,7 +39,7 @@ BEGIN
     RETURNING id INTO v_mat;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX181-IB', v_mat, v_sup, 100, 100, DATE '2027-01-05', 10, 'other', 'fixture 181 自带数据') RETURNING id INTO v_ib;
+    VALUES ('ZZFIX181-IB', v_mat, v_sup, 100, 100, DATE '2025-01-05', 10, 'other', 'fixture 181 自带数据') RETURNING id INTO v_ib;
 
     -- 复刻线上那一对的【形状】:过账挂批次,冲销挂【那笔过账】。
     -- 【顺序是被 guard_journal_entry_mutation 逼出来的】journal_entries 是不可变的
@@ -47,11 +48,11 @@ BEGIN
     -- 就说清自己被谁冲销,而不是事后补一句。
     v_post := gen_random_uuid();
     INSERT INTO journal_entries (id, code, entry_date, memo, source_type, source_id, status)
-    VALUES (gen_random_uuid(), 'ZZFIX181-JE2', DATE '2027-01-06',
+    VALUES (gen_random_uuid(), 'ZZFIX181-JE2', DATE '2025-01-06',
             'REVERSAL: Pricing ZZFIX181-IB', 'purchase', v_post, 'posted')
     RETURNING id INTO v_rev;
     INSERT INTO journal_entries (id, code, entry_date, memo, source_type, source_id, status, reversed_by)
-    VALUES (v_post, 'ZZFIX181-JE1', DATE '2027-01-06',
+    VALUES (v_post, 'ZZFIX181-JE1', DATE '2025-01-06',
             'Pricing ZZFIX181-IB', 'purchase', v_ib, 'reversed', v_rev);
 
     -- ══════════ A. 过账【和】冲销都出现在这个批次的轨迹上 ═══════════════════
@@ -93,11 +94,11 @@ BEGIN
     -- 批次上,唯一的差别就是 reversed_by 是空的。
     v_post2 := gen_random_uuid();
     INSERT INTO journal_entries (id, code, entry_date, memo, source_type, source_id, status)
-    VALUES (gen_random_uuid(), 'ZZFIX181-JE4', DATE '2027-01-07',
+    VALUES (gen_random_uuid(), 'ZZFIX181-JE4', DATE '2025-01-07',
             'REVERSAL: second pricing', 'purchase', v_post2, 'posted')
     RETURNING id INTO v_rev2;
     INSERT INTO journal_entries (id, code, entry_date, memo, source_type, source_id, status)
-    VALUES (v_post2, 'ZZFIX181-JE3', DATE '2027-01-07',
+    VALUES (v_post2, 'ZZFIX181-JE3', DATE '2025-01-07',
             'Pricing again', 'purchase', v_ib, 'reversed');   -- ← reversed_by 【留空】
 
     EXECUTE 'SET LOCAL ROLE authenticated';
@@ -115,11 +116,11 @@ BEGIN
     -- 所以这一臂造一对 memo 完全不提冲销的,要求它照样两条都在。
     v_post3 := gen_random_uuid();
     INSERT INTO journal_entries (id, code, entry_date, memo, source_type, source_id, status)
-    VALUES (gen_random_uuid(), 'ZZFIX181-JE6', DATE '2027-01-08',
+    VALUES (gen_random_uuid(), 'ZZFIX181-JE6', DATE '2025-01-08',
             '冲掉了,换个说法写', 'purchase', v_post3, 'posted')
     RETURNING id INTO v_rev3;
     INSERT INTO journal_entries (id, code, entry_date, memo, source_type, source_id, status, reversed_by)
-    VALUES (v_post3, 'ZZFIX181-JE5', DATE '2027-01-08',
+    VALUES (v_post3, 'ZZFIX181-JE5', DATE '2025-01-08',
             '第三笔定价', 'purchase', v_ib, 'reversed', v_rev3);
 
     EXECUTE 'SET LOCAL ROLE authenticated';

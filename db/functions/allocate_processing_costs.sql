@@ -206,7 +206,8 @@ BEGIN
             -- 的 COGS 从不重述。状态改变型【没有产出批】:成本停在 1200 上一批仍然
             -- 是原料的货上,没有任何下游把它当成本消费掉。若那批料后来被一张转化型
             -- 加工单吃掉,那张单会因【第七过期源】而过期,重跑即修正。
-            PERFORM reverse_journal_entry_internal(v_run.capitalization_entry_id, CURRENT_DATE,
+            PERFORM reverse_journal_entry_internal(v_run.capitalization_entry_id,
+                reversal_date_for(v_run.capitalization_entry_id),
                 'Re-allocation ' || v_run.code);
             UPDATE processing_runs
                SET capitalization_entry_id = NULL, capitalized_cost_base = 0

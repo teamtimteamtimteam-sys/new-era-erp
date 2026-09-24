@@ -9187,6 +9187,33 @@ export type Database = {
         }
         Relationships: []
       }
+      list_ledger_residue: {
+        Row: {
+          amount_base: number
+          doc_code: string
+          known_wrong_ref: string
+          reason: string
+          residue_class: string
+          side: string
+        }
+        Insert: {
+          amount_base: number
+          doc_code: string
+          known_wrong_ref: string
+          reason: string
+          residue_class: string
+          side: string
+        }
+        Update: {
+          amount_base?: number
+          doc_code?: string
+          known_wrong_ref?: string
+          reason?: string
+          residue_class?: string
+          side?: string
+        }
+        Relationships: []
+      }
       loss_categories: {
         Row: {
           code: string
@@ -22503,6 +22530,7 @@ export type Database = {
       order_invoice_balance_all: {
         Row: {
           amount_ccy: number | null
+          birth_base: number | null
           code: string | null
           credited_base: number | null
           credited_ccy: number | null
@@ -22512,9 +22540,11 @@ export type Database = {
           fx_rate: number | null
           invoice_id: string | null
           issue_date: string | null
+          net_ccy: number | null
           open_base: number | null
           open_ccy: number | null
           settled_ccy: number | null
+          tax_ccy: number | null
         }
         Relationships: [
           {
@@ -28053,6 +28083,16 @@ export type Database = {
         }
         Returns: Json
       }
+      list_ledger_reconciliation: { Args: never; Returns: Json }
+      list_open_base: {
+        Args: {
+          p_birth_base: number
+          p_fx: number
+          p_open: number
+          p_value: number
+        }
+        Returns: number
+      }
       management_pack_data: { Args: { p_period_month: string }; Returns: Json }
       master_import_apply: {
         Args: {
@@ -28752,6 +28792,7 @@ export type Database = {
         Args: { p_period_end: string }
         Returns: Json
       }
+      reversal_date_for: { Args: { p_entry_id: string }; Returns: string }
       reverse_bank_transfer: {
         Args: {
           p_memo?: string

@@ -12,6 +12,8 @@ import { localizeSelfApproval } from '@/lib/selfApproval'
 // 一句【看起来对、其实答非所问】的话,正是这个仓库反复记账的那种缺陷。
 // 所以这里用命名把碰撞【从构造上】去掉,而不是靠"没人会把两块面板并在一起"。
 export const EXPENSE_CLAIM_ERROR_CODES = new Set([
+    // AP-RECON-1 Batch B:三条日期规矩(Tim AP-RECON-1 Q7)—— 每一条都成句子。
+    'POSTING_DATE_BEYOND_CURRENT_MONTH', 'DOCUMENT_DATE_IN_FUTURE',
     'EXPENSE_CLAIM_SPEND_DATE_REQUIRED',
     'EXPENSE_CLAIM_SPEND_DATE_FUTURE',
     'EXPENSE_CLAIM_AMOUNT_INVALID',

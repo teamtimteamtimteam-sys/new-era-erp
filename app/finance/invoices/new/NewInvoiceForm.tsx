@@ -13,6 +13,7 @@ import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { formatDate } from '@/lib/dates'
+import { businessToday } from '@/lib/format'
 
 const initialState: CreateInvoiceState = {}
 
@@ -308,6 +309,7 @@ canEdit: boolean
                         type="date"
                         name="issue_date"
                         required
+                        max={businessToday()}
                         value={issueDate}
                         onChange={(e) => setIssueDate(e.target.value)}
                         className={CONTROL_INPUT}

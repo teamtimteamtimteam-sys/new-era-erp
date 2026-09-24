@@ -1,4 +1,5 @@
 -- 80 一个报表数字背后的那些行,合计【就是】那个数字 —— 两个口径都要成立
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2028 挪到 2024(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【它守的是什么】FIN-DRILL 把损益表与资产负债表共用的那段推导(三表连接、
 -- 刻意不过滤 status、一条符号规则)提到 journal_activity_lines,再让第三个读者
@@ -76,16 +77,16 @@ BEGIN
     INSERT INTO role_permissions (role_id, permission_code) VALUES (r_ops, 'module.processing.view');
     INSERT INTO user_roles (user_id, role_id) VALUES (v_fin, r_fin), (v_ops, r_ops);
 
-    -- ── 数据:2028 年整年,本 fixture 自己的五张分录 ────────────────────────
-    -- 用 2028 是为了与任何引导数据、以及 fixture 28 的 2027 都不相干。
+    -- ── 数据:2024 年整年,本 fixture 自己的五张分录 ────────────────────────
+    -- 用 2024 是为了与任何引导数据、以及 fixture 28 的 2025 都不相干。
     INSERT INTO journal_entries (code, entry_date, memo, source_type)
-    VALUES ('FIX80-SALE', '2028-05-20', 'fixture 80 sale', 'sale') RETURNING id INTO e_sale;
+    VALUES ('FIX80-SALE', '2024-05-20', 'fixture 80 sale', 'sale') RETURNING id INTO e_sale;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     VALUES (e_sale, a_cash, v_rev_amt, 0, v_ccy, v_rev_amt, 1),
            (e_sale, a_rev,  0, v_rev_amt, v_ccy, v_rev_amt, 1);
 
     INSERT INTO journal_entries (code, entry_date, memo, source_type)
-    VALUES ('FIX80-COGS', '2028-05-21', 'fixture 80 cost', 'processing_cost') RETURNING id INTO e_cogs;
+    VALUES ('FIX80-COGS', '2024-05-21', 'fixture 80 cost', 'processing_cost') RETURNING id INTO e_cogs;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     VALUES (e_cogs, a_cogs, v_cogs_amt, 0, v_ccy, v_cogs_amt, 1),
            (e_cogs, a_cash, 0, v_cogs_amt, v_ccy, v_cogs_amt, 1);
@@ -94,14 +95,14 @@ BEGIN
     -- 直接写 status,不走 reverse_journal_entry —— 本 fixture 要的是这两行的
     -- 【形状】,不是冲销那条路的行为(那是别处的事)。
     INSERT INTO journal_entries (code, entry_date, memo, source_type, status)
-    VALUES ('FIX80-OOPS', '2028-06-10', 'fixture 80 mis-keyed sale', 'sale', 'posted')
+    VALUES ('FIX80-OOPS', '2024-06-10', 'fixture 80 mis-keyed sale', 'sale', 'posted')
     RETURNING id INTO e_orig;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     VALUES (e_orig, a_cash, v_oops_amt, 0, v_ccy, v_oops_amt, 1),
            (e_orig, a_rev,  0, v_oops_amt, v_ccy, v_oops_amt, 1);
 
     INSERT INTO journal_entries (code, entry_date, memo, source_type, status)
-    VALUES ('FIX80-OOPS-R', '2028-06-11', 'fixture 80 reversal', 'sale', 'posted')
+    VALUES ('FIX80-OOPS-R', '2024-06-11', 'fixture 80 reversal', 'sale', 'posted')
     RETURNING id INTO e_rev;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     VALUES (e_rev, a_rev,  v_oops_amt, 0, v_ccy, v_oops_amt, 1),
@@ -111,7 +112,7 @@ BEGIN
 
     -- 年结:把损益科目冲平,净额落到 3100,落在财年末日。
     INSERT INTO journal_entries (code, entry_date, memo, source_type)
-    VALUES ('FIX80-CLOSE', '2028-12-31', 'fixture 80 year close', 'year_close') RETURNING id INTO e_close;
+    VALUES ('FIX80-CLOSE', '2024-12-31', 'fixture 80 year close', 'year_close') RETURNING id INTO e_close;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     VALUES (e_close, a_rev,  v_rev_expect, 0, v_ccy, v_rev_expect, 1),
            (e_close, a_cogs, 0, v_cogs_amt, v_ccy, v_cogs_amt, 1),
@@ -123,8 +124,8 @@ BEGIN
     -- ══════════ A. 期间口径(损益表下钻):明细合计 = 手算值 = 报表数字 ═══════
     -- 【先断言手算值,再断言与报表相等】—— 顺序是有意的:只断言"两边相等",
     -- 一次把两边【同时】改错的改动(例如给共享推导加回 status 过滤)会照样通过。
-    led := account_ledger('4000', '2028-01-01', '2028-12-31', false);
-    p   := pnl_statement('2028-01-01', '2028-12-31');
+    led := account_ledger('4000', '2024-01-01', '2024-12-31', false);
+    p   := pnl_statement('2024-01-01', '2024-12-31');
 
     IF (led->>'total')::numeric <> v_rev_expect THEN
         RAISE EXCEPTION 'FIXTURE 80A 失败:4000 的明细合计应为 %(= % 正常销售 + % 记错 − % 冲销),实得 % —— 若为 % 就是只数了冲销分录(status 过滤回来了);若为 % 就是只数了原分录',
@@ -149,8 +150,8 @@ BEGIN
     -- ══════════ B. 累计口径(资产负债表下钻):同一条断言,另一个形状 ═════════
     -- 【两个口径都要单独断言】—— 一个只对了期间形状的实现,B 臂会响;
     -- 一个只对了累计形状的实现,A 臂会响。合起来才说明两个开关都接对了。
-    led := account_ledger('1000', NULL, '2028-12-31', true);
-    b   := balance_sheet('2028-12-31');
+    led := account_ledger('1000', NULL, '2024-12-31', true);
+    b   := balance_sheet('2024-12-31');
 
     IF (led->>'total')::numeric <> v_cash_expect THEN
         RAISE EXCEPTION 'FIXTURE 80B 失败:1000 的累计明细合计应为 %(= % 收现 − % 付成本 + % 记错 − % 冲销),实得 %',
@@ -178,21 +179,21 @@ BEGIN
     -- ══════════ C. 年结开关是【load-bearing】的,不是装饰 ═════════════════════
     -- 同一个科目、同一个截止日,只把开关翻一下,答案【必须】不同。
     -- 若相同,说明开关根本没接上去 —— 而那时 A、B 两臂照样绿。
-    IF (account_ledger('4000', NULL, '2028-12-31', true )->>'total')::numeric
-     = (account_ledger('4000', NULL, '2028-12-31', false)->>'total')::numeric THEN
+    IF (account_ledger('4000', NULL, '2024-12-31', true )->>'total')::numeric
+     = (account_ledger('4000', NULL, '2024-12-31', false)->>'total')::numeric THEN
         RAISE EXCEPTION 'FIXTURE 80C 失败:4000 含年结与剔除年结给出同一个合计 —— 那个开关没有接上';
     END IF;
     -- 而且方向要对:含年结时 4000 被冲平(结转把它借回去),合计应为 0。
-    IF (account_ledger('4000', NULL, '2028-12-31', true)->>'total')::numeric <> 0 THEN
+    IF (account_ledger('4000', NULL, '2024-12-31', true)->>'total')::numeric <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 80C 失败:含年结时 4000 应被结转冲平为 0,实得 %',
-            (account_ledger('4000', NULL, '2028-12-31', true)->>'total')::numeric;
+            (account_ledger('4000', NULL, '2024-12-31', true)->>'total')::numeric;
     END IF;
 
     -- ══════════ D. 日期形状也是 load-bearing 的 ═══════════════════════════════
     -- 累计(不设起点)与期间(设了起点)必须不同 —— 本 fixture 的 1000 在
-    -- 2028-06-01 之前就有行,所以掐掉起点会少算。
-    IF (account_ledger('1000', NULL,         '2028-12-31', true)->>'total')::numeric
-     = (account_ledger('1000', '2028-06-01', '2028-12-31', true)->>'total')::numeric THEN
+    -- 2024-06-01 之前就有行,所以掐掉起点会少算。
+    IF (account_ledger('1000', NULL,         '2024-12-31', true)->>'total')::numeric
+     = (account_ledger('1000', '2024-06-01', '2024-12-31', true)->>'total')::numeric THEN
         RAISE EXCEPTION 'FIXTURE 80D 失败:累计口径与掐了起点的期间口径给出同一个合计 —— p_from 没有起作用';
     END IF;
 
@@ -214,7 +215,7 @@ BEGIN
     -- 不存在的科目:【按名拒绝】,不是一个空集(mustRows / restRows 同一条)。
     v_denied := false;
     BEGIN
-        PERFORM account_ledger('ZZ-NO-SUCH', '2028-01-01', '2028-12-31', false);
+        PERFORM account_ledger('ZZ-NO-SUCH', '2024-01-01', '2024-12-31', false);
     EXCEPTION WHEN OTHERS THEN
         IF SQLERRM NOT LIKE 'ACCOUNT_NOT_FOUND%' THEN
             RAISE EXCEPTION 'FIXTURE 80E 失败:不存在的科目应按名拒绝(ACCOUNT_NOT_FOUND|…),实得 %', SQLERRM;
@@ -228,7 +229,7 @@ BEGIN
     -- 期间与开关都不给默认值:漏了就拒,不 COALESCE 成今天/某一侧
     v_denied := false;
     BEGIN
-        PERFORM account_ledger('4000', '2028-01-01', NULL, false);
+        PERFORM account_ledger('4000', '2024-01-01', NULL, false);
     EXCEPTION WHEN OTHERS THEN v_denied := true;
     END;
     IF NOT v_denied THEN
@@ -236,7 +237,7 @@ BEGIN
     END IF;
     v_denied := false;
     BEGIN
-        PERFORM account_ledger('4000', '2028-01-01', '2028-12-31', NULL);
+        PERFORM account_ledger('4000', '2024-01-01', '2024-12-31', NULL);
     EXCEPTION WHEN OTHERS THEN v_denied := true;
     END;
     IF NOT v_denied THEN
@@ -252,7 +253,7 @@ BEGIN
         format('{"sub":"%s","role":"authenticated"}', v_ops), true);
     v_denied := false;
     BEGIN
-        PERFORM account_ledger('4000', '2028-01-01', '2028-12-31', false);
+        PERFORM account_ledger('4000', '2024-01-01', '2024-12-31', false);
     EXCEPTION WHEN OTHERS THEN v_denied := true;
     END;
     IF NOT v_denied THEN
@@ -261,7 +262,7 @@ BEGIN
     -- 对照:同一个主体读两张报表也必须被拒(否则上面那条可能只是碰巧)
     v_denied := false;
     BEGIN
-        PERFORM pnl_statement('2028-01-01', '2028-12-31');
+        PERFORM pnl_statement('2024-01-01', '2024-12-31');
     EXCEPTION WHEN OTHERS THEN v_denied := true;
     END;
     IF NOT v_denied THEN

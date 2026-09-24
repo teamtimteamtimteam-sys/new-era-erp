@@ -8,6 +8,8 @@ import { localizeSelfApproval } from '@/lib/selfApproval'
 // 外加工单族与(PROC-SUPPORT-1 起)交接班族的具名拒绝。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,交给共用兜底 lib/machine-text.ts。
 const PROCESSING_ERROR_CODES = new Set([
+    // AP-RECON-1 Batch B:三条日期规矩(Tim AP-RECON-1 Q7)—— 每一条都成句子。
+    'POSTING_DATE_BEYOND_CURRENT_MONTH', 'DOCUMENT_DATE_IN_FUTURE', 'REVERSAL_BEFORE_ORIGINAL',
     'PROCESS_DATE_REQUIRED',
     'COST_ENTRY_ALREADY_SETTLED', 'COST_ENTRY_IS_ESTIMATE', 'COST_ENTRY_NOT_ESTIMATE',
     'COST_ENTRY_SETTLED', 'COST_ENTRY_INVALID', 'RELIEF_MIXED_COST_TYPES',

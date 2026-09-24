@@ -196,7 +196,7 @@ BEGIN
 
     IF v_cap IS NOT NULL
        AND (SELECT status FROM journal_entries WHERE id = v_cap) = 'posted' THEN
-        PERFORM reverse_journal_entry_internal(v_cap, CURRENT_DATE,
+        PERFORM reverse_journal_entry_internal(v_cap, reversal_date_for(v_cap),  -- AP-RECON-1 Batch B
             'Rollback ' || COALESCE(v_code, '?'));
     END IF;
 
@@ -206,7 +206,7 @@ BEGIN
           FROM processing_runs pr WHERE pr.id = p_run_id
     LOOP
         IF (SELECT status FROM journal_entries WHERE id = v_delta_id) = 'posted' THEN
-            PERFORM reverse_journal_entry_internal(v_delta_id, CURRENT_DATE,
+            PERFORM reverse_journal_entry_internal(v_delta_id, reversal_date_for(v_delta_id),  -- AP-RECON-1 Batch B
                 'Rollback ' || COALESCE(v_code, '?'));
         END IF;
     END LOOP;

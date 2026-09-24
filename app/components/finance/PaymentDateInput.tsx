@@ -13,6 +13,7 @@
 // 日期框可以提交出空串(AGENTS.md「Dates and amounts that decide a period」)。
 // 失焦时再读一次 DOM,是 NewPaymentForm 原来就有的那一道,原样搬过来。
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { businessToday } from '@/lib/format'
 
 export function PaymentDateInput({
     name,
@@ -30,6 +31,9 @@ export function PaymentDateInput({
             type="date"
             name={name}
             required
+            // AP-RECON-1 Batch B(Tim Q9):收付款是已经发生的事 —— 晚于今天服务端按名拒
+            // (DOCUMENT_DATE_IN_FUTURE),这里先不给选。付款申请的付款日走的也是这一格。
+            max={businessToday()}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onBlur={(e) => onChange(e.target.value)}

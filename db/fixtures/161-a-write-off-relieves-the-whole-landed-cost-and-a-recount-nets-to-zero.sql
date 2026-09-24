@@ -1,4 +1,5 @@
 -- 161 注销解除的是【全部落地成本】,而一次"点少了再点回来"必须净得零
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --     PROC-COST-2
 --
 -- 【这份 fixture 自带全部数据】重建库里没有业务数据(README 第 2 条)。
@@ -34,7 +35,7 @@ DO $$
 DECLARE
     v_user uuid := gen_random_uuid();
     r_all uuid; v_ccy text; v_sup uuid; v_fwd uuid; v_mat uuid;
-    v_d date := DATE '2027-12-04';
+    v_d date := DATE '2025-12-04';
     v_ib uuid; v_ib2 uuid; v_run uuid; v_st uuid;
     v_0 numeric; v_a numeric; v_b numeric; v_c numeric;
     v_rate numeric; v_wo numeric; v_stk numeric;

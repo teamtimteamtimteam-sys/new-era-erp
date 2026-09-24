@@ -1,4 +1,5 @@
 -- fixture 210 —— 钱离开之前要先批(PAY-REQ-1 · Batch A,2026-09-23)
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2030 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- Tim 的裁定:付款申请 → CFO 批准 → 付款。付款与冲销付款:财务提,CFO 批,每一张都批、
 -- 不分档;提单人永远不能批(按人认);收款不批;整笔付已批准的报销 / 医疗申报不批(Q1)。
@@ -31,8 +32,8 @@ DECLARE
     e_emp uuid := gen_random_uuid();
     v_sup uuid; v_sup2 uuid;
     v_base text; v_acct text;
-    d date := DATE '2030-03-01';
-    d_pay date := DATE '2030-03-10';
+    d date := DATE '2025-03-01';
+    d_pay date := DATE '2025-03-10';
     v_exp1 uuid; v_exp2 uuid; v_exp3 uuid; v_exp4 uuid; v_exp5 uuid; v_exp_emp uuid; v_exp6 uuid;
     v_req1 uuid; v_req2 uuid; v_req3 uuid; v_req4 uuid; v_req5 uuid; v_req6 uuid; v_req7 uuid;
     v_res jsonb; v_pay uuid; v_je_before integer; v_n integer; v_m integer;
@@ -233,6 +234,10 @@ BEGIN
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 210D1 失败:没批的申请付出去了,实得 %', COALESCE(v_msg, '(付了)'); END IF;
     v_denied := false; v_msg := NULL;
+    -- AP-RECON-1 Batch B(Tim Q10):"不默认今天"只有在付款日【不是今天】时才证得出来。
+    IF d_pay = CURRENT_DATE THEN
+        RAISE EXCEPTION 'FIXTURE 210D2 失败(空转):付款日恰好是今天 —— 分不开"用了给的日子"与"默认成今天"';
+    END IF;
     BEGIN PERFORM pay_payment_request(v_req1, NULL, NULL);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM = 'PAYMENT_DATE_REQUIRED'); END;
     IF NOT v_denied THEN

@@ -18,6 +18,7 @@ import { formatMoneyBare } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { businessToday } from '@/lib/format'
 
 // EQP-1c-c:已登记、还能加成本的机器。
 // EQP-1c-c:资本支出的两扇门。**这个数组是 expense.form.capitalMode(.Hint) 那两族
@@ -199,6 +200,7 @@ canEdit: boolean
                         name="expense_date"
                         required
                         defaultValue={todayIsoLocal()}
+                        max={businessToday()}
                         className={CONTROL_INPUT}
                     />
                 </div>

@@ -1,4 +1,5 @@
 -- 104 一笔定金知道自己是什么币种 —— 两条支路,一条拒绝
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 -- ★ PAY-REQ-1(2026-09-23):出款与冲销从此只经付款申请 → CFO 批准 → 付款。本文件测的是
 --   【过账的算术】,不是审批,所以它直接调引擎(record_payment_internal /
 --   reverse_payment_internal —— 以属主身份跑,authenticated 调不到)。审批那一半在 fixture 210。
@@ -42,7 +43,7 @@
 -- 【SET CONSTRAINTS ALL IMMEDIATE】journal_lines 的借贷平衡是 DEFERRABLE 的
 -- 约束触发器;不设成 IMMEDIATE,一支不平的分录要到 COMMIT 才报,而这里 ROLLBACK。
 -- 【EQP-1c-b(X1)之后:冲抵日是【必填参数】,不再是 CURRENT_DATE】——
--- 本 fixture 每一处调用因此都显式给了日期。给的是 2027-03-01,与各臂的
+-- 本 fixture 每一处调用因此都显式给了日期。给的是 2025-03-01,与各臂的
 -- 发票日同月:这些臂断言的是【金额与科目】,不是期间,所以只要它是一个
 -- 确定的、不随"今天"漂移的日子就够 —— 而"不随今天漂移"正是 X1 的全部理由。
 BEGIN;
@@ -75,10 +76,10 @@ BEGIN
 
     -- 自己的牌价:精确落在用到的每一天上,不走任何回溯
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit) VALUES
-        ('USD', DATE '2027-02-01', 'tt_sell', 1.30),
-        ('USD', DATE '2027-03-01', 'tt_sell', 1.35),
-        ('USD', DATE '2027-03-31', 'mid',     1.40),
-        ('CNY', DATE '2027-03-05', 'tt_sell', 0.19);
+        ('USD', DATE '2025-02-01', 'tt_sell', 1.30),
+        ('USD', DATE '2025-03-01', 'tt_sell', 1.35),
+        ('USD', DATE '2025-03-31', 'mid',     1.40),
+        ('CNY', DATE '2025-03-05', 'tt_sell', 0.19);
 
     INSERT INTO suppliers (code, legal_name, country, status, counterparty_type)
     VALUES ('ZZFIX104-S', 'fixture 104 supplier', 'SG', 'active', 'goods_supplier')
@@ -87,21 +88,21 @@ BEGIN
     VALUES ('ZZFIX104-M', 'fixture 104 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
 
     -- ══════════ A · 前提:本位币进料冲抵,与从前逐分相同 ═════════════════════
-    v_res := create_purchase_order(v_sup, DATE '2027-02-01', DATE '2027-04-01', v_base, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-02-01', DATE '2025-04-01', v_base, NULL,
         NULL, NULL, 'fixture 104 A base PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'unit', 'kg', 'estimated_unit_price', 20)));
     po1 := (v_res->>'purchase_order_id')::uuid;
-    PERFORM record_payment_internal('out', v_sup, 1000, v_base, NULL, NULL, DATE '2027-02-01',
+    PERFORM record_payment_internal('out', v_sup, 1000, v_base, NULL, NULL, DATE '2025-02-01',
         'fixture 104 A deposit',
         jsonb_build_array(jsonb_build_object('purchase_order_id', po1, 'amount_doc', 1000)),
         'supplier');
-    v_res := create_inbound_batch(v_mat, v_sup, 100, 'kg', DATE '2027-02-05', '待加工',
+    v_res := create_inbound_batch(v_mat, v_sup, 100, 'kg', DATE '2025-02-05', '待加工',
         20, 'fixture 104 A batch', NULL, NULL, NULL, NULL, p_source_reason_code => 'other', p_source_reason_note => 'fixture 104 自带数据',
         p_currency => v_base);   -- INB-PAY-1:带价建单现在过定价那一步,币种必给
     b1 := (v_res->>'batch_id')::uuid;
 
-    v_res := apply_prepayment(po1, b1, 1000, NULL, NULL, DATE '2027-03-01');
+    v_res := apply_prepayment(po1, b1, 1000, NULL, NULL, DATE '2025-03-01');
     v_app := (v_res->>'application_id')::uuid;
     SELECT id INTO v_entry FROM journal_entries WHERE source_id = v_app;
 
@@ -136,31 +137,31 @@ BEGIN
     -- 这一份 fixture 在重建库里跑(那里 2000 一行都没有),但迭代时跑在有历史数据
     -- 的线上;把绝对值写死会让它只在其中一边成立,而那种断言证明不了任何东西。
     SELECT COALESCE((SELECT (value->>'native')::numeric
-        FROM jsonb_array_elements(preview_revalue_foreign_balances(DATE '2027-03-31')->'rows') t(value)
+        FROM jsonb_array_elements(preview_revalue_foreign_balances(DATE '2025-03-31')->'rows') t(value)
         WHERE value->>'account' = '2000' AND value->>'currency' = 'USD'), 0)
     INTO v_native0;
 
     -- ══════════ B · R1 设备链,两侧汇率不同 ═════════════════════════════════
-    -- 定金:USD PO 于 2027-02-01 建单 ⇒ po.fx_rate = 当日 tt_sell = 1.30,
+    -- 定金:USD PO 于 2025-02-01 建单 ⇒ po.fx_rate = 当日 tt_sell = 1.30,
     --       核销行 allocated_base = 10,000 × 1.30 = 13,000 ⇒ 加权平均率 1.30。
-    -- 发票:2027-03-01 的 tt_sell = 1.35 ⇒ 应付 USD 50,000,本位币 67,500。
+    -- 发票:2025-03-01 的 tt_sell = 1.35 ⇒ 应付 USD 50,000,本位币 67,500。
     -- 冲抵 10,000 USD ⇒ 借 2000 13,500 / 贷 1300 13,000 / 贷 7100 500(益)。
-    v_res := create_purchase_order(v_sup, DATE '2027-02-01', DATE '2027-04-01', 'USD', NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-02-01', DATE '2025-04-01', 'USD', NULL,
         NULL, NULL, 'fixture 104 B equipment PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000,
                                              'unit', 'kg', 'estimated_unit_price', 50)));
     po2 := (v_res->>'purchase_order_id')::uuid;
-    PERFORM record_payment_internal('out', v_sup, 10000, 'USD', NULL, NULL, DATE '2027-02-01',
+    PERFORM record_payment_internal('out', v_sup, 10000, 'USD', NULL, NULL, DATE '2025-02-01',
         'fixture 104 B deposit',
         jsonb_build_array(jsonb_build_object('purchase_order_id', po2, 'amount_doc', 10000)),
         'supplier');
 
-    v_res := record_expense(DATE '2027-03-01', '1500', 50000, 'USD', NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-03-01', '1500', 50000, 'USD', NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 104 B machine invoice',
         jsonb_build_object('description', 'fixture 104 press', 'useful_life_months', 120), NULL);
     exp2 := (v_res->>'expense_id')::uuid;
 
-    v_res := apply_prepayment(po2, NULL, 10000, 'fixture 104 B release', exp2, DATE '2027-03-01');
+    v_res := apply_prepayment(po2, NULL, 10000, 'fixture 104 B release', exp2, DATE '2025-03-01');
     v_app := (v_res->>'application_id')::uuid;
     SELECT id INTO v_entry FROM journal_entries WHERE source_id = v_app;
 
@@ -192,7 +193,7 @@ BEGIN
 
     -- ══════════ C · 本刀的目的地:重估读到的是【剩下的】敞口 ════════════════
     SELECT value INTO v_row
-    FROM jsonb_array_elements(preview_revalue_foreign_balances(DATE '2027-03-31')->'rows') t(value)
+    FROM jsonb_array_elements(preview_revalue_foreign_balances(DATE '2025-03-31')->'rows') t(value)
     WHERE value->>'account' = '2000' AND value->>'currency' = 'USD';
     IF v_row IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 104C 失败:重估预览里没有 2000/USD 这一行 —— 空结果上的断言恒真,所以这里先要它在';
@@ -205,21 +206,21 @@ BEGIN
     -- ══════════ D · R2:外币定金冲【本位币计价】的进料应付 ═══════════════════
     -- 材料进口的常态:USD 采购单的定金,冲一张以本位币计价的到货批次应付。
     -- 价值对齐 ⇒ 借 2000 本位币 13,000 / 贷 1300 USD 10,000 @1.30 ⇒ 7100 恰好零。
-    v_res := create_purchase_order(v_sup, DATE '2027-02-01', DATE '2027-04-01', 'USD', NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-02-01', DATE '2025-04-01', 'USD', NULL,
         NULL, NULL, 'fixture 104 D import PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000,
                                              'unit', 'kg', 'estimated_unit_price', 50)));
     po3 := (v_res->>'purchase_order_id')::uuid;
-    PERFORM record_payment_internal('out', v_sup, 10000, 'USD', NULL, NULL, DATE '2027-02-01',
+    PERFORM record_payment_internal('out', v_sup, 10000, 'USD', NULL, NULL, DATE '2025-02-01',
         'fixture 104 D deposit',
         jsonb_build_array(jsonb_build_object('purchase_order_id', po3, 'amount_doc', 10000)),
         'supplier');
-    v_res := create_inbound_batch(v_mat, v_sup, 1300, 'kg', DATE '2027-02-10', '待加工',
+    v_res := create_inbound_batch(v_mat, v_sup, 1300, 'kg', DATE '2025-02-10', '待加工',
         10, 'fixture 104 D batch', NULL, NULL, NULL, NULL, p_source_reason_code => 'other', p_source_reason_note => 'fixture 104 自带数据',
         p_currency => v_base);   -- INB-PAY-1:带价建单现在过定价那一步,币种必给
     b3 := (v_res->>'batch_id')::uuid;
 
-    v_res := apply_prepayment(po3, b3, 13000, NULL, NULL, DATE '2027-03-01');
+    v_res := apply_prepayment(po3, b3, 13000, NULL, NULL, DATE '2025-03-01');
     v_app := (v_res->>'application_id')::uuid;
     SELECT id INTO v_entry FROM journal_entries WHERE source_id = v_app;
 
@@ -248,22 +249,22 @@ BEGIN
     END IF;
 
     -- ══════════ E · R3 两边都是外币且不同 → 按名拒绝 ════════════════════════
-    v_res := create_purchase_order(v_sup, DATE '2027-02-01', DATE '2027-04-01', 'USD', NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-02-01', DATE '2025-04-01', 'USD', NULL,
         NULL, NULL, 'fixture 104 E PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000,
                                              'unit', 'kg', 'estimated_unit_price', 50)));
     po4 := (v_res->>'purchase_order_id')::uuid;
-    PERFORM record_payment_internal('out', v_sup, 5000, 'USD', NULL, NULL, DATE '2027-02-01',
+    PERFORM record_payment_internal('out', v_sup, 5000, 'USD', NULL, NULL, DATE '2025-02-01',
         'fixture 104 E deposit',
         jsonb_build_array(jsonb_build_object('purchase_order_id', po4, 'amount_doc', 5000)),
         'supplier');
-    v_res := record_expense(DATE '2027-03-05', '6300', 20000, 'CNY', NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-03-05', '6300', 20000, 'CNY', NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 104 E CNY invoice', NULL, NULL);
     exp4 := (v_res->>'expense_id')::uuid;
 
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM apply_prepayment(po4, NULL, 1000, NULL, exp4, DATE '2027-03-01');
+        PERFORM apply_prepayment(po4, NULL, 1000, NULL, exp4, DATE '2025-03-01');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('PREPAY_TWO_FOREIGN_CURRENCIES' in v_msg) = 0 THEN
@@ -314,16 +315,16 @@ BEGIN
     -- 造一行与线上那条历史行同形的记录(currency / amount_ccy 皆 NULL)。
     -- 它当初之所以能是 NULL,是因为它记于约束【存在之前】—— 所以这里走同一条路:
     -- 先摘掉约束、插入、再原样按 NOT VALID 挂回去。事务结束即回滚。
-    v_res := create_purchase_order(v_sup, DATE '2027-02-01', DATE '2027-04-01', 'USD', NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-02-01', DATE '2025-04-01', 'USD', NULL,
         NULL, NULL, 'fixture 104 H legacy-shaped PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000,
                                              'unit', 'kg', 'estimated_unit_price', 50)));
     po5 := (v_res->>'purchase_order_id')::uuid;
-    PERFORM record_payment_internal('out', v_sup, 5000, 'USD', NULL, NULL, DATE '2027-02-01',
+    PERFORM record_payment_internal('out', v_sup, 5000, 'USD', NULL, NULL, DATE '2025-02-01',
         'fixture 104 H deposit',
         jsonb_build_array(jsonb_build_object('purchase_order_id', po5, 'amount_doc', 5000)),
         'supplier');
-    v_res := create_inbound_batch(v_mat, v_sup, 1000, 'kg', DATE '2027-02-10', '待加工',
+    v_res := create_inbound_batch(v_mat, v_sup, 1000, 'kg', DATE '2025-02-10', '待加工',
         10, 'fixture 104 H batch', NULL, NULL, NULL, NULL, p_source_reason_code => 'other', p_source_reason_note => 'fixture 104 自带数据',
         p_currency => v_base);   -- INB-PAY-1:带价建单现在过定价那一步,币种必给
     b5 := (v_res->>'batch_id')::uuid;
@@ -338,7 +339,7 @@ BEGIN
 
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM apply_prepayment(po5, b5, 1, NULL, NULL, DATE '2027-03-01');
+        PERFORM apply_prepayment(po5, b5, 1, NULL, NULL, DATE '2025-03-01');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('PREPAY_INSUFFICIENT' in v_msg) = 0 THEN
@@ -349,7 +350,7 @@ BEGIN
     -- 【SET CONSTRAINTS 放在最后,不能放在开头】journal_lines 的借贷平衡是
     -- DEFERRABLE 的约束触发器,它【必须】等一支分录的所有行都写完才判。
     -- 放在开头会让它在第一条行之后就开火,于是 record_payment 自己都过不去
-    -- (实测:JOURNAL_UNBALANCED|JE-2027-0004|1000.00|0)。放在这里,是为了让
+    -- (实测:JOURNAL_UNBALANCED|JE-2025-0004|1000.00|0)。放在这里,是为了让
     -- 任何一支不平的分录【在块内】报出来 —— 否则它要到 COMMIT 才报,而这里 ROLLBACK。
     SET CONSTRAINTS ALL IMMEDIATE;
 

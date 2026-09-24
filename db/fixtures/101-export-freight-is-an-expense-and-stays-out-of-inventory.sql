@@ -1,4 +1,5 @@
 -- 101 出口运费是【费用】,而且【进不去】存货、进不去材料成本、进不去毛利
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 -- ★ PAY-REQ-1(2026-09-23):出款与冲销从此只经付款申请 → CFO 批准 → 付款。本文件测的是
 --   【过账的算术】,不是审批,所以它直接调引擎(record_payment_internal /
 --   reverse_payment_internal —— 以属主身份跑,authenticated 调不到)。审批那一半在 fixture 210。
@@ -31,7 +32,7 @@
 -- 【G 臂】PAY-FRT 那条核销路径对出境单据【原样成立】(断言,不假设)。
 -- 【H 臂】出境单据在 ap_open_items 的运费支里与进境单据【形状相同】(第 2(f) 条)。
 --
--- 日期落在 2027,自带数据(README 第 2/4/5 条)。
+-- 日期落在 2025,自带数据(README 第 2/4/5 条)。
 BEGIN;
 DO $$
 DECLARE
@@ -80,21 +81,21 @@ BEGIN
     RETURNING id INTO v_p2;
     INSERT INTO lanes (origin_port_id, destination_port_id) VALUES (v_p1, v_p2)
     RETURNING id INTO v_lane;
-    v_res := create_container(v_lane, DATE '2027-06-01', 'ZZFIX101U0000001', NULL, NULL, v_fwd, NULL, NULL);
+    v_res := create_container(v_lane, DATE '2025-06-01', 'ZZFIX101U0000001', NULL, NULL, v_fwd, NULL, NULL);
     v_ctr := (v_res->>'id')::uuid; v_ctr_code := v_res->>'code';
 
     -- ── 出货链:销售订单 → 发货单 → 挂在那个箱子上 ───────────────────────────
     -- B 臂要的是"出境单据【确实】连着那批货的箱子",否则"没变"是因为根本没关系。
     INSERT INTO sales_orders (code, customer_id, order_date, status, currency, fx_rate)
-    VALUES ('ZZFIX101-SO', v_cust, DATE '2027-05-20', 'confirmed', v_ccy, 1) RETURNING id INTO v_so;
+    VALUES ('ZZFIX101-SO', v_cust, DATE '2025-05-20', 'confirmed', v_ccy, 1) RETURNING id INTO v_so;
     INSERT INTO shipments (code, sales_order_id, ship_date, container_id)
-    VALUES ('ZZFIX101-SHP', v_so, DATE '2027-06-01', v_ctr) RETURNING id INTO v_ship;
+    VALUES ('ZZFIX101-SHP', v_so, DATE '2025-06-01', v_ctr) RETURNING id INTO v_ship;
 
     -- ── 进料批 + 一张【进货】运费单 → batch_freight_base 非零 ────────────────
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX101-IB', v_mat, v_sup, 100, 100, DATE '2027-05-01', 10, 'other', 'fixture 101 自带数据') RETURNING id INTO v_ib;
-    v_res := record_freight_document(DATE '2027-05-05', v_fwd, 700, v_ccy, 'weight',
+    VALUES ('ZZFIX101-IB', v_mat, v_sup, 100, 100, DATE '2025-05-01', 10, 'other', 'fixture 101 自带数据') RETURNING id INTO v_ib;
+    v_res := record_freight_document(DATE '2025-05-05', v_fwd, 700, v_ccy, 'weight',
         'unpaid', NULL, jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib)),
         'fixture 101 inbound leg', NULL);
     v_fd_in := (v_res->>'freight_document_id')::uuid;
@@ -107,17 +108,17 @@ BEGIN
 
     -- ── 产出批 + 已过账 COGS → batch_margin 有一行可读 ───────────────────────
     INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code)
-    VALUES ('ZZFIX101-RUN', 'committed', '2027-05-10', 'metal_value', 'manual_disassembly') RETURNING id INTO v_run;
+    VALUES ('ZZFIX101-RUN', 'committed', '2025-05-10', 'metal_value', 'manual_disassembly') RETURNING id INTO v_run;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
-    VALUES ('ZZFIX101-OB', v_mat, 100, 100, '2027-05-10') RETURNING id INTO v_ob;
+    VALUES ('ZZFIX101-OB', v_mat, 100, 100, '2025-05-10') RETURNING id INTO v_ob;
     INSERT INTO processing_outputs (run_id, output_batch_id, quantity_produced,
         allocated_cost_base, unit_cost_base, cost_incomplete)
     VALUES (v_run, v_ob, 100, 400, 4, false);
     INSERT INTO sales_records (output_batch_id, customer_id, quantity, unit_price,
         currency, fx_rate, amount_base, sale_date)
-    VALUES (v_ob, v_cust, 100, 20, v_ccy, 1, 2000, '2027-05-15') RETURNING id INTO v_sr;
+    VALUES (v_ob, v_cust, 100, 20, v_ccy, 1, 2000, '2025-05-15') RETURNING id INTO v_sr;
     INSERT INTO journal_entries (code, entry_date, memo, source_type)
-    VALUES ('ZZFIX101-COGS', '2027-05-15', 'fixture 101 cogs at sale', 'sale') RETURNING id INTO v_je_cogs;
+    VALUES ('ZZFIX101-COGS', '2025-05-15', 'fixture 101 cogs at sale', 'sale') RETURNING id INTO v_je_cogs;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     SELECT v_je_cogs, a.id, x.d, x.c, v_ccy, 400, 1
     FROM (VALUES ('5000', 400.0, 0.0), ('1220', 0.0, 400.0)) x(code, d, c)
@@ -132,7 +133,7 @@ BEGIN
     END IF;
 
     -- ══════════ A. 出口运费的分录 —— 借 6300,而且【没有】1200、【没有】5000 ══
-    v_res := record_export_freight_document(DATE '2027-06-05', v_fwd, 1200, v_ccy,
+    v_res := record_export_freight_document(DATE '2025-06-05', v_fwd, 1200, v_ccy,
         'unpaid', NULL, v_ctr, 'fixture 101 export leg');
     v_fd_out := (v_res->>'freight_document_id')::uuid;
     v_je_out := (v_res->>'entry_id')::uuid;
@@ -213,7 +214,7 @@ BEGIN
     -- ══════════ E. 对手方与箱子的两条具名拒绝 ═══════════════════════════════
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_export_freight_document(DATE '2027-06-06', v_sup, 100, v_ccy,
+        PERFORM record_export_freight_document(DATE '2025-06-06', v_sup, 100, v_ccy,
             'unpaid', NULL, NULL, 'fixture 101 non-forwarder');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
@@ -224,7 +225,7 @@ BEGIN
     -- 同一条守卫对【进境】单据一样成立(FRT-1 与 LOG-1a 之间的时间差,两侧一起关)
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_freight_document(DATE '2027-06-06', v_sup, 100, v_ccy, 'weight',
+        PERFORM record_freight_document(DATE '2025-06-06', v_sup, 100, v_ccy, 'weight',
             'unpaid', NULL, jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib)),
             'fixture 101 non-forwarder inbound', NULL);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
@@ -234,12 +235,12 @@ BEGIN
             v_denied, COALESCE(v_msg, '(收下了)');
     END IF;
 
-    v_res := create_container(v_lane, DATE '2027-06-02', 'ZZFIX101U0000002', NULL, NULL, v_fwd, NULL, NULL);
+    v_res := create_container(v_lane, DATE '2025-06-02', 'ZZFIX101U0000002', NULL, NULL, v_fwd, NULL, NULL);
     v_ctr_dead := (v_res->>'id')::uuid;
     PERFORM soft_delete_container(v_ctr_dead, 'fixture 101:注销用');
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_export_freight_document(DATE '2027-06-07', v_fwd, 100, v_ccy,
+        PERFORM record_export_freight_document(DATE '2025-06-07', v_fwd, 100, v_ccy,
             'unpaid', NULL, v_ctr_dead, 'fixture 101 dead container');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
@@ -249,7 +250,7 @@ BEGIN
     END IF;
     -- 【不指箱子是允许的】—— 单据才是钱的对象(Tim 定)。这一条要断言,
     -- 否则一个"container_id 必填"的实现照样通过上面每一条。
-    v_res := record_export_freight_document(DATE '2027-06-08', v_fwd, 300, v_ccy,
+    v_res := record_export_freight_document(DATE '2025-06-08', v_fwd, 300, v_ccy,
         'unpaid', NULL, NULL, 'fixture 101 no container');
     IF (SELECT container_id FROM freight_documents WHERE id = (v_res->>'freight_document_id')::uuid) IS NOT NULL THEN
         RAISE EXCEPTION 'FIXTURE 101E 失败:不指箱子的出境单据不该被塞一个箱子进去';
@@ -270,10 +271,10 @@ BEGIN
     END IF;
 
     -- ══════════ G. PAY-FRT 那条核销路径对出境单据原样成立 ════════════════════
-    v_res := record_export_freight_document(DATE '2027-06-09', v_fwd, 500, v_ccy,
+    v_res := record_export_freight_document(DATE '2025-06-09', v_fwd, 500, v_ccy,
         'unpaid', NULL, v_ctr, 'fixture 101 settle me');
     v_fd_pay := (v_res->>'freight_document_id')::uuid;
-    PERFORM record_payment_internal('out', v_fwd, 200, v_ccy, NULL, v_bank, DATE '2027-06-10',
+    PERFORM record_payment_internal('out', v_fwd, 200, v_ccy, NULL, v_bank, DATE '2025-06-10',
         'fixture 101 partial',
         jsonb_build_array(jsonb_build_object('freight_document_id', v_fd_pay, 'amount_doc', 200)),
         'supplier');
@@ -282,7 +283,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 101G 失败:出境单据付掉 200 后敞口应为 300,实得 %',
             COALESCE(v_open::text, '(没有这一行)');
     END IF;
-    PERFORM record_payment_internal('out', v_fwd, 300, v_ccy, NULL, v_bank, DATE '2027-06-11',
+    PERFORM record_payment_internal('out', v_fwd, 300, v_ccy, NULL, v_bank, DATE '2025-06-11',
         'fixture 101 settle',
         jsonb_build_array(jsonb_build_object('freight_document_id', v_fd_pay, 'amount_doc', 300)),
         'supplier');
@@ -389,7 +390,7 @@ BEGIN
     BEGIN
         INSERT INTO containers (code, lane_id, departure_date)
         VALUES ('{"code":"42501","message":"permission denied for function next_container_code"}',
-                v_lane, DATE '2027-06-01');
+                v_lane, DATE '2025-06-01');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR v_msg NOT LIKE '%containers_code_format%' THEN
@@ -398,6 +399,6 @@ BEGIN
     END IF;
     -- 形状正确的号照样进得去(CHECK 写宽了或写死了,这一条会红)
     INSERT INTO containers (code, lane_id, departure_date)
-    VALUES ('CTR-2027-9999', v_lane, DATE '2027-06-01');
+    VALUES ('CTR-2025-9999', v_lane, DATE '2025-06-01');
 END $$;
 ROLLBACK;

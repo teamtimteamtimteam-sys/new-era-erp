@@ -1,4 +1,5 @@
 -- 154 三种拒绝,一种都不许长得像另一种 —— PROC-BUILD-1 的可售性(R5)
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【这份 fixture 自带全部数据】重建库里没有业务数据(README 第 2 条)。
 --
@@ -35,7 +36,7 @@ DECLARE
     v_ib uuid; v_run uuid;
     v_ob_cat uuid; v_ob_anode uuid; v_ob_noform uuid; v_ob_bought uuid;
     v_q uuid; v_so uuid; v_line uuid;
-    v_process date := DATE '2027-07-03';
+    v_process date := DATE '2025-07-03';
     v_denied boolean; v_msg text;
     v_msg_notsaleable text; v_msg_notset text; v_msg_stock text;
     v_form text; v_sale jsonb;
@@ -220,6 +221,11 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 154F5 前置失败:卖超库存本应被拒 —— 这一臂要的是那第三种句子';
     END IF;
     v_msg_stock := v_msg;
+    -- AP-RECON-1 Batch B(Tim Q10):三条互不相同还不够 —— 库存那一条要【就是】库存那一条。只比"不相同"时,
+    -- 任何一道先拦下的别的闸(比如日期闸)给出的码也"不相同",这一臂会为错的理由变绿。
+    IF v_msg_stock NOT LIKE 'IOD_SALE_EXCEEDS_AVAILABLE|%' THEN
+        RAISE EXCEPTION 'FIXTURE 154F5 失败:卖超库存应当 IOD_SALE_EXCEEDS_AVAILABLE,实得「%」', v_msg_stock;
+    END IF;
     IF split_part(v_msg_notsaleable, '|', 1) = split_part(v_msg_notset, '|', 1)
        OR split_part(v_msg_notsaleable, '|', 1) = split_part(v_msg_stock, '|', 1)
        OR split_part(v_msg_notset, '|', 1) = split_part(v_msg_stock, '|', 1) THEN

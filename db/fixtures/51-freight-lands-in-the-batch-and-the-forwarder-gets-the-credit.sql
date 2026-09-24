@@ -1,4 +1,5 @@
 -- 51 运费资本化:借方进批次成本、贷方【记在货代名下】,而且【走得到毛利】
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 -- ★ PAY-REQ-1(Tim 的 Q2(c)):运费单不许生下来就已付 —— 本文件各臂从此挂账('unpaid');
 --   它测的是运费进批次成本的拆账,与付没付无关,判据一个字不变。
 --
@@ -33,7 +34,7 @@
 -- 【G 臂:GST 是闸门】进口 GST 是可抵扣进项税(1400),资本化它会同时高估存货
 -- 【并】毁掉抵扣。
 --
--- 日期落在 2027,自带数据(README 第 4/5 条)。
+-- 日期落在 2025,自带数据(README 第 4/5 条)。
 BEGIN;
 DO $$
 DECLARE
@@ -76,9 +77,9 @@ BEGIN
     -- 全新未动的一批:ratio = 1
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX51-IB1', v_mat, v_sup, 100, 100, DATE '2027-07-01', 10, 'other', 'fixture 51 自带数据') RETURNING id INTO v_b1;
+    VALUES ('ZZFIX51-IB1', v_mat, v_sup, 100, 100, DATE '2025-07-01', 10, 'other', 'fixture 51 自带数据') RETURNING id INTO v_b1;
 
-    v_res := record_freight_document(DATE '2027-07-05', v_fwd, 500, v_ccy, 'weight', 'unpaid', NULL,
+    v_res := record_freight_document(DATE '2025-07-05', v_fwd, 500, v_ccy, 'weight', 'unpaid', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b1)), 'fixture 51', NULL);
 
     SELECT count(*) INTO v_n FROM ap_open_items
@@ -112,8 +113,8 @@ BEGIN
     -- ══════════ B. 迟到的运费:部分已耗 → 拆 1200 / 5000 ═════════════════════
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX51-IB2', v_mat, v_sup, 100, 40, DATE '2027-07-01', 10, 'other', 'fixture 51 自带数据') RETURNING id INTO v_b2;
-    v_res := record_freight_document(DATE '2027-07-20', v_fwd, 1000, v_ccy, 'weight', 'unpaid', NULL,
+    VALUES ('ZZFIX51-IB2', v_mat, v_sup, 100, 40, DATE '2025-07-01', 10, 'other', 'fixture 51 自带数据') RETURNING id INTO v_b2;
+    v_res := record_freight_document(DATE '2025-07-20', v_fwd, 1000, v_ccy, 'weight', 'unpaid', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b2)), 'fixture 51 late', NULL);
     -- 在库 40% → 400 进 1200,600 进 5000
     IF (v_res->>'in_stock_base')::numeric <> 400 OR (v_res->>'consumed_base')::numeric <> 600 THEN
@@ -130,18 +131,18 @@ BEGIN
     -- 【判别力】轻而贵 vs 重而便宜
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX51-LIGHT', v_mat, v_sup, 10, 10, DATE '2027-08-01', 100, 'other', 'fixture 51 自带数据') RETURNING id INTO v_b3;
+    VALUES ('ZZFIX51-LIGHT', v_mat, v_sup, 10, 10, DATE '2025-08-01', 100, 'other', 'fixture 51 自带数据') RETURNING id INTO v_b3;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX51-HEAVY', v_mat, v_sup, 90, 90, DATE '2027-08-01', 1, 'other', 'fixture 51 自带数据') RETURNING id INTO v_bl;
+    VALUES ('ZZFIX51-HEAVY', v_mat, v_sup, 90, 90, DATE '2025-08-01', 1, 'other', 'fixture 51 自带数据') RETURNING id INTO v_bl;
 
-    v_res := record_freight_document(DATE '2027-08-05', v_fwd, 1000, v_ccy, 'weight', 'unpaid', NULL,
+    v_res := record_freight_document(DATE '2025-08-05', v_fwd, 1000, v_ccy, 'weight', 'unpaid', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b3),
                           jsonb_build_object('inbound_batch_id', v_bl)), 'by weight', NULL);
     SELECT amount_base INTO v_w1 FROM freight_allocations
      WHERE freight_document_id = (v_res->>'freight_document_id')::uuid AND inbound_batch_id = v_b3;
 
-    v_res := record_freight_document(DATE '2027-08-06', v_fwd, 1000, v_ccy, 'value', 'unpaid', NULL,
+    v_res := record_freight_document(DATE '2025-08-06', v_fwd, 1000, v_ccy, 'value', 'unpaid', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b3),
                           jsonb_build_object('inbound_batch_id', v_bl)), 'by value', NULL);
     SELECT amount_base INTO v_v1 FROM freight_allocations
@@ -166,11 +167,11 @@ BEGIN
     -- ══════════ D. value 口径遇未计价批次:点名拒绝 ══════════════════════════
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, pricing_status, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX51-NOPRICE', v_mat, v_sup, 50, 50, DATE '2027-08-01', 'unpriced', 'other', 'fixture 51 自带数据')
+    VALUES ('ZZFIX51-NOPRICE', v_mat, v_sup, 50, 50, DATE '2025-08-01', 'unpriced', 'other', 'fixture 51 自带数据')
     RETURNING id INTO v_bnp;
     v_denied := false;
     BEGIN
-        PERFORM record_freight_document(DATE '2027-08-07', v_fwd, 1000, v_ccy, 'value', 'unpaid', NULL,
+        PERFORM record_freight_document(DATE '2025-08-07', v_fwd, 1000, v_ccy, 'value', 'unpaid', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b3),
                               jsonb_build_object('inbound_batch_id', v_bnp)), NULL, NULL);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
@@ -184,7 +185,7 @@ BEGIN
     -- 【本 fixture 的头号断言】一个过账全对、只是忘了标过期的实现,能通过上面每一条。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX51-IB4', v_mat, v_sup, 100, 100, DATE '2027-09-01', 10, 'other', 'fixture 51 自带数据') RETURNING id INTO v_b4;
+    VALUES ('ZZFIX51-IB4', v_mat, v_sup, 100, 100, DATE '2025-09-01', 10, 'other', 'fixture 51 自带数据') RETURNING id INTO v_b4;
     -- PROC-3:这一支要投料,所以它的电池料批次得带一条【可投料】的安全状态。
     -- 【为什么是一条带 JOIN 的 SELECT,而不是逐个批次写死】本支里哪些批次【吃】
     -- 状态轴,由 material_kinds 回答 —— 实测 ewaste 可加工却【没有】状态轴,
@@ -200,7 +201,7 @@ BEGIN
      WHERE mk.has_condition_axes
        AND NOT EXISTS (SELECT 1 FROM inbound_batch_safety_states s
                         WHERE s.inbound_batch_id = ib.id);
-    v_run := commit_processing_run(DATE '2027-09-02', 'fixture 51 run', 0,
+    v_run := commit_processing_run(DATE '2025-09-02', 'fixture 51 run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b4, 'quantity_consumed', 100)),
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 80)), 'weight', NULL, NULL, 'manual_disassembly');
     SELECT po.output_batch_id INTO v_ob FROM processing_outputs po WHERE po.run_id = v_run;
@@ -223,7 +224,7 @@ BEGIN
     UPDATE processing_runs SET allocated_at = now() - interval '3 days' WHERE id = v_run;
 
     -- 运费迟到:这批货已经被全部消耗掉了(remaining_qty = 0 → ratio = 0 → 全进 5000)
-    PERFORM record_freight_document(DATE '2027-09-10', v_fwd, 800, v_ccy, 'weight', 'unpaid', NULL,
+    PERFORM record_freight_document(DATE '2025-09-10', v_fwd, 800, v_ccy, 'weight', 'unpaid', NULL,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b4)), 'late freight', NULL);
 
     SELECT is_stale INTO v_stale FROM processing_run_allocation_status WHERE run_id = v_run;
@@ -249,7 +250,7 @@ BEGIN
     -- ══════════ G. GST 是闸门,不是备注 ═════════════════════════════════════
     v_denied := false;
     BEGIN
-        PERFORM record_freight_document(DATE '2027-09-12', v_fwd, 500, v_ccy, 'weight', 'unpaid', NULL,
+        PERFORM record_freight_document(DATE '2025-09-12', v_fwd, 500, v_ccy, 'weight', 'unpaid', NULL,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_b1)), NULL, 45);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;

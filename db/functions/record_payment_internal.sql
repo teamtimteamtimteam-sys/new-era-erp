@@ -30,6 +30,7 @@ DECLARE
     v_doc_ccy      text;
     v_doc_fx       numeric;
     v_alloc_base   numeric;
+    v_birth        numeric;   -- AP-RECON-1 Batch B:这张单过账时记下的本位币(清单未结时显示的就是它)
     v_base_total   numeric := 0;
     v_bank_base    numeric;
     v_unalloc_ccy  numeric;
@@ -101,6 +102,10 @@ BEGIN
         RAISE EXCEPTION 'PAYMENT_DATE_REQUIRED';
     END IF;
     v_date := p_payment_date;
+    -- AP-RECON-1 Batch B(Tim AP-RECON-1 Q7):收付款是一件【已经发生】的事 —— 此前没有任何上界,日期晚于今天按名拒。
+    IF v_date > CURRENT_DATE THEN
+        RAISE EXCEPTION 'DOCUMENT_DATE_IN_FUTURE|payment|%|%', v_date, CURRENT_DATE;
+    END IF;
     -- 1. 基础校验
     IF p_direction IS NULL OR p_direction NOT IN ('in','out') THEN
         RAISE EXCEPTION 'DIRECTION_INVALID|%', COALESCE(p_direction, '?');
@@ -251,14 +256,21 @@ BEGIN
                 -- 不带税的 sale 型发票照旧 ALLOC_INVALID。
                 -- ════════════════════════════════════════════════════════════
                 SELECT i.id, i.code AS doc_code, i.customer_id AS party_id,
-                       CASE WHEN i.kind = 'order'
-                            THEN (SELECT COALESCE(sum(il.amount_ccy), 0) FROM invoice_lines il
-                                   WHERE il.invoice_id = i.id)
+                       -- AP-RECON-1 Batch B:订单发票欠的 = 净额 + 销项税(order_invoice_balance_all,
+                       -- 清单、账龄、敞口、贷项凭证天花板读的同一处)。此前只认 Σ 明细行,
+                       -- 一张带税的订单发票那笔税永远收不进来。
+                       CASE WHEN i.kind = 'order' THEN b.amount_ccy
                             ELSE i.tax_base END AS doc_value,
                        CASE WHEN i.kind = 'order' THEN i.currency ELSE v_base END AS doc_ccy,
-                       CASE WHEN i.kind = 'order' THEN i.fx_rate ELSE 1::numeric END AS doc_fx
+                       CASE WHEN i.kind = 'order' THEN i.fx_rate ELSE 1::numeric END AS doc_fx,
+                       -- AP-RECON-1 Batch B:过账时 1100 上为它记下的本位币 —— 订单发票是净额腿
+                       -- round(Σ行 × 汇率) + 税那条腿 tax_base;sale 型发票的那一笔就是 tax_base。
+                       CASE WHEN i.kind = 'order' THEN b.birth_base
+                            ELSE i.tax_base END AS birth_base,
+                       i.kind AS inv_kind, b.credited_ccy AS credited_ccy
                 INTO v_doc
                 FROM invoices i
+                LEFT JOIN order_invoice_balance_all b ON b.invoice_id = i.id
                 WHERE i.id = v_invoice_id AND i.status = 'issued'
                   AND (i.kind = 'order' OR (i.kind = 'sale' AND i.tax_base > 0));
                 IF NOT FOUND THEN
@@ -269,16 +281,24 @@ BEGIN
                 END IF;
                 v_doc_value := v_doc.doc_value;
                 v_doc_ccy := v_doc.doc_ccy; v_doc_fx := v_doc.doc_fx;
+                v_birth := v_doc.birth_base;
                 v_key := v_invoice_id::text;
 
                 SELECT COALESCE(SUM(pa.allocated_ccy), 0) INTO v_settled
                 FROM payment_allocations pa
                 JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
                 WHERE pa.invoice_id = v_invoice_id;
+                -- AP-RECON-1 Batch B:贷项凭证也在减这张订单发票的欠款 —— order_invoice_balance_all
+                -- (清单、账龄、敞口读的那一处)一直是 金额 − 已收 − 已贷记。只有这里漏了它:
+                -- 开过贷项凭证之后,收款上限仍按没贷记之前算,解除额也就对不上清单。
+                IF v_doc.inv_kind = 'order' THEN
+                    v_settled := v_settled + COALESCE(v_doc.credited_ccy, 0);
+                END IF;
             ELSE
                 SELECT sr.id, ob.code AS doc_code, sr.customer_id AS party_id,
                        round(sr.quantity * sr.unit_price, 2) AS doc_value,
-                       sr.currency AS doc_ccy, sr.fx_rate AS doc_fx
+                       sr.currency AS doc_ccy, sr.fx_rate AS doc_fx,
+                       sr.amount_base AS birth_base
                 INTO v_doc
                 FROM sales_records sr
                 JOIN output_batches ob ON ob.id = sr.output_batch_id
@@ -291,6 +311,7 @@ BEGIN
                 END IF;
                 v_doc_value := v_doc.doc_value;
                 v_doc_ccy := v_doc.doc_ccy; v_doc_fx := v_doc.doc_fx;
+                v_birth := v_doc.birth_base;
                 v_key := v_sale_id::text;
 
                 SELECT COALESCE(SUM(pa.allocated_ccy), 0) INTO v_settled
@@ -385,6 +406,7 @@ BEGIN
             -- 应付额永远对着"当前"批次价值(改价即改欠款)
             v_doc_value := round(v_doc.quantity * v_doc.unit_price, 2);
             v_doc_ccy := v_base; v_doc_fx := 1;  -- FIN-0 起批次价值即本位币
+            v_birth := v_doc_value;
             v_key := v_batch_id::text;
 
             -- 已结 = 收付款核销 + 预付冲抵(B6 起,预付冲抵也在还这张单的应付)
@@ -413,7 +435,8 @@ BEGIN
             -- 四种情况在【调用方能做的事】上没有区别 —— 都是"这张单不能被核销"。
             -- ════════════════════════════════════════════════════════════════
             SELECT fd.id, fd.code AS doc_code, fd.supplier_id AS party_id,
-                   fd.amount_ccy AS doc_value, fd.currency AS doc_ccy, fd.fx_rate AS doc_fx
+                   fd.amount_ccy AS doc_value, fd.currency AS doc_ccy, fd.fx_rate AS doc_fx,
+                   fd.amount_base AS birth_base
             INTO v_doc
             FROM freight_documents fd
             WHERE fd.id = v_freight_id AND fd.payment_status = 'unpaid'
@@ -435,6 +458,7 @@ BEGIN
             END IF;
             v_doc_value := v_doc.doc_value;
             v_doc_ccy := v_doc.doc_ccy; v_doc_fx := v_doc.doc_fx;
+            v_birth := v_doc.birth_base;
             v_key := v_freight_id::text;
 
             SELECT COALESCE(SUM(pa.allocated_ccy), 0) INTO v_settled
@@ -458,7 +482,8 @@ BEGIN
                    -- WHT-1:代扣率来自【债务自己冻下来的那一个】,不在这里重新解析。
                    -- 重新解析 = 第二份实现,而它会在法定税率某天变动之后,
                    -- 让一张旧债务按新税率被代扣 —— 算得出数,没有任何报错。
-                   e.wht_rate_pct AS wht_rate_pct
+                   e.wht_rate_pct AS wht_rate_pct,
+                   e.amount_base + COALESCE(e.tax_base, 0) AS birth_base
             INTO v_doc
             FROM expenses e
             WHERE e.id = v_expense_id AND e.payment_status = 'unpaid' AND e.status = 'posted';
@@ -471,6 +496,7 @@ BEGIN
             END IF;
             v_doc_value := v_doc.doc_value;
             v_doc_ccy := v_doc.doc_ccy; v_doc_fx := v_doc.doc_fx;
+            v_birth := v_doc.birth_base;
             v_key := v_expense_id::text;
 
             SELECT COALESCE(SUM(pa.allocated_ccy), 0) INTO v_settled
@@ -503,7 +529,21 @@ BEGIN
             v_alloc_pay := round(v_alloc_usd * v_doc_rate / v_fx, 2);
         END IF;
         v_alloc_pay_total := v_alloc_pay_total + v_alloc_pay;
-        v_alloc_base := round(v_alloc_usd * v_doc_fx, 2);
+        -- ════════════════════════════════════════════════════════════════════
+        -- AP-RECON-1 Batch B:解除的本位币 = 清单在这一笔【之前】与【之后】显示的差。
+        -- 此前是 round(核销额 × 入账汇率):外币单据部分结清之后,清单(round(剩余 × 汇率))
+        -- 与总账差一分,付清时控制科目上留一分(APRECON1-FOREIGN-TAXED-EXPENSE-CENT)。
+        -- list_open_base 就是清单的那个式子;逐笔相减,总账为这张单剩下的按构造等于清单。
+        -- 本位币单据(汇率 1)两式相同,老路径逐字节不变。预付(v_doc_value 为 NULL)不是
+        -- 在解除一笔应付,照旧按付款口径入 1300,见下。
+        -- ════════════════════════════════════════════════════════════════════
+        IF v_doc_value IS NULL THEN
+            v_alloc_base := round(v_alloc_usd * v_doc_fx, 2);
+        ELSE
+            v_open := round(v_doc_value - v_settled - COALESCE((v_running->>v_key)::numeric, 0), 2);
+            v_alloc_base := list_open_base(v_open, v_doc_value, v_birth, v_doc_fx)
+                          - list_open_base(round(v_open - v_alloc_usd, 2), v_doc_value, v_birth, v_doc_fx);
+        END IF;
         v_base_total := v_base_total + v_alloc_base;
         IF v_po_id IS NOT NULL THEN v_po_base := v_po_base + v_alloc_base; END IF;
 

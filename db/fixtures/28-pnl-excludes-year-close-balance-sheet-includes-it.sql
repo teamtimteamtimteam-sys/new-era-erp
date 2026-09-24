@@ -1,4 +1,5 @@
 -- 28 同一个期间,损益表【剔除】年结分录,资产负债表【包含】它 —— 而两边都自洽
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【为什么值得常设(OPS-16)】这条不对称此前只活在两个页面的注释里,靠"改任何一边
 -- 前先读两边"这句话维持。OPS-16 把两张表搬进数据库(pnl_statement / balance_sheet),
@@ -56,16 +57,16 @@ BEGIN
     VALUES ('fixture-28-none', 'f', 'f', true) RETURNING id INTO r_none;
     INSERT INTO user_roles (user_id, role_id) VALUES (v_user, r_fin), (v_none, r_none);
 
-    -- ── 数据:2027 年整年,本 fixture 自己的三笔 ──────────────────────────
-    -- 用 2027 是为了【与任何引导数据无关】,也不碰 locked_before 之类随月末移动的状态。
+    -- ── 数据:2025 年整年,本 fixture 自己的三笔 ──────────────────────────
+    -- 用 2025 是为了【与任何引导数据无关】,也不碰 locked_before 之类随月末移动的状态。
     INSERT INTO journal_entries (code, entry_date, memo, source_type)
-    VALUES ('FIX28-SALE', '2027-06-15', 'fixture 28 sale', 'sale') RETURNING id INTO e_sale;
+    VALUES ('FIX28-SALE', '2025-06-15', 'fixture 28 sale', 'sale') RETURNING id INTO e_sale;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     VALUES (e_sale, a_cash, v_rev_amt, 0, v_ccy, v_rev_amt, 1),
            (e_sale, a_rev,  0, v_rev_amt, v_ccy, v_rev_amt, 1);
 
     INSERT INTO journal_entries (code, entry_date, memo, source_type)
-    VALUES ('FIX28-COGS', '2027-03-10', 'fixture 28 cost', 'processing_cost') RETURNING id INTO e_cogs;
+    VALUES ('FIX28-COGS', '2025-03-10', 'fixture 28 cost', 'processing_cost') RETURNING id INTO e_cogs;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     VALUES (e_cogs, a_cogs, v_cogs_amt, 0, v_ccy, v_cogs_amt, 1),
            (e_cogs, a_cash, 0, v_cogs_amt, v_ccy, v_cogs_amt, 1);
@@ -73,7 +74,7 @@ BEGIN
     -- 年结:把损益科目冲平,净额落到 3100。落在财年末日 —— 这正是它会掉进
     -- 损益表期间的原因,也是必须剔除它的原因。
     INSERT INTO journal_entries (code, entry_date, memo, source_type)
-    VALUES ('FIX28-CLOSE', '2027-12-31', 'fixture 28 year close', 'year_close') RETURNING id INTO e_close;
+    VALUES ('FIX28-CLOSE', '2025-12-31', 'fixture 28 year close', 'year_close') RETURNING id INTO e_close;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     VALUES (e_close, a_rev,  v_rev_amt, 0, v_ccy, v_rev_amt, 1),
            (e_close, a_cogs, 0, v_cogs_amt, v_ccy, v_cogs_amt, 1),
@@ -83,7 +84,7 @@ BEGIN
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
     -- ══════════ A. 损益表【剔除】年结 ═══════════════════════════════════════
-    p := pnl_statement('2027-01-01', '2027-12-31');
+    p := pnl_statement('2025-01-01', '2025-12-31');
 
     IF (p->>'net_profit')::numeric <> v_net THEN
         RAISE EXCEPTION 'FIXTURE 28A 失败:期间含年结分录时,净利应为 %(=%−%,年结被剔除),实得 % —— 若为 0 就是没有剔除,已结年度的损益表被结转清成了零',
@@ -102,7 +103,7 @@ BEGIN
     END IF;
 
     -- ══════════ B. 资产负债表【包含】年结 ═══════════════════════════════════
-    b := balance_sheet('2027-12-31');
+    b := balance_sheet('2025-12-31');
 
     SELECT COALESCE(sum((x->>'net')::numeric), 0) INTO v_eq_row
       FROM jsonb_array_elements(b->'equity'->'rows') x WHERE x->>'code' = '3100';
@@ -128,7 +129,7 @@ BEGIN
     -- ══════════ D. 不变量:结转搬的是【位置】,不是【金额】═══════════════════
     -- 结转前:钱在"本期损益"合成行,3100 还是空的。
     -- 结转后:钱在 3100,合成行归零。两者之和【相等】—— 这是不变量,不是字面值。
-    b0 := balance_sheet('2027-12-30');   -- 结转分录的前一天
+    b0 := balance_sheet('2025-12-30');   -- 结转分录的前一天
     v_before := (b0->>'current_earnings')::numeric + (b0->'equity'->>'subtotal')::numeric;
     v_after  := (b ->>'current_earnings')::numeric + (b ->'equity'->>'subtotal')::numeric;
 
@@ -153,7 +154,7 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_none), true);
     BEGIN
-        PERFORM pnl_statement('2027-01-01', '2027-12-31');
+        PERFORM pnl_statement('2025-01-01', '2025-12-31');
     EXCEPTION WHEN OTHERS THEN
         v_denied := true;
     END;
@@ -163,7 +164,7 @@ BEGIN
 
     v_denied := false;
     BEGIN
-        PERFORM balance_sheet('2027-12-31');
+        PERFORM balance_sheet('2025-12-31');
     EXCEPTION WHEN OTHERS THEN
         v_denied := true;
     END;

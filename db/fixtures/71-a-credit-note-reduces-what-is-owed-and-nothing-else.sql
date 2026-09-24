@@ -443,7 +443,11 @@ BEGIN
             round(l.amount_ccy - COALESCE(s.settled, 0::numeric), 2) AS open_ccy,
             round((l.amount_ccy - COALESCE(s.settled, 0::numeric)) * i.fx_rate, 2) AS open_base,
             0::numeric AS credited_ccy,
-            0::numeric AS credited_base
+            0::numeric AS credited_base,
+            -- AP-RECON-1 Batch B 追加的三列(只追加;本注入不碰它们 —— 这张单不带税)
+            l.amount_ccy AS net_ccy,
+            0::numeric AS tax_ccy,
+            round(l.amount_ccy * i.fx_rate, 2) AS birth_base
            FROM invoices i
              JOIN LATERAL ( SELECT COALESCE(sum(il.amount_ccy), 0::numeric) AS amount_ccy
                    FROM invoice_lines il WHERE il.invoice_id = i.id) l ON true

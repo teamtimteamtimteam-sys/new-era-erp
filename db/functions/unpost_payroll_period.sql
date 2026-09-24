@@ -35,8 +35,11 @@ BEGIN
         RAISE EXCEPTION 'PAYROLL_DEDUCTIONS_PAID|%', v_p.code;
     END IF;
 
-    -- 冲销分录(冲销日 = 今天);原分录留在账上并被标记为已冲销 —— 不删账
-    v_je := reverse_journal_entry_internal(v_p.journal_entry_id, CURRENT_DATE, 'Payroll reversal ' || v_p.code);
+    -- 冲销分录;原分录留在账上并被标记为已冲销 —— 不删账
+    -- AP-RECON-1 Batch B:冲销日 = 今天与原分录日里较晚的那个。薪资按【发薪日】过账,而发薪日
+    -- 可以晚于今天(28 号过账、月末发薪);撤回一张还没到发薪日的薪资是正当的更正,
+    -- 所以冲销落在发薪日,而不是被 REVERSAL_BEFORE_ORIGINAL 拒掉。
+    v_je := reverse_journal_entry_internal(v_p.journal_entry_id, reversal_date_for(v_p.journal_entry_id), 'Payroll reversal ' || v_p.code);
 
     UPDATE payroll_periods
     SET status = 'draft',

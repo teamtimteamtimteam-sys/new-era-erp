@@ -19,7 +19,7 @@
 -- 解析。fixture 以 postgres 跑,不切角色也能拿到"像是对的"结果;切了角色,断言才
 -- 走过与真实读者相同的门(GRANT SELECT TO authenticated 也因此被顺带验证)。
 --
--- 【日期自设,不继承】(README 第 4 条)。全部业务行落在 2027,与引导数据、
+-- 【日期自设,不继承】(README 第 4 条)。业务行落在 2025(AP-RECON-1 Batch B 从 2027 挪来),与引导数据、
 -- locked_before 之类随月末移动的状态无关;locked_before 在开头显式清空 ——
 -- 成本条目的自动应计触发器会过账,不能让它撞上某个未来月份的锁。
 BEGIN;
@@ -28,6 +28,7 @@ DECLARE
     v_all uuid := gen_random_uuid();   -- 持全部六个模块 view 码
     v_inb uuid := gen_random_uuid();   -- 只持 module.inbound.view
     r_all uuid; r_inb uuid;
+    v_gapday date;   -- AP-RECON-1 Batch B:fx_rate_gap 那一支的过账日(今天或之前最近的工作日)
     v_sup uuid; v_mat uuid; v_ib uuid; v_ar uuid;
     v_mat_asy uuid;   -- ASY-P1:awaiting_assay 专用的物料(只有它声明化验要求)
     v_run uuid; v_po uuid; v_st uuid; v_emp1 uuid; v_emp2 uuid;
@@ -113,11 +114,11 @@ BEGIN
     -- arrival_date 必填不是本支的条件,是 FIN-32:进料触发器把它抄成收货台账行的
     -- business_date,而新台账行的 business_date 有 CHECK(空着整个 INSERT 被拒)。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX30-IB', v_mat, v_sup, 10, 10, '2027-01-08', 'other', 'fixture 30 自带数据') RETURNING id INTO v_ib;
+    VALUES ('ZZFIX30-IB', v_mat, v_sup, 10, 10, '2025-01-08', 'other', 'fixture 30 自带数据') RETURNING id INTO v_ib;
     INSERT INTO assay_results (code, inbound_batch_id, assay_date, weight_basis, result_party)
-    VALUES ('ZZFIX30-AR', v_ib, '2027-01-10', 'as_received', 'ours') RETURNING id INTO v_ar;
+    VALUES ('ZZFIX30-AR', v_ib, '2025-01-10', 'as_received', 'ours') RETURNING id INTO v_ar;
 
-    -- 2 allocation_stale:分摊时点(2027-01-01)早于成本变动时点(2027-02-01)
+    -- 2 allocation_stale:分摊时点(2025-01-01)早于成本变动时点(2025-02-01)
     -- FIN-36:allocation_basis 不再有 schema 默认值 —— 直插就得自己选。
     -- 'metal_value' 是这些 fixture 在 FIN-36 之前拿到的那个值,语义不变。
     -- 【PROC-SUPPORT-1:工序必填,于是【直插】的加工单也要说出工序】
@@ -125,43 +126,50 @@ BEGIN
     -- 选 manual_disassembly 是因为它是转化型:本臂测的是分摊与看板臂,
     -- 换一道状态改变型工序会顺带改变这张单的语义。
     INSERT INTO processing_runs (code, status, allocated_at, allocation_basis, operation_type_code)
-    VALUES ('ZZFIX30-RUN', 'committed', '2027-01-01', 'metal_value', 'manual_disassembly') RETURNING id INTO v_run;
+    VALUES ('ZZFIX30-RUN', 'committed', '2025-01-01', 'metal_value', 'manual_disassembly') RETURNING id INTO v_run;
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, created_at, updated_at)
-    VALUES (v_run, 'electricity', 100, '2027-02-01', '2027-02-01');
+    VALUES (v_run, 'electricity', 100, '2025-02-01', '2025-02-01');
 
     -- 3 po_awaiting_receipt:已确认
     -- FIN-35:fx_rate 不再有默认值 —— 直插就得自己给。本位币恒 1(fx_rate_asof
     -- 对本位币直接返回 1,不查牌价表),所以这里显式写 1 是【记录事实】,不是兜底。
     INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status)
-    VALUES ('ZZFIX30-PO', v_sup, '2027-01-15', v_ccy, 1, 'confirmed') RETURNING id INTO v_po;
+    VALUES ('ZZFIX30-PO', v_sup, '2025-01-15', v_ccy, 1, 'confirmed') RETURNING id INTO v_po;
 
     -- 4 stocktake_open:默认即 open
     INSERT INTO stocktakes (code) VALUES ('ZZFIX30-ST') RETURNING id INTO v_st;
 
     -- 5/6/7 HR 三支
     INSERT INTO employees (code, legal_name, employment_type, work_category, hire_date)
-    VALUES ('ZZFIX30-E1', 'fixture 30 employee', 'full_time', 'office', '2027-01-01')
+    VALUES ('ZZFIX30-E1', 'fixture 30 employee', 'full_time', 'office', '2025-01-01')
     RETURNING id INTO v_emp1;
     INSERT INTO employees (code, legal_name, employment_type, work_category, hire_date)
-    VALUES ('ZZFIX30-E2', 'fixture 30 reviewer', 'full_time', 'office', '2027-01-01')
+    VALUES ('ZZFIX30-E2', 'fixture 30 reviewer', 'full_time', 'office', '2025-01-01')
     RETURNING id INTO v_emp2;
     INSERT INTO leave_requests (code, employee_id, leave_type_code, start_date, end_date, days)
-    VALUES ('ZZFIX30-LR', v_emp1, 'sick', '2027-06-01', '2027-06-01', 1) RETURNING id INTO v_lr;
+    VALUES ('ZZFIX30-LR', v_emp1, 'sick', '2025-06-01', '2025-06-01', 1) RETURNING id INTO v_lr;
     INSERT INTO medical_claims (code, employee_id, claim_date, claim_year, amount_sgd)
-    VALUES ('ZZFIX30-MC', v_emp1, '2027-04-10', 2027, 50) RETURNING id INTO v_mc;
+    VALUES ('ZZFIX30-MC', v_emp1, '2025-04-10', 2025, 50) RETURNING id INTO v_mc;
     -- 试用期评估(annual 要挂 cycle_id —— cycle_shape);submitted 要求评级 + 评语 +
     -- 试用期结论(submitted_shape / probation_outcome_shape 的闸门都在这一档)
     INSERT INTO performance_reviews (employee_id, reviewer_employee_id, review_type,
         period_start, period_end, status, submitted_at, rating_code, summary_text, probation_outcome)
-    VALUES (v_emp1, v_emp2, 'probation', '2027-01-01', '2027-06-30', 'submitted', '2027-07-05',
+    VALUES (v_emp1, v_emp2, 'probation', '2025-01-01', '2025-06-30', 'submitted', '2025-07-05',
             'MEETS', 'fixture 30', 'confirm')
     RETURNING id INTO v_pr;
 
-    -- 8 fx_rate_gap:2027-03-03(周三,工作日)有 USD 过账、无任何一侧牌价。
-    -- 【未来日期是有意的】本支限 rate_date >= CURRENT_DATE - 45,未来日期恒在界内,
-    -- fixture 便不依赖"跑在哪一天"。
+    -- 8 fx_rate_gap:v_gapday(【今天或之前最近的一个工作日】)有 USD 过账、无任何一侧牌价。
+    -- 本支限 rate_date >= CURRENT_DATE - 45,所以这一天必须相对今天。此前用的是 2025-03-03
+    -- (未来日期恒在界内);AP-RECON-1 Batch B 之后分录不许晚于本月末(没有测试开关,
+    -- Tim Q7),于是改成在 fixture 里【算】出来:is_business_day 是全库唯一的工作日定义
+    -- (Tim Batch B Q7:不用裸 CURRENT_DATE —— 那可能是周末或假日,换一种臂)。
+    v_gapday := (SELECT max(g::date) FROM generate_series(CURRENT_DATE - 10, CURRENT_DATE, interval '1 day') g
+                  WHERE is_business_day(g::date));
+    IF v_gapday IS NULL THEN
+        RAISE EXCEPTION 'FIXTURE 30 前提失败:今天之前十天里找不到一个工作日 —— 假日表坏了';
+    END IF;
     INSERT INTO journal_entries (code, entry_date, memo, source_type)
-    VALUES ('ZZFIX30-JE', '2027-03-03', 'fixture 30 fx gap', 'manual') RETURNING id INTO v_je;
+    VALUES ('ZZFIX30-JE', v_gapday, 'fixture 30 fx gap', 'manual') RETURNING id INTO v_je;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     SELECT v_je, a.id, x.d, x.c, 'USD', 100, 1.3
     FROM (VALUES ('1010', 130.0, 0.0), ('4000', 0.0, 130.0)) x(code, d, c)
@@ -170,27 +178,27 @@ BEGIN
     -- 9 bank_unmatched:导入的报表行,未匹配
     INSERT INTO bank_statements (code, bank_account_code, currency, period_start, period_end,
         opening_balance, closing_balance)
-    VALUES ('ZZFIX30-BS', '1000', v_ccy, '2027-05-01', '2027-05-31', 0, 10) RETURNING id INTO v_bs;
+    VALUES ('ZZFIX30-BS', '1000', v_ccy, '2025-05-01', '2025-05-31', 0, 10) RETURNING id INTO v_bs;
     INSERT INTO bank_statement_lines (statement_id, line_no, line_date, amount)
-    VALUES (v_bs, 1, '2027-05-05', 10) RETURNING id INTO v_bl;
+    VALUES (v_bs, 1, '2025-05-05', 10) RETURNING id INTO v_bl;
 
     -- ── OPS-19 追加的六支 ────────────────────────────────────────────────────
     -- 【这几支的日期必须相对 CURRENT_DATE】账龄档与 60 天阈值都是拿 CURRENT_DATE 减出来的,
-    -- 2027 那些【未来】日期会落进 b0_30 而不是 b90_plus。相对日期同时满足 README 第 4 条:
+    -- 固定日期的那些行会落进哪一档取决于跑在哪一天,不是这几支要的。相对日期同时满足 README 第 4 条:
     -- 不继承任何时点状态,自己声明"多久以前"。
 
     -- 10 awaiting_assay:物料要求 cu、而这个批次一份化验都没有(与 assay_unapplied 互斥)
     -- ASY-P1 起用的是【声明了要求的那个物料】v_mat_asy;remaining_qty > 0,
     -- 否则它取不到样、按设计退出这一支。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, arrival_date, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX30-IB2', v_mat_asy, v_sup, 10, 10, '2027-01-09', 'other', 'fixture 30 自带数据') RETURNING id INTO v_ib2;
+    VALUES ('ZZFIX30-IB2', v_mat_asy, v_sup, 10, 10, '2025-01-09', 'other', 'fixture 30 自带数据') RETURNING id INTO v_ib2;
 
     -- 11 batch_unpriced:未计价,且化验【已执行】—— 于是只落进 batch_unpriced 这一支
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, pricing_status, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX30-IB3', v_mat, v_sup, 10, 10, '2027-01-11', 'unpriced', 'other', 'fixture 30 自带数据') RETURNING id INTO v_ib3;
+    VALUES ('ZZFIX30-IB3', v_mat, v_sup, 10, 10, '2025-01-11', 'unpriced', 'other', 'fixture 30 自带数据') RETURNING id INTO v_ib3;
     INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
-    VALUES ('ZZFIX30-AR3', v_ib3, '2027-01-12', now(), 'as_received', 'ours') RETURNING id INTO v_ar3;
+    VALUES ('ZZFIX30-AR3', v_ib3, '2025-01-12', now(), 'as_received', 'ours') RETURNING id INTO v_ar3;
 
     -- 12 ap_over_90:有单价的进料单,到货 200 天前(化验已执行,不污染进料三支)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
@@ -250,7 +258,7 @@ BEGIN
     -- (guard_sales_order_line_confirmed_immutable)。走真实顺序,而不是绕过守卫:
     -- 绕过去也造得出这一行,但那样造出来的单据在现实里不存在。
     INSERT INTO sales_orders (code, customer_id, order_date, currency, fx_rate)
-    VALUES (next_sales_order_code(DATE '2027-03-05'), v_cust2, DATE '2027-03-05', 'USD', 1.25)
+    VALUES (next_sales_order_code(DATE '2025-03-05'), v_cust2, DATE '2025-03-05', 'USD', 1.25)
     RETURNING id INTO v_so;
     INSERT INTO sales_order_lines (sales_order_id, line_no, material_id, quantity, unit_price)
     VALUES (v_so, 1, v_mat2, 10, 10);
@@ -431,7 +439,7 @@ BEGIN
     -- 这一改同时验了边界:14 天不算旧,15 天算。一个写成 >= 的实现在这里当场红。
     UPDATE metal_prices SET price_date = CURRENT_DATE - 14 WHERE id = v_mp;
     UPDATE assay_results SET applied_at = now() WHERE id = v_ar;
-    UPDATE processing_runs SET allocated_at = '2027-03-01' WHERE id = v_run;  -- 晚于成本变动
+    UPDATE processing_runs SET allocated_at = '2025-03-01' WHERE id = v_run;  -- 晚于成本变动
     -- 【claims 要先切回全权限那个人】B 臂把它换成了只持 inbound 的读者,
     -- 而 close_purchase_order 要 module.purchasing.edit —— 不切回来就是
     -- PERMISSION_DENIED,而那与本臂要测的东西毫无关系。
@@ -453,7 +461,7 @@ BEGIN
     UPDATE medical_claims SET status = 'approved' WHERE id = v_mc;
     UPDATE performance_reviews SET status = 'approved' WHERE id = v_pr;
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
-    SELECT 'USD', '2027-03-03', t, 1.3 FROM unnest(ARRAY['tt_buy','tt_sell','mid']) t;
+    SELECT 'USD', v_gapday, t, 1.3 FROM unnest(ARRAY['tt_buy','tt_sell','mid']) t;
     UPDATE bank_statement_lines SET match_status = 'ignored' WHERE id = v_bl;
     -- OPS-19 六支的解除。销售记录【不可改也不可删】(SALE_IMMUTABLE),所以 AR 与
     -- 发票只能靠【收款核销】清掉 —— 那本来就是它们在现实里消失的唯一方式,一笔全额
@@ -462,7 +470,7 @@ BEGIN
     -- 所以这份化验必须真的带着 cu 那一行,否则它解除不了(这正是新那一支的重点:
     -- 一份不含所需金属的化验,不算把那件事做完)。
     INSERT INTO assay_results (code, inbound_batch_id, assay_date, applied_at, weight_basis, result_party)
-    VALUES ('ZZFIX30-AR2', v_ib2, '2027-01-20', now(), 'as_received', 'ours') RETURNING id INTO v_ar;
+    VALUES ('ZZFIX30-AR2', v_ib2, '2025-01-20', now(), 'as_received', 'ours') RETURNING id INTO v_ar;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct)
     VALUES (v_ar, 'cu', 10);                                          -- awaiting_assay 解除
     UPDATE inbound_batches SET pricing_status = 'final' WHERE id = v_ib3;   -- batch_unpriced

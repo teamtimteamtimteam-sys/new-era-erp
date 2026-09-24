@@ -1,4 +1,5 @@
 -- 17 年结:按类型结转(FX 臂抓编号区间)、资产负债科目原样、幂等、
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 关的是 FY2025,不再是 FY2026。关年的分录记在年末日,而分录日期不许晚于本月末(没有测试开关,Tim Q7 / Batch B Q8)—— 一个还没过完的年份关不了,所以整份挪进一个已经过完的年份。
 --    损益表复原、YEAR_CLOSED 点名拒(穿月锁路径)、重开恢复到分毫不差
 --
 -- 为什么值得常设(FIN-23):年结错了,留存收益悄悄错着,账面照样平。六臂:
@@ -30,27 +31,27 @@ BEGIN
     VALUES ('fixture-17', 'fixture', 'fixture', true) RETURNING id INTO v_role;
     INSERT INTO role_permissions (role_id, permission_code) SELECT v_role, code FROM permissions;
     INSERT INTO user_roles (user_id, role_id) VALUES (v_uid, v_role);
-    -- 【SOD-1:2026 年的账是【布景】,不是某个人做的一次自由裁量的调整】
-    -- 年结会把锁推到 2027-01-01,而 SOD_POST_AND_CLOSE 拦的正是"在这个期间里
+    -- 【SOD-1:2025 年的账是【布景】,不是某个人做的一次自由裁量的调整】
+    -- 年结会把锁推到 2026-01-01,而 SOD_POST_AND_CLOSE 拦的正是"在这个期间里
     -- 记过手工凭证的人来关它"。下面这三笔是这一年的账本身,不是谁的调整 ——
     -- 所以它们【没有主语】:claims 留空时 auth.uid() 为 NULL,created_by 落 NULL,
     -- 规矩没有可比的对象。claims 在布景搭完之后才设上,给真正被测的那些动作用。
     -- 本 fixture 测的是年结,不是职责分离;后者由 db/fixtures/127 自己测。
 
-    -- 前提全部显式:财年 12/31、首年不 override、完整记录自 2026-01-01、锁清空
+    -- 前提全部显式:财年 12/31、首年不 override、完整记录自 2025-01-01、锁清空
     UPDATE finance_settings SET locked_before = NULL, fy_end_month = 12, fy_end_day = 31,
-        first_fy_end = NULL, system_start_date = '2026-01-01';
+        first_fy_end = NULL, system_start_date = '2025-01-01';
 
-    -- ── 2026 年的账:收入 + FX 收益;材料成本;房租。全 SGD(重估无外币敞口)──
+    -- ── 2025 年的账:收入 + FX 收益;材料成本;房租。全 SGD(重估无外币敞口)──
     -- 收款 13,000:销售 10,000 + 已实现汇兑收益 3,000(7100 贷方 —— FX 臂的主角)
-    PERFORM post_journal_entry('2026-05-15', 'fixture sale + fx gain', 'manual', NULL, jsonb_build_array(
+    PERFORM post_journal_entry('2025-05-15', 'fixture sale + fx gain', 'manual', NULL, jsonb_build_array(
         jsonb_build_object('account_code','1000','side','debit','currency','SGD','amount_ccy',13000,'fx_rate',1),
         jsonb_build_object('account_code','4000','side','credit','currency','SGD','amount_ccy',10000,'fx_rate',1),
         jsonb_build_object('account_code','7100','side','credit','currency','SGD','amount_ccy',3000,'fx_rate',1)));
-    PERFORM post_journal_entry('2026-06-20', 'fixture material cost', 'manual', NULL, jsonb_build_array(
+    PERFORM post_journal_entry('2025-06-20', 'fixture material cost', 'manual', NULL, jsonb_build_array(
         jsonb_build_object('account_code','5000','side','debit','currency','SGD','amount_ccy',4000,'fx_rate',1),
         jsonb_build_object('account_code','1000','side','credit','currency','SGD','amount_ccy',4000,'fx_rate',1)));
-    PERFORM post_journal_entry('2026-07-10', 'fixture rent', 'manual', NULL, jsonb_build_array(
+    PERFORM post_journal_entry('2025-07-10', 'fixture rent', 'manual', NULL, jsonb_build_array(
         jsonb_build_object('account_code','6000','side','debit','currency','SGD','amount_ccy',1000,'fx_rate',1),
         jsonb_build_object('account_code','1000','side','credit','currency','SGD','amount_ccy',1000,'fx_rate',1)));
 
@@ -60,14 +61,14 @@ BEGIN
 
     -- 硬前置自证:把重估与折旧【跑平】(对线上跑本 fixture 时它们可能欠着;
     -- 空库上是 no-op)。缺 12/31 中间价会让重估预览拒 —— 自插。
-    UPDATE fx_rates SET deleted_at = now() WHERE rate_date = '2026-12-31';
+    UPDATE fx_rates SET deleted_at = now() WHERE rate_date = '2025-12-31';
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
-    VALUES ('USD','2026-12-31','mid',1.30),('USD','2026-12-31','tt_buy',1.30),('USD','2026-12-31','tt_sell',1.30);
-    PERFORM depreciate_fixed_assets('2026-12-31');
-    PERFORM revalue_foreign_balances('2026-12-31');
+    VALUES ('USD','2025-12-31','mid',1.30),('USD','2025-12-31','tt_buy',1.30),('USD','2025-12-31','tt_sell',1.30);
+    PERFORM depreciate_fixed_assets('2025-12-31');
+    PERFORM revalue_foreign_balances('2025-12-31');
 
     -- 月结:锁推过年末(年结【断言】锁位,不动它)
-    PERFORM close_period('2026-12-31');
+    PERFORM close_period('2025-12-31');
 
     -- ── 快照:关年之前 ──────────────────────────────────────────────────────
     -- 当年损益表口径(剔除 year_close —— 与 app/finance/pnl 的口径一致)
@@ -76,7 +77,7 @@ BEGIN
         FROM journal_lines jl JOIN accounts a ON a.id = jl.account_id
         JOIN journal_entries je ON je.id = jl.entry_id
         WHERE a.account_type IN ('revenue','cogs','expense')
-          AND je.entry_date BETWEEN '2026-01-01' AND '2026-12-31'
+          AND je.entry_date BETWEEN '2025-01-01' AND '2025-12-31'
           AND je.source_type IS DISTINCT FROM 'year_close'
         GROUP BY a.code HAVING round(SUM(jl.credit) - SUM(jl.debit), 2) <> 0) t;
     -- 资产负债科目整组快照(3100 除外 —— 它是结转的接收方)
@@ -89,7 +90,7 @@ BEGIN
     SELECT round(COALESCE(SUM(jl.credit) - SUM(jl.debit), 0), 2) INTO v_net_expected
     FROM journal_lines jl JOIN accounts a ON a.id = jl.account_id
     JOIN journal_entries je ON je.id = jl.entry_id
-    WHERE a.account_type IN ('revenue','cogs','expense') AND je.entry_date <= '2026-12-31';
+    WHERE a.account_type IN ('revenue','cogs','expense') AND je.entry_date <= '2025-12-31';
     SELECT round(COALESCE(SUM(jl.credit) - SUM(jl.debit), 0), 2) INTO v_7100_net
     FROM journal_lines jl JOIN accounts a ON a.id = jl.account_id
     WHERE a.code = '7100';
@@ -101,7 +102,7 @@ BEGIN
     FROM journal_lines jl JOIN accounts a ON a.id = jl.account_id WHERE a.code = '3100';
 
     -- ════════════════ A. 关年:每个损益科目恰好清零,3100 = 净结果 ═══════════
-    v_r := close_financial_year('2026-12-31', 'fixture close');
+    v_r := close_financial_year('2025-12-31', 'fixture close');
     IF (v_r->>'net_result')::numeric <> v_net_expected THEN
         RAISE EXCEPTION 'FIXTURE 17A 失败:net_result 应为计算值 %,实得 %', v_net_expected, v_r->>'net_result';
     END IF;
@@ -109,7 +110,7 @@ BEGIN
     SELECT count(*) INTO v_bad FROM (
         SELECT a.code FROM journal_lines jl JOIN accounts a ON a.id = jl.account_id
         JOIN journal_entries je ON je.id = jl.entry_id
-        WHERE a.account_type IN ('revenue','cogs','expense') AND je.entry_date <= '2026-12-31'
+        WHERE a.account_type IN ('revenue','cogs','expense') AND je.entry_date <= '2025-12-31'
         GROUP BY a.code HAVING round(SUM(jl.credit) - SUM(jl.debit), 2) <> 0) q;
     IF v_bad > 0 THEN
         RAISE EXCEPTION 'FIXTURE 17A 失败:关年后仍有 % 个损益科目未清零(编号区间漏科目的味道)', v_bad;
@@ -145,7 +146,7 @@ BEGIN
 
     -- ════════════════ C. 第二次跑:什么都不过账 ═════════════════════════════
     SELECT count(*) INTO v_je_count FROM journal_entries WHERE source_type = 'year_close';
-    v_r := close_financial_year('2026-12-31', 'fixture second run');
+    v_r := close_financial_year('2025-12-31', 'fixture second run');
     IF NOT (v_r->>'already_closed')::boolean OR (v_r->>'journal_code') IS NOT NULL THEN
         RAISE EXCEPTION 'FIXTURE 17C 失败:第二次跑应 already_closed 且不过账,实得 %', v_r::text;
     END IF;
@@ -160,7 +161,7 @@ BEGIN
         FROM journal_lines jl JOIN accounts a ON a.id = jl.account_id
         JOIN journal_entries je ON je.id = jl.entry_id
         WHERE a.account_type IN ('revenue','cogs','expense')
-          AND je.entry_date BETWEEN '2026-01-01' AND '2026-12-31'
+          AND je.entry_date BETWEEN '2025-01-01' AND '2025-12-31'
           AND je.source_type IS DISTINCT FROM 'year_close'
         GROUP BY a.code HAVING round(SUM(jl.credit) - SUM(jl.debit), 2) <> 0) t;
     IF v_pnl_after <> v_pnl_before THEN
@@ -168,25 +169,25 @@ BEGIN
     END IF;
 
     -- ════════════════ E. 穿月锁路径:YEAR_CLOSED 点名拒 ═════════════════════
-    -- reopen_period 把 locked_before 从 2027-01-01 退回(本 fixture 只关过 12 月
+    -- reopen_period 把 locked_before 从 2026-01-01 退回(本 fixture 只关过 12 月
     -- → 退到解除)—— 月锁不再挡道,年闸必须自己站住。这正是它存在的理由。
-    PERFORM reopen_period('2026-12-31', 'fixture: pierce the month lock');
+    PERFORM reopen_period('2025-12-31', 'fixture: pierce the month lock');
     v_ok := false; v_msg := NULL;
     BEGIN
-        PERFORM post_journal_entry('2026-09-15', 'fixture backdated', 'manual', NULL, jsonb_build_array(
+        PERFORM post_journal_entry('2025-09-15', 'fixture backdated', 'manual', NULL, jsonb_build_array(
             jsonb_build_object('account_code','6000','side','debit','currency','SGD','amount_ccy',10,'fx_rate',1),
             jsonb_build_object('account_code','1000','side','credit','currency','SGD','amount_ccy',10,'fx_rate',1)));
     EXCEPTION WHEN OTHERS THEN
         GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
-        v_ok := v_msg LIKE 'YEAR_CLOSED|2026-09-15|2026-12-31%';
+        v_ok := v_msg LIKE 'YEAR_CLOSED|2025-09-15|2025-12-31%';
     END;
     IF NOT v_ok THEN
-        RAISE EXCEPTION 'FIXTURE 17E 失败:月锁退开后,回填 2026 应被 YEAR_CLOSED|2026-09-15|2026-12-31 点名拒,实得:%',
+        RAISE EXCEPTION 'FIXTURE 17E 失败:月锁退开后,回填 2025 应被 YEAR_CLOSED|2025-09-15|2025-12-31 点名拒,实得:%',
             COALESCE(v_msg, '(没有报错 —— 月级重开穿透了已结年度!)');
     END IF;
 
     -- ════════════════ F. 重开年:试算表回到关年前,分毫不差 ═════════════════
-    v_r := reopen_financial_year('2026-12-31', 'fixture: adjust after audit');
+    v_r := reopen_financial_year('2025-12-31', 'fixture: adjust after audit');
     IF (v_r->>'reversal_journal_code') IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 17F 失败:重开没有留下冲销分录';
     END IF;
@@ -212,7 +213,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 17F 失败:重开后试算表净额未回到关年前。前 % 后 %', v_tb_before, v_tb_after;
     END IF;
     -- 重开留痕:行还在、盖了章、记了冲销分录
-    IF NOT EXISTS (SELECT 1 FROM year_closes WHERE year_end = '2026-12-31'
+    IF NOT EXISTS (SELECT 1 FROM year_closes WHERE year_end = '2025-12-31'
                    AND reopened_at IS NOT NULL AND reopen_reason IS NOT NULL
                    AND reversal_journal_id IS NOT NULL) THEN
         RAISE EXCEPTION 'FIXTURE 17F 失败:year_closes 行未正确盖章留痕';

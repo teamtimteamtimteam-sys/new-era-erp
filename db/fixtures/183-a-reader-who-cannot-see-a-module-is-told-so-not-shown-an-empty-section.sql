@@ -1,4 +1,5 @@
 -- 183 看不到某个模块的读者,拿到的是一句【具名的受限】,不是一段空白
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- AUDIT-1 · Tim 的 R4/R5,以及 AUD-1(2026-08-17)那一课的直接延续。
 --
@@ -51,11 +52,11 @@ BEGIN
     RETURNING id INTO v_mat;
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX183-IB', v_mat, v_sup, 100, 100, DATE '2027-03-01', 10, 'other', 'fixture 183 自带数据') RETURNING id INTO v_ib;
+    VALUES ('ZZFIX183-IB', v_mat, v_sup, 100, 100, DATE '2025-03-01', 10, 'other', 'fixture 183 自带数据') RETURNING id INTO v_ib;
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date, stock_status)
-    VALUES (v_ib, 'receipt', 100, DATE '2027-03-01', 'available');
+    VALUES (v_ib, 'receipt', 100, DATE '2025-03-01', 'available');
     INSERT INTO journal_entries (code, entry_date, memo, source_type, source_id, status)
-    VALUES ('ZZFIX183-JE', DATE '2027-03-02', 'fixture 183', 'purchase', v_ib, 'posted')
+    VALUES ('ZZFIX183-JE', DATE '2025-03-02', 'fixture 183', 'purchase', v_ib, 'posted')
     RETURNING id INTO v_je;
 
     -- ══════════ A. 全权限读者看得见全部 ═══════════════════════════════════

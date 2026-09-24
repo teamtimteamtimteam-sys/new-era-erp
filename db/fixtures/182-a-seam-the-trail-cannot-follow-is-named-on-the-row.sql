@@ -1,4 +1,5 @@
 -- 182 轨迹跟不动的那一跳,【写在那一行里】,不是写在文档里
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- AUDIT-1 · Tim 的 R3:「一份藏起自己接缝的轨迹,比一份把接缝画出来的更坏。」
 --
@@ -41,7 +42,7 @@ BEGIN
     -- 甲:【不带】采购单行的批次(线上那一半)
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
         arrival_date, unit_price, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX182-IB', v_mat, v_sup, 100, 100, DATE '2027-02-01', 10, 'other', 'fixture 182 自带数据') RETURNING id INTO v_ib;
+    VALUES ('ZZFIX182-IB', v_mat, v_sup, 100, 100, DATE '2025-02-01', 10, 'other', 'fixture 182 自带数据') RETURNING id INTO v_ib;
 
     -- ══════════ A. no_purchase_order 标在收货那一行上 ══════════════════════
     EXECUTE 'SET LOCAL ROLE authenticated';
@@ -55,7 +56,7 @@ BEGIN
 
     -- A-注入:补上采购单行,标记必须【消失】(否则它是恒真的,等于没说)
     INSERT INTO purchase_orders (code, supplier_id, order_date, status, currency, fx_rate)
-    VALUES ('ZZFIX182-PO', v_sup, DATE '2027-01-20', 'confirmed',
+    VALUES ('ZZFIX182-PO', v_sup, DATE '2025-01-20', 'confirmed',
             (SELECT code FROM currencies WHERE is_base LIMIT 1), 1) RETURNING id INTO v_po;
     INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, quantity, unit)
     VALUES (v_po, 1, v_mat, 100, 'kg') RETURNING id INTO v_pol;
@@ -79,7 +80,7 @@ BEGIN
     -- deleted_at 会被 guard_soft_delete_provenance 拒掉(SOFT_DELETE_NO_DIRECT_UPDATE),
     -- 而那条守卫是对的:一次没有经办人、没有理由的软删,会被读成「没有人为此负责」。
     -- 所以本臂造的"被冲销的加工单"与产线上真的那一支【走的是同一条路】。
-    v_run := commit_processing_run(DATE '2027-02-10', 'fixture 182 run', 0,
+    v_run := commit_processing_run(DATE '2025-02-10', 'fixture 182 run', 0,
         jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'quantity_consumed', 50)),
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 40)), 'weight',
         NULL, NULL, 'manual_disassembly');
@@ -105,7 +106,7 @@ BEGIN
 
     -- ══════════ C. polymorphic_source:分录经多态解析够到批次 ═══════════════
     INSERT INTO journal_entries (code, entry_date, memo, source_type, source_id, status)
-    VALUES ('ZZFIX182-JE', DATE '2027-02-11', 'fixture 182', 'purchase', v_ib, 'posted')
+    VALUES ('ZZFIX182-JE', DATE '2025-02-11', 'fixture 182', 'purchase', v_ib, 'posted')
     RETURNING id INTO v_je;
     EXECUTE 'SET LOCAL ROLE authenticated';
     SELECT seams INTO v_seams FROM batch_audit_trail WHERE source_id = v_je AND batch_id = v_ib;

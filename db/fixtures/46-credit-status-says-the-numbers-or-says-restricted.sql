@@ -1,4 +1,5 @@
 -- 46 信用状况:有限额就把三个数说全;无权【拿不到行】而不是拿到 0;必拒时说得出必拒
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【判别臂是 C:无权者拿到的是"没有行",不是 0】0 在信用面板上读作
 -- "没有限额、余额充足"—— 这是这个管控最危险的一种失败,比不显示更坏。
@@ -46,7 +47,7 @@ BEGIN
 
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code) VALUES ('ZZFIX46-M','f', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
-    VALUES ('ZZFIX46-OB', v_mat, 10000, 10000, '2027-11-01') RETURNING id INTO ob;
+    VALUES ('ZZFIX46-OB', v_mat, 10000, 10000, '2025-11-01') RETURNING id INTO ob;
 
     INSERT INTO customers (code, legal_name, country, credit_limit_base)
     VALUES ('ZZFIX46-ROOM','has room','SG',10000) RETURNING id INTO c_room;
@@ -64,8 +65,8 @@ BEGIN
         format('{"sub":"%s","role":"authenticated"}', u_ok), true);
 
     -- 各造一笔敞口:ROOM 2,000(限额 10,000 → 余额 8,000);OVER 1,500(限额 1,000 → 越限)
-    PERFORM record_output_sale(ob, 100, 20, v_base, NULL, c_room, '2027-11-05'::date, NULL, 'manual', NULL);
-    PERFORM record_output_sale(ob, 100, 15, v_base, NULL, c_over, '2027-11-05'::date, NULL, 'manual', NULL);
+    PERFORM record_output_sale(ob, 100, 20, v_base, NULL, c_room, '2025-11-05'::date, NULL, 'manual', NULL);
+    PERFORM record_output_sale(ob, 100, 15, v_base, NULL, c_over, '2025-11-05'::date, NULL, 'manual', NULL);
     UPDATE customers SET credit_limit_base = 1000 WHERE id = c_over;   -- 事后定下的限额
 
     -- ══════════ A. 有限额有余额:三个数都对得上 ═══════════════════════════════
@@ -91,8 +92,10 @@ BEGIN
     DECLARE v_denied boolean := false;
     BEGIN
         BEGIN
-            PERFORM record_output_sale(ob, 1, 1, v_base, NULL, c_over, '2027-11-05'::date, NULL, 'manual', NULL);
-        EXCEPTION WHEN OTHERS THEN v_denied := true;
+            PERFORM record_output_sale(ob, 1, 1, v_base, NULL, c_over, '2025-11-05'::date, NULL, 'manual', NULL);
+        -- AP-RECON-1 Batch B(Tim Q10):拒绝要是【那一条】—— 此前 WHEN OTHERS 收下任何错误,
+        -- 一张日期在未来的销售会被日期闸拒掉,而这一臂照样绿(空转)。
+        EXCEPTION WHEN OTHERS THEN v_denied := (SQLERRM LIKE 'CREDIT_LIMIT_EXCEEDED|%');
         END;
         IF NOT v_denied THEN
             RAISE EXCEPTION 'FIXTURE 46B 失败:视图说必拒,服务端却放行了 —— 面板会禁一个本可以按的钮';

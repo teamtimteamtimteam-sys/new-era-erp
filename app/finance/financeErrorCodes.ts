@@ -5,6 +5,8 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // 抛出的错误码(端口自 processing/errorCodes.ts)。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,交给共用兜底 lib/machine-text.ts。
 const FINANCE_ERROR_CODES = new Set([
+    // AP-RECON-1 Batch B:三条日期规矩(Tim AP-RECON-1 Q7)—— 每一条都成句子。
+    'POSTING_DATE_BEYOND_CURRENT_MONTH', 'DOCUMENT_DATE_IN_FUTURE', 'REVERSAL_BEFORE_ORIGINAL',
     'JE_NOT_FOUND', 'JE_ALREADY_REVERSED', 'PERIOD_LOCKED',
     // PAY-REQ-1:付款与转账的分录不许从分录页冲 —— 冲付款走冲销申请,冲转账走转账本身。
     'JE_REVERSE_USE_SOURCE_PATH',

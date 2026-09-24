@@ -1,4 +1,5 @@
 -- 105 一条设备行只报销一次 —— 而"一次"说的是【行】,不是【机器】
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【这份 fixture 自带全部数据】重建库里没有任何业务数据(线上 fixed_assets 也是
 -- 0 行)。每一臂自己造供应商 / 物料 / 资产卡 / 采购单 / 支出,【不从别处借】,
@@ -70,7 +71,7 @@ BEGIN
     VALUES ('ZZFIX105-S1', 'fixture 105 supplier 1', 'SG', 'active', 'goods_supplier')
     RETURNING id INTO v_sup;
 
-    v_res := record_expense(DATE '2027-01-05', v_exp_acct, 1234, v_ccy, NULL, 'unpaid',
+    v_res := record_expense(DATE '2025-01-05', v_exp_acct, 1234, v_ccy, NULL, 'unpaid',
         NULL, v_sup, NULL, 'fixture 105 ordinary expense', NULL, NULL);
     SELECT purchase_order_line_id, status INTO v_link, v_status
       FROM expenses WHERE id = (v_res->>'expense_id')::uuid;
@@ -86,13 +87,13 @@ BEGIN
     RAISE NOTICE 'fixture 105 · 进入 %', 'F1(b)';
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZFIX105-M', 'fixture 105 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
-    v_res := create_purchase_order(v_sup, DATE '2027-01-10', DATE '2027-03-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'fixture 105 material PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'estimated_unit_price', 10)));
     v_po := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO v_line_mat FROM purchase_order_lines WHERE purchase_order_id = v_po;
-    PERFORM receive_inbound_batch_against_po(v_mat, v_sup, 40, DATE '2027-02-01',
+    PERFORM receive_inbound_batch_against_po(v_mat, v_sup, 40, DATE '2025-02-01',
         'fixture 105 receipt', v_po, v_line_mat, NULL, NULL);
     SELECT count(*) INTO v_n FROM inbound_batches
      WHERE purchase_order_line_id = v_line_mat AND deleted_at IS NULL;
@@ -108,7 +109,7 @@ BEGIN
 
     -- 定金 30,000 建卡(新建模式)。【这一笔不可能带采购单行】—— 行上的 asset_id
     -- 是外键,资产必须先存在,行才建得出来。所以链接只可能落在【追加】那一笔上。
-    v_res := record_expense(DATE '2027-01-05', '1500', 30000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-01-05', '1500', 30000, v_ccy, NULL, 'unpaid', NULL,
         v_sup2, NULL, 'fixture 105 deposit',
         jsonb_build_object('description', 'fixture 105 press', 'useful_life_months', 120), NULL);
     SELECT id INTO v_asset FROM fixed_assets WHERE expense_id = (v_res->>'expense_id')::uuid;
@@ -116,7 +117,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 105F2 前提失败:资本支出没有生成资产卡';
     END IF;
 
-    v_res := create_purchase_order(v_sup2, DATE '2027-01-10', DATE '2027-03-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup2, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'fixture 105 equipment PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
                                              'estimated_unit_price', 100000)));
@@ -125,7 +126,7 @@ BEGIN
       FROM purchase_order_lines WHERE purchase_order_id = v_po;
 
     -- 发票 70,000,追加模式,挂在那条行上
-    v_res := record_expense(DATE '2027-02-05', '1500', 70000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-02-05', '1500', 70000, v_ccy, NULL, 'unpaid', NULL,
         v_sup2, NULL, 'fixture 105 machine invoice',
         jsonb_build_object('asset_id', v_asset), NULL, v_line);
     v_exp1 := (v_res->>'expense_id')::uuid;
@@ -151,7 +152,7 @@ BEGIN
     -- ① 第二笔,按【码】拒
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_expense(DATE '2027-02-06', '1500', 70000, v_ccy, NULL, 'unpaid', NULL,
+        PERFORM record_expense(DATE '2025-02-06', '1500', 70000, v_ccy, NULL, 'unpaid', NULL,
             v_sup2, NULL, 'fixture 105 duplicate invoice',
             jsonb_build_object('asset_id', v_asset), NULL, v_line);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
@@ -184,7 +185,7 @@ BEGIN
     END IF;
 
     -- 行确实重新可计费:再记一笔,成功
-    v_res := record_expense(DATE '2027-02-07', '1500', 70000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-02-07', '1500', 70000, v_ccy, NULL, 'unpaid', NULL,
         v_sup2, NULL, 'fixture 105 re-billed invoice',
         jsonb_build_object('asset_id', v_asset), NULL, v_line);
     v_exp2 := (v_res->>'expense_id')::uuid;
@@ -210,7 +211,7 @@ BEGIN
     -- (这一点是本刀做故障注入时发现的,不是设计时想到的,所以写在这里。)
     v_denied := false; v_msg := NULL; v_hint := NULL;
     BEGIN
-        PERFORM record_expense(DATE '2027-02-08', '1500', 500, v_ccy, NULL, 'unpaid', NULL,
+        PERFORM record_expense(DATE '2025-02-08', '1500', 500, v_ccy, NULL, 'unpaid', NULL,
             v_sup, NULL, 'fixture 105 expense on a material line',
             jsonb_build_object('asset_id', v_asset), NULL, v_line_mat);
     EXCEPTION WHEN OTHERS THEN
@@ -229,7 +230,7 @@ BEGIN
     BEGIN
         INSERT INTO expenses (code, expense_date, account_code, amount_ccy, currency, fx_rate,
                               amount_base, payment_status, bank_account_code, purchase_order_line_id)
-        VALUES ('ZZFIX105-DIRECT-1', DATE '2027-02-08', v_exp_acct, 500, v_ccy, 1, 500,
+        VALUES ('ZZFIX105-DIRECT-1', DATE '2025-02-08', v_exp_acct, 500, v_ccy, 1, 500,
                 'paid', '1000', v_line_mat);
     EXCEPTION WHEN OTHERS THEN
         v_denied := true; v_msg := SQLERRM;
@@ -245,13 +246,13 @@ BEGIN
     END IF;
 
     -- (c) 支出的资产 ≠ 行上的资产
-    v_res := record_expense(DATE '2027-01-06', '1500', 5000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-01-06', '1500', 5000, v_ccy, NULL, 'unpaid', NULL,
         v_sup2, NULL, 'fixture 105 second machine',
         jsonb_build_object('description', 'fixture 105 machine B', 'useful_life_months', 60), NULL);
     SELECT id INTO v_asset_b FROM fixed_assets WHERE expense_id = (v_res->>'expense_id')::uuid;
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_expense(DATE '2027-02-09', '1500', 900, v_ccy, NULL, 'unpaid', NULL,
+        PERFORM record_expense(DATE '2025-02-09', '1500', 900, v_ccy, NULL, 'unpaid', NULL,
             v_sup2, NULL, 'fixture 105 machine B invoice on machine A line',
             jsonb_build_object('asset_id', v_asset_b), NULL, v_line);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
@@ -296,11 +297,11 @@ BEGIN
     -- 每一条自己建一台机器 + 一张单,免得前一条的处置影响后一条。
 
     -- (1) SUPPLIER_MISMATCH:单是 v_sup 的,支出说的是 v_sup_other
-    v_res := record_expense(DATE '2027-01-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-01-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'f5-1 machine',
         jsonb_build_object('description', 'f5-1', 'useful_life_months', 60), NULL);
     SELECT id INTO v_asset FROM fixed_assets WHERE expense_id = (v_res->>'expense_id')::uuid;
-    v_res := create_purchase_order(v_sup, DATE '2027-01-10', DATE '2027-03-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'f5-1 PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
                                              'estimated_unit_price', 100)));
@@ -308,7 +309,7 @@ BEGIN
      WHERE purchase_order_id = (v_res->>'purchase_order_id')::uuid;
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_expense(DATE '2027-02-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
+        PERFORM record_expense(DATE '2025-02-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
             v_sup_other, NULL, 'f5-1 wrong supplier',
             jsonb_build_object('asset_id', v_asset), NULL, v_line);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
@@ -322,7 +323,7 @@ BEGIN
     --     那不是"不一致",是"没人说过";两件事,两个名字。
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_expense(DATE '2027-02-05', '1500', 100, v_ccy, NULL, 'paid', '1000',
+        PERFORM record_expense(DATE '2025-02-05', '1500', 100, v_ccy, NULL, 'paid', '1000',
             NULL, NULL, 'f5-2 no supplier',
             jsonb_build_object('asset_id', v_asset), NULL, v_line);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
@@ -333,11 +334,11 @@ BEGIN
     END IF;
 
     -- (3) PO_NOT_APPROVED:自己建一套,把审批状态设成 pending
-    v_res := record_expense(DATE '2027-01-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-01-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'f5-3 machine',
         jsonb_build_object('description', 'f5-3', 'useful_life_months', 60), NULL);
     SELECT id INTO v_asset FROM fixed_assets WHERE expense_id = (v_res->>'expense_id')::uuid;
-    v_res := create_purchase_order(v_sup, DATE '2027-01-10', DATE '2027-03-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'f5-3 PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
                                              'estimated_unit_price', 100)));
@@ -350,7 +351,7 @@ BEGIN
     PERFORM set_config('evoltrya.po_status_ctx', '0', true);
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_expense(DATE '2027-02-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
+        PERFORM record_expense(DATE '2025-02-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
             v_sup, NULL, 'f5-3 unapproved',
             jsonb_build_object('asset_id', v_asset), NULL, v_line);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
@@ -361,11 +362,11 @@ BEGIN
     END IF;
 
     -- (4) PO_CANCELLED:自己建一套,走真正的作废门
-    v_res := record_expense(DATE '2027-01-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-01-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'f5-4 machine',
         jsonb_build_object('description', 'f5-4', 'useful_life_months', 60), NULL);
     SELECT id INTO v_asset FROM fixed_assets WHERE expense_id = (v_res->>'expense_id')::uuid;
-    v_res := create_purchase_order(v_sup, DATE '2027-01-10', DATE '2027-03-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'f5-4 PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
                                              'estimated_unit_price', 100)));
@@ -374,7 +375,7 @@ BEGIN
     PERFORM cancel_purchase_order(v_po, 'fixture 105 cancels it');
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_expense(DATE '2027-02-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
+        PERFORM record_expense(DATE '2025-02-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
             v_sup, NULL, 'f5-4 cancelled',
             jsonb_build_object('asset_id', v_asset), NULL, v_line);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
@@ -385,11 +386,11 @@ BEGIN
     END IF;
 
     -- (5) PO_NOT_FOUND:【"存在"= 没有被软删】。行还在,单已软删。
-    v_res := record_expense(DATE '2027-01-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-01-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'f5-5 machine',
         jsonb_build_object('description', 'f5-5', 'useful_life_months', 60), NULL);
     SELECT id INTO v_asset FROM fixed_assets WHERE expense_id = (v_res->>'expense_id')::uuid;
-    v_res := create_purchase_order(v_sup, DATE '2027-01-10', DATE '2027-03-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'f5-5 PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
                                              'estimated_unit_price', 100)));
@@ -404,7 +405,7 @@ BEGIN
     PERFORM set_config('evoltrya.soft_delete_ctx', '0', true);
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM record_expense(DATE '2027-02-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
+        PERFORM record_expense(DATE '2025-02-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
             v_sup, NULL, 'f5-5 soft-deleted',
             jsonb_build_object('asset_id', v_asset), NULL, v_line);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
@@ -418,17 +419,17 @@ BEGIN
     RAISE NOTICE 'fixture 105 · 进入 %', 'F6';
     -- 自建一套并正常报销一次,然后【直插】一条撞行的支出。
     -- 直插绕过 record_expense 的推导,所以拒它的只可能是那条索引本身。
-    v_res := record_expense(DATE '2027-01-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-01-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'f6 machine',
         jsonb_build_object('description', 'f6', 'useful_life_months', 60), NULL);
     SELECT id INTO v_asset FROM fixed_assets WHERE expense_id = (v_res->>'expense_id')::uuid;
-    v_res := create_purchase_order(v_sup, DATE '2027-01-10', DATE '2027-03-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'f6 PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
                                              'estimated_unit_price', 100)));
     v_po := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO v_line FROM purchase_order_lines WHERE purchase_order_id = v_po;
-    v_res := record_expense(DATE '2027-02-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-02-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'f6 invoice',
         jsonb_build_object('asset_id', v_asset), NULL, v_line);
     v_exp := (v_res->>'expense_id')::uuid;
@@ -437,7 +438,7 @@ BEGIN
     BEGIN
         INSERT INTO expenses (code, expense_date, account_code, amount_ccy, currency, fx_rate,
                               amount_base, payment_status, bank_account_code, purchase_order_line_id)
-        VALUES ('ZZFIX105-DIRECT-2', DATE '2027-02-06', v_exp_acct, 100, v_ccy, 1, 100,
+        VALUES ('ZZFIX105-DIRECT-2', DATE '2025-02-06', v_exp_acct, 100, v_ccy, 1, 100,
                 'paid', '1000', v_line);
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;

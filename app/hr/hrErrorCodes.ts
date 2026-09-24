@@ -5,6 +5,8 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // 抛出的错误码。端口自 paymentErrorCodes.ts。
 // 不在集合内的是真正未编码的 DB 错误,交给共用兜底 lib/machine-text.ts。
 const HR_ERROR_CODES = new Set([
+    // AP-RECON-1 Batch B:三条日期规矩(Tim AP-RECON-1 Q7)—— 每一条都成句子。
+    'POSTING_DATE_BEYOND_CURRENT_MONTH', 'DOCUMENT_DATE_IN_FUTURE',
     'CLAIM_YEAR_BEFORE_SYSTEM_START',
     'SYSTEM_START_NOT_SET', 'CARRY_FORWARD_BEFORE_SYSTEM_START',
     'EXPENSE_DATE_REQUIRED',

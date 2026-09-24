@@ -43,7 +43,8 @@ BEGIN
     -- 冲其分录(冲销日 = 今天;期间锁在 post_journal_entry 内生效)。
     -- 【镜像的是原分录本身】,所以两个方向自动各自对称:进料侧冲掉 1200/5000,
     -- 出境侧冲掉 6300 —— 这个函数一个科目码都不需要知道。
-    v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, CURRENT_DATE,
+    -- AP-RECON-1 Batch B:冲销日 = 今天与原分录日里较晚的那个(reversal_date_for;冲销不许早于原分录)
+    v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, reversal_date_for(v_orig.journal_entry_id),
         'Freight reversal ' || v_orig.code);
 
     -- 【状态只能从这里改】—— 守卫认这个标记,PostgREST 够不着它。

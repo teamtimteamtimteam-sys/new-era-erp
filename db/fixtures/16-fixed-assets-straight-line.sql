@@ -32,19 +32,21 @@ BEGIN
         RETURNING id INTO v_sup;
 
     -- ════════════════════════════════════════════════════════════════════════
-    -- A. 购置 3/1,在役 3/16(三月 31 天)。成本 1000 SGD,残值 0,寿命 10 个月
+    -- A. 购置 2025-03-01,在役 3/16(三月 31 天)。成本 1000 SGD,残值 0,寿命 10 个月
+    --    (AP-RECON-1 Batch B:A/B/C/E 从 2026–2028 挪进真实的过去 —— 折旧与处置的分录日期
+    --     不许晚于本月末,没有测试开关;C/E 压进 2026-01…2026-08,仍然都在 10 个月寿命之后。)
     --    → 月折旧 100。期末 3/31 应提 = 100 × 16/31 = 51.6129… → 51.61。
     --    【如果从购置日起算会得 100】—— 两种实现差一倍,断言分得开。
     -- ════════════════════════════════════════════════════════════════════════
-    v_r := record_expense('2026-03-01', '1500', 1000, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
+    v_r := record_expense('2025-03-01', '1500', 1000, 'SGD', NULL, 'unpaid', NULL, v_sup, NULL, NULL,
         jsonb_build_object('description', 'Fixture press A', 'useful_life_months', 10,
-                           'in_service_date', '2026-03-16'));
+                           'in_service_date', '2025-03-16'));
     v_asset := (v_r->>'asset_id')::uuid;
     IF v_asset IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 16A 前提失败:资本支出未生成台账行';
     END IF;
 
-    v_r := depreciate_fixed_assets('2026-03-31');
+    v_r := depreciate_fixed_assets('2025-03-31');
     SELECT COALESCE(SUM(amount_base), 0) INTO v_dep FROM fixed_asset_depreciation WHERE asset_id = v_asset;
     IF v_dep <> 51.61 THEN
         RAISE EXCEPTION 'FIXTURE 16A 失败:3/16 在役、期末 3/31 应提 51.61(= 100 × 16/31,从在役日按天;从购置日起算会是 100),实得 %', v_dep;
@@ -52,7 +54,7 @@ BEGIN
 
     -- ── B. 同期第二次跑:应提 0,不过账、不加行 ─────────────────────────────
     SELECT count(*) INTO v_je_count FROM journal_entries WHERE source_type = 'depreciation';
-    v_r := depreciate_fixed_assets('2026-03-31');
+    v_r := depreciate_fixed_assets('2025-03-31');
     IF (v_r->>'total_posted')::numeric <> 0 OR (v_r->>'journal_code') IS NOT NULL THEN
         RAISE EXCEPTION 'FIXTURE 16B 失败:同期第二次跑应提 0 且不过账,实得 total_posted=% journal=%',
             v_r->>'total_posted', v_r->>'journal_code';
@@ -63,13 +65,13 @@ BEGIN
     END IF;
 
     -- ── C. 跑到寿命尽头之后:封顶在 成本−残值,永不越过 ─────────────────────
-    --    A 的资产残值 0 → 封顶 1000。2027-06-30 已远超 10 个月寿命。
-    v_r := depreciate_fixed_assets('2027-06-30');
+    --    A 的资产残值 0 → 封顶 1000。寿命在 2026-01-16 走完,2026-01-31 之后应恰好封顶。
+    v_r := depreciate_fixed_assets('2026-01-31');
     SELECT COALESCE(SUM(amount_base), 0) INTO v_dep FROM fixed_asset_depreciation WHERE asset_id = v_asset;
     IF v_dep <> 1000 THEN
         RAISE EXCEPTION 'FIXTURE 16C 失败:寿命尽头累计折旧应恰为 成本−残值 = 1000,实得 %', v_dep;
     END IF;
-    v_r := depreciate_fixed_assets('2027-12-31');
+    v_r := depreciate_fixed_assets('2026-03-31');
     SELECT COALESCE(SUM(amount_base), 0) INTO v_dep FROM fixed_asset_depreciation WHERE asset_id = v_asset;
     IF v_dep <> 1000 THEN
         RAISE EXCEPTION 'FIXTURE 16C 失败:封顶后继续跑不得越过 1000,实得 %', v_dep;
@@ -106,7 +108,7 @@ BEGIN
     --    A 的资产:成本 1000,累计已封顶 1000。卖 150(SGD 户):
     --    借 1000(银行 150 + 1510 1000)…贷 1500 1000,差额 150 贷 7200(益)。
     -- ════════════════════════════════════════════════════════════════════════
-    v_r := dispose_fixed_asset(v_asset, '2027-12-31', 150, '1000', 'fixture sale');
+    v_r := dispose_fixed_asset(v_asset, '2026-06-30', 150, '1000', 'fixture sale');
     IF (v_r->>'cost_relieved')::numeric <> 1000 OR (v_r->>'accum_relieved')::numeric <> 1000
        OR (v_r->>'gain_loss')::numeric <> 150 THEN
         RAISE EXCEPTION 'FIXTURE 16E 失败:处置应解除成本 1000/累计 1000、损益 +150,实得 %', v_r::text;
@@ -127,7 +129,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 16E 失败:资产未标记 disposed';
     END IF;
     -- 已处置资产不再计提:再跑一次,累计不动
-    v_r := depreciate_fixed_assets('2028-06-30');
+    v_r := depreciate_fixed_assets('2026-08-31');
     SELECT COALESCE(SUM(amount_base), 0) INTO v_dep FROM fixed_asset_depreciation WHERE asset_id = v_asset;
     IF v_dep <> 1000 THEN
         RAISE EXCEPTION 'FIXTURE 16E 失败:已处置资产继续被计提,累计 %', v_dep;

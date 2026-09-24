@@ -1,4 +1,5 @@
 -- 42 发票按【单据币种】开:客户账单上的数 = 数量 × 单价,与汇率无关
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【判别臂是 A:汇率 ≠ 1】INV-1 之前,发票页与 PDF 拿 invoices.currency 去标
 -- *_base 的数。汇率恰好为 1 时两者相等 —— 线上 INV-2026-0002 就这么侥幸对上,
@@ -49,20 +50,20 @@ BEGIN
     INSERT INTO customers (code, legal_name, country, payment_terms_days)
     VALUES ('ZZFIX42-C', 'fixture 42 customer', 'SG', 30) RETURNING id INTO v_cust;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
-    VALUES ('ZZFIX42-OB', v_mat, 1000, 1000, '2027-09-01') RETURNING id INTO ob;
+    VALUES ('ZZFIX42-OB', v_mat, 1000, 1000, '2025-09-01') RETURNING id INTO ob;
 
     -- 【汇率 1.25,不是 1】—— A 臂的全部判别力在这里
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
-    VALUES ('USD', '2027-09-05', 'tt_buy', 1.25);
+    VALUES ('USD', '2025-09-05', 'tt_buy', 1.25);
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u), true);
 
     -- 500 kg × 12 USD/kg = 6,000.00 USD(客户要付的);本位币 7,500.00(记账的)
     v_sale := record_output_sale(ob, 500, 12, 'USD', NULL, v_cust,
-                                 '2027-09-05'::date, NULL, 'manual', NULL);
+                                 '2025-09-05'::date, NULL, 'manual', NULL);
     v_inv  := create_invoice(v_cust, ARRAY[(v_sale->>'sale_id')::uuid],
-                             '2027-09-05'::date, NULL, NULL);
+                             '2025-09-05'::date, NULL, NULL);
     v_inv_id := (v_inv->>'invoice_id')::uuid;
 
     -- ══════════ A. 账单上的数是单据币种的,且【不等于】本位币的数 ═══════════

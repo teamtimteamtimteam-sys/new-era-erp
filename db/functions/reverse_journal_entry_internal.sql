@@ -29,6 +29,14 @@ BEGIN
     IF v_orig.status <> 'posted' OR v_orig.reversed_by IS NOT NULL THEN
         RAISE EXCEPTION 'JE_ALREADY_REVERSED|%', v_orig.code;
     END IF;
+    -- AP-RECON-1 Batch B(Tim AP-RECON-1 Q7):【冲销不许早于原分录】FRT-2027-0001…0003 的冲销
+    -- 按 CURRENT_DATE 记在 2026-08-20,原件却在 2027-09-05 —— 任何截在两者之间的 as-at 报表
+    -- 只看得见冲销那一条腿(gl_control_reconciliation 因此少算 3,703.68)。
+    -- 由系统代填冲销日的七个调用点走 reversal_date_for(今天与原分录日里较晚的那个);
+    -- 由人给日期的调用点,给了一个早于原分录的日子就在这里按名拒。
+    IF p_reversal_date < v_orig.entry_date THEN
+        RAISE EXCEPTION 'REVERSAL_BEFORE_ORIGINAL|%|%|%', v_orig.code, p_reversal_date, v_orig.entry_date;
+    END IF;
 
     -- 行全部翻边(debit↔credit),原币金额/汇率原样 → USD 侧必然精确对冲。
     -- 【GST-2:tax_code 一起翻过去】不抄它,一笔冲销掉的采购会永远留在 box5。

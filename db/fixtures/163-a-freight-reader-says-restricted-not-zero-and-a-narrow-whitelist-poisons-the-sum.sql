@@ -1,4 +1,5 @@
 -- 163 运费读取器:无权是【受限】不是 0 —— 而白名单开窄一格会毒化材料成本
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --     PROC-COST-2
 --
 -- 【这份 fixture 自带全部数据】重建库里没有业务数据(README 第 2 条)。
@@ -43,7 +44,7 @@ DECLARE
     v_edit   uuid := gen_random_uuid();   -- 只有 module.finance.edit + module.finance.view(ROLE-1:分摊的最小调用者)
     r_all uuid; r_proc uuid; r_inb uuid; r_oth uuid; r_edit uuid;
     v_ccy text; v_sup uuid; v_fwd uuid; v_mat uuid; v_matout uuid;
-    v_ib uuid; v_run1 uuid; v_run2 uuid; v_d date := DATE '2027-12-06';
+    v_ib uuid; v_run1 uuid; v_run2 uuid; v_d date := DATE '2025-12-06';
     v_x numeric; v_m numeric;
 BEGIN
     SELECT code INTO v_ccy FROM currencies WHERE is_base;

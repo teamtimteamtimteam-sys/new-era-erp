@@ -56,6 +56,10 @@ BEGIN
     IF p_expense_date IS NULL THEN
         RAISE EXCEPTION 'JE_LINE_INVALID|entry_date';
     END IF;
+    -- AP-RECON-1 Batch B(Tim AP-RECON-1 Q7):一张费用单记的是【已经发生】的供应,日期晚于今天按名拒。
+    IF p_expense_date > CURRENT_DATE THEN
+        RAISE EXCEPTION 'DOCUMENT_DATE_IN_FUTURE|expense|%|%', p_expense_date, CURRENT_DATE;
+    END IF;
     SELECT code, is_active, account_type INTO v_account
     FROM accounts WHERE code = p_account_code;
     IF NOT FOUND THEN

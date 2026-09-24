@@ -18,6 +18,8 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // 的文案在 wht.errors。两套各自独立,与 expense.errors 的处置逐字相同 ——
 // 见 expenseErrorCodes.ts 抬头。
 const WHT_ERROR_CODES = new Set([
+    // AP-RECON-1 Batch B:三条日期规矩(Tim AP-RECON-1 Q7)—— 每一条都成句子。
+    'POSTING_DATE_BEYOND_CURRENT_MONTH', 'REVERSAL_BEFORE_ORIGINAL', 'DOCUMENT_DATE_IN_FUTURE',
     // AP-RECON-1:清单与总账那一刀加的拒绝 —— 成句子。
     'EXPENSE_WHT_WITH_GST',
     // ── record_expense:裁定 ────────────────────────────────────────────────

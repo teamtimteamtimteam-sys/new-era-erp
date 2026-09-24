@@ -1,4 +1,5 @@
 -- 156 销售状态变成字典之后,行为一个字没变 —— 而它仍然【只】答销售那个问题
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --     PROC-WIRE-1A(R5 活下来的那一半)
 --
 -- 【这份 fixture 自带全部数据】重建库里没有业务数据(README 第 2 条)。
@@ -23,7 +24,7 @@ DECLARE
     v_user uuid := gen_random_uuid();
     r_all uuid; v_ccy text; v_sup uuid; v_cust uuid;
     v_mat uuid; v_ob uuid; v_ob2 uuid; v_ib uuid; v_run uuid;
-    v_d date := DATE '2027-08-03';
+    v_d date := DATE '2025-08-03';
     v_n int; v_denied boolean; v_msg text; v_state text; v_rem numeric;
     v_codes text[] := ARRAY['库存中','部分售出','已售罄'];
     v_code text;

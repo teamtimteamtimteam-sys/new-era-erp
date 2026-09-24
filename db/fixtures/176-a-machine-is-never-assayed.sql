@@ -1,4 +1,5 @@
 -- 176 一台机器永远不会被化验 —— 而"用不上的选项"必须在【两道闸】上都拒
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【钉的是 Tim 用系统时发现的那个缺陷】开一张设备采购单,付款里程碑的下拉里
 -- 给的是材料那一套,其中 AFTER ASSAY 【选得中】。一个用不上的选项比一个缺失的
@@ -48,7 +49,7 @@ BEGIN
     VALUES ('ZZFIX176-M', 'fixture 176 material', 'battery_material', true, 'black_mass', 'end_of_life')
     RETURNING id INTO v_mat;
 
-    v_res := record_expense(DATE '2027-01-05', '1500', 400000, v_ccy, NULL, 'unpaid', NULL,
+    v_res := record_expense(DATE '2025-01-05', '1500', 400000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 176 machine',
         jsonb_build_object('description', 'fixture 176 discharger', 'useful_life_months', 120), NULL);
     SELECT id INTO v_asset FROM fixed_assets WHERE expense_id = (v_res->>'expense_id')::uuid;
@@ -74,7 +75,7 @@ BEGIN
 
     -- ══════════ B · 判别力:post_assay 在【材料单】上必须收下 ════════════════
     -- 【先跑这一臂】它证明闸是有判别力的,而不是一律拒绝。
-    v_res := create_purchase_order(v_sup, DATE '2027-01-10', DATE '2027-03-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'fixture 176 material PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'estimated_unit_price', 10)),
@@ -93,7 +94,7 @@ BEGIN
     -- ══════════ A · 门上那一道:设备单 + post_assay → 按名拒 ═════════════════
     v_denied := false; v_msg := NULL;
     BEGIN
-        v_res := create_purchase_order(v_sup, DATE '2027-01-11', DATE '2027-04-01', v_ccy, NULL,
+        v_res := create_purchase_order(v_sup, DATE '2025-01-11', DATE '2025-04-01', v_ccy, NULL,
             NULL, NULL, 'fixture 176 equipment PO (bad milestone)',
             jsonb_build_array(jsonb_build_object('asset_id', v_asset)),
             jsonb_build_array(jsonb_build_object('seq', 1, 'label', '化验后', 'percentage', 100,
@@ -107,7 +108,7 @@ BEGIN
 
     -- ══════════ E · 正路要通:设备单收得下设备里程碑 ═════════════════════════
     -- Tim 的真实条款:50% 预付 / 40% 交付 / 10% 培训完成。
-    v_res := create_purchase_order(v_sup, DATE '2027-01-12', DATE '2027-04-01', v_ccy, NULL,
+    v_res := create_purchase_order(v_sup, DATE '2025-01-12', DATE '2025-04-01', v_ccy, NULL,
         NULL, NULL, 'fixture 176 equipment PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset)),
         jsonb_build_array(
@@ -155,7 +156,7 @@ BEGIN
     po_empty := gen_random_uuid();
     INSERT INTO purchase_orders (id, code, supplier_id, order_date, currency, fx_rate,
                                  estimated_total_ccy, status, approval_status)
-    VALUES (po_empty, 'ZZFIX176-PO-EMPTY', v_sup, DATE '2027-01-13', v_ccy, 1, 0,
+    VALUES (po_empty, 'ZZFIX176-PO-EMPTY', v_sup, DATE '2025-01-13', v_ccy, 1, 0,
             'draft', 'approved');
     v_denied := false; v_msg := NULL;
     BEGIN

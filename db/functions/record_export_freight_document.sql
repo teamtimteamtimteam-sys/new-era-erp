@@ -31,6 +31,10 @@ BEGIN
     IF p_doc_date IS NULL THEN
         RAISE EXCEPTION 'FREIGHT_DATE_REQUIRED';
     END IF;
+    -- AP-RECON-1 Batch B(Tim AP-RECON-1 Q7):运费单记的是【已经发生】的一笔运费(FRT-2027-0001…0003 就是没有这道闸时进的真账,还占掉了 2027 年的无缝编号),日期晚于今天按名拒。
+    IF p_doc_date > CURRENT_DATE THEN
+        RAISE EXCEPTION 'DOCUMENT_DATE_IN_FUTURE|export_freight|%|%', p_doc_date, CURRENT_DATE;
+    END IF;
     IF p_supplier_id IS NULL THEN
         RAISE EXCEPTION 'FREIGHT_SUPPLIER_REQUIRED';
     END IF;

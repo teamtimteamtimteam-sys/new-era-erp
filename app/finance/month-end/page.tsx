@@ -47,7 +47,7 @@ export default async function MonthEndPage({
     const baseCurrency = await getBaseCurrency()
     const t = await getTranslations()
 
-    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, depPreviewRes, midRes, nonBaseCcyRes, allocRes] = await Promise.all([
+    const [gapsRes, periodRes, accrualRes, revalRes, settingsRes, depPreviewRes, midRes, nonBaseCcyRes, allocRes, reconRes] = await Promise.all([
         supabase.from('fx_rate_gaps').select('rate_date, currency, missing_types')
             .gte('rate_date', start).lte('rate_date', end),
         // FIX-2a:见 /finance/payroll-payments —— 挂 hr.view,关账的人读不到。
@@ -74,6 +74,9 @@ export default async function MonthEndPage({
         // 月结前必须看见,否则存货和销货成本就带着这个差额结账。
         supabase.from('processing_run_allocation_status')
             .select('code, allocated_at, last_cost_change, is_stale, safe_to_reallocate'),
+        // AP-RECON-1 Batch B(Tim Q11):清单 ↔ 总账。全账、不截日 —— 它说的是【此刻】,
+        // 不是所选月份;它【不】挡锁期(挡不挡关账是以后的决定),所以永远不是 blocked。
+        supabase.rpc('list_ledger_reconciliation'),
     ])
 
     // 【每一步的信号都必须真的读到】读不出来就抛,不许把失败渲染成 'done' ——
@@ -110,6 +113,12 @@ export default async function MonthEndPage({
     const depDelta = depPreview?.total_delta ?? 0
     const depHasAssets = (depPreview?.rows ?? []).length > 0
     const locked = !!settings?.locked_before && settings.locked_before > end
+    const recon = mustOne(reconRes, 'list_ledger_reconciliation') as unknown as
+        { sides: { side: string; refusal: string | null; unexplained_base: number | null }[] } | null
+    const reconSide = (side: string) => recon?.sides.find((x) => x.side === side)
+    const reconRefused = (recon?.sides ?? []).some((x) => x.refusal !== null)
+    const reconAgrees = !!recon && !reconRefused
+        && recon.sides.every((x) => Number(x.unexplained_base) === 0)
 
     type Step = { key: string; state: 'done' | 'outstanding' | 'blocked' | 'na'; detail: string; href: string }
     const steps: Step[] = [
@@ -171,6 +180,17 @@ export default async function MonthEndPage({
             detail: revalued ? '' : midMissing
                 ? t('finance.monthEnd.blockedByMid', { 0: end, 1: midMissingCcy.join(', ') })
                 : '',
+        },
+        {
+            // AP-RECON-1 Batch B:每一边的未解释数,链到明细页。【只有 done / outstanding】——
+            // 它不挡 close_period(Tim Q11),所以这里画不出 blocked;答不上来(没有
+            // data.view_prices)时是 outstanding 并照直说出来,而不是一个假的 done。
+            key: 'listVsLedger', href: '/finance/list-vs-ledger',
+            state: reconAgrees ? 'done' : 'outstanding',
+            detail: reconRefused ? t('finance.monthEnd.listVsLedgerRestricted')
+                 : t('finance.monthEnd.listVsLedgerDetail', {
+                       ap: formatAmount(Number(reconSide('ap')?.unexplained_base ?? 0), baseCurrency),
+                       ar: formatAmount(Number(reconSide('ar')?.unexplained_base ?? 0), baseCurrency) }),
         },
         {
             // FA-1a:折旧那道闸【现在是真的】—— close_period 会按名拒

@@ -9386,22 +9386,43 @@ await 上,只有冒烟有按名字的兜底清扫,探针没有。
 错的是【记进去的那个数】,不是清单。**去处:Tim 裁定 AP-RECON-1 之后【立刻】单独一刀**(`docs/forward-queue.md` 头条)。
 那一刀要回答:税从总额里拆(净 = 总 / (1 + 税率))之后,两笔既有的记错了的单子怎么处置(测试数据,多半是记下不修)。
 
-## APRECON1-FOREIGN-TAXED-EXPENSE-CENT —— 外币带税费用单一次付清时,2000 上可以剩一分钱(AP-RECON-1,2026-09-24)
+## ~~APRECON1-FOREIGN-TAXED-EXPENSE-CENT~~ —— 【已关闭:AP-RECON-1 Batch B,2026-09-24】外币单据结清时控制科目上留一分钱
 
-挂账时 2000 贷 `round(净×汇率) + round(税×汇率)`(两条腿,`record_expense` 为借贷平衡刻意拆开);
-付清时 `record_payment_internal` 借 2000 `round((净+税)×汇率)`(一条核销)。两者可以差一分:
-fixture 212 A2 那组数(USD 10.04 + 0.90,牌价 1.2345)记 12.39 + 1.11 = **13.50**,一次付清借 **13.51**。
-单据闭合、清单归零,2000 上留 −0.01。**线上 0 张外币带税费用单**(`postgres` 读 `expenses`:7 张未付的全是 SGD 或无税)。
-清单那一侧 Batch A 已经对齐(未结时直接取存下的两腿之和,fixture 212 A2 钉住);**付款那一侧留给 Batch B** ——
-它的常设勾稽 fixture 要逐条过账路径断言 清单 = 总账,这一分钱正是它要逼出来的那一类。修法候选:闭合那一笔核销取【剩余的存下本位币】而不是重乘。
+**关掉它的是一条更一般的修法,不是只修这一种单据。** 这一分钱的根子是:清单显示 round(剩余 × 汇率),
+而核销解除 round(核销额 × 汇率) —— 两个取整之和可以不等于整体的取整。于是不只是外币带税费用单:
+**任何外币单据部分结清之后,清单与总账都可能差一分**(fixture 213 B / A5 / C2 / C8 各给了一组会差的数)。
+修法:新函数 `list_open_base` 就是清单那个式子;`record_payment_internal` 与 `create_credit_note` 的解除额
+改成"清单在这一笔之前与之后显示的差"—— 逐笔相减,总账为一张单剩下的按构造等于清单,付清时恰好归零。
+`customer_statement_data` 的核销额随之改读 `allocated_base`(它现在就是解除额)。本位币单据两式相同,逐字节不变。
+**线上 0 张部分结清的外币单据受影响**;修法只作用于以后的核销。行为断言:db/fixtures/213(B、A5–A7、C2–C4、C7–C11g)。
 
 ## APRECON1-GL-CONTROL-RECON-HIDES-DEFECTS —— `gl_control_reconciliation` 的三个分项把缺陷吸进去了(AP-RECON-1 grilling,2026-09-24)
 
 它按【机制】分类(起单 / 结算 / 重估),而不是按【已知的残留】。于是在它报 `reconciled = true` 的同时,
 应付的"起单差异" 48,854.98 里装着:49,204.00 的切换前单据 + (−4,032.00)注销仍欠钱的收货 + (−20.70)带税费用的税(活缺陷)
 + 3,703.68 的 2027 运费原件(它截在"今天",原件在未来、冲销件在过去)—— 四项之和逐分等于 48,854.98。
-**它的表头(2026-08-28)写着差额"逐分钱解释干净",那句话不成立。** 去处:AP-RECON-1 **Batch B**(Tim Q8:
-签名与键不动、表头改正、新的常设勾稽另起一支函数、管理包那一版的改基排进队列)。
+**AP-RECON-1 Batch B(2026-09-24)之后还剩什么:**
+* 表头那句"逐分钱解释干净"【已改正】(镜像抬头,函数体一字未动 —— Tim Q8:签名与键不动)。
+* "有没有没人解释过的差"这个问题【已经有自己的函数】:`list_ledger_reconciliation`(全账、不截日,只认残留 + 重估 + 挂账三种具名的差)。
+  月结页读的是它,不是这一支。
+* **仍然开着的:** 这一支本身的分类法不变 —— 它报 `reconciled = true` 的意思仍然只是"差额按机制分完了"。
+  管理包(`management_packs` 冻着的那一版)读它的三个键;把管理包改基到新勾稽是队列里的单独一件
+  (`docs/forward-queue.md`)。删除条件:管理包改基落地,且 /finance 首页那一块要么改读新勾稽、要么写明它答的是另一个问题。
+
+## APRECON1B-CASH-DOORS-DATE-RULE —— 六扇出钱的门只有"不晚于本月末",没有"不晚于今天"(AP-RECON-1 Batch B,2026-09-24)
+
+Tim Batch B Q6:业务单据日期晚于今天按名拒(`DOCUMENT_DATE_IN_FUTURE`)这一条,落在 费用 · 收付款 · 运费 · 出口运费 ·
+sale 型发票 · 订单发票 · 加工应计转费用 七个门上。**另外六扇门也是"钱离开银行",今天只受 `assert_posting_allowed`
+的"不晚于本月末"约束:** `pay_payroll_lines` · `pay_payroll_cpf` · `pay_payroll_deductions` · `remit_processing_costs` ·
+`remit_wht_internal` · `record_bank_transfer_internal`。也就是说,在本月之内给它们一个明天的日子,它们照收。
+**为什么这一刀不做:** 把它们加进来会让 32 份之外的 fixture 也要挪(没有量过),而 Tim 裁定排进以后单独一刀。
+去处:`docs/forward-queue.md`。删除条件:六扇门各自按名拒明天,并有 fixture 逐门撞一次。
+
+## APRECON1B-CHECK-DOES-NOT-BLOCK-CLOSE —— 清单 ↔ 总账有未解释的差,照样能关账(AP-RECON-1 Batch B,2026-09-24)
+
+月结页那一步只显示"完成 / 待办"与两边的未解释数,**不挡 `close_period`**(Tim AP-RECON-1 Q11:挡不挡关账是以后的决定)。
+所以一个带着未解释差额的月份今天锁得进去。**这是一次刻意的留白,不是遗漏** —— 记在这里是为了让下一个看见
+"未解释 ≠ 0 还关了账"的人知道它是怎么来的。删除条件:Tim 裁定挡或不挡,且落地。
 
 ## APRECON1-PAYMENT-REQUEST-SNAPSHOTS-THE-AMOUNT —— 付款申请冻住的是提交那一刻的核销额(AP-RECON-1,2026-09-24)
 

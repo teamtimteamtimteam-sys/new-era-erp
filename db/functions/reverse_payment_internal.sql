@@ -35,7 +35,8 @@ BEGIN
     END IF;
 
     -- 冲其分录(冲销日 = 今天;期间锁在 post_journal_entry 内生效)
-    v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, CURRENT_DATE, 'Payment reversal ' || v_orig.code);
+    -- AP-RECON-1 Batch B:冲销日 = 今天与原分录日里较晚的那个(reversal_date_for;冲销不许早于原分录)
+    v_je := reverse_journal_entry_internal(v_orig.journal_entry_id, reversal_date_for(v_orig.journal_entry_id), 'Payment reversal ' || v_orig.code);
 
     -- 镜像收付款单(现金退回),挂冲销分录,不带核销行
     v_mirror_code := fin_next_payment_code(CASE WHEN v_orig.direction = 'in' THEN document_type_prefix('payment_receipt') ELSE document_type_prefix('payment_out') END, CURRENT_DATE);

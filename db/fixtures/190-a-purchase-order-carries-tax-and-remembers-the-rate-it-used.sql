@@ -1,4 +1,5 @@
 -- 190 采购单携带税:税码在行上、税额存下来、而存下来的数【不随税率漂移】
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- ═══════════════════════════════════════════════════════════════════════════
 -- 【为什么这一份存在】FA-PO-1 查清了 GST-2 把税放在费用/发票那一层,采购单上
@@ -28,7 +29,7 @@
 --
 -- 【注入放在最后】三次,各打一条断言的要害。
 -- 【自带数据】重建库里没有业务数据:自己建供应商、物料、采购单。
--- 日期落在 2027(README 第 4 条);税率按【下单日】解析,所以要 2027 年有 TX 税率
+-- 日期落在 2025(README 第 4 条);税率按【下单日】解析,所以要 2025 年有 TX 税率
 -- —— 引导数据里 TX 9% 自 2024-01-01 起 effective_to 为 NULL,覆盖得到。
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN;
@@ -84,7 +85,7 @@ BEGIN
 
     -- ══════════ A · 本地供应商:标准税率 ═══════════════════════════════════
     RAISE NOTICE 'fixture 190 · 进入 A';
-    v_res := create_purchase_order(s_tx, DATE '2027-03-10', DATE '2027-05-01', v_ccy, NULL,
+    v_res := create_purchase_order(s_tx, DATE '2025-03-10', DATE '2025-05-01', v_ccy, NULL,
         NULL, NULL, 'fixture 190 TX order',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'estimated_unit_price', 10)));
@@ -94,10 +95,10 @@ BEGIN
     IF v_net <> 1000 THEN
         RAISE EXCEPTION 'FIXTURE 190A 失败:净额应当是 1000(100 × 10),实得 %', v_net;
     END IF;
-    -- 9% 是【下单日 2027-03-10 生效的那一个】,由 tax_rate_for 解析,不是写死的
-    IF v_tax <> round(v_net * tax_rate_for('TX', DATE '2027-03-10') / 100.0, 2) THEN
+    -- 9% 是【下单日 2025-03-10 生效的那一个】,由 tax_rate_for 解析,不是写死的
+    IF v_tax <> round(v_net * tax_rate_for('TX', DATE '2025-03-10') / 100.0, 2) THEN
         RAISE EXCEPTION 'FIXTURE 190A 失败:税额应当 = 净额 × 下单日的 TX 税率,实得 %(净额 % · 税率 %)',
-            v_tax, v_net, tax_rate_for('TX', DATE '2027-03-10');
+            v_tax, v_net, tax_rate_for('TX', DATE '2025-03-10');
     END IF;
     IF v_tax <= 0 THEN
         RAISE EXCEPTION 'FIXTURE 190A 失败:本地标准税率的单据税额应当为正,实得 % —— 一个零会让 A 臂变成一次空转', v_tax;
@@ -112,7 +113,7 @@ BEGIN
 
     -- ══════════ B · OP 供应商:零新加坡 GST,而且单据说得出来 ═══════════════
     RAISE NOTICE 'fixture 190 · 进入 B';
-    v_res := create_purchase_order(s_op, DATE '2027-03-11', DATE '2027-05-01', v_ccy, NULL,
+    v_res := create_purchase_order(s_op, DATE '2025-03-11', DATE '2025-05-01', v_ccy, NULL,
         NULL, NULL, 'fixture 190 OP order',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'estimated_unit_price', 10)));
@@ -145,7 +146,7 @@ BEGIN
     RAISE NOTICE 'fixture 190 · 进入 C';
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM create_purchase_order(s_none, DATE '2027-03-12', DATE '2027-05-01', v_ccy, NULL,
+        PERFORM create_purchase_order(s_none, DATE '2025-03-12', DATE '2025-05-01', v_ccy, NULL,
             NULL, NULL, 'fixture 190 unset order',
             jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                                  'estimated_unit_price', 10)));
@@ -156,7 +157,7 @@ BEGIN
             COALESCE(v_msg, '(收下了)');
     END IF;
     -- 而【本行显式给码】仍然开得出来 —— 拒的是"没有人回答过",不是"这家供应商不能下单"
-    v_res := create_purchase_order(s_none, DATE '2027-03-12', DATE '2027-05-01', v_ccy, NULL,
+    v_res := create_purchase_order(s_none, DATE '2025-03-12', DATE '2025-05-01', v_ccy, NULL,
         NULL, NULL, 'fixture 190 unset but line-coded',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'estimated_unit_price', 10, 'tax_code', 'ZP')));
@@ -176,7 +177,7 @@ BEGIN
             v_tax_before, v_tax;
     END IF;
     -- 【而新开的单据按新税率算】—— 少了这一句,上面那个"没动"可能只是因为根本没在算
-    v_res := create_purchase_order(s_tx, DATE '2027-03-13', DATE '2027-05-01', v_ccy, NULL,
+    v_res := create_purchase_order(s_tx, DATE '2025-03-13', DATE '2025-05-01', v_ccy, NULL,
         NULL, NULL, 'fixture 190 after rate change',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'estimated_unit_price', 10)));
@@ -216,7 +217,7 @@ BEGIN
     -- ══════════ F · 费用那条路与采购单这条路,对得上分 ═════════════════════
     RAISE NOTICE 'fixture 190 · 进入 F';
     -- 同样的净额(1000)、同样的税码(TX)、同样的日期 —— 两条路必须给同一个税
-    v_exp := record_expense(DATE '2027-03-10', '6100', 1000, v_ccy, NULL, 'unpaid', NULL,
+    v_exp := record_expense(DATE '2025-03-10', '6100', 1000, v_ccy, NULL, 'unpaid', NULL,
                             s_tx, NULL, 'fixture 190 parity', NULL, NULL, NULL, 'TX');
     -- 【expenses 只存本位币的税额(tax_base)】而采购单行存的是【单据币种】的。
     -- 本 fixture 全程用本位币开单,所以 fx = 1,两者可比 —— 这一句写下来,
@@ -258,7 +259,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 190 注入1 失败:在 tax_amount_for 里没找到那条算式的原文 —— 这个注入什么也没改';
     END IF;
     EXECUTE v_inj;
-    v_res := create_purchase_order(s_tx, DATE '2027-06-10', DATE '2027-08-01', v_ccy, NULL,
+    v_res := create_purchase_order(s_tx, DATE '2025-06-10', DATE '2025-08-01', v_ccy, NULL,
         NULL, NULL, 'fixture 190 injection 1',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'estimated_unit_price', 10)));
@@ -272,7 +273,7 @@ BEGIN
     -- ══════════ 注入 2:让 OP 也走标准税率 → B 臂必须变红 ═══════════════════
     RAISE NOTICE 'fixture 190 · 注入 2';
     UPDATE tax_rates SET rate_pct = 9 WHERE tax_code = 'OP' AND effective_to IS NULL;
-    v_res := create_purchase_order(s_op, DATE '2027-06-11', DATE '2027-08-01', v_ccy, NULL,
+    v_res := create_purchase_order(s_op, DATE '2025-06-11', DATE '2025-08-01', v_ccy, NULL,
         NULL, NULL, 'fixture 190 injection 2',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'estimated_unit_price', 10)));
@@ -288,7 +289,7 @@ BEGIN
     UPDATE suppliers SET default_tax_code = 'TX' WHERE id = s_none;
     v_denied := false;
     BEGIN
-        PERFORM create_purchase_order(s_none, DATE '2027-06-12', DATE '2027-08-01', v_ccy, NULL,
+        PERFORM create_purchase_order(s_none, DATE '2025-06-12', DATE '2025-08-01', v_ccy, NULL,
             NULL, NULL, 'fixture 190 injection 3',
             jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                                  'estimated_unit_price', 10)));

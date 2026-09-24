@@ -1,4 +1,5 @@
 -- fixture 211 —— 银行转账与代扣税缴纳,钱离开之前也要先批(PAY-REQ-1 · Batch B,2026-09-23)
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2030 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- Tim 的裁定(Q15,Batch B grilling Q2–Q4):行内转账与其冲销、代扣税缴纳与其冲销 ——
 -- 财务提,CFO 批每一张,财务执行;分录只在执行那一刻过账;提单人永远不能批。
@@ -25,9 +26,9 @@ DECLARE
     u_none uuid := gen_random_uuid();   -- 什么码都没有
     r_fin uuid; r_l1 uuid; r_l2 uuid; r_none uuid;
     v_base text; v_acct text; v_usd text;
-    d date := DATE '2030-04-01';
-    d_pay date := DATE '2030-04-10';
-    v_month date := DATE '2030-04-01';
+    d date := DATE '2025-04-01';
+    d_pay date := DATE '2025-04-10';
+    v_month date := DATE '2025-04-01';
     v_res jsonb; v_req uuid; v_req2 uuid; v_req3 uuid; v_req4 uuid; v_req5 uuid; v_req6 uuid;
     v_tid uuid; v_wid uuid; v_eid uuid;
     v_je integer; v_je2 integer; v_n integer; v_m integer; v_amt numeric; v_unrem numeric;
@@ -163,6 +164,10 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'PAYMENT_REQUEST_TAKES_NO_RATE|%'); END;
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 211B9 失败:转账执行时收了一个汇率(两边金额申请上就定了),实得 %', COALESCE(v_msg, '(转了)'); END IF;
+    -- AP-RECON-1 Batch B(Tim Q10):B8/B10 的"不默认今天"只有在转账日【不是今天】时才证得出来。
+    IF d_pay = CURRENT_DATE THEN
+        RAISE EXCEPTION 'FIXTURE 211B10 失败(空转):转账日恰好是今天 —— 分不开"用了给的日子"与"默认成今天"';
+    END IF;
     v_res := pay_payment_request(v_req, d_pay, NULL);
     SELECT status, result_transfer_id, result_journal_entry_id INTO v_st, v_tid, v_eid FROM payment_requests WHERE id = v_req;
     IF v_st <> 'paid' OR v_tid IS NULL OR v_eid IS NULL

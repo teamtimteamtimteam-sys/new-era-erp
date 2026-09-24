@@ -94,13 +94,17 @@ BEGIN
         -- 发票在不在只看 status。三处都要按 D 回推,而【视图接不了参数】——
         -- 这正是本刀存在的理由本身,在第二支上再出现一次。
         -- 算术本身逐列同源,任何一边改了另一边必须跟着改,两处注释互指。
+        -- AP-RECON-1 Batch B:金额 = 净额 + 销项税、已贷记含税、open_base 走 list_open_base
+        -- (未结时 = 过账的两条腿之和)—— 与 order_invoice_balance_all 同一刀改。
         SELECT NULL::uuid, i.code, i.customer_id, c.legal_name,
                i.issue_date, i.due_date,
-               round(l.amount_ccy * i.fx_rate, 2),
-               i.currency, l.amount_ccy,
+               round((l.amount_ccy + l.tax_ccy) * i.fx_rate, 2),
+               i.currency, round(l.amount_ccy + l.tax_ccy, 2),
                round(COALESCE(s.settled, 0), 2),
-               round(l.amount_ccy - COALESCE(s.settled, 0) - COALESCE(cn.credited, 0), 2),
-               round((l.amount_ccy - COALESCE(s.settled, 0) - COALESCE(cn.credited, 0)) * i.fx_rate, 2),
+               round(l.amount_ccy + l.tax_ccy - COALESCE(s.settled, 0) - COALESCE(cn.credited, 0), 2),
+               list_open_base(round(l.amount_ccy + l.tax_ccy - COALESCE(s.settled, 0) - COALESCE(cn.credited, 0), 2),
+                              round(l.amount_ccy + l.tax_ccy, 2),
+                              round(l.amount_ccy * i.fx_rate, 2) + COALESCE(i.tax_base, 0), i.fx_rate),
                (v_as_of - i.issue_date),
                aging_bucket(v_as_of - i.issue_date),
                i.id, i.code, 'invoice'::text,
@@ -110,7 +114,9 @@ BEGIN
           FROM invoices i
           LEFT JOIN customers c ON c.id = i.customer_id
           JOIN LATERAL (
-                SELECT COALESCE(sum(il.amount_ccy), 0) AS amount_ccy
+                SELECT COALESCE(sum(il.amount_ccy), 0) AS amount_ccy,
+                       COALESCE(sum(CASE WHEN il.tax_code IS NULL THEN 0
+                                         ELSE tax_amount_for(il.amount_ccy, il.tax_rate_pct) END), 0) AS tax_ccy
                   FROM invoice_lines il WHERE il.invoice_id = i.id
           ) l ON true
           LEFT JOIN LATERAL (
@@ -126,7 +132,8 @@ BEGIN
           LEFT JOIN LATERAL (
                 -- 贷项凭证有自己的业务日(note_date),所以它照 D 截断,
                 -- 与收款同一条:D 之后开的贷项凭证不往回渗。
-                SELECT sum(cl.amount) AS credited
+                SELECT sum(cl.amount + CASE WHEN cl.tax_code IS NULL THEN 0
+                                            ELSE tax_amount_for(cl.amount, cl.tax_rate_pct) END) AS credited
                   FROM credit_note_lines cl
                   JOIN credit_notes cc ON cc.id = cl.credit_note_id
                  WHERE cc.invoice_id = i.id AND cc.note_date <= v_as_of

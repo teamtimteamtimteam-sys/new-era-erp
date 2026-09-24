@@ -1,4 +1,5 @@
 -- 29 冲销对的【两条腿都算】—— 现金流量表不按 status 过滤
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【为什么值得常设(OPS-17)】冲销对 = 原分录 status='reversed' + 一张 status='posted'
 -- 的等额反向分录。只留 posted 会【丢原分录、留冲销分录】,净额刚好错成 -原分录。
@@ -49,14 +50,14 @@ BEGIN
 
     -- ── 原分录:付款 —— 现金减少 ────────────────────────────────────────────
     INSERT INTO journal_entries (code, entry_date, memo, source_type)
-    VALUES ('FIX29-PAY', '2027-05-10', 'fixture 29 payment', 'payment') RETURNING id INTO e_orig;
+    VALUES ('FIX29-PAY', '2025-05-10', 'fixture 29 payment', 'payment') RETURNING id INTO e_orig;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     VALUES (e_orig, a_ap,   v_amt, 0, v_ccy, v_amt, 1),
            (e_orig, a_cash, 0, v_amt, v_ccy, v_amt, 1);
 
     -- ── 冲销分录:等额反向,status 保持 'posted' ─────────────────────────────
     INSERT INTO journal_entries (code, entry_date, memo, source_type)
-    VALUES ('FIX29-REV', '2027-05-12', 'fixture 29 reversal', 'payment') RETURNING id INTO e_rev;
+    VALUES ('FIX29-REV', '2025-05-12', 'fixture 29 reversal', 'payment') RETURNING id INTO e_rev;
     INSERT INTO journal_lines (entry_id, account_id, debit, credit, currency, amount_ccy, fx_rate)
     VALUES (e_rev, a_cash, v_amt, 0, v_ccy, v_amt, 1),
            (e_rev, a_ap,   0, v_amt, v_ccy, v_amt, 1);
@@ -68,8 +69,8 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
 
-    cf := cash_flow_statement('2027-01-01', '2027-12-31');
-    bs := balance_sheet('2027-12-31');
+    cf := cash_flow_statement('2025-01-01', '2025-12-31');
+    bs := balance_sheet('2025-12-31');
 
     -- ══════════ A. 冲销对对现金的净贡献 = 0 ═════════════════════════════════
     v_pair_net := (cf->>'closing_cash')::numeric - (cf->>'opening_cash')::numeric;

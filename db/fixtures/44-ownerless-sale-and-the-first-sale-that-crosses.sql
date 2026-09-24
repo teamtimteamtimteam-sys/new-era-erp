@@ -1,4 +1,5 @@
 -- 44 信用管控的两个空白:【本单自己越限】与【规则的主语缺席】
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --
 -- 【A 臂是那条一直没人测的规则】没有任何既往敞口、单笔销售【自己】就超过限额 ——
 -- 必须拒。fixture 39 每一臂都先垫上既往敞口再断言拒绝,于是"只比既往敞口、
@@ -36,7 +37,7 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZFIX44-M', 'fixture 44 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
-    VALUES ('ZZFIX44-OB', v_mat, 10000, 10000, '2027-10-01') RETURNING id INTO ob;
+    VALUES ('ZZFIX44-OB', v_mat, 10000, 10000, '2025-10-01') RETURNING id INTO ob;
 
     -- 全新客户:限额 1,000,【敞口为零】—— A 臂的判别力全在"零"上
     -- 【PARTY-1(2026-08-29):账期从此【必须自己设】,不再有 30 天兜底】
@@ -59,7 +60,7 @@ BEGIN
     v_denied := false;
     BEGIN
         -- 1,397 本位币 > 限额 1,000,而既往敞口是 0
-        PERFORM record_output_sale(ob, 100, 13.97, v_base, NULL, c_fresh, '2027-10-05'::date, NULL, 'manual', NULL);
+        PERFORM record_output_sale(ob, 100, 13.97, v_base, NULL, c_fresh, '2025-10-05'::date, NULL, 'manual', NULL);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
     IF NOT v_denied THEN
@@ -70,10 +71,10 @@ BEGIN
     END IF;
 
     -- 限额之内的第一笔照常过 —— 否则本臂只是"这客户什么都买不了"
-    PERFORM record_output_sale(ob, 100, 5, v_base, NULL, c_fresh, '2027-10-05'::date, NULL, 'manual', NULL);
+    PERFORM record_output_sale(ob, 100, 5, v_base, NULL, c_fresh, '2025-10-05'::date, NULL, 'manual', NULL);
 
     -- ══════════ B. 主语缺席:无客户的销售【不查信用】,照常落库 ═══════════════
-    v_sale := record_output_sale(ob, 100, 13.97, v_base, NULL, NULL, '2027-10-05'::date, NULL, 'manual', NULL);
+    v_sale := record_output_sale(ob, 100, 13.97, v_base, NULL, NULL, '2025-10-05'::date, NULL, 'manual', NULL);
     v_sale_id := (v_sale->>'sale_id')::uuid;
     SELECT customer_id INTO v_row FROM sales_records WHERE id = v_sale_id;
     IF v_row.customer_id IS NOT NULL THEN
@@ -85,7 +86,7 @@ BEGIN
     -- ══════════ C. 开票点名拒:无主销售不能开给客户 ═══════════════════════════
     v_denied := false;
     BEGIN
-        PERFORM create_invoice(c_own, ARRAY[v_sale_id], '2027-10-06'::date, NULL, NULL, NULL);
+        PERFORM create_invoice(c_own, ARRAY[v_sale_id], '2025-10-06'::date, NULL, NULL, NULL);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
     IF NOT v_denied OR v_msg NOT LIKE 'SALE_NOT_ATTRIBUTED|ZZFIX44-OB%' THEN
@@ -117,7 +118,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 44D 失败:补挂要留一行痕(含当时的敞口),实得 % 行', v_n;
     END IF;
     -- 补挂之后开票就通了 —— 出路存在,不是死路
-    PERFORM create_invoice(c_own, ARRAY[v_sale_id], '2027-10-06'::date, NULL, NULL, NULL);
+    PERFORM create_invoice(c_own, ARRAY[v_sale_id], '2025-10-06'::date, NULL, NULL, NULL);
 
     -- ══════════ E. 单向:已有主的不许再挂、不许改投、不许退回 NULL ═════════════
     v_denied := false;

@@ -15,6 +15,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { createOrderInvoice } from '../actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { businessToday } from '@/lib/format'
 
 export default function CreateOrderInvoiceControl({
     orderId,
@@ -49,6 +50,7 @@ canEdit: boolean
                     <label className="block mb-1">{t('sales.invoice.issueDate')}</label>
                     <input
                         type="date"
+                        max={businessToday()}
                         value={issueDate}
                         onChange={(e) => setIssueDate(e.target.value)}
                         className={CONTROL_INPUT}

@@ -4,6 +4,8 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // CN-1:贷项凭证的具名拒绝。【与库存/销售那两族同一个形状】:不在集合里的
 // 是真正未编码的数据库错误,交给共用兜底 lib/machine-text.ts —— 看得见才修得掉(IOD-1b 的教训)。
 const CREDIT_NOTE_ERROR_CODES = new Set([
+    // AP-RECON-1 Batch B:三条日期规矩(Tim AP-RECON-1 Q7)—— 每一条都成句子。
+    'POSTING_DATE_BEYOND_CURRENT_MONTH',
     // 【操作员天天会撞上前五条】—— 这张发票不能开贷项凭证(种类不对/已作废/
     // 已结清)、忘了写理由、忘了填单据日、三条天花板中的一条超了。
     // 每一条都带着【数字】和【下一步】。

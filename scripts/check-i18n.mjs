@@ -765,6 +765,8 @@ const MANIFEST = {
     'finance.fxPage.rateType.': { kind: 'enum', values: () => sqlEnum('db/tables/fx_rates.sql', 'rate_type') },
     'processing.costTypes.': { kind: 'enum', values: () => sqlEnum('db/tables/processing_cost_entries.sql', 'cost_type') },
     'finance.monthEnd.step_': { kind: 'enum', values: () => tsRegex('app/finance/month-end/page.tsx', /key: '(\w+)', href/g) },
+    // AP-RECON-1 Batch B:残留的类别接表上的 CHECK —— 迁移给残留表加一类,两个语言会同时被要求补标签。
+    'finance.listVsLedger.residueClass.': { kind: 'enum', values: () => sqlEnum('db/tables/list_ledger_residue.sql', 'residue_class') },
     'finance.yearClose.check_': { kind: 'enum', values: () => tsRegex('app/finance/close/page.tsx', /\{ key: '(\w+)', ok:/g) },
     'finance.monthEnd.state_': { kind: 'enum', values: () => ['done', 'outstanding', 'blocked', 'na'] },
     'expense.status.':      { kind: 'enum', values: () => sqlEnum('db/tables/expenses.sql', 'payment_status') },

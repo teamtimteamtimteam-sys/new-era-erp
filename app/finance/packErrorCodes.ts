@@ -18,6 +18,8 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // 撞上它的地方(有人想看下个月)。漏了它,屏幕上就是一串机器码 ——
 // 这个仓库为"机器文本打到人脸上"专门有一份文档(docs/machine-text-reaching-humans.md)。
 const PACK_ERROR_CODES = new Set([
+    // AP-RECON-1 Batch B:三条日期规矩(Tim AP-RECON-1 Q7)—— 每一条都成句子。
+    'POSTING_DATE_BEYOND_CURRENT_MONTH',
     // ── freeze_management_pack / management_pack_data / management_packs ──
     'PACK_PERIOD_REQUIRED',
     'PACK_MONTH_NOT_LOCKED',

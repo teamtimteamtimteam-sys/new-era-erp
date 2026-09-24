@@ -1,4 +1,5 @@
 -- 39 信用管控:NULL 限额放行而 0 限额拒;越限在【本位币】那一侧判;冻结不看敞口;
+-- ★ AP-RECON-1 Batch B(2026-09-24):本 fixture 的日期从 2027 挪到 2025(真实的过去)。三条日期规矩落地之后,晚于今天的单据与晚于本月末的分录都按名拒,而且【没有测试开关】(Tim AP-RECON-1 Q7 / Batch B Q8)—— 所以挪的是 fixture,不是闸。
 --    变动留痕;敞口与 ar_open_items 同数;看板臂上下有据
 --
 -- 【判别臂是 A:NULL 放行、0 拒 —— 相反,不是相近】只测正数限额的 fixture,对一个
@@ -33,7 +34,7 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code)
     VALUES ('ZZFIX39-M', 'fixture 39 material', 'battery_material', true, 'black_mass', 'end_of_life') RETURNING id INTO v_mat;
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
-    VALUES ('ZZFIX39-OB', v_mat, 10000, 10000, '2027-07-01') RETURNING id INTO ob;
+    VALUES ('ZZFIX39-OB', v_mat, 10000, 10000, '2025-07-01') RETURNING id INTO ob;
 
     -- 四个客户:没设限、现款现货、限一万、冻结(敞口为零)
     INSERT INTO customers (code, legal_name, country) VALUES ('ZZFIX39-C1', 'no limit set', 'SG') RETURNING id INTO c_null;
@@ -43,18 +44,18 @@ BEGIN
 
     -- 外币牌价(B 臂用):1 外币 = 1.26 本位币
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
-    VALUES ('USD', '2027-07-05', 'tt_buy', 1.26);
+    VALUES ('USD', '2025-07-05', 'tt_buy', 1.26);
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u), true);
 
     -- ══════════ A. NULL 放行,0 拒 —— 同一笔销售,两种限额,相反的结果 ═════════
-    PERFORM record_output_sale(ob, 10, 50, v_base, NULL, c_null, '2027-07-05'::date, NULL, 'manual', NULL);
+    PERFORM record_output_sale(ob, 10, 50, v_base, NULL, c_null, '2025-07-05'::date, NULL, 'manual', NULL);
     -- NULL 限额:过了 —— 没设限不是零限
 
     v_denied := false;
     BEGIN
-        PERFORM record_output_sale(ob, 10, 50, v_base, NULL, c_zero, '2027-07-05'::date, NULL, 'manual', NULL);
+        PERFORM record_output_sale(ob, 10, 50, v_base, NULL, c_zero, '2025-07-05'::date, NULL, 'manual', NULL);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
     IF NOT v_denied THEN
@@ -69,7 +70,7 @@ BEGIN
     -- 单据币种里(8,000 < 10,000)低于限额,本位币里高于。
     v_denied := false;
     BEGIN
-        PERFORM record_output_sale(ob, 8000, 1, 'USD', NULL, c_lim, '2027-07-05'::date, NULL, 'manual', NULL);
+        PERFORM record_output_sale(ob, 8000, 1, 'USD', NULL, c_lim, '2025-07-05'::date, NULL, 'manual', NULL);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
     IF NOT v_denied THEN
@@ -79,13 +80,13 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 39B 失败:三个数应为 限额 10000|敞口 0|这一单 10080,实得「%」', v_msg;
     END IF;
     -- 而同客户 7,000 USD(本位币 8,820)【应当】过 —— 否则 B 臂只是"这客户什么都买不了"
-    PERFORM record_output_sale(ob, 7000, 1, 'USD', NULL, c_lim, '2027-07-05'::date, NULL, 'manual', NULL);
+    PERFORM record_output_sale(ob, 7000, 1, 'USD', NULL, c_lim, '2025-07-05'::date, NULL, 'manual', NULL);
 
     -- 有了 8,820 敞口之后,再来 2,000 本位币(合计 10,820 > 10,000)也要拒 ——
     -- 敞口是【累计的导出值】,不是只看本单
     v_denied := false;
     BEGIN
-        PERFORM record_output_sale(ob, 40, 50, v_base, NULL, c_lim, '2027-07-05'::date, NULL, 'manual', NULL);
+        PERFORM record_output_sale(ob, 40, 50, v_base, NULL, c_lim, '2025-07-05'::date, NULL, 'manual', NULL);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
     IF NOT v_denied OR v_msg NOT LIKE 'CREDIT_LIMIT_EXCEEDED|ZZFIX39-C3|10000|8820%' THEN
@@ -95,7 +96,7 @@ BEGIN
     -- ══════════ C. 冻结不看敞口 ═════════════════════════════════════════════
     v_denied := false;
     BEGIN
-        PERFORM record_output_sale(ob, 1, 1, v_base, NULL, c_hold, '2027-07-05'::date, NULL, 'manual', NULL);
+        PERFORM record_output_sale(ob, 1, 1, v_base, NULL, c_hold, '2025-07-05'::date, NULL, 'manual', NULL);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
     IF NOT v_denied OR v_msg <> 'CREDIT_HOLD|ZZFIX39-C4' THEN

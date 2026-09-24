@@ -6,6 +6,8 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // 同码但独立成套,避免跨命名空间引用)。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,交给共用兜底 lib/machine-text.ts。
 const EXPENSE_ERROR_CODES = new Set([
+    // AP-RECON-1 Batch B:三条日期规矩(Tim AP-RECON-1 Q7)—— 每一条都成句子。
+    'POSTING_DATE_BEYOND_CURRENT_MONTH', 'DOCUMENT_DATE_IN_FUTURE', 'REVERSAL_BEFORE_ORIGINAL',
     // AP-RECON-1:清单与总账那一刀加的拒绝 —— 成句子。
     'EXPENSE_WHT_WITH_GST',
     'FX_RATE_MISSING', 'FX_RATE_NOT_ACCEPTED',

@@ -1,4 +1,5 @@
 -- 38 卖方报价:换算在 tt_buy 那一边;现货是预设不是分支;出处可重导;缺价缺汇点名拒
+-- ★ AP-RECON-1 Batch B(2026-09-24):日期从 2027 挪到 2025(真实的过去;销售按销售日过账,分录不许晚于本月末,没有测试开关)。两个探针另挑:缺金属探针 2024-12-31(早于第一条 ni 报价),缺汇率探针 2025-06-10(周二,工作日,距牌价日五天)。
 --
 -- 【判别臂是 A:汇率的边】买方报价按 tt_sell 折算(付钱出去),销售收钱进来按
 -- tt_buy —— record_output_sale 一直是对的,风险全在报价路径照抄买路径。
@@ -41,22 +42,22 @@ BEGIN
 
     -- 产出批:100 kg,ni 50%
     INSERT INTO output_batches (code, material_id, quantity, remaining_qty, output_date)
-    VALUES ('ZZFIX38-OB', v_mat, 100, 100, '2027-06-01') RETURNING id INTO ob;
+    VALUES ('ZZFIX38-OB', v_mat, 100, 100, '2025-06-01') RETURNING id INTO ob;
     INSERT INTO output_batch_metals (output_batch_id, metal, content_pct, content_source) VALUES (ob, 'ni', 50, 'manual');
 
     -- 行情:ni 20,000 USD/吨 → 含 50%、100% 应付时 10 USD/kg
     INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source)
-    VALUES ('ni', 20000, '2027-06-01', 'broker_quote');
+    VALUES ('ni', 20000, '2025-06-01', 'broker_quote');
     -- 【tt_buy ≠ tt_sell,故意拉开】—— 这一对就是 A 臂的判别力
     INSERT INTO fx_rates (currency, rate_date, rate_type, rate_sgd_per_unit)
-    VALUES ('USD', '2027-06-05', 'tt_buy', 1.20), ('USD', '2027-06-05', 'tt_sell', 1.30);
+    VALUES ('USD', '2025-06-05', 'tt_buy', 1.20), ('USD', '2025-06-05', 'tt_sell', 1.30);
 
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u), true);
 
     -- ══════════ A. 边:卖方报价按 tt_buy 折算 ═══════════════════════════════
     -- 现货预设,卖价折成本位币:usd_price × tt_buy(USD) / 1
-    q := price_output_sale(ob, NULL, v_base, 100, '2027-06-05');
+    q := price_output_sale(ob, NULL, v_base, 100, '2025-06-05');
     v_usd := (q->'provenance'->>'unit_price_usd_per_kg')::numeric;
     IF v_usd <> 10 THEN
         RAISE EXCEPTION 'FIXTURE 38A 前置失败:USD 单价应为 10(20000/吨 × 50%% × 100%%),实得 % —— 引擎算术不对,后面的边无从谈起', v_usd;
@@ -82,7 +83,7 @@ BEGIN
     RETURNING id INTO v_formula;
     INSERT INTO pricing_formula_metals (formula_id, metal, payable_pct) VALUES (v_formula, 'ni', 100);
 
-    q2 := price_output_sale(ob, v_formula, v_base, 100, '2027-06-05');
+    q2 := price_output_sale(ob, v_formula, v_base, 100, '2025-06-05');
     IF (q2->>'unit_price_ccy')::numeric <> (q->>'unit_price_ccy')::numeric THEN
         RAISE EXCEPTION 'FIXTURE 38B 失败:现货预设(%)与显式 100%%/0/0 公式(%)应给出同一个数 —— 不同就说明现货是第四条算术分支,而分支会像修掉的那六个重复实现一样漂移',
             q->>'unit_price_ccy', q2->>'unit_price_ccy';
@@ -92,7 +93,7 @@ BEGIN
     UPDATE pricing_formulas SET direction = 'purchase' WHERE id = v_formula;
     v_denied := false;
     BEGIN
-        PERFORM price_output_sale(ob, v_formula, v_base, 100, '2027-06-05');
+        PERFORM price_output_sale(ob, v_formula, v_base, 100, '2025-06-05');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
     IF NOT v_denied OR v_msg NOT LIKE 'FORMULA_DIRECTION|%' THEN
@@ -102,7 +103,7 @@ BEGIN
 
     -- ══════════ C. 出处:computed 可重导;manual 是记录不是推断 ═══════════════
     v_sale := record_output_sale(ob, 10, (q->>'unit_price_ccy')::numeric, v_base, NULL,
-                                 v_cust, '2027-06-05'::date, NULL,
+                                 v_cust, '2025-06-05'::date, NULL,
                                  'computed', q->'provenance');
     SELECT price_source, price_provenance INTO v_row
     FROM sales_records WHERE id = (v_sale->>'sale_id')::uuid;
@@ -120,7 +121,7 @@ BEGIN
     END IF;
 
     -- manual:明说,不从"没挂公式"推断 —— 系统里明明有公式,这单仍是 manual
-    v_sale := record_output_sale(ob, 5, 99, v_base, NULL, v_cust, '2027-06-05'::date, NULL,
+    v_sale := record_output_sale(ob, 5, 99, v_base, NULL, v_cust, '2025-06-05'::date, NULL,
                                  'manual', NULL);
     SELECT price_source, price_provenance INTO v_row
     FROM sales_records WHERE id = (v_sale->>'sale_id')::uuid;
@@ -133,7 +134,7 @@ BEGIN
     -- "没有依据的 computed"在两个门上都不可表示
     v_denied := false;
     BEGIN
-        PERFORM record_output_sale(ob, 1, 12, v_base, NULL, v_cust, '2027-06-05'::date, NULL,
+        PERFORM record_output_sale(ob, 1, 12, v_base, NULL, v_cust, '2025-06-05'::date, NULL,
                                    'computed', NULL);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
@@ -144,7 +145,7 @@ BEGIN
     BEGIN
         INSERT INTO sales_records (output_batch_id, quantity, unit_price, currency, fx_rate,
                                    amount_base, sale_date, price_source)
-        VALUES (ob, 1, 12, v_base, 1, 12, '2027-06-05', 'computed');
+        VALUES (ob, 1, 12, v_base, 1, 12, '2025-06-05', 'computed');
     EXCEPTION WHEN OTHERS THEN v_denied := true;
     END;
     IF NOT v_denied THEN
@@ -152,21 +153,21 @@ BEGIN
     END IF;
 
     -- ══════════ D. 缺即拒,各自点名 ═════════════════════════════════════════
-    -- 缺金属行情(2027-01-01 之前无 ni 价)
+    -- 缺金属行情(2025-06-01 之前无 ni 价 —— 探针取 2024-12-31,早于第一条 ni 报价)
     v_denied := false;
     BEGIN
-        PERFORM price_output_sale(ob, NULL, v_base, 100, '2026-12-31');
+        PERFORM price_output_sale(ob, NULL, v_base, 100, '2024-12-31');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
     IF NOT v_denied OR v_msg NOT LIKE 'METAL_PRICE_MISSING|%' THEN
         RAISE EXCEPTION 'FIXTURE 38D 失败:缺行情应 METAL_PRICE_MISSING 点名,实得 denied=% msg=% —— 报价路径缺价必须停,一份按零价发出去的报价比停一下更坏',
             v_denied, v_msg;
     END IF;
-    -- 缺汇率:2027-06-10(周四,工作日)没有 USD 牌价 → 换外币报价必须拒
-    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source) VALUES ('ni', 21000, '2027-06-10', 'broker_quote');
+    -- 缺汇率:2025-06-10(周二,工作日;距最近的牌价 06-05 五天,超过 4 天回溯上限)没有 USD 牌价 → 换外币报价必须拒
+    INSERT INTO metal_prices (metal, price_usd_per_tonne, price_date, source) VALUES ('ni', 21000, '2025-06-10', 'broker_quote');
     v_denied := false;
     BEGIN
-        PERFORM price_output_sale(ob, NULL, 'USD', 100, '2027-06-10');
+        PERFORM price_output_sale(ob, NULL, 'USD', 100, '2025-06-10');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
     IF NOT v_denied OR v_msg NOT LIKE 'FX_RATE_MISSING|%' THEN

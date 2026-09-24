@@ -5,6 +5,8 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // 【每一条都是一次"不猜"的拒绝】—— value 口径遇未计价批次、weight 口径遇混合单位、
 // stated 口径加总对不上、GST 被要求资本化,都是宁可停下也不要给一个看不见的错数。
 const FREIGHT_ERROR_CODES = new Set([
+    // AP-RECON-1 Batch B:三条日期规矩(Tim AP-RECON-1 Q7)—— 每一条都成句子。
+    'POSTING_DATE_BEYOND_CURRENT_MONTH', 'DOCUMENT_DATE_IN_FUTURE', 'REVERSAL_BEFORE_ORIGINAL',
     'FREIGHT_DATE_REQUIRED', 'FREIGHT_SUPPLIER_REQUIRED', 'FREIGHT_AMOUNT_INVALID',
     'FREIGHT_BASIS_INVALID', 'FREIGHT_NO_BATCHES', 'FREIGHT_DUPLICATE_BATCH',
     'FREIGHT_BATCH_UNPRICED', 'FREIGHT_MIXED_UNITS', 'FREIGHT_BASIS_ZERO',
