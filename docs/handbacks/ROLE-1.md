@@ -22,6 +22,14 @@ Step 0 was handed back before any build. What grilling changed:
 
 **Tim accepted all thirteen recommendations** (Q1–Q13, recorded in `docs/role-matrix.md` where each applies).
 
+> **Q8 reversed by Tim himself — 2026-09-23 23:33:27 CST** (recorded by AP-RECON-0).
+> - Signed in as admin@, Tim restored **all 45 codes** to the `admin` role.
+> - Re-read as `postgres` from base table `role_permissions`: 45 rows, every `created_at` at 23:33:27.
+> - Claude recommended going back to system administration only:
+>   - admin@ and tim@ are one person, so a request raised on admin@ cannot be approved on tim@;
+>   - a compromised admin password now carries every power.
+> - **Tim has not ruled on reverting. The role stays as it is and is not raised again unless Tim raises it.**
+
 ---
 
 ## §1 · What shipped

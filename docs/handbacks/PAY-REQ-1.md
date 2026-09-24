@@ -386,10 +386,11 @@ Before was read at 23:40 CST (before the backup); after at 00:39 CST (after the 
   - It still **cannot** decide payment requests or expense claims above the threshold: the level-2 role is `cfo`, and admin@'s `cfo` grant has been revoked since 2026-09-23 15:00.
 - **Left exactly as found.** Whether it was intended is Tim's call. The proof's "no finance code" identity moved from admin@ to fusheng@ because of it.
 
-## §B5 · The broken window — started, end PENDING
+## §B5 · The broken window — closed with bounds (AP-RECON-0 §0)
 
 **Start: 2026-09-24 00:07:06 CST** (`db/apply_migration.sh`'s own line; `db/migration-windows.tsv`).
-**End: PENDING. Tim reads it from Vercel.**
+**End: Tim confirmed deployed (2026-09-24).** Lower bound 00:40:42, the push (`origin/main` reflog). Upper bound 08:13:41, the first clock reading of
+the AP-RECON-0 session, taken after the relay: **a relayed confirmation, not a measurement of Vercel.** **Window: at least 33m36s, at most 8h06m35s.**
 
 What is broken while production runs the old app against the new database (approvals ON):
 - **The old transfer form's "Save"** is refused with a raw `PAYMENT_REQUEST_REQUIRED|bank_transfer`. The old app has no screen for raising a transfer request, so **no bank transfer can be recorded** until the deploy lands.
