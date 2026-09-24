@@ -1,13 +1,14 @@
 // app/hr/payroll/[id]/page.tsx
 // 薪资期间详情:抬头 + 合计 + 逐人明细 + 过账/撤销过账。
 // 草稿可编辑;已过账变只读(要改先撤销过账 —— 那会冲销分录)。
+// ★ PAYROLL-APR-1(2026-09-24):过账与撤销都要先经 CFO 批准 —— 这一页承载申请、决定与执行
+//   (PayrollRequestPanel)。挂着未了结的申请时,编辑入口看得见、按不动,并说出理由。
 import Link from 'next/link'
-import { bankAccountFor } from '@/lib/currency'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare } from '@/lib/format'
-import { PostPayrollButton, UnpostPayrollControl } from './PostControls'
+import { PayrollRequestPanel, type PayrollRequestView } from './PostControls'
 import { can } from '@/lib/permissions'
 import { Refusal } from '@/app/components/ui/refusal'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -16,7 +17,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import PayrollLinesTable, { type PayrollLineRow } from './PayrollLinesTable'
 import { Button } from '@/app/components/ui/button'
-import { formatDate, formatMonth } from '@/lib/dates'
+import { formatDate, formatMonth, formatAuditStamp } from '@/lib/dates'
+import { mustRows } from '@/lib/db-helpers'
 import { getLocale } from '@/lib/i18n/server'
 
 export default async function PayrollDetailPage({
@@ -45,7 +47,7 @@ export default async function PayrollDetailPage({
         notFound()
     }
 
-    const [linesRes, jeRes] = await Promise.all([
+    const [linesRes, jeRes, reqRes, canRaise, canDecide, meRes] = await Promise.all([
         supabase
             .from('payroll_lines_masked')
             .select('id, gross_pay, employer_cpf, employee_cpf, other_deductions, net_pay, notes, employees(id, code, legal_name)')
@@ -56,6 +58,15 @@ export default async function PayrollDetailPage({
         period.journal_entry_id && (await can('module.finance.view'))
             ? supabase.from('journal_entries').select('id, code').eq('id', period.journal_entry_id).single()
             : Promise.resolve({ data: null, error: null }),
+        // PAYROLL-APR-1:这一期的申请,最新的在前(读策略与本页同一个码,module.hr.view)
+        supabase
+            .from('payroll_requests')
+            .select('id, label, kind, status, notes, decision_notes, created_at')
+            .eq('payroll_period_id', id)
+            .order('created_at', { ascending: false }),
+        can('module.hr.edit'),
+        can('data.view_pay'),
+        supabase.rpc('current_user_employee'),
     ])
 
     type LineRow = {
@@ -73,7 +84,28 @@ export default async function PayrollDetailPage({
     )
 
     const isPosted = period.status === 'posted'
-    const bankAccount = bankAccountFor(period.currency ?? '')
+    const subjectLabel = `${formatMonth(period.period_month, locale)} · ${period.code}`
+
+    type ReqRow = {
+        id: string; label: string; kind: 'post' | 'reversal'
+        status: PayrollRequestView['status']; notes: string | null; decision_notes: string | null; created_at: string
+    }
+    const requests: PayrollRequestView[] = (mustRows(reqRes, 'payroll requests') as unknown as ReqRow[]).map((r) => ({
+        id: r.id,
+        label: r.label,
+        kind: r.kind,
+        status: r.status,
+        notes: r.notes,
+        decisionNotes: r.decision_notes,
+        createdText: formatAuditStamp(r.created_at),
+    }))
+    const openRequest = requests.find((r) => r.status === 'submitted' || r.status === 'approved') ?? null
+    const history = requests.filter((r) => r !== openRequest)
+    // 看这一页的人自己在本期里有没有工资行(按人认:current_user_employee 就是 account_person)
+    const myEmployeeId = (meRes.data as string | null) ?? null
+    const ownLineCode = myEmployeeId
+        ? (lines.find((l) => l.employees?.id === myEmployeeId)?.employees?.code ?? null)
+        : null
 
 
     // ★【行数据在服务端压平】金额格式与 CCY-1 的"币种写在哪儿"说明都归服务端。
@@ -129,26 +161,17 @@ export default async function PayrollDetailPage({
             actions={
                 !isPosted ? (
                     <span className="flex flex-wrap items-center gap-3 justify-end">
-                        <Button asChild variant="outline">
-                            <Link
-                                href={`/hr/payroll/${id}/edit`}
-                            >
+                        {openRequest ? (
+                            // PAYROLL-APR-1:挂着未了结的申请时保存会被库按名拒(PAYROLL_REQUEST_OPEN)——
+                            //   入口看得见、按不动,理由写在旁边(DBLOCK-1)。
+                            <Button variant="outline" disabled title={t('hr.payrollRequest.editLocked')}>
                                 {t('purchasing.editLink')}
-                            </Link>
-                        </Button>
-                        <PostPayrollButton
-                            periodId={id}
-                            subject={`${formatMonth(period.period_month, locale)} · ${period.code}`}
-                            currency={period.currency}
-                            bankAccount={bankAccount}
-                            totals={{
-                                gross: Number(period.gross_total),
-                                employerCpf: Number(period.employer_cpf_total),
-                                employeeCpf: Number(period.employee_cpf_total),
-                                other: Number(period.other_deductions_total),
-                                net: Number(period.net_pay_total),
-                            }}
-                        />
+                            </Button>
+                        ) : (
+                            <Button asChild variant="outline">
+                                <Link href={`/hr/payroll/${id}/edit`}>{t('purchasing.editLink')}</Link>
+                            </Button>
+                        )}
                     </span>
                 ) : undefined
             }
@@ -219,9 +242,29 @@ export default async function PayrollDetailPage({
                 <PayrollLinesTable rows={tableRows} />
             </div>
 
-            {/* ★ 出口检查:反过账控件只在已过账时出现,住 children;
-                  state 恒为 'ok',所以它不可能被空分支吃掉。 */}
-            {isPosted && <UnpostPayrollControl periodId={id} subject={`${formatMonth(period.period_month, locale)} · ${period.code}`} />}
+            {openRequest && !isPosted && (
+                <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('hr.payrollRequest.editLocked')}</p>
+            )}
+
+            {/* ★ 出口检查:申请 / 决定 / 执行住 children;state 恒为 'ok',所以它不可能被空分支吃掉。 */}
+            <PayrollRequestPanel
+                periodId={id}
+                subject={subjectLabel}
+                isPosted={isPosted}
+                currency={period.currency}
+                totals={{
+                    gross: Number(period.gross_total),
+                    employerCpf: Number(period.employer_cpf_total),
+                    employeeCpf: Number(period.employee_cpf_total),
+                    other: Number(period.other_deductions_total),
+                    net: Number(period.net_pay_total),
+                }}
+                open={openRequest}
+                history={history}
+                canRaise={canRaise}
+                canDecide={canDecide}
+                ownLineCode={ownLineCode}
+            />
         </ListPage>
     )
 }

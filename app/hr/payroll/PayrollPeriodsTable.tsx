@@ -24,6 +24,8 @@ export type PayrollPeriodRow = {
     status: string
     journalEntryId: string | null
     journalCode: string
+    /** PAYROLL-APR-1:这一期挂着的那张未了结申请(种类 + 状态);没有就是 null。 */
+    openRequest: { kind: 'post' | 'reversal'; status: 'submitted' | 'approved' } | null
 }
 
 export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeriodRow[]; empty: React.ReactNode }) {
@@ -62,6 +64,19 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
                     {t('hr.payrollStatus.' + r.status)}
                 </span>
             ),
+        },
+        {
+            // PAYROLL-APR-1(Tim 的 Q9):过账与撤销都要先经 CFO 批准 —— 这一格说出哪一期在等谁。
+            key: 'request', header: t('hr.payrollRequest.title'),
+            render: (r) =>
+                r.openRequest ? (
+                    <span className={'px-2 py-1 rounded text-xs ' + (r.openRequest.status === 'submitted'
+                        ? 'bg-amber-100 text-amber-800' : 'bg-blue-100 text-blue-800')}>
+                        {t('hr.payrollRequest.kind.' + r.openRequest.kind)} · {t('hr.payrollRequest.status.' + r.openRequest.status)}
+                    </span>
+                ) : (
+                    '—'
+                ),
         },
         {
             key: 'journal', header: t('assay.journalLink'), className: 'text-sm',

@@ -230,6 +230,10 @@ export const REMINDERS = [
     // ROLE-1 Batch 2a(Q9):CFO 的供应商队列 —— 只有能批的人看得见(action.supplier_approve)
     { itemType: 'supplier_pending_approval', permission: 'action.supplier_approve', href: '/suppliers',
       itemHref: (r: OpsRow) => `/suppliers/${r.item_id}/edit` },
+    // PAYROLL-APR-1:等 CFO 批的工资过账 / 撤销申请。看得见工资数的人才看得见(data.view_pay);
+    //   谁能批由 decide_payroll_request 在服务端裁。item_id 是【工资期】的 id —— 申请住在工资期页上。
+    { itemType: 'payroll_request_pending', permission: 'data.view_pay', href: '/hr/payroll',
+      itemHref: (r: OpsRow) => `/hr/payroll/${r.item_id}` },
 ] as const satisfies readonly Reminder[]
 
 /**

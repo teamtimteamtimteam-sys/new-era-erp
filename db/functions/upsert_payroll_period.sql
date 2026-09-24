@@ -1,3 +1,7 @@
+-- db/functions/upsert_payroll_period.sql
+-- 录入 / 重导一个工资期(服务商的数)。已过账的不收(PAYROLL_POSTED)。
+-- ★ PAYROLL-APR-1(2026-09-24,Tim 的 Q4):挂着未了结的过账或撤销申请时也不收(PAYROLL_REQUEST_OPEN)。
+
 CREATE OR REPLACE FUNCTION public.upsert_payroll_period(p_period_month date, p_payment_date date, p_currency text, p_fx_rate numeric, p_source_note text, p_notes text, p_lines jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -58,6 +62,12 @@ BEGIN
         -- 已过账的周期不接受重导:先 unpost 才能改(总账已经认了这批数)
         IF v_period.status = 'posted' THEN
             RAISE EXCEPTION 'PAYROLL_POSTED|%', v_period.code;
+        END IF;
+        -- ★ PAYROLL-APR-1(Tim 的 Q4):挂着未了结的申请时不许重导 —— CFO 批的是那一组数。
+        --   先撤回申请,改完再提一张。
+        IF EXISTS (SELECT 1 FROM payroll_requests r
+                    WHERE r.payroll_period_id = v_period.id AND r.status IN ('submitted', 'approved')) THEN
+            RAISE EXCEPTION 'PAYROLL_REQUEST_OPEN|%', v_period.code;
         END IF;
         v_id := v_period.id;
         v_code := v_period.code;

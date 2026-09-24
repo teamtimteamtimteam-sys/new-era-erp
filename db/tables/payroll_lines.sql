@@ -95,3 +95,9 @@ CREATE POLICY "payroll_lines select own rows"
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.payroll_lines
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.hr.edit');
+
+-- ── PAYROLL-APR-1(2026-09-24)· 已过账或在等批的期间,行不许直连改(Tim 的 Q5)─────
+-- Step 0 以 chooer@ 在一笔回滚的事务里实测:直连改 PAY-2026-0001(已过账、已付清)的一行,1 行成功。
+CREATE TRIGGER trg_payroll_lines_direct_write
+    BEFORE INSERT OR UPDATE OR DELETE ON public.payroll_lines
+    FOR EACH ROW EXECUTE FUNCTION public.guard_payroll_line_direct_write();

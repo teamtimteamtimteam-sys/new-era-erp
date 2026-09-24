@@ -93,6 +93,12 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 151A 失败:同一个人的【未撤销】授权应当正好算 1 个持有人,实得 % —— 那说明上面那个 0 证明不了"撤销"这件事,只说明这条路不通', v_n; END IF;
 
     -- 【而开关也必须为它按名拒】—— 计数对了不等于闸用了它
+    -- ★ PAYROLL-APR-1(2026-09-24):工资过账申请这条链的门是 module.hr.view + data.view_pay(Tim 的 Q8)。
+    --   二级角色不持这两个码,开审批就会按名拒 APPROVALS_CHAIN_HAS_NO_APPROVER|decide_payroll_request —— 本 fixture 测的不是它。
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay']) c
+     WHERE r.code = 'fx151-l2'
+    ON CONFLICT (role_id, permission_code) DO NOTHING;
     v_denied := false;
     BEGIN
         PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)

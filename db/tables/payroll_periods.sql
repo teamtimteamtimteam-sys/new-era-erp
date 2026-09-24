@@ -112,3 +112,10 @@ CREATE POLICY "payroll_periods delete by permission"
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.payroll_periods
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.hr.edit');
+
+-- ── PAYROLL-APR-1(2026-09-24)· 状态与被批的数只走函数(Tim 的 Q5)─────────────
+-- Step 0 以 chooer@ 在一笔回滚的事务里实测:直连 UPDATE status 1 行成功 —— 不经批准就能
+-- "过账"(或"撤销"),付款三支函数只看 status = 'posted'。守卫的全文理由在函数抬头。
+CREATE TRIGGER trg_payroll_periods_direct_write
+    BEFORE INSERT OR UPDATE ON public.payroll_periods
+    FOR EACH ROW EXECUTE FUNCTION public.guard_payroll_period_direct_write();

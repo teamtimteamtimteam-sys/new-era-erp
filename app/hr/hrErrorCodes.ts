@@ -1,5 +1,6 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { fallbackForRawError } from '@/lib/machine-text'
+import { localizeSelfApproval } from '@/lib/selfApproval'
 
 // HR 相关 DB 函数与触发器(upsert/post/unpost_payroll_period、部门与汇报环路守卫)
 // 抛出的错误码。端口自 paymentErrorCodes.ts。
@@ -31,6 +32,14 @@ const HR_ERROR_CODES = new Set([
     'SALARY_DIRECT_WRITE_REFUSED', 'SALARY_ALREADY_SET', 'SALARY_AMOUNT_INVALID',
     'SALARY_EFFECTIVE_DATE_REQUIRED', 'SALARY_EFFECTIVE_IN_POSTED_PERIOD',
     'EMPLOYEE_SEPARATED', 'PDPA_ALREADY_ANONYMISED',
+    // PAYROLL-APR-1(Tim 的矩阵 §5,2026-09-24):工资过账与撤销要 CFO 批准。申请、决定、执行与
+    //   等待期间的冻结,各自的拒绝都成句子;批准那一步走 require_approver_for(2)。
+    'PAYROLL_NEEDS_APPROVED_REQUEST', 'PAYROLL_REQUEST_OPEN', 'PAYROLL_REQUEST_NOT_FOUND',
+    'PAYROLL_REQUEST_NOT_OPEN', 'PAYROLL_REQUEST_NOT_SUBMITTED', 'PAYROLL_REQUEST_REJECT_REASON_REQUIRED',
+    'PAYROLL_REQUEST_KIND_UNKNOWN', 'PAYROLL_REVERSAL_REASON_REQUIRED', 'PAYROLL_CHANGED_SINCE_REQUEST',
+    'PAYROLL_REVERSAL_REQUESTED', 'PAYROLL_LINES_FROZEN', 'PAYROLL_STATUS_THROUGH_FUNCTION_ONLY',
+    'ATTENDANCE_PERIOD_LOCKED_BY_PAYROLL_REQUEST',
+    'APPROVAL_NOT_AUTHORISED', 'APPROVALS_NOT_ENABLED',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。
@@ -39,6 +48,12 @@ const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 export async function localizeHrError(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const match = raw.match(CODE_RE)
+
+    // ★ PAYROLL-APR-1:四眼那两句话跨模块【只写一遍】(lib/selfApproval.ts)——
+    //   decide_payroll_request 抛 SELF_APPROVAL_FORBIDDEN|raiser(这张申请是你提的,按人认)。
+    if (match && match[1] === 'SELF_APPROVAL_FORBIDDEN') {
+        return await localizeSelfApproval((match[2] ?? '').split('|')[0] || null)
+    }
 
     if (!match || !HR_ERROR_CODES.has(match[1])) {
         return await fallbackForRawError(raw, 'localizeHrError@app/hr/hrErrorCodes.ts') // BUGFIX-1b:生码 / 数据库报错 → 一句人话 + 一个可追查的短码(人话句子原样留着)

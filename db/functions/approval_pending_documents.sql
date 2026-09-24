@@ -91,6 +91,15 @@ AS $function$
            r.created_by, r.employee_id, 2::smallint
       FROM payment_requests r
      WHERE r.status = 'submitted'
+    UNION ALL
+    -- ★ PAYROLL-APR-1:工资过账 / 撤销申请。blocks_disable = true —— decide_payroll_request 在
+    --   审批关着时按名拒(APPROVALS_NOT_ENABLED),关掉审批就搁死它们(Tim 的 Q8)。
+    --   fixed_level = 2:CFO 批每一张、不分档,WOULD_STRAND 读它而不按金额重分。
+    --   主角 = NULL:工资期是公司的单据(Tim 的 Q1 (A))。金额 = gross 折本位币(N4)。
+    SELECT 'payroll_request'::text, q.id, q.label, q.amount_base, true,
+           q.created_by, NULL::uuid, 2::smallint
+      FROM payroll_requests q
+     WHERE q.status = 'submitted'
 $function$;
 
 COMMENT ON FUNCTION public.approval_pending_documents() IS

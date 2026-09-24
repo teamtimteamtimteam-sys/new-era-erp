@@ -1,3 +1,7 @@
+-- db/functions/reverse_journal_entry.sql
+-- 手工冲销一张分录(module.finance.edit)。付款、转账、代扣税缴纳的分录按名拒,走各自的申请。
+-- ★ PAYROLL-APR-1(2026-09-24,Tim 的 Q5):工资期的过账分录与它的冲销也按名拒 —— 撤销走撤销申请。
+
 CREATE OR REPLACE FUNCTION public.reverse_journal_entry(p_entry_id uuid, p_reversal_date date, p_memo text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -17,6 +21,24 @@ BEGIN
     --   wht_remittance_reversal 申请(reverse_wht_remittance_internal),经 CFO 批准。
     SELECT source_type, code INTO v_src, v_code FROM journal_entries WHERE id = p_entry_id;
     IF v_src IN ('payment', 'transfer', 'wht_remittance') THEN
+        RAISE EXCEPTION 'JE_REVERSE_USE_SOURCE_PATH|%|%', v_code, v_src;
+    END IF;
+    -- ★ PAYROLL-APR-1(Tim 的 Q5):工资期的【过账】分录也关在这里 —— 从这里冲掉它,总账回来了,
+    --   期间却仍是 posted、付款照样付得出去,而且绕过了撤销申请与 CFO 的批准。撤销走撤销申请。
+    --   ☞ 【过账那一张,以及它的冲销】—— 冲掉一张撤销分录,等于不经申请把工资重新过了一遍账,
+    --   而期间仍是 draft。判法反过来写:source_type 'payroll' 里,只有【付款】分录(以及它们的冲销)
+    --   放行 —— 它们被 payroll_lines.paid_journal_entry_id / cpf_journal_entry_id /
+    --   deductions_journal_entry_id 指着。付款分录根本没有正经的冲销路径(已登记
+    --   PAYROLL-PAYMENT-NO-REVERSAL-PATH);在这里关掉它们,等于把唯一的(错的)出路也关了
+    --   而不给一条对的 —— 那是另一刀的事。
+    IF v_src = 'payroll' AND NOT EXISTS (
+           SELECT 1 FROM journal_entries j
+            WHERE j.id = p_entry_id
+              AND (EXISTS (SELECT 1 FROM payroll_lines pl
+                            WHERE pl.paid_journal_entry_id IN (j.id, j.source_id))
+                   OR EXISTS (SELECT 1 FROM payroll_periods pp
+                               WHERE pp.cpf_journal_entry_id IN (j.id, j.source_id)
+                                  OR pp.deductions_journal_entry_id IN (j.id, j.source_id)))) THEN
         RAISE EXCEPTION 'JE_REVERSE_USE_SOURCE_PATH|%|%', v_code, v_src;
     END IF;
     RETURN reverse_journal_entry_internal(p_entry_id, p_reversal_date, p_memo);

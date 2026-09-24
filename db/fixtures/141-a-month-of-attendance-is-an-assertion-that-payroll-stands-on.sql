@@ -289,6 +289,9 @@ BEGIN
     END;
 
     -- ══════════════════ J ══════════════════
+    -- ☞ PAYROLL-APR-1(2026-09-24):过账与撤销的外门从此要一张已批的申请(fixture 218 钉那一半);
+    --   这一臂钉的是【引擎】里的考勤依据,所以直接调引擎 post_payroll_period_internal ——
+    --   判据一个字没动,只是住进了引擎。
     -- ★【工资过账要有依据,而且是【那个月的】依据】★
     -- 此刻 v_m 是 complete,而工资单是 v_m2 的 —— "库里有一个完成了的月份"不算数
     INSERT INTO payroll_periods (code, period_month, payment_date, currency, fx_rate,
@@ -303,7 +306,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 141-J 失败:另一个月并不是 complete —— 这一臂分辨不出"任意一个"与"那一个"';
     END IF;
     BEGIN
-        PERFORM post_payroll_period(v_pay);
+        PERFORM post_payroll_period_internal(v_pay);
         RAISE EXCEPTION 'FIXTURE 141-J 失败:那个月的底稿没人说过它齐全,工资却过账了 —— 缺勤未知被当成了全勤';
     EXCEPTION WHEN OTHERS THEN
         v_msg := SQLERRM;
@@ -321,7 +324,7 @@ BEGIN
         PERFORM record_attendance(r.id);
     END LOOP;
     PERFORM complete_attendance_period(v_pid2);
-    v_res := post_payroll_period(v_pay);
+    v_res := post_payroll_period_internal(v_pay);
     IF (v_res->>'journal_code') IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 141-J 失败:底稿做齐之后工资仍然过不了账 —— 这道拒绝拦住的不止是它该拦的';
     END IF;
@@ -339,7 +342,7 @@ BEGIN
         v_msg := SQLERRM;
         IF v_msg NOT LIKE 'ATTENDANCE_PERIOD_LOCKED_BY_PAYROLL|%' THEN RAISE; END IF;
     END;
-    PERFORM unpost_payroll_period(v_pay, 'fixture 141');
+    PERFORM unpost_payroll_period_internal(v_pay, 'fixture 141');
     BEGIN
         PERFORM reopen_attendance_period(v_pid2, '   ');
         RAISE EXCEPTION 'FIXTURE 141-K 失败:不给理由也能重开 —— 那条改动就成了无主的';

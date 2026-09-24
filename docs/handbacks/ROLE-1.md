@@ -731,7 +731,11 @@ LV-2026-0001 / 0003 → admin@, tim@ · MC-2026-0001 (pay) → admin@, chooer@ �
 ## §5 · The broken window — started, end PENDING
 
 **Start: 2026-09-24 22:07:50 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at"
-line reads 22:06:57). **End: PENDING — Tim reads it from Vercel.**
+line reads 22:06:57). ~~**End: PENDING — Tim reads it from Vercel.**~~
+**Closed with bounds (PAYROLL-APR-1, 2026-09-24; Tim confirmed the deploy before that session began).** The end lies
+**between 22:39:27 CST** (*measured*: `origin/main` → `a243831e` in git's remote-ref log, `git reflog show refs/remotes/origin/main`)
+**and 23:01:11 CST** (*derived*: the first live read of the PAYROLL-APR-1 session, database clock `now()` as `postgres`).
+So the window lasted **between 31 min 37 s and 53 min 21 s**. These are bounds, not a measurement.
 
 What the old app does against the new database (approvals ON):
 - **Nobody except admin@ can enter metal prices or change the threshold.** The old metal-price pages gate on `module.pricing.edit`,

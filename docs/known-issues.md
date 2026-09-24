@@ -9435,3 +9435,15 @@ sale 型发票 · 订单发票 · 加工应计转费用 七个门上。**另外�
 `pay_payment_request` 走 `record_payment_internal` 的同一套上限。**Batch A 之前提交的**一张给带税费用单的申请,
 会按净额付、那笔税照旧开着 —— 不报错。线上 **0 张**付款申请(`postgres` 读 `payment_requests` 基表,2026-09-24 10:12),
 所以没有任何一张受影响;记下是为了下一个看见"付了之后还欠 9 块"的人知道从哪里来。
+
+## PAYROLL-PAYMENT-NO-REVERSAL-PATH —— 工资、CPF、扣款的付款【没有】正经的冲销路径(PAYROLL-APR-1 grilling,Tim 的 Q5,2026-09-24)
+
+`pay_payroll_lines` · `pay_payroll_cpf` · `pay_payroll_deductions` 各过一张 `source_type = 'payroll'` 的付款分录,并在
+`payroll_lines.paid_at` / `payroll_periods.cpf_paid_at` / `deductions_paid_at` 上盖戳。**库里没有一支函数把这三件事倒回去**
+(Step 0 读 `db/functions`:`unpost_payroll_period` 是唯一的工资撤销,而它在任何一格付过钱时按名拒 `PAYROLL_*_PAID`)。
+于是一次付错的工资,今天唯一的"撤销"是从通用口 `reverse_journal_entry` 冲那张付款分录 —— 总账回来了,**`paid_at` 仍然盖着**,
+那一期因此永远撤销不了过账,而那一行永远不能再付。
+★ **PAYROLL-APR-1 刻意【没有】关这扇门**(Tim 的 Q5):它关的是工资期的【过账】分录与它的冲销(`JE_REVERSE_USE_SOURCE_PATH`),
+付款分录照旧放行 —— 关掉它等于把唯一的(错的)出路也关了而不给一条对的。
+线上:七月那一期的三笔付款(JE-2026-0018 / 0019 / 0020)是唯一的三张,测试数据。
+**去处:一刀"工资付款的冲销"** —— 同付款申请的冲销那一族,冲销付款分录、清掉戳记;要不要经 CFO 批,是 Tim 的一句裁定。

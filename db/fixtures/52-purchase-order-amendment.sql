@@ -165,6 +165,12 @@ BEGIN
     -- 而作废触发器第一句就是"没开就早退"。
     -- 【SOD-1:开关与三个策略值必须【一起】设】trg_approvals_switch 拒绝
     -- "开着但没配"(那一态会搁死单据),所以下面这一句是一条语句,不能拆。
+    -- ★ PAYROLL-APR-1(2026-09-24):工资过账申请这条链的门是 module.hr.view + data.view_pay(Tim 的 Q8)。
+    --   二级角色不持这两个码,开审批就会按名拒 APPROVALS_CHAIN_HAS_NO_APPROVER|decide_payroll_request —— 本 fixture 测的不是它。
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay']) c
+     WHERE r.code = 'fixture-52'
+    ON CONFLICT (role_id, permission_code) DO NOTHING;
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
     UPDATE finance_settings SET approvals_enabled = true,
         approval_level1_role_code = 'fixture-52',

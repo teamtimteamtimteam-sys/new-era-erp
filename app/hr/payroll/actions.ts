@@ -109,25 +109,74 @@ export async function savePayrollPeriod(
     redirect(periodId ? `/hr/payroll/${periodId}` : '/hr/payroll')
 }
 
+// ★ PAYROLL-APR-1(Tim 的矩阵 §5,2026-09-24):工资过账与撤销要 CFO 批准,批之前什么都不过账。
+//   提申请 → CFO 批 / 驳 → 财务执行(过账 / 撤销过账)。判据一条都不在这里:谁能批(二级审批角色、
+//   不是提单人,按人认)、什么状态能做什么、批的数变没变 —— 全部由库裁,拒绝经 localizeHrError 说成人话。
+//   服务端只独立再挡两道:撤销要理由、驳回要理由(对话框已经挡了空白,库里还有一道)。
+function refreshPayroll(periodId: string) {
+    revalidatePath('/hr/payroll')
+    revalidatePath(`/hr/payroll/${periodId}`)
+    revalidatePath('/finance/journal')
+    revalidatePath('/finance/payroll-payments')
+    revalidatePath('/')
+}
+
+export async function submitPayrollRequest(
+    periodId: string, kind: 'post' | 'reversal', notes: string
+): Promise<{ error?: string }> {
+    if (kind === 'reversal' && notes.trim() === '') {
+        return { error: (await getTranslations())('hr.payrollRequest.reasonRequired') }
+    }
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('submit_payroll_request', {
+        p_payroll_period_id: periodId,
+        p_kind: kind,
+        p_notes: notes.trim() || undefined,
+    })
+    if (error) return { error: await localizeHrError(error.message) }
+    refreshPayroll(periodId)
+    return {}
+}
+
+export async function decidePayrollRequest(
+    periodId: string, requestId: string, approve: boolean, notes: string
+): Promise<{ error?: string }> {
+    if (!approve && notes.trim() === '') {
+        return { error: (await getTranslations())('hr.payrollRequest.rejectReasonRequired') }
+    }
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('decide_payroll_request', {
+        p_request_id: requestId,
+        p_approve: approve,
+        p_notes: notes.trim() || undefined,
+    })
+    if (error) return { error: await localizeHrError(error.message) }
+    refreshPayroll(periodId)
+    return {}
+}
+
+export async function withdrawPayrollRequest(periodId: string, requestId: string): Promise<{ error?: string }> {
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('withdraw_payroll_request', { p_request_id: requestId })
+    if (error) return { error: await localizeHrError(error.message) }
+    refreshPayroll(periodId)
+    return {}
+}
+
+// 执行:过账要一张【这一期、kind = post】的已批申请;撤销要一张 kind = reversal 的 ——
+// 撤销的理由取申请上那一句(CFO 批的就是它),所以这里不再收理由。
 export async function postPayroll(periodId: string): Promise<{ error?: string }> {
     const supabase = await createClient()
     const { error } = await supabase.rpc('post_payroll_period', { p_payroll_period_id: periodId })
     if (error) return { error: await localizeHrError(error.message) }
-    revalidatePath('/hr/payroll')
-    revalidatePath(`/hr/payroll/${periodId}`)
-    revalidatePath('/finance/journal')
+    refreshPayroll(periodId)
     return {}
 }
 
-export async function unpostPayroll(periodId: string, reason: string): Promise<{ error?: string }> {
+export async function unpostPayroll(periodId: string): Promise<{ error?: string }> {
     const supabase = await createClient()
-    const { error } = await supabase.rpc('unpost_payroll_period', {
-        p_id: periodId,
-        p_reason: reason.trim(),
-    })
+    const { error } = await supabase.rpc('unpost_payroll_period', { p_id: periodId })
     if (error) return { error: await localizeHrError(error.message) }
-    revalidatePath('/hr/payroll')
-    revalidatePath(`/hr/payroll/${periodId}`)
-    revalidatePath('/finance/journal')
+    refreshPayroll(periodId)
     return {}
 }

@@ -192,7 +192,7 @@ BEGIN
     END IF;
     -- 目录断言:七次代填全部经 reversal_date_for,没有一处再直接递 CURRENT_DATE
     FOREACH v_fn IN ARRAY ARRAY['reverse_expense(uuid,text)', 'reverse_payment_internal(uuid,text)',
-                                'reverse_freight_document(uuid,text)', 'unpost_payroll_period(uuid,text)',
+                                'reverse_freight_document(uuid,text)', 'unpost_payroll_period_internal(uuid,text)',  -- PAYROLL-APR-1:函数体搬进了引擎
                                 'rollback_processing_run(uuid,text)', 'allocate_processing_costs(uuid,text)'] LOOP
         IF to_regprocedure('public.' || v_fn) IS NULL THEN
             RAISE EXCEPTION 'FIXTURE 214D 前提失败:找不到 % —— 签名变了,这条目录断言要跟着改', v_fn;

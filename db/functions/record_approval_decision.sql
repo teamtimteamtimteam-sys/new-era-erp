@@ -54,6 +54,15 @@ BEGIN
                    r.amount_base, r.created_by, r.employee_id
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser, v_subject
               FROM payment_requests r WHERE r.id = p_subject_id;
+        -- ★ PAYROLL-APR-1:工资过账 / 撤销申请。提单人 = created_by;主角 = NULL ——
+        --   工资期是公司的单据(Tim 的 Q1 (A)),主角那条腿对谁都不成立,所以 self_decided
+        --   只会因为"提单人按下去"而为 true,而那条路 forbid_self_approval 已经拒了。
+        --   金额冻结的是申请上那一组:gross_total、期间币种、期间汇率、折本位币(N4)。
+        --   编号:申请没有自己的单据编号,记它的 label(期间编号 · 种类 · 第几次)。
+        WHEN 'payroll_request' THEN
+            SELECT true, r.label, r.gross_total, r.currency, r.fx_rate, r.amount_base, r.created_by
+              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser
+              FROM payroll_requests r WHERE r.id = p_subject_id;
         WHEN 'expense' THEN
             SELECT true, e.code, e.amount_ccy, e.currency, e.fx_rate, e.amount_base
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base

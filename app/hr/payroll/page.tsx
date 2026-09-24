@@ -1,5 +1,5 @@
 // app/hr/payroll/page.tsx
-// 薪资期间列表:月份、发薪日、币种、应发合计、实发合计、人数、状态、分录链接。
+// 薪资期间列表:月份、发薪日、币种、应发合计、实发合计、人数、状态、未了结的申请(PAYROLL-APR-1)、分录链接。
 //
 // CONV-5:套 CONV-1 的两文件模板。
 // ★ state 恒为 'ok' —— 抬头的「新建薪资期间」住在 ListPage 的 actions 里
@@ -27,16 +27,23 @@ export default async function PayrollListPage() {
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [periodsRes, linesRes] = await Promise.all([
+    const [periodsRes, linesRes, reqRes] = await Promise.all([
         supabase
             .from('payroll_periods')
             .select('id, code, period_month, payment_date, currency, gross_total, net_pay_total, status, journal_entry_id')
             .is('deleted_at', null)
             .order('period_month', { ascending: false }),
         supabase.from('payroll_lines').select('payroll_period_id'),
+        // PAYROLL-APR-1:每一期挂着的未了结申请(一期同时最多一张,唯一索引保证)
+        supabase.from('payroll_requests').select('payroll_period_id, kind, status').in('status', ['submitted', 'approved']),
     ])
 
     const periods = mustRows(periodsRes)
+    type OpenReq = NonNullable<PayrollPeriodRow['openRequest']>
+    const openByPeriod = new Map<string, OpenReq>()
+    for (const q of mustRows(reqRes) as { payroll_period_id: string; kind: OpenReq['kind']; status: OpenReq['status'] }[]) {
+        openByPeriod.set(q.payroll_period_id, { kind: q.kind, status: q.status })
+    }
     const countByPeriod = new Map<string, number>()
     for (const l of mustRows(linesRes)) {
         countByPeriod.set(l.payroll_period_id, (countByPeriod.get(l.payroll_period_id) ?? 0) + 1)
@@ -71,6 +78,7 @@ export default async function PayrollListPage() {
         lineCount: countByPeriod.get(p.id) ?? 0,
         status: p.status,
         journalEntryId: p.journal_entry_id,
+        openRequest: openByPeriod.get(p.id) ?? null,
         // null = 这一期真的没有分录(诚实的破折号);
         // 'restricted' = 有一张分录,而你不能看它。
         journalCode: !p.journal_entry_id

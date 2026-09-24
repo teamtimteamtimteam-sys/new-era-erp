@@ -11,6 +11,10 @@
 -- 这条路径专门奖励留空。要求由函数自己声明,而不是靠调用方自觉。
 -- 详见 db/migrations/2026-08-05-fin10-no-default-posting-dates.sql。
 
+--
+-- ★ PAYROLL-APR-1(2026-09-24,Tim 的 Q6):一期挂着未了结的【撤销过账】申请时按名拒
+--   PAYROLL_REVERSAL_REQUESTED。付款仍归财务、不另批;它只能跟在一次批过的过账后面 ——
+--   status = 'posted' 从此只经批过的申请到达,所以那一半由上面的 PAYROLL_NOT_POSTED 守着。
 CREATE OR REPLACE FUNCTION public.pay_payroll_deductions(p_payroll_period_id uuid, p_payment_date date DEFAULT NULL::date, p_bank_account text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -36,6 +40,13 @@ BEGIN
     END IF;
     IF v_p.status <> 'posted' THEN
         RAISE EXCEPTION 'PAYROLL_NOT_POSTED|%', v_p.code;
+    END IF;
+    -- ★ PAYROLL-APR-1(Tim 的 Q6):财务已经申请撤销这一期的过账,钱就不许再照它出去 ——
+    --   付了,那张撤销申请执行时会撞 PAYROLL_*_PAID,而钱已经走了。先撤回申请,或等它了结。
+    IF EXISTS (SELECT 1 FROM payroll_requests r
+                WHERE r.payroll_period_id = v_p.id AND r.kind = 'reversal'
+                  AND r.status IN ('submitted', 'approved')) THEN
+        RAISE EXCEPTION 'PAYROLL_REVERSAL_REQUESTED|%', v_p.code;
     END IF;
     IF v_p.deductions_paid_at IS NOT NULL THEN
         RAISE EXCEPTION 'PAYROLL_DEDUCTIONS_ALREADY_PAID|%', v_p.code;

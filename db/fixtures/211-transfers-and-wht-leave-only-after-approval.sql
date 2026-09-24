@@ -58,6 +58,12 @@ BEGIN
     -- 期间开着;策略:一级 fx211-l1、二级 fx211-l2、门槛 1000;审批打开
     PERFORM set_config('request.jwt.claims', '', true);
     UPDATE finance_settings SET locked_before = NULL;
+    -- ★ PAYROLL-APR-1(2026-09-24):工资过账申请这条链的门是 module.hr.view + data.view_pay(Tim 的 Q8)。
+    --   二级角色不持这两个码,开审批就会按名拒 APPROVALS_CHAIN_HAS_NO_APPROVER|decide_payroll_request —— 本 fixture 测的不是它。
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay']) c
+     WHERE r.code = 'fx211-l2'
+    ON CONFLICT (role_id, permission_code) DO NOTHING;
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);
     UPDATE finance_settings SET approval_level1_role_code = 'fx211-l1',
                                 approval_level2_role_code = 'fx211-l2',

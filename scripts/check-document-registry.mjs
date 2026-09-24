@@ -71,7 +71,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // ROLE-1 Batch 2a(2026-09-24):226 → 227。新增 `supplier_status_history`(供应商状态每一步的
 // 只增不改留痕,Tim 的 Q3),见 db/tables/supplier_status_history.sql。**它没有 code 列**
 // (它记的是"哪一家从什么状态到什么状态",不是一张单据),所以 EXPECTED_CODE_TABLES 不动。
-const EXPECTED_TABLES = 227
+// PAYROLL-APR-1(2026-09-24):227 → 228。新增 `payroll_requests`(工资过账 / 撤销过账的申请,CFO 批),
+// 见 db/tables/payroll_requests.sql。**它没有 code 列**(它是对一个工资期的一次请求,人读的名字是 label:
+// 期间编号 · 种类 · 第几次;不进 document_types),所以 EXPECTED_CODE_TABLES 不动。
+const EXPECTED_TABLES = 228
 const EXPECTED_CODE_TABLES = 76
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

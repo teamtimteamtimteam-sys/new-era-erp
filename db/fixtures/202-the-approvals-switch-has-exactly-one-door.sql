@@ -108,6 +108,12 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 202P 失败:守卫不是 INVOKER —— row_security_active 会问它自己,这道闸会放行一切'; END IF;
 
     -- ══════════ A ★ RPC 写下四列,并且正好落一行史 ══════════
+    -- ★ PAYROLL-APR-1(2026-09-24):工资过账申请这条链的门是 module.hr.view + data.view_pay(Tim 的 Q8)。
+    --   二级角色不持这两个码,开审批就会按名拒 APPROVALS_CHAIN_HAS_NO_APPROVER|decide_payroll_request —— 本 fixture 测的不是它。
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay']) c
+     WHERE r.code = 'fx202-l2'
+    ON CONFLICT (role_id, permission_code) DO NOTHING;
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_adm), true);
     EXECUTE 'SET LOCAL ROLE authenticated';
     v_res := set_approvals_policy(false, 'fx202-l1', 'fx202-l2', 777);

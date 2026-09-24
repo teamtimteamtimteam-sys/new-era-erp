@@ -168,6 +168,12 @@ BEGIN
     -- 【这一臂自己设策略】重建出来的库里 finance_settings 是没配的,
     --   依赖线上的值,这一支在重建库上就是一句空话(README 第 4 条)。
     -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚,所以每一次写都要举一次)。
+    -- ★ PAYROLL-APR-1(2026-09-24):工资过账申请这条链的门是 module.hr.view + data.view_pay(Tim 的 Q8)。
+    --   二级角色不持这两个码,开审批就会按名拒 APPROVALS_CHAIN_HAS_NO_APPROVER|decide_payroll_request —— 本 fixture 测的不是它。
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay']) c
+     WHERE r.code = 'fx204-l2'
+    ON CONFLICT (role_id, permission_code) DO NOTHING;
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);
     UPDATE finance_settings SET approval_level1_role_code = 'fx204-l1',
                                 approval_level2_role_code = 'fx204-l2',

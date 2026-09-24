@@ -1,59 +1,60 @@
-CREATE OR REPLACE FUNCTION public.unpost_payroll_period(p_id uuid, p_reason text)
+-- db/functions/unpost_payroll_period.sql
+-- 撤销工资过账的【外门】—— PAYROLL-APR-1(2026-09-24)起,它只执行一张【已批准】的撤销申请。
+--
+-- Tim 的矩阵 §5:工资过账的撤销,财务做,CFO 批每一张、不分档(grilling Q3)。
+--   ① 仍要 module.hr.edit;
+--   ② 找【这个期间、kind = 'reversal'、status = 'approved'】的那一张 —— 没有就按名拒
+--      PAYROLL_NEEDS_APPROVED_REQUEST|<期间编号>|reversal;
+--   ③ 批的那一组数与此刻的数再比一次(PAYROLL_CHANGED_SINCE_REQUEST);
+--   ④ 交给引擎 unpost_payroll_period_internal,理由取【申请上】那一句 —— CFO 批的就是它,
+--      执行的人不另给一句。所以签名从 (uuid, text) 改成了 (uuid):一个会被忽略的参数,
+--      比一个不存在的参数更会骗人。
+--
+-- NOTE: introduced by db/migrations/2026-08-01-hr1a-hr-core.sql; the door shape by
+--       db/migrations/2026-09-24-payrollapr1-payroll-posts-only-after-cfo-approval.sql.
+
+CREATE OR REPLACE FUNCTION public.unpost_payroll_period(p_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
-    v_user uuid := auth.uid();
-    v_p    record;
-    v_je   jsonb;
+    v_p   payroll_periods%ROWTYPE;
+    v_r   payroll_requests%ROWTYPE;
+    v_je  uuid;
+    v_res jsonb;
 BEGIN
     PERFORM require_permission('module.hr.edit');
     SELECT * INTO v_p FROM payroll_periods
-    WHERE id = p_id AND deleted_at IS NULL
-    FOR UPDATE;
+     WHERE id = p_id AND deleted_at IS NULL
+     FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'PAYROLL_NOT_FOUND|%', COALESCE(p_id::text, '?');
     END IF;
     IF v_p.status <> 'posted' THEN
         RAISE EXCEPTION 'PAYROLL_NOT_POSTED|%', v_p.code;
     END IF;
-    IF p_reason IS NULL OR btrim(p_reason) = '' THEN
-        RAISE EXCEPTION 'REASON_REQUIRED';
+
+    SELECT * INTO v_r FROM payroll_requests
+     WHERE payroll_period_id = p_id AND kind = 'reversal' AND status = 'approved'
+     FOR UPDATE;
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'PAYROLL_NEEDS_APPROVED_REQUEST|%|reversal', v_p.code;
     END IF;
-    -- FIN-4:已有工资行付了钱,冲销周期会让那些结算变孤儿 —— 拒绝,先冲付款
-    IF EXISTS (SELECT 1 FROM payroll_lines
-               WHERE payroll_period_id = p_id AND paid_at IS NOT NULL) THEN
-        RAISE EXCEPTION 'PAYROLL_LINES_PAID|%', v_p.code;
-    END IF;
-    -- FIN-5:CPF / 代扣款已汇出的期间同理 —— 先冲那笔汇款
-    IF v_p.cpf_paid_at IS NOT NULL THEN
-        RAISE EXCEPTION 'PAYROLL_CPF_PAID|%', v_p.code;
-    END IF;
-    IF v_p.deductions_paid_at IS NOT NULL THEN
-        RAISE EXCEPTION 'PAYROLL_DEDUCTIONS_PAID|%', v_p.code;
+    IF payroll_period_fingerprint(p_id) IS DISTINCT FROM v_r.snapshot THEN
+        RAISE EXCEPTION 'PAYROLL_CHANGED_SINCE_REQUEST|%', v_r.label;
     END IF;
 
-    -- 冲销分录;原分录留在账上并被标记为已冲销 —— 不删账
-    -- AP-RECON-1 Batch B:冲销日 = 今天与原分录日里较晚的那个。薪资按【发薪日】过账,而发薪日
-    -- 可以晚于今天(28 号过账、月末发薪);撤回一张还没到发薪日的薪资是正当的更正,
-    -- 所以冲销落在发薪日,而不是被 REVERSAL_BEFORE_ORIGINAL 拒掉。
-    v_je := reverse_journal_entry_internal(v_p.journal_entry_id, reversal_date_for(v_p.journal_entry_id), 'Payroll reversal ' || v_p.code);
+    v_res := unpost_payroll_period_internal(p_id, v_r.notes);
 
-    UPDATE payroll_periods
-    SET status = 'draft',
-        journal_entry_id = NULL,
-        notes = COALESCE(notes || E'\n', '')
-                || '[' || to_char(now(), 'YYYY-MM-DD HH24:MI') || ' unposted] ' || btrim(p_reason),
-        updated_by = v_user
-    WHERE id = p_id;
+    SELECT reversed_by INTO v_je FROM journal_entries WHERE id = v_p.journal_entry_id;
+    UPDATE payroll_requests
+       SET status = 'executed', executed_at = now(), executed_by = auth.uid(),
+           result_journal_entry_id = v_je
+     WHERE id = v_r.id;
 
-    RETURN jsonb_build_object(
-        'payroll_period_id', p_id,
-        'code', v_p.code,
-        'status', 'draft',
-        'reversal_journal_code', v_je->>'code'
-    );
+    RETURN v_res || jsonb_build_object('request_id', v_r.id, 'request_label', v_r.label);
 END;
-$function$;
+$function$
+;

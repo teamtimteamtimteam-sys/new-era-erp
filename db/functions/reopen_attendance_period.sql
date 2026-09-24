@@ -1,3 +1,8 @@
+-- db/functions/reopen_attendance_period.sql
+-- 重开一个已完成的考勤月(ATTEND-1)。已过账的那个月不许重开(ATTENDANCE_PERIOD_LOCKED_BY_PAYROLL)。
+-- ★ PAYROLL-APR-1(2026-09-24,Tim 的 Q4):那个月的工资挂着未了结的过账申请时也不许
+--   (ATTENDANCE_PERIOD_LOCKED_BY_PAYROLL_REQUEST)—— 先撤回申请。
+
 CREATE OR REPLACE FUNCTION public.reopen_attendance_period(p_period_id uuid, p_reason text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -27,6 +32,16 @@ BEGIN
        AND date_trunc('month', period_month)::date = v_p.period_month LIMIT 1;
     IF FOUND THEN
         RAISE EXCEPTION 'ATTENDANCE_PERIOD_LOCKED_BY_PAYROLL|%|%', v_p.code, v_pay;
+    END IF;
+
+    -- ★ PAYROLL-APR-1(Tim 的 Q4):那个月的工资挂着一张【未了结的过账申请】时也不许重开 ——
+    --   CFO 批的那一期站在这份底稿上;底稿在等待期间变了,批的就不再是它。先撤回申请。
+    SELECT p.code INTO v_pay FROM payroll_periods p
+      JOIN payroll_requests r ON r.payroll_period_id = p.id
+     WHERE p.deleted_at IS NULL AND r.kind = 'post' AND r.status IN ('submitted', 'approved')
+       AND date_trunc('month', p.period_month)::date = v_p.period_month LIMIT 1;
+    IF FOUND THEN
+        RAISE EXCEPTION 'ATTENDANCE_PERIOD_LOCKED_BY_PAYROLL_REQUEST|%|%', v_p.code, v_pay;
     END IF;
 
     UPDATE attendance_periods

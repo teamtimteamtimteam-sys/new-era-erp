@@ -100,6 +100,15 @@ BEGIN
       VALUES (po_id, 'FX206-PO-1', sup_id, DATE '2030-03-01', v_base, 1, 50.00, 'draft', 'pending', u_main);
 
     -- 策略:两级各有真持有人,门槛 1000,审批【开着】(采购单那两句要它开着才走得到)
+    -- ★ PAYROLL-APR-1(2026-09-24):工资过账申请这条链的门是 module.hr.view + data.view_pay(Tim 的 Q8)。
+    --   二级角色不持这两个码,开审批就会按名拒 APPROVALS_CHAIN_HAS_NO_APPROVER|decide_payroll_request —— 本 fixture 测的不是它。
+    --   ☞ 授给【人乙一个人】(另起一个角色),不授给 fx206-l2:V 臂断言人甲的第二个账号只读得到人甲
+    --     自己那一行,而 module.hr.view 会让持有人读到所有人的行 —— 那就改了这一臂在测的东西。
+    INSERT INTO roles (code,name_en,name_zh,is_active) VALUES ('fx206-pay','f','f',true);
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay']) c
+     WHERE r.code = 'fx206-pay';
+    INSERT INTO user_roles (user_id, role_id) SELECT u_l2b, id FROM roles WHERE code = 'fx206-pay';
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);
     UPDATE finance_settings SET approvals_enabled = false, approval_level1_role_code = 'fx206-l1',
                                 approval_level2_role_code = 'fx206-l2', approval_threshold_base = 1000;

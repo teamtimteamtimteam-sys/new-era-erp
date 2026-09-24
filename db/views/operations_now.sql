@@ -4,6 +4,9 @@
 --   等了多久从【最后一次送审】起算(supplier_status_history),没有那一行时退回 updated_at。
 -- ★ PAY-REQ-1(2026-09-23):加一支 payment_request_pending —— 等 CFO 批的付款申请
 --   (module.finance.view;finance 与 cfo 都看得见,点进去由 decide_payment_request 裁谁能批)。
+-- ★ PAYROLL-APR-1(2026-09-24):加一支 payroll_request_pending —— 等 CFO 批的工资过账 / 撤销申请
+--   (data.view_pay:看得见工资数的人才看得见这一格;点进去由 decide_payroll_request 裁谁能批)。
+--   item_id 是【工资期】的 id,不是申请的 —— 申请没有自己的页面,它住在工资期页上。
 --
 -- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
 -- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
@@ -562,7 +565,18 @@ CREATE VIEW public.operations_now AS
                    FROM supplier_status_history h
                   WHERE h.supplier_id = s.id AND h.to_status = 'pending_review'::text), s.updated_at)::date AS item_date
            FROM suppliers s
-          WHERE s.status = 'pending_review'::supplier_status AND s.deleted_at IS NULL) a
+          WHERE s.status = 'pending_review'::supplier_status AND s.deleted_at IS NULL
+        UNION ALL
+         SELECT 'payroll_request_pending'::text AS item_type,
+            'data.view_pay'::text AS permission,
+            q.payroll_period_id AS item_id,
+            NULL::text AS doc_kind,
+            q.label AS item_code,
+            pp.code AS subject,
+            q.created_at::date AS item_date
+           FROM payroll_requests q
+             JOIN payroll_periods pp ON pp.id = q.payroll_period_id
+          WHERE q.status = 'submitted'::text) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type))) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;

@@ -418,6 +418,13 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
     "review_approval_code":
         "ROLE-1: returns only the NAME of the permission code that approves a review; "
         "no review data; the page and approve_review both ask it",
+    # PAYROLL-APR-1(2026-09-24):调它的是两支 INVOKER 守卫(guard_payroll_period_direct_write ·
+    #   guard_payroll_line_direct_write),EXECUTE 按当前用户判 —— 与 period_close_floor 同一条。
+    #   它【必须】是 DEFINER:INVOKER 里读 payroll_requests,不持 hr.view 的写入者读到零行,守卫静默放行。
+    #   两处 allowlist 必须一致(db/check_mirrors.py 同改)。
+    "payroll_period_frozen":
+        "PAYROLL-APR-1: called by two INVOKER guards, so EXECUTE must stay with the caller; "
+        "returns one state word (posted/requested/open) already shown on the payroll page",
 }
 
 # AUD-1(2026-08-17):加 has_any_permission —— 它是 has_permission 的析取,

@@ -1289,6 +1289,71 @@ every request has (`status`, `created_by`, `amount_ccy`, `currency`, `amount_bas
 * **An unknown kind is refused by name** (`PAYMENT_REQUEST_KIND_UNKNOWN`) at dry run and at pay. Batch A's bare `ELSE` would
   have treated any new kind as a payment reversal; fixture 211 F injects one to prove the refusal.
 
+## 3l · PAYROLL-APR-1 (2026-09-24) — payroll posting and its reversal wait for the CFO
+
+The cut is `docs/handbacks/PAYROLL-APR-1.md`; this section records only what changes **for approvals**. Tim accepted all nine
+grilling recommendations (Q1–Q9).
+
+### The lifecycle
+`submitted → approved → executed`, plus `rejected` (reason required) and `withdrawn` (submitted **or** approved) — the
+PAY-REQ-1 shape, on a new table `payroll_requests` (kind `post` or `reversal`). `payroll_periods.status` stays `draft` / `posted`,
+so none of its six readers changed (Q2).
+* **Raise:** finance (`module.hr.edit`, the code payroll periods already use). `submit_payroll_request(period, kind, notes)`;
+  a reversal needs a reason. **One open request per period.**
+* **Approve:** the CFO, **every one, no threshold**. `decide_payroll_request` calls `require_approver_for(2)` directly and never
+  `approval_level_for` — still **one** definition of routing. Gate `{module.hr.view, data.view_pay}` (Q8): the payroll page's
+  code plus the code that shows the pay figures being approved (§5). **Not** `module.hr.edit` — that is the raiser's code.
+* **Execute:** finance, the raiser included. `post_payroll_period` / `unpost_payroll_period` became doors: without an approved
+  request **for that period and that kind** they refuse by name (`PAYROLL_NEEDS_APPROVED_REQUEST`, Q3). The bodies moved to
+  `post_payroll_period_internal` / `unpost_payroll_period_internal`, which `authenticated` cannot execute.
+  ☞ `unpost_payroll_period` is now `(uuid)`: the reason is the one on the approved request, so the executor gives none.
+* **The journal posts at execute and nowhere else.** Submit and approve each dry-run the real engine inside a sub-transaction
+  that always rolls back (`payroll_request_dry_run`) — a missing attendance sheet, a closed period, a paid line are refused in
+  the engine's own words before the CFO ever sees the request (Q7).
+* **Approvals OFF:** born `approved` with an `auto_approved` row (Q7) — nobody pressed approve.
+
+### ★★ Q1 (A) — a payroll period is a COMPANY document: the subject leg applies to nobody
+Every period contains every employee, the CFO included. Judged as a subject, the CFO could approve **no** period that
+contains his own line — measured at Step 0 as tim@: `forbid_self_approval(chooer, <Tim>, 'payroll_period')` →
+`SELF_APPROVAL_FORBIDDEN|subject`; R2 excludes payroll; level 2 has one real holder. Every month would stall.
+> **Tim's ruling and his reasoning, recorded because it is the reason the code looks like this:** the CFO cannot change his
+> own salary at this step — a monthly salary changes only through a performance review (Tim's own is approved by cco) or a
+> salary-change request — and **the control that matters is that the preparer is not the approver.**
+* The call is `forbid_self_approval(created_by, NULL, 'payroll_request')` — the work-order shape. The **raiser** leg is still
+  judged **by person**: a request raised from `admin@` (Tim's other account) cannot be approved by `tim@`.
+* The approver's own line is **said, not flagged**: the period page shows "this period includes your own pay line", and the
+  `approval_log` note records it with the employee code. `self_decided` stays `false` —
+  `approval_log_self_decided_scope` would refuse `true` for this type, and that is the same ruling's second lock.
+* `self_approval_exception` is **untouched**: R2 never covers payroll.
+
+### How it registers in the engine (Q8)
+| piece | what was added |
+|---|---|
+| `approval_chain_gates()` | **one** row: `payroll_request / decide_payroll_request / level 2 / {module.hr.view, data.view_pay}` |
+| `approval_pending_documents()` | an arm for `status = 'submitted'`: `blocks_disable = true` (the decide function refuses while approvals are off), `fixed_level = 2`, subject `NULL`, amount = `gross_total` in base currency (N4) |
+| `approval_log` | subject type `payroll_request` (CHECK), `record_approval_decision` branch (raiser `created_by`, subject `NULL`, amount = gross in the period's currency at the period's rate), RLS read branch on `module.hr.view` |
+| `operations_now` / reminders | `payroll_request_pending` (`data.view_pay`), linking to the period page |
+| `self_approval_exception` | **unchanged** |
+
+☞ **The consequence for fixtures:** every fixture that switches approvals on must give its level-2 role a holder of
+`module.hr.view` + `data.view_pay`, or `APPROVALS_CHAIN_HAS_NO_APPROVER|decide_payroll_request` refuses the switch. Eleven were
+updated in this cut; fixture 206 gives the codes to a second holder rather than to the reader it tests.
+
+### While a request waits, what it approves is frozen (Q4 · Q6)
+`payroll_requests.snapshot` = `payroll_period_fingerprint`: five totals, line count, a per-line digest, payment date, currency,
+rate. Saving the period refuses (`PAYROLL_REQUEST_OPEN`); reopening that month's attendance refuses
+(`ATTENDANCE_PERIOD_LOCKED_BY_PAYROLL_REQUEST`); approve and execute each compare again (`PAYROLL_CHANGED_SINCE_REQUEST`).
+While a **reversal** request is open, `pay_payroll_lines` / `pay_payroll_cpf` / `pay_payroll_deductions` refuse
+(`PAYROLL_REVERSAL_REQUESTED`). Salaries are not in it: neither posting nor saving reads `employees.monthly_salary`.
+
+### Three side doors closed (Q5)
+Measured at Step 0 as chooer@ in a rolled-back transaction: a direct `UPDATE payroll_periods SET status` and a direct edit of a
+posted period's line both went through. Now: `PAYROLL_STATUS_THROUGH_FUNCTION_ONLY` (status and the five posting/remittance
+columns, and an INSERT born posted) · `PAYROLL_LINES_FROZEN` (lines and approved figures of a posted or requested period) ·
+`reverse_journal_entry` refuses a period's posting entry **and its reversal** (`JE_REVERSE_USE_SOURCE_PATH`). Payroll
+**payment** entries are left open on purpose: they have no proper reversal path (`docs/known-issues.md` §
+PAYROLL-PAYMENT-NO-REVERSAL-PATH).
+
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
 **Found while building CHAIN-BUILD-1; folded into the same predicate.**

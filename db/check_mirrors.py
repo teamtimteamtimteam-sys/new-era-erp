@@ -526,6 +526,13 @@ DEFINER_NO_CHECK_ALLOWED = {
     # ROLE-1(2026-09-23):与 db/verify_rebuild.py 的 DEFINER_UNCHECKED_EXEC_ALLOWED 同改,理由见那里。
     "period_close_floor": "ROLE-1: called by an INVOKER trigger, so EXECUTE must stay with the caller; returns one date already shown on the close page",
     "review_approval_code": "ROLE-1: returns only the NAME of the permission code that approves a review; no review data",
+    # PAYROLL-APR-1:工资过账的内层引擎与申请算子 —— 靠的是调不到(zzz_function_grants.sql)。
+    "post_payroll_period_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "unpost_payroll_period_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "payroll_request_dry_run": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "payroll_period_fingerprint": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # 它【必须】留给 authenticated:调它的是两支 INVOKER 守卫(period_close_floor 同一条)。
+    "payroll_period_frozen": "PAYROLL-APR-1: called by two INVOKER guards, so EXECUTE must stay with the caller; returns one state word (posted/requested/open) already shown on the payroll page",
     # PROC-COST-2(2026-08-31):两支【计值读取器】与它们共用的单位落地成本。
     # **它们【必须】没有调用者检查,而这一条与上面每一条的理由都不同 ——
     # 不是"加了门会在属主身份下抛错",是【加了门就是缺陷本身】。**

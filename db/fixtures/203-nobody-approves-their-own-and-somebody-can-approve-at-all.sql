@@ -306,6 +306,12 @@ BEGIN
     --   正好是 H2 转出来的那一下。
     -- 此刻 fx203-l1 有真持有人(u_l1)、看得见金额(data.view_prices),
     -- 而他【不持 module.purchasing.view】—— 也就是 approve_purchase_order 的门。
+    -- ★ PAYROLL-APR-1(2026-09-24):工资过账申请这条链的门是 module.hr.view + data.view_pay(Tim 的 Q8)。
+    --   二级角色不持这两个码,开审批就会按名拒 APPROVALS_CHAIN_HAS_NO_APPROVER|decide_payroll_request —— 本 fixture 测的不是它。
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay']) c
+     WHERE r.code = 'fx203-l2'
+    ON CONFLICT (role_id, permission_code) DO NOTHING;
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_adm), true);
     EXECUTE 'SET LOCAL ROLE authenticated';
     PERFORM set_approvals_policy(false, 'fx203-l1', 'fx203-l2', 1000);

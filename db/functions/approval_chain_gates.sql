@@ -86,7 +86,13 @@ AS $function$
         --    从不经 approval_level_for —— 所以一级那一行不存在,而不是"门一样宽所以省了"。
         --    门与报销单同一对码,理由同上(提单的码是 edit;R4 要看得见金额)。
         ('payment_request'::text, 'decide_payment_request'::text, 2::smallint,
-            ARRAY['module.finance.view', 'data.view_prices']::text[])
+            ARRAY['module.finance.view', 'data.view_prices']::text[]),
+        -- ★★ PAYROLL-APR-1(Tim 的矩阵:工资过账与撤销,CFO 批每一张,不分档):同样【只有二级
+        --    这一行】,理由与付款申请逐字同一条。门是 module.hr.view + data.view_pay(Tim 的 Q8)——
+        --    工资期页的门,加上看得见工资数的那个码(§5:批的人必须看得见他批的那个数);
+        --    【不是】module.hr.edit:那是提单的码。
+        ('payroll_request'::text, 'decide_payroll_request'::text, 2::smallint,
+            ARRAY['module.hr.view', 'data.view_pay']::text[])
       ) AS v(subject_type, action_function, level, gate_permissions)
 $function$;
 

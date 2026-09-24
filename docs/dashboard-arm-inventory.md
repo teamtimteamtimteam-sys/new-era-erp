@@ -84,6 +84,7 @@ module's own page.
 | 30 | `wht_due` | 某个代扣月的预提税还没有汇给 IRAS，而法定期限(**次月 15 日**)在七天内或已经过去 | `module.finance.view` | `wht_liability_by_month` | **谓词是 `unremitted_base > 0 AND (due_date - CURRENT_DATE) <= 7`**。三件事各自要紧：① **它清得掉,而清除【只能由钱完成】** —— `unremitted_base` 是从总账推导的,只有 `remit_wht` 过了一张真的分录把 2150 借掉之后才会下降。**没有「知道了」按钮**,与 CPF 的 `cpf_paid_at`、与 CHASE-1 的 `outcome IS NULL` 同一条:一个点一下就消失的告警,清除的是人的注意力而不是那件事;② **次月 15 日与 CPF 的次月 14 日不共用常量** —— 两个数各自来自各自的法令,一个凑整过的法定期限是一个会让公司逾期的数字;③ **代扣为零的月份一支都不响**(`unremitted_base > 0`)—— 而那不是「还没到」,是「这个月没有代扣过任何税」,一个正当且常见的状态。**它今天在线上恒为空**:一家非居民服务商都没有(实测 2026-08-28),所以这一支的【有数据分支没有任何东西在走它】,见 `docs/known-issues.md` 的 WHT-1 条 |
 | 31 | `payment_request_pending` | 一张付款申请已提交、等 CFO 批(PAY-REQ-1 加的;**此行由 ROLE-1 Batch 2a 补记** —— PAY-REQ-1 加了这一支却没有在这里加行,与本文件开头那条规矩相悖) | `module.finance.view` | `payment_requests` | `status = 'submitted'`;批准、驳回、撤回之后自动消失 |
 | 32 | `supplier_pending_approval` | 一家供应商已送审(`pending_review`)、等 CFO 批准或驳回(ROLE-1 Batch 2a,Tim 的 Q9)。**等了多久从【最后一次送审】起算**(`supplier_status_history`),没有那一行时退回 `updated_at` | `action.supplier_approve` —— **只有能批的人看得见**;这是全站第一支按一个【动作码】而不是 `*.view` 把门的臂,理由:这是 CFO 的队列,一个读得到供应商却批不了的人看见它只会多一块永远清不掉的牌子 | `suppliers` | `status = 'pending_review' AND deleted_at IS NULL`;批准、驳回或撤回送审(`set_supplier_status`)之后自动消失。**它不是审批引擎的一条链**:审批开关关着也照样响 |
+| 33 | `payroll_request_pending` | 一张工资过账或撤销过账申请已提交、等 CFO 批(PAYROLL-APR-1,Tim 的矩阵 §5) | `data.view_pay` —— 看得见工资数的人才看得见这一格(finance · cfo · cco · admin);谁能批由 `decide_payroll_request` 在服务端裁 | `payroll_requests` | `status = 'submitted'`;批准、驳回、撤回之后自动消失。`item_id` 是**工资期**的 id(申请住在工资期页上) |
 
 
 
@@ -299,6 +300,7 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `wht_due` | `/finance/wht` | **the month, and the month has no page of its own** —— 要处理一个到期的代扣月,看的是那一页上的负债表加汇缴表单,而不是某一笔付款。`item_code` 是那个代扣月(`YYYY-MM`),`item_id` 为 NULL —— 与 `fx_rate_gap` 同形 |
 | `payment_request_pending` | `/finance/payment-requests/[id]` | the request itself — the decide buttons live there |
 | `supplier_pending_approval` | `/suppliers/[id]/edit` | the supplier — the status panel on that page carries Approve / Reject (disabled with the reason for anyone without `action.supplier_approve`) |
+| `payroll_request_pending` | `/hr/payroll/[id]` | the payroll period — the request panel on that page carries Approve / Reject (disabled with the reason for anyone who cannot decide it) |
 | `ap_over_90` | `/finance/payables/[id]` or `/finance/expenses/[id]` | by `doc_kind`; unknown kind → no link |
 | `fx_rate_gap` | `/finance/fx?currency=<ccy>` | **no row exists** — the subject is a missing rate. An honestly-filtered list, which is not the same thing as a code search |
 | `bank_unmatched` | `/finance/bank/statements/[id]/reconcile` | where matching happens |

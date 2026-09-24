@@ -388,3 +388,17 @@ REVOKE EXECUTE ON FUNCTION public.record_bank_transfer_internal(date, text, text
 REVOKE EXECUTE ON FUNCTION public.reverse_bank_transfer_internal(uuid, date, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.remit_wht_internal(date, date, text, text, text, numeric) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.reverse_wht_remittance_internal(uuid, date, text) FROM authenticated;
+
+-- PAYROLL-APR-1(2026-09-24):工资过账的内层引擎与申请的算子。**这几支没有调用者检查,靠的就是调不到。**
+--   post_payroll_period_internal / unpost_payroll_period_internal —— 原 post_payroll_period /
+--     unpost_payroll_period 的函数体,拿掉了 require_permission(CFO 批准时要用它们试跑,而 CFO
+--     不持 module.hr.edit)。留着 authenticated 的 EXECUTE,任何登录用户都能不经申请直接过账 ——
+--     本刀要关的正是这扇门。唯一的外门:post_payroll_period / unpost_payroll_period(要一张已批的申请)。
+--   payroll_request_dry_run —— 按 id 试跑一张申请再回滚;只从申请函数体内调用。
+--   payroll_period_fingerprint —— 一个期间此刻的那一组数(含逐行摘要),只从申请函数体内调用。
+--   ☞ payroll_period_frozen 【不在】此列:调它的是两支 INVOKER 守卫,收回就 42501
+--     (period_close_floor 同一条;两处 allowlist 有它)。
+REVOKE EXECUTE ON FUNCTION public.post_payroll_period_internal(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.unpost_payroll_period_internal(uuid, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.payroll_request_dry_run(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.payroll_period_fingerprint(uuid) FROM authenticated;

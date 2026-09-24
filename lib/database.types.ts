@@ -11870,6 +11870,114 @@ export type Database = {
           },
         ]
       }
+      payroll_requests: {
+        Row: {
+          amount_base: number
+          created_at: string
+          created_by: string
+          currency: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          executed_at: string | null
+          executed_by: string | null
+          fx_rate: number
+          gross_total: number
+          id: string
+          kind: string
+          label: string
+          notes: string | null
+          payroll_period_id: string
+          result_journal_entry_id: string | null
+          snapshot: Json
+          status: string
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          amount_base: number
+          created_at?: string
+          created_by: string
+          currency: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          fx_rate: number
+          gross_total: number
+          id?: string
+          kind: string
+          label: string
+          notes?: string | null
+          payroll_period_id: string
+          result_journal_entry_id?: string | null
+          snapshot: Json
+          status?: string
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          amount_base?: number
+          created_at?: string
+          created_by?: string
+          currency?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          fx_rate?: number
+          gross_total?: number
+          id?: string
+          kind?: string
+          label?: string
+          notes?: string | null
+          payroll_period_id?: string
+          result_journal_entry_id?: string | null
+          snapshot?: Json
+          status?: string
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_requests_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payroll_requests_payroll_period_id_fkey"
+            columns: ["payroll_period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_period_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_requests_payroll_period_id_fkey"
+            columns: ["payroll_period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payroll_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       performance_reviews: {
         Row: {
           acknowledged_at: string | null
@@ -27846,6 +27954,10 @@ export type Database = {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
       }
+      decide_payroll_request: {
+        Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
+        Returns: Json
+      }
       decline_quote: {
         Args: { p_quote_id: string; p_reason: string }
         Returns: Json
@@ -28324,6 +28436,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      payroll_period_fingerprint: {
+        Args: { p_period_id: string }
+        Returns: Json
+      }
+      payroll_period_frozen: { Args: { p_period_id: string }; Returns: string }
+      payroll_request_dry_run: { Args: { p_request_id: string }; Returns: Json }
       period_close_floor: { Args: never; Returns: string }
       pnl_statement: { Args: { p_from: string; p_to: string }; Returns: Json }
       po_document_data: { Args: { p_po_id: string }; Returns: Json }
@@ -28338,6 +28456,10 @@ export type Database = {
         Returns: Json
       }
       post_payroll_period: {
+        Args: { p_payroll_period_id: string }
+        Returns: Json
+      }
+      post_payroll_period_internal: {
         Args: { p_payroll_period_id: string }
         Returns: Json
       }
@@ -29260,6 +29382,10 @@ export type Database = {
         Args: { p_notes: string; p_payment_id: string }
         Returns: Json
       }
+      submit_payroll_request: {
+        Args: { p_kind: string; p_notes?: string; p_payroll_period_id: string }
+        Returns: Json
+      }
       submit_review: { Args: { p_review_id: string }; Returns: Json }
       submit_shift_handover: {
         Args: {
@@ -29329,7 +29455,8 @@ export type Database = {
         Args: { p_statement_line_id: string }
         Returns: undefined
       }
-      unpost_payroll_period: {
+      unpost_payroll_period: { Args: { p_id: string }; Returns: Json }
+      unpost_payroll_period_internal: {
         Args: { p_id: string; p_reason: string }
         Returns: Json
       }
@@ -29396,6 +29523,10 @@ export type Database = {
         Returns: undefined
       }
       withdraw_payment_request: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      withdraw_payroll_request: {
         Args: { p_request_id: string }
         Returns: Json
       }
