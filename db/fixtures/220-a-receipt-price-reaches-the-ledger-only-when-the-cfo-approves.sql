@@ -91,6 +91,8 @@ BEGIN
         (r_fin, 'action.price_receipts'), (r_fin, 'data.view_purchase_prices'), (r_fin, 'data.view_prices'),
         (r_fin, 'module.inbound.edit'), (r_fin, 'module.inbound.view'),
         (r_fin, 'module.finance.view'), (r_fin, 'module.finance.edit'),
+        -- ROLE-1 Batch 3b:L 臂在收货台带价建单 —— 从本刀起建单要 action.receive_goods(线上只有 admin 同时持它与定价码)。
+        (r_fin, 'action.receive_goods'),
         -- 一级:审批开得了(每条分档链的门它都持)—— 批不了定价申请只能因为【级别】
         (r_l1, 'module.purchasing.view'), (r_l1, 'data.view_prices'), (r_l1, 'data.view_purchase_prices'),
         (r_l1, 'module.finance.view'), (r_l1, 'module.hr.view'), (r_l1, 'data.view_pay'), (r_l1, 'module.inbound.view'),
@@ -99,7 +101,8 @@ BEGIN
         (r_l2, 'module.finance.view'), (r_l2, 'module.hr.view'), (r_l2, 'data.view_pay'), (r_l2, 'module.inbound.view'),
         (r_cto, 'action.apply_assay'), (r_cto, 'module.inbound.edit'), (r_cto, 'module.inbound.view'),
         (r_cto, 'data.view_purchase_prices'),
-        (r_wh, 'module.inbound.edit'), (r_wh, 'module.inbound.view');
+        -- ROLE-1 Batch 3b:注销批次是它自己的码(action.batch_write_off),仓库持有 —— C5 拒在等待中的申请上,不拒在码上。
+        (r_wh, 'module.inbound.edit'), (r_wh, 'module.inbound.view'), (r_wh, 'action.batch_write_off');
     INSERT INTO user_roles (user_id, role_id) VALUES
         (u_fin, r_fin), (u_cfo, r_l2), (u_cfo2, r_fin), (u_l1, r_l1), (u_cto, r_cto), (u_wh, r_wh);
     INSERT INTO employees (id, code, legal_name, employment_type, work_category, hire_date, user_id)

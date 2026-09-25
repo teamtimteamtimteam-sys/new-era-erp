@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { createWorkOrder } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 
 type Material = { id: string; code: string; name: string }
@@ -42,7 +43,8 @@ type ExpectedRow = {
     material_id: string; expected_qty: string; basis: string; basis_reference: string; i: number
 }
 
-export default function NewWorkOrderForm({ materials }: { materials: Material[] }) {
+// ROLE-1 Batch 3b:开工单归 action.wo_create;canCreate 由页面 can() 算好传进来。
+export default function NewWorkOrderForm({ materials, canCreate }: { materials: Material[]; canCreate: boolean }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState('')
@@ -309,9 +311,11 @@ export default function NewWorkOrderForm({ materials }: { materials: Material[] 
 
                 <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.wo.form.savesAsDraft')}</p>
                 <div className="flex gap-3">
-                    <Button type="button" onClick={submit} disabled={isPending || blocked}>
-                        {isPending ? t('common.saving') : t('processing.wo.form.save')}
-                    </Button>
+                    <PermissionGate code="action.wo_create" allowed={canCreate} inline>
+                        <Button type="button" onClick={submit} disabled={isPending || blocked}>
+                            {isPending ? t('common.saving') : t('processing.wo.form.save')}
+                        </Button>
+                    </PermissionGate>
                     <Button asChild variant="secondary">
                         <Link href="/operation/orders">
                             {t('common.cancel')}

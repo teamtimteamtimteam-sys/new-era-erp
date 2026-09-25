@@ -61,6 +61,7 @@ export default function NewInboundForm({
     baseCurrency,
     currencies,
     pricingGate,
+    canReceive,
     initialPoId = '',
 }: {
     // IOD-1b:收货库位的可选清单(在用库位),由页面取好传进来
@@ -82,6 +83,9 @@ export default function NewInboundForm({
     /** ROLE-1 Batch 4a(grilling Q4):建单带价就是定价 —— 要 action.price_receipts + data.view_purchase_prices。
      *  没有的人:价格框看得见、按不动、说出码;被禁用的输入不随表单提交,收货单于是【不带价】建成。 */
     pricingGate: { allowed: boolean; code: string }
+    /** ROLE-1 Batch 3b:建收货单归 action.receive_goods(库里 create_inbound_batch 按码拒)。
+     *  页面仍是 inbound.view 就进得来;缺码时【只挡保存钮】,取消照常。 */
+    canReceive: boolean
     initialPoId?: string
 }) {
     const t = useTranslations()
@@ -462,12 +466,14 @@ export default function NewInboundForm({
                     <p className="text-sm text-amber-700">{t('inbound.form.blockedArrivalDate')}</p>
                 )}
                 <div className="flex gap-3 pt-4">
-                    <Button
-                        type="submit"
-                        disabled={isPending || !arrivalDate || !!blocked}
-                    >
-                        {isPending ? t('common.saving') : t('common.save')}
-                    </Button>
+                    <PermissionGate code="action.receive_goods" allowed={canReceive} inline>
+                        <Button
+                            type="submit"
+                            disabled={isPending || !arrivalDate || !!blocked}
+                        >
+                            {isPending ? t('common.saving') : t('common.save')}
+                        </Button>
+                    </PermissionGate>
                     <Button asChild variant="secondary">
                         <Link
                             href="/inbound"

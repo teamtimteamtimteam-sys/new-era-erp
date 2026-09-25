@@ -94,6 +94,8 @@ BEGIN
         (r_hr,   'action.hr_reviews'),
         (r_hr,   'action.approve_review'),
         (r_proc, 'module.processing.edit'),
+        -- ROLE-1 Batch 3b:放行的门从 module.processing.edit 换成 action.wo_release;G 臂验的是四眼与"审批开着放行得了",不是谁持哪个码。
+        (r_proc, 'action.wo_release'),
         (r_proc, 'module.processing.view'),
         (r_adm,  'action.manage_permissions'),
         (r_adm,  'module.finance.view'),

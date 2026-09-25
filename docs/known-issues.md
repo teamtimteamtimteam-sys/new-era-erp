@@ -3,6 +3,21 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## ROLE1B3B-PROCESSING-UPDATE-POLICIES · 加工三张表的 UPDATE 策略还开在 `module.processing.edit` 上(ROLE-1 Batch 3b 登记,2026-09-25)
+
+Batch 3b 拿掉了 `processing_runs` / `processing_outputs` 的 INSERT 策略与三张表(再加 `processing_inputs`)的 DELETE 策略,
+直连插、直连删、以及在 `processing_runs` 上直连改 `status` / `work_order_id` 一律按名拒 `PROCESSING_THROUGH_FUNCTION_ONLY|表|动作`
+(`guard_processing_direct_write`;fixture 222 P3 / P5)。**UPDATE 策略留着**(Tim 的 Batch 3b grilling Q1):持 `module.processing.edit`
+的人(cco · cto · operations · admin)仍能直连改这三张表上【别的列】—— 例如加工单的 `loss_qty`、`notes`、分摊基准,产出行的数量。
+Step 0 实测 `app/`、`lib/`、`scripts/` 里没有一处直连写这三张表(全是读)。**删除条件:** 三张表的 UPDATE 策略拿掉(或收窄到
+一份点名的列清单),每一处合法改动都经一支 SECURITY DEFINER 函数。
+
+## ROLE1B3B-RECEIVE-DONE-MATERIAL-NAME · 现场收货「完成」页对仓库显示不出物料名(ROLE-1 Batch 3b 登记,2026-09-25)
+
+`app/inbound/receive/done/[id]/page.tsx` 经 PostgREST 内嵌读 `materials ( name )`,而仓库不持 `module.materials.view`(Q8),
+于是物料名那一格是「—」。**这不是本刀造成的**(仓库在本刀之前就不持那个码),是本刀的勘察顺带看见的:加工的三页已改读
+`material_lookup`,这一页没有在本刀的范围里。**删除条件:** 这一页也经 `material_lookup` 取名。
+
 ## ROLE1B3A-PRICED-RECEIPT-NO-CORRECTION · 一张供应商记错了的已定价收货,今天没有更正的路(ROLE-1 Batch 3a 登记,2026-09-25)
 
 Batch 3a 关掉了 ROLE1B4A-RECEIPT-SUPPLIER-CHANGE-AFTER-PRICING:一张【已定价】的收货(`unit_price` 不为空)改供应商 /

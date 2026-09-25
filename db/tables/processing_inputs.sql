@@ -281,10 +281,9 @@ CREATE POLICY "processing_inputs update by permission"
     AS PERMISSIVE FOR UPDATE TO authenticated
     USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
 
-CREATE POLICY "processing_inputs delete by permission"
-    ON public.processing_inputs
-    AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.processing.edit'::text));
+-- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q7;Batch 3b grilling Q1):DELETE 写策略拿掉 ——
+--   提交与回滚只经 commit_processing_run / rollback_processing_run(SECURITY DEFINER);直连写按名拒
+--   PROCESSING_THROUGH_FUNCTION_ONLY(guard_processing_direct_write,见文末)。
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
@@ -295,3 +294,8 @@ CREATE POLICY "processing_inputs delete by permission"
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.processing_inputs
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.processing.edit');
+
+-- ── ROLE-1 Batch 3b · 不许绕过函数删(guard_processing_direct_write;直连 INSERT 早由 guard_processing_input 拒)──
+CREATE TRIGGER trg_processing_inputs_direct_delete
+    BEFORE DELETE ON public.processing_inputs
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_processing_direct_write();

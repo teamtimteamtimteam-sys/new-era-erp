@@ -36,7 +36,8 @@ DECLARE
     v_produces     boolean;
     v_result_state text;
 BEGIN
-    PERFORM require_permission('module.processing.edit');
+    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25):提交加工归仓库 —— action.processing_commit(warehouse · admin)。
+    PERFORM require_permission('action.processing_commit');
     IF p_process_date IS NULL THEN
         RAISE EXCEPTION 'PROCESS_DATE_REQUIRED';
     END IF;

@@ -10,7 +10,7 @@ import { MOD } from '@/lib/modules'
 import { loadIntakeConditionOptions, loadMaterialAxes } from '../intakeConditionQuery'
 import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
 import { getBaseCurrency, getCurrencyCodes } from '@/lib/currency'
-import { receiptPricingGate } from '@/lib/permissions'
+import { can, receiptPricingGate } from '@/lib/permissions'
 
 export default async function NewInboundPage({
     searchParams,
@@ -113,8 +113,9 @@ export default async function NewInboundPage({
     ])
     // INB-PAY-1:单价的币种选择器 —— 本位币是数据(currencies.is_base),不是字面量
     // ROLE-1 Batch 4a:价格框归财务(Q4);判据在服务端,表单只画
-    const [baseCurrency, currencies, pricingGate] = await Promise.all([
-        getBaseCurrency(), getCurrencyCodes(), receiptPricingGate()])
+    // ROLE-1 Batch 3b:保存 = 建收货单,归 action.receive_goods
+    const [baseCurrency, currencies, pricingGate, canReceive] = await Promise.all([
+        getBaseCurrency(), getCurrencyCodes(), receiptPricingGate(), can('action.receive_goods')])
 
     return (
         <NewInboundForm
@@ -122,6 +123,7 @@ export default async function NewInboundPage({
             baseCurrency={baseCurrency}
             currencies={currencies}
             pricingGate={pricingGate}
+            canReceive={canReceive}
             safetyStates={condition.states}
             certainties={condition.certainties}
             materialAxes={materialAxes}

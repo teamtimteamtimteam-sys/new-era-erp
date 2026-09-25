@@ -31,8 +31,11 @@ import {
 } from './ProcessingTables'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { loadActorNames } from '@/app/components/ActorName'
+import { loadMaterialNames } from '../materialNames'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
+// ROLE-1 Batch 3b:批次里不再嵌 materials ( name ) —— 仓库读不了 materials 基表,嵌入会静默成 null。
+// 只带 material_id,名字由 loadMaterialNames 从 material_lookup 映射(见 ../materialNames.ts)。
 type ProcessingInputRow = {
     id: string
     quantity_consumed: number
@@ -41,7 +44,7 @@ type ProcessingInputRow = {
         code: string
         unit: string
         deleted_at: string | null
-        materials: { name: string } | null
+        material_id: string | null
     } | null
     // FIN-25:再加工投料 —— 双亲恰一非空
     output_batches: {
@@ -49,7 +52,7 @@ type ProcessingInputRow = {
         code: string
         unit: string
         deleted_at: string | null
-        materials: { name: string } | null
+        material_id: string | null
     } | null
 }
 
@@ -65,7 +68,7 @@ type ProcessingOutputRow = {
         unit: string
         purity: string | null
         deleted_at: string | null
-        materials: { name: string } | null
+        material_id: string | null
     } | null
 }
 
@@ -98,12 +101,12 @@ export default async function ProcessingDetailPage({
             .single(),
         supabase
             .from('processing_inputs')
-            .select('id, quantity_consumed, inbound_batches ( id, code, unit, deleted_at, materials ( name ) ), output_batches ( id, code, unit, deleted_at, materials ( name ) )')
+            .select('id, quantity_consumed, inbound_batches ( id, code, unit, deleted_at, material_id ), output_batches ( id, code, unit, deleted_at, material_id )')
             .eq('run_id', id)
             .order('created_at'),
         supabase
             .from('processing_outputs_masked')
-            .select('id, quantity_produced, allocated_cost_base, unit_cost_base, cost_incomplete, output_batches ( id, code, unit, purity, deleted_at, materials ( name ) )')
+            .select('id, quantity_produced, allocated_cost_base, unit_cost_base, cost_incomplete, output_batches ( id, code, unit, purity, deleted_at, material_id )')
             .eq('run_id', id)
             .order('created_at'),
         supabase
@@ -146,7 +149,7 @@ export default async function ProcessingDetailPage({
         Tables<'processing_runs'>,
         'material_cost_base' | 'process_cost_base' | 'total_cost_base' | 'capitalized_cost_base'
     >(runRes.data)
-    const inputs = inputsRes.data as unknown as ProcessingInputRow[] | null
+    const inputs = mustRows(inputsRes, 'processing_inputs') as unknown as ProcessingInputRow[]
 
     // FIN-25:血缘 —— 本单产出批的【全部】祖先(递归视图;security_invoker,RLS 照常)。
     // 立账公理是全链路可溯,再加工让链条真正变长,这一块是它的眼睛。
@@ -155,7 +158,8 @@ export default async function ProcessingDetailPage({
         parent_kind: string; parent_batch_id: string; parent_code: string | null
         quantity_consumed: number
     }
-    const outputIds = ((outputsRes.data as unknown as ProcessingOutputRow[] | null) ?? [])
+    const outputs = mustRows(outputsRes, 'processing_outputs_masked') as unknown as ProcessingOutputRow[]
+    const outputIds = outputs
         .map((o) => o.output_batches?.id).filter(Boolean) as string[]
     let lineage: LineageRow[] = []
     if (outputIds.length > 0) {
@@ -166,7 +170,12 @@ export default async function ProcessingDetailPage({
             .order('depth')
         lineage = (mustRows(lineageRes, 'batch_lineage') as unknown as LineageRow[])
     }
-    const outputs = outputsRes.data as unknown as ProcessingOutputRow[] | null
+    // ROLE-1 Batch 3b:投入与产出两侧批次的物料名,一次从 material_lookup 取回
+    const materialName = await loadMaterialNames(supabase, [
+        ...inputs.map((l) => (l.inbound_batches ?? l.output_batches)?.material_id),
+        ...outputs.map((o) => o.output_batches?.material_id),
+    ])
+    const nameFor = (mid: string | null | undefined) => (mid ? materialName.get(mid) : undefined) ?? '—'
 
     const isCommitted = run.status === 'committed'
 
@@ -181,6 +190,11 @@ export default async function ProcessingDetailPage({
     // PROC-BUILD-1:损耗分类。字典【现读】—— 加一种损耗是往 loss_categories 加一行,
     // 屏幕不该是第二份权威(materials 那五条轴立的同一条先例)。
     const canEditRun = await can('module.processing.edit')
+    // ROLE-1 Batch 3b:回滚归 action.processing_rollback;损耗登记(善后)归 action.processing_aftercare
+    // 或 module.processing.edit(库里两者之一即可,拒的时候点名 aftercare)。成本条目仍是 processing.edit,不动。
+    const [canRollback, canAftercare] = await Promise.all([
+        can('action.processing_rollback'), can('action.processing_aftercare')])
+    const canEditLosses = canAftercare || canEditRun
     // ROLE-1:分摊归财务(allocate_processing_costs 的门是 module.finance.edit)
     const canAllocate = await can('module.finance.edit')
     const [lossCatRes, lossRowRes] = await Promise.all([
@@ -345,7 +359,7 @@ export default async function ProcessingDetailPage({
         qty: String(l.quantity_consumed),
     }))
 
-    const inputRows: InputLegRow[] = (inputs ?? []).map((leg) => {
+    const inputRows: InputLegRow[] = inputs.map((leg) => {
         // FIN-25:双亲投料 —— 进料批或(再加工)产出批
         const parent = leg.inbound_batches ?? leg.output_batches
         return {
@@ -357,18 +371,18 @@ export default async function ProcessingDetailPage({
             parentDeleted: !!parent?.deleted_at,
             deletedMarker: t('processing.detail.deletedMarker'),
             reprocessed: !!leg.output_batches,
-            material: parent?.materials?.name ?? '—',
+            material: nameFor(parent?.material_id),
             qtyText: `${leg.quantity_consumed} ${parent?.unit ?? ''}`.trim(),
         }
     })
 
-    const outputRows: OutputLegRow[] = (outputs ?? []).map((leg) => ({
+    const outputRows: OutputLegRow[] = outputs.map((leg) => ({
         id: leg.id,
         batchCode: leg.output_batches?.code ?? null,
         batchHref: leg.output_batches ? `/output/${leg.output_batches.id}/edit` : null,
         batchDeleted: !!leg.output_batches?.deleted_at,
         deletedMarker: t('processing.detail.deletedMarker'),
-        material: leg.output_batches?.materials?.name ?? '—',
+        material: nameFor(leg.output_batches?.material_id),
         qtyText: `${leg.quantity_produced} ${leg.output_batches?.unit ?? ''}`.trim(),
         purity: leg.output_batches?.purity != null ? String(leg.output_batches.purity) : '—',
         // 遮蔽后是 null,和「尚未分摊」是两回事 —— 前者显示「受限」,后者才是「—」。
@@ -404,7 +418,7 @@ export default async function ProcessingDetailPage({
             title={t('processing.detailTitle')}
             // ★ 出口:删除这一单。转换前它画在 h1 右边的 justify-between 里 ——
             //   actions 是同一个位置,而且画在状态分支【之前】,空态吃不掉它。
-            actions={<DeleteButton runId={run.id} code={run.code} />}
+            actions={<DeleteButton runId={run.id} code={run.code} canRollback={canRollback} />}
             // ★★ 详情页恒为 ok —— 这一单在不在由上面的 notFound() 回答。CONV-8 §⑤。
             state={{ kind: 'ok' }}
         >
@@ -488,7 +502,7 @@ export default async function ProcessingDetailPage({
                     只在【已提交】单上;reversed 单是历史,不可改(与 CostPanel 同一条)。 */}
                 {isCommitted && (
                     <LossPanel runId={run.id} categories={lossCategories} rows={lossRows}
-                               lossQty={run.loss_qty ?? null} canEdit={canEditRun} locale={locale} />
+                               lossQty={run.loss_qty ?? null} canEdit={canEditLosses} locale={locale} />
                 )}
 
                 {/* FIN-25:血缘 —— 深度 >1 才值得占版面(一段加工的直接投入上面已经列了)。

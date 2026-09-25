@@ -8,14 +8,18 @@ import { useState, useTransition } from 'react'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { softDeleteOutput } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
-export default function DeleteButton({ id, code }: { id: string; code: string }) {
+// ★ ROLE-1 Batch 3b:注销(软删)归 action.batch_write_off(仓库、管理员);库里 soft_delete_output_batch 按码拒。
+//   canWriteOff 由页面用 can() 算好传下来 —— 缺码时看得见、按不动、点名那个码。
+export default function DeleteButton({ id, code, canWriteOff }: { id: string; code: string; canWriteOff: boolean }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState('')
 
     return (
         <span className="inline-flex flex-col items-start">
+            <PermissionGate code="action.batch_write_off" allowed={canWriteOff} inline>
             <ConfirmButton
                 subject={code}
                 title={t('output.deleteConfirmTitle')}
@@ -36,6 +40,7 @@ export default function DeleteButton({ id, code }: { id: string; code: string })
             >
                 {isPending ? t('common.deleting') : t('common.delete')}
             </ConfirmButton>
+            </PermissionGate>
             {error && <span className="mt-1 text-xs text-destructive-text">{error}</span>}
         </span>
     )

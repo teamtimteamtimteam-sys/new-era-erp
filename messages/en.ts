@@ -3229,7 +3229,6 @@ const en = {
             reversedNote: 'A reversed run stays listed — it really was worked against this order — but its consumption no longer counts anywhere: not in the variance above, not in the amend floor, not in the cancellation guard.',
             actionsTitle: 'Actions',
             history: 'History',
-            needsEdit: 'requires Processing (edit)',
             closedBanner: 'Closed {at} — {reason}',
             cancelledBanner: 'Cancelled {at} — {reason}',
             status: {
@@ -3270,6 +3269,8 @@ const en = {
                 cancelTerminal: 'This order is {status} — it has already ended.',
                 cancelHasRuns: 'Processing has already been worked against this order, so it cannot be cancelled — close it instead. Cancelling would mean it never happened, and the material really did move.',
                 amendTerminal: 'This order is {status} — the plan can no longer be changed.',
+                // ROLE-1 Batch 3b: the creator can never release their own work order (the DB judges per person)
+                releaseSelf: 'You created this work order — someone else must release it.',
             },
             form: {
                 scheduled: 'Scheduled date',
@@ -3423,6 +3424,9 @@ const en = {
             WO_NOT_CANCELLABLE: 'Work order {0} is {1} — it has already ended.',
             WO_NOT_AMENDABLE: 'Work order {0} is {1} — the plan can no longer be changed.',
             WO_HAS_RUNS: 'Work order {0} already has {1} processing run(s) against it, so it cannot be cancelled — close it instead. Cancelling would say it never happened, and the material really did move.',
+            // ROLE-1 Batch 3b
+            WO_NO_OTHER_RELEASER: 'Nobody but you can release a work order — ask an administrator to give Release work orders to someone else first.',
+            PROCESSING_THROUGH_FUNCTION_ONLY: 'Processing records ({0}, {1}) can only be changed through the processing screens — nothing was changed.',
             WO_NO_LINES: 'A work order needs at least one planned line — otherwise it plans nothing.',
             WO_LINE_QTY_INVALID: 'A planned quantity must be greater than zero.',
             WO_MATERIAL_NOT_FOUND: 'Material {0} does not exist.',

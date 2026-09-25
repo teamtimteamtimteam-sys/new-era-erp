@@ -67,7 +67,8 @@ BEGIN
     INSERT INTO roles (code,name_en,name_zh,is_active) VALUES ('fx219-sale','f','f',true)  RETURNING id INTO r_sale;
     INSERT INTO roles (code,name_en,name_zh,is_active) VALUES ('fx219-prc','f','f',true)   RETURNING id INTO r_prc;
     INSERT INTO role_permissions (role_id, permission_code) VALUES
-        (r_wh, 'module.inbound.edit'), (r_wh, 'module.inbound.view'), (r_wh, 'data.view_purchase_prices'),
+        -- ROLE-1 Batch 3b:建收货单是它自己的码(action.receive_goods),仓库持有 —— C4 照建、C3 拒在定价码上。
+        (r_wh, 'module.inbound.edit'), (r_wh, 'module.inbound.view'), (r_wh, 'data.view_purchase_prices'), (r_wh, 'action.receive_goods'),
         (r_fin, 'action.price_receipts'), (r_fin, 'data.view_purchase_prices'), (r_fin, 'data.view_prices'),
         (r_fin, 'module.inbound.edit'), (r_fin, 'module.inbound.view'),
         (r_fin, 'module.finance.edit'), (r_fin, 'module.finance.view'),

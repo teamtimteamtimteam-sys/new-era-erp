@@ -50,6 +50,13 @@ DECLARE
     c_apr2  text;
     c_was   text;                        -- 切过去之前的 claims,原样切回来
 BEGIN
+    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3b grilling Q3):create_work_order 从本刀起要求【建单人之外】
+    --   有一个真持有人(real_role_grants)持 action.wo_release,否则按名拒 WO_NO_OTHER_RELEASER。
+    --   本支验的不是那一条(fixture 222 验),所以先立一个【只持下达码】的真人;本支原有断言一个字不动。
+    WITH u AS (INSERT INTO auth.users (id, email_confirmed_at) VALUES (gen_random_uuid(), now()) RETURNING id),
+         r AS (INSERT INTO roles (code, name_en, name_zh, is_active) VALUES ('fx75-b3b-releaser', 'f', 'f', true) RETURNING id),
+         g AS (INSERT INTO role_permissions (role_id, permission_code) SELECT id, 'action.wo_release' FROM r RETURNING role_id)
+    INSERT INTO user_roles (user_id, role_id) SELECT u.id, g.role_id FROM u, g;
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-75', 'f', 'f', true) RETURNING id INTO r_all;
     INSERT INTO role_permissions (role_id, permission_code) SELECT r_all, code FROM permissions;

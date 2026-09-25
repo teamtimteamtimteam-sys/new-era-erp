@@ -7,6 +7,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 import { loadIntakeConditionOptions, loadMaterialAxes } from '../intakeConditionQuery'
 import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
 
@@ -65,6 +66,8 @@ export default async function ReceivePage() {
         // RECV-SOURCE-1:无单收货的理由字典
         loadSourceReasons(supabase, locale),
     ])
+    // ROLE-1 Batch 3b:提交 = 建收货单,归 action.receive_goods(页面本身仍是 inbound.view)
+    const canReceive = await can('action.receive_goods')
 
     return (
         <div className="p-4 max-w-md mx-auto">
@@ -78,6 +81,7 @@ export default async function ReceivePage() {
 
             <ReceiveForm
             sourceReasons={sourceReasons}
+            canReceive={canReceive}
             safetyStates={condition.states}
             certainties={condition.certainties}
             materialAxes={materialAxes}

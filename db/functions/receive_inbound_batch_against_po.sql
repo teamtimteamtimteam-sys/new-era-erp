@@ -9,7 +9,8 @@ DECLARE
     v_id   uuid;
     v_warn text[];
 BEGIN
-    PERFORM require_permission('module.inbound.edit');
+    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q1):现场收货归仓库 —— action.receive_goods。
+    PERFORM require_permission('action.receive_goods');
 
     -- IOD-2-fu1:同上 —— 现场收货这条路一样进得到 FIN-32 的约束。
     IF p_arrival_date IS NULL THEN

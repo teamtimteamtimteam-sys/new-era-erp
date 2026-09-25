@@ -1462,6 +1462,23 @@ A request's withdrawal is recorded **on the request row** (`withdrawn_at` · `wi
 `approval_log` — a withdrawal is not a decision. Tim accepted this for receipt price requests on 2026-09-25, consistent with payment
 and payroll requests.
 
+## 3p · ROLE-1 Batch 3b (2026-09-25) — a work order is released by someone other than the person who wrote it
+
+The cut is `docs/handbacks/ROLE-1.md` § Batch 3b; this section records only what changes **for approvals**.
+
+### Work-order release: its own code, the same four-eyes leg
+Releasing moves from `module.processing.edit` to `action.wo_release` (finance · admin); creating moves to `action.wo_create`
+(warehouse · admin). The self-release refusal was already there (APR-2: `forbid_self_approval(created_by, NULL, 'work_order')`,
+per person) — only the code on the gate changed. Work orders stay out of `approval_chain_gates()` (no amount, so no tiered chain —
+Tim's APR-2 Q1) and out of `approval_pending_documents()` (a draft is not "waiting"); the log row stays `approved`, level NULL.
+The migrations' pending-decider proof now asks `action.wo_release` minus the creator.
+
+### A work order nobody but its creator could release is refused when it is created
+`create_work_order` raises `WO_NO_OTHER_RELEASER` unless a real holder (`real_role_grants`: unrevoked · confirmed · not banned ·
+not deleted) of `action.wo_release` is a different person (`self_leg = 'none'`). It is an inline check, not `assert_other_decider`,
+because that helper asks `approval_deciders` for a tiered chain and work orders are not one. Like the release-side four-eyes rule it
+does **not** depend on the approvals switch. On live today: Fu Sheng creates → Choo Er or admin@ releases; admin@ creates → Choo Er.
+
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
 **Found while building CHAIN-BUILD-1; folded into the same predicate.**

@@ -17,7 +17,11 @@ DECLARE
     v_consumed numeric;
     v_changes  integer := 0;
 BEGIN
-    PERFORM require_permission('module.processing.edit');
+    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q6):改 / 取消 / 关闭工单 = action.wo_create
+    --   (仓库)或 module.processing.edit(cco · cto 留着它们的宽码)。拒绝点名 action.wo_create。
+    IF NOT has_any_permission(ARRAY['action.wo_create', 'module.processing.edit']) THEN
+        RAISE EXCEPTION 'PERMISSION_DENIED|action.wo_create';
+    END IF;
     SELECT * INTO v_wo FROM work_orders WHERE id = p_work_order_id FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'WO_NOT_FOUND|%', COALESCE(p_work_order_id::text, '?');

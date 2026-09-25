@@ -12,7 +12,20 @@ DECLARE
     v_mat  uuid;
     v_qty  numeric;
 BEGIN
-    PERFORM require_permission('module.processing.edit');
+    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25):建工单归仓库 —— action.wo_create(warehouse · admin);
+    --   下达归财务(action.wo_release),建单人永远不能下达(release_work_order 里的 forbid_self_approval,按人认)。
+    PERFORM require_permission('action.wo_create');
+    -- ★ Batch 3b grilling Q3:建单人之外没有人下达得了,就不让它生下来 —— 否则它是一张永远的草稿。
+    --   "有人" = 一个真持有人(real_role_grants:未撤销 / 已确认 / 未封禁 / 未删除)持 action.wo_release,
+    --   而且不是同一个人(self_leg 按人认,跨账号)。与下达那一侧的四眼一样,不看审批开关。
+    IF NOT EXISTS (SELECT 1
+                     FROM role_permissions rp
+                     JOIN roles r ON r.id = rp.role_id
+                    CROSS JOIN LATERAL real_role_grants(r.code) g
+                    WHERE rp.permission_code = 'action.wo_release'
+                      AND self_leg(v_user, NULL::uuid, g.user_id) = 'none') THEN
+        RAISE EXCEPTION 'WO_NO_OTHER_RELEASER';
+    END IF;
 
     -- 【拒绝的顺序就是"人下一步该改什么"的顺序】两条同时不成立时,先说哪一条
     -- 决定了他打开哪个输入框(与 record_invoice_issue 的四条同一条道理)。

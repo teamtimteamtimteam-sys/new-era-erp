@@ -6,6 +6,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
+import { loadMaterialNames } from '../materialNames'
 
 export default async function NewProcessingPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -22,19 +24,21 @@ export default async function NewProcessingPage() {
     const [batchesRes, outputBatchesRes, materialsRes, settingsRes, workOrdersRes] = await Promise.all([
         supabase
             .from('inbound_batches')
-            .select('id, code, remaining_qty, unit, materials ( name )')
+            .select('id, code, remaining_qty, unit, material_id')
             .is('deleted_at', null)
             .gt('remaining_qty', 0) // 只看还有库存的批次
             .order('code'),
         // FIN-25:再加工 —— 有库存的产出批也可投料
+        // (ROLE-1 Batch 3b:两处批次都不再嵌 materials ( name ),名字在下面从 material_lookup 映射)
         supabase
             .from('output_batches')
-            .select('id, code, remaining_qty, unit, materials ( name )')
+            .select('id, code, remaining_qty, unit, material_id')
             .is('deleted_at', null)
             .gt('remaining_qty', 0)
             .order('code'),
+        // ROLE-1 Batch 3b:仓库持 processing.view 但不持 materials.view —— 读查名视图,不读基表。
         supabase
-            .from('materials')
+            .from('material_lookup')
             .select('id, code, name')
             .is('deleted_at', null)
             .order('name'),
@@ -102,20 +106,34 @@ export default async function NewProcessingPage() {
             .filter((f): f is { code: string; name_en: string; name_zh: string } => f !== null),
     }))
 
-    const withAvailable = (rows: InboundBatchOption[] | null) =>
-        (rows ?? []).map((b) => ({ ...b, available_qty: availByBatch.get(b.id) ?? 0 }))
+    // ROLE-1 Batch 3b:批次行只带 material_id,名字按 id 从 material_lookup 取一次再映射回去
+    type BatchFetchRow = Omit<InboundBatchOption, 'materials' | 'available_qty'> & { material_id: string | null }
+    const inboundRows = mustRows(batchesRes, 'inbound_batches') as unknown as BatchFetchRow[]
+    const outputRows = mustRows(outputBatchesRes, 'output_batches') as unknown as BatchFetchRow[]
+    const nameOf = await loadMaterialNames(supabase, [...inboundRows, ...outputRows].map((b) => b.material_id))
+    const withAvailable = (rows: BatchFetchRow[]): InboundBatchOption[] =>
+        rows.map(({ material_id, ...b }) => ({
+            ...b,
+            materials: material_id && nameOf.has(material_id) ? { name: nameOf.get(material_id) as string } : null,
+            available_qty: availByBatch.get(b.id) ?? 0,
+        }))
+    // ROLE-1 Batch 3b:建加工单 = commit_processing_run;没有收货码的人,「先去建收货单」那条链接也按不动
+    const [canCommit, canReceive] = await Promise.all([can('action.processing_commit'), can('action.receive_goods')])
 
     return (
         <NewProcessingForm
-            inboundBatches={withAvailable(batchesRes.data as unknown as InboundBatchOption[] | null)}
-            outputBatches={withAvailable(outputBatchesRes.data as unknown as InboundBatchOption[] | null)}
-            materials={mustRows(materialsRes)}
+            inboundBatches={withAvailable(inboundRows)}
+            outputBatches={withAvailable(outputRows)}
+            // material_lookup 是视图,生成的类型每列都可空;id / code / name 在基表上都是 NOT NULL
+            materials={mustRows(materialsRes) as unknown as { id: string; code: string; name: string }[]}
             defaultAllocationBasis={
                 mustOne(settingsRes, 'finance_settings')?.default_allocation_basis ?? 'metal_value'
             }
             workOrders={mustRows(workOrdersRes, 'work_orders') as unknown as
                 { id: string; code: string; scheduled_date: string | null }[]}
             operations={operations}
+            canCommit={canCommit}
+            canReceive={canReceive}
         />
     )
 }

@@ -17,7 +17,9 @@ DECLARE
     v_delta_id uuid;        -- PROC-COST-2:重分摊的差额分录,逐张
     v_code text;
 BEGIN
-    PERFORM require_permission('module.processing.edit');
+    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q9):回滚归仓库 —— action.processing_rollback
+    --   (warehouse · admin),在回滚申请(CFO 批)落地之前一个人做完。
+    PERFORM require_permission('action.processing_rollback');
     -- AUDEL-1b:【理由必填】回滚一张加工单是一次很大的操作动作 —— 它软删产出批、
     -- 还原投入、写一整串冲销流水 —— 而此前它【一个 why 都不记】。
     -- 校验放在任何写之前:被拒 = 什么都没发生。

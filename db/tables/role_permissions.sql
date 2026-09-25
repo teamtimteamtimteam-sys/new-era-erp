@@ -111,6 +111,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'action.price_receipts',
         -- ★ ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q4):盘点过账归财务;要读得到盘点单才过得了。
         'action.stocktake_post', 'module.stocktakes.view',
+        -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling):下达工单归财务;建单人永远不能下达(按人认)。
+        'action.wo_release',
         'data.view_banking', 'data.view_prices', 'data.view_purchase_prices', 'data.view_sales', 'module.customers.edit',
         'module.customers.view', 'module.finance.edit', 'module.finance.view',
         'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
@@ -181,7 +183,13 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'data.view_purchase_prices',
         -- ── ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q4)──────────────────────────────
         -- 开盘点单与录数归仓库;过账归财务(action.stocktake_post),录过数的人永远不能过账。
-        'action.stocktake_count'
+        'action.stocktake_count',
+        -- ── ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q1 · Q6–Q9;Batch 3b grilling Q2)─────────
+        -- 收货建单、建工单(与改 / 取消 / 关闭)、提交加工、回滚加工、注销批次、加工损耗与交接班归仓库。
+        -- 下达工单归财务(action.wo_release)。仓库读得到加工模块(module.processing.view);
+        -- 物料只经 material_lookup 查名,不拿 module.materials.view(Q8)。
+        'action.receive_goods', 'action.wo_create', 'action.processing_commit', 'action.processing_rollback',
+        'action.batch_write_off', 'action.processing_aftercare', 'module.processing.view'
 ) WHERE r.code = 'warehouse';
 
 -- hr(7):人力资源 + 薪酬 + 身份信息 + 绩效正文。这四类正是 HR 的工作对象,也正是别人不该看见的。

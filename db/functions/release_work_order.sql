@@ -52,7 +52,9 @@ DECLARE
     v_wo      work_orders%ROWTYPE;
     v_appr_on boolean := approvals_enabled();
 BEGIN
-    PERFORM require_permission('module.processing.edit');
+    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25):下达归财务 —— action.wo_release(finance · admin)。
+    --   上面抬头说"谁能放行由 module.processing.edit 说了算"—— 从本刀起是 action.wo_release。
+    PERFORM require_permission('action.wo_release');
     SELECT * INTO v_wo FROM work_orders WHERE id = p_work_order_id FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'WO_NOT_FOUND|%', COALESCE(p_work_order_id::text, '?');
@@ -69,7 +71,7 @@ BEGIN
     -- 【放行是那个要有人负责的动作】(WO-1b)Doc 2 点名要"who approved the work
     -- order"。可审批的是放行 —— 不是新建(草稿谁都可以写),也不是收工(事后记录)。
     --
-    -- ★ APR-2:谁能放行,由 module.processing.edit 说了算 —— 本函数【不】按角色
+    -- ★ APR-2:谁能放行,由 module.processing.edit 说了算(ROLE-1 Batch 3b 起:action.wo_release)—— 本函数【不】按角色
     --   分级。工单没有金额,而按角色分级只管带钱的单据(Tim 的 Q1 裁定)。
     --   ☞ 这里原先有一句按级别授权的检查,而它在线上是一把【谁都过不去】的锁。
     --     整段来龙去脉写在本文件的抬头 —— **刻意写在函数体外面**,

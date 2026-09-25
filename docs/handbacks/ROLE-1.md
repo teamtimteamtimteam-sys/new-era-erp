@@ -1432,3 +1432,236 @@ What the old app does against the new database (approvals ON):
 Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
 (a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
 **Next cut: ROLE-1 Batch 3b** (`docs/forward-queue.md` item 8); then APR-5.
+**Closed in § Batch 3b §W:** the window was at least 23 min 58 s and at most 27 min 12 s (end 11:55:08–11:58:22 CST).
+
+# Batch 3b — the warehouse makes, finance releases: receipts, work orders, processing, write-off and rollback (2026-09-25)
+
+**Opening gate:** tree clean; `HEAD` = `origin/main` = `ls-remote` = `2d797b1e85ce5c59027052868d28d1010bf9ca35`
+(ROLE-1 Batch 3a). **Approvals were ON and stayed ON.** Every figure below is a script's own exit line or a query named with its
+identity. The matrix lines are `docs/role-matrix.md` §8 and §9 plus the codes table; the approvals effects are `docs/approvals.md` §3p.
+
+## §W · Batch 3a's broken window — closed with bounds, labelled by kind
+
+Tim confirmed the Batch 3a deploy on 2026-09-25, before this session began.
+
+| | time (CST) | kind |
+|---|---|---|
+| start | 2026-09-25 11:31:10 | `db/apply_migration.sh`'s own line (`db/migration-windows.tsv`) |
+| end, lower bound | 11:55:08 | **measured**: the push moved `origin/main` → `2d797b1e` (`git reflog show --date=iso refs/remotes/origin/main`) — no deploy can precede it |
+| end, upper bound | 11:58:22 | **derived**: this session's first live read, database clock `now()` as `postgres` (`rolbypassrls = t`), taken after Tim's "deployed" confirmation had arrived — **a relayed confirmation, not a measurement of Vercel** |
+
+**Window: at least 23 min 58 s, at most 27 min 12 s.** Batch 3a's §5 above keeps its "PENDING" wording; this row is the close.
+
+**Recorded ruling (Tim, 2026-09-25):** Batch 3a's build decision stands — `allocate_processing_costs` reads the ungated readers
+`batch_freight_base_all` / `batch_processing_cost_base_all`, so **the allocated amount never depends on who presses the button**
+(and never on whether the allocator happens to hold `data.view_prices`).
+
+## §0 · Step 0 (grilling) and Tim's answers
+
+**What grilling found** (code read from the mirrors by two surveys and spot-checked; live read as `postgres`, `rolbypassrls = t`,
+base tables, `relkind = 'r'` checked, 11:59–12:10 CST):
+1. **The self-release rule already existed.** `release_work_order` has refused the creator per person since APR-2
+   (`forbid_self_approval(created_by, NULL, 'work_order')`); only the code on the gate changes. There is no `released_by` column —
+   the release is recorded in `work_order_history` (`changed_by`) and `approval_log`.
+2. **No screen writes the processing tables directly** (every `.from('processing_runs' | '_outputs' | '_inputs')` in `app/`, `lib/`,
+   `scripts/` is a read) — Q7 is safe. Beyond the ruling: DELETE policies on all three tables allowed a direct hard delete of a
+   committed run; `processing_run_losses` and `processing_cost_entries` are written directly on `processing.edit`.
+3. **Warehouse would commit runs but could not record their losses or hand over a shift.**
+4. **Screens gated at view level**: the new-WO and new-run pages, Release / Close / Cancel (`processing.edit`), the rollback button
+   (no gate), the receipt entry points and both write-off buttons (no gate — the database refused).
+5. **Three pages read `materials`**: run entry, new work order, and run detail (embedded `materials ( name )`). `material_lookup`
+   admitted warehouse only through `inbound.view`.
+6. **Price at creation**: after Q1 Choo Er cannot create a receipt at all; she prices it afterwards through the panel.
+7. **Four action paths showed "unexpected error (PERMISSION_DENIED)"** for a permission refusal (found while building):
+   `localizeProcessingError`, the loss `localize()`, and both receipt actions through `localizeMaterialError` had no
+   `PERMISSION_DENIED|<code>` branch. Each now routes to the single existing sentence (`common.actionMessage.permissionDenied`).
+
+**Live readings at Step 0:** work orders: WO-2026-0001 only, `released`, created by `b093d6c0` (not a current account), **0 drafts**.
+Runs: 10 committed (1 on WO-2026-0001, 9 ad hoc), 4 reversed; 17 outputs, 14 inputs, 0 losses, 10 cost entries, 0 handovers.
+Receipts: 15 live, 9 written off; output batches 14 live, 6 written off. **Nothing stranded; no document ends up with only its creator
+able to release it** (Fu Sheng creates → Choo Er or admin@; admin@ creates → Choo Er).
+
+**Tim's answers (2026-09-25) — the recommendations, with Q2 decided differently:**
+
+| Q | ruling |
+|---|---|
+| Q1 | drop the DELETE policies on `processing_runs` · `_outputs` · `_inputs` as well; keep the UPDATE policies with the ruled guard; register the UPDATE policies (`ROLE1B3B-PROCESSING-UPDATE-POLICIES`) |
+| Q2 | **losses and handovers to warehouse** under a new code `action.processing_aftercare` (warehouse · admin), accepted alongside `module.processing.edit`; **processing cost entries stay on `module.processing.edit`** |
+| Q3 | `create_work_order` refuses `WO_NO_OTHER_RELEASER` unless another person holds an unrevoked `action.wo_release`; the self-proof asserts every draft has a releaser |
+| Q4 | `material_lookup`'s predicate gains `module.processing.view` |
+| Q5 | accept: `receive_goods` is asked first so the refusal names it; the price arm keeps `price_receipts` + `view_purchase_prices`; recorded in §4 |
+| Q6 | select `created_by`; Release disabled with the reason for non-holders and for the creator's own account |
+| standing | every new code also to `admin`, same migration |
+
+# Batch 3b — shipped (2026-09-25)
+
+## §1 · What 3b shipped
+
+**Migration** `db/migrations/2026-09-25-role1b3b-the-warehouse-makes-finance-releases.sql`, assembled from the mirrors by
+`db/scripts/build_role1b3b_migration.py`. One transaction. Its self-proof asserts: grants = before + exactly the fifteen ruled rows;
+each new code held by exactly its ruled roles; warehouse does **not** hold `module.materials.view`; approvals still ON; pending
+documents unchanged; `approval_log`, `journal_entries`, work orders (all / released), runs (committed / reversed), outputs, inputs,
+losses, receipts and output batches (all / written off), handovers unchanged; the five policies gone; the five guard triggers present;
+the three loss write policies name `action.processing_aftercare`; `material_lookup` admits `module.processing.view`; each of the
+thirteen functions carries its ruled gate; every pending document still has a decider who is not its own party (the work-order arm
+now asks `action.wo_release` minus the creator).
+
+| piece | what |
+|---|---|
+| codes (catalogue 57 → 64) | `action.receive_goods` · `action.batch_write_off` · `action.wo_create` · `action.processing_commit` · `action.processing_rollback` · `action.processing_aftercare` → warehouse · admin; `action.wo_release` → finance · admin; warehouse also gains `module.processing.view` (15 grant rows) |
+| receipts (Q1 · Q5) | `create_inbound_batch` and `receive_inbound_batch_against_po` ask `action.receive_goods` first; the price arm still needs `action.price_receipts` + `data.view_purchase_prices` |
+| write-off (Q9) | `soft_delete_inbound_batch` · `soft_delete_output_batch` → `action.batch_write_off` |
+| work orders (Q6 · Q3) | `create_work_order` → `action.wo_create` + `WO_NO_OTHER_RELEASER` (a real holder — `real_role_grants` — of `action.wo_release` who is a different person, `self_leg = 'none'`; independent of the approvals switch, like the release-side rule) · `release_work_order` → `action.wo_release` (four-eyes leg unchanged) · `amend` / `cancel` / `close` → `action.wo_create` **or** `module.processing.edit`, refusal names `action.wo_create` |
+| processing | `commit_processing_run` → `action.processing_commit` · `rollback_processing_run` → `action.processing_rollback` · `submit_shift_handover` / `acknowledge_shift_handover` → `action.processing_aftercare` or `module.processing.edit` · `processing_run_losses` INSERT / UPDATE / DELETE policies and its `enforce_write_permission` trigger accept both |
+| no direct writes (Q7 · Q1) | INSERT policies on `processing_runs` · `processing_outputs` and DELETE policies on those two and `processing_inputs` dropped; `guard_processing_direct_write` (new, INVOKER, `row_security_active`) → `PROCESSING_THROUGH_FUNCTION_ONLY|<table>|<op>` on direct insert (runs, outputs), direct delete (all three, statement-level so a zero-row delete still raises) and a direct change of `status` / `work_order_id` on runs. Other columns still go through the UPDATE policies (registered) |
+| materials (Q4 · Q8) | `material_lookup` predicate + `module.processing.view`; new WO, run entry and run detail read names from it (`app/operation/processing/materialNames.ts`) — no `module.materials.view` for warehouse |
+
+**Screens (en + zh):**
+- Receipts: `/inbound` (both entry buttons), the PO page's "Receive against", receive/done's "Receive next", the run-entry helper link,
+  and the submit on `/inbound/new` and `/inbound/receive` — visible, disabled, naming `action.receive_goods`.
+- Write-off buttons on `/inbound` and `/output` — inline gate on `action.batch_write_off`.
+- Work orders: New work order (was hidden, now disabled with the code); the new-WO submit; Release gated on `action.wo_release`, and
+  for the creator's own account disabled with "You created this work order — someone else must release it." (the page judges per
+  account, the database per person); Amend / Close / Cancel on `action.wo_create` or `processing.edit`.
+- Processing: new run and its submit on `action.processing_commit`; rollback on `action.processing_rollback`; the loss panel and
+  handovers on `action.processing_aftercare` or `processing.edit` (the handover list button was hidden, now disabled).
+- Copy: `processing.wo.blocked.releaseSelf`, `processing.errors.WO_NO_OTHER_RELEASER`, `processing.errors.PROCESSING_THROUGH_FUNCTION_ONLY`;
+  the unused `processing.wo.needsEdit` removed. zh uses 放行 (the word every other work-order string on that screen uses).
+
+**Fixtures:** new **222** (R1–R3 · W1–W2 · O1–O8 · P1–P5 · L1–L2 · M; fault injection P5: drop the delete guard on `processing_runs`
+and a `processing.edit` holder's direct delete becomes a silent zero-row "success"; O7 / O8 remove `action.wo_release` from every
+other role inside a sub-block, O8 leaving only the creator's own second account). **Changed because a rule changed:** 219 (warehouse
+role gains `receive_goods`) · 220 (`batch_write_off` to the warehouse role; `receive_goods` to the finance role for the desk-with-price
+arm) · 152 (`receive_goods`) · 179 · 30 · 74 · 75 · 79 (a standing real releaser before the first `create_work_order`) · 30 · 34 · 43 ·
+45 · 47 · 51 · 54 (the processing actor gains the four operator codes) · 74 (the edit role gains `wo_create`) · 203 (the release actor
+gains `wo_release`) · 204 (finance role gains `wo_release`).
+
+**Known issues:** registered `ROLE1B3B-PROCESSING-UPDATE-POLICIES` (Q1) and `ROLE1B3B-RECEIVE-DONE-MATERIAL-NAME` (receive/done still
+embeds `materials ( name )`, so warehouse sees "—" there — predates this cut). `ROLE1B3-AMEND-RELEASED-WO` stays open. Not converted:
+`NewHandoverForm`'s own submit is ungated (its page comment says so on purpose); the loss panel's per-row delete column is still hidden
+rather than disabled without the code (as before).
+
+## §2 · Verification — every figure is the script's own exit line
+
+| step | result |
+|---|---|
+| `db/gate.py --offline`, run 1 | **`GATEOFF_EXIT=2`** — the permissions mirror lost the `)` after `1070` in the edit (the same sliced-string slip 3a recorded) |
+| run 2 | **`GATEOFF_EXIT=4`** — 11 fixtures red, each a hand-picked role missing a new code: 203 · 204 · 30 · 34 · 43 · 45 · 47 · 51 · 54 · 74, and 222 (its approval policy was not set) |
+| run 3 · run 4 | **`GATEOFF_EXIT=4`** — 222 O7 then O8: revoking grants hit `LAST_ADMIN_PROTECTED`; rewritten to remove the code from roles inside the sub-block (O8: the creator's second account on its own role) |
+| run 5 | **`GATEOFF_EXIT=0`** (222 included; its P5 fault injection bites) |
+| dry run on live (`COMMIT` → grants + probe + `ROLLBACK`) | run 1 **`DRY_OWN_EXIT=3`** — the migration body and self-proof passed; my appended probe query was mis-quoted; run 2 **`DRY_OWN_EXIT=0`**: catalogue 64, exactly the 15 grants, approvals t |
+| rehearsal: migration + grants + live proof, one transaction, `ROLLBACK` | run 1 **`REHEARSE_OWN_EXIT=3`** at P2 — `MATERIAL_NOT_PROCESSABLE|MAT-2026-0002|undecided` (the proof picked an undecided material); switched to ZZ-PROCCOST1-DEMO; run 2 **`REHEARSE_OWN_EXIT=0`** |
+| `npm run build` (before the migration) | `BUILD_OWN_EXIT=0` |
+| backup (`db/run_detached.sh`, token BACKUP) | **`BACKUP_EXIT=0`** — `evoltrya-backup-2026-09-25-1250.dump`, 4.7 MB, TOC 6,258 (previous 6,231, floor 5,607); `pg_restore --list` 6,273 lines |
+| `db/apply_migration.sh` | **`APPLY_OWN_EXIT=0`**. Pre-flight: 15 CREATE FUNCTION (13 replace · 2 new — the guard and the proof's `pg_temp` helper), no account codes, no masked columns. **Window start 2026-09-25 13:01:19 CST** (the "applied at" line reads 13:00:40) |
+| `NOTIFY pgrst, 'reload schema'` · `npm run types:gen` | `TYPES_OWN_EXIT=0` — **no diff** (no signature or column changed) |
+| `npx tsc --noEmit` | `TSC_OWN_EXIT=0` |
+| `npm run build` | `BUILD_OWN_EXIT=0` |
+| `db/gate.py` full (detached) | **`GATE_EXIT=0`**, 434 s: rebuildable ✓ · mirrors vs live ✓ (`NO DIFFERENCES`) · fixtures ✓ (**225 passed, 0 failed**) · anon surface ✓ (live ⊆ baseline 327); B1 / B2 0 on both sides, B2 allowlist 10 |
+| `node scripts/check-i18n.mjs` | `I18N_OWN_EXIT=0` |
+| `node scripts/check-error-swallowing.mjs` | `SWALLOW_OWN_EXIT=0` — 0 unallowed |
+| smoke (`db/run_detached.sh`, token SMOKE, `--timeout 2400`, 13:12:42 → `SMOKE_EXIT=0`) | **253 ok · 7 skipped (no data) · 0 FAILED**; 228 timed routes, 790.8 s, median 2,372 ms; the disposable session got the 64-code probe role. **Clean-up, read at 13:30:40 as `postgres` from base tables:** `smoke-%` users **0** · `probe-%` / `fixture-%` / `fx%` roles **0** · orphan grants (no user / no role) **0 / 0** · `ZZ-SMOKE-%` employees **0** · `idle in transaction` **0**; `.ephemeral/` empty; no smoke or `next dev` process left. The scratch check reported the same 6 stale `ZZ-SMOKE-*` rows as before (reported, not touched) |
+
+## §3 · Live proof
+
+**Script:** `db/scripts/2026-09-25-role1b3b-live-proof.sql`. One transaction, `ROLLBACK`, as `postgres` (`rolbypassrls = t`); each cell
+sets `request.jwt.claims` to a real account and runs under `SET LOCAL ROLE authenticated`.
+**Result: `PROOF_OWN_EXIT=0`, every cell matched**, started 13:30:52 CST (inside the window, after the smoke).
+
+| account | cell | result |
+|---|---|---|
+| each of seven | which of the new / processing / materials codes they hold (`current_user_permissions()`) | fusheng@: the six warehouse codes + `processing.view` · chooer@: `wo_release` + both views · admin@: all seven + both processing codes · sandra@ · phua@: `processing.edit` + views · tim@ · vince@: views |
+| sandra@ · phua@ · chooer@ | create a goods receipt | `PERMISSION_DENIED|action.receive_goods` ×3 |
+| sandra@ | receive against a PO | `PERMISSION_DENIED|action.receive_goods` |
+| fusheng@ | create IN-2026-0475 (unpriced) | created_by fusheng@ |
+| sandra@ · phua@ | create a work order | `PERMISSION_DENIED|action.wo_create` ×2 |
+| fusheng@ | create WO-2026-0002 | draft, created_by fusheng@ |
+| fusheng@ · sandra@ · phua@ | release it | `PERMISSION_DENIED|action.wo_release` ×3 |
+| admin@ | create a work order, then release it | `SELF_APPROVAL_FORBIDDEN|raiser` |
+| chooer@ | ★ release WO-2026-0002 | released; `work_order_history` names chooer@ |
+| sandra@ | amend it (`processing.edit`) | OK |
+| sandra@ · phua@ | commit a run | `PERMISSION_DENIED|action.processing_commit` ×2 |
+| fusheng@ | ★ commit PROC-2026-0709 against WO-2026-0002 (ZZ-PROCCOST1-DEMO −10 → ZZ-SMOKE-NTF +9, loss 1) | committed; `journal_entries` 82 → 82; 1200 61,387.92 → 61,387.92 · 1220 134.86 → 134.86 (a commit posts nothing; cost reaches the ledger at allocation) |
+| sandra@ | direct INSERT a committed run · UPDATE status = reversed · DELETE the run | `PROCESSING_THROUGH_FUNCTION_ONLY|processing_runs|insert` · `…|update` · `…|delete` |
+| fusheng@ | record a loss category on the run | OK |
+| vince@ · fusheng@ | acknowledge a handover | `PERMISSION_DENIED|action.processing_aftercare` · past the gate (`HANDOVER_NOT_FOUND`) |
+| phua@ · fusheng@ | roll the run back | `PERMISSION_DENIED|action.processing_rollback` · reversed; 1200 / 1220 unchanged |
+| fusheng@ | close WO-2026-0002 | closed |
+| chooer@ · sandra@ | write off an inbound and an output batch | `PERMISSION_DENIED|action.batch_write_off` ×2 each |
+| fusheng@ | write off IN-2026-0475 and OUT-2026-0002 | both written off by fusheng@ |
+| fusheng@ | `material_lookup` (**view**) · `materials` (**base table**, RLS) | 9 rows · 0 rows |
+| tim@ | `list_ledger_reconciliation()` inside the transaction | unexplained AP 0.00 · AR 0.00 |
+
+Everything above existed only inside the rolled-back transaction. **The code sequences moved** (they do not roll back): the dry runs,
+the two rehearsals and the proof took IN-2026-0473…0475 and PROC-2026-0707…0709 among others; the next real receipt and run take
+the numbers after those. **What this proof is and is not:** refusals, one full create → release → commit → rollback → close and two
+write-offs, read back as the real accounts, inside a transaction that was rolled back. No human walk has happened.
+
+### Before / after
+
+**Script:** `db/scripts/2026-09-25-role1b3b-readings.sql`, which states the identity for every part.
+**Timing:** before at 13:00:20 CST (after the backup, before the migration); after at 13:31:09 CST (after the migration, the smoke and
+the proof's ROLLBACK). **`diff` of the two outputs: only the read time, the catalogue 57 → 64, the holders of the new codes (and
+warehouse added to `module.processing.view`), and admin / finance / warehouse gaining them (codes and md5, on the role rows and on
+the three accounts).**
+
+| reading | identity · object | before | after |
+|---|---|---:|---:|
+| `approvals_enabled` / l1 / l2 / threshold | postgres · base `finance_settings` | t / finance / cfo / 1000 | **t / finance / cfo / 1000** |
+| pending: claims submitted · leave · medical submitted · medical approved-unpaid · reviews · WO draft · stocktakes open · POs · payment requests · payroll requests · receipt price requests | postgres · base | 1 · 2 · 0 · 1 · 0 · 0 · 5 · 0 · 0 · 0 · 0 | **the same — nothing new pending on live** |
+| work orders by status · runs committed (ad hoc / on WO) · reversed | postgres · base | released 1 (creator not an account) · 9 / 1 · 4 | **the same** |
+| outputs · inputs · losses · cost entries · handovers | postgres · base | 17 · 14 · 0 · 10 · 0 | **the same** |
+| receipts written off · output batches all / written off | postgres · base | 9 · 20 / 6 | **the same** |
+| `approval_log` · `journal_entries` · payroll entries | postgres · base | 14 · 82 · 4 | **14 · 82 · 4** |
+| account 1100 · 1200 · 1220 · 2000 · 2200 · 2300 · 2400 · 5000 · 5200 (debit − credit) | postgres · base `journal_lines` | 43,002.12 · 61,387.92 · 134.86 · −376,404.42 · −1,597.47 · 4,677.00 · 156.00 · 809.14 · 59,732.00 | **the same** |
+| catalogue | postgres · base `permissions` | 57 | **64** |
+| codes per role (n): admin · auditor · cco · cfo · cto · employee · finance · gm · hr · operations · procurement · sales · warehouse | postgres · base `role_permissions` | 56 · 20 · 37 · 30 · 32 · 0 · 37 · 21 · 7 · 15 · 16 · 17 · 16 | **63** · 20 · 37 · 30 · 32 · 0 · **38** · 21 · 7 · 15 · 16 · 17 · **23** (the other ten md5-identical) |
+| unrevoked grants | postgres · base `user_roles` (`revoked_at IS NULL`) | admin@ admin · chooer@ finance · fusheng@ warehouse · phua@ cto · sandra@ cco · tim@ cfo · vince@ gm | **the same** |
+| `ap_open_items` n · Σ | tim@ · **view** | 16 · 416,988.32 | **16 · 416,988.32** |
+| `ar_open_items` n · Σ | tim@ · **view** | 10 · 57,545.87 | **10 · 57,545.87** |
+| list-vs-ledger AP: list / ledger / **unexplained** | tim@ · `list_ledger_reconciliation()` | 416,988.32 / 376,404.42 / **0.00** | 416,988.32 / 376,404.42 / **0.00** |
+| list-vs-ledger AR: list / ledger / **unexplained** | tim@ · same | 57,545.87 / 43,002.12 / **0.00** | 57,545.87 / 43,002.12 / **0.00** |
+| `current_user_permissions()`: admin@ · chooer@ · fusheng@ · phua@ · sandra@ · tim@ · vince@ | each account as itself | 56 · 37 · 16 · 32 · 37 · 30 · 21 | **63 · 38 · 23** · 32 · 37 · 30 · 21 |
+
+**Pending documents and their deciders** (the migration's own proof, by person): CLM-2026-0004 → tim@ · LV-2026-0001 / 0003 →
+admin@, tim@ · MC-2026-0001 (pay) → admin@, chooer@ · ST-2026-0082…0086 → chooer@. **No draft work order exists; no pending
+document is left without a decider, and nothing is pending on live.**
+
+## §4 · What each person gains and loses (approvals on)
+
+- **Fu Sheng (warehouse):** **gains** creating work orders (and amending, cancelling, closing them), committing runs, rolling runs back,
+  recording a run's loss categories and shift handovers, and reading the whole processing module (`module.processing.view`; material
+  names only through `material_lookup`, cost figures still behind `data.view_prices`). **Keeps** creating goods receipts and writing off
+  inbound and output batches (now under their own codes). **Cannot** release a work order, least of all one he created.
+- **Choo Er (finance):** **gains** releasing work orders — the only non-admin who can, and never one she created (she cannot create).
+  **Loses** creating goods receipts, with or without a price (Q5: she prices a receipt after Fu Sheng creates it, through the panel as a
+  request), and writing off inbound and output batches.
+- **Sandra (cco) · Phua (cto):** **lose** creating goods receipts, both write-offs, creating and releasing work orders, committing and
+  rolling back runs. **Keep** amending / cancelling / closing work orders, losses, cost entries and handovers through `processing.edit`.
+- **Tim as tim@ (cfo):** no change (reads processing as before). **Tim as admin@:** gains all seven codes; still cannot release a work
+  order he created, and a work order he creates is released by Choo Er.
+- **Vince (gm):** no change.
+
+## §5 · The broken window — started, end PENDING
+
+**Start: 2026-09-25 13:01:19 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line
+reads 13:00:40). **End: PENDING — Tim reads it from Vercel.**
+
+What the old app does against the new database (approvals ON):
+- **Nobody but admin@ can release a work order from the old app.** Choo Er gains the right, but the old page shows Release only to
+  `processing.edit` holders; admin@ cannot release one he created. There are 0 drafts, so this only touches a work order created during
+  the window.
+- **Fu Sheng cannot create a work order or commit a run from the old app in practice:** the old New work order button is hidden from
+  him (it asked `processing.edit`), and the old run-entry and new-WO pages read `materials`, which he cannot see — the material pickers
+  are empty and material names on the old processing pages are blank. The old loss panel and handover button are hidden from him too.
+- **Sandra, Phua and Choo Er** pressing New receipt / Receive, New work order, Commit, Roll back or Write-off in the old app are refused;
+  the old receipt and processing copy shows "unexpected error (PERMISSION_DENIED)" (the branch this cut added is not deployed yet),
+  write-off shows the generic "Restricted" sentence.
+- **Unaffected:** every approval chain, the switch, everything pending, every payment path, pricing, assays, stocktakes, processing cost
+  entries and allocation, and every other screen (the smoke ran the new code against the new database).
+
+## §6 · Commit, push, three SHAs
+
+Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
+(a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
+**Next cut: APR-5** (`docs/forward-queue.md` item 9).

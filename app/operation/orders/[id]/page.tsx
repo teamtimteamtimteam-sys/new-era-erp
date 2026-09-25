@@ -49,11 +49,11 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
 
     const wo = mustOne(
         await supabase.from('work_orders')
-            .select('id, code, status, scheduled_date, notes, created_at, closed_at, close_reason, cancelled_at, cancel_reason')
+            .select('id, code, status, scheduled_date, notes, created_at, created_by, closed_at, close_reason, cancelled_at, cancel_reason')
             .eq('id', id).maybeSingle(),
         'work_orders') as {
             id: string; code: string; status: string; scheduled_date: string | null
-            notes: string | null; created_at: string
+            notes: string | null; created_at: string; created_by: string | null
             closed_at: string | null; close_reason: string | null
             cancelled_at: string | null; cancel_reason: string | null } | null
     if (!wo) notFound()
@@ -95,6 +95,19 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
     const basisOf = new Map(expectedBasis.map((r) => [r.material_id, r]))
 
     const canEdit = await can('module.processing.edit')
+    // ── ROLE-1 Batch 3b:工单的三组动作各有自己的码 ──────────────────────────
+    //   放行 → action.wo_release;改计划 / 收工 / 取消 → action.wo_create 或 module.processing.edit
+    //   (库里两者之一即可,拒的时候点名 action.wo_create —— 所以门上点名的也是它)。
+    const [canRelease, canCreateWo] = await Promise.all([can('action.wo_release'), can('action.wo_create')])
+    const canManage = canCreateWo || canEdit
+    // 开单人永远不能放行自己开的工单。这里只按【账号】判(auth 用户 id 对 created_by),
+    // 库那一侧按【人】判(同一个人的另一个账号也算)—— 那一支由库按名拒
+    // SELF_APPROVAL_FORBIDDEN|raiser,这里不下那个结论。
+    // 认证读不出来(error)时不猜"是不是本人",按钮只问码,库照样判。
+    const { data: meData, error: meErr } = await supabase.auth.getUser()
+    const myUserId = meErr ? null : (meData.user?.id ?? null)
+    const releaseBlockedReason =
+        myUserId && wo.created_by === myUserId ? t('processing.wo.blocked.releaseSelf') : null
     const inputRows = fulfil.filter((r) => r.side === 'input')
     const outputRows = fulfil.filter((r) => r.side === 'output')
     const liveRuns = runs.filter((r) => r.status === 'committed')
@@ -223,8 +236,8 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
                     //   「改计划」钮翻起来 —— 没有权限的人走不到那一步,不会被关在
                     //   一个既提交不了、也关不掉的表单里(DBLOCK-1 的第一条边界)。
                     <PermissionGate
-                        code="module.processing.edit"
-                        allowed={canEdit}
+                        code="action.wo_create"
+                        allowed={canManage}
                         className="flex w-full items-stretch"
                     >
                         <AmendLinesControl id={wo.id} rows={amendRows} editable blockedReason="" />
@@ -257,7 +270,8 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
             {/* ── 动作 ────────────────────────────────────────────────── */}
             {/* ★ 出口:发布 / 收工 / 取消。住 children,无条件画,自己说不可用的理由。 */}
             <h2 className="mt-8 mb-2">{t('processing.wo.actionsTitle')}</h2>
-            <WorkOrderActions id={wo.id} status={wo.status} canEdit={canEdit} hasRuns={liveRuns.length > 0} />
+            <WorkOrderActions id={wo.id} status={wo.status} canRelease={canRelease} canManage={canManage}
+                releaseBlockedReason={releaseBlockedReason} hasRuns={liveRuns.length > 0} />
 
             {/* ── 历史 ────────────────────────────────────────────────── */}
             <h2 className="mt-8 mb-2">{t('processing.wo.history')}</h2>

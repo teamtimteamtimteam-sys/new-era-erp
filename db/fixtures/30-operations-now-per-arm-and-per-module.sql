@@ -56,6 +56,13 @@ DECLARE
     c_apr2  text;
     c_was   text;                        -- 切过去之前的 claims,原样切回来
 BEGIN
+    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3b grilling Q3):create_work_order 从本刀起要求【建单人之外】
+    --   有一个真持有人(real_role_grants)持 action.wo_release,否则按名拒 WO_NO_OTHER_RELEASER。
+    --   本支验的不是那一条(fixture 222 验),所以先立一个【只持下达码】的真人;本支原有断言一个字不动。
+    WITH u AS (INSERT INTO auth.users (id, email_confirmed_at) VALUES (gen_random_uuid(), now()) RETURNING id),
+         r AS (INSERT INTO roles (code, name_en, name_zh, is_active) VALUES ('fx30-b3b-releaser', 'f', 'f', true) RETURNING id),
+         g AS (INSERT INTO role_permissions (role_id, permission_code) SELECT id, 'action.wo_release' FROM r RETURNING role_id)
+    INSERT INTO user_roles (user_id, role_id) SELECT u.id, g.role_id FROM u, g;
     SELECT code INTO v_ccy FROM currencies WHERE is_base;
     -- 成本条目会触发自动应计过账 —— 锁不能挡住 fixture 自己的日期(回滚,无副作用)
     UPDATE finance_settings SET locked_before = NULL;
@@ -78,6 +85,8 @@ BEGIN
         'module.pricing.view','module.sales.view',
         -- EXEC-3a:资质两支挂 suppliers,工单两支挂 processing
         'module.suppliers.view','module.processing.edit',
+        -- ROLE-1 Batch 3b:建工单、提交、回滚、损耗与交接班各有自己的码(module.processing.edit 不再够);本支验的不是谁持哪个码,所以加工演员都拿。
+        'action.wo_create', 'action.processing_commit', 'action.processing_rollback', 'action.processing_aftercare',
         -- reprice_inbound_batch 要 inbound.edit(给投料批定价是进料侧的动作)
         'module.inbound.edit',
         -- set_sales_order_status 要 module.sales.edit(确认订单是一次销售行为)——

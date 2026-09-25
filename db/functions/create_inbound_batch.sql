@@ -10,7 +10,10 @@ DECLARE
     v_warn    text[];
     v_pricing jsonb := NULL;
 BEGIN
-    PERFORM require_permission('module.inbound.edit');
+    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q1):建收货单归仓库 —— action.receive_goods
+    --   (warehouse · admin),不再是 module.inbound.edit。先问它,所以拒绝点名的是它;带价那一支另外
+    --   还要 action.price_receipts + data.view_purchase_prices(下面,不变 —— Batch 3b Q5)。
+    PERFORM require_permission('action.receive_goods');
     -- ★ ROLE-1 Batch 4a(grilling Q4):建单【带价】就是定价 —— 要 action.price_receipts 与
     --   data.view_purchase_prices,在【写入之前】按名拒,整笔建单回滚;绝不悄悄丢掉那个价。
     --   不带价的建单只要 module.inbound.edit(仓库照建)。

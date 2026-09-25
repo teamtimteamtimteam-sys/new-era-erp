@@ -13,12 +13,16 @@ import { getTranslations } from '@/lib/i18n/server'
 // 数据库抛出的具名拒绝。不在集合里的交给共用兜底 lib/machine-text.ts —— 看得见才修得掉(IOD-1b 的教训)。
 import { LOSS_ERROR_CODES } from './lossErrorCodes'
 import { fallbackForRawError } from '@/lib/machine-text'
+import { refusePermission } from '@/lib/action-refusal'
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/
 
 async function localize(message: string): Promise<string> {
     const raw = (message ?? '').trim()
     const t = await getTranslations()
     const m = raw.match(CODE_RE)
+    // ROLE-1 Batch 3b:损耗登记归 action.processing_aftercare(或 processing.edit),库里拒时点名那个码。
+    // 句子走 refusePermission(全库只此一句),不掉进共用兜底。
+    if (m && m[1] === 'PERMISSION_DENIED') return (await refusePermission(m[2] ?? '')).error
     if (!m || !LOSS_ERROR_CODES.has(m[1])) return await fallbackForRawError(raw, 'localize@app/operation/processing/[id]/lossActions.ts')
     const params: Record<string, string> = {}
     if (m[2]) m[2].split('|').forEach((v, i) => { params[String(i)] = v })

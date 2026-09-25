@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { workOrderStatusKey } from './woTypes'
@@ -65,6 +66,7 @@ export default async function WorkOrdersPage() {
     }
 
     const canEdit = await can('module.processing.edit')
+    const canCreateWo = await can('action.wo_create') // ROLE-1 Batch 3b
 
     // EXEC-3b:两个阈值 —— 看板那两块牌子现读它们,所以改它们的人就是看这块屏的人。
     const settings = mustOne(
@@ -92,11 +94,17 @@ export default async function WorkOrdersPage() {
             title={t('processing.wo.listTitle')}
             intro={t('processing.wo.listNote')}
             actions={
-                canEdit ? (
+                // ROLE-1 Batch 3b:开工单归 action.wo_create(仓库、管理员)。缺码时不再藏 ——
+                // 画真的 <Button disabled>(链接禁不掉),由 PermissionGate 点名那个码。
+                canCreateWo ? (
                     <Button asChild>
                         <Link href="/operation/orders/new">{t('processing.wo.addButton')}</Link>
                     </Button>
-                ) : undefined
+                ) : (
+                    <PermissionGate code="action.wo_create" allowed={false} inline>
+                        <Button disabled>{t('processing.wo.addButton')}</Button>
+                    </PermissionGate>
+                )
             }
             notices={
                 /* EXEC-3b:差异阈值面板。人人看得见(看板上那盏灯亮不亮就取决于它),

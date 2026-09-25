@@ -11,6 +11,7 @@ import { UNIT_OPTIONS } from '../../../materials/options'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import DecimalInput from '../../../components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { formatDate } from '@/lib/dates'
 
 export type InboundBatchOption = {
@@ -20,6 +21,7 @@ export type InboundBatchOption = {
     // IOD-1:可投的是可用,不是物理剩余(被扣住的货不可动用)
     available_qty: number
     unit: string
+    // ROLE-1 Batch 3b:物料名由页面从 material_lookup 映射进来(仓库读不了 materials 基表,不再嵌入)
     materials: { name: string } | null
 }
 
@@ -71,6 +73,8 @@ export default function NewProcessingForm({
     defaultAllocationBasis,
     workOrders,
     operations,
+    canCommit,
+    canReceive,
 }: {
     inboundBatches: InboundBatchOption[]
     outputBatches: OutputBatchOption[]
@@ -83,6 +87,10 @@ export default function NewProcessingForm({
      *  **accepts / produces 都是从字典读来的**,不是在这里写死的 —— 加一道工序
      *  或者改它收什么,是加一行数据,这一屏不必改。 */
     operations: OperationOption[]
+    /** ROLE-1 Batch 3b:提交 = commit_processing_run,归 action.processing_commit(页面 can() 算好传进来) */
+    canCommit: boolean
+    /** ROLE-1 Batch 3b:「先去建收货单」那条链接归 action.receive_goods */
+    canReceive: boolean
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -458,14 +466,25 @@ export default function NewProcessingForm({
                             </div>
                         )
                     })}
+                    {/* ROLE-1 Batch 3b:建收货单归 action.receive_goods。缺码时这条链接换成一颗
+                        按不动的钮 + PermissionGate 点名那个码(链接禁不掉)。外层从 <p> 换成 <div>:
+                        PermissionGate 里有 <fieldset>,它不许出现在 <p> 里。 */}
                     {inboundBatches.length === 0 && (
-                        <p className="text-xs text-amber-600">
+                        <div className="text-xs text-amber-600">
                             {t('processing.form.noInboundHelper')}
-                            <Link href="/inbound/new" className="underline">
-                                {t('processing.form.noInboundLink')}
-                            </Link>
+                            {canReceive ? (
+                                <Link href="/inbound/new" className="underline">
+                                    {t('processing.form.noInboundLink')}
+                                </Link>
+                            ) : (
+                                <PermissionGate code="action.receive_goods" allowed={false} inline>
+                                    <Button type="button" variant="link" size="inline" disabled>
+                                        {t('processing.form.noInboundLink')}
+                                    </Button>
+                                </PermissionGate>
+                            )}
                             {t('processing.form.noInboundHelperPost')}
-                        </p>
+                        </div>
                     )}
                 </section>
 
@@ -600,12 +619,14 @@ export default function NewProcessingForm({
                     <p className="text-sm text-amber-700">{t('processing.form.blockedProcessDate')}</p>
                 )}
                 <div className="flex gap-3 pt-4">
-                    <Button
-                        type="submit"
-                        disabled={isPending || !processDate}
-                    >
-                        {isPending ? t('processing.form.saving') : t('processing.form.saveRun')}
-                    </Button>
+                    <PermissionGate code="action.processing_commit" allowed={canCommit} inline>
+                        <Button
+                            type="submit"
+                            disabled={isPending || !processDate}
+                        >
+                            {isPending ? t('processing.form.saving') : t('processing.form.saveRun')}
+                        </Button>
+                    </PermissionGate>
                     <Button asChild variant="secondary">
                         <Link
                             href="/operation/processing"

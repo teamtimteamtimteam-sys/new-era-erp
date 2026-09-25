@@ -30,7 +30,7 @@ export type OutputTableRow = {
 }
 
 export default function OutputTable({
-    rows, empty, sort, dir, filterQuery, shown, total,
+    rows, empty, sort, dir, filterQuery, shown, total, canWriteOff,
 }: {
     rows: OutputTableRow[]
     empty: React.ReactNode
@@ -39,6 +39,8 @@ export default function OutputTable({
     filterQuery: Record<string, string>
     shown: number
     total: number
+    /** ROLE-1 Batch 3b:can('action.batch_write_off'),页面算好传进来。 */
+    canWriteOff: boolean
 }) {
     const t = useTranslations()
 
@@ -86,7 +88,7 @@ export default function OutputTable({
             key: 'created_at', header: t('output.colCreated'), sortable: true,
             className: 'text-sm text-gray-600', render: (r) => r.createdLabel,
         },
-        { key: 'actions', header: t('output.colActions'), render: (r) => <DeleteButton id={r.id} code={r.code} /> },
+        { key: 'actions', header: t('output.colActions'), render: (r) => <DeleteButton id={r.id} code={r.code} canWriteOff={canWriteOff} /> },
         {
             key: 'label', header: t('batchLabel.col'),
             render: (r) => (

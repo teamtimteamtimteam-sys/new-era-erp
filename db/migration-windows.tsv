@@ -190,3 +190,4 @@
 2026-09-25T01:58:16+0800	2026-09-25-role1b4a-purchase-prices-and-who-prices-a-receipt.sql	5322fe4d
 2026-09-25T09:34:00+0800	2026-09-25-role1b4b-receipt-pricing-waits-for-the-cfo.sql	273297d4
 2026-09-25T11:31:10+0800	2026-09-25-role1b3a-the-counter-never-posts.sql	3f521774
+2026-09-25T13:01:19+0800	2026-09-25-role1b3b-the-warehouse-makes-finance-releases.sql	2d797b1e

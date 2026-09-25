@@ -74,6 +74,8 @@ BEGIN
     -- 不是视图少了一支。两者的红长得一样,所以这一行的理由写在这里。
     SELECT r_all, unnest(ARRAY['module.inbound.view','module.processing.view',
         'module.processing.edit','module.purchasing.view','module.stocktakes.view',
+        -- ROLE-1 Batch 3b:建工单、提交、回滚、损耗与交接班各有自己的码(module.processing.edit 不再够);本支验的不是谁持哪个码,所以加工演员都拿。
+        'action.wo_create', 'action.processing_commit', 'action.processing_rollback', 'action.processing_aftercare',
         'module.hr.view','module.output.view','module.output.edit','action.direct_sale',
         'module.finance.view','module.suppliers.view','module.customers.view',
         'module.inventory.view','data.view_prices', 'data.view_purchase_prices']);

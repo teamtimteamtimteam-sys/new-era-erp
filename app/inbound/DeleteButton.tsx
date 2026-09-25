@@ -18,16 +18,20 @@ import { useState, useTransition } from 'react'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { softDeleteInbound } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 // ★ ROLE-1 Batch 4b:挂着一张在等 CFO 的定价申请时,注销看得见、按不动、说出为什么
 //   (库里 soft_delete_inbound_batch 与守卫同样按名拒 RECEIPT_PRICE_REQUEST_OPEN)。
-export default function DeleteButton({ id, code, lockedReason }: { id: string; code: string; lockedReason?: string }) {
+// ★ ROLE-1 Batch 3b:注销(软删)归 action.batch_write_off(仓库、管理员)。缺码时看得见、按不动、点名那个码;
+//   canWriteOff 由页面用 can() 算好传下来,本组件不自己查。
+export default function DeleteButton({ id, code, lockedReason, canWriteOff }: { id: string; code: string; lockedReason?: string; canWriteOff: boolean }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState('')
 
     return (
         <span className="inline-flex flex-col items-start">
+            <PermissionGate code="action.batch_write_off" allowed={canWriteOff} inline>
             <ConfirmButton
                 subject={code}
                 title={t('inbound.deleteConfirmTitle')}
@@ -49,6 +53,7 @@ export default function DeleteButton({ id, code, lockedReason }: { id: string; c
             >
                 {isPending ? t('common.deleting') : t('common.delete')}
             </ConfirmButton>
+            </PermissionGate>
             {lockedReason && <span className="mt-1 text-xs text-[color:var(--brand-muted-text)] max-w-56" data-state-note="delete-locked">{lockedReason}</span>}
             {error && <span className="mt-1 text-xs text-destructive-text">{error}</span>}
         </span>

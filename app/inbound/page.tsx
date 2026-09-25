@@ -21,6 +21,7 @@ import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
 import { mustCount, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { can } from '@/lib/permissions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { MOD } from '@/lib/modules'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 
@@ -194,6 +195,8 @@ export default async function InboundPage({
     // module.purchasing.view 后面(OPS-14),没有权限时给一句通用的"对着采购单",
     // 不让 RLS 丢行把"有单"渲染成别的东西。
     const canViewPurchasing = await can('module.purchasing.view')
+    // ROLE-1 Batch 3b:收货与注销各有自己的码(库里 create_inbound_batch / soft_delete_inbound_batch 照样按码拒)
+    const [canReceive, canWriteOff] = await Promise.all([can('action.receive_goods'), can('action.batch_write_off')])
     const poIds = [...new Set((batches ?? [])
         .filter((b) => b.purchase_order_line_id && b.purchase_order_id)
         .map((b) => b.purchase_order_id as string))]
@@ -335,18 +338,30 @@ export default async function InboundPage({
                     可达性走查读的是标记,人读的是屏幕 —— 这是那道检查的盲区,
                     与 [id] 动态路由那条并列。现在两条路一直都在,并用下面那一行
                     说出它们的区别(而不是让人靠钮的名字猜)。 */}
-                <div className="flex items-center gap-2">
-                    <Button asChild variant="outline">
-                        <Link
-                            href="/inbound/receive"
-                        >
-                            {t('receive.entry')}
-                        </Link>
-                    </Button>
-                    <Button asChild>
-                        <Link href="/inbound/new">{t('inbound.addButton')}</Link>
-                    </Button>
-                </div>
+                {/* ROLE-1 Batch 3b:建收货单归 action.receive_goods(仓库、管理员)。缺码时两个入口
+                    都看得见、按不动 —— <Link> 禁不掉(fieldset 不管链接),所以挡住的那一支画真的
+                    <Button disabled>,与 finance/invoices/[id] 的 PDF 钮同一个形状。 */}
+                {canReceive ? (
+                    <div className="flex items-center gap-2">
+                        <Button asChild variant="outline">
+                            <Link
+                                href="/inbound/receive"
+                            >
+                                {t('receive.entry')}
+                            </Link>
+                        </Button>
+                        <Button asChild>
+                            <Link href="/inbound/new">{t('inbound.addButton')}</Link>
+                        </Button>
+                    </div>
+                ) : (
+                    <PermissionGate code="action.receive_goods" allowed={false} className="items-end">
+                        <span className="flex items-center gap-2">
+                            <Button variant="outline" disabled>{t('receive.entry')}</Button>
+                            <Button disabled>{t('inbound.addButton')}</Button>
+                        </span>
+                    </PermissionGate>
+                )}
             </div>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('inbound.twoPathsHint')}</p>
 
@@ -387,6 +402,7 @@ export default async function InboundPage({
                 filterQuery={filterParamsForLinks.toString()}
                 shown={tableRows.length}
                 total={total}
+                canWriteOff={canWriteOff}
             />
 
             {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}

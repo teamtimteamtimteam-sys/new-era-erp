@@ -21,6 +21,8 @@ import {
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { ListPage } from '@/app/components/ui/list-page'
 import ProcessingTable, { type ProcessingRunRow } from './ProcessingTable'
 import { formatDate } from '@/lib/dates'
@@ -129,13 +131,23 @@ export default async function ProcessingPage({
         workOrderCode: r.work_order_id ? (woCode.get(r.work_order_id) ?? '—') : '—',
     }))
 
+    const canCommit = await can('action.processing_commit')
+
     return (
         <ListPage
             title={t('processing.listTitle')}
             actions={
-                <Button asChild>
-                    <Link href="/operation/processing/new">{t('processing.addButton')}</Link>
-                </Button>
+                // ROLE-1 Batch 3b:建加工单 = commit_processing_run,归 action.processing_commit。
+                // 缺码时画真的 <Button disabled>(链接禁不掉),由 PermissionGate 点名那个码。
+                canCommit ? (
+                    <Button asChild>
+                        <Link href="/operation/processing/new">{t('processing.addButton')}</Link>
+                    </Button>
+                ) : (
+                    <PermissionGate code="action.processing_commit" allowed={false} inline>
+                        <Button disabled>{t('processing.addButton')}</Button>
+                    </PermissionGate>
+                )
             }
             state={{ kind: 'ok' }}
         >

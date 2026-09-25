@@ -48,7 +48,8 @@ export default function HandoversTable({
                         <span className="inline-block px-2 py-0.5 rounded bg-amber-200 text-amber-900 text-xs font-medium">
                             {t('processing.handover.pending')}
                         </span>
-                        <PermissionGate code="module.processing.edit" allowed={canEdit}>
+                        {/* ROLE-1 Batch 3b:canEdit = aftercare 或 processing.edit;库里拒时点名 aftercare */}
+                        <PermissionGate code="action.processing_aftercare" allowed={canEdit}>
                             <AcknowledgeButton handoverId={r.id} />
                         </PermissionGate>
                     </span>

@@ -23,6 +23,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { can } from '@/lib/permissions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import HandoversTable, { type HandoverRow } from './HandoversTable'
@@ -35,7 +36,9 @@ export default async function HandoversPage() {
     const t = await getTranslations()
     const locale = await getLocale()
     const supabase = await createClient()
-    const canEdit = await can('module.processing.edit')
+    // ROLE-1 Batch 3b:交接班(提交 / 确认)是加工善后 —— 库里 action.processing_aftercare 或
+    // module.processing.edit 两者之一即可,拒的时候点名 aftercare,门上点名的也是它。
+    const canEdit = (await can('action.processing_aftercare')) || (await can('module.processing.edit'))
 
     const rows = mustRows(
         await supabase.from('shift_handovers')
@@ -95,11 +98,16 @@ export default async function HandoversPage() {
             title={t('processing.handover.title')}
             maxWidth="max-w-5xl"
             actions={
+                // ROLE-1 Batch 3b:缺码时不再藏 —— 画真的 <Button disabled>(链接禁不掉),点名那个码。
                 canEdit ? (
                     <Button asChild>
                         <Link href="/operation/handovers/new">{t('processing.handover.new')}</Link>
                     </Button>
-                ) : undefined
+                ) : (
+                    <PermissionGate code="action.processing_aftercare" allowed={false} inline>
+                        <Button disabled>{t('processing.handover.new')}</Button>
+                    </PermissionGate>
+                )
             }
             notices={
                 <>

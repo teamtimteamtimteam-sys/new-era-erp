@@ -170,7 +170,9 @@ export default function LossPanel({
 
             {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
 
-            <PermissionGate code="module.processing.edit" allowed={canEdit}>
+            {/* ROLE-1 Batch 3b:登记损耗是加工善后,归 action.processing_aftercare 或 module.processing.edit
+                (canEdit 由页面算好的是两者之一);库里拒的时候点名 aftercare,门上点名的也是它。 */}
+            <PermissionGate code="action.processing_aftercare" allowed={canEdit}>
                 <form key={formKey} onSubmit={submit} className="mt-3 flex flex-wrap items-end gap-3">
                     <div>
                         <label className="block mb-1">{t('processing.loss.colCategory')}</label>

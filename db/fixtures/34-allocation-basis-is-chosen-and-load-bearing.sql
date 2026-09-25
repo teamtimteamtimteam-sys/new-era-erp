@@ -37,6 +37,8 @@ BEGIN
     VALUES ('fixture-34', 'f', 'f', true) RETURNING id INTO r;
     INSERT INTO role_permissions (role_id, permission_code)
     VALUES (r, 'module.processing.edit'), (r, 'module.processing.view'),
+           -- ROLE-1 Batch 3b:建工单、提交、回滚、损耗与交接班各有自己的码(module.processing.edit 不再够);本支验的不是谁持哪个码,所以加工演员都拿。
+           (r, 'action.wo_create'), (r, 'action.processing_commit'), (r, 'action.processing_rollback'), (r, 'action.processing_aftercare'),
            (r, 'module.inbound.edit'), (r, 'module.inbound.view'),
            (r, 'module.finance.view'), (r, 'data.view_prices'),
            -- ROLE-1(2026-09-23):加工成本分摊改归财务 —— allocate_processing_costs 的门是 module.finance.edit

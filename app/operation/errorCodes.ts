@@ -3,6 +3,7 @@ import { STATE_OPTIONS } from '@/app/inbound/options'
 import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
 import { fallbackForRawError, fallbackTextFor } from '@/lib/machine-text'
 import { localizeSelfApproval } from '@/lib/selfApproval'
+import { refusePermission } from '@/lib/action-refusal'
 
 // commit_processing_run / rollback_processing_run 这两个 DB 函数 RAISE 出来的错误码,
 // 外加工单族与(PROC-SUPPORT-1 起)交接班族的具名拒绝。
@@ -72,6 +73,13 @@ const PROCESSING_ERROR_CODES = new Set([
     'ROLLBACK_REASON_REQUIRED',   // AUDEL-1b
     'DELETE_REASON_REQUIRED',   // AUDEL-1b
     'SOFT_DELETE_NO_DIRECT_UPDATE',   // AUDEL-1b
+
+    // ── ROLE-1 Batch 3b:放行与开单分给两个人;加工单只许走函数 ──────────────
+    // WO_NO_OTHER_RELEASER:除了开单人没有别人持 action.wo_release —— 这张工单开出来也没人能放行。
+    // PROCESSING_THROUGH_FUNCTION_ONLY|<表>|<操作>:直写 processing_runs / _outputs / _inputs 被拒
+    // (今天没有屏幕这样写,编进来是为了万一有,屏幕上是句子而不是机器串)。
+    'WO_NO_OTHER_RELEASER',
+    'PROCESSING_THROUGH_FUNCTION_ONLY',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..." —— 即使 PostgREST 在前面包了前缀,
@@ -88,6 +96,14 @@ export async function localizeProcessingError(message: string): Promise<string> 
     //     这个码不归任何一个模块所有,它是一条横跨所有链的规矩。
     if (match && match[1] === 'SELF_APPROVAL_FORBIDDEN') {
         return await localizeSelfApproval((match[2] ?? '').split('|')[0] || null)
+    }
+
+    // ★ ROLE-1 Batch 3b:本文件此前【没有】PERMISSION_DENIED 这一支 —— 工单与加工单的动作都直接调
+    //   本函数(不经 refuseFromCoded),于是 `PERMISSION_DENIED|action.wo_create` 会掉进共用兜底,
+    //   屏幕上是一句"意外错误"。这一批把这些动作分给了新码,这一支于是真的会走到。
+    //   句子不新写:走 lib/action-refusal.ts 的 refusePermission(全库只此一句,点名那个码)。
+    if (match && match[1] === 'PERMISSION_DENIED') {
+        return (await refusePermission(match[2] ?? '')).error
     }
 
     if (!match || !PROCESSING_ERROR_CODES.has(match[1])) {

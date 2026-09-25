@@ -56,6 +56,8 @@ BEGIN
     INSERT INTO role_permissions (role_id, permission_code)
     SELECT r_all, unnest(ARRAY['module.finance.edit','module.finance.view','module.inbound.view',
         'module.inbound.edit','module.processing.view','module.processing.edit',
+        -- ROLE-1 Batch 3b:建工单、提交、回滚、损耗与交接班各有自己的码(module.processing.edit 不再够);本支验的不是谁持哪个码,所以加工演员都拿。
+        'action.wo_create', 'action.processing_commit', 'action.processing_rollback', 'action.processing_aftercare',
         'module.output.view','module.output.edit','data.view_prices', 'data.view_purchase_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (v_user, r_all);
     PERFORM set_config('request.jwt.claims',

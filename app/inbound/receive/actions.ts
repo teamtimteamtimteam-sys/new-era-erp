@@ -10,6 +10,7 @@ import { revalidatePath } from 'next/cache'
 import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
 import { isStockErrorCode, localizeStockError, warningCodesFrom, warnQuery } from '@/app/components/inventory/stockErrorCodes'
 import { localizeMaterialError } from '@/app/materials/materialErrorCodes'
+import { refusePermission } from '@/lib/action-refusal'
 import { CERTAINTY_UNCHOSEN, FIELD_SAFETY_STATES, FIELD_CERTAINTY } from '../IntakeConditionFields'
 
 export type ReceiveState = {
@@ -123,6 +124,12 @@ export async function createFieldReceipt(
         // IOD-1b/IOD-2:库存侧的具名拒绝一律翻成人话。判据来自 STOCK_ERROR_CODES
         // 本身(isStockErrorCode)—— 手抄一份正则到三个 action 里,就是第二份会漂开
         // 的清单,而漏掉的那一处会把机器码原样端给操作员。
+
+        // ROLE-1 Batch 3b:建收货单归 action.receive_goods。PERMISSION_DENIED|<码> 先接 ——
+        // 不接它会掉进 localizeMaterialError 的共用兜底,屏幕上是一句"意外错误"。
+        // 句子走 refusePermission(全库只此一句,点名那个码)。
+        const deniedCode = (error?.message ?? '').trim().match(/^PERMISSION_DENIED\|(.*)$/)
+        if (deniedCode) return { error: (await refusePermission(deniedCode[1] ?? '')).error }
 
         if (isStockErrorCode(error?.message)) {
 

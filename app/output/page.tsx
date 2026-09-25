@@ -24,6 +24,7 @@ import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
 import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 
 // FK 嵌入运行时是对象;TS 默认猜数组(无生成 DB 类型),用显式类型 + cast 锁住。
@@ -72,6 +73,8 @@ export default async function OutputPage({
     const t = await getTranslations()
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
+    // ROLE-1 Batch 3b:注销产出批次归 action.batch_write_off
+    const canWriteOff = await can('action.batch_write_off')
 
     const { q, state, customerId, materialId, dateFrom, dateTo, sort, dir } = parseOutputListParams(sp)
     const requestedPage = parseOutputPage(sp.page)
@@ -250,6 +253,7 @@ export default async function OutputPage({
                 filterQuery={filterQuery}
                 shown={tableRows.length}
                 total={total}
+                canWriteOff={canWriteOff}
             />
 
             {/* 分页控件:服务端 <Link>,无额外客户端 JS;首页禁用上一页、末页禁用下一页 */}

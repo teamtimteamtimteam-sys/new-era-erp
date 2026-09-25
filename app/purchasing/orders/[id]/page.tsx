@@ -19,6 +19,7 @@ import ApprovalControls from './ApprovalControls'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { CloseOrderControl, ReopenOrderControl } from './CloseReopenControls'
 import { can, canViewPurchasePrices } from '@/lib/permissions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { maskedExcept, maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -245,6 +246,7 @@ export default async function PurchaseOrderDetailPage({
             .map((o) => [o.trigger_event, o.owner_name])
     ) as Record<string, string>
     const canEditPurchasing = await can('module.purchasing.edit')
+    const canReceiveGoods = await can('action.receive_goods') // ROLE-1 Batch 3b
     // ROLE-1:质保金释放归财务(release_purchase_order_retention 的门是 module.finance.edit)
     const canReleaseRetention = await can('module.finance.edit')
     const poStatus = statusRes.data
@@ -582,10 +584,18 @@ export default async function PurchaseOrderDetailPage({
                         一个可以问的问题。
                         【拿掉按钮不等于解决困惑】所以下面那一句告诉人该去哪 ——
                         否则只是把困惑挪了个地方。 */}
+                    {/* ROLE-1 Batch 3b:按单收货归 action.receive_goods。缺码时画真的 <Button disabled>
+                        (链接禁不掉),挂在 PermissionGate 里点名那个码。 */}
                     {!isEquipmentOrder && (po.status === 'confirmed' || po.status === 'receiving') && (
-                        <Button asChild>
-                            <Link href={`/inbound/new?po=${po.id}`}>{t('purchasing.receiveAgainst')}</Link>
-                        </Button>
+                        canReceiveGoods ? (
+                            <Button asChild>
+                                <Link href={`/inbound/new?po=${po.id}`}>{t('purchasing.receiveAgainst')}</Link>
+                            </Button>
+                        ) : (
+                            <PermissionGate code="action.receive_goods" allowed={false} inline>
+                                <Button disabled>{t('purchasing.receiveAgainst')}</Button>
+                            </PermissionGate>
+                        )
                     )}
                     {(po.status === 'confirmed' || po.status === 'receiving') && (
                         <CloseOrderControl canEdit={canEditPurchasing}

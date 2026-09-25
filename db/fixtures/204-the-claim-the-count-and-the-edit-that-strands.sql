@@ -118,6 +118,8 @@ BEGIN
         -- ROLE-1 Batch 3a:过账的门从 module.stocktakes.edit 换成 action.stocktake_post(录数人那条腿在 fixture 221)
         (r_fin, 'action.stocktake_post'),
         (r_fin, 'module.processing.edit'),
+        -- ROLE-1 Batch 3b:下达工单归财务(action.wo_release)
+        (r_fin, 'action.wo_release'),
         (r_adm, 'action.manage_permissions'),
         (r_adm, 'module.finance.view'), (r_adm, 'data.view_prices'), (r_adm, 'data.view_purchase_prices'),
         -- 采购单那条链今天也在名册里,两级都必须有人批得动,

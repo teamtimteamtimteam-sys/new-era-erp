@@ -67,7 +67,7 @@ export type InboundTableRow = {
 }
 
 export default function InboundTable({
-    rows, sort, dir, filterQuery, shown, total,
+    rows, sort, dir, filterQuery, shown, total, canWriteOff,
 }: {
     rows: InboundTableRow[]
     sort: InboundSortCol
@@ -76,6 +76,8 @@ export default function InboundTable({
     filterQuery: string
     shown: number
     total: number
+    /** ROLE-1 Batch 3b:can('action.batch_write_off'),页面算好传进来。 */
+    canWriteOff: boolean
 }) {
     const t = useTranslations()
 
@@ -156,7 +158,7 @@ export default function InboundTable({
             className: 'text-sm text-gray-600',
             render: (b) => b.createdLabel,
         },
-        { key: 'actions', header: t('inbound.colActions'), render: (b) => <DeleteButton id={b.id} code={b.code}
+        { key: 'actions', header: t('inbound.colActions'), render: (b) => <DeleteButton id={b.id} code={b.code} canWriteOff={canWriteOff}
             lockedReason={b.openPriceRequest ? t('inbound.priceRequest.deleteLocked', { label: b.openPriceRequest }) : undefined} /> },
         {
             key: 'label', header: t('batchLabel.col'),

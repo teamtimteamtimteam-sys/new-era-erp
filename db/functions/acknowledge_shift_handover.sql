@@ -8,7 +8,11 @@ DECLARE
     v_ho  shift_handovers%ROWTYPE;
     v_emp uuid := current_user_employee();
 BEGIN
-    PERFORM require_permission('module.processing.edit');
+    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3b grilling Q2):交接班 = action.processing_aftercare
+    --   (仓库)或 module.processing.edit。拒绝点名 action.processing_aftercare。
+    IF NOT has_any_permission(ARRAY['action.processing_aftercare', 'module.processing.edit']) THEN
+        RAISE EXCEPTION 'PERMISSION_DENIED|action.processing_aftercare';
+    END IF;
 
     SELECT * INTO v_ho FROM shift_handovers WHERE id = p_handover_id FOR UPDATE;
     IF NOT FOUND THEN

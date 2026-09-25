@@ -11,8 +11,11 @@ import { useRouter } from 'next/navigation'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { deleteProcessingRun } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
-export default function DeleteButton({ runId, code }: { runId: string; code: string }) {
+// ★ ROLE-1 Batch 3b:回滚(rollback_processing_run)归 action.processing_rollback(仓库、管理员)。
+//   canRollback 由页面 can() 算好传进来;缺码时看得见、按不动、点名那个码。
+export default function DeleteButton({ runId, code, canRollback }: { runId: string; code: string; canRollback: boolean }) {
     const t = useTranslations()
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
@@ -20,6 +23,7 @@ export default function DeleteButton({ runId, code }: { runId: string; code: str
 
     return (
         <div className="inline-flex flex-col items-end">
+            <PermissionGate code="action.processing_rollback" allowed={canRollback} className="items-end">
             <ConfirmButton
                 subject={code}
                 title={t('processing.delete.confirmTitle')}
@@ -40,6 +44,7 @@ export default function DeleteButton({ runId, code }: { runId: string; code: str
             >
                 {isPending ? t('common.saving') : t('processing.delete.triggerButton')}
             </ConfirmButton>
+            </PermissionGate>
             {error && <p className="mt-1 max-w-md text-xs text-destructive-text">{error}</p>}
         </div>
     )

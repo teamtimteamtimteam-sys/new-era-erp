@@ -155,20 +155,14 @@ CREATE POLICY "processing_runs select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.processing.view'::text));
 
-CREATE POLICY "processing_runs insert by permission"
-    ON public.processing_runs
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.processing.edit'::text));
+-- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q7;Batch 3b grilling Q1):INSERT 与 DELETE 两条写策略拿掉 ——
+--   提交与回滚只经 commit_processing_run / rollback_processing_run(SECURITY DEFINER);直连写按名拒
+--   PROCESSING_THROUGH_FUNCTION_ONLY(guard_processing_direct_write,见文末)。
 
 CREATE POLICY "processing_runs update by permission"
     ON public.processing_runs
     AS PERMISSIVE FOR UPDATE TO authenticated
     USING (has_permission('module.processing.edit'::text)) WITH CHECK (has_permission('module.processing.edit'::text));
-
-CREATE POLICY "processing_runs delete by permission"
-    ON public.processing_runs
-    AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.processing.edit'::text));
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 processing_runs_masked 读取。
@@ -221,3 +215,13 @@ COMMENT ON COLUMN public.processing_runs.equipment_id IS
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.processing_runs
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.processing.edit');
+
+-- ── ROLE-1 Batch 3b · 不许绕过函数写(guard_processing_direct_write)──────────
+-- 直连 INSERT 按名拒;直连 UPDATE 只在改 status 或 work_order_id 时按名拒(别的列仍走 UPDATE 策略,
+-- 登记 ROLE1B3B-PROCESSING-UPDATE-POLICIES);直连 DELETE(语句级,零行也触发)按名拒。
+CREATE TRIGGER trg_processing_runs_direct_write
+    BEFORE INSERT OR UPDATE ON public.processing_runs
+    FOR EACH ROW EXECUTE FUNCTION public.guard_processing_direct_write();
+CREATE TRIGGER trg_processing_runs_direct_delete
+    BEFORE DELETE ON public.processing_runs
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_processing_direct_write();

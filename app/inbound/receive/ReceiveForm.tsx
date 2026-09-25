@@ -13,6 +13,7 @@ import LocationPicker, { type LocationChoice } from '@/app/components/inventory/
 import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditionFormSection'
 import type { SafetyState, Certainty } from '../IntakeConditionFields'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_TOUCH } from '@/app/components/ui/control-style'
 import { formatDate } from '@/lib/dates'
 
@@ -70,6 +71,7 @@ export default function ReceiveForm({
     certainties,
     materialAxes,
     sourceReasons,
+    canReceive,
 }: {
     // IOD-1b:收货库位的可选清单(在用库位),由页面取好传进来
     locations: LocationChoice[]
@@ -83,6 +85,8 @@ export default function ReceiveForm({
     materialAxes: Record<string, MaterialAxis>
     // RECV-SOURCE-1:无单收货的理由字典(R1:采购行或理由,永不两者皆无)
     sourceReasons: SourceReasonOption[]
+    /** ROLE-1 Batch 3b:建收货单归 action.receive_goods;缺码时提交钮看得见、按不动、点名那个码。 */
+    canReceive: boolean
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -341,13 +345,15 @@ export default function ReceiveForm({
             {!blocked && !arrivalDate && (
                 <p className="text-sm text-amber-700">{t('inbound.form.blockedArrivalDate')}</p>
             )}
-            <Button
-                type="submit"
-                disabled={isPending || !arrivalDate || !!blocked}
-                variant="default" size="touch" className="w-full"
-            >
-                {isPending ? t('receive.submitting') : t('receive.submit')}
-            </Button>
+            <PermissionGate code="action.receive_goods" allowed={canReceive} className="w-full">
+                <Button
+                    type="submit"
+                    disabled={isPending || !arrivalDate || !!blocked}
+                    variant="default" size="touch" className="w-full"
+                >
+                    {isPending ? t('receive.submitting') : t('receive.submit')}
+                </Button>
+            </PermissionGate>
         </form>
     )
 }

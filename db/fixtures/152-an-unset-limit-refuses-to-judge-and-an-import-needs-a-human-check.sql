@@ -42,7 +42,9 @@ BEGIN
     INSERT INTO role_permissions (role_id, permission_code)
       SELECT r_all, unnest(ARRAY['module.suppliers.view','module.suppliers.edit',
                                  'module.inbound.view','module.inbound.edit',
-                                 'module.purchasing.view','module.materials.view']);
+                                 'module.purchasing.view','module.materials.view',
+                                 -- ROLE-1 Batch 3b:建收货单是它自己的码
+                                 'action.receive_goods']);
     INSERT INTO user_roles (user_id, role_id) VALUES (v_user, r_all);
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);

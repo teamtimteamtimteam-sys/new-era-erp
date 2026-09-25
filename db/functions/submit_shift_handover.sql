@@ -10,7 +10,11 @@ DECLARE
     v_elem jsonb;
     v_bad  text;
 BEGIN
-    PERFORM require_permission('module.processing.edit');
+    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3b grilling Q2):交接班 = action.processing_aftercare
+    --   (仓库)或 module.processing.edit。拒绝点名 action.processing_aftercare。
+    IF NOT has_any_permission(ARRAY['action.processing_aftercare', 'module.processing.edit']) THEN
+        RAISE EXCEPTION 'PERMISSION_DENIED|action.processing_aftercare';
+    END IF;
 
     -- 【世界侧日期不给默认值】与 FIN-10「永不给日期默认值」同一条:
     -- 交接班发生在哪一天是一件世界里的事实,不是 now() 的一个副产品。

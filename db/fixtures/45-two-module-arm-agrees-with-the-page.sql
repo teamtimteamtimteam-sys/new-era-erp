@@ -36,7 +36,9 @@ BEGIN
 
     INSERT INTO roles (code, name_en, name_zh, is_active) VALUES ('fixture-45-proc','f','f',true) RETURNING id INTO r_proc;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_proc, unnest(ARRAY['data.view_prices','module.processing.view','module.processing.edit','module.inbound.view']);
+    -- ROLE-1 Batch 3b:建工单、提交、回滚、损耗与交接班各有自己的码(module.processing.edit 不再够);本支验的不是谁持哪个码,所以加工演员都拿。
+    SELECT r_proc, unnest(ARRAY['data.view_prices','module.processing.view','module.processing.edit','module.inbound.view',
+                                'action.wo_create', 'action.processing_commit', 'action.processing_rollback', 'action.processing_aftercare']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u_proc, r_proc);
 
     INSERT INTO roles (code, name_en, name_zh, is_active) VALUES ('fixture-45-price','f','f',true) RETURNING id INTO r_price;

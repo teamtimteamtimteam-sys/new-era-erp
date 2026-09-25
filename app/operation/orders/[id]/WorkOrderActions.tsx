@@ -14,11 +14,26 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { releaseWorkOrder, closeWorkOrder, cancelWorkOrder } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { Refusal } from '@/app/components/ui/refusal'
 
+// ROLE-1 Batch 3b:放行归 action.wo_release(财务、管理员);收工 / 取消归 action.wo_create
+// 或 module.processing.edit(库里拒的时候点名 action.wo_create)。
+// 两种"按不动"分开说(与 stocktakes 的 PostButton 同一个形状):
+//   缺码 → PermissionGate 点名那个码;
+//   开单人 → releaseBlockedReason 说出是哪一条(那不是管理员给得了的)。
+// 页面只按【账号】判开单人;库那一侧按【人】判 SELF_APPROVAL_FORBIDDEN|raiser。
 export default function WorkOrderActions({
-    id, status, canEdit, hasRuns,
+    id, status, canRelease, canManage, releaseBlockedReason, hasRuns,
 }: {
-    id: string; status: string; canEdit: boolean; hasRuns: boolean
+    id: string; status: string
+    /** can('action.wo_release') */
+    canRelease: boolean
+    /** can('action.wo_create') || can('module.processing.edit') */
+    canManage: boolean
+    /** 看的人就是开单人时的那句话;否则 null */
+    releaseBlockedReason: string | null
+    hasRuns: boolean
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -38,48 +53,62 @@ export default function WorkOrderActions({
 
     // 每个动作:能不能做,以及【为什么不能】—— 两者一起算出来,免得有一个分支
     // 只画了禁用而没画理由。
-    const noPerm = !canEdit ? `${t('common.restricted')} — ${t('processing.wo.needsEdit')}` : ''
-    const releaseWhy = noPerm || (status !== 'draft' ? t('processing.wo.blocked.releaseNotDraft', { status: t('processing.wo.status.' + status) }) : '')
-    const closeWhy   = noPerm || (status !== 'released' ? t('processing.wo.blocked.closeNotReleased', { status: t('processing.wo.status.' + status) }) : '')
-    const cancelWhy  = noPerm || (!['draft', 'released'].includes(status)
+    // 权限那一半交给 PermissionGate(见上),这里只算【状态】那一半的理由 ——
+    // 不把两种原因拼进同一个布尔(AGENTS.md DBLOCK-1 第二条边界)。
+    const releaseWhy = status !== 'draft' ? t('processing.wo.blocked.releaseNotDraft', { status: t('processing.wo.status.' + status) }) : ''
+    const closeWhy   = status !== 'released' ? t('processing.wo.blocked.closeNotReleased', { status: t('processing.wo.status.' + status) }) : ''
+    const cancelWhy  = !['draft', 'released'].includes(status)
         ? t('processing.wo.blocked.cancelTerminal', { status: t('processing.wo.status.' + status) })
-        : hasRuns ? t('processing.wo.blocked.cancelHasRuns') : '')
+        : hasRuns ? t('processing.wo.blocked.cancelHasRuns') : ''
+    // 开单人那一条只在【状态允许放行】时才是那个原因;状态不允许时说状态。
+    const selfWhy = releaseWhy === '' ? releaseBlockedReason : null
 
     return (
         <div className="space-y-3">
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <div className="flex flex-wrap items-center gap-3">
-                <Button variant="secondary" type="button" disabled={isPending || releaseWhy !== ''}
-                        onClick={() => run(() => releaseWorkOrder(id))}>
-                    {t('processing.wo.actions.release')}
-                </Button>
+                <PermissionGate code="action.wo_release" allowed={canRelease} inline>
+                    <Button variant="secondary" type="button" disabled={isPending || releaseWhy !== '' || selfWhy !== null}
+                            onClick={() => run(() => releaseWorkOrder(id))}>
+                        {t('processing.wo.actions.release')}
+                    </Button>
+                </PermissionGate>
                 {releaseWhy && <span className="text-xs text-amber-700">{releaseWhy}</span>}
+                {canRelease && selfWhy && (
+                    <Refusal why={selfWhy} className="whitespace-normal text-left font-normal">
+                        {selfWhy}
+                    </Refusal>
+                )}
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-                <input type="text" value={closeReason} placeholder={t('processing.wo.actions.closeReasonPlaceholder')}
-                       onChange={(e) => setCloseReason(e.target.value)} disabled={closeWhy !== ''}
-                       className={`${CONTROL_INPUT} w-72`} />
-                <Button variant="secondary" type="button"
-                        disabled={isPending || closeWhy !== '' || closeReason.trim() === ''}
-                        onClick={() => run(() => closeWorkOrder(id, closeReason))}>
-                    {t('processing.wo.actions.close')}
-                </Button>
+                <PermissionGate code="action.wo_create" allowed={canManage} inline>
+                    <input type="text" value={closeReason} placeholder={t('processing.wo.actions.closeReasonPlaceholder')}
+                           onChange={(e) => setCloseReason(e.target.value)} disabled={closeWhy !== ''}
+                           className={`${CONTROL_INPUT} w-72`} />
+                    <Button variant="secondary" type="button"
+                            disabled={isPending || closeWhy !== '' || closeReason.trim() === ''}
+                            onClick={() => run(() => closeWorkOrder(id, closeReason))}>
+                        {t('processing.wo.actions.close')}
+                    </Button>
+                </PermissionGate>
                 {closeWhy
                     ? <span className="text-xs text-amber-700">{closeWhy}</span>
                     : <span className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.wo.actions.closeWhy')}</span>}
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-                <input type="text" value={cancelReason} placeholder={t('processing.wo.actions.cancelReasonPlaceholder')}
-                       onChange={(e) => setCancelReason(e.target.value)} disabled={cancelWhy !== ''}
-                       className={`${CONTROL_INPUT} w-72`} />
-                <Button variant="destructive" type="button"
-                        disabled={isPending || cancelWhy !== '' || cancelReason.trim() === ''}
-                        onClick={() => run(() => cancelWorkOrder(id, cancelReason))}>
-                    {t('processing.wo.actions.cancel')}
-                </Button>
+                <PermissionGate code="action.wo_create" allowed={canManage} inline>
+                    <input type="text" value={cancelReason} placeholder={t('processing.wo.actions.cancelReasonPlaceholder')}
+                           onChange={(e) => setCancelReason(e.target.value)} disabled={cancelWhy !== ''}
+                           className={`${CONTROL_INPUT} w-72`} />
+                    <Button variant="destructive" type="button"
+                            disabled={isPending || cancelWhy !== '' || cancelReason.trim() === ''}
+                            onClick={() => run(() => cancelWorkOrder(id, cancelReason))}>
+                        {t('processing.wo.actions.cancel')}
+                    </Button>
+                </PermissionGate>
                 {cancelWhy && <span className="text-xs text-amber-700">{cancelWhy}</span>}
             </div>
         </div>

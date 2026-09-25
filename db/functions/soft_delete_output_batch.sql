@@ -8,7 +8,8 @@ DECLARE
     v_user uuid := auth.uid();
     v_code text;
 BEGIN
-    PERFORM require_permission('module.output.edit');
+    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q9):注销批次归仓库 —— action.batch_write_off。
+    PERFORM require_permission('action.batch_write_off');
     IF p_reason IS NULL OR btrim(p_reason) = '' THEN
         RAISE EXCEPTION 'DELETE_REASON_REQUIRED|output_batches|%',
             COALESCE((SELECT code FROM output_batches WHERE id = p_batch_id), '?');

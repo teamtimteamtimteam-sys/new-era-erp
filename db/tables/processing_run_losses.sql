@@ -48,16 +48,18 @@ ALTER TABLE public.processing_run_losses ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "processing_run_losses select by permission"
     ON public.processing_run_losses AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.processing.view'::text));
+-- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3b grilling Q2):损耗分类 = module.processing.edit 或
+--   action.processing_aftercare(仓库 —— 提交加工的人记它的损耗)。
 CREATE POLICY "processing_run_losses insert by permission"
     ON public.processing_run_losses AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.processing.edit'::text));
+    WITH CHECK (has_any_permission(ARRAY['module.processing.edit'::text, 'action.processing_aftercare'::text]));
 CREATE POLICY "processing_run_losses update by permission"
     ON public.processing_run_losses AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.processing.edit'::text))
-    WITH CHECK (has_permission('module.processing.edit'::text));
+    USING (has_any_permission(ARRAY['module.processing.edit'::text, 'action.processing_aftercare'::text]))
+    WITH CHECK (has_any_permission(ARRAY['module.processing.edit'::text, 'action.processing_aftercare'::text]));
 CREATE POLICY "processing_run_losses delete by permission"
     ON public.processing_run_losses AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.processing.edit'::text));
+    USING (has_any_permission(ARRAY['module.processing.edit'::text, 'action.processing_aftercare'::text]));
 
 CREATE CONSTRAINT TRIGGER trg_processing_run_losses_within_total
     AFTER INSERT OR UPDATE OR DELETE ON public.processing_run_losses
@@ -74,4 +76,4 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.processing_run_losses TO authenti
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.processing_run_losses
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.processing.edit');
+    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.processing.edit', 'action.processing_aftercare');

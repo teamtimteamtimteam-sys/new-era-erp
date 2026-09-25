@@ -3118,7 +3118,6 @@ const zh = {
             reversedNote: '被冲销的加工仍然列在这里 —— 它确实是照这张工单做的;但它断言过的消耗不再算数:上面的差异、改单的地板、取消的守卫,三处都不数它。',
             actionsTitle: '动作',
             history: '历史',
-            needsEdit: '需要加工(编辑)权限',
             closedBanner: '{at} 收工 —— {reason}',
             cancelledBanner: '{at} 取消 —— {reason}',
             status: {
@@ -3159,6 +3158,8 @@ const zh = {
                 cancelTerminal: '这张工单是{status} —— 它已经结束了。',
                 cancelHasRuns: '已经有加工照这张工单做过,所以它取消不掉 —— 请【收工】。取消的意思是"这件事没有发生过",而料是真的下去了。',
                 amendTerminal: '这张工单是{status} —— 计划不再改得动。',
+                // ROLE-1 Batch 3b:开单人永远不能放行自己开的工单(库按人判)
+                releaseSelf: '这张工单是你开的 —— 要由别人放行。',
             },
             form: {
                 scheduled: '排产日',
@@ -3311,6 +3312,9 @@ const zh = {
             WO_NOT_DRAFT: '工单 {0} 是{1} —— 只有草稿可以放行。',
             WO_NOT_CANCELLABLE: '工单 {0} 是{1} —— 它已经结束了。',
             WO_HAS_RUNS: '工单 {0} 上已经挂了 {1} 次加工,所以取消不掉 —— 请【收工】。取消的意思是"这件事没有发生过",而料是真的下去了。',
+            // ROLE-1 Batch 3b
+            WO_NO_OTHER_RELEASER: '除了你没有别人能放行工单 —— 请先让管理员把「放行工单」给另一个人。',
+            PROCESSING_THROUGH_FUNCTION_ONLY: '加工记录({0},{1})只能通过加工页面来改 —— 什么都没有改动。',
             WO_NOT_AMENDABLE: '工单 {0} 是{1} —— 计划不再改得动。',
             WO_NO_LINES: '一张工单至少要有一条计划投料行 —— 否则它什么也没计划。',
             WO_LINE_QTY_INVALID: '计划量要大于零。',

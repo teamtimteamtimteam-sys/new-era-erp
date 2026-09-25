@@ -3,7 +3,7 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新:**下一刀是 ROLE-1 Batch 3b,之后 APR-5**)
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25):**下一刀是 APR-5**)
 > 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(`fa7821ab`)·
 >    **✅ AP-RECON-1 Batch B** —— 残留登记表 + 常设勾稽 + 月结那一行 + 严格相等的 fixture 213 + 那一分钱 +
 >    带税订单发票 + **三条日期规矩与 32 份 fixture 的日期挪回真实的过去**(Tim 2026-09-24:日期规矩属于 AP-RECON-1,
@@ -35,11 +35,12 @@
 >    **录过数的人与开单人永远不能过账**(按人认);`stocktake_counts` 只增不改地记下每一次录数与重录;盘点三张表没有直连写。
 >    四个登记的缺口关上:到岸成本不再给仓库(Q5)· `is_final` 只走函数(Q10)· 已定价的收货不换来路(Q11)·
 >    提单人之外没人批得动时提交就拒 —— 工资申请与六支付款申请(Q12)。两个新码一并授给 admin。见 `docs/handbacks/ROLE-1.md` § Batch 3a。
-> 8. **⬜ ROLE-1 Batch 3b ← 下一刀**(Tim 2026-09-25,Batch 3 grilling Q1 · Q6–Q9 · Q13)—— 下文 § Batch 3b:
->    收货建单 `action.receive_goods`(Q1)· 工单 `action.wo_create` / `action.wo_release`(建单人永远不能下达)·
->    加工提交 `action.processing_commit` + 仓库拿 `module.processing.view`(三页改读 `material_lookup`)· 加工三张表的直连写关上 ·
->    临时持有人 `action.batch_write_off` / `action.processing_rollback` → 仓库与 admin。每一个新码一并授给 admin。
-> 9. **⬜ APR-5** —— 贷项通知、作废发票、发货前放行(N1 那一刀是它的前置,见下文)。
+> 8. **✅ ROLE-1 Batch 3b**(2026-09-25)—— 收货建单 `action.receive_goods`(仓库;带价另要两个定价码,拒绝先点名建单码)·
+>    工单 `action.wo_create`(仓库)/ `action.wo_release`(财务),建单人永远不能下达,建单人之外没人下达得了时建单就拒
+>    (`WO_NO_OTHER_RELEASER`)· 加工提交 `action.processing_commit` · 回滚 `action.processing_rollback` · 注销 `action.batch_write_off`
+>    (都给仓库)· 损耗与交接班 `action.processing_aftercare`(Tim 的 Batch 3b Q2)· 仓库拿 `module.processing.view`,三页改读
+>    `material_lookup` · 加工三张表的直连插 / 删 / 改状态按名拒。七个新码一并授给 admin。见 `docs/handbacks/ROLE-1.md` § Batch 3b。
+> 9. **⬜ APR-5 ← 下一刀** —— 贷项通知、作废发票、发货前放行(N1 那一刀是它的前置,见下文)。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**
 > * **⬜ 管理包那一版 `gl_control_reconciliation` 的改基**(Tim AP-RECON-1 Q8):冻在 `management_packs` 里的包读它的三个键;

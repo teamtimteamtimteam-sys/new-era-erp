@@ -42,6 +42,8 @@ import { getTranslations } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { can } from '@/lib/permissions'
 
 type Batch = {
     id: string
@@ -81,6 +83,7 @@ export default async function ReceiveDonePage({
     }
 
     const batch = data as unknown as Batch
+    const canReceive = await can('action.receive_goods') // ROLE-1 Batch 3b
 
     return (
         <div className="p-4 max-w-md mx-auto text-center">
@@ -103,9 +106,17 @@ export default async function ReceiveDonePage({
                 <Button asChild variant="default" size="touch" className="w-full">
                     <a href={`/inbound/${batch.id}/label`} target="_blank" rel="noopener noreferrer">{t('batchLabel.print')}</a>
                 </Button>
-                <Button asChild variant="secondary" size="touch" className="w-full">
-                    <Link href="/inbound/receive">{t('receive.next')}</Link>
-                </Button>
+                {/* ROLE-1 Batch 3b:继续收货 = 再建一张收货单,归 action.receive_goods。
+                    缺码时画真的 <Button disabled>(链接禁不掉),由 PermissionGate 点名那个码。 */}
+                {canReceive ? (
+                    <Button asChild variant="secondary" size="touch" className="w-full">
+                        <Link href="/inbound/receive">{t('receive.next')}</Link>
+                    </Button>
+                ) : (
+                    <PermissionGate code="action.receive_goods" allowed={false} className="w-full items-center">
+                        <Button variant="secondary" size="touch" className="w-full" disabled>{t('receive.next')}</Button>
+                    </PermissionGate>
+                )}
             </div>
 
             <div className="mt-6">

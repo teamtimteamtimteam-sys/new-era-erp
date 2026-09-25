@@ -23,9 +23,12 @@ CREATE VIEW public.material_lookup WITH (security_invoker = off) AS
     m.waste_classification_code
    FROM materials m
      LEFT JOIN material_kinds k ON k.code = m.kind_code
-  WHERE has_permission('module.materials.view'::text) OR has_permission('module.inbound.view'::text) OR has_permission('module.output.view'::text) OR has_permission('module.inventory.view'::text) OR has_permission('module.purchasing.view'::text);
+  WHERE has_permission('module.materials.view'::text) OR has_permission('module.inbound.view'::text) OR has_permission('module.output.view'::text) OR has_permission('module.inventory.view'::text) OR has_permission('module.purchasing.view'::text) OR has_permission('module.processing.view'::text);
 
 COMMENT ON VIEW public.material_lookup IS
     'FIX-1 item 3:物料的【查名】视图 —— 只有 id/编号/名称。收货、产出与化验表单用它把单据指向一种物料,而【不】因此拿到化验成分、规格、安全库存或废物分类。属主权限 + 体内谓词 materials.view OR inbound.view OR output.view;新读到它的只有 warehouse(operations 本来就持 materials.view)。暴露面就是这张视图的列清单。';
 
+-- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q8 · Batch 3b grilling Q4):谓词加 module.processing.view ——
+--   建工单、提交加工与加工单详情三页改读本视图(不读 materials),仓库拿 processing.view 而【不】拿 materials.view;
+--   加工页不该靠一个不相干的码(inbound.view)碰巧读得到物料名。列清单不变。
 GRANT SELECT ON public.material_lookup TO authenticated;

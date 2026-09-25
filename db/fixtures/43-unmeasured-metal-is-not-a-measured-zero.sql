@@ -27,7 +27,9 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-43', 'f', 'f', true) RETURNING id INTO r;
     INSERT INTO role_permissions (role_id, permission_code)
+    -- ROLE-1 Batch 3b:建工单、提交、回滚、损耗与交接班各有自己的码(module.processing.edit 不再够);本支验的不是谁持哪个码,所以加工演员都拿。
     SELECT r, unnest(ARRAY['module.processing.view','module.processing.edit',
+                           'action.wo_create', 'action.processing_commit', 'action.processing_rollback', 'action.processing_aftercare',
                            'module.inbound.view','module.output.view','data.view_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 
