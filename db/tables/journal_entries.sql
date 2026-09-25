@@ -4,9 +4,13 @@
 -- assigned by post_journal_entry inside its transaction (max+1 per entry_date
 -- year under an advisory lock; a rolled-back post releases its number) — NOT a
 -- sequence trigger, so audit numbering has no gaps.
--- RLS: INSERT+SELECT only. UPDATE has no policy — the only mutation path is
--- reverse_journal_entry (SECURITY DEFINER), and the guard trigger allows solely
--- the posted→reversed status flip (column-by-column check).
+-- RLS: SELECT only (APR-6 dropped the INSERT policy). No write policy at all — the
+-- only paths are post_journal_entry (EXECUTE revoked from authenticated; every caller
+-- is SECURITY DEFINER) and reverse_journal_entry_internal, and the guard trigger
+-- allows solely the posted→reversed status flip (column-by-column check). Any direct
+-- write → JOURNAL_THROUGH_FUNCTION_ONLY (trg_journal_entries_direct_write).
+-- A manual entry is raised with submit_journal_request and posts when the CFO approves
+-- (APR-6, journal_requests); it always posts as 'manual' with source_id = the request.
 --
 -- NOTE: introduced by db/migrations/2026-07-05-phase3-cut1-finance-foundation.sql;
 -- source_type 'payroll' added by db/migrations/2026-08-01-hr1a-hr-core.sql;
@@ -107,7 +111,9 @@ CREATE POLICY "journal_entries select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text));
 
-CREATE POLICY "journal_entries insert by permission"
-    ON public.journal_entries
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+-- ★ APR-6(2026-09-25,grilling Q1):INSERT 写策略拿掉 —— 一张分录只经 post_journal_entry 生出来,而它对
+--   authenticated 已收回,调用它的全是 SECURITY DEFINER 的单据函数与 journal_request_post_internal。
+--   直连写(INSERT / UPDATE / DELETE,零行也算)由下面的语句级守卫按名拒 JOURNAL_THROUGH_FUNCTION_ONLY。
+CREATE TRIGGER trg_journal_entries_direct_write
+    BEFORE INSERT OR UPDATE OR DELETE ON public.journal_entries
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_journal_direct_write();

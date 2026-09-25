@@ -432,6 +432,14 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
     "receipt_price_open":
         "ROLE-1 Batch 4b: called by two INVOKER guards, so EXECUTE must stay with the caller; "
         "returns only the label (receipt code · price #n) of a waiting request, no price",
+    # APR-6(2026-09-25):凭证详情页拿它决定冲销钮灰不灰、说什么;它也在批准与试跑的内层被调用,那里的主语
+    #   未必持凭证页的码(以 postgres 跑的 fixture 根本没有主语)—— 加 has_permission 门会在那两处抛错。
+    #   它【必须】是 DEFINER:它读工资表,INVOKER 下一个读不到 payroll_lines 的人会把工资过账分录错读成
+    #   'request'。只回一个词。两处 allowlist 必须一致(db/check_mirrors.py 同改)。
+    "journal_entry_reversal_route":
+        "APR-6: the journal page reads it to grey the reverse button with the right reason, and the request "
+        "engine calls it inside approval and dry-run where the caller may hold no finance code; returns one "
+        "route word (reversed/source_path/request), no amount, no line",
 }
 
 # AUD-1(2026-08-17):加 has_any_permission —— 它是 has_permission 的析取,

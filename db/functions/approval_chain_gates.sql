@@ -111,7 +111,12 @@ AS $function$
         --    门 module.sales.view + data.view_prices —— 订单页的门,加上看得见金额的那个码;
         --    【不是】action.request_shipping_release:那是提单的码。
         ('shipping_release'::text, 'decide_shipping_release'::text, 2::smallint,
-            ARRAY['module.sales.view', 'data.view_prices']::text[])
+            ARRAY['module.sales.view', 'data.view_prices']::text[]),
+        -- ★★ APR-6(Tim 的矩阵:手工凭证与冲销,CFO 批每一张,不分档;批准当场过账;N1 对 journal_entries 退休):
+        --    同样【只有二级这一行】。门与付款、贷项申请同一对码 —— module.finance.view + data.view_prices
+        --    (凭证页的门,加上看得见金额的那个码);【不是】module.finance.edit:那是提单的码。
+        ('journal_request'::text, 'decide_journal_request'::text, 2::smallint,
+            ARRAY['module.finance.view', 'data.view_prices']::text[])
       ) AS v(subject_type, action_function, level, gate_permissions)
 $function$;
 

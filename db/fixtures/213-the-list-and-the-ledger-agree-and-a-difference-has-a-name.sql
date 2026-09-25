@@ -477,7 +477,8 @@ BEGIN
     IF (v_r->'sides'->0->>'agrees')::boolean THEN
         RAISE EXCEPTION 'FIXTURE 213-E 失败:未解释 1.00 时 agrees 仍是 true';
     END IF;
-    PERFORM reverse_journal_entry((v_inj->>'entry_id')::uuid, D1, 'f213');
+    PERFORM reverse_journal_entry_internal(  -- APR-6:凭证页的门只会拒(冲销走 CFO 申请);本臂的主语是冲销的算术,不是那扇门
+        (v_inj->>'entry_id')::uuid, D1, 'f213');
     PERFORM pg_temp.f213_agree('E 冲掉之后');
 
     -- ══════════ F · 门 ══════════

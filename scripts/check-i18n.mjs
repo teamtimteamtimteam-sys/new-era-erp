@@ -751,6 +751,23 @@ const MANIFEST = {
     'finance.invoiceRequest.approveBody.':    { kind: 'enum', values: () => sqlEnum('db/tables/invoice_requests.sql', 'kind') },
     // APR-5b(2026-09-25):发货放行的状态,真源是 shipping_releases 的 CHECK
     'sales.release.status.': { kind: 'enum', values: () => sqlEnum('db/tables/shipping_releases.sql', 'status') },
+    // APR-6(2026-09-25):手工凭证 / 冲销申请的种类与状态,真源是 journal_requests 的两条 CHECK
+    'finance.journalRequest.status.':         { kind: 'enum', values: () => sqlEnum('db/tables/journal_requests.sql', 'status') },
+    'finance.journalRequest.kind.':           { kind: 'enum', values: () => sqlEnum('db/tables/journal_requests.sql', 'kind') },
+    'finance.journalRequest.openTitle.':      { kind: 'enum', values: () => sqlEnum('db/tables/journal_requests.sql', 'kind') },
+    'finance.journalRequest.date.':           { kind: 'enum', values: () => sqlEnum('db/tables/journal_requests.sql', 'kind') },
+    'finance.journalRequest.memo.':           { kind: 'enum', values: () => sqlEnum('db/tables/journal_requests.sql', 'kind') },
+    'finance.journalRequest.approveConfirm.': { kind: 'enum', values: () => sqlEnum('db/tables/journal_requests.sql', 'kind') },
+    'finance.journalRequest.approveBody.':    { kind: 'enum', values: () => sqlEnum('db/tables/journal_requests.sql', 'kind') },
+    // APR-6:凭证页上冲销钮灰掉时的那一句,按 source_type 取。真源是 journal_entry_reversal_route 的函数体 ——
+    //   它认作 'source_path' 的那组 source_type(IN 列表)加上 'payroll'(工资的过账分录另有一支判据)。
+    //   函数里多认一种、这里就多要一句;解析出 0 个是"解析器坏了",不是"没有"。
+    'finance.reverseUseSourcePath.': { kind: 'enum', values: () => {
+        const src = readFileSync(join(ROOT, 'db/functions/journal_entry_reversal_route.sql'), 'utf8')
+        const m = src.match(/source_type IN \(([^)]*)\)/)
+        if (!m) return []
+        return [...[...m[1].matchAll(/'([a-z_]+)'/g)].map((x) => x[1]), 'payroll']
+    } },
     'finance.source.':      { kind: 'enum', values: () => sqlEnum('db/tables/journal_entries.sql', 'source_type') },
     'assets.category.':     { kind: 'enum', values: () => sqlEnum('db/tables/fixed_assets.sql', 'category') },
     'processing.lineage.kind_': { kind: 'enum', values: () => ['inbound', 'output'] },

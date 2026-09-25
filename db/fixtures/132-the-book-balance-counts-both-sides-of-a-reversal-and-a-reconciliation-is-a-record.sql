@@ -77,7 +77,8 @@ BEGIN
     v_je_x := post_journal_entry(d0+2, 'fixture132 记错了的一笔', 'manual', NULL, jsonb_build_array(
         jsonb_build_object('account_code','1000','side','debit', 'currency',v_base,'amount_ccy',800),
         jsonb_build_object('account_code','4000','side','credit','currency',v_base,'amount_ccy',800)));
-    PERFORM reverse_journal_entry((v_je_x->>'entry_id')::uuid, d0+3, 'fixture132 冲销');
+    PERFORM reverse_journal_entry_internal(  -- APR-6:凭证页的门只会拒(冲销走 CFO 申请);本臂的主语是冲销的算术,不是那扇门
+        (v_je_x->>'entry_id')::uuid, d0+3, 'fixture132 冲销');
 
     -- 【旧口径:只数 posted】—— 在这里【自己算一遍】,用来证明这个场景确实踩到了那个机制。
     SELECT round(COALESCE(sum(CASE WHEN l.debit > 0 THEN l.amount_ccy ELSE -l.amount_ccy END),0),2)

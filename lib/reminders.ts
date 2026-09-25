@@ -250,6 +250,11 @@ export const REMINDERS = [
     //   所以每一件都指向发货队列本身。
     { itemType: 'shipping_release_ready', permission: 'action.ship_goods', href: '/logistics/shipping',
       itemHref: () => '/logistics/shipping' },
+    // APR-6:等 CFO 批的手工凭证 / 冲销申请。读得到凭证的人都看得见(module.finance.view);谁能批由
+    //   decide_journal_request 在服务端裁。item_id 是【申请】的 id —— 一张手工凭证在批准之前还没有分录,
+    //   申请住在凭证列表页顶上那一块(锚点 jr-<id>)。
+    { itemType: 'journal_request_pending', permission: 'module.finance.view', href: '/finance/journal',
+      itemHref: (r: OpsRow) => `/finance/journal#jr-${r.item_id}` },
 ] as const satisfies readonly Reminder[]
 
 /**

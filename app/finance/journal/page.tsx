@@ -12,13 +12,16 @@ import { parseDateRange } from '@/lib/dateFilter'
 import JournalToolbar from './JournalToolbar'
 import JournalTable, { type JournalRow } from './JournalTable'
 import { resolveSourceHrefs, sourceHrefKey } from '../sourceLinks'
-import { mustRows } from '@/lib/db-helpers'
+import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { Button } from '@/app/components/ui/button'
-import { formatDate } from '@/lib/dates'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { formatAmount } from '@/lib/format'
+import { can, canViewPrices } from '@/lib/permissions'
+import JournalRequestsPanel, { type JournalRequestView } from './JournalRequestsPanel'
 
 const JOURNAL_PAGE_SIZE = 20
 
@@ -128,8 +131,77 @@ export default async function JournalListPage({
         status: r.status,
     }))
 
+    // ── APR-6:在等 CFO 的手工凭证 / 冲销申请(全部),以及最近了结的十张 ─────────────────────────
+    // 申请表的读策略是 module.finance.view —— 进得了这一页的人都读得到,所以"读不到"只会是一次真的失败
+    // (mustRows 抛),不会被当成"没有申请"。批 / 驳要 data.view_prices(门的另一半),撤回要
+    // module.finance.edit 或是提单人本人(库那一侧按人判,这里只画钮)。
+    const reqCols = 'id, label, kind, status, entry_date, memo, lines, target_entry_id, amount_base, credits_bank, result_journal_entry_id, decision_notes, withdraw_reason, created_at, created_by'
+    const [openReqRes, histReqRes, settingsRes, canDecideRequest, canEditJournal, accountsRes] = await Promise.all([
+        supabase.from('journal_requests').select(reqCols).eq('status', 'submitted').order('created_at', { ascending: true }),
+        supabase.from('journal_requests').select(reqCols).neq('status', 'submitted').order('created_at', { ascending: false }).limit(10),
+        supabase.from('finance_settings').select('locked_before').maybeSingle(),
+        canViewPrices(),
+        can('module.finance.edit'),
+        supabase.from('accounts').select('code, name_en, name_zh'),
+    ])
+    const { data: meData, error: meErr } = await supabase.auth.getUser()
+    const myUserId = meErr ? null : (meData.user?.id ?? null)
+    type RawJournalRequest = {
+        id: string; label: string; kind: JournalRequestView['kind']; status: JournalRequestView['status']
+        entry_date: string; memo: string; lines: unknown; target_entry_id: string | null; amount_base: number
+        credits_bank: boolean; result_journal_entry_id: string | null
+        decision_notes: string | null; withdraw_reason: string | null; created_at: string; created_by: string
+    }
+    const rawRequests = [
+        ...(mustRows(openReqRes, 'journal_requests') as unknown as RawJournalRequest[]),
+        ...(mustRows(histReqRes, 'journal_requests') as unknown as RawJournalRequest[]),
+    ]
+    const lockedBefore = mustOne(settingsRes, 'finance_settings')?.locked_before ?? null
+    const accountName = new Map(mustRows(accountsRes, 'accounts').map((a) => [a.code, locale === 'zh' ? a.name_zh : a.name_en]))
+    const linkedIds = Array.from(new Set(rawRequests.flatMap((r) => [r.target_entry_id, r.result_journal_entry_id]).filter((x): x is string => !!x)))
+    const linkedRes = linkedIds.length
+        ? await supabase.from('journal_entries').select('id, code').in('id', linkedIds)
+        : { data: [] as { id: string; code: string }[], error: null }
+    const entryCode = new Map(mustRows(linkedRes, 'journal_entries').map((e) => [e.id, e.code]))
+    type RawLine = { account_code?: string; side?: string; currency?: string; amount_ccy?: number; fx_rate?: number; line_memo?: string }
+    const toView = (r: RawJournalRequest): JournalRequestView => ({
+        id: r.id, label: r.label, kind: r.kind, status: r.status,
+        entryDateText: formatDate(r.entry_date, locale),
+        memo: r.memo,
+        amountBase: Number(r.amount_base),
+        creditsBank: r.credits_bank,
+        periodLocked: lockedBefore !== null && r.entry_date < lockedBefore,
+        lines: (Array.isArray(r.lines) ? (r.lines as RawLine[]) : []).map((l, i) => {
+            // 本位币折算与 post_journal_entry 同式:round(amount × fx, 2);本位币行 fx = 1
+            const base = Math.round(Number(l.amount_ccy ?? 0) * (l.currency === baseCurrency ? 1 : Number(l.fx_rate ?? 0)) * 100) / 100
+            const text = formatAmount(base, baseCurrency)
+            return {
+                key: `${r.id}-${i}`,
+                accountText: `${l.account_code ?? '—'} - ${accountName.get(l.account_code ?? '') ?? '—'}`,
+                debitText: l.side === 'debit' ? text : '',
+                creditText: l.side === 'credit' ? text : '',
+                memo: l.line_memo ?? '',
+            }
+        }),
+        targetEntry: r.target_entry_id ? { id: r.target_entry_id, code: entryCode.get(r.target_entry_id) ?? '—' } : null,
+        resultEntry: r.result_journal_entry_id ? { id: r.result_journal_entry_id, code: entryCode.get(r.result_journal_entry_id) ?? '—' } : null,
+        decisionNotes: r.decision_notes, withdrawReason: r.withdraw_reason,
+        createdText: formatAuditStamp(r.created_at), raisedByMe: r.created_by === myUserId,
+    })
+    const openRequests = rawRequests.filter((r) => r.status === 'submitted').map(toView)
+    const requestHistory = rawRequests.filter((r) => r.status !== 'submitted').map(toView)
+
     return (
         <ListPage title={t('finance.journalTitle')} state={{ kind: 'ok' }}>
+            <JournalRequestsPanel
+                open={openRequests}
+                history={requestHistory}
+                canDecide={canDecideRequest}
+                canWithdraw={canEditJournal}
+                baseCurrency={baseCurrency}
+                lockedBeforeText={lockedBefore ? formatDate(lockedBefore, locale) : null}
+            />
+
             {/* 工具栏用 useSearchParams,按文档包一层 Suspense */}
             <Suspense fallback={<div className="mb-4 h-10" />}>
                 <JournalToolbar />

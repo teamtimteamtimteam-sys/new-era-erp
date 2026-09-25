@@ -455,3 +455,16 @@ REVOKE EXECUTE ON FUNCTION public.invoice_request_dry_run(uuid) FROM authenticat
 --   留着 EXECUTE,任何登录用户都能不经销售就改别人订单的预留 —— 而仓库发货正是要够得着这一半、够不着那一半。
 REVOKE EXECUTE ON FUNCTION public.release_reservation_internal(uuid, numeric, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.reserve_stock_internal(uuid, uuid, numeric, uuid) FROM authenticated;
+
+-- APR-6(2026-09-25,grilling Q1):**人手里过手工凭证的门从 post_journal_entry 换成 submit_journal_request。**
+--   post_journal_entry —— 过账核心,INVOKER、本体不问码、收调用方给的任意 source_type。线上调它的 30 支函数
+--     全是 SECURITY DEFINER(属主 postgres),在属主身份下执行,不需要 authenticated 的 EXECUTE;而留着它,
+--     持 module.finance.edit 的人就能不经 CFO 过一张任意标签的分录(一张 'purchase' 进 2000 · 一笔贷银行)——
+--     ROLE1B4A-PURCHASE-JOURNAL-FORGEABLE 与 PAYREQ1-MANUAL-JOURNAL-CREDITS-BANK 两扇门的根。
+--   journal_request_submit_internal —— 两扇提交的门各问完 module.finance.edit 才落进来。
+--   journal_request_post_internal —— 过账本身;只从批准、审批关着时的提交与试跑里调用。
+--   journal_request_dry_run —— 只从提交里调用。**这几支没有调用者检查,靠的就是调不到。**
+REVOKE EXECUTE ON FUNCTION public.post_journal_entry(date, text, text, uuid, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.journal_request_submit_internal(text, date, text, jsonb, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.journal_request_post_internal(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.journal_request_dry_run(uuid) FROM authenticated;

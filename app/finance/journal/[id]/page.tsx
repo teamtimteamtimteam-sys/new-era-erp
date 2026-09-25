@@ -1,6 +1,6 @@
 // app/finance/journal/[id]/page.tsx
 // 分录详情:头部(编号/日期/摘要/来源/状态)+ 行表(科目、借、贷、原币、行摘要)+ Σ。
-// posted → 冲销按钮;reversed → "已被 X 冲销"横幅;冲销单自身 → "冲销自 X"横幅
+// posted → 冲销按钮(APR-6 起:提一张冲销申请,CFO 批准才冲);reversed → "已被 X 冲销"横幅;冲销单自身 → "冲销自 X"横幅
 // (通过 reversed_by 反查:谁的 reversed_by 指向本单,本单就是它的冲销单)。
 //
 // ★ CONV-8(2026-09-04):转成 ListPage + RecordHeader + DataTable。
@@ -20,6 +20,7 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import JournalLinesTable, { type JournalLineRow } from './JournalLinesTable'
 import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
+import { mustOne } from '@/lib/db-helpers'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type LineRow = {
@@ -70,6 +71,16 @@ export default async function JournalDetailPage({
 
     const entry = entryRes.data
     const lines = ((linesRes.data as unknown as LineRow[] | null) ?? [])
+
+    // ★ APR-6:冲销钮问库的同一份判据(journal_entry_reversal_route),再看这张分录上有没有一张在等的冲销申请。
+    //   判据读不出来(error)就抛 —— 一次失败不许被读成"可以冲"。
+    const [routeRes, openRevRes] = await Promise.all([
+        supabase.rpc('journal_entry_reversal_route', { p_entry_id: id }),
+        supabase.from('journal_requests').select('label')
+            .eq('target_entry_id', id).eq('kind', 'reversal').eq('status', 'submitted').maybeSingle(),
+    ])
+    const route = mustOne(routeRes, 'journal_entry_reversal_route') as string | null
+    const openReversalLabel = mustOne(openRevRes, 'journal_requests')?.label ?? null
 
     // 冲销关系 + 来源链接(单条小查询)
     const [reversedByRes, reversalOfRes, hrefs] = await Promise.all([
@@ -196,8 +207,10 @@ export default async function JournalDetailPage({
                         ),
                     },
                 ]}
-                actions={entry.status === 'posted' ? <ReverseButton canEdit={canEditGate} entryId={entry.id} subject={entry.code}
-                    sourcePath={entry.source_type === 'payment' || entry.source_type === 'transfer' || entry.source_type === 'wht_remittance' ? entry.source_type : undefined} /> : undefined}
+                actions={entry.status === 'posted' && (route === 'request' || route === 'source_path')
+                    ? <ReverseButton canEdit={canEditGate} entryId={entry.id} subject={entry.code}
+                        route={route} sourceType={entry.source_type} openRequestLabel={openReversalLabel} />
+                    : undefined}
             />
 
             {entry.memo && (

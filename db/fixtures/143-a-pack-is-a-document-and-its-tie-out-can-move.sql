@@ -139,7 +139,8 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 143D 失败:未解释余额是 % 而 reconciled 仍然是 true', v_unexp1;
     END IF;
     -- 收场:冲掉它,后面几臂要一个干净的基线。
-    PERFORM reverse_journal_entry((v_je->>'entry_id')::uuid, d_in, 'fixture 143 undo');
+    PERFORM reverse_journal_entry_internal(  -- APR-6:凭证页的门只会拒(冲销走 CFO 申请);本臂的主语是冲销的算术,不是那扇门
+        (v_je->>'entry_id')::uuid, d_in, 'fixture 143 undo');
 
     -- ══════════════════════════════════════════════════════════════════════
     -- E 臂 · **三个分项真的在解释差额**(挂账付款让结算差异动,而余额仍是 0)
@@ -191,7 +192,8 @@ BEGIN
                 'currency', v_base, 'amount_ccy', 55),
             jsonb_build_object('account_code', '2200', 'side', 'credit',
                 'currency', v_base, 'amount_ccy', 55)));
-    PERFORM reverse_journal_entry((v_je2->>'entry_id')::uuid, d_next, 'fixture 143 next-month reversal');
+    PERFORM reverse_journal_entry_internal(  -- APR-6:凭证页的门只会拒(冲销走 CFO 申请);本臂的主语是冲销的算术,不是那扇门
+        (v_je2->>'entry_id')::uuid, d_next, 'fixture 143 next-month reversal');
 
     v_pack := management_pack_data(d_month);
     IF jsonb_array_length(v_pack->'split_reversal_pairs') <> 1 THEN

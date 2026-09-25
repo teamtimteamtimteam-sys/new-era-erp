@@ -87,6 +87,14 @@ BEGIN
             SELECT true, r.label, r.amount_base, v_base_ccy, 1, r.amount_base, r.created_by
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser
               FROM shipping_releases r WHERE r.id = p_subject_id;
+        -- ★ APR-6:手工凭证 / 冲销申请。提单人 = created_by;主角 = NULL(一张手工凭证不是谁"自己的单据")。
+        --   金额 = 过出来那张分录的借方合计(本位币),币种 = 本位币、汇率 = 1(invoice_request 同形)。
+        --   submitted 那一行是提交时的试跑额,approved 那一行 = 实际过账额(N1 对 journal_entries 退休,Q2)。
+        --   编号:申请没有自己的单据编号,记它的 label(manual journal #n / 分录编号 · reversal #n)。
+        WHEN 'journal_request' THEN
+            SELECT true, r.label, r.amount_base, v_base_ccy, 1, r.amount_base, r.created_by
+              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser
+              FROM journal_requests r WHERE r.id = p_subject_id;
         WHEN 'expense' THEN
             SELECT true, e.code, e.amount_ccy, e.currency, e.fx_rate, e.amount_base
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base

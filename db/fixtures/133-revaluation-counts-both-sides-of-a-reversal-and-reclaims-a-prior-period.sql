@@ -70,7 +70,8 @@ BEGIN
     v_e2 := post_journal_entry(d1-8, 'f133 A 记错了的一笔', 'manual', NULL, jsonb_build_array(
         jsonb_build_object('account_code','1010','side','debit', 'currency','USD','amount_ccy',3000,'fx_rate',r0),
         jsonb_build_object('account_code','4000','side','credit','currency','USD','amount_ccy',3000,'fx_rate',r0)));
-    PERFORM reverse_journal_entry((v_e2->>'entry_id')::uuid, d1-7, 'f133 A 冲销');
+    PERFORM reverse_journal_entry_internal(  -- APR-6:凭证页的门只会拒(冲销走 CFO 申请);本臂的主语是冲销的算术,不是那扇门
+        (v_e2->>'entry_id')::uuid, d1-7, 'f133 A 冲销');
 
     -- 旧口径(只数 posted)—— 在 fixture 里自己算一遍
     SELECT round(sum(CASE WHEN l.debit>0 THEN l.amount_ccy ELSE -l.amount_ccy END),2)
@@ -117,7 +118,8 @@ BEGIN
     v_r1 := post_journal_entry(d1-5, 'f133 B 记错了的重估', 'revaluation', NULL, jsonb_build_array(
         jsonb_build_object('account_code','2000','side','debit', 'currency',v_base,'amount_ccy',1500),
         jsonb_build_object('account_code','7110','side','credit','currency',v_base,'amount_ccy',1500)));
-    PERFORM reverse_journal_entry((v_r1->>'entry_id')::uuid, d1-4, 'f133 B 冲销那张重估');
+    PERFORM reverse_journal_entry_internal(  -- APR-6:凭证页的门只会拒(冲销走 CFO 申请);本臂的主语是冲销的算术,不是那扇门
+        (v_r1->>'entry_id')::uuid, d1-4, 'f133 B 冲销那张重估');
 
     SELECT COALESCE(round(sum(l.debit-l.credit),2),0) INTO car_old
       FROM journal_lines l JOIN accounts a ON a.id=l.account_id AND a.code='2000'

@@ -87,7 +87,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // `shipping_release_lines`(放行点名的发票行),见 db/tables/shipping_releases.sql / shipping_release_lines.sql。
 // **两张都没有 code 列**(放行的人读名字是 label:订单编号 · release #n;不进 document_types),
 // 所以 EXPECTED_CODE_TABLES 不动。
-const EXPECTED_TABLES = 233
+// APR-6(2026-09-25):233 → 234。新增 `journal_requests`(手工凭证与冲销的申请,财务提、CFO 批,批准当场过账),
+// 见 db/tables/journal_requests.sql。**它没有 code 列**(人读的名字是 label:manual journal #n / 分录编号 ·
+// reversal #n;过出来的分录才有 JE 编号),所以 EXPECTED_CODE_TABLES 不动。
+const EXPECTED_TABLES = 234
 const EXPECTED_CODE_TABLES = 76
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

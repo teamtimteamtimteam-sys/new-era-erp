@@ -550,6 +550,13 @@ DEFINER_NO_CHECK_ALLOWED = {
     # APR-5b:预留的两支内层算子 —— 靠的是调不到(zzz_function_grants.sql)。
     "release_reservation_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "reserve_stock_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # APR-6:手工凭证 / 冲销申请的内层算子 —— 靠的是调不到(zzz_function_grants.sql)。
+    "journal_request_submit_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "journal_request_post_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "journal_request_dry_run": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # 它【必须】留给 authenticated:凭证详情页拿它决定冲销钮灰不灰、说什么;它也在批准与试跑的内层被调用,
+    # 那里的主语未必持凭证页的码(以 postgres 跑的 fixture 根本没有主语)。只回一个词。
+    "journal_entry_reversal_route": "APR-6: the journal page reads it to grey the reverse button with the right reason, and the request engine calls it inside approval and dry-run where the caller may hold no finance code; returns one route word (reversed/source_path/request), no amount, no line",
     "receipt_price_open": "ROLE-1 Batch 4b: called by two INVOKER guards, so EXECUTE must stay with the caller; returns only the label (receipt code · price #n) of a waiting request, no price",
     # ROLE-1 Batch 3a:提单人之外没人批得动时的那一句断言 —— 只从 DEFINER 提交函数里调,靠的是调不到。
     "assert_other_decider": "EXECUTE revoked from PUBLIC/authenticated/anon; called only by submit_payroll_request and the six payment-request submit functions (all definer, each require_permission first)",

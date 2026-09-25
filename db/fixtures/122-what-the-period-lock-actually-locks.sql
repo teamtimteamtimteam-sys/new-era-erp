@@ -101,16 +101,35 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 122 F1 失败:应当落下 2 条明细、借方合计 10,实得 % 条 / %', v_n, v_sum;
     END IF;
 
-    -- 后门在开着的期间同样应当过 —— 否则下面"后门被拒"证明不了是【锁】拒的
+    -- ★ APR-6(2026-09-25):后门【在开着的期间里也关了】—— 两张分录表没有写策略,直连写由语句级守卫
+    --   按名拒 JOURNAL_THROUGH_FUNCTION_ONLY。GO-2 那几臂此前要先证"开着时后门过得去",才证得出后面的拒绝
+    --   是【锁】拒的;APR-6 之后门本身就是关的,所以这一臂反过来钉住:开着的期间里,直连插一张分录头、
+    --   以及往一张【已过账】的分录追加一对借贷相等的行(JE-APPEND,GO-2 关不上的那一半),都按名拒。
+    --   期间锁的两支触发器仍在岗(F5)—— 它们守的是 DEFINER 那条路,正门 F2a / F3a 证它们。
+    v_denied := false;
     EXECUTE 'SET LOCAL ROLE authenticated';
-    INSERT INTO journal_entries (code,entry_date,memo,source_type)
-    VALUES ('ZZFIX122-OPEN', v_open, 'fixture 122 后门·开着', 'manual') RETURNING id INTO e;
-    INSERT INTO journal_lines (entry_id,account_id,debit,credit,currency,fx_rate,amount_ccy)
-    VALUES (e,a1,10,0,base_currency_code(),1,10),(e,a2,0,10,base_currency_code(),1,10);
+    BEGIN
+        INSERT INTO journal_entries (code,entry_date,memo,source_type)
+        VALUES ('ZZFIX122-OPEN', v_open, 'fixture 122 后门·开着', 'manual');
+    EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
+    END;
     RESET ROLE;
-    SET CONSTRAINTS ALL IMMEDIATE; SET CONSTRAINTS ALL DEFERRED;
-    IF (SELECT count(*) FROM journal_lines WHERE entry_id=e) <> 2 THEN
-        RAISE EXCEPTION 'FIXTURE 122 F1 失败:期间开着时直连写入本应成功(否则 F2 证不出是锁在拒)';
+    IF NOT v_denied OR v_msg <> 'JOURNAL_THROUGH_FUNCTION_ONLY' THEN
+        RAISE EXCEPTION 'FIXTURE 122 F1b 失败:开着的期间里,直连插一张分录头必须按名拒 JOURNAL_THROUGH_FUNCTION_ONLY(APR-6),实得 %', COALESCE(v_msg,'(没有拒绝)');
+    END IF;
+    SELECT COALESCE(SUM(debit),0) INTO v_before FROM journal_lines WHERE entry_id = (je->>'entry_id')::uuid;
+    v_denied := false; v_msg := NULL;
+    EXECUTE 'SET LOCAL ROLE authenticated';
+    BEGIN
+        INSERT INTO journal_lines (entry_id,account_id,debit,credit,currency,fx_rate,amount_ccy)
+        VALUES ((je->>'entry_id')::uuid,a1,555,0,base_currency_code(),1,555),
+               ((je->>'entry_id')::uuid,a2,0,555,base_currency_code(),1,555);
+    EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
+    END;
+    RESET ROLE;
+    SELECT COALESCE(SUM(debit),0) INTO v_after FROM journal_lines WHERE entry_id = (je->>'entry_id')::uuid;
+    IF NOT v_denied OR v_msg <> 'JOURNAL_THROUGH_FUNCTION_ONLY' OR v_after <> v_before THEN
+        RAISE EXCEPTION 'FIXTURE 122 F1c 失败:**JE-APPEND** —— 开着的期间里往一张已过账凭证追加明细必须按名拒 JOURNAL_THROUGH_FUNCTION_ONLY 且金额不动(APR-6),实得 % / 借方 % → %', COALESCE(v_msg,'(没有拒绝)'), v_before, v_after;
     END IF;
 
     -- ══════════ F2 · 月锁:正门与后门【都】必须按码拒绝 ══════════════════════
@@ -145,8 +164,9 @@ BEGIN
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 122 F2b 失败:**直连 INSERT 绕过了期间锁** —— GO-2 之前线上就是这样,authenticated 持表级 INSERT 授权,RLS 只问 module.finance.edit';
     END IF;
-    IF split_part(v_msg,'|',1) <> 'PERIOD_LOCKED' THEN
-        RAISE EXCEPTION 'FIXTURE 122 F2b 失败:后门也必须按码拒 PERIOD_LOCKED,实得 %', v_msg;
+    -- ★ APR-6:后门在门口就被拒了(语句级守卫先于行级的期间闸),不再轮到 PERIOD_LOCKED
+    IF v_msg <> 'JOURNAL_THROUGH_FUNCTION_ONLY' THEN
+        RAISE EXCEPTION 'FIXTURE 122 F2b 失败:后门必须按名拒 JOURNAL_THROUGH_FUNCTION_ONLY(APR-6),实得 %', v_msg;
     END IF;
 
     -- F2c 后门:往一张【开着的期间里已存在的】分录追加明细,但父分录在锁定期
@@ -180,8 +200,8 @@ BEGIN
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 122 F2c 失败:**往锁定期内的已过账凭证追加明细成功了** —— 借方合计 % → %,一张已过账单据的金额被改了', v_before, v_after;
     END IF;
-    IF split_part(v_msg,'|',1) <> 'PERIOD_LOCKED' THEN
-        RAISE EXCEPTION 'FIXTURE 122 F2c 失败:必须按码拒 PERIOD_LOCKED,实得 %', v_msg;
+    IF v_msg <> 'JOURNAL_THROUGH_FUNCTION_ONLY' THEN
+        RAISE EXCEPTION 'FIXTURE 122 F2c 失败:必须按名拒 JOURNAL_THROUGH_FUNCTION_ONLY(APR-6:在门口,不再轮到期间闸),实得 %', v_msg;
     END IF;
     IF v_after <> v_before THEN
         RAISE EXCEPTION 'FIXTURE 122 F2c 失败:拒绝之后金额不该变,% → %', v_before, v_after;
@@ -218,8 +238,8 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     RESET ROLE;
-    IF NOT v_denied OR split_part(v_msg,'|',1) <> 'YEAR_CLOSED' THEN
-        RAISE EXCEPTION 'FIXTURE 122 F3b 失败:**直连 INSERT 绕过了年结闸**,实得 %', COALESCE(v_msg,'(没有拒绝)');
+    IF NOT v_denied OR v_msg <> 'JOURNAL_THROUGH_FUNCTION_ONLY' THEN
+        RAISE EXCEPTION 'FIXTURE 122 F3b 失败:**直连 INSERT 没有在门口被拒**(APR-6:JOURNAL_THROUGH_FUNCTION_ONLY),实得 %', COALESCE(v_msg,'(没有拒绝)');
     END IF;
 
     -- F3c 那条【唯一的】例外:year_close + close_ctx 必须仍然过得去,

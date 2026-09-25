@@ -319,6 +319,9 @@ the "not costed" path live (fixture 224 F pins the same).
 **Start: 2026-09-25 19:52:50 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line
 reads 19:50:51). **End: PENDING — Tim reads it from Vercel.**
 
+> **Closed in APR-6 (2026-09-25):** Tim confirmed APR-5b deployed; no Vercel timestamp was relayed, so the end is given as two bounds,
+> each labelled by kind — see §W below.
+
 What the old app does against the new database (approvals ON):
 - **Shipping is refused for everyone.** Sandra's ship button (old order page) → `PERMISSION_DENIED|action.ship_goods` (the old
   copy says "restricted"); admin@'s → `SO_SHIP_NOT_RELEASED`, which the old copy has no sentence for (the generic unexpected-error
@@ -335,3 +338,14 @@ What the old app does against the new database (approvals ON):
 Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
 (a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
 **Next cut: APR-6** (`docs/forward-queue.md` item 11).
+
+## §W · APR-5b's broken window — closed with bounds (recorded by APR-6, 2026-09-25)
+
+| | CST | kind |
+|---|---|---|
+| start | 19:52:50 | **measured**: `db/apply_migration.sh`'s own line (also `db/migration-windows.tsv`) |
+| end, lower bound | 20:47:45 | **measured**: the push moved `origin/main` → `e8a054f8` (`git reflog show --date=iso refs/remotes/origin/main`) — no deploy can precede it |
+| end, upper bound | 20:56:36 | **derived**: APR-6's first live read of the database clock, `now()` as `postgres` (`rolbypassrls = t`), taken after Tim's "deployed" confirmation had arrived — **a relayed confirmation, not a measurement of Vercel** |
+
+**Window: at least 54 min 55 s, at most 1 h 03 min 46 s.** §5 above keeps its "PENDING" wording; this row is the close.
+

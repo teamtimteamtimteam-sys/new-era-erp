@@ -7,6 +7,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import NewEntryForm, { type AccountOption } from './NewEntryForm'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
+import { can } from '@/lib/permissions'
 
 export default async function NewEntryPage() {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -48,7 +49,7 @@ export default async function NewEntryPage() {
     return (
         <div className="p-8 max-w-5xl">
             <h1 className="mb-4">{t('finance.newEntryTitle')}</h1>
-            <NewEntryForm accounts={accounts} baseCurrency={await getBaseCurrency()} />
+            <NewEntryForm accounts={accounts} baseCurrency={await getBaseCurrency()} canEdit={await can('module.finance.edit')} />
         </div>
     )
 }

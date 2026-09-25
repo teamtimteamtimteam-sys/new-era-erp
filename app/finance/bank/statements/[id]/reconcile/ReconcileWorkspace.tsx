@@ -554,6 +554,9 @@ canEdit: boolean
                                             </a>
                                         </Button>
                                     </div>
+                                    {/* ★ APR-6:一张手工凭证(银行手续费、利息)要 CFO 批准才过账 —— 批准之前它没有分录,
+                                        这一行也就还没有东西可配。说在点之前。 */}
+                                    <p className="mt-2 text-xs">{t('bank.manualJournalWaits')}</p>
                                 </div>
                             ) : (
                                 <div className="border border-gray-200 rounded divide-y max-h-[28rem] overflow-y-auto">

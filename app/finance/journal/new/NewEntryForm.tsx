@@ -10,6 +10,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const initialState: CreateEntryState = {}
 
@@ -20,6 +21,11 @@ export type AccountOption = {
 }
 
 const TYPE_ORDER = ['asset', 'liability', 'equity', 'revenue', 'cogs', 'expense'] as const
+
+// ★ APR-6(grilling Q7):应收 / 应付的总账数只能由它们自己的单据动 —— 手敲一行,清单与总账就各说各话。
+//   库那一侧按名拒(JE_MANUAL_CONTROL_ACCOUNT,在提交时的试跑里);这里把两个选项【留着、灰掉、带理由】,
+//   不藏(DBLOCK-1:藏起来教给人的是"这个科目不存在")。与 journal_request_post_internal 的那一句同一组码。
+const CONTROL_ACCOUNTS = new Set(['1100', '2000'])
 
 type Row = {
     key: number
@@ -41,7 +47,7 @@ function todayIsoLocal(): string {
 }
 
 export default function NewEntryForm(
-    { accounts, baseCurrency }: { accounts: AccountOption[]; baseCurrency: string }
+    { accounts, baseCurrency, canEdit }: { accounts: AccountOption[]; baseCurrency: string; canEdit: boolean }
 ) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(createManualEntry, initialState)
@@ -148,8 +154,9 @@ export default function NewEntryForm(
                                 {grouped.map((g) => (
                                     <optgroup key={g.type} label={t('finance.accountType.' + g.type)}>
                                         {g.options.map((a) => (
-                                            <option key={a.code} value={a.code}>
+                                            <option key={a.code} value={a.code} disabled={CONTROL_ACCOUNTS.has(a.code)}>
                                                 {a.code} - {a.name}
+                                                {CONTROL_ACCOUNTS.has(a.code) ? ` — ${t('finance.journalRequest.controlAccountOption')}` : ''}
                                             </option>
                                         ))}
                                     </optgroup>
@@ -265,13 +272,18 @@ export default function NewEntryForm(
                 </span>
             </div>
 
+            {/* ★ APR-6:提交的是一张申请 —— CFO 批准那一刻才过账,按这里填的日期。说在按之前。 */}
+            <p className="text-sm text-[color:var(--brand-muted-text)]">{t('finance.journalRequest.formHint')}</p>
+
             <div className="flex gap-3 pt-2">
-                <Button
-                    type="submit"
-                    disabled={isPending}
-                >
-                    {isPending ? t('common.saving') : t('finance.submitEntry')}
-                </Button>
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
+                    <Button
+                        type="submit"
+                        disabled={isPending}
+                    >
+                        {isPending ? t('common.saving') : t('finance.submitEntry')}
+                    </Button>
+                </PermissionGate>
                 <Button asChild variant="secondary">
                     <Link
                         href="/finance/journal"

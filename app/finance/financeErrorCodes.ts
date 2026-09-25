@@ -1,7 +1,7 @@
 import { getTranslations } from '@/lib/i18n/server'
 import { fallbackForRawError } from '@/lib/machine-text'
 
-// post_journal_entry / reverse_journal_entry / close_period / reopen_period
+// post_journal_entry / reverse_journal_entry / close_period / reopen_period ·(APR-6)手工凭证 / 冲销申请
 // 抛出的错误码(端口自 processing/errorCodes.ts)。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,交给共用兜底 lib/machine-text.ts。
 const FINANCE_ERROR_CODES = new Set([
@@ -75,6 +75,16 @@ const FINANCE_ERROR_CODES = new Set([
     // AGING-1:账龄的截至日不许落在未来。两侧函数各自独立地抛它 ——
     // 界面上 max=今天 是第一道,这一条是绕开界面也过不去的那一道。
     'AGING_AS_OF_FUTURE',
+    // ★ APR-6(2026-09-25):手工凭证与冲销要 CFO 批准。逐条从 journal_request_submit_internal ·
+    //   journal_request_post_internal · decide_journal_request · withdraw_journal_request ·
+    //   reverse_journal_entry · guard_journal_direct_write 的函数体枚举出来,加上它们经 forbid_self_approval /
+    //   require_approver_for / require_permission 冒上来的四条(本族此前没有,因为凭证此前不经审批)。
+    'JOURNAL_NEEDS_APPROVED_REQUEST', 'JOURNAL_THROUGH_FUNCTION_ONLY',
+    'JE_MANUAL_CONTROL_ACCOUNT', 'JE_MEMO_REQUIRED', 'JOURNAL_REVERSAL_REASON_REQUIRED', 'REVERSAL_DATE_REQUIRED',
+    'JOURNAL_REQUEST_OPEN', 'JOURNAL_REQUEST_NO_OTHER_DECIDER', 'JOURNAL_REQUEST_NOT_FOUND',
+    'JOURNAL_REQUEST_NOT_SUBMITTED', 'JOURNAL_REQUEST_NOT_OPEN', 'JOURNAL_REQUEST_REJECT_REASON_REQUIRED',
+    'JOURNAL_REQUEST_KIND_UNKNOWN',
+    'SELF_APPROVAL_FORBIDDEN', 'APPROVAL_NOT_AUTHORISED', 'APPROVALS_NOT_ENABLED', 'PERMISSION_DENIED',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..." —— 即使 PostgREST 在前面包了前缀,

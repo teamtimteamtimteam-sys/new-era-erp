@@ -1,3 +1,7 @@
+-- ★★ APR-6(2026-09-25,grilling Q1):EXECUTE 从 authenticated 收回(db/views/zzz_function_grants.sql)。
+--   它是过账核心:INVOKER、本体不问码、收调用方给的任意 source_type。线上调它的 30 支函数全是
+--   SECURITY DEFINER、属主 postgres,在属主身份下执行,照常工作;人手里过手工凭证的门换成了
+--   submit_journal_request(CFO 批准那一刻才过账,永远是 'manual')。函数体一个字没改。
 -- FIN-13(2026-08-05):汇率可以就近取上一个【发布日】,但有界、有留痕。
 -- 中间跨过的每一天都必须是非发布日(周末 / SG 生效假日),夹着工作日即拒绝;
 -- 另有 4 个自然日的硬上限。fx_rate_asof 同时返回【实际取自哪一天】。

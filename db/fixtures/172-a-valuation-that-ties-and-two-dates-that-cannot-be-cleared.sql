@@ -140,7 +140,8 @@ BEGIN
     IF (v_side->>'reconciled')::boolean THEN
         RAISE EXCEPTION 'FIXTURE 172A 失败:未解释余额是 % 而 reconciled 仍然是 true', v_unexp1;
     END IF;
-    PERFORM reverse_journal_entry((v_je->>'entry_id')::uuid, d_arr, 'fixture 172 undo');
+    PERFORM reverse_journal_entry_internal(  -- APR-6:凭证页的门只会拒(冲销走 CFO 申请);本臂的主语是冲销的算术,不是那扇门
+        (v_je->>'entry_id')::uuid, d_arr, 'fixture 172 undo');
 
     -- 冲销之后必须回到 0 —— 否则上面那条"动了"可能只是单向漂移。
     v_recon := gl_control_reconciliation(CURRENT_DATE);

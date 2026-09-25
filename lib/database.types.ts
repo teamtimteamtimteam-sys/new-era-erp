@@ -8199,6 +8199,101 @@ export type Database = {
           },
         ]
       }
+      journal_requests: {
+        Row: {
+          amount_base: number
+          created_at: string
+          created_by: string
+          credits_bank: boolean
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          entry_date: string
+          id: string
+          kind: string
+          label: string
+          lines: Json | null
+          memo: string
+          result_journal_entry_id: string | null
+          status: string
+          target_entry_id: string | null
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          amount_base: number
+          created_at?: string
+          created_by: string
+          credits_bank?: boolean
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          entry_date: string
+          id?: string
+          kind: string
+          label: string
+          lines?: Json | null
+          memo: string
+          result_journal_entry_id?: string | null
+          status?: string
+          target_entry_id?: string | null
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          amount_base?: number
+          created_at?: string
+          created_by?: string
+          credits_bank?: boolean
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          entry_date?: string
+          id?: string
+          kind?: string
+          label?: string
+          lines?: Json | null
+          memo?: string
+          result_journal_entry_id?: string | null
+          status?: string
+          target_entry_id?: string | null
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "journal_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_requests_target_entry_id_fkey"
+            columns: ["target_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "journal_requests_target_entry_id_fkey"
+            columns: ["target_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kpi_cycles: {
         Row: {
           created_at: string
@@ -28564,6 +28659,10 @@ export type Database = {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
       }
+      decide_journal_request: {
+        Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
+        Returns: Json
+      }
       decide_leave_request: {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
@@ -28858,6 +28957,25 @@ export type Database = {
           source_id: string
           source_type: string
         }[]
+      }
+      journal_entry_reversal_route: {
+        Args: { p_entry_id: string }
+        Returns: string
+      }
+      journal_request_dry_run: { Args: { p_request_id: string }; Returns: Json }
+      journal_request_post_internal: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      journal_request_submit_internal: {
+        Args: {
+          p_entry_date: string
+          p_kind: string
+          p_lines: Json
+          p_memo: string
+          p_target_entry_id: string
+        }
+        Returns: Json
       }
       leave_accrual_rate: {
         Args: {
@@ -30093,6 +30211,14 @@ export type Database = {
         }
         Returns: Json
       }
+      submit_journal_request: {
+        Args: { p_entry_date: string; p_lines: Json; p_memo: string }
+        Returns: Json
+      }
+      submit_journal_reversal_request: {
+        Args: { p_entry_id: string; p_reason: string; p_reversal_date: string }
+        Returns: Json
+      }
       submit_leave_request: {
         Args: {
           p_certificate_ref?: string
@@ -30290,6 +30416,10 @@ export type Database = {
         Returns: undefined
       }
       withdraw_invoice_request: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: Json
+      }
+      withdraw_journal_request: {
         Args: { p_reason?: string; p_request_id: string }
         Returns: Json
       }

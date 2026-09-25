@@ -1,8 +1,11 @@
 'use server'
 
 // 手工分录:并列数组表单字段(account_code[]/side[]/currency[]/amount_ccy[]/fx_rate[]/line_memo[])
-// 组装 lines jsonb → rpc post_journal_entry(source 'manual')。平衡由 DB 的延迟触发器
-// 在提交时强制(JOURNAL_UNBALANCED 从 rpc 错误里回来,本地化后展示)。
+// 组装 lines jsonb → rpc submit_journal_request。
+// ★ APR-6(Tim 2026-09-25):一张手工凭证要 CFO 批准才过账。这里【提一张申请】,不再直接过账 ——
+//   post_journal_entry 对 authenticated 已收回。提交时库按批准那一刻的同一支过账试跑一遍:借贷不平
+//   (JOURNAL_UNBALANCED)、锁定期、1100 / 2000(JE_MANUAL_CONTROL_ACCOUNT)都在这里就按引擎原话回来。
+//   审批开着:申请在等 CFO,回到凭证列表、定位到这张申请;关着:生下来就批准并过账,去那张分录。
 import { createClient } from '@/lib/supabase/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { getTranslations } from '@/lib/i18n/server'
@@ -90,12 +93,9 @@ export async function createManualEntry(
     }
 
     const supabase = await createClient()
-    const { data, error } = await supabase.rpc('post_journal_entry', {
+    const { data, error } = await supabase.rpc('submit_journal_request', {
         p_entry_date: entry_date,
         p_memo: memo,
-        p_source_type: 'manual',
-        // 手工分录无来源单据;生成的 Args 类型把 uuid 参数标成必填 string,SQL 端可空
-        p_source_id: null as unknown as string,
         p_lines: lines,
     })
 
@@ -103,13 +103,14 @@ export async function createManualEntry(
         return { error: await localizeFinanceError(error.message) }
     }
 
-    const entryId = (data as { entry_id?: string } | null)?.entry_id
+    const r = (data as { request_id?: string; status?: string; entry_id?: string | null } | null) ?? {}
 
     revalidatePath('/finance')
     revalidatePath('/finance/journal')
+    revalidatePath('/')
 
-    if (entryId) {
-        redirect(`/finance/journal/${entryId}`)
+    if (r.status === 'approved' && r.entry_id) {
+        redirect(`/finance/journal/${r.entry_id}`)
     }
-    redirect('/finance/journal')
+    redirect(r.request_id ? `/finance/journal#jr-${r.request_id}` : '/finance/journal')
 }

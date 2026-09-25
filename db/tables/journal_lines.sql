@@ -2,7 +2,8 @@
 -- Journal lines: original currency (amount_ccy + fx_rate) plus converted BASE
 -- amounts in debit/credit (= round(amount_ccy × fx_rate, 2)); exactly one side
 -- nonzero. Base currency is SGD since FIN-0 (was USD); fx_rate is the rate to SGD.
--- IMMUTABLE (INSERT+SELECT RLS only + trigger). Balance invariant: a DEFERRABLE
+-- IMMUTABLE (SELECT RLS only since APR-6 — no write policy; inserts only via
+-- post_journal_entry, direct writes → JOURNAL_THROUGH_FUNCTION_ONLY). Balance invariant: a DEFERRABLE
 -- INITIALLY DEFERRED constraint trigger enforces per-entry Σdebit = Σcredit and
 -- ≥ 2 lines at commit (JOURNAL_UNBALANCED|code|Σd|Σc).
 --
@@ -91,10 +92,12 @@ CREATE POLICY "journal_lines select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text));
 
-CREATE POLICY "journal_lines insert by permission"
-    ON public.journal_lines
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
+-- ★ APR-6(2026-09-25,grilling Q1 · Q9):INSERT 写策略拿掉 —— 分录行只经 post_journal_entry 插入。
+--   这同时关掉了 JE-APPEND(往一张【已过账】的凭证追加一对借贷相等的行:开着的期间里 GO-2 的期间锁
+--   拦不住它,而 trg_journal_lines_immutable 只守 UPDATE / DELETE)。直连写由下面的语句级守卫按名拒。
+CREATE TRIGGER trg_journal_lines_direct_write
+    BEFORE INSERT OR UPDATE OR DELETE ON public.journal_lines
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_journal_direct_write();
 
 COMMENT ON COLUMN public.journal_lines.tax_code IS
     'GST-1:这一行在 GST 上算什么。**大多数行为 NULL,那是对的** —— 只有供应额/采购额那几行带码。税额本身不带码,它由科目(2100 销项 / 1400 进项)认出来。F5 的每一格据此从总账推导,并据此能钻回原始单据。';

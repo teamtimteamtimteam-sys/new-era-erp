@@ -88,7 +88,9 @@ Tim 的裁定(Batch 3 grilling Q6):**登记,不在 3b 里造**。**删除条件:
 `operations_now` 的 `batch_unpriced` 那一支读 `pricing_status = 'unpriced'`,所以它【永远是空的】。Tim 的裁定(Batch 4b grilling Q9):
 **登记,不在本刀修**。**删除条件:** 未定价的收货读作「未定价」,那一支提醒会响(或被删掉)。
 
-## ROLE1B4A-PURCHASE-JOURNAL-FORGEABLE · 持 `finance.edit` 的人能直接过一条 `source_type = 'purchase'` 的分录(ROLE-1 Batch 4 登记,2026-09-25)
+## ~~ROLE1B4A-PURCHASE-JOURNAL-FORGEABLE~~ —— 【已关闭:APR-6,2026-09-25】持 `finance.edit` 的人能直接过一条 `source_type = 'purchase'` 的分录(ROLE-1 Batch 4 登记,2026-09-25)
+
+> ✅ **APR-6 关上了它(grilling Q1)。** `post_journal_entry` 的 EXECUTE 从 `authenticated` 收回;`journal_entries` / `journal_lines` 的 INSERT 写策略拿掉,直连写按名拒 `JOURNAL_THROUGH_FUNCTION_ONLY`。人手里过手工凭证的门只剩 `submit_journal_request`,过出来的永远是 `'manual'`,而且要 CFO 批准。线上证明 A1:chooer@ 直调 `post_journal_entry(…, 'purchase', …)` → `permission denied for function post_journal_entry`。删除条件满足:手工凭证不能再带 `purchase`(或任何别的 `source_type`)过账。
 
 `post_journal_entry` 是 SECURITY INVOKER、`authenticated` 可执行;`journal_entries` / `journal_lines` 的 INSERT 策略只问
 `module.finance.edit`。于是一条指向任意收货单的 `purchase` 分录可以不经定价而直接过进 2000 —— 收货单价与改价历史
@@ -4729,7 +4731,9 @@ FIX-1 那两行是靠迁移动手删的,而**那不是一条可以让操作员�
 * **`invoices`** → 应读 `invoices_masked`(1 处)
   * `app/finance/invoices/page.tsx`
 
-## JE-APPEND · 往一张【已过账】的凭证追加明细(GO-2,2026-08-23 实测)
+## ~~JE-APPEND~~ · 【已关闭:APR-6,2026-09-25】往一张【已过账】的凭证追加明细(GO-2,2026-08-23 实测)
+
+> ✅ **APR-6 顺手关上了开着的那一半(grilling Q9)。** `journal_lines` 的 INSERT 写策略拿掉,语句级守卫 `trg_journal_lines_direct_write` 对任何直连写按名拒 `JOURNAL_THROUGH_FUNCTION_ONLY` —— 开着的期间里也一样。写分录行的只剩 `post_journal_entry`(EXECUTE 已从 `authenticated` 收回,调它的全是 SECURITY DEFINER),而它只在【创建该分录的那一笔事务】里插行 —— 正是下面写着的那条规矩,只是靠的是【没有别的写入者】,不是事务标记。fixture 122 F1c 钉着开着的期间;线上证明 A4:chooer@ 往 JE-2026-0079 追加一行 → `JOURNAL_THROUGH_FUNCTION_ONLY`。
 
 **GO-2 关上了这件事的【期间锁】那一半;另一半还开着,而且它要的根本不是期间锁。**
 
@@ -9395,7 +9399,9 @@ function todayIsoLocal(): string {
 
 ---
 
-## PAYREQ1-MANUAL-JOURNAL-CREDITS-BANK —— 手工分录仍能贷银行(PAY-REQ-1,2026-09-23)
+## ~~PAYREQ1-MANUAL-JOURNAL-CREDITS-BANK~~ —— 【已关闭:APR-6,2026-09-25】手工分录仍能贷银行(PAY-REQ-1,2026-09-23)
+
+> ✅ **APR-6 关上了它(grilling Q7)。** 一张贷 1000 / 1010 的手工凭证仍然【准许】—— 银行手续费、利息要靠它 —— 但它从此是一张申请,CFO 批准那一刻才过账,而 CFO 那一块按 `journal_requests.credits_bank` 亮一句「贷银行账户 —— 过账时钱就离开了银行」。「钱离开之前要先批」旁边不再有一扇开着的门。线上证明 A2(直调贷银行被拒)与 B1 / D1(经申请提、CFO 批才动 1000)。
 
 Tim 的 Q2(d):**按裁定留着**。`post_journal_entry` 的手工分录可以贷 1000 / 1010,不经付款申请。
 关它的是 APR-6(手工凭证与冲销走 CFO 批准)。在那之前,这是"钱离开之前要先批"旁边**唯一一扇
@@ -9535,3 +9541,22 @@ sale 型发票 · 订单发票 · 加工应计转费用 七个门上。**另外�
 付款分录照旧放行 —— 关掉它等于把唯一的(错的)出路也关了而不给一条对的。
 线上:七月那一期的三笔付款(JE-2026-0018 / 0019 / 0020)是唯一的三张,测试数据。
 **去处:一刀"工资付款的冲销"** —— 同付款申请的冲销那一族,冲销付款分录、清掉戳记;要不要经 CFO 批,是 Tim 的一句裁定。
+
+## APR6-INVENTORY-ACCOUNTS-MANUAL —— 手工凭证仍能碰库存科目(1200 / 1210 / 1220)(APR-6 登记,2026-09-25)
+
+Tim 的 Q7:手工凭证按名拒 1100 与 2000(`JE_MANUAL_CONTROL_ACCOUNT`)—— 它们是 `list_ledger_reconciliation` 两边对的那两个控制科目,
+手敲一行会让「未解释」离开 0.00。**库存科目同一个形状**:`inventory_control_reconciliation` 把 1200 / 1210 / 1220 与批次的账面值对,
+一张借 1200 的手工凭证会在那张表上留一笔说不出名字的差。今天它经 CFO 批准才过账(不再是一步生效),但不被拒。
+Tim 的裁定:**登记,不在本刀修**(问题是「库存科目要不要也只由自己的单据动」)。**删除条件:** 手工凭证碰库存科目按名拒,
+或 Tim 裁定准许并写明那张核对表怎么点名它。
+
+## APR6-REVERSAL-OF-CONTROL-ACCOUNT-ENTRIES —— 冲销申请对碰 1100 / 2000 的分录同样按名拒,重估的冲销例外(APR-6 登记,2026-09-25)
+
+**这是本刀按 Q7 的目的推出来的一条构建决定,记在这里让 Tim 看得见。** Q7 说「手工凭证不许碰 1100 / 2000」;冲销申请过出来的
+那一张同样是一个人从凭证页做的裁量。冲一张 `sale` 或 `prepayment` 分录(没有自己的冲销路径,走申请)只会动总账那一半,
+清单那一半(`ar_open_items` / `ap_open_items`)不动 —— 与手敲一行 1100 是同一笔说不出名字的差。所以 `journal_request_post_internal`
+对冲销同样按名拒 `JE_MANUAL_CONTROL_ACCOUNT`;**唯一的例外是 `revaluation` 的冲销**:那条核对按 `source_type` 点名扣掉重估,
+冲销件抄原分录的 `source_type`,仍被点名,两边照样对得上。线上今天碰 1100 / 2000 且没有自己冲销路径的分录:`sale` 7 张(1100)、
+`prepayment` 2 张(2000)、`revaluation` 2 张(1100 与 2000 各 2)—— 2026-09-25 以 postgres 读基表(`journal_lines × accounts`)。
+**删除条件:** Tim 确认这条推论,或裁定 sale / prepayment 的错分录另有一条更正路径。
+

@@ -3,7 +3,7 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25);APR-5 grilling 时 Tim 拆成 5a / 5b(Q14,2026-09-25),5a 交回时更新;5b 交回时更新(2026-09-25):**下一刀是 APR-6**)
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25);APR-5 grilling 时 Tim 拆成 5a / 5b(Q14,2026-09-25),5a 交回时更新;5b 交回时更新(2026-09-25);APR-6 交回时更新(2026-09-25):**下一刀是注销、加工回滚与作废销毁证书三张申请(暂记 APR-7,名字归 Tim)**)
 > 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(`fa7821ab`)·
 >    **✅ AP-RECON-1 Batch B** —— 残留登记表 + 常设勾稽 + 月结那一行 + 严格相等的 fixture 213 + 那一分钱 +
 >    带税订单发票 + **三条日期规矩与 32 份 fixture 的日期挪回真实的过去**(Tim 2026-09-24:日期规矩属于 AP-RECON-1,
@@ -54,7 +54,16 @@
 >    未发货取消提交时必带数量 · 仓库的发货队列 `/logistics/shipping`(`shipping_queue_rows`,不带价格,带送货地址 ——
 >    Tim 5b Q6)· 仓库读得到发货单并开得了送货单(`shipment_document`)· 仓库**不**拿 `module.sales.view`。
 >    两个新码一并授给 admin。见 `docs/handbacks/APR-5.md` § APR-5b。
-> 11. **⬜ APR-6 ← 下一刀** —— 记账凭证(N1 的 `journal_entries` 那一半 + N5:只有人敲的要批)。
+> 11. **✅ APR-6**(2026-09-25)—— 手工凭证与冲销要 CFO 批准才过账(N5 落地;N1 对 `journal_entries` 退休 —— N1 从此全部退休)。
+>    界线划在权限上:`post_journal_entry` 对 authenticated 收回、两张分录表没有直连写(`JOURNAL_THROUGH_FUNCTION_ONLY`,顺手关掉
+>    JE-APPEND);30 支系统过账函数全是 DEFINER,照常过账。`journal_requests`(entry / reversal):财务提,CFO 批每一张,批即按冻结的
+>    日期过账;期间锁永远赢;职责分离认提单人;1100 / 2000 按名拒,贷银行准许并标出来;`reverse_journal_entry` 一张都不冲
+>    (有自己路径的指路,其余走冲销申请,一份判据 `journal_entry_reversal_route`)。两扇登记给 APR-6 的门关上
+>    (ROLE1B4A-PURCHASE-JOURNAL-FORGEABLE · PAYREQ1-MANUAL-JOURNAL-CREDITS-BANK)。没有新码。见 `docs/handbacks/APR-6.md`。
+> 12. **⬜ APR-7(暂记,名字归 Tim)← 下一刀** —— 仓库提、CFO 批的三件(`docs/role-matrix.md` 的三行 [LC]):**注销批次**(`action.batch_write_off`,
+>    `soft_delete_inbound_batch` / `soft_delete_output_batch`)· **加工回滚**(`action.processing_rollback`,`rollback_processing_run`)·
+>    **作废销毁证书**(`void_cod`,门 `action.issue_cod`)。三件今天都是仓库一步生效;形状照 APR-5a / APR-6 的申请 → 批准即执行。
+>    ☞ 版本号仍然不分配:**整条审批链一个版本号,在它收尾时公布**(Tim 的常设裁定)。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**
 > * **⬜ 管理包那一版 `gl_control_reconciliation` 的改基**(Tim AP-RECON-1 Q8):冻在 `management_packs` 里的包读它的三个键;

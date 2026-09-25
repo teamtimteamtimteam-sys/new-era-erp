@@ -11,7 +11,7 @@ answers (Q1–Q13) are in `docs/handbacks/ROLE-1.md` §0.
 
 | 标记 · Mark | 意思 · Meaning |
 |---|---|
-| **✅ done** | 已在线上生效(ROLE-1 Batch 1 / PAY-REQ-1 Batch A / Batch B,2026-09-23;ROLE-1 Batch 2a / Batch 2b / PAYROLL-APR-1,2026-09-24;ROLE-1 Batch 4a / 4b / 3a / 3b · APR-5a · APR-5b,2026-09-25)· live since ROLE-1 Batch 1, PAY-REQ-1 Batch A or B, ROLE-1 Batch 2a or 2b, PAYROLL-APR-1, ROLE-1 Batch 4a, 4b, 3a or 3b, APR-5a or APR-5b |
+| **✅ done** | 已在线上生效(ROLE-1 Batch 1 / PAY-REQ-1 Batch A / Batch B,2026-09-23;ROLE-1 Batch 2a / Batch 2b / PAYROLL-APR-1,2026-09-24;ROLE-1 Batch 4a / 4b / 3a / 3b · APR-5a · APR-5b · APR-6,2026-09-25)· live since ROLE-1 Batch 1, PAY-REQ-1 Batch A or B, ROLE-1 Batch 2a or 2b, PAYROLL-APR-1, ROLE-1 Batch 4a, 4b, 3a or 3b, APR-5a, APR-5b or APR-6 |
 | **B2a · B2b … B5** | 本矩阵里【不需要新生命周期】的部分,排在 ROLE-1 的第 2–5 批;第 3 批拆成两刀(Tim 2026-09-25,Batch 3 grilling Q13):**B3a** = 盘点录数与过账分离 + 四个登记的缺口(✅ done);**B3b** = 收货建单 · 工单 · 加工提交 · 回滚与注销的临时持有人(✅ done);第 2 批拆成两刀(Tim 2026-09-23,Batch B grilling Q1):**B2a** = 财务设置 · 客户信用 · 供应商审批 + 未批准供应商不付款;**B2b** = 合同条款 · 定价 · 直接销售 · 化验 · in scope of ROLE-1, a later batch |
 | **[LC]** | 要先造一个「申请 → 批准 → 执行」的生命周期,不在 ROLE-1 里 · needs a request → approve lifecycle; queued separately |
 | **= 不变 / unchanged** | 矩阵说保持现状 · the matrix keeps the status quo |
@@ -48,7 +48,7 @@ MD = `gm`(Vince,只读)。
 
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
-| 手工凭证与冲销 · manual journals and their reversal | 财务 · finance | CFO | 做:= 不变 · 批:[LC] APR-6 |
+| 手工凭证与冲销 · manual journals and their reversal | 财务 · finance | CFO | 做:= 不变 · 批:✅ done(APR-6,2026-09-25:`journal_requests` —— 财务提 `submit_journal_request`(手工凭证,过出来永远是 `manual`,`source_id` = 申请)/ `submit_journal_reversal_request`(冲一张没有自己冲销路径的分录);CFO 批每一张、不分档(N1 对分录退休),**批即按冻结的日期过账**;提单人按人认永远不能批;提单人之外没人批得动时提交就拒 `JOURNAL_REQUEST_NO_OTHER_DECIDER`;期间锁永远赢,锁上之后批准按 `PERIOD_LOCKED` 拒;1100 / 2000 按名拒 `JE_MANUAL_CONTROL_ACCOUNT`,贷银行准许并标出来;`post_journal_entry` 对 authenticated 收回、两张分录表没有直连写(`JOURNAL_THROUGH_FUNCTION_ONLY`)、`reverse_journal_entry` 一张都不冲(有自己路径的 `JE_REVERSE_USE_SOURCE_PATH`,其余 `JOURNAL_NEEDS_APPROVED_REQUEST`);职责分离认提单人;系统生成的分录一律不经这里(N5);没有新码)|
 | 锁期、月结、外币重估、折旧、冻结管理月报、加工费计提冲回与付款 · period lock, month-end close, FX revaluation, depreciation, management-report freeze, accrual reversal and processing-fee payment | 财务 · finance | 不批 · none | = 不变 · unchanged |
 | 加工成本分摊 · processing-cost allocation | 财务 · finance(原 cco / cto)| 不批 · none | ✅ done(门从 `processing.edit` 换成 `finance.edit`)|
 | 重开已关的月、年结、重开已结的年度 · reopening a closed month, year-end close, reopening a closed year | **CFO 一个** · CFO only | — | ✅ done(`action.finance_reopen`;手动锁那扇越过已关月份的侧门按名拒)|

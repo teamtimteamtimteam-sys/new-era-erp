@@ -502,6 +502,11 @@ reasoning lives here.**
 > a credit note's `amount_base` comes from the engine's dry run, a void's from `invoices.total_base`, a release's from the
 > covered invoice lines. A line changed after a release cannot happen: a release covers invoiced lines, and those are
 > frozen (`SO_AMEND_LINE_INVOICED`). **N1 stands for `journal_entries` only, with N5's cut.** See §3q.
+>
+> ★★ **RETIRED for `journal_entries` too (Tim, 2026-09-25, APR-6 grilling Q2).** Every manual journal and every reversal goes to the
+> CFO, fixed at level 2, no threshold — there is no tier for an edit to cross, and a request's lines are frozen on the request while a
+> posted entry's lines are immutable. The amount the CFO sees and the log records is Σ debits in base currency from the submit-time
+> dry run (then the posted entry's). **N1 is now retired everywhere.** See §3s.
 
 `sales_orders`, `quotes`, `credit_notes` (and `journal_entries` when its turn comes) **get a
 maintained base-currency header total, the same shape as `purchase_orders.estimated_total_ccy`**.
@@ -547,6 +552,9 @@ figure that is not yet true.** This is Tim's ruling and it departs from APR-0's 
 Only **manually entered** journals need approval. **System-generated journals are exempt** —
 month-end, FX revaluation, year-end close and similar. ★ **Without that distinction, approvals
 would stall month-end itself**, because manual journals are the vehicle those mechanisms use.
+
+> ✅ **Built in APR-6 (2026-09-25), §3s.** The line is drawn by privilege: the posting core is no longer callable by people, every
+> system poster runs as the owner, and a person's only door is `submit_journal_request`.
 `journal_entries` also carries the largest blast radius in the system (`balance_sheet`,
 `pnl_statement`, `account_ledger`, `cash_flow_statement` all read it) and the most rows.
 
@@ -1597,6 +1605,74 @@ unshipped-cancel credits − already shipped → `SO_SHIP_EXCEEDS_RELEASABLE` (Q
 203 · 204 · 206 · 210 · 211 · 218 · 220 · 223) now give their level-2 role `module.sales.view`, or the switch refuses with
 `APPROVALS_CHAIN_HAS_NO_APPROVER|decide_shipping_release`. Fixture 205's own-document-gap count 7 → 8; fixture 111 has 41 arms;
 fixtures 68–71 raise a born-approved release before each shipment; fixture 224 pins the lifecycle.
+
+## 3s · APR-6 (2026-09-25) — a manual journal and its reversal reach the ledger only when the CFO approves them
+
+The cut is `docs/handbacks/APR-6.md`; this section records only what changes **for approvals**. Tim accepted all twelve grilling
+recommendations (Q1–Q12). N5 is now built; N1 is retired for `journal_entries` (below).
+
+### Where "manual" ends and "system" begins (Q1) — drawn by privilege, not by the label
+Measured at Step 0 (as `postgres`, live `pg_proc`): **all 30 functions that call `post_journal_entry` are SECURITY DEFINER, owned by
+`postgres`**; only `post_journal_entry` itself runs as its caller, and `authenticated` could execute it with any `source_type`. So the
+label proved nothing. The cut takes the posting core away from people instead: `post_journal_entry` EXECUTE revoked from
+`authenticated`; both journal tables lose their INSERT policies and refuse any direct write by name (`JOURNAL_THROUGH_FUNCTION_ONLY`,
+statement-level guards). The system paths — month-end, FX revaluation, depreciation, year-end close and every document's own function —
+run as the owner and are untouched; the migration asserts before COMMIT that no INVOKER function calls `post_journal_entry`.
+The one door a person has left is `submit_journal_request`, which always posts `'manual'` with `source_id` = the request.
+
+### The lifecycle
+`submitted → approved`, plus `rejected` (reason required) and `withdrawn`, on `journal_requests` (kind `entry` or `reversal`).
+**There is no `executed`: the CFO's approval posts at once, on the date frozen at submit** (the APR-5a / 4b shape).
+* **Raise:** finance (`module.finance.edit` — the matrix's "does: unchanged"). `submit_journal_request(date, memo, lines)` ·
+  `submit_journal_reversal_request(entry, reversal date, reason)`. One open reversal request per entry (`JOURNAL_REQUEST_OPEN`).
+* **Approve:** the CFO, every one, no threshold. `decide_journal_request` goes to level 2 directly and never through the amount
+  router. Gate `{module.finance.view, data.view_prices}` — the payment-request pair (edit is the raiser's code; §5). Raiser leg per
+  person: `forbid_self_approval(created_by, NULL, 'journal_request')`; a journal is nobody's "own document".
+* **Withdraw:** the raiser's person or any `module.finance.edit` holder. Written on the row, not in `approval_log`.
+* **Submit dry-runs the real posting** (`journal_request_dry_run`, PQ005, with the deferred balance check flushed): unbalanced,
+  inactive account, currency / rate, locked period, closed year, beyond the current month, 1100 / 2000 — refused in the engine's
+  words before the CFO sees it. Approval is the real posting, so the same refusals apply again and the whole approval rolls back.
+* **Approvals OFF:** born `approved`, posted at once, `auto_approved` row.
+* **Nobody-but-the-raiser refuses at submit** (`assert_other_decider` → `JOURNAL_REQUEST_NO_OTHER_DECIDER`). On live: admin@.
+
+### ★ The period lock always wins (Q4)
+Nothing refuses a lock because a request waits — approvals must never stall month-end (N5). A request whose frozen date falls into a
+period locked after it was raised is refused **at approval** in the engine's own words (`PERIOD_LOCKED` / `YEAR_CLOSED`) and stays
+waiting; the CFO rejects it, or finance withdraws it and raises it again with an open date. The CFO panel says so before anyone presses.
+
+### ★★ Who "posted a manual journal" is the RAISER (Q5)
+Approval posts the entry, so `journal_entries.created_by` is the approving CFO. `sod_manual_posters_in` (the `SOD_POST_AND_CLOSE`
+question) now reads `COALESCE(journal_requests.created_by, journal_entries.created_by)` through `result_journal_entry_id` — otherwise
+the CFO (and admin@, the same person) could no longer lock the month while the raiser could, and with finance as raiser nobody could.
+Its scope also covers a system entry reversed through a request (the reversal copies e.g. `'sale'`): that reversal was a person's choice.
+
+### Reversal (Q6) — one judgement, three readers
+`journal_entry_reversal_route(entry)` → `source_path` (payment, transfer, wht_remittance, purchase, invoice, credit_note, expense,
+freight, allocation, processing_cost, year_close, payroll postings) · `request` (manual, and every system entry with no path of its
+own: sale, stocktake, writeoff, prepayment, revaluation, depreciation, asset_disposal, shipment, payroll payment entries) · `reversed`.
+`reverse_journal_entry` keeps its signature and **reverses nothing**: `JE_REVERSE_USE_SOURCE_PATH` or `JOURNAL_NEEDS_APPROVED_REQUEST`.
+The document functions' own reversals (`reverse_expense`, `reverse_freight_document`, the processing rollback, the payment / payroll /
+invoice request engines) still call `reverse_journal_entry_internal` and are unchanged. The journal page greys the button by the same
+function (it used to know three types; the database refused more).
+
+### Control accounts (Q7)
+A request whose posted lines touch 1100 or 2000 → `JE_MANUAL_CONTROL_ACCOUNT` (a reversal of a `revaluation` entry excepted — the
+list-vs-ledger check names revaluation by `source_type`). Bank accounts are allowed with approval and flagged (`credits_bank`).
+Inventory accounts are registered, not refused (`docs/known-issues.md` § APR6-INVENTORY-ACCOUNTS-MANUAL).
+
+### How it registers in the engine (Q8)
+| piece | what was added |
+|---|---|
+| `approval_chain_gates()` | **one** row: `journal_request / decide_journal_request / level 2 / {module.finance.view, data.view_prices}` |
+| `approval_pending_documents()` | an arm for `status = 'submitted'`: `blocks_disable = true`, `fixed_level = 2`, subject `NULL`, amount = Σ debits (base) |
+| `approval_log` | subject type `journal_request` (CHECK); `record_approval_decision` branch (raiser `created_by`, subject `NULL`, base currency, rate 1); RLS read branch on `module.finance.view` |
+| `operations_now` / reminders | `journal_request_pending` (`module.finance.view`), linking to `/finance/journal#jr-<id>` |
+| `self_approval_exception` | **unchanged** |
+
+☞ **Consequence for fixtures:** none switched off — the gate pair is the payment-request pair every approvals-on fixture already gives
+its level-2 role. Fixture 205's own-document-gap count 8 → 9; fixture 111 has 42 arms; fixture 122's back-door arms now expect the
+door itself to refuse (`JOURNAL_THROUGH_FUNCTION_ONLY`, with a new JE-APPEND arm in an open period); five fixtures that reversed through
+the journal door now call `reverse_journal_entry_internal` (their subject is the reversal arithmetic); fixture 225 pins the lifecycle.
 
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
