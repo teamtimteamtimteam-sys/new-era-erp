@@ -33,6 +33,7 @@ DECLARE
     v_label text;
     v_dry   jsonb;
     v_post  jsonb := NULL;
+    v_uc    record;
 BEGIN
     SELECT id, code INTO v_inv FROM invoices WHERE id = p_invoice_id FOR UPDATE;
     IF NOT FOUND THEN
@@ -48,6 +49,40 @@ BEGIN
         IF p_lines IS NULL OR jsonb_typeof(p_lines) <> 'array' OR jsonb_array_length(p_lines) = 0 THEN
             RAISE EXCEPTION 'CN_NO_LINES|%', v_inv.code;
         END IF;
+        -- ★ APR-5b(grilling Q1):【未发货取消要说出取消了多少数量】—— 发货的天花板是
+        --   开票数量 − Σ 取消的数量 − 已发(ship_order,SO_SHIP_EXCEEDS_RELEASABLE),
+        --   而贷项此前只按金额记、数量可空。所以提交时:每一条 unshipped_cancel 必须带 qty > 0,
+        --   按发票行合计不许超过 开票数量 − 已发 − 以前取消过的数量(以前没带数量的按 金额 ÷ 单价 折算)。
+        --   不属于这张发票的行不在这里判 —— 试跑会按引擎原话拒。
+        FOR v_uc IN
+            SELECT il.id, il.line_no, il.quantity, il.unit_price, il.sales_order_line_id,
+                   bool_or(NULLIF(e->>'qty', '') IS NULL OR (e->>'qty')::numeric <= 0) AS missing,
+                   sum(NULLIF(e->>'qty', '')::numeric) AS want
+              FROM jsonb_array_elements(p_lines) e
+              JOIN invoice_lines il ON il.id = NULLIF(e->>'invoice_line_id', '')::uuid
+                                   AND il.invoice_id = v_inv.id
+             WHERE e->>'kind' = 'unshipped_cancel'
+             GROUP BY il.id, il.line_no, il.quantity, il.unit_price, il.sales_order_line_id
+        LOOP
+            IF v_uc.missing THEN
+                RAISE EXCEPTION 'CN_UNSHIPPED_CANCEL_QTY_REQUIRED|%|%', v_inv.code, v_uc.line_no;
+            END IF;
+            IF v_uc.want > v_uc.quantity
+                 - COALESCE((SELECT sum(sl.qty) FROM shipment_lines sl
+                              WHERE sl.sales_order_line_id = v_uc.sales_order_line_id), 0)
+                 - COALESCE((SELECT sum(COALESCE(cl.qty, cl.amount / NULLIF(v_uc.unit_price, 0)))
+                               FROM credit_note_lines cl
+                              WHERE cl.invoice_line_id = v_uc.id AND cl.kind = 'unshipped_cancel'), 0) THEN
+                RAISE EXCEPTION 'CN_UNSHIPPED_CANCEL_QTY_EXCEEDS|%|%|%|%', v_inv.code, v_uc.line_no,
+                    trim_scale(v_uc.want),
+                    trim_scale(GREATEST(v_uc.quantity
+                        - COALESCE((SELECT sum(sl.qty) FROM shipment_lines sl
+                                     WHERE sl.sales_order_line_id = v_uc.sales_order_line_id), 0)
+                        - COALESCE((SELECT sum(COALESCE(cl.qty, cl.amount / NULLIF(v_uc.unit_price, 0)))
+                                      FROM credit_note_lines cl
+                                     WHERE cl.invoice_line_id = v_uc.id AND cl.kind = 'unshipped_cancel'), 0), 0));
+            END IF;
+        END LOOP;
     ELSIF p_kind = 'void' THEN
         IF p_reason IS NULL OR btrim(p_reason) = '' THEN
             RAISE EXCEPTION 'REASON_REQUIRED';

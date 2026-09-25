@@ -446,3 +446,12 @@ REVOKE EXECUTE ON FUNCTION public.create_credit_note_internal(uuid, date, text, 
 REVOKE EXECUTE ON FUNCTION public.invoice_request_submit_internal(uuid, text, date, text, jsonb) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.invoice_request_post_internal(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.invoice_request_dry_run(uuid) FROM authenticated;
+
+-- APR-5b(2026-09-25,grilling Q7):预留的两支内层算子。**没有调用者检查,靠的就是调不到。**
+--   release_reservation_internal —— 原 release_reservation 的函数体(去掉门)。两个调用方各自先问:
+--     release_reservation(module.sales.edit)· ship_order(action.ship_goods,部分发货先放回多出来的那一截)。
+--   reserve_stock_internal —— 原 reserve_stock 的函数体(去掉门)。调用方:reserve_stock(module.sales.edit)·
+--     release_reservation_internal(部分释放就地重新预留剩余)。
+--   留着 EXECUTE,任何登录用户都能不经销售就改别人订单的预留 —— 而仓库发货正是要够得着这一半、够不着那一半。
+REVOKE EXECUTE ON FUNCTION public.release_reservation_internal(uuid, numeric, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.reserve_stock_internal(uuid, uuid, numeric, uuid) FROM authenticated;

@@ -189,7 +189,10 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- 下达工单归财务(action.wo_release)。仓库读得到加工模块(module.processing.view);
         -- 物料只经 material_lookup 查名,不拿 module.materials.view(Q8)。
         'action.receive_goods', 'action.wo_create', 'action.processing_commit', 'action.processing_rollback',
-        'action.batch_write_off', 'action.processing_aftercare', 'module.processing.view'
+        'action.batch_write_off', 'action.processing_aftercare', 'module.processing.view',
+        -- ── APR-5b(Tim 2026-09-25,APR-5 grilling Q7):发货归仓库,在 CFO 放行之后 ────────────────
+        -- 发货队列不带价格(shipping_queue_rows);仓库【不】拿 module.sales.view。
+        'action.ship_goods'
 ) WHERE r.code = 'warehouse';
 
 -- hr(7):人力资源 + 薪酬 + 身份信息 + 绩效正文。这四类正是 HR 的工作对象,也正是别人不该看见的。

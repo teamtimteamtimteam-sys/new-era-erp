@@ -32,6 +32,22 @@
 -- 期间锁显式设 NULL(README 第 5 条)。自带数据(第 2 条)。汇率自己插(第 4 条)。
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN;
+-- ★ APR-5b(2026-09-25):发货要一张 approved 的放行(ship_order → SO_SHIP_NOT_RELEASED)。本 fixture 的主语不是放行,
+--   所以每一次发货之前,照这张订单此刻已开票、未覆盖的行提一张放行 —— 审批关着,生下来就是 approved
+--   (auto_approved)。没有可放行的行 / 订单不在可发状态 / 调用者不持提单码时什么都不做,让 ship_order
+--   自己按它原来的名字拒(本 fixture 断言的正是那些名字)。放行本身的行为由 fixture 224 钉住。
+CREATE FUNCTION pg_temp.fx_release(p_so uuid) RETURNS void LANGUAGE plpgsql AS $fxr$
+BEGIN
+    PERFORM submit_shipping_release(p_so);
+EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE 'SHIPPING_RELEASE_NO_LINES%'
+       AND SQLERRM NOT LIKE 'SHIPPING_RELEASE_ORDER_NOT_SHIPPABLE%'
+       AND SQLERRM NOT LIKE 'SO_NOT_FOUND%'
+       AND SQLERRM NOT LIKE 'PERMISSION_DENIED%' THEN
+        RAISE;
+    END IF;
+END;
+$fxr$;
 DO $$
 DECLARE
     v_user uuid := gen_random_uuid();
@@ -111,8 +127,8 @@ BEGIN
     IF (SELECT prosrc FROM pg_proc WHERE proname = 'line_spoken_for') NOT LIKE '%consumed_at IS NULL%' THEN
         RAISE EXCEPTION 'FIXTURE 68A 失败:line_spoken_for 没有把【已消耗】排除在活预留那一半之外';
     END IF;
-    IF (SELECT prosrc FROM pg_proc WHERE proname = 'reserve_stock') NOT LIKE '%line_spoken_for(%' THEN
-        RAISE EXCEPTION 'FIXTURE 68A 失败:reserve_stock 的行天花板没有读 line_spoken_for';
+    IF (SELECT prosrc FROM pg_proc WHERE proname = 'reserve_stock_internal') NOT LIKE '%line_spoken_for(%' THEN
+        RAISE EXCEPTION 'FIXTURE 68A 失败:reserve_stock(_internal,APR-5b 起函数体在这里)的行天花板没有读 line_spoken_for';
     END IF;
     -- AR 静默那条谓词在不在(G 臂靠拿掉它证明;这里先证明它现在【在】)
     IF pg_get_viewdef('public.ar_open_items'::regclass) NOT LIKE '%sales_order_line_id IS NULL%' THEN
@@ -129,6 +145,7 @@ BEGIN
     SELECT count(*) INTO v_n0 FROM ar_open_items;
     SELECT customer_ar_exposure_base(v_cust) INTO v_exp0;
 
+    PERFORM pg_temp.fx_release(so1);
     shp := ship_order(so1, d, jsonb_build_array(jsonb_build_object('reservation_id', res1)));
 
     -- 出库腿:从 committed 出,数量对,业务日是发货日
@@ -214,6 +231,7 @@ BEGIN
     invL := create_order_invoice(soL, d, NULL, NULL, NULL, ARRAY[LL]);
     UPDATE customers SET credit_limit_base = 1 WHERE id = v_lim;
     -- 发货:限额只有 1,敞口远超 —— 但【发货不查信用】,必须通过
+    PERFORM pg_temp.fx_release(soL);
     PERFORM ship_order(soL, d, jsonb_build_array(jsonb_build_object('reservation_id', resL)));
     -- 另一个方向:同一个超限客户,【直接销售】仍然被拒
     BEGIN
@@ -229,6 +247,7 @@ BEGIN
      WHERE sales_order_line_id = L2 AND released_at IS NULL AND consumed_at IS NULL;
     PERFORM create_order_invoice(so1, d, NULL, NULL, NULL, ARRAY[L2]);
     -- 只发 12(预留 20)
+    PERFORM pg_temp.fx_release(so1);
     shp2 := ship_order(so1, d, jsonb_build_array(
         jsonb_build_object('reservation_id', resP, 'qty', 12)));
     -- 负债按比例释放:12 × 10 = 120 USD
@@ -259,6 +278,7 @@ BEGIN
     PERFORM reserve_stock(L2, obP, 8);
     SELECT id INTO v_res_left FROM sales_order_reservations
      WHERE sales_order_line_id = L2 AND released_at IS NULL AND consumed_at IS NULL;
+    PERFORM pg_temp.fx_release(so1);
     PERFORM ship_order(so1, d, jsonb_build_array(jsonb_build_object('reservation_id', v_res_left)));
     IF (SELECT status FROM sales_orders WHERE id = so1) <> 'shipped' THEN
         RAISE EXCEPTION 'FIXTURE 68E 失败:两行都发完之后应当是 shipped,实得 %',
@@ -276,6 +296,7 @@ BEGIN
     SELECT id INTO res2 FROM sales_order_reservations
      WHERE sales_order_line_id = LP AND released_at IS NULL AND consumed_at IS NULL;
     BEGIN
+        PERFORM pg_temp.fx_release(so2);
         PERFORM ship_order(so2, d, jsonb_build_array(jsonb_build_object('reservation_id', res2)));
         RAISE EXCEPTION 'FIXTURE 68F 失败:没开票的行不该发得出去';
     EXCEPTION WHEN OTHERS THEN
@@ -286,6 +307,7 @@ BEGIN
     v_inv_id := (inv2->>'invoice_id')::uuid;
     -- 未预留 / 不属于本单的预留
     BEGIN
+        PERFORM pg_temp.fx_release(so2);
         PERFORM ship_order(so2, d, jsonb_build_array(jsonb_build_object('reservation_id', gen_random_uuid())));
         RAISE EXCEPTION 'FIXTURE 68F 失败:不存在的预留不该发得出去';
     EXCEPTION WHEN OTHERS THEN
@@ -293,12 +315,14 @@ BEGIN
     END;
     -- 超预留
     BEGIN
+        PERFORM pg_temp.fx_release(so2);
         PERFORM ship_order(so2, d, jsonb_build_array(
             jsonb_build_object('reservation_id', res2, 'qty', 11)));
         RAISE EXCEPTION 'FIXTURE 68F 失败:超过预留量的发货不该通过';
     EXCEPTION WHEN OTHERS THEN
         IF SQLERRM NOT LIKE 'SO_SHIP_EXCEEDS_RESERVATION%' THEN RAISE; END IF;
     END;
+    PERFORM pg_temp.fx_release(so2);
     PERFORM ship_order(so2, d, jsonb_build_array(jsonb_build_object('reservation_id', res2)));
     -- 【3a 停放的那条检查在这里落地】发过货的票作废不了
     BEGIN
@@ -357,6 +381,7 @@ BEGIN
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', u_view), true);
     BEGIN
+        PERFORM pg_temp.fx_release(so2);
         PERFORM ship_order(so2, d, jsonb_build_array(jsonb_build_object('reservation_id', res2)));
         RAISE EXCEPTION 'FIXTURE 68I 失败:只有 sales.view 的人不该发得了货';
     EXCEPTION WHEN OTHERS THEN
@@ -412,6 +437,7 @@ BEGIN
     SELECT id INTO resK FROM sales_order_reservations
      WHERE sales_order_line_id = LK AND released_at IS NULL AND consumed_at IS NULL;
     PERFORM create_order_invoice(soK, d, NULL, NULL, NULL, ARRAY[LK]);
+    PERFORM pg_temp.fx_release(soK);
     PERFORM ship_order(soK, d, jsonb_build_array(jsonb_build_object('reservation_id', resK)));
 
     -- 发货当刻:没有单位成本 ⇒ 这一行没有 COGS(前提;否则下面的断言空转)

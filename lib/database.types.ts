@@ -3013,6 +3013,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "credit_note_lines_invoice_line_id_fkey"
+            columns: ["invoice_line_id"]
+            isOneToOne: false
+            referencedRelation: "sales_order_line_releasable_all"
+            referencedColumns: ["invoice_line_id"]
+          },
+          {
             foreignKeyName: "credit_note_lines_tax_code_fkey"
             columns: ["tax_code"]
             isOneToOne: false
@@ -17189,6 +17196,122 @@ export type Database = {
           },
         ]
       }
+      shipping_release_lines: {
+        Row: {
+          created_at: string
+          id: string
+          invoice_line_id: string
+          release_id: string
+          sales_order_line_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          invoice_line_id: string
+          release_id: string
+          sales_order_line_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          invoice_line_id?: string
+          release_id?: string
+          sales_order_line_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_release_lines_invoice_line_id_fkey"
+            columns: ["invoice_line_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_lines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_release_lines_invoice_line_id_fkey"
+            columns: ["invoice_line_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_lines_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_release_lines_invoice_line_id_fkey"
+            columns: ["invoice_line_id"]
+            isOneToOne: false
+            referencedRelation: "sales_order_line_releasable_all"
+            referencedColumns: ["invoice_line_id"]
+          },
+          {
+            foreignKeyName: "shipping_release_lines_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_releases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_release_lines_sales_order_line_id_fkey"
+            columns: ["sales_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "sales_order_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_releases: {
+        Row: {
+          amount_base: number
+          created_at: string
+          created_by: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          id: string
+          label: string
+          sales_order_id: string
+          status: string
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          amount_base: number
+          created_at?: string
+          created_by: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          label: string
+          sales_order_id: string
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          amount_base?: number
+          created_at?: string
+          created_by?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          label?: string
+          sales_order_id?: string
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_releases_sales_order_id_fkey"
+            columns: ["sales_order_id"]
+            isOneToOne: false
+            referencedRelation: "sales_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       so_issues: {
         Row: {
           file_path: string
@@ -26714,6 +26837,24 @@ export type Database = {
           },
         ]
       }
+      sales_order_line_releasable_all: {
+        Row: {
+          cancelled_qty: number | null
+          invoice_line_id: string | null
+          invoiced_qty: number | null
+          releasable_qty: number | null
+          sales_order_line_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_lines_sales_order_line_id_fkey"
+            columns: ["sales_order_line_id"]
+            isOneToOne: false
+            referencedRelation: "sales_order_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales_records_masked: {
         Row: {
           amount_base: number | null
@@ -28443,6 +28584,10 @@ export type Database = {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
       }
+      decide_shipping_release: {
+        Args: { p_approve: boolean; p_notes?: string; p_release_id: string }
+        Returns: Json
+      }
       decline_quote: {
         Args: { p_quote_id: string; p_reason: string }
         Returns: Json
@@ -29393,6 +29538,10 @@ export type Database = {
         Args: { p_qty?: number; p_reason?: string; p_reservation_id: string }
         Returns: Json
       }
+      release_reservation_internal: {
+        Args: { p_qty?: number; p_reason?: string; p_reservation_id: string }
+        Returns: Json
+      }
       release_stock: {
         Args: {
           p_inbound_batch_id?: string
@@ -29493,6 +29642,15 @@ export type Database = {
         Returns: undefined
       }
       reserve_stock: {
+        Args: {
+          p_location_id?: string
+          p_output_batch_id: string
+          p_qty: number
+          p_sales_order_line_id: string
+        }
+        Returns: Json
+      }
+      reserve_stock_internal: {
         Args: {
           p_location_id?: string
           p_output_batch_id: string
@@ -29838,6 +29996,35 @@ export type Database = {
         Args: { p_lines: Json; p_sales_order_id: string; p_ship_date: string }
         Returns: Json
       }
+      shipment_document: { Args: { p_shipment_id: string }; Returns: Json }
+      shipping_queue_rows: {
+        Args: never
+        Returns: {
+          customer_name: string
+          delivery_address: string
+          line_no: number
+          location_code: string
+          location_name: string
+          material_code: string
+          material_name: string
+          order_code: string
+          order_date: string
+          output_batch_code: string
+          released_at: string
+          released_qty: number
+          remaining_qty: number
+          reservation_id: string
+          reserved_qty: number
+          sales_order_id: string
+          sales_order_line_id: string
+          shipped_qty: number
+          unit: string
+        }[]
+      }
+      shipping_release_context: {
+        Args: { p_release_id: string }
+        Returns: Json
+      }
       sod_manual_posters_in: {
         Args: { p_from: string; p_to: string }
         Returns: string[]
@@ -29966,6 +30153,10 @@ export type Database = {
           p_shift_code: string
         }
         Returns: string
+      }
+      submit_shipping_release: {
+        Args: { p_invoice_line_ids?: string[]; p_sales_order_id: string }
+        Returns: Json
       }
       submit_wht_remittance_request: {
         Args: {
@@ -30112,6 +30303,10 @@ export type Database = {
       }
       withdraw_receipt_price_request: {
         Args: { p_reason?: string; p_request_id: string }
+        Returns: Json
+      }
+      withdraw_shipping_release: {
+        Args: { p_reason?: string; p_release_id: string }
         Returns: Json
       }
     }

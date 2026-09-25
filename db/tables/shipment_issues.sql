@@ -31,6 +31,8 @@ CREATE TRIGGER trg_shipment_issues_append_only
 
 ALTER TABLE public.shipment_issues ENABLE ROW LEVEL SECURITY;
 
+-- ★ APR-5b(Tim 2026-09-25,5b grilling Q7):发货的人读得到他发的货 —— module.sales.view 或 action.ship_goods。
+--   本表没有价格列(Step 0 以 postgres 读列清单);仓库仍不持 module.sales.view(Q7)。
 CREATE POLICY "shipment_issues select by permission" ON public.shipment_issues
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.sales.view'::text));
+    USING ((has_permission('module.sales.view'::text) OR has_permission('action.ship_goods'::text)));

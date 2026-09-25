@@ -11,7 +11,7 @@ answers (Q1–Q13) are in `docs/handbacks/ROLE-1.md` §0.
 
 | 标记 · Mark | 意思 · Meaning |
 |---|---|
-| **✅ done** | 已在线上生效(ROLE-1 Batch 1 / PAY-REQ-1 Batch A / Batch B,2026-09-23;ROLE-1 Batch 2a / Batch 2b / PAYROLL-APR-1,2026-09-24;ROLE-1 Batch 4a / 4b / 3a / 3b · APR-5a,2026-09-25)· live since ROLE-1 Batch 1, PAY-REQ-1 Batch A or B, ROLE-1 Batch 2a or 2b, PAYROLL-APR-1, ROLE-1 Batch 4a, 4b, 3a or 3b, or APR-5a |
+| **✅ done** | 已在线上生效(ROLE-1 Batch 1 / PAY-REQ-1 Batch A / Batch B,2026-09-23;ROLE-1 Batch 2a / Batch 2b / PAYROLL-APR-1,2026-09-24;ROLE-1 Batch 4a / 4b / 3a / 3b · APR-5a · APR-5b,2026-09-25)· live since ROLE-1 Batch 1, PAY-REQ-1 Batch A or B, ROLE-1 Batch 2a or 2b, PAYROLL-APR-1, ROLE-1 Batch 4a, 4b, 3a or 3b, APR-5a or APR-5b |
 | **B2a · B2b … B5** | 本矩阵里【不需要新生命周期】的部分,排在 ROLE-1 的第 2–5 批;第 3 批拆成两刀(Tim 2026-09-25,Batch 3 grilling Q13):**B3a** = 盘点录数与过账分离 + 四个登记的缺口(✅ done);**B3b** = 收货建单 · 工单 · 加工提交 · 回滚与注销的临时持有人(✅ done);第 2 批拆成两刀(Tim 2026-09-23,Batch B grilling Q1):**B2a** = 财务设置 · 客户信用 · 供应商审批 + 未批准供应商不付款;**B2b** = 合同条款 · 定价 · 直接销售 · 化验 · in scope of ROLE-1, a later batch |
 | **[LC]** | 要先造一个「申请 → 批准 → 执行」的生命周期,不在 ROLE-1 里 · needs a request → approve lifecycle; queued separately |
 | **= 不变 / unchanged** | 矩阵说保持现状 · the matrix keeps the status quo |
@@ -122,7 +122,7 @@ MD = `gm`(Vince,只读)。
 |---|---|---|---|
 | 从产出批次直接销售 · direct sale from an output batch | cco 一个 · cco only | — | ✅ done(ROLE-1 Batch 2b:`record_output_sale` 换成 `action.direct_sale`;`sales_records` 的 INSERT 与 UPDATE 两条写策略拿掉 —— 四个写入方全是 SECURITY DEFINER —— 直连写按名拒 `SALE_THROUGH_FUNCTION_ONLY`,关掉 `PAYREQB-SALES-RECORDS-FINANCE-INSERT`)|
 | 销售订单 · sales orders | cco | — | = 不变(`sales.edit` 本来只有 admin 与 cco;admin 已拿掉)|
-| 发货 · shipping | 仓库执行,在 CFO 放行之后 · warehouse, after CFO release | CFO | 在生命周期之前 cco 保留(Q10)—— ✅ 已是(Batch 3 Step 0 以 postgres 读基表:`ship_order` 门 `module.sales.edit`,持有人 admin · cco · sales(无人持有的角色);Q9:不改)· 放行:[LC] **APR-5b**(Tim 2026-09-25,APR-5 grilling Q14:APR-5 拆成两刀;5a 做了贷项与作废,放行与仓库发货是 5b。5a 已让发货在【一张在等的作废申请】或【一条在等的未发货取消贷项】上按名拒 —— Q10)|
+| 发货 · shipping | 仓库执行,在 CFO 放行之后 · warehouse, after CFO release | CFO | 做:✅ done · 批:✅ done(APR-5b,2026-09-25:`shipping_releases` —— cco 提 `action.request_shipping_release`,CFO 批每一张、不分档,**批准就是放行**(不另执行,仓库照它分一次或几次发);点名已开票的发票行,覆盖 = 批准且发票行未作废,**作废自动失效**,之后开票的行要它自己的放行;一张订单同时只挂一张在等的;提单人按人认永远不能批,提单人之外没人批得动时提交就拒 `SHIPPING_RELEASE_NO_OTHER_DECIDER`;CFO 决定时看得见敞口、额度、冻结、开放余额与逐行毛利(没有成本写「未计成本」)。发货 = `action.ship_goods`(仓库与 admin,**cco 从此不发货**,也不开送货单),在 `/logistics/shipping` 一页不带价格的队列里发(带送货地址 —— Tim 5b Q6);冻结的客户、没有放行、超过【开票 − 未发货取消的数量 − 已发】都按名拒;仓库**不**拿 `module.sales.view`,读得到自己发的货与送货单。集装箱挂发货单仍归 `module.purchasing.edit`(5b Q9,登记 `APR5B-CONTAINER-ATTACH-NOT-WAREHOUSE`))|
 | 客户信用额度与冻结 · customer credit limits and holds | **CFO 一个** · CFO only | — | ✅ done(ROLE-1 Batch 2a:`action.customer_credit` · `set_customer_credit` · 列守卫;客户页上的信用一块;编辑表单与批量导入不再带这两列)|
 
 ## 11 · 合规 · Compliance
@@ -193,4 +193,6 @@ warehouse (B4 — ✅ ROLE-1 Batch 4a, 2026-09-25: receipt pricing was the last 
 | `action.processing_commit` | 提交加工(Batch 3b)| warehouse · admin |
 | `action.processing_rollback` | 回滚加工(回滚申请落地之前一个人做完)(Batch 3b)| warehouse · admin |
 | `action.processing_aftercare` | 加工损耗分类与交接班(或 `module.processing.edit`);加工费用条目不在内(Batch 3b)| warehouse · admin |
+| `action.request_shipping_release` | 提发货放行(与撤回任何一张在等的);批归 CFO,提单人永远不能批(APR-5b)| cco · admin |
+| `action.ship_goods` | 发货(`ship_order`)与开具送货单(`record_shipment_issue`);发货队列 `/logistics/shipping`,不带价格(APR-5b)| warehouse · admin |
 | `module.processing.view`(新增持有人)| 读加工模块;物料名只经 `material_lookup`,不拿 `module.materials.view`(Batch 3b,Q8)| + warehouse |

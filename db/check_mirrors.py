@@ -547,6 +547,9 @@ DEFINER_NO_CHECK_ALLOWED = {
     "invoice_request_submit_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "invoice_request_post_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "invoice_request_dry_run": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # APR-5b:预留的两支内层算子 —— 靠的是调不到(zzz_function_grants.sql)。
+    "release_reservation_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "reserve_stock_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "receipt_price_open": "ROLE-1 Batch 4b: called by two INVOKER guards, so EXECUTE must stay with the caller; returns only the label (receipt code · price #n) of a waiting request, no price",
     # ROLE-1 Batch 3a:提单人之外没人批得动时的那一句断言 —— 只从 DEFINER 提交函数里调,靠的是调不到。
     "assert_other_decider": "EXECUTE revoked from PUBLIC/authenticated/anon; called only by submit_payroll_request and the six payment-request submit functions (all definer, each require_permission first)",

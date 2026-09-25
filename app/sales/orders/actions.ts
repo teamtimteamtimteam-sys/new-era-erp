@@ -170,38 +170,6 @@ export async function createOrderInvoice(orderId: string, issueDate: string): Pr
     return {}
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// SO-3b:发货 —— 选项 C 的第二半(借 2500 释放负债 / 贷 4000 收入 + COGS)。
-// 【错误走销售那一族】抛错的是 ship_order,它的码登记在 SALES_ORDER_ERROR_CODES;
-// 而"这一行还没开票"那条(SO_SHIP_NOT_INVOICED)也在那里 —— 判据是"抛错的函数
-// 属于哪一族",不是码里带不带 INVOICE 字样。
-// ════════════════════════════════════════════════════════════════════════════
-export async function shipOrderLine(
-    orderId: string,
-    reservationId: string,
-    qty: string,
-    shipDate: string
-): Promise<ReserveState> {
-    const supabase = await createClient()
-    const trimmed = qty.trim()
-    const { error } = await supabase.rpc('ship_order', {
-        p_sales_order_id: orderId,
-        // 【空串不是日期】空着就让服务端按名拒(SHIP_DATE_REQUIRED)
-        p_ship_date: (shipDate.trim() === '' ? null : shipDate) as unknown as string,
-        // 【数量留空 = 整条预留】—— 不传 qty,函数就整条消耗
-        p_lines: [
-            trimmed === ''
-                ? { reservation_id: reservationId }
-                : { reservation_id: reservationId, qty: Number(trimmed) },
-        ],
-    })
-    if (error) return { error: await localizeSalesOrderError(error.message) }
-    revalidatePath(`/sales/orders/${orderId}`)
-    revalidatePath('/inventory')
-    revalidatePath('/finance/receivables')
-    return {}
-}
-
 export async function listCustomersAndMaterials() {
     const supabase = await createClient()
     const customers = mustRows(
@@ -212,4 +180,55 @@ export async function listCustomersAndMaterials() {
         'materials')
     const currencies = mustRows(await supabase.from('currencies').select('code').order('code'), 'currencies')
     return { customers, materials, currencies }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ★ APR-5b(Tim 2026-09-25):发货前 CFO 放行。cco 提(action.request_shipping_release),CFO 批 ——
+//   【批准就是放行】,之后仓库在 /logistics/shipping 照它发货。谁能批这里不预判(二级、不是提单人,
+//   按人认),拒绝由库出、就地说成人话。错误走销售那一族(它们都由放行 / 发货的函数抛)。
+// ════════════════════════════════════════════════════════════════════════════
+export async function submitShippingRelease(
+    orderId: string, invoiceLineIds: string[] | null
+): Promise<{ error?: string; label?: string; status?: string }> {
+    const supabase = await createClient()
+    const { data, error } = await supabase.rpc('submit_shipping_release', {
+        p_sales_order_id: orderId,
+        // 【null = 每一条已开票、还没被放行覆盖的行】(5b Q2 的默认)—— 空数组不是同一件事,不递
+        ...(invoiceLineIds && invoiceLineIds.length > 0 ? { p_invoice_line_ids: invoiceLineIds } : {}),
+    })
+    if (error) return { error: await localizeSalesOrderError(error.message) }
+    revalidatePath(`/sales/orders/${orderId}`)
+    const r = data as { label?: string; status?: string } | null
+    return { label: r?.label, status: r?.status }
+}
+
+export async function decideShippingRelease(
+    orderId: string, releaseId: string, approve: boolean, notes: string
+): Promise<{ error?: string }> {
+    if (!approve && notes.trim() === '') {
+        return { error: (await getTranslations())('sales.release.rejectReasonRequired') }
+    }
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('decide_shipping_release', {
+        p_release_id: releaseId,
+        p_approve: approve,
+        p_notes: notes.trim() || undefined,
+    })
+    if (error) return { error: await localizeSalesOrderError(error.message) }
+    revalidatePath(`/sales/orders/${orderId}`)
+    revalidatePath('/logistics/shipping')
+    return {}
+}
+
+export async function withdrawShippingRelease(
+    orderId: string, releaseId: string, reason: string
+): Promise<{ error?: string }> {
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('withdraw_shipping_release', {
+        p_release_id: releaseId,
+        p_reason: reason.trim() || undefined,
+    })
+    if (error) return { error: await localizeSalesOrderError(error.message) }
+    revalidatePath(`/sales/orders/${orderId}`)
+    return {}
 }

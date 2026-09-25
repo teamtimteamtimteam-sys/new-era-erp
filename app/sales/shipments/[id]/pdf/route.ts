@@ -22,29 +22,31 @@ import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'shipment-documents'
 
+// ★ APR-5b(5b grilling Q7):发货单的表头与行经 shipment_document() 读(属主权限,门 module.sales.view 或
+//   action.ship_goods)。此前这里内嵌读 sales_orders / customers / materials —— 仓库一个都读不到,
+//   于是它发得了货、印不出它刚发的那张单。发货单本来就不带价;读者也不给价。
+type ShipmentDoc = {
+    code: string; ship_date: string; order_code: string
+    customer_code: string | null; customer_name: string | null
+    lines: { qty: number; batch_code: string; unit: string; material_code: string | null
+             material_name: string | null; waste_classification_code: string | null }[]
+}
+
 async function loadDoc(id: string): Promise<DeliveryNoteData | null> {
     const locale = await getLocale()
     const supabase = await createClient()
-    const s = mustOne(
-        await supabase.from('shipments')
-            .select('code, ship_date, sales_orders ( code, customers ( code, legal_name ) )')
-            .eq('id', id).maybeSingle(),
-        'shipments')
-    if (!s) return null
-    const row = s as unknown as {
-        code: string; ship_date: string
-        sales_orders: { code: string; customers: { code: string; legal_name: string } | null } | null }
-
-    const lines = mustRows(
-        await supabase.from('shipment_lines')
-            .select('qty, output_batches ( code, unit, materials ( code, name, waste_classification_code ) )')
-            .eq('shipment_id', id).order('created_at'),
-        'shipment_lines') as unknown as {
-            qty: number
-            output_batches: {
-                code: string; unit: string
-                materials: { code: string; name: string; waste_classification_code: string | null } | null
-            } | null }[]
+    const row = mustOne(await supabase.rpc('shipment_document', { p_shipment_id: id }),
+                        'shipment_document') as unknown as ShipmentDoc | null
+    if (!row) return null
+    const lines = row.lines.map((l) => ({
+        qty: l.qty,
+        output_batches: {
+            code: l.batch_code, unit: l.unit,
+            materials: l.material_code
+                ? { code: l.material_code, name: l.material_name ?? '', waste_classification_code: l.waste_classification_code }
+                : null,
+        },
+    }))
 
     // 【分类的名字与"受不受控"都取自字典 —— 不从 code 猜】
     // waste_classifications.is_controlled 才是合规逻辑该读的那一列(MAT-1 表头)。
@@ -59,8 +61,8 @@ async function loadDoc(id: string): Promise<DeliveryNoteData | null> {
     return {
         code: row.code,
         ship_date: formatDate(row.ship_date, locale),
-        order_code: row.sales_orders?.code ?? '—',
-        customer: row.sales_orders?.customers ?? { code: '—', legal_name: '—' },
+        order_code: row.order_code ?? '—',
+        customer: { code: row.customer_code ?? '—', legal_name: row.customer_name ?? '—' },
         lines: lines.map((l, i) => {
             const m = l.output_batches?.materials
             const c = m?.waste_classification_code ? clsBy.get(m.waste_classification_code) : undefined

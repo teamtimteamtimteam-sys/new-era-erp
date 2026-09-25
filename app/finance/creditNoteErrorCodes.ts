@@ -20,6 +20,9 @@ const CREDIT_NOTE_ERROR_CODES = new Set([
     // 三条天花板 —— 各自报出【想冲多少】与【最多能冲多少】
     'CN_EXCEEDS_OPEN',
     'CN_EXCEEDS_UNRELEASED',
+    // APR-5b(grilling Q1):未发货取消要说出数量 —— 发货的天花板是 开票 − 取消的数量 − 已发
+    'CN_UNSHIPPED_CANCEL_QTY_REQUIRED',
+    'CN_UNSHIPPED_CANCEL_QTY_EXCEEDS',
     'CN_EXCEEDS_RELEASED',
     // APR-5a:贷项要 CFO 批准 —— 提交那一步的三条拒绝,与找不到发票
     'INVOICE_NEEDS_APPROVED_REQUEST',

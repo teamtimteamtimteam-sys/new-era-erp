@@ -19,7 +19,6 @@ DECLARE
     v_sl_id    uuid;
     v_sale_id  uuid;
     v_rev_ccy  numeric := 0;
-    v_rev_base numeric := 0;
     v_fx       numeric;
     v_unit     numeric;
     v_cogs     numeric;
@@ -31,20 +30,26 @@ DECLARE
     v_shipped  numeric;
     v_status   text;
     v_n        int;
+    v_cust     record;
+    v_ceiling  numeric;
+    v_taken    jsonb := '{}'::jsonb;
 BEGIN
     -- ════════════════════════════════════════════════════════════════════════
-    -- 【为什么是 module.sales.edit,而不是 module.inventory.edit】
-    -- 与 reserve_stock 逐字同一条:发货【就是】一次销售行为,做它的人是销售。
-    -- 给它挑一个"销售与库存都满足"的权限码,只能挑一个比两者都松的 ——
-    -- 那不是把关、是把关的样子(zzz_function_grants 给 drain_stock 写的理由)。
-    -- 台账的不变量不依赖调用者是谁:check_no_negative_bucket 是约束触发器,
-    -- check_ledger_invariant 也是,对任何身份一视同仁。
+    -- ★ APR-5b(Tim 2026-09-25,APR-5 grilling Q7):【发货归仓库,在 CFO 放行之后】
+    -- 门从 module.sales.edit 换成 action.ship_goods(warehouse · admin);cco 从此不发货。
+    -- 此前这里写着"发货就是一次销售行为,做它的人是销售" —— Tim 的矩阵把它劈成两半:
+    -- 【答应卖】(订单、预留、提放行)仍是销售的;【把货交出去】是仓库的,而且要 CFO 先放行。
+    -- 部分发货的拆分改调 release_reservation_internal(不问码)—— 仓库不持 module.sales.edit。
+    -- 台账的不变量仍不依赖调用者是谁:check_no_negative_bucket 与 check_ledger_invariant
+    -- 都是约束触发器,对任何身份一视同仁。
     --
     -- 【收入与 COGS 的过账也在这里,而它们是财务的事】—— 但把这一步拆成
-    -- "销售发货 + 财务过账"两次调用,就等于允许一个【发了货却没记收入】的
+    -- "发货 + 财务过账"两次调用,就等于允许一个【发了货却没记收入】的
     -- 中间态存在。选项 C 的整条链是一个事务,所以它是一个函数。
+    -- ★ APR-5b(5b grilling Q5):所以按发货的人【看不见】他触发的那笔收入 —— 返回值里不再有
+    --   任何金额、币种或汇率(只剩发货单号、日期、行数、订单状态与收入分录的编号)。
     -- ════════════════════════════════════════════════════════════════════════
-    PERFORM require_permission('module.sales.edit');
+    PERFORM require_permission('action.ship_goods');
 
     -- 【发货日必填,永不默认】物理事件日,而且它决定收入落进哪个会计期间。
     IF p_ship_date IS NULL THEN
@@ -57,6 +62,14 @@ BEGIN
     END IF;
     IF v_order.status NOT IN ('confirmed', 'partially_shipped') THEN
         RAISE EXCEPTION 'SO_SHIP_ORDER_NOT_SHIPPABLE|%|%', v_order.code, v_order.status;
+    END IF;
+
+    -- ★ APR-5 grilling Q6:【发货那一刻】客户在冻结上 → 按名拒。放行时不冻结不算数 ——
+    --   CFO 放行之后客户被冻结,货就不该再离场。放行本身不失效(5b Q4:只有作废让放行失效),
+    --   解冻之后照原放行发。
+    SELECT c.code, c.credit_hold INTO v_cust FROM customers c WHERE c.id = v_order.customer_id;
+    IF v_cust.credit_hold THEN
+        RAISE EXCEPTION 'SO_SHIP_CUSTOMER_ON_HOLD|%|%', v_order.code, v_cust.code;
     END IF;
 
     IF p_lines IS NULL OR jsonb_typeof(p_lines) <> 'array' OR jsonb_array_length(p_lines) = 0 THEN
@@ -93,7 +106,7 @@ BEGIN
         -- 顺带把那张票的【存下来的汇率】取出来:释放负债要按它,不按今天的行情
         -- —— 2500 里躺着的就是按它记进去的那个数(FIN-27 一族)。
         -- ════════════════════════════════════════════════════════════════════
-        SELECT i.id, i.code, i.fx_rate, i.currency
+        SELECT i.id, i.code, i.fx_rate, i.currency, il.id AS invoice_line_id
           INTO v_inv
           FROM invoice_lines il
           JOIN invoices i ON i.id = il.invoice_id
@@ -129,6 +142,38 @@ BEGIN
         END IF;
 
         -- ════════════════════════════════════════════════════════════════════
+        -- ★ APR-5b(APR-5 grilling Q3 · 5b Q2):【这条发票行被一张 approved 的放行点了名】
+        -- 覆盖是现算的:上面那一句已经要求发票行 NOT invoice_voided,所以作废过的发票
+        -- 自己就不再被覆盖 —— 没有任何东西要去改放行。放行之后加的行要它自己的放行。
+        -- ════════════════════════════════════════════════════════════════════
+        IF NOT EXISTS (SELECT 1 FROM shipping_release_lines rl
+                         JOIN shipping_releases r ON r.id = rl.release_id
+                        WHERE rl.invoice_line_id = v_inv.invoice_line_id AND r.status = 'approved') THEN
+            RAISE EXCEPTION 'SO_SHIP_NOT_RELEASED|%|%', v_order.code, v_res.line_no;
+        END IF;
+
+        -- ════════════════════════════════════════════════════════════════════
+        -- ★ APR-5 grilling Q8 · 5b Q1:【天花板 = 开票数量 − Σ 未发货取消贷项的数量 − 已发】
+        -- 取消掉的那一截已经从应收里拿走了(贷项借 2500),再把它发出去就是白送。
+        -- 开票 − 取消的那一半只有一处推导:sales_order_line_releasable_all(发货队列与仪表盘读同一张)。
+        -- 同一次调用里发过的同一行累计进去(v_taken)。
+        -- 超出的那一截预留【不】自动释放:按名拒,由销售释放(5b Q1)。
+        -- ════════════════════════════════════════════════════════════════════
+        IF (v_item->>'qty') IS NOT NULL
+           AND ((v_item->>'qty')::numeric <= 0 OR (v_item->>'qty')::numeric > v_res.qty) THEN
+            RAISE EXCEPTION 'SO_SHIP_EXCEEDS_RESERVATION|%|%', v_item->>'qty', v_res.qty;
+        END IF;
+        v_ceiling := (SELECT ra.releasable_qty FROM sales_order_line_releasable_all ra
+                       WHERE ra.invoice_line_id = v_inv.invoice_line_id)
+                   - COALESCE((SELECT sum(sl.qty) FROM shipment_lines sl
+                                WHERE sl.sales_order_line_id = v_res.sales_order_line_id), 0)
+                   - COALESCE((v_taken->>(v_res.sales_order_line_id::text))::numeric, 0);
+        IF COALESCE((v_item->>'qty')::numeric, v_res.qty) > v_ceiling THEN
+            RAISE EXCEPTION 'SO_SHIP_EXCEEDS_RELEASABLE|%|%|%|%', v_order.code, v_res.line_no,
+                trim_scale(COALESCE((v_item->>'qty')::numeric, v_res.qty)), trim_scale(GREATEST(v_ceiling, 0));
+        END IF;
+
+        -- ════════════════════════════════════════════════════════════════════
         -- 【部分发货:先把预留拆开,再整条消耗】(SO-2 的形状,一处实现)
         -- release_reservation(id, 要放回的数量, 理由) = 整笔释放 + 就地重新
         -- 预留剩余。所以要发 q(< 预留量 r)时,先把 (r − q) 放回 available,
@@ -139,11 +184,8 @@ BEGIN
         -- 【也不在这里抄一份拆分逻辑】拆分只有一处实现,就是 release_reservation。
         -- ════════════════════════════════════════════════════════════════════
         IF (v_item->>'qty') IS NOT NULL AND (v_item->>'qty')::numeric <> v_res.qty THEN
-            IF (v_item->>'qty')::numeric <= 0 OR (v_item->>'qty')::numeric > v_res.qty THEN
-                RAISE EXCEPTION 'SO_SHIP_EXCEEDS_RESERVATION|%|%', v_item->>'qty', v_res.qty;
-            END IF;
-            v_split := release_reservation(v_res.id, v_res.qty - (v_item->>'qty')::numeric,
-                                           'partial shipment ' || v_code);
+            v_split := release_reservation_internal(v_res.id, v_res.qty - (v_item->>'qty')::numeric,
+                                                    'partial shipment ' || v_code);
             v_res_id := (v_split->'rereserved'->>'reservation_id')::uuid;
             SELECT r.id, r.sales_order_line_id, r.output_batch_id, r.location_id, r.qty,
                    l.line_no, l.unit_price, l.price_source, l.price_provenance
@@ -232,9 +274,9 @@ BEGIN
         v_fx := v_inv.fx_rate;
         v_rev_ccy := v_rev_ccy + round(v_res.qty * v_res.unit_price, 2);
         v_line_ids := v_line_ids || v_res.sales_order_line_id;
+        v_taken := jsonb_set(v_taken, ARRAY[v_res.sales_order_line_id::text],
+            to_jsonb(COALESCE((v_taken->>(v_res.sales_order_line_id::text))::numeric, 0) + v_res.qty));
     END LOOP;
-
-    v_rev_base := round(v_rev_ccy * v_fx, 2);
 
     -- ════════════════════════════════════════════════════════════════════════
     -- 【过账:借 2500 释放合同负债 / 贷 4000 收入】单据币种,按发票存下来的汇率。
@@ -285,15 +327,13 @@ BEGIN
         RAISE EXCEPTION 'SO_SHIP_LINES_LOST|%|%', jsonb_array_length(p_lines), v_n;
     END IF;
 
+    -- ★ APR-5b(5b grilling Q5):发货的人是仓库,仓库看不见销售金额 —— 返回值里没有钱。
+    --   收入分录的【编号】留着(它是一个编号,不是一个数;fixture 68 照它找分录)。
     RETURN jsonb_build_object(
         'shipment_id', v_ship_id,
         'code', v_code,
         'ship_date', p_ship_date,
         'line_count', v_n,
-        'revenue_ccy', v_rev_ccy,
-        'revenue_base', v_rev_base,
-        'currency', v_order.currency,
-        'fx_rate', v_fx,
         'order_status', v_status,
         'revenue_journal', v_je1->>'code');
 END;

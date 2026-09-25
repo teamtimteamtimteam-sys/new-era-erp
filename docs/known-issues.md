@@ -3,6 +3,14 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## APR5B-CONTAINER-ATTACH-NOT-WAREHOUSE · 仓库发得了货,却挂不了集装箱(APR-5b 登记,2026-09-25)
+
+APR-5b 起发货归仓库(`action.ship_goods`),而把一张发货单挂到集装箱上、或从集装箱上摘下来,仍归
+`module.purchasing.edit`(`db/functions/attach_shipment_to_container.sql:9` · `detach_shipment_from_container.sql:9`;
+集装箱页的编辑控件同一个码)。仓库不持它 —— 于是发货的人与装箱登记的人是两个人。Tim 的 5b Q9:不改,登记。
+线上 2026-09-25 读(postgres,基表):`module.purchasing.edit` 持有人 admin · cco · cto · finance · procurement(无人持有);
+仓库 0 张发货单(5b 之前发货归 cco)。**删除条件:** 装箱挂单换一个码,或并进 `action.ship_goods`。
+
 ## APR5-CANCEL-INVOICED-ORDER-LEAVES-INVOICE-LIVE · 取消一张已开票的已确认订单,发票仍在册(APR-5 登记,2026-09-25)
 
 `set_sales_order_status` 允许 confirmed → cancelled(`db/functions/set_sales_order_status.sql:31-39`),而不问这张订单上

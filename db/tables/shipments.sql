@@ -59,6 +59,8 @@ ALTER TABLE public.shipments ENABLE ROW LEVEL SECURITY;
 -- ship_order(DEFINER,module.sales.edit)。留一条客户端能直插的路,等于让人
 -- 写出一张【没有对应流水、没有对应分录】的发货单 —— 而这张表存在的意义就是
 -- 它与那两样说的是同一件事(建批次 IOD-1b / 建单 SO-2b 的同一条)。
+-- ★ APR-5b(Tim 2026-09-25,5b grilling Q7):发货的人读得到他发的货 —— module.sales.view 或 action.ship_goods。
+--   本表没有价格列(Step 0 以 postgres 读列清单);仓库仍不持 module.sales.view(Q7)。
 CREATE POLICY "shipments select by permission" ON public.shipments
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.sales.view'::text));
+    USING ((has_permission('module.sales.view'::text) OR has_permission('action.ship_goods'::text)));

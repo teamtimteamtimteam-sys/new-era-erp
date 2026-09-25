@@ -3,7 +3,7 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25);APR-5 grilling 时 Tim 拆成 5a / 5b(Q14,2026-09-25),5a 交回时更新:**下一刀是 APR-5b**)
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25);APR-5 grilling 时 Tim 拆成 5a / 5b(Q14,2026-09-25),5a 交回时更新;5b 交回时更新(2026-09-25):**下一刀是 APR-6**)
 > 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(`fa7821ab`)·
 >    **✅ AP-RECON-1 Batch B** —— 残留登记表 + 常设勾稽 + 月结那一行 + 严格相等的 fixture 213 + 那一分钱 +
 >    带税订单发票 + **三条日期规矩与 32 份 fixture 的日期挪回真实的过去**(Tim 2026-09-24:日期规矩属于 AP-RECON-1,
@@ -46,14 +46,15 @@
 >    挂着贷项的发票不作废);在等的作废 / 未发货取消贷项按住那一截的发货;收款从不被挡。**没有新码**,所以没有东西要授给 admin。
 >    ★ **N1 对 sales_orders / quotes / credit_notes 退休**(Tim 的 Q1;只剩 `journal_entries`,跟 N5 走)。
 >    见 `docs/handbacks/APR-5.md` § APR-5a。
-> 10. **⬜ APR-5b ← 下一刀** —— 发货前 CFO 放行(N2)与仓库发货,Tim 在 APR-5 grilling 已裁定的形状(Q2–Q8、Q13 的 `shipping_release`):
->    `shipping_releases`(cco 提 `action.request_shipping_release`,CFO 批,**批即放行**、不另执行;只覆盖【已开票】的行,
->    所以放行之后改不了它放行的东西;作废那张发票放行自动失效;一张订单同时只挂一张)· CFO 决定时看得见客户敞口、额度、冻结、
->    这张发票收了多少、逐行毛利(DEFINER 读者)· `ship_order` 在冻结的客户上按名拒(Q6)、在【已开票 − 未发货取消贷项】之外按名拒(Q8)·
->    仓库发货 **`action.ship_goods`**(仓库与 admin;cco 从此不发货),`ship_order` 改调一支内层的预留释放,仓库一页不带价格的
->    发货队列,**不**给仓库 `module.sales.view`。**在 5b 落地之前,cco 照旧发货**(ROLE-1 Q10 的过渡)。
->    两个新码(`action.request_shipping_release` · `action.ship_goods`)同一支迁移里一并授给 admin。
-> 11. **⬜ APR-6** —— 记账凭证(N1 的 `journal_entries` 那一半 + N5:只有人敲的要批)。在 APR-5b 之后。
+> 10. **✅ APR-5b**(2026-09-25)—— 发货前 CFO 放行,仓库照放行发货:`shipping_releases` + `shipping_release_lines`
+>    (cco 提 `action.request_shipping_release`,CFO 批,**批即放行**;点名已开票的发票行,覆盖 = 批准且发票行未作废 —— 作废自动失效;
+>    一张订单同时只挂一张在等的,已覆盖的行不许再点名;审批关着时生下来就批了)· CFO 的读者 `shipping_release_context`
+>    (敞口、额度、冻结、开放余额、逐行毛利,没有成本写「未计成本」)· `ship_order` 门换成 **`action.ship_goods`**(仓库与 admin;
+>    cco 从此不发货),冻结的客户按名拒、没有放行按名拒、超过【开票 − 未发货取消的数量 − 已发】按名拒,返回值里没有钱 ·
+>    未发货取消提交时必带数量 · 仓库的发货队列 `/logistics/shipping`(`shipping_queue_rows`,不带价格,带送货地址 ——
+>    Tim 5b Q6)· 仓库读得到发货单并开得了送货单(`shipment_document`)· 仓库**不**拿 `module.sales.view`。
+>    两个新码一并授给 admin。见 `docs/handbacks/APR-5.md` § APR-5b。
+> 11. **⬜ APR-6 ← 下一刀** —— 记账凭证(N1 的 `journal_entries` 那一半 + N5:只有人敲的要批)。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**
 > * **⬜ 管理包那一版 `gl_control_reconciliation` 的改基**(Tim AP-RECON-1 Q8):冻在 `management_packs` 里的包读它的三个键;

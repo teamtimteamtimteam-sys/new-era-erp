@@ -1064,6 +1064,13 @@ audited all six affected views and each borrowed exactly `legal_name` / `name` p
 join key. **If a view ever borrows more than a name, report it rather than folding it
 in.**
 
+**The one named exception, ruled by Tim (APR-5b grilling Q6, 2026-09-25): the warehouse shipping queue shows the
+customer's DELIVERY ADDRESS**, because the warehouse needs it to ship. It is reported here, as the rule above
+requires, not folded in. It is exactly one attribute on exactly one reader — `shipping_queue_rows()`, gated
+`action.ship_goods` — and **no other customer attribute** travels with it: still no price, currency, rate, amount,
+margin, invoice code, balance, credit limit or hold. Fixture 224 pins that reader's column list verbatim (with a
+fault injection that adds `unit_price` and must go red). A second attribute on any reader is a new question for Tim.
+
 Rejected, with the reason on record: LEFT JOIN with the name left `NULL`. A blank name
 reads as **missing data**, not as a permission answer — the exact failure mode
 `lib/permissions.ts` exists to prevent.

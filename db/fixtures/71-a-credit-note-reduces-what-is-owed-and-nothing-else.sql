@@ -29,6 +29,22 @@
 -- 期间锁显式设 NULL(README 第 5 条)。自带数据(第 2 条)。
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN;
+-- ★ APR-5b(2026-09-25):发货要一张 approved 的放行(ship_order → SO_SHIP_NOT_RELEASED)。本 fixture 的主语不是放行,
+--   所以每一次发货之前,照这张订单此刻已开票、未覆盖的行提一张放行 —— 审批关着,生下来就是 approved
+--   (auto_approved)。没有可放行的行 / 订单不在可发状态 / 调用者不持提单码时什么都不做,让 ship_order
+--   自己按它原来的名字拒(本 fixture 断言的正是那些名字)。放行本身的行为由 fixture 224 钉住。
+CREATE FUNCTION pg_temp.fx_release(p_so uuid) RETURNS void LANGUAGE plpgsql AS $fxr$
+BEGIN
+    PERFORM submit_shipping_release(p_so);
+EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE 'SHIPPING_RELEASE_NO_LINES%'
+       AND SQLERRM NOT LIKE 'SHIPPING_RELEASE_ORDER_NOT_SHIPPABLE%'
+       AND SQLERRM NOT LIKE 'SO_NOT_FOUND%'
+       AND SQLERRM NOT LIKE 'PERMISSION_DENIED%' THEN
+        RAISE;
+    END IF;
+END;
+$fxr$;
 DO $$
 DECLARE
     v_user uuid := gen_random_uuid();
@@ -133,6 +149,7 @@ BEGIN
     -- 第 1 行发 8(共 12):已释放收入 = 8 × 10 = 80;未释放负债 = 120 − 80 = 40
     obB := (create_output_batch(v_mat, 100, 'kg', d, '库存中', NULL, NULL, NULL, NULL) ->> 'batch_id')::uuid;
     resB := (reserve_stock(L1, obB, 12) ->> 'reservation_id')::uuid;
+    PERFORM pg_temp.fx_release(soB);
     PERFORM ship_order(soB, d, jsonb_build_array(
         jsonb_build_object('reservation_id', resB, 'qty', 8)));
 

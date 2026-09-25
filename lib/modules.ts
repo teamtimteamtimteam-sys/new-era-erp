@@ -436,6 +436,9 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/logistics/forwarders', navKey: 'logistics.forwardersTitle', modules: ['logistics'], permission: P_LOGISTICS },
     { href: '/logistics/lanes', navKey: 'logistics.lanesTitle', modules: ['logistics'], permission: P_LOGISTICS },
     { href: '/logistics/containers', navKey: 'logistics.containersTitle', modules: ['logistics'], permission: P_LOGISTICS },
+    // ★ APR-5b(Tim 2026-09-25,APR-5 grilling Q7):仓库的发货队列 —— 发货归 action.ship_goods(warehouse · admin)。
+    //   属于物流模块(仓库持 module.logistics.view);没有这个码的人看得见入口、写着「受限」、进不去。
+    { href: '/logistics/shipping', navKey: 'logistics.shipping.title', modules: ['logistics'], permission: 'action.ship_goods' },
 
     // ══ 运营 Operation ══════════════════════════════════════════════════════
     // ★【NAV-CLEANUP-1 ③:运营的落地页】★ Tim 的 Q4:它【只】列本模块自己的条目,
@@ -1015,5 +1018,7 @@ export const FN = {
     operationHome: fnByHref('/operation'),
     purchasingHome: fnByHref('/purchasing'),
     logisticsHome: fnByHref('/logistics'),
+    /** APR-5b:仓库的发货队列(action.ship_goods)。 */
+    logisticsShipping: fnByHref('/logistics/shipping'),
     salesHome: fnByHref('/sales'),
 } as const

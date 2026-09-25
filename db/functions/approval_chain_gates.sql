@@ -106,7 +106,12 @@ AS $function$
         --    module.finance.view + data.view_prices(发票页的门,加上看得见金额的那个码);
         --    【不是】module.finance.edit:那是提单的码。
         ('invoice_request'::text, 'decide_invoice_request'::text, 2::smallint,
-            ARRAY['module.finance.view', 'data.view_prices']::text[])
+            ARRAY['module.finance.view', 'data.view_prices']::text[]),
+        -- ★★ APR-5b(Tim 的矩阵:发货在 CFO 放行之后;APR-5 grilling Q13):同样【只有二级这一行】。
+        --    门 module.sales.view + data.view_prices —— 订单页的门,加上看得见金额的那个码;
+        --    【不是】action.request_shipping_release:那是提单的码。
+        ('shipping_release'::text, 'decide_shipping_release'::text, 2::smallint,
+            ARRAY['module.sales.view', 'data.view_prices']::text[])
       ) AS v(subject_type, action_function, level, gate_permissions)
 $function$;
 

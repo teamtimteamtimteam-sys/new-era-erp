@@ -107,8 +107,9 @@ BEGIN
     --   ☞ 授给【人乙一个人】(另起一个角色),不授给 fx206-l2:V 臂断言人甲的第二个账号只读得到人甲
     --     自己那一行,而 module.hr.view 会让持有人读到所有人的行 —— 那就改了这一臂在测的东西。
     INSERT INTO roles (code,name_en,name_zh,is_active) VALUES ('fx206-pay','f','f',true);
+    -- ★ APR-5b(2026-09-25):发货放行这条链的门是 module.sales.view + data.view_prices —— 二级补上 module.sales.view,否则开不了审批。
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay', 'module.inbound.view', 'data.view_purchase_prices']) c
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay', 'module.inbound.view', 'data.view_purchase_prices', 'module.sales.view']) c
      WHERE r.code = 'fx206-pay';
     INSERT INTO user_roles (user_id, role_id) SELECT u_l2b, id FROM roles WHERE code = 'fx206-pay';
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);

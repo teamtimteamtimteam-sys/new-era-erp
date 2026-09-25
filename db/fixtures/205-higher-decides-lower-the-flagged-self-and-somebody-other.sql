@@ -140,8 +140,10 @@ BEGIN
     --   二级角色不持这两个码,开审批就会按名拒 APPROVALS_CHAIN_HAS_NO_APPROVER|decide_payroll_request —— 本 fixture 测的不是它。
     -- ★ ROLE-1 Batch 4b(2026-09-25):收货定价申请这条链的门是 module.inbound.view + data.view_purchase_prices
     --   (Tim 的 Q2),同一个理由一并给上 —— 否则 …|decide_receipt_price_request。
+    -- ★ APR-5b(2026-09-25):发货放行这条链的门是 module.sales.view + data.view_prices(Q13);二级角色
+    --   已持 data.view_prices,补上 module.sales.view —— 否则 …|decide_shipping_release。
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay', 'module.inbound.view', 'data.view_purchase_prices']) c
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay', 'module.inbound.view', 'data.view_purchase_prices', 'module.sales.view']) c
      WHERE r.code = 'fx205-l2'
     ON CONFLICT (role_id, permission_code) DO NOTHING;
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);
@@ -175,8 +177,10 @@ BEGIN
      WHERE (g->>'level')::int = 2 AND (g->>'user_id')::uuid = u_l2;
     -- ★ APR-5a(2026-09-25):六 → 七 —— 贷项 / 作废申请同样只有二级一行、没有自批例外;
     --   u_l2 持它的门(module.finance.view + data.view_prices,付款申请本来就要),于是同一条。
-    IF v_n <> 7 THEN
-        RAISE EXCEPTION 'FIXTURE 205R4a 失败:二级七条链应当各点名 u_l2 一次,实得 %;全部 = %', v_n, v_read->'own_document_gaps'; END IF;
+    -- ★ APR-5b(2026-09-25):七 → 八 —— 发货放行同样只有二级一行、没有自批例外;u_l2 持它的门
+    --   (module.sales.view 上面补给了,data.view_prices 本来就有),于是同一条。
+    IF v_n <> 8 THEN
+        RAISE EXCEPTION 'FIXTURE 205R4a 失败:二级八条链应当各点名 u_l2 一次,实得 %;全部 = %', v_n, v_read->'own_document_gaps'; END IF;
     -- 一级一格都没有:R1 让二级的人替一级持有人批,一级持有人也替二级持有人的一级单批
     SELECT count(*) INTO v_n FROM jsonb_array_elements(v_read->'own_document_gaps') g WHERE (g->>'level')::int = 1;
     IF v_n <> 0 THEN

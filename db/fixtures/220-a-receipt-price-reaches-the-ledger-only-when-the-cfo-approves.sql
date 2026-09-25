@@ -99,6 +99,8 @@ BEGIN
         -- 二级:CFO 的形状 —— 读得到、看得见,【没有】price_receipts、没有 inbound.edit
         (r_l2, 'module.purchasing.view'), (r_l2, 'data.view_prices'), (r_l2, 'data.view_purchase_prices'),
         (r_l2, 'module.finance.view'), (r_l2, 'module.hr.view'), (r_l2, 'data.view_pay'), (r_l2, 'module.inbound.view'),
+        -- ★ APR-5b:发货放行这条链的门(module.sales.view + data.view_prices),否则开不了审批
+        (r_l2, 'module.sales.view'),
         (r_cto, 'action.apply_assay'), (r_cto, 'module.inbound.edit'), (r_cto, 'module.inbound.view'),
         (r_cto, 'data.view_purchase_prices'),
         -- ROLE-1 Batch 3b:注销批次是它自己的码(action.batch_write_off),仓库持有 —— C5 拒在等待中的申请上,不拒在码上。

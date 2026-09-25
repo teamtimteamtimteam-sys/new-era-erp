@@ -12,6 +12,7 @@ import IssuePanel from '@/app/components/IssuePanel'
 import ReservationSection from './ReservationSection'
 import OrderInvoiceSection from './OrderInvoiceSection'
 import ShippingSection from './ShippingSection'
+import ShippingReleaseSection from './ShippingReleaseSection'
 import OrderLinesTable, { type OrderLineRow } from './OrderLinesTable'
 import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
@@ -175,6 +176,20 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                 {/* SO-3a:开票 —— 订单流【先开票后发货】(选项 C),开票即过账 */}
                 <OrderInvoiceSection
                     orderId={o.id}
+                    status={o.status}
+                    lines={lines.map((l) => ({
+                        id: l.id,
+                        line_no: l.line_no,
+                        material_code: l.materials?.code ?? '—',
+                        quantity: l.quantity,
+                        unit: l.materials?.unit ?? '',
+                    }))}
+                />
+
+                {/* ★ APR-5b:发货前 CFO 放行 —— 开票之后、发货之前,所以摆在两者之间 */}
+                <ShippingReleaseSection
+                    orderId={o.id}
+                    orderCode={o.code}
                     status={o.status}
                     lines={lines.map((l) => ({
                         id: l.id,

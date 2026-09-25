@@ -10,6 +10,10 @@
 -- ★ ROLE-1 Batch 4b(2026-09-25):加一支 receipt_price_request_pending —— 等 CFO 批的收货定价申请
 --   (data.view_purchase_prices,Tim 的 Q10:看得见采购价的人都看得见这一格;点进去由
 --   decide_receipt_price_request 裁谁能批)。item_id 是【收货】的 id —— 申请住在收货页上。
+-- ★ APR-5b(2026-09-25):加两支。shipping_release_pending —— 等 CFO 批的发货放行(module.sales.view:
+--   读得到放行的人都看得见这一格;点进去由 decide_shipping_release 裁谁能批);item_id 是【订单】的 id ——
+--   放行住在订单页上。shipping_release_ready —— 放行过、还有没发完的订单(action.ship_goods:仓库的信号;
+--   剩余与发货队列读同一张 sales_order_line_releasable_all;点进去是 /logistics/shipping)。
 --
 -- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
 -- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
@@ -602,7 +606,45 @@ CREATE VIEW public.operations_now AS
            FROM invoice_requests iq
              JOIN invoices i ON i.id = iq.invoice_id
              JOIN customers c ON c.id = i.customer_id
-          WHERE iq.status = 'submitted'::text) a
+          WHERE iq.status = 'submitted'::text
+        UNION ALL
+         SELECT 'shipping_release_pending'::text AS item_type,
+            'module.sales.view'::text AS permission,
+            sr.sales_order_id AS item_id,
+            NULL::text AS doc_kind,
+            sr.label AS item_code,
+            c.legal_name AS subject,
+            sr.created_at::date AS item_date
+           FROM shipping_releases sr
+             JOIN sales_orders so ON so.id = sr.sales_order_id
+             JOIN customers c ON c.id = so.customer_id
+          WHERE sr.status = 'submitted'::text
+        UNION ALL
+         SELECT 'shipping_release_ready'::text AS item_type,
+            'action.ship_goods'::text AS permission,
+            q.sales_order_id AS item_id,
+            NULL::text AS doc_kind,
+            q.order_code AS item_code,
+            q.customer_name AS subject,
+            q.released_on AS item_date
+           FROM ( SELECT so.id AS sales_order_id,
+                    so.code AS order_code,
+                    c.legal_name AS customer_name,
+                    max(r.decided_at)::date AS released_on
+                   FROM shipping_releases r
+                     JOIN shipping_release_lines rl ON rl.release_id = r.id
+                     JOIN invoice_lines il ON il.id = rl.invoice_line_id
+                     JOIN sales_orders so ON so.id = r.sales_order_id
+                     JOIN customers c ON c.id = so.customer_id
+                  WHERE r.status = 'approved'::text AND NOT il.invoice_voided
+                    AND so.deleted_at IS NULL
+                    AND (so.status = ANY (ARRAY['confirmed'::text, 'partially_shipped'::text]))
+                    AND (( SELECT ra.releasable_qty
+                           FROM sales_order_line_releasable_all ra
+                          WHERE ra.invoice_line_id = il.id)) > COALESCE(( SELECT sum(sl.qty) AS sum
+                           FROM shipment_lines sl
+                          WHERE sl.sales_order_line_id = rl.sales_order_line_id), 0::numeric)
+                  GROUP BY so.id, so.code, c.legal_name) q) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type))) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;

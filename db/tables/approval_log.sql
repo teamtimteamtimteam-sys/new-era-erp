@@ -71,7 +71,10 @@ CREATE TABLE public.approval_log (
                             'receipt_price_request',
                             -- APR-5a:贷项通知与作废发票的申请 —— CFO 批每一张,批准当场过账。
                             -- 被批的是【申请】(invoice_requests),不是发票或贷项本身。
-                            'invoice_request')),
+                            'invoice_request',
+                            -- APR-5b:发货放行 —— CFO 批每一张,批准就是放行。
+                            -- 被批的是【放行】(shipping_releases),不是订单或发货本身。
+                            'shipping_release')),
     subject_id          uuid NOT NULL,
     -- 人读的编号,冻结在当时 —— 单据可以改名/作废,留痕不跟着变
     subject_code        text,
@@ -238,6 +241,9 @@ CREATE POLICY "approval_log select by permission"
             -- ★ APR-5a:贷项 / 作废申请那一支 —— 与 invoice_requests 自己的读策略同一个码。
             --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
             WHEN 'invoice_request'    THEN has_permission('module.finance.view'::text)
+            -- ★ APR-5b:发货放行那一支 —— 与 shipping_releases 自己的读策略同一个码。
+            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+            WHEN 'shipping_release'   THEN has_permission('module.sales.view'::text)
             ELSE false
         END
     );

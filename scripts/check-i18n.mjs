@@ -749,6 +749,8 @@ const MANIFEST = {
     'finance.invoiceRequest.docDate.':        { kind: 'enum', values: () => sqlEnum('db/tables/invoice_requests.sql', 'kind') },
     'finance.invoiceRequest.approveConfirm.': { kind: 'enum', values: () => sqlEnum('db/tables/invoice_requests.sql', 'kind') },
     'finance.invoiceRequest.approveBody.':    { kind: 'enum', values: () => sqlEnum('db/tables/invoice_requests.sql', 'kind') },
+    // APR-5b(2026-09-25):发货放行的状态,真源是 shipping_releases 的 CHECK
+    'sales.release.status.': { kind: 'enum', values: () => sqlEnum('db/tables/shipping_releases.sql', 'status') },
     'finance.source.':      { kind: 'enum', values: () => sqlEnum('db/tables/journal_entries.sql', 'source_type') },
     'assets.category.':     { kind: 'enum', values: () => sqlEnum('db/tables/fixed_assets.sql', 'category') },
     'processing.lineage.kind_': { kind: 'enum', values: () => ['inbound', 'output'] },

@@ -4,27 +4,18 @@
 // 贷 2500),发货把负债换成收入(借 2500 / 贷 4000)。所以这一区的每一个
 // 禁用条件都指向它前面的那一步,而不是笼统地说"还不能发"。
 //
-// 【发货不可撤】—— 后果句必须在按下之前就在屏幕上:货离开台账、收入落账、
-// 那张发票从此作废不了。更正走贷项凭证(还不存在的概念),所以这句话不是
-// 吓唬人,是真的没有回头路。
+// ★ APR-5b(Tim 2026-09-25,5b grilling Q8):【发货不在这一页】—— 发货归仓库(action.ship_goods),
+// 在 CFO 放行之后,在 /logistics/shipping 发。这一区只说这张单发了什么、每一行开票了没有,
+// 并用一句看得见的话指向发货队列(持码的人多一个链接)。此前这里的发货控件还要 module.finance.view
+// (看得见"开票了没有"),那个界面条件随控件一起拿掉了 —— 判据在 ship_order 里,不在屏幕上。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
-import ShipControl, { type ShipOption } from './ShipControl'
 import { Button } from '@/app/components/ui/button'
 import { formatDate } from '@/lib/dates'
 
-type ResRow = {
-    id: string
-    sales_order_line_id: string
-    qty: number
-    output_batch_id: string
-    location_id: string | null
-    output_batches: { code: string; unit: string } | null
-    storage_locations: { code: string } | null
-}
 type BilledRow = { sales_order_line_id: string | null; invoice_id: string }
 type ShipRow = {
     id: string
@@ -48,26 +39,10 @@ export default async function ShippingSection({
 
     const lineIds = lines.map((l) => l.id)
     const canSeeFinance = await can('module.finance.view')
-    const canShip = await can('module.sales.edit')
-
-    // 活预留(released 与 consumed 都为空 —— SO-3b 起是两个条件)
-    const reservations =
-        lineIds.length === 0
-            ? []
-            : (mustRows(
-                  await supabase
-                      .from('sales_order_reservations')
-                      .select('id, sales_order_line_id, qty, output_batch_id, location_id, output_batches ( code, unit ), storage_locations ( code )')
-                      .in('sales_order_line_id', lineIds)
-                      .is('released_at', null)
-                      .is('consumed_at', null)
-                      .order('created_at'),
-                  'sales_order_reservations'
-              ) as unknown as ResRow[])
+    const canShip = await can('action.ship_goods')
 
     // 【开票了没有】判据与 ship_order 逐字同一条:在册未作废的行。
-    // 【无 finance.view 的读者看不到发票】—— 那时不说"没开票"(那是另一件事),
-    // 而是说"看不到";控件也不给,免得他撞一次必然的拒绝。
+    // 【无 finance.view 的读者看不到发票】—— 那时不说"没开票"(那是另一件事),而是说"看不到"。
     const billed = !canSeeFinance || lineIds.length === 0
         ? []
         : (mustRows(
@@ -137,16 +112,8 @@ export default async function ShippingSection({
 
             <div className="space-y-4">
                 {lines.map((l) => {
-                    const mine = reservations.filter((r) => r.sales_order_line_id === l.id)
                     const shipped = shippedByLine.get(l.id) ?? 0
                     const isBilled = billedSet.has(l.id)
-                    const opts: ShipOption[] = mine.map((r) => ({
-                        reservationId: r.id,
-                        label: `${r.output_batches?.code ?? '—'} · ${
-                            r.storage_locations?.code ?? t('stock.unspecifiedLocation')
-                        } · ${r.qty} ${r.output_batches?.unit ?? l.unit}`,
-                        qty: Number(r.qty),
-                    }))
 
                     return (
                         <div key={l.id} className="border border-gray-300 rounded p-3">
@@ -171,25 +138,25 @@ export default async function ShippingSection({
                                 </span>
                             </div>
 
-                            {/* 禁用的理由长在控件旁边,而且【各说各的】—— 三种"发不了"
-                                指向三个不同的下一步 */}
-                            {!shippable ? null : !canShip ? (
-                                <p className="text-sm text-[color:var(--brand-muted-text)]">
-                                    {t('common.restricted')} — {t('sales.ship.needsSalesEdit')}
-                                </p>
-                            ) : !canSeeFinance ? (
-                                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('sales.ship.blockedNoFinanceView')}</p>
-                            ) : !isBilled ? (
-                                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('sales.ship.blockedNotInvoiced')}</p>
-                            ) : opts.length === 0 ? (
-                                <p className="text-sm text-[color:var(--brand-muted-text)]">{t('sales.ship.blockedNoReservation')}</p>
-                            ) : (
-                                <ShipControl orderId={orderId} options={opts} unit={l.unit} />
-                            )}
                         </div>
                     )
                 })}
             </div>
+
+            {/* ★ APR-5b:发货在仓库的发货队列里 —— 看得见、在这里按不动、说出为什么与去哪里 */}
+            {shippable && (
+                <p className="text-sm text-[color:var(--brand-muted-text)] bg-gray-50 border border-gray-200 rounded px-3 py-2 mt-3">
+                    {t('sales.ship.inQueue')}
+                    {canShip && (
+                        <>
+                            {' '}
+                            <Link href="/logistics/shipping" className="hover:underline app-link app-link-inline">
+                                {t('sales.ship.openQueue')}
+                            </Link>
+                        </>
+                    )}
+                </p>
+            )}
 
             <p className="text-xs text-[color:var(--brand-muted-text)] mt-3">{t('sales.ship.arNote')}</p>
         </section>

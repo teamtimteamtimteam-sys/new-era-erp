@@ -34,6 +34,22 @@
 -- 汇率取【非 1】的 1.25(两边一致时,涉及金额的断言什么都不证明)。
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN;
+-- ★ APR-5b(2026-09-25):发货要一张 approved 的放行(ship_order → SO_SHIP_NOT_RELEASED)。本 fixture 的主语不是放行,
+--   所以每一次发货之前,照这张订单此刻已开票、未覆盖的行提一张放行 —— 审批关着,生下来就是 approved
+--   (auto_approved)。没有可放行的行 / 订单不在可发状态 / 调用者不持提单码时什么都不做,让 ship_order
+--   自己按它原来的名字拒(本 fixture 断言的正是那些名字)。放行本身的行为由 fixture 224 钉住。
+CREATE FUNCTION pg_temp.fx_release(p_so uuid) RETURNS void LANGUAGE plpgsql AS $fxr$
+BEGIN
+    PERFORM submit_shipping_release(p_so);
+EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE 'SHIPPING_RELEASE_NO_LINES%'
+       AND SQLERRM NOT LIKE 'SHIPPING_RELEASE_ORDER_NOT_SHIPPABLE%'
+       AND SQLERRM NOT LIKE 'SO_NOT_FOUND%'
+       AND SQLERRM NOT LIKE 'PERMISSION_DENIED%' THEN
+        RAISE;
+    END IF;
+END;
+$fxr$;
 DO $$
 DECLARE
     v_user uuid := gen_random_uuid();
@@ -329,6 +345,7 @@ BEGIN
     invF := create_order_invoice(soF, d, NULL, NULL, NULL, ARRAY[LF]) ->> 'code';
     resF := (reserve_stock(LF, obF, 12) ->> 'reservation_id')::uuid;
     -- 部分发货 8(预留 12):ship_order 先把预留拆开,4 回到 available
+    PERFORM pg_temp.fx_release(soF);
     PERFORM ship_order(soF, d, jsonb_build_array(
         jsonb_build_object('reservation_id', resF, 'qty', 8)));
 
@@ -484,6 +501,7 @@ BEGIN
     obH := (create_output_batch(v_mat, 100, 'kg', d, '库存中', NULL, NULL, NULL, NULL) ->> 'batch_id')::uuid;
     PERFORM create_order_invoice(soH, d, NULL, NULL, NULL, ARRAY[LH]);
     resH := (reserve_stock(LH, obH, 12) ->> 'reservation_id')::uuid;
+    PERFORM pg_temp.fx_release(soH);
     PERFORM ship_order(soH, d, jsonb_build_array(jsonb_build_object('reservation_id', resH)));
     IF (SELECT status FROM sales_orders WHERE id = soH) <> 'shipped' THEN
         RAISE EXCEPTION 'FIXTURE 70H 前置失败:整单发完应当是 shipped,实得 %',

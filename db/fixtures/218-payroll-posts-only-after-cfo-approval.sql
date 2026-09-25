@@ -78,7 +78,9 @@ BEGIN
         (r_l2, 'module.purchasing.view'), (r_l2, 'data.view_prices'), (r_l2, 'data.view_purchase_prices'), (r_l2, 'module.finance.view'),
         (r_l2, 'module.hr.view'), (r_l2, 'data.view_pay'),
         -- ★ ROLE-1 Batch 4b:收货定价申请这条链的门(module.inbound.view + 采购码),否则开不了审批
-        (r_l2, 'module.inbound.view');
+        (r_l2, 'module.inbound.view'),
+        -- ★ APR-5b:发货放行这条链的门(module.sales.view + data.view_prices),否则开不了审批
+        (r_l2, 'module.sales.view');
     INSERT INTO user_roles (user_id, role_id) VALUES
         (u_fin, r_fin), (u_cfo, r_l2), (u_cfo2, r_fin), (u_l1, r_l1);
 

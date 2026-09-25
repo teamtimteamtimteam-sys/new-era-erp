@@ -242,6 +242,14 @@ export const REMINDERS = [
     //   decide_invoice_request 在服务端裁。item_id 是【发票】的 id —— 申请住在发票页上。
     { itemType: 'invoice_request_pending', permission: 'module.finance.view', href: '/finance/invoices',
       itemHref: (r: OpsRow) => `/finance/invoices/${r.item_id}` },
+    // APR-5b:等 CFO 批的发货放行。读得到放行的人都看得见(module.sales.view);谁能批由
+    //   decide_shipping_release 在服务端裁。item_id 是【订单】的 id —— 放行住在订单页上。
+    { itemType: 'shipping_release_pending', permission: 'module.sales.view', href: '/sales/orders',
+      itemHref: (r: OpsRow) => `/sales/orders/${r.item_id}` },
+    // APR-5b:放行过、还没发完的订单 —— 仓库的信号(action.ship_goods)。仓库进不了订单页,
+    //   所以每一件都指向发货队列本身。
+    { itemType: 'shipping_release_ready', permission: 'action.ship_goods', href: '/logistics/shipping',
+      itemHref: () => '/logistics/shipping' },
 ] as const satisfies readonly Reminder[]
 
 /**

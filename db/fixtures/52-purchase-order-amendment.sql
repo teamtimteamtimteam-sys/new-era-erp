@@ -39,7 +39,9 @@ BEGIN
     VALUES ('fixture-52', 'f', 'f', true) RETURNING id INTO r_all;
     INSERT INTO role_permissions (role_id, permission_code)
     SELECT r_all, unnest(ARRAY['module.purchasing.view','module.purchasing.edit',
-        'module.inbound.view','module.inbound.edit','module.finance.view','data.view_prices', 'data.view_purchase_prices']);
+        'module.inbound.view','module.inbound.edit','module.finance.view','data.view_prices', 'data.view_purchase_prices',
+        -- ★ APR-5b:发货放行这条链的门(module.sales.view + data.view_prices),否则开不了审批
+        'module.sales.view']);
     -- 【SOD-1:一级审批角色必须有【真的登录得了的】持有人】trg_approvals_switch
     -- 数的是 user_roles ⋈ auth.users —— 只由幽灵持有的角色是一个没有人来批的队列。
     -- CHAIN-BUILD-1(R3):持有人要【真的登录得了】—— confirmed_at 是生成列,

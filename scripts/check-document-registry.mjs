@@ -83,7 +83,11 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // APR-5a(2026-09-25):230 → 231。新增 `invoice_requests`(贷项 / 作废发票的申请,CFO 批,批准当场过账),
 // 见 db/tables/invoice_requests.sql。**它没有 code 列**(它是对一张发票的一次请求,人读的名字是 label:
 // 发票编号 · credit note #n / void #n;不进 document_types),所以 EXPECTED_CODE_TABLES 不动。
-const EXPECTED_TABLES = 231
+// APR-5b(2026-09-25):231 → 233。新增 `shipping_releases`(发货放行,cco 提、CFO 批,批准就是放行)与
+// `shipping_release_lines`(放行点名的发票行),见 db/tables/shipping_releases.sql / shipping_release_lines.sql。
+// **两张都没有 code 列**(放行的人读名字是 label:订单编号 · release #n;不进 document_types),
+// 所以 EXPECTED_CODE_TABLES 不动。
+const EXPECTED_TABLES = 233
 const EXPECTED_CODE_TABLES = 76
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

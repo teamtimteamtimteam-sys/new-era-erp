@@ -1,4 +1,4 @@
-# APR-5 — the sales side: CFO approval for credit notes and invoice voids (5a), and the pre-shipment release (5b)
+# APR-5 — the sales side: CFO approval for credit notes and invoice voids (5a), and the pre-shipment release with warehouse shipping (5b)
 
 APR-5 was split at its grilling (Tim, 2026-09-25, Q14): **APR-5a** — credit notes, invoice voids and every direct path that
 bypassed them — shipped in this session; **APR-5b** — the CFO's pre-shipment release and warehouse shipping — is the next cut
@@ -149,7 +149,9 @@ Not provable on live: Q10's shipping refusals — there is no confirmed or parti
 ## §5 · The broken window — started, end PENDING
 
 **Start: 2026-09-25 17:22:42 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line
-reads 17:21:39). **End: PENDING — Tim reads it from Vercel.**
+reads 17:21:39). ~~**End: PENDING — Tim reads it from Vercel.**~~ **Closed in APR-5b §W** (Tim confirmed the deploy on 2026-09-25):
+end between **18:19:23** (measured — the push moved `origin/main` → `897e478a`) and **18:26:44** (derived — database clock read as
+`postgres` after the relayed confirmation). **Window: at least 56 min 41 s, at most 1 h 04 min 02 s.**
 
 What the old app does against the new database (approvals ON):
 - **Void and "Post credit note" are refused for everyone.** The old buttons call `void_invoice` / `create_credit_note`, which now
@@ -163,3 +165,173 @@ What the old app does against the new database (approvals ON):
 Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
 (a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
 **Next cut: APR-5b** (`docs/forward-queue.md` item 10), then APR-6.
+
+# APR-5b — the CFO releases an order before it ships; the warehouse ships from a price-free queue (2026-09-25)
+
+**Opening gate:** tree clean; `HEAD` = `origin/main` = `ls-remote` = `897e478a397d70a232f0cd1793cfc9d6cc948698` (APR-5a).
+**Approvals were ON and stayed ON.** Every figure below is a script's own exit line or a query named with its identity
+(`postgres`, `rolbypassrls = t`, base tables unless a view is named; views read as tim@ under `authenticated`).
+
+## §W · APR-5a's broken window — closed with bounds, labelled by kind
+
+Tim confirmed the APR-5a deploy on 2026-09-25, before this session began.
+
+| | time (CST) | kind |
+|---|---|---|
+| start | 2026-09-25 17:22:42 | `db/apply_migration.sh`'s own line (`db/migration-windows.tsv`) |
+| end, lower bound | 18:19:23 | **measured**: the push moved `origin/main` → `897e478a` (`git reflog show --date=iso refs/remotes/origin/main`) — no deploy can precede it |
+| end, upper bound | 18:26:44 | **derived**: database clock `now()` read as `postgres` (`rolbypassrls = t`) in this session, after Tim's "deployed" confirmation had arrived — **a relayed confirmation, not a measurement of Vercel** |
+
+**Window: at least 56 min 41 s, at most 1 h 04 min 02 s.** Back-noted in APR-5a §5 above.
+
+## §0 · Step 0 (grilling) and Tim's answers
+
+**What grilling found** (code read from the mirrors; live read as `postgres`, base tables, 18:26–18:29):
+1. **Q8 could not be done by quantity as the data stood** — unshipped-cancel credits were capped by amount and `credit_note_lines.qty`
+   was optional (`create_credit_note_internal.sql:143-185`, `:266`); `ship_order` capped nothing.
+2. **`ship_order` returned the sales money** (`revenue_ccy`, `revenue_base`, `currency`, `fx_rate`) — a price leak once warehouse ships.
+3. **Warehouse could not read what it shipped**: the three shipment tables read on `module.sales.view`, the delivery note embedded
+   `sales_orders` / `customers` / `materials`.
+4. **The order page's ship control also asked `module.finance.view`**, which the database never required.
+5. Live: **0 sales orders confirmed or partially shipped**, 0 invoiced-but-unshipped lines, 0 open reservations, 0 customers on hold —
+   nothing stranded or blocked by the migration.
+
+**Tim accepted all twelve recommendations (5b Q1–Q12)**, adding one ruling: **the warehouse queue shows the order's delivery
+address** (5b Q6) — recorded under AGENTS.md standing decision 3 as its one named exception.
+- **Q1** — unshipped-cancel lines carry a quantity at submit (`CN_UNSHIPPED_CANCEL_QTY_REQUIRED` · `…_EXCEEDS`); shipping is capped at
+  invoiced − Σ cancelled − shipped (`SO_SHIP_EXCEEDS_RELEASABLE|order|line|qty|ceiling`); no automatic release above the ceiling;
+  `APR5-PARTIALLY-SHIPPED-HAS-NO-EXIT` stays registered.
+- **Q2 / Q3 / Q4** — `shipping_release_lines` names invoice lines; coverage = approved and not voided; one submitted per order,
+  several approved may coexist, a covered line cannot be named again; the raiser or any request-code holder withdraws; only a void lapses.
+- **Q5** — `ship_order` returns no money. **Q6** — the queue as proposed plus the delivery address. **Q7** — the three shipment
+  tables read on `module.sales.view OR action.ship_goods`; the delivery note reads through a DEFINER reader. **Q8** — the ship control
+  lives only at `/logistics/shipping`. **Q9** — container attach/detach registered, not changed. **Q10** — margin NULL ("not costed")
+  when any batch has no cost. **Q11** — two dashboard arms. **Q12** — fixture 224 with a fault injection.
+
+## §1 · What 5b shipped
+
+Migration `db/migrations/2026-09-25-apr5b-the-cfo-releases-and-the-warehouse-ships.sql` (built by
+`db/scripts/build_apr5b_migration.py` from the mirrors).
+- **Two new codes, both also to admin** (the standing ruling): `action.request_shipping_release` → cco · admin;
+  `action.ship_goods` → warehouse · admin. Warehouse is **not** given `module.sales.view`.
+- **`shipping_releases` + `shipping_release_lines`** (`db/tables/…`): `submitted → approved | rejected | withdrawn`; label
+  `order · release #n`; `amount_base` = Σ named invoice lines. Read on `module.sales.view`; no write policy; anon revoked.
+- **Functions:** `submit_shipping_release` (`action.request_shipping_release`; `SHIPPING_RELEASE_OPEN` · `…_ORDER_NOT_SHIPPABLE` ·
+  `…_NO_LINES` · `…_LINE_NOT_INVOICED` · `…_LINE_ALREADY_RELEASED` · `assert_other_decider` → `…_NO_OTHER_DECIDER`; approvals off →
+  approved, `auto_approved`) · `decide_shipping_release` (`module.sales.view` + `data.view_prices`; `forbid_self_approval(created_by,
+  NULL, 'shipping_release')`; level 2 directly; reject needs a reason) · `withdraw_shipping_release` · readers
+  `shipping_release_context` (CFO) · `shipping_queue_rows` (warehouse, no price, delivery address) · `shipment_document`
+  (delivery note header and lines).
+- **`ship_order`:** gate `action.ship_goods`; `SO_SHIP_CUSTOMER_ON_HOLD` · `SO_SHIP_NOT_RELEASED` · `SO_SHIP_EXCEEDS_RELEASABLE`;
+  partial shipment calls `release_reservation_internal`; no money in its return. `record_shipment_issue` gate `action.ship_goods`.
+  `release_reservation` / `reserve_stock` keep their gates and call `*_internal` (EXECUTE revoked from `authenticated`).
+  The ceiling's one derivation is the base view `sales_order_line_releasable_all` (revoked; read by `ship_order`, the queue and the
+  dashboard arm — a function would 42501 every dashboard reader through the owner-rights view).
+- **Engine:** chain-gate row (level 2, `module.sales.view` + `data.view_prices`) · pending arm (`blocks_disable`, `fixed_level` 2) ·
+  `approval_log` CHECK + read branch · `record_approval_decision` branch · `operations_now` arms `shipping_release_pending` and
+  `shipping_release_ready` + reminders · `docs/dashboard-arm-inventory.md` rows 36–37. `self_approval_exception` untouched.
+- **Screens (en/zh):** order page — the release panel (raise with line picks, CFO context, Approve / Reject behind
+  `data.view_prices`, Withdraw behind the request code or the raiser's own account, history with lapsed lines struck through) and a
+  visible line pointing to the queue in place of the ship control; `/logistics/shipping` — the queue (registry entry on
+  `action.ship_goods`, "restricted" for everyone else); shipment page and delivery-note PDF read through `shipment_document`, accept
+  `action.ship_goods`, and the issue control is disabled with the code for cco; the credit-note form requires a quantity on
+  unshipped-cancel lines.
+- **Fixtures:** 224 new (A–P; injection: a queue reader with an extra `unit_price` column must turn the column-list assertion red).
+  Thirteen approvals-on fixtures give their level-2 role `module.sales.view` (the new gate pair); 68–71 raise a born-approved
+  release before each shipment (their subject is not the release); 68 / 69 read `reserve_stock_internal`'s source; 69E now proves
+  the second wall (`SO_SHIP_EXCEEDS_RELEASABLE`) under its injection; 223 adds quantities; 205 7 → 8; 111 39 → 41 arms.
+
+## §2 · Verification — every figure is the script's own exit line
+
+| step | result |
+|---|---|
+| `db/gate.py --offline` | run 1 `GATE_EXIT=4` (13 approvals-on fixtures: `APPROVALS_CHAIN_HAS_NO_APPROVER|decide_shipping_release`; 69E's injection met the new ceiling) · run 2 `GATE_EXIT=4` (223 lacked quantities) · runs 3–5 `GATE_EXIT=4` (224's own arms: I3 expected a re-reservation the code does not make; a fake sha) · run 6 `GATE_EXIT=0`, 51 s |
+| migration dry run on live (`COMMIT` → `ROLLBACK`) | `DRY_OWN_EXIT=0`; read back as `postgres`: 0 new codes, no table |
+| backup | `BACKUP_EXIT=0` — `evoltrya-backup-2026-09-25-1931.dump`, TOC 6,293 (previous 6,261) |
+| rebuilt migration vs dry-run file | byte-identical (`cmp`) |
+| `db/apply_migration.sh` | `APPLY_OWN_EXIT=0`; preflight 17 functions (8 replaced · 9 new); **window start 19:52:50 CST** (applied at 19:50:51) |
+| types (`npm run types:gen`, after `NOTIFY pgrst`) | `TYPES_OWN_EXIT=0` (+195 lines) |
+| `npx tsc --noEmit` | `TSC_OWN_EXIT=0` |
+| `npm run build` | first `BUILD_OWN_EXIT=1` (the deep-route list was stale for `/logistics/shipping` — regenerated) · then `BUILD_OWN_EXIT=0` |
+| `db/gate.py` (full) | `GATE_EXIT=0`, 431 s: rebuildable ✓ · mirrors vs live ✓ · 227 fixtures ✓ · anon surface ✓ (relations 326, functions 1) |
+| `check-i18n` | `I18N_OWN_EXIT=0` |
+| `check-error-swallowing` | `SWALLOW_OWN_EXIT=0` (0 unallowed) |
+| smoke (detached) | `SMOKE_EXIT=0` — 254 ok, 7 skipped (no data), 0 failed. **Clean-up read back at 20:38:18 as `postgres`:** `smoke-%` accounts 0 · `probe-%` roles 0 · probe grants 0 · unrevoked grants 7 (as before) · `.ephemeral/` empty |
+
+## §3 · Live proof
+
+**Script:** `db/scripts/2026-09-25-apr5b-live-proof.sql` — one transaction, `ROLLBACK`, as `postgres`; each cell sets
+`request.jwt.claims` to a real account under `SET LOCAL ROLE authenticated`. **`PROOF_OWN_EXIT=0`** (finished 20:42:41).
+Three earlier runs stopped **in setup, before any cell**, and rolled back: OUT-2026-0007 refused `SALE_FORM_NOT_SET` (a run output
+with no material form); CUS-2026-0004 has no payment terms and no default tax code, so the proof passes 30 days and `ZR` to
+`create_order_invoice`. OUT-2026-0002 is the only reservable batch with stock ≥ 17 and it is uncosted — so the margin cell shows
+the "not costed" path live (fixture 224 F pins the same).
+
+| cell | who | what | result |
+|---|---|---|---|
+| S0 | sandra@ · chooer@ | build SO-2026-0005 (2 lines) + SO-2026-0006 through the ordinary doors, reserve on OUT-2026-0002, invoice INV-2026-0010 | done (inside the transaction) |
+| A1 / A2 | fusheng@ · sandra@ | ship before any release · cco ships | `SO_SHIP_NOT_RELEASED|SO-2026-0005|1` · `PERMISSION_DENIED|action.ship_goods` |
+| B1 / B2 | sandra@ · postgres | raise | submitted, 2 lines, 300.00, JE unchanged · pending arm `blocks_disable`, `fixed_level` 2, deciders: tim@ |
+| B3 / B4 / B5 | sandra@ · sandra@ · fusheng@ | second raise · decide own · warehouse raises | `SHIPPING_RELEASE_OPEN|…` · `SELF_APPROVAL_FORBIDDEN|raiser` · `PERMISSION_DENIED|action.request_shipping_release` |
+| N1 | admin@ | raise on SO-2026-0006 | `SHIPPING_RELEASE_NO_OTHER_DECIDER|SO-2026-0006`, 0 rows left |
+| C1 / C2 | fusheng@ · tim@ | CFO context | `PERMISSION_DENIED|module.sales.view` · limit none, hold false, exposure 704.00, INV-2026-0010 open 300.00 not paid, line 1 invoiced 200.00, cost NULL, margin NULL |
+| G1 | tim@ | approve | approved; log approved, level 2, tim@, `self_decided` false; nothing posted |
+| Q1 / Q2 | fusheng@ · sandra@ | the queue | 2 rows, delivery address shown, the nineteen columns (no price, currency, rate, amount, margin, invoice code, balance) · `PERMISSION_DENIED|action.ship_goods` |
+| H1 | tim@ → fusheng@ | hold the customer, ship | `SO_SHIP_CUSTOMER_ON_HOLD|SO-2026-0005|CUS-2026-0004`; hold lifted |
+| F1 / F2 | fusheng@ | ship line 1, 4 of 10 | SHP-2026-0002; return keys `code, line_count, order_status, revenue_journal, ship_date, shipment_id`; 2500 −340.00 → −260.00 · 4000 −38,493.00 → −38,573.00 · 1220 / 5000 unchanged (uncosted batch) |
+| F3 / F4 / F5 | fusheng@ · fusheng@ · sandra@ | read shipments + delivery note · issue it · cco issues | 2 shipments, delivery note with the customer and no price · OK · `PERMISSION_DENIED|action.ship_goods` |
+| K1 / K2 / K3 | chooer@ · fusheng@ · fusheng@ | cancel without qty · after tim@ approved cancelling 2, ship the re-reserved 6 · ship 4 | `CN_UNSHIPPED_CANCEL_QTY_REQUIRED|INV-2026-0010|1` · `SO_SHIP_EXCEEDS_RELEASABLE|SO-2026-0005|1|6|4` · OK (order stays `partially_shipped` — `APR5-PARTIALLY-SHIPPED-HAS-NO-EXIT`) |
+| V1 | tim@ · chooer@ · fusheng@ | approve SO-2026-0006's release, void its invoice, re-invoice, ship | `SO_SHIP_NOT_RELEASED|SO-2026-0006|1`; the release row is still `approved` (coverage lapsed by itself) |
+| I1 | fusheng@ | `release_reservation_internal` | `permission denied for function release_reservation_internal` |
+| L1 / L2 / L3 | tim@ · postgres | list vs ledger after the whole lifecycle | AP 416,988.32 / 376,404.42 · AR 57,845.87 / 43,302.12 — **unexplained 0.00 both sides**; nothing left waiting |
+
+**Before and after readings** — `db/scripts/2026-09-25-apr5b-readings.sql`, before at 19:32:31, after at 20:43:22 (part 1 as
+`postgres`, base tables; part 2 as tim@ on views; part 3 each account as itself):
+- **identical:** approvals on (L1 finance, L2 cfo, threshold 1000); pending — 1 expense claim (1,000.00), 2 leave, 1 medical
+  approved-unpaid, 5 open stocktakes, 0 PO / payment / payroll / receipt-price / invoice requests; `approval_pending_documents()` =
+  1 expense claim; journal entries 82; approval_log 14; invoices, lines, credit notes, shipments 3, shipment lines 1, shipment issues 3,
+  sales records 9, live reservations 0, customers on hold 0; balances 1100 43,002.12 · 1220 134.86 · 2500 0.00 · 4000 −38,493.00 ·
+  5000 809.14; AP list 416,988.32 / ledger 376,404.42, AR list 57,545.87 / ledger 43,002.12, **unexplained 0.00 both sides**;
+  every other role's code count and md5 (auditor 20 · cfo 30 `730763e8…` · cto 32 · finance 38 `49745fb9…` · gm 21 …); 7 unrevoked grants.
+- **changed, as intended:** catalogue 64 → 66; `action.request_shipping_release` = admin cco; `action.ship_goods` = admin warehouse;
+  admin 63 → 65 (`485022c5…`), cco 37 → 38 (`59932566…`), warehouse 23 → 24 (`a3e9b958…`) — and the same for admin@, sandra@,
+  fusheng@'s `current_user_permissions()`; `shipping_releases` exists (0 rows, 0 pending); the three shipment read policies are
+  `module.sales.view OR action.ship_goods`; `ship_order` and `record_shipment_issue` gate on `action.ship_goods`.
+- **Nothing left pending by this cut; every pending document still has a decider who is not its own party** (the migration's own
+  proof printed each — CLM-2026-0004 → tim@; leave → admin@, tim@; MC-2026-0001 → admin@, chooer@; stocktakes → chooer@;
+  shipping_release deciders: 1).
+
+## §4 · Who can no longer do what, and who newly can (approvals on)
+
+- **Sandra (cco):** can no longer ship or issue delivery notes. Newly raises and withdraws shipping releases. Still creates, confirms,
+  amends and cancels orders and reserves / releases stock.
+- **tim@ (cfo):** newly decides every shipping release, seeing exposure, credit limit, hold, the invoice's open balance and per-line
+  margin. Raises nothing, ships nothing.
+- **Fu Sheng (warehouse):** newly ships from `/logistics/shipping` (no prices; the delivery address), reads the shipments he made and
+  issues their delivery notes. Still no `module.sales.view` — the order page stays closed to him.
+- **admin@:** holds both new codes; can ship; a release raised from it is refused at submit (same person as tim@, the only level-2
+  holder); cannot decide (not cfo).
+- **Choo Er (finance):** unshipped-cancel credit requests now need a quantity. **Phua, Vince:** read the release panel; nothing else.
+- **No document is left with only its raiser eligible:** Sandra's releases → tim@.
+
+## §5 · The broken window — started, end PENDING
+
+**Start: 2026-09-25 19:52:50 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line
+reads 19:50:51). **End: PENDING — Tim reads it from Vercel.**
+
+What the old app does against the new database (approvals ON):
+- **Shipping is refused for everyone.** Sandra's ship button (old order page) → `PERMISSION_DENIED|action.ship_goods` (the old
+  copy says "restricted"); admin@'s → `SO_SHIP_NOT_RELEASED`, which the old copy has no sentence for (the generic unexpected-error
+  text with the code). There is no screen to raise a release and no shipping queue until the deploy. **Live impact: none** —
+  there is no confirmed or partially shipped order on live (Step 0 and the before reading).
+- **Delivery notes:** issuing refuses cco (`PERMISSION_DENIED|action.ship_goods`); previews still render for `module.sales.view`.
+- **An unshipped-cancel credit request without a quantity** → `CN_UNSHIPPED_CANCEL_QTY_REQUIRED`, which the old copy shows
+  as the generic text with the code; the old form's quantity field works if filled.
+- **Unaffected:** invoicing, receipts and payments, credit-note and void requests with quantities, every approval chain, the switch,
+  everything pending, and every other screen (the smoke ran the new code against the new database).
+
+## §6 · Commit, push, three SHAs
+
+Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
+(a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
+**Next cut: APR-6** (`docs/forward-queue.md` item 11).

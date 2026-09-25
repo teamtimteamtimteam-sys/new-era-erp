@@ -8,7 +8,9 @@ DECLARE
     v_ship shipments%ROWTYPE;
     v_next integer;
 BEGIN
-    PERFORM require_permission('module.sales.edit');
+    -- ★ APR-5b(Tim 2026-09-25,APR-5 grilling Q7):开具发货单归发货的人 —— action.ship_goods
+    --   (warehouse · admin);cco 从此不发货,也不开发货单。
+    PERFORM require_permission('action.ship_goods');
 
     SELECT * INTO v_ship FROM shipments WHERE id = p_shipment_id;
     IF NOT FOUND THEN

@@ -10,6 +10,7 @@
 --   C  同一张发票第二张申请 → INVOICE_REQUEST_OPEN
 --   D  谁批不了:提单人 → SELF_APPROVAL_FORBIDDEN|raiser;一级 → APPROVAL_NOT_AUTHORISED|2;
 --        驳回不给理由 → INVOICE_REQUEST_REJECT_REASON_REQUIRED
+--   ★ APR-5b(2026-09-25,grilling Q1):未发货取消从此提交时必带数量 —— 本 fixture 的三处贷项申请补上 qty(= 金额 ÷ 单价 10)。
 --   E  ★ Q10:一条挂在在等的 unshipped_cancel 贷项申请里的发票行,发货 → INVOICE_CREDIT_REQUESTED
 --   F  ★★ CFO 批准:当场过账,日期 = 冻结的凭证日;贷项通知一张、分录一张;1100 的减少 = 申请上的金额;
 --        留痕 approved;申请上挂着贷项通知与分录
@@ -110,6 +111,8 @@ BEGIN
         -- 二级:CFO 的形状 —— 读得到、看得见,【没有】module.finance.edit
         (r_l2, 'module.purchasing.view'), (r_l2, 'data.view_prices'), (r_l2, 'data.view_purchase_prices'),
         (r_l2, 'module.finance.view'), (r_l2, 'module.hr.view'), (r_l2, 'data.view_pay'), (r_l2, 'module.inbound.view'),
+        -- ★ APR-5b:发货放行这条链的门(module.sales.view + data.view_prices),否则开不了审批
+        (r_l2, 'module.sales.view'),
         (r_wh, 'module.inventory.view'), (r_wh, 'module.sales.view');
     INSERT INTO user_roles (user_id, role_id) VALUES
         (u_set, r_all), (u_fin, r_fin), (u_fin2, r_fin), (u_cfo, r_l2), (u_cfo2, r_fin), (u_l1, r_l1), (u_wh, r_wh);
@@ -199,7 +202,7 @@ BEGIN
     v_ar0 := pg_temp.f223_ar(invA);
     PERFORM pg_temp.f223_as(u_fin);
     v_res := submit_credit_note_request(invA, d0, 'fixture 223 B:第 1 行少发 4',
-        jsonb_build_array(jsonb_build_object('invoice_line_id', ilA1, 'kind', 'unshipped_cancel', 'amount', 40)));
+        jsonb_build_array(jsonb_build_object('invoice_line_id', ilA1, 'kind', 'unshipped_cancel', 'amount', 40, 'qty', 4)));
     q := (v_res->>'request_id')::uuid;
     IF v_res->>'status' <> 'submitted' OR (v_res->>'amount_base')::numeric <> 40 THEN
         RAISE EXCEPTION 'FIXTURE 223B1 失败:审批开着时应当提一张 submitted、金额 40 的申请,实得 %', v_res; END IF;
@@ -307,7 +310,7 @@ BEGIN
     SELECT count(*) INTO v_n FROM invoice_requests;
     PERFORM pg_temp.f223_as(u_cfo2);
     v_msg := pg_temp.f223_try(format('SELECT submit_credit_note_request(%L, %L, %L, %L::jsonb)', invB, d0, 'fixture 223 J',
-        jsonb_build_array(jsonb_build_object('invoice_line_id', ilB1, 'kind', 'unshipped_cancel', 'amount', 10))));
+        jsonb_build_array(jsonb_build_object('invoice_line_id', ilB1, 'kind', 'unshipped_cancel', 'amount', 10, 'qty', 1))));
     IF v_msg <> 'INVOICE_REQUEST_NO_OTHER_DECIDER|' || invB_code THEN
         RAISE EXCEPTION 'FIXTURE 223J1 失败:CFO 那个人的另一个账号提,应当按名拒,实得 %', v_msg; END IF;
     IF (SELECT count(*) FROM invoice_requests) <> v_n THEN
@@ -316,7 +319,7 @@ BEGIN
     -- ══════════════ K · 驳回 ══════════════
     PERFORM pg_temp.f223_as(u_fin);
     v_res := submit_credit_note_request(invB, d0, 'fixture 223 K',
-        jsonb_build_array(jsonb_build_object('invoice_line_id', ilB1, 'kind', 'unshipped_cancel', 'amount', 10)));
+        jsonb_build_array(jsonb_build_object('invoice_line_id', ilB1, 'kind', 'unshipped_cancel', 'amount', 10, 'qty', 1)));
     q := (v_res->>'request_id')::uuid;
     SELECT count(*) INTO v_je0 FROM journal_entries;
     SELECT count(*) INTO v_cn0 FROM credit_notes;
@@ -377,7 +380,7 @@ BEGIN
     SELECT count(*) INTO v_cn0 FROM credit_notes;
     PERFORM pg_temp.f223_as(u_fin);
     v_res := submit_credit_note_request(invB, d0, 'fixture 223 N',
-        jsonb_build_array(jsonb_build_object('invoice_line_id', ilB1, 'kind', 'unshipped_cancel', 'amount', 10)));
+        jsonb_build_array(jsonb_build_object('invoice_line_id', ilB1, 'kind', 'unshipped_cancel', 'amount', 10, 'qty', 1)));
     q := (v_res->>'request_id')::uuid;
     IF v_res->>'status' <> 'approved'
        OR (SELECT status FROM invoice_requests WHERE id = q) <> 'approved'

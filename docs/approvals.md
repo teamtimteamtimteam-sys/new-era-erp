@@ -1552,6 +1552,52 @@ void propagation (`INVOICE_IMMUTABLE` otherwise, owner path included) · `revers
 gives its level-2 role. Fixture 205's own-document-gap count went 6 → 7; fixture 111 has 39 arms; nine fixtures that called the
 two doors now call the `*_internal` engines (their subject is the engine's arithmetic, not the door).
 
+## 3r · APR-5b (2026-09-25) — the CFO releases an order before it ships; the warehouse ships from a price-free queue
+
+The cut is `docs/handbacks/APR-5.md` § APR-5b; this section records only what changes **for approvals**. The shape was ruled at
+the APR-5 grilling (Q2–Q8, Q13's `shipping_release`); Tim accepted all twelve 5b grilling recommendations, adding one ruling
+(5b Q6: the warehouse queue shows the delivery address).
+
+### The lifecycle
+`submitted → approved`, plus `rejected` (reason required) and `withdrawn`, on `shipping_releases` with its named lines in
+`shipping_release_lines` (one row per **invoice line**). **There is no `executed`: the approval IS the release** — the warehouse
+then ships against it, in one or several shipments. Nothing posts at approval; revenue posts when goods ship.
+* **Raise:** cco (`action.request_shipping_release`, new; also admin). `submit_shipping_release(order, invoice_line_ids)` —
+  `NULL` names every invoiced line not yet covered (5b Q2). One **submitted** release per order (`SHIPPING_RELEASE_OPEN`);
+  several approved ones may coexist, and a line already covered cannot be named again (`SHIPPING_RELEASE_LINE_ALREADY_RELEASED`).
+* **Approve:** the CFO, every one, no threshold. `decide_shipping_release` goes to level 2 directly. Gate
+  `{module.sales.view, data.view_prices}` — the order page's code plus the price code (the raise code is not the gate; §5).
+  Raiser leg judged per person: `forbid_self_approval(created_by, NULL, 'shipping_release')`; an order is nobody's "own
+  document". The CFO reads `shipping_release_context` (same gate): exposure, credit limit and hold, the invoice's open balance
+  and whether it is paid, per-line margin — **NULL ("not costed") when any reserved batch has no cost, never 0**.
+* **Withdraw:** the raiser's person or any `action.request_shipping_release` holder. Written on the row, not in `approval_log`.
+* **Coverage is derived, not stored:** a line may ship ⟺ an approved release names its invoice line **and** that invoice line
+  is not voided. So voiding the invoice lapses the release by itself (Q3; 5b Q4 — the only thing that lapses one); a line
+  invoiced later needs its own release.
+* **Approvals OFF:** born `approved`, `auto_approved` row.
+* **Nobody-but-the-raiser refuses at submit** (`assert_other_decider` → `SHIPPING_RELEASE_NO_OTHER_DECIDER`). On live: admin@.
+
+### What `ship_order` now refuses (the release is only half of it)
+Gate `action.ship_goods` (warehouse, admin — new; cco no longer ships, Q7) · customer on credit hold **at shipping time** →
+`SO_SHIP_CUSTOMER_ON_HOLD` (Q6; the release stays valid) · line not covered → `SO_SHIP_NOT_RELEASED` · more than invoiced −
+unshipped-cancel credits − already shipped → `SO_SHIP_EXCEEDS_RELEASABLE` (Q8; the one derivation is the base view
+`sales_order_line_releasable_all`). Unshipped-cancel credit requests must now carry a quantity (`CN_UNSHIPPED_CANCEL_QTY_REQUIRED`
+· `…_EXCEEDS`, 5b Q1). Its return value carries no money (5b Q5).
+
+### How it registers in the engine (Q13)
+| piece | what was added |
+|---|---|
+| `approval_chain_gates()` | **one** row: `shipping_release / decide_shipping_release / level 2 / {module.sales.view, data.view_prices}` |
+| `approval_pending_documents()` | an arm for `status = 'submitted'`: `blocks_disable = true`, `fixed_level = 2`, subject `NULL`, amount = Σ named invoice lines' `amount_base` |
+| `approval_log` | subject type `shipping_release` (CHECK); `record_approval_decision` branch (raiser `created_by`, subject `NULL`, base currency, rate 1); RLS read branch on `module.sales.view` |
+| `operations_now` / reminders | `shipping_release_pending` (`module.sales.view`, to the order page) · `shipping_release_ready` (`action.ship_goods`, to `/logistics/shipping`) |
+| `self_approval_exception` | **unchanged** |
+
+☞ **Consequence for fixtures:** unlike 5a, the gate pair is new — **thirteen approvals-on fixtures** (35 · 52 · 127 · 151 · 202 ·
+203 · 204 · 206 · 210 · 211 · 218 · 220 · 223) now give their level-2 role `module.sales.view`, or the switch refuses with
+`APPROVALS_CHAIN_HAS_NO_APPROVER|decide_shipping_release`. Fixture 205's own-document-gap count 7 → 8; fixture 111 has 41 arms;
+fixtures 68–71 raise a born-approved release before each shipment; fixture 224 pins the lifecycle.
+
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
 **Found while building CHAIN-BUILD-1; folded into the same predicate.**

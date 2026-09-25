@@ -26,6 +26,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import ShipmentLinesTable, { type ShipmentLineRow } from './ShipmentLinesTable'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { can } from '@/lib/permissions'
 
 export default async function ShipmentDetailPage({
     params,
@@ -33,22 +34,26 @@ export default async function ShipmentDetailPage({
     params: Promise<{ id: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
-    const denied = await requireModule(MOD.sales)
-    if (denied) return denied
+    // ★ APR-5b(5b grilling Q7):发货的人读得到他发的货 —— module.sales.view 或 action.ship_goods
+    //   (与三张发货表的读策略同一对码)。仓库不持 sales.view,所以先问发货码,再退回销售模块的那一句拒绝。
+    const canShip = await can('action.ship_goods')
+    if (!canShip) {
+        const denied = await requireModule(MOD.sales)
+        if (denied) return denied
+    }
+    const canOpenOrder = await can('module.sales.view')
 
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
 
+    // 发货单本身(含集装箱:module.logistics.view)从表读;订单、客户、物料与行经 shipment_document()
+    // (属主权限,同一对码)—— 仓库读不到 sales_orders / customers / materials,内嵌会悄悄变成空。
     const head = mustOne(
         await supabase
             .from('shipments')
-            .select(
-                'id, code, ship_date, notes, created_at, container_id, ' +
-                'containers ( id, code ), ' +
-                'sales_orders ( id, code, customers ( code, legal_name ) )'
-            )
+            .select('id, code, ship_date, notes, created_at, container_id, containers ( id, code )')
             .eq('id', id)
             .maybeSingle(),
         'shipments'
@@ -60,28 +65,14 @@ export default async function ShipmentDetailPage({
         created_at: string
         container_id: string | null
         containers: { id: string; code: string } | null
-        sales_orders: {
-            id: string
-            code: string
-            customers: { code: string; legal_name: string } | null
-        } | null
     } | null
 
     // 【读不到 = 404,不是一张空页】而 mustOne 已经把"查询失败"与"没有这一行"
     // 分开了:失败会抛,到不了这里。
     if (!head) notFound()
 
-    const [linesRes, issuesRes] = await Promise.all([
-        supabase
-            .from('shipment_lines')
-            .select(
-                'id, qty, ' +
-                'output_batches ( code, unit, materials ( code, name ) ), ' +
-                'storage_locations ( code, name ), ' +
-                'sales_order_lines ( line_no )'
-            )
-            .eq('shipment_id', id)
-            .order('created_at'),
+    const [docRes, issuesRes] = await Promise.all([
+        supabase.rpc('shipment_document', { p_shipment_id: id }),
         supabase
             .from('shipment_issues')
             .select('version, issued_at, sha256')
@@ -89,36 +80,32 @@ export default async function ShipmentDetailPage({
             .order('version', { ascending: false }),
     ])
 
-    const lines = mustRows(linesRes, 'shipment_lines') as unknown as {
-        id: string
-        qty: number
-        output_batches: {
-            code: string
-            unit: string
-            materials: { code: string; name: string } | null
-        } | null
-        storage_locations: { code: string; name: string } | null
-        sales_order_lines: { line_no: number } | null
-    }[]
+    const doc = mustOne(docRes, 'shipment_document') as unknown as {
+        order_id: string; order_code: string; customer_code: string | null; customer_name: string | null
+        lines: { id: string; qty: number; line_no: number | null; batch_code: string | null; unit: string | null
+                 material_code: string | null; material_name: string | null
+                 location_code: string | null; location_name: string | null }[]
+    } | null
+    const lines = doc?.lines ?? []
     const issues = mustRows(issuesRes, 'shipment_issues') as unknown as {
         version: number
         issued_at: string
         sha256: string
     }[]
 
-    const order = head.sales_orders
-    const customer = order?.customers ?? null
+    const order = doc ? { id: doc.order_id, code: doc.order_code } : null
+    const customer = doc?.customer_code ? { code: doc.customer_code, legal_name: doc.customer_name ?? '' } : null
 
     // ★【行数据在服务端压平】三层嵌套在这里摊平(CONV-1 §①)。
     const tableRows: ShipmentLineRow[] = lines.map((l) => ({
         id: l.id,
-        lineNo: l.sales_order_lines?.line_no != null ? String(l.sales_order_lines.line_no) : '—',
-        materialCode: l.output_batches?.materials?.code ?? '',
-        materialName: l.output_batches?.materials?.name ?? '',
-        batchCode: l.output_batches?.code ?? '—',
-        locationCode: l.storage_locations?.code ?? '',
-        locationName: l.storage_locations?.name ?? '',
-        qtyText: `${l.qty} ${l.output_batches?.unit ?? ''}`.trim(),
+        lineNo: l.line_no != null ? String(l.line_no) : '—',
+        materialCode: l.material_code ?? '',
+        materialName: l.material_name ?? '',
+        batchCode: l.batch_code ?? '—',
+        locationCode: l.location_code ?? '',
+        locationName: l.location_name ?? '',
+        qtyText: `${l.qty} ${l.unit ?? ''}`.trim(),
     }))
 
     return (
@@ -135,9 +122,16 @@ export default async function ShipmentDetailPage({
                 /* 【回到订单】发货单永远属于一张订单,所以这条链接总是有意义的 */
                 order ? (
                     <p className="text-sm mb-4">
-                        <Link href={`/sales/orders/${order.id}`} className="hover:underline app-link">
-                            {t('sales.shipDetail.backToOrder', { code: order.code })}
-                        </Link>
+                        {/* ★ APR-5b:仓库进不了订单页(不持 module.sales.view)—— 给它一条回队列的路,订单号照印 */}
+                        {canOpenOrder ? (
+                            <Link href={`/sales/orders/${order.id}`} className="hover:underline app-link">
+                                {t('sales.shipDetail.backToOrder', { code: order.code })}
+                            </Link>
+                        ) : (
+                            <Link href="/logistics/shipping" className="hover:underline app-link">
+                                {t('sales.shipDetail.backToQueue', { code: order.code })}
+                            </Link>
+                        )}
                     </p>
                 ) : undefined
             }
@@ -202,6 +196,9 @@ export default async function ShipmentDetailPage({
                 //   同一句话,换到中性的那一格 —— 琥珀色是给"你不可以"用的。
                 nothingToIssueNote={t('sales.shipDetail.issueBlockedNoLines')}
                 hasLines={lines.length > 0}
+                // ★ APR-5b(Q7):开具发货单归发货的人 —— record_shipment_issue 的门是 action.ship_goods。
+                //   cco 仍读得到这一页,签发钮看得见、按不动、点名那个码(DBLOCK-1)。
+                permission={{ code: 'action.ship_goods', allowed: canShip }}
             />
             {issues.length === 0 ? (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('sales.shipDetail.neverIssued')}</p>

@@ -69,7 +69,13 @@ canEdit: boolean
     const overOpen = total > openCcy
     // 【日期空着就不给按】它决定冲销落进哪个会计期间,而服务端也【独立】拒空
     // (AGENTS.md:两道闸,UI 那道不是保护)。
-    const blocked = noteDate.trim() === '' || entered.length === 0 || overOpen
+    // ★ APR-5b(grilling Q1):一条【未发货取消】要说出取消了多少数量 —— 发货的天花板是
+    //   开票数量 − 取消的数量 − 已发,所以服务端在提交时按名拒 CN_UNSHIPPED_CANCEL_QTY_REQUIRED。
+    //   这里是同一条判据的第一道(看得见、按不动、说出理由),不是保护。
+    const missingQty = entered.some((x) =>
+        (kind[x.l.id] ?? 'unshipped_cancel') === 'unshipped_cancel'
+        && !(Number((qty[x.l.id] ?? '').trim()) > 0))
+    const blocked = noteDate.trim() === '' || entered.length === 0 || overOpen || missingQty
 
     // ── 逐行派生值:搬家前住在 `lines.map` 的闭包里,现在是行的函数 ──────────
     //    ★ 两份「两档共用的内容」照旧【提出来写一次】(TABLE-PHONE-4 的原话)。
@@ -307,6 +313,7 @@ canEdit: boolean
                 </Button>
             </div>
             {noteDate.trim() === '' && <p className="text-xs text-amber-700">{t('cn.blockedNoDate')}</p>}
+            {missingQty && <p className="text-xs text-amber-700">{t('cn.blockedNoQty')}</p>}
         </form>
     )
 }

@@ -69,7 +69,10 @@ DECLARE
         'qualification_expiring','qualification_missing',
         'receipt_price_request_pending',  -- ROLE-1 Batch 4b(2026-09-25):第三十八支
         'review_submitted',
-        'safety_stock_below','stocktake_open',
+        'safety_stock_below',
+        'shipping_release_pending',  -- APR-5b(2026-09-25):第四十支
+        'shipping_release_ready',    -- APR-5b(2026-09-25):第四十一支
+        'stocktake_open',
         'supplier_pending_approval',  -- ROLE-1 Batch 2a(2026-09-24):第三十六支
         'wht_due','work_order_overdue',
         'work_order_variance_beyond'];
@@ -313,7 +316,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 解析器一支都没解出来。**这是"解析器坏了",不是"没有支"** —— 空集不许被读成答案(check-i18n 后缀解析、mustRows、restRows 是同一条规矩)';
     END IF;
     IF v_types <> v_expected THEN
-        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这三十九支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
+        RAISE EXCEPTION 'FIXTURE 111F1 失败:进入 F1 —— 支的清单应当【恰好】是这四十一支 %,实得 %。多一支 = 有人加了臂而没有加规格行(docs/dashboard-arm-inventory.md 的规矩);少一支或改了名 = 本刀的拼接动了不该动的地方;而 dashboard.item.* 的 i18n 键集合【现读同一份清单】,所以两边必须一起动', v_expected::text, v_types::text;
     END IF;
 
     -- ② 隔离:本 fixture 立起来的数据只该点亮【新的那两支】。

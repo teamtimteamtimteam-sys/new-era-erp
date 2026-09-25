@@ -20,14 +20,30 @@
 --     并且这张单的 2500 精确归零 —— 负债只释放了一次
 --   C 边界:发 8 → 正好剩 4(5 拒 / 4 通 / 再 1 拒)
 --   D 释放的不算(反向);未动过的行 spoken_for = 0
---   E 注入:把 line_spoken_for 换回【只数活预留】→ 双重发货当场走通,
---     24 kg 出库、2500 不再归零 —— 证明 B 臂那条拒绝是这一处推导在挡
+--   E 注入:把 line_spoken_for 换回【只数活预留】→ 再预留当场走通(证明 B 臂那条拒绝是这一处推导在挡);
+--     ★ APR-5b 起发货有第二道墙:第二次发货按名拒 SO_SHIP_EXCEEDS_RELEASABLE,仍只发出 12、2500 仍归零
 --
 -- 【注入臂放在最后】fixture 64 付过这笔账:注入臂种下的行会污染后面各臂的数字。
 -- 期间锁显式设 NULL(README 第 5 条)。自带数据(第 2 条)。
 -- 汇率取【非 1】的 1.25(第 4 条的精神:两边一致时"归零"这种断言什么都不证明)。
 -- ═══════════════════════════════════════════════════════════════════════════
 BEGIN;
+-- ★ APR-5b(2026-09-25):发货要一张 approved 的放行(ship_order → SO_SHIP_NOT_RELEASED)。本 fixture 的主语不是放行,
+--   所以每一次发货之前,照这张订单此刻已开票、未覆盖的行提一张放行 —— 审批关着,生下来就是 approved
+--   (auto_approved)。没有可放行的行 / 订单不在可发状态 / 调用者不持提单码时什么都不做,让 ship_order
+--   自己按它原来的名字拒(本 fixture 断言的正是那些名字)。放行本身的行为由 fixture 224 钉住。
+CREATE FUNCTION pg_temp.fx_release(p_so uuid) RETURNS void LANGUAGE plpgsql AS $fxr$
+BEGIN
+    PERFORM submit_shipping_release(p_so);
+EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM NOT LIKE 'SHIPPING_RELEASE_NO_LINES%'
+       AND SQLERRM NOT LIKE 'SHIPPING_RELEASE_ORDER_NOT_SHIPPABLE%'
+       AND SQLERRM NOT LIKE 'SO_NOT_FOUND%'
+       AND SQLERRM NOT LIKE 'PERMISSION_DENIED%' THEN
+        RAISE;
+    END IF;
+END;
+$fxr$;
 DO $$
 DECLARE
     v_user uuid := gen_random_uuid();
@@ -111,7 +127,7 @@ BEGIN
     -- 【天花板确实读它,而不是自己再数一遍】这一条是"一处推导"本身的断言:
     -- 一个把同样算术抄进 reserve_stock 的实现,B/C/D 三臂全过,而 SO-1b 的
     -- 改单下限会读到另一份。
-    IF (SELECT prosrc FROM pg_proc WHERE proname = 'reserve_stock') NOT LIKE '%line_spoken_for(%' THEN
+    IF (SELECT prosrc FROM pg_proc WHERE proname = 'reserve_stock_internal') NOT LIKE '%line_spoken_for(%' THEN
         RAISE EXCEPTION 'FIXTURE 69A 失败:reserve_stock 的天花板没有读 line_spoken_for';
     END IF;
     IF line_spoken_for(LB) <> 0 THEN
@@ -121,6 +137,7 @@ BEGIN
     -- ══════════ B. 探针的原序列 ══════════════════════════════════════════════
     PERFORM create_order_invoice(soB, d, NULL, NULL, NULL, ARRAY[LB]);
     resB := (reserve_stock(LB, obB, 12) ->> 'reservation_id')::uuid;
+    PERFORM pg_temp.fx_release(soB);
     PERFORM ship_order(soB, d, jsonb_build_array(jsonb_build_object('reservation_id', resB)));
 
     -- 前提:单据确实停在 partially_shipped(否则下面那次预留会被【状态】挡住,
@@ -167,6 +184,7 @@ BEGIN
     PERFORM create_order_invoice(soC, d, NULL, NULL, NULL, ARRAY[LC]);
     resC := (reserve_stock(LC, obC, 12) ->> 'reservation_id')::uuid;
     -- 部分发货 8(预留 12):ship_order 先把预留拆开,4 回到 available
+    PERFORM pg_temp.fx_release(soC);
     PERFORM ship_order(soC, d, jsonb_build_array(
         jsonb_build_object('reservation_id', resC, 'qty', 8)));
 
@@ -228,26 +246,37 @@ BEGIN
 
     PERFORM create_order_invoice(soE, d, NULL, NULL, NULL, ARRAY[LE]);
     resE := (reserve_stock(LE, obE, 12) ->> 'reservation_id')::uuid;
+    PERFORM pg_temp.fx_release(soE);
     PERFORM ship_order(soE, d, jsonb_build_array(jsonb_build_object('reservation_id', resE)));
 
+    -- ★ APR-5b(2026-09-25):注入之后【预留】必须当场走通 —— 那证明 B 臂的 SO_RESERVE_EXCEEDS_LINE 是
+    --   line_spoken_for 在挡(本臂原本就要证的那一件)。而【发货】从 5b 起多了第二道墙:ship_order 的天花板
+    --   (开票 − 取消 − 已发,sales_order_line_releasable_all)与 line_spoken_for【无关】,所以第二次发货
+    --   按名拒 SO_SHIP_EXCEEDS_RELEASABLE,12 的行仍然只发出 12,2500 仍然精确归零。
+    --   (此前这一臂断言"发出 24、2500 变净借方" —— 那是没有第二道墙时的后果,5b 之后它不再成立。)
     v_ok := true;
     BEGIN
         resE := (reserve_stock(LE, obE, 12) ->> 'reservation_id')::uuid;
-        PERFORM ship_order(soE, d, jsonb_build_array(jsonb_build_object('reservation_id', resE)));
     EXCEPTION WHEN OTHERS THEN
         v_ok := false;
         v_msg := SQLERRM;
     END;
     IF NOT v_ok THEN
-        RAISE EXCEPTION 'FIXTURE 69E 失败:把判据换回【只数活预留】之后,双重发货【仍然】走不通(%)—— 说明 B 臂一直靠别的东西挡着,那条断言在空转', v_msg;
+        RAISE EXCEPTION 'FIXTURE 69E 失败:把判据换回【只数活预留】之后,再预留【仍然】走不通(%)—— 说明 B 臂一直靠别的东西挡着,那条断言在空转', v_msg;
     END IF;
+    BEGIN
+        PERFORM pg_temp.fx_release(soE);
+        PERFORM ship_order(soE, d, jsonb_build_array(jsonb_build_object('reservation_id', resE)));
+        RAISE EXCEPTION 'FIXTURE 69E 失败:注入之后第二次发货应当被 5b 的天花板按名拒(SO_SHIP_EXCEEDS_RELEASABLE),却发出去了';
+    EXCEPTION WHEN OTHERS THEN
+        IF SQLERRM NOT LIKE 'SO_SHIP_EXCEEDS_RELEASABLE|%|12|0' THEN RAISE; END IF;
+    END;
     SELECT COALESCE(sum(sl.qty), 0) INTO v_qty
       FROM shipment_lines sl JOIN shipments s ON s.id = sl.shipment_id
      WHERE s.sales_order_id = soE AND sl.sales_order_line_id = LE;
-    IF v_qty <> 24 THEN
-        RAISE EXCEPTION 'FIXTURE 69E 失败:注入之后这条 12 的行应当发出 24,实得 %', v_qty;
+    IF v_qty <> 12 THEN
+        RAISE EXCEPTION 'FIXTURE 69E 失败:第二道墙之下这条 12 的行应当仍然只发出 12,实得 %', v_qty;
     END IF;
-    -- 而且账上看得见:2500 变成【净借方】—— 负债被释放了两次
     SELECT COALESCE(sum(jl.debit - jl.credit), 0) INTO v_2500
       FROM journal_lines jl
       JOIN accounts a ON a.id = jl.account_id
@@ -255,8 +284,8 @@ BEGIN
      WHERE a.code = '2500'
        AND (je.source_id IN (SELECT id FROM shipments WHERE sales_order_id = soE)
             OR je.source_id IN (SELECT id FROM invoices WHERE sales_order_id = soE));
-    IF v_2500 <= 0 THEN
-        RAISE EXCEPTION 'FIXTURE 69E 失败:注入之后合同负债应当被释放两次(净借方 > 0),实得 %', v_2500;
+    IF v_2500 <> 0 THEN
+        RAISE EXCEPTION 'FIXTURE 69E 失败:第二道墙之下合同负债应当只释放一次(2500 精确归零),实得 %', v_2500;
     END IF;
 END $$;
 ROLLBACK;

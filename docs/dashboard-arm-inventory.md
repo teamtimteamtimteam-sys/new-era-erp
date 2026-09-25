@@ -87,6 +87,8 @@ module's own page.
 | 33 | `payroll_request_pending` | 一张工资过账或撤销过账申请已提交、等 CFO 批(PAYROLL-APR-1,Tim 的矩阵 §5) | `data.view_pay` —— 看得见工资数的人才看得见这一格(finance · cfo · cco · admin);谁能批由 `decide_payroll_request` 在服务端裁 | `payroll_requests` | `status = 'submitted'`;批准、驳回、撤回之后自动消失。`item_id` 是**工资期**的 id(申请住在工资期页上) |
 | 34 | `receipt_price_request_pending` | 一张收货定价申请已提交、等 CFO 批(ROLE-1 Batch 4b,Tim 的矩阵「收货定价与改价」;批准当场过账) | `data.view_purchase_prices` —— 看得见采购价的人都看得见这一格(Batch 4b grilling Q10;`action.price_receipts` 会把 CFO 挡在外面);谁能批由 `decide_receipt_price_request` 在服务端裁 | `receipt_price_requests` | `status = 'submitted'`;批准、驳回、撤回之后自动消失。`item_id` 是**收货**的 id(申请住在收货页上) |
 | 35 | `invoice_request_pending` | 一张贷项通知或作废发票的申请已提交、等 CFO 批(APR-5a,Tim 的矩阵「贷项通知、作废发票」;批准当场按冻结的日期过账) | `module.finance.view` —— 看得见发票的人都看得见这一格;谁能批由 `decide_invoice_request` 在服务端裁 | `invoice_requests`(× `invoices` × `customers`,主语是客户名) | `status = 'submitted'`;批准、驳回、撤回之后自动消失。`item_id` 是**发票**的 id(申请住在发票页上)|
+| 36 | `shipping_release_pending` | 一张发货放行已提交、等 CFO 批(APR-5b,Tim 的矩阵「发货:仓库执行,在 CFO 放行之后」;批准就是放行) | `module.sales.view` —— 读得到放行的人都看得见这一格;谁能批由 `decide_shipping_release` 在服务端裁 | `shipping_releases`(× `sales_orders` × `customers`,主语是客户名) | `status = 'submitted'`;批准、驳回、撤回之后自动消失。`item_id` 是**订单**的 id(放行住在订单页上)|
+| 37 | `shipping_release_ready` | 一张订单有放行过、还没发完的行(APR-5b,5b grilling Q11:仓库的信号) | `action.ship_goods` —— 只有发货的人看得见(warehouse · admin);仓库进不了订单页 | `shipping_releases` × `shipping_release_lines` × `invoice_lines`(未作废)× `sales_orders` × `customers`;剩余读 `sales_order_line_releasable_all`(与发货队列、`ship_order` 同一处推导) | 订单 confirmed / partially_shipped、放行 approved、发票行未作废、放行数量 > 已发;发完、作废、订单取消之后自动消失。一张订单一行,`item_date` = 最近一次放行的日子 |
 
 
 
@@ -305,6 +307,8 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `payroll_request_pending` | `/hr/payroll/[id]` | the payroll period — the request panel on that page carries Approve / Reject (disabled with the reason for anyone who cannot decide it) |
 | `receipt_price_request_pending` | `/inbound/[id]/edit` | the receipt — the price-request panel on that page carries Approve / Reject (disabled with the reason for anyone who cannot decide it) |
 | `invoice_request_pending` | `/finance/invoices/[id]` | the invoice — the request panel on that page carries Approve / Reject (disabled with the reason for anyone without `data.view_prices`) and Withdraw |
+| `shipping_release_pending` | `/sales/orders/[id]` | the order — the release panel on that page carries the CFO's context, Approve / Reject (disabled with the reason for anyone without `data.view_prices`) and Withdraw |
+| `shipping_release_ready` | `/logistics/shipping` | **the queue, not the order** — the warehouse cannot open the order page (no `module.sales.view`), and the queue is where it ships |
 | `ap_over_90` | `/finance/payables/[id]` or `/finance/expenses/[id]` | by `doc_kind`; unknown kind → no link |
 | `fx_rate_gap` | `/finance/fx?currency=<ccy>` | **no row exists** — the subject is a missing rate. An honestly-filtered list, which is not the same thing as a code search |
 | `bank_unmatched` | `/finance/bank/statements/[id]/reconcile` | where matching happens |
