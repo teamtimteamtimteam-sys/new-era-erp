@@ -116,8 +116,9 @@ BEGIN
     --     不会把他算进任何计数里,本支里任何按"真持有人"计数的断言都不受影响。
     INSERT INTO stocktakes (code, status, created_by, updated_by)
     VALUES ('FIXT-ST25', 'open', gen_random_uuid(), v_uid) RETURNING id INTO v_st;
+    -- ★ ROLE-1 Batch 3a:录过数的人也不能过账 —— 录数的也给一个【别人】(同上,理由不变)。
     INSERT INTO stocktake_lines (stocktake_id, output_batch_id, book_qty, counted_qty, created_by)
-    VALUES (v_st, v_ob, 70, 65, v_uid);
+    VALUES (v_st, v_ob, 70, 65, gen_random_uuid());
     PERFORM post_stocktake(v_st);
     SELECT business_date INTO v_bd FROM inventory_movements
     WHERE output_batch_id = v_ob AND movement_type = 'adjustment';

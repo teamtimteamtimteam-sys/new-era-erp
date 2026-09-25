@@ -26,6 +26,19 @@
 --   过得了的是另外五个持 module.stocktakes.edit 的人(chooer · fusheng ·
 --   phua · sandra · vince)。这是四眼原则要的效果,不是一次回归。
 --
+-- ════════════════════════════════════════════════════════════════════════════
+-- ★★ ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q2 · Q4):过账归财务,录过数的人永远不能过账 ★★
+-- ════════════════════════════════════════════════════════════════════════════
+-- · 门从 module.stocktakes.edit 换成 action.stocktake_post(财务与 admin)。录数归仓库
+--   (action.stocktake_count);取消仍归 module.stocktakes.edit。
+-- · 开单人那条腿不变(SELF_APPROVAL_FORBIDDEN|raiser)。新加【录数的人】那条腿:stocktake_counts
+--   里这张单上每一个录过数的人(重录不抹掉前一个),再加 stocktake_lines.created_by(本刀之前的行
+--   只记了最后一个保存的人 —— 线上在途的 5 张都是 0 行,但判据不假设这一点)。按人认:
+--   self_leg(录数人, NULL, 我) ≠ 'none' → STOCKTAKE_COUNTER_CANNOT_POST|盘点单。
+--   NULL 的 created_by 永不匹配;stocktake_counts.counted_by 是 NOT NULL,由函数写。
+-- · 上面 APR-3 那段说"过得了的是另外五个持 module.stocktakes.edit 的人"—— 从本刀起过得了的是
+--   持 action.stocktake_post 的人(chooer · admin),减去开单人与录过数的人。
+--
 -- ★【open 不算"在途待批"】approval_pending_documents() 里【没有】盘点 ——
 --   open 的意思是"正在点",不是"在等人批";盘点在点完与过账之间没有那一格。
 --   把 5 张 open 数成在途,会让屏幕说一句假话。理由写在那个函数的抬头。
@@ -52,7 +65,7 @@ DECLARE
     v_amt            numeric;
     v_je_lines       jsonb := '[]'::jsonb;
 BEGIN
-    PERFORM require_permission('module.stocktakes.edit');
+    PERFORM require_permission('action.stocktake_post');
     SELECT id, code, status, deleted_at, created_by INTO v_st
     FROM stocktakes WHERE id = p_stocktake_id FOR UPDATE;
     IF NOT FOUND OR v_st.deleted_at IS NOT NULL THEN
@@ -66,6 +79,16 @@ BEGIN
     -- 第二个入参是 NULL —— 一次盘点是关于一批货的,不是关于某个人的,
     -- 所以它没有"这张单说的是谁"那条腿;而 NULL 一律不匹配。
     PERFORM forbid_self_approval(v_st.created_by, NULL::uuid, 'stocktake');
+
+    -- ★ ROLE-1 Batch 3a:录过数的人不能过账(按人认)。开单人那条腿在上一行,先判。
+    IF EXISTS (SELECT 1
+                 FROM (SELECT c.counted_by AS who FROM stocktake_counts c WHERE c.stocktake_id = p_stocktake_id
+                       UNION
+                       SELECT l.created_by FROM stocktake_lines l
+                        WHERE l.stocktake_id = p_stocktake_id AND l.created_by IS NOT NULL) k
+                WHERE self_leg(k.who, NULL::uuid, v_user) <> 'none') THEN
+        RAISE EXCEPTION 'STOCKTAKE_COUNTER_CANNOT_POST|%', v_st.code;
+    END IF;
 
     FOR v_line IN SELECT * FROM stocktake_lines WHERE stocktake_id = p_stocktake_id
     LOOP

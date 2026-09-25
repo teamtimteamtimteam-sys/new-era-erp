@@ -60,6 +60,10 @@ BEGIN
         RAISE EXCEPTION 'PAYROLL_REQUEST_OPEN|%', v_p.code;
     END IF;
 
+    -- ★ ROLE-1 Batch 3a(Q12):提单人之外没人批得动 → 按名拒(审批关着时不拒)。
+    PERFORM assert_other_decider('payroll_request', 'decide_payroll_request', 2::smallint,
+                                 'PAYROLL_NO_OTHER_DECIDER|' || v_p.code);
+
     SELECT count(*) + 1 INTO v_n FROM payroll_requests
      WHERE payroll_period_id = p_payroll_period_id AND kind = p_kind;
     v_label := v_p.code || ' · ' || p_kind || ' #' || v_n::text;

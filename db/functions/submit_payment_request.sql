@@ -59,6 +59,9 @@ BEGIN
         RAISE EXCEPTION 'PAYMENT_REQUEST_TARGET_RESERVED|%', v_conflict;
     END IF;
 
+    -- ★ ROLE-1 Batch 3a(Q12):提单人之外没人批得动 → 按名拒(审批关着时不拒)。先于取号:拒了不烧号。
+    PERFORM assert_other_decider('payment_request', 'decide_payment_request', 2::smallint,
+                                 'PAYMENT_REQUEST_NO_OTHER_DECIDER');
     v_code := next_payment_request_code(p_planned_date);
     -- amount_base 先落 0、试跑之后立刻改成引擎算出来的数 —— 试跑按 id 读这一行,
     -- 所以行要先在;同一个事务里,没有任何人看得见那个 0。

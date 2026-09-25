@@ -69,15 +69,10 @@ CREATE POLICY "stocktakes select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.stocktakes.view'::text));
 
-CREATE POLICY "stocktakes insert by permission"
-    ON public.stocktakes
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.stocktakes.edit'::text));
-
-CREATE POLICY "stocktakes update by permission"
-    ON public.stocktakes
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.stocktakes.edit'::text)) WITH CHECK (has_permission('module.stocktakes.edit'::text));
+-- ★ ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q3):**没有写策略**。原来的 INSERT / UPDATE 两条
+--   (都开在 module.stocktakes.edit 上)拿掉 —— 它们让任何持码的人直接把 status 写成 posted、改写
+--   created_by(四眼那条腿认的就是它)。开单 open_stocktake、过账 post_stocktake、取消 cancel_stocktake,
+--   全是 SECURITY DEFINER。直连 INSERT / UPDATE 由下面的 trg_stocktakes_direct_write 按名拒。
 
 -- AUDEL-1a:硬删按名拒(STOCKTAKE_NO_HARD_DELETE|单号)。盘点单是【解释一次
 -- 库存调整的那份单据】,而它的 adjustment 流水不可改 —— 单据没了、流水还在,
@@ -103,3 +98,13 @@ CREATE TRIGGER trg_stocktakes_soft_delete_provenance
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.stocktakes
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.stocktakes.edit');
+
+-- ── ROLE-1 Batch 3a · 直连 INSERT / UPDATE 一律按名拒 ────────────────────────────
+-- 没有写策略时直连 UPDATE 是零行、不报错;这支语句级触发器零行也照样触发,抛
+-- STOCKTAKE_THROUGH_FUNCTION_ONLY。属主 / SECURITY DEFINER 路径一律放行。
+-- 上面那支 enforce_write_permission 仍在,而且先触发(名字排在前面):不持 stocktakes.edit 的人
+-- 先拿到 PERMISSION_DENIED|module.stocktakes.edit,持码的人拿到本守卫这一句。DELETE 不在本守卫
+-- 里 —— 硬删另有 trg_stocktakes_no_hard_delete 按名拒。
+CREATE TRIGGER trg_stocktakes_direct_write
+    BEFORE INSERT OR UPDATE ON public.stocktakes
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_stocktake_direct_write();

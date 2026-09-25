@@ -1181,7 +1181,8 @@ admin@, tim@ · MC-2026-0001 (pay) → admin@, chooer@ · ST-2026-0082…0086 �
 ## §5 · The broken window — started, end PENDING
 
 **Start: 2026-09-25 09:34:00 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line
-reads 09:33:21). **End: PENDING — Tim reads it from Vercel.**
+reads 09:33:21). ~~**End: PENDING — Tim reads it from Vercel.**~~ **Closed with bounds in § Batch 3 §W:** end between 09:58:28
+(measured, the push) and 10:37:46 (derived, first live read after Tim's confirmation) — **24 min 28 s to 1 h 03 min 46 s.**
 
 What the old app does against the new database (approvals ON):
 - **Choo Er's old pricing panel and desk form silently file a request** where she expects a posting: the old screen says the price
@@ -1200,3 +1201,234 @@ What the old app does against the new database (approvals ON):
 Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
 (a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
 **Next cut: ROLE-1 Batch 3** (`docs/forward-queue.md` item 7).
+
+# Batch 3 — Step 0, and Batch 3a: the counter never posts; four registered gaps close (2026-09-25)
+
+**Opening gate:** tree clean; `HEAD` = `origin/main` = `ls-remote` = `3f5217745172c0a21ecd32217fc7d5cabc89b82a`
+(ROLE-1 Batch 4b). **Approvals were ON and stayed ON.** Every figure below is a script's own exit line or a query named with its
+identity. The matrix lines are `docs/role-matrix.md` §8, §9, §10, §11, §13; the approvals effects are `docs/approvals.md` §3o.
+
+## §W · Batch 4b's broken window — closed with bounds, labelled by kind
+
+Tim confirmed the Batch 4b deploy on 2026-09-25, before this session began.
+
+| | time (CST) | kind |
+|---|---|---|
+| start | 2026-09-25 09:34:00 | `db/apply_migration.sh`'s own line (`db/migration-windows.tsv`) |
+| end, lower bound | 09:58:28 | **measured**: the push moved `origin/main` → `3f521774` (`git reflog show --date=iso refs/remotes/origin/main`) — no deploy can precede it |
+| end, upper bound | 10:37:46 | **derived**: this session's first live read, database clock `now()` as `postgres`, taken after Tim's "deployed" confirmation had arrived — **a relayed confirmation, not a measurement of Vercel** |
+
+**Window: at least 24 min 28 s, at most 1 h 03 min 46 s.** Also written into § Batch 4b §5 above.
+
+**Recorded ruling (Tim, 2026-09-25):** Batch 4b's choice to record a request's withdrawal **on the request row** (`withdrawn_at` ·
+`withdrawn_by` · `withdraw_reason`), not in `approval_log`, stands — consistent with payment and payroll requests.
+
+## §0 · Step 0 (grilling) and Tim's answers
+
+**What grilling found** (live read as `postgres`, `rolbypassrls = t`, base tables, `relkind = 'r'` checked, 10:37–10:52 CST; code read
+from the mirrors by three surveys and spot-checked on live):
+1. **The stocktake four-eyes rule could be walked around.** `stocktakes` / `stocktake_lines` carried INSERT and UPDATE policies on
+   `module.stocktakes.edit`: any holder could write `status = 'posted'` directly, rewrite `created_by` (the leg four-eyes reads), and add
+   or change lines on a posted stocktake (the open-status check lived only in `saveCount`).
+2. **Nobody recorded who counted.** `stocktake_lines.created_by` had no default, came from the client, and a recount's upsert
+   overwrote it with the last saver.
+3. **The landed-cost exception was dead code; the real leak was elsewhere.** `post_stocktake` reads `_all`, the gated reader's only
+   caller already required `data.view_prices`, and EXECUTE was revoked — but `batch_freight_base` / `batch_processing_cost_base` gave
+   real numbers to anyone with `inbound.view`.
+4. **Fixture 174 arm E never tested the mirror** — it re-installed its own copy of the function (with the `OR stocktakes.edit` branch)
+   and asserted against that copy (found when the offline gate stayed green after the branch was removed).
+5. **Processing had the same direct-write bypass**; warehouse lacks `module.materials.view` (processing pages read `materials`).
+6. **COD void and shipping were already where the interim ruling wants them** (`action.issue_cod` = admin · warehouse;
+   `module.sales.edit` = admin · cco · sales).
+7. **The "nobody but the raiser can decide" gap was live for payment requests too** — admin holds `module.finance.edit`.
+8. The brief omitted goods-receipt creation (matrix §8 says B3).
+
+**Live readings at Step 0:** 5 open stocktakes (ST-2026-0082…0086), all opened by admin@, **0 lines each**; 4 posted, 1 cancelled;
+`stocktake_lines` 4 (all on posted stocktakes). Work orders: WO-2026-0001 only, `released`, 1 live run, `created_by` not a current
+account; **0 drafts**. Runs: 10 committed, 4 reversed. CODs: 2 issued, 1 pending. **9 priced live receipts, none with a waiting price
+request** — every one could change supplier; of the 8 on a PO, **0** differ from the PO's supplier (no existing damage); IN-2026-0029
+carries the only settlement (a prepayment application). Nothing could be stranded.
+
+**Tim's answers (2026-09-25) — the recommendations, with Q1 changed:**
+
+| Q | ruling | where |
+|---|---|---|
+| Q1 | goods-receipt creation → warehouse **is in scope**: `action.receive_goods` → warehouse · admin, gating `create_inbound_batch` and `receive_inbound_batch_against_po`; record who loses it | 3b |
+| Q2 | (A) append-only `stocktake_counts`, `counted_by` set by the function; posting refuses the opener (`SELF_APPROVAL_FORBIDDEN\|raiser`) and every counter (`STOCKTAKE_COUNTER_CANNOT_POST\|<code>`), per person | 3a |
+| Q3 | drop the direct policies; `open_stocktake` and `record_stocktake_count` as SECURITY DEFINER | 3a |
+| Q4 | opening under `action.stocktake_count`; cancelling stays on `module.stocktakes.edit`; count → warehouse · admin, post → finance · admin | 3a |
+| Q5 | remove the dead branch; the two cost readers return NULL without `data.view_prices`; the page says "Restricted"; flip fixture 174 E | 3a |
+| Q6 | amend / cancel / close = `action.wo_create` or `processing.edit`; register "amending a released WO does not send it back" | 3b · registered |
+| Q7 | close the processing direct writes, after confirming no screen inserts directly | 3b |
+| Q8 | three pages read `material_lookup`; no `module.materials.view` | 3b |
+| Q9 | `action.batch_write_off` · `action.processing_rollback` → warehouse · admin; no change for COD void and shipping | 3b |
+| Q10 | always refuse a direct `is_final` change (`ASSAY_FINAL_THROUGH_FUNCTION_ONLY`) | 3a |
+| Q11 | refuse by name on every path (`RECEIPT_PRICED_SOURCE_FROZEN\|<code>`); register a correction lifecycle | 3a · registered |
+| Q12 | one shared helper in `submit_payroll_request` (`PAYROLL_NO_OTHER_DECIDER`) and the six payment-request submits; register POs and expense claims | 3a · registered |
+| Q13 | **split**: this session builds and ships 3a and stops at the push; 3b is the next cut | — |
+| standing | every new code also to `admin`, same migration | 3a |
+
+# Batch 3a — shipped (2026-09-25)
+
+## §1 · What 3a shipped
+
+**Migration** `db/migrations/2026-09-25-role1b3a-the-counter-never-posts.sql`, assembled from the mirrors by
+`db/scripts/build_role1b3a_migration.py`. One transaction. Its self-proof asserts: grants = before + exactly the four ruled rows;
+`action.stocktake_count` held by exactly `admin warehouse`, `action.stocktake_post` by exactly `admin finance`; approvals still ON;
+pending documents unchanged; `approval_log`, `journal_entries`, stocktakes, stocktake lines, receipts (priced / all), assays (final /
+applied), payment and payroll requests unchanged; `stocktake_counts` empty; no stocktake write policy left; the four guard triggers
+present; the landed-cost predicate no longer names `module.stocktakes.edit`; `post_stocktake` gated on `action.stocktake_post`; every
+pending document still has a decider who is not its own party (the stocktake arm now asks `action.stocktake_post` minus opener and counters).
+
+| piece | what |
+|---|---|
+| codes | `action.stocktake_count` → warehouse · admin; `action.stocktake_post` → finance · admin (catalogue 55 → 57). `module.stocktakes.edit` re-described: cancel only |
+| `stocktake_counts` (new) | one row per count and recount: line, batch, book / counted qty, notes, `counted_by NOT NULL` (the function writes `auth.uid()`), `counted_at`; read on `module.stocktakes.view`; **append-only** (`guard_stocktake_count_append_only`, owner path too); no write policy; anon revoked |
+| no direct writes | the four stocktake INSERT / UPDATE policies dropped; `guard_stocktake_direct_write` (statement-level, `row_security_active`) on `stocktakes` · `stocktake_lines` · `stocktake_counts` → `STOCKTAKE_THROUGH_FUNCTION_ONLY` |
+| doors | `open_stocktake` (new, `action.stocktake_count`, opener = `auth.uid()`) · `record_stocktake_count` (new, `action.stocktake_count`; open only; one batch; qty ≥ 0; book qty at save time; upsert the line + append a count) · `post_stocktake` (`action.stocktake_post`; opener leg unchanged; counter leg over `stocktake_counts` ∪ line `created_by`) · `cancel_stocktake` unchanged (`module.stocktakes.edit`) |
+| gap 1 (Q5) | `inbound_batch_landed_unit_cost`: `data.view_prices` only · `batch_freight_base` / `batch_processing_cost_base`: `data.view_prices AND (…the four codes)` → NULL otherwise · **build decision:** `allocate_processing_costs` reads `batch_freight_base_all` / `batch_processing_cost_base_all` — posted money must not depend on who pressed the button (the repo's own rule), instead of relying on finance happening to hold `view_prices` |
+| gap 2 (Q10) | `guard_assay_applied_columns`: a direct UPDATE changing `is_final` → `ASSAY_FINAL_THROUGH_FUNCTION_ONLY` (inbound and output) |
+| gap 3 (Q11) | `guard_inbound_batch_price_request` ③: `unit_price` set and supplier / PO / PO line changes → `RECEIPT_PRICED_SOURCE_FROZEN\|<code>`, direct and owner paths; the waiting-request refusal is checked first |
+| gap 4 · Q12 | `assert_other_decider(subject, action_function, level, refusal)` (new, DEFINER, EXECUTE revoked, allowlisted in `check_mirrors`); called before any code is minted by `submit_payroll_request` (`PAYROLL_NO_OTHER_DECIDER\|<period>`) and `submit_payment_request` · `submit_payment_reversal_request` · `submit_bank_transfer_request` · `submit_bank_transfer_reversal_request` · `submit_wht_remittance_request` · `submit_wht_remittance_reversal_request` (`PAYMENT_REQUEST_NO_OTHER_DECIDER`). 4b's receipt-price copy is unchanged |
+
+**Screens (en + zh):**
+- `/stocktakes`: New stocktake is visible, disabled, naming `action.stocktake_count` for non-holders.
+- Stocktake detail: both count lists gated on `action.stocktake_count`; Cancel gated on `module.stocktakes.edit`.
+- Review page: Post gated on `action.stocktake_post`, plus a stated reason when the viewer opened or counted it ("You counted on this
+  stocktake…"; judged per account on the page, per person in the database); a "Counted by" line lists every counter.
+- The quick-count banner on receipt and output pages: gated on `action.stocktake_count`.
+- Server actions: `createStocktake` → `open_stocktake`, `saveCount` → `record_stocktake_count` (no direct writes left).
+- Receipt edit: the supplier field is locked with the reason once the receipt is priced; the edit action routes pricing-family refusals
+  through `localizePricingError`.
+- Copy: five stocktake refusals, `postBlockedOpener` / `postBlockedCounter` / `countedBy`, `supplierFrozenPriced`,
+  `RECEIPT_PRICED_SOURCE_FROZEN`, `ASSAY_FINAL_THROUGH_FUNCTION_ONLY`, `PAYROLL_NO_OTHER_DECIDER`, `PAYMENT_REQUEST_NO_OTHER_DECIDER`.
+- The landed-cost panel already rendered NULL as "Restricted" behind `data.view_prices` — no change needed.
+
+**Fixtures:** new **221** (S1–S11, G2–G4; fault injection S11: drop the direct-write guard and the direct `status = 'posted'` becomes a
+silent zero-row "success"). **Changed because a rule changed:** 163 (A/B readers also hold `view_prices`; new A2: an `inbound.view`-only
+reader gets NULL; D rewritten — an allocator who reads NULL freight still allocates 750.00) · 174 E (saves the real definition with
+`pg_get_functiondef` and restores it, instead of its own copy; E2 now expects a `stocktakes.edit` holder to be refused; the obsolete
+E-inj-2 removed — **fault-injected**: putting the `OR stocktakes.edit` branch back turns the offline gate red on 174E2 only,
+`GATEOFF_EXIT=4`, then restored) · 182 (receipt created unpriced before a PO is attached) · 204 (finance role gains `action.stocktake_post`) ·
+218 (E0: the raiser whose other account is the only level-2 holder is refused at submit; then a second level-2 person is added so the
+decide-time `|raiser` check stays tested) · 25 (the line's counter is someone else). `scripts/check-document-registry.mjs`: tables 229 → 230.
+
+**Known issues:** closed ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION · ROLE1B4B-ASSAY-IS-FINAL-DIRECT-EDIT ·
+ROLE1B4A-RECEIPT-SUPPLIER-CHANGE-AFTER-PRICING · ROLE1B4B-PAYROLL-RAISER-NO-DECIDER; registered ROLE1B3A-PRICED-RECEIPT-NO-CORRECTION ·
+ROLE1B3A-NO-OTHER-DECIDER-PO-EXPENSE · ROLE1B3-AMEND-RELEASED-WO.
+
+## §2 · Verification — every figure is the script's own exit line
+
+| step | result |
+|---|---|
+| `db/gate.py --offline`, run 1 | **`GATEOFF_EXIT=2`** — the permissions mirror lost a `)` in the edit (a sliced string), replay failed |
+| `db/gate.py --offline`, run 2 | **`GATEOFF_EXIT=4`** — 5 fixtures red, each because a rule changed: 163A (`inbound.view` reader now NULL) · 182 (`RECEIPT_PRICED_SOURCE_FROZEN`) · 204F (`PERMISSION_DENIED\|action.stocktake_post`) · 218 (`PAYROLL_NO_OTHER_DECIDER`) · 25 (`STOCKTAKE_COUNTER_CANNOT_POST`); 174 **stayed green** — which exposed finding 4 |
+| `db/gate.py --offline`, run 3 | **`GATEOFF_EXIT=0`** (221 included) |
+| fault injection on 174 E (offline) | **`GATEOFF_EXIT=4`**, 174E2 only; mirror restored (`cmp` identical) |
+| dry run on live (`COMMIT` → probe + `ROLLBACK`) | **`DRY_OWN_EXIT=0`**; catalogue 57, 4 new grants inside the transaction; every pending document with a decider (ST-2026-0082…0086 → chooer@) |
+| rehearsal: migration + zzz grants + live proof, one transaction, `ROLLBACK` | run 1: a PL/pgSQL `IF … CASE WHEN … THEN` parse error in the proof script (the IF took the CASE's THEN) → parenthesised; run 2 **`REHEARSE_OWN_EXIT=0`**, 23 of 23. ★ While it replayed the grants file it held the stocktake DDL locks for ~4 min (idle in transaction between round trips); and the proof's `open_stocktake` consumed **ST-2026-0087** from the sequence (sequences do not roll back) |
+| backup (`db/run_detached.sh`, token BACKUP) | **`BACKUP_EXIT=0`** — `evoltrya-backup-2026-09-25-1123.dump`, 4.7 MB, TOC 6,231 (previous 6,187, floor 5,568); `pg_restore --list` 6,246 lines |
+| `db/apply_migration.sh` | **`APPLY_OWN_EXIT=0`**. Pre-flight: 20 CREATE FUNCTION (14 replace · 6 new, one of them the proof's `pg_temp` helper), 13 account codes all `is_system`, no masked columns. **Window start 2026-09-25 11:31:10 CST** (the "applied at" line reads 11:30:29) |
+| `NOTIFY pgrst, 'reload schema'` · `npm run types:gen` | `TYPES_OWN_EXIT=0` (+165 lines) |
+| `npx tsc --noEmit` | `TSC_OWN_EXIT=0` |
+| `npm run build` | run 1 **`BUILD_OWN_EXIT=2`**: `check-document-registry` — 230 tables declared 229 (the new table; the friction is deliberate); updated → run 2 **`BUILD_OWN_EXIT=0`** |
+| `db/gate.py` full (detached) | **`GATE_EXIT=0`**, 431 s: rebuildable ✓ · mirrors vs live ✓ (`NO DIFFERENCES`) · fixtures ✓ (**224 passed, 0 failed**, 221 included) · anon surface ✓ (live ⊆ baseline 327); B2 allowlist 10, 0 unchecked callable definers |
+| `node scripts/check-i18n.mjs` | `I18N_OWN_EXIT=0` |
+| `node scripts/check-error-swallowing.mjs` | `SWALLOW_OWN_EXIT=0` — 0 unallowed |
+| smoke (`db/run_detached.sh`, token SMOKE, `--timeout 2400`, 11:41:07–11:51:57) | **`SMOKE_EXIT=0`**: 235 routes + probes, **253 ok · 7 skipped (no data) · 0 FAILED**; 228 timed routes, 500.6 s, median 2,014 ms. **Clean-up, read at 11:52:32 as `postgres` from base tables:** `smoke-%` users **0** · `probe-%` / `fixture-%` / `fx%` roles **0** · orphan grants (no user / no role) **0 / 0** · `ZZ-SMOKE-%` employees **0** · `idle in transaction` **0** · `stocktake_counts` **0**; `.ephemeral/` empty; no smoke or `next dev` process left |
+
+## §3 · Live proof
+
+**Script:** `db/scripts/2026-09-25-role1b3a-live-proof.sql`. One transaction, `ROLLBACK`, as `postgres` (`rolbypassrls = t`); each cell
+sets `request.jwt.claims` to a real account and runs under `SET LOCAL ROLE authenticated`.
+**Result: `PROOF_OWN_EXIT=0`, 23 of 23 cells**, started 11:52:45 CST (inside the window, after the smoke).
+
+| account | cell | result |
+|---|---|---|
+| fusheng@ · chooer@ · admin@ | holds count / post (`current_user_permissions()`) | true/false · false/true · true/true |
+| sandra@ · phua@ · chooer@ | open a stocktake | `PERMISSION_DENIED\|action.stocktake_count` ×3 |
+| fusheng@ | open **ST-2026-0088**, count IN-2026-0001 at 886 | opener fusheng@; 1 row in `stocktake_counts` |
+| sandra@ · fusheng@ | direct `status = 'posted'` · direct line INSERT | `STOCKTAKE_THROUGH_FUNCTION_ONLY` ×2 |
+| fusheng@ · sandra@ | post | `PERMISSION_DENIED\|action.stocktake_post` ×2 |
+| admin@ | recount, then post | `STOCKTAKE_COUNTER_CANNOT_POST\|ST-2026-0088` (2 count rows) |
+| admin@ | post ST-2026-0082 (opened by admin@) | `SELF_APPROVAL_FORBIDDEN\|raiser` |
+| chooer@ | ★ **post** ST-2026-0088 | posted; IN-2026-0001 887 → 886; `journal_entries` 82 → 83; 1200 61,387.92 → 61,386.44; 5200 59,732.00 → 59,733.48 (1 × landed 1.48) |
+| fusheng@ | count after posting | `STOCKTAKE_NOT_OPEN\|posted` |
+| fusheng@ · chooer@ | freight / processing cost of IN-2026-0001 | **NULL** (restricted) · 0 / 0 |
+| fusheng@ claims | `inbound_batch_landed_unit_cost` (asked with EXECUTE) | `LANDED_COST_PERMISSION_DENIED\|data.view_prices` |
+| fusheng@ | direct `is_final` flip on ASY-2026-0004 | `ASSAY_FINAL_THROUGH_FUNCTION_ONLY` |
+| fusheng@ | supplier change: priced IN-2026-0001 · unpriced IN-2026-0153 | `RECEIPT_PRICED_SOURCE_FROZEN\|IN-2026-0001` · OK |
+| admin@ | payroll reversal request PAY-2026-0001 · payment request 10.00 to SUP-2026-0003 | `PAYROLL_NO_OTHER_DECIDER\|PAY-2026-0001` · `PAYMENT_REQUEST_NO_OTHER_DECIDER` |
+| chooer@ | the same payment request | submitted (tim@ decides it) |
+| tim@ | `list_ledger_reconciliation()` inside the transaction | unexplained AP 0.00 · AR 0.00 |
+
+ST-2026-0088, JE-2026-0083 and the payment request existed only inside the rolled-back transaction; **the stocktake sequence moved**
+(0087 by the rehearsal, 0088 by the proof) — the next real stocktake will be ST-2026-0089. **What this proof is and is not:** refusals,
+one full count → post, and read-backs as the real accounts, inside a transaction that was rolled back. No human walk has happened.
+
+### Before / after
+
+**Script:** `db/scripts/2026-09-25-role1b3a-readings.sql`, which states the identity for every part.
+**Timing:** before at 11:30:01 CST (after the backup, before the migration); after at 11:52:59 CST (after the migration, the smoke and
+the proof's ROLLBACK). **`diff` of the two outputs: only the read time, `stocktake_counts` appearing (relkind `r`) with 0 rows, the
+catalogue 55 → 57, the two new codes' holders, and admin / finance / warehouse gaining them (codes and md5).**
+
+| reading | identity · object | before | after |
+|---|---|---:|---:|
+| `approvals_enabled` / l1 / l2 / threshold | postgres · base `finance_settings` | t / finance / cfo / 1000 | **t / finance / cfo / 1000** |
+| pending: claims submitted · leave · medical submitted · medical approved-unpaid · reviews · WO draft · stocktakes open · POs · payment requests · payroll requests · receipt price requests | postgres · base | 1 · 2 · 0 · 1 · 0 · 0 · 5 · 0 · 0 · 0 · 0 | **the same — nothing new pending on live** |
+| stocktakes by status · `stocktake_lines` · `stocktake_counts` | postgres · base | open 5 · posted 4 · cancelled 1 · 4 · (absent) | **the same · 4 · 0** |
+| work orders by status | postgres · base | released 1 | **released 1** |
+| `approval_log` · `journal_entries` · payroll entries | postgres · base | 14 · 82 · 4 | **14 · 82 · 4** |
+| account 1100 · 1200 · 1220 · 2000 · 2200 · 2300 · 2400 · 5000 · 5200 (debit − credit) | postgres · base `journal_lines` | 43,002.12 · 61,387.92 · 134.86 · −376,404.42 · −1,597.47 · 4,677.00 · 156.00 · 809.14 · 59,732.00 | **the same** |
+| assays final / applied · metal rows · `price_history` · priced / all receipts · `purchase` entries | postgres · base | 4 / 4 · 19 · 14 · 12 / 24 · 10 | **the same** |
+| catalogue · `action.stocktake_count` · `action.stocktake_post` holders | postgres · base | 55 · (absent) · (absent) | **57 · admin warehouse · admin finance** |
+| codes per role (n): admin · auditor · cco · cfo · cto · employee · finance · gm · hr · operations · procurement · sales · warehouse | postgres · base `role_permissions` | 54 · 20 · 37 · 30 · 32 · 0 · 36 · 21 · 7 · 15 · 16 · 17 · 15 | **56** · 20 · 37 · 30 · 32 · 0 · **37** · 21 · 7 · 15 · 16 · 17 · **16** (the other ten md5-identical) |
+| unrevoked grants | postgres · base `user_roles` | admin@ admin · chooer@ finance · fusheng@ warehouse · phua@ cto · sandra@ cco · tim@ cfo · vince@ gm | **the same** |
+| `ap_open_items` n · Σ | tim@ · **view** | 16 · 416,988.32 | **16 · 416,988.32** |
+| `ar_open_items` n · Σ | tim@ · **view** | 10 · 57,545.87 | **10 · 57,545.87** |
+| list-vs-ledger AP: list / ledger / **unexplained** | tim@ · `list_ledger_reconciliation()` | 416,988.32 / 376,404.42 / **0.00** | 416,988.32 / 376,404.42 / **0.00** |
+| list-vs-ledger AR: list / ledger / **unexplained** | tim@ · same | 57,545.87 / 43,002.12 / **0.00** | 57,545.87 / 43,002.12 / **0.00** |
+| `current_user_permissions()`: admin@ · chooer@ · fusheng@ · phua@ · sandra@ · tim@ · vince@ | each account as itself | 54 · 36 · 15 · 32 · 37 · 30 · 21 | **56 · 37 · 16** · 32 · 37 · 30 · 21 |
+
+**Pending documents and their deciders** (the migration's own proof, by person): CLM-2026-0004 → tim@ · LV-2026-0001 / 0003 →
+admin@, tim@ · MC-2026-0001 (pay) → admin@, chooer@ · **ST-2026-0082…0086 → chooer@** (admin@ opened them; before this cut: chooer@,
+fusheng@, phua@, sandra@). **No pending document is left without a decider, and nothing is pending on live.**
+
+## §4 · What each person gains and loses
+
+- **Fu Sheng (warehouse):** **gains** `action.stocktake_count` — opens stocktakes and counts, recorded as the counter. **Loses**
+  posting stocktakes (he could post any stocktake he had not opened), direct writes to the stocktake tables, and freight / processing
+  cost and landed cost on the receipt page (now "Restricted"). Cannot change the supplier or PO of a priced receipt.
+- **Choo Er (finance):** **gains** `action.stocktake_post` — the only non-admin who can post a stocktake, unless she counted on it or
+  opened it. **Loses** opening and counting stocktakes (she held `stocktakes.edit`), and changing the supplier / PO of a priced receipt.
+  Keeps cancelling.
+- **Sandra (cco) · Phua (cto):** lose opening, counting and posting stocktakes; keep cancelling (`stocktakes.edit`). Lose changing the
+  supplier / PO of a priced receipt. Phua still applies assays; `is_final` can no longer be flipped by editing.
+- **Tim as tim@ (cfo):** nothing new to do; decides payroll and payment requests as before. **Tim as admin@:** gains both codes but
+  cannot post a stocktake he opened or counted on, and cannot raise a payroll or payment request while approvals are on (he is the
+  same person as the only level-2 approver).
+- **Vince (gm):** no change.
+
+## §5 · The broken window — started, end PENDING
+
+**Start: 2026-09-25 11:31:10 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line
+reads 11:30:29). **End: PENDING — Tim reads it from Vercel.**
+
+What the old app does against the new database (approvals ON):
+- **Nobody can open or count a stocktake from the old app.** Its `createStocktake` inserts directly and `saveCount` upserts directly —
+  both are now refused by name (`STOCKTAKE_THROUGH_FUNCTION_ONLY`); New stocktake throws to the error boundary, a count shows the raw
+  code inside "Save failed". Posting still works — for Choo Er (and admin@); Fu Sheng, Sandra and Phua get
+  `PERMISSION_DENIED|action.stocktake_post`. Cancelling is unaffected.
+- **The old receipt page** shows freight and processing cost as blank to Fu Sheng (the panel it sits in was already behind `view_prices`).
+- **Changing the supplier of a priced receipt** from the old edit form is refused; the old copy shows the raw code inside the generic
+  save-error sentence.
+- **admin@ raising a payroll or payment request** is refused with the raw code in the old copy.
+- **Unaffected:** every approval chain, the switch, everything pending, every payment path, pricing, assays, and every other screen
+  (the smoke ran the new code against the new database).
+
+## §6 · Commit, push, three SHAs
+
+Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
+(a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
+**Next cut: ROLE-1 Batch 3b** (`docs/forward-queue.md` item 8); then APR-5.

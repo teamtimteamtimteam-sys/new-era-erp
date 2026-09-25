@@ -28,6 +28,7 @@ import { MOD, FN } from '@/lib/modules'
 import { loadSubstanceLabels, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
 import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type MovementFetchRow = {
@@ -70,6 +71,8 @@ export default async function EditOutputPage({
     const canSell = await can('action.direct_sale')
     // ★ FIX-2b:「有没有一张盘点在进行」也是一句权限答复(finance 读不到 stocktakes)。
     const canSeeStocktakes = await can('module.stocktakes.view')
+    // ROLE-1 Batch 3a:录数归 action.stocktake_count(仓库)
+    const canCountStocktake = await can('action.stocktake_count')
     // ★ FIX-2b:卖方计价公式走 pricing_formulas_masked,谓词 module.pricing.view。
     const canSeePricingFormulas = await can('module.pricing.view')
     // ★ FIX-2b:签发档的读策略是 sales.view OR processing.view —— 与本页的门
@@ -328,13 +331,16 @@ export default async function EditOutputPage({
             </p>
 
             {openStocktake ? (
-                <StocktakeQuickCount
-                    stocktakeId={openStocktake.id}
-                    stocktakeCode={openStocktake.code}
-                    side="output"
-                    batchId={batch.id}
-                    counted={stocktakeCounted}
-                />
+                /* ROLE-1 Batch 3a:录数归 action.stocktake_count —— 看得见、按不动时点名那个码 */
+                <PermissionGate code="action.stocktake_count" allowed={canCountStocktake} className="w-full">
+                    <StocktakeQuickCount
+                        stocktakeId={openStocktake.id}
+                        stocktakeCode={openStocktake.code}
+                        side="output"
+                        batchId={batch.id}
+                        counted={stocktakeCounted}
+                    />
+                </PermissionGate>
             ) : !canSeeStocktakes ? (
                 /* ★ FIX-2b:与 /inbound/[id]/edit 那一处逐字同一条 —— 见那里的理由。 */
                 <p className="text-sm text-[color:var(--brand-muted-text)] border border-gray-300 rounded px-3 py-2 mb-6">

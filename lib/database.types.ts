@@ -17135,6 +17135,151 @@ export type Database = {
           },
         ]
       }
+      stocktake_counts: {
+        Row: {
+          book_qty: number
+          counted_at: string
+          counted_by: string
+          counted_qty: number
+          id: string
+          inbound_batch_id: string | null
+          notes: string | null
+          output_batch_id: string | null
+          stocktake_id: string
+          stocktake_line_id: string
+        }
+        Insert: {
+          book_qty: number
+          counted_at?: string
+          counted_by: string
+          counted_qty: number
+          id?: string
+          inbound_batch_id?: string | null
+          notes?: string | null
+          output_batch_id?: string | null
+          stocktake_id: string
+          stocktake_line_id: string
+        }
+        Update: {
+          book_qty?: number
+          counted_at?: string
+          counted_by?: string
+          counted_qty?: number
+          id?: string
+          inbound_batch_id?: string | null
+          notes?: string | null
+          output_batch_id?: string | null
+          stocktake_id?: string
+          stocktake_line_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stocktake_counts_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_stocktake_id_fkey"
+            columns: ["stocktake_id"]
+            isOneToOne: false
+            referencedRelation: "stocktakes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stocktake_counts_stocktake_line_id_fkey"
+            columns: ["stocktake_line_id"]
+            isOneToOne: false
+            referencedRelation: "stocktake_lines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stocktake_lines: {
         Row: {
           book_qty: number
@@ -27668,6 +27813,15 @@ export type Database = {
         Args: { p_material_id: string }
         Returns: undefined
       }
+      assert_other_decider: {
+        Args: {
+          p_action_function: string
+          p_level: number
+          p_refusal: string
+          p_subject_type: string
+        }
+        Returns: undefined
+      }
       assert_output_batch_saleable: {
         Args: { p_output_batch_id: string }
         Returns: undefined
@@ -28559,6 +28713,7 @@ export type Database = {
       }
       open_probation_review: { Args: { p_employee_id: string }; Returns: Json }
       open_review_cycle: { Args: { p_cycle_id: string }; Returns: Json }
+      open_stocktake: { Args: { p_notes?: string }; Returns: Json }
       pay_medical_claim: {
         Args: {
           p_claim_id: string
@@ -29039,6 +29194,16 @@ export type Database = {
       }
       record_statement_issue: {
         Args: { p_file_path: string; p_sha256: string; p_statement_id: string }
+        Returns: Json
+      }
+      record_stocktake_count: {
+        Args: {
+          p_counted_qty: number
+          p_inbound_batch_id: string
+          p_notes?: string
+          p_output_batch_id: string
+          p_stocktake_id: string
+        }
         Returns: Json
       }
       record_traceability_report_issue: {

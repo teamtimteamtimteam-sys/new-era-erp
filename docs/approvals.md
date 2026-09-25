@@ -1437,6 +1437,31 @@ stores only a proposed price. Approval moves both by the same `round(qty × Δ, 
 AP list +1,360.00 and ledger +1,360.00, unexplained 0.00 on both sides. (A 0.01 rounding gap between `round(q×new)−round(q×old)` and
 `round(q×Δ)` remains possible, as it was before this cut.)
 
+## 3o · ROLE-1 Batch 3a (2026-09-25) — the counter never posts, and a request nobody else can decide is refused at submit
+
+The cut is `docs/handbacks/ROLE-1.md` § Batch 3a; this section records only what changes **for approvals**.
+
+### Stocktake posting: a four-eyes rule with two legs, still outside the engine
+Posting moves to `action.stocktake_post` (finance · admin); counting to `action.stocktake_count` (warehouse · admin).
+`post_stocktake` refuses **the opener** (`SELF_APPROVAL_FORBIDDEN|raiser`, unchanged) **and every person who counted a line**
+(`STOCKTAKE_COUNTER_CANNOT_POST|<code>`), both judged per person through `self_leg` / `account_person`. Who counted is read from
+the new append-only `stocktake_counts` — a recount adds a row, so the first counter is never erased. Stocktakes are still **not** in
+`approval_chain_gates()` or `approval_pending_documents()` (an open stocktake is "being counted", not "waiting for someone"); the
+log row stays `approved`, level NULL. The migrations' pending-decider proof now asks `action.stocktake_post` minus opener and counters.
+
+### A request nobody but its raiser could decide is refused when it is raised
+`assert_other_decider(subject, action function, level, refusal)` — with approvals on, if `approval_deciders` for that chain and level,
+raiser = the caller, returns nobody, it raises the named refusal; with approvals off it does nothing. Used by `submit_payroll_request`
+(`PAYROLL_NO_OTHER_DECIDER|<period>`) and the six payment-request submits (`PAYMENT_REQUEST_NO_OTHER_DECIDER`), before any code is
+minted. The shape is 4b's `RECEIPT_PRICE_NO_OTHER_DECIDER` (which keeps its own copy). On live the case is admin@: it holds every code
+and is the same person as tim@, the only level-2 holder. Still open for purchase orders ≥ 1,000 and expense claims
+(`ROLE1B3A-NO-OTHER-DECIDER-PO-EXPENSE`).
+
+### Recorded ruling
+A request's withdrawal is recorded **on the request row** (`withdrawn_at` · `withdrawn_by` · `withdraw_reason`), not in
+`approval_log` — a withdrawal is not a decision. Tim accepted this for receipt price requests on 2026-09-25, consistent with payment
+and payroll requests.
+
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
 **Found while building CHAIN-BUILD-1; folded into the same predicate.**

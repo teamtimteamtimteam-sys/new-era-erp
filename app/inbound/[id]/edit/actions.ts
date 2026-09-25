@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from '@/lib/i18n/server'
+import { isPricingErrorCode, localizePricingError } from '@/app/inbound/pricingErrorCodes'
 
 export type UpdateInboundState = {
     error?: string
@@ -59,6 +60,10 @@ export async function updateInbound(
         .is('deleted_at', null) // 已软删除的不能改
 
     if (error) {
+        // ROLE-1 Batch 4b / 3a:收货表头上的两道闸(申请在等时冻住 · 已定价的收货不换来路)抛的是定价那一组码
+        if (isPricingErrorCode(error.message)) {
+            return { error: await localizePricingError(error.message) }
+        }
         return { error: t('inbound.form.saveError', { message: error.message }) }
     }
 

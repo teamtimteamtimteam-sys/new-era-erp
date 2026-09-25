@@ -1,6 +1,8 @@
 -- db/tables/stocktake_lines.sql
 -- Stocktake lines — one counted quantity per batch within a stocktake.
 -- No updated_at: a re-count replaces the line via upsert on the (stocktake, batch) key.
+-- ROLE-1 Batch 3a: the upsert happens only inside record_stocktake_count; every count and recount
+-- (with who made it) is appended to stocktake_counts. created_by here is the LAST counter.
 -- book_qty is the remaining_qty snapshot at count time; post_stocktake() recomputes the
 -- delta against the CURRENT remaining_qty (count wins), so book_qty is informational.
 --
@@ -39,15 +41,10 @@ CREATE POLICY "stocktake_lines select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.stocktakes.view'::text));
 
-CREATE POLICY "stocktake_lines insert by permission"
-    ON public.stocktake_lines
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.stocktakes.edit'::text));
-
-CREATE POLICY "stocktake_lines update by permission"
-    ON public.stocktake_lines
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.stocktakes.edit'::text)) WITH CHECK (has_permission('module.stocktakes.edit'::text));
+-- ★ ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q2 · Q3):**没有写策略**。录数与重录只经
+--   record_stocktake_count(SECURITY DEFINER,action.stocktake_count):它核盘点单仍是 open、按
+--   auth.uid() 写 created_by,并在 stocktake_counts 里追加一行"谁数的"。原来的 INSERT / UPDATE 两条
+--   让持 stocktakes.edit 的人在已过账的单上加行改行、把 created_by 写成任何人。
 
 -- AUDEL-1a:硬删按名拒,报【父单】的号 —— 把行从表头底下删走与删掉表头是同一件事,
 -- 而"先删行再删头"正是 AUDEL-0 实测通过的那条两步路。DELETE 策略一并删掉。
@@ -64,3 +61,9 @@ CREATE TRIGGER trg_stocktake_lines_no_hard_delete
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.stocktake_lines
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.stocktakes.edit');
+
+-- ── ROLE-1 Batch 3a · 直连 INSERT / UPDATE 一律按名拒 ────────────────────────────
+-- 同 stocktakes 上那一支:零行也触发,抛 STOCKTAKE_THROUGH_FUNCTION_ONLY;属主路径放行。
+CREATE TRIGGER trg_stocktake_lines_direct_write
+    BEFORE INSERT OR UPDATE ON public.stocktake_lines
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_stocktake_direct_write();

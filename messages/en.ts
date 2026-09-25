@@ -2766,6 +2766,8 @@ const en = {
                 RECEIPT_PRICE_REQUEST_OPEN: 'Receipt {0} has a price request waiting for the CFO ({1}). Until it is approved, rejected or withdrawn, its price, supplier, purchase order, metal content cannot change and it cannot be deleted. Nothing was saved.',
                 RECEIPT_PRICE_BELOW_SETTLED: 'That price would value receipt {0} at {1}, below the {2} already paid against it. A price cannot go below what has been settled. Nothing was saved.',
                 RECEIPT_PRICE_NO_OTHER_DECIDER: 'Nobody but you could approve a price for receipt {0}: the only level-2 approver is you (on another account). Ask Finance to raise it instead. Nothing was saved.',
+                // ROLE-1 Batch 3a
+                RECEIPT_PRICED_SOURCE_FROZEN: 'Receipt {0} is already priced, so its supplier, purchase order and order line cannot change — that would move the payable to another supplier. Nothing was saved.',
                 RECEIPT_PRICE_CHANGED_SINCE_REQUEST: 'Request {0} was raised against a receipt that has since changed (quantity, supplier, order line, metal content, committed terms, or a newer assay). It cannot be approved as it stands — reject it, and raise a new one. Nothing was posted.',
                 RECEIPT_PRICE_REQUEST_NOT_FOUND: 'This price request no longer exists. Reload the page.',
                 RECEIPT_PRICE_REQUEST_NOT_SUBMITTED: 'Request {0} is already {1} — there is nothing left to decide. Reload the page.',
@@ -2784,6 +2786,8 @@ const en = {
             selectMaterial: 'Select material',
             supplier: 'Supplier',
             selectSupplier: 'Select supplier',
+            // ROLE-1 Batch 3a:已定价的收货,供应商按不动
+            supplierFrozenPriced: 'Receipt {code} is priced, so its supplier cannot change — the payable is already this supplier\u2019s.',
             quantity: 'Quantity',
             unit: 'Unit',
             arrivalDate: 'Arrival Date',
@@ -4859,6 +4863,8 @@ const en = {
             PAYROLL_ATTENDANCE_NOT_COMPLETE: 'Nobody has said the {1} attendance sheet is complete, so {0} cannot be posted — posting it would silently treat unknown absence as full attendance',
             PAYROLL_NEEDS_APPROVED_REQUEST: '{0} needs an approved request before it can be done ({1}). Raise a request and have the CFO approve it first.',
             PAYROLL_REQUEST_OPEN: '{0} already has an open request. Withdraw it before saving or raising another.',
+            // ROLE-1 Batch 3a
+            PAYROLL_NO_OTHER_DECIDER: 'Nobody but you could approve a request for {0}: the only level-2 approver is you (on another account). Ask Finance to raise it instead. Nothing was saved.',
             PAYROLL_REQUEST_NOT_FOUND: 'That payroll request no longer exists.',
             PAYROLL_REQUEST_NOT_OPEN: 'Request {0} is {1} — only a request that is waiting or approved can be withdrawn.',
             PAYROLL_REQUEST_NOT_SUBMITTED: 'Request {0} is {1}, not waiting for a decision.',
@@ -5487,6 +5493,8 @@ const en = {
         errors: {
             ASSAY_BASIS_REQUIRED: 'Say which weight this assay was reported on - as-received (wet) or dry. A figure whose basis nobody stated cannot be interpreted later: 30% dry and 30% as-received are different numbers, and how different depends on the moisture.',
             ASSAY_APPLY_THROUGH_FUNCTION_ONLY: 'Whether an assay is applied can only change by applying or unapplying it (the Apply and Unapply buttons, which need action.apply_assay) — not by editing the assay record directly. Nothing was saved.',
+            // ROLE-1 Batch 3a
+            ASSAY_FINAL_THROUGH_FUNCTION_ONLY: 'Whether an assay is final is set once, when it is recorded — it cannot be edited afterwards. To correct it, record a new assay that supersedes this one. Nothing was saved.',
             ASSAY_CONTENT_THROUGH_FUNCTION_ONLY: 'A metal content marked as coming from an assay can only be written by applying that assay (action.apply_assay). Enter a figure by hand instead — it is then recorded as manual. Nothing was saved.',
             ASSAY_RESULT_PARTY_REQUIRED: 'Say whose result this is - ours, the counterparty\'s, or an umpire\'s. There is deliberately no default: defaulting to "ours" would let a forgotten field become a claim that we measured it.',
             INBOUND_NOT_FOUND: 'Inbound batch not found',
@@ -6585,7 +6593,17 @@ const en = {
             STOCKTAKE_NOT_FOUND: 'Stocktake not found',
             STOCKTAKE_NOT_OPEN: 'Stocktake is not open (status: {0})',
             BATCH_DELETED: 'Batch {0} has been deleted',
+            // ROLE-1 Batch 3a: counting and posting are split
+            STOCKTAKE_COUNTER_CANNOT_POST: 'You counted on stocktake {0} (or another of your accounts did), so you cannot post it. Someone who did not count it posts it — Finance. Nothing was posted.',
+            STOCKTAKE_THROUGH_FUNCTION_ONLY: 'A stocktake can only be opened, counted, posted or cancelled through its own buttons — not by editing it directly. Nothing was saved.',
+            STOCKTAKE_COUNT_BATCH_REQUIRED: 'A count on stocktake {0} needs exactly one batch. Nothing was saved.',
+            STOCKTAKE_COUNT_QTY_INVALID: 'A count on stocktake {0} must be 0 or more. Nothing was saved.',
+            STOCKTAKE_COUNT_APPEND_ONLY: 'The record of who counted on stocktake {0} cannot be changed or removed — a recount adds a new line. Nothing was changed.',
         },
+        // ROLE-1 Batch 3a: why Post is disabled for this person
+        postBlockedOpener: 'You opened this stocktake, so you cannot post it. Someone else posts it — Finance.',
+        postBlockedCounter: 'You counted on this stocktake, so you cannot post it. Someone who did not count it posts it — Finance.',
+        countedBy: 'Counted by',
     },
     receivables: {
         attribute: {
@@ -7334,6 +7352,8 @@ const en = {
             TRANSFER_REVERSAL_ALREADY_REQUESTED: 'This transfer already has an open reversal request. Open it from Finance → Bank instead of raising another.',
             PAYMENT_REQUEST_NOT_REQUIRED: 'This payment does not need a request — it pays an employee wholly against an approved claim. Record it directly under Finance → Payments.',
             PAYMENT_REQUEST_TARGET_RESERVED: 'A document on this request is already being paid by open request {0}. Pay or withdraw that request before raising another one for the same document.',
+            // ROLE-1 Batch 3a
+            PAYMENT_REQUEST_NO_OTHER_DECIDER: 'Nobody but you could approve this request: the only level-2 approver is you (on another account). Ask Finance to raise it instead. Nothing was saved.',
             PAYMENT_REQUEST_NOT_FOUND: 'Payment request {0} does not exist.',
             PAYMENT_REQUEST_NOT_OPEN: 'Payment request {0} is already closed (withdrawn, rejected or paid), so there is nothing to withdraw. Reload the page to see where it stands.',
             PAYMENT_REQUEST_NOT_SUBMITTED: 'Payment request {0} is no longer awaiting approval — someone has already decided or withdrawn it. Reload the page to see where it stands.',

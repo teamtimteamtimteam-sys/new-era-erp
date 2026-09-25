@@ -26,6 +26,7 @@ DECLARE
     d_par uuid; d_chi uuid; e_mgr uuid; e_emp uuid;
     b_priced uuid; b_unpriced uuid; v_mat uuid; v_sup uuid;
     v_num numeric; v_uuid uuid; v_bool boolean; v_txt text; v_n int;
+    v_def text;   -- ROLE-1 Batch 3a:E 臂注入之前存下【线上 / 镜像里真的那一支】,注入完原样还原
     v_base numeric; v_want numeric;
     r jsonb := '{}'::jsonb;
 BEGIN
@@ -508,6 +509,11 @@ BEGIN
     END IF;
     r := r || jsonb_build_object('E_truth', v_num, 'E_legit_null','没有金额的批次 → NULL');
 
+    -- ★ ROLE-1 Batch 3a:先存下真的那一支。此前本臂注入完之后【装回的是自己手抄的一份】(带着
+    --   OR module.stocktakes.edit)再去断言 —— 于是 E1–E3 问的是那份手抄,不是镜像;镜像拿掉那一支,
+    --   本臂照样绿(Batch 3a 的离线门实测)。现在注入完用 pg_get_functiondef 原样还原,E1–E3 问的是真的。
+    v_def := pg_get_functiondef('public.inbound_batch_landed_unit_cost(uuid)'::regprocedure);
+
     -- ── E-inj-1:注入旧版本(没有任何判据)★ R3 的那件事 ★ ────────────────
     CREATE OR REPLACE FUNCTION public.inbound_batch_landed_unit_cost(p_inbound_batch_id uuid)
      RETURNS numeric LANGUAGE sql STABLE SECURITY DEFINER
@@ -532,62 +538,12 @@ BEGIN
     END IF;
     r := r || jsonb_build_object('E_inj1_old_hands_out_price', v_num);
 
-    -- ── E-inj-2:注入一个【太窄】的判据(只写 data.view_prices)★ R2 ★ ──────
-    CREATE OR REPLACE FUNCTION public.inbound_batch_landed_unit_cost(p_inbound_batch_id uuid)
-     RETURNS numeric LANGUAGE plpgsql STABLE SECURITY DEFINER
-     SET search_path TO 'public','pg_temp' AS $narrow$
-    DECLARE v numeric;
-    BEGIN
-        IF NOT has_permission('data.view_prices'::text) THEN
-            RAISE EXCEPTION 'LANDED_COST_PERMISSION_DENIED|%', 'data.view_prices';
-        END IF;
-        SELECT CASE
-            WHEN ib.unit_price IS NULL
-             AND batch_freight_base_all(ib.id) + batch_processing_cost_base_all(ib.id) = 0
-            THEN NULL
-            ELSE COALESCE(ib.unit_price, 0)
-                 + CASE WHEN ib.quantity > 0
-                        THEN (batch_freight_base_all(ib.id) + batch_processing_cost_base_all(ib.id)) / ib.quantity
-                        ELSE 0 END
-        END INTO v FROM inbound_batches ib WHERE ib.id = p_inbound_batch_id;
-        RETURN v;
-    END $narrow$;
-
-    v_txt := NULL;
-    BEGIN
-        PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_stku), true);
-        v_num := inbound_batch_landed_unit_cost(b_priced);
-        v_txt := 'NO REFUSAL: ' || COALESCE(v_num::text,'NULL');
-    EXCEPTION WHEN OTHERS THEN v_txt := SQLERRM;
-    END;
-    -- ★ 太窄的判据会当场打死盘点/注销那条路 —— 而 operations 与 warehouse
-    --   这两个【真的在做盘点的角色】都没有 data.view_prices(线上实测)。
-    IF v_txt NOT LIKE 'LANDED_COST_PERMISSION_DENIED%' THEN
-        RAISE EXCEPTION 'FIXTURE 174E-inj2 注入无效:只写 data.view_prices 的判据本应把持 module.stocktakes.edit 的读者也拒掉,实得 % —— 说明 OR stocktakes.edit 那一支没有被真的用到', v_txt;
-    END IF;
-    r := r || jsonb_build_object('E_inj2_narrow_breaks_stocktake', v_txt);
-
-    -- ── 换回新版本 ────────────────────────────────────────────────────────
-    CREATE OR REPLACE FUNCTION public.inbound_batch_landed_unit_cost(p_inbound_batch_id uuid)
-     RETURNS numeric LANGUAGE plpgsql STABLE SECURITY DEFINER
-     SET search_path TO 'public','pg_temp' AS $fix$
-    DECLARE v_cost numeric;
-    BEGIN
-        IF NOT (has_permission('data.view_prices'::text)
-                OR has_permission('module.stocktakes.edit'::text)) THEN
-            RAISE EXCEPTION 'LANDED_COST_PERMISSION_DENIED|%', 'data.view_prices';
-        END IF;
-        SELECT CASE
-            WHEN ib.unit_price IS NULL
-             AND batch_freight_base_all(ib.id) + batch_processing_cost_base_all(ib.id) = 0
-            THEN NULL
-            ELSE COALESCE(ib.unit_price, 0)
-                 + CASE WHEN ib.quantity > 0
-                        THEN (batch_freight_base_all(ib.id) + batch_processing_cost_base_all(ib.id)) / ib.quantity
-                        ELSE 0 END
-        END INTO v_cost FROM inbound_batches ib WHERE ib.id = p_inbound_batch_id;
-        RETURN v_cost;
-    END $fix$;
+    -- ── 还原真的那一支(镜像)──────────────────────────────────────────────
+    -- ★ ROLE-1 Batch 3a:原来这里还有一个 E-inj-2 —— 注入"只写 data.view_prices"的判据,断言它会
+    --   【打死】持 module.stocktakes.edit 的盘点 / 注销那条路。那条路从 fu1 起读的是 _all(不问权限,
+    --   fixture 161 钉着盘点与注销按同一个到岸成本计值),这一支早已无人走;"只写 data.view_prices"
+    --   从本刀起【就是】真的判据(Tim 的 Batch 3 grilling Q5)。所以 E-inj-2 拿掉,E2 反过来断言。
+    EXECUTE v_def;
 
     -- E1 只有 module.inventory.view 的调用者:【按名拒绝】,不是 NULL
     v_txt := NULL;
@@ -600,18 +556,25 @@ BEGIN
     IF v_txt NOT LIKE 'LANDED_COST_PERMISSION_DENIED%' THEN
         RAISE EXCEPTION 'FIXTURE 174E1 失败:没有价格权也没有盘点权的调用者应当撞上按名拒绝,实得 % —— 返回 NULL 会与"这批货没有金额"混成一件事', v_txt;
     END IF;
-    -- E2 盘点/注销那条路:仍然算得出全额(R2 的"太窄"那一半被挡住了)
-    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_stku), true);
-    v_num := inbound_batch_landed_unit_cost(b_priced);
-    IF v_num IS DISTINCT FROM 7 THEN
-        RAISE EXCEPTION 'FIXTURE 174E2 失败:持 module.stocktakes.edit 但【没有】data.view_prices 的读者应当仍算得出 7,实得 % —— 注销与盘点要拿这个数过账', COALESCE(v_num::text,'NULL');
+    -- E2 ★ ROLE-1 Batch 3a:持 module.stocktakes.edit 而没有 data.view_prices 的读者(仓库的形状)
+    --    【按名拒】—— 到岸成本是一个价格(ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION 关掉)。
+    --    盘点与注销过账读 _all,不经这里(fixture 161)。
+    v_txt := NULL;
+    BEGIN
+        PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_stku), true);
+        v_num := inbound_batch_landed_unit_cost(b_priced);
+        v_txt := 'NO REFUSAL: ' || COALESCE(v_num::text,'NULL');
+    EXCEPTION WHEN OTHERS THEN v_txt := SQLERRM;
+    END;
+    IF v_txt NOT LIKE 'LANDED_COST_PERMISSION_DENIED%' THEN
+        RAISE EXCEPTION 'FIXTURE 174E2 失败:持 module.stocktakes.edit 但没有 data.view_prices 的读者应当按名拒,实得 % —— 盘点那一支还在判据里', v_txt;
     END IF;
     -- E3 有价格权的读者:全额
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_all), true);
     IF inbound_batch_landed_unit_cost(b_priced) IS DISTINCT FROM 7 THEN
         RAISE EXCEPTION 'FIXTURE 174E3 失败:有 data.view_prices 的读者应得 7';
     END IF;
-    r := r || jsonb_build_object('E_fixed','inventory-only=按名拒绝 / stocktakes=7 / prices=7');
+    r := r || jsonb_build_object('E_fixed','inventory-only=按名拒绝 / stocktakes=按名拒绝 / prices=7');
 
     -- ══════════════════════════════════════════════════════════════════════
     -- F · 「有没有价」是事实,不是价 —— 价格被遮蔽的读者【没有被新打断】

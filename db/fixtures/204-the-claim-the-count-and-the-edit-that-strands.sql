@@ -115,6 +115,8 @@ BEGIN
         (r_l2,  'module.finance.view'), (r_l2, 'data.view_prices'), (r_l2, 'data.view_purchase_prices'),
         (r_fin, 'module.finance.view'), (r_fin, 'data.view_prices'), (r_fin, 'data.view_purchase_prices'),
         (r_fin, 'module.stocktakes.edit'), (r_fin, 'module.stocktakes.view'),
+        -- ROLE-1 Batch 3a:过账的门从 module.stocktakes.edit 换成 action.stocktake_post(录数人那条腿在 fixture 221)
+        (r_fin, 'action.stocktake_post'),
         (r_fin, 'module.processing.edit'),
         (r_adm, 'action.manage_permissions'),
         (r_adm, 'module.finance.view'), (r_adm, 'data.view_prices'), (r_adm, 'data.view_purchase_prices'),
@@ -341,12 +343,12 @@ BEGIN
         v_msg := SQLERRM; v_denied := (SQLERRM = 'SELF_APPROVAL_FORBIDDEN|raiser'); END;
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 204F 失败:建盘点的人自己过账应当报 …|raiser,实得 %', COALESCE(v_msg,'(没有报错)'); END IF;
-    -- ★ 对照:另一个持 module.stocktakes.edit 的人过得了账。
+    -- ★ 对照:另一个持 action.stocktake_post 的人过得了账(ROLE-1 Batch 3a 之前是 module.stocktakes.edit)。
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_nof), true);
     PERFORM post_stocktake(st_id);
     SELECT count(*) INTO v_n FROM stocktakes WHERE id = st_id AND status = 'posted';
     IF v_n <> 1 THEN
-        RAISE EXCEPTION 'FIXTURE 204F 失败:第二个持 module.stocktakes.edit 的人应当过得了账'; END IF;
+        RAISE EXCEPTION 'FIXTURE 204F 失败:第二个持 action.stocktake_post 的人应当过得了账'; END IF;
     SELECT count(*) INTO v_n FROM approval_log
      WHERE subject_type='stocktake' AND subject_id=st_id AND decision='approved';
     IF v_n <> 1 THEN

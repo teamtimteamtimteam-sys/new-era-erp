@@ -13,11 +13,17 @@ AS $function$
     --   于是承重的是 finance.view 那一格(edit 蕴含 view —— set_role_permissions 的
     --   EDIT_REQUIRES_VIEW)。processing.edit 那一格原样留着:它不放宽任何东西
     --   (持它必持 processing.view),拿掉它是另一刀的事。fixture 163 的 D 臂钉的是这一格。
+    -- ★ ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q5):【它是到岸成本的一部分,所以先问
+    --   data.view_prices】。此前任何持 module.inbound.view 的人都读到真数,而仓库 4a 起又看得见收货
+    --   单价 —— 单价 + (运费 + 加工费) / 数量 = 到岸单位成本(ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION)。
+    --   不持它的人读到 NULL(不是 0),页面画「受限」。分摊(allocate_processing_costs)从本刀起读
+    --   _all,不再靠调用者碰巧看得见 —— 所以 NULL 毒化求和那件事(fixture 163 D)不再挂在这里。
     SELECT CASE
-        WHEN has_permission('module.inbound.view')
+        WHEN has_permission('data.view_prices')
+         AND (has_permission('module.inbound.view')
           OR has_permission('module.finance.view')
           OR has_permission('module.processing.view')
-          OR has_permission('module.processing.edit')
+          OR has_permission('module.processing.edit'))
         THEN batch_freight_base_all(p_inbound_batch_id)
         ELSE NULL
     END;

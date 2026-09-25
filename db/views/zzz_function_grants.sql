@@ -283,8 +283,10 @@ REVOKE EXECUTE ON FUNCTION public.real_role_grants(text) FROM authenticated;
 -- 【唯一的调用方,逐个点名】三支都只从属主身份执行的地方被调用:
 --   · batch_freight_base_all          ← batch_freight_base(definer,带判据)
 --                                       inbound_batch_landed_unit_cost(definer)
+--                                       allocate_processing_costs(definer,ROLE-1 Batch 3a 起)
 --   · batch_processing_cost_base_all  ← batch_processing_cost_base(definer,带判据)
 --                                       inbound_batch_landed_unit_cost(definer)
+--                                       allocate_processing_costs(definer,ROLE-1 Batch 3a 起)
 --   · inbound_batch_landed_unit_cost_all ← emit_batch_writeoff_movement(触发器,definer)
 --                                       post_stocktake(definer)
 --                                       inventory_control_reconciliation(definer)
@@ -293,7 +295,8 @@ REVOKE EXECUTE ON FUNCTION public.real_role_grants(text) FROM authenticated;
 --     按按钮的人有什么读权限。所以它必须靠"调不到"活着,与上面那一对同一条规矩。
 --   · inbound_batch_landed_unit_cost  ← inbound_batch_valuation_rows(definer)
 --     【它自己带判据(CLEANUP-A / R3)】,收权是第二层,不是唯一那层。
---                                       post_stocktake(definer,module.stocktakes.edit)
+--     (此处原写着 post_stocktake(definer,module.stocktakes.edit)—— 不对:fu1 起 post_stocktake
+--      读 _all。ROLE-1 Batch 3a 顺手更正,并拿掉了判据里 stocktakes.edit 那一支。)
 -- 给了 authenticated 就等于把【绕过 RLS 的运费与加工成本读取】敞开给任何登录
 -- 用户 —— 那正是带判据的那一对存在的全部理由,而这三支会把它一句话作废。
 -- 收回之后照常工作,靠的就是调不到。
@@ -426,3 +429,8 @@ REVOKE EXECUTE ON FUNCTION public.receipt_price_request_dry_run(uuid) FROM authe
 REVOKE EXECUTE ON FUNCTION public.receipt_price_withdraw_internal(uuid, text) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.receipt_price_fingerprint(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.receipt_settled_base(uuid) FROM authenticated;
+
+-- ROLE-1 Batch 3a(2026-09-25,Q12):assert_other_decider —— 提单人之外没人批得动时按名拒的那一句断言。
+--   只从 SECURITY DEFINER 的提交函数(submit_payroll_request 与六支付款申请提交)里调用;它读
+--   approval_deciders(本身已收回),留着 EXECUTE 就是把"谁批得了"这张名单的一个问法敞开。
+REVOKE EXECUTE ON FUNCTION public.assert_other_decider(text, text, smallint, text) FROM authenticated;

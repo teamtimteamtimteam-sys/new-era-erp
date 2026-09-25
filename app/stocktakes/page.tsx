@@ -13,6 +13,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import StocktakesTable, { type StocktakeRow } from './StocktakesTable'
 import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp } from '@/lib/dates'
+import { can } from '@/lib/permissions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const STOCKTAKE_PAGE_SIZE = 20
 
@@ -44,6 +46,8 @@ export default async function StocktakesPage({
     }
 
     const requestedPage = parsePage(sp.page)
+    // ROLE-1 Batch 3a:开单是录数的第一步,归 action.stocktake_count(仓库)。按不动时点名那个码。
+    const canCount = await can('action.stocktake_count')
 
     // 1) 匹配总数
     const { count } = await supabase
@@ -103,12 +107,14 @@ export default async function StocktakesPage({
         <ListPage
             title={t('stocktakes.listTitle')}
             actions={
-                <form action={createStocktake}>
-                    <Button
-                        type="submit">
-                        {t('stocktakes.new')}
-                    </Button>
-                </form>
+                <PermissionGate code="action.stocktake_count" allowed={canCount}>
+                    <form action={createStocktake}>
+                        <Button
+                            type="submit">
+                            {t('stocktakes.new')}
+                        </Button>
+                    </form>
+                </PermissionGate>
             }
             state={{ kind: 'ok' }}
         >

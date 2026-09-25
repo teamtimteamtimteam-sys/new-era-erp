@@ -40,9 +40,11 @@ BEGIN
     RETURNING id INTO v_mat;
 
     -- 甲:【不带】采购单行的批次(线上那一半)
+    -- ★ ROLE-1 Batch 3a:建成【未定价】—— 下面 A-注入要给它补上采购单行,而一张已定价的收货从本刀起
+    --   换不了采购单 / 采购行(RECEIPT_PRICED_SOURCE_FROZEN)。价格与本 fixture 钉的三条接缝无关。
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
-        arrival_date, unit_price, source_reason_code, source_reason_note)
-    VALUES ('ZZFIX182-IB', v_mat, v_sup, 100, 100, DATE '2025-02-01', 10, 'other', 'fixture 182 自带数据') RETURNING id INTO v_ib;
+        arrival_date, source_reason_code, source_reason_note)
+    VALUES ('ZZFIX182-IB', v_mat, v_sup, 100, 100, DATE '2025-02-01', 'other', 'fixture 182 自带数据') RETURNING id INTO v_ib;
 
     -- ══════════ A. no_purchase_order 标在收货那一行上 ══════════════════════
     EXECUTE 'SET LOCAL ROLE authenticated';

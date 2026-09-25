@@ -2657,6 +2657,8 @@ const zh = {
                 RECEIPT_PRICE_REQUEST_OPEN: '收货 {0} 有一张定价申请正在等 CFO 批({1})。在它被批准、驳回或撤回之前,这张收货的价格、供应商、采购单、金属含量都不能改,也不能注销。什么都没有保存。',
                 RECEIPT_PRICE_BELOW_SETTLED: '按这个价,收货 {0} 值 {1},低于已经付给它的 {2}。价格不能低于已付。什么都没有保存。',
                 RECEIPT_PRICE_NO_OTHER_DECIDER: '收货 {0} 的定价申请除了你没人批得了:二级审批人只有你(另一个账号)。请让财务来提。什么都没有保存。',
+                // ROLE-1 Batch 3a
+                RECEIPT_PRICED_SOURCE_FROZEN: '收货 {0} 已经定价,它的供应商、采购单与采购行都不能再换 —— 那会把这笔应付搬到另一家供应商名下。什么都没有保存。',
                 RECEIPT_PRICE_CHANGED_SINCE_REQUEST: '申请 {0} 提交之后,这张收货变了(数量、供应商、采购行、金属含量、承诺条款或一份更新的化验)。它不能按原样批准 —— 请驳回并重新提一张。什么都没有过账。',
                 RECEIPT_PRICE_REQUEST_NOT_FOUND: '这张定价申请已经不存在了。请刷新页面。',
                 RECEIPT_PRICE_REQUEST_NOT_SUBMITTED: '申请 {0} 已经是「{1}」—— 没有要决定的了。请刷新页面。',
@@ -2675,6 +2677,8 @@ const zh = {
             selectMaterial: '请选择物料',
             supplier: '供应商',
             selectSupplier: '请选择供应商',
+            // ROLE-1 Batch 3a:已定价的收货,供应商按不动
+            supplierFrozenPriced: '收货 {code} 已经定价,供应商不能再换 —— 这笔应付已经是这家供应商的。',
             quantity: '数量',
             unit: '单位',
             arrivalDate: '到货日期',
@@ -4723,6 +4727,8 @@ const zh = {
             PAYROLL_ATTENDANCE_NOT_COMPLETE: '{1} 的考勤底稿还没有人说过它齐全,{0} 不能过账 —— 过了就等于悄悄把「缺勤未知」当成了「全勤」',
             PAYROLL_NEEDS_APPROVED_REQUEST: '{0} 要先有一张已批准的申请才能执行({1})。请先提申请,经 CFO 批准。',
             PAYROLL_REQUEST_OPEN: '{0} 已经挂着一张未了结的申请。先撤回它,再保存或另提。',
+            // ROLE-1 Batch 3a
+            PAYROLL_NO_OTHER_DECIDER: '{0} 的这张申请除了你没有人批得了:二级审批人只有你(另一个账号上的你)。请让财务来提。什么都没有保存。',
             PAYROLL_REQUEST_NOT_FOUND: '这张工资申请已经不存在了。',
             PAYROLL_REQUEST_NOT_OPEN: '申请 {0} 是{1} —— 只有待批或已批准的申请才能撤回。',
             PAYROLL_REQUEST_NOT_SUBMITTED: '申请 {0} 是{1},不在等待决定。',
@@ -5318,6 +5324,8 @@ const zh = {
         errors: {
             ASSAY_BASIS_REQUIRED: '说明这份化验按的是哪种重量 —— 收到时(湿基)还是烘干后(干基)。**一份没说明基准的数字事后还原不出来**:干基 30% 与湿基 30% 是两个数,差多少取决于水分。',
             ASSAY_APPLY_THROUGH_FUNCTION_ONLY: '一份化验是否已应用,只能经由「应用」与「撤销应用」改变(要 action.apply_assay)—— 不能直接改化验记录。什么都没有保存。',
+            // ROLE-1 Batch 3a
+            ASSAY_FINAL_THROUGH_FUNCTION_ONLY: '一份化验是不是正式,在记录它的时候定下,之后不能改。要更正,就录一份新化验取代它。什么都没有保存。',
             ASSAY_CONTENT_THROUGH_FUNCTION_ONLY: '标着「出自化验」的金属含量,只能由应用那份化验写出(要 action.apply_assay)。请改为手工录入 —— 它会记作手工。什么都没有保存。',
             ASSAY_RESULT_PARTY_REQUIRED: '说明这份结果是谁出的 —— 我们、对手方、还是仲裁实验室。**刻意没有默认值**:默认成"我们"会让一个忘了改的字段变成"这是我们测的"这句话。',
             INBOUND_NOT_FOUND: '进料批次不存在',
@@ -6376,7 +6384,17 @@ const zh = {
             STOCKTAKE_NOT_FOUND: '盘点单不存在',
             STOCKTAKE_NOT_OPEN: '盘点单不是进行中状态(状态:{0})',
             BATCH_DELETED: '批次 {0} 已被删除',
+            // ROLE-1 Batch 3a:录数与过账分离
+            STOCKTAKE_COUNTER_CANNOT_POST: '你在盘点单 {0} 上录过数(或者你的另一个账号录过),所以你不能过账它。由没有数过它的人过账 —— 财务。什么都没有过账。',
+            STOCKTAKE_THROUGH_FUNCTION_ONLY: '盘点单只能经它自己的按钮开单、录数、过账或取消 —— 不能直接改它。什么都没有保存。',
+            STOCKTAKE_COUNT_BATCH_REQUIRED: '盘点单 {0} 上的一次录数要且只要一个批次。什么都没有保存。',
+            STOCKTAKE_COUNT_QTY_INVALID: '盘点单 {0} 上的实点数必须大于等于 0。什么都没有保存。',
+            STOCKTAKE_COUNT_APPEND_ONLY: '盘点单 {0} 上"谁数过"的记录不能改、也不能删 —— 重录是再加一行。什么都没有改动。',
         },
+        // ROLE-1 Batch 3a:这个人为什么按不动过账
+        postBlockedOpener: '这张盘点单是你开的,所以你不能过账它。由别人过账 —— 财务。',
+        postBlockedCounter: '你在这张盘点单上录过数,所以你不能过账它。由没有数过它的人过账 —— 财务。',
+        countedBy: '录数人',
     },
     receivables: {
         attribute: {
@@ -7120,6 +7138,8 @@ const zh = {
             TRANSFER_REVERSAL_ALREADY_REQUESTED: '这笔转账已经有一张未了结的冲销申请。请到「财务 → 银行」打开那一张,不要再提一张。',
             PAYMENT_REQUEST_NOT_REQUIRED: '这笔付款不需要申请 —— 它是全额支付已批准的报销给员工。请直接在「财务 → 收付款」登记。',
             PAYMENT_REQUEST_TARGET_RESERVED: '这张申请里有一张单据已经挂在未了结的申请 {0} 上。请先付掉或撤回那张申请,再为同一张单据提新的申请。',
+            // ROLE-1 Batch 3a
+            PAYMENT_REQUEST_NO_OTHER_DECIDER: '这张申请除了你没有人批得了:二级审批人只有你(另一个账号上的你)。请让财务来提。什么都没有保存。',
             PAYMENT_REQUEST_NOT_FOUND: '付款申请 {0} 不存在。',
             PAYMENT_REQUEST_NOT_OPEN: '付款申请 {0} 已经结束(已撤回、已驳回或已付款),没有可撤回的了。请刷新页面查看它现在的状态。',
             PAYMENT_REQUEST_NOT_SUBMITTED: '付款申请 {0} 已经不在待批状态 —— 已经有人决定或撤回了它。请刷新页面查看它现在的状态。',

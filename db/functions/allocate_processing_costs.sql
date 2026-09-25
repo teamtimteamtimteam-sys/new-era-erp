@@ -117,11 +117,14 @@ BEGIN
     -- (而运费那张分录本身完全正确)。这正是"资本化的错误藏在存货里"最具体的一种。
     SELECT COALESCE(SUM(pi.quantity_consumed
              * (COALESCE(ib.unit_price, 0)
-                + CASE WHEN ib.quantity > 0 THEN batch_freight_base(ib.id) / ib.quantity ELSE 0 END
+                -- ★ ROLE-1 Batch 3a:读 _all —— 【算一笔要过账的钱不许问权限】(inbound_batch_landed_unit_cost
+                -- 的同一条规矩)。此前读带判据的屏幕读取器,靠的是分摊的人碰巧看得见;一个 NULL 加数会
+                -- 让 SUM 跳过整条投料腿(fixture 163 D)。
+                + CASE WHEN ib.quantity > 0 THEN batch_freight_base_all(ib.id) / ib.quantity ELSE 0 END
                 -- PROC-COST-1:第三个成本组件 —— 该批身上已资本化的加工成本
                 -- (放电等状态改变型工序留下的)。【不加这一项,成本就走不出去】:
                 -- 它是进料批上的资本化成本【唯一】能到达损益表的那条路。
-                + CASE WHEN ib.quantity > 0 THEN batch_processing_cost_base(ib.id) / ib.quantity ELSE 0 END)), 0),
+                + CASE WHEN ib.quantity > 0 THEN batch_processing_cost_base_all(ib.id) / ib.quantity ELSE 0 END)), 0),
            COUNT(*) FILTER (WHERE ib.unit_price IS NULL)
       INTO v_material_in, v_inputs_without_price
     FROM processing_inputs pi

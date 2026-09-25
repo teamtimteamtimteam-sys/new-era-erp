@@ -2,12 +2,15 @@ import { getTranslations } from '@/lib/i18n/server'
 import { fallbackForRawError } from '@/lib/machine-text'
 import { localizeSelfApproval } from '@/lib/selfApproval'
 
-// post_stocktake / cancel_stocktake 这两个 DB 函数 RAISE 出来的错误码(端口自 processing/errorCodes.ts)。
+// post_stocktake / cancel_stocktake / record_stocktake_count / open_stocktake 这几个 DB 函数 RAISE 出来的错误码(端口自 processing/errorCodes.ts)。
 // 不在此集合内的,是真正的(未编码的)DB/约束错误,交给共用兜底 lib/machine-text.ts。
 const STOCKTAKE_ERROR_CODES = new Set([
     'STOCKTAKE_NOT_FOUND', 'STOCKTAKE_NOT_OPEN', 'BATCH_DELETED',
 
     'STOCKTAKE_CANCEL_REASON_REQUIRED',   // AUDEL-1b
+    // ROLE-1 Batch 3a:录数与过账分离
+    'STOCKTAKE_COUNTER_CANNOT_POST', 'STOCKTAKE_THROUGH_FUNCTION_ONLY', 'STOCKTAKE_COUNT_BATCH_REQUIRED',
+    'STOCKTAKE_COUNT_QTY_INVALID', 'STOCKTAKE_COUNT_APPEND_ONLY',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..." —— 即使 PostgREST 在前面包了前缀,

@@ -53,6 +53,9 @@ BEGIN
         RAISE EXCEPTION 'WHT_NOTHING_TO_REMIT|%|%', v_month, COALESCE(v_amount, 0);
     END IF;
 
+    -- ★ ROLE-1 Batch 3a(Q12):提单人之外没人批得动 → 按名拒(审批关着时不拒)。先于取号:拒了不烧号。
+    PERFORM assert_other_decider('payment_request', 'decide_payment_request', 2::smallint,
+                                 'PAYMENT_REQUEST_NO_OTHER_DECIDER');
     v_code := next_payment_request_code(p_planned_date);
     INSERT INTO payment_requests (id, code, kind, status, counterparty_type,
                                   amount_ccy, currency, amount_base, bank_account_code,

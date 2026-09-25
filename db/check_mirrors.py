@@ -542,6 +542,8 @@ DEFINER_NO_CHECK_ALLOWED = {
     "receipt_settled_base": "EXECUTE revoked from PUBLIC/authenticated/anon",
     # 它【必须】留给 authenticated:调它的是两支 INVOKER 守卫(payroll_period_frozen 同一条)。
     "receipt_price_open": "ROLE-1 Batch 4b: called by two INVOKER guards, so EXECUTE must stay with the caller; returns only the label (receipt code · price #n) of a waiting request, no price",
+    # ROLE-1 Batch 3a:提单人之外没人批得动时的那一句断言 —— 只从 DEFINER 提交函数里调,靠的是调不到。
+    "assert_other_decider": "EXECUTE revoked from PUBLIC/authenticated/anon; called only by submit_payroll_request and the six payment-request submit functions (all definer, each require_permission first)",
     # PROC-COST-2(2026-08-31):两支【计值读取器】与它们共用的单位落地成本。
     # **它们【必须】没有调用者检查,而这一条与上面每一条的理由都不同 ——
     # 不是"加了门会在属主身份下抛错",是【加了门就是缺陷本身】。**

@@ -3,7 +3,7 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25):**下一刀是 ROLE-1 Batch 3**)
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新:**下一刀是 ROLE-1 Batch 3b,之后 APR-5**)
 > 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(`fa7821ab`)·
 >    **✅ AP-RECON-1 Batch B** —— 残留登记表 + 常设勾稽 + 月结那一行 + 严格相等的 fixture 213 + 那一分钱 +
 >    带税订单发票 + **三条日期规矩与 32 份 fixture 的日期挪回真实的过去**(Tim 2026-09-24:日期规矩属于 AP-RECON-1,
@@ -31,10 +31,15 @@
 >    都只提一张 `receipt_price_requests`;CFO 批每一张、不分档、**批即过账**(批准日、那天的牌价);等待期间冻结供应商 / 采购行 /
 >    含量 / 注销 / 第二张;批准时指纹再比;低于已付按名拒;提单人之外没人批得动时提交就拒(`RECEIPT_PRICE_NO_OTHER_DECIDER`);
 >    `pricing_status` 只经函数写、`final` 只在批准化验申请时置。**没有新码**,所以没有东西要授给 admin。见 `docs/handbacks/ROLE-1.md` § Batch 4b。
-> 7. **⬜ ROLE-1 Batch 3 ← 下一刀** —— 下文 § Batch 3(收货建单码、盘点录数与过账分离、工单);★ 连同 ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION(Q12)
->    与 ROLE1B4B-ASSAY-IS-FINAL-DIRECT-EDIT(4b Q3)。
-> 8. **⬜ 工资申请的"提单人之外没人批得动"**(ROLE1B4B-PAYROLL-RAISER-NO-DECIDER,Tim 2026-09-25 4b Q1:登记,不在 4b 修)——
->    `submit_payroll_request` 照收货定价申请的样子,审批开着、二级除提单人这个人之外没人批得动时按名拒。排在哪里归 Tim。
+> 7. **✅ ROLE-1 Batch 3a**(2026-09-25)—— 盘点录数归仓库(`action.stocktake_count`)、过账归财务(`action.stocktake_post`),
+>    **录过数的人与开单人永远不能过账**(按人认);`stocktake_counts` 只增不改地记下每一次录数与重录;盘点三张表没有直连写。
+>    四个登记的缺口关上:到岸成本不再给仓库(Q5)· `is_final` 只走函数(Q10)· 已定价的收货不换来路(Q11)·
+>    提单人之外没人批得动时提交就拒 —— 工资申请与六支付款申请(Q12)。两个新码一并授给 admin。见 `docs/handbacks/ROLE-1.md` § Batch 3a。
+> 8. **⬜ ROLE-1 Batch 3b ← 下一刀**(Tim 2026-09-25,Batch 3 grilling Q1 · Q6–Q9 · Q13)—— 下文 § Batch 3b:
+>    收货建单 `action.receive_goods`(Q1)· 工单 `action.wo_create` / `action.wo_release`(建单人永远不能下达)·
+>    加工提交 `action.processing_commit` + 仓库拿 `module.processing.view`(三页改读 `material_lookup`)· 加工三张表的直连写关上 ·
+>    临时持有人 `action.batch_write_off` / `action.processing_rollback` → 仓库与 admin。每一个新码一并授给 admin。
+> 9. **⬜ APR-5** —— 贷项通知、作废发票、发货前放行(N1 那一刀是它的前置,见下文)。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**
 > * **⬜ 管理包那一版 `gl_control_reconciliation` 的改基**(Tim AP-RECON-1 Q8):冻在 `management_packs` 里的包读它的三个键;
@@ -6266,13 +6271,25 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   风险是"批过的身份被换掉"。做法候选:一支 BEFORE UPDATE 守卫把这三列的改动连同状态一起退回 `pending_review`
   (并清批准戳),或者直接拒、要求先撤回批准。要 Tim 选。
 
-### ⬜ Batch 3 —— 仓库那一侧:收货、盘点、工单、加工提交,以及 [LC] 的临时持有人 **← 下一刀**(ROLE-1 Batch 4b 交回时定,2026-09-25)
-* **收货建单归仓库**:`create_inbound_batch` / `receive_inbound_batch_against_po` 换成新码(工作名 `action.receive_goods`)。
-* **盘点:录数归仓库、过账归财务,录过数的人永远不能过账**。`stocktake_lines` 只记最后一个 `created_by`、重录会覆盖 ——
-  **先要一份"谁数过"的记录**(按行追加),再把 `post_stocktake` 的四眼从"开单人"改成"开单人 + 所有录过数的人"。
-  线上 5 张在途盘点(ST-2026-0082…0086)都是 0 行,没有历史要回填。
-* **工单**:建 / 改 / 取消 / 关闭 → 仓库;下达 → 财务;加工提交 → 仓库。仓库今天【没有】`module.processing.view`,要一起给。
-* **临时持有人(Q10)**:删批次(报废入口)、加工回滚、作废 COD —— 在各自的生命周期之前只归仓库;发货在 APR-5 之前 cco 保留。
+### ✅ Batch 3a —— 盘点录数与过账分离 + 四个登记的缺口(2026-09-25,见 `docs/handbacks/ROLE-1.md` § Batch 3a)
+* 盘点:`action.stocktake_count`(仓库 · admin)开单与录数;`action.stocktake_post`(财务 · admin)过账;取消仍归 `module.stocktakes.edit`。
+  `stocktake_counts` 只增不改;开单人与每一个录过数的人都不能过账(按人认)。三张表没有直连写。
+* 缺口:ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION · ROLE1B4B-ASSAY-IS-FINAL-DIRECT-EDIT · ROLE1B4A-RECEIPT-SUPPLIER-CHANGE-AFTER-PRICING ·
+  ROLE1B4B-PAYROLL-RAISER-NO-DECIDER 全部关掉;新登记 ROLE1B3A-PRICED-RECEIPT-NO-CORRECTION · ROLE1B3A-NO-OTHER-DECIDER-PO-EXPENSE ·
+  ROLE1B3-AMEND-RELEASED-WO。
+
+### ⬜ Batch 3b —— 收货建单、工单、加工提交、回滚与注销的临时持有人 **← 下一刀**(Tim 2026-09-25,Batch 3 grilling)
+* **收货建单归仓库(Q1)**:`create_inbound_batch` / `receive_inbound_batch_against_po` 的门从 `module.inbound.edit` 换成
+  `action.receive_goods` → 仓库与 admin。**谁失去它**:cco(Sandra)· cto(Phua)· finance(Choo Er)不再能建收货单(改收货仍归
+  `inbound.edit`);无人持有的 procurement / operations 同。交回报告要逐人写出来。
+* **工单**:建 `action.wo_create` → 仓库与 admin;下达 `action.wo_release` → 财务与 admin,建单人永远不能下达(按人认,现有的
+  `forbid_self_approval` 那条腿);改 / 取消 / 关闭 = `action.wo_create` **或** `module.processing.edit`(Q6,cco / cto 留着宽码)。
+  迁移里那支"在途单据有没有决定人"的自证,工单那一臂从 `processing.edit` 换成 `action.wo_release`。
+* **加工提交**:`action.processing_commit` → 仓库与 admin;仓库拿 `module.processing.view`;加工录入、新工单、加工详情三页改读
+  `material_lookup`(Q8,不给 `module.materials.view`);**加工三张表的直连写关上**(`processing_runs` / `processing_outputs` 的
+  INSERT 策略拿掉 + 运行单 `status` / `work_order_id` 的直连改按名拒,Q7 —— 动手前先确认没有屏幕直连插)。
+* **临时持有人(Q9)**:`action.batch_write_off`(两支软删)· `action.processing_rollback` → 仓库与 admin;作废 COD 与发货【不改】(Step 0 实测已是)。
+* Step 0 已答(`docs/handbacks/ROLE-1.md` § Batch 3 §0);3b 开工时只需重量 Step 0 的数(线上工单、加工单、在途)。
 
 ### ✅ Batch 4a —— 采购价可见性(Q9)与"看不见价格的人不能定价"(2026-09-25,见 `docs/handbacks/ROLE-1.md` § Batch 4a)· ✅ Batch 4b —— [LC] 第 5 条收货定价审批(2026-09-25,§ Batch 4b)
 * 新码 `data.view_purchase_prices`(工作名):采购单与采购行、质保金、付款条款、定价公式与条款承诺、计价器、

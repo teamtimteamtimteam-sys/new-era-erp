@@ -109,6 +109,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'action.decide_hr_requests', 'action.metal_prices',
         -- ★ ROLE-1 Batch 4a(Tim 2026-09-25,grilling Q1):收货定价与改价归财务。
         'action.price_receipts',
+        -- ★ ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q4):盘点过账归财务;要读得到盘点单才过得了。
+        'action.stocktake_post', 'module.stocktakes.view',
         'data.view_banking', 'data.view_prices', 'data.view_purchase_prices', 'data.view_sales', 'module.customers.edit',
         'module.customers.view', 'module.finance.edit', 'module.finance.view',
         'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
@@ -176,7 +178,10 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- (采购单、收货单价与改价历史、公式与条款承诺、应付账龄),好开它的采购单。
         -- 销售、发票、应收、到岸成本、存货计值、加工成本与毛利仍按 data.view_prices,仓库不拿。
         -- 看得见不等于定得了价:收货定价要 action.price_receipts(只归财务)。
-        'data.view_purchase_prices'
+        'data.view_purchase_prices',
+        -- ── ROLE-1 Batch 3a(Tim 2026-09-25,Batch 3 grilling Q4)──────────────────────────────
+        -- 开盘点单与录数归仓库;过账归财务(action.stocktake_post),录过数的人永远不能过账。
+        'action.stocktake_count'
 ) WHERE r.code = 'warehouse';
 
 -- hr(7):人力资源 + 薪酬 + 身份信息 + 绩效正文。这四类正是 HR 的工作对象,也正是别人不该看见的。

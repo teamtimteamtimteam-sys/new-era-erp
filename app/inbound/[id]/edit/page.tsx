@@ -114,6 +114,7 @@ export default async function EditInboundPage({
     const canViewPurchasing = await can('module.purchasing.view')
     // ★ FIX-2b:「有没有一张盘点在进行」也是一句权限答复 —— 见下面横幅那一处。
     const canSeeStocktakes = await can('module.stocktakes.view')
+    const canCountStocktake = await can('action.stocktake_count')
     // ★★【FIX-2b fu:抵扣预付那一块的门是【财务】,不是采购 —— 第一版把它挂错了】★★
     //   实测两张来源的谓词都是 module.finance.view:
     //     po_prepayment_applicable        WHERE … has_permission('module.finance.view')
@@ -527,6 +528,15 @@ export default async function EditInboundPage({
     const priceLockedReason = openRequestLabel
         ? t('inbound.priceRequest.lockedHint', { label: openRequestLabel })
         : undefined
+    // ROLE-1 Batch 3a(Q11):一张【已定价】的收货,供应商永远不许再换(库里按名拒 RECEIPT_PRICED_SOURCE_FROZEN,
+    // 不分直连与属主路径)。在等的申请那一句说得更具体,先说它。
+    // ☞ unit_price 来自遮蔽视图:不持采购码的读者读到 NULL,于是这里对他【不锁】—— 库那一侧照样拒;
+    //   今天持 module.inbound.edit 的每一个真账号都持采购码(ROLE-1 Batch 4a),所以这是一条理论上的缝。
+    const supplierLockedReason =
+        priceLockedReason ??
+        (batch.unit_price !== null && batch.unit_price !== undefined
+            ? t('inbound.form.supplierFrozenPriced', { code: batch.code })
+            : undefined)
 
     const priceHistoryRows: PriceHistoryRow[] = maskedRows<
         Tables<'price_history'>,
@@ -758,13 +768,16 @@ export default async function EditInboundPage({
             </div>
 
             {openStocktake ? (
-                <StocktakeQuickCount
-                    stocktakeId={openStocktake.id}
-                    stocktakeCode={openStocktake.code}
-                    side="inbound"
-                    batchId={batch.id}
-                    counted={stocktakeCounted}
-                />
+                /* ROLE-1 Batch 3a:录数归 action.stocktake_count(仓库)—— 看得见、按不动时点名那个码 */
+                <PermissionGate code="action.stocktake_count" allowed={canCountStocktake} className="w-full">
+                    <StocktakeQuickCount
+                        stocktakeId={openStocktake.id}
+                        stocktakeCode={openStocktake.code}
+                        side="inbound"
+                        batchId={batch.id}
+                        counted={stocktakeCounted}
+                    />
+                </PermissionGate>
             ) : !canSeeStocktakes ? (
                 /* ★ FIX-2b:`stocktakes` 的 RLS 是 module.stocktakes.view,而 finance
                    不持有它(实测:Choo Er 读 stocktakes 得 0 行)。此前这一句是
@@ -777,7 +790,7 @@ export default async function EditInboundPage({
             ) : null}
 
             <EditInboundForm
-                supplierLockedReason={priceLockedReason}
+                supplierLockedReason={supplierLockedReason}
                 batch={batch}
                 materials={mustRows(materialsRes) as unknown as { id: string; code: string; name: string }[]}
                 suppliers={mustRows(suppliersRes) as unknown as { id: string; code: string; legal_name: string }[]}

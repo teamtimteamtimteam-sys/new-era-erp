@@ -50,6 +50,7 @@ DECLARE
     u_cfo   uuid := gen_random_uuid();   -- 二级审批角色;也是在册员工 e_cfo 的主账号
     u_cfo2  uuid := gen_random_uuid();   -- ★ e_cfo 的另一个账号,持财务角色 —— "同一个人提的"那一臂
     u_l1    uuid := gen_random_uuid();   -- 一级审批角色
+    u_l2b   uuid := gen_random_uuid();   -- ROLE-1 Batch 3a:E 臂中途加进二级的【另一个人】
     r_fin uuid; r_l1 uuid; r_l2 uuid;
     e_fin uuid := gen_random_uuid();
     e_cfo uuid := gen_random_uuid();
@@ -288,6 +289,16 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 218G7 失败:冲回一张工资撤销分录应当按名拒,实得 %', v_msg; END IF;
 
     -- ══════════ E · 同一个人的另一个账号提的,CFO 批不了 ═══════════════════════
+    -- ★ ROLE-1 Batch 3a(Q12):二级此刻只有 u_cfo 一个人,而 u_cfo2 是同一个人 —— 这张申请谁都批不了,
+    --   于是【提交就按名拒】PAYROLL_NO_OTHER_DECIDER|工资期(ROLE1B4B-PAYROLL-RAISER-NO-DECIDER)。
+    PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_cfo2), true);
+    v_msg := pg_temp.f218_try(format('SELECT submit_payroll_request(%L, %L)', p1, 'post'));
+    IF v_msg <> 'PAYROLL_NO_OTHER_DECIDER|' || (SELECT code FROM payroll_periods WHERE id = p1) THEN
+        RAISE EXCEPTION 'FIXTURE 218E0 失败:提单人之外二级没有人时,提交应当按名拒 PAYROLL_NO_OTHER_DECIDER,实得 %', v_msg; END IF;
+    -- 再给二级添一个【别的人】(u_l2b,不连任何员工档案)—— 提交于是放行,而 CFO 本人批这一张
+    -- 仍然按人拒(四眼在批准那一刻是第二道,不因为提交那一道而拿掉)。
+    INSERT INTO auth.users (id, email_confirmed_at) VALUES (u_l2b, now());
+    INSERT INTO user_roles (user_id, role_id) VALUES (u_l2b, r_l2);
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_cfo2), true);
     q3 := (submit_payroll_request(p1, 'post')->>'request_id')::uuid;
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_cfo), true);

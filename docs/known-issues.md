@@ -3,21 +3,29 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
-## ROLE1B4B-PAYROLL-RAISER-NO-DECIDER · admin@ 能提一张谁都批不了的工资申请(ROLE-1 Batch 4b 登记,2026-09-25)
+## ROLE1B3A-PRICED-RECEIPT-NO-CORRECTION · 一张供应商记错了的已定价收货,今天没有更正的路(ROLE-1 Batch 3a 登记,2026-09-25)
 
-admin@ 与 tim@ 是同一个人(`account_person` 两个都是 `4737faa9…`,2026-09-25 以 postgres 读);二级审批角色今天只有 tim@
-一个真持有人。admin@ 持 `module.hr.edit`,于是它能 `submit_payroll_request` —— 那张申请的提单人那条腿按人认,tim@ 批不了,
-而没有第二个人:申请挂在那里没人批得了,还因为 `blocks_disable` 挡住关审批。收货定价申请在 4b 里按名拒了同一个形状
-(`RECEIPT_PRICE_NO_OTHER_DECIDER`,提交时问 `approval_deciders` 减去提单人这个人是不是空的);Tim 的裁定(Batch 4b grilling Q1):
-**工资申请的同一个缺口登记,不在本刀修**。**删除条件:** `submit_payroll_request` 在审批开着、二级除提单人之外没有人批得动时按名拒。
+Batch 3a 关掉了 ROLE1B4A-RECEIPT-SUPPLIER-CHANGE-AFTER-PRICING:一张【已定价】的收货(`unit_price` 不为空)改供应商 /
+采购单 / 采购行,一律按名拒 `RECEIPT_PRICED_SOURCE_FROZEN|收货`(`guard_inbound_batch_price_request` ③,不分直连与属主路径;
+fixture 221 G3)。代价照直记:**供应商记错了的已定价收货从此改不回来** —— 注销在有未付应付时也拒(`INBOUND_HAS_OPEN_PAYABLE`),
+而定价不能改回"未定价"。线上 2026-09-25 读(postgres,基表):9 张已定价的在册收货,带采购单的 8 张全部与采购单同一家
+供应商 —— 今天没有一张需要更正。Tim 的裁定(Batch 3 grilling Q11):**按名拒;更正的生命周期(申请 → 批准 → 连同应付
+与已付一起搬)登记为以后的事**。**删除条件:** 一条有留痕、经批准的更正路径落地。
 
-## ROLE1B4B-ASSAY-IS-FINAL-DIRECT-EDIT · 化验的"正式"标记能被直接改(ROLE-1 Batch 4b 登记,2026-09-25)
+## ROLE1B3A-NO-OTHER-DECIDER-PO-EXPENSE · 采购单(≥ 1,000)与报销单也能被提成"除了提单人没人批得动"(ROLE-1 Batch 3a 登记,2026-09-25)
 
-`assay_results` 的 UPDATE 策略是 `module.inbound.edit`,守卫 `guard_assay_applied_columns` 只管 `applied_at` / `applied_by` /
-`superseded_by` —— **`is_final` 任何持 `inbound.edit` 的人都能直连改**。4b 起收货的 `pricing_status` 只在 CFO 批准一张化验来源的
-申请时、且那份化验 `is_final` 才升 `final`(那一列本身已由 `guard_inbound_batch_price_request` 挡住直连写),所以改 `is_final`
-能左右"批准之后是不是 final"。Tim 的裁定(Batch 4b grilling Q3):**登记给 Batch 3**。**删除条件:** 已应用(或有申请在等)的化验,
-`is_final` 不能再被直连改。
+Batch 3a 把 4b 那一句(`RECEIPT_PRICE_NO_OTHER_DECIDER`)抽成 `assert_other_decider`,用在工资申请与六支付款申请的提交上
+(Tim 的 Q12)。**同一个形状还在两处**:`create_purchase_order`(≥ 1,000 只有二级批得动,二级今天只有 tim@ 一个真持有人,
+而 admin@ 是同一个人、持 `module.purchasing.edit`)与 `submit_expense_claim`(报销单的分档链)。提交时都不问
+`approval_deciders`,于是 admin@ 提的一张单挂在那里没人批得动,还经 `blocks_disable` 挡住关审批。Tim 的裁定:**登记,
+不在本刀修**。**删除条件:** 两处提交在审批开着、提单人之外没人批得动时按名拒(调 `assert_other_decider`)。
+
+## ROLE1B3-AMEND-RELEASED-WO · 改一张【已下达】的工单,不会把它送回去重新下达(ROLE-1 Batch 3 登记,2026-09-25)
+
+`amend_work_order` 收 draft 与 released 两种状态,改完状态不变(`amend_work_order.sql:25-26`)。Batch 3b 起工单由仓库建、
+财务下达(建单人永远不能下达),而改单仍由 `action.wo_create` 或 `module.processing.edit` 做(Tim 的 Q6)—— 于是仓库能
+改一张财务已经下达的工单,改过的那一份没有人再下达过。把它送回 draft 会挡住正在按它提交的加工(提交要求 released)。
+Tim 的裁定(Batch 3 grilling Q6):**登记,不在 3b 里造**。**删除条件:** 改一张已下达的工单要重新下达(或改动经一条有留痕的批准)。
 
 ## ROLE1B4B-UNPRICED-NEVER-WRITTEN · `pricing_status = 'unpriced'` 从来没有人写,`batch_unpriced` 提醒因此永远不响(ROLE-1 Batch 4b 登记,2026-09-25)
 
@@ -33,25 +41,6 @@ admin@ 与 tim@ 是同一个人(`account_person` 两个都是 `4737faa9…`,2026
 不动,清单与总账从此各说各话(与 Batch 4a 关掉的冲销侧门对称的那一半)。Tim 的裁定(Batch 4 grilling Q7 (d)):
 **登记,不在本刀修** —— 手工凭证是 APR-6 那一刀的事。**删除条件:** 手工凭证不能再带 `purchase`(或任何有自己入口的
 `source_type`)过账。
-
-## ROLE1B4A-RECEIPT-SUPPLIER-CHANGE-AFTER-PRICING · 一张已定价的收货还能换供应商 / 换采购行(ROLE-1 Batch 4 登记,2026-09-25)
-
-`inbound_batches` 的 UPDATE 策略只问 `module.inbound.edit`;收货编辑表单(`app/inbound/[id]/edit/actions.ts`)与直连写
-都能改 `supplier_id`,直连写还能改 `purchase_order_line_id`。唯一的守卫是 `supplies_goods` 与采购行匹配 —— **没有
-任何东西检查它是不是已定价、已付款**,也不检查它与采购单的供应商是否一致(采购单本身的 `supplier_id` 是改不了的)。
-应付于是跟着搬到另一家供应商名下;换采购行会换掉下一次改价所用的承诺条款。Tim 的裁定(Q7 (d)):**登记,不在本刀修**;
-定价申请等待期间的冻结(Q5)**已在 4b 落地**(2026-09-25:申请在等 CFO 时,改供应商 / 采购单 / 采购行 → 
-`RECEIPT_PRICE_REQUEST_OPEN`,`guard_inbound_batch_price_request`);**没有在等的申请时,已定价的收货照旧能换**,
-收货编辑本身归 **Batch 3**。**删除条件:** 已定价的收货不能再换供应商与采购行(或经一条有留痕的路)。
-
-## ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION · 到岸成本经盘点那一条例外对仓库是看得见的(ROLE-1 Batch 4 登记,2026-09-25)
-
-Tim 的 Q9 线:到岸成本与存货计值留在 `data.view_prices`,仓库不拿。**但它今天就读得到**,而且不是 Batch 4a 造成的:
-`inbound_batch_landed_unit_cost` 放行 `data.view_prices` **或** `module.stocktakes.edit`(盘点 / 注销那条路要它),仓库持后者;
-`batch_freight_base` 与 `batch_processing_cost_base` 对任何持 `module.inbound.view` 的人给真数。4a 之后仓库又看得见
-收货单价,于是 单价 + (运费 + 加工费) / 数量 = 到岸单位成本 —— 那条减法 `LandedCostPanel.tsx` 抬头早就写着。
-Tim 的裁定(Batch 4 grilling Q12):**登记,在 Batch 3 修** —— 那一批把盘点过账交给财务,`stocktakes.edit` 的意思随之改变;
-现在就关它会弄坏仓库仍然拥有的盘点这条路。**删除条件:** 到岸成本的三个读者不再对不持 `data.view_prices` 的人给真数。
 
 ## ROLE1-SALES-ORDER-QUOTE-PRICES-UNMASKED · 销售订单与报价的单价没有任何价格遮蔽(ROLE-1 Step 0 登记,2026-09-23;Batch 4a 改写,2026-09-25)
 

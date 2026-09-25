@@ -12,6 +12,8 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import ReviewDiffTable, { type ReviewDiffRow } from './ReviewDiffTable'
+import { can } from '@/lib/permissions'
+import ActorName, { loadActorNames } from '@/app/components/ActorName'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type BatchFetchRow = {
@@ -36,10 +38,10 @@ export default async function StocktakeReviewPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const [stRes, linesRes, inboundRes, outputRes] = await Promise.all([
+    const [stRes, linesRes, inboundRes, outputRes, countsRes, canPost] = await Promise.all([
         supabase
             .from('stocktakes')
-            .select('id, code, status, deleted_at')
+            .select('id, code, status, deleted_at, created_by')
             .eq('id', id)
             .is('deleted_at', null)
             .single(),
@@ -55,6 +57,12 @@ export default async function StocktakeReviewPage({
             .from('output_batches')
             .select('id, code, remaining_qty, unit, materials ( name )')
             .is('deleted_at', null),
+        // ROLE-1 Batch 3a:谁在这张单上数过(只增不改)—— 过账时每一个都被拒
+        supabase
+            .from('stocktake_counts')
+            .select('counted_by')
+            .eq('stocktake_id', id),
+        can('action.stocktake_post'),
     ])
 
     if (stRes.error || !stRes.data) {
@@ -66,8 +74,8 @@ export default async function StocktakeReviewPage({
         redirect(`/stocktakes/${id}`)
     }
 
-    if (linesRes.error || inboundRes.error || outputRes.error) {
-        const err = linesRes.error ?? inboundRes.error ?? outputRes.error
+    if (linesRes.error || inboundRes.error || outputRes.error || countsRes.error) {
+        const err = linesRes.error ?? inboundRes.error ?? outputRes.error ?? countsRes.error
         return (
             <div className="p-8 max-w-3xl">
                 <h1 className="mb-4">{t('stocktakes.reviewTitle')}</h1>
@@ -83,6 +91,26 @@ export default async function StocktakeReviewPage({
     }
 
     const lines = mustRows(linesRes)
+
+    // ── ROLE-1 Batch 3a:开单人与录过数的人永远不能过账 ──────────────────────────
+    // 库那一侧按【人】判(self_leg:同一个人的另一个账号也算);这里只按【账号】画按钮能不能按,
+    // 不用它下任何结论 —— 一个人拿另一个账号来按,库会按名拒 STOCKTAKE_COUNTER_CANNOT_POST。
+    // 认证读不出来(error)时不猜"是不是本人",按钮只问码,库照样判。
+    const counters = Array.from(
+        new Set([
+            ...mustRows(countsRes).map((c) => c.counted_by),
+            ...lines.map((l) => l.created_by).filter((u): u is string => !!u),
+        ])
+    )
+    const { data: meData, error: meErr } = await supabase.auth.getUser()
+    const myUserId = meErr ? null : (meData.user?.id ?? null)
+    const blockedReason =
+        myUserId && st.created_by === myUserId
+            ? t('stocktakes.postBlockedOpener')
+            : myUserId && counters.includes(myUserId)
+              ? t('stocktakes.postBlockedCounter')
+              : null
+    const counterNames = await loadActorNames(supabase, counters)
     const inbound = (inboundRes.data as unknown as BatchFetchRow[] | null) ?? []
     const output = (outputRes.data as unknown as BatchFetchRow[] | null) ?? []
     const inboundById = new Map(inbound.map((b) => [b.id, b]))
@@ -163,7 +191,19 @@ export default async function StocktakeReviewPage({
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">{t('stocktakes.reviewNote')}</p>
 
-            <PostButton stocktakeId={id} subject={st.code} />
+            {counters.length > 0 && (
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-4">
+                    {t('stocktakes.countedBy')}:{' '}
+                    {counters.map((u, i) => (
+                        <span key={u}>
+                            {i > 0 ? ' · ' : ''}
+                            <ActorName userId={u} names={counterNames} />
+                        </span>
+                    ))}
+                </p>
+            )}
+
+            <PostButton stocktakeId={id} subject={st.code} canPost={canPost} blockedReason={blockedReason} />
         </ListPage>
     )
 }

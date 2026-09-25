@@ -11,8 +11,8 @@ answers (Q1–Q13) are in `docs/handbacks/ROLE-1.md` §0.
 
 | 标记 · Mark | 意思 · Meaning |
 |---|---|
-| **✅ done** | 已在线上生效(ROLE-1 Batch 1 / PAY-REQ-1 Batch A / Batch B,2026-09-23;ROLE-1 Batch 2a / Batch 2b / PAYROLL-APR-1,2026-09-24;ROLE-1 Batch 4a,2026-09-25)· live since ROLE-1 Batch 1, PAY-REQ-1 Batch A or B, ROLE-1 Batch 2a or 2b, PAYROLL-APR-1, or ROLE-1 Batch 4a |
-| **B2a · B2b … B5** | 本矩阵里【不需要新生命周期】的部分,排在 ROLE-1 的第 2–5 批;第 2 批拆成两刀(Tim 2026-09-23,Batch B grilling Q1):**B2a** = 财务设置 · 客户信用 · 供应商审批 + 未批准供应商不付款;**B2b** = 合同条款 · 定价 · 直接销售 · 化验 · in scope of ROLE-1, a later batch |
+| **✅ done** | 已在线上生效(ROLE-1 Batch 1 / PAY-REQ-1 Batch A / Batch B,2026-09-23;ROLE-1 Batch 2a / Batch 2b / PAYROLL-APR-1,2026-09-24;ROLE-1 Batch 4a / 4b / 3a,2026-09-25)· live since ROLE-1 Batch 1, PAY-REQ-1 Batch A or B, ROLE-1 Batch 2a or 2b, PAYROLL-APR-1, or ROLE-1 Batch 4a, 4b or 3a |
+| **B2a · B2b … B5** | 本矩阵里【不需要新生命周期】的部分,排在 ROLE-1 的第 2–5 批;第 3 批拆成两刀(Tim 2026-09-25,Batch 3 grilling Q13):**B3a** = 盘点录数与过账分离 + 四个登记的缺口(✅ done);**B3b** = 收货建单 · 工单 · 加工提交 · 回滚与注销的临时持有人;第 2 批拆成两刀(Tim 2026-09-23,Batch B grilling Q1):**B2a** = 财务设置 · 客户信用 · 供应商审批 + 未批准供应商不付款;**B2b** = 合同条款 · 定价 · 直接销售 · 化验 · in scope of ROLE-1, a later batch |
 | **[LC]** | 要先造一个「申请 → 批准 → 执行」的生命周期,不在 ROLE-1 里 · needs a request → approve lifecycle; queued separately |
 | **= 不变 / unchanged** | 矩阵说保持现状 · the matrix keeps the status quo |
 
@@ -101,20 +101,20 @@ MD = `gm`(Vince,只读)。
 
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
-| 建收货单 · goods-receipt creation | 仓库 · warehouse | — | B3 |
+| 建收货单 · goods-receipt creation | 仓库 · warehouse | — | B3b(Tim 2026-09-25,Batch 3 grilling Q1:`action.receive_goods` → 仓库与 admin,管 `create_inbound_batch` 与 `receive_inbound_batch_against_po`)|
 | 收货定价与改价 · receipt pricing and repricing | 财务 · finance | CFO | 做:✅ done(ROLE-1 Batch 4a,2026-09-25:`action.price_receipts` 只归财务(与 admin),定价面板、按已承诺条款改价与建单带价都要它 **加** `data.view_purchase_prices`,两个都在库里问;定价引擎 `reprice_inbound_batch` 自己再问后者 —— 所以应用化验也要看得见采购价;cco、cto、仓库从此定不了价。三扇侧门关上:`price_history` 不能直连插、`purchase` 分录不能从凭证页冲销(`JE_REVERSE_USE_SOURCE_PATH`)、引擎不能直调)· 批:✅ done(ROLE-1 Batch 4b,2026-09-25:四扇门 —— 定价面板、按已承诺条款改价、收货台带价、应用化验 —— 都只提一张 `receipt_price_requests`;CFO 批每一张(二级,门 `module.inbound.view` + `data.view_purchase_prices`),**批准当场过账**,记在批准日、按那天的牌价;驳回要理由;提单人本人或财务可撤回;等待期间供应商 / 采购单 / 采购行 / 含量 / 注销 / 第二张申请都按名拒,批准时指纹再比;低于已付按名拒;提单人之外没人批得动时提交就拒;化验来源的申请批准后才升 `final`;审批关着时生下来就批准并过账)|
 | 应用化验结果 · assay application | cto | — | ✅ done(ROLE-1 Batch 2b:`action.apply_assay` 管应用与撤销、进料与产出、连同两种试算;**记录**化验结果仍归 `inbound.edit` / `output.edit`;两扇侧门按名关 —— 直连写应用标记 `ASSAY_APPLY_THROUGH_FUNCTION_ONLY`、直连写出自化验的含量 `ASSAY_CONTENT_THROUGH_FUNCTION_ONLY`;「记录并应用」对无码者看得见、按不动。Tim 2026-09-23 确认:cto 应用化验,价随之重算并过应付 —— **ROLE-1 Batch 4b 起**:价随之重算并【提一张定价申请】,CFO 批了才过应付;`reprice_inbound_batch` 里嵌套的 `inbound.edit` 检查不拆,归 Batch 4)|
-| 删除批次(报废入口)· batch deletion, the write-off path | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10):B3 · 批:[LC] |
-| 盘点录数 · stocktake counting | 仓库 · warehouse | — | B3 |
-| 盘点过账 · stocktake posting | 财务 · finance;**录过数的人永远不能过账**(系统先要记下谁数的)| — | B3 |
+| 删除批次(报废入口)· batch deletion, the write-off path | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10):B3b(`action.batch_write_off` → 仓库与 admin,Batch 3 grilling Q9)· 批:[LC] |
+| 盘点录数 · stocktake counting | 仓库 · warehouse | — | ✅ done(ROLE-1 Batch 3a,2026-09-25:`action.stocktake_count` → 仓库与 admin,管开单 `open_stocktake` 与录数 `record_stocktake_count`;每一次录数与重录连同录数的人追加进 `stocktake_counts`(只增不改,`counted_by` 由函数写);盘点三张表没有直连写(`STOCKTAKE_THROUGH_FUNCTION_ONLY`);取消仍归 `module.stocktakes.edit`)|
+| 盘点过账 · stocktake posting | 财务 · finance;**录过数的人永远不能过账**(系统先要记下谁数的)| — | ✅ done(ROLE-1 Batch 3a,2026-09-25:`action.stocktake_post` → 财务与 admin;开单人 `SELF_APPROVAL_FORBIDDEN\|raiser`,`stocktake_counts` 里每一个录过数的人 `STOCKTAKE_COUNTER_CANNOT_POST`,都按人认)|
 
 ## 9 · 加工 · Processing
 
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
-| 工单 · work orders | 仓库建 · created by warehouse | 财务下达 · released by finance | B3 |
-| 加工提交 · processing commit | 仓库 · warehouse | — | B3 |
-| 加工回滚 · rollback | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10):B3 · 批:[LC] |
+| 工单 · work orders | 仓库建 · created by warehouse | 财务下达 · released by finance | B3b(`action.wo_create` · `action.wo_release`;改 / 取消 / 关闭 = `action.wo_create` 或 `module.processing.edit`,Q6;改一张已下达的工单不送回重新下达,登记 `ROLE1B3-AMEND-RELEASED-WO`)|
+| 加工提交 · processing commit | 仓库 · warehouse | — | B3b(`action.processing_commit`;仓库拿 `module.processing.view`,三页改读 `material_lookup`,Q8;加工三张表的直连写关上,Q7)|
+| 加工回滚 · rollback | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10):B3b(`action.processing_rollback` → 仓库与 admin,Q9)· 批:[LC] |
 
 ## 10 · 销售 · Sales
 
@@ -122,7 +122,7 @@ MD = `gm`(Vince,只读)。
 |---|---|---|---|
 | 从产出批次直接销售 · direct sale from an output batch | cco 一个 · cco only | — | ✅ done(ROLE-1 Batch 2b:`record_output_sale` 换成 `action.direct_sale`;`sales_records` 的 INSERT 与 UPDATE 两条写策略拿掉 —— 四个写入方全是 SECURITY DEFINER —— 直连写按名拒 `SALE_THROUGH_FUNCTION_ONLY`,关掉 `PAYREQB-SALES-RECORDS-FINANCE-INSERT`)|
 | 销售订单 · sales orders | cco | — | = 不变(`sales.edit` 本来只有 admin 与 cco;admin 已拿掉)|
-| 发货 · shipping | 仓库执行,在 CFO 放行之后 · warehouse, after CFO release | CFO | 在生命周期之前 cco 保留(Q10)· 放行:[LC] APR-5 |
+| 发货 · shipping | 仓库执行,在 CFO 放行之后 · warehouse, after CFO release | CFO | 在生命周期之前 cco 保留(Q10)—— ✅ 已是(Batch 3 Step 0 以 postgres 读基表:`ship_order` 门 `module.sales.edit`,持有人 admin · cco · sales(无人持有的角色);Q9:不改)· 放行:[LC] APR-5 |
 | 客户信用额度与冻结 · customer credit limits and holds | **CFO 一个** · CFO only | — | ✅ done(ROLE-1 Batch 2a:`action.customer_credit` · `set_customer_credit` · 列守卫;客户页上的信用一块;编辑表单与批量导入不再带这两列)|
 
 ## 11 · 合规 · Compliance
@@ -130,7 +130,7 @@ MD = `gm`(Vince,只读)。
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
 | 签发销毁证书 · issuing a certificate of destruction | 仓库 · warehouse(资格由系统算)| 不批 · none | ✅ done(`action.issue_cod` 从 cto 与 admin 拿掉)|
-| 作废销毁证书 · voiding a COD | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10,今天已是)· 批:[LC] |
+| 作废销毁证书 · voiding a COD | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10,今天已是 —— Batch 3 Step 0 复核:`void_cod` 门 `action.issue_cod`,持有人 admin · warehouse;Q9:不改)· 批:[LC] |
 
 ## 12 · 主数据 · Master data
 
@@ -143,7 +143,7 @@ MD = `gm`(Vince,只读)。
 
 | 事项 · Action | 规则 · Rule | 状态 · Status |
 |---|---|---|
-| 仓库看采购价 · warehouse sees purchase prices | 看得见采购与供应商那一侧的价格,好开它的采购单;**看不见**销售价、工资或任何别的价格(Q9 画的线)| ✅ done(ROLE-1 Batch 4a,2026-09-25:新码 `data.view_purchase_prices` —— 采购单与采购行、质保金、付款条款、定价公式(按行:销售公式仍问 `view_prices`)与条款承诺、计价器、收货单价与改价历史、应付账龄;今天持 `data.view_prices` 的每一个角色一并拿到它,仓库只拿它。★ 仓库今天不持 `module.purchasing.view` / `pricing.view` / `finance.view`,所以它**实际多看见的只在收货那几屏**(单价、改价历史、化验改价的新旧价);采购单那几屏等 Batch 5 的开单码。★ 到岸成本经盘点那条例外它今天就读得到 —— 登记 `ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION`,Batch 3 修)|
+| 仓库看采购价 · warehouse sees purchase prices | 看得见采购与供应商那一侧的价格,好开它的采购单;**看不见**销售价、工资或任何别的价格(Q9 画的线)| ✅ done(ROLE-1 Batch 4a,2026-09-25:新码 `data.view_purchase_prices` —— 采购单与采购行、质保金、付款条款、定价公式(按行:销售公式仍问 `view_prices`)与条款承诺、计价器、收货单价与改价历史、应付账龄;今天持 `data.view_prices` 的每一个角色一并拿到它,仓库只拿它。★ 仓库今天不持 `module.purchasing.view` / `pricing.view` / `finance.view`,所以它**实际多看见的只在收货那几屏**(单价、改价历史、化验改价的新旧价);采购单那几屏等 Batch 5 的开单码。~~★ 到岸成本经盘点那条例外它今天就读得到 —— 登记 `ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION`,Batch 3 修~~ ✅ **ROLE-1 Batch 3a 关掉**(2026-09-25,Q5):`inbound_batch_landed_unit_cost` 不再放行 `module.stocktakes.edit`;`batch_freight_base` 与 `batch_processing_cost_base` 先问 `data.view_prices`(不持的人读 NULL,收货页画「受限」);分摊改读 `_all`)|
 | 系统管理员账号 · the admin account | **拿掉每一个业务码;只做系统管理。admin@ 从此读不到任何业务数据 —— Tim 的一切业务阅读与决定走 tim@**(Q8)| ✅ done |
 | ⚠ **系统管理员账号:Q8 已被 Tim 本人撤回 · the admin account: Q8 reversed by Tim himself**(2026-09-23 23:33:27 CST)| Tim 以 admin@ 登录,把 **全部 45 个码** 还给了 `admin` 角色(AP-RECON-0 以 `postgres` 读基表 `role_permissions` 复核:45 行,`created_at` 全是 23:33:27)。上一行的收窄**现已不成立**。Claude 建议撤回到只做系统管理,两条理由:① admin@ 与 tim@ 是同一个人,所以在 admin@ 上发起的申请不能在 tim@ 上批;② 一个被盗的 admin 密码现在带着每一项权力。**Tim 尚未裁定是否撤回 —— 角色保持现状,除非 Tim 自己提起,不再提** | 现状 · as is |
 | ★ **admin 角色持【每一个】码 · the admin role holds every code**(Tim 常设裁定,2026-09-24,已关)| Tim 用 admin@ 做测试,所以 `admin` 角色**保留它全部的码,并拿到每一个新码**。**从 ROLE-1 Batch 2b 起,每一个新码都在【同一支迁移】里一并授给 `admin`** (幂等:`ON CONFLICT DO NOTHING`)。Batch 2b 因此把 Batch 2a 的三个码也补给了它(以 postgres 读基表 `role_permissions`:Batch 2b 之前 admin 一个都没有)。★ admin@ **不**持 `cfo` 角色(那一行 `revoked_at` = 2026-09-23 15:00:48),不改。★ 唯一例外,照直记:`module.tasks.view_all`(读别人的个人任务)admin 【从来没有】—— Tim 2026-09-23 23:33 还回去的 45 个码里就没有它;这条裁定说的是「保留 + 每一个新码」,所以 Batch 2b 没有替 Tim 加它。要不要加,是 Tim 的一句话 | ✅ done(Batch 2b 之后 admin 52 码 / 目录 53)|
@@ -183,6 +183,9 @@ warehouse (B4 — ✅ ROLE-1 Batch 4a, 2026-09-25: receipt pricing was the last 
 | `data.view_purchase_prices` | 采购那一侧的价格:采购单与采购行、质保金、付款条款、采购与两用公式的条款、条款承诺、计价器、收货单价与改价历史、应付账龄(Batch 4a)| 今天持 `data.view_prices` 的每一个角色(admin · auditor · cco · cfo · cto · finance · gm · procurement · sales)+ **warehouse** |
 | `action.price_receipts` | 收货定价与改价(定价面板、按已承诺条款改价、建单带价);库里同时要 `data.view_purchase_prices`(Batch 4a)| finance · admin |
 | `data.view_prices`(改义)| 从此只管销售与成本那一侧:销售、发票、应收、到岸成本、存货计值、加工成本、毛利、运费单据(Batch 4a)| 不变(仓库不持)|
+| `action.stocktake_count` | 开盘点单与录数、重录(Batch 3a)| warehouse · admin |
+| `action.stocktake_post` | 盘点过账;开单人与录过数的人永远不能过账(Batch 3a)| finance · admin |
+| `module.stocktakes.edit`(改义)| 从此只剩取消一张未过账的盘点单(Batch 3a;描述改写)| 不变(admin · cco · cto · finance · operations · warehouse)|
 
 > ★ **更正(ROLE-1 Batch 2a,2026-09-24,以 postgres 读基表 `user_roles` 实测):admin@ 的 `cfo` 授权【已撤销】**
 > (`revoked_at = 2026-09-23 15:00:48 CST`)。Batch 2a Step 0 说"admin@ 同时持 cfo"—— 那条查询没有过滤 `revoked_at`,是错的。

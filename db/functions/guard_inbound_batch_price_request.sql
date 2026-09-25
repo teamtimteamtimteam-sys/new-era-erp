@@ -13,6 +13,16 @@
 --    Step 0 实测:任何持 module.inbound.edit 的人都能直接把一张收货写成 final,而 Q3 的
 --    「final 只在 CFO 批准时置」没有这一道就只是一句话。属主路径(批准那一支)看不见本守卫。
 --
+-- ③ 【一张已定价的收货,供应商 / 采购单 / 采购行永远不许再换】(ROLE-1 Batch 3a,Tim 2026-09-25,
+--    Batch 3 grilling Q11 · ROLE1B4A-RECEIPT-SUPPLIER-CHANGE-AFTER-PRICING)
+--    unit_price 不为空 = 已定价(ap_open_items 就按它收这张收货)。应付挂在 inbound_batches.supplier_id
+--    名下、分录行上没有往来方 —— 换供应商会把一笔应付【悄悄】搬到另一家名下,已付的钱(A 付的)留在
+--    一张现在属于 B 的收货上;换采购行会换掉下一次改价用的承诺条款。→ RECEIPT_PRICED_SOURCE_FROZEN|收货。
+--    ★ 不分直连写与属主路径:今天没有一支属主函数改这三列(Step 0 量过);将来哪一支改了,照样撞上。
+--    ★ 在等的申请那一句(①)先判:它说得更具体。
+--    ★ 代价,照直说:一张供应商记错了的已定价收货【今天没有更正的路】—— 注销在有未付应付时也拒
+--      (INBOUND_HAS_OPEN_PAYABLE)。更正的生命周期登记为以后的事(Tim 的 Q11)。
+--
 -- 【为什么是 INVOKER】要分出直连写与属主路径(②);在不在等由 receipt_price_open(DEFINER)问
 -- —— 不持采购价码的写入者在 INVOKER 里读不到申请表,会把"看不见"读成"没有申请"。
 -- NOTE: introduced by db/migrations/2026-09-25-role1b4b-receipt-pricing-waits-for-the-cfo.sql.
@@ -34,6 +44,12 @@ BEGIN
             RAISE EXCEPTION 'RECEIPT_PRICE_REQUEST_OPEN|%|%', OLD.code, v_open;
         END IF;
     END IF;
+    IF OLD.unit_price IS NOT NULL
+       AND (NEW.supplier_id IS DISTINCT FROM OLD.supplier_id
+            OR NEW.purchase_order_id IS DISTINCT FROM OLD.purchase_order_id
+            OR NEW.purchase_order_line_id IS DISTINCT FROM OLD.purchase_order_line_id) THEN
+        RAISE EXCEPTION 'RECEIPT_PRICED_SOURCE_FROZEN|%', OLD.code;
+    END IF;
     IF NEW.pricing_status IS DISTINCT FROM OLD.pricing_status AND row_security_active(TG_RELID) THEN
         RAISE EXCEPTION 'PRICING_STATUS_VIA_FUNCTION|%', OLD.code;
     END IF;
@@ -42,4 +58,4 @@ END;
 $function$;
 
 COMMENT ON FUNCTION public.guard_inbound_batch_price_request() IS
-'ROLE-1 Batch 4b:① 一张收货挂着在等的定价申请时,改供应商 / 采购单 / 采购行或注销它,按名拒 RECEIPT_PRICE_REQUEST_OPEN|收货|申请(不分直连与属主路径);② 直连写(row_security_active)改 pricing_status,按名拒 PRICING_STATUS_VIA_FUNCTION|收货 —— final 只在 CFO 批准化验来源的申请时置(Tim 的 Q3)。INVOKER;在不在等经 receipt_price_open(DEFINER)问。';
+'ROLE-1 Batch 4b:① 一张收货挂着在等的定价申请时,改供应商 / 采购单 / 采购行或注销它,按名拒 RECEIPT_PRICE_REQUEST_OPEN|收货|申请(不分直连与属主路径);② 直连写(row_security_active)改 pricing_status,按名拒 PRICING_STATUS_VIA_FUNCTION|收货 —— final 只在 CFO 批准化验来源的申请时置(Tim 的 Q3);③ 已定价的收货改供应商 / 采购单 / 采购行,按名拒 RECEIPT_PRICED_SOURCE_FROZEN|收货(ROLE-1 Batch 3a,不分直连与属主路径)。INVOKER;在不在等经 receipt_price_open(DEFINER)问。';

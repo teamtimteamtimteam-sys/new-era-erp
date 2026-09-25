@@ -16,6 +16,8 @@ import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { formatAuditStamp } from '@/lib/dates'
+import { can } from '@/lib/permissions'
+import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type BatchFetchRow = {
@@ -38,6 +40,9 @@ export default async function StocktakeDetailPage({
 
     const { id } = await params
     const supabase = await createClient()
+    // ROLE-1 Batch 3a:录数归 action.stocktake_count(仓库);取消仍归 module.stocktakes.edit。
+    // 控件对不持码的人看得见、按不动,并点名那个码。过账在复核页。
+    const [canCount, canCancel] = await Promise.all([can('action.stocktake_count'), can('module.stocktakes.edit')])
     const t = await getTranslations()
 
     const [stRes, linesRes, inboundRes, outputRes] = await Promise.all([
@@ -214,14 +219,18 @@ export default async function StocktakeDetailPage({
                     {countedItems.length > 0 && (
                         <>
                             <h2 className="mb-2">{t('stocktakes.countedTitle')}</h2>
-                            <CountList stocktakeId={id} items={countedItems} mode="counted" />
+                            <PermissionGate code="action.stocktake_count" allowed={canCount} className="w-full">
+                                <CountList stocktakeId={id} items={countedItems} mode="counted" />
+                            </PermissionGate>
                         </>
                     )}
 
                     {uncountedItems.length > 0 && (
                         <>
                             <h2 className="mb-2">{t('stocktakes.uncountedTitle')}</h2>
-                            <CountList stocktakeId={id} items={uncountedItems} mode="uncounted" />
+                            <PermissionGate code="action.stocktake_count" allowed={canCount} className="w-full">
+                                <CountList stocktakeId={id} items={uncountedItems} mode="uncounted" />
+                            </PermissionGate>
                         </>
                     )}
 
@@ -231,7 +240,9 @@ export default async function StocktakeDetailPage({
                             <Button asChild variant="default" size="touch" className="flex-1">
                                 <Link href={`/stocktakes/${id}/review`}>{t('stocktakes.review')}</Link>
                             </Button>
-                            <CancelStocktakeButton stocktakeId={id} code={st.code} />
+                            <PermissionGate code="module.stocktakes.edit" allowed={canCancel}>
+                                <CancelStocktakeButton stocktakeId={id} code={st.code} />
+                            </PermissionGate>
                         </div>
                     </div>
                 </>
