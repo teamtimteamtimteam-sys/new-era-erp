@@ -19,7 +19,7 @@ import CreateCreditNoteControl, { type CnLineOption } from './CreateCreditNoteCo
 import { formatDate } from '@/lib/dates'
 
 export default async function CreditNoteSection({
-    invoiceId, invoiceCode, currency, isOrderKind, isVoid, openCcy,
+    invoiceId, invoiceCode, currency, isOrderKind, isVoid, openCcy, openRequestLabel,
     lines,
 }: {
     invoiceId: string
@@ -27,6 +27,8 @@ export default async function CreditNoteSection({
     currency: string
     isOrderKind: boolean
     isVoid: boolean
+    /** APR-5a:这张发票上一张在等 CFO 的贷项 / 作废申请的编号(没有 = null)。 */
+    openRequestLabel: string | null
     openCcy: number
     lines: { id: string; line_no: number; description: string; unit: string
              quantity: number; unit_price: number; amount_ccy: number }[]
@@ -144,6 +146,11 @@ export default async function CreditNoteSection({
             {/* 【禁用的理由长在控件旁边】—— 三种"开不了"指向三个不同的下一步 */}
             {isVoid ? (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('cn.blockedVoid')}</p>
+            ) : openRequestLabel ? (
+                // APR-5a:一张发票同时只挂一张申请(INVOICE_REQUEST_OPEN)—— 钮看得见、按不动、带理由
+                <p className="text-sm text-[color:var(--brand-muted-text)]" data-state-note="invoice-request-open">
+                    {t('finance.invoiceRequest.lockedHint', { label: openRequestLabel })}
+                </p>
             ) : !canEdit ? (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('common.restricted')} — {t('cn.needsFinanceEdit')}</p>
             ) : fullySettled ? (

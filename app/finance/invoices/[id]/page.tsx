@@ -11,9 +11,11 @@ import { formatAmount } from '@/lib/format'
 import { checkInvoicePdfCoverage } from '@/lib/pdfFontCoverage'
 import VoidInvoiceControl from './VoidInvoiceControl'
 import CreditNoteSection from './CreditNoteSection'
+import InvoiceRequestPanel, { type InvoiceRequestView } from './InvoiceRequestPanel'
+import { getBaseCurrency } from '@/lib/currency'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
-import { canViewBanking, can } from '@/lib/permissions'
+import { canViewBanking, can, canViewPrices } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import IssuePanel from '@/app/components/IssuePanel'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
@@ -168,6 +170,40 @@ export default async function InvoiceDetailPage({
 
     const bill = (inv.bill_to_snapshot ?? {}) as BillTo
     const isVoid = inv.status === 'void'
+
+    // ── APR-5a:这张发票上的贷项 / 作废申请 ─────────────────────────────────────
+    // 申请表的读策略是 module.finance.view —— 进得了这一页的人都读得到,所以"读不到"只会是一次
+    // 真的失败(mustRows 抛),不会被当成"没有申请"。批 / 驳要 data.view_prices(门的另一半),
+    // 撤回要 module.finance.edit 或是提单人本人(库那一侧按人判,这里只画钮)。
+    const [reqRes, canDecideRequest, baseCurrency] = await Promise.all([
+        supabase.from('invoice_requests')
+            .select('id, label, kind, status, doc_date, reason, lines, amount_base, decision_notes, withdraw_reason, created_at, created_by')
+            .eq('invoice_id', id)
+            .order('created_at', { ascending: false }),
+        canViewPrices(),
+        getBaseCurrency(),
+    ])
+    // 认证读不出来(error)时【不】猜"是不是提单人本人" —— 撤回钮退回只问 module.finance.edit,
+    // 库那一侧照样按人判(self_leg)。这里只用它画一个按钮能不能按,不用它下任何结论。
+    const { data: meData, error: meErr } = await supabase.auth.getUser()
+    const myUserId = meErr ? null : (meData.user?.id ?? null)
+    type RawInvoiceRequest = {
+        id: string; label: string; kind: InvoiceRequestView['kind']; status: InvoiceRequestView['status']
+        doc_date: string | null; reason: string; lines: unknown; amount_base: number
+        decision_notes: string | null; withdraw_reason: string | null; created_at: string; created_by: string
+    }
+    const invoiceRequests: InvoiceRequestView[] = (mustRows(reqRes, 'invoice_requests') as unknown as RawInvoiceRequest[])
+        .map((r) => ({
+            id: r.id, label: r.label, kind: r.kind, status: r.status,
+            docDateText: r.doc_date ? formatDate(r.doc_date, locale) : null,
+            reason: r.reason,
+            lineCount: Array.isArray(r.lines) ? r.lines.length : 0,
+            amountBase: Number(r.amount_base),
+            decisionNotes: r.decision_notes, withdrawReason: r.withdraw_reason,
+            createdText: formatAuditStamp(r.created_at), raisedByMe: r.created_by === myUserId,
+        }))
+    const openInvoiceRequest = invoiceRequests.find((r) => r.status === 'submitted') ?? null
+    const invoiceRequestHistory = invoiceRequests.filter((r) => r.status !== 'submitted')
 
     // 发票 PDF 内嵌的中文字体是【裁剪过的】(见 assets/fonts/subset.py),范围外的字
     // 会被静默画成空白。PDF 路由会拦下来返回 409,但那要等到有人去点"下载 PDF"才发现
@@ -338,12 +374,22 @@ export default async function InvoiceDetailPage({
                             {t('invoice.pdfBlockedProfile')}
                         </span>
                     )}
-                    {!isVoid && <VoidInvoiceControl canEdit={canEditGate} invoiceId={inv.id} subject={inv.code} hasEntry={inv.entry_id !== null} />}
+                    {!isVoid && <VoidInvoiceControl canEdit={canEditGate} invoiceId={inv.id} subject={inv.code} hasEntry={inv.entry_id !== null} openRequestLabel={openInvoiceRequest?.label ?? null} />}
                 </span>
             }
             // ★★ 详情页恒为 ok —— 这张发票在不在由上面的 notFound() 回答。CONV-8 §⑤。
             state={{ kind: 'ok' }}
         >
+
+            <InvoiceRequestPanel
+                invoiceId={inv.id}
+                subject={inv.code}
+                open={openInvoiceRequest}
+                history={invoiceRequestHistory}
+                canDecide={canDecideRequest}
+                canWithdraw={canEditGate}
+                baseCurrency={baseCurrency}
+            />
 
             {profileIncomplete && (
                 <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
@@ -588,6 +634,7 @@ export default async function InvoiceDetailPage({
                 isOrderKind={isOrderKind}
                 isVoid={isVoid}
                 openCcy={open}
+                openRequestLabel={openInvoiceRequest?.label ?? null}
                 lines={rows.map((l) => ({
                     id: l.id,
                     line_no: l.line_no,

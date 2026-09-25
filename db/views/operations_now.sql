@@ -590,7 +590,19 @@ CREATE VIEW public.operations_now AS
             rq.created_at::date AS item_date
            FROM receipt_price_requests rq
              JOIN inbound_batches ib ON ib.id = rq.inbound_batch_id
-          WHERE rq.status = 'submitted'::text) a
+          WHERE rq.status = 'submitted'::text
+        UNION ALL
+         SELECT 'invoice_request_pending'::text AS item_type,
+            'module.finance.view'::text AS permission,
+            iq.invoice_id AS item_id,
+            NULL::text AS doc_kind,
+            iq.label AS item_code,
+            c.legal_name AS subject,
+            iq.created_at::date AS item_date
+           FROM invoice_requests iq
+             JOIN invoices i ON i.id = iq.invoice_id
+             JOIN customers c ON c.id = i.customer_id
+          WHERE iq.status = 'submitted'::text) a
   WHERE (has_permission(permission) OR has_any_permission(arm_permission_widen(item_type))) AND (arm_permission_any(item_type) IS NULL OR has_any_permission(arm_permission_any(item_type)));;
 
 GRANT SELECT ON public.operations_now TO authenticated;

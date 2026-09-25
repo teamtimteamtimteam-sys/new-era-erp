@@ -290,7 +290,7 @@ BEGIN
 
     -- 【出路真的走一遍】作废那张票 → 再改。一条出路只有走过一遍才算出路。
     SELECT id INTO v_inv_id FROM invoices WHERE code = invE;
-    PERFORM void_invoice(v_inv_id, 'fixture 70 E:数字错了', d);
+    PERFORM void_invoice_internal(v_inv_id, 'fixture 70 E:数字错了', d);
     PERFORM amend_sales_order(soE, '作废发票之后改回来', NULL,
         jsonb_build_array(jsonb_build_object('id', LE, 'quantity', 10, 'unit_price', 11)));
     IF (SELECT quantity FROM sales_order_lines WHERE id = LE) <> 10

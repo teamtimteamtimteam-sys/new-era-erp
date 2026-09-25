@@ -80,7 +80,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // ROLE-1 Batch 3a(2026-09-25):229 → 230。新增 `stocktake_counts`(每一次录数与重录连同录数的人,只增不改;
 // 过账时"录过数的人不能过账"读它),见 db/tables/stocktake_counts.sql。**它没有 code 列**(它记的是"谁在哪张
 // 盘点单上数成了多少",不是一张单据),所以 EXPECTED_CODE_TABLES 不动。
-const EXPECTED_TABLES = 230
+// APR-5a(2026-09-25):230 → 231。新增 `invoice_requests`(贷项 / 作废发票的申请,CFO 批,批准当场过账),
+// 见 db/tables/invoice_requests.sql。**它没有 code 列**(它是对一张发票的一次请求,人读的名字是 label:
+// 发票编号 · credit note #n / void #n;不进 document_types),所以 EXPECTED_CODE_TABLES 不动。
+const EXPECTED_TABLES = 231
 const EXPECTED_CODE_TABLES = 76
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

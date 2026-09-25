@@ -434,3 +434,15 @@ REVOKE EXECUTE ON FUNCTION public.receipt_settled_base(uuid) FROM authenticated;
 --   只从 SECURITY DEFINER 的提交函数(submit_payroll_request 与六支付款申请提交)里调用;它读
 --   approval_deciders(本身已收回),留着 EXECUTE 就是把"谁批得了"这张名单的一个问法敞开。
 REVOKE EXECUTE ON FUNCTION public.assert_other_decider(text, text, smallint, text) FROM authenticated;
+
+-- APR-5a(2026-09-25):贷项 / 作废申请的内层算子。**这几支没有调用者检查,靠的就是调不到。**
+--   void_invoice_internal · create_credit_note_internal —— 原 void_invoice / create_credit_note 的函数体(去掉门);
+--     留着 EXECUTE,财务就能不经 CFO 直接作废、直接开贷项,而这正是本刀要关的那一扇。
+--   invoice_request_submit_internal —— 两扇提交的门各问完 module.finance.edit 才落进来。
+--   invoice_request_post_internal —— 过账本身;只从批准、审批关着时的提交与试跑里调用。
+--   invoice_request_dry_run —— 只从提交里调用。
+REVOKE EXECUTE ON FUNCTION public.void_invoice_internal(uuid, text, date) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.create_credit_note_internal(uuid, date, text, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.invoice_request_submit_internal(uuid, text, date, text, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.invoice_request_post_internal(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.invoice_request_dry_run(uuid) FROM authenticated;

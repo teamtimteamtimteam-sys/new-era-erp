@@ -494,6 +494,15 @@ reasoning lives here.**
 
 ### N1 — documents with no header total get a maintained base-currency total
 
+> ★★ **SUPERSEDED for `sales_orders`, `quotes` and `credit_notes` (Tim, 2026-09-25, APR-5 grilling Q1).**
+> Tim's role matrix (2026-09-23) routes none of the three by amount: sales orders, quotes and sales invoices need
+> **no** approval, and the two sales-side decisions that do — the pre-shipment release (N2) and credit notes / invoice
+> voids — go to the CFO **every one, fixed at level 2, no threshold**. There is no tier for a line edit to cross, so the
+> reason below has nothing left to protect. Every amount the CFO sees or the log records already exists stored:
+> a credit note's `amount_base` comes from the engine's dry run, a void's from `invoices.total_base`, a release's from the
+> covered invoice lines. A line changed after a release cannot happen: a release covers invoiced lines, and those are
+> frozen (`SO_AMEND_LINE_INVOICED`). **N1 stands for `journal_entries` only, with N5's cut.** See §3q.
+
 `sales_orders`, `quotes`, `credit_notes` (and `journal_entries` when its turn comes) **get a
 maintained base-currency header total, the same shape as `purchase_orders.estimated_total_ccy`**.
 Schema change plus maintenance triggers — **its own cut.**
@@ -656,6 +665,14 @@ edit is allowed. Without that arm, an implementation that refuses every policy e
 
 **APR-0 §6.2's APR-2 → APR-6 split stands**, with N2's sales-order release approval joining
 **APR-5**.
+
+> ★★ **The sales side of the APR-0 extension list is SUPERSEDED by Tim's role matrix (2026-09-23; recorded at the APR-5
+> grilling, 2026-09-25).** APR-0 put sales orders, quotes, credit notes and sales-order amendments into APR-5, all waiting
+> on N1. The matrix replaces that: **raising and amending sales orders (cco), quotes and sales invoices (finance) need NO
+> approval.** What needs the CFO is (a) **N2 — shipping**: the warehouse ships only after the CFO releases the sales order
+> (until APR-5b, cco ships — ROLE-1 Q10 interim); and (b) **credit notes and invoice voids** — finance raises, the CFO
+> approves every one, no threshold. APR-5 was split (grilling Q14): **APR-5a** = (b), shipped 2026-09-25 (§3q);
+> **APR-5b** = (a), next.
 
 
 ---
@@ -1478,6 +1495,62 @@ The migrations' pending-decider proof now asks `action.wo_release` minus the cre
 not deleted) of `action.wo_release` is a different person (`self_leg = 'none'`). It is an inline check, not `assert_other_decider`,
 because that helper asks `approval_deciders` for a tiered chain and work orders are not one. Like the release-side four-eyes rule it
 does **not** depend on the approvals switch. On live today: Fu Sheng creates → Choo Er or admin@ releases; admin@ creates → Choo Er.
+
+## 3q · APR-5a (2026-09-25) — a credit note or an invoice void reaches the ledger only when the CFO approves it
+
+The cut is `docs/handbacks/APR-5.md` § APR-5a; this section records only what changes **for approvals**. Tim accepted all
+fourteen grilling recommendations (Q1–Q14) and split APR-5 in two (Q14): **5a** (this one) = credit notes, invoice voids and
+every direct path; **5b** = the pre-shipment release and warehouse shipping.
+
+### The lifecycle
+`submitted → approved`, plus `rejected` (reason required) and `withdrawn`, on a new table `invoice_requests` (kind
+`credit_note` or `void`). **There is no `executed`: the CFO's approval posts at once** (Q9, the receipt-price shape), **on the
+date frozen at submit** — the credit note date or the reversal date the raiser gave, because it decides the GST period.
+* **Raise:** finance (`module.finance.edit`). `submit_credit_note_request(invoice, note date, reason, lines)` and
+  `submit_invoice_void_request(invoice, reason, reversal date)` — the same arguments as the old one-step functions.
+  One open request per invoice (`INVOICE_REQUEST_OPEN`).
+* **Approve:** the CFO, every one, no threshold. `decide_invoice_request` goes to level 2 directly and never through the
+  amount router — still **one** definition of routing. Gate `{module.finance.view, data.view_prices}` — the payment-request
+  pair (edit is the raiser's code; §5). The raiser leg is judged per person: `forbid_self_approval(created_by, NULL,
+  'invoice_request')` — an invoice is nobody's "own document", so the subject leg applies to nobody.
+* **Withdraw:** the raiser's person or any `module.finance.edit` holder. Written on the row, not in `approval_log`.
+* **Submit dry-runs the real posting** (`invoice_request_dry_run`, PQ004): over the open balance, over a line's ceiling,
+  fully settled, shipped, settled, carrying credit notes, a locked period — refused at submit in the engine's own words.
+  Approval is the real posting, so the same refusals apply again there and the whole approval rolls back.
+* **Approvals OFF:** born `approved`, posted at once, `auto_approved` row.
+* **Nobody-but-the-raiser refuses at submit** (`assert_other_decider` → `INVOICE_REQUEST_NO_OTHER_DECIDER`). On live that is
+  admin@ (tim@'s other account; tim@ is level 2's only real holder).
+* **The old doors refuse everyone:** `create_credit_note` / `void_invoice` keep their signatures and raise
+  `INVOICE_NEEDS_APPROVED_REQUEST` (after `PERMISSION_DENIED` for someone without the code). Because approval executes, an
+  approved-but-unexecuted request never exists — so the doors have no "with a request" branch. The bodies are
+  `create_credit_note_internal` / `void_invoice_internal`, EXECUTE revoked from `authenticated`.
+
+### While a request waits (Q10)
+Receipts are **never** blocked — money coming in is not refused; if a receipt makes the request impossible, approval says so
+in the engine's words (`CN_EXCEEDS_OPEN`, `INVOICE_HAS_SETTLEMENTS`) and the CFO rejects or finance withdraws and raises
+again. **Shipping is blocked** against an invoice with a void waiting (`INVOICE_VOID_REQUESTED`) and against a line in an
+unshipped-cancel credit request (`INVOICE_CREDIT_REQUESTED`) — otherwise a shipment made while it waits would turn the void
+into `INVOICE_SHIPPED_NOT_VOIDABLE` or cancel goods that already left.
+
+### Five direct paths closed (Q11)
+`invoices` / `invoice_lines` INSERT and UPDATE policies dropped; any direct write → `INVOICE_THROUGH_FUNCTION_ONLY`
+(statement-level guard, replaces the two `enforce_write_permission` triggers) · `invoice_voided` may only be written by the
+void propagation (`INVOICE_IMMUTABLE` otherwise, owner path included) · `reverse_journal_entry` refuses `invoice` and
+`credit_note` entries and their reversals (`JE_REVERSE_USE_SOURCE_PATH`) · a void of an invoice carrying credit notes →
+`INVOICE_HAS_CREDIT_NOTES`.
+
+### How it registers in the engine (Q13)
+| piece | what was added |
+|---|---|
+| `approval_chain_gates()` | **one** row: `invoice_request / decide_invoice_request / level 2 / {module.finance.view, data.view_prices}` |
+| `approval_pending_documents()` | an arm for `status = 'submitted'`: `blocks_disable = true`, `fixed_level = 2`, subject `NULL`, amount = `amount_base` |
+| `approval_log` | subject type `invoice_request` (CHECK); `record_approval_decision` branch (raiser `created_by`, subject `NULL`, base currency, rate 1); RLS read branch on `module.finance.view` |
+| `operations_now` / reminders | `invoice_request_pending` (`module.finance.view`), linking to the invoice page |
+| `self_approval_exception` | **unchanged** |
+
+☞ **Consequence for fixtures:** none switched off — the gate pair is the payment-request pair every approvals-on fixture already
+gives its level-2 role. Fixture 205's own-document-gap count went 6 → 7; fixture 111 has 39 arms; nine fixtures that called the
+two doors now call the `*_internal` engines (their subject is the engine's arithmetic, not the door).
 
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 

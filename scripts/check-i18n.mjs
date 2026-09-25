@@ -742,6 +742,13 @@ const MANIFEST = {
     // ROLE-1 Batch 4b(2026-09-25):收货定价申请的来源与状态,真源是 receipt_price_requests 的两条 CHECK
     'inbound.priceRequest.status.': { kind: 'enum', values: () => sqlEnum('db/tables/receipt_price_requests.sql', 'status') },
     'inbound.priceRequest.source.': { kind: 'enum', values: () => sqlEnum('db/tables/receipt_price_requests.sql', 'source') },
+    // APR-5a(2026-09-25):贷项 / 作废申请的种类与状态,真源是 invoice_requests 的两条 CHECK
+    'finance.invoiceRequest.status.': { kind: 'enum', values: () => sqlEnum('db/tables/invoice_requests.sql', 'status') },
+    'finance.invoiceRequest.kind.':   { kind: 'enum', values: () => sqlEnum('db/tables/invoice_requests.sql', 'kind') },
+    'finance.invoiceRequest.openTitle.':      { kind: 'enum', values: () => sqlEnum('db/tables/invoice_requests.sql', 'kind') },
+    'finance.invoiceRequest.docDate.':        { kind: 'enum', values: () => sqlEnum('db/tables/invoice_requests.sql', 'kind') },
+    'finance.invoiceRequest.approveConfirm.': { kind: 'enum', values: () => sqlEnum('db/tables/invoice_requests.sql', 'kind') },
+    'finance.invoiceRequest.approveBody.':    { kind: 'enum', values: () => sqlEnum('db/tables/invoice_requests.sql', 'kind') },
     'finance.source.':      { kind: 'enum', values: () => sqlEnum('db/tables/journal_entries.sql', 'source_type') },
     'assets.category.':     { kind: 'enum', values: () => sqlEnum('db/tables/fixed_assets.sql', 'category') },
     'processing.lineage.kind_': { kind: 'enum', values: () => ['inbound', 'output'] },

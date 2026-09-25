@@ -261,14 +261,14 @@ BEGIN
     -- ══════════ H. 作废 ═════════════════════════════════════════════════════
     -- 有活核销 → 按名拒(先冲收款)
     BEGIN
-        PERFORM void_invoice(inv_id, 'fixture 67 void attempt', d);
+        PERFORM void_invoice_internal(inv_id, 'fixture 67 void attempt', d);
         RAISE EXCEPTION 'FIXTURE 67H 失败:有活核销的发票不该作废得了';
     EXCEPTION WHEN OTHERS THEN
         IF SQLERRM NOT LIKE 'INVOICE_HAS_SETTLEMENTS%' THEN RAISE; END IF;
     END;
     -- 冲掉收款 → 作废通过,分录对冲,行可再开
     PERFORM reverse_payment_internal((v_pay->>'payment_id')::uuid, 'fixture 67');
-    PERFORM void_invoice(inv_id, 'fixture 67 void', d);
+    PERFORM void_invoice_internal(inv_id, 'fixture 67 void', d);
     SELECT je.status, rev.code INTO v_msg, rev_code
       FROM journal_entries je LEFT JOIN journal_entries rev ON rev.id = je.reversed_by
      WHERE je.id = je_id;
@@ -295,7 +295,7 @@ BEGIN
     END IF;
     -- sale 头传冲销日 → 按名拒(收下再忽略是在骗调用方)
     BEGIN
-        PERFORM void_invoice((SELECT id FROM invoices WHERE kind = 'sale' AND status = 'issued' LIMIT 1), 'x', d);
+        PERFORM void_invoice_internal((SELECT id FROM invoices WHERE kind = 'sale' AND status = 'issued' LIMIT 1), 'x', d);
         RAISE EXCEPTION 'FIXTURE 67H 失败:sale 头带冲销日不该被收下';
     EXCEPTION WHEN OTHERS THEN
         IF SQLERRM NOT LIKE 'REVERSAL_DATE_NOT_ACCEPTED%' AND SQLERRM NOT LIKE 'INVOICE_NOT_FOUND%' THEN RAISE; END IF;

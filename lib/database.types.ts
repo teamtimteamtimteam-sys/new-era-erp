@@ -7782,6 +7782,136 @@ export type Database = {
           },
         ]
       }
+      invoice_requests: {
+        Row: {
+          amount_base: number
+          created_at: string
+          created_by: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          doc_date: string | null
+          id: string
+          invoice_id: string
+          kind: string
+          label: string
+          lines: Json | null
+          reason: string
+          result_credit_note_id: string | null
+          result_journal_entry_id: string | null
+          status: string
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          amount_base: number
+          created_at?: string
+          created_by: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          doc_date?: string | null
+          id?: string
+          invoice_id: string
+          kind: string
+          label: string
+          lines?: Json | null
+          reason: string
+          result_credit_note_id?: string | null
+          result_journal_entry_id?: string | null
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          amount_base?: number
+          created_at?: string
+          created_by?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          doc_date?: string | null
+          id?: string
+          invoice_id?: string
+          kind?: string
+          label?: string
+          lines?: Json | null
+          reason?: string
+          result_credit_note_id?: string | null
+          result_journal_entry_id?: string | null
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_document_totals"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoice_status"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "order_invoice_balance_all"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_requests_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "order_invoice_open_all"
+            referencedColumns: ["invoice_id"]
+          },
+          {
+            foreignKeyName: "invoice_requests_result_credit_note_id_fkey"
+            columns: ["result_credit_note_id"]
+            isOneToOne: false
+            referencedRelation: "credit_notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "invoice_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           bill_to_snapshot: Json
@@ -28131,6 +28261,15 @@ export type Database = {
         }
         Returns: Json
       }
+      create_credit_note_internal: {
+        Args: {
+          p_invoice_id: string
+          p_lines: Json
+          p_note_date: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       create_fixed_asset: {
         Args: {
           p_acquisition_date: string
@@ -28278,6 +28417,10 @@ export type Database = {
           p_posting_date?: string
           p_tax_code?: string
         }
+        Returns: Json
+      }
+      decide_invoice_request: {
+        Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
       }
       decide_leave_request: {
@@ -28514,6 +28657,21 @@ export type Database = {
       }
       inventory_valuation_snapshot: {
         Args: { p_as_of?: string }
+        Returns: Json
+      }
+      invoice_request_dry_run: { Args: { p_request_id: string }; Returns: Json }
+      invoice_request_post_internal: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      invoice_request_submit_internal: {
+        Args: {
+          p_doc_date: string
+          p_invoice_id: string
+          p_kind: string
+          p_lines: Json
+          p_reason: string
+        }
         Returns: Json
       }
       is_business_day: {
@@ -29720,6 +29878,15 @@ export type Database = {
         Args: { p_notes: string; p_transfer_id: string }
         Returns: Json
       }
+      submit_credit_note_request: {
+        Args: {
+          p_invoice_id: string
+          p_lines: Json
+          p_note_date: string
+          p_reason: string
+        }
+        Returns: Json
+      }
       submit_expense_claim: {
         Args: {
           p_amount: number
@@ -29728,6 +29895,14 @@ export type Database = {
           p_employee_id: string
           p_no_receipt_reason?: string
           p_spend_date: string
+        }
+        Returns: Json
+      }
+      submit_invoice_void_request: {
+        Args: {
+          p_invoice_id: string
+          p_reason: string
+          p_reversal_date?: string
         }
         Returns: Json
       }
@@ -29902,6 +30077,14 @@ export type Database = {
         }
         Returns: Json
       }
+      void_invoice_internal: {
+        Args: {
+          p_invoice_id: string
+          p_reason: string
+          p_reversal_date?: string
+        }
+        Returns: Json
+      }
       void_review: {
         Args: { p_reason: string; p_review_id: string }
         Returns: Json
@@ -29914,6 +30097,10 @@ export type Database = {
       withdraw_fx_rate: {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
+      }
+      withdraw_invoice_request: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: Json
       }
       withdraw_payment_request: {
         Args: { p_request_id: string }

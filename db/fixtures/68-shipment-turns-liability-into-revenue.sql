@@ -302,7 +302,7 @@ BEGIN
     PERFORM ship_order(so2, d, jsonb_build_array(jsonb_build_object('reservation_id', res2)));
     -- 【3a 停放的那条检查在这里落地】发过货的票作废不了
     BEGIN
-        PERFORM void_invoice(v_inv_id, 'try after ship', d);
+        PERFORM void_invoice_internal(v_inv_id, 'try after ship', d);
         RAISE EXCEPTION 'FIXTURE 68F 失败:已经有货按它发出的发票不该作废得了';
     EXCEPTION WHEN OTHERS THEN
         IF SQLERRM NOT LIKE 'INVOICE_SHIPPED_NOT_VOIDABLE%' THEN RAISE; END IF;

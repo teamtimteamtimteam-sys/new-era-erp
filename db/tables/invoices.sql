@@ -10,6 +10,9 @@
 -- IMMUTABLE:已开出的发票不可改,更正靠"作废 + 重开",故没有 updated_at/deleted_at。
 -- 守卫触发器只放行 issued→void(连同 void_reason/voided_at/voided_by);
 -- RLS 给 SELECT+INSERT,外加一条窄用途 UPDATE 策略供作废路径使用(改哪些列由触发器管)。
+-- ★ APR-5a(2026-09-25,grilling Q11):INSERT 与 UPDATE 两条写策略【拿掉了】—— 写本表的函数全是
+--   SECURITY DEFINER,直连写按名拒 INVOICE_THROUGH_FUNCTION_ONLY(trg_invoices_direct_write)。
+--   作废从此经 CFO 批准的作废申请(submit_invoice_void_request → decide_invoice_request)。
 --
 -- bill_to_snapshot:开票当刻客户抬头的快照,列取自 customers 上【确实存在】的字段
 -- (code/legal_name/short_name/country/tax_id/address/payment_terms/incoterm)——
@@ -148,15 +151,11 @@ CREATE POLICY "invoices select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text));
 
-CREATE POLICY "invoices insert by permission"
-    ON public.invoices
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
-
-CREATE POLICY "invoices update by permission"
-    ON public.invoices
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+-- ★ APR-5a(Tim,grilling Q11 ①):**没有写策略**。原来的 INSERT / UPDATE 两条(都开在 module.finance.edit 上)
+--   拿掉了:写本表的函数(create_invoice · create_order_invoice · void_invoice_internal)全是 SECURITY DEFINER,
+--   没有一个屏幕直连写它。UPDATE 那一条放行的只剩一件事 —— issued → void 本身:不经 void_invoice 的核销、
+--   已发货两条检查,也不冲销分录。INSERT 那一条放行一张手写的 order 发票,ship_order 认它。
+--   直连写由下面的 trg_invoices_direct_write 按名拒(INVOICE_THROUGH_FUNCTION_ONLY)。
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 invoices_masked 读取。
@@ -180,12 +179,11 @@ COMMENT ON COLUMN public.invoices.kind IS
 COMMENT ON COLUMN public.invoices.fx_rate IS
     'SO-3a:入账汇率,【从订单抄来】(FIN-27 一族:承诺抄下来,不再看行情)。开票分录按它过、结算按它解除、7100 已实现汇兑从它算起 —— 一个数,三处同源。sale 头恒 NULL(那种发票不过账,行背后的销售各有各的汇率)。';
 
--- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
--- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
--- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
--- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
--- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
--- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
-CREATE TRIGGER enforce_write_permission
-    BEFORE UPDATE OR DELETE ON public.invoices
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.finance.edit');
+-- ── APR-5a · 直连写一律按名拒(取代 SILENT-1 那支 enforce_write_permission)──────────────
+-- 没有写策略时,直连 UPDATE / DELETE 是零行、不报错;这支语句级触发器零行也照样触发,
+-- 抛 INVOICE_THROUGH_FUNCTION_ONLY。它由 row_security_active() 守着,属主 / SECURITY DEFINER
+-- 那些路一律放行。原来那支 enforce_write_permission('module.finance.edit') 会让财务过关、
+-- 再被 RLS 静默吞掉(UPDATE),或在 INSERT 上根本不触发,所以换掉而不是留着。
+CREATE TRIGGER trg_invoices_direct_write
+    BEFORE INSERT OR UPDATE OR DELETE ON public.invoices
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_invoice_direct_write();

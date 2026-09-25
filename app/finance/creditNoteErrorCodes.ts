@@ -21,6 +21,11 @@ const CREDIT_NOTE_ERROR_CODES = new Set([
     'CN_EXCEEDS_OPEN',
     'CN_EXCEEDS_UNRELEASED',
     'CN_EXCEEDS_RELEASED',
+    // APR-5a:贷项要 CFO 批准 —— 提交那一步的三条拒绝,与找不到发票
+    'INVOICE_NEEDS_APPROVED_REQUEST',
+    'INVOICE_REQUEST_OPEN',
+    'INVOICE_REQUEST_NO_OTHER_DECIDER',
+    'INVOICE_NOT_FOUND',
     // 结构性守卫:正常路径撞不到(页面只列这张发票自己的行),撞上时说人话
     'CN_LINE_WRONG_INVOICE',
     'CN_BASIS_MISMATCH',

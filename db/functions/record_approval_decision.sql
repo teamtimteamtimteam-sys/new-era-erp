@@ -72,6 +72,14 @@ BEGIN
             SELECT true, r.label, r.amount_base, v_base_ccy, 1, r.amount_base, r.created_by
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser
               FROM receipt_price_requests r WHERE r.id = p_subject_id;
+        -- ★ APR-5a:贷项 / 作废申请。提单人 = created_by;主角 = NULL(发票不是谁"自己的单据")。
+        --   金额 = 本位币(贷项 = 分录借方合计;作废 = 发票 total_base),币种 = 本位币、汇率 = 1
+        --   (receipt_price_request 同形)。submitted 那一行是提交时的试跑额,approved 那一行 = 实际过账额。
+        --   编号:申请没有自己的单据编号,记它的 label(发票编号 · credit note #n / void #n)。
+        WHEN 'invoice_request' THEN
+            SELECT true, r.label, r.amount_base, v_base_ccy, 1, r.amount_base, r.created_by
+              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser
+              FROM invoice_requests r WHERE r.id = p_subject_id;
         WHEN 'expense' THEN
             SELECT true, e.code, e.amount_ccy, e.currency, e.fx_rate, e.amount_base
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base

@@ -71,8 +71,8 @@ BEGIN
     VALUES ('ZZFIX71-M', 'f71 material', 'battery_material', true, 'black_mass', 'end_of_life', 'kg') RETURNING id INTO v_mat;
 
     -- ══════════ A. 前提 + 目录:【一处推导,四个消费方】═════════════════════
-    IF to_regprocedure('public.create_credit_note(uuid,date,text,jsonb)') IS NULL THEN
-        RAISE EXCEPTION 'FIXTURE 71A 失败:create_credit_note 不在 —— 它是唯一写入口';
+    IF to_regprocedure('public.create_credit_note_internal(uuid,date,text,jsonb)') IS NULL THEN
+        RAISE EXCEPTION 'FIXTURE 71A 失败:create_credit_note_internal 不在 —— 它是唯一写入口(APR-5a 起经 CFO 批准的贷项申请调用)';
     END IF;
     -- 【取号器靠调不到】无调用者检查,给了 authenticated 就等于任何人能烧号
     IF has_function_privilege('authenticated', 'public.next_credit_note_code(date)', 'EXECUTE') THEN
@@ -101,8 +101,8 @@ BEGIN
         WHERE dep.relname = 'invoice_status' AND src.relname = 'order_invoice_balance_all') THEN
         RAISE EXCEPTION 'FIXTURE 71A 失败:invoice_status 没有引用 order_invoice_balance_all';
     END IF;
-    IF (SELECT prosrc FROM pg_proc WHERE proname = 'create_credit_note') NOT LIKE '%order_invoice_balance_all%' THEN
-        RAISE EXCEPTION 'FIXTURE 71A 失败:create_credit_note 的天花板没有读 order_invoice_balance_all';
+    IF (SELECT prosrc FROM pg_proc WHERE proname = 'create_credit_note_internal') NOT LIKE '%order_invoice_balance_all%' THEN
+        RAISE EXCEPTION 'FIXTURE 71A 失败:create_credit_note_internal 的天花板没有读 order_invoice_balance_all';
     END IF;
     IF (SELECT prosrc FROM pg_proc WHERE proname = 'customer_ar_exposure_base') NOT LIKE '%order_invoice_open_all%' THEN
         RAISE EXCEPTION 'FIXTURE 71A 失败:customer_ar_exposure_base 没有读 order_invoice_open_all';
@@ -148,7 +148,7 @@ BEGIN
 
     -- 【混合凭证】A 行:第 2 行未发的 50(未释放 200 之内);
     --              B 行:第 1 行已发部分减价 30(已释放 80 之内)。合计 80 ≤ 220。
-    v_res := create_credit_note(invB, d, '短装收尾 + 质量折让',
+    v_res := create_credit_note_internal(invB, d, '短装收尾 + 质量折让',
         jsonb_build_array(
             jsonb_build_object('invoice_line_id', IL2, 'kind', 'unshipped_cancel', 'qty', 5, 'amount', 50),
             jsonb_build_object('invoice_line_id', IL1, 'kind', 'revenue_reduction', 'amount', 30)));
@@ -225,7 +225,7 @@ BEGIN
     -- (挑错行的话,这一臂会因为一条【别的】拒绝而"通过",那正是空转。)
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM create_credit_note(invB, d, '超未释放一分',
+        PERFORM create_credit_note_internal(invB, d, '超未释放一分',
             jsonb_build_array(jsonb_build_object('invoice_line_id', IL1, 'kind', 'unshipped_cancel', 'amount', 41)));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
@@ -235,7 +235,7 @@ BEGIN
     END IF;
     -- 【正例:正好等于未释放余量放行】—— 把 > 写成 >= 的实现死在这一句上。
     -- 40 也在开放余额之内,所以过的确实是逐行那一关。
-    PERFORM create_credit_note(invB, d, '正好等于未释放余量',
+    PERFORM create_credit_note_internal(invB, d, '正好等于未释放余量',
         jsonb_build_array(jsonb_build_object('invoice_line_id', IL1, 'kind', 'unshipped_cancel', 'amount', 40)));
     IF (SELECT open_ccy FROM order_invoice_balance_all WHERE invoice_id = invB) <> 100 THEN
         RAISE EXCEPTION 'FIXTURE 71C 失败:再贷记 40 之后应当剩 100,实得 %',
@@ -245,7 +245,7 @@ BEGIN
     -- ② 已释放的收入:第 1 行 80 − 30(刚才那张)= 50
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM create_credit_note(invB, d, '超已释放一分',
+        PERFORM create_credit_note_internal(invB, d, '超已释放一分',
             jsonb_build_array(jsonb_build_object('invoice_line_id', IL1, 'kind', 'revenue_reduction', 'amount', 51)));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
@@ -259,7 +259,7 @@ BEGIN
     --    于是这一臂测的确实是总额那一条,不是被别的先挡住。
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM create_credit_note(invB, d, '超开放余额一分',
+        PERFORM create_credit_note_internal(invB, d, '超开放余额一分',
             jsonb_build_array(
                 jsonb_build_object('invoice_line_id', IL2, 'kind', 'unshipped_cancel', 'amount', 60),
                 jsonb_build_object('invoice_line_id', IL1, 'kind', 'revenue_reduction', 'amount', 41)));
@@ -273,7 +273,7 @@ BEGIN
     -- 【正例:正好等于天花板放行】—— 一个把 > 写成 >= 的实现死在这一句上。
     -- 【而且这一次的分组也验到了】同一发票行上放两条同类型的行,天花板必须
     -- 按【合计】判:两条各 25 合起来正好 50。
-    PERFORM create_credit_note(invB, d, '正好等于已释放上限',
+    PERFORM create_credit_note_internal(invB, d, '正好等于已释放上限',
         jsonb_build_array(
             jsonb_build_object('invoice_line_id', IL1, 'kind', 'revenue_reduction', 'amount', 25),
             jsonb_build_object('invoice_line_id', IL1, 'kind', 'revenue_reduction', 'amount', 25)));
@@ -284,7 +284,7 @@ BEGIN
     -- 而此刻第 1 行的已释放额度用完了:再要 1 分就该拒
     v_denied := false;
     BEGIN
-        PERFORM create_credit_note(invB, d, '额度已用完',
+        PERFORM create_credit_note_internal(invB, d, '额度已用完',
             jsonb_build_array(jsonb_build_object('invoice_line_id', IL1, 'kind', 'revenue_reduction', 'amount', 1)));
     EXCEPTION WHEN OTHERS THEN v_denied := true;
     END;
@@ -304,7 +304,7 @@ BEGIN
 
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM create_credit_note(invD, d, '钱都收到了还想冲',
+        PERFORM create_credit_note_internal(invD, d, '钱都收到了还想冲',
             jsonb_build_array(jsonb_build_object('invoice_line_id',
                 (SELECT id FROM invoice_lines WHERE invoice_id = invD LIMIT 1),
                 'kind', 'revenue_reduction', 'amount', 10)));
@@ -325,7 +325,7 @@ BEGIN
     RETURNING id INTO invE;
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM create_credit_note(invE, d, 'sale 型也想冲',
+        PERFORM create_credit_note_internal(invE, d, 'sale 型也想冲',
             jsonb_build_array(jsonb_build_object('invoice_line_id', IL1, 'kind', 'revenue_reduction', 'amount', 1)));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
@@ -337,7 +337,7 @@ BEGIN
     -- ══════════ F. 理由与单据日:两个都必填,而且【永不默认】═══════════════════
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM create_credit_note(invB, d, '   ',
+        PERFORM create_credit_note_internal(invB, d, '   ',
             jsonb_build_array(jsonb_build_object('invoice_line_id', IL2, 'kind', 'unshipped_cancel', 'amount', 10)));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
@@ -348,7 +348,7 @@ BEGIN
 
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM create_credit_note(invB, NULL, '日期空着',
+        PERFORM create_credit_note_internal(invB, NULL, '日期空着',
             jsonb_build_array(jsonb_build_object('invoice_line_id', IL2, 'kind', 'unshipped_cancel', 'amount', 10)));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
     END;
@@ -466,7 +466,7 @@ BEGIN
         -- 真实开放余额此刻是 50,而第 2 行的未释放余量还有 150 —— 所以 90 只被
         -- 【总额】那一条挡着。注入之后总额那一条读到的是"没有减过贷记"的数,
         -- 于是它必须放行。
-        PERFORM create_credit_note(invB, d, '注入:总额天花板应当失效',
+        PERFORM create_credit_note_internal(invB, d, '注入:总额天花板应当失效',
             jsonb_build_array(jsonb_build_object('invoice_line_id', IL2, 'kind', 'unshipped_cancel', 'amount', 90)));
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;

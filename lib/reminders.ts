@@ -238,6 +238,10 @@ export const REMINDERS = [
     //   谁能批由 decide_receipt_price_request 在服务端裁。item_id 是【收货】的 id —— 申请住在收货页上。
     { itemType: 'receipt_price_request_pending', permission: 'data.view_purchase_prices', href: '/inbound',
       itemHref: (r: OpsRow) => `/inbound/${r.item_id}/edit` },
+    // APR-5a:等 CFO 批的贷项 / 作废申请。看得见发票的人都看得见(module.finance.view);谁能批由
+    //   decide_invoice_request 在服务端裁。item_id 是【发票】的 id —— 申请住在发票页上。
+    { itemType: 'invoice_request_pending', permission: 'module.finance.view', href: '/finance/invoices',
+      itemHref: (r: OpsRow) => `/finance/invoices/${r.item_id}` },
 ] as const satisfies readonly Reminder[]
 
 /**

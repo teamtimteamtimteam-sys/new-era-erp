@@ -2,6 +2,8 @@
 
 // 作废发票:内联理由输入 + 确认对话框,再调 voidInvoice。
 // 理由必填(DB 侧 REASON_REQUIRED 兜底);成功后 revalidate 让页面切到已作废状态。
+// ★ APR-5a(Tim 2026-09-25):按下去【提一张作废申请】,CFO 批准那一刻才作废。
+//   一张发票同时只挂一张申请 —— 有一张在等时,钮看得见、按不动、带理由。
 //
 // ★★【CONFIRM-1:这一处是十六处里唯一【没有】把理由搬进对话框的】★★
 //   另外七处理由型只有【一个】必填项,搬进去搬得干净。这一处不是:
@@ -26,12 +28,15 @@ export default function VoidInvoiceControl({
     invoiceId,
     subject,
     hasEntry,
+    openRequestLabel,
 canEdit
 }: {
     invoiceId: string
     /** CONFIRM-1:作废的是【哪一张发票】—— 发票代号,抬头里就印着它。 */
     subject: string
     hasEntry: boolean
+    /** APR-5a:这张发票上一张在等 CFO 的申请的编号(没有 = null)。 */
+    openRequestLabel: string | null
 
 canEdit: boolean
 }) {
@@ -40,6 +45,7 @@ canEdit: boolean
     const [open, setOpen] = useState(false)
     const [reason, setReason] = useState('')
     const [reversalDate, setReversalDate] = useState('')
+    const [submitted, setSubmitted] = useState<string | null>(null)
     // ★【GST-3:判据从"是不是 order 型"改成"有没有分录要冲"】★
     // GST-2 让【带税的 sale 型发票】也过一张分录(借 1100 / 贷 2100),
     // 于是它作废时同样【要求冲销日】(void_invoice 的 REVERSAL_DATE_REQUIRED)。
@@ -63,20 +69,30 @@ canEdit: boolean
             } else {
                 setOpen(false)
                 setReason('')
+                if (result?.request?.status === 'submitted') setSubmitted(result.request.label)
             }
         })
     }
 
     if (!open) {
+        const waiting = submitted ?? openRequestLabel
         return (
-            <PermissionGate code="module.finance.edit" allowed={canEdit}>
-            <Button variant="destructive" className="text-sm"
-                type="button"
-                onClick={() => setOpen(true)}
-            >
-                {t('invoice.void')}
-            </Button>
-            </PermissionGate>
+            <span className="inline-flex flex-wrap items-center gap-2">
+                <PermissionGate code="module.finance.edit" allowed={canEdit}>
+                <Button variant="destructive" className="text-sm"
+                    type="button"
+                    disabled={waiting !== null}
+                    onClick={() => setOpen(true)}
+                >
+                    {t('invoice.void')}
+                </Button>
+                </PermissionGate>
+                {waiting && (
+                    <span className="text-xs text-[color:var(--brand-muted-text)]" data-state-note="invoice-request-open">
+                        {t('finance.invoiceRequest.lockedHint', { label: waiting })}
+                    </span>
+                )}
+            </span>
         )
     }
 

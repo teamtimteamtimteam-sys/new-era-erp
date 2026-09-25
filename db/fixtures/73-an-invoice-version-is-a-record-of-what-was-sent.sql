@@ -195,7 +195,7 @@ BEGIN
     -- ══════════ C. 作废之后:不再发新版,而【旧版本仍然在】═════════════════════
     -- 【order 型作废要冲销日】它有一张分录要冲(sale 型没有)—— 期间由它决定,
     -- 所以 void_invoice 对 order 型必填(REVERSAL_DATE_REQUIRED)。
-    PERFORM void_invoice(invA, 'fixture 73:作废之后仍要看得见旧版本', d);
+    PERFORM void_invoice_internal(invA, 'fixture 73:作废之后仍要看得见旧版本', d);
     v_denied := false; v_msg := NULL;
     BEGIN PERFORM record_invoice_issue(invA, 'p/v3.pdf', repeat('d', 64));
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;

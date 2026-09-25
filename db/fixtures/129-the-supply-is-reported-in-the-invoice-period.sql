@@ -168,7 +168,7 @@ BEGIN
     rep := rep || jsonb_build_object('F1_gst_off_is_unwritable', true);
 
     -- 把这张未注册的发票作废掉,免得它混进后面的臂
-    PERFORM void_invoice(v_inv_id, 'fixture 129 teardown');
+    PERFORM void_invoice_internal(v_inv_id, 'fixture 129 teardown');
 
     -- ════════════════════════════════════════════════════════════════════════
     -- 打开开关。以下所有臂都在【已注册】之下。
@@ -452,14 +452,14 @@ BEGIN
     -- ════════════════════════════════════════════════════════════════════════
     -- 【日期必填】GST-2 之前 sale 型收到日期是要拒的;带税之后它要求日期。
     v_denied := false;
-    BEGIN PERFORM void_invoice(v_inv_id, 'fixture 129 void with tax');
+    BEGIN PERFORM void_invoice_internal(v_inv_id, 'fixture 129 void with tax');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'REVERSAL_DATE_REQUIRED%'); END;
     IF NOT v_denied THEN
         RAISE EXCEPTION 'FIXTURE 129 I 失败:作废一张带税的发票必须要求冲销日(它决定冲销落进哪个期间),实得 %',
             COALESCE(v_msg,'(不要日期就作废了)');
     END IF;
 
-    PERFORM void_invoice(v_inv_id, 'fixture 129 void with tax', v_inv_date);
+    PERFORM void_invoice_internal(v_inv_id, 'fixture 129 void with tax', v_inv_date);
     v_r := f5_return(v_q2s, v_q2e);
     SELECT (b->>'value')::numeric INTO v_n
       FROM jsonb_array_elements(v_r->'boxes') b WHERE b->>'box'='box1';
@@ -585,7 +585,7 @@ BEGIN
     -- ── K2 · 贷项凭证是一笔【负的供应】,税从【被冲的那一行】抄税率 ────────────
     SELECT (b->>'value')::numeric INTO v_v
       FROM jsonb_array_elements(f5_return(v_q2s,v_q2e)->'boxes') b WHERE b->>'box'='box1';
-    v_cn := create_credit_note(v_oinv_id, v_inv_date, 'fixture 129:少发了一行',
+    v_cn := create_credit_note_internal(v_oinv_id, v_inv_date, 'fixture 129:少发了一行',
         jsonb_build_array(jsonb_build_object(
             'invoice_line_id', (SELECT id FROM invoice_lines WHERE invoice_id=v_oinv_id AND line_no=1),
             'kind', 'unshipped_cancel', 'amount', 33.33)));

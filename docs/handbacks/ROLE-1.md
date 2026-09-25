@@ -1665,3 +1665,5 @@ What the old app does against the new database (approvals ON):
 Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
 (a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
 **Next cut: APR-5** (`docs/forward-queue.md` item 9).
+**Closed in `docs/handbacks/APR-5.md` § APR-5a §W:** the window was at least 32 min 25 s and at most 43 min 49 s
+(end 13:33:44–13:45:08 CST).

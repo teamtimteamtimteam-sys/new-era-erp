@@ -3,7 +3,7 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25):**下一刀是 APR-5**)
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25);APR-5 grilling 时 Tim 拆成 5a / 5b(Q14,2026-09-25),5a 交回时更新:**下一刀是 APR-5b**)
 > 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(`fa7821ab`)·
 >    **✅ AP-RECON-1 Batch B** —— 残留登记表 + 常设勾稽 + 月结那一行 + 严格相等的 fixture 213 + 那一分钱 +
 >    带税订单发票 + **三条日期规矩与 32 份 fixture 的日期挪回真实的过去**(Tim 2026-09-24:日期规矩属于 AP-RECON-1,
@@ -40,7 +40,20 @@
 >    (`WO_NO_OTHER_RELEASER`)· 加工提交 `action.processing_commit` · 回滚 `action.processing_rollback` · 注销 `action.batch_write_off`
 >    (都给仓库)· 损耗与交接班 `action.processing_aftercare`(Tim 的 Batch 3b Q2)· 仓库拿 `module.processing.view`,三页改读
 >    `material_lookup` · 加工三张表的直连插 / 删 / 改状态按名拒。七个新码一并授给 admin。见 `docs/handbacks/ROLE-1.md` § Batch 3b。
-> 9. **⬜ APR-5 ← 下一刀** —— 贷项通知、作废发票、发货前放行(N1 那一刀是它的前置,见下文)。
+> 9. **✅ APR-5a**(2026-09-25)—— 贷项通知与作废发票经 CFO:`invoice_requests`(财务提,CFO 批每一张、不分档,
+>    **批即按冻结的日期过账**;一张发票同时只挂一张;审批关着时生下来就批了);旧的两扇门按名拒 `INVOICE_NEEDS_APPROVED_REQUEST`;
+>    五条直连路关上(发票两张表没有直连写 · `invoice_voided` 只由作废传播写 · `reverse_journal_entry` 拒发票与贷项分录 ·
+>    挂着贷项的发票不作废);在等的作废 / 未发货取消贷项按住那一截的发货;收款从不被挡。**没有新码**,所以没有东西要授给 admin。
+>    ★ **N1 对 sales_orders / quotes / credit_notes 退休**(Tim 的 Q1;只剩 `journal_entries`,跟 N5 走)。
+>    见 `docs/handbacks/APR-5.md` § APR-5a。
+> 10. **⬜ APR-5b ← 下一刀** —— 发货前 CFO 放行(N2)与仓库发货,Tim 在 APR-5 grilling 已裁定的形状(Q2–Q8、Q13 的 `shipping_release`):
+>    `shipping_releases`(cco 提 `action.request_shipping_release`,CFO 批,**批即放行**、不另执行;只覆盖【已开票】的行,
+>    所以放行之后改不了它放行的东西;作废那张发票放行自动失效;一张订单同时只挂一张)· CFO 决定时看得见客户敞口、额度、冻结、
+>    这张发票收了多少、逐行毛利(DEFINER 读者)· `ship_order` 在冻结的客户上按名拒(Q6)、在【已开票 − 未发货取消贷项】之外按名拒(Q8)·
+>    仓库发货 **`action.ship_goods`**(仓库与 admin;cco 从此不发货),`ship_order` 改调一支内层的预留释放,仓库一页不带价格的
+>    发货队列,**不**给仓库 `module.sales.view`。**在 5b 落地之前,cco 照旧发货**(ROLE-1 Q10 的过渡)。
+>    两个新码(`action.request_shipping_release` · `action.ship_goods`)同一支迁移里一并授给 admin。
+> 11. **⬜ APR-6** —— 记账凭证(N1 的 `journal_entries` 那一半 + N5:只有人敲的要批)。在 APR-5b 之后。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**
 > * **⬜ 管理包那一版 `gl_control_reconciliation` 的改基**(Tim AP-RECON-1 Q8):冻在 `management_packs` 里的包读它的三个键;
@@ -414,8 +427,8 @@
    | 排队 · **固定资产处置申请**(Tim Q2) | 申请 → 批 → 处置。今天 `dispose_fixed_asset` 一步就过账(一个持 `module.finance.edit` 的人一次点击就能把一项 40 万的资产写掉);要的是一个真的在途态。线上**已处置 0 项** —— 没有历史要迁 | 排着,未定序 |
    | ★ 不排期 · **计价条款承诺**(Tim 2026-09-23,INB-PAY-1 委托书) | 3b-iii 曾挂在 APR-4 名下。Tim:**留着不排期**。在他给出去处之前,任何一刀都不要把它折进来 | 不排期,不排队 |
    | 可能 · 不排队 | **收货定价**(给一张收货定价就是记下应付)· **加工单成本分摊**(`allocate_processing_costs` 过资本化分录)—— 两者都是【同一个人完成自己的录入】,今天没有等人批的状态。Tim 可以把五种单据里的任何一种以后作为它自己的生命周期刀加回来 | 不排队 |
-   | **N1 那一刀** | 给 `sales_orders` / `quotes` / `credit_notes` 加一列维护出来的本位币合计 + 维护触发器 | ★ **APR-5 的前置** —— 它是 schema 改动,不是接线 |
-   | **APR-5** | 销售订单 · 报价 · 贷项通知单 · 销售订单变更 + ★ **N2 的销售订单发货前放行** | **N1 落地之后** |
+   | ~~**N1 那一刀**~~ | ~~给 `sales_orders` / `quotes` / `credit_notes` 加一列维护出来的本位币合计 + 维护触发器~~ | ★ **对这三张表退休**(Tim 2026-09-25,APR-5 grilling Q1):矩阵让它们一张都不按金额分档,见 `docs/approvals.md` §3c N1。只剩 `journal_entries`,跟 APR-6 / N5 走 |
+   | **APR-5** | ~~销售订单 · 报价 · 贷项通知单 · 销售订单变更~~ → 被 Tim 的矩阵取代(销售订单、报价、销售发票不批):**5a** 贷项通知与作废发票 ✅ 2026-09-25 · **5b** N2 的发货前放行与仓库发货 ⬜ | 5b 是下一刀 |
    | **APR-6** | 记账凭证 | ★ **N1 落地之后**,而且要先分清"人敲的"与"系统过的"(N5) |
    | — | 薪资(按 `gross_total`,N4)· 加工单成本不全(走二级并标注,N4)· 采购单变更(沿用现有机制,N3) | 跟着 APR-4 走,不单独排刀 |
 

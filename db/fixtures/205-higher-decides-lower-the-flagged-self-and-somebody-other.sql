@@ -173,8 +173,10 @@ BEGIN
     --   u_l2 持它的门(本 fixture 为开审批授了 inbound.view + 采购码),于是同一条。
     SELECT count(*) INTO v_n FROM jsonb_array_elements(v_read->'own_document_gaps') g
      WHERE (g->>'level')::int = 2 AND (g->>'user_id')::uuid = u_l2;
-    IF v_n <> 6 THEN
-        RAISE EXCEPTION 'FIXTURE 205R4a 失败:二级六条链应当各点名 u_l2 一次,实得 %;全部 = %', v_n, v_read->'own_document_gaps'; END IF;
+    -- ★ APR-5a(2026-09-25):六 → 七 —— 贷项 / 作废申请同样只有二级一行、没有自批例外;
+    --   u_l2 持它的门(module.finance.view + data.view_prices,付款申请本来就要),于是同一条。
+    IF v_n <> 7 THEN
+        RAISE EXCEPTION 'FIXTURE 205R4a 失败:二级七条链应当各点名 u_l2 一次,实得 %;全部 = %', v_n, v_read->'own_document_gaps'; END IF;
     -- 一级一格都没有:R1 让二级的人替一级持有人批,一级持有人也替二级持有人的一级单批
     SELECT count(*) INTO v_n FROM jsonb_array_elements(v_read->'own_document_gaps') g WHERE (g->>'level')::int = 1;
     IF v_n <> 0 THEN

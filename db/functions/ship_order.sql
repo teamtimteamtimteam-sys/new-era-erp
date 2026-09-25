@@ -106,6 +106,29 @@ BEGIN
         END IF;
 
         -- ════════════════════════════════════════════════════════════════════
+        -- ★ APR-5a(grilling Q10):【一张在等 CFO 的申请,把它要改的那一截货按住】
+        -- 收款从不被挡(批准时的过账会按引擎原话拒);发货要挡 —— 否则等待期间发出去的一批货,
+        -- 会把一张作废申请变成 INVOICE_SHIPPED_NOT_VOIDABLE,把一张"未发货取消"的贷项
+        -- 变成对已经离场的货的取消。
+        --   ① 这张发票挂着一张在等的【作废】申请 → INVOICE_VOID_REQUESTED|发票
+        --   ② 这一条发票行挂在一张在等的【贷项】申请里、类型是 unshipped_cancel
+        --      → INVOICE_CREDIT_REQUESTED|发票|行号
+        -- ════════════════════════════════════════════════════════════════════
+        IF EXISTS (SELECT 1 FROM invoice_requests q
+                    WHERE q.invoice_id = v_inv.id AND q.status = 'submitted' AND q.kind = 'void') THEN
+            RAISE EXCEPTION 'INVOICE_VOID_REQUESTED|%', v_inv.code;
+        END IF;
+        IF EXISTS (SELECT 1
+                     FROM invoice_requests q
+                     CROSS JOIN LATERAL jsonb_array_elements(q.lines) e
+                     JOIN invoice_lines il ON il.id = NULLIF(e->>'invoice_line_id', '')::uuid
+                    WHERE q.invoice_id = v_inv.id AND q.status = 'submitted' AND q.kind = 'credit_note'
+                      AND e->>'kind' = 'unshipped_cancel'
+                      AND il.sales_order_line_id = v_res.sales_order_line_id) THEN
+            RAISE EXCEPTION 'INVOICE_CREDIT_REQUESTED|%|%', v_inv.code, v_res.line_no;
+        END IF;
+
+        -- ════════════════════════════════════════════════════════════════════
         -- 【部分发货:先把预留拆开,再整条消耗】(SO-2 的形状,一处实现)
         -- release_reservation(id, 要放回的数量, 理由) = 整笔释放 + 就地重新
         -- 预留剩余。所以要发 q(< 预留量 r)时,先把 (r − q) 放回 available,

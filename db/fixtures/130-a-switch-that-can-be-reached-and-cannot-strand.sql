@@ -146,7 +146,7 @@ BEGIN
     rep := rep || jsonb_build_object('S3_taxed_invoice_blocks_with_its_own_code', v_msg);
 
     -- ══════════ T · 作废之后关得掉 ══════════
-    PERFORM void_invoice(v_inv_id, 'fixture 130 teardown', v_d);
+    PERFORM void_invoice_internal(v_inv_id, 'fixture 130 teardown', v_d);
     UPDATE finance_settings SET gst_registered = false WHERE id;
     IF gst_registered() THEN
         RAISE EXCEPTION 'FIXTURE 130 T 失败:发票作废之后开关应当关得掉';

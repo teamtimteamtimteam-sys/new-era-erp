@@ -3,6 +3,37 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## APR5-CANCEL-INVOICED-ORDER-LEAVES-INVOICE-LIVE · 取消一张已开票的已确认订单,发票仍在册(APR-5 登记,2026-09-25)
+
+`set_sales_order_status` 允许 confirmed → cancelled(`db/functions/set_sales_order_status.sql:31-39`),而不问这张订单上
+有没有一张在册的订单流发票。开票那一笔 借 1100 / 贷 2500 于是挂在一张【永远发不了货】的订单上:应收与合同负债都在,
+而能把它们了结的只剩一张作废申请(APR-5a 起经 CFO)或一张贷项申请。APR-5 grilling 的勘察看见它(不是本刀造成的);
+Tim 的 Q12:登记,本刀不修。线上 2026-09-25 读(postgres,基表):三张已取消的订单,一张在册的订单流发票
+(INV-2026-0007,挂在已发货的 SO-2026-0001 上)—— 今天没有一张实例。**删除条件:** 取消一张挂着在册发票的订单按名拒
+(或同一事务里提一张作废申请)。
+
+## APR5-SALE-INVOICE-RE-BILLS-ORDER-FLOW-SALES · 订单流发货产生的销售,可以再开一张 sale 型发票(APR-5 登记,2026-09-25)
+
+`create_invoice`(sale 型)不排除带 `sales_order_line_id` 的 `sales_records`(`db/functions/create_invoice.sql:140-155`),
+新建发票页的候选清单也把它们列出来(`app/finance/invoices/new/page.tsx:49-51`)。于是一次订单流发货(它的债在订单发票
+开出时已经记过)可以被第二次开给客户,GST 开着时还会再过一笔 借 1100 / 贷 2100。APR-5 grilling 的勘察看见它;Tim 的 Q12:
+登记,本刀不修。**删除条件:** `create_invoice` 与候选清单都排除订单流的销售记录,并有一格 fixture 钉住。
+
+## APR5-QUOTE-STATUS-DIRECT-UPDATE · 报价的状态可以直连改(APR-5 登记,2026-09-25)
+
+`quotes` 的 UPDATE 策略开在 `module.sales.edit` 上(`db/tables/quotes.sql:117-121`),而 `guard_quote_converted_immutable`
+只冻结【已经】converted 的行。持码的人可以直连把一张报价改成 issued / declined,甚至 converted 并随手填一个订单 id ——
+绕过 `record_qt_issue` / `decline_quote` / `convert_quote`。报价不过账;APR-5 grilling 的勘察看见它;Tim 的 Q12:登记,本刀不修。
+**删除条件:** 报价的状态只经函数写(直连改 status / converted_* 按名拒),形状照 `guard_sales_record_direct_write`。
+
+## APR5-PARTIALLY-SHIPPED-HAS-NO-EXIT · 一张短装的订单永远停在 partially_shipped(APR-5 登记,2026-09-25)
+
+`set_sales_order_status` 给 partially_shipped 没有出口(`db/functions/set_sales_order_status.sql:34`);而那几行已经开过票,
+数量改不下来(`SO_AMEND_LINE_INVOICED`,`guard_sales_order_line_floors.sql:109-113`)。一张"未发货取消"的贷项通知减的是 2500,
+【不】动订单行的数量、预留或状态 —— 所以短装收尾之后,订单仍说 partially_shipped。APR-5 grilling 的勘察看见它;Tim 的 Q12:
+登记,本刀不修(APR-5b 的发货放行会让"贷掉的那一截还能不能发"在 ship_order 上按名拒,Q8,但不给状态一个出口)。
+**删除条件:** 短装收尾(按贷项或按一次关单)让订单走到一个终态。
+
 ## ROLE1B3B-PROCESSING-UPDATE-POLICIES · 加工三张表的 UPDATE 策略还开在 `module.processing.edit` 上(ROLE-1 Batch 3b 登记,2026-09-25)
 
 Batch 3b 拿掉了 `processing_runs` / `processing_outputs` 的 INSERT 策略与三张表(再加 `processing_inputs`)的 DELETE 策略,

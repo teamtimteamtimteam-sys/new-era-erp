@@ -103,6 +103,14 @@ BEGIN
     THEN
         RAISE EXCEPTION 'INVOICE_IMMUTABLE';
     END IF;
+    -- ★ APR-5a(grilling Q11 ③):invoice_voided 只许由作废传播写,而且只许 false → true ——
+    --   也就是它的发票【已经】是 void(propagate_invoice_void 是 AFTER UPDATE,那时头上已是 void)。
+    --   此前这一列不在冻结清单里:一次直连翻转就把一张在册发票的行释放出来,同一条销售 / 订单行可以再开一遍票。
+    IF NEW.invoice_voided IS DISTINCT FROM OLD.invoice_voided
+       AND NOT (NEW.invoice_voided
+                AND (SELECT i.status FROM invoices i WHERE i.id = NEW.invoice_id) = 'void') THEN
+        RAISE EXCEPTION 'INVOICE_IMMUTABLE';
+    END IF;
     RETURN NEW;
 END;
 $fn$;
@@ -124,15 +132,10 @@ CREATE POLICY "invoice_lines select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text));
 
-CREATE POLICY "invoice_lines insert by permission"
-    ON public.invoice_lines
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.finance.edit'::text));
-
-CREATE POLICY "invoice_lines update by permission"
-    ON public.invoice_lines
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.finance.edit'::text)) WITH CHECK (has_permission('module.finance.edit'::text));
+-- ★ APR-5a(Tim,grilling Q11 ①):**没有写策略**。原来的 INSERT / UPDATE 两条(都开在 module.finance.edit 上)
+--   拿掉了:写本表的函数(create_invoice · create_order_invoice)与 invoices 上那支作废传播触发器都在属主身份下跑。
+--   UPDATE 那一条放行过 invoice_voided 的直连翻转 —— 一张在册发票的行被释放、可以再开一遍票;
+--   INSERT 那一条放行一张手写 order 发票的行。直连写由 trg_invoice_lines_direct_write 按名拒。
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 invoice_lines_masked 读取。
@@ -162,12 +165,9 @@ COMMENT ON COLUMN public.invoice_lines.tax_code IS
 COMMENT ON COLUMN public.invoice_lines.tax_rate_pct IS
     'GST-2:开票日经 tax_rate_for(code, invoices.issue_date) 解析出来的税率,【抄下来冻住】。一张已开出的发票永远不按今天的设置重算它的税 —— 与已承诺的价格条款同一条规矩。2022 年那张票永远是 7%。';
 
--- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
--- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
--- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。
--- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
--- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
--- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
-CREATE TRIGGER enforce_write_permission
-    BEFORE UPDATE OR DELETE ON public.invoice_lines
-    FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.finance.edit');
+-- ── APR-5a · 直连写一律按名拒(取代 SILENT-1 那支 enforce_write_permission)──────────────
+-- 与 invoices 上那一支同形(guard_invoice_direct_write):语句级,零行也触发,
+-- 抛 INVOICE_THROUGH_FUNCTION_ONLY;属主 / SECURITY DEFINER 那些路一律放行。
+CREATE TRIGGER trg_invoice_lines_direct_write
+    BEFORE INSERT OR UPDATE OR DELETE ON public.invoice_lines
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_invoice_direct_write();

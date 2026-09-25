@@ -349,7 +349,7 @@ BEGIN
     PERFORM record_payment_internal('in', v_cust, 40.00, 'USD', NULL, NULL, D1, 'f213 order partial',
         jsonb_build_array(jsonb_build_object('invoice_id', v_oi, 'amount_doc', 40.00)));
     PERFORM pg_temp.f213_agree('C8 订单发票部分收');
-    PERFORM create_credit_note(v_oi, D1, 'f213 短装',
+    PERFORM create_credit_note_internal(v_oi, D1, 'f213 短装',
         jsonb_build_array(jsonb_build_object('invoice_line_id', v_il, 'kind', 'unshipped_cancel',
                                              'qty', 1, 'amount', 10.01)));
     PERFORM pg_temp.f213_agree('C9 贷项凭证');
@@ -379,7 +379,7 @@ BEGIN
     PERFORM record_payment_internal('in', v_cust, 50, v_base, NULL, NULL, D1, 'f213 taxed order partial',
         jsonb_build_array(jsonb_build_object('invoice_id', v_oi2, 'amount_doc', 50)));
     PERFORM pg_temp.f213_agree('C11a 带税订单发票部分收');
-    PERFORM create_credit_note(v_oi2, D1, 'f213 taxed cn',
+    PERFORM create_credit_note_internal(v_oi2, D1, 'f213 taxed cn',
         jsonb_build_array(jsonb_build_object('invoice_line_id', (SELECT id FROM invoice_lines WHERE invoice_id = v_oi2),
                                              'kind', 'unshipped_cancel', 'qty', 1, 'amount', 20)));
     PERFORM pg_temp.f213_agree('C11b 带税的贷项凭证');
@@ -418,7 +418,7 @@ BEGIN
     PERFORM record_payment_internal('in', v_cust, 33.33, 'USD', NULL, NULL, D1, 'f213 usd taxed partial',
         jsonb_build_array(jsonb_build_object('invoice_id', v_oi2, 'amount_doc', 33.33)));
     PERFORM pg_temp.f213_agree('C11e 外币带税订单发票部分收');
-    PERFORM create_credit_note(v_oi2, D1, 'f213 usd taxed cn',
+    PERFORM create_credit_note_internal(v_oi2, D1, 'f213 usd taxed cn',
         jsonb_build_array(jsonb_build_object('invoice_line_id', (SELECT id FROM invoice_lines WHERE invoice_id = v_oi2),
                                              'kind', 'unshipped_cancel', 'qty', 1, 'amount', 13.37)));
     PERFORM pg_temp.f213_agree('C11f 外币带税贷项凭证');
@@ -435,7 +435,7 @@ BEGIN
     PERFORM set_sales_order_status(v_so3, 'confirmed');
     v_res := create_order_invoice(v_so3, D0, NULL, NULL, NULL, NULL, 'ZR');
     v_oi3 := (v_res->>'invoice_id')::uuid;
-    PERFORM void_invoice(v_oi3, 'f213', D1);
+    PERFORM void_invoice_internal(v_oi3, 'f213', D1);
     PERFORM pg_temp.f213_agree('C12 作废订单发票');
 
 

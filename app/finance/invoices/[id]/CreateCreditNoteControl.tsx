@@ -214,6 +214,15 @@ canEdit: boolean
         },
     ]
 
+    // APR-5a:申请已提、在等 CFO —— 表单收起,说清楚它去了哪里(页面刷新后申请那一块会摆出它)
+    if (state.submitted) {
+        return (
+            <p className="text-sm border-l-4 border-amber-500 pl-3" data-state-note="credit-note-requested">
+                {t('finance.invoiceRequest.creditNoteSubmitted', { label: state.submitted })}
+            </p>
+        )
+    }
+
     if (!open) {
         return (
             <PermissionGate code="module.finance.edit" allowed={canEdit}>

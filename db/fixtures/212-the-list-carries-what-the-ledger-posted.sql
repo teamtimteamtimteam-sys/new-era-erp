@@ -256,7 +256,7 @@ BEGIN
     -- ⑤ 有活核销就不许作废
     v_ok := false; v_msg := NULL;
     BEGIN
-        PERFORM void_invoice(v_inv, 'fixture 212', d);
+        PERFORM void_invoice_internal(v_inv, 'fixture 212', d);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_ok := (SQLERRM LIKE 'INVOICE_HAS_SETTLEMENTS|%');
     END;
     IF NOT v_ok THEN

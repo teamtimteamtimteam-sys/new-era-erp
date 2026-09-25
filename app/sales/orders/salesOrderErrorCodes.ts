@@ -38,6 +38,9 @@ const SALES_ORDER_ERROR_CODES = new Set([
     'SO_SHIP_NO_LINES',
     'SO_SHIP_NOT_RESERVED',
     'SO_SHIP_NOT_INVOICED',
+    // APR-5a(Q10):在等 CFO 的作废 / 未发货取消贷项按住那一截货
+    'INVOICE_VOID_REQUESTED',
+    'INVOICE_CREDIT_REQUESTED',
     'SO_SHIP_EXCEEDS_RESERVATION',
     'SO_RESERVATION_ALREADY_SHIPPED',
     // 结构性断言:正常路径撞不到,撞上时必须说人话

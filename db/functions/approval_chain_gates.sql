@@ -100,7 +100,13 @@ AS $function$
         --    data.view_purchase_prices(Tim 的 Q2)—— 收货页的门,加上看得见采购价的那个码;
         --    【不是】action.price_receipts:那是提单的码。
         ('receipt_price_request'::text, 'decide_receipt_price_request'::text, 2::smallint,
-            ARRAY['module.inbound.view', 'data.view_purchase_prices']::text[])
+            ARRAY['module.inbound.view', 'data.view_purchase_prices']::text[]),
+        -- ★★ APR-5a(Tim 的矩阵:贷项通知、作废发票,CFO 批每一张,不分档;批准当场过账):
+        --    同样【只有二级这一行】,理由与付款申请逐字同一条。门与付款申请同一对码 ——
+        --    module.finance.view + data.view_prices(发票页的门,加上看得见金额的那个码);
+        --    【不是】module.finance.edit:那是提单的码。
+        ('invoice_request'::text, 'decide_invoice_request'::text, 2::smallint,
+            ARRAY['module.finance.view', 'data.view_prices']::text[])
       ) AS v(subject_type, action_function, level, gate_permissions)
 $function$;
 

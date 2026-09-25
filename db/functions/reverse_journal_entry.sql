@@ -1,6 +1,7 @@
 -- db/functions/reverse_journal_entry.sql
 -- 手工冲销一张分录(module.finance.edit)。付款、转账、代扣税缴纳的分录按名拒,走各自的申请。
 -- ★ PAYROLL-APR-1(2026-09-24,Tim 的 Q5):工资期的过账分录与它的冲销也按名拒 —— 撤销走撤销申请。
+-- ★ APR-5a(2026-09-25,grilling Q11 ④):发票与贷项通知的分录(以及它们的冲销)也按名拒 —— 走作废 / 贷项申请。
 
 CREATE OR REPLACE FUNCTION public.reverse_journal_entry(p_entry_id uuid, p_reversal_date date, p_memo text DEFAULT NULL::text)
  RETURNS jsonb
@@ -23,7 +24,11 @@ BEGIN
     -- ★ ROLE-1 Batch 4a(侧门 (b)):收货定价的 purchase 分录也关在这里 —— 从这里冲掉它,2000 回来了,
     --   收货单的单价与改价历史却不动,ap_open_items 照样说欠着,清单与总账从此各说各话。
     --   更正走改价(定价面板;Batch 4b 起经 CFO 批准的定价申请)。
-    IF v_src IN ('payment', 'transfer', 'wht_remittance', 'purchase') THEN
+    -- ★ APR-5a(grilling Q11 ④):发票(订单流开票分录、sale 型发票的税分录 —— 都是 'invoice')与贷项通知
+    --   ('credit_note')的分录也关在这里 —— 从这里冲掉开票那一张,就是一次不经 CFO 的作废(发票却仍是 issued、
+    --   仍可发货);冲掉一张贷项,就是一次不经 CFO 的"撤销贷项"。作废走作废申请,贷项走贷项申请。
+    --   冲销分录抄原分录的 source_type,所以作废留下的那张冲销分录同样按名拒(否则冲掉它 = 不经批准地复活发票)。
+    IF v_src IN ('payment', 'transfer', 'wht_remittance', 'purchase', 'invoice', 'credit_note') THEN
         RAISE EXCEPTION 'JE_REVERSE_USE_SOURCE_PATH|%|%', v_code, v_src;
     END IF;
     -- ★ PAYROLL-APR-1(Tim 的 Q5):工资期的【过账】分录也关在这里 —— 从这里冲掉它,总账回来了,
