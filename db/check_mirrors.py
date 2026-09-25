@@ -533,6 +533,15 @@ DEFINER_NO_CHECK_ALLOWED = {
     "payroll_period_fingerprint": "EXECUTE revoked from PUBLIC/authenticated/anon",
     # 它【必须】留给 authenticated:调它的是两支 INVOKER 守卫(period_close_floor 同一条)。
     "payroll_period_frozen": "PAYROLL-APR-1: called by two INVOKER guards, so EXECUTE must stay with the caller; returns one state word (posted/requested/open) already shown on the payroll page",
+    # ROLE-1 Batch 4b:收货定价申请的内层算子 —— 靠的是调不到(zzz_function_grants.sql)。
+    "receipt_price_submit_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "receipt_price_post_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "receipt_price_request_dry_run": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "receipt_price_withdraw_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "receipt_price_fingerprint": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "receipt_settled_base": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # 它【必须】留给 authenticated:调它的是两支 INVOKER 守卫(payroll_period_frozen 同一条)。
+    "receipt_price_open": "ROLE-1 Batch 4b: called by two INVOKER guards, so EXECUTE must stay with the caller; returns only the label (receipt code · price #n) of a waiting request, no price",
     # PROC-COST-2(2026-08-31):两支【计值读取器】与它们共用的单位落地成本。
     # **它们【必须】没有调用者检查,而这一条与上面每一条的理由都不同 ——
     # 不是"加了门会在属主身份下抛错",是【加了门就是缺陷本身】。**

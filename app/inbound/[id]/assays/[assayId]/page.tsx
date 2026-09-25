@@ -118,7 +118,9 @@ export default async function AssayDetailPage({
             .from('price_history_masked')
             .select('old_unit_price, new_unit_price, created_at')
             .eq('inbound_batch_id', id)
-            .eq('notes', `Assay ${assay.code} applied`)
+            // ★ ROLE-1 Batch 4b:批准时过账的那一行,备注前面多了申请编号
+            //   (「Price request IN-… · price #n · Assay ASY-… applied」)—— 按结尾认,新旧两种都认得
+            .like('notes', `%Assay ${assay.code} applied`)
             .order('created_at', { ascending: false })
             .limit(1)
         // 遮蔽的是价格列;created_at 恢复基表类型。
@@ -146,6 +148,19 @@ export default async function AssayDetailPage({
                 journalCode: je?.[0]?.code ?? null,
             }
         }
+    }
+
+    // ── ROLE-1 Batch 4b:这份化验提的定价申请(最近一张)—— 编号与状态,指回收货页 ──
+    //   读它要 inbound.view + 采购码(申请表的读策略);看不见采购价的人不去读,也不画这一行。
+    let priceRequest: { label: string; status: string } | null = null
+    if (isApplied && showPrices) {
+        const reqRes = await supabase
+            .from('receipt_price_requests')
+            .select('label, status')
+            .eq('assay_result_id', assayId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+        priceRequest = (mustRows(reqRes) as { label: string; status: string }[])[0] ?? null
     }
 
     // ── 未应用:算一份"如果应用"的预览。化验含量是定死的,服务端一次算好即可
@@ -301,6 +316,17 @@ export default async function AssayDetailPage({
                 }))}
             />
 
+            {/* ROLE-1 Batch 4b:这份化验提的定价申请 —— 在等 CFO、已批、已驳或已撤回 */}
+            {priceRequest && (
+                <p className="border-t pt-6 mb-6 text-sm" data-state-note="assay-price-request">
+                    <span className="text-[color:var(--brand-muted-text)]">{t('inbound.priceRequest.assayRequest')}:</span>{' '}
+                    <Link href={`/inbound/${id}/edit`} className="hover:underline app-link app-link-inline font-mono">
+                        {priceRequest.label}
+                    </Link>{' '}
+                    · {t('inbound.priceRequest.status.' + priceRequest.status)}
+                </p>
+            )}
+
             {/* 已应用:由此产生的价格变动(读记录,不重算)*/}
             {isApplied && priceChange && (
                 <section className="border-t pt-6 mb-6">
@@ -382,6 +408,7 @@ export default async function AssayDetailPage({
                     {/* ASY-1:预览报错 = 应用一定会失败(试算与提交同一段算术、同一批闸)。
                         理由横幅就在上面,按钮跟着它走 —— 不提供服务端保证会拒的控件。 */}
                     <div className="mt-4">
+                        <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('inbound.priceRequest.applyHint')}</p>
                         <PermissionGate code="action.apply_assay" allowed={canApply}>
                             <ApplyNowButton assayId={assayId} batchId={id} blocked={!!previewError} />
                         </PermissionGate>

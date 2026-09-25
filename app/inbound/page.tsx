@@ -167,6 +167,20 @@ export default async function InboundPage({
               .select('inbound_batch_id, has_unapplied_assay')
               .in('inbound_batch_id', pageIds)
         : { data: [] as { inbound_batch_id: string | null; has_unapplied_assay: boolean | null }[] }
+    // ── ROLE-1 Batch 4b:哪几张收货挂着在等 CFO 的定价申请 ─────────────────────────
+    //   申请表的读策略要 inbound.view + 采购码;不持采购码的人不去读(读了是 0 行,而 0 行
+    //   不许画成"没有申请")—— 那时这一列不画徽标,注销按钮照常,由库按名拒(RECEIPT_PRICE_REQUEST_OPEN)。
+    const openPriceRequestByBatch = new Map<string, string>()
+    if ((batches ?? []).length > 0 && await can('data.view_purchase_prices')) {
+        const reqRes = await supabase
+            .from('receipt_price_requests')
+            .select('inbound_batch_id, label')
+            .eq('status', 'submitted')
+            .in('inbound_batch_id', (batches ?? []).map((b) => b.id))
+        for (const r of mustRows(reqRes) as { inbound_batch_id: string; label: string }[]) {
+            openPriceRequestByBatch.set(r.inbound_batch_id, r.label)
+        }
+    }
     const unappliedByBatch = new Set(
         (assayStatusRows ?? [])
             .filter((r) => r.has_unapplied_assay)
@@ -256,6 +270,7 @@ export default async function InboundPage({
             status: b.status,
             pricingStatus: b.pricing_status,
             hasUnappliedAssay: unappliedByBatch.has(b.id),
+            openPriceRequest: openPriceRequestByBatch.get(b.id) ?? null,
             createdLabel: formatAuditStamp(b.created_at),
         }
     })

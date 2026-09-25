@@ -22,6 +22,7 @@ DECLARE
     v_status   text;
     v_prior    uuid;
     v_note     text := NULL;
+    v_open     receipt_price_requests%ROWTYPE;
 BEGIN
     PERFORM require_permission('action.apply_assay');
     SELECT * INTO v_assay FROM assay_results
@@ -44,6 +45,21 @@ BEGIN
     FOR UPDATE;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', v_assay.inbound_batch_id;
+    END IF;
+
+    -- 0. ★ ROLE-1 Batch 4b(Tim 的 Q3 · Q5 · Q6):这张收货挂着一张在等 CFO 的定价申请时 ——
+    --    · 来源不是化验(手工 / 按承诺条款 / 收货台):应用按名拒 RECEIPT_PRICE_REQUEST_OPEN,
+    --      一个等着批的手工价不许被一份化验从脚下换掉含量;
+    --    · 来源是化验:本次取代它 —— 先撤回那一张(理由写明被哪一份取代),本次再提自己的。
+    --    放在改含量【之前】:含量守卫(guard_inbound_batch_metals_price_request)在有在等的申请时拒一切写。
+    SELECT * INTO v_open FROM receipt_price_requests
+     WHERE inbound_batch_id = v_batch.id AND status = 'submitted';
+    IF FOUND THEN
+        IF v_open.source <> 'assay' THEN
+            RAISE EXCEPTION 'RECEIPT_PRICE_REQUEST_OPEN|%|%', v_batch.code, v_open.label;
+        END IF;
+        PERFORM receipt_price_withdraw_internal(v_open.id,
+            'Superseded by assay ' || v_assay.code || ' applied');
     END IF;
 
     -- 1. 批次含量 = 本化验的含量(删后重插)。分摊、估值、回收率读的都是
@@ -93,8 +109,8 @@ BEGIN
         v_unit := (v_calc->>'unit_price_usd_per_kg')::numeric;
 
         IF v_unit > 0 THEN
-            v_rep := reprice_inbound_batch(v_batch.id, v_unit, 'USD', NULL,
-                                           'Assay ' || v_assay.code || ' applied');
+            -- ★ ROLE-1 Batch 4b:算出来的价不再当场过账 —— 在第 7 步提一张申请(来源 assay),
+            --   等本次的含量、取代链与 applied_at 都落定之后(指纹要看见"它就是最近一份已应用的化验")。
             v_priced := true;
         ELSE
             -- 低品位料可能"不值它的处理费"(净值 ≤ 0)。负价不入价格机器 ——
@@ -116,12 +132,10 @@ BEGIN
         v_note := 'no pricing formula resolved';
     END IF;
 
-    -- 5. 批次的定价状态:只有真的重了价才谈得上 final
-    v_status := CASE WHEN v_priced AND v_assay.is_final THEN 'final'
-                     ELSE v_batch.pricing_status END;
+    -- 5. 批次挂上这张公式。★ ROLE-1 Batch 4b(Tim 的 Q3):pricing_status 【不在这里】升 final ——
+    --    只在 CFO 批准本次提的那张申请时(receipt_price_post_internal),而且只当这份化验 is_final。
     UPDATE inbound_batches
     SET pricing_formula_id = COALESCE(v_formula, pricing_formula_id),
-        pricing_status = v_status,
         updated_by = v_user
     WHERE id = v_batch.id;
 
@@ -141,13 +155,27 @@ BEGIN
     SET applied_at = now(), applied_by = v_user, updated_by = v_user
     WHERE id = p_assay_result_id;
 
+    -- 7. ★ ROLE-1 Batch 4b(Tim 的 Q3):同一事务里提一张定价申请,来源 assay,提单人 = 按应用的这个人。
+    --    提交时照批准那一刻的同一支过账试跑;二级除了提单人再没有别人批得动 → 整次应用按名拒
+    --    (RECEIPT_PRICE_NO_OTHER_DECIDER,Tim 的 Q1)。审批关着时当场过账,is_final 时同时升 final。
+    IF v_priced THEN
+        v_rep := receipt_price_submit_internal(v_batch.id, v_unit, 'USD', 'assay', p_assay_result_id,
+                                               v_commit, 'Assay ' || v_assay.code || ' applied');
+    END IF;
+    SELECT pricing_status INTO v_status FROM inbound_batches WHERE id = v_batch.id;
+
     -- 完整分解:界面展示的、向供应商/审计师解释调整的,就是这一份 —— 每个数都留
     RETURN jsonb_build_object(
         'assay_result_id', p_assay_result_id,
         'code', v_assay.code,
         'inbound_batch_id', v_batch.id,
         'batch_code', v_batch.code,
-        'priced', v_priced,
+        -- ★ ROLE-1 Batch 4b:priced = 这一次【已经过了账】(只在审批关着时);
+        --   price_requested = 提了一张定价申请,它的编号与状态在 price_request 里。
+        'priced', COALESCE(v_rep->>'status' = 'approved', false),
+        'price_requested', v_priced,
+        'price_request', v_rep,
+        'superseded_request_id', v_open.id,
         'formula_code', v_fcode,
         -- FIN-27:结算按【哪一份承诺】算的 —— 供应商问起来要指得出那份副本
         'commitment_id', v_commit,

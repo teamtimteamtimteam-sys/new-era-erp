@@ -61,6 +61,8 @@ export type InboundTableRow = {
     status: string
     pricingStatus: string
     hasUnappliedAssay: boolean
+    /** ROLE-1 Batch 4b:在等 CFO 的那张定价申请的编号(没有 = null) */
+    openPriceRequest: string | null
     createdLabel: string
 }
 
@@ -139,6 +141,13 @@ export default function InboundTable({
                     {b.hasUnappliedAssay && (
                         <span title={t('assay.hasUnappliedMarker')} className="ml-1 px-1.5 py-0.5 rounded text-xs bg-amber-100 text-amber-800">⚠</span>
                     )}
+                    {/* ROLE-1 Batch 4b:一张定价申请在等 CFO */}
+                    {b.openPriceRequest && (
+                        <span title={b.openPriceRequest} data-price-request={b.openPriceRequest}
+                            className={pill + ' ml-1 bg-blue-100 text-blue-800'}>
+                            {t('inbound.priceRequest.status.submitted')}
+                        </span>
+                    )}
                 </>
             ),
         },
@@ -147,7 +156,8 @@ export default function InboundTable({
             className: 'text-sm text-gray-600',
             render: (b) => b.createdLabel,
         },
-        { key: 'actions', header: t('inbound.colActions'), render: (b) => <DeleteButton id={b.id} code={b.code} /> },
+        { key: 'actions', header: t('inbound.colActions'), render: (b) => <DeleteButton id={b.id} code={b.code}
+            lockedReason={b.openPriceRequest ? t('inbound.priceRequest.deleteLocked', { label: b.openPriceRequest }) : undefined} /> },
         {
             key: 'label', header: t('batchLabel.col'),
             render: (b) => (

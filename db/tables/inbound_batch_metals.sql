@@ -98,3 +98,9 @@ CREATE TRIGGER enforce_write_permission
 CREATE TRIGGER trg_inbound_batch_metals_assay_source
     BEFORE INSERT OR UPDATE ON public.inbound_batch_metals
     FOR EACH ROW EXECUTE FUNCTION public.guard_batch_metals_assay_source();
+
+-- ── ROLE-1 Batch 4b(Tim 的 Q5)· 一张定价申请在等 CFO 时,这张收货的含量不许改 ─────────────
+-- INSERT / UPDATE / DELETE 一律 RECEIPT_PRICE_REQUEST_OPEN|收货|申请(不分直连与属主路径)。
+CREATE TRIGGER trg_inbound_batch_metals_price_request
+    BEFORE INSERT OR UPDATE OR DELETE ON public.inbound_batch_metals
+    FOR EACH ROW EXECUTE FUNCTION public.guard_inbound_batch_metals_price_request();

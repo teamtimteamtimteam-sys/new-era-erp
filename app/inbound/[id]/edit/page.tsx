@@ -8,6 +8,7 @@ import LandedCostPanel from './LandedCostPanel'
 import PrepaymentPanel, { type PrepaymentApplicationRow } from './PrepaymentPanel'
 import AssaySection, { type AssayRow } from './AssaySection'
 import RepriceFromContentPanel from './RepriceFromContentPanel'
+import ReceiptPriceRequestPanel, { type ReceiptPriceRequestView } from './ReceiptPriceRequestPanel'
 import MetalContentPanel from '@/app/components/metals/MetalContentPanel'
 import { priceBatchHref } from '@/app/components/metals/priceBatchHref'
 import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
@@ -472,6 +473,61 @@ export default async function EditInboundPage({
     //   仓库就会要么看不见自己该看的单价、要么看见它不该看的落地成本。
     const [showPrices, showPurchasePrices, pricingGate] = await Promise.all([
         canViewPrices(), canViewPurchasePrices(), receiptPricingGate()])
+    // ── ROLE-1 Batch 4b:这张收货的定价申请 ─────────────────────────────────────
+    // 【在不在等,问 receipt_price_open】—— authenticated 调得到、只吐一个编号(收货编号 · price #n)。
+    // 申请表自己的读策略要 inbound.view + 采购码;一个不持采购码的人读它是 0 行,而"读不到"
+    // 不许被当成"没有申请"(那会让被冻住的控件看起来按得动)。编号之外的内容只给看得见采购价的人。
+    const [openRes, canWithdrawPrice] = await Promise.all([
+        supabase.rpc('receipt_price_open', { p_inbound_batch_id: id }),
+        can('action.price_receipts'),
+    ])
+    const openRequestLabel = mustOne(openRes as never, 'receipt_price_open') as string | null
+    // 认证读不出来(error)时【不】猜"是不是提单人本人" —— 撤回钮退回只问 action.price_receipts,
+    // 库那一侧照样按人判(self_leg)。这里只用它画一个按钮能不能按,不用它下任何结论。
+    const { data: meData, error: meErr } = await supabase.auth.getUser()
+    const myUserId = meErr ? null : (meData.user?.id ?? null)
+    type RawPriceRequest = {
+        id: string; label: string; source: ReceiptPriceRequestView['source']; status: ReceiptPriceRequestView['status']
+        unit_price_ccy: number; currency: string; old_unit_price: number | null; amount_base: number
+        notes: string | null; decision_notes: string | null; withdraw_reason: string | null
+        created_at: string; created_by: string; assay_result_id: string | null
+        assay: { code: string } | null
+    }
+    let priceRequests: (ReceiptPriceRequestView & { assayId: string | null })[] = []
+    if (showPurchasePrices) {
+        const reqRes = await supabase
+            .from('receipt_price_requests')
+            .select('id, label, source, status, unit_price_ccy, currency, old_unit_price, amount_base, notes, ' +
+                    'decision_notes, withdraw_reason, created_at, created_by, assay_result_id, ' +
+                    'assay:assay_results!receipt_price_requests_assay_result_id_fkey ( code )')
+            .eq('inbound_batch_id', id)
+            .order('created_at', { ascending: false })
+        priceRequests = (mustRows(reqRes) as unknown as RawPriceRequest[]).map((r) => ({
+            id: r.id, label: r.label, source: r.source, status: r.status,
+            unitPriceCcy: Number(r.unit_price_ccy), currency: r.currency,
+            oldUnitPrice: r.old_unit_price === null ? null : Number(r.old_unit_price),
+            amountBase: Number(r.amount_base), notes: r.notes, decisionNotes: r.decision_notes,
+            withdrawReason: r.withdraw_reason, assayCode: r.assay?.code ?? null,
+            createdText: formatAuditStamp(r.created_at), raisedByMe: r.created_by === myUserId,
+            assayId: r.assay_result_id,
+        }))
+    }
+    const openPriceRequest = priceRequests.find((r) => r.status === 'submitted') ?? null
+    const priceRequestHistory = priceRequests.filter((r) => r.status !== 'submitted')
+    // Tim 的 Q8:最近一张申请来自一份【仍是最近一次应用】的化验、而它被驳回了 → 说出来
+    const latestAppliedAssay = [...assayRows]
+        .filter((a) => a.applied_at)
+        .sort((a, b) => String(b.applied_at).localeCompare(String(a.applied_at)))[0] ?? null
+    const latestRequest = priceRequests[0] ?? null
+    const rejectedAssayCode =
+        latestRequest && latestRequest.source === 'assay' && latestRequest.status === 'rejected'
+        && latestAppliedAssay && latestRequest.assayId === latestAppliedAssay.id
+            ? latestAppliedAssay.code
+            : null
+    const priceLockedReason = openRequestLabel
+        ? t('inbound.priceRequest.lockedHint', { label: openRequestLabel })
+        : undefined
+
     const priceHistoryRows: PriceHistoryRow[] = maskedRows<
         Tables<'price_history'>,
         'old_unit_price' | 'new_unit_price' | 'original_price' | 'fx_rate'
@@ -721,6 +777,7 @@ export default async function EditInboundPage({
             ) : null}
 
             <EditInboundForm
+                supplierLockedReason={priceLockedReason}
                 batch={batch}
                 materials={mustRows(materialsRes) as unknown as { id: string; code: string; name: string }[]}
                 suppliers={mustRows(suppliersRes) as unknown as { id: string; code: string; legal_name: string }[]}
@@ -733,6 +790,7 @@ export default async function EditInboundPage({
                 deleteAction={deleteInboundMetal.bind(null, id)}
                 priceHref={priceBatchHref(batch.quantity, metalRows)}
                 note={t('assay.metalsFromAssay')}
+                lockedReason={priceLockedReason}
             />
 
             {/* 化验(cut 5b):含量从哪来 → 化验 → 价格往哪去,顺序读下来是一条线 */}
@@ -755,6 +813,19 @@ export default async function EditInboundPage({
             />
 
             <PricingPanel
+                openRequestLabel={openRequestLabel}
+                requestPanel={
+                    <ReceiptPriceRequestPanel
+                        batchId={batch.id}
+                        subject={batch.code}
+                        open={openPriceRequest}
+                        history={priceRequestHistory}
+                        canDecide={showPurchasePrices}
+                        canWithdraw={canWithdrawPrice}
+                        rejectedAssayCode={rejectedAssayCode}
+                        baseCurrency={baseCurrency}
+                    />
+                }
                 baseCurrency={baseCurrency}
                         canViewPrices={showPurchasePrices}
                         pricingGate={pricingGate}

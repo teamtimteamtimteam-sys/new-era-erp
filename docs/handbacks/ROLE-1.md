@@ -956,7 +956,8 @@ admin@, tim@ · MC-2026-0001 (pay) → admin@, chooer@ · ST-2026-0082…0086 �
 ## §5 · The broken window — started, end PENDING
 
 **Start: 2026-09-25 01:58:16 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line
-reads 01:57:30). **End: PENDING — Tim reads it from Vercel.**
+reads 01:57:30). ~~**End: PENDING — Tim reads it from Vercel.**~~ **Closed with bounds in § Batch 4b §W:** end between 02:22:56
+(measured, the push) and 07:37:43 (derived, first live read after Tim's confirmation) — **24 min 40 s to 5 h 39 min 27 s.**
 
 What the old app does against the new database (approvals ON):
 - **Only Choo Er (and admin@) can price a receipt.** The old pricing panel and desk form show their price inputs to everyone:
@@ -974,3 +975,228 @@ What the old app does against the new database (approvals ON):
 Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
 (a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
 **Next cut: ROLE-1 Batch 4b — receipt-pricing approval** (`docs/forward-queue.md` item 6); then ROLE-1 Batch 3.
+
+# Batch 4b — a receipt price reaches the ledger only when the CFO approves it (2026-09-25)
+
+**Opening gate:** tree clean; `HEAD` = `origin/main` = `ls-remote` = `273297d410cfab0459029cebf88106845c051b12`
+(ROLE-1 Batch 4a). **Approvals were ON and stayed ON.** Every figure below is a script's own exit line or a query named with its
+identity. The matrix lines are `docs/role-matrix.md` §8 (receipt pricing · assay application); the approvals effects are
+`docs/approvals.md` §3n.
+
+## §W · Batch 4a's broken window — closed with bounds, labelled by kind
+
+Tim confirmed the Batch 4a deploy on 2026-09-25, before this session began, and has no tighter Vercel reading to add.
+
+| | time (CST) | kind |
+|---|---|---|
+| start | 2026-09-25 01:58:16 | `db/apply_migration.sh`'s own line (`db/migration-windows.tsv`) |
+| end, lower bound | 02:22:56 | **measured**: the push moved `origin/main` → `273297d4` (`git reflog show --date=iso refs/remotes/origin/main`) — no deploy can precede it |
+| end, upper bound | 07:37:43 | **derived**: this session's first live read, database clock `now()` as `postgres`, taken after Tim's "deployed" confirmation had arrived — **a relayed confirmation, not a measurement of Vercel** |
+
+**Window: at least 24 min 40 s, at most 5 h 39 min 27 s.** The upper bound is wide because this session began hours after the
+deploy; it is a bound, not a measurement. Also written into § Batch 4a §5 above.
+
+## §0 · Step 0 (grilling) and Tim's answers
+
+The shape was ruled at the Batch 4 grilling (Q2–Q8, above); the Batch 4b grilling asked only what those rulings left open.
+**What grilling found** (read as `postgres`, `rolbypassrls = t`, base tables, `relkind = 'r'` checked, 07:37–07:42 CST; code from
+the mirrors):
+1. **admin@ and tim@ are one person** (`account_person()` → `4737faa9…` for both), and tim@ is level 2's only real holder. admin@
+   holds `action.price_receipts` and `action.apply_assay`, so a request it raised could never be decided — and, through
+   `blocks_disable`, would keep approvals from being switched off. Nothing refused it at submit (`APPROVALS_CHAIN_HAS_NO_APPROVER`,
+   the only decider refusal in `db/functions`, guards only the switch). Payroll requests have the same gap.
+2. **The Q8 gate was written two ways** (the brief: `{data.view_purchase_prices}`; ROLE-1.md Q8: `module.inbound.view +
+   data.view_purchase_prices`).
+3. **"final" is the receipt's `pricing_status`**, promoted by `apply_assay_result` when the applied assay `is_final`; both
+   `pricing_status` and `assay_results.is_final` were directly writable by any `module.inbound.edit` holder.
+4. **Hand-entered metal content** lives in `inbound_batch_metals` (RLS write on `inbound.edit`; the only guard refused source
+   `assay`); `committed_terms_price()` reads it live. Nothing froze supplier / PO / PO line either.
+5. **The engine takes the rate on the day it runs** and refuses a supplied one — so |Δ| at submit is an estimate, and the posting
+   uses the approval day's rate.
+6. **Nothing writes `'unpriced'`**; the six unpriced live receipts read `provisional`, and the `batch_unpriced` reminder can never fire.
+7. **Unapplying an assay leaves `pricing_status = 'final'`** (consistent with Q3's "leaves an approved price alone").
+8. The 0.01 list-vs-ledger rounding gap on a repricing already existed; no UI gate on the edit form, metal panel or delete button.
+
+**Live readings at Step 0:** 15 live receipts — 2 `final` (IN-2026-0156, 0181), 13 `provisional` of which 6 unpriced; 9 soft-deleted;
+`price_history` 14 (last 2026-08-31); `purchase` entries 10; 4 inbound assays, all applied and `is_final`, 0 waiting; 0 output assays;
+only IN-2026-0029 has payments (30,000.00 of 48,000.00); 0 payment requests, 0 payroll requests. **Nothing could be stranded.**
+
+**Tim accepted all twelve recommendations (2026-09-25):**
+
+| Q | ruling |
+|---|---|
+| Q1 | refuse at submit (and at the submit inside assay application) `RECEIPT_PRICE_NO_OTHER_DECIDER` when `approval_deciders` at level 2 minus the raiser's person is empty; no refusal when approvals are off; register the payroll gap |
+| Q2 | gate `module.inbound.view + data.view_purchase_prices` |
+| Q3 | `pricing_status` through functions only; `final` set only in the approve function; register the direct `is_final` edit for Batch 3 |
+| Q4 | each log row at its own day's rate; below-settled judged at each day's rate; the fingerprint leaves the rate out |
+| Q5 | a superseding assay withdraws the waiting assay request (logged) and raises its own, same transaction |
+| Q6 | sources `manual` · `committed_terms` · `desk` · `assay`; every source except `assay` blocks applying an assay |
+| Q7 | the raiser's person or any holder of `action.price_receipts` may withdraw; unapplying also withdraws an assay request |
+| Q8 | rejecting an assay's request leaves the assay applied, the price unchanged; the page says "assay applied, its price was rejected" |
+| Q9 | register the never-written `unpriced` and the dead reminder |
+| Q10 | the reminder uses `data.view_purchase_prices` |
+| Q11 | `receipt_price_requests`; statuses submitted / approved / rejected / withdrawn; label `IN-… · price #n`; no `code` column; one open per receipt; helpers revoked |
+| Q12 | settled = posted allocations + prepayment applications; waiting payment requests not counted |
+| standing | every new code also to admin — **this cut adds no permission code**, so there is nothing to grant |
+
+**One build decision, stated for Tim:** "logged" for a system withdrawal (Q3 unapply, Q5 supersede) is written **on the request row**
+(`withdrawn_at`, `withdrawn_by`, `withdraw_reason` naming the assay and why), not in `approval_log` — a withdrawal is not a decision
+(the payment- and payroll-request rule), and `approval_log`'s decision CHECK has no `withdrawn`.
+
+## §1 · What 4b shipped
+
+**Migration** `db/migrations/2026-09-25-role1b4b-receipt-pricing-waits-for-the-cfo.sql`, assembled from the mirrors by
+`db/scripts/build_role1b4b_migration.py`. One transaction. Its self-proof asserts, in the same transaction: grants unchanged (no code
+added or removed); approvals still ON; pending documents unchanged; `approval_log`, `journal_entries`, `price_history`, receipts
+(priced / all / final), metal rows and applied assays unchanged; `receipt_price_requests` empty; both guard triggers present; the new
+chain has exactly one row (level 2) and a real decider on live (1 — tim@); every pending document still has a decider who is not
+its own party.
+
+| piece | what |
+|---|---|
+| `receipt_price_requests` (new table) | source `manual` / `committed_terms` / `desk` / `assay`; `submitted → approved` (posted at once), `rejected` (reason), `withdrawn` (reason on the row); frozen `unit_price_ccy` + `currency` + `snapshot`; `amount_base` = \|Δ payable\| (submit-day estimate, rewritten to the posted amount at approval); label `IN-… · price #n`; one open per receipt (unique index); read on `module.inbound.view` + `data.view_purchase_prices`; **no write policy** |
+| `receipt_price_submit_internal` | the one submit path: open-request refusal, `RECEIPT_PRICE_NO_OTHER_DECIDER` (approvals on), dry run, `RECEIPT_PRICE_BELOW_SETTLED`, log `submitted` — or, approvals off, post at once + `auto_approved` |
+| `decide_receipt_price_request` | gate `module.inbound.view` + `data.view_purchase_prices`; `forbid_self_approval(created_by, NULL, …)`; `require_approver_for(2)`; reject needs a reason; approve re-checks the fingerprint, dry-runs, re-checks below-settled at today's rate, **posts**, logs `approved` with the posted \|Δ\| |
+| `withdraw_receipt_price_request` | the raiser's person (`self_leg`) or `action.price_receipts` |
+| `receipt_price_post_internal` · `receipt_price_request_dry_run` · `receipt_price_withdraw_internal` · `receipt_price_fingerprint` · `receipt_settled_base` | helpers; EXECUTE revoked from `authenticated` |
+| `receipt_price_open` | the label of the waiting request; DEFINER, callable (two INVOKER guards ask it); in both DEFINER allowlists |
+| doors | `set_inbound_unit_price` and `reprice_from_committed_terms` submit; `create_inbound_batch` creates unpriced + submits (`desk`); `apply_assay_result` applies in full, refuses under a non-assay request, supersedes a waiting assay request, submits (`assay`), no longer sets `pricing_status`; `unapply_assay_result` withdraws its assay's request; `soft_delete_inbound_batch` refuses while one waits |
+| guards | `guard_inbound_batch_price_request` (supplier / PO / PO line / soft delete → `RECEIPT_PRICE_REQUEST_OPEN`; direct `pricing_status` → `PRICING_STATUS_VIA_FUNCTION`) · `guard_inbound_batch_metals_price_request` (any write while one waits) |
+| engine | `approval_chain_gates` row · `approval_pending_documents` arm · `approval_log` CHECK + read branch · `record_approval_decision` branch · `operations_now` arm `receipt_price_request_pending` |
+| unchanged | the engine `reprice_inbound_batch`; every grant; the switch and policy |
+
+**Screens (en + zh):**
+- Receipt page: a request panel inside the pricing section — the waiting request (price asked, current price, estimated change),
+  Approve and post / Reject (reason) gated on `data.view_purchase_prices`, Withdraw gated on `action.price_receipts` (or the
+  raiser's own account); earlier requests listed; "assay applied, its price was rejected" when the latest request came from the
+  still-latest assay and was rejected. While one waits, the price form and "Reprice from content", the supplier field, the metal
+  content panel stay visible, disabled, with the reason (the request label). The price button reads **Submit for CFO approval**.
+- Inbound list: a "Waiting for the CFO" badge; Delete visible, disabled, with the reason.
+- Desk form: the price hint now says the price is submitted to the CFO and the receipt is created unpriced until then.
+- Assay detail: a line under Apply ("raises a price request for the CFO"), and the assay's request label and status once applied;
+  the applied-price block recognises the new price-history note.
+- Dashboard reminder `receipt_price_request_pending` → the receipt page; approvals log subject label "Receipt pricing".
+- Refusal copy: every new code in the pricing, assay and deletion translators.
+
+**Fixtures:** new **220** (arms A–N, one fault injection: disable the metal-content guard and the manual write goes through).
+**Updated because a new chain needs a level-2 holder of its gate (no assertion changed):** 35 · 127 · 151 · 202 · 203 · 204 · 205 ·
+206 · 210 · 211 · 218 (the PAYROLL-APR-1 eleven); 205's own-document-gap count 5 → 6; 111 lists the 38th reminder arm.
+`docs/dashboard-arm-inventory.md` has the new arm's rows.
+
+**Known issues:** closed ROLE1B4A-REPRICE-BELOW-SETTLED; updated ROLE1B4A-RECEIPT-SUPPLIER-CHANGE-AFTER-PRICING (frozen while a request
+waits); registered ROLE1B4B-PAYROLL-RAISER-NO-DECIDER · ROLE1B4B-ASSAY-IS-FINAL-DIRECT-EDIT (Batch 3) · ROLE1B4B-UNPRICED-NEVER-WRITTEN.
+
+## §2 · Verification — every figure is the script's own exit line
+
+| step | result |
+|---|---|
+| `db/gate.py --offline` (detached), runs 1–3 | run 1 **`GATEOFF_EXIT=4`**: 13 fixtures red — 11 × `APPROVALS_CHAIN_HAS_NO_APPROVER\|decide_receipt_price_request` (level-2 roles lacked `module.inbound.view`), 111 (37 → 38 arms), 220 (`journal_lines.entry_id`, a column-name slip in the fixture). Run 2 **`GATEOFF_EXIT=4`**: 205 (own-document gaps 5 → 6). Run 3 **`GATEOFF_EXIT=0`** |
+| dry run on live (`COMMIT` → probe `SELECT` + `ROLLBACK`) | **`DRY_OWN_EXIT=0`**; self-proof notices printed; 1 decider for the new chain; every pending document with a decider |
+| rehearsal: migration + zzz grants + live proof, one transaction, `ROLLBACK` | run 1 **`REHEARSE_OWN_EXIT=0`**, but cell X1 printed NULLs — the check was not NULL-safe, and no assay request was raised (IN-2026-0181's 30-day average had no quotes: price −0.80 USD/kg ≤ 0). Proof fixed (NULL-safe checks; today's USD rate and ni/co/li quotes inserted inside the transaction). Run 2 **`REHEARSE_OWN_EXIT=0`**, 25 of 25 |
+| `db/gate.py --offline`, run 4 (after the screens) | **`GATEOFF_EXIT=0`**, 50 s |
+| backup (`db/run_detached.sh`, token BACKUP) | **`BACKUP_EXIT=0`** — `evoltrya-backup-2026-09-25-0923.dump`, 4.7 MB, TOC 6,187 (previous 6,186, floor 5,567); `pg_restore --list` 6,202 lines |
+| `db/apply_migration.sh` | **`APPLY_OWN_EXIT=0`**. Pre-flight: 21 CREATE FUNCTION (9 replace · 12 new), no account codes, no masked columns. **Window start 2026-09-25 09:34:00 CST** (the "applied at" line reads 09:33:21) |
+| `NOTIFY pgrst, 'reload schema'` · `npm run types:gen` | `TYPES_OWN_EXIT=0` (+228 lines) |
+| `npx tsc --noEmit` | `TSC_OWN_EXIT=0` |
+| `npm run build` | run 1 **`BUILD_OWN_EXIT=1`**: `check-auth-error-swallowing` — the receipt page read `auth.getUser()` inside a `Promise.all` without binding its `error`; run 2 **`BUILD_OWN_EXIT=1`**, same check (reading `.error` off the `Promise.all` result is not a form it recognises); moved the call out and destructured `error` (an unreadable session falls back to the permission for Withdraw) → run 3 **`BUILD_OWN_EXIT=0`**, `TSC_OWN_EXIT=0` |
+| `db/gate.py` full (detached) | **`GATE_EXIT=0`**, 428 s: rebuildable ✓ · mirrors vs live ✓ (`NO DIFFERENCES`) · fixtures ✓ (**223 passed, 0 failed**, 220 included) · anon surface ✓ (live ⊆ baseline, 327); B2 allowlist 10 (adds `receipt_price_open`), 0 unchecked callable definers |
+| `node scripts/check-i18n.mjs` | `I18N_OWN_EXIT=0` (two new enumerable prefixes read `receipt_price_requests`' CHECKs) |
+| `node scripts/check-error-swallowing.mjs` | `SWALLOW_OWN_EXIT=0` — 0 unallowed |
+| smoke (`db/run_detached.sh`, token SMOKE, `--timeout 2400`) | **`SMOKE_EXIT=0`**: 235 routes + probes, **253 ok · 7 skipped (no data) · 0 FAILED**; 228 timed routes, 509.2 s, median 2,053 ms. **Clean-up, read at 09:56:16 as `postgres` from base tables:** `smoke-%` users **0** · `probe-%` / `fixture-%` / `fx%` roles **0** · orphan grants (no user / no role) **0 / 0** · `ZZ-SMOKE-%` employees **0** · `idle in transaction` **0** · `receipt_price_requests` **0**; `.ephemeral/` empty; no smoke or `next dev` process left |
+
+## §3 · Live proof
+
+**Script:** `db/scripts/2026-09-25-role1b4b-live-proof.sql`. One transaction, `ROLLBACK`, run as `postgres` (`rolbypassrls = t`);
+each cell sets `request.jwt.claims` to a real account and runs under `SET LOCAL ROLE authenticated`.
+**Result: `PROOF_OWN_EXIT=0`, 25 of 25 cells**, started 09:56:28 CST (inside the window, after the smoke). Set-up inside the
+transaction, gone with it: a USD `tt_sell` rate for today and ni / co / li quotes for today (live has neither; without them the
+assay arm cannot price).
+
+| account | cell | result |
+|---|---|---|
+| chooer@ | price IN-2026-0153 @ 2 SGD | **submitted** (IN-2026-0153 · price #1) |
+| postgres · tim@ | while it waits | unit_price NULL · `journal_entries` 82 → 82 · 2000 unchanged · AP list 416,988.32 → 416,988.32 · ledger 376,404.42 → 376,404.42 (tim@, `list_ledger_reconciliation()`) |
+| tim@ | `operations_now` (view) | 1 `receipt_price_request_pending` row |
+| postgres | `approval_log` · `approval_deciders` | submitted, level 2, 1,360.00 SGD · deciders: **tim@ only** |
+| chooer@ · sandra@ · fusheng@ · chooer@ | second request · direct supplier change · manual metal content · soft delete | `RECEIPT_PRICE_REQUEST_OPEN\|IN-2026-0153\|IN-2026-0153 · price #1` ×4 |
+| chooer@ · admin@ · sandra@ · vince@ | approve | `SELF_APPROVAL_FORBIDDEN\|raiser` · `APPROVAL_NOT_AUTHORISED\|2\|cfo` ×3 |
+| tim@ | reject without a reason | `RECEIPT_PRICE_REQUEST_REJECT_REASON_REQUIRED` |
+| tim@ | approve after the frozen facts were changed (snapshot altered as postgres) | `RECEIPT_PRICE_CHANGED_SINCE_REQUEST`; `journal_entries` still 82 |
+| tim@ | ★ **approve** | approved, **JE-2026-0080**, unit_price 2.0000 |
+| postgres | balances (debit − credit) | 2000 −376,404.42 → **−377,764.42** · 1200 61,387.92 → 61,387.92 · 5000 809.14 → **2,169.14** (remaining 0, so the whole Δ is the consumed share) |
+| tim@ | list vs ledger | AP list 416,988.32 → **418,348.32 (+1,360.00)** · ledger 376,404.42 → **377,764.42 (+1,360.00)** · unexplained **AP 0.00 · AR 0.00** |
+| postgres | `approval_log` | approved, level 2, 1,360.00, `self_decided = false` |
+| chooer@ | IN-2026-0029 @ 7 SGD | `RECEIPT_PRICE_BELOW_SETTLED\|IN-2026-0029\|28000.00\|30000.00` |
+| admin@ | price IN-2026-0179 | `RECEIPT_PRICE_NO_OTHER_DECIDER\|IN-2026-0179` (tim@ is the same person) |
+| sandra@ | direct `pricing_status` write | `PRICING_STATUS_VIA_FUNCTION\|IN-2026-0179` |
+| phua@ | record + apply a new assay on IN-2026-0181 | content applied; **IN-2026-0181 · price #1 submitted @ 6.06 USD/kg**, raised by phua@; nothing posted; unit_price still 8.1152 |
+| phua@ | unapply it | request **withdrawn**, reason "Assay ASY-2026-0005 unapplied: ROLE1B4B live proof" |
+
+JE-2026-0080 and ASY-2026-0005 existed only inside the rolled-back transaction. **What this proof is and is not:** one full lifecycle
+(submit → CFO approves → posted) plus refusals and read-backs as the real accounts, inside a transaction that was rolled back. No
+human walk has happened (the standing ruling: the whole chain is walked once after APR-6).
+
+### Before / after
+
+**Script:** `db/scripts/2026-09-25-role1b4b-readings.sql`, which states the identity for every part.
+**Timing:** before at 09:32:57 CST (after the backup, before the migration); after at 09:56:34 CST (after the migration, the smoke
+and the proof's ROLLBACK). **`diff` of the two outputs: only the read time, `receipt_price_requests` appearing (relkind `r`), and its
+two counts going from "absent" to 0 / 0.**
+
+| reading | identity · object | before | after |
+|---|---|---:|---:|
+| `approvals_enabled` / l1 / l2 / threshold | postgres · base `finance_settings` | t / finance / cfo / 1000 | **t / finance / cfo / 1000** |
+| pending: claims submitted · leave · medical submitted · medical approved-unpaid · reviews · work orders · stocktakes · POs · payment requests · payroll requests | postgres · base | 1 · 2 · 0 · 1 · 0 · 0 · 5 · 0 · 0 · 0 | **the same** |
+| `receipt_price_requests` rows / pending | postgres · base | (table absent) | **0 / 0** — nothing pending on live |
+| `approval_log` · `journal_entries` · payroll entries | postgres · base | 14 · 82 · 4 | **14 · 82 · 4** |
+| account 1100 · 1200 · 2000 · 2200 · 2300 · 2400 · 5000 (debit − credit) | postgres · base `journal_lines` | 43,002.12 · 61,387.92 · −376,404.42 · −1,597.47 · 4,677.00 · 156.00 · 809.14 | **the same** |
+| `price_history` · priced / all receipts · `purchase` entries | postgres · base | 14 · 12 / 24 · 10 | **the same** |
+| live receipts by `pricing_status` (priced) · applied assays · metal rows | postgres · base | final 2 (2) · provisional 13 (7) · 4 · 19 | **the same** |
+| codes per role (n): admin · auditor · cco · cfo · cto · employee · finance · gm · hr · operations · procurement · sales · warehouse | postgres · base `role_permissions` | 54 · 20 · 37 · 30 · 32 · 0 · 36 · 21 · 7 · 15 · 16 · 17 · 15 | **the same, md5 identical** |
+| unrevoked grants | postgres · base `user_roles` | admin@ admin · chooer@ finance · fusheng@ warehouse · phua@ cto · sandra@ cco · tim@ cfo · vince@ gm | **the same** |
+| `ap_open_items` n · Σ | tim@ · **view** | 16 · 416,988.32 | **16 · 416,988.32** |
+| `ar_open_items` n · Σ | tim@ · **view** | 10 · 57,545.87 | **10 · 57,545.87** |
+| list-vs-ledger AP: list / ledger / **unexplained** | tim@ · `list_ledger_reconciliation()` | 416,988.32 / 376,404.42 / **0.00** | 416,988.32 / 376,404.42 / **0.00** |
+| list-vs-ledger AR: list / ledger / **unexplained** | tim@ · same | 57,545.87 / 43,002.12 / **0.00** | 57,545.87 / 43,002.12 / **0.00** |
+| `current_user_permissions()`: admin@ · chooer@ · fusheng@ · phua@ · sandra@ · tim@ · vince@ | each account as itself | 54 · 36 · 15 · 32 · 37 · 30 · 21 | **the same, md5 identical** |
+
+**Pending documents and their deciders** (the migration's own proof, by person): CLM-2026-0004 → tim@ · LV-2026-0001 / 0003 →
+admin@, tim@ · MC-2026-0001 (pay) → admin@, chooer@ · ST-2026-0082…0086 → chooer@, fusheng@, phua@, sandra@.
+**No pending document is left without a decider, and nothing is pending on live.**
+
+## §4 · What each person gains and loses (approvals on)
+
+- **Choo Er (finance):** the pricing panel, "Reprice from content" and the desk-form price now **submit a request**; the price reaches
+  the ledger only when Tim approves. She can withdraw any waiting request; she can never approve one. While one waits on a receipt,
+  she cannot change its price, supplier, metal content, or delete it.
+- **Phua (cto):** applying an assay still updates content at once, but the price becomes a request waiting for Tim (raised by him);
+  unapplying withdraws it; he can withdraw his own. Applying under a Finance request is refused.
+- **Tim as tim@ (cfo):** gains the dashboard reminder and Approve and post / Reject on the receipt page — the only person who can
+  decide a receipt price. **Tim as admin@:** cannot raise a receipt price or apply a priced assay while approvals are on
+  (`RECEIPT_PRICE_NO_OTHER_DECIDER` — the same person as the only decider).
+- **Sandra (cco) · Fu Sheng (warehouse):** nothing new to do; while a request waits on a receipt they cannot change its supplier or
+  metal content, or delete it. Both see the waiting request (they hold the purchase code).
+- **Vince (gm):** sees the waiting request and the reminder; cannot decide.
+
+## §5 · The broken window — started, end PENDING
+
+**Start: 2026-09-25 09:34:00 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line
+reads 09:33:21). **End: PENDING — Tim reads it from Vercel.**
+
+What the old app does against the new database (approvals ON):
+- **Choo Er's old pricing panel and desk form silently file a request** where she expects a posting: the old screen says the price
+  was saved, reloads, and the receipt still shows no new price and the old page has no request panel to show why. Nothing is posted;
+  the request waits for Tim. The same for "Reprice from content".
+- **Phua's assay application stops posting:** content applies, a request waits; the old assay page shows no price change.
+- **Nobody can approve from a screen:** the old app has no request panel — Tim can only decide once the new app is live. Requests
+  raised in the window stay pending (not stranded: tim@ is their decider) and block switching approvals off until decided.
+- Freeze refusals (supplier, metal content, delete, second price) arrive in the old copy as the raw code inside the generic
+  save-error sentence; `PRICING_STATUS_VIA_FUNCTION` likewise.
+- **Unaffected:** every other approval chain, every payment path, every other screen (the smoke above ran the new code against the
+  new database).
+
+## §6 · Commit, push, three SHAs
+
+Reported in the hand-back message: `HEAD`, `origin/main` and `git ls-remote origin main` as full 40-character SHAs
+(a commit cannot carry its own hash). Deployment is Tim's to read; the window's end stays PENDING until he does.
+**Next cut: ROLE-1 Batch 3** (`docs/forward-queue.md` item 7).

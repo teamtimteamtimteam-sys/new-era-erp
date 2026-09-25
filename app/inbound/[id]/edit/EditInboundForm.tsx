@@ -31,10 +31,13 @@ export default function EditInboundForm({
     batch,
     materials,
     suppliers,
+    supplierLockedReason,
 }: {
     batch: Batch
     materials: MaterialOption[]
     suppliers: SupplierOption[]
+    /** ROLE-1 Batch 4b:挂着一张在等 CFO 的定价申请时,供应商按不动并说出为什么(库里同样按名拒)。 */
+    supplierLockedReason?: string
 }) {
     const t = useTranslations()
     const updateWithId = updateInbound.bind(null, batch.id)
@@ -101,6 +104,7 @@ export default function EditInboundForm({
                             name="supplier_id"
                             required
                             defaultValue={batch.supplier_id}
+                            disabled={!!supplierLockedReason}
                             className={`${CONTROL_SELECT} w-full`}
                         >
                             <option value="" disabled>{t('inbound.form.selectSupplier')}</option>
@@ -110,6 +114,15 @@ export default function EditInboundForm({
                                 </option>
                             ))}
                         </select>
+                    )}
+                    {/* ROLE-1 Batch 4b:按不动的下拉不随表单提交 —— 原值由隐藏字段带回去(不变就不撞守卫) */}
+                    {supplierLockedReason && (
+                        <>
+                            <input type="hidden" name="supplier_id" value={batch.supplier_id} />
+                            <p className="text-xs text-[color:var(--brand-muted-text)] mt-1" data-state-note="supplier-locked">
+                                {supplierLockedReason}
+                            </p>
+                        </>
                     )}
                     {state.fieldErrors?.supplier_id && (
                         <p className="text-red-600 text-xs mt-1">

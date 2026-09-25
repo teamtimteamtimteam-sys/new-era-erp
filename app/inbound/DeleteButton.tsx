@@ -19,7 +19,9 @@ import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { softDeleteInbound } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 
-export default function DeleteButton({ id, code }: { id: string; code: string }) {
+// ★ ROLE-1 Batch 4b:挂着一张在等 CFO 的定价申请时,注销看得见、按不动、说出为什么
+//   (库里 soft_delete_inbound_batch 与守卫同样按名拒 RECEIPT_PRICE_REQUEST_OPEN)。
+export default function DeleteButton({ id, code, lockedReason }: { id: string; code: string; lockedReason?: string }) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState('')
@@ -35,7 +37,7 @@ export default function DeleteButton({ id, code }: { id: string; code: string })
                 reason={{ placeholder: t('inbound.deleteReasonPlaceholder') }}
                 triggerVariant="destructive"
                 triggerSize="inline"
-                disabled={isPending}
+                disabled={isPending || !!lockedReason}
                 onConfirm={(reason) => {
                     setError('')
                     startTransition(async () => {
@@ -47,6 +49,7 @@ export default function DeleteButton({ id, code }: { id: string; code: string })
             >
                 {isPending ? t('common.deleting') : t('common.delete')}
             </ConfirmButton>
+            {lockedReason && <span className="mt-1 text-xs text-[color:var(--brand-muted-text)] max-w-56" data-state-note="delete-locked">{lockedReason}</span>}
             {error && <span className="mt-1 text-xs text-destructive-text">{error}</span>}
         </span>
     )

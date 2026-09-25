@@ -1377,6 +1377,65 @@ adds the receipt-pricing chain.
 * **No switch, policy, chain or pending document was touched.** Before and after, as `postgres` from base tables:
   `approvals_enabled` t; every pending document unchanged and each still has a decider who is not its own party.
 * **Between 4a and 4b, receipts are priced by finance in one step, without approval** — the matrix's usual [LC] interim.
+  ☞ Closed by §3n (Batch 4b, 2026-09-25).
+
+## 3n · ROLE-1 Batch 4b (2026-09-25) — a receipt price reaches the ledger only when the CFO approves it
+
+The cut is `docs/handbacks/ROLE-1.md` § Batch 4b; this section records only what changes **for approvals**. The shape was ruled at
+the Batch 4 grilling (Q2–Q8); Tim accepted all twelve Batch 4b grilling recommendations (Q1–Q12).
+
+### The lifecycle
+`submitted → approved`, plus `rejected` (reason required) and `withdrawn`, on a new table `receipt_price_requests`.
+**There is no `executed`: the CFO's approval posts at once** (Q2 (A)) — the engine `reprice_inbound_batch` runs inside
+`decide_receipt_price_request`, dated the approval day at that day's `tt_sell`.
+* **Four raising doors**, each asking its own code first: the pricing panel (`set_inbound_unit_price`, source `manual`), repricing
+  from committed terms (`reprice_from_committed_terms`, `committed_terms`) and the desk form (`create_inbound_batch` with a price,
+  `desk`) — all `action.price_receipts` + `data.view_purchase_prices`; applying an assay (`apply_assay_result`, `assay`,
+  `action.apply_assay`), which still applies content, supersede chain and `applied_at` in full and raises the request in the same
+  transaction, **raised by the person who applied it**. One open request per receipt.
+* **Frozen:** the price in its original currency (`unit_price_ccy` + `currency`) and a fingerprint (`receipt_price_fingerprint`:
+  quantity, supplier, PO, PO line, unit price, metal content, committed terms, latest applied assay). The rate is **not** in it (Q4).
+* **Approve:** the CFO, every one, no threshold. `require_approver_for(2)` directly. Gate `{module.inbound.view,
+  data.view_purchase_prices}` (4b Q2) — the receipt page's code plus the code that shows the price being approved (§5); **not**
+  `action.price_receipts`, which is the raiser's code.
+* **Submit and approve each dry-run the real posting** (`receipt_price_request_dry_run`, a sub-transaction that always rolls back),
+  and each refuses `RECEIPT_PRICE_BELOW_SETTLED` when quantity × the new base price is below posted allocations + prepayment
+  applications (Q6 · Q12), at **that day's** rate (Q4). Approve also re-checks the fingerprint (`RECEIPT_PRICE_CHANGED_SINCE_REQUEST`).
+* **Withdraw:** the raiser's person or any holder of `action.price_receipts` (Q7); unapplying an assay withdraws that assay's open
+  request, and a superseding assay withdraws the waiting assay request and raises its own (Q5) — each with the reason on the row.
+  A withdrawal writes no `approval_log` row: it is not a decision (the payment- and payroll-request rule).
+* **Approvals OFF:** born `approved`, posted at once, `auto_approved` row.
+* ★ **Nobody-but-the-raiser refuses at submit** (4b Q1): with approvals on, if `approval_deciders` at level 2 minus the raiser's
+  person is empty → `RECEIPT_PRICE_NO_OTHER_DECIDER`. On live today that is **admin@**: it is tim@'s other account (one person) and
+  tim@ is level 2's only real holder. Without this, an admin@ request would sit with no decider and, through `blocks_disable`, keep
+  approvals from being switched off. The same gap on payroll requests is registered, not fixed (`docs/known-issues.md` §
+  ROLE1B4B-PAYROLL-RAISER-NO-DECIDER).
+
+### How it registers in the engine (Q8)
+| piece | what was added |
+|---|---|
+| `approval_chain_gates()` | **one** row: `receipt_price_request / decide_receipt_price_request / level 2 / {module.inbound.view, data.view_purchase_prices}` |
+| `approval_pending_documents()` | an arm for `status = 'submitted'`: `blocks_disable = true`, `fixed_level = 2`, subject `NULL`, amount = \|Δ payable\| in base currency |
+| `approval_log` | subject type `receipt_price_request` (CHECK); `record_approval_decision` branch (raiser `created_by`, subject `NULL`, amount = \|Δ payable\| in base, currency = base, rate 1 — the `submitted` row at the submit day's rate, the `approved` row at the approval day's = what was posted); RLS read branch on `module.inbound.view` + `data.view_purchase_prices` |
+| `operations_now` / reminders | `receipt_price_request_pending` (`data.view_purchase_prices`, 4b Q10), linking to the receipt page |
+| `self_approval_exception` | **unchanged** |
+
+☞ **Consequence for fixtures:** every fixture that switches approvals on must give its level-2 role a holder of `module.inbound.view`
++ `data.view_purchase_prices`, or `APPROVALS_CHAIN_HAS_NO_APPROVER|decide_receipt_price_request` refuses the switch. Eleven were
+updated (the PAYROLL-APR-1 eleven); fixture 205's own-document-gap count went 5 → 6.
+
+### While a request waits, what it approves is frozen (Q5)
+Changing the receipt's supplier, PO or PO line, soft-deleting it (`guard_inbound_batch_price_request`), writing its metal content
+(`guard_inbound_batch_metals_price_request`, insert / update / delete), a second request, or applying an assay under a non-assay
+request → `RECEIPT_PRICE_REQUEST_OPEN`. Both guards ask `receipt_price_open` (DEFINER — an INVOKER read of the request table by a
+writer without the purchase code would see zero rows and let the write through). `pricing_status` is now written through functions
+only (`PRICING_STATUS_VIA_FUNCTION`); `final` is set only when the CFO approves an assay request whose assay `is_final` (4b Q3).
+
+### The list-vs-ledger check
+A waiting request moves neither side: the list reads `inbound_batches.unit_price`, the ledger reads account 2000, and a request
+stores only a proposed price. Approval moves both by the same `round(qty × Δ, 2)` — the rehearsal and the live proof measured
+AP list +1,360.00 and ledger +1,360.00, unexplained 0.00 on both sides. (A 0.01 rounding gap between `round(q×new)−round(q×old)` and
+`round(q×Δ)` remains possible, as it was before this cut.)
 
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 

@@ -307,8 +307,10 @@ BEGIN
     -- ═════════ C2 · 一级角色【没有真人持有】—— 那是一个永远不会有人来批的队列 ═════════
     -- ★ PAYROLL-APR-1(2026-09-24):工资过账申请这条链的门是 module.hr.view + data.view_pay(Tim 的 Q8)。
     --   二级角色不持这两个码,开审批就会按名拒 APPROVALS_CHAIN_HAS_NO_APPROVER|decide_payroll_request —— 本 fixture 测的不是它。
+    -- ★ ROLE-1 Batch 4b(2026-09-25):收货定价申请这条链的门是 module.inbound.view + data.view_purchase_prices
+    --   (Tim 的 Q2),同一个理由一并给上 —— 否则 …|decide_receipt_price_request。
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay']) c
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay', 'module.inbound.view', 'data.view_purchase_prices']) c
      WHERE r.code = 'fixture-127'
     ON CONFLICT (role_id, permission_code) DO NOTHING;
     v_denied := false;

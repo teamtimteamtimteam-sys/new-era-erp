@@ -65,7 +65,10 @@ CREATE TABLE public.approval_log (
                             'supplier',
                             -- PAYROLL-APR-1:工资过账与撤销的申请 —— CFO 批每一张。
                             -- 被批的是【申请】(payroll_requests),不是工资期本身。
-                            'payroll_request')),
+                            'payroll_request',
+                            -- ROLE-1 Batch 4b:收货定价申请 —— CFO 批每一张,批准当场过账。
+                            -- 被批的是【申请】(receipt_price_requests),不是收货本身。
+                            'receipt_price_request')),
     subject_id          uuid NOT NULL,
     -- 人读的编号,冻结在当时 —— 单据可以改名/作废,留痕不跟着变
     subject_code        text,
@@ -225,6 +228,10 @@ CREATE POLICY "approval_log select by permission"
             -- ★ PAYROLL-APR-1:工资申请那一支 —— 与 payroll_requests 自己的读策略同一个码。
             --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
             WHEN 'payroll_request'    THEN has_permission('module.hr.view'::text)
+            -- ★ ROLE-1 Batch 4b:收货定价申请那一支 —— 与 receipt_price_requests 自己的读策略同一对码。
+            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+            WHEN 'receipt_price_request' THEN has_permission('module.inbound.view'::text)
+                                          AND has_permission('data.view_purchase_prices'::text)
             ELSE false
         END
     );

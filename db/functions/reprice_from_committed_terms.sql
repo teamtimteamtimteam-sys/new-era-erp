@@ -5,10 +5,8 @@ CREATE OR REPLACE FUNCTION public.reprice_from_committed_terms(p_inbound_batch_i
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
-    v_user    uuid := auth.uid();
     v_batch   record;
     v_commit  uuid;
-    v_formula uuid;
     v_calc    jsonb;
     v_unit    numeric;
     v_rep     jsonb;
@@ -37,16 +35,11 @@ BEGIN
         RAISE EXCEPTION 'PRICE_NOT_POSITIVE|%', COALESCE(v_unit::text, '?');
     END IF;
 
-    v_rep := reprice_inbound_batch(v_batch.id, v_unit, 'USD', NULL,
-                                   'Repriced from committed terms');
-
-    -- 批次上记下这张公式,界面据此显示"这批货归哪张公式管"(结算仍只读副本)
-    SELECT c.source_formula_id INTO v_formula
-    FROM pricing_term_commitments c WHERE c.id = v_commit;
-    IF v_batch.pricing_formula_id IS NULL AND v_formula IS NOT NULL THEN
-        UPDATE inbound_batches SET pricing_formula_id = v_formula, updated_by = v_user
-        WHERE id = v_batch.id;
-    END IF;
+    -- ★ ROLE-1 Batch 4b(Tim 的 Q8):按已承诺条款改价从此【提一张申请】(来源 committed_terms),
+    --   CFO 批了才过账;批准那一刻按批准日的牌价过账,并在收货还没挂公式时记下承诺副本的来源公式
+    --   (receipt_price_post_internal —— 原来落账后紧接着做的那一步,挪到真正落账的那一刻)。
+    v_rep := receipt_price_submit_internal(v_batch.id, v_unit, 'USD', 'committed_terms', NULL, v_commit,
+                                           'Repriced from committed terms');
 
     RETURN jsonb_build_object(
         'inbound_batch_id', v_batch.id,
@@ -54,6 +47,9 @@ BEGIN
         'commitment_id', v_commit,
         'unit_price_usd_per_kg', v_unit,
         'calc', v_calc,
+        'request_id', v_rep->'request_id',
+        'label', v_rep->'label',
+        'status', v_rep->'status',
         'old_unit_price', v_rep->'old_unit_price',
         'new_unit_price', v_rep->'new_unit_price',
         'price_delta_usd', v_rep->'price_delta_usd',

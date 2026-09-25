@@ -2,6 +2,8 @@
 
 // 计价面板:当前 USD 单价(只读)+ 设价表单(价格/币种/汇率/备注)+ 价格历史。
 // 走 set_inbound_unit_price RPC —— 每次变更都有 price_history 审计行。
+// ★ ROLE-1 Batch 4b:设价表单从此【提一张申请】给 CFO(批准时才过账);有一张在等时,表单
+//   看得见、按不动、说出为什么(那张申请的编号),而那张申请本身由 requestPanel 摆出来。
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useEffect, useState } from 'react'
 import { setInboundPrice, type SetPriceState } from './pricingActions'
@@ -41,6 +43,8 @@ export default function PricingPanel({
     pricingGate,
     extraAction,
     baseCurrency,
+    requestPanel,
+    openRequestLabel,
 }: {
     batchId: string
     unitPrice: number | null
@@ -52,6 +56,10 @@ export default function PricingPanel({
     // cut 5b:批次有定价公式时,页面在这里塞进"按当前含量重新计价"
     extraAction?: React.ReactNode
     baseCurrency: string
+    /** ROLE-1 Batch 4b:在等 CFO 的那张申请与以往的申请(ReceiptPriceRequestPanel)。 */
+    requestPanel?: React.ReactNode
+    /** ROLE-1 Batch 4b:在等的那张申请的编号;有它时设价表单按不动(RECEIPT_PRICE_REQUEST_OPEN)。 */
+    openRequestLabel: string | null
 }) {
     const locale = useLocale()
     const t = useTranslations()
@@ -163,6 +171,22 @@ export default function PricingPanel({
                 )}
             </div>
 
+            {requestPanel}
+
+            {st.success && st.request && (
+                <div className="bg-green-50 border border-green-300 text-green-900 px-4 py-3 rounded mb-4 text-sm" data-state-note="price-request-raised">
+                    {st.request.status === 'submitted'
+                        ? t('inbound.priceRequest.submittedNotice', { label: st.request.label })
+                        : t('inbound.priceRequest.postedNotice', { label: st.request.label, journal: st.request.journalCode ?? '—' })}
+                </div>
+            )}
+
+            {openRequestLabel && (
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-2" data-state-note="price-request-open">
+                    {t('inbound.priceRequest.lockedHint', { label: openRequestLabel })}
+                </p>
+            )}
+            <fieldset disabled={!!openRequestLabel} className="contents">
             {extraAction}
 
             {st.error && (
@@ -215,10 +239,11 @@ export default function PricingPanel({
                     type="submit"
                     disabled={isPending}
                 >
-                    {isPending ? t('common.saving') : t('inbound.pricing.submit')}
+                    {isPending ? t('common.saving') : t('inbound.pricing.submitForApproval')}
                 </Button>
             </form>
             </PermissionGate>
+            </fieldset>
 
             <h3 className="mb-2">{t('inbound.pricing.historyTitle')}</h3>
             {/* TABLE-CONVERT-5:空态搬进了 DataTable 的 empty prop(同一个

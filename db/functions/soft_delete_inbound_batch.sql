@@ -23,6 +23,12 @@ BEGIN
         RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', COALESCE(p_batch_id::text, '?');
     END IF;
 
+    -- ★ ROLE-1 Batch 4b(Tim 的 Q5):挂着一张在等 CFO 的定价申请时不许注销 —— 先撤回或等它被决定。
+    --   guard_inbound_batch_price_request 在 UPDATE 上还有第二道。
+    IF receipt_price_open(p_batch_id) IS NOT NULL THEN
+        RAISE EXCEPTION 'RECEIPT_PRICE_REQUEST_OPEN|%|%', v_code, receipt_price_open(p_batch_id);
+    END IF;
+
     -- ════════════════════════════════════════════════════════════════════════
     -- AP-RECON-1(Tim AP-RECON-0 Q2):【还欠着供应商钱的已计价批次,不许注销】
     --   注销只写一条 writeoff 流水(借 5200 / 贷 1200)—— 存货拿走了,那笔计价分录记下的

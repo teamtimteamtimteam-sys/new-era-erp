@@ -63,6 +63,15 @@ BEGIN
             SELECT true, r.label, r.gross_total, r.currency, r.fx_rate, r.amount_base, r.created_by
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser
               FROM payroll_requests r WHERE r.id = p_subject_id;
+        -- ★ ROLE-1 Batch 4b:收货定价申请。提单人 = created_by;主角 = NULL(收货不是谁"自己的单据")。
+        --   金额 = |Δ 应付| 本位币(Tim 的 Q8),所以币种 = 本位币、汇率 = 1(medical_claim 同形)。
+        --   amount_base 是【最近一次估算】:submitted 那一行按提交日的牌价,approved 那一行按
+        --   批准日的牌价 = 实际过账额(Tim 的 Q4:每一行留痕按它自己那天的牌价)。
+        --   编号:申请没有自己的单据编号,记它的 label(收货编号 · price #n)。
+        WHEN 'receipt_price_request' THEN
+            SELECT true, r.label, r.amount_base, v_base_ccy, 1, r.amount_base, r.created_by
+              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser
+              FROM receipt_price_requests r WHERE r.id = p_subject_id;
         WHEN 'expense' THEN
             SELECT true, e.code, e.amount_ccy, e.currency, e.fx_rate, e.amount_base
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base

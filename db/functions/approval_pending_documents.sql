@@ -100,6 +100,14 @@ AS $function$
            q.created_by, NULL::uuid, 2::smallint
       FROM payroll_requests q
      WHERE q.status = 'submitted'
+    UNION ALL
+    -- ★ ROLE-1 Batch 4b:收货定价申请。blocks_disable = true —— 批准它的那一支在审批关着时按名拒
+    --   (APPROVALS_NOT_ENABLED),关掉审批就搁死它们(Tim 的 Q8)。fixed_level = 2:CFO 批每一张、
+    --   不分档。主角 = NULL:收货不是谁"自己的单据"。金额 = |Δ 应付| 本位币,最近一次估算(Q4)。
+    SELECT 'receipt_price_request'::text, rq.id, rq.label, rq.amount_base, true,
+           rq.created_by, NULL::uuid, 2::smallint
+      FROM receipt_price_requests rq
+     WHERE rq.status = 'submitted'
 $function$;
 
 COMMENT ON FUNCTION public.approval_pending_documents() IS

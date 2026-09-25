@@ -138,8 +138,10 @@ BEGIN
     -- 策略:两级各一个真持有人,门槛 1000,审批【开着】。直写四列要显式举旗(APR-1)。
     -- ★ PAYROLL-APR-1(2026-09-24):工资过账申请这条链的门是 module.hr.view + data.view_pay(Tim 的 Q8)。
     --   二级角色不持这两个码,开审批就会按名拒 APPROVALS_CHAIN_HAS_NO_APPROVER|decide_payroll_request —— 本 fixture 测的不是它。
+    -- ★ ROLE-1 Batch 4b(2026-09-25):收货定价申请这条链的门是 module.inbound.view + data.view_purchase_prices
+    --   (Tim 的 Q2),同一个理由一并给上 —— 否则 …|decide_receipt_price_request。
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay']) c
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay', 'module.inbound.view', 'data.view_purchase_prices']) c
      WHERE r.code = 'fx205-l2'
     ON CONFLICT (role_id, permission_code) DO NOTHING;
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);
@@ -167,10 +169,12 @@ BEGIN
     --   所以 u_l2 自己提的付款申请同样没人替他批(那一格与采购单同形:self_exception=false)。
     -- ★ PAYROLL-APR-1(2026-09-24):四 → 五 —— 工资过账申请同样只有二级一行、没有自批例外;
     --   u_l2 持它的门(本 fixture 为开审批授了 hr.view + view_pay),于是他自己提的那一张也没人替他批。
+    -- ★ ROLE-1 Batch 4b(2026-09-25):五 → 六 —— 收货定价申请同样只有二级一行、没有自批例外;
+    --   u_l2 持它的门(本 fixture 为开审批授了 inbound.view + 采购码),于是同一条。
     SELECT count(*) INTO v_n FROM jsonb_array_elements(v_read->'own_document_gaps') g
      WHERE (g->>'level')::int = 2 AND (g->>'user_id')::uuid = u_l2;
-    IF v_n <> 5 THEN
-        RAISE EXCEPTION 'FIXTURE 205R4a 失败:二级五条链应当各点名 u_l2 一次,实得 %;全部 = %', v_n, v_read->'own_document_gaps'; END IF;
+    IF v_n <> 6 THEN
+        RAISE EXCEPTION 'FIXTURE 205R4a 失败:二级六条链应当各点名 u_l2 一次,实得 %;全部 = %', v_n, v_read->'own_document_gaps'; END IF;
     -- 一级一格都没有:R1 让二级的人替一级持有人批,一级持有人也替二级持有人的一级单批
     SELECT count(*) INTO v_n FROM jsonb_array_elements(v_read->'own_document_gaps') g WHERE (g->>'level')::int = 1;
     IF v_n <> 0 THEN

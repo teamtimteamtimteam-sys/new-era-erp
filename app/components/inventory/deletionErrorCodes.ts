@@ -19,6 +19,8 @@ const DELETION_ERROR_CODES = new Set([
     'PO_NO_HARD_DELETE',
     // SO-2:一批还许着人的货不能就这么注销
     'SO_BATCH_HAS_RESERVATIONS',
+    // ROLE-1 Batch 4b:挂着一张在等 CFO 的定价申请时不许注销
+    'RECEIPT_PRICE_REQUEST_OPEN',
 ])
 
 const CODE_RE = /([A-Z_]+)(?:\|(.*))?$/

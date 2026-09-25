@@ -3,7 +3,7 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25):下一刀是 **ROLE-1 Batch 4b —— 收货定价审批**,再下一刀 ROLE-1 Batch 3)
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25):**下一刀是 ROLE-1 Batch 3**)
 > 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(`fa7821ab`)·
 >    **✅ AP-RECON-1 Batch B** —— 残留登记表 + 常设勾稽 + 月结那一行 + 严格相等的 fixture 213 + 那一分钱 +
 >    带税订单发票 + **三条日期规矩与 32 份 fixture 的日期挪回真实的过去**(Tim 2026-09-24:日期规矩属于 AP-RECON-1,
@@ -27,14 +27,14 @@
 >    三扇侧门关上(`price_history` 直连插、冲 `purchase` 分录、直调引擎);`po_document_data` 按采购码置空价格
 >    (关 ROLE1-PO-DOCUMENT-DATA-PRICES);定价公式按行遮;运费的 0.00 改成「受限」。两个新码一并授给 admin。
 >    见 `docs/handbacks/ROLE-1.md` § Batch 4a。★ **从 4a 上线到 4b 上线:财务定价一步生效、不经 CFO 批准**(矩阵惯常的 [LC] 过渡期)。
-> 6. **⬜ ROLE-1 Batch 4b —— 收货定价审批 ← 下一刀**(Tim 2026-09-25,Batch 4 grilling Q2–Q8 已全部裁定,见 `docs/handbacks/ROLE-1.md`
->    § Batch 4 Step 0):提交 → CFO 批每一张、不分档、**批即过账**(Q2 (A));价按原币冻结、按批准日的牌价过;提交与批准各试跑一遍;
->    审批关着时生下来就批准(`auto_approved`)。化验应用照常、它引起的改价在同一事务里成为一张定价申请(Q3,手工申请开着时按名拒
->    `RECEIPT_PRICE_REQUEST_OPEN`;撤销应用就撤回那张);建单带价 = 建单 + 提申请(Q4);等待期间冻结供应商 / 采购行 / 含量 / 软删,
->    批准时再比一次指纹 `RECEIPT_PRICE_CHANGED_SINCE_REQUEST`(Q5);低于已付按名拒 `RECEIPT_PRICE_BELOW_SETTLED`(Q6);
->    一张收货一次只挂一张;引擎登记同 PAY-REQ-1 / PAYROLL-APR-1(`require_approver_for(2)`、`blocks_disable`、`fixed_level = 2`、
->    门 `module.inbound.view + data.view_purchase_prices`,Q8)。
-> 7. **⬜ ROLE-1 Batch 3** —— 下文 § Batch 3(收货建单码、盘点录数与过账分离、工单);★ 连同 ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION(Q12)。
+> 6. **✅ ROLE-1 Batch 4b —— 收货定价审批**(2026-09-25)—— [LC] 队列第 5 条:定价面板 / 按承诺条款改价 / 收货台带价 / 应用化验
+>    都只提一张 `receipt_price_requests`;CFO 批每一张、不分档、**批即过账**(批准日、那天的牌价);等待期间冻结供应商 / 采购行 /
+>    含量 / 注销 / 第二张;批准时指纹再比;低于已付按名拒;提单人之外没人批得动时提交就拒(`RECEIPT_PRICE_NO_OTHER_DECIDER`);
+>    `pricing_status` 只经函数写、`final` 只在批准化验申请时置。**没有新码**,所以没有东西要授给 admin。见 `docs/handbacks/ROLE-1.md` § Batch 4b。
+> 7. **⬜ ROLE-1 Batch 3 ← 下一刀** —— 下文 § Batch 3(收货建单码、盘点录数与过账分离、工单);★ 连同 ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION(Q12)
+>    与 ROLE1B4B-ASSAY-IS-FINAL-DIRECT-EDIT(4b Q3)。
+> 8. **⬜ 工资申请的"提单人之外没人批得动"**(ROLE1B4B-PAYROLL-RAISER-NO-DECIDER,Tim 2026-09-25 4b Q1:登记,不在 4b 修)——
+>    `submit_payroll_request` 照收货定价申请的样子,审批开着、二级除提单人这个人之外没人批得动时按名拒。排在哪里归 Tim。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**
 > * **⬜ 管理包那一版 `gl_control_reconciliation` 的改基**(Tim AP-RECON-1 Q8):冻在 `management_packs` 里的包读它的三个键;
@@ -6266,7 +6266,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   风险是"批过的身份被换掉"。做法候选:一支 BEFORE UPDATE 守卫把这三列的改动连同状态一起退回 `pending_review`
   (并清批准戳),或者直接拒、要求先撤回批准。要 Tim 选。
 
-### ⬜ Batch 3 —— 仓库那一侧:收货、盘点、工单、加工提交,以及 [LC] 的临时持有人
+### ⬜ Batch 3 —— 仓库那一侧:收货、盘点、工单、加工提交,以及 [LC] 的临时持有人 **← 下一刀**(ROLE-1 Batch 4b 交回时定,2026-09-25)
 * **收货建单归仓库**:`create_inbound_batch` / `receive_inbound_batch_against_po` 换成新码(工作名 `action.receive_goods`)。
 * **盘点:录数归仓库、过账归财务,录过数的人永远不能过账**。`stocktake_lines` 只记最后一个 `created_by`、重录会覆盖 ——
   **先要一份"谁数过"的记录**(按行追加),再把 `post_stocktake` 的四眼从"开单人"改成"开单人 + 所有录过数的人"。
@@ -6274,7 +6274,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 * **工单**:建 / 改 / 取消 / 关闭 → 仓库;下达 → 财务;加工提交 → 仓库。仓库今天【没有】`module.processing.view`,要一起给。
 * **临时持有人(Q10)**:删批次(报废入口)、加工回滚、作废 COD —— 在各自的生命周期之前只归仓库;发货在 APR-5 之前 cco 保留。
 
-### ✅ Batch 4a —— 采购价可见性(Q9)与"看不见价格的人不能定价"(2026-09-25,见 `docs/handbacks/ROLE-1.md` § Batch 4a)· ⬜ Batch 4b —— [LC] 第 5 条收货定价审批 **← 下一刀**
+### ✅ Batch 4a —— 采购价可见性(Q9)与"看不见价格的人不能定价"(2026-09-25,见 `docs/handbacks/ROLE-1.md` § Batch 4a)· ✅ Batch 4b —— [LC] 第 5 条收货定价审批(2026-09-25,§ Batch 4b)
 * 新码 `data.view_purchase_prices`(工作名):采购单与采购行、质保金、付款条款、定价公式与条款承诺、计价器、
   收货单价与改价历史、应付账龄 → 采购价;销售、发票、应收、到岸成本、存货计值、加工成本、毛利 → 留在 `data.view_prices`。
   今天持 `view_prices` 的人一并拿到新码(谁都不少看一格);仓库只拿新码。约 16 张视图 + 6 支函数 + `lib/permissions.ts`。
@@ -6301,7 +6301,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 | 2 | 工资过账申请 —— ✅ **已上线(PAYROLL-APR-1,2026-09-24)**:过账与撤销都经申请,CFO 批每一张,财务执行 | 工资过账与撤销 | 做完 |
 | 3 | 调薪申请 | 调薪(第一份月薪以外的每一次)| M |
 | 4 | GST 申报审批 | GST 申报与更正 | M |
-| 5 | 收货定价审批 **← 下一刀 = ROLE-1 Batch 4b**(Tim 2026-09-25,Q13 拆刀;4a 已上线)| 收货定价与改价(每一次都过应付)| M–L |
+| 5 | 收货定价审批 —— ✅ **已推送(ROLE-1 Batch 4b,2026-09-25)**:四扇门都只提申请,CFO 批每一张,批即过账 | 收货定价与改价(每一次都过应付)| 做完 |
 | 6 | APR-5(已排队)| 贷项通知、作废发票、发货前放行 | L |
 | 7 | 固定资产处置申请(已排队)| 资产处置 | M |
 | 8 | APR-6(已排队)| 手工凭证与冲销 | L |

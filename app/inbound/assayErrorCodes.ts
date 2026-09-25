@@ -22,6 +22,8 @@ const ASSAY_ERROR_CODES = new Set([
     'ASSAY_BASIS_REQUIRED', 'ASSAY_RESULT_PARTY_REQUIRED',
     // ROLE-1 Batch 2b(Q4):应用标记与出自化验的含量只走应用函数 —— 两扇侧门按名关
     'ASSAY_APPLY_THROUGH_FUNCTION_ONLY', 'ASSAY_CONTENT_THROUGH_FUNCTION_ONLY',
+    // ROLE-1 Batch 4b:应用化验提一张定价申请 —— 提交那一步的三条拒绝
+    'RECEIPT_PRICE_REQUEST_OPEN', 'RECEIPT_PRICE_BELOW_SETTLED', 'RECEIPT_PRICE_NO_OTHER_DECIDER',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeFinanceError)。

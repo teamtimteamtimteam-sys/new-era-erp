@@ -2,7 +2,7 @@
 
 // 按【批次当前已录含量】重新计价 —— 给"含量是手工改的、没有化验单"的情况用。
 // 先算后交:点一下先看到完整明细与影响,确认无误再提交。价格自始至终由服务端产生,
-// 客户端从不提交价格。
+// 客户端从不提交价格。★ ROLE-1 Batch 4b:提交 = 提一张定价申请(来源 committed_terms),CFO 批了才过账。
 //
 // 【FIN-27:试算与提交读同一份承诺条款】两侧都走 committed_terms_price ——
 // 预览按活公式、提交按承诺副本,会让面板展示一个数、落账另一个数。
@@ -82,7 +82,7 @@ export default function RepriceFromContentPanel({
                             disabled={isPending}
                             variant="default" size="default"
                         >
-                            {isPending ? t('common.saving') : t('inbound.pricing.submit')}
+                            {isPending ? t('common.saving') : t('inbound.pricing.submitForApproval')}
                         </Button>
                         <Button variant="secondary" className="text-sm"
                             type="button"

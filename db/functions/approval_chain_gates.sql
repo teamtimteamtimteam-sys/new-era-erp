@@ -94,7 +94,13 @@ AS $function$
         --    工资期页的门,加上看得见工资数的那个码(§5:批的人必须看得见他批的那个数);
         --    【不是】module.hr.edit:那是提单的码。
         ('payroll_request'::text, 'decide_payroll_request'::text, 2::smallint,
-            ARRAY['module.hr.view', 'data.view_pay']::text[])
+            ARRAY['module.hr.view', 'data.view_pay']::text[]),
+        -- ★★ ROLE-1 Batch 4b(Tim 的矩阵:收货定价与改价,CFO 批每一张,不分档;批准当场过账):
+        --    同样【只有二级这一行】,理由与付款申请逐字同一条。门是 module.inbound.view +
+        --    data.view_purchase_prices(Tim 的 Q2)—— 收货页的门,加上看得见采购价的那个码;
+        --    【不是】action.price_receipts:那是提单的码。
+        ('receipt_price_request'::text, 'decide_receipt_price_request'::text, 2::smallint,
+            ARRAY['module.inbound.view', 'data.view_purchase_prices']::text[])
       ) AS v(subject_type, action_function, level, gate_permissions)
 $function$;
 

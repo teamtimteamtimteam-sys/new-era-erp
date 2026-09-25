@@ -425,6 +425,13 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
     "payroll_period_frozen":
         "PAYROLL-APR-1: called by two INVOKER guards, so EXECUTE must stay with the caller; "
         "returns one state word (posted/requested/open) already shown on the payroll page",
+    # ROLE-1 Batch 4b(2026-09-25):调它的是两支 INVOKER 守卫(guard_inbound_batch_price_request ·
+    #   guard_inbound_batch_metals_price_request)—— 与 payroll_period_frozen 同一条。它【必须】是 DEFINER:
+    #   INVOKER 里读 receipt_price_requests,不持采购价码的写入者读到零行,守卫静默放行。
+    #   两处 allowlist 必须一致(db/check_mirrors.py 同改)。
+    "receipt_price_open":
+        "ROLE-1 Batch 4b: called by two INVOKER guards, so EXECUTE must stay with the caller; "
+        "returns only the label (receipt code · price #n) of a waiting request, no price",
 }
 
 # AUD-1(2026-08-17):加 has_any_permission —— 它是 has_permission 的析取,

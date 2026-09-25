@@ -21,6 +21,7 @@ export default function MetalContentPanel({
     deleteAction,
     priceHref,
     note,
+    lockedReason,
 }: {
     rows: MetalContentRow[]
     // PROC-4:物质清单由页面从 substances 那张字典读好传进来(值 + 已翻好的名字)。
@@ -33,6 +34,9 @@ export default function MetalContentPanel({
     // 灰字说明(进料侧 cut 5b 用来交代:含量现在由"应用化验结果"维护,
     // 手工编辑仍然保留给没有实验室结果的批次)。
     note?: string
+    // ★ ROLE-1 Batch 4b:进料批挂着一张在等 CFO 的定价申请时,含量是那张申请批的东西 ——
+    //   看得见、按不动、说出为什么(库里 guard_inbound_batch_metals_price_request 同样按名拒)。
+    lockedReason?: string
 }) {
     const t = useTranslations()
     const [error, setError] = useState<string | null>(null)
@@ -213,6 +217,10 @@ export default function MetalContentPanel({
             </div>
 
             {note && <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{note}</p>}
+            {lockedReason && (
+                <p className="text-sm text-[color:var(--brand-muted-text)] mb-3" data-state-note="metals-locked">{lockedReason}</p>
+            )}
+            <fieldset disabled={!!lockedReason} className="contents">
 
             {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
@@ -274,6 +282,7 @@ export default function MetalContentPanel({
                     {t('metalContent.save')}
                 </Button>
             </div>
+            </fieldset>
         </section>
     )
 }

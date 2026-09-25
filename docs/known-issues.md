@@ -3,12 +3,28 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
-## ROLE1B4A-REPRICE-BELOW-SETTLED · 一张已付款的收货还能被改价到比已付的更低(ROLE-1 Batch 4 Step 0 登记,2026-09-25)
+## ROLE1B4B-PAYROLL-RAISER-NO-DECIDER · admin@ 能提一张谁都批不了的工资申请(ROLE-1 Batch 4b 登记,2026-09-25)
 
-`reprice_inbound_batch` 不看付款、不看 `pricing_status`:一张已付(或已抵预付)的收货可以被改到 数量 × 新价 < 已付,
-于是付出去的比欠的多,而没有任何东西会说出来;手工定价也能盖掉一个 `final` 的化验价,状态仍写着 `final`。
-Tim 的裁定(Batch 4 grilling Q6):**提交与批准时都按名拒 `RECEIPT_PRICE_BELOW_SETTLED`** —— 那是定价申请的一部分,
-落在 **Batch 4b**。4a 与 4b 之间它照旧(与"财务定价不经批准"同一个过渡期)。**删除条件:** 4b 上线。
+admin@ 与 tim@ 是同一个人(`account_person` 两个都是 `4737faa9…`,2026-09-25 以 postgres 读);二级审批角色今天只有 tim@
+一个真持有人。admin@ 持 `module.hr.edit`,于是它能 `submit_payroll_request` —— 那张申请的提单人那条腿按人认,tim@ 批不了,
+而没有第二个人:申请挂在那里没人批得了,还因为 `blocks_disable` 挡住关审批。收货定价申请在 4b 里按名拒了同一个形状
+(`RECEIPT_PRICE_NO_OTHER_DECIDER`,提交时问 `approval_deciders` 减去提单人这个人是不是空的);Tim 的裁定(Batch 4b grilling Q1):
+**工资申请的同一个缺口登记,不在本刀修**。**删除条件:** `submit_payroll_request` 在审批开着、二级除提单人之外没有人批得动时按名拒。
+
+## ROLE1B4B-ASSAY-IS-FINAL-DIRECT-EDIT · 化验的"正式"标记能被直接改(ROLE-1 Batch 4b 登记,2026-09-25)
+
+`assay_results` 的 UPDATE 策略是 `module.inbound.edit`,守卫 `guard_assay_applied_columns` 只管 `applied_at` / `applied_by` /
+`superseded_by` —— **`is_final` 任何持 `inbound.edit` 的人都能直连改**。4b 起收货的 `pricing_status` 只在 CFO 批准一张化验来源的
+申请时、且那份化验 `is_final` 才升 `final`(那一列本身已由 `guard_inbound_batch_price_request` 挡住直连写),所以改 `is_final`
+能左右"批准之后是不是 final"。Tim 的裁定(Batch 4b grilling Q3):**登记给 Batch 3**。**删除条件:** 已应用(或有申请在等)的化验,
+`is_final` 不能再被直连改。
+
+## ROLE1B4B-UNPRICED-NEVER-WRITTEN · `pricing_status = 'unpriced'` 从来没有人写,`batch_unpriced` 提醒因此永远不响(ROLE-1 Batch 4b 登记,2026-09-25)
+
+`inbound_batches.pricing_status` 的 CHECK 允许 `unpriced`,默认值却是 `provisional`,而没有任何函数写 `unpriced` ——
+一张不带价建成的收货显示「暂定」(线上 6 张未定价的收货全是 `provisional`,2026-09-25 以 postgres 读基表)。
+`operations_now` 的 `batch_unpriced` 那一支读 `pricing_status = 'unpriced'`,所以它【永远是空的】。Tim 的裁定(Batch 4b grilling Q9):
+**登记,不在本刀修**。**删除条件:** 未定价的收货读作「未定价」,那一支提醒会响(或被删掉)。
 
 ## ROLE1B4A-PURCHASE-JOURNAL-FORGEABLE · 持 `finance.edit` 的人能直接过一条 `source_type = 'purchase'` 的分录(ROLE-1 Batch 4 登记,2026-09-25)
 
@@ -24,8 +40,9 @@ Tim 的裁定(Batch 4 grilling Q6):**提交与批准时都按名拒 `RECEIPT_PRI
 都能改 `supplier_id`,直连写还能改 `purchase_order_line_id`。唯一的守卫是 `supplies_goods` 与采购行匹配 —— **没有
 任何东西检查它是不是已定价、已付款**,也不检查它与采购单的供应商是否一致(采购单本身的 `supplier_id` 是改不了的)。
 应付于是跟着搬到另一家供应商名下;换采购行会换掉下一次改价所用的承诺条款。Tim 的裁定(Q7 (d)):**登记,不在本刀修**;
-定价申请等待期间的冻结(Q5)在 4b 落地,收货编辑本身归 **Batch 3**。**删除条件:** 已定价的收货不能再换供应商与采购行
-(或经一条有留痕的路)。
+定价申请等待期间的冻结(Q5)**已在 4b 落地**(2026-09-25:申请在等 CFO 时,改供应商 / 采购单 / 采购行 → 
+`RECEIPT_PRICE_REQUEST_OPEN`,`guard_inbound_batch_price_request`);**没有在等的申请时,已定价的收货照旧能换**,
+收货编辑本身归 **Batch 3**。**删除条件:** 已定价的收货不能再换供应商与采购行(或经一条有留痕的路)。
 
 ## ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION · 到岸成本经盘点那一条例外对仓库是看得见的(ROLE-1 Batch 4 登记,2026-09-25)
 

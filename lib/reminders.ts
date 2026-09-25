@@ -234,6 +234,10 @@ export const REMINDERS = [
     //   谁能批由 decide_payroll_request 在服务端裁。item_id 是【工资期】的 id —— 申请住在工资期页上。
     { itemType: 'payroll_request_pending', permission: 'data.view_pay', href: '/hr/payroll',
       itemHref: (r: OpsRow) => `/hr/payroll/${r.item_id}` },
+    // ROLE-1 Batch 4b:等 CFO 批的收货定价申请。看得见采购价的人都看得见(data.view_purchase_prices,Q10);
+    //   谁能批由 decide_receipt_price_request 在服务端裁。item_id 是【收货】的 id —— 申请住在收货页上。
+    { itemType: 'receipt_price_request_pending', permission: 'data.view_purchase_prices', href: '/inbound',
+      itemHref: (r: OpsRow) => `/inbound/${r.item_id}/edit` },
 ] as const satisfies readonly Reminder[]
 
 /**

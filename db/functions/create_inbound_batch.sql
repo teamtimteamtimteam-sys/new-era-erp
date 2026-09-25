@@ -67,15 +67,18 @@ BEGIN
     -- 插入把这个库位当成自己的(那正是 ctx 这种机制唯一的锋利处)。
     PERFORM set_config('evoltrya.location_ctx', '', true);
 
-    -- INB-PAY-1:建单带价 = 建单 + 定价,【同一事务、同一份定价实现】。
-    -- reprice_inbound_batch 写 price_history、按定价日过 purchase 分录(Dr 1200 / Cr 2000),
-    -- 并按名拒绝非正价格、非法币种与缺牌价 —— 任何一条拒绝都让整笔建单回滚。
+    -- INB-PAY-1:建单带价 = 建单 + 定价,【同一事务】。
+    -- ★ ROLE-1 Batch 4b(Tim 的 Q4):建单带价从此是【建单(不带价)+ 同一事务里提一张定价申请】
+    --   (来源 desk)—— CFO 批了才进账;收货页上看得见它在等 CFO。提交时照批准那一刻的同一支过账
+    --   试跑,所以非正价格、非法币种、缺牌价照旧按名拒,任何一条拒绝都让整笔建单回滚。
+    --   审批关着时申请生下来就是 approved 并当场过账(与从前一样一步到位)。
     IF p_unit_price IS NOT NULL THEN
-        v_pricing := reprice_inbound_batch(v_id, p_unit_price, p_currency, NULL, NULL);
+        v_pricing := receipt_price_submit_internal(v_id, p_unit_price, p_currency, 'desk', NULL, NULL, NULL);
     END IF;
 
     -- IOD-2:返回值从 uuid 变成 jsonb —— 告警要有地方回去。batch_id 仍在里面。
-    -- INB-PAY-1:定价的分解(含分录号)随之返回;不带价时为 null。
+    -- INB-PAY-1:定价的分解随之返回;不带价时为 null。ROLE-1 Batch 4b 起它是那张申请
+    -- (request_id / label / status;审批关着时还有 journal_code)。
     RETURN jsonb_build_object('batch_id', v_id, 'warnings', to_jsonb(v_warn),
                               'pricing', v_pricing);
 END;

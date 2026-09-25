@@ -15161,6 +15161,190 @@ export type Database = {
           },
         ]
       }
+      receipt_price_requests: {
+        Row: {
+          amount_base: number
+          assay_result_id: string | null
+          commitment_id: string | null
+          created_at: string
+          created_by: string
+          currency: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          id: string
+          inbound_batch_id: string
+          label: string
+          notes: string | null
+          old_unit_price: number | null
+          posted_unit_price: number | null
+          result_journal_entry_id: string | null
+          snapshot: Json
+          source: string
+          status: string
+          unit_price_ccy: number
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          amount_base: number
+          assay_result_id?: string | null
+          commitment_id?: string | null
+          created_at?: string
+          created_by: string
+          currency: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          inbound_batch_id: string
+          label: string
+          notes?: string | null
+          old_unit_price?: number | null
+          posted_unit_price?: number | null
+          result_journal_entry_id?: string | null
+          snapshot: Json
+          source: string
+          status?: string
+          unit_price_ccy: number
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          amount_base?: number
+          assay_result_id?: string | null
+          commitment_id?: string | null
+          created_at?: string
+          created_by?: string
+          currency?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          inbound_batch_id?: string
+          label?: string
+          notes?: string | null
+          old_unit_price?: number | null
+          posted_unit_price?: number | null
+          result_journal_entry_id?: string | null
+          snapshot?: Json
+          source?: string
+          status?: string
+          unit_price_ccy?: number
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_price_requests_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "assay_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_assay_result_id_fkey"
+            columns: ["assay_result_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["assay_result_id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_commitment_id_fkey"
+            columns: ["commitment_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_term_commitments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_commitment_id_fkey"
+            columns: ["commitment_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_term_commitments_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "receipt_price_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       receiving_settings: {
         Row: {
           grn_assay_tolerance_pct: number
@@ -27958,6 +28142,10 @@ export type Database = {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
       }
+      decide_receipt_price_request: {
+        Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
+        Returns: Json
+      }
       decline_quote: {
         Args: { p_quote_id: string; p_reason: string }
         Returns: Json
@@ -28559,6 +28747,42 @@ export type Database = {
       }
       rebalance_task_nodes: {
         Args: { p_parent_id: string; p_task_id: string }
+        Returns: number
+      }
+      receipt_price_fingerprint: {
+        Args: { p_inbound_batch_id: string }
+        Returns: Json
+      }
+      receipt_price_open: {
+        Args: { p_inbound_batch_id: string }
+        Returns: string
+      }
+      receipt_price_post_internal: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      receipt_price_request_dry_run: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      receipt_price_submit_internal: {
+        Args: {
+          p_assay_result_id: string
+          p_commitment_id: string
+          p_currency: string
+          p_inbound_batch_id: string
+          p_notes: string
+          p_source: string
+          p_unit_price: number
+        }
+        Returns: Json
+      }
+      receipt_price_withdraw_internal: {
+        Args: { p_reason: string; p_request_id: string }
+        Returns: Json
+      }
+      receipt_settled_base: {
+        Args: { p_inbound_batch_id: string }
         Returns: number
       }
       receive_inbound_batch_against_po: {
@@ -29532,6 +29756,10 @@ export type Database = {
       }
       withdraw_payroll_request: {
         Args: { p_request_id: string }
+        Returns: Json
+      }
+      withdraw_receipt_price_request: {
+        Args: { p_reason?: string; p_request_id: string }
         Returns: Json
       }
     }

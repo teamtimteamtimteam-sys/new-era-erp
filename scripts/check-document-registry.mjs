@@ -74,7 +74,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // PAYROLL-APR-1(2026-09-24):227 → 228。新增 `payroll_requests`(工资过账 / 撤销过账的申请,CFO 批),
 // 见 db/tables/payroll_requests.sql。**它没有 code 列**(它是对一个工资期的一次请求,人读的名字是 label:
 // 期间编号 · 种类 · 第几次;不进 document_types),所以 EXPECTED_CODE_TABLES 不动。
-const EXPECTED_TABLES = 228
+// ROLE-1 Batch 4b(2026-09-25):228 → 229。新增 `receipt_price_requests`(收货定价申请,CFO 批,批准
+// 当场过账),见 db/tables/receipt_price_requests.sql。**它没有 code 列**(它是对一张收货的一次请求,
+// 人读的名字是 label:收货编号 · price #n;不进 document_types),所以 EXPECTED_CODE_TABLES 不动。
+const EXPECTED_TABLES = 229
 const EXPECTED_CODE_TABLES = 76
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

@@ -331,6 +331,13 @@ CREATE TRIGGER trg_inbound_batches_soft_delete_provenance
     BEFORE UPDATE ON public.inbound_batches
     FOR EACH ROW EXECUTE FUNCTION public.guard_soft_delete_provenance();
 
+-- ROLE-1 Batch 4b(Tim 的 Q5 · Q3):一张定价申请在等 CFO 时,供应商 / 采购单 / 采购行不许改、
+-- 收货不许注销(RECEIPT_PRICE_REQUEST_OPEN);pricing_status 只经函数写(PRICING_STATUS_VIA_FUNCTION)。
+-- 函数体在 db/functions/guard_inbound_batch_price_request.sql。
+CREATE TRIGGER trg_inbound_batches_price_request
+    BEFORE UPDATE ON public.inbound_batches
+    FOR EACH ROW EXECUTE FUNCTION public.guard_inbound_batch_price_request();
+
 COMMENT ON COLUMN public.inbound_batches.chemistry_certainty_code IS
 'PROC-2:对【这一批】料的化学体系我们知道多少 —— 逐批不同,只有收货的人看得见。
 【与 materials.chemistry 不是同一件事】那一列说"这一种物料【是】什么",

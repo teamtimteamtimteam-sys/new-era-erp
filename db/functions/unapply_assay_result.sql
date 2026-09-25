@@ -8,6 +8,7 @@ DECLARE
     v_user   uuid := auth.uid();
     v_assay  record;
     v_latest uuid;
+    v_req    uuid;
 BEGIN
     -- PROC-1:先读单据才知道父是谁,权限判在任何改动之前(定义者身份读,不漏行)
     SELECT * INTO v_assay FROM assay_results
@@ -45,6 +46,15 @@ BEGIN
     UPDATE assay_results SET superseded_by = NULL, updated_by = v_user
     WHERE superseded_by = p_assay_result_id;
 
+    -- ★ ROLE-1 Batch 4b(Tim 的 Q3):这份化验还挂着一张在等 CFO 的定价申请 → 撤回它,理由写明是
+    --   哪一份化验、为什么撤。已经批过的价【不动】(下面那段刻意不回价的理由原样成立)。
+    SELECT id INTO v_req FROM receipt_price_requests
+     WHERE assay_result_id = p_assay_result_id AND status = 'submitted';
+    IF v_req IS NOT NULL THEN
+        PERFORM receipt_price_withdraw_internal(v_req,
+            'Assay ' || v_assay.code || ' unapplied: ' || btrim(p_reason));
+    END IF;
+
     -- 【刻意不回价、不回含量】撤销"已执行"标记只是承认这份结果不再作数;
     -- 价格与含量退回到哪一版,是新化验或手工计价的显式动作 —— 静默回滚一个
     -- 已经过完账、可能已被分摊读走的状态,比留着它更危险。
@@ -53,7 +63,8 @@ BEGIN
         'code', v_assay.code,
         'inbound_batch_id', v_assay.inbound_batch_id,
         'output_batch_id', v_assay.output_batch_id,
-        'reverted_price', false
+        'reverted_price', false,
+        'withdrawn_price_request_id', v_req
     );
 END;
 $function$

@@ -410,3 +410,19 @@ REVOKE EXECUTE ON FUNCTION public.payroll_period_fingerprint(uuid) FROM authenti
 --   与 apply_assay_result(action.apply_assay)。引擎自己仍问 data.view_purchase_prices
 --   (看不见价格的人不能定价),所以它【有】调用者检查;收回是再加的一道,不是唯一的一道。
 REVOKE EXECUTE ON FUNCTION public.reprice_inbound_batch(uuid, numeric, text, numeric, text) FROM authenticated;
+
+-- ROLE-1 Batch 4b(2026-09-25):收货定价申请的内层算子。**这几支没有调用者检查,靠的就是调不到。**
+--   receipt_price_submit_internal —— 四扇门(定价面板 · 按承诺条款改价 · 收货台带价 · 应用化验)
+--     各问完自己的码才落进来;留着 EXECUTE,任何登录用户都能不经那几扇门直接提申请(或在审批
+--     关着时直接过账)。
+--   receipt_price_post_internal —— 过账本身(调引擎);只从批准、审批关着时的提交与试跑里调用。
+--   receipt_price_request_dry_run · receipt_price_withdraw_internal · receipt_price_fingerprint ·
+--   receipt_settled_base —— 只从申请函数体内调用。
+--   ☞ receipt_price_open 【不在】此列:调它的是两支 INVOKER 守卫,收回就 42501
+--     (payroll_period_frozen 同一条;两处 allowlist 有它)。
+REVOKE EXECUTE ON FUNCTION public.receipt_price_submit_internal(uuid, numeric, text, text, uuid, uuid, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.receipt_price_post_internal(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.receipt_price_request_dry_run(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.receipt_price_withdraw_internal(uuid, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.receipt_price_fingerprint(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.receipt_settled_base(uuid) FROM authenticated;
