@@ -97,7 +97,7 @@ REVOKE EXECUTE ON FUNCTION public.sod_supplier_creator(uuid) FROM authenticated;
 -- ★【界面因此走带门的那一支】★ 面板要显示"为什么还不能签发",而那句话
 -- 由 cod_certificate_data 的 CANNOT_CERTIFY|批号|理由 抛出 —— 它有
 -- action.issue_cod 的门。判据仍然只有一份实现,而外面只有一扇门。
-REVOKE EXECUTE ON FUNCTION public.void_cod_internal(uuid, text, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.void_cod_internal(uuid, text, uuid, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.refresh_cod_for_batch(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.cod_delivery_completion(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.pricing_terms_of_formula(uuid) FROM authenticated;
@@ -468,3 +468,27 @@ REVOKE EXECUTE ON FUNCTION public.post_journal_entry(date, text, text, uuid, jso
 REVOKE EXECUTE ON FUNCTION public.journal_request_submit_internal(text, date, text, jsonb, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.journal_request_post_internal(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.journal_request_dry_run(uuid) FROM authenticated;
+
+-- APR-7(2026-09-25):**注销、回滚、证书作废的门换成了四张申请**(仓库提,CFO 批)。
+--   soft_delete_inbound_batch_internal / soft_delete_output_batch_internal / rollback_processing_run_internal ——
+--     原来三扇门的函数体(去掉了码的检查)。调用者:空批一步删的两扇门(先问 action.batch_write_off 与
+--     "要不要经 CFO")与 warehouse_request_execute_internal。留着 EXECUTE,任何登录用户都能不经 CFO、
+--     不经任何码注销一批料或回滚一张加工单 —— 那正是本刀要关的门。
+--   warehouse_request_submit_internal —— 四扇提交的门各问完自己的码才落进来。
+--   warehouse_request_execute_internal —— 生效本身;只从批准、审批关着时的提交与试跑里调用。
+--   warehouse_request_dry_run —— 只从提交里调用。
+--   warehouse_request_touches / warehouse_request_freezing / warehouse_request_snapshot —— 三支读者只给上面几支
+--     与冻结守卫用;snapshot 会把供应商名、证书号交给任何登录用户。**这几支没有调用者检查,靠的就是调不到。**
+REVOKE EXECUTE ON FUNCTION public.soft_delete_inbound_batch_internal(uuid, text, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.soft_delete_output_batch_internal(uuid, text, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.rollback_processing_run_internal(uuid, text, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.warehouse_request_submit_internal(text, uuid, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.warehouse_request_execute_internal(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.warehouse_request_dry_run(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.warehouse_request_touches(text, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.warehouse_request_freezing(uuid, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.warehouse_request_snapshot(text, uuid) FROM authenticated;
+-- warehouse_request_conflict / batch_write_off_needs_request:只从两扇一步删的门与提交里调(属主身份);屏幕从
+--   warehouse_requests_visible 与批次行自己的数读同一件事,不需要它们。
+REVOKE EXECUTE ON FUNCTION public.warehouse_request_conflict(text, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.batch_write_off_needs_request(uuid, uuid) FROM authenticated;

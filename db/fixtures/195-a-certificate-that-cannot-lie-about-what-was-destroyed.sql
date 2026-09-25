@@ -24,6 +24,8 @@
 --   I 【自动成立】与【冲销即自动作废,且没有替代品】
 --   J 权限:没有能力的读者被拒;仓储现场拿得到供应商【名字】,却读不到
 --     suppliers 与 company_compliance 一行
+-- APR-7(2026-09-25):作废 / 注销 / 回滚改走 CFO 批的申请(docs/approvals.md §3t)。本支审批关着,申请生下来就是
+--   approved、当场生效,所以原来那几格照旧成立;H1 的空理由改由提交按名拒 WAREHOUSE_REQUEST_REASON_REQUIRED。
 BEGIN;
 DO $fixture$
 DECLARE
@@ -175,7 +177,7 @@ BEGIN
 
     -- FX195-WO:整批注销 —— 走【门】(软删函数会写 writeoff 流水并把余额清零)
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_issuer), true);
-    PERFORM soft_delete_inbound_batch(b_wo, 'fixture 195:这一票货是报废的,不是加工掉的');
+    PERFORM submit_inbound_write_off_request(b_wo, 'fixture 195:这一票货是报废的,不是加工掉的');
 
     SET CONSTRAINTS ALL IMMEDIATE;   -- 恒等式当场校验;末尾改回 DEFERRED(见 C 臂尾注)
 
@@ -379,11 +381,11 @@ BEGIN
     EXECUTE 'SET LOCAL ROLE authenticated';
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_issuer), true);
     v_err := NULL;
-    BEGIN PERFORM void_cod(v_cod2, '   '); EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; END;
+    BEGIN PERFORM submit_cod_void_request(v_cod2, '   '); EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; END;
     IF v_err IS NULL THEN RAISE EXCEPTION 'H1 失败:没有理由的作废通过了'; END IF;
-    IF v_err NOT LIKE 'REASON_REQUIRED%' THEN RAISE EXCEPTION 'H1 失败:措辞是 "%"', v_err; END IF;
+    IF v_err NOT LIKE 'WAREHOUSE_REQUEST_REASON_REQUIRED|cod_void|%' THEN RAISE EXCEPTION 'H1 失败:措辞是 "%"', v_err; END IF;
 
-    PERFORM void_cod(v_cod2, '供应商名称录错了,另发一张');
+    PERFORM submit_cod_void_request(v_cod2, '供应商名称录错了,另发一张');
     SELECT status INTO v_status FROM certificates_of_destruction WHERE id = v_cod2;
     IF v_status <> 'void' THEN RAISE EXCEPTION 'H2 失败:作废之后状态是 %', v_status; END IF;
     -- 【作废不动字节档案一个字】—— 供应商手里那份仍然查得到
@@ -396,7 +398,7 @@ BEGIN
     END IF;
     -- 【不幂等】
     v_err := NULL;
-    BEGIN PERFORM void_cod(v_cod2, '再作废一次'); EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; END;
+    BEGIN PERFORM submit_cod_void_request(v_cod2, '再作废一次'); EXCEPTION WHEN OTHERS THEN v_err := SQLERRM; END;
     IF v_err IS NULL THEN RAISE EXCEPTION 'H4 失败:作废是幂等的'; END IF;
     IF v_err NOT LIKE 'COD_NOT_ISSUED%' THEN RAISE EXCEPTION 'H4 失败:措辞是 "%"', v_err; END IF;
     r := r || jsonb_build_object('H_void', v_status, 'H_archive_survives', true);
@@ -451,7 +453,7 @@ BEGIN
     v_code2 := (issue_cod(v_cod3))->>'code';
 
     -- ② 冲销 → 自动作废,没有替代品
-    PERFORM rollback_processing_run(v_run, 'fixture 195:钉住冲销即作废这一条');
+    PERFORM submit_rollback_request(v_run, 'fixture 195:钉住冲销即作废这一条');
     RESET ROLE;
 
     SELECT status, replaced_by_cod_id, void_reason INTO v_status, v_repl, v_err
@@ -473,7 +475,7 @@ BEGIN
     --   FX195-DONE 的证书是已签发的;把那票货注销掉,它必须自己作废。
     EXECUTE 'SET LOCAL ROLE authenticated';
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', v_issuer), true);
-    PERFORM soft_delete_inbound_batch(b_done, 'fixture 195:注销一票已经开过证书的货');
+    PERFORM submit_inbound_write_off_request(b_done, 'fixture 195:注销一票已经开过证书的货');
     RESET ROLE;
     SELECT status INTO v_status FROM certificates_of_destruction WHERE id = v_cod;
     IF v_status <> 'void' THEN

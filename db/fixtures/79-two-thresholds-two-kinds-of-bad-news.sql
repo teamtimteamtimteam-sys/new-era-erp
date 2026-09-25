@@ -21,6 +21,8 @@
 -- 工单不出现在看板上)。原样定义在任何注入之前取。
 -- 自带数据(README 第 2 条);日期落在 2029(第 4 条);期间锁显式清空(第 5 条)。
 -- ═══════════════════════════════════════════════════════════════════════════
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -252,7 +254,7 @@ BEGIN
                     WHERE item_type = 'work_order_variance_beyond' AND item_id = woRev) THEN
         RAISE EXCEPTION 'FIXTURE 79E 前提不成立:吃掉 200 / 计划 100 应当先报出来';
     END IF;
-    PERFORM rollback_processing_run(v_run, 'fixture:AUDEL-1b 之后理由必填');
+    PERFORM rollback_processing_run_internal(v_run, 'fixture:AUDEL-1b 之后理由必填');
     IF EXISTS (SELECT 1 FROM operations_now
                 WHERE item_type = 'work_order_variance_beyond' AND item_id = woRev) THEN
         RAISE EXCEPTION 'FIXTURE 79E 失败:被冲销的加工不该把工单推过超耗线 —— 它的消耗不再是发生过的事实(WO-1b 的规则)';

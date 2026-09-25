@@ -3,7 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from '@/lib/i18n/server'
-import { localizeDeletionError } from '@/app/components/inventory/deletionErrorCodes'
+// APR-7:一步删只剩空批 —— 那一族拒绝的译文见 warehouseRequestErrorCodes(其余照旧转交注销那一份)。
+import { localizeWarehouseRequestError } from '@/app/components/inventory/warehouseRequestErrorCodes'
 import { isStockErrorCode, localizeStockError } from '@/app/components/inventory/stockErrorCodes'
 
 // AUDEL-1b:理由【必填】,而【录入框是 AUDEL-2】。
@@ -29,7 +30,7 @@ export async function softDeleteOutput(id: string, reason: string = '') {
         if (isStockErrorCode(error.message)) {
             return { error: await localizeStockError(error.message) }
         }
-        return { error: await localizeDeletionError(error.message) }
+        return { error: await localizeWarehouseRequestError(error.message) }
     }
 
     revalidatePath('/output')

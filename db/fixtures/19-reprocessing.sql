@@ -18,6 +18,8 @@
 -- FIN-36:commit_processing_run 多了一个【必填】的分摊基准参数。
 -- 这里一律显式传 'metal_value' —— 那正是本 fixture 在 FIN-36 之前从 schema
 -- 默认值拿到的值,所以语义一字未变,只是不再有人替它做这个选择。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -206,7 +208,7 @@ BEGIN
     -- ════════ E. 冲销守卫:上游产出被下游耗过 → rollback 点名拒 ═══════════════
     v_ok := false; v_msg := NULL;
     BEGIN
-        PERFORM rollback_processing_run(v_run1, 'fixture:AUDEL-1b 之后理由必填');
+        PERFORM rollback_processing_run_internal(v_run1, 'fixture:AUDEL-1b 之后理由必填');
     EXCEPTION WHEN OTHERS THEN
         GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
         v_ok := v_msg LIKE 'OUTPUT_CONSUMED%';

@@ -104,5 +104,10 @@ CREATE POLICY "receipt_price_requests select by permission" ON public.receipt_pr
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.inbound.view'::text) AND has_permission('data.view_purchase_prices'::text));
 
+-- APR-7(grilling Q3):一张在等 CFO 的注销申请冻住那一批 —— 上面不许再开定价申请(改价会改注销的价值)。
+CREATE TRIGGER trg_receipt_price_requests_warehouse_request_freeze
+    BEFORE INSERT ON public.receipt_price_requests
+    FOR EACH ROW EXECUTE FUNCTION public.guard_warehouse_request_freeze();
+
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.receipt_price_requests FROM anon;

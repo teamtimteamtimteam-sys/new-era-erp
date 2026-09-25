@@ -29,6 +29,8 @@
 --   化验 ni 40% → (420 − 20)/100 = 4.00 USD/kg → 5.04 本位币。
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 SET LOCAL statement_timeout = '180s';
 
@@ -192,7 +194,7 @@ BEGIN
     v_msg := pg_temp.f220_try(format('INSERT INTO inbound_batch_metals (inbound_batch_id, metal, content_pct, content_source) VALUES (%L, %L, 12, %L)', b1, 'ni', 'manual'), true);
     IF v_msg NOT LIKE 'RECEIPT_PRICE_REQUEST_OPEN|ZZFIX220-IB1|%' THEN
         RAISE EXCEPTION 'FIXTURE 220C4 失败:手工录含量应当按名拒,实得 %', v_msg; END IF;
-    v_msg := pg_temp.f220_try(format('SELECT soft_delete_inbound_batch(%L, %L)', b1, 'fixture 220 C5'));
+    v_msg := pg_temp.f220_try(format('SELECT soft_delete_inbound_batch_internal(%L, %L)', b1, 'fixture 220 C5'));
     IF v_msg NOT LIKE 'RECEIPT_PRICE_REQUEST_OPEN|ZZFIX220-IB1|%' THEN
         RAISE EXCEPTION 'FIXTURE 220C5 失败:注销应当按名拒,实得 %', v_msg; END IF;
     PERFORM pg_temp.f220_as(u_cto);

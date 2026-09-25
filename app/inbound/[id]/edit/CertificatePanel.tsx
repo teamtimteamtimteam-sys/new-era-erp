@@ -10,12 +10,15 @@
 //   · 已作废     —— 红。编号仍然在(供应商手里那张纸要查得到),外加作废理由。
 //
 // 【内部存档那个链接在四种状态里都在】—— 存档是内部的事,永远不因缺执照被拒。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+//
+// ★ APR-7(Tim 2026-09-25):作废是【一张给 CFO 的申请】,批准之前什么都不发生 —— 公开核验页照旧说"有效",
+//   那是真的。签发不变(仓库,不经批准:资格由系统算)。一张在等的申请碰到这张证书时(作废它的,或回滚、
+//   注销那票货的),作废钮看得见、按不动、说出是哪一张在等。
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
-import { voidCertificate } from './codActions'
+import WarehouseRequestButton from '@/app/components/inventory/WarehouseRequestButton'
 
 export type CertificatePanelData = {
     codId: string | null
@@ -30,18 +33,18 @@ export type CertificatePanelData = {
 }
 
 export default function CertificatePanel({
-    batchId, data, canIssue,
+    batchId, data, canIssue, openRequestLabel,
 }: {
     batchId: string
     data: CertificatePanelData
     canIssue: boolean
+    /** APR-7:碰到这张证书(或这票货)的那一张在等的仓库申请 */
+    openRequestLabel?: string | null
 }) {
     const t = useTranslations()
     const router = useRouter()
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [voiding, setVoiding] = useState(false)
-    const [reason, setReason] = useState('')
 
     // 【没有这条能力就整块不画】—— 与本页其他跨模块面板同一条处置。
     if (!canIssue) return null
@@ -59,16 +62,6 @@ export default function CertificatePanel({
         const res = await fetch(`/inbound/${batchId}/cod/pdf`, { method: 'POST' })
         setBusy(false)
         if (!res.ok) { setError(await res.text()); return }
-        router.refresh()
-    }
-
-    async function onVoid() {
-        if (!data.codId) return
-        setBusy(true); setError(null)
-        const res = await voidCertificate(batchId, data.codId, reason)
-        setBusy(false)
-        if (res.error) { setError(res.error); return }
-        setVoiding(false); setReason('')
         router.refresh()
     }
 
@@ -154,10 +147,10 @@ export default function CertificatePanel({
                         </Button>
                     )}
 
-                    {state === 'issued' && !voiding && (
-                        <Button variant="outline" onClick={() => setVoiding(true)} disabled={busy}>
-                            {t('cod.voidButton')}
-                        </Button>
+                    {state === 'issued' && data.codId && (
+                        <WarehouseRequestButton kind="cod_void" subjectId={data.codId} subjectCode={data.code ?? ''}
+                            permissionCode="action.issue_cod" allowed={canIssue}
+                            openRequestLabel={openRequestLabel} extraPath={`/inbound/${batchId}/edit`} size="default" />
                     )}
                 </div>
 
@@ -166,25 +159,6 @@ export default function CertificatePanel({
                 )}
                 {state === 'blocked' && (
                     <p className="text-xs mt-2 opacity-70 text-[color:var(--brand-muted-text)]">{t('cod.internalExportHint')}</p>
-                )}
-
-                {voiding && (
-                    <div className="mt-3 space-y-2">
-                        <label className="block">{t('cod.voidReasonLabel')}</label>
-                        <input
-                            className={`${CONTROL_INPUT} w-full`}
-                            value={reason}
-                            onChange={(e) => setReason(e.target.value)}
-                        />
-                        <div className="flex gap-2">
-                            <Button onClick={onVoid} disabled={busy || reason.trim() === ''}>
-                                {t('cod.voidButton')}
-                            </Button>
-                            <Button variant="outline" onClick={() => { setVoiding(false); setReason('') }}>
-                                {t('common.cancel')}
-                            </Button>
-                        </div>
-                    </div>
                 )}
 
                 {error && <p className="mt-3 text-sm text-red-700 whitespace-pre-line">{error}</p>}

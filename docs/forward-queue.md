@@ -3,7 +3,7 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25);APR-5 grilling 时 Tim 拆成 5a / 5b(Q14,2026-09-25),5a 交回时更新;5b 交回时更新(2026-09-25);APR-6 交回时更新(2026-09-25):**下一刀是注销、加工回滚与作废销毁证书三张申请(暂记 APR-7,名字归 Tim)**)
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25);APR-5 grilling 时 Tim 拆成 5a / 5b(Q14,2026-09-25),5a 交回时更新;5b 交回时更新(2026-09-25);APR-6 交回时更新(2026-09-25);APR-7 交回时更新(2026-09-26):**下一刀是 APR-8 —— 合同条款与定价公式**)
 > 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(`fa7821ab`)·
 >    **✅ AP-RECON-1 Batch B** —— 残留登记表 + 常设勾稽 + 月结那一行 + 严格相等的 fixture 213 + 那一分钱 +
 >    带税订单发票 + **三条日期规矩与 32 份 fixture 的日期挪回真实的过去**(Tim 2026-09-24:日期规矩属于 AP-RECON-1,
@@ -60,9 +60,14 @@
 >    日期过账;期间锁永远赢;职责分离认提单人;1100 / 2000 按名拒,贷银行准许并标出来;`reverse_journal_entry` 一张都不冲
 >    (有自己路径的指路,其余走冲销申请,一份判据 `journal_entry_reversal_route`)。两扇登记给 APR-6 的门关上
 >    (ROLE1B4A-PURCHASE-JOURNAL-FORGEABLE · PAYREQ1-MANUAL-JOURNAL-CREDITS-BANK)。没有新码。见 `docs/handbacks/APR-6.md`。
-> 12. **⬜ APR-7(暂记,名字归 Tim)← 下一刀** —— 仓库提、CFO 批的三件(`docs/role-matrix.md` 的三行 [LC]):**注销批次**(`action.batch_write_off`,
->    `soft_delete_inbound_batch` / `soft_delete_output_batch`)· **加工回滚**(`action.processing_rollback`,`rollback_processing_run`)·
->    **作废销毁证书**(`void_cod`,门 `action.issue_cod`)。三件今天都是仓库一步生效;形状照 APR-5a / APR-6 的申请 → 批准即执行。
+> 12. **✅ APR-7**(2026-09-26,名字是 Tim 的)—— 注销批次、加工回滚、作废销毁证书:仓库提,CFO 批每一张,批准之前什么都不发生。
+>    一张表 `warehouse_requests`(`write_off_inbound` · `write_off_output` · `rollback` · `cod_void`),批即生效(批准日、那一刻的价值);
+>    还有料或挂着已签发证书才经 CFO,空批一步删;在等的时候主体批次冻结(`WAREHOUSE_REQUEST_FREEZES_BATCH`),一个批次、它的证书、
+>    消耗它的加工单同一时刻只挂一张;`deleted_by` / `voided_by` = 提单人;已锁期间的回滚准许、CFO 先看见。旧门按名拒
+>    `WAREHOUSE_NEEDS_APPROVED_REQUEST`。迁移自证的"每一张在途单据都有决定人"扩到每一条申请链。没有新码。见 `docs/handbacks/APR-7.md`。
+> 13. **⬜ APR-8 ← 下一刀** —— **合同条款**与**定价公式**的审批(`docs/role-matrix.md` 的两行 [LC])。
+> 14. **⬜ APR-9** —— **调薪申请**与**资产处置**。
+> 15. **⬜ APR-10** —— **GST 申报的审批**与**采购单类别**。
 >    ☞ 版本号仍然不分配:**整条审批链一个版本号,在它收尾时公布**(Tim 的常设裁定)。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**

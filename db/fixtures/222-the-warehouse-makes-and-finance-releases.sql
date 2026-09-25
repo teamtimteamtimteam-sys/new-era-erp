@@ -33,6 +33,8 @@
 -- 自带数据(README 第 2 条);锁期与审批开关自己设(README 第 4 条)。
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- APR-7(2026-09-25):W2 / P4 的仓库一步注销 / 回滚现在按名拒 WAREHOUSE_NEEDS_APPROVED_REQUEST(申请的全程由 fixture 226 钉),
+--   随后以内层算子代替 CFO 的批准,后面的臂照旧用那几条记录的状态。
 BEGIN;
 SET LOCAL statement_timeout = '180s';
 
@@ -184,8 +186,13 @@ BEGIN
     IF v_msg <> 'PERMISSION_DENIED|action.batch_write_off' THEN
         RAISE EXCEPTION 'FIXTURE 222W1 失败:只持 output.edit 的人注销产出应当 PERMISSION_DENIED|action.batch_write_off,实得 %', v_msg; END IF;
     PERFORM pg_temp.f222_as(u_wh);
-    PERFORM soft_delete_inbound_batch(b_new, 'fixture 222 W2');
-    PERFORM soft_delete_output_batch(b_out, 'fixture 222 W2');
+    -- APR-7:还有料的批次不再一步注销 —— 仓库过了码的门,撞在"要经 CFO"上(申请的全程由 fixture 226 钉)。
+    --   这里以内层算子代替 CFO 的批准,deleted_by = 提单人(APR-7 grilling Q6),后面的臂照旧用这两批的状态。
+    v_msg := pg_temp.f222_try(format('SELECT soft_delete_inbound_batch(%L, %L)', b_new, 'fixture 222 W2'));
+    IF v_msg NOT LIKE 'WAREHOUSE_NEEDS_APPROVED_REQUEST|write_off_inbound|%' THEN
+        RAISE EXCEPTION 'FIXTURE 222W2 失败:仓库一步注销还有料的进料批应当按名拒 WAREHOUSE_NEEDS_APPROVED_REQUEST,实得 %', v_msg; END IF;
+    PERFORM soft_delete_inbound_batch_internal(b_new, 'fixture 222 W2', u_wh);
+    PERFORM soft_delete_output_batch_internal(b_out, 'fixture 222 W2', u_wh);
     IF (SELECT deleted_by FROM inbound_batches WHERE id = b_new) IS DISTINCT FROM u_wh
        OR (SELECT deleted_by FROM output_batches WHERE id = b_out) IS DISTINCT FROM u_wh THEN
         RAISE EXCEPTION 'FIXTURE 222W2 失败:仓库注销进料与产出批次应当照成,注销人是它自己'; END IF;
@@ -339,7 +346,11 @@ BEGIN
     IF v_msg <> 'PERMISSION_DENIED|action.processing_rollback' THEN
         RAISE EXCEPTION 'FIXTURE 222P4 失败:只持 processing.edit 的人回滚应当 PERMISSION_DENIED|action.processing_rollback,实得 %', v_msg; END IF;
     PERFORM pg_temp.f222_as(u_wh);
-    PERFORM rollback_processing_run(v_run, 'fixture 222 P4');
+    -- APR-7:回滚不再一步生效 —— 仓库过了码的门,撞在"要经 CFO"上;以内层算子代替批准。
+    v_msg := pg_temp.f222_try(format('SELECT rollback_processing_run(%L, %L)', v_run, 'fixture 222 P4'));
+    IF v_msg NOT LIKE 'WAREHOUSE_NEEDS_APPROVED_REQUEST|rollback|%' THEN
+        RAISE EXCEPTION 'FIXTURE 222P4 失败:仓库一步回滚应当按名拒 WAREHOUSE_NEEDS_APPROVED_REQUEST,实得 %', v_msg; END IF;
+    PERFORM rollback_processing_run_internal(v_run, 'fixture 222 P4', u_wh);
     IF (SELECT status FROM processing_runs WHERE id = v_run) <> 'reversed' THEN
         RAISE EXCEPTION 'FIXTURE 222P4 失败:仓库回滚应当照成'; END IF;
     PERFORM close_work_order(wo1, 'fixture 222 close');

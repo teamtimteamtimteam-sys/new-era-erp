@@ -18,6 +18,9 @@
 --   (module.finance.view:读得到凭证的人都看得见这一格;点进去由 decide_journal_request 裁谁能批)。
 --   item_id 是【申请】的 id —— 一张手工凭证在批准之前还没有分录,申请住在凭证列表页上(/finance/journal)。
 --   subject 是摘要 / 冲销理由(申请没有对手方)。
+-- ★ APR-7(2026-09-25):加一支 warehouse_request_pending —— 等 CFO 批的注销 / 回滚 / 证书作废申请
+--   (module.finance.view:与 decide_warehouse_request 的门同一个码;点进去由它裁谁能批)。item_id 是【申请】的 id ——
+--   申请住在库存页上(/inventory#wr-<id>);subject 是提单人的理由。
 --
 -- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
 -- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
@@ -633,6 +636,16 @@ CREATE VIEW public.operations_now AS
             jq.created_at::date AS item_date
            FROM journal_requests jq
           WHERE jq.status = 'submitted'::text
+        UNION ALL
+         SELECT 'warehouse_request_pending'::text AS item_type,
+            'module.finance.view'::text AS permission,
+            wq.id AS item_id,
+            NULL::text AS doc_kind,
+            wq.label AS item_code,
+            wq.reason AS subject,
+            wq.created_at::date AS item_date
+           FROM warehouse_requests wq
+          WHERE wq.status = 'submitted'::text
         UNION ALL
          SELECT 'shipping_release_ready'::text AS item_type,
             'action.ship_goods'::text AS permission,

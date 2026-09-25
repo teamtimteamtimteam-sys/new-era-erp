@@ -22,6 +22,8 @@
 -- 自带数据(README 第 2 条);期间锁、GST 开关自己设(第 4/5 条)。直接调引擎
 -- (record_payment_internal)—— 审批那一半归 fixture 210,本文件测的是算术。
 -- 【SET CONSTRAINTS ALL IMMEDIATE】末尾强制校验一次借贷平衡(fixture 104 / 208 同款)。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -286,7 +288,7 @@ BEGIN
     v_b_priced := (v_res->>'batch_id')::uuid;
     v_ok := false; v_msg := NULL;
     BEGIN
-        PERFORM soft_delete_inbound_batch(v_b_priced, 'fixture 212');
+        PERFORM soft_delete_inbound_batch_internal(v_b_priced, 'fixture 212');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_ok := (SQLERRM LIKE 'INBOUND_HAS_OPEN_PAYABLE|%|2100.00');
     END;
     IF NOT v_ok THEN
@@ -295,7 +297,7 @@ BEGIN
     v_res := create_inbound_batch(v_mat, v_s2, 14, 'kg', d, '待加工', NULL, 'fixture 212 bare',
         p_source_reason_code => 'other', p_source_reason_note => 'fixture 212 自带数据');
     v_b_bare := (v_res->>'batch_id')::uuid;
-    PERFORM soft_delete_inbound_batch(v_b_bare, 'fixture 212');   -- ★ 非空转:闸不是"一律拒"
+    PERFORM soft_delete_inbound_batch_internal(v_b_bare, 'fixture 212');   -- ★ 非空转:闸不是"一律拒"
 
     SET CONSTRAINTS ALL IMMEDIATE;
     RAISE NOTICE 'FIXTURE 212 全部通过:A 带税应付逐分等于总账并一次闭合 · A2 外币那一分钱 · B 上限扣定金 · C 代扣+税按名拒 · D 发票销项税是一项应收 · E 欠款的收货不许注销';

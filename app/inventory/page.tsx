@@ -24,6 +24,9 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { getBaseCurrency } from '@/lib/currency'
 import { Button } from '@/app/components/ui/button'
+import { can } from '@/lib/permissions'
+import { formatAuditStamp, formatDate } from '@/lib/dates'
+import WarehouseRequestsPanel, { type WarehouseRequestView } from './WarehouseRequestsPanel'
 
 // PROC-1:种类从 material_kinds 嵌进来,不再是物料上的一列自由文本
 type MaterialEmbed = { name: string; material_kinds: { name_en: string; name_zh: string } | null } | null
@@ -76,6 +79,54 @@ export default async function InventoryPage() {
     const baseCurrency = await getBaseCurrency()
 
     const todayYmd = new Date().toISOString().slice(0, 10)
+
+    // ── APR-7:等 CFO 批的注销 / 回滚 / 证书作废申请(页顶那一块)──────────────────────────
+    //   读 warehouse_requests_visible():在等的全部 + 最近了结的十张;金额按 data.view_prices 给
+    //   (NULL = 受限,画「受限」,不画 0.00)。snapshot 是提交时冻下来的那一组 —— CFO 读不到证书表。
+    const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
+    const [canSeeFinance, canPricesForRequests, holdsWriteOff, holdsRollback, holdsCod] = await Promise.all([
+        can('module.finance.view'), can('data.view_prices'),
+        can('action.batch_write_off'), can('action.processing_rollback'), can('action.issue_cod')])
+    type WrSnapshot = {
+        batch_code?: string; run_code?: string; cod_code?: string; material_code?: string; material_name?: string
+        supplier_name?: string; remaining_qty?: number; unit?: string; process_date?: string; locked_period?: boolean
+        locked_before?: string | null; outputs?: string[]; inputs?: string[]; cods_voided?: string[]
+    }
+    const wrRows = mustRows(await supabase.rpc('warehouse_requests_visible', { p_recent: 10 })) as {
+        id: string; kind: WarehouseRequestView['kind']; status: WarehouseRequestView['status']; label: string
+        reason: string; snapshot: WrSnapshot | null; amount_base: number | null; created_at: string
+        created_by_email: string | null; raised_by_me: boolean; decided_by_email: string | null
+        decision_notes: string | null; withdraw_reason: string | null
+    }[]
+    const wrViews: WarehouseRequestView[] = wrRows.map((r) => {
+        const s = r.snapshot ?? {}
+        return {
+            id: r.id, kind: r.kind, status: r.status, label: r.label,
+            subjectCode: s.batch_code ?? s.run_code ?? s.cod_code ?? '—',
+            reason: r.reason,
+            amountBase: r.amount_base,
+            materialText: s.material_name ? `${s.material_code ?? ''} ${s.material_name}`.trim() : null,
+            supplierText: s.supplier_name ?? null,
+            quantityText: s.remaining_qty !== undefined && s.remaining_qty !== null ? `${s.remaining_qty} ${s.unit ?? ''}`.trim() : null,
+            processDateText: s.process_date ? formatDate(s.process_date, dateLocale) : null,
+            lockedPeriod: !!s.locked_period,
+            outputs: s.outputs ?? [],
+            inputs: s.inputs ?? [],
+            codsVoided: r.kind === 'cod_void' ? [] : (s.cods_voided ?? []),
+            createdText: formatAuditStamp(r.created_at),
+            raisedBy: r.created_by_email,
+            raisedByMe: r.raised_by_me,
+            decidedBy: r.decided_by_email,
+            decisionNotes: r.decision_notes,
+            withdrawReason: r.withdraw_reason,
+        }
+    })
+    const wrLockedBefore = wrRows.map((r) => r.snapshot?.locked_before).find((d) => !!d) ?? null
+    const wrKindCodes = [
+        holdsWriteOff ? 'action.batch_write_off' : null,
+        holdsRollback ? 'action.processing_rollback' : null,
+        holdsCod ? 'action.issue_cod' : null,
+    ].filter((c): c is string => c !== null)
 
     const [inboundRes, outputRes, runsRes, legsRes, metalsRes, settingsRes, pricesRes, unpricedRes, materialsRes] = await Promise.all([
         // INV-VAL-1:估值读取器。【视图没有外键,所以物料名不能内嵌】——
@@ -307,6 +358,17 @@ export default async function InventoryPage() {
                     </Link>
                 </Button>
             </div>
+
+            {/* APR-7:等 CFO 批的注销 / 回滚 / 证书作废申请 */}
+            <WarehouseRequestsPanel
+                open={wrViews.filter((v) => v.status === 'submitted')}
+                history={wrViews.filter((v) => v.status !== 'submitted')}
+                canSeeFinance={canSeeFinance}
+                canViewPrices={canPricesForRequests}
+                kindCodesHeld={wrKindCodes}
+                baseCurrency={baseCurrency}
+                lockedBeforeText={wrLockedBefore ? formatDate(wrLockedBefore, dateLocale) : null}
+            />
 
             {/* 物料平衡 */}
             <section>

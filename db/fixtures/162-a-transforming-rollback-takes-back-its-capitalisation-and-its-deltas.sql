@@ -29,6 +29,8 @@
 -- 回滚,而一次销售必然动 remaining_qty。**够不到的东西不需要修,但需要被点名。**
 --
 -- 日期:自带。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -100,7 +102,7 @@ BEGIN
     END IF;
 
     -- ══════════ 回滚 ══════════
-    PERFORM rollback_processing_run(v_run, 'f162 回滚');
+    PERFORM rollback_processing_run_internal(v_run, 'f162 回滚');
 
     SELECT COALESCE(SUM(signed_base),0) INTO b1220
       FROM journal_activity_lines(NULL, NULL, true) WHERE account_code = '1220';
@@ -143,7 +145,7 @@ BEGIN
     IF v_base <> 250 THEN
         RAISE EXCEPTION 'FIXTURE 162E 前置失败:放电应把 250 资本化回投料批,实得 %', v_base;
     END IF;
-    PERFORM rollback_processing_run(v_run, 'f162 放电回滚');
+    PERFORM rollback_processing_run_internal(v_run, 'f162 放电回滚');
     SELECT COALESCE(SUM(signed_base),0) INTO b1200
       FROM journal_activity_lines(NULL, NULL, true) WHERE account_code = '1200';
     IF batch_processing_cost_base(v_ib) <> 0 THEN

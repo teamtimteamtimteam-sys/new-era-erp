@@ -19670,6 +19670,233 @@ export type Database = {
           },
         ]
       }
+      warehouse_requests: {
+        Row: {
+          amount_base: number
+          cod_id: string | null
+          created_at: string
+          created_by: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          executed_at: string | null
+          id: string
+          inbound_batch_id: string | null
+          kind: string
+          label: string
+          output_batch_id: string | null
+          reason: string
+          result_entry_ids: string[]
+          run_id: string | null
+          snapshot: Json
+          status: string
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          amount_base: number
+          cod_id?: string | null
+          created_at?: string
+          created_by: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          executed_at?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          kind: string
+          label: string
+          output_batch_id?: string | null
+          reason: string
+          result_entry_ids?: string[]
+          run_id?: string | null
+          snapshot: Json
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          amount_base?: number
+          cod_id?: string | null
+          created_at?: string
+          created_by?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          executed_at?: string | null
+          id?: string
+          inbound_batch_id?: string | null
+          kind?: string
+          label?: string
+          output_batch_id?: string | null
+          reason?: string
+          result_entry_ids?: string[]
+          run_id?: string | null
+          snapshot?: Json
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouse_requests_cod_id_fkey"
+            columns: ["cod_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_of_destruction"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waste_classifications: {
         Row: {
           code: string
@@ -28315,6 +28542,10 @@ export type Database = {
         Args: { p_inbound_batch_id: string }
         Returns: number
       }
+      batch_write_off_needs_request: {
+        Args: { p_inbound_batch_id: string; p_output_batch_id: string }
+        Returns: boolean
+      }
       calculate_leave_days: {
         Args: {
           p_end: string
@@ -28685,6 +28916,10 @@ export type Database = {
       }
       decide_shipping_release: {
         Args: { p_approve: boolean; p_notes?: string; p_release_id: string }
+        Returns: Json
+      }
+      decide_warehouse_request: {
+        Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
       }
       decline_quote: {
@@ -29860,6 +30095,10 @@ export type Database = {
         Args: { p_reason: string; p_run_id: string }
         Returns: undefined
       }
+      rollback_processing_run_internal: {
+        Args: { p_deleted_by?: string; p_reason: string; p_run_id: string }
+        Returns: undefined
+      }
       sale_settlement_compute: {
         Args: {
           p_assay_result_id: string
@@ -30163,8 +30402,16 @@ export type Database = {
         Args: { p_batch_id: string; p_reason: string }
         Returns: Json
       }
+      soft_delete_inbound_batch_internal: {
+        Args: { p_batch_id: string; p_deleted_by?: string; p_reason: string }
+        Returns: Json
+      }
       soft_delete_output_batch: {
         Args: { p_batch_id: string; p_reason: string }
+        Returns: Json
+      }
+      soft_delete_output_batch_internal: {
+        Args: { p_batch_id: string; p_deleted_by?: string; p_reason: string }
         Returns: Json
       }
       submit_bank_transfer_request: {
@@ -30181,6 +30428,10 @@ export type Database = {
       }
       submit_bank_transfer_reversal_request: {
         Args: { p_notes: string; p_transfer_id: string }
+        Returns: Json
+      }
+      submit_cod_void_request: {
+        Args: { p_cod_id: string; p_reason: string }
         Returns: Json
       }
       submit_credit_note_request: {
@@ -30201,6 +30452,10 @@ export type Database = {
           p_no_receipt_reason?: string
           p_spend_date: string
         }
+        Returns: Json
+      }
+      submit_inbound_write_off_request: {
+        Args: { p_batch_id: string; p_reason: string }
         Returns: Json
       }
       submit_invoice_void_request: {
@@ -30245,6 +30500,10 @@ export type Database = {
         }
         Returns: Json
       }
+      submit_output_write_off_request: {
+        Args: { p_batch_id: string; p_reason: string }
+        Returns: Json
+      }
       submit_payment_request: {
         Args: {
           p_allocations?: Json
@@ -30268,6 +30527,10 @@ export type Database = {
         Returns: Json
       }
       submit_review: { Args: { p_review_id: string }; Returns: Json }
+      submit_rollback_request: {
+        Args: { p_reason: string; p_run_id: string }
+        Returns: Json
+      }
       submit_shift_handover: {
         Args: {
           p_downtime_ids?: string[]
@@ -30383,7 +30646,12 @@ export type Database = {
       }
       void_cod: { Args: { p_cod_id: string; p_reason: string }; Returns: Json }
       void_cod_internal: {
-        Args: { p_cod_id: string; p_reason: string; p_replaced_by?: string }
+        Args: {
+          p_cod_id: string
+          p_reason: string
+          p_replaced_by?: string
+          p_voided_by?: string
+        }
         Returns: undefined
       }
       void_invoice: {
@@ -30405,6 +30673,64 @@ export type Database = {
       void_review: {
         Args: { p_reason: string; p_review_id: string }
         Returns: Json
+      }
+      warehouse_request_conflict: {
+        Args: { p_kind: string; p_subject: string }
+        Returns: string
+      }
+      warehouse_request_dry_run: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      warehouse_request_execute_internal: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      warehouse_request_freezing: {
+        Args: { p_inbound_batch_id: string; p_output_batch_id: string }
+        Returns: {
+          label: string
+          request_id: string
+        }[]
+      }
+      warehouse_request_snapshot: {
+        Args: { p_kind: string; p_subject: string }
+        Returns: Json
+      }
+      warehouse_request_submit_internal: {
+        Args: { p_kind: string; p_reason: string; p_subject: string }
+        Returns: Json
+      }
+      warehouse_request_touches: {
+        Args: { p_kind: string; p_subject: string }
+        Returns: {
+          id: string
+          t: string
+        }[]
+      }
+      warehouse_requests_visible: {
+        Args: { p_recent?: number }
+        Returns: {
+          amount_base: number
+          cod_id: string
+          created_at: string
+          created_by_email: string
+          decided_at: string
+          decided_by_email: string
+          decision_notes: string
+          id: string
+          inbound_batch_id: string
+          kind: string
+          label: string
+          output_batch_id: string
+          raised_by_me: boolean
+          reason: string
+          run_id: string
+          snapshot: Json
+          status: string
+          withdraw_reason: string
+          withdrawn_at: string
+        }[]
       }
       wht_rate_for: {
         Args: { p_date: string; p_nature: string }
@@ -30437,6 +30763,10 @@ export type Database = {
       }
       withdraw_shipping_release: {
         Args: { p_reason?: string; p_release_id: string }
+        Returns: Json
+      }
+      withdraw_warehouse_request: {
+        Args: { p_reason?: string; p_request_id: string }
         Returns: Json
       }
     }

@@ -28,6 +28,7 @@ import CertificatePanel, { type CertificatePanelData } from './CertificatePanel'
 import { localizeCodError } from '@/app/inbound/codErrorCodes'
 import { loadSourceReasons } from '@/app/inbound/sourceReasonQuery'
 import { can, canViewPrices, canViewPurchasePrices, receiptPricingGate } from '@/lib/permissions'
+import { openWarehouseRequestsByCode } from '@/lib/warehouseRequests'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { Refusal } from '@/app/components/ui/refusal'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
@@ -606,6 +607,10 @@ export default async function EditInboundPage({
     // 软删三处),所以这里【只读,不建】。没有行的时候要说得出【为什么还不能】,
     // 而那句话只有判据自己说了算 —— 于是问 cod_delivery_completion(),
     // 不在这一页把判据抄第二遍。抄一遍就是让同一件事有两处实现。
+    // APR-7:碰到这张证书或这票货的那一张在等的仓库申请(作废钮按不动、说出是哪一张)
+    const openWarehouseRequest = canIssueCod && await can('module.inventory.view')
+        ? await openWarehouseRequestsByCode(supabase)
+        : new Map<string, string>()
     let codPanel: CertificatePanelData = {
         codId: null, code: null, status: null, issuedAt: null,
         completedOn: null, verificationToken: null, voidReason: null,
@@ -939,7 +944,8 @@ export default async function EditInboundPage({
             {/* COD-1:销毁证书。它【自己成立】—— 整批加工完的那一刻就有了一行,
                 不等谁打开这个页面(refresh_cod_for_batch 挂在 commit / rollback /
                 软删三处)。这里只是把它显示出来,并给签发与作废两个动作。 */}
-            <CertificatePanel batchId={id} data={codPanel} canIssue={canIssueCod} />
+            <CertificatePanel batchId={id} data={codPanel} canIssue={canIssueCod}
+                openRequestLabel={(codPanel.code ? openWarehouseRequest.get(codPanel.code) : null) ?? openWarehouseRequest.get(batch.code) ?? null} />
 
             <StockStatusPanel inboundBatchId={id} unit={batch.unit} />
 

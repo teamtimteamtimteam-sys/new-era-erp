@@ -1,3 +1,12 @@
+-- db/functions/soft_delete_inbound_batch.sql
+-- APR-7(2026-09-25):注销进料批的那扇【一步】的门 —— 只剩空批(grilling Q1)。
+--   还有料、或挂着已签发销毁证书的批次 → 按名拒 WAREHOUSE_NEEDS_APPROVED_REQUEST|write_off_inbound|批号:
+--   它们走 submit_inbound_write_off_request,CFO 批准才生效。
+--   空批还要问一句:它有没有被一张在等的申请碰到(回滚的投料、证书作废)→ WAREHOUSE_REQUEST_OPEN。
+--   其余原样交给 soft_delete_inbound_batch_internal(理由必填、定价申请、欠款、证书刷新都在那里)。
+-- 门 action.batch_write_off(ROLE-1 Batch 3b)。
+-- NOTE: rewritten by db/migrations/2026-09-25-apr7-write-offs-rollbacks-and-cod-voids-wait-for-the-cfo.sql.
+
 CREATE OR REPLACE FUNCTION public.soft_delete_inbound_batch(p_batch_id uuid, p_reason text)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -5,71 +14,21 @@ CREATE OR REPLACE FUNCTION public.soft_delete_inbound_batch(p_batch_id uuid, p_r
  SET search_path TO 'public', 'pg_temp'
 AS $function$
 DECLARE
-    v_user uuid := auth.uid();
     v_code text;
-    v_open numeric;
+    v_open text;
 BEGIN
-    -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling Q9):注销批次归仓库 —— action.batch_write_off
-    --   (warehouse · admin),在注销申请(CFO 批)落地之前一个人做完。
     PERFORM require_permission('action.batch_write_off');
-    IF p_reason IS NULL OR btrim(p_reason) = '' THEN
-        -- 【理由必填,而且拒绝要按名】注销一批料是一次真实的物理事件
-        -- (它会写一条 writeoff 流水)。没有理由的注销,事后没有人答得出为什么。
-        RAISE EXCEPTION 'DELETE_REASON_REQUIRED|inbound_batches|%',
-            COALESCE((SELECT code FROM inbound_batches WHERE id = p_batch_id), '?');
-    END IF;
-
-    SELECT code INTO v_code FROM inbound_batches
-     WHERE id = p_batch_id AND deleted_at IS NULL FOR UPDATE;
+    SELECT code INTO v_code FROM inbound_batches WHERE id = p_batch_id AND deleted_at IS NULL;
     IF v_code IS NULL THEN
         RAISE EXCEPTION 'INBOUND_NOT_FOUND|%', COALESCE(p_batch_id::text, '?');
     END IF;
-
-    -- ★ ROLE-1 Batch 4b(Tim 的 Q5):挂着一张在等 CFO 的定价申请时不许注销 —— 先撤回或等它被决定。
-    --   guard_inbound_batch_price_request 在 UPDATE 上还有第二道。
-    IF receipt_price_open(p_batch_id) IS NOT NULL THEN
-        RAISE EXCEPTION 'RECEIPT_PRICE_REQUEST_OPEN|%|%', v_code, receipt_price_open(p_batch_id);
+    IF batch_write_off_needs_request(p_batch_id, NULL) THEN
+        RAISE EXCEPTION 'WAREHOUSE_NEEDS_APPROVED_REQUEST|write_off_inbound|%', v_code;
     END IF;
-
-    -- ════════════════════════════════════════════════════════════════════════
-    -- AP-RECON-1(Tim AP-RECON-0 Q2):【还欠着供应商钱的已计价批次,不许注销】
-    --   注销只写一条 writeoff 流水(借 5200 / 贷 1200)—— 存货拿走了,那笔计价分录记下的
-    --   【应付】却原样留在 2000 上。而每一个应付读者(ap_open_items、ap_aging_asof、
-    --   record_payment_internal)都过滤 deleted_at IS NULL:于是那笔债从清单上消失、
-    --   付款也核销不进去,只剩手工分录一条路。IN-2026-0154 的 4,032.00 就是这样来的
-    --   (测试数据,不修,记在 known-wrong-until-cutover)。
-    --   欠款 = 数量×单价 − 已过账付款的核销 − 预付冲抵 —— 与 ap_open_items 进料支同一条算术。
-    --   【读基表,不读 ap_open_items】本函数的门是 action.batch_write_off(ROLE-1 Batch 3b 之前是 inbound.edit);那张视图对没有
-    --   finance.view 的读者是 0 行,读它会让一个仓库账号的"欠款为 0"成为一句假话,于是放行。
-    -- ════════════════════════════════════════════════════════════════════════
-    SELECT round(round(ib.quantity * ib.unit_price, 2)
-                 - COALESCE((SELECT sum(pa.allocated_ccy)
-                               FROM payment_allocations pa
-                               JOIN payments p ON p.id = pa.payment_id AND p.status = 'posted'
-                              WHERE pa.inbound_batch_id = ib.id), 0)
-                 - COALESCE((SELECT sum(ppa.amount_base)
-                               FROM prepayment_applications ppa
-                              WHERE ppa.inbound_batch_id = ib.id), 0), 2)
-      INTO v_open
-      FROM inbound_batches ib
-     WHERE ib.id = p_batch_id AND ib.unit_price IS NOT NULL;
-    IF COALESCE(v_open, 0) > 0 THEN
-        RAISE EXCEPTION 'INBOUND_HAS_OPEN_PAYABLE|%|%', v_code, v_open
-          USING HINT = '这批货的计价还欠着供应商这笔钱(它在应付 2000 上)—— 注销会让它从应付清单上消失、再也付不进来。先付清,或先把价格更正过来;实物损失不是注销单据的理由';
+    v_open := warehouse_request_conflict('write_off_inbound', p_batch_id);
+    IF v_open IS NOT NULL THEN
+        RAISE EXCEPTION 'WAREHOUSE_REQUEST_OPEN|%|%', v_code, v_open;
     END IF;
-
-    PERFORM set_config('evoltrya.soft_delete_ctx', '1', true);
-    UPDATE inbound_batches
-       SET deleted_at = now(), deleted_by = v_user, delete_reason = btrim(p_reason),
-           updated_by = v_user, updated_at = now()
-     WHERE id = p_batch_id;
-    PERFORM set_config('evoltrya.soft_delete_ctx', '', true);
-
-    -- ── COD-1:注销掉的料【不是被处理掉的】────────────────────────────────
-    -- 实测:线上 11 张 remaining_qty = 0 的进料批里 8 张是这一类。
-    -- 一张已签发的证书在这里作废 —— 它说的是"我们处理了你的料",而这票货被报废了。
-    PERFORM refresh_cod_for_batch(p_batch_id);
-
-    RETURN jsonb_build_object('id', p_batch_id, 'code', v_code, 'deleted_by', v_user);
+    RETURN soft_delete_inbound_batch_internal(p_batch_id, p_reason, NULL);
 END;
 $function$;

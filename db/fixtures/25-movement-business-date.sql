@@ -15,6 +15,8 @@
 -- FIN-36:commit_processing_run 多了一个【必填】的分摊基准参数。
 -- 这里一律显式传 'metal_value' —— 那正是本 fixture 在 FIN-36 之前从 schema
 -- 默认值拿到的值,所以语义一字未变,只是不再有人替它做这个选择。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -100,7 +102,7 @@ BEGIN
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
     VALUES ('FIXT-IB25W', v_mat, v_sup, 50, 50, 'kg', v_arrival, 'other', 'fixture 25 自带数据') RETURNING id INTO v_ib2;
     -- AUDEL-1b:软删只能走门
-    PERFORM soft_delete_inbound_batch(v_ib2, 'fixture:AUDEL-1b 之后理由必填');
+    PERFORM soft_delete_inbound_batch_internal(v_ib2, 'fixture:AUDEL-1b 之后理由必填');
     SELECT business_date INTO v_bd FROM inventory_movements
     WHERE inbound_batch_id = v_ib2 AND movement_type = 'writeoff';
     IF v_bd IS DISTINCT FROM CURRENT_DATE THEN
@@ -153,7 +155,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 40)), 'metal_value', NULL, NULL, 'manual_disassembly');
     SELECT output_batch_id INTO v_ob2 FROM processing_outputs WHERE run_id = v_run2;
 
-    PERFORM rollback_processing_run(v_run2, 'fixture:AUDEL-1b 之后理由必填');
+    PERFORM rollback_processing_run_internal(v_run2, 'fixture:AUDEL-1b 之后理由必填');
 
     SELECT business_date INTO v_bd FROM inventory_movements
     WHERE inbound_batch_id = v_ib3 AND movement_type = 'reversal_restore';

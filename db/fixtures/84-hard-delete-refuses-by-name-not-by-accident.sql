@@ -27,6 +27,8 @@
 -- 守卫挡的是服务角色/属主这条路 —— 也就是 postgres 这条路。所以不切角色是对的,
 -- 而且是必须的:切成 authenticated 之后盘点那两臂会变成"0 行"而不是具名拒绝,
 -- 那测的就不是这个守卫了。批次与采购单两处策略仍在,两条路都到得了守卫。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -163,7 +165,7 @@ BEGIN
     -- 流水)。一个把 UPDATE 也挡掉的守卫会让"撤销"这件事没有任何合法做法,
     -- 而那时人只会去找别的路。
     -- AUDEL-1b:软删只能走门;这一臂要测的仍然是【硬删守卫不误伤软删】
-    PERFORM soft_delete_inbound_batch(ib_stocked, 'fixture:AUDEL-1b 之后理由必填');
+    PERFORM soft_delete_inbound_batch_internal(ib_stocked, 'fixture:AUDEL-1b 之后理由必填');
     GET DIAGNOSTICS n = ROW_COUNT;
     IF n <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 84G 失败:软删(UPDATE deleted_at)被守卫误伤了,影响 % 行', n;

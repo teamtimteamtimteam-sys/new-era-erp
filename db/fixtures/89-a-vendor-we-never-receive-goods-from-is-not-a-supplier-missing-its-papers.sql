@@ -19,6 +19,8 @@
 -- 【故障注入:每一处判据都是单层的】
 -- 收窄谓词、触发器、以及"只在换供应商时管 UPDATE"那一条,各自没有第二道闸。
 -- 注入记录在切次报告里,基线在任何注入之前先跑过。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -148,7 +150,7 @@ BEGIN
     UPDATE suppliers SET counterparty_type = 'service_vendor' WHERE id = sup_goods;
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM soft_delete_inbound_batch(b, '测试:供应商转为不供货之后,历史收货仍可注销');
+        PERFORM soft_delete_inbound_batch_internal(b, '测试:供应商转为不供货之后,历史收货仍可注销');
     EXCEPTION WHEN OTHERS THEN
         v_denied := true; v_msg := SQLERRM;
     END;

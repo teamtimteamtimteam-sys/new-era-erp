@@ -90,7 +90,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // APR-6(2026-09-25):233 → 234。新增 `journal_requests`(手工凭证与冲销的申请,财务提、CFO 批,批准当场过账),
 // 见 db/tables/journal_requests.sql。**它没有 code 列**(人读的名字是 label:manual journal #n / 分录编号 ·
 // reversal #n;过出来的分录才有 JE 编号),所以 EXPECTED_CODE_TABLES 不动。
-const EXPECTED_TABLES = 234
+// APR-7(2026-09-25):234 → 235。新增 `warehouse_requests`(注销批次、加工回滚、作废销毁证书的申请,仓库提、CFO 批,
+// 批准当场生效),见 db/tables/warehouse_requests.sql。它同样【没有 code 列】(人读的名字是 label:
+// 批号 / 单号 / 证书号 · write-off / rollback / void #n),与 journal_requests 同一条理由不进 document_types。
+const EXPECTED_TABLES = 235
 const EXPECTED_CODE_TABLES = 76
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

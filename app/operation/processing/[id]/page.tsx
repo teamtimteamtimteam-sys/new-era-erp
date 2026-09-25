@@ -13,6 +13,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { maskedRows, maskedExcept } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { canViewPrices, can } from '@/lib/permissions'
+import { openWarehouseRequestsByCode } from '@/lib/warehouseRequests'
 import { MaskedValue } from '@/app/components/MaskedValue'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
@@ -195,6 +196,10 @@ export default async function ProcessingDetailPage({
     const [canRollback, canAftercare] = await Promise.all([
         can('action.processing_rollback'), can('action.processing_aftercare')])
     const canEditLosses = canAftercare || canEditRun
+    // APR-7:一张在等 CFO 的回滚 / 注销 / 证书作废申请碰到这张单时,回滚钮按不动并说出是哪一张
+    const openWarehouseRequest = await can('module.inventory.view')
+        ? await openWarehouseRequestsByCode(supabase)
+        : new Map<string, string>()
     // ROLE-1:分摊归财务(allocate_processing_costs 的门是 module.finance.edit)
     const canAllocate = await can('module.finance.edit')
     const [lossCatRes, lossRowRes] = await Promise.all([
@@ -418,7 +423,7 @@ export default async function ProcessingDetailPage({
             title={t('processing.detailTitle')}
             // ★ 出口:删除这一单。转换前它画在 h1 右边的 justify-between 里 ——
             //   actions 是同一个位置,而且画在状态分支【之前】,空态吃不掉它。
-            actions={<DeleteButton runId={run.id} code={run.code} canRollback={canRollback} />}
+            actions={<DeleteButton runId={run.id} code={run.code} canRollback={canRollback} openRequestLabel={openWarehouseRequest.get(run.code) ?? null} />}
             // ★★ 详情页恒为 ok —— 这一单在不在由上面的 notFound() 回答。CONV-8 §⑤。
             state={{ kind: 'ok' }}
         >

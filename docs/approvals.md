@@ -1674,6 +1674,80 @@ its level-2 role. Fixture 205's own-document-gap count 8 → 9; fixture 111 has 
 door itself to refuse (`JOURNAL_THROUGH_FUNCTION_ONLY`, with a new JE-APPEND arm in an open period); five fixtures that reversed through
 the journal door now call `reverse_journal_entry_internal` (their subject is the reversal arithmetic); fixture 225 pins the lifecycle.
 
+## 3t · APR-7 (2026-09-26) — a write-off, a processing rollback and a COD void happen only when the CFO approves them
+
+Tim's matrix (`docs/role-matrix.md`: batch deletion · processing rollback · voiding a COD — warehouse requests, CFO approves, no
+threshold) replaces ROLE-1 Q10's interim, in which warehouse (and admin) did each of them in one step. The grilling (Q1–Q9) was
+accepted in full; `docs/handbacks/APR-7.md` has the cells.
+
+### What needs a request, and what does not (Q1)
+
+| subject | needs the CFO | one step, as before |
+|---|---|---|
+| inbound batch | stock left (priced **or** unpriced — stock moves either way), **or** an issued certificate of destruction the delete would void | empty, no issued certificate |
+| output batch | stock left | empty |
+| processing run | always | — |
+| certificate of destruction | always (only an issued one can be voided) | — |
+
+One judgement, `batch_write_off_needs_request`, read by the one-step doors, the submit and the two tables' buttons.
+
+### The lifecycle
+
+`warehouse_requests` — one table, four kinds (`write_off_inbound` · `write_off_output` · `rollback` · `cod_void`), exactly one subject
+column per kind (`kind_shape`, plus a `num_nonnulls = 1` twin the relation graph reads). `submitted → approved` (takes effect at once) ·
+`rejected` (reason required) · `withdrawn` (the raiser's person, or anyone holding that kind's code). Submit dry-runs the very path
+approval takes (`warehouse_request_dry_run`), so a still-owed payable, a live reservation, a moved output or a certificate that is no
+longer issued is refused at submit in the engine's own words. With approvals off a request is born approved and takes effect
+(`auto_approved`).
+
+* **Dated and valued on the approval day** (Q4): the write-off trigger already uses `deleted_at` and `CURRENT_DATE`. `amount_base` is
+  the dry-run's Σ debits at submit and the posted Σ debits after approval; an unpriced write-off and a certificate void are a true 0.
+* **`deleted_by` / `voided_by` = the raiser** (Q6). The CFO is on the request (`decided_by`) and in `approval_log`; entries the approval
+  posts carry the CFO as `created_by`. A certificate voided **automatically** by an approved write-off or rollback carries the approving
+  CFO (registered as part of APR7-AUTO-VOID-REASON-READS-AS-REVERSAL).
+* **Locked period** (Q5): a run dated inside a locked period may still be rolled back — value is reversed today, quantity on the run's
+  own date (FIN-32) — and the snapshot says so, together with the certificate numbers the rollback will void.
+
+### What is frozen while a request waits (Q3)
+
+* Every stock movement touching the subject batch — or any output of a run whose rollback waits — is refused
+  `WAREHOUSE_REQUEST_FREEZES_BATCH` (`guard_warehouse_request_freeze` on `inventory_movements`; one table, so no side door). A new price
+  request on a frozen receipt is refused by the same guard on `receipt_price_requests`. Only the execution of that very request passes
+  (`evoltrya.warehouse_request_ctx`).
+* A batch, its certificate and a run that consumes it carry at most **one** waiting request (`warehouse_request_touches` /
+  `warehouse_request_conflict` → `WAREHOUSE_REQUEST_OPEN`). Without it, a waiting void could be orphaned by an approved write-off or
+  rollback that voids the same certificate automatically, and would then block switching approvals off forever.
+
+### Doors (Q7)
+
+`rollback_processing_run` and `void_cod` do nothing any more — `WAREHOUSE_NEEDS_APPROVED_REQUEST|kind|code` (after their code check).
+`soft_delete_inbound_batch` / `soft_delete_output_batch` keep only the empty-batch case. The bodies moved to `*_internal`, and
+`void_cod_internal` gained `p_voided_by`; every internal is revoked from `authenticated`. Already closed and re-asserted: direct
+`deleted_at` (`guard_soft_delete_provenance`), direct run status (`guard_processing_direct_write`), certificate status (no write
+policy). The direct-movement probe: a `writeoff` movement inserted directly, or `remaining_qty` updated directly, each fails the deferred
+ledger invariant on its own — one PostgREST call is one table. **Named, not closed:** a stocktake counted to zero is a second way stock
+leaves, through the stocktake chain (APR7-STOCKTAKE-IS-A-SECOND-WRITE-OFF-PATH).
+
+### How it registers in the engine (Q8)
+
+| where | what |
+|---|---|
+| `approval_chain_gates()` | **one** row: `warehouse_request / decide_warehouse_request / level 2 / {module.finance.view, data.view_prices}` — the same pair for all four kinds |
+| `approval_pending_documents()` | an arm for `status = 'submitted'`: `blocks_disable = true`, `fixed_level = 2`, subject `NULL`, amount = the latest estimate |
+| `approval_log` | subject type `warehouse_request` (CHECK); `record_approval_decision` branch (raiser `created_by`, base currency, rate 1); RLS read branch on `module.finance.view` |
+| `assert_other_decider` | `WAREHOUSE_REQUEST_NO_OTHER_DECIDER` at submit (live: admin@ is refused — the same person as tim@) |
+| `operations_now` / reminders | `warehouse_request_pending` (`module.finance.view`), linking to `/inventory#wr-<id>` |
+| readers | the screen reads `warehouse_requests_visible()` (`module.inventory.view`; amount `NULL` without `data.view_prices`); the CFO reads the submit-time `snapshot`, never the certificate table |
+
+No new permission code. **Q9:** the migration's "every pending document has a decider who is not its own party" proof now asks
+`approval_deciders` document by document for every request chain (payment, payroll, receipt price, invoice, shipping release, journal,
+warehouse), not only "does this chain have anyone".
+
+☞ **Consequence for fixtures:** fixture 205's own-document-gap count 9 → 10; fixture 111 has 43 arms; fixture 103 needed the
+`num_nonnulls` twin; fixtures whose subject is the write-off / rollback / void arithmetic call the `*_internal` bodies (or, where
+approvals are off, the new submit doors, which take effect at once); fixtures 85 · 195 · 222 keep their door arms and now expect
+`WAREHOUSE_NEEDS_APPROVED_REQUEST` or the request path; fixture 226 pins the lifecycle (A–N, including the fault injection).
+
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
 **Found while building CHAIN-BUILD-1; folded into the same predicate.**

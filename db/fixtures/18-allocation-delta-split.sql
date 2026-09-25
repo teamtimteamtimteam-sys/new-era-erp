@@ -24,6 +24,8 @@
 -- FIN-36:commit_processing_run 多了一个【必填】的分摊基准参数。
 -- 这里一律显式传 'metal_value' —— 那正是本 fixture 在 FIN-36 之前从 schema
 -- 默认值拿到的值,所以语义一字未变,只是不再有人替它做这个选择。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -203,7 +205,7 @@ BEGIN
     -- = 40.5 → 5200。A:已售 80% → 12 → 5000,3 → 1220。
     -- 断言最新差额分录:5200 借 = 40.50。
     -- AUDEL-1b:软删只能走门(直连 UPDATE 被 guard_soft_delete_provenance 按名拒)
-    PERFORM soft_delete_output_batch(v_obB, 'fixture:AUDEL-1b 之后理由必填');
+    PERFORM soft_delete_output_batch_internal(v_obB, 'fixture:AUDEL-1b 之后理由必填');
     INSERT INTO processing_cost_entries (run_id, cost_type, amount_base, is_estimate, created_by)
     VALUES (v_run, 'electricity', 60, false, v_uid);
     PERFORM allocate_processing_costs(v_run, 'weight');

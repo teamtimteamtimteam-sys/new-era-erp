@@ -23,6 +23,8 @@
 -- 留在延迟,否则成对写入的第一条腿就会把合法操作打回来)。
 --
 -- 日期无关。自带数据(README 第 2 条)。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -156,7 +158,7 @@ BEGIN
 
     -- ══════════ F. 注销排空【所有】桶,含 on_hold ════════════════════════════
     -- AUDEL-1b:软删只能走门
-    PERFORM soft_delete_output_batch(ib, 'fixture:AUDEL-1b 之后理由必填');
+    PERFORM soft_delete_output_batch_internal(ib, 'fixture:AUDEL-1b 之后理由必填');
     SELECT COALESCE(sum(qty_delta),0) INTO v_held FROM inventory_movements
      WHERE output_batch_id = ib AND stock_status = 'on_hold';
     IF v_held <> 0 THEN
@@ -214,7 +216,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 57H 失败:跨两个桶的投料应当写出两行 consume,实际 %', v_n;
     END IF;
 
-    PERFORM rollback_processing_run(run1, 'fixture:AUDEL-1b 之后理由必填');
+    PERFORM rollback_processing_run_internal(run1, 'fixture:AUDEL-1b 之后理由必填');
 
     SELECT COALESCE(sum(qty_delta),0) INTO v_null_q FROM inventory_movements
      WHERE inbound_batch_id = ib AND location_id IS NULL AND stock_status = 'available';

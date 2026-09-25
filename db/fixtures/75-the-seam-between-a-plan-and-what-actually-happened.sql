@@ -29,6 +29,8 @@
 -- 原样定义在【任何注入之前】一次取齐 —— 见 fixture 74 那条同样的教训。
 -- 自带数据(README 第 2 条)。期间锁显式设 NULL(第 5 条)。
 -- ═══════════════════════════════════════════════════════════════════════════
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -397,7 +399,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 75D 前提不成立:冲销之前差异视图应当数到 70,实得 %', v_actual;
     END IF;
 
-    PERFORM rollback_processing_run(v_run2, 'fixture:AUDEL-1b 之后理由必填');
+    PERFORM rollback_processing_run_internal(v_run2, 'fixture:AUDEL-1b 之后理由必填');
 
     -- 冲销之后,四件事:
     -- ① 链接【留在那一行上】—— 那次加工确实是照这张工单做的,抹掉它是篡改历史
@@ -608,7 +610,7 @@ $g$, '');
         v_runx := commit_processing_run(d, 'f75 rev2 run', 0,
             jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ibx, 'quantity_consumed', 20)),
             jsonb_build_array(jsonb_build_object('material_id', v_matB, 'quantity', 18)), 'weight', woRev2, NULL, 'manual_disassembly');
-        PERFORM rollback_processing_run(v_runx, 'fixture:AUDEL-1b 之后理由必填');
+        PERFORM rollback_processing_run_internal(v_runx, 'fixture:AUDEL-1b 之后理由必填');
         -- 修好的版本:取消得掉(这是 D 臂已经验过的,这里只作注入的对照起点)
         IF (SELECT status FROM processing_runs WHERE id = v_runx) <> 'reversed' THEN
             RAISE EXCEPTION 'FIXTURE 75 注入2 前提不成立:那次加工应当已经是 reversed';

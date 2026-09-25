@@ -3,6 +3,46 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## APR7-LEGACY-RUNS-CANNOT-ROLL-BACK · 线上 10 张在册的加工单一张都回滚不了 —— 它们没有工序,而回滚要改那一行(APR-7 的线上证明量出来的,2026-09-26)
+
+`processing_runs_operation_type_required` 是一条 **NOT VALID** 的 CHECK(PROC-SUPPORT-1,`db/tables/processing_runs.sql:143`):
+它不检查既有行,却对【被改的行】生效。回滚要把那一行改成 `reversed`,于是一张没有工序的旧单在回滚那一刻撞上它 ——
+按约束原话拒:`new row for relation "processing_runs" violates check constraint "processing_runs_operation_type_required"`。
+**这不是 APR-7 造成的**:APR-7 之前的一步回滚撞的是同一条约束。APR-7 让它【提前】到提交那一刻(试跑),一行不落;屏幕上是
+共用兜底的那句话,原文进 detail。线上 2026-09-26 读(postgres,基表):10 张在册的加工单(PROC-2026-0001 · 0003 · 0009 ·
+0106 · 0107 · 0108 · 0162 · 0163 · 0164 · 0225)`operation_type_code` 全是 NULL —— 都是测试残留,约束的注释写明【永远不要
+猜一个工序回填】。APR-7 的线上证明因此只在【随整笔回滚】的事务里给 PROC-2026-0225 与 PROC-2026-0009 填了工序,才把回滚那条路
+走到底(`docs/handbacks/APR-7.md` §3 F0 / F0b)。新单(PROC-SUPPORT-1 之后建的)都有工序,不受影响。
+**删除条件:** Tim 裁定这些测试残留怎么处理(注销 / 在生产重建时消失),或回滚对没有工序的旧单按名拒并说出原因。
+
+## APR7-STOCKTAKE-IS-A-SECOND-WRITE-OFF-PATH · 盘点把一批数成 0,是另一条把库存拿走的路,它不经 CFO(APR-7 登记,2026-09-25)
+
+APR-7 起注销一批还有料的货要 CFO 批(`warehouse_requests`)。而盘点把同一批货数成 0 再过账,同样把库存拿走、同样过一张
+借 5200 类的分录(`post_stocktake`,按 `inbound_batch_landed_unit_cost_all` 计值)—— 它走的是盘点自己的链:仓库录数
+(`action.stocktake_count`)、财务过账(`action.stocktake_post`,开单人与录过数的每一个人都不算,ROLE-1 Batch 3a),
+**不经 CFO**。APR-7 grilling Q7 点了名、没有关:盘点是 Tim 的矩阵里另一行,它的四眼是财务,不是 CFO。
+线上 2026-09-26 读(postgres,基表):5 张开着的盘点单(ST-2026-0082…0086),0 行录数。
+**删除条件:** Tim 裁定盘点差异超过某个数(或全部)也要 CFO 批,或裁定维持现状并把这一条移进矩阵。
+
+## APR7-AUTO-VOID-REASON-READS-AS-REVERSAL · 注销一票货自动作废它的证书时,作废理由写的是"加工被冲销"(APR-7 登记,2026-09-25)
+
+`refresh_cod_for_batch` 在一票货不再"加工完"时作废它的已签发证书,理由一律写 `PROCESSING_REVERSED|<原因>`
+(`db/functions/refresh_cod_for_batch.sql:38`)。注销那一票货时原因是 `DELIVERY_WRITTEN_OFF`,于是证书上记的是
+`PROCESSING_REVERSED|DELIVERY_WRITTEN_OFF` —— 读起来像是加工被冲销了,而实际是货被注销了。公开核验页不显示理由,所以
+供应商看不到它;内部的证书面板显示。APR-7 起这一刻由 CFO 批准的注销或回滚引发,`voided_by` 是批准的 CFO(作废申请本身
+记提单人,grilling Q6)。线上今天 0 张因注销而作废的证书(2026-09-26,postgres,基表)。
+**删除条件:** 理由前缀按原因分开写(`BATCH_WRITTEN_OFF|…` 与 `PROCESSING_REVERSED|…`)。
+
+## APR7-OUTPUT-STATE-DIRECTLY-EDITABLE · 产出批的销售状态可以直连改,而回滚的"产出动过"判据读它(APR-7 登记,2026-09-25)
+
+`rollback_processing_run_internal` 以 `state <> '库存中' OR remaining_qty <> quantity` 判"产出动过"(`OUTPUT_CONSUMED`)。
+`remaining_qty` 由台账恒等式钉着,而 `state` 由 `output_batches` 的 UPDATE 策略(`module.output.edit`:admin · cco · cto ·
+finance · operations · sales · warehouse)直连就能改。改它不动库存,也不动价值;最坏的后果是一次回滚被错拒,或一张已售罄
+标记的批次被当成"没动过"—— 而后者仍会被 `remaining_qty` 那一半拦住(一次销售必然动它)。APR-7 的冻结只挡流水,不挡这一列。
+与 ROLE1B3B-PROCESSING-UPDATE-POLICIES 同一族(那一条还点名 `processing_outputs.unit_cost_base` 可直连改 —— 它决定产出批
+注销的价值,CFO 那一块看见的金额就是它)。
+**删除条件:** `output_batches.state` 只经函数改(与 `guard_processing_direct_write` 同形的一支守卫)。
+
 ## APR5B-CONTAINER-ATTACH-NOT-WAREHOUSE · 仓库发得了货,却挂不了集装箱(APR-5b 登记,2026-09-25)
 
 APR-5b 起发货归仓库(`action.ship_goods`),而把一张发货单挂到集装箱上、或从集装箱上摘下来,仍归
@@ -9558,5 +9598,7 @@ Tim 的裁定:**登记,不在本刀修**(问题是「库存科目要不要也只
 对冲销同样按名拒 `JE_MANUAL_CONTROL_ACCOUNT`;**唯一的例外是 `revaluation` 的冲销**:那条核对按 `source_type` 点名扣掉重估,
 冲销件抄原分录的 `source_type`,仍被点名,两边照样对得上。线上今天碰 1100 / 2000 且没有自己冲销路径的分录:`sale` 7 张(1100)、
 `prepayment` 2 张(2000)、`revaluation` 2 张(1100 与 2000 各 2)—— 2026-09-25 以 postgres 读基表(`journal_lines × accounts`)。
-**删除条件:** Tim 确认这条推论,或裁定 sale / prepayment 的错分录另有一条更正路径。
+**★ Tim 已接受这条推论(2026-09-25,随 APR-7 的委托书):** 1100 / 2000 的拒绝同样适用于冲销申请 —— 于是 `sale` 与
+`prepayment`(预付冲抵)这类系统分录今天【没有更正路径】,这一条就是它的登记。
+**删除条件:** sale / prepayment 的错分录有了一条自己的更正路径。
 

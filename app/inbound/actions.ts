@@ -3,7 +3,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from '@/lib/i18n/server'
-import { localizeDeletionError } from '@/app/components/inventory/deletionErrorCodes'
+// APR-7:一步删只剩空批;还有料 / 挂着已签发证书 → 库按名拒 WAREHOUSE_NEEDS_APPROVED_REQUEST(按钮本来就改成了提申请),
+// 那一族的译文在 warehouseRequestErrorCodes,其余照旧转交注销那一份。
+import { localizeWarehouseRequestError } from '@/app/components/inventory/warehouseRequestErrorCodes'
 
 // AUDEL-1b:理由【必填】,而【录入框是 AUDEL-2】。
 // 在那之前,界面传空串 → 数据库按名拒 → 屏幕上是一句看得懂的"请填写理由"。
@@ -24,7 +26,7 @@ export async function softDeleteInbound(id: string, reason: string = '') {
     })
 
     if (error) {
-        return { error: await localizeDeletionError(error.message) }
+        return { error: await localizeWarehouseRequestError(error.message) }
     }
 
     revalidatePath('/inbound')

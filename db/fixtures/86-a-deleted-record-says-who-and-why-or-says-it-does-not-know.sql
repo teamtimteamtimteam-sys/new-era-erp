@@ -15,6 +15,8 @@
 --
 -- 【本 fixture 以 postgres 跑】视图是属主权限 + 体内 has_permission(按 claims 解析,
 -- 与数据库角色无关),所以权限臂不切 SET LOCAL ROLE 也有效 —— 与 fixture 28 同一条。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -46,7 +48,7 @@ BEGIN
     VALUES ('FX86-IN-NEW', mat, sup, 10, 'kg', 10, '2026-05-01', 'other', 'fixture 86 自带数据') RETURNING id INTO ib_new;
     INSERT INTO inventory_movements (inbound_batch_id, movement_type, qty_delta, business_date)
     VALUES (ib_new, 'receipt', 10, '2026-05-01');
-    PERFORM soft_delete_inbound_batch(ib_new, '料受潮,整批报废');
+    PERFORM soft_delete_inbound_batch_internal(ib_new, '料受潮,整批报废');
 
     -- ── ② AUDEL-1b 【之前】那种行:deleted_at 有,两列为空 ───────────────────
     -- 【怎么造得出来,而且不用停任何触发器】守卫 guard_soft_delete_provenance 是
@@ -73,7 +75,7 @@ BEGIN
     VALUES ('FX86-OUT', mat, 3, 'kg', 3, '2026-05-01') RETURNING id INTO ob;
     INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, business_date)
     VALUES (ob, 'processing_produce', 3, '2026-05-01');
-    PERFORM soft_delete_output_batch(ob, '产出记错了');
+    PERFORM soft_delete_output_batch_internal(ob, '产出记错了');
 
     -- ══════════ A. 走门删的那一条:人与理由都在,而且【是会话里那个人】═══════
     SELECT * INTO rec FROM deleted_records d WHERE d.code = 'FX86-IN-NEW';

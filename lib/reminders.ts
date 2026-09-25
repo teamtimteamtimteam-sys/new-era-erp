@@ -255,6 +255,10 @@ export const REMINDERS = [
     //   申请住在凭证列表页顶上那一块(锚点 jr-<id>)。
     { itemType: 'journal_request_pending', permission: 'module.finance.view', href: '/finance/journal',
       itemHref: (r: OpsRow) => `/finance/journal#jr-${r.item_id}` },
+    // APR-7:等 CFO 批的注销 / 回滚 / 证书作废申请。门与 decide_warehouse_request 同一个码(module.finance.view);
+    //   谁能批由它在服务端裁。item_id 是【申请】的 id —— 申请住在库存页顶上那一块(锚点 wr-<id>)。
+    { itemType: 'warehouse_request_pending', permission: 'module.finance.view', href: '/inventory',
+      itemHref: (r: OpsRow) => `/inventory#wr-${r.item_id}` },
 ] as const satisfies readonly Reminder[]
 
 /**

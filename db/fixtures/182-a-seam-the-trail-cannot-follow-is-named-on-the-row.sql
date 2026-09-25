@@ -17,6 +17,8 @@
 -- 【故障注入】每一臂先证明那个标记【会随事实变化】—— 一个恒真的标记
 -- 与没有标记是同一种坏:它不再是一句关于这一行的断言。
 -- ═══════════════════════════════════════════════════════════════════════════
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -95,7 +97,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 182B 失败:加工单还没被软删就已经标了 run_voided —— 恒真的标记';
     END IF;
 
-    PERFORM rollback_processing_run(v_run, 'fixture 182 冲销这一支,好让接缝出现');
+    PERFORM rollback_processing_run_internal(v_run, 'fixture 182 冲销这一支,好让接缝出现');
     EXECUTE 'SET LOCAL ROLE authenticated';
     SELECT count(*) INTO n FROM batch_audit_trail
      WHERE batch_id = v_ib AND event_kind='run_input' AND 'run_voided' = ANY (seams);

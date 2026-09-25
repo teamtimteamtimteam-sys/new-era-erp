@@ -104,7 +104,7 @@ MD = `gm`(Vince,只读)。
 | 建收货单 · goods-receipt creation | 仓库 · warehouse | — | ✅ done(ROLE-1 Batch 3b,2026-09-25:`action.receive_goods` → 仓库与 admin,管 `create_inbound_batch` 与 `receive_inbound_batch_against_po`,先问它 —— 带价建单另要两个定价码,拒绝点名建单码(Batch 3b Q5);cco · cto · 财务交出建单;收货台、现场收货、采购单「按单收货」与加工页的入口看得见、按不动、说出码) |
 | 收货定价与改价 · receipt pricing and repricing | 财务 · finance | CFO | 做:✅ done(ROLE-1 Batch 4a,2026-09-25:`action.price_receipts` 只归财务(与 admin),定价面板、按已承诺条款改价与建单带价都要它 **加** `data.view_purchase_prices`,两个都在库里问;定价引擎 `reprice_inbound_batch` 自己再问后者 —— 所以应用化验也要看得见采购价;cco、cto、仓库从此定不了价。三扇侧门关上:`price_history` 不能直连插、`purchase` 分录不能从凭证页冲销(`JE_REVERSE_USE_SOURCE_PATH`)、引擎不能直调)· 批:✅ done(ROLE-1 Batch 4b,2026-09-25:四扇门 —— 定价面板、按已承诺条款改价、收货台带价、应用化验 —— 都只提一张 `receipt_price_requests`;CFO 批每一张(二级,门 `module.inbound.view` + `data.view_purchase_prices`),**批准当场过账**,记在批准日、按那天的牌价;驳回要理由;提单人本人或财务可撤回;等待期间供应商 / 采购单 / 采购行 / 含量 / 注销 / 第二张申请都按名拒,批准时指纹再比;低于已付按名拒;提单人之外没人批得动时提交就拒;化验来源的申请批准后才升 `final`;审批关着时生下来就批准并过账)|
 | 应用化验结果 · assay application | cto | — | ✅ done(ROLE-1 Batch 2b:`action.apply_assay` 管应用与撤销、进料与产出、连同两种试算;**记录**化验结果仍归 `inbound.edit` / `output.edit`;两扇侧门按名关 —— 直连写应用标记 `ASSAY_APPLY_THROUGH_FUNCTION_ONLY`、直连写出自化验的含量 `ASSAY_CONTENT_THROUGH_FUNCTION_ONLY`;「记录并应用」对无码者看得见、按不动。Tim 2026-09-23 确认:cto 应用化验,价随之重算并过应付 —— **ROLE-1 Batch 4b 起**:价随之重算并【提一张定价申请】,CFO 批了才过应付;`reprice_inbound_batch` 里嵌套的 `inbound.edit` 检查不拆,归 Batch 4)|
-| 删除批次(报废入口)· batch deletion, the write-off path | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10):✅ done(ROLE-1 Batch 3b,2026-09-25:`action.batch_write_off` → 仓库与 admin,管 `soft_delete_inbound_batch` 与 `soft_delete_output_batch`;两张表上的注销钮按码关上)· 批:[LC] |
+| 删除批次(报废入口)· batch deletion, the write-off path | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10):✅ done(ROLE-1 Batch 3b,2026-09-25:`action.batch_write_off` → 仓库与 admin,管 `soft_delete_inbound_batch` 与 `soft_delete_output_batch`;两张表上的注销钮按码关上)· 批:✅ done(APR-7,2026-09-26:`warehouse_requests` 的 `write_off_inbound` / `write_off_output` —— 仓库提 `submit_inbound_write_off_request` / `submit_output_write_off_request`,CFO 批每一张、不分档,**批即注销**(流水与分录落在批准日、按那一刻的价值);还有料(计价与否)或挂着已签发证书才经 CFO,空批仓库照旧一步删;`deleted_by` = 提单人;在等的时候那一批上任何流水按名拒 `WAREHOUSE_REQUEST_FREEZES_BATCH`;欠款提交时与批准时各查一遍;提单人之外没人批得动时提交就拒 `WAREHOUSE_REQUEST_NO_OTHER_DECIDER`;一步删还有料的批次按名拒 `WAREHOUSE_NEEDS_APPROVED_REQUEST`;没有新码) |
 | 盘点录数 · stocktake counting | 仓库 · warehouse | — | ✅ done(ROLE-1 Batch 3a,2026-09-25:`action.stocktake_count` → 仓库与 admin,管开单 `open_stocktake` 与录数 `record_stocktake_count`;每一次录数与重录连同录数的人追加进 `stocktake_counts`(只增不改,`counted_by` 由函数写);盘点三张表没有直连写(`STOCKTAKE_THROUGH_FUNCTION_ONLY`);取消仍归 `module.stocktakes.edit`)|
 | 盘点过账 · stocktake posting | 财务 · finance;**录过数的人永远不能过账**(系统先要记下谁数的)| — | ✅ done(ROLE-1 Batch 3a,2026-09-25:`action.stocktake_post` → 财务与 admin;开单人 `SELF_APPROVAL_FORBIDDEN\|raiser`,`stocktake_counts` 里每一个录过数的人 `STOCKTAKE_COUNTER_CANNOT_POST`,都按人认)|
 
@@ -114,7 +114,7 @@ MD = `gm`(Vince,只读)。
 |---|---|---|---|
 | 工单 · work orders | 仓库建 · created by warehouse | 财务下达 · released by finance | ✅ done(ROLE-1 Batch 3b,2026-09-25:`action.wo_create` → 仓库与 admin;`action.wo_release` → 财务与 admin,建单人永远不能下达(`SELF_APPROVAL_FORBIDDEN\|raiser`,按人认);改 / 取消 / 关闭 = `action.wo_create` 或 `module.processing.edit`(Q6);建单人之外没有真持有人持下达码时建单按名拒 `WO_NO_OTHER_RELEASER`(Batch 3b Q3);工单页的下达钮对建单人自己的账号说出理由(Q6);改一张已下达的工单不送回重新下达,登记 `ROLE1B3-AMEND-RELEASED-WO`) |
 | 加工提交 · processing commit | 仓库 · warehouse | — | ✅ done(ROLE-1 Batch 3b,2026-09-25:`action.processing_commit` → 仓库与 admin;仓库拿 `module.processing.view`、不拿 `module.materials.view`,建工单 · 提交加工 · 加工单详情三页改读 `material_lookup`(它的谓词加上 `module.processing.view`,Batch 3b Q4);加工三张表不许绕过函数写 —— runs / outputs 的 INSERT 与三张表的 DELETE 策略拿掉,直连插 / 删 / 改状态与改挂工单按名拒 `PROCESSING_THROUGH_FUNCTION_ONLY`(Q7 · Batch 3b Q1);损耗分类与交接班 = 新码 `action.processing_aftercare`(仓库与 admin)或 `module.processing.edit`(Batch 3b Q2);加工费用条目仍归 `module.processing.edit`) |
-| 加工回滚 · rollback | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10):✅ done(ROLE-1 Batch 3b,2026-09-25:`action.processing_rollback` → 仓库与 admin)· 批:[LC] |
+| 加工回滚 · rollback | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10):✅ done(ROLE-1 Batch 3b,2026-09-25:`action.processing_rollback` → 仓库与 admin)· 批:✅ done(APR-7,2026-09-26:`warehouse_requests` 的 `rollback` —— 仓库提 `submit_rollback_request`,CFO 批每一张,**批即回滚**;在等的时候它的产出批冻结;落在已锁期间里的单照旧准许,CFO 那一块先说出来,连同会被一并作废的证书号;`rollback_processing_run` 一张都不回滚,按名拒 `WAREHOUSE_NEEDS_APPROVED_REQUEST`;没有新码) |
 
 ## 10 · 销售 · Sales
 
@@ -130,7 +130,7 @@ MD = `gm`(Vince,只读)。
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
 | 签发销毁证书 · issuing a certificate of destruction | 仓库 · warehouse(资格由系统算)| 不批 · none | ✅ done(`action.issue_cod` 从 cto 与 admin 拿掉)|
-| 作废销毁证书 · voiding a COD | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10,今天已是 —— Batch 3 Step 0 复核:`void_cod` 门 `action.issue_cod`,持有人 admin · warehouse;Q9:不改)· 批:[LC] |
+| 作废销毁证书 · voiding a COD | 仓库提 · warehouse requests | CFO | 在生命周期之前只归仓库(Q10,今天已是 —— Batch 3 Step 0 复核:`void_cod` 门 `action.issue_cod`,持有人 admin · warehouse;Q9:不改)· 批:✅ done(APR-7,2026-09-26:`warehouse_requests` 的 `cod_void` —— 仓库提 `submit_cod_void_request`,CFO 批每一张,**批即作废**、没有替代品;在等的时候公开核验页仍然说有效;`voided_by` = 提单人;`void_cod` 一张都不作废,按名拒 `WAREHOUSE_NEEDS_APPROVED_REQUEST`;一个批次、它的证书、消耗它的加工单同一时刻只挂一张在等的申请;没有新码) |
 
 ## 12 · 主数据 · Master data
 
@@ -187,11 +187,11 @@ warehouse (B4 — ✅ ROLE-1 Batch 4a, 2026-09-25: receipt pricing was the last 
 | `action.stocktake_post` | 盘点过账;开单人与录过数的人永远不能过账(Batch 3a)| finance · admin |
 | `module.stocktakes.edit`(改义)| 从此只剩取消一张未过账的盘点单(Batch 3a;描述改写)| 不变(admin · cco · cto · finance · operations · warehouse)|
 | `action.receive_goods` | 建收货单(收货台与现场按单收货);带价另要 `action.price_receipts` + `data.view_purchase_prices`(Batch 3b)| warehouse · admin |
-| `action.batch_write_off` | 注销进料与产出批次(注销申请落地之前一个人做完)(Batch 3b)| warehouse · admin |
+| `action.batch_write_off` | 提注销申请(APR-7 起:还有料或挂着已签发证书的批次经 CFO;空批一步删)(Batch 3b · APR-7)| warehouse · admin |
 | `action.wo_create` | 建工单;改 / 取消 / 关闭也认它(或 `module.processing.edit`)(Batch 3b)| warehouse · admin |
 | `action.wo_release` | 下达工单;建单人永远不能下达(按人认)(Batch 3b)| finance · admin |
 | `action.processing_commit` | 提交加工(Batch 3b)| warehouse · admin |
-| `action.processing_rollback` | 回滚加工(回滚申请落地之前一个人做完)(Batch 3b)| warehouse · admin |
+| `action.processing_rollback` | 提回滚申请(APR-7 起经 CFO)(Batch 3b · APR-7)| warehouse · admin |
 | `action.processing_aftercare` | 加工损耗分类与交接班(或 `module.processing.edit`);加工费用条目不在内(Batch 3b)| warehouse · admin |
 | `action.request_shipping_release` | 提发货放行(与撤回任何一张在等的);批归 CFO,提单人永远不能批(APR-5b)| cco · admin |
 | `action.ship_goods` | 发货(`ship_order`)与开具送货单(`record_shipment_issue`);发货队列 `/logistics/shipping`,不带价格(APR-5b)| warehouse · admin |

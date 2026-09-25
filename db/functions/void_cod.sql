@@ -1,34 +1,20 @@
+-- db/functions/void_cod.sql
+-- APR-7(2026-09-25):旧的一步作废【一张都不作废】—— 按名拒 WAREHOUSE_NEEDS_APPROVED_REQUEST|cod_void|证书号。
+-- 作废走 submit_cod_void_request,CFO 批准才生效(Tim 的矩阵:仓库提,CFO 批每一张)。在等的时候,公开核验页
+-- 照旧说"有效" —— 那是真的,还没有东西生效。
+-- 作废本身仍是 void_cod_internal(字节档案与快照一个字不动)。
+-- 码先问(action.issue_cod):没有它的人得到的仍是 PERMISSION_DENIED,与之前一样。
+-- NOTE: rewritten by db/migrations/2026-09-25-apr7-write-offs-rollbacks-and-cod-voids-wait-for-the-cfo.sql.
+
 CREATE OR REPLACE FUNCTION public.void_cod(p_cod_id uuid, p_reason text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-DECLARE
-    v_cod record;
 BEGIN
-    IF NOT has_permission('action.issue_cod') THEN
-        RAISE EXCEPTION 'PERMISSION_DENIED';
-    END IF;
-
-    -- 【没有 p_reversal_date】证书不入账,没有期间可言。void_invoice 的第 8 条:
-    -- 一个用不上的参数要【拒绝】而不是收下再丢掉 —— 收下再丢掉是在对调用者撒谎。
-    -- 这里更进一步:那个参数压根不存在。
-    IF p_reason IS NULL OR btrim(p_reason) = '' THEN
-        RAISE EXCEPTION 'REASON_REQUIRED';
-    END IF;
-
-    SELECT c.id, c.code, c.status INTO v_cod
-      FROM certificates_of_destruction c WHERE c.id = p_cod_id FOR UPDATE;
-    IF NOT FOUND THEN
-        RAISE EXCEPTION 'COD_NOT_FOUND|%', COALESCE(p_cod_id::text, '?');
-    END IF;
-    -- 【只有已签发的才作废得掉,而且作废不是幂等的】与 INVOICE_ALREADY_VOID 同一条。
-    IF v_cod.status <> 'issued' THEN
-        RAISE EXCEPTION 'COD_NOT_ISSUED|%|%', COALESCE(v_cod.code, v_cod.id::text), v_cod.status;
-    END IF;
-
-    PERFORM void_cod_internal(p_cod_id, p_reason, NULL);
-    RETURN jsonb_build_object('cod_id', p_cod_id, 'code', v_cod.code, 'status', 'void');
+    PERFORM require_permission('action.issue_cod');
+    RAISE EXCEPTION 'WAREHOUSE_NEEDS_APPROVED_REQUEST|cod_void|%',
+        COALESCE((SELECT COALESCE(code, id::text) FROM certificates_of_destruction WHERE id = p_cod_id), '?');
 END;
 $function$;

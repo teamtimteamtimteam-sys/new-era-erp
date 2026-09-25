@@ -63,6 +63,10 @@ export type InboundTableRow = {
     hasUnappliedAssay: boolean
     /** ROLE-1 Batch 4b:在等 CFO 的那张定价申请的编号(没有 = null) */
     openPriceRequest: string | null
+    /** APR-7:注销要经 CFO(还有料,或挂着已签发证书) */
+    needsWriteOffRequest: boolean
+    /** APR-7:碰到这一批的那一张在等的仓库申请 */
+    openWarehouseRequest: string | null
     createdLabel: string
 }
 
@@ -159,6 +163,7 @@ export default function InboundTable({
             render: (b) => b.createdLabel,
         },
         { key: 'actions', header: t('inbound.colActions'), render: (b) => <DeleteButton id={b.id} code={b.code} canWriteOff={canWriteOff}
+            needsRequest={b.needsWriteOffRequest} openRequestLabel={b.openWarehouseRequest}
             lockedReason={b.openPriceRequest ? t('inbound.priceRequest.deleteLocked', { label: b.openPriceRequest }) : undefined} /> },
         {
             key: 'label', header: t('batchLabel.col'),

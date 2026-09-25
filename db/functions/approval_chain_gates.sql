@@ -116,6 +116,11 @@ AS $function$
         --    同样【只有二级这一行】。门与付款、贷项申请同一对码 —— module.finance.view + data.view_prices
         --    (凭证页的门,加上看得见金额的那个码);【不是】module.finance.edit:那是提单的码。
         ('journal_request'::text, 'decide_journal_request'::text, 2::smallint,
+            ARRAY['module.finance.view', 'data.view_prices']::text[]),
+        -- ★★ APR-7(Tim 的矩阵:注销批次、加工回滚、作废销毁证书 —— 仓库提,CFO 批每一张,不分档;批准当场生效):
+        --    同样【只有二级这一行】。门与付款、贷项、手工凭证申请同一对码 —— module.finance.view + data.view_prices
+        --    (grilling Q8,四种一个门);【不是】action.batch_write_off / processing_rollback / issue_cod:那是提单的码。
+        ('warehouse_request'::text, 'decide_warehouse_request'::text, 2::smallint,
             ARRAY['module.finance.view', 'data.view_prices']::text[])
       ) AS v(subject_type, action_function, level, gate_permissions)
 $function$;

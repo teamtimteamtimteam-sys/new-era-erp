@@ -19,15 +19,32 @@ import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { softDeleteInbound } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import WarehouseRequestButton from '@/app/components/inventory/WarehouseRequestButton'
 
 // ★ ROLE-1 Batch 4b:挂着一张在等 CFO 的定价申请时,注销看得见、按不动、说出为什么
 //   (库里 soft_delete_inbound_batch 与守卫同样按名拒 RECEIPT_PRICE_REQUEST_OPEN)。
 // ★ ROLE-1 Batch 3b:注销(软删)归 action.batch_write_off(仓库、管理员)。缺码时看得见、按不动、点名那个码;
 //   canWriteOff 由页面用 can() 算好传下来,本组件不自己查。
-export default function DeleteButton({ id, code, lockedReason, canWriteOff }: { id: string; code: string; lockedReason?: string; canWriteOff: boolean }) {
+// ★ APR-7(Tim 2026-09-25,grilling Q1):还有料、或挂着已签发销毁证书的批次,注销是【一张给 CFO 的申请】,
+//   批准之前什么都不发生(needsRequest,由页面按同一条判据算好);空批照旧一步删。
+//   一张在等的申请碰到这一批时(openRequestLabel),两种钮都看得见、按不动、说出是哪一张。
+export default function DeleteButton({ id, code, lockedReason, canWriteOff, needsRequest, openRequestLabel }: {
+    id: string; code: string; lockedReason?: string; canWriteOff: boolean; needsRequest: boolean; openRequestLabel?: string | null
+}) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState('')
+
+    if (needsRequest) {
+        return (
+            <span className="inline-flex flex-col items-start">
+                <WarehouseRequestButton kind="write_off_inbound" subjectId={id} subjectCode={code}
+                    permissionCode="action.batch_write_off" allowed={canWriteOff && !lockedReason}
+                    openRequestLabel={openRequestLabel} />
+                {lockedReason && <span className="mt-1 text-xs text-[color:var(--brand-muted-text)] max-w-56" data-state-note="delete-locked">{lockedReason}</span>}
+            </span>
+        )
+    }
 
     return (
         <span className="inline-flex flex-col items-start">
@@ -41,7 +58,7 @@ export default function DeleteButton({ id, code, lockedReason, canWriteOff }: { 
                 reason={{ placeholder: t('inbound.deleteReasonPlaceholder') }}
                 triggerVariant="destructive"
                 triggerSize="inline"
-                disabled={isPending || !!lockedReason}
+                disabled={isPending || !!lockedReason || !!openRequestLabel}
                 onConfirm={(reason) => {
                     setError('')
                     startTransition(async () => {
@@ -55,6 +72,7 @@ export default function DeleteButton({ id, code, lockedReason, canWriteOff }: { 
             </ConfirmButton>
             </PermissionGate>
             {lockedReason && <span className="mt-1 text-xs text-[color:var(--brand-muted-text)] max-w-56" data-state-note="delete-locked">{lockedReason}</span>}
+            {openRequestLabel && <span className="mt-1 text-xs text-[color:var(--brand-muted-text)] max-w-56" data-state-note="warehouse-request-open">{t('warehouseRequest.waiting', { label: openRequestLabel })}</span>}
             {error && <span className="mt-1 text-xs text-destructive-text">{error}</span>}
         </span>
     )

@@ -35,6 +35,8 @@
 -- 日期无关(不依赖假日表)。期间锁显式设成 NULL(README 第 5 条)。
 -- 自带数据(README 第 2 条)。
 -- ═══════════════════════════════════════════════════════════════════════════
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -363,7 +365,7 @@ BEGIN
     -- ══════════ F. 注销:有活预留就拒,释放之后【同一次注销通得过】════════════
     PERFORM reserve_stock(L2, ob5, 25);
     BEGIN
-        PERFORM soft_delete_output_batch(ob5, 'fixture:AUDEL-1b 之后理由必填');   -- AUDEL-1b:走门
+        PERFORM soft_delete_output_batch_internal(ob5, 'fixture:AUDEL-1b 之后理由必填');   -- AUDEL-1b:走门
         RAISE EXCEPTION 'FIXTURE 64F 失败:一批还许着人的货不该注销得了';
     EXCEPTION WHEN OTHERS THEN
         IF SQLERRM NOT LIKE 'SO_BATCH_HAS_RESERVATIONS%' THEN RAISE; END IF;
@@ -372,7 +374,7 @@ BEGIN
     PERFORM release_reservation(
         (SELECT id FROM sales_order_reservations WHERE output_batch_id = ob5 AND released_at IS NULL),
         NULL, 'batch scrapped');
-    PERFORM soft_delete_output_batch(ob5, 'fixture:AUDEL-1b 之后理由必填');   -- AUDEL-1b:走门
+    PERFORM soft_delete_output_batch_internal(ob5, 'fixture:AUDEL-1b 之后理由必填');   -- AUDEL-1b:走门
     SELECT remaining_qty FROM output_batches WHERE id = ob5 INTO v_rem;
     IF v_rem <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 64F 失败:释放之后注销应当照常排空,实得 remaining_qty=%', v_rem;

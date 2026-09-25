@@ -72,6 +72,10 @@ check still names by `source_type`.
 **A second, smaller one:** the reversal request refuses a blank reason with its own code (`JOURNAL_REVERSAL_REASON_REQUIRED`) —
 `REASON_REQUIRED` in the finance error family already reads "a reopen reason is required".
 
+**★ Both build decisions accepted by Tim (2026-09-25, with the APR-7 brief):** the 1100 / 2000 refusal also applies to reversal
+requests — so some system entries (sales, prepayment applications) have no correction path yet, which
+`docs/known-issues.md` § APR6-REVERSAL-OF-CONTROL-ACCOUNT-ENTRIES registers — and a blank reversal reason keeps its own code.
+
 **Screens (en / zh):**
 - `/finance/journal/new` — submits a request ("Submit for approval"), states that nothing posts until the CFO approves; 1100 / 2000 stay
   in the account list, disabled, labelled "posted only by its own documents"; the submit button is a `PermissionGate` on
@@ -168,7 +172,16 @@ No other door was registered as waiting for APR-6 (`docs/known-issues.md`, `docs
 ## §5 · The broken window — started, end PENDING
 
 **Start: 2026-09-25 22:23:51 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line reads
-22:21:37). **End: PENDING — Tim reads it from Vercel.**
+22:21:37). ~~**End: PENDING — Tim reads it from Vercel.**~~ **Closed with bounds (APR-7, 2026-09-26)** — Tim confirmed APR-6 pushed and
+deployed (2026-09-25); no Vercel timestamp was relayed:
+
+| | time (CST) | kind |
+|---|---|---|
+| start | 22:23:51 | **measured**: `db/migration-windows.tsv` |
+| end, lower bound | 23:25:10 | **measured**: the push moved `origin/main` → `272b6345` (`git reflog show --date=iso refs/remotes/origin/main`) — no deploy can precede it |
+| end, upper bound | 23:31:13 | **derived**: APR-7's first read of the database clock, `now()` as `postgres` (`rolbypassrls = t`), taken after Tim's "deployed" confirmation had arrived — **a relayed confirmation, not a measurement of Vercel** |
+
+**Window: at least 1 h 01 min 19 s, at most 1 h 07 min 22 s.**
 
 What the old app does against the new database (approvals ON):
 - **Posting a manual journal is refused for everyone.** The old "Post Entry" form calls `post_journal_entry`, which `authenticated`

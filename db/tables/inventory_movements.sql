@@ -149,6 +149,12 @@ CREATE CONSTRAINT TRIGGER trg_inventory_movements_no_negative_bucket
     AFTER INSERT ON public.inventory_movements
     DEFERRABLE INITIALLY DEFERRED
     FOR EACH ROW EXECUTE FUNCTION public.check_no_negative_bucket();
+--   * APR-7(grilling Q3):一张在等 CFO 的注销 / 回滚申请冻住它的批次 —— 写向那一批的任何流水按名拒
+--     WAREHOUSE_REQUEST_FREEZES_BATCH(守卫函数在 db/functions/guard_warehouse_request_freeze.sql)。
+--     只有执行那张申请本身放行。挂在流水上,因为动库存的函数有几十支,而流水只有这一张表。
+CREATE TRIGGER trg_inventory_movements_warehouse_request_freeze
+    BEFORE INSERT ON public.inventory_movements
+    FOR EACH ROW EXECUTE FUNCTION public.guard_warehouse_request_freeze();
 
 -- FIN-32:业务日 —— 每条写入路径都要写,而且写的是【记录里的那个日期】,不是时钟。
 -- 新行必填、老行放过:CHECK ... NOT VALID 对【新插入与更新】强制,不回头校验既有

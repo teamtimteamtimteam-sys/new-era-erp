@@ -77,7 +77,10 @@ CREATE TABLE public.approval_log (
                             'shipping_release',
                             -- APR-6:手工凭证与冲销的申请 —— CFO 批每一张,批准当场过账。
                             -- 被批的是【申请】(journal_requests),不是分录本身。
-                            'journal_request')),
+                            'journal_request',
+                            -- APR-7:仓库申请(注销批次 · 加工回滚 · 作废销毁证书)—— CFO 批每一张,批准当场生效。
+                            -- 被批的是【申请】(warehouse_requests),不是批次、加工单或证书本身。
+                            'warehouse_request')),
     subject_id          uuid NOT NULL,
     -- 人读的编号,冻结在当时 —— 单据可以改名/作废,留痕不跟着变
     subject_code        text,
@@ -250,6 +253,9 @@ CREATE POLICY "approval_log select by permission"
             -- ★ APR-6:手工凭证 / 冲销申请那一支 —— 与 journal_requests 自己的读策略同一个码。
             --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
             WHEN 'journal_request'    THEN has_permission('module.finance.view'::text)
+            -- ★ APR-7:仓库申请那一支 —— 与 warehouse_requests 自己的读策略同一个码。
+            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+            WHEN 'warehouse_request'  THEN has_permission('module.finance.view'::text)
             ELSE false
         END
     );

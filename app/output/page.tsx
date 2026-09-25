@@ -22,6 +22,7 @@ import {
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
 import { mustRows } from '@/lib/db-helpers'
+import { openWarehouseRequestsByCode } from '@/lib/warehouseRequests'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
@@ -193,6 +194,10 @@ export default async function OutputPage({
 
     // CONV-5:套 CONV-1 的两文件模板。
     // ★ Q7:排序仍是服务端的。★ state 恒为 'ok' —— OutputToolbar 是真实出口。
+    // APR-7:哪一张在等的仓库申请碰到了这一批(注销它自己的,或回滚它那张加工单的)
+    const openWarehouseRequest = await can('module.inventory.view')
+        ? await openWarehouseRequestsByCode(supabase)
+        : new Map<string, string>()
     const tableRows: OutputTableRow[] = (batches ?? []).map((b) => ({
         id: b.id,
         code: b.code,
@@ -200,6 +205,9 @@ export default async function OutputPage({
         customerName: b.customers?.legal_name ?? '—',
         quantity: `${b.quantity} ${b.unit}`,
         remaining: `${b.remaining_qty} ${b.unit}`,
+        // APR-7(grilling Q1):还有料 → 注销是一张给 CFO 的申请;空批一步删
+        needsWriteOffRequest: b.remaining_qty > 0,
+        openWarehouseRequest: openWarehouseRequest.get(b.code) ?? null,
         outputDate: formatDate(b.output_date, dateLocale) ?? '—',
         stateLabel: stateLabel(b.state),
         // PROC-WIRE-1A:用途角标的语言在服务端选好;可售的批次没有这个角标

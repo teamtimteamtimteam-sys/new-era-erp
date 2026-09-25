@@ -30,6 +30,8 @@
 --     落地成本变了而供应商应付不许变。
 --
 -- 日期:自带。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -99,7 +101,7 @@ BEGIN
     PERFORM record_payment_internal(p_direction := 'out', p_counterparty_id := v_sup,
         p_amount := 500, p_currency := v_ccy, p_payment_date := v_d,
         p_allocations := jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'amount_doc', 500)));
-    PERFORM soft_delete_inbound_batch(v_ib, 'f161 整批注销');
+    PERFORM soft_delete_inbound_batch_internal(v_ib, 'f161 整批注销');
     SELECT COALESCE(SUM(signed_base),0) INTO v_b
       FROM journal_activity_lines(NULL, NULL, true) WHERE account_code = '1200';
     IF v_b - v_0 <> 0 THEN
@@ -161,7 +163,7 @@ BEGIN
     PERFORM record_payment_internal(p_direction := 'out', p_counterparty_id := v_sup,
         p_amount := 500, p_currency := v_ccy, p_payment_date := v_d,
         p_allocations := jsonb_build_array(jsonb_build_object('inbound_batch_id', v_ib, 'amount_doc', 500)));
-    PERFORM soft_delete_inbound_batch(v_ib, 'f161 剩余注销');
+    PERFORM soft_delete_inbound_batch_internal(v_ib, 'f161 剩余注销');
     SELECT COALESCE(SUM(signed_base),0) INTO v_c
       FROM journal_activity_lines(NULL, NULL, true) WHERE account_code = '1200';
     IF (v_c - v_0) <> 0 THEN
@@ -231,7 +233,7 @@ BEGIN
             inbound_batch_landed_unit_cost(v_ib2);
     END IF;
 
-    PERFORM rollback_processing_run(v_run, 'f161 冲销');
+    PERFORM rollback_processing_run_internal(v_run, 'f161 冲销');
     IF inbound_batch_landed_unit_cost(v_ib2) <> 5.00 THEN
         RAISE EXCEPTION 'FIXTURE 161E 失败:一张被冲销的加工单的成本不该再计入落地成本,应回到 5.00(只剩采购价),实得 %',
             inbound_batch_landed_unit_cost(v_ib2);

@@ -759,6 +759,17 @@ const MANIFEST = {
     'finance.journalRequest.memo.':           { kind: 'enum', values: () => sqlEnum('db/tables/journal_requests.sql', 'kind') },
     'finance.journalRequest.approveConfirm.': { kind: 'enum', values: () => sqlEnum('db/tables/journal_requests.sql', 'kind') },
     'finance.journalRequest.approveBody.':    { kind: 'enum', values: () => sqlEnum('db/tables/journal_requests.sql', 'kind') },
+    // APR-7:注销 / 回滚 / 证书作废申请 —— 按种类的几组文案读表上的 kind,状态读 status,拒绝读码集合
+    'warehouseRequest.trigger.':           { kind: 'enum', values: () => sqlEnum('db/tables/warehouse_requests.sql', 'kind') },
+    'warehouseRequest.submitTitle.':       { kind: 'enum', values: () => sqlEnum('db/tables/warehouse_requests.sql', 'kind') },
+    'warehouseRequest.submitBody.':        { kind: 'enum', values: () => sqlEnum('db/tables/warehouse_requests.sql', 'kind') },
+    'warehouseRequest.reasonPlaceholder.': { kind: 'enum', values: () => sqlEnum('db/tables/warehouse_requests.sql', 'kind') },
+    'warehouseRequest.openTitle.':         { kind: 'enum', values: () => sqlEnum('db/tables/warehouse_requests.sql', 'kind') },
+    'warehouseRequest.subject.':           { kind: 'enum', values: () => sqlEnum('db/tables/warehouse_requests.sql', 'kind') },
+    'warehouseRequest.approveConfirm.':    { kind: 'enum', values: () => sqlEnum('db/tables/warehouse_requests.sql', 'kind') },
+    'warehouseRequest.approveBody.':       { kind: 'enum', values: () => sqlEnum('db/tables/warehouse_requests.sql', 'kind') },
+    'warehouseRequest.status.':            { kind: 'enum', values: () => sqlEnum('db/tables/warehouse_requests.sql', 'status') },
+    'warehouseRequest.errors.':            { kind: 'enum', values: () => tsSet('app/components/inventory/warehouseRequestErrorCodes.ts', 'WAREHOUSE_REQUEST_ERROR_CODES') },
     // APR-6:凭证页上冲销钮灰掉时的那一句,按 source_type 取。真源是 journal_entry_reversal_route 的函数体 ——
     //   它认作 'source_path' 的那组 source_type(IN 列表)加上 'payroll'(工资的过账分录另有一支判据)。
     //   函数里多认一种、这里就多要一句;解析出 0 个是"解析器坏了",不是"没有"。

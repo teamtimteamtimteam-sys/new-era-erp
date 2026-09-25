@@ -9,13 +9,25 @@ import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { softDeleteOutput } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import WarehouseRequestButton from '@/app/components/inventory/WarehouseRequestButton'
 
 // ★ ROLE-1 Batch 3b:注销(软删)归 action.batch_write_off(仓库、管理员);库里 soft_delete_output_batch 按码拒。
 //   canWriteOff 由页面用 can() 算好传下来 —— 缺码时看得见、按不动、点名那个码。
-export default function DeleteButton({ id, code, canWriteOff }: { id: string; code: string; canWriteOff: boolean }) {
+// ★ APR-7(Tim 2026-09-25,grilling Q1):还有料的产出批,注销是【一张给 CFO 的申请】;空批照旧一步删。
+//   一张在等的申请碰到这一批时(注销它自己的,或回滚它那张加工单的),两种钮都按不动、说出是哪一张。
+export default function DeleteButton({ id, code, canWriteOff, needsRequest, openRequestLabel }: {
+    id: string; code: string; canWriteOff: boolean; needsRequest: boolean; openRequestLabel?: string | null
+}) {
     const t = useTranslations()
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState('')
+
+    if (needsRequest) {
+        return (
+            <WarehouseRequestButton kind="write_off_output" subjectId={id} subjectCode={code}
+                permissionCode="action.batch_write_off" allowed={canWriteOff} openRequestLabel={openRequestLabel} />
+        )
+    }
 
     return (
         <span className="inline-flex flex-col items-start">
@@ -29,7 +41,7 @@ export default function DeleteButton({ id, code, canWriteOff }: { id: string; co
                 reason={{ placeholder: t('output.deleteReasonPlaceholder') }}
                 triggerVariant="destructive"
                 triggerSize="inline"
-                disabled={isPending}
+                disabled={isPending || !!openRequestLabel}
                 onConfirm={(reason) => {
                     setError('')
                     startTransition(async () => {
@@ -41,6 +53,7 @@ export default function DeleteButton({ id, code, canWriteOff }: { id: string; co
                 {isPending ? t('common.deleting') : t('common.delete')}
             </ConfirmButton>
             </PermissionGate>
+            {openRequestLabel && <span className="mt-1 text-xs text-[color:var(--brand-muted-text)] max-w-56" data-state-note="warehouse-request-open">{t('warehouseRequest.waiting', { label: openRequestLabel })}</span>}
             {error && <span className="mt-1 text-xs text-destructive-text">{error}</span>}
         </span>
     )

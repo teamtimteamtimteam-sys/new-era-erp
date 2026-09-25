@@ -14,6 +14,8 @@
 -- 【本 fixture 以 postgres 跑,而 auth.uid() 来自 request.jwt.claims】
 -- 门里的 deleted_by 取 auth.uid(),它按 claims 解析、与数据库角色无关 ——
 -- 所以"记下的人是不是会话里那个人"这一条断言在这里是真的,不是空转。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -50,7 +52,7 @@ BEGIN
 
     -- ══════════ A. 没有理由 → 按名拒(门里那一条)═══════════════════════════
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM soft_delete_inbound_batch(ib, '   ');   -- 全空白也算没给
+    BEGIN PERFORM soft_delete_inbound_batch_internal(ib, '   ');   -- 全空白也算没给
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'DELETE_REASON_REQUIRED|inbound_batches|FX85-IN%' THEN
         RAISE EXCEPTION 'FIXTURE 85A 失败:空白理由应报 DELETE_REASON_REQUIRED|inbound_batches|FX85-IN,实得 %',
@@ -62,7 +64,7 @@ BEGIN
     END IF;
 
     -- ══════════ B. 给了理由 → 两列都落下,而且【人是会话里那个人】═══════════
-    PERFORM soft_delete_inbound_batch(ib, '  录错了供应商,重新收货  ');
+    PERFORM soft_delete_inbound_batch_internal(ib, '  录错了供应商,重新收货  ');
     SELECT deleted_by, delete_reason INTO v_by, v_reason FROM inbound_batches WHERE id = ib;
     IF v_by IS DISTINCT FROM v_user THEN
         RAISE EXCEPTION 'FIXTURE 85B 失败:deleted_by 应当是会话里那个人(%),实得 % —— 一个记错了人的审计字段比没有更坏',
@@ -110,7 +112,7 @@ BEGIN
     END IF;
 
     -- ══════════ D. 门里走得通(同一张表,证明 C 拒的是【路】不是【表】)═══════
-    PERFORM soft_delete_output_batch(ob, '产出记错,回滚重做');
+    PERFORM soft_delete_output_batch_internal(ob, '产出记错,回滚重做');
     IF (SELECT delete_reason FROM output_batches WHERE id = ob) <> '产出记错,回滚重做' THEN
         RAISE EXCEPTION 'FIXTURE 85D 失败:门里的软删没有把理由写下来';
     END IF;
@@ -188,7 +190,7 @@ BEGIN
     INSERT INTO processing_outputs (run_id, output_batch_id, quantity_produced) VALUES (run, ob, 1);
 
     v_denied := false; v_msg := NULL;
-    BEGIN PERFORM rollback_processing_run(run, '   ');
+    BEGIN PERFORM rollback_processing_run_internal(run, '   ');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;
     IF NOT v_denied OR v_msg NOT LIKE 'ROLLBACK_REASON_REQUIRED|FX85-RUN%' THEN
         RAISE EXCEPTION 'FIXTURE 85G 失败:空理由应报 ROLLBACK_REASON_REQUIRED|FX85-RUN,实得 %',
@@ -199,7 +201,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 85G 失败:被拒之后加工单状态却已经变了';
     END IF;
 
-    PERFORM rollback_processing_run(run, '投入批次搞混了');
+    PERFORM rollback_processing_run_internal(run, '投入批次搞混了');
     SELECT delete_reason INTO v_reason FROM processing_runs WHERE id = run;
     IF v_reason <> '投入批次搞混了' THEN
         RAISE EXCEPTION 'FIXTURE 85G 失败:回滚的理由应记在加工单上,实得 %', COALESCE(v_reason, '(空)');

@@ -17,6 +17,10 @@ export type OutputTableRow = {
     customerName: string
     quantity: string
     remaining: string
+    /** APR-7:注销要经 CFO(还有料) */
+    needsWriteOffRequest: boolean
+    /** APR-7:碰到这一批的那一张在等的仓库申请 */
+    openWarehouseRequest: string | null
     outputDate: string
     stateLabel: string
     /**
@@ -88,7 +92,8 @@ export default function OutputTable({
             key: 'created_at', header: t('output.colCreated'), sortable: true,
             className: 'text-sm text-gray-600', render: (r) => r.createdLabel,
         },
-        { key: 'actions', header: t('output.colActions'), render: (r) => <DeleteButton id={r.id} code={r.code} canWriteOff={canWriteOff} /> },
+        { key: 'actions', header: t('output.colActions'), render: (r) => <DeleteButton id={r.id} code={r.code} canWriteOff={canWriteOff}
+            needsRequest={r.needsWriteOffRequest} openRequestLabel={r.openWarehouseRequest} /> },
         {
             key: 'label', header: t('batchLabel.col'),
             render: (r) => (

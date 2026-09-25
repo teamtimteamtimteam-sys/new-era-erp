@@ -28,6 +28,8 @@
 --      删是无条件的,插是有条件的 —— 这处不对称本身就是断言对象。
 --
 -- 日期:自带。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -123,7 +125,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 160F3 前置失败:第二炉应当留下一张资本化分录';
     END IF;
 
-    PERFORM rollback_processing_run(v_run2, 'f160 回滚第二炉');
+    PERFORM rollback_processing_run_internal(v_run2, 'f160 回滚第二炉');
 
     v_after := batch_processing_cost_base(v_ib);
     IF v_after <> 300 THEN

@@ -19,6 +19,7 @@ import {
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import StockWarningBanner from '@/app/components/inventory/StockWarningBanner'
 import { mustCount, mustRows } from '@/lib/db-helpers'
+import { openWarehouseRequestsByCode } from '@/lib/warehouseRequests'
 import { requireModule } from '@/app/components/moduleGuard'
 import { can } from '@/lib/permissions'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
@@ -182,6 +183,22 @@ export default async function InboundPage({
             openPriceRequestByBatch.set(r.inbound_batch_id, r.label)
         }
     }
+    // ── APR-7:注销要不要经 CFO(grilling Q1 —— 与库里 batch_write_off_needs_request 同一条判据:
+    //   还有料,或挂着一张【已签发】的销毁证书),以及哪一张在等的申请碰到了这一批。
+    //   证书表的读策略是 action.issue_cod;读不到的人(他们也不持注销的码)这一格按"没有证书"画,
+    //   库照样按名拒。
+    const issuedCodBatches = new Set<string>()
+    if ((batches ?? []).length > 0 && await can('action.issue_cod')) {
+        const codRes = await supabase
+            .from('certificates_of_destruction')
+            .select('inbound_batch_id')
+            .eq('status', 'issued')
+            .in('inbound_batch_id', (batches ?? []).map((b) => b.id))
+        for (const r of mustRows(codRes) as { inbound_batch_id: string }[]) issuedCodBatches.add(r.inbound_batch_id)
+    }
+    const openWarehouseRequest = await can('module.inventory.view')
+        ? await openWarehouseRequestsByCode(supabase)
+        : new Map<string, string>()
     const unappliedByBatch = new Set(
         (assayStatusRows ?? [])
             .filter((r) => r.has_unapplied_assay)
@@ -274,6 +291,8 @@ export default async function InboundPage({
             pricingStatus: b.pricing_status,
             hasUnappliedAssay: unappliedByBatch.has(b.id),
             openPriceRequest: openPriceRequestByBatch.get(b.id) ?? null,
+            needsWriteOffRequest: b.remaining_qty > 0 || issuedCodBatches.has(b.id),
+            openWarehouseRequest: openWarehouseRequest.get(b.code) ?? null,
             createdLabel: formatAuditStamp(b.created_at),
         }
     })

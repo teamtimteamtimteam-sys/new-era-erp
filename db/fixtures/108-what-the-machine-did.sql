@@ -20,6 +20,8 @@
 --    而不是只断言"有个过滤器"。
 -- F5 D3:停机。开口的一段表示得出来且读得回来;闭合的一段自己算出长度;
 --    倒着走的一段按名拒;同一台机器【第二段开口】被那条部分唯一索引拒。
+-- APR-7(2026-09-25):注销 / 回滚的一步门改成了 CFO 批的申请(docs/approvals.md §3t)。本支的主语是注销 / 回滚的
+--   算术,不是那扇门,所以改调函数体 *_internal(签名多一个可选的 p_deleted_by,不给 = 会话里那个人)。
 BEGIN;
 DO $$
 DECLARE
@@ -212,7 +214,7 @@ BEGIN
     IF v_n <> 1 OR v_kg <> 60 THEN
         RAISE EXCEPTION 'FIXTURE 108F4 前提失败:回滚【之前】应当是 1 炉 / 60 kg,实得 % / %', v_n, v_kg;
     END IF;
-    PERFORM rollback_processing_run(v_run, 'fixture 108 rollback');
+    PERFORM rollback_processing_run_internal(v_run, 'fixture 108 rollback');
     SELECT run_count, input_kg INTO v_n, v_kg2 FROM equipment_usage WHERE equipment_id = v_asset;
     IF v_n <> 0 OR v_kg2 <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 108F4 失败:回滚【之后】那一炉不该再算数(应 0 炉 / 0 kg),实得 % / % —— 判据是 status=''committed'' AND deleted_at IS NULL 两列一起看',
