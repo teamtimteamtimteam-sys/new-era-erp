@@ -92,20 +92,13 @@ CREATE POLICY "pricing_formulas select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.pricing.view'::text));
 
-CREATE POLICY "pricing_formulas insert by permission"
-    ON public.pricing_formulas
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.pricing.edit'::text));
+-- ★ APR-8(2026-09-26,grilling Q6):**写策略一条都不给**。原来的 insert / update / delete 三条开在
+--   module.pricing.edit 上,cco 一次保存就改掉了此后每一次报价 —— 现在公式只经函数写(SECURITY DEFINER):
+--   submit_formula_create_request · terms_request_execute_internal(CFO 批准)· deactivate_pricing_formula ·
+--   delete_pricing_formula。直连写由 trg_pricing_formulas_direct_write 按名拒(零行也拒)。
 
-CREATE POLICY "pricing_formulas update by permission"
-    ON public.pricing_formulas
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.pricing.edit'::text)) WITH CHECK (has_permission('module.pricing.edit'::text));
 
-CREATE POLICY "pricing_formulas delete by permission"
-    ON public.pricing_formulas
-    AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.pricing.edit'::text));
+
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 pricing_formulas_masked 读取。
@@ -127,3 +120,9 @@ COMMENT ON COLUMN public.pricing_formulas.price_index IS
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.pricing_formulas
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.pricing.edit');
+
+-- ★ APR-8(2026-09-26):任何直连写按名拒 PRICING_FORMULA_THROUGH_REQUEST_ONLY(语句级,零行也触发;属主路径放行)。
+--   排在 enforce_write_permission 之后(触发器按名字的顺序):不持码的人仍读到 PERMISSION_DENIED|module.pricing.edit。
+CREATE TRIGGER trg_pricing_formulas_direct_write
+    BEFORE INSERT OR UPDATE OR DELETE ON public.pricing_formulas
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_pricing_formula_direct_write();

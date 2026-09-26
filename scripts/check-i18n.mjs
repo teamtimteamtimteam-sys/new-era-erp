@@ -770,6 +770,18 @@ const MANIFEST = {
     'warehouseRequest.approveBody.':       { kind: 'enum', values: () => sqlEnum('db/tables/warehouse_requests.sql', 'kind') },
     'warehouseRequest.status.':            { kind: 'enum', values: () => sqlEnum('db/tables/warehouse_requests.sql', 'status') },
     'warehouseRequest.errors.':            { kind: 'enum', values: () => tsSet('app/components/inventory/warehouseRequestErrorCodes.ts', 'WAREHOUSE_REQUEST_ERROR_CODES') },
+    // APR-8:条款申请(公式 / 合同生效)—— 按种类的几组读表上的 kind,状态读 status,拒绝读码集合,
+    //   差别表的行名读 termsRequestsData.ts 里那两份 as const 清单,左列标题是那三种"之前"
+    'termsRequest.openTitle.':      { kind: 'enum', values: () => sqlEnum('db/tables/terms_requests.sql', 'kind') },
+    'termsRequest.subject.':        { kind: 'enum', values: () => sqlEnum('db/tables/terms_requests.sql', 'kind') },
+    'termsRequest.after.':          { kind: 'enum', values: () => sqlEnum('db/tables/terms_requests.sql', 'kind') },
+    'termsRequest.approveConfirm.': { kind: 'enum', values: () => sqlEnum('db/tables/terms_requests.sql', 'kind') },
+    'termsRequest.approveBody.':    { kind: 'enum', values: () => sqlEnum('db/tables/terms_requests.sql', 'kind') },
+    'termsRequest.status.':         { kind: 'enum', values: () => sqlEnum('db/tables/terms_requests.sql', 'status') },
+    'termsRequest.errors.':         { kind: 'enum', values: () => tsSet('app/components/pricing/termsRequestErrorCodes.ts', 'TERMS_REQUEST_ERROR_CODES') },
+    'termsRequest.field.':          { kind: 'enum', values: () => tsArray('app/components/pricing/termsRequestsData.ts', 'FORMULA_FIELDS') },
+    'termsRequest.section.':        { kind: 'enum', values: () => tsArray('app/components/pricing/termsRequestsData.ts', 'CONTRACT_SECTIONS') },
+    'termsRequest.before.':         { kind: 'enum', values: () => ['current', 'last_approved', 'none'] },
     // APR-6:凭证页上冲销钮灰掉时的那一句,按 source_type 取。真源是 journal_entry_reversal_route 的函数体 ——
     //   它认作 'source_path' 的那组 source_type(IN 列表)加上 'payroll'(工资的过账分录另有一支判据)。
     //   函数里多认一种、这里就多要一句;解析出 0 个是"解析器坏了",不是"没有"。

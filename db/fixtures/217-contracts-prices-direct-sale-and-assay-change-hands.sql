@@ -36,10 +36,13 @@ DECLARE
     u_cto   uuid := gen_random_uuid();   -- action.apply_assay · inbound.edit
     r_sup uuid; r_cco uuid; r_price uuid; r_fin uuid; r_cto uuid;
     v_sup uuid; v_mat uuid; v_b uuid; v_assay uuid; v_c uuid; v_c2 uuid; v_rec jsonb;
-    v_n integer; v_msg text; v_denied boolean; v_mp uuid;
+    v_n integer; v_msg text; v_denied boolean; v_mp uuid; v_res jsonb;
     rep jsonb := '{}'::jsonb;
 BEGIN
     UPDATE finance_settings SET locked_before = NULL, system_start_date = NULL;
+    -- APR-8:建公式经申请;审批关着 = 生下来就批准(本支测的是码,不是 CFO —— fixture 227 测 CFO)
+    PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);
+    UPDATE finance_settings SET approvals_enabled = false;
 
     -- ══════════════════════ 布景 ══════════════════════
     INSERT INTO auth.users (id, email_confirmed_at)
@@ -78,9 +81,11 @@ BEGIN
                                applied_at, applied_by)
     VALUES ('ZZFIX217-AR', v_b, CURRENT_DATE, true, 'as_received', 'ours', now(), u_cto) RETURNING id INTO v_assay;
     INSERT INTO assay_result_metals (assay_result_id, metal, content_pct) VALUES (v_assay, 'ni', 40);
-    -- 一份既有合同,属主路径建
+    -- 一份既有合同,属主路径建。
+    -- APR-8(2026-09-26):建成【草稿】—— 生效中的合同表头与条款从此冻结(CONTRACT_ACTIVE_IS_FROZEN /
+    --   CONTRACT_TERMS_FROZEN,fixture 227 钉它),而本支问的是【谁的码】写得了合同,不是生效后能不能改。
     INSERT INTO contracts (supplier_id, kind, title, effective_from, status)
-    VALUES (v_sup, 'supply', 'fixture 217 existing', CURRENT_DATE, 'active') RETURNING id INTO v_c;
+    VALUES (v_sup, 'supply', 'fixture 217 existing', CURRENT_DATE, 'draft') RETURNING id INTO v_c;
 
     -- ══════════════ A · 合同 ══════════════
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_sup), true);
@@ -143,9 +148,11 @@ BEGIN
     IF NOT v_denied OR v_msg <> 'PERMISSION_DENIED|action.metal_prices' THEN
         RAISE EXCEPTION 'FIXTURE 217B3 失败:只持 pricing.edit 的人改报价阈值该按名拒,实得 %',
             CASE WHEN v_denied THEN v_msg ELSE '(成功了,或静默零行)' END; END IF;
-    -- 公式仍归 pricing.edit
-    INSERT INTO pricing_formulas (code, name, direction, price_basis, treatment_charge_usd_per_tonne, flat_discount_pct)
-    VALUES ('ZZFIX217-PF1', 'fixture 217 formula by pricing.edit', 'purchase', 'spot', 0, 0);
+    -- 公式仍归 pricing.edit。
+    -- APR-8(2026-09-26):公式表没有直连写了 —— 建公式 = submit_formula_create_request(一张停用的公式 + 一张申请;
+    --   审批此刻关着,所以生下来就批准并启用)。本支问的仍是【谁的码】过得了那扇门。
+    v_res := submit_formula_create_request(
+        '{"name":"fixture 217 formula by pricing.edit","direction":"purchase","price_basis":"spot"}'::jsonb, 'fixture 217 B');
     EXECUTE 'RESET ROLE';
 
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_fin), true);
@@ -155,14 +162,15 @@ BEGIN
     UPDATE pricing_settings SET metal_quote_stale_days = metal_quote_stale_days;
     v_denied := false;
     BEGIN
-        INSERT INTO pricing_formulas (code, name, direction, price_basis, treatment_charge_usd_per_tonne, flat_discount_pct)
-        VALUES ('ZZFIX217-PF2', 'fixture 217 formula by metal_prices', 'purchase', 'spot', 0, 0);
-    EXCEPTION WHEN insufficient_privilege THEN v_denied := true; END;
+        PERFORM submit_formula_create_request(
+            '{"name":"fixture 217 formula by metal_prices","direction":"purchase","price_basis":"spot"}'::jsonb, 'fixture 217 B4');
+    EXCEPTION WHEN OTHERS THEN v_denied := (SQLERRM = 'PERMISSION_DENIED|module.pricing.edit'); v_msg := SQLERRM; END;
     EXECUTE 'RESET ROLE';
     IF NOT v_denied THEN
-        RAISE EXCEPTION 'FIXTURE 217B4 失败:只持 action.metal_prices 的人建得了定价公式 —— 公式该只归 pricing.edit'; END IF;
+        RAISE EXCEPTION 'FIXTURE 217B4 失败:只持 action.metal_prices 的人建得了定价公式 —— 公式该只归 pricing.edit,实得 %',
+            COALESCE(v_msg, '(成功了)'); END IF;
     IF v_mp IS NULL OR NOT EXISTS (SELECT 1 FROM metal_prices WHERE id = v_mp)
-       OR NOT EXISTS (SELECT 1 FROM pricing_formulas WHERE code = 'ZZFIX217-PF1') THEN
+       OR NOT EXISTS (SELECT 1 FROM pricing_formulas WHERE id = (v_res->>'formula_id')::uuid AND is_active) THEN
         RAISE EXCEPTION 'FIXTURE 217B5 失败:持 action.metal_prices 的行情 / 持 pricing.edit 的公式没有落地'; END IF;
     rep := rep || jsonb_build_object('B_metal_prices', 'ok');
 

@@ -91,6 +91,7 @@ module's own page.
 | 37 | `shipping_release_ready` | 一张订单有放行过、还没发完的行(APR-5b,5b grilling Q11:仓库的信号) | `action.ship_goods` —— 只有发货的人看得见(warehouse · admin);仓库进不了订单页 | `shipping_releases` × `shipping_release_lines` × `invoice_lines`(未作废)× `sales_orders` × `customers`;剩余读 `sales_order_line_releasable_all`(与发货队列、`ship_order` 同一处推导) | 订单 confirmed / partially_shipped、放行 approved、发票行未作废、放行数量 > 已发;发完、作废、订单取消之后自动消失。一张订单一行,`item_date` = 最近一次放行的日子 |
 | 38 | `journal_request_pending` | 一张手工凭证或冲销申请已提交、等 CFO 批(APR-6,Tim 的矩阵「手工凭证与冲销」;批准当场按冻结的日期过账) | `module.finance.view` —— 读得到凭证的人都看得见这一格;谁能批由 `decide_journal_request` 在服务端裁 | `journal_requests`(主语是摘要 / 冲销理由 —— 申请没有对手方) | `status = 'submitted'`;批准、驳回、撤回之后自动消失。`item_id` 是**申请**的 id(一张手工凭证在批准之前还没有分录;申请住在凭证列表页上)|
 | 39 | `warehouse_request_pending` | 一张注销批次、加工回滚或作废销毁证书的申请已提交、等 CFO 批(APR-7,Tim 的矩阵「删除批次 · 加工回滚 · 作废销毁证书 | 仓库提 | CFO」;批准当场生效) | `module.finance.view` —— 与 `decide_warehouse_request` 的门同一个码;谁能批由它在服务端裁 | `warehouse_requests`(主语是提单人的理由) | `status = 'submitted'`;批准、驳回、撤回之后自动消失。`item_id` 是**申请**的 id(申请住在库存页顶上那一块)|
+| 40 | `terms_request_pending` | 一张定价公式(新建 / 修改 / 重新启用)或合同生效的申请已提交、等 CFO 批(APR-8,Tim 的矩阵「合同条款 · 定价公式 | cco | CFO」;批准当场生效) | `module.pricing.view` —— 公式页的门;谁能批由 `decide_terms_request` 在服务端裁(五个门码,二级,不是提单人) | `terms_requests`(主语是提单人的理由) | `status = 'submitted'`;批准、驳回、撤回之后自动消失。`item_id` 是**申请**的 id;`doc_kind` = `formula` / `contract` 说它住在哪一页 |
 
 
 
@@ -313,6 +314,7 @@ because a valid uuid pointed at the wrong table opens someone else's document wi
 | `shipping_release_ready` | `/logistics/shipping` | **the queue, not the order** — the warehouse cannot open the order page (no `module.sales.view`), and the queue is where it ships |
 | `journal_request_pending` | `/finance/journal#jr-<id>` | the request itself — the requests panel at the top of the journal list carries each waiting request's lines, Approve / Reject (disabled with the reason for anyone without `data.view_prices`) and Withdraw |
 | `warehouse_request_pending` | `/inventory#wr-<id>` | the request itself — the requests panel at the top of the inventory page carries each waiting request's batch or run, the certificates it would void, the locked-period sentence, Approve / Reject (disabled with the reason for anyone without `module.finance.view` + `data.view_prices`) and Withdraw |
+| `terms_request_pending` | `/tools/pricing/formulas#tr-<id>` or `/contracts#tr-<id>` | by `doc_kind` — the requests panel on the formulas list (formula kinds) or the contracts page (activation) carries the side-by-side terms (in use → proposed; last approved → now), who would use them, Approve / Reject (disabled with the reason for anyone missing one of the five gate codes) and Withdraw |
 | `ap_over_90` | `/finance/payables/[id]` or `/finance/expenses/[id]` | by `doc_kind`; unknown kind → no link |
 | `fx_rate_gap` | `/finance/fx?currency=<ccy>` | **no row exists** — the subject is a missing rate. An honestly-filtered list, which is not the same thing as a code search |
 | `bank_unmatched` | `/finance/bank/statements/[id]/reconcile` | where matching happens |

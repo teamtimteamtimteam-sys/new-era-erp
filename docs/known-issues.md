@@ -3,17 +3,14 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
-## APR7-LEGACY-RUNS-CANNOT-ROLL-BACK · 线上 10 张在册的加工单一张都回滚不了 —— 它们没有工序,而回滚要改那一行(APR-7 的线上证明量出来的,2026-09-26)
+## APR8-NO-TERM-EDITOR · 合同的七张条款表没有编辑界面 —— 条款只能经 API 写(APR-8 登记,2026-09-26)
 
-`processing_runs_operation_type_required` 是一条 **NOT VALID** 的 CHECK(PROC-SUPPORT-1,`db/tables/processing_runs.sql:143`):
-它不检查既有行,却对【被改的行】生效。回滚要把那一行改成 `reversed`,于是一张没有工序的旧单在回滚那一刻撞上它 ——
-按约束原话拒:`new row for relation "processing_runs" violates check constraint "processing_runs_operation_type_required"`。
-**这不是 APR-7 造成的**:APR-7 之前的一步回滚撞的是同一条约束。APR-7 让它【提前】到提交那一刻(试跑),一行不落;屏幕上是
-共用兜底的那句话,原文进 detail。线上 2026-09-26 读(postgres,基表):10 张在册的加工单(PROC-2026-0001 · 0003 · 0009 ·
-0106 · 0107 · 0108 · 0162 · 0163 · 0164 · 0225)`operation_type_code` 全是 NULL —— 都是测试残留,约束的注释写明【永远不要
-猜一个工序回填】。APR-7 的线上证明因此只在【随整笔回滚】的事务里给 PROC-2026-0225 与 PROC-2026-0009 填了工序,才把回滚那条路
-走到底(`docs/handbacks/APR-7.md` §3 F0 / F0b)。新单(PROC-SUPPORT-1 之后建的)都有工序,不受影响。
-**删除条件:** Tim 裁定这些测试残留怎么处理(注销 / 在生产重建时消失),或回滚对没有工序的旧单按名拒并说出原因。
+APR-8 让合同生效要经 CFO,而 CFO 批的是【合同上此刻的条款】(表头 + 品位 · 保险 · 数量 · 计价 · 结算 · 精炼费 · 罚则七张表)。
+可是这七张表在应用里**一个编辑界面都没有**(`app/contracts` 只有列表、新建与今天加的生效 / 暂停),CONTRACT-1 起就是这样:
+cco(`action.contract_terms`)能按写策略直连写它们,但只能经 API。APR-8 grilling Q3:**本刀不建**(七张表的编辑器是它自己的一刀,
+会把 APR-8 撑出一个会话)。守卫已经就位:生效中或挂着在等的申请时,七张表按名拒 `CONTRACT_TERMS_FROZEN`;暂停着的照写。
+**Tim 2026-09-26:合同条款编辑器排在 APR-10 之后、同事试用之前**(`docs/forward-queue.md`)。
+**删除条件:** 那一刀落地 —— 七张条款表各有一个 cco 用的编辑界面,生效中的合同上它们按不动、说出理由。
 
 ## APR7-STOCKTAKE-IS-A-SECOND-WRITE-OFF-PATH · 盘点把一批数成 0,是另一条把库存拿走的路,它不经 CFO(APR-7 登记,2026-09-25)
 

@@ -32,6 +32,7 @@
   "messages/en.ts :: rate": 1,
   "messages/en.ts :: totalMarketValue": 1,
   "messages/en.ts :: treatment": 1,
+  "messages/en.ts :: treatment_charge_usd_per_tonne": 1,
   "messages/en.ts :: unitPrice": 1,
   "messages/zh.ts :: 1000": 1,
   "messages/zh.ts :: 1010": 1,

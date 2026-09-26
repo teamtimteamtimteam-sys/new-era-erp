@@ -313,8 +313,11 @@ BEGIN
     -- ★ ROLE-1 Batch 4b(2026-09-25):收货定价申请这条链的门是 module.inbound.view + data.view_purchase_prices
     --   (Tim 的 Q2),同一个理由一并给上 —— 否则 …|decide_receipt_price_request。
     -- ★ APR-5b(2026-09-25):发货放行这条链的门是 module.sales.view + data.view_prices —— 二级补上 module.sales.view,否则开不了审批。
+    -- ★ APR-8(2026-09-26):条款申请这条链的门另要 module.pricing.view + module.suppliers.view + module.customers.view
+    --   (decide_terms_request),同一个理由一并给上 —— 否则 …|decide_terms_request。
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay', 'module.inbound.view', 'data.view_purchase_prices', 'module.sales.view']) c
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay', 'module.inbound.view', 'data.view_purchase_prices', 'module.sales.view',
+                                                        'module.pricing.view', 'module.suppliers.view', 'module.customers.view']) c
      WHERE r.code = 'fx203-l2'
     ON CONFLICT (role_id, permission_code) DO NOTHING;
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_adm), true);

@@ -105,3 +105,10 @@ COMMENT ON COLUMN public.contract_grade_specs.max_pct IS
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.contract_grade_specs
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.contract_terms');
+
+-- ★ APR-8(2026-09-26,grilling Q2 · Q5):合同生效中、或挂着一张在等的生效申请时,本表任何直连写按名拒
+--   CONTRACT_TERMS_FROZEN|合同编号|active 或那一张申请。改条款 = 暂停、编辑、申请重新生效。属主路径放行。
+CREATE TRIGGER trg_contract_grade_specs_frozen
+    BEFORE INSERT OR UPDATE OR DELETE ON public.contract_grade_specs
+    FOR EACH ROW EXECUTE FUNCTION public.guard_contract_terms_frozen();
+

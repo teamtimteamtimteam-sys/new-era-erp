@@ -159,3 +159,12 @@ COMMENT ON COLUMN public.contracts.effective_to IS
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.contracts
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.contract_terms');
+
+-- ★ APR-8(2026-09-26,grilling Q2 · Q6):合同只有 active 有效力,进入 active 的每一条路都经 CFO
+--   (submit_contract_activation_request → decide_terms_request)。直连只许建草稿;挂着在等的申请时表头冻结;
+--   生效中的合同只许一步改成暂停 / 到期 / 终止。按名拒,行级;属主路径放行。函数在 db/functions/guard_contract_write.sql。
+--   名字排在 trg_contracts_code 之后(触发器按名字的顺序):拒绝那句话里已经有编号。
+CREATE TRIGGER trg_contracts_guard_write
+    BEFORE INSERT OR UPDATE ON public.contracts
+    FOR EACH ROW EXECUTE FUNCTION public.guard_contract_write();
+

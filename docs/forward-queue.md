@@ -3,7 +3,7 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25);APR-5 grilling 时 Tim 拆成 5a / 5b(Q14,2026-09-25),5a 交回时更新;5b 交回时更新(2026-09-25);APR-6 交回时更新(2026-09-25);APR-7 交回时更新(2026-09-26):**下一刀是 APR-8 —— 合同条款与定价公式**)
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25);APR-5 grilling 时 Tim 拆成 5a / 5b(Q14,2026-09-25),5a 交回时更新;5b 交回时更新(2026-09-25);APR-6 交回时更新(2026-09-25);APR-7 交回时更新(2026-09-26);APR-8 交回时更新(2026-09-26):**下一刀是 APR-9 —— 调薪申请与资产处置**)
 > 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(`fa7821ab`)·
 >    **✅ AP-RECON-1 Batch B** —— 残留登记表 + 常设勾稽 + 月结那一行 + 严格相等的 fixture 213 + 那一分钱 +
 >    带税订单发票 + **三条日期规矩与 32 份 fixture 的日期挪回真实的过去**(Tim 2026-09-24:日期规矩属于 AP-RECON-1,
@@ -65,9 +65,16 @@
 >    还有料或挂着已签发证书才经 CFO,空批一步删;在等的时候主体批次冻结(`WAREHOUSE_REQUEST_FREEZES_BATCH`),一个批次、它的证书、
 >    消耗它的加工单同一时刻只挂一张;`deleted_by` / `voided_by` = 提单人;已锁期间的回滚准许、CFO 先看见。旧门按名拒
 >    `WAREHOUSE_NEEDS_APPROVED_REQUEST`。迁移自证的"每一张在途单据都有决定人"扩到每一条申请链。没有新码。见 `docs/handbacks/APR-7.md`。
-> 13. **⬜ APR-8 ← 下一刀** —— **合同条款**与**定价公式**的审批(`docs/role-matrix.md` 的两行 [LC])。
-> 14. **⬜ APR-9** —— **调薪申请**与**资产处置**。
+> 13. **✅ APR-8**(2026-09-26)—— 合同条款与定价公式:cco 提,CFO 批每一张,批准之前什么都不生效。一张表 `terms_requests`
+>    (`formula_create` · `formula_change` · `formula_reactivate` · `contract_activate`),批即生效。公式:新公式生下来停用;改在用的 =
+>    完整拟议条款、批准时就地替换(旧条款在等待中照旧生效,已承诺的单据读副本不受影响);停用 / 删除仍是 cco 一步;公式两张表
+>    没有直连写(`PRICING_FORMULA_THROUGH_REQUEST_ONLY`)。合同:只有 active 有效力,进入 active 都经 CFO;生效中表头与七张条款表冻结,
+>    改 = 暂停 → 编辑 → 再申请(CFO 看见与上一次批准时的差别);新合同只建得出草稿。批准时 fingerprint 再比。没有新码。
+>    见 `docs/handbacks/APR-8.md`。
+> 14. **⬜ APR-9 ← 下一刀** —— **调薪申请**与**资产处置**。
 > 15. **⬜ APR-10** —— **GST 申报的审批**与**采购单类别**。
+> 16. **⬜ 合同条款编辑器**(Tim 2026-09-26,APR-8 grilling Q3:**排在 APR-10 之后、同事试用之前**)—— 七张条款表各有一个 cco 用的
+>    编辑界面;生效中的合同上它们按不动、说出理由(守卫 `CONTRACT_TERMS_FROZEN` 已在)。关 `docs/known-issues.md` § APR8-NO-TERM-EDITOR。
 >    ☞ 版本号仍然不分配:**整条审批链一个版本号,在它收尾时公布**(Tim 的常设裁定)。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**

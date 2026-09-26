@@ -171,7 +171,19 @@ zero (APR7-STOCKTAKE-IS-A-SECOND-WRITE-OFF-PATH).
 ## §6 · The broken window — started, end PENDING
 
 **Start: 2026-09-26 00:54:32 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line reads
-00:51:34). **End: PENDING — Tim reads it from Vercel.**
+00:51:34). ~~**End: PENDING — Tim reads it from Vercel.**~~
+**Closed with bounds (APR-8, 2026-09-26; Tim confirmed the deploy and had no Vercel "Ready" time to add):**
+
+| | time (CST) | kind |
+|---|---|---|
+| start | 2026-09-26 00:54:32 | **measured**: `db/migration-windows.tsv` |
+| end, lower bound | 01:44:23 | **measured**: the push moved `origin/main` → `0091c727` (`git reflog show --date=iso refs/remotes/origin/main`) |
+| end, upper bound | 21:47:24 | **derived**: APR-8's first read of `now()` as `postgres` (`rolbypassrls = t`), taken after Tim's "deployed" confirmation — **a relayed confirmation, not a measurement of Vercel** |
+
+**Window: at least 49 min 51 s, at most 20 h 52 min 52 s.** These are bounds, not a measurement; the upper one is wide because no
+Vercel time exists for it.
+**APR7-LEGACY-RUNS-CANNOT-ROLL-BACK — Tim's ruling (2026-09-26): accepted as test data**, recorded in
+`docs/known-wrong-until-cutover.md`.
 
 What the old app does against the new database (approvals ON):
 - **Writing off a batch with stock or an issued certificate is refused for everyone** — the old Delete buttons on `/inbound` and

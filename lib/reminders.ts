@@ -259,6 +259,10 @@ export const REMINDERS = [
     //   谁能批由它在服务端裁。item_id 是【申请】的 id —— 申请住在库存页顶上那一块(锚点 wr-<id>)。
     { itemType: 'warehouse_request_pending', permission: 'module.finance.view', href: '/inventory',
       itemHref: (r: OpsRow) => `/inventory#wr-${r.item_id}` },
+    // APR-8:等 CFO 批的定价公式 / 合同生效申请。门是公式页的码(module.pricing.view);谁能批由
+    //   decide_terms_request 在服务端裁。item_id 是【申请】的 id;doc_kind 说它住在哪一页(锚点 tr-<id>)。
+    { itemType: 'terms_request_pending', permission: 'module.pricing.view', href: '/tools/pricing/formulas',
+      itemHref: (r: OpsRow) => r.doc_kind === 'contract' ? `/contracts#tr-${r.item_id}` : `/tools/pricing/formulas#tr-${r.item_id}` },
 ] as const satisfies readonly Reminder[]
 
 /**

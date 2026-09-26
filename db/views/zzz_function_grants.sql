@@ -492,3 +492,20 @@ REVOKE EXECUTE ON FUNCTION public.warehouse_request_snapshot(text, uuid) FROM au
 --   warehouse_requests_visible 与批次行自己的数读同一件事,不需要它们。
 REVOKE EXECUTE ON FUNCTION public.warehouse_request_conflict(text, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.batch_write_off_needs_request(uuid, uuid) FROM authenticated;
+
+-- APR-8(2026-09-26):**合同条款与定价公式的生效换成了一张申请**(cco 提,CFO 批)。
+--   terms_request_submit_internal —— 四扇提交的门各问完自己的码才落进来。
+--   terms_request_execute_internal —— 生效本身(把条款写进公式并启用 / 把合同改成 active);只从批准、审批关着时的
+--     提交与试跑里调用。留着 EXECUTE,任何登录用户都能不经 CFO 让一张公式或一份合同生效 —— 那正是本刀要关的门。
+--   terms_request_dry_run —— 只从提交里调用。
+--   terms_request_snapshot / terms_request_fingerprint / formula_terms_state / contract_terms_state —— 会把公式的
+--     费率与比例、合同的条款交给任何登录用户(公式表的费率列本来只经遮蔽视图读)。**这几支没有调用者检查,靠的就是调不到。**
+--   contract_terms_lock_reason 【留着】:两支合同守卫以调用者身份问它;它只说出 active 或那一张在等申请的 label。
+REVOKE EXECUTE ON FUNCTION public.terms_request_submit_internal(text, uuid, jsonb, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.terms_request_execute_internal(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.terms_request_dry_run(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.terms_request_snapshot(text, uuid, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.terms_request_fingerprint(text, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.formula_terms_state(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.contract_terms_state(uuid) FROM authenticated;
+

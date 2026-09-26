@@ -173,6 +173,13 @@ BEGIN
     SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay']) c
      WHERE r.code = 'fixture-52'
     ON CONFLICT (role_id, permission_code) DO NOTHING;
+    -- ★ APR-8(2026-09-26):条款申请这条链的门是 module.pricing.view + data.view_prices + data.view_purchase_prices
+    --   + module.suppliers.view + module.customers.view(decide_terms_request)—— 二级补上,否则开审批就按名拒
+    --   APPROVALS_CHAIN_HAS_NO_APPROVER|decide_terms_request。本 fixture 测的不是它。
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT apr8_r.id, c FROM roles apr8_r CROSS JOIN unnest(ARRAY['module.pricing.view', 'data.view_prices', 'data.view_purchase_prices', 'module.suppliers.view', 'module.customers.view']) c
+     WHERE apr8_r.code IN ('fixture-52')
+    ON CONFLICT (role_id, permission_code) DO NOTHING;
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);  -- APR-1:直写这四列必须【显式举旗】(守卫用完即焚)
     UPDATE finance_settings SET approvals_enabled = true,
         approval_level1_role_code = 'fixture-52',

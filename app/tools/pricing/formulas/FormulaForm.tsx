@@ -3,7 +3,7 @@
 // 定价公式表单(新建/编辑共用)。计价基准选 average 时才出现天数;
 // 适用对象三选一,选中哪个才出现对应下拉。
 // 下方计价比例表:七个金属各一行,【留空 = 该金属不计价】(保存时删除旧行)。
-import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_RADIO, CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { CONTROL_INPUT, CONTROL_RADIO, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import { useRef } from 'react'
 import { useFormDraft } from '@/lib/useFormDraft'
@@ -72,6 +72,7 @@ export default function FormulaForm({
     indices,
     locale,
     canEdit,
+    blockedReason = null,
 }: {
     // PROC-4:物质清单由页面从 substances 那张字典读好传进来。
     // 【表单不再自己拿着一份清单】那份清单曾经是这份名单的第五个副本,
@@ -87,6 +88,8 @@ export default function FormulaForm({
     /** ROLE-1 Batch 2b(Q13):定价公式只归 module.pricing.edit(cco)。由页面 `can()` 算好传进来;
      *  没有它的人看见同一张表单,保存钮按不动、说出码(关掉 PAYREQB-FORMULA-PAGES-NO-DISABLED-GATE)。 */
     canEdit: boolean
+    /** APR-8:这张公式上挂着一张在等 CFO 的申请 —— 表单看得见、按不动,说出是哪一张(库里同样按名拒 TERMS_REQUEST_OPEN) */
+    blockedReason?: string | null
 }) {
     const t = useTranslations()
     const [state, formAction, isPending] = useActionState(action, initialState)
@@ -407,15 +410,11 @@ export default function FormulaForm({
             </div>
 
             <div className="flex flex-wrap gap-4">
-                <label className="">
-                    <input
-                        type="checkbox"
-                        name="is_active"
-                        defaultChecked={defaults.is_active}
-                        className={`${CONTROL_CHECKBOX} mr-2`}
-                    />
-                    {t('pricing.form.active')}
-                </label>
+                {/* ★ APR-8:启用不再是表单上的一个勾 —— 新公式与重新启用都经 CFO 批准,停用是编辑页上的一步。
+                    这里只说出它此刻是什么状态。 */}
+                <p className="self-end text-sm">
+                    {defaults.is_active ? t('termsRequest.formulaActive') : t('termsRequest.formulaInactive')}
+                </p>
                 <div className="flex-1 min-w-[16rem]">
                     <label className="block mb-1">{t('pricing.form.notes')}</label>
                     <input
@@ -453,13 +452,30 @@ export default function FormulaForm({
                 />
             </div>
 
+            {/* ★ APR-8:每一次提交都是一张给 CFO 的申请 —— 理由必填;批准之前什么都不生效。 */}
+            <div>
+                <label className="block mb-1" htmlFor="formula-reason">{t('termsRequest.reasonLabel')}</label>
+                <textarea
+                    id="formula-reason"
+                    name="reason"
+                    rows={2}
+                    className={`${CONTROL_INPUT} w-full`}
+                    placeholder={t('termsRequest.reasonPlaceholder')}
+                />
+                {err('reason') && <p className="text-red-600 text-sm mt-1">{err('reason')}</p>}
+                <p className="text-sm text-[color:var(--brand-muted-text)] mt-1">{t('termsRequest.submitHint')}</p>
+            </div>
+
+            {blockedReason && (
+                <p className="text-sm font-medium text-amber-900">{blockedReason}</p>
+            )}
             <div className="flex gap-3 pt-2">
                 <PermissionGate code="module.pricing.edit" allowed={canEdit}>
                     <Button
                         type="submit"
-                        disabled={isPending}
+                        disabled={isPending || Boolean(blockedReason)}
                     >
-                        {isPending ? t('common.saving') : t('pricing.form.submit')}
+                        {isPending ? t('common.saving') : t('termsRequest.submitForApproval')}
                     </Button>
                 </PermissionGate>
                 <Button asChild variant="secondary">

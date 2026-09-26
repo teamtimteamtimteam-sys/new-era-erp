@@ -99,7 +99,10 @@ BEGIN
     --   (Tim 的 Q2),同一个理由一并给上 —— 否则 …|decide_receipt_price_request。
     -- ★ APR-5b(2026-09-25):发货放行这条链的门是 module.sales.view + data.view_prices —— 二级补上 module.sales.view,否则开不了审批。
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay', 'module.inbound.view', 'data.view_purchase_prices', 'module.sales.view']) c
+    -- ★ APR-8(2026-09-26):条款申请这条链的门另要 module.pricing.view + module.suppliers.view + module.customers.view
+    --   (decide_terms_request),同一个理由一并给上 —— 否则 …|decide_terms_request。
+    SELECT r.id, c FROM roles r CROSS JOIN unnest(ARRAY['module.hr.view', 'data.view_pay', 'module.inbound.view', 'data.view_purchase_prices', 'module.sales.view',
+                                                        'module.pricing.view', 'module.suppliers.view', 'module.customers.view']) c
      WHERE r.code = 'fx151-l2'
     ON CONFLICT (role_id, permission_code) DO NOTHING;
     v_denied := false;

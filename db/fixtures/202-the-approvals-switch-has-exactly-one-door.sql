@@ -119,6 +119,13 @@ BEGIN
     ON CONFLICT (role_id, permission_code) DO NOTHING;
     PERFORM set_config('request.jwt.claims', format('{"sub":"%s","role":"authenticated"}', u_adm), true);
     EXECUTE 'SET LOCAL ROLE authenticated';
+    -- ★ APR-8(2026-09-26):条款申请这条链的门是 module.pricing.view + data.view_prices + data.view_purchase_prices
+    --   + module.suppliers.view + module.customers.view(decide_terms_request)—— 二级补上,否则开审批就按名拒
+    --   APPROVALS_CHAIN_HAS_NO_APPROVER|decide_terms_request。本 fixture 测的不是它。
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT apr8_r.id, c FROM roles apr8_r CROSS JOIN unnest(ARRAY['module.pricing.view', 'data.view_prices', 'data.view_purchase_prices', 'module.suppliers.view', 'module.customers.view']) c
+     WHERE apr8_r.code IN ('fx202-l2')
+    ON CONFLICT (role_id, permission_code) DO NOTHING;
     v_res := set_approvals_policy(false, 'fx202-l1', 'fx202-l2', 777);
     EXECUTE 'RESET ROLE';
 

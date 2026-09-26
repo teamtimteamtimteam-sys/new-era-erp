@@ -80,7 +80,10 @@ CREATE TABLE public.approval_log (
                             'journal_request',
                             -- APR-7:仓库申请(注销批次 · 加工回滚 · 作废销毁证书)—— CFO 批每一张,批准当场生效。
                             -- 被批的是【申请】(warehouse_requests),不是批次、加工单或证书本身。
-                            'warehouse_request')),
+                            'warehouse_request',
+                            -- APR-8:条款申请(定价公式新建 / 修改 / 重新启用 · 合同生效)—— CFO 批每一张,批准当场生效。
+                            -- 被批的是【申请】(terms_requests),不是公式或合同本身(上面那个 pricing_formula 从来没人写过)。
+                            'terms_request')),
     subject_id          uuid NOT NULL,
     -- 人读的编号,冻结在当时 —— 单据可以改名/作废,留痕不跟着变
     subject_code        text,
@@ -256,6 +259,9 @@ CREATE POLICY "approval_log select by permission"
             -- ★ APR-7:仓库申请那一支 —— 与 warehouse_requests 自己的读策略同一个码。
             --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
             WHEN 'warehouse_request'  THEN has_permission('module.finance.view'::text)
+            -- ★ APR-8:条款申请那一支 —— 公式那一页的门。留痕里只有编号与决定,没有条款本身。
+            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+            WHEN 'terms_request'      THEN has_permission('module.pricing.view'::text)
             ELSE false
         END
     );

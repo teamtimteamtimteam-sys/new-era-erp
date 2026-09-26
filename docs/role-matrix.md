@@ -88,14 +88,14 @@ MD = `gm`(Vince,只读)。
 | 修改、取消、关闭采购单 · amend, cancel, close | 开单人 · the raiser | — | B5 |
 | 供应商建档 · supplier creation | cco · 仓库 · 财务 | — | ✅ done(ROLE-1 Batch 2a:warehouse 拿到 `module.suppliers.view` + `.edit`,Q5;cto 保留它的宽码)|
 | 供应商批准、拉黑、恢复 · supplier approval, blacklisting, restoring | — | CFO;**建档人永远不能批自己建的** | ✅ done(ROLE-1 Batch 2a:`action.supplier_approve` · `set_supplier_status` · `supplier_status_moves()` · 按人拒自批 · `created_by` 不可改 · `approval_log` 加 `supplier` · `supplier_status_history` · `operations_now` 的 `supplier_pending_approval`;付款申请提 / 批 / 付与新采购单都按名拒未批准的供应商)。原计划:B2a(Q11:批准 / 驳回 / 拉黑 / 恢复归 CFO;送审 / 启用 / 暂停 / 归档归 `suppliers.edit`)。★ **Tim 2026-09-23:供应商批准落地之后,给一家【未批准】的供应商,付款申请提不了、批不了、付不了**;新开采购单也拒(Batch B grilling Q5–Q9)|
-| 合同条款 · contract terms | cco | CFO | 做:✅ done(ROLE-1 Batch 2b:`action.contract_terms` 管建合同与七张条款表 —— `contracts` 与条款表的写策略和 `enforce_write_permission` 从 `suppliers.edit` / `customers.edit` 换过来;`/contracts/new` 的保存钮按码关上并说出码;把单据挂到合同上仍归开单据的码,`link_document_to_contract` 不动)· 批:[LC] |
+| 合同条款 · contract terms | cco | CFO | 做:✅ done(ROLE-1 Batch 2b:`action.contract_terms` 管建合同与七张条款表 —— `contracts` 与条款表的写策略和 `enforce_write_permission` 从 `suppliers.edit` / `customers.edit` 换过来;`/contracts/new` 的保存钮按码关上并说出码;把单据挂到合同上仍归开单据的码,`link_document_to_contract` 不动)· 批:✅ done(APR-8,2026-09-26:合同只有 active 有效力,**进入 active 的每一条路都经 CFO** —— `terms_requests` 的 `contract_activate`;新合同只建得出草稿(`CONTRACT_ACTIVATES_THROUGH_REQUEST`);生效中表头 `CONTRACT_ACTIVE_IS_FROZEN`、七张条款表 `CONTRACT_TERMS_FROZEN`,改 = 暂停(一步)→ 编辑 → 再申请,CFO 看见与上一次批准时那一份的差别;等待中冻结;批准时 fingerprint 再比;提单人之外没人批得动时提交就拒;审批关着时生下来就批准。条款表的编辑界面登记 `APR8-NO-TERM-EDITOR`)|
 
 ## 7 · 定价 · Pricing
 
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
 | 金属价格 · metal prices | 财务 · finance | — | ✅ done(ROLE-1 Batch 2b:`action.metal_prices` 管 `metal_prices` · `metal_price_indices` · `index_market_calendar` · `pricing_settings`(报价阈值)与 `upsert_metal_prices`;阈值面板改为看得见、按不动、说出码)|
-| 定价公式 · pricing formulas | cco | CFO | 做:✅ done(ROLE-1 Batch 2b:`module.pricing.edit` 从 cto 与 finance 拿掉,只剩 cco 与 admin;两个无人持有的角色 procurement / sales 保留它,登记 `ROLE1B2B-UNHELD-PRICING-EDIT`;公式页补上 PermissionGate,关掉 `PAYREQB-FORMULA-PAGES-NO-DISABLED-GATE`)· 批:[LC] |
+| 定价公式 · pricing formulas | cco | CFO | 做:✅ done(ROLE-1 Batch 2b:`module.pricing.edit` 从 cto 与 finance 拿掉,只剩 cco 与 admin;两个无人持有的角色 procurement / sales 保留它,登记 `ROLE1B2B-UNHELD-PRICING-EDIT`;公式页补上 PermissionGate,关掉 `PAYREQB-FORMULA-PAGES-NO-DISABLED-GATE`)· 批:✅ done(APR-8,2026-09-26:新公式生下来停用、挂一张 `formula_create`;改在用的 = `formula_change`(完整拟议条款,批准时就地替换,等待中旧条款照旧生效;已承诺的单据读副本);重新启用 = `formula_reactivate`;停用 · 删除仍是 cco 一步;公式两张表的写策略拿掉,直连写按名拒 `PRICING_FORMULA_THROUGH_REQUEST_ONLY`;CFO 批每一张、不分档,门 = pricing.view + 两个价格码 + suppliers.view + customers.view)|
 
 ## 8 · 进料、库存、盘点 · Inbound, stock, stocktake
 

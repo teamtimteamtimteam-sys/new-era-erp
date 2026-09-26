@@ -121,7 +121,14 @@ AS $function$
         --    同样【只有二级这一行】。门与付款、贷项、手工凭证申请同一对码 —— module.finance.view + data.view_prices
         --    (grilling Q8,四种一个门);【不是】action.batch_write_off / processing_rollback / issue_cod:那是提单的码。
         ('warehouse_request'::text, 'decide_warehouse_request'::text, 2::smallint,
-            ARRAY['module.finance.view', 'data.view_prices']::text[])
+            ARRAY['module.finance.view', 'data.view_prices']::text[]),
+        -- ★★ APR-8(Tim 的矩阵:合同条款与定价公式 —— cco 提,CFO 批每一张,不分档;批准当场生效):
+        --    同样【只有二级这一行】。门 = 看得见公式(module.pricing.view)与它两个方向的价格(data.view_prices ·
+        --    data.view_purchase_prices),看得见两侧的合同(module.suppliers.view · module.customers.view)——
+        --    grilling Q4,四种一个门,cfo 五个都持;【不是】module.pricing.edit / action.contract_terms:那是提单的码。
+        ('terms_request'::text, 'decide_terms_request'::text, 2::smallint,
+            ARRAY['module.pricing.view', 'data.view_prices', 'data.view_purchase_prices',
+                  'module.suppliers.view', 'module.customers.view']::text[])
       ) AS v(subject_type, action_function, level, gate_permissions)
 $function$;
 

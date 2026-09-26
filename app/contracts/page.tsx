@@ -21,6 +21,10 @@ import {
 } from './ContractsTables'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { can } from '@/lib/permissions'
+import TermsRequestsPanel from '@/app/components/pricing/TermsRequestsPanel'
+import { firstMissingDecideCode, loadTermsRequests } from '@/app/components/pricing/termsRequestsData'
+import ContractActivationPanel, { type ActivationRow } from './ContractActivationPanel'
 
 type Contract = {
     id: string; code: string; side: string; kind: string; title: string
@@ -226,6 +230,23 @@ export default async function ContractsPage() {
         }
     })
 
+    // ★ APR-8(grilling Q2 · Q8):生效要经 CFO —— 合同的申请与"申请生效 / 暂停"住在这一页
+    //   (看板 terms_request_pending 指到 #tr-<id>)
+    const [requests, missingDecideCode, canWriteContracts] = await Promise.all([
+        loadTermsRequests(supabase, t, { which: 'contract' }),
+        firstMissingDecideCode(can),
+        can('action.contract_terms'),
+    ])
+    const openByCode = new Map(requests.open.map((r) => [r.subjectCode, r.label]))
+    const activationRows: ActivationRow[] = contracts
+        .filter((c) => c.status === 'draft' || c.status === 'suspended' || c.status === 'active')
+        .map((c) => ({
+            id: c.id, code: c.code, title: c.title,
+            status: c.status as ActivationRow['status'],
+            statusLabel: t(`contracts.status.${c.status}`),
+            openLabel: openByCode.get(c.code) ?? null,
+        }))
+
     return (
         <ListPage
             title={t('contracts.title')}
@@ -280,6 +301,18 @@ export default async function ContractsPage() {
             ) : (
                 <ContractListTable rows={contractListRows} />
             )}
+
+            {/* ── APR-8:生效要经 CFO ───────────────────────────────────────── */}
+            <div className="mt-6 space-y-6">
+                <TermsRequestsPanel
+                    open={requests.open}
+                    history={requests.history}
+                    missingDecideCode={missingDecideCode}
+                    withdrawCode="action.contract_terms"
+                    canWithdrawByCode={canWriteContracts}
+                />
+                <ContractActivationPanel rows={activationRows} canWrite={canWriteContracts} />
+            </div>
 
             {/* 【第 4 刀的交接点写在屏幕上,不只写在表注里】 */}
             {/* ════ PRICE-1:指数挂钩定价 ════════════════════════════════════════ */}

@@ -140,7 +140,15 @@ AS $function$
            wq.created_by, NULL::uuid, 2::smallint
       FROM warehouse_requests wq
      WHERE wq.status = 'submitted'
+    UNION ALL
+    -- ★ APR-8:条款申请(公式新建 / 修改 / 重新启用 · 合同生效)。blocks_disable = true —— decide_terms_request 在
+    --   审批关着时按名拒(APPROVALS_NOT_ENABLED),关掉审批就搁死它们(grilling Q9)。fixed_level = 2:CFO 批
+    --   每一张、不分档。主角 = NULL:公式与合同不是谁"自己的单据"。金额 = NULL —— 批的是条款,不是一笔钱。
+    SELECT 'terms_request'::text, tq.id, tq.label, NULL::numeric, true,
+           tq.created_by, NULL::uuid, 2::smallint
+      FROM terms_requests tq
+     WHERE tq.status = 'submitted'
 $function$;
 
 COMMENT ON FUNCTION public.approval_pending_documents() IS
-'APR-3(Tim 的 Q6):哪些单据正在等人批 —— 逐行,一份判据三个读它的人(屏幕的逐链计数 · 关闭那道闸要的编号 · APPROVALS_POLICY_WOULD_STRAND 要的金额)。★ blocks_disable 把两个长得一样的数分开:「有多少在等人批」每条链都算,「关掉审批会搁死谁」只有一部分链算。判别的那一句话:这条链的决定函数在审批关着时还跑不跑得动 —— 跑不动才 true。采购单 true(approve_purchase_order 开头就 RAISE APPROVALS_NOT_ENABLED);报销单 false;付款 · 工资 · 收货定价 · 贷项 / 作废 · 手工凭证 · 仓库(注销 / 回滚 / 证书作废)六种申请与发货放行 true(它们的决定函数同样在审批关着时按名拒,fixed_level = 2)。★ 盘点不在本表里(Tim 的 Q4:open 是"正在点",不是"在等人批"),工单也不在(它没有等人批的队列)。amount_base 为 NULL = 这一张分不了档,不读成零。';
+'APR-3(Tim 的 Q6):哪些单据正在等人批 —— 逐行,一份判据三个读它的人(屏幕的逐链计数 · 关闭那道闸要的编号 · APPROVALS_POLICY_WOULD_STRAND 要的金额)。★ blocks_disable 把两个长得一样的数分开:「有多少在等人批」每条链都算,「关掉审批会搁死谁」只有一部分链算。判别的那一句话:这条链的决定函数在审批关着时还跑不跑得动 —— 跑不动才 true。采购单 true(approve_purchase_order 开头就 RAISE APPROVALS_NOT_ENABLED);报销单 false;付款 · 工资 · 收货定价 · 贷项 / 作废 · 手工凭证 · 仓库(注销 / 回滚 / 证书作废)· 条款(公式 / 合同生效)七种申请与发货放行 true(它们的决定函数同样在审批关着时按名拒,fixed_level = 2)。★ 盘点不在本表里(Tim 的 Q4:open 是"正在点",不是"在等人批"),工单也不在(它没有等人批的队列)。amount_base 为 NULL = 这一张分不了档,不读成零。';

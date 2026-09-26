@@ -7,6 +7,9 @@ import { getMetalPriceIndices } from '@/app/tools/pricing/metal-prices/indexQuer
 import FormulaForm, { type FormulaDefaults, type PartyOption, type QuoteDate } from '../../FormulaForm'
 import { updateFormula } from '../../actions'
 import DeleteFormulaButton from './DeleteFormulaButton'
+import DeactivateFormulaButton from './DeactivateFormulaButton'
+import TermsRequestsPanel from '@/app/components/pricing/TermsRequestsPanel'
+import { firstMissingDecideCode, loadTermsRequests } from '@/app/components/pricing/termsRequestsData'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
@@ -89,7 +92,14 @@ export default async function EditFormulaPage({
     const quoteDates = mustRows(quoteRes) as QuoteDate[]
 
 
-    const updateWithId = updateFormula.bind(null, id)
+    // ★ APR-8:改一张在用的公式 = formula_change;停用着的 = formula_reactivate(表单提交走哪一扇由此刻的状态定)。
+    const updateWithId = updateFormula.bind(null, id, formula.is_active)
+    // 这张公式上的申请(在等的 + 最近了结的);在等时表单按不动、说出是哪一张
+    const [requests, missingDecideCode] = await Promise.all([
+        loadTermsRequests(supabase, t, { which: 'formula', formulaId: id }),
+        firstMissingDecideCode(can),
+    ])
+    const openLabel = requests.open[0]?.label ?? null
 
     // METAL-2:指数选项从表里现读
     const indices = await getMetalPriceIndices()
@@ -102,9 +112,25 @@ export default async function EditFormulaPage({
                     {t('pricing.listTitle')}
                     <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{formula.code}</span>
                 </h1>
-                <PermissionGate code="module.pricing.edit" allowed={canEdit}>
-                    <DeleteFormulaButton formulaId={formula.id} subject={formula.code} />
-                </PermissionGate>
+                <div className="flex flex-wrap gap-2">
+                    {formula.is_active && (
+                        <PermissionGate code="module.pricing.edit" allowed={canEdit}>
+                            <DeactivateFormulaButton formulaId={formula.id} subject={formula.code} />
+                        </PermissionGate>
+                    )}
+                    <PermissionGate code="module.pricing.edit" allowed={canEdit}>
+                        <DeleteFormulaButton formulaId={formula.id} subject={formula.code} />
+                    </PermissionGate>
+                </div>
+            </div>
+            <div className="mb-6">
+                <TermsRequestsPanel
+                    open={requests.open}
+                    history={requests.history}
+                    missingDecideCode={missingDecideCode}
+                    withdrawCode="module.pricing.edit"
+                    canWithdrawByCode={canEdit}
+                />
             </div>
             <FormulaForm
                 substanceOptions={substanceOptions}
@@ -116,6 +142,7 @@ export default async function EditFormulaPage({
                 customers={customers}
                 quoteDates={quoteDates}
                 canEdit={canEdit}
+                blockedReason={openLabel ? t('termsRequest.formBlocked', { label: openLabel }) : null}
             />
         </div>
     )

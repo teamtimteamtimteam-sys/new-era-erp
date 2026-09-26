@@ -432,6 +432,12 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
     "receipt_price_open":
         "ROLE-1 Batch 4b: called by two INVOKER guards, so EXECUTE must stay with the caller; "
         "returns only the label (receipt code · price #n) of a waiting request, no price",
+    # APR-8(2026-09-26):调它的是两支 INVOKER 守卫(guard_contract_write · guard_contract_terms_frozen)——
+    #   与 receipt_price_open 同一条。它【必须】是 DEFINER:INVOKER 里读 terms_requests,不持 CFO 那一组码的 cco
+    #   读到零行,守卫静默放行。只回 'active' 或那一张在等申请的 label。两处 allowlist 必须一致(db/check_mirrors.py 同改)。
+    "contract_terms_lock_reason":
+        "APR-8: read by the two contract guards, which run as the caller; it returns only 'active' or the "
+        "waiting request's label for a contract id — the same fact the guard's refusal names",
     # APR-6(2026-09-25):凭证详情页拿它决定冲销钮灰不灰、说什么;它也在批准与试跑的内层被调用,那里的主语
     #   未必持凭证页的码(以 postgres 跑的 fixture 根本没有主语)—— 加 has_permission 门会在那两处抛错。
     #   它【必须】是 DEFINER:它读工资表,INVOKER 下一个读不到 payroll_lines 的人会把工资过账分录错读成

@@ -567,6 +567,15 @@ DEFINER_NO_CHECK_ALLOWED = {
     "warehouse_request_conflict": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "batch_write_off_needs_request": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "guard_warehouse_request_freeze": "APR-7: trigger function on inventory_movements / receipt_price_requests; it refuses, it grants nothing",
+    # APR-8:条款申请的内层算子与读者 —— 靠的是调不到(zzz_function_grants.sql)。
+    "terms_request_submit_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "terms_request_execute_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "terms_request_dry_run": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "terms_request_snapshot": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "terms_request_fingerprint": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "formula_terms_state": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "contract_terms_state": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "contract_terms_lock_reason": "APR-8: read by the two contract guards, which run as the caller; it returns only 'active' or the waiting request's label for a contract id — the same fact the guard's refusal names",
     # 它【必须】留给 authenticated:凭证详情页拿它决定冲销钮灰不灰、说什么;它也在批准与试跑的内层被调用,
     # 那里的主语未必持凭证页的码(以 postgres 跑的 fixture 根本没有主语)。只回一个词。
     "journal_entry_reversal_route": "APR-6: the journal page reads it to grey the reverse button with the right reason, and the request engine calls it inside approval and dry-run where the caller may hold no finance code; returns one route word (reversed/source_path/request), no amount, no line",

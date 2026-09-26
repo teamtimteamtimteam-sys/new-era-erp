@@ -147,6 +147,13 @@ BEGIN
      WHERE r.code = 'fx205-l2'
     ON CONFLICT (role_id, permission_code) DO NOTHING;
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);
+    -- ★ APR-8(2026-09-26):条款申请这条链的门是 module.pricing.view + data.view_prices + data.view_purchase_prices
+    --   + module.suppliers.view + module.customers.view(decide_terms_request)—— 二级补上,否则开审批就按名拒
+    --   APPROVALS_CHAIN_HAS_NO_APPROVER|decide_terms_request。本 fixture 测的不是它。
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT apr8_r.id, c FROM roles apr8_r CROSS JOIN unnest(ARRAY['module.pricing.view', 'data.view_prices', 'data.view_purchase_prices', 'module.suppliers.view', 'module.customers.view']) c
+     WHERE apr8_r.code IN ('fx205-l2')
+    ON CONFLICT (role_id, permission_code) DO NOTHING;
     UPDATE finance_settings SET approvals_enabled = false,
                                 approval_level1_role_code = 'fx205-l1',
                                 approval_level2_role_code = 'fx205-l2',
@@ -183,8 +190,10 @@ BEGIN
     --   (module.finance.view + data.view_prices,与付款、贷项申请同一对),于是同一条。
     -- ★ APR-7(2026-09-25):九 → 十 —— 仓库申请(注销 · 回滚 · 证书作废)同样只有二级一行、没有自批例外;
     --   u_l2 持它的门(module.finance.view + data.view_prices,与手工凭证申请同一对),于是同一条。
-    IF v_n <> 10 THEN
-        RAISE EXCEPTION 'FIXTURE 205R4a 失败:二级十条链应当各点名 u_l2 一次,实得 %;全部 = %', v_n, v_read->'own_document_gaps'; END IF;
+    -- ★ APR-8(2026-09-26):十 → 十一 —— 条款申请(公式 / 合同生效)同样只有二级一行、没有自批例外;
+    --   u_l2 持它的门(本 fixture 为开审批补了 pricing.view · 两个价格码 · suppliers.view · customers.view),于是同一条。
+    IF v_n <> 11 THEN
+        RAISE EXCEPTION 'FIXTURE 205R4a 失败:二级十一条链应当各点名 u_l2 一次,实得 %;全部 = %', v_n, v_read->'own_document_gaps'; END IF;
     -- 一级一格都没有:R1 让二级的人替一级持有人批,一级持有人也替二级持有人的一级单批
     SELECT count(*) INTO v_n FROM jsonb_array_elements(v_read->'own_document_gaps') g WHERE (g->>'level')::int = 1;
     IF v_n <> 0 THEN

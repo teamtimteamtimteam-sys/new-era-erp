@@ -21,6 +21,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import { localizeContractError } from '../contractErrorCodes'
+import { TERMS_REQUEST_ERROR_CODES, localizeTermsRequestError } from '@/app/components/pricing/termsRequestErrorCodes'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -30,10 +31,11 @@ export type CreateContractState = {
 }
 
 const KINDS = ['supply', 'offtake', 'framework', 'service', 'other']
-// 创建时【只】开放这两个:draft 与 active。suspended / expired / terminated 是
-// 一份【活过一段时间】的合同才会到达的状态,把它们摆在创建表单上,等于请人
-// 建一份一出生就已经终止的合同 —— 而且没有任何路径能把它改回来。
-const CREATABLE_STATUSES = ['draft', 'active']
+// ★ APR-8(Tim 2026-09-26,grilling Q2):创建时【只】建得出草稿。合同只有 active 有效力,
+// 进入 active 的每一条路都经 CFO —— 在合同页上提生效申请(submit_contract_activation_request),
+// 批准才生效。库里同样按名拒 CONTRACT_ACTIVATES_THROUGH_REQUEST(guard_contract_write)。
+// (此前开放 draft 与 active 两个,理由是"没有任何函数写 contracts.status"—— APR-8 起有了。)
+const CREATABLE_STATUSES = ['draft']
 
 export async function createContract(
     _prevState: CreateContractState,
@@ -123,7 +125,13 @@ export async function createContract(
 
     if (error) {
         // ★ 绝不把 42501 或约束名摔到人脸上 —— MANUAL-FIX-1 修的正是这一族。
-        return { error: await localizeContractError(error.message) }
+        // APR-8:守卫的那一句(CONTRACT_ACTIVATES_THROUGH_REQUEST)归条款申请那一份;其余照旧归合同那一份
+        const code = (error.message ?? '').match(/([A-Z_]+)(?:\|(.*))?$/)?.[1] ?? ''
+        return {
+            error: TERMS_REQUEST_ERROR_CODES.has(code)
+                ? await localizeTermsRequestError(error.message)
+                : await localizeContractError(error.message),
+        }
     }
 
     revalidatePath('/contracts')

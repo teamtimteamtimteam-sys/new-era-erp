@@ -10,6 +10,9 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import FormulasTable, { type FormulaRow as FormulasTableRow } from './FormulasTable'
+import { can } from '@/lib/permissions'
+import TermsRequestsPanel from '@/app/components/pricing/TermsRequestsPanel'
+import { firstMissingDecideCode, loadTermsRequests } from '@/app/components/pricing/termsRequestsData'
 
 type FormulaRow = {
     id: string
@@ -95,6 +98,13 @@ export default async function FormulasPage() {
         isActive: Boolean(r.is_active),
     }))
 
+    // ★ APR-8(grilling Q8):公式的申请住在这一页顶上(看板 terms_request_pending 指到 #tr-<id>)
+    const [requests, missingDecideCode, canEdit] = await Promise.all([
+        loadTermsRequests(supabase, t, { which: 'formula' }),
+        firstMissingDecideCode(can),
+        can('module.pricing.edit'),
+    ])
+
     return (
         <ListPage
             title={t('pricing.listTitle')}
@@ -105,6 +115,15 @@ export default async function FormulasPage() {
             }
             state={{ kind: 'ok' }}
         >
+            <div className="mb-6">
+                <TermsRequestsPanel
+                    open={requests.open}
+                    history={requests.history}
+                    missingDecideCode={missingDecideCode}
+                    withdrawCode="module.pricing.edit"
+                    canWithdrawByCode={canEdit}
+                />
+            </div>
             <FormulasTable rows={tableRows} empty={t('pricing.empty')} />
         </ListPage>
     )

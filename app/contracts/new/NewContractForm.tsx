@@ -1,7 +1,7 @@
 'use client'
 
 // MANUAL-FIX-2:新建合同的表单。结构取自 suppliers/new(server shell + client form)。
-import { useActionState, useRef, useState } from 'react'
+import { useActionState, useRef } from 'react'
 import Link from 'next/link'
 import { useFormDraft } from '@/lib/useFormDraft'
 import DraftBanner from '@/app/components/DraftBanner'
@@ -40,7 +40,6 @@ export default function NewContractForm({
     const draft = useFormDraft({ formKey: 'contracts/new', table: 'contracts', subject: null, formRef })
 
     // 状态那一段的说明跟着选择走 —— 两个选项的后果差得很远,而其中一个不可逆。
-    const [status, setStatus] = useState('active')
 
     const field = `${CONTROL_INPUT} w-full`
     const fieldSelect = `${CONTROL_SELECT} w-full`
@@ -145,24 +144,17 @@ export default function NewContractForm({
                     </div>
                 </div>
 
-                {/* ── 状态:创建时选,而【之后改不了】 ───────────────────── */}
+                {/* ── 状态:★ APR-8 —— 只建得出草稿 ──────────────────────────────
+                    合同只有 active 有效力,而进入 active 的每一条路都经 CFO(grilling Q2):
+                    在合同页上提一张生效申请,CFO 批准才生效。库里同样按名拒
+                    CONTRACT_ACTIVATES_THROUGH_REQUEST —— 这里不再给"生效"那个选项。 */}
                 <div>
-                    <label className="block mb-1">
-                        {t('contracts.form.status')} <span className="text-red-600">*</span>
-                    </label>
-                    <select name="status" value={status} onChange={(e) => setStatus(e.target.value)} className={fieldSelect}>
-                        <option value="active">{t('contracts.status.active')}</option>
-                        <option value="draft">{t('contracts.status.draft')}</option>
-                    </select>
-                    <p className="text-sm text-[color:var(--brand-text)] mt-1 max-w-2xl">
-                        {status === 'active' ? t('contracts.form.statusActiveMeans') : t('contracts.form.statusDraftMeans')}
+                    <input type="hidden" name="status" value="draft" />
+                    <p className="text-sm text-[color:var(--brand-text)] max-w-2xl">
+                        <span className="font-medium">{t('contracts.form.status')}:</span> {t('contracts.status.draft')}
                     </p>
-                    {/* ★★ 这一句【必须】在屏幕上,不能只在手册里 ★★
-                        这个系统里没有任何一处改得动合同状态 —— 建成什么就是什么。
-                        一个人若以为"先存成草稿,谈定了再启用",他会建出一份
-                        永远用不了的合同,而且是在事后才发现。 */}
                     <p className="text-sm text-amber-900 mt-1 max-w-2xl font-medium">
-                        {t('contracts.form.statusIsFinal')}
+                        {t('termsRequest.contractDraftOnly')}
                     </p>
                     {err('status')}
                 </div>

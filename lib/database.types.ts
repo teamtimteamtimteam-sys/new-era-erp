@@ -19424,6 +19424,94 @@ export type Database = {
           },
         ]
       }
+      terms_requests: {
+        Row: {
+          contract_id: string | null
+          created_at: string
+          created_by: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          executed_at: string | null
+          fingerprint: string
+          formula_id: string | null
+          id: string
+          kind: string
+          label: string
+          proposed: Json | null
+          reason: string
+          snapshot: Json
+          status: string
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          contract_id?: string | null
+          created_at?: string
+          created_by: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          executed_at?: string | null
+          fingerprint: string
+          formula_id?: string | null
+          id?: string
+          kind: string
+          label: string
+          proposed?: Json | null
+          reason: string
+          snapshot: Json
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          contract_id?: string | null
+          created_at?: string
+          created_by?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          executed_at?: string | null
+          fingerprint?: string
+          formula_id?: string | null
+          id?: string
+          kind?: string
+          label?: string
+          proposed?: Json | null
+          reason?: string
+          snapshot?: Json
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "terms_requests_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "terms_requests_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "terms_requests_formula_id_fkey"
+            columns: ["formula_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_formulas_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       traceability_report_issues: {
         Row: {
           code: string
@@ -28678,6 +28766,11 @@ export type Database = {
         Args: { p_employee_id: string; p_leave_year: number }
         Returns: number
       }
+      contract_terms_lock_reason: {
+        Args: { p_contract_id: string }
+        Returns: string
+      }
+      contract_terms_state: { Args: { p_contract_id: string }; Returns: Json }
       convert_grade_basis: {
         Args: {
           p_content_pct: number
@@ -28875,6 +28968,10 @@ export type Database = {
         Args: { p_customer_id: string; p_from: string; p_to: string }
         Returns: Json
       }
+      deactivate_pricing_formula: {
+        Args: { p_formula_id: string }
+        Returns: Json
+      }
       decide_expense_claim: {
         Args: {
           p_account_code?: string
@@ -28918,6 +29015,10 @@ export type Database = {
         Args: { p_approve: boolean; p_notes?: string; p_release_id: string }
         Returns: Json
       }
+      decide_terms_request: {
+        Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
+        Returns: Json
+      }
       decide_warehouse_request: {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
@@ -28926,6 +29027,7 @@ export type Database = {
         Args: { p_quote_id: string; p_reason: string }
         Returns: Json
       }
+      delete_pricing_formula: { Args: { p_formula_id: string }; Returns: Json }
       depreciate_fixed_assets: { Args: { p_period_end: string }; Returns: Json }
       depreciation_months_elapsed: {
         Args: { p_period_end: string; p_start: string }
@@ -29028,6 +29130,8 @@ export type Database = {
         }
         Returns: undefined
       }
+      formula_terms_normalize: { Args: { p_terms: Json }; Returns: Json }
+      formula_terms_state: { Args: { p_formula_id: string }; Returns: Json }
       freeze_cash_forecast: {
         Args: { p_supersede_reason?: string; p_week_start?: string }
         Returns: Json
@@ -30434,6 +30538,10 @@ export type Database = {
         Args: { p_cod_id: string; p_reason: string }
         Returns: Json
       }
+      submit_contract_activation_request: {
+        Args: { p_contract_id: string; p_reason: string }
+        Returns: Json
+      }
       submit_credit_note_request: {
         Args: {
           p_invoice_id: string
@@ -30452,6 +30560,18 @@ export type Database = {
           p_no_receipt_reason?: string
           p_spend_date: string
         }
+        Returns: Json
+      }
+      submit_formula_change_request: {
+        Args: { p_formula_id: string; p_reason: string; p_terms: Json }
+        Returns: Json
+      }
+      submit_formula_create_request: {
+        Args: { p_reason: string; p_terms: Json }
+        Returns: Json
+      }
+      submit_formula_reactivate_request: {
+        Args: { p_formula_id: string; p_reason: string; p_terms: Json }
         Returns: Json
       }
       submit_inbound_write_off_request: {
@@ -30585,6 +30705,55 @@ export type Database = {
       tax_rate_for: {
         Args: { p_code: string; p_date: string }
         Returns: number
+      }
+      terms_request_dry_run: { Args: { p_request_id: string }; Returns: Json }
+      terms_request_execute_internal: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      terms_request_fingerprint: {
+        Args: { p_kind: string; p_subject: string }
+        Returns: string
+      }
+      terms_request_snapshot: {
+        Args: { p_kind: string; p_proposed: Json; p_subject: string }
+        Returns: Json
+      }
+      terms_request_submit_internal: {
+        Args: {
+          p_kind: string
+          p_proposed: Json
+          p_reason: string
+          p_subject: string
+        }
+        Returns: Json
+      }
+      terms_requests_visible: {
+        Args: {
+          p_contract_id?: string
+          p_formula_id?: string
+          p_recent?: number
+        }
+        Returns: {
+          contract_id: string
+          created_at: string
+          created_by_email: string
+          decided_at: string
+          decided_by_email: string
+          decision_notes: string
+          formula_id: string
+          id: string
+          kind: string
+          label: string
+          proposed: Json
+          raised_by_me: boolean
+          reason: string
+          snapshot: Json
+          status: string
+          subject_code: string
+          withdraw_reason: string
+          withdrawn_at: string
+        }[]
       }
       traceability_report_data: {
         Args: { p_output_batch_id: string }
@@ -30763,6 +30932,10 @@ export type Database = {
       }
       withdraw_shipping_release: {
         Args: { p_reason?: string; p_release_id: string }
+        Returns: Json
+      }
+      withdraw_terms_request: {
+        Args: { p_reason?: string; p_request_id: string }
         Returns: Json
       }
       withdraw_warehouse_request: {

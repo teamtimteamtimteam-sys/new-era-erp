@@ -1748,6 +1748,69 @@ warehouse), not only "does this chain have anyone".
 approvals are off, the new submit doors, which take effect at once); fixtures 85 · 195 · 222 keep their door arms and now expect
 `WAREHOUSE_NEEDS_APPROVED_REQUEST` or the request path; fixture 226 pins the lifecycle (A–N, including the fault injection).
 
+## 3u · APR-8 (2026-09-26) — contract terms and pricing formulas take effect only when the CFO approves them
+
+Tim's matrix (`docs/role-matrix.md`: contract terms · pricing formulas — cco raises, the CFO approves, every one, no threshold) replaces
+ROLE-1 Batch 2b's interim, in which cco (and admin) made a contract active or changed a formula in one step. The grilling (Q1–Q11) was
+accepted in full; `docs/handbacks/APR-8.md` has the cells.
+
+### What "takes effect" means (Q1 · Q2)
+
+Nothing already priced or committed can change retroactively — documents copy terms when they commit (a PO line or receipt gets an
+immutable `pricing_term_commitments` row; a linked PO / SO gets a `contract_document_terms` snapshot; a sale copies its price into
+`price_provenance`). So "takes effect" means **what the next read of the live row returns**:
+
+| subject | live readers | what needs the CFO | one step, as before |
+|---|---|---|---|
+| pricing formula | `calculate_metal_price` (calculator, new-PO estimate) · `price_output_sale` · `commit_pricing_terms` (PO creation, assay application) — all through `pricing_terms_of_formula`, which refuses an inactive formula | a new formula (born **inactive**) · any change to an active one (the full proposed terms, replaced **in place** on approval; `pricing_formula_history` logs it) · putting an inactive one back in use | stop using (`deactivate_pricing_formula`) · delete (`delete_pricing_formula`) |
+| contract | `link_document_to_contract`, which accepts only `active` | every route **into** `active` (`draft → active`, `suspended → active`) | suspend · expire · terminate |
+
+While a formula change waits, the old terms stay in effect. To change an active contract: suspend (one step), edit, request activation
+again — the CFO sees the terms now on the contract next to those at the last approval. No status column was added to formulas.
+
+### The lifecycle
+
+`terms_requests` — one table, four kinds (`formula_create` · `formula_change` · `formula_reactivate` · `contract_activate`), exactly one
+subject column (`kind_shape` + the `num_nonnulls = 1` twin); formula kinds carry `proposed` (normalised by `formula_terms_normalize`).
+`submitted → approved` (takes effect at once) · `rejected` (reason required) · `withdrawn` (the raiser's person, or anyone holding the
+kind's code: `module.pricing.edit` / `action.contract_terms`). Submit dry-runs the approval path (`terms_request_dry_run`, SQLSTATE
+PQ006), so a term that breaks a CHECK is refused at submit in the table's own words. With approvals off a request is born approved and
+takes effect (`auto_approved`). A change identical to the terms in use is refused `TERMS_REQUEST_NO_CHANGE`.
+
+### What is frozen while a request waits (Q5)
+
+* One waiting request per subject (`TERMS_REQUEST_OPEN`; partial unique indexes are the second line). A formula with a waiting request
+  cannot be stopped or deleted (withdraw first).
+* A contract with a waiting request: header `TERMS_REQUEST_FREEZES_CONTRACT`, the seven term tables `CONTRACT_TERMS_FROZEN`. An active
+  contract: header `CONTRACT_ACTIVE_IS_FROZEN` (only a status change to suspended / expired / terminated passes), terms
+  `CONTRACT_TERMS_FROZEN|code|active`. One judgement, `contract_terms_lock_reason`, for both guards.
+* **Fingerprint** (receipt-price / payroll pattern): `terms_request_fingerprint` is stored at submit and recomputed inside the execution —
+  a subject changed since (only possible on the owner path) is refused `TERMS_CHANGED_SINCE_REQUEST`, and the request stays waiting.
+
+### Doors (Q6)
+
+The six write policies on `pricing_formulas` / `pricing_formula_metals` are gone; a statement-level guard refuses any direct write by
+name, zero rows included (`PRICING_FORMULA_THROUGH_REQUEST_ONLY`; `enforce_write_permission` still fires first, so a non-holder reads the
+missing code). `contracts` keeps its insert / update policies — a direct insert may only be a draft (`CONTRACT_ACTIVATES_THROUGH_REQUEST`),
+a direct update may never make it active. Owner paths (the DEFINER functions, migrations, fixture set-up) pass all three guards.
+`link_document_to_contract` is unchanged (Batch 2b Q1). No new permission code, so the "new codes also go to admin" ruling granted nothing.
+
+### How it registers in the engine (Q9)
+
+| where | what |
+|---|---|
+| `approval_chain_gates()` | **one** row: `terms_request / decide_terms_request / level 2 / {module.pricing.view, data.view_prices, data.view_purchase_prices, module.suppliers.view, module.customers.view}` — all four kinds; cfo holds all five (measured) |
+| `approval_pending_documents()` | an arm for `status = 'submitted'`: `blocks_disable = true`, `fixed_level = 2`, subject `NULL`, amount `NULL` (terms, not money) |
+| `approval_log` | subject type `terms_request` (CHECK; the never-written `pricing_formula` value is left alone); `record_approval_decision` branch without amounts (the `work_order` shape); RLS read branch on `module.pricing.view` |
+| `assert_other_decider` | `TERMS_REQUEST_NO_OTHER_DECIDER` at submit (live: admin@ is refused — the same person as tim@) |
+| `operations_now` / reminders | `terms_request_pending` (`module.pricing.view`), `doc_kind` formula → `/tools/pricing/formulas#tr-<id>`, contract → `/contracts#tr-<id>` |
+| readers | `terms_requests_visible()`: formula requests to `module.pricing.view` with `snapshot` / `proposed` masked by `pricing_formula_terms_visible(direction)`; contract requests by the contract's side, as `contracts` reads |
+
+☞ **Consequence for fixtures:** every fixture that switches approvals on grants its level-2 role the three extra gate codes (16 files; in
+127 · 151 · 35 · 203 the existing grant array was extended, because the new statement would otherwise sit inside a savepoint the fixture
+expects to fail); fixture 205's own-document-gap count 10 → 11; fixture 111 has 44 arms; fixture 217 creates its formula through the new
+door and its existing contract as a draft; fixture 227 pins the lifecycle (A–K, including the fault injection).
+
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
 **Found while building CHAIN-BUILD-1; folded into the same predicate.**

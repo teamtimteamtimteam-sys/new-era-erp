@@ -1,5 +1,9 @@
 'use server'
 
+// ★ APR-8(Tim 2026-09-26):公式表【没有直连写了】(guard_pricing_formula_direct_write)。新建 = 一张停用的公式 +
+//   一张 formula_create 申请;改一张在用的 = formula_change(完整拟议条款,批准时就地替换);改一张停用的 =
+//   formula_reactivate(批准时写进并启用);删除 = delete_pricing_formula。CFO 批准之前什么都不生效。
+//   审批关着时申请生下来就批准并生效 —— 返回的 status 说的是哪一种,页面据此说话。
 // 定价公式的增/改/软删。字段校验镜像 DB 的 CHECK(payable 0–100、discount 0–100、
 // treatment ≥ 0、average 基准必须给 1–365 的天数),DB 侧仍是最终把关。
 // 计价比例:填了的 upsert,清空的删除 —— "留空 = 不计价"这条语义靠删除行来表达
@@ -10,10 +14,12 @@ import { parseIndexField } from '@/app/tools/pricing/metal-prices/indexOptions'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { loadSubstances } from '../metal-prices/substanceQuery'
-import { refuseFromDriver, refuseNothingChanged } from '@/lib/action-refusal'
+import { refuseFromCoded } from '@/lib/action-refusal'
+import { localizeTermsRequestError } from '@/app/components/pricing/termsRequestErrorCodes'
 
 export type FormulaState = {
     error?: string
+    detail?: string
     fieldErrors?: Record<string, string>
 }
 
@@ -28,7 +34,8 @@ type Parsed = {
     supplier_id: string | null
     customer_id: string | null
     notes: string | null
-    is_active: boolean
+    /** APR-8:提交给 CFO 的理由(必填) */
+    reason: string
     payables: { metal: string; payable_pct: number }[]
     clears: string[]
 }
@@ -129,6 +136,10 @@ async function parseForm(formData: FormData): Promise<{ parsed?: Parsed; fieldEr
         payables.push({ metal, payable_pct: n })
     }
 
+    // APR-8:每一次提交都是一张给 CFO 的申请,理由必填(库里也拒 TERMS_REQUEST_REASON_REQUIRED)
+    const reason = String(formData.get('reason') ?? '').trim()
+    if (!reason) fieldErrors.reason = t('termsRequest.reasonRequired')
+
     if (Object.keys(fieldErrors).length > 0) return { fieldErrors }
 
     return {
@@ -143,10 +154,27 @@ async function parseForm(formData: FormData): Promise<{ parsed?: Parsed; fieldEr
             supplier_id,
             customer_id,
             notes: String(formData.get('notes') ?? '').trim() || null,
-            is_active: formData.get('is_active') === 'on',
+            reason,
             payables,
             clears,
         },
+    }
+}
+
+/** 表单那一组 → 申请里的规范条款(与 formula_terms_normalize 同一个形状)。留空的金属不进 metals = 不计价。 */
+function termsOf(p: Parsed) {
+    return {
+        name: p.name,
+        direction: p.direction,
+        price_basis: p.price_basis,
+        price_index: p.price_index,
+        average_days: p.average_days,
+        treatment_charge_usd_per_tonne: p.treatment_charge_usd_per_tonne,
+        flat_discount_pct: p.flat_discount_pct,
+        supplier_id: p.supplier_id,
+        customer_id: p.customer_id,
+        notes: p.notes,
+        metals: p.payables,
     }
 }
 
@@ -159,42 +187,21 @@ export async function createFormula(
     const p = parsed!
 
     const supabase = await createClient()
-    // code 由 BEFORE INSERT 触发器分配(无缝编号)。列是 NOT NULL 且无 DB 默认值,
-    // 生成的类型看不见触发器,故这里送空串 —— 触发器对 NULL 与 '' 一视同仁,都补号。
-    const { data, error } = await supabase
-        .from('pricing_formulas')
-        .insert({
-            code: '',
-            name: p.name,
-            direction: p.direction,
-            price_basis: p.price_basis,
-            price_index: p.price_index,
-            average_days: p.average_days,
-            treatment_charge_usd_per_tonne: p.treatment_charge_usd_per_tonne,
-            flat_discount_pct: p.flat_discount_pct,
-            supplier_id: p.supplier_id,
-            customer_id: p.customer_id,
-            notes: p.notes,
-            is_active: p.is_active,
-        })
-        .select('id')
-        .single()
-
-    if (error) return { error: error.message }
-
-    if (p.payables.length > 0) {
-        const { error: mErr } = await supabase
-            .from('pricing_formula_metals')
-            .insert(p.payables.map((m) => ({ formula_id: data.id, ...m })))
-        if (mErr) return { error: mErr.message }
-    }
+    const { error } = await supabase.rpc('submit_formula_create_request', {
+        p_terms: termsOf(p),
+        p_reason: p.reason,
+    })
+    if (error) return await refuseFromCoded(error.message, localizeTermsRequestError)
 
     revalidatePath('/tools/pricing/formulas')
     redirect('/tools/pricing/formulas')
 }
 
+// 在用的公式 → formula_change;停用着的 → formula_reactivate(批准时写进并启用)。
+// 走哪一扇由【此刻】公式的状态决定 —— 页面传进来的,库里还会再按名拒一次(FORMULA_NOT_ACTIVE / FORMULA_ALREADY_ACTIVE)。
 export async function updateFormula(
     formulaId: string,
+    isActive: boolean,
     _prevState: FormulaState,
     formData: FormData
 ): Promise<FormulaState> {
@@ -203,42 +210,11 @@ export async function updateFormula(
     const p = parsed!
 
     const supabase = await createClient()
-    const { error } = await supabase
-        .from('pricing_formulas')
-        .update({
-            name: p.name,
-            direction: p.direction,
-            price_basis: p.price_basis,
-            price_index: p.price_index,
-            average_days: p.average_days,
-            treatment_charge_usd_per_tonne: p.treatment_charge_usd_per_tonne,
-            flat_discount_pct: p.flat_discount_pct,
-            supplier_id: p.supplier_id,
-            customer_id: p.customer_id,
-            notes: p.notes,
-            is_active: p.is_active,
-        })
-        .eq('id', formulaId)
-
-    if (error) return { error: error.message }
-
-    if (p.payables.length > 0) {
-        const { error: mErr } = await supabase
-            .from('pricing_formula_metals')
-            .upsert(
-                p.payables.map((m) => ({ formula_id: formulaId, ...m })),
-                { onConflict: 'formula_id,metal' }
-            )
-        if (mErr) return { error: mErr.message }
-    }
-    if (p.clears.length > 0) {
-        const { error: dErr } = await supabase
-            .from('pricing_formula_metals')
-            .delete()
-            .eq('formula_id', formulaId)
-            .in('metal', p.clears)
-        if (dErr) return { error: dErr.message }
-    }
+    const args = { p_formula_id: formulaId, p_terms: termsOf(p), p_reason: p.reason }
+    const { error } = isActive
+        ? await supabase.rpc('submit_formula_change_request', args)
+        : await supabase.rpc('submit_formula_reactivate_request', args)
+    if (error) return await refuseFromCoded(error.message, localizeTermsRequestError)
 
     revalidatePath('/tools/pricing/formulas')
     revalidatePath(`/tools/pricing/formulas/${formulaId}/edit`)
@@ -249,24 +225,9 @@ export async function deleteFormula(
     formulaId: string
 ): Promise<{ error?: string; detail?: string }> {
     const supabase = await createClient()
-    const { data, error } = await supabase
-        .from('pricing_formulas')
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('id', formulaId)
-        .is('deleted_at', null)
-        // ★ ALERT-1:见 app/materials/actions.ts 的同一段注释 ——
-        //   没有这一行,一次被 RLS 挡下的删除会报告成功,
-        //   而这一处更难看:成功那一支【会 redirect】,于是人被送回列表,
-        //   而那条记录还好端端地在列表里。**同一个谎,换了个形状。**
-        .select('id')
-
-    // ★ ALERT-1:这一处原来是 `return { error: error.message }` ——
-    //   全库唯一一个连【模板都没有】的:数据库原文直接就是屏幕上那句话。
-    if (error) return await refuseFromDriver(error.message)
-
-    if (!data || data.length === 0) {
-        return await refuseNothingChanged('module.pricing.edit')
-    }
+    // APR-8:删除是 cco 一步(只会让能用的变少);等待中的申请挂在它上面时库按名拒 TERMS_REQUEST_OPEN。
+    const { error } = await supabase.rpc('delete_pricing_formula', { p_formula_id: formulaId })
+    if (error) return await refuseFromCoded(error.message, localizeTermsRequestError)
 
     revalidatePath('/tools/pricing/formulas')
     redirect('/tools/pricing/formulas')

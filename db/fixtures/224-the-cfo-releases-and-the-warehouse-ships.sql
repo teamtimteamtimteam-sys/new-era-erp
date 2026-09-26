@@ -183,6 +183,13 @@ BEGIN
     -- 策略:一级 fx224-l1、二级 fx224-l2;审批打开
     PERFORM set_config('request.jwt.claims', '', true);
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);
+    -- ★ APR-8(2026-09-26):条款申请这条链的门是 module.pricing.view + data.view_prices + data.view_purchase_prices
+    --   + module.suppliers.view + module.customers.view(decide_terms_request)—— 二级补上,否则开审批就按名拒
+    --   APPROVALS_CHAIN_HAS_NO_APPROVER|decide_terms_request。本 fixture 测的不是它。
+    INSERT INTO role_permissions (role_id, permission_code)
+    SELECT apr8_r.id, c FROM roles apr8_r CROSS JOIN unnest(ARRAY['module.pricing.view', 'data.view_prices', 'data.view_purchase_prices', 'module.suppliers.view', 'module.customers.view']) c
+     WHERE apr8_r.code IN ('fx224-l2')
+    ON CONFLICT (role_id, permission_code) DO NOTHING;
     UPDATE finance_settings SET approval_level1_role_code = 'fx224-l1', approval_level2_role_code = 'fx224-l2',
                                 approval_threshold_base = 1000;
     PERFORM set_config('evoltrya.approvals_policy_ctx', '1', true);

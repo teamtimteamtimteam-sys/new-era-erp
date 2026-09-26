@@ -103,6 +103,12 @@ BEGIN
             SELECT true, r.label, r.amount_base, v_base_ccy, 1, r.amount_base, r.created_by
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser
               FROM warehouse_requests r WHERE r.id = p_subject_id;
+        -- ★ APR-8:条款申请(公式新建 / 修改 / 重新启用 · 合同生效)。提单人 = created_by;主角 = NULL。
+        --   【没有金额】—— 批的是条款,不是一笔钱(work_order 同形:只冻结编号,四列留空,不塞 0)。
+        --   编号:申请没有自己的单据编号,记它的 label(公式 / 合同编号 · new / change / reactivate / activate #n)。
+        WHEN 'terms_request' THEN
+            SELECT true, r.label, r.created_by INTO v_ok, v_code, v_raiser
+              FROM terms_requests r WHERE r.id = p_subject_id;
         WHEN 'expense' THEN
             SELECT true, e.code, e.amount_ccy, e.currency, e.fx_rate, e.amount_base
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base
