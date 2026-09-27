@@ -6,11 +6,13 @@
 //     · 生效中的 → 暂停(一步 —— 只会让效力变少;暂停之后条款改得了,改完再申请生效)
 //   挂着一张在等的申请时两个动作都按不动,说出是哪一张。码的那一半看得见、按不动、带理由(DBLOCK-1)。
 import { useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { Refusal } from '@/app/components/ui/refusal'
 import { submitContractActivation, suspendContract } from '@/app/components/pricing/termsRequestActions'
 
 export type ActivationRow = {
@@ -21,6 +23,14 @@ export type ActivationRow = {
     statusLabel: string
     /** 挂着的那一张在等的申请的 label;null = 没有 */
     openLabel: string | null
+    /**
+     * TERMS-EDIT-1(Q3):申请生效之前还缺的条款,已经译成人话;空 = 不缺(买方合同永远是空)。
+     * 同一份判据在库里(contract_activation_missing → CONTRACT_TERMS_INCOMPLETE),这里只是提前说出来。
+     * undefined = 这一处没有算清单(/contracts 登记簿那一张表)—— 不画,也不因它关钮,库仍然会拒。
+     */
+    missing?: string[]
+    /** TERMS-EDIT-1:详情页的链接要不要画(登记簿那一张表画,详情页自己不画) */
+    href?: string
 }
 
 export default function ContractActivationPanel({ rows, canWrite }: { rows: ActivationRow[]; canWrite: boolean }) {
@@ -47,7 +57,9 @@ export default function ContractActivationPanel({ rows, canWrite }: { rows: Acti
             <ul className="divide-y divide-[color:var(--brand-border)]">
                 {rows.map((c) => (
                     <li key={c.id} className="py-2 flex flex-wrap items-center gap-3">
-                        <span className="font-mono">{c.code}</span>
+                        {c.href
+                            ? <Link href={c.href} className="font-mono hover:underline app-link">{c.code}</Link>
+                            : <span className="font-mono">{c.code}</span>}
                         <span>{c.title}</span>
                         <span className="text-sm text-[color:var(--brand-muted-text)]">{c.statusLabel}</span>
                         {c.openLabel && (
@@ -71,6 +83,7 @@ export default function ContractActivationPanel({ rows, canWrite }: { rows: Acti
                                         {t('termsRequest.suspend')}
                                     </ConfirmButton>
                                 ) : (
+                                    <span className="inline-flex flex-col items-start gap-1">
                                     <ConfirmButton
                                         subject={c.code}
                                         title={t('termsRequest.activateConfirm')}
@@ -79,11 +92,18 @@ export default function ContractActivationPanel({ rows, canWrite }: { rows: Acti
                                         tier="destructive"
                                         triggerVariant="default"
                                         reason={{ placeholder: t('termsRequest.reasonPlaceholder') }}
-                                        disabled={pending || Boolean(c.openLabel)}
+                                        disabled={pending || Boolean(c.openLabel) || (c.missing?.length ?? 0) > 0}
                                         onConfirm={(reason) => run(c.code, () => submitContractActivation(c.id, reason))}
                                     >
                                         {t('termsRequest.activateSubmit')}
                                     </ConfirmButton>
+                                    {/* TERMS-EDIT-1(Q3):按不动的理由就挨在钮下面,逐条说缺什么 */}
+                                    {(c.missing?.length ?? 0) > 0 && (
+                                        <Refusal className="whitespace-normal text-left" data-activation-missing={c.code}>
+                                            {t('contractDetail.missingLead', { items: (c.missing ?? []).join(t('contractDetail.listJoin')) })}
+                                        </Refusal>
+                                    )}
+                                    </span>
                                 )}
                             </PermissionGate>
                         </span>

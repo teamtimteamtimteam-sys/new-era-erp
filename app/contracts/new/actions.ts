@@ -135,7 +135,6 @@ export async function createContract(
     }
 
     revalidatePath('/contracts')
-    // 详情页今天不存在(围栏:本刀不建),所以回登记簿 —— 新建那一行就在表里。
-    void data
-    redirect('/contracts')
+    // TERMS-EDIT-1:详情页落地了 —— 建好就进它自己的页面,条款在那里录(草稿,生效要经 CFO)。
+    redirect(`/contracts/${data.id}`)
 }

@@ -30,7 +30,16 @@ export const TERMS_REQUEST_ERROR_CODES = new Set([
     'CONTRACT_NOT_FOUND',
     'CONTRACT_NOT_ACTIVATABLE',
     'CONTRACT_PERIOD_ENDED',
+    // TERMS-EDIT-1(grilling Q3):卖方合同条款不齐 —— 第二个参数是缺的那几条(逗号分隔),下面逐条译成人话
+    'CONTRACT_TERMS_INCOMPLETE',
 ])
+
+/** TERMS-EDIT-1:清单上的一项(contract_activation_missing 的原话)→ 一句人话。'refining_charge:<metal>' 带金属 */
+export async function missingTermLabel(item: string): Promise<string> {
+    const t = await getTranslations()
+    const [what, metal] = item.split(':')
+    return metal ? t('contractDetail.missing.' + what, { metal }) : t('contractDetail.missing.' + what)
+}
 
 // 审批四眼那一族(forbid_self_approval · require_approver_for · 开关)归财务那一份
 const APPROVAL_FAMILY = /^(SELF_APPROVAL_FORBIDDEN|APPROVAL_NOT_AUTHORISED|APPROVALS_NOT_ENABLED)$/
@@ -50,7 +59,17 @@ export async function localizeTermsRequestError(message: string): Promise<string
                 params[String(i)] = v
             })
         }
-        return (await getTranslations())('termsRequest.errors.' + match[1], params)
+        const t = await getTranslations()
+        // TERMS-EDIT-1(Q4):结束了的合同 —— 「先暂停」那句话对它是错的,换一句
+        if (match[1] === 'CONTRACT_TERMS_FROZEN' && (params['1'] === 'expired' || params['1'] === 'terminated')) {
+            return t('termsRequest.errors.CONTRACT_TERMS_FROZEN_ENDED',
+                     { 0: params['0'] ?? '', 1: t('contracts.status.' + params['1']) })
+        }
+        if (match[1] === 'CONTRACT_TERMS_INCOMPLETE') {
+            const items = (params['1'] ?? '').split(',').filter(Boolean)
+            params['1'] = (await Promise.all(items.map(missingTermLabel))).join(t('contractDetail.listJoin'))
+        }
+        return t('termsRequest.errors.' + match[1], params)
     }
     const code = match?.[1] ?? ''
     if (APPROVAL_FAMILY.test(code)) return await localizeFinanceError(raw)

@@ -3,7 +3,32 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
-## APR8-NO-TERM-EDITOR · 合同的七张条款表没有编辑界面 —— 条款只能经 API 写(APR-8 登记,2026-09-26)
+## TERMSEDIT1-EXPOSURE-IGNORES-STATUS · 价格敞口报表不看合同状态 —— 一份草稿上的计价条款会被报成一个卖方头寸(TERMS-EDIT-1 登记,2026-09-27)
+
+`price_exposure_report`(COMM-1)把【每一份】没删的合同的 `contract_pricing_terms` 都列成卖方头寸,不问 `contracts.status`。
+APR-8 之后只有 `active` 有效力,而 TERMS-EDIT-1 让 cco 在屏幕上就能给一份【草稿】填计价条款 —— 于是 `/finance/price-exposure` 会把一份
+还没经 CFO 批的草稿报成一个头寸(挂着的销售单数量为 0,因为草稿挂不上单据)。**实测**:TERMS-EDIT-1 第一轮冒烟给自己的 ZZ-SMOKE 卖方
+草稿填了一条计价条款,那一页就从「具名的零」变成了"有头寸",它的内容针(只认两句具名的零)红了;冒烟改成草稿不带计价条款之后绿。
+☞ **两件事,都归 Tim:** ① 报表该不该只数 `active`(暂停 / 终止的合同上已经挂着的销售单是不是仍然算敞口,是一个判断,本刀没有替它答);
+② 那条冒烟针只认两种零 —— 线上第一份带计价条款的真合同出现的那天,它会为【对的理由】变红,要给它加上"有头寸"那一态。
+**删除条件:** Tim 裁了 ①,并且 ② 那条针认得"有头寸"那一态。
+
+## TERMSEDIT1-ENDED-HEADER-WRITABLE · 到期 / 终止的合同,表头在库里仍然直连改得动(TERMS-EDIT-1 登记,2026-09-27)
+
+TERMS-EDIT-1 的 Q4 让 `contract_terms_lock_reason` 对到期与终止的合同也返回理由,于是**七张条款表**在它们上面按名拒
+`CONTRACT_TERMS_FROZEN|编号|expired / terminated`。**表头那一支(`guard_contract_write`)只读 `request:` 与 `active`,本刀没有动它** ——
+Tim 裁的是条款的锁(Q4),而改表头的守卫是一条 APR-8 的规矩,本刀不许改。所以:持 `action.contract_terms` 的人经 API
+仍然改得动一份已终止合同的标题、期限、币种等,也能把它的状态从 `terminated` 改回 `draft`(之后再生效仍要经 CFO,没有绕过审批)。
+**屏幕上不会发生**:详情页的表头表单在到期 / 终止的合同上按不动、说出理由(与条款同一句,读 `contract_terms_lock_reason`)。
+fixture 230 的 F3 把"表头的规矩这一刀没动"钉住了,改它的那一刀会看见那一格变红。
+**删除条件:** Tim 裁定结束了的合同表头也冻结(`guard_contract_write` 读 `expired` / `terminated`),或裁定这样就对。
+
+## ~~APR8-NO-TERM-EDITOR · 合同的七张条款表没有编辑界面 —— 条款只能经 API 写(APR-8 登记,2026-09-26)~~ —— ✅ **关闭于 TERMS-EDIT-1(2026-09-27)**
+
+> ★ **关闭**:`/contracts/[id]`(`app/contracts/[id]/`)—— 表头与七张条款表各有 cco 用的 增 / 改 / 删;生效中、在等 CFO、到期、终止的合同上
+> 每个控件看得见、按不动、说出理由(读 `contract_terms_lock_reason`,与守卫同一支判据);不持 `action.contract_terms` 的人看得见、
+> 按不动、说出码。卖方合同条款不齐就申请生效按名拒 `CONTRACT_TERMS_INCOMPLETE`。见 `docs/handbacks/TERMS-EDIT-1.md`。原文保留:
+
 
 APR-8 让合同生效要经 CFO,而 CFO 批的是【合同上此刻的条款】(表头 + 品位 · 保险 · 数量 · 计价 · 结算 · 精炼费 · 罚则七张表)。
 可是这七张表在应用里**一个编辑界面都没有**(`app/contracts` 只有列表、新建与今天加的生效 / 暂停),CONTRACT-1 起就是这样:
@@ -122,6 +147,7 @@ Tim 的 APR-10 grilling Q5:资产行或电池料行 ⇒ `equipment_goods`。`gua
 `kind_code` 都是 NULL** —— 于是一张【耗材单】或【办公用品单】今天开得出这两种料,守卫一言不发(测试数据;线上走证用的就是 0001,在
 `equipment_goods` 里)。修法不是放宽守卫去猜,是把这两条物料的 kind 填上(物料目录那一页,`module.materials.edit`)。
 **删除条件:** 每一条可以下采购单的物料都有 `kind_code`(或守卫对 NULL kind 按名拒)。
+**Tim 2026-09-27(TERMS-EDIT-1 委托书):接受这个判据,这一条【保持登记】** —— 线上两种原料是测试数据,真物料录入时会填 kind。
 
 ## ROLE1B3-AMEND-RELEASED-WO · 改一张【已下达】的工单,不会把它送回去重新下达(ROLE-1 Batch 3 登记,2026-09-25)
 

@@ -28,6 +28,25 @@ export const CONTRACT_ERROR_CODES = new Set([
     'CONTRACT_PERIOD_ORDER',
     'CONTRACT_PAYMENT_TERMS_INVALID',
     'CONTRACT_NOT_PERMITTED',
+    // ── TERMS-EDIT-1:七张条款表的约束(见下面 CONSTRAINT_TO_CODE)──────────────────────
+    'CONTRACT_GRADE_NEEDS_A_BOUND',
+    'CONTRACT_GRADE_BOUNDS_ORDERED',
+    'CONTRACT_GRADE_DUPLICATE',
+    'CONTRACT_TERM_PCT_RANGE',
+    'CONTRACT_TERM_AMOUNT_NEGATIVE',
+    'CONTRACT_TERM_CHOICE_INVALID',
+    'CONTRACT_INSURANCE_AMOUNT_NEEDS_CURRENCY',
+    'CONTRACT_INSURANCE_COVER_REQUIRED',
+    'CONTRACT_VOLUME_QUANTITY_POSITIVE',
+    'CONTRACT_VOLUME_UNIT_REQUIRED',
+    'CONTRACT_PRICING_DUPLICATE_METAL',
+    'CONTRACT_PRICING_PAYABLE_RANGE',
+    'CONTRACT_PRICING_QP_RANGE',
+    'CONTRACT_SETTLEMENT_ALREADY_STATED',
+    'CONTRACT_SETTLEMENT_RETENTION_DAYS',
+    'CONTRACT_SETTLEMENT_SPLITTING_RANGE',
+    'CONTRACT_REFINING_DUPLICATE_METAL',
+    'CONTRACT_PENALTY_DUPLICATE_SUBSTANCE',
     // ── PUR-1:把一张单据挂到合同上那条路的具名拒绝 ──────────────────────────
     // ★★【这五条【一直】会被抛出,却从来没有句子 —— 因为从来没有屏幕调它】★★
     //   link_document_to_contract 是 CONTRACT-1 建的,五条拒绝早就在函数里,
@@ -60,6 +79,47 @@ const CONSTRAINT_TO_CODE: Record<string, string> = {
     contracts_status_check: 'CONTRACT_STATUS_INVALID',
     contracts_period_order: 'CONTRACT_PERIOD_ORDER',
     contracts_payment_terms_days_check: 'CONTRACT_PAYMENT_TERMS_INVALID',
+    // ── TERMS-EDIT-1(Q2):七张条款表上的每一条 CHECK / 唯一约束 / 唯一索引 ──────────────
+    //   2026-09-27 读 pg_constraint + pg_indexes(postgres,基表):CHECK 与唯一约束 30 条、唯一索引 2 条,
+    //   外键不在此列(它们指向下拉里选出来的字典行,屏幕上造不出一条悬空的)。
+    //   ★ 按【名字】认,不按错误文本;名字互不为前缀(one_per_metal 两张表各一条,表名不同)。
+    contract_grade_specs_needs_a_bound: 'CONTRACT_GRADE_NEEDS_A_BOUND',
+    contract_grade_specs_bounds_ordered: 'CONTRACT_GRADE_BOUNDS_ORDERED',
+    contract_grade_specs_min_pct_check: 'CONTRACT_TERM_PCT_RANGE',
+    contract_grade_specs_max_pct_check: 'CONTRACT_TERM_PCT_RANGE',
+    contract_grade_specs_one_per_material_metal: 'CONTRACT_GRADE_DUPLICATE',
+    contract_grade_specs_one_per_metal_no_material: 'CONTRACT_GRADE_DUPLICATE',
+    contract_insurance_amount_needs_currency: 'CONTRACT_INSURANCE_AMOUNT_NEEDS_CURRENCY',
+    contract_insurance_obligations_cover_type_check: 'CONTRACT_INSURANCE_COVER_REQUIRED',
+    contract_insurance_obligations_insured_by_check: 'CONTRACT_TERM_CHOICE_INVALID',
+    contract_insurance_obligations_min_amount_check: 'CONTRACT_TERM_AMOUNT_NEGATIVE',
+    contract_volume_commitments_committed_by_party_check: 'CONTRACT_TERM_CHOICE_INVALID',
+    contract_volume_commitments_direction_check: 'CONTRACT_TERM_CHOICE_INVALID',
+    contract_volume_commitments_period_check: 'CONTRACT_TERM_CHOICE_INVALID',
+    contract_volume_commitments_quantity_check: 'CONTRACT_VOLUME_QUANTITY_POSITIVE',
+    contract_volume_commitments_unit_check: 'CONTRACT_VOLUME_UNIT_REQUIRED',
+    contract_pricing_terms_base_event_check: 'CONTRACT_TERM_CHOICE_INVALID',
+    contract_pricing_terms_one_per_metal: 'CONTRACT_PRICING_DUPLICATE_METAL',
+    contract_pricing_terms_payable_pct_check: 'CONTRACT_PRICING_PAYABLE_RANGE',
+    contract_pricing_terms_qp_months_check: 'CONTRACT_PRICING_QP_RANGE',
+    contract_settlement_terms_one_per_contract: 'CONTRACT_SETTLEMENT_ALREADY_STATED',
+    contract_settlement_terms_penalty_basis_check: 'CONTRACT_TERM_CHOICE_INVALID',
+    contract_settlement_terms_refining_charge_basis_check: 'CONTRACT_TERM_CHOICE_INVALID',
+    contract_settlement_terms_sale_weight_basis_check: 'CONTRACT_TERM_CHOICE_INVALID',
+    contract_settlement_terms_settling_party_check: 'CONTRACT_TERM_CHOICE_INVALID',
+    contract_settlement_terms_sample_retention_days_check: 'CONTRACT_SETTLEMENT_RETENTION_DAYS',
+    contract_settlement_terms_splitting_limit_pct_check: 'CONTRACT_SETTLEMENT_SPLITTING_RANGE',
+    contract_refining_charges_one_per_metal: 'CONTRACT_REFINING_DUPLICATE_METAL',
+    contract_refining_charges_usd_per_tonne_of_metal_check: 'CONTRACT_TERM_AMOUNT_NEGATIVE',
+    contract_penalty_elements_one_per_substance: 'CONTRACT_PENALTY_DUPLICATE_SUBSTANCE',
+    contract_penalty_elements_threshold_pct_check: 'CONTRACT_TERM_PCT_RANGE',
+    contract_penalty_elements_usd_per_tonne_per_pct_over_check: 'CONTRACT_TERM_AMOUNT_NEGATIVE',
+}
+
+/** TERMS-EDIT-1:这一串是不是合同 / 条款表上某一条约束的原话(是 → 交给本文件;否 → 交给条款申请那一份) */
+export function isContractConstraintError(message: string): boolean {
+    const raw = message ?? ''
+    return Object.keys(CONSTRAINT_TO_CODE).some((c) => raw.includes(c))
 }
 
 export async function localizeContractError(message: string): Promise<string> {

@@ -29145,6 +29145,10 @@ export type Database = {
         Args: { p_employee_id: string; p_leave_year: number }
         Returns: number
       }
+      contract_activation_missing: {
+        Args: { p_contract_id: string }
+        Returns: string[]
+      }
       contract_terms_lock_reason: {
         Args: { p_contract_id: string }
         Returns: string

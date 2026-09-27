@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useFormDraft } from '@/lib/useFormDraft'
 import DraftBanner from '@/app/components/DraftBanner'
 import { useTranslations } from '@/lib/i18n/client'
+import { ContractDateInput } from '../ContractDateInput'
 import { createContract, type CreateContractState } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
@@ -131,12 +132,12 @@ export default function NewContractForm({
                         <label className="block mb-1">
                             {t('contracts.form.effectiveFrom')} <span className="text-red-600">*</span>
                         </label>
-                        <input type="date" name="effective_from" required className={field} />
+                        <ContractDateInput name="effective_from" required className={field} />
                         {err('effective_from')}
                     </div>
                     <div>
                         <label className="block mb-1">{t('contracts.form.effectiveTo')}</label>
-                        <input type="date" name="effective_to" className={field} />
+                        <ContractDateInput name="effective_to" className={field} />
                         {/* 【空 = 没有固定期限,不是"忘了填"】—— 表上那条列注就是这么写的,
                             而表单必须说同一句话,否则它自己在暗示相反的意思。 */}
                         <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('contracts.form.effectiveToHint')}</p>
@@ -163,7 +164,7 @@ export default function NewContractForm({
                 <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                         <label className="block mb-1">{t('contracts.form.signedOn')}</label>
-                        <input type="date" name="signed_on" className={field} />
+                        <ContractDateInput name="signed_on" className={field} />
                     </div>
                     <div>
                         <label className="block mb-1">{t('contracts.form.currency')}</label>

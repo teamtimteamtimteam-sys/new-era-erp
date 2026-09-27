@@ -15,6 +15,7 @@ export type TermsActionResult = { error?: string; detail?: string; status?: 'sub
 function refreshTerms() {
     revalidatePath('/tools/pricing/formulas')
     revalidatePath('/contracts')
+    revalidatePath('/contracts/[id]', 'page')   // TERMS-EDIT-1:合同详情页
     revalidatePath('/')
 }
 

@@ -260,6 +260,44 @@ function sqlCheckIn(file, column) {
     return [...m[1].matchAll(/'(\w+)'/g)].map((x) => x[1])
 }
 const union = (...fns) => () => [...new Set(fns.flatMap((f) => f()))]
+// TERMS-EDIT-1:app/contracts/[id]/termSpecs.ts 的 SECTIONS —— 按 `table: '…'` 切段,段里每个 `name: '…'` 是一格。
+// 【找不到就抛】与 sqlCheckIn 同一条:切出 0 段 / 0 格是解析器坏了,不是没有值。
+const TERM_SPECS = 'app/contracts/[id]/termSpecs.ts'
+function termSpecChunks() {
+    const src = readFileSync(join(ROOT, TERM_SPECS), 'utf8')
+    const body = src.slice(src.indexOf('export const SECTIONS'))
+    const parts = body.split(/\n\s*\{\s*\n?\s*table: '/).slice(1)
+    if (parts.length === 0) throw new Error(`${TERM_SPECS} 里切不出 SECTIONS 的段`)
+    return { src, parts: parts.map((p) => ({ table: p.slice(0, p.indexOf("'")), body: p })) }
+}
+function termSpecTables() { return termSpecChunks().parts.map((p) => p.table) }
+function termSpecFields() {
+    const out = []
+    for (const p of termSpecChunks().parts) {
+        const names = [...p.body.matchAll(/name: '(\w+)'/g)].map((m) => m[1])
+        if (/\bNOTES\b/.test(p.body)) names.push('notes')
+        if (names.length === 0) throw new Error(`${TERM_SPECS} 的 ${p.table} 一格都没有`)
+        for (const n of names) out.push([p.table, n])
+    }
+    return out
+}
+function termSpecEnumOptions() {
+    const { src, parts } = termSpecChunks()
+    const party = src.match(/const PARTY = \{ kind: 'enum', values: \[([^\]]*)\]/)
+    if (!party) throw new Error(`${TERM_SPECS} 里找不到 PARTY`)
+    const partyValues = [...party[1].matchAll(/'(\w+)'/g)].map((m) => m[1])
+    const out = new Set()
+    for (const p of parts) {
+        for (const f of p.body.split(/\{ name: '/).slice(1)) {
+            const name = f.slice(0, f.indexOf("'"))
+            const upto = f.split(/\{ name: '/)[0]
+            if (/options: PARTY/.test(upto)) partyValues.forEach((v) => out.add(`${name}.${v}`))
+            const m = upto.match(/kind: 'enum', values: \[([^\]]*)\]/)
+            if (m) [...m[1].matchAll(/'(\w+)'/g)].forEach((v) => out.add(`${name}.${v[1]}`))
+        }
+    }
+    return [...out]
+}
 // 视图里 CASE ... END AS 别名 推导出来的枚举列:收该块里 THEN/ELSE 的字面量
 function sqlCaseAs(file, alias) {
     const src = readFileSync(join(ROOT, file), 'utf8')
@@ -782,6 +820,13 @@ const MANIFEST = {
     'termsRequest.field.':          { kind: 'enum', values: () => tsArray('app/components/pricing/termsRequestsData.ts', 'FORMULA_FIELDS') },
     'termsRequest.section.':        { kind: 'enum', values: () => tsArray('app/components/pricing/termsRequestsData.ts', 'CONTRACT_SECTIONS') },
     'termsRequest.before.':         { kind: 'enum', values: () => ['current', 'last_approved', 'none'] },
+    // TERMS-EDIT-1:合同详情页。段名、格名、枚举取值都读 app/contracts/[id]/termSpecs.ts(表单与 server action 读的同一份);
+    //   清单上的项读 contract_activation_missing 的函数体(提交那一支拒的就是它吐出来的那几个词)。
+    'contractDetail.section.':      { kind: 'enum', values: () => termSpecTables().flatMap((tb) => [`${tb}.title`, `${tb}.hint`]) },
+    'contractDetail.field.':        { kind: 'enum', values: () => termSpecFields().map(([tb, f]) => `${tb}.${f}`) },
+    'contractDetail.opt.':          { kind: 'enum', values: () => termSpecEnumOptions() },
+    'contractDetail.missing.':      { kind: 'enum', values: () => tsRegex('db/functions/contract_activation_missing.sql',
+                                        /SELECT \d+(?: AS ord)?, '([a-z_]+)/g) },
     // APR-9:调薪申请与处置申请 —— 状态读各自表上的 status,拒绝读各自的码集合;
     //   决定人两种(pay_decision_code 的两个答案)、自批两条腿(self_leg 的两个非 none 取值)
     'salaryChange.status.':    { kind: 'enum', values: () => sqlEnum('db/tables/salary_change_requests.sql', 'status') },

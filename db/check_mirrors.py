@@ -575,7 +575,7 @@ DEFINER_NO_CHECK_ALLOWED = {
     "terms_request_fingerprint": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "formula_terms_state": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "contract_terms_state": "EXECUTE revoked from PUBLIC/authenticated/anon",
-    "contract_terms_lock_reason": "APR-8: read by the two contract guards, which run as the caller; it returns only 'active' or the waiting request's label for a contract id — the same fact the guard's refusal names",
+    "contract_terms_lock_reason": "APR-8: read by the two contract guards, which run as the caller; it returns only the waiting request's label or the contract's status when that status freezes the terms (active · expired · terminated, TERMS-EDIT-1) — the same fact the guard's refusal names",
     # APR-9:调薪申请与处置申请的内层算子与判据 —— 靠的是调不到(zzz_function_grants.sql)。
     "salary_change_execute_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "salary_change_fingerprint": "EXECUTE revoked from PUBLIC/authenticated/anon",

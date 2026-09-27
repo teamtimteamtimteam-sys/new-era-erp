@@ -215,6 +215,10 @@ const ID_SOURCES = {
         // 货代详情对【非货代】是 notFound(契约),所以取 id 时必须挑一个货代 ——
         // 见下面 ID_FILTERS 的按路由键。
         '/logistics/forwarders': 'suppliers',
+        // TERMS-EDIT-1:合同详情页。线上今天 0 份合同,所以冒烟【自己造】两份草稿(每一侧一份,ZZ-SMOKE-CON-*,
+        //   见下面"临时合同"那一段),主循环里这条路由走的是那份卖方合同(按 id 显式指定,不靠 firstId 挑到谁)。
+        //   它仍然登记在这里:预检要求每一条 [id] 路由都有前缀命中。
+        '/contracts': 'contracts',
     },
     '[assayId]': { '': 'assay_results' },
     '[batchId]': { '': 'inbound_batches' },
@@ -577,6 +581,15 @@ const MUST_CONTAIN = {
         // 同样是互斥的两支:有流水就画条,一条都没有就说"还没有记录"。
         { oneOf: ['data-chart-bars', 'data-chart-empty="no-rows"'],
           why: '流水构成图既没画条、也没说它为什么是空的' },
+    ],
+    // TERMS-EDIT-1:合同详情页 —— 走的是冒烟自己造的那份卖方草稿(七种条款各一行)。
+    //   断言表头与七段都画出来了,而且那份合同自己的号在页面上(不是一张空壳)。
+    '/contracts/[id]': [
+        { needle: 'ZZ-SMOKE-CON-SELL', why: '详情页没有画出这份合同的号 —— 读到的不是它' },
+        { needle: 'data-contract-section="header"', why: '表头那一段没有画出来' },
+        ...['grade_specs', 'insurance_obligations', 'volume_commitments', 'pricing_terms',
+            'settlement_terms', 'refining_charges', 'penalty_elements'].map((sec) => (
+            { needle: `data-contract-section="${sec}"`, why: `条款段 ${sec} 没有画出来` })),
     ],
     '/inbound/new': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
     '/inbound/receive': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
@@ -1932,6 +1945,35 @@ async function main() {
     const review = { id: raised.review_id }
     const cookie2 = await signIn(email2, 'smoke-pass-2')
 
+    // ── 临时合同(TERMS-EDIT-1,Tim 裁定 Q8):每一侧一份草稿,好让 /contracts/[id] 真的渲染一次 ──────────
+    // 线上 0 份合同,不造就只能把这条路由记成"没有数据"跳过。号是显式给的 ZZ-SMOKE-CON-*(取号触发器只在号为空时取号),
+    // 于是不烧线上合同的号,check-scratch-rows 也按 code 认得出它们。按前缀登记在【造之前】;删合同时七张条款表随外键级联。
+    // 走服务角色直写:它绕过 RLS,于是 APR-8 的守卫与写码判据不参与(row_security_active 为假)—— 这里只是布景,
+    // 编辑器的写与拒绝由 fixture 230 与切次的线上证明钉住,不在冒烟里。
+    planDelete('/rest/v1/contracts?code=like.ZZ-SMOKE-CON-*', '收尾:删临时合同(按前缀,条款级联)', ORDER.OTHER)
+    const smokeCustomer = (await restRows('/rest/v1/customers?select=id&deleted_at=is.null&limit=1&order=created_at', '临时合同 ← customers'))[0]
+    const smokeSupplier = (await restRows('/rest/v1/suppliers?select=id&deleted_at=is.null&limit=1&order=created_at', '临时合同 ← suppliers'))[0]
+    if (!smokeCustomer || !smokeSupplier) throw new Error('临时合同:线上找不到一家客户或一家供应商 —— 造不出两侧的草稿')
+    const mkContract = async (code, extra) => (await (await restOk('/rest/v1/contracts', { method: 'POST',
+        headers: { Prefer: 'return=representation' },
+        body: JSON.stringify({ code, kind: 'other', title: `${SCRATCH_NAME} ${code}`, effective_from: '2026-01-01',
+            status: 'draft', ...extra }) }, `建临时合同 ${code}`)).json())[0]
+    const smokeSell = await mkContract('ZZ-SMOKE-CON-SELL', { customer_id: smokeCustomer.id })
+    const smokeBuy = await mkContract('ZZ-SMOKE-CON-BUY', { supplier_id: smokeSupplier.id })
+    const termRow = (table, body) => restOk(`/rest/v1/${table}`, { method: 'POST',
+        body: JSON.stringify(body) }, `临时合同条款 ${table}`)
+    await termRow('contract_grade_specs', { contract_id: smokeSell.id, metal: 'ni', min_pct: 18 })
+    await termRow('contract_insurance_obligations', { contract_id: smokeSell.id, insured_by: 'us', cover_type: 'cargo' })
+    await termRow('contract_volume_commitments', { contract_id: smokeSell.id, committed_by_party: 'us', quantity: 1, unit: 't', period: 'month' })
+    // ★ 卖方草稿【刻意不带计价条款】:price_exposure_report 不看合同状态,一条计价条款会把 /finance/price-exposure 从
+    //   「具名的零」推到"有头寸"那一态,而那一页的针只认两句具名的零(TERMS-EDIT-1 实测:第一轮冒烟因此红了那一条)。
+    //   不带它,详情页的"申请生效之前还缺什么"那一支也就被走到了(缺 pricing_terms)。
+    await termRow('contract_settlement_terms', { contract_id: smokeSell.id, sale_weight_basis: 'dry', settling_party: 'ours',
+        sample_retention_required: false, refining_charge_basis: 'per_metal', penalty_basis: 'per_element' })
+    await termRow('contract_refining_charges', { contract_id: smokeSell.id, metal: 'ni', usd_per_tonne_of_metal: 1 })
+    await termRow('contract_penalty_elements', { contract_id: smokeSell.id, substance: 'cu', threshold_pct: 1, usd_per_tonne_per_pct_over: 1 })
+    await termRow('contract_grade_specs', { contract_id: smokeBuy.id, metal: 'co', max_pct: 1 })
+
     // ── dev server ───────────────────────────────────────────────────────────
     const logChunks = []
     const dev = spawn('npx', ['next', 'dev', '-p', String(PORT)], { cwd: ROOT })
@@ -2110,6 +2152,8 @@ async function main() {
                 url = route.replace('[id]', rows[0].id)
                 exact = [guard.redirects(rows[0].status) ? 307 : 200]
             }
+            // TERMS-EDIT-1:合同详情页走冒烟自己的那份卖方草稿(见"临时合同")
+            if (route === '/contracts/[id]') url = `/contracts/${smokeSell.id}`
             for (const [seg, srcs] of Object.entries(ID_SOURCES)) {
                 if (!url.includes(seg)) continue
                 const prefix = Object.keys(srcs).filter((p) => route.startsWith(p) || p === '')
@@ -2220,6 +2264,22 @@ async function main() {
                 failures.push({ route: '/my-reviews/[id] (as reviewer)', url: target,
                     status: res.status, expected: 200, stack: await serverStack(before) })
                 console.log(`  FAIL /my-reviews/[id] (as reviewer) → ${res.status} (expected 200)`)
+            }
+        }
+
+        // ── TERMS-EDIT-1:买方那一份草稿也要渲染 —— 四段卖方条款画出来(Q6:看得见、按不动、说理由)──
+        {
+            const target = `/contracts/${smokeBuy.id}`
+            const before = logChunks.length
+            const res = await fetch(`http://localhost:${PORT}${target}`, { headers: { cookie }, redirect: 'manual' })
+            const body = res.status === 200 ? await res.text() : ''
+            const lacks = ['ZZ-SMOKE-CON-BUY', 'data-contract-section="grade_specs"', 'data-contract-section="pricing_terms"',
+                           'data-contract-section="penalty_elements"'].filter((n) => !body.includes(n))
+            if (res.status === 200 && lacks.length === 0) { ok++ }
+            else {
+                failures.push({ route: '/contracts/[id] (buy side)', url: target, status: res.status, expected: 200,
+                    stack: lacks.length ? `内容缺失:${lacks.join(' | ')}` : await serverStack(before) })
+                console.log(`  FAIL /contracts/[id] (buy side) → ${res.status}${lacks.length ? ' 内容缺失 ' + lacks.join(' | ') : ''}`)
             }
         }
 

@@ -11,6 +11,7 @@
 // 【权限码的那一半看得见、按不动、带理由】(DBLOCK-1):批 / 驳要五个门码(page 算出缺的第一个);
 // 撤回要那一种的码(公式 module.pricing.edit · 合同 action.contract_terms),提单人本人除外。
 import { useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
@@ -81,7 +82,11 @@ export default function TermsRequestsPanel({
                         </dd>
                         <dt className="text-[color:var(--brand-muted-text)]">{t('termsRequest.subject.' + r.kind)}</dt>
                         <dd>
-                            <span className="font-mono">{r.subjectCode}</span>
+                            {/* TERMS-EDIT-1(Q1):合同申请点得进那份合同 —— CFO 在那里看得见整份条款与它的历史 */}
+                            {r.contractId
+                                ? <Link href={`/contracts/${r.contractId}`} className="font-mono hover:underline app-link"
+                                        data-terms-request-contract={r.subjectCode}>{r.subjectCode}</Link>
+                                : <span className="font-mono">{r.subjectCode}</span>}
                             {r.subjectName && <> · {r.subjectName}</>}
                         </dd>
                         <dt className="text-[color:var(--brand-muted-text)]">{t('termsRequest.reason')}</dt>

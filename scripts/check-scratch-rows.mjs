@@ -64,6 +64,8 @@ const TARGETS = [
     { table: 'output_batches',   like: 'ZZ-SMOKE%', refs: [['sales_records', 'output_batch_id']] },
     { table: 'purchase_orders',  like: 'ZZ-SMOKE%', refs: [['inbound_batches', 'purchase_order_id']] },
     { table: 'processing_runs',  like: 'ZZ-SMOKE%', refs: [] },
+    // TERMS-EDIT-1:冒烟自己造的两份草稿合同(号 ZZ-SMOKE-CON-*)
+    { table: 'contracts',        like: 'ZZ-SMOKE%', refs: [['purchase_orders', 'contract_id'], ['sales_orders', 'contract_id']] },
     { table: 'roles',            like: 'fixture-%', refs: [['user_roles', 'role_id']] },
     { table: 'roles',            like: 'probe-%',   refs: [['user_roles', 'role_id']] },
 ]

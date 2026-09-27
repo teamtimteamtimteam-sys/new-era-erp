@@ -23,6 +23,8 @@ export type TermsRequestView = {
     label: string
     subjectCode: string
     subjectName: string | null
+    /** TERMS-EDIT-1:合同申请指到 /contracts/<id>(CFO 从这里点进去看整份合同);公式申请是 null */
+    contractId: string | null
     reason: string
     createdText: string
     raisedBy: string | null
@@ -110,13 +112,15 @@ function contractDiff(before: Terms | null, after: Terms | null, t: Translate): 
 export async function loadTermsRequests(
     supabase: SupabaseClient<Database>,
     t: Translate,
-    opts: { which: 'formula' | 'contract'; formulaId?: string; recent?: number },
+    opts: { which: 'formula' | 'contract'; formulaId?: string; contractId?: string; recent?: number },
 ): Promise<{ open: TermsRequestView[]; history: TermsRequestView[] }> {
     const rows = (mustRows(await supabase.rpc('terms_requests_visible', {
         p_recent: opts.recent ?? 10,
         p_formula_id: opts.formulaId,
     }), 'terms_requests_visible') as unknown as Row[])
         .filter((r) => (opts.which === 'contract') === (r.contract_id !== null))
+        // TERMS-EDIT-1:合同详情页只要这一份合同的(库那一侧没有按合同过滤的参数;行数由 p_recent 封顶)
+        .filter((r) => opts.contractId === undefined || r.contract_id === opts.contractId)
 
     // 公式条款里的对手方是 id —— 摊平成名字(读不到的留 id,不编一个)
     const ids = new Set<string>()
@@ -164,6 +168,7 @@ export async function loadTermsRequests(
         return {
             id: r.id, kind: r.kind, status: r.status, label: r.label,
             subjectCode: r.subject_code ?? '—',
+            contractId: r.contract_id,
             subjectName: s ? String((isContract ? s.title : s.formula_name) ?? '') || null : null,
             reason: r.reason,
             createdText: formatAuditStamp(r.created_at),

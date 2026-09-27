@@ -81,8 +81,14 @@
 >    (`record_gst_filing`);F7 走同一张申请;在等时锁挪不回那一季。采购单:`category` 三类、每类一个开单码(也给 admin),
 >    warehouse 另拿 `module.purchasing.view`,`module.purchasing.edit` 不再开单;改 / 取消 / 关闭 / 重开 = 开单人或持这一类码的人
 >    (Tim 的 Q7);开单时提单人之外没人批得动就拒;四张采购表没有直连写。见 `docs/handbacks/APR-10.md`。
-> 16. **⬜ 合同条款编辑器 ← 下一刀**(Tim 2026-09-26,APR-8 grilling Q3:**排在 APR-10 之后、同事试用之前**)—— 七张条款表各有一个 cco 用的
->    编辑界面;生效中的合同上它们按不动、说出理由(守卫 `CONTRACT_TERMS_FROZEN` 已在)。关 `docs/known-issues.md` § APR8-NO-TERM-EDITOR。
+> 16. **✅ TERMS-EDIT-1**(2026-09-27)—— 合同条款编辑器:`/contracts/[id]` 一页 —— 表头、七张条款表(每张 增 / 改 / 删)、
+>    这份合同的申请(CFO 在这里批,看得见与上一次批准时的差别)、申请生效 / 暂停。cco(`action.contract_terms`)直连写、受 RLS
+>    与 APR-8 的守卫;生效中 / 在等 / 到期 / 终止的合同上按不动、说出理由(到期与终止是本刀加的,Q4);卖方条款在买方合同上按不动(Q6)。
+>    卖方合同条款不齐就申请生效 → 库按名拒 `CONTRACT_TERMS_INCOMPLETE`(结算口径一行 · 至少一条计价 · per_metal 时每个计价金属一行精炼费 ·
+>    per_element 时至少一条惩罚),页面同一份清单(`contract_activation_missing`)提前说出来(Q3)。没有新码。
+>    关 `docs/known-issues.md` § APR8-NO-TERM-EDITOR。见 `docs/handbacks/TERMS-EDIT-1.md`。
+> 17. **⬜ EMP-SELF-1(余下部分)← 下一刀** —— G1 可找到性 · G2 决定人与备注 · G3 撤回 / 取消 · Q9 NULL 臂加固(见下面 3b-emp);
+>    然后 Tim 开独立 CFO 账号与同事账号 → 同事端到端走一遍。
 >    ☞ 版本号仍然不分配:**整条审批链一个版本号,在它收尾时公布**(Tim 的常设裁定)。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**

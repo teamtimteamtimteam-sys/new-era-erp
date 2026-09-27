@@ -229,7 +229,20 @@ raiser or a holder of its category code; any direct write to the four PO tables;
 ## §7 · The broken window — started, end PENDING
 
 **Start: 2026-09-27 16:34:41 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line
-reads 16:32:21). **End: PENDING — Tim reads it from Vercel.**
+reads 16:32:21). ~~**End: PENDING — Tim reads it from Vercel.**~~ ★ **Closed by TERMS-EDIT-1 (2026-09-27), with bounds, labelled
+by kind** — Tim confirmed APR-10 deployed and has no Vercel "Ready" time to add:
+
+| | time (CST) | kind |
+|---|---|---|
+| start | 2026-09-27 16:34:41 | **measured**: `db/migration-windows.tsv` |
+| end, lower bound | 2026-09-27 17:21:04 | **measured**: the push moved `origin/main` → `a5df6ea7` (`git reflog show --date=iso refs/remotes/origin/main`) |
+| end, upper bound | 2026-09-27 17:26:42 | **derived**: TERMS-EDIT-1's first read of `now()` as `postgres` (`rolbypassrls = t`), taken after Tim's "deployed" confirmation had arrived — **a relayed confirmation, not a measurement of Vercel** |
+
+**Window: at least 46 min 23 s, at most 52 min 1 s.** Also written into `docs/handbacks/TERMS-EDIT-1.md` §W.
+**Tim accepted all four build decisions (2026-09-27):** direct writes to the four PO tables closed; applying a payment-term template
+counts as amending; the battery-material rule reads `materials.kind_code` (`APR10-BATTERY-RULE-READS-KIND` stays registered — the two
+live feedstock materials are test data, and the kind is filled when real materials are entered); reopening a month before a waiting
+quarter is refused.
 
 What the old app does against the new database (approvals ON):
 - **Raising a PO is refused for everyone** — the old form sends no category, so `create_purchase_order` answers

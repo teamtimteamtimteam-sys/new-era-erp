@@ -6,6 +6,8 @@
 --              拟议条款规范化(formula_terms_normalize);修改而条款与此刻一模一样 → TERMS_REQUEST_NO_CHANGE|编号。
 --        合同:没删(CONTRACT_NOT_FOUND);是 draft 或 suspended(CONTRACT_NOT_ACTIVATABLE|编号|状态);
 --              合同期已经结束 → CONTRACT_PERIOD_ENDED|编号|截止日。
+--              ★ TERMS-EDIT-1(Tim 2026-09-27,grilling Q3):卖方合同条款不齐 → CONTRACT_TERMS_INCOMPLETE|编号|缺的那几条
+--              (逗号分隔,见 contract_activation_missing);买方合同不要求。
 --   2. 理由必填(TERMS_REQUEST_REASON_REQUIRED|种类|编号)。
 --   3. 同一个主体上已有一张在等 → TERMS_REQUEST_OPEN|编号|那一张(grilling Q5;唯一索引是第二道)。
 --   4. ★ 审批开着时:提单人这个【人】之外,二级还有没有人批得动 → TERMS_REQUEST_NO_OTHER_DECIDER|label
@@ -13,7 +15,8 @@
 --   5. 落一行 submitted:snapshot 与 fingerprint 冻结;按批准那一刻的同一支试跑(terms_request_dry_run)。
 --   6. 审批开着:留痕 submitted,二级。关着:当场生效,状态 approved,留痕 auto_approved。
 -- 内层算子,无调用者检查;EXECUTE 已从 authenticated 收回。
--- NOTE: introduced by db/migrations/2026-09-26-apr8-contract-terms-and-pricing-formulas-wait-for-the-cfo.sql.
+-- NOTE: introduced by db/migrations/2026-09-26-apr8-contract-terms-and-pricing-formulas-wait-for-the-cfo.sql;
+--       replaced by db/migrations/2026-09-27-terms-edit1-contract-terms-editor.sql (CONTRACT_TERMS_INCOMPLETE).
 
 CREATE OR REPLACE FUNCTION public.terms_request_submit_internal(p_kind text, p_subject uuid, p_proposed jsonb, p_reason text)
  RETURNS jsonb
@@ -60,6 +63,10 @@ BEGIN
         END IF;
         IF v_to IS NOT NULL AND v_to < CURRENT_DATE THEN
             RAISE EXCEPTION 'CONTRACT_PERIOD_ENDED|%|%', v_code, v_to;
+        END IF;
+        IF cardinality(contract_activation_missing(p_subject)) > 0 THEN
+            RAISE EXCEPTION 'CONTRACT_TERMS_INCOMPLETE|%|%', v_code,
+                array_to_string(contract_activation_missing(p_subject), ',');
         END IF;
     ELSE
         RAISE EXCEPTION 'TERMS_REQUEST_KIND_UNKNOWN|%', COALESCE(p_kind, '?');
