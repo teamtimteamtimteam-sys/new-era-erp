@@ -24,6 +24,10 @@ const REVIEW_ERROR_CODES = new Set([
     // 它们全部来自 open_probation_review,而那支函数是这条路唯一的入口。
     'EMPLOYEE_NOT_ON_PROBATION', 'PROBATION_END_DATE_NOT_SET',
     'PROBATION_PERIOD_INVALID', 'PROBATION_REVIEW_EXISTS',
+    // ★ APR-9(grilling Q1 · Q5 · Q6):评估的侧门关上 —— 直连只许建草稿、生命周期列只经函数、提交之后调薪与
+    //   转正结论冻结;评估只改已有的月薪;一个人同一时刻只有一次在途调薪(跨调薪申请)。
+    'REVIEW_DIRECT_INSERT_DRAFT_ONLY', 'REVIEW_STATUS_THROUGH_FUNCTION_ONLY', 'REVIEW_FROZEN_AFTER_SUBMIT',
+    'SALARY_NOT_SET_USE_INITIAL', 'SALARY_CHANGE_OPEN',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..."(同 localizeHrError)。

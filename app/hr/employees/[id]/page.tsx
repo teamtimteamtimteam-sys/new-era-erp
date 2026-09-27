@@ -10,6 +10,7 @@ import { formatAmount } from '@/lib/format'
 import { statusPillClass } from '../../reviews/reviewShared'
 import RaiseProbationReview from '../RaiseProbationReview'
 import InitialSalaryForm from '../InitialSalaryForm'
+import SalaryChangePanel, { type SalaryChangeView } from '../SalaryChangePanel'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { getBaseCurrency } from '@/lib/currency'
 import { mustRows } from '@/lib/db-helpers'
@@ -101,6 +102,41 @@ export default async function EmployeeDetailPage({
         }
         return out
     })()
+    // ★ APR-9(Tim 2026-09-27,grilling Q2–Q6):月薪已录之后,每一次变动走绩效评估或【调薪申请】(CFO 批;
+    //   CFO 是当事人时 cco 批)。申请读 salary_change_requests_visible —— 它自己要 module.hr.view + data.view_pay,
+    //   没有的读者零行(主角在等待中读不到自己的调薪申请)。谁能批、为什么批不了由库答(decide_block)。
+    //   生效月:上两个月到往后十二个月(已过账 / 挂着在途工资申请的月份由库按名拒,不在这里预判)。
+    const changeMonths: { value: string; label: string }[] = (() => {
+        const ymIndex = (ym: string) => Number(ym.slice(0, 4)) * 12 + Number(ym.slice(5, 7)) - 1
+        const nowIdx = ymIndex(toYearMonth(new Date()))
+        const out: { value: string; label: string }[] = []
+        for (let i = nowIdx - 2; i <= nowIdx + 12; i++) {
+            const value = toYearMonth(new Date(Date.UTC(Math.floor(i / 12), i % 12, 15))) + '-01'
+            out.push({ value, label: formatMonth(value, locale) })
+        }
+        return out
+    })()
+    type ScrRow = {
+        id: string; status: SalaryChangeView['status']; label: string; old_monthly_salary: number
+        new_monthly_salary: number; effective_date: string; reason: string; current_matches: boolean
+        created_at: string; created_by_email: string | null; raised_by_me: boolean; decided_by_email: string | null
+        decided_via: string | null; decision_notes: string | null; withdraw_reason: string | null
+        decide_code: string; decide_block: string | null
+    }
+    const scrRows: ScrRow[] = emp.monthly_salary_set && canPay
+        ? (mustRows(await supabase.rpc('salary_change_requests_visible', { p_employee_id: id, p_recent: 5 }),
+                    'salary_change_requests_visible') as unknown as ScrRow[])
+        : []
+    const scrViews: SalaryChangeView[] = scrRows.map((r) => ({
+        id: r.id, status: r.status, label: r.label,
+        oldSalary: Number(r.old_monthly_salary), newSalary: Number(r.new_monthly_salary),
+        effectiveText: formatMonth(r.effective_date, locale), reason: r.reason, currentMatches: r.current_matches,
+        createdText: formatDate(r.created_at, locale), raisedBy: r.created_by_email, raisedByMe: r.raised_by_me,
+        decidedBy: r.decided_by_email, decidedVia: r.decided_via, decisionNotes: r.decision_notes,
+        withdrawReason: r.withdraw_reason, decideCode: r.decide_code, decideBlock: r.decide_block,
+    }))
+    const meRes = await supabase.rpc('current_user_employee')
+    const isOwnRecord = !meRes.error && meRes.data === id
     const [empReviewsRes, ratingScaleRes, canHrEdit] = await Promise.all([
         supabase
             .from('performance_reviews_masked')
@@ -382,7 +418,7 @@ export default async function EmployeeDetailPage({
                 canHrEdit 那一半保持原样 —— 读得到不等于写得了。 */}
             {/* ── 月薪(ROLE-1 · Tim 的 Q7)──────────────────────────────────────
                 直连写月薪一律被拒;第一份月薪由财务在这里录【一次】,之后的变动走绩效评估
-                (或将来的调薪申请)由 CFO 批。三种状态各说各的话:
+                或调薪申请(APR-9,见下面那一块)由 CFO 批。三种状态各说各的话:
                   · 已有且看得见 → 数字 + 一句"之后怎么改";
                   · 已有但看不见(没有 data.view_pay)→ 「受限」,不是空白;
                   · 还没有 → 录入表单,外面两道门:先要看得见工资(data.view_pay),再要 module.hr.edit。 */}
@@ -400,6 +436,19 @@ export default async function EmployeeDetailPage({
                         <InitialSalaryForm employeeId={id} currency={baseCurrency} months={salaryMonths} />
                     </PermissionGate>
                 </PermissionGate>
+            )}
+
+            {emp.monthly_salary_set && emp.monthly_salary !== null && (
+                <SalaryChangePanel
+                    employeeId={id}
+                    currency={baseCurrency}
+                    currentSalary={Number(emp.monthly_salary)}
+                    months={changeMonths}
+                    canRaise={canHrWrite && canPay}
+                    isOwn={isOwnRecord}
+                    open={scrViews.filter((v) => v.status === 'submitted')}
+                    history={scrViews.filter((v) => v.status !== 'submitted')}
+                />
             )}
 
             <h2 className="mb-3">{t('reviews.sectionTitle')}</h2>

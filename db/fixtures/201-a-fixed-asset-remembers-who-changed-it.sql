@@ -282,7 +282,8 @@ BEGIN
     END IF;
 
     -- ══════════ H · dispose_fixed_asset ═════════════════════════════════════
-    PERFORM dispose_fixed_asset(v_asset2, CURRENT_DATE, 0, NULL, 'fixture 201 H');
+    -- APR-9:dispose_fixed_asset 只会按名拒了(处置经 CFO 批的申请);本臂钉的是处置的算术,调引擎本身。
+    PERFORM dispose_fixed_asset_internal(v_asset2, CURRENT_DATE, 0, NULL, 'fixture 201 H');
     -- ⚠ 必须带 change_type = 'updated':'created' 那一行的 changed_columns 是
     --   【整行 23 列】,status 当然也在里面(A 臂钉的就是这一条)。只按
     --   `'status' = ANY(...)` 取,拿到的会是出生那一行 —— 一条因为错的理由红/绿的判据。

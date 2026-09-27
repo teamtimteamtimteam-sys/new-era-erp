@@ -36,6 +36,8 @@ export type AssetsTableRow = {
     inServiceDate: string | null
     plannedInServiceDate: string | null
     hasCost: boolean
+    /** APR-9:这台资产上那一张在等的处置申请的 label(处置钮因此按不动并指向它);没有就是 null */
+    pendingDisposalLabel: string | null
 }
 
 export default function AssetsTable({
@@ -120,7 +122,8 @@ export default function AssetsTable({
                     plannedInServiceDate={a.plannedInServiceDate}
                     hasCost={a.hasCost}
                     acquisitionDate={a.acquisitionDate}
-                    canEdit={canEdit} bankAccounts={bankAccounts} />
+                    canEdit={canEdit} bankAccounts={bankAccounts}
+                    pendingDisposalLabel={a.pendingDisposalLabel} />
             ),
         },
     ]

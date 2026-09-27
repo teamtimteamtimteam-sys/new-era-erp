@@ -58,7 +58,7 @@ MD = `gm`(Vince,只读)。
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
 | 登记 · registration | 财务 · finance | 不批 · none | = 不变 · unchanged |
-| 处置 · disposal | 财务 · finance | CFO | 做:= 不变 · 批:[LC] 处置申请(已排队)|
+| 处置 · disposal | 财务 · finance | CFO | 做:= 不变 · 批:✅ done(APR-9,2026-09-27:处置申请 → CFO 批每一张、不分档 → 批准当场处置,处置日 = 批准日;`dispose_fixed_asset` 只会按名拒 `ASSET_DISPOSAL_NEEDS_REQUEST`;在等时卡上的价值列冻结;处置分录从凭证页冲不掉 —— 走源路径,而处置还没有撤销的路,见 known-issues `APR9-NO-DISPOSAL-REVERSAL-YET`)|
 
 ## 5 · 人事与薪资 · HR and payroll
 
@@ -70,7 +70,7 @@ MD = `gm`(Vince,只读)。
 | 工资期与算薪、考勤完成与重开、员工档案(月薪除外)· payroll periods and calculation, attendance completion and reopen, employee records other than salary | 财务 · finance | 不批 · none | ✅ done(`module.hr.edit` 从 cco 移到 finance)|
 | 工资过账与撤销 · payroll posting and its reversal | 财务 · finance | CFO | 做:✅ done · 批:✅ done(PAYROLL-APR-1,2026-09-24:过账申请 / 撤销申请 → CFO 批每一张、不分档 → 财务执行;批之前什么都不过账。★ 工资期是公司的单据:主角那条腿对谁都不成立,CFO 批含他自己工资行的一期、留痕说出来;提单人那条按人认。R2 永远不覆盖工资)|
 | 工资、CPF、扣款的付款 · payroll, CPF and deduction payments | 财务 · finance | 不批 · none | ✅ done(cco 不再持 `hr.edit`,这条路只剩 `finance.edit`)· ✅ **只能跟在一次批过的过账后面**(PAYROLL-APR-1:`posted` 只经批过的申请到达;挂着撤销申请时三支付款按名拒 `PAYROLL_REVERSAL_REQUESTED`)|
-| 调薪 · salary changes | 只经绩效评估或调薪申请 · only through a performance review or a salary-change request | CFO | 直连写 `employees.monthly_salary` 一律拒:✅ done · 调薪申请:[LC] · **第一份月薪**:财务录一次(Q7),✅ done |
+| 调薪 · salary changes | 只经绩效评估或调薪申请 · only through a performance review or a salary-change request | CFO | 直连写 `employees.monthly_salary` 一律拒:✅ done · 调薪申请:✅ done(APR-9,2026-09-27:财务提、不许给自己提;CFO 批,**CFO 这个人是提单人或主角时 cco 批** —— 与绩效评估同一份判据 `pay_decision_code`;不看审批开关,永远等人批;批准当场改月薪,履历带生效日;一个人一次在途调薪,跨评估)· **绩效评估的侧门关上**(APR-9 Q1:直连只许建草稿,生命周期列只经函数,提交之后调薪与转正结论冻结;评估不许录第一份月薪)· **第一份月薪**:财务录一次(Q7),✅ done |
 | 绩效评估(做)· performance reviews (doing them) | cco | — | ✅ done(`action.hr_reviews`)|
 | 绩效评估(批)· performance reviews (approving) | — | CFO;**CFO 是提交人或主角时 cco 批**(Q5)· CFO; cco when the CFO is the submitter or subject | ✅ done(`action.approve_review` · `review_approval_code`)|
 | 请假与医疗申报(批)· leave and medical claims (deciding) | — | 财务;**CFO 也可以决定任何一张**(Q4)· finance; the CFO may decide any | ✅ done(`action.decide_hr_requests`)|

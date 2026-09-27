@@ -23,7 +23,9 @@ type Props = {
     newMonthlySalary: number | null
     salaryEffectiveDate: string | null
     canPay: boolean // data.view_pay:薪酬段整个只对持码人渲染
-    editable: boolean // 批准之前(draft / self_review / submitted)
+    editable: boolean // 提交之前(draft / self_review)—— APR-9 起 submitted 不再可改
+    /** APR-9(Q1):已提交、等批 —— 两列冻结,旁边说出为什么(不是一个悄悄消失的保存钮) */
+    frozenAfterSubmit?: boolean
 }
 
 export default function HrDecisionForm({
@@ -34,6 +36,7 @@ export default function HrDecisionForm({
     salaryEffectiveDate,
     canPay,
     editable,
+    frozenAfterSubmit = false,
 }: Props) {
     const t = useTranslations()
     const router = useRouter()
@@ -166,6 +169,9 @@ export default function HrDecisionForm({
                     </Button>
                 )}
             </div>
+            {frozenAfterSubmit && (
+                <p className="text-xs text-amber-700 mt-2">{t('reviews.hrDecisionFrozen')}</p>
+            )}
             {salaryHalf && editable && (
                 <p className="text-xs text-red-700 mt-2">{t('reviews.salaryPairRequired')}</p>
             )}

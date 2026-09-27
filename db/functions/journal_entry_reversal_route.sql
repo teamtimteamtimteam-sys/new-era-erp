@@ -9,7 +9,11 @@
 --                  (reopen_financial_year)、工资期的【过账】分录与它的冲销(撤销申请)。凭证页按名拒
 --                  JE_REVERSE_USE_SOURCE_PATH —— 从这里冲掉,总账回来了,那张单据却不知道。
 --   'request'      其余一切:手工凭证,以及没有自己路径的系统分录(sale · stocktake · writeoff · prepayment ·
---                  revaluation · depreciation · asset_disposal · shipment · fx · 工资的【付款】分录)。
+--                  revaluation · depreciation · shipment · fx · 工资的【付款】分录)。
+--   ★ APR-9(grilling Q9):asset_disposal 从 'request' 挪进 'source_path'。处置从此经 CFO 批的申请过账,
+--     而冲掉它的分录只会把总账拿回来、资产卡照旧是 disposed(APR4-DISPOSAL-REVERSAL-LEAVES-ASSET-DISPOSED)——
+--     总账与卡不许说两句话。处置【还没有】自己的撤销路径(known-issues:APR9-NO-DISPOSAL-REVERSAL-YET);
+--     在它之前,这张分录从凭证页冲不掉。
 --                  从凭证页冲它们是一个人的裁量,走同一张 CFO 冲销申请(Q6 (i)(iii))。
 --   NULL           没有这张分录。
 --
@@ -42,7 +46,8 @@ BEGIN
         RETURN 'reversed';
     END IF;
     IF v_je.source_type IN ('payment', 'transfer', 'wht_remittance', 'purchase', 'invoice', 'credit_note',
-                            'expense', 'freight', 'allocation', 'processing_cost', 'year_close') THEN
+                            'expense', 'freight', 'allocation', 'processing_cost', 'year_close',
+                            'asset_disposal') THEN
         RETURN 'source_path';
     END IF;
     IF v_je.source_type = 'payroll' AND NOT (

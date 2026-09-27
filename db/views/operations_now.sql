@@ -25,6 +25,11 @@
 --   (module.pricing.view:公式页的门,cfo 持;点进去由 decide_terms_request 裁谁能批)。item_id 是【申请】的 id;
 --   doc_kind 分开两处住址:formula → 公式列表页(/tools/pricing/formulas#tr-<id>),contract → 合同页(/contracts#tr-<id>)。
 --   subject 是提单人的理由。
+-- ★ APR-9(2026-09-27):加两支。asset_disposal_pending —— 等 CFO 批的固定资产处置申请(module.finance.view:与
+--   decide_asset_disposal_request 的门同一个码;item_id 是【申请】的 id,住在资产页 /finance/assets#adr-<id>)。
+--   salary_change_pending —— 等批的调薪申请(data.view_pay:看得见工资的人 —— 财务、CFO、cco;谁能批由
+--   decide_salary_change_request 按人裁)。★ item_id 是【员工】的 id:申请住在那个人的档案页
+--   (/hr/employees/<id>#salary-requests);item_code 是 label,subject 是提单人的理由。月薪数不进这张视图。
 --
 -- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
 -- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
@@ -663,6 +668,26 @@ CREATE VIEW public.operations_now AS
             tq.created_at::date AS item_date
            FROM terms_requests tq
           WHERE tq.status = 'submitted'::text
+        UNION ALL
+         SELECT 'asset_disposal_pending'::text AS item_type,
+            'module.finance.view'::text AS permission,
+            dq.id AS item_id,
+            NULL::text AS doc_kind,
+            dq.label AS item_code,
+            dq.reason AS subject,
+            dq.created_at::date AS item_date
+           FROM asset_disposal_requests dq
+          WHERE dq.status = 'submitted'::text
+        UNION ALL
+         SELECT 'salary_change_pending'::text AS item_type,
+            'data.view_pay'::text AS permission,
+            sq.employee_id AS item_id,
+            NULL::text AS doc_kind,
+            sq.label AS item_code,
+            sq.reason AS subject,
+            sq.created_at::date AS item_date
+           FROM salary_change_requests sq
+          WHERE sq.status = 'submitted'::text
         UNION ALL
          SELECT 'shipping_release_ready'::text AS item_type,
             'action.ship_goods'::text AS permission,

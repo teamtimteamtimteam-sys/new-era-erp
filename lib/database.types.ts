@@ -367,6 +367,124 @@ export type Database = {
           },
         ]
       }
+      asset_disposal_requests: {
+        Row: {
+          amount_base: number
+          asset_id: string
+          bank_account: string | null
+          created_at: string
+          created_by: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          disposal_date: string | null
+          estimate: Json
+          executed_at: string | null
+          id: string
+          label: string
+          proceeds_base: number
+          reason: string
+          result: Json | null
+          result_entry_id: string | null
+          snapshot: Json
+          status: string
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          amount_base: number
+          asset_id: string
+          bank_account?: string | null
+          created_at?: string
+          created_by: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          disposal_date?: string | null
+          estimate: Json
+          executed_at?: string | null
+          id?: string
+          label: string
+          proceeds_base: number
+          reason: string
+          result?: Json | null
+          result_entry_id?: string | null
+          snapshot: Json
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          amount_base?: number
+          asset_id?: string
+          bank_account?: string | null
+          created_at?: string
+          created_by?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          disposal_date?: string | null
+          estimate?: Json
+          executed_at?: string | null
+          id?: string
+          label?: string
+          proceeds_base?: number
+          reason?: string
+          result?: Json | null
+          result_entry_id?: string | null
+          snapshot?: Json
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_disposal_requests_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_service_status"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "asset_disposal_requests_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "equipment_usage"
+            referencedColumns: ["equipment_id"]
+          },
+          {
+            foreignKeyName: "asset_disposal_requests_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_disposal_requests_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_retention_status"
+            referencedColumns: ["asset_id"]
+          },
+          {
+            foreignKeyName: "asset_disposal_requests_result_entry_id_fkey"
+            columns: ["result_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "asset_disposal_requests_result_entry_id_fkey"
+            columns: ["result_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance_lines: {
         Row: {
           active_from: string | null
@@ -15864,6 +15982,157 @@ export type Database = {
         }
         Relationships: []
       }
+      salary_change_requests: {
+        Row: {
+          created_at: string
+          created_by: string
+          decided_at: string | null
+          decided_by: string | null
+          decided_via: string | null
+          decision_notes: string | null
+          effective_date: string
+          employee_id: string
+          executed_at: string | null
+          id: string
+          label: string
+          new_monthly_salary: number
+          old_monthly_salary: number
+          reason: string
+          snapshot: Json
+          status: string
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decided_via?: string | null
+          decision_notes?: string | null
+          effective_date: string
+          employee_id: string
+          executed_at?: string | null
+          id?: string
+          label: string
+          new_monthly_salary: number
+          old_monthly_salary: number
+          reason: string
+          snapshot: Json
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decided_via?: string | null
+          decision_notes?: string | null
+          effective_date?: string
+          employee_id?: string
+          executed_at?: string | null
+          id?: string
+          label?: string
+          new_monthly_salary?: number
+          old_monthly_salary?: number
+          reason?: string
+          snapshot?: Json
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "salary_change_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+        ]
+      }
       sales_attribution_log: {
         Row: {
           amount_base: number
@@ -28515,6 +28784,44 @@ export type Database = {
         Args: { p_code: string; p_first_actors: string[]; p_subject: string }
         Returns: undefined
       }
+      asset_disposal_dry_run: { Args: { p_request_id: string }; Returns: Json }
+      asset_disposal_execute_internal: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      asset_disposal_fingerprint: {
+        Args: { p_asset_id: string }
+        Returns: Json
+      }
+      asset_disposal_requests_visible: {
+        Args: { p_asset_id?: string; p_recent?: number }
+        Returns: {
+          amount_base: number
+          asset_code: string
+          asset_description: string
+          asset_id: string
+          bank_account: string
+          created_at: string
+          created_by_email: string
+          current_matches: boolean
+          decided_at: string
+          decided_by_email: string
+          decision_notes: string
+          disposal_date: string
+          estimate: Json
+          id: string
+          label: string
+          proceeds_base: number
+          raised_by_me: boolean
+          reason: string
+          result: Json
+          result_entry_code: string
+          result_entry_id: string
+          status: string
+          withdraw_reason: string
+          withdrawn_at: string
+        }[]
+      }
       assign_position_kpis: {
         Args: { p_cycle_id: string; p_employee_id: string }
         Returns: Json
@@ -28972,6 +29279,10 @@ export type Database = {
         Args: { p_formula_id: string }
         Returns: Json
       }
+      decide_asset_disposal_request: {
+        Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
+        Returns: Json
+      }
       decide_expense_claim: {
         Args: {
           p_account_code?: string
@@ -29011,6 +29322,10 @@ export type Database = {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
       }
+      decide_salary_change_request: {
+        Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
+        Returns: Json
+      }
       decide_shipping_release: {
         Args: { p_approve: boolean; p_notes?: string; p_release_id: string }
         Returns: Json
@@ -29047,6 +29362,16 @@ export type Database = {
         Returns: Json
       }
       dispose_fixed_asset: {
+        Args: {
+          p_asset_id: string
+          p_bank_account?: string
+          p_disposal_date: string
+          p_notes?: string
+          p_proceeds?: number
+        }
+        Returns: Json
+      }
+      dispose_fixed_asset_internal: {
         Args: {
           p_asset_id: string
           p_bank_account?: string
@@ -29474,6 +29799,10 @@ export type Database = {
       open_probation_review: { Args: { p_employee_id: string }; Returns: Json }
       open_review_cycle: { Args: { p_cycle_id: string }; Returns: Json }
       open_stocktake: { Args: { p_notes?: string }; Returns: Json }
+      pay_decision_code: {
+        Args: { p_employee_id: string; p_raiser: string }
+        Returns: string
+      }
       pay_medical_claim: {
         Args: {
           p_claim_id: string
@@ -30203,6 +30532,53 @@ export type Database = {
         Args: { p_deleted_by?: string; p_reason: string; p_run_id: string }
         Returns: undefined
       }
+      salary_change_deciders: {
+        Args: { p_employee_id: string; p_raiser: string }
+        Returns: {
+          person_key: string
+          user_id: string
+        }[]
+      }
+      salary_change_execute_internal: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      salary_change_fingerprint: {
+        Args: { p_employee_id: string }
+        Returns: Json
+      }
+      salary_change_open: { Args: { p_employee_id: string }; Returns: string }
+      salary_change_requests_visible: {
+        Args: { p_employee_id?: string; p_recent?: number }
+        Returns: {
+          created_at: string
+          created_by_email: string
+          current_matches: boolean
+          decide_block: string
+          decide_code: string
+          decided_at: string
+          decided_by_email: string
+          decided_via: string
+          decision_notes: string
+          effective_date: string
+          employee_code: string
+          employee_id: string
+          employee_name: string
+          id: string
+          label: string
+          new_monthly_salary: number
+          old_monthly_salary: number
+          raised_by_me: boolean
+          reason: string
+          status: string
+          withdraw_reason: string
+          withdrawn_at: string
+        }[]
+      }
+      salary_effective_period_block: {
+        Args: { p_effective_date: string }
+        Returns: string
+      }
       sale_settlement_compute: {
         Args: {
           p_assay_result_id: string
@@ -30518,6 +30894,15 @@ export type Database = {
         Args: { p_batch_id: string; p_deleted_by?: string; p_reason: string }
         Returns: Json
       }
+      submit_asset_disposal_request: {
+        Args: {
+          p_asset_id: string
+          p_bank_account: string
+          p_proceeds: number
+          p_reason: string
+        }
+        Returns: Json
+      }
       submit_bank_transfer_request: {
         Args: {
           p_amount_in: number
@@ -30649,6 +31034,15 @@ export type Database = {
       submit_review: { Args: { p_review_id: string }; Returns: Json }
       submit_rollback_request: {
         Args: { p_reason: string; p_run_id: string }
+        Returns: Json
+      }
+      submit_salary_change_request: {
+        Args: {
+          p_effective_date: string
+          p_employee_id: string
+          p_new_monthly_salary: number
+          p_reason: string
+        }
         Returns: Json
       }
       submit_shift_handover: {
@@ -30905,6 +31299,10 @@ export type Database = {
         Args: { p_date: string; p_nature: string }
         Returns: number
       }
+      withdraw_asset_disposal_request: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: Json
+      }
       withdraw_expense_claim: { Args: { p_claim_id: string }; Returns: Json }
       withdraw_fx_rate: {
         Args: { p_id: string; p_reason: string }
@@ -30927,6 +31325,10 @@ export type Database = {
         Returns: Json
       }
       withdraw_receipt_price_request: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: Json
+      }
+      withdraw_salary_change_request: {
         Args: { p_reason?: string; p_request_id: string }
         Returns: Json
       }

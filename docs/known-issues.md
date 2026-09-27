@@ -180,12 +180,24 @@ ROLE-1 Batch 1 之后后果变重了:**全新安装里没有任何人持 `action
 `hr.view` 而不持 `hr.edit`,于是他们也会看到按了必拒的钮。** 本刀只把请假 / 医疗的决定按钮、评估与 KPI、
 月薪那一格改成 DBLOCK-1 的样子(看得见、按不动、说出码)。**删除条件:** 其余那几页按 DBLOCK-1 过一遍。
 
-## ★ APR4-DISPOSAL-REVERSAL-LEAVES-ASSET-DISPOSED · 冲销处置分录,资产仍是 `disposed`(APR-4 登记,2026-09-23)
+## ~~★ APR4-DISPOSAL-REVERSAL-LEAVES-ASSET-DISPOSED · 冲销处置分录,资产仍是 `disposed`(APR-4 登记,2026-09-23)~~ —— ✅ **关闭于 APR-9(2026-09-27)**
+
+> **关法(Tim 的 APR-9 Q9):** `journal_entry_reversal_route` 把 `asset_disposal` 从 `request` 挪进 `source_path` ——
+> 凭证页与冲销申请都按名拒(`JE_REVERSE_USE_SOURCE_PATH`),于是总账与资产卡【不可能】再各说各话。
+> 代价换成了下面那一条:处置从此【没有】撤销的路。原文照录(一条被关掉的记录与一条从没写过的记录读起来一样)。
+
 
 处置分录可以用通用的 `reverse_journal_entry` 冲掉(只要 `module.finance.edit`,不看 `source_type`;
 分录详情页对任何已过账分录都给"冲销"钮)。冲完之后成本与累计折旧回到账上,而 `fixed_assets.status`
 仍是 `disposed`,折旧预览(`status = 'active'`)跳过它 —— **资产台账与总账各说各话**。
 **潜伏的**:线上从来没有处置过任何资产(以 `postgres` 读基表:`disposed` 0 行,`asset_disposal` 分录 0 行)。
+
+## ★ APR9-NO-DISPOSAL-REVERSAL-YET · 固定资产处置还没有撤销的路(APR-9 登记,2026-09-27)
+
+处置分录走源路径(上一条),而处置自己【没有】撤销的路:一张批错的处置,今天只能靠一次数据库改动收回。
+Tim 的 APR-9 Q9:**登记,不在这一刀建。** 将来若要建,形状是处置申请的第二种(`disposal_reversal`),CFO 批,
+批准当场冲分录并把卡改回 `active`(连同那几支处置列),一份 fingerprint 管住中间有没有人动过这张卡。
+**潜伏的**:线上从来没有处置过任何资产(以 `postgres` 读基表:`disposed` 0 行,`asset_disposal` 分录 0 行,2026-09-27)。
 
 ## APR4-RECEIPT-SUPPLIER-CHANGEABLE · 收货的供应商可以直接改(APR-4 登记,2026-09-23)
 

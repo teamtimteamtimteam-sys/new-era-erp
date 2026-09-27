@@ -96,7 +96,11 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // APR-8(2026-09-26):235 → 236。新增 `terms_requests`(定价公式与合同生效的申请,cco 提、CFO 批,批准当场生效),
 // 见 db/tables/terms_requests.sql。它同样【没有 code 列】(人读的名字是 label:公式 / 合同编号 · new / change /
 // reactivate / activate #n),与 warehouse_requests 同一条理由不进 document_types。
-const EXPECTED_TABLES = 236
+// APR-9(2026-09-27):236 → 238。新增 `salary_change_requests`(调薪申请,财务提、CFO 批 / CFO 是当事人时 cco 批)
+// 与 `asset_disposal_requests`(固定资产处置申请,财务提、CFO 批,批准当场处置),见 db/tables/ 下同名文件。
+// 两张同样【没有 code 列】(人读的名字是 label:员工编号 · salary change #n / 资产编号 · disposal #n),
+// 与 terms_requests 同一条理由不进 document_types。
+const EXPECTED_TABLES = 238
 const EXPECTED_CODE_TABLES = 76
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

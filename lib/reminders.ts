@@ -263,6 +263,14 @@ export const REMINDERS = [
     //   decide_terms_request 在服务端裁。item_id 是【申请】的 id;doc_kind 说它住在哪一页(锚点 tr-<id>)。
     { itemType: 'terms_request_pending', permission: 'module.pricing.view', href: '/tools/pricing/formulas',
       itemHref: (r: OpsRow) => r.doc_kind === 'contract' ? `/contracts#tr-${r.item_id}` : `/tools/pricing/formulas#tr-${r.item_id}` },
+    // APR-9:等 CFO 批的固定资产处置申请。门与 decide_asset_disposal_request 同一个码(module.finance.view);
+    //   item_id 是【申请】的 id —— 申请住在资产页顶上那一块(锚点 adr-<id>)。
+    { itemType: 'asset_disposal_pending', permission: 'module.finance.view', href: '/finance/assets',
+      itemHref: (r: OpsRow) => `/finance/assets#adr-${r.item_id}` },
+    // APR-9:等批的调薪申请。门是 data.view_pay(财务、CFO、cco);谁能批由 decide_salary_change_request 按人裁。
+    //   ★ item_id 是【员工】的 id —— 申请住在那个人的档案页上(锚点 salary-requests)。
+    { itemType: 'salary_change_pending', permission: 'data.view_pay', href: '/hr/employees',
+      itemHref: (r: OpsRow) => `/hr/employees/${r.item_id}#salary-requests` },
 ] as const satisfies readonly Reminder[]
 
 /**

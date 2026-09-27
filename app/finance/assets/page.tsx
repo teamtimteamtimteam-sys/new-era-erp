@@ -39,6 +39,7 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import DepreciationPreviewTable, { type DepreciationPreviewRow } from './DepreciationPreviewTable'
 import AssetsTable, { type AssetsTableRow } from './AssetsTable'
+import AssetDisposalRequestsPanel, { type DisposalRequestView, type DisposalFigures } from './AssetDisposalRequestsPanel'
 import { Button } from '@/app/components/ui/button'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
@@ -129,6 +130,33 @@ export default async function AssetsPage({
     // 名单对不上时页面会少给一个选项,而服务端仍然 BANK_INVALID 兜底 ——
     // 页面是体贴,不是安全边界。
     const canEdit = await can('module.finance.edit')
+    // ★ APR-9(Tim 2026-09-27,grilling Q7 · Q10):处置是一张申请,CFO 批准当场处置。读
+    //   asset_disposal_requests_visible():在等的全部 + 最近了结的十张;estimate 是提交时试跑的那一组,
+    //   result 是批准时真的过出来的那一组(并排给 CFO 与财务看)。看板 asset_disposal_pending 指到 #adr-<id>。
+    const [canFinView, canPrices] = await Promise.all([can('module.finance.view'), can('data.view_prices')])
+    type Fig = { disposal_date?: string; cost_relieved?: number; accum_relieved?: number; proceeds?: number; gain_loss?: number }
+    const figures = (f: Fig | null): DisposalFigures | null => f === null ? null : ({
+        dateText: f.disposal_date ? formatDate(f.disposal_date, locale) : null,
+        costRelieved: f.cost_relieved ?? null, accumRelieved: f.accum_relieved ?? null,
+        proceeds: f.proceeds ?? null, gainLoss: f.gain_loss ?? null,
+    })
+    const adrRows = mustRows(await supabase.rpc('asset_disposal_requests_visible', { p_recent: 10 }),
+        'asset_disposal_requests_visible') as unknown as {
+        id: string; status: DisposalRequestView['status']; label: string; asset_id: string; asset_code: string
+        asset_description: string; proceeds_base: number; bank_account: string | null; reason: string
+        estimate: Fig | null; result: Fig | null; result_entry_id: string | null; result_entry_code: string | null
+        current_matches: boolean; created_at: string; created_by_email: string | null; raised_by_me: boolean
+        decided_by_email: string | null; decision_notes: string | null; withdraw_reason: string | null
+    }[]
+    const adrViews: DisposalRequestView[] = adrRows.map((r) => ({
+        id: r.id, status: r.status, label: r.label, assetCode: r.asset_code, assetDescription: r.asset_description,
+        proceeds: Number(r.proceeds_base), bankAccount: r.bank_account, reason: r.reason,
+        estimate: figures(r.estimate ?? {}) as DisposalFigures, result: figures(r.result),
+        resultEntryId: r.result_entry_id, resultEntryCode: r.result_entry_code, currentMatches: r.current_matches,
+        createdText: formatDate(r.created_at, locale), raisedBy: r.created_by_email, raisedByMe: r.raised_by_me,
+        decidedBy: r.decided_by_email, decisionNotes: r.decision_notes, withdrawReason: r.withdraw_reason,
+    }))
+    const pendingByAsset = new Map(adrRows.filter((r) => r.status === 'submitted').map((r) => [r.asset_id, r.label]))
     // ════════════════════════════════════════════════════════════════════════
     // ★ TABLE-CONVERT-2:台账那张表搬进了 AssetsTable('use client')。
     //   本页是 server component,列描述符带 render 函数,过不了那道边界。
@@ -156,6 +184,7 @@ export default async function AssetsPage({
             inServiceDate: a.in_service_date ? formatDate(a.in_service_date, locale) : null,
             plannedInServiceDate: a.planned_in_service_date ? formatDate(a.planned_in_service_date, locale) : null,
             hasCost: Number(a.cost_base) > 0,
+            pendingDisposalLabel: pendingByAsset.get(a.id) ?? null,
         }
     })
     const bankAccounts = (mustRows(
@@ -177,6 +206,15 @@ export default async function AssetsPage({
             }
             state={{ kind: 'ok' }}
         >
+            <AssetDisposalRequestsPanel
+                open={adrViews.filter((v) => v.status === 'submitted')}
+                history={adrViews.filter((v) => v.status !== 'submitted')}
+                canDecide={canFinView && canPrices}
+                holdsDecideView={canFinView}
+                canEdit={canEdit}
+                baseCurrency={baseCurrency}
+            />
+
             <div className="mb-8">
                 <AssetsTable
                     rows={assetRows}

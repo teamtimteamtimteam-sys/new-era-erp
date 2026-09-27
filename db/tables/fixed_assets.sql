@@ -207,3 +207,11 @@ CREATE TRIGGER trg_fixed_assets_history
 CREATE TRIGGER trg_fixed_assets_no_hard_delete
     BEFORE DELETE ON public.fixed_assets
     FOR EACH ROW EXECUTE FUNCTION public.guard_fixed_assets_no_hard_delete();
+
+-- ── APR-9(2026-09-27,grilling Q8)· 处置在等 CFO 的时候,卡上改得动价值的列冻结 ─────────────────
+-- 成本、残值、年限、购置日、投用日、折旧科目、状态与处置列 → ASSET_DISPOSAL_REQUESTED(追加成本、冲销成本明细、
+-- 投用三条路都要改这张卡)。折旧、保养、计划与验收日照常。只放那一张申请自己的执行。
+-- 函数体在 db/functions/guard_asset_disposal_freeze.sql。
+CREATE TRIGGER trg_fixed_assets_disposal_freeze
+    BEFORE UPDATE ON public.fixed_assets
+    FOR EACH ROW EXECUTE FUNCTION public.guard_asset_disposal_freeze();

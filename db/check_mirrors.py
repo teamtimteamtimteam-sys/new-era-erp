@@ -576,6 +576,17 @@ DEFINER_NO_CHECK_ALLOWED = {
     "formula_terms_state": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "contract_terms_state": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "contract_terms_lock_reason": "APR-8: read by the two contract guards, which run as the caller; it returns only 'active' or the waiting request's label for a contract id — the same fact the guard's refusal names",
+    # APR-9:调薪申请与处置申请的内层算子与判据 —— 靠的是调不到(zzz_function_grants.sql)。
+    "salary_change_execute_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "salary_change_fingerprint": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "salary_change_open": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "salary_change_deciders": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "salary_effective_period_block": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "pay_decision_code": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "asset_disposal_execute_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "asset_disposal_dry_run": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "asset_disposal_fingerprint": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "dispose_fixed_asset_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
     # 它【必须】留给 authenticated:凭证详情页拿它决定冲销钮灰不灰、说什么;它也在批准与试跑的内层被调用,
     # 那里的主语未必持凭证页的码(以 postgres 跑的 fixture 根本没有主语)。只回一个词。
     "journal_entry_reversal_route": "APR-6: the journal page reads it to grey the reverse button with the right reason, and the request engine calls it inside approval and dry-run where the caller may hold no finance code; returns one route word (reversed/source_path/request), no amount, no line",

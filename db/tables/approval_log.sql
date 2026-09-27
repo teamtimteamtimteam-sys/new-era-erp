@@ -83,7 +83,13 @@ CREATE TABLE public.approval_log (
                             'warehouse_request',
                             -- APR-8:条款申请(定价公式新建 / 修改 / 重新启用 · 合同生效)—— CFO 批每一张,批准当场生效。
                             -- 被批的是【申请】(terms_requests),不是公式或合同本身(上面那个 pricing_formula 从来没人写过)。
-                            'terms_request')),
+                            'terms_request',
+                            -- APR-9:调薪申请 —— CFO 批(CFO 是当事人时 cco 批),批准当场改月薪。
+                            -- 被批的是【申请】(salary_change_requests),不是员工档案本身。
+                            'salary_change_request',
+                            -- APR-9:固定资产处置申请 —— CFO 批每一张,批准当场处置。
+                            -- 被批的是【申请】(asset_disposal_requests),不是资产卡本身。
+                            'asset_disposal_request')),
     subject_id          uuid NOT NULL,
     -- 人读的编号,冻结在当时 —— 单据可以改名/作废,留痕不跟着变
     subject_code        text,
@@ -262,6 +268,14 @@ CREATE POLICY "approval_log select by permission"
             -- ★ APR-8:条款申请那一支 —— 公式那一页的门。留痕里只有编号与决定,没有条款本身。
             --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
             WHEN 'terms_request'      THEN has_permission('module.pricing.view'::text)
+            -- ★ APR-9:调薪申请那一支 —— 与 salary_change_requests 自己的读策略同一对码。留痕里没有月薪数
+            --   (performance_review 同形),但"谁的调薪、谁批的"本身就是人事记录。
+            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+            WHEN 'salary_change_request'  THEN has_permission('module.hr.view'::text)
+                                          AND has_permission('data.view_pay'::text)
+            -- ★ APR-9:处置申请那一支 —— 与 asset_disposal_requests 自己的读策略同一个码。
+            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+            WHEN 'asset_disposal_request' THEN has_permission('module.finance.view'::text)
             ELSE false
         END
     );

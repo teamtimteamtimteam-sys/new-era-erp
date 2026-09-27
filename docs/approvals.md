@@ -1811,6 +1811,61 @@ a direct update may never make it active. Owner paths (the DEFINER functions, mi
 expects to fail); fixture 205's own-document-gap count 10 → 11; fixture 111 has 44 arms; fixture 217 creates its formula through the new
 door and its existing contract as a draft; fixture 227 pins the lifecycle (A–K, including the fault injection).
 
+## 3v · APR-9 (2026-09-27) — a salary change and a fixed-asset disposal take effect only after approval
+
+Tim's matrix (`docs/role-matrix.md` §4 disposal · §5 salary changes) — finance raises both; the CFO approves. The grilling (Q1–Q10)
+was accepted in full; `docs/handbacks/APR-9.md` has the cells.
+
+### ★★ Q1 — the review side door (found at Step 0, closed here)
+Measured at Step 0 as sandra@ (cco) in a rolled-back transaction: a **direct INSERT** of a review already `submitted`, with
+`submitted_by` = tim@ and a new salary, followed by `approve_review` as sandra@ — **succeeded and changed another employee's salary
+with no CFO**. `review_approval_code` and the four-eyes check both trusted the client-writable `submitted_by`.
+`guard_performance_review_write` (INVOKER, `row_security_active`): a direct insert may only be a draft; status, submitter, approval,
+acknowledgement and void columns change only through the functions; after submission `new_monthly_salary`, `salary_effective_date`,
+`probation_outcome` and `employee_id` are frozen. A review may no longer set a **first** salary (`SALARY_NOT_SET_USE_INITIAL`).
+
+### Salary change requests (Q2–Q6)
+`salary_change_requests`: `submitted → approved` (takes effect at once) · `rejected` (reason) · `withdrawn` (raiser's person, or
+`module.hr.edit` + `data.view_pay`). Raise: finance (`module.hr.edit` + `data.view_pay`); **nobody raises their own** (by person).
+* **Routing is by person, one definition:** `pay_decision_code(raiser, employee)` — `action.approve_review` (CFO), or
+  `action.hr_reviews` (cco) when the CFO person is the raiser or the subject. `review_approval_code` now delegates to it; the
+  migration proves the two agree on every (account × employee) pair. Decide also needs `module.hr.view` + `data.view_pay`.
+* **Not in `approval_chain_gates()`** — that registry finds deciders by level; this chain cannot be expressed there. The "someone
+  other than the raiser can decide" check at submit is `salary_change_deciders` (the same routing function + real grants + `self_leg`),
+  `SALARY_CHANGE_NO_OTHER_DECIDER`. `decide_salary_change_request` does not call the level-based approver check.
+* **Ignores the approvals switch** (Q3): always waits, never `auto_approved`; in `approval_pending_documents()` with
+  `blocks_disable = false`, `fixed_level` NULL, amount NULL (PDPA — the figure is not in that list or in `approval_log`).
+* **Effective date** (Q5): required; checked at submit and at approval by `salary_effective_period_block` — refused in a posted
+  payroll period or one with an open payroll request. Approval writes `employees.monthly_salary` and one `employment_history`
+  `salary_change` row carrying the effective date. Screens pick a payroll month (the 1st), as the first-salary form does.
+* **One open change per employee across both paths** (Q6): `salary_change_open` — a waiting request, or a submitted review carrying
+  a salary. **Fingerprint** = salary + employment status (+ anonymised / deleted): mismatch at approval → `SALARY_CHANGED_SINCE_REQUEST`.
+
+### Fixed-asset disposal requests (Q7–Q10) — the APR-7 shape
+`asset_disposal_requests`; raise `module.finance.edit`; the CFO decides every one, no threshold, gate
+`{module.finance.view, data.view_prices}`; `blocks_disable = true`; approvals off → born approved and disposed (`auto_approved`).
+* **Dated and valued on the approval day** (Q7): proceeds and bank account frozen at submit; `estimate` (submit-time dry run, PQ007)
+  shown beside `result` (what posted). The no-catch-up-depreciation rule is unchanged.
+* **Frozen while waiting** (Q8): `guard_asset_disposal_freeze` on `fixed_assets` refuses any change to cost, residual, life, dates,
+  depreciation account, status or disposal columns (`ASSET_DISPOSAL_REQUESTED`) — so adding cost, reversing a cost entry and
+  commissioning are all refused. Depreciation, maintenance, planned and acceptance dates stay open. Fingerprint compared at approval.
+* **Doors:** `dispose_fixed_asset` refuses by name (`ASSET_DISPOSAL_NEEDS_REQUEST`); its body is `dispose_fixed_asset_internal`,
+  revoked from `authenticated`. **Q9:** `asset_disposal` entries route to `source_path`; no disposal reversal exists yet
+  (`APR9-NO-DISPOSAL-REVERSAL-YET`).
+
+### How they register in the engine
+| where | salary change | disposal |
+|---|---|---|
+| `approval_chain_gates()` | **no row** (by-person routing) | one row, level 2, `{module.finance.view, data.view_prices}` |
+| `approval_pending_documents()` | arm, `blocks_disable = false`, level NULL, amount NULL, subject = employee | arm, `blocks_disable = true`, level 2, amount = Σ debits |
+| `approval_log` | type `salary_change_request`, no amounts; read branch `module.hr.view` + `data.view_pay` | type `asset_disposal_request`, base currency; read branch `module.finance.view` |
+| no-other-decider at submit | `SALARY_CHANGE_NO_OTHER_DECIDER` (live: admin@ for Sandra) | `ASSET_DISPOSAL_NO_OTHER_DECIDER` (live: admin@) |
+| `operations_now` / reminders | `salary_change_pending` (`data.view_pay`) → employee page | `asset_disposal_pending` (`module.finance.view`) → `/finance/assets#adr-<id>` |
+
+No new permission code, so the "new codes also go to admin" ruling granted nothing. ☞ **Fixtures:** 111 has 46 arms; 205's
+own-document-gap count 11 → 12; 16 · 107 · 108 · 201 call `dispose_fixed_asset_internal`; 228 pins both lifecycles and the review
+door (A–L, two fault injections).
+
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
 **Found while building CHAIN-BUILD-1; folded into the same predicate.**

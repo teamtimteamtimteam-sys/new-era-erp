@@ -108,21 +108,10 @@ export async function runRevaluation(periodEnd: string): Promise<ActState> {
 // ── FA-1b:固定资产的两个动作 ────────────────────────────────────────────────
 // 【为什么放在这里而不是新建一个 actions 文件】它们与折旧/重估/关账是同一组
 // 月结动作,共用同一个本地化器 —— 拆开只会让"资产的错误码在哪翻译"多一个答案。
-export async function disposeAsset(
-    assetId: string, disposalDate: string, proceeds: number, bankAccount: string | null,
-): Promise<ActState> {
-    const supabase = await createClient()
-    const { error, data } = await supabase.rpc('dispose_fixed_asset', {
-        p_asset_id: assetId,
-        // 【日期不给默认值】它决定处置分录落在哪个期间 —— 补一个今天会让
-        // 一个本该 PERIOD_LOCKED 的处置悄悄落进开着的月份(FIN-10 那条)。
-        p_disposal_date: disposalDate,
-        p_proceeds: proceeds,
-        p_bank_account: bankAccount,
-    } as never)
-    if (error) return { error: await localizePaymentError(error.message) }
-    refresh(); revalidatePath('/finance/assets'); return { success: true, result: JSON.stringify(data) }
-}
+// ★ APR-9(2026-09-27):这里原有一支 disposeAsset(直调 dispose_fixed_asset)。处置从此是一张申请 —— 财务提、
+//   CFO 批,批准当场处置(app/finance/assets/disposalRequestActions.ts);dispose_fixed_asset 只剩按名拒绝的外壳
+//   (ASSET_DISPOSAL_NEEDS_REQUEST)。留着这支只会给下一个人一条走不通的路,所以删掉(PAY-REQ-1 Batch B 删
+//   reverseTransfer 的同一条理由)。
 
 export async function commissionAsset(assetId: string, inServiceDate: string): Promise<ActState> {
     const supabase = await createClient()

@@ -291,7 +291,10 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                     newMonthlySalary={r.new_monthly_salary}
                     salaryEffectiveDate={r.salary_effective_date ? formatDate(r.salary_effective_date, locale) : null}
                     canPay={canPay}
-                    editable={preApproval}
+                    // ★ APR-9(grilling Q1):调薪与转正结论【提交之后冻结】(guard_performance_review_write)——
+                    //   CFO 批的必须是他看见的那一组。已提交、未批准的那一格画成只读,并说出为什么。
+                    editable={['draft', 'self_review'].includes(r.status)}
+                    frozenAfterSubmit={r.status === 'submitted'}
                 />
             ) : (
                 r.review_type === 'probation' && (

@@ -19,6 +19,9 @@
 -- 【永不返回 NULL】它的返回值直接喂给 require_permission;NULL 会变成一次
 -- "谁都没有的码"的拒绝,读起来像权限问题,其实是这里写错了。
 --
+-- ★ APR-9(2026-09-27,grilling Q2):**规则搬进了 pay_decision_code,这里只委托。** 调薪申请要问的是同一句话
+--   (CFO 是当事人 → cco),两份实现就是两份会漂开的"谁批得了加薪"。本函数的签名、返回值、两个读者一个字没变。
+--
 -- NOTE: introduced by db/migrations/2026-09-23-role1a-the-matrix-batch-1.sql.
 
 CREATE OR REPLACE FUNCTION public.review_approval_code(p_submitted_by uuid, p_employee_id uuid)
@@ -27,18 +30,8 @@ CREATE OR REPLACE FUNCTION public.review_approval_code(p_submitted_by uuid, p_em
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-    SELECT CASE WHEN EXISTS (
-                SELECT 1
-                  FROM finance_settings fs
-                 CROSS JOIN LATERAL real_role_holders(fs.approval_level2_role_code) h
-                 WHERE fs.approval_level2_role_code IS NOT NULL
-                   AND account_person(h.user_id) IS NOT NULL
-                   AND (account_person(h.user_id) = p_employee_id
-                        OR account_person(h.user_id) = account_person(p_submitted_by)))
-           THEN 'action.hr_reviews'
-           ELSE 'action.approve_review'
-           END;
+    SELECT pay_decision_code(p_submitted_by, p_employee_id);
 $function$;
 
 COMMENT ON FUNCTION public.review_approval_code(uuid, uuid) IS
-'ROLE-1(Tim 的矩阵 · Q5):批一张绩效评估要哪一个码 —— CFO(二级审批角色的真持有人,按人认)是提交人或主角时 action.hr_reviews(cco),否则 action.approve_review(cfo)。两个读者:approve_review 的门与评估详情页。永不返回 NULL。';
+'ROLE-1(Tim 的矩阵 · Q5):批一张绩效评估要哪一个码 —— CFO(二级审批角色的真持有人,按人认)是提交人或主角时 action.hr_reviews(cco),否则 action.approve_review(cfo)。两个读者:approve_review 的门与评估详情页。永不返回 NULL。★ APR-9:规则本身住在 pay_decision_code(调薪申请问同一句话),本函数只委托。';

@@ -108,7 +108,8 @@ BEGIN
     --    A 的资产:成本 1000,累计已封顶 1000。卖 150(SGD 户):
     --    借 1000(银行 150 + 1510 1000)…贷 1500 1000,差额 150 贷 7200(益)。
     -- ════════════════════════════════════════════════════════════════════════
-    v_r := dispose_fixed_asset(v_asset, '2026-06-30', 150, '1000', 'fixture sale');
+    -- APR-9:dispose_fixed_asset 只会按名拒了(处置经 CFO 批的申请);本臂钉的是处置的算术,调引擎本身。
+    v_r := dispose_fixed_asset_internal(v_asset, '2026-06-30', 150, '1000', 'fixture sale');
     IF (v_r->>'cost_relieved')::numeric <> 1000 OR (v_r->>'accum_relieved')::numeric <> 1000
        OR (v_r->>'gain_loss')::numeric <> 150 THEN
         RAISE EXCEPTION 'FIXTURE 16E 失败:处置应解除成本 1000/累计 1000、损益 +150,实得 %', v_r::text;

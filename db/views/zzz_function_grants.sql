@@ -509,3 +509,21 @@ REVOKE EXECUTE ON FUNCTION public.terms_request_fingerprint(text, uuid) FROM aut
 REVOKE EXECUTE ON FUNCTION public.formula_terms_state(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.contract_terms_state(uuid) FROM authenticated;
 
+-- APR-9(2026-09-27):**调薪与固定资产处置换成了申请**(调薪:财务提、CFO 批 / CFO 是当事人时 cco 批;处置:财务提、CFO 批)。
+--   salary_change_execute_internal / asset_disposal_execute_internal / dispose_fixed_asset_internal —— 生效本身
+--     (改月薪、过处置分录)。留着 EXECUTE,任何登录用户都能不经批准改一个人的月薪或处置一台资产 —— 那正是本刀要关的门。
+--   asset_disposal_dry_run —— 只从提交里调用。
+--   salary_change_fingerprint / salary_change_open / salary_change_deciders / salary_effective_period_block /
+--   pay_decision_code / asset_disposal_fingerprint —— 会交出月薪、账号 ↔ 员工对照或资产成本;
+--     **没有调用者检查,靠的就是调不到**。屏幕经 salary_change_requests_visible / asset_disposal_requests_visible /
+--     review_approval_code(本来就给)读它们的答案。
+REVOKE EXECUTE ON FUNCTION public.salary_change_execute_internal(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.asset_disposal_execute_internal(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.dispose_fixed_asset_internal(uuid, date, numeric, text, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.asset_disposal_dry_run(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.salary_change_fingerprint(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.salary_change_open(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.salary_change_deciders(uuid, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.salary_effective_period_block(date) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.pay_decision_code(uuid, uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.asset_disposal_fingerprint(uuid) FROM authenticated;

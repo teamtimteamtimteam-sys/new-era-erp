@@ -36,6 +36,8 @@ import { fallbackForRawError } from '@/lib/machine-text'
 // 【加一条约束 = 来这里加一个名字】check-i18n 的 equipment.errors.* 后缀集合
 // 现读下面这个 Set,所以漏了句子 npm run build 当场红。
 const EQUIPMENT_ERROR_CODES = new Set([
+    // APR-9:这台资产挂着一张在等的处置申请 —— 从资产页追加成本(record_expense)按名拒
+    'ASSET_DISPOSAL_REQUESTED',
     // ── 约束名(数据库直接抛)────────────────────────────────────────────────
     // equipment_maintenance(EQP-2b)
     'equipment_maintenance_performer_shape',

@@ -51,6 +51,12 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
     const t = await getTranslations()
     const baseCurrency = await getBaseCurrency()
     const canEdit = await can('module.finance.edit')
+    // ★ APR-9:这台资产上那一张在等的处置申请(有的话)—— 处置钮按不动并指向资产页顶上那一块(#adr-<id>)。
+    //   读 asset_disposal_requests_visible(它自己要 module.finance.view;本页的门就是那个码)。
+    const pendingDisposal = (mustRows(
+        await supabase.rpc('asset_disposal_requests_visible', { p_asset_id: id, p_recent: 0 }),
+        'asset_disposal_requests_visible') as { status: string; label: string }[])
+        .find((r) => r.status === 'submitted') ?? null
     // 【先问,再解释】—— 空结果的含义取决于这一句的答案。
     const canSeePurchasing = await can('module.purchasing.view')
     // EQP-2d:保养/停机/间隔【写】在加工侧(三张表的 insert 策略都是
@@ -460,7 +466,8 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                 hasCost={Number(asset.cost_base) > 0}
                 inServiceDate={asset.in_service_date ? formatDate(asset.in_service_date, locale) : null} plannedInServiceDate={asset.planned_in_service_date ? formatDate(asset.planned_in_service_date, locale) : null}
                 acquisitionDate={formatDate(asset.acquisition_date, locale)}
-                canEdit={canEdit} bankAccounts={['1000', '1010']} />
+                canEdit={canEdit} bankAccounts={['1000', '1010']}
+                pendingDisposalLabel={pendingDisposal?.label ?? null} />
 
             {/* ══ EQP-2d:投用【之后】的一生 ═══════════════════════════════════
                 三节全部落在这里 —— AssetActions 之后 —— 所以上面 Tim 已经走过的

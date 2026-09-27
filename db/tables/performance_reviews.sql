@@ -176,3 +176,12 @@ COMMENT ON COLUMN public.performance_reviews.self_assessment_submitted_at IS
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.performance_reviews
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('action.hr_reviews');
+
+-- ── APR-9(2026-09-27,grilling Q1)· 生命周期列只经函数写;提交之后调薪与转正结论冻结 ─────────────
+-- Step 0 在一笔回滚的事务里以 sandra@(cco)实测:直连插一张 submitted_by = CFO 的已提交评估、自己调 approve_review,
+-- 别人的月薪就改了,没有 CFO。直连 INSERT 只许建草稿;status / submitted_* / approved_* / acknowledged_at /
+-- void_* / voided_* 任何时候只经函数写;提交之后 new_monthly_salary / salary_effective_date / probation_outcome /
+-- employee_id 冻结。函数体在 db/functions/guard_performance_review_write.sql(INVOKER + row_security_active)。
+CREATE TRIGGER trg_performance_reviews_guard_write
+    BEFORE INSERT OR UPDATE ON public.performance_reviews
+    FOR EACH ROW EXECUTE FUNCTION public.guard_performance_review_write();

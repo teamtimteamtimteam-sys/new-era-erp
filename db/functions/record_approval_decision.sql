@@ -109,6 +109,19 @@ BEGIN
         WHEN 'terms_request' THEN
             SELECT true, r.label, r.created_by INTO v_ok, v_code, v_raiser
               FROM terms_requests r WHERE r.id = p_subject_id;
+        -- ★ APR-9:调薪申请。提单人 = created_by;主角 = 被调薪的员工(self_decided 要问这两条腿)。
+        --   【没有金额】—— 月薪是 PDPA 受限的个人数据,留痕的读者不一定看得见工资(performance_review 同形:
+        --   只冻结编号,四列留空)。编号:申请的 label(员工编号 · salary change #n)。
+        WHEN 'salary_change_request' THEN
+            SELECT true, r.label, r.created_by, r.employee_id INTO v_ok, v_code, v_raiser, v_subject
+              FROM salary_change_requests r WHERE r.id = p_subject_id;
+        -- ★ APR-9:处置申请。提单人 = created_by;主角 = NULL(资产是公司的)。
+        --   金额 = 处置分录的借方合计(本位币),币种 = 本位币、汇率 = 1(warehouse_request 同形);
+        --   submitted 那一行是提交时的试跑额,approved 那一行 = 实际过账额。编号:label(资产编号 · disposal #n)。
+        WHEN 'asset_disposal_request' THEN
+            SELECT true, r.label, r.amount_base, v_base_ccy, 1, r.amount_base, r.created_by
+              INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser
+              FROM asset_disposal_requests r WHERE r.id = p_subject_id;
         WHEN 'expense' THEN
             SELECT true, e.code, e.amount_ccy, e.currency, e.fx_rate, e.amount_base
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base

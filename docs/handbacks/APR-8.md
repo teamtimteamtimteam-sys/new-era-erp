@@ -167,7 +167,20 @@ contract or formula while a request waits. **Unchanged:** `link_document_to_cont
 ## §6 · The broken window — started, end PENDING
 
 **Start: 2026-09-26 23:31:04 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line reads
-23:27:14). **End: PENDING — Tim reads it from Vercel.**
+23:27:14). ~~**End: PENDING — Tim reads it from Vercel.**~~ ★ **Closed by APR-9 (2026-09-27), with bounds, labelled by kind** —
+Tim confirmed APR-8 deployed and has no Vercel "Ready" time to add:
+
+| | time (CST) | kind |
+|---|---|---|
+| start | 2026-09-26 23:31:04 | **measured**: `db/migration-windows.tsv` |
+| end, lower bound | 2026-09-27 00:31:29 | **measured**: the push moved `origin/main` → `2722435a` (`git reflog show --date=iso refs/remotes/origin/main`) |
+| end, upper bound | 2026-09-27 07:32:13 | **derived**: APR-9's first read of `now()` as `postgres` (`rolbypassrls = t`), taken after Tim's "deployed" confirmation had arrived — **a relayed confirmation, not a measurement of Vercel** |
+
+**Window: at least 1 h 0 min 25 s, at most 8 h 1 min 9 s.** Also written into `docs/handbacks/APR-9.md` §W.
+
+**Tim accepted both build decisions (2026-09-27):** the "Treatment charge (USD/t)" label baselined in
+`scripts/currency-messages-baseline.json` (a unit fixed by the column name), and the removed or rewritten copy that was no longer
+true (the formula and contract screens' old sentences about one-step activation).
 
 What the old app does against the new database (approvals ON):
 - **Saving a pricing formula is refused for everyone** — the old new / edit pages write the tables directly: cco and admin@ get

@@ -128,7 +128,15 @@ AS $function$
         --    grilling Q4,四种一个门,cfo 五个都持;【不是】module.pricing.edit / action.contract_terms:那是提单的码。
         ('terms_request'::text, 'decide_terms_request'::text, 2::smallint,
             ARRAY['module.pricing.view', 'data.view_prices', 'data.view_purchase_prices',
-                  'module.suppliers.view', 'module.customers.view']::text[])
+                  'module.suppliers.view', 'module.customers.view']::text[]),
+        -- ★★ APR-9(Tim 的矩阵:固定资产处置 —— 财务提,CFO 批每一张,不分档;批准当场处置,处置日 = 批准日):
+        --    同样【只有二级这一行】。门与 APR-7 同一对码 —— module.finance.view + data.view_prices(资产页的门,
+        --    加上看得见金额的那个码);【不是】module.finance.edit:那是提单的码。
+        --    ☞ 同一刀的调薪申请【不在】这本名册里(APR-9 grilling Q2):它按【人】路由(CFO 是当事人 → cco,
+        --      pay_decision_code),而这本名册按【级】找人;决定它的那一支也不调用按级要审批人的那一支
+        --      (★ 这句注释【不写】那支函数的名字:203E 按 prosrc 数它的调用方,注释也算 —— PAY-REQ-1 那一行的教训)。
+        ('asset_disposal_request'::text, 'decide_asset_disposal_request'::text, 2::smallint,
+            ARRAY['module.finance.view', 'data.view_prices']::text[])
       ) AS v(subject_type, action_function, level, gate_permissions)
 $function$;
 

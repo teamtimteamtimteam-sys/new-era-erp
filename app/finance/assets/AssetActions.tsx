@@ -9,20 +9,25 @@
 // 【每一个禁用都把理由摆在旁边】(CMP-2)—— 一个按不下去又不说为什么的按钮,
 // 读起来像是坏了。已处置的资产两个动作都关掉,而且各说各的理由。
 //
-// 【两个日期都不给默认值】投用日决定折旧起点,处置日决定分录落在哪个期间 ——
-// 补一个今天,会让一次本该 PERIOD_LOCKED 的处置悄悄落进开着的月份(FIN-10)。
-// 空着就禁钮,并在旁边说出来;服务端也各自独立拒空。
+// 【投用日不给默认值】它决定折旧起点(FIN-10);空着就禁钮,并在旁边说出来;服务端也独立拒空。
+//
+// ★ APR-9(Tim 2026-09-27,grilling Q7):**处置从此是一张申请,CFO 批准当场处置。** 表单上【没有日期框了】——
+//   处置日就是批准那一天,由库定,不是提单人挑的(所以期间锁永远咬不到一张在等的处置)。提单人给的是
+//   收款、银行科目与理由,提交时冻结;提交时按批准那一刻的同一条路试跑一遍,估算的损益交给 CFO 看。
+//   已有一张在等的 → 处置钮按不动,并指向那一张(资产页顶上那一块,#adr-<id>)。
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { disposeAsset, commissionAsset } from '../month-end/actions'
+import { commissionAsset } from '../month-end/actions'
+import { submitDisposalRequest } from './disposalRequestActions'
 import { setPlannedInService } from './[id]/actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 export default function AssetActions({
     assetId, code, status, inServiceDate, plannedInServiceDate, acquisitionDate, hasCost, canEdit, bankAccounts,
+    pendingDisposalLabel,
 }: {
     assetId: string; code: string; status: string
     inServiceDate: string | null; plannedInServiceDate: string | null; acquisitionDate: string
@@ -30,6 +35,8 @@ export default function AssetActions({
     // 三条理由从此在【按钮旁边】一处说完。
     hasCost: boolean
     canEdit: boolean; bankAccounts: string[]
+    /** APR-9:这台资产上那一张在等的处置申请的 label;没有就是 null */
+    pendingDisposalLabel: string | null
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -38,7 +45,7 @@ export default function AssetActions({
     const [open, setOpen] = useState<'' | 'commission' | 'dispose' | 'plan'>('')
     const [plan, setPlan] = useState(plannedInServiceDate ?? '')
     const [inSvc, setInSvc] = useState('')
-    const [dispDate, setDispDate] = useState('')
+    const [dispReason, setDispReason] = useState('')
     const [proceeds, setProceeds] = useState('0')
     const [bank, setBank] = useState('')
 
@@ -52,6 +59,7 @@ export default function AssetActions({
         : ''
     const disposeWhy = !canEdit ? t('assets.needsFinanceEdit')
         : disposed ? t('assets.blocked.alreadyDisposed')
+        : pendingDisposalLabel ? t('assets.blocked.disposalRequested', { label: pendingDisposalLabel })
         : ''
 
     function run(fn: () => Promise<{ error?: string }>) {
@@ -141,9 +149,6 @@ export default function AssetActions({
                 <div className="mt-2 border border-gray-300 rounded p-2 space-y-1">
                     <p className="text-xs text-[color:var(--brand-muted-text)]">{t('assets.actions.disposeWhy')}</p>
                     <div className="flex flex-wrap items-center gap-2">
-                        <input type="date" value={dispDate} min={acquisitionDate}
-                               onChange={(e) => setDispDate(e.target.value)}
-                               className={CONTROL_INPUT} />
                         <input type="number" step="any" min="0" value={proceeds}
                                onChange={(e) => setProceeds(e.target.value)}
                                className={`${CONTROL_INPUT} w-28 text-right tabular-nums`}
@@ -156,17 +161,21 @@ export default function AssetActions({
                                 {bankAccounts.map((b) => <option key={b} value={b}>{b}</option>)}
                             </select>
                         )}
+                        <input type="text" value={dispReason}
+                               onChange={(e) => setDispReason(e.target.value)}
+                               className={`${CONTROL_INPUT} grow min-w-0`}
+                               placeholder={t('assets.actions.disposeReason')} />
                         <Button size="xs" type="button"
-                                disabled={pending || dispDate.trim() === ''
+                                disabled={pending || dispReason.trim() === ''
                                           || (Number(proceeds) > 0 && bank === '')}
-                                onClick={() => run(() => disposeAsset(
-                                    assetId, dispDate, Number(proceeds) || 0,
-                                    Number(proceeds) > 0 ? bank : null))}>
+                                onClick={() => run(() => submitDisposalRequest(
+                                    assetId, Number(proceeds) || 0,
+                                    Number(proceeds) > 0 ? bank : null, dispReason))}>
                             {pending ? t('common.saving') : t('assets.actions.disposeConfirm', { code })}
                         </Button>
                     </div>
-                    {dispDate.trim() === '' && (
-                        <p className="text-xs text-amber-700">{t('assets.actions.disposalDateRequired')}</p>
+                    {dispReason.trim() === '' && (
+                        <p className="text-xs text-amber-700">{t('assets.actions.disposeReasonRequired')}</p>
                     )}
                     {Number(proceeds) > 0 && bank === '' && (
                         <p className="text-xs text-amber-700">{t('assets.actions.bankRequired')}</p>

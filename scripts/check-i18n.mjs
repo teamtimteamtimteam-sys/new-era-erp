@@ -782,6 +782,14 @@ const MANIFEST = {
     'termsRequest.field.':          { kind: 'enum', values: () => tsArray('app/components/pricing/termsRequestsData.ts', 'FORMULA_FIELDS') },
     'termsRequest.section.':        { kind: 'enum', values: () => tsArray('app/components/pricing/termsRequestsData.ts', 'CONTRACT_SECTIONS') },
     'termsRequest.before.':         { kind: 'enum', values: () => ['current', 'last_approved', 'none'] },
+    // APR-9:调薪申请与处置申请 —— 状态读各自表上的 status,拒绝读各自的码集合;
+    //   决定人两种(pay_decision_code 的两个答案)、自批两条腿(self_leg 的两个非 none 取值)
+    'salaryChange.status.':    { kind: 'enum', values: () => sqlEnum('db/tables/salary_change_requests.sql', 'status') },
+    'salaryChange.errors.':    { kind: 'enum', values: () => tsSet('app/hr/employees/salaryChangeErrorCodes.ts', 'SALARY_CHANGE_ERROR_CODES') },
+    'salaryChange.via.':       { kind: 'enum', values: () => ['cfo', 'cco'] },
+    'salaryChange.selfBlock.': { kind: 'enum', values: () => ['raiser', 'subject'] },
+    'assetDisposal.status.':   { kind: 'enum', values: () => sqlEnum('db/tables/asset_disposal_requests.sql', 'status') },
+    'assetDisposal.errors.':   { kind: 'enum', values: () => tsSet('app/finance/assets/disposalRequestErrorCodes.ts', 'DISPOSAL_REQUEST_ERROR_CODES') },
     // APR-6:凭证页上冲销钮灰掉时的那一句,按 source_type 取。真源是 journal_entry_reversal_route 的函数体 ——
     //   它认作 'source_path' 的那组 source_type(IN 列表)加上 'payroll'(工资的过账分录另有一支判据)。
     //   函数里多认一种、这里就多要一句;解析出 0 个是"解析器坏了",不是"没有"。

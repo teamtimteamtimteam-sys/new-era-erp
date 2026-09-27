@@ -86,6 +86,11 @@ BEGIN
 
     -- ── 调薪 ──────────────────────────────────────────────────────────────
     IF v_r.new_monthly_salary IS NOT NULL THEN
+        -- ★ APR-9(grilling Q5):评估只改【已有的】月薪。Step 0 量出来:线上六个人的月薪全是 NULL,而本函数
+        --   此前会照写 —— 一张评估就能录下第一份月薪,绕过"第一份月薪由财务录一次"(set_initial_salary)。
+        IF v_emp.monthly_salary IS NULL THEN
+            RAISE EXCEPTION 'SALARY_NOT_SET_USE_INITIAL|%', v_emp.code;
+        END IF;
         -- payroll_periods 没有起止两列:周期就是 period_month 那个整月(见文件头 (4))
         SELECT p.code INTO v_period
         FROM payroll_periods p

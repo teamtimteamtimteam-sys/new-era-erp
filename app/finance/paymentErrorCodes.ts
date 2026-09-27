@@ -37,6 +37,8 @@ const PAYMENT_ERROR_CODES = new Set([
     // 没备好的码就是打到操作员脸上的裸管道串(CMP-2 为这件事付过账)。
     'ASSET_HAS_NO_COST', 'ASSET_ACQUISITION_DATE_REQUIRED', 'ASSET_CATEGORY_INVALID',
     'ASSET_DESCRIPTION_REQUIRED', 'ASSET_LIFE_INVALID',
+    // APR-9:处置在等 CFO 时卡被冻结(投用经月结这条路报出来);旧门 dispose_fixed_asset 只会按名拒
+    'ASSET_DISPOSAL_REQUESTED', 'ASSET_DISPOSAL_NEEDS_REQUEST',
     // FA-1a:折旧还欠着就锁不进去 —— 这一条会在月结的关账按钮上冒出来
     'DEPRECIATION_OUTSTANDING',
     // GST-2:新加坡的供应时点是【开票与收款孰早】。开票那一半实现了;

@@ -182,7 +182,8 @@ BEGIN
     PERFORM record_expense(DATE '2026-03-02', '1500', 9000, v_ccy, NULL, 'unpaid', NULL,
         v_sup, NULL, 'fixture 108 rig invoice', jsonb_build_object('asset_id', v_asset2), NULL);
     PERFORM set_asset_in_service(v_asset2, DATE '2026-03-20');
-    PERFORM dispose_fixed_asset(v_asset2, DATE '2026-04-01', 0, NULL, 'fixture 108 scrap');
+    -- APR-9:dispose_fixed_asset 只会按名拒了(处置经 CFO 批的申请);本臂钉的是处置的算术,调引擎本身。
+    PERFORM dispose_fixed_asset_internal(v_asset2, DATE '2026-04-01', 0, NULL, 'fixture 108 scrap');
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty, unit, arrival_date, source_reason_code, source_reason_note)
     VALUES ('ZZFIX108-IB5', v_mat, v_sup, 10, 10, 'kg', DATE '2026-04-15', 'other', 'fixture 108 自带数据') RETURNING id INTO v_ib;
     PERFORM reprice_inbound_batch(v_ib, 1, v_ccy, NULL, 'fixture 108 price 5');

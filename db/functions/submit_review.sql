@@ -7,6 +7,9 @@ AS $function$
 DECLARE
     v_r      performance_reviews%ROWTYPE;
     v_goals  integer;
+    v_emp_code   text;
+    v_emp_salary numeric;
+    v_open       text;
 BEGIN
     SELECT * INTO v_r FROM performance_reviews WHERE id = p_review_id FOR UPDATE;
     IF NOT FOUND THEN
@@ -39,6 +42,21 @@ BEGIN
     SELECT count(*) INTO v_goals FROM review_goals WHERE review_id = p_review_id;
     IF v_goals = 0 THEN
         RAISE EXCEPTION 'GOALS_REQUIRED';
+    END IF;
+
+    -- ★ APR-9(grilling Q5 · Q6):一张带调薪的评估 —— 只改【已有的】月薪(第一份月薪只经 set_initial_salary),
+    --   而且一个人同一时刻只有一次在途调薪(跨调薪申请,salary_change_open 一份判据)。员工行上锁再问,
+    --   与 submit_salary_change_request 同一把锁。提交之后调薪两列冻结(guard_performance_review_write)。
+    IF v_r.new_monthly_salary IS NOT NULL THEN
+        SELECT code, monthly_salary INTO v_emp_code, v_emp_salary
+          FROM employees WHERE id = v_r.employee_id FOR UPDATE;
+        IF v_emp_salary IS NULL THEN
+            RAISE EXCEPTION 'SALARY_NOT_SET_USE_INITIAL|%', v_emp_code;
+        END IF;
+        v_open := salary_change_open(v_r.employee_id);
+        IF v_open IS NOT NULL THEN
+            RAISE EXCEPTION 'SALARY_CHANGE_OPEN|%|%', v_emp_code, v_open;
+        END IF;
     END IF;
 
     UPDATE performance_reviews

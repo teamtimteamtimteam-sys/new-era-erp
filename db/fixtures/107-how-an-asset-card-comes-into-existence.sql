@@ -175,7 +175,8 @@ BEGIN
     v_res := create_fixed_asset('fixture 107 never arrived', 60, DATE '2026-02-01');
     v_denied := false; v_msg := NULL;
     BEGIN
-        PERFORM dispose_fixed_asset((v_res->>'asset_id')::uuid, DATE '2026-02-20', 0, NULL, 'fixture 107');
+        -- APR-9:dispose_fixed_asset 只会按名拒了(处置经 CFO 批的申请);本臂钉的是处置的算术,调引擎本身。
+        PERFORM dispose_fixed_asset_internal((v_res->>'asset_id')::uuid, DATE '2026-02-20', 0, NULL, 'fixture 107');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('ASSET_HAS_NO_COST' in v_msg) = 0 THEN
