@@ -13,15 +13,23 @@
 //     · 申请历史(TABLE-PHONE-3 做的):留 单号 · 天数 · 状态;折 假别 · 起止。
 //   转换把「留」写成 priority,「折」写成不带 priority —— 同一个判断,换一种说法。
 //   叠在身份格里那两段手写的展开块【拿掉了】:组件自己画那一段。
+//
+// ★ EMP-SELF-1(G2 · G3a,Tim 2026-09-27):申请历史多两列 ——
+//   「决定」(谁、何时、备注,DecisionCell;备注读单据自己的 decision_notes,EMP-SELF-0 记下的那一处)
+//   与动作列:还在等的假有「取消申请」;已批的假那颗钮【看得见、按不动、说出理由】(只有 HR 能取消,
+//   库里按名拒 LEAVE_OWN_CANCEL_PENDING_ONLY)。已驳回 / 已取消的没有钮 —— 那里没有一个会被拒的动作。
 //   ★ 余额那张表的 rowKey 用 grant_id ?? 派生累积的年份:leave_balance_internal
 //     给【派生累积】那一行的 grant_id 是 NULL(db/functions/leave_balance_internal.sql:76),
 //     而组件的 rowKey 要一个真的字符串。转换之前那里是 key={null} —— React 退回
 //     用下标,并在开发档打一句警告。这一处【只改键,不改任何看得见的东西】。
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import LeaveForm, { type LeaveTypeOption } from '@/app/hr/leave/LeaveForm'
+import { cancelLeave } from '@/app/hr/leave/actions'
 import { Button } from '@/app/components/ui/button'
+import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import DecisionCell, { type Decision } from './DecisionCell'
 
 type Breakdown = {
     // ★ 派生累积那一行的 grant_id 是 NULL —— leave_balance_internal.sql:76 建的就是
@@ -33,19 +41,23 @@ type Balance = { granted: number; consumed: number; expired: number; available: 
 type Req = {
     id: string; code: string; leave_type_code: string
     start_date: string; end_date: string; days: number; status: string
+    decision_notes: string | null
 }
 
 export default function MyLeavePanel({
-    employeeId, balance, requests, types,
+    employeeId, balance, requests, types, decisions,
 }: {
     employeeId: string
     balance: Balance | null
     requests: Req[]
     types: LeaveTypeOption[]
+    decisions: Record<string, Decision>
 }) {
     const t = useTranslations()
     const locale = useLocale()
     const [open, setOpen] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [busy, startTransition] = useTransition()
     const typeName = (c: string) => {
         const x = types.find((y) => y.code === c)
         return x ? (locale === 'zh' ? x.name_zh : x.name_en) : c
@@ -86,6 +98,43 @@ export default function MyLeavePanel({
             key: 'status', header: t('leave.status'), priority: true,
             render: (r) => t(`leave.status_${r.status}`),
         },
+        {
+            key: 'decision', header: t('me.decisionCol'),
+            // 备注读这一行自己的 decision_notes(本人行策略放行);决定人来自 my_document_decisions()
+            render: (r) => <DecisionCell
+                decision={decisions[r.id] && { ...decisions[r.id], notes: r.decision_notes }}
+                cancelled={r.status === 'cancelled'} />,
+        },
+        {
+            key: 'actions', header: '', align: 'right', priority: true,
+            render: (r) => r.status === 'pending' ? (
+                <ConfirmButton
+                    subject={r.code}
+                    title={t('me.cancelLeaveTitle')}
+                    body={t('me.cancelLeaveBody')}
+                    confirmLabel={t('me.cancelLeave')}
+                    tier="reversal"
+                    triggerVariant="reversal"
+                    triggerSize="xs"
+                    disabled={busy}
+                    onConfirm={() => {
+                        setError(null)
+                        startTransition(async () => {
+                            const x = await cancelLeave(r.id, null)
+                            if (x.error) setError(x.error)
+                        })
+                    }}>
+                    {t('me.cancelLeave')}
+                </ConfirmButton>
+            ) : r.status === 'approved' ? (
+                <>
+                    <Button variant="reversal" size="xs" type="button" disabled>{t('me.cancelLeave')}</Button>
+                    <span className="block text-xs text-[color:var(--brand-muted-text)] max-w-[14rem] ml-auto">
+                        {t('me.cancelLeaveApprovedReason')}
+                    </span>
+                </>
+            ) : null,
+        },
     ]
 
     return (
@@ -119,6 +168,10 @@ export default function MyLeavePanel({
                         phone={{ mode: 'columns' }}
                     />
                 </div>
+            )}
+
+            {error && (
+                <div className="mb-3 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
 
             {open && (

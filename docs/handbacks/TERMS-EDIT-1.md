@@ -216,6 +216,21 @@ part 2 as tim@ on views; part 3 each account as itself), before at 2026-09-27 17
 **Start: 2026-09-27 18:02:10 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line reads
 18:00:56). **End: PENDING — Tim reads it from Vercel.**
 
+**Closed in EMP-SELF-1 (2026-09-27) — with bounds, labelled by kind.** Tim confirmed TERMS-EDIT-1 deployed (in the EMP-SELF-1 brief) with no
+Vercel "Ready" time.
+
+| | time (CST) | kind |
+|---|---|---|
+| start | 2026-09-27 18:02:10 | **measured**: `db/migration-windows.tsv` / `apply_migration.sh`'s own line |
+| end, lower bound | 2026-09-27 20:09:28 | **measured**: the push moved `origin/main` → `888c97c4` (`git reflog show --date=iso refs/remotes/origin/main`) |
+| end, upper bound | 2026-09-27 20:21:25 | **derived**: EMP-SELF-1's first read of `now()` as `postgres` (`rolbypassrls = t`), taken with Tim's "deployed" confirmation already in hand — **a relayed confirmation, not a measurement of Vercel** |
+
+**Window: at least 2 h 07 min 18 s, at most 2 h 19 min 15 s.**
+
+**Tim accepted build decisions 1 and 2 (2026-09-27):** the four "USD per tonne" labels stay baselined in
+`scripts/currency-messages-baseline.json`; the shared `ContractDateInput` and the tightened date baseline (138 → 135) stand.
+Decision 3 (`TERMSEDIT1-ENDED-HEADER-WRITABLE`) was then fixed by EMP-SELF-1 on Tim's Q7 ruling.
+
 What the old app does against the new database (approvals ON):
 - **Requesting activation of a sell contract with incomplete terms** is refused `CONTRACT_TERMS_INCOMPLETE`; the old copy has no sentence
   for it, so it shows the generic text. **No live impact:** there are 0 contracts, and the old app has no screen to enter terms anyway.

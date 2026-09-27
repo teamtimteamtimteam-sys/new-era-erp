@@ -17,6 +17,11 @@
 --         它必须印成一句具名的话,**永远不能印成 0 吨**:
 --         0 吨的意思是"我们没有浮动价买进",而真相是"这个系统还不会记这件事"。
 --
+-- ★ EMP-SELF-1(Tim 裁定 2026-09-27,关 TERMSEDIT1-EXPOSURE-IGNORES-STATUS):【头寸只算生效中的合同】——
+--   草稿、暂停、到期、终止都不是头寸。于是卖方向多了一种具名的零 no_active_contracts
+--   (有合同,但一份都没生效);contracts_with_pricing_terms / pricing_terms_total 只数生效中的合同,
+--   coverage 多一个 contracts_active。contracts_total / _sell_side / _buy_side 仍数全部未删除的合同 —— 那是分母。
+--
 -- 【单独一行报出:index_market_calendar 是空的】于是任何计价期均价都会按名拒。
 --   它与"没有合同"是**两个不同的原因** —— 屏幕上长得一样的话,
 --   读的人会以为只有一件事要修(PRICE-1 为日历与报价那两句留过同样的处置)。
@@ -37,6 +42,7 @@ DECLARE
     v_contracts_total       int;
     v_contracts_sell        int;
     v_contracts_buy         int;
+    v_contracts_active      int;
     v_contracts_with_terms  int;
     v_terms_total           int;
     v_docs_linked           int;
@@ -56,13 +62,16 @@ BEGIN
     -- ── 分母:让每一个 0 说得出它是哪一种 0 ────────────────────────────────
     SELECT count(*),
            count(*) FILTER (WHERE side = 'sell'),
-           count(*) FILTER (WHERE side = 'buy')
-      INTO v_contracts_total, v_contracts_sell, v_contracts_buy
+           count(*) FILTER (WHERE side = 'buy'),
+           count(*) FILTER (WHERE status = 'active')
+      INTO v_contracts_total, v_contracts_sell, v_contracts_buy, v_contracts_active
       FROM contracts WHERE deleted_at IS NULL;
 
-    SELECT count(*), count(DISTINCT contract_id)
+    -- EMP-SELF-1:只数【生效中】合同的计价条款 —— 草稿上写好的条款不是头寸
+    SELECT count(*), count(DISTINCT t.contract_id)
       INTO v_terms_total, v_contracts_with_terms
-      FROM contract_pricing_terms;
+      FROM contract_pricing_terms t
+      JOIN contracts c ON c.id = t.contract_id AND c.deleted_at IS NULL AND c.status = 'active';
 
     SELECT (SELECT count(*) FROM sales_orders    WHERE contract_id IS NOT NULL AND deleted_at IS NULL)
          + (SELECT count(*) FROM purchase_orders WHERE contract_id IS NOT NULL AND deleted_at IS NULL)
@@ -83,6 +92,9 @@ BEGIN
     IF v_contracts_total = 0 THEN
         -- (i) 连主语都没有。**不是"敞口为零"。**
         v_sell_state := 'no_contracts';
+    ELSIF v_contracts_active = 0 THEN
+        -- (i′) EMP-SELF-1:有合同,但一份都没生效。草稿 / 暂停 / 到期 / 终止都不是头寸。
+        v_sell_state := 'no_active_contracts';
     ELSIF v_contracts_with_terms = 0 THEN
         -- (ii) 有合同,但没有一份写了计价条款。
         -- 【为什么这一句这样措辞】contract_pricing_terms 的 index_code 是 NOT NULL,
@@ -109,7 +121,7 @@ BEGIN
                        -- 挂在这份合同下的销售订单吨数(未删除的单据)
                        'ordered_quantity', COALESCE(q.qty, 0)) AS x
               FROM contract_pricing_terms t
-              JOIN contracts c ON c.id = t.contract_id AND c.deleted_at IS NULL
+              JOIN contracts c ON c.id = t.contract_id AND c.deleted_at IS NULL AND c.status = 'active'
               LEFT JOIN LATERAL (
                     SELECT SUM(l.quantity) qty
                       FROM sales_orders so
@@ -162,6 +174,7 @@ BEGIN
             'contracts_total',            v_contracts_total,
             'contracts_sell_side',        v_contracts_sell,
             'contracts_buy_side',         v_contracts_buy,
+            'contracts_active',           v_contracts_active,
             'contracts_with_pricing_terms', v_contracts_with_terms,
             'pricing_terms_total',        v_terms_total,
             'documents_linked_to_contract', v_docs_linked,

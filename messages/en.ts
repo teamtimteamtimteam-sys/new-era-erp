@@ -582,7 +582,10 @@ const en = {
         dictionaries: 'Dictionaries',
         logistics: 'Logistics',
         sales: 'Sales',
-        me: 'My profile',
+        // EMP-SELF-1(G1):这一行此前叫 My profile,员工在它下面找不到请假与报销
+        me: 'Me: leave, claims, payslips',
+        myLeave: 'My leave',
+        myClaims: 'My claims',
         myReviews: 'My reviews',
         settings: 'Settings',
         suppliers: 'Suppliers',
@@ -1300,6 +1303,7 @@ const en = {
         errGrantExists: 'A grant already exists for {0}.',
         errCarryExists: 'Carry-forward has already been run for {0} ({1}).',
         errNotPending: 'This request is already {0}.',
+        errOwnCancelPendingOnly: 'You can cancel your own request only while it is pending. {0} is already {1} — ask HR to cancel it.',
     },
     claims: {
         errExpenseDateRequired: 'An expense date is required — it decides which accounting period the payment posts to.',
@@ -1310,6 +1314,9 @@ const en = {
         state_submitted: 'Submitted', state_approved: 'Approved', state_rejected: 'Rejected',
         state_awaiting_payment_run: 'Awaiting expense', state_expense_raised: 'Expense raised',
         state_part_paid: 'Part paid', state_paid: 'Paid',
+        state_withdrawn: 'Withdrawn',
+        errNotSubmitted: 'Claim {0} is already {1} — only a claim that is still submitted can be withdrawn.',
+        errNotFound: 'That claim no longer exists.',
         amountWithCcy: '{amount} {ccy}',
         limitTitle: '{0} entitlement', limit: 'Limit', claimed: 'Claimed', remaining: 'Remaining',
         monthsOfService: 'Pro-rated over {0} months of service',
@@ -1482,6 +1489,22 @@ const en = {
         signedInAs: 'Signed in as {0}',
     },
     me: {
+        // ── EMP-SELF-1:谁决定的、为什么;取消 / 撤回自己还在等的 ────────────────
+        decisionCol: 'Decision',
+        decidedBy: 'Decided by {name}',
+        decidedByYouFlagged: 'Decided by you (flagged)',
+        cancelledBy: 'Cancelled by {name}',
+        cancelledByYou: 'Cancelled by you',
+        deciderUnknown: 'someone with no employee record',
+        decidedOn: 'on {date}',
+        cancelLeave: 'Cancel request',
+        cancelLeaveTitle: 'Cancel this leave request?',
+        cancelLeaveBody: 'It has not been decided yet. Cancelling it withdraws it for good; you can submit a new one afterwards.',
+        cancelLeaveApprovedReason: 'Already approved — only HR can cancel approved leave.',
+        withdrawClaim: 'Withdraw',
+        withdrawClaimTitle: 'Withdraw this medical claim?',
+        withdrawClaimBody: 'It has not been decided yet. Withdrawing it takes it out of HR’s queue for good; you can submit a new one afterwards.',
+        withdrawClaimDecidedReason: 'Already decided — only a claim that is still submitted can be withdrawn.',
         // ── UI-1d:头像 ──────────────────────────────────────────────────
         avatar: 'Your photo',
         avatarChoose: 'Choose a photo',
@@ -2172,6 +2195,9 @@ const en = {
         sellNoContracts: 'No contracts are on file at all, so the question has no subject yet. This is not “no exposure” — there is nothing to have exposure on.',
         sellNoTerms: 'Contracts are on file, but not one of them carries pricing terms. So there is no index-linked position to report — which is different from having looked and found none.',
         sellPositions: 'Open index-linked positions on the sell side:',
+        // EMP-SELF-1(Tim 裁定 2026-09-27):头寸只算生效中的合同
+        sellNoActive: 'Contracts are on file, but none of them is in effect. Drafts, suspended, expired and terminated contracts are not positions, so there is no index-linked position to report.',
+        contractsCount: '{total} contract(s) on file, {active} in effect. Only contracts in effect count as positions.',
         // 均价能不能算 —— 独立的一条原因,与"没有合同"不是同一件事。
         calendarNone: 'No market calendar is loaded, so every quotational-period average would refuse by name. This is a separate reason from having no contracts, and fixing one does not fix the other.',
         calendarLoaded: 'A market calendar is loaded, so a quotational-period average can be computed for the days it covers.',

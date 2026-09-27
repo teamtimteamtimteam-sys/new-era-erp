@@ -42,6 +42,17 @@ export async function decideClaim(claimId: string, approve: boolean, notes: stri
     return { success: true }
 }
 
+// EMP-SELF-1(G3b):员工撤回自己还没被决定的医疗申报。门在库里(本人或 module.hr.edit、只撤 submitted);
+// 本刀唯一的按钮在 /me 上(Tim 的 Q8)。
+export async function withdrawMedicalClaim(claimId: string): Promise<ClaimState> {
+    const supabase = await createClient()
+    const { error } = await supabase.rpc('withdraw_medical_claim', { p_claim_id: claimId })
+    if (error) return { error: await localizeLeaveError(error.message) }
+    revalidatePath('/hr/claims')
+    revalidatePath('/me')
+    return { success: true }
+}
+
 // 【建费用是财务的动作】—— 函数要 module.finance.edit。
 // HR 审核在前(claim 必须已 approved),财务在后,两步两人。
 export async function payClaim(

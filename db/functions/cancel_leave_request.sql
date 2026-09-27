@@ -17,11 +17,18 @@ BEGIN
     SELECT * INTO v_req FROM leave_requests WHERE id = p_request_id AND deleted_at IS NULL FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'REQUEST_NOT_FOUND'; END IF;
 
-    IF NOT (has_permission('module.hr.edit') OR v_req.employee_id = current_user_employee()) THEN
+    -- ★ EMP-SELF-1(Q9 · Q2):COALESCE(…, false)。没有员工档案的账号 current_user_employee() 是 NULL,
+    --   于是 NOT (false OR NULL) = NULL,IF 不触发 —— 这一道门对它【从来没有关上过】。
+    IF NOT COALESCE(has_permission('module.hr.edit') OR v_req.employee_id = current_user_employee(), false) THEN
         RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.edit';
     END IF;
     IF v_req.status = 'cancelled' THEN RAISE EXCEPTION 'ALREADY_CANCELLED|%', v_req.code; END IF;
     IF v_req.status = 'rejected' THEN RAISE EXCEPTION 'REQUEST_REJECTED|%', v_req.code; END IF;
+    -- ★ EMP-SELF-1(Tim 的 Q1):本人那一支只撤【还在等】的假。已批的假(哪怕已经休过)只由 HR
+    --   (module.hr.edit)取消 —— 此前本人经 API 撤得掉自己已批、已休的假,余额随之被放回。
+    IF v_req.status <> 'pending' AND NOT has_permission('module.hr.edit') THEN
+        RAISE EXCEPTION 'LEAVE_OWN_CANCEL_PENDING_ONLY|%|%', v_req.code, v_req.status;
+    END IF;
 
     -- 【释放不是删除】:对每一条 draw 追加一条等额的 release。
     -- 于是"批了 3 天,后来撤了"在账上是两行,而不是一行都没有 —— 余额算得对,也说得清。

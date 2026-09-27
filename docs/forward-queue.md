@@ -3,7 +3,7 @@
 **这份文件回答三个问题,只回答这三个:【先做哪个】、【什么事情发生了才轮到它】、
 【哪一件要折进哪一件里】。** 它不写规格。
 
-> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25);APR-5 grilling 时 Tim 拆成 5a / 5b(Q14,2026-09-25),5a 交回时更新;5b 交回时更新(2026-09-25);APR-6 交回时更新(2026-09-25);APR-7 交回时更新(2026-09-26);APR-8 交回时更新(2026-09-26);APR-9 交回时更新(2026-09-27):**下一刀是 APR-10 —— GST 申报的审批与采购单类别**)
+> ### ★ 下一刀(Tim 2026-09-24,AP-RECON-1 Batch B 交回时定;PAYROLL-APR-1 交回时更新;ROLE-1 Batch 4 grilling 时 Tim 拆成两刀(Q13,2026-09-25);ROLE-1 Batch 4b 交回时更新(2026-09-25);ROLE-1 Batch 3 grilling 时 Tim 拆成 3a / 3b(Q13,2026-09-25),3a 交回时更新;3b 交回时更新(2026-09-25);APR-5 grilling 时 Tim 拆成 5a / 5b(Q14,2026-09-25),5a 交回时更新;5b 交回时更新(2026-09-25);APR-6 交回时更新(2026-09-25);APR-7 交回时更新(2026-09-26);APR-8 交回时更新(2026-09-26);APR-9 交回时更新(2026-09-27);EMP-SELF-1 交回时按 Tim 2026-09-27 的裁定重排:**下一刀是整条审批链的【一个版本号】,附详细说明**)
 > 0. **✅ AP-RECON-0**(只读勘察,`42e7e08d`)· **✅ AP-RECON-1 Batch A**(`fa7821ab`)·
 >    **✅ AP-RECON-1 Batch B** —— 残留登记表 + 常设勾稽 + 月结那一行 + 严格相等的 fixture 213 + 那一分钱 +
 >    带税订单发票 + **三条日期规矩与 32 份 fixture 的日期挪回真实的过去**(Tim 2026-09-24:日期规矩属于 AP-RECON-1,
@@ -87,9 +87,20 @@
 >    卖方合同条款不齐就申请生效 → 库按名拒 `CONTRACT_TERMS_INCOMPLETE`(结算口径一行 · 至少一条计价 · per_metal 时每个计价金属一行精炼费 ·
 >    per_element 时至少一条惩罚),页面同一份清单(`contract_activation_missing`)提前说出来(Q3)。没有新码。
 >    关 `docs/known-issues.md` § APR8-NO-TERM-EDITOR。见 `docs/handbacks/TERMS-EDIT-1.md`。
-> 17. **⬜ EMP-SELF-1(余下部分)← 下一刀** —— G1 可找到性 · G2 决定人与备注 · G3 撤回 / 取消 · Q9 NULL 臂加固(见下面 3b-emp);
->    然后 Tim 开独立 CFO 账号与同事账号 → 同事端到端走一遍。
->    ☞ 版本号仍然不分配:**整条审批链一个版本号,在它收尾时公布**(Tim 的常设裁定)。
+> 17. **✅ EMP-SELF-1(余下部分,2026-09-27)** —— 头像菜单「我:请假、报销、工资单」+「我的请假」「我的报销」两行直达 `/me` 的锚点(G1);
+>    员工在 `/me` 上看见自己那三种单据是【谁】决定的、何时、备注 —— `my_document_decisions()`,属主权限、只给自己的、决定人是人不是账号(G2);
+>    取消自己还在等的假(G3a,本人只撤 pending,Q1)· `withdraw_medical_claim`(G3b,本人或 HR,只撤 submitted)·
+>    五支 NULL-blind 的写改成 `COALESCE(…, false)`(Q9 · Q2);折进:结束了的合同表头冻结(Q7)· 敞口报表只算生效中的合同(Q6)。
+>    没有新码。关 `TERMSEDIT1-ENDED-HEADER-WRITABLE` · `TERMSEDIT1-EXPOSURE-IGNORES-STATUS`;登记 `EMPSELF1-BALANCE-READERS-NULL-BLIND` ·
+>    `EMPSELF1-HR-CANCEL-OVERWRITES-APPROVER`。见 `docs/handbacks/EMP-SELF-1.md`。
+>
+> **★★ 从这里往后的顺序 —— Tim 裁定,2026-09-27(EMP-SELF-1 委托书)**
+> 18. **⬜ 整条审批链【一个版本号】,附详细说明 ← 下一刀**(Tim 的常设裁定:在那之前任何一刀都不分配版本号)。
+> 19. **⬜ 交接(handover)。**
+> 20. **⬜ 加班 —— 在一个新窗口里做。**
+> * **同事的端到端测试排在版本号【之后】,时间由 Tim 定,它【不再】挡版本号。**
+> * ~~Tim 开同事账号~~ —— **删掉:同事的账号已经在了**(EMP-SELF-1 Step 0 实测:sandra@ · chooer@ · phua@ · fusheng@ · vince@
+>   各自绑在自己的员工档案上,`/me` 读得到自己的请假与报销)。
 >
 > **排在后面、先后归 Tim 的两件(AP-RECON-1 留下的):**
 > * **⬜ 管理包那一版 `gl_control_reconciliation` 的改基**(Tim AP-RECON-1 Q8):冻在 `management_packs` 里的包读它的三个键;
@@ -471,8 +482,10 @@
    **3b-order ★★★ 从这里往后的顺序 —— Tim 裁定,2026-09-23(APR-ROUTE-1 委托书)**
 
    > **APR-ROUTE-1 → APR-4 → ✅ 收货建单带价不记应付(INB-PAY-1,2026-09-23 做完)→ ✅ 付款申请 Batch A(PAY-REQ-1,2026-09-23)→ ✅ 付款申请 Batch B(转账 · 代扣税,2026-09-23)→ APR-5 → APR-6 →
-   > EMP-SELF-1(余下部分)→ Tim 开独立 CFO 账号与同事账号 → 同事端到端走一遍 →
+   > EMP-SELF-1(余下部分)→ ~~Tim 开独立 CFO 账号与同事账号 → 同事端到端走一遍 →~~
    > 整条审批链【一个版本号】,附详细说明。**
+   > ★ **Tim 2026-09-27 改序(EMP-SELF-1 委托书):EMP-SELF-1 → 版本号 → 交接 → 加班(新窗口)。
+   >   同事的测试在版本号之后、由 Tim 排期,不再挡版本号;"开同事账号"删掉 —— 账号已经在了。** 见顶上第 18–20 件。
    >
    > * APR-ROUTE-1 本身分两批:**Batch A 已推送;Batch B(R3)仍在 APR-4 之前**(它是 APR-ROUTE-1 的一部分)。
    > * ★ **Tim 在 APR-ROUTE-1 的 Batch B 落地之前【不会】开独立 CFO 账号**(R3)。
@@ -487,6 +500,8 @@
    > * **EMP-SELF-1 余下的部分**(G1 可找到性 · G2 决定人与备注 · G3 撤回/取消 · Q9 NULL 臂加固)
    >   **排在 APR-6 之后、同事端到端测试之前。**
    > * **Q11:** 同事各自一个账号,各自绑到自己的员工档案,**只持 `employee` 角色** —— Tim 在那次测试之前开好。
+   >   ★ **(Tim 2026-09-27:账号已经在了,这一步从队列里删掉。EMP-SELF-1 Step 0 实测五个同事账号各自绑着自己的员工档案;
+   >   它们今天持的是各自的岗位角色,不是只持 `employee`。)**
 
    **3b-route ✅ APR-ROUTE-1 Batch B —— 下表逐条已于 2026-09-23 落地(留作记录)**
 

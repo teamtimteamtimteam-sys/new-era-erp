@@ -3,7 +3,33 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
-## TERMSEDIT1-EXPOSURE-IGNORES-STATUS · 价格敞口报表不看合同状态 —— 一份草稿上的计价条款会被报成一个卖方头寸(TERMS-EDIT-1 登记,2026-09-27)
+## EMPSELF1-BALANCE-READERS-NULL-BLIND · 十支余额读者的"本人"门对没有员工档案的账号是开着的(EMP-SELF-1 登记,2026-09-27)
+
+与 EMP-SELF-1 关上的五支写是同一个形状:`IF NOT (has_permission(…) OR p_employee_id = current_user_employee())`。
+调用者没有员工档案时 `current_user_employee()` 是 NULL,`NOT (false OR NULL)` = NULL,`IF` 不触发 ——
+**于是一个有账号、没有员工档案、没有 HR 码的人,传任何一个员工的 id,读得到那个人的假期 / 医疗余额。**
+十支(`grep -lE "IF NOT \(.*OR .*= *current_user_employee\(\)\)" db/functions/*.sql`,EMP-SELF-1 Step 0 量的 15 支减去关上的 5 支):
+`accrued_annual_leave` · `accrued_annual_leave_detail` · `annual_leave_available_from` · `annual_leave_rate_per_year` ·
+`available_annual_accrual` · `compute_leave_encashment` · `consumed_from_accrual` · `leave_balance_internal` · `leave_balance` ·
+`medical_claim_balance`。**只读,不写**;线上 7 个账号全部绑了员工档案(Step 0,postgres 读 `auth.users` × `account_person`),
+所以今天没有人站在这个缺口上。Tim 的 Q2(EMP-SELF-1):**登记,不在本刀修**。
+**删除条件:** 十支的门改成 `COALESCE(…, false)`(五支写的改法,fixture 231 N 臂的形状),或 Tim 裁定这样就对。
+
+## EMPSELF1-HR-CANCEL-OVERWRITES-APPROVER · HR 取消一张已批的假,单据上的批准人被取消人盖掉(EMP-SELF-1 登记,2026-09-27)
+
+`cancel_leave_request` 把 `decided_at` / `decided_by` / `decision_notes` 写成【取消】那一次(取消人、取消时刻、理由)。
+EMP-SELF-1 起员工本人只撤得了还在等的假(Tim 的 Q1),那里本来没有批准人,什么都不丢;**但 HR(`module.hr.edit`)取消一张【已批】的假时,
+单据上"谁批的"就没了** —— `/me` 上那一行只说「由 … 取消」。**`approval_log` 仍然记着批准那一次**(它只增不改),所以事实没有丢,
+丢的是单据本身的那一格。Tim 的 Q3:按状态标注、不改表;**这一条登记**。
+**删除条件:** 取消有自己的三列(`cancelled_by` / `cancelled_at` / `cancel_reason`),批准的三列不再被覆盖;或 Tim 裁定这样就对。
+
+## ~~TERMSEDIT1-EXPOSURE-IGNORES-STATUS · 价格敞口报表不看合同状态 —— 一份草稿上的计价条款会被报成一个卖方头寸(TERMS-EDIT-1 登记,2026-09-27)~~ —— ✅ **关闭于 EMP-SELF-1(2026-09-27)**
+
+> ★ **关闭**:Tim 裁定(2026-09-27)**头寸只算生效中的合同** —— 草稿、暂停、到期、终止都不是头寸。`price_exposure_report` 的头寸与
+> `contracts_with_pricing_terms` / `pricing_terms_total` 只数 `active`;卖方向多一种具名的零 `no_active_contracts`,coverage 多一个 `contracts_active`,
+> 页面多一行「在册几份、生效几份」。冒烟的针认四种渲染(三句零 + 头寸表的列头「Ordered quantity」)。fixture 231 E 臂(草稿带条款 → 0 条头寸;
+> 生效 → 1 条;暂停 → 回到零)。见 `docs/handbacks/EMP-SELF-1.md`。原文保留:
+
 
 `price_exposure_report`(COMM-1)把【每一份】没删的合同的 `contract_pricing_terms` 都列成卖方头寸,不问 `contracts.status`。
 APR-8 之后只有 `active` 有效力,而 TERMS-EDIT-1 让 cco 在屏幕上就能给一份【草稿】填计价条款 —— 于是 `/finance/price-exposure` 会把一份
@@ -13,7 +39,12 @@ APR-8 之后只有 `active` 有效力,而 TERMS-EDIT-1 让 cco 在屏幕上就�
 ② 那条冒烟针只认两种零 —— 线上第一份带计价条款的真合同出现的那天,它会为【对的理由】变红,要给它加上"有头寸"那一态。
 **删除条件:** Tim 裁了 ①,并且 ② 那条针认得"有头寸"那一态。
 
-## TERMSEDIT1-ENDED-HEADER-WRITABLE · 到期 / 终止的合同,表头在库里仍然直连改得动(TERMS-EDIT-1 登记,2026-09-27)
+## ~~TERMSEDIT1-ENDED-HEADER-WRITABLE · 到期 / 终止的合同,表头在库里仍然直连改得动(TERMS-EDIT-1 登记,2026-09-27)~~ —— ✅ **关闭于 EMP-SELF-1(2026-09-27)**
+
+> ★ **关闭**:Tim 的 Q7 —— `guard_contract_write` 对到期 / 终止的合同【任何】改动(标题、期限、软删、状态本身)按名拒
+> `CONTRACT_TERMS_FROZEN|编号|expired / terminated`,与七张条款表同一句;草稿直接置成到期 / 终止照走。fixture 230 F3 翻转(它此前钉的是反面),
+> fixture 231 H 臂逐格钉住。见 `docs/handbacks/EMP-SELF-1.md`。原文保留:
+
 
 TERMS-EDIT-1 的 Q4 让 `contract_terms_lock_reason` 对到期与终止的合同也返回理由,于是**七张条款表**在它们上面按名拒
 `CONTRACT_TERMS_FROZEN|编号|expired / terminated`。**表头那一支(`guard_contract_write`)只读 `request:` 与 `active`,本刀没有动它** ——

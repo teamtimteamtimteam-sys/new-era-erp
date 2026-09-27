@@ -36,6 +36,7 @@ type Report = {
     }
     coverage: {
         contracts_total: number; contracts_sell_side: number; contracts_buy_side: number
+        contracts_active: number
         contracts_with_pricing_terms: number; pricing_terms_total: number
         documents_linked_to_contract: number
         metal_quotes_total: number; metal_quotes_carrying_index: number
@@ -70,10 +71,19 @@ export default async function PriceExposurePage() {
                 <p className="text-sm text-[color:var(--brand-text)]">{t('priceExposure.cannotSee')}</p>
             </div>
 
-            {/* ── 卖方向:三种状态,每一种都是一句具名的话,没有一种是空白 ── */}
+            {/* ── 卖方向:四种状态,三种零各是一句具名的话,没有一种是空白 ──
+                ★ EMP-SELF-1(Tim 裁定 2026-09-27):头寸只算生效中的合同 —— 草稿 / 暂停 / 到期 / 终止都不是头寸,
+                  于是多一种零 no_active_contracts;那一行合同计数(在册几份、生效几份)始终画着,让"为什么是零"有分母。 */}
             <h2 className="mb-2">{t('priceExposure.sellPositions')}</h2>
+            <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">
+                {t('priceExposure.contractsCount', {
+                    total: report.coverage.contracts_total, active: report.coverage.contracts_active,
+                })}
+            </p>
             {report.sell_side.state === 'no_contracts' ? (
                 <p className="text-sm text-amber-800 mb-6 max-w-3xl">{t('priceExposure.sellNoContracts')}</p>
+            ) : report.sell_side.state === 'no_active_contracts' ? (
+                <p className="text-sm text-amber-800 mb-6 max-w-3xl">{t('priceExposure.sellNoActive')}</p>
             ) : report.sell_side.state === 'no_pricing_terms' ? (
                 <p className="text-sm text-amber-800 mb-6 max-w-3xl">{t('priceExposure.sellNoTerms')}</p>
             ) : (

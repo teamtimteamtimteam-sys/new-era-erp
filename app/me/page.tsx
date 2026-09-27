@@ -13,6 +13,7 @@ import { formatAmount } from '@/lib/format'
 import MyLeavePanel from './MyLeavePanel'
 import MyClaimsPanel from './MyClaimsPanel'
 import MyExpenseClaimsPanel from './MyExpenseClaimsPanel'
+import type { Decision } from './DecisionCell'
 import MyAttendancePanel from './MyAttendancePanel'
 import MySelfAssessmentPanel, {
     type SelfAssessment,
@@ -27,7 +28,7 @@ import { mustRows } from '@/lib/db-helpers'
 import AvatarPanel from './AvatarPanel'
 import { initialsOf } from '@/lib/initials'
 import { AVATAR_ROUTE, AVATAR_VERSION_COOKIE } from '@/lib/avatar'
-import { formatDate, formatMonth } from '@/lib/dates'
+import { formatDate, formatDateTime, formatMonth } from '@/lib/dates'
 
 type MyKpiRow = {
     id: string; cycle_name: string; cycle_status: string; gate: string | null
@@ -146,10 +147,11 @@ export default async function MePage() {
     ])
 
     // 自助的假期与报销:全部靠 cut 4 的行级策略 + HR-2a 的函数,不需要任何模块权限
-    const [balRes, myLeaveRes, typeRes, claimRes, claimBalRes, expenseClaimRes] = await Promise.all([
+    const [balRes, myLeaveRes, typeRes, claimRes, claimBalRes, expenseClaimRes, decisionRes] = await Promise.all([
         supabase.rpc('leave_balance', { p_employee_id: employeeId, p_leave_type_code: 'annual' }),
         supabase.from('leave_requests')
-            .select('id, code, leave_type_code, start_date, end_date, days, status, created_at')
+            // EMP-SELF-1:decision_notes —— 本人行策略本来就放行这一列(EMP-SELF-0 §1.5 记下的那一处)
+            .select('id, code, leave_type_code, start_date, end_date, days, status, created_at, decision_notes')
             .eq('employee_id', employeeId).is('deleted_at', null)
             .order('start_date', { ascending: false }).limit(50),
         supabase.from('leave_types')
@@ -164,7 +166,18 @@ export default async function MePage() {
         // 医疗唯一属于医疗的东西是年度限额，而这一种要科目、币种、税码。
         supabase.from('expense_claim_status').select('*')
             .eq('employee_id', employeeId).order('spend_date', { ascending: false }).limit(50),
+        // EMP-SELF-1(G2):谁决定的、为什么 —— 属主权限的读者,只给调用者自己的单据;决定人已经是【人】的名字。
+        //   approval_log 不开给员工(Tim 的 Q4 at EMP-SELF-0),所以读的是单据本身。
+        supabase.rpc('my_document_decisions'),
     ])
+    // 按单据 id 索引;日期在这一侧格好(与本页其余日期同一个理由:服务端与水合不许各算各的)。
+    const decisions: Record<string, Decision> = Object.fromEntries(
+        mustRows(decisionRes).map((d) => [d.doc_id, {
+            decider: d.decider,
+            decidedAtLabel: formatDateTime(d.decided_at, dateLocale),
+            notes: d.decision_notes,
+            selfDecided: d.self_decided,
+        }]))
 
     // ATTEND-1:自己那几行考勤。行级策略放行 employee_id = current_user_employee(),
     // 所以这里【不加】模块权限 —— 与这一页其余部分同一条路。期间的 code/月份要
@@ -411,24 +424,33 @@ export default async function MePage() {
                 />
             )}
 
-            <MyLeavePanel
-                employeeId={employeeId}
-                balance={balRes.data as never}
-                requests={(mustRows(myLeaveRes)) as never}
-                types={(mustRows(typeRes)) as never}
-            />
+            {/* EMP-SELF-1(G1):头像菜单的「我的请假」「我的报销」落在这两个锚点上(不开新路由,Tim 的 Q2)。
+                scroll-mt 让锚点不被顶栏压住。 */}
+            <div id="leave" className="scroll-mt-20">
+                <MyLeavePanel
+                    employeeId={employeeId}
+                    balance={balRes.data as never}
+                    requests={(mustRows(myLeaveRes)) as never}
+                    types={(mustRows(typeRes)) as never}
+                    decisions={decisions}
+                />
+            </div>
 
-            <MyClaimsPanel
-                employeeId={employeeId}
-                claims={(mustRows(claimRes)) as never}
-                balance={claimBalRes.data as never}
-            />
+            <div id="claims" className="scroll-mt-20">
+                <MyClaimsPanel
+                    employeeId={employeeId}
+                    claims={(mustRows(claimRes)) as never}
+                    balance={claimBalRes.data as never}
+                    decisions={decisions}
+                />
 
-            <MyExpenseClaimsPanel
-                employeeId={employeeId}
-                rows={(mustRows(expenseClaimRes)) as never}
-                baseCurrency={baseCurrency}
-            />
+                <MyExpenseClaimsPanel
+                    employeeId={employeeId}
+                    rows={(mustRows(expenseClaimRes)) as never}
+                    baseCurrency={baseCurrency}
+                    decisions={decisions}
+                />
+            </div>
 
             {/* ── KPI-1:我这个周期被考核的那五条 ────────────────────────────
                 ★【整段服务端渲染,没有客户端开关】★ 抬头与说明都在初次 HTML 里,

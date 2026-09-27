@@ -22,12 +22,16 @@
 //   ☞ TABLE-CONVERT-0 普查 §5 那一行把撤回钮记成【折进去了】—— 那份普查
 //     跑在 TABLE-STYLE-1 落地【之前】,记的是当时的源码。**以今天的源码为准。**
 //   叠在单号格里那一段手写的展开块【拿掉了】:组件自己画那一段。
+//
+// ★ EMP-SELF-1(G2,Tim 2026-09-27):多一列「决定」(谁、何时、备注,DecisionCell)。
+//   备注此前叠在「事由」格里;现在它跟着决定人走,于是从事由格里拿掉 —— 同一句话不在一行里出现两次。
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { submitClaim, withdrawClaim } from '@/app/finance/claims/actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import DecisionCell, { type Decision } from './DecisionCell'
 
 type Row = {
     claim_id: string; code: string; spend_date: string; amount_ccy: number
@@ -43,8 +47,8 @@ const money = (n: number) =>
     Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 export default function MyExpenseClaimsPanel({
-    employeeId, rows, baseCurrency,
-}: { employeeId: string | null; rows: Row[]; baseCurrency: string }) {
+    employeeId, rows, baseCurrency, decisions,
+}: { employeeId: string | null; rows: Row[]; baseCurrency: string; decisions: Record<string, Decision> }) {
     const t = useTranslations()
     const [open, setOpen] = useState(false)
     // 【花钱那天不预填】—— 一个决定成本落在哪个期间的日期,预填就是奖励留空;
@@ -103,9 +107,6 @@ export default function MyExpenseClaimsPanel({
                                 ? `${t('expenseClaims.noReceipt')} — ${r.no_receipt_reason}`
                                 : t('expenseClaims.noReceipt')}
                     </span>
-                    {r.decision_notes && (
-                        <span className="block text-xs text-gray-600">{r.decision_notes}</span>
-                    )}
                 </>
             ),
         },
@@ -139,6 +140,10 @@ export default function MyExpenseClaimsPanel({
                     )}
                 </>
             ),
+        },
+        {
+            key: 'decision', header: t('me.decisionCol'),
+            render: (r) => <DecisionCell decision={decisions[r.claim_id]} cancelled={false} />,
         },
         // ★ 动作列 —— 空列头与转换之前逐字相同,priority 的理由见抬头。
         { key: 'actions', header: '', align: 'right', priority: true, render: withdrawControl },

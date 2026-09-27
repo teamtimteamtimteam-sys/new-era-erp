@@ -11,7 +11,7 @@
 --   E  ★ 编辑器的每一种写(七张表 × 增 / 改 / 删 + 表头)cco 在草稿上都写得进;不持 action.contract_terms 的人
 --        写不进(RLS / PERMISSION_DENIED),一行不落
 --   F  ★★ Q4:到期 / 终止的合同,七张条款表按名拒 CONTRACT_TERMS_FROZEN|编号|expired / terminated;
---        表头的规矩不变(guard_contract_write 只读 'request:')—— 钉住它,免得有人以为这一刀改了它
+--        ~~表头的规矩不变~~ → ★ EMP-SELF-1(Tim 的 Q7):表头也按名拒 CONTRACT_TERMS_FROZEN|编号|expired,状态也改不动(F3 翻转)
 --   G  清单受 RLS:看不见客户的人读一份卖方合同的清单 → 空(它不替任何人打开任何一行)
 --   H  ★ 故障注入:把 contract_activation_missing 换成恒空,缺条款的卖方合同就提得出去 —— 那道拒绝是承重的
 --
@@ -251,9 +251,13 @@ BEGIN
     v_msg := pg_temp.f230_try(format($s$UPDATE contract_grade_specs SET min_pct = 19 WHERE contract_id = %L$s$, c_end));
     IF v_msg <> 'CONTRACT_TERMS_FROZEN|' || c_end_code || '|expired' THEN
         RAISE EXCEPTION 'FIXTURE 230F2 失败:到期合同改条款应当按名拒 expired,实得 %', v_msg; END IF;
+    -- ★ EMP-SELF-1(Tim 的 Q7)翻转了这一格:此前它钉的是"表头的规矩这一刀没动 —— 到期改终止照走"。
+    --   现在结束了的合同表头与条款同一句拒绝,状态也改不动;终止那一步走属主路径布景(guard 对属主放行)。
     v_msg := pg_temp.f230_try(format($s$UPDATE contracts SET status = 'terminated' WHERE id = %L$s$, c_end));
-    IF v_msg <> 'OK' THEN
-        RAISE EXCEPTION 'FIXTURE 230F3 失败:表头的规矩这一刀没动 —— 到期改终止应当照走,实得 %', v_msg; END IF;
+    IF v_msg <> 'CONTRACT_TERMS_FROZEN|' || c_end_code || '|expired'
+       OR (SELECT status FROM contracts WHERE id = c_end) <> 'expired' THEN
+        RAISE EXCEPTION 'FIXTURE 230F3 失败:到期合同改状态应当按名拒 CONTRACT_TERMS_FROZEN|…|expired,实得 %', v_msg; END IF;
+    UPDATE contracts SET status = 'terminated' WHERE id = c_end;
     v_msg := pg_temp.f230_try(format($s$DELETE FROM contract_grade_specs WHERE contract_id = %L$s$, c_end));
     IF v_msg <> 'CONTRACT_TERMS_FROZEN|' || c_end_code || '|terminated'
        OR NOT EXISTS (SELECT 1 FROM contract_grade_specs WHERE contract_id = c_end) THEN

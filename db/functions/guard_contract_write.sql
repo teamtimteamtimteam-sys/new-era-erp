@@ -4,6 +4,8 @@
 --     (旧的 /contracts/new 能选"生效",破窗里它会按名拒;新表单只剩草稿)。
 --   UPDATE:
 --     · 挂着一张在等的生效申请 → TERMS_REQUEST_FREEZES_CONTRACT|编号|那一张(先撤回)
+--     · 到期 / 终止的合同 → CONTRACT_TERMS_FROZEN|编号|expired / terminated,任何一列、包括状态
+--       (EMP-SELF-1,Tim 的 Q7:表头与条款只在草稿或暂停、且没有在等的申请时可改)
 --     · 改成 active → CONTRACT_ACTIVATES_THROUGH_REQUEST|编号(submit_contract_activation_request)
 --     · 一份生效中的合同:只许把状态改成 suspended / expired / terminated(一步 —— 只会让效力变少),
 --       其余任何一列变了 → CONTRACT_ACTIVE_IS_FROZEN|编号。改条款 = 暂停、编辑、申请重新生效。
@@ -33,6 +35,12 @@ BEGIN
     v_lock := contract_terms_lock_reason(OLD.id);
     IF v_lock LIKE 'request:%' THEN
         RAISE EXCEPTION 'TERMS_REQUEST_FREEZES_CONTRACT|%|%', OLD.code, substr(v_lock, 9);
+    END IF;
+    -- ★ EMP-SELF-1(Tim 的 Q7,关 TERMSEDIT1-ENDED-HEADER-WRITABLE):到期 / 终止的合同,表头的【每一次】改动都拒 ——
+    --   标题、期限、币种、软删,以及状态本身(改不回 draft,也不在到期与终止之间来回)。与七张条款表同一句拒绝。
+    --   草稿直接置成 expired / terminated 仍然可以(OLD 是 draft,不在这里)。
+    IF OLD.status IN ('expired', 'terminated') THEN
+        RAISE EXCEPTION 'CONTRACT_TERMS_FROZEN|%|%', OLD.code, OLD.status;
     END IF;
     IF NEW.status = 'active' AND OLD.status IS DISTINCT FROM 'active' THEN
         RAISE EXCEPTION 'CONTRACT_ACTIVATES_THROUGH_REQUEST|%', OLD.code;

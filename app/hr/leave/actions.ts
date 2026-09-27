@@ -40,6 +40,14 @@ export async function localizeLeaveError(message: string): Promise<string> {
             return t('leave.errCarryExists', { 0: p[0] ?? '', 1: p[1] ?? '' })
         case 'REQUEST_NOT_PENDING':
             return t('leave.errNotPending', { 0: p[0] ?? '' })
+        // ★ EMP-SELF-1(Q1):本人只撤还在等的假。状态译成人话,不印原码。
+        case 'LEAVE_OWN_CANCEL_PENDING_ONLY':
+            return t('leave.errOwnCancelPendingOnly', { 0: p[0] ?? '', 1: t(`leave.status_${p[1] ?? ''}`) })
+        // ★ EMP-SELF-1(G3b):撤回医疗申报 —— 与请假共用这一支 localizer(claims/actions.ts 直接 import 它)
+        case 'MEDICAL_CLAIM_NOT_SUBMITTED':
+            return t('claims.errNotSubmitted', { 0: p[0] ?? '', 1: t(`claims.state_${p[1] ?? ''}`) })
+        case 'MEDICAL_CLAIM_NOT_FOUND':
+            return t('claims.errNotFound')
         // ★ APR-2:四眼。请假与医疗申报走的是同一支 localizer(claims/actions.ts
         // 直接 import 它),所以这一支同时服务两条链。两句话的区别与理由写在
         // lib/selfApproval.ts。

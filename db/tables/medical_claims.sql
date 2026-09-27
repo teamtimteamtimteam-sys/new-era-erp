@@ -14,7 +14,8 @@ CREATE TABLE public.medical_claims (
     description    text,
     receipt_ref    text,
     status         text NOT NULL DEFAULT 'submitted'
-                   CHECK (status IN ('submitted','approved','rejected','paid')),
+                   -- EMP-SELF-1:'withdrawn' —— 员工撤回自己还没被决定的申报(withdraw_medical_claim)
+                   CHECK (status IN ('submitted','approved','rejected','paid','withdrawn')),
     decided_at     timestamptz,
     decided_by     uuid,
     decision_notes text,
@@ -25,7 +26,11 @@ CREATE TABLE public.medical_claims (
     created_at     timestamptz NOT NULL DEFAULT now(),
     created_by     uuid DEFAULT auth.uid(),
     updated_at     timestamptz NOT NULL DEFAULT now(),
-    updated_by     uuid DEFAULT auth.uid()
+    updated_by     uuid DEFAULT auth.uid(),
+    -- EMP-SELF-1(ALTER 加的列,留在末尾):撤回的时刻;与报销单同一条形状约束
+    withdrawn_at   timestamptz,
+    CONSTRAINT medical_claims_withdraw_shape
+        CHECK ((status = 'withdrawn') = (withdrawn_at IS NOT NULL))
 );
 
 CREATE INDEX idx_medical_claims_employee ON public.medical_claims (employee_id) WHERE deleted_at IS NULL;

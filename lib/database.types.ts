@@ -10176,6 +10176,7 @@ export type Database = {
           status: string
           updated_at: string
           updated_by: string | null
+          withdrawn_at: string | null
         }
         Insert: {
           amount_sgd: number
@@ -10196,6 +10197,7 @@ export type Database = {
           status?: string
           updated_at?: string
           updated_by?: string | null
+          withdrawn_at?: string | null
         }
         Update: {
           amount_sgd?: number
@@ -10216,6 +10218,7 @@ export type Database = {
           status?: string
           updated_at?: string
           updated_by?: string | null
+          withdrawn_at?: string | null
         }
         Relationships: [
           {
@@ -29862,6 +29865,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      my_document_decisions: {
+        Args: never
+        Returns: {
+          decided_at: string
+          decider: string
+          decision_notes: string
+          doc_id: string
+          kind: string
+          self_decided: boolean
+        }[]
+      }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
       next_chase_code: { Args: { p_date?: string }; Returns: string }
       next_cod_code: { Args: { p_date?: string }; Returns: string }
@@ -31441,6 +31455,7 @@ export type Database = {
         Args: { p_reason?: string; p_request_id: string }
         Returns: Json
       }
+      withdraw_medical_claim: { Args: { p_claim_id: string }; Returns: Json }
       withdraw_payment_request: {
         Args: { p_request_id: string }
         Returns: Json

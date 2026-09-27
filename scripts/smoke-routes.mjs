@@ -503,16 +503,23 @@ const MSG_RETENTION_TITLE = (() => {
     return m[1]
 })()
 
+// ★ EMP-SELF-1(Tim 裁定 2026-09-27,关 TERMSEDIT1-EXPOSURE-IGNORES-STATUS):卖方向现在有【四】种合法的渲染 ——
+//   三句具名的零(没有合同 · 有合同没有一份生效 · 生效中的合同没写条款),以及【有头寸】那一态,
+//   它没有句子,认的是头寸表独有的列头(「Ordered quantity」,priceExposure.colQuantity)。
+//   ☞ 第一版认的是「Base event」—— 10 个字符,longestLiteral 的守卫(≥ 12)在导入那一刻就拒了它,冒烟一条路由都没跑(SMOKE_EXIT=1)。
+//   此前这根针只认两句零,于是第一份真正生效、带计价条款的卖方合同一出现,这一页就会在冒烟里红。
 const MSG_EXPO_SELL = [topMsg('priceExposure', 'sellNoContracts'),
-                       topMsg('priceExposure', 'sellNoTerms')]
+                       topMsg('priceExposure', 'sellNoActive'),
+                       topMsg('priceExposure', 'sellNoTerms'),
+                       topMsg('priceExposure', 'colQuantity')]
 const MSG_EXPO_CALENDAR = [topMsg('priceExposure', 'calendarNone'),
                            topMsg('priceExposure', 'calendarLoaded')]
 // ★【那两句"具名的零"必须【彼此不同】,而且在【取针的时候】就钉住】★
 //   「一份合同都没有」与「有合同但没写条款」是两种不同的零;屏幕上长得一样的话,
 //   读的人会以为只有一件事要修。今天线上一份合同都没有,所以第二句还没机会出现 ——
 //   一个只在有数据时才成立的保证,等于没有保证(SETTLE-1 立的规矩)。
-if (MSG_EXPO_SELL[0] === MSG_EXPO_SELL[1]) {
-    throw new Error('priceExposure 的两句"具名的零"读起来一模一样 —— 「没有合同」与「有合同没条款」必须分得开')
+if (new Set(MSG_EXPO_SELL).size !== MSG_EXPO_SELL.length) {
+    throw new Error('priceExposure 卖方向的四种渲染里有两种读起来一模一样 —— 「没有合同」「没有生效的」「生效的没条款」「有头寸」必须分得开')
 }
 
 // ── CONV-7:Overview 与提醒页的入口断言,同样【从文案文件现读,不写死】──────
@@ -759,7 +766,7 @@ const MUST_CONTAIN = {
         { needle: MSG_EXPO_PURCHASE,
           why: '★★【采购侧没有被建模】那句话从敞口报表上消失了 —— 它一旦变成一个 0 吨,就是在说"我们没有浮动价买进过",而真相是这套系统还不记这件事 ★★' },
         { oneOf: MSG_EXPO_SELL,
-          why: '卖方向那一段【一句话都没说】—— 「一份合同都没有」与「有合同但没写条款」是两种不同的零,那个位置永远要有一句具名的话' },
+          why: '卖方向那一段【一句话都没说】—— 三种具名的零(没有合同 · 没有一份生效 · 生效的没写条款)或者头寸表,那个位置永远要有其中一样' },
         { oneOf: MSG_EXPO_CALENDAR,
           why: '开市日历那一段【一句话都没说】—— 它是均价算不出来的【另一个】原因,与"没有合同"不能长得一样' },
     ],
@@ -1965,9 +1972,9 @@ async function main() {
     await termRow('contract_grade_specs', { contract_id: smokeSell.id, metal: 'ni', min_pct: 18 })
     await termRow('contract_insurance_obligations', { contract_id: smokeSell.id, insured_by: 'us', cover_type: 'cargo' })
     await termRow('contract_volume_commitments', { contract_id: smokeSell.id, committed_by_party: 'us', quantity: 1, unit: 't', period: 'month' })
-    // ★ 卖方草稿【刻意不带计价条款】:price_exposure_report 不看合同状态,一条计价条款会把 /finance/price-exposure 从
-    //   「具名的零」推到"有头寸"那一态,而那一页的针只认两句具名的零(TERMS-EDIT-1 实测:第一轮冒烟因此红了那一条)。
-    //   不带它,详情页的"申请生效之前还缺什么"那一支也就被走到了(缺 pricing_terms)。
+    // ★ 卖方草稿【刻意不带计价条款】:这样详情页的"申请生效之前还缺什么"那一支会被走到(缺 pricing_terms)。
+    //   ~~price_exposure_report 不看合同状态~~ —— EMP-SELF-1 起它只算生效中的合同,草稿带不带计价条款都不会把
+    //   /finance/price-exposure 推到"有头寸";那一页的针也认得四种渲染了(见 MSG_EXPO_SELL)。
     await termRow('contract_settlement_terms', { contract_id: smokeSell.id, sale_weight_basis: 'dry', settling_party: 'ours',
         sample_retention_required: false, refining_charge_basis: 'per_metal', penalty_basis: 'per_element' })
     await termRow('contract_refining_charges', { contract_id: smokeSell.id, metal: 'ni', usd_per_tonne_of_metal: 1 })

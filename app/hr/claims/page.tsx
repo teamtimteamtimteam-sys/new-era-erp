@@ -69,7 +69,7 @@ export default async function ClaimsPage({
                 <label className="">{t('claims.state')}
                     <select name="status" defaultValue={sp.status ?? ''} className={`block ${sel}`}>
                         <option value="">{t('leave.allStatuses')}</option>
-                        {['submitted','approved','rejected','expense_raised','part_paid','paid'].map((s) => (
+                        {['submitted','approved','rejected','expense_raised','part_paid','paid','withdrawn'].map((s) => (
                             <option key={s} value={s}>{t(`claims.state_${s}`)}</option>
                         ))}
                     </select>

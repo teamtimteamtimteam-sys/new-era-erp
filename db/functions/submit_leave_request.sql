@@ -23,7 +23,9 @@ DECLARE
     v_req    record;
     v_clash  text;
 BEGIN
-    IF NOT (has_permission('module.hr.edit') OR p_employee_id = current_user_employee()) THEN
+    -- ★ EMP-SELF-1(Q9 · Q2):COALESCE(…, false)。没有员工档案的账号 current_user_employee() 是 NULL,
+    --   于是 NOT (false OR NULL) = NULL,IF 不触发 —— 这一道门对它【从来没有关上过】。
+    IF NOT COALESCE(has_permission('module.hr.edit') OR p_employee_id = current_user_employee(), false) THEN
         RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.edit';
     END IF;
 
