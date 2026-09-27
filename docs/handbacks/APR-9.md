@@ -188,6 +188,19 @@ disposal waits; reversing an `asset_disposal` entry from the journal. **Re-asser
 **Start: 2026-09-27 10:20:23 CST** (`db/apply_migration.sh`'s own line, also in `db/migration-windows.tsv`; its "applied at" line
 reads 10:17:43). **End: PENDING — Tim reads it from Vercel.**
 
+**Closed (APR-10, 2026-09-27) — Tim confirmed APR-9 deployed; bounds labelled by kind:**
+
+| | time (CST) | kind |
+|---|---|---|
+| start | 2026-09-27 10:20:23 | **measured**: `db/migration-windows.tsv` |
+| end, lower bound | 2026-09-27 11:05:58 | **measured**: the push moved `origin/main` → `aaed80f8` (`git reflog show --date=iso refs/remotes/origin/main`) |
+| end, upper bound | 2026-09-27 11:15:59 | **derived**: APR-10's first read of `now()` as `postgres`, after Tim's "deployed" confirmation — **a relayed confirmation, not a measurement of Vercel** |
+
+**Window: at least 45 min 35 s, at most 55 min 36 s.**
+**Accepted by Tim (2026-09-27):** all eight build decisions in §1 — including decision 2: reviews keep the posted-period-only
+effective-date check; the stricter check (posted *or* an open payroll request) stays on salary-change requests only.
+The §5 open question is therefore closed.
+
 What the old app does against the new database (approvals ON):
 - **Disposing of an asset is refused for everyone** — the old Dispose button (fixed-assets list and asset page) calls
   `dispose_fixed_asset`, which now refuses `ASSET_DISPOSAL_NEEDS_REQUEST`; the old copy has no sentence for it, so it shows the generic

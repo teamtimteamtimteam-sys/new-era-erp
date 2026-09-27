@@ -58,6 +58,11 @@ const PURCHASING_ERROR_CODES = new Set([
     // 这一串管道原文原样摔到屏幕上(MANUAL-FIX-1 B 那一课)。
     'PO_LINE_PRICE_STATUS_CONFLICT', 'PO_LINE_PRICE_STATUS_INVALID',
     'PO_PAYMENT_TERMS_INVALID',
+    // ★ APR-10(2026-09-27):采购单按品类开、按开单人或这一类的码改;开单时提单人之外没人批得动就拒;
+    //   四张表没有直连写。逐条从 create_purchase_order · assert_po_manager · guard_po_line_category ·
+    //   guard_po_amendable(品类那一句)· guard_po_direct_write 的函数体枚举出来。
+    'PO_CATEGORY_REQUIRED', 'PO_CATEGORY_INVALID', 'PO_CATEGORY_LINE_MISMATCH',
+    'PO_NOT_RAISER_OR_CATEGORY_HOLDER', 'PO_NO_OTHER_DECIDER', 'PO_THROUGH_FUNCTION_ONLY',
     'PO_CANCEL_REASON_REQUIRED',   // AUDEL-1b
     // EQP-1b-ii:报销过的采购单行删不得。设备行【没有收货】,所以既有的
     // PO_LINE_HAS_RECEIPTS 对它恒为假 —— 这一条是它那一半。

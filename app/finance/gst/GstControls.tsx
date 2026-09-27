@@ -1,12 +1,12 @@
 'use client'
 
 // app/finance/gst/GstControls.tsx
-// 三个动作的控件。**禁用一律说出为什么**(CMP-2 的规矩);拒绝就地显示。
+// 开期间与开更正件的控件(APR-10 起,申报那一整圈在 [periodId]/GstFilingPanel.tsx)。**禁用一律说出为什么**(CMP-2 的规矩);拒绝就地显示。
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { openGstPeriod, fileGstReturn, correctGstReturn } from './actions'
+import { openGstPeriod, correctGstReturn } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
@@ -29,50 +29,6 @@ export function OpenPeriodControl({ canEdit }: { canEdit: boolean }) {
                         const r = await openGstPeriod(start); if (r.error) setErr(r.error); else { setErr(''); router.refresh() }
                     })}>
                 {busy ? t('common.saving') : t('gst.openPeriod')}
-            </Button>
-            </PermissionGate>
-            {err && <p className="text-sm text-red-700 w-full">{err}</p>}
-        </div>
-    )
-}
-
-export function FileReturnControl({ periodId, blockedWhy, canEdit }: {
-    periodId: string; blockedWhy?: string; canEdit: boolean
-}) {
-    const t = useTranslations(); const router = useRouter()
-    const [on, setOn] = useState(''); const [ref, setRef] = useState('')
-    const [err, setErr] = useState(''); const [busy, start] = useTransition()
-    if (blockedWhy) {
-        // 【禁用要说出理由,而不是把控件藏起来】问题适用、只是被挡住了。
-        return (
-            <div className="inline-flex flex-col items-start">
-                <Button type="button" disabled>
-                    {t('gst.recordFiling')}
-                </Button>
-                <span className="text-xs text-amber-700 mt-1">{blockedWhy}</span>
-            </div>
-        )
-    }
-    return (
-        <div className="flex flex-wrap items-end gap-3">
-            <div>
-                <label className="block mb-1">{t('gst.filedOn')}</label>
-                <input type="date" value={on} onChange={(e) => setOn(e.target.value)}
-                       className={CONTROL_INPUT} />
-            </div>
-            <div>
-                <label className="block mb-1">{t('gst.filedReference')}</label>
-                <input value={ref} onChange={(e) => setRef(e.target.value)}
-                       placeholder={t('gst.filedReferenceHint')}
-                       className={CONTROL_INPUT} />
-            </div>
-            {!on && <p className="text-sm text-amber-700 self-center">{t('gst.blockedNeedFiledOn')}</p>}
-            <PermissionGate code="module.finance.edit" allowed={canEdit}>
-            <Button type="button" disabled={!on || busy}
-                    onClick={() => start(async () => {
-                        const r = await fileGstReturn(periodId, on, ref); if (r.error) setErr(r.error); else { setErr(''); router.refresh() }
-                    })}>
-                {busy ? t('common.saving') : t('gst.recordFiling')}
             </Button>
             </PermissionGate>
             {err && <p className="text-sm text-red-700 w-full">{err}</p>}

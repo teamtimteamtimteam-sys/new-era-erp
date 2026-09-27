@@ -188,8 +188,8 @@ BEGIN
         -- 【这一行必须除了"供应商是货代"之外【处处合法】】,否则守卫被拿掉时
         -- 它会因为别的原因失败,而这一臂就会【因为错的理由变红】——
         -- 注入 1 第一次跑正是这样:少了 fx_rate,红的是 NOT NULL,不是缺守卫。
-        INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate)
-        VALUES ('FX97-PO-1', s_fwd, CURRENT_DATE, 'USD', 1.35);
+        INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, category)
+        VALUES ('FX97-PO-1', s_fwd, CURRENT_DATE, 'USD', 1.35, 'equipment_goods');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('PO_VENDOR_IS_A_FORWARDER' in v_msg) = 0 THEN

@@ -88,7 +88,7 @@ BEGIN
     v_res := create_purchase_order(s_tx, DATE '2025-03-10', DATE '2025-05-01', v_ccy, NULL,
         NULL, NULL, 'fixture 190 TX order',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
-                                             'estimated_unit_price', 10)));
+                                             'estimated_unit_price', 10)), p_category => 'equipment_goods');
     v_po_tx := (v_res->>'purchase_order_id')::uuid;
     SELECT estimated_total_ccy, tax_total_ccy FROM purchase_orders WHERE id = v_po_tx
       INTO v_net, v_tax;
@@ -116,7 +116,7 @@ BEGIN
     v_res := create_purchase_order(s_op, DATE '2025-03-11', DATE '2025-05-01', v_ccy, NULL,
         NULL, NULL, 'fixture 190 OP order',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
-                                             'estimated_unit_price', 10)));
+                                             'estimated_unit_price', 10)), p_category => 'equipment_goods');
     v_po_op := (v_res->>'purchase_order_id')::uuid;
     SELECT estimated_total_ccy, tax_total_ccy FROM purchase_orders WHERE id = v_po_op
       INTO v_net, v_tax;
@@ -149,7 +149,7 @@ BEGIN
         PERFORM create_purchase_order(s_none, DATE '2025-03-12', DATE '2025-05-01', v_ccy, NULL,
             NULL, NULL, 'fixture 190 unset order',
             jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
-                                                 'estimated_unit_price', 10)));
+                                                 'estimated_unit_price', 10)), p_category => 'equipment_goods');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR v_msg NOT LIKE 'TAX_CODE_REQUIRED|supplier%' THEN
@@ -160,7 +160,7 @@ BEGIN
     v_res := create_purchase_order(s_none, DATE '2025-03-12', DATE '2025-05-01', v_ccy, NULL,
         NULL, NULL, 'fixture 190 unset but line-coded',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
-                                             'estimated_unit_price', 10, 'tax_code', 'ZP')));
+                                             'estimated_unit_price', 10, 'tax_code', 'ZP')), p_category => 'equipment_goods');
     SELECT tax_total_ccy FROM purchase_orders WHERE id = (v_res->>'purchase_order_id')::uuid INTO v_tax;
     IF v_tax <> 0 THEN
         RAISE EXCEPTION 'FIXTURE 190C 失败:ZP(零税率进项)的单据税额应当是 0,实得 %', v_tax;
@@ -180,7 +180,7 @@ BEGIN
     v_res := create_purchase_order(s_tx, DATE '2025-03-13', DATE '2025-05-01', v_ccy, NULL,
         NULL, NULL, 'fixture 190 after rate change',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
-                                             'estimated_unit_price', 10)));
+                                             'estimated_unit_price', 10)), p_category => 'equipment_goods');
     v_po_new := (v_res->>'purchase_order_id')::uuid;
     SELECT tax_total_ccy INTO v_tax FROM purchase_orders WHERE id = v_po_new;
     IF v_tax <> 300 THEN
@@ -262,7 +262,7 @@ BEGIN
     v_res := create_purchase_order(s_tx, DATE '2025-06-10', DATE '2025-08-01', v_ccy, NULL,
         NULL, NULL, 'fixture 190 injection 1',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
-                                             'estimated_unit_price', 10)));
+                                             'estimated_unit_price', 10)), p_category => 'equipment_goods');
     SELECT tax_total_ccy INTO v_tax FROM purchase_orders
      WHERE id = (v_res->>'purchase_order_id')::uuid;
     IF v_tax <> 0 THEN
@@ -276,7 +276,7 @@ BEGIN
     v_res := create_purchase_order(s_op, DATE '2025-06-11', DATE '2025-08-01', v_ccy, NULL,
         NULL, NULL, 'fixture 190 injection 2',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
-                                             'estimated_unit_price', 10)));
+                                             'estimated_unit_price', 10)), p_category => 'equipment_goods');
     SELECT tax_total_ccy INTO v_tax FROM purchase_orders
      WHERE id = (v_res->>'purchase_order_id')::uuid;
     IF v_tax <> 90 THEN
@@ -292,7 +292,7 @@ BEGIN
         PERFORM create_purchase_order(s_none, DATE '2025-06-12', DATE '2025-08-01', v_ccy, NULL,
             NULL, NULL, 'fixture 190 injection 3',
             jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
-                                                 'estimated_unit_price', 10)));
+                                                 'estimated_unit_price', 10)), p_category => 'equipment_goods');
     EXCEPTION WHEN OTHERS THEN v_denied := true;
     END;
     IF v_denied THEN

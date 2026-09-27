@@ -85,6 +85,13 @@ const FINANCE_ERROR_CODES = new Set([
     'JOURNAL_REQUEST_NOT_SUBMITTED', 'JOURNAL_REQUEST_NOT_OPEN', 'JOURNAL_REQUEST_REJECT_REASON_REQUIRED',
     'JOURNAL_REQUEST_KIND_UNKNOWN',
     'SELF_APPROVAL_FORBIDDEN', 'APPROVAL_NOT_AUTHORISED', 'APPROVALS_NOT_ENABLED', 'PERMISSION_DENIED',
+    // ★ APR-10(2026-09-27):GST 申报要 CFO 批准。逐条从 submit_gst_filing_request · gst_filing_execute_internal ·
+    //   decide_gst_filing_request · withdraw_gst_filing_request · record_gst_filing · file_gst_return(只会按名拒)·
+    //   guard_gst_filing_lock(它会从 reopen_period、重开年度与手动锁三条路冒出来)的函数体枚举出来。
+    'GST_FILING_NEEDS_APPROVED_REQUEST', 'GST_PERIOD_ALREADY_APPROVED', 'GST_FILING_OPEN',
+    'GST_FILING_NO_OTHER_DECIDER', 'GST_FILING_NOT_FOUND', 'GST_FILING_NOT_SUBMITTED', 'GST_FILING_NOT_OPEN',
+    'GST_FILING_REJECT_REASON_REQUIRED', 'GST_RETURN_CHANGED_SINCE_REQUEST', 'GST_FILING_NOT_APPROVED',
+    'GST_FILING_WAITING_BLOCKS_REOPEN',
 ])
 
 // 宽松解析:从消息里抓 "CODE" 或 "CODE|p0|p1..." —— 即使 PostgREST 在前面包了前缀,

@@ -89,7 +89,10 @@ CREATE TABLE public.approval_log (
                             'salary_change_request',
                             -- APR-9:固定资产处置申请 —— CFO 批每一张,批准当场处置。
                             -- 被批的是【申请】(asset_disposal_requests),不是资产卡本身。
-                            'asset_disposal_request')),
+                            'asset_disposal_request',
+                            -- APR-10:GST 申报申请 —— CFO 批每一张,批准当场写快照(期间 → approved)。
+                            -- 被批的是【申请】(gst_filing_requests),不是期间本身。
+                            'gst_filing_request')),
     subject_id          uuid NOT NULL,
     -- 人读的编号,冻结在当时 —— 单据可以改名/作废,留痕不跟着变
     subject_code        text,
@@ -276,6 +279,9 @@ CREATE POLICY "approval_log select by permission"
             -- ★ APR-9:处置申请那一支 —— 与 asset_disposal_requests 自己的读策略同一个码。
             --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
             WHEN 'asset_disposal_request' THEN has_permission('module.finance.view'::text)
+            -- ★ APR-10:GST 申报申请那一支 —— 与 gst_filing_requests 自己的读策略同一个码。
+            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+            WHEN 'gst_filing_request'     THEN has_permission('module.finance.view'::text)
             ELSE false
         END
     );

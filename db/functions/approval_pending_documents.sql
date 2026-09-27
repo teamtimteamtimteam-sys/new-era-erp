@@ -157,6 +157,14 @@ AS $function$
       FROM asset_disposal_requests dq
      WHERE dq.status = 'submitted'
     UNION ALL
+    -- ★ APR-10:GST 申报申请。blocks_disable = true —— decide_gst_filing_request 在审批关着时按名拒
+    --   (APPROVALS_NOT_ENABLED),关掉审批就搁死它们(grilling Q4,APR-9 处置同形)。fixed_level = 2:CFO 批
+    --   每一张、不分档。主角 = NULL:申报是公司的。金额 = NULL —— 批的是一组申报数,不是一笔钱(box 8 可以是负的)。
+    SELECT 'gst_filing_request'::text, gq.id, gq.label, NULL::numeric, true,
+           gq.created_by, NULL::uuid, 2::smallint
+      FROM gst_filing_requests gq
+     WHERE gq.status = 'submitted'
+    UNION ALL
     -- ★ APR-9:调薪申请。blocks_disable = **false** —— decide_salary_change_request 在审批关着时【照样】批得了
     --   (grilling Q3:这条链不看开关,永远等人批),所以它不挡关闭,与报销单同一个答案。
     --   fixed_level = NULL、金额 = NULL:它不按级、也不按金额路由 —— 按【人】(pay_decision_code),不在
@@ -170,4 +178,4 @@ AS $function$
 $function$;
 
 COMMENT ON FUNCTION public.approval_pending_documents() IS
-'APR-3(Tim 的 Q6):哪些单据正在等人批 —— 逐行,一份判据三个读它的人(屏幕的逐链计数 · 关闭那道闸要的编号 · APPROVALS_POLICY_WOULD_STRAND 要的金额)。★ blocks_disable 把两个长得一样的数分开:「有多少在等人批」每条链都算,「关掉审批会搁死谁」只有一部分链算。判别的那一句话:这条链的决定函数在审批关着时还跑不跑得动 —— 跑不动才 true。采购单 true(approve_purchase_order 开头就 RAISE APPROVALS_NOT_ENABLED);报销单 false;付款 · 工资 · 收货定价 · 贷项 / 作废 · 手工凭证 · 仓库(注销 / 回滚 / 证书作废)· 条款(公式 / 合同生效)· 资产处置八种申请与发货放行 true(它们的决定函数同样在审批关着时按名拒,fixed_level = 2)。★ APR-9 的调薪申请 false、fixed_level NULL、金额 NULL:它不看审批开关,按人路由(pay_decision_code),不在 approval_chain_gates 里。★ 盘点不在本表里(Tim 的 Q4:open 是"正在点",不是"在等人批"),工单也不在(它没有等人批的队列)。amount_base 为 NULL = 这一张分不了档,不读成零。';
+'APR-3(Tim 的 Q6):哪些单据正在等人批 —— 逐行,一份判据三个读它的人(屏幕的逐链计数 · 关闭那道闸要的编号 · APPROVALS_POLICY_WOULD_STRAND 要的金额)。★ blocks_disable 把两个长得一样的数分开:「有多少在等人批」每条链都算,「关掉审批会搁死谁」只有一部分链算。判别的那一句话:这条链的决定函数在审批关着时还跑不跑得动 —— 跑不动才 true。采购单 true(approve_purchase_order 开头就 RAISE APPROVALS_NOT_ENABLED);报销单 false;付款 · 工资 · 收货定价 · 贷项 / 作废 · 手工凭证 · 仓库(注销 / 回滚 / 证书作废)· 条款(公式 / 合同生效)· 资产处置 · GST 申报九种申请与发货放行 true(它们的决定函数同样在审批关着时按名拒,fixed_level = 2)。★ APR-9 的调薪申请 false、fixed_level NULL、金额 NULL:它不看审批开关,按人路由(pay_decision_code),不在 approval_chain_gates 里。★ 盘点不在本表里(Tim 的 Q4:open 是"正在点",不是"在等人批"),工单也不在(它没有等人批的队列)。amount_base 为 NULL = 这一张分不了档,不读成零。';

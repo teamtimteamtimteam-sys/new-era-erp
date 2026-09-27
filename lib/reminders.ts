@@ -271,6 +271,10 @@ export const REMINDERS = [
     //   ★ item_id 是【员工】的 id —— 申请住在那个人的档案页上(锚点 salary-requests)。
     { itemType: 'salary_change_pending', permission: 'data.view_pay', href: '/hr/employees',
       itemHref: (r: OpsRow) => `/hr/employees/${r.item_id}#salary-requests` },
+    // APR-10:等 CFO 批的 GST 申报申请。门与 decide_gst_filing_request 同一个码(module.finance.view);
+    //   ★ item_id 是【期间】的 id —— 申请住在那一期的页面上(锚点 gst-filing)。
+    { itemType: 'gst_filing_pending', permission: 'module.finance.view', href: '/finance/gst',
+      itemHref: (r: OpsRow) => `/finance/gst/${r.item_id}#gst-filing` },
 ] as const satisfies readonly Reminder[]
 
 /**

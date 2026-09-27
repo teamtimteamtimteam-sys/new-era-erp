@@ -6,7 +6,8 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { mustOne, mustRows } from '@/lib/db-helpers'
-import { FileReturnControl, CorrectControl } from '../GstControls'
+import { CorrectControl } from '../GstControls'
+import GstFilingPanel, { type GstFilingView, type GstBoxLine } from './GstFilingPanel'
 import { ListPage } from '@/app/components/ui/list-page'
 import { F5BoxesTable, F5BoxDetailTable, type F5BoxRow, type F5DetailRow } from './GstTables'
 import { Button } from '@/app/components/ui/button'
@@ -22,6 +23,8 @@ export default async function GstPeriodPage({ params, searchParams }: {
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
     const canEditGate = await can('module.finance.edit')
+    // APR-10:决定的门(module.finance.view + data.view_prices);谁是二级、谁是提单人由库裁
+    const canPrices = await can('data.view_prices')
     const { periodId } = await params
     const { box } = await searchParams
     const supabase = await createClient()
@@ -38,11 +41,13 @@ export default async function GstPeriodPage({ params, searchParams }: {
     const lockedBefore = mustOne(lockedRes)?.locked_before ?? null
 
     // 【已申报的期间读【抄下来的那一份】;未申报的现算】—— 两者是不同的问题。
+    // ★ APR-10:CFO 批准过的期间(approved)同样读快照 —— 批准那一刻抄下来的就是要报出去的那一份。
     const filed = period.status === 'filed'
+    const snapshotted = filed || period.status === 'approved'
     const liveRes = await supabase.rpc('f5_return', {
         p_period_start: period.period_start, p_period_end: period.period_end,
     })
-    const snapRes = filed
+    const snapRes = snapshotted
         ? await supabase.from('gst_return_boxes').select('box, label_en, label_zh, value_base').eq('period_id', periodId).order('box')
         : null
 
@@ -57,22 +62,54 @@ export default async function GstPeriodPage({ params, searchParams }: {
     // 【被打开的那一格的数字】—— 钻取那一段要把它重复出来,好让"空"读起来
     // 是一个答案而不是一次失败。已申报读快照,未申报读现算的那一份,与上面同源。
     const openBoxValue = box
-        ? (filed
+        ? (snapshotted
             ? Number(snap.find((r) => r.box === box)?.value_base ?? 0)
             : Number((live?.boxes ?? []).find((b) => b.box === box)?.value ?? 0))
         : null
 
-    // 申报被挡住时的【具体】理由,而不是一个析取式
+    // 提申报申请被挡住时的【具体】理由,而不是一个析取式(已申报 / 已批准的期间不画提交那一块)
     const blockedWhy =
-        filed ? t('gst.blockedAlreadyFiled', { on: formatDate(period.filed_on, locale) ?? '' })
-        : (!lockedBefore || lockedBefore <= period.period_end)
+        (!lockedBefore || lockedBefore <= period.period_end)
             ? t('gst.blockedNotLocked', { end: formatDate(period.period_end, locale), locked: formatDate(lockedBefore, locale) ?? t('finance.notSet') })
             : undefined
+
+    // ★ APR-10:这一期的申报申请(在等的全部 + 最近了结的十张)。冻结的每一格、此刻的数(只对在等的算)、
+    //   更正件的原件快照 —— 全由 gst_filing_requests_visible 一次给出,屏幕不自己算。
+    type VisibleBox = { box: string; label_en?: string; label_zh?: string; value: number | string }
+    const gfrRows = mustRows(await supabase.rpc('gst_filing_requests_visible', { p_period_id: periodId, p_recent: 10 }),
+        'gst_filing_requests_visible') as unknown as {
+        id: string; status: GstFilingView['status']; label: string
+        boxes: VisibleBox[]; current_boxes: VisibleBox[] | null; current_matches: boolean | null
+        original_code: string | null; original_boxes: VisibleBox[] | null; note: string | null
+        created_at: string; created_by_email: string | null; raised_by_me: boolean
+        decided_at: string | null; decided_by_email: string | null; decision_notes: string | null
+        withdrawn_at: string | null; withdraw_reason: string | null
+    }[]
+    const toView = (r: (typeof gfrRows)[number]): GstFilingView => {
+        const nowBy = new Map((r.current_boxes ?? []).map((b) => [b.box, Number(b.value)]))
+        const origBy = new Map((r.original_boxes ?? []).map((b) => [b.box, Number(b.value)]))
+        const lines: GstBoxLine[] = (r.boxes ?? []).map((b) => ({
+            box: b.box,
+            label: (locale === 'zh' ? b.label_zh : b.label_en) ?? b.box,
+            frozen: Number(b.value),
+            now: r.current_boxes ? (nowBy.get(b.box) ?? null) : null,
+            original: r.original_code ? (origBy.get(b.box) ?? null) : null,
+        }))
+        return {
+            id: r.id, status: r.status, label: r.label, lines,
+            currentMatches: r.current_matches, originalCode: r.original_code, note: r.note,
+            createdText: formatDate(r.created_at, locale) ?? '',
+            raisedBy: r.created_by_email, raisedByMe: r.raised_by_me,
+            decidedBy: r.decided_by_email, decisionNotes: r.decision_notes, withdrawReason: r.withdraw_reason,
+        }
+    }
+    const gfrOpen = gfrRows.filter((r) => r.status === 'submitted').map(toView)
+    const gfrHistory = gfrRows.filter((r) => r.status !== 'submitted').map(toView)
 
 
     // ★【行数据在服务端压平】双语标签在这里按 locale 选好,压成一个字符串过界。
     const DRILLABLE = ['box1', 'box2', 'box3', 'box5', 'box6', 'box7']
-    const boxSource = filed
+    const boxSource = snapshotted
         ? snap.map((b) => ({ box: b.box, label_zh: b.label_zh, label_en: b.label_en, value: Number(b.value_base), derived: true }))
         : (live?.boxes ?? [])
     const boxRows: F5BoxRow[] = boxSource.map((b) => ({
@@ -116,6 +153,11 @@ export default async function GstPeriodPage({ params, searchParams }: {
                             {t('gst.correctionOf')}{period.notes ? ` — ${period.notes}` : ''}
                         </p>
                     )}
+                    {period.status === 'approved' && (
+                        <p className="text-sm mb-4 bg-blue-50 border border-blue-300 text-blue-900 px-3 py-2 rounded">
+                            {t('gstFiling.approvedBanner')}
+                        </p>
+                    )}
                     {filed && (
                         <p className="text-sm mb-4 bg-green-50 border border-green-300 text-green-900 px-3 py-2 rounded">
                             {t('gst.filedOnBanner', { on: formatDate(period.filed_on, locale) ?? '', ref: period.filed_reference ?? '—' })}
@@ -125,7 +167,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
             }
         >
             <div className="flex items-baseline justify-between mb-2">
-                <h2 className="">{filed ? t('gst.asFiled') : t('gst.asComputed')}</h2>
+                <h2 className="">{filed ? t('gst.asFiled') : snapshotted ? t('gstFiling.asApproved') : t('gst.asComputed')}</h2>
                 {/* 【导出的是屏幕上这一份】—— 已申报导抄下来的,未申报导现算的,文件名里写明是哪一种 */}
                 <Button asChild variant="outline">
                     <a href={`/finance/gst/${periodId}/export`}>{t('gst.exportCsv')}</a>
@@ -216,11 +258,21 @@ export default async function GstPeriodPage({ params, searchParams }: {
                 </section>
             )}
 
-            <h2 className="mb-2">{t('gst.recordFiling')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('gst.filingIsOutside')}</p>
-            {/* ★ 出口检查:申报控件与更正控件都住 children,而 state 恒为 'ok',
-                  所以它们不可能被任何空分支吃掉。 */}
-            <div className="mb-6"><FileReturnControl canEdit={canEditGate} periodId={periodId} blockedWhy={blockedWhy} /></div>
+            {/* ★ 出口检查:申报申请那一块与更正控件都住 children,而 state 恒为 'ok',
+                  所以它们不可能被任何空分支吃掉。
+                ★ APR-10:申报从此是一张申请 —— 提、批、驳、撤回、批准之后记下申报,全在这一块里。 */}
+            <GstFilingPanel
+                periodId={periodId}
+                periodCode={period.code}
+                periodStatus={period.status as 'open' | 'approved' | 'filed'}
+                open={gfrOpen}
+                history={gfrHistory}
+                blockedWhy={blockedWhy}
+                canEdit={canEditGate}
+                canDecide={canPrices}
+                holdsDecideView={true}
+            />
 
             {filed && (
                 <>

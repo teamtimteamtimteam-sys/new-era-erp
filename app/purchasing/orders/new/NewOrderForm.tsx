@@ -37,6 +37,7 @@ import {
 } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { PO_CATEGORIES, type PoCategory } from '@/lib/poCategory'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 
@@ -171,7 +172,9 @@ export default function NewOrderForm({
     canSeeSupplierTerms,
     canSeePricingFormulas,
     triggerEvents,
-canEdit
+canEdit,
+categoryAllowed,
+categoryCodes,
 }: {
     // PROC-4:物质清单由页面从 substances 那张字典读好传进来。
     // 【表单不再自己拿着一份清单】那份清单曾经是这份名单的第五个副本,
@@ -197,6 +200,10 @@ canEdit
     triggerEvents: PaymentTriggerEvent[]
 
 canEdit: boolean
+    /** ★ APR-10(Tim 的 Q6):读者持哪几类的开单码。缺码的那一类看得见、选不了、说出码。 */
+    categoryAllowed: Record<PoCategory, boolean>
+    /** 每一类的开单码 —— 页面向库要(po_category_raise_code),这里只拿来说出缺哪一个 */
+    categoryCodes: Record<PoCategory, string>
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -219,6 +226,10 @@ canEdit: boolean
     // 做成模式,那条规矩就在【动手之前】说清了,而不是之后。
     const [orderKind, setOrderKind] = useState<'material' | 'equipment'>('material')
     const isEquipment = orderKind === 'equipment'
+    // ★ APR-10(Tim 的 Q5 · Q6 · Q8):品类由开单人选,生下来就定死;设备单只能是「设备与货物」。
+    //   【不预选】—— 替人选一类就是替他做了一个决定开单人是谁的选择;没选,服务端按名拒 PO_CATEGORY_REQUIRED。
+    const [category, setCategory] = useState<'' | PoCategory>('')
+    const effectiveCategory: '' | PoCategory = isEquipment ? 'equipment_goods' : category
     // EQP-PAY-1:这张单的种类下,可挑的里程碑。字典是真源,过滤在这里现算。
     const triggerOptions = useMemo(
         () => applicableTriggers(triggerEvents, orderKind),
@@ -530,7 +541,7 @@ canEdit: boolean
         Object.values(l.assay).filter((v) => parseDecimal(v) !== null).length
 
     return (
-        <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
+        <PermissionGate code={PO_CATEGORIES.map((c) => categoryCodes[c]).join(' · ')} allowed={canEdit}>
         <form ref={formRef} action={formAction} className="space-y-6">
                 <DraftBanner draft={draft} />
             {state.error && (
@@ -541,6 +552,37 @@ canEdit: boolean
 
             <input type="hidden" name="lines_json" value={JSON.stringify(linesPayload)} />
             <input type="hidden" name="terms_json" value={termsJson} />
+            <input type="hidden" name="category" value={effectiveCategory} />
+
+            {/* ── ★ APR-10:品类 —— 决定谁开这张单、谁能改它;不改谁批 ── */}
+            <div>
+                <label className="block mb-1">
+                    {t('poCategory.label')} <span className="text-red-600">*</span>
+                </label>
+                <select
+                    value={effectiveCategory}
+                    onChange={(e) => setCategory(e.target.value as PoCategory)}
+                    disabled={isEquipment}
+                    className={CONTROL_SELECT}
+                    data-po-category
+                >
+                    <option value="" disabled>{t('poCategory.pick')}</option>
+                    {PO_CATEGORIES.map((c) => (
+                        <option key={c} value={c} disabled={!categoryAllowed[c]}>
+                            {t('poCategory.name.' + c)}
+                            {!categoryAllowed[c] ? ` — ${t('poCategory.needsCode', { code: categoryCodes[c] })}` : ''}
+                        </option>
+                    ))}
+                </select>
+                <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">
+                    {isEquipment ? t('poCategory.equipmentFixed') : t('poCategory.hint')}
+                </p>
+                {isEquipment && !categoryAllowed.equipment_goods && (
+                    <p className="text-xs text-amber-700 mt-1">
+                        {t('poCategory.needsCode', { code: categoryCodes.equipment_goods })}
+                    </p>
+                )}
+            </div>
 
             {/* ── 头部 ── */}
             <div className="flex flex-wrap gap-4">

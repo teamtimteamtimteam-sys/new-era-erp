@@ -260,8 +260,8 @@ BEGIN
 
     -- ══════════════ G · 低于已付 ══════════════
     -- b2:10 kg × 10 = 100 已计价;预付冲抵 60 → 已付 60。5 × 10 = 50 < 60 → 拒;7 × 10 = 70 → 放
-    INSERT INTO purchase_orders (code, supplier_id, order_date, status, currency, fx_rate)
-    VALUES ('ZZFIX220-PO', v_sup, v_today, 'confirmed', v_base, 1) RETURNING id INTO v_po;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, status, currency, fx_rate, category)
+    VALUES ('ZZFIX220-PO', v_sup, v_today, 'confirmed', v_base, 1, 'equipment_goods') RETURNING id INTO v_po;
     INSERT INTO prepayment_applications (purchase_order_id, inbound_batch_id, amount_base, currency, amount_ccy)
     VALUES (v_po, b2, 60, v_base, 60);
     PERFORM pg_temp.f220_as(u_fin);

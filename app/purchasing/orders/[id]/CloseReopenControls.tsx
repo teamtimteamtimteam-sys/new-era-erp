@@ -25,7 +25,8 @@ export function CloseOrderControl({
     subject,
     unappliedPrepayment,
     baseCurrency,
-canEdit
+canEdit,
+gateCode,
 }: {
     poId: string
     /** CONFIRM-1:这一次结束的是【哪一张单】—— 单号,页面抬头里就印着它。 */
@@ -39,6 +40,8 @@ canEdit
     baseCurrency: string
 
 canEdit: boolean
+    /** ★ APR-10(Q7):缺的时候点名的码 —— 这张单那一类的开单码(开单人本人不需要它) */
+    gateCode: string
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -60,7 +63,7 @@ canEdit: boolean
 
     if (!open) {
         return (
-            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
+            <PermissionGate code={gateCode} allowed={canEdit}>
             <Button variant="secondary" className="text-sm"
                 type="button"
                 onClick={() => setOpen(true)}>
@@ -92,7 +95,7 @@ canEdit: boolean
             </div>
             {error && <p className="text-red-600">{error}</p>}
             <div className="flex gap-2">
-                <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
+                <PermissionGate code={gateCode} allowed={canEdit}>
                 <ConfirmButton
                     subject={subject}
                     title={t('purchasing.closeConfirm')}
@@ -126,7 +129,7 @@ canEdit: boolean
     )
 }
 
-export function ReopenOrderControl({ poId, subject, canEdit }: { poId: string; subject: string; canEdit: boolean }) {
+export function ReopenOrderControl({ poId, subject, canEdit, gateCode }: { poId: string; subject: string; canEdit: boolean; gateCode: string }) {
     const t = useTranslations()
     const router = useRouter()
     const [isPending, startTransition] = useTransition()
@@ -145,7 +148,7 @@ export function ReopenOrderControl({ poId, subject, canEdit }: { poId: string; s
             {/* CONFIRM-1:原因输入框与它的 FIX-2 说明一起搬进了对话框 ——
                 对话框自己带同一条空白判据、同一句"为什么按不动"。
                 传给 reopenOrder 的仍是同一个字符串、同一个参数位。 */}
-            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
+            <PermissionGate code={gateCode} allowed={canEdit}>
             <ConfirmButton
                 subject={subject}
                 title={t('purchasing.reopenConfirm')}

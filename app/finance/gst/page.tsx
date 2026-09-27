@@ -25,7 +25,7 @@ export default async function GstPage() {
     const t = await getTranslations()
     const locale = await getLocale()
 
-    const [settingsRes, codesRes, ratesRes, periodsRes, codedInvRes, codedExpRes] = await Promise.all([
+    const [settingsRes, codesRes, ratesRes, periodsRes, codedInvRes, codedExpRes, waitingRes] = await Promise.all([
         supabase.from('finance_settings').select('gst_registered, gst_registration_no').eq('id', true).single(),
         supabase.from('tax_codes').select('code, side, name_en, name_zh, f5_supply_box, f5_purchase_box, f5_tax_box, is_claimable, sort_order').order('sort_order'),
         supabase.from('tax_rates').select('tax_code, rate_pct, effective_from, effective_to').order('tax_code').order('effective_from'),
@@ -37,6 +37,8 @@ export default async function GstPage() {
         // 发票行 + 费用单。仍然是一个测量,不是一个假设。
         supabase.from('invoice_lines_masked').select('id', { count: 'exact', head: true }).not('tax_code', 'is', null),
         supabase.from('expenses').select('id', { count: 'exact', head: true }).not('tax_code', 'is', null),
+        // ★ APR-10:哪几期挂着一张等 CFO 批的申报申请 —— 状态那一列说"等批准"
+        supabase.from('gst_filing_requests').select('period_id').eq('status', 'submitted'),
     ])
     const settings = mustOne(settingsRes)
     const codes = mustRows(codesRes)
@@ -44,6 +46,7 @@ export default async function GstPage() {
     const periods = mustRows(periodsRes)
     const registered = settings?.gst_registered ?? false
     const codedDocs = mustCount(codedInvRes) + mustCount(codedExpRes)
+    const waiting = new Set(mustRows(waitingRes).map((w) => w.period_id))
 
     const taxCodeRows: TaxCodeRow[] = codes.map((c) => ({
         code: c.code,
@@ -61,6 +64,9 @@ export default async function GstPage() {
         isCorrection: !!p.corrects_period_id,
         window: `${p.period_start} → ${p.period_end}`,
         filed: p.status === 'filed',
+        // APR-10:open(可以提)· awaiting(一张申请在等 CFO)· approved(CFO 批了数字,还没去 IRAS 报)· filed
+        statusKey: p.status === 'filed' ? 'filed' : p.status === 'approved' ? 'approved'
+            : waiting.has(p.id) ? 'awaiting' : 'open',
         filedOn: p.filed_on ? formatDate(p.filed_on, locale) : null,
         filedReference: p.filed_reference,
     }))

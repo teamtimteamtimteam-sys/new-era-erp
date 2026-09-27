@@ -32,7 +32,7 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-36', 'f', 'f', true) RETURNING id INTO r;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r, unnest(ARRAY['module.purchasing.edit','module.purchasing.view',
+    SELECT r, unnest(ARRAY['module.purchasing.edit','module.purchasing.view','action.raise_po_equipment',
                            'module.pricing.view','data.view_prices']);
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 
@@ -64,7 +64,7 @@ BEGIN
             jsonb_build_object('line_no', 2, 'material_id', v_mat, 'quantity', 50,
                 'estimated_unit_price', 3),
             jsonb_build_object('line_no', 3, 'material_id', v_mat, 'quantity', 10)
-        ), NULL);
+        ), NULL, p_category => 'equipment_goods');
     v_po := (v_res->>'purchase_order_id')::uuid;
 
     v_doc := po_document_data(v_po);

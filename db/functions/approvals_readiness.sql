@@ -147,8 +147,18 @@ BEGIN
                    'subject_type',    d.subject_type,
                    'pending',         count(*),
                    'blocks_disable',  bool_or(d.blocks_disable),
-                   -- 分不出档的那些单独报出来,不混进计数里读成零
-                   'amount_unknown',  count(*) FILTER (WHERE d.amount_base IS NULL)) AS x
+                   -- 分不出档的那些单独报出来,不混进计数里读成零。
+                   -- ★ APR-10(Tim 2026-09-27):【只数按金额分档的那些】—— 没有固定档位、而且在名册里的链
+                   --   (采购单、报销单)。固定档位的链(条款 · 处置 · GST 申报 · 各种申请)本来就不按金额分档,
+                   --   金额为 NULL 不是"折不出来";调薪按【人】路由(pay_decision_code),也不是。此前这里把它们
+                   --   一并数进来,于是屏幕说调薪申请"折不出本位币金额,于是分不了档" —— 一句假话。
+                   'amount_unknown',  count(*) FILTER (WHERE d.amount_base IS NULL AND d.fixed_level IS NULL
+                                                         AND d.subject_type IN (SELECT g.subject_type
+                                                                                  FROM approval_chain_gates() g)),
+                   -- ★ APR-10:按人路由的链(不在按级的名册里,也没有固定档位)—— 屏幕为它说一句自己的话
+                   'routed_by_person', bool_and(d.fixed_level IS NULL
+                                                AND d.subject_type NOT IN (SELECT g.subject_type
+                                                                             FROM approval_chain_gates() g))) AS x
           FROM approval_pending_documents() d
          GROUP BY d.subject_type
       ) g;

@@ -150,8 +150,8 @@ BEGIN
     v_res := record_expense(p_expense_date := d, p_account_code := '6400', p_amount := 400,
         p_currency := v_base, p_payment_status := 'unpaid', p_supplier_id := v_s2);
     v_exp3 := (v_res->>'expense_id')::uuid;
-    INSERT INTO purchase_orders (code, supplier_id, order_date, status, currency, fx_rate)
-    VALUES ('ZZFIX212-PO', v_s2, d, 'confirmed', v_base, 1) RETURNING id INTO v_po;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, status, currency, fx_rate, category)
+    VALUES ('ZZFIX212-PO', v_s2, d, 'confirmed', v_base, 1, 'equipment_goods') RETURNING id INTO v_po;
     INSERT INTO prepayment_applications (purchase_order_id, expense_id, amount_base, currency, amount_ccy)
     VALUES (v_po, v_exp3, 120, v_base, 120);
     SELECT open_ccy INTO v_y FROM ap_open_items WHERE doc_kind = 'expense' AND doc_id = v_exp3;

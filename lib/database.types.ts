@@ -6638,6 +6638,68 @@ export type Database = {
           },
         ]
       }
+      gst_filing_requests: {
+        Row: {
+          boxes: Json
+          created_at: string
+          created_by: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          executed_at: string | null
+          id: string
+          label: string
+          note: string | null
+          period_id: string
+          status: string
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          boxes: Json
+          created_at?: string
+          created_by: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          executed_at?: string | null
+          id?: string
+          label: string
+          note?: string | null
+          period_id: string
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          boxes?: Json
+          created_at?: string
+          created_by?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          executed_at?: string | null
+          id?: string
+          label?: string
+          note?: string | null
+          period_id?: string
+          status?: string
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gst_filing_requests_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "gst_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gst_periods: {
         Row: {
           code: string
@@ -15109,6 +15171,7 @@ export type Database = {
           cancel_reason: string | null
           cancelled_at: string | null
           cancelled_by: string | null
+          category: string
           closed_at: string | null
           code: string
           contract_id: string | null
@@ -15140,6 +15203,7 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          category: string
           closed_at?: string | null
           code: string
           contract_id?: string | null
@@ -15171,6 +15235,7 @@ export type Database = {
           cancel_reason?: string | null
           cancelled_at?: string | null
           cancelled_by?: string | null
+          category?: string
           closed_at?: string | null
           code?: string
           contract_id?: string | null
@@ -27319,6 +27384,7 @@ export type Database = {
           cancelled_at: string | null
           cancelled_by: string | null
           carries_tax: boolean | null
+          category: string | null
           closed_at: string | null
           code: string | null
           contract_id: string | null
@@ -27352,6 +27418,7 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           carries_tax?: never
+          category?: string | null
           closed_at?: string | null
           code?: string | null
           contract_id?: string | null
@@ -27385,6 +27452,7 @@ export type Database = {
           cancelled_at?: string | null
           cancelled_by?: string | null
           carries_tax?: never
+          category?: string | null
           closed_at?: string | null
           code?: string | null
           contract_id?: string | null
@@ -28776,6 +28844,10 @@ export type Database = {
         Args: { p_output_batch_id: string }
         Returns: undefined
       }
+      assert_po_manager: {
+        Args: { p_purchase_order_id: string }
+        Returns: undefined
+      }
       assert_posting_allowed: {
         Args: { p_entry_date: string; p_source_type: string }
         Returns: undefined
@@ -29210,6 +29282,7 @@ export type Database = {
       }
       create_purchase_order: {
         Args: {
+          p_category?: string
           p_currency: string
           p_delivery_location?: string
           p_expected_delivery: string
@@ -29292,6 +29365,10 @@ export type Database = {
           p_posting_date?: string
           p_tax_code?: string
         }
+        Returns: Json
+      }
+      decide_gst_filing_request: {
+        Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
       }
       decide_invoice_request: {
@@ -29481,6 +29558,36 @@ export type Database = {
         Returns: number
       }
       gl_control_reconciliation: { Args: { p_as_of: string }; Returns: Json }
+      gst_filing_execute_internal: {
+        Args: { p_request_id: string }
+        Returns: Json
+      }
+      gst_filing_requests_visible: {
+        Args: { p_period_id?: string; p_recent?: number }
+        Returns: {
+          boxes: Json
+          created_at: string
+          created_by_email: string
+          current_boxes: Json
+          current_matches: boolean
+          decided_at: string
+          decided_by_email: string
+          decision_notes: string
+          id: string
+          label: string
+          note: string
+          original_boxes: Json
+          original_code: string
+          period_code: string
+          period_end: string
+          period_id: string
+          period_start: string
+          raised_by_me: boolean
+          status: string
+          withdraw_reason: string
+          withdrawn_at: string
+        }[]
+      }
       gst_registered: { Args: never; Returns: boolean }
       has_any_permission: { Args: { p_codes: string[] }; Returns: boolean }
       has_permission: { Args: { p_code: string }; Returns: boolean }
@@ -29876,7 +29983,9 @@ export type Database = {
       payroll_request_dry_run: { Args: { p_request_id: string }; Returns: Json }
       period_close_floor: { Args: never; Returns: string }
       pnl_statement: { Args: { p_from: string; p_to: string }; Returns: Json }
+      po_category_raise_code: { Args: { p_category: string }; Returns: string }
       po_document_data: { Args: { p_po_id: string }; Returns: Json }
+      po_may_manage: { Args: { p_purchase_order_id: string }; Returns: boolean }
       post_journal_entry: {
         Args: {
           p_entry_date: string
@@ -30204,6 +30313,10 @@ export type Database = {
         Returns: Json
       }
       record_fx_rates_bulk: { Args: { p_rows: Json }; Returns: Json }
+      record_gst_filing: {
+        Args: { p_filed_on?: string; p_period_id: string; p_reference?: string }
+        Returns: Json
+      }
       record_invoice_issue: {
         Args: { p_file_path: string; p_invoice_id: string; p_sha256: string }
         Returns: Json
@@ -30959,6 +31072,10 @@ export type Database = {
         Args: { p_formula_id: string; p_reason: string; p_terms: Json }
         Returns: Json
       }
+      submit_gst_filing_request: {
+        Args: { p_note?: string; p_period_id: string }
+        Returns: Json
+      }
       submit_inbound_write_off_request: {
         Args: { p_batch_id: string; p_reason: string }
         Returns: Json
@@ -31307,6 +31424,10 @@ export type Database = {
       withdraw_fx_rate: {
         Args: { p_id: string; p_reason: string }
         Returns: undefined
+      }
+      withdraw_gst_filing_request: {
+        Args: { p_reason?: string; p_request_id: string }
+        Returns: Json
       }
       withdraw_invoice_request: {
         Args: { p_reason?: string; p_request_id: string }

@@ -91,16 +91,16 @@ BEGIN
 
     -- 五张单。approval_status 必须 approved、status 必须可收(confirmed/receiving),
     -- 否则收货在触发器那一层就被拒了 —— 那测的是 APR-2,不是本视图。
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX87-PO-CLOSED', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved') RETURNING id INTO po_closed;
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX87-PO-OPEN', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved') RETURNING id INTO po_open;
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX87-PO-ASSAY', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved') RETURNING id INTO po_assay;
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX87-PO-MISC', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved') RETURNING id INTO po_misc;
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX87-PO-TRANS', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved') RETURNING id INTO po_trans;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX87-PO-CLOSED', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved', 'equipment_goods') RETURNING id INTO po_closed;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX87-PO-OPEN', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved', 'equipment_goods') RETURNING id INTO po_open;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX87-PO-ASSAY', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved', 'equipment_goods') RETURNING id INTO po_assay;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX87-PO-MISC', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved', 'equipment_goods') RETURNING id INTO po_misc;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX87-PO-TRANS', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved', 'equipment_goods') RETURNING id INTO po_trans;
 
     -- ══════════════════════════════════════════════════════════════════════════
     -- A. 短交边界:阈值 10%,订 1000 → 门槛 900。谓词是【严格小于】,

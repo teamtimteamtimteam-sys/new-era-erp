@@ -104,7 +104,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2026-01-10', DATE '2026-04-01', v_ccy, NULL,
         NULL, NULL, 'fixture 107 equipment PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_a2, 'quantity', 1,
-                                             'estimated_unit_price', 100000)));
+                                             'estimated_unit_price', 100000)), p_category => 'equipment_goods');
     v_po := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO v_line FROM purchase_order_lines WHERE purchase_order_id = v_po;
     IF v_line IS NULL THEN

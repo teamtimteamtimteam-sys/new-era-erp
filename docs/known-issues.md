@@ -105,11 +105,23 @@ fixture 221 G3)。代价照直记:**供应商记错了的已定价收货从此�
 
 ## ROLE1B3A-NO-OTHER-DECIDER-PO-EXPENSE · 采购单(≥ 1,000)与报销单也能被提成"除了提单人没人批得动"(ROLE-1 Batch 3a 登记,2026-09-25)
 
+> ★ **采购单那一半已关闭(APR-10,2026-09-27)**:`create_purchase_order` 在审批开着时按这张单的档位调 `assert_other_decider`,
+> 提单人之外没人批得动就按名拒 `PO_NO_OTHER_DECIDER|<单号>`(线上走证 P7:admin@ 开 5,000.00 的单被拒,一张不落)。
+> **报销单那一半仍在** —— 删除条件缩成:`submit_expense_claim` 在审批开着、提单人之外没人批得动时按名拒。
+
 Batch 3a 把 4b 那一句(`RECEIPT_PRICE_NO_OTHER_DECIDER`)抽成 `assert_other_decider`,用在工资申请与六支付款申请的提交上
 (Tim 的 Q12)。**同一个形状还在两处**:`create_purchase_order`(≥ 1,000 只有二级批得动,二级今天只有 tim@ 一个真持有人,
 而 admin@ 是同一个人、持 `module.purchasing.edit`)与 `submit_expense_claim`(报销单的分档链)。提交时都不问
 `approval_deciders`,于是 admin@ 提的一张单挂在那里没人批得动,还经 `blocks_disable` 挡住关审批。Tim 的裁定:**登记,
 不在本刀修**。**删除条件:** 两处提交在审批开着、提单人之外没人批得动时按名拒(调 `assert_other_decider`)。
+
+## APR10-BATTERY-RULE-READS-KIND · 「电池料行只能开在设备与货物里」认的是物料目录上的 `kind_code`,而线上两种电池原料没填它(APR-10 登记,2026-09-27)
+
+Tim 的 APR-10 grilling Q5:资产行或电池料行 ⇒ `equipment_goods`。`guard_po_line_category` 认的是 `materials.kind_code = 'battery_material'`。
+**以 postgres 读 `materials` 基表(rolbypassrls = t,2026-09-27):`MAT-2026-0001` NMC Cathode Foil 与 `MAT-2026-0002` Special Battery Material 的
+`kind_code` 都是 NULL** —— 于是一张【耗材单】或【办公用品单】今天开得出这两种料,守卫一言不发(测试数据;线上走证用的就是 0001,在
+`equipment_goods` 里)。修法不是放宽守卫去猜,是把这两条物料的 kind 填上(物料目录那一页,`module.materials.edit`)。
+**删除条件:** 每一条可以下采购单的物料都有 `kind_code`(或守卫对 NULL kind 按名拒)。
 
 ## ROLE1B3-AMEND-RELEASED-WO · 改一张【已下达】的工单,不会把它送回去重新下达(ROLE-1 Batch 3 登记,2026-09-25)
 

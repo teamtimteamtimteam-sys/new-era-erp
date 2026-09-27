@@ -113,6 +113,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'action.stocktake_post', 'module.stocktakes.view',
         -- ★ ROLE-1 Batch 3b(Tim 2026-09-25,Batch 3 grilling):下达工单归财务;建单人永远不能下达(按人认)。
         'action.wo_release',
+        -- ★ APR-10(Tim 2026-09-27,grilling Q6):办公用品采购单归财务开(module.purchasing.edit 不再开单)。
+        'action.raise_po_office',
         'data.view_banking', 'data.view_prices', 'data.view_purchase_prices', 'data.view_sales', 'module.customers.edit',
         'module.customers.view', 'module.finance.edit', 'module.finance.view',
         'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
@@ -192,7 +194,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'action.batch_write_off', 'action.processing_aftercare', 'module.processing.view',
         -- ── APR-5b(Tim 2026-09-25,APR-5 grilling Q7):发货归仓库,在 CFO 放行之后 ────────────────
         -- 发货队列不带价格(shipping_queue_rows);仓库【不】拿 module.sales.view。
-        'action.ship_goods'
+        'action.ship_goods',
+        -- ── APR-10(Tim 2026-09-27,grilling Q6):工厂耗材采购单归仓库开;要读得到采购模块才开得了 ─────
+        'action.raise_po_consumables', 'module.purchasing.view'
 ) WHERE r.code = 'warehouse';
 
 -- hr(7):人力资源 + 薪酬 + 身份信息 + 绩效正文。这四类正是 HR 的工作对象,也正是别人不该看见的。

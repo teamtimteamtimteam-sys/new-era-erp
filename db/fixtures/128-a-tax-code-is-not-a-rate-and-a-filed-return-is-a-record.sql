@@ -267,8 +267,11 @@ BEGIN
     -- ══════════ G2 · ★那一季没关完账,就不许申报★ ══════════
     -- **这是 6.2 的规矩本身。** GST 期间与会计锁不是同一件事,但一份底下还能改的
     -- 申报是一句假话。
+    -- ★ APR-10:申报从此是一张申请(submit_gst_filing_request → CFO 批 → record_gst_filing)。这一句前置条件
+    --   搬进了提交(与批准):没关完账的那一季,连申请都提不了。本 fixture 跑在审批关着的重建库上,
+    --   所以申请生下来就是 approved(Q4)—— 审批开着的那一整圈由 fixture 229 钉。
     v_denied := false;
-    BEGIN PERFORM file_gst_return(v_pid, v_q_end + 30, 'ACK-TEST-1');
+    BEGIN PERFORM submit_gst_filing_request(v_pid);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'GST_PERIOD_NOT_LOCKED|%'); END;
     IF NOT v_denied THEN
         RAISE EXCEPTION 'G2 失败:会计期间还没锁到季末就申报,应当按名拒绝(实得 %)', COALESCE(v_msg,'(没有拒绝)');
@@ -284,7 +287,15 @@ BEGIN
     UPDATE finance_settings SET locked_before = v_q_end + 1;
     PERFORM set_config('request.jwt.claims',
         format('{"sub":"%s","role":"authenticated"}', v_user), true);
-    v_r := file_gst_return(v_pid, v_q_end + 30, 'ACK-TEST-1');
+    v_r := submit_gst_filing_request(v_pid);
+    IF v_r->>'status' <> 'approved' OR (SELECT status FROM gst_periods WHERE id = v_pid) <> 'approved' THEN
+        RAISE EXCEPTION 'G3 失败:审批关着时申请应当生下来就是 approved、期间 → approved,实得 % / %',
+            v_r->>'status', (SELECT status FROM gst_periods WHERE id = v_pid);
+    END IF;
+    PERFORM record_gst_filing(v_pid, v_q_end + 30, 'ACK-TEST-1');
+    IF (SELECT status FROM gst_periods WHERE id = v_pid) <> 'filed' THEN
+        RAISE EXCEPTION 'G3 失败:记下申报日与参考号之后期间应当是 filed';
+    END IF;
     SELECT count(*) INTO v_n FROM gst_return_boxes WHERE period_id = v_pid;
     IF v_n < 8 THEN RAISE EXCEPTION 'G3 失败:申报应当把每一格都抄下来,实得 % 格', v_n; END IF;
     -- 【GST-2:这里改抄【进项】那一格,而这不是退让】抄下来的必须是一个
@@ -311,20 +322,40 @@ BEGIN
 
     -- ══════════ G5 · 同一期不许申报两次 ══════════
     v_denied := false;
-    BEGIN PERFORM file_gst_return(v_pid, v_q_end + 31, 'ACK-TEST-2');
+    BEGIN PERFORM record_gst_filing(v_pid, v_q_end + 31, 'ACK-TEST-2');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'GST_PERIOD_ALREADY_FILED|%'); END;
     IF NOT v_denied THEN RAISE EXCEPTION 'G5 失败:同一期申报两次应当按名拒绝'; END IF;
+    v_denied := false;
+    BEGIN PERFORM submit_gst_filing_request(v_pid);
+    EXCEPTION WHEN OTHERS THEN v_denied := (SQLERRM LIKE 'GST_PERIOD_ALREADY_FILED|%'); END;
+    IF NOT v_denied THEN RAISE EXCEPTION 'G5 失败:报过的一期不该再提得出申请'; END IF;
+    -- 旧门只会按名拒(APR-10)
+    v_denied := false;
+    BEGIN PERFORM file_gst_return(v_pid, v_q_end + 31, 'ACK-TEST-2');
+    EXCEPTION WHEN OTHERS THEN v_denied := (SQLERRM LIKE 'GST_FILING_NEEDS_APPROVED_REQUEST|%'); END;
+    IF NOT v_denied THEN RAISE EXCEPTION 'G5 失败:file_gst_return 应当只会按名拒 GST_FILING_NEEDS_APPROVED_REQUEST'; END IF;
     rep := rep || jsonb_build_object('G5_no_double_filing', v_msg);
 
     -- ══════════ G7 · 申报日没填,要够得着它【自己那条具名拒绝】 ══════════
-    -- 【为什么这一臂值得单列】GST-1-fu2 之前,file_gst_return 的 p_filed_on 没有
+    -- 【为什么这一臂值得单列】GST-1-fu2 之前,file_gst_return(APR-10 起是 record_gst_filing)的 p_filed_on 没有
     -- DEFAULT,生成出来的 TS 类型是必填的 string —— 页面根本没有办法把"没填"
     -- 送到这条拒绝面前:送 '' 会先在 cast 成 date 时炸成一个没有名字的 22007。
     -- 一条【够不着的拒绝】等于不存在,所以这里从数据库这一侧证明它够得着。
     v_pid2 := (open_gst_period((v_q_start + INTERVAL '3 months')::date,
                           (v_q_start + INTERVAL '6 months' - INTERVAL '1 day')::date)->>'gst_period_id')::uuid;
+    -- ★ APR-10:这条拒绝搬进了 record_gst_filing,它只收【批准过】的期间 —— 先没批准时拒得有名字,
+    --   再把下一季关账、提申请(审批关着 → 生下来就批准),然后才够得着"申报日必填"。
     v_denied := false;
-    BEGIN PERFORM file_gst_return(v_pid2);
+    BEGIN PERFORM record_gst_filing(v_pid2, v_q_end + 120, 'X');
+    EXCEPTION WHEN OTHERS THEN v_denied := (SQLERRM LIKE 'GST_FILING_NOT_APPROVED|%'); END;
+    IF NOT v_denied THEN RAISE EXCEPTION 'G7 失败:没批准的期间不该记得下申报'; END IF;
+    PERFORM set_config('request.jwt.claims', '', true);
+    UPDATE finance_settings SET locked_before = (v_q_start + INTERVAL '6 months')::date;
+    PERFORM set_config('request.jwt.claims',
+        format('{"sub":"%s","role":"authenticated"}', v_user), true);
+    PERFORM submit_gst_filing_request(v_pid2);
+    v_denied := false;
+    BEGIN PERFORM record_gst_filing(v_pid2);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM LIKE 'GST_FILED_DATE_REQUIRED|%'); END;
     IF NOT v_denied THEN RAISE EXCEPTION 'G7 失败:不填申报日应当按名拒绝,实得 %', v_msg; END IF;
     rep := rep || jsonb_build_object('G7_filed_date_refusal_is_reachable', v_msg);

@@ -29,7 +29,10 @@ DECLARE
     v_tax_code   text;
     v_tax_rate   numeric;
 BEGIN
-    PERFORM require_permission('module.purchasing.edit');
+    -- ★ APR-10(Tim 的 grilling Q7):开单人本人(按人认),或此刻持这张单那一类开单码的人 —— 其余按名拒
+    --   PO_NOT_RAISER_OR_CATEGORY_HOLDER(assert_po_manager,一份判据;屏幕读同一份 po_may_manage)。
+    --   从前的门 module.purchasing.edit 不再够。
+    PERFORM assert_po_manager(p_purchase_order_id);
 
     IF p_reason IS NULL OR btrim(p_reason) = '' THEN
         -- 【理由必填】一次改动没有理由,历史上就是一行"数字变了"而没有"为什么"。

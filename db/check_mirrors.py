@@ -587,6 +587,9 @@ DEFINER_NO_CHECK_ALLOWED = {
     "asset_disposal_dry_run": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "asset_disposal_fingerprint": "EXECUTE revoked from PUBLIC/authenticated/anon",
     "dispose_fixed_asset_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    # APR-10:GST 申报申请的生效算子与采购单"谁能改"那一句断言 —— 靠的是调不到(zzz_function_grants.sql)。
+    "gst_filing_execute_internal": "EXECUTE revoked from PUBLIC/authenticated/anon",
+    "assert_po_manager": "EXECUTE revoked from PUBLIC/authenticated/anon; called only by the five PO manage doors (all definer); its predicate po_may_manage checks the caller",
     # 它【必须】留给 authenticated:凭证详情页拿它决定冲销钮灰不灰、说什么;它也在批准与试跑的内层被调用,
     # 那里的主语未必持凭证页的码(以 postgres 跑的 fixture 根本没有主语)。只回一个词。
     "journal_entry_reversal_route": "APR-6: the journal page reads it to grey the reverse button with the right reason, and the request engine calls it inside approval and dry-run where the caller may hold no finance code; returns one route word (reversed/source_path/request), no amount, no line",
@@ -638,6 +641,9 @@ DEFINER_NO_CHECK_ALLOWED = {
 
 CHECK_PATTERNS = ("require_permission(", "has_permission(", "current_user_employee(",
                   "is_reviewer_of(", "require_reviewer_of(",
+                  # APR-10(2026-09-27):assert_po_manager 是五扇改单门的调用者检查(开单人本人或持这一类的开单码;
+                  # 判据 po_may_manage 自己读 has_permission)。verify_rebuild.py 的 CALLER_CHECK_RE 同改。
+                  "assert_po_manager(",
                   # AUD-1(2026-08-17):has_any_permission 也是一次【调用者检查】——
                   # 它就是 has_permission 的析取(见那个函数的函数体),按 auth.uid()
                   # 解析调用者。此前没有任何 DEFINER 函数用它,所以这条漏认从来没有

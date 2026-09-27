@@ -4,7 +4,8 @@
 -- 【钉四件事,两个方向都要】
 --   A 正对照:warehouse 现在【叫得出】供应商 / 物料 / 客户 / 可收货的采购单行;
 --   B 反对照:hr 与一个零权限账号【仍然叫不出】—— 四张视图对他们都是 0 行;
---   C ★ 窄对照:warehouse 【仍然读不到】materials / customers 基表(suppliers 自 ROLE-1 Batch 2a 起读得到,Q5)。
+--   C ★ 窄对照:warehouse 【仍然读不到】materials / customers 基表(suppliers 自 ROLE-1 Batch 2a 起读得到,Q5;
+--     po_receivable_lines 自 APR-10 起读得到,Q6)。
 --     没有这一条,A 就只证明了"他现在看得见",没有证明"他没有多看见"。
 --     「A proof that passes by refusing everything is not a proof.」——
 --     而它的对偶同样成立:一个只证明放行的证明,证明不了没有放宽。
@@ -64,8 +65,8 @@ BEGIN
     INSERT INTO customers (code, legal_name, country)
         VALUES ('ZZ-FIX1-CUS', 'ZZ FIX1 Customer', 'SG') RETURNING id INTO v_cus;
     -- fx_rate 是 NOT NULL 且没有默认值(实测,不是照抄别的 fixture 猜的)。
-    INSERT INTO purchase_orders (code, supplier_id, order_date, status, currency, fx_rate)
-        VALUES ('ZZ-FIX1-PO', v_sup, CURRENT_DATE, 'confirmed', 'SGD', 1) RETURNING id INTO v_po;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, status, currency, fx_rate, category)
+        VALUES ('ZZ-FIX1-PO', v_sup, CURRENT_DATE, 'confirmed', 'SGD', 1, 'equipment_goods') RETURNING id INTO v_po;
     INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, quantity, unit)
         VALUES (v_po, 1, v_mat, 1000, 'kg') RETURNING id INTO v_line;
 
@@ -105,8 +106,11 @@ BEGIN
     IF n <> 0 THEN RAISE EXCEPTION 'FIX1_C_FAILED|warehouse can now read the materials base table'; END IF;
     SELECT count(*) INTO n FROM customers WHERE id = v_cus;   r := r || jsonb_build_object('C_wh_customers_base', n);
     IF n <> 0 THEN RAISE EXCEPTION 'FIX1_C_FAILED|warehouse can now read the customers base table'; END IF;
+    -- ★ APR-10(Tim,grilling Q6 · 矩阵 §6「开采购单,按品类:工厂耗材 → 仓库」):warehouse 从这一刀起持
+    --   module.purchasing.view —— 它要读得到采购模块才开得了耗材单。所以这一格也翻过来:读得到才对
+    --   (价格那一侧它自 ROLE-1 Batch 4a 起就持 data.view_purchase_prices)。
     SELECT count(*) INTO n FROM po_receivable_lines; r := r || jsonb_build_object('C_wh_po_receivable_lines_old', n);
-    IF n <> 0 THEN RAISE EXCEPTION 'FIX1_C_FAILED|warehouse can now read the priced po_receivable_lines'; END IF;
+    IF n <> 1 THEN RAISE EXCEPTION 'FIX1_C_FAILED|warehouse should read po_receivable_lines since APR-10 (Q6: module.purchasing.view), got %', n; END IF;
     -- 而 grn_discrepancies 【刻意】没有跟着放宽(见迁移抬头)。
     SELECT count(*) INTO n FROM grn_discrepancies; r := r || jsonb_build_object('C_wh_grn_discrepancies', n);
     IF n <> 0 THEN RAISE EXCEPTION 'FIX1_C_FAILED|grn_discrepancies widened as a side effect'; END IF;

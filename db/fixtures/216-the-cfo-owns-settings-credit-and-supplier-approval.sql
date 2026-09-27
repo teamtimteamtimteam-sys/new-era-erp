@@ -63,7 +63,7 @@ BEGIN
         (r_clerk, 'module.suppliers.edit'), (r_clerk, 'module.suppliers.view'),
         (r_clerk, 'module.customers.edit'), (r_clerk, 'module.customers.view'),
         (r_clerk, 'module.finance.edit'),   (r_clerk, 'module.finance.view'),
-        (r_clerk, 'module.purchasing.edit'), (r_clerk, 'module.purchasing.view'),
+        (r_clerk, 'module.purchasing.edit'), (r_clerk, 'module.purchasing.view'), (r_clerk, 'action.raise_po_equipment'),
         (r_clerk, 'data.view_prices'),
         (r_cfo, 'action.supplier_approve'), (r_cfo, 'action.finance_settings'), (r_cfo, 'action.customer_credit'),
         (r_cfo, 'module.suppliers.view'), (r_cfo, 'module.customers.view'), (r_cfo, 'module.finance.view'),
@@ -269,20 +269,21 @@ BEGIN
     v_denied := false; v_msg := NULL;
     -- 一条占位行:表头的 INSERT 先于任何一行被读,拒绝就落在表头上
     BEGIN PERFORM create_purchase_order((SELECT id FROM suppliers WHERE code = 'FX216-F-draft'), DATE '2030-03-01', NULL,
-                                        v_base, NULL, NULL, NULL, NULL, '[{"placeholder": true}]'::jsonb);
+                                        v_base, NULL, NULL, NULL, NULL, '[{"placeholder": true}]'::jsonb, p_category => 'equipment_goods');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM = 'PO_SUPPLIER_NOT_APPROVED|FX216-F-draft|draft'); END;
     IF NOT v_denied THEN RAISE EXCEPTION 'FIXTURE 216G 失败:给 draft 供应商开得出新采购单,实得 %', COALESCE(v_msg, '(开了)'); END IF;
-    EXECUTE 'SET LOCAL ROLE authenticated';
+    -- ★ APR-10:采购单从此【没有直连写】—— 客户端那扇 INSERT 门在更早的一道闸上就关了(PO_THROUGH_FUNCTION_ONLY,
+    --   fixture 229 S 臂)。于是这一格改以【属主】直插:供应商守卫是一支行触发器,它守的是【每一条】路径,
+    --   属主路径也在内,所以它仍然必须按名拒。
     v_denied := false; v_msg := NULL;
     BEGIN
-        INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-        VALUES ('FX216-PO-X', (SELECT id FROM suppliers WHERE code = 'FX216-F-pending_review'), DATE '2030-03-01', v_base, 1, 'draft', 'draft');
+        INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+        VALUES ('FX216-PO-X', (SELECT id FROM suppliers WHERE code = 'FX216-F-pending_review'), DATE '2030-03-01', v_base, 1, 'draft', 'draft', 'equipment_goods');
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := (SQLERRM = 'PO_SUPPLIER_NOT_APPROVED|FX216-F-pending_review|pending_review'); END;
-    EXECUTE 'RESET ROLE';
-    IF NOT v_denied THEN RAISE EXCEPTION 'FIXTURE 216G 失败:直连 INSERT 那扇门绕得过去,实得 %', COALESCE(v_msg, '(开了)'); END IF;
+    IF NOT v_denied THEN RAISE EXCEPTION 'FIXTURE 216G 失败:直插一张单绕得过供应商守卫,实得 %', COALESCE(v_msg, '(开了)'); END IF;
     -- 对照:active 供应商开得出;之后供应商被暂停,这张既有的单照样改得动(Q7:既有采购单照常收货)
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX216-PO-OK', (SELECT id FROM suppliers WHERE code = 'FX216-F-active'), DATE '2030-03-01', v_base, 1, 'confirmed', 'approved')
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX216-PO-OK', (SELECT id FROM suppliers WHERE code = 'FX216-F-active'), DATE '2030-03-01', v_base, 1, 'confirmed', 'approved', 'equipment_goods')
     RETURNING id INTO po_ok;
     UPDATE suppliers SET status = 'suspended' WHERE code = 'FX216-F-active';
     UPDATE purchase_orders SET notes = 'fx216 still editable' WHERE id = po_ok;

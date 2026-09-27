@@ -250,7 +250,7 @@ BEGIN
     -- 定金 → 冲抵
     v_res := create_purchase_order(v_s_goods, D0, D2, v_base, NULL, NULL, NULL, 'f213 PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'unit', 'kg',
-                                             'estimated_unit_price', 20)));
+                                             'estimated_unit_price', 20)), p_category => 'equipment_goods');
     v_po := (v_res->>'purchase_order_id')::uuid;
     PERFORM record_payment_internal('out', v_s_goods, 1000, v_base, NULL, NULL, D0, 'f213 deposit',
         jsonb_build_array(jsonb_build_object('purchase_order_id', v_po, 'amount_doc', 1000)), 'supplier');

@@ -24,7 +24,8 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 // "能不能取消这张单"是一个适用的问题 —— 答案只是"这一张不行,因为…"。
 // 此前父组件在挡住时直接渲染一句灰字、连按钮都没有,于是人看不出"这里本来有个动作"。
 export default function CancelOrderControl({ poId, code, blockedWhy ,
-canEdit
+canEdit,
+gateCode,
 }: {
     poId: string
     code: string
@@ -32,6 +33,8 @@ canEdit
     blockedWhy: string
 
 canEdit: boolean
+    /** ★ APR-10(Q7):缺的时候点名的码 —— 这张单那一类的开单码(开单人本人不需要它) */
+    gateCode: string
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -43,7 +46,7 @@ canEdit: boolean
         // 加上它,按钮保持自然宽度,理由自己占一行。
         return (
             <div className="inline-flex flex-col items-start">
-                <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
+                <PermissionGate code={gateCode} allowed={canEdit}>
                 <Button variant="destructive" type="button" disabled>
                     {t('purchasing.cancelOrder')}
                 </Button>
@@ -54,7 +57,7 @@ canEdit: boolean
     }
     return (
         <div className="inline-flex flex-col items-start">
-            <PermissionGate code="module.purchasing.edit" allowed={canEdit}>
+            <PermissionGate code={gateCode} allowed={canEdit}>
             <ConfirmButton
                 subject={code}
                 title={t('purchasing.cancelConfirm')}

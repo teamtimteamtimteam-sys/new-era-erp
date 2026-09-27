@@ -71,7 +71,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object(
             'line_no', 1, 'material_id', v_mat, 'quantity', 100, 'unit', 'kg',
             'pricing_formula_id', v_formula)),
-        NULL);
+        NULL, p_category => 'equipment_goods');
 
     -- APR-2:采购单现在【生为 draft/pending】,而未获批的单收不了货。本 fixture 测的
     -- 不是审批流,所以直接把它置成已批 —— 与 fixture 26/30 为 fx_rate 显式给值同一
@@ -140,7 +140,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object(
             'line_no', 1, 'material_id', v_mat, 'quantity', 100, 'unit', 'kg',
             'pricing_formula_id', v_formula)),
-        NULL);
+        NULL, p_category => 'equipment_goods');
 
     -- APR-2:采购单现在【生为 draft/pending】,而未获批的单收不了货。本 fixture 测的
     -- 不是审批流,所以直接把它置成已批 —— 与 fixture 26/30 为 fx_rate 显式给值同一

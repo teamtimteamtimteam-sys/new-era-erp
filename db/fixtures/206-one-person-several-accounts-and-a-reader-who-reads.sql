@@ -96,8 +96,8 @@ BEGIN
     INSERT INTO suppliers (status, id, code, legal_name, country, counterparty_type)
       VALUES ('active', sup_id, 'FX206-SUP', 'Sup', 'SG', 'goods_supplier');
     INSERT INTO purchase_orders (id, code, supplier_id, order_date, currency, fx_rate,
-                                 estimated_total_ccy, status, approval_status, created_by)
-      VALUES (po_id, 'FX206-PO-1', sup_id, DATE '2030-03-01', v_base, 1, 50.00, 'draft', 'pending', u_main);
+                                 estimated_total_ccy, status, approval_status, created_by, category)
+      VALUES (po_id, 'FX206-PO-1', sup_id, DATE '2030-03-01', v_base, 1, 50.00, 'draft', 'pending', u_main, 'equipment_goods');
 
     -- 策略:两级各有真持有人,门槛 1000,审批【开着】(采购单那两句要它开着才走得到)
     -- ★ PAYROLL-APR-1(2026-09-24):工资过账申请这条链的门是 module.hr.view + data.view_pay(Tim 的 Q8)。

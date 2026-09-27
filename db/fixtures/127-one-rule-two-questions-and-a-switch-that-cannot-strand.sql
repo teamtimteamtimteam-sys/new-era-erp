@@ -365,8 +365,8 @@ BEGIN
 
     -- ═════════ C5 · 关掉开关会把在途单据搁死 —— 所以点名拒绝 ═════════
     INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate,
-                                 estimated_total_ccy, status, approval_status)
-      VALUES ('ZZ-SOD1-PO1', v_sup_b, v_d2, v_ccy, 1, 100, 'draft', 'pending')
+                                 estimated_total_ccy, status, approval_status, category)
+      VALUES ('ZZ-SOD1-PO1', v_sup_b, v_d2, v_ccy, 1, 100, 'draft', 'pending', 'equipment_goods')
       RETURNING id INTO v_po;
     v_denied := false;
     BEGIN

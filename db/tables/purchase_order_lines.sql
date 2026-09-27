@@ -112,20 +112,9 @@ CREATE POLICY "purchase_order_lines select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.purchasing.view'::text));
 
-CREATE POLICY "purchase_order_lines insert by permission"
-    ON public.purchase_order_lines
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.purchasing.edit'::text));
+-- ★ APR-10(2026-09-27):INSERT / UPDATE / DELETE 三条写策略拿掉 —— 只经函数写(guard_po_direct_write 按名拒
+--   PO_THROUGH_FUNCTION_ONLY)。见 db/functions/guard_po_direct_write.sql 的抬头。
 
-CREATE POLICY "purchase_order_lines update by permission"
-    ON public.purchase_order_lines
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.purchasing.edit'::text)) WITH CHECK (has_permission('module.purchasing.edit'::text));
-
-CREATE POLICY "purchase_order_lines delete by permission"
-    ON public.purchase_order_lines
-    AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.purchasing.edit'::text));
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 purchase_order_lines_masked 读取。
@@ -234,3 +223,13 @@ COMMENT ON COLUMN public.purchase_order_lines.tax_amount_ccy IS
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.purchase_order_lines
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.purchasing.edit');
+
+-- ── APR-10(2026-09-27)· 没有直连写 ─────────────────────────────────────────
+CREATE TRIGGER trg_purchase_order_lines_direct_write
+    BEFORE INSERT OR UPDATE OR DELETE ON public.purchase_order_lines
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_po_direct_write();
+
+-- APR-10(grilling Q5):资产行与电池料行只能在「设备与货物」里 —— 开单与改单两条路都经过它。
+CREATE TRIGGER trg_purchase_order_lines_category
+    BEFORE INSERT OR UPDATE OF asset_id, material_id ON public.purchase_order_lines
+    FOR EACH ROW EXECUTE FUNCTION public.guard_po_line_category();

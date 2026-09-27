@@ -109,7 +109,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'estimated_unit_price', 10)),
         '[]'::jsonb,
-        'Workshop 3, 12 Tuas Avenue');
+        'Workshop 3, 12 Tuas Avenue', p_category => 'equipment_goods');
     v_po := (v_res->>'purchase_order_id')::uuid;
 
     v_doc := po_document_data(v_po);
@@ -163,7 +163,7 @@ BEGIN
             jsonb_build_object('line_no', 3, 'material_id', v_mat, 'quantity', 10),
             jsonb_build_object('line_no', 4, 'material_id', v_mat, 'quantity', 10,
                                'pricing_formula_id', v_formula)),
-        '[]'::jsonb, NULL);
+        '[]'::jsonb, NULL, p_category => 'equipment_goods');
     v_po_plain := (v_res->>'purchase_order_id')::uuid;
     v_doc := po_document_data(v_po_plain);
 
@@ -192,7 +192,7 @@ BEGIN
         PERFORM create_purchase_order(v_sup, DATE '2027-03-12', NULL, v_ccy, NULL, NULL, NULL, NULL,
             jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 10,
                 'pricing_formula_id', v_formula, 'price_status', 'fixed')),
-            '[]'::jsonb, NULL);
+            '[]'::jsonb, NULL, p_category => 'equipment_goods');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'PO_LINE_PRICE_STATUS_CONFLICT%' THEN
         RAISE EXCEPTION 'FIXTURE 197B 失败:挂着公式的行标成 fixed 应当按名拒(PO_LINE_PRICE_STATUS_CONFLICT),实得 %',
@@ -219,7 +219,7 @@ BEGIN
         PERFORM create_purchase_order(v_sup, DATE '2027-03-12', NULL, v_ccy, NULL, NULL, NULL, NULL,
             jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 10,
                 'estimated_unit_price', 1, 'price_status', 'maybe')),
-            '[]'::jsonb, NULL);
+            '[]'::jsonb, NULL, p_category => 'equipment_goods');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM; END;
     IF NOT v_denied OR v_msg NOT LIKE 'PO_LINE_PRICE_STATUS_INVALID%' THEN
         RAISE EXCEPTION 'FIXTURE 197B 失败:不认识的定价状态应当按名拒,实得 %',
@@ -337,7 +337,7 @@ BEGIN
             jsonb_build_object('seq', 1, 'label', 'deposit',  'percentage', 30, 'trigger_event', 'on_order'),
             jsonb_build_object('seq', 2, 'label', 'delivery', 'percentage', 40, 'trigger_event', 'on_arrival'),
             jsonb_build_object('seq', 3, 'label', 'final',    'percentage', 30, 'trigger_event', 'post_assay')),
-        NULL);
+        NULL, p_category => 'equipment_goods');
     v_po_terms := (v_res->>'purchase_order_id')::uuid;
 
     -- ① 建单那一批期数【不进档案】
@@ -425,7 +425,7 @@ BEGIN
         jsonb_build_array(
             jsonb_build_object('line_no', 1, 'material_id', v_mat, 'quantity', 10, 'estimated_unit_price', 5),
             jsonb_build_object('line_no', 2, 'material_id', v_mat, 'quantity', 10, 'estimated_unit_price', 7)),
-        '[]'::jsonb, NULL);
+        '[]'::jsonb, NULL, p_category => 'equipment_goods');
     v_po_fixed := (v_res->>'purchase_order_id')::uuid;
     v_doc := po_document_data(v_po_fixed);
     SELECT count(*) INTO v_n FROM jsonb_array_elements(v_doc->'lines') l
@@ -492,7 +492,7 @@ BEGIN
         PERFORM create_purchase_order(v_sup, DATE '2027-03-12', NULL, v_ccy, NULL, NULL, NULL, NULL,
             jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 10,
                 'pricing_formula_id', v_formula, 'price_status', 'fixed')),
-            '[]'::jsonb, NULL);
+            '[]'::jsonb, NULL, p_category => 'equipment_goods');
     EXCEPTION WHEN OTHERS THEN v_denied := true; END;
     IF v_denied THEN
         RAISE EXCEPTION 'FIXTURE 197G 失败:守卫被掏空之后那条拒绝【还在】—— 说明 B 臂拒的不是这道闸,断言指错了地方';

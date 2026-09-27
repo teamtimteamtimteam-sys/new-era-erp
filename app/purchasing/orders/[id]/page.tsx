@@ -68,7 +68,7 @@ export default async function PurchaseOrderDetailPage({
 
     const { data: poRaw, error } = await supabase
         .from('purchase_orders_masked')
-        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason, cancelled_by, delivery_location')
+        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason, cancelled_by, delivery_location, category')
         .eq('id', id)
         .is('deleted_at', null)
         .single()
@@ -246,6 +246,10 @@ export default async function PurchaseOrderDetailPage({
             .map((o) => [o.trigger_event, o.owner_name])
     ) as Record<string, string>
     const canEditPurchasing = await can('module.purchasing.edit')
+    // ★ APR-10(Tim 的 grilling Q7):改 / 取消 / 关闭 / 重开 = 开单人本人,或此刻持这张单那一类开单码的人。
+    //   判据只有一份(po_may_manage,库里);这里只问它,不再比对任何码。缺的时候点名的是那一类的开单码。
+    const canManage = mustOne(await supabase.rpc('po_may_manage', { p_purchase_order_id: id })) === true
+    const manageCode = String(mustOne(await supabase.rpc('po_category_raise_code', { p_category: po.category })) ?? '')
     const canReceiveGoods = await can('action.receive_goods') // ROLE-1 Batch 3b
     // ROLE-1:质保金释放归财务(release_purchase_order_retention 的门是 module.finance.edit)
     const canReleaseRetention = await can('module.finance.edit')
@@ -598,7 +602,7 @@ export default async function PurchaseOrderDetailPage({
                         )
                     )}
                     {(po.status === 'confirmed' || po.status === 'receiving') && (
-                        <CloseOrderControl canEdit={canEditPurchasing}
+                        <CloseOrderControl canEdit={canManage} gateCode={manageCode}
                             poId={po.id}
                             subject={po.code}
                             unappliedPrepayment={canFinance ? Number(poStatus?.prepaid_remaining_base ?? 0) : null}
@@ -614,11 +618,18 @@ export default async function PurchaseOrderDetailPage({
                         藏起来会让人以为这个系统不支持改单。
                         【已作废仍然藏】那才是"不适用":一张作废的单没有可改的东西。 */}
                     {!isCancelled && (po.status !== 'closed' ? (
-                        <Button asChild variant="outline">
-                            <Link href={`/purchasing/orders/${po.id}/amend`}>
-                                {t('purchasing.amend.link')}
-                            </Link>
-                        </Button>
+                        canManage ? (
+                            <Button asChild variant="outline">
+                                <Link href={`/purchasing/orders/${po.id}/amend`}>
+                                    {t('purchasing.amend.link')}
+                                </Link>
+                            </Button>
+                        ) : (
+                            /* ★ APR-10(Q7):链接禁不掉,挂在 PermissionGate 里点名那一类的码 */
+                            <PermissionGate code={manageCode} allowed={false} inline>
+                                <Button disabled variant="outline">{t('purchasing.amend.link')}</Button>
+                            </PermissionGate>
+                        )
                     ) : (
                         <span className="inline-flex flex-col items-start">
                             {/* FIX-3(B2):`items-start` —— 与 CancelOrderControl 同一个毛病,
@@ -631,10 +642,10 @@ export default async function PurchaseOrderDetailPage({
                             <span className="text-xs text-amber-700 mt-1">{t('purchasing.amendClosedWhy')}</span>
                         </span>
                     ))}
-                    {po.status === 'closed' && <ReopenOrderControl canEdit={canEditPurchasing} poId={po.id} subject={po.code} />}
+                    {po.status === 'closed' && <ReopenOrderControl canEdit={canManage} gateCode={manageCode} poId={po.id} subject={po.code} />}
                     {/* FIX-2(B1):挡住时也把控件画出来 —— 变灰 + 一句话,不是消失。 */}
                     {!isCancelled && po.status !== 'closed' && (
-                        <CancelOrderControl canEdit={canEditPurchasing} poId={po.id} code={po.code} blockedWhy={cancelWhy} />
+                        <CancelOrderControl canEdit={canManage} gateCode={manageCode} poId={po.id} code={po.code} blockedWhy={cancelWhy} />
                     )}
                 </div>
             }
@@ -707,6 +718,8 @@ export default async function PurchaseOrderDetailPage({
                         ),
                         mono: true,
                     },
+                    // ★ APR-10:品类 —— 决定谁开、谁能改;不改谁批
+                    { label: t('poCategory.label'), value: t('poCategory.name.' + po.category) },
                     // incoterm 没有就不占一格 —— 与转换前的 {po.incoterm && …} 同义。
                     ...(po.incoterm
                         ? [{ label: t('purchasing.form.incoterm'), value: po.incoterm }]

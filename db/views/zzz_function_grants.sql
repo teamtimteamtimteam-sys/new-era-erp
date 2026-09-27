@@ -527,3 +527,11 @@ REVOKE EXECUTE ON FUNCTION public.salary_change_deciders(uuid, uuid) FROM authen
 REVOKE EXECUTE ON FUNCTION public.salary_effective_period_block(date) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.pay_decision_code(uuid, uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.asset_disposal_fingerprint(uuid) FROM authenticated;
+
+-- APR-10(2026-09-27):**GST 申报换成了申请;采购单按品类开、按开单人或这一类的码改。**
+--   gst_filing_execute_internal —— 生效本身(写 gst_return_boxes、期间 → approved)。留着 EXECUTE,任何登录用户都能
+--     不经 CFO 批就把一组数定成"批准过的申报"—— 那正是本刀要关的门。
+--   assert_po_manager —— 只从五扇改单的门里调(全是 DEFINER);它自己不查调用者之外的任何事,靠的是调不到。
+--     屏幕读 po_may_manage(只回读者自己的一个布尔)。
+REVOKE EXECUTE ON FUNCTION public.gst_filing_execute_internal(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.assert_po_manager(uuid) FROM authenticated;

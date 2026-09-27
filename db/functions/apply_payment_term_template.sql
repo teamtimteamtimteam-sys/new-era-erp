@@ -10,7 +10,10 @@ DECLARE
     v_count integer := 0;
     v_fixed integer := 0;   -- FIN-29:本模板有几条定额腿
 BEGIN
-    PERFORM require_permission('module.purchasing.edit');
+    -- ★ APR-10(Tim 的 grilling Q7):开单人本人(按人认),或此刻持这张单那一类开单码的人 —— 其余按名拒
+    --   PO_NOT_RAISER_OR_CATEGORY_HOLDER(assert_po_manager,一份判据;屏幕读同一份 po_may_manage)。
+    --   从前的门 module.purchasing.edit 不再够。
+    PERFORM assert_po_manager(p_purchase_order_id);
     SELECT id, code, order_date, status, currency INTO v_po
     FROM purchase_orders WHERE id = p_purchase_order_id AND deleted_at IS NULL;
     IF NOT FOUND THEN

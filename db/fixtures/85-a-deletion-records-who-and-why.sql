@@ -46,8 +46,8 @@ BEGIN
     VALUES ('FX85-OUT', mat, 4, 'kg', 4, '2026-05-01') RETURNING id INTO ob;
     INSERT INTO inventory_movements (output_batch_id, movement_type, qty_delta, business_date)
     VALUES (ob, 'processing_produce', 4, '2026-05-01');
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX85-PO', sup, '2026-05-01', 'USD', 1.3, 'draft', 'pending') RETURNING id INTO po;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX85-PO', sup, '2026-05-01', 'USD', 1.3, 'draft', 'pending', 'equipment_goods') RETURNING id INTO po;
     INSERT INTO stocktakes (code, status) VALUES ('FX85-ST', 'open') RETURNING id INTO st;
 
     -- ══════════ A. 没有理由 → 按名拒(门里那一条)═══════════════════════════

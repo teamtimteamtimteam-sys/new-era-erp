@@ -109,8 +109,8 @@ BEGIN
 
     -- 一张【未结】PO,四条分期:三种要估计的 + 一条 fixed_date(它自带真日期)
     INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate,
-                                 estimated_total_ccy, status)
-    VALUES ('ZZ-F139-PO', v_sup, v_ws - 20, v_base, 1, 100000, 'confirmed') RETURNING id INTO v_po;
+                                 estimated_total_ccy, status, category)
+    VALUES ('ZZ-F139-PO', v_sup, v_ws - 20, v_base, 1, 100000, 'confirmed', 'equipment_goods') RETURNING id INTO v_po;
     -- EQP-PAY-1:这张单要有【一条明细行】,否则判不出它是材料单还是设备单,
     -- 而 guard_payment_term_applicable 会按名拒(PO_TERM_KIND_UNKNOWN)——
     -- 判不出种类就判不出下面那几期里程碑用不用得上。

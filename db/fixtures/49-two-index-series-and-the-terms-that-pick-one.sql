@@ -128,8 +128,8 @@ BEGIN
     RETURNING id INTO v_formula;
     INSERT INTO pricing_formula_metals (formula_id, metal, payable_pct) VALUES (v_formula, 'cu', 100);
 
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status)
-    VALUES ('ZZFIX49-PO', v_sup, DATE '2027-05-01', v_ccy, 1, 'draft') RETURNING id INTO v_po;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, category)
+    VALUES ('ZZFIX49-PO', v_sup, DATE '2027-05-01', v_ccy, 1, 'draft', 'equipment_goods') RETURNING id INTO v_po;
     INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, quantity, unit, pricing_formula_id)
     VALUES (v_po, 1, v_mat, 1000, 'kg', v_formula) RETURNING id INTO v_pol;
     v_commit := commit_pricing_terms(v_formula, v_pol, NULL);

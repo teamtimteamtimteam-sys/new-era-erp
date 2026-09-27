@@ -452,7 +452,9 @@ DEFINER_UNCHECKED_EXEC_ALLOWED: dict = {
 # 同样按 auth.uid() 解析调用者。此前没有 DEFINER 函数用它,所以这条漏认从未显形。
 # db/check_mirrors.py 的 CHECK_PATTERNS 同改,两处必须一致(它们回答同一个问题)。
 CALLER_CHECK_RE = ("require_permission\\(|has_permission\\(|current_user_employee\\("
-                   "|is_reviewer_of\\(|require_reviewer_of\\(|has_any_permission\\(")
+                   "|is_reviewer_of\\(|require_reviewer_of\\(|has_any_permission\\("
+                   # APR-10:五扇改单门的调用者检查(db/check_mirrors.py 的 CHECK_PATTERNS 同改,两处必须一致)。
+                   "|assert_po_manager\\(")
 
 B1_SQL = """
 SELECT coalesce(string_agg(p.proname, ',' ORDER BY p.proname), '')

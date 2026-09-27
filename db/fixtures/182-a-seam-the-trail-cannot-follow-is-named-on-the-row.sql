@@ -59,9 +59,9 @@ BEGIN
     RAISE NOTICE '182A 无采购来路 → 收货行标了 no_purchase_order ✓';
 
     -- A-注入:补上采购单行,标记必须【消失】(否则它是恒真的,等于没说)
-    INSERT INTO purchase_orders (code, supplier_id, order_date, status, currency, fx_rate)
+    INSERT INTO purchase_orders (code, supplier_id, order_date, status, currency, fx_rate, category)
     VALUES ('ZZFIX182-PO', v_sup, DATE '2025-01-20', 'confirmed',
-            (SELECT code FROM currencies WHERE is_base LIMIT 1), 1) RETURNING id INTO v_po;
+            (SELECT code FROM currencies WHERE is_base LIMIT 1), 1, 'equipment_goods') RETURNING id INTO v_po;
     INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, quantity, unit)
     VALUES (v_po, 1, v_mat, 100, 'kg') RETURNING id INTO v_pol;
     UPDATE inbound_batches SET purchase_order_id = v_po, purchase_order_line_id = v_pol WHERE id = v_ib;

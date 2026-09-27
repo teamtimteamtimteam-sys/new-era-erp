@@ -74,6 +74,8 @@ CREATE VIEW public.purchase_orders_masked WITH (security_invoker = off) AS
     -- PUR-1(2026-09-08):交货地点。**新列加在末尾** —— CREATE OR REPLACE VIEW
     -- 只许末尾追加,中间插一列要 DROP + 重建(与上面 contract_id 那一条同一课)。
     -- 【不遮蔽】它是一个地址,不是钱。
-    delivery_location
+    delivery_location,
+    -- APR-10(2026-09-27):品类(工厂耗材 / 设备与货物 / 办公用品)。末尾追加;【不遮蔽】它是一个分类,不是钱。
+    category
    FROM purchase_orders
   WHERE has_permission('module.purchasing.view'::text);

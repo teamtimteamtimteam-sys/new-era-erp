@@ -24,7 +24,7 @@ export async function submitWhtRemittanceRequest(
     // 【日期不给默认值,空就【干脆不传】】由数据库那条具名拒绝答话
     // (WHT_REMIT_DATE_REQUIRED)。送 '' 会在 cast 成 date 时炸出一个没有名字的
     // 错;在这里先判一次空,又成了同一条规矩的第二处实现 —— 两者都不要。
-    // 与 fileGstReturn 逐字同一种处置(那一支的注释写着它是 fu2 才改对的)。
+    // 与 recordGstFiling(APR-10 之前叫 fileGstReturn)逐字同一种处置(那一支的注释写着它是 fu2 才改对的)。
     const { data, error } = await supabase.rpc('submit_wht_remittance_request', {
         p_period_month: periodMonth,
         ...(plannedOn ? { p_planned_date: plannedOn } : {}),

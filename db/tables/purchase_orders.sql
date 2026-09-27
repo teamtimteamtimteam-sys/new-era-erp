@@ -69,7 +69,15 @@ CREATE TABLE public.purchase_orders (
     -- ── PUR-1 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)────────────────
     -- 这张单的货送到哪里。**自由文本,刻意不是储位选择器**(Tim 2026-09-08 裁定)——
     -- 一台设备订单送到的常常不是仓库。**不敏感**,进下面的列清单授权。
-    delivery_location text
+    delivery_location text,
+    -- ── APR-10 追加(ALTER 加的列排在末尾,与 attnum 顺序一致)──────────────
+    -- 品类(Tim 的矩阵 §6「开采购单,按品类」):决定【谁开】(每类一个开单码,po_category_raise_code)
+    -- 与【谁能改 / 取消 / 关闭 / 重开】(开单人本人,或持这一类开单码的人 —— po_may_manage)。
+    -- 【不改谁批】:分级不变(< 1,000 财务、≥ 1,000 CFO)。生下来就定死(guard_po_amendable)。
+    -- 资产行与电池料行只能在 equipment_goods 里(guard_po_line_category)。
+    -- 线上既有的 11 张单全部回填 equipment_goods(grilling Q5:量过,每一张买的都是电池原料或设备)。
+    -- **不敏感**,进下面的列清单授权。
+    category text NOT NULL CHECK (category IN ('consumables', 'equipment_goods', 'office'))
 );
 
 COMMENT ON COLUMN public.purchase_orders.delivery_location IS
@@ -111,20 +119,9 @@ CREATE POLICY "purchase_orders select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.purchasing.view'::text));
 
-CREATE POLICY "purchase_orders insert by permission"
-    ON public.purchase_orders
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.purchasing.edit'::text));
-
-CREATE POLICY "purchase_orders update by permission"
-    ON public.purchase_orders
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.purchasing.edit'::text)) WITH CHECK (has_permission('module.purchasing.edit'::text));
-
-CREATE POLICY "purchase_orders delete by permission"
-    ON public.purchase_orders
-    AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.purchasing.edit'::text));
+-- ★ APR-10(2026-09-27):INSERT / UPDATE / DELETE 三条写策略拿掉 —— 采购单只经函数写(guard_po_direct_write 按名拒
+--   PO_THROUGH_FUNCTION_ONLY)。拿掉之前,持 module.purchasing.edit 的人能直连 INSERT 一张 approval_status 默认
+--   'approved' 的单,不经任何人批、不问品类的开单码。见 db/functions/guard_po_direct_write.sql 的抬头。
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 purchase_orders_masked 读取。
@@ -132,7 +129,9 @@ CREATE POLICY "purchase_orders delete by permission"
 REVOKE SELECT ON public.purchase_orders FROM authenticated, anon;
 GRANT SELECT (id, code, supplier_id, order_date, expected_delivery_date, currency, status, approval_status, approved_at, approved_by, incoterm, terms_text, notes, closed_at, cancelled_at, cancel_reason, deleted_at, created_at, created_by, updated_at, updated_by, deleted_by, delete_reason, cancelled_by, contract_id,
     -- PUR-1:交货地点【不敏感】(一个地址,不是钱)—— 进列清单授权。
-    delivery_location)
+    delivery_location,
+    -- APR-10:品类【不敏感】(一个分类)—— 进列清单授权。
+    category)
     ON public.purchase_orders TO authenticated;
 
 -- APR-2 决定 4:金额被改到需要更高一级审批时,原审批作废并重新路由。
@@ -206,3 +205,12 @@ estimated_total_ccy + COALESCE(tax_total_ccy, 0),在读的那一侧相加。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.purchase_orders
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.purchasing.edit');
+
+-- ── APR-10(2026-09-27)· 没有直连写 ─────────────────────────────────────────
+-- 语句级、零行也触发;属主路径(15 支 SECURITY DEFINER 写入函数)一律放行。
+CREATE TRIGGER trg_purchase_orders_direct_write
+    BEFORE INSERT OR UPDATE OR DELETE ON public.purchase_orders
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_po_direct_write();
+
+COMMENT ON COLUMN public.purchase_orders.category IS
+    'APR-10:品类 —— consumables(工厂耗材,仓库开)· equipment_goods(设备与货物,cco 开)· office(办公用品,财务开)。决定谁开(po_category_raise_code)与谁能改 / 取消 / 关闭 / 重开(开单人本人,或持这一类开单码的人:po_may_manage);【不改谁批】。生下来就定死(PO_FIELD_IMMUTABLE|category)。资产行与电池料行只能在 equipment_goods 里(PO_CATEGORY_LINE_MISMATCH)。';

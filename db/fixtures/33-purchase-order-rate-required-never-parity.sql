@@ -38,7 +38,7 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-33', 'f', 'f', true) RETURNING id INTO r;
     INSERT INTO role_permissions (role_id, permission_code)
-    VALUES (r, 'module.purchasing.edit'), (r, 'module.purchasing.view'),
+    VALUES (r, 'module.purchasing.edit'), (r, 'module.purchasing.view'), (r, 'action.raise_po_equipment'),
            (r, 'module.suppliers.view'), (r, 'data.view_prices');
     INSERT INTO user_roles (user_id, role_id) VALUES (u, r);
 
@@ -61,7 +61,7 @@ BEGIN
     v_denied := false;
     BEGIN
         PERFORM create_purchase_order(v_sup, '2027-03-03'::date, NULL, v_fgn, NULL,
-                                      NULL, NULL, NULL, v_lines, NULL);
+                                      NULL, NULL, NULL, v_lines, NULL, p_category => 'equipment_goods');
     EXCEPTION WHEN OTHERS THEN
         v_msg := SQLERRM;
         v_denied := true;
@@ -79,7 +79,7 @@ BEGIN
     VALUES (v_fgn, '2027-03-03', 'tt_sell', 1.4321);
 
     v_po := create_purchase_order(v_sup, '2027-03-03'::date, NULL, v_fgn, NULL,
-                                  NULL, NULL, NULL, v_lines, NULL);
+                                  NULL, NULL, NULL, v_lines, NULL, p_category => 'equipment_goods');
     v_id := (v_po->>'purchase_order_id')::uuid;
     IF v_id IS NULL THEN
         v_id := (v_po->>'id')::uuid;
@@ -98,7 +98,7 @@ BEGIN
     -- 而本位币【没有汇率这回事】(fx_rate_asof 对它直接返回 1,不查表)。
     -- 注意这一天【故意没有任何牌价行】。
     v_po := create_purchase_order(v_sup, '2027-05-05'::date, NULL, v_base, NULL,
-                                  NULL, NULL, NULL, v_lines, NULL);
+                                  NULL, NULL, NULL, v_lines, NULL, p_category => 'equipment_goods');
     SELECT fx_rate INTO v_rate FROM purchase_orders WHERE code = (v_po->>'code');
     IF v_rate <> 1 THEN
         RAISE EXCEPTION 'FIXTURE 33C 失败:本位币单据的汇率应为 1,实得 %', v_rate;
@@ -107,8 +107,8 @@ BEGIN
     -- ══════════ D. 直接 INSERT 不给汇率 → 必须失败(删掉 DEFAULT 买到的就是这个)══
     v_denied := false;
     BEGIN
-        INSERT INTO purchase_orders (code, supplier_id, order_date, currency, estimated_total_ccy)
-        VALUES ('ZZFIX33-RAW', v_sup, '2027-06-06', v_fgn, 1000);
+        INSERT INTO purchase_orders (code, supplier_id, order_date, currency, estimated_total_ccy, category)
+        VALUES ('ZZFIX33-RAW', v_sup, '2027-06-06', v_fgn, 1000, 'equipment_goods');
     EXCEPTION WHEN OTHERS THEN
         v_denied := true;
     END;

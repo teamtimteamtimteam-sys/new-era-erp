@@ -145,10 +145,10 @@ BEGIN
     -- 【本位币不需要汇率,而 fx_rates 会按名拒收】—— 这一行原本给 SGD 插一条 1.0
     -- 的牌价,而那道 CHECK 拒得对:本位币的"汇率"是一个没有意义的数。
     v_r := create_purchase_order(v_sup, '2026-06-01', '2026-07-01', 'SGD', NULL, 'CIF', NULL, NULL,
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'unit', 'kg')));
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'unit', 'kg')), p_category => 'equipment_goods');
     v_po := (v_r->>'purchase_order_id')::uuid;
     v_r := create_purchase_order(v_sup2, '2026-06-01', '2026-07-01', 'SGD', NULL, 'CIF', NULL, NULL,
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'unit', 'kg')));
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'unit', 'kg')), p_category => 'equipment_goods');
     v_po2 := (v_r->>'purchase_order_id')::uuid;
 
     -- ══════════ B. 两条拒绝,以及【刻意不拒】的那一条 ══════════════════════
@@ -182,7 +182,7 @@ BEGIN
     --   这一臂断言的是一条【没有建】的规矩 —— 它在这里,是为了让下一个想加
     --   "日期必须落在合同期内"的人先读到:那需要一次裁定,不是一句 IF。
     v_r := create_purchase_order(v_sup, '2026-01-15', '2026-02-01', 'SGD', NULL, 'CIF', NULL, NULL,
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 10, 'unit', 'kg')));
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 10, 'unit', 'kg')), p_category => 'equipment_goods');
     PERFORM link_document_to_contract('purchase_order', (v_r->>'purchase_order_id')::uuid, v_con);
     IF (SELECT contract_id FROM purchase_orders WHERE id = (v_r->>'purchase_order_id')::uuid) IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 147B 失败:早于合同生效日的单据应当【仍然挂得上】—— 回填是正当操作'; END IF;
@@ -278,7 +278,7 @@ BEGIN
     -- ══════════ F. 权限 —— 真的换一个没权限的角色去调 ═══════════════════════
     DELETE FROM role_permissions WHERE role_id = r_all AND permission_code = 'module.suppliers.edit';
     v_r := create_purchase_order(v_sup, '2026-06-02', '2026-07-02', 'SGD', NULL, 'CIF', NULL, NULL,
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 5, 'unit', 'kg')));
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 5, 'unit', 'kg')), p_category => 'equipment_goods');
     v_denied := false; v_msg := NULL;
     BEGIN PERFORM link_document_to_contract('purchase_order', (v_r->>'purchase_order_id')::uuid, v_con);
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true; END;

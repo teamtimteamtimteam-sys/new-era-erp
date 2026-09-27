@@ -111,18 +111,9 @@ CREATE POLICY "purchase_order_line_retentions select by permission"
     ON public.purchase_order_line_retentions
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.purchasing.view'::text));
-CREATE POLICY "purchase_order_line_retentions insert by permission"
-    ON public.purchase_order_line_retentions
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.purchasing.edit'::text));
-CREATE POLICY "purchase_order_line_retentions update by permission"
-    ON public.purchase_order_line_retentions
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.purchasing.edit'::text)) WITH CHECK (has_permission('module.purchasing.edit'::text));
-CREATE POLICY "purchase_order_line_retentions delete by permission"
-    ON public.purchase_order_line_retentions
-    AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.purchasing.edit'::text));
+
+-- ★ APR-10(2026-09-27):INSERT / UPDATE / DELETE 三条写策略拿掉 —— 只经函数写(guard_po_direct_write 按名拒
+--   PO_THROUGH_FUNCTION_ONLY)。见 db/functions/guard_po_direct_write.sql 的抬头。
 
 -- 字段级遮蔽:金额是价格类数据,与 purchase_order_payment_terms.fixed_amount_ccy
 -- 同一个判据(data.view_prices)。percentage 不遮 —— 那张表也没有遮它。
@@ -141,3 +132,8 @@ GRANT SELECT (id, purchase_order_line_id, percentage, retention_months, anchor_e
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.purchase_order_line_retentions
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.purchasing.edit');
+
+-- ── APR-10(2026-09-27)· 没有直连写 ─────────────────────────────────────────
+CREATE TRIGGER trg_purchase_order_line_retentions_direct_write
+    BEFORE INSERT OR UPDATE OR DELETE ON public.purchase_order_line_retentions
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_po_direct_write();

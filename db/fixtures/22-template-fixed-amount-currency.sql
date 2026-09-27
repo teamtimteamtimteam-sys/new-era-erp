@@ -47,7 +47,7 @@ BEGIN
     -- 两张单:一张 USD、一张 SGD(本位币,无需牌价)
     v_po_usd := create_purchase_order(v_sup, v_today, NULL, 'USD', NULL, NULL, NULL, NULL,
         jsonb_build_array(jsonb_build_object('line_no', 1, 'material_id', v_mat,
-            'quantity', 100, 'unit', 'kg', 'estimated_unit_price', 5)), NULL);
+            'quantity', 100, 'unit', 'kg', 'estimated_unit_price', 5)), NULL, p_category => 'equipment_goods');
 
     -- APR-2:采购单现在【生为 draft/pending】,而未获批的单收不了货。本 fixture 测的
     -- 不是审批流,所以直接把它置成已批 —— 与 fixture 26/30 为 fx_rate 显式给值同一
@@ -58,7 +58,7 @@ BEGIN
     v_po_usd_id := (v_po_usd->>'purchase_order_id')::uuid;
     v_po_sgd := create_purchase_order(v_sup, v_today, NULL, 'SGD', NULL, NULL, NULL, NULL,
         jsonb_build_array(jsonb_build_object('line_no', 1, 'material_id', v_mat,
-            'quantity', 100, 'unit', 'kg', 'estimated_unit_price', 5)), NULL);
+            'quantity', 100, 'unit', 'kg', 'estimated_unit_price', 5)), NULL, p_category => 'equipment_goods');
 
     -- APR-2:采购单现在【生为 draft/pending】,而未获批的单收不了货。本 fixture 测的
     -- 不是审批流,所以直接把它置成已批 —— 与 fixture 26/30 为 fx_rate 显式给值同一

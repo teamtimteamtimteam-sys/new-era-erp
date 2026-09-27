@@ -257,8 +257,8 @@ BEGIN
     v_msg := pg_temp.f221_try(format('UPDATE inbound_batches SET supplier_id = %L WHERE id = %L', v_sup2, b_priced));
     IF v_msg <> 'RECEIPT_PRICED_SOURCE_FROZEN|ZZFIX221-IBP' THEN
         RAISE EXCEPTION 'FIXTURE 221G3 失败:属主路径换供应商也应当按名拒,实得 %', v_msg; END IF;
-    INSERT INTO purchase_orders (code, supplier_id, order_date, status, currency, fx_rate)
-    VALUES ('ZZFIX221-PO', v_sup, v_today - 2, 'confirmed', (SELECT code FROM currencies WHERE is_base LIMIT 1), 1) RETURNING id INTO v_po;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, status, currency, fx_rate, category)
+    VALUES ('ZZFIX221-PO', v_sup, v_today - 2, 'confirmed', (SELECT code FROM currencies WHERE is_base LIMIT 1), 1, 'equipment_goods') RETURNING id INTO v_po;
     INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, quantity, unit)
     VALUES (v_po, 1, v_mat, 10, 'kg') RETURNING id INTO v_pol;
     v_msg := pg_temp.f221_try(format('UPDATE inbound_batches SET purchase_order_id = %L, purchase_order_line_id = %L WHERE id = %L', v_po, v_pol, b_priced));

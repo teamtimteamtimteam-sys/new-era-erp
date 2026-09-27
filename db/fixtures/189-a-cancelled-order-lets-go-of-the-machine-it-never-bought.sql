@@ -74,7 +74,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2027-01-10', DATE '2027-03-01', v_ccy, NULL,
         NULL, NULL, 'fixture 189 first order',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
-                                             'estimated_unit_price', 100000)));
+                                             'estimated_unit_price', 100000)), p_category => 'equipment_goods');
     v_po := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO v_line FROM purchase_order_lines WHERE purchase_order_id = v_po;
     IF v_line IS NULL THEN
@@ -136,7 +136,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2027-02-10', DATE '2027-04-01', v_ccy, NULL,
         NULL, NULL, 'fixture 189 replacement order',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
-                                             'estimated_unit_price', 100000)));
+                                             'estimated_unit_price', 100000)), p_category => 'equipment_goods');
     v_po2 := (v_res->>'purchase_order_id')::uuid;
     IF v_po2 IS NULL THEN
         RAISE EXCEPTION 'FIXTURE 189C 失败:取消之后应当能为同一台机器再开一张单';
@@ -166,7 +166,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2027-03-10', DATE '2027-05-01', v_ccy, NULL,
         NULL, NULL, 'fixture 189 soft-deleted order',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset3, 'quantity', 1,
-                                             'estimated_unit_price', 90000)));
+                                             'estimated_unit_price', 90000)), p_category => 'equipment_goods');
     v_po3 := (v_res->>'purchase_order_id')::uuid;
     -- 【软删要走那扇门】purchase_orders 上挂着 guard_soft_delete_provenance:
     -- 直连 UPDATE 会被 SOFT_DELETE_NO_DIRECT_UPDATE 按名拒(本 fixture 第一版
@@ -203,7 +203,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2027-04-10', DATE '2027-06-01', v_ccy, NULL,
         NULL, NULL, 'fixture 189 injection 1 order',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset2, 'quantity', 1,
-                                             'estimated_unit_price', 80000)));
+                                             'estimated_unit_price', 80000)), p_category => 'equipment_goods');
     v_po4 := (v_res->>'purchase_order_id')::uuid;
     PERFORM cancel_purchase_order(v_po4, 'fixture 189 injection 1');
     SELECT count(*) INTO v_n
@@ -232,7 +232,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2027-05-10', DATE '2027-07-01', v_ccy, NULL,
         NULL, NULL, 'fixture 189 injection 2 order',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset2, 'quantity', 1,
-                                             'estimated_unit_price', 70000)));
+                                             'estimated_unit_price', 70000)), p_category => 'equipment_goods');
     v_po4 := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO v_line FROM purchase_order_lines WHERE purchase_order_id = v_po4;
     PERFORM cancel_purchase_order(v_po4, 'fixture 189 injection 2');

@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION public.create_purchase_order(p_supplier_id uuid, p_order_date date, p_expected_delivery date, p_currency text, p_fx_rate numeric, p_incoterm text, p_terms_text text, p_notes text, p_lines jsonb, p_payment_terms jsonb DEFAULT '[]'::jsonb, p_delivery_location text DEFAULT NULL::text)
+CREATE OR REPLACE FUNCTION public.create_purchase_order(p_supplier_id uuid, p_order_date date, p_expected_delivery date, p_currency text, p_fx_rate numeric, p_incoterm text, p_terms_text text, p_notes text, p_lines jsonb, p_payment_terms jsonb DEFAULT '[]'::jsonb, p_delivery_location text DEFAULT NULL::text, p_category text DEFAULT NULL::text)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -49,8 +49,23 @@ DECLARE
     v_kind       text;              -- 'equipment' / 'material'
     v_applicable boolean;           -- R5:这一期的里程碑用不用得上
     v_ret        jsonb;              -- R6:这条设备行的质保金(可选 —— 没有就【没有这一行】)
+    -- ── APR-10 ─────────────────────────────────────────────────────────────
+    v_raise_code text;              -- 这一类的开单码(po_category_raise_code —— 一份定义)
+    v_level      smallint;          -- 提交时的档位,只用来问"提单人之外有没有人批得动"
 BEGIN
-    PERFORM require_permission('module.purchasing.edit');
+    -- ★ APR-10(Tim 的矩阵 §6「开采购单,按品类」· grilling Q5 · Q6 · Q9):开单的门从 module.purchasing.edit
+    --   换成【这一类的开单码】—— 工厂耗材 action.raise_po_consumables(仓库)· 设备与货物 action.raise_po_equipment
+    --   (cco)· 办公用品 action.raise_po_office(财务)。品类必填、生下来就定死(Q8)。
+    --   p_category 有 DEFAULT NULL,不是因为它可选:部署之前的旧表单不送它,于是读到的是一句有名字的
+    --   PO_CATEGORY_REQUIRED(Q9),而不是一句"函数不存在"。
+    IF p_category IS NULL OR btrim(p_category) = '' THEN
+        RAISE EXCEPTION 'PO_CATEGORY_REQUIRED';
+    END IF;
+    v_raise_code := po_category_raise_code(p_category);
+    IF v_raise_code IS NULL THEN
+        RAISE EXCEPTION 'PO_CATEGORY_INVALID|%', p_category;
+    END IF;
+    PERFORM require_permission(v_raise_code);
     IF p_order_date IS NULL THEN
         RAISE EXCEPTION 'ORDER_DATE_REQUIRED';
     END IF;
@@ -87,7 +102,7 @@ BEGIN
                                  currency, fx_rate, estimated_total_ccy, status,
                                  approval_status, approved_at, approved_by,
                                  incoterm, terms_text, notes, created_by, updated_by,
-                                 delivery_location)
+                                 delivery_location, category)
     VALUES (v_po_id, v_code, p_supplier_id, v_date, p_expected_delivery,
             -- APR-2:新单【生为 draft/pending】—— 此前是 confirmed/approved,
             -- 于是"提单人发起"根本无处可放。批准把它推到 confirmed。
@@ -101,7 +116,8 @@ BEGIN
             p_incoterm, p_terms_text, p_notes, v_user, v_user,
             -- PUR-1:自由文本。空串与只有空白的输入一律收成 NULL ——
             -- 一个空串会让 PDF 那一侧画出一个空的标签,而"没填"该是【不印】。
-            NULLIF(btrim(COALESCE(p_delivery_location, '')), ''));
+            NULLIF(btrim(COALESCE(p_delivery_location, '')), ''),
+            btrim(p_category));
 
     FOR v_line IN SELECT * FROM jsonb_array_elements(p_lines)
     LOOP
@@ -348,6 +364,15 @@ BEGIN
     -- 审批生效时这是一次【提交】;未生效时没有人做过决定,记 auto_approved ——
     -- 与 APR-1 回填那三张旧单同一个词,理由也同一个:记录真实发生的事,不要把
     -- "系统直接盖章"伪装成一次人的决定。
+    -- ★ APR-10(Tim 的裁定:提单人之外没人批得动时提交就拒;关掉 ROLE1B3A-NO-OTHER-DECIDER-PO-EXPENSE 的采购单那一半):
+    --   按这张单此刻的档位问 approval_deciders(与 approve_purchase_order 同一份判据)。线上:admin@ 开 ≥ 1,000 的单,
+    --   二级只有 tim@ —— 同一个人 —— 于是拒 PO_NO_OTHER_DECIDER|<单号>。审批关着时不拒(assert_other_decider 自己判)。
+    IF v_appr_on THEN
+        v_level := approval_level_for(round(v_total * v_fx, 2));
+        PERFORM assert_other_decider('purchase_order', 'approve_purchase_order', v_level,
+                                     'PO_NO_OTHER_DECIDER|' || v_code);
+    END IF;
+
     IF v_appr_on THEN
         PERFORM record_approval_decision('purchase_order', v_po_id, 'submitted', NULL, NULL);
     ELSE
@@ -365,7 +390,8 @@ BEGIN
         'committed_line_count', v_committed,
         'term_count', v_term_count,
         'retention_count', v_retentions,
-        'order_kind', v_kind
+        'order_kind', v_kind,
+        'category', btrim(p_category)
     );
 END;
 $function$

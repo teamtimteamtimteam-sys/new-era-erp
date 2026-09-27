@@ -136,6 +136,8 @@ AS $function$
         --      pay_decision_code),而这本名册按【级】找人;决定它的那一支也不调用按级要审批人的那一支
         --      (★ 这句注释【不写】那支函数的名字:203E 按 prosrc 数它的调用方,注释也算 —— PAY-REQ-1 那一行的教训)。
         ('asset_disposal_request'::text, 'decide_asset_disposal_request'::text, 2::smallint,
+            ARRAY['module.finance.view', 'data.view_prices']::text[]),
+        ('gst_filing_request'::text, 'decide_gst_filing_request'::text, 2::smallint,
             ARRAY['module.finance.view', 'data.view_prices']::text[])
       ) AS v(subject_type, action_function, level, gate_permissions)
 $function$;

@@ -58,7 +58,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'fixture 103 material PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
-                                             'estimated_unit_price', 10)));
+                                             'estimated_unit_price', 10)), p_category => 'equipment_goods');
     po_mat := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO line_mat FROM purchase_order_lines WHERE purchase_order_id = po_mat;
 
@@ -121,7 +121,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-01-11', DATE '2025-06-01', v_ccy, NULL,
         NULL, NULL, 'fixture 103 equipment PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
-                                             'unit', 'unit', 'estimated_unit_price', 50000)));
+                                             'unit', 'unit', 'estimated_unit_price', 50000)), p_category => 'equipment_goods');
     po_eqp := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO line_eqp FROM purchase_order_lines WHERE purchase_order_id = po_eqp;
     IF line_eqp IS NULL THEN
@@ -181,7 +181,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-01-12', DATE '2025-04-01', v_ccy, NULL,
         NULL, NULL, 'fixture 103 A4 material PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 250,
-                                             'unit', 'kg', 'estimated_unit_price', 3)));
+                                             'unit', 'kg', 'estimated_unit_price', 3)), p_category => 'equipment_goods');
     po_a4 := (v_res->>'purchase_order_id')::uuid;
     SELECT count(*) INTO v_n FROM purchase_order_lines
      WHERE purchase_order_id = po_a4 AND unit = 'kg' AND quantity = 250;

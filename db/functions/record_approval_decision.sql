@@ -122,6 +122,12 @@ BEGIN
             SELECT true, r.label, r.amount_base, v_base_ccy, 1, r.amount_base, r.created_by
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base, v_raiser
               FROM asset_disposal_requests r WHERE r.id = p_subject_id;
+        -- ★ APR-10:GST 申报申请。提单人 = created_by;主角 = NULL(申报是公司的)。
+        --   【没有金额】—— 批的是一组申报数,不是一笔钱(terms_request 同形:只冻结编号,四列留空,不塞 0)。
+        --   编号:申请的 label(期间编号 · filing #n)。
+        WHEN 'gst_filing_request' THEN
+            SELECT true, r.label, r.created_by INTO v_ok, v_code, v_raiser
+              FROM gst_filing_requests r WHERE r.id = p_subject_id;
         WHEN 'expense' THEN
             SELECT true, e.code, e.amount_ccy, e.currency, e.fx_rate, e.amount_base
               INTO v_ok, v_code, v_amt, v_ccy, v_rate, v_base

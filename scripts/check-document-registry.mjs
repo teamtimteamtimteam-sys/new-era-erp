@@ -100,7 +100,9 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // 与 `asset_disposal_requests`(固定资产处置申请,财务提、CFO 批,批准当场处置),见 db/tables/ 下同名文件。
 // 两张同样【没有 code 列】(人读的名字是 label:员工编号 · salary change #n / 资产编号 · disposal #n),
 // 与 terms_requests 同一条理由不进 document_types。
-const EXPECTED_TABLES = 238
+// APR-10(2026-09-27):238 → 239。新增 `gst_filing_requests`(GST 申报申请,财务提、CFO 批数字,批准时抄快照),
+// 见 db/tables/gst_filing_requests.sql。**它没有 code 列**(label 是 <期间编号> · filing #n),与 APR-9 两张申请表同形。
+const EXPECTED_TABLES = 239
 const EXPECTED_CODE_TABLES = 76
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

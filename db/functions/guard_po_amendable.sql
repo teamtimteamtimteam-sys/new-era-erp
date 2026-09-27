@@ -18,6 +18,10 @@ BEGIN
     IF NEW.code IS DISTINCT FROM OLD.code THEN
         RAISE EXCEPTION 'PO_FIELD_IMMUTABLE|code|%', OLD.code;
     END IF;
+    -- APR-10(grilling Q8):品类生下来就定死 —— 它决定谁开、谁能改、谁能取消。要换品类:取消,重开一张。
+    IF NEW.category IS DISTINCT FROM OLD.category THEN
+        RAISE EXCEPTION 'PO_FIELD_IMMUTABLE|category|%', OLD.code;
+    END IF;
 
     -- 【状态与审批状态不走"修改"这条路】它们各有自己的转换
     -- (cancel/close/reopen、审批函数)。一个能把 approval_status 设成 approved 的

@@ -72,8 +72,8 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, size_format_code)
     VALUES ('FX169-M', 'fixture 169 pack', 'battery_material', true, 'whole_pack', 'end_of_life', 'ev_traction')
     RETURNING id INTO mat;
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX169-PO', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved') RETURNING id INTO po;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX169-PO', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved', 'equipment_goods') RETURNING id INTO po;
 
     -- 【七条各自独立的采购行 + 七条收货】(README 第 2 条:共享数据的用例会
     -- 因为错的理由通过)。每行订 1000、收 100 —— 远离 short/over 两个阈值,

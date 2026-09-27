@@ -7,22 +7,28 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import { mustRows } from '@/lib/db-helpers'
+import { mustRows, mustOne } from '@/lib/db-helpers'
 import { maskedRows } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import AmendOrderForm, { type AmendLine, type AmendTerm } from './AmendOrderForm'
-import { requireEditPermission } from '@/app/components/moduleGuard'
+import { requireModule, requireAllowed } from '@/app/components/moduleGuard'
+import { MOD } from '@/lib/modules'
 import { applicableTriggers, loadPaymentTriggerEvents, type OrderKind } from '@/lib/paymentTriggers'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 
 export default async function AmendOrderPage({ params }: { params: Promise<{ id: string }> }) {
     const locale = await getLocale()
-    const denied = await requireEditPermission('module.purchasing.edit', 'nav.purchasing')
-    if (denied) return denied
+    // ★ APR-10(Tim 的 Q7):改单 = 开单人本人,或持这张单那一类开单码的人(po_may_manage,库里一份判据)。
+    //   先问模块(看得见这张单吗),再问这张单(改得动吗)。
+    const deniedModule = await requireModule(MOD.purchasing)
+    if (deniedModule) return deniedModule
 
     const { id } = await params
     const supabase = await createClient()
+    const denied = requireAllowed(
+        mustOne(await supabase.rpc('po_may_manage', { p_purchase_order_id: id })) === true, 'nav.purchasing')
+    if (denied) return denied
     const t = await getTranslations()
 
     const { data: po } = await supabase

@@ -41,7 +41,7 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-35-req', 'f', 'f', true) RETURNING id INTO r_req;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_req, unnest(ARRAY['module.purchasing.edit','module.purchasing.view',
+    SELECT r_req, unnest(ARRAY['module.purchasing.edit','module.purchasing.view','action.raise_po_equipment',
                                'module.inbound.edit','module.inbound.view','module.finance.edit']);
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-35-approver', 'f', 'f', true) RETURNING id INTO r_l1;
@@ -55,7 +55,7 @@ BEGIN
     --   ☞ 这不是把本支的范围扩大了:它要的前提一直是"审批开得起来",
     --     而那个前提的内容随着引擎接上的链一起长。
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_l1, unnest(ARRAY['module.purchasing.view','module.purchasing.edit','data.view_prices', 'data.view_purchase_prices',
+    SELECT r_l1, unnest(ARRAY['module.purchasing.view','module.purchasing.edit','action.raise_po_equipment','data.view_prices', 'data.view_purchase_prices',
                               'module.finance.view']);
     -- CHAIN-BUILD-1(R1):二级也是一个【角色】。**它与一级是两个不同的角色** ——
     -- R2 说得很死:加第二个审批人是【分工】,不是【互为代理】。
@@ -132,7 +132,7 @@ BEGIN
     v_lines := jsonb_build_array(jsonb_build_object(
         'line_no', 1, 'material_id', v_mat, 'quantity', 10, 'estimated_unit_price', 100));
     po_small := (create_purchase_order(v_sup, '2027-03-03'::date, NULL, v_base, NULL,
-                                       NULL, NULL, NULL, v_lines, NULL)->>'purchase_order_id')::uuid;
+                                       NULL, NULL, NULL, v_lines, NULL, p_category => 'equipment_goods')->>'purchase_order_id')::uuid;
 
     -- 【生效时必须生为 draft/pending】—— 这一条要单独断言。少了它,一个"开关打开也
     -- 照样直接盖章"的实现只会以别的错误偶然被逮到,而不是被点名;写这一臂时实测过。
@@ -171,7 +171,7 @@ BEGIN
     v_lines := jsonb_build_array(jsonb_build_object(
         'line_no', 1, 'material_id', v_mat, 'quantity', 8000, 'estimated_unit_price', 1));
     po_fx := (create_purchase_order(v_sup, '2027-03-03'::date, NULL, v_fgn, NULL,
-                                    NULL, NULL, NULL, v_lines, NULL)->>'purchase_order_id')::uuid;
+                                    NULL, NULL, NULL, v_lines, NULL, p_category => 'equipment_goods')->>'purchase_order_id')::uuid;
 
     -- 一级审批人来批 → 必须被拒(它其实是二级)
     PERFORM set_config('request.jwt.claims',
@@ -203,7 +203,7 @@ BEGIN
     v_lines := jsonb_build_array(jsonb_build_object(
         'line_no', 1, 'material_id', v_mat, 'quantity', 5, 'estimated_unit_price', 100));
     po_big := (create_purchase_order(v_sup, '2027-03-03'::date, NULL, v_base, NULL,
-                                     NULL, NULL, NULL, v_lines, NULL)->>'purchase_order_id')::uuid;
+                                     NULL, NULL, NULL, v_lines, NULL, p_category => 'equipment_goods')->>'purchase_order_id')::uuid;
     -- 提单人恰好也持有审批角色时,把关的就只剩四眼这一条 —— 所以要单独测
     INSERT INTO user_roles (user_id, role_id) VALUES (u_req, r_l1);
     v_denied := false;
@@ -283,7 +283,7 @@ BEGIN
     v_lines := jsonb_build_array(jsonb_build_object(
         'line_no', 1, 'material_id', v_mat, 'quantity', 3, 'estimated_unit_price', 100));
     po_small := (create_purchase_order(v_sup, '2027-03-03'::date, NULL, v_base, NULL,
-                                       NULL, NULL, NULL, v_lines, NULL)->>'purchase_order_id')::uuid;
+                                       NULL, NULL, NULL, v_lines, NULL, p_category => 'equipment_goods')->>'purchase_order_id')::uuid;
 
     IF (SELECT approval_status FROM purchase_orders WHERE id = po_small) <> 'approved'
        OR (SELECT status FROM purchase_orders WHERE id = po_small) <> 'confirmed' THEN

@@ -137,3 +137,13 @@ export async function requireEditPermission(permission: string, titleKey: string
     if (await canEnter(permission)) return null
     return refusal(titleKey, 'common.editDenied', 'common.editDeniedHint')
 }
+
+/**
+ * ★ APR-10(Tim 的 grilling Q7):写的那一半,当判据【不是一个码】的时候。
+ * 采购单的改 / 取消 / 关闭 / 重开 = 开单人本人,或持这张单那一类开单码的人 —— 答案由库给
+ * (po_may_manage),页面把那个布尔传进来。措辞与 requireEditPermission 相同(看得见、存不下)。
+ */
+export function requireAllowed(allowed: boolean, titleKey: string) {
+    if (allowed) return null
+    return refusal(titleKey, 'common.editDenied', 'common.editDeniedHint')
+}

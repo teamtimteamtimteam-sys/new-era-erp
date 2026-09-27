@@ -56,7 +56,7 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     ('module.pricing.view', 'module', 'Pricing (view)', '定价(查看)', 'Pricing formulas, calculator, metal prices — read only', '定价公式、计价器与金属行情 —— 只读', 40),
     ('module.pricing.edit', 'module', 'Pricing (edit)', '定价(编辑)', 'Pricing formulas — create, change, remove. Metal prices moved to their own action code.', '定价公式 —— 新建、修改、删除。金属行情已移到它自己的动作码。', 41),
     ('module.purchasing.view', 'module', 'Purchasing (view)', '采购(查看)', 'Purchase orders and payment schedules — read only', '采购单与付款计划 —— 只读', 50),
-    ('module.purchasing.edit', 'module', 'Purchasing (edit)', '采购(编辑)', 'Purchase orders and payment schedules — create, change, remove', '采购单与付款计划 —— 新建、修改、删除', 51),
+    ('module.purchasing.edit', 'module', 'Purchasing (edit)', '采购(编辑)', 'Record supplier issues against purchase orders and set expected payment dates. Raising a PO needs its category''s raise code; amending, cancelling, closing and reopening one belong to its raiser or a holder of that code.', '在采购单上记供应商问题、设付款预计日期。开单要这一类的开单码;改、取消、关闭、重开归开单人或持这一类码的人。', 51),
     ('module.inbound.view', 'module', 'Inbound (view)', '进料(查看)', 'Inbound batches and receiving — read only', '进料批次与收货 —— 只读', 60),
     ('module.inbound.edit', 'module', 'Inbound (edit)', '进料(编辑)', 'Inbound batches and receiving — create, change, remove', '进料批次与收货 —— 新建、修改、删除', 61),
     ('module.output.view', 'module', 'Output (view)', '产出(查看)', 'Output batches and sales — read only', '产出批次与销售 —— 只读', 70),
@@ -152,4 +152,9 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     -- ★ APR-5b(Tim 2026-09-25,APR-5 grilling Q4 · Q7;5b grilling Q1–Q12):发货前 CFO 放行,仓库照放行发货。
     --   提放行归 cco(action.request_shipping_release);发货与发货单开具归仓库(action.ship_goods),cco 从此不发货。
     ('action.request_shipping_release', 'action', 'Request shipping releases', '提发货放行', 'Ask the CFO to release an order''s invoiced lines for shipping. Approval is the release; the warehouse then ships against it. Nobody decides a release they raised.', '请 CFO 放行一张订单已开票的行。批准就是放行,之后仓库照它发货。没有人能批自己提的放行。', 1150),
-    ('action.ship_goods', 'action', 'Ship goods', '发货', 'Ship released order lines from the warehouse shipping queue, and issue the delivery note. Shipping shows no prices; the revenue is posted by the system.', '在仓库发货队列里发出已放行的订单行,并开具发货单。发货看不见价格;收入由系统过账。', 1160);
+    ('action.ship_goods', 'action', 'Ship goods', '发货', 'Ship released order lines from the warehouse shipping queue, and issue the delivery note. Shipping shows no prices; the revenue is posted by the system.', '在仓库发货队列里发出已放行的订单行,并开具发货单。发货看不见价格;收入由系统过账。', 1160),
+    -- ── APR-10(2026-09-27,Tim 的矩阵 §6「开采购单,按品类」· grilling Q6)──────────────
+    -- 每类一个开单码;module.purchasing.edit 不再开单。改 / 取消 / 关闭 / 重开 = 开单人本人或持这一类码的人(Q7)。
+    ('action.raise_po_consumables', 'action', 'Raise factory-consumables POs', '开工厂耗材采购单', 'Raise a purchase order in the factory-consumables category. Whoever raised a PO, or anyone who holds its category''s raise code, may amend, cancel, close or reopen it. Approval tiers are unchanged.', '开一张「工厂耗材」类的采购单。一张单的开单人,或持这一类开单码的人,能改、取消、关闭、重开它。分级审批不变。', 1170),
+    ('action.raise_po_equipment', 'action', 'Raise equipment-and-goods POs', '开设备与货物采购单', 'Raise a purchase order in the equipment-and-goods category — equipment, and the battery material the company buys to process. Whoever raised a PO, or anyone who holds its category''s raise code, may amend, cancel, close or reopen it. Approval tiers are unchanged.', '开一张「设备与货物」类的采购单 —— 设备,以及公司买来加工的电池料。一张单的开单人,或持这一类开单码的人,能改、取消、关闭、重开它。分级审批不变。', 1180),
+    ('action.raise_po_office', 'action', 'Raise office-supplies POs', '开办公用品采购单', 'Raise a purchase order in the office-supplies category. Whoever raised a PO, or anyone who holds its category''s raise code, may amend, cancel, close or reopen it. Approval tiers are unchanged.', '开一张「办公用品」类的采购单。一张单的开单人,或持这一类开单码的人,能改、取消、关闭、重开它。分级审批不变。', 1190);

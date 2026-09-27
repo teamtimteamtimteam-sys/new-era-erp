@@ -40,6 +40,8 @@ type Readiness = {
         pending: number
         blocks_disable: boolean
         amount_unknown: number
+        /** ★ APR-10:这条链按【人】路由(不在按级的名册里、没有固定档位)—— 今天只有调薪申请 */
+        routed_by_person: boolean
     }[]
     pending_blocking_disable: number
     // ★ APR-2:逐条"这条链有几个人批得动"。**一个数,不是一个布尔** ——
@@ -315,6 +317,12 @@ export default async function ApprovalsPanel({ r }: { r: Readiness }) {
                                 )}
                                 {/* ★ 分不出档的那些单独说 —— 把它们混进计数里读成零,
                                     就是把"我不知道"说成"没有" */}
+                                {/* ★ APR-10:按人路由的链(调薪)说它自己的话 —— 它从来不按金额分档 */}
+                                {c.routed_by_person && (
+                                    <span className="ml-1 text-[color:var(--brand-muted-text)]">
+                                        {t('finance.approvals.pendingByPerson')}
+                                    </span>
+                                )}
                                 {c.amount_unknown > 0 && (
                                     <span className="ml-1 text-amber-800">
                                         {t('finance.approvals.pendingUnknownAmount', {

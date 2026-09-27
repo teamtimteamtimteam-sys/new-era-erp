@@ -195,8 +195,10 @@ BEGIN
     -- ★ APR-9(2026-09-27):十一 → 十二 —— 处置申请同样只有二级一行、没有自批例外;u_l2 持它的门
     --   (module.finance.view + data.view_prices,与仓库申请同一对),于是同一条。同一刀的调薪申请【不在】
     --   名册里(按人路由),所以不进这个数。
-    IF v_n <> 12 THEN
-        RAISE EXCEPTION 'FIXTURE 205R4a 失败:二级十二条链应当各点名 u_l2 一次,实得 %;全部 = %', v_n, v_read->'own_document_gaps'; END IF;
+    -- ★ APR-10(2026-09-27):十二 → 十三 —— GST 申报申请同样只有二级一行、没有自批例外;u_l2 持它的门
+    --   (module.finance.view + data.view_prices,与处置申请同一对),于是同一条。
+    IF v_n <> 13 THEN
+        RAISE EXCEPTION 'FIXTURE 205R4a 失败:二级十三条链应当各点名 u_l2 一次,实得 %;全部 = %', v_n, v_read->'own_document_gaps'; END IF;
     -- 一级一格都没有:R1 让二级的人替一级持有人批,一级持有人也替二级持有人的一级单批
     SELECT count(*) INTO v_n FROM jsonb_array_elements(v_read->'own_document_gaps') g WHERE (g->>'level')::int = 1;
     IF v_n <> 0 THEN

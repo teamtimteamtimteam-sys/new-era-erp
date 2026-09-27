@@ -143,8 +143,8 @@ BEGIN
     VALUES (v_run, 'electricity', 100, now(), now());
 
     -- ── po_awaiting_receipt / stocktake_open ────────────────────────────────
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status)
-    VALUES ('ZZFIX47-PO', v_sup, CURRENT_DATE - 20, v_ccy, 1, 'confirmed') RETURNING id INTO v_po;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, category)
+    VALUES ('ZZFIX47-PO', v_sup, CURRENT_DATE - 20, v_ccy, 1, 'confirmed', 'equipment_goods') RETURNING id INTO v_po;
     INSERT INTO stocktakes (code) VALUES ('ZZFIX47-ST') RETURNING id INTO v_st;
 
     -- ── HR 三支 ─────────────────────────────────────────────────────────────

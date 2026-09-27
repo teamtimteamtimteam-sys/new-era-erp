@@ -90,7 +90,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'fixture 105 material PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
-                                             'estimated_unit_price', 10)));
+                                             'estimated_unit_price', 10)), p_category => 'equipment_goods');
     v_po := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO v_line_mat FROM purchase_order_lines WHERE purchase_order_id = v_po;
     PERFORM receive_inbound_batch_against_po(v_mat, v_sup, 40, DATE '2025-02-01',
@@ -120,7 +120,7 @@ BEGIN
     v_res := create_purchase_order(v_sup2, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'fixture 105 equipment PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
-                                             'estimated_unit_price', 100000)));
+                                             'estimated_unit_price', 100000)), p_category => 'equipment_goods');
     v_po := (v_res->>'purchase_order_id')::uuid;
     SELECT id, estimated_amount_ccy INTO v_line, v_est
       FROM purchase_order_lines WHERE purchase_order_id = v_po;
@@ -304,7 +304,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'f5-1 PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
-                                             'estimated_unit_price', 100)));
+                                             'estimated_unit_price', 100)), p_category => 'equipment_goods');
     SELECT id INTO v_line FROM purchase_order_lines
      WHERE purchase_order_id = (v_res->>'purchase_order_id')::uuid;
     v_denied := false; v_msg := NULL;
@@ -341,7 +341,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'f5-3 PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
-                                             'estimated_unit_price', 100)));
+                                             'estimated_unit_price', 100)), p_category => 'equipment_goods');
     v_po := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO v_line FROM purchase_order_lines WHERE purchase_order_id = v_po;
     -- 【前提要自己设成需要的样子】审批状态不走"修改"那条路(guard_po_amendable),
@@ -369,7 +369,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'f5-4 PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
-                                             'estimated_unit_price', 100)));
+                                             'estimated_unit_price', 100)), p_category => 'equipment_goods');
     v_po := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO v_line FROM purchase_order_lines WHERE purchase_order_id = v_po;
     PERFORM cancel_purchase_order(v_po, 'fixture 105 cancels it');
@@ -393,7 +393,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'f5-5 PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
-                                             'estimated_unit_price', 100)));
+                                             'estimated_unit_price', 100)), p_category => 'equipment_goods');
     v_po := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO v_line FROM purchase_order_lines WHERE purchase_order_id = v_po;
     -- 软删要走门(guard_soft_delete_provenance:直连 UPDATE 一律拒,且不许留空)。
@@ -426,7 +426,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'f6 PO',
         jsonb_build_array(jsonb_build_object('asset_id', v_asset, 'quantity', 1,
-                                             'estimated_unit_price', 100)));
+                                             'estimated_unit_price', 100)), p_category => 'equipment_goods');
     v_po := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO v_line FROM purchase_order_lines WHERE purchase_order_id = v_po;
     v_res := record_expense(DATE '2025-02-05', '1500', 100, v_ccy, NULL, 'unpaid', NULL,

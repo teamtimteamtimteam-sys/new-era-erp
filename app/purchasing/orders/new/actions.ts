@@ -78,6 +78,8 @@ export async function createOrder(
     const deliveryLocation = String(formData.get('delivery_location') ?? '').trim()
     const notes = String(formData.get('notes') ?? '').trim()
     const termsText = String(formData.get('terms_text') ?? '').trim()
+    // ★ APR-10:品类。空就【不传】,由库那条具名拒绝答话(PO_CATEGORY_REQUIRED)—— 不在这里判第二遍。
+    const category = String(formData.get('category') ?? '').trim()
 
     if (!supplierId) return { error: t('purchasing.errors.SUPPLIER_NOT_FOUND', { 0: '?' }) }
     if (!orderDate || Number.isNaN(Date.parse(orderDate))) return { error: t('finance.errDate') }
@@ -201,6 +203,7 @@ export async function createOrder(
         p_lines: lines as unknown as import('@/lib/database.types').Json,
         p_payment_terms: terms,
         p_delivery_location: (deliveryLocation || null) as unknown as string,
+        ...(category ? { p_category: category } : {}),
     })
 
     if (error) {

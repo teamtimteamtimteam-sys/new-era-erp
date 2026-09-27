@@ -60,8 +60,8 @@ BEGIN
     INSERT INTO output_batches (code, material_id, quantity, unit, remaining_qty, output_date)
     VALUES ('FX84-OUT', mat, 3, 'kg', 0, '2026-05-01') RETURNING id INTO ob;
     -- 采购单:【零明细】—— AUDEL-0 实测正是这一形状删得掉(1 行)
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX84-PO', sup, '2026-05-01', 'USD', 1.3, 'draft', 'pending') RETURNING id INTO po;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX84-PO', sup, '2026-05-01', 'USD', 1.3, 'draft', 'pending', 'equipment_goods') RETURNING id INTO po;
     -- G 臂专用:一个【有货】的进料批 + 配套台账行。
     -- 【为什么不能复用上面那个】上面那个 remaining_qty = 0,而 writeoff 写的是
     -- OLD.remaining_qty —— 零数量的流水行会撞上 qty_delta <> 0 那条 CHECK,

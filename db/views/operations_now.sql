@@ -30,6 +30,9 @@
 --   salary_change_pending —— 等批的调薪申请(data.view_pay:看得见工资的人 —— 财务、CFO、cco;谁能批由
 --   decide_salary_change_request 按人裁)。★ item_id 是【员工】的 id:申请住在那个人的档案页
 --   (/hr/employees/<id>#salary-requests);item_code 是 label,subject 是提单人的理由。月薪数不进这张视图。
+-- ★ APR-10(2026-09-27):加一支 gst_filing_pending —— 等 CFO 批的 GST 申报申请(module.finance.view:与
+--   decide_gst_filing_request 的门同一个码)。★ item_id 是【期间】的 id:申请住在那一期的页面上
+--   (/finance/gst/<id>#gst-filing);item_code 是 label,subject 是提单人的附言(可空)。
 --
 -- 【为什么是一张视图而不是九个页面各查各的】仪表盘的每一块牌子背后都是"有多少件
 -- 事在等"这一类问题;九个问题九处写,就是九份会各自漂移的实现。hr_alerts 已经证明
@@ -688,6 +691,16 @@ CREATE VIEW public.operations_now AS
             sq.created_at::date AS item_date
            FROM salary_change_requests sq
           WHERE sq.status = 'submitted'::text
+        UNION ALL
+         SELECT 'gst_filing_pending'::text AS item_type,
+            'module.finance.view'::text AS permission,
+            gq.period_id AS item_id,
+            NULL::text AS doc_kind,
+            gq.label AS item_code,
+            gq.note AS subject,
+            gq.created_at::date AS item_date
+           FROM gst_filing_requests gq
+          WHERE gq.status = 'submitted'::text
         UNION ALL
          SELECT 'shipping_release_ready'::text AS item_type,
             'action.ship_goods'::text AS permission,

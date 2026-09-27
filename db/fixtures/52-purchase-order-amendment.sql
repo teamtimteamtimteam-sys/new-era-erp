@@ -38,7 +38,7 @@ BEGIN
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-52', 'f', 'f', true) RETURNING id INTO r_all;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_all, unnest(ARRAY['module.purchasing.view','module.purchasing.edit',
+    SELECT r_all, unnest(ARRAY['module.purchasing.view','module.purchasing.edit','action.raise_po_equipment',
         'module.inbound.view','module.inbound.edit','module.finance.view','data.view_prices', 'data.view_purchase_prices',
         -- ★ APR-5b:发货放行这条链的门(module.sales.view + data.view_prices),否则开不了审批
         'module.sales.view']);
@@ -63,7 +63,7 @@ BEGIN
 
     -- ══════════ A. 已收下限:砍到已收之下拒,等于已收放行(边界在内)═══════════
     v_po := (create_purchase_order(v_sup, DATE '2027-03-01', NULL, v_ccy, NULL, NULL, NULL, NULL,
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000, 'estimated_unit_price', 10)), NULL)->>'purchase_order_id')::uuid;
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000, 'estimated_unit_price', 10)), NULL, p_category => 'equipment_goods')->>'purchase_order_id')::uuid;
     SELECT id INTO v_line FROM purchase_order_lines WHERE purchase_order_id = v_po;
     -- 收 400
     INSERT INTO inbound_batches (code, material_id, supplier_id, quantity, remaining_qty,
@@ -111,10 +111,13 @@ BEGIN
     END IF;
 
     -- ══════════ C. 身份字段:【走直连的 UPDATE】,证明守卫是触发器 ════════════
-    -- 【这一臂故意不走 RPC】RLS 今天就允许 module.purchasing.edit 的人直接 UPDATE。
+    -- 【这一臂故意不走 RPC】RLS 当年允许 module.purchasing.edit 的人直接 UPDATE。
     -- 守卫若只写在 amend_purchase_order 里,这一臂会全部放行 —— 而那正是 PUR-2
     -- 之前的真实状态:商业字段只是够不着,不是被保护。
-    EXECUTE 'SET LOCAL ROLE authenticated';
+    -- ★ APR-10:采购单从此【没有直连写】(guard_po_direct_write,authenticated 一律 PO_THROUGH_FUNCTION_ONLY,
+    --   fixture 229 钉那一句)。于是这一臂改以【属主】直写 —— 行级守卫挡的正是属主路径(十五支 DEFINER 写入函数),
+    --   它仍然必须按字段名拒;以 authenticated 直写已经到不了行级守卫。
+    -- APR-10:属主路径直写(见本臂抬头)
     v_denied := false;
     BEGIN UPDATE purchase_orders SET supplier_id = v_sup2 WHERE id = v_po;
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
@@ -125,7 +128,7 @@ BEGIN
             v_denied, COALESCE(v_msg, '(改成功了)');
     END IF;
 
-    EXECUTE 'SET LOCAL ROLE authenticated';
+    -- APR-10:属主路径直写(见本臂抬头)
     v_denied := false; v_msg := NULL;
     BEGIN UPDATE purchase_orders SET currency = 'USD' WHERE id = v_po;
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
@@ -136,7 +139,7 @@ BEGIN
     END IF;
 
     -- 审批状态不走"修改"这条路 —— 【要真的改变它】才测得到(approved → pending)
-    EXECUTE 'SET LOCAL ROLE authenticated';
+    -- APR-10:属主路径直写(见本臂抬头)
     v_denied := false; v_msg := NULL;
     BEGIN UPDATE purchase_orders SET approval_status = 'pending' WHERE id = v_po;
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
@@ -152,7 +155,7 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 52C 失败:close_purchase_order 应当仍然可用 —— 守卫挡的是"经修改改状态",不是状态转换本身';
     END IF;
     -- 【标记用完即清】跑过状态 RPC 之后,直连改状态必须仍然被挡
-    EXECUTE 'SET LOCAL ROLE authenticated';
+    -- APR-10:属主路径直写(见本臂抬头)
     v_denied := false; v_msg := NULL;
     BEGIN UPDATE purchase_orders SET status = 'cancelled' WHERE id = v_po;
     EXCEPTION WHEN OTHERS THEN v_msg := SQLERRM; v_denied := true;
@@ -189,7 +192,7 @@ BEGIN
         approval_level2_role_code = 'fixture-52';
 
     v_po := (create_purchase_order(v_sup, DATE '2027-04-01', NULL, v_ccy, NULL, NULL, NULL, NULL,
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'estimated_unit_price', 50)), NULL)->>'purchase_order_id')::uuid;
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'estimated_unit_price', 50)), NULL, p_category => 'equipment_goods')->>'purchase_order_id')::uuid;
     SELECT id INTO v_line FROM purchase_order_lines WHERE purchase_order_id = v_po;
     -- 5,000:阈值之下。先让它成为 approved —— 【由另一个人批】(四眼规则)
     IF (SELECT approval_status FROM purchase_orders WHERE id = v_po) = 'pending' THEN
@@ -243,7 +246,7 @@ BEGIN
     VALUES ('ZZFIX52-PF', 'fixture 52 formula', 'both', 'spot', 100, 5) RETURNING id INTO v_formula;
     INSERT INTO pricing_formula_metals (formula_id, metal, payable_pct) VALUES (v_formula, 'cu', 70);
     v_po_term := (create_purchase_order(v_sup, DATE '2027-05-01', NULL, v_ccy, NULL, NULL, NULL, NULL,
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'pricing_formula_id', v_formula)), NULL)->>'purchase_order_id')::uuid;
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'pricing_formula_id', v_formula)), NULL, p_category => 'equipment_goods')->>'purchase_order_id')::uuid;
     SELECT id INTO v_line_term FROM purchase_order_lines WHERE purchase_order_id = v_po_term;
     SELECT to_jsonb(c) INTO v_commit_before FROM pricing_term_commitments c
      WHERE c.purchase_order_line_id = v_line_term;
@@ -262,7 +265,7 @@ BEGIN
     -- ══════════ F. 定额腿拒绝 / 比例腿跟着走 ═════════════════════════════════
     -- 定额:订单 1,000(100 × 10),计划一条定额 1,000
     v_po_fixed := (create_purchase_order(v_sup, DATE '2027-06-01', NULL, v_ccy, NULL, NULL, NULL, NULL,
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'estimated_unit_price', 10)), jsonb_build_array(jsonb_build_object('seq', 1, 'label', '定金', 'fixed_amount_ccy', 1000, 'trigger_event', 'on_order')))->>'purchase_order_id')::uuid;
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'estimated_unit_price', 10)), jsonb_build_array(jsonb_build_object('seq', 1, 'label', '定金', 'fixed_amount_ccy', 1000, 'trigger_event', 'on_order')), p_category => 'equipment_goods')->>'purchase_order_id')::uuid;
     SELECT id INTO v_line_fixed FROM purchase_order_lines WHERE purchase_order_id = v_po_fixed;
     v_denied := false; v_msg := NULL;
     BEGIN
@@ -277,7 +280,7 @@ BEGIN
 
     -- 比例:同样的修改,按构造跟着走 —— 不该拒
     v_po_pct := (create_purchase_order(v_sup, DATE '2027-06-02', NULL, v_ccy, NULL, NULL, NULL, NULL,
-        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'estimated_unit_price', 10)), jsonb_build_array(jsonb_build_object('seq', 1, 'label', '定金', 'percentage', 100, 'trigger_event', 'on_order')))->>'purchase_order_id')::uuid;
+        jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100, 'estimated_unit_price', 10)), jsonb_build_array(jsonb_build_object('seq', 1, 'label', '定金', 'percentage', 100, 'trigger_event', 'on_order')), p_category => 'equipment_goods')->>'purchase_order_id')::uuid;
     SELECT id INTO v_line_pct FROM purchase_order_lines WHERE purchase_order_id = v_po_pct;
     PERFORM amend_purchase_order(v_po_pct, '同样的修改,比例计划', NULL,
         jsonb_build_array(jsonb_build_object('id', v_line_pct, 'quantity', 80)));

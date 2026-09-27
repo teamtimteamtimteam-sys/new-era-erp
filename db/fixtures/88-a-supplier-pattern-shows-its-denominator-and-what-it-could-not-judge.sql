@@ -81,8 +81,8 @@ BEGIN
         RAISE EXCEPTION 'FIXTURE 88 无效:视图没有返回可用的 window_days(实得 %)', v_win;
     END IF;
 
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX88-PO1', sup_1of5, CURRENT_DATE, 'USD', 1.3, 'receiving', 'approved') RETURNING id INTO po_1;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX88-PO1', sup_1of5, CURRENT_DATE, 'USD', 1.3, 'receiving', 'approved', 'equipment_goods') RETURNING id INTO po_1;
 
     FOR n IN 1..5 LOOP
         INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, quantity, unit)
@@ -119,8 +119,8 @@ BEGIN
     -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
     INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
     VALUES ('active', 'FX88-S4', 'fixture 88 supplier 4of5', 'SG', 'goods_supplier') RETURNING id INTO sup_4of5;
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX88-PO4', sup_4of5, CURRENT_DATE, 'USD', 1.3, 'receiving', 'approved') RETURNING id INTO po_4;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX88-PO4', sup_4of5, CURRENT_DATE, 'USD', 1.3, 'receiving', 'approved', 'equipment_goods') RETURNING id INTO po_4;
 
     FOR n IN 1..5 LOOP
         INSERT INTO purchase_order_lines (purchase_order_id, line_no, material_id, quantity, unit)
@@ -274,8 +274,8 @@ BEGIN
     -- 属主路径直接生成 active —— 直连 INSERT 必须是 draft 那条只管客户端会话。
     INSERT INTO suppliers (status, code, legal_name, country, counterparty_type)
     VALUES ('active', 'FX88-SW', 'fixture 88 supplier window', 'SG', 'goods_supplier') RETURNING id INTO sup_win;
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX88-POW', sup_win, CURRENT_DATE - v_win - 5, 'USD', 1.3, 'receiving', 'approved')
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX88-POW', sup_win, CURRENT_DATE - v_win - 5, 'USD', 1.3, 'receiving', 'approved', 'equipment_goods')
     RETURNING id INTO po_win;
 
     -- 三条:窗口内一天 / 边界当天 / 窗口外一天,各自一条采购行

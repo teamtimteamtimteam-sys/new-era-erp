@@ -1,6 +1,7 @@
 // app/purchasing/orders/new/page.tsx
 // 新建采购单(服务端壳):在册供应商(含默认付款条款模板)/ 在册物料 / 启用的采购向
 // 计价公式 / 启用的付款条款模板(带行,供客户端套用与供应商默认自动带出)。
+import { loadPoCategoryAccess } from '@/lib/poCategoryAccess'
 import Link from 'next/link'
 import { type PaymentTriggerEvent } from '@/lib/paymentTriggers'
 import { getBaseCurrency } from '@/lib/currency'
@@ -26,7 +27,10 @@ export default async function NewOrderPage() {
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.purchasing)
     if (denied) return denied
-    const canEditGate = await can('module.purchasing.edit')
+    // ★ APR-10(Tim 的 Q6):开单的门从 module.purchasing.edit 换成【这一类的开单码】。品类 → 码那一份定义在库里
+    //   (po_category_raise_code),这里向它要,不抄第二份;持任何一类的码就进得了表单,缺码的那一类看得见、选不了。
+    const { codes: categoryCodes, allowed: categoryAllowed, any: canEditGate } =
+        await loadPoCategoryAccess(await createClient())
 
     const supabase = await createClient()
     // PROC-4:物质清单从 substances 那张字典读(清单与顺序都由它定)。
@@ -245,6 +249,8 @@ export default async function NewOrderPage() {
             </div>
             <h1 className="mb-4">{t('purchasing.newOrder')}</h1>
             <NewOrderForm canEdit={canEditGate}
+                categoryAllowed={categoryAllowed}
+                categoryCodes={categoryCodes}
                 substanceOptions={substanceOptions}
                 baseCurrency={baseCurrency}
                 suppliers={suppliers}

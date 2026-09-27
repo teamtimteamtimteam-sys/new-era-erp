@@ -790,6 +790,12 @@ const MANIFEST = {
     'salaryChange.selfBlock.': { kind: 'enum', values: () => ['raiser', 'subject'] },
     'assetDisposal.status.':   { kind: 'enum', values: () => sqlEnum('db/tables/asset_disposal_requests.sql', 'status') },
     'assetDisposal.errors.':   { kind: 'enum', values: () => tsSet('app/finance/assets/disposalRequestErrorCodes.ts', 'DISPOSAL_REQUEST_ERROR_CODES') },
+    // APR-10:GST 申报申请的状态(表的 CHECK)· 期间在登记簿上的四种状态(GstPeriodsTable 的 statusKey 联合)·
+    //   采购单的三个品类(purchase_orders.category 的 CHECK)
+    'gstFiling.status.':       { kind: 'enum', values: () => sqlEnum('db/tables/gst_filing_requests.sql', 'status') },
+    'gstFiling.periodStatus.': { kind: 'enum', values: () => tsRegex('app/finance/gst/GstPeriodsTable.tsx',
+                                  /statusKey: '(\w+)' \| '(\w+)' \| '(\w+)' \| '(\w+)'/g) },
+    'poCategory.name.':        { kind: 'enum', values: () => sqlEnum('db/tables/purchase_orders.sql', 'category') },
     // APR-6:凭证页上冲销钮灰掉时的那一句,按 source_type 取。真源是 journal_entry_reversal_route 的函数体 ——
     //   它认作 'source_path' 的那组 source_type(IN 列表)加上 'payroll'(工资的过账分录另有一支判据)。
     //   函数里多认一种、这里就多要一句;解析出 0 个是"解析器坏了",不是"没有"。

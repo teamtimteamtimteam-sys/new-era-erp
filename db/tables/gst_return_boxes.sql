@@ -14,7 +14,8 @@
 --   报 GST_RETURN_IMMUTABLE|box。想改数字,走 correct_gst_return —— 更正是
 --   一个新事件。
 --
--- 写入只走 file_gst_return / correct_gst_return(SECURITY DEFINER);
+-- 写入只走 SECURITY DEFINER 函数(APR-10 起:decide_gst_filing_request 批准时写,见 gst_filing_requests.sql;
+-- 当年是 file_gst_return,它现在只会按名拒);
 -- 这里只开 SELECT。
 --
 -- NOTE: introduced by db/migrations/2026-08-24-gst1-tax-codes-f5-and-filing-periods.sql.

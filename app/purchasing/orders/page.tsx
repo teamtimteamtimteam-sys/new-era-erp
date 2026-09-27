@@ -8,6 +8,8 @@
 // CCY-1:这张表里【并排两种币】——「估算总额」是采购单自己的币种(po.currency),
 // 「已预付」与那个未抵扣角标是本位币(*_base)。列头一个币种也没写,两列挨着,
 // 于是 12,000 与 8,100 看着像同一种钱。两列各自带上币种,不省。
+import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { loadPoCategoryAccess } from '@/lib/poCategoryAccess'
 import { Button } from '@/app/components/ui/button'
 import { Suspense } from 'react'
 import Link from 'next/link'
@@ -197,13 +199,22 @@ export default async function PurchaseOrdersPage({
         receiptPct: r.receipt_pct,
     }))
 
+    const poAccess = await loadPoCategoryAccess(supabase)
+
     return (
         <ListPage
             title={t('purchasing.ordersTitle')}
             actions={
-                <Button asChild>
-                    <Link href="/purchasing/orders/new">{t('purchasing.newOrder')}</Link>
-                </Button>
+                /* ★ APR-10(Q6):开单要某一类的开单码 —— 一类都不持的人看得见这颗钮、按不动、说出码 */
+                poAccess.any ? (
+                    <Button asChild>
+                        <Link href="/purchasing/orders/new">{t('purchasing.newOrder')}</Link>
+                    </Button>
+                ) : (
+                    <PermissionGate code={Object.values(poAccess.codes).join(' · ')} allowed={false} inline>
+                        <Button disabled>{t('purchasing.newOrder')}</Button>
+                    </PermissionGate>
+                )
             }
             state={{ kind: 'ok' }}
         >

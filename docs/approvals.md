@@ -1866,6 +1866,43 @@ No new permission code, so the "new codes also go to admin" ruling granted nothi
 own-document-gap count 11 → 12; 16 · 107 · 108 · 201 call `dispose_fixed_asset_internal`; 228 pins both lifecycles and the review
 door (A–L, two fault injections).
 
+## 3w · APR-10 (2026-09-27) — a GST return waits for the CFO's approval of its figures; purchase orders are raised by category
+
+**Tim's matrix (`docs/role-matrix.md` §2 GST filing · §6 raising, amending, cancelling, closing a PO).** Handback: `docs/handbacks/APR-10.md`.
+
+**GST filing — `gst_filing_requests`, one chain, level 2, APR-9's disposal shape (grilling Q1–Q4).**
+- **What the CFO approves is the figures before they go to IRAS**, not a record of a filing already made. Finance submits
+  (`submit_gst_filing_request`, `module.finance.edit`): every F5 box is frozen on the request, and the old precondition still
+  holds — every month of the quarter must be locked (`GST_PERIOD_NOT_LOCKED`). The CFO decides (`decide_gst_filing_request`,
+  gates `module.finance.view` + `data.view_prices`, `require_approver_for(2)`, every request, no tier). Approval re-checks the
+  lock, recomputes F5 and compares it byte for byte with the frozen boxes (`GST_RETURN_CHANGED_SINCE_REQUEST`); only then are the
+  boxes copied into `gst_return_boxes` and the period goes `open → approved`. Finance then files at IRAS and records the date and
+  reference in one step, without approval (`record_gst_filing`, `approved → filed`) — the numbers are already fixed.
+- `file_gst_return` only refuses by name (`GST_FILING_NEEDS_APPROVED_REQUEST`).
+- **Corrections (Q2):** opening an F7 stays one step with a reason; filing the F7 goes through the same request, and the CFO sees
+  every box against the original's snapshot (`gst_filing_requests_visible.original_boxes`).
+- **Freeze while waiting (Q3):** `guard_gst_filing_lock` on `finance_settings` refuses moving `locked_before` back to the waiting
+  quarter's end or earlier — `reopen_period`, a year reopen, or a manual lock — `GST_FILING_WAITING_BLOCKS_REOPEN`. Reopening a
+  month *before* the quarter is refused too: the lock is one date.
+- **Switch (Q4):** registered in `approval_chain_gates()` (one level-2 row); pending rows `blocks_disable = true`; born approved
+  (`auto_approved`) when approvals are off. The raiser can never decide (by person); nobody-else-can-decide is refused at submit
+  (`GST_FILING_NO_OTHER_DECIDER`). No amount in `approval_log` (a set of return figures, not a sum of money — box 8 can be negative).
+
+**Purchase orders by category — no new chain; the PO chain is unchanged (Q5–Q9).**
+- `purchase_orders.category` ∈ `consumables` · `equipment_goods` · `office`, fixed at creation. All 11 live POs backfilled to
+  `equipment_goods`. Asset lines and battery-material lines only in `equipment_goods` (`PO_CATEGORY_LINE_MISMATCH`).
+- **The category decides who raises and who may change the order — never who approves.** Raise codes: `action.raise_po_consumables`
+  (warehouse), `action.raise_po_equipment` (cco), `action.raise_po_office` (finance), each also admin. `module.purchasing.edit`
+  no longer raises. Amend / cancel / close / reopen (and applying a payment-term template) = the raiser in person, or anyone who
+  currently holds that PO's category raise code (Tim's Q7) — `assert_po_manager` / `po_may_manage`.
+- **Submit-time check:** with approvals on, `create_purchase_order` asks `assert_other_decider` at the PO's level —
+  `PO_NO_OTHER_DECIDER` (closes the PO half of `ROLE1B3A-NO-OTHER-DECIDER-PO-EXPENSE`).
+- **No direct writes** to the four PO tables (`PO_THROUGH_FUNCTION_ONLY`): before this cut a `module.purchasing.edit` holder could
+  INSERT a PO whose `approval_status` defaulted to `approved`.
+
+**`/settings/approvals` (fold-in):** `approvals_readiness().pending_by_chain[].amount_unknown` now counts only amount-routed chains;
+a new `routed_by_person` flag gives salary changes their own line ("routed by person, not by amount").
+
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
 **Found while building CHAIN-BUILD-1; folded into the same predicate.**

@@ -144,8 +144,8 @@ BEGIN
     -- 3 po_awaiting_receipt:已确认
     -- FIN-35:fx_rate 不再有默认值 —— 直插就得自己给。本位币恒 1(fx_rate_asof
     -- 对本位币直接返回 1,不查牌价表),所以这里显式写 1 是【记录事实】,不是兜底。
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status)
-    VALUES ('ZZFIX30-PO', v_sup, '2025-01-15', v_ccy, 1, 'confirmed') RETURNING id INTO v_po;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, category)
+    VALUES ('ZZFIX30-PO', v_sup, '2025-01-15', v_ccy, 1, 'confirmed', 'equipment_goods') RETURNING id INTO v_po;
 
     -- 4 stocktake_open:默认即 open
     INSERT INTO stocktakes (code) VALUES ('ZZFIX30-ST') RETURNING id INTO v_st;

@@ -80,7 +80,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
                                              'estimated_unit_price', 10)),
         jsonb_build_array(jsonb_build_object('seq', 1, 'label', '化验后', 'percentage', 100,
-                                             'trigger_event', 'post_assay')));
+                                             'trigger_event', 'post_assay')), p_category => 'equipment_goods');
     po_mat := (v_res->>'purchase_order_id')::uuid;
     IF (v_res->>'order_kind') <> 'material' THEN
         RAISE EXCEPTION 'FIXTURE 176B 失败:材料单应当判为 material,实得 %', v_res->>'order_kind';
@@ -98,7 +98,7 @@ BEGIN
             NULL, NULL, 'fixture 176 equipment PO (bad milestone)',
             jsonb_build_array(jsonb_build_object('asset_id', v_asset)),
             jsonb_build_array(jsonb_build_object('seq', 1, 'label', '化验后', 'percentage', 100,
-                                                 'trigger_event', 'post_assay')));
+                                                 'trigger_event', 'post_assay')), p_category => 'equipment_goods');
     EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
     END;
     IF NOT v_denied OR position('PO_TERM_EVENT_NOT_APPLICABLE' in v_msg) = 0 THEN
@@ -114,7 +114,7 @@ BEGIN
         jsonb_build_array(
             jsonb_build_object('seq', 1, 'label', '预付',     'percentage', 50, 'trigger_event', 'on_order'),
             jsonb_build_object('seq', 2, 'label', '交付',     'percentage', 40, 'trigger_event', 'on_arrival'),
-            jsonb_build_object('seq', 3, 'label', '培训完成', 'percentage', 10, 'trigger_event', 'training_complete')));
+            jsonb_build_object('seq', 3, 'label', '培训完成', 'percentage', 10, 'trigger_event', 'training_complete')), p_category => 'equipment_goods');
     po_eqp := (v_res->>'purchase_order_id')::uuid;
     IF (v_res->>'order_kind') <> 'equipment' THEN
         RAISE EXCEPTION 'FIXTURE 176E 失败:设备单应当判为 equipment,实得 %', v_res->>'order_kind';
@@ -155,9 +155,9 @@ BEGIN
     -- 【判不出就放行】正是本仓库记过的那条病(守卫对主语缺席这一格是瞎的)。
     po_empty := gen_random_uuid();
     INSERT INTO purchase_orders (id, code, supplier_id, order_date, currency, fx_rate,
-                                 estimated_total_ccy, status, approval_status)
+                                 estimated_total_ccy, status, approval_status, category)
     VALUES (po_empty, 'ZZFIX176-PO-EMPTY', v_sup, DATE '2025-01-13', v_ccy, 1, 0,
-            'draft', 'approved');
+            'draft', 'approved', 'equipment_goods');
     v_denied := false; v_msg := NULL;
     BEGIN
         INSERT INTO purchase_order_payment_terms

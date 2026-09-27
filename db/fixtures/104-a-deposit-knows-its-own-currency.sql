@@ -91,7 +91,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-02-01', DATE '2025-04-01', v_base, NULL,
         NULL, NULL, 'fixture 104 A base PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
-                                             'unit', 'kg', 'estimated_unit_price', 20)));
+                                             'unit', 'kg', 'estimated_unit_price', 20)), p_category => 'equipment_goods');
     po1 := (v_res->>'purchase_order_id')::uuid;
     PERFORM record_payment_internal('out', v_sup, 1000, v_base, NULL, NULL, DATE '2025-02-01',
         'fixture 104 A deposit',
@@ -149,7 +149,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-02-01', DATE '2025-04-01', 'USD', NULL,
         NULL, NULL, 'fixture 104 B equipment PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000,
-                                             'unit', 'kg', 'estimated_unit_price', 50)));
+                                             'unit', 'kg', 'estimated_unit_price', 50)), p_category => 'equipment_goods');
     po2 := (v_res->>'purchase_order_id')::uuid;
     PERFORM record_payment_internal('out', v_sup, 10000, 'USD', NULL, NULL, DATE '2025-02-01',
         'fixture 104 B deposit',
@@ -209,7 +209,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-02-01', DATE '2025-04-01', 'USD', NULL,
         NULL, NULL, 'fixture 104 D import PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000,
-                                             'unit', 'kg', 'estimated_unit_price', 50)));
+                                             'unit', 'kg', 'estimated_unit_price', 50)), p_category => 'equipment_goods');
     po3 := (v_res->>'purchase_order_id')::uuid;
     PERFORM record_payment_internal('out', v_sup, 10000, 'USD', NULL, NULL, DATE '2025-02-01',
         'fixture 104 D deposit',
@@ -252,7 +252,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-02-01', DATE '2025-04-01', 'USD', NULL,
         NULL, NULL, 'fixture 104 E PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000,
-                                             'unit', 'kg', 'estimated_unit_price', 50)));
+                                             'unit', 'kg', 'estimated_unit_price', 50)), p_category => 'equipment_goods');
     po4 := (v_res->>'purchase_order_id')::uuid;
     PERFORM record_payment_internal('out', v_sup, 5000, 'USD', NULL, NULL, DATE '2025-02-01',
         'fixture 104 E deposit',
@@ -318,7 +318,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-02-01', DATE '2025-04-01', 'USD', NULL,
         NULL, NULL, 'fixture 104 H legacy-shaped PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 1000,
-                                             'unit', 'kg', 'estimated_unit_price', 50)));
+                                             'unit', 'kg', 'estimated_unit_price', 50)), p_category => 'equipment_goods');
     po5 := (v_res->>'purchase_order_id')::uuid;
     PERFORM record_payment_internal('out', v_sup, 5000, 'USD', NULL, NULL, DATE '2025-02-01',
         'fixture 104 H deposit',

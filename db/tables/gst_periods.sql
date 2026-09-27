@@ -18,8 +18,13 @@
 --   corrects_period_id 指着被更正的那一期,原来那一份原样保留、状态仍是 filed。
 --   理由必填 —— 一次没有理由的更正,日后对着 IRAS 无从交代。
 --
--- 写入只走 SECURITY DEFINER 函数(open_gst_period / file_gst_return /
--- correct_gst_return);这里只开 SELECT。
+-- 写入只走 SECURITY DEFINER 函数(open_gst_period / correct_gst_return /
+-- APR-10 起的 decide_gst_filing_request(open → approved)与 record_gst_filing(approved → filed));
+-- 这里只开 SELECT。
+--
+-- ★ APR-10(2026-09-27,Tim 的矩阵 §2「GST 申报与更正 | 财务 | CFO」):申报经 gst_filing_requests ——
+--   财务提(冻结 F5 每一格)→ CFO 批(再算一遍、相等才写快照,状态 approved)→ 财务去 IRAS 报、一步记下
+--   申报日与参考号(filed)。file_gst_return 只会按名拒。
 --
 -- NOTE: introduced by db/migrations/2026-08-24-gst1-tax-codes-f5-and-filing-periods.sql.
 -- First-run script (plain CREATEs). Run in the Supabase SQL Editor.
@@ -29,7 +34,8 @@ CREATE TABLE public.gst_periods (
     code               text NOT NULL UNIQUE,          -- 'GST-2025-Q1';更正件为 'GST-2025-Q1-F7-1'
     period_start       date NOT NULL,
     period_end         date NOT NULL,
-    status             text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'filed')),
+    -- ★ APR-10:加 approved —— CFO 批准了报出去的那一组数(快照已抄进 gst_return_boxes),财务还没去 IRAS 报。
+    status             text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'approved', 'filed')),
     filed_at           timestamptz,
     filed_by           uuid,
     filed_on           date,                          -- 实际在 IRAS 报出去的那一天
@@ -43,8 +49,9 @@ CREATE TABLE public.gst_periods (
     -- 【状态与它的证据必须一起成立】open 就不该有申报痕迹,filed 就必须有
     -- 时间与报出去的日期。少了这条,一行可以既是 'filed' 又没有任何申报记录,
     -- 而那种行会以"已申报"的样子出现在屏幕上。
+    -- ★ APR-10:approved 与 open 一样还没有任何申报痕迹 —— 批准的是数字,不是一次申报。
     CONSTRAINT gst_periods_filed_shape CHECK (
-        (status = 'open'  AND filed_at IS NULL AND filed_on IS NULL AND filed_reference IS NULL)
+        (status IN ('open', 'approved') AND filed_at IS NULL AND filed_on IS NULL AND filed_reference IS NULL)
      OR (status = 'filed' AND filed_at IS NOT NULL AND filed_on IS NOT NULL)
     )
 );

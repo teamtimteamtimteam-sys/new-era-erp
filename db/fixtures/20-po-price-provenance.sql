@@ -62,7 +62,7 @@ BEGIN
             'pricing_formula_id', v_formula, 'estimated_unit_price', 3.717,
             'expected_assay', jsonb_build_array(jsonb_build_object('metal','ni','content_pct',30)),
             'price_source', 'computed', 'price_provenance', v_prov)),
-        NULL);
+        NULL, p_category => 'equipment_goods');
 
     -- APR-2:采购单现在【生为 draft/pending】,而未获批的单收不了货。本 fixture 测的
     -- 不是审批流,所以直接把它置成已批 —— 与 fixture 26/30 为 fx_rate 显式给值同一
@@ -102,7 +102,7 @@ BEGIN
             'pricing_formula_id', v_formula, 'estimated_unit_price', 8,
             'expected_assay', jsonb_build_array(jsonb_build_object('metal','ni','content_pct',25)),
             'price_source', 'manual')),
-        NULL);
+        NULL, p_category => 'equipment_goods');
 
     -- APR-2:采购单现在【生为 draft/pending】,而未获批的单收不了货。本 fixture 测的
     -- 不是审批流,所以直接把它置成已批 —— 与 fixture 26/30 为 fx_rate 显式给值同一
@@ -121,7 +121,7 @@ BEGIN
         jsonb_build_array(jsonb_build_object(
             'line_no', 1, 'material_id', v_mat, 'quantity', 10, 'unit', 'kg',
             'estimated_unit_price', 5)),
-        NULL);
+        NULL, p_category => 'equipment_goods');
 
     -- APR-2:采购单现在【生为 draft/pending】,而未获批的单收不了货。本 fixture 测的
     -- 不是审批流,所以直接把它置成已批 —— 与 fixture 26/30 为 fx_rate 显式给值同一
@@ -141,7 +141,7 @@ BEGIN
             jsonb_build_array(jsonb_build_object(
                 'line_no', 1, 'material_id', v_mat, 'quantity', 10,
                 'estimated_unit_price', 5, 'price_source', 'computed')),
-            NULL);
+            NULL, p_category => 'equipment_goods');
     EXCEPTION WHEN OTHERS THEN
         GET STACKED DIAGNOSTICS v_msg = MESSAGE_TEXT;
         v_ok := v_msg LIKE 'PROVENANCE_REQUIRED%';

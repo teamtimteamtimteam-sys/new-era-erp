@@ -55,8 +55,8 @@ BEGIN
     INSERT INTO materials (code, name, kind_code, may_be_processed, form_code, source_code, size_format_code)
     VALUES ('FX168-M', 'fixture 168 pack', 'battery_material', true, 'whole_pack', 'end_of_life', 'ev_traction')
     RETURNING id INTO mat;
-    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status)
-    VALUES ('FX168-PO', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved') RETURNING id INTO po;
+    INSERT INTO purchase_orders (code, supplier_id, order_date, currency, fx_rate, status, approval_status, category)
+    VALUES ('FX168-PO', sup, '2026-05-01', 'USD', 1.3, 'receiving', 'approved', 'equipment_goods') RETURNING id INTO po;
 
     -- ★ 判断在【采购行】上,在货到之前就填好了(R1)。订量给足,免得 N5 的
     --   第二次收货把这一行推成超收 —— 那会引进一个与本刀无关的 kind。

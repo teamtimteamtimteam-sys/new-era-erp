@@ -83,6 +83,12 @@ CREATE TRIGGER trg_lock_reopen_path
     BEFORE UPDATE OF locked_before ON public.finance_settings
     FOR EACH ROW EXECUTE FUNCTION public.guard_lock_reopen_path();
 
+-- APR-10(grilling Q3):一张 GST 申报申请在等的时候,把锁挪回到那一季的期末或更早(reopen_period、重开年度、
+-- 手动锁)按名拒 GST_FILING_WAITING_BLOCKS_REOPEN。见 db/functions/guard_gst_filing_lock.sql 的抬头。
+CREATE TRIGGER trg_gst_filing_lock
+    BEFORE UPDATE OF locked_before ON public.finance_settings
+    FOR EACH ROW EXECUTE FUNCTION public.guard_gst_filing_lock();
+
 -- ②a APR-1:审批策略那四列的【写闸】—— 不经 set_approvals_policy 的改动按名拒绝。
 --    ★【名字排在 trg_approvals_switch 之前是设计的一部分】触发器按名开火,
 --      "po" < "sw",所以一次直连写拿到的是"你不该直接写这四列",而不是一句

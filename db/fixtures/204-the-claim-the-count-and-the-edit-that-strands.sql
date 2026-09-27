@@ -164,9 +164,9 @@ BEGIN
     INSERT INTO suppliers (status, id, code, legal_name, country, counterparty_type)
       VALUES ('active', sup_id, 'FX204-SUP', 'Sup', 'SG', 'goods_supplier');
     INSERT INTO purchase_orders (id, code, supplier_id, order_date, currency, fx_rate,
-                                 estimated_total_ccy, status, approval_status, created_by)
+                                 estimated_total_ccy, status, approval_status, created_by, category)
       VALUES (po_id, 'FX204-PO-1', sup_id, DATE '2030-03-01', v_base, 1, 50.00,
-              'draft', 'pending', u_rais);
+              'draft', 'pending', u_rais, 'equipment_goods');
 
     -- ══════════════════════ 策略:两级各一个真持有人,门槛 1000 ══════════════════════
     -- 【这一臂自己设策略】重建出来的库里 finance_settings 是没配的,

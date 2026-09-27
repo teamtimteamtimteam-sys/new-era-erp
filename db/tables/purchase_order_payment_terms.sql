@@ -55,20 +55,9 @@ CREATE POLICY "purchase_order_payment_terms select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.purchasing.view'::text));
 
-CREATE POLICY "purchase_order_payment_terms insert by permission"
-    ON public.purchase_order_payment_terms
-    AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.purchasing.edit'::text));
+-- ★ APR-10(2026-09-27):INSERT / UPDATE / DELETE 三条写策略拿掉 —— 只经函数写(guard_po_direct_write 按名拒
+--   PO_THROUGH_FUNCTION_ONLY)。见 db/functions/guard_po_direct_write.sql 的抬头。
 
-CREATE POLICY "purchase_order_payment_terms update by permission"
-    ON public.purchase_order_payment_terms
-    AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.purchasing.edit'::text)) WITH CHECK (has_permission('module.purchasing.edit'::text));
-
-CREATE POLICY "purchase_order_payment_terms delete by permission"
-    ON public.purchase_order_payment_terms
-    AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.purchasing.edit'::text));
 
 -- cut 2b 字段级遮蔽:收回原始敏感列。表级 SELECT 授权【蕴含所有列】,
 -- 所以必须先整表收回,再把非敏感列逐列授回。敏感列只能经 purchase_order_payment_terms_masked 读取。
@@ -118,3 +107,8 @@ GRANT SELECT (id, purchase_order_id, seq, label, percentage, trigger_event, due_
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.purchase_order_payment_terms
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.purchasing.edit');
+
+-- ── APR-10(2026-09-27)· 没有直连写 ─────────────────────────────────────────
+CREATE TRIGGER trg_purchase_order_payment_terms_direct_write
+    BEFORE INSERT OR UPDATE OR DELETE ON public.purchase_order_payment_terms
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_po_direct_write();

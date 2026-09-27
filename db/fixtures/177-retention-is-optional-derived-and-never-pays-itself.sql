@@ -64,13 +64,13 @@ BEGIN
 
     v_res := create_purchase_order(v_sup, DATE '2025-01-10', DATE '2025-04-01', v_ccy, NULL,
         NULL, NULL, 'fixture 177 PO A (with retention)',
-        jsonb_build_array(jsonb_build_object('asset_id', v_asset_a, 'estimated_unit_price', 400000)));
+        jsonb_build_array(jsonb_build_object('asset_id', v_asset_a, 'estimated_unit_price', 400000)), p_category => 'equipment_goods');
     po_a := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO line_a FROM purchase_order_lines WHERE purchase_order_id = po_a;
 
     v_res := create_purchase_order(v_sup, DATE '2025-01-11', DATE '2025-04-01', v_ccy, NULL,
         NULL, NULL, 'fixture 177 PO B (no retention)',
-        jsonb_build_array(jsonb_build_object('asset_id', v_asset_b, 'estimated_unit_price', 200000)));
+        jsonb_build_array(jsonb_build_object('asset_id', v_asset_b, 'estimated_unit_price', 200000)), p_category => 'equipment_goods');
     po_b := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO line_b FROM purchase_order_lines WHERE purchase_order_id = po_b;
 
@@ -237,7 +237,7 @@ BEGIN
     v_res := create_purchase_order(v_sup, DATE '2025-01-12', DATE '2025-03-01', v_ccy, NULL,
         NULL, NULL, 'fixture 177 material PO',
         jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 100,
-                                             'estimated_unit_price', 10)));
+                                             'estimated_unit_price', 10)), p_category => 'equipment_goods');
     po_mat := (v_res->>'purchase_order_id')::uuid;
     SELECT id INTO line_mat FROM purchase_order_lines WHERE purchase_order_id = po_mat;
     v_denied := false; v_msg := NULL;
@@ -283,7 +283,7 @@ BEGIN
         v_h := create_purchase_order(v_sup, DATE '2025-01-13', DATE '2025-04-01', v_ccy, NULL,
             NULL, NULL, 'fixture 177 H1 with retention',
             jsonb_build_array(jsonb_build_object('asset_id', v_asset_c, 'estimated_unit_price', 100000,
-                'retention', jsonb_build_object('percentage', 10, 'retention_months', 18))));
+                'retention', jsonb_build_object('percentage', 10, 'retention_months', 18))), p_category => 'equipment_goods');
         po_h1 := (v_h->>'purchase_order_id')::uuid;
         IF (v_h->>'retention_count')::int <> 1 THEN
             RAISE EXCEPTION 'FIXTURE 177H 失败:带质保金的单应当报 retention_count = 1,实得 %', v_h->>'retention_count';
@@ -292,7 +292,7 @@ BEGIN
         -- 不带:负载里【没有 retention 这一键】
         v_h := create_purchase_order(v_sup, DATE '2025-01-14', DATE '2025-04-01', v_ccy, NULL,
             NULL, NULL, 'fixture 177 H2 without retention',
-            jsonb_build_array(jsonb_build_object('asset_id', v_asset_d, 'estimated_unit_price', 100000)));
+            jsonb_build_array(jsonb_build_object('asset_id', v_asset_d, 'estimated_unit_price', 100000)), p_category => 'equipment_goods');
         po_h2 := (v_h->>'purchase_order_id')::uuid;
         IF (v_h->>'retention_count')::int <> 0 THEN
             RAISE EXCEPTION 'FIXTURE 177H 失败:不带质保金的单应当报 retention_count = 0,实得 %', v_h->>'retention_count';
@@ -313,7 +313,7 @@ BEGIN
                 NULL, NULL, 'fixture 177 H3 material with retention',
                 jsonb_build_array(jsonb_build_object('material_id', v_mat, 'quantity', 10,
                     'estimated_unit_price', 5,
-                    'retention', jsonb_build_object('percentage', 10))));
+                    'retention', jsonb_build_object('percentage', 10))), p_category => 'equipment_goods');
         EXCEPTION WHEN OTHERS THEN v_denied := true; v_msg := SQLERRM;
         END;
         IF NOT v_denied OR position('RETENTION_NOT_AN_EQUIPMENT_LINE' in v_msg) = 0 THEN

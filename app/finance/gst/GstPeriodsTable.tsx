@@ -13,6 +13,8 @@ export type GstPeriodRow = {
     isCorrection: boolean
     window: string
     filed: boolean
+    /** APR-10:四种状态 —— 等批准与已批准是申报申请带来的两格 */
+    statusKey: 'open' | 'awaiting' | 'approved' | 'filed'
     filedOn: string | null
     filedReference: string | null
 }
@@ -34,7 +36,7 @@ export default function GstPeriodsTable({ rows }: { rows: GstPeriodRow[] }) {
         { key: 'window', header: t('gst.window'), className: 'text-xs', render: (r) => r.window },
         {
             key: 'status', header: t('gst.status'), priority: true,
-            render: (r) => (r.filed ? t('gst.statusFiled') : t('gst.statusOpen')),
+            render: (r) => t('gstFiling.periodStatus.' + r.statusKey),
         },
         {
             key: 'filing', header: t('gst.filing'), className: 'text-xs',
