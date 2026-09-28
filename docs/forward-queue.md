@@ -124,6 +124,13 @@
 >    `origin/main` 移到 `7c6132db`,`git reflog show --date=iso refs/remotes/origin/main`)· 终点上界 **2026-09-28 19:50:10 CST**
 >    (推导:close-out 这一次会话第一条命令的时刻,手里已经有 Tim 的"已部署" —— 一句转述,不是对 Vercel 的测量)。
 >    **破窗:至少 50 min 49 s,至多 1 h 15 min 39 s。** 见 `docs/handbacks/LEAVE-BAL-1.md`。
+> 22. **✅ 通用变更记录 —— HISTORY-1(`v1.4.32`,2026-09-29)。** 内容见下面「HISTORY family」一节的 ✅ 那一块。
+>    ★ **部署:Tim 在 Vercel 上确认 `f0042a83` 已部署(HISTORY-1 close-out 委托书,2026-09-29)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-09-29 00:00:03 CST**(测量:`db/migration-windows.tsv`)· 终点下界 **2026-09-29 01:00:11 CST**(测量:推送把
+>    `origin/main` 移到 `f0042a83`,`git reflog show --date=iso refs/remotes/origin/main`)· 终点上界 **2026-09-29 01:07:53 CST**
+>    (推导:close-out 这一次会话第一条命令的时刻,手里已经有 Tim 的"已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 00 min 08 s,至多 1 h 07 min 50 s。** 窗口里 **`/purchasing/orders/[id]` 对所有人都打不开**
+>    (旧代码读已撤权的 `purchase_order_history` 价格列,42501;Tim Q11 接受)。见 `docs/handbacks/HISTORY-1.md` §7。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
