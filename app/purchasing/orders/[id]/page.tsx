@@ -127,7 +127,9 @@ export default async function PurchaseOrderDetailPage({
         supabase.from('po_issues').select('version, issued_at, issued_by, sha256')
             .eq('purchase_order_id', id).order('version', { ascending: false }),
         // PUR-2:编辑史。最新一行的时点用来判断"已改、未重发"
-        supabase.from('purchase_order_history')
+        // ★ HISTORY-1(Tim 的 Q20):读【遮蔽视图】—— 基表的价格列已从 authenticated 收回
+        //   (与采购行 / 采购单同一个码 data.view_purchase_prices)。本段只画数量与理由,不画价格。
+        supabase.from('purchase_order_history_masked')
             .select('id, change_type, line_no, amend_reason, changed_at, old_quantity, new_quantity, old_estimated_unit_price, new_estimated_unit_price, old_estimated_total_ccy, new_estimated_total_ccy, payment_term_seq')
             .eq('purchase_order_id', id).order('changed_at', { ascending: false }).limit(50),
         // ── PUR-1:这张单挂在哪一份合同之下 ─────────────────────────────────
@@ -196,7 +198,7 @@ export default async function PurchaseOrderDetailPage({
     // AUDEL-3:取名与兜底只有一处 —— app/components/ActorName.tsx。
     const cancelNames = await loadActorNames(supabase, [po.cancelled_by])
 
-    const history = mustRows(historyRes, 'purchase_order_history') as unknown as {
+    const history = mustRows(historyRes, 'purchase_order_history_masked') as unknown as {
         id: string; change_type: string; line_no: number | null; amend_reason: string | null
         changed_at: string; old_quantity: number | null; new_quantity: number | null
         old_estimated_unit_price: number | null; new_estimated_unit_price: number | null

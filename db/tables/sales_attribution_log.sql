@@ -34,3 +34,8 @@ CREATE POLICY "sales_attribution_log select by permission"
 
 COMMENT ON TABLE public.sales_attribution_log IS
     '无主销售【补挂客户】的只增不改留痕(SAL-C)。补挂是记录一个已经成立的事实,所以不做信用检查;但谁在什么时候把哪笔债记到了谁头上,必须留下来 —— 补挂当时的敞口一并记下(exposure_after),因为它常常是"越限"的那一刻。';
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_sales_attribution_log_no_truncate
+    BEFORE TRUNCATE ON public.sales_attribution_log
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

@@ -84,3 +84,8 @@ GRANT SELECT (id, formula_id, change_type, metal, old_name, new_name,
               old_average_days, new_average_days, old_is_active, new_is_active,
               changed_at, changed_by)
     ON public.pricing_formula_history TO authenticated;
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_pricing_formula_history_no_truncate
+    BEFORE TRUNCATE ON public.pricing_formula_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

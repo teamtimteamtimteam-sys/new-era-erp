@@ -16,6 +16,10 @@
 --   新增的末列 account_kind:'primary' | 'additional' | NULL(没关联任何人)。
 --   /settings/accounts 靠它决定这一行给哪一块控件。
 --
+-- ★ HISTORY-1(2026-09-28,Tim 的 Q22 · Q2):新增末列 disabled —— 账号被停用(auth.users.banned_until 在将来)。
+--   /settings/accounts 靠它决定这一行给「停用」还是「重新启用」,并画出「已停用」。
+--   判据与 real_role_grants 的第 ③ 条同一句话的反面(banned_until IS NULL OR banned_until < now() 为"未封禁")。
+--
 -- NOTE: introduced by db/migrations/2026-08-02-perm3-banking-and-directory.sql.
 
 CREATE VIEW public.user_directory WITH (security_invoker = off) AS
@@ -34,7 +38,8 @@ CREATE VIEW public.user_directory WITH (security_invoker = off) AS
             WHEN ep.id IS NOT NULL THEN 'primary'::text
             WHEN ea.employee_id IS NOT NULL THEN 'additional'::text
             ELSE NULL::text
-        END AS account_kind
+        END AS account_kind,
+    (u.banned_until IS NOT NULL AND u.banned_until > now()) AS disabled
    FROM auth.users u
      LEFT JOIN employees ep ON ep.user_id = u.id AND ep.deleted_at IS NULL
      LEFT JOIN employee_accounts ea ON ea.user_id = u.id

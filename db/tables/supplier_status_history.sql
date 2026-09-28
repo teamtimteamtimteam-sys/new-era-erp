@@ -45,3 +45,8 @@ CREATE POLICY "supplier_status_history select by permission"
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.supplier_status_history FROM anon;
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_supplier_status_history_no_truncate
+    BEFORE TRUNCATE ON public.supplier_status_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

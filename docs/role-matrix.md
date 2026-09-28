@@ -31,6 +31,7 @@ MD = `gm`(Vince,只读)。
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
 | 权限、账号、角色码、账号↔员工关联、审批开关与策略 · permissions, accounts, role codes, account–employee links, the approvals switch and policy | admin 一个 · admin only | — | ✅ done(`cco` 交出 `action.manage_permissions`)|
+| 停用 / 重新启用登录账号 · disable / re-enable a login account(HISTORY-1,Tim 的 Q22 · Q2)| admin 一个(`action.manage_permissions`)· admin only | — | ✅ done(HISTORY-1,2026-09-28:`/settings/accounts` 每一行一颗「停用 / 重新启用」,**没有删除钮**。判据在库里 `record_account_event`:不许停用自己(`CANNOT_DISABLE_SELF`)、不许停用最后一个真的管理员(`LAST_ADMIN_PROTECTED`,与 `guard_last_admin` 同一份判据)、已停用 / 未停用按名拒。每一次建号、停用、启用与建到一半的回滚删除都记进变更记录(`auth.users` 的账号事件)。冒烟与探针的一次性 `*@test.local` 号照旧删除,不在这条之内(Q4))|
 
 ## 2 · 财务 · Finance
 
@@ -204,3 +205,4 @@ warehouse (B4 — ✅ ROLE-1 Batch 4a, 2026-09-25: receipt pricing was the last 
 | `module.processing.view`(新增持有人)| 读加工模块;物料名只经 `material_lookup`,不拿 `module.materials.view`(Batch 3b,Q8)| + warehouse |
 | `action.overtime_enter` | 按月录现场员工的加班:开批、加行 / 删行、交去批、撤回、丢弃、冲销批过的(OVERTIME-1)| finance · admin |
 | `action.overtime_approve` | 整批批准或驳回现场员工的加班(驳回要备注);交的人与批里的人按人认不能批;审批开关不影响(OVERTIME-1)| warehouse · admin |
+| `data.view_change_log` | 变更记录 `/settings/change-history`:全系统每一次新增、修改、删除 —— 谁做的、改之前是什么;受遮蔽的值跟源屏幕问同一批数据码,别人的个人任务整行受限(HISTORY-1,Tim 的 Q10 · Q1)| cfo · admin(**只授这两个,不捆进任何别的角色**)|

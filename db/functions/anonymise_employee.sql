@@ -28,6 +28,8 @@
 -- NOTE: introduced by db/migrations/2026-08-24-pdpa1-anonymise-and-subject-access.sql;
 --       fixed by db/migrations/2026-08-24-pdpa1-fu-the-immutable-log-gets-one-named-exception.sql
 --       (第一版在真实数据上必崩:履历不可变,而它有一句 UPDATE)。
+-- ★ HISTORY-1(2026-09-28,db/migrations/2026-09-28-history1-change-log.sql):greeting_name 一并清掉;
+--   末尾调 change_log_redact_employee 涂掉通用变更记录里的个人字段。
 -- ★ NAME-1(2026-09-28,db/migrations/2026-09-28-leavebal1-leave-balance-and-first-last-name.sql):
 --   first_name / last_name 与 preferred_name 一起清成 NULL —— 它们就是身份列。
 
@@ -78,6 +80,8 @@ BEGIN
         preferred_name       = NULL,
         first_name           = NULL,
         last_name            = NULL,
+        -- HISTORY-1(Tim 的 Q9):称呼名也是名字 —— 此前漏了它。
+        greeting_name        = NULL,
         identity_no          = NULL,
         work_email           = NULL,
         work_phone           = NULL,
@@ -111,6 +115,11 @@ BEGIN
            anonymised_at      = now()
      WHERE employee_id = p_employee_id
        AND anonymised_at IS NULL;
+
+    -- ★ HISTORY-1(Tim 的 Q11):通用变更记录里关于这个人的个人字段一并涂掉。
+    --   【必须在上面两句之后】—— 那两句本身就被 change_log_capture 记了行,
+    --   而 employees 那一行的 old 里装着匿名化之前的每一个个人字段。
+    PERFORM change_log_redact_employee(p_employee_id);
 
     RETURN jsonb_build_object(
         'employee_code', v_emp.code, 'anonymised_at', now(),

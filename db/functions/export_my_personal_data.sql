@@ -9,6 +9,7 @@
 -- 【范围只到员工】往来户联系人的个人数据在库里,而这条路不通向它们。两条都记在
 -- docs/pdpa.md,本文件不复述。
 --
+-- ★ HISTORY-1(2026-09-28):加 my_record_changes —— 通用变更记录里自己那一行的改动(见函数体注释)。
 -- ★ NAME-1(2026-09-28):first_name / last_name 跟着 legal_name 一起导出 —— 它们同样是关于这个人的个人数据。
 --
 -- NOTE: introduced by db/migrations/2026-08-24-pdpa1-anonymise-and-subject-access.sql;
@@ -22,6 +23,7 @@ CREATE OR REPLACE FUNCTION public.export_my_personal_data()
 AS $function$
 DECLARE
     v_emp employees%ROWTYPE;
+    v_account_keys text[] := ARRAY['user_id', 'created_by', 'updated_by', 'anonymised_by'];
 BEGIN
     -- 【它只导出【调用者自己】的数据】—— 没有参数,拿不到别人的。
     -- ★ APR-ROUTE-1 Batch B(R3):经 current_user_employee() 认人 —— 一个人的
@@ -63,6 +65,22 @@ BEGIN
                 'review_type', r.review_type, 'period_start', r.period_start,
                 'period_end', r.period_end, 'status', r.status) ORDER BY r.period_start)
             FROM performance_reviews r WHERE r.employee_id = v_emp.id), '[]'::jsonb),
+        -- ★ HISTORY-1(Tim 的 Q12 · Q10):通用变更记录里【自己那一行 employees】的每一次改动 ——
+        --   时间、动作、改了哪几列、改前改后;谁改的只给【员工姓名】,不给账号 id 也不给邮箱。
+        --   影像里指向登录账号的键(user_id / created_by / updated_by / anonymised_by)一并拿掉。
+        'my_record_changes', COALESCE((SELECT jsonb_agg(jsonb_build_object(
+                'at', c.occurred_at,
+                'operation', c.op,
+                'changed_fields', to_jsonb(ARRAY(
+                    SELECT k FROM unnest(COALESCE(c.changed_columns,
+                        ARRAY(SELECT jsonb_object_keys(COALESCE(c.new, c.old, '{}'::jsonb))))) k
+                     WHERE k <> ALL (v_account_keys) ORDER BY k)),
+                'before', c.old - v_account_keys,
+                'after', c.new - v_account_keys,
+                'changed_by', (SELECT COALESCE(a.preferred_name, a.legal_name) FROM employees a WHERE a.id = c.actor_employee))
+              ORDER BY c.seq)
+            FROM change_log c
+           WHERE c.table_name = 'employees' AND c.row_key ->> 'id' = v_emp.id::text), '[]'::jsonb),
         'note', 'Performance review content is deliberately excluded pending a legal view on the PDPA evaluative-purpose exemption. See docs/pdpa.md.');
 END;
 $function$;

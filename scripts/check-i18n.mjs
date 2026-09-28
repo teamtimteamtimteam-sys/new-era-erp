@@ -515,6 +515,8 @@ const MANIFEST = {
     // deleted_records 的每一支都写着 'inbound_batch'::text 之类,加一支就自动被查到。
     // 【判据是每一支 UNION 的第一列】pg_get_viewdef 只给第一支写 `AS record_kind`,
     // 其余几支归一化成 `AS text` —— 两种写法都收,加一支就自动被查到。
+    // HISTORY-1:变更记录的动作名 —— 真源是 change_log.op 的 CHECK。
+    'changeHistory.op.': { kind: 'enum', values: () => sqlEnum('db/tables/change_log.sql', 'op') },
     'deleted.kind.': { kind: 'enum', values: () => tsRegex('db/views/deleted_records.sql',
                                   /SELECT '(\w+)'::text AS (?:record_kind|text)/g) },
     // AUDEL-1b:删除那一族的具名拒绝。接真源那个 Set —— 加一个码,检查自动跟上。

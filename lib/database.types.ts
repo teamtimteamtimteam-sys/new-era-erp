@@ -1512,6 +1512,57 @@ export type Database = {
           },
         ]
       }
+      change_log: {
+        Row: {
+          actor_account: string | null
+          actor_employee: string | null
+          actor_kind: string
+          changed_columns: string[] | null
+          db_role: string
+          new: Json | null
+          occurred_at: string
+          old: Json | null
+          op: string
+          redacted_at: string | null
+          row_key: Json | null
+          seq: number
+          table_name: string
+          txid: number
+        }
+        Insert: {
+          actor_account?: string | null
+          actor_employee?: string | null
+          actor_kind: string
+          changed_columns?: string[] | null
+          db_role: string
+          new?: Json | null
+          occurred_at?: string
+          old?: Json | null
+          op: string
+          redacted_at?: string | null
+          row_key?: Json | null
+          seq?: never
+          table_name: string
+          txid?: number
+        }
+        Update: {
+          actor_account?: string | null
+          actor_employee?: string | null
+          actor_kind?: string
+          changed_columns?: string[] | null
+          db_role?: string
+          new?: Json | null
+          occurred_at?: string
+          old?: Json | null
+          op?: string
+          redacted_at?: string | null
+          row_key?: Json | null
+          seq?: never
+          table_name?: string
+          txid?: number
+        }
+        Relationships: []
+      }
       cn_issues: {
         Row: {
           credit_note_id: string
@@ -26975,6 +27026,183 @@ export type Database = {
           },
         ]
       }
+      purchase_order_history_masked: {
+        Row: {
+          amend_reason: string | null
+          change_type: string | null
+          changed_at: string | null
+          changed_by: string | null
+          id: string | null
+          line_no: number | null
+          new_delivery_location: string | null
+          new_estimated_amount_ccy: number | null
+          new_estimated_total_ccy: number | null
+          new_estimated_unit_price: number | null
+          new_expected_delivery_date: string | null
+          new_fx_rate: number | null
+          new_incoterm: string | null
+          new_notes: string | null
+          new_order_date: string | null
+          new_payment_term: Json | null
+          new_price_status: string | null
+          new_quantity: number | null
+          new_terms_text: string | null
+          new_unit: string | null
+          old_delivery_location: string | null
+          old_estimated_amount_ccy: number | null
+          old_estimated_total_ccy: number | null
+          old_estimated_unit_price: number | null
+          old_expected_delivery_date: string | null
+          old_fx_rate: number | null
+          old_incoterm: string | null
+          old_notes: string | null
+          old_order_date: string | null
+          old_payment_term: Json | null
+          old_price_status: string | null
+          old_quantity: number | null
+          old_terms_text: string | null
+          old_unit: string | null
+          payment_term_seq: number | null
+          purchase_order_id: string | null
+          purchase_order_line_id: string | null
+        }
+        Insert: {
+          amend_reason?: string | null
+          change_type?: string | null
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string | null
+          line_no?: number | null
+          new_delivery_location?: string | null
+          new_estimated_amount_ccy?: never
+          new_estimated_total_ccy?: never
+          new_estimated_unit_price?: never
+          new_expected_delivery_date?: string | null
+          new_fx_rate?: never
+          new_incoterm?: string | null
+          new_notes?: string | null
+          new_order_date?: string | null
+          new_payment_term?: never
+          new_price_status?: string | null
+          new_quantity?: number | null
+          new_terms_text?: string | null
+          new_unit?: string | null
+          old_delivery_location?: string | null
+          old_estimated_amount_ccy?: never
+          old_estimated_total_ccy?: never
+          old_estimated_unit_price?: never
+          old_expected_delivery_date?: string | null
+          old_fx_rate?: never
+          old_incoterm?: string | null
+          old_notes?: string | null
+          old_order_date?: string | null
+          old_payment_term?: never
+          old_price_status?: string | null
+          old_quantity?: number | null
+          old_terms_text?: string | null
+          old_unit?: string | null
+          payment_term_seq?: number | null
+          purchase_order_id?: string | null
+          purchase_order_line_id?: string | null
+        }
+        Update: {
+          amend_reason?: string | null
+          change_type?: string | null
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string | null
+          line_no?: number | null
+          new_delivery_location?: string | null
+          new_estimated_amount_ccy?: never
+          new_estimated_total_ccy?: never
+          new_estimated_unit_price?: never
+          new_expected_delivery_date?: string | null
+          new_fx_rate?: never
+          new_incoterm?: string | null
+          new_notes?: string | null
+          new_order_date?: string | null
+          new_payment_term?: never
+          new_price_status?: string | null
+          new_quantity?: number | null
+          new_terms_text?: string | null
+          new_unit?: string | null
+          old_delivery_location?: string | null
+          old_estimated_amount_ccy?: never
+          old_estimated_total_ccy?: never
+          old_estimated_unit_price?: never
+          old_expected_delivery_date?: string | null
+          old_fx_rate?: never
+          old_incoterm?: string | null
+          old_notes?: string | null
+          old_order_date?: string | null
+          old_payment_term?: never
+          old_price_status?: string | null
+          old_quantity?: number | null
+          old_terms_text?: string | null
+          old_unit?: string | null
+          payment_term_seq?: number | null
+          purchase_order_id?: string | null
+          purchase_order_line_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["purchase_order_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_receivable_lines"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "po_receivable_lines_lookup"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_order_status"
+            referencedColumns: ["po_id"]
+          },
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_history_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchase_order_line_retentions_masked: {
         Row: {
           anchor_event: string | null
@@ -28802,6 +29030,7 @@ export type Database = {
         Row: {
           account_kind: string | null
           created_at: string | null
+          disabled: boolean | null
           email: string | null
           employee_code: string | null
           employee_id: string | null
@@ -29299,6 +29528,99 @@ export type Database = {
         Returns: Json
       }
       cash_forecast_data: { Args: { p_week_start?: string }; Returns: Json }
+      change_log_coverage_gaps: { Args: never; Returns: Json }
+      change_log_exclusions: {
+        Args: never
+        Returns: {
+          reason: string
+          table_name: string
+        }[]
+      }
+      change_log_field: {
+        Args: {
+          p_field: string
+          p_key: Json
+          p_new: Json
+          p_old: Json
+          p_table: string
+        }
+        Returns: string
+      }
+      change_log_filters: { Args: never; Returns: Json }
+      change_log_mask_gaps: { Args: never; Returns: Json }
+      change_log_mask_rules: {
+        Args: never
+        Returns: {
+          column_name: string
+          rule: string
+          table_name: string
+        }[]
+      }
+      change_log_null_keys: {
+        Args: { p_img: Json; p_keys: string[] }
+        Returns: Json
+      }
+      change_log_redact_employee: {
+        Args: { p_employee_id: string }
+        Returns: number
+      }
+      change_log_redactable_columns: {
+        Args: { p_table: string }
+        Returns: string[]
+      }
+      change_log_redaction_ok: {
+        Args: { p_after: Json; p_before: Json; p_table: string }
+        Returns: boolean
+      }
+      change_log_restrict: {
+        Args: { p_img: Json; p_keys: string[] }
+        Returns: Json
+      }
+      change_log_rows: {
+        Args: {
+          p_actor?: string
+          p_before?: number
+          p_from?: string
+          p_limit?: number
+          p_no_session?: boolean
+          p_record?: string
+          p_table?: string
+          p_to?: string
+        }
+        Returns: {
+          actor_account: string
+          actor_email: string
+          actor_employee: string
+          actor_employee_code: string
+          actor_employee_name: string
+          actor_kind: string
+          changed_columns: string[]
+          db_role: string
+          new: Json
+          occurred_at: string
+          old: Json
+          op: string
+          redacted_at: string
+          row_key: Json
+          row_restricted: boolean
+          seq: number
+          table_name: string
+        }[]
+      }
+      change_log_rule_visible: {
+        Args: {
+          p_key: Json
+          p_new: Json
+          p_old: Json
+          p_rule: string
+          p_table: string
+        }
+        Returns: boolean
+      }
+      change_log_task_visible: {
+        Args: { p_key: Json; p_new: Json; p_old: Json; p_table: string }
+        Returns: boolean
+      }
       check_location_class: {
         Args: { p_location_id: string; p_material_id: string }
         Returns: string[]
@@ -30469,6 +30791,10 @@ export type Database = {
       reconcile_statement: {
         Args: { p_statement_id: string; p_variance_items?: Json }
         Returns: Json
+      }
+      record_account_event: {
+        Args: { p_detail?: Json; p_event: string; p_user_id: string }
+        Returns: number
       }
       record_approval_decision: {
         Args: {

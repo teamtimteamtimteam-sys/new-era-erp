@@ -614,6 +614,39 @@ def main() -> int:
                 if xm:
                     problems.append(f"invoker view spans modules ({label}): {xm}")
 
+        # ── HISTORY-1:通用变更记录的两道检查(Tim 的 Q12 · Q7)────────────────
+        # changelog —— 每一张 public 表要么挂着两条【启用着的】记录触发器,要么在 change_log_exclusions()
+        #   里带着理由;看见的表少于 200 张判失败(零必须是测量,不是缺席)。
+        # changemask —— change_log_rows() 的遮蔽名单与目录里【真的被遮的列】(每张 _masked 视图的
+        #   CASE … END AS <基表列>)逐列对得上;看见的遮蔽表少于 20 张判失败。
+        # 两侧都问:线上是今天真在跑的那一份,重建是全新安装会得到的那一份。
+        # 判据只有一份,住在库里(change_log_coverage_gaps / change_log_mask_gaps),fixture 234/235 与
+        # 这里问的是同一支函数 —— 构建里那支静态检查(check-change-log-coverage.mjs)问的是仓库文件。
+        for label, dsn in SIDES:
+            try:
+                cov = json.loads(psql(dsn, "SELECT change_log_coverage_gaps();"))
+                msk = json.loads(psql(dsn, "SELECT change_log_mask_gaps();"))
+            except Exception as e:          # 函数不在 = 这一侧根本没有记录机制,那本身就是失败
+                print(f"changelog  {label}: ✗ 问不出来({str(e)[:160]})")
+                problems.append(f"change log checks unavailable ({label}): {str(e)[:160]}")
+                continue
+            if cov["examined"] < 200:
+                print(f"changelog  {label}: ✗ 只看见 {cov['examined']} 张表 —— 探测器瞎了,不是干净")
+                problems.append(f"change log coverage saw only {cov['examined']} tables ({label})")
+            elif cov["gaps"]:
+                print(f"changelog  {label}: ✗ {cov['gaps']}")
+                problems.append(f"change log coverage ({label}): {cov['gaps']}")
+            else:
+                print(f"changelog  {label}: {cov['examined']} 张表 · {cov['bound']} 张记录 · {cov['excluded']} 张豁免,零缺口 ✓")
+            if msk["examined_tables"] < 20:
+                print(f"changemask {label}: ✗ 只看见 {msk['examined_tables']} 张遮蔽表 —— 探测器瞎了,不是干净")
+                problems.append(f"change log mask check saw only {msk['examined_tables']} tables ({label})")
+            elif msk["gaps"]:
+                print(f"changemask {label}: ✗ {msk['gaps']}")
+                problems.append(f"change log mask rules ({label}): {msk['gaps']}")
+            else:
+                print(f"changemask {label}: {msk['examined_tables']} 张遮蔽表 / {msk['examined_columns']} 列,遮蔽名单零缺口 ✓")
+
         # ── 吞掉查询错误(OPS-12)────────────────────────────────────────────
         # `?? []` 把失败读成空集,页面回 200 说"没有数据" —— 冒烟断言 2xx,
         # 正好从旁边走过去。清扫完必须装上检查,否则只买到一个干净的计数。

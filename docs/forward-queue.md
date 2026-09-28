@@ -2796,6 +2796,7 @@ IA-BUILD-1 的 D7 把这块面板从财务搬到了设置(码换成 `action.mana
 > ★【UI-FIX-1 ⑧(2026-09-02)加进来的第三条,而它等的是【我们自己的一个机制】】★
 >
 > * **`/deleted` 会不会被【全站变更历史】吸收掉** —— 等**那个历史机制存在**。
+>   ★ **触发条件已成立(HISTORY-1,2026-09-28)**:`change_log` 记下每一次删除(整行 + 谁),`/settings/change-history` 能按表、记录、人、日期筛。**决定仍然是 Tim 的**(HISTORY-0 Q30:本刀之后再定),登记在「HISTORY family」一节。
 >   **这不是一条要建的东西,是一个【要在建它的时候问的问题】。**
 >   判据已经写下来了,措辞是 Tim 的:
 >   历史回答「这条记录是谁改的、什么时候改的」,它**挂在一条你已经找得到的记录上**;
@@ -6444,16 +6445,37 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 | 12 | 定价公式审批 —— ✅ **已推送(APR-8,2026-09-26)**:`terms_requests` 的 `formula_create` / `formula_change` / `formula_reactivate` | 定价公式 | 做完 |
 | 13 | COD 作废申请 —— ✅ **已推送(APR-7,2026-09-26)**:`warehouse_requests` 的 `cod_void` | 作废销毁证书 | 做完 |
 
-## ⬜ HISTORY family (HISTORY-0 survey, HISTORY-1 unification)
+## HISTORY family (HISTORY-0 survey, HISTORY-1 unification)
 
-> 勘察:`docs/surveys/HISTORY-0.md`(2026-09-28)。HISTORY-1 的形状、范围与顺序等 Tim 答那份勘察 §G 的问题。
+> 勘察:`docs/surveys/HISTORY-0.md`(2026-09-28)。
+> ✅ **HISTORY-1 落地(2026-09-28,v1.4.32)**:通用变更记录 `change_log`(238 张表,4 张带理由豁免)、
+> 变更记录页 `/settings/change-history`(`data.view_change_log`,只授 admin 与 cfo)、17 张历史表的 TRUNCATE 守卫、
+> task_history / work_order_history 的只增不改守卫、purchase_order_history 的价格遮蔽、匿名化涂抹、
+> 个人数据导出带自己那一行的改动、账号停用 / 重新启用取代删除并记账号事件、set_role_permissions 只动差别。
+> 说明书:`docs/change-log.md`;交回:`docs/handbacks/HISTORY-1.md`。
 
-* **⬜ 角色权限的改动不留历史**(来源:LEAVE-BAL-1 收尾,2026-09-28;HISTORY-0 从顶部 LEAVE-BAL-1 那一块逐字挪来)—— Role permission changes keep no history —
+* ~~**⬜ 角色权限的改动不留历史**~~ ✅ **关掉(HISTORY-1,2026-09-28)**:每一次授权改动都进 `change_log`(`role_permissions`
+  的 INSERT / DELETE,带账号与员工),而 `set_role_permissions` 只删掉不再要的、只插进新要的(Q16)—— 一次保存只记真正变了的码。
+  原文留着:**⬜ 角色权限的改动不留历史**(来源:LEAVE-BAL-1 收尾,2026-09-28;HISTORY-0 从顶部 LEAVE-BAL-1 那一块逐字挪来)—— Role permission changes keep no history —
   `set_role_permissions` deletes and re-inserts a role's rows, so only `created_at` / `created_by` survive and the previous
   code list is lost. Needs a before/after history of role changes.(实例:Tim 2026-09-28 19:00:35 CST 改 `cco`,41 行
   全部重写成同一个 `created_at`,改之前那一份码单从库里读不回来。)
   ★ HISTORY-0 实测确认:`set_role_permissions` 函数体就是 `DELETE FROM role_permissions WHERE role_id = p_role_id` 再整批
   `INSERT … created_by = auth.uid()`,`role_permissions` 上没有任何留痕触发器。同一形状的另外 14 支函数列在勘察 §D。
+
+* **⬜ 防属主篡改(tamper evidence against the owner)**(HISTORY-1 登记,Tim 的 Q14,2026-09-28)—— `change_log` 对每一个
+  【应用角色】只增不改,对属主 `postgres` 不是(关触发器、`session_replication_role = replica`)。要的是一层能【发现】属主改动的
+  东西:哈希链(每行带上一行的摘要)或定期导出到库外。**没有排期**;已知限制写在 `docs/known-issues.md` 的 `HISTORY1-OWNER-BYPASS`。
+* **⬜ 69 张可被硬删的表,逐张复核**(HISTORY-1 登记,Tim 的 Q21,2026-09-28)—— HISTORY-0 §D.3:90 张表的 RLS 放行
+  authenticated 的 DELETE,其中 69 张没有删除守卫。今天 `change_log` 保存了每一次被删的整行,所以硬删可追、可恢复;
+  **哪些删除本来就不该存在**是逐张的产品裁定(27 张同时带着 `deleted_at`,屏幕走软删而策略仍放硬删)。
+* **⬜ 按记录的变更面板(per-record history panels)**(HISTORY-1 登记,Tim 的 Q26,2026-09-28)—— 今天读变更只有一页
+  `/settings/change-history`(按表 + 记录键筛)。每一张详情页上一块"这一条的变更"要碰每一张详情页,而读者的权限要按那一页的
+  门来问(不是 `data.view_change_log`)—— 那是它自己的一刀。
+* **⬜ 238 张表的显示名**(HISTORY-1 登记,Tim 的 Q15,2026-09-28)—— 变更记录页今天印【技术表名】(`purchase_order_lines`)。
+  一份中英两套的表名目录(238 × 2 个键),i18n 检查要能枚举它(真源:`change_log_coverage_gaps()` 认的那一批表)。
+* **⬜ `/settings/deleted` 要不要被变更记录吸收**(HISTORY-0 Q30,Tim:本刀之后再定,2026-09-28)—— 见下面「事件触发」那一节的原条目;
+  触发条件(那个历史机制存在)**今天已经成立**。
 
 ## 维护规则
 

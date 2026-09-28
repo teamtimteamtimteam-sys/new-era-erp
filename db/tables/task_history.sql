@@ -57,3 +57,13 @@ ALTER TABLE public.task_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "task_history select" ON public.task_history
     FOR SELECT TO authenticated USING (can_view_task(task_id));
 -- 【只有 SELECT】:变更记录由触发器写,不由任何调用者写。
+
+-- ★ HISTORY-1(Tim 的 Q18):只增不改守卫 —— 此前 17 张历史表里只有本表与 work_order_history 没有。
+CREATE TRIGGER trg_task_history_append_only
+    BEFORE UPDATE OR DELETE ON public.task_history
+    FOR EACH ROW EXECUTE FUNCTION public.guard_task_history_append_only();
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_task_history_no_truncate
+    BEFORE TRUNCATE ON public.task_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

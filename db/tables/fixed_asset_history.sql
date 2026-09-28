@@ -125,3 +125,8 @@ ALTER TABLE public.fixed_asset_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "fixed_asset_history select by permission" ON public.fixed_asset_history
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text));
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_fixed_asset_history_no_truncate
+    BEFORE TRUNCATE ON public.fixed_asset_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

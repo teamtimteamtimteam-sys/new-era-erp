@@ -80,3 +80,8 @@ COMMENT ON COLUMN public.price_history.rate_as_of IS
     '所用牌价【取自哪一天】(fx_rate_asof 的 as_of,FIN-21)。与定价日不同 = 回溯(FIN-19 规则内);NULL = FIN-21 之前的行,当时没记,不补造。';
 COMMENT ON COLUMN public.price_history.rate_type IS
     '所用牌价的侧(tt_buy / tt_sell / mid,FIN-21)。采购计价恒为 tt_sell —— 这批货将来要向银行买外币去付。NULL = FIN-21 之前的行。';
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_price_history_no_truncate
+    BEFORE TRUNCATE ON public.price_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

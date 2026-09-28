@@ -62,3 +62,8 @@ CREATE POLICY "fx_rate_history select by permission"
     ON public.fx_rate_history
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text));
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_fx_rate_history_no_truncate
+    BEFORE TRUNCATE ON public.fx_rate_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

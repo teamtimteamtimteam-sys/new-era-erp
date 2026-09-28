@@ -36,3 +36,8 @@ CREATE POLICY "customer_credit_history select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.customers.view'::text));
 -- 【没有 INSERT 策略】唯一写入口是触发器(属主身份)—— 留痕不该有第二个写法
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_customer_credit_history_no_truncate
+    BEFORE TRUNCATE ON public.customer_credit_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

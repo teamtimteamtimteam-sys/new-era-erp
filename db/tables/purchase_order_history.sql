@@ -70,6 +70,23 @@ CREATE POLICY "po_history select by permission"
 -- 【没有 INSERT/UPDATE/DELETE 策略】唯一写入口是触发器(属主权限)——
 -- 与 approval_log / po_issues 同一条:档案不该有第二个写法。
 
+-- ★ HISTORY-1(Tim 的 Q20,2026-09-28):【列级遮蔽】。本表存着采购那一侧的价格 ——
+--   old/new_estimated_unit_price · old/new_estimated_amount_ccy · old/new_estimated_total_ccy · old/new_fx_rate ·
+--   以及整期付款快照 old/new_payment_term(里面有 fixed_amount_ccy)—— 与 purchase_order_lines_masked /
+--   purchase_orders_masked / purchase_order_payment_terms_masked 藏在 data.view_purchase_prices 后面的是同一批数。
+--   此前只要 module.purchasing.view 就读得到(HISTORY-0 §A.3:今天 9 个持采购读权的角色恰好都持价格码,
+--   所以缺口是潜伏的)。现在与另外 25 张遮蔽表同一个形状:收回整表 SELECT、按列授回不敏感的列,
+--   敏感列只经 purchase_order_history_masked 读。付款快照【整份】遮:它是一件事(见上面那条列注释),
+--   拆开遮一个键就等于替它重新发明一个形状。
+REVOKE SELECT ON public.purchase_order_history FROM authenticated, anon;
+GRANT SELECT (id, purchase_order_id, purchase_order_line_id, line_no, change_type,
+              old_order_date, new_order_date, old_expected_delivery_date, new_expected_delivery_date,
+              old_incoterm, new_incoterm, old_terms_text, new_terms_text, old_notes, new_notes,
+              old_quantity, new_quantity, old_unit, new_unit, amend_reason, changed_at, changed_by,
+              old_delivery_location, new_delivery_location, old_price_status, new_price_status,
+              payment_term_seq)
+    ON public.purchase_order_history TO authenticated;
+
 CREATE OR REPLACE FUNCTION public.guard_po_history_append_only()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -84,3 +101,8 @@ $function$;
 CREATE TRIGGER trg_po_history_append_only
     BEFORE UPDATE OR DELETE ON public.purchase_order_history
     FOR EACH ROW EXECUTE FUNCTION public.guard_po_history_append_only();
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_purchase_order_history_no_truncate
+    BEFORE TRUNCATE ON public.purchase_order_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

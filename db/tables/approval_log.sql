@@ -301,3 +301,8 @@ GRANT SELECT (id, seq, subject_type, subject_id, subject_code, decision, level,
 
 COMMENT ON COLUMN public.approval_log.self_decided IS
     'APR-ROUTE-1(Tim 的 R2):按下去的这个人,是不是这张单据的提单人或主角(按人认,经 self_leg)。★ 记的是【事实】不是【规则】:由 record_approval_decision 对 approved / rejected 两种决定计算;auto_approved 与 approval_voided 不是一次决定,恒为 false。唯一允许它为 true 的是 Tim 的例外(二级审批角色的持有人决定自己的报销单或医疗申报;ROLE-1 起加上请假),approval_log_self_decided_scope 把它钉在这三类上。自批报表 self_approved_decisions() 读它。★ 加列时线上 14 行里没有一行是"决定人 = 主角"的决定(APR-ROUTE-1 grilling 实测),所以 DEFAULT false 对历史行是真话,不是回填。';
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_approval_log_no_truncate
+    BEFORE TRUNCATE ON public.approval_log
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

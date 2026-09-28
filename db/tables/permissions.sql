@@ -107,6 +107,8 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     --   不借 module.finance.view / module.hr.view —— 被这张表报告的人(二级审批角色
     --   的持有人)自己就持有那两个,而 Tim 要的读者是另外那几位。
     ('data.view_self_approvals', 'data', 'View self-approved decisions', '查看自批记录', 'Every expense claim or medical claim decided by the person it is about — the one exception to "nobody decides their own", open to the top approval level only and flagged every time', '每一张由单据主角本人决定的报销单或医疗申报 —— "没有人批自己的单"的唯一例外,只对最高审批级别开放,每一次都被标记', 270),
+    -- ★ HISTORY-1(Tim 的 Q10 · Q1,2026-09-28):变更记录自己的码。只授 admin 与 cfo,不捆进任何别的角色。
+    ('data.view_change_log', 'data', 'View change history', '查看变更记录', 'The system-wide change history: every insert, edit and delete, who made it and what it was before. Masked values follow the same data codes as the source screens.', '全系统变更记录:每一次新增、修改与删除 —— 谁做的、改之前是什么。受遮蔽的值跟源屏幕问同一批数据码。', 280),
     ('action.manage_permissions', 'action', 'Manage roles & permissions', '管理角色与权限', 'Create roles and change who holds what', '新建角色、调整授权', 300),
     -- IMPORT-1:批量导入自己一个码。**不复用 action.manage_permissions** ——
     -- 那会重演 DICT-ADMIN 之前的缺陷(一个物料编辑员永远够不到物料那张屏),

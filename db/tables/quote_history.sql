@@ -31,3 +31,8 @@ ALTER TABLE public.quote_history ENABLE ROW LEVEL SECURITY;
 -- (同 approval_log / so_issues:档案不该有第二个写法)。
 CREATE POLICY "quote_history select by permission" ON public.quote_history
     AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.sales.view'::text));
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_quote_history_no_truncate
+    BEFORE TRUNCATE ON public.quote_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

@@ -46,6 +46,15 @@ async function localize(message: string): Promise<string> {
             return t('permissions.errLastAdmin')
         case 'EDIT_REQUIRES_VIEW':
             return t('permissions.errEditRequiresView', { 0: m[2] ?? '' })
+        // HISTORY-1(Q22 · Q2):停用 / 重新启用的拒绝 —— 全部由 record_account_event 在库里判
+        case 'CANNOT_DISABLE_SELF':
+            return t('permissions.errCannotDisableSelf')
+        case 'ACCOUNT_ALREADY_DISABLED':
+            return t('permissions.errAlreadyDisabled')
+        case 'ACCOUNT_NOT_DISABLED':
+            return t('permissions.errNotDisabled')
+        case 'ACCOUNT_NOT_FOUND':
+            return t('permissions.errAccountNotFound')
         default:
             return await fallbackForRawError(message, 'localize@app/settings/accounts/accountActions.ts')
     }
@@ -106,6 +115,22 @@ export async function createAccount(form: {
     const userId = data?.user?.id
     if (!userId) return { error: t('permissions.errCreateNoUser') }
 
+    // ★ HISTORY-1(Q23 · Q3):建号【立刻】记进变更记录 —— 在关联与授角色之前。
+    //   auth 架构不是我们的,挂不了触发器;这一行由【按按钮的人自己的会话】写,actor 就是他。
+    //   记不进去 → 这个号不留:删掉,并说清楚。一个没有记录的建号,正是这一刀要消灭的东西。
+    const { error: recErr } = await supabase.rpc('record_account_event', {
+        p_user_id: userId,
+        p_event: 'ACCOUNT_CREATE',
+        p_detail: { role_id: form.roleId, employee_id: form.employeeId },
+    })
+    if (recErr) {
+        const { error: delErr } = await admin.auth.admin.deleteUser(userId)
+        if (delErr) {
+            return { error: t('permissions.errCreateRolledBackFailed', { 0: await localize(recErr.message), 1: delErr.message, 2: email }) }
+        }
+        return { error: t('permissions.errCreateNotRecorded', { 0: await localize(recErr.message) }) }
+    }
+
     // ════════════════════════════════════════════════════════════════════════
     // ★★【从这里开始,任何失败都必须【把账号删掉】—— 而删除本身要查状态码】★★
     //   PRE-ACCOUNT-1 的头条正是这个形状:四个带着仓库里公开密码的管理员账号
@@ -119,6 +144,17 @@ export async function createAccount(form: {
         if (delErr) {
             // 【说清楚现在是什么状态】—— 一个建出来了、没有角色、而且删不掉的账号。
             return { error: t('permissions.errCreateRolledBackFailed', { 0: reason, 1: delErr.message, 2: email }) }
+        }
+        // ★ HISTORY-1(Q3):回滚删除保留硬删(这个号从没登录过、什么都没写过),但【记下来】——
+        //   ACCOUNT_CREATE 已经在上面记过,这一行把它说完:reason = create_rolled_back。
+        //   记不进去不改变结果(号已经删了),但要说出来,不许吞掉。
+        const { error: recErr } = await supabase.rpc('record_account_event', {
+            p_user_id: userId,
+            p_event: 'ACCOUNT_DELETE',
+            p_detail: { email, reason: 'create_rolled_back' },
+        })
+        if (recErr) {
+            return { error: t('permissions.errCreateRolledBack', { 0: `${reason}; ${await localize(recErr.message)}` }) }
         }
         return { error: t('permissions.errCreateRolledBack', { 0: reason }) }
     }
@@ -148,3 +184,59 @@ export async function createAccount(form: {
 //   注释写着"供用户页的编辑面板使用" —— 实测【没有任何文件 import 过它】
 //   (UserRow 走的是 ../accountsActions 的 saveUserRoles)。
 //   把一段没人调的代码搬进新文件,等于给下一个人留一条假线索。
+
+// ════════════════════════════════════════════════════════════════════════════
+// HISTORY-1(Tim 的 Q22 · Q2 · Q23,2026-09-28):停用 / 重新启用 —— 取代删除。
+// ════════════════════════════════════════════════════════════════════════════
+// 【停用是什么】Supabase auth 的封禁:auth.admin.updateUserById(id, { ban_duration })
+//   写 auth.users.banned_until。封着的号登录不了、换不了新令牌;real_role_grants 的第 ③ 条
+//   (未封禁)从此不把它算作真的持有人。一个手里还有未过期访问令牌的会话能撑多久,
+//   是对着线上量过的(docs/handbacks/HISTORY-1.md · docs/known-issues.md)。
+// 【判据全在库里】record_account_event:要 action.manage_permissions;不许停用自己;
+//   已停用 / 未停用;最后一个真的管理员(与 guard_last_admin 同一份判据)。屏幕不做第二份判断。
+// 【先记后封】两步不在一笔事务里。先封后记,记失败时就有一个没有记录的停用;
+//   先记后封,封失败时补一行 *_FAILED 把前一行说清楚,屏幕报错。
+// ★ 不许停用的 7 个真账号由人守着,不由这段代码守着 —— 这里只负责把每一次都记下来。
+const BAN_FOREVER = '876000h' // 100 年;Supabase 的 ban_duration 只收时长,不收"永久"
+
+export async function disableAccount(userId: string): Promise<AccountState> {
+    return setDisabled(userId, true)
+}
+
+export async function enableAccount(userId: string): Promise<AccountState> {
+    return setDisabled(userId, false)
+}
+
+async function setDisabled(userId: string, disable: boolean): Promise<AccountState> {
+    const t = await getTranslations()
+    if (!(await canManagePermissions())) {
+        return { error: t('permissions.errDenied') }
+    }
+    let admin
+    try {
+        admin = createAdminClient()
+    } catch (e) {
+        return { error: e instanceof Error ? e.message : String(e) }
+    }
+    const supabase = await createClient()
+    const { error: recErr } = await supabase.rpc('record_account_event', {
+        p_user_id: userId,
+        p_event: disable ? 'ACCOUNT_DISABLE' : 'ACCOUNT_ENABLE',
+    })
+    if (recErr) return { error: await localize(recErr.message) }
+
+    const { error: banErr } = await admin.auth.admin.updateUserById(userId, {
+        ban_duration: disable ? BAN_FOREVER : 'none',
+    })
+    if (banErr) {
+        const { error: failErr } = await supabase.rpc('record_account_event', {
+            p_user_id: userId,
+            p_event: disable ? 'ACCOUNT_DISABLE_FAILED' : 'ACCOUNT_ENABLE_FAILED',
+            p_detail: { error: banErr.message },
+        })
+        const why = failErr ? `${banErr.message}; ${await localize(failErr.message)}` : banErr.message
+        return { error: t(disable ? 'permissions.errDisableAuthFailed' : 'permissions.errEnableAuthFailed', { 0: why }) }
+    }
+    revalidatePath('/settings/accounts')
+    return { success: true }
+}

@@ -9741,3 +9741,34 @@ Tim 的裁定:**登记,不在本刀修**(问题是「库存科目要不要也只
 `prepayment`(预付冲抵)这类系统分录今天【没有更正路径】,这一条就是它的登记。
 **删除条件:** sale / prepayment 的错分录有了一条自己的更正路径。
 
+
+## HISTORY1-OWNER-BYPASS —— 变更记录对属主 `postgres` 不是只增不改的(HISTORY-1 登记,Tim 的 Q13 · Q14,2026-09-28)
+
+`change_log` 对每一个【应用角色】(`anon` / `authenticated` / `service_role`)一个权限都没有,而属主的 UPDATE / DELETE /
+TRUNCATE 由触发器拒(`CHANGE_LOG_IMMUTABLE`,唯一放行的是匿名化涂抹那个形状)。**但属主本身可以绕过去**:
+`ALTER TABLE change_log DISABLE TRIGGER …`,或 `SET session_replication_role = replica` 之后再改 —— 触发器是守卫,
+而属主管得了守卫。迁移、`db/apply_migration.sh`、Management API 都以 `postgres` 跑。17 张领域历史表是同一个限制。
+所以诚实的说法是 **"对每一个应用角色只增不改"**,不是 "不可篡改"。
+能【发现】属主改动的那一层(哈希链,或定期导出到库外)是 Tim 裁定的后续一刀(Q14),登记在 `docs/forward-queue.md` 的
+「HISTORY family」一节。**删除条件:** 那一层落地,并且对"属主改了一行"做过故障注入。
+
+## HISTORY1-READER-SCALE —— 变更记录的读法今天按"小库"写,记录会一直长(HISTORY-1 登记,2026-09-28)
+
+`change_log_rows()` 按 `seq` 倒序键集分页,有 `occurred_at` / `(table_name, row_key)` / 账号 / 员工四个索引;但【记录】筛选
+(主键里任一值等于它)是逐行 `jsonb_each_text`,遮蔽判据在要回查字段时按表名动态扫那张表(`change_log_field`),
+而 `authenticated` 的 `statement_timeout` 是 8 s。今天库 57 MB、一辈子一共写过 103,579 行,不是问题;
+记录不设保留期(Q15),所以它会一直长。**删除条件:** 一次对着真实体量的实测(某张表 ≥ 10 万行记录时,
+最慢的一种筛选 < 2 s),或给记录筛选加上表达式索引。
+
+## HISTORY1-DISABLED-TOKEN-HOUR —— 一个停用的账号,手里已有的访问令牌对【数据库 API】还能用到过期,最多 1 小时(HISTORY-1 登记,2026-09-29)
+
+**对着线上量的**(`docs/handbacks/HISTORY-1.md` 的停用证明,一个用完即删的 `h1-disable-proof-*@test.local` 号;
+Supabase auth 的 `ban_duration = '876000h'`,与 `/settings/accounts` 的「停用」同一个调用):
+停用之后 **登录被拒**(`400 user_banned`)、**换新令牌被拒**(`400 user_banned`)、`/auth/v1/user` 对已有令牌 **403** ——
+中间件每个请求都调它(`getUser()`),而 403 不是"判断不出"那一类,于是下一次打开任何页面就回到登录页
+(这一步由读 `lib/supabase/middleware.ts` 推出,不是在浏览器里量的)。**但 PostgREST 仍然收那张已有的访问令牌**:
+停用后立刻、以及 60 秒后,`/rest/v1/…` 都是 **200**。令牌寿命实测 **3600 s**(`exp − iat`,与 `app.settings.jwt_exp = 3600` 一致)。
+所以一个被停用的人,如果手里已经有一张令牌、并且绕开应用直接打数据库 API,**最多还能读写到那张令牌过期,至多 1 小时** ——
+读写的边界仍然是他那些角色的 RLS 与函数判据,而且每一次写都照样进 `change_log`。
+**删除条件:** 停用时让已发出的令牌失效(例如权限判据同时检查 `auth.users.banned_until`,或缩短令牌寿命),并对"停用后
+用旧令牌调 PostgREST"做一次对着线上的复测。

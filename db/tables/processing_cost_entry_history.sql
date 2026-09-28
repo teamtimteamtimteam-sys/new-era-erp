@@ -52,3 +52,8 @@ REVOKE SELECT ON public.processing_cost_entry_history FROM authenticated, anon;
 GRANT SELECT (id, entry_id, run_id, change_type, old_cost_type, new_cost_type,
               old_is_estimate, new_is_estimate, changed_at, changed_by)
     ON public.processing_cost_entry_history TO authenticated;
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_processing_cost_entry_history_no_truncate
+    BEFORE TRUNCATE ON public.processing_cost_entry_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

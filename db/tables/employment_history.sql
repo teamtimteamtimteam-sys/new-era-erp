@@ -139,3 +139,8 @@ COMMENT ON COLUMN public.employment_history.anonymised_at IS
 说不出新薪资,而它有权不说,因为这一列在。';
 COMMENT ON COLUMN public.employment_history.work_category IS
     '这次变动之后的工种类别(office/shopfloor)。按月累积要按【那个月当时的类别】取费率,所以类别的变更必须留痕。历史行没填时,解析器回落到最早一条有值的记录,再回落到 employees 当前值。';
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_employment_history_no_truncate
+    BEFORE TRUNCATE ON public.employment_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

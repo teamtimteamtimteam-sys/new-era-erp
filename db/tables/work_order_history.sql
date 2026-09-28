@@ -39,3 +39,13 @@ COMMENT ON COLUMN public.work_order_history.work_order_line_id IS
 ALTER TABLE public.work_order_history ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "work_order_history select by permission" ON public.work_order_history
     AS PERMISSIVE FOR SELECT TO authenticated USING (has_permission('module.processing.view'::text));
+
+-- ★ HISTORY-1(Tim 的 Q18):只增不改守卫 —— 此前 17 张历史表里只有本表与 task_history 没有。
+CREATE TRIGGER trg_work_order_history_append_only
+    BEFORE UPDATE OR DELETE ON public.work_order_history
+    FOR EACH ROW EXECUTE FUNCTION public.guard_work_order_history_append_only();
+
+-- ★ HISTORY-1(Tim 的 Q19):TRUNCATE 守卫。行级守卫对 TRUNCATE 不响,而平台默认把 TRUNCATE 授给了 authenticated。
+CREATE TRIGGER trg_work_order_history_no_truncate
+    BEFORE TRUNCATE ON public.work_order_history
+    FOR EACH STATEMENT EXECUTE FUNCTION public.guard_history_no_truncate();

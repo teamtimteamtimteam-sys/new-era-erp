@@ -5,6 +5,7 @@
 import { useState, useTransition } from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { saveUserRoles, linkAdditionalAccount, unlinkAdditionalAccount } from '../accountsActions'
+import { disableAccount, enableAccount } from './accountActions'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
@@ -20,6 +21,8 @@ export type DirectoryRow = {
     roles: { role_id: string; code: string; name_en: string; name_zh: string }[]
     /** APR-ROUTE-1 Batch B(R3):'primary' | 'additional' | null(没关联任何人) */
     account_kind: 'primary' | 'additional' | null
+    /** HISTORY-1(Q22 · Q2):auth.users.banned_until 在将来 —— 这个号停用着。 */
+    disabled: boolean
 }
 export type RoleOption = {
     id: string
@@ -73,6 +76,21 @@ export default function UserRow({
     const isUnlinked = row.account_kind === null
     const additionalOptions = employees.filter((e) => e.user_id !== null)
     const [additionalOf, setAdditionalOf] = useState<string>('')
+
+    // ★ HISTORY-1(Tim 的 Q22 · Q2):停用 / 重新启用,取代删除。没有删除钮 —— 一个被删掉的号,
+    //   它写过的每一条记录都会指向一个不存在的人(HISTORY-0 §C:9 个号、18 个值已经这样了)。
+    //   判据(不许停用自己、最后一个管理员、已停用 / 未停用)全在库里,这里只把答复原样带回来。
+    const [statusMsg, setStatusMsg] = useState<string | null>(null)
+    function toggleDisabled() {
+        setError(null)
+        setDone(false)
+        setStatusMsg(null)
+        startTransition(async () => {
+            const res = row.disabled ? await enableAccount(row.user_id) : await disableAccount(row.user_id)
+            if (res.error) setError(res.error)
+            else setStatusMsg(row.disabled ? t('permissions.enabledDone') : t('permissions.disabledDone'))
+        })
+    }
 
     function linkAdditional() {
         setError(null)
@@ -145,6 +163,11 @@ export default function UserRow({
                                 {t('permissions.pending')}
                             </span>
                         )}
+                        {row.disabled && (
+                            <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs text-gray-800">
+                                {t('permissions.disabledBadge')}
+                            </span>
+                        )}
                     </div>
                     <div className="text-sm text-[color:var(--brand-muted-text)]">
                         {row.employee_code && isAdditional ? (
@@ -192,7 +215,21 @@ export default function UserRow({
                     它调的是 resendInvite → inviteUserByEmail,而本系统没有邮件服务
                     (Tim 的裁定 Q12:不留一个没配 SMTP 时安静失败的按钮)。
                     一个还没登录过的人现在的处置是【当面重新给一次密码】——
-                    在这一行的「编辑」里改,或者删掉账号重建。 */}
+                    在这一行的「编辑」里改。
+                    ★ HISTORY-1:这里原来还写着「或者删掉账号重建」,而这一页【从来没有】删除钮;
+                      现在有的是「停用」—— 删除不再是一个选项(Tim 的 Q22)。 */}
+                <ConfirmButton
+                    subject={row.email ?? row.user_id}
+                    title={row.disabled ? t('permissions.enableTitle') : t('permissions.disableTitle')}
+                    body={row.disabled ? t('permissions.enableBody') : t('permissions.disableBody')}
+                    confirmLabel={row.disabled ? t('permissions.enable') : t('permissions.disable')}
+                    tier={row.disabled ? 'default' : 'reversal'}
+                    triggerVariant="secondary"
+                    disabled={pending}
+                    onConfirm={() => toggleDisabled()}
+                >
+                    {row.disabled ? t('permissions.enable') : t('permissions.disable')}
+                </ConfirmButton>
                 <Button
                     type="button"
                     aria-expanded={open}
@@ -205,6 +242,11 @@ export default function UserRow({
 
             {done && (
                 <p className="px-4 pb-2 text-sm text-green-700">{t('permissions.saved')}</p>
+            )}
+            {statusMsg && <p className="px-4 pb-2 text-sm text-green-700">{statusMsg}</p>}
+            {/* 停用 / 启用的拒绝在面板【外面】也要看得见 —— 这两颗钮不在展开的面板里 */}
+            {!open && error && (
+                <div className="mx-4 mb-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</div>
             )}
 
             {open && (

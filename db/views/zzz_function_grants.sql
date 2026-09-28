@@ -540,3 +540,19 @@ REVOKE EXECUTE ON FUNCTION public.assert_po_manager(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.overtime_approved_hours(date) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.overtime_assert_month_open(date) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.overtime_other_approver_exists(uuid, uuid[]) FROM authenticated;
+
+-- HISTORY-1(2026-09-28):通用变更记录的内层函数只由 DEFINER 的读法(change_log_rows)、写法(change_log_capture
+--   触发器)与匿名化(anonymise_employee)在属主身份下调用。
+--   change_log_field —— 按表名动态读【任意一张表】的任意一列:给了 authenticated 就是一扇绕过列级遮蔽的门
+--     (以调用者身份跑时列权限仍挡着,但那是第二道;第一道是调不到)。
+--   change_log_rule_visible / change_log_task_visible —— 经它们能逐行探测别人的员工 id 与任务归属。
+--   change_log_redact_employee —— 唯一能改 change_log 的路;只许 anonymise_employee 走(它自己也查码)。
+--   change_log_capture —— 触发器函数,不该被直接调。
+--   ☞ change_log_rows / change_log_filters / record_account_event【不收】:各自查 data.view_change_log /
+--     action.manage_permissions,屏幕与服务端动作要调它们。change_log_mask_gaps / change_log_coverage_gaps
+--     只读目录与常量名单,gate 与 fixture 调它们。
+REVOKE EXECUTE ON FUNCTION public.change_log_field(text, jsonb, jsonb, jsonb, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.change_log_rule_visible(text, text, jsonb, jsonb, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.change_log_task_visible(text, jsonb, jsonb, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.change_log_redact_employee(uuid) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.change_log_capture() FROM authenticated;

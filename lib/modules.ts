@@ -393,6 +393,9 @@ const P_BULK_IMPORT = 'action.bulk_import'
  *  从此读得到这份报告。读它不改变它:self_decided 由 record_approval_decision 写,
  *  没有人能改;gm 与 auditor 仍然读得到同一份。它【仍然】不借模块码 —— 那条理由不变。 */
 const P_VIEW_SELF_APPROVALS = 'data.view_self_approvals'
+/** HISTORY-1(Tim 的 Q10 · Q1 · Q13,2026-09-28):变更记录【自己的】码 —— 只授 admin 与 cfo,
+ *  不捆进任何别的角色,也不借任何模块码(它跨 238 张表,借哪一个模块码都是在替别人决定谁能看)。 */
+const P_VIEW_CHANGE_LOG = 'data.view_change_log'
 
 export const FUNCTIONS: readonly FunctionEntry[] = [
     // ══ 采购 Purchasing ═════════════════════════════════════════════════════
@@ -877,6 +880,10 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // has_permission 裁决,所以进来之后看得见哪几类,与从前完全一样。
     // 本谓词只回答"这一页对你有没有意义"。
     { href: '/settings/deleted', navKey: 'nav.deleted', modules: ['settings'], permission: P_VIEW_DELETED },
+    // ★ HISTORY-1(Tim 的 Q26 · Q13):变更记录 —— 一条条目、一个码、两个属主。
+    //   放在设置(它是审计性质的,与被删记录挨着),也放在财务的「报表」一组 —— cfo 的日常在财务,
+    //   从那里也够得着。判据只有 data.view_change_log 一个码。
+    { href: '/settings/change-history', navKey: 'changeHistory.title', modules: ['settings', 'finance'], permission: P_VIEW_CHANGE_LOG, group: 'finance.group.reports' },
 
 
     // ══════════════════════════════════════════════════════════════════════
@@ -1012,6 +1019,8 @@ export const FN = {
     approvals: fnByHref('/settings/approvals'),
     /** APR-ROUTE-1:自批记录 —— 跨财务与人力两个模块,判据按条目取。 */
     selfApproved: fnByHref('/finance/self-approved'),
+    /** HISTORY-1:变更记录 —— 设置与财务两个属主,判据 data.view_change_log。 */
+    changeHistory: fnByHref('/settings/change-history'),
     /** NAV-CLEANUP-1:落地页的判据 —— 页面守卫按名取,拼错是编译期错误。
      *  【CONV-6 ④:settingsHome 删了】那一页与那条条目一起没了;
      *  留着一个指向不存在条目的名字,fnByHref 会在【模块加载时】抛。
