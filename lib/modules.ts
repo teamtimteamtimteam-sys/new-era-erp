@@ -927,6 +927,12 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     // 而 Tim 的例外同时覆盖这两类 —— 所以它在两个模块下各出现一次(Q4)。
     // 判据【只有】data.view_self_approvals 一个码,不借任何模块码。
     { href: '/finance/self-approved', navKey: 'finance.subnav.selfApproved', modules: ['finance', 'hr'], permission: P_VIEW_SELF_APPROVALS, group: 'finance.group.reports' },
+    // 【双】加班(OVERTIME-1,Tim Q13):财务在人力下按月录,仓库在运营下整批批。
+    // ★ 仓库【不】持 module.hr.view —— 这一条若只挂在人力下,批的人连入口都没有(人力对他是「受限」)。
+    //   判据是三个码任一:读者(module.hr.view)· 录的人(action.overtime_enter)· 批的人
+    //   (action.overtime_approve)—— 与两张加班表的读策略逐字同一组码。
+    { href: '/hr/overtime', navKey: 'hr.subnav.overtime', modules: ['hr', 'operation'],
+      permission: { all: [], any: ['module.hr.view', 'action.overtime_enter', 'action.overtime_approve'] } },
 ]
 
 /** 某个模块名下的二级条目(一个条目会在它每个属主模块下各出现一次 —— 那是要点)。 */
@@ -1021,4 +1027,6 @@ export const FN = {
     /** APR-5b:仓库的发货队列(action.ship_goods)。 */
     logisticsShipping: fnByHref('/logistics/shipping'),
     salesHome: fnByHref('/sales'),
+    /** OVERTIME-1:加班 —— 人力与运营两个属主,三个码任一(见 FUNCTIONS 共有区那一条)。 */
+    overtime: fnByHref('/hr/overtime'),
 } as const

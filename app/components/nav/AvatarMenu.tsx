@@ -218,17 +218,11 @@ export default function AvatarMenu({ name, email, unread, settingsEntries, avata
                         <span>{t('nav.myReviews')}</span>
                     </Link>
 
-                    {/* ④ 我的档案 —— ★ EMP-SELF-1(G1,Tim 的 Q2):这一行此前叫 "My profile" / 「我的档案」,
-                        员工在它底下找不到请假与报销(EMP-SELF-0 §0)。改名,并在它下面加两行直达 /me 上的锚点。
-                        不开新路由:/me 不查任何模块码,这两行也不查 —— 与这一行同一条路。 */}
+                    {/* ④ 我的档案 —— ★ OVERTIME-1 折进来的(Tim 2026-09-27,已关):这一行回到「My profile」/「我的档案」,
+                        仍然去 /me;EMP-SELF-1 加的「我的请假」「我的报销」两行删掉。/me 上的 #leave / #claims 锚点留着
+                        (无害,也还能被直链)。不查任何模块码 —— /me 本来就不查。 */}
                     <Link href="/me" data-menu-row="" onClick={closeMenu} className={row}>
                         <span>{t('nav.me')}</span>
-                    </Link>
-                    <Link href="/me#leave" data-menu-row="" onClick={closeMenu} className={row}>
-                        <span>{t('nav.myLeave')}</span>
-                    </Link>
-                    <Link href="/me#claims" data-menu-row="" onClick={closeMenu} className={row}>
-                        <span>{t('nav.myClaims')}</span>
                     </Link>
 
                     {/* ⑤ 设置 —— 【七条】,不是一条跳转。理由整段写在 settingsEntries

@@ -294,6 +294,8 @@ export default async function EmployeeDetailPage({
                             </>
                         ),
                     },
+                    // OVERTIME-1:现场员工(只有他们有加班)
+                    { label: t('hr.colSiteStaff'), value: emp.is_site_staff ? t('hr.siteStaffYes') : t('hr.siteStaffNo') },
                     { label: t('hr.colStatus'), value: t('hr.employmentStatus.' + emp.employment_status) },
                     {
                         label: t('hr.colHireDate'),

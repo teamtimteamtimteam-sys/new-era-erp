@@ -651,6 +651,9 @@ const MANIFEST = {
     'hr.errors.':           { kind: 'enum', values: () => tsSet('app/hr/hrErrorCodes.ts', 'HR_ERROR_CODES') },
     // ATTEND-1:考勤期间状态。真源是 attendance_periods 的 CHECK,不是这里抄一份。
     'attendance.status.':   { kind: 'enum', values: () => sqlCheckIn('db/tables/attendance_periods.sql', 'status') },
+    // OVERTIME-1:加班批的状态与一行的日子分类 —— 真源是两张表自己的 CHECK
+    'overtime.status_':     { kind: 'enum', values: () => sqlCheckIn('db/tables/overtime_batches.sql', 'status') },
+    'overtime.dayKind_':    { kind: 'enum', values: () => sqlCheckIn('db/tables/overtime_lines.sql', 'day_kind') },
     'leave.status_':        { kind: 'enum', values: () => sqlEnum('db/tables/leave_requests.sql', 'status') },
     'leave.finalState_':    { kind: 'enum', values: () => tsRegex('app/hr/leave/[id]/DecideControls.tsx',
                                   /status === '(\w+)' \|\| status === '(\w+)'/g) },

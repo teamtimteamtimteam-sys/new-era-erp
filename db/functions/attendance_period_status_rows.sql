@@ -18,9 +18,14 @@ BEGIN
         ap.opened_at, ap.completed_at, ap.reopened_at, ap.reopen_reason,
         count(al.id)::integer,
         count(al.id) FILTER (WHERE al.recorded_at IS NULL)::integer,
-        round(COALESCE(sum(al.ot_normal_hours), 0::numeric), 2),
-        round(COALESCE(sum(al.ot_rest_day_hours), 0::numeric), 2),
-        round(COALESCE(sum(al.ot_public_holiday_hours), 0::numeric), 2),
+        -- ★ OVERTIME-1(Tim Q3):三个加班桶与无薪天数同一条 —— 已完成的读冻下来的,
+        --   还开着的读此刻【批过】的(overtime_approved_hours;考勤底稿自己不再收小时)。
+        round(COALESCE(CASE WHEN ap.status = 'complete'::text THEN sum(al.ot_normal_hours)
+            ELSE (SELECT sum(o.weekday_hours) FROM overtime_approved_hours(ap.period_month) o) END, 0::numeric), 2),
+        round(COALESCE(CASE WHEN ap.status = 'complete'::text THEN sum(al.ot_rest_day_hours)
+            ELSE (SELECT sum(o.rest_day_hours) FROM overtime_approved_hours(ap.period_month) o) END, 0::numeric), 2),
+        round(COALESCE(CASE WHEN ap.status = 'complete'::text THEN sum(al.ot_public_holiday_hours)
+            ELSE (SELECT sum(o.public_holiday_hours) FROM overtime_approved_hours(ap.period_month) o) END, 0::numeric), 2),
         -- ★【已完成的读冻下来的,还开着的读此刻的】★ 两者是不同的问题,没动。
         -- 【sum() 跳过 NULL】—— 走到这里的人一定持 module.hr.view(上面那道闸),
         -- 所以 attendance_unpaid_days 不会返回 NULL,合计不会被悄悄抽走。

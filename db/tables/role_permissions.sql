@@ -56,6 +56,9 @@ CREATE POLICY "role_permissions delete by permission"
 -- 【自己验一遍】—— 一份连自己的规则都不满足的起点,比没有起点更糟。
 -- ═══════════════════════════════════════════════════════════════════════════
 
+-- ★★ OVERTIME-1(Tim 2026-09-28 要求更正):下面这段「只做系统管理」说的是【引导起点】,不是线上的 admin。
+--   Tim 2026-09-23 23:33 把全部码还给了 admin,常设裁定(2026-09-24,docs/role-matrix.md §1 最后一行)是
+--   `admin` 持每一个码、每一个新码都在同一支迁移里授给它 —— 那一半只在迁移里授,这份 RUNTIME CONFIG 引导不跟。
 -- admin:【只做系统管理】—— ★ ROLE-1(Tim 的角色与审批矩阵,2026-09-23 · Q8)。
 --   此前这里写着「admin(35):全部 —— 定义上如此,不然它就不是管理员」。Tim 裁定相反:
 --   系统管理员账号只管权限、账号、角色码、账号↔员工关联、审批开关与策略、批量导入、
@@ -115,6 +118,8 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'action.wo_release',
         -- ★ APR-10(Tim 2026-09-27,grilling Q6):办公用品采购单归财务开(module.purchasing.edit 不再开单)。
         'action.raise_po_office',
+        -- ★ OVERTIME-1(Tim 2026-09-28):现场员工的加班由财务按月录。
+        'action.overtime_enter',
         'data.view_banking', 'data.view_prices', 'data.view_purchase_prices', 'data.view_sales', 'module.customers.edit',
         'module.customers.view', 'module.finance.edit', 'module.finance.view',
         'module.inbound.edit', 'module.inbound.view', 'module.inventory.edit',
@@ -196,7 +201,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         -- 发货队列不带价格(shipping_queue_rows);仓库【不】拿 module.sales.view。
         'action.ship_goods',
         -- ── APR-10(Tim 2026-09-27,grilling Q6):工厂耗材采购单归仓库开;要读得到采购模块才开得了 ─────
-        'action.raise_po_consumables', 'module.purchasing.view'
+        'action.raise_po_consumables', 'module.purchasing.view',
+        -- ── OVERTIME-1(Tim 2026-09-28):现场员工的加班由仓库整批批(仓库不拿 module.hr.view)─────
+        'action.overtime_approve'
 ) WHERE r.code = 'warehouse';
 
 -- hr(7):人力资源 + 薪酬 + 身份信息 + 绩效正文。这四类正是 HR 的工作对象,也正是别人不该看见的。

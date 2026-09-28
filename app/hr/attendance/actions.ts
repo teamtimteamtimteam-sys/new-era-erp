@@ -18,19 +18,15 @@ export async function openAttendancePeriod(periodMonth: string): Promise<Attenda
     return { success: true, periodId: (data as { period_id?: string })?.period_id }
 }
 
+// ★ OVERTIME-1(Tim Q3):加班小时不再从这里进来 —— 它们只经批过的加班批,在这个月完成时冻进底稿。
+//   这里只记"这一行有人看过了"与一句备注;三个小时参数一律不传(库里默认 0,传非零会按名拒)。
 export async function recordAttendance(
     lineId: string,
-    normal: number,
-    restDay: number,
-    holiday: number,
     note: string | null,
 ): Promise<AttendanceState> {
     const supabase = await createClient()
     const { error } = await supabase.rpc('record_attendance', {
         p_line_id: lineId,
-        p_normal: normal,
-        p_rest_day: restDay,
-        p_holiday: holiday,
         p_note: note ?? undefined,
     })
     if (error) return { error: await localizeHrError(error.message) }

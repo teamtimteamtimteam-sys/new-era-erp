@@ -72,9 +72,11 @@ export default function MyExpenseClaimsPanel({
        它【只画一次】了 —— 那一列在两个断点都留在明面上。
        ☞ 留着这个具名的画法,是因为它现在就是那一列的 render。
        动作与它自己的 submitted 判定一个字没改。 */
-    const withdrawControl = (r: (typeof rows)[number]) => (
-        <>
-        {r.status === 'submitted' && (
+    // ★ OVERTIME-1 折进来的(EMP-SELF-1 决定 1 被 Tim 的 Q21 推翻):撤不了的行【不再藏钮】——
+    //   已批准的那一行,钮看得见、按不动,旁边一行说为什么(与医疗申报那块同一句话、同一个样子)。
+    //   驳回的与已撤回的不画任何控件:那里没有一个被拒绝的动作(医疗那块的先例)。
+    const withdrawControl = (r: (typeof rows)[number]) =>
+        r.status === 'submitted' ? (
             <Button variant="reversal" size="xs" type="button" disabled={pending}
                 onClick={() => {
                     setError(null)
@@ -86,9 +88,14 @@ export default function MyExpenseClaimsPanel({
                 title={t('expenseClaims.withdrawHint')}>
                 {t('expenseClaims.withdraw')}
             </Button>
-        )}
-        </>
-    )
+        ) : r.status === 'approved' ? (
+            <>
+                <Button variant="reversal" size="xs" type="button" disabled>{t('expenseClaims.withdraw')}</Button>
+                <span className="block text-xs text-[color:var(--brand-muted-text)] max-w-[14rem] ml-auto">
+                    {t('expenseClaims.withdrawDecidedReason')}
+                </span>
+            </>
+        ) : null
 
     const columns: Column<Row>[] = [
         { key: 'ref', header: t('expenseClaims.colRef'), priority: true, render: (r) => r.code },

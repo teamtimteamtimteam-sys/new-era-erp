@@ -535,3 +535,8 @@ REVOKE EXECUTE ON FUNCTION public.asset_disposal_fingerprint(uuid) FROM authenti
 --     屏幕读 po_may_manage(只回读者自己的一个布尔)。
 REVOKE EXECUTE ON FUNCTION public.gst_filing_execute_internal(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.assert_po_manager(uuid) FROM authenticated;
+
+-- OVERTIME-1(2026-09-28):三支内层判据只由 DEFINER 的加班函数与 complete_attendance_period 在属主身份下调用。
+REVOKE EXECUTE ON FUNCTION public.overtime_approved_hours(date) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.overtime_assert_month_open(date) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.overtime_other_approver_exists(uuid, uuid[]) FROM authenticated;

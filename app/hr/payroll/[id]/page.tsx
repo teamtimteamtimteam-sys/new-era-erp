@@ -47,7 +47,7 @@ export default async function PayrollDetailPage({
         notFound()
     }
 
-    const [linesRes, jeRes, reqRes, canRaise, canDecide, meRes] = await Promise.all([
+    const [linesRes, jeRes, reqRes, canRaise, canDecide, meRes, otRes] = await Promise.all([
         supabase
             .from('payroll_lines_masked')
             .select('id, gross_pay, employer_cpf, employee_cpf, other_deductions, net_pay, notes, employees(id, code, legal_name)')
@@ -67,7 +67,12 @@ export default async function PayrollDetailPage({
         can('module.hr.edit'),
         can('data.view_pay'),
         supabase.rpc('current_user_employee'),
+        // ★ OVERTIME-1(Tim Q1):批过的加班【小时】—— 只读、不算钱(政策 7.1);那个月考勤完成之后读冻住的数
+        supabase.rpc('overtime_month_hours', { p_month: period.period_month }),
     ])
+    const otRows = mustRows(otRes, 'overtime_month_hours')
+    const otByEmployee = new Map(otRows.map((o) => [o.employee_id, Number(o.total_hours)]))
+    const otFixed = otRows.length === 0 || otRows.every((o) => o.fixed)
 
     type LineRow = {
         id: string
@@ -120,6 +125,7 @@ export default async function PayrollDetailPage({
         employerCpfText: formatMoneyBare(l.employer_cpf, CCY_NOTE),
         deductionsText: formatMoneyBare(l.other_deductions, CCY_NOTE),
         netText: formatMoneyBare(l.net_pay, CCY_NOTE),
+        otHoursText: l.employees ? (otByEmployee.get(l.employees.id) ?? 0).toFixed(2) : '—',
     }))
 
     // ★ 合计行是【数据】,不是 <tfoot> —— CONV-4 §⑨-3 定的型,CONV-8 §⑧ 复核保留。
@@ -135,6 +141,7 @@ export default async function PayrollDetailPage({
         employerCpfText: formatMoneyBare(period.employer_cpf_total, CCY_NOTE),
         deductionsText: formatMoneyBare(period.other_deductions_total, CCY_NOTE),
         netText: formatMoneyBare(period.net_pay_total, CCY_NOTE),
+        otHoursText: lines.reduce((acc, l) => acc + (l.employees ? (otByEmployee.get(l.employees.id) ?? 0) : 0), 0).toFixed(2),
         isTotal: true,
         totalNote: t('hr.lineCount', { n: lines.length }),
     })
@@ -240,6 +247,9 @@ export default async function PayrollDetailPage({
             {/* 明细 */}
             <div className="mb-6">
                 <PayrollLinesTable rows={tableRows} />
+                <p className="mt-2 text-xs text-[color:var(--brand-muted-text)]">
+                    {otFixed ? t('hr.otHoursFixedNote') : t('hr.otHoursLiveNote')}
+                </p>
             </div>
 
             {openRequest && !isPosted && (

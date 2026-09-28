@@ -111,6 +111,8 @@ function readForm(formData: FormData) {
         manager_id: s('manager_id') || null,
         employment_type: s('employment_type'),
         work_category: s('work_category'),
+        // OVERTIME-1:复选框没勾时根本不在表单里 —— 所以判据是"在不在",不是"是什么"
+        is_site_staff: formData.get('is_site_staff') === 'on',
         hire_date: s('hire_date'),
         probation_end_date: s('probation_end_date') || null,
         employment_status: status,

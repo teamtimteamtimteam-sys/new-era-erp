@@ -102,7 +102,10 @@ const TABLES_DIR = join(ROOT, 'db/tables')
 // 与 terms_requests 同一条理由不进 document_types。
 // APR-10(2026-09-27):238 → 239。新增 `gst_filing_requests`(GST 申报申请,财务提、CFO 批数字,批准时抄快照),
 // 见 db/tables/gst_filing_requests.sql。**它没有 code 列**(label 是 <期间编号> · filing #n),与 APR-9 两张申请表同形。
-const EXPECTED_TABLES = 239
+// OVERTIME-1(2026-09-28):239 → 241。新增 `overtime_batches`(加班月批次,财务录、仓库整批批)与
+// `overtime_lines`(一个员工一天一行),见 db/tables/ 下同名文件。两张都【没有 code 列】(人读的名字是
+// label:OT <月份> #n),与各张申请表同一条理由不进 document_types,所以 EXPECTED_CODE_TABLES 不动。
+const EXPECTED_TABLES = 241
 const EXPECTED_CODE_TABLES = 76
 
 const files = readdirSync(TABLES_DIR).filter((f) => f.endsWith('.sql'))

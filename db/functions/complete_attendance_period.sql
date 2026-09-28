@@ -1,10 +1,20 @@
+-- db/functions/complete_attendance_period.sql
+-- ATTEND-1:把一个月的考勤底稿标记为完成 —— 工资过账那道拒绝(PAYROLL_ATTENDANCE_NOT_COMPLETE)整个压在这句断言上。
+--
+-- ★ OVERTIME-1(Tim Q1 · Q3 · Q8,2026-09-28):
+--   ① 那个月还有【开着的】加班批(draft / submitted / rejected)→ 按名拒 OVERTIME_BATCH_OPEN_FOR_MONTH。
+--      否则一批还没批完的小时会被一份"完整"的底稿漏掉。
+--   ② 三个加班桶在这一刻从【已批准、没作废】的加班行冻进来(overtime_approved_hours)——
+--      这是批过的小时进工资的【唯一一次】:之后那个月的加班批建、提交、批、冲销一律拒。
+--      重开再完成,会按那时批过的数重新冻一次(不是叠加)。
+
 CREATE OR REPLACE FUNCTION public.complete_attendance_period(p_period_id uuid)
  RETURNS jsonb
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-DECLARE v_p attendance_periods%ROWTYPE; v_added int; v_missing int; v_end date;
+DECLARE v_p attendance_periods%ROWTYPE; v_added int; v_missing int; v_end date; v_ot text;
 BEGIN
     PERFORM require_permission('module.hr.edit');
     SELECT * INTO v_p FROM attendance_periods WHERE id = p_period_id FOR UPDATE;
@@ -15,6 +25,14 @@ BEGIN
         RAISE EXCEPTION 'ATTENDANCE_PERIOD_NOT_OPEN|%|%', v_p.code, v_p.status;
     END IF;
     v_end := (v_p.period_month + interval '1 month - 1 day')::date;
+
+    -- ★ OVERTIME-1(Tim Q8):那个月还有开着的加班批 → 不许完成
+    SELECT b.label || '|' || b.status INTO v_ot FROM overtime_batches b
+     WHERE b.period_month = v_p.period_month AND b.status IN ('draft', 'submitted', 'rejected')
+     ORDER BY b.seq LIMIT 1;
+    IF FOUND THEN
+        RAISE EXCEPTION 'OVERTIME_BATCH_OPEN_FOR_MONTH|%|%', v_p.code, v_ot;
+    END IF;
 
     -- ① 【先补名单,再谈完整 —— 这是安全网,不是操作路径】月中入职的人在
     --    开期间时还不在册;不补就会出现"一份声称完整的底稿里少了一个人",
@@ -48,6 +66,24 @@ BEGIN
            frozen_at   = now()
       FROM employees e
      WHERE e.id = al.employee_id AND al.period_id = v_p.id;
+
+    -- ★ OVERTIME-1(Tim Q1 · Q3):批过的加班小时冻进三个桶 —— 这是它们进工资的唯一一次。
+    --   每一行都写(没有批过加班的人写 0),所以重开再完成是【重算】,不是叠加。
+    UPDATE attendance_lines al
+       SET ot_normal_hours         = COALESCE(o.weekday_hours, 0),
+           ot_rest_day_hours       = COALESCE(o.rest_day_hours, 0),
+           ot_public_holiday_hours = COALESCE(o.public_holiday_hours, 0)
+      FROM attendance_lines al2
+      LEFT JOIN overtime_approved_hours(v_p.period_month) o ON o.employee_id = al2.employee_id
+     WHERE al2.id = al.id AND al.period_id = v_p.id;
+    -- 【冻进来的总和必须等于批过的总和】一个批过加班、却不在这份底稿名单上的人(例如事后被软删)
+    --   会让他的小时悄悄掉出工资 —— 那种时候按名拒,不许"完成"。
+    IF (SELECT COALESCE(sum(ot_normal_hours + ot_rest_day_hours + ot_public_holiday_hours), 0)
+          FROM attendance_lines WHERE period_id = v_p.id)
+       <> (SELECT COALESCE(sum(weekday_hours + rest_day_hours + public_holiday_hours), 0)
+             FROM overtime_approved_hours(v_p.period_month)) THEN
+        RAISE EXCEPTION 'OVERTIME_HOURS_OFF_ROSTER|%', v_p.code;
+    END IF;
 
     UPDATE attendance_periods
        SET status = 'complete', completed_at = now(), completed_by = auth.uid()

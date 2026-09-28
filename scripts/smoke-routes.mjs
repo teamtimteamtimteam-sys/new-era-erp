@@ -170,6 +170,8 @@ const ID_SOURCES = {
         // ATTEND-1:考勤底稿。前缀取最长匹配,所以它不会被 '/hr/' 底下别的条目吃掉。
         // 线上零行(机制与屏幕先于第一份真底稿落地),故同时列在 EXPECTED_SKIPS 里。
         '/hr/attendance': 'attendance_periods',
+        // OVERTIME-1:加班批详情。线上零行(机制与屏幕先于第一个现场员工落地),故同时列在 EXPECTED_SKIPS 里。
+        '/hr/overtime': 'overtime_batches',
         '/hr/reviews': 'performance_reviews', '/hr/training': 'training_records',
         '/inbound/receive/done': 'inbound_batches', '/inbound': 'inbound_batches',
         // LOC-1:库位。前缀取最长匹配,所以这一条不会被别的 /inventory 前缀吃掉
@@ -579,6 +581,12 @@ const MUST_CONTAIN = {
         // 有人第一次录入汇报关系的那天,最不该被一条假警报迎接。
         { oneOf: ['data-org-state="no-lines"', 'data-org-list="1"'],
           why: '组织架构图整块没渲染出来 —— 页面照样 200,而图不见了' },
+    ],
+    // OVERTIME-1:加班列表页 —— 两种互斥的正确渲染:一个现场员工都没标(线上今天就是这一支:开批钮按不动、
+    //   旁边一行说去哪里标 —— Tim Q17 的空态)· 有人被标、可以开批。认的是标记,不是句子。
+    '/hr/overtime': [
+        { oneOf: ['data-overtime-state="no-site-staff"', 'data-overtime-state="ready"'],
+          why: '开批那一块整块没渲染出来 —— 空态那一句(或开批钮)不见了,页面照样 200' },
     ],
     '/finance/receivables': [
         { needle: 'data-chart-bars',
@@ -1039,6 +1047,10 @@ const EXPECTED_SKIPS = new Set([
     // 【注意它跳过的是明细页,不是列表页】/hr/attendance 每一跑都真的渲染,
     // 而且下面有一条【内容】断言与一条【可达性】断言钉着它。
     '/hr/attendance/[id]',
+    // OVERTIME-1:线上还没有一张加班批 —— 一个现场员工都没有标(Tim:迁移一个人都不标),
+    // 而 create_overtime_batch 在那种时候按名拒 OVERTIME_NO_SITE_STAFF。开出第一批的那天,
+    // 这条断言会报「预期会 SKIP 的路由跑起来了」,逼人把它删掉。列表页 /hr/overtime 每一跑都真的渲染。
+    '/hr/overtime/[id]',
     // PAY-REQ-1:线上还没有一张付款申请 —— payment_requests 只由
     // submit_payment_request / submit_payment_reversal_request 写入,而这一刀是
     // 机制与屏幕同刀落地。提出第一张的那天,这条断言会报「预期会 SKIP 的路由

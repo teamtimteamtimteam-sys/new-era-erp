@@ -4019,6 +4019,7 @@ export type Database = {
           hire_date: string
           id: string
           identity_no: string | null
+          is_site_staff: boolean
           legal_name: string
           manager_id: string | null
           monthly_salary: number | null
@@ -4058,6 +4059,7 @@ export type Database = {
           hire_date: string
           id?: string
           identity_no?: string | null
+          is_site_staff?: boolean
           legal_name: string
           manager_id?: string | null
           monthly_salary?: number | null
@@ -4097,6 +4099,7 @@ export type Database = {
           hire_date?: string
           id?: string
           identity_no?: string | null
+          is_site_staff?: boolean
           legal_name?: string
           manager_id?: string | null
           monthly_salary?: number | null
@@ -11039,6 +11042,197 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "output_batch_states"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      overtime_batches: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          discarded_at: string | null
+          discarded_by: string | null
+          id: string
+          label: string
+          period_month: string
+          reverse_reason: string | null
+          reversed_at: string | null
+          reversed_by: string | null
+          seq: number
+          status: string
+          submitted_at: string | null
+          submitted_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          id?: string
+          label: string
+          period_month: string
+          reverse_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          seq: number
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          discarded_at?: string | null
+          discarded_by?: string | null
+          id?: string
+          label?: string
+          period_month?: string
+          reverse_reason?: string | null
+          reversed_at?: string | null
+          reversed_by?: string | null
+          seq?: number
+          status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
+        }
+        Relationships: []
+      }
+      overtime_lines: {
+        Row: {
+          batch_id: string
+          created_at: string
+          created_by: string | null
+          day_kind: string
+          employee_id: string
+          hours: number
+          id: string
+          note: string | null
+          voided_at: string | null
+          work_date: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          created_by?: string | null
+          day_kind: string
+          employee_id: string
+          hours: number
+          id?: string
+          note?: string | null
+          voided_at?: string | null
+          work_date: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          created_by?: string | null
+          day_kind?: string
+          employee_id?: string
+          hours?: number
+          id?: string
+          note?: string | null
+          voided_at?: string | null
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_lines_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "overtime_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "overtime_lines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
           },
         ]
       }
@@ -21705,6 +21899,7 @@ export type Database = {
           hire_date: string | null
           id: string | null
           identity_no: string | null
+          is_site_staff: boolean | null
           job_title: string | null
           legal_name: string | null
           manager_id: string | null
@@ -21748,6 +21943,7 @@ export type Database = {
           hire_date?: string | null
           id?: string | null
           identity_no?: never
+          is_site_staff?: boolean | null
           job_title?: never
           legal_name?: string | null
           manager_id?: string | null
@@ -21791,6 +21987,7 @@ export type Database = {
           hire_date?: string | null
           id?: string | null
           identity_no?: never
+          is_site_staff?: boolean | null
           job_title?: never
           legal_name?: string | null
           manager_id?: string | null
@@ -28677,6 +28874,16 @@ export type Database = {
         Args: { p_handover_id: string }
         Returns: string
       }
+      add_overtime_line: {
+        Args: {
+          p_batch_id: string
+          p_employee_id: string
+          p_hours: number
+          p_note?: string
+          p_work_date: string
+        }
+        Returns: Json
+      }
       add_review_goal: {
         Args: {
           p_objective_text: string
@@ -29287,6 +29494,7 @@ export type Database = {
         }
         Returns: Json
       }
+      create_overtime_batch: { Args: { p_month: string }; Returns: Json }
       create_purchase_order: {
         Args: {
           p_category?: string
@@ -29394,6 +29602,10 @@ export type Database = {
         Args: { p_approve: boolean; p_claim_id: string; p_notes?: string }
         Returns: Json
       }
+      decide_overtime_batch: {
+        Args: { p_batch_id: string; p_decision: string; p_note?: string }
+        Returns: Json
+      }
       decide_payment_request: {
         Args: { p_approve: boolean; p_notes?: string; p_request_id: string }
         Returns: Json
@@ -29426,6 +29638,7 @@ export type Database = {
         Args: { p_quote_id: string; p_reason: string }
         Returns: Json
       }
+      delete_overtime_line: { Args: { p_line_id: string }; Returns: Json }
       delete_pricing_formula: { Args: { p_formula_id: string }; Returns: Json }
       depreciate_fixed_assets: { Args: { p_period_end: string }; Returns: Json }
       depreciation_months_elapsed: {
@@ -29445,6 +29658,7 @@ export type Database = {
         Args: { p_reason: string; p_shipment_id: string }
         Returns: Json
       }
+      discard_overtime_batch: { Args: { p_batch_id: string }; Returns: Json }
       dispose_fixed_asset: {
         Args: {
           p_asset_id: string
@@ -29876,6 +30090,19 @@ export type Database = {
           self_decided: boolean
         }[]
       }
+      my_overtime_lines: {
+        Args: never
+        Returns: {
+          approved_at: string
+          approver: string
+          batch_label: string
+          day_kind: string
+          hours: number
+          line_id: string
+          note: string
+          work_date: string
+        }[]
+      }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
       next_chase_code: { Args: { p_date?: string }; Returns: string }
       next_cod_code: { Args: { p_date?: string }; Returns: string }
@@ -29924,6 +30151,59 @@ export type Database = {
       open_probation_review: { Args: { p_employee_id: string }; Returns: Json }
       open_review_cycle: { Args: { p_cycle_id: string }; Returns: Json }
       open_stocktake: { Args: { p_notes?: string }; Returns: Json }
+      overtime_approved_hours: {
+        Args: { p_month: string }
+        Returns: {
+          employee_id: string
+          public_holiday_hours: number
+          rest_day_hours: number
+          weekday_hours: number
+        }[]
+      }
+      overtime_assert_month_open: {
+        Args: { p_month: string }
+        Returns: undefined
+      }
+      overtime_batch_lines: {
+        Args: { p_batch_id: string }
+        Returns: {
+          day_kind: string
+          employee_code: string
+          employee_id: string
+          employee_name: string
+          hours: number
+          line_id: string
+          note: string
+          voided: boolean
+          work_date: string
+        }[]
+      }
+      overtime_day_kind: { Args: { p_date: string }; Returns: string }
+      overtime_month_hours: {
+        Args: { p_month: string }
+        Returns: {
+          employee_id: string
+          fixed: boolean
+          public_holiday_hours: number
+          rest_day_hours: number
+          total_hours: number
+          weekday_hours: number
+        }[]
+      }
+      overtime_other_approver_exists: {
+        Args: { p_raiser: string; p_subjects: string[] }
+        Returns: boolean
+      }
+      overtime_site_staff: {
+        Args: never
+        Returns: {
+          employee_code: string
+          employee_id: string
+          employee_name: string
+          hire_date: string
+          separation_date: string
+        }[]
+      }
       pay_decision_code: {
         Args: { p_employee_id: string; p_raiser: string }
         Returns: string
@@ -30634,6 +30914,10 @@ export type Database = {
         Args: { p_entry_id: string; p_memo?: string; p_reversal_date: string }
         Returns: Json
       }
+      reverse_overtime_batch: {
+        Args: { p_batch_id: string; p_reason: string }
+        Returns: Json
+      }
       reverse_payment: {
         Args: { p_memo?: string; p_payment_id: string }
         Returns: Json
@@ -31144,6 +31428,7 @@ export type Database = {
         Args: { p_batch_id: string; p_reason: string }
         Returns: Json
       }
+      submit_overtime_batch: { Args: { p_batch_id: string }; Returns: Json }
       submit_payment_request: {
         Args: {
           p_allocations?: Json
@@ -31456,6 +31741,7 @@ export type Database = {
         Returns: Json
       }
       withdraw_medical_claim: { Args: { p_claim_id: string }; Returns: Json }
+      withdraw_overtime_batch: { Args: { p_batch_id: string }; Returns: Json }
       withdraw_payment_request: {
         Args: { p_request_id: string }
         Returns: Json

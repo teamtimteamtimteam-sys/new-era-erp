@@ -28,6 +28,9 @@
 //        组件的 Q6 明文禁止这件事,搬过来之后它就不可能发生了。
 //   ★ 变体 A → variant C:此前是手搓的 `border-b` + `text-sm`,现在走组件自己的表体。
 //
+// ★ OVERTIME-1(Tim Q3,2026-09-28):三个加班列【只读】了。
+//   小时只从批过的加班批进来(HR → 加班),在这个月完成时冻进底稿;record_attendance 收到非零小时
+//   会按名拒 ATTENDANCE_OT_THROUGH_OVERTIME。这里每一行存的只剩"有人看过了" + 备注。
 //   ⚠ **live 计数(DRAFT-1 · R11,2026-09-21):`attendance_lines` = 0 行,
 //     `attendance_periods` = 0 行。** 也就是说这张表搬完之后
 //     **在线上没有任何一个屏幕能看见它** —— 要看它得先建一个考勤期。
@@ -48,10 +51,7 @@ type Row = {
     note: string; recorded: boolean; unpaidDays: number | null
 }
 
-type Draft = { normal: string; restDay: string; holiday: string; note: string }
-
-const num = (v: string) => (v.trim() === '' ? 0 : Number(v))
-const cell = `${CONTROL_INPUT} w-20 text-right`
+type Draft = { note: string }
 
 export default function AttendanceGrid({
     periodId, status, rows,
@@ -98,10 +98,6 @@ export default function AttendanceGrid({
             priority: true,
             align: 'right',
             render: (r) => r.normal,
-            edit: (d, set) => (
-                <input className={cell} value={d.normal} aria-label={t('attendance.colOtNormal')}
-                       onChange={(e) => set({ normal: e.target.value })} />
-            ),
         },
         {
             key: 'restDay',
@@ -109,20 +105,12 @@ export default function AttendanceGrid({
             priority: true,
             align: 'right',
             render: (r) => r.restDay,
-            edit: (d, set) => (
-                <input className={cell} value={d.restDay} aria-label={t('attendance.colOtRestDay')}
-                       onChange={(e) => set({ restDay: e.target.value })} />
-            ),
         },
         {
             key: 'holiday',
             header: t('attendance.colOtHoliday'),
             align: 'right',
             render: (r) => r.holiday,
-            edit: (d, set) => (
-                <input className={cell} value={d.holiday} aria-label={t('attendance.colOtHoliday')}
-                       onChange={(e) => set({ holiday: e.target.value })} />
-            ),
         },
         {
             key: 'note',
@@ -171,6 +159,7 @@ export default function AttendanceGrid({
                      它今天仍然只有 `default` 与 `destructive` 两档。
                      ★ 少一个没人裁过的状态色,就少一处将来会漂的定义。 */}
             {notice && <Alert className="mb-3">{notice}</Alert>}
+            <p className="mb-3 text-xs text-[color:var(--brand-muted-text)]">{t('attendance.otFromOvertime')}</p>
 
             <EditableTable<Row, Draft>
                 rows={rows}
@@ -183,21 +172,15 @@ export default function AttendanceGrid({
                 empty={t('attendance.noLines')}
                 // ★ 能力 B:没录入的行整行涂琥珀 —— 搬家前是 LineRow 里的一句三元。
                 rowClassName={(r) => (r.recorded ? undefined : 'bg-amber-50')}
-                toDraft={(r) => ({
-                    normal: String(r.normal),
-                    restDay: String(r.restDay),
-                    holiday: String(r.holiday),
-                    note: r.note,
-                })}
+                toDraft={(r) => ({ note: r.note })}
                 labels={{
                     edit: t('common.edit'), save: t('attendance.saveLine'), saving: t('common.saving'),
                     cancel: t('common.cancel'), unsaved: t('common.unsavedRow'), expand: t('common.expandRow'),
                 }}
                 // ★★ 失败【不刷新】—— 字留住,行留在编辑态。见抬头 ③。 ★★
                 onSave={async (d, row) => {
-                    const res = await recordAttendance(
-                        row.lineId, num(d.normal), num(d.restDay), num(d.holiday), d.note.trim() || null,
-                    )
+                    // OVERTIME-1:小时不经这里进来 —— 只记"看过了"与备注
+                    const res = await recordAttendance(row.lineId, d.note.trim() || null)
                     if (res.error) return { error: res.error }
                     router.refresh()
                 }}

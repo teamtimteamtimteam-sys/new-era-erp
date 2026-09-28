@@ -163,6 +163,12 @@ BEGIN
             -- (0 会让它在按金额筛的报表里排到最前面,那是一句假话)。
             SELECT true, w.code, w.created_by INTO v_ok, v_code, v_raiser
               FROM work_orders w WHERE w.id = p_subject_id;
+        -- ★ OVERTIME-1:加班月批次。提单人 = submitted_by(交的人,不是开的人 —— 驳回后可能换人再交);
+        --   主角 = NULL:一批说的是好几个员工,那条腿在 decide_overtime_batch 里逐个员工问过了。
+        --   【没有金额】—— OS 只报小时,不报钱(政策 7.1);只冻结 label,四列留空。
+        WHEN 'overtime_batch' THEN
+            SELECT true, b.label, b.submitted_by INTO v_ok, v_code, v_raiser
+              FROM overtime_batches b WHERE b.id = p_subject_id;
         WHEN 'supplier' THEN
             -- ROLE-1 Batch 2a(Q3 / Q9):供应商的送审、批准、驳回。没有金额 —— 批的是
             -- "可以跟这一家做生意",不是一笔钱;提单人 = 建档人(created_by)。

@@ -12,6 +12,8 @@
 --   · **无薪假是【筛出来的推导】,不是重记** —— 只认 unpaid 且 approved;
 --     半天标记只在裁剪之后仍是原端点时才成立。
 --   · **完成之后冻住** —— 请假单事后被取消,底稿仍说得出我们当时报了什么。
+--   ☞ OVERTIME-1(2026-09-28):record_attendance 从此拒非零加班(小时只经批过的加班批进来,fixture 232 钉那一半);
+--     B 臂与 G 臂原先打进来的 2 / 4 小时改成记零 —— 两臂测的都是"有没有人记过",不是小时本身。
 --   · **工资过账要有依据,而且是【那个月的】依据** —— 拒绝必须绑在
 --     period_month 上;"库里有一个完成了的月份"不算数。
 --
@@ -161,7 +163,9 @@ BEGIN
     -- ══════════════════ D ══════════════════
     -- 【先补名单,再判完整】—— 期间开完之后才入职的人
     FOR r IN SELECT id FROM attendance_lines WHERE period_id = v_pid AND recorded_at IS NULL LOOP
-        PERFORM record_attendance(r.id, 2, 0, 0);
+        -- ★ OVERTIME-1(Tim Q3,2026-09-28):小时不再经这里打进来(ATTENDANCE_OT_THROUGH_OVERTIME);
+        --   这一臂要的只是"这些行有人记过",所以记零 —— 判据本来就是 recorded_at。
+        PERFORM record_attendance(r.id);
     END LOOP;
     INSERT INTO employees (code, legal_name, employment_type, work_category, hire_date)
     VALUES ('FIXT-E141-5', 'Fixture 141 LateJoin', 'full_time', 'office', (v_m + 20))
@@ -240,7 +244,7 @@ BEGIN
 
     -- ══════════════════ G ══════════════════
     -- 【完成之后冻住】—— 请假单事后被取消,底稿仍说得出当时报了什么
-    PERFORM record_attendance(v_line, 0, 4, 0);      -- 把 D 臂补出来的那行记掉
+    PERFORM record_attendance(v_line);               -- 把 D 臂补出来的那行记掉(OVERTIME-1:小时不再经这里进来)
     v_res := complete_attendance_period(v_pid);
     IF (v_res->>'status') <> 'complete' THEN
         RAISE EXCEPTION 'FIXTURE 141-G 失败:记满之后仍然完成不了';

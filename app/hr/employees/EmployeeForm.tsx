@@ -55,6 +55,8 @@ export type EmployeeRecord = {
     work_pass_expiry_date: string | null
     user_id: string | null
     notes: string | null
+    /** OVERTIME-1:现场员工 —— 只有现场员工有加班(Tim 的裁定)。 */
+    is_site_staff?: boolean | null
 }
 
 export type PickOption = { id: string; label: string }
@@ -314,6 +316,21 @@ export default function EmployeeForm({
                                 </option>
                             ))}
                         </select>
+                    </div>
+                    {/* ★ OVERTIME-1(Tim Q11):现场员工标记 —— 建档与编辑同一个表单,所以一个将来的现场员工
+                        入职那一刻就能被标上。它【不是】工作类别:工作类别定年假费率,而 shopfloor 的人不一定是
+                        现场员工。默认不勾;加班录入页只列勾上的人。 */}
+                    <div>
+                        <label className={label}>{t('hr.colSiteStaff')}</label>
+                        <label className="inline-flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                name="is_site_staff"
+                                defaultChecked={employee?.is_site_staff ?? false}
+                            />
+                            <span>{t('hr.siteStaffLabel')}</span>
+                        </label>
+                        <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('hr.siteStaffHint')}</p>
                     </div>
                     <div>
                         <label className={label}>

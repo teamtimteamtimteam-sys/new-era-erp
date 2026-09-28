@@ -175,7 +175,12 @@ AS $function$
            sq.created_by, sq.employee_id, NULL::smallint
       FROM salary_change_requests sq
      WHERE sq.status = 'submitted'
+    UNION ALL
+    SELECT 'overtime_batch'::text, ob.id, ob.label, NULL::numeric, false,
+           ob.submitted_by, NULL::uuid, NULL::smallint
+      FROM overtime_batches ob
+     WHERE ob.status = 'submitted'
 $function$;
 
 COMMENT ON FUNCTION public.approval_pending_documents() IS
-'APR-3(Tim 的 Q6):哪些单据正在等人批 —— 逐行,一份判据三个读它的人(屏幕的逐链计数 · 关闭那道闸要的编号 · APPROVALS_POLICY_WOULD_STRAND 要的金额)。★ blocks_disable 把两个长得一样的数分开:「有多少在等人批」每条链都算,「关掉审批会搁死谁」只有一部分链算。判别的那一句话:这条链的决定函数在审批关着时还跑不跑得动 —— 跑不动才 true。采购单 true(approve_purchase_order 开头就 RAISE APPROVALS_NOT_ENABLED);报销单 false;付款 · 工资 · 收货定价 · 贷项 / 作废 · 手工凭证 · 仓库(注销 / 回滚 / 证书作废)· 条款(公式 / 合同生效)· 资产处置 · GST 申报九种申请与发货放行 true(它们的决定函数同样在审批关着时按名拒,fixed_level = 2)。★ APR-9 的调薪申请 false、fixed_level NULL、金额 NULL:它不看审批开关,按人路由(pay_decision_code),不在 approval_chain_gates 里。★ 盘点不在本表里(Tim 的 Q4:open 是"正在点",不是"在等人批"),工单也不在(它没有等人批的队列)。amount_base 为 NULL = 这一张分不了档,不读成零。';
+'APR-3(Tim 的 Q6):哪些单据正在等人批 —— 逐行,一份判据三个读它的人(屏幕的逐链计数 · 关闭那道闸要的编号 · APPROVALS_POLICY_WOULD_STRAND 要的金额)。★ blocks_disable 把两个长得一样的数分开:「有多少在等人批」每条链都算,「关掉审批会搁死谁」只有一部分链算。判别的那一句话:这条链的决定函数在审批关着时还跑不跑得动 —— 跑不动才 true。采购单 true(approve_purchase_order 开头就 RAISE APPROVALS_NOT_ENABLED);报销单 false;付款 · 工资 · 收货定价 · 贷项 / 作废 · 手工凭证 · 仓库(注销 / 回滚 / 证书作废)· 条款(公式 / 合同生效)· 资产处置 · GST 申报九种申请与发货放行 true(它们的决定函数同样在审批关着时按名拒,fixed_level = 2)。★ APR-9 的调薪申请 false、fixed_level NULL、金额 NULL:它不看审批开关,按人路由(pay_decision_code),不在 approval_chain_gates 里。★ OVERTIME-1 的加班批 false、fixed_level NULL、金额 NULL、主角 NULL:它不看审批开关(仓库永远要人按),门是它自己的 action.overtime_approve,不在 approval_chain_gates 里;一批说的是好几个员工,主角那条腿由 decide_overtime_batch 逐个问。★ 盘点不在本表里(Tim 的 Q4:open 是"正在点",不是"在等人批"),工单也不在(它没有等人批的队列)。amount_base 为 NULL = 这一张分不了档,不读成零。';

@@ -3,6 +3,21 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## OVERTIME1-NO-REMINDER-ARM · 一批在等仓库批的加班,提醒清单里没有它(OVERTIME-1 登记,2026-09-28)
+
+`operations_now` / `lib/reminders.ts` 没有加班批那一支,所以 Fu Sheng 不会在首页或提醒里看见"有一批加班在等你批"——
+他要自己从 **运营 → 加班**(`/hr/overtime`,人力与运营两个属主)进去看。它在 `approval_pending_documents()` 里(`overtime_batch`,
+`blocks_disable = false`),所以审批设置页的在途计数算得到它。**没有在本刀加提醒支**:那是 `operations_now` 视图、提醒清单与
+`check-reminder-arms` 三处一起动的一件事,委托书没有点名。线上今天一个现场员工都没有,所以没有人会等在这里。
+
+## OVERTIME1-ME-ATTENDANCE-READS-FROZEN-ONLY · /me 的「我的考勤」三列只读底稿上冻住的数(OVERTIME-1 登记,2026-09-28)
+
+`app/me/MyAttendancePanel.tsx` 直接读 `attendance_lines` 的三个加班桶。OVERTIME-1 之后那三列只在那个月考勤【完成】时由
+`complete_attendance_period` 写入(Tim Q3),所以一个还开着的月份在这块面板上读 0(重开过的月份读上一次冻住的数),
+哪怕那个月已经有批过的加班。**批过的加班本身在同一页的「我的加班」里一行不少**(`my_overtime_lines()`),人力的考勤页与
+工资期详情读 `overtime_month_hours()`(开着读此刻、完成读冻住),都是对的。要修:让这块面板也走一个"开着读此刻"的本人读者 ——
+与 `overtime_month_hours` 同一份判据,但按调用者本人放行(它今天的门是 `module.hr.view`)。线上 0 份考勤底稿,今天读不到差别。
+
 ## EMPSELF1-BALANCE-READERS-NULL-BLIND · 十支余额读者的"本人"门对没有员工档案的账号是开着的(EMP-SELF-1 登记,2026-09-27)
 
 与 EMP-SELF-1 关上的五支写是同一个形状:`IF NOT (has_permission(…) OR p_employee_id = current_user_employee())`。
@@ -6130,7 +6145,11 @@ FX-RATES-1 把**改**(值变了)与**删**(硬删)关进了 `record_fx_rate` /
 `bank_unmatched_journal_lines` 里属于 `source_type` 为冲销来源的行数);
 或者有人问"这条为什么一直配不掉"。
 
-## 加班倍率是一个【还开着的法律问题】,不是一个缺口(ATTEND-1,2026-08-28)
+## ~~加班倍率是一个【还开着的法律问题】,不是一个缺口(ATTEND-1,2026-08-28)~~ —— ✅ **Tim 裁定,关闭于 OVERTIME-1(2026-09-28)**
+
+> **Tim 的 Q1 / Q2(OVERTIME-1 Step 0):系统报【小时】,永远不报钱。倍率、乘数与底薪留在薪资服务商那边,政策 7.1 不改。**
+> 批过的加班小时在那个月考勤完成时冻进 `attendance_lines` 的三个桶(平日 · 休息日 · 公共假期),工资期详情只读地显示它们。
+> 所以下面那三个问题不再是这个系统要回答的问题 —— 它们是服务商的算术。原文保留:
 
 `attendance_lines` 按**何时发生**记三列加班工时 —— `ot_normal_hours` /
 `ot_rest_day_hours` / `ot_public_holiday_hours` —— 而**没有倍率那一列**,也没有
@@ -6902,6 +6921,15 @@ SELECT 策略换成了它。**`db/views/container_overview.sql` 这张视图没�
 ---
 
 ## C-2-OT · 周末加班是真实需求,而它今天完全没有建模(2026-09-05)
+
+> ★ **OVERTIME-1(2026-09-28)之后,这一条的一半已经建了,另一半按 Tim 的裁定推后:**
+> * **建了:** 加班按天录(`overtime_lines`:员工 + 日期 + 小时),仓库整批批;**哪一类日子由日期推出,不再靠录入的人自己挑桶** ——
+>   `public_holidays` 里有的 → 公共假期(先判)· **星期日 → 休息日,对所有人**(Tim Q4)· 其余 → 平日(`overtime_day_kind`)。
+>   星期六是平日。批准那一刻的分类冻在行上,那个月考勤完成时进底稿。
+> * **推后(Tim Q4):按人的休息日。** 今天的规则是"星期日对所有人都是休息日";一个休息日不是星期日的现场员工,他星期日的加班
+>   会被算成休息日、他真正休息日的加班会被算成平日。要按人定,得先有"这个人的休息日是哪天"这个事实(按人?按合同?)——
+>   本刀没有建。调休(TOIL)仍然不存在。下面是 2026-09-05 的原文。
+
 
 **Tim 在 C-2 的停止闸上说明:仓库平时不上周六,但【赶工时会有周末加班】。**
 他同时裁定这一刀**只报告,不设计** —— 不建表、不建屏、不碰工作日的定义。

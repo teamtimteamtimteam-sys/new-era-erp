@@ -32,9 +32,16 @@ export default async function AttendancePeriodPage({
     const lines = mustRows(
         await supabase
             .from('attendance_lines')
-            .select('id, employee_id, ot_normal_hours, ot_rest_day_hours, ot_public_holiday_hours, note, recorded_at, unpaid_days')
+            .select('id, employee_id, note, recorded_at, unpaid_days')
             .eq('period_id', id),
     )
+    // ★ OVERTIME-1(Tim Q3):三个加班桶【只读】,来自批过的加班批 —— 已完成的月读冻住的数,
+    //   还开着的月读此刻批过的数(overtime_month_hours 一份判据,工资期详情也读它)。
+    const otRows = mustRows(
+        await supabase.rpc('overtime_month_hours', { p_month: period.period_month as string }),
+        'overtime_month_hours',
+    )
+    const otByEmployee = new Map(otRows.map((o) => [o.employee_id, o]))
     const empIds = lines.map((l) => l.employee_id)
     // 【读 employees_masked,不是 employees】这一页只要工号与姓名,但薪酬列
     // 就在同一张表上 —— 遮蔽视图按权限把它们呈现为 null,而直连表会让整条查询
@@ -49,9 +56,9 @@ export default async function AttendancePeriodPage({
             lineId: l.id,
             employeeCode: empById.get(l.employee_id)?.code ?? '—',
             legalName: empById.get(l.employee_id)?.legal_name ?? '—',
-            normal: Number(l.ot_normal_hours ?? 0),
-            restDay: Number(l.ot_rest_day_hours ?? 0),
-            holiday: Number(l.ot_public_holiday_hours ?? 0),
+            normal: Number(otByEmployee.get(l.employee_id)?.weekday_hours ?? 0),
+            restDay: Number(otByEmployee.get(l.employee_id)?.rest_day_hours ?? 0),
+            holiday: Number(otByEmployee.get(l.employee_id)?.public_holiday_hours ?? 0),
             note: l.note ?? '',
             // ★ 判据是这个戳,不是三个数之和 ★
             recorded: l.recorded_at !== null,

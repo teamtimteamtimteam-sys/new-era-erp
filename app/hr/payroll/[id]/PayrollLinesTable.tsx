@@ -33,6 +33,8 @@ export type PayrollLineRow = {
     employerCpfText: string
     deductionsText: string
     netText: string
+    /** OVERTIME-1:这个人这个月批过的加班【小时】(不是钱 —— 政策 7.1)。 */
+    otHoursText: string
     /** 合计行。见 CONV-4 §⑨-3 / CONV-8 §⑧。 */
     isTotal?: boolean
     /** 合计行右边那句「共 N 行」。 */
@@ -67,6 +69,8 @@ export default function PayrollLinesTable({ rows }: { rows: readonly PayrollLine
         { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', render: (r) => r.employeeCpfText },
         { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', render: (r) => r.employerCpfText },
         { key: 'deductions', header: t('hr.colDeductions'), align: 'right', render: (r) => r.deductionsText },
+        // ★ OVERTIME-1(Tim Q1):批过的加班小时,只读 —— 服务商拿它乘自己的费率;这里不乘。
+        { key: 'otHours', header: t('hr.colOtHours'), align: 'right', render: (r) => r.otHoursText },
         {
             key: 'net',
             header: t('hr.colNet'),

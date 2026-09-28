@@ -15,6 +15,7 @@ import MyClaimsPanel from './MyClaimsPanel'
 import MyExpenseClaimsPanel from './MyExpenseClaimsPanel'
 import type { Decision } from './DecisionCell'
 import MyAttendancePanel from './MyAttendancePanel'
+import MyOvertimePanel from './MyOvertimePanel'
 import MySelfAssessmentPanel, {
     type SelfAssessment,
     type SelfAssessmentGoal,
@@ -178,6 +179,25 @@ export default async function MePage() {
             notes: d.decision_notes,
             selfDecided: d.self_decided,
         }]))
+
+    // ★ OVERTIME-1(Tim Q14):现场员工看得见自己【已批准】的加班 —— 属主权限的读者,只给调用者自己的行
+    //   (员工读不到批次,"批准了没有"住在批次上;与 my_document_decisions 同形)。
+    //   面板只对现场员工、或者有过批准加班的人画:一块对办公室员工恒空的面板读起来像"漏了数据"。
+    const [myOtRes, mySiteRes] = await Promise.all([
+        supabase.rpc('my_overtime_lines'),
+        supabase.from('employees_masked').select('is_site_staff').eq('id', employeeId).limit(1),
+    ])
+    const myOvertime = mustRows(myOtRes, 'my_overtime_lines').map((o) => ({
+        id: o.line_id,
+        workDate: formatDate(o.work_date, dateLocale),
+        hours: Number(o.hours),
+        dayKind: o.day_kind,
+        note: o.note,
+        batchLabel: o.batch_label,
+        approvedLabel: o.approved_at ? formatDateTime(o.approved_at, dateLocale) : '',
+        approver: o.approver,
+    }))
+    const showOvertime = myOvertime.length > 0 || mustRows(mySiteRes, 'employees_masked is_site_staff')[0]?.is_site_staff === true
 
     // ATTEND-1:自己那几行考勤。行级策略放行 employee_id = current_user_employee(),
     // 所以这里【不加】模块权限 —— 与这一页其余部分同一条路。期间的 code/月份要
@@ -526,6 +546,8 @@ export default async function MePage() {
                     </div>
                 )}
             </section>
+
+            {showOvertime && <MyOvertimePanel rows={myOvertime} />}
 
             <MyAttendancePanel rows={myAttendance} />
 

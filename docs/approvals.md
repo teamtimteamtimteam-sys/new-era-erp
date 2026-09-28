@@ -1204,7 +1204,12 @@ rule read the same.
 ☞ **R2 on medical claims finally reaches the CFO account.** Before, `decide_medical_claim` required `module.hr.edit`
 first and a cfo-only account never got as far as the exception (§3g Q5). The CFO now holds the decide code.
 
-### `admin` holds no business code — and `cco` no longer holds `action.manage_permissions`
+### ~~`admin` holds no business code~~ — and `cco` no longer holds `action.manage_permissions`
+
+> ★ **Corrected at Tim's request (OVERTIME-1, 2026-09-28):** the first half of this heading no longer holds. Tim gave every code back
+> to `admin` on 2026-09-23 23:33, and the standing ruling of 2026-09-24 (`docs/role-matrix.md` §1, last row) is that **`admin` holds every
+> code and receives every new code in the same migration**. admin@ still does not raise business documents, by practice. The text below
+> is kept as the record of Batch 1; read it together with this note.
 * `admin`: `action.manage_permissions`, `action.bulk_import`, `action.anonymise_employee`, **nothing else** (Q8).
   **admin@ can no longer read business data; Tim does all business reading and deciding as tim@.**
   ☞ §3f's standing rule — *"the admin account must not raise business documents"* — is now enforced by the grants
@@ -1902,6 +1907,47 @@ door (A–L, two fault injections).
 
 **`/settings/approvals` (fold-in):** `approvals_readiness().pending_by_chain[].amount_unknown` now counts only amount-routed chains;
 a new `routed_by_person` flag gives salary changes their own line ("routed by person, not by amount").
+
+## 3x · OVERTIME-1 (2026-09-28) — site-staff overtime: finance enters a month, the warehouse lead approves the batch
+
+Tim's Step 0 answers (Q1–Q23, all accepted as recommended). The cut is `docs/handbacks/OVERTIME-1.md`; who does what is
+`docs/role-matrix.md` §5. This section records only what matters **for approvals**.
+
+### A chain without an amount — its own permission is the gate (N7)
+- **Enter:** `action.overtime_enter` (finance · admin). **Approve:** `action.overtime_approve` (warehouse · admin). Two codes, one
+  each (Tim). No role-based tiering and **no CFO override** — the approve code is the whole gate (Q5).
+- **The approval unit is the monthly batch**, decided in one action (`decide_overtime_batch`). There is no line-level approval;
+  a rejection is whole-batch and **requires a note** (`OVERTIME_REJECT_NOTE_REQUIRED`).
+
+### The approvals switch does NOT govern it (Q5)
+- On or off, the warehouse approver always presses the button; nothing is ever born approved, and `approval_log` never records
+  `auto_approved` for overtime. With the switch off, the log row carries an extra sentence saying so — the same shape as
+  work-order release and the three HR chains.
+- `approval_pending_documents()` lists a submitted batch as `overtime_batch` with **`blocks_disable = false`**, `fixed_level NULL`,
+  amount `NULL`, subject `NULL`: switching approvals off strands nothing, and a policy edit cannot strand it (it is not in
+  `approval_chain_gates()`; its gate is its own code, not a level role).
+
+### Four eyes, two legs, by person
+- **Raiser:** whoever **submitted** the batch (`submitted_by` — after a rejection someone else may resubmit it).
+- **Subject:** **every employee in the batch.** `forbid_self_approval` is asked once per distinct employee, and each call judges the
+  raiser leg first, so the submitter always meets `SELF_APPROVAL_FORBIDDEN|raiser`; anyone whose own overtime is in the batch meets
+  `|subject`. Both legs by person, across accounts (`self_leg`).
+- **R2 never covers overtime.** `self_approval_exception` lists only expense claims, medical claims and leave.
+- **Submitting (and creating) is refused when nobody else could decide it:** `OVERTIME_NO_OTHER_APPROVER` — no real holder of the
+  approve code other than the raiser and the batch's employees, by person. Measured on live at apply time: the other decider is
+  Fu Sheng (warehouse), plus admin@ (admin holds every code).
+
+### What approval does — and the one moment it reaches payroll (Q1 · Q3 · Q8)
+- Approval changes the batch to `approved` and fixes each line's day type (public holiday · Sunday = rest day · weekday). Nothing
+  is posted: **the system reports hours, not pay** (accounting policy 7.1 — the provider applies the rate).
+- The hours reach payroll **exactly once**: `complete_attendance_period` fixes the approved, non-voided hours of that month into
+  the three `attendance_lines` buckets, and payroll posting already requires a completed attendance month
+  (`PAYROLL_ATTENDANCE_NOT_COMPLETE`). Completion is refused while the month has an open batch
+  (`OVERTIME_BATCH_OPEN_FOR_MONTH`); after completion every change to that month's overtime is refused (`OVERTIME_MONTH_COMPLETE`).
+  No arrears into a later month.
+- **Corrections:** finance withdraws a waiting batch (back to draft), discards a draft or rejected one, or reverses an approved one
+  whole (reason required, only while the month is open) and enters a corrected batch that goes through approval again.
+  Withdraw, discard and reverse write no `approval_log` row — they are not decisions; the batch row records them.
 
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 

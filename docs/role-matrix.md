@@ -11,7 +11,7 @@ answers (Q1–Q13) are in `docs/handbacks/ROLE-1.md` §0.
 
 | 标记 · Mark | 意思 · Meaning |
 |---|---|
-| **✅ done** | 已在线上生效(ROLE-1 Batch 1 / PAY-REQ-1 Batch A / Batch B,2026-09-23;ROLE-1 Batch 2a / Batch 2b / PAYROLL-APR-1,2026-09-24;ROLE-1 Batch 4a / 4b / 3a / 3b · APR-5a · APR-5b · APR-6,2026-09-25;APR-7 · APR-8,2026-09-26;APR-9 · APR-10,2026-09-27)· live since ROLE-1 Batch 1, PAY-REQ-1 Batch A or B, ROLE-1 Batch 2a or 2b, PAYROLL-APR-1, ROLE-1 Batch 4a, 4b, 3a or 3b, APR-5a, APR-5b or APR-6 |
+| **✅ done** | 已在线上生效(ROLE-1 Batch 1 / PAY-REQ-1 Batch A / Batch B,2026-09-23;ROLE-1 Batch 2a / Batch 2b / PAYROLL-APR-1,2026-09-24;ROLE-1 Batch 4a / 4b / 3a / 3b · APR-5a · APR-5b · APR-6,2026-09-25;APR-7 · APR-8,2026-09-26;APR-9 · APR-10,2026-09-27;OVERTIME-1,2026-09-28)· live since ROLE-1 Batch 1, PAY-REQ-1 Batch A or B, ROLE-1 Batch 2a or 2b, PAYROLL-APR-1, ROLE-1 Batch 4a, 4b, 3a or 3b, APR-5a, APR-5b or APR-6 |
 | **B2a · B2b … B5** | 本矩阵里【不需要新生命周期】的部分,排在 ROLE-1 的第 2–5 批;第 3 批拆成两刀(Tim 2026-09-25,Batch 3 grilling Q13):**B3a** = 盘点录数与过账分离 + 四个登记的缺口(✅ done);**B3b** = 收货建单 · 工单 · 加工提交 · 回滚与注销的临时持有人(✅ done);第 2 批拆成两刀(Tim 2026-09-23,Batch B grilling Q1):**B2a** = 财务设置 · 客户信用 · 供应商审批 + 未批准供应商不付款;**B2b** = 合同条款 · 定价 · 直接销售 · 化验 · in scope of ROLE-1, a later batch |
 | **[LC]** | 要先造一个「申请 → 批准 → 执行」的生命周期,不在 ROLE-1 里 · needs a request → approve lifecycle; queued separately |
 | **= 不变 / unchanged** | 矩阵说保持现状 · the matrix keeps the status quo |
@@ -20,7 +20,7 @@ answers (Q1–Q13) are in `docs/handbacks/ROLE-1.md` §0.
 —— 那件事今天仍是一个人做完就生效。**Until an [LC] lifecycle ships, the "does" half is in force (or in a
 batch) and the "approves" half does not exist yet** — the action still completes in one step.
 
-职位 · Positions: 系统管理员 = `admin`(Tim 的 admin@,只做系统管理)· CFO = `cfo`(Tim 的 tim@,挂同一份员工档案)·
+职位 · Positions: 系统管理员 = `admin`(Tim 的 admin@;★ **角色持每一个码**(常设裁定 2026-09-24,见 §1 最后一行 —— 此前这里写着「只做系统管理」,OVERTIME-1 按 Tim 2026-09-28 的要求更正);admin@ 照惯例不开业务单据)· CFO = `cfo`(Tim 的 tim@,挂同一份员工档案)·
 财务 = `finance`(Choo Er)· CCO = `cco`(Sandra)· CTO = `cto`(Phua)· 仓库 = `warehouse`(Fu Sheng)·
 MD = `gm`(Vince,只读)。
 
@@ -78,6 +78,10 @@ MD = `gm`(Vince,只读)。
 | Tim 自己的请假 · Tim's own leave | — | Tim 自己批,标记 `self_decided`(R2 扩到请假,只对 CFO)· Tim, flagged | ✅ done |
 | Tim 自己的医疗申报 · Tim's own medical claim | — | R2 不变,标记 · unchanged R2, flagged | ✅ done(CFO 账号从此真的走得到这一步)|
 | 员工匿名化 · employee anonymisation | admin 一个 · admin only | — | ✅ done(`action.anonymise_employee`)|
+| 现场员工标记 · marking an employee as site staff | 财务 · finance(`module.hr.edit`,建档与编辑员工的同一个表单)| 不批 · none | ✅ done(OVERTIME-1,2026-09-28:`employees.is_site_staff`,默认否,迁移一个人都没标;**不是**工作类别 —— shopfloor 的 Fu Sheng 不是现场员工)|
+| 现场员工加班(录)· site-staff overtime (entering) | 财务 · finance —— 按月一批,一个人一天一行:日期 + 小时 + 可选备注 | 仓库 · warehouse | 做:✅ done · 批:✅ done(OVERTIME-1,2026-09-28:`action.overtime_enter` → finance · admin;`/hr/overtime`。只录得进现场员工(提交与批准时再判);一个人一天一行(`OVERTIME_DUPLICATE_DAY`);一个月同一时刻一批开着的,批过之后可开补充批;提单人之外没有持批准码的人时建批与提交按名拒 `OVERTIME_NO_OTHER_APPROVER`;那个月考勤完成之后一切改动按名拒 `OVERTIME_MONTH_COMPLETE`;没有补发到后一个月)|
+| 现场员工加班(批)· site-staff overtime (approving) | — | 仓库 · warehouse(Fu Sheng)—— 整批一次,驳回要备注 | ✅ done(OVERTIME-1:`action.overtime_approve` → warehouse · admin;**审批开关不管它**,开着关着都要人按;提交人按人认不能批(`\|raiser`),批里任何一个员工按人认不能批(`\|subject`);R2 永远不覆盖加班;没有 CFO 越级。批过的小时在那个月考勤完成时冻进底稿 —— 进工资的【唯一一次】;报小时,不报钱(政策 7.1))|
+| 加班的冲销、撤回、丢弃 · overtime reversal, withdrawal, discard | 财务 · finance(`action.overtime_enter`)| 不批 · none | ✅ done(OVERTIME-1:撤回 = 在等批的回到草稿;丢弃 = 草稿或退回的批作废;冲销 = 批过的整批作废(要理由),只在那个月考勤还开着时 —— 然后重录一批、重新批)|
 | 身份信息(NRIC、准证号)· identity data | 只归财务 · finance only(Q6)· ★ **CFO 也读得到**(Tim 2026-09-23,PAY-REQ-1:CFO 持每一个 view 码;录入与改动仍只归财务)| — | ✅ done(`data.view_identity` 从 cco / cto / admin 拿掉;cfo 加上)|
 
 ## 6 · 采购与供应商 · Purchasing and suppliers
@@ -144,7 +148,7 @@ MD = `gm`(Vince,只读)。
 | 事项 · Action | 规则 · Rule | 状态 · Status |
 |---|---|---|
 | 仓库看采购价 · warehouse sees purchase prices | 看得见采购与供应商那一侧的价格,好开它的采购单;**看不见**销售价、工资或任何别的价格(Q9 画的线)| ✅ done(ROLE-1 Batch 4a,2026-09-25:新码 `data.view_purchase_prices` —— 采购单与采购行、质保金、付款条款、定价公式(按行:销售公式仍问 `view_prices`)与条款承诺、计价器、收货单价与改价历史、应付账龄;今天持 `data.view_prices` 的每一个角色一并拿到它,仓库只拿它。★ 仓库今天不持 `module.purchasing.view` / `pricing.view` / `finance.view`,所以它**实际多看见的只在收货那几屏**(单价、改价历史、化验改价的新旧价);采购单那几屏等 Batch 5 的开单码。~~★ 到岸成本经盘点那条例外它今天就读得到 —— 登记 `ROLE1B4A-LANDED-COST-STOCKTAKE-EXCEPTION`,Batch 3 修~~ ✅ **ROLE-1 Batch 3a 关掉**(2026-09-25,Q5):`inbound_batch_landed_unit_cost` 不再放行 `module.stocktakes.edit`;`batch_freight_base` 与 `batch_processing_cost_base` 先问 `data.view_prices`(不持的人读 NULL,收货页画「受限」);分摊改读 `_all`)|
-| 系统管理员账号 · the admin account | **拿掉每一个业务码;只做系统管理。admin@ 从此读不到任何业务数据 —— Tim 的一切业务阅读与决定走 tim@**(Q8)| ✅ done |
+| ~~系统管理员账号 · the admin account~~ | ~~**拿掉每一个业务码;只做系统管理。admin@ 从此读不到任何业务数据 —— Tim 的一切业务阅读与决定走 tim@**(Q8)~~ ★ **已不成立**:下一行(Tim 2026-09-23 撤回)与再下一行(常设裁定 2026-09-24:`admin` 持每一个码、拿到每一个新码)取代了它。划掉而不删 —— 一条撤回的规矩与一条从没写过的规矩,读起来一样(OVERTIME-1 按 Tim 2026-09-28 的要求划掉)| ~~✅ done~~ 已被取代 |
 | ⚠ **系统管理员账号:Q8 已被 Tim 本人撤回 · the admin account: Q8 reversed by Tim himself**(2026-09-23 23:33:27 CST)| Tim 以 admin@ 登录,把 **全部 45 个码** 还给了 `admin` 角色(AP-RECON-0 以 `postgres` 读基表 `role_permissions` 复核:45 行,`created_at` 全是 23:33:27)。上一行的收窄**现已不成立**。Claude 建议撤回到只做系统管理,两条理由:① admin@ 与 tim@ 是同一个人,所以在 admin@ 上发起的申请不能在 tim@ 上批;② 一个被盗的 admin 密码现在带着每一项权力。**Tim 尚未裁定是否撤回 —— 角色保持现状,除非 Tim 自己提起,不再提** | 现状 · as is |
 | ★ **admin 角色持【每一个】码 · the admin role holds every code**(Tim 常设裁定,2026-09-24,已关)| Tim 用 admin@ 做测试,所以 `admin` 角色**保留它全部的码,并拿到每一个新码**。**从 ROLE-1 Batch 2b 起,每一个新码都在【同一支迁移】里一并授给 `admin`** (幂等:`ON CONFLICT DO NOTHING`)。Batch 2b 因此把 Batch 2a 的三个码也补给了它(以 postgres 读基表 `role_permissions`:Batch 2b 之前 admin 一个都没有)。★ admin@ **不**持 `cfo` 角色(那一行 `revoked_at` = 2026-09-23 15:00:48),不改。★ 唯一例外,照直记:`module.tasks.view_all`(读别人的个人任务)admin 【从来没有】—— Tim 2026-09-23 23:33 还回去的 45 个码里就没有它;这条裁定说的是「保留 + 每一个新码」,所以 Batch 2b 没有替 Tim 加它。要不要加,是 Tim 的一句话 | ✅ done(Batch 2b 之后 admin 52 码 / 目录 53)|
 | CFO 读得到它要决定的东西 · the CFO can read what it decides | `module.hr.view` · `data.view_reviews` · `module.suppliers.view` · `module.customers.view` · `data.view_banking`;没有一个码让它开出它要批的单(Q3)| ✅ done |
@@ -196,3 +200,5 @@ warehouse (B4 — ✅ ROLE-1 Batch 4a, 2026-09-25: receipt pricing was the last 
 | `action.request_shipping_release` | 提发货放行(与撤回任何一张在等的);批归 CFO,提单人永远不能批(APR-5b)| cco · admin |
 | `action.ship_goods` | 发货(`ship_order`)与开具送货单(`record_shipment_issue`);发货队列 `/logistics/shipping`,不带价格(APR-5b)| warehouse · admin |
 | `module.processing.view`(新增持有人)| 读加工模块;物料名只经 `material_lookup`,不拿 `module.materials.view`(Batch 3b,Q8)| + warehouse |
+| `action.overtime_enter` | 按月录现场员工的加班:开批、加行 / 删行、交去批、撤回、丢弃、冲销批过的(OVERTIME-1)| finance · admin |
+| `action.overtime_approve` | 整批批准或驳回现场员工的加班(驳回要备注);交的人与批里的人按人认不能批;审批开关不影响(OVERTIME-1)| warehouse · admin |
