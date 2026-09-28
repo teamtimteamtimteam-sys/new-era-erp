@@ -3,6 +3,7 @@
 // app/hr/leave/actions.ts
 // 请假的写入口。全部走 HR-2a/2b 的 SECURITY DEFINER 函数 ——
 // 余额检查、先用旧的消耗、例外守卫都长在函数里,界面不复制这些规则。
+// ★ LEAVE-BAL-1:这也是【唯一】的写入口 —— authenticated 对 leave_requests 已没有写权限(Tim Q12)。
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -136,6 +137,14 @@ export async function submitLeave(form: {
                     ? t('leave.errInsufficientFrom', { 0: m[1], 1: m[2], 2: String(from) })
                     : t('leave.errInsufficientNever', { 0: m[1], 1: m[2] }),
             }
+        }
+        // ★ LEAVE-BAL-1:提交时的"可用"已经扣掉还在等批的单(Tim Q10),审批时不扣。
+        //   同一个码在两处数的不是同一个数,所以提交这一侧说它自己的那句话;
+        //   审批那一侧(decideLeave → localizeLeaveError)照旧是 errInsufficient。
+        const b = (error.message ?? '').trim().match(/^INSUFFICIENT_BALANCE\|([^|]*)\|([^|]*)$/)
+        if (b) {
+            const t = await getTranslations()
+            return { error: t('leave.errInsufficientBookable', { 0: b[1], 1: b[2] }) }
         }
         return { error: await localizeLeaveError(error.message) }
     }

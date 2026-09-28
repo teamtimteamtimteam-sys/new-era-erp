@@ -58,9 +58,12 @@ export default async function LeaveRequestDetail({
 
     const emp = empRes.data
     const ty = typeRes.data
+    // ★ LEAVE-BAL-1:available = 额度 − 已批 —— 正是 decide_leave_request 审批时比的那个数
+    //   (别人还在等的单不算,Tim Q10)。balance_checked = 这个假别有没有额度;没有的(无薪假)不画余额。
     const bal = balRes.data as {
         granted: number; consumed: number; expired: number; available: number
-        breakdown: { grant_id: string; leave_year: number; grant_type: string; days: number
+        pending: number; balance_checked: boolean
+        breakdown: { grant_id: string | null; source: string; leave_year: number; grant_type: string; days: number
                      consumed: number; remaining: number; expires_on: string | null; status: string }[]
     } | null
 
@@ -70,7 +73,8 @@ export default async function LeaveRequestDetail({
     // ★【行数据在服务端压平】locale(假别名 zh/en)、动态前缀 t('leave.grantType_'+x)
     //   都只有服务端知道 —— 一个判据都不过界(CONV-1 §①)。
     const grantRows: GrantBreakdownRow[] = (bal?.breakdown ?? []).map((b) => ({
-        id: b.grant_id,
+        // 派生的两行(年假按月累积 · 按年额度)没有 grant_id —— 用来源 + 年份当键
+        id: b.grant_id ?? `${b.source}-${b.leave_year}`,
         leaveYear: String(b.leave_year),
         grantTypeText: t(`leave.grantType_${b.grant_type}`),
         days: String(b.days),
@@ -141,7 +145,7 @@ export default async function LeaveRequestDetail({
             />
 
             {/* 余额:审批之前该看的那个数 */}
-            {ty?.is_accrued && bal && (
+            {bal?.balance_checked && (
                 <section className={card + ' mb-6'}>
                     <h3 className="mb-1">{t('leave.balanceNow')}</h3>
                     <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('leave.balanceAsOfHint')}</p>
@@ -152,6 +156,7 @@ export default async function LeaveRequestDetail({
                             { label: t('leave.taken'), value: String(bal.consumed), mono: true },
                             { label: t('leave.expired'), value: String(bal.expired), mono: true },
                             { label: t('leave.available'), value: String(bal.available), mono: true },
+                            { label: t('leave.pending'), value: String(bal.pending), mono: true },
                         ]}
                     />
                     <GrantBreakdownTable rows={grantRows} />
@@ -171,7 +176,7 @@ export default async function LeaveRequestDetail({
             <DecideControls
                 requestId={req.id}
                 status={req.status}
-                available={ty?.is_accrued ? (bal?.available ?? null) : null}
+                available={bal?.balance_checked ? bal.available : null}
                 requested={req.days}
                 canDecide={await can('action.decide_hr_requests')}
             />

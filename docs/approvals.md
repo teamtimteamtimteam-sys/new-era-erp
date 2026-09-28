@@ -1949,6 +1949,37 @@ Tim's Step 0 answers (Q1–Q23, all accepted as recommended). The cut is `docs/h
   whole (reason required, only while the month is open) and enters a corrected batch that goes through approval again.
   Withdraw, discard and reverse write no `approval_log` row — they are not decisions; the batch row records them.
 
+## 3y · LEAVE-BAL-1 (2026-09-28) — leave is balance-checked at submit AND at approval, but the two checks count different things
+
+Tim's Step 0 answers (Q1–Q22, all accepted as recommended). The cut is `docs/handbacks/LEAVE-BAL-1.md`. This section records only
+what matters **for approvals**: the leave chain itself (`action.decide_hr_requests`, four eyes by person, R2 for the CFO's own
+leave) is unchanged.
+
+### The two checks, side by side (Q10 — Option A)
+| moment | function | "available" means | refusal |
+|---|---|---|---|
+| **submit** (self-service `/me`, HR "Record leave" `/hr/leave/new`, HR exceptions) | `submit_leave_request` | entitlement − approved − **pending** (`leave_balance` → `bookable`) | annual: `INSUFFICIENT_ACCRUED_LEAVE\|avail\|req`; every other type with an entitlement: `INSUFFICIENT_BALANCE\|avail\|req` |
+| **approval** (`/hr/leave/[id]`) | `decide_leave_request` | entitlement − approved (`leave_balance` → `available`); **other pending requests do not count** | same two codes |
+
+- **Why approval ignores other pending requests.** A pending request is not a commitment. Checking only against approved leave
+  means an approval can never push approved leave past the entitlement, and it avoids deadlock: two old requests that each fit on
+  their own but not together (live today: Choo Er Teh's LV-2026-0004 and LV-2026-0005, 2 days each against 2 available) would
+  each count the other and **neither could ever be approved**. With Option A the first one approved goes through and the second is
+  refused with "0 available". Requests submitted from this cut on cannot get into that state, because submit counts pending.
+- **Which types.** Every type with an entitlement — annual (accrual + carry-forward grants) or `default_days_per_year` set. Only
+  `unpaid` has none and is not checked (Q1); `infant_care` is unpaid leave but has an entitlement, so it is checked.
+- **No override (Q11).** An HR exception (days entered by hand) is checked like any other request. Days beyond the entitlement are
+  recorded as a separate unpaid-leave request.
+- **Annual leave has a second guard at approval.** Besides the re-check, the draw loop (grants oldest-expiry first, then the year's
+  accrual) raises `INSUFFICIENT_ACCRUED_LEAVE` if it cannot find the days. Fixture 233's injections show it: removing the re-check
+  alone leaves annual leave refused and turns only the non-annual arm red.
+- **One writer per request.** Signed-in users no longer hold INSERT/UPDATE/DELETE on `leave_requests` and its three write policies
+  are gone (Q12): a request is created, decided and cancelled only through `submit_leave_request` / `decide_leave_request` /
+  `cancel_leave_request`. Before this cut a `module.hr.edit` holder could write `status = 'approved'` straight through the API,
+  past both the balance check and four eyes.
+- **Serialised per employee (Q13).** Submit and approve lock the employee's row, so two requests for the same person cannot pass
+  the check at the same moment.
+
 ## 4 · A REVOKED grant used to count as a holder — fixed here
 
 **Found while building CHAIN-BUILD-1; folded into the same predicate.**

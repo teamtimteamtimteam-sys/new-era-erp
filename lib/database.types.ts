@@ -4015,11 +4015,13 @@ export type Database = {
           department_id: string | null
           employment_status: string
           employment_type: string
+          first_name: string | null
           greeting_name: string | null
           hire_date: string
           id: string
           identity_no: string | null
           is_site_staff: boolean
+          last_name: string | null
           legal_name: string
           manager_id: string | null
           monthly_salary: number | null
@@ -4055,11 +4057,13 @@ export type Database = {
           department_id?: string | null
           employment_status?: string
           employment_type: string
+          first_name?: string | null
           greeting_name?: string | null
           hire_date: string
           id?: string
           identity_no?: string | null
           is_site_staff?: boolean
+          last_name?: string | null
           legal_name: string
           manager_id?: string | null
           monthly_salary?: number | null
@@ -4095,11 +4099,13 @@ export type Database = {
           department_id?: string | null
           employment_status?: string
           employment_type?: string
+          first_name?: string | null
           greeting_name?: string | null
           hire_date?: string
           id?: string
           identity_no?: string | null
           is_site_staff?: boolean
+          last_name?: string | null
           legal_name?: string
           manager_id?: string | null
           monthly_salary?: number | null
@@ -21895,12 +21901,14 @@ export type Database = {
           department_id: string | null
           employment_status: string | null
           employment_type: string | null
+          first_name: string | null
           greeting_name: string | null
           hire_date: string | null
           id: string | null
           identity_no: string | null
           is_site_staff: boolean | null
           job_title: string | null
+          last_name: string | null
           legal_name: string | null
           manager_id: string | null
           monthly_salary: number | null
@@ -21939,12 +21947,14 @@ export type Database = {
           department_id?: string | null
           employment_status?: string | null
           employment_type?: string | null
+          first_name?: string | null
           greeting_name?: string | null
           hire_date?: string | null
           id?: string | null
           identity_no?: never
           is_site_staff?: boolean | null
           job_title?: never
+          last_name?: string | null
           legal_name?: string | null
           manager_id?: string | null
           monthly_salary?: never
@@ -21983,12 +21993,14 @@ export type Database = {
           department_id?: string | null
           employment_status?: string | null
           employment_type?: string | null
+          first_name?: string | null
           greeting_name?: string | null
           hire_date?: string | null
           id?: string | null
           identity_no?: never
           is_site_staff?: boolean | null
           job_title?: never
+          last_name?: string | null
           legal_name?: string | null
           manager_id?: string | null
           monthly_salary?: never

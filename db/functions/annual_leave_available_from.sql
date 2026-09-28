@@ -6,7 +6,12 @@
 -- 放到 TypeScript 里就是第二份 —— GrantRunner 那份重复的折算公式刚被删掉,不该再种一棵。
 -- 错误码本身不变(INSUFFICIENT_ACCRUED_LEAVE|accrued|requested),界面拿到错误后再问一次这里。
 --
--- NOTE: introduced by db/migrations/2026-08-08-hr2c-fu2-when-enough-accrues.sql.
+-- ★ LEAVE-BAL-1(2026-09-28):比的是 'bookable'(再扣掉还在等批的),不是 'available' ——
+--   它回答的是"哪天起【提交】得动",而提交扣待批(Tim Q10)。比 available 会报一个
+--   【提交时照样被拒】的日期。
+--
+-- NOTE: introduced by db/migrations/2026-08-08-hr2c-fu2-when-enough-accrues.sql;
+--       LEAVE-BAL-1 by db/migrations/2026-09-28-leavebal1-leave-balance-and-first-last-name.sql.
 
 CREATE OR REPLACE FUNCTION public.annual_leave_available_from(p_employee_id uuid, p_days numeric, p_from date DEFAULT CURRENT_DATE)
  RETURNS date
@@ -30,7 +35,7 @@ BEGIN
     WHILE v_m <= make_date(v_year, 12, 1) LOOP
         v_end := (v_m + interval '1 month' - interval '1 day')::date;
         IF v_end >= p_from
-           AND (leave_balance_internal(p_employee_id, 'annual', v_end)->>'available')::numeric >= p_days THEN
+           AND (leave_balance_internal(p_employee_id, 'annual', v_end)->>'bookable')::numeric >= p_days THEN
             RETURN v_end;
         END IF;
         v_m := (v_m + interval '1 month')::date;

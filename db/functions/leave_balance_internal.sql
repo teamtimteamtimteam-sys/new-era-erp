@@ -1,9 +1,20 @@
 -- db/functions/leave_balance_internal.sql
--- 余额的算式(不查权限)。两个来源:结转授予行 + 当年度的派生累积。
+-- 余额的算式(不查权限)。三个来源:授予行 + 当年度的派生累积(年假)+ 按年额度(其余有额度的假别)。
 -- 【HR-2a 那个重复计数的坑】carried_out 扣减照旧:结转是把剩余搬走,不是复制一份。
 -- 当年累积没有 expires_on,所以「先用旧的」天然把它排在结转之后,失效逻辑也碰不到它。
 --
--- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql.
+-- ★ LEAVE-BAL-1(2026-09-28,Tim Q1–Q22):
+--   · 'available' 的含义【一个字没改】= 额度 − 已批(employees_masked 与三个页面照旧读它)。
+--   · 新增 'pending'(同一人、同一假别、开始日在同一年、还在等批的天数)与
+--     'bookable' = available − pending —— 【提交】看 bookable,【审批】看 available(Q10 Option A:
+--     别人还在等的单不算,批准不可能让已批超过额度)。
+--   · 'balance_checked':这个假别【有没有额度】—— 年假(is_accrued)或 default_days_per_year 不为空。
+--     只有 unpaid 没有(Q1)。没有额度的假别 available/bookable 照算(= 0 或授予),但【没有人拿它拒】。
+--   · 按年额度:default_days_per_year 整年给足,按【开始日】所在公历年扣已批(Q5 · Q7);
+--     不按入职折算(Q6,已登记 known-issues)。
+--
+-- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql;
+--       LEAVE-BAL-1 by db/migrations/2026-09-28-leavebal1-leave-balance-and-first-last-name.sql.
 
 CREATE OR REPLACE FUNCTION public.leave_balance_internal(p_employee_id uuid, p_leave_type_code text DEFAULT 'annual'::text, p_as_of date DEFAULT CURRENT_DATE)
  RETURNS jsonb
@@ -20,6 +31,11 @@ DECLARE
     v_accrued numeric := 0;
     v_acc_used numeric := 0;
     v_year    integer := EXTRACT(YEAR FROM p_as_of)::integer;
+    v_type    record;
+    v_yearly  numeric := 0;
+    v_yr_used numeric := 0;
+    v_pending numeric := 0;
+    v_checked boolean;
     r         record;
 BEGIN
     -- 【本人或 HR】与 leave_balance 同一道口径。
@@ -79,12 +95,47 @@ BEGIN
             'expires_on', NULL, 'status', 'active');
     END IF;
 
+    -- ── 第三个来源(LEAVE-BAL-1):按年额度 —— 年假以外、default_days_per_year 不为空的假别 ──────
+    -- 【不写 leave_consumption】这些假别批准时从来不记消耗行;"已用"就是开始日落在这一年的【已批】单。
+    -- 跨年的单整张算在开始日那一年(Q7)—— 与年假的 accrual_year、证明规则的年份同一个口径。
+    SELECT lt.is_accrued, lt.default_days_per_year INTO v_type
+      FROM leave_types lt WHERE lt.code = p_leave_type_code;
+    v_checked := COALESCE(v_type.is_accrued, false) OR v_type.default_days_per_year IS NOT NULL;
+    IF NOT COALESCE(v_type.is_accrued, false) AND v_type.default_days_per_year IS NOT NULL THEN
+        v_yearly := v_type.default_days_per_year;
+        SELECT COALESCE(SUM(lr.days), 0) INTO v_yr_used
+          FROM leave_requests lr
+         WHERE lr.employee_id = p_employee_id AND lr.leave_type_code = p_leave_type_code
+           AND lr.deleted_at IS NULL AND lr.status = 'approved'
+           AND EXTRACT(YEAR FROM lr.start_date)::integer = v_year;
+        v_granted := v_granted + v_yearly;
+        v_used    := v_used + v_yr_used;
+        v_avail   := v_avail + (v_yearly - v_yr_used);
+        v_break := v_break || jsonb_build_object(
+            'source', 'yearly',
+            'grant_id', NULL, 'leave_year', v_year, 'grant_type', 'yearly_entitlement',
+            'days', v_yearly, 'consumed', v_yr_used, 'carried_forward_out', 0,
+            'remaining', v_yearly - v_yr_used,
+            'expires_on', NULL, 'status', 'active');
+    END IF;
+
+    -- ── 还在等批的(LEAVE-BAL-1):只有【提交】扣它;审批不扣(Q10 Option A)──────────────
+    -- 口径与已批同一个:同一人、同一假别、开始日在同一年,不论先后(Q9)。
+    SELECT COALESCE(SUM(lr.days), 0) INTO v_pending
+      FROM leave_requests lr
+     WHERE lr.employee_id = p_employee_id AND lr.leave_type_code = p_leave_type_code
+       AND lr.deleted_at IS NULL AND lr.status = 'pending'
+       AND EXTRACT(YEAR FROM lr.start_date)::integer = v_year;
+
     RETURN jsonb_build_object(
         'employee_id', p_employee_id, 'leave_type_code', p_leave_type_code, 'as_of', p_as_of,
         'granted', v_granted, 'consumed', v_used, 'expired', v_expired,
         'accrued_this_year', v_accrued, 'consumed_from_accrual', v_acc_used,
         -- 【向下取到 0.5】—— 结转与消耗本就是 0.5 的整数倍,这里是防御性的一层
         'available', trim_scale(floor(v_avail * 2) / 2),
+        'pending', trim_scale(v_pending),
+        'bookable', trim_scale(floor(v_avail * 2) / 2 - v_pending),
+        'balance_checked', v_checked,
         'breakdown', v_break);
 END;
 $function$

@@ -112,7 +112,10 @@ CREATE TABLE public.employees (
     --   ★ 一段 `--` 注释【进不了目录】★,而 gate 比的是目录(见文件末尾那一段)。
     greeting_name text,
     -- ★ OVERTIME-1(2026-09-28)ALTER 加的列 → 线上排在【最后】。说明在文件末尾的 COMMENT ON COLUMN。
-    is_site_staff boolean NOT NULL DEFAULT false
+    is_site_staff boolean NOT NULL DEFAULT false,
+    -- ★ NAME-1 / LEAVE-BAL-1(2026-09-28)ALTER 加的两列 → 线上排在【最后】。说明在文件末尾的 COMMENT ON COLUMN。
+    first_name text,
+    last_name text
 );
 
 CREATE INDEX idx_employees_department ON public.employees (department_id);
@@ -219,10 +222,11 @@ REVOKE SELECT ON public.employees FROM authenticated, anon;
 -- 直读原始列在 PostgREST 上是 42501,只能经 employees_masked 读。
 -- HR-3b:monthly_salary_set 与 review_exempt 同样授回 —— 都不是敏感数据。
 -- OVERTIME-1:is_site_staff 同样授回(不敏感),并且也在 employees_masked 里(colgrant 的两半)。
+-- NAME-1:first_name / last_name 与 legal_name 同一个可见性(Tim:不是受限字段)—— 授回,也在 employees_masked 里。
 -- PDPA-1:anonymised_at / anonymised_by 同样授回。**列清单式 SELECT 授权不随
 -- ADD COLUMN 自动延伸**,所以每一次给这张表加列都必须回到这一行(gate 的 colgrant
 -- 判据会点名漏掉的列;见 AGENTS.md「Adding a column to a masked table」)。
-GRANT SELECT (id, code, legal_name, preferred_name, department_id, position_id, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt, anonymised_at, anonymised_by, greeting_name, is_site_staff)
+GRANT SELECT (id, code, legal_name, preferred_name, department_id, position_id, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt, anonymised_at, anonymised_by, greeting_name, is_site_staff, first_name, last_name)
     ON public.employees TO authenticated;
 
 -- cut 4 员工自助:【追加】一条 PERMISSIVE 策略,与既有模块策略【或】起来。
@@ -293,3 +297,9 @@ CREATE TRIGGER enforce_write_permission
 -- ★ OVERTIME-1(Tim 的裁定,2026-09-28):谁是现场员工 —— 只有现场员工有加班。
 COMMENT ON COLUMN public.employees.is_site_staff IS
     'OVERTIME-1:现场员工 —— 只有现场员工有加班,加班录入页只列他们。默认 false,迁移时没有标任何一个人;由持 module.hr.edit 的人(财务)在建档与编辑员工的表单上勾。★ 不是 work_category:work_category 决定年假累积费率,而 shopfloor 的 Fu Sheng 不是现场员工、没有加班(Tim 2026-09-28)。加班批在提交与批准时再判一次这一列。';
+
+-- ★ NAME-1(Tim 的裁定,2026-09-28):名字与姓氏。法定姓名照旧是证件上的全名,列表与单据照旧显示它。
+COMMENT ON COLUMN public.employees.first_name IS
+    'NAME-1:名字(First name)。【建档与保存员工表单时必填】—— 由 app/hr/employees/actions.ts 的 createEmployee / updateEmployee 与表单的 required 把关,【库里没有约束】(Tim Q17):53 支 fixture 直接插员工、anonymise_employee 要能把它清空、而工资与账号那些写员工的函数不该因为一行旧档案没填名字就失败。迁移时 22 行全部留空,下一次保存时补。可见性与 legal_name 相同,不是受限字段。空白存 NULL。';
+COMMENT ON COLUMN public.employees.last_name IS
+    'NAME-1:姓氏(Last name),可空。可见性与 legal_name 相同,不是受限字段。空白存 NULL。显示照旧用 legal_name —— 这两列只出现在员工表单与个人数据导出里。';

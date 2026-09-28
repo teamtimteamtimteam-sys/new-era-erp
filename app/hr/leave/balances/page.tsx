@@ -40,6 +40,7 @@ export default async function BalancesPage() {
             })
             const b = mustOne(balRes, `leave_balance ${e.code}`) as {
                 granted: number; consumed: number; expired: number; available: number
+                pending: number; bookable: number
                 breakdown: { remaining: number; expires_on: string | null; status: string }[]
             } | null
             const expiringSoon = (b?.breakdown ?? [])
@@ -55,6 +56,8 @@ export default async function BalancesPage() {
         granted: String(b?.granted ?? '—'),
         consumed: String(b?.consumed ?? '—'),
         available: String(b?.available ?? '—'),
+        pending: String(b?.pending ?? '—'),
+        bookable: String(b?.bookable ?? '—'),
         expiringSoon,
     }))
 

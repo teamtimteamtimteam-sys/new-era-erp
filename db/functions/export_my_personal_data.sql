@@ -9,7 +9,10 @@
 -- 【范围只到员工】往来户联系人的个人数据在库里,而这条路不通向它们。两条都记在
 -- docs/pdpa.md,本文件不复述。
 --
--- NOTE: introduced by db/migrations/2026-08-24-pdpa1-anonymise-and-subject-access.sql.
+-- ★ NAME-1(2026-09-28):first_name / last_name 跟着 legal_name 一起导出 —— 它们同样是关于这个人的个人数据。
+--
+-- NOTE: introduced by db/migrations/2026-08-24-pdpa1-anonymise-and-subject-access.sql;
+--       NAME-1 by db/migrations/2026-09-28-leavebal1-leave-balance-and-first-last-name.sql.
 
 CREATE OR REPLACE FUNCTION public.export_my_personal_data()
  RETURNS jsonb
@@ -32,6 +35,7 @@ BEGIN
         'generated_at', now(),
         'about', jsonb_build_object(
             'employee_code', v_emp.code, 'legal_name', v_emp.legal_name,
+            'first_name', v_emp.first_name, 'last_name', v_emp.last_name,
             'preferred_name', v_emp.preferred_name, 'identity_no', v_emp.identity_no,
             'work_email', v_emp.work_email, 'work_phone', v_emp.work_phone,
             'residency_status', v_emp.residency_status,

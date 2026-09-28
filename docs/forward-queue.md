@@ -113,6 +113,19 @@
 >    `origin/main` 移到 `80959775`,`git reflog show --date=iso refs/remotes/origin/main`)· 终点上界 **2026-09-28 15:37:32 CST**
 >    (推导:close-out 这一次会话第一条命令的时刻,手里已经有 Tim 的"已部署" —— 一句转述,不是对 Vercel 的测量)。
 >    **破窗:至少 1 h 18 min 51 s,至多 2 h 14 min 57 s。** 见 `docs/handbacks/OVERTIME-1.md`。
+> 21. **✅ 请假余额与名字 —— LEAVE-BAL-1 + NAME-1(`v1.4.31`,2026-09-28)。** 每一个有额度的假别都查余额(只有 unpaid 不查,
+>    infant_care 也查)· **提交扣待批**(可请 = 额度 − 已批 − 待批)、**审批只扣已批**(Tim Q10 Option A:别人还在等的单不算)·
+>    HR 代录与例外一样查、没有口子(超出的另开无薪假)· 同一名员工的提交与审批锁住员工行 · `leave_requests` 登录用户只剩读,
+>    写只走三支函数 · `/me` 与 `/hr/leave/balances` 显示「待审批」与「可请」· `/hr/leave/[id]` 对每一个有额度的假别画余额 ·
+>    员工表单多了「名字」(必填,库里没有约束)与「姓氏」(可空),22 行留空,列表与单据照旧显示法定姓名。
+>    折进:tim@ 的员工归属核对(经 `employee_accounts` 归到 EMP-2026-0002)· ZZ-2BL-186301 **没有删**(`equipment_maintenance` 仍引用 1 行)。
+>    ★ **部署:等 Tim 在 Vercel 上确认。** 见 `docs/handbacks/LEAVE-BAL-1.md`。
+>
+> **LEAVE-BAL-1 留下的(先后归 Tim):**
+> * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
+>   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
+> * **⬜ `/me` 只画年假的余额**(LEAVE-BAL-1 Q15)—— 其余有额度的假别(病假、育儿假……)本人在 `/me` 上看不到余额,
+>   只在超额被拒时从那句拒绝里读到"可请 N 天"。`leave_balance` 已经能按假别回答,缺的只是那一块面板。
 > * **同事的端到端测试排在版本号【之后】,时间由 Tim 定,它【不再】挡版本号。**
 > * ~~Tim 开同事账号~~ —— **删掉:同事的账号已经在了**(EMP-SELF-1 Step 0 实测:sandra@ · chooer@ · phua@ · fusheng@ · vince@
 >   各自绑在自己的员工档案上,`/me` 读得到自己的请假与报销)。

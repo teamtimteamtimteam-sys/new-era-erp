@@ -3,6 +3,39 @@
 与 known-wrong-until-cutover.md 分工:那边是【测试数据的错觉,生产重建即消失】;
 这边是【结构或行为的真问题,重建也不会消失】,已知、有意暂不修。修掉一条就删一条。
 
+## LEAVEBAL1-CALENDAR-WEEK-UNITS · 产假、陪产假、共享育儿假的额度是日历日,请假单存的是工作日(LEAVE-BAL-1 登记,2026-09-28,Tim Q3)
+
+`leave_types.default_days_per_year` 在这三个假别上是**日历日**(maternity 112 = 16 周 · paternity 28 = 4 周 · shared_parental 70 = 10 周),
+而 `leave_requests.days` 由 `calculate_leave_days` 算,是**工作日**(周一到周五、扣公共假日)。LEAVE-BAL-1 起每一个有额度的假别都查余额,
+这三个就拿【工作日】去比【日历日】的额度 —— **偏松,永远不会错拒**:16 周的产假存成约 80 个工作日,离 112 还远;
+代价是它最多放得进约 112 个工作日(约 22 周)。Tim Q3:**照存的单位查,本刀不改单位**。
+**删除条件:** 这三个假别按日历日计天数(或额度改成工作日口径),两边说同一种单位。
+
+## LEAVEBAL1-HOSPITALISATION-INCLUDES-SICK · 住院假 60 天【含】门诊病假 14 天,而两个额度各算各的(LEAVE-BAL-1 登记,2026-09-28,Tim Q4)
+
+MOM 的规矩是住院假 60 天**包含**门诊病假的 14 天(`leave_types` 里 hospitalisation 那一行的 notes 写着)。LEAVE-BAL-1 的余额按假别各自算:
+病假扣病假的 14,住院假扣住院假的 60,**一个人用满 14 天病假之后,住院假仍显示 60 天可用**(按法规应为 46)。
+要做对,需要一个【共享额度】的配置列(哪个假别算进哪个池),而不是在函数里写死两个假别码 —— 那是另一刀。Tim Q4:**本刀分开算,登记**。
+**删除条件:** 假别之间的共享额度有了配置并进了 `leave_balance_internal`。
+
+## LEAVEBAL1-NO-NEW-HIRE-PRORATING · 年假以外的额度对新入职的人整年给足,病假也没有三个月的资格期(LEAVE-BAL-1 登记,2026-09-28,Tim Q6)
+
+`leave_balance_internal` 的「按年额度」来源把 `default_days_per_year` **整年给足**,不按入职月份折算;病假也不看服务期。
+MOM 的规矩:门诊 / 住院病假要**服务满 3 个月**才有,3 到 6 个月之间按服务月数折算,满 6 个月才是 14 / 60 天。
+所以一个上个月才入职的人今天能请 14 天病假,而法规上他一天都还没有。**年假不受影响**(按月累积,HR-2c / HR-7 本来就只从入职月算起)。
+Tim Q6:**本刀不做,登记,并进 forward-queue**(那边有同名条目)。
+**删除条件:** 按年额度按服务期折算,并有病假的资格期判据。
+
+## LEAVEBAL1-HALF-DAY-QUIRKS · 半天的两处毛病:落在非工作日上照样扣 0.5;allows_half_day 不拦(LEAVE-BAL-1 登记,2026-09-28,Tim Q16)
+
+两处,都在 `calculate_leave_days` / `submit_leave_request`,**存的天数与余额检查用的天数始终是同一个数**(同一支函数),所以余额不会算错 ——
+错的是那个数本身:
+1. **半天标记落在非工作日上照样扣 0.5。** 实测(LEAVE-BAL-1 Step 0,postgres 读 `calculate_leave_days`):周六(上午半天)→ 周一 = **0.5**,
+   应为 1(周六本来就不算,周一是整天)。开始日或结束日是周末 / 公共假日时,半天那 0.5 不该扣。
+2. **`leave_types.allows_half_day` 提交时不查。** 住院假、产假、恩恤假那些 `allows_half_day = false` 的假别照样收半天。
+Tim Q16:**本刀不修,登记**。
+**删除条件:** 半天只在那一天本身是工作日时扣;`submit_leave_request` 对 `allows_half_day = false` 的假别拒半天。
+
 ## OVERTIME1-NO-REMINDER-ARM · 一批在等仓库批的加班,提醒清单里没有它(OVERTIME-1 登记,2026-09-28)
 
 `operations_now` / `lib/reminders.ts` 没有加班批那一支,所以 Fu Sheng 不会在首页或提醒里看见"有一批加班在等你批"——

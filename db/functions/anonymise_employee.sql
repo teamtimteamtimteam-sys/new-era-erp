@@ -28,6 +28,8 @@
 -- NOTE: introduced by db/migrations/2026-08-24-pdpa1-anonymise-and-subject-access.sql;
 --       fixed by db/migrations/2026-08-24-pdpa1-fu-the-immutable-log-gets-one-named-exception.sql
 --       (第一版在真实数据上必崩:履历不可变,而它有一句 UPDATE)。
+-- ★ NAME-1(2026-09-28,db/migrations/2026-09-28-leavebal1-leave-balance-and-first-last-name.sql):
+--   first_name / last_name 与 preferred_name 一起清成 NULL —— 它们就是身份列。
 
 CREATE OR REPLACE FUNCTION public.anonymise_employee(p_employee_id uuid, p_reason text)
  RETURNS jsonb
@@ -74,6 +76,8 @@ BEGIN
     UPDATE employees SET
         legal_name           = 'ANONYMISED ' || code,
         preferred_name       = NULL,
+        first_name           = NULL,
+        last_name            = NULL,
         identity_no          = NULL,
         work_email           = NULL,
         work_phone           = NULL,

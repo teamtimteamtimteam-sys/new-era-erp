@@ -31,6 +31,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { localizeHrError } from '../hrErrorCodes'
+import { normaliseName, firstNameMissing } from '@/lib/employeeNames'
 
 export type EmployeeFormState = { error?: string }
 
@@ -105,6 +106,10 @@ function readForm(formData: FormData) {
     const status = s('employment_status')
     return {
         legal_name: s('legal_name'),
+        // NAME-1:名字必填、姓氏可空;空白存 NULL —— 规则在 lib/employeeNames.ts,
+        // scripts/check-employee-names.mjs 把它真的跑一遍(库里没有约束,见那个文件抬头)
+        first_name: normaliseName(formData.get('first_name')),
+        last_name: normaliseName(formData.get('last_name')),
         preferred_name: s('preferred_name') || null,
         department_id: s('department_id') || null,
         position_id: s('position_id') || null,
@@ -206,6 +211,9 @@ export async function createEmployee(
     const f = readForm(formData)
 
     if (!f.legal_name) return { error: t('hr.errNameRequired') }
+    // ★ NAME-1(Tim Q17):名字必填只在这里与表单的 required 把关,【库里没有约束】——
+    //   22 行旧档案留空,下一次保存时补;anonymise_employee 与写员工的那些函数不受它牵连。
+    if (firstNameMissing(f)) return { error: t('hr.errFirstNameRequired') }
     if (!f.hire_date) return { error: t('finance.errDate') }
     if (f.residency_status === 'work_pass' && (!f.work_pass_type || !f.work_pass_expiry_date)) {
         return { error: t('hr.errWorkPassRequired') }
@@ -267,6 +275,9 @@ export async function updateEmployee(
     const f = readForm(formData)
 
     if (!f.legal_name) return { error: t('hr.errNameRequired') }
+    // ★ NAME-1(Tim Q17):名字必填只在这里与表单的 required 把关,【库里没有约束】——
+    //   22 行旧档案留空,下一次保存时补;anonymise_employee 与写员工的那些函数不受它牵连。
+    if (firstNameMissing(f)) return { error: t('hr.errFirstNameRequired') }
     if (!f.hire_date) return { error: t('finance.errDate') }
     if (f.residency_status === 'work_pass' && (!f.work_pass_type || !f.work_pass_expiry_date)) {
         return { error: t('hr.errWorkPassRequired') }

@@ -4,7 +4,16 @@
 -- 于是「请了却没挣到」不存在,不需要扣款规则(HR-2c C3)。
 -- 试用期照常累积、照常不能请:PROBATION_NO_ANNUAL_LEAVE 一个字没改。
 --
--- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql.
+-- ★ LEAVE-BAL-1(2026-09-28,Tim Q1–Q22):
+--   · 【每一个有额度的假别】都查余额(年假 + default_days_per_year 不为空的;只有 unpaid 不查)。
+--   · 提交时扣【还在等批的】:可请 = 额度 − 已批 − 待批(leave_balance 的 'bookable')。
+--   · HR 的例外一样查,没有口子(Q11):超出额度的部分另开一张无薪假。
+--   · 先锁住这名员工的行(Q13)—— 同一人同时提交两张时,第二张看得见第一张。
+--   · 拒绝码不变:年假 INSUFFICIENT_ACCRUED_LEAVE(界面再问"哪天够"),其余 INSUFFICIENT_BALANCE。
+--     两个码旧界面都认得,所以破窗里不会冒出一串生码。
+--
+-- NOTE: introduced/updated by db/migrations/2026-08-06-hr2c-monthly-accrual.sql;
+--       LEAVE-BAL-1 by db/migrations/2026-09-28-leavebal1-leave-balance-and-first-last-name.sql.
 
 CREATE OR REPLACE FUNCTION public.submit_leave_request(p_employee_id uuid, p_leave_type_code text, p_start date, p_end date, p_start_half boolean DEFAULT false, p_end_half boolean DEFAULT false, p_reason text DEFAULT NULL::text, p_certificate_ref text DEFAULT NULL::text, p_is_exception boolean DEFAULT false, p_exception_days numeric DEFAULT NULL::numeric, p_exception_reason text DEFAULT NULL::text)
  RETURNS jsonb
@@ -33,8 +42,11 @@ BEGIN
         RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.edit';
     END IF;
 
+    -- ★ LEAVE-BAL-1(Q13):FOR UPDATE —— 同一名员工的提交与审批排队,
+    --   否则两张同时提交的单各自看不见对方,一起穿过余额检查。
     SELECT id, code, employment_status INTO v_emp
-    FROM employees WHERE id = p_employee_id AND deleted_at IS NULL;
+    FROM employees WHERE id = p_employee_id AND deleted_at IS NULL
+    FOR UPDATE;
     IF NOT FOUND THEN RAISE EXCEPTION 'EMPLOYEE_NOT_FOUND'; END IF;
 
     SELECT * INTO v_type FROM leave_types WHERE code = p_leave_type_code;
@@ -84,12 +96,18 @@ BEGIN
     -- 订"到那天也挣不到"的天数则当场被拒。于是"请了却没挣到"这个状态不存在,
     -- 不需要任何扣款规则,也不需要合同里加一条(C3,fixture 6 证明)。
     -- ══════════════════════════════════════════════════════════════════════
-    IF v_type.is_accrued THEN
-        v_bal := leave_balance(p_employee_id, p_leave_type_code, p_start);
-        v_avail := (v_bal->>'available')::numeric;
+    -- ★ LEAVE-BAL-1:判据从"是不是累积型"换成"有没有额度"(balance_checked),
+    --   比的数从 available 换成 bookable(再扣掉还在等批的)。例外单(v_days 是 HR 手填的)一样过这里。
+    v_bal := leave_balance(p_employee_id, p_leave_type_code, p_start);
+    IF (v_bal->>'balance_checked')::boolean THEN
+        v_avail := (v_bal->>'bookable')::numeric;
         IF v_avail < v_days THEN
-            RAISE EXCEPTION 'INSUFFICIENT_ACCRUED_LEAVE|%|%',
-                trim_scale(v_avail), trim_scale(v_days);
+            IF v_type.is_accrued THEN
+                RAISE EXCEPTION 'INSUFFICIENT_ACCRUED_LEAVE|%|%',
+                    trim_scale(GREATEST(v_avail, 0)), trim_scale(v_days);
+            END IF;
+            RAISE EXCEPTION 'INSUFFICIENT_BALANCE|%|%',
+                trim_scale(GREATEST(v_avail, 0)), trim_scale(v_days);
         END IF;
     END IF;
 

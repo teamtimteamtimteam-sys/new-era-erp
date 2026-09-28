@@ -37,7 +37,11 @@ type Breakdown = {
     grant_id: string | null; leave_year: number; grant_type: string; days: number
     consumed: number; remaining: number; expires_on: string | null; status: string
 }
-type Balance = { granted: number; consumed: number; expired: number; available: number; breakdown: Breakdown[] }
+// ★ LEAVE-BAL-1:pending = 还在等批的天数;bookable = available − pending —— 提交时比的就是它(Tim Q10)。
+type Balance = {
+    granted: number; consumed: number; expired: number; available: number
+    pending: number; bookable: number; breakdown: Breakdown[]
+}
 type Req = {
     id: string; code: string; leave_type_code: string
     start_date: string; end_date: string; days: number; status: string
@@ -149,7 +153,7 @@ export default function MyLeavePanel({
 
             {balance && (
                 <div className="rounded border border-gray-200 p-4 mb-3">
-                    <div className="grid gap-4 sm:grid-cols-4 mb-3">
+                    <div className="grid gap-4 sm:grid-cols-3 mb-3">
                         <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.granted')}</div>
                             <div className="text-sm">{balance.granted}</div></div>
                         <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.taken')}</div>
@@ -157,7 +161,12 @@ export default function MyLeavePanel({
                         <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.expired')}</div>
                             <div className="text-sm">{balance.expired}</div></div>
                         <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.available')}</div>
-                            <div className="text-lg font-medium leading-6">{balance.available}</div></div>
+                            <div className="text-sm">{balance.available}</div></div>
+                        <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.pending')}</div>
+                            <div className="text-sm">{balance.pending}</div></div>
+                        {/* 【醒目的是「可请」】—— 下一张申请真正比的是它,不是「可用」 */}
+                        <div><div className="text-xs text-[color:var(--brand-muted-text)]">{t('leave.bookable')}</div>
+                            <div className="text-lg font-medium leading-6">{balance.bookable}</div></div>
                     </div>
                     {/* 【"我的余额为什么是 19.5"就靠这张表回答】 */}
                     <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('me.balanceExplainer')}</p>

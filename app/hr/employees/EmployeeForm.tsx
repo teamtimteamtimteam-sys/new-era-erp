@@ -33,6 +33,9 @@ export type EmployeeRecord = {
     id: string
     code: string
     legal_name: string
+    /** NAME-1:名字(必填,保存时补)与姓氏(可空)。旧档案两列都是 NULL。 */
+    first_name?: string | null
+    last_name?: string | null
     preferred_name: string | null
     department_id: string | null
     position_id: string | null
@@ -138,6 +141,29 @@ export default function EmployeeForm({
                             name="legal_name"
                             required
                             defaultValue={employee?.legal_name ?? ''}
+                            className={field}
+                        />
+                    </div>
+                    {/* NAME-1:名字与姓氏排在常用名之前。法定姓名照旧是证件上的全名,
+                        列表与单据照旧显示它 —— 这两栏只在这张表单上。 */}
+                    <div className="flex-1 min-w-[12rem]">
+                        <label className={label}>
+                            {t('hr.colFirstName')} <span className="text-red-600">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="first_name"
+                            required
+                            defaultValue={employee?.first_name ?? ''}
+                            className={field}
+                        />
+                    </div>
+                    <div className="flex-1 min-w-[12rem]">
+                        <label className={label}>{t('hr.colLastName')}</label>
+                        <input
+                            type="text"
+                            name="last_name"
+                            defaultValue={employee?.last_name ?? ''}
                             className={field}
                         />
                     </div>

@@ -64,21 +64,21 @@ CREATE POLICY "leave_requests select by permission"
 CREATE POLICY "leave_requests select own rows"
     ON public.leave_requests AS PERMISSIVE FOR SELECT TO authenticated
     USING (employee_id = current_user_employee());
-CREATE POLICY "leave_requests insert by permission"
-    ON public.leave_requests AS PERMISSIVE FOR INSERT TO authenticated
-    WITH CHECK (has_permission('module.hr.edit'));
-CREATE POLICY "leave_requests update by permission"
-    ON public.leave_requests AS PERMISSIVE FOR UPDATE TO authenticated
-    USING (has_permission('module.hr.edit')) WITH CHECK (has_permission('module.hr.edit'));
-CREATE POLICY "leave_requests delete by permission"
-    ON public.leave_requests AS PERMISSIVE FOR DELETE TO authenticated
-    USING (has_permission('module.hr.edit'));
+
+-- ★ LEAVE-BAL-1(Tim Q12,2026-09-28):【写只走 SECURITY DEFINER 函数】——
+--   submit_leave_request / decide_leave_request / cancel_leave_request。
+--   此前持 module.hr.edit 的人(admin · finance · hr)可以经 PostgREST 直接 INSERT 一张单、
+--   或把一张单 UPDATE 成 approved、改它的天数,整个绕过余额检查与四眼。
+--   于是这里【故意】没有 INSERT / UPDATE / DELETE 策略,并且收回写权限 —— 先例 import_batches。
+--   读照旧:上面两条读策略不动。
+REVOKE ALL ON public.leave_requests FROM authenticated;
+GRANT SELECT ON public.leave_requests TO authenticated;
 
 -- ============================================================================
 
 -- 列注释:说明写在数据库里,重建出来的库也带着它们(OPS-1 补齐)。
 COMMENT ON COLUMN public.leave_requests.is_exception IS
-    'True when days were entered by hand rather than computed from calculate_leave_days. Two cases: (a) a six-day or shift schedule where Mon-Fri counting is wrong, (b) case-by-case leave (compassionate, marriage) varying the standard entitlement.';
+    'True when days were entered by hand rather than computed from calculate_leave_days — for a six-day or shift schedule where Mon-Fri counting is wrong. Since LEAVE-BAL-1 (2026-09-28) an exception is balance-checked like any other request and cannot grant more than the entitlement: days beyond it are recorded as a separate unpaid-leave request.';
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
@@ -86,6 +86,8 @@ COMMENT ON COLUMN public.leave_requests.is_exception IS
 -- 这支语句级触发器零行也照样触发,抛 PERMISSION_DENIED|<码>。
 -- 它由 row_security_active() 守着,所以属主 / SECURITY DEFINER 那些路一律放行。
 -- 【它不动任何策略,所以读权限不可能因它变窄。】详见迁移文件抬头。
+-- ★ LEAVE-BAL-1 之后 authenticated 已没有写权限(见上面的 REVOKE),直接写在触发器之前就 42501;
+--   这支触发器留着,是第二道 —— 哪天有人把写权限授回去,它仍然拦住没有 module.hr.edit 的人。
 CREATE TRIGGER enforce_write_permission
     BEFORE UPDATE OR DELETE ON public.leave_requests
     FOR EACH STATEMENT EXECUTE FUNCTION public.enforce_write_permission('module.hr.edit');

@@ -30,6 +30,10 @@ BEGIN
     --   module.hr.edit)照样批得了自己的假。
     PERFORM forbid_self_approval(v_req.created_by, v_req.employee_id, 'leave_request');
 
+    -- ★ LEAVE-BAL-1(Q13):锁住这名员工的行 —— 与 submit_leave_request 同一把锁,
+    --   同一个人的两张单不会同时穿过余额检查。先锁单、再锁人,各条路径同一个次序。
+    PERFORM 1 FROM employees WHERE id = v_req.employee_id FOR UPDATE;
+
     SELECT * INTO v_type FROM leave_types WHERE code = v_req.leave_type_code;
 
     IF NOT p_approve THEN
@@ -43,14 +47,27 @@ BEGIN
         RETURN jsonb_build_object('request_id', p_request_id, 'code', v_req.code, 'status','rejected');
     END IF;
 
-    IF v_type.is_accrued THEN
-        v_bal := leave_balance(v_req.employee_id, v_req.leave_type_code, v_req.start_date);
+    -- ══════════════════════════════════════════════════════════════════════
+    -- ★ LEAVE-BAL-1:审批时再查一次 —— 【每一个有额度的假别】,不只是年假。
+    --   比的是 'available' = 额度 − 已批,【不扣别人还在等的单】(Tim Q10 Option A):
+    --   待批不是承诺,而只按已批判,批准就不可能让已批超过额度;
+    --   扣待批的话,两张各自够、合起来不够的旧单会互相卡死,谁都批不了。
+    --   于是先批的那张过,后一张被拒并说出"可用 0 天"。
+    -- ══════════════════════════════════════════════════════════════════════
+    v_bal := leave_balance(v_req.employee_id, v_req.leave_type_code, v_req.start_date);
+    IF (v_bal->>'balance_checked')::boolean THEN
         v_avail := (v_bal->>'available')::numeric;
         IF v_avail < v_req.days THEN
-            RAISE EXCEPTION 'INSUFFICIENT_ACCRUED_LEAVE|%|%',
-                trim_scale(v_avail), trim_scale(v_req.days);
+            IF v_type.is_accrued THEN
+                RAISE EXCEPTION 'INSUFFICIENT_ACCRUED_LEAVE|%|%',
+                    trim_scale(GREATEST(v_avail, 0)), trim_scale(v_req.days);
+            END IF;
+            RAISE EXCEPTION 'INSUFFICIENT_BALANCE|%|%',
+                trim_scale(GREATEST(v_avail, 0)), trim_scale(v_req.days);
         END IF;
+    END IF;
 
+    IF v_type.is_accrued THEN
         v_need := v_req.days;
         -- ══════════════════════════════════════════════════════════════════
         -- 【先用旧的】:按 expires_on 从早到晚扣。

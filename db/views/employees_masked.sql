@@ -89,6 +89,9 @@ CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
     -- 要么出现在这张视图里(WO-1a 那一课)。greeting_name 两样都做了:它不敏感。
     greeting_name,
     -- OVERTIME-1:同上 —— employees 是遮蔽表,新列要么被列授权、要么出现在这里;is_site_staff 两样都做了。
-    is_site_staff
+    is_site_staff,
+    -- NAME-1:同上 —— 与 legal_name 同一个可见性,不遮蔽。
+    first_name,
+    last_name
    FROM employees
   WHERE has_permission('module.hr.view'::text) OR id = current_user_employee();

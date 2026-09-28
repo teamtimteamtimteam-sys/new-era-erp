@@ -13,6 +13,9 @@ export type BalanceRow = {
     granted: string
     consumed: string
     available: string
+    // ★ LEAVE-BAL-1:待批与「可请」—— 可用是审批时比的数,可请是提交时比的数(Tim Q10)
+    pending: string
+    bookable: string
     expiringSoon: number
 }
 
@@ -29,6 +32,8 @@ export default function BalancesTable({ rows, empty }: { rows: BalanceRow[]; emp
             key: 'available', header: t('leave.available'), priority: true, align: 'right',
             className: 'font-medium', render: (r) => r.available,
         },
+        { key: 'pending', header: t('leave.pending'), align: 'right', render: (r) => r.pending },
+        { key: 'bookable', header: t('leave.bookable'), align: 'right', render: (r) => r.bookable },
         {
             key: 'expiring', header: t('leave.expiringSoon'), align: 'right',
             render: (r) =>
