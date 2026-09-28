@@ -119,7 +119,11 @@
 >    写只走三支函数 · `/me` 与 `/hr/leave/balances` 显示「待审批」与「可请」· `/hr/leave/[id]` 对每一个有额度的假别画余额 ·
 >    员工表单多了「名字」(必填,库里没有约束)与「姓氏」(可空),22 行留空,列表与单据照旧显示法定姓名。
 >    折进:tim@ 的员工归属核对(经 `employee_accounts` 归到 EMP-2026-0002)· ZZ-2BL-186301 **没有删**(`equipment_maintenance` 仍引用 1 行)。
->    ★ **部署:等 Tim 在 Vercel 上确认。** 见 `docs/handbacks/LEAVE-BAL-1.md`。
+>    ★ **部署:Tim 在 Vercel 上确认 `7c6132db` 已部署(LEAVE-BAL-1 close-out 委托书,2026-09-28)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-09-28 18:34:31 CST**(测量:`db/migration-windows.tsv`)· 终点下界 **2026-09-28 19:25:20 CST**(测量:推送把
+>    `origin/main` 移到 `7c6132db`,`git reflog show --date=iso refs/remotes/origin/main`)· 终点上界 **2026-09-28 19:50:10 CST**
+>    (推导:close-out 这一次会话第一条命令的时刻,手里已经有 Tim 的"已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 50 min 49 s,至多 1 h 15 min 39 s。** 见 `docs/handbacks/LEAVE-BAL-1.md`。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
