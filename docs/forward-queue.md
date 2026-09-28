@@ -108,7 +108,11 @@
 >    `record_attendance` 不再收小时 · `/hr/payroll/[id]` 只读的「批过的加班小时」· `/me` 我的加班。报小时,不报钱(政策 7.1)。
 >    折进:头像菜单回到「我的档案」、删两行 · R2 标记经 `my_document_decisions()` 的证明(fixture 232 Q 臂 + 线上一格)·
 >    `/me` 报销撤回钮看得见、按不动、带理由。按人的休息日推后,登记在 `docs/known-issues.md` C-2-OT。
->    ★ **破窗:起点见交回报告 §7,终点 PENDING —— Tim 从 Vercel 读。** 见 `docs/handbacks/OVERTIME-1.md`。
+>    ★ **部署:Tim 在 Vercel 上确认 `80959775` 已部署(OVERTIME-1 close-out 委托书,2026-09-28)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-09-28 13:22:35 CST**(测量:`db/migration-windows.tsv`)· 终点下界 **2026-09-28 14:41:26 CST**(测量:推送把
+>    `origin/main` 移到 `80959775`,`git reflog show --date=iso refs/remotes/origin/main`)· 终点上界 **2026-09-28 15:37:32 CST**
+>    (推导:close-out 这一次会话第一条命令的时刻,手里已经有 Tim 的"已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 18 min 51 s,至多 2 h 14 min 57 s。** 见 `docs/handbacks/OVERTIME-1.md`。
 > * **同事的端到端测试排在版本号【之后】,时间由 Tim 定,它【不再】挡版本号。**
 > * ~~Tim 开同事账号~~ —— **删掉:同事的账号已经在了**(EMP-SELF-1 Step 0 实测:sandra@ · chooer@ · phua@ · fusheng@ · vince@
 >   各自绑在自己的员工档案上,`/me` 读得到自己的请假与报销)。
