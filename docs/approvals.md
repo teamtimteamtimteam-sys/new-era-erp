@@ -1186,9 +1186,16 @@ changes **for approvals**.
 ### The HR chains have their own decision codes now
 | chain | decided by (code) | held by | the designated approver is the subject → |
 |---|---|---|---|
-| leave request | `action.decide_hr_requests` | finance · cfo | the CFO decides it (Q4: the CFO may decide any) |
-| medical claim | `action.decide_hr_requests` | finance · cfo | the same |
+| leave request | `action.decide_hr_requests` | finance · cfo · ★ **cco** (since 2026-09-28, below) | the CFO decides it (Q4: the CFO may decide any) |
+| medical claim | `action.decide_hr_requests` | finance · cfo · ★ **cco** (since 2026-09-28, below) | the same |
 | performance review | `review_approval_code(submitted_by, employee_id)` → `action.approve_review` | cfo | **cco** decides it (`action.hr_reviews`) when the CFO is the **submitter or** the subject (Q5) |
+
+> ★ **cco decides HR requests (Tim, 2026-09-28 19:00:35 CST).** Tim, signed in as admin@, added `module.hr.edit` and
+> `action.decide_hr_requests` to the `cco` role; the change is his and intended (read back at the LEAVE-BAL-1 close-out as
+> `postgres` from base table `role_permissions`: 41 cco rows, all `created_at` 19:00:35, `created_by` admin@). **Leave and
+> medical claims are now decided by finance, the CFO or cco.** Self-approval rules apply to cco as to every approver: four
+> eyes by person — a cco holder cannot decide a request they raised or one about themselves (`SELF_APPROVAL_FORBIDDEN|raiser` /
+> `|subject`); R2 covers only the CFO. Rows above dated 2026-09-23 are kept as the record of Batch 1.
 
 ☞ `review_approval_code` is the single definition; `approve_review` and both review pages ask it. "The CFO" is the
 same predicate R2 uses: a real holder of `finance_settings.approval_level2_role_code`, **by person**.
@@ -1954,6 +1961,8 @@ Tim's Step 0 answers (Q1–Q23, all accepted as recommended). The cut is `docs/h
 Tim's Step 0 answers (Q1–Q22, all accepted as recommended). The cut is `docs/handbacks/LEAVE-BAL-1.md`. This section records only
 what matters **for approvals**: the leave chain itself (`action.decide_hr_requests`, four eyes by person, R2 for the CFO's own
 leave) is unchanged.
+★ **After this cut (Tim, 2026-09-28 19:00:35 CST): cco now decides HR requests too** — `action.decide_hr_requests` holders are
+finance · cfo · cco (§3i). Self-approval rules apply to cco as to every approver.
 
 ### The two checks, side by side (Q10 — Option A)
 | moment | function | "available" means | refusal |

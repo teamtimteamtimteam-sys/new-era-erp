@@ -130,6 +130,10 @@
 >   MOM:病假服务满 3 个月才有,3–6 个月按月折算。见 `docs/known-issues.md` § LEAVEBAL1-NO-NEW-HIRE-PRORATING。
 > * **⬜ `/me` 只画年假的余额**(LEAVE-BAL-1 Q15)—— 其余有额度的假别(病假、育儿假……)本人在 `/me` 上看不到余额,
 >   只在超额被拒时从那句拒绝里读到"可请 N 天"。`leave_balance` 已经能按假别回答,缺的只是那一块面板。
+> * **⬜ 角色权限的改动不留历史**(来源:LEAVE-BAL-1 收尾,2026-09-28)—— Role permission changes keep no history —
+>   `set_role_permissions` deletes and re-inserts a role's rows, so only `created_at` / `created_by` survive and the previous
+>   code list is lost. Needs a before/after history of role changes.(实例:Tim 2026-09-28 19:00:35 CST 改 `cco`,41 行
+>   全部重写成同一个 `created_at`,改之前那一份码单从库里读不回来。)
 > * **同事的端到端测试排在版本号【之后】,时间由 Tim 定,它【不再】挡版本号。**
 > * ~~Tim 开同事账号~~ —— **删掉:同事的账号已经在了**(EMP-SELF-1 Step 0 实测:sandra@ · chooer@ · phua@ · fusheng@ · vince@
 >   各自绑在自己的员工档案上,`/me` 读得到自己的请假与报销)。

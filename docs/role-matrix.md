@@ -62,18 +62,20 @@ MD = `gm`(Vince,只读)。
 
 ## 5 · 人事与薪资 · HR and payroll
 
-**Sandra(cco)只管 KPI 与绩效评估;其余人事与薪资全部归财务。**
-**Sandra (cco) owns only KPI and performance reviews; all other HR and payroll work is finance's.**
+~~**Sandra(cco)只管 KPI 与绩效评估;其余人事与薪资全部归财务。**~~
+~~**Sandra (cco) owns only KPI and performance reviews; all other HR and payroll work is finance's.**~~
+★ **已不成立(Tim 2026-09-28)**:Tim 2026-09-28 19:00:35 CST 以 admin@ 改了 `cco` 的码,加上 `module.hr.edit` 与 `action.decide_hr_requests`,是他本人所为、有意为之(LEAVE-BAL-1 收尾时读到,以 postgres 读基表 `role_permissions` 复核:cco 41 行,`created_at` 全是 19:00:35,`created_by` = admin@)。**cco 从此也持 `module.hr.edit`,并决定请假与医疗申报。** 划掉而不删 —— 一条撤回的规矩与一条从没写过的规矩,读起来一样。
+★ **No longer true (Tim, 2026-09-28 19:00:35 CST):** Tim, signed in as admin@, added `module.hr.edit` and `action.decide_hr_requests` to `cco`; intended. **cco now also holds `module.hr.edit` and decides leave and medical claims.** Self-approval rules apply to cco as to every other approver: four eyes by person (never its own raise, never its own leave or claim); R2 covers only the CFO.
 
 | 事项 · Action | 谁做 · Does | 谁批 · Approves | 状态 · Status |
 |---|---|---|---|
-| 工资期与算薪、考勤完成与重开、员工档案(月薪除外)· payroll periods and calculation, attendance completion and reopen, employee records other than salary | 财务 · finance | 不批 · none | ✅ done(`module.hr.edit` 从 cco 移到 finance)|
+| 工资期与算薪、考勤完成与重开、员工档案(月薪除外)· payroll periods and calculation, attendance completion and reopen, employee records other than salary | 财务 · finance | 不批 · none | ✅ done(`module.hr.edit` 从 cco 移到 finance)· ★ **cco 2026-09-28 又拿回 `module.hr.edit`**(Tim 以 admin@ 改,有意为之,见本节开头)|
 | 工资过账与撤销 · payroll posting and its reversal | 财务 · finance | CFO | 做:✅ done · 批:✅ done(PAYROLL-APR-1,2026-09-24:过账申请 / 撤销申请 → CFO 批每一张、不分档 → 财务执行;批之前什么都不过账。★ 工资期是公司的单据:主角那条腿对谁都不成立,CFO 批含他自己工资行的一期、留痕说出来;提单人那条按人认。R2 永远不覆盖工资)|
-| 工资、CPF、扣款的付款 · payroll, CPF and deduction payments | 财务 · finance | 不批 · none | ✅ done(cco 不再持 `hr.edit`,这条路只剩 `finance.edit`)· ✅ **只能跟在一次批过的过账后面**(PAYROLL-APR-1:`posted` 只经批过的申请到达;挂着撤销申请时三支付款按名拒 `PAYROLL_REVERSAL_REQUESTED`)|
+| 工资、CPF、扣款的付款 · payroll, CPF and deduction payments | 财务 · finance | 不批 · none | ✅ done(~~cco 不再持 `hr.edit`~~ ★ cco 2026-09-28 又持 `hr.edit`(Tim);这条路只认 `finance.edit`,cco 不持,所以仍只归财务)· ✅ **只能跟在一次批过的过账后面**(PAYROLL-APR-1:`posted` 只经批过的申请到达;挂着撤销申请时三支付款按名拒 `PAYROLL_REVERSAL_REQUESTED`)|
 | 调薪 · salary changes | 只经绩效评估或调薪申请 · only through a performance review or a salary-change request | CFO | 直连写 `employees.monthly_salary` 一律拒:✅ done · 调薪申请:✅ done(APR-9,2026-09-27:财务提、不许给自己提;CFO 批,**CFO 这个人是提单人或主角时 cco 批** —— 与绩效评估同一份判据 `pay_decision_code`;不看审批开关,永远等人批;批准当场改月薪,履历带生效日;一个人一次在途调薪,跨评估)· **绩效评估的侧门关上**(APR-9 Q1:直连只许建草稿,生命周期列只经函数,提交之后调薪与转正结论冻结;评估不许录第一份月薪)· **第一份月薪**:财务录一次(Q7),✅ done |
 | 绩效评估(做)· performance reviews (doing them) | cco | — | ✅ done(`action.hr_reviews`)|
 | 绩效评估(批)· performance reviews (approving) | — | CFO;**CFO 是提交人或主角时 cco 批**(Q5)· CFO; cco when the CFO is the submitter or subject | ✅ done(`action.approve_review` · `review_approval_code`)|
-| 请假与医疗申报(批)· leave and medical claims (deciding) | — | 财务;**CFO 也可以决定任何一张**(Q4)· finance; the CFO may decide any | ✅ done(`action.decide_hr_requests`)|
+| 请假与医疗申报(批)· leave and medical claims (deciding) | — | 财务;**CFO 也可以决定任何一张**(Q4);★ **cco 也决定**(Tim 2026-09-28,见本节开头)—— 按人认的四眼对 cco 与每一个审批人一样:提单人或当事人是自己就不能批;R2 只对 CFO · finance; the CFO may decide any; **cco also decides** (Tim, 2026-09-28) — self-approval rules apply as for every approver | ✅ done(`action.decide_hr_requests`)|
 | 当事人正是审批人时 · when the designated approver is the subject | — | 交给 CFO · goes to the CFO | ✅ done(同上:CFO 持决定码)|
 | Tim 自己的请假 · Tim's own leave | — | Tim 自己批,标记 `self_decided`(R2 扩到请假,只对 CFO)· Tim, flagged | ✅ done |
 | Tim 自己的医疗申报 · Tim's own medical claim | — | R2 不变,标记 · unchanged R2, flagged | ✅ done(CFO 账号从此真的走得到这一步)|
@@ -169,10 +171,10 @@ warehouse (B4 — ✅ ROLE-1 Batch 4a, 2026-09-25: receipt pricing was the last 
 |---|---|---|
 | `action.finance_reopen` | 重开已关的月、年结、重开年度 | cfo |
 | `action.approve_review` | 批准绩效评估(CFO 不是提交人或主角时)| cfo |
-| `action.decide_hr_requests` | 决定请假与医疗申报 | finance · cfo |
+| `action.decide_hr_requests` | 决定请假与医疗申报 | finance · cfo · **cco**(Tim 2026-09-28 19:00:35 CST 以 admin@ 加上,有意为之)|
 | `action.hr_reviews` | KPI 与绩效评估这一块;CFO 是提交人或主角时的批准 | cco |
 | `action.anonymise_employee` | 员工匿名化 | admin |
-| `module.hr.edit`(改义:不再含评估与 KPI)| 其余人事与薪资 | finance(cco 与 admin 已拿掉)|
+| `module.hr.edit`(改义:不再含评估与 KPI)| 其余人事与薪资 | finance · **cco**(原文「cco 与 admin 已拿掉」;★ cco 由 Tim 2026-09-28 19:00:35 CST 以 admin@ 加回,有意为之)|
 | `action.finance_settings` | 科目表、币种、公司资料(含银行资料与标志)、GST 登记与其余财务设置(锁期除外)(Batch 2a)| cfo |
 | `action.customer_credit` | 客户信用限额与冻结(Batch 2a)| cfo |
 | `action.supplier_approve` | 供应商批准、驳回、拉黑、恢复(拉黑后归档)(Batch 2a)| cfo |
