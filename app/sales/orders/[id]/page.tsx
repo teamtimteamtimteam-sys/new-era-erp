@@ -16,8 +16,11 @@ import ShippingReleaseSection from './ShippingReleaseSection'
 import OrderLinesTable, { type OrderLineRow } from './OrderLinesTable'
 import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function SalesOrderPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SalesOrderPage({ params, searchParams }: {
+    params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
+}) {
     const denied = await requireModule(MOD.sales)
     if (denied) return denied
     const { id } = await params
@@ -57,19 +60,17 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
         unitPrice: l.unit_price,
     }))
 
-    // SO-1b:改单史与事件史【同表】—— 多取三列,因为一行 line_update 的全部内容
-    // 就是 "12 → 10" 与那句理由;只印 change_type 等于把留痕做成一个空标签。
+    // AUDIT-TRAIL-1b-2(Q26):"历史"那一段换成了页底的审计记录;这一句查询【留着,收窄】——
+    //   它仍喂两件事:下面的"签发之后又改过"(最新一次改单的时刻)与"From quote"那条链接(converted_from_quote 的 detail)。
+    //   所以只取这两件事要的那几种、那三列。
+    const AMEND_TYPES = ['header_update', 'line_update', 'line_add', 'line_remove']
     const history = mustRows(
         await supabase.from('sales_order_history')
-            .select('change_type, detail, changed_at, line_no, old_quantity, new_quantity, old_unit_price, new_unit_price, amend_reason')
+            .select('change_type, detail, changed_at')
             .eq('sales_order_id', id)
+            .in('change_type', [...AMEND_TYPES, 'converted_from_quote'])
             .order('changed_at', { ascending: false }),
-        'sales_order_history') as {
-            change_type: string; detail: string | null; changed_at: string
-            line_no: number | null
-            old_quantity: number | null; new_quantity: number | null
-            old_unit_price: number | null; new_unit_price: number | null
-            amend_reason: string | null }[]
+        'sales_order_history') as { change_type: string; detail: string | null; changed_at: string }[]
 
     const issues = mustRows(
         await supabase.from('so_issues').select('version, file_path, sha256, issued_at')
@@ -83,8 +84,7 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
     //
     // 判据是【最新一次改动 vs 最新一版签发档】,不是一个"脏了"的标志位。
     // 标志位要有人去清,而没有人会记得清它;两个时间戳一比,答案永远是当下的真相。
-    // 【只数改单那四种】—— 预留、开票、发货都不改客户手里那张纸上的字。
-    const AMEND_TYPES = ['header_update', 'line_update', 'line_add', 'line_remove']
+    // 【只数改单那四种】—— 预留、开票、发货都不改客户手里那张纸上的字(AMEND_TYPES 在上面那句查询旁边)。
     const lastAmendAt = history.find((h) => AMEND_TYPES.includes(h.change_type))?.changed_at ?? null
     const lastIssueAt = issues.length > 0 ? issues[0].issued_at : null
     const amendedSinceIssue =
@@ -265,29 +265,9 @@ export default async function SalesOrderPage({ params }: { params: Promise<{ id:
                     </ul>
                 )}
 
-                <h2 className="mt-8 mb-2">{t('sales.history')}</h2>
-                <ul className="text-sm space-y-1">
-                    {history.map((h, i) => {
-                        // SO-1b:改动的内容【印出来】—— 一行 line_update 的全部意义
-                        // 就是 "12 → 10";只印类型名等于把留痕做成一个空标签。
-                        const moves: string[] = []
-                        if (h.old_quantity !== null || h.new_quantity !== null)
-                            moves.push(`${h.old_quantity ?? '—'} → ${h.new_quantity ?? '—'}`)
-                        if (h.old_unit_price !== null || h.new_unit_price !== null)
-                            moves.push(`@ ${h.old_unit_price ?? '—'} → ${h.new_unit_price ?? '—'}`)
-                        return (
-                            <li key={i} className="text-[color:var(--brand-muted-text)]">
-                                {formatAuditStamp(h.changed_at)}
-                                {/* 动态前缀,后缀集合接 sales_order_history 的 CHECK(check-i18n 的清单) */}
-                                {' · '}{t('sales.changeType.' + h.change_type)}
-                                {h.line_no !== null ? ` · #${h.line_no}` : ''}
-                                {moves.length > 0 ? ` · ${moves.join(' ')}` : ''}
-                                {h.detail ? ` · ${h.detail}` : ''}
-                                {h.amend_reason ? ` · ${h.amend_reason}` : ''}
-                            </li>
-                        )
-                    })}
-                </ul>
+                {/* AUDIT-TRAIL-1b-2(Q26):原来这里是一段"历史"(sales_order_history 的每一行:时刻 · 类型 · 第几行 ·
+                    数量与单价的前后 · detail · 理由)。统一的审计记录在页底取代它 —— 那几行一行不少地在里面,外加谁做的。 */}
+                <AuditTrail subject="sales_order" id={o.id} show={trailCount((await searchParams).trail)} />
             </div>
         </>
     )

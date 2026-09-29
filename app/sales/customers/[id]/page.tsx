@@ -37,6 +37,7 @@ import { MOD } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 type CreditRow = {
     customer_id: string
@@ -84,8 +85,10 @@ type OpenItem = {
 
 export default async function CustomerStatusPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string }>
 }) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。
@@ -338,6 +341,10 @@ export default async function CustomerStatusPage({
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
                 <ContactsPanel permissionCode="module.customers.edit" customerId={id} rows={contacts} canEdit={canEditCustomer} />
             </section>
+
+            {/* AUDIT-TRAIL-1b-2:客户的审计记录 —— 主数据、联系人、附件、信用;对账单与催收只给财务读,
+                读不了的人那几行是 Restricted(Q4),不是消失 */}
+            <AuditTrail subject="customer" id={cust.id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

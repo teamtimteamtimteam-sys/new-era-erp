@@ -6525,13 +6525,22 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
       状态说明是条目里的灰字;两张旧视图留着不读);工单(替掉修改史)· 盘点(22/09 之前的过账用那一戳,Q11)· 设备清单与设备页
       (Q10 · Q22)· 交接班页(Q23)· `/inventory` 的申请那一块(Q12:仓库申请的读规则对齐、金额按 `data.view_prices` 遮);
       注销的批次与回滚的加工单只读打开、带横幅(Q21)。交回 `docs/handbacks/AUDIT-TRAIL-1b-1.md`。
-    * **⬜ AT-1b-2 · 商务** —— 报价 · 销售订单 · 发货单(M1:`module.sales.view` 或 `action.ship_goods`)· 客户(含信用、联系人、
-      对账单、催收)· 佣金协议 · 供应商(审核、启用、暂停、存档、合规、附件)· 集装箱(里程碑、文件)· 货代(M3:根表 suppliers 的
-      读规则是 suppliers.view,页面给 logistics.view)· 港口与航线 · 公司执照(Q2:只有 `/edit` 的记录把审计记录放在 `/edit` 页底;
-      只有清单页的港口、航线、执照按行展开)。登记表各行、成员、"之前"的来源与去重都已在 Step 0 的 §a 里列出。
+    * **✅ AT-1b-2(2026-09-30)· 商务** —— 报价 · 销售订单(两段"History"换成页底的审计记录,Q26;订单页那一句事件史查询留着、
+      收窄,仍喂"签发之后又改过"与"From quote")· 发货单(M1:`module.sales.view` 或 `action.ship_goods`,线上那一位读者是仓库的账号)·
+      客户(信用、联系人、附件、对账单与催收 —— 后几样只给财务,别人看是 Restricted)· 佣金协议 · 供应商(送审、批准、状态、合规、
+      附件、联系人)· 集装箱(里程碑、拆箱理由、单据清单)· 货代(M3)· 航段与港口、公司执照(只有清单页,页底一块合起来的记录,
+      `ListTrail`)。Step 0 点名、住在 1b-2 表上的四个错标签当场改了(联系人名字 "File" → Name · 集装箱 code "Container number" →
+      Container code · 佣金 valid_to "Valid" → Valid to · 对账单 base_currency "By currency" → Base currency),折进来的
+      `journal_entries.code` → "Journal number"。交回 `docs/handbacks/AUDIT-TRAIL-1b-2.md`;fixture 239。
     * **⬜ AT-1b-3 · 主数据与工具** —— 物料 · 库位(含 Q13:允许的分类改成只改变动的那几条、一次调用)· 金属价格 · 公式与条款申请 ·
       任务(Q3:个人任务也显示;M2:任务那一族的人都是员工 id)· 三个阈值面板(M5 · M6:各看各的那几列)· 删掉的主数据只读打开
       (给 `data.view_deleted`)与 `/settings/deleted` 加上客户 · 供应商 · 物料 · 公式、修好销售订单 / 报价 / 采购单那几条 404 的链接(Q9)。
+      ★ **Step 0 点名、住在 1b-3 表上的错标签,由 1b-3 改(Tim 的裁定,2026-09-29:一个标签归【第一个把它那张表画上页面】的那一刀)**:
+      `task_nodes.task_id` / `task_participants.task_id`(以及同形状的 `task_history.task_id`)"Make this a team task" ·
+      `metal_prices.source` "Choose a source" · `processing_settings.wo_input_overrun_pct` "Wo input overrun %"(同一张表的
+      `wo_output_shortfall_pct` "Wo output shortfall %" 同形状)· `pricing_settings.notes_en` "Notes en"(`notes_zh` 同形状)。
+      生成器里还有同一形状的几处(`kpi_score_rubric.*_en`、`gst_return_boxes.label_en/zh`、`payment_trigger_events.phrase_en`)——
+      它们的表归 AT-1c / AT-1d,到时候一起核。
   * **⬜ AT-1c(`v1.4.33` 的一部分;~~v1.4.35~~)· 财务与合同的页面** —— `docs/surveys/AUDIT-TRAIL-0/ops-finance.md` 的 32 条宿主路由与 `/contracts/[id]`;
     凭证作为"由单据过账"的相关事件在哪些主语上出现(`docs/known-issues.md` 的 `AT1A-RUN-COST-JOURNALS-NOT-ON-TRAIL`)。
   * **⬜ AT-1d(`v1.4.33` 的最后一部分,关闭后才发布 `v1.4.33`;~~v1.4.36~~)· 人事、设置与账号** —— HR 的宿主页与 `/me`;设置页(审批方针、词典、导入);**共用一行的设置面板各看各的字段**

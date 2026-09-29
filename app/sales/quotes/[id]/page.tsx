@@ -26,8 +26,11 @@ import ConvertControl from './ConvertControl'
 import DeclineControl from './DeclineControl'
 import QuoteLinesEditor from './QuoteLinesEditor'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function QuotePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function QuotePage({ params, searchParams }: {
+    params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
+}) {
     const denied = await requireModule(MOD.sales)
     if (denied) return denied
 
@@ -62,11 +65,6 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
         await supabase.from('qt_issues').select('version, sha256, issued_at')
             .eq('quote_id', id).order('version', { ascending: false }),
         'qt_issues') as { version: number; sha256: string; issued_at: string }[]
-
-    const history = mustRows(
-        await supabase.from('quote_history').select('change_type, detail, changed_at')
-            .eq('quote_id', id).order('changed_at', { ascending: false }),
-        'quote_history') as { change_type: string; detail: string | null; changed_at: string }[]
 
     const materials = mustRows(
         await supabase.from('materials').select('id, code, name')
@@ -254,17 +252,10 @@ export default async function QuotePage({ params }: { params: Promise<{ id: stri
                     </ul>
                 )}
 
-                <h2 className="mt-8 mb-2">{t('sales.history')}</h2>
-                <ul className="text-sm space-y-1">
-                    {history.map((h, i) => (
-                        <li key={i} className="text-[color:var(--brand-muted-text)]">
-                            {formatAuditStamp(h.changed_at)}
-                            {/* 动态前缀,后缀集合接 quote_history 的 CHECK(check-i18n 的清单) */}
-                            {' · '}{t('quotes.changeType.' + h.change_type)}
-                            {h.detail ? ` · ${h.detail}` : ''}
-                        </li>
-                    ))}
-                </ul>
+                {/* AUDIT-TRAIL-1b-2(Q26):原来这里是一段"历史"(quote_history 的每一行:时刻 · 类型 · detail)。
+                    统一的审计记录在页底取代它 —— 那几行一行不少地在里面(建单、签发、谢绝、转成订单,记录开始之前的那一段),
+                    外加它从来没有的:谁做的、明细怎么改的。 */}
+                <AuditTrail subject="quote" id={q.quote_id} show={trailCount((await searchParams).trail)} />
             </div>
         </>
     )

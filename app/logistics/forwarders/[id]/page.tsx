@@ -16,8 +16,11 @@ import { formatAmount } from '@/lib/format'
 import ForwarderPanels from './ForwarderPanels'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function ForwarderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ForwarderDetailPage({ params, searchParams }: {
+    params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
+}) {
     const locale = await getLocale()
     const denied = await requireModule(MOD.logistics)
     if (denied) return denied
@@ -237,6 +240,11 @@ export default async function ForwarderDetailPage({ params }: { params: Promise<
                     </div>
                 )}
             </section>
+
+            {/* AUDIT-TRAIL-1b-2(M3):货代在账上是一行 suppliers,那张表只给 module.suppliers.view 读,而这一页的门是
+                module.logistics.view。主语登记成"页面的码就是门":物流的人读得到物流属性与报价的改动,
+                供应商那一行自己的改动对他是 Restricted(与上面国别 / 付款条件那一格同一个答案)。 */}
+            <AuditTrail subject="forwarder" id={id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

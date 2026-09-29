@@ -40,8 +40,10 @@ import { can } from '@/lib/permissions'
 import { mustRows } from '@/lib/db-helpers'
 import { ListPage } from '@/app/components/ui/list-page'
 import LicencePanel, { type LicenceRow, type CertType } from './LicencePanel'
+import ListTrail from '@/app/components/trail/ListTrail'
+import { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function CompanyLicencesPage() {
+export default async function CompanyLicencesPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.purchasing)
     if (denied) return denied
@@ -73,9 +75,19 @@ export default async function CompanyLicencesPage() {
             .select('code, name_en, name_zh').order('sort_order'),
         'certificate_types') as CertType[]
 
+    // AUDIT-TRAIL-1b-2:执照没有详情页 —— 页底一块合起来的审计记录,每一张执照各读一次(删掉的也读:
+    //   "被删掉了"正是审计记录要说的事)。这一块只在持 module.suppliers.view 的这一支里 —— 与这张表的读规则同一个码。
+    const allLicences = mustRows(
+        await supabase.from('company_compliance').select('id, cert_type_code, cert_no').order('created_at'),
+        'company_compliance (audit trail)') as { id: string; cert_type_code: string; cert_no: string | null }[]
+    const certName = new Map(certTypes.map((c) => [c.code, c.name_en]))
+    const trailRecords = allLicences.map((l) => ({ subject: 'company_licence' as const, id: l.id,
+        label: [certName.get(l.cert_type_code) ?? null, l.cert_no].filter(Boolean).join(' · ') }))
+
     return (
         <ListPage title={t('company.licence.title')} state={{ kind: 'ok' }}>
             <LicencePanel rows={licences} certTypes={certTypes} canEdit={canEditLicences} />
+            <ListTrail records={trailRecords} intro="listTrail.intro.licences" show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

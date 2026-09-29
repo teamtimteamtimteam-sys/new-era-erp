@@ -203,13 +203,16 @@ const OVERRIDES = {
         output_date: 'Output date', awaiting_operation_type_code: 'Awaiting operation' },
     inventory_movements: { qty_delta: 'Quantity change' },
     invoice_lines: { unit: 'Unit', line_no: 'Line' },
-    journal_entries: { entry_date: 'Entry date', reversed_by: 'Reversed by' },
+    // AUDIT-TRAIL-1b-2(Tim 的裁定,折进 1b-2):code 此前生成成 "Journal entrie number",1b-1 的交回把它列成了对的
+    journal_entries: { entry_date: 'Entry date', reversed_by: 'Reversed by', code: 'Journal number' },
     payment_allocations: { allocated_base: 'Allocated (base currency)', allocated_ccy: 'Allocated', allocated_pay: 'Allocated (payment currency)',
         withheld_base: 'Withheld (base currency)', withheld_pay: 'Withheld (payment currency)', freight_document_id: 'Freight document' },
     prepayment_applications: { purchase_order_id: 'Purchase order', journal_entry_id: 'Journal' },
     receipt_price_requests: { assay_result_id: 'Assay', label: 'Request', unit_price_ccy: 'Unit price', result_journal_entry_id: 'Journal',
         snapshot: 'Request details' },
-    sales_order_history: { amend_reason: 'Reason' },
+    // AUDIT-TRAIL-1b-2 加了 line_no / detail —— 写在这同一行里:一个对象字面量里同一张表写两次,后一次整个盖掉前一次
+    //   (1b-2 第一版就是这么把这里的 amend_reason 弄丢的,生成物里一度读回 "Amend reason")
+    sales_order_history: { amend_reason: 'Reason', line_no: 'Line', detail: 'Details' },
     sales_order_reservations: { release_reason: 'Release reason' },
     sales_records: { cogs_entry_id: 'Cost-of-sales journal', customer_id: 'Customer', price_provenance: 'How the price was set' },
     sales_settlements: { amount_usd: 'Amount (USD)', gross_weight_kg: 'Gross weight (kg)', settlement_weight_kg: 'Settlement weight (kg)' },
@@ -220,6 +223,58 @@ const OVERRIDES = {
     warehouse_requests: { cod_id: 'Certificate of destruction', run_id: 'Processing run', label: 'Request', executed_at: 'Carried out on',
         snapshot: 'Request details' },
     work_order_history: { amend_reason: 'Reason' },
+    // ── AUDIT-TRAIL-1b-2:报价 · 订单 · 发货 · 客户 · 佣金 · 供应商 · 物流的表(每一列对着它所在的那一页核过 ——
+    //    编辑它的那张表单的标签优先,详情页上的列头其次;生成的说法错了、读不顺、或是 Title Case 的才写在这里。
+    //    Step 0 §f 点名的几个在这一段:联系人的名字被配成 "File"、集装箱的 code 与 container_number 都叫
+    //    "Container number"、佣金的 valid_to 叫 "Valid"、对账单的 base_currency 叫 "By currency")────────────────
+    quotes: { quote_date: 'Quotation date', decline_reason: 'Reason declined', delete_reason: 'Reason for deletion',
+        converted_order_id: 'Converted to' },
+    quote_lines: { line_no: 'Line', price_provenance: 'How the price was set' },
+    quote_history: { detail: 'Details', change_type: 'Event' },
+    sales_orders: { delete_reason: 'Reason for deletion' },
+    sales_order_lines: { line_no: 'Line', price_provenance: 'How the price was set' },
+    shipping_releases: { label: 'Release', amount_base: 'Invoiced amount', decision_notes: 'Decision notes' },
+    shipping_release_lines: { release_id: 'Shipping release', invoice_line_id: 'Invoice line' },
+    shipments: { ship_date: 'Shipped on' },
+    customers: { legal_name: 'Legal name', short_name: 'Short name', country: 'Country', payment_terms: 'Payment terms',
+        credit_rating: 'Credit rating', credit_hold: 'Credit hold' },
+    counterparty_contacts: { name: 'Name', is_primary: 'Primary contact', name_inferred: 'Name taken from older records',
+        deleted_at: 'Removed on' },
+    customer_attachments: { doc_category: 'Category', file_name: 'File' },
+    supplier_attachments: { doc_category: 'Category', file_name: 'File' },
+    customer_credit_history: { new_credit_limit_base: 'Credit limit', old_credit_limit_base: 'Previous credit limit',
+        new_credit_hold: 'Credit hold', old_credit_hold: 'Previous credit hold' },
+    customer_statements: { base_currency: 'Base currency', by_currency: 'Amounts by currency', buckets: 'Ageing',
+        closing_base: 'Closing balance', opening_base: 'Opening balance', charges_base: 'Charges', credits_base: 'Credits',
+        receipts_base: 'Receipts', lines: 'Statement lines', superseded_reason: 'Reason superseded' },
+    statement_issues: { statement_id: 'Statement' },
+    collection_chases: { base_currency: 'Base currency', net_due_base: 'Net due', owed_buckets: 'Owed by age',
+        reached: 'Reached the customer', summary: 'What was said', superseded_reason: 'Reason corrected',
+        superseded_at: 'Corrected on', superseded_by: 'Corrected by' },
+    collection_chase_documents: { subject_type: 'Document type' },
+    collection_promises: { promised_amount_base: 'Promised amount (base currency)' },
+    commission_agreements: { agent_supplier_id: 'Agent', recognition_trigger: 'Obligation arises', valid_to: 'Valid to',
+        deleted_at: 'Deleted on', remarks: 'Clause / remarks' },
+    suppliers: { legal_name: 'Legal name', short_name: 'Short name', country: 'Country', payment_terms: 'Payment terms',
+        credit_rating: 'Credit rating', deleted_at: 'Deleted on' },
+    supplier_compliance: { cert_no: 'Certificate number', cert_type_code: 'Certificate type', issuing_body: 'Issuing body',
+        valid_from: 'Valid from', valid_until: 'Valid until', document_id: 'Certificate document' },
+    supplier_status_history: { from_status: 'Previous status', to_status: 'New status' },
+    containers: { code: 'Container code', expected_arrival_date: 'Expected arrival', delete_reason: 'Reason for deletion' },
+    container_documents: { document_type: 'Document type' },
+    forwarder_rate_quotes: { supplier_id: 'Forwarder' },
+    forwarder_details: { supplier_id: 'Forwarder' },
+    lanes: { deleted_at: 'Removed on' },
+    lane_document_requirements: { deleted_at: 'Removed on' },
+    ports: { code: 'Port code', name: 'Port name', deleted_at: 'Removed on' },
+    company_compliance: { cert_no: 'Licence number', cert_type_code: 'Licence kind' },
+}
+// AUDIT-TRAIL-1b-2:勘察把几列自由文本认成了"像枚举"(enum_like)—— 页面上它们是一个随手填的输入框,
+//   审计记录就照原样说(一个人敲的字,Q8),而不是去找一张并不存在的取值表。
+const KIND_OVERRIDES = {
+    counterparty_contacts: { role: 'text' },
+    container_documents: { document_type: 'text' },
+    lane_document_requirements: { document_type: 'text' },
 }
 // 三个主语的表里【本来就不该印的列】(Q12:单据编号自己在标题里,内部代码不上屏)
 const HIDE = {
@@ -235,6 +290,16 @@ const HIDE = {
     work_order_history: ['work_order_id', 'change_type', 'changed_at', 'changed_by'],
     sales_order_history: ['sales_order_id', 'change_type', 'changed_at', 'changed_by'],
     cod_issues: ['sha256'], traceability_report_issues: ['sha256'], finance_attachments: ['mime_type'],
+    // AUDIT-TRAIL-1b-2:报价与订单的单号在页头(它们的事件不拿单号做标题);签发档的散列不是人话;
+    //   附件的 MIME 类型(application/pdf)是机器字,文件名已经说了它是什么。
+    //   ★ 发货单、对账单、催收的单号【不】藏:它们的事件标题里要说出是哪一张("Goods shipped · SHP-…"),
+    //     藏起来的列样本里是一个 id,机器字检查当场抓到过(本刀第一版)。
+    quotes: ['code'], sales_orders: ['code'],
+    qt_issues: ['sha256'], so_issues: ['sha256'], shipment_issues: ['sha256'], statement_issues: ['sha256'],
+    customer_attachments: ['file_type'], supplier_attachments: ['file_type'],
+    quote_history: ['quote_id', 'change_type', 'changed_at', 'changed_by'],
+    customer_credit_history: ['customer_id', 'changed_at', 'changed_by'],
+    supplier_status_history: ['supplier_id', 'changed_at', 'changed_by'],
 }
 
 // ── 记录类型的英文名(单数)与区域 ─────────────────────────────────────────────
@@ -264,6 +329,17 @@ const TABLE_NAMES = {
     shift_handovers: 'shift handover', shift_handover_items: 'handover item', shift_handover_equipment_refs: 'handover downtime note',
     stocktake_counts: 'stocktake count', work_order_history: 'work order change', sales_order_history: 'sales order change',
     sales_attribution_log: 'sale attribution', sales_record_movements: 'sale stock movement',
+    // AUDIT-TRAIL-1b-2
+    quote_history: 'quote event', quote_lines: 'quote line', qt_issues: 'quote PDF issue', so_issues: 'sales order PDF issue',
+    shipments: 'shipment', shipment_lines: 'shipment line', shipment_issues: 'delivery note issue',
+    shipping_releases: 'shipping release', shipping_release_lines: 'shipping release line',
+    counterparty_contacts: 'contact', customer_attachments: 'customer attachment', customer_credit_history: 'credit change',
+    customer_statements: 'statement of account', statement_issues: 'statement PDF issue', collection_chases: 'payment chase',
+    collection_chase_documents: 'chased document', collection_promises: 'payment promise', commission_agreements: 'commission agreement',
+    supplier_compliance: 'compliance certificate', supplier_attachments: 'supplier attachment', supplier_status_history: 'supplier status change',
+    containers: 'container', container_milestones: 'container milestone', container_documents: 'container document',
+    forwarder_details: 'forwarder logistics details', forwarder_rate_quotes: 'rate quote', lanes: 'lane',
+    lane_document_requirements: 'required lane document', ports: 'port', company_compliance: 'company licence',
 }
 // 区域:按表名开头认(先长后短),认不出的归 Other。区域名与导航模块的英文说法一致。
 const AREA_RULES = [
@@ -343,6 +419,31 @@ const ENUM_OVERRIDES = {
     'sales_settlements#settling_party_used': { ours: 'Our assay', counterparty: "Counterparty's assay", umpire: 'Umpire assay' },
     'sales_settlements#weight_basis_used': { as_received: 'As received', dry: 'Dry' },
     'stocktakes#status': { open: 'Open', posted: 'Posted', cancelled: 'Cancelled' },
+    // ── AUDIT-TRAIL-1b-2 ──────────────────────────────────────────────────────────────────────────────
+    'quotes#status': { draft: 'Draft', issued: 'Issued', declined: 'Declined', converted: 'Converted to an order' },
+    'quote_history#change_type': { created: 'Created', issued: 'Issued', declined: 'Declined', converted: 'Converted to an order' },
+    'sales_orders#status': { draft: 'Draft', confirmed: 'Confirmed', partially_shipped: 'Partially shipped', shipped: 'Shipped',
+        closed: 'Closed', cancelled: 'Cancelled' },
+    'quote_lines#price_source': { computed: 'Calculated', manual: 'Entered by hand' },
+    'sales_order_lines#price_source': { computed: 'Calculated', manual: 'Entered by hand' },
+    'shipping_releases#status': { submitted: 'Waiting for approval', approved: 'Approved', rejected: 'Rejected', withdrawn: 'Withdrawn' },
+    'customers#status': { draft: 'Draft', active: 'Active', inactive: 'Inactive' },
+    'customers#customer_types': { cathode_maker: 'Cathode material maker', battery_factory: 'Battery factory', trader: 'Trader', other: 'Other' },
+    'suppliers#supplier_types': { dismantler: 'Dismantler', battery_factory_scrap: 'Battery plant scrap', recycler: 'Recycler',
+        trader: 'Trader', equipment_vendor: 'Equipment vendor' },
+    'suppliers#status': { draft: 'Draft', pending_review: 'Pending review', approved: 'Approved', rejected: 'Rejected', active: 'Active',
+        suspended: 'Suspended', blacklisted: 'Blacklisted', archived: 'Archived' },
+    'supplier_status_history#from_status': { draft: 'Draft', pending_review: 'Pending review', approved: 'Approved', rejected: 'Rejected',
+        active: 'Active', suspended: 'Suspended', blacklisted: 'Blacklisted', archived: 'Archived' },
+    'supplier_status_history#to_status': { draft: 'Draft', pending_review: 'Pending review', approved: 'Approved', rejected: 'Rejected',
+        active: 'Active', suspended: 'Suspended', blacklisted: 'Blacklisted', archived: 'Archived' },
+    'suppliers#counterparty_type': { goods_supplier: 'Goods supplier', forwarder: 'Forwarder / carrier', service_vendor: 'Service vendor' },
+    'suppliers#tax_residence': { resident: 'Singapore tax resident', non_resident: 'Non-resident' },
+    'customer_attachments#doc_category': { 'hazardous-waste-permit': 'Hazardous waste permit', 'import-license': 'Import licence',
+        'export-license': 'Export licence', 'basel-document': 'Basel document', contract: 'Contract', other: 'Other' },
+    'supplier_attachments#doc_category': { 'hazardous-waste-permit': 'Hazardous waste permit', 'import-license': 'Import licence',
+        'export-license': 'Export licence', 'basel-document': 'Basel document', contract: 'Contract', other: 'Other' },
+    'container_documents#status': { pending: 'Pending', received: 'Received', not_applicable: 'Not applicable' },
     'work_order_history#change_type': { created: 'Created', released: 'Released', closed: 'Closed', cancelled: 'Cancelled',
         header_update: 'Details changed', line_add: 'Input line added', line_update: 'Input line changed', line_remove: 'Input line removed',
         expected_add: 'Expected output added', expected_update: 'Expected output changed', expected_remove: 'Expected output removed' },
@@ -393,7 +494,7 @@ async function main() {
     for (const r of rows) {
         const t = r.table, c = r.column
         tables[t] ??= [humanTable(t), areaOf(t)]
-        let kind = r.kind
+        let kind = KIND_OVERRIDES[t]?.[c] ?? r.kind
         if ((HIDE[t] ?? []).includes(c)) kind = 'technical'
         let label = OVERRIDES[t]?.[c]
         if (!label) {

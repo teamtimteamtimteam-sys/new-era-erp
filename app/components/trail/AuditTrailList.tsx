@@ -47,7 +47,8 @@ function ValueText({ v }: { v: Val }) {
 function LineRow({ line }: { line: Line }) {
     switch (line.t) {
         case 'heading':
-            return <li className="mt-1 font-medium">{line.text}</li>
+            // AUDIT-TRAIL-1b-2:小标题后面可以跟一段人敲的字(文件名、联系人名字……)—— 与值里人敲的字同一种画法
+            return <li className="mt-1 font-medium break-words">{line.text}{line.part && <> · <ValueText v={line.part} /></>}</li>
         case 'note':
             return <li className="text-[color:var(--brand-muted-text)]">{line.text}</li>
         case 'value':
@@ -73,7 +74,7 @@ function LineRow({ line }: { line: Line }) {
 function EntryTitle({ e }: { e: ViewEntry }) {
     return (
         <p className="font-medium break-words">
-            {e.titleRestricted ? <Refusal>{TRAIL_TEXT.restricted}</Refusal> : e.title}
+            {e.titleRestricted ? <Refusal>{TRAIL_TEXT.restricted}</Refusal> : <>{e.title}{e.titlePart && <> · <ValueText v={e.titlePart} /></>}</>}
         </p>
     )
 }

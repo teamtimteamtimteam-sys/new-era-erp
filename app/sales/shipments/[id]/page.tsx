@@ -27,11 +27,14 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import ShipmentLinesTable, { type ShipmentLineRow } from './ShipmentLinesTable'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { can } from '@/lib/permissions'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 export default async function ShipmentDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     // ★ APR-5b(5b grilling Q7):发货的人读得到他发的货 —— module.sales.view 或 action.ship_goods
@@ -220,6 +223,9 @@ export default async function ShipmentDetailPage({
                     ))}
                 </ul>
             )}
+            {/* AUDIT-TRAIL-1b-2:页底的审计记录。M1 —— 这一页认 module.sales.view 或 action.ship_goods 两个码之一
+                (上面那两句守卫),审计记录的主语登记的是同一对码,所以发货的人读得到他发的货的记录。 */}
+            <AuditTrail subject="shipment" id={head.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

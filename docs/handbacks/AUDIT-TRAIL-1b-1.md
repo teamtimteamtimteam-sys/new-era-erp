@@ -220,9 +220,13 @@ Each is also recorded where it lives in the code.
     warehouse request's decision): the approval becomes a line under that event rather than a second heading (Q11 for stocktakes).
 13. **A count and its stocktake line written together read once** (the count wins); a certificate of destruction created when a batch
     is fully processed reads "prepared — not issued yet", and "issued" only when it is.
-14. **Label overrides** for 60 of the 385 columns (the generated label was wrong or read badly — e.g. a downtime's reason had been "On
+14. **Label overrides** for ~~60~~ **91** of the 385 columns (the generated label was wrong or read badly — e.g. a downtime's reason had been "On
     kilograms", a service description "Say what was done.", an invoice line's unit "Unit price", a certificate "Codes"); the batch, work
     order and stocktake codes are hidden from field lists (they are in the title and the page header).
+    **Corrected in AUDIT-TRAIL-1b-2 (Tim's ruling, 2026-09-29):** the count is **91**, measured as the column entries in the 1b-1 block
+    of `OVERRIDES` in `scripts/gen-trail-catalogue.mjs` (a regex count of `column: 'label'` pairs between the 1b-1 comment and the next
+    block). "60" was not measured. One mis-generated label was missed: `journal_entries.code` ("Journal entrie number") — see the
+    label table below.
 
 **Pages**
 15. **Q21 read-only is a `<fieldset disabled>` around everything below the page title** (links stay usable: print, label, other records);
@@ -546,7 +550,7 @@ The trail prints only these sentences (plus values and names). Values in {braces
 | invoice line | tax_rate_pct | Tax rate % |
 | invoice line | unit | Unit |
 | invoice line | unit_price | Unit price |
-| journal entry | code | Journal entrie number |
+| journal entry | code | ~~Journal entrie number~~ **Journal number** — corrected in AUDIT-TRAIL-1b-2 (Tim's ruling, 2026-09-29): 1b-1 listed the mis-generated label here as correct |
 | journal entry | entry_date | Entry date |
 | journal entry | memo | Memo |
 | journal entry | reversed_by | Reversed by |

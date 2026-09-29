@@ -21,6 +21,8 @@ import AuditTrailList, { OlderEntriesLink } from './AuditTrailList'
 
 export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbound_batch' | 'output_batch' | 'work_order'
     | 'stocktake' | 'equipment' | 'shift_handover' | 'warehouse_request'
+    | 'quote' | 'sales_order' | 'shipment' | 'customer' | 'commission_agreement' | 'supplier' | 'container' | 'forwarder'
+    | 'lane' | 'port' | 'company_licence'
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
@@ -34,9 +36,21 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     equipment: 'fixed_assets',
     shift_handover: 'shift_handovers',
     warehouse_request: 'warehouse_requests',
+    // AUDIT-TRAIL-1b-2
+    quote: 'quotes',
+    sales_order: 'sales_orders',
+    shipment: 'shipments',
+    customer: 'customers',
+    commission_agreement: 'commission_agreements',
+    supplier: 'suppliers',
+    container: 'containers',
+    forwarder: 'suppliers',
+    lane: 'lanes',
+    port: 'ports',
+    company_licence: 'company_compliance',
 }
 
-const PAGE = 20
+export const PAGE = 20
 
 /** 页面把 searchParams.trail 交进来;不合法的一律当 20 */
 export function trailCount(raw: string | string[] | undefined): number {

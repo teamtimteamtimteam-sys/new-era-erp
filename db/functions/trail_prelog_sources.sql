@@ -109,6 +109,63 @@ AS $function$
         ('shift_handovers',                'created', 'created_at',   'created_by',   NULL, 'account'),
         ('shift_handovers',                'stamp',   'acknowledged_at', 'acknowledged_by', NULL, 'employee'),
         ('shift_handover_items',           'created', 'created_at',   'created_by',   NULL, 'account'),
-        ('shift_handover_equipment_refs',  'created', 'created_at',   'created_by',   NULL, 'account')
+        ('shift_handover_equipment_refs',  'created', 'created_at',   'created_by',   NULL, 'account'),
+        -- ── AUDIT-TRAIL-1b-2 · 商务 ────────────────────────────────────────────────────────────────────
+        -- 报价 / 订单:单据的建单那一刻【与】它事件史的 created 行都登记 —— 两者是同一笔事务写的(实测 created_at =
+        --   changed_at,逐条),于是归成一条,界面把两者并成一句(lib/trail/render.ts);没有事件史的那两张测试订单
+        --   (ZZ2B-SO1/2)因此也有一条"建单"。签发档(qt_issues · so_issues)【不登记】:事件史的 issued 已经记着(Step 0
+        --   §a,Tim 的裁定)。订单的 confirmed / closed / cancelled 戳【不登记】:事件史里都有。
+        --   预留的三个戳(建 · 放回 · 用掉)1b-1 已为批次页登记;在订单页上它们与事件史的 reserved / released / shipped
+        --   是同一笔事务、同一时刻(实测),归成一条,界面并成一句。
+        ('quotes',                         'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('quote_lines',                    'created', 'created_at',   NULL,           NULL, 'account'),
+        ('quote_history',                  'created', 'changed_at',   'changed_by',   NULL, 'account'),
+        ('sales_orders',                   'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('sales_order_lines',              'created', 'created_at',   NULL,           NULL, 'account'),
+        ('shipping_releases',              'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('shipping_releases',              'stamp',   'withdrawn_at', 'withdrawn_by', ARRAY['status', 'withdraw_reason'], 'account'),
+        ('shipping_release_lines',         'created', 'created_at',   NULL,           NULL, 'account'),
+        ('shipments',                      'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('shipment_issues',                'created', 'issued_at',    'issued_by',    NULL, 'account'),
+        ('customers',                      'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('counterparty_contacts',          'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('counterparty_contacts',          'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('customer_attachments',           'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('customer_attachments',           'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('customer_credit_history',        'created', 'changed_at',   'changed_by',   NULL, 'account'),
+        ('customer_statements',            'created', 'issued_at',    'issued_by',    NULL, 'account'),
+        ('customer_statements',            'stamp',   'superseded_at', NULL,          ARRAY['superseded_reason', 'superseded_by'], 'account'),
+        ('statement_issues',               'created', 'issued_at',    'issued_by',    NULL, 'account'),
+        ('collection_chases',              'created', 'created_at',   'chased_by',    NULL, 'account'),
+        ('collection_chases',              'stamp',   'superseded_at', NULL,          ARRAY['superseded_reason', 'superseded_by'], 'account'),
+        ('collection_chase_documents',     'created', 'created_at',   NULL,           NULL, 'account'),
+        ('collection_promises',            'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('collection_promises',            'stamp',   'outcome_recorded_at', 'outcome_recorded_by', ARRAY['outcome', 'outcome_note'], 'account'),
+        ('commission_agreements',          'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('commission_agreements',          'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        -- 供应商:批准那一戳登记 —— supplier_status_history 与 approval_log 的供应商那一支都是 24/09 才有的(ROLE-1 Batch 2a),
+        --   而在那之前批准过的供应商只剩这一戳;之后批准的,同一笔事务里三边同一时刻,归成一条,审批并进状态那一句。
+        ('suppliers',                      'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('suppliers',                      'stamp',   'approved_at',  'approved_by',  NULL, 'account'),
+        ('supplier_compliance',            'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('supplier_compliance',            'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('supplier_attachments',           'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('supplier_attachments',           'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('supplier_status_history',        'created', 'changed_at',   'changed_by',   NULL, 'account'),
+        ('containers',                     'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('container_milestones',           'created', 'recorded_at',  'recorded_by',  NULL, 'account'),
+        ('container_documents',            'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('forwarder_details',              'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('forwarder_rate_quotes',          'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('forwarder_rate_quotes',          'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('lanes',                          'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('lanes',                          'stamp',   'checklist_reviewed_at', NULL,  NULL, 'account'),
+        ('lanes',                          'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('lane_document_requirements',     'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('lane_document_requirements',     'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('ports',                          'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('ports',                          'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('company_compliance',             'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('company_compliance',             'stamp',   'deleted_at',   NULL,           NULL, 'account')
     ) AS p(table_name, kind, at_column, by_column, extra, by_kind);
 $function$;

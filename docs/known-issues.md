@@ -9891,3 +9891,26 @@ Q12 把 `warehouse_requests` 的读规则放宽到与 `/inventory` 一致(`modul
 清单读 `equipment_usage`(加工的人读得到的那一张),而它没有 `category` 这一列(类别只在财务的 `fixed_assets` 上)。于是一台车、
 一台办公电脑的卡也在清单上(线上今天 2 张卡)。**删除条件:** `equipment_usage` 带上类别(一个不含金额的列,可以给加工),清单只列
 `equipment`。
+
+## AT1B2-PRELOG-QUOTE-REISSUE —— 一张报价在记录开始之前的【第二次】签发不在它的审计记录里(AUDIT-TRAIL-1b-2 登记,2026-09-30)
+
+报价的"之前"那一段只登记事件史(`quote_history`),不登记签发档(`qt_issues`)—— Step 0 §a 的裁定:两边都登记,同一次签发会出现两次。
+量到的代价:`quote_history` 的 `issued` 只在报价从草稿变成已签发的那一次写(`record_qt_issue` 在状态是 draft 时才改状态,事件史跟着
+状态走),**重新签发不写**。线上 QT-2026-0001 签发过两版(`qt_issues` 2 行,22:48:13 与 22:48:42),事件史只有一行 `issued`,于是
+它的审计记录在分界线下面只说"version 1"。页面上的 "Issued versions" 一段照旧列出 v1 与 v2(那一段读 `qt_issues`,没动)。
+**变更记录开始之后不受影响**:每一次签发都是一行 `qt_issues` 的 INSERT,事件史没说的那一次审计记录照签发档说(`lib/trail/render.ts`
+的报价 ③)。**删除条件:** 无 —— 线上只有这一例,且都是测试数据;若要补,是给 `record_qt_issue` 在重新签发时也写一行事件史(一次新的裁定)。
+
+## AT1B2-SO-CREATED-BACKFILL-NOTE —— SO-2026-0001 那一行"建单"事件史的补记说明不上屏(AUDIT-TRAIL-1b-2 登记,2026-09-30)
+
+`sales_order_history` 里 SO-2026-0001 的 `created` 行,`detail` 是 SO-2b 迁移写的一句中文补记("【补记 · SO-2b 2026-08-14】建单时这一行被
+RLS 拒……")。原来的"History"一段把它原样印出来;审计记录不印 —— 它是数据库写的中文(Q8:机器写的中文不上屏),而且 `created` 行的
+detail 在其余每一张订单上都只是单号本身。那一条记录照样在(建单的时刻、人、行都在),只是那句补记不在。**删除条件:** 无 —— 刻意的说法。
+
+## AT1B2-QUOTE-PAGE-390-OVERFLOW —— 报价详情页在 390px 上横向多出 8px(AUDIT-TRAIL-1b-2 量到,2026-09-30;早于本刀)
+
+`scripts/survey-phone.mjs --routes=/sales/quotes/[id]`:**+8px 整页溢出**,元凶是明细编辑器加行那一排的物料下拉
+(`select.h-8 rounded-lg border border-input …`,`app/sales/quotes/[id]/QuoteLinesEditor.tsx`)。**不是本刀造成的**:把本页换回
+本刀之前的版本(`git show ac03576f:app/sales/quotes/[id]/page.tsx`)在同一棵树上重量,读数逐字相同(+8px,同一个元凶);本刀在这一页
+只换了页底那一段(History → 审计记录),审计记录那一段自己的溢出是 0。1280px 下没有溢出。**删除条件:** 那一排的容器 `flex-wrap`
+(AGENTS.md「不换行的容器里、内在尺寸由内容决定的原生控件」那一条的解药),量回 0。

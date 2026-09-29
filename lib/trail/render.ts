@@ -51,7 +51,7 @@ export type Val = { text: string; restricted?: boolean; empty?: boolean; typed?:
 export type Line =
     | { t: 'change'; label: string; old: Val; new: Val }
     | { t: 'value'; label: string; value: Val }
-    | { t: 'heading'; text: string }
+    | { t: 'heading'; text: string; part?: Val | null }
     | { t: 'note'; text: string }
 export type Entry = {
     key: string
@@ -59,6 +59,9 @@ export type Entry = {
     atText: string
     who: Val
     title: string
+    /** AUDIT-TRAIL-1b-2:标题后面【一个人敲的】那一段(文件名、联系人名字、单据种类、证书编号)—— 画在 data-trail-typed 里,
+     *  与字段值里人敲的字同一种待遇(Q8:照原样;冒烟的机器字断言不扫它 —— 一个截图文件名里带着日期不是机器字)。 */
+    titlePart: Val | null
     titleRestricted: boolean
     lines: Line[]
     reason: Val | null
@@ -116,7 +119,7 @@ export function isRestricted(v: unknown): boolean {
     return !!v && typeof v === 'object' && !Array.isArray(v) && (v as Record<string, unknown>)['$restricted'] === true
 }
 function isEmpty(v: unknown): boolean {
-    return v === null || v === undefined || (typeof v === 'string' && v.trim() === '')
+    return v === null || v === undefined || (typeof v === 'string' && v.trim() === '') || (Array.isArray(v) && v.length === 0)
 }
 /** 一个认不出的取值 —— 下划线换空格、首字母大写。三个主语的表不许走到这里(完整性检查一臂)。 */
 export function humanize(v: string): string {
@@ -195,7 +198,8 @@ function unitText(d: TrailDict, raw: string): string {
 function unitFor(d: TrailDict, col: string, img: Img, refs: Refs | null, opts: BuildOptions): string | null {
     const own = img['unit'] ?? img[col.replace(/quantity|qty/, 'unit')]
     if (typeof own === 'string' && own) return unitText(d, own)
-    for (const c of ['inbound_batch_id', 'output_batch_id']) {
+    // AUDIT-TRAIL-1b-2:订单 / 报价的明细行没有自己的单位列 —— 单位长在物料上,trail_ref_label 随物料名一起带回
+    for (const c of ['inbound_batch_id', 'output_batch_id', 'material_id']) {
         const v = img[c]
         const u = typeof v === 'string' ? refs?.[c]?.[v]?.unit : null
         if (u) return unitText(d, u)
@@ -297,7 +301,13 @@ export function formatValue(d: TrailDict, table: string, col: string, raw: Json 
         case 'jsonb':
             return jsonVal(d, table, col, v, op, opts)
         case 'array':
-            if (Array.isArray(v)) return truncate(v.filter((x) => typeof x === 'string' || typeof x === 'number').map(String).join(', '), true)
+            if (Array.isArray(v)) {
+                // AUDIT-TRAIL-1b-2:一组代码(客户 / 供应商的类型)有英文说法时逐个说,不印代码;没有说法的是一组人敲的字,照原样
+                const map = d.enums[`${table}#${col}`]
+                const items = v.filter((x) => typeof x === 'string' || typeof x === 'number').map(String)
+                if (map) return truncate(items.map((x) => map[x] ? cap(map[x]) : humanize(x)).join(', '))
+                return truncate(items.join(', '), true)
+            }
             break
     }
     if (typeof v === 'string') return truncate(v, true)
@@ -319,12 +329,39 @@ function changeLines(d: TrailDict, r: TrailRow, opts: BuildOptions, skip: Set<st
     }
     return out
 }
+/** AUDIT-TRAIL-1b-2:一整份影像(建单、新增)按【页面上的先后】列 —— 不按 jsonb 存下来的键序(那是按键长排的,
+ *  于是 "Notes" 总在第一行)。只登记这一刀的主语;没登记的表照旧。备注类永远最后。 */
+const FIELD_ORDER: Record<string, string[]> = {
+    quotes: ['customer_id', 'quote_date', 'valid_until', 'currency', 'fx_rate', 'terms_text', 'notes'],
+    sales_orders: ['customer_id', 'order_date', 'currency', 'fx_rate', 'terms_text', 'notes'],
+    shipments: ['sales_order_id', 'ship_date', 'container_id', 'notes'],
+    customers: ['legal_name', 'short_name', 'country', 'status', 'customer_types', 'tax_id', 'address', 'payment_terms',
+        'payment_terms_days', 'incoterm', 'credit_limit_base', 'credit_hold', 'default_tax_code', 'credit_rating', 'notes'],
+    suppliers: ['legal_name', 'short_name', 'counterparty_type', 'country', 'supplier_types', 'supplies_goods', 'tax_id', 'address',
+        'payment_terms', 'incoterm', 'default_payment_term_template_id', 'default_tax_code', 'tax_residence', 'credit_rating', 'notes'],
+    containers: ['container_number', 'lane_id', 'forwarder_id', 'departure_date', 'expected_arrival_date', 'vessel', 'voyage', 'bl_number', 'notes'],
+    company_compliance: ['status', 'issuing_body', 'issue_date', 'valid_from', 'valid_until', 'approved_storage_limit_tonnes', 'scope', 'notes'],
+    supplier_compliance: ['issuing_body', 'valid_from', 'valid_until', 'document_id', 'notes'],
+    commission_agreements: ['agent_supplier_id', 'side', 'basis', 'rate_pct', 'amount_ccy', 'currency', 'recognition_trigger', 'valid_from', 'valid_to', 'remarks'],
+    forwarder_rate_quotes: ['amount_ccy', 'currency', 'valid_from', 'valid_to', 'free_days', 'notes'],
+    counterparty_contacts: ['role', 'email', 'phone', 'is_primary', 'notes'],
+    customer_statements: ['period_start', 'period_end', 'opening_base', 'charges_base', 'credits_base', 'receipts_base', 'closing_base', 'base_currency'],
+    collection_chases: ['chased_on', 'reached', 'contacted_person', 'owed_base', 'on_account_base', 'net_due_base', 'base_currency'],
+    collection_promises: ['promised_amount_ccy', 'currency', 'promised_date'],
+}
+function ordered(table: string | null, image: Img): [string, Json][] {
+    const entries = Object.entries(image)
+    const order = table ? FIELD_ORDER[table] : undefined
+    if (!order) return entries
+    const rank = (c: string) => { const i = order.indexOf(c); return i >= 0 ? i : /^(notes|remarks|note)$/.test(c) ? 1000 : 500 }
+    return entries.map((e, i) => [e, i] as const).sort((a, b) => rank(a[0][0]) - rank(b[0][0]) || a[1] - b[1]).map(([e]) => e)
+}
 /** 一行整份影像(新增 / 删除)的逐列行:只印有值、该印的列 */
 function valueLines(d: TrailDict, r: TrailRow, image: Img | null, opts: BuildOptions, skip: Set<string> = new Set()): Line[] {
     const out: Line[] = []
     if (!image) return out
     const img = imgOf(r)
-    for (const [c, v] of Object.entries(image)) {
+    for (const [c, v] of ordered(r.table, image)) {
         if (skip.has(c) || isEmpty(v)) continue
         const [label, kind] = fieldMeta(d, r.table!, c)
         if (hiddenKind(kind)) continue
@@ -354,7 +391,7 @@ function typed(v: Json | undefined): Val | null {
 // ════════════════════════════════════════════════════════════════════════════
 // 一条记录里的一块:一个标题 + 几行 + 可能的理由 + 是不是关键事件
 // ════════════════════════════════════════════════════════════════════════════
-type Block = { title: string; lines: Line[]; reason?: Val | null; key: boolean; weight: number }
+type Block = { title: string; part?: Val | null; lines: Line[]; reason?: Val | null; key: boolean; weight: number }
 
 // ── 采购单 ──────────────────────────────────────────────────────────────────
 const PO_TABLES = new Set(['purchase_orders', 'purchase_order_lines', 'purchase_order_payment_terms', 'purchase_order_line_retentions',
@@ -791,12 +828,29 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     equipment: ['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs'],
     shift_handover: ['shift_handovers', 'shift_handover_items', 'shift_handover_equipment_refs'],
     warehouse_request: ['warehouse_requests', 'approval_log'],
+    // AUDIT-TRAIL-1b-2
+    quote: ['quotes', 'quote_lines', 'qt_issues', 'quote_history'],
+    sales_order: ['sales_orders', 'sales_order_lines', 'sales_order_reservations', 'shipping_releases', 'shipping_release_lines',
+        'approval_log', 'so_issues', 'sales_order_history', 'contract_document_terms'],
+    shipment: ['shipments', 'shipment_lines', 'shipment_issues'],
+    customer: ['customers', 'counterparty_contacts', 'customer_attachments', 'customer_credit_history', 'customer_statements',
+        'statement_issues', 'collection_chases', 'collection_chase_documents', 'collection_promises'],
+    commission_agreement: ['commission_agreements'],
+    supplier: ['suppliers', 'supplier_compliance', 'supplier_attachments', 'counterparty_contacts', 'supplier_status_history', 'approval_log'],
+    container: ['containers', 'container_milestones', 'container_documents'],
+    forwarder: ['suppliers', 'forwarder_details', 'forwarder_rate_quotes'],
+    lane: ['lanes', 'lane_document_requirements'],
+    port: ['ports', 'lanes'],
+    company_licence: ['company_compliance'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
+    | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
+    quote: 'quote', sales_order: 'so', shipment: 'shipment', customer: 'customer', commission_agreement: 'commission',
+    supplier: 'supplier', forwarder: 'supplier', container: 'container', lane: 'lane', port: 'lane', company_licence: 'licence',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -817,6 +871,11 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     const t = r.table
     if (!t) return null
     if ((subject === 'inbound_batch' || subject === 'output_batch') && BATCH_VIEW_OF_RUN.has(t)) return 'batch'
+    // AUDIT-TRAIL-1b-2:预留、合同条款在订单页上从订单这一边说;发货单明细在发货单页上从发货单这一边说
+    //   (在批次页、采购单页、汇总页上仍照 1b-1 的说法)
+    if (subject === 'sales_order' && (t === 'sales_order_reservations' || t === 'contract_document_terms')) return 'so'
+    if (subject === 'shipment' && t === 'shipment_lines') return 'shipment'
+    if (t === 'counterparty_contacts') return subject === 'supplier' || (!subject && !imgOf(r)['customer_id']) ? 'supplier' : 'customer'
     if (t === 'approval_log') return str(r, 'subject_type') === 'purchase_order' ? 'po' : 'approval'
     if (PO_TABLES.has(t)) return 'po'
     if (RUN_TABLES.has(t)) return 'run'
@@ -829,7 +888,15 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (HO_TABLES.has(t)) return 'handover'
     if (t === 'warehouse_requests') return 'wr'
     if (t === 'journal_entries') return 'journal'
-    if (t === 'sales_order_history') return 'so'
+    if (SO_TABLES.has(t)) return 'so'
+    if (QUOTE_TABLES.has(t)) return 'quote'
+    if (t === 'shipments' || t === 'shipment_issues') return 'shipment'
+    if (CUSTOMER_TABLES.has(t)) return 'customer'
+    if (t === 'commission_agreements') return 'commission'
+    if (SUPPLIER_TABLES.has(t)) return 'supplier'
+    if (CONTAINER_TABLES.has(t)) return 'container'
+    if (LANE_TABLES.has(t)) return 'lane'
+    if (t === 'company_compliance') return 'licence'
     return null
 }
 
@@ -913,7 +980,8 @@ function netReplace(rows: TrailRow[]): TrailRow[] {
     return out
 }
 
-type Block2 = Block & { recordId?: string; approvalFor?: string }
+/** absorbsApproval:这一块自己已经说出了那一步(供应商的"送审 / 批准 / 驳回"),同一笔里的审批留痕并进来时不再另起一行说明 */
+type Block2 = Block & { recordId?: string; approvalFor?: string; absorbsApproval?: boolean }
 
 // ── 审批(任何一种单据)──────────────────────────────────────────────────────
 function approvalThing(d: TrailDict, subjectType: string): string {
@@ -1147,9 +1215,10 @@ function describeBatch(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, subj
         }
     }
     for (const r of by('finance_attachments')) {
-        const name = str(r, 'file_name')
-        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'batch.attachmentAdded'), name), lines: [], key: false, weight: 30 })
-        else if (r.op === 'DELETE' || isSet(r, 'deleted_at')) out.push({ title: withPart(tx(d, 'batch.attachmentRemoved'), name), lines: [], key: false, weight: 30 })
+        // AUDIT-TRAIL-1b-2:文件名是一个人敲的字 —— 标题后面 typed 的那一段,不拼进标题(与客户 / 供应商附件同一条)
+        const part = typed(str(r, 'file_name'))
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'batch.attachmentAdded'), part, lines: [], key: false, weight: 30 })
+        else if (r.op === 'DELETE' || isSet(r, 'deleted_at')) out.push({ title: tx(d, 'batch.attachmentRemoved'), part, lines: [], key: false, weight: 30 })
         else out.push(describeGeneric(d, r, opts))
     }
 
@@ -1265,7 +1334,7 @@ function woHistoryDiff(d: TrailDict, h: TrailRow, opts: BuildOptions): Line[] {
     for (const bare of ['qty', 'scheduled_date', 'notes']) {
         const o = n['old_' + bare], v = n['new_' + bare]
         if (JSON.stringify(o ?? null) === JSON.stringify(v ?? null)) continue
-        out.push({ t: 'change', label: fieldMeta(d, 'work_order_history', 'new_' + bare)[0].replace(/^New /, ''),
+        out.push({ t: 'change', label: cap(fieldMeta(d, 'work_order_history', 'new_' + bare)[0].replace(/^New /, '')),
             old: formatValue(d, 'work_order_history', 'old_' + bare, o, n, h.refs, 'UPDATE', opts),
             new: formatValue(d, 'work_order_history', 'new_' + bare, v, n, h.refs, 'UPDATE', opts) })
     }
@@ -1421,21 +1490,574 @@ function describeWarehouseRequest(d: TrailDict, rows: TrailRow[], opts: BuildOpt
     return out
 }
 
-// ── 销售订单的修改史(在产出批次页上:它的销售对应的那一行)───────────────────
-function describeSalesOrderHistory(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
-    return rows.map((h) => {
+// ════════════════════════════════════════════════════════════════════════════
+// AUDIT-TRAIL-1b-2:报价 · 销售订单 · 发货单 · 客户 · 佣金协议 · 供应商与货代 · 集装箱 · 航段与港口 · 公司执照
+// ════════════════════════════════════════════════════════════════════════════
+/** 一句事件史的 detail 由写它的函数拼成"单号 · 其余"(SHP-2026-0001 · 12/12、INV-2026-0006 · 作废理由)。
+ *  打头的是一个单号就放进标题;其余照原样作为一行"Details"(它常常夹着一个人写的理由,Q8:照原样)。 */
+const DOC_CODE = /^[A-Z][A-Z0-9]{1,7}(?:-[A-Z0-9]{1,8})?-\d{4}-\d{2,}$/
+function splitDetail(detail: string | null): { code: string | null; rest: string | null } {
+    if (!detail || !detail.trim()) return { code: null, rest: null }
+    const parts = detail.split(' · ')
+    if (DOC_CODE.test(parts[0].trim())) return { code: parts[0].trim(), rest: parts.slice(1).join(' · ').trim() || null }
+    return { code: null, rest: detail.trim() }
+}
+function detailLine(d: TrailDict, text: string | null): Line[] {
+    const v = typed(text)
+    return v ? [{ t: 'value', label: tx(d, 'label.details'), value: v }] : []
+}
+/** 签发档那一句的 "v2" → 2 */
+function versionOf(detail: string | null): number | null {
+    const m = detail?.trim().match(/^v(\d+)$/)
+    return m ? Number(m[1]) : null
+}
+function idOf(r: TrailRow): string | undefined {
+    return typeof r.key?.['id'] === 'string' ? r.key['id'] as string : undefined
+}
+function isDeleted(r: TrailRow): boolean {
+    return r.op === 'DELETE' || isSet(r, 'deleted_at')
+}
+/** 订单 / 报价明细行的小标题:"Line 1 · 物料" */
+function docLineHeading(d: TrailDict, r: TrailRow, table: string): string {
+    const img = imgOf(r)
+    const n = num(img['line_no'] ?? null)
+    const base = n !== null ? tx(d, 'po.lineHeading', { n }) : cap(thing(d, table))
+    const m = img['material_id']
+    return typeof m === 'string' ? `${base} · ${refVal(d, table, 'material_id', m, r.refs).text}` : base
+}
+/** 明细行的逐行(新增时):数量 @ 单价 */
+function docLineValue(d: TrailDict, r: TrailRow, table: string, opts: BuildOptions): Line {
+    const img = imgOf(r)
+    const q = formatValue(d, table, 'quantity', img['quantity'], img, r.refs, r.op, opts)
+    const p = formatValue(d, table, 'unit_price', img['unit_price'], img, r.refs, r.op, opts)
+    return { t: 'value', label: docLineHeading(d, r, table), value: { text: [q.text, p.empty ? '' : `@ ${p.text}`].filter(Boolean).join(' '), restricted: p.restricted } }
+}
+
+/** 明细按行号排(存下来的先后不一定是行号的先后)*/
+function byLineNo(rows: TrailRow[]): TrailRow[] {
+    return [...rows].sort((a, b) => (num(imgOf(a)['line_no'] ?? null) ?? 0) - (num(imgOf(b)['line_no'] ?? null) ?? 0))
+}
+/** 订单 / 报价的一行明细 → 一块。【行写进标题】("Line changed · Line 1 · 物料"),不另起一个小标题 ——
+ *  一块排在别的事件后面时,它的标题就是它在那一条记录里的小标题;小标题若只剩 "Line 1",就说不出它是加了、改了还是删了。 */
+function docLineBlocks(d: TrailDict, rows: TrailRow[], table: string, parentCol: string, opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const skip = new Set(['line_no', 'material_id', parentCol])
+    for (const r of rows) {
+        const which = docLineHeading(d, r, table)
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'po.lineAdded'), which), lines: valueLines(d, r, r.new, opts, skip), key: false, weight: 40 })
+        else if (r.op === 'DELETE') out.push({ title: withPart(tx(d, 'po.lineRemoved'), which), lines: valueLines(d, r, r.old, opts, skip), key: false, weight: 40 })
+        else {
+            const ls = changeLines(d, r, opts)
+            if (ls.length) out.push({ title: withPart(tx(d, 'po.lineChanged'), which), lines: ls, key: false, weight: 40 })
+        }
+    }
+    return out
+}
+/** 建单那一次操作里,明细又被改过 / 删过:一个小标题("Line changed · Line 1 · 物料")+ 逐列 */
+function sameOpLineEdits(d: TrailDict, rows: TrailRow[], table: string, opts: BuildOptions): Line[] {
+    const out: Line[] = []
+    for (const r of rows) {
+        if (r.op === 'UPDATE') {
+            const cl = changeLines(d, r, opts)
+            if (cl.length) out.push({ t: 'heading', text: withPart(tx(d, 'po.lineChanged'), docLineHeading(d, r, table)) }, ...cl)
+        } else if (r.op === 'DELETE') out.push({ t: 'heading', text: withPart(tx(d, 'po.lineRemoved'), docLineHeading(d, r, table)) })
+    }
+    return out
+}
+/** 新增的明细合起来的总额(数量 × 单价)—— 与采购单"raised · 1 line · 305,550.00 SGD"同一种写法。
+ *  任一行受限或读不出数、或不知道币种,就不说总额(一个少算了的总额比没有总额坏)。 */
+function docTotal(lines: TrailRow[], opts: BuildOptions): string[] {
+    let sum = 0
+    for (const r of lines) {
+        const img = r.new ?? {}
+        const q = num(img['quantity'] ?? null), p = num(img['unit_price'] ?? null)
+        if (q === null || p === null || isRestricted(img['unit_price'])) return []
+        sum += q * p
+    }
+    return opts.currency ? [`${NUM2.format(sum)} ${opts.currency}`] : []
+}
+
+// ── 报价 ────────────────────────────────────────────────────────────────────
+const QUOTE_TABLES = new Set(['quotes', 'quote_lines', 'qt_issues', 'quote_history'])
+function describeQuote(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const q = by('quotes'), lines = by('quote_lines'), iss = by('qt_issues'), hist = by('quote_history')
+    const created = q.find((r) => r.op === 'INSERT')
+    const histCreated = hist.find((h) => str(h, 'change_type', 'new') === 'created')
+    const types = new Set(hist.map((h) => str(h, 'change_type', 'new')))
+    // ① 建单(报价本身的新增与事件史的 created 是同一笔事务写的 —— 并成一句)
+    if (created || histCreated) {
+        const ins = lines.filter((r) => r.op === 'INSERT')
+        const ls: Line[] = created ? valueLines(d, created, created.new, opts, new Set(['code', 'status', 'converted_order_id', 'decline_reason',
+            'deleted_at', 'deleted_by', 'delete_reason'])) : []
+        ls.push(...byLineNo(ins).map((r) => docLineValue(d, r, 'quote_lines', opts)))
+        // 同一次操作里又改过、删过的明细(与采购单建单那一条同一个做法)—— 照常说出来,不当成建单的副产物吞掉
+        ls.push(...sameOpLineEdits(d, lines, 'quote_lines', opts))
+        const parts = ins.length ? [plural(d, 'po.lines.one', 'po.lines.many', ins.length), ...docTotal(ins, opts)] : []
+        out.push({ title: [tx(d, 'qt.created'), ...parts].join(' · '), lines: ls, key: true, weight: 100 })
+    }
+    // ② 事件史:签发 · 谢绝 · 转成订单
+    for (const h of hist) {
         const ct = str(h, 'change_type', 'new') ?? ''
-        const known = d.enums['sales_order_history#change_type']?.[ct]
+        const detail = str(h, 'detail', 'new')
+        if (ct === 'created') continue
+        if (ct === 'issued') {
+            const v = versionOf(detail) ?? num(iss.find((i) => i.op === 'INSERT')?.new?.['version'] ?? null)
+            out.push({ title: v !== null ? tx(d, 'qt.issued', { version: v }) : tx(d, 'qt.issuedPlain'), lines: v !== null ? [] : detailLine(d, detail), key: true, weight: 90 })
+        } else if (ct === 'declined') {
+            out.push({ title: tx(d, 'qt.declined'), lines: [], reason: typed(detail), key: true, weight: 90 })
+        } else if (ct === 'converted') {
+            const { code, rest } = splitDetail(detail)
+            out.push({ title: code ? tx(d, 'qt.converted', { code }) : tx(d, 'qt.convertedPlain'), lines: detailLine(d, rest), key: true, weight: 90 })
+        } else {
+            out.push({ title: tx(d, 'qt.statusChanged'), lines: detailLine(d, detail), key: true, weight: 80 })
+        }
+    }
+    // ③ 签发档(记录开始之后,与事件史同一笔 —— 事件史在就只说一次)
+    if (!types.has('issued')) for (const r of iss) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'qt.issued', { version: num(r.new?.['version'] ?? null) ?? '' }), lines: [], key: true, weight: 90 })
+    }
+    // ④ 报价本身的改动
+    for (const r of q) {
+        if (r === created) continue
+        if (isDeleted(r)) { out.push({ title: tx(d, 'qt.deleted'), lines: [], reason: typed(r.new?.['delete_reason']), key: true, weight: 90 }); continue }
+        const skip = new Set(['status', 'converted_order_id', 'decline_reason'])
+        const ls = changeLines(d, r, opts, skip)
+        const to = changed(r, 'status') ? str(r, 'status', 'new') : null
+        if (to && !types.has(to === 'converted' ? 'converted' : to)) {
+            ls.unshift({ t: 'change', label: fieldMeta(d, 'quotes', 'status')[0], old: formatValue(d, 'quotes', 'status', r.old?.['status'], imgOf(r), r.refs, r.op, opts),
+                new: formatValue(d, 'quotes', 'status', r.new?.['status'], imgOf(r), r.refs, r.op, opts) })
+            out.push({ title: tx(d, 'qt.statusChanged'), lines: ls, reason: typed(r.new?.['decline_reason']), key: true, weight: 70 })
+        } else if (ls.length) out.push({ title: tx(d, 'qt.edited'), lines: ls, key: false, weight: 30 })
+    }
+    // ⑤ 明细(建单那一笔之外)
+    if (!created && !histCreated) out.push(...docLineBlocks(d, lines, 'quote_lines', 'quote_id', opts))
+    return out
+}
+
+// ── 销售订单(它的事件史就是这一页的主线;预留、签发档、状态戳与事件史同一笔写的,只说一次)──────────────
+const SO_TABLES = new Set(['sales_orders', 'sales_order_lines', 'sales_order_history', 'so_issues', 'shipping_releases', 'shipping_release_lines'])
+const SO_AMEND = new Set(['header_update', 'line_update', 'line_add', 'line_remove', 'line_added', 'line_changed', 'line_removed'])
+/** 订单事件史的一行 → 一块。在订单页上是主线;在产出批次页上是往上一跳够到的那几行(标题后面点名订单)。 */
+function soHistoryBlock(d: TrailDict, h: TrailRow, opts: BuildOptions): Block2 {
+    const ct = str(h, 'change_type', 'new') ?? ''
+    const detail = str(h, 'detail', 'new')
+    const { code, rest } = splitDetail(detail)
+    const k = (key: TrailTextKey, lines: Line[] = [], reason: Val | null = null, weight = 80): Block2 => ({ title: tx(d, key), lines, reason, key: true, weight })
+    switch (ct) {
+        case 'created': return k('so.created', [], null, 100)   // detail 是单号本身(或一句数据库写的补记)—— 不上屏
+        case 'converted_from_quote': return { ...k('so.createdFromQuote', [], null, 100), title: code || detail ? tx(d, 'so.createdFromQuote', { code: code ?? detail ?? '' }) : tx(d, 'so.created') }
+        case 'confirmed': return k('so.confirmed', detailLine(d, detail))
+        case 'closed': return k('so.closed', detailLine(d, detail))
+        case 'cancelled': return k('so.cancelled', [], typed(detail), 90)
+        case 'issued': {
+            const v = versionOf(detail)
+            return v !== null ? { ...k('so.issued'), title: tx(d, 'so.issued', { version: v }) } : k('so.issuedPlain', detailLine(d, detail))
+        }
+        case 'reserved': return k('so.reserved', detailLine(d, detail), null, 70)
+        case 'released': return k('so.released', detailLine(d, detail), null, 70)
+        case 'invoiced': return { ...k('so.invoiced', detailLine(d, rest)), title: withPart(tx(d, 'so.invoiced'), code) }
+        case 'invoice_voided': return { ...k('so.invoiceVoided', [], typed(rest)), title: withPart(tx(d, 'so.invoiceVoided'), code) }
+        case 'shipped': return { ...k('so.shipped', detailLine(d, rest)), title: withPart(tx(d, 'so.shipped'), code) }
+        case 'credit_noted': return { ...k('so.creditNoted', detailLine(d, rest)), title: withPart(tx(d, 'so.creditNoted'), code) }
+    }
+    // 改单的四种(与 SO-1 留下的三个空位):小标题说第几行,下面是前后值,理由是改单时填的那一句
+    const ls: Line[] = []
+    const n = h.new ?? {}
+    // 第几行写进标题(不另起小标题 —— 排在别的事件后面时,小标题只剩 "Line 1" 就说不出这是一次改单)
+    const lineNo = num(n['line_no'] ?? null)
+    for (const bare of ['quantity', 'unit_price', 'notes', 'terms_text']) {
+        const o = n['old_' + bare], v = n['new_' + bare]
+        if (JSON.stringify(o ?? null) === JSON.stringify(v ?? null)) continue
+        ls.push({ t: 'change', label: cap(fieldMeta(d, 'sales_order_history', 'new_' + bare)[0].replace(/^New /, '')),
+            old: formatValue(d, 'sales_order_history', 'old_' + bare, o, n, h.refs, 'UPDATE', opts),
+            new: formatValue(d, 'sales_order_history', 'new_' + bare, v, n, h.refs, 'UPDATE', opts) })
+    }
+    ls.push(...detailLine(d, detail))
+    const what: TrailTextKey = ct === 'line_add' || ct === 'line_added' ? 'po.lineAdded' : ct === 'line_remove' || ct === 'line_removed' ? 'po.lineRemoved'
+        : ct === 'header_update' ? 'so.headerChanged' : 'po.lineChanged'
+    const title = SO_AMEND.has(ct) ? withPart(tx(d, 'so.amended'), tx(d, what).toLowerCase()) : tx(d, 'so.amended')
+    return { title: withPart(title, lineNo !== null ? tx(d, 'po.lineHeading', { n: lineNo }) : null), lines: ls,
+             reason: typed(n['amend_reason']), key: true, weight: 70 }
+}
+function describeSalesOrder(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const so = by('sales_orders'), lines = by('sales_order_lines'), hist = by('sales_order_history'), iss = by('so_issues')
+    const resv = by('sales_order_reservations'), rel = by('shipping_releases'), relLines = by('shipping_release_lines')
+    const created = so.find((r) => r.op === 'INSERT')
+    const types = new Set(hist.map((h) => str(h, 'change_type', 'new') ?? ''))
+    const fromQuote = hist.find((h) => str(h, 'change_type', 'new') === 'converted_from_quote')
+    // ① 建单:订单的新增 + 事件史的 created / converted_from_quote(同一笔、同一时刻)+ 这一笔里的明细与合同
+    if (created || types.has('created') || fromQuote) {
+        const ins = lines.filter((r) => r.op === 'INSERT')
+        const ls: Line[] = created ? valueLines(d, created, created.new, opts, new Set(['code', 'status', 'confirmed_at', 'closed_at', 'cancelled_at',
+            'cancel_reason', 'deleted_at', 'deleted_by', 'delete_reason', 'contract_id'])) : []
+        ls.push(...byLineNo(ins).map((r) => docLineValue(d, r, 'sales_order_lines', opts)))
+        // 同一次操作里又改过的明细:改单的事件史在的话由它说(带理由);不在就照常说出来
+        if (![...types].some((t) => SO_AMEND.has(t))) ls.push(...sameOpLineEdits(d, lines, 'sales_order_lines', opts))
+        for (const c of by('contract_document_terms').filter((x) => x.op === 'INSERT')) ls.push({ t: 'note', text: contractLinked(d, c) })
+        const { code } = splitDetail(str(fromQuote ?? created ?? hist[0], 'detail', 'new'))
+        const head = fromQuote && code ? tx(d, 'so.createdFromQuote', { code }) : tx(d, 'so.created')
+        out.push({ title: [head, ...(ins.length ? [plural(d, 'po.lines.one', 'po.lines.many', ins.length), ...docTotal(ins, opts)] : [])].join(' · '), lines: ls, key: true, weight: 100,
+                   recordId: created ? idOf(created) : undefined })
+    }
+    // ② 事件史的其余每一行(它就是这张单的主线)
+    for (const h of hist) {
+        const ct = str(h, 'change_type', 'new') ?? ''
+        if (ct === 'created' || ct === 'converted_from_quote') continue
+        out.push(soHistoryBlock(d, h, opts))
+    }
+    // ③ 订单本身的改动:状态由事件史说了的就不再说;其余是字段编辑
+    for (const r of so) {
+        if (r === created) continue
+        if (isDeleted(r)) { out.push({ title: tx(d, 'so.deleted'), lines: [], reason: typed(r.new?.['delete_reason']), key: true, weight: 90 }); continue }
+        // 改单的事件史(header_update)已经带着备注 / 条款的前后值与理由 —— 订单那一行同一次的改动不再说第二遍
+        const skip = new Set(['status', 'confirmed_at', 'closed_at', 'cancelled_at', 'cancel_reason',
+            ...(types.has('header_update') ? ['notes', 'terms_text'] : [])])
+        const ls = changeLines(d, r, opts, skip)
+        const to = changed(r, 'status') ? str(r, 'status', 'new') : null
+        if (to && !types.has(to)) {
+            const key: TrailTextKey = to === 'confirmed' ? 'so.confirmed' : to === 'closed' ? 'so.closed' : to === 'cancelled' ? 'so.cancelled' : 'so.statusChanged'
+            if (key === 'so.statusChanged') ls.unshift({ t: 'change', label: fieldMeta(d, 'sales_orders', 'status')[0],
+                old: formatValue(d, 'sales_orders', 'status', r.old?.['status'], imgOf(r), r.refs, r.op, opts),
+                new: formatValue(d, 'sales_orders', 'status', r.new?.['status'], imgOf(r), r.refs, r.op, opts) })
+            out.push({ title: tx(d, key), lines: ls, reason: to === 'cancelled' ? typed(r.new?.['cancel_reason']) : null, key: true, weight: 85 })
+        } else if (ls.length) out.push({ title: tx(d, 'so.edited'), lines: ls, key: false, weight: 30 })
+    }
+    // ④ 明细:改单那几种事件史已经带着前后值与理由 —— 在它们旁边的明细行改动不再逐列说第二遍
+    if (!created && ![...types].some((t) => SO_AMEND.has(t))) out.push(...docLineBlocks(d, lines, 'sales_order_lines', 'sales_order_id', opts))
+    // ⑤ 预留:事件史的 reserved / released / shipped 已经说了的,不说第二遍
+    if (!hist.length) for (const r of resv) {
+        const batch = refLabel(r, 'output_batch_id')
+        const ls: Line[] = [{ t: 'value', label: fieldMeta(d, 'sales_order_reservations', 'sales_order_line_id')[0],
+            value: formatValue(d, 'sales_order_reservations', 'sales_order_line_id', imgOf(r)['sales_order_line_id'], imgOf(r), r.refs, r.op, opts) }]
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'so.reserved'), [batch, qtyText(d, r, 'qty', opts)].filter(Boolean).join(' — ')), lines: ls, key: true, weight: 60 })
+        else if (isSet(r, 'released_at')) out.push({ title: withPart(tx(d, 'so.released'), batch), lines: ls, reason: typed(r.new?.['release_reason']), key: true, weight: 60 })
+        else if (isSet(r, 'consumed_at')) out.push({ title: withPart(tx(d, 'batch.reservationUsed'), batch), lines: ls, key: true, weight: 55 })
+        else out.push(describeGeneric(d, r, opts))
+    }
+    // ⑥ 签发档(事件史的 issued 在就只说一次)
+    if (!types.has('issued')) for (const r of iss) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'so.issued', { version: num(r.new?.['version'] ?? null) ?? '' }), lines: [], key: true, weight: 80 })
+    }
+    // ⑦ 发货放行(APR-5b):请求 · 撤回 · 批准 / 驳回(审批并进这一句)
+    for (const r of rel) {
+        const id = idOf(r)
+        const skip = new Set(['status', 'label', 'decided_at', 'decided_by', 'decision_notes', 'withdrawn_at', 'withdrawn_by', 'withdraw_reason', 'sales_order_id'])
+        if (r.op === 'INSERT') {
+            const ls = valueLines(d, r, r.new, opts, skip)
+            for (const l of relLines.filter((x) => x.op === 'INSERT')) ls.push({ t: 'value', label: fieldMeta(d, 'shipping_release_lines', 'sales_order_line_id')[0],
+                value: formatValue(d, 'shipping_release_lines', 'sales_order_line_id', imgOf(l)['sales_order_line_id'], imgOf(l), l.refs, 'INSERT', opts) })
+            out.push({ title: tx(d, 'so.releaseRequested'), lines: ls, key: true, weight: 80, recordId: id })
+        } else if (isSet(r, 'withdrawn_at') || (changed(r, 'status') && str(r, 'status', 'new') === 'withdrawn')) {
+            out.push({ title: tx(d, 'so.releaseWithdrawn'), lines: [], reason: typed(r.new?.['withdraw_reason']), key: true, weight: 80, recordId: id })
+        } else if (changed(r, 'status') && ['approved', 'rejected'].includes(str(r, 'status', 'new') ?? '')) {
+            out.push({ title: tx(d, str(r, 'status', 'new') === 'approved' ? 'so.releaseApproved' : 'so.releaseRejected'), lines: [],
+                       reason: typed(r.new?.['decision_notes']), key: true, weight: 80, recordId: id })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts, skip)
+            if (ls.length) out.push({ title: tx(d, 'so.releaseChanged'), lines: ls, key: false, weight: 40, recordId: id })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    if (!rel.some((r) => r.op === 'INSERT')) for (const r of relLines) out.push(describeGeneric(d, r, opts))
+    // ⑧ 合同挂接(建单那一笔之外)
+    if (!created) for (const r of by('contract_document_terms')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: contractLinked(d, r), lines: [], key: true, weight: 60 })
+    }
+    return out
+}
+
+// ── 发货单 ──────────────────────────────────────────────────────────────────
+function describeShipment(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const created = by('shipments').find((r) => r.op === 'INSERT')
+    const lineLine = (r: TrailRow): Line => ({ t: 'value', label: refLabel(r, 'output_batch_id') ?? cap(thing(d, 'shipment_lines')),
+        value: formatValue(d, 'shipment_lines', 'qty', imgOf(r)['qty'], imgOf(r), r.refs, r.op, opts) })
+    if (created) {
+        const ls = valueLines(d, created, created.new, opts, new Set(['code']))
+        ls.push(...by('shipment_lines').filter((r) => r.op === 'INSERT').map(lineLine))
+        out.push({ title: withPart(tx(d, 'shp.created'), str(created, 'code')), lines: ls, reason: null, key: true, weight: 100 })
+    }
+    for (const r of by('shipments')) {
+        if (r === created) continue
+        if (r.op === 'DELETE') { out.push(describeGeneric(d, r, opts)); continue }
+        if (changed(r, 'container_id')) {
+            const to = refLabel({ ...r, old: null }, 'container_id')
+            const from = refLabel({ ...r, new: null, ctx: null }, 'container_id')
+            out.push(isEmpty(r.new?.['container_id'] ?? null)
+                ? { title: withPart(tx(d, 'shp.containerCleared'), from), lines: changeLines(d, r, opts, new Set(['container_id'])), key: true, weight: 70 }
+                : { title: withPart(tx(d, 'shp.containerSet'), to), lines: changeLines(d, r, opts, new Set(['container_id'])), key: true, weight: 70 })
+            continue
+        }
+        const ls = changeLines(d, r, opts)
+        if (ls.length) out.push({ title: tx(d, 'shp.edited'), lines: ls, key: false, weight: 30 })
+    }
+    if (!created) for (const r of by('shipment_lines')) {
+        out.push(r.op === 'INSERT' ? { title: tx(d, 'shp.lineAdded'), lines: [lineLine(r)], key: false, weight: 40 } : describeGeneric(d, r, opts))
+    }
+    for (const r of by('shipment_issues')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'shp.issued', { version: num(r.new?.['version'] ?? null) ?? '' }), lines: [], key: true, weight: 80 })
+    }
+    return out
+}
+
+// ── 联系人与附件(客户与供应商共用)────────────────────────────────────────
+// 名字与文件名是一个人敲的字 —— 作为标题后面的 typed 那一段(part),不拼进标题
+function describeContact(d: TrailDict, r: TrailRow, opts: BuildOptions): Block2 {
+    const part = typed(str(r, 'name'))
+    const skip = new Set(['name', 'customer_id', 'supplier_id', 'deleted_at', 'name_inferred'])
+    if (r.op === 'INSERT') return { title: tx(d, 'contact.added'), part, lines: valueLines(d, r, r.new, opts, skip), key: true, weight: 45 }
+    if (isDeleted(r)) return { title: tx(d, 'contact.removed'), part, lines: [], key: true, weight: 45 }
+    return { title: tx(d, 'contact.changed'), part, lines: changeLines(d, r, opts, new Set(['deleted_at'])), key: false, weight: 40 }
+}
+function describeAttachment(d: TrailDict, r: TrailRow, opts: BuildOptions): Block2 {
+    const part = typed(str(r, 'file_name'))
+    if (r.op === 'INSERT') return { title: tx(d, 'batch.attachmentAdded'), part, lines: valueLines(d, r, r.new, opts, new Set(['file_name', 'customer_id', 'supplier_id', 'deleted_at'])), key: true, weight: 35 }
+    if (isDeleted(r)) return { title: tx(d, 'batch.attachmentRemoved'), part, lines: [], key: true, weight: 35 }
+    return { title: tx(d, 'att.changed'), part, lines: changeLines(d, r, opts), key: false, weight: 30 }
+}
+
+// ── 客户 ────────────────────────────────────────────────────────────────────
+const CUSTOMER_TABLES = new Set(['customers', 'customer_attachments', 'customer_credit_history', 'customer_statements', 'statement_issues',
+    'collection_chases', 'collection_chase_documents', 'collection_promises'])
+const CREDIT_COLS = ['credit_limit_base', 'credit_hold']
+function describeCustomer(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const credit = by('customer_credit_history')
+    for (const r of by('customers')) {
+        if (r.op === 'INSERT') { out.push({ title: tx(d, 'cus.created'), lines: valueLines(d, r, r.new, opts, new Set(['code', 'deleted_at'])), key: true, weight: 100 }); continue }
+        if (isDeleted(r)) { out.push({ title: tx(d, 'cus.deleted'), lines: [], key: true, weight: 90 }); continue }
+        // 信用两列由信用史那一行说(同一笔事务,CFO 的那一块);这里只说其余的字段
+        const ls = changeLines(d, r, opts, new Set(credit.length ? [...CREDIT_COLS, 'status'] : ['status']))
+        if (changed(r, 'status')) {
+            ls.unshift({ t: 'change', label: fieldMeta(d, 'customers', 'status')[0], old: formatValue(d, 'customers', 'status', r.old?.['status'], imgOf(r), r.refs, r.op, opts),
+                new: formatValue(d, 'customers', 'status', r.new?.['status'], imgOf(r), r.refs, r.op, opts) })
+            out.push({ title: tx(d, 'cus.statusChanged'), lines: ls, key: true, weight: 80 })
+        } else if (ls.length) out.push({ title: tx(d, 'cus.edited'), lines: ls, key: false, weight: 30 })
+    }
+    for (const h of credit) {
+        const n = h.new ?? {}
+        const holdMoved = JSON.stringify(n['old_credit_hold'] ?? null) !== JSON.stringify(n['new_credit_hold'] ?? null)
+        const limitMoved = JSON.stringify(n['old_credit_limit_base'] ?? null) !== JSON.stringify(n['new_credit_limit_base'] ?? null)
+        const key: TrailTextKey = holdMoved && !limitMoved ? (n['new_credit_hold'] === true ? 'cus.holdOn' : 'cus.holdOff') : limitMoved && !holdMoved ? 'cus.limitChanged' : 'cus.creditChanged'
         const ls: Line[] = []
-        for (const bare of ['quantity', 'unit_price', 'notes', 'terms_text']) {
-            const n = h.new ?? {}
+        for (const bare of ['credit_limit_base', 'credit_hold']) {
             const o = n['old_' + bare], v = n['new_' + bare]
             if (JSON.stringify(o ?? null) === JSON.stringify(v ?? null)) continue
-            ls.push({ t: 'change', label: fieldMeta(d, 'sales_order_history', 'new_' + bare)[0].replace(/^New /, ''),
-                old: formatValue(d, 'sales_order_history', 'old_' + bare, o, n, h.refs, 'UPDATE', opts),
-                new: formatValue(d, 'sales_order_history', 'new_' + bare, v, n, h.refs, 'UPDATE', opts) })
+            ls.push({ t: 'change', label: fieldMeta(d, 'customers', bare)[0], old: formatValue(d, 'customer_credit_history', 'old_' + bare, o, n, h.refs, 'UPDATE', opts),
+                new: formatValue(d, 'customer_credit_history', 'new_' + bare, v, n, h.refs, 'UPDATE', opts) })
         }
-        return { title: withPart(tx(d, 'so.changed'), known ? known.toLowerCase() : null), lines: ls, reason: typed(h.new?.['amend_reason']), key: true, weight: 60 }
+        out.push({ title: tx(d, key), lines: ls, key: true, weight: 85 })
+    }
+    for (const r of by('counterparty_contacts')) out.push(describeContact(d, r, opts))
+    for (const r of by('customer_attachments')) out.push(describeAttachment(d, r, opts))
+    for (const r of by('customer_statements')) {
+        const code = str(r, 'code')
+        if (r.op === 'INSERT') {
+            out.push({ title: withPart(tx(d, 'cus.statementIssued'), code), lines: valueLines(d, r, r.new, opts, new Set(['code', 'customer_id', 'issued_at', 'issued_by',
+                'superseded_at', 'superseded_by', 'superseded_reason'])), key: true, weight: 80 })
+        } else if (isSet(r, 'superseded_at')) {
+            out.push({ title: withPart(tx(d, 'cus.statementSuperseded'), code), lines: [], reason: typed(r.new?.['superseded_reason']), key: true, weight: 75 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('statement_issues')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: withPart(tx(d, 'cus.statementPdf', { version: num(r.new?.['version'] ?? null) ?? '' }), refLabel(r, 'statement_id')), lines: [], key: true, weight: 70 })
+    }
+    const docs = by('collection_chase_documents')
+    for (const r of by('collection_chases')) {
+        const code = str(r, 'code')
+        if (r.op === 'INSERT') {
+            const ch = str(r, 'channel')
+            const ls = valueLines(d, r, r.new, opts, new Set(['code', 'customer_id', 'channel', 'summary', 'superseded_at', 'superseded_by', 'superseded_reason']))
+            for (const x of docs.filter((y) => y.op === 'INSERT')) {
+                const st = str(x, 'subject_type'), sc = str(x, 'subject_code')
+                ls.push({ t: 'value', label: st ? enumLabel(d, 'collection_chase_documents', 'subject_type', st) : cap(thing(d, 'collection_chase_documents')),
+                          value: sc && DOC_CODE.test(sc) ? { text: sc } : { text: tx(d, 'value.unnamed', { thing: thing(d, 'collection_chase_documents') }) } })
+            }
+            const summary = typed(r.new?.['summary'])
+            if (summary) ls.push({ t: 'value', label: fieldMeta(d, 'collection_chases', 'summary')[0], value: summary })
+            out.push({ title: withPart(withPart(tx(d, 'cus.chased'), code), ch ? enumLabel(d, 'collection_chases', 'channel', ch).toLowerCase() : null), lines: ls, key: true, weight: 80 })
+        } else if (isSet(r, 'superseded_at')) {
+            out.push({ title: withPart(tx(d, 'cus.chaseSuperseded'), code), lines: [], reason: typed(r.new?.['superseded_reason']), key: true, weight: 75 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    if (!by('collection_chases').some((r) => r.op === 'INSERT')) for (const r of docs) out.push(describeGeneric(d, r, opts))
+    for (const r of by('collection_promises')) {
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'cus.promise'), lines: valueLines(d, r, r.new, opts, new Set(['chase_id', 'outcome', 'outcome_note', 'outcome_recorded_at', 'outcome_recorded_by'])), key: true, weight: 70 })
+        } else if (isSet(r, 'outcome_recorded_at') || changed(r, 'outcome')) {
+            const o = str(r, 'outcome', 'new')
+            out.push({ title: withPart(tx(d, 'cus.promiseOutcome'), o ? enumLabel(d, 'collection_promises', 'outcome', o) : null), lines: [], reason: typed(r.new?.['outcome_note']), key: true, weight: 70 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    return out
+}
+
+// ── 佣金协议 ────────────────────────────────────────────────────────────────
+function describeCommission(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    return rows.map((r) => r.op === 'INSERT' ? { title: tx(d, 'cm.created'), lines: valueLines(d, r, r.new, opts, new Set(['deleted_at'])), key: true, weight: 100 }
+        : isDeleted(r) ? { title: tx(d, 'cm.deleted'), lines: [], key: true, weight: 90 }
+        : { title: tx(d, 'cm.edited'), lines: changeLines(d, r, opts), key: false, weight: 30 })
+}
+
+// ── 供应商(与货代:账上同一行 suppliers)────────────────────────────────────
+const SUPPLIER_TABLES = new Set(['suppliers', 'supplier_compliance', 'supplier_attachments', 'supplier_status_history', 'forwarder_details', 'forwarder_rate_quotes'])
+/** 一步状态变动 → 一句话(supplier_status_moves() 里的每一步都有它的说法)*/
+function supplierMove(from: string | null, to: string | null): TrailTextKey {
+    switch (to) {
+        case 'pending_review': return 'sup.submitted'
+        case 'approved': return 'sup.approved'
+        case 'rejected': return 'sup.rejected'
+        case 'active': return from === 'suspended' ? 'sup.reinstated' : 'sup.activated'
+        case 'suspended': return 'sup.suspended'
+        case 'blacklisted': return 'sup.blacklisted'
+        case 'archived': return 'sup.archived'
+        case 'draft': return from === 'archived' ? 'sup.restored' : 'sup.backToDraft'
+    }
+    return 'sup.statusChanged'
+}
+function describeSupplier(d: TrailDict, rows: TrailRow[], opts: BuildOptions, subject?: string | null): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const hist = by('supplier_status_history')
+    for (const r of by('suppliers')) {
+        const fwd = subject === 'forwarder' || str(r, 'counterparty_type') === 'forwarder'
+        const id = idOf(r)
+        // 建档这一块【不】带 recordId:同一次操作里的送审 / 批准由下面每一步自己接住审批留痕(absorbsApproval)
+        if (r.op === 'INSERT') { out.push({ title: tx(d, fwd ? 'fwd.created' : 'sup.created'), lines: valueLines(d, r, r.new, opts, new Set(['code', 'status', 'approved_at', 'approved_by', 'deleted_at'])), key: true, weight: 100 }); continue }
+        if (isDeleted(r)) { out.push({ title: tx(d, fwd ? 'fwd.deleted' : 'sup.deleted'), lines: [], key: true, weight: 90, recordId: id }); continue }
+        // 状态:有状态史就由它说(一步一块,带着那一步的说明);没有状态史(记录开始之前的批准戳)就由这一行说
+        if (changed(r, 'status') || (r.prelog && (r.cols ?? []).includes('approved_at'))) {
+            const rest = changeLines(d, r, opts, new Set(['status', 'approved_at', 'approved_by']))
+            if (!hist.length) {
+                const to = r.prelog ? 'approved' : str(r, 'status', 'new')
+                out.push({ title: tx(d, supplierMove(str(r, 'status', 'old'), to)), lines: rest, key: true, weight: 90, recordId: id, absorbsApproval: true })
+            } else if (rest.length) out.push({ title: tx(d, fwd ? 'fwd.edited' : 'sup.edited'), lines: rest, key: false, weight: 30 })
+            continue
+        }
+        const ls = changeLines(d, r, opts, new Set(['approved_at', 'approved_by']))
+        if (ls.length) out.push({ title: tx(d, fwd ? 'fwd.edited' : 'sup.edited'), lines: ls, key: false, weight: 30 })
+    }
+    // 状态史:一步一块。只有一步时它的说明是理由;一次操作里走了几步(送审又批准),每一步的说明各自一行 ——
+    //   一条记录只有一个理由的位置,第二步的那一句不能被挤掉
+    for (const h of hist) {
+        const note = typed(h.new?.['note'])
+        const several = hist.length > 1
+        out.push({ title: tx(d, supplierMove(str(h, 'from_status', 'new'), str(h, 'to_status', 'new'))),
+                   lines: several && note ? [{ t: 'value', label: fieldMeta(d, 'supplier_status_history', 'note')[0], value: note }] : [],
+                   reason: several ? null : note, key: true, weight: 90, recordId: str(h, 'supplier_id') ?? undefined, absorbsApproval: true })
+    }
+    for (const r of by('supplier_compliance')) {
+        const kind = refLabel(r, 'cert_type_code'), part = typed(str(r, 'cert_no'))
+        const skip = new Set(['supplier_id', 'deleted_at', 'cert_no', 'cert_type_code'])
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'sup.certAdded'), kind), part, lines: valueLines(d, r, r.new, opts, skip), key: true, weight: 60 })
+        else if (isDeleted(r)) out.push({ title: withPart(tx(d, 'sup.certRemoved'), kind), part, lines: [], key: true, weight: 60 })
+        else out.push({ title: withPart(tx(d, 'sup.certChanged'), kind), part, lines: changeLines(d, r, opts, new Set(['supplier_id', 'deleted_at'])), key: false, weight: 40 })
+    }
+    for (const r of by('counterparty_contacts')) out.push(describeContact(d, r, opts))
+    for (const r of by('supplier_attachments')) out.push(describeAttachment(d, r, opts))
+    for (const r of by('forwarder_details')) {
+        const skip = new Set(['supplier_id'])
+        out.push(r.op === 'INSERT' ? { title: tx(d, 'fwd.detailsSet'), lines: valueLines(d, r, r.new, opts, skip), key: false, weight: 50 }
+            : r.op === 'DELETE' ? describeGeneric(d, r, opts) : { title: tx(d, 'fwd.detailsChanged'), lines: changeLines(d, r, opts, skip), key: false, weight: 40 })
+    }
+    for (const r of by('forwarder_rate_quotes')) {
+        const lane = refLabel(r, 'lane_id')
+        const skip = new Set(['supplier_id', 'lane_id', 'deleted_at'])
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'fwd.quoteAdded'), lane), lines: valueLines(d, r, r.new, opts, skip), key: true, weight: 60 })
+        else if (isDeleted(r)) out.push({ title: withPart(tx(d, 'fwd.quoteRemoved'), lane), lines: [], key: true, weight: 60 })
+        else out.push({ title: withPart(tx(d, 'fwd.quoteChanged'), lane), lines: changeLines(d, r, opts, skip), key: false, weight: 40 })
+    }
+    return out
+}
+
+// ── 集装箱 ──────────────────────────────────────────────────────────────────
+const CONTAINER_TABLES = new Set(['containers', 'container_milestones', 'container_documents'])
+function describeContainer(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    for (const r of by('containers')) {
+        if (r.op === 'INSERT') { out.push({ title: withPart(tx(d, 'ctr.created'), str(r, 'code')), lines: valueLines(d, r, r.new, opts, new Set(['code', 'deleted_at', 'deleted_by', 'delete_reason'])), key: true, weight: 100 }); continue }
+        if (isDeleted(r)) { out.push({ title: tx(d, 'ctr.deleted'), lines: [], reason: typed(r.new?.['delete_reason']), key: true, weight: 90 }); continue }
+        const ls = changeLines(d, r, opts)
+        if (ls.length) out.push({ title: tx(d, 'ctr.edited'), lines: ls, key: false, weight: 30 })
+    }
+    for (const r of by('container_milestones')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        const m = str(r, 'milestone') ?? ''
+        const note = str(r, 'note')
+        // 拆箱时 detach_shipment_from_container 写的那一行:"detached SHP-…: 理由"(数据库拼的,不是一个人写的句子)
+        const det = m === 'other' ? note?.match(/^detached (\S+): ([\s\S]*)$/) : null
+        if (det) { out.push({ title: tx(d, 'ctr.detached', { code: det[1] }), lines: [], reason: typed(det[2]), key: true, weight: 70 }); continue }
+        const ls = valueLines(d, r, { event_date: r.new?.['event_date'] ?? null }, opts)
+        const n = typed(note)
+        if (n) ls.push({ t: 'value', label: fieldMeta(d, 'container_milestones', 'note')[0], value: n })
+        out.push({ title: withPart(tx(d, 'ctr.milestone'), m ? enumLabel(d, 'container_milestones', 'milestone', m) : null), lines: ls, key: true, weight: 70 })
+    }
+    for (const r of by('container_documents')) {
+        const part = typed(str(r, 'document_type'))
+        const skip = new Set(['container_id', 'document_type', 'status', 'na_reason'])
+        if (r.op === 'INSERT') { out.push({ title: tx(d, 'ctr.docAdded'), part, lines: valueLines(d, r, r.new, opts, skip), key: true, weight: 45 }); continue }
+        if (r.op === 'DELETE') { out.push({ title: tx(d, 'ctr.docRemoved'), part, lines: [], key: true, weight: 45 }); continue }
+        const to = changed(r, 'status') ? str(r, 'status', 'new') : null
+        const key: TrailTextKey = to === 'received' ? 'ctr.docReceived' : to === 'not_applicable' ? 'ctr.docNa' : to === 'pending' ? 'ctr.docPending' : 'ctr.docChanged'
+        out.push({ title: tx(d, key), part, lines: changeLines(d, r, opts, skip), reason: to === 'not_applicable' ? typed(r.new?.['na_reason']) : null,
+                   key: !!to, weight: to ? 60 : 40 })
+    }
+    return out
+}
+
+// ── 航段与港口 ──────────────────────────────────────────────────────────────
+const LANE_TABLES = new Set(['lanes', 'ports', 'lane_document_requirements'])
+function laneName(d: TrailDict, r: TrailRow): string {
+    const img = imgOf(r)
+    const end = (c: string) => typeof img[c] === 'string' ? refVal(d, 'lanes', c, img[c] as string, r.refs).text : '?'
+    return `${end('origin_port_id')} → ${end('destination_port_id')}`
+}
+function describeLane(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    for (const r of by('lanes')) {
+        const name = laneName(d, r)
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'lane.created'), name), lines: [], key: true, weight: 100 })
+        else if (isDeleted(r)) out.push({ title: withPart(tx(d, 'lane.deleted'), name), lines: [], key: true, weight: 90 })
+        else if (isSet(r, 'checklist_reviewed_at')) out.push({ title: withPart(tx(d, 'lane.reviewed'), name), lines: [], key: true, weight: 70 })
+        else out.push({ title: withPart(tx(d, 'lane.edited'), name), lines: changeLines(d, r, opts), key: false, weight: 30 })
+    }
+    for (const r of by('lane_document_requirements')) {
+        const part = typed(str(r, 'document_type'))
+        const skip = new Set(['lane_id', 'document_type', 'deleted_at'])
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'lane.reqAdded'), part, lines: valueLines(d, r, r.new, opts, skip), key: true, weight: 60 })
+        else if (isDeleted(r)) out.push({ title: tx(d, 'lane.reqRemoved'), part, lines: [], key: true, weight: 60 })
+        else out.push({ title: tx(d, 'lane.reqChanged'), part, lines: changeLines(d, r, opts, skip), key: false, weight: 40 })
+    }
+    for (const r of by('ports')) {
+        const name = [str(r, 'code'), str(r, 'name')].filter(Boolean).join(' ') || null
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'port.created'), name), lines: valueLines(d, r, r.new, opts, new Set(['code', 'name', 'deleted_at'])), key: true, weight: 100 })
+        else if (isDeleted(r)) out.push({ title: withPart(tx(d, 'port.deleted'), name), lines: [], key: true, weight: 90 })
+        else out.push({ title: withPart(tx(d, 'port.edited'), name), lines: changeLines(d, r, opts), key: false, weight: 30 })
+    }
+    return out
+}
+
+// ── 公司执照 ────────────────────────────────────────────────────────────────
+function describeLicence(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    return rows.map((r) => {
+        const kind = refLabel(r, 'cert_type_code'), part = typed(str(r, 'cert_no'))
+        if (r.op === 'INSERT') return { title: withPart(tx(d, 'lic.created'), kind), part, lines: valueLines(d, r, r.new, opts, new Set(['deleted_at', 'cert_no', 'cert_type_code'])), key: true, weight: 100 }
+        if (isDeleted(r)) return { title: withPart(tx(d, 'lic.deleted'), kind), part, lines: [], key: true, weight: 90 }
+        const ls = changeLines(d, r, opts)
+        return changed(r, 'status') ? { title: withPart(tx(d, 'lic.statusChanged'), kind), part, lines: ls, key: true, weight: 80 }
+            : { title: withPart(tx(d, 'lic.edited'), kind), part, lines: ls, key: false, weight: 30 }
     })
 }
 
@@ -1446,8 +2068,12 @@ function foldApprovals(blocks: Block2[]): Block2[] {
         if (b.approvalFor) {
             const target = blocks.find((x) => x !== b && x.recordId === b.approvalFor)
             if (target) {
-                target.lines.push({ t: 'note', text: b.title })
-                if (!target.reason && b.reason) target.reason = b.reason
+                // 一块自己已经说出了那一步(absorbsApproval):审批的标题与说明都不再说一遍 —— 供应商的状态史与审批留痕
+                //   由同一句 p_note 写成,那一句已经是这一块的理由(或它的 Note 行)
+                if (!target.absorbsApproval) {
+                    target.lines.push({ t: 'note', text: b.title })
+                    if (!target.reason && b.reason) target.reason = b.reason
+                }
                 continue
             }
         }
@@ -1501,8 +2127,9 @@ function dedupeHeadings(lines: Line[]): Line[] {
     let lastHeading: string | null = null
     for (const l of lines) {
         if (l.t === 'heading') {
-            if (l.text === lastHeading) continue
-            lastHeading = l.text
+            const k = l.text + '\u0000' + (l.part?.text ?? '')
+            if (k === lastHeading) continue
+            lastHeading = k
         }
         out.push(l)
     }
@@ -1541,10 +2168,10 @@ export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions 
         const at = rs.reduce((m, r) => (r.at > m ? r.at : m), rs[0].at)
         const visible = mergeUpdates(rs.filter((r) => !r.hidden))
         const record = commonRecord(rs)
-        const base: Omit<Entry, 'title' | 'lines' | 'reason' | 'keyEvent' | 'titleRestricted'> = {
+        const base: Omit<Entry, 'title' | 'titlePart' | 'lines' | 'reason' | 'keyEvent' | 'titleRestricted'> = {
             key, at, atText: d.formatStamp(at), who: whoOf(d, rs), prelog: rs.some((r) => r.prelog), record }
         if (!visible.length) {
-            out.push({ ...base, title: tx(d, 'restricted'), titleRestricted: true, lines: [], reason: null, keyEvent: true })
+            out.push({ ...base, title: tx(d, 'restricted'), titlePart: null, titleRestricted: true, lines: [], reason: null, keyEvent: true })
             continue
         }
         // 任务隐私:整份影像受限的行只说"这一类记录被改过",内容受限
@@ -1572,7 +2199,15 @@ export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions 
                 case 'equipment': bs = describeEquipment(d, list, opts, opts.subject); break
                 case 'handover': bs = describeHandover(d, list, opts); break
                 case 'wr': bs = describeWarehouseRequest(d, list, opts); break
-                case 'so': bs = describeSalesOrderHistory(d, list, opts); break
+                case 'so': bs = describeSalesOrder(d, list, opts); break
+                case 'quote': bs = describeQuote(d, list, opts); break
+                case 'shipment': bs = describeShipment(d, list, opts); break
+                case 'customer': bs = describeCustomer(d, list, opts); break
+                case 'commission': bs = describeCommission(d, list, opts); break
+                case 'supplier': bs = describeSupplier(d, list, opts, opts.subject); break
+                case 'container': bs = describeContainer(d, list, opts); break
+                case 'lane': bs = describeLane(d, list, opts); break
+                case 'licence': bs = describeLicence(d, list, opts); break
                 default: bs = []
             }
             // 别的记录的事(往上一跳够到的、审批、分录)永远不当这一条的标题 —— 这一页自己那件事在,标题就是它
@@ -1597,12 +2232,12 @@ export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions 
         const lines: Line[] = [...head.lines]
         let reason = head.reason ?? null
         for (const b of rest) {
-            if (b.title !== head.title && !b.lines.some((l) => l.t === 'heading')) lines.push({ t: 'heading', text: b.title })
+            if ((b.title !== head.title || b.part) && !b.lines.some((l) => l.t === 'heading')) lines.push({ t: 'heading', text: b.title, part: b.part ?? null })
             lines.push(...b.lines)
             if (!reason && b.reason) reason = b.reason
         }
         if (rs.some((r) => r.hidden)) lines.push({ t: 'note', text: tx(d, 'restrictedPart') })
-        out.push({ ...base, title: head.title, titleRestricted: false, lines: dedupeHeadings(lines), reason,
+        out.push({ ...base, title: head.title, titlePart: head.part ?? null, titleRestricted: false, lines: dedupeHeadings(lines), reason,
                    keyEvent: meaningful.some((b) => b.key) })
     }
     return out

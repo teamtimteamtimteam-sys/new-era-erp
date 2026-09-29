@@ -13,8 +13,11 @@ import { operativeMilestoneIds } from './operativeMilestone'
 import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function ContainerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ContainerDetailPage({ params, searchParams }: {
+    params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
+}) {
     const locale = await getLocale()
     const denied = await requireModule(MOD.logistics)
     if (denied) return denied
@@ -179,6 +182,9 @@ export default async function ContainerDetailPage({ params }: { params: Promise<
                 forwarderId={head.data.forwarder_id as string | null}
                 departureDate={formatDate(head.data.departure_date, locale)}
             />
+
+            {/* AUDIT-TRAIL-1b-2:集装箱的审计记录 —— 箱子本身、里程碑、单据清单 */}
+            <AuditTrail subject="container" id={id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

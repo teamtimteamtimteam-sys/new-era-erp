@@ -7,7 +7,7 @@
 //   我声称管的是   :审计记录与 /settings/change-history 上一个机器字都印不出来,措辞目录完整。
 //   两者不同之处   :我读的是【样本】,不是线上的真行 —— 真数据里一种我没造过的形状(一个 JSON 列里恰好认得的键、
 //                   一张表将来新加的列在目录生成之前)我看不见;扫真页面的是冒烟的 trail 判据(scripts/smoke-routes.mjs)。
-//                   目录完整那一臂只管三个主语的表;别的表的枚举值落到 humanize,不是机器字,但措辞未经人过目。
+//                   目录完整那一臂只管登记了主语的表;别的表的枚举值落到 humanize,不是机器字,但措辞未经人过目。
 // ==========================================================================
 // ════════════════════════════════════════════════════════════════════════════
 // AUDIT-TRAIL-1a(Tim 的 Q7 · Q41)· 审计记录的措辞:目录完整,且一个机器字都印不出来
@@ -23,9 +23,11 @@
 //      引用、以及三个主语的每一个关键事件,造样本行,过 buildEntries,把造出来的每一句交给检出器。
 //      一处命中 = 红,并点名那一句与它来自哪一张表的哪一种样本。
 //   ⑤ 覆盖:扫过的表数必须等于目录里的表数(238),扫过的句子必须过一个下限 —— 一次悄悄少扫了的运行不许报"干净"。
+//   ⑥ 商务样例(AUDIT-TRAIL-1b-2):1b-2 每一个主语的字段编辑 · 子行改动 · 关键事件,造出来的英文逐字等于交回报告里列的那一句。
 //
 // 故障注入(TRAIL_WORDING_FAULT=<臂>,每一臂必须在【它那一臂】红):
-//   blind-detector · registry-drift · missing-key · dead-key · label-gap · enum-gap · raw-date · raw-ref · raw-json · raw-null · raw-role
+//   blind-detector · registry-drift · missing-key · dead-key · label-gap · enum-gap · raw-date · raw-ref · raw-json · raw-null · raw-role ·
+//   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -85,7 +87,8 @@ const text = { ...T.TRAIL_TEXT }
 if (FAULT === 'missing-key') delete text['po.cancelled']
 if (FAULT === 'dead-key') text['po.neverUsed'] = 'Never used'
 const USERS = ['lib/trail/render.ts', 'app/components/trail/AuditTrail.tsx', 'app/components/trail/AuditTrailList.tsx',
-    'app/settings/change-history/page.tsx', 'app/components/trail/EndedBanner.tsx', 'app/components/trail/RecentTrail.tsx']
+    'app/settings/change-history/page.tsx', 'app/components/trail/EndedBanner.tsx', 'app/components/trail/RecentTrail.tsx',
+    'app/components/trail/ListTrail.tsx']
 const used = new Set()
 let dynamicAccount = false
 for (const f of USERS) {
@@ -225,9 +228,10 @@ function sweep(label, rows, subject = null) {
         return
     }
     for (const e of entries) {
-        const strings = [e.title, e.who.text, e.atText, e.reason?.text, e.reason?.full]
+        const strings = [e.title, e.titlePart?.text, e.titlePart?.full, e.who.text, e.atText, e.reason?.text, e.reason?.full]
         for (const l of e.lines) {
-            if (l.t === 'heading' || l.t === 'note') strings.push(l.text)
+            if (l.t === 'heading') strings.push(l.text, l.part?.text, l.part?.full)
+            else if (l.t === 'note') strings.push(l.text)
             else if (l.t === 'value') strings.push(l.label, l.value.text, l.value.full)
             else strings.push(l.label, l.old.text, l.old.full, l.new.text, l.new.full)
         }
@@ -351,6 +355,51 @@ for (const ct of checkValues('processing_cost_entry_history', 'change_type') ?? 
     ])
     sweep('role deactivated', [row('roles', 'UPDATE', { cols: ['is_active'], old: { is_active: true }, new: { is_active: false } })])
 }
+// AUDIT-TRAIL-1b-2:商务那一半的关键事件 —— 订单 / 报价事件史的【每一种】取值(带着写它的函数真的会拼出来的 detail)、
+//   供应商的【每一步】状态、信用、拆箱、单据清单的每一种状态。事件史的 change_type 在目录里是隐藏列,样本扫描造的是一个 id,
+//   走不到这些分支 —— 所以在这里一种一种造。取值集合从真源读(CHECK · supplier_status_moves),读出 0 个 = 覆盖不足。
+{
+    const soTypes = checkValues('sales_order_history', 'change_type') ?? []
+    const qtTypes = checkValues('quote_history', 'change_type') ?? []
+    const moves = [...read('db/functions/supplier_status_moves.sql').matchAll(/\('([a-z_]+)',\s*'([a-z_]+)',\s*'[a-z_.]+'\)/g)].map((m) => [m[1], m[2]])
+    if (soTypes.length < 15 || qtTypes.length < 4 || moves.length < 15) {
+        problems.coverage.push(`商务关键事件的取值只读出 订单事件 ${soTypes.length} / 报价事件 ${qtTypes.length} / 供应商状态步 ${moves.length} —— 解析器瞎了`)
+    }
+    const SO_DETAIL = { created: 'SO-2026-0001', converted_from_quote: 'QT-2026-0001', cancelled: 'Customer changed their mind', issued: 'v2',
+        reserved: 'line 1 · OUT-2026-0118 12 kg', released: 'line 1 · 12 · walk complete', invoiced: 'INV-2026-0006',
+        invoice_voided: 'INV-2026-0006 · wrong price', shipped: 'SHP-2026-0001 · 12/12', credit_noted: 'CN-2026-0001 · SGD 50 · damaged' }
+    for (const ct of soTypes) for (const subject of [null, 'sales_order', 'output_batch']) {
+        const g = at(); const so = uuid()
+        sweep(`sales_order_history ${ct} (${subject ?? '汇总页'})`, [row('sales_order_history', 'INSERT', { ...g, prelog: ct === 'created', new: {
+            sales_order_id: so, change_type: ct, detail: SO_DETAIL[ct] ?? null, line_no: 1, old_quantity: 12, new_quantity: 10,
+            old_unit_price: 5, new_unit_price: RESTRICTED, amend_reason: 'Customer asked' }, refs: { sales_order_id: { [so]: { label: 'SO-2026-0001' } } } })], subject)
+    }
+    for (const ct of qtTypes) {
+        const g = at()
+        sweep(`quote_history ${ct}`, [row('quote_history', 'INSERT', { ...g, new: { change_type: ct,
+            detail: ct === 'issued' ? 'v1' : ct === 'converted' ? 'SO-2026-0004' : ct === 'declined' ? 'Too expensive' : 'QT-2026-0001' } })], 'quote')
+    }
+    for (const [from, to] of moves) {
+        const g = at(); const sup = uuid()
+        sweep(`supplier ${from} → ${to}`, [
+            row('suppliers', 'UPDATE', { ...g, key: { id: sup }, cols: ['status'], old: { status: from }, new: { status: to } }),
+            row('supplier_status_history', 'INSERT', { ...g, new: { supplier_id: sup, from_status: from, to_status: to, note: 'Checked the licence' } }),
+            row('approval_log', 'INSERT', { ...g, new: { subject_type: 'supplier', subject_id: sup, subject_code: 'SUP-2026-0001', decision: 'approved' } }),
+        ], 'supplier')
+    }
+    for (const [o, n] of [[[null, false], [5000, false]], [[5000, false], [5000, true]], [[5000, true], [5000, false]], [[5000, false], [8000, true]]]) {
+        sweep(`credit ${JSON.stringify(o)} → ${JSON.stringify(n)}`, [row('customer_credit_history', 'INSERT', { new: {
+            old_credit_limit_base: o[0], new_credit_limit_base: n[0], old_credit_hold: o[1], new_credit_hold: n[1] } })], 'customer')
+    }
+    sweep('container detached', [row('container_milestones', 'INSERT', { new: { milestone: 'other', event_date: '2026-09-01', note: 'detached SHP-2026-0003: wrong box' } })], 'container')
+    for (const st of checkValues('container_documents', 'status') ?? []) {
+        sweep(`container document → ${st}`, [row('container_documents', 'UPDATE', { cols: ['status', 'na_reason'], old: { status: 'pending' },
+            new: { status: st, na_reason: 'Not needed on this lane', document_type: 'Import Permit' } })], 'container')
+    }
+    for (const sub of ['shipment', 'sales_order', 'quote', 'customer', 'supplier', 'forwarder', 'container', 'lane', 'port', 'company_licence', 'commission_agreement']) {
+        sweep(`${sub} 整条看不见`, [row(subjects.find((x) => x.subject === sub)?.root ?? null, null, { hidden: true, table: null, actor: null })], sub)
+    }
+}
 for (const op of ['ACCOUNT_CREATE', 'ACCOUNT_DELETE', 'ACCOUNT_DISABLE', 'ACCOUNT_DISABLE_FAILED', 'ACCOUNT_ENABLE', 'ACCOUNT_ENABLE_FAILED']) {
     sweep(`account ${op}`, [row('auth.users', op, { new: { email: 'someone@example.test' } })])
 }
@@ -358,13 +407,155 @@ sweep('truncate', [row('role_permissions', 'TRUNCATE', {})])
 sweep('whole entry hidden', [row('purchase_order_lines', null, { hidden: true, table: null, actor: null })])
 sweep('private task', [row('tasks', 'UPDATE', { restricted: true, cols: ['title'], old: { title: RESTRICTED }, new: { title: RESTRICTED } })])
 
+// ── ⑥ 商务样例(AUDIT-TRAIL-1b-2):每一个新主语的【字段编辑 · 子行改动 · 关键事件】→ 逐字的英文 ─────────────
+//   ④ 只问"有没有机器字";这一臂问"说的是不是那一句"—— 标题、标题后面人敲的那一段、每一行、理由,逐字比。
+//   交回报告列给 Tim 过目的正是这些句子;改了一句而不改这里,这一臂就红(注入:TRAIL_WORDING_FAULT=wording-drift)。
+problems.gold = []
+if (FAULT === 'wording-drift') dict.text = { ...dict.text, 'so.shipped': 'Shipped out' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const ref = (label, extra = {}) => ({ label, ...extra })
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const G = (label, subject, rows, want) => {
+        let e
+        try { [e] = R.buildEntries(dict, rows.map((r) => ({ group: 'GOLD', order: 1, prelog: false, at: '2026-09-29T02:00:00+00:00', key: { id: uuid() },
+            actor: { state: 'person', name: 'Sandra' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r })),
+            { currency: 'SGD', subject }) } catch (err) { problems.gold.push(`${label}:造句器抛错 ${err.message}`); return }
+        const got = { title: e?.title, part: e?.titlePart?.text ?? null, lines: (e?.lines ?? []).map(lineText), reason: e?.reason?.text ?? null }
+        if (got.title !== want.title) problems.gold.push(`${label}:标题「${got.title}」≠「${want.title}」`)
+        if ((want.part ?? null) !== got.part) problems.gold.push(`${label}:标题后那一段「${got.part}」≠「${want.part ?? null}」`)
+        if (want.lines && JSON.stringify(got.lines) !== JSON.stringify(want.lines)) problems.gold.push(`${label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(want.lines)}`)
+        if ((want.reason ?? null) !== got.reason) problems.gold.push(`${label}:理由「${got.reason}」≠「${want.reason ?? null}」`)
+    }
+    const mat = { material_id: { [id('mat')]: ref('NMC Cathode Foil', { unit: 'kg' }) } }
+    // 报价
+    G('quote · field edit', 'quote', [{ table: 'quotes', op: 'UPDATE', cols: ['notes'], old: { notes: 'Old note' }, new: { notes: 'Deliver in two lots' } }],
+      { title: 'Quote details changed', lines: ['Notes: Old note → Deliver in two lots'] })
+    G('quote · line change', 'quote', [{ table: 'quote_lines', op: 'UPDATE', cols: ['quantity'], old: { quantity: 10 }, new: { quantity: 12 },
+        ctx: { line_no: 1, material_id: id('mat') }, refs: mat }],
+      { title: 'Line changed · Line 1 · NMC Cathode Foil', lines: ['Quantity: 10 kg → 12 kg'] })
+    G('quote · issued (history + issue in one operation)', 'quote', [
+        { table: 'quotes', op: 'UPDATE', cols: ['status'], old: { status: 'draft' }, new: { status: 'issued' } },
+        { table: 'qt_issues', op: 'INSERT', new: { version: 2 } },
+        { table: 'quote_history', op: 'INSERT', new: { change_type: 'issued', detail: 'v2' } }],
+      { title: 'Quote issued to the customer (version 2)', lines: [] })
+    // 一次操作里既建又改(线上那一次回滚的证明就是这个形状):改过的那一行、后面的那几步一样都不能丢
+    G('quote · created and a line changed in one operation', 'quote', [
+        { table: 'quotes', op: 'INSERT', new: { customer_id: id('cus'), quote_date: '2026-09-29', valid_until: '2026-10-29', currency: 'SGD', fx_rate: 1, status: 'draft' },
+          refs: { customer_id: { [id('cus')]: ref('Test Customer') } } },
+        { table: 'quote_history', op: 'INSERT', new: { change_type: 'created', detail: 'QT-2026-0009' } },
+        { table: 'quote_lines', op: 'INSERT', key: { id: id('ql') }, new: { line_no: 1, material_id: id('mat'), quantity: 10, unit_price: 28 }, refs: mat },
+        { table: 'quote_lines', op: 'UPDATE', key: { id: id('ql') }, cols: ['quantity'], old: { quantity: 10 }, new: { quantity: 12 },
+          ctx: { line_no: 1, material_id: id('mat') }, refs: mat }],
+      { title: 'Quote created · 1 line · 280.00 SGD', lines: ['Customer: Test Customer', 'Quotation date: 29/09/2026', 'Valid until: 29/10/2026',
+        'Currency: SGD', 'FX rate: 1', 'Line 1 · NMC Cathode Foil: 10 kg @ 28.00 SGD', '[Line changed · Line 1 · NMC Cathode Foil]', 'Quantity: 10 kg → 12 kg'] })
+    G('supplier · submitted and approved in one operation', 'supplier', [
+        { table: 'suppliers', op: 'UPDATE', key: { id: id('sup2') }, cols: ['status', 'notes'], old: { status: 'draft', notes: null }, new: { status: 'approved', notes: 'Checked' } },
+        { table: 'supplier_status_history', op: 'INSERT', new: { supplier_id: id('sup2'), from_status: 'draft', to_status: 'pending_review', note: 'Ready for review' } },
+        { table: 'supplier_status_history', op: 'INSERT', new: { supplier_id: id('sup2'), from_status: 'pending_review', to_status: 'approved', note: 'Licence checked' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'supplier', subject_id: id('sup2'), subject_code: 'SUP-2026-0002', decision: 'submitted' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'supplier', subject_id: id('sup2'), subject_code: 'SUP-2026-0002', decision: 'approved' } }],
+      { title: 'Supplier submitted for review', lines: ['Note: Ready for review', '[Supplier approved]', 'Note: Licence checked', '[Supplier details changed]', 'Notes: (empty) → Checked'] })
+    G('quote · converted', 'quote', [{ table: 'quote_history', op: 'INSERT', new: { change_type: 'converted', detail: 'SO-2026-0004' } }],
+      { title: 'Quote converted to sales order SO-2026-0004', lines: [] })
+    // 销售订单
+    G('sales order · created (order + history + line)', 'sales_order', [
+        { table: 'sales_orders', op: 'INSERT', new: { customer_id: id('cus'), order_date: '2026-09-29', currency: 'SGD', fx_rate: 1, status: 'draft' },
+          refs: { customer_id: { [id('cus')]: ref('Test Customer') } } },
+        { table: 'sales_order_history', op: 'INSERT', new: { change_type: 'created', detail: 'SO-2026-0009' } },
+        { table: 'sales_order_lines', op: 'INSERT', new: { line_no: 1, material_id: id('mat'), quantity: 10, unit_price: 5 }, refs: mat }],
+      { title: 'Sales order created · 1 line · 50.00 SGD',
+        lines: ['Customer: Test Customer', 'Order date: 29/09/2026', 'Currency: SGD', 'FX rate: 1', 'Line 1 · NMC Cathode Foil: 10 kg @ 5.00 SGD'] })
+    G('sales order · field edit (amend notes)', 'sales_order', [
+        { table: 'sales_orders', op: 'UPDATE', cols: ['notes'], old: { notes: null }, new: { notes: 'Deliver in one lot' } },
+        { table: 'sales_order_history', op: 'INSERT', new: { change_type: 'header_update', old_notes: null, new_notes: 'Deliver in one lot', amend_reason: 'Customer asked' } }],
+      { title: 'Sales order amended · notes and terms changed', lines: ['Notes: (empty) → Deliver in one lot'], reason: 'Customer asked' })
+    G('sales order · line change (amend)', 'sales_order', [
+        { table: 'sales_order_history', op: 'INSERT', new: { change_type: 'line_update', line_no: 1, old_quantity: 10, new_quantity: 8, amend_reason: 'Customer asked' } }],
+      { title: 'Sales order amended · line changed · Line 1', lines: ['Quantity: 10 → 8'], reason: 'Customer asked' })
+    G('sales order · shipped', 'sales_order', [{ table: 'sales_order_history', op: 'INSERT', new: { change_type: 'shipped', detail: 'SHP-2026-0001 · 12/12' } }],
+      { title: 'Goods shipped · SHP-2026-0001', lines: ['Details: 12/12'] })
+    G('sales order · invoice voided', 'sales_order', [{ table: 'sales_order_history', op: 'INSERT', new: { change_type: 'invoice_voided', detail: 'INV-2026-0006 · wrong price' } }],
+      { title: 'Invoice voided · INV-2026-0006', lines: [], reason: 'wrong price' })
+    G('sales order · issued', 'sales_order', [
+        { table: 'so_issues', op: 'INSERT', new: { version: 1 } }, { table: 'sales_order_history', op: 'INSERT', new: { change_type: 'issued', detail: 'v1' } }],
+      { title: 'Sales order issued to the customer (version 1)', lines: [] })
+    // 发货单
+    G('shipment · packed into a container', 'shipment', [{ table: 'shipments', op: 'UPDATE', cols: ['container_id'], old: { container_id: null },
+        new: { container_id: id('ctr') }, refs: { container_id: { [id('ctr')]: ref('CTR-2026-0001') } } }],
+      { title: 'Loaded into container · CTR-2026-0001', lines: [] })
+    G('shipment · line added', 'shipment', [{ table: 'shipment_lines', op: 'INSERT', new: { output_batch_id: id('ob'), qty: 12 },
+        refs: { output_batch_id: { [id('ob')]: ref('OUT-2026-0118 · NMC Cathode Foil', { unit: 'kg' }) } } }],
+      { title: 'Shipment line added', lines: ['OUT-2026-0118 · NMC Cathode Foil: 12 kg'] })
+    G('shipment · delivery note issued', 'shipment', [{ table: 'shipment_issues', op: 'INSERT', new: { version: 3 } }],
+      { title: 'Delivery note issued (version 3)', lines: [] })
+    // 客户
+    G('customer · field edit', 'customer', [{ table: 'customers', op: 'UPDATE', cols: ['legal_name'], old: { legal_name: 'Acme' }, new: { legal_name: 'Acme Pte Ltd' } }],
+      { title: 'Customer details changed', lines: ['Legal name: Acme → Acme Pte Ltd'] })
+    G('customer · contact added', 'customer', [{ table: 'counterparty_contacts', op: 'INSERT', new: { name: 'Ada Tan', email: 'ada@example.test', is_primary: true } }],
+      { title: 'Contact added', part: 'Ada Tan', lines: ['Email: ada@example.test', 'Primary contact: Yes'] })
+    G('customer · credit hold placed', 'customer', [
+        { table: 'customers', op: 'UPDATE', cols: ['credit_hold'], old: { credit_hold: false }, new: { credit_hold: true } },
+        { table: 'customer_credit_history', op: 'INSERT', new: { old_credit_limit_base: 5000, new_credit_limit_base: 5000, old_credit_hold: false, new_credit_hold: true } }],
+      { title: 'Credit hold placed — shipments frozen', lines: ['Credit hold: No → Yes'] })
+    // 佣金协议
+    G('commission · field edit', 'commission_agreement', [{ table: 'commission_agreements', op: 'UPDATE', cols: ['remarks'], old: { remarks: null }, new: { remarks: '2% on invoice' } }],
+      { title: 'Commission agreement changed', lines: ['Clause / remarks: (empty) → 2% on invoice'] })
+    G('commission · deleted', 'commission_agreement', [{ table: 'commission_agreements', op: 'UPDATE', cols: ['deleted_at'], old: { deleted_at: null }, new: { deleted_at: '2026-09-29T02:00:00Z' } }],
+      { title: 'Commission agreement deleted', lines: [] })
+    // 供应商
+    G('supplier · field edit', 'supplier', [{ table: 'suppliers', op: 'UPDATE', cols: ['payment_terms'], old: { payment_terms: 'NET30' }, new: { payment_terms: 'NET60' } }],
+      { title: 'Supplier details changed', lines: ['Payment terms: NET30 → NET60'] })
+    G('supplier · certificate added', 'supplier', [{ table: 'supplier_compliance', op: 'INSERT', new: { cert_type_code: 'ART18', cert_no: 'CERT-1', valid_until: '2027-03-02' },
+        refs: { cert_type_code: { ART18: ref('Article 18') } } }],
+      { title: 'Compliance certificate added · Article 18', part: 'CERT-1', lines: ['Valid until: 02/03/2027'] })
+    G('supplier · approved (status + history + approval)', 'supplier', [
+        { table: 'suppliers', op: 'UPDATE', key: { id: id('sup') }, cols: ['status', 'approved_at'], old: { status: 'pending_review' }, new: { status: 'approved' } },
+        { table: 'supplier_status_history', op: 'INSERT', new: { supplier_id: id('sup'), from_status: 'pending_review', to_status: 'approved', note: 'Licence checked' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'supplier', subject_id: id('sup'), subject_code: 'SUP-2026-0001', decision: 'approved' } }],
+      { title: 'Supplier approved', lines: [], reason: 'Licence checked' })
+    // 货代
+    G('forwarder · details changed', 'forwarder', [{ table: 'forwarder_details', op: 'UPDATE', cols: ['main_routes'], old: { main_routes: 'SG → CN' }, new: { main_routes: 'SG → CN, SG → KR' } }],
+      { title: 'Logistics details changed', lines: ['Main routes: SG → CN → SG → CN, SG → KR'] })
+    G('forwarder · rate quote added', 'forwarder', [{ table: 'forwarder_rate_quotes', op: 'INSERT', new: { lane_id: id('lane'), amount_ccy: 1200, currency: 'USD', free_days: 5 },
+        refs: { lane_id: { [id('lane')]: ref('SGSIN Singapore → CNSHA Shanghai') } } }],
+      { title: 'Rate quote added · SGSIN Singapore → CNSHA Shanghai', lines: ['Amount: 1,200.00 USD', 'Currency: USD', 'Free days: 5'] })
+    // 集装箱
+    G('container · field edit', 'container', [{ table: 'containers', op: 'UPDATE', cols: ['vessel'], old: { vessel: null }, new: { vessel: 'MV Fixture' } }],
+      { title: 'Container details changed', lines: ['Vessel: (empty) → MV Fixture'] })
+    G('container · document received', 'container', [{ table: 'container_documents', op: 'UPDATE', cols: ['status'], old: { status: 'pending' },
+        new: { status: 'received' }, ctx: { document_type: 'Import permit' } }],
+      { title: 'Document received', part: 'Import permit', lines: [] })
+    G('container · milestone', 'container', [{ table: 'container_milestones', op: 'INSERT', new: { milestone: 'departed', event_date: '2026-09-29' } }],
+      { title: 'Milestone recorded · Departed', lines: ['Date it happened: 29/09/2026'] })
+    G('container · shipment detached', 'container', [{ table: 'container_milestones', op: 'INSERT', new: { milestone: 'other', event_date: '2026-09-29', note: 'detached SHP-2026-0003: wrong box' } }],
+      { title: 'Shipment SHP-2026-0003 taken out of this container', lines: [], reason: 'wrong box' })
+    // 航段 · 港口 · 执照
+    const ports = { origin_port_id: { [id('p1')]: ref('SGSIN Singapore') }, destination_port_id: { [id('p2')]: ref('CNSHA Shanghai') } }
+    G('lane · created', 'lane', [{ table: 'lanes', op: 'INSERT', new: { origin_port_id: id('p1'), destination_port_id: id('p2') }, refs: ports }],
+      { title: 'Lane created · SGSIN Singapore → CNSHA Shanghai', lines: [] })
+    G('lane · requirement added', 'lane', [{ table: 'lane_document_requirements', op: 'INSERT', new: { document_type: 'Import permit', regime: 'Basel' } }],
+      { title: 'Required document added', part: 'Import permit', lines: ['Regime: Basel'] })
+    G('lane · checklist reviewed', 'lane', [{ table: 'lanes', op: 'UPDATE', cols: ['checklist_reviewed_at'], old: { checklist_reviewed_at: null },
+        new: { checklist_reviewed_at: '2026-09-29T02:00:00Z' }, ctx: { origin_port_id: id('p1'), destination_port_id: id('p2') }, refs: ports }],
+      { title: 'Document checklist reviewed · SGSIN Singapore → CNSHA Shanghai', lines: [] })
+    G('port · renamed', 'port', [{ table: 'ports', op: 'UPDATE', cols: ['name'], old: { name: 'Singapore' }, new: { name: 'Singapore (Pasir Panjang)' }, ctx: { code: 'SGSIN' } }],
+      { title: 'Port changed · SGSIN Singapore (Pasir Panjang)', lines: ['Port name: Singapore → Singapore (Pasir Panjang)'] })
+    G('licence · standing changed', 'company_licence', [{ table: 'company_compliance', op: 'UPDATE', cols: ['status'], old: { status: 'active' }, new: { status: 'suspended' },
+        ctx: { cert_type_code: 'GWDF', cert_no: 'WDL-21-2-5380' }, refs: { cert_type_code: { GWDF: ref('GWDF Licence') } } }],
+      { title: 'Licence standing changed · GWDF Licence', part: 'WDL-21-2-5380', lines: ['Standing: Active → Suspended'] })
+    if (FAULT === 'wording-drift' && !problems.gold.length) problems.gold.push('(注入 wording-drift 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + 1
 if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSwept.size} 张表,目录里有 ${expectTables} 张`)
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

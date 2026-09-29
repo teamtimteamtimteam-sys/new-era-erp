@@ -16,11 +16,14 @@ import ReceiptPatternPanel, {
     type PatternRow, type ContributingReceipt,
 } from './ReceiptPatternPanel'
 import { formatAuditStamp } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 export default async function EditSupplierPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -239,6 +242,10 @@ export default async function EditSupplierPage({
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
                 <ContactsPanel permissionCode="module.suppliers.edit" supplierId={supplier.id} rows={supplierContacts} canEdit={canEditSupplier} />
             </section>
+
+            {/* AUDIT-TRAIL-1b-2(Q2):供应商只有这一页(没有详情页),所以审计记录挂在编辑页底 ——
+                送审 · 批准 · 启用 · 暂停 · 存档 · 合规证书 · 附件 · 联系人 */}
+            <AuditTrail subject="supplier" id={supplier.id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

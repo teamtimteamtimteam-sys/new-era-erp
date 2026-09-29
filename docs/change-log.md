@@ -216,8 +216,10 @@ Fixtures 234 and 235 pin the behaviour. Every arm was fault-injected and went re
 Every page where something is done, or whose record it affects, carries an **"Audit trail"** section at the bottom:
 when, who and what happened, in plain English, newest first. AUDIT-TRAIL-1a (v1.4.33) built the mechanism and the first
 three pages; AUDIT-TRAIL-1b-1 (part of v1.4.33) added six registry extensions (M1–M6, §9.9), the batch, work-order,
-stocktake, equipment, handover and warehouse-request subjects, and three corrections to AT-1a (§9.7, §9.4); the rest
-follow in AT-1b-2, AT-1b-3, AT-1c and AT-1d (`docs/forward-queue.md`, "HISTORY family").
+stocktake, equipment, handover and warehouse-request subjects, and three corrections to AT-1a (§9.7, §9.4); AUDIT-TRAIL-1b-2
+(part of v1.4.33) added the commercial half — quotes, sales orders, shipments, customers, commission agreements, suppliers,
+forwarders, containers, lanes and ports, company licences — and replaced the quote and sales-order "History" sections; the rest
+follow in AT-1b-3, AT-1c and AT-1d (`docs/forward-queue.md`, "HISTORY family").
 Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`) and AT-1b Step 0 Q1–Q14 + M1–M6
 (`docs/surveys/AUDIT-TRAIL-1b/STEP0-HANDBACK.md`), all accepted as recommended.
 
@@ -234,6 +236,16 @@ Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`) and AT-
 | `/operation/handovers/[id]` | `shift_handover` | `module.processing.view` | the handover · its items · the downtime it referenced |
 | `/inventory` (a block) | `warehouse_request` | `module.inventory.view` **or** `module.finance.view` (M1) | the request · its approvals — read per request and merged by `app/components/trail/RecentTrail.tsx` |
 | `/operation/processing/[id]` (1b-1 addition) | `processing_run` | — | + its rollback requests and their approvals |
+| `/sales/quotes/[id]` (1b-2) | `quote` | `module.sales.view` | the quote · its lines · its PDF issues · its history (created, issued, declined, converted) — replaces the page's "History" section (Q26) |
+| `/sales/orders/[id]` (1b-2) | `sales_order` | `module.sales.view` | the order · its lines · the lines' reservations · shipping releases, their lines and approvals · PDF issues · its history (created, confirmed, issued, reserved, released, invoiced, invoice voided, shipped, credit note, amendments, converted from a quote) · contract terms — replaces the page's "History" section (Q26); the page keeps a narrowed history query for "amended since issued" and the "From quote" link |
+| `/sales/shipments/[id]` (1b-2) | `shipment` | `module.sales.view` **or** `action.ship_goods` (M1) | the shipment · its lines · its delivery-note issues |
+| `/sales/customers/[id]` (1b-2) | `customer` | `module.customers.view` | the customer · contacts · attachments · credit history · statements and their PDF issues · payment chases, the documents they name and the promises (the last five are finance-only: Restricted rows for other readers, Q4) |
+| `/sales/commissions/[id]/edit` (1b-2, its only page, Q2) | `commission_agreement` | `module.suppliers.view` | the agreement |
+| `/suppliers/[id]/edit` (1b-2, its only page, Q2) | `supplier` | `module.suppliers.view` | the supplier · compliance certificates · attachments · contacts · status history · approval decisions |
+| `/logistics/containers/[id]` (1b-2) | `container` | `module.logistics.view` | the container · milestones (a detachment is a milestone whose note carries the reason) · document checklist |
+| `/logistics/forwarders/[id]` (1b-2) | `forwarder` | `module.logistics.view` (root rule `page`, M3) | the forwarder's supplier row (suppliers.view readers only; Restricted for the rest) · logistics details · rate quotes |
+| `/logistics/lanes` (1b-2, a list-level block) | `lane` · `port` | `module.logistics.view` | each lane · its document requirements; each port · the lanes leaving and arriving at it (two foreign keys, two members) — read per record and merged by `app/components/trail/ListTrail.tsx` |
+| `/purchasing/licences` (1b-2, a list-level block) | `company_licence` | `module.suppliers.view` (the table's rule; the block sits in the page's suppliers.view branch) | each licence — read per record by `ListTrail` |
 
 ### 9.1 The reader: `record_trail(subject, id, entries)`
 
@@ -304,6 +316,17 @@ single-field edits were not."
 - **`by_kind`** (M2, AUDIT-TRAIL-1b-1) says whose id the `by_column` holds: `account` (a login, `auth.uid()` — almost every
   table) or `employee` (`current_user_employee()` — the handover's `acknowledged_by`; 1b-3's task tables). An employee id
   read as an account would resolve to "Removed account", a false statement rather than an unknown one.
+- **Quotes and sales orders (AUDIT-TRAIL-1b-2).** A document's own creation (`quotes.created_at`, `sales_orders.created_at`)
+  **and** its history's `created` row are both registered: they are written in one transaction (measured row by row on live:
+  `created_at` = `changed_at`), so they rebuild with the same timestamp, group into one entry, and the renderer folds them into
+  one "created" sentence. That also gives a creation entry to the orders that have no history at all (two live test orders).
+  The PDF issue tables (`qt_issues`, `so_issues`) are **not** registered — the history's `issued` row already records each issue
+  (Step 0 §a); nor are the order's `confirmed_at` / `closed_at` / `cancelled_at` stamps. The reservation stamps (1b-1, for the
+  batch pages) share their timestamps with the order history's `reserved` / `released` / `shipped` rows, so on the order page
+  they fold into those entries and are not said twice. Measured consequence: QT-2026-0001's second PDF issue (v2) has no history
+  row, so the quote's pre-log trail shows version 1 only; the page's own "Issued versions" list still shows both.
+- **Suppliers.** `approved_at` is registered as a stamp: suppliers approved before ROLE-1 Batch 2a (2026-09-24) have no status
+  history or approval row, only that stamp.
 - **One exception to "no stamp a history already records" (Tim's Q11):** a stocktake's `posted_at`. Posts before
   22/09/2026 have nothing else (posting did not write `approval_log` yet); later posts write both in one transaction, so
   they share a timestamp, group into one entry, and the renderer folds the approval into the posting as one line.
@@ -322,6 +345,10 @@ single-field edits were not."
    `MUST_CONTAIN` entry `{ trail: 'audit-trail' }`. Add the subject to `TrailSubject` / `TRAIL_SUBJECT_ROOTS`
    (`AuditTrail.tsx`) and its shown tables to `SUBJECT_TABLES` (`lib/trail/render.ts`) — `check-trail-wording` compares
    both with the SQL registry.
+   **A record with no page of its own** (lanes, ports, company licences — 1b-2) gets a block at the bottom of its list page:
+   `<ListTrail records={[{ subject, id, label }…]} intro="listTrail.intro.…" show={…} />`. It reads `record_trail` once per
+   record (deleted records included — "removed" is part of the record), merges the entries newest first with a Record column,
+   and drops an entry shown identically by two records (a lane's creation also belongs to both its ports).
    A panel that owns only some columns of a shared row (1b-3's threshold panels) sets `root_columns` (M6): the trail then
    shows only those columns and drops the changes that touch none of them. A single-row settings table keyed by `id
    boolean` works as a root (M5): the reader rebuilds the root key from the row's own typed value.
@@ -352,6 +379,20 @@ single-field edits were not."
 - **State notes on a batch** (Q5): "Not received against a purchase order", "No cost-of-sales journal" and "This
   processing was later rolled back" are grey lines inside the entry they belong to; they read the row's current value (and,
   for a run, `trail_ref_label`'s `ended`).
+- **Typed text in a title** (AUDIT-TRAIL-1b-2): a file name, a contact's name, a document type or a certificate number that a
+  person typed is never spliced into the fixed wording. It is the entry's `titlePart` (or a heading's `part`), rendered inside the
+  same `data-trail-typed` span as typed values — shown as written (Q8) and exempt from the smoke's machine-token scan. Measured
+  reason: a supplier attachment is named "Screenshot 2026-06-28 at 5.49.23 PM.png", and the detector rightly reads that date as
+  a machine token when it sits in a title.
+- **History `detail` strings** (quote and sales-order history, 1b-2) are composed by the database ("SHP-2026-0001 · 12/12",
+  "INV-2026-0006 · wrong price"). A leading document number goes into the title ("Goods shipped · SHP-2026-0001"); the rest is
+  a "Details" line (or the reason, for a voided invoice or a cancellation), shown as written. A `created` row's detail is the
+  document's own number, or on SO-2026-0001 a back-fill note the database wrote in Chinese — neither is shown.
+- **Several events in one operation** (1b-2, found by the live proof, which writes everything in one transaction): a line added or
+  changed in the same operation as a quote's or order's creation is listed under the creation ("Line changed · Line 1 · …"); a
+  line block carries its line in its title, never as a bare "Line 1" sub-heading (a block's title is its sub-heading when another
+  event heads the entry); a supplier's status history is one block per step, and when one operation takes several steps each
+  step's note is a line of its own, not a single shared reason.
 - **Machine-written Chinese** (Q8): typed text is shown as written; values the system wrote in Chinese are shown in English
   (`messages/trail-machine-values.ts` for `inbound_batches.stage`; automatic-approval notes are replaced by
   "Approved automatically (approvals were switched off)").
@@ -364,6 +405,15 @@ hidden rows, reversals, state-note inputs, written-off batches and reversed runs
 warehouse-request block), fault-injected by `db/scripts/2026-09-29-at1b1-fixture-injections.py` (20 injections, each red
 in its own arm). The smoke `trail` assertion now also covers `/inbound/[id]/edit`, `/output/[id]/edit`,
 `/operation/orders/[id]`, `/stocktakes/[id]`, `/operation/equipment/[id]` and `/operation/handovers/[id]`.
+AUDIT-TRAIL-1b-2 adds fixture **239** (every new subject's field edit, child-line change and key event; M1 on shipments; M3 on
+forwarders; the list-level lanes, ports and licences; the replaced quote and sales-order histories row for row; the pre-log merge
+and "never twice"), fault-injected by `db/scripts/2026-09-30-at1b2-fixture-injections.py` (17 injections, each red in its own
+arm); a sixth arm in `scripts/check-trail-wording.mjs`, **⑥ 商务样例**, which renders a field edit, a child-line change and a key
+event for every new subject and compares the English word for word (injection `wording-drift`), plus a key-event sweep over
+every sales-order and quote history value, every supplier status move, credit, detachment and document state; the smoke `trail`
+assertion on the nine 1b-2 pages; and `scripts/probe-at1b2.mjs` (a real warehouse account — `action.ship_goods` without
+`module.sales.view` — opens a shipment and its trail; the old History sections are gone; typed text stays typed; the Chinese
+interface leaves the trail untouched).
 
 | check | reads | fails on |
 |---|---|---|
@@ -378,9 +428,9 @@ samples must all be caught, a known-good sentence must pass).
 
 | | what | where | first user |
 |---|---|---|---|
-| M1 | a subject is admitted by **any one** of several view codes | `trail_subjects.view_codes`, `has_any_permission` | `warehouse_request` (inventory or finance); 1b-2's shipments |
+| M1 | a subject is admitted by **any one** of several view codes | `trail_subjects.view_codes`, `has_any_permission` | `warehouse_request` (inventory or finance); `shipment` (sales or ship_goods — 1b-2; live reader: the warehouse account) |
 | M2 | a pre-log actor column may hold an **employee** id | `trail_prelog_sources.by_kind` | the handover's acknowledgement; 1b-3's tasks |
-| M3 | the page's code admits the reader even where the root table's own rule does not; the root row's events are then per-row | `trail_subjects.root_rule = 'page'` | `equipment` (root `fixed_assets` is finance-only); 1b-2's forwarder |
+| M3 | the page's code admits the reader even where the root table's own rule does not; the root row's events are then per-row | `trail_subjects.root_rule = 'page'` | `equipment` (root `fixed_assets` is finance-only); `forwarder` (root `suppliers` is suppliers.view; the page is logistics.view — 1b-2) |
 | M4 | a member may be reached by an **upward** hop, and may be a **stepping stone** that is not shown | `trail_subject_members.hop` / `shown` | the batch trail (45 of the 292 old rows live were upward) |
 | M5 | a root keyed by a non-text value (`id boolean`) is matched by its typed value | `record_trail` rebuilds the root key from the row | 1b-3's threshold panels |
 | M6 | a root may be limited to the **columns a panel owns** | `trail_subjects.root_columns` | 1b-3's threshold panels |

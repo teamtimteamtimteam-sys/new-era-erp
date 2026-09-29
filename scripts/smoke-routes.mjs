@@ -582,6 +582,17 @@ const MUST_CONTAIN = {
     '/stocktakes/[id]': [{ trail: 'audit-trail', why: '盘点页底的审计记录' }],
     '/operation/equipment/[id]': [{ trail: 'audit-trail', why: '设备页底的审计记录(Q22)' }],
     '/operation/handovers/[id]': [{ trail: 'audit-trail', why: '交接班页底的审计记录(Q23)' }],
+    // ── AUDIT-TRAIL-1b-2:商务 —— 报价与订单(替掉两段"历史")· 发货单(M1)· 供应商 · 集装箱 · 货代(M3)·
+    //    航段与港口、执照(只有清单页的那一块)。客户页那一条接在它原来的联系人判据后面;佣金协议的编辑页在
+    //    "预期会 SKIP"那一张单子上(线上零份协议),它的审计记录由 fixture 239 与线上那一次回滚的证明钉着。
+    '/sales/quotes/[id]': [{ trail: 'audit-trail', why: '报价页底的审计记录(替掉"历史"那一段)' }],
+    '/sales/orders/[id]': [{ trail: 'audit-trail', why: '销售订单页底的审计记录(替掉"历史"那一段)' }],
+    '/sales/shipments/[id]': [{ trail: 'audit-trail', why: '发货单页底的审计记录' }],
+    '/suppliers/[id]/edit': [{ trail: 'audit-trail', why: '供应商编辑页底的审计记录(Q2:它只有这一页)' }],
+    '/logistics/containers/[id]': [{ trail: 'audit-trail', why: '集装箱页底的审计记录' }],
+    '/logistics/forwarders/[id]': [{ trail: 'audit-trail', why: '货代页底的审计记录(M3)' }],
+    '/logistics/lanes': [{ trail: 'audit-trail', why: '航段与港口那一块合起来的审计记录(只有清单页)' }],
+    '/purchasing/licences': [{ trail: 'audit-trail', why: '执照那一块合起来的审计记录(只有清单页)' }],
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
     // 为空时改渲染一段琥珀色文字("还没有货代 / 还没有供货商")。所以那个字符串
@@ -666,6 +677,7 @@ const MUST_CONTAIN = {
     '/sales/customers/[id]': [
         { needle: MSG_CONTACTS_SECTION,
           why: '客户页上的联系人那一段不见了 —— 而联系人搬进子表之后,那是维护它们的唯一入口' },
+        { trail: 'audit-trail', why: '客户页底的审计记录(AUDIT-TRAIL-1b-2)' },
     ],
     '/sales/customers/overlap': [
         { needle: MSG_OVERLAP_NOT_NETTED,

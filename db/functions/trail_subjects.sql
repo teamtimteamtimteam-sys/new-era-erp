@@ -20,6 +20,19 @@
 --   equipment      → /operation/equipment/[id]      requireModule(MOD.processing)  = module.processing.view
 --   shift_handover → /operation/handovers/[id]      requireModule(MOD.processing)  = module.processing.view
 --   warehouse_request → /inventory 的申请一块        requireModule(MOD.inventory)   = module.inventory.view(+ 财务)
+-- AUDIT-TRAIL-1b-2(Tim 2026-09-29,AT-1b Step 0 §a 的商务那一半):
+--   quote          → /sales/quotes/[id]              requireModule(MOD.sales)       = module.sales.view
+--   sales_order    → /sales/orders/[id]              requireModule(MOD.sales)       = module.sales.view
+--   shipment       → /sales/shipments/[id]           action.ship_goods,否则 requireModule(MOD.sales)(M1:任一)
+--   customer       → /sales/customers/[id]           requireModule(MOD.customers)   = module.customers.view
+--   commission_agreement → /sales/commissions/[id]/edit(只有这一页,Q2)requireModule(MOD.suppliers) = module.suppliers.view
+--   supplier       → /suppliers/[id]/edit(只有这一页,Q2)requireModule(MOD.suppliers) = module.suppliers.view
+--   container      → /logistics/containers/[id]      requireModule(MOD.logistics)   = module.logistics.view
+--   forwarder      → /logistics/forwarders/[id]      requireModule(MOD.logistics)   = module.logistics.view
+--                    根表是 suppliers(读规则 module.suppliers.view)—— M3:页面的码是门,根行自己的改动逐行判
+--   lane · port    → /logistics/lanes(只有清单页,按条合起来,见 app/components/trail/ListTrail.tsx)module.logistics.view
+--   company_licence → /purchasing/licences(只有清单页)门是 module.purchasing.view,而这张表的读规则是
+--                    module.suppliers.view —— 这一块只画在持 suppliers.view 的那一支里(页面本来就那样分),所以登记后者
 -- 【后面几刀加主语】加一行这里、在 trail_subject_members 里登记它的子行与相关行、需要的话在
 --   trail_prelog_sources 里登记"记录开始之前"的来源,然后在 lib/trail/ 里补它的措辞 —— 见 docs/change-log.md §9。
 CREATE OR REPLACE FUNCTION public.trail_subjects()
@@ -38,6 +51,18 @@ AS $function$
         ('stocktake',         ARRAY['module.stocktakes.view'],    'stocktakes',         'id', 'table', NULL),
         ('equipment',         ARRAY['module.processing.view'],    'fixed_assets',       'id', 'page',  NULL),
         ('shift_handover',    ARRAY['module.processing.view'],    'shift_handovers',    'id', 'table', NULL),
-        ('warehouse_request', ARRAY['module.inventory.view', 'module.finance.view'], 'warehouse_requests', 'id', 'table', NULL)
+        ('warehouse_request', ARRAY['module.inventory.view', 'module.finance.view'], 'warehouse_requests', 'id', 'table', NULL),
+        -- AUDIT-TRAIL-1b-2
+        ('quote',             ARRAY['module.sales.view'],         'quotes',             'id', 'table', NULL),
+        ('sales_order',       ARRAY['module.sales.view'],         'sales_orders',       'id', 'table', NULL),
+        ('shipment',          ARRAY['module.sales.view', 'action.ship_goods'], 'shipments', 'id', 'table', NULL),
+        ('customer',          ARRAY['module.customers.view'],     'customers',          'id', 'table', NULL),
+        ('commission_agreement', ARRAY['module.suppliers.view'],  'commission_agreements', 'id', 'table', NULL),
+        ('supplier',          ARRAY['module.suppliers.view'],     'suppliers',          'id', 'table', NULL),
+        ('container',         ARRAY['module.logistics.view'],     'containers',         'id', 'table', NULL),
+        ('forwarder',         ARRAY['module.logistics.view'],     'suppliers',          'id', 'page',  NULL),
+        ('lane',              ARRAY['module.logistics.view'],     'lanes',              'id', 'table', NULL),
+        ('port',              ARRAY['module.logistics.view'],     'ports',              'id', 'table', NULL),
+        ('company_licence',   ARRAY['module.suppliers.view'],     'company_compliance', 'id', 'table', NULL)
     ) AS s(subject, view_codes, root_table, root_key, root_rule, root_columns);
 $function$;

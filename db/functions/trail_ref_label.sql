@@ -13,6 +13,9 @@
 --     "This processing was later rolled back"(旧批次记录的 run_voided,Q5)。
 --   · 交接班 → "DD/MM/YYYY · 班次";停机 → "机器编号 · DD/MM/YYYY HH:MM"(新加坡时间)—— 两张表都没有编号或名字,
 --     以前只能说 "a handover" / "a downtime"。
+-- AUDIT-TRAIL-1b-2:订单 / 报价明细行 → "SO-… line N";港口 → "代码 名称";航段 → "起运港 → 目的港";
+--   执照与合规证书 → "种类 · 编号";附件 → 文件名;集装箱单据 → 单据种类 —— 这几张表都没有编号或 name 一类的列。
+--   物料多带一个 unit(与批次同一个做法):订单 / 报价明细行的数量据此说成 "10 kg"。
 -- 【属主身份】按表名动态读;EXECUTE 已从 authenticated 收回。
 CREATE OR REPLACE FUNCTION public.trail_ref_label(p_table text, p_column text, p_value text)
  RETURNS jsonb
@@ -76,8 +79,36 @@ BEGIN
     ELSIF p_table = 'equipment_downtime' THEN
         v_label := COALESCE((SELECT fa.code FROM fixed_assets fa WHERE fa.id::text = v_img ->> 'equipment_id') || ' · ', '')
                    || to_char(((v_img ->> 'started_at')::timestamptz) AT TIME ZONE 'Asia/Singapore', 'DD/MM/YYYY HH24:MI');
+    ELSIF p_table IN ('sales_order_lines', 'quote_lines') THEN
+        -- AUDIT-TRAIL-1b-2:订单 / 报价的明细行 → "SO-2026-0001 line 1"(与采购单明细同一种说法)
+        v_label := CASE p_table
+            WHEN 'sales_order_lines' THEN (SELECT so.code FROM sales_orders so WHERE so.id::text = v_img ->> 'sales_order_id')
+            ELSE (SELECT q.code FROM quotes q WHERE q.id::text = v_img ->> 'quote_id') END
+            || ' line ' || (v_img ->> 'line_no');
+    ELSIF p_table = 'ports' THEN
+        -- 港口 → "SGSIN Singapore"(航段页、货代页上的同一种写法)
+        v_label := concat_ws(' ', v_img ->> 'code', v_img ->> 'name');
+    ELSIF p_table = 'lanes' THEN
+        -- 航段没有名字 → "起运港 → 目的港"(两头各按港口那一句说)
+        v_label := COALESCE((SELECT concat_ws(' ', pt.code, pt.name) FROM ports pt WHERE pt.id::text = v_img ->> 'origin_port_id'), '?')
+                   || ' → ' ||
+                   COALESCE((SELECT concat_ws(' ', pt.code, pt.name) FROM ports pt WHERE pt.id::text = v_img ->> 'destination_port_id'), '?');
+    ELSIF p_table IN ('company_compliance', 'supplier_compliance') THEN
+        -- 执照 / 证书 → "证书种类 · 编号"
+        v_label := concat_ws(' · ', (SELECT ct.name_en FROM certificate_types ct WHERE ct.code = v_img ->> 'cert_type_code'),
+                             NULLIF(v_img ->> 'cert_no', ''));
+    ELSIF p_table IN ('customer_attachments', 'supplier_attachments') THEN
+        v_label := v_img ->> 'file_name';
+    ELSIF p_table = 'container_documents' THEN
+        v_label := v_img ->> 'document_type';
     ELSIF p_table = 'processing_runs' THEN
         RETURN jsonb_build_object('label', NULLIF(v_label, ''), 'gone', v_gone, 'ended', v_img ->> 'deleted_at' IS NOT NULL);
+    END IF;
+    IF p_table = 'materials' THEN
+        -- AUDIT-TRAIL-1b-2:物料带回它的单位 —— 订单 / 报价的明细行没有单位列,"10"要说成"10 kg"
+        --   只在影像里真有单位时才带(一份早于变更记录、只剩名字的影像不说单位 —— 与"名字 + gone"那一形状逐字相同)
+        RETURN jsonb_build_object('label', NULLIF(v_label, ''), 'gone', v_gone)
+               || CASE WHEN v_img ->> 'unit' IS NOT NULL THEN jsonb_build_object('unit', v_img ->> 'unit') ELSE '{}'::jsonb END;
     END IF;
     IF p_table IN ('inbound_batches', 'output_batches') THEN
         IF v_img ->> 'material_id' IS NOT NULL THEN

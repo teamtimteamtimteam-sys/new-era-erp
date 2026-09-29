@@ -11,8 +11,10 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import LanesPanel from './LanesPanel'
 import { can } from '@/lib/permissions'
+import ListTrail, { type ListTrailRecord } from '@/app/components/trail/ListTrail'
+import { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function LanesPage() {
+export default async function LanesPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
     const denied = await requireModule(MOD.logistics)
     if (denied) return denied
     const canEditGate = await can('module.purchasing.edit')
@@ -39,6 +41,20 @@ export default async function LanesPage() {
     )
 
     const portLabel = new Map(ports.map((p) => [p.id as string, `${p.code} ${p.name}`]))
+
+    // AUDIT-TRAIL-1b-2:航段与港口没有详情页 —— 页底一块合起来的审计记录,每一条航段、每一个港口各读一次。
+    //   【删掉的也读】清单只列在用的,而"被删掉了"正是审计记录要说的事;所以这里单独取全部(含 deleted_at)。
+    const [allPorts, allLanes] = await Promise.all([
+        supabase.from('ports').select('id, code, name').order('code'),
+        supabase.from('lanes').select('id, origin_port_id, destination_port_id'),
+    ])
+    const portsAll = mustRows(allPorts, 'ports (audit trail)')
+    const allPortLabel = new Map(portsAll.map((p) => [p.id as string, `${p.code} ${p.name}`]))
+    const trailRecords: ListTrailRecord[] = [
+        ...mustRows(allLanes, 'lanes (audit trail)').map((l) => ({ subject: 'lane' as const, id: l.id as string,
+            label: `${allPortLabel.get(l.origin_port_id as string) ?? '?'} → ${allPortLabel.get(l.destination_port_id as string) ?? '?'}` })),
+        ...portsAll.map((p) => ({ subject: 'port' as const, id: p.id as string, label: `${p.code} ${p.name}` })),
+    ]
     const stateOf = new Map(status.map((s) => [s.lane_id as string, s.checklist_state as string]))
 
     return (
@@ -69,6 +85,7 @@ export default async function LanesPage() {
                     removeRequirement: t('logistics.removeRequirement'),
                 }}
             />
+            <ListTrail records={trailRecords} intro="listTrail.intro.lanes" show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

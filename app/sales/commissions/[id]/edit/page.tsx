@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation'
 import CommissionForm, { type Agent, type Currency } from '../../CommissionForm'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 type Row = {
     id: string; agent_supplier_id: string; side: string; basis: string
@@ -16,7 +17,9 @@ type Row = {
     remarks: string | null; deleted_at: string | null
 }
 
-export default async function EditCommissionPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditCommissionPage({ params, searchParams }: {
+    params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
+}) {
     const locale = await getLocale()
     const denied = await requireModule(MOD.suppliers)
     if (denied) return denied
@@ -71,6 +74,8 @@ export default async function EditCommissionPage({ params }: { params: Promise<{
                     remarks: row.remarks ?? '',
                 }}
             />
+            {/* AUDIT-TRAIL-1b-2(Q2):佣金协议只有这一页,所以审计记录挂在编辑页底 */}
+            <AuditTrail subject="commission_agreement" id={row.id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }
