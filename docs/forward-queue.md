@@ -141,6 +141,15 @@
 >    (推导:close-out 这一次会话第一条命令的时刻,手里已经有 Tim 的"已部署" —— 一句转述,不是对 Vercel 的测量)。
 >    **破窗:至少 5 h 24 min 23 s,至多 5 h 35 min 01 s。** 窗口里**没有东西坏掉**(旧代码读的 `change_log_rows` /
 >    `change_log_filters` 签名兼容,不锁表);用户只是看见旧页面。见 `docs/handbacks/AUDIT-TRAIL-1a.md` §7。
+> 24. **✅ 批次、工单、盘点、设备、交接班的审计记录与登记表的六个扩展 —— AUDIT-TRAIL-1b-1(`v1.4.33` 的一部分,【未发布】,2026-09-29)。**
+>    内容见下面「HISTORY family」一节 AT-1b 那一块的 ✅ AT-1b-1。
+>    ★ **部署:Tim 在 Vercel 上确认 `e0e1a789` 已部署(AT-1b-1 close-out + AT-1b-2 委托书,2026-09-29)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-09-29 21:15:05 CST**(测量:`db/migration-windows.tsv`)· 终点下界 **2026-09-29 23:26:55 CST**(测量:推送把
+>    `origin/main` 移到 `e0e1a789`,`git reflog show --date=iso refs/remotes/origin/main`)· 终点上界 **2026-09-29 23:40:39 CST**
+>    (推导:close-out 这一次会话第一条命令的时刻,手里已经有 Tim 的"已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 2 h 11 min 50 s,至多 2 h 25 min 34 s。** 窗口里**没有东西坏掉**(旧代码只用 AT-1a 的三个主语调
+>    `record_trail`,参数不变;旧批次页读的两张旧视图没动;`change_log_rows` 没动);提前到来、而且是本意的:折入 1 已经在库里,
+>    仓库的账号在 AT-1a 的三条审计记录上先看见别人的名字是 "Restricted"。见 `docs/handbacks/AUDIT-TRAIL-1b-1.md` §7。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
