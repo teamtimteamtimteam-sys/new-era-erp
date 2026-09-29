@@ -4,6 +4,9 @@
 --   (trail_subject_members)→ 沿父键走到那条根记录;③ 它有一列指着某张单据 → 那张单据;④ 都不是 → 它自己。
 --   返回 {"table", "id", "label", "gone", "doc_key", "route", "link_mode"}(后三项只在它是单据时有,界面据此造链接)。
 --   外键值从这一次的影像取,取不到再取这一行今天的样子(一次编辑只记改了的那几列)。
+-- AUDIT-TRAIL-1b-1:同一张表挂在几个主语下时(加工投入既在加工单上、也在批次上;approval_log 按 subject_type 分给
+--   十来种单据),只沿【home】的那一条、并且【match 对得上这一行】、外键有值的那一条往上走 —— 否则汇总页的 Record 一栏
+--   会随登记表的字母顺序变,一次加工投入突然"属于"一个批次。往上一跳的垫脚石(hop = 'up')从不参与。
 -- 【属主身份】EXECUTE 已从 authenticated 收回。
 CREATE OR REPLACE FUNCTION public.trail_row_record(p_table text, p_key jsonb, p_old jsonb, p_new jsonb)
  RETURNS jsonb
@@ -37,8 +40,11 @@ BEGIN
        AND NOT EXISTS (SELECT 1 FROM trail_subjects() ts WHERE ts.root_table = p_table) THEN
         -- ② 登记过的子行:沿父键往上走,最多三跳
         LOOP
-            SELECT tm.* INTO m FROM trail_subject_members() tm WHERE tm.table_name = v_table ORDER BY tm.subject, tm.ord LIMIT 1;
-            EXIT WHEN NOT FOUND OR v_hops >= 3 OR v_img ->> m.fk_column IS NULL;
+            SELECT tm.* INTO m FROM trail_subject_members() tm
+             WHERE tm.table_name = v_table AND tm.home AND tm.hop = 'down'
+               AND v_img @> tm.match AND v_img ->> tm.fk_column IS NOT NULL
+             ORDER BY tm.subject, tm.ord LIMIT 1;
+            EXIT WHEN NOT FOUND OR v_hops >= 3;
             v_table := m.parent_table;
             v_id := v_img ->> m.fk_column;
             v_hops := v_hops + 1;

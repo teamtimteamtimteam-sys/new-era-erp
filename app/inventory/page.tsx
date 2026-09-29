@@ -27,6 +27,7 @@ import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import WarehouseRequestsPanel, { type WarehouseRequestView } from './WarehouseRequestsPanel'
+import RecentTrail from '@/app/components/trail/RecentTrail'
 
 // PROC-1:种类从 material_kinds 嵌进来,不再是物料上的一列自由文本
 type MaterialEmbed = { name: string; material_kinds: { name_en: string; name_zh: string } | null } | null
@@ -369,6 +370,9 @@ export default async function InventoryPage() {
                 baseCurrency={baseCurrency}
                 lockedBeforeText={wrLockedBefore ? formatDate(wrLockedBefore, dateLocale) : null}
             />
+            {/* AUDIT-TRAIL-1b-1(Q12):这几张申请的审计记录 —— 谁提的、谁批的、何时;金额按 data.view_prices 给。
+                读法与每一页底部同一支(record_trail),每一条带一栏 Record 链到申请的主体 */}
+            <RecentTrail />
 
             {/* 物料平衡 */}
             <section>

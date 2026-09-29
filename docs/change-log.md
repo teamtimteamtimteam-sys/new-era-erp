@@ -95,7 +95,11 @@ registry entry and one code.
 one line per operation (database transaction), columns When · Who · Record · What happened, times `DD/MM/YYYY HH:MM`
 Singapore time. Filters: date range · Area · Record type (English names from `lib/trail/catalogue.generated.ts`) ·
 Record (a document number or a name, found by `change_log_find_records()`) · Who (a person, "System (automatic)",
-"Removed account") · Key events only. Newest first, 25 operations per page. It still lists every write (Q31).
+"Removed account") · Key events only. Newest first: 20 operations, then "Show older entries" extends the list by 20 (up to
+500) — the same shape as every page trail since AUDIT-TRAIL-1b-1 (Tim's fold-in 2, replacing AT-1a's 25-per-page
+Newest / Older). Everything inside the list section — columns, entries, empty states, the paging note, "Show older
+entries" — is English; the page title, intro and filters follow the interface language (fold-in 3, Q7). It still lists
+every write (Q31).
 Each page's own trail is a **different** reader, `record_trail()` (§9) — the global reader was not widened.
 
 **Masking follows the source screens.** A value the reader cannot see on its own screen is replaced by
@@ -211,22 +215,36 @@ Fixtures 234 and 235 pin the behaviour. Every arm was fault-injected and went re
 
 Every page where something is done, or whose record it affects, carries an **"Audit trail"** section at the bottom:
 when, who and what happened, in plain English, newest first. AUDIT-TRAIL-1a (v1.4.33) built the mechanism and the first
-three pages; the rest follow in AT-1b, AT-1c and AT-1d (`docs/forward-queue.md`, "HISTORY family").
-Rulings: AUDIT-TRAIL-0 Q1–Q43, all accepted as recommended (`docs/surveys/AUDIT-TRAIL-0/README.md`).
+three pages; AUDIT-TRAIL-1b-1 (part of v1.4.33) added six registry extensions (M1–M6, §9.9), the batch, work-order,
+stocktake, equipment, handover and warehouse-request subjects, and three corrections to AT-1a (§9.7, §9.4); the rest
+follow in AT-1b-2, AT-1b-3, AT-1c and AT-1d (`docs/forward-queue.md`, "HISTORY family").
+Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`) and AT-1b Step 0 Q1–Q14 + M1–M6
+(`docs/surveys/AUDIT-TRAIL-1b/STEP0-HANDBACK.md`), all accepted as recommended.
 
 | page | subject | view code | what rolls up into its trail |
 |---|---|---|---|
 | `/purchasing/orders/[id]` | `purchase_order` | `module.purchasing.view` | the order · lines · payment terms · retentions · committed pricing terms · PO issues · contract terms · approval decisions · amendment history |
 | `/operation/processing/[id]` | `processing_run` | `module.processing.view` | the run · inputs · outputs · cost entries and their history · cost allocations · losses |
 | `/settings/roles/[id]` | `role` | `action.manage_permissions` | the role · its permissions (added / removed, named from `permissions.name_en`) |
+| `/inbound/[id]/edit` | `inbound_batch` | `module.inbound.view` | the batch · metal content · assays and their metals · safety states · price changes · receipt price requests and their approvals · prepayments · pricing terms and their metals · stock movements · stocktake lines and every count · processing use · cost allocations · certificates of destruction and their PDFs · warehouse requests (write-off, certificate void) and their approvals · freight and payment allocations · finance attachments · journals (pricing, write-off, prepayment) — and, one hop up (M4), the approvals and amendments of the purchase order it was received against, the cost changes, cost and allocation journals and work-order history and approvals of the runs that consumed it, the journals of the stocktakes that counted it, and every reversal of those journals |
+| `/output/[id]/edit` | `output_batch` | `module.output.view` | the same shape for an output batch, plus its sales (sale records, their stock movements, attributions, invoice lines, payment allocations, COGS journals), reservations, shipment lines, traceability reports and settlements; one hop up: the runs that produced or consumed it and the sales-order history of the order lines it was sold against |
+| `/operation/orders/[id]` | `work_order` | `module.processing.view` | the work order · input lines · expected outputs · its history · release approvals |
+| `/stocktakes/[id]` | `stocktake` | `module.stocktakes.view` | the stocktake · its lines · every count · its posting approval · its posting journal (finance readers) |
+| `/operation/equipment/[id]` | `equipment` | `module.processing.view` (root rule `page`, M3) | the asset card (finance readers only; Restricted for the rest) · servicing and repairs · downtime · service intervals · handovers that referenced a downtime |
+| `/operation/handovers/[id]` | `shift_handover` | `module.processing.view` | the handover · its items · the downtime it referenced |
+| `/inventory` (a block) | `warehouse_request` | `module.inventory.view` **or** `module.finance.view` (M1) | the request · its approvals — read per request and merged by `app/components/trail/RecentTrail.tsx` |
+| `/operation/processing/[id]` (1b-1 addition) | `processing_run` | — | + its rollback requests and their approvals |
 
 ### 9.1 The reader: `record_trail(subject, id, entries)`
 
 - **The page names a subject, never a table.** `trail_subjects()` maps each subject to its root table and the page's own
-  view code; an unknown subject raises **`TRAIL_SUBJECT_UNKNOWN`**.
-- **Authorisation, three layers.** (1) The page's view code (`has_permission`). (2) The root row's own read rule — the
+  view codes (**any one of them admits**, M1 — the same shape as a page guard that accepts either of two codes);
+  an unknown subject raises **`TRAIL_SUBJECT_UNKNOWN`**.
+- **Authorisation, three layers.** (1) The page's view codes (`has_any_permission`). (2) The root row's own read rule — the
   table's permissive SELECT/ALL policies re-evaluated on that row (`trail_row_visible`), or on its last image if it was
-  hard-deleted. (3) **Every child or related row is re-checked against its own table's read rule**, not the parent's (Q4).
+  hard-deleted. A subject whose `root_rule` is `page` (M3; today only `equipment`, whose root `fixed_assets` is
+  finance-only while the page is for processing) skips this layer: the page's code is the gate, and the root row's own
+  events are then shown or Restricted exactly like a child row's. (3) **Every child or related row is re-checked against its own table's read rule**, not the parent's (Q4).
   A failure at (1) or (2), including a record that does not exist, raises **`TRAIL_NOT_PERMITTED`**.
   **Refusals always raise; the reader never returns an empty list for a refusal** — an empty list reads as "nothing ever
   happened". Re-evaluating policies inside a SECURITY DEFINER function is sound because all 287 read policies resolve the
@@ -240,7 +258,15 @@ Rulings: AUDIT-TRAIL-0 Q1–Q43, all accepted as recommended (`docs/surveys/AUDI
 
 `trail_subject_members()` lists each subject's child and related tables: `table.fk_column = parent_table.id`, plus a fixed
 condition for polymorphic tables (`approval_log.subject_type = 'purchase_order'`). Grandchildren name a child as parent
-(retentions hang off PO lines). Rows are found **at read time**, in two steps, because an edit stores only the changed
+(retentions hang off PO lines). Since AUDIT-TRAIL-1b-1 each member row also says:
+- **`hop`** — `down` (the member points at its parent) or **`up`** (M4: the parent points at the member — a batch's
+  `purchase_order_id`, a processing input's `run_id`, a journal's `reversed_by`);
+- **`shown`** — `false` makes the member a **stepping stone**: it is used to reach the rows below it, but its own changes
+  are not part of the record, it is not visibility-checked and it has no pre-log rows (Q4: "only the events that touch
+  this batch" — a batch shows the cost changes and journals of the runs that consumed it, never the run's own edits);
+- **`home`** — the one membership `trail_row_record()` (the summary page's Record column) follows when a table belongs to
+  several subjects (a processing input is both a run child and a batch member; its home is the run). The walk also
+  honours `match`, so an `approval_log` row goes to the document its `subject_type` names. Rows are found **at read time**, in two steps, because an edit stores only the changed
 columns (a price edit on a PO line carries no `purchase_order_id`):
 1. collect the **keys** of every row that belongs: live rows by foreign key, plus rows known only from the log
    (`COALESCE(new, old) @> {fk: parent}` for inserts/deletes/re-parenting, `old @> {fk: parent}` for edits that moved a row
@@ -258,7 +284,9 @@ No parent key is written at capture time — that would have meant rebinding the
 
 Rows are grouped by `txid` (Q2) and numbered newest first (`entry_no`, by the highest `seq` in each transaction). The page
 shows 20 entries, then "Show older entries" (`?trail=40`, Q29). The summary page pages by transaction too
-(`change_log_rows(p_by_entry => true)`, keyset on the highest `seq`).
+(`change_log_rows(p_by_entry => true)`): since AUDIT-TRAIL-1b-1 it shows 20 operations and "Show older entries" (`?show=40`,
+up to 500), reading in chunks of 200 with the function's own keyset (`p_before` = the highest `seq` of the oldest
+operation read so far) — the same shape as a page trail (fold-in 2).
 
 ### 9.5 History from before the log began (Q1)
 
@@ -273,6 +301,12 @@ holds that row's INSERT, a `stamp` when the log holds a change to that column. R
 `now()`, so pre-log rows are grouped by exact timestamp. They always sort after every logged entry and carry
 `prelog = true`; the page draws a divider above them: "Before 28/09/2026 23:58, only key steps and amendments were kept;
 single-field edits were not."
+- **`by_kind`** (M2, AUDIT-TRAIL-1b-1) says whose id the `by_column` holds: `account` (a login, `auth.uid()` — almost every
+  table) or `employee` (`current_user_employee()` — the handover's `acknowledged_by`; 1b-3's task tables). An employee id
+  read as an account would resolve to "Removed account", a false statement rather than an unknown one.
+- **One exception to "no stamp a history already records" (Tim's Q11):** a stocktake's `posted_at`. Posts before
+  22/09/2026 have nothing else (posting did not write `approval_log` yet); later posts write both in one transaction, so
+  they share a timestamp, group into one entry, and the renderer folds the approval into the posting as one line.
 
 ### 9.6 Adding a subject (what AT-1b, AT-1c and AT-1d do per page)
 
@@ -285,7 +319,12 @@ single-field edits were not."
    table set agree, every column of every registered table has an English label, and every enum value has English.
 5. Labels for new columns: `scripts/gen-trail-catalogue.mjs` (`OVERRIDES` for page wording), then `--write`.
 6. The page: `<AuditTrail subject="…" id={…} show={trailCount(searchParams.trail)} />` at the very bottom, and a smoke
-   `MUST_CONTAIN` entry `{ trail: 'audit-trail' }`.
+   `MUST_CONTAIN` entry `{ trail: 'audit-trail' }`. Add the subject to `TrailSubject` / `TRAIL_SUBJECT_ROOTS`
+   (`AuditTrail.tsx`) and its shown tables to `SUBJECT_TABLES` (`lib/trail/render.ts`) — `check-trail-wording` compares
+   both with the SQL registry.
+   A panel that owns only some columns of a shared row (1b-3's threshold panels) sets `root_columns` (M6): the trail then
+   shows only those columns and drops the changes that touch none of them. A single-row settings table keyed by `id
+   boolean` works as a root (M5): the reader rebuilds the root key from the row's own typed value.
 7. A fixture arm per event wording that matters, with a fault injection that turns it red.
 
 ### 9.7 Wording rules
@@ -299,15 +338,32 @@ single-field edits were not."
   never show; JSON columns say "Details changed". Enums in English, booleans Yes / No, dates `DD/MM/YYYY`, money with its
   currency. A referenced record that was hard-deleted reads "PO-2026-0010 (since deleted)", or "a supplier that has since
   been deleted" when not even its image is left.
-- **Who** (Q14 · Q17 · Q18): the person's preferred name, else legal name, for every reader of the trail (the trail adds no
-  masking rule of its own); "System (automatic)" for every write with no login (migrations included); "Removed account"
-  when neither the account nor a person is left; a disabled account shows the plain name; "A former employee" after
-  anonymisation; "Not recorded" for pre-log rows whose table kept no actor.
+- **Who** (Q14 · Q17 · Q18): the person's preferred name, else legal name; "System (automatic)" for every write with no
+  login (migrations included); "Removed account" when neither the account nor a person is left; a disabled account shows
+  the plain name; "A former employee" after anonymisation; "Not recorded" for pre-log rows whose table kept no actor.
+  **Since AUDIT-TRAIL-1b-1 (Tim's fold-in 1, overturning AT-1a decision 1)** a reader who would see "Restricted" in place
+  of a name on the system's other pages sees "Restricted" in the trail too — the `ActorName` rule, decided in
+  `trail_actor`: without `module.hr.view` a reader recognises only himself; everyone else (including anonymised people and
+  accounts with no person) is Restricted. "System (automatic)", "Removed account" and "Not recorded" are not names and
+  stay visible. Both readers and every person-valued field ("Approved by …") go through the same function.
+- **Machine-written text** is never shown as a reason: the automatic-approval notes and the notes `post_stocktake` and
+  `release_work_order` write into `approval_log` are Chinese sentences written by the database, not by a person
+  (`MACHINE_NOTE_SUBJECTS` in `lib/trail/render.ts`).
+- **State notes on a batch** (Q5): "Not received against a purchase order", "No cost-of-sales journal" and "This
+  processing was later rolled back" are grey lines inside the entry they belong to; they read the row's current value (and,
+  for a run, `trail_ref_label`'s `ended`).
 - **Machine-written Chinese** (Q8): typed text is shown as written; values the system wrote in Chinese are shown in English
   (`messages/trail-machine-values.ts` for `inbound_batches.stage`; automatic-approval notes are replaced by
   "Approved automatically (approvals were switched off)").
 
 ### 9.8 Checks
+
+AUDIT-TRAIL-1b-1 adds fixtures **237** (M1–M6, fold-in 1 on the purchase-order, processing-run, role and summary readers)
+and **238** (the batch trail against the retired views row for row — including the upward-hop kinds — the added kinds,
+hidden rows, reversals, state-note inputs, written-off batches and reversed runs, the stocktake fold, the
+warehouse-request block), fault-injected by `db/scripts/2026-09-29-at1b1-fixture-injections.py` (20 injections, each red
+in its own arm). The smoke `trail` assertion now also covers `/inbound/[id]/edit`, `/output/[id]/edit`,
+`/operation/orders/[id]`, `/stocktakes/[id]`, `/operation/equipment/[id]` and `/operation/handovers/[id]`.
 
 | check | reads | fails on |
 |---|---|---|
@@ -318,3 +374,17 @@ single-field edits were not."
 Both machine-token checks use one detector, `lib/trail/machineTokens.ts`, which proves itself on every run (known-bad
 samples must all be caught, a known-good sentence must pass).
 
+### 9.9 The six registry extensions (AUDIT-TRAIL-1b-1, M1–M6)
+
+| | what | where | first user |
+|---|---|---|---|
+| M1 | a subject is admitted by **any one** of several view codes | `trail_subjects.view_codes`, `has_any_permission` | `warehouse_request` (inventory or finance); 1b-2's shipments |
+| M2 | a pre-log actor column may hold an **employee** id | `trail_prelog_sources.by_kind` | the handover's acknowledgement; 1b-3's tasks |
+| M3 | the page's code admits the reader even where the root table's own rule does not; the root row's events are then per-row | `trail_subjects.root_rule = 'page'` | `equipment` (root `fixed_assets` is finance-only); 1b-2's forwarder |
+| M4 | a member may be reached by an **upward** hop, and may be a **stepping stone** that is not shown | `trail_subject_members.hop` / `shown` | the batch trail (45 of the 292 old rows live were upward) |
+| M5 | a root keyed by a non-text value (`id boolean`) is matched by its typed value | `record_trail` rebuilds the root key from the row | 1b-3's threshold panels |
+| M6 | a root may be limited to the **columns a panel owns** | `trail_subjects.root_columns` | 1b-3's threshold panels |
+
+The retired batch views `batch_audit_trail` / `batch_audit_trail_all` stay in place, unread by any page (Q32); fixture 238
+reads them as the reference its row-for-row check compares against, and their i18n entry in `scripts/check-i18n.mjs` stays
+until they are dropped.

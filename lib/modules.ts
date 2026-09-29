@@ -451,6 +451,8 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/operation/processing', navKey: 'processing.subnav.runs', modules: ['operation'], permission: P_PROCESSING },
     { href: '/operation/wip', navKey: 'processing.subnav.wip', modules: ['operation'], permission: P_PROCESSING },
     { href: '/operation/handovers', navKey: 'processing.subnav.handovers', modules: ['operation'], permission: P_PROCESSING },
+    // AUDIT-TRAIL-1b-1(Tim 的 Q10 · Q22):设备 —— 只读,加工的人读得到的那一份(资产卡、成本与折旧留在财务)
+    { href: '/operation/equipment', navKey: 'processing.subnav.equipment', modules: ['operation'], permission: P_PROCESSING },
 
     // ══ 销售 Sales ══════════════════════════════════════════════════════════
     // ★【CONV-6 ⑤c:销售也【此前没有模块根】,与物流同一处缺席】★

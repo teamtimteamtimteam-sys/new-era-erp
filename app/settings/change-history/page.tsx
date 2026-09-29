@@ -12,8 +12,12 @@
 // 【页面外框随界面语言,记录内容只说英文】(Q7):标题、筛选的标签走 t();每一条记录的句子来自英文目录。
 // 【筛选】日期(from / to,含当天)· 区域 · 记录类型 · 记录(按单据号或名字,change_log_find_records)·
 //   谁(人 / System (automatic) / Removed account)· 只看关键事件。GET 表单,链接可以抄给别人。
-// 【分页】最新的在前,每页 25 次操作;键集分页(?before=<一次操作里最大的 seq>)。只看关键事件时往前多读
-//   (最多 100 次操作)凑满一页,并说出这一页藏了几条日常编辑。
+// 【分页】AUDIT-TRAIL-1b-1(Tim 的折入 2,推翻 AT-1a 决定 21):与每一页的审计记录同一个样子 —— 先 20 次操作,
+//   然后"Show older entries"把列表【接长】20 次(?show=40,上限 500),不再是"最新 / 较早"两个翻页链接。
+//   change_log_rows 一次最多给 200 次操作,所以要多读时按它自己的键集(p_before = 已读到的最旧那次操作的最大 seq)
+//   分几次读。只看关键事件时往前多读(要显示的数的 5 倍,上限 1,000)凑满,并说出藏了几条日常编辑。
+// 【折入 3(Q7)】列表那一段里的每一个字都是英文:列头、每一句、空状态、分页说明、"Show older entries"都来自
+//   lib/trail/text.ts;标题、说明、筛选随界面语言走(与任何别的页面的外框一样)。
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -31,10 +35,11 @@ import { TRAIL_TEXT } from '@/lib/trail/text'
 import { TRAIL_TABLES } from '@/lib/trail/catalogue.generated'
 import { trailDict } from '@/lib/trail/dict'
 import { buildEntries, fill, fromChangeLog, type RecordRef } from '@/lib/trail/render'
-import AuditTrailList, { type ViewEntry } from '@/app/components/trail/AuditTrailList'
+import AuditTrailList, { OlderEntriesLink, type ViewEntry } from '@/app/components/trail/AuditTrailList'
 
-const PAGE_SIZE = 25
-const KEY_SCAN = 100
+const PAGE = 20
+const MAX_SHOW = 500
+const CHUNK = 200
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 type LogRow = Parameters<typeof fromChangeLog>[0] & { seq: number }
@@ -44,7 +49,7 @@ type Filters = {
     has_system: boolean
     has_removed: boolean
 }
-type SP = { from?: string; to?: string; area?: string; type?: string; record?: string; who?: string; key?: string; before?: string }
+type SP = { from?: string; to?: string; area?: string; type?: string; record?: string; who?: string; key?: string; show?: string }
 
 /** 一张单据的落点;角色不是单据,走它自己的页 */
 function recordHref(r: RecordRef): string | null {
@@ -85,7 +90,8 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
     const record = (sp.record ?? '').trim().slice(0, 200)
     const who = sp.who === 'system' || sp.who === 'removed' ? sp.who : UUID.test(sp.who ?? '') ? (sp.who as string) : ''
     const keyOnly = sp.key === '1'
-    const before = /^\d{1,18}$/.test(sp.before ?? '') ? (sp.before as string) : ''
+    const showN = Number(sp.show)
+    const show = Number.isInteger(showN) && showN >= PAGE && showN <= MAX_SHOW ? showN : PAGE
 
     // 按单据号或名字找 → 一组 id;找不到就直说,不去读(一个空的 id 组不是"不筛")
     let recordIds: string[] | undefined
@@ -94,22 +100,35 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
     }
     const noMatch = !!record && (!recordIds || recordIds.length === 0)
 
-    let rows: LogRow[] = []
+    const rows: LogRow[] = []
+    let exhausted = noMatch
     if (!noMatch) {
-        const res = await supabase.rpc('change_log_rows', {
-            p_from: from || undefined,
-            p_to: to || undefined,
-            p_table: type || undefined,
-            p_tables: !type && area ? types.filter((x) => x.area === area).map((x) => x.tbl) : undefined,
-            p_record_ids: recordIds,
-            p_actor: UUID.test(who) ? who : undefined,
-            p_no_session: who === 'system',
-            p_removed_account: who === 'removed',
-            p_by_entry: true,
-            p_before: before ? Number(before) : undefined,
-            p_limit: keyOnly ? KEY_SCAN : PAGE_SIZE + 1,
-        })
-        rows = mustRows(res, 'change_log_rows') as unknown as LogRow[]
+        // 要读几次操作:显示 show 条(多读一条用来知道后面还有没有);只看关键事件时多读几倍凑满
+        const target = keyOnly ? Math.min(show * 5, 1000) : show + 1
+        let before: number | undefined
+        let read = 0
+        while (read < target) {
+            const want = Math.min(CHUNK, target - read)
+            const chunk = mustRows(await supabase.rpc('change_log_rows', {
+                p_from: from || undefined,
+                p_to: to || undefined,
+                p_table: type || undefined,
+                p_tables: !type && area ? types.filter((x) => x.area === area).map((x) => x.tbl) : undefined,
+                p_record_ids: recordIds,
+                p_actor: UUID.test(who) ? who : undefined,
+                p_no_session: who === 'system',
+                p_removed_account: who === 'removed',
+                p_by_entry: true,
+                p_before: before,
+                p_limit: want,
+            }), 'change_log_rows') as unknown as LogRow[]
+            const tops = new Map<number, number>()
+            for (const r of chunk) tops.set(r.txid, Math.max(tops.get(r.txid) ?? 0, r.seq))
+            rows.push(...chunk)
+            read += tops.size
+            if (tops.size < want) { exhausted = true; break }
+            before = Math.min(...tops.values())
+        }
     }
 
     // 一次操作 = 一笔事务;按它里面最大的 seq 排(新的在前),也拿它当下一页的键
@@ -124,17 +143,16 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
     let consumed = 0
     let hiddenRoutine = 0
     for (const e of built) {
-        if (shown.length === PAGE_SIZE) break
+        if (shown.length === show) break
         consumed++
         if (keyOnly && !e.keyEvent) { hiddenRoutine++; continue }
         shown.push({ ...e, recordText: recordText(e.record), recordHref: e.record ? recordHref(e.record) : null })
     }
-    const hasOlder = keyOnly ? consumed < built.length || order.length === KEY_SCAN : order.length > PAGE_SIZE
-    const cursor = consumed > 0 ? order[consumed - 1][1] : null
+    const hasOlder = keyOnly ? consumed < built.length || !exhausted : order.length > show
 
     function href(next: Partial<Record<keyof SP, string>>) {
         const p = new URLSearchParams()
-        const v: Record<string, string> = { from, to, area, type, record, who, key: keyOnly ? '1' : '', before: '', ...next }
+        const v: Record<string, string> = { from, to, area, type, record, who, key: keyOnly ? '1' : '', show: '', ...next }
         for (const [k, val] of Object.entries(v)) if (val) p.set(k, val)
         const s = p.toString()
         return s ? `/settings/change-history?${s}` : '/settings/change-history'
@@ -207,11 +225,11 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
                 </Link>
             </form>
 
-            <section data-change-history={noMatch ? 'no-match' : shown.length ? 'entries' : 'empty'}>
+            <section id="audit-trail" data-change-history={noMatch ? 'no-match' : shown.length ? 'entries' : 'empty'}>
                 {noMatch ? (
-                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('changeHistory.noRecordMatch', { q: record })}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{fill(TRAIL_TEXT['summary.noRecordMatch'], { q: record })}</p>
                 ) : shown.length === 0 ? (
-                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('changeHistory.empty')}</p>
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{TRAIL_TEXT['summary.empty']}</p>
                 ) : (
                     <AuditTrailList entries={shown} withRecord />
                 )}
@@ -220,22 +238,12 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
                         {fill(TRAIL_TEXT[hiddenRoutine === 1 ? 'summary.keyHidden.one' : 'summary.keyHidden.many'], { n: hiddenRoutine })}
                     </p>
                 )}
+                {/* ── 分页:与每一页的审计记录同一个样子 —— 20 条,然后"Show older entries"把列表接长(折入 2)──── */}
+                <div className="flex flex-wrap items-center gap-3 mt-4 text-sm">
+                    <span className="text-[color:var(--brand-muted-text)]">{fill(TRAIL_TEXT['summary.pageNote'], { n: shown.length })}</span>
+                    {hasOlder && show < MAX_SHOW && <OlderEntriesLink href={`${href({ show: String(show + PAGE) })}#audit-trail`} />}
+                </div>
             </section>
-
-            {/* ── 分页:最新 / 较早(键集,按一次操作里最大的 seq 倒序)─────────────────── */}
-            <div className="flex flex-wrap items-center gap-3 mt-4 text-sm">
-                <span className="text-[color:var(--brand-muted-text)]">{t('changeHistory.pageNote', { n: PAGE_SIZE })}</span>
-                {before && (
-                    <Link href={href({ before: '' })} className="hover:underline app-link">
-                        {t('changeHistory.newest')}
-                    </Link>
-                )}
-                {hasOlder && cursor !== null && (
-                    <Link href={href({ before: String(cursor) })} className="hover:underline app-link">
-                        {t('changeHistory.older')}
-                    </Link>
-                )}
-            </div>
         </ListPage>
     )
 }

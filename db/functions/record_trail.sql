@@ -23,6 +23,16 @@
 --   refs(trail_refs:每一个指着别处的值 → 名字)。界面把这些造成英文句子(Q40)。
 -- 【分页】p_entries 条记录(默认 20,1..500),more 说后面还有没有更旧的。
 -- 【SECURITY DEFINER 的理由】change_log 对应用角色没有任何授权(HISTORY-1);读权限在函数体里由上面三道判定。
+--
+-- AUDIT-TRAIL-1b-1(Tim 2026-09-29,AT-1b Step 0 的 M1–M6):
+--   M1 一页可以认【任一】个码(trail_subjects.view_codes;has_any_permission)。
+--   M2 "记录开始之前"的人可以记成员工 id(trail_prelog_sources.by_kind = 'employee')—— 交给 trail_actor 的员工那一格。
+--   M3 root_rule = 'page':页面的码就是门,根行不再过它自己那张表的读规则;根行自己的改动照子行的规矩逐行判(Q4)。
+--   M4 hop = 'up':从一行往上走到它指着的那一行(批次 → 消耗它的加工单);shown = false 的是【垫脚石】——
+--      只用来够到它下面的行,它自己不进审计记录,也不判读规则、不拼"之前"那一段(Q4:只限碰到这条记录的事)。
+--   M5 根键按根行【自己的类型】重建(jsonb_build_object(root_key, image -> root_key)):单行设置表的主键是
+--      boolean,change_log 里存的是 {"id": true};按文字 'true' 去对,永远对不上 —— 审计记录会【空着而不报错】。
+--   M6 root_columns 非空:根行只取这几列(改动取交集,一列都不沾的那次改动整条不算;新增 / 删除的影像只留这几列)。
 CREATE OR REPLACE FUNCTION public.record_trail(p_subject text, p_id text, p_entries integer DEFAULT 20)
  RETURNS TABLE(entry_no integer, prelog boolean, seq bigint, occurred_at timestamp with time zone, table_name text, row_key jsonb, op text, actor jsonb, changed_columns text[], old jsonb, new jsonb, ctx jsonb, refs jsonb, row_hidden boolean, row_restricted boolean, more boolean)
  LANGUAGE plpgsql
@@ -58,50 +68,87 @@ DECLARE
     v_mask   jsonb;
     v_began  timestamptz := change_log_began_at();
     v_total  integer;
+    v_shown  boolean[] := ARRAY[]::boolean[];
+    v_rcols  text[];
+    v_fkv    text[];
+    v_cimg   record;
 BEGIN
     SELECT ts.* INTO s FROM trail_subjects() ts WHERE ts.subject = p_subject;
     IF NOT FOUND THEN
         RAISE EXCEPTION 'TRAIL_SUBJECT_UNKNOWN|%', COALESCE(p_subject, '');
     END IF;
-    IF NOT has_permission(s.view_code) THEN
+    IF NOT has_any_permission(s.view_codes) THEN
         RAISE EXCEPTION 'TRAIL_NOT_PERMITTED|%', p_subject;
     END IF;
+    v_rcols := s.root_columns;
     v_root := jsonb_build_object(s.root_key, p_id);
     SELECT * INTO v_img FROM trail_current_image(s.root_table, v_root);
-    IF v_img.image IS NULL OR NOT trail_row_visible(s.root_table, v_root, v_img.image) THEN
+    IF v_img.image IS NULL
+       OR (s.root_rule = 'table' AND NOT trail_row_visible(s.root_table, v_root, v_img.image)) THEN
         RAISE EXCEPTION 'TRAIL_NOT_PERMITTED|%', p_subject;
+    END IF;
+    -- M5:根键按它自己的类型重建(boolean / 数字主键),否则与 change_log 的 row_key 永远对不上
+    IF v_img.image ? s.root_key THEN
+        v_root := jsonb_build_object(s.root_key, v_img.image -> s.root_key);
     END IF;
     v_tabs := ARRAY[s.root_table];
     v_keys := ARRAY[v_root];
+    v_shown := ARRAY[true];
 
-    -- ① 这条记录有哪些行(按 ord 展开,孙行在父行之后)
+    -- ① 这条记录有哪些行(按 ord 展开,孙行在父行之后;hop = 'up' 往上走一跳,shown = false 的只作垫脚石)
     FOR m IN SELECT tm.* FROM trail_subject_members() tm WHERE tm.subject = p_subject ORDER BY tm.ord LOOP
-        SELECT array_agg(DISTINCT u.k ->> 'id') INTO v_pids
-          FROM unnest(v_tabs, v_keys) AS u(t, k) WHERE u.t = m.parent_table AND u.k ? 'id';
-        CONTINUE WHEN v_pids IS NULL;
-        v_pk := trail_pk_columns(m.table_name);
-        EXECUTE format('SELECT array_agg(jsonb_build_object(%s)) FROM public.%I t WHERE t.%I::text = ANY ($1) AND to_jsonb(t) @> $2',
-                       (SELECT string_agg(format('%L, t.%I', c, c), ', ') FROM unnest(v_pk) c),
-                       m.table_name, m.fk_column)
-           INTO v_found USING v_pids, m.match;
-        SELECT array_agg(DISTINCT c.row_key) INTO v_found2
-          FROM unnest(v_pids) AS pid(v)
-          JOIN change_log c ON c.table_name = m.table_name
-                           AND (COALESCE(c.new, c.old) @> (jsonb_build_object(m.fk_column, pid.v) || m.match)
-                                OR (c.op = 'UPDATE' AND c.old @> jsonb_build_object(m.fk_column, pid.v)));
+        v_found := NULL;
+        v_found2 := NULL;
+        IF m.hop = 'up' THEN
+            -- 父行今天那份(或它最后一份影像)里的那一列 → 被指着的那一行的 id
+            v_fkv := ARRAY[]::text[];
+            FOR v_k IN SELECT u.k FROM unnest(v_tabs, v_keys) AS u(t, k) WHERE u.t = m.parent_table LOOP
+                SELECT * INTO v_cimg FROM trail_current_image(m.parent_table, v_k);
+                IF v_cimg.image ->> m.fk_column IS NOT NULL THEN
+                    v_fkv := array_append(v_fkv, v_cimg.image ->> m.fk_column);
+                END IF;
+            END LOOP;
+            CONTINUE WHEN cardinality(v_fkv) = 0;
+            SELECT array_agg(DISTINCT jsonb_build_object('id', x.v)) INTO v_found
+              FROM unnest(v_fkv) AS x(v)
+             WHERE (trail_current_image(m.table_name, jsonb_build_object('id', x.v))).image @> m.match;
+        ELSE
+            SELECT array_agg(DISTINCT u.k ->> 'id') INTO v_pids
+              FROM unnest(v_tabs, v_keys) AS u(t, k) WHERE u.t = m.parent_table AND u.k ? 'id';
+            CONTINUE WHEN v_pids IS NULL;
+            v_pk := trail_pk_columns(m.table_name);
+            EXECUTE format('SELECT array_agg(jsonb_build_object(%s)) FROM public.%I t WHERE t.%I::text = ANY ($1) AND to_jsonb(t) @> $2',
+                           (SELECT string_agg(format('%L, t.%I', c, c), ', ') FROM unnest(v_pk) c),
+                           m.table_name, m.fk_column)
+               INTO v_found USING v_pids, m.match;
+            SELECT array_agg(DISTINCT c.row_key) INTO v_found2
+              FROM unnest(v_pids) AS pid(v)
+              JOIN change_log c ON c.table_name = m.table_name
+                               AND (COALESCE(c.new, c.old) @> (jsonb_build_object(m.fk_column, pid.v) || m.match)
+                                    OR (c.op = 'UPDATE' AND c.old @> jsonb_build_object(m.fk_column, pid.v)));
+        END IF;
         FOR v_k IN SELECT DISTINCT x FROM unnest(COALESCE(v_found, ARRAY[]::jsonb[]) || COALESCE(v_found2, ARRAY[]::jsonb[])) x
                     WHERE x IS NOT NULL LOOP
             IF NOT EXISTS (SELECT 1 FROM unnest(v_tabs, v_keys) u(t, k) WHERE u.t = m.table_name AND u.k = v_k) THEN
                 v_tabs := array_append(v_tabs, m.table_name);
                 v_keys := array_append(v_keys, v_k);
+                v_shown := array_append(v_shown, m.shown);
             END IF;
         END LOOP;
     END LOOP;
 
     -- ② 每一行:过不过它自己那张表的读规则;今天的样子(遮蔽之后);"记录开始之前"的那一段从哪里拼
     FOR i IN 1 .. cardinality(v_tabs) LOOP
+        IF NOT v_shown[i] THEN
+            -- 垫脚石:不判、不取上下文、不拼"之前"(它自己不进这条记录)
+            v_vis := array_append(v_vis, false);
+            v_ctx := array_append(v_ctx, NULL::jsonb);
+            v_crefs := array_append(v_crefs, '{}'::jsonb);
+            CONTINUE;
+        END IF;
         SELECT * INTO v_img FROM trail_current_image(v_tabs[i], v_keys[i]);
-        v_vis := array_append(v_vis, i = 1 OR COALESCE(trail_row_visible(v_tabs[i], v_keys[i], v_img.image), false));
+        v_vis := array_append(v_vis, (i = 1 AND s.root_rule = 'table')
+                                     OR COALESCE(trail_row_visible(v_tabs[i], v_keys[i], v_img.image), false));
         IF v_vis[i] AND v_img.image IS NOT NULL THEN
             v_mask := change_log_mask_row(v_tabs[i], v_keys[i], NULL, v_img.image);
             v_ctx := array_append(v_ctx, COALESCE(NULLIF(v_mask -> 'new', 'null'::jsonb), '{}'::jsonb)
@@ -115,6 +162,8 @@ BEGIN
         FOR p IN SELECT ps.* FROM trail_prelog_sources() ps WHERE ps.table_name = v_tabs[i] LOOP
             v_at := NULLIF(v_img.image ->> p.at_column, '')::timestamptz;
             CONTINUE WHEN v_at IS NULL OR v_at >= v_began;
+            -- M6:根行只管 root_columns 那几列 —— 别的列上的戳不属于这一块
+            CONTINUE WHEN i = 1 AND v_rcols IS NOT NULL AND p.kind = 'stamp' AND NOT (p.at_column = ANY (v_rcols));
             IF p.kind = 'created' THEN
                 CONTINUE WHEN EXISTS (SELECT 1 FROM change_log c
                                        WHERE c.table_name = v_tabs[i] AND c.row_key = v_keys[i] AND c.op = 'INSERT');
@@ -133,28 +182,32 @@ BEGIN
             END IF;
             v_pseudo := v_pseudo || jsonb_build_array(jsonb_build_object(
                 'i', i, 'at', v_at, 'op', v_op, 'cols', to_jsonb(v_cols), 'new', v_new,
-                'account', CASE WHEN p.by_column IS NULL THEN NULL ELSE v_img.image -> p.by_column END));
+                'account', CASE WHEN p.by_column IS NULL OR p.by_kind = 'employee' THEN NULL ELSE v_img.image -> p.by_column END,
+                'employee', CASE WHEN p.by_column IS NOT NULL AND p.by_kind = 'employee' THEN v_img.image -> p.by_column END));
         END LOOP;
     END LOOP;
 
     -- ③ 变更记录 + 拼回来的那一段,按记录(事务)编号,从新到旧
     SELECT count(DISTINCT g) INTO v_total FROM (
         SELECT 'L' || c.txid AS g
-          FROM unnest(v_tabs, v_keys) u(t, k) JOIN change_log c ON c.table_name = u.t AND c.row_key = u.k
+          FROM unnest(v_tabs, v_keys, v_shown) WITH ORDINALITY u(t, k, sh, i)
+          JOIN change_log c ON c.table_name = u.t AND c.row_key = u.k
+         WHERE u.sh AND (u.i > 1 OR v_rcols IS NULL OR c.op <> 'UPDATE' OR c.changed_columns && v_rcols)
         UNION ALL
         SELECT 'P' || (x ->> 'at') FROM jsonb_array_elements(v_pseudo) x) z;
 
     FOR r IN
         WITH k AS (
-            SELECT u.t, u.k, u.i::integer AS i FROM unnest(v_tabs, v_keys) WITH ORDINALITY u(t, k, i)),
+            SELECT u.t, u.k, u.i::integer AS i FROM unnest(v_tabs, v_keys, v_shown) WITH ORDINALITY u(t, k, sh, i) WHERE u.sh),
         allr AS (
             SELECT c.seq AS a_seq, c.occurred_at AS a_at, 'L' || c.txid AS a_g, k.i AS a_i, c.op AS a_op,
                    c.actor_kind AS a_kind, c.actor_account AS a_account, c.actor_employee AS a_employee,
                    c.changed_columns AS a_cols, c.old AS a_old, c.new AS a_new, false AS a_pre
               FROM k JOIN change_log c ON c.table_name = k.t AND c.row_key = k.k
+             WHERE k.i > 1 OR v_rcols IS NULL OR c.op <> 'UPDATE' OR c.changed_columns && v_rcols
             UNION ALL
             SELECT NULL::bigint, (x ->> 'at')::timestamptz, 'P' || (x ->> 'at'), (x ->> 'i')::integer, x ->> 'op',
-                   'prelog', (x ->> 'account')::uuid, NULL::uuid,
+                   'prelog', (x ->> 'account')::uuid, (x ->> 'employee')::uuid,
                    CASE WHEN jsonb_typeof(x -> 'cols') = 'array'
                         THEN ARRAY(SELECT jsonb_array_elements_text(x -> 'cols')) END,
                    NULL::jsonb, x -> 'new', true
@@ -186,6 +239,13 @@ BEGIN
             v_mask := change_log_mask_row(v_tabs[r.a_i], v_keys[r.a_i], r.a_old, r.a_new);
             old := NULLIF(v_mask -> 'old', 'null'::jsonb);
             new := NULLIF(v_mask -> 'new', 'null'::jsonb);
+            -- M6:根行只留 root_columns 那几列
+            IF r.a_i = 1 AND v_rcols IS NOT NULL THEN
+                changed_columns := CASE WHEN r.a_cols IS NULL THEN NULL
+                                        ELSE ARRAY(SELECT c FROM unnest(r.a_cols) c WHERE c = ANY (v_rcols)) END;
+                SELECT jsonb_object_agg(e.key, e.value) INTO old FROM jsonb_each(old) e WHERE e.key = ANY (v_rcols);
+                SELECT jsonb_object_agg(e.key, e.value) INTO new FROM jsonb_each(new) e WHERE e.key = ANY (v_rcols);
+            END IF;
             row_restricted := (v_mask ->> 'row_restricted')::boolean;
             ctx := v_ctx[r.a_i];
             -- 这一行今天那份的名字(每个主键只解析一次)+ 这一次记录里新旧值的名字,按列合并

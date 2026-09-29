@@ -5,6 +5,7 @@
 // ★ 未签收的整行发琥珀,走 CONV-4 建的 rowClassName —— 这一页的抬头写着
 //   「未签收的必须一眼看得出来」,整行底色就是那个"一眼"。
 
+import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import AcknowledgeButton from './AcknowledgeButton'
@@ -29,7 +30,9 @@ export default function HandoversTable({
     // ★ 手机上留【日期】与【签收】—— 日期是身份,而签收状态是这一页存在的理由
     //   (抬头第一句:未签收的必须一眼看得出来)。交接双方进展开区。
     const columns: Column<HandoverRow>[] = [
-        { key: 'date', header: t('processing.handover.colDate'), priority: true, render: (r) => r.handoverDate },
+        // AUDIT-TRAIL-1b-1(Q23):日期那一格是这一张交接班的入口(交接的内容、提到的停机、它的审计记录都在那一页)
+        { key: 'date', header: t('processing.handover.colDate'), priority: true,
+          render: (r) => <Link href={`/operation/handovers/${r.id}`} className="app-link hover:underline">{r.handoverDate}</Link> },
         { key: 'shift', header: t('processing.handover.colShift'), render: (r) => r.shiftLabel },
         { key: 'from', header: t('processing.handover.colFrom'), render: (r) => r.fromName },
         { key: 'to', header: t('processing.handover.colTo'), render: (r) => r.toName },

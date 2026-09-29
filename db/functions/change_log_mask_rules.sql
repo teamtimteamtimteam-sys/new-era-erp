@@ -75,6 +75,7 @@ AS $function$
         ('processing_runs', 'process_cost_base', 'code:data.view_prices'),
         ('processing_runs', 'total_cost_base', 'code:data.view_prices'),
         ('processing_runs', 'capitalized_cost_base', 'code:data.view_prices'),
+        ('warehouse_requests', 'amount_base', 'code:data.view_prices'),
         ('purchase_order_history', 'old_fx_rate', 'code:data.view_purchase_prices'),
         ('purchase_order_history', 'new_fx_rate', 'code:data.view_purchase_prices'),
         ('purchase_order_history', 'old_estimated_total_ccy', 'code:data.view_purchase_prices'),

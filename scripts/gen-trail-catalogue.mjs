@@ -176,6 +176,50 @@ const OVERRIDES = {
         description_zh: 'Description (Chinese)', is_system: 'System role', is_active: 'Active', deleted_at: 'Deleted on',
     },
     role_permissions: { role_id: 'Role', permission_code: 'Permission' },
+    // ── AUDIT-TRAIL-1b-1:批次 · 工单 · 盘点 · 设备 · 交接班 · 仓库申请的表(每一列对着它所在的那一页核过;
+    //    生成的那个说法错了或读不顺的才写在这里 —— 例如停机的 reason 被配成了 "On kilograms",维修的 description 是
+    //    表单上的提示句 "Say what was done.",发票行的 unit 被配成了 "Unit price")────────────────────────────────
+    assay_result_metals: { assay_result_id: 'Assay' },
+    assay_results: { applied_at: 'Applied on', certificate_ref: 'Certificate reference', code: 'Assay number',
+        lab_name: 'Laboratory', sample_ref: 'Sample reference', superseded_by: 'Replaced by' },
+    certificates_of_destruction: { code: 'Certificate number', completed_on: 'Processing completed on',
+        replaced_by_cod_id: 'Replaced by certificate', snapshot: 'Certificate details', void_reason: 'Reason voided' },
+    cod_issues: { cod_id: 'Certificate' },
+    equipment_downtime: { ended_at: 'Came back up', started_at: 'Went down', reason: 'Reason', duration: 'Duration' },
+    equipment_maintenance: { description: 'What was done', expense_id: 'Expense', performed_by_employee_id: 'Done by (employee)',
+        performed_by_name: 'Done by (name)', performed_by_supplier_id: 'Done by (supplier)', performed_on: 'Done on',
+        capitalised_expense_id: 'Capitalised through expense' },
+    equipment_service_intervals: { lead_days: 'Warn this many days before', lead_kg: 'Warn this many kilograms before' },
+    finance_attachments: { claim_id: 'Claim', doc_type: 'Document type' },
+    fixed_assets: { code: 'Asset number', cost_base: 'Cost (base currency)', cost_ccy: 'Cost', in_service_date: 'In service from',
+        planned_in_service_date: 'Planned in service from', useful_life_months: 'Useful life (months)' },
+    freight_allocations: { basis_qty: 'Basis', freight_document_id: 'Freight document', in_stock_ratio: 'Share still in stock' },
+    inbound_batch_metals: { source_assay_id: 'From assay' },
+    output_batch_metals: { source_assay_id: 'From assay' },
+    inbound_batches: { arrival_date: 'Arrival date', delete_reason: 'Reason written off', deleted_at: 'Written off on',
+        deleted_by: 'Written off by', purchase_order_id: 'Purchase order', supplier_id: 'Supplier', unit_price: 'Unit price',
+        deep_discharge_actual_code: 'Deep discharge (actual)' },
+    output_batches: { delete_reason: 'Reason written off', deleted_at: 'Written off on', deleted_by: 'Written off by',
+        output_date: 'Output date', awaiting_operation_type_code: 'Awaiting operation' },
+    inventory_movements: { qty_delta: 'Quantity change' },
+    invoice_lines: { unit: 'Unit', line_no: 'Line' },
+    journal_entries: { entry_date: 'Entry date', reversed_by: 'Reversed by' },
+    payment_allocations: { allocated_base: 'Allocated (base currency)', allocated_ccy: 'Allocated', allocated_pay: 'Allocated (payment currency)',
+        withheld_base: 'Withheld (base currency)', withheld_pay: 'Withheld (payment currency)', freight_document_id: 'Freight document' },
+    prepayment_applications: { purchase_order_id: 'Purchase order', journal_entry_id: 'Journal' },
+    receipt_price_requests: { assay_result_id: 'Assay', label: 'Request', unit_price_ccy: 'Unit price', result_journal_entry_id: 'Journal',
+        snapshot: 'Request details' },
+    sales_order_history: { amend_reason: 'Reason' },
+    sales_order_reservations: { release_reason: 'Release reason' },
+    sales_records: { cogs_entry_id: 'Cost-of-sales journal', customer_id: 'Customer', price_provenance: 'How the price was set' },
+    sales_settlements: { amount_usd: 'Amount (USD)', gross_weight_kg: 'Gross weight (kg)', settlement_weight_kg: 'Settlement weight (kg)' },
+    shift_handover_items: { body: 'Details', item_type_code: 'Type' },
+    shift_handovers: { incoming_employee_id: 'Incoming', outgoing_employee_id: 'Outgoing' },
+    shipment_lines: { location_id: 'Location' },
+    stocktakes: { cancelled_at: 'Cancelled on', posted_at: 'Posted on' },
+    warehouse_requests: { cod_id: 'Certificate of destruction', run_id: 'Processing run', label: 'Request', executed_at: 'Carried out on',
+        snapshot: 'Request details' },
+    work_order_history: { amend_reason: 'Reason' },
 }
 // 三个主语的表里【本来就不该印的列】(Q12:单据编号自己在标题里,内部代码不上屏)
 const HIDE = {
@@ -186,6 +230,11 @@ const HIDE = {
     contract_document_terms: ['contract_code'],
     purchase_orders: ['code'],
     processing_runs: ['code'],
+    // AUDIT-TRAIL-1b-1:单号在标题里已经说了;历史表的主键、类型、时刻、人由标题与"谁 · 何时"两栏说;散列不是人话
+    inbound_batches: ['code'], output_batches: ['code'], work_orders: ['code'], stocktakes: ['code'],
+    work_order_history: ['work_order_id', 'change_type', 'changed_at', 'changed_by'],
+    sales_order_history: ['sales_order_id', 'change_type', 'changed_at', 'changed_by'],
+    cod_issues: ['sha256'], traceability_report_issues: ['sha256'], finance_attachments: ['mime_type'],
 }
 
 // ── 记录类型的英文名(单数)与区域 ─────────────────────────────────────────────
@@ -208,6 +257,13 @@ const TABLE_NAMES = {
     stocktakes: 'stocktake', stocktake_lines: 'stocktake line', suppliers: 'supplier', customers: 'customer',
     materials: 'material', invoices: 'invoice', payments: 'payment', expenses: 'expense', fixed_assets: 'fixed asset',
     qt_issues: 'quote issue', so_issues: 'sales order issue', price_history: 'batch price change',
+    // AUDIT-TRAIL-1b-1
+    certificates_of_destruction: 'certificate of destruction', cod_issues: 'certificate PDF issue',
+    traceability_report_issues: 'traceability report', warehouse_requests: 'warehouse request',
+    equipment_maintenance: 'service or repair', equipment_downtime: 'downtime', equipment_service_intervals: 'service interval',
+    shift_handovers: 'shift handover', shift_handover_items: 'handover item', shift_handover_equipment_refs: 'handover downtime note',
+    stocktake_counts: 'stocktake count', work_order_history: 'work order change', sales_order_history: 'sales order change',
+    sales_attribution_log: 'sale attribution', sales_record_movements: 'sale stock movement',
 }
 // 区域:按表名开头认(先长后短),认不出的归 Other。区域名与导航模块的英文说法一致。
 const AREA_RULES = [
@@ -273,6 +329,23 @@ const ENUM_OVERRIDES = {
     'processing_runs#status': { committed: 'Completed', reversed: 'Rolled back' },
     'purchase_order_lines#price_source': { manual: 'Entered by hand', formula: 'From a pricing formula', quote: 'From a quote', contract: 'From the contract', computed: 'Calculated' },
     'purchase_order_lines#unit': { kg: 'kg', t: 't', unit: 'units', units: 'units', pcs: 'pieces', l: 'litres' },
+    // ── AUDIT-TRAIL-1b-1 ──────────────────────────────────────────────────────────────────────────────
+    'certificates_of_destruction#status': { pending: 'Pending', issued: 'Issued', void: 'Void' },
+    'inbound_batch_metals#content_source': { assay: 'From an assay', manual: 'Entered by hand' },
+    'output_batch_metals#content_source': { assay: 'From an assay', manual: 'Entered by hand' },
+    'finance_attachments#doc_type': { invoice: 'Invoice', contract: 'Contract', receipt: 'Receipt', bank_slip: 'Bank slip',
+        weighbridge: 'Weighbridge ticket', other: 'Other' },
+    'equipment_service_intervals#kind': { service: 'Service', repair: 'Repair' },
+    'equipment_service_intervals#disposition': { warn: 'Warn', ignore: 'Ignore' },
+    'journal_entries#status': { posted: 'Posted', reversed: 'Reversed' },
+    'price_history#rate_type': { tt_buy: 'TT buying rate', tt_sell: 'TT selling rate', mid: 'Mid rate' },
+    'sales_records#price_source': { computed: 'Calculated', manual: 'Entered by hand' },
+    'sales_settlements#settling_party_used': { ours: 'Our assay', counterparty: "Counterparty's assay", umpire: 'Umpire assay' },
+    'sales_settlements#weight_basis_used': { as_received: 'As received', dry: 'Dry' },
+    'stocktakes#status': { open: 'Open', posted: 'Posted', cancelled: 'Cancelled' },
+    'work_order_history#change_type': { created: 'Created', released: 'Released', closed: 'Closed', cancelled: 'Cancelled',
+        header_update: 'Details changed', line_add: 'Input line added', line_update: 'Input line changed', line_remove: 'Input line removed',
+        expected_add: 'Expected output added', expected_update: 'Expected output changed', expected_remove: 'Expected output removed' },
 }
 
 function flatten(o, p = '', out = {}) {

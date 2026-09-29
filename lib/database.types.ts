@@ -29041,6 +29041,233 @@ export type Database = {
         }
         Relationships: []
       }
+      warehouse_requests_masked: {
+        Row: {
+          amount_base: number | null
+          cod_id: string | null
+          created_at: string | null
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          executed_at: string | null
+          id: string | null
+          inbound_batch_id: string | null
+          kind: string | null
+          label: string | null
+          output_batch_id: string | null
+          reason: string | null
+          result_entry_ids: string[] | null
+          run_id: string | null
+          snapshot: Json | null
+          status: string | null
+          withdraw_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          amount_base?: never
+          cod_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          executed_at?: string | null
+          id?: string | null
+          inbound_batch_id?: string | null
+          kind?: string | null
+          label?: string | null
+          output_batch_id?: string | null
+          reason?: string | null
+          result_entry_ids?: string[] | null
+          run_id?: string | null
+          snapshot?: Json | null
+          status?: string | null
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          amount_base?: never
+          cod_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          executed_at?: string | null
+          id?: string | null
+          inbound_batch_id?: string | null
+          kind?: string | null
+          label?: string | null
+          output_batch_id?: string | null
+          reason?: string | null
+          result_entry_ids?: string[] | null
+          run_id?: string | null
+          snapshot?: Json | null
+          status?: string | null
+          withdraw_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouse_requests_cod_id_fkey"
+            columns: ["cod_id"]
+            isOneToOne: false
+            referencedRelation: "certificates_of_destruction"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_assay_status"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_required_assay_gaps"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "contract_grade_breaches"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "grn_discrepancies"
+            referencedColumns: ["batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_batches_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_inbound_batch_id_fkey"
+            columns: ["inbound_batch_id"]
+            isOneToOne: false
+            referencedRelation: "po_prepayment_applicable"
+            referencedColumns: ["inbound_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batch_valuation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "output_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_output_batch_id_fkey"
+            columns: ["output_batch_id"]
+            isOneToOne: false
+            referencedRelation: "processing_wip"
+            referencedColumns: ["output_batch_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "batch_margin"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_metal_recovery_all"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_allocation_status"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_run_loss_breakdown"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_requests_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "processing_runs_masked"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wht_liability_by_month: {
         Row: {
           due_date: string | null
@@ -31968,6 +32195,7 @@ export type Database = {
         Returns: {
           at_column: string
           by_column: string
+          by_kind: string
           extra: string[]
           kind: string
           table_name: string
@@ -31993,9 +32221,12 @@ export type Database = {
         Args: never
         Returns: {
           fk_column: string
+          home: boolean
+          hop: string
           match: Json
           ord: number
           parent_table: string
+          shown: boolean
           subject: string
           table_name: string
         }[]
@@ -32003,10 +32234,12 @@ export type Database = {
       trail_subjects: {
         Args: never
         Returns: {
+          root_columns: string[]
           root_key: string
+          root_rule: string
           root_table: string
           subject: string
-          view_code: string
+          view_codes: string[]
         }[]
       }
       unapply_assay_result: {

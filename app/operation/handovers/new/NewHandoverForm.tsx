@@ -52,7 +52,8 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
             downtime_ids: refs,
         })
         if (res.error) setError(res.error)
-        else router.push('/operation/handovers')
+        // AUDIT-TRAIL-1b-1(Q23):提交之后落到这一张交接班自己的页面 —— 交接了什么、它的审计记录都在那里
+        else router.push(res.id ? `/operation/handovers/${res.id}` : '/operation/handovers')
     })
 
     return (

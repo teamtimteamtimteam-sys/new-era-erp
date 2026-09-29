@@ -10,8 +10,8 @@ import { priceBatchHref } from '@/app/components/metals/priceBatchHref'
 import type { MetalContentRow } from '@/app/components/metals/metalContentTypes'
 import { saveOutputMetal, deleteOutputMetal } from '@/app/components/metals/metalContentActions'
 import MovementTimeline from '@/app/components/inventory/MovementTimeline'
-import BatchAuditTrail from '@/app/components/audit/BatchAuditTrail'
-import { loadBatchAuditTrail } from '@/app/components/audit/auditTrailQuery'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import EndedBanner, { EndedFieldset } from '@/app/components/trail/EndedBanner'
 import StockStatusPanel from '@/app/components/inventory/StockStatusPanel'
 import type { MovementRow } from '@/app/components/inventory/movementTypes'
 import SalePanel, { type CreditRow } from './SalePanel'
@@ -44,8 +44,10 @@ type MovementFetchRow = {
 
 export default async function EditOutputPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -88,10 +90,10 @@ export default async function EditOutputPage({
 
     const [batchRes, materialsRes, customersRes, metalsRes, movementsRes, stocktakeRes] = await Promise.all([
         supabase
+            // AUDIT-TRAIL-1b-1(Q21):注销了的批次照常打开、只读(见进料页同一段的说明)
             .from('output_batches')
             .select('*')
             .eq('id', id)
-            .is('deleted_at', null)
             .single(),
         supabase
             .from('material_lookup')   // FIX-1 item 3:查名视图,见迁移 2026-09-05-fix1
@@ -286,9 +288,8 @@ export default async function EditOutputPage({
         run: m.processing_runs,
     }))
 
-    // AUDIT-1:跨模块审计轨迹。读【外层】视图 batch_audit_trail ——
-    // 判据在那一层,内层 batch_audit_trail_all 不授权给任何人(AUD-1 的拆法)。
-    const auditRows = await loadBatchAuditTrail('output', id)
+    // AUDIT-TRAIL-1b-1:注销了没有(Q21)—— 注销了就整页只读,理由是顶上那条横幅
+    const ended = !!batch.deleted_at
 
     // SAL-A:卖方可用的公式(方向 sale/both、启用)。走遮蔽视图 —— 没有
     // module.pricing.view 的读者拿到 0 行,面板于是只剩手填与现货预设,而不是报错。
@@ -313,6 +314,8 @@ export default async function EditOutputPage({
             </div>
 
             <h1 className="sm:text-2xl mb-2">{t('output.editTitle')}</h1>
+            {ended && <EndedBanner kind="writtenOff" at={batch.deleted_at as string} by={batch.deleted_by ?? null} reason={batch.delete_reason ?? null} />}
+            <EndedFieldset ended={ended}>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
                 <span>{batch.code}</span>
                 <span className="mx-2">·</span>
@@ -502,10 +505,10 @@ export default async function EditOutputPage({
 
             <MovementTimeline rows={movementRows} unit={batch.unit} />
 
-            {/* AUDIT-1:跨模块审计轨迹。它与上面的流水不是一件事 ——
-                流水只答库存那一段,这一条把收货、加工、成本、销售、分录
-                串成【一条】时间线,并把跟不动的每一跳画在行里。 */}
-            <BatchAuditTrail rows={auditRows} />
+            </EndedFieldset>
+
+            {/* AUDIT-TRAIL-1b-1(Q32 · Q33):统一的审计记录替掉旧的批次 Audit Trail(见进料页同一段的说明) */}
+            <AuditTrail subject="output_batch" id={id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

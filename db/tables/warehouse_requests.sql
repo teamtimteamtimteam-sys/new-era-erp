@@ -118,9 +118,17 @@ ALTER TABLE public.warehouse_requests ENABLE ROW LEVEL SECURITY;
 -- 读:凭证页那一个码(module.finance.view —— AGENTS.md 常设决定 1:它蕴含看得见价格)。屏幕不直接读本表,
 -- 读 warehouse_requests_visible()(仓库看得见自己的申请,金额按 data.view_prices 给)。写:一条策略都不给 ——
 -- 只经 submit_* · decide_warehouse_request · withdraw_warehouse_request(全是 SECURITY DEFINER)。
+-- AUDIT-TRAIL-1b-1(Tim 2026-09-29,Q12):读规则与 /inventory 那一块【已经给人看的】对齐 —— 仓库(module.inventory.view)
+--   与财务都读得到;金额(amount_base)收回列权限,只经 warehouse_requests_masked 按 data.view_prices 给
+--   (与 warehouse_requests_visible() 同一个判法)。三件事同一个迁移(AGENTS.md「给遮蔽表加列」那一节)。
 CREATE POLICY "warehouse_requests select by permission" ON public.warehouse_requests
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (has_permission('module.finance.view'::text));
+    USING (has_permission('module.inventory.view'::text) OR has_permission('module.finance.view'::text));
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.warehouse_requests FROM anon;
+REVOKE SELECT ON public.warehouse_requests FROM authenticated;
+GRANT SELECT (id, kind, status, label, inbound_batch_id, output_batch_id, run_id, cod_id, reason, snapshot,
+              decided_at, decided_by, decision_notes, executed_at, result_entry_ids, withdrawn_at, withdrawn_by,
+              withdraw_reason, created_at, created_by)
+    ON public.warehouse_requests TO authenticated;

@@ -19,13 +19,21 @@ import { formatTrailStamp } from '@/lib/dates'
 import { mustRows } from '@/lib/db-helpers'
 import AuditTrailList, { OlderEntriesLink } from './AuditTrailList'
 
-export type TrailSubject = 'purchase_order' | 'processing_run' | 'role'
+export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbound_batch' | 'output_batch' | 'work_order'
+    | 'stocktake' | 'equipment' | 'shift_handover' | 'warehouse_request'
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     purchase_order: 'purchase_orders',
     processing_run: 'processing_runs',
     role: 'roles',
+    inbound_batch: 'inbound_batches',
+    output_batch: 'output_batches',
+    work_order: 'work_orders',
+    stocktake: 'stocktakes',
+    equipment: 'fixed_assets',
+    shift_handover: 'shift_handovers',
+    warehouse_request: 'warehouse_requests',
 }
 
 const PAGE = 20
@@ -66,7 +74,7 @@ export default async function AuditTrail({ subject, id, show }: { subject: Trail
     const root = rows.find((r) => r.table_name === TRAIL_SUBJECT_ROOTS[subject] && r.ctx)
     const ctx = (root?.ctx ?? null) as { currency?: Json } | null
     const currency = typeof ctx?.currency === 'string' ? ctx.currency : null
-    const entries = buildEntries(dict, rows.map((r) => fromRecordTrail(r as Parameters<typeof fromRecordTrail>[0])), { currency })
+    const entries = buildEntries(dict, rows.map((r) => fromRecordTrail(r as Parameters<typeof fromRecordTrail>[0])), { currency, subject })
     const more = rows.some((r) => r.more)
     return (
         <section id="audit-trail" data-audit-trail={entries.length ? 'entries' : 'empty'} className="mt-8 border-t pt-6">

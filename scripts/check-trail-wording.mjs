@@ -28,7 +28,7 @@
 //   blind-detector · registry-drift · missing-key · dead-key · label-gap · enum-gap · raw-date · raw-ref · raw-json · raw-null · raw-role
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 
 const ROOT = process.cwd()
@@ -49,25 +49,24 @@ const detect = FAULT === 'blind-detector' ? () => [] : M.machineTokens
 problems.ruler.push(...M.selfProof(detect))
 
 // ── ② 登记表一致 ────────────────────────────────────────────────────────────
-function sqlValues(file) {
-    const src = read(file).replace(/--[^\n]*/g, '')
-    const body = src.slice(src.indexOf('VALUES'), src.lastIndexOf(') AS'))
-    return [...body.matchAll(/\(([^()]*(?:\([^()]*\)[^()]*)*)\)/g)].map((m) =>
-        [...m[1].matchAll(/'([^']*)'|(\d+)/g)].map((x) => x[1] ?? x[2]))
-}
-const subjects = sqlValues('db/functions/trail_subjects.sql').filter((r) => r.length >= 3)
-    .map(([subject, view, root]) => ({ subject, view, root }))
-const members = sqlValues('db/functions/trail_subject_members.sql').filter((r) => r.length >= 4)
-    .map(([subject, ord, table, parent]) => ({ subject, ord, table, parent }))
-if (subjects.length !== 3 || members.length < 10) {
-    problems.registry.push(`解析 SQL 登记表只读出 ${subjects.length} 个主语 / ${members.length} 行成员 —— 解析器瞎了`)
-}
-const tablesOf = (s) => new Set([subjects.find((x) => x.subject === s)?.root, ...members.filter((m) => m.subject === s).map((m) => m.table)])
+// AUDIT-TRAIL-1b-1:主语一行是 ('主语', ARRAY['码', …], '根表', '根键', 'table'|'page', 列 | NULL);
+//   成员一行是 ('主语', ord, '表', '父表', '外键', '{…}'::jsonb, 'down'|'up', shown, home)。按行的形状整行认,
+//   不按"第几个引号串"认 —— 一个主语认两个码时,按位置取根表会取到第二个码(1b-1 第一次跑就是这么错的)。
+const subjectSrc = read('db/functions/trail_subjects.sql').replace(/--[^\n]*/g, '')
+const subjects = [...subjectSrc.matchAll(/\('([a-z_]+)',\s*ARRAY\[([^\]]*)\],\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'([a-z]+)'/g)]
+    .map((m) => ({ subject: m[1], views: [...m[2].matchAll(/'([^']+)'/g)].map((x) => x[1]), root: m[3], rule: m[5] }))
+const memberSrc = read('db/functions/trail_subject_members.sql').replace(/--[^\n]*/g, '')
+const members = [...memberSrc.matchAll(/\('([a-z_]+)',\s*(\d+),\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'[^']*'::jsonb,\s*'(up|down)',\s*(true|false),\s*(true|false)\)/g)]
+    .map((m) => ({ subject: m[1], ord: m[2], table: m[3], parent: m[4], hop: m[6], shown: m[7] === 'true' }))
 const renderSrc = read('lib/trail/render.ts')
-const setIn = (name) => new Set([...(renderSrc.match(new RegExp(`const ${name} = new Set\\(\\[([^\\]]*)\\]`))?.[1] ?? '')
-    .matchAll(/'([^']+)'/g)].map((m) => m[1]))
-const uiSets = { purchase_order: setIn('PO_TABLES'), processing_run: setIn('RUN_TABLES'),
-    role: new Set([...(renderSrc.match(/if \(table === '([a-z_]+)' \|\| table === '([a-z_]+)'\) return 'role'/) ?? []).slice(1)]) }
+const subjectBlock = renderSrc.match(/export const SUBJECT_TABLES[^=]*= \{([\s\S]*?)\n\}/)?.[1] ?? ''
+const uiSets = Object.fromEntries([...subjectBlock.matchAll(/([a-z_]+): \[([^\]]*)\]/g)]
+    .map((m) => [m[1], new Set([...m[2].matchAll(/'([^']+)'/g)].map((x) => x[1]))]))
+if (subjects.length < 10 || members.length < 100 || Object.keys(uiSets).length !== subjects.length) {
+    problems.registry.push(`解析登记表读出 ${subjects.length} 个主语 / ${members.length} 行成员 / render.ts 的 SUBJECT_TABLES ${Object.keys(uiSets).length} 个 —— 解析器瞎了`)
+}
+// 垫脚石(shown = false)不进审计记录,所以不进界面那一侧的表集
+const tablesOf = (s) => new Set([subjects.find((x) => x.subject === s)?.root, ...members.filter((m) => m.subject === s && m.shown).map((m) => m.table)])
 if (FAULT === 'registry-drift') uiSets.purchase_order.delete('po_issues')
 for (const s of subjects) {
     const a = [...tablesOf(s.subject)].sort().join(','), b = [...(uiSets[s.subject] ?? [])].sort().join(',')
@@ -86,7 +85,7 @@ const text = { ...T.TRAIL_TEXT }
 if (FAULT === 'missing-key') delete text['po.cancelled']
 if (FAULT === 'dead-key') text['po.neverUsed'] = 'Never used'
 const USERS = ['lib/trail/render.ts', 'app/components/trail/AuditTrail.tsx', 'app/components/trail/AuditTrailList.tsx',
-    'app/settings/change-history/page.tsx']
+    'app/settings/change-history/page.tsx', 'app/components/trail/EndedBanner.tsx', 'app/components/trail/RecentTrail.tsx']
 const used = new Set()
 let dynamicAccount = false
 for (const f of USERS) {
@@ -108,9 +107,18 @@ const fields = JSON.parse(JSON.stringify(C.TRAIL_FIELDS))
 const enums = JSON.parse(JSON.stringify(C.TRAIL_ENUMS))
 if (FAULT === 'label-gap') delete fields.purchase_order_lines.quantity
 if (FAULT === 'enum-gap') delete enums['purchase_orders#status'].cancelled
-function mirrorColumns(t) {
+// 一张表的镜像通常是 db/tables/<表>.sql;少数几张与它的主表同住一个文件(freight_allocations 在 freight_documents.sql 里)
+function mirrorFileOf(t) {
     const f = `db/tables/${t}.sql`
-    if (!existsSync(join(ROOT, f))) return null
+    if (existsSync(join(ROOT, f))) return f
+    for (const g of readdirSync(join(ROOT, 'db/tables'))) {
+        if (new RegExp(`CREATE TABLE (?:public\\.)?${t}\\s*\\(`).test(read(`db/tables/${g}`))) return `db/tables/${g}`
+    }
+    return null
+}
+function mirrorColumns(t) {
+    const f = mirrorFileOf(t)
+    if (!f) return null
     const src = read(f).replace(/--[^\n]*/g, '')
     const m = src.match(new RegExp(`CREATE TABLE (?:public\\.)?${t}\\s*\\(([\\s\\S]*?)\\n\\);`))
     const cols = []
@@ -208,10 +216,10 @@ function refsFor(t, img, variant) {
 const RESTRICTED = { $restricted: true }
 let scanned = 0
 const tablesSwept = new Set()
-function sweep(label, rows) {
+function sweep(label, rows, subject = null) {
     let entries
     try {
-        entries = R.buildEntries(dict, rows, { currency: 'SGD' })
+        entries = R.buildEntries(dict, rows, { currency: 'SGD', subject })
     } catch (e) {
         problems.tokens.push(`${label}:造句器抛错 ${e.message}`)
         return
@@ -257,6 +265,25 @@ for (const t of Object.keys(SAMPLE_KINDS)) {
         const vals = checkValues(t, c) ?? Object.keys(enums[`${t}#${c}`] ?? {})
         for (let i = 0; i < vals.length; i++) {
             sweep(`${t}.${c} = ${vals[i]}`, [row(t, 'UPDATE', { cols: [c], old: { [c]: vals[(i + 1) % vals.length] }, new: { [c]: vals[i] } })])
+        }
+    }
+}
+// AUDIT-TRAIL-1b-1:每一个主语的每一张表,再按【它那一页】的说法造一遍(批次页从批次这一边说加工投入、
+//   往上一跳够到的单据要点名 —— 这些分支只在带着主语时才走得到)
+for (const s of subjects) {
+    for (const t of tablesOf(s.subject)) {
+        const cols = Object.entries(SAMPLE_KINDS[t] ?? {})
+        for (let variant = 0; variant < 3; variant++) {
+            const img = {}, old = {}, neu = {}
+            for (const [c, [, kind]] of cols) {
+                img[c] = sample(t, c, kind, variant)
+                old[c] = variant === 2 ? RESTRICTED : sample(t, c, kind, variant + 1)
+                neu[c] = variant === 1 ? RESTRICTED : sample(t, c, kind, variant + 2)
+            }
+            const refs = { ...refsFor(t, img, variant), ...refsFor(t, old, variant + 1), ...refsFor(t, neu, variant + 2) }
+            sweep(`${s.subject} · ${t} · INSERT · 样本 ${variant}`, [row(t, 'INSERT', { new: img, refs, ctx: img, prelog: variant === 2 })], s.subject)
+            sweep(`${s.subject} · ${t} · UPDATE · 样本 ${variant}`, [row(t, 'UPDATE', { cols: cols.map(([c]) => c), old, new: neu, refs, ctx: img })], s.subject)
+            sweep(`${s.subject} · ${t} · DELETE · 样本 ${variant}`, [row(t, 'DELETE', { old: img, refs })], s.subject)
         }
     }
 }
@@ -346,6 +373,6 @@ for (const [k, list] of Object.entries(problems)) {
     if (list.length > 25) console.error(`   …另有 ${list.length - 25} 处`)
     exit = Math.max(exit, k === 'ruler' || k === 'coverage' ? 3 : 1)
 }
-console.log(`   (三个主语 ${subjectTables.length} 张表 · ${subjectCols} 列;扫过 ${tablesSwept.size} 张表、${scanned} 句;措辞键 ${Object.keys(text).length} 个)`)
+console.log(`   (${subjects.length} 个主语 ${subjectTables.length} 张表 · ${subjectCols} 列;扫过 ${tablesSwept.size} 张表、${scanned} 句;措辞键 ${Object.keys(text).length} 个)`)
 if (FAULT) console.log(`   ★ 故障注入:${FAULT}`)
 process.exit(exit)

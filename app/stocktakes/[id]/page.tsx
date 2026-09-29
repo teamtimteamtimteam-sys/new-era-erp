@@ -10,6 +10,7 @@ import { stocktakeStatusLabelKey } from '../status'
 import { qtyDelta, formatSigned } from '../delta'
 import CountList, { type CountItem } from '../CountList'
 import CancelStocktakeButton from './CancelStocktakeButton'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import PostedLinesTable, { type PostedLineRow } from './PostedLinesTable'
 import { mustRows } from '@/lib/db-helpers'
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
@@ -30,8 +31,10 @@ type BatchFetchRow = {
 
 export default async function StocktakeDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -252,6 +255,10 @@ export default async function StocktakeDetailPage({
                    stocktakes.noLines);表体里那一行 colSpan={5} 已经删掉。 */
                 <PostedLinesTable rows={postedRows} />
             )}
+
+            {/* AUDIT-TRAIL-1b-1:审计记录 —— 开单、每一次清点、过账(22/09/2026 之前过账的只有那一戳,之后的与审批并成一句,Q11)、
+                取消,以及过账的分录(财务读) */}
+            <AuditTrail subject="stocktake" id={id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

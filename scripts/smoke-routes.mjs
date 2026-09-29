@@ -197,6 +197,9 @@ const ID_SOURCES = {
         // 拿一个加工单 id 去开工单详情页 —— 那会是一次看起来像"页面坏了"的 404。
         // 线上零行(机制与屏幕同刀落地),所以同时列在 EXPECTED_SKIPS 里。
         '/operation/orders': 'work_orders',
+        // AUDIT-TRAIL-1b-1(Q22 · Q23):设备页读 fixed_assets 的 id(equipment_usage 的键就是它);交接班页读 shift_handovers。
+        //   线上 shift_handovers 今天零行(车间还没有人交接),故 /operation/handovers/[id] 同时列在 EXPECTED_SKIPS 里。
+        '/operation/equipment': 'fixed_assets', '/operation/handovers': 'shift_handovers',
         '/operation/processing': 'processing_runs',
         '/purchasing/orders': 'purchase_orders', '/purchasing/payment-terms': 'payment_term_templates',
         // SO-1:销售订单。线上零行(这一刀只建单据,没有既有数据),
@@ -573,6 +576,12 @@ const MUST_CONTAIN = {
     '/operation/processing/[id]': [{ trail: 'audit-trail', why: '加工单页底的审计记录' }],
     '/settings/roles/[id]': [{ trail: 'audit-trail', why: '角色页底的审计记录' }],
     '/settings/change-history': [{ trail: 'change-history', why: '变更记录汇总页' }],
+    // ── AUDIT-TRAIL-1b-1:批次(替掉旧的 Audit Trail)· 工单(替掉修改史)· 盘点 · 设备 · 交接班 ─────────────
+    '/output/[id]/edit': [{ trail: 'audit-trail', why: '产出批次页底的审计记录(替掉旧的批次 Audit Trail)' }],
+    '/operation/orders/[id]': [{ trail: 'audit-trail', why: '工单页底的审计记录(替掉修改史)' }],
+    '/stocktakes/[id]': [{ trail: 'audit-trail', why: '盘点页底的审计记录' }],
+    '/operation/equipment/[id]': [{ trail: 'audit-trail', why: '设备页底的审计记录(Q22)' }],
+    '/operation/handovers/[id]': [{ trail: 'audit-trail', why: '交接班页底的审计记录(Q23)' }],
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
     // 为空时改渲染一段琥珀色文字("还没有货代 / 还没有供货商")。所以那个字符串
@@ -630,7 +639,8 @@ const MUST_CONTAIN = {
     ],
     '/inbound/new': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
     '/inbound/receive': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
-    '/inbound/[id]/edit': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
+    '/inbound/[id]/edit': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' },
+                           { trail: 'audit-trail', why: '进料批次页底的审计记录(替掉旧的批次 Audit Trail)' }],
     '/purchasing/orders/new': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
     // 【这两条用探针,不用静态串】计价公式表单的供应商下拉包在
     // {mode === 'supplier' && …} 里,而 mode 默认是 'generic'(FormulaForm.tsx:74-76)——
@@ -1069,6 +1079,8 @@ const QUERY_PROBES = [
 ]
 
 const EXPECTED_SKIPS = new Set([
+    // AUDIT-TRAIL-1b-1(Q23):线上 shift_handovers 零行(车间还没有人交接)。第一张交接班提交的那天,这条断言会响。
+    '/operation/handovers/[id]',
     // (EQP-1c-b 曾在这里挂过 '/finance/assets/[id]' —— 线上 fixed_assets 零行。
     //  2026-08-21 Tim 的走查登记了第一台真机器 FA-2026-0001
     //  「Bosch Deep Discharging Machine」,于是这条断言【在同一天】就报了

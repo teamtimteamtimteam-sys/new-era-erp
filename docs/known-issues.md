@@ -9852,3 +9852,42 @@ Step 0 的样稿 B 在"Processing cost added · Labour 200.00 SGD"后面写了"j
 - **没有被机制覆盖的一类,照直说**:一个格式化过的日期经由 prop 流到【别的】解析路径(例如 `new Date(prop)` 做算术)。AUDIT-TRAIL-1a
   对全树做了一次生产者 × 消费者的对照勘察(按属性名把 `formatDate` 的产出与 `new Date` / `Date.parse` / 查询过滤 / 再格式化的调用点连起来),
   找到的就是上面两处;按名字对照有漏的可能,所以登记在这里而不是写"零"。
+
+## AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS —— `equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人(AUDIT-TRAIL-1b-1 登记,2026-09-29,Tim 的 Q14)
+
+`db/views/equipment_maintenance_advice.sql:28-44` 是属主权限视图,门是 `module.finance.view` **或** `module.processing.view`,
+而它带回 `work_cost_base`(维修那张费用的 `amount_base`)与 `equipment_cost_base`(`fixed_assets.cost_base`)。于是一个只持
+加工权限的人(仓库角色就是)读得到机器的原值与每一次维修花了多少 —— 那两个数在别处都只给财务。
+本刀新建的 `/operation/equipment/[id]` **不读**这张视图(抬头写着理由);今天读它的只有 `/finance/assets/[id]`(财务的门)。
+**修法是另一个决定**(Q14):要么把那两列按 `module.finance.view` 置空(与 `processing_runs_masked` 的写法相同),要么把视图的门
+收成财务。队列:`docs/forward-queue.md` 的 UNBLOCK-1。**删除条件:** 那一刀落地。
+
+## AT1B-WAREHOUSE-APPROVALS-FINANCE-ONLY —— 仓库申请的审批留痕仍然只给财务读(AUDIT-TRAIL-1b-1 登记,2026-09-29)
+
+Q12 把 `warehouse_requests` 的读规则放宽到与 `/inventory` 一致(`module.inventory.view` 或财务),金额按 `data.view_prices` 遮。
+**`approval_log` 的 `warehouse_request` 那一支没有跟着放宽:** 那几行审批留痕带着申请的金额(`amount_ccy` / `amount_base`),而
+`approval_log` 的金额列对 `authenticated` 是整列授权的、没有遮蔽视图 —— 放宽它就是把金额给了仓库。所以仓库的人在批次页、加工单页
+与 `/inventory` 那一块上看得见"申请提了 / 批了 / 驳回了"(申请自己那一行记着谁决定、何时、理由),而审批那一行是 Restricted。
+**删除条件:** `approval_log` 的金额按主体类型遮蔽(一个 `approval_log_masked`),然后那一支可以照申请表放宽。
+
+## AT1B-PRELOG-ACTOR-NOT-RECORDED —— 几种子行在"记录开始之前"那一段说 Not recorded,而旧批次记录曾经借了父单据的人(AUDIT-TRAIL-1b-1 登记,2026-09-29)
+
+旧的批次审计记录(`batch_audit_trail_all`)给【没有自己的"谁"那一列】的行借了父单据的人:加工投入 / 产出借加工单的建单人、
+发货行借发货单的建单人。统一的审计记录**不借**:`processing_inputs` · `processing_outputs` · `shipment_lines` ·
+`sales_record_movements` · `invoice_lines` · `payment_allocations` · `assay_result_metals` 在 28/09/2026 之前那一段说
+"Not recorded"。借来的那个人是"建那张单的人",不一定是"做这一行的人",说出来就是一次猜测(Q17 的"不猜")。
+变更记录开始之后,每一行都有它真实的写入人。**删除条件:** 无 —— 这是一个刻意的说法;若要恢复借用,是一次新的裁定。
+
+## AT1B-OLD-BATCH-VIEW-DEFECTS —— 退役的旧批次视图里量到的三处缺陷(AUDIT-TRAIL-1b-1 登记,2026-09-29;随视图一起退役)
+
+`batch_audit_trail_all` 今天已经没有页面在读(Q32),但它还在库里,fixture 238 拿它当逐行对照的参照。量到的三处:
+① 产出批次的注销分录(`writeoff`,`source_id` = 产出批)从来没有被接上 —— `je_batch` 只直连进料批(线上今天 0 行);
+② `work_order` 审批被硬写成 `__no_policy__`,而 `approval_log` 的读规则早已给 `module.processing.view`(APR-1);
+③ 成本修改与工单修改那两支按 `processing_inputs` 连,一张单若同一个批次投了几行,会出重复行。
+统一的审计记录没有这三处(①② 按成员登记表走,③ 按行的主键去重)。**删除条件:** 清理那一刀把两张视图 DROP 掉。
+
+## AT1B-EQUIPMENT-LIST-EVERY-ASSET —— `/operation/equipment` 列出账上【每一张】资产卡,不只是机器(AUDIT-TRAIL-1b-1 登记,2026-09-29)
+
+清单读 `equipment_usage`(加工的人读得到的那一张),而它没有 `category` 这一列(类别只在财务的 `fixed_assets` 上)。于是一台车、
+一台办公电脑的卡也在清单上(线上今天 2 张卡)。**删除条件:** `equipment_usage` 带上类别(一个不含金额的列,可以给加工),清单只列
+`equipment`。

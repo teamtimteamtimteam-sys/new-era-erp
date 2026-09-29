@@ -21,6 +21,7 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { workOrderStatusKey } from '../woTypes'
 import WorkOrderActions from './WorkOrderActions'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import AmendLinesControl, { type AmendRow } from './AmendLinesControl'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -38,7 +39,10 @@ type FulfilRow = {
     variance_qty: number | null; has_plan: boolean
 }
 
-export default async function WorkOrderPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function WorkOrderPage({ params, searchParams }: {
+    params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
+}) {
     const denied = await requireModule(MOD.processing)
     if (denied) return denied
 
@@ -73,14 +77,6 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
         'processing_runs') as {
             id: string; code: string; process_date: string | null
             status: string; total_input: number | null; total_output: number | null }[]
-
-    const history = mustRows(
-        await supabase.from('work_order_history')
-            .select('change_type, detail, amend_reason, old_qty, new_qty, changed_at')
-            .eq('work_order_id', id).order('changed_at', { ascending: false }),
-        'work_order_history') as {
-            change_type: string; detail: string | null; amend_reason: string | null
-            old_qty: number | null; new_qty: number | null; changed_at: string }[]
 
     // ── PROC-SUPPORT-1(R3):每一行预期产出的【出处】────────────────────────
     // 【为什么单独读一次,而不是往 work_order_fulfilment 里加一列】那张视图回答的是
@@ -273,22 +269,8 @@ export default async function WorkOrderPage({ params }: { params: Promise<{ id: 
             <WorkOrderActions id={wo.id} status={wo.status} canRelease={canRelease} canManage={canManage}
                 releaseBlockedReason={releaseBlockedReason} hasRuns={liveRuns.length > 0} />
 
-            {/* ── 历史 ────────────────────────────────────────────────── */}
-            <h2 className="mt-8 mb-2">{t('processing.wo.history')}</h2>
-            <ul className="text-sm space-y-1">
-                {history.map((h, i) => (
-                    <li key={i} className="text-[color:var(--brand-muted-text)]">
-                        {formatAuditStamp(h.changed_at)}
-                        {/* 动态前缀,后缀集合接 work_order_history 的 CHECK(check-i18n 的清单) */}
-                        {' · '}{t('processing.wo.changeType.' + h.change_type)}
-                        {h.old_qty != null || h.new_qty != null
-                            ? ` · ${h.old_qty ?? '—'} → ${h.new_qty ?? '—'}`
-                            : ''}
-                        {h.amend_reason ? ` · ${h.amend_reason}` : ''}
-                        {h.detail ? ` · ${h.detail}` : ''}
-                    </li>
-                ))}
-            </ul>
+            {/* ── 审计记录(AUDIT-TRAIL-1b-1,Q26:替掉原来那张修改史 —— 它不说是谁)──────────── */}
+            <AuditTrail subject="work_order" id={id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

@@ -34,6 +34,7 @@ import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { loadActorNames } from '@/app/components/ActorName'
 import { loadMaterialNames } from '../materialNames'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import EndedBanner, { EndedFieldset } from '@/app/components/trail/EndedBanner'
 
 // FK 嵌入运行时是对象(包括两层嵌套);显式类型 + cast 锁住。
 // ROLE-1 Batch 3b:批次里不再嵌 materials ( name ) —— 仓库读不了 materials 基表,嵌入会静默成 null。
@@ -98,10 +99,12 @@ export default async function ProcessingDetailPage({
 
     const [runRes, inputsRes, outputsRes, costsRes, recoveryRes] = await Promise.all([
         supabase
+            // AUDIT-TRAIL-1b-1(Q21):回滚了的加工单【照常打开、只读】,不再 404。回滚把 status 改成 reversed、
+            //   同一句里盖上 deleted_at —— 那两件事是同一个事实,所以这里不再按 deleted_at 过滤;
+            //   下面那几块"只在已提交单上"的分支(isCommitted)从此真的走得到。
             .from('processing_runs_masked')
             .select('*')
             .eq('id', id)
-            .is('deleted_at', null)
             .single(),
         supabase
             .from('processing_inputs')
@@ -182,6 +185,7 @@ export default async function ProcessingDetailPage({
     const nameFor = (mid: string | null | undefined) => (mid ? materialName.get(mid) : undefined) ?? '—'
 
     const isCommitted = run.status === 'committed'
+    const ended = run.status === 'reversed' || !!run.deleted_at
 
     // 状态标签(未知值回退原样)
     const statusLabel = (v: string | null) => {
@@ -426,7 +430,13 @@ export default async function ProcessingDetailPage({
             title={t('processing.detailTitle')}
             // ★ 出口:删除这一单。转换前它画在 h1 右边的 justify-between 里 ——
             //   actions 是同一个位置,而且画在状态分支【之前】,空态吃不掉它。
-            actions={<DeleteButton runId={run.id} code={run.code} canRollback={canRollback} openRequestLabel={openWarehouseRequest.get(run.code) ?? null} />}
+            actions={
+                // 回滚了的单:回滚钮看得见、按不下去,理由是顶上那条横幅(DBLOCK-1:不藏,说为什么)
+                <EndedFieldset ended={ended}>
+                    <DeleteButton runId={run.id} code={run.code} canRollback={canRollback} openRequestLabel={openWarehouseRequest.get(run.code) ?? null} />
+                </EndedFieldset>
+            }
+            notices={ended ? <EndedBanner kind="reversed" at={(run.deleted_at ?? run.updated_at) as string} by={run.deleted_by ?? null} reason={run.delete_reason ?? null} /> : undefined}
             // ★★ 详情页恒为 ok —— 这一单在不在由上面的 notFound() 回答。CONV-8 §⑤。
             state={{ kind: 'ok' }}
         >

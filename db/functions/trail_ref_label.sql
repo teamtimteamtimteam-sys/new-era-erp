@@ -8,6 +8,11 @@
 --   · 那一行已经被硬删 → 取 change_log 里它最后一份完整影像,gone = true(界面加 "(since deleted)");
 --     连影像都没有(早于变更记录,或从未存在)→ label NULL + gone = true(界面说 "a … that has since been deleted")。
 --   · 'auth.users':一个登录账号 → 那个人(trail_actor 同一套答法)。
+-- AUDIT-TRAIL-1b-1:
+--   · 加工单多带一个 ended(它已经回滚了)—— 批次页上"用在加工 PROC-…"那一条据此加一句灰字
+--     "This processing was later rolled back"(旧批次记录的 run_voided,Q5)。
+--   · 交接班 → "DD/MM/YYYY · 班次";停机 → "机器编号 · DD/MM/YYYY HH:MM"(新加坡时间)—— 两张表都没有编号或名字,
+--     以前只能说 "a handover" / "a downtime"。
 -- 【属主身份】按表名动态读;EXECUTE 已从 authenticated 收回。
 CREATE OR REPLACE FUNCTION public.trail_ref_label(p_table text, p_column text, p_value text)
  RETURNS jsonb
@@ -65,6 +70,15 @@ BEGIN
         WHEN v_img ? 'title' THEN v_img ->> 'title'
         WHEN v_img ? 'label' THEN v_img ->> 'label'
     END;
+    IF p_table = 'shift_handovers' THEN
+        v_label := to_char((v_img ->> 'handover_date')::date, 'DD/MM/YYYY')
+                   || COALESCE(' · ' || (SELECT s.name_en FROM shifts s WHERE s.code = v_img ->> 'shift_code'), '');
+    ELSIF p_table = 'equipment_downtime' THEN
+        v_label := COALESCE((SELECT fa.code FROM fixed_assets fa WHERE fa.id::text = v_img ->> 'equipment_id') || ' · ', '')
+                   || to_char(((v_img ->> 'started_at')::timestamptz) AT TIME ZONE 'Asia/Singapore', 'DD/MM/YYYY HH24:MI');
+    ELSIF p_table = 'processing_runs' THEN
+        RETURN jsonb_build_object('label', NULLIF(v_label, ''), 'gone', v_gone, 'ended', v_img ->> 'deleted_at' IS NOT NULL);
+    END IF;
     IF p_table IN ('inbound_batches', 'output_batches') THEN
         IF v_img ->> 'material_id' IS NOT NULL THEN
             SELECT m.name INTO v_extra FROM materials m WHERE m.id::text = v_img ->> 'material_id';

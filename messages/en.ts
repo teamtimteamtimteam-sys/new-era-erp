@@ -3262,11 +3262,17 @@ const en = {
             runs: 'Processing runs',
             wip: 'Work in progress',
             handovers: 'Shift handover',
+            equipment: 'Equipment',
         },
         // ── PROC-SUPPORT-1 (R4/R5/R6): shift handover ────────────────────
         handover: {
             title: 'Shift handover',
             newTitle: 'New shift handover',
+            // AUDIT-TRAIL-1b-1(Q23):/operation/handovers/[id]
+            noItems: 'No handover content was recorded.',
+            noEquipment: 'No equipment downtime was referenced.',
+            colMachine: 'Machine',
+            colType: 'Item',
             new: 'New handover',
             submit: 'Submit handover',
             colDate: 'Date', colShift: 'Shift', colFrom: 'Handed over by', colTo: 'Taken over by', colAck: 'Acknowledgement',
@@ -7028,11 +7034,6 @@ const en = {
         allActors: 'Everyone',
         keyOnly: 'Key events only',
         clear: 'Clear filters',
-        noRecordMatch: 'No record matches “{q}”.',
-        empty: 'No changes match these filters.',
-        older: 'Older',
-        newest: 'Newest',
-        pageNote: 'Newest first, {n} operations per page. Times are Singapore time.',
         op: {
             INSERT: 'Created',
             UPDATE: 'Edited',
@@ -9647,6 +9648,31 @@ const en = {
     },
     // ── EQP-2d:设备的一生(保养 / 停机 / 保养间隔),以及三张表的拒绝 ──────────
     equipment: {
+        // AUDIT-TRAIL-1b-1(Q22 · Q10):/operation/equipment 与 /operation/equipment/[id] —— 加工的人读得到的那一份(只读)
+        page: {
+            listTitle: 'Equipment',
+            listIntro: 'Every machine on the books, with what processing has recorded against it. Read-only: the asset card, its cost and depreciation stay in finance.',
+            empty: 'No machines are on the books yet.',
+            colCode: 'Machine',
+            colDescription: 'Description',
+            colStatus: 'Status',
+            colRuns: 'Runs',
+            colProcessed: 'Processed',
+            colLastRun: 'Last run',
+            detailTitle: 'Equipment',
+            acquired: 'Acquired on',
+            inService: 'In service from',
+            firstRun: 'First run',
+            output: 'Produced',
+            loss: 'Loss',
+            serviceTitle: 'Service state',
+            kgSince: 'Kilograms since the last service',
+            daysSince: 'Days since the last service',
+            runsTitle: 'Recent processing runs',
+            noRuns: 'No processing run has been recorded on this machine.',
+            financeCard: 'Open the asset card in finance',
+            readOnly: 'This page is read-only.',
+        },
         needsProcessingEdit: 'Recording maintenance, downtime and service intervals needs edit rights in the processing module. This machine\u2019s card lives in finance; the work on it is recorded by the people who do it.',
         kind: {
             service: 'Routine service',

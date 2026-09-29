@@ -63,7 +63,7 @@ function LineRow({ line }: { line: Line }) {
                     <span className="block text-[color:var(--brand-muted-text)]">{line.label}</span>
                     <span className="block">
                         <ValueText v={line.old} /> <span aria-hidden="true">→</span>
-                        <span className="sr-only">changed to</span> <ValueText v={line.new} />
+                        <span className="sr-only">{TRAIL_TEXT.srChangedTo}</span> <ValueText v={line.new} />
                     </span>
                 </li>
             )

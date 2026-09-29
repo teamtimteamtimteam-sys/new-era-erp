@@ -20,7 +20,7 @@ import type { TrailText, TrailTextKey } from './text'
 export type Json = null | boolean | number | string | Json[] | { [k: string]: Json }
 export type Img = { [k: string]: Json }
 export type Actor = { state: string; name?: string | null } | null
-export type Ref = { label?: string | null; gone?: boolean; unit?: string | null; person?: Actor } | null
+export type Ref = { label?: string | null; gone?: boolean; unit?: string | null; person?: Actor; ended?: boolean } | null
 export type Refs = { [col: string]: { [value: string]: Ref } }
 export type RecordRef = {
     table: string; id: string | null; label: string | null; gone: boolean
@@ -86,6 +86,8 @@ export type BuildOptions = {
     currency?: string | null
     /** 记录的数量单位(加工单的损耗没有自己的单位列)*/
     unit?: string | null
+    /** 这一页是哪一种记录(trail_subjects 的主语);汇总页不传。决定一张表的行从哪一边说、往上一跳够到的要不要点名单据 */
+    subject?: string | null
 }
 
 export const TRUNCATE_AT = 120
@@ -201,7 +203,7 @@ function unitFor(d: TrailDict, col: string, img: Img, refs: Refs | null, opts: B
     return opts.unit ? unitText(d, opts.unit) : null
 }
 function isQuantity(col: string): boolean {
-    return /quantity|_qty$|^total_(input|output)$|^basis_(total_)?qty$/.test(col)
+    return /quantity|_qty$|^qty(_delta)?$|^total_(input|output)$|^basis_(total_)?qty$/.test(col)
 }
 
 function personVal(d: TrailDict, a: Actor): Val {
@@ -212,6 +214,8 @@ function personVal(d: TrailDict, a: Actor): Val {
         case 'removed': return { text: tx(d, 'who.removed') }
         case 'unlinked': return { text: tx(d, 'who.unlinked') }
         case 'anonymised': return { text: tx(d, 'who.anonymised') }
+        // AUDIT-TRAIL-1b-1 折入 1:别的页面上这个读者看到"受限"的人名,这里也是 Restricted(trail_actor 判)
+        case 'restricted': return { text: tx(d, 'restricted'), restricted: true }
         default: return { text: tx(d, 'who.unknown') }
     }
 }
@@ -760,16 +764,701 @@ function describeGeneric(d: TrailDict, r: TrailRow, opts: BuildOptions): Block {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// 组装
+// AUDIT-TRAIL-1b-1:批次 · 分录 · 审批 · 工单 · 盘点 · 设备 · 交接班 · 仓库申请
 // ════════════════════════════════════════════════════════════════════════════
-function subjectOf(table: string | null): 'po' | 'run' | 'role' | null {
-    if (!table) return null
-    if (PO_TABLES.has(table)) return 'po'
-    if (RUN_TABLES.has(table)) return 'run'
-    if (table === 'roles' || table === 'role_permissions') return 'role'
+/** 主语 → 它的表(根表 + trail_subject_members 里 shown = true 的那些)。
+ *  ★ 与 db/functions/trail_subjects.sql / trail_subject_members.sql 逐项相等 —— scripts/check-trail-wording.mjs 比对,
+ *    一边加了表、另一边没跟上就红。页面据此知道自己是哪一种记录(AuditTrail.tsx 的 subject)。 */
+export const SUBJECT_TABLES: Record<string, string[]> = {
+    purchase_order: ['purchase_orders', 'purchase_order_lines', 'purchase_order_payment_terms', 'purchase_order_line_retentions',
+        'pricing_term_commitments', 'po_issues', 'contract_document_terms', 'approval_log', 'purchase_order_history'],
+    processing_run: ['processing_runs', 'processing_inputs', 'processing_outputs', 'processing_cost_entries', 'processing_cost_entry_history',
+        'batch_processing_cost_allocations', 'processing_run_losses', 'warehouse_requests', 'approval_log'],
+    role: ['roles', 'role_permissions'],
+    inbound_batch: ['inbound_batches', 'inbound_batch_metals', 'assay_results', 'assay_result_metals', 'inbound_batch_safety_states',
+        'price_history', 'receipt_price_requests', 'approval_log', 'prepayment_applications', 'pricing_term_commitments',
+        'pricing_term_commitment_metals', 'inventory_movements', 'stocktake_lines', 'stocktake_counts', 'processing_inputs',
+        'batch_processing_cost_allocations', 'certificates_of_destruction', 'cod_issues', 'warehouse_requests', 'freight_allocations',
+        'payment_allocations', 'finance_attachments', 'purchase_order_history', 'processing_cost_entry_history', 'work_order_history',
+        'journal_entries'],
+    output_batch: ['output_batches', 'output_batch_metals', 'assay_results', 'assay_result_metals', 'output_batch_safety_states',
+        'inventory_movements', 'processing_outputs', 'processing_inputs', 'stocktake_lines', 'stocktake_counts', 'warehouse_requests',
+        'approval_log', 'sales_records', 'sales_record_movements', 'sales_attribution_log', 'invoice_lines', 'payment_allocations',
+        'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements', 'processing_cost_entry_history',
+        'work_order_history', 'sales_order_history', 'journal_entries'],
+    work_order: ['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history', 'approval_log'],
+    stocktake: ['stocktakes', 'stocktake_lines', 'stocktake_counts', 'approval_log', 'journal_entries'],
+    equipment: ['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs'],
+    shift_handover: ['shift_handovers', 'shift_handover_items', 'shift_handover_equipment_refs'],
+    warehouse_request: ['warehouse_requests', 'approval_log'],
+}
+
+type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
+const PAGE_FAMILY: Record<string, Family> = {
+    purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
+    stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
+}
+const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
+    'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
+    'prepayment_applications', 'pricing_term_commitment_metals', 'inventory_movements', 'certificates_of_destruction', 'cod_issues',
+    'freight_allocations', 'payment_allocations', 'finance_attachments', 'sales_records', 'sales_record_movements', 'sales_attribution_log',
+    'invoice_lines', 'sales_order_reservations', 'shipment_lines', 'traceability_report_issues', 'sales_settlements'])
+/** 这三张属于加工单;但在批次页上,它们说的是"这个批次被用了 / 被产出 / 分到了成本",从批次这一边说 */
+const BATCH_VIEW_OF_RUN = new Set(['processing_inputs', 'processing_outputs', 'batch_processing_cost_allocations'])
+const WO_TABLES = new Set(['work_orders', 'work_order_lines', 'work_order_expected_outputs', 'work_order_history'])
+const ST_TABLES = new Set(['stocktakes', 'stocktake_lines', 'stocktake_counts'])
+const EQ_TABLES = new Set(['fixed_assets', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals'])
+const HO_TABLES = new Set(['shift_handovers', 'shift_handover_items', 'shift_handover_equipment_refs'])
+/** 往上一跳够到的那几种:在别的记录的页上出现时,标题后面点名它属于哪一张单据("Purchase order amended · PO-2026-0010")。
+ *  写进标题而不是另起一个小标题 —— 一条记录里后面几块的标题本身就是小标题,再加一个会把它们的标题挤掉。 */
+const HEADED = new Set<Family>(['po', 'run', 'wo', 'so'])
+
+function familyOf(r: TrailRow, subject?: string | null): Family | null {
+    const t = r.table
+    if (!t) return null
+    if ((subject === 'inbound_batch' || subject === 'output_batch') && BATCH_VIEW_OF_RUN.has(t)) return 'batch'
+    if (t === 'approval_log') return str(r, 'subject_type') === 'purchase_order' ? 'po' : 'approval'
+    if (PO_TABLES.has(t)) return 'po'
+    if (RUN_TABLES.has(t)) return 'run'
+    if (t === 'roles' || t === 'role_permissions') return 'role'
+    if (t === 'shift_handover_equipment_refs' && subject === 'equipment') return 'equipment'
+    if (BATCH_TABLES.has(t)) return 'batch'
+    if (WO_TABLES.has(t)) return 'wo'
+    if (ST_TABLES.has(t)) return 'stocktake'
+    if (EQ_TABLES.has(t)) return 'equipment'
+    if (HO_TABLES.has(t)) return 'handover'
+    if (t === 'warehouse_requests') return 'wr'
+    if (t === 'journal_entries') return 'journal'
+    if (t === 'sales_order_history') return 'so'
     return null
 }
 
+/** "PO-2026-0010" —— 一组往上一跳够到的行属于哪一张单据(取它指着那张单据的那一列解析出来的单号) */
+const DOC_COLS: [string, string][] = [['purchase_order_id', 'purchase_orders'], ['run_id', 'processing_runs'],
+    ['work_order_id', 'work_orders'], ['sales_order_id', 'sales_orders']]
+function docLabel(rows: TrailRow[]): string | null {
+    for (const r of rows) {
+        if (r.table === 'approval_log') {
+            const code = docCode(str(r, 'subject_code'))
+            if (code) return code
+            continue
+        }
+        const img = imgOf(r)
+        for (const [c] of DOC_COLS) {
+            const v = img[c]
+            const label = typeof v === 'string' ? r.refs?.[c]?.[v]?.label : null
+            if (label) return label
+        }
+    }
+    return null
+}
+
+/** 审批留痕抄下来的单据号(subject_code)—— 是人认得的编号才用;一个 id 形状的值宁可不说 */
+function docCode(v: string | null): string | null {
+    return v && !/^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(v) ? v : null
+}
+/** 一个字典代码(金属、安全状态)→ 它的名字;解析不出来说 "a metal",绝不印代码本身 */
+function dictName(d: TrailDict, r: TrailRow, col: string): string {
+    const raw = r.key?.[col] ?? imgOf(r)[col]
+    return typeof raw === 'string' || typeof raw === 'number' ? refVal(d, r.table!, col, String(raw), r.refs).text
+        : tx(d, 'value.unnamed', { thing: fieldMeta(d, r.table!, col)[0].toLowerCase() })
+}
+/** 一个指着别处的值 → 它解析出来的名字;解析不出来就是 null(调用方决定说什么)*/
+function refLabel(r: TrailRow, col: string): string | null {
+    const v = imgOf(r)[col]
+    if (typeof v !== 'string' && typeof v !== 'number') return null
+    const ref = r.refs?.[col]?.[String(v)]
+    return ref?.label ?? null
+}
+function refEnded(r: TrailRow, col: string): boolean {
+    const v = imgOf(r)[col]
+    return typeof v === 'string' && !!r.refs?.[col]?.[v]?.ended
+}
+function qtyText(d: TrailDict, r: TrailRow, col: string, opts: BuildOptions): string {
+    const img = imgOf(r)
+    const v = formatValue(d, r.table!, col, img[col], img, r.refs, r.op, opts)
+    return v.empty || v.restricted ? '' : v.text
+}
+function withPart(title: string, part: string | null | undefined): string {
+    return part ? `${title} · ${part}` : title
+}
+function isSet(r: TrailRow, col: string): boolean {
+    return (changed(r, col) && !isEmpty(r.new?.[col] ?? null)) || (r.prelog && (r.cols ?? []).includes(col))
+}
+function isCleared(r: TrailRow, col: string): boolean {
+    return changed(r, col) && isEmpty(r.new?.[col] ?? null) && !isEmpty(r.old?.[col] ?? null)
+}
+
+/** 同一笔事务里先删后插的同一行(整组替换:金属、安全状态)→ 一次改动;前后一样的整个不算 */
+function netReplace(rows: TrailRow[]): TrailRow[] {
+    const del = new Map<string, TrailRow>()
+    for (const r of rows) if (r.op === 'DELETE' && r.key) del.set(JSON.stringify(r.key), r)
+    const out: TrailRow[] = []
+    const used = new Set<string>()
+    for (const r of rows) {
+        if (r.op !== 'INSERT' || !r.key) continue
+        const k = JSON.stringify(r.key)
+        const before = del.get(k)
+        if (!before) { out.push(r); continue }
+        used.add(k)
+        const cols = Object.keys({ ...(before.old ?? {}), ...(r.new ?? {}) })
+            .filter((c) => JSON.stringify(before.old?.[c] ?? null) !== JSON.stringify(r.new?.[c] ?? null))
+        if (cols.length) out.push({ ...r, op: 'UPDATE', cols, old: before.old, refs: mergeRefs(before.refs, r.refs) })
+    }
+    for (const r of rows) {
+        if (r.op === 'INSERT') continue
+        if (r.op === 'DELETE' && r.key && used.has(JSON.stringify(r.key))) continue
+        out.push(r)
+    }
+    return out
+}
+
+type Block2 = Block & { recordId?: string; approvalFor?: string }
+
+// ── 审批(任何一种单据)──────────────────────────────────────────────────────
+function approvalThing(d: TrailDict, subjectType: string): string {
+    const t = subjectType.endsWith('s') ? subjectType : subjectType + 's'
+    return d.tables[t]?.[0] ?? 'record'
+}
+/** 这几种单据的审批留痕里,note 那一格是【数据库自己写的】中文句子,不是一个人写的话(Q8:机器写的中文不上屏):
+ *  post_stocktake 写"盘点过账:N 行有差异……",release_work_order 在审批关着时写"审批流未启用……"。
+ *  自动批准的说明(auto_approved)一律同理。人写的理由(批准 / 驳回时填的)照原样说。 */
+const MACHINE_NOTE_SUBJECTS = new Set(['stocktake', 'work_order'])
+function describeApproval(d: TrailDict, rows: TrailRow[]): Block2[] {
+    const out: Block2[] = []
+    for (const a of rows) {
+        if (a.op !== 'INSERT') { out.push(describeGeneric(d, a, {})); continue }
+        const st = str(a, 'subject_type') ?? ''
+        const code = docCode(str(a, 'subject_code'))
+        const what = cap(approvalThing(d, st)) + (code ? ` ${code}` : '')
+        const decision = str(a, 'decision', 'new') ?? ''
+        const level = num(a.new?.['level'] ?? null)
+        let title: string
+        switch (decision) {
+            case 'submitted': title = tx(d, 'approval.submitted', { thing: what }); break
+            case 'approved': title = level ? tx(d, 'approval.approvedLevel', { thing: what, level }) : tx(d, 'approval.approved', { thing: what }); break
+            case 'rejected': title = tx(d, 'approval.rejected', { thing: what }); break
+            case 'auto_approved': title = tx(d, 'approval.auto', { thing: what }); break
+            default: title = tx(d, 'approval.other', { thing: what, decision: enumLabel(d, 'approval_log', 'decision', decision).toLowerCase() })
+        }
+        out.push({ title, lines: [], reason: decision === 'auto_approved' || MACHINE_NOTE_SUBJECTS.has(st) ? null : typed(a.new?.['note']), key: true, weight: 50,
+                   approvalFor: str(a, 'subject_id') ?? undefined })
+    }
+    return out
+}
+
+// ── 分录 ────────────────────────────────────────────────────────────────────
+function describeJournal(d: TrailDict, rows: TrailRow[], opts: BuildOptions, reversals: Set<string>): Block2[] {
+    const out: Block2[] = []
+    for (const r of rows) {
+        const code = str(r, 'code') ?? ''
+        const id = typeof r.key?.['id'] === 'string' ? r.key['id'] as string : ''
+        const by = refLabel(r, 'reversed_by')
+        if (r.op === 'INSERT') {
+            const ls = valueLines(d, r, r.new, opts, new Set(['code', 'status', 'reversed_by', 'source_id', 'memo']))
+            const memo = typed(r.new?.['memo'])
+            if (memo) ls.push({ t: 'value', label: fieldMeta(d, 'journal_entries', 'memo')[0], value: memo })
+            if (str(r, 'status') === 'reversed' && by && !reversals.has(id)) ls.push({ t: 'note', text: tx(d, 'journal.laterReversed', { by }) })
+            out.push({ title: tx(d, reversals.has(id) ? 'journal.reversal' : 'journal.posted', { code }), lines: ls, key: true, weight: 70, recordId: id })
+        } else if (r.op === 'UPDATE' && changed(r, 'status') && str(r, 'status', 'new') === 'reversed') {
+            out.push({ title: tx(d, 'journal.reversedBy', { code, by: by ?? tx(d, 'value.unnamed', { thing: thing(d, 'journal_entries') }) }),
+                       lines: [], key: true, weight: 80, recordId: id })
+        } else {
+            out.push({ ...describeGeneric(d, r, opts), title: withPart(tx(d, 'journal.edited'), code) })
+        }
+    }
+    return out
+}
+
+// ── 批次(进料 / 产出)与挂在它上面的一切 ───────────────────────────────────
+function describeBatch(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, subject?: string | null): Block2[] {
+    const out: Block2[] = []
+    const onBatch = subject === 'inbound_batch' || subject === 'output_batch'
+    const rows = netReplace(rows0)
+    const by = (...ts: string[]) => rows.filter((r) => ts.includes(r.table!))
+    const skipBatch = onBatch ? ['inbound_batch_id', 'output_batch_id'] : []
+
+    // ① 批次本身
+    for (const r of by('inbound_batches', 'output_batches')) {
+        const inbound = r.table === 'inbound_batches'
+        const img = imgOf(r)
+        if (r.op === 'INSERT') {
+            const ls = valueLines(d, r, r.new, opts, new Set(['quantity', 'remaining_qty', 'unit', 'status', 'stage', 'code',
+                'deleted_at', 'deleted_by', 'delete_reason', 'pricing_status']))
+            if (inbound && isEmpty(img['purchase_order_line_id'] ?? null)) ls.unshift({ t: 'note', text: tx(d, 'batch.noPurchaseOrder') })
+            out.push({ title: withPart(tx(d, inbound ? 'batch.received' : 'batch.outputCreated'), qtyText(d, r, 'quantity', opts)),
+                       lines: ls, key: true, weight: 100 })
+            continue
+        }
+        if (r.op === 'DELETE') { out.push(describeGeneric(d, r, opts)); continue }
+        if (isSet(r, 'deleted_at')) {
+            out.push({ title: tx(d, 'batch.writtenOff'), lines: [], reason: typed(r.new?.['delete_reason']), key: true, weight: 95 })
+            continue
+        }
+        if (isSet(r, 'import_permit_verified_at')) {
+            out.push({ title: tx(d, 'batch.permitVerified'), lines: valueLines(d, r, { import_permit_ref: r.new?.['import_permit_ref'] ?? null }, opts),
+                       key: true, weight: 60 })
+            continue
+        }
+        if (isSet(r, 'source_reason_recorded_at')) {
+            const ls = valueLines(d, r, { source_reason_code: r.new?.['source_reason_code'] ?? null }, opts)
+            out.push({ title: tx(d, 'batch.sourceReason'), lines: ls, reason: typed(r.new?.['source_reason_note']), key: true, weight: 60 })
+            continue
+        }
+        const skip = new Set(['remaining_qty', 'deleted_at', 'deleted_by', 'delete_reason', 'import_permit_verified_at',
+            'import_permit_verified_by', 'source_reason_recorded_at', 'source_reason_recorded_by'])
+        let title: string | null = null
+        if (changed(r, 'stage')) {
+            const to = enumLabel(d, 'inbound_batches', 'stage', str(r, 'stage', 'new') ?? '')
+            const from = enumLabel(d, 'inbound_batches', 'stage', str(r, 'stage', 'old') ?? '')
+            const order = ['Awaiting processing', 'Processing started', 'Fully processed']
+            title = order.indexOf(to) < order.indexOf(from) ? tx(d, 'batch.stageBack')
+                : to === 'Fully processed' ? tx(d, 'batch.stageDone') : tx(d, 'batch.stageStarted')
+            skip.add('stage')
+        } else if (changed(r, 'pricing_status') && str(r, 'pricing_status', 'new') === 'final') {
+            title = tx(d, 'batch.priceFinal')
+        }
+        const ls = changeLines(d, r, opts, skip)
+        if (title) out.push({ title, lines: ls, key: true, weight: 60 })
+        else if (ls.length) out.push({ title: tx(d, 'batch.edited'), lines: ls, key: false, weight: 30 })
+    }
+
+    // ② 库存流水
+    for (const r of by('inventory_movements')) {
+        const type = str(r, 'movement_type')
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        const ls = valueLines(d, r, r.new, opts, new Set(['movement_type', 'occurred_at', 'notes', 'run_id', ...skipBatch]))
+        const run = refLabel(r, 'run_id')
+        if (run) ls.push({ t: 'value', label: fieldMeta(d, 'inventory_movements', 'run_id')[0], value: { text: run } })
+        const notes = typed(r.new?.['notes'])
+        if (notes) ls.push({ t: 'value', label: fieldMeta(d, 'inventory_movements', 'notes')[0], value: notes })
+        if (refEnded(r, 'run_id')) ls.push({ t: 'note', text: tx(d, 'batch.runRolledBack') })
+        out.push({ title: tx(d, 'batch.movement', { type: type ? enumLabel(d, 'inventory_movements', 'movement_type', type) : '' }),
+                   lines: ls, key: true, weight: 40 })
+    }
+
+    // ③ 价格
+    for (const r of by('price_history')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        const img = imgOf(r)
+        const ls: Line[] = [{ t: 'change', label: fieldMeta(d, 'inbound_batches', 'unit_price')[0],
+            old: formatValue(d, 'price_history', 'old_unit_price', r.new?.['old_unit_price'], img, r.refs, 'INSERT', opts),
+            new: formatValue(d, 'price_history', 'new_unit_price', r.new?.['new_unit_price'], img, r.refs, 'INSERT', opts) }]
+        ls.push(...valueLines(d, r, r.new, opts, new Set(['old_unit_price', 'new_unit_price', 'notes', ...skipBatch])))
+        out.push({ title: tx(d, 'batch.priceChanged'), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: 70 })
+    }
+
+    // ④ 加工:这个批次被用了、被产出了、分到了成本(批次这一边的说法)
+    for (const r of by('processing_inputs', 'processing_outputs', 'batch_processing_cost_allocations')) {
+        const run = refLabel(r, 'run_id') ?? tx(d, 'value.unnamed', { thing: thing(d, 'processing_runs') })
+        const ended = refEnded(r, 'run_id')
+        let title: string
+        let ls: Line[]
+        if (r.table === 'processing_inputs') {
+            title = r.op === 'INSERT' ? tx(d, 'batch.usedIn', { run }) : tx(d, 'batch.useChanged')
+            ls = r.op === 'UPDATE' ? changeLines(d, r, opts) : valueLines(d, r, r.new ?? r.old, opts, new Set(['run_id', ...skipBatch]))
+        } else if (r.table === 'processing_outputs') {
+            const costOnly = r.op === 'UPDATE' && (r.cols ?? []).every((c) => ['allocated_cost_base', 'unit_cost_base', 'cost_incomplete'].includes(c))
+            title = r.op === 'INSERT' ? tx(d, 'batch.producedBy', { run }) : costOnly ? tx(d, 'batch.costFrom', { run }) : tx(d, 'batch.useChanged')
+            ls = r.op === 'UPDATE' ? changeLines(d, r, opts) : valueLines(d, r, r.new ?? r.old, opts, new Set(['run_id', ...skipBatch]))
+        } else {
+            title = tx(d, 'batch.costFrom', { run })
+            ls = r.op === 'UPDATE' ? changeLines(d, r, opts) : valueLines(d, r, r.new ?? r.old, opts, new Set(['run_id', ...skipBatch]))
+        }
+        if (ended) ls.push({ t: 'note', text: tx(d, 'batch.runRolledBack') })
+        out.push({ title, lines: ls, key: r.op !== 'UPDATE', weight: 80 })
+    }
+
+    // ⑤ 金属含量(整组替换已经并成了改动)
+    for (const r of by('inbound_batch_metals', 'output_batch_metals', 'pricing_term_commitment_metals')) {
+        const metal = dictName(d, r, 'metal')
+        const skip = new Set(['metal', 'commitment_id', ...skipBatch])
+        if (r.table === 'pricing_term_commitment_metals') {
+            out.push({ title: withPart(tx(d, 'po.termsCommitted'), metal), lines: r.op === 'UPDATE' ? changeLines(d, r, opts, skip) : valueLines(d, r, r.new ?? r.old, opts, skip), key: false, weight: 35 })
+            continue
+        }
+        const title = tx(d, r.op === 'INSERT' ? 'batch.metalRecorded' : r.op === 'DELETE' ? 'batch.metalRemoved' : 'batch.metalsChanged')
+        const ls = r.op === 'UPDATE' ? changeLines(d, r, opts, skip) : valueLines(d, r, r.op === 'DELETE' ? r.old : r.new, opts, skip)
+        out.push({ title: withPart(title, metal), lines: ls, key: false, weight: 45 })
+    }
+
+    // ⑥ 化验与它的金属
+    const assays = by('assay_results')
+    const assayMetals = by('assay_result_metals')
+    for (const r of assays) {
+        const skip = new Set(['applied_at', 'applied_by', 'deleted_at', 'code', ...skipBatch])
+        const code = str(r, 'code')
+        if (r.op === 'INSERT') {
+            const ls = valueLines(d, r, r.new, opts, skip)
+            const id = typeof r.key?.['id'] === 'string' ? r.key['id'] : null
+            for (const m of assayMetals.filter((x) => x.op === 'INSERT' && str(x, 'assay_result_id') === id)) {
+                const pct = formatValue(d, 'assay_result_metals', 'content_pct', m.new?.['content_pct'], imgOf(m), m.refs, 'INSERT', opts)
+                ls.push({ t: 'value', label: dictName(d, m, 'metal'), value: pct.empty || pct.restricted ? pct : { text: `${pct.text}%` } })
+            }
+            out.push({ title: withPart(tx(d, 'batch.assayRecorded'), code), lines: ls, key: true, weight: 75 })
+            continue
+        }
+        if (r.op === 'DELETE' || isSet(r, 'deleted_at')) { out.push({ title: withPart(tx(d, 'batch.assayDeleted'), code), lines: [], key: true, weight: 75 }); continue }
+        if (isSet(r, 'applied_at')) { out.push({ title: withPart(tx(d, 'batch.assayApplied'), code), lines: changeLines(d, r, opts, skip), key: true, weight: 75 }); continue }
+        if (isCleared(r, 'applied_at')) { out.push({ title: withPart(tx(d, 'batch.assayWithdrawn'), code), lines: changeLines(d, r, opts, skip), key: true, weight: 75 }); continue }
+        const ls = changeLines(d, r, opts, skip)
+        if (ls.length) out.push({ title: withPart(tx(d, 'batch.assayChanged'), code), lines: ls, key: false, weight: 40 })
+    }
+    for (const m of assayMetals) {
+        if (m.op === 'INSERT' && assays.some((a) => a.op === 'INSERT' && a.key?.['id'] === str(m, 'assay_result_id'))) continue
+        const metal = dictName(d, m, 'metal')
+        const ls = m.op === 'UPDATE' ? changeLines(d, m, opts, new Set(['metal', 'assay_result_id']))
+            : valueLines(d, m, m.op === 'DELETE' ? m.old : m.new, opts, new Set(['metal', 'assay_result_id']))
+        out.push({ title: withPart(tx(d, 'batch.assayChanged'), metal), lines: ls, key: false, weight: 40 })
+    }
+
+    // ⑦ 安全状态(整组替换:前后一样的已经抵消)
+    for (const r of by('inbound_batch_safety_states', 'output_batch_safety_states')) {
+        const state = dictName(d, r, 'safety_state_code')
+        const title = tx(d, r.op === 'DELETE' ? 'batch.safetyRemoved' : 'batch.safetyAdded')
+        out.push({ title: withPart(title, state), lines: [], key: false, weight: 45 })
+    }
+
+    // ⑧ 收货定价申请 · 预付款 · 运费 · 付款 · 附件
+    for (const r of by('receipt_price_requests')) {
+        const id = typeof r.key?.['id'] === 'string' ? r.key['id'] as string : undefined
+        const skip = new Set(['status', 'decided_at', 'decided_by', 'withdrawn_at', 'withdrawn_by', 'withdraw_reason', 'snapshot',
+            'decision_notes', 'notes', ...skipBatch])
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'batch.priceRequested'), lines: valueLines(d, r, r.new, opts, skip), reason: typed(r.new?.['notes']),
+                       key: true, weight: 70, recordId: id })
+        } else if (isSet(r, 'withdrawn_at')) {
+            out.push({ title: tx(d, 'batch.priceRequestWithdrawn'), lines: [], reason: typed(r.new?.['withdraw_reason']), key: true, weight: 70, recordId: id })
+        } else {
+            const st = changed(r, 'status') ? str(r, 'status', 'new') : null
+            out.push({ title: st ? withPart(tx(d, 'batch.priceRequestChanged'), enumLabel(d, 'receipt_price_requests', 'status', st)) : tx(d, 'batch.priceRequestChanged'),
+                       lines: changeLines(d, r, opts, skip), reason: typed(r.new?.['decision_notes']), key: !!st, weight: 70, recordId: id })
+        }
+    }
+    const simple: [string, TrailTextKey][] = [['prepayment_applications', 'batch.prepayment'], ['freight_allocations', 'batch.freight'],
+        ['payment_allocations', 'batch.payment'], ['sales_settlements', 'batch.settlement'], ['sales_attribution_log', 'batch.saleAttributed'],
+        ['sales_record_movements', 'batch.saleStock'], ['invoice_lines', 'batch.invoiced']]
+    for (const [t, key] of simple) {
+        for (const r of by(t)) {
+            if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+            const ls = valueLines(d, r, r.new, opts, new Set(['note', 'notes', 'sales_record_id', ...skipBatch]))
+            out.push({ title: tx(d, key), lines: ls, reason: typed(r.new?.['note'] ?? r.new?.['notes']), key: t !== 'sales_record_movements',
+                       weight: t === 'sales_record_movements' ? 15 : 50 })
+        }
+    }
+    for (const r of by('finance_attachments')) {
+        const name = str(r, 'file_name')
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'batch.attachmentAdded'), name), lines: [], key: false, weight: 30 })
+        else if (r.op === 'DELETE' || isSet(r, 'deleted_at')) out.push({ title: withPart(tx(d, 'batch.attachmentRemoved'), name), lines: [], key: false, weight: 30 })
+        else out.push(describeGeneric(d, r, opts))
+    }
+
+    // ⑨ 销毁证书与它的签发
+    for (const r of by('certificates_of_destruction')) {
+        const code = str(r, 'code')
+        // 证书在整批加工完的那一刻自己生下来(pending),签发是后来的另一件事
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, str(r, 'status', 'new') === 'issued' ? 'batch.codIssued' : 'batch.codPending'), code),
+                                          lines: valueLines(d, r, r.new, opts, new Set(['code', 'status', 'snapshot', ...skipBatch])), key: true, weight: 75 })
+        else if (changed(r, 'status') && str(r, 'status', 'new') === 'issued')
+            out.push({ title: withPart(tx(d, 'batch.codIssued'), code), lines: [], key: true, weight: 75 })
+        else if (isSet(r, 'voided_at')) out.push({ title: withPart(tx(d, 'batch.codVoided'), code), lines: [], reason: typed(r.new?.['void_reason']), key: true, weight: 75 })
+        else {
+            const ls = changeLines(d, r, opts, new Set(['snapshot']))
+            if (ls.length) out.push({ title: withPart(tx(d, 'batch.codChanged'), code), lines: ls, key: false, weight: 40 })
+        }
+    }
+    for (const r of by('cod_issues')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: withPart(tx(d, 'batch.codPdf'), refLabel(r, 'cod_id')), lines: [], key: true, weight: 60 })
+    }
+
+    // ⑩ 销售 · 预留 · 发货 · 追溯报告
+    for (const r of by('sales_records')) {
+        if (r.op === 'INSERT') {
+            const ls = valueLines(d, r, r.new, opts, new Set(['quantity', 'notes', 'cogs_entry_id', ...skipBatch]))
+            if (isEmpty(imgOf(r)['cogs_entry_id'] ?? null)) ls.push({ t: 'note', text: tx(d, 'batch.noCogs') })
+            out.push({ title: withPart(tx(d, 'batch.sold'), qtyText(d, r, 'quantity', opts)), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: 85 })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts)
+            if (ls.length) out.push({ title: tx(d, 'batch.saleChanged'), lines: ls, key: false, weight: 40 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('sales_order_reservations')) {
+        const skip = new Set(['released_at', 'released_by', 'consumed_at', 'consumed_by', 'release_reason', ...skipBatch])
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'batch.reserved'), qtyText(d, r, 'qty', opts)), lines: valueLines(d, r, r.new, opts, new Set([...skip, 'qty'])), key: true, weight: 60 })
+        else if (isSet(r, 'released_at')) out.push({ title: tx(d, 'batch.reservationReleased'), lines: [], reason: typed(r.new?.['release_reason']), key: true, weight: 60 })
+        else if (isSet(r, 'consumed_at')) out.push({ title: tx(d, 'batch.reservationUsed'), lines: [], key: true, weight: 55 })
+        else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('shipment_lines')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: withPart(tx(d, 'batch.shipped'), refLabel(r, 'shipment_id')),
+                   lines: valueLines(d, r, r.new, opts, new Set(['shipment_id', 'reservation_id', 'sales_record_id', ...skipBatch])), key: true, weight: 80 })
+    }
+    for (const r of by('traceability_report_issues')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: withPart(tx(d, 'batch.reportIssued'), str(r, 'code')), lines: [], key: true, weight: 60 })
+    }
+    return out
+}
+
+// ── 工单 ────────────────────────────────────────────────────────────────────
+function describeWorkOrder(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const wo = by('work_orders')
+    const hist = by('work_order_history')
+    const created = wo.find((r) => r.op === 'INSERT')
+    const statusBlock = (r: TrailRow, to: string | null): Block2 | null => {
+        const id = typeof r.key?.['id'] === 'string' ? r.key['id'] as string : undefined
+        if (to === 'released') return { title: tx(d, 'wo.released'), lines: [], key: true, weight: 90, recordId: id }
+        if (to === 'closed') return { title: tx(d, 'wo.closed'), lines: [], reason: typed(r.new?.['close_reason']), key: true, weight: 90, recordId: id }
+        if (to === 'cancelled') return { title: tx(d, 'wo.cancelled'), lines: [], reason: typed(r.new?.['cancel_reason']), key: true, weight: 90, recordId: id }
+        return null
+    }
+    if (created) {
+        const ls = valueLines(d, created, created.new, opts, new Set(['code', 'status', 'closed_at', 'closed_by', 'close_reason', 'cancelled_at', 'cancelled_by', 'cancel_reason']))
+        for (const l of by('work_order_lines').filter((x) => x.op === 'INSERT')) {
+            ls.push({ t: 'value', label: refLabel(l, 'material_id') ?? cap(thing(d, 'work_order_lines')), value: formatValue(d, 'work_order_lines', 'planned_qty', l.new?.['planned_qty'], imgOf(l), l.refs, 'INSERT', opts) })
+        }
+        for (const e of by('work_order_expected_outputs').filter((x) => x.op === 'INSERT')) {
+            ls.push({ t: 'value', label: refLabel(e, 'material_id') ?? cap(thing(d, 'work_order_expected_outputs')), value: formatValue(d, 'work_order_expected_outputs', 'expected_qty', e.new?.['expected_qty'], imgOf(e), e.refs, 'INSERT', opts) })
+        }
+        out.push({ title: tx(d, 'wo.created'), lines: ls, key: true, weight: 100, recordId: typeof created.key?.['id'] === 'string' ? created.key['id'] as string : undefined })
+    }
+    for (const r of wo) {
+        if (r === created) continue
+        const b = changed(r, 'status') ? statusBlock(r, str(r, 'status', 'new')) : null
+        if (b) { out.push(b); continue }
+        const ls = changeLines(d, r, opts, new Set(['closed_at', 'closed_by', 'cancelled_at', 'cancelled_by']))
+        if (ls.length) out.push({ title: tx(d, 'wo.edited'), lines: ls, key: false, weight: 30 })
+    }
+    const statusSeen = out.some((b) => b.weight >= 90)
+    for (const h of hist) {
+        const ct = str(h, 'change_type', 'new') ?? ''
+        if (ct === 'created' && created) continue
+        if (['released', 'closed', 'cancelled'].includes(ct) && statusSeen) continue
+        if (ct === 'created') { out.push({ title: tx(d, 'wo.created'), lines: [], key: true, weight: 100 }); continue }
+        if (['released', 'closed', 'cancelled'].includes(ct)) {
+            out.push({ title: tx(d, ct === 'released' ? 'wo.released' : ct === 'closed' ? 'wo.closed' : 'wo.cancelled'), lines: [], reason: typed(h.new?.['amend_reason']), key: true, weight: 90 })
+            continue
+        }
+        const known = d.enums['work_order_history#change_type']?.[ct]
+        out.push({ title: withPart(tx(d, 'wo.amended'), known ? known.toLowerCase() : null), lines: woHistoryDiff(d, h, opts),
+                   reason: typed(h.new?.['amend_reason']), key: true, weight: 70 })
+    }
+    if (!created) {
+        for (const r of [...by('work_order_lines'), ...by('work_order_expected_outputs')]) {
+            const lineT = r.table === 'work_order_lines'
+            const key: TrailTextKey = lineT ? (r.op === 'INSERT' ? 'wo.lineAdded' : r.op === 'DELETE' ? 'wo.lineRemoved' : 'wo.lineChanged')
+                : (r.op === 'INSERT' ? 'wo.expectedAdded' : r.op === 'DELETE' ? 'wo.expectedRemoved' : 'wo.expectedChanged')
+            const skip = new Set(['work_order_id', 'material_id'])
+            const ls = r.op === 'UPDATE' ? changeLines(d, r, opts, skip) : valueLines(d, r, r.op === 'DELETE' ? r.old : r.new, opts, skip)
+            out.push({ title: withPart(tx(d, key), refLabel(r, 'material_id')), lines: ls, key: false, weight: 40 })
+        }
+    }
+    return out
+}
+function woHistoryDiff(d: TrailDict, h: TrailRow, opts: BuildOptions): Line[] {
+    const out: Line[] = []
+    const n = h.new ?? {}
+    for (const bare of ['qty', 'scheduled_date', 'notes']) {
+        const o = n['old_' + bare], v = n['new_' + bare]
+        if (JSON.stringify(o ?? null) === JSON.stringify(v ?? null)) continue
+        out.push({ t: 'change', label: fieldMeta(d, 'work_order_history', 'new_' + bare)[0].replace(/^New /, ''),
+            old: formatValue(d, 'work_order_history', 'old_' + bare, o, n, h.refs, 'UPDATE', opts),
+            new: formatValue(d, 'work_order_history', 'new_' + bare, v, n, h.refs, 'UPDATE', opts) })
+    }
+    return out
+}
+
+// ── 盘点 ────────────────────────────────────────────────────────────────────
+function describeStocktake(d: TrailDict, rows: TrailRow[], opts: BuildOptions, subject?: string | null): Block2[] {
+    const out: Block2[] = []
+    const onBatch = subject === 'inbound_batch' || subject === 'output_batch'
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    for (const r of by('stocktakes')) {
+        const id = typeof r.key?.['id'] === 'string' ? r.key['id'] as string : undefined
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'st.started'), lines: valueLines(d, r, r.new, opts, new Set(['code', 'status', 'posted_at', 'cancelled_at', 'cancelled_by', 'cancel_reason', 'deleted_at', 'deleted_by', 'delete_reason'])),
+                       key: true, weight: 100, recordId: id })
+        } else if ((changed(r, 'status') && str(r, 'status', 'new') === 'posted') || (r.prelog && (r.cols ?? []).includes('posted_at'))) {
+            out.push({ title: tx(d, 'st.posted'), lines: [], key: true, weight: 90, recordId: id })
+        } else if ((changed(r, 'status') && str(r, 'status', 'new') === 'cancelled') || (r.prelog && (r.cols ?? []).includes('cancelled_at'))) {
+            out.push({ title: tx(d, 'st.cancelled'), lines: [], reason: typed(r.new?.['cancel_reason']), key: true, weight: 90, recordId: id })
+        } else {
+            const ls = changeLines(d, r, opts)
+            if (ls.length) out.push({ title: tx(d, 'st.edited'), lines: ls, key: false, weight: 30 })
+        }
+    }
+    // 清点:一次录数 = stocktake_counts 的一行(只增不改)+ stocktake_lines 那一格被覆盖。两边都在就只说一次(以清点为准)
+    const counts = by('stocktake_counts')
+    const countedLines = new Set(counts.map((c) => str(c, 'stocktake_line_id')))
+    for (const r of [...counts, ...by('stocktake_lines')]) {
+        if (r.table === 'stocktake_lines' && countedLines.has(typeof r.key?.['id'] === 'string' ? r.key['id'] as string : '')) continue
+        const batchCol = typeof imgOf(r)['inbound_batch_id'] === 'string' ? 'inbound_batch_id' : 'output_batch_id'
+        const skip = new Set(['stocktake_id', 'stocktake_line_id', 'inbound_batch_id', 'output_batch_id', 'counted_at', 'counted_by'])
+        const ls = r.op === 'UPDATE' ? changeLines(d, r, opts, skip) : valueLines(d, r, r.op === 'DELETE' ? r.old : r.new, opts, skip)
+        if (r.op === 'DELETE') { out.push({ title: tx(d, 'st.lineRemoved'), lines: ls, key: false, weight: 40 }); continue }
+        if (onBatch) {
+            out.push({ title: tx(d, 'batch.counted', { code: refLabel(r, 'stocktake_id') ?? tx(d, 'value.unnamed', { thing: thing(d, 'stocktakes') }) }),
+                       lines: ls, key: true, weight: 60 })
+        } else {
+            out.push({ title: withPart(tx(d, r.op === 'UPDATE' ? 'st.recount' : 'st.count'), refLabel(r, batchCol)), lines: ls, key: false, weight: 50 })
+        }
+    }
+    return out
+}
+
+// ── 设备(资产卡 · 保养维修 · 停机 · 保养周期 · 交接班里提到的停机)──────────────
+function describeEquipment(d: TrailDict, rows: TrailRow[], opts: BuildOptions, subject?: string | null): Block2[] {
+    const out: Block2[] = []
+    const onPage = subject === 'equipment'
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const skipEq = onPage ? ['equipment_id'] : []
+    for (const r of by('fixed_assets')) {
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'eq.cardCreated'), lines: valueLines(d, r, r.new, opts), key: true, weight: 90 })
+        else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts)
+            if (ls.length) out.push({ title: tx(d, 'eq.cardEdited'), lines: ls, key: false, weight: 30 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('equipment_maintenance')) {
+        const skip = new Set(['kind', 'notes', ...skipEq])
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, str(r, 'kind') === 'repair' ? 'eq.repair' : 'eq.service'), lines: valueLines(d, r, r.new, opts, skip),
+                       reason: typed(r.new?.['notes']), key: true, weight: 80 })
+        } else if (r.op === 'DELETE') {
+            out.push({ title: tx(d, 'eq.workRemoved'), lines: valueLines(d, r, r.old, opts, skip), key: true, weight: 70 })
+        } else if (changed(r, 'capitalised') && r.new?.['capitalised'] === true) {
+            out.push({ title: tx(d, 'eq.capitalised'), lines: changeLines(d, r, opts, new Set(['capitalised', 'capitalisation_reason'])),
+                       reason: typed(r.new?.['capitalisation_reason']), key: true, weight: 70 })
+        } else {
+            const ls = changeLines(d, r, opts)
+            if (ls.length) out.push({ title: tx(d, 'eq.workChanged'), lines: ls, key: false, weight: 40 })
+        }
+    }
+    for (const r of by('equipment_downtime')) {
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'eq.down'), lines: valueLines(d, r, r.new, opts, new Set(['duration', 'notes', ...skipEq])),
+                       reason: typed(r.new?.['notes']), key: true, weight: 80 })
+        } else if (isSet(r, 'ended_at')) {
+            out.push({ title: tx(d, 'eq.up'), lines: valueLines(d, r, { ended_at: r.new?.['ended_at'] ?? null }, opts), key: true, weight: 80 })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts, new Set(['duration']))
+            if (ls.length) out.push({ title: tx(d, 'eq.downChanged'), lines: ls, key: false, weight: 40 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('equipment_service_intervals')) {
+        const kind = str(r, 'kind')
+        const skip = new Set(['kind', ...skipEq])
+        const key: TrailTextKey = r.op === 'INSERT' ? 'eq.intervalSet' : r.op === 'DELETE' ? 'eq.intervalRemoved' : 'eq.intervalChanged'
+        const ls = r.op === 'UPDATE' ? changeLines(d, r, opts, skip) : valueLines(d, r, r.op === 'DELETE' ? r.old : r.new, opts, skip)
+        out.push({ title: withPart(tx(d, key), kind ? enumLabel(d, 'equipment_service_intervals', 'kind', kind) : null), lines: ls, key: r.op !== 'UPDATE', weight: 50 })
+    }
+    for (const r of by('shift_handover_equipment_refs')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'eq.handoverNote'), lines: valueLines(d, r, r.new, opts), key: false, weight: 30 })
+    }
+    return out
+}
+
+// ── 交接班 ──────────────────────────────────────────────────────────────────
+function describeHandover(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const items = by('shift_handover_items')
+    const refs = by('shift_handover_equipment_refs')
+    const itemLine = (r: TrailRow): Line => ({ t: 'value', label: refLabel(r, 'item_type_code') ?? cap(thing(d, 'shift_handover_items')),
+        value: typed(r.new?.['body'] ?? r.old?.['body']) ?? { text: tx(d, 'empty'), empty: true } })
+    const refLine = (r: TrailRow): Line => ({ t: 'value', label: fieldMeta(d, 'shift_handover_equipment_refs', 'downtime_id')[0],
+        value: formatValue(d, 'shift_handover_equipment_refs', 'downtime_id', imgOf(r)['downtime_id'], imgOf(r), r.refs, r.op, opts) })
+    const created = by('shift_handovers').find((r) => r.op === 'INSERT')
+    if (created) {
+        const ls = valueLines(d, created, created.new, opts, new Set(['notes', 'acknowledged_at', 'acknowledged_by', 'submitted_at', 'submitted_by']))
+        ls.push(...items.filter((r) => r.op === 'INSERT').map(itemLine), ...refs.filter((r) => r.op === 'INSERT').map(refLine))
+        out.push({ title: tx(d, 'ho.submitted'), lines: ls, reason: typed(created.new?.['notes']), key: true, weight: 100 })
+    }
+    for (const r of by('shift_handovers')) {
+        if (r === created) continue
+        if (isSet(r, 'acknowledged_at')) { out.push({ title: tx(d, 'ho.acknowledged'), lines: [], key: true, weight: 90 }); continue }
+        const ls = changeLines(d, r, opts)
+        if (ls.length) out.push({ title: tx(d, 'ho.edited'), lines: ls, key: false, weight: 30 })
+    }
+    if (!created) {
+        for (const r of items) out.push({ title: tx(d, 'ho.item'), lines: [itemLine(r)], key: false, weight: 40 })
+        for (const r of refs) out.push({ title: tx(d, 'ho.downtime'), lines: [refLine(r)], key: false, weight: 40 })
+    }
+    return out
+}
+
+// ── 仓库申请(注销 · 加工回滚 · 证书作废)──────────────────────────────────
+function wrKind(d: TrailDict, r: TrailRow): string {
+    const k = str(r, 'kind') ?? ''
+    return tx(d, k.startsWith('write_off') ? 'wr.kind.writeOff' : k === 'rollback' ? 'wr.kind.rollback' : k === 'cod_void' ? 'wr.kind.codVoid' : 'wr.kind.other')
+}
+function describeWarehouseRequest(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    for (const r of rows) {
+        const id = typeof r.key?.['id'] === 'string' ? r.key['id'] as string : undefined
+        const kind = wrKind(d, r)
+        const skip = new Set(['kind', 'status', 'label', 'reason', 'snapshot', 'decided_at', 'decided_by', 'decision_notes', 'executed_at',
+            'result_entry_ids', 'withdrawn_at', 'withdrawn_by', 'withdraw_reason'])
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'wr.raised', { kind }), lines: valueLines(d, r, r.new, opts, skip), reason: typed(r.new?.['reason']),
+                       key: true, weight: 90, recordId: id })
+        } else if (isSet(r, 'withdrawn_at') || (changed(r, 'status') && str(r, 'status', 'new') === 'withdrawn')) {
+            out.push({ title: tx(d, 'wr.withdrawn', { kind }), lines: [], reason: typed(r.new?.['withdraw_reason']), key: true, weight: 90, recordId: id })
+        } else if (changed(r, 'status') && str(r, 'status', 'new') === 'approved') {
+            out.push({ title: tx(d, 'wr.approved', { kind }), lines: changeLines(d, r, opts, skip), reason: typed(r.new?.['decision_notes']), key: true, weight: 90, recordId: id })
+        } else if (changed(r, 'status') && str(r, 'status', 'new') === 'rejected') {
+            out.push({ title: tx(d, 'wr.rejected', { kind }), lines: [], reason: typed(r.new?.['decision_notes']), key: true, weight: 90, recordId: id })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts, skip)
+            if (ls.length) out.push({ title: tx(d, 'wr.changed', { kind }), lines: ls, key: false, weight: 40, recordId: id })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    return out
+}
+
+// ── 销售订单的修改史(在产出批次页上:它的销售对应的那一行)───────────────────
+function describeSalesOrderHistory(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    return rows.map((h) => {
+        const ct = str(h, 'change_type', 'new') ?? ''
+        const known = d.enums['sales_order_history#change_type']?.[ct]
+        const ls: Line[] = []
+        for (const bare of ['quantity', 'unit_price', 'notes', 'terms_text']) {
+            const n = h.new ?? {}
+            const o = n['old_' + bare], v = n['new_' + bare]
+            if (JSON.stringify(o ?? null) === JSON.stringify(v ?? null)) continue
+            ls.push({ t: 'change', label: fieldMeta(d, 'sales_order_history', 'new_' + bare)[0].replace(/^New /, ''),
+                old: formatValue(d, 'sales_order_history', 'old_' + bare, o, n, h.refs, 'UPDATE', opts),
+                new: formatValue(d, 'sales_order_history', 'new_' + bare, v, n, h.refs, 'UPDATE', opts) })
+        }
+        return { title: withPart(tx(d, 'so.changed'), known ? known.toLowerCase() : null), lines: ls, reason: typed(h.new?.['amend_reason']), key: true, weight: 60 }
+    })
+}
+
+/** 审批与它批的那件事在同一笔事务里(工单放行、盘点过账、仓库申请的决定)→ 并成一句:审批落成那一块下面的一行说明 */
+function foldApprovals(blocks: Block2[]): Block2[] {
+    const out: Block2[] = []
+    for (const b of blocks) {
+        if (b.approvalFor) {
+            const target = blocks.find((x) => x !== b && x.recordId === b.approvalFor)
+            if (target) {
+                target.lines.push({ t: 'note', text: b.title })
+                if (!target.reason && b.reason) target.reason = b.reason
+                continue
+            }
+        }
+        out.push(b)
+    }
+    return out
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 组装
+// ════════════════════════════════════════════════════════════════════════════
 function whoOf(d: TrailDict, rows: TrailRow[]): Val {
     const visible = rows.filter((r) => !r.hidden)
     if (!visible.length) return { text: tx(d, 'restricted'), restricted: true }
@@ -834,6 +1523,13 @@ function commonRecord(rs: TrailRow[]): RecordRef | null {
 }
 
 export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions = {}): Entry[] {
+    // 一张冲销分录:它自己没有任何一列说"我是冲销"(只有原分录的 reversed_by 指着它)。整页的行里,凡是被别的分录
+    // 今天的 reversed_by 指着的,就是冲销 —— 结构上认,绝不读 memo(fixture 181 D 臂)
+    const reversals = new Set<string>()
+    for (const r of rows) {
+        const by = r.table === 'journal_entries' ? (r.ctx?.['reversed_by'] ?? r.new?.['reversed_by']) : null
+        if (typeof by === 'string') reversals.add(by)
+    }
     const groups = new Map<string, TrailRow[]>()
     for (const r of rows) {
         const g = groups.get(r.group)
@@ -852,19 +1548,44 @@ export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions 
             continue
         }
         // 任务隐私:整份影像受限的行只说"这一类记录被改过",内容受限
-        const blocks: Block[] = []
-        const bySubject: Record<string, TrailRow[]> = {}
+        let blocks: Block2[] = []
+        const byFamily = new Map<Family, TrailRow[]>()
         const others: TrailRow[] = []
         for (const r of visible) {
             if (r.restricted) { blocks.push({ title: cap(thing(d, r.table)), lines: [{ t: 'value', label: cap(thing(d, r.table)), value: { text: tx(d, 'restricted'), restricted: true } }], key: false, weight: 10 }); continue }
-            const s = subjectOf(r.table)
-            if (s) (bySubject[s] ??= []).push(r)
+            const f = familyOf(r, opts.subject)
+            if (f) byFamily.set(f, [...(byFamily.get(f) ?? []), r])
             else others.push(r)
         }
-        if (bySubject.po) blocks.push(...describePurchaseOrder(d, bySubject.po, opts))
-        if (bySubject.run) blocks.push(...describeRun(d, bySubject.run, opts))
-        if (bySubject.role) blocks.push(...describeRole(d, bySubject.role, opts))
+        const pageFamily = opts.subject ? PAGE_FAMILY[opts.subject] : null
+        for (const [f, list] of byFamily) {
+            let bs: Block2[]
+            switch (f) {
+                case 'po': bs = describePurchaseOrder(d, list, opts); break
+                case 'run': bs = describeRun(d, list, opts); break
+                case 'role': bs = describeRole(d, list, opts); break
+                case 'batch': bs = describeBatch(d, list, opts, opts.subject); break
+                case 'journal': bs = describeJournal(d, list, opts, reversals); break
+                case 'approval': bs = describeApproval(d, list); break
+                case 'wo': bs = describeWorkOrder(d, list, opts); break
+                case 'stocktake': bs = describeStocktake(d, list, opts, opts.subject); break
+                case 'equipment': bs = describeEquipment(d, list, opts, opts.subject); break
+                case 'handover': bs = describeHandover(d, list, opts); break
+                case 'wr': bs = describeWarehouseRequest(d, list, opts); break
+                case 'so': bs = describeSalesOrderHistory(d, list, opts); break
+                default: bs = []
+            }
+            // 别的记录的事(往上一跳够到的、审批、分录)永远不当这一条的标题 —— 这一页自己那件事在,标题就是它
+            if (pageFamily && pageFamily !== f) for (const b of bs) b.weight = Math.min(b.weight, 60)
+            // 往上一跳够到的(批次页上的采购单审批、加工单的成本修改、工单的修改史):标题后面点名它属于哪一张单据
+            if (pageFamily && pageFamily !== f && HEADED.has(f)) {
+                const lab = docLabel(list)
+                if (lab) for (const b of bs) if (!b.title.includes(lab)) b.title = `${b.title} · ${lab}`
+            }
+            blocks.push(...bs)
+        }
         for (const r of others) blocks.push(describeGeneric(d, r, opts))
+        blocks = foldApprovals(blocks)
         const meaningful = blocks.filter((b) => b.lines.length || b.key || b.reason)
         if (!meaningful.length) {
             // 一行都印不出来(只动了隐藏列)—— 仍然说出发生过一次编辑,不留一条空记录

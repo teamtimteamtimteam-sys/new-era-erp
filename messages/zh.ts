@@ -3149,9 +3149,15 @@ const zh = {
             runs: '加工单',
             wip: '在制品',
             handovers: '交接班',
+            equipment: '设备',
         },
         // ── PROC-SUPPORT-1(R4/R5/R6):交接班 ──────────────────────────────
         handover: {
+            // AUDIT-TRAIL-1b-1(Q23):/operation/handovers/[id]
+            noItems: '没有记下交接内容。',
+            noEquipment: '没有引用任何设备停机。',
+            colMachine: '机器',
+            colType: '事项',
             title: '交接班',
             newTitle: '新建交接班',
             new: '新建交接班',
@@ -6822,11 +6828,6 @@ const zh = {
         allActors: '所有人',
         keyOnly: '只看关键事件',
         clear: '清除筛选',
-        noRecordMatch: '没有与「{q}」对得上的记录。',
-        empty: '没有符合这些筛选的改动。',
-        older: '较早',
-        newest: '最新',
-        pageNote: '最新的在前,每页 {n} 次操作。时间为新加坡时间。',
         op: {
             INSERT: '新增',
             UPDATE: '修改',
@@ -9415,6 +9416,31 @@ const zh = {
     },
     // ── EQP-2d:设备的一生(保养 / 停机 / 保养间隔),以及三张表的拒绝 ──────────
     equipment: {
+        // AUDIT-TRAIL-1b-1(Q22 · Q10):/operation/equipment 与 /operation/equipment/[id] —— 加工的人读得到的那一份(只读)
+        page: {
+            listTitle: '设备',
+            listIntro: '账上的每一台机器,以及加工在它上面记下的东西。只读:资产卡、成本与折旧留在财务。',
+            empty: '账上还没有机器。',
+            colCode: '机器',
+            colDescription: '说明',
+            colStatus: '状态',
+            colRuns: '加工单数',
+            colProcessed: '累计投入',
+            colLastRun: '最近一次加工',
+            detailTitle: '设备',
+            acquired: '购入日期',
+            inService: '投入使用日期',
+            firstRun: '第一次加工',
+            output: '累计产出',
+            loss: '累计损耗',
+            serviceTitle: '保养状态',
+            kgSince: '距上次保养的公斤数',
+            daysSince: '距上次保养的天数',
+            runsTitle: '最近的加工单',
+            noRuns: '这台机器上还没有记过任何加工单。',
+            financeCard: '到财务打开这张资产卡',
+            readOnly: '本页只读。',
+        },
         needsProcessingEdit: '记保养、停机与保养间隔要【加工模块】的编辑权限。机器的卡片在财务,而干活的人在加工侧 \u2014\u2014 这是那三张表刻意的分工,不是一个坏掉的按钮。',
         kind: {
             service: '例行保养',

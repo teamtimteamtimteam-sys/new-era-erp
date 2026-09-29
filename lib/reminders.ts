@@ -195,12 +195,15 @@ export const REMINDERS = [
     // 【与 safety_stock_below / work_order_overdue 同一个隐患,同样点名】:
     // 在那张页面上把间隔调大、或者把那一行删掉,这盏灯会安静,而一次保养都没做 ——
     // 那是判据之外的事,不是不给链接的理由(两条判据见清单文件)。
+    // AUDIT-TRAIL-1b-1(Q10 · Q22):这两支原来指 /finance/assets —— 持加工权限、不持财务权限的人(仓库)点进去是一句拒绝。
+    //   现在指 /operation/equipment/[id](加工的门);持财务权限的人从那一页一个链接回到资产卡。
+    //   (实测 2026-09-29:持 module.finance.view 的每一个角色也都持 module.processing.view,所以没有人因此少了一条路。)
     { itemType: 'equipment_service_due', permission: 'module.processing.view',
-      permissionWiden: ['module.processing.view', 'module.finance.view'], href: '/finance/assets',
-      itemHref: (r: OpsRow) => `/finance/assets/${r.item_id}` },
+      permissionWiden: ['module.processing.view', 'module.finance.view'], href: '/operation/equipment',
+      itemHref: (r: OpsRow) => `/operation/equipment/${r.item_id}` },
     { itemType: 'equipment_service_approaching', permission: 'module.processing.view',
-      permissionWiden: ['module.processing.view', 'module.finance.view'], href: '/finance/assets',
-      itemHref: (r: OpsRow) => `/finance/assets/${r.item_id}` },
+      permissionWiden: ['module.processing.view', 'module.finance.view'], href: '/operation/equipment',
+      itemHref: (r: OpsRow) => `/operation/equipment/${r.item_id}` },
 
     // ══ CONV-7 ①:补上【一直缺席的两支】 ═════════════════════════════════════
     // 两支都不是新造的:视图、i18n、fixture、门牌规格全都早就在了,少的只有

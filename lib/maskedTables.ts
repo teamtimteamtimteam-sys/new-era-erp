@@ -34,4 +34,5 @@ export const MASKED_TABLES: ReadonlySet<string> = new Set([
     'purchase_order_payment_terms',
     'purchase_orders',
     'sales_records',
+    'warehouse_requests',
 ])
