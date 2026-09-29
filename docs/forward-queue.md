@@ -131,6 +131,16 @@
 >    (推导:close-out 这一次会话第一条命令的时刻,手里已经有 Tim 的"已部署" —— 一句转述,不是对 Vercel 的测量)。
 >    **破窗:至少 1 h 00 min 08 s,至多 1 h 07 min 50 s。** 窗口里 **`/purchasing/orders/[id]` 对所有人都打不开**
 >    (旧代码读已撤权的 `purchase_order_history` 价格列,42501;Tim Q11 接受)。见 `docs/handbacks/HISTORY-1.md` §7。
+> 23. **✅ 每一页底部的审计记录 —— AUDIT-TRAIL-1a(`v1.4.33` 的第一部分,【未发布】,2026-09-29)。** 内容见下面「HISTORY family」一节的
+>    ✅ AUDIT-TRAIL-1a 那一块;版本号的裁定见那一节「⬜ AUDIT-TRAIL 的后几刀」开头。
+>    ★ **部署:Tim 在 Vercel 上确认 `77776f76` 已部署(AT-1a close-out 委托书,2026-09-29)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-09-29 13:30:45 CST**(测量:`db/migration-windows.tsv`)。第二个文件 `2026-09-29-at1a-record-trail-indexes.sql`
+>    (`CREATE INDEX CONCURRENTLY`,经 psql,9.7 s,`INDEX_OWN_EXIT=0`)**没有记下它自己的时刻** —— 交回 §4 只说"紧接着主文件";
+>    它不开窗(不锁表,旧代码不读那两个索引)· 终点下界 **2026-09-29 18:55:08 CST**(测量:推送把
+>    `origin/main` 移到 `77776f76`,`git reflog show --date=iso refs/remotes/origin/main`)· 终点上界 **2026-09-29 19:05:46 CST**
+>    (推导:close-out 这一次会话第一条命令的时刻,手里已经有 Tim 的"已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 5 h 24 min 23 s,至多 5 h 35 min 01 s。** 窗口里**没有东西坏掉**(旧代码读的 `change_log_rows` /
+>    `change_log_filters` 签名兼容,不锁表);用户只是看见旧页面。见 `docs/handbacks/AUDIT-TRAIL-1a.md` §7。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -6488,26 +6498,29 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   **剩下的:** Tim 过一遍 238 个名字(三个主语以外的大多是按表名推出来的,例如 "role assignment"、"stock movement"),
   以及后几刀用到的页面上逐个校正。原文(已被 Q7 改掉的那一句):~~一份中英两套的表名目录(238 × 2 个键),i18n 检查要能枚举它~~
   (真源:`change_log_coverage_gaps()` 认的那一批表)。
-* **✅ AUDIT-TRAIL-1a(v1.4.33,2026-09-29)** —— 每一页底部的审计记录:读法 `record_trail`(登记表里的主语 · 页面自己的查看码 ·
+* **✅ AUDIT-TRAIL-1a(`v1.4.33` 的第一部分,未发布 —— 见下一条的版本号裁定;2026-09-29)** —— 每一页底部的审计记录:读法 `record_trail`(登记表里的主语 · 页面自己的查看码 ·
   根行与每一个子行各过自己那张表的读规则 · 与汇总页同一个遮蔽步骤 · 拒绝按名 RAISE)、名字解析、英文措辞目录与它的完整性检查、
   "记录开始之前"那一段的合并;前三页(`/purchasing/orders/[id]` · `/operation/processing/[id]` · `/settings/roles/[id]`);
   `/settings/change-history` 改写成同一种话;屏幕日期改成 DD/MM/YYYY(PDF 与外发单据不变)。说明书 `docs/change-log.md` §9;
   交回 `docs/handbacks/AUDIT-TRAIL-1a.md`;勘察 `docs/surveys/AUDIT-TRAIL-0/`。
-* **⬜ AUDIT-TRAIL 的后几刀**(AUDIT-TRAIL-0 §8 的拆分,Tim 2026-09-29 批准,依次做,每一刀一个版本号)—— 每一刀都要留下能用的页面;
+* **⬜ AUDIT-TRAIL 的后几刀**(AUDIT-TRAIL-0 §8 的拆分,Tim 2026-09-29 批准,依次做)—— 每一刀都要留下能用的页面;
   没转到的页面保持今天的样子。**加一个主语怎么做**写在 `docs/change-log.md` §9.6。
-  * **⬜ AT-1b(v1.4.34)· 商务与生产的页面** —— 销售单 / 报价 / 发货 / 客户 / 供应商 / 集装箱 / 货代、批次(进料 · 出料)与化验、
+  ★ **版本号 —— Tim 裁定,2026-09-29(AT-1a close-out 委托书),已关闭:** **AT-1a · AT-1b · AT-1c · AT-1d 合起来是【一个】版本
+  `v1.4.33`,等 AT-1d 关闭之后才对测试者宣布;DATE-PICK-1 是 `v1.4.34`。** 原来的"每一刀一个版本号"与下面各刀原先标的
+  v1.4.34 / v1.4.35 / v1.4.36 / v1.4.37 被这条裁定取代(原标记划掉留着)。`v1.4.33` 的发布那一行在 AT-1d 关闭时写。
+  * **⬜ AT-1b(`v1.4.33` 的一部分;~~v1.4.34~~)· 商务与生产的页面** —— 销售单 / 报价 / 发货 / 客户 / 供应商 / 集装箱 / 货代、批次(进料 · 出料)与化验、
     工单、盘点、库位、物料、定价工具与任务的详情页(`docs/surveys/AUDIT-TRAIL-0/ops-commercial.md` · `ops-production.md` 的宿主表);
     **批次页的旧 Audit Trail 换成统一的审计记录**,它今天画的 20 种行一种不少,补上缺的(化验、金属含量、安全状态、申请、COD、
     盘点前的计数)—— Q32 · Q33;两张旧视图 `batch_audit_trail` / `_all` 那一刀之后才退役,fixture 181–183 的意图搬进新 fixture;
     这些主语"记录开始之前"的那一段;新页 `/operation/equipment/[id]`(Q22)与 `/operation/handovers/[id]`(Q23);
     **结束了的记录照样打得开**(Q21:冲销的加工单、核销的批次 —— 给页面平常的读者;删掉的主数据 —— 给 `data.view_deleted`),
     只读、带一条横幅,底部是审计记录。
-  * **⬜ AT-1c(v1.4.35)· 财务与合同的页面** —— `docs/surveys/AUDIT-TRAIL-0/ops-finance.md` 的 32 条宿主路由与 `/contracts/[id]`;
+  * **⬜ AT-1c(`v1.4.33` 的一部分;~~v1.4.35~~)· 财务与合同的页面** —— `docs/surveys/AUDIT-TRAIL-0/ops-finance.md` 的 32 条宿主路由与 `/contracts/[id]`;
     凭证作为"由单据过账"的相关事件在哪些主语上出现(`docs/known-issues.md` 的 `AT1A-RUN-COST-JOURNALS-NOT-ON-TRAIL`)。
-  * **⬜ AT-1d(v1.4.36)· 人事、设置与账号** —— HR 的宿主页与 `/me`;设置页(审批方针、词典、导入);**共用一行的设置面板各看各的字段**
+  * **⬜ AT-1d(`v1.4.33` 的最后一部分,关闭后才发布 `v1.4.33`;~~v1.4.36~~)· 人事、设置与账号** —— HR 的宿主页与 `/me`;设置页(审批方针、词典、导入);**共用一行的设置面板各看各的字段**
     (Q25:锁期、GST 设置、审批方针同住 `finance_settings`,锁期那一块再加上月结 / 反结);**账号的审计记录**(Q24:`/settings/accounts`
     每行可展开,并在关联员工的页面上照出来)。
-  * **⬜ DATE-PICK-1(v1.4.37)· 日期选择器** —— 一个自建的选择器(Radix Popover + 现成的 `MonthGrid` + `lib/bankCsv.ts` 的
+  * **⬜ DATE-PICK-1(`v1.4.34`;~~v1.4.37~~)· 日期选择器** —— 一个自建的选择器(Radix Popover + 现成的 `MonthGrid` + `lib/bankCsv.ts` 的
     DD/MM/YYYY 解析,不加库):能敲能点、DD/MM/YYYY、周一开头、提交 ISO、min/max 之外的日子不可选并说原因、不可能的日子拦住提交
     (Q35 · Q37);5 个月份框(MM/YYYY)与 4 个日期时间框(DD/MM/YYYY HH:MM,改按新加坡时间)一起换(Q36);中文界面的月名周名用中文、
     输入格式仍是 DD/MM/YYYY(Q39);**134 个原生日期框一个不剩**,检查改成"零个",两种独立的数法,`check-date-data-paths.mjs` 改瞄选择器,

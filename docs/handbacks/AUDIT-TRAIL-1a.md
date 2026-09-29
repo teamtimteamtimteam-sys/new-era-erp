@@ -1,6 +1,6 @@
 # AUDIT-TRAIL-1a — plain-English audit trails at the bottom of three pages, a readable Change history, and DD/MM/YYYY on screen (2026-09-29)
 
-**Tester line — v1.4.33:** Purchase orders, processing records and roles now show a plain-English audit trail at the bottom of the page, the Change history page now reads in plain English, and dates on screen show as day/month/year (date entry boxes change in a later update).
+**Tester line:** Part of v1.4.33, not yet released. The v1.4.33 release line is written when AT-1d closes.
 
 **Opening gate:** tree clean; `HEAD` = `origin/main` = `ls-remote` = `d93c083b0c0b6192fd2638c058e266e0050da6eb` (HISTORY-1 close-out).
 **Approvals were ON and stayed ON** (L1 finance · L2 cfo · 1,000). Every figure below is a script's own exit line, or a query named
