@@ -81,6 +81,7 @@ import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
 import { spawn, execSync } from 'node:child_process'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
+import { machineTokens, selfProof as trailDetectorSelfProof } from '../lib/trail/machineTokens.ts'
 import { acquireOrExit, release } from './liveLock.mjs'
 import { openPlan, planDelete, ephemeralGrantBody, runPlan, reapStalePlans, installExitHooks, exitAfterCleanup, ORDER,
     beginCleanupPhase, isCleanupPhase, cleanupSignal, installCleanupNetworkFault } from './ephemeral.mjs'
@@ -140,8 +141,19 @@ function* walk(dir) {
         else if (name === 'page.tsx' || name === 'route.ts') yield p
     }
 }
-const routes = [...walk(join(ROOT, 'app'))].map((p) =>
+const ALL_ROUTES = [...walk(join(ROOT, 'app'))].map((p) =>
     p.slice(ROOT.length + 3).replace(/\/(page\.tsx|route\.ts)$/, '') || '/')
+// AUDIT-TRAIL-1a:SMOKE_ONLY=<路由,路由,…>(逐字的路由模式,例如 /purchasing/orders/[id])只走这几条。
+//   【只给故障注入那一趟用】(SMOKE_TRAIL_FAULT=1 证明 trail 判据会红,不必再走一整趟 30 分钟)。
+//   认不出的路由名当场拒绝 —— 一个拼错的名字会让子集悄悄变空,而空子集会"全绿"。
+//   子集模式下 EXPECTED_SKIPS 只对子集里的路由记账;它【不是】一次完整的冒烟,报告里也不许当成一次。
+const SMOKE_ONLY = (process.env.SMOKE_ONLY ?? '').split(',').map((x) => x.trim()).filter(Boolean)
+if (SMOKE_ONLY.length) {
+    const unknown = SMOKE_ONLY.filter((r) => !ALL_ROUTES.includes(r))
+    if (unknown.length) throw new Error(`SMOKE_ONLY 里有认不出的路由:${unknown.join(', ')}`)
+    console.log(`★ SMOKE_ONLY 子集模式:只走 ${SMOKE_ONLY.length} 条路由(${SMOKE_ONLY.join(', ')})—— 这不是一次完整的冒烟`)
+}
+const routes = SMOKE_ONLY.length ? ALL_ROUTES.filter((r) => SMOKE_ONLY.includes(r)) : ALL_ROUTES
 
 // ── 动态段的真实 id 从哪来(PostgREST + service key,随数据变化自动跟上)────
 const ID_SOURCES = {
@@ -551,6 +563,16 @@ const MSG_ARM_PROMISE_OVERDUE = msgFromEn('dashboard.item.promise_overdue')
 
 
 const MUST_CONTAIN = {
+    // ── AUDIT-TRAIL-1a(Tim 的 Q41):三个真的审计记录页与汇总页 —— 读得到、有记录、一个机器字都没有 ──────
+    // 【trail 这一种判据】找到那一段(data-audit-trail / data-change-history),它必须是 entries
+    //   (这几页上的记录都有历史 —— 起码有"记录开始之前"拼回来的创建;一个 refused / empty 在这里就是坏了),
+    //   然后把那一段的文字交给 lib/trail/machineTokens.ts —— 与构建时那支检查【同一个】检出器。
+    //   人自己敲的字(data-trail-typed)不扫:备注里写了什么是他的话(Q8)。其余每一个字都扫。
+    //   故障注入:SMOKE_TRAIL_FAULT=1 往扫的那段文字里塞一个 uuid,四页必须全红。
+    '/purchasing/orders/[id]': [{ trail: 'audit-trail', why: '采购单页底的审计记录' }],
+    '/operation/processing/[id]': [{ trail: 'audit-trail', why: '加工单页底的审计记录' }],
+    '/settings/roles/[id]': [{ trail: 'audit-trail', why: '角色页底的审计记录' }],
+    '/settings/change-history': [{ trail: 'change-history', why: '变更记录汇总页' }],
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
     // 为空时改渲染一段琥珀色文字("还没有货代 / 还没有供货商")。所以那个字符串
@@ -799,9 +821,37 @@ const MUST_CONTAIN = {
 // 探针为空时【跳过并说出来】,不算失败:"线上还没有货代"是一个正当状态,
 // 为它报红就是喊狼来了。与整套冒烟对"没数据 → SKIP"的处置同一条。
 const contentSkips = []
+// AUDIT-TRAIL-1a:trail 判据 —— 取出那一段、剥掉人敲的字与标签、交给检出器
+const TRAIL_RULER = trailDetectorSelfProof()
+if (TRAIL_RULER.length) throw new Error('机器字检出器自证失败(lib/trail/machineTokens.ts)—— 它是瞎的,不许拿它判页面:' + TRAIL_RULER.join(' | '))
+function trailMisses(html, which, why) {
+    const marker = which === 'audit-trail' ? 'data-audit-trail="' : 'data-change-history="'
+    const i = html.indexOf(marker)
+    if (i < 0) return [`${marker}… —— ${why}整段没渲染出来`]
+    const state = html.slice(i + marker.length, html.indexOf('"', i + marker.length))
+    const out = []
+    if (state !== 'entries') out.push(`${marker}${state}" —— ${why}应当读得到、有记录(entries)`)
+    const start = html.lastIndexOf('<section', i)
+    const end = html.indexOf('</section>', i)
+    let text = html.slice(start, end < 0 ? undefined : end)
+        .replace(/<span[^>]*data-trail-typed=""[^>]*>[\s\S]*?<\/span>/g, ' ')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&amp;/g, '&').replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>').replace(/&nbsp;/g, ' ')
+    if (process.env.SMOKE_TRAIL_FAULT === '1') text += ' 926c9811-c1ee-49ab-9ab8-f6686d92b6f9'
+    if (text.replace(/\s+/g, '').length < 20) out.push(`${why}只有 ${text.trim().length} 个字 —— 扫描范围取错了`)
+    const hits = machineTokens(text)
+    if (hits.length) out.push(`${why}里有机器字:${hits.slice(0, 8).map((h) => `${h.kind}「${h.token}」`).join('、')}`)
+    return out
+}
+
 async function contentMisses(route, html) {
     const misses = []
     for (const a of MUST_CONTAIN[route] ?? []) {
+        if (a.trail) {
+            misses.push(...trailMisses(html, a.trail, a.why))
+            continue
+        }
         if (a.needle) {
             if (!html.includes(a.needle)) misses.push(`${a.needle} —— ${a.why}`)
             continue
@@ -2845,7 +2895,7 @@ async function main() {
         if (f.stack) console.log(f.stack.split('\n').map((l) => '    ' + l).join('\n'))
     }
     const extraSkips = [...skipped].filter((r) => !EXPECTED_SKIPS.has(r))
-    const goneSkips = [...EXPECTED_SKIPS].filter((r) => !skipped.has(r))
+    const goneSkips = [...EXPECTED_SKIPS].filter((r) => !skipped.has(r) && (!SMOKE_ONLY.length || routes.includes(r)))
     if (extraSkips.length)
         console.log(`\n✗ 预期之外的 SKIP —— 覆盖回归,查数据源,别默认"没数据": ${extraSkips.join(', ')}`)
     if (goneSkips.length)

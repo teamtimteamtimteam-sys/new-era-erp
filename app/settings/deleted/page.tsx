@@ -56,7 +56,7 @@ import DeletedTable, { type DeletedRow } from './DeletedTable'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
-import { formatAuditStamp } from '@/lib/dates'
+import { formatTrailStamp } from '@/lib/dates'
 
 type Row = {
     record_kind: string
@@ -140,7 +140,8 @@ export default async function DeletedRecordsPage({
         code: r.code,
         detail: r.detail ?? null,
         href: KIND_HREF[r.record_kind]?.(r.record_id) ?? null,
-        whenLabel: formatAuditStamp(r.deleted_at),
+        // AUDIT-TRAIL-1a(Q15):这一页的时刻与审计记录同一种写法 —— DD/MM/YYYY HH:MM,新加坡时间
+        whenLabel: formatTrailStamp(r.deleted_at),
         // 服务端渲染好的四态元素 —— 判据不过边界,元素过(见 DeletedTable 抬头)
         whoCell: (
             <ActorName

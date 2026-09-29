@@ -8,11 +8,14 @@ import { requireManagePermissions } from '../../guard'
 import RoleForm from '../RoleForm'
 import PermissionMatrix, { type PermissionRow } from '../PermissionMatrix'
 import { mustRows } from '@/lib/db-helpers'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 export default async function RoleDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
 }) {
     const denied = await requireManagePermissions()
     if (denied) return denied
@@ -81,6 +84,9 @@ export default async function RoleDetailPage({
                 permissions={(mustRows(permRes)) as PermissionRow[]}
                 initial={(mustRows(grantRes)).map((g) => g.permission_code)}
             />
+
+            {/* AUDIT-TRAIL-1a:页底的审计记录 —— 这个角色的字段,与它的授权加上 / 拿掉(名字取 permissions.name_en) */}
+            <AuditTrail subject="role" id={role.id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

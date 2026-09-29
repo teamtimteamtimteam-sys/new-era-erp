@@ -62,6 +62,13 @@ CREATE INDEX idx_change_log_occurred ON public.change_log (occurred_at DESC);
 CREATE INDEX idx_change_log_table_key ON public.change_log (table_name, row_key);
 CREATE INDEX idx_change_log_actor ON public.change_log (actor_account);
 CREATE INDEX idx_change_log_actor_employee ON public.change_log (actor_employee);
+-- AUDIT-TRAIL-1a(Tim 的 Q6):每一页底部的审计记录在【读的时候】找一条记录的子行 —— 不在记录上写父键
+-- (那要重绑 238 条触发器,HISTORY-1 的演练里写入被挡了约 143 秒)。record_trail 按
+--   COALESCE(new, old) @> {"<外键>": "<父 id>"}   找新增 / 删除 / 改了父键的行,
+--   old @> {"<外键>": "<父 id>"}(只看编辑)        找父键被改走的行。
+-- 两条都是 jsonb_path_ops 的 GIN(只支持 @>,比默认的 jsonb_ops 小)。
+CREATE INDEX idx_change_log_image ON public.change_log USING gin (COALESCE(new, old) jsonb_path_ops);
+CREATE INDEX idx_change_log_update_old ON public.change_log USING gin (old jsonb_path_ops) WHERE op = 'UPDATE';
 
 -- 【没有任何直接授权】平台的默认权限会把新表授给 anon / authenticated / service_role,
 -- 这里全部收回。RLS 打开且没有一条策略 —— 双保险:哪天有人误授了一句 SELECT,仍然零行。

@@ -317,6 +317,17 @@ for (const loc of ['en', 'zh']) {
 B('显示与数据的输出不相等(en)', D.formatDate(SAMPLE, 'en') !== D.toYmd(SAMPLE),
     '两者相等 —— 那上面所有"拒绝"断言都是空转的')
 B('显示与数据的输出不相等(zh)', D.formatDate(SAMPLE, 'zh') !== D.toYmd(SAMPLE), '同上')
+// ⑤b AUDIT-TRAIL-1a(Q16):屏幕日期是 DD/MM/YYYY,而树里有"服务端格式化一次、客户端组件再格式化一次"的路。
+//    所以 formatDate / formatDateTime 对【自己的输出】必须幂等,而且日在前 —— new Date('01/09/2026') 是 1 月 9 日。
+for (const loc of ['en', 'zh']) {
+    const once = D.formatDate('2026-09-01', loc), twice = D.formatDate(once, loc)
+    B(`formatDate 对自己的输出幂等(${loc})`, once === '01/09/2026' && twice === once, `→ "${once}" 再格式化 → "${twice}"`)
+    const t1 = D.formatDateTime(SAMPLE_TS, loc), t2 = D.formatDateTime(t1, loc)
+    B(`formatDateTime 对自己的输出幂等(${loc})`, t2 === t1, `→ "${t1}" 再格式化 → "${t2}"`)
+}
+B('toYmd 把 DD/MM/YYYY 读回日在前', D.toYmd('01/09/2026') === '2026-09-01', `→ ${D.toYmd('01/09/2026')}`)
+B('PDF 的写法不变(Q16)', D.formatDocumentDate('2026-09-01', 'en') === '01 Sep 2026' && D.formatDocumentDate('2026-09-01', 'zh') === '2026年9月1日',
+    `→ ${D.formatDocumentDate('2026-09-01', 'en')} / ${D.formatDocumentDate('2026-09-01', 'zh')}`)
 // ⑤ 审计戳那一族是 YYYY-MM-DD HH:MM,而且【不随语言变】(D2)
 B('审计戳形状', /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(D.formatAuditStamp(SAMPLE_TS)),
     `→ ${D.formatAuditStamp(SAMPLE_TS)}`)
@@ -374,7 +385,7 @@ assertPopulation('check-date-data-paths', 'month 键的读取点(ARM 3)', monthK
 assertPopulation('check-date-data-paths', 'Date.parse / new Date 的落点(ARM 5)', arm5Sinks, 20)
 // ★【这个数被本支自己的机制抓过一次:声明 14,实际求值 13,当场 exit 2】
 //   加断言就要把这个数一起改掉 —— 那个摩擦是刻意的。
-assertAssertionsRan('check-date-data-paths', ran, 13)
+assertAssertionsRan('check-date-data-paths', ran, 19)   // AUDIT-TRAIL-1a:13 → 19(⑤b 的六条:幂等 ×4 · 读回日在前 · PDF 写法不变)
 
 // ── 判词 ────────────────────────────────────────────────────────────────────
 const ARM_NAME = {

@@ -86,15 +86,22 @@ a registered later cut (Tim's Q14).
 
 ## 4. Who can read it, and what they see
 
-**Reading goes through one function**, `change_log_rows()`, which requires the permission code **`data.view_change_log`**.
-It is granted to `admin` and `cfo` only and bundled into no other role (Q10 · Q1). The only screen is
+**The global reader is one function**, `change_log_rows()`, which requires the permission code **`data.view_change_log`**.
+It is granted to `admin` and `cfo` only and bundled into no other role (Q10 · Q1). Its screen is
 **Change history**, `/settings/change-history`. It sits under Settings and in the Finance **Reports** group, with one
-registry entry and one code. Filters: date range, table, record (any value in the row key), who (an account, or
-"no session"). Newest first, 50 per page.
+registry entry and one code.
+
+**Since AUDIT-TRAIL-1a (v1.4.33) the page reads in plain English**, in the same words as the per-page audit trails (§9):
+one line per operation (database transaction), columns When · Who · Record · What happened, times `DD/MM/YYYY HH:MM`
+Singapore time. Filters: date range · Area · Record type (English names from `lib/trail/catalogue.generated.ts`) ·
+Record (a document number or a name, found by `change_log_find_records()`) · Who (a person, "System (automatic)",
+"Removed account") · Key events only. Newest first, 25 operations per page. It still lists every write (Q31).
+Each page's own trail is a **different** reader, `record_trail()` (§9) — the global reader was not widened.
 
 **Masking follows the source screens.** A value the reader cannot see on its own screen is replaced by
-`{"$restricted": true}` and rendered as **Restricted**. A value that is genuinely empty stays empty and renders blank.
-The two are never confused.
+`{"$restricted": true}` and rendered as **Restricted**. A value that is genuinely empty stays empty and renders as
+**(empty)** (a blank before AUDIT-TRAIL-1a). The two are never confused. Since AUDIT-TRAIL-1a the masking is **one step**,
+`change_log_mask_row()`, called by both readers (§9.3).
 
 - The rules are one list, `change_log_mask_rules()`: one row per column, 80 columns on 26 tables. They were copied from
   the `CASE WHEN … END AS <column>` of every `<table>_masked` view, plus the new `purchase_order_history_masked`.
@@ -199,3 +206,115 @@ Fixtures 234 and 235 pin the behaviour. Every arm was fault-injected and went re
 - The offline gate went from 58 s to 61 s, with 238 bindings and two new fixtures.
 - The live database had written 103,579 rows over its whole life when this landed. There is no retention limit; the
   log is kept whole (Q15).
+
+## 9. Audit trails on each page (AUDIT-TRAIL-1a, 2026-09-29)
+
+Every page where something is done, or whose record it affects, carries an **"Audit trail"** section at the bottom:
+when, who and what happened, in plain English, newest first. AUDIT-TRAIL-1a (v1.4.33) built the mechanism and the first
+three pages; the rest follow in AT-1b, AT-1c and AT-1d (`docs/forward-queue.md`, "HISTORY family").
+Rulings: AUDIT-TRAIL-0 Q1–Q43, all accepted as recommended (`docs/surveys/AUDIT-TRAIL-0/README.md`).
+
+| page | subject | view code | what rolls up into its trail |
+|---|---|---|---|
+| `/purchasing/orders/[id]` | `purchase_order` | `module.purchasing.view` | the order · lines · payment terms · retentions · committed pricing terms · PO issues · contract terms · approval decisions · amendment history |
+| `/operation/processing/[id]` | `processing_run` | `module.processing.view` | the run · inputs · outputs · cost entries and their history · cost allocations · losses |
+| `/settings/roles/[id]` | `role` | `action.manage_permissions` | the role · its permissions (added / removed, named from `permissions.name_en`) |
+
+### 9.1 The reader: `record_trail(subject, id, entries)`
+
+- **The page names a subject, never a table.** `trail_subjects()` maps each subject to its root table and the page's own
+  view code; an unknown subject raises **`TRAIL_SUBJECT_UNKNOWN`**.
+- **Authorisation, three layers.** (1) The page's view code (`has_permission`). (2) The root row's own read rule — the
+  table's permissive SELECT/ALL policies re-evaluated on that row (`trail_row_visible`), or on its last image if it was
+  hard-deleted. (3) **Every child or related row is re-checked against its own table's read rule**, not the parent's (Q4).
+  A failure at (1) or (2), including a record that does not exist, raises **`TRAIL_NOT_PERMITTED`**.
+  **Refusals always raise; the reader never returns an empty list for a refusal** — an empty list reads as "nothing ever
+  happened". Re-evaluating policies inside a SECURITY DEFINER function is sound because all 287 read policies resolve the
+  caller from the login (`has_permission`, `current_user_employee`), none from the database role, and none is restrictive
+  (measured, AUDIT-TRAIL-0 `reader-masking.md` §1.6); restrictive policies would be ANDed in if they ever appear.
+- **A row the reader cannot see** keeps its place and its time; everything else (what, who, values, keys) is null and
+  `row_hidden` is true. The page prints "Restricted" in place of what happened and who (Q4). When only part of an operation
+  is hidden, the entry adds "Part of this change is restricted."
+
+### 9.2 Which rows belong to a record (Q3 · Q6)
+
+`trail_subject_members()` lists each subject's child and related tables: `table.fk_column = parent_table.id`, plus a fixed
+condition for polymorphic tables (`approval_log.subject_type = 'purchase_order'`). Grandchildren name a child as parent
+(retentions hang off PO lines). Rows are found **at read time**, in two steps, because an edit stores only the changed
+columns (a price edit on a PO line carries no `purchase_order_id`):
+1. collect the **keys** of every row that belongs: live rows by foreign key, plus rows known only from the log
+   (`COALESCE(new, old) @> {fk: parent}` for inserts/deletes/re-parenting, `old @> {fk: parent}` for edits that moved a row
+   away) — two GIN partial indexes, `idx_change_log_image` and `idx_change_log_update_old`;
+2. fetch **every** log row for those `(table_name, row_key)` pairs.
+No parent key is written at capture time — that would have meant rebinding the 238 triggers (Q6).
+
+### 9.3 Masking — one step for both readers (Q5)
+
+`change_log_mask_row()` is the loop body that used to live inside `change_log_rows()`: task privacy first, then HISTORY-1's
+`change_log_mask_rules()` per column. **Both readers call it**; no rule was added. The row's current image (`ctx`, used for
+"Line 1 · <material>" headings) goes through the same step.
+
+### 9.4 One entry per operation, paging
+
+Rows are grouped by `txid` (Q2) and numbered newest first (`entry_no`, by the highest `seq` in each transaction). The page
+shows 20 entries, then "Show older entries" (`?trail=40`, Q29). The summary page pages by transaction too
+(`change_log_rows(p_by_entry => true)`, keyset on the highest `seq`).
+
+### 9.5 History from before the log began (Q1)
+
+The log began at **2026-09-28 23:58:11 Singapore time** (`change_log_began_at()`, declared, not inferred). For earlier
+history, `record_trail` rebuilds rows from the sources `trail_prelog_sources()` lists per table:
+- `created`: the row itself is the event (a history-table row, an approval decision, a PO issue, a grant, a record's
+  `created_at/created_by`) — rebuilt as an INSERT whose image is the row as it is **today** (`AT1A-PRELOG-SHOWS-TODAYS-VALUES`);
+- `stamp`: a lifecycle stamp pair (closed, deleted, allocated, released …) — rebuilt as an edit with only the new values.
+
+Only timestamps before the boundary are used, and **nothing is shown twice**: a `created` source is skipped when the log
+holds that row's INSERT, a `stamp` when the log holds a change to that column. Rows written in one transaction share
+`now()`, so pre-log rows are grouped by exact timestamp. They always sort after every logged entry and carry
+`prelog = true`; the page draws a divider above them: "Before 28/09/2026 23:58, only key steps and amendments were kept;
+single-field edits were not."
+
+### 9.6 Adding a subject (what AT-1b, AT-1c and AT-1d do per page)
+
+1. `db/functions/trail_subjects.sql` — one row: subject, the page's exact view code, root table, root key.
+2. `db/functions/trail_subject_members.sql` — its child and related tables (parents before children).
+3. `db/functions/trail_prelog_sources.sql` — where its pre-log history lives (history tables, lifecycle stamps). Do not
+   add a stamp that a history table already records — that would show twice.
+4. `lib/trail/render.ts` — the subject's event wording (a `describe…` function and its table set); new sentences go in
+   `lib/trail/text.ts` (English only). `scripts/check-trail-wording.mjs` fails until the SQL registry and the render-side
+   table set agree, every column of every registered table has an English label, and every enum value has English.
+5. Labels for new columns: `scripts/gen-trail-catalogue.mjs` (`OVERRIDES` for page wording), then `--write`.
+6. The page: `<AuditTrail subject="…" id={…} show={trailCount(searchParams.trail)} />` at the very bottom, and a smoke
+   `MUST_CONTAIN` entry `{ trail: 'audit-trail' }`.
+7. A fixture arm per event wording that matters, with a fault injection that turns it red.
+
+### 9.7 Wording rules
+
+- **English only**, also when the interface is Chinese (Q7). The sentences live in `lib/trail/text.ts`, not in
+  `messages/en.ts`; `check-trail-wording` checks both directions (every key used, every used key present).
+- **Field labels** (Q11): the page's own label first, then similar wording elsewhere in `en.ts`, then the labels proposed in
+  `docs/surveys/AUDIT-TRAIL-0/labels.csv`; the three subjects' tables carry hand-checked overrides.
+- **Values** (Q12 · Q13 · Q40): the database resolves ids to document numbers, names and dictionary labels
+  (`trail_refs` / `trail_ref_label`); the app writes the sentences. Created/updated stamps, technical columns and raw JSON
+  never show; JSON columns say "Details changed". Enums in English, booleans Yes / No, dates `DD/MM/YYYY`, money with its
+  currency. A referenced record that was hard-deleted reads "PO-2026-0010 (since deleted)", or "a supplier that has since
+  been deleted" when not even its image is left.
+- **Who** (Q14 · Q17 · Q18): the person's preferred name, else legal name, for every reader of the trail (the trail adds no
+  masking rule of its own); "System (automatic)" for every write with no login (migrations included); "Removed account"
+  when neither the account nor a person is left; a disabled account shows the plain name; "A former employee" after
+  anonymisation; "Not recorded" for pre-log rows whose table kept no actor.
+- **Machine-written Chinese** (Q8): typed text is shown as written; values the system wrote in Chinese are shown in English
+  (`messages/trail-machine-values.ts` for `inbound_batches.stage`; automatic-approval notes are replaced by
+  "Approved automatically (approvals were switched off)").
+
+### 9.8 Checks
+
+| check | reads | fails on |
+|---|---|---|
+| `scripts/check-trail-wording.mjs` (in `npm run build`) | the repository | a machine token in any sentence built for any column, value, actor or event of every logged table; a registry mismatch; a missing or unused catalogue key; a subject column without an English label or value. Eleven named fault injections (`TRAIL_WORDING_FAULT`) |
+| `scripts/smoke-routes.mjs` `{ trail }` content assertion | the three trail pages and `/settings/change-history`, rendered | a section that is not `entries`; a uuid, column or table name, raw code, JSON, "null" or database role name in its text (typed text excluded). Injection: `SMOKE_TRAIL_FAULT=1` |
+| fixture 236 | the rebuilt database | grouping, discovery, masking, hidden rows, refusals, pre-log merge, actors, deleted references, summary reader; 30 fault injections (`db/scripts/2026-09-29-at1a-fixture236-injections.py`) |
+
+Both machine-token checks use one detector, `lib/trail/machineTokens.ts`, which proves itself on every run (known-bad
+samples must all be caught, a known-good sentence must pass).
+

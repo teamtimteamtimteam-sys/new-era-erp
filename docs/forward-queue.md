@@ -4278,7 +4278,7 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 | ★★ **两个账号前置** | ① 那个**只持字典编辑权**的账号**仍然不存在**(走查 §12 第 1 步与 §15 第 1 步都卡在它上面);② **全系统只有一个人登得进来**,而**应用里没有任何一条路能把管理员权限重新授出去** | ★ **一个有名字的人**,在发账号那一天 | 「内部验收」(e)|
 | ★ **`GHOST-GRANTS`** | 幽灵 admin 授权会再长回来:**66 → 21 → 8**,第三次清扫 | 产地那一层已由 LEAK-1 关掉;**这一条本身仍开着** | `known-issues` 同名条 |
 | ★ **`PERIOD-LOCK-RAW-CODE`** | 42 支 `*ErrorCodes.ts` 里 **31 支不认 `PERIOD_LOCKED`** → 屏幕上出现 `PERIOD_LOCKED\|2026-07-15\|2026-08-01`,**已举证一条真路** | **没有前置**(而它是一刀,不是补几个码)| 本文件同名条 |
-| ★★ **DATE-1 的选择器那一半** | **130 个 `<input type="date">` / 85 个文件**按 HTML 规范渲染成**操作系统 locale** 的格式 —— 于是 Tim 最初抱怨的「同一个日期读出三种样子」**只治好了显示那一半** | ★ **Tim 答 DATE-0 的 Q1**;它不是一次格式改动,**是换控件** | 「DATE-1 交回时新增的三条」|
+| ★★ **DATE-1 的选择器那一半** | **130 个 `<input type="date">` / 85 个文件**按 HTML 规范渲染成**操作系统 locale** 的格式 —— 于是 Tim 最初抱怨的「同一个日期读出三种样子」**只治好了显示那一半** | ✅ **Tim 已答(2026-09-29,AUDIT-TRAIL-0 Q35–Q39):做,排成 DATE-PICK-1(v1.4.37)**;AUDIT-TRAIL-0 重量:134 处 / 90 个文件 | 「HISTORY family」一节的「⬜ AUDIT-TRAIL 的后几刀」|
 
 ### 乙 · ★★ 排它不会让它前进 —— **等一句裁定**
 
@@ -6476,11 +6476,42 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
 * **⬜ 69 张可被硬删的表,逐张复核**(HISTORY-1 登记,Tim 的 Q21,2026-09-28)—— HISTORY-0 §D.3:90 张表的 RLS 放行
   authenticated 的 DELETE,其中 69 张没有删除守卫。今天 `change_log` 保存了每一次被删的整行,所以硬删可追、可恢复;
   **哪些删除本来就不该存在**是逐张的产品裁定(27 张同时带着 `deleted_at`,屏幕走软删而策略仍放硬删)。
-* **⬜ 按记录的变更面板(per-record history panels)**(HISTORY-1 登记,Tim 的 Q26,2026-09-28)—— 今天读变更只有一页
+* **◐ 按记录的变更面板(per-record history panels)**(HISTORY-1 登记,Tim 的 Q26,2026-09-28)—— **由 AUDIT-TRAIL 系列承接**:
+  每一页底部的 "Audit trail"(`record_trail`,读者按那一页自己的门来问)。**AT-1a(v1.4.33,2026-09-29)做了机制与前三页**
+  (采购单、加工单、角色);其余页面排在下面「⬜ AUDIT-TRAIL 的后几刀」里。原文留着:今天读变更只有一页
   `/settings/change-history`(按表 + 记录键筛)。每一张详情页上一块"这一条的变更"要碰每一张详情页,而读者的权限要按那一页的
   门来问(不是 `data.view_change_log`)—— 那是它自己的一刀。
-* **⬜ 238 张表的显示名**(HISTORY-1 登记,Tim 的 Q15,2026-09-28)—— 变更记录页今天印【技术表名】(`purchase_order_lines`)。
-  一份中英两套的表名目录(238 × 2 个键),i18n 检查要能枚举它(真源:`change_log_coverage_gaps()` 认的那一批表)。
+* **◐ 238 张表的显示名 —— 【只要英文】**(HISTORY-1 登记,Tim 的 Q15,2026-09-28;**AUDIT-TRAIL-0 的 Q7 把它改成英文专用,
+  Tim 2026-09-29 接受**)—— 审计记录与变更记录页只说英文,所以表名目录**一套英文**,不是中英两套,也不进 check-i18n。
+  ★ AT-1a 已经生成了第一版(`lib/trail/catalogue.generated.ts` 的 `TRAIL_TABLES`,生成器 `scripts/gen-trail-catalogue.mjs`:
+  单数英文名 + 区域),汇总页的 Record type / Area 就用它,`/settings/change-history` 不再印技术表名。
+  **剩下的:** Tim 过一遍 238 个名字(三个主语以外的大多是按表名推出来的,例如 "role assignment"、"stock movement"),
+  以及后几刀用到的页面上逐个校正。原文(已被 Q7 改掉的那一句):~~一份中英两套的表名目录(238 × 2 个键),i18n 检查要能枚举它~~
+  (真源:`change_log_coverage_gaps()` 认的那一批表)。
+* **✅ AUDIT-TRAIL-1a(v1.4.33,2026-09-29)** —— 每一页底部的审计记录:读法 `record_trail`(登记表里的主语 · 页面自己的查看码 ·
+  根行与每一个子行各过自己那张表的读规则 · 与汇总页同一个遮蔽步骤 · 拒绝按名 RAISE)、名字解析、英文措辞目录与它的完整性检查、
+  "记录开始之前"那一段的合并;前三页(`/purchasing/orders/[id]` · `/operation/processing/[id]` · `/settings/roles/[id]`);
+  `/settings/change-history` 改写成同一种话;屏幕日期改成 DD/MM/YYYY(PDF 与外发单据不变)。说明书 `docs/change-log.md` §9;
+  交回 `docs/handbacks/AUDIT-TRAIL-1a.md`;勘察 `docs/surveys/AUDIT-TRAIL-0/`。
+* **⬜ AUDIT-TRAIL 的后几刀**(AUDIT-TRAIL-0 §8 的拆分,Tim 2026-09-29 批准,依次做,每一刀一个版本号)—— 每一刀都要留下能用的页面;
+  没转到的页面保持今天的样子。**加一个主语怎么做**写在 `docs/change-log.md` §9.6。
+  * **⬜ AT-1b(v1.4.34)· 商务与生产的页面** —— 销售单 / 报价 / 发货 / 客户 / 供应商 / 集装箱 / 货代、批次(进料 · 出料)与化验、
+    工单、盘点、库位、物料、定价工具与任务的详情页(`docs/surveys/AUDIT-TRAIL-0/ops-commercial.md` · `ops-production.md` 的宿主表);
+    **批次页的旧 Audit Trail 换成统一的审计记录**,它今天画的 20 种行一种不少,补上缺的(化验、金属含量、安全状态、申请、COD、
+    盘点前的计数)—— Q32 · Q33;两张旧视图 `batch_audit_trail` / `_all` 那一刀之后才退役,fixture 181–183 的意图搬进新 fixture;
+    这些主语"记录开始之前"的那一段;新页 `/operation/equipment/[id]`(Q22)与 `/operation/handovers/[id]`(Q23);
+    **结束了的记录照样打得开**(Q21:冲销的加工单、核销的批次 —— 给页面平常的读者;删掉的主数据 —— 给 `data.view_deleted`),
+    只读、带一条横幅,底部是审计记录。
+  * **⬜ AT-1c(v1.4.35)· 财务与合同的页面** —— `docs/surveys/AUDIT-TRAIL-0/ops-finance.md` 的 32 条宿主路由与 `/contracts/[id]`;
+    凭证作为"由单据过账"的相关事件在哪些主语上出现(`docs/known-issues.md` 的 `AT1A-RUN-COST-JOURNALS-NOT-ON-TRAIL`)。
+  * **⬜ AT-1d(v1.4.36)· 人事、设置与账号** —— HR 的宿主页与 `/me`;设置页(审批方针、词典、导入);**共用一行的设置面板各看各的字段**
+    (Q25:锁期、GST 设置、审批方针同住 `finance_settings`,锁期那一块再加上月结 / 反结);**账号的审计记录**(Q24:`/settings/accounts`
+    每行可展开,并在关联员工的页面上照出来)。
+  * **⬜ DATE-PICK-1(v1.4.37)· 日期选择器** —— 一个自建的选择器(Radix Popover + 现成的 `MonthGrid` + `lib/bankCsv.ts` 的
+    DD/MM/YYYY 解析,不加库):能敲能点、DD/MM/YYYY、周一开头、提交 ISO、min/max 之外的日子不可选并说原因、不可能的日子拦住提交
+    (Q35 · Q37);5 个月份框(MM/YYYY)与 4 个日期时间框(DD/MM/YYYY HH:MM,改按新加坡时间)一起换(Q36);中文界面的月名周名用中文、
+    输入格式仍是 DD/MM/YYYY(Q39);**134 个原生日期框一个不剩**,检查改成"零个",两种独立的数法,`check-date-data-paths.mjs` 改瞄选择器,
+    两处都做故障注入(Q38)。勘察 `docs/surveys/AUDIT-TRAIL-0/dates.md`。不动数据库。
 * **⬜ `/settings/deleted` 要不要被变更记录吸收**(HISTORY-0 Q30,Tim:本刀之后再定,2026-09-28)—— 见下面「事件触发」那一节的原条目;
   触发条件(那个历史机制存在)**今天已经成立**。
 

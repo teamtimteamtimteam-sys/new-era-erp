@@ -22,7 +22,7 @@ import QuotationDocument, { type QuoteDocData } from './QuotationDocument'
 import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 import { localizeQuoteError } from '../../quoteErrorCodes'
 import { loadDocumentCompany, companyPdfStrings, COMPANY_MISSING_MESSAGE } from '@/app/components/pdf/company'
-import { formatDate } from '@/lib/dates'
+import { formatDocumentDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'qt-documents'
@@ -50,8 +50,8 @@ async function loadDoc(id: string): Promise<QuoteDocData | null> {
 
     return {
         code: q.code,
-        quote_date: formatDate(q.quote_date, locale),
-        valid_until: formatDate(q.valid_until, locale),
+        quote_date: formatDocumentDate(q.quote_date, locale),
+        valid_until: formatDocumentDate(q.valid_until, locale),
         currency: q.currency,
         customer: { code: q.customer_code, legal_name: q.customer_name },
         lines: lines.map((l) => ({

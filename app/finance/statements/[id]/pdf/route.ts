@@ -22,7 +22,7 @@ import { getTranslations } from '@/lib/i18n/server'
 import StatementDocument, { type StatementDocData, type StatementLine } from './StatementDocument'
 import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 import { localizeStatementError } from '../../statementErrorCodes'
-import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { formatAuditStamp, formatDocumentDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'statement-documents'
@@ -83,8 +83,8 @@ async function loadDoc(id: string): Promise<StatementDocData | null> {
     return {
         code: st.code,
         customer: cust,
-        period_start: formatDate(st.period_start, locale),
-        period_end: formatDate(st.period_end, locale),
+        period_start: formatDocumentDate(st.period_start, locale),
+        period_end: formatDocumentDate(st.period_end, locale),
         base_currency: st.base_currency,
         opening_base: Number(st.opening_base),
         charges_base: Number(st.charges_base),
@@ -99,8 +99,8 @@ async function loadDoc(id: string): Promise<StatementDocData | null> {
         // ★ DATE-1:明细行的日期也跟着走 —— 一张纸上不许两种日期长相。
         lines: ((st.lines ?? []) as StatementLine[]).map((l) => ({
             ...l,
-            doc_date: formatDate(l.doc_date, locale),
-            due_date: l.due_date ? formatDate(l.due_date, locale) : l.due_date,
+            doc_date: formatDocumentDate(l.doc_date, locale),
+            due_date: l.due_date ? formatDocumentDate(l.due_date, locale) : l.due_date,
         })),
         by_currency: (st.by_currency ?? []) as { currency: string; closing_ccy: number }[],
         buckets: (st.buckets ?? {}) as Record<string, number>,

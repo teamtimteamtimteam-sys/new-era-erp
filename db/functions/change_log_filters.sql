@@ -1,6 +1,10 @@
 -- db/functions/change_log_filters.sql
--- HISTORY-1:/settings/change-history 两个下拉的选项 —— 表(挂着记录触发器的表 + 'auth.users' 账号事件)
--- 与人(记录里出现过的每一个账号,带邮箱与它最近一次记下的员工)。门与 change_log_rows 相同。
+-- HISTORY-1:/settings/change-history 下拉的选项。门与 change_log_rows 相同。
+--   tables —— 挂着记录触发器的表 + 'auth.users'(账号事件)。AUDIT-TRAIL-1a 起界面不再印它们,而是按
+--             lib/trail/tables.ts 翻成英文的"Area"与"Record type";这里仍给出那张闭合的名单,界面拿它对账。
+--   actors —— 记录里出现过的每一个账号(HISTORY-1 的形状,旧页面在破窗期间还读它)。
+--   people —— AUDIT-TRAIL-1a(Tim 的 Q14 · Q30):"Who"下拉按【人】列,名字是称呼名、没有就法定名;
+--             外加两项:有没有无会话的写("System (automatic)")、有没有账号与人都已不在的写("Removed account")。
 CREATE OR REPLACE FUNCTION public.change_log_filters()
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -26,6 +30,15 @@ BEGIN
                             WHERE cl.actor_account IS NOT NULL
                             ORDER BY cl.actor_account, cl.seq DESC) a
                      LEFT JOIN auth.users u ON u.id = a.actor_account
-                     LEFT JOIN employees e ON e.id = a.actor_employee));
+                     LEFT JOIN employees e ON e.id = a.actor_employee),
+        'people', (SELECT COALESCE(jsonb_agg(jsonb_build_object('employee', p.actor_employee, 'actor', p.who)
+                        ORDER BY p.who ->> 'name' NULLS LAST, p.actor_employee), '[]'::jsonb)
+                     FROM (SELECT DISTINCT cl.actor_employee,
+                                  trail_actor('user', NULL, cl.actor_employee) AS who
+                             FROM change_log cl WHERE cl.actor_employee IS NOT NULL) p),
+        'has_system', EXISTS (SELECT 1 FROM change_log cl WHERE cl.actor_kind = 'no_session'),
+        'has_removed', EXISTS (SELECT 1 FROM change_log cl
+                                WHERE cl.actor_kind = 'user' AND cl.actor_employee IS NULL
+                                  AND NOT EXISTS (SELECT 1 FROM auth.users u WHERE u.id = cl.actor_account)));
 END;
 $function$;

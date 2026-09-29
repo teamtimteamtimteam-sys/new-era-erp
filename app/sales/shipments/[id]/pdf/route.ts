@@ -17,7 +17,7 @@ import DeliveryNoteDocument, { type DeliveryNoteData } from './DeliveryNoteDocum
 import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 import { loadDocumentCompany, companyPdfStrings, COMPANY_MISSING_MESSAGE } from '@/app/components/pdf/company'
 import { localizeSalesOrderError } from '@/app/sales/orders/salesOrderErrorCodes'
-import { formatDate } from '@/lib/dates'
+import { formatDocumentDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'shipment-documents'
@@ -60,7 +60,7 @@ async function loadDoc(id: string): Promise<DeliveryNoteData | null> {
 
     return {
         code: row.code,
-        ship_date: formatDate(row.ship_date, locale),
+        ship_date: formatDocumentDate(row.ship_date, locale),
         order_code: row.order_code ?? '—',
         customer: { code: row.customer_code ?? '—', legal_name: row.customer_name ?? '—' },
         lines: lines.map((l, i) => {

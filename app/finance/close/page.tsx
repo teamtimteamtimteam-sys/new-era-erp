@@ -130,8 +130,12 @@ export default async function ClosePage({
     const options: PeriodOption[] = []
     for (let i = 0; i < 12; i++) {
         const periodEnd = ymdUtc(new Date(Date.UTC(y, m - i + 1, 0)))
+        // AUDIT-TRAIL-1a:value 是【数据】(YYYY-MM-DD —— 它进 URL、进关账 RPC、进损益表 / 资产负债表的链接),
+        //   label 才是显示。此前 value 是 formatDate 的输出:?period= 永远对不上(isYmd 拒),两条报表链接的日期参数
+        //   被静默丢掉,关账 RPC 靠 Postgres 碰巧认得 "31 Aug 2026" 才没坏;换成 DD/MM/YYYY 之后它直接 500。
         options.push({
-            value: formatDate(periodEnd, locale),
+            value: periodEnd,
+            label: formatDate(periodEnd, locale),
             disabled:
                 periodEnd > todayYmd
                 || activeCloses.has(periodEnd)

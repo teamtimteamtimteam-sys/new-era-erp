@@ -17,7 +17,7 @@ import PurchaseOrderDocument, { type PoDocData, pricingStatusText } from './Purc
 import type { CompanyProfile } from '@/app/finance/invoices/[id]/pdf/InvoiceDocument'
 import { findUnrenderableText, coverageErrorMessage, type PdfTextField } from '@/lib/pdfFontCoverage'
 import { localizePurchasingError } from '@/app/purchasing/purchasingErrorCodes'
-import { formatDate } from '@/lib/dates'
+import { formatDocumentDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 
 
@@ -77,10 +77,10 @@ async function renderPo(supabase: Awaited<ReturnType<typeof createClient>>, poId
     //   日期是库里的原值。在这里【就地】格式化,文档组件那一侧一个字都不用改。
     //   ⚠ 付款条款的 due_date 也要跟上,否则同一张纸上两种日期长相。
     const locale = await getLocale()
-    data.order_date = formatDate(data.order_date, locale)
-    if (data.expected_delivery_date) data.expected_delivery_date = formatDate(data.expected_delivery_date, locale)
+    data.order_date = formatDocumentDate(data.order_date, locale)
+    if (data.expected_delivery_date) data.expected_delivery_date = formatDocumentDate(data.expected_delivery_date, locale)
     for (const term of data.payment_terms ?? []) {
-        if (term.due_date) term.due_date = formatDate(term.due_date, locale)
+        if (term.due_date) term.due_date = formatDocumentDate(term.due_date, locale)
     }
 
     const { data: companyRow } = await supabase

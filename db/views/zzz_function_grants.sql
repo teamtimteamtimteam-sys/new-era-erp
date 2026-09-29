@@ -556,3 +556,20 @@ REVOKE EXECUTE ON FUNCTION public.change_log_rule_visible(text, text, jsonb, jso
 REVOKE EXECUTE ON FUNCTION public.change_log_task_visible(text, jsonb, jsonb, jsonb) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.change_log_redact_employee(uuid) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.change_log_capture() FROM authenticated;
+
+-- AUDIT-TRAIL-1a(2026-09-29):审计记录的内层函数只由 DEFINER 的读法(record_trail · change_log_rows ·
+--   change_log_filters)在属主身份下调用,自己没有调用者检查,靠的就是调不到:
+--   change_log_mask_row —— 遮蔽那一步;它调的 change_log_field 能按表名读任意一张表。
+--   trail_current_image / trail_ref_label / trail_refs / trail_row_record —— 按表名动态读任意一行(或它最后的影像)。
+--   trail_row_visible —— 给了 authenticated 就是一支"任意一行你看不看得见"的探针。
+--   trail_actor —— 回答任意一个账号 / 员工 id 是谁(与 account_person 同一个理由)。
+--   ☞ record_trail / change_log_find_records【不收】:前者查主语的查看码与根行的读规则,后者查 data.view_change_log。
+--     trail_subjects / trail_subject_members / trail_prelog_sources / trail_pk_columns / trail_fk_targets /
+--     change_log_began_at 只读常量名单或目录,留着(fixture 与检查脚本会调)。
+REVOKE EXECUTE ON FUNCTION public.change_log_mask_row(text, jsonb, jsonb, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.trail_current_image(text, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.trail_ref_label(text, text, text) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.trail_refs(text, jsonb, jsonb, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.trail_row_record(text, jsonb, jsonb, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.trail_row_visible(text, jsonb, jsonb) FROM authenticated;
+REVOKE EXECUTE ON FUNCTION public.trail_actor(text, uuid, uuid) FROM authenticated;

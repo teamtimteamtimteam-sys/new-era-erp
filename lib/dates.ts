@@ -15,6 +15,16 @@
 // ★★★【Tim 的四条裁定,逐条写在这里,因为下一刀会来这里读它们】★★★
 // ════════════════════════════════════════════════════════════════════════════
 //
+// ★★★【AUDIT-TRAIL-1a(Tim 2026-09-29,Q15 · Q16)改了下面 D4 与 D2 的一部分 —— 先读这一段】★★★
+//   · 屏幕上的日期(formatDate / formatDateTime)两种语言都改成 `DD/MM/YYYY`(`DD/MM/YYYY HH:MM`)。
+//     理由是 Tim 最早那句抱怨本身:一页上不能有两种日期长相,而日期输入框要改成 DD/MM/YYYY(DATE-PICK-1)。
+//   · PDF 与发给外面的单据【不改】,仍是 `01 Sep 2026`(Q16)—— 它们改用 formatDocumentDate / formatDocumentDateTime,
+//     也就是 D4 原来那两种写法,一个字没动。
+//   · 审计记录、/settings/change-history 与 /settings/deleted 的时刻走 formatTrailStamp:`DD/MM/YYYY HH:MM`,
+//     新加坡时间(Q15,替换 D2 在这三处的裁定)。别处的审计戳(formatAuditStamp)仍是 D2 的 `YYYY-MM-DD HH:MM`。
+//   · 月份(formatMonth)没有日,Q16 说的是日期 —— 维持 `Sep 2026`(交回报告里记为一个未经询问的决定)。
+//   下面 D4 / D2 的原文保留,它们说的是【为什么】;【是什么】以这一段为准。
+//
 // ── D4 · 两种语言,两种写法 ─────────────────────────────────────────────────
 //   英文  `01 Sep 2026`     —— 日、月名、年。日【补零】(Tim 的原话就是 `01`)。
 //   中文  `2026年9月1日`    —— ★ **不补零**。Tim 明确裁的是这一个写法,
@@ -158,6 +168,14 @@ function parts(value: string | Date): { y: number; m: number; d: number; hh: str
             hh: lex[4] ?? '00', mm: lex[5] ?? '00',
         }
     }
+    // ★ AUDIT-TRAIL-1a:本文件自己的输出 `DD/MM/YYYY`(可带 ` HH:MM`)按【日在前】读回来 —— 【绝不】交给 new Date,
+    //   它把 `01/09/2026` 读成 1 月 9 日。于是 formatDate 对自己的输出是幂等的:一个值被格式化两次
+    //   (服务端格式化一次、客户端组件再格式化一次 —— 树里实测有这种路)结果不变。
+    //   `01 Sep 2026` 从前碰巧有这个性质(new Date 读得对),换写法时必须把它显式补上。
+    const dmyStr = /^(\d{2})\/(\d{2})\/(\d{4})(?: (\d{2}):(\d{2}))?$/.exec(s.trim())
+    if (dmyStr) {
+        return { y: Number(dmyStr[3]), m: Number(dmyStr[2]), d: Number(dmyStr[1]), hh: dmyStr[4] ?? '00', mm: dmyStr[5] ?? '00' }
+    }
     const dt = new Date(s)
     return Number.isNaN(dt.getTime()) ? null : fromDate(dt)
 }
@@ -182,18 +200,37 @@ function fromDate(dt: Date) {
 // ── 显示那一族(D2 的【单据日期】侧 · D4 的两种写法)────────────────────────
 // ════════════════════════════════════════════════════════════════════════════
 
+/** `DD/MM/YYYY` —— 两种语言同一个样子(Q16)。 */
+function dmy(p: { y: number; m: number; d: number }): string {
+    return `${String(p.d).padStart(2, '0')}/${String(p.m).padStart(2, '0')}/${p.y}`
+}
+
 /**
- * 单据日期 → `01 Sep 2026`(en)/ `2026年9月1日`(zh)。
+ * 屏幕上的单据日期 → `01/09/2026`,两种语言都是(AUDIT-TRAIL-1a · Q16)。
+ * `locale` 留着:调用点一个都不用改,而且下一次若要按语言分开,入口还在。
  *
  * ⚠ **这个函数的输出【永远不要】喂回给机器** —— 不要喂 `<input type="date">`
  *   的 value/min/max、不要放进 URL 的日期过滤、不要塞进 FormData。
  *   那四条路各自要的是 `toYmd()`,而其中三条失败时**一声不吭**。
  *   ☞ `scripts/check-date-data-paths.mjs` 就是为这四条路写的,它会变红。
+ *   ☞ `DD/MM/YYYY` 与 `YYYY-MM-DD` 仍然分得开(isYmd 拒绝前者),那几条断言照样成立。
  */
 export function formatDate(value: string | Date | null | undefined, locale: string): string {
+    void locale
     if (value === null || value === undefined || value === '') return EMPTY
     const p = parts(value)
     if (!p) return String(value)          // 解析不了就把原值交出去,不要编一个日期
+    return dmy(p)
+}
+
+/**
+ * PDF 与发给外面的单据上的日期 → `01 Sep 2026`(en)/ `2026年9月1日`(zh)—— DATE-1 的 D4,一个字没动(Q16)。
+ * 只给各单据的 `pdf/route.ts` 这一类用:屏幕以外的纸面,读它的是客户与供应商。
+ */
+export function formatDocumentDate(value: string | Date | null | undefined, locale: string): string {
+    if (value === null || value === undefined || value === '') return EMPTY
+    const p = parts(value)
+    if (!p) return String(value)
     return isZh(locale)
         // ★ D4:中文【不补零】—— Tim 裁的是 `2026年9月1日`。
         ? `${p.y}年${p.m}月${p.d}日`
@@ -202,7 +239,7 @@ export function formatDate(value: string | Date | null | undefined, locale: stri
 }
 
 /**
- * 带时刻的单据日期 → `01 Sep 2026 14:33`(en)/ `2026年9月1日 14:33`(zh)。
+ * 带时刻的单据日期 → `01/09/2026 14:33`,两种语言都是(Q16;D4 原来是 `01 Sep 2026 14:33`)。
  *
  * ★ 这是 DATE-0 §1.2 Q2 那条建议的落地:`timestamptz` 列**改日期那一半、
  *   保留时分**。时分一律 24 小时制,两种语言相同 —— 一个时刻不需要被翻译。
@@ -213,6 +250,25 @@ export function formatDateTime(value: string | Date | null | undefined, locale: 
     const p = parts(value)
     if (!p) return String(value)
     return `${formatDate(value, locale)} ${p.hh}:${p.mm}`
+}
+
+/** PDF 与外发单据上带时刻的日期 → `01 Sep 2026 14:33`(D4 的原样,Q16)。 */
+export function formatDocumentDateTime(value: string | Date | null | undefined, locale: string): string {
+    if (value === null || value === undefined || value === '') return EMPTY
+    const p = parts(value)
+    if (!p) return String(value)
+    return `${formatDocumentDate(value, locale)} ${p.hh}:${p.mm}`
+}
+
+/**
+ * 审计记录的时刻 → `DD/MM/YYYY HH:MM`,新加坡时间,与界面语言无关(AUDIT-TRAIL-1a · Q15)。
+ * 用在:每一页底部的审计记录、/settings/change-history、/settings/deleted。别处的审计戳仍走 formatAuditStamp(D2)。
+ */
+export function formatTrailStamp(value: string | Date | null | undefined): string {
+    if (value === null || value === undefined || value === '') return EMPTY
+    const p = parts(value)
+    if (!p) return String(value)
+    return `${dmy(p)} ${p.hh}:${p.mm}`
 }
 
 /**

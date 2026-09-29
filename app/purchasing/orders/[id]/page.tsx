@@ -45,6 +45,7 @@ import DiscrepancyKinds, {
 } from '@/app/components/receiving/DiscrepancyKinds'
 import { Alert } from '@/app/components/ui/alert'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 type AssayEntry = { metal: string; content_pct: number }
 
@@ -52,8 +53,10 @@ const round2 = (n: number) => Math.round(n * 100) / 100
 
 export default async function PurchaseOrderDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
 }) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -851,43 +854,9 @@ export default async function PurchaseOrderDetailPage({
                 )}
             </div>
 
-            {/* PUR-2:编辑史。与 approval_log 各答各的 —— 那张答"谁批了什么金额",
-                这张答"这张单当时说的是什么"。只增不改。 */}
-            <div className="border border-gray-200 rounded p-4 mb-4">
-                <h2 className="mb-2">{t('purchasing.amend.historyTitle')}</h2>
-                {history.length === 0 ? (
-                    <p className="text-xs text-[color:var(--brand-muted-text)]">{t('purchasing.amend.noHistory')}</p>
-                ) : (
-                    <ul className="text-sm space-y-1">
-                        {history.map((h) => (
-                            <li key={h.id} className="flex flex-wrap gap-2">
-                                <span className="text-[color:var(--brand-muted-text)] text-xs">
-                                    {formatAuditStamp(h.changed_at)}
-                                </span>
-                                <span>{t('purchasing.amend.change.' + h.change_type)}</span>
-                                {h.line_no !== null && (
-                                    <span className="text-[color:var(--brand-muted-text)]">#{h.line_no}</span>
-                                )}
-                                {/* PUR-1:付款计划的改动说得出【第几期】—— 否则
-                                    "付款条款改了"在一份五期的计划上等于什么都没说。 */}
-                                {h.payment_term_seq !== null && (
-                                    <span className="text-[color:var(--brand-muted-text)]">
-                                        {t('purchasing.amend.termSeq', { seq: h.payment_term_seq })}
-                                    </span>
-                                )}
-                                {h.old_quantity !== null && h.new_quantity !== null && (
-                                    <span className="text-xs">{h.old_quantity} → {h.new_quantity}</span>
-                                )}
-                                {h.old_quantity !== null && h.new_quantity === null && (
-                                    <span className="text-xs">{h.old_quantity} →</span>
-                                )}
-                                {h.amend_reason && <span className="text-[color:var(--brand-muted-text)]">— {h.amend_reason}</span>}
-                            </li>
-                        ))}
-                    </ul>
-                )}
-            </div>
-
+            {/* AUDIT-TRAIL-1a(Tim 的 Q26):这里原来是一块【编辑史】(purchase_order_history,不写是谁改的)。
+                它被页底的审计记录取代 —— 同样的修改、连同是谁、改之前是什么、以及审批 / 签发 / 取消,都在那里。
+                上面"已改、未重发"那一句仍然读 history(它问的是"签发之后还改过没有",不是一段历史)。 */}
             {po.notes && (
                 <p className="text-sm text-[color:var(--brand-muted-text)] mb-2">
                     <span className="text-[color:var(--brand-muted-text)] mr-1">{t('purchasing.form.notes')}:</span>
@@ -1121,6 +1090,9 @@ export default async function PurchaseOrderDetailPage({
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('purchasing.noReceipts')}</p>
             )}
             </>)}
+            {/* AUDIT-TRAIL-1a:页底的审计记录 —— 这张单、它的明细行、付款计划、保留金、条款承诺、签发、合同条款与审批。
+                在收货那一段(只画给非设备单)的【外面】:设备单同样有它的历史。 */}
+            <AuditTrail subject="purchase_order" id={po.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

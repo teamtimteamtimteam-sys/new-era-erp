@@ -29528,6 +29528,7 @@ export type Database = {
         Returns: Json
       }
       cash_forecast_data: { Args: { p_week_start?: string }; Returns: Json }
+      change_log_began_at: { Args: never; Returns: string }
       change_log_coverage_gaps: { Args: never; Returns: Json }
       change_log_exclusions: {
         Args: never
@@ -29547,7 +29548,12 @@ export type Database = {
         Returns: string
       }
       change_log_filters: { Args: never; Returns: Json }
+      change_log_find_records: { Args: { p_text: string }; Returns: string[] }
       change_log_mask_gaps: { Args: never; Returns: Json }
+      change_log_mask_row: {
+        Args: { p_key: Json; p_new: Json; p_old: Json; p_table: string }
+        Returns: Json
+      }
       change_log_mask_rules: {
         Args: never
         Returns: {
@@ -29580,20 +29586,26 @@ export type Database = {
         Args: {
           p_actor?: string
           p_before?: number
+          p_by_entry?: boolean
           p_from?: string
           p_limit?: number
           p_no_session?: boolean
           p_record?: string
+          p_record_ids?: string[]
+          p_removed_account?: boolean
           p_table?: string
+          p_tables?: string[]
           p_to?: string
         }
         Returns: {
+          actor: Json
           actor_account: string
           actor_email: string
           actor_employee: string
           actor_employee_code: string
           actor_employee_name: string
           actor_kind: string
+          belongs_to: Json
           changed_columns: string[]
           db_role: string
           new: Json
@@ -29601,10 +29613,12 @@ export type Database = {
           old: Json
           op: string
           redacted_at: string
+          refs: Json
           row_key: Json
           row_restricted: boolean
           seq: number
           table_name: string
+          txid: number
         }[]
       }
       change_log_rule_visible: {
@@ -31052,6 +31066,27 @@ export type Database = {
         }
         Returns: Json
       }
+      record_trail: {
+        Args: { p_entries?: number; p_id: string; p_subject: string }
+        Returns: {
+          actor: Json
+          changed_columns: string[]
+          ctx: Json
+          entry_no: number
+          more: boolean
+          new: Json
+          occurred_at: string
+          old: Json
+          op: string
+          prelog: boolean
+          refs: Json
+          row_hidden: boolean
+          row_key: Json
+          row_restricted: boolean
+          seq: number
+          table_name: string
+        }[]
+      }
       refresh_cod_for_batch: {
         Args: { p_inbound_batch_id: string }
         Returns: undefined
@@ -31910,6 +31945,69 @@ export type Database = {
       traceability_report_data: {
         Args: { p_output_batch_id: string }
         Returns: Json
+      }
+      trail_actor: {
+        Args: { p_account: string; p_employee: string; p_kind: string }
+        Returns: Json
+      }
+      trail_current_image: {
+        Args: { p_key: Json; p_table: string }
+        Returns: Record<string, unknown>
+      }
+      trail_fk_targets: {
+        Args: { p_table: string }
+        Returns: {
+          column_name: string
+          target_column: string
+          target_table: string
+        }[]
+      }
+      trail_pk_columns: { Args: { p_table: string }; Returns: string[] }
+      trail_prelog_sources: {
+        Args: never
+        Returns: {
+          at_column: string
+          by_column: string
+          extra: string[]
+          kind: string
+          table_name: string
+        }[]
+      }
+      trail_ref_label: {
+        Args: { p_column: string; p_table: string; p_value: string }
+        Returns: Json
+      }
+      trail_refs: {
+        Args: { p_ctx: Json; p_new: Json; p_old: Json; p_table: string }
+        Returns: Json
+      }
+      trail_row_record: {
+        Args: { p_key: Json; p_new: Json; p_old: Json; p_table: string }
+        Returns: Json
+      }
+      trail_row_visible: {
+        Args: { p_image: Json; p_key: Json; p_table: string }
+        Returns: boolean
+      }
+      trail_subject_members: {
+        Args: never
+        Returns: {
+          fk_column: string
+          match: Json
+          ord: number
+          parent_table: string
+          subject: string
+          table_name: string
+        }[]
+      }
+      trail_subjects: {
+        Args: never
+        Returns: {
+          root_key: string
+          root_table: string
+          subject: string
+          view_code: string
+        }[]
       }
       unapply_assay_result: {
         Args: { p_assay_result_id: string; p_reason: string }

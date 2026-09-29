@@ -69,6 +69,8 @@ const ROOT = new URL('..', import.meta.url).pathname
 const PORT = 3198              // NOT 3199 — that one is the smoke's
 const CDP_PORT = 9333
 const OUT_DIR = process.env.SURVEY_OUT || join(ROOT, '.survey-out')
+const WIDTH = Number((process.argv.find((a) => a.startsWith('--width=')) || '').split('=')[1] || 390)
+const HEIGHT = WIDTH < 768 ? 844 : 900
 const CHROME = join(process.env.HOME, '.cache/puppeteer/chrome-headless-shell/mac_arm-152.0.7977.54/chrome-headless-shell-mac-arm64/chrome-headless-shell')
 
 const env = readFileSync(join(ROOT, '.env.local'), 'utf8')
@@ -311,7 +313,26 @@ const MEASURE = `(() => {
 
   const denied = !!document.querySelector('[data-access-denied]');
   const bodyText = (document.body ? document.body.innerText : '') || '';
+  // AUDIT-TRAIL-1a:审计记录那一段(页底的 data-audit-trail,或汇总页的 data-change-history)自己量一次 ——
+  //   它的状态、画出来几条、这一段有没有被撑破(scrollWidth > clientWidth)、最高的一条有多高、
+  //   【在这个视口下】看得见的那一种排版里最宽的一行字有多宽。没有这一段的页面给 null。
+  const trailEl = document.querySelector('[data-audit-trail],[data-change-history]');
+  let trail = null;
+  if (trailEl) {
+    const entries = [...trailEl.querySelectorAll('[data-trail-entry]')];
+    const visibleKids = entries.map(e => [...e.children].find(c => !c.hasAttribute('data-trail-divider') && getComputedStyle(c).display !== 'none' && c.getBoundingClientRect().height > 0)).filter(Boolean);
+    trail = {
+      state: trailEl.getAttribute('data-audit-trail') || trailEl.getAttribute('data-change-history'),
+      entries: entries.length,
+      sectionW: Math.round(trailEl.clientWidth), sectionScrollW: trailEl.scrollWidth,
+      overflowPx: Math.max(0, trailEl.scrollWidth - trailEl.clientWidth),
+      maxEntryH: entries.reduce((a, e) => Math.max(a, Math.round(e.getBoundingClientRect().height)), 0),
+      layouts: [...new Set(visibleKids.map(k => getComputedStyle(k).display))],
+      divider: !!trailEl.querySelector('[data-trail-divider]'),
+    };
+  }
   return {
+    trail,
     vw, innerW: window.innerWidth, viewportMeta, pageScrollW, overflowPx,
     culprits: culprits.slice(0, 4),
     tables, tableCount: tables.length,
@@ -642,6 +663,9 @@ async function main() {
             + 'If you just ran `npm run build`, that is exactly how you got here.')
     }
 
+    // AUDIT-TRAIL-1a:--width=N 量别的视口(默认 390 —— 不带它时与从前逐字相同)。≥ 768 按桌面量(mobile: false)。
+    // (WIDTH 在模块顶层定义,MEASURE 与自检都用它)
+
     // dev server
     console.error('· starting next dev on :' + PORT)
     dev = spawn('npx', ['next', 'dev', '-p', String(PORT)], { cwd: ROOT, detached: true, stdio: ['ignore', 'pipe', 'pipe'] })
@@ -656,7 +680,7 @@ async function main() {
     console.error('· launching chrome-headless-shell')
     chrome = spawn(CHROME, [
         `--remote-debugging-port=${CDP_PORT}`, '--headless', '--disable-gpu',
-        '--no-sandbox', '--hide-scrollbars', '--window-size=390,844',
+        '--no-sandbox', '--hide-scrollbars', `--window-size=${WIDTH},${HEIGHT}`,
         `--user-data-dir=${join(OUT_DIR, 'chrome-profile')}`, 'about:blank',
     ], { stdio: ['ignore', 'pipe', 'pipe'] })
     let wsUrl = null
@@ -689,8 +713,8 @@ async function main() {
         sessionId = a.sessionId
         await S('Page.enable'); await S('Runtime.enable'); await S('Network.enable')
         await S('Emulation.setDeviceMetricsOverride', {
-            width: 390, height: 844, deviceScaleFactor: 3, mobile: true,
-            screenWidth: 390, screenHeight: 844,
+            width: WIDTH, height: HEIGHT, deviceScaleFactor: WIDTH < 768 ? 3 : 1, mobile: WIDTH < 768,
+            screenWidth: WIDTH, screenHeight: HEIGHT,
         })
         await S('Network.setCookies', { cookies: [{
             name: cookieName, value: cookieVal, domain: 'localhost', path: '/', httpOnly: false, secure: false }] })
@@ -727,12 +751,12 @@ async function main() {
         // nothing ever "overflows" and every page reads as usable.
         if (!base.viewportMeta || !/width=device-width/.test(base.viewportMeta))
             throw new Error('self-test FAILED: no width=device-width viewport meta — a 390px measurement would be meaningless. got: ' + base.viewportMeta)
-        if (base.vw !== 390) throw new Error('self-test FAILED: layout viewport is ' + base.vw + ', expected 390')
+        if (base.vw !== WIDTH) throw new Error('self-test FAILED: layout viewport is ' + base.vw + ', expected ' + WIDTH)
 
         // ① page-level overflow
         await evalIn(`(() => { const d = document.createElement('div');
             d.setAttribute('data-survey-inject','1'); d.className = 'survey-probe-wide';
-            d.style.cssText = 'width:900px;height:8px'; document.body.appendChild(d); })()`)
+            d.style.cssText = 'width:${WIDTH + 510}px;height:8px'; document.body.appendChild(d); })()`)
         const f1 = await evalIn(MEASURE)
         if (!(f1.overflowPx > 400)) {
             const diag = await evalIn(`(() => { const d = document.querySelector('[data-survey-inject]');
@@ -744,7 +768,7 @@ async function main() {
                 innerW: innerWidth, docElOvx: getComputedStyle(de).overflowX, bodyOvx: getComputedStyle(b).overflowX,
                 chain }; })()`)
             await evalIn(clean)
-            throw new Error('self-test FAILED: injected a 900px div, probe read overflow=' + f1.overflowPx + '\n  diag: ' + JSON.stringify(diag, null, 2))
+            throw new Error(`self-test FAILED: injected a ${WIDTH + 510}px div, probe read overflow=` + f1.overflowPx + '\n  diag: ' + JSON.stringify(diag, null, 2))
         }
         await evalIn(clean)
         if (!f1.culprits?.some((c) => c.cls.includes('survey-probe-wide')))
@@ -912,10 +936,10 @@ async function main() {
         }
     }
 
-    const outFile = join(OUT_DIR, 'phone-390.json')
+    const outFile = join(OUT_DIR, WIDTH === 390 ? 'phone-390.json' : `viewport-${WIDTH}.json`)
     // 【判词也写进产物】一份【不全】的测量结果必须自己说得出它为什么不全,
     // 否则下一刀会把 "192 条里只有 152 条" 读成"其余 40 条没有问题"。
-    writeFileSync(outFile, JSON.stringify({ measuredAt: new Date().toISOString(), viewport: '390x844',
+    writeFileSync(outFile, JSON.stringify({ measuredAt: new Date().toISOString(), viewport: `${WIDTH}x${HEIGHT}`,
         unresolved, wedgedVerdict, results }, null, 2))
     if (wedgedVerdict) {
         console.error(`\n✗ 这一跑【没有量完】:${wedgedVerdict.after}/${wedgedVerdict.of} —— ${wedgedVerdict.reason}`)
@@ -941,7 +965,7 @@ async function main() {
     const u1 = ok.filter((r) => r.overflowPx <= 1)
     const u2 = ok.filter((r) => r.clippedTables === 0)
     const usable = ok.filter((r) => r.overflowPx <= 1 && r.clippedTables === 0)
-    console.log('\n════ 390px SURVEY ════')
+    console.log(`\n════ ${WIDTH}px SURVEY ════`)
     console.log('measured:', ok.length, ' errored:', results.filter((r) => r.error).length,
                 ' redirected (excluded):', redirected.length, ' not-found (excluded):', notFound.length,
                 ' unresolvable routes:', unresolved.length)

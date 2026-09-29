@@ -6,7 +6,8 @@ import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 
-export type PeriodOption = { value: string; disabled: boolean }
+/** value 是 YYYY-MM-DD(数据:URL 与关账都读它),label 是给人看的日期 */
+export type PeriodOption = { value: string; label: string; disabled: boolean }
 
 export default function PeriodPicker({
     options,
@@ -28,7 +29,7 @@ export default function PeriodPicker({
             >
                 {options.map((o) => (
                     <option key={o.value} value={o.value} disabled={o.disabled}>
-                        {o.value}
+                        {o.label}
                     </option>
                 ))}
             </select>

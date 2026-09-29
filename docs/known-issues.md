@@ -9772,3 +9772,83 @@ Supabase auth 的 `ban_duration = '876000h'`,与 `/settings/accounts` 的「停�
 读写的边界仍然是他那些角色的 RLS 与函数判据,而且每一次写都照样进 `change_log`。
 **删除条件:** 停用时让已发出的令牌失效(例如权限判据同时检查 `auth.users.banned_until`,或缩短令牌寿命),并对"停用后
 用旧令牌调 PostgREST"做一次对着线上的复测。
+
+## AT0-DEEP-DISCHARGE-DIRECT-UPDATE —— 采购单明细行的「深度放电判断」存不进去(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34,2026-09-29)
+
+`app/purchasing/orders/[id]/actions.ts` 的 `setDeepDischargeJudgement` 直接 `UPDATE purchase_order_lines`。APR-10 撤掉了这张表的写策略、
+加了语句级触发器 `trg_purchase_order_lines_direct_write` → `guard_po_direct_write()`,它对任何带 RLS 的调用(也就是每一个
+`authenticated` 调用者)一律 `PO_THROUGH_FUNCTION_ONLY`。**实测(postgres 读基表):线上 11 行明细 0 行有这个判断。**
+证据:`docs/surveys/AUDIT-TRAIL-0/ops-commercial.md` §e/f;`db/tables/purchase_order_lines.sql:115-116,227-230`。
+**删除条件:** 这个判断改走一支 SECURITY DEFINER 的函数(与其它明细行写入同一条路),或者这个控件退役。
+
+## AT0-WITHDRAW-PAYMENT-REQUEST-NO-REQUESTER-CHECK —— 任何有财务编辑权的人都能撤回别人的付款申请(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34)
+
+`withdraw_payment_request` 只 `require_permission('module.finance.edit')`,没有"撤回的人就是提交的人"那一条(`self_leg`);
+同一族的另外五支 `withdraw_*_request` 都有。证据:`docs/surveys/AUDIT-TRAIL-0/ops-finance.md` P4 与第 279 行。
+**删除条件:** 补上与另外五支同形的提交人判据(带 fixture),或 Tim 裁定财务编辑人本来就该能撤。
+
+## ~~AT0-APPROVALS-COMMENT~~ —— 【已关闭:AUDIT-TRAIL-1a,2026-09-29】`lib/modules.ts` 说审批面板是只读的,那是错的
+
+`lib/modules.ts:843-846` 的注释写着"这块面板是只读的,系统里根本没有配置审批链的界面"。实际上 `/settings/approvals` 能改四个值
+(开关、一级 / 二级审批角色、金额门槛 —— `ApprovalsForm` → `set_approvals_policy`),每次保存记进 `finance_settings_history`。
+**AUDIT-TRAIL-1a 改正了那段注释**(Tim 的 Q34:六条里只修这一条)。
+
+## AT0-RUN-EQUIPMENT-NOT-PASSED —— 记加工单时从来不带"用了哪台机器"(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34)
+
+`commit_processing_run(p_equipment_id)` 收这个参数,但应用里**一处都没传**(`grep p_equipment_id app lib` 0 处);线上 14 张加工单
+0 张有 `equipment_id`。于是机器的用量、按机器看的加工史今天都是空的 —— 那不是审计记录的缺口,是【采集】的缺口。
+证据:`docs/surveys/AUDIT-TRAIL-0/ops-production.md` 第 22、145、297 行。**删除条件:** 录入加工单时选机器(或 Tim 裁定不采集)。
+
+## AT0-ACTIONS-WITHOUT-CALLER —— 三支写数据的服务端动作没有任何界面调用(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34)
+
+`deleteEmployee`(`app/hr/employees/actions.ts:358`)、`updateQuoteHeader`、`softDeleteCommissionAgreement` —— `grep -rnw <名字> app lib`
+只命中定义本身。死代码会随着表结构的变化悄悄变错,而没有人会踩到它。(数据库那一侧 `rollback_processing_run` 同样没有界面调用,
+回滚走的是仓库申请。)证据:`docs/surveys/AUDIT-TRAIL-0/ops-commercial.md` §e、`ops-people-settings.md` 第 14、270 行。
+**删除条件:** 接上界面,或删掉。
+
+## AT0-PO-CLOSE-REASON-IN-NOTES —— 关闭 / 重开采购单时,理由被追加进了「备注」(AUDIT-TRAIL-0 勘察登记,Tim 的 Q34)
+
+`close_purchase_order` / `reopen_purchase_order` 把理由拼到 `purchase_orders.notes` 的末尾。于是:备注被一段不是备注的话改写;
+修改史的触发器把它记成一次**没有理由的** `header_update`;审计记录上它读作"Notes … → …"而不是一句"Reason: …"。
+证据:`docs/surveys/AUDIT-TRAIL-0/ops-commercial.md` P6 / P7 与第 229 行。**删除条件:** 关闭 / 重开的理由存进它自己的列
+(或 `purchase_order_history` 的 `amend_reason`),备注不再被改写。
+
+## AT1A-PRELOG-SHOWS-TODAYS-VALUES —— "记录开始之前"拼回来的创建,说的是记录【今天】的值(AUDIT-TRAIL-1a 登记,2026-09-29)
+
+变更记录从 2026-09-28 23:58 才开始。早于它的那一段由 `record_trail` 从领域历史表与生命周期戳拼回来(Tim 的 Q1):历史表只增不改,
+所以它们的每一行就是当时的样子;而一张单据**本身**的"创建"只剩 `created_at / created_by` 两个戳 —— 当时的总额、行数没有被记下来。
+拼回来的"Purchase order raised · 1 line · 305,550.00 SGD"用的是**今天**的行数与总额。分界线上那一句("Before …, only key steps
+and amendments were kept")替读者说了这一点,但没有逐条标出哪个数是今天的。**删除条件:** 无 —— 这是一段已经过去、不可能再补的历史;
+只在有人要求把分界线之下的数字逐个标注时再动。
+
+## AT1A-RUN-COST-JOURNALS-NOT-ON-TRAIL —— 加工单的审计记录不写每一笔成本入的是哪一张凭证(AUDIT-TRAIL-1a 登记,2026-09-29)
+
+Step 0 的样稿 B 在"Processing cost added · Labour 200.00 SGD"后面写了"journal JE-2026-0043"。成本条目上**没有**指向凭证的列 ——
+那张凭证由 `journal_entries.source_id` 反指过来,而凭证属于财务模块、读规则是 `module.finance.view`。把它登记成加工单的相关行,
+会让只有加工权限的读者在每一笔成本下面看到一行 Restricted。本刀因此**不**列成本凭证(分摊那一笔的资本化凭证在加工单自己的
+`capitalization_entry_id` 上,照常列出)。**删除条件:** AT-1c(财务页面那一刀)决定凭证在哪些主语上作为相关行出现。
+
+## AT1A-TRAIL-READ-COST —— 审计记录每读一行都要解析它引用的名字(AUDIT-TRAIL-1a 登记,2026-09-29)
+
+`record_trail` 与 `change_log_rows` 对每一行调 `trail_refs`(每个引用值一次按表名的动态查询),对每一个子行判一次它自己那张表的
+读规则(一次动态查询)。今天一条记录几十行、汇总页一页 25 次操作,毫秒到一两百毫秒;但冒烟的一次"建角色 + 72 条授权"是一次操作
+72 行 × 两个引用。读法里对"今天的样子"那一半的解析已经按主键缓存(每个子行一次)。`authenticated` 的语句超时是 8 s。
+**删除条件:** 一次对着真实体量的实测(一条记录 ≥ 1,000 行记录、汇总页一页 ≥ 2,000 行时 < 2 s),或把名字解析改成按页批量。
+与 `HISTORY1-READER-SCALE` 是同一族。
+
+## ~~AT1A-DISPLAY-DATE-USED-AS-DATA~~ —— 【已关闭:AUDIT-TRAIL-1a,2026-09-29】两处把"显示用的日期"当成了数据(DATE-1 以来潜伏)
+
+屏幕日期从 `01 Sep 2026` 改成 `DD/MM/YYYY`(Q16)之后,冒烟当场抓到 `/finance/close → 500`。追下去是 DATE-1 留下的两处:
+- **`/finance/close`**:月末下拉的 `<option value>` 是 `formatDate(...)` 的输出,而选中值随后当数据用 —— `.lte('journal_entries.entry_date', …)`、
+  关账 RPC 的 `p_period_end`、损益表 / 资产负债表两条链接的日期参数、`?period=`。`01 Sep 2026` 时:Postgres 碰巧认得英文月名,所以关账与
+  预览没坏;但 `?period=` 永远对不上(`isYmd` 拒),两条报表链接的日期被目标页静默丢掉(不筛)。`31/08/2026` 时:Postgres 拒 → 500。
+  **修法**:value 是 `YYYY-MM-DD`,label 才是 `formatDate`(`PeriodPicker` 多一个 `label`)。
+- **`/finance/bank/statements/[id]/reconcile`**:页面先 `formatDate` 一次,工作台显示时再 `formatDate` 一次,并按那串字排序。
+  `01 Sep 2026` 被 `new Date` 读对,所以双重格式化无害;`01/09/2026` 会被读成 1 月 9 日 —— **屏幕上会印错日期**。
+  **修法**:页面传原值,工作台格式化(排序也回到按时间)。
+- **机制**:`lib/dates.ts` 的 `parts()` 把它自己的 `DD/MM/YYYY` 输出按日在前读回(不交给 `new Date`),所以格式化【幂等】;
+  `scripts/check-date-data-paths.mjs` 加了六条行为断言(幂等 ×4、`toYmd` 读回日在前、PDF 写法不变),故障注入(去掉日在前那一支)→ 红,
+  点名"01/09/2026 再格式化 → 09/01/2026"。
+- **没有被机制覆盖的一类,照直说**:一个格式化过的日期经由 prop 流到【别的】解析路径(例如 `new Date(prop)` 做算术)。AUDIT-TRAIL-1a
+  对全树做了一次生产者 × 消费者的对照勘察(按属性名把 `formatDate` 的产出与 `new Date` / `Date.parse` / 查询过滤 / 再格式化的调用点连起来),
+  找到的就是上面两处;按名字对照有漏的可能,所以登记在这里而不是写"零"。

@@ -14,8 +14,6 @@ import ReconcileWorkspace, {
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
-import { formatDate } from '@/lib/dates'
-import { getLocale } from '@/lib/i18n/server'
 
 type MatchRow = {
     statement_line_id: string
@@ -31,7 +29,6 @@ export default async function ReconcilePage({
 }: {
     params: Promise<{ id: string }>
 }) {
-    const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -122,7 +119,9 @@ export default async function ReconcilePage({
     const lines: StatementLine[] = rawLines.map((l) => ({
         id: l.id,
         line_no: l.line_no,
-        line_date: formatDate(l.line_date, locale),
+        // AUDIT-TRAIL-1a:传原值(YYYY-MM-DD)。工作台自己在显示时格式化、并按它排序 —— 在这里先格式化一次,
+        //   工作台再格式化一次,DD/MM/YYYY 会被 new Date 读成月在前(1 月 9 日);排序也不再按时间。
+        line_date: l.line_date,
         description: l.description,
         reference: l.reference,
         amount: l.amount,
@@ -135,7 +134,7 @@ export default async function ReconcilePage({
         journal_line_id: c.journal_line_id,
         entry_id: c.entry_id,
         entry_code: c.entry_code,
-        entry_date: formatDate(c.entry_date, locale),
+        entry_date: c.entry_date,
         memo: c.memo,
         source_type: c.source_type,
         amount_ccy: c.amount_ccy,
@@ -151,8 +150,8 @@ export default async function ReconcilePage({
                     code: stmt.code,
                     bank_account_code: stmt.bank_account_code,
                     currency: stmt.currency,
-                    period_start: formatDate(stmt.period_start, locale),
-                    period_end: formatDate(stmt.period_end, locale),
+                    period_start: stmt.period_start,
+                    period_end: stmt.period_end,
                     opening_balance: stmt.opening_balance,
                     closing_balance: stmt.closing_balance,
                 }}

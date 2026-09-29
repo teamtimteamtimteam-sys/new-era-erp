@@ -37,7 +37,7 @@ import React from 'react'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { canViewBanking } from '@/lib/permissions'
-import { formatDate } from '@/lib/dates'
+import { formatDocumentDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 
 const BUCKET = 'invoice-documents'
@@ -116,8 +116,8 @@ async function buildInvoicePdf(id: string): Promise<
     // INV-1:金额三项来自 invoice_document_totals(单据币种),在下面与这份抬头合并。
     const invoice: Omit<InvoiceData, 'subtotal_ccy' | 'tax_ccy' | 'total_ccy'> = {
         code: inv.code,
-        issue_date: formatDate(inv.issue_date, locale),
-        due_date: formatDate(inv.due_date, locale),
+        issue_date: formatDocumentDate(inv.issue_date, locale),
+        due_date: formatDocumentDate(inv.due_date, locale),
         payment_terms_days: inv.payment_terms_days,
         currency: inv.currency,
         tax_rate_pct: Number(inv.tax_rate_pct),

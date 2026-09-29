@@ -842,8 +842,10 @@ export const FUNCTIONS: readonly FunctionEntry[] = [
     { href: '/settings/import', navKey: 'nav.import', modules: ['settings'], permission: P_BULK_IMPORT },
     // ★ D7:审批链从 /finance/settings 搬到设置,把关码跟着搬 ——
     //   从 module.finance.view 换成 action.manage_permissions。
-    //   ★【必须照直说的一件事】这块面板是【只读】的,而且系统里【根本没有】
-    //     配置审批链的界面。所以搬走的是【那扇窗】,不是一个控制器。
+    //   ★【这一段此前写着"面板是只读的、系统里没有配置审批链的界面"—— 那句话是错的】(AUDIT-TRAIL-0 实测,
+    //     docs/known-issues.md AT0-APPROVALS-COMMENT)。这一页【可以改】审批方针:开关、一级 / 二级审批角色、
+    //     金额门槛四个值一起保存(ApprovalsForm → set_approvals_policy,库里查 action.manage_permissions),
+    //     每一次保存记进 finance_settings_history,页底列出。页面的闸与 RPC 的闸是同一个码。
     { href: '/settings/approvals', navKey: 'finance.approvals.title', modules: ['settings'], permission: P_MANAGE_PERMISSIONS },
     // ★★【NAV-CLEANUP-1 ①:被删记录 —— 地址进设置,并且【铸了一个属于它自己的码】】★★
     //

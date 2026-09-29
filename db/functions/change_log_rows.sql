@@ -1,17 +1,24 @@
 -- db/functions/change_log_rows.sql
--- HISTORY-1(Tim 的 Q10 · Q26 · Q6):变更记录的【唯一】读法。/settings/change-history 读它。
+-- HISTORY-1(Tim 的 Q10 · Q26 · Q6):变更记录的【唯一】全局读法。/settings/change-history 读它。
+-- AUDIT-TRAIL-1a(Tim 的 Q5 · Q30 · Q31 · Q40):仍是这一支、仍是这一道门;加了读法,没有放宽。
 --
 -- 【门】data.view_change_log(只授 admin 与 cfo,不捆进任何别的角色)。没有它 → PERMISSION_DENIED。
--- 【遮蔽】每一行按 change_log_mask_rules() 逐列问 change_log_rule_visible():读者在源屏幕上
---   看不见的值,这里换成 {"$restricted": true};本来就是 null 的留 null(见 change_log_restrict)。
--- 【任务隐私】任务四张表的记录先问 change_log_task_visible();不过 → 整份 old / new 换成受限标记,
---   只留时间、谁、表、主键、动作与改了哪几列的列名(row_restricted = true)。
--- 【筛选】日期(按库时区 Asia/Singapore,to 含当天)· 表 · 记录(主键里任一值等于它)·
---   人(账号 id 或员工 id 任一相等)· 只看无会话的写。
--- 【分页】按 seq 倒序,键集分页(p_before = 上一页最后一行的 seq),每页 1..200,默认 50。
--- 【SECURITY DEFINER 的理由】change_log 对应用角色没有任何授权;读 auth.users 取邮箱。
-CREATE OR REPLACE FUNCTION public.change_log_rows(p_from date DEFAULT NULL::date, p_to date DEFAULT NULL::date, p_table text DEFAULT NULL::text, p_record text DEFAULT NULL::text, p_actor uuid DEFAULT NULL::uuid, p_no_session boolean DEFAULT false, p_before bigint DEFAULT NULL::bigint, p_limit integer DEFAULT 50)
- RETURNS TABLE(seq bigint, occurred_at timestamp with time zone, table_name text, row_key jsonb, op text, actor_account uuid, actor_email text, actor_employee uuid, actor_employee_code text, actor_employee_name text, actor_kind text, db_role text, changed_columns text[], old jsonb, new jsonb, redacted_at timestamp with time zone, row_restricted boolean)
+-- 【遮蔽】逐行走 change_log_mask_row —— 与每一页底部的审计记录(record_trail)【同一步】(Q5),规则仍是
+--   HISTORY-1 的 change_log_mask_rules():读者在源屏幕上看不见的值换成 {"$restricted": true},本来就是 null 的留 null;
+--   任务四张表先问 change_log_task_visible(),不过 → 整份影像受限(row_restricted = true)。
+-- 【筛选】日期(按库时区 Asia/Singapore,to 含当天)· 表(p_table 一张,或 p_tables 一组 —— "Area"与"Record type")·
+--   记录(p_record:主键里任一值等于它;p_record_ids:主键里任一值在这一组里 —— 按单据号或名字找到的,见
+--   change_log_find_records)· 人(账号 id 或员工 id 任一相等)· 只看无会话的写 · 只看"Removed account"的写。
+-- 【分页】按 seq 倒序,键集分页(p_before)。p_by_entry = false:每页 p_limit 行(HISTORY-1 的原样);
+--   p_by_entry = true:每页 p_limit 笔【事务】(一次操作一条,Q2),返回这些事务里符合筛选的全部行,
+--   p_before 比的是一笔事务里最大的 seq。
+-- 【每一行多带回】txid · actor(trail_actor:人名 / System (automatic) / Removed account …)·
+--   belongs_to(trail_row_record:这一行属于哪张单据 / 哪条记录)· refs(trail_refs:每个引用值 → 名字)。
+--   任务隐私受限的行不带 belongs_to 与 refs —— 任务标题本身就是被藏起来的东西。
+-- 【它仍然列出每一次写入】(Q31):系统的、冒烟的、账号事件的,一行不少。
+-- 【SECURITY DEFINER 的理由】change_log 对应用角色没有任何授权;读 auth.users 取邮箱与账号是否还在。
+CREATE OR REPLACE FUNCTION public.change_log_rows(p_from date DEFAULT NULL::date, p_to date DEFAULT NULL::date, p_table text DEFAULT NULL::text, p_record text DEFAULT NULL::text, p_actor uuid DEFAULT NULL::uuid, p_no_session boolean DEFAULT false, p_before bigint DEFAULT NULL::bigint, p_limit integer DEFAULT 50, p_tables text[] DEFAULT NULL::text[], p_removed_account boolean DEFAULT false, p_by_entry boolean DEFAULT false, p_record_ids text[] DEFAULT NULL::text[])
+ RETURNS TABLE(seq bigint, occurred_at timestamp with time zone, table_name text, row_key jsonb, op text, actor_account uuid, actor_email text, actor_employee uuid, actor_employee_code text, actor_employee_name text, actor_kind text, db_role text, changed_columns text[], old jsonb, new jsonb, redacted_at timestamp with time zone, row_restricted boolean, txid bigint, actor jsonb, belongs_to jsonb, refs jsonb)
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
@@ -19,11 +26,35 @@ AS $function$
 #variable_conflict use_column
 DECLARE
     r        record;
-    m        record;
-    v_hidden text[];
+    v_mask   jsonb;
     v_limit  integer := LEAST(GREATEST(COALESCE(p_limit, 50), 1), 200);
+    v_txids  bigint[];
 BEGIN
     PERFORM require_permission('data.view_change_log');
+
+    IF COALESCE(p_by_entry, false) THEN
+        SELECT array_agg(g.g_tx ORDER BY g.g_mx DESC) INTO v_txids FROM (
+            SELECT c.txid AS g_tx, max(c.seq) AS g_mx
+              FROM change_log c
+             WHERE (p_from IS NULL OR c.occurred_at >= p_from::timestamptz)
+               AND (p_to IS NULL OR c.occurred_at < (p_to + 1)::timestamptz)
+               AND (p_table IS NULL OR c.table_name = p_table)
+               AND (p_tables IS NULL OR c.table_name = ANY (p_tables))
+               AND (p_record IS NULL OR EXISTS (SELECT 1 FROM jsonb_each_text(c.row_key) k WHERE k.value = p_record))
+               AND (p_record_ids IS NULL OR EXISTS (SELECT 1 FROM jsonb_each_text(c.row_key) k WHERE k.value = ANY (p_record_ids)))
+               AND (p_actor IS NULL OR c.actor_account = p_actor OR c.actor_employee = p_actor)
+               AND (NOT COALESCE(p_no_session, false) OR c.actor_kind = 'no_session')
+               AND (NOT COALESCE(p_removed_account, false)
+                    OR (c.actor_kind = 'user' AND c.actor_employee IS NULL
+                        AND NOT EXISTS (SELECT 1 FROM auth.users u2 WHERE u2.id = c.actor_account)))
+             GROUP BY c.txid
+            HAVING p_before IS NULL OR max(c.seq) < p_before
+             ORDER BY max(c.seq) DESC
+             LIMIT v_limit) g;
+        IF v_txids IS NULL THEN
+            RETURN;
+        END IF;
+    END IF;
 
     FOR r IN
         SELECT c.seq AS c_seq, c.occurred_at AS c_at, c.table_name AS c_table, c.row_key AS c_key,
@@ -31,19 +62,24 @@ BEGIN
                c.actor_employee AS c_employee, e.code AS c_emp_code,
                COALESCE(e.preferred_name, e.legal_name) AS c_emp_name,
                c.actor_kind AS c_kind, c.db_role AS c_role, c.changed_columns AS c_cols,
-               c.old AS c_old, c.new AS c_new, c.redacted_at AS c_redacted
+               c.old AS c_old, c.new AS c_new, c.redacted_at AS c_redacted, c.txid AS c_tx
           FROM change_log c
           LEFT JOIN auth.users u ON u.id = c.actor_account
           LEFT JOIN employees e ON e.id = c.actor_employee
          WHERE (p_from IS NULL OR c.occurred_at >= p_from::timestamptz)
            AND (p_to IS NULL OR c.occurred_at < (p_to + 1)::timestamptz)
            AND (p_table IS NULL OR c.table_name = p_table)
+           AND (p_tables IS NULL OR c.table_name = ANY (p_tables))
            AND (p_record IS NULL OR EXISTS (SELECT 1 FROM jsonb_each_text(c.row_key) k WHERE k.value = p_record))
+           AND (p_record_ids IS NULL OR EXISTS (SELECT 1 FROM jsonb_each_text(c.row_key) k WHERE k.value = ANY (p_record_ids)))
            AND (p_actor IS NULL OR c.actor_account = p_actor OR c.actor_employee = p_actor)
            AND (NOT COALESCE(p_no_session, false) OR c.actor_kind = 'no_session')
-           AND (p_before IS NULL OR c.seq < p_before)
+           AND (NOT COALESCE(p_removed_account, false)
+                OR (c.actor_kind = 'user' AND c.actor_employee IS NULL AND u.id IS NULL))
+           AND (CASE WHEN COALESCE(p_by_entry, false) THEN c.txid = ANY (v_txids)
+                     ELSE (p_before IS NULL OR c.seq < p_before) END)
          ORDER BY c.seq DESC
-         LIMIT v_limit
+         LIMIT CASE WHEN COALESCE(p_by_entry, false) THEN NULL ELSE v_limit END
     LOOP
         seq := r.c_seq;
         occurred_at := r.c_at;
@@ -59,29 +95,19 @@ BEGIN
         db_role := r.c_role;
         changed_columns := r.c_cols;
         redacted_at := r.c_redacted;
-        old := r.c_old;
-        new := r.c_new;
-        row_restricted := false;
+        txid := r.c_tx;
+        actor := trail_actor(r.c_kind, r.c_account, r.c_employee);
 
-        IF r.c_table IN ('tasks', 'task_nodes', 'task_participants', 'task_history')
-           AND NOT change_log_task_visible(r.c_table, r.c_key, r.c_old, r.c_new) THEN
-            old := change_log_restrict(r.c_old, NULL);
-            new := change_log_restrict(r.c_new, NULL);
-            row_restricted := true;
+        v_mask := change_log_mask_row(r.c_table, r.c_key, r.c_old, r.c_new);
+        old := NULLIF(v_mask -> 'old', 'null'::jsonb);
+        new := NULLIF(v_mask -> 'new', 'null'::jsonb);
+        row_restricted := (v_mask ->> 'row_restricted')::boolean;
+        IF row_restricted OR r.c_table = 'auth.users' THEN
+            belongs_to := NULL;
+            refs := '{}'::jsonb;
         ELSE
-            v_hidden := ARRAY[]::text[];
-            FOR m IN SELECT mr.column_name AS m_col, mr.rule AS m_rule
-                       FROM change_log_mask_rules() mr WHERE mr.table_name = r.c_table LOOP
-                IF (COALESCE(r.c_old -> m.m_col, 'null'::jsonb) <> 'null'::jsonb
-                    OR COALESCE(r.c_new -> m.m_col, 'null'::jsonb) <> 'null'::jsonb)
-                   AND NOT change_log_rule_visible(m.m_rule, r.c_table, r.c_key, r.c_old, r.c_new) THEN
-                    v_hidden := v_hidden || m.m_col;
-                END IF;
-            END LOOP;
-            IF cardinality(v_hidden) > 0 THEN
-                old := change_log_restrict(r.c_old, v_hidden);
-                new := change_log_restrict(r.c_new, v_hidden);
-            END IF;
+            belongs_to := trail_row_record(r.c_table, r.c_key, old, new);
+            refs := trail_refs(r.c_table, old, new, r.c_key);
         END IF;
         RETURN NEXT;
     END LOOP;
