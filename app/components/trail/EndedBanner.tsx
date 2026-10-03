@@ -30,8 +30,11 @@ export const ENDED_BANNER_ID = 'ended-record-banner'
 // AUDIT-TRAIL-1c-1(Tim 的 Q8,2026-10-03):账上的单据 —— 作废的发票 "Voided on DD/MM/YYYY by <name>";冲销了的分录、
 //   收付款、费用 "Reversed on DD/MM/YYYY by <name>"(谁、何时取自冲销那一张新单的建立 —— 原单上没有冲销戳);
 //   多一行链到那张冲销单("Reversed by PMT-…",link)。注销了的批次在应付页上也是这一条(Q5)。
+// AUDIT-TRAIL-1c-2(Tim 的 Q7 · Q6 · Q8,2026-10-03):撤回了的汇率 "Withdrawn on DD/MM/YYYY by <name>"(谁、为什么取自那一行
+//   'withdrawn' 修改史 —— 汇率表上没有撤回人);删掉的对账单走 DeletedBanner(种类 bank_statement);冲销了的运费单
+//   "Reversed on … by …"(它自己的 reversed_at / reversed_by)+ 链到冲销分录的那一行。
 export default async function EndedBanner({ kind, at, by, reason, link }: {
-    kind: 'writtenOff' | 'reversed' | 'deleted' | 'voided'
+    kind: 'writtenOff' | 'reversed' | 'deleted' | 'voided' | 'withdrawn'
     /** 第三行:链到冲销那一张单据(可选)—— "Reversed by PMT-…" */
     link?: { code: string; href: string } | null
     /** 结束的时刻(deleted_at) */
@@ -46,8 +49,10 @@ export default async function EndedBanner({ kind, at, by, reason, link }: {
     const date = formatTrailStamp(at).slice(0, 10)
     // 认得出 → 名字;认不出而读者看不了人事 → Restricted(别的页面上也是受限);没有记人、或那个账号已经不属于任何人 → 只说日期
     const who: ReactNode | null = name ? name : by && names.restricted ? <Refusal>{TRAIL_TEXT.restricted}</Refusal> : null
-    const withWho = { writtenOff: 'banner.writtenOff', reversed: 'banner.reversed', deleted: 'banner.deleted', voided: 'banner.voided' } as const
-    const dateOnly = { writtenOff: 'banner.writtenOffDate', reversed: 'banner.reversedDate', deleted: 'banner.deletedDate', voided: 'banner.voidedDate' } as const
+    const withWho = { writtenOff: 'banner.writtenOff', reversed: 'banner.reversed', deleted: 'banner.deleted', voided: 'banner.voided',
+        withdrawn: 'banner.withdrawn' } as const
+    const dateOnly = { writtenOff: 'banner.writtenOffDate', reversed: 'banner.reversedDate', deleted: 'banner.deletedDate', voided: 'banner.voidedDate',
+        withdrawn: 'banner.withdrawnDate' } as const
     const [before, after] = (who === null
         ? fill(TRAIL_TEXT[dateOnly[kind]], { date })
         : fill(TRAIL_TEXT[withWho[kind]], { date, who: '\u0000' })).split('\u0000')
@@ -94,8 +99,8 @@ export function EndedFieldset({ ended, children }: { ended: boolean; children: R
     )
 }
 
-/** deleted_records 里的种类(db/views/deleted_records.sql 的 record_kind)—— 本刀打开的那七种 */
-export type DeletedKind = 'customer' | 'supplier' | 'material' | 'pricing_formula' | 'sales_order' | 'quote' | 'purchase_order'
+/** deleted_records 里的种类(db/views/deleted_records.sql 的 record_kind)—— 1b-3 打开的那七种 + 1c-2 的对账单(Q6) */
+export type DeletedKind = 'customer' | 'supplier' | 'material' | 'pricing_formula' | 'sales_order' | 'quote' | 'purchase_order' | 'bank_statement'
 
 /** 删掉的记录的横幅:时刻、谁、理由都从 deleted_records 读 —— 与 /settings/deleted 同一份答案。
  *  那四类从来没有记过谁删的,视图从变更记录里读;读不到(早于变更记录)就只说日期。

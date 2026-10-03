@@ -908,6 +908,20 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         'fixed_asset_cost_entries', 'journal_entries'],
     payable: ['inbound_batches', 'payment_allocations', 'freight_allocations', 'prepayment_applications', 'finance_attachments', 'price_history',
         'journal_entries'],
+    // AUDIT-TRAIL-1c-2
+    sale: ['sales_records', 'sales_record_movements', 'sales_attribution_log', 'invoice_lines', 'payment_allocations', 'finance_attachments',
+        'journal_entries'],
+    freight: ['freight_documents', 'freight_allocations', 'payment_allocations', 'journal_entries'],
+    fixed_asset: ['fixed_assets', 'fixed_asset_history', 'fixed_asset_cost_entries', 'fixed_asset_depreciation', 'fixed_asset_depreciation_anchors',
+        'asset_disposal_requests', 'approval_log', 'equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals',
+        'shift_handover_equipment_refs', 'journal_entries'],
+    bank_statement: ['bank_statements', 'bank_statement_lines', 'bank_line_matches', 'bank_reconciliations', 'bank_reconciliation_variance_items'],
+    gst_period: ['gst_periods', 'gst_return_boxes', 'gst_filing_requests', 'approval_log'],
+    fx_rate: ['fx_rates', 'fx_rate_history'],
+    management_pack: ['management_packs'],
+    contract: ['contracts', 'contract_grade_specs', 'contract_insurance_obligations', 'contract_volume_commitments', 'contract_pricing_terms',
+        'contract_settlement_terms', 'contract_refining_charges', 'contract_penalty_elements', 'terms_requests', 'approval_log',
+        'contract_document_terms'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
@@ -922,6 +936,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     processing_settings: 'settings', pricing_settings: 'settings', receiving_settings: 'settings',
     // AUDIT-TRAIL-1c-1
     journal_entry: 'fin', invoice: 'fin', credit_note: 'fin', payment: 'fin', payment_request: 'fin', expense: 'fin', payable: 'fin',
+    // AUDIT-TRAIL-1c-2
+    sale: 'fin', freight: 'fin', fixed_asset: 'fin', bank_statement: 'fin', gst_period: 'fin', fx_rate: 'fin', management_pack: 'fin', contract: 'fin',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -2266,7 +2282,8 @@ function pfHistoryLines(d: TrailDict, h: TrailRow, opts: BuildOptions, created: 
 }
 /** 送给 CFO 的是哪一种申请 —— 公式那一页上只会有前三种 */
 function trSentKey(kind: string | null): TrailTextKey {
-    return kind === 'formula_create' ? 'tr.sentNew' : kind === 'formula_change' ? 'tr.sentChange' : kind === 'formula_reactivate' ? 'tr.sentReactivate' : 'tr.sentOther'
+    return kind === 'formula_create' ? 'tr.sentNew' : kind === 'formula_change' ? 'tr.sentChange' : kind === 'formula_reactivate' ? 'tr.sentReactivate'
+        : kind === 'contract_activate' ? 'tr.sentActivate' : 'tr.sentOther'    // AUDIT-TRAIL-1c-2:合同那一页上的那一种
 }
 function describeFormula(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
     const out: Block2[] = []
@@ -2476,7 +2493,9 @@ function describeSettings(d: TrailDict, rows: TrailRow[], opts: BuildOptions): B
 //   记录开始之前没有"原单翻状态"那一行(只有冲销那一张的建行),所以那时由镜像的建行说同一句(Q31:读自镜像的建立)。
 // 【申请】送去批 · 批准 · 驳回 · 撤回;审批关着时申请生下来就是 approved —— 下面一行灰字
 //   "Approved automatically (approvals were switched off)"(Q32);审批留痕并进申请那一句,不另起一行。
-export const FIN_SUBJECTS = new Set(['journal_entry', 'invoice', 'credit_note', 'payment', 'payment_request', 'expense', 'payable'])
+export const FIN_SUBJECTS = new Set(['journal_entry', 'invoice', 'credit_note', 'payment', 'payment_request', 'expense', 'payable',
+    // AUDIT-TRAIL-1c-2
+    'sale', 'freight', 'fixed_asset', 'bank_statement', 'gst_period', 'fx_rate', 'management_pack', 'contract'])
 
 /** 整页的冲销关系(与上面认冲销分录同一个做法:看整页,不只看这一条)—— 镜像 id → 原单 {id, code, href} */
 export type FinCtx = {
@@ -2715,6 +2734,7 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
     }
     const voidInGroup = by('invoices').some((r) => changed(r, 'status') || isSet(r, 'voided_at'))
     for (const r of invLines) {
+        if (subject === 'sale') continue    // AUDIT-TRAIL-1c-2:在销售那一页上,开票那一行说成"开了哪一张发票"(describeLedger2)
         if (r.op === 'INSERT' && by('invoices').some((x) => x.op === 'INSERT')) continue
         // 作废那一笔里每一行的 invoice_voided 翻成 true —— 那是作废的副作用,不另说
         if (r.op === 'UPDATE' && voidInGroup && (r.cols ?? []).every((c) => c === 'invoice_voided')) continue
@@ -2840,6 +2860,7 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
         else out.push(describeGeneric(d, r, opts))
     }
     for (const r of by('fixed_asset_cost_entries')) {
+        if (subject === 'fixed_asset') continue    // AUDIT-TRAIL-1c-2:在资产那一页上从资产这一边说("Cost added · EXP-…")
         if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
         out.push({ title: withPart(tx(d, 'exp.capitalised'), refLabel(r, 'asset_id')), lines: vlines(d, r, ['amount_ccy', 'amount_base'], opts), key: true, weight: 60 })
     }
@@ -2880,18 +2901,434 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
         out.push({ title: tx(d, 'batch.priceChanged'), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: 70 })
     }
     for (const r of by('freight_allocations')) {
+        if (subject === 'freight') continue    // AUDIT-TRAIL-1c-2:在运费单那一页上,分摊是建单那一句的行(describeLedger2)
         if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
         out.push({ title: withPart(tx(d, 'batch.freight'), refLabel(r, 'freight_document_id')), lines: vlines(d, r, ['amount_base'], opts), key: true, weight: 50 })
     }
 
     // 别的表(这几页的登记表之外不该出现;出现了照通用的说,不丢)
+    // ── ⑧ AUDIT-TRAIL-1c-2:其余的单据与合同 ─────────────────────────────────────────────────────
+    out.push(...describeLedger2(d, rows, opts))
     const known = new Set(['journal_entries', 'journal_lines', 'journal_requests', 'invoice_requests', 'payment_requests', 'approval_log', 'invoices',
         'invoice_lines', 'invoice_issues', 'credit_notes', 'credit_note_lines', 'cn_issues', 'payments', 'payment_allocations', 'bank_transfers',
         'wht_remittances', 'expenses', 'expense_claims', 'fixed_asset_cost_entries', 'prepayment_applications', 'finance_attachments',
-        'inbound_batches', 'price_history', 'freight_allocations'])
+        'inbound_batches', 'price_history', 'freight_allocations', ...LEDGER2_TABLES])
     for (const r of rows) if (r.table && !known.has(r.table)) out.push(describeGeneric(d, r, opts))
     return out
 }
+// ════════════════════════════════════════════════════════════════════════════
+// AUDIT-TRAIL-1c-2:其余的单据与合同 —— 销售 · 运费单 · 资产(财务那一页)· 对账单 · GST 期间 · 汇率 · 管理包 · 合同
+//   (Tim 2026-10-03,AT-1c Step 0 §a 与 Q6 · Q7 · Q9 · Q10 · Q14 · Q21 · Q22 · Q23 · Q24 · Q25)
+// ════════════════════════════════════════════════════════════════════════════
+// 【同一个家族】这八页上的每一行都经 describeFinance 说(它们与 1c-1 那七页共用分录、核销、附件、审批的说法);
+//   这里只管【这一刀才画上页面】的那些表。
+// 【一件事两行】(1b-3 的规矩)资产卡与汇率各有一张修改史,与那一行自己的变更记录在同一笔里写:记录开始之后变更记录那一行说
+//   (它有全部的列),修改史那一行不再说;记录开始之前只有修改史(与那一行的建行那一刻),由它说。
+// 【机器写的那一截】撤销对账往备注里追加 "UNRECONCILED <时刻>: <理由>"(Q24)—— 认出来,说成 "Reconciliation undone",
+//   理由是人写的那一句;那一截时刻不上屏。GST 的申报格只说英文(label_zh 是机器写的中文,Q8 · Q23)。
+export const LEDGER2_TABLES = ['sales_records', 'sales_record_movements', 'sales_attribution_log', 'freight_documents', 'fixed_assets',
+    'fixed_asset_history', 'fixed_asset_depreciation', 'fixed_asset_depreciation_anchors', 'asset_disposal_requests', 'equipment_maintenance',
+    'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs', 'bank_statements', 'bank_statement_lines',
+    'bank_line_matches', 'bank_reconciliations', 'bank_reconciliation_variance_items', 'gst_periods', 'gst_return_boxes', 'gst_filing_requests',
+    'fx_rates', 'fx_rate_history', 'management_packs', 'contracts', 'contract_grade_specs', 'contract_insurance_obligations',
+    'contract_volume_commitments', 'contract_pricing_terms', 'contract_settlement_terms', 'contract_refining_charges', 'contract_penalty_elements',
+    'terms_requests', 'contract_document_terms']
+const CONTRACT_TERM_TABLES = ['contract_grade_specs', 'contract_insurance_obligations', 'contract_volume_commitments', 'contract_pricing_terms',
+    'contract_settlement_terms', 'contract_refining_charges', 'contract_penalty_elements']
+/** 撤销对账追加的那一截:"\nUNRECONCILED 2026-10-03 16:00:00.123+08: <理由>" → 理由;认不出就是 null */
+export function unreconcileReason(notes: string | null): string | null {
+    if (!notes) return null
+    const m = notes.match(/(?:^|\n)UNRECONCILED \d{4}-\d{2}-\d{2}[ T][\d:.]+(?:[+-]\d{2}(?::?\d{2})?|Z)?: ([^\n]*)$/)
+    return m ? m[1].trim() || null : null
+}
+/** 资产卡修改史里一对 old_x / new_x 说的是资产卡的哪几列 —— 主键、建行的时刻与人、编号不说(编号在页头)*/
+const FA_HISTORY_SKIP = new Set(['id', 'created_at', 'created_by', 'code'])
+function faHistoryLines(d: TrailDict, h: TrailRow, opts: BuildOptions, created: boolean): Line[] {
+    const n = h.new ?? {}
+    const out: Line[] = []
+    const cols = created
+        ? Object.keys(n).filter((k) => k.startsWith('new_')).map((k) => k.slice(4))
+        : (Array.isArray(n['changed_columns']) ? (n['changed_columns'] as Json[]).filter((c): c is string => typeof c === 'string') : [])
+    for (const c of cols) {
+        if (FA_HISTORY_SKIP.has(c)) continue
+        const label = fieldMeta(d, 'fixed_assets', c)[0]
+        if (created) {
+            if (isEmpty(n['new_' + c] ?? null)) continue
+            out.push({ t: 'value', label, value: formatValue(d, 'fixed_asset_history', 'new_' + c, n['new_' + c], n, h.refs, 'INSERT', opts) })
+        } else {
+            out.push({ t: 'change', label, old: formatValue(d, 'fixed_asset_history', 'old_' + c, n['old_' + c], n, h.refs, 'UPDATE', opts),
+                       new: formatValue(d, 'fixed_asset_history', 'new_' + c, n['new_' + c], n, h.refs, 'UPDATE', opts) })
+        }
+    }
+    return out
+}
+/** 一张申请(资产处置 · GST 申报)的一生:送去批 · 批准(审批关着时生下来就批了,Q32)· 驳回 · 撤回 · 别的改动 */
+function requestBlocks(d: TrailDict, rows: TrailRow[], opts: BuildOptions, table: string,
+                       keys: { sent: TrailTextKey; approved: TrailTextKey; rejected: TrailTextKey; withdrawn: TrailTextKey; changed: TrailTextKey },
+                       insertCols: string[], approvedWithLog: (id: string | undefined) => boolean): Block2[] {
+    const out: Block2[] = []
+    const mine = rows.filter((r) => r.table === table)
+    const inserted = new Map<string, TrailRow>()
+    for (const r of mine) if (r.op === 'INSERT' && idOf(r)) inserted.set(idOf(r)!, { ...r, new: { ...(r.new ?? {}) } })
+    for (const r of mine) {
+        const ins = r.op === 'UPDATE' && idOf(r) ? inserted.get(idOf(r)!) : undefined
+        if (ins) { Object.assign(ins.new!, r.new ?? {}); ins.refs = mergeRefs(ins.refs, r.refs) }
+    }
+    for (const r0 of mine) {
+        if (r0.op === 'UPDATE' && idOf(r0) && inserted.has(idOf(r0)!)) continue
+        const r = r0.op === 'INSERT' && idOf(r0) ? inserted.get(idOf(r0)!) ?? r0 : r0
+        const id = idOf(r)
+        const { code, part } = labelPart(r)
+        const to = changed(r, 'status') ? str(r, 'status', 'new') : null
+        if (r.op === 'INSERT') {
+            const ls = vlines(d, r, insertCols, opts)
+            const isAuto = approvedWithLog(id) || str(r0, 'status', 'new') === 'approved'
+            if (isAuto) ls.unshift({ t: 'note', text: tx(d, 'po.autoApproved') })
+            const end = str(r, 'status', 'new')
+            const k = isAuto || end === 'approved' ? keys.approved : end === 'rejected' ? keys.rejected : keys.sent
+            out.push({ title: withPart(tx(d, k), code), part, lines: ls, reason: typed(r.new?.['reason'] ?? r.new?.['note']),
+                       key: true, weight: 85, recordId: id, absorbsApproval: true })
+        } else if (to === 'withdrawn' || isSet(r, 'withdrawn_at')) {
+            out.push({ title: withPart(tx(d, keys.withdrawn), code), part, lines: [], reason: typed(r.new?.['withdraw_reason']), key: true, weight: 85, recordId: id, absorbsApproval: true })
+        } else if (to === 'approved' || to === 'rejected') {
+            out.push({ title: withPart(tx(d, to === 'approved' ? keys.approved : keys.rejected), code), part, lines: [],
+                       reason: typed(r.new?.['decision_notes']), key: true, weight: 90, recordId: id, absorbsApproval: true })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts, new Set(['decided_at', 'decided_by', 'executed_at', 'snapshot', 'estimate', 'result', 'boxes', 'label']))
+            if (ls.length) out.push({ title: withPart(tx(d, keys.changed), code), part, lines: ls, key: false, weight: 35, recordId: id })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    return out
+}
+
+function describeLedger2(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const subject = opts.subject ?? ''
+    const rootId = opts.recordId ?? null
+    const auto = (id: string | undefined) => !!id && by('approval_log').some((a) => str(a, 'subject_id') === id && str(a, 'decision', 'new') === 'auto_approved')
+    const skipStamps = new Set(['updated_at', 'updated_by'])
+
+    // ── ① 销售(Q14)──────────────────────────────────────────────────────────────────
+    const sales = by('sales_records')
+    const saleInserted = sales.some((r) => r.op === 'INSERT')
+    const attrib = by('sales_attribution_log')
+    for (const r of sales) {
+        if (r.op === 'INSERT') {
+            const root = subject === 'sale' && idOf(r) === rootId
+            const ls = vlines(d, r, root ? ['output_batch_id', 'customer_id', 'sale_date', 'quantity', 'unit_price', 'currency', 'fx_rate', 'amount_base',
+                'sales_order_line_id', 'price_source'] : ['sale_date', 'quantity', 'amount_base'], opts)
+            out.push({ title: tx(d, 'sale.recorded'), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: root ? 100 : 60 })
+        } else if (r.op === 'UPDATE' && changed(r, 'customer_id') && isEmpty(r.old?.['customer_id'] ?? null)) {
+            const log = attrib.find((a) => a.op === 'INSERT')
+            out.push({ title: tx(d, 'sale.attributed'), lines: vline(d, r, 'customer_id', opts), reason: log ? typed(log.new?.['note']) : null, key: true, weight: 90 })
+        } else if (r.op === 'UPDATE' && isSet(r, 'cogs_entry_id')) {
+            const v = docVal(d, r, 'sales_records', 'cogs_entry_id')
+            out.push({ title: tx(d, 'sale.cogsPosted'), lines: v ? [{ t: 'value', label: fieldMeta(d, 'sales_records', 'cogs_entry_id')[0], value: v }] : [], key: true, weight: 70 })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts)
+            if (ls.length) out.push({ title: tx(d, 'sale.changed'), lines: ls, key: false, weight: 30 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of attrib) {
+        // 归属客户那一笔里,销售那一行已经说了(理由取自这一行的 note)
+        if (r.op === 'INSERT' && sales.some((x) => x.op === 'UPDATE' && changed(x, 'customer_id'))) continue
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'sale.attributed'), lines: vlines(d, r, ['customer_id', 'amount_base'], opts), reason: typed(r.new?.['note']), key: true, weight: 90 })
+    }
+    for (const r of by('sales_record_movements')) {
+        if (r.op === 'INSERT' && saleInserted) continue        // 出库是记销售那一笔的副作用
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'batch.saleStock'), lines: [], key: false, weight: 40 })
+    }
+    if (subject === 'sale') for (const r of by('invoice_lines')) {
+        const code = refLabel(r, 'invoice_id')
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'batch.invoiced'), code), lines: vlines(d, r, ['quantity', 'amount_ccy'], opts), key: true, weight: 75 })
+        else if (r.op === 'UPDATE' && changed(r, 'invoice_voided') && r.new?.['invoice_voided'] === true) out.push({ title: withPart(tx(d, 'inv.voided'), code), lines: [], key: true, weight: 75 })
+        else if (r.op === 'UPDATE') { const ls = changeLines(d, r, opts); if (ls.length) out.push({ title: tx(d, 'inv.lineChanged'), lines: ls, key: false, weight: 30 }) }
+        else out.push(describeGeneric(d, r, opts))
+    }
+
+    // ── ② 运费单 ────────────────────────────────────────────────────────────────────
+    const frts = by('freight_documents')
+    const frtAllocs = by('freight_allocations')
+    const allocLine = (r: TrailRow): Line => ({ t: 'value', label: refLabel(r, 'inbound_batch_id') ?? cap(thing(d, 'freight_allocations')),
+        value: formatValue(d, 'freight_allocations', 'amount_base', imgOf(r)['amount_base'], imgOf(r), r.refs, r.op, opts) })
+    for (const r of frts) {
+        if (r.op === 'INSERT') {
+            const ls = vlines(d, r, ['doc_date', 'supplier_id', 'direction', 'amount_ccy', 'currency', 'fx_rate', 'amount_base', 'allocation_basis',
+                'payment_status', 'bank_account_code', 'container_id'], opts)
+            ls.push(...frtAllocs.filter((a) => a.op === 'INSERT').map(allocLine))
+            out.push({ title: withPart(tx(d, 'frt.recorded'), subject === 'freight' ? null : str(r, 'code')), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: 100 })
+        } else if ((changed(r, 'status') && str(r, 'status', 'new') === 'reversed') || isSet(r, 'reversed_at')) {
+            // 冲销分录是下面那一块(分录那一家说"Journal … reversed / Reversed by");这里只说这张单冲销了、为什么
+            out.push({ title: tx(d, 'frt.reversed'), lines: [], reason: typed(r.new?.['reversal_reason']), key: true, weight: 95 })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts, skipStamps)
+            if (ls.length) out.push({ title: tx(d, 'frt.changed'), lines: ls, key: changed(r, 'payment_status'), weight: 30 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    if (subject === 'freight') for (const r of frtAllocs) {
+        if (r.op === 'INSERT' && frts.some((x) => x.op === 'INSERT')) continue
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'batch.freight'), refLabel(r, 'inbound_batch_id')), lines: vlines(d, r, ['amount_base'], opts), key: true, weight: 50 })
+        else if (r.op === 'UPDATE') { const ls = changeLines(d, r, opts); if (ls.length) out.push({ title: tx(d, 'frt.allocationChanged'), lines: ls, key: false, weight: 30 }) }
+        else out.push(describeGeneric(d, r, opts))
+    }
+
+    // ── ③ 资产(财务那一页,Q10)────────────────────────────────────────────────────────
+    const fas = by('fixed_assets')
+    const faLogged = fas.some((r) => !r.prelog)
+    const faInserted = fas.some((r) => r.op === 'INSERT')
+    for (const r of fas) {
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'eq.cardCreated'), lines: vlines(d, r, ['description', 'category', 'acquisition_date', 'cost_ccy', 'currency', 'fx_rate',
+                'cost_base', 'useful_life_months', 'residual_base', 'depreciation_account_code', 'planned_in_service_date', 'expense_id'], opts),
+                       reason: typed(r.new?.['notes']), key: true, weight: 100 })
+        } else if (r.op === 'UPDATE') {
+            if (changed(r, 'status') && str(r, 'status', 'new') === 'disposed') {
+                out.push({ title: tx(d, 'fa.disposed'), lines: changeLines(d, r, opts, new Set(['status'])), key: true, weight: 95 })
+            } else if (isSet(r, 'in_service_date')) {
+                out.push({ title: tx(d, 'fa.inService'), lines: changeLines(d, r, opts), key: true, weight: 90 })
+            } else {
+                const ls = changeLines(d, r, opts)
+                if (ls.length) out.push({ title: tx(d, 'eq.cardEdited'), lines: ls, key: false, weight: 30 })
+            }
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const h of by('fixed_asset_history')) {
+        // 一件事两行:同一笔里资产卡自己那一行(变更记录)在,就由它说
+        if (faLogged && !h.prelog) continue
+        if (h.op !== 'INSERT') { out.push(describeGeneric(d, h, opts)); continue }
+        const ct = str(h, 'change_type', 'new')
+        if (ct === 'created') {
+            if (faInserted) continue
+            out.push({ title: tx(d, 'eq.cardCreated'), lines: faHistoryLines(d, h, opts, true), key: true, weight: 100 })
+            continue
+        }
+        const n = h.new ?? {}
+        const cols = Array.isArray(n['changed_columns']) ? n['changed_columns'] as Json[] : []
+        const ls = faHistoryLines(d, h, opts, false)
+        if (cols.includes('status') && n['new_status'] === 'disposed') out.push({ title: tx(d, 'fa.disposed'), lines: ls, key: true, weight: 95 })
+        else if (cols.includes('in_service_date') && !isEmpty(n['new_in_service_date'] ?? null)) out.push({ title: tx(d, 'fa.inService'), lines: ls, key: true, weight: 90 })
+        else if (ls.length) out.push({ title: tx(d, 'eq.cardEdited'), lines: ls, key: false, weight: 30 })
+    }
+    if (subject === 'fixed_asset') for (const r of by('fixed_asset_cost_entries')) {
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'fa.costAdded'), refLabel(r, 'expense_id')), lines: vlines(d, r, ['amount_ccy', 'amount_base'], opts), key: true, weight: 70 })
+        else if (r.op === 'UPDATE') { const ls = changeLines(d, r, opts); if (ls.length) out.push({ title: tx(d, 'fa.costChanged'), lines: ls, key: false, weight: 30 }) }
+        else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('fixed_asset_depreciation')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'fa.depreciated'), lines: vlines(d, r, ['period_end', 'amount_base', 'journal_entry_id'], opts), key: true, weight: 70 })
+    }
+    for (const r of by('fixed_asset_depreciation_anchors')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'fa.rebased'), lines: vlines(d, r, ['effective_from', 'pre_anchor_target_base', 'remaining_months', 'expense_id', 'maintenance_id'], opts),
+                   reason: typed(r.new?.['reason']), key: true, weight: 70 })
+    }
+    out.push(...requestBlocks(d, rows, opts, 'asset_disposal_requests',
+        { sent: 'fa.disposalSent', approved: 'fa.disposalApproved', rejected: 'fa.disposalRejected', withdrawn: 'fa.disposalWithdrawn', changed: 'fa.disposalChanged' },
+        ['disposal_date', 'proceeds_base', 'bank_account'], auto))
+    // 保养维修、停机、保养间隔、交接班提到的停机:与加工那一页同一套说法(家在 equipment)
+    const eq = rows.filter((r) => ['equipment_maintenance', 'equipment_downtime', 'equipment_service_intervals', 'shift_handover_equipment_refs'].includes(r.table!))
+    if (eq.length) out.push(...describeEquipment(d, eq, opts, 'equipment'))
+
+    // ── ④ 对账单(Q6 · Q9 · Q24)───────────────────────────────────────────────────────
+    const stmts = by('bank_statements'), sLines = by('bank_statement_lines'), matches = by('bank_line_matches')
+    const recons = by('bank_reconciliations'), items = by('bank_reconciliation_variance_items')
+    const reconLines = (): Line[] => {
+        const ls: Line[] = []
+        for (const r of recons.filter((x) => x.op === 'INSERT')) ls.push(...vlines(d, r, ['as_of', 'bank_closing_balance', 'book_balance', 'difference', 'matched_lines', 'ignored_lines'], opts))
+        for (const v of items.filter((x) => x.op === 'INSERT')) {
+            const img = imgOf(v)
+            const kind = typeof img['item_kind'] === 'string' ? enumLabel(d, 'bank_reconciliation_variance_items', 'item_kind', img['item_kind'] as string) : cap(thing(d, 'bank_reconciliation_variance_items'))
+            const amt = formatValue(d, 'bank_reconciliation_variance_items', 'amount', img['amount'], img, v.refs, v.op, opts)
+            const note = typeof img['note'] === 'string' && img['note'] ? img['note'] as string : null
+            ls.push({ t: 'value', label: kind, value: note ? { text: `${amt.text} · ${note}`, typed: true } : amt })
+        }
+        return ls
+    }
+    let reconSaid = false
+    for (const r of stmts) {
+        if (r.op === 'INSERT') {
+            const ls = vlines(d, r, ['bank_account_code', 'currency', 'period_start', 'period_end', 'opening_balance', 'closing_balance', 'file_name'], opts)
+            const n = sLines.filter((x) => x.op === 'INSERT').length
+            if (n) ls.push({ t: 'value', label: tx(d, 'bst.lines'), value: { text: String(n) } })
+            out.push({ title: tx(d, 'bst.imported'), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: 100 })
+            continue
+        }
+        if (r.op !== 'UPDATE') { out.push(describeGeneric(d, r, opts)); continue }
+        if (isSet(r, 'deleted_at')) { out.push({ title: tx(d, 'bst.deleted'), lines: [], key: true, weight: 95 }); continue }
+        const toStatus = changed(r, 'status') ? str(r, 'status', 'new') : null
+        if (toStatus === 'reconciled' || isSet(r, 'reconciled_at')) {
+            reconSaid = true
+            out.push({ title: tx(d, 'bst.reconciled'), lines: reconLines(), key: true, weight: 95 })
+            continue
+        }
+        if (toStatus === 'open' && str(r, 'status', 'old') === 'reconciled') {
+            // Q24:撤销对账往备注后面追加了一截机器写的 "UNRECONCILED <时刻>: <理由>" —— 不当成一次备注的改动说;理由是人写的那一句
+            const sup = recons.find((x) => isSet(x, 'superseded_at'))
+            const why = unreconcileReason(str(r, 'notes', 'new')) ?? (sup ? str(sup, 'superseded_reason', 'new') : null)
+            reconSaid = true
+            out.push({ title: tx(d, 'bst.unreconciled'), lines: [], reason: typed(why), key: true, weight: 95 })
+            continue
+        }
+        const notesMachine = changed(r, 'notes') && unreconcileReason(str(r, 'notes', 'new')) !== null
+        const ls = changeLines(d, r, opts, new Set([...skipStamps, ...(notesMachine ? ['notes'] : [])]))
+        if (ls.length) out.push({ title: tx(d, 'bst.changed'), lines: ls, key: false, weight: 30 })
+    }
+    for (const r of recons) {
+        if (reconSaid) continue
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'bst.reconciled'), lines: reconLines(), key: true, weight: 90 })
+        else if (isSet(r, 'superseded_at')) out.push({ title: tx(d, 'bst.unreconciled'), lines: [], reason: typed(r.new?.['superseded_reason']), key: true, weight: 90 })
+        else if (r.op === 'UPDATE') { const ls = changeLines(d, r, opts); if (ls.length) out.push({ title: tx(d, 'bst.reconChanged'), lines: ls, key: false, weight: 30 }) }
+        else out.push(describeGeneric(d, r, opts))
+    }
+    if (!reconSaid && !recons.some((x) => x.op === 'INSERT')) for (const v of items) {
+        out.push({ title: tx(d, 'bst.reconChanged'), lines: v.op === 'UPDATE' ? changeLines(d, v, opts) : valueLines(d, v, v.op === 'DELETE' ? v.old : v.new, opts, new Set(['reconciliation_id'])), key: false, weight: 30 })
+    }
+    const lineNo = (r: TrailRow): string | null => { const n = num(imgOf(r)['line_no'] ?? null); return n === null ? null : tx(d, 'po.lineHeading', { n }) }
+    const matchLine = (m: TrailRow): Line => ({ t: 'value', label: refLabel(m, 'journal_line_id') ?? cap(fieldMeta(d, 'bank_line_matches', 'journal_line_id')[0]),
+        value: formatValue(d, 'bank_line_matches', 'matched_amount', imgOf(m)['matched_amount'], imgOf(m), m.refs, m.op, opts) })
+    const matchesSaid = new Set<TrailRow>()
+    for (const r of sLines) {
+        if (r.op === 'INSERT' && stmts.some((x) => x.op === 'INSERT')) continue    // 导入那一句已经数过了
+        const part = lineNo(r)
+        const from = str(r, 'match_status', 'old'), to = changed(r, 'match_status') ? str(r, 'match_status', 'new') : null
+        const mine = matches.filter((m) => str(m, 'statement_line_id') === idOf(r))
+        if (to === 'matched') {
+            mine.filter((m) => m.op === 'INSERT').forEach((m) => matchesSaid.add(m))
+            out.push({ title: withPart(tx(d, 'bst.lineMatched'), part), lines: mine.filter((m) => m.op === 'INSERT').map(matchLine), key: true, weight: 60 })
+        } else if (to === 'ignored') {
+            out.push({ title: withPart(tx(d, 'bst.lineIgnored'), part), lines: [], reason: typed(r.new?.['ignore_reason']), key: true, weight: 60 })
+        } else if (to === 'unmatched' && from === 'ignored') {
+            out.push({ title: withPart(tx(d, 'bst.lineUnignored'), part), lines: [], key: true, weight: 60 })
+        } else if (to === 'unmatched') {
+            mine.filter((m) => m.op === 'DELETE').forEach((m) => matchesSaid.add(m))
+            out.push({ title: withPart(tx(d, 'bst.lineUnmatched'), part), lines: mine.filter((m) => m.op === 'DELETE').map(matchLine), key: true, weight: 60 })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts, new Set(['match_status']))
+            if (ls.length) out.push({ title: withPart(tx(d, 'bst.lineChanged'), part), lines: ls, key: false, weight: 30 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const m of matches) {
+        if (matchesSaid.has(m)) continue
+        const part = refLabel(m, 'statement_line_id')
+        if (m.op === 'INSERT') out.push({ title: withPart(tx(d, 'bst.lineMatched'), part), lines: [matchLine(m)], key: true, weight: 60 })
+        else if (m.op === 'DELETE') out.push({ title: withPart(tx(d, 'bst.lineUnmatched'), part), lines: [matchLine(m)], key: true, weight: 60 })
+        else out.push(describeGeneric(d, m, opts))
+    }
+
+    // ── ⑤ GST 期间(Q22 · Q23)──────────────────────────────────────────────────────────
+    for (const r of by('gst_periods')) {
+        if (r.op === 'INSERT') {
+            const corr = str(r, 'corrects_period_id')
+            const code = corr ? refLabel(r, 'corrects_period_id') : null
+            const title = corr ? (code ? tx(d, 'gstp.correctionOpened', { code }) : tx(d, 'gstp.correctionOpenedPlain')) : tx(d, 'gstp.opened')
+            out.push({ title, lines: vlines(d, r, ['period_start', 'period_end'], opts), reason: typed(r.new?.['notes']), key: true, weight: 100 })
+            continue
+        }
+        if (r.op !== 'UPDATE') { out.push(describeGeneric(d, r, opts)); continue }
+        if ((changed(r, 'status') && str(r, 'status', 'new') === 'filed') || isSet(r, 'filed_at')) {
+            out.push({ title: tx(d, 'gstp.filed'), lines: vlines(d, r, ['filed_on', 'filed_reference'], opts), key: true, weight: 95 })
+            continue
+        }
+        // 批准那一下把期间翻成 approved —— 那是申报申请被批准的副作用(那一句在申请那一块里)
+        const ls = changeLines(d, r, opts, new Set(by('gst_filing_requests').some((x) => changed(x, 'status')) || by('gst_return_boxes').length ? ['status'] : []))
+        if (ls.length) out.push({ title: tx(d, 'gstp.changed'), lines: ls, key: changed(r, 'status'), weight: 40 })
+    }
+    out.push(...requestBlocks(d, rows, opts, 'gst_filing_requests',
+        { sent: 'gstp.sent', approved: 'gstp.approved', rejected: 'gstp.rejected', withdrawn: 'gstp.withdrawn', changed: 'gstp.requestChanged' }, [], auto))
+    const boxes = by('gst_return_boxes').filter((r) => r.op === 'INSERT')
+    if (boxes.length) {
+        // Q23:同一笔里抄下来的每一格并成一块("GST return locked · 9 boxes"),每一格一行,只说英文
+        const sorted = [...boxes].sort((a, b) => (num(String(imgOf(a)['box'] ?? '').replace(/^box/, '')) ?? 0) - (num(String(imgOf(b)['box'] ?? '').replace(/^box/, '')) ?? 0))
+        out.push({ title: tx(d, 'gstp.locked', { n: boxes.length }), key: true, weight: 80, lines: sorted.map((r) => {
+            const img = imgOf(r)
+            const n = String(img['box'] ?? '').replace(/^box/, '')
+            const en = typeof img['label_en'] === 'string' && img['label_en'] ? ` · ${img['label_en']}` : ''
+            return { t: 'value' as const, label: `${tx(d, 'gstp.box', { n })}${en}`, value: formatValue(d, 'gst_return_boxes', 'value_base', img['value_base'], img, r.refs, r.op, opts) }
+        }) })
+    }
+    for (const r of by('gst_return_boxes')) if (r.op !== 'INSERT') out.push(describeGeneric(d, r, opts))
+
+    // ── ⑥ 汇率(一件事两行;Q7)────────────────────────────────────────────────────────────
+    const rates = by('fx_rates'), hist = by('fx_rate_history')
+    const histAction = (h: TrailRow) => str(h, 'action', 'new')
+    for (const r of rates) {
+        const h = hist.find((x) => x.op === 'INSERT' && str(x, 'fx_rate_id') === idOf(r))
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'fxr.recorded'), lines: vlines(d, r, ['currency', 'rate_type', 'rate_sgd_per_unit', 'rate_date', 'source'], opts),
+                       reason: typed(r.new?.['notes']), key: true, weight: 100 })
+        } else if (r.op === 'UPDATE' && isSet(r, 'deleted_at')) {
+            out.push({ title: tx(d, 'fxr.withdrawn'), lines: [], reason: h ? typed(h.new?.['reason']) : null, key: true, weight: 95 })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts, skipStamps)
+            const corrected = h && histAction(h) === 'corrected'
+            if (ls.length || corrected) out.push({ title: tx(d, corrected ? 'fxr.corrected' : 'fxr.changed'), lines: ls, reason: h ? typed(h.new?.['reason']) : null, key: !!corrected, weight: corrected ? 90 : 30 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const h of hist) {
+        if (h.op !== 'INSERT') { out.push(describeGeneric(d, h, opts)); continue }
+        if (rates.some((r) => idOf(r) === str(h, 'fx_rate_id'))) continue    // 那一行自己的变更记录说了
+        const a = histAction(h)
+        if (a === 'withdrawn') out.push({ title: tx(d, 'fxr.withdrawn'), lines: [], reason: typed(h.new?.['reason']), key: true, weight: 95 })
+        else if (a === 'corrected') out.push({ title: tx(d, 'fxr.corrected'), lines: [{ t: 'change', label: fieldMeta(d, 'fx_rates', 'rate_sgd_per_unit')[0],
+            old: formatValue(d, 'fx_rate_history', 'prev_rate', h.new?.['prev_rate'], imgOf(h), h.refs, 'INSERT', opts),
+            new: formatValue(d, 'fx_rate_history', 'rate_sgd_per_unit', h.new?.['rate_sgd_per_unit'], imgOf(h), h.refs, 'INSERT', opts) }], reason: typed(h.new?.['reason']), key: true, weight: 90 })
+        else out.push({ title: tx(d, 'fxr.recorded'), lines: vlines(d, h, ['currency', 'rate_type', 'rate_sgd_per_unit', 'rate_date', 'source'], opts), reason: typed(h.new?.['notes']), key: true, weight: 100 })
+    }
+
+    // ── ⑦ 管理包(Q25)──────────────────────────────────────────────────────────────────
+    for (const r of by('management_packs')) {
+        if (r.op === 'INSERT') {
+            out.push({ title: withPart(tx(d, 'mpk.produced'), subject === 'management_pack' && idOf(r) === rootId ? null : str(r, 'code')),
+                       lines: vlines(d, r, ['period_month', 'period_start', 'period_end', 'locked_before_at_production', 'base_currency'], opts),
+                       reason: typed(r.new?.['notes']), key: true, weight: subject === 'management_pack' && idOf(r) !== rootId ? 60 : 100 })
+        } else if (r.op === 'UPDATE' && isSet(r, 'superseded_at')) {
+            const v = docVal(d, r, 'management_packs', 'superseded_by')
+            out.push({ title: tx(d, 'mpk.superseded'), lines: v ? [{ t: 'value', label: tx(d, 'mpk.replacedBy'), value: v }] : [],
+                       reason: typed(r.new?.['superseded_reason']), key: true, weight: 95 })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts)
+            if (ls.length) out.push({ title: tx(d, 'mpk.changed'), lines: ls, key: false, weight: 30 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+
+    // ── ⑧ 合同(Q21)──────────────────────────────────────────────────────────────────
+    for (const r of by('contracts')) {
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'con.created'), lines: vlines(d, r, ['customer_id', 'supplier_id', 'side', 'kind', 'title', 'status', 'effective_from', 'effective_to',
+                'signed_on', 'currency', 'incoterm', 'payment_terms_days', 'document_ref'], opts), reason: typed(r.new?.['notes']), key: true, weight: 100 })
+            continue
+        }
+        if (r.op !== 'UPDATE') { out.push(describeGeneric(d, r, opts)); continue }
+        if (isSet(r, 'deleted_at')) { out.push({ title: tx(d, 'con.deleted'), lines: [], key: true, weight: 95 }); continue }
+        const to = changed(r, 'status') ? str(r, 'status', 'new') : null
+        const ls = changeLines(d, r, opts, new Set([...skipStamps, 'status']))
+        if (to) out.push({ title: tx(d, to === 'active' ? 'con.activated' : to === 'suspended' ? 'con.suspended' : 'con.statusChanged'),
+                           lines: to === 'active' || to === 'suspended' ? ls : changeLines(d, r, opts, skipStamps), key: true, weight: 96 })
+        else if (ls.length) out.push({ title: tx(d, 'con.edited'), lines: ls, key: false, weight: 30 })
+    }
+    for (const t of CONTRACT_TERM_TABLES) for (const r of by(t)) {
+        const thingName = thing(d, t)
+        const metalCol = ['metal', 'substance'].find((c) => !isEmpty(imgOf(r)[c] ?? null))
+        const part = metalCol ? { text: dictName(d, r, metalCol) } : null
+        const skip = new Set(['contract_id', ...skipStamps, ...(metalCol ? [metalCol] : [])])
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'con.termAdded', { thing: thingName }), part, lines: valueLines(d, r, r.new, opts, skip), key: false, weight: 50 })
+        else if (r.op === 'DELETE') out.push({ title: tx(d, 'con.termRemoved', { thing: thingName }), part, lines: valueLines(d, r, r.old, opts, skip), key: false, weight: 50 })
+        else { const ls = changeLines(d, r, opts, skip); if (ls.length) out.push({ title: tx(d, 'con.termChanged', { thing: thingName }), part, lines: ls, key: false, weight: 40 }) }
+    }
+    const trs = by('terms_requests')
+    if (trs.length) out.push(...describeFormula(d, trs, opts))
+    for (const r of by('contract_document_terms')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        const code = refLabel(r, 'purchase_order_id') ?? refLabel(r, 'sales_order_id')
+        out.push({ title: code ? tx(d, 'con.linked', { code }) : tx(d, 'con.linkedPlain'), lines: [], key: true, weight: 60 })
+    }
+    return out
+}
+
 function invoiceLineLine(d: TrailDict, r: TrailRow, opts: BuildOptions): Line {
     const img = imgOf(r)
     const n = num(img['line_no'] ?? null)
@@ -2973,7 +3410,11 @@ function mergeUpdates(rows: TrailRow[]): TrailRow[] {
         }
         prev.refs = mergeRefs(prev.refs, r.refs)
     }
-    return out
+    // AUDIT-TRAIL-1c-2:一列在同一笔里改出去又改回来(对账 → 撤销对账),净值没动 —— 不说 "Open → Open"、"(empty) → (empty)"。
+    // 一行合并之后一列都不剩,它就什么都没改,整行不说。只动【合并过】的行:单独一次 UPDATE 照原样交给各自的描述器。
+    const merged = new Set([...seen.values()].filter((m) => rows.filter((r) => r.op === 'UPDATE' && r.table === m.table && JSON.stringify(r.key) === JSON.stringify(m.key)).length > 1))
+    for (const m of merged) m.cols = m.cols!.filter((c) => JSON.stringify(m.old?.[c] ?? null) !== JSON.stringify(m.new?.[c] ?? null))
+    return out.filter((r) => !(merged.has(r) && !r.cols!.length))
 }
 function mergeRefs(a: Refs | null, b: Refs | null): Refs | null {
     if (!a) return b

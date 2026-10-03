@@ -226,6 +226,46 @@ AS $function$
         ('expense_claims',                 'created', 'created_at',   'created_by',   NULL, 'account'),
         ('expense_claims',                 'stamp',   'decided_at',   'decided_by',   ARRAY['status', 'decision_notes', 'expense_id'], 'account'),
         ('expense_claims',                 'stamp',   'withdrawn_at', NULL,           ARRAY['status'], 'account'),
-        ('fixed_asset_cost_entries',       'created', 'created_at',   'created_by',   NULL, 'account')
+        ('fixed_asset_cost_entries',       'created', 'created_at',   'created_by',   NULL, 'account'),
+        -- AUDIT-TRAIL-1c-2:其余的单据与合同。★ Q9(Tim 2026-10-03)的另外两个戳在这一刀登记 ——
+        --   freight_documents.reversed_at(线上 4 张运费单全部冲销过,那是那件事唯一的记录)· bank_statements.reconciled_at
+        --   (BS-2026-0002 对过账,却没有一行 bank_reconciliations —— 只有这一戳)。有对账记录的那几次,两边同一笔、同一刻
+        --   (reconciled_at),归成一条,界面只说一次。
+        --   修改史是主线的两张(fixed_asset_history、fx_rate_history):一件事两行(1b-3 的规矩)—— 记录开始之后变更记录那一行说,
+        --   之前修改史那一行说;资产卡与汇率自己的建行那一刻【也】登记,同一笔、同一刻,界面并成一句(报价 / 订单的先例)。
+        --   撤回汇率那一下【不】登记成戳(fx_rates 没有 deleted_by;withdraw_fx_rate 在同一笔里写一行 'withdrawn' 修改史,
+        --   那一行就是这件事的记录 —— 再拼一次戳就是两次)。
+        ('freight_documents',              'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('freight_documents',              'stamp',   'reversed_at',  'reversed_by',  ARRAY['status', 'reversal_reason', 'reversal_entry_id'], 'account'),
+        ('fixed_asset_history',            'created', 'changed_at',   'changed_by',   NULL, 'account'),
+        ('fixed_asset_depreciation',       'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('fixed_asset_depreciation_anchors', 'created', 'created_at', 'created_by',   NULL, 'account'),
+        ('asset_disposal_requests',        'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('asset_disposal_requests',        'stamp',   'withdrawn_at', 'withdrawn_by', ARRAY['status', 'withdraw_reason'], 'account'),
+        ('bank_statements',                'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('bank_statements',                'stamp',   'reconciled_at', 'reconciled_by', ARRAY['status'], 'account'),
+        ('bank_statements',                'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('bank_statement_lines',           'created', 'created_at',   NULL,           NULL, 'account'),
+        ('bank_line_matches',              'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('bank_reconciliations',           'created', 'reconciled_at', 'reconciled_by', NULL, 'account'),
+        ('bank_reconciliations',           'stamp',   'superseded_at', NULL,          ARRAY['superseded_reason'], 'account'),
+        ('bank_reconciliation_variance_items', 'created', 'created_at', 'created_by', NULL, 'account'),
+        ('gst_periods',                    'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('gst_periods',                    'stamp',   'filed_at',     'filed_by',     ARRAY['status', 'filed_on', 'filed_reference'], 'account'),
+        ('gst_return_boxes',               'created', 'created_at',   NULL,           NULL, 'account'),
+        ('gst_filing_requests',            'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('gst_filing_requests',            'stamp',   'withdrawn_at', 'withdrawn_by', ARRAY['status', 'withdraw_reason'], 'account'),
+        ('fx_rates',                       'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('fx_rate_history',                'created', 'changed_at',   'changed_by',   NULL, 'account'),
+        ('management_packs',               'created', 'produced_at',  'produced_by',  NULL, 'account'),
+        ('management_packs',               'stamp',   'superseded_at', NULL,          ARRAY['superseded_by', 'superseded_reason'], 'account'),
+        ('contracts',                      'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('contract_grade_specs',           'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('contract_insurance_obligations', 'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('contract_volume_commitments',    'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('contract_pricing_terms',         'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('contract_settlement_terms',      'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('contract_refining_charges',      'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('contract_penalty_elements',      'created', 'created_at',   'created_by',   NULL, 'account')
     ) AS p(table_name, kind, at_column, by_column, extra, by_kind);
 $function$;

@@ -38,11 +38,13 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import CostEntriesTable, { type CostEntryRow } from './CostEntriesTable'
 import { formatDate } from '@/lib/dates'
-// FA-HIST-1:这台机器被谁、什么时候、把什么改成了什么。
-import HistoryPanel, { HISTORY_LIMIT, type HistoryRow } from './HistoryPanel'
-import { loadActorNames } from '@/app/components/ActorName'
+// AUDIT-TRAIL-1c-2(Q10 · Q26):这台机器被谁、什么时候、把什么改成了什么 —— 页底的审计记录(替掉 FA-HIST-1 的"Change history"面板)
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function AssetPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AssetPage({ params, searchParams }: {
+    params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string }>
+}) {
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
     const { id } = await params
@@ -222,28 +224,8 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
     //   与这一处该问的不是同一个问题。判据单独取一次,并把它传下去。
     const canSeeProcessingRuns = await can('module.processing.view')
 
-    // ── FA-HIST-1:变更留痕 ──────────────────────────────────────────────────
-    // 【select('*') 是【故意的】】这一块不认列名:它照着每一行的 changed_columns
-    // 去取 old_<列> / new_<列>。写死一份 46 列的清单,等于把"加一列就要改屏幕"
-    // 这件事又请回来一次 —— 而本刀两侧(触发器 / 屏幕)都是靠【数据】决定画什么的。
-    // 【这张表不是遮蔽表】fixed_assets 本身就不是(没有 REVOKE SELECT、没有
-    // _masked 伴生视图),影子表同门同权限,所以 '*' 不会碰到被收回的列。
-    // 【两次查询,不是一次】第二次只要一个总数 —— 屏幕要说得出"被截掉了多少",
-    // 而一份沉默地只给 50 条的清单读起来像"总共就这些"。
-    const [historyRes, historyCountRes] = await Promise.all([
-        supabase.from('fixed_asset_history').select('*')
-            .eq('fixed_asset_id', id).order('changed_at', { ascending: false }).limit(HISTORY_LIMIT),
-        supabase.from('fixed_asset_history').select('id', { count: 'exact', head: true })
-            .eq('fixed_asset_id', id),
-    ])
-    // 【失败必须失败】读不出留痕时不许退化成空数组 —— 那会让屏幕印出那句
-    // 「这台机器自 … 起没有被改过」,而那是一句【断言】,不是一次读取失败该说的话。
-    const historyRows = mustRows(historyRes, 'fixed_asset_history') as unknown as HistoryRow[]
-    const historyTotal = mustCount(historyCountRes, 'fixed_asset_history count')
-    // 谁改的 —— 本仓库只有一份取名器(app/components/ActorName.tsx)。
-    // 【no_session 的那些行不进这张名字表】它们的 changed_by 本来就是 NULL,
-    // 而那一种在面板里自己有一句话说,不走「未记录」。
-    const historyNames = await loadActorNames(supabase, historyRows.map((h) => h.changed_by))
+    // ── AUDIT-TRAIL-1c-2:FA-HIST-1 的"Change history"面板在这里读 fixed_asset_history(两次查询 + 一份名字表)——
+    //   面板已经换成页底的审计记录(Q26),修改史由 record_trail 读(记录开始之前修改史那一行说,之后资产卡自己的变更记录说)。
 
     // FIX-2(A):取得日以来这台机器吃进去多少公斤。
     // 【为什么 equipment_usage 就是"取得日以来"】加工炉只能在提交时归属给机器,
@@ -514,18 +496,10 @@ export default async function AssetPage({ params }: { params: Promise<{ id: stri
                 )}
             </div>
 
-            {/* ── FA-HIST-1:变更留痕 ────────────────────────────────────────
-                【位置是刻意的:整页最末】上面每一节都是 Tim 已经走过的,本刀
-                一个字节都没动它们。读法顺着这台机器的一生走,而"它这一路被谁
-                改过什么"是走完之后才问的那个问题。
-                【门与本页同一个】影子表的 SELECT 策略也是 module.finance.view,
-                于是"这里零行"在屏幕上就真的只有一个意思 —— 而那句话面板会说出来。 */}
-            <HistoryPanel
-                rows={historyRows}
-                total={historyTotal}
-                names={historyNames}
-                baseCurrency={baseCurrency}
-                locale={locale} />
+            {/* ── AUDIT-TRAIL-1c-2(Q10 · Q26):审计记录 —— 替掉 FA-HIST-1 的变更留痕面板,位置照旧在整页最末
+                (读法顺着这台机器的一生走,"它这一路被谁改过什么"是走完之后才问的那个问题)。它多说了面板说不出的几件事:
+                成本从哪几张单据来、折旧、处置申请与它的审批、保养维修与停机;人名照 ActorName 的规矩。 */}
+            <AuditTrail subject="fixed_asset" id={asset.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

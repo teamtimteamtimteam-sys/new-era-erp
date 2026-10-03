@@ -13,12 +13,13 @@ import { F5BoxesTable, F5BoxDetailTable, type F5BoxRow, type F5DetailRow } from 
 import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 type Box = { box: string; label_en: string; label_zh: string; value: number; derived: boolean; note_zh?: string; note_en?: string }
 
 export default async function GstPeriodPage({ params, searchParams }: {
     params: Promise<{ periodId: string }>
-    searchParams: Promise<{ box?: string }>
+    searchParams: Promise<{ box?: string; trail?: string }>
 }) {
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
@@ -26,7 +27,7 @@ export default async function GstPeriodPage({ params, searchParams }: {
     // APR-10:决定的门(module.finance.view + data.view_prices);谁是二级、谁是提单人由库裁
     const canPrices = await can('data.view_prices')
     const { periodId } = await params
-    const { box } = await searchParams
+    const { box, trail } = await searchParams
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
@@ -281,6 +282,10 @@ export default async function GstPeriodPage({ params, searchParams }: {
                     <CorrectControl canEdit={canEditGate} periodId={periodId} />
                 </>
             )}
+
+            {/* AUDIT-TRAIL-1c-2(Q22 · Q23):这个期间的审计记录 —— 开期(更正件说它为哪一期开的)、申报申请与它的审批、
+                批准那一刻抄下来的每一格(并进申报那一条,只说英文)、记下申报。更正件【不】出现在原件的记录里(原件页上那条链接照旧) */}
+            <AuditTrail subject="gst_period" id={periodId} show={trailCount(trail)} />
         </ListPage>
     )
 }

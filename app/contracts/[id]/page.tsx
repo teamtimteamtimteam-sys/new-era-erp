@@ -27,6 +27,7 @@ import ContractActivationPanel, { type ActivationRow } from '../ContractActivati
 import TermSection, { type TermFieldView, type TermRowView } from './TermSection'
 import HeaderForm from './HeaderForm'
 import { SECTIONS, SELL_ONLY, type SectionSpec } from './termSpecs'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 type Contract = {
     id: string; code: string; side: 'buy' | 'sell'; kind: string; title: string; status: string
@@ -38,7 +39,10 @@ type Contract = {
 
 type Dict = { value: string; label: string }[]
 
-export default async function ContractDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ContractDetailPage({ params, searchParams }: {
+    params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string }>
+}) {
     const denied = await requireModule(MOD.suppliers)
     if (denied) return denied
     const { id } = await params
@@ -221,6 +225,11 @@ export default async function ContractDetailPage({ params }: { params: Promise<{
                     onePerContract={Boolean(s.onePerContract)}
                 />
             ))}
+
+            {/* AUDIT-TRAIL-1c-2(Q21):这份合同的审计记录 —— 建立、表头的改动、七张条款表的每一行、生效申请与 CFO 的决定
+                (不持 module.pricing.view 的读者,那几行决定是 Restricted —— 读规则说的)、生效 / 暂停、挂到订单上的那一次。
+                申请面板照旧在上面(它是现在的状态,这里是一路的经过) */}
+            <AuditTrail subject="contract" id={c.id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

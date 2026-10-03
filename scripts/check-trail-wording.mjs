@@ -26,11 +26,13 @@
 //   ⑥ 商务样例(AUDIT-TRAIL-1b-2):1b-2 每一个主语的字段编辑 · 子行改动 · 关键事件,造出来的英文逐字等于交回报告里列的那一句。
 //   ⑦ 主数据样例(AUDIT-TRAIL-1b-3):1b-3 的物料 · 库位 · 金属价格 · 公式与条款申请 · 任务 · 三个阈值面板,同一个办法;
 //      外加任务修改史与公式修改史每一个 change_type 的机器字扫描(它们是隐藏列,④ 的样本走不到那些分支)。
+//   ⑧ 账上的单据(AUDIT-TRAIL-1c-1)· ⑨ 其余的单据与合同(AUDIT-TRAIL-1c-2):同一个办法,外加按【那一页】的说法(subject)
+//      对每一个主语的每一张表造样本的机器字扫描(④ 的通用扫描不带 subject,走不到 describeFinance / describeLedger2)。
 //
 // 故障注入(TRAIL_WORDING_FAULT=<臂>,每一臂必须在【它那一臂】红):
 //   blind-detector · registry-drift · missing-key · dead-key · label-gap · enum-gap · raw-date · raw-ref · raw-json · raw-null · raw-role ·
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
-//   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)
+//   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -973,13 +975,659 @@ if (FAULT === 'wording-drift-1c1') dict.text = { ...dict.text, 'je.reversed': 'J
     if (FAULT === 'wording-drift-1c1' && !problems.gold8.length) problems.gold8.push('(注入 wording-drift-1c1 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑨ 其余的单据与合同(AUDIT-TRAIL-1c-2)─────────────────────────────────────────────────────
+// 八个主语(销售 · 运费单 · 资产 · 对账单 · GST 期间 · 汇率 · 管理包 · 合同)各一次字段编辑 · 子行改动 · 关键事件,逐字;
+//   加上:更正件说它为哪一期开(Q22)、申报那一刻的每一格并进申报那一条且只说英文(Q23)、撤销对账备注里那一截机器字说成
+//   "Reconciliation undone"(Q24)、一件事两行(资产卡与汇率的修改史)、合同的生效申请与 CFO 的决定并成一句;
+//   以及 1c-1 留下的缺口:付款申请 · 贷项通知 · 收付款 · 发票的【字段编辑】各一句金句(此前只有机器字扫描兜着)。
+//   每一句都先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/AUDIT-TRAIL-1c-2.md §8 逐条列出。
+//   注入 wording-drift-1c2 → 这一臂必须红。
+problems.gold9 = []
+if (FAULT === 'wording-drift-1c2') dict.text = { ...dict.text, 'bst.unreconciled': 'Reconciliation reversed' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const ref = (col, v, label, href) => ({ [col]: { [v]: href ? { label, href } : { label } } })
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const cases = () => {
+    const C = []
+    const add = (label, opts, rows) => C.push({ label, opts, rows })
+    // ── sale ──
+    const sale = id('sale'), ob = id('ob'), cus = id('cus'), inv = id('inv'), mv = id('mv'), je = id('cogs')
+    add('sale · recorded (key event; the stock issue is the same operation)', { subject: 'sale', recordId: sale }, [
+        { table: 'sales_records', op: 'INSERT', key: { id: sale }, new: { output_batch_id: ob, customer_id: cus, sale_date: '2026-10-01', quantity: 200, unit_price: 4.5, currency: 'SGD', fx_rate: 1, amount_base: 900, price_source: 'manual', notes: 'Spot sale' },
+          refs: { ...ref('output_batch_id', ob, 'OUT-2026-0186 · NMC Cathode Foil'), ...ref('customer_id', cus, 'Acme Recycling'), output_batch_id: { [ob]: { label: 'OUT-2026-0186 · NMC Cathode Foil', unit: 'kg' } } } },
+        { table: 'sales_record_movements', op: 'INSERT', new: { sales_record_id: sale, movement_id: mv } }])
+    add('sale · invoiced (child line: the invoice line that bills it)', { subject: 'sale', recordId: sale }, [
+        { table: 'invoice_lines', op: 'INSERT', new: { invoice_id: inv, sales_record_id: sale, quantity: 200, amount_ccy: 900, line_no: 1 }, refs: ref('invoice_id', inv, 'INV-2026-0010') }])
+    add('sale · customer attributed (field edit, with the attribution note)', { subject: 'sale', recordId: sale }, [
+        { table: 'sales_records', op: 'UPDATE', key: { id: sale }, cols: ['customer_id'], old: { customer_id: null }, new: { customer_id: cus }, refs: ref('customer_id', cus, 'Acme Recycling') },
+        { table: 'sales_attribution_log', op: 'INSERT', new: { sales_record_id: sale, customer_id: cus, amount_base: 900, note: 'Was a walk-in sale' }, refs: ref('customer_id', cus, 'Acme Recycling') }])
+    add('sale · cost of sales posted', { subject: 'sale', recordId: sale }, [
+        { table: 'sales_records', op: 'UPDATE', key: { id: sale }, cols: ['cogs_entry_id'], old: { cogs_entry_id: null }, new: { cogs_entry_id: je }, refs: ref('cogs_entry_id', je, 'JE-2026-0101', `/finance/journal/${je}`) }])
+    // ── freight ──
+    const frt = id('frt'), fwd = id('fwd'), ib1 = id('ib1'), ib2 = id('ib2'), fje = id('fje'), rje = id('rje')
+    add('freight · recorded with its apportionment (key event + child lines)', { subject: 'freight', recordId: frt }, [
+        { table: 'freight_documents', op: 'INSERT', key: { id: frt }, new: { code: 'FRT-2026-0005', doc_date: '2026-10-01', supplier_id: fwd, direction: 'inbound', amount_ccy: 300, currency: 'SGD', fx_rate: 1, amount_base: 300, allocation_basis: 'weight', payment_status: 'unpaid', notes: 'Port to yard' }, refs: ref('supplier_id', fwd, 'Swift Forwarding') },
+        { table: 'freight_allocations', op: 'INSERT', new: { freight_document_id: frt, inbound_batch_id: ib1, amount_base: 200 }, refs: ref('inbound_batch_id', ib1, 'IN-2026-0020 · Black mass') },
+        { table: 'freight_allocations', op: 'INSERT', new: { freight_document_id: frt, inbound_batch_id: ib2, amount_base: 100 }, refs: ref('inbound_batch_id', ib2, 'IN-2026-0021 · Black mass') }])
+    add('freight · payment status (field edit)', { subject: 'freight', recordId: frt }, [
+        { table: 'freight_documents', op: 'UPDATE', key: { id: frt }, cols: ['payment_status', 'updated_at'], old: { payment_status: 'unpaid', updated_at: '2026-10-01T01:00:00Z' }, new: { payment_status: 'paid', updated_at: '2026-10-02T01:00:00Z' }, ctx: { code: 'FRT-2026-0005' } }])
+    add('freight · reversed (key event; the reversal journal is the journal block)', { subject: 'freight', recordId: frt }, [
+        { table: 'freight_documents', op: 'UPDATE', key: { id: frt }, cols: ['status', 'reversed_at', 'reversed_by', 'reversal_reason', 'reversal_entry_id'], old: { status: 'posted' },
+          new: { status: 'reversed', reversed_at: '2026-10-03T02:00:00Z', reversal_reason: 'Billed twice', reversal_entry_id: rje }, ctx: { code: 'FRT-2026-0005' } },
+        { table: 'journal_entries', op: 'UPDATE', key: { id: fje }, cols: ['status', 'reversed_by'], old: { status: 'posted', reversed_by: null }, new: { status: 'reversed', reversed_by: rje },
+          ctx: { code: 'JE-2026-0110', reversed_by: rje }, refs: ref('reversed_by', rje, 'JE-2026-0111', `/finance/journal/${rje}`) },
+        { table: 'journal_entries', op: 'INSERT', key: { id: rje }, new: { code: 'JE-2026-0111', memo: 'REVERSAL: JE-2026-0110 — Billed twice', status: 'posted' } }])
+    // ── fixed asset ──
+    const fa = id('fa'), exp = id('exp'), dep = id('dep'), adr = id('adr'), dje = id('dje')
+    add('fixed asset · card created (key event)', { subject: 'fixed_asset', recordId: fa }, [
+        { table: 'fixed_assets', op: 'INSERT', key: { id: fa }, new: { code: 'FA-2026-0003', description: 'Shredder', category: 'equipment', acquisition_date: '2026-09-01', cost_ccy: 0, currency: 'SGD', cost_base: 0, useful_life_months: 60, residual_base: 0, status: 'active' } }])
+    add('fixed asset · useful life changed (field edit)', { subject: 'fixed_asset', recordId: fa }, [
+        { table: 'fixed_assets', op: 'UPDATE', key: { id: fa }, cols: ['useful_life_months'], old: { useful_life_months: 60 }, new: { useful_life_months: 84 } }])
+    add('fixed asset · cost added from an expense (child line)', { subject: 'fixed_asset', recordId: fa }, [
+        { table: 'fixed_asset_cost_entries', op: 'INSERT', new: { asset_id: fa, expense_id: exp, amount_ccy: 12000, currency: 'SGD', amount_base: 12000 }, refs: ref('expense_id', exp, 'EXP-2026-0040') },
+        { table: 'fixed_assets', op: 'UPDATE', key: { id: fa }, cols: ['cost_base', 'cost_ccy'], old: { cost_base: 0, cost_ccy: 0 }, new: { cost_base: 12000, cost_ccy: 12000 }, ctx: { currency: 'SGD' } }])
+    add('fixed asset · put into service (key event)', { subject: 'fixed_asset', recordId: fa }, [
+        { table: 'fixed_assets', op: 'UPDATE', key: { id: fa }, cols: ['in_service_date'], old: { in_service_date: null }, new: { in_service_date: '2026-10-01' } }])
+    add('fixed asset · depreciation posted', { subject: 'fixed_asset', recordId: fa }, [
+        { table: 'fixed_asset_depreciation', op: 'INSERT', key: { id: dep }, new: { asset_id: fa, period_end: '2026-10-31', amount_base: 200, journal_entry_id: dje }, refs: ref('journal_entry_id', dje, 'JE-2026-0120', `/finance/journal/${dje}`) }])
+    add('fixed asset · disposal approved and carried out (request + approval + the card, one operation)', { subject: 'fixed_asset', recordId: fa }, [
+        { table: 'asset_disposal_requests', op: 'UPDATE', key: { id: adr }, cols: ['status', 'decided_at', 'decided_by', 'executed_at'], old: { status: 'submitted' }, new: { status: 'approved' }, ctx: { label: 'FA-2026-0003 · disposal #1' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'asset_disposal_request', subject_id: adr, decision: 'approved', level: 1 } },
+        { table: 'fixed_assets', op: 'UPDATE', key: { id: fa }, cols: ['status', 'disposal_date', 'disposal_proceeds_base'], old: { status: 'active', disposal_date: null, disposal_proceeds_base: null }, new: { status: 'disposed', disposal_date: '2026-10-03', disposal_proceeds_base: 500 } }])
+    add('fixed asset · a change before the log (from the history row)', { subject: 'fixed_asset', recordId: fa }, [
+        { table: 'fixed_asset_history', op: 'INSERT', prelog: true, new: { fixed_asset_id: fa, change_type: 'updated', changed_columns: ['useful_life_months', 'notes'], old_useful_life_months: 60, new_useful_life_months: 48, old_notes: null, new_notes: 'Heavy use' } }])
+    // ── bank statement ──
+    const bs = id('bs'), bl1 = id('bl1'), bl2 = id('bl2'), bl3 = id('bl3'), jl = id('jl'), rec = id('rec')
+    add('bank statement · imported (key event; its lines counted)', { subject: 'bank_statement', recordId: bs }, [
+        { table: 'bank_statements', op: 'INSERT', key: { id: bs }, new: { code: 'BS-2026-0003', bank_account_code: '1000', currency: 'SGD', period_start: '2026-09-01', period_end: '2026-09-30', opening_balance: 1000, closing_balance: 1500, file_name: 'dbs-sep.csv', status: 'open' } },
+        { table: 'bank_statement_lines', op: 'INSERT', key: { id: bl1 }, new: { statement_id: bs, line_no: 1, amount: 300 } },
+        { table: 'bank_statement_lines', op: 'INSERT', key: { id: bl2 }, new: { statement_id: bs, line_no: 2, amount: 200 } },
+        { table: 'bank_statement_lines', op: 'INSERT', key: { id: bl3 }, new: { statement_id: bs, line_no: 3, amount: 0.5 } }])
+    add('bank statement · a line matched (child line)', { subject: 'bank_statement', recordId: bs }, [
+        { table: 'bank_statement_lines', op: 'UPDATE', key: { id: bl1 }, cols: ['match_status'], old: { match_status: 'unmatched' }, new: { match_status: 'matched' }, ctx: { line_no: 1, statement_id: bs } },
+        { table: 'bank_line_matches', op: 'INSERT', new: { statement_line_id: bl1, journal_line_id: jl, matched_amount: 300 }, refs: ref('journal_line_id', jl, 'JE-2026-0090 · Cash at Bank – SGD') }])
+    add('bank statement · a line ignored', { subject: 'bank_statement', recordId: bs }, [
+        { table: 'bank_statement_lines', op: 'UPDATE', key: { id: bl3 }, cols: ['match_status', 'ignore_reason'], old: { match_status: 'unmatched', ignore_reason: null }, new: { match_status: 'ignored', ignore_reason: 'Bank rounding' }, ctx: { line_no: 3, statement_id: bs } }])
+    add('bank statement · reconciled (key event, with the explained difference)', { subject: 'bank_statement', recordId: bs }, [
+        { table: 'bank_statements', op: 'UPDATE', key: { id: bs }, cols: ['status', 'reconciled_at', 'reconciled_by'], old: { status: 'open' }, new: { status: 'reconciled', reconciled_at: '2026-10-03T03:00:00Z' }, ctx: { currency: 'SGD' } },
+        { table: 'bank_reconciliations', op: 'INSERT', key: { id: rec }, new: { statement_id: bs, as_of: '2026-09-30', currency: 'SGD', bank_closing_balance: 1500, book_balance: 1499.5, difference: 0.5, matched_lines: 2, ignored_lines: 1 } },
+        { table: 'bank_reconciliation_variance_items', op: 'INSERT', new: { reconciliation_id: rec, item_no: 1, item_kind: 'bank_charge', amount: 0.5, note: 'September fee' } }])
+    // 同一笔里对账又撤销:status / reconciled_at 改出去又改回来 —— 合并之后不许说 "Open → Open"、"(empty) → (empty)"
+    // (第一版的 mergeUpdates 会;回滚的线上证明 B 里看到的。注入:把 render.ts 里那一句过滤拿掉,这一句必须红)
+    const bsx = id('bsx'), recx = id('recx')
+    add('bank statement · reconciled and undone in one operation (a column that comes back is not a change)', { subject: 'bank_statement', recordId: bsx }, [
+        { table: 'bank_statements', op: 'UPDATE', key: { id: bsx }, cols: ['status', 'reconciled_at', 'reconciled_by'], old: { status: 'open', reconciled_at: null, reconciled_by: null }, new: { status: 'reconciled', reconciled_at: '2026-10-03T03:00:00Z', reconciled_by: id('who') }, ctx: { currency: 'SGD' } },
+        { table: 'bank_reconciliations', op: 'INSERT', key: { id: recx }, new: { statement_id: bsx, as_of: '2026-09-30', currency: 'SGD', bank_closing_balance: 1500, book_balance: 1500, difference: 0, matched_lines: 3, ignored_lines: 0 } },
+        { table: 'bank_reconciliations', op: 'UPDATE', key: { id: recx }, cols: ['superseded_at', 'superseded_reason'], old: { superseded_at: null, superseded_reason: null }, new: { superseded_at: '2026-10-03T03:00:00Z', superseded_reason: 'Wrong period' } },
+        { table: 'bank_statements', op: 'UPDATE', key: { id: bsx }, cols: ['status', 'reconciled_at', 'reconciled_by', 'notes'], old: { status: 'reconciled', reconciled_at: '2026-10-03T03:00:00Z', reconciled_by: id('who'), notes: null },
+          new: { status: 'open', reconciled_at: null, reconciled_by: null, notes: 'UNRECONCILED 2026-10-03 11:00:00+08: Wrong period' } }])
+    add('bank statement · reconciliation undone (Q24: the machine suffix in the notes is not a notes edit)', { subject: 'bank_statement', recordId: bs }, [
+        { table: 'bank_reconciliations', op: 'UPDATE', key: { id: rec }, cols: ['superseded_at', 'superseded_reason'], old: { superseded_at: null }, new: { superseded_at: '2026-10-04T01:00:00Z', superseded_reason: 'Wrong period' } },
+        { table: 'bank_statements', op: 'UPDATE', key: { id: bs }, cols: ['status', 'reconciled_at', 'reconciled_by', 'notes'], old: { status: 'reconciled', notes: 'Imported from DBS' },
+          new: { status: 'open', reconciled_at: null, notes: 'Imported from DBS\nUNRECONCILED 2026-10-04 09:00:00.123456+08: Wrong period' } }])
+    add('bank statement · notes edited (field edit)', { subject: 'bank_statement', recordId: bs }, [
+        { table: 'bank_statements', op: 'UPDATE', key: { id: bs }, cols: ['notes'], old: { notes: null }, new: { notes: 'Re-imported' } }])
+    add('bank statement · deleted before the log (date only)', { subject: 'bank_statement', recordId: bs }, [
+        { table: 'bank_statements', op: 'UPDATE', key: { id: bs }, prelog: true, cols: ['deleted_at'], new: { deleted_at: '2026-07-30T02:00:00Z' }, actor: { state: 'unknown' } }])
+    // ── GST period ──
+    const gp = id('gp'), orig = id('orig'), gfr = id('gfr')
+    add('GST period · correction opened (Q22: says which period it corrects)', { subject: 'gst_period', recordId: gp }, [
+        { table: 'gst_periods', op: 'INSERT', key: { id: gp }, new: { code: 'GST-2026-Q3-C1', period_start: '2026-07-01', period_end: '2026-09-30', status: 'open', corrects_period_id: orig, notes: 'Late supplier invoice' },
+          refs: ref('corrects_period_id', orig, 'GST-2026-Q3') }])
+    add('GST period · return sent for approval (child: the filing request)', { subject: 'gst_period', recordId: gp }, [
+        { table: 'gst_filing_requests', op: 'INSERT', key: { id: gfr }, new: { status: 'submitted', label: 'GST-2026-Q3 · filing #1', period_id: gp, note: 'Ready to file', boxes: [{ box: 'box1' }] } }])
+    const boxRow = (n, en, v) => ({ table: 'gst_return_boxes', op: 'INSERT', new: { period_id: gp, box: 'box' + n, label_en: en, label_zh: '中文标签', value_base: v } })
+    add('GST period · return approved, the boxes locked (Q23: one entry, English only)', { subject: 'gst_period', recordId: gp }, [
+        { table: 'gst_filing_requests', op: 'UPDATE', key: { id: gfr }, cols: ['status', 'decided_at', 'decided_by', 'executed_at'], old: { status: 'submitted' }, new: { status: 'approved' }, ctx: { label: 'GST-2026-Q3 · filing #1' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'gst_filing_request', subject_id: gfr, decision: 'approved', level: 1 } },
+        { table: 'gst_periods', op: 'UPDATE', key: { id: gp }, cols: ['status'], old: { status: 'open' }, new: { status: 'approved' } },
+        boxRow(6, 'Output tax due', 70), boxRow(1, 'Total value of standard-rated supplies', 1000), boxRow(13, 'Revenue for the accounting period', 1000)])
+    add('GST period · filing recorded (key event)', { subject: 'gst_period', recordId: gp }, [
+        { table: 'gst_periods', op: 'UPDATE', key: { id: gp }, cols: ['status', 'filed_at', 'filed_by', 'filed_on', 'filed_reference'], old: { status: 'approved' }, new: { status: 'filed', filed_at: '2026-10-05T02:00:00Z', filed_on: '2026-10-05', filed_reference: 'IRAS-ACK-778' } }])
+    add('GST period · notes edited (field edit)', { subject: 'gst_period', recordId: gp }, [
+        { table: 'gst_periods', op: 'UPDATE', key: { id: gp }, cols: ['notes'], old: { notes: null }, new: { notes: 'Checked by auditor' } }])
+    // ── FX rate ──
+    const fx = id('fx')
+    add('FX rate · recorded (one event, two rows: the rate and its history)', { subject: 'fx_rate', recordId: fx }, [
+        { table: 'fx_rates', op: 'INSERT', key: { id: fx }, new: { currency: 'USD', rate_type: 'tt_sell', rate_sgd_per_unit: 1.3521, rate_date: '2026-10-01', source: 'DBS' } },
+        { table: 'fx_rate_history', op: 'INSERT', new: { fx_rate_id: fx, action: 'created', currency: 'USD', rate_type: 'tt_sell', rate_sgd_per_unit: 1.3521, rate_date: '2026-10-01', source: 'DBS' } }])
+    add('FX rate · corrected (field edit, the reason from the history row)', { subject: 'fx_rate', recordId: fx }, [
+        { table: 'fx_rates', op: 'UPDATE', key: { id: fx }, cols: ['rate_sgd_per_unit', 'updated_at', 'updated_by'], old: { rate_sgd_per_unit: 1.3521 }, new: { rate_sgd_per_unit: 1.3512 } },
+        { table: 'fx_rate_history', op: 'INSERT', new: { fx_rate_id: fx, action: 'corrected', prev_rate: 1.3521, rate_sgd_per_unit: 1.3512, reason: 'Typed the buy rate' } }])
+    add('FX rate · withdrawn (key event)', { subject: 'fx_rate', recordId: fx }, [
+        { table: 'fx_rates', op: 'UPDATE', key: { id: fx }, cols: ['deleted_at', 'updated_at'], old: { deleted_at: null }, new: { deleted_at: '2026-10-03T04:00:00Z' } },
+        { table: 'fx_rate_history', op: 'INSERT', new: { fx_rate_id: fx, action: 'withdrawn', reason: 'Bank holiday — no rate published' } }])
+    add('FX rate · corrected before the log (the history row speaks)', { subject: 'fx_rate', recordId: fx }, [
+        { table: 'fx_rate_history', op: 'INSERT', prelog: true, new: { fx_rate_id: fx, action: 'corrected', prev_rate: 1.36, rate_sgd_per_unit: 1.35, reason: 'Wrong day' } }])
+    // ── management pack ──
+    const pk = id('pk'), pk2 = id('pk2')
+    add('management pack · produced (key event)', { subject: 'management_pack', recordId: pk }, [
+        { table: 'management_packs', op: 'INSERT', key: { id: pk }, new: { code: 'PACK-2026-0001', period_month: '2026-09-01', period_start: '2026-09-01', period_end: '2026-09-30', locked_before_at_production: '2026-09-30', base_currency: 'SGD', payload: { a: 1 } } }])
+    add('management pack · replaced (the newer pack is a link)', { subject: 'management_pack', recordId: pk }, [
+        { table: 'management_packs', op: 'UPDATE', key: { id: pk }, cols: ['superseded_at', 'superseded_by', 'superseded_reason'], old: { superseded_at: null },
+          new: { superseded_at: '2026-10-04T01:00:00Z', superseded_by: pk2, superseded_reason: 'Late accrual posted' }, refs: ref('superseded_by', pk2, 'PACK-2026-0002', `/finance/packs/${pk2}`) }])
+    add('management pack · notes edited (field edit)', { subject: 'management_pack', recordId: pk }, [
+        { table: 'management_packs', op: 'UPDATE', key: { id: pk }, cols: ['notes'], old: { notes: null }, new: { notes: 'Sent to the board' } }])
+    // ── contract ──
+    const con = id('con'), sup = id('sup'), tr = id('tr'), po = id('po')
+    add('contract · created (key event)', { subject: 'contract', recordId: con }, [
+        { table: 'contracts', op: 'INSERT', key: { id: con }, new: { code: 'CON-2026-0004', supplier_id: sup, side: 'buy', kind: 'supply', title: '2027 black mass supply', status: 'draft', effective_from: '2027-01-01', currency: 'USD', incoterm: 'CIF' }, refs: ref('supplier_id', sup, 'Green Cells Ltd') }])
+    add('contract · title changed (field edit)', { subject: 'contract', recordId: con }, [
+        { table: 'contracts', op: 'UPDATE', key: { id: con }, cols: ['title', 'updated_at', 'updated_by'], old: { title: '2027 black mass supply' }, new: { title: '2027 black mass supply (revised)' } }])
+    add('contract · an index pricing term added (child line)', { subject: 'contract', recordId: con }, [
+        { table: 'contract_pricing_terms', op: 'INSERT', new: { contract_id: con, metal: 'ni', base_event: 'arrival', qp_months: 1, index_code: 'LME', payable_pct: 75 }, refs: { ...ref('metal', 'ni', 'Nickel'), ...ref('index_code', 'LME', 'London Metal Exchange') } }])
+    add('contract · activated (the CFO approved the activation request; one operation)', { subject: 'contract', recordId: con }, [
+        { table: 'terms_requests', op: 'UPDATE', key: { id: tr }, cols: ['status', 'decided_at', 'decided_by', 'executed_at'], old: { status: 'submitted' }, new: { status: 'approved' }, ctx: { kind: 'contract_activate', label: 'CON-2026-0004 · activate #1' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'terms_request', subject_id: tr, decision: 'approved', level: 2 } },
+        { table: 'contracts', op: 'UPDATE', key: { id: con }, cols: ['status'], old: { status: 'draft' }, new: { status: 'active' } }])
+    add('contract · activation sent to the CFO', { subject: 'contract', recordId: con }, [
+        { table: 'terms_requests', op: 'INSERT', key: { id: tr }, new: { kind: 'contract_activate', status: 'submitted', label: 'CON-2026-0004 · activate #1', contract_id: con, reason: 'Signed on 28/09' } }])
+    add('contract · linked to a purchase order', { subject: 'contract', recordId: con }, [
+        { table: 'contract_document_terms', op: 'INSERT', new: { contract_id: con, purchase_order_id: po, contract_title: '2027 black mass supply' }, refs: ref('purchase_order_id', po, 'PO-2026-0015') }])
+    // ── 1c-1 gap: field edits on payment requests and credit notes (+ payments, invoices) ──
+    const pr = id('pr'), cn = id('cn'), pay = id('pay'), inv2 = id('inv2')
+    add('payment request · planned date changed (field edit)', { subject: 'payment_request', recordId: pr }, [
+        { table: 'payment_requests', op: 'UPDATE', key: { id: pr }, cols: ['planned_date'], old: { planned_date: '2026-10-01' }, new: { planned_date: '2026-10-05' }, ctx: { code: 'PREQ-2026-0005', kind: 'payment_out', status: 'submitted' } }])
+    add('credit note · reason changed (field edit)', { subject: 'credit_note', recordId: cn }, [
+        { table: 'credit_notes', op: 'UPDATE', key: { id: cn }, cols: ['reason'], old: { reason: 'Price' }, new: { reason: 'Price adjustment agreed on 01/10' }, ctx: { code: 'CN-2026-0003' } }])
+    add('payment · notes changed (field edit)', { subject: 'payment', recordId: pay }, [
+        { table: 'payments', op: 'UPDATE', key: { id: pay }, cols: ['notes'], old: { notes: null }, new: { notes: 'Bank slip attached' }, ctx: { code: 'PMT-2026-0012', direction: 'out' } }])
+    add('invoice · notes changed (field edit)', { subject: 'invoice', recordId: inv2 }, [
+        { table: 'invoices', op: 'UPDATE', key: { id: inv2 }, cols: ['notes'], old: { notes: null }, new: { notes: 'Customer PO 4471' }, ctx: { code: 'INV-2026-0012' } }])
+    return C
+}
+    const WANT = {
+        "sale · recorded (key event; the stock issue is the same operation)": {
+                "title": "Sale recorded",
+                "part": null,
+                "lines": [
+                        "Output batch: OUT-2026-0186 · NMC Cathode Foil",
+                        "Customer: Acme Recycling",
+                        "Sale date: 01/10/2026",
+                        "Quantity: 200 kg",
+                        "Unit price: 4.50 SGD",
+                        "Currency: SGD",
+                        "FX rate: 1",
+                        "Amount (base currency): 900.00 SGD",
+                        "Price source: Entered by hand"
+                ],
+                "reason": "Spot sale"
+        },
+        "sale · invoiced (child line: the invoice line that bills it)": {
+                "title": "Invoiced · INV-2026-0010",
+                "part": null,
+                "lines": [
+                        "Quantity: 200",
+                        "Amount: 900.00 SGD"
+                ],
+                "reason": null
+        },
+        "sale · customer attributed (field edit, with the attribution note)": {
+                "title": "Customer attributed to the sale",
+                "part": null,
+                "lines": [
+                        "Customer: Acme Recycling"
+                ],
+                "reason": "Was a walk-in sale"
+        },
+        "sale · cost of sales posted": {
+                "title": "Cost of sales posted",
+                "part": null,
+                "lines": [
+                        "Cost-of-sales journal: JE-2026-0101"
+                ],
+                "reason": null
+        },
+        "freight · recorded with its apportionment (key event + child lines)": {
+                "title": "Freight document recorded",
+                "part": null,
+                "lines": [
+                        "Date: 01/10/2026",
+                        "Forwarder: Swift Forwarding",
+                        "Direction: Inbound — freight on material we bought",
+                        "Amount: 300.00 SGD",
+                        "Currency: SGD",
+                        "FX rate: 1",
+                        "Amount (base currency): 300.00 SGD",
+                        "Apportionment: By weight",
+                        "Payment: Unpaid (payable)",
+                        "IN-2026-0020 · Black mass: 200.00 SGD",
+                        "IN-2026-0021 · Black mass: 100.00 SGD"
+                ],
+                "reason": "Port to yard"
+        },
+        "freight · payment status (field edit)": {
+                "title": "Freight document changed",
+                "part": null,
+                "lines": [
+                        "Payment: Unpaid (payable) → Paid"
+                ],
+                "reason": null
+        },
+        "freight · reversed (key event; the reversal journal is the journal block)": {
+                "title": "Freight document reversed",
+                "part": null,
+                "lines": [
+                        "[Journal JE-2026-0110 reversed]",
+                        "Reversed by: JE-2026-0111"
+                ],
+                "reason": "Billed twice"
+        },
+        "fixed asset · card created (key event)": {
+                "title": "Asset card created",
+                "part": null,
+                "lines": [
+                        "Description: Shredder",
+                        "Category: Equipment",
+                        "Acquisition date: 01/09/2026",
+                        "Cost (transaction currency): 0.00 SGD",
+                        "Currency: SGD",
+                        "Cost (base currency): 0.00 SGD",
+                        "Useful life (months): 60",
+                        "Residual value (base currency): 0.00 SGD"
+                ],
+                "reason": null
+        },
+        "fixed asset · useful life changed (field edit)": {
+                "title": "Asset card edited",
+                "part": null,
+                "lines": [
+                        "Useful life (months): 60 → 84"
+                ],
+                "reason": null
+        },
+        "fixed asset · cost added from an expense (child line)": {
+                "title": "Cost added · EXP-2026-0040",
+                "part": null,
+                "lines": [
+                        "Amount: 12,000.00 SGD",
+                        "Amount (base currency): 12,000.00 SGD",
+                        "[Asset card edited]",
+                        "Cost (base currency): 0.00 SGD → 12,000.00 SGD",
+                        "Cost (transaction currency): 0.00 SGD → 12,000.00 SGD"
+                ],
+                "reason": null
+        },
+        "fixed asset · put into service (key event)": {
+                "title": "Put into service",
+                "part": null,
+                "lines": [
+                        "In service from: (empty) → 01/10/2026"
+                ],
+                "reason": null
+        },
+        "fixed asset · depreciation posted": {
+                "title": "Depreciation posted",
+                "part": null,
+                "lines": [
+                        "Period end: 31/10/2026",
+                        "Amount (base currency): 200.00 SGD",
+                        "Journal: JE-2026-0120"
+                ],
+                "reason": null
+        },
+        "fixed asset · disposal approved and carried out (request + approval + the card, one operation)": {
+                "title": "Asset disposed",
+                "part": null,
+                "lines": [
+                        "Disposal date: (empty) → 03/10/2026",
+                        "Disposal proceeds (base currency): (empty) → 500.00 SGD",
+                        "[Disposal approved · FA-2026-0003 · disposal #1]"
+                ],
+                "reason": null
+        },
+        "fixed asset · a change before the log (from the history row)": {
+                "title": "Asset card edited",
+                "part": null,
+                "lines": [
+                        "Useful life (months): 60 → 48",
+                        "Notes: (empty) → Heavy use"
+                ],
+                "reason": null
+        },
+        "bank statement · imported (key event; its lines counted)": {
+                "title": "Bank statement imported",
+                "part": null,
+                "lines": [
+                        "Account: Cash at Bank – SGD",
+                        "Currency: SGD",
+                        "Period start: 01/09/2026",
+                        "Period end: 30/09/2026",
+                        "Opening balance: 1,000.00 SGD",
+                        "Closing balance: 1,500.00 SGD",
+                        "Source file: dbs-sep.csv",
+                        "Lines: 3"
+                ],
+                "reason": null
+        },
+        "bank statement · a line matched (child line)": {
+                "title": "Statement line matched · Line 1",
+                "part": null,
+                "lines": [
+                        "JE-2026-0090 · Cash at Bank – SGD: 300.00 SGD"
+                ],
+                "reason": null
+        },
+        "bank statement · a line ignored": {
+                "title": "Statement line ignored · Line 3",
+                "part": null,
+                "lines": [],
+                "reason": "Bank rounding"
+        },
+        "bank statement · reconciled (key event, with the explained difference)": {
+                "title": "Bank statement reconciled",
+                "part": null,
+                "lines": [
+                        "As at: 30/09/2026",
+                        "Bank closing balance: 1,500.00 SGD",
+                        "Book balance: 1,499.50 SGD",
+                        "Difference: 0.50 SGD",
+                        "Matched lines: 2",
+                        "Ignored lines: 1",
+                        "Bank charge not yet booked: 0.50 SGD · September fee"
+                ],
+                "reason": null
+        },
+        "bank statement · reconciliation undone (Q24: the machine suffix in the notes is not a notes edit)": {
+                "title": "Reconciliation undone",
+                "part": null,
+                "lines": [],
+                "reason": "Wrong period"
+        },
+        "bank statement · notes edited (field edit)": {
+                "title": "Bank statement changed",
+                "part": null,
+                "lines": [
+                        "Notes: (empty) → Re-imported"
+                ],
+                "reason": null
+        },
+        "bank statement · deleted before the log (date only)": {
+                "title": "Bank statement deleted",
+                "part": null,
+                "lines": [],
+                "reason": null
+        },
+        "GST period · correction opened (Q22: says which period it corrects)": {
+                "title": "Correction opened for GST-2026-Q3",
+                "part": null,
+                "lines": [
+                        "Period start: 01/07/2026",
+                        "Period end: 30/09/2026"
+                ],
+                "reason": "Late supplier invoice"
+        },
+        "GST period · return sent for approval (child: the filing request)": {
+                "title": "GST return sent for approval",
+                "part": "GST-2026-Q3 · filing #1",
+                "lines": [],
+                "reason": "Ready to file"
+        },
+        "GST period · return approved, the boxes locked (Q23: one entry, English only)": {
+                "title": "GST return approved",
+                "part": "GST-2026-Q3 · filing #1",
+                "lines": [
+                        "[GST return locked · 3 boxes]",
+                        "Box 1 · Total value of standard-rated supplies: 1,000.00 SGD",
+                        "Box 6 · Output tax due: 70.00 SGD",
+                        "Box 13 · Revenue for the accounting period: 1,000.00 SGD"
+                ],
+                "reason": null
+        },
+        "GST period · filing recorded (key event)": {
+                "title": "GST return filed",
+                "part": null,
+                "lines": [
+                        "Filed on: 05/10/2026",
+                        "IRAS acknowledgement: IRAS-ACK-778"
+                ],
+                "reason": null
+        },
+        "GST period · notes edited (field edit)": {
+                "title": "GST period changed",
+                "part": null,
+                "lines": [
+                        "Notes: (empty) → Checked by auditor"
+                ],
+                "reason": null
+        },
+        "FX rate · recorded (one event, two rows: the rate and its history)": {
+                "title": "Exchange rate recorded",
+                "part": null,
+                "lines": [
+                        "Currency: USD",
+                        "Side: TT sell (bank sells the foreign currency)",
+                        "Rate (base currency per unit): 1.3521",
+                        "Rate date: 01/10/2026",
+                        "Source: DBS"
+                ],
+                "reason": null
+        },
+        "FX rate · corrected (field edit, the reason from the history row)": {
+                "title": "Exchange rate corrected",
+                "part": null,
+                "lines": [
+                        "Rate (base currency per unit): 1.3521 → 1.3512"
+                ],
+                "reason": "Typed the buy rate"
+        },
+        "FX rate · withdrawn (key event)": {
+                "title": "Exchange rate withdrawn",
+                "part": null,
+                "lines": [],
+                "reason": "Bank holiday — no rate published"
+        },
+        "FX rate · corrected before the log (the history row speaks)": {
+                "title": "Exchange rate corrected",
+                "part": null,
+                "lines": [
+                        "Rate (base currency per unit): 1.36 → 1.35"
+                ],
+                "reason": "Wrong day"
+        },
+        "management pack · produced (key event)": {
+                "title": "Management pack produced",
+                "part": null,
+                "lines": [
+                        "Month: 01/09/2026",
+                        "Period start: 01/09/2026",
+                        "Period end: 30/09/2026",
+                        "Locked before (at production): 30/09/2026",
+                        "Base currency: SGD"
+                ],
+                "reason": null
+        },
+        "management pack · replaced (the newer pack is a link)": {
+                "title": "Management pack replaced",
+                "part": null,
+                "lines": [
+                        "Replaced by: PACK-2026-0002"
+                ],
+                "reason": "Late accrual posted"
+        },
+        "management pack · notes edited (field edit)": {
+                "title": "Management pack changed",
+                "part": null,
+                "lines": [
+                        "Notes: (empty) → Sent to the board"
+                ],
+                "reason": null
+        },
+        "contract · created (key event)": {
+                "title": "Contract created",
+                "part": null,
+                "lines": [
+                        "Supplier: Green Cells Ltd",
+                        "Side: Buy",
+                        "Kind: Supply",
+                        "Title: 2027 black mass supply",
+                        "Status: Draft",
+                        "In force from: 01/01/2027",
+                        "Currency: USD",
+                        "Incoterm: CIF"
+                ],
+                "reason": null
+        },
+        "contract · title changed (field edit)": {
+                "title": "Contract changed",
+                "part": null,
+                "lines": [
+                        "Title: 2027 black mass supply → 2027 black mass supply (revised)"
+                ],
+                "reason": null
+        },
+        "contract · an index pricing term added (child line)": {
+                "title": "Index pricing term added",
+                "part": "Nickel",
+                "lines": [
+                        "Base month from: Arrival",
+                        "Quotational period (M+n): 1",
+                        "Index: London Metal Exchange",
+                        "Payable %: 75"
+                ],
+                "reason": null
+        },
+        "contract · activated (the CFO approved the activation request; one operation)": {
+                "title": "Contract activated",
+                "part": null,
+                "lines": [
+                        "[CFO approved the terms · CON-2026-0004 · activate #1]"
+                ],
+                "reason": null
+        },
+        "contract · activation sent to the CFO": {
+                "title": "Contract activation sent to the CFO",
+                "part": "CON-2026-0004 · activate #1",
+                "lines": [],
+                "reason": "Signed on 28/09"
+        },
+        "contract · linked to a purchase order": {
+                "title": "Linked to PO-2026-0015",
+                "part": null,
+                "lines": [],
+                "reason": null
+        },
+        "payment request · planned date changed (field edit)": {
+                "title": "Request changed · PREQ-2026-0005",
+                "part": null,
+                "lines": [
+                        "Planned payment date: 01/10/2026 → 05/10/2026"
+                ],
+                "reason": null
+        },
+        "credit note · reason changed (field edit)": {
+                "title": "Credit note changed",
+                "part": null,
+                "lines": [
+                        "Reason: Price → Price adjustment agreed on 01/10"
+                ],
+                "reason": null
+        },
+        "payment · notes changed (field edit)": {
+                "title": "Payment changed · PMT-2026-0012",
+                "part": null,
+                "lines": [
+                        "Notes: (empty) → Bank slip attached"
+                ],
+                "reason": null
+        },
+        "invoice · notes changed (field edit)": {
+                "title": "Invoice changed",
+                "part": null,
+                "lines": [
+                        "Notes: (empty) → Customer PO 4471"
+                ],
+                "reason": null
+        },
+        "bank statement · reconciled and undone in one operation (a column that comes back is not a change)": {
+                "title": "Bank statement reconciled",
+                "part": null,
+                "lines": [
+                        "As at: 30/09/2026",
+                        "Bank closing balance: 1,500.00 SGD",
+                        "Book balance: 1,500.00 SGD",
+                        "Difference: 0.00 SGD",
+                        "Matched lines: 3",
+                        "Ignored lines: 0",
+                        "[Reconciliation undone]"
+                ],
+                "reason": "Wrong period"
+        }
+    }
+    const C9 = cases()
+    if (C9.length !== Object.keys(WANT).length || C9.length < 40) problems.gold9.push(`⑨ 造了 ${C9.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    const got9 = {}
+    for (const c of C9) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD9', order: 1, prelog: false, at: '2026-10-03T02:00:00+00:00', key: { id: uuid() },
+            actor: { state: 'person', name: 'Sandra' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: 'SGD', ...c.opts }) } catch (err) { problems.gold9.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        if (es.length !== 1) { problems.gold9.push(`${c.label}:一次操作应当是一条,造出了 ${es.length} 条`); continue }
+        const e = es[0]
+        got9[c.label] = e
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null }
+        const w = WANT[c.label]
+        if (!w) { problems.gold9.push(`${c.label}:金句表里没有这一句`); continue }
+        if (got.title !== w.title) problems.gold9.push(`${c.label}:标题「${got.title}」≠「${w.title}」`)
+        if (got.part !== w.part) problems.gold9.push(`${c.label}:标题后那一段「${got.part}」≠「${w.part}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold9.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+        if (got.reason !== w.reason) problems.gold9.push(`${c.label}:理由「${got.reason}」≠「${w.reason}」`)
+    }
+    // 链接:成本分录、取代它的那一份包是点得过去的单据(路径来自 trail_ref_label 的 href,界面不拼路由)
+    const hrefOf = (label, i = 0) => { const l = got9[label]?.lines?.[i]; return l && l.t === 'value' ? l.value.href : undefined }
+    if (!hrefOf('sale · cost of sales posted')?.startsWith('/finance/journal/')) problems.gold9.push('sale · cost of sales posted:成本分录那一行不是链接')
+    if (!hrefOf('management pack · replaced (the newer pack is a link)')?.startsWith('/finance/packs/')) problems.gold9.push('management pack · replaced:取代它的那一份不是链接')
+    // Q23:申报那一条里一个中文字都没有(label_zh 是机器写的中文)
+    const gst = got9['GST period · return approved, the boxes locked (Q23: one entry, English only)']
+    if (gst && /[\u3400-\u9fff]/.test(JSON.stringify(gst))) problems.gold9.push('GST · Q23:申报那一条里出现了中文(label_zh 上了屏)')
+
+    // 机器字扫描:八个新主语各自的表,按【这一页】的说法(subject)造样本跑一遍 —— ④ 的通用扫描不带 subject,走不到 describeLedger2
+    const SUBS9 = ['sale', 'freight', 'fixed_asset', 'bank_statement', 'gst_period', 'fx_rate', 'management_pack', 'contract']
+    let fin9 = 0
+    for (const sub of SUBS9) {
+        for (const t of R.SUBJECT_TABLES[sub] ?? []) {
+            const cols = Object.entries(SAMPLE_KINDS[t] ?? {})
+            for (let variant = 0; variant < 4; variant++) {
+                const img = {}, old = {}, neu = {}
+                for (const [c, [, kind]] of cols) {
+                    img[c] = sample(t, c, kind, variant)
+                    old[c] = variant === 2 ? RESTRICTED : variant === 3 ? null : sample(t, c, kind, variant + 1)
+                    neu[c] = variant === 1 ? RESTRICTED : sample(t, c, kind, variant + 2)
+                }
+                const refs = { ...refsFor(t, img, variant), ...refsFor(t, old, variant + 1), ...refsFor(t, neu, variant + 2) }
+                for (const [op, o] of [['INSERT', { new: img, prelog: variant === 3 }], ['UPDATE', { cols: cols.map(([c]) => c), old, new: neu, ctx: img }], ['DELETE', { old: img }]]) {
+                    sweep(`${sub} · ${t} · ${op} · 样本 ${variant}`, [row(t, op, { ...o, refs })], sub)
+                    fin9++
+                }
+            }
+        }
+        // 申请的每一种状态(资产处置 · GST 申报 · 合同生效)与撤销对账的备注后缀,按这一页说一遍
+        for (const st of ['submitted', 'approved', 'rejected', 'withdrawn']) {
+            sweep(`${sub} · disposal → ${st}`, [row('asset_disposal_requests', 'UPDATE', { cols: ['status'], old: { status: 'submitted' }, new: { status: st }, ctx: { label: 'FA-2026-0001 · disposal #1' } })], sub)
+            sweep(`${sub} · GST filing → ${st}`, [row('gst_filing_requests', 'UPDATE', { cols: ['status'], old: { status: 'submitted' }, new: { status: st }, ctx: { label: 'GST-2026-Q3 · filing #1' } })], sub)
+            sweep(`${sub} · contract activation → ${st}`, [row('terms_requests', 'UPDATE', { cols: ['status'], old: { status: 'submitted' }, new: { status: st }, ctx: { kind: 'contract_activate', label: 'CON-2026-0001 · activate #1' } })], sub)
+            fin9 += 3
+        }
+        sweep(`${sub} · unreconcile suffix`, [row('bank_statements', 'UPDATE', { cols: ['status', 'notes'], old: { status: 'reconciled', notes: null }, new: { status: 'open', notes: 'UNRECONCILED 2026-10-04 09:00:00.1+08: why' } })], sub)
+        sweep(`${sub} 整条看不见`, [row(R.SUBJECT_TABLES[sub][0], null, { hidden: true, table: null, actor: null })], sub)
+        fin9 += 2
+    }
+    // 应当造的句数由登记表算出来(每张表 4 个样本 × 3 种操作 · 每个主语 12 次申请状态 + 1 句备注后缀 + 1 句整条看不见)
+    const fin9Want = SUBS9.reduce((n, sub) => n + (R.SUBJECT_TABLES[sub] ?? []).length * 12 + 14, 0)
+    if (fin9 !== fin9Want || fin9 < 500) problems.coverage.push(`其余单据那八页的机器字扫描造了 ${fin9} 句,登记表要求 ${fin9Want} 句 —— 造样本那一段瞎了`)
+    if (FAULT === 'wording-drift-1c2' && !problems.gold9.length) problems.gold9.push('(注入 wording-drift-1c2 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + 1
 if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSwept.size} 张表,目录里有 ${expectTables} 张`)
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

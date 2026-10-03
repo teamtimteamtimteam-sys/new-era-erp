@@ -7,6 +7,9 @@
 -- AUDIT-TRAIL-1b-1:同一张表挂在几个主语下时(加工投入既在加工单上、也在批次上;approval_log 按 subject_type 分给
 --   十来种单据),只沿【home】的那一条、并且【match 对得上这一行】、外键有值的那一条往上走 —— 否则汇总页的 Record 一栏
 --   会随登记表的字母顺序变,一次加工投入突然"属于"一个批次。往上一跳的垫脚石(hop = 'up')从不参与。
+-- AUDIT-TRAIL-1c-2(Tim 的 Q14):销售是一个主语的根了 —— 它那一行(与沿 home 走上来的子行)的家是【这一笔销售】,
+--   链接落在它的应收页 /finance/receivables/<id>。销售没有 code 列,所以它【不】进 document_types(全站搜索会对登记的
+--   每一张表拼一句 SELECT code);名字由 trail_ref_label 给,路由在这里给,与单据同一个形状(doc_key 'sale',link_mode 'detail')。
 -- 【属主身份】EXECUTE 已从 authenticated 收回。
 CREATE OR REPLACE FUNCTION public.trail_row_record(p_table text, p_key jsonb, p_old jsonb, p_new jsonb)
  RETURNS jsonb
@@ -78,6 +81,9 @@ BEGIN
     END IF;
     v_lab := trail_ref_label(v_table, COALESCE((trail_pk_columns(v_table))[1], 'id'), v_id);
     SELECT dt.key, dt.route, dt.link_mode INTO v_dkey, v_route, v_mode FROM document_types dt WHERE dt.table_name = v_table ORDER BY dt.key LIMIT 1;
+    IF v_table = 'sales_records' THEN
+        v_dkey := 'sale'; v_route := '/finance/receivables'; v_mode := 'detail';
+    END IF;
     RETURN jsonb_build_object('table', v_table, 'id', v_id,
         'label', v_lab ->> 'label', 'gone', COALESCE((v_lab ->> 'gone')::boolean, false),
         'doc_key', v_dkey, 'route', v_route, 'link_mode', v_mode);

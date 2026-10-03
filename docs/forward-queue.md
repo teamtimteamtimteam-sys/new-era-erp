@@ -171,6 +171,17 @@
 >    直写那三下,仍然被允许;新函数 `save_storage_location` 部署前没人调);看得见的一处:旧的 `/settings/deleted` 把新加的四类
 >    (客户 · 供应商 · 物料 · 公式)列成**原样的键名**(`deleted.kind.customer`)、**没有链接** —— 旧页面两样都没有。
 >    应用迁移那一段(10:29:17 → 10:31:01)`deleted_records` 被视图替换锁着。见 `docs/handbacks/AUDIT-TRAIL-1b-3.md` §7。
+> 27. **✅ 账上单据的审计记录与 M7 / op_key / 引用里的员工名 —— AUDIT-TRAIL-1c-1(`v1.4.33` 的一部分,【未发布】,2026-10-03)。**
+>    内容见下面「HISTORY family」一节 AT-1c 那一块的 ✅ AT-1c-1。
+>    ★ **部署:Tim 在 Vercel 上确认 `f2583028` 已部署(AT-1c-1 close-out + AT-1c-2 委托书,2026-10-03)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-03 15:26:50 CST**(测量:`db/migration-windows.tsv`,`2026-10-03-at1c1-trails-ledger-documents.sql`)·
+>    终点下界 **2026-10-03 17:16:34 CST**(测量:推送把 `origin/main` 移到 `f2583028`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`f2583028 … {2026-10-03 17:16:34 +0800}: update by push`)·
+>    终点上界 **2026-10-03 17:20:24 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 49 min 44 s,至多 1 h 53 min 34 s。** 窗口里**没有东西坏掉**(旧应用不读 `record_trail` 新多出来的 `op_key`
+>    那一列,也不叫七个新主语;`trail_ref_label` 给员工的新答法是旧造句器先读的那一个形状);冲销分录的"来源"链接在部署之前照旧是错的,
+>    与之前一样。见 `docs/handbacks/AUDIT-TRAIL-1c-1.md` §7。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -6576,14 +6587,21 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
       三个戳登记成事件(Q9);付款申请要结清的单据按单号说(Q13);冲销读作一句、冲销分录是链着的一行(Q31 · Q33);
       "Approved automatically"(Q32);发票申请的"历史"那一段换成审计记录(Q26);冲销分录的"来源"链接修好(Q15);
       1b-3 第 28 号的金句补上(Q34)。交回 `docs/handbacks/AUDIT-TRAIL-1c-1.md`;fixture 241。
-    * **⬜ AT-1c-2 · 其余的单据与合同** —— 销售(Q14:`sale` 进单据登记表)· 运费 · 资产(替掉资产的"历史"面板)· 对账单(删掉的对账单只读打开,Q6)·
-      GST 期间(Q22 · Q23)· 汇率(撤回的汇率只读打开,Q7)· 管理包 · 合同(Q21)。
-      ★ **1c-1 留下的一个缺口,在这一刀补上**:付款申请与贷项通知的【字段编辑】没有 fixture 一臂,"Request changed" /
-      "Credit note changed" / "Payment changed" / "Invoice changed" 四句也没有金句,只有机器字扫描那一层兜着
-      (`docs/handbacks/AUDIT-TRAIL-1c-1.md` §10 第 18 条)。
+    * **✅ AT-1c-2(2026-10-04)· 其余的单据与合同** —— 销售(Q14:销售是一个主语的根,`/settings/change-history` 的 Record 一栏把它与
+      它的子行叫作 "OUT-… sale DD/MM/YYYY"、链到应收页 —— 销售没有 code 列,所以【没有】进 `document_types`:全站搜索会对登记的每一张表
+      拼一句 `SELECT code`)· 运费单(横幅加上"谁",Q8)· 资产(新主语 `fixed_asset`,替掉资产页的 FA-HIST-1 "Change history" 面板,
+      Q10 · Q26)· 对账单(删掉的对账单对持 `data.view_deleted` 的人只读打开、进 `/settings/deleted`,Q6;撤销对账那一截机器字说成
+      "Reconciliation undone",Q24)· GST 期间(更正件不挂在原件上,Q22;申报那一刻的每一格并进申报那一条、只说英文,Q23)·
+      汇率(撤回了的汇率对本来的读者只读打开,Q7)· 管理包(Q25:fixture 与线上回滚的证明)· 合同(没有 pricing.view 的读者,CFO 的决定是
+      Restricted,Q21);Q9 余下的两个戳(运费单冲销 · 对账单对账)。1c-1 留下的缺口补上:付款申请与贷项通知的【字段编辑】有了 fixture 一臂
+      与金句(连带收付款、发票的 "… changed" 各一句)。交回 `docs/handbacks/AUDIT-TRAIL-1c-2.md`;fixture 242。
     * **⬜ AT-1c-3 · 期末、设置与清单页上的记录** —— 锁期面板(+ 月结 / 反结,M7)与 `/finance/close`(Q29)· GST 设置面板 · 公司资料 · 年结 ·
       重估与折旧的批次 · 批量汇率(Q16)· 现金预测 · 工资付款(Q18)· 加工成本结算(Q19)· 代扣税缴纳 · 转账 · 报销单(Q20)· 银行导入模板 ·
       人工分录申请(Q17)。
+      ★ **1c-2 留给这一刀的一件(2026-10-04):撤回了的汇率在屏幕上没有入口。** 1c-2 让它的页面对本来的读者只读打开(Q7),而
+      `/finance/fx` 的清单与它的查询(`app/finance/fx/page.tsx:139`、`app/finance/fx/fxQuery.ts:47`)过滤掉 `deleted_at` —— 那一页是 1c-3 的
+      清单之家(批量汇率),1c-2 按委托书一个字没动。1c-3 动那一页时,给撤回的汇率一个入口(一个 "Withdrawn" 筛选,或清单页那一块审计记录
+      里的链接),否则它只能靠直接输入地址打开。
   * **⬜ AT-1d(`v1.4.33` 的最后一部分,关闭后才发布 `v1.4.33`;~~v1.4.36~~)· 人事、设置与账号** —— HR 的宿主页与 `/me`;设置页(审批方针、词典、导入);
     ★ **审批方针那一块面板归这里(Tim 的 AT-1c Q2,2026-10-03)**:`/settings/approvals`(守卫 `action.manage_permissions`)上的 `approval_policy`
     主语 —— `finance_settings` 的四列审批方针(M5 · M6)+ `finance_settings_history`(M7,整张表属于那一行),替掉页上的 `ApprovalsHistory`(Q26);

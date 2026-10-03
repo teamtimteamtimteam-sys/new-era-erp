@@ -224,8 +224,10 @@ their terms requests, tasks (personal tasks too), the three threshold panels —
 made deleted master data and deleted sales orders, quotes and purchase orders open read-only for `data.view_deleted` holders
 (§9.10). That completes AT-1b. AUDIT-TRAIL-1c-1 (part of v1.4.33) added the ledger documents — journals, invoices, credit
 notes, payments, payment requests, expenses and the payable view of an inbound batch — and three mechanism changes (M7, the
-operation key, employee names in references; §9.9, §9.11). AT-1c-2, AT-1c-3 and AT-1d follow (`docs/forward-queue.md`,
-"HISTORY family").
+operation key, employee names in references; §9.9, §9.11). AUDIT-TRAIL-1c-2 (part of v1.4.33) added the rest of the documents
+and contracts — sales, freight documents, fixed assets (the finance page), bank statements, GST periods, FX rates, management packs and
+contracts — replaced the asset page's "Change history" panel, and made deleted bank statements and withdrawn FX rates open read-only
+(§9.12). AT-1c-3 and AT-1d follow (`docs/forward-queue.md`, "HISTORY family").
 Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`), AT-1b Step 0 Q1–Q14 + M1–M6
 (`docs/surveys/AUDIT-TRAIL-1b/STEP0-HANDBACK.md`) and AT-1c Step 0 Q1–Q34 (`docs/surveys/AUDIT-TRAIL-1c/STEP0-HANDBACK.md`),
 all accepted as recommended.
@@ -268,6 +270,14 @@ all accepted as recommended.
 | `/finance/payment-requests/[id]` (1c-1) | `payment_request` | `module.finance.view` | the request · its approvals · the payment it made · bank transfers and WHT remittances it made or reversed (they have no page of their own, Q17) · the journals posted |
 | `/finance/expenses/[id]` (1c-1) | `expense` | `module.finance.view` | the expense · allocations · attachments · prepayments released against it · the expense that reversed it / that it reversed · the expense claim that posted it · asset cost it capitalised · its journals |
 | `/finance/payables/[batchId]` (1c-1) | `payable` | `module.finance.view` (root rule `page`, M3; `root_columns` = the payable columns, M6) | the batch's money side only — supplier, PO, quantity, unit price, pricing status, arrival date, write-off · payment and freight allocations · prepayments · finance attachments · price changes · purchase / write-off / prepayment journals and their reversals. The warehouse side (assays, safety states, stock moves) stays on `/inbound/[id]/edit` |
+| `/finance/receivables/[saleId]` (1c-2) | `sale` | `module.finance.view` | the sale · its stock issue · the customer attributed to it (and the attribution note) · the invoice line that bills it · payments allocated to it · finance attachments · its revenue journal, its cost-of-sales journal and their reversals (Q14: the summary page's Record column names the sale "OUT-… sale DD/MM/YYYY" and links here) |
+| `/finance/freight/[id]` (1c-2) | `freight` | `module.finance.view` | the freight document · its apportionment to batches · payments allocated to it · its posting journal · its reversal journal |
+| `/finance/assets/[id]` (1c-2) | `fixed_asset` | `module.finance.view` (the same root as `equipment`; a second subject, Q10) | the asset card · its history (`fixed_asset_history` before the log; the card's own change-log rows after) · cost entries · depreciation charges and re-basings · disposal requests and their approvals · the disposal and depreciation journals · servicing, downtime and service intervals (their home stays `equipment`) — replaces FA-HIST-1's "Change history" panel (Q26) |
+| `/finance/bank/statements/[id]` (1c-2) | `bank_statement` | `module.finance.view` | the statement · its lines and each line's match · its reconciliation records and their explained differences (a deleted statement opens read-only for `data.view_deleted`, Q6) |
+| `/finance/gst/[periodId]` (1c-2) | `gst_period` | `module.finance.view` | the period · its filing requests and their approvals · the boxes locked at approval (folded into that entry, English only — Q23). A correction period is **not** linked into the original (Q22) |
+| `/finance/fx/[id]/edit` (1c-2, its only page) | `fx_rate` | `module.finance.view` | the rate · its history (recorded, corrected with a reason, withdrawn with a reason) — a withdrawn rate opens read-only (Q7) |
+| `/finance/packs/[id]` (1c-2) | `management_pack` | `module.finance.view` | the pack (produced; replaced by a later pack, which is a link) — no members (Q25) |
+| `/contracts/[id]` (1c-2) | `contract` | `module.suppliers.view` (the page guard; the root's own rule is side-dependent) | the contract · its seven term tables · its activation requests and the CFO's decisions (Restricted for a reader without `module.pricing.view`, Q21) · the purchase or sales orders it was linked to |
 
 ### 9.1 The reader: `record_trail(subject, id, entries)`
 
@@ -562,4 +572,50 @@ until they are dropped.
   defect 28 — Q34) plus a machine-token sweep over every table of the seven subjects with the page's own subject (750 sentences, the
   number computed from the registry); injection `wording-drift-1c1`. Smoke `trail` assertions on six of the seven pages
   (`/finance/payment-requests/[id]` stays on the skip list: no live request).
+
+### 9.12 The rest of the documents and contracts (AUDIT-TRAIL-1c-2, Tim's AT-1c Q1–Q34)
+
+- **Eight subjects, one describer.** `sale`, `freight`, `fixed_asset`, `bank_statement`, `gst_period`, `fx_rate`, `management_pack` and `contract`
+  join the finance family: every row on these pages goes through `describeFinance`, which hands the tables 1c-2 first shows to
+  `describeLedger2` (`lib/trail/render.ts`). Journals, allocations, attachments and approvals keep 1c-1's wording.
+- **The sale is a subject root (Q14).** The summary page's Record column for a sale row — and for the rows that hang off it (its stock issue,
+  its attribution note) — is now the sale, named "OUT-2026-0186 sale 01/08/2026" and linked to `/finance/receivables/<id>`
+  (`trail_ref_label`, `trail_row_record`; the output batch's `sales_records` membership is no longer home). `sales_records` has no `code`
+  column, so it is **not** added to `document_types`: global search builds `SELECT code` for every registered table and would fail; the
+  name and the link come from the two trail functions instead, in the same shape a document gets.
+- **One event, two rows (the 1b-3 rule) for the asset card and FX rates.** `fixed_asset_history` and `fx_rate_history` are written in the same
+  transaction as the row's own change. After the log began the change-log row speaks (it has every column) and the history row adds only what
+  the row cannot say (an FX correction's or withdrawal's reason); before the log the history row speaks — the asset history's `old_` / `new_`
+  pairs are labelled after the card's own columns (generated, not hand-copied) and resolved through the card's foreign keys (`trail_refs`).
+- **Before the log (Q9):** the last two of Step 0's five stamps are registered as event sources — `freight_documents.reversed_at` (all four
+  live freight documents were reversed before the log) and `bank_statements.reconciled_at` (BS-2026-0002 was reconciled with no reconciliation
+  record). Where a reconciliation record exists it shares the moment and is said once.
+- **Ended records (Q8 · Q6 · Q7).** A reversed freight document carries "Reversed on DD/MM/YYYY by <name>" + "Reason" + a link to the reversal
+  journal (it used to omit who). A **deleted bank statement** opens read-only for `data.view_deleted` holders ("Deleted on DD/MM/YYYY" — nobody
+  was recorded; everyone else gets the named refusal, not a 404) and is listed on `/settings/deleted` (`deleted_records` gains a
+  `bank_statement` branch; "who" from the change log). A **withdrawn FX rate** opens read-only for the page's normal readers with
+  "Withdrawn on DD/MM/YYYY by <name>" and the reason, both from its `withdrawn` history row (the rate keeps no withdrawer); the form is
+  disabled because `record_fx_rate` would otherwise create a new rate rather than edit the withdrawn one.
+- **GST (Q22 · Q23).** A correction period is not a member of the original — its own trail opens with "Correction opened for GST-…"; the
+  original page keeps its existing link. The boxes copied at approval fold into the filing entry ("GST return locked · N boxes", one line per box,
+  `label_en` only; `label_zh` is machine-written Chinese and is never shown).
+- **Undoing a reconciliation (Q24).** `unreconcile_statement` appends "UNRECONCILED <timestamp>: <reason>" to the notes; the renderer recognises
+  that machine suffix and says "Reconciliation undone" with the person's reason, never the notes diff (`unreconcileReason`). The writer is
+  registered in `docs/known-issues.md` (`AT1C1-UNRECONCILE-WRITES-TIMESTAMP-INTO-NOTES`).
+- **Contracts (Q21).** Terms requests read as on the formula page ("Contract activation sent to the CFO", "CFO approved the terms"); the
+  approval rows follow `approval_log`'s terms-request branch, which asks `module.pricing.view` even for a contract, so a contract reader without
+  it sees the decisions as Restricted. Term rows read "<Section> added / changed / removed · <metal>".
+- **A column that comes back is not a change (all subjects).** `mergeUpdates` folds several edits of one row inside one operation into one
+  (first old value, last new value). Since AT-1a it kept a column that ended where it started, so a statement reconciled and undone in the
+  same transaction printed "Status: Open → Open" and "Reconciled on: (empty) → (empty)" (seen in the rolled-back live proof). Merged rows
+  now drop such columns, and a merged row left with none says nothing. A single edit is untouched. Golden "bank statement · reconciled
+  and undone in one operation" in arm ⑨; with the filter removed in a scratch copy it goes red printing exactly those lines.
+- **Checks.** Fixture **242** (each subject's field edit, child-line change and key event — or, where none exists, that a direct edit is refused
+  by name; Q6 · Q7 · Q9 · Q10 · Q14 · Q21 · Q22 · Q23 · Q24 · Q25; the 1c-1 gap: payment-request and credit-note field edits), fault-injected by
+  `db/scripts/2026-10-04-at1c2-fixture-injections.py` (25 injections, each red in its own arm). `scripts/check-trail-wording.mjs` arm
+  **⑨ 其余的单据与合同** (44 goldens, hand-checked: every subject plus the payment-request, credit-note, payment and invoice field edits 1c-1 left
+  without one, and the round-trip above) plus a machine-token sweep over every table of the eight subjects with the page's own subject; injection `wording-drift-1c2`.
+  Smoke `trail` assertions on seven of the eight pages (`/finance/packs/[id]` stays on the skip list: no live pack). `scripts/probe-at1c2.mjs`:
+  the deleted statement read-only for admin and refused by name for `gm`; the freight banner; the asset page without its old panel; every live
+  record of the eight subjects in both interfaces, plus one AT-1a, one AT-1b and one AT-1c-1 page.
 

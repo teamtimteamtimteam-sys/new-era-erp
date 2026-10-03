@@ -191,8 +191,14 @@ const OVERRIDES = {
         capitalised_expense_id: 'Capitalised through expense' },
     equipment_service_intervals: { lead_days: 'Warn this many days before', lead_kg: 'Warn this many kilograms before' },
     finance_attachments: { claim_id: 'Claim', doc_type: 'Document type' },
-    fixed_assets: { code: 'Asset number', cost_base: 'Cost (base currency)', cost_ccy: 'Cost', in_service_date: 'In service from',
-        planned_in_service_date: 'Planned in service from', useful_life_months: 'Useful life (months)' },
+    fixed_assets: { code: 'Asset number', cost_base: 'Cost (base currency)', in_service_date: 'In service from',
+        planned_in_service_date: 'Planned in service from', useful_life_months: 'Useful life (months)',
+        // AUDIT-TRAIL-1c-2(财务那一页,Q10 · Q26):资产页上被替掉的"Change history"面板(FA-HIST-1)给每一列配过页面上的
+        //   名字(messages/en.ts 的 assets.history.field.*,本刀随面板一起删掉)—— 那就是这几列在页上的标签,搬到这里;
+        //   "Created by an expense" 读起来像一个人;处置所得与残值是本位币
+        expense_id: 'Originating expense', disposal_journal_id: 'Disposal journal entry', cost_ccy: 'Cost (transaction currency)',
+        fx_rate: 'FX rate at acquisition', residual_base: 'Residual value (base currency)',
+        disposal_proceeds_base: 'Disposal proceeds (base currency)' },
     freight_allocations: { basis_qty: 'Allocation basis (quantity)', freight_document_id: 'Freight document', in_stock_ratio: 'Share still in stock' },
     inbound_batch_metals: { source_assay_id: 'From assay' },
     output_batch_metals: { source_assay_id: 'From assay' },
@@ -214,7 +220,9 @@ const OVERRIDES = {
     //   (1b-2 第一版就是这么把这里的 amend_reason 弄丢的,生成物里一度读回 "Amend reason")
     sales_order_history: { amend_reason: 'Reason', line_no: 'Line', detail: 'Details' },
     sales_order_reservations: { release_reason: 'Release reason' },
-    sales_records: { cogs_entry_id: 'Cost-of-sales journal', customer_id: 'Customer', price_provenance: 'How the price was set' },
+    sales_records: { cogs_entry_id: 'Cost-of-sales journal', customer_id: 'Customer', price_provenance: 'How the price was set',
+        // AUDIT-TRAIL-1c-2(应收页):金额是本位币;备注在页上叫 Memo
+        amount_base: 'Amount (base currency)', notes: 'Memo', output_batch_id: 'Output batch', sales_order_line_id: 'Sales order line' },
     sales_settlements: { amount_usd: 'Amount (USD)', gross_weight_kg: 'Gross weight (kg)', settlement_weight_kg: 'Settlement weight (kg)' },
     shift_handover_items: { body: 'Details', item_type_code: 'Type' },
     shift_handovers: { incoming_employee_id: 'Incoming', outgoing_employee_id: 'Outgoing' },
@@ -329,6 +337,49 @@ const OVERRIDES = {
         reversed_by_expense: 'Reversed by', wht_payee_residence: 'WHT payee residence' },
     expense_claims: { no_receipt_reason: 'Why there is no receipt', tax_code: 'Tax code' },
     fixed_asset_cost_entries: { amount_base: 'Amount (base currency)', expense_id: 'From expense' },
+    // ── AUDIT-TRAIL-1c-2:其余的单据与合同(八个主语显示的每一张表、每一列,对着它所在的那一页核过 —— 表单 / 详情页的字段名优先;
+    //    交回报告逐条列出)。生成器配错的那几类(AT-1c Step 0 §g):"Gst period number"、"Rate Date"、两列都叫 "Filed on"、
+    //    "Quarter starts"、"Label en / zh"、"F5 box"、"Prev rate"、"Actions"、"M (the base month itself)"、"Produced" / "Superseded"(时刻读成状态词)、
+    //    "Reversed at" / "Reconciled at"(at 与 on 不统一)、"Created by an expense"(读起来像一个人)、同一张表两列都叫 "Amount"。
+    //    汇率那一列的页面标签是 "Rate (1 unit = ? SGD)" —— 一个写死的币种字面量(本仓库的规矩:币种是数据),这里说成本位币。
+    sales_record_movements: { movement_id: 'Stock movement', sales_record_id: 'Sale' },
+    sales_attribution_log: { amount_base: 'Amount (base currency)', exposure_after: 'Customer exposure after', sales_record_id: 'Sale' },
+    freight_documents: { code: 'Freight document number', doc_date: 'Date', supplier_id: 'Forwarder', amount_ccy: 'Amount',
+        amount_base: 'Amount (base currency)', allocation_basis: 'Apportionment', payment_status: 'Payment', bank_account_code: 'Bank account',
+        journal_entry_id: 'Journal entry', reversal_entry_id: 'Reversal entry', reversal_reason: 'Reason for reversal', reversed_at: 'Reversed on',
+        reversed_by: 'Reversed by', container_id: 'Container', direction: 'Direction' },
+    fixed_asset_history: { fixed_asset_id: 'Asset', change_type: 'Change', changed_columns: 'Fields changed', changed_by_kind: 'Changed through' },
+    fixed_asset_depreciation: { amount_base: 'Amount (base currency)', journal_entry_id: 'Journal', asset_id: 'Asset' },
+    fixed_asset_depreciation_anchors: { asset_id: 'Asset', pre_anchor_target_base: 'Depreciable amount before re-basing (base currency)',
+        remaining_months: 'Remaining months', expense_id: 'From expense', maintenance_id: 'Service or repair' },
+    asset_disposal_requests: { label: 'Request', amount_base: 'Amount (base currency)', proceeds_base: 'Proceeds (base currency)',
+        bank_account: 'Bank account', result_entry_id: 'Posted as', snapshot: 'Asset at the time', estimate: 'Estimate', result: 'Result',
+        withdraw_reason: 'Withdrawal reason', asset_id: 'Asset', executed_at: 'Carried out on' },
+    bank_statements: { code: 'Bank statement number', bank_account_code: 'Account', reconciled_at: 'Reconciled on' },
+    bank_statement_lines: { reference: 'Reference', line_date: 'Date', ignore_reason: 'Why it is ignored', statement_id: 'Bank statement' },
+    bank_line_matches: { journal_line_id: 'Matched to', statement_line_id: 'Statement line' },
+    bank_reconciliations: { as_of: 'As at', superseded_reason: 'Why it was undone', statement_id: 'Bank statement' },
+    bank_reconciliation_variance_items: { item_kind: 'Type', note: 'What it is', item_no: 'Item' },
+    gst_periods: { code: 'GST period number', period_start: 'Period start', filed_at: 'Filing recorded on', filed_by: 'Filing recorded by',
+        corrects_period_id: 'Corrects period' },
+    gst_return_boxes: { value_base: 'Value (base currency)', period_id: 'GST period', label_en: 'Box description (English)',
+        label_zh: 'Box description (Chinese)' },
+    gst_filing_requests: { label: 'Request', boxes: 'Boxes as submitted', withdraw_reason: 'Withdrawal reason', executed_at: 'Carried out on',
+        period_id: 'GST period' },
+    fx_rates: { rate_date: 'Rate date', rate_sgd_per_unit: 'Rate (base currency per unit)', deleted_at: 'Withdrawn on' },
+    fx_rate_history: { action: 'Action', prev_rate: 'Previous rate', rate_sgd_per_unit: 'Rate (base currency per unit)', rate_type: 'Side',
+        fx_rate_id: 'Exchange rate' },
+    management_packs: { code: 'Pack', period_month: 'Month', base_currency: 'Base currency', payload: 'Pack contents', produced_at: 'Produced on',
+        superseded_at: 'Replaced on', superseded_by: 'Replaced by', superseded_reason: 'Why it was replaced' },
+    contracts: { code: 'Contract number' },
+    contract_grade_specs: { metal: 'Element', min_pct: 'Minimum %', max_pct: 'Maximum %' },
+    contract_insurance_obligations: { cover_type: 'Cover', min_amount: 'Minimum amount' },
+    contract_volume_commitments: { committed_by_party: 'Committed by', period: 'Per', direction: 'At least / at most' },
+    contract_pricing_terms: { metal: 'Metal', qp_months: 'Quotational period (M+n)' },
+    contract_settlement_terms: { sale_weight_basis: 'Settles on', settling_party: 'Assay that counts',
+        splitting_limit_pct: 'Splitting limit (percentage points)', sample_retention_days: 'Retention days',
+        refining_charge_basis: 'Refining charge', penalty_basis: 'Penalties' },
+    contract_refining_charges: { metal: 'Metal' },
 }
 // AUDIT-TRAIL-1b-2:勘察把几列自由文本认成了"像枚举"(enum_like)—— 页面上它们是一个随手填的输入框,
 //   审计记录就照原样说(一个人敲的字,Q8),而不是去找一张并不存在的取值表。
@@ -341,6 +392,18 @@ const KIND_OVERRIDES = {
     // AUDIT-TRAIL-1c-1:付款申请的两个户被认成了"内部代码"(藏起来)—— 它们是哪个户付、付到哪个户,页面上印着;
     //   与收付款、费用、转账上的同一列一样,说成户名(下面 ENUM_OVERRIDES)
     payment_requests: { bank_account_code: 'enum', to_account_code: 'enum' },
+    // AUDIT-TRAIL-1c-2:
+    //   · 两段人敲的文字被认成了"像枚举"(保险的险别、承诺量的单位 —— 表单上是一个随手填的输入框);汇率的来源同理(DBS · MAS 由人填)
+    //   · 处置申请的入账户只认 1000 / 1010,说成户名;申报格的格号说成 "Box 1"
+    //   · 两列"每吨多少美元"的标签已经说了 USD —— 记成数字,不让它挂上合同的币种(否则 "300.00 SGD" 是一句错话)
+    contract_insurance_obligations: { cover_type: 'text' },
+    contract_volume_commitments: { unit: 'text' },
+    fx_rates: { source: 'text' },
+    fx_rate_history: { source: 'text', rate_type: 'enum_like' },
+    asset_disposal_requests: { bank_account: 'enum' },
+    gst_return_boxes: { box: 'enum' },
+    contract_refining_charges: { usd_per_tonne_of_metal: 'number' },
+    contract_penalty_elements: { usd_per_tonne_per_pct_over: 'number' },
 }
 // 三个主语的表里【本来就不该印的列】(Q12:单据编号自己在标题里,内部代码不上屏)
 const HIDE = {
@@ -375,6 +438,12 @@ const HIDE = {
     metal_prices: ['anomaly_check'], terms_requests: ['fingerprint'], task_nodes: ['parent_depth'],
     // AUDIT-TRAIL-1c-1:两张签发档的散列不是人话(与 1b-2 的另外四张同一条)
     invoice_issues: ['sha256'], cn_issues: ['sha256'],
+    // AUDIT-TRAIL-1c-2:两张修改史的主键、类型、时刻、人由标题与"谁 · 何时"两栏说(与公式、任务修改史同一条);资产修改史的
+    //   "改了哪几列"是一组列名(机器字 —— 改了什么由下面成对的 old_ / new_ 说);申报格的中文说明是机器写的中文(Q8 · Q23),
+    //   永远不上屏(英文那一段是系统写的英文,照常说 —— 申报那一条按格画它)
+    fixed_asset_history: ['fixed_asset_id', 'change_type', 'changed_at', 'changed_by', 'changed_columns', 'changed_by_kind'],
+    fx_rate_history: ['fx_rate_id', 'changed_at', 'changed_by'],
+    gst_return_boxes: ['label_zh'],
 }
 
 // ── 记录类型的英文名(单数)与区域 ─────────────────────────────────────────────
@@ -427,6 +496,15 @@ const TABLE_NAMES = {
     payment_requests: 'payment request', payment_allocations: 'payment allocation', bank_transfers: 'bank transfer',
     wht_remittances: 'WHT remittance', expense_claims: 'expense claim', fixed_asset_cost_entries: 'asset cost entry',
     prepayment_applications: 'prepayment release', freight_allocations: 'freight allocation', finance_attachments: 'finance attachment',
+    // AUDIT-TRAIL-1c-2(合同那七张取页面上那一段的名字,单数)
+    sales_records: 'sale', freight_documents: 'freight document', fixed_asset_history: 'asset card change',
+    fixed_asset_depreciation: 'depreciation charge', fixed_asset_depreciation_anchors: 'depreciation re-basing',
+    asset_disposal_requests: 'asset disposal request', bank_statements: 'bank statement', bank_statement_lines: 'bank statement line',
+    bank_line_matches: 'statement line match', bank_reconciliations: 'bank reconciliation', bank_reconciliation_variance_items: 'explained difference',
+    gst_periods: 'GST period', gst_return_boxes: 'GST return box', gst_filing_requests: 'GST filing request', fx_rate_history: 'exchange rate change',
+    management_packs: 'management pack', contract_grade_specs: 'grade specification', contract_insurance_obligations: 'insurance obligation',
+    contract_volume_commitments: 'volume commitment', contract_pricing_terms: 'index pricing term', contract_settlement_terms: 'settlement basis',
+    contract_refining_charges: 'refining charge', contract_penalty_elements: 'penalty element',
 }
 // 区域:按表名开头认(先长后短),认不出的归 Other。区域名与导航模块的英文说法一致。
 const AREA_RULES = [
@@ -572,6 +650,27 @@ const ENUM_OVERRIDES = {
     'journal_requests#status': { submitted: 'Waiting for approval', approved: 'Approved and posted', rejected: 'Rejected', withdrawn: 'Withdrawn' },
     'expenses#wht_payee_residence': { resident: 'Singapore tax resident', non_resident: 'Non-resident' },
     'expense_claims#status': { submitted: 'Waiting for approval', withdrawn: 'Withdrawn', approved: 'Approved', rejected: 'Rejected' },
+    // ── AUDIT-TRAIL-1c-2 ──────────────────────────────────────────────────────────────────────────────
+    'freight_documents#bank_account_code': { '1000': 'Cash at Bank – SGD', '1010': 'Cash at Bank – USD' },
+    'bank_statements#bank_account_code': { '1000': 'Cash at Bank – SGD', '1010': 'Cash at Bank – USD' },
+    'asset_disposal_requests#bank_account': { '1000': 'Cash at Bank – SGD', '1010': 'Cash at Bank – USD' },
+    'freight_documents#status': { posted: 'Posted', reversed: 'Reversed' },
+    'asset_disposal_requests#status': { submitted: 'Waiting for approval', approved: 'Approved', rejected: 'Rejected', withdrawn: 'Withdrawn' },
+    'gst_filing_requests#status': { submitted: 'Waiting for approval', approved: 'Approved', rejected: 'Rejected', withdrawn: 'Withdrawn' },
+    'gst_periods#status': { open: 'Open', approved: 'Approved — ready to file', filed: 'Filed' },
+    'gst_return_boxes#box': Object.fromEntries(Array.from({ length: 15 }, (_, i) => [`box${i + 1}`, `Box ${i + 1}`])),
+    'fx_rate_history#action': { created: 'Recorded', corrected: 'Corrected', withdrawn: 'Withdrawn' },
+    'fx_rate_history#rate_type': { tt_buy: 'TT buy (bank buys the foreign currency)', tt_sell: 'TT sell (bank sells the foreign currency)', mid: 'Mid' },
+    'fixed_asset_history#change_type': { created: 'Asset card created', updated: 'Asset card changed' },
+    'fixed_asset_history#changed_by_kind': { user: 'A signed-in person', no_session: 'System (automatic)' },
+    'contracts#side': { buy: 'Buy', sell: 'Sell' },
+    'contract_insurance_obligations#insured_by': { us: 'Us', counterparty: 'The counterparty' },
+    'contract_volume_commitments#committed_by_party': { us: 'Us', counterparty: 'The counterparty' },
+    'contract_volume_commitments#period': { month: 'Month', quarter: 'Quarter', year: 'Year', total: 'Whole contract' },
+    'contract_volume_commitments#direction': { min: 'At least', max: 'At most' },
+    'contract_settlement_terms#settling_party': { ours: 'Ours', counterparty: 'The buyer' },
+    'contract_settlement_terms#refining_charge_basis': { none_agreed: 'None agreed', per_metal: 'Per metal' },
+    'contract_settlement_terms#penalty_basis': { none_agreed: 'None agreed', per_element: 'Per element' },
     'work_order_history#change_type': { created: 'Created', released: 'Released', closed: 'Closed', cancelled: 'Cancelled',
         header_update: 'Details changed', line_add: 'Input line added', line_update: 'Input line changed', line_remove: 'Input line removed',
         expected_add: 'Expected output added', expected_update: 'Expected output changed', expected_remove: 'Expected output removed' },
@@ -645,6 +744,18 @@ async function main() {
         }
     }
     for (const [key, map] of Object.entries(ENUM_OVERRIDES)) enums[key] = { ...(enums[key] ?? {}), ...map }
+    // AUDIT-TRAIL-1c-2(Q10):资产卡修改史的每一对 old_ / new_ 列说的是资产卡的那一列 —— 标签由资产卡那一列的标签推出
+    //   ("Previous …" / "New …"),种类与取值的英文照资产卡那一列。一对没有外键的 uuid(处置分录、来源费用)若按生成器猜的
+    //   "uuid_nofk" 说,它在汇总页上会被印成一段文字(一个 uuid);照资产卡的种类,它是一张单据,由 trail_refs 解析出单号。
+    const fa = fields['fixed_assets'] ?? {}
+    for (const c of Object.keys(fields['fixed_asset_history'] ?? {})) {
+        const m = c.match(/^(old|new)_(.+)$/)
+        const base = m ? fa[m[2]] : null
+        if (!m || !base) continue
+        const lc = /^[A-Z]{2}/.test(base[0]) ? base[0] : base[0][0].toLowerCase() + base[0].slice(1)
+        fields['fixed_asset_history'][c] = [`${m[1] === 'old' ? 'Previous' : 'New'} ${lc}`, base[1]]
+        if (enums[`fixed_assets#${m[2]}`]) enums[`fixed_asset_history#${c}`] = { ...enums[`fixed_assets#${m[2]}`] }
+    }
     tables['auth.users'] = [humanTable('auth.users'), 'Settings']
 
     const sortObj = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))

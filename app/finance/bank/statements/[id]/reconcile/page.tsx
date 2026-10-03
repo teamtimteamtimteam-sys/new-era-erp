@@ -41,13 +41,17 @@ export default async function ReconcilePage({
 
     const { data: stmt, error } = await supabase
         .from('bank_statements')
-        .select('id, code, bank_account_code, currency, period_start, period_end, opening_balance, closing_balance, status')
+        .select('id, code, bank_account_code, currency, period_start, period_end, opening_balance, closing_balance, status, deleted_at')
         .eq('id', id)
-        .is('deleted_at', null)
         .single()
 
     if (error || !stmt) {
         notFound()
+    }
+    // AUDIT-TRAIL-1c-2(Q6):删掉的对账单没有工作台 —— 落回它的详情页(那里对持 data.view_deleted 的人只读打开,别人得到一句具名拒绝),
+    //   不是 404
+    if (stmt.deleted_at) {
+        redirect(`/finance/bank/statements/${id}`)
     }
 
     // 已对账 = 只读,工作台没有意义

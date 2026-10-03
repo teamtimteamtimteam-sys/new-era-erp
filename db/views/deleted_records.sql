@@ -27,6 +27,11 @@
 --   【不】拿 updated_by 去猜(Q8:updated_by 是最后一个碰过它的人,不一定是删它的人)。
 --   属主权限照旧,所以视图读得到 change_log(应用角色对它没有任何授权);行一级仍由每一支自己的 permission 裁决。
 --   detail 那一格放名字(这几类记录没有数量可说;编号旁边的名字是人认得它的方式)。
+--
+-- ★ AUDIT-TRAIL-1c-2(Tim 的 Q6,2026-10-03):多了一类 —— 对账单。删掉的对账单以前在详情页与对账工作台上 404、
+--   在清单上被藏起来,于是它【一处都看不见】。它同样从来没有记过谁删的(没有 deleted_by、没有理由;删是一句直写的
+--   update),"谁"照上面四类的办法从 change_log 读,读不到(早于变更记录 —— 线上那一张 BS-2026-0001 是 30/07/2026 删的)
+--   就只说日期。门是 module.finance.view(那张表的读规则);detail 那一格放它覆盖的期间。
 
 CREATE OR REPLACE VIEW public.deleted_records AS
  SELECT record_kind,
@@ -192,7 +197,23 @@ CREATE OR REPLACE VIEW public.deleted_records AS
             NULL::uuid AS uuid,
             f.name
            FROM pricing_formulas f
-          WHERE f.deleted_at IS NOT NULL) a
+          WHERE f.deleted_at IS NOT NULL
+        UNION ALL
+         SELECT 'bank_statement'::text AS text,
+            'module.finance.view'::text AS text,
+            bs.id,
+            bs.code,
+            bs.deleted_at,
+            ( SELECT l.actor_account
+                   FROM change_log l
+                  WHERE l.table_name = 'bank_statements'::text AND l.row_key = jsonb_build_object('id', bs.id) AND l.op = 'UPDATE'::text AND 'deleted_at'::text = ANY (l.changed_columns) AND (l.new ->> 'deleted_at'::text) IS NOT NULL
+                  ORDER BY l.seq DESC
+                 LIMIT 1) AS actor_account,
+            NULL::text AS text,
+            NULL::uuid AS uuid,
+            (to_char(bs.period_start::timestamp without time zone, 'DD/MM/YYYY'::text) || ' – '::text) || to_char(bs.period_end::timestamp without time zone, 'DD/MM/YYYY'::text)
+           FROM bank_statements bs
+          WHERE bs.deleted_at IS NOT NULL) a
   WHERE has_permission(permission);
 
 COMMENT ON VIEW public.deleted_records IS

@@ -1,3 +1,31 @@
+-- db/migrations/2026-10-04-at1c2-fu1-trail-ref-label-journal-lines.sql
+-- AUDIT-TRAIL-1c-2 · fu1 —— trail_ref_label 的分录行名字("JE-… · 科目"),同一刀里漏进主迁移的那一句(v1.4.33 的一部分,未发布)。
+--
+-- 【为什么有这一份】主迁移(2026-10-04-at1c2-trails-documents-and-contracts.sql)是从镜像拼出来的 —— 而 db/functions/trail_ref_label.sql
+--   在拼完之后又加了一支(journal_lines → "JE-… · 科目":对账单的一行匹配到的那一行分录的名字)。试跑与应用用的都是那一份拼好的旧文件,
+--   于是线上少了这一支,镜像多了这一支;整门的判词【镜像 vs 线上】当场红在这一支函数上(GATE_EXIT=1,结构差异只有这一处)。
+--   修法是把线上补成镜像(镜像是真源),不是把镜像改回线上。
+-- 【做什么】trail_ref_label 原地替换(同一签名,镜像原样)。不改任何表、策略、授权、触发器;不写任何业务行。
+-- 【破窗】与主迁移同一个窗口(起点 01:18:22 CST):这一支只给审计记录里"匹配到的那一行分录"一个名字;它不在的这几分钟里那一行说成
+--   "Matched to"(没有名字)—— 而旧应用根本不读对账单的审计记录。什么都不坏。
+-- 【备份】主迁移之前那一份(evoltrya-backup-2026-10-04-0058.dump,BACKUP_EXIT=0,01:15:48)早于本文件;两者之间线上只换了几支审计记录的
+--   读法函数,没有一行业务数据动过。
+BEGIN;
+
+DO $pre$
+BEGIN
+    IF NOT (SELECT approvals_enabled FROM finance_settings) THEN RAISE EXCEPTION 'AT1C2FU1_PRE|approvals are expected ON'; END IF;
+    IF (SELECT count(*) FROM trail_subjects()) <> 44 THEN
+        RAISE EXCEPTION 'AT1C2FU1_PRE|expected the 44 subjects of 1c-2 (the main migration first), got %', (SELECT count(*) FROM trail_subjects());
+    END IF;
+    IF position('journal_lines' in pg_get_functiondef('public.trail_ref_label(text, text, text)'::regprocedure)) > 0 THEN
+        RAISE EXCEPTION 'AT1C2FU1_PRE|trail_ref_label already names journal lines';
+    END IF;
+END;
+$pre$;
+
+CREATE TEMP TABLE at1c2fu1_log_before ON COMMIT DROP AS SELECT count(*) AS n, max(seq) AS mx FROM change_log;
+
 -- db/functions/trail_ref_label.sql
 -- AUDIT-TRAIL-1a(Tim 的 Q12 · Q13 · Q40):一个被引用的值 → 屏幕上认得出的名字。数据库解析,界面只负责造句。
 --   返回 {"label": …, "gone": bool, "person": {…}}(person 只在 p_table = 'auth.users' 时有):
@@ -174,3 +202,27 @@ BEGIN
                          ORDER BY d.key LIMIT 1), '{}'::jsonb);
 END;
 $function$;
+
+DO $proof$
+DECLARE v jsonb; jl uuid;
+BEGIN
+    IF position('journal_lines' in pg_get_functiondef('public.trail_ref_label(text, text, text)'::regprocedure)) = 0 THEN
+        RAISE EXCEPTION 'AT1C2FU1_PROOF|trail_ref_label still does not name journal lines';
+    END IF;
+    SELECT l.id INTO jl FROM journal_lines l ORDER BY l.created_at LIMIT 1;
+    IF jl IS NOT NULL THEN
+        v := trail_ref_label('journal_lines', 'id', jl::text);
+        IF COALESCE(v ->> 'label', '') !~ '^JE-' THEN
+            RAISE EXCEPTION 'AT1C2FU1_PROOF|a journal line should be named "JE-… · account", got %', v;
+        END IF;
+        RAISE NOTICE 'AT1C2FU1 journal line % is named «%»', jl, v ->> 'label';
+    END IF;
+    IF (SELECT row(n, mx)::text FROM at1c2fu1_log_before) IS DISTINCT FROM (SELECT row(count(*), max(seq))::text FROM change_log) THEN
+        RAISE EXCEPTION 'AT1C2FU1_PROOF|change_log moved';
+    END IF;
+END;
+$proof$;
+
+NOTIFY pgrst, 'reload schema';
+
+COMMIT;

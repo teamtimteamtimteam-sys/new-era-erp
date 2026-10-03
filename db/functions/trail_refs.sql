@@ -8,6 +8,9 @@
 --   照样解析成单号,放在 refs 的 'allocations' 一格下;界面据此把它说成"PO-… · 1,000.00",不说 "Details changed"。
 --   键 → 表:expense_id → expenses · inbound_batch_id → inbound_batches · purchase_order_id → purchase_orders ·
 --   freight_document_id → freight_documents(与 record_payment 收的那一组同一个形状)。
+-- AUDIT-TRAIL-1c-2(Q10):资产卡的修改史(fixed_asset_history)把每一列存成一对 old_<列> / new_<列>,而这一对没有外键 ——
+--   于是"处置分录"、"来自哪张费用"在修改史里读不出名字。这里按 fixed_assets 自己那一列的外键去解析那一对,
+--   放在 old_<列> / new_<列> 那两格下(界面按资产卡的列说它们,同一个名字)。
 CREATE OR REPLACE FUNCTION public.trail_refs(p_table text, p_old jsonb, p_new jsonb, p_ctx jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -33,6 +36,21 @@ BEGIN
             v_out := v_out || jsonb_build_object(f.column_name, v_col);
         END IF;
     END LOOP;
+    IF p_table = 'fixed_asset_history' THEN
+        FOR f IN SELECT ft.*, pre.p FROM trail_fk_targets('fixed_assets') ft CROSS JOIN (VALUES ('old_'), ('new_')) pre(p) LOOP
+            v_col := '{}'::jsonb;
+            FOR v IN SELECT DISTINCT x.val
+                       FROM (SELECT p_old -> (f.p || f.column_name) AS j UNION ALL SELECT p_new -> (f.p || f.column_name)
+                             UNION ALL SELECT p_ctx -> (f.p || f.column_name)) s
+                       CROSS JOIN LATERAL (SELECT s.j #>> '{}' AS val) x
+                      WHERE s.j IS NOT NULL AND jsonb_typeof(s.j) IN ('string', 'number') LOOP
+                v_col := v_col || jsonb_build_object(v, trail_ref_label(f.target_table, f.target_column, v));
+            END LOOP;
+            IF v_col <> '{}'::jsonb THEN
+                v_out := v_out || jsonb_build_object(f.p || f.column_name, v_col);
+            END IF;
+        END LOOP;
+    END IF;
     IF p_table = 'payment_requests' THEN
         v_col := '{}'::jsonb;
         FOR f IN SELECT DISTINCT e.key AS k, e.value #>> '{}' AS v

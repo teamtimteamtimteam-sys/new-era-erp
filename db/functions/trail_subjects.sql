@@ -58,6 +58,22 @@
 --                    M6:只取应付那几列(数量、单价、供应商、采购单、计价状态、到货日、注销三列)—— 批次的仓库那一面
 --                    (化验、安全状态、库位……)住在 /inbound/[id]/edit 的 inbound_batch 上,不在应付页上再说一遍。
 --                    注销那三列必须在里面:M6 丢掉 root_columns 之外的戳(record_trail),不在里面注销就看不见(Q5 的横幅)。
+-- AUDIT-TRAIL-1c-2(Tim 2026-10-03,AT-1c Step 0 §a,Q1 拆分的第二刀:其余的单据与合同):
+--   sale            → /finance/receivables/[saleId]     requireModule(MOD.finance)     = module.finance.view
+--   freight         → /finance/freight/[id]             requireModule(MOD.finance)     = module.finance.view
+--                    (根表的读规则是 inbound.view OR finance.view,再加一条 finance.edit 的 ALL —— 页面的码过得了,不需要 M3)
+--   fixed_asset     → /finance/assets/[id]              requireModule(MOD.finance)     = module.finance.view
+--                    根表与 equipment 同一张 fixed_assets(supplier / forwarder 的先例:一张表两个主语,Q10)——
+--                    equipment 的门是加工,这一页的门是财务;根表的读规则就是 finance.view,所以是 'table'
+--   bank_statement  → /finance/bank/statements/[id]     requireModule(MOD.finance)     = module.finance.view
+--                    删掉的对账单也读得到(Q6:持 data.view_deleted 的人只读打开;根表的读规则不过滤已删的行)
+--   gst_period      → /finance/gst/[periodId]           requireModule(MOD.finance)     = module.finance.view
+--   fx_rate         → /finance/fx/[id]/edit(只有这一页,Q2)requireModule(MOD.finance) = module.finance.view
+--                    撤回了的汇率也读得到(Q7:页面对本来的读者只读打开)
+--   management_pack → /finance/packs/[id]               requireModule(MOD.finance)     = module.finance.view
+--   contract        → /contracts/[id]                   requireModule(MOD.suppliers)   = module.suppliers.view
+--                    根表的读规则按方向:卖方合同要 customers.view、买方合同要 suppliers.view —— 页面在 RLS 下读、读不到就 404,
+--                    所以 'table' 与页面同一个答案(看不见的合同对他而言不存在)
 -- 【后面几刀加主语】加一行这里、在 trail_subject_members 里登记它的子行与相关行、需要的话在
 --   trail_prelog_sources 里登记"记录开始之前"的来源,然后在 lib/trail/ 里补它的措辞 —— 见 docs/change-log.md §9。
 CREATE OR REPLACE FUNCTION public.trail_subjects()
@@ -110,6 +126,15 @@ AS $function$
         ('expense',           ARRAY['module.finance.view'],       'expenses',           'id', 'table', NULL),
         ('payable',           ARRAY['module.finance.view'],       'inbound_batches',    'id', 'page',
             ARRAY['supplier_id', 'purchase_order_id', 'quantity', 'unit', 'unit_price', 'pricing_status', 'arrival_date',
-                  'deleted_at', 'deleted_by', 'delete_reason'])
+                  'deleted_at', 'deleted_by', 'delete_reason']),
+        -- AUDIT-TRAIL-1c-2
+        ('sale',              ARRAY['module.finance.view'],       'sales_records',      'id', 'table', NULL),
+        ('freight',           ARRAY['module.finance.view'],       'freight_documents',  'id', 'table', NULL),
+        ('fixed_asset',       ARRAY['module.finance.view'],       'fixed_assets',       'id', 'table', NULL),
+        ('bank_statement',    ARRAY['module.finance.view'],       'bank_statements',    'id', 'table', NULL),
+        ('gst_period',        ARRAY['module.finance.view'],       'gst_periods',        'id', 'table', NULL),
+        ('fx_rate',           ARRAY['module.finance.view'],       'fx_rates',           'id', 'table', NULL),
+        ('management_pack',   ARRAY['module.finance.view'],       'management_packs',   'id', 'table', NULL),
+        ('contract',          ARRAY['module.suppliers.view'],     'contracts',          'id', 'table', NULL)
     ) AS s(subject, view_codes, root_table, root_key, root_rule, root_columns);
 $function$;

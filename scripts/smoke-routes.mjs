@@ -613,6 +613,14 @@ const MUST_CONTAIN = {
     '/finance/payments/[id]': [{ trail: 'audit-trail', why: '收付款页底的审计记录(Q31)' }],
     '/finance/expenses/[id]': [{ trail: 'audit-trail', why: '费用页底的审计记录' }],
     '/finance/payables/[batchId]': [{ trail: 'audit-trail', why: '应付页底的审计记录(Q5:M3 · M6)' }],
+    // AUDIT-TRAIL-1c-2:其余的单据与合同(管理包的明细页在下面的跳过名单里 —— 线上一份都没有;它的审计记录由 fixture 242
+    //   与线上回滚的证明钉着,Q25)
+    '/finance/receivables/[saleId]': [{ trail: 'audit-trail', why: '销售(应收)页底的审计记录(Q14)' }],
+    '/finance/freight/[id]': [{ trail: 'audit-trail', why: '运费单页底的审计记录' }],
+    '/finance/assets/[id]': [{ trail: 'audit-trail', why: '资产页底的审计记录(Q10 · Q26:替掉 FA-HIST-1 的变更留痕面板)' }],
+    '/finance/bank/statements/[id]': [{ trail: 'audit-trail', why: '对账单页底的审计记录(Q6 · Q24)' }],
+    '/finance/gst/[periodId]': [{ trail: 'audit-trail', why: 'GST 期间页底的审计记录(Q22 · Q23)' }],
+    '/finance/fx/[id]/edit': [{ trail: 'audit-trail', why: '汇率编辑页底的审计记录(Q7;它只有这一页)' }],
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
     // 为空时改渲染一段琥珀色文字("还没有货代 / 还没有供货商")。所以那个字符串
@@ -667,6 +675,8 @@ const MUST_CONTAIN = {
         ...['grade_specs', 'insurance_obligations', 'volume_commitments', 'pricing_terms',
             'settlement_terms', 'refining_charges', 'penalty_elements'].map((sec) => (
             { needle: `data-contract-section="${sec}"`, why: `条款段 ${sec} 没有画出来` })),
+        // AUDIT-TRAIL-1c-2(Q21):合同页底的审计记录 —— 冒烟自己造的那份草稿在同一次运行里建出来、加了七种条款,所以它有记录
+        { trail: 'audit-trail', why: '合同页底的审计记录(Q21)' },
     ],
     '/inbound/new': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],
     '/inbound/receive': [{ needle: 'name="supplier_id"', why: '供货商下拉是空的' }],

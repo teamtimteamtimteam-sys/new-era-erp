@@ -24,8 +24,10 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader, type RecordField } from '@/app/components/ui/record-header'
 import FreightAllocationsTable, { type FreightAllocRow } from './FreightAllocationsTable'
 import { can } from '@/lib/permissions'
-import { formatAuditStamp, formatDate } from '@/lib/dates'
+import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import EndedBanner from '@/app/components/trail/EndedBanner'
 
 type AllocRow = {
     id: string
@@ -35,7 +37,10 @@ type AllocRow = {
     inbound_batches: { id: string; code: string; quantity: number; unit: string } | null
 }
 
-export default async function FreightDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function FreightDetailPage({ params, searchParams }: {
+    params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string }>
+}) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.finance)
@@ -52,7 +57,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
     // PostgREST 无从知道要哪一条，而它报的错读起来像是“这一列不存在”。
     const { data: doc } = await supabase
         .from('freight_documents')
-        .select('id, code, doc_date, amount_ccy, currency, fx_rate, amount_base, allocation_basis, payment_status, bank_account_code, notes, status, journal_entry_id, direction, container_id, reversed_at, reversal_reason, reversal_entry_id, suppliers ( legal_name ), containers ( id, code ), journal_entries!freight_documents_journal_entry_id_fkey ( id, code ), reversal_entry:journal_entries!freight_documents_reversal_entry_id_fkey ( id, code )')
+        .select('id, code, doc_date, amount_ccy, currency, fx_rate, amount_base, allocation_basis, payment_status, bank_account_code, notes, status, journal_entry_id, direction, container_id, reversed_at, reversed_by, reversal_reason, reversal_entry_id, suppliers ( legal_name ), containers ( id, code ), journal_entries!freight_documents_journal_entry_id_fkey ( id, code ), reversal_entry:journal_entries!freight_documents_reversal_entry_id_fkey ( id, code )')
         .eq('id', id)
         .is('deleted_at', null)
         .maybeSingle()
@@ -62,7 +67,7 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
         amount_base: number; allocation_basis: string; payment_status: string
         bank_account_code: string | null; notes: string | null; status: string
         direction: string
-        reversed_at: string | null; reversal_reason: string | null
+        reversed_at: string | null; reversed_by: string | null; reversal_reason: string | null
         suppliers: { legal_name: string } | null
         journal_entries: { id: string; code: string } | null
         containers: { id: string; code: string } | null
@@ -156,28 +161,13 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
             }
             // ★★ 详情页恒为 ok —— 记录在不在由上面的 notFound() 回答。
             state={{ kind: 'ok' }}
+            // AUDIT-TRAIL-1c-2(Tim 的 Q8):冲销了的运费单 —— 原来那一块琥珀色说了何时、哪一张冲销分录、为什么,【没说是谁】
+            //   (reversed_by 一直在表上)。现在是与分录、收付款、费用同一条横幅:"Reversed on DD/MM/YYYY by <name>" + 理由 +
+            //   链到冲销分录的那一行;人名照 ActorName 的规矩。没有记时刻的(不该发生)就不画横幅,只靠状态。
             notices={
-                reversed ? (
-                    <div className="border border-amber-300 bg-amber-50 text-amber-900 rounded px-4 py-3 mb-4 text-sm max-w-3xl">
-                        <p className="font-medium mb-1">{t('finance.freight.reversedBanner')}</p>
-                        {/* flex-wrap,不是 grid-cols-2:390px 上两列会把这一块顶宽,
-                            而那正是 CONV-8 §⑥ 量到的「元凶多数不是表」那一族。 */}
-                        <div className="flex flex-wrap gap-x-8 gap-y-1">
-                            <div><span className="text-amber-700">{t('finance.freight.colReversedAt')}: </span>{formatAuditStamp(d.reversed_at) ?? '—'}</div>
-                            {d.reversal_entry && (
-                                <div>
-                                    <span className="text-amber-700">{t('finance.freight.colReversalEntry')}: </span>
-                                    <Link href={`/finance/journal/${d.reversal_entry.id}`} className="hover:underline app-link app-link-inline">
-                                        {d.reversal_entry.code}
-                                    </Link>
-                                </div>
-                            )}
-                            <div className="w-full">
-                                <span className="text-amber-700">{t('finance.freight.colReversalReason')}: </span>
-                                {d.reversal_reason ?? '—'}
-                            </div>
-                        </div>
-                    </div>
+                reversed && d.reversed_at ? (
+                    <EndedBanner kind="reversed" at={d.reversed_at} by={d.reversed_by} reason={d.reversal_reason}
+                        link={d.reversal_entry ? { code: d.reversal_entry.code, href: `/finance/journal/${d.reversal_entry.id}` } : null} />
                 ) : undefined
             }
         >
@@ -202,6 +192,9 @@ export default async function FreightDetailPage({ params }: { params: Promise<{ 
                     <FreightAllocationsTable rows={tableRows} />
                 </>
             )}
+
+            {/* AUDIT-TRAIL-1c-2:这张运费单的审计记录 —— 记账(连分到的批次)、过账分录、付它的核销、冲销 */}
+            <AuditTrail subject="freight" id={id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

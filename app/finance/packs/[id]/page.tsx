@@ -21,10 +21,12 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 export default async function PackDetailPage({
     params,
-}: { params: Promise<{ id: string }> }) {
+    searchParams,
+}: { params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }> }) {
     const locale = await getLocale()
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
@@ -91,6 +93,9 @@ export default async function PackDetailPage({
         >
             {/* PackBody 一个字没动 —— 见抬头的 CONV-9 说明。 */}
             <PackBody payload={payload} />
+
+            {/* AUDIT-TRAIL-1c-2(Q25):这一份包的审计记录 —— 产出、被哪一份取代、为什么 */}
+            <AuditTrail subject="management_pack" id={data.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

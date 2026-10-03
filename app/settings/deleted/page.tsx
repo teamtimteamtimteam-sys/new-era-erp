@@ -90,6 +90,9 @@ const KIND_HREF: Record<string, (id: string) => string | null> = {
     supplier: (id) => `/suppliers/${id}/edit`,
     material: (id) => `/materials/${id}/edit`,
     pricing_formula: (id) => `/tools/pricing/formulas/${id}/edit`,
+    // AUDIT-TRAIL-1c-2(Tim 的 Q6):删掉的对账单以前在详情页上 404、在清单上被藏起来 —— 一处都看不见。
+    //   现在它对持 data.view_deleted 的人只读打开(横幅 + 审计记录),这里是它的入口
+    bank_statement: (id) => `/finance/bank/statements/${id}`,
 }
 
 const KINDS = Object.keys(KIND_HREF)

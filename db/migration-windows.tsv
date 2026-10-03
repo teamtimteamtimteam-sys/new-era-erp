@@ -208,3 +208,5 @@
 2026-09-30T01:06:27+0800	2026-09-30-at1b2-trails-commercial.sql	ac03576f
 2026-10-03T10:31:01+0800	2026-10-03-at1b3-trails-master-data-and-tools.sql	f8530f1d
 2026-10-03T15:26:50+0800	2026-10-03-at1c1-trails-ledger-documents.sql	66a1b331
+2026-10-04T01:18:22+0800	2026-10-04-at1c2-trails-documents-and-contracts.sql	f2583028
+2026-10-04T01:31:04+0800	2026-10-04-at1c2-fu1-trail-ref-label-journal-lines.sql	f2583028

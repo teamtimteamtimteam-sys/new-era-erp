@@ -546,6 +546,82 @@ export const TRAIL_TEXT = {
     // ── 应付(Q5:只说钱的那一面)───────────────────────────────────────────────
     'pab.edited': 'Payable details changed',
     'pab.priceSet': 'Price set',
+    // ══ AUDIT-TRAIL-1c-2 · 其余的单据与合同(销售 · 运费单 · 资产 · 对账单 · GST 期间 · 汇率 · 管理包 · 合同)═════════════
+    //   前缀避开 messages/en.ts 里已经有的顶层键(gst. · pack. · bank. · assets. —— check-i18n 会把它们当成那边的键去找)
+    // ── 撤回了的汇率(Q7):横幅;没有记人的只说日期 ───────────────────────────────────────
+    'banner.withdrawn': 'Withdrawn on {date} by {who}',
+    'banner.withdrawnDate': 'Withdrawn on {date}',
+    // ── 销售(应收页,Q14)────────────────────────────────────────────────────────
+    'sale.recorded': 'Sale recorded',
+    'sale.attributed': 'Customer attributed to the sale',
+    'sale.cogsPosted': 'Cost of sales posted',
+    'sale.changed': 'Sale changed',
+    // ── 运费单 ────────────────────────────────────────────────────────────────
+    'frt.recorded': 'Freight document recorded',
+    'frt.reversed': 'Freight document reversed',
+    'frt.changed': 'Freight document changed',
+    'frt.allocationChanged': 'Freight allocation changed',
+    // ── 资产(财务那一页,Q10)────────────────────────────────────────────────────
+    'fa.inService': 'Put into service',
+    'fa.disposed': 'Asset disposed',
+    'fa.costAdded': 'Cost added',
+    'fa.costChanged': 'Cost entry changed',
+    'fa.depreciated': 'Depreciation posted',
+    'fa.rebased': 'Depreciation re-based',
+    'fa.disposalSent': 'Disposal sent for approval',
+    'fa.disposalApproved': 'Disposal approved',
+    'fa.disposalRejected': 'Disposal rejected',
+    'fa.disposalWithdrawn': 'Disposal request withdrawn',
+    'fa.disposalChanged': 'Disposal request changed',
+    // ── 对账单(Q6 · Q24)───────────────────────────────────────────────────────
+    'bst.imported': 'Bank statement imported',
+    'bst.lines': 'Lines',
+    'bst.deleted': 'Bank statement deleted',
+    'bst.reconciled': 'Bank statement reconciled',
+    'bst.unreconciled': 'Reconciliation undone',
+    'bst.changed': 'Bank statement changed',
+    'bst.lineMatched': 'Statement line matched',
+    'bst.lineUnmatched': 'Statement line unmatched',
+    'bst.lineIgnored': 'Statement line ignored',
+    'bst.lineUnignored': 'Statement line no longer ignored',
+    'bst.lineChanged': 'Statement line changed',
+    'bst.reconChanged': 'Reconciliation record changed',
+    // ── GST 期间(Q22 · Q23:更正件说它为哪一期开的;申报那一刻抄下来的每一格并进申报那一条,只说英文)──────────
+    'gstp.opened': 'GST period opened',
+    'gstp.correctionOpened': 'Correction opened for {code}',
+    'gstp.correctionOpenedPlain': 'Correction period opened',
+    'gstp.sent': 'GST return sent for approval',
+    'gstp.approved': 'GST return approved',
+    'gstp.rejected': 'GST return rejected',
+    'gstp.withdrawn': 'GST return request withdrawn',
+    'gstp.requestChanged': 'GST return request changed',
+    'gstp.locked': 'GST return locked · {n} boxes',
+    'gstp.box': 'Box {n}',
+    'gstp.filed': 'GST return filed',
+    'gstp.changed': 'GST period changed',
+    // ── 汇率(一件事两行:录入 · 更正 · 撤回由修改史那一行说出是哪一种)──────────────────────────
+    'fxr.recorded': 'Exchange rate recorded',
+    'fxr.corrected': 'Exchange rate corrected',
+    'fxr.withdrawn': 'Exchange rate withdrawn',
+    'fxr.changed': 'Exchange rate changed',
+    // ── 管理包(Q25)──────────────────────────────────────────────────────────
+    'mpk.produced': 'Management pack produced',
+    'mpk.superseded': 'Management pack replaced',
+    'mpk.replacedBy': 'Replaced by',
+    'mpk.changed': 'Management pack changed',
+    // ── 合同(Q21:没有 pricing.view 的读者,CFO 的决定那几行是 Restricted —— 读规则说的,不在这里)──────────────
+    'con.created': 'Contract created',
+    'con.edited': 'Contract changed',
+    'con.activated': 'Contract activated',
+    'con.suspended': 'Contract suspended',
+    'con.statusChanged': 'Contract status changed',
+    'con.deleted': 'Contract deleted',
+    'con.termAdded': '{Thing} added',
+    'con.termChanged': '{Thing} changed',
+    'con.termRemoved': '{Thing} removed',
+    'con.linked': 'Linked to {code}',
+    'con.linkedPlain': 'Linked to an order',
+    'tr.sentActivate': 'Contract activation sent to the CFO',
 } as const
 
 export type TrailTextKey = keyof typeof TRAIL_TEXT

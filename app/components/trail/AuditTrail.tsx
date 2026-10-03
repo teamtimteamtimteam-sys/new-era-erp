@@ -26,6 +26,7 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'material' | 'storage_location' | 'metal_price' | 'pricing_formula' | 'task'
     | 'processing_settings' | 'pricing_settings' | 'receiving_settings'
     | 'journal_entry' | 'invoice' | 'credit_note' | 'payment' | 'payment_request' | 'expense' | 'payable'
+    | 'sale' | 'freight' | 'fixed_asset' | 'bank_statement' | 'gst_period' | 'fx_rate' | 'management_pack' | 'contract'
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
@@ -68,6 +69,15 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     payment_request: 'payment_requests',
     expense: 'expenses',
     payable: 'inbound_batches',
+    // AUDIT-TRAIL-1c-2
+    sale: 'sales_records',
+    freight: 'freight_documents',
+    fixed_asset: 'fixed_assets',
+    bank_statement: 'bank_statements',
+    gst_period: 'gst_periods',
+    fx_rate: 'fx_rates',
+    management_pack: 'management_packs',
+    contract: 'contracts',
 }
 
 export const PAGE = 20

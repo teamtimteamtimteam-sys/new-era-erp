@@ -10,7 +10,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount } from '@/lib/format'
 import DeleteStatementButton from './DeleteStatementButton'
 import UnreconcileControl from './UnreconcileControl'
-import { requireModule } from '@/app/components/moduleGuard'
+import { requireDeletedAccess, requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
@@ -18,6 +18,8 @@ import StatementLinesTable, { type StatementLineRow } from './StatementLinesTabl
 import { mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 
 type MatchRow = {
     statement_line_id: string
@@ -32,7 +34,7 @@ export default async function BankStatementDetailPage({
     searchParams,
 }: {
     params: Promise<{ id: string }>
-    searchParams: Promise<{ overlap?: string; dups?: string }>
+    searchParams: Promise<{ overlap?: string; dups?: string; trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -47,15 +49,22 @@ export default async function BankStatementDetailPage({
     const locale = await getLocale()
     const dateLocale = locale === 'zh' ? 'zh-CN' : 'en-US'
 
+    // AUDIT-TRAIL-1c-2(Tim 的 Q6 · Q21):删掉的对账单以前在这里 404(而且清单上也看不见)—— 现在它对持 data.view_deleted 的人
+    //   只读打开:顶上一条 "Deleted on DD/MM/YYYY" 横幅(没有记人的只说日期)、每一个按钮按不下去、页底是它的审计记录;
+    //   别人得到一句具名拒绝("This record has been deleted."),不是 404 —— "找不到"读起来是"从来没有过"。
     const { data: stmt, error } = await supabase
         .from('bank_statements')
-        .select('id, code, bank_account_code, currency, period_start, period_end, opening_balance, closing_balance, file_name, status, reconciled_at, notes')
+        .select('id, code, bank_account_code, currency, period_start, period_end, opening_balance, closing_balance, file_name, status, reconciled_at, notes, deleted_at')
         .eq('id', id)
-        .is('deleted_at', null)
         .single()
 
     if (error || !stmt) {
         notFound()
+    }
+    const deleted = stmt.deleted_at !== null
+    if (deleted) {
+        const refused = await requireDeletedAccess('bank.detailTitle')
+        if (refused) return refused
     }
 
     const { data: lines } = await supabase
@@ -187,7 +196,8 @@ export default async function BankStatementDetailPage({
             // ★ 出口:对账工作台。转换前它画在 h1 右边 —— actions 槽是同一个位置,
             //   而且它画在状态分支【之前】,所以任何空态都吃不掉它。
             actions={
-                stmt.status === 'open' ? (
+                // 删掉的对账单没有工作台可进(它是一个链接,fieldset 按不住 —— 不画;1b-3 采购单动作那一排的同一个做法)
+                stmt.status === 'open' && !deleted ? (
                     <Button asChild>
                         <Link href={`/finance/bank/statements/${stmt.id}/reconcile`}>{t('bank.openWorkspace')}</Link>
                     </Button>
@@ -197,6 +207,7 @@ export default async function BankStatementDetailPage({
             state={{ kind: 'ok' }}
             notices={
                 <>
+                    {deleted && stmt.deleted_at && <DeletedBanner kind="bank_statement" id={stmt.id} at={stmt.deleted_at} />}
                     {/* 已对账横幅 + 重新打开 —— 「重新打开」是一个出口,所以这一块
                         必须无条件画,而 notices 正是画在状态分支之前的那个槽。 */}
                     {stmt.status === 'reconciled' && (
@@ -376,7 +387,11 @@ export default async function BankStatementDetailPage({
                         ? [{ label: t('bank.reconciledAt'), value: formatAuditStamp(stmt.reconciled_at) }]
                         : []),
                 ]}
-                actions={stmt.status === 'open' ? <DeleteStatementButton canEdit={canEditGate} statementId={stmt.id} subject={stmt.code} /> : undefined}
+                actions={stmt.status === 'open' ? (
+                    <EndedFieldset ended={deleted}>
+                        <DeleteStatementButton canEdit={canEditGate} statementId={stmt.id} subject={stmt.code} />
+                    </EndedFieldset>
+                ) : undefined}
             />
 
             {stmt.notes && (
@@ -398,6 +413,9 @@ export default async function BankStatementDetailPage({
                           delta: formatAmount(Math.round((computed - stmt.closing_balance) * 100) / 100, stmt.currency),
                       })}`}
             </p>
+
+            {/* AUDIT-TRAIL-1c-2:这张对账单的审计记录 —— 导入、每一行的匹配 / 忽略、对账与撤销对账(Q24)、删除 */}
+            <AuditTrail subject="bank_statement" id={stmt.id} show={trailCount(sp.trail)} />
         </ListPage>
     )
 }

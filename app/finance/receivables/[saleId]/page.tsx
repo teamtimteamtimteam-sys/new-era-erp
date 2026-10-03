@@ -22,6 +22,7 @@ import SettlementHistoryTable, { type SettlementRow } from '@/app/components/fin
 import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 type AllocRow = {
     id: string
@@ -36,8 +37,10 @@ type AllocRow = {
 
 export default async function ReceivableDocPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ saleId: string }>
+    searchParams: Promise<{ trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -311,6 +314,9 @@ export default async function ReceivableDocPage({
 
             {/* 凭据附件 */}
             <FinanceAttachmentsPanel canEdit={canEditGate} parent={{ kind: 'sale', id: sale.id }} rows={attachments} />
+
+            {/* AUDIT-TRAIL-1c-2(Q14):这一笔销售的审计记录 —— 出库、归属客户、开票、收款核销、附件、收入 / 成本分录 */}
+            <AuditTrail subject="sale" id={sale.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }
