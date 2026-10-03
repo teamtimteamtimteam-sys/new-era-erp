@@ -20,7 +20,7 @@ import type { TrailText, TrailTextKey } from './text'
 export type Json = null | boolean | number | string | Json[] | { [k: string]: Json }
 export type Img = { [k: string]: Json }
 export type Actor = { state: string; name?: string | null } | null
-export type Ref = { label?: string | null; gone?: boolean; unit?: string | null; person?: Actor; ended?: boolean } | null
+export type Ref = { label?: string | null; gone?: boolean; unit?: string | null; person?: Actor; ended?: boolean; href?: string | null } | null
 export type Refs = { [col: string]: { [value: string]: Ref } }
 export type RecordRef = {
     table: string; id: string | null; label: string | null; gone: boolean
@@ -45,9 +45,12 @@ export type TrailRow = {
     hidden: boolean          // 读者过不了这一行自己那张表的读规则(Q4)
     restricted: boolean      // 任务隐私:整份影像受限
     record?: RecordRef | null
+    /** AUDIT-TRAIL-1c-1(Q16):这一行属于哪一次操作(record_trail 的 op_key)—— 清单页把几条记录合起来时按它并 */
+    opKey?: string | null
 }
 
-export type Val = { text: string; restricted?: boolean; empty?: boolean; typed?: boolean; full?: string }
+/** href(AUDIT-TRAIL-1c-1,Q33):这个值是一张单据,点得过去 —— 路径由 trail_ref_label 从 document_types 给,这里不拼路由 */
+export type Val = { text: string; restricted?: boolean; empty?: boolean; typed?: boolean; full?: string; href?: string }
 export type Line =
     | { t: 'change'; label: string; old: Val; new: Val }
     | { t: 'value'; label: string; value: Val }
@@ -91,6 +94,8 @@ export type BuildOptions = {
     unit?: string | null
     /** 这一页是哪一种记录(trail_subjects 的主语);汇总页不传。决定一张表的行从哪一边说、往上一跳够到的要不要点名单据 */
     subject?: string | null
+    /** AUDIT-TRAIL-1c-1:这一页那条记录的 id —— 分录页要分得清"这一张分录"与"挂在它上面的另一张分录"(冲销) */
+    recordId?: string | null
 }
 
 export const TRUNCATE_AT = 120
@@ -181,8 +186,16 @@ function enumLabel(d: TrailDict, table: string, col: string, raw: string): strin
     return humanize(raw)
 }
 
-function currencyFor(col: string, img: Img, opts: BuildOptions, d: TrailDict): string | null {
+/** AUDIT-TRAIL-1c-1:几列【本位币】的价,列名里没有写 _base —— 进料批次的单价(应付之锚:reprice_inbound_batch 按牌价折成本位币
+ *  再写进来)与改价史的新旧单价(同一个数)。price_history.currency 是【原币】(original_price 的币种),拿它去标新旧单价,
+ *  一次用美元定的价就会被说成"2.50 USD"而它其实是新元 —— 1b 的批次审计记录一直这样说,本刀在同一处修 */
+const BASE_PRICE_COLS: Record<string, Set<string>> = {
+    inbound_batches: new Set(['unit_price']),
+    price_history: new Set(['old_unit_price', 'new_unit_price']),
+}
+function currencyFor(col: string, img: Img, opts: BuildOptions, d: TrailDict, table?: string): string | null {
     if (/_base$/.test(col) || /^(old|new)_amount_base$/.test(col)) return d.baseCurrency
+    if (table && BASE_PRICE_COLS[table]?.has(col)) return d.baseCurrency
     // 列名里写着币种的(…_usd_per_tonne)—— 它的标签已经说了 "(USD/t)",值本身不再挂币种(币种是数据,不写字面量)
     if (/_usd(_|$)/.test(col)) return null
     const c = img['currency']
@@ -253,6 +266,25 @@ function jsonVal(d: TrailDict, table: string, col: string, raw: Json, op: string
     return { text: tx(d, op === 'UPDATE' ? 'value.detailsChanged' : 'value.detailsRecorded') }
 }
 
+/** AUDIT-TRAIL-1c-1(Q13):付款申请的 allocations —— 每一项是一张要结清的单据 + 一个单据币种的金额。
+ *  单据号由 trail_refs 解析在 refs.allocations 下;解析不出来说 "a document",绝不印 id。 */
+const ALLOC_KEYS = ['expense_id', 'inbound_batch_id', 'purchase_order_id', 'freight_document_id']
+export function allocationItems(d: TrailDict, raw: Json | undefined, refs: Refs | null): { label: string; value: Val }[] {
+    if (!Array.isArray(raw)) return []
+    const out: { label: string; value: Val }[] = []
+    for (const it of raw) {
+        if (!it || typeof it !== 'object' || Array.isArray(it)) continue
+        const o = it as Img
+        const k = ALLOC_KEYS.find((x) => typeof o[x] === 'string')
+        const id = k ? o[k] as string : null
+        const ref = id ? refs?.['allocations']?.[id] : null
+        const label = ref?.label ? (ref.gone ? tx(d, 'value.sinceDeleted', { label: ref.label }) : ref.label) : tx(d, 'value.unnamed', { thing: 'document' })
+        const n = num(o['amount_doc'] ?? null)
+        out.push({ label, value: n === null ? { text: tx(d, 'empty'), empty: true } : { text: tx(d, 'pr.docCcy', { amount: NUM2.format(n) }) } })
+    }
+    return out
+}
+
 export function formatValue(d: TrailDict, table: string, col: string, raw: Json | undefined, img: Img,
                             refs: Refs | null, op: string | null, opts: BuildOptions): Val {
     if (isRestricted(raw)) return { text: tx(d, 'restricted'), restricted: true }
@@ -286,7 +318,7 @@ export function formatValue(d: TrailDict, table: string, col: string, raw: Json 
         case 'money': {
             const n = num(v)
             if (n !== null) {
-                const ccy = currencyFor(col, img, opts, d)
+                const ccy = currencyFor(col, img, opts, d, table)
                 const fine = /unit_cost|unit_price|per_(kg|unit|tonne)|_rate$/.test(col)
                 const s = fine ? NUM24.format(n) : NUM2.format(n)
                 return { text: ccy ? `${s} ${ccy}` : s }
@@ -302,6 +334,10 @@ export function formatValue(d: TrailDict, table: string, col: string, raw: Json 
             break
         }
         case 'jsonb':
+            if (table === 'payment_requests' && col === 'allocations') {
+                const items = allocationItems(d, v, refs)
+                if (items.length) return truncate(items.map((i) => `${i.label} · ${i.value.text}`).join('; '))
+            }
             return jsonVal(d, table, col, v, op, opts)
         case 'array':
             if (Array.isArray(v)) {
@@ -862,11 +898,21 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     processing_settings: ['processing_settings'],
     pricing_settings: ['pricing_settings'],
     receiving_settings: ['receiving_settings'],
+    // AUDIT-TRAIL-1c-1
+    journal_entry: ['journal_entries', 'journal_lines', 'journal_requests', 'approval_log'],
+    invoice: ['invoices', 'invoice_lines', 'invoice_issues', 'invoice_requests', 'approval_log', 'credit_notes', 'payment_allocations', 'journal_entries'],
+    credit_note: ['credit_notes', 'credit_note_lines', 'cn_issues', 'invoice_requests', 'approval_log', 'journal_entries'],
+    payment: ['payments', 'payment_allocations', 'finance_attachments', 'payment_requests', 'approval_log', 'journal_entries'],
+    payment_request: ['payment_requests', 'approval_log', 'payments', 'bank_transfers', 'wht_remittances', 'journal_entries'],
+    expense: ['expenses', 'payment_allocations', 'finance_attachments', 'prepayment_applications', 'expense_claims', 'approval_log',
+        'fixed_asset_cost_entries', 'journal_entries'],
+    payable: ['inbound_batches', 'payment_allocations', 'freight_allocations', 'prepayment_applications', 'finance_attachments', 'price_history',
+        'journal_entries'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
     | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
-    | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings'
+    | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings' | 'fin'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
@@ -874,6 +920,8 @@ const PAGE_FAMILY: Record<string, Family> = {
     supplier: 'supplier', forwarder: 'supplier', container: 'container', lane: 'lane', port: 'lane', company_licence: 'licence',
     material: 'material', storage_location: 'location', metal_price: 'metalPrice', pricing_formula: 'formula', task: 'task',
     processing_settings: 'settings', pricing_settings: 'settings', receiving_settings: 'settings',
+    // AUDIT-TRAIL-1c-1
+    journal_entry: 'fin', invoice: 'fin', credit_note: 'fin', payment: 'fin', payment_request: 'fin', expense: 'fin', payable: 'fin',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -893,6 +941,8 @@ const HEADED = new Set<Family>(['po', 'run', 'wo', 'so'])
 function familyOf(r: TrailRow, subject?: string | null): Family | null {
     const t = r.table
     if (!t) return null
+    // AUDIT-TRAIL-1c-1:账上那七页上的每一行都从 describeFinance 说 —— 别的页上同一张表的说法不动
+    if (subject && FIN_SUBJECTS.has(subject)) return 'fin'
     if ((subject === 'inbound_batch' || subject === 'output_batch') && BATCH_VIEW_OF_RUN.has(t)) return 'batch'
     // AUDIT-TRAIL-1b-2:预留、合同条款在订单页上从订单这一边说;发货单明细在发货单页上从发货单这一边说
     //   (在批次页、采购单页、汇总页上仍照 1b-1 的说法)
@@ -2416,6 +2466,461 @@ function describeSettings(d: TrailDict, rows: TrailRow[], opts: BuildOptions): B
         : describeGeneric(d, r, opts))
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// AUDIT-TRAIL-1c-1:账上的单据 —— 分录 · 发票 · 贷项通知 · 收付款 · 付款申请 · 费用 · 应付(Tim 2026-10-03,AT-1c Step 0)
+// ════════════════════════════════════════════════════════════════════════════
+// 【一个家族说完这七页】这几页上的每一张表(分录、核销、附件、审批、批次……)都从这里说,不分给 1b 的 batch / journal /
+//   approval 家族 —— 那几个家族在批次页、加工单页上的说法(fixture 238、⑥ ⑦ 两臂的金句)一个字都不动。
+// 【一次操作一条】冲销(Q31 · Q33):原单的状态翻成 reversed 与冲销的那一张新单(镜像)在同一笔事务里 —— 只说一句
+//   "Payment reversed · PMT-…" / "Journal reversed",冲销那一张是下面的【一行】(链到它),它的行不在这里(Q33)。
+//   记录开始之前没有"原单翻状态"那一行(只有冲销那一张的建行),所以那时由镜像的建行说同一句(Q31:读自镜像的建立)。
+// 【申请】送去批 · 批准 · 驳回 · 撤回;审批关着时申请生下来就是 approved —— 下面一行灰字
+//   "Approved automatically (approvals were switched off)"(Q32);审批留痕并进申请那一句,不另起一行。
+export const FIN_SUBJECTS = new Set(['journal_entry', 'invoice', 'credit_note', 'payment', 'payment_request', 'expense', 'payable'])
+
+/** 整页的冲销关系(与上面认冲销分录同一个做法:看整页,不只看这一条)—— 镜像 id → 原单 {id, code, href} */
+export type FinCtx = {
+    paymentMirror: Map<string, { code: string | null; href: string | null }>
+    paymentOrigin: Map<string, { code: string | null }>
+    expenseMirror: Map<string, { code: string | null; href: string | null }>
+    expenseOrigin: Map<string, { code: string | null }>
+    /** 冲销分录 id → 它冲的那一张原分录的单号(原分录今天的 reversed_by 指着它) */
+    journalOrigin: Map<string, string | null>
+}
+export function finContext(rows: TrailRow[]): FinCtx {
+    const c: FinCtx = { paymentMirror: new Map(), paymentOrigin: new Map(), expenseMirror: new Map(), expenseOrigin: new Map(), journalOrigin: new Map() }
+    for (const r of rows) {
+        const img = imgOf(r)
+        if (r.table === 'journal_entries' && typeof img['reversed_by'] === 'string' && !c.journalOrigin.has(img['reversed_by'] as string)) {
+            c.journalOrigin.set(img['reversed_by'] as string, typeof img['code'] === 'string' ? img['code'] as string : null)
+        }
+        for (const [table, col, mirror, origin] of [['payments', 'reversed_by_payment', c.paymentMirror, c.paymentOrigin],
+                                                    ['expenses', 'reversed_by_expense', c.expenseMirror, c.expenseOrigin]] as const) {
+            if (r.table !== table) continue
+            const m = img[col]
+            if (typeof m !== 'string') continue
+            const ref = r.refs?.[col]?.[m]
+            if (!mirror.has(m)) mirror.set(m, { code: ref?.label ?? null, href: ref?.href ?? null })
+            if (!origin.has(m)) origin.set(m, { code: typeof img['code'] === 'string' ? img['code'] as string : null })
+        }
+    }
+    return c
+}
+
+/** 一个指着单据的值 → 单号 + 链接(trail_ref_label 给的 href;拿不到就只有字) */
+function docVal(d: TrailDict, r: TrailRow, table: string, col: string): Val | null {
+    const v = imgOf(r)[col]
+    if (typeof v !== 'string') return null
+    const ref = r.refs?.[col]?.[v]
+    if (ref?.label) return ref.href && !ref.gone ? { text: ref.label, href: ref.href } : { text: ref.gone ? tx(d, 'value.sinceDeleted', { label: ref.label }) : ref.label }
+    return refVal(d, table, col, v, r.refs)
+}
+/** 冲销单的备注是 "REVERSAL: <原单号> — <人写的那一句>"(冲销函数拼的)—— 只把人写的那一句当理由;机器拼的那一截不上屏 */
+function reversalReason(text: string | null): Val | null {
+    if (!text) return null
+    const m = text.match(/^REVERSAL:\s*([\s\S]*)$/)
+    if (!m) return typed(text)
+    const rest = m[1].replace(/^[A-Z][A-Z0-9]{1,7}-\d{4}-\d{2,}\s*(—|-|:)?\s*/, '').trim()
+    if (!rest || DOC_CODE.test(rest)) return null
+    return typed(rest)
+}
+/** 页头横幅用的同一句(字,不是 Val) */
+export function reversalReasonText(text: string | null): string | null {
+    return reversalReason(text)?.full ?? reversalReason(text)?.text ?? null
+}
+/** 申请的编号(付款申请:PREQ-…)进标题;分录 / 发票申请没有编号,只有提交函数拼的标签("manual journal #3"、
+ *  "INV-2026-0008 · void")—— 系统写的英文,不是人敲的字,所以是标题后面那一段,但不标 typed */
+function labelPart(r: TrailRow): { code: string | null; part: Val | null } {
+    const l = str(r, 'code') ?? str(r, 'label')
+    if (!l) return { code: null, part: null }
+    return DOC_CODE.test(l) ? { code: l, part: null } : { code: null, part: { text: l } }
+}
+function vline(d: TrailDict, r: TrailRow, col: string, opts: BuildOptions, label?: string): Line[] {
+    const v = imgOf(r)[col]
+    if (isEmpty(v ?? null)) return []
+    return [{ t: 'value', label: label ?? fieldMeta(d, r.table!, col)[0], value: formatValue(d, r.table!, col, v, imgOf(r), r.refs, r.op, opts) }]
+}
+function vlines(d: TrailDict, r: TrailRow, cols: string[], opts: BuildOptions): Line[] {
+    return cols.flatMap((c) => vline(d, r, c, opts))
+}
+/** 分录的一行:"Cash at Bank – SGD   Debit 1,000.00 SGD"(借贷是本位币;原币不同时括号里说原币)*/
+function journalLineLine(d: TrailDict, r: TrailRow): Line {
+    const img = imgOf(r)
+    const acc = refLabel(r, 'account_id') ?? cap(fieldMeta(d, 'journal_lines', 'account_id')[0])
+    const dr = num(img['debit'] ?? null) ?? 0, cr = num(img['credit'] ?? null) ?? 0
+    const amt = `${NUM2.format(dr > 0 ? dr : cr)} ${d.baseCurrency}`
+    let text = tx(d, dr > 0 ? 'je.debit' : 'je.credit', { amount: amt })
+    const ccy = img['currency'], a = num(img['amount_ccy'] ?? null)
+    if (typeof ccy === 'string' && ccy !== d.baseCurrency && a !== null) text += ` (${NUM2.format(a)} ${ccy})`
+    return { t: 'value', label: acc, value: { text } }
+}
+function reqKind(r: TrailRow): string {
+    return str(r, 'kind') ?? ''
+}
+const PR_KINDS = ['payment_out', 'payment_reversal', 'bank_transfer', 'bank_transfer_reversal', 'wht_remittance', 'wht_remittance_reversal'] as const
+type PrKind = typeof PR_KINDS[number]
+/** 六种付款申请各自的说法(字面量写全 —— check-trail-wording 按字面认"这个键有人用") */
+const PR_TEXT: Record<'sent' | 'approved' | 'done', Record<PrKind, TrailTextKey>> = {
+    sent: { payment_out: 'pr.sent.payment_out', payment_reversal: 'pr.sent.payment_reversal', bank_transfer: 'pr.sent.bank_transfer',
+        bank_transfer_reversal: 'pr.sent.bank_transfer_reversal', wht_remittance: 'pr.sent.wht_remittance', wht_remittance_reversal: 'pr.sent.wht_remittance_reversal' },
+    approved: { payment_out: 'pr.approved.payment_out', payment_reversal: 'pr.approved.payment_reversal', bank_transfer: 'pr.approved.bank_transfer',
+        bank_transfer_reversal: 'pr.approved.bank_transfer_reversal', wht_remittance: 'pr.approved.wht_remittance', wht_remittance_reversal: 'pr.approved.wht_remittance_reversal' },
+    done: { payment_out: 'pr.done.payment_out', payment_reversal: 'pr.done.payment_reversal', bank_transfer: 'pr.done.bank_transfer',
+        bank_transfer_reversal: 'pr.done.bank_transfer_reversal', wht_remittance: 'pr.done.wht_remittance', wht_remittance_reversal: 'pr.done.wht_remittance_reversal' },
+}
+function prKey(prefix: 'pr.sent.' | 'pr.approved.' | 'pr.done.', kind: string): TrailTextKey {
+    const k = (PR_KINDS as readonly string[]).includes(kind) ? kind as PrKind : 'payment_out'
+    return PR_TEXT[prefix === 'pr.sent.' ? 'sent' : prefix === 'pr.approved.' ? 'approved' : 'done'][k]
+}
+
+function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, reversals: Set<string>, fc: FinCtx): Block2[] {
+    const out: Block2[] = []
+    const rows = netReplace(rows0)
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const subject = opts.subject ?? ''
+    const rootId = opts.recordId ?? null
+    const auto = (id: string | undefined) => !!id && by('approval_log').some((a) => str(a, 'subject_id') === id && str(a, 'decision', 'new') === 'auto_approved')
+
+    // ── ① 分录 ────────────────────────────────────────────────────────────────
+    const jes = by('journal_entries')
+    const reversedInGroup = new Set(jes.filter((r) => changed(r, 'reversed_by') && str(r, 'reversed_by', 'new')).map((r) => str(r, 'reversed_by', 'new') as string))
+    for (const r of jes) {
+        const id = idOf(r) ?? ''
+        const code = str(r, 'code')
+        const isRoot = subject === 'journal_entry' && id === rootId
+        if (r.op === 'INSERT') {
+            if (reversals.has(id)) {
+                // 一张冲销分录。原分录翻状态的那一行在同一条里 → 由那一行说(Q33:冲销是它下面的【一行】)——
+                //   除非这一页就是这张冲销分录自己:那时它是主角,原分录那一行不另说(见下)
+                if (reversedInGroup.has(id) && !isRoot) continue
+                const ls: Line[] = []
+                const orig = fc.journalOrigin.get(id)
+                if (orig) ls.push({ t: 'value', label: tx(d, 'je.reversesLine'), value: { text: orig } })
+                if (isRoot) ls.push(...rows.filter((x) => x.table === 'journal_lines' && x.op === 'INSERT').map((x) => journalLineLine(d, x)))
+                out.push({ title: withPart(tx(d, 'je.reversalPosted'), code), lines: ls, reason: reversalReason(str(r, 'memo')), key: true, weight: isRoot ? 100 : 55, recordId: id })
+                continue
+            }
+            const ls: Line[] = []
+            if (isRoot) {
+                ls.push(...vlines(d, r, ['entry_date', 'source_type'], opts))
+                const memo = typed(r.new?.['memo'])
+                if (memo) ls.push({ t: 'value', label: fieldMeta(d, 'journal_entries', 'memo')[0], value: memo })
+                ls.push(...rows.filter((x) => x.table === 'journal_lines' && x.op === 'INSERT').map((x) => journalLineLine(d, x)))
+            }
+            out.push({ title: withPart(tx(d, 'je.posted'), code), lines: ls, key: true, weight: isRoot ? 100 : 55, recordId: id })
+        } else if (r.op === 'UPDATE' && changed(r, 'status') && str(r, 'status', 'new') === 'reversed') {
+            const rev = str(r, 'reversed_by', 'new')
+            // 冲销分录自己的页:它的建立那一句已经说了"Reverses JE-…"
+            if (subject === 'journal_entry' && rev && rev === rootId) continue
+            const revRow = rev ? jes.find((x) => idOf(x) === rev && x.op === 'INSERT') : undefined
+            const ls: Line[] = []
+            const v = docVal(d, r, 'journal_entries', 'reversed_by')
+            if (v) ls.push({ t: 'value', label: tx(d, 'je.reversedByLine'), value: v })
+            out.push({ title: isRoot ? tx(d, 'je.reversed') : tx(d, 'je.reversedOther', { code: code ?? '' }).replace(/\s+/g, ' '),
+                       lines: ls, reason: revRow ? reversalReason(str(revRow, 'memo')) : null, key: true, weight: isRoot ? 95 : 55, recordId: id })
+        } else {
+            out.push({ ...describeGeneric(d, r, opts), title: withPart(tx(d, 'journal.edited'), code), weight: 25 })
+        }
+    }
+    // 分录的行:只在它那张分录的建立里说(上面);一行单独出现(不该发生 —— 行只增不改)就照通用的说
+    for (const r of by('journal_lines')) {
+        const parent = str(r, 'entry_id')
+        if (r.op === 'INSERT' && jes.some((x) => x.op === 'INSERT' && idOf(x) === parent)) continue
+        out.push(describeGeneric(d, r, opts))
+    }
+
+    // ── ② 申请:人工分录 / 冲销 · 作废 / 贷项 · 六种付款申请 ─────────────────────────────────────
+    for (const t of ['journal_requests', 'invoice_requests', 'payment_requests'] as const) {
+        // 一张申请在【同一次操作】里建出来又被改(提交函数先插 submitted、再写金额;审批关着时当场翻成 approved)——
+        //   那是一件事:改的那几列并进建立的影像,不另起一句("Request changed")
+        const inserted = new Map<string, TrailRow>()
+        for (const r of by(t)) if (r.op === 'INSERT' && idOf(r)) inserted.set(idOf(r)!, { ...r, new: { ...(r.new ?? {}) } })
+        for (const r of by(t)) {
+            const ins = r.op === 'UPDATE' && idOf(r) ? inserted.get(idOf(r)!) : undefined
+            if (ins) { Object.assign(ins.new!, r.new ?? {}); ins.refs = mergeRefs(ins.refs, r.refs) }
+        }
+        for (const r0 of by(t)) {
+            if (r0.op === 'UPDATE' && idOf(r0) && inserted.has(idOf(r0)!)) continue
+            const r = r0.op === 'INSERT' && idOf(r0) ? inserted.get(idOf(r0)!) ?? r0 : r0
+            const id = idOf(r)
+            const kind = reqKind(r)
+            const { code, part } = labelPart(r)
+            const keyOf = (what: 'sent' | 'approved' | 'rejected' | 'withdrawn'): TrailTextKey => {
+                if (t === 'journal_requests') {
+                    const rev = kind === 'reversal'
+                    return ({ sent: rev ? 'jr.sentReversal' : 'jr.sentEntry', approved: rev ? 'jr.approvedReversal' : 'jr.approvedEntry',
+                              rejected: rev ? 'jr.rejectedReversal' : 'jr.rejectedEntry', withdrawn: rev ? 'jr.withdrawnReversal' : 'jr.withdrawnEntry' } as const)[what]
+                }
+                if (t === 'invoice_requests') {
+                    const v = kind === 'void'
+                    return ({ sent: v ? 'ir.sentVoid' : 'ir.sentCredit', approved: v ? 'ir.approvedVoid' : 'ir.approvedCredit',
+                              rejected: v ? 'ir.rejectedVoid' : 'ir.rejectedCredit', withdrawn: v ? 'ir.withdrawnVoid' : 'ir.withdrawnCredit' } as const)[what]
+                }
+                return what === 'sent' ? prKey('pr.sent.', kind) : what === 'approved' ? prKey('pr.approved.', kind) : what === 'rejected' ? 'pr.rejected' : 'pr.withdrawn'
+            }
+            const skip = new Set(['code', 'label', 'kind', 'status', 'decided_at', 'decided_by', 'decision_notes', 'withdrawn_at', 'withdrawn_by',
+                'withdraw_reason', 'paid_at', 'paid_by', 'lines', 'allocations', 'reason', 'notes', 'result_journal_entry_id', 'result_credit_note_id',
+                'result_payment_id', 'result_transfer_id', 'counterparty_type', 'invoice_id', 'target_entry_id', 'credits_bank', 'memo'])
+            const to = changed(r, 'status') ? str(r, 'status', 'new') : null
+            if (r.op === 'INSERT') {
+                const ls = valueLines(d, r, r.new, opts, skip)
+                if (t === 'payment_requests') for (const a of allocationItems(d, r.new?.['allocations'], r.refs)) ls.push({ t: 'value', label: a.label, value: a.value })
+                // Q32:审批关着时申请生下来就是 approved —— 标题说"批了",下面一行说是自动批的(与采购单同一句)
+                // 只认两样:一行 auto_approved 留痕,或一张【插进来时】就是 approved 的付款申请(它的提交函数直接这样插)——
+                //   不认"并进来之后的状态":一笔事务里提交又被人批了(线上的回滚证明就是这样),那是人批的,不是自动的
+                const isAuto = auto(id) || (t === 'payment_requests' && str(r0, 'status', 'new') === 'approved')
+                if (isAuto) ls.unshift({ t: 'note', text: tx(d, 'po.autoApproved') })
+                // 一张冲销申请的 memo 是【为什么冲】(理由);一张人工分录申请的 memo 是那张分录的摘要(一个字段)
+                const reversalAsk = t === 'journal_requests' && kind === 'reversal'
+                if (t === 'journal_requests' && !reversalAsk) ls.push(...vline(d, r, 'memo', opts))
+                // 同一次操作里建出来又被决定了(只有一笔事务做完全程才会这样)—— 标题说它最后到了哪一步
+                const end = str(r, 'status', 'new')
+                const what: 'sent' | 'approved' | 'rejected' = isAuto || end === 'approved' || end === 'paid' ? 'approved' : end === 'rejected' ? 'rejected' : 'sent'
+                out.push({ title: withPart(tx(d, keyOf(what)), code), part, lines: ls,
+                           reason: typed(r.new?.['reason'] ?? r.new?.['notes'] ?? (reversalAsk ? r.new?.['memo'] : null)), key: true, weight: 85, recordId: id, absorbsApproval: true })
+            } else if (to === 'withdrawn' || isSet(r, 'withdrawn_at')) {
+                out.push({ title: withPart(tx(d, keyOf('withdrawn')), code), part, lines: [], reason: typed(r.new?.['withdraw_reason']), key: true, weight: 85, recordId: id, absorbsApproval: true })
+            } else if (t === 'payment_requests' && (to === 'paid' || isSet(r, 'paid_at'))) {
+                const ls: Line[] = []
+                for (const c of ['result_payment_id', 'result_journal_entry_id']) {
+                    const v = docVal(d, r, 'payment_requests', c)
+                    if (v) ls.push({ t: 'value', label: fieldMeta(d, 'payment_requests', c)[0], value: v })
+                }
+                out.push({ title: withPart(tx(d, prKey('pr.done.', kind)), code), lines: ls, key: true, weight: 95, recordId: id, absorbsApproval: true })
+            } else if (to === 'approved' || to === 'rejected') {
+                out.push({ title: withPart(tx(d, keyOf(to)), code), part, lines: [], reason: typed(r.new?.['decision_notes']), key: true, weight: 90, recordId: id, absorbsApproval: true })
+            } else if (r.op === 'UPDATE') {
+                const ls = changeLines(d, r, opts, new Set(['decided_at', 'decided_by', 'amount_base', 'paid_at', 'paid_by']))
+                if (ls.length) out.push({ title: withPart(tx(d, 'pr.changed'), code), part, lines: ls, key: false, weight: 35, recordId: id })
+            } else out.push(describeGeneric(d, r, opts))
+        }
+    }
+    // 审批留痕:并进它批的那张申请(foldApprovals);申请那一行不在这一条里(记录开始之前的决定)就自成一句
+    out.push(...describeApproval(d, by('approval_log')))
+
+    // ── ③ 发票 · 签发档 · 贷项通知 ───────────────────────────────────────────────────────
+    const invLines = by('invoice_lines')
+    for (const r of by('invoices')) {
+        const code = str(r, 'code')
+        if (r.op === 'INSERT') {
+            const ls = vlines(d, r, ['customer_id', 'kind', 'sales_order_id', 'issue_date', 'due_date', 'currency'], opts)
+            for (const l of invLines.filter((x) => x.op === 'INSERT')) ls.push(invoiceLineLine(d, l, opts))
+            out.push({ title: withPart(tx(d, 'inv.issued'), code), lines: ls, key: true, weight: subject === 'invoice' ? 100 : 60 })
+        } else if ((changed(r, 'status') && str(r, 'status', 'new') === 'void') || isSet(r, 'voided_at')) {
+            out.push({ title: withPart(tx(d, 'inv.voided'), subject === 'invoice' ? null : code), lines: [], reason: typed(r.new?.['void_reason']), key: true, weight: 95 })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts)
+            if (ls.length) out.push({ title: tx(d, 'inv.edited'), lines: ls, key: false, weight: 30 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    const voidInGroup = by('invoices').some((r) => changed(r, 'status') || isSet(r, 'voided_at'))
+    for (const r of invLines) {
+        if (r.op === 'INSERT' && by('invoices').some((x) => x.op === 'INSERT')) continue
+        // 作废那一笔里每一行的 invoice_voided 翻成 true —— 那是作废的副作用,不另说
+        if (r.op === 'UPDATE' && voidInGroup && (r.cols ?? []).every((c) => c === 'invoice_voided')) continue
+        const ls = r.op === 'UPDATE' ? changeLines(d, r, opts) : [invoiceLineLine(d, r, opts)]
+        if (ls.length) out.push({ title: tx(d, 'inv.lineChanged'), lines: ls, key: false, weight: 30 })
+    }
+    for (const r of by('invoice_issues')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'inv.pdfIssued', { version: num(r.new?.['version'] ?? null) ?? '' }), lines: [], key: true, weight: 60 })
+    }
+    const cnLines = by('credit_note_lines')
+    for (const r of by('credit_notes')) {
+        const code = str(r, 'code')
+        if (r.op !== 'INSERT') { const ls = changeLines(d, r, opts); if (ls.length) out.push({ title: tx(d, 'cnote.changed'), lines: ls, key: false, weight: 30 }); continue }
+        const ls = vlines(d, r, subject === 'credit_note' ? ['invoice_id', 'note_date', 'currency'] : ['note_date'], opts)
+        for (const l of cnLines.filter((x) => x.op === 'INSERT')) ls.push(creditLineLine(d, l, opts))
+        out.push({ title: withPart(tx(d, 'cnote.issued'), code), lines: ls, reason: typed(r.new?.['reason']), key: true, weight: subject === 'credit_note' ? 100 : 75 })
+    }
+    for (const r of cnLines) {
+        if (r.op === 'INSERT' && by('credit_notes').some((x) => x.op === 'INSERT')) continue
+        out.push({ title: tx(d, 'cnote.changed'), lines: r.op === 'UPDATE' ? changeLines(d, r, opts) : [creditLineLine(d, r, opts)], key: false, weight: 30 })
+    }
+    for (const r of by('cn_issues')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: tx(d, 'cnote.pdfIssued', { version: num(r.new?.['version'] ?? null) ?? '' }), lines: [], key: true, weight: 60 })
+    }
+
+    // ── ④ 收付款(Q31)───────────────────────────────────────────────────────────────
+    const allocs = by('payment_allocations')
+    const pays = by('payments')
+    for (const r of pays) {
+        const id = idOf(r) ?? ''
+        const code = str(r, 'code')
+        const inbound = str(r, 'direction') === 'in'
+        if (r.op === 'INSERT' && fc.paymentMirror.has(id)) {
+            // 一笔冲销(镜像单)的建立:说成原单被冲销(Q31),镜像单号是下面一行
+            const orig = fc.paymentOrigin.get(id)
+            out.push({ title: withPart(tx(d, inbound ? 'pay.reversedIn' : 'pay.reversedOut'), orig?.code ?? null),
+                       lines: [{ t: 'value', label: tx(d, 'pay.reversingLine'), value: fc.paymentMirror.get(id)?.href && code ? { text: code, href: fc.paymentMirror.get(id)!.href! } : { text: code ?? tx(d, 'value.unnamed', { thing: thing(d, 'payments') }) } }],
+                       reason: reversalReason(str(r, 'notes')), key: true, weight: subject === 'payment' ? 95 : 65, recordId: id })
+            continue
+        }
+        if (r.op === 'INSERT') {
+            const ls = subject === 'payment' && id === rootId
+                ? vlines(d, r, ['payment_date', 'counterparty_type', 'customer_id', 'supplier_id', 'employee_id', 'amount_ccy', 'amount_base', 'fx_rate', 'bank_account_code'], opts)
+                : vlines(d, r, ['amount_ccy'], opts)
+            for (const a of allocs.filter((x) => x.op === 'INSERT' && str(x, 'payment_id') === id)) ls.push(allocationLine(d, a, opts, 'payment'))
+            out.push({ title: withPart(tx(d, inbound ? 'pay.recordedIn' : 'pay.recordedOut'), code), lines: ls, reason: typed(r.new?.['notes']),
+                       key: true, weight: subject === 'payment' && id === rootId ? 100 : 65, recordId: id })
+            continue
+        }
+        if (changed(r, 'reversed_by_payment') || (changed(r, 'status') && str(r, 'status', 'new') === 'reversed')) {
+            const m = str(r, 'reversed_by_payment', 'new')
+            if (m && pays.some((x) => x.op === 'INSERT' && idOf(x) === m)) continue    // 镜像单的建立已经说了
+            const v = docVal(d, r, 'payments', 'reversed_by_payment')
+            out.push({ title: withPart(tx(d, inbound ? 'pay.reversedIn' : 'pay.reversedOut'), code), lines: v ? [{ t: 'value', label: tx(d, 'pay.reversingLine'), value: v }] : [], key: true, weight: 90, recordId: id })
+            continue
+        }
+        const ls = changeLines(d, r, opts)
+        if (ls.length) out.push({ title: withPart(tx(d, 'pay.changed'), code), lines: ls, key: false, weight: 30 })
+    }
+    for (const r of allocs) {
+        if (r.op === 'INSERT' && pays.some((x) => x.op === 'INSERT' && idOf(x) === str(r, 'payment_id') && !fc.paymentMirror.has(idOf(x) ?? ''))) continue
+        if (r.op === 'DELETE') { out.push({ title: tx(d, 'pay.allocationRemoved'), lines: [allocationLine(d, r, opts, subject)], key: true, weight: 50 }); continue }
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: withPart(tx(d, 'pay.allocatedTo'), refLabel(r, 'payment_id')), lines: [allocationLine(d, r, opts, subject)], key: true, weight: 60 })
+    }
+
+    // ── ⑤ 付款申请的结果:转账 · 代扣税缴纳(在"付了"那一句里只说一次)─────────────────────────────────
+    const doneBlock = out.find((b) => PR_KINDS.some((k) => b.title.startsWith(tx(d, PR_TEXT.done[k]))))
+    for (const r of by('bank_transfers')) {
+        const ls = r.op === 'INSERT' ? vlines(d, r, ['transfer_date', 'from_account', 'to_account', 'amount_out', 'amount_in', 'bank_reference'], opts)
+            : isSet(r, 'reversed_at') ? vlines(d, r, ['reversal_entry_id'], opts) : changeLines(d, r, opts)
+        if (doneBlock) { doneBlock.lines.push(...ls); continue }
+        out.push({ title: tx(d, r.op === 'INSERT' ? 'pr.done.bank_transfer' : isSet(r, 'reversed_at') ? 'pr.done.bank_transfer_reversal' : 'pr.changed'), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: 70 })
+    }
+    for (const r of by('wht_remittances')) {
+        const ls = r.op === 'INSERT' ? vlines(d, r, ['period_month', 'amount_base', 'remitted_on', 'filed_reference'], opts) : changeLines(d, r, opts)
+        if (doneBlock) { doneBlock.lines.push(...ls); continue }
+        out.push({ title: withPart(tx(d, r.op === 'INSERT' ? 'pr.done.wht_remittance' : 'pr.changed'), str(r, 'code')), lines: ls, key: true, weight: 70 })
+    }
+
+    // ── ⑥ 费用 · 报销单 · 资本化 · 定金冲抵 ───────────────────────────────────────────────
+    const exps = by('expenses')
+    for (const r of exps) {
+        const id = idOf(r) ?? ''
+        const code = str(r, 'code')
+        if (r.op === 'INSERT' && fc.expenseMirror.has(id)) {
+            const orig = fc.expenseOrigin.get(id)
+            const href = fc.expenseMirror.get(id)?.href
+            out.push({ title: withPart(tx(d, 'exp.reversed'), orig?.code ?? null),
+                       lines: [{ t: 'value', label: tx(d, 'pay.reversingLine'), value: href && code ? { text: code, href } : { text: code ?? tx(d, 'value.unnamed', { thing: thing(d, 'expenses') }) } }],
+                       reason: reversalReason(str(r, 'notes')), key: true, weight: subject === 'expense' ? 95 : 65, recordId: id })
+            continue
+        }
+        if (r.op === 'INSERT') {
+            const root = subject === 'expense' && id === rootId
+            const ls = root ? vlines(d, r, ['expense_date', 'supplier_id', 'payee_name', 'employee_id', 'account_code', 'amount_ccy', 'tax_ccy', 'amount_base',
+                'payment_status', 'bank_account_code', 'wht_nature', 'wht_rate_pct', 'wht_amount_ccy', 'purchase_order_line_id'], opts) : vlines(d, r, ['amount_ccy'], opts)
+            out.push({ title: withPart(tx(d, 'exp.recorded'), code), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: root ? 100 : 65, recordId: id })
+            continue
+        }
+        if (changed(r, 'reversed_by_expense') || (changed(r, 'status') && str(r, 'status', 'new') === 'reversed')) {
+            const m = str(r, 'reversed_by_expense', 'new')
+            if (m && exps.some((x) => x.op === 'INSERT' && idOf(x) === m)) continue
+            const v = docVal(d, r, 'expenses', 'reversed_by_expense')
+            out.push({ title: withPart(tx(d, 'exp.reversed'), code), lines: v ? [{ t: 'value', label: tx(d, 'pay.reversingLine'), value: v }] : [], key: true, weight: 90, recordId: id })
+            continue
+        }
+        const ls = changeLines(d, r, opts)
+        if (ls.length) out.push({ title: withPart(tx(d, 'exp.changed'), code), lines: ls, key: changed(r, 'payment_status'), weight: 30 })
+    }
+    for (const r of by('expense_claims')) {
+        const id = idOf(r)
+        const code = str(r, 'code')
+        const to = changed(r, 'status') ? str(r, 'status', 'new') : (r.prelog && (r.cols ?? []).includes('decided_at')) ? str(r, 'status', 'new') : null
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'exp.claimSubmitted'), code), lines: vlines(d, r, ['employee_id', 'spend_date', 'account_code', 'amount_ccy'], opts),
+                                          reason: typed(r.new?.['description']), key: true, weight: 70, recordId: id, absorbsApproval: true })
+        else if (to === 'approved' || to === 'rejected') out.push({ title: withPart(tx(d, to === 'approved' ? 'exp.claimApproved' : 'exp.claimRejected'), code), lines: [],
+                                          reason: typed(r.new?.['decision_notes']), key: true, weight: 80, recordId: id, absorbsApproval: true })
+        else if (to === 'withdrawn' || isSet(r, 'withdrawn_at')) out.push({ title: withPart(tx(d, 'exp.claimWithdrawn'), code), lines: [], key: true, weight: 80, recordId: id, absorbsApproval: true })
+        else if (r.op === 'UPDATE') { const ls = changeLines(d, r, opts); if (ls.length) out.push({ title: withPart(tx(d, 'exp.claimChanged'), code), lines: ls, key: false, weight: 30, recordId: id }) }
+        else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('fixed_asset_cost_entries')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: withPart(tx(d, 'exp.capitalised'), refLabel(r, 'asset_id')), lines: vlines(d, r, ['amount_ccy', 'amount_base'], opts), key: true, weight: 60 })
+    }
+    for (const r of by('prepayment_applications')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        const ls = vlines(d, r, [subject === 'expense' ? 'purchase_order_id' : 'expense_id', 'amount_ccy', 'amount_base'], opts)
+        out.push({ title: tx(d, subject === 'expense' ? 'exp.prepaymentReleased' : 'batch.prepayment'), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: 60 })
+    }
+    for (const r of by('finance_attachments')) {
+        const part = typed(str(r, 'file_name'))
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'batch.attachmentAdded'), part, lines: vlines(d, r, ['doc_type'], opts), key: false, weight: 30 })
+        else if (r.op === 'DELETE' || isSet(r, 'deleted_at')) out.push({ title: tx(d, 'batch.attachmentRemoved'), part, lines: [], key: false, weight: 30 })
+        else { const ls = changeLines(d, r, opts); if (ls.length) out.push({ title: tx(d, 'batch.attachmentAdded'), part, lines: ls, key: false, weight: 20 }) }
+    }
+
+    // ── ⑦ 应付(Q5:批次只说钱的那一面 —— root_columns 已经把仓库那一面挡在读法那一层)──────────────────────
+    const prices = by('price_history')
+    for (const r of by('inbound_batches')) {
+        if (r.op === 'INSERT') {
+            out.push({ title: withPart(tx(d, 'batch.received'), qtyText(d, r, 'quantity', opts)),
+                       lines: vlines(d, r, ['supplier_id', 'purchase_order_id', 'unit_price', 'arrival_date'], opts), key: true, weight: 100 })
+            continue
+        }
+        if (r.op === 'DELETE') { out.push(describeGeneric(d, r, opts)); continue }
+        if (isSet(r, 'deleted_at')) { out.push({ title: tx(d, 'batch.writtenOff'), lines: [], reason: typed(r.new?.['delete_reason']), key: true, weight: 95 }); continue }
+        const skip = new Set(['deleted_at', 'deleted_by', 'delete_reason'])
+        if (prices.length) { for (const c of ['unit_price', 'pricing_status']) skip.add(c) }
+        const ls = changeLines(d, r, opts, skip)
+        const priced = changed(r, 'unit_price') && !prices.length
+        if (ls.length) out.push({ title: tx(d, priced ? 'pab.priceSet' : 'pab.edited'), lines: ls, key: priced, weight: priced ? 60 : 30 })
+    }
+    for (const r of prices) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        const img = imgOf(r)
+        const ls: Line[] = [{ t: 'change', label: fieldMeta(d, 'inbound_batches', 'unit_price')[0],
+            old: formatValue(d, 'price_history', 'old_unit_price', r.new?.['old_unit_price'], img, r.refs, 'INSERT', opts),
+            new: formatValue(d, 'price_history', 'new_unit_price', r.new?.['new_unit_price'], img, r.refs, 'INSERT', opts) }]
+        out.push({ title: tx(d, 'batch.priceChanged'), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: 70 })
+    }
+    for (const r of by('freight_allocations')) {
+        if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
+        out.push({ title: withPart(tx(d, 'batch.freight'), refLabel(r, 'freight_document_id')), lines: vlines(d, r, ['amount_base'], opts), key: true, weight: 50 })
+    }
+
+    // 别的表(这几页的登记表之外不该出现;出现了照通用的说,不丢)
+    const known = new Set(['journal_entries', 'journal_lines', 'journal_requests', 'invoice_requests', 'payment_requests', 'approval_log', 'invoices',
+        'invoice_lines', 'invoice_issues', 'credit_notes', 'credit_note_lines', 'cn_issues', 'payments', 'payment_allocations', 'bank_transfers',
+        'wht_remittances', 'expenses', 'expense_claims', 'fixed_asset_cost_entries', 'prepayment_applications', 'finance_attachments',
+        'inbound_batches', 'price_history', 'freight_allocations'])
+    for (const r of rows) if (r.table && !known.has(r.table)) out.push(describeGeneric(d, r, opts))
+    return out
+}
+function invoiceLineLine(d: TrailDict, r: TrailRow, opts: BuildOptions): Line {
+    const img = imgOf(r)
+    const n = num(img['line_no'] ?? null)
+    const desc = typeof img['description'] === 'string' ? img['description'] as string : null
+    const q = formatValue(d, 'invoice_lines', 'quantity', img['quantity'], img, r.refs, r.op, opts)
+    const p = formatValue(d, 'invoice_lines', 'unit_price', img['unit_price'], img, r.refs, r.op, opts)
+    const label = [n !== null ? tx(d, 'po.lineHeading', { n }) : cap(thing(d, 'invoice_lines')), desc].filter(Boolean).join(' · ')
+    return { t: 'value', label, value: { text: [q.text, p.empty ? '' : `@ ${p.text}`].filter(Boolean).join(' '), restricted: p.restricted } }
+}
+function creditLineLine(d: TrailDict, r: TrailRow, opts: BuildOptions): Line {
+    const img = imgOf(r)
+    const what = refLabel(r, 'invoice_line_id') ?? cap(thing(d, 'credit_note_lines'))
+    const amt = formatValue(d, 'credit_note_lines', 'amount', img['amount'], img, r.refs, r.op, opts)
+    const kind = typeof img['kind'] === 'string' ? enumLabel(d, 'credit_note_lines', 'kind', img['kind'] as string) : null
+    return { t: 'value', label: what, value: { text: [amt.text, kind].filter(Boolean).join(' · '), restricted: amt.restricted } }
+}
+/** 一行核销:在收付款页上说它冲的是哪一张单据;在单据页上说是哪一笔款 */
+function allocationLine(d: TrailDict, r: TrailRow, opts: BuildOptions, subject: string): Line {
+    const img = imgOf(r)
+    const amt = formatValue(d, 'payment_allocations', 'allocated_base', img['allocated_base'], img, r.refs, r.op, opts)
+    if (subject === 'payment') {
+        for (const c of ['invoice_id', 'expense_id', 'inbound_batch_id', 'purchase_order_id', 'freight_document_id', 'sales_record_id']) {
+            const v = img[c]
+            if (typeof v === 'string') return { t: 'value', label: refVal(d, 'payment_allocations', c, v, r.refs).text, value: amt }
+        }
+    }
+    return { t: 'value', label: tx(d, 'pay.allocated'), value: amt }
+}
+
 /** 审批与它批的那件事在同一笔事务里(工单放行、盘点过账、仓库申请的决定)→ 并成一句:审批落成那一块下面的一行说明 */
 function foldApprovals(blocks: Block2[]): Block2[] {
     const out: Block2[] = []
@@ -2526,6 +3031,7 @@ export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions 
             if (typeof id === 'string' && typeof t === 'string' && !stepTitles.has(id)) stepTitles.set(id, t)
         }
     }
+    const fc = opts.subject && FIN_SUBJECTS.has(opts.subject) ? finContext(rows) : null
     const groups = new Map<string, TrailRow[]>()
     for (const r of rows) {
         const g = groups.get(r.group)
@@ -2583,6 +3089,7 @@ export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions 
                 case 'formula': bs = describeFormula(d, list, opts); break
                 case 'task': bs = describeTask(d, list, opts, stepTitles); break
                 case 'settings': bs = describeSettings(d, list, opts); break
+                case 'fin': bs = describeFinance(d, list, opts, reversals, fc ?? finContext(rows)); break
                 default: bs = []
             }
             // 别的记录的事(往上一跳够到的、审批、分录)永远不当这一条的标题 —— 这一页自己那件事在,标题就是它
@@ -2622,10 +3129,10 @@ export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions 
 export function fromRecordTrail(r: {
     entry_no: number; prelog: boolean; seq: number | null; occurred_at: string; table_name: string | null; row_key: Json;
     op: string | null; actor: Json; changed_columns: string[] | null; old: Json; new: Json; ctx: Json; refs: Json;
-    row_hidden: boolean; row_restricted: boolean
+    row_hidden: boolean; row_restricted: boolean; op_key?: string | null
 }): TrailRow {
     return {
-        group: 'E' + r.entry_no, order: r.entry_no, prelog: r.prelog, at: r.occurred_at, table: r.table_name,
+        group: 'E' + r.entry_no, order: r.entry_no, prelog: r.prelog, at: r.occurred_at, table: r.table_name, opKey: r.op_key ?? null,
         key: (r.row_key as Img) ?? null, op: r.op, actor: (r.actor as Actor) ?? null, cols: r.changed_columns,
         old: (r.old as Img) ?? null, new: (r.new as Img) ?? null, ctx: (r.ctx as Img) ?? null, refs: (r.refs as Refs) ?? null,
         hidden: r.row_hidden, restricted: r.row_restricted,
@@ -2643,4 +3150,36 @@ export function fromChangeLog(r: {
         new: (r.new as Img) ?? null, ctx: null, refs: (r.refs as Refs) ?? null, hidden: false, restricted: r.row_restricted,
         record: (r.belongs_to as RecordRef) ?? null,
     }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// AUDIT-TRAIL-1c-1(Q16):清单页把几条记录合成一块时,【一次操作只说一次】
+// ════════════════════════════════════════════════════════════════════════════
+/** 一行的身份:记录开始之后是它的 seq(全库唯一);之前是 表 · 键 · 操作 · 时刻 · 改了哪几列(拼回来的行没有 seq)。
+ *  受限的行(读者看不见)没有表、没有键 —— 不去重(两条记录各看不见一行,不能断言那是同一行) */
+export function mergeKey(r: TrailRow, seq: number | null | undefined): string | null {
+    if (!r.table || r.hidden) return null
+    if (seq !== null && seq !== undefined) return `L|${seq}`
+    return `P|${r.table}|${JSON.stringify(r.key)}|${r.op}|${r.at}|${(r.cols ?? []).join(',')}`
+}
+export type ListRecord = { subject: string; id: string; label: string }
+/** 几条记录读回来的行(已按 mergeKey 去重)→ 一次操作一条:同一个 op_key 的行交给同一次 buildEntries,
+ *  Record 一栏列出这次操作碰到的每一条记录(按清单上的先后)。没有 op_key 的行(旧读法)按"记录 · 条"各自成条。 */
+export function mergeByOperation(d: TrailDict, items: { row: TrailRow; rec: ListRecord }[]): (Entry & { recordText: string; recordHref: null })[] {
+    const ops = new Map<string, { rows: TrailRow[]; recs: ListRecord[] }>()
+    for (const { row, rec } of items) {
+        const k = row.opKey ?? `${rec.subject}:${rec.id}:${row.group}`
+        const g = ops.get(k) ?? { rows: [], recs: [] }
+        g.rows.push({ ...row, group: k, order: 0 })
+        if (!g.recs.some((x) => x.subject === rec.subject && x.id === rec.id)) g.recs.push(rec)
+        ops.set(k, g)
+    }
+    const out: (Entry & { recordText: string; recordHref: null })[] = []
+    for (const [k, g] of ops) {
+        const [first] = g.recs
+        for (const e of buildEntries(d, g.rows, { subject: first.subject, recordId: first.id })) {
+            out.push({ ...e, key: k, recordText: g.recs.map((x) => x.label).join(' · '), recordHref: null })
+        }
+    }
+    return out
 }

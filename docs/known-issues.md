@@ -9924,3 +9924,31 @@ detail 在其余每一张订单上都只是单号本身。那一条记录照样�
 `AuditTrail` 接受"保留哪些参数",那是改共用组件的形状,不属于"加主语"的这一刀。**删除条件:** `AuditTrail` 的翻页链接保留页面
 其余的查询参数(或面板那一段换成不翻页的短块),在金属价格页上带着筛选点一次,筛选还在。
 
+
+## AT1C1-PAYROLL-JOURNAL-SHOWS-INDIVIDUAL-PAY —— 工资过账的分录行把每一个人的实发工资给了不持 `data.view_pay` 的财务读者(AT-1c Step 0 量到,Tim 的 Q11,2026-10-03)
+
+`pay_payroll_lines` 给每一名员工过一行银行贷方,金额是那个人的实发工资,行备注是员工编号 + 法定姓名
+(`db/functions/pay_payroll_lines.sql:85-90`)。`journal_lines` 没有列遮蔽(本文件之外的常设决定 1:持 `module.finance.view`
+就看得见价格)。于是持 `module.finance.view` 而【不持】`data.view_pay` 的角色 —— 线上 cto 与 gm(各一人)、auditor(零人)——
+在分录页上读得到每一个人的实发工资(以 postgres 身份读:线上 4 张工资分录、11 行,其中 1 行是按人的,2026-10-03)。
+`payroll_lines` 本身把这几列按 `code_or_self:data.view_pay` 遮着(FIN-4 接受按人的实发工资,是在 finance.view **且** view_pay 之后)。
+**Tim 的裁定(2026-10-03):** 只有持 `data.view_pay` 的人看得见工资分录行里一个人的金额,其余的人看到 "Restricted"。
+**不在 AT-1c 里修** —— AT-1c 的审计记录照分录页今天的样子说(不在审计记录里单独遮,那会让审计记录与分录页说两个答案)。
+排在 `docs/forward-queue.md` UNBLOCK-1 的第一条。**删除条件:** 一个不持 `data.view_pay` 的财务读者在分录页与它的审计记录上,
+工资过账那几行按人的金额都读到 Restricted;持的人照常读到数。
+
+## AT1C1-UNRECONCILE-WRITES-TIMESTAMP-INTO-NOTES —— 撤销对账把一个原始时间戳拼进了对账单的备注(AT-1c Step 0 量到,Tim 的 Q24,2026-10-03)
+
+`unreconcile_statement` 在 `bank_statements.notes` 后面追加 `'UNRECONCILED ' || now()::text || …`
+(`db/functions/unreconcile_statement.sql:32`)—— 一段机器写的、带原始 ISO 时间戳的文字,混在人写的备注里。审计记录对备注的改动会
+照原样说出它(备注是人敲的字)。**处置(Q24):** 对账单的审计记录(AT-1c-2 的 `bank_statement` 主语)认出这一截机器后缀,说成
+"Reconciliation undone";写它的那一支在这里登记,改它写什么是另一件事(它是撤销对账留下的唯一一行"何时撤的"文字,改之前要先问
+有没有人读它)。**删除条件:** `unreconcile_statement` 不再往备注里写时间戳(撤销的时刻已经在变更记录里),或者 Tim 裁定留着。
+
+## AT1C1-REQUEST-TARGETS-NOT-REACHABLE —— 一张还没付的付款申请,在它要结清的那几张单据的审计记录里看不见(AT-1c Step 0 量到,Tim 的 Q13,2026-10-03)
+
+付款申请要结清哪几张单据(费用 · 进料批次 · 采购单 · 运费单)写在 `payment_requests.allocations` 这一段 JSONB 里,不是外键
+(`db/tables/payment_requests.sql`)。审计记录的成员是按外键找的,所以一张**在等 / 被驳回 / 被撤回**的申请不会出现在那张费用、
+那个应付、那张采购单的审计记录里;付掉之后它经由付款的核销行(`payment_allocations`)才连得上。**本刀做了的那一半(Q13):**
+在申请自己的审计记录上,要结清的每一张单据按单号说("EXP-2026-0004 · 300.00 (document currency)"),`trail_refs` 解析那一段
+JSONB 里的 id。**删除条件:** 申请的目标改成外键(或一张申请-单据的连接表),单据的审计记录挂上它。线上今天 0 张付款申请。

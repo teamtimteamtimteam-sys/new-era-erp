@@ -6568,8 +6568,27 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
       它们的表归 AT-1c / AT-1d,到时候一起核。
   * **⬜ AT-1c(`v1.4.33` 的一部分;~~v1.4.35~~)· 财务与合同的页面** —— `docs/surveys/AUDIT-TRAIL-0/ops-finance.md` 的 32 条宿主路由与 `/contracts/[id]`;
     凭证作为"由单据过账"的相关事件在哪些主语上出现(`docs/known-issues.md` 的 `AT1A-RUN-COST-JOURNALS-NOT-ON-TRAIL`)。
-  * **⬜ AT-1d(`v1.4.33` 的最后一部分,关闭后才发布 `v1.4.33`;~~v1.4.36~~)· 人事、设置与账号** —— HR 的宿主页与 `/me`;设置页(审批方针、词典、导入);**共用一行的设置面板各看各的字段**
-    (Q25:锁期、GST 设置、审批方针同住 `finance_settings`,锁期那一块再加上月结 / 反结);**账号的审计记录**(Q24:`/settings/accounts`
+    Step 0 勘察与 Tim 的裁定(Q1–Q34 全部照建议,2026-10-03)在 `docs/surveys/AUDIT-TRAIL-1c/STEP0-HANDBACK.md`;按 Q1 拆成三刀,都在 `v1.4.33` 里,依次做:
+    * **✅ AT-1c-1(2026-10-03)· 机制与账上的单据** —— M7(没有外键的表整张属于一个单行设置主语;第一个用户是 1c-3 的锁期面板)·
+      Q16(`record_trail` 每一行带回 op_key,清单页一次操作只说一次)· Q12(引用里的员工名照 ActorName 的规矩)· `ListTrail` 认任何主语;
+      分录 · 发票 · 贷项通知 · 收付款 · 付款申请(转账、代扣税缴纳与它们的冲销住在这一页)· 费用 · 应付(Q5:新主语 `payable`,M3 · M6;
+      注销了的批次只读打开、带横幅);横幅 "Voided / Reversed on DD/MM/YYYY by <name>" + 链到冲销那一张、"Reversal of …"(Q8);
+      三个戳登记成事件(Q9);付款申请要结清的单据按单号说(Q13);冲销读作一句、冲销分录是链着的一行(Q31 · Q33);
+      "Approved automatically"(Q32);发票申请的"历史"那一段换成审计记录(Q26);冲销分录的"来源"链接修好(Q15);
+      1b-3 第 28 号的金句补上(Q34)。交回 `docs/handbacks/AUDIT-TRAIL-1c-1.md`;fixture 241。
+    * **⬜ AT-1c-2 · 其余的单据与合同** —— 销售(Q14:`sale` 进单据登记表)· 运费 · 资产(替掉资产的"历史"面板)· 对账单(删掉的对账单只读打开,Q6)·
+      GST 期间(Q22 · Q23)· 汇率(撤回的汇率只读打开,Q7)· 管理包 · 合同(Q21)。
+      ★ **1c-1 留下的一个缺口,在这一刀补上**:付款申请与贷项通知的【字段编辑】没有 fixture 一臂,"Request changed" /
+      "Credit note changed" / "Payment changed" / "Invoice changed" 四句也没有金句,只有机器字扫描那一层兜着
+      (`docs/handbacks/AUDIT-TRAIL-1c-1.md` §10 第 18 条)。
+    * **⬜ AT-1c-3 · 期末、设置与清单页上的记录** —— 锁期面板(+ 月结 / 反结,M7)与 `/finance/close`(Q29)· GST 设置面板 · 公司资料 · 年结 ·
+      重估与折旧的批次 · 批量汇率(Q16)· 现金预测 · 工资付款(Q18)· 加工成本结算(Q19)· 代扣税缴纳 · 转账 · 报销单(Q20)· 银行导入模板 ·
+      人工分录申请(Q17)。
+  * **⬜ AT-1d(`v1.4.33` 的最后一部分,关闭后才发布 `v1.4.33`;~~v1.4.36~~)· 人事、设置与账号** —— HR 的宿主页与 `/me`;设置页(审批方针、词典、导入);
+    ★ **审批方针那一块面板归这里(Tim 的 AT-1c Q2,2026-10-03)**:`/settings/approvals`(守卫 `action.manage_permissions`)上的 `approval_policy`
+    主语 —— `finance_settings` 的四列审批方针(M5 · M6)+ `finance_settings_history`(M7,整张表属于那一行),替掉页上的 `ApprovalsHistory`(Q26);
+    同一行上的锁期与 GST 设置两块面板归 AT-1c-3。~~**共用一行的设置面板各看各的字段**
+    (Q25:锁期、GST 设置、审批方针同住 `finance_settings`,锁期那一块再加上月结 / 反结)~~ —— 锁期与 GST 那两块挪到 AT-1c-3(Q2);**账号的审计记录**(Q24:`/settings/accounts`
     每行可展开,并在关联员工的页面上照出来)。
   * **⬜ DATE-PICK-1(`v1.4.34`;~~v1.4.37~~)· 日期选择器** —— 一个自建的选择器(Radix Popover + 现成的 `MonthGrid` + `lib/bankCsv.ts` 的
     DD/MM/YYYY 解析,不加库):能敲能点、DD/MM/YYYY、周一开头、提交 ISO、min/max 之外的日子不可选并说原因、不可能的日子拦住提交
@@ -6577,6 +6596,9 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     输入格式仍是 DD/MM/YYYY(Q39);**134 个原生日期框一个不剩**,检查改成"零个",两种独立的数法,`check-date-data-paths.mjs` 改瞄选择器,
     两处都做故障注入(Q38)。勘察 `docs/surveys/AUDIT-TRAIL-0/dates.md`。不动数据库。
 * **⬜ UNBLOCK-1 · 量到了、没修、等一个裁定的几件**(AUDIT-TRAIL-1b-1 起立这一条,2026-09-29)
+  * **⬜ ★ 第一条(Tim 的 AT-1c Q11,2026-10-03):工资过账的分录行只给持 `data.view_pay` 的人看一个人的金额** —— 其余的人看到 "Restricted"。
+    今天持 `module.finance.view` 而不持 `data.view_pay` 的 cto 与 gm 在分录页上读得到每一个人的实发工资(`pay_payroll_lines` 一人一行)。
+    AT-1c 的审计记录照分录页今天的样子说,不在审计记录里单独遮。`docs/known-issues.md` 的 `AT1C1-PAYROLL-JOURNAL-SHOWS-INDIVIDUAL-PAY`。
   * **⬜ `equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人**(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
 * **⬜ `/settings/deleted` 要不要被变更记录吸收**(HISTORY-0 Q30,Tim:本刀之后再定,2026-09-28)—— 见下面「事件触发」那一节的原条目;

@@ -11,7 +11,10 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import ReversePaymentButton from './ReversePaymentButton'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
-import { mustRows } from '@/lib/db-helpers'
+import { mustOne, mustRows } from '@/lib/db-helpers'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import EndedBanner, { ReversalOfBanner } from '@/app/components/trail/EndedBanner'
+import { reversalReasonText } from '@/lib/trail/render'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -35,8 +38,10 @@ type AllocRow = {
 
 export default async function PaymentDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -74,8 +79,9 @@ export default async function PaymentDetailPage({
             .select('id, sales_record_id, inbound_batch_id, expense_id, purchase_order_id, invoice_id, allocated_base, allocated_pay, allocated_ccy')
             .eq('payment_id', id)
             .order('created_at', { ascending: true }),
+        // AUDIT-TRAIL-1c-1(Q8):谁、何时冲销的 —— 取自冲销那一笔(镜像单)的建立
         payment.reversed_by_payment
-            ? supabase.from('payments').select('id, code').eq('id', payment.reversed_by_payment).single()
+            ? supabase.from('payments').select('id, code, created_at, created_by, notes').eq('id', payment.reversed_by_payment).single()
             : Promise.resolve({ data: null, error: null }),
         // ★ PAY-REQ-1:这笔付款有没有一张【未了结】的冲销申请。有 → 指过去,不再给「申请冲销」
         //   (库里一笔付款同时只许一张未了结的冲销申请:payment_requests_one_open_reversal)。
@@ -88,6 +94,9 @@ export default async function PaymentDetailPage({
             .limit(1),
     ])
     const openReversal = mustRows(openReversalRes, 'open reversal request (PAY-REQ-1)')[0] ?? null
+    // AUDIT-TRAIL-1c-1(Q8):这一笔是不是一笔冲销(镜像单)—— 谁的 reversed_by_payment 指着它
+    const reversalOf = mustOne(await supabase.from('payments').select('id, code').eq('reversed_by_payment', id).maybeSingle(),
+        'payment this one reverses') as { id: string; code: string } | null
 
     const allocs = ((allocsRes.data as AllocRow[] | null) ?? [])
 
@@ -292,17 +301,16 @@ export default async function PaymentDetailPage({
             //    空的只可能是核销行表,那句空态归表自己说(DataTable 的 empty)。
             state={{ kind: 'ok' }}
             // 冲销横幅:无条件渲染,与 CONV-1 的 notices 槽同一条理由。
+            // AUDIT-TRAIL-1c-1(Q8):冲销了的一笔 → "Reversed on … by …" + 链到冲销那一笔;冲销那一笔 → "Reversal of PMT-…"
             notices={
-                payment.status === 'reversed' && reversedByRes.data ? (
-                    <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
-                        <Link
-                            href={`/finance/payments/${reversedByRes.data.id}`}
-                            className="hover:underline app-link"
-                        >
-                            {t('finance.reversedByPayment', { code: reversedByRes.data.code })}
-                        </Link>
-                    </div>
-                ) : undefined
+                <>
+                    {payment.status === 'reversed' && reversedByRes.data?.created_at && (
+                        <EndedBanner kind="reversed" at={reversedByRes.data.created_at} by={reversedByRes.data.created_by}
+                            reason={reversalReasonText(reversedByRes.data.notes)}
+                            link={{ code: reversedByRes.data.code, href: `/finance/payments/${reversedByRes.data.id}` }} />
+                    )}
+                    {reversalOf && <ReversalOfBanner code={reversalOf.code} href={`/finance/payments/${reversalOf.id}`} />}
+                </>
             }
         >
             {/* ★ 记录抬头 —— 冲销钮住 actions 槽:一个动作不是一个值。
@@ -359,6 +367,8 @@ export default async function PaymentDetailPage({
             {/* 凭据附件 —— 这一页的第二个出口(上传凭据)。它住在 children 里,
                 而详情页 state 恒为 'ok',所以它不可能被空分支吃掉。 */}
             <FinanceAttachmentsPanel canEdit={canEditGate} parent={{ kind: 'payment', id: payment.id }} rows={attachments} />
+
+            <AuditTrail subject="payment" id={payment.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

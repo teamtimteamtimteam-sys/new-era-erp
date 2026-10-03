@@ -710,13 +710,276 @@ if (FAULT === 'wording-drift-1b3') dict.text = { ...dict.text, 'loc.classesChang
     if (FAULT === 'wording-drift-1b3' && !problems.gold3.length) problems.gold3.push('(注入 wording-drift-1b3 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑧ 账上的单据(AUDIT-TRAIL-1c-1)──────────────────────────────────────────
+// 七个主语(分录 · 发票 · 贷项通知 · 收付款 · 付款申请 · 费用 · 应付)各一次字段编辑(有的话)· 子行改动 · 关键事件,逐字;
+//   加上:冲销读作一句(Q31)、冲销分录是【一行】带链接(Q33)、审批关着时"Approved automatically"(Q32)、
+//   付款申请要结清的单据按单号说(Q13)、引用里的员工名照 ActorName 的规矩受限(Q12)、清单页一次操作只说一次(Q16)、
+//   冲销分录的"来源"换成原分录的来源(Q15)、1b-3 的第 28 号(删掉的步骤说出它的计划日期与勾没勾,Q34 补的金句)。
+//   注入 wording-drift-1c1 → 这一臂必须红。
+problems.gold8 = []
+if (FAULT === 'wording-drift-1c1') dict.text = { ...dict.text, 'je.reversed': 'Journal undone' }
+{
+    const SL = await imp('app/finance/sourceLinkReversal.ts')
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const mk = (rows, group = 'GOLD8') => rows.map((r) => ({ group, order: 1, prelog: false, at: '2026-10-03T02:00:00+00:00', key: { id: uuid() },
+        actor: { state: 'person', name: 'Sandra' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+    const G = (label, opts, rows, want) => {
+        let e
+        try { [e] = R.buildEntries(dict, mk(rows), { currency: 'SGD', ...opts }) } catch (err) { problems.gold8.push(`${label}:造句器抛错 ${err.message}`); return null }
+        const got = { title: e?.title, part: e?.titlePart?.text ?? null, lines: (e?.lines ?? []).map(lineText), reason: e?.reason?.text ?? null }
+        if (got.title !== want.title) problems.gold8.push(`${label}:标题「${got.title}」≠「${want.title}」`)
+        if ((want.part ?? null) !== got.part) problems.gold8.push(`${label}:标题后那一段「${got.part}」≠「${want.part ?? null}」`)
+        if (want.lines && JSON.stringify(got.lines) !== JSON.stringify(want.lines)) problems.gold8.push(`${label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(want.lines)}`)
+        if ((want.reason ?? null) !== got.reason) problems.gold8.push(`${label}:理由「${got.reason}」≠「${want.reason ?? null}」`)
+        return e
+    }
+    const acct = (code, label) => ({ account_id: { [code]: { label } } })
+    const ref = (col, v, label, href) => ({ [col]: { [v]: href ? { label, href } : { label } } })
+
+    // ── 分录 ──
+    const je = id('je'), rev = id('rev')
+    G('journal · posted (field values + its lines)', { subject: 'journal_entry', recordId: je }, [
+        { table: 'journal_entries', op: 'INSERT', key: { id: je }, new: { code: 'JE-2026-0090', entry_date: '2026-10-03', source_type: 'manual', memo: 'Accrual for September', status: 'posted' } },
+        { table: 'journal_lines', op: 'INSERT', new: { entry_id: je, account_id: 'a1', debit: 100, credit: 0, currency: 'SGD', amount_ccy: 100 }, refs: acct('a1', 'Office rent') },
+        { table: 'journal_lines', op: 'INSERT', new: { entry_id: je, account_id: 'a2', debit: 0, credit: 100, currency: 'USD', amount_ccy: 75 }, refs: acct('a2', 'Cash at Bank – USD') }],
+      { title: 'Journal posted · JE-2026-0090', lines: ['Entry date: 03/10/2026', 'Source: Manual', 'Memo: Accrual for September',
+        'Office rent: Debit 100.00 SGD', 'Cash at Bank – USD: Credit 100.00 SGD (75.00 USD)'] })
+    const eRev = G('journal · reversed — one linked line, its lines not repeated (Q33)', { subject: 'journal_entry', recordId: je }, [
+        { table: 'journal_entries', op: 'UPDATE', key: { id: je }, cols: ['status', 'reversed_by'], old: { status: 'posted', reversed_by: null },
+          new: { status: 'reversed', reversed_by: rev }, ctx: { code: 'JE-2026-0090', reversed_by: rev }, refs: ref('reversed_by', rev, 'JE-2026-0091', `/finance/journal/${rev}`) },
+        { table: 'journal_entries', op: 'INSERT', key: { id: rev }, new: { code: 'JE-2026-0091', memo: 'REVERSAL: JE-2026-0090 — booked to the wrong account', status: 'posted' } }],
+      { title: 'Journal reversed', lines: ['Reversed by: JE-2026-0091'], reason: 'booked to the wrong account' })
+    if (eRev && eRev.lines[0]?.value?.href !== `/finance/journal/${rev}`) problems.gold8.push(`journal · reversed:那一行不是链接(Q33)—— href ${eRev.lines[0]?.value?.href}`)
+    G('journal · the reversal on its own page', { subject: 'journal_entry', recordId: rev }, [
+        { table: 'journal_entries', op: 'UPDATE', key: { id: je }, cols: ['status', 'reversed_by'], old: { status: 'posted', reversed_by: null },
+          new: { status: 'reversed', reversed_by: rev }, ctx: { code: 'JE-2026-0090', reversed_by: rev } },
+        { table: 'journal_entries', op: 'INSERT', key: { id: rev }, new: { code: 'JE-2026-0091', memo: 'REVERSAL: JE-2026-0090 — booked to the wrong account', status: 'posted' } },
+        { table: 'journal_lines', op: 'INSERT', new: { entry_id: rev, account_id: 'a1', debit: 0, credit: 100, currency: 'SGD', amount_ccy: 100 }, refs: acct('a1', 'Office rent') }],
+      { title: 'Reversal journal posted · JE-2026-0091', lines: ['Reverses: JE-2026-0090', 'Office rent: Credit 100.00 SGD'], reason: 'booked to the wrong account' })
+    G('journal · on another document (posting)', { subject: 'invoice', recordId: id('inv') }, [
+        { table: 'journal_entries', op: 'INSERT', new: { code: 'JE-2026-0092', status: 'posted' } }],
+      { title: 'Journal posted · JE-2026-0092', lines: [] })
+    G('journal · manual journal raised with approvals off (Q32)', { subject: 'journal_entry', recordId: id('je3') }, [
+        { table: 'journal_entries', op: 'INSERT', key: { id: id('je3') }, new: { code: 'JE-2026-0093', entry_date: '2026-10-03', source_type: 'manual', status: 'posted' } },
+        { table: 'journal_requests', op: 'INSERT', key: { id: id('jr') }, new: { kind: 'entry', label: 'manual journal #4', status: 'approved', entry_date: '2026-10-03', amount_base: 50 } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'journal_request', subject_id: id('jr'), decision: 'auto_approved', note: '审批关着时提交' } }],
+      { title: 'Journal posted · JE-2026-0093', lines: ['Entry date: 03/10/2026', 'Source: Manual', '[Manual journal approved · manual journal #4]',
+        '(Approved automatically (approvals were switched off))', 'Entry date: 03/10/2026', 'Amount (sum of debits): 50.00 SGD'] })
+    G('journal · reversal sent for approval (approvals on)', { subject: 'journal_entry', recordId: je }, [
+        { table: 'journal_requests', op: 'INSERT', key: { id: id('jr2') }, new: { kind: 'reversal', label: 'JE-2026-0090 · reversal #1', status: 'submitted', memo: 'booked to the wrong account', target_entry_id: je } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'journal_request', subject_id: id('jr2'), decision: 'submitted', level: 2 } }],
+      { title: 'Reversal sent for approval', part: 'JE-2026-0090 · reversal #1', lines: [], reason: 'booked to the wrong account' })
+    G('journal · reversal request rejected', { subject: 'journal_entry', recordId: je }, [
+        { table: 'journal_requests', op: 'UPDATE', key: { id: id('jr2') }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'],
+          old: { status: 'submitted' }, new: { status: 'rejected', decision_notes: 'The account is right' }, ctx: { kind: 'reversal', label: 'JE-2026-0090 · reversal #1' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'journal_request', subject_id: id('jr2'), decision: 'rejected', level: 2, note: 'The account is right' } }],
+      { title: 'Reversal rejected', part: 'JE-2026-0090 · reversal #1', lines: [], reason: 'The account is right' })
+
+    // ── 发票 · 贷项通知 ──
+    const inv = id('inv')
+    G('invoice · issued with its lines (child lines)', { subject: 'invoice', recordId: inv }, [
+        { table: 'invoices', op: 'INSERT', key: { id: inv }, new: { code: 'INV-2026-0010', customer_id: 'c1', kind: 'order', issue_date: '2026-10-03', due_date: '2026-11-02', currency: 'SGD', status: 'issued' },
+          refs: ref('customer_id', 'c1', 'Acme Recycling') },
+        { table: 'invoice_lines', op: 'INSERT', new: { invoice_id: inv, line_no: 1, description: 'Black mass', quantity: 10, unit_price: 25, unit: 'kg' } }],
+      { title: 'Invoice issued · INV-2026-0010', lines: ['Customer: Acme Recycling', 'Invoice type: From a sales order', 'Issue date: 03/10/2026',
+        'Due date: 02/11/2026', 'Currency: SGD', 'Line 1 · Black mass: 10 kg @ 25.00 SGD'] })
+    G('invoice · void sent for approval', { subject: 'invoice', recordId: inv }, [
+        { table: 'invoice_requests', op: 'INSERT', key: { id: id('ir') }, new: { kind: 'void', label: 'INV-2026-0010 · void', status: 'submitted', reason: 'Wrong customer', doc_date: '2026-10-03', amount_base: 250 } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'invoice_request', subject_id: id('ir'), decision: 'submitted', level: 2 } }],
+      { title: 'Void sent for approval', part: 'INV-2026-0010 · void', lines: ['Document date: 03/10/2026', 'Amount (base currency): 250.00 SGD'], reason: 'Wrong customer' })
+    G('invoice · voided on approval (key event; the lines’ void flag is not said again)', { subject: 'invoice', recordId: inv }, [
+        { table: 'invoices', op: 'UPDATE', key: { id: inv }, cols: ['status', 'voided_at', 'voided_by', 'void_reason'], old: { status: 'issued' },
+          new: { status: 'void', voided_at: '2026-10-03T02:00:00Z', void_reason: 'Wrong customer' }, ctx: { code: 'INV-2026-0010' } },
+        { table: 'invoice_lines', op: 'UPDATE', cols: ['invoice_voided'], old: { invoice_voided: false }, new: { invoice_voided: true } },
+        { table: 'invoice_requests', op: 'UPDATE', key: { id: id('ir') }, cols: ['status'], old: { status: 'submitted' }, new: { status: 'approved' }, ctx: { kind: 'void', label: 'INV-2026-0010 · void' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'invoice_request', subject_id: id('ir'), decision: 'approved', level: 2 } }],
+      { title: 'Invoice voided', lines: ['[Void approved · INV-2026-0010 · void]'], reason: 'Wrong customer' })
+    G('invoice · voided before the log (the stamp is the only record, Q9)', { subject: 'invoice', recordId: inv }, [
+        { table: 'invoices', op: 'UPDATE', prelog: true, key: { id: inv }, cols: ['voided_at', 'voided_by', 'status', 'void_reason'],
+          new: { voided_at: '2026-08-01T02:00:00Z', status: 'void', void_reason: 'Duplicate' } }],
+      { title: 'Invoice voided', lines: [], reason: 'Duplicate' })
+    G('invoice · PDF issued', { subject: 'invoice', recordId: inv }, [{ table: 'invoice_issues', op: 'INSERT', new: { invoice_id: inv, version: 2, sha256: 'abc' } }],
+      { title: 'Invoice PDF issued · version 2', lines: [] })
+    const cn = id('cn')
+    G('credit note · issued with its lines', { subject: 'credit_note', recordId: cn }, [
+        { table: 'credit_notes', op: 'INSERT', key: { id: cn }, new: { code: 'CN-2026-0002', invoice_id: inv, note_date: '2026-10-03', currency: 'SGD', reason: 'Price adjustment' },
+          refs: ref('invoice_id', inv, 'INV-2026-0010') },
+        { table: 'credit_note_lines', op: 'INSERT', new: { credit_note_id: cn, invoice_line_id: 'il1', kind: 'revenue_reduction', amount: 20 }, refs: ref('invoice_line_id', 'il1', 'INV-2026-0010 line 1') }],
+      { title: 'Credit note issued · CN-2026-0002', lines: ['Against invoice: INV-2026-0010', 'Credit note date: 03/10/2026', 'Currency: SGD',
+        'INV-2026-0010 line 1: 20.00 SGD · Price / quality adjustment'], reason: 'Price adjustment' })
+
+    // ── 收付款(Q31)──
+    const pay = id('pay'), mir = id('mir')
+    G('payment · recorded with an allocation (child line)', { subject: 'payment', recordId: pay }, [
+        { table: 'payments', op: 'INSERT', key: { id: pay }, new: { code: 'PMT-2026-0010', direction: 'out', payment_date: '2026-10-03', counterparty_type: 'supplier',
+          supplier_id: 's1', amount_ccy: 500, currency: 'SGD', amount_base: 500, fx_rate: 1, bank_account_code: '1000', status: 'posted' }, refs: ref('supplier_id', 's1', 'Bosch Rexroth') },
+        { table: 'payment_allocations', op: 'INSERT', new: { payment_id: pay, expense_id: 'x1', allocated_base: 500 }, refs: ref('expense_id', 'x1', 'EXP-2026-0004') }],
+      { title: 'Payment recorded · PMT-2026-0010', lines: ['Payment date: 03/10/2026', 'Counterparty type: Supplier', 'Supplier: Bosch Rexroth',
+        'Amount: 500.00 SGD', 'Amount (base currency): 500.00 SGD', 'FX rate: 1', 'Bank account: Cash at Bank – SGD', 'EXP-2026-0004: 500.00 SGD'] })
+    const reverseRows = [
+        { table: 'payments', op: 'UPDATE', key: { id: pay }, cols: ['status', 'reversed_by_payment'], old: { status: 'posted' }, new: { status: 'reversed', reversed_by_payment: mir },
+          ctx: { code: 'PMT-2026-0010', direction: 'out', reversed_by_payment: mir }, refs: ref('reversed_by_payment', mir, 'PMT-2026-0011', `/finance/payments/${mir}`) },
+        { table: 'payments', op: 'INSERT', key: { id: mir }, new: { code: 'PMT-2026-0011', direction: 'out', notes: 'REVERSAL: PMT-2026-0010 — paid twice', status: 'posted' } }]
+    const ePay = G('payment · reversed, on the original (Q31)', { subject: 'payment', recordId: pay }, reverseRows,
+      { title: 'Payment reversed · PMT-2026-0010', lines: ['Reversing entry: PMT-2026-0011'], reason: 'paid twice' })
+    if (ePay && ePay.lines[0]?.value?.href !== `/finance/payments/${mir}`) problems.gold8.push('payment · reversed:镜像单那一行不是链接')
+    G('payment · reversed, on the mirror (Q31: same sentence)', { subject: 'payment', recordId: mir }, reverseRows,
+      { title: 'Payment reversed · PMT-2026-0010', lines: ['Reversing entry: PMT-2026-0011'], reason: 'paid twice' })
+    G('payment · reversed before the log (only the mirror’s creation, Q31)', { subject: 'payment', recordId: pay }, [
+        { table: 'payments', op: 'UPDATE', key: { id: pay }, prelog: true, cols: [], ctx: { code: 'PMT-2026-0010', direction: 'out', reversed_by_payment: mir },
+          refs: ref('reversed_by_payment', mir, 'PMT-2026-0011', `/finance/payments/${mir}`), new: {} },
+        { table: 'payments', op: 'INSERT', prelog: true, key: { id: mir }, new: { code: 'PMT-2026-0011', direction: 'out', notes: 'REVERSAL: PMT-2026-0010 — paid twice' } }],
+      { title: 'Payment reversed · PMT-2026-0010', lines: ['Reversing entry: PMT-2026-0011'], reason: 'paid twice' })
+    G('payment · allocation seen from the invoice', { subject: 'invoice', recordId: inv }, [
+        { table: 'payment_allocations', op: 'INSERT', new: { payment_id: pay, invoice_id: inv, allocated_base: 250 }, refs: ref('payment_id', pay, 'RCPT-2026-0004') }],
+      { title: 'Payment allocated · RCPT-2026-0004', lines: ['Allocated: 250.00 SGD'] })
+
+    // ── 付款申请(Q13 · Q32)──
+    const pr = id('pr')
+    G('payment request · sent, the documents it settles named (Q13)', { subject: 'payment_request', recordId: pr }, [
+        { table: 'payment_requests', op: 'INSERT', key: { id: pr }, new: { code: 'PREQ-2026-0007', kind: 'payment_out', status: 'submitted', counterparty_type: 'supplier', supplier_id: 's1',
+          amount_ccy: 500, currency: 'SGD', planned_date: '2026-10-10', allocations: [{ expense_id: 'x1', amount_doc: 300 }, { purchase_order_id: 'po1', amount_doc: 200 }], notes: 'Pay before the 10th' },
+          refs: { ...ref('supplier_id', 's1', 'Bosch Rexroth'), allocations: { x1: { label: 'EXP-2026-0004' }, po1: { label: 'PO-2026-0011' } } } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'payment_request', subject_id: pr, decision: 'submitted', level: 2 } }],
+      { title: 'Payment sent for approval · PREQ-2026-0007', lines: ['Supplier: Bosch Rexroth', 'Amount: 500.00 SGD', 'Currency: SGD', 'Planned payment date: 10/10/2026',
+        'EXP-2026-0004: 300.00 (document currency)', 'PO-2026-0011: 200.00 (document currency)'], reason: 'Pay before the 10th' })
+    G('payment request · approvals off: approved automatically (Q32)', { subject: 'payment_request', recordId: pr }, [
+        { table: 'payment_requests', op: 'INSERT', key: { id: pr }, new: { code: 'PREQ-2026-0008', kind: 'bank_transfer', status: 'approved', amount_ccy: 1000, currency: 'SGD' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'payment_request', subject_id: pr, decision: 'auto_approved', note: '审批关着' } }],
+      { title: 'Bank transfer approved · PREQ-2026-0008', lines: ['(Approved automatically (approvals were switched off))', 'Amount: 1,000.00 SGD', 'Currency: SGD'] })
+    G('payment request · paid (the payment it made is a link)', { subject: 'payment_request', recordId: pr }, [
+        { table: 'payment_requests', op: 'UPDATE', key: { id: pr }, cols: ['status', 'paid_at', 'paid_by', 'result_payment_id'], old: { status: 'approved' },
+          new: { status: 'paid', result_payment_id: pay }, ctx: { code: 'PREQ-2026-0007', kind: 'payment_out' }, refs: ref('result_payment_id', pay, 'PMT-2026-0010', `/finance/payments/${pay}`) }],
+      { title: 'Paid · PREQ-2026-0007', lines: ['Payment made: PMT-2026-0010'] })
+    G('payment request · WHT remittance reversal sent (Q30)', { subject: 'payment_request', recordId: pr }, [
+        { table: 'payment_requests', op: 'INSERT', key: { id: pr }, new: { code: 'PREQ-2026-0009', kind: 'wht_remittance_reversal', status: 'submitted', amount_ccy: 40, currency: 'SGD' } }],
+      { title: 'WHT remittance reversal sent for approval · PREQ-2026-0009', lines: ['Amount: 40.00 SGD', 'Currency: SGD'] })
+    G('payment request · withdrawn', { subject: 'payment_request', recordId: pr }, [
+        { table: 'payment_requests', op: 'UPDATE', key: { id: pr }, cols: ['status', 'withdrawn_at', 'withdrawn_by'], old: { status: 'submitted' }, new: { status: 'withdrawn' },
+          ctx: { code: 'PREQ-2026-0007', kind: 'payment_out' } }],
+      { title: 'Request withdrawn · PREQ-2026-0007', lines: [] })
+
+    // ── 费用(Q12:引用里的员工名照 ActorName 的规矩)──
+    const ex = id('ex'), exm = id('exm')
+    G('expense · recorded; an employee the reader may not see reads Restricted (Q12)', { subject: 'expense', recordId: ex }, [
+        { table: 'expenses', op: 'INSERT', key: { id: ex }, new: { code: 'EXP-2026-0012', expense_date: '2026-10-03', employee_id: 'e1', account_code: '6100', amount_ccy: 80, currency: 'SGD',
+          amount_base: 80, payment_status: 'unpaid', status: 'posted', notes: 'Taxi to the port' },
+          refs: { employee_id: { e1: { person: { state: 'restricted' } } }, account_code: { 6100: { label: 'Travel' } } } }],
+      { title: 'Expense recorded · EXP-2026-0012', lines: ['Expense date: 03/10/2026', 'Employee: Restricted', 'Account: Travel', 'Amount: 80.00 SGD',
+        'Amount (base currency): 80.00 SGD', 'Payment status: Unpaid'], reason: 'Taxi to the port' })
+    G('expense · attachment (child line)', { subject: 'expense', recordId: ex }, [
+        { table: 'finance_attachments', op: 'INSERT', new: { expense_id: ex, file_name: 'taxi-receipt.jpg', doc_type: 'receipt' } }],
+      { title: 'Attachment added', part: 'taxi-receipt.jpg', lines: ['Document type: Receipt'] })
+    G('expense · reversed (Q31)', { subject: 'expense', recordId: ex }, [
+        { table: 'expenses', op: 'UPDATE', key: { id: ex }, cols: ['status', 'reversed_by_expense'], old: { status: 'posted' }, new: { status: 'reversed', reversed_by_expense: exm },
+          ctx: { code: 'EXP-2026-0012', reversed_by_expense: exm }, refs: ref('reversed_by_expense', exm, 'EXP-2026-0013', `/finance/expenses/${exm}`) },
+        { table: 'expenses', op: 'INSERT', key: { id: exm }, new: { code: 'EXP-2026-0013', notes: 'REVERSAL: EXP-2026-0012' } }],
+      { title: 'Expense reversed · EXP-2026-0012', lines: ['Reversing entry: EXP-2026-0013'] })
+
+    // ── 应付(Q5)──
+    const b = id('b')
+    G('payable · goods received (pre-log, payable columns only)', { subject: 'payable', recordId: b }, [
+        { table: 'inbound_batches', op: 'INSERT', prelog: true, key: { id: b }, new: { quantity: 405, unit: 'kg', supplier_id: 's1', unit_price: 2.5, arrival_date: '2026-09-01' },
+          refs: ref('supplier_id', 's1', 'Bosch Rexroth') }],
+      { title: 'Goods received · 405 kg', lines: ['Supplier: Bosch Rexroth', 'Unit price: 2.50 SGD', 'Arrival date: 01/09/2026'] })
+    G('payable · price changed (field edit, said once)', { subject: 'payable', recordId: b }, [
+        { table: 'inbound_batches', op: 'UPDATE', key: { id: b }, cols: ['unit_price', 'pricing_status'], old: { unit_price: 2.5, pricing_status: 'provisional' }, new: { unit_price: 2.75, pricing_status: 'final' } },
+        { table: 'price_history', op: 'INSERT', new: { inbound_batch_id: b, old_unit_price: 2.5, new_unit_price: 2.75, currency: 'SGD', notes: 'Final assay' } }],
+      { title: 'Price changed', lines: ['Unit price: 2.50 SGD → 2.75 SGD'], reason: 'Final assay' })
+    G('payable · written off (key event)', { subject: 'payable', recordId: b }, [
+        { table: 'inbound_batches', op: 'UPDATE', key: { id: b }, cols: ['deleted_at', 'deleted_by', 'delete_reason'], old: { deleted_at: null },
+          new: { deleted_at: '2026-10-03T02:00:00Z', delete_reason: 'Contaminated load' } }],
+      { title: 'Batch written off', lines: [], reason: 'Contaminated load' })
+    G('payable · payment allocated (child line)', { subject: 'payable', recordId: b }, [
+        { table: 'payment_allocations', op: 'INSERT', new: { payment_id: pay, inbound_batch_id: b, allocated_base: 1012.5 }, refs: ref('payment_id', pay, 'PMT-2026-0010') }],
+      { title: 'Payment allocated · PMT-2026-0010', lines: ['Allocated: 1,012.50 SGD'] })
+
+    // ── 线上回滚证明抓到的两处(本刀修的):人批的不读成"自动";进料单价与改价史的新旧单价是【本位币】──
+    G('journal · raised and approved by a person in one operation is not "automatic"', { subject: 'journal_entry', recordId: id('je4') }, [
+        { table: 'journal_requests', op: 'INSERT', key: { id: id('jr4') }, new: { kind: 'entry', label: 'manual journal #9', status: 'submitted', entry_date: '2026-10-03', amount_base: 0 } },
+        { table: 'journal_requests', op: 'UPDATE', key: { id: id('jr4') }, cols: ['amount_base'], old: { amount_base: 0 }, new: { amount_base: 12 } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'journal_request', subject_id: id('jr4'), decision: 'submitted', level: 2 } },
+        { table: 'journal_requests', op: 'UPDATE', key: { id: id('jr4') }, cols: ['status', 'decided_at', 'decided_by'], old: { status: 'submitted' }, new: { status: 'approved' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'journal_request', subject_id: id('jr4'), decision: 'approved', level: 2 } }],
+      { title: 'Manual journal approved', part: 'manual journal #9', lines: ['Entry date: 03/10/2026', 'Amount (sum of debits): 12.00 SGD'] })
+    G('payable · a price set in USD: the batch price and the old / new prices are base currency', { subject: 'payable', recordId: b, currency: 'USD' }, [
+        { table: 'price_history', op: 'INSERT', new: { inbound_batch_id: b, old_unit_price: null, new_unit_price: 3.4, currency: 'USD', original_price: 2.5, fx_rate: 1.36 } },
+        { table: 'inbound_batches', op: 'UPDATE', key: { id: b }, cols: ['unit_price'], old: { unit_price: null }, new: { unit_price: 3.4 } }],
+      { title: 'Price changed', lines: ['Unit price: (empty) → 3.40 SGD'] })
+    // ── Q16:清单页一次操作只说一次(冲销那一笔:原单与镜像两条记录,同一个 op_key)──
+    {
+        const rows = mk(reverseRows).map((r) => ({ ...r, opKey: 'L42' }))
+        const merged = R.mergeByOperation(dict, [{ row: rows[0], rec: { subject: 'payment', id: pay, label: 'PMT-2026-0010' } },
+                                                 { row: rows[1], rec: { subject: 'payment', id: mir, label: 'PMT-2026-0011' } }])
+        if (merged.length !== 1) problems.gold8.push(`Q16 一次操作两条记录:合成了 ${merged.length} 条(应当 1 条)`)
+        else {
+            if (merged[0].title !== 'Payment reversed · PMT-2026-0010') problems.gold8.push(`Q16:标题「${merged[0].title}」`)
+            if (merged[0].recordText !== 'PMT-2026-0010 · PMT-2026-0011') problems.gold8.push(`Q16:Record 一栏「${merged[0].recordText}」`)
+        }
+        // 同一行被两条记录读到(航段在港口的记录里也有):mergeKey 相同 → 只留一份
+        if (R.mergeKey(rows[0], 7) !== R.mergeKey({ ...rows[0] }, 7) || R.mergeKey(rows[0], 7) === R.mergeKey(rows[1], 8)) problems.gold8.push('Q16:mergeKey 认不出同一行 / 把两行认成一行')
+    }
+    // ── Q15:冲销分录的来源换成原分录的来源 ──
+    {
+        const eff = SL.effectiveSources([{ source_type: 'purchase', source_id: 'J-orig' }, { source_type: 'purchase', source_id: 'B-1' }, { source_type: 'manual', source_id: null }],
+            [{ id: 'J-orig', source_type: 'purchase', source_id: 'B-1' }])
+        const a = eff.get('purchase:J-orig'), c = eff.get('purchase:B-1')
+        if (a?.source_id !== 'B-1') problems.gold8.push(`Q15:冲销分录的来源没有换成原分录的(得到 ${JSON.stringify(a)})`)
+        if (c?.source_id !== 'B-1') problems.gold8.push('Q15:一张普通分录的来源被改了')
+        if (eff.size !== 3) problems.gold8.push(`Q15:${eff.size} 条来源进、出来的条数不对`)
+    }
+    // ── Q34:1b-3 的第 28 号 —— 删掉的步骤说出它的计划日期与勾没勾(以前只有机器字扫描,没有金句)──
+    G('task · step deleted (logged) — target date and tick state (1b-3 defect 28)', { subject: 'task' }, [
+        { table: 'task_nodes', op: 'DELETE', old: { title: 'Lunch', target_date: '2026-10-05', done: false, task_id: id('t') } }],
+      { title: 'Step deleted', part: 'Lunch', lines: ['Target date: 05/10/2026', 'Done: No'] })
+    G('task · step deleted before the log — from the history row', { subject: 'task' }, [
+        { table: 'task_history', op: 'INSERT', prelog: true, new: { change_type: 'node_removed', node_id: id('n'), old_node_title: 'Lunch', old_node_target_date: '2026-10-05', old_node_done: false } }],
+      { title: 'Step deleted', part: 'Lunch', lines: ['Previous step target date: 05/10/2026', 'Step was ticked: No'] })
+
+    // 机器字扫描:七个新主语各自的表,按【这一页】的说法(subject)造样本跑一遍 —— ④ 的通用扫描不带 subject,走不到 describeFinance
+    let fin = 0
+    for (const sub of ['journal_entry', 'invoice', 'credit_note', 'payment', 'payment_request', 'expense', 'payable']) {
+        for (const t of R.SUBJECT_TABLES[sub] ?? []) {
+            const cols = Object.entries(SAMPLE_KINDS[t] ?? {})
+            for (let variant = 0; variant < 4; variant++) {
+                const img = {}, old = {}, neu = {}
+                for (const [c, [, kind]] of cols) {
+                    img[c] = sample(t, c, kind, variant)
+                    old[c] = variant === 2 ? RESTRICTED : variant === 3 ? null : sample(t, c, kind, variant + 1)
+                    neu[c] = variant === 1 ? RESTRICTED : sample(t, c, kind, variant + 2)
+                }
+                const refs = { ...refsFor(t, img, variant), ...refsFor(t, old, variant + 1), ...refsFor(t, neu, variant + 2) }
+                for (const [op, o] of [['INSERT', { new: img, prelog: variant === 3 }], ['UPDATE', { cols: cols.map(([c]) => c), old, new: neu, ctx: img }], ['DELETE', { old: img }]]) {
+                    sweep(`${sub} · ${t} · ${op} · 样本 ${variant}`, [row(t, op, { ...o, refs })], sub)
+                    fin++
+                }
+            }
+        }
+        for (const k of ['payment_out', 'payment_reversal', 'bank_transfer', 'bank_transfer_reversal', 'wht_remittance', 'wht_remittance_reversal']) {
+            for (const st of ['submitted', 'approved', 'rejected', 'withdrawn', 'paid']) {
+                sweep(`${sub} · payment request ${k} → ${st}`, [row('payment_requests', 'UPDATE', { cols: ['status'], old: { status: 'submitted' }, new: { status: st }, ctx: { kind: k, code: 'PREQ-2026-0001' } })], sub)
+                fin++
+            }
+        }
+        sweep(`${sub} 整条看不见`, [row(R.SUBJECT_TABLES[sub][0], null, { hidden: true, table: null, actor: null })], sub)
+    }
+    // 应当造的句数由登记表算出来(每张表 4 个样本 × 3 种操作 · 每个主语 30 次申请状态 · 一句整条看不见)—— 一个数对不上就是造样本那一段瞎了
+    const finWant = ['journal_entry', 'invoice', 'credit_note', 'payment', 'payment_request', 'expense', 'payable']
+        .reduce((n, sub) => n + (R.SUBJECT_TABLES[sub] ?? []).length * 12 + 30, 0)
+    if (fin !== finWant || fin < 700) problems.coverage.push(`账上那七页的机器字扫描造了 ${fin} 句,登记表要求 ${finWant} 句 —— 造样本那一段瞎了`)
+    if (FAULT === 'wording-drift-1c1' && !problems.gold8.length) problems.gold8.push('(注入 wording-drift-1c1 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + 1
 if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSwept.size} 张表,目录里有 ${expectTables} 张`)
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

@@ -13,6 +13,12 @@
 // 【分界线】"记录开始之前"的那几条按时刻本来就排在最后(它们都早于分界),分界线画在第一条上方,与每一页底部同一句。
 // 【分页】与每一页底部同一个:先 20 条,"Show older entries"把 ?trail= 加 20(每条记录各读那么多,合起来再截)。
 // 【英文专用】标题、说明、列头、每一句都来自 lib/trail/text.ts(Q7)。
+// AUDIT-TRAIL-1c-1(Tim 2026-10-03,AT-1c Step 0 的 Q16 · Q17):
+//   · 不再只认航段、港口、执照 —— 任何登记过的主语都可以合进一块(1c-3 的年结、预测、转账、缴纳……都住在清单页上)。
+//   · 【一次操作只说一次】一次操作碰到几条记录(一次批量录汇率 = N 条汇率;一次冻结预测 = 新一张 + 旧一张)时,
+//     以前每条记录各出一条;现在按 record_trail 的 op_key 并:几条记录读回来的行合在一起、同一行只留一份,
+//     再交给同一个造句器造成【一条】,Record 一栏列出它碰到的那几条记录。航段与港口那种"同一件事在三条记录里"
+//     从此不靠"整句逐字相同"去重,而是结构上就是一条(同一行只有一份)。
 // ════════════════════════════════════════════════════════════════════════════
 import { createClient } from '@/lib/supabase/server'
 import { getBaseCurrency } from '@/lib/currency'
@@ -20,16 +26,18 @@ import { mustRows } from '@/lib/db-helpers'
 import { Refusal } from '@/app/components/ui/refusal'
 import { TRAIL_TEXT } from '@/lib/trail/text'
 import { trailDict, TRAIL_LOG_BEGAN_AT } from '@/lib/trail/dict'
-import { buildEntries, fill, fromRecordTrail } from '@/lib/trail/render'
+import { fill, fromRecordTrail, mergeByOperation, mergeKey, type TrailRow } from '@/lib/trail/render'
 import { formatTrailStamp } from '@/lib/dates'
 import AuditTrailList, { OlderEntriesLink, type ViewEntry } from './AuditTrailList'
 import { PAGE, type TrailSubject } from './AuditTrail'
 
-export type ListTrailRecord = { subject: Extract<TrailSubject, 'lane' | 'port' | 'company_licence'>; id: string; label: string }
+export type ListTrailRecord = { subject: TrailSubject; id: string; label: string }
+/** 每一个用 ListTrail 的清单页一句开场白 —— 字面量写全(check-trail-wording 按字面认"这个键有人用") */
+type IntroKey = 'listTrail.intro.lanes' | 'listTrail.intro.licences'
 
 export default async function ListTrail({ records, intro, show }: {
     records: ListTrailRecord[]
-    intro: 'listTrail.intro.lanes' | 'listTrail.intro.licences'
+    intro: IntroKey
     show: number
 }) {
     const supabase = await createClient()
@@ -42,7 +50,9 @@ export default async function ListTrail({ records, intro, show }: {
     )
     const results = await Promise.all(records.map(async (r) => ({
         r, res: await supabase.rpc('record_trail', { p_subject: r.subject, p_id: r.id, p_entries: show }) })))
-    const all: ViewEntry[] = []
+    // 每一行记下它从哪一条记录读回来(同一行被两条记录读到,只留第一条的那一份)
+    const merged: { row: TrailRow; rec: ListTrailRecord }[] = []
+    const seenRow = new Set<string>()
     let more = false
     for (const { r, res } of results) {
         if (res.error) {
@@ -61,16 +71,15 @@ export default async function ListTrail({ records, intro, show }: {
         }
         const rows = mustRows(res, `record_trail(${r.subject} ${r.label})`)
         if (rows.some((x) => x.more)) more = true
-        const entries = buildEntries(dict, rows.map((x) => fromRecordTrail(x as Parameters<typeof fromRecordTrail>[0])), { subject: r.subject })
-        for (const e of entries) all.push({ ...e, key: `${r.subject}:${r.id}:${e.key}`, recordText: r.label, recordHref: null })
+        for (const x of rows) {
+            const row = fromRecordTrail(x as Parameters<typeof fromRecordTrail>[0])
+            const k = mergeKey(row, x.seq)
+            if (k && seenRow.has(k)) continue
+            if (k) seenRow.add(k)
+            merged.push({ row, rec: r })
+        }
     }
-    const seen = new Set<string>()
-    const unique = all.filter((e) => {
-        const k = JSON.stringify([e.at, e.who, e.title, e.lines, e.reason])
-        if (seen.has(k)) return false
-        seen.add(k)
-        return true
-    })
+    const unique: ViewEntry[] = mergeByOperation(dict, merged)
     unique.sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
     const shown = unique.slice(0, show)
     if (unique.length > show) more = true

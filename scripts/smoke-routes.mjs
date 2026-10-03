@@ -605,6 +605,14 @@ const MUST_CONTAIN = {
     '/operation/orders': [{ trail: 'audit-trail', emptyOk: true, why: '工单阈值面板的审计记录(M5 · M6)' }],
     '/tools/pricing/metal-prices': [{ trail: 'audit-trail', emptyOk: true, why: '价格异常阈值面板的审计记录(M5 · M6)' }],
     '/purchasing/discrepancies': [{ trail: 'audit-trail', emptyOk: true, why: '收货差异阈值面板的审计记录(M5 · M6)' }],
+    // AUDIT-TRAIL-1c-1:账上的单据(付款申请的明细页在下面的跳过名单里 —— 线上一张都没有;它的审计记录由 fixture 241
+    //   与线上回滚的证明钉着)
+    '/finance/journal/[id]': [{ trail: 'audit-trail', why: '分录页底的审计记录(Q33:冲销是一行)' }],
+    '/finance/invoices/[id]': [{ trail: 'audit-trail', why: '发票页底的审计记录(替掉申请的"历史"那一段)' }],
+    '/finance/credit-notes/[id]': [{ trail: 'audit-trail', why: '贷项通知页底的审计记录' }],
+    '/finance/payments/[id]': [{ trail: 'audit-trail', why: '收付款页底的审计记录(Q31)' }],
+    '/finance/expenses/[id]': [{ trail: 'audit-trail', why: '费用页底的审计记录' }],
+    '/finance/payables/[batchId]': [{ trail: 'audit-trail', why: '应付页底的审计记录(Q5:M3 · M6)' }],
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
     // 为空时改渲染一段琥珀色文字("还没有货代 / 还没有供货商")。所以那个字符串

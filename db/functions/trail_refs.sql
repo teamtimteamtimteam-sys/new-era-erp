@@ -4,6 +4,10 @@
 --   扫的是这一行的旧影像、新影像与上下文影像(ctx,这一行今天的样子)里出现的值;受限标记与 null 不解析。
 --   哪些列是引用由 trail_fk_targets 回答(目录里的外键 + 没有外键的账号列)。
 -- 两个读法(record_trail · change_log_rows)共用。【属主身份】EXECUTE 已从 authenticated 收回。
+-- AUDIT-TRAIL-1c-1(Q13):付款申请的 allocations 是一段 JSONB(要结清哪几张单据),不是外键 —— 里面的每一个单据 id
+--   照样解析成单号,放在 refs 的 'allocations' 一格下;界面据此把它说成"PO-… · 1,000.00",不说 "Details changed"。
+--   键 → 表:expense_id → expenses · inbound_batch_id → inbound_batches · purchase_order_id → purchase_orders ·
+--   freight_document_id → freight_documents(与 record_payment 收的那一组同一个形状)。
 CREATE OR REPLACE FUNCTION public.trail_refs(p_table text, p_old jsonb, p_new jsonb, p_ctx jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
@@ -29,6 +33,22 @@ BEGIN
             v_out := v_out || jsonb_build_object(f.column_name, v_col);
         END IF;
     END LOOP;
+    IF p_table = 'payment_requests' THEN
+        v_col := '{}'::jsonb;
+        FOR f IN SELECT DISTINCT e.key AS k, e.value #>> '{}' AS v
+                   FROM (SELECT p_old -> 'allocations' AS j UNION ALL SELECT p_new -> 'allocations' UNION ALL SELECT p_ctx -> 'allocations') s
+                   CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(s.j) = 'array' THEN s.j ELSE '[]'::jsonb END) a
+                   CROSS JOIN LATERAL jsonb_each(CASE WHEN jsonb_typeof(a) = 'object' THEN a ELSE '{}'::jsonb END) e
+                  WHERE e.key IN ('expense_id', 'inbound_batch_id', 'purchase_order_id', 'freight_document_id')
+                    AND jsonb_typeof(e.value) = 'string' LOOP
+            v_col := v_col || jsonb_build_object(f.v, trail_ref_label(
+                CASE f.k WHEN 'expense_id' THEN 'expenses' WHEN 'inbound_batch_id' THEN 'inbound_batches'
+                         WHEN 'purchase_order_id' THEN 'purchase_orders' ELSE 'freight_documents' END, 'id', f.v));
+        END LOOP;
+        IF v_col <> '{}'::jsonb THEN
+            v_out := v_out || jsonb_build_object('allocations', v_col);
+        END IF;
+    END IF;
     RETURN v_out;
 END;
 $function$;

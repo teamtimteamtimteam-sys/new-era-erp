@@ -198,6 +198,34 @@ AS $function$
         ('tasks',                          'stamp',   'deleted_at',   NULL,           NULL, 'account'),
         ('task_nodes',                     'created', 'created_at',   'created_by',   NULL, 'employee'),
         ('task_nodes',                     'stamp',   'done_at',      'done_by',      ARRAY['done'], 'employee'),
-        ('task_history',                   'created', 'changed_at',   'changed_by',   NULL, 'employee')
+        ('task_history',                   'created', 'changed_at',   'changed_by',   NULL, 'employee'),
+        -- AUDIT-TRAIL-1c-1:账上的单据。★ Q9(Tim 2026-10-03):下面三个戳是那几件事【唯一】的记录,按 Q11 的例外登记 ——
+        --   invoices.voided_at(线上三次作废都早于发票申请,没有申请、没有审批留痕)· payment_requests.paid_at(没有任何
+        --   历史表记"付了")· expense_claims.decided_at(线上两张已决定的报销单,approval_log 里一行 expense_claim 都没有)。
+        --   之后有审批留痕的那几次,两边同一笔事务、同一刻,归成一条,界面把审批并进那一句(render.ts 的 foldApprovals)。
+        --   申请的决定(decided_at)其余一律【不】登记 —— approval_log 记着它,再拼一次戳就是两次。
+        ('journal_lines',                  'created', 'created_at',   NULL,           NULL, 'account'),
+        ('journal_requests',               'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('journal_requests',               'stamp',   'withdrawn_at', 'withdrawn_by', ARRAY['status', 'withdraw_reason'], 'account'),
+        ('invoices',                       'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('invoices',                       'stamp',   'voided_at',    'voided_by',    ARRAY['status', 'void_reason'], 'account'),
+        ('invoice_issues',                 'created', 'issued_at',    'issued_by',    NULL, 'account'),
+        ('invoice_requests',               'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('invoice_requests',               'stamp',   'withdrawn_at', 'withdrawn_by', ARRAY['status', 'withdraw_reason'], 'account'),
+        ('credit_notes',                   'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('credit_note_lines',              'created', 'created_at',   NULL,           NULL, 'account'),
+        ('cn_issues',                      'created', 'issued_at',    'issued_by',    NULL, 'account'),
+        ('payments',                       'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('payment_requests',               'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('payment_requests',               'stamp',   'withdrawn_at', 'withdrawn_by', ARRAY['status'], 'account'),
+        ('payment_requests',               'stamp',   'paid_at',      'paid_by',      ARRAY['status', 'result_payment_id', 'result_transfer_id', 'result_journal_entry_id'], 'account'),
+        ('bank_transfers',                 'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('bank_transfers',                 'stamp',   'reversed_at',  'reversed_by',  ARRAY['reversal_entry_id'], 'account'),
+        ('wht_remittances',                'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('expenses',                       'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('expense_claims',                 'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('expense_claims',                 'stamp',   'decided_at',   'decided_by',   ARRAY['status', 'decision_notes', 'expense_id'], 'account'),
+        ('expense_claims',                 'stamp',   'withdrawn_at', NULL,           ARRAY['status'], 'account'),
+        ('fixed_asset_cost_entries',       'created', 'created_at',   'created_by',   NULL, 'account')
     ) AS p(table_name, kind, at_column, by_column, extra, by_kind);
 $function$;

@@ -33,8 +33,18 @@
 --   M5 根键按根行【自己的类型】重建(jsonb_build_object(root_key, image -> root_key)):单行设置表的主键是
 --      boolean,change_log 里存的是 {"id": true};按文字 'true' 去对,永远对不上 —— 审计记录会【空着而不报错】。
 --   M6 root_columns 非空:根行只取这几列(改动取交集,一列都不沾的那次改动整条不算;新增 / 删除的影像只留这几列)。
+-- AUDIT-TRAIL-1c-1(Tim 2026-10-03,AT-1c Step 0 的 Q3 · Q16):
+--   M7 hop = 'all'(fk_column 为空):一张【没有外键】的表整张属于一个单行设置主语 —— 那张表今天的每一行,加上 change_log
+--      里它的每一行(按 match 过滤)。只在父表就是这个主语的根表时生效(一个单行设置表:M5 的那一种);挂在别处的一行
+--      'all' 不展开任何东西。第一个用户是 1c-3 的锁期面板(月结 / 反结的 period_closes 与 finance_settings 之间
+--      一个键都没有);本刀先建好,fixture 241 用一个临时主语证它。
+--   Q16 op_key:每一行带回它属于哪一次操作 —— 记录开始之后是那笔事务('L' || txid),之前是那一刻('P' || 时刻)。
+--      entry_no 只在【一条】记录里排得出先后;一个清单页把几条记录合起来时(ListTrail),同一次操作碰到几条记录就会
+--      各出一条 —— 一次批量录汇率是 N 条、一次冻结预测(新一张 + 旧一张作废)是两条。op_key 让它们并成一条。
+--      ☞ 返回列多了一列,CREATE OR REPLACE 换不了返回类型 —— 迁移里是 DROP + CREATE(同一笔事务;授权由
+--        apply_migration.sh 回放 zzz_function_grants 给回去)。
 CREATE OR REPLACE FUNCTION public.record_trail(p_subject text, p_id text, p_entries integer DEFAULT 20)
- RETURNS TABLE(entry_no integer, prelog boolean, seq bigint, occurred_at timestamp with time zone, table_name text, row_key jsonb, op text, actor jsonb, changed_columns text[], old jsonb, new jsonb, ctx jsonb, refs jsonb, row_hidden boolean, row_restricted boolean, more boolean)
+ RETURNS TABLE(entry_no integer, prelog boolean, seq bigint, occurred_at timestamp with time zone, table_name text, row_key jsonb, op text, actor jsonb, changed_columns text[], old jsonb, new jsonb, ctx jsonb, refs jsonb, row_hidden boolean, row_restricted boolean, more boolean, op_key text)
  LANGUAGE plpgsql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
@@ -99,7 +109,17 @@ BEGIN
     FOR m IN SELECT tm.* FROM trail_subject_members() tm WHERE tm.subject = p_subject ORDER BY tm.ord LOOP
         v_found := NULL;
         v_found2 := NULL;
-        IF m.hop = 'up' THEN
+        IF m.hop = 'all' THEN
+            -- M7:整张表属于这个单行设置主语(父表必须就是根表)
+            CONTINUE WHEN m.parent_table IS DISTINCT FROM s.root_table;
+            v_pk := trail_pk_columns(m.table_name);
+            EXECUTE format('SELECT array_agg(jsonb_build_object(%s)) FROM public.%I t WHERE to_jsonb(t) @> $1',
+                           (SELECT string_agg(format('%L, t.%I', c, c), ', ') FROM unnest(v_pk) c), m.table_name)
+               INTO v_found USING m.match;
+            SELECT array_agg(DISTINCT c.row_key) INTO v_found2
+              FROM change_log c
+             WHERE c.table_name = m.table_name AND c.row_key IS NOT NULL AND COALESCE(c.new, c.old) @> m.match;
+        ELSIF m.hop = 'up' THEN
             -- 父行今天那份(或它最后一份影像)里的那一列 → 被指着的那一行的 id
             v_fkv := ARRAY[]::text[];
             FOR v_k IN SELECT u.k FROM unnest(v_tabs, v_keys) AS u(t, k) WHERE u.t = m.parent_table LOOP
@@ -225,6 +245,7 @@ BEGIN
         seq := r.a_seq;
         occurred_at := r.a_at;
         more := v_total > v_limit;
+        op_key := r.a_g;
         IF NOT v_vis[r.a_i] THEN
             table_name := NULL; row_key := NULL; op := NULL; actor := NULL; changed_columns := NULL;
             old := NULL; new := NULL; ctx := NULL; refs := NULL;

@@ -2,7 +2,8 @@
 
 // ★ APR-5a(Tim 2026-09-25):贷项通知与作废发票要 CFO 批准。
 //   「开贷项通知」与「作废」两个钮都只【提一张申请】;这一块把那张在等的申请摆出来,
-//   并给 批准(当场过账,按冻结的日期)/ 驳回(要理由)/ 撤回 三个动作,以及这张发票上申请的历史。
+//   并给 批准(当场过账,按冻结的日期)/ 驳回(要理由)/ 撤回 三个动作。
+// AUDIT-TRAIL-1c-1(Q26):这张发票上【已经了结的】申请的历史不再列在这里 —— 页底的审计记录说它们,并且说出是谁。
 //
 // 【谁能批,这里不预判】二级审批角色、而且不是提单人(按人认)—— 两条都只有数据库知道
 // (decide_invoice_request → 二级审批人 + forbid_self_approval)。与 ReceiptPriceRequestPanel 同一条:
@@ -38,7 +39,6 @@ export default function InvoiceRequestPanel({
     invoiceId,
     subject,
     open,
-    history,
     canDecide,
     canWithdraw,
     baseCurrency,
@@ -47,7 +47,6 @@ export default function InvoiceRequestPanel({
     /** CONFIRM-1:动的是【哪一张发票】。 */
     subject: string
     open: InvoiceRequestView | null
-    history: InvoiceRequestView[]
     canDecide: boolean
     canWithdraw: boolean
     baseCurrency: string
@@ -68,7 +67,7 @@ export default function InvoiceRequestPanel({
         })
     }
 
-    if (!open && history.length === 0) return null
+    if (!open) return null
 
     return (
         <div className="mb-4 space-y-3" aria-label={t('finance.invoiceRequest.title')}>
@@ -139,25 +138,6 @@ export default function InvoiceRequestPanel({
                             {t('finance.invoiceRequest.withdraw')}
                         </ConfirmButton>
                     </PermissionGate>
-                </div>
-            )}
-
-            {history.length > 0 && (
-                <div>
-                    <h3 className="mb-1">{t('finance.invoiceRequest.history')}</h3>
-                    <ul className="text-sm space-y-1">
-                        {history.map((h) => (
-                            <li key={h.id}>
-                                <span className="font-mono">{h.label}</span> · {t('finance.invoiceRequest.kind.' + h.kind)} ·{' '}
-                                {formatAmount(h.amountBase, baseCurrency)} · {t('finance.invoiceRequest.status.' + h.status)} · {h.createdText}
-                                {(h.decisionNotes || h.withdrawReason) && (
-                                    <span className="text-[color:var(--brand-muted-text)] whitespace-pre-line">
-                                        {' '}— {h.decisionNotes ?? h.withdrawReason}
-                                    </span>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
                 </div>
             )}
         </div>

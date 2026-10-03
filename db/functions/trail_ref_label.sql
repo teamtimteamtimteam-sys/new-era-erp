@@ -16,6 +16,12 @@
 -- AUDIT-TRAIL-1b-2:订单 / 报价明细行 → "SO-… line N";港口 → "代码 名称";航段 → "起运港 → 目的港";
 --   执照与合规证书 → "种类 · 编号";附件 → 文件名;集装箱单据 → 单据种类 —— 这几张表都没有编号或 name 一类的列。
 --   物料多带一个 unit(与批次同一个做法):订单 / 报价明细行的数量据此说成 "10 kg"。
+-- AUDIT-TRAIL-1c-1(Tim 2026-10-03,AT-1c Step 0 的 Q12 · Q33):
+--   · 员工 → 走 trail_actor(与"谁做的"同一份答法):不持 module.hr.view 的读者只认得出他自己,别人一律 Restricted ——
+--     与 ActorName、与每一页的人名同一条规矩(§9.7 早就说"每一个指着人的值都走同一个函数",而此前这一支直接把名字交了出去)。
+--     付款、费用、报销单、付款申请上的 employee_id 都是这一种。匿名化了的人说 "A former employee"(以前是一个空名字)。
+--   · 单据(document_types 里 link_mode = 'detail' 的)多带一个 href(详情页的路径)—— 审计记录里"被 JE-… 冲销"那一行
+--     是一个链接(Q33),路径来自登记表,界面不拼路由。
 -- 【属主身份】按表名动态读;EXECUTE 已从 authenticated 收回。
 CREATE OR REPLACE FUNCTION public.trail_ref_label(p_table text, p_column text, p_value text)
  RETURNS jsonb
@@ -41,6 +47,15 @@ BEGIN
     END IF;
     IF to_regclass(format('public.%I', p_table)) IS NULL THEN
         RETURN NULL;
+    END IF;
+    IF p_table = 'employees' AND p_column = 'id' THEN
+        IF p_value !~ '^[0-9a-fA-F-]{36}$' THEN
+            RETURN NULL;
+        END IF;
+        -- label 一并带回(只在认得出名字时):/settings/change-history 的 Record 一栏读 label,不读 person
+        v_img := trail_actor('prelog', NULL, p_value::uuid);
+        RETURN jsonb_build_object('person', v_img, 'gone', false,
+                                  'label', CASE WHEN v_img ->> 'state' = 'person' THEN v_img ->> 'name' END);
     END IF;
     EXECUTE format('SELECT to_jsonb(t) FROM public.%I t WHERE t.%I::text = $1 LIMIT 1', p_table, p_column)
        INTO v_img USING p_value;
@@ -79,10 +94,12 @@ BEGIN
     ELSIF p_table = 'equipment_downtime' THEN
         v_label := COALESCE((SELECT fa.code FROM fixed_assets fa WHERE fa.id::text = v_img ->> 'equipment_id') || ' · ', '')
                    || to_char(((v_img ->> 'started_at')::timestamptz) AT TIME ZONE 'Asia/Singapore', 'DD/MM/YYYY HH24:MI');
-    ELSIF p_table IN ('sales_order_lines', 'quote_lines') THEN
+    ELSIF p_table IN ('sales_order_lines', 'quote_lines', 'invoice_lines') THEN
         -- AUDIT-TRAIL-1b-2:订单 / 报价的明细行 → "SO-2026-0001 line 1"(与采购单明细同一种说法)
+        -- AUDIT-TRAIL-1c-1:发票明细行同一种说法(贷项通知的每一行冲的是发票的哪一行)
         v_label := CASE p_table
             WHEN 'sales_order_lines' THEN (SELECT so.code FROM sales_orders so WHERE so.id::text = v_img ->> 'sales_order_id')
+            WHEN 'invoice_lines' THEN (SELECT i.code FROM invoices i WHERE i.id::text = v_img ->> 'invoice_id')
             ELSE (SELECT q.code FROM quotes q WHERE q.id::text = v_img ->> 'quote_id') END
             || ' line ' || (v_img ->> 'line_no');
     ELSIF p_table = 'ports' THEN
@@ -120,6 +137,9 @@ BEGIN
         -- 批次的数量单位随名字一起带回 —— 加工单的"用了 300"要说成"300 kg",而投入 / 产出行自己没有单位列
         RETURN jsonb_build_object('label', NULLIF(v_label, ''), 'gone', v_gone, 'unit', v_img ->> 'unit');
     END IF;
-    RETURN jsonb_build_object('label', NULLIF(v_label, ''), 'gone', v_gone);
+    RETURN jsonb_build_object('label', NULLIF(v_label, ''), 'gone', v_gone)
+           || COALESCE((SELECT jsonb_build_object('href', d.route || '/' || p_value) FROM document_types d
+                         WHERE d.table_name = p_table AND d.link_mode = 'detail' AND p_column = 'id' AND NOT v_gone
+                         ORDER BY d.key LIMIT 1), '{}'::jsonb);
 END;
 $function$;

@@ -12,7 +12,9 @@ import { formatAmount, formatMoneyBare } from '@/lib/format'
 import FinanceAttachmentsPanel from '@/app/components/finance/FinanceAttachmentsPanel'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
-import { mustRows } from '@/lib/db-helpers'
+import { mustOne, mustRows } from '@/lib/db-helpers'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import EndedBanner, { EndedFieldset } from '@/app/components/trail/EndedBanner'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -34,8 +36,10 @@ type AllocRow = {
 
 export default async function PayableDocPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ batchId: string }>
+    searchParams: Promise<{ trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -56,7 +60,7 @@ export default async function PayableDocPage({
         // finance.view —— cfo 读回零行,于是下面那句 notFound() 触发,应付明细页
         // 对他说【这批货不存在】。改读查名视图(unit_price 仍按 data.view_prices 遮),
         // 物料名从内嵌改为单独取:内嵌会对 materials 另套一遍 RLS。
-        .select('id, code, supplier_id, quantity, unit, unit_price, arrival_date, notes, created_at')
+        .select('id, code, supplier_id, quantity, unit, unit_price, arrival_date, notes, created_at, deleted_at')
         .eq('id', batchId)
         .single()
 
@@ -68,6 +72,13 @@ export default async function PayableDocPage({
     // 能进到这个页面的角色(admin / finance / auditor)全都持有 data.view_prices,
     // 所以这些列不会被遮蔽。理由与失效条件见 lib/maskedRows.ts。
     const batch = unmasked<Tables<'inbound_batches'> & { materials: { name: string } | null }>(batchRaw)
+    // AUDIT-TRAIL-1c-1(Q5):注销了的批次 —— 时刻来自查名视图,人与理由来自 deleted_records(那一行读不到就只说日期)
+    const writtenOff: { deleted_at: string; deleted_by: string | null; delete_reason: string | null } | null = batch.deleted_at
+        ? ((mustOne(await supabase.from('deleted_records').select('deleted_at, deleted_by, delete_reason')
+              .eq('record_kind', 'inbound_batch').eq('record_id', batch.id).maybeSingle(), 'deleted_records')) as
+              { deleted_at: string; deleted_by: string | null; delete_reason: string | null } | null)
+          ?? { deleted_at: batch.deleted_at, deleted_by: null, delete_reason: null }
+        : null
 
     // 应付额 = 当前 quantity × unit_price(与 ap_open_items 口径一致;未计价 → 0 敞口页不会链进来,
     // 但直接访问 URL 也要能看:金额区显示 —)
@@ -168,6 +179,12 @@ export default async function PayableDocPage({
             title={t('finance.apDocTitle')}
             // ★★ 详情页恒为 ok —— 这张单在不在由上面的 notFound() 回答。
             state={{ kind: 'ok' }}
+            // AUDIT-TRAIL-1c-1(Q5 · Q21):一个注销了的批次在应付页上以前与一张普通的应付一模一样(线上 24 批里 9 批)。
+            //   现在页头说它是什么时候、被谁注销的,第二行是理由;附件那一块按不下去(EndedFieldset)。
+            //   谁 / 理由取自 deleted_records(与 /settings/deleted 同一份答案);读不到就只说日期,不猜。
+            notices={writtenOff ? (
+                <EndedBanner kind="writtenOff" at={writtenOff.deleted_at} by={writtenOff.deleted_by} reason={writtenOff.delete_reason} />
+            ) : undefined}
         >
             {/* ★ 记录抬头 —— 转换前是一块 bg-gray-50 的面板(四种写法之一)。
                 这一页没有记录级动作,所以 actions 槽不给 —— 不给就不画。 */}
@@ -249,7 +266,11 @@ export default async function PayableDocPage({
 
             {/* 凭据附件 —— 这一页唯一的出口(上传凭据)。它住在 children 里,
                 而详情页 state 恒为 'ok',所以它不可能被空分支吃掉。 */}
-            <FinanceAttachmentsPanel canEdit={canEditGate} parent={{ kind: 'inbound', id: batch.id }} rows={attachments} />
+            <EndedFieldset ended={!!writtenOff}>
+                <FinanceAttachmentsPanel canEdit={canEditGate} parent={{ kind: 'inbound', id: batch.id }} rows={attachments} />
+            </EndedFieldset>
+
+            <AuditTrail subject="payable" id={batch.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

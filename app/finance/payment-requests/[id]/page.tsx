@@ -14,6 +14,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { getBaseCurrency } from '@/lib/currency'
 import { formatMoneyBare } from '@/lib/format'
 import { mustOne, mustRows } from '@/lib/db-helpers'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
@@ -50,8 +51,10 @@ type RequestRow = {
 
 export default async function PaymentRequestDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,放在任何查询之前。
     const denied = await requireModule(MOD.finance)
@@ -300,6 +303,8 @@ export default async function PaymentRequestDetailPage({
                     <RequestAllocationsTable rows={allocRows} empty={t('finance.paymentRequests.allocEmpty')} />
                 </>
             )}
+
+            <AuditTrail subject="payment_request" id={r.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

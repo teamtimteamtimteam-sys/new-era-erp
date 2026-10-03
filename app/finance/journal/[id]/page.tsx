@@ -21,6 +21,9 @@ import JournalLinesTable, { type JournalLineRow } from './JournalLinesTable'
 import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
 import { mustOne } from '@/lib/db-helpers'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import EndedBanner, { ReversalOfBanner } from '@/app/components/trail/EndedBanner'
+import { reversalReasonText } from '@/lib/trail/render'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
 type LineRow = {
@@ -36,8 +39,10 @@ type LineRow = {
 
 export default async function JournalDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -84,8 +89,9 @@ export default async function JournalDetailPage({
 
     // 冲销关系 + 来源链接(单条小查询)
     const [reversedByRes, reversalOfRes, hrefs] = await Promise.all([
+        // AUDIT-TRAIL-1c-1(Q8):横幅说【谁、何时】冲销的 —— 取自冲销那一张分录的建立(原分录上没有冲销戳)
         entry.reversed_by
-            ? supabase.from('journal_entries').select('id, code').eq('id', entry.reversed_by).single()
+            ? supabase.from('journal_entries').select('id, code, created_at, created_by, memo').eq('id', entry.reversed_by).single()
             : Promise.resolve({ data: null, error: null }),
         supabase.from('journal_entries').select('id, code').eq('reversed_by', id).maybeSingle(),
         resolveSourceHrefs(supabase, [entry]),
@@ -146,27 +152,17 @@ export default async function JournalDetailPage({
             // 在详情页上【构造上不可能发生】—— 详见 docs/detail-page-template.md。
             state={{ kind: 'ok' }}
             // 冲销关系横幅:无条件渲染,与 CONV-1 的 notices 槽同一条理由。
+            // AUDIT-TRAIL-1c-1(Q8):冲销了的分录 → "Reversed on DD/MM/YYYY by <name>" + 链到冲销分录;冲销分录 → "Reversal of …"
+            //   (英文,与审计记录同一份目录;以前是两条各自的中英文链接)
             notices={
                 <>
                     {entry.status === 'reversed' && reversedByRes.data && (
-                        <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
-                            <Link
-                                href={`/finance/journal/${reversedByRes.data.id}`}
-                                className="hover:underline app-link"
-                            >
-                                {t('finance.reversedBanner', { code: reversedByRes.data.code })}
-                            </Link>
-                        </div>
+                        <EndedBanner kind="reversed" at={reversedByRes.data.created_at} by={reversedByRes.data.created_by}
+                            reason={reversalReasonText(reversedByRes.data.memo)}
+                            link={{ code: reversedByRes.data.code, href: `/finance/journal/${reversedByRes.data.id}` }} />
                     )}
                     {reversalOfRes.data && (
-                        <div className="bg-gray-50 border border-gray-300 text-[color:var(--brand-text)] px-4 py-3 rounded mb-4 text-sm">
-                            <Link
-                                href={`/finance/journal/${reversalOfRes.data.id}`}
-                                className="hover:underline app-link"
-                            >
-                                {t('finance.reversalOfBanner', { code: reversalOfRes.data.code })}
-                            </Link>
-                        </div>
+                        <ReversalOfBanner code={reversalOfRes.data.code} href={`/finance/journal/${reversalOfRes.data.id}`} />
                     )}
                 </>
             }
@@ -221,6 +217,8 @@ export default async function JournalDetailPage({
             )}
 
             <JournalLinesTable rows={tableRows} />
+
+            <AuditTrail subject="journal_entry" id={entry.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

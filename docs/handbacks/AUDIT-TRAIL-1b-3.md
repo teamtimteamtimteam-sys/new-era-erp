@@ -90,7 +90,8 @@ permission code changed; no business row written. Fixture **240**.
 ### Files changed after the first build and the full gate, and what was rerun
 
 The live proof (§6 B) showed two rendering defects (decisions 26 · 27) and the task comparison a third (decision 28). Changed after the
-first build / gate: `lib/trail/render.ts`, `scripts/check-trail-wording.mjs` (goldens for the three), `scripts/probe-at1b3.mjs`
+first build / gate: `lib/trail/render.ts`, `scripts/check-trail-wording.mjs` (goldens for 26 and 27 — **not** for 28; see the correction
+below), `scripts/probe-at1b3.mjs`
 (pass label carries the banner text), `scripts/survey-phone.mjs` (`--paths=`), docs. No database file changed after the gate (the
 gate reads no app file; the tree fingerprint it records covers `db/`). Rerun: `tsc` **`TSC_OWN_EXIT=0`** · wording check (in the
 build) · surveys 390 / 1280 **identical results** (`SURVEY390_EXIT=0`, `SURVEY1280_EXIT=0`) · trail-page smoke **`SMOKE_EXIT=0`** ·
@@ -263,6 +264,11 @@ Each is also recorded where it lives in the code.
     at the first removal (change-log §9.7); golden added.
 28. **A deleted step lists its target date and tick state** ("Step was ticked: No"), from the step row or before the log from the
     history row's `old_node_*` columns — the old section said "un-ticked" for these and the first new rendering said nothing.
+    > **Correction (AUDIT-TRAIL-1c-1, Tim's AT-1c Q34, 2026-10-03):** this fix shipped **without** a golden check. §4 said
+    > "goldens for the three"; there were goldens for 26 and 27 only — `scripts/check-trail-wording.mjs` arm ⑦ swept `node_removed`
+    > for machine tokens, which would not notice the target date and tick state going missing again. AT-1c-1 added the two goldens
+    > (logged and pre-log deleted step) to arm ⑧. Fault-injected: with both deleted-step line lists emptied in `lib/trail/render.ts`,
+    > those two goldens — and only those — went red (`⑧ 账上的单据:2 处`); restored, all eight arms green.
 29. **`scripts/survey-phone.mjs --paths=`** (decision 23) was used for the four deleted records; the rerun after decisions 26–28
     gave identical survey results at both widths.
 

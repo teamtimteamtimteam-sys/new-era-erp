@@ -16,6 +16,7 @@
 //   链接不受 fieldset 影响 —— 打印、标签、查看别的单据照常可用。
 // ════════════════════════════════════════════════════════════════════════════
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { loadActorNames } from '@/app/components/ActorName'
 import { Refusal } from '@/app/components/ui/refusal'
@@ -26,8 +27,13 @@ import { mustOne } from '@/lib/db-helpers'
 
 export const ENDED_BANNER_ID = 'ended-record-banner'
 
-export default async function EndedBanner({ kind, at, by, reason }: {
-    kind: 'writtenOff' | 'reversed' | 'deleted'
+// AUDIT-TRAIL-1c-1(Tim 的 Q8,2026-10-03):账上的单据 —— 作废的发票 "Voided on DD/MM/YYYY by <name>";冲销了的分录、
+//   收付款、费用 "Reversed on DD/MM/YYYY by <name>"(谁、何时取自冲销那一张新单的建立 —— 原单上没有冲销戳);
+//   多一行链到那张冲销单("Reversed by PMT-…",link)。注销了的批次在应付页上也是这一条(Q5)。
+export default async function EndedBanner({ kind, at, by, reason, link }: {
+    kind: 'writtenOff' | 'reversed' | 'deleted' | 'voided'
+    /** 第三行:链到冲销那一张单据(可选)—— "Reversed by PMT-…" */
+    link?: { code: string; href: string } | null
     /** 结束的时刻(deleted_at) */
     at: string
     /** 结束它的登录账号(deleted_by);没有记人就是 null */
@@ -40,11 +46,12 @@ export default async function EndedBanner({ kind, at, by, reason }: {
     const date = formatTrailStamp(at).slice(0, 10)
     // 认得出 → 名字;认不出而读者看不了人事 → Restricted(别的页面上也是受限);没有记人、或那个账号已经不属于任何人 → 只说日期
     const who: ReactNode | null = name ? name : by && names.restricted ? <Refusal>{TRAIL_TEXT.restricted}</Refusal> : null
-    const withWho = { writtenOff: 'banner.writtenOff', reversed: 'banner.reversed', deleted: 'banner.deleted' } as const
-    const dateOnly = { writtenOff: 'banner.writtenOffDate', reversed: 'banner.reversedDate', deleted: 'banner.deletedDate' } as const
+    const withWho = { writtenOff: 'banner.writtenOff', reversed: 'banner.reversed', deleted: 'banner.deleted', voided: 'banner.voided' } as const
+    const dateOnly = { writtenOff: 'banner.writtenOffDate', reversed: 'banner.reversedDate', deleted: 'banner.deletedDate', voided: 'banner.voidedDate' } as const
     const [before, after] = (who === null
         ? fill(TRAIL_TEXT[dateOnly[kind]], { date })
         : fill(TRAIL_TEXT[withWho[kind]], { date, who: '\u0000' })).split('\u0000')
+    const [reversedByBefore, reversedByAfter] = fill(TRAIL_TEXT['banner.reversedBy'], { code: '\u0000' }).split('\u0000')
     return (
         <div id={ENDED_BANNER_ID} role="status" data-ended-banner={kind}
              className="mb-4 max-w-3xl rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-[color:var(--brand-text)]">
@@ -58,6 +65,21 @@ export default async function EndedBanner({ kind, at, by, reason }: {
                     <span data-trail-typed="">{reason}</span>
                 </p>
             )}
+            {link && (
+                <p className="mt-0.5">
+                    {reversedByBefore}<Link href={link.href} className="app-link hover:underline">{link.code}</Link>{reversedByAfter}
+                </p>
+            )}
+        </div>
+    )
+}
+
+/** AUDIT-TRAIL-1c-1(Q8):一张冲销单(镜像)—— 它冲的是哪一张。不是一条"结束了"的记录,所以是灰的,不是琥珀色的 */
+export function ReversalOfBanner({ code, href }: { code: string; href: string }) {
+    const [before, after] = fill(TRAIL_TEXT['banner.reversalOf'], { code: '\u0000' }).split('\u0000')
+    return (
+        <div data-reversal-of="" className="mb-4 max-w-3xl rounded border border-gray-300 bg-gray-50 px-3 py-2 text-sm text-[color:var(--brand-text)]">
+            {before}<Link href={href} className="app-link hover:underline">{code}</Link>{after}
         </div>
     )
 }

@@ -4,6 +4,8 @@
 // sales_records 的核销行推导,与 AR 单据页同一套呈现:已冲销的收款灰色删除线)。
 // 附件不挂这里 —— 凭据挂在 AR 单据(sales_record)本身。
 import Link from 'next/link'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import EndedBanner from '@/app/components/trail/EndedBanner'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
@@ -52,8 +54,10 @@ type AllocRow = {
 
 export default async function InvoiceDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -69,7 +73,7 @@ export default async function InvoiceDetailPage({
 
     const { data: invRaw, error } = await supabase
         .from('invoices_masked')
-        .select('id, code, customer_id, issue_date, due_date, payment_terms_days, currency, tax_rate_pct, status, void_reason, voided_at, notes, terms_text, bill_to_snapshot, kind, sales_order_id, entry_id, fx_rate')
+        .select('id, code, customer_id, issue_date, due_date, payment_terms_days, currency, tax_rate_pct, status, void_reason, voided_at, voided_by, notes, terms_text, bill_to_snapshot, kind, sales_order_id, entry_id, fx_rate')
         .eq('id', id)
         .single()
 
@@ -203,7 +207,8 @@ export default async function InvoiceDetailPage({
             createdText: formatAuditStamp(r.created_at), raisedByMe: r.created_by === myUserId,
         }))
     const openInvoiceRequest = invoiceRequests.find((r) => r.status === 'submitted') ?? null
-    const invoiceRequestHistory = invoiceRequests.filter((r) => r.status !== 'submitted')
+    // AUDIT-TRAIL-1c-1(Q26):已经了结的申请(批了 / 驳了 / 撤了)不再在这里列一张单子 —— 页底的审计记录说它们,
+    //   带上是谁、什么时候(那张单子从来不说谁)。在等的那一张仍在面板上(它是一个要人动手的东西)。
 
     // 发票 PDF 内嵌的中文字体是【裁剪过的】(见 assets/fonts/subset.py),范围外的字
     // 会被静默画成空白。PDF 路由会拦下来返回 409,但那要等到有人去点"下载 PDF"才发现
@@ -385,7 +390,6 @@ export default async function InvoiceDetailPage({
                 invoiceId={inv.id}
                 subject={inv.code}
                 open={openInvoiceRequest}
-                history={invoiceRequestHistory}
                 canDecide={canDecideRequest}
                 canWithdraw={canEditGate}
                 baseCurrency={baseCurrency}
@@ -437,13 +441,9 @@ export default async function InvoiceDetailPage({
                 </Alert>
             )}
 
-            {isVoid && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 text-sm">
-                    {t('invoice.voidedBanner', {
-                        date: inv.voided_at ? formatAuditStamp(inv.voided_at) : '—',
-                        reason: inv.void_reason ?? '—',
-                    })}
-                </div>
+            {/* AUDIT-TRAIL-1c-1(Q8):"Voided on DD/MM/YYYY by <name>" + 理由 —— 以前的红条只说时刻与理由,不说是谁(voided_by 一直在) */}
+            {isVoid && inv.voided_at && (
+                <EndedBanner kind="voided" at={inv.voided_at} by={inv.voided_by} reason={inv.void_reason} />
             )}
 
             <div className="grid gap-4 md:grid-cols-2 mb-6">
@@ -645,6 +645,8 @@ export default async function InvoiceDetailPage({
                     amount_ccy: Number(l.amount_ccy),
                 }))}
             />
+
+            <AuditTrail subject="invoice" id={inv.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

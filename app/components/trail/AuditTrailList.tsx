@@ -29,6 +29,8 @@ function ValueText({ v }: { v: Val }) {
     if (v.restricted) return <Refusal>{TRAIL_TEXT.restricted}</Refusal>
     if (v.empty) return <span className="text-[color:var(--brand-muted-text)]">{v.text}</span>
     const text = open && v.full ? v.full : v.text
+    // AUDIT-TRAIL-1c-1(Q33):一个指着别的单据的值可以是一个链接("Reversed by JE-…")—— 路径来自数据库的单据登记表
+    if (v.href) return <Link className="app-link hover:underline break-words" href={v.href}>{text}</Link>
     return (
         <span className="break-words" {...(v.typed ? { 'data-trail-typed': '' } : {})}>
             {text}

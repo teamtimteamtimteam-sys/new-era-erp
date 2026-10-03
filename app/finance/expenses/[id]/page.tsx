@@ -14,6 +14,9 @@ import ReverseExpenseButton from './ReverseExpenseButton'
 import ReleasePrepaymentPanel from './ReleasePrepaymentPanel'
 import { can } from '@/lib/permissions'
 import { mustOne, mustRows } from '@/lib/db-helpers'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import EndedBanner, { ReversalOfBanner } from '@/app/components/trail/EndedBanner'
+import { reversalReasonText } from '@/lib/trail/render'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
@@ -34,8 +37,10 @@ type AllocRow = {
 
 export default async function ExpenseDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -112,8 +117,9 @@ export default async function ExpenseDetailPage({
                 .select('id, allocated_base, payments(id, code, payment_date, status)')
                 .eq('expense_id', id)
                 .order('created_at', { ascending: true }),
+            // AUDIT-TRAIL-1c-1(Q8):谁、何时冲销的 —— 取自冲销那一张(镜像单)的建立
             expense.reversed_by_expense
-                ? supabase.from('expenses').select('id, code').eq('id', expense.reversed_by_expense).single()
+                ? supabase.from('expenses').select('id, code, created_at, created_by, notes').eq('id', expense.reversed_by_expense).single()
                 : Promise.resolve({ data: null, error: null }),
             // 本单是否为镜像:查"谁把我记为 reversed_by_expense"(是则回链原单)
             supabase
@@ -274,28 +280,15 @@ export default async function ExpenseDetailPage({
             // ★★ 详情页恒为 ok —— 这张开支单在不在由上面的 notFound() 回答。
             state={{ kind: 'ok' }}
             // 冲销横幅:已被冲销 → 链镜像单;本单是镜像 → 回链原单。走 notices 槽。
+            // AUDIT-TRAIL-1c-1(Q8):冲销了的一张 → "Reversed on … by …" + 链到冲销那一张;冲销那一张 → "Reversal of EXP-…"
             notices={
                 <>
-                    {expense.status === 'reversed' && reversedByRes.data && (
-                        <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
-                            <Link
-                                href={`/finance/expenses/${reversedByRes.data.id}`}
-                                className="hover:underline app-link"
-                            >
-                                {t('expense.reversedBanner', { code: reversedByRes.data.code })}
-                            </Link>
-                        </div>
+                    {expense.status === 'reversed' && reversedByRes.data?.created_at && (
+                        <EndedBanner kind="reversed" at={reversedByRes.data.created_at} by={reversedByRes.data.created_by}
+                            reason={reversalReasonText(reversedByRes.data.notes)}
+                            link={{ code: reversedByRes.data.code, href: `/finance/expenses/${reversedByRes.data.id}` }} />
                     )}
-                    {reversalOfRes.data && (
-                        <div className="bg-amber-50 border border-amber-300 text-amber-900 px-4 py-3 rounded mb-4 text-sm">
-                            <Link
-                                href={`/finance/expenses/${reversalOfRes.data.id}`}
-                                className="hover:underline app-link"
-                            >
-                                {t('expense.reversalOfBanner', { code: reversalOfRes.data.code })}
-                            </Link>
-                        </div>
-                    )}
+                    {reversalOfRes.data && <ReversalOfBanner code={reversalOfRes.data.code} href={`/finance/expenses/${reversalOfRes.data.id}`} />}
                 </>
             }
         >
@@ -360,6 +353,8 @@ export default async function ExpenseDetailPage({
 
             {/* 凭据附件(发票/收据)*/}
             <FinanceAttachmentsPanel canEdit={canEdit} parent={{ kind: 'expense', id: expense.id }} rows={attachments} />
+
+            <AuditTrail subject="expense" id={expense.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

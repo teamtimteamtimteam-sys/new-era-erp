@@ -16,6 +16,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { formatAmount, formatMoneyBare } from '@/lib/format'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
@@ -25,7 +26,7 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import CreditNoteLinesTable, { type CreditNoteLineRow } from './CreditNoteLinesTable'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 
-export default async function CreditNotePage({ params }: { params: Promise<{ id: string }> }) {
+export default async function CreditNotePage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
@@ -189,6 +190,7 @@ export default async function CreditNotePage({ params }: { params: Promise<{ id:
 
             {/* 【为什么这一页没有作废按钮】说出来,而不是留一个空白让人以为漏了 */}
             <p className="text-xs text-[color:var(--brand-muted-text)] mt-8">{t('cn.immutableNote')}</p>
+            <AuditTrail subject="credit_note" id={id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

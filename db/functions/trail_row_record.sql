@@ -39,14 +39,23 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM document_types dt WHERE dt.table_name = p_table)
        AND NOT EXISTS (SELECT 1 FROM trail_subjects() ts WHERE ts.root_table = p_table) THEN
         -- ② 登记过的子行:沿父键往上走,最多三跳
+        --   AUDIT-TRAIL-1c-1(M7):hop = 'all' 的家是那个单行设置表本身 —— 没有外键可走,那一行的键取它唯一那一行的根键
         LOOP
             SELECT tm.* INTO m FROM trail_subject_members() tm
-             WHERE tm.table_name = v_table AND tm.home AND tm.hop = 'down'
-               AND v_img @> tm.match AND v_img ->> tm.fk_column IS NOT NULL
+             WHERE tm.table_name = v_table AND tm.home AND v_img @> tm.match
+               AND ((tm.hop = 'down' AND v_img ->> tm.fk_column IS NOT NULL)
+                    OR (tm.hop = 'all' AND EXISTS (SELECT 1 FROM trail_subjects() ts
+                                                    WHERE ts.subject = tm.subject AND ts.root_table = tm.parent_table)))
              ORDER BY tm.subject, tm.ord LIMIT 1;
             EXIT WHEN NOT FOUND OR v_hops >= 3;
             v_table := m.parent_table;
-            v_id := v_img ->> m.fk_column;
+            IF m.hop = 'all' THEN
+                EXECUTE format('SELECT t.%I::text FROM public.%I t LIMIT 1',
+                               (SELECT ts.root_key FROM trail_subjects() ts WHERE ts.subject = m.subject), v_table)
+                   INTO v_id;
+            ELSE
+                v_id := v_img ->> m.fk_column;
+            END IF;
             v_hops := v_hops + 1;
             SELECT * INTO v_cur FROM trail_current_image(v_table, jsonb_build_object('id', v_id));
             v_img := COALESCE(v_cur.image, '{}'::jsonb);

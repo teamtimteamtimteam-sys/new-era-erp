@@ -25,6 +25,7 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'lane' | 'port' | 'company_licence'
     | 'material' | 'storage_location' | 'metal_price' | 'pricing_formula' | 'task'
     | 'processing_settings' | 'pricing_settings' | 'receiving_settings'
+    | 'journal_entry' | 'invoice' | 'credit_note' | 'payment' | 'payment_request' | 'expense' | 'payable'
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
@@ -59,6 +60,14 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     processing_settings: 'processing_settings',
     pricing_settings: 'pricing_settings',
     receiving_settings: 'receiving_settings',
+    // AUDIT-TRAIL-1c-1
+    journal_entry: 'journal_entries',
+    invoice: 'invoices',
+    credit_note: 'credit_notes',
+    payment: 'payments',
+    payment_request: 'payment_requests',
+    expense: 'expenses',
+    payable: 'inbound_batches',
 }
 
 export const PAGE = 20
@@ -99,7 +108,7 @@ export default async function AuditTrail({ subject, id, show }: { subject: Trail
     const root = rows.find((r) => r.table_name === TRAIL_SUBJECT_ROOTS[subject] && r.ctx)
     const ctx = (root?.ctx ?? null) as { currency?: Json } | null
     const currency = typeof ctx?.currency === 'string' ? ctx.currency : null
-    const entries = buildEntries(dict, rows.map((r) => fromRecordTrail(r as Parameters<typeof fromRecordTrail>[0])), { currency, subject })
+    const entries = buildEntries(dict, rows.map((r) => fromRecordTrail(r as Parameters<typeof fromRecordTrail>[0])), { currency, subject, recordId: id })
     const more = rows.some((r) => r.more)
     return (
         <section id="audit-trail" data-audit-trail={entries.length ? 'entries' : 'empty'} className="mt-8 border-t pt-6">

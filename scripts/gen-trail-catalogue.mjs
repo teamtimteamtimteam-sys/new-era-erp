@@ -193,7 +193,7 @@ const OVERRIDES = {
     finance_attachments: { claim_id: 'Claim', doc_type: 'Document type' },
     fixed_assets: { code: 'Asset number', cost_base: 'Cost (base currency)', cost_ccy: 'Cost', in_service_date: 'In service from',
         planned_in_service_date: 'Planned in service from', useful_life_months: 'Useful life (months)' },
-    freight_allocations: { basis_qty: 'Basis', freight_document_id: 'Freight document', in_stock_ratio: 'Share still in stock' },
+    freight_allocations: { basis_qty: 'Allocation basis (quantity)', freight_document_id: 'Freight document', in_stock_ratio: 'Share still in stock' },
     inbound_batch_metals: { source_assay_id: 'From assay' },
     output_batch_metals: { source_assay_id: 'From assay' },
     inbound_batches: { arrival_date: 'Arrival date', delete_reason: 'Reason written off', deleted_at: 'Written off on',
@@ -202,12 +202,12 @@ const OVERRIDES = {
     output_batches: { delete_reason: 'Reason written off', deleted_at: 'Written off on', deleted_by: 'Written off by',
         output_date: 'Output date', awaiting_operation_type_code: 'Awaiting operation' },
     inventory_movements: { qty_delta: 'Quantity change' },
-    invoice_lines: { unit: 'Unit', line_no: 'Line' },
+    invoice_lines: { unit: 'Unit', line_no: 'Line', amount_base: 'Amount (base currency)', tax_base: 'Tax (base currency)', sales_record_id: 'Sale' },
     // AUDIT-TRAIL-1b-2(Tim 的裁定,折进 1b-2):code 此前生成成 "Journal entrie number",1b-1 的交回把它列成了对的
-    journal_entries: { entry_date: 'Entry date', reversed_by: 'Reversed by', code: 'Journal number' },
-    payment_allocations: { allocated_base: 'Allocated (base currency)', allocated_ccy: 'Allocated', allocated_pay: 'Allocated (payment currency)',
-        withheld_base: 'Withheld (base currency)', withheld_pay: 'Withheld (payment currency)', freight_document_id: 'Freight document' },
-    prepayment_applications: { purchase_order_id: 'Purchase order', journal_entry_id: 'Journal' },
+    journal_entries: { entry_date: 'Entry date', reversed_by: 'Reversed by', code: 'Journal number', source_type: 'Source' },
+    payment_allocations: { allocated_base: 'Allocated (base currency)', allocated_ccy: 'Allocated (document currency)', allocated_pay: 'Allocated (payment currency)',
+        withheld_base: 'Withheld (base currency)', withheld_pay: 'Withheld (payment currency)', freight_document_id: 'Freight document', sales_record_id: 'Sale' },
+    prepayment_applications: { purchase_order_id: 'Purchase order', journal_entry_id: 'Journal', amount_base: 'Amount (base currency)' },
     receipt_price_requests: { assay_result_id: 'Assay', label: 'Request', unit_price_ccy: 'Unit price', result_journal_entry_id: 'Journal',
         snapshot: 'Request details' },
     // AUDIT-TRAIL-1b-2 加了 line_no / detail —— 写在这同一行里:一个对象字面量里同一张表写两次,后一次整个盖掉前一次
@@ -300,6 +300,35 @@ const OVERRIDES = {
     pricing_settings: { metal_price_change_warn_pct: 'Warn above (%)', notes_en: 'Notes (EN)', notes_zh: 'Notes (ZH)',
         default_metal_index: 'Default price index', metal_quote_stale_days: 'Quote goes stale after (days)' },
     receiving_settings: { grn_short_pct: 'Short delivery (%)', grn_over_pct: 'Over-delivery (%)', grn_assay_tolerance_pct: 'Assay tolerance (%)' },
+    // ── AUDIT-TRAIL-1c-1:账上的单据(七个主语显示的每一张表、每一列,对着它所在的那一页核过 —— 表单的标签优先,
+    //    详情页的字段名其次;交回报告逐条列出)。生成器配错的那几类(AT-1c Step 0 §g):状态 "All"、种类 "Reason type"、
+    //    付款申请的 payment_id 读成 "Planned payment date"、转账的 to_account 读成 "Accounts"、"Number receipt reason"、
+    //    三处 tax_code 读成 "Tax ID"、"Wht remittance number"、同一张表里两列都叫 "Amount"(本位币那一列补上"(base currency)")、
+    //    时刻读成一个状态词("Decided" → Decided on)──────────────────────────────────────────────────────
+    journal_lines: { amount_ccy: 'Amount (original currency)', entry_id: 'Journal', tax_code: 'Tax code', line_memo: 'Line memo' },
+    journal_requests: { entry_date: 'Entry date', kind: 'Request type', label: 'Request', lines: 'Journal lines', credits_bank: 'Pays out of a bank account',
+        result_journal_entry_id: 'Posted as', target_entry_id: 'Journal to reverse', withdraw_reason: 'Withdrawal reason' },
+    invoices: { status: 'Status', kind: 'Invoice type', bill_to_snapshot: 'Bill-to details', entry_id: 'Journal', terms_text: 'Terms',
+        subtotal_base: 'Subtotal (base currency)', tax_base: 'Tax (base currency)', total_base: 'Total (base currency)' },
+    invoice_issues: { invoice_id: 'Invoice' },
+    invoice_requests: { kind: 'Request type', label: 'Request', doc_date: 'Document date', amount_base: 'Amount (base currency)',
+        result_credit_note_id: 'Credit note issued', result_journal_entry_id: 'Posted as', withdraw_reason: 'Withdrawal reason' },
+    credit_notes: { entry_id: 'Journal' },
+    credit_note_lines: { kind: 'Credit type', tax_base: 'Tax (base currency)', tax_code: 'Tax code' },
+    payments: { amount_base: 'Amount (base currency)', journal_entry_id: 'Journal', reversed_by_payment: 'Reversed by' },
+    payment_requests: { allocations: 'Documents to settle', amount_base: 'Amount (base currency)', amount_in: 'Amount in (destination currency)',
+        bank_account_code: 'Bank account', to_account_code: 'To account', decided_at: 'Decided on', withdrawn_at: 'Withdrawn on',
+        payment_id: 'Payment to reverse', transfer_id: 'Transfer to reverse', wht_remittance_id: 'Remittance to reverse',
+        result_payment_id: 'Payment made', result_transfer_id: 'Transfer made', result_journal_entry_id: 'Posted as',
+        period_month: 'Withholding month', filed_reference: 'IRAS filing reference', planned_date: 'Planned payment date' },
+    bank_transfers: { amount_out: 'Amount out (source currency)', amount_in: 'Amount in (destination currency)', to_account: 'To account',
+        journal_entry_id: 'Journal', reversal_entry_id: 'Reversal journal' },
+    wht_remittances: { code: 'WHT remittance number', period_month: 'Withholding month', filed_reference: 'IRAS filing reference',
+        journal_entry_id: 'Journal' },
+    expenses: { amount_base: 'Amount (base currency)', tax_base: 'Tax (base currency)', tax_code: 'Tax code', journal_entry_id: 'Journal',
+        reversed_by_expense: 'Reversed by', wht_payee_residence: 'WHT payee residence' },
+    expense_claims: { no_receipt_reason: 'Why there is no receipt', tax_code: 'Tax code' },
+    fixed_asset_cost_entries: { amount_base: 'Amount (base currency)', expense_id: 'From expense' },
 }
 // AUDIT-TRAIL-1b-2:勘察把几列自由文本认成了"像枚举"(enum_like)—— 页面上它们是一个随手填的输入框,
 //   审计记录就照原样说(一个人敲的字,Q8),而不是去找一张并不存在的取值表。
@@ -309,6 +338,9 @@ const KIND_OVERRIDES = {
     lane_document_requirements: { document_type: 'text' },
     // AUDIT-TRAIL-1b-3:任务修改史里的优先级被认成了一段文字 —— 它与 tasks.priority 是同一组取值(High / Medium / Low)
     task_history: { old_priority: 'enum_like', new_priority: 'enum_like' },
+    // AUDIT-TRAIL-1c-1:付款申请的两个户被认成了"内部代码"(藏起来)—— 它们是哪个户付、付到哪个户,页面上印着;
+    //   与收付款、费用、转账上的同一列一样,说成户名(下面 ENUM_OVERRIDES)
+    payment_requests: { bank_account_code: 'enum', to_account_code: 'enum' },
 }
 // 三个主语的表里【本来就不该印的列】(Q12:单据编号自己在标题里,内部代码不上屏)
 const HIDE = {
@@ -341,6 +373,8 @@ const HIDE = {
     pricing_formula_history: ['formula_id', 'change_type', 'changed_at', 'changed_by'],
     task_history: ['task_id', 'change_type', 'changed_at', 'changed_by', 'node_id'],
     metal_prices: ['anomaly_check'], terms_requests: ['fingerprint'], task_nodes: ['parent_depth'],
+    // AUDIT-TRAIL-1c-1:两张签发档的散列不是人话(与 1b-2 的另外四张同一条)
+    invoice_issues: ['sha256'], cn_issues: ['sha256'],
 }
 
 // ── 记录类型的英文名(单数)与区域 ─────────────────────────────────────────────
@@ -387,6 +421,12 @@ const TABLE_NAMES = {
     pricing_formulas: 'pricing formula', pricing_formula_metals: 'payable metal', pricing_formula_history: 'pricing formula change',
     terms_requests: 'terms request', processing_settings: 'variance threshold setting', pricing_settings: 'price anomaly setting',
     receiving_settings: 'discrepancy threshold setting',
+    // AUDIT-TRAIL-1c-1
+    journal_requests: 'journal request', invoice_requests: 'invoice request', invoice_issues: 'invoice PDF issue',
+    invoice_lines: 'invoice line', credit_notes: 'credit note', credit_note_lines: 'credit note line', cn_issues: 'credit note PDF issue',
+    payment_requests: 'payment request', payment_allocations: 'payment allocation', bank_transfers: 'bank transfer',
+    wht_remittances: 'WHT remittance', expense_claims: 'expense claim', fixed_asset_cost_entries: 'asset cost entry',
+    prepayment_applications: 'prepayment release', freight_allocations: 'freight allocation', finance_attachments: 'finance attachment',
 }
 // 区域:按表名开头认(先长后短),认不出的归 Other。区域名与导航模块的英文说法一致。
 const AREA_RULES = [
@@ -511,6 +551,27 @@ const ENUM_OVERRIDES = {
     'task_history#new_status': { todo: 'To Do', in_progress: 'In Progress', done: 'Done' },
     'task_history#old_priority': { high: 'High', medium: 'Medium', low: 'Low' },
     'task_history#new_priority': { high: 'High', medium: 'Medium', low: 'Low' },
+    // ── AUDIT-TRAIL-1c-1 ──────────────────────────────────────────────────────────────────────────────
+    //   银行户:四处 CHECK 只认 1000 / 1010 —— 两个系统科目,说成科目的名字(db/tables/accounts.sql 的引导数据,
+    //   一个专有名词,不是一个币种判断)
+    'payments#bank_account_code': { '1000': 'Cash at Bank – SGD', '1010': 'Cash at Bank – USD' },
+    'expenses#bank_account_code': { '1000': 'Cash at Bank – SGD', '1010': 'Cash at Bank – USD' },
+    'bank_transfers#from_account': { '1000': 'Cash at Bank – SGD', '1010': 'Cash at Bank – USD' },
+    'bank_transfers#to_account': { '1000': 'Cash at Bank – SGD', '1010': 'Cash at Bank – USD' },
+    'payment_requests#bank_account_code': { '1000': 'Cash at Bank – SGD', '1010': 'Cash at Bank – USD' },
+    'payment_requests#to_account_code': { '1000': 'Cash at Bank – SGD', '1010': 'Cash at Bank – USD' },
+    // 数量单位:与采购明细同一组说法(这两列没有 CHECK,不填就按"下划线换空格"说成 "Kg")
+    'inbound_batches#unit': { kg: 'kg', t: 't', unit: 'units', units: 'units', pcs: 'pieces', l: 'litres' },
+    'invoice_lines#unit': { kg: 'kg', t: 't', unit: 'units', units: 'units', pcs: 'pieces', l: 'litres' },
+    'payments#status': { posted: 'Posted', reversed: 'Reversed' },
+    'payments#counterparty_type': { customer: 'Customer', supplier: 'Supplier', employee: 'Employee' },
+    'payment_requests#counterparty_type': { customer: 'Customer', supplier: 'Supplier', employee: 'Employee' },
+    'invoices#kind': { sale: 'From a sale', order: 'From a sales order' },
+    'invoices#status': { issued: 'Issued', void: 'Void' },
+    'journal_requests#kind': { entry: 'Manual journal', reversal: 'Reversal' },
+    'journal_requests#status': { submitted: 'Waiting for approval', approved: 'Approved and posted', rejected: 'Rejected', withdrawn: 'Withdrawn' },
+    'expenses#wht_payee_residence': { resident: 'Singapore tax resident', non_resident: 'Non-resident' },
+    'expense_claims#status': { submitted: 'Waiting for approval', withdrawn: 'Withdrawn', approved: 'Approved', rejected: 'Rejected' },
     'work_order_history#change_type': { created: 'Created', released: 'Released', closed: 'Closed', cancelled: 'Cancelled',
         header_update: 'Details changed', line_add: 'Input line added', line_update: 'Input line changed', line_remove: 'Input line removed',
         expected_add: 'Expected output added', expected_update: 'Expected output changed', expected_remove: 'Expected output removed' },

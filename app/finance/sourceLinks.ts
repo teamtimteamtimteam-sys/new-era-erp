@@ -15,10 +15,31 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
 
-export type SourceRef = { source_type: string | null; source_id: string | null }
+import { effectiveSources, type SourceRef } from './sourceLinkReversal'
+export type { SourceRef }
 
 // key: `${source_type}:${source_id}` → href
+// ★ AUDIT-TRAIL-1c-1(Q15):一张冲销分录的 source_id 是【原分录】的 id —— 先换成原分录的来源再解析(sourceLinkReversal.ts)
 export async function resolveSourceHrefs(
+    supabase: SupabaseClient<Database>,
+    refs0: SourceRef[]
+): Promise<Map<string, string>> {
+    const ids0 = Array.from(new Set(refs0.map((r) => r.source_id).filter(Boolean) as string[]))
+    const journals = ids0.length
+        ? mustRows(await supabase.from('journal_entries').select('id, source_type, source_id').in('id', ids0), 'reversal journals (Q15)')
+        : []
+    const eff = effectiveSources(refs0, journals)
+    const refs = Array.from(eff.values())
+    const resolved = await resolveDirect(supabase, refs)
+    const hrefs = new Map<string, string>()
+    for (const [key, r] of eff) {
+        const h = resolved.get(`${r.source_type}:${r.source_id}`)
+        if (h) hrefs.set(key, h)
+    }
+    return hrefs
+}
+
+async function resolveDirect(
     supabase: SupabaseClient<Database>,
     refs: SourceRef[]
 ): Promise<Map<string, string>> {

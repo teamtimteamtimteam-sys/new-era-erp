@@ -222,9 +222,13 @@ forwarders, containers, lanes and ports, company licences — and replaced the q
 AUDIT-TRAIL-1b-3 (part of v1.4.33) added master data and tools — materials, storage locations, metal prices, pricing formulas and
 their terms requests, tasks (personal tasks too), the three threshold panels — replaced the task "Change history" section, and
 made deleted master data and deleted sales orders, quotes and purchase orders open read-only for `data.view_deleted` holders
-(§9.10). That completes AT-1b; AT-1c and AT-1d follow (`docs/forward-queue.md`, "HISTORY family").
-Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`) and AT-1b Step 0 Q1–Q14 + M1–M6
-(`docs/surveys/AUDIT-TRAIL-1b/STEP0-HANDBACK.md`), all accepted as recommended.
+(§9.10). That completes AT-1b. AUDIT-TRAIL-1c-1 (part of v1.4.33) added the ledger documents — journals, invoices, credit
+notes, payments, payment requests, expenses and the payable view of an inbound batch — and three mechanism changes (M7, the
+operation key, employee names in references; §9.9, §9.11). AT-1c-2, AT-1c-3 and AT-1d follow (`docs/forward-queue.md`,
+"HISTORY family").
+Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`), AT-1b Step 0 Q1–Q14 + M1–M6
+(`docs/surveys/AUDIT-TRAIL-1b/STEP0-HANDBACK.md`) and AT-1c Step 0 Q1–Q34 (`docs/surveys/AUDIT-TRAIL-1c/STEP0-HANDBACK.md`),
+all accepted as recommended.
 
 | page | subject | view code | what rolls up into its trail |
 |---|---|---|---|
@@ -257,6 +261,13 @@ Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`) and AT-
 | `/operation/orders` (1b-3, under the panel) | `processing_settings` | `module.processing.view` | the variance-threshold panel's two columns only (M5 · M6) |
 | `/tools/pricing/metal-prices` (1b-3, under the panel) | `pricing_settings` | `module.pricing.view` | the price-anomaly panel's one column only (M5 · M6) |
 | `/purchasing/discrepancies` (1b-3, under the panel) | `receiving_settings` | `module.inbound.view` (the panel's own branch) | the discrepancy-threshold panel's three columns only (M5 · M6) |
+| `/finance/journal/[id]` (1c-1) | `journal_entry` | `module.finance.view` | the entry · its lines · its reversal (one hop up through `reversed_by` — **one linked line**, its lines stay on its own page, Q33) · on a reversal's page the entry it reversed · the manual-journal or reversal requests and their approvals |
+| `/finance/invoices/[id]` (1c-1) | `invoice` | `module.finance.view` | the invoice · its lines · PDF issues · void / credit-note requests and their approvals · credit notes it carries · payments allocated to it · its journal and that journal's reversal — replaces the invoice-request "history" list (Q26) |
+| `/finance/credit-notes/[id]` (1c-1) | `credit_note` | `module.finance.view` | the credit note · its lines · PDF issues · the request that issued it and its approval · its journal |
+| `/finance/payments/[id]` (1c-1) | `payment` | `module.finance.view` | the payment · its allocations · attachments · the payment that reversed it (one hop up) / on a reversal, the payment it reversed · the requests that paid or reversed it and their approvals · its journal and reversal |
+| `/finance/payment-requests/[id]` (1c-1) | `payment_request` | `module.finance.view` | the request · its approvals · the payment it made · bank transfers and WHT remittances it made or reversed (they have no page of their own, Q17) · the journals posted |
+| `/finance/expenses/[id]` (1c-1) | `expense` | `module.finance.view` | the expense · allocations · attachments · prepayments released against it · the expense that reversed it / that it reversed · the expense claim that posted it · asset cost it capitalised · its journals |
+| `/finance/payables/[batchId]` (1c-1) | `payable` | `module.finance.view` (root rule `page`, M3; `root_columns` = the payable columns, M6) | the batch's money side only — supplier, PO, quantity, unit price, pricing status, arrival date, write-off · payment and freight allocations · prepayments · finance attachments · price changes · purchase / write-off / prepayment journals and their reversals. The warehouse side (assays, safety states, stock moves) stays on `/inbound/[id]/edit` |
 
 ### 9.1 The reader: `record_trail(subject, id, entries)`
 
@@ -273,6 +284,10 @@ Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`) and AT-
   happened". Re-evaluating policies inside a SECURITY DEFINER function is sound because all 287 read policies resolve the
   caller from the login (`has_permission`, `current_user_employee`), none from the database role, and none is restrictive
   (measured, AUDIT-TRAIL-0 `reader-masking.md` §1.6); restrictive policies would be ANDed in if they ever appear.
+- **Every row carries its operation (`op_key`, AUDIT-TRAIL-1c-1, Q16):** `'L' || txid` after the log began, `'P' || <moment>` before
+  it. `entry_no` orders the entries of **one** record; when a list block merges several records (`ListTrail`), rows of the same
+  operation are merged into one entry by `op_key` — a bulk FX save is one entry, not N; the same row read through two records is
+  kept once (`mergeKey`: its `seq`, or table · key · op · moment · columns before the log).
 - **A row the reader cannot see** keeps its place and its time; everything else (what, who, values, keys) is null and
   `row_hidden` is true. The page prints "Restricted" in place of what happened and who (Q4). When only part of an operation
   is hidden, the entry adds "Part of this change is restricted."
@@ -483,6 +498,7 @@ samples must all be caught, a known-good sentence must pass).
 | M4 | a member may be reached by an **upward** hop, and may be a **stepping stone** that is not shown | `trail_subject_members.hop` / `shown` | the batch trail (45 of the 292 old rows live were upward) |
 | M5 | a root keyed by a non-text value (`id boolean`) is matched by its typed value | `record_trail` rebuilds the root key from the row | the three threshold panels (1b-3; the page passes `'true'`) |
 | M6 | a root may be limited to the **columns a panel owns** | `trail_subjects.root_columns` | the three threshold panels (1b-3): processing 2 columns, pricing 1, receiving 3 |
+| **M7** (1c-1) | a member with **no foreign key** under a single-row root: every row of that table, and every log row of it (`match` filtered), belongs to the singleton (`hop = 'all'`, `fk_column` NULL). Ignored unless the parent is the subject's root table. `trail_row_record` gives such a row the singleton as its home | `trail_subject_members.hop = 'all'` | none live yet: AT-1c-3's period-lock panel (`period_closes`), AT-1d's approval policy (`finance_settings_history`); fixture 241 M proves it with a temporary subject |
 
 The retired batch views `batch_audit_trail` / `batch_audit_trail_all` stay in place, unread by any page (Q32); fixture 238
 reads them as the reference its row-for-row check compares against, and their i18n entry in `scripts/check-i18n.mjs` stays
@@ -507,4 +523,43 @@ until they are dropped.
 - **Actions on a deleted record** are disabled inside the fieldset (customer's edit link becomes a disabled button; the formula's
   deactivate / delete buttons stay visible and unpressable). The purchase order's action row — mostly links, which a fieldset
   cannot disable — is not drawn for a deleted order (the page's own rule: a question that does not apply is not asked).
+
+### 9.11 The ledger documents (AUDIT-TRAIL-1c-1, Tim's AT-1c Q1–Q34)
+
+- **One describer for the seven finance pages.** On `journal_entry`, `invoice`, `credit_note`, `payment`, `payment_request`, `expense` and
+  `payable` every row is worded by `describeFinance` (`lib/trail/render.ts`). The same tables on the batch, order and summary pages keep
+  their 1b wording (fixtures 238–240 and arms ⑥ ⑦ unchanged).
+- **A reversal is one sentence (Q31 · Q33).** The original flips to `reversed` and a new opposite document (the mirror) is created in
+  one transaction: "Payment reversed · PMT-…" / "Expense reversed · EXP-…" / "Journal reversed" with **one linked line**, "Reversing
+  entry: PMT-…" or "Reversed by: JE-…" (the link's path comes from `document_types`, via `trail_ref_label`'s `href`). Before the log only
+  the mirror's creation exists, and it says the same sentence. A reversal journal's own lines are not members of the original (Q33);
+  on the reversal's own page it reads "Reversal journal posted · JE-…", "Reverses: JE-…" and its lines. A reversal's memo /
+  notes ("REVERSAL: <code> — <words>") gives only the person's words as the reason.
+- **Requests.** "… sent for approval", "… approved", "… rejected", "Request withdrawn", and for payment requests the six kinds' own
+  words (Q30's "WHT remittance reversal sent for approval"; "Paid", "Payment reversed", "Bank transfer made", "WHT remitted" …). A request
+  raised with approvals off reads "… approved" plus the note "Approved automatically (approvals were switched off)" (Q32). A request
+  raised and changed in the same operation (the submit functions write the amount, or flip to approved, right after inserting) is
+  one sentence. Approval rows fold into the request's sentence. A payment request's `allocations` (JSONB) are named by document number
+  (`trail_refs`, Q13) — "EXP-2026-0004 · 300.00 (document currency)".
+- **Before the log (Q9):** three stamps are the only record of their event and are registered as sources — `invoices.voided_at`,
+  `payment_requests.paid_at`, `expense_claims.decided_at` — next to the documents' creation stamps (journals' lines, requests,
+  issues, credit notes, payments, transfers, remittances, expenses, claims, asset cost entries).
+- **Employee names in references (Q12).** `trail_ref_label` answers an employee reference through `trail_actor`: a reader without
+  `module.hr.view` sees only himself by name, everyone else Restricted — the same rule as "who" (§9.7). It also returns `label` when the
+  name is visible, so `/settings/change-history`'s Record column still names employees for its readers (admin, cfo — both hold hr.view).
+- **Banners (Q8).** "Voided on DD/MM/YYYY by <name>" (invoice: `voided_at` / `voided_by`), "Reversed on DD/MM/YYYY by <name>"
+  (journal, payment, expense: who and when are the mirror's creation) with a third line linking to the reversing document; a mirror
+  carries "Reversal of …". A written-off batch on the payables page opens read-only with "Written off on … by …" (Q5), the person and
+  reason from `deleted_records`.
+- **The payable (Q5).** A second subject on `inbound_batches` (the `supplier` / `forwarder` precedent): the page's code is the gate
+  (M3 — the batch's own read rule is `module.inbound.view`), and only the payable columns of the batch row are shown (M6).
+- **Source links (Q15).** A reversal journal's `source_id` is the original journal, not the document (`reverse_journal_entry_internal`),
+  so the journal page's "Source" link pointed at a journal id as if it were a batch or run. `app/finance/sourceLinkReversal.ts` swaps a
+  reversal's source for the original's before `resolveSourceHrefs` builds the link (journal page, journal list, ledger).
+- **Checks.** Fixture **241** (M7 · Q16 · Q12 · every subject's child line and key event · reversals · Q32 · Q13 · M3 / M6 on the payable ·
+  Q9 · the Q15 data shape), fault-injected by `db/scripts/2026-10-03-at1c1-fixture-injections.py` (20 injections, each red in its own arm).
+  `scripts/check-trail-wording.mjs` arm **⑧ 账上的单据** (golden wording for every subject, Q12, Q16's merge, Q15's mapping, and 1b-3's
+  defect 28 — Q34) plus a machine-token sweep over every table of the seven subjects with the page's own subject (750 sentences, the
+  number computed from the registry); injection `wording-drift-1c1`. Smoke `trail` assertions on six of the seven pages
+  (`/finance/payment-requests/[id]` stays on the skip list: no live request).
 

@@ -31305,6 +31305,7 @@ export type Database = {
           occurred_at: string
           old: Json
           op: string
+          op_key: string
           prelog: boolean
           refs: Json
           row_hidden: boolean

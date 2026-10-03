@@ -45,6 +45,19 @@
 --   pricing_settings    → /tools/pricing/metal-prices 的异常阈值面板  module.pricing.view;M6:只取那一列
 --   receiving_settings  → /purchasing/discrepancies 的收货阈值面板   module.inbound.view(面板只画在这一支里);M6:三列
 --                    三张都是单行表,主键 id boolean —— M5:页面传 'true',读法按根行自己的类型重建那个键
+-- AUDIT-TRAIL-1c-1(Tim 2026-10-03,AT-1c Step 0 §a,Q1 拆分的第一刀:账上的单据):
+--   journal_entry   → /finance/journal/[id]             requireModule(MOD.finance)     = module.finance.view
+--   invoice         → /finance/invoices/[id]            requireModule(MOD.finance)     = module.finance.view
+--   credit_note     → /finance/credit-notes/[id]        requireModule(MOD.finance)     = module.finance.view
+--   payment         → /finance/payments/[id]            requireModule(MOD.finance)     = module.finance.view
+--   payment_request → /finance/payment-requests/[id]    requireModule(MOD.finance)     = module.finance.view
+--                    (行内转账、代扣税缴纳与它们的冲销也住在这一页 —— 它们没有自己的页,Q17)
+--   expense         → /finance/expenses/[id]            requireModule(MOD.finance)     = module.finance.view
+--   payable         → /finance/payables/[batchId]       requireModule(MOD.finance)     = module.finance.view
+--                    根表是 inbound_batches(读规则 module.inbound.view)—— M3:页面的码是门(Q5,forwarder 的先例);
+--                    M6:只取应付那几列(数量、单价、供应商、采购单、计价状态、到货日、注销三列)—— 批次的仓库那一面
+--                    (化验、安全状态、库位……)住在 /inbound/[id]/edit 的 inbound_batch 上,不在应付页上再说一遍。
+--                    注销那三列必须在里面:M6 丢掉 root_columns 之外的戳(record_trail),不在里面注销就看不见(Q5 的横幅)。
 -- 【后面几刀加主语】加一行这里、在 trail_subject_members 里登记它的子行与相关行、需要的话在
 --   trail_prelog_sources 里登记"记录开始之前"的来源,然后在 lib/trail/ 里补它的措辞 —— 见 docs/change-log.md §9。
 CREATE OR REPLACE FUNCTION public.trail_subjects()
@@ -87,6 +100,16 @@ AS $function$
         ('pricing_settings',  ARRAY['module.pricing.view'],       'pricing_settings',   'id', 'table',
             ARRAY['metal_price_change_warn_pct']),
         ('receiving_settings', ARRAY['module.inbound.view'],      'receiving_settings', 'id', 'table',
-            ARRAY['grn_short_pct', 'grn_over_pct', 'grn_assay_tolerance_pct'])
+            ARRAY['grn_short_pct', 'grn_over_pct', 'grn_assay_tolerance_pct']),
+        -- AUDIT-TRAIL-1c-1
+        ('journal_entry',     ARRAY['module.finance.view'],       'journal_entries',    'id', 'table', NULL),
+        ('invoice',           ARRAY['module.finance.view'],       'invoices',           'id', 'table', NULL),
+        ('credit_note',       ARRAY['module.finance.view'],       'credit_notes',       'id', 'table', NULL),
+        ('payment',           ARRAY['module.finance.view'],       'payments',           'id', 'table', NULL),
+        ('payment_request',   ARRAY['module.finance.view'],       'payment_requests',   'id', 'table', NULL),
+        ('expense',           ARRAY['module.finance.view'],       'expenses',           'id', 'table', NULL),
+        ('payable',           ARRAY['module.finance.view'],       'inbound_batches',    'id', 'page',
+            ARRAY['supplier_id', 'purchase_order_id', 'quantity', 'unit', 'unit_price', 'pricing_status', 'arrival_date',
+                  'deleted_at', 'deleted_by', 'delete_reason'])
     ) AS s(subject, view_codes, root_table, root_key, root_rule, root_columns);
 $function$;
