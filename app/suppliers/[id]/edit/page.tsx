@@ -7,7 +7,7 @@ import StatusPanel from './StatusPanel'
 import CompliancePanel from './CompliancePanel'
 import AttachmentsPanel from './AttachmentsPanel'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { requireModule } from '@/app/components/moduleGuard'
+import { requireDeletedAccess, requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { canEnter } from '@/lib/moduleAccess'
 import { can } from '@/lib/permissions'
@@ -17,6 +17,7 @@ import ReceiptPatternPanel, {
 } from './ReceiptPatternPanel'
 import { formatAuditStamp } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 
 export default async function EditSupplierPage({
     params,
@@ -48,7 +49,6 @@ export default async function EditSupplierPage({
         .from('suppliers')
         .select('*')
         .eq('id', id)
-        .is('deleted_at', null)
         .single()
 
     // GST-2:进项税码字典 + 开关(只在已注册时渲染那一格)。
@@ -69,6 +69,13 @@ export default async function EditSupplierPage({
     if (error || !supplier) {
         notFound()
     }
+    // AUDIT-TRAIL-1b-3(Q9 · Q21):删掉的供应商不再 404 —— 持 data.view_deleted 的人只读打开(横幅 + 审计记录),
+    //   别人得到一句具名拒绝
+    if (supplier.deleted_at) {
+        const refused = await requireDeletedAccess('nav.suppliers')
+        if (refused) return refused
+    }
+    const deleted = !!supplier.deleted_at
 
     // ★ ROLE-1 Batch 2a:这一家此刻能走哪几步、每一步要哪个码 —— 问库里那一份定义
     //   (supplier_status_moves),不在页面上再抄一份跳转图。每个码问一次 can()。
@@ -197,6 +204,9 @@ export default async function EditSupplierPage({
                 </span>
             </p>
 
+            {supplier.deleted_at && <DeletedBanner kind="supplier" id={supplier.id} at={supplier.deleted_at} />}
+
+            <EndedFieldset ended={deleted}>
             {/* ALERT-1(丁类):canEditSupplier 这一页早就算过了(:37),而且已经
                 交给了下面的 <ContactsPanel permissionCode="module.suppliers.edit">。本组件此前【没有】拿到它,于是没有
                 编辑权的人按得下状态钮,按下去一片安静。补上的是一个 prop。 */}
@@ -242,6 +252,7 @@ export default async function EditSupplierPage({
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
                 <ContactsPanel permissionCode="module.suppliers.edit" supplierId={supplier.id} rows={supplierContacts} canEdit={canEditSupplier} />
             </section>
+            </EndedFieldset>
 
             {/* AUDIT-TRAIL-1b-2(Q2):供应商只有这一页(没有详情页),所以审计记录挂在编辑页底 ——
                 送审 · 批准 · 启用 · 暂停 · 存档 · 合规证书 · 附件 · 联系人 */}

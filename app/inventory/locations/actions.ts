@@ -2,16 +2,16 @@
 
 // LOC-1:库位主数据的服务端动作 —— 新建 / 编辑 / 停用与启用。
 //
-// 【允许分类是删后重插】与 pricing_formula_metals、进料含量格子同形:
-// "不在表里"就是"不允许",所以一次保存就是把这个库位的允许集合整体换掉。
-// 这类物理删除已记在 docs/as-built-divergences.md 第 2 条。
+// 【允许分类:一次调用、只写变了的】(AUDIT-TRAIL-1b-3,Tim 的 Q13)此前这里是三次写 —— 改库位那一行、
+// 删掉全部允许分类、再把勾上的全部插回去 —— 于是审计记录里没动过的分类每保存一次都读成"拿掉了"又"加上了",
+// 还分成三条记录。现在新建与修改都走 save_storage_location:库位那一行只有真的变了才写,分类只删不再勾着的、
+// 只插新勾上的,全在一笔事务里。"不在表里"仍然就是"不允许"(物理删除那一条,docs/as-built-divergences.md 第 2 条)。
 //
 // 【没有删除动作,一个都没有】这张表没有硬删路径。下架只有停用,数据库那一侧
 // 由 guard_storage_location_no_hard_delete 具名拒绝 —— 界面这一侧连按钮都不给,
 // 两者说的是同一件事。
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
-import type { InsertRow } from '@/lib/db-helpers'
 import { localizeLocationError } from './locationErrorCodes'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -43,28 +43,15 @@ async function validate(f: ReturnType<typeof readForm>) {
     return Object.keys(fieldErrors).length ? fieldErrors : null
 }
 
-// 允许分类整体换掉。【空集合是合法的,它的意思是"未配置"】——
-// 不是"不允许任何分类",所以这里不拦空,界面也照直把它显示成「未配置」。
-async function replaceAllowedClasses(locationId: string, classes: string[]) {
+// 新建与修改共用一扇门。【空集合是合法的,它的意思是"未配置"】—— 不是"不允许任何分类",
+// 所以这里不拦空,界面也照直把它显示成「未配置」。
+async function saveLocation(id: string | null, f: ReturnType<typeof readForm>) {
     const supabase = await createClient()
-
-    const { error: delErr } = await supabase
-        .from('storage_location_allowed_classes')
-        .delete()
-        .eq('location_id', locationId)
-    if (delErr) return delErr
-
-    if (classes.length === 0) return null
-
-    const { error: insErr } = await supabase
-        .from('storage_location_allowed_classes')
-        .insert(
-            classes.map((c) => ({
-                location_id: locationId,
-                classification_code: c,
-            })) as InsertRow<'storage_location_allowed_classes'>[]
-        )
-    return insErr
+    // 可空的三个参数在库里带 DEFAULT NULL —— 不传就是 NULL(新建没有 id;区域与备注可以留空)
+    return supabase.rpc('save_storage_location', {
+        p_code: f.code, p_name: f.name, p_classes: f.classes,
+        p_id: id ?? undefined, p_zone: f.zone ?? undefined, p_notes: f.notes ?? undefined,
+    })
 }
 
 export async function createLocation(
@@ -75,19 +62,11 @@ export async function createLocation(
     const fieldErrors = await validate(f)
     if (fieldErrors) return { fieldErrors }
 
-    const supabase = await createClient()
-    const { data, error } = await supabase
-        .from('storage_locations')
-        .insert({ code: f.code, name: f.name, zone: f.zone, notes: f.notes } as InsertRow<'storage_locations'>)
-        .select('id')
-        .single()
+    const { data, error } = await saveLocation(null, f)
 
     // 重号在这里现身,带着 LOC_CODE_EXISTS —— 触发器给的名字,翻成一句人话。
     if (error) return { error: await localizeLocationError(error.message) }
     if (!data) return { error: await localizeLocationError('') }
-
-    const classErr = await replaceAllowedClasses(data.id, f.classes)
-    if (classErr) return { error: await localizeLocationError(classErr.message) }
 
     revalidatePath(LIST)
     redirect(LIST)
@@ -102,16 +81,10 @@ export async function updateLocation(
     const fieldErrors = await validate(f)
     if (fieldErrors) return { fieldErrors }
 
-    const supabase = await createClient()
-    const { error } = await supabase
-        .from('storage_locations')
-        .update({ code: f.code, name: f.name, zone: f.zone, notes: f.notes })
-        .eq('id', id)
+    const { data, error } = await saveLocation(id, f)
 
     if (error) return { error: await localizeLocationError(error.message) }
-
-    const classErr = await replaceAllowedClasses(id, f.classes)
-    if (classErr) return { error: await localizeLocationError(classErr.message) }
+    if (!data) return { error: await localizeLocationError('') }
 
     revalidatePath(LIST)
     revalidatePath(`${LIST}/${id}/edit`)

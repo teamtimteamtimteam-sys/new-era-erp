@@ -218,8 +218,11 @@ when, who and what happened, in plain English, newest first. AUDIT-TRAIL-1a (v1.
 three pages; AUDIT-TRAIL-1b-1 (part of v1.4.33) added six registry extensions (M1–M6, §9.9), the batch, work-order,
 stocktake, equipment, handover and warehouse-request subjects, and three corrections to AT-1a (§9.7, §9.4); AUDIT-TRAIL-1b-2
 (part of v1.4.33) added the commercial half — quotes, sales orders, shipments, customers, commission agreements, suppliers,
-forwarders, containers, lanes and ports, company licences — and replaced the quote and sales-order "History" sections; the rest
-follow in AT-1b-3, AT-1c and AT-1d (`docs/forward-queue.md`, "HISTORY family").
+forwarders, containers, lanes and ports, company licences — and replaced the quote and sales-order "History" sections;
+AUDIT-TRAIL-1b-3 (part of v1.4.33) added master data and tools — materials, storage locations, metal prices, pricing formulas and
+their terms requests, tasks (personal tasks too), the three threshold panels — replaced the task "Change history" section, and
+made deleted master data and deleted sales orders, quotes and purchase orders open read-only for `data.view_deleted` holders
+(§9.10). That completes AT-1b; AT-1c and AT-1d follow (`docs/forward-queue.md`, "HISTORY family").
 Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`) and AT-1b Step 0 Q1–Q14 + M1–M6
 (`docs/surveys/AUDIT-TRAIL-1b/STEP0-HANDBACK.md`), all accepted as recommended.
 
@@ -246,6 +249,14 @@ Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`) and AT-
 | `/logistics/forwarders/[id]` (1b-2) | `forwarder` | `module.logistics.view` (root rule `page`, M3) | the forwarder's supplier row (suppliers.view readers only; Restricted for the rest) · logistics details · rate quotes |
 | `/logistics/lanes` (1b-2, a list-level block) | `lane` · `port` | `module.logistics.view` | each lane · its document requirements; each port · the lanes leaving and arriving at it (two foreign keys, two members) — read per record and merged by `app/components/trail/ListTrail.tsx` |
 | `/purchasing/licences` (1b-2, a list-level block) | `company_licence` | `module.suppliers.view` (the table's rule; the block sits in the page's suppliers.view branch) | each licence — read per record by `ListTrail` |
+| `/materials/[id]/edit` (1b-3, its only page, Q2) | `material` | `module.materials.view` | the material · its attachments · its assay requirement (which metals a batch must be assayed for; written delete-all + insert, netted to what changed) |
+| `/inventory/locations/[id]/edit` (1b-3, its only page) | `storage_location` | `module.inventory.view` | the location · its allowed material classes — saved by `save_storage_location`, one call that writes only what changed (Q13) |
+| `/tools/pricing/metal-prices/[id]/edit` (1b-3, its only page) | `metal_price` | `action.metal_prices` (the edit page's guard) | the quote |
+| `/tools/pricing/formulas/[id]/edit` (1b-3, its only page) | `pricing_formula` | `module.pricing.view` | the formula · its payable metals · its history · its terms requests and their approvals (requests need the price codes: Restricted rows for other readers, Q4) |
+| `/tools/tasks/[id]` (1b-3) | `task` | `module.tasks.view` + the task's own read rule (team, own, or `module.tasks.view_all`) | the task · its steps · its participants · its history — personal tasks too (Q3); replaces the page's "Change history" section (Q26) |
+| `/operation/orders` (1b-3, under the panel) | `processing_settings` | `module.processing.view` | the variance-threshold panel's two columns only (M5 · M6) |
+| `/tools/pricing/metal-prices` (1b-3, under the panel) | `pricing_settings` | `module.pricing.view` | the price-anomaly panel's one column only (M5 · M6) |
+| `/purchasing/discrepancies` (1b-3, under the panel) | `receiving_settings` | `module.inbound.view` (the panel's own branch) | the discrepancy-threshold panel's three columns only (M5 · M6) |
 
 ### 9.1 The reader: `record_trail(subject, id, entries)`
 
@@ -327,6 +338,16 @@ single-field edits were not."
   row, so the quote's pre-log trail shows version 1 only; the page's own "Issued versions" list still shows both.
 - **Suppliers.** `approved_at` is registered as a stamp: suppliers approved before ROLE-1 Batch 2a (2026-09-24) have no status
   history or approval row, only that stamp.
+- **Pricing formulas and tasks (AUDIT-TRAIL-1b-3).** Their history tables (`pricing_formula_history`, `task_history`) are the main
+  line. A formula's own creation and its payable metals are registered too (1b-2's quote / order precedent: the history row is
+  written by an AFTER trigger in the same transaction, so they fold into one sentence; the one live formula predates its history
+  table). Task history is written only on **team** tasks (`trg_tasks_history`), so a personal task's earlier trail comes from the
+  task's and its steps' creation, the steps' tick stamp (`done_at`) and the task's `deleted_at`; on a team task the step's creation
+  and `node_added`, the tick and `node_done`, share a timestamp and the renderer says each once (fixture 240 N). Participants are
+  not registered before the log — the history records every arrival and departure except the owner's own first row, which is
+  deliberately unrecorded. Task tables hold **employee** ids (M2).
+- **Materials, locations, metal prices** have no history table: creation and the deletion stamp only. None of these tables, nor
+  customers or suppliers, ever recorded **who** deleted a row.
 - **One exception to "no stamp a history already records" (Tim's Q11):** a stocktake's `posted_at`. Posts before
   22/09/2026 have nothing else (posting did not write `approval_log` yet); later posts write both in one transaction, so
   they share a timestamp, group into one entry, and the renderer folds the approval into the posting as one line.
@@ -394,8 +415,24 @@ single-field edits were not."
   event heads the entry); a supplier's status history is one block per step, and when one operation takes several steps each
   step's note is a line of its own, not a single shared reason.
 - **Machine-written Chinese** (Q8): typed text is shown as written; values the system wrote in Chinese are shown in English
-  (`messages/trail-machine-values.ts` for `inbound_batches.stage`; automatic-approval notes are replaced by
-  "Approved automatically (approvals were switched off)").
+  (`messages/trail-machine-values.ts` for `inbound_batches.stage` and — 1b-3 — `materials.unit`, whose dropdown stores 吨 / 克 / 件;
+  quantity units read that map too; automatic-approval notes are replaced by "Approved automatically (approvals were switched off)").
+- **One event, two rows (AUDIT-TRAIL-1b-3).** A formula change and a team-task change each leave the row's own change-log entry
+  **and** a history-table row in the same transaction. After the log began the change-log row speaks (it has every column) and
+  the history row is not said again; before the log only the history row exists and it speaks. For tasks the match is per thing:
+  the task header, a step (by its id), a participant (by the employee). A step's name for a history row that carries only the
+  step id comes from anywhere on the page (`buildEntries`' page-wide step-title map, the reversal-journal precedent).
+- **Terms requests** read "New pricing formula sent to the CFO" / "Change to the pricing formula sent to the CFO" / "CFO approved
+  the terms" (the page's own "Send to the CFO"), with the request label as typed text; the approval row folds into the decision.
+- **A deletion keeps the other changes made with it (AUDIT-TRAIL-1b-3, found by the live proof).** An UPDATE that sets
+  `deleted_at` and other columns in the same operation is one "… deleted" block whose lines list those other columns
+  (before → after); the deletion is never allowed to swallow them. A deleted task step lists its target date and whether it was
+  ticked ("Step was ticked: No"), from the step row or, before the log, from the history row's `old_node_*` columns.
+- **A replaced set is said in the order it happened (AUDIT-TRAIL-1b-3, found by the live proof).** Rows of a set (a location's
+  allowed classes, a formula's metals) deleted and re-inserted with the same value in one operation net to nothing **only** when
+  the DELETE came before the INSERT (a save that rewrote the set); a value inserted and later removed in the same operation is
+  shown. When an operation adds to a set and then removes from it, the block splits at the first removal, so "1 added, 1
+  removed" never hides which came first.
 
 ### 9.8 Checks
 
@@ -415,6 +452,18 @@ assertion on the nine 1b-2 pages; and `scripts/probe-at1b2.mjs` (a real warehous
 `module.sales.view` — opens a shipment and its trail; the old History sections are gone; typed text stays typed; the Chinese
 interface leaves the trail untouched).
 
+AUDIT-TRAIL-1b-3 adds fixture **240** (every new subject's field edit, child-line change and key event; Q13's save writing only
+what changed — counted in change-log rows **and** in row versions, because the change log does not record a no-op update; personal
+tasks visible to their owner and to `module.tasks.view_all`, refused to everyone else; every task-history row on the trail; the
+pre-log task merge with employee actors (M2); the three panels under M5 and M6; `deleted_records` taking "who" from the change log
+and leaving it empty for deletions before the log), fault-injected by `db/scripts/2026-10-03-at1b3-fixture-injections.py`
+(20 injections, each red in its own arm); a seventh arm in `scripts/check-trail-wording.mjs`, **⑦ 主数据样例** (golden wording for
+every 1b-3 subject, plus a machine-token sweep over every task-history and formula-history `change_type`, which ④ cannot reach
+because the column is hidden; injection `wording-drift-1b3`); smoke `trail` assertions on the eight 1b-3 pages (the three panels
+with `emptyOk` — their settings rows have no change-log entries on live yet); and `scripts/probe-at1b3.mjs` (a real `auditor`
+opens each deleted record read-only with its banner; a real `gm` — every module, no `data.view_deleted` — gets the named refusal,
+not a 404; `/settings/deleted` lists the new kinds with working links; the task page's old section is gone).
+
 | check | reads | fails on |
 |---|---|---|
 | `scripts/check-trail-wording.mjs` (in `npm run build`) | the repository | a machine token in any sentence built for any column, value, actor or event of every logged table; a registry mismatch; a missing or unused catalogue key; a subject column without an English label or value. Eleven named fault injections (`TRAIL_WORDING_FAULT`) |
@@ -429,12 +478,33 @@ samples must all be caught, a known-good sentence must pass).
 | | what | where | first user |
 |---|---|---|---|
 | M1 | a subject is admitted by **any one** of several view codes | `trail_subjects.view_codes`, `has_any_permission` | `warehouse_request` (inventory or finance); `shipment` (sales or ship_goods — 1b-2; live reader: the warehouse account) |
-| M2 | a pre-log actor column may hold an **employee** id | `trail_prelog_sources.by_kind` | the handover's acknowledgement; 1b-3's tasks |
+| M2 | a pre-log actor column may hold an **employee** id | `trail_prelog_sources.by_kind` | the handover's acknowledgement; the task steps and task history (1b-3) |
 | M3 | the page's code admits the reader even where the root table's own rule does not; the root row's events are then per-row | `trail_subjects.root_rule = 'page'` | `equipment` (root `fixed_assets` is finance-only); `forwarder` (root `suppliers` is suppliers.view; the page is logistics.view — 1b-2) |
 | M4 | a member may be reached by an **upward** hop, and may be a **stepping stone** that is not shown | `trail_subject_members.hop` / `shown` | the batch trail (45 of the 292 old rows live were upward) |
-| M5 | a root keyed by a non-text value (`id boolean`) is matched by its typed value | `record_trail` rebuilds the root key from the row | 1b-3's threshold panels |
-| M6 | a root may be limited to the **columns a panel owns** | `trail_subjects.root_columns` | 1b-3's threshold panels |
+| M5 | a root keyed by a non-text value (`id boolean`) is matched by its typed value | `record_trail` rebuilds the root key from the row | the three threshold panels (1b-3; the page passes `'true'`) |
+| M6 | a root may be limited to the **columns a panel owns** | `trail_subjects.root_columns` | the three threshold panels (1b-3): processing 2 columns, pricing 1, receiving 3 |
 
 The retired batch views `batch_audit_trail` / `batch_audit_trail_all` stay in place, unread by any page (Q32); fixture 238
 reads them as the reference its row-for-row check compares against, and their i18n entry in `scripts/check-i18n.mjs` stays
 until they are dropped.
+
+### 9.10 Deleted records open read-only (AUDIT-TRAIL-1b-3, Tim's Q9 · Q21 · Q8)
+
+- **Which records:** deleted customers, suppliers, materials and pricing formulas, and deleted sales orders, quotes and purchase
+  orders. Their pages used to filter `deleted_at` and 404 — including the links on `/settings/deleted`.
+- **Who may open them:** holders of `data.view_deleted` (measured 2026-10-03: admin, auditor, cco, cfo, cto, finance). They see the
+  page read-only (`<EndedFieldset>`: every control disabled, links usable) with a banner and the audit trail. **Everyone else gets
+  a named refusal** (`requireDeletedAccess` in `app/components/moduleGuard.tsx`: "This record has been deleted." + which permission
+  opens it) — never a 404, because "not found" reads as "never existed". The page's own module guard runs first, unchanged.
+- **The banner** (English only, `lib/trail/text.ts`): "Deleted on DD/MM/YYYY by <name>", "Reason: …" when one was recorded. The
+  name follows the `ActorName` rule (Restricted to a reader without HR). **Where no person was recorded, the date only** — never a
+  guess from `updated_by`. Customers, suppliers, materials and formulas never stored a deleter; `deleted_records` takes the person
+  from the change-log entry that set `deleted_at`, so deletions before 28/09/2026 23:58 read date-only (all of them on live today).
+- **One source for "who / when / why":** the banner reads the same `deleted_records` row `/settings/deleted` lists
+  (`DeletedBanner` in `app/components/trail/EndedBanner.tsx`).
+- **`/settings/deleted`** lists the four new kinds and links every kind to its page (written-off batches and reversed runs too,
+  which 1b-1 made openable).
+- **Actions on a deleted record** are disabled inside the fieldset (customer's edit link becomes a disabled button; the formula's
+  deactivate / delete buttons stay visible and unpressable). The purchase order's action row — mostly links, which a fieldset
+  cannot disable — is not drawn for a deleted order (the page's own rule: a question that does not apply is not asked).
+

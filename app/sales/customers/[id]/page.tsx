@@ -32,12 +32,13 @@ import ChasePanel from '../ChasePanel'
 import ContactsPanel, { type ContactRow } from '../ContactsPanel'
 import { mustRows } from '@/lib/db-helpers'
 import { collectionContext } from '../chaseActions'
-import { requireModule } from '@/app/components/moduleGuard'
+import { requireDeletedAccess, requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 
 type CreditRow = {
     customer_id: string
@@ -116,11 +117,17 @@ export default async function CustomerStatusPage({
 
     const { data: cust, error } = await supabase
         .from('customers')
-        .select('id, code, legal_name, country, status')
+        .select('id, code, legal_name, country, status, deleted_at')
         .eq('id', id)
-        .is('deleted_at', null)
         .single()
     if (error || !cust) notFound()
+    // AUDIT-TRAIL-1b-3(Q9 · Q21):删掉的客户不再 404 —— 持 data.view_deleted 的人只读打开(横幅 + 审计记录),
+    //   别人得到一句具名拒绝
+    if (cust.deleted_at) {
+        const refused = await requireDeletedAccess('nav.customers')
+        if (refused) return refused
+    }
+    const deleted = !!cust.deleted_at
 
     const { data: creditRaw } = await supabase
         .from('customer_credit_status')
@@ -222,16 +229,26 @@ export default async function CustomerStatusPage({
                     {cust.legal_name}
                     <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{cust.code}</span>
                 </h1>
-                {/* 【改限额/冻结在别处】这一页不放字段 —— 见文件头 */}
-                <Button asChild variant="outline">
-                    <Link
-                        href={`/sales/customers/${id}/edit`}
-                    >
-                        {t('customers.status.editLink')}
-                    </Link>
-                </Button>
+                {/* 【改限额/冻结在别处】这一页不放字段 —— 见文件头。
+                    删掉的客户:编辑入口画成一个按不下去的按钮(理由是下面那条横幅),而不是一条通向 404 的链接 */}
+                {deleted ? (
+                    <EndedFieldset ended>
+                        <Button variant="outline" disabled>{t('customers.status.editLink')}</Button>
+                    </EndedFieldset>
+                ) : (
+                    <Button asChild variant="outline">
+                        <Link
+                            href={`/sales/customers/${id}/edit`}
+                        >
+                            {t('customers.status.editLink')}
+                        </Link>
+                    </Button>
+                )}
             </div>
 
+            {cust.deleted_at && <DeletedBanner kind="customer" id={cust.id} at={cust.deleted_at} />}
+
+            <EndedFieldset ended={deleted}>
             <p className="text-sm text-[color:var(--brand-muted-text)] mb-6">
                 {cust.country ?? '—'}
                 <span className="mx-2">·</span>
@@ -246,7 +263,10 @@ export default async function CustomerStatusPage({
                     customer_ar_exposure_base,它的第二项与应收账龄第二支读同一张
                     内层视图)。这一句放在这里,是为了让看见数字的人知道口径。 */}
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-2">{t('customers.status.exposureIncludesInvoiced')}</p>
-                {credit === null ? (
+                {credit === null && deleted ? (
+                    // AUDIT-TRAIL-1b-3:customer_credit_status 只算没删的客户 —— 删掉的客户拿不到行,而那【不是】一句权限答复
+                    <p className="text-sm text-[color:var(--brand-muted-text)]">{t('customers.status.deletedNoCredit')}</p>
+                ) : credit === null ? (
                     // 拿不到行 = 无权。【不是 0】—— 0 读作"没有限额、余额充足"
                     <p className="text-sm text-[color:var(--brand-muted-text)]">{t('common.restricted')}</p>
                 ) : (
@@ -341,6 +361,7 @@ export default async function CustomerStatusPage({
                 <p className="text-xs text-[color:var(--brand-muted-text)] mb-2 max-w-3xl">{t('contacts.sectionWhat')}</p>
                 <ContactsPanel permissionCode="module.customers.edit" customerId={id} rows={contacts} canEdit={canEditCustomer} />
             </section>
+            </EndedFieldset>
 
             {/* AUDIT-TRAIL-1b-2:客户的审计记录 —— 主数据、联系人、附件、信用;对账单与催收只给财务读,
                 读不了的人那几行是 Restricted(Q4),不是消失 */}

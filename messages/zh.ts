@@ -1124,6 +1124,9 @@ const zh = {
         // 对他说"你没有这个模块的权限"是假的。
         editDenied: '你没有修改这项数据的权限。',
         editDeniedHint: '你看得到这份数据,但保存需要单独的编辑权限。这是一个【权限答复】,不是出错 —— 需要修改请联系管理员。',
+        // AUDIT-TRAIL-1b-3(Q9 · Q21):删掉的记录只给持 data.view_deleted 的人只读打开 —— 别人得到这一句,不是 404
+        deletedDenied: '这条记录已被删除。',
+        deletedDeniedHint: '已删除的记录只对持有「查看已删除记录」权限的人只读打开。这是一个【权限答复】,不是页面不存在 —— 需要查看请联系管理员。',
         // DBLOCK-1:一个【注定被拒】的控件在被按之前挂的那条可见短句。
         // 完整那句话(缺哪个码 / 记录没动 / 管理员去哪里勾)走 title,
         // 用的是 actionMessage.permissionDenied —— 按之前与按之后【同一句】。
@@ -2282,6 +2285,8 @@ const zh = {
             editLink: '编辑客户',
             limit: '信用限额',
             noLimit: '未设限额',
+            // AUDIT-TRAIL-1b-3:删掉的客户只读打开时,信用那一格(customer_credit_status 只算没删的客户)
+            deletedNoCredit: '已删除的客户不再计算信用仓位。',
             exposure: '当前敞口',
             headroom: '可用余额',
             onHold: '该客户处于信用冻结状态 —— 在客户记录上解除冻结之前,不能记录任何销售。',
@@ -6089,15 +6094,8 @@ const zh = {
             promote: '变成团队任务',
         },
         history: {
-            actor: '操作人',
-            actorUnrecordedHint: '早于本模块开始记录操作人',
-            heading: '变更记录',
-            empty: '还没有任何改动。',
-            ticked: '勾上',
-            unticked: '取消勾选',
-            colTime: '时间',
-            colWhat: '事项',
-            colDetail: '详情',
+            // AUDIT-TRAIL-1b-3:原来那一段"变更记录"换成了审计记录;它的标题、列头、空态这几个键随组件一起删了。
+            // type.* 留着 —— scripts/gen-trail-catalogue.mjs 经 check-i18n 的清单从这里读 task_history.change_type 的英文。
             type: {
                 promoted_from_personal: '由私人任务升级而来',
                 header_update: '修改了任务',
@@ -6866,6 +6864,11 @@ const zh = {
             purchase_order: '采购单',
             sales_order: '销售订单',
             quote: '报价',
+            // AUDIT-TRAIL-1b-3(Q9):四类主数据 —— 它们从来没有记过谁删的,"谁"取自变更记录(读不到就是 beforeAudel1b 那一句)
+            customer: '客户',
+            supplier: '供应商',
+            material: '物料',
+            pricing_formula: '定价公式',
         },
     },
     metals: {

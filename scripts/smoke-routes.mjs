@@ -593,6 +593,18 @@ const MUST_CONTAIN = {
     '/logistics/forwarders/[id]': [{ trail: 'audit-trail', why: '货代页底的审计记录(M3)' }],
     '/logistics/lanes': [{ trail: 'audit-trail', why: '航段与港口那一块合起来的审计记录(只有清单页)' }],
     '/purchasing/licences': [{ trail: 'audit-trail', why: '执照那一块合起来的审计记录(只有清单页)' }],
+    // ── AUDIT-TRAIL-1b-3:物料 · 库位 · 金属价格 · 公式(只有编辑页,Q2)· 任务(替掉"变更记录",Q3)· 三个阈值面板 ─────────
+    //    【三个面板那一条带 emptyOk】三张设置表在线上一行变更记录都没有(以 postgres 身份读 change_log,0 行,
+    //    2026-10-03),而它们没有"记录开始之前"可拼(单行表没有建行时刻;M6 把别的列上的戳挡在外面)——
+    //    于是那一段今天诚实地是 empty。判据仍然要它【在】、不是 refused、文字里一个机器字都没有。
+    //    第一次有人改了阈值,它就是 entries。
+    '/materials/[id]/edit': [{ trail: 'audit-trail', why: '物料编辑页底的审计记录(Q2:它只有这一页)' }],
+    '/inventory/locations/[id]/edit': [{ trail: 'audit-trail', why: '库位编辑页底的审计记录(Q2;Q13 的允许分类)' }],
+    '/tools/pricing/metal-prices/[id]/edit': [{ trail: 'audit-trail', why: '金属价格编辑页底的审计记录(Q2)' }],
+    '/tools/tasks/[id]': [{ trail: 'audit-trail', why: '任务页底的审计记录(替掉"变更记录",Q3)' }],
+    '/operation/orders': [{ trail: 'audit-trail', emptyOk: true, why: '工单阈值面板的审计记录(M5 · M6)' }],
+    '/tools/pricing/metal-prices': [{ trail: 'audit-trail', emptyOk: true, why: '价格异常阈值面板的审计记录(M5 · M6)' }],
+    '/purchasing/discrepancies': [{ trail: 'audit-trail', emptyOk: true, why: '收货差异阈值面板的审计记录(M5 · M6)' }],
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
     // 为空时改渲染一段琥珀色文字("还没有货代 / 还没有供货商")。所以那个字符串
@@ -665,6 +677,7 @@ const MUST_CONTAIN = {
     '/tools/pricing/formulas/[id]/edit': [
         { probe: '/rest/v1/suppliers?select=id&limit=1&deleted_at=is.null&counterparty_type=neq.forwarder',
           why: '供货商名单没有到客户端 —— 切到"按供应商"那一档就会看到"还没有供货商"' },
+        { trail: 'audit-trail', why: '定价公式编辑页底的审计记录(AUDIT-TRAIL-1b-3,Q2:它只有这一页)' },
     ],
 
     // ── 探针判据:名单藏在负载里,静态字符串表达不了 ────────────────────────
@@ -846,13 +859,14 @@ const contentSkips = []
 // AUDIT-TRAIL-1a:trail 判据 —— 取出那一段、剥掉人敲的字与标签、交给检出器
 const TRAIL_RULER = trailDetectorSelfProof()
 if (TRAIL_RULER.length) throw new Error('机器字检出器自证失败(lib/trail/machineTokens.ts)—— 它是瞎的,不许拿它判页面:' + TRAIL_RULER.join(' | '))
-function trailMisses(html, which, why) {
+function trailMisses(html, which, why, emptyOk = false) {
     const marker = which === 'audit-trail' ? 'data-audit-trail="' : 'data-change-history="'
     const i = html.indexOf(marker)
     if (i < 0) return [`${marker}… —— ${why}整段没渲染出来`]
     const state = html.slice(i + marker.length, html.indexOf('"', i + marker.length))
     const out = []
-    if (state !== 'entries') out.push(`${marker}${state}" —— ${why}应当读得到、有记录(entries)`)
+    // AUDIT-TRAIL-1b-3:emptyOk 只放过 empty 这一种(诚实的"还没有记录");refused 永远是坏的
+    if (state !== 'entries' && !(emptyOk && state === 'empty')) out.push(`${marker}${state}" —— ${why}应当读得到、有记录(entries)`)
     const start = html.lastIndexOf('<section', i)
     const end = html.indexOf('</section>', i)
     let text = html.slice(start, end < 0 ? undefined : end)
@@ -871,7 +885,7 @@ async function contentMisses(route, html) {
     const misses = []
     for (const a of MUST_CONTAIN[route] ?? []) {
         if (a.trail) {
-            misses.push(...trailMisses(html, a.trail, a.why))
+            misses.push(...trailMisses(html, a.trail, a.why, a.emptyOk === true))
             continue
         }
         if (a.needle) {

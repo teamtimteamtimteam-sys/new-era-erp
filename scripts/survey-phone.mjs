@@ -23,7 +23,7 @@
 //   an estimate: **how many pages are usable on Tim's 390px phone today.**
 //   Re-run it from any later conversion cut to see the number move.
 //
-//   Usage: node scripts/survey-phone.mjs [--limit=N] [--only=/prefix]
+//   Usage: node scripts/survey-phone.mjs [--limit=N] [--only=/prefix] [--routes=/a,/b] [--paths=/concrete/url,…] [--width=N]
 //   Output: scratchpad JSON + a human summary on stdout. Exit 0 unless it
 //   crashes — a red exit here would mean the SCRIPT broke, never the pages.
 //
@@ -818,6 +818,14 @@ async function main() {
         targets = targets.filter((t) => want.has(t.route))
         const missing = [...want].filter((w) => !targets.some((t) => t.route === w))
         if (missing.length) throw new Error('--routes named routes that are not measurable: ' + missing.join(', '))
+    }
+    // AUDIT-TRAIL-1b-3:--paths=/sales/customers/<id>,… —— 量几条【具体的】地址,与路由同一套量法。
+    //   为什么要它:一条路由只取线上的【第一行】(见 firstId),于是一页的某一种状态(一条删掉的记录的横幅与只读)
+    //   永远轮不到被量。给了 --paths 而没给 --routes 时,只量这几条;两个都给就两边合起来。
+    const pathsArg = (process.argv.find((a) => a.startsWith('--paths=')) || '').split('=')[1]
+    if (pathsArg) {
+        const extra = pathsArg.split(',').filter(Boolean).map((p) => ({ route: p, url: p, dynamic: true }))
+        targets = routesArg ? [...targets, ...extra] : extra
     }
     if (limit) targets = targets.slice(0, limit)
 

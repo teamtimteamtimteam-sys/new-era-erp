@@ -9914,3 +9914,13 @@ detail 在其余每一张订单上都只是单号本身。那一条记录照样�
 本刀之前的版本(`git show ac03576f:app/sales/quotes/[id]/page.tsx`)在同一棵树上重量,读数逐字相同(+8px,同一个元凶);本刀在这一页
 只换了页底那一段(History → 审计记录),审计记录那一段自己的溢出是 0。1280px 下没有溢出。**删除条件:** 那一排的容器 `flex-wrap`
 (AGENTS.md「不换行的容器里、内在尺寸由内容决定的原生控件」那一条的解药),量回 0。
+
+## AT1B3-PANEL-TRAIL-DROPS-LIST-FILTERS —— 阈值面板下那一段审计记录的"Show older entries"会丢掉清单页的筛选(AUDIT-TRAIL-1b-3,2026-10-03)
+
+三块阈值面板的审计记录挂在清单页上(`/operation/orders` · `/tools/pricing/metal-prices` · `/purchasing/discrepancies`,Step 0 §a:
+"挂在编辑它的那块面板底下")。`AuditTrail` 的翻页链接是 `?trail=N#audit-trail` —— 它【换掉】整串查询参数,于是在金属价格页上
+带着 `?metal=ni&sort=…&page=2` 点一下"Show older entries",清单的筛选、排序与页码回到默认。**为什么现在不修:** 三张设置表在线上
+一行变更记录都没有(以 postgres 身份读 change_log,0 行,2026-10-03),那个链接要到第 21 次改阈值才会出现;改它要让
+`AuditTrail` 接受"保留哪些参数",那是改共用组件的形状,不属于"加主语"的这一刀。**删除条件:** `AuditTrail` 的翻页链接保留页面
+其余的查询参数(或面板那一段换成不翻页的短块),在金属价格页上带着筛选点一次,筛选还在。
+

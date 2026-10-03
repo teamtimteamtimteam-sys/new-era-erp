@@ -24,6 +24,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { can } from '@/lib/permissions'
 import { mustOne } from '@/lib/db-helpers'
 import ThresholdPanel from './ThresholdPanel'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import type { AnomalyVerdict } from './anomaly'
 import { loadSubstances, toOptions } from './substanceQuery'
 import { formatDate } from '@/lib/dates'
@@ -51,6 +52,7 @@ export default async function MetalPricesPage({
         sort?: string
         dir?: string
         page?: string
+        trail?: string
     }>
 }) {
     // ★★【TOOLS-1 ①b(2026-09-03):本页【现在有】守卫了 —— 这是一次刻意的收窄】★★
@@ -229,12 +231,18 @@ export default async function MetalPricesPage({
                 </div>
             }
             notices={
-                <ThresholdPanel
-                    thresholdPct={Number(settings.metal_price_change_warn_pct)}
-                    // ⑤a:按界面语言选一句。**不再渲染那个单语的 notes**。
-                    notes={locale === 'zh' ? settings.notes_zh : settings.notes_en}
-                    canEdit={canEditPrices}
-                />
+                <>
+                    <ThresholdPanel
+                        thresholdPct={Number(settings.metal_price_change_warn_pct)}
+                        // ⑤a:按界面语言选一句。**不再渲染那个单语的 notes**。
+                        notes={locale === 'zh' ? settings.notes_zh : settings.notes_en}
+                        canEdit={canEditPrices}
+                    />
+                    {/* AUDIT-TRAIL-1b-3(Step 0 §a,M5 · M6):这块面板自己的审计记录 —— 只有它编辑的那一列 */}
+                    <div className="mb-6">
+                        <AuditTrail subject="pricing_settings" id="true" show={trailCount(sp.trail)} />
+                    </div>
+                </>
             }
             state={{ kind: 'ok' }}
         >

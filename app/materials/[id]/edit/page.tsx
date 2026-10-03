@@ -8,18 +8,20 @@ import { getMaterialAxes } from '../../materialAxesQuery'
 import AttachmentsPanel from './AttachmentsPanel'
 import RequiredMetalsPanel from './RequiredMetalsPanel'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
-import { requireModule } from '@/app/components/moduleGuard'
+import { requireDeletedAccess, requireModule } from '@/app/components/moduleGuard'
 import { canEnter } from '@/lib/moduleAccess'
 import { mustRows } from '@/lib/db-helpers'
 import { MOD } from '@/lib/modules'
 import { loadSubstances, toOptions } from '@/app/tools/pricing/metal-prices/substanceQuery'
 import { loadBatteryChemistries, toDictOptions } from '@/app/components/dictionaries/dictionaryQuery'
 import { formatAuditStamp } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 
 export default async function EditMaterialPage({
-    params,
+    params, searchParams,
 }: {
-    params: Promise<{ id: string }>
+    params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -39,15 +41,21 @@ export default async function EditMaterialPage({
     const kinds = await getMaterialKinds()
     const axes = await getMaterialAxes()
 
+    // AUDIT-TRAIL-1b-3(Q9 · Q21):删掉的物料不再 404 —— 持 data.view_deleted 的人只读打开(横幅 + 审计记录),
+    //   别人得到一句具名拒绝。所以这里不再过滤 deleted_at,而是读出来再判。
     const { data: material, error } = await supabase
         .from('materials')
         .select('*')
         .eq('id', id)
-        .is('deleted_at', null)
         .single()
 
     if (error || !material) {
         notFound()
+    }
+    const deleted = !!material.deleted_at
+    if (deleted) {
+        const refused = await requireDeletedAccess('materials.editTitle')
+        if (refused) return refused
     }
 
     const { data: attachmentRows } = await supabase
@@ -101,16 +109,24 @@ export default async function EditMaterialPage({
                 </span>
             </p>
 
-            <EditMaterialForm
-                chemistryOptions={chemistryOptions} material={material} wasteClasses={wasteClasses} kinds={kinds}
-                forms={axes.forms} sources={axes.sources} sizeFormats={axes.sizeFormats} locale={locale} />
-            <RequiredMetalsPanel
-                substanceOptions={substanceOptions}
-                materialId={material.id}
-                initial={requiredMetals}
-                canEdit={canEditMaterials}
-            />
-            <AttachmentsPanel materialId={material.id} rows={attachments} />
+            {material.deleted_at && <DeletedBanner kind="material" id={material.id} at={material.deleted_at} />}
+
+            {/* 删掉的物料:下面每一个控件都按不下去,理由是上面那条横幅(EndedFieldset);链接照常可用 */}
+            <EndedFieldset ended={deleted}>
+                <EditMaterialForm
+                    chemistryOptions={chemistryOptions} material={material} wasteClasses={wasteClasses} kinds={kinds}
+                    forms={axes.forms} sources={axes.sources} sizeFormats={axes.sizeFormats} locale={locale} />
+                <RequiredMetalsPanel
+                    substanceOptions={substanceOptions}
+                    materialId={material.id}
+                    initial={requiredMetals}
+                    canEdit={canEditMaterials && !deleted}
+                />
+                <AttachmentsPanel materialId={material.id} rows={attachments} />
+            </EndedFieldset>
+
+            {/* AUDIT-TRAIL-1b-3(Q2):物料只有这一页,审计记录在它的底部 */}
+            <AuditTrail subject="material" id={material.id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

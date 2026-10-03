@@ -22,11 +22,12 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { workOrderStatusKey } from './woTypes'
 import WoThresholdPanel from './WoThresholdPanel'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { ListPage } from '@/app/components/ui/list-page'
 import WorkOrdersTable, { type WorkOrderRow } from './WorkOrdersTable'
 import { formatDate } from '@/lib/dates'
 
-export default async function WorkOrdersPage() {
+export default async function WorkOrdersPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前。
     const denied = await requireModule(MOD.processing)
     if (denied) return denied
@@ -111,10 +112,16 @@ export default async function WorkOrdersPage() {
                    持 module.processing.edit 的人改得动。它是一个【设置】,
                    一行工单都没有的时候照样要能改 —— 所以它在状态分支之前。 */
                 settings ? (
-                    <WoThresholdPanel
-                        inputPct={Number(settings.wo_input_overrun_pct)}
-                        outputPct={Number(settings.wo_output_shortfall_pct)}
-                        canEdit={canEdit} />
+                    <>
+                        <WoThresholdPanel
+                            inputPct={Number(settings.wo_input_overrun_pct)}
+                            outputPct={Number(settings.wo_output_shortfall_pct)}
+                            canEdit={canEdit} />
+                        {/* AUDIT-TRAIL-1b-3(Step 0 §a,M5 · M6):这块面板自己的审计记录 —— 只有它编辑的那两列 */}
+                        <div className="mb-6">
+                            <AuditTrail subject="processing_settings" id="true" show={trailCount((await searchParams).trail)} />
+                        </div>
+                    </>
                 ) : undefined
             }
             state={{ kind: 'ok' }}

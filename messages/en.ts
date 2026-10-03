@@ -1194,6 +1194,9 @@ const en = {
         // 对他说"你没有这个模块的权限"是假的。
         editDenied: 'You do not have permission to change this data.',
         editDeniedHint: 'You can view it — saving requires a separate edit permission. This is a permission answer, not an error; ask an administrator if you need to make changes.',
+        // AUDIT-TRAIL-1b-3(Q9 · Q21):删掉的记录只给持 data.view_deleted 的人只读打开 —— 别人得到这一句,不是 404
+        deletedDenied: 'This record has been deleted.',
+        deletedDeniedHint: 'Deleted records open read-only for people who hold the “View deleted records” permission. This is a permission answer, not a missing page — ask an administrator if you need to see it.',
         // DBLOCK-1:一个【注定被拒】的控件在被按之前挂的那条可见短句。
         // 完整那句话(缺哪个码 / 记录没动 / 管理员去哪里勾)走 title,
         // 用的是 actionMessage.permissionDenied —— 按之前与按之后【同一句】。
@@ -2389,6 +2392,8 @@ const en = {
             editLink: 'Edit customer',
             limit: 'Credit limit',
             noLimit: 'No limit set',
+            // AUDIT-TRAIL-1b-3:删掉的客户只读打开时,信用那一格(customer_credit_status 只算没删的客户)
+            deletedNoCredit: 'The credit position is not worked out for a deleted customer.',
             exposure: 'Current exposure',
             headroom: 'Headroom',
             onHold: 'This customer is on credit hold — no sale can be recorded until the hold is lifted on the customer record.',
@@ -6280,15 +6285,8 @@ const en = {
             promote: 'Make this a team task',
         },
         history: {
-            actor: 'by',
-            actorUnrecordedHint: 'recorded before this module kept who did it',
-            heading: 'Change history',
-            empty: 'Nothing has changed yet.',
-            ticked: 'ticked',
-            unticked: 'un-ticked',
-            colTime: 'When',
-            colWhat: 'What',
-            colDetail: 'Detail',
+            // AUDIT-TRAIL-1b-3:原来那一段"变更记录"换成了审计记录;它的标题、列头、空态这几个键随组件一起删了。
+            // type.* 留着 —— scripts/gen-trail-catalogue.mjs 经 check-i18n 的清单从这里读 task_history.change_type 的英文。
             type: {
                 promoted_from_personal: 'Promoted from personal',
                 header_update: 'Task edited',
@@ -7072,6 +7070,11 @@ const en = {
             purchase_order: 'Purchase order',
             sales_order: 'Sales order',
             quote: 'Quotation',
+            // AUDIT-TRAIL-1b-3(Q9):四类主数据 —— 它们从来没有记过谁删的,"谁"取自变更记录(读不到就是 beforeAudel1b 那一句)
+            customer: 'Customer',
+            supplier: 'Supplier',
+            material: 'Material',
+            pricing_formula: 'Pricing formula',
         },
     },
     metals: {

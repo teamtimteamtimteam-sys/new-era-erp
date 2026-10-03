@@ -36,7 +36,7 @@ import PoLinesTable, { type PoLineRow, type Tone } from './PoLinesTable'
 import PoPaymentTermsTable, { type PoTermRow } from './PoPaymentTermsTable'
 import PoReceiptsTable, { type PoReceiptRow } from './PoReceiptsTable'
 import ContractLinkPanel, { type ContractOption } from './ContractLinkPanel'
-import { requireModule } from '@/app/components/moduleGuard'
+import { requireDeletedAccess, requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
 import DiscrepancyKinds, {
@@ -46,6 +46,7 @@ import DiscrepancyKinds, {
 import { Alert } from '@/app/components/ui/alert'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 
 type AssayEntry = { metal: string; content_pct: number }
 
@@ -71,14 +72,20 @@ export default async function PurchaseOrderDetailPage({
 
     const { data: poRaw, error } = await supabase
         .from('purchase_orders_masked')
-        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason, cancelled_by, delivery_location, category')
+        .select('id, code, supplier_id, order_date, expected_delivery_date, currency, fx_rate, estimated_total_ccy, tax_total_ccy, gross_total_ccy, carries_tax, status, approval_status, incoterm, terms_text, notes, cancelled_at, cancel_reason, cancelled_by, delivery_location, category, deleted_at')
         .eq('id', id)
-        .is('deleted_at', null)
         .single()
 
     if (error || !poRaw) {
         notFound()
     }
+    // AUDIT-TRAIL-1b-3(Q9 · Q21,Step 0 Q9 的"采购单同样处理"):删掉的采购单不再 404 ——
+    //   持 data.view_deleted 的人只读打开(横幅 + 审计记录),别人得到一句具名拒绝
+    if (poRaw.deleted_at) {
+        const refused = await requireDeletedAccess('purchasing.orderDetailTitle')
+        if (refused) return refused
+    }
+    const deletedAt = poRaw.deleted_at
 
     // cut 2b:改读遮蔽视图。fx_rate / estimated_total_ccy 会被遮蔽(没有 data.view_prices
     // 时为 null),其余列恢复基表类型 —— 视图带来的"人人可空"只是类型噪音。
@@ -582,7 +589,10 @@ export default async function PurchaseOrderDetailPage({
             //   收货、结束、修改、重开、取消 —— 五个出口。ListPage 把 actions
             //   画在状态分支【之前】,所以即使将来有人把 state 改成别的分支,
             //   这五个出口也不会跟着消失。
-            actions={
+            // AUDIT-TRAIL-1b-3:一张【删掉了】的单,收货 / 结束 / 修改 / 重开 / 取消都【不适用】—— 按本页自己那条规矩
+            //   (问题不适用就不画,适用但此刻做不到才变灰加一句话)整排不画;横幅说它是什么时候被谁删的。
+            //   (这几个出口多半是链接,fieldset 禁不掉链接 —— 变灰在这里做不到"按不下去"。)
+            actions={deletedAt ? undefined : (
                 <div className="flex flex-wrap items-center gap-3 justify-end">
                     {/* 按此单收货:只在可收货状态出现。
                         【EQP-1c-b-fu2:设备单上【隐藏】,不是变灰】——
@@ -653,11 +663,12 @@ export default async function PurchaseOrderDetailPage({
                         <CancelOrderControl canEdit={canManage} gateCode={manageCode} poId={po.id} code={po.code} blockedWhy={cancelWhy} />
                     )}
                 </div>
-            }
+            )}
             // 无条件渲染的那两块话 —— CONV-1 的 notices 槽,同一条理由:
             // 一条只在某个分支里才出现的警告,等于没有警告。
             notices={
                 <>
+            {deletedAt && <DeletedBanner kind="purchase_order" id={po.id} at={deletedAt} />}
             {/* A3:拿掉了"收货"这个动作,就得说清楚机器到了该去哪 —— 否则
                 删掉按钮只是把困惑搬了个家。 */}
             {/* ★★ POLISH-1(2026-09-12,Tim 的裁定 R12)· info 横幅走库里的 <Alert> ★★
@@ -696,6 +707,7 @@ export default async function PurchaseOrderDetailPage({
                 </>
             }
         >
+            <EndedFieldset ended={!!deletedAt}>
             {/* ★ 头卡 —— 七个字段(incoterm 只在有的时候出现),动作全在 actions 槽里,
                 所以这里【没有】actions prop:这一页的出口住在标题那一行。 */}
             <RecordHeader
@@ -1090,6 +1102,7 @@ export default async function PurchaseOrderDetailPage({
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('purchasing.noReceipts')}</p>
             )}
             </>)}
+            </EndedFieldset>
             {/* AUDIT-TRAIL-1a:页底的审计记录 —— 这张单、它的明细行、付款计划、保留金、条款承诺、签发、合同条款与审批。
                 在收货那一段(只画给非设备单)的【外面】:设备单同样有它的历史。 */}
             <AuditTrail subject="purchase_order" id={po.id} show={trailCount((await searchParams).trail)} />

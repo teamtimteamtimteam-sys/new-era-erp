@@ -72,14 +72,24 @@ type Row = {
 
 // 种类 → 它属于哪张页面。认不出的种类【不给链接】而不是猜一个:
 // 一个合法的 uuid 指错了表,打开的是别人的单据,而且不会报错(首页那一课)。
+// ★ AUDIT-TRAIL-1b-3(Tim 的 Q9 · Q21):每一种都有落点了 ——
+//   · 销售订单与报价那两条链接此前是【死的】(详情页过滤掉已删的,404);采购单同一个毛病。
+//     现在三页都对持 data.view_deleted 的人只读打开(横幅 + 审计记录),别人得到一句具名拒绝,不是 404。
+//   · 客户 · 供应商 · 物料 · 定价公式四类新加,落到它们各自那一页(后三种只有编辑页),同样只读带横幅。
+//   · 注销的批次与回滚的加工单:这里原来写着"没有详情页 —— 这一页就是它唯一的落点",
+//     那句话自 AUDIT-TRAIL-1b-1 起就不成立了(它们对本来的读者只读打开、带横幅),所以也接上。
 const KIND_HREF: Record<string, (id: string) => string | null> = {
-    inbound_batch: () => null,      // 已删批次没有详情页 —— 这一页就是它唯一的落点
-    output_batch: () => null,
-    processing_run: () => null,
+    inbound_batch: (id) => `/inbound/${id}/edit`,
+    output_batch: (id) => `/output/${id}/edit`,
+    processing_run: (id) => `/operation/processing/${id}`,
     stocktake: (id) => `/stocktakes/${id}`,
     purchase_order: (id) => `/purchasing/orders/${id}`,
     sales_order: (id) => `/sales/orders/${id}`,
     quote: (id) => `/sales/quotes/${id}`,
+    customer: (id) => `/sales/customers/${id}`,
+    supplier: (id) => `/suppliers/${id}/edit`,
+    material: (id) => `/materials/${id}/edit`,
+    pricing_formula: (id) => `/tools/pricing/formulas/${id}/edit`,
 }
 
 const KINDS = Object.keys(KIND_HREF)

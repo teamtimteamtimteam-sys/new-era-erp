@@ -14,15 +14,17 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { unmasked } from '@/lib/maskedRows'
 import type { Tables } from '@/lib/database.types'
 import { mustRows } from '@/lib/db-helpers'
-import { requireModule } from '@/app/components/moduleGuard'
+import { requireDeletedAccess, requireModule } from '@/app/components/moduleGuard'
 import { can } from '@/lib/permissions'
 import { MOD } from '@/lib/modules'
 import { loadSubstances, toOptions } from '../../../metal-prices/substanceQuery'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 
 export default async function EditFormulaPage({
-    params,
+    params, searchParams,
 }: {
-    params: Promise<{ id: string }>
+    params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -39,14 +41,19 @@ export default async function EditFormulaPage({
 
     const { data: formulaRaw, error } = await supabase
         .from('pricing_formulas_masked')
-        .select('id, code, name, direction, price_basis, price_index, average_days, treatment_charge_usd_per_tonne, flat_discount_pct, supplier_id, customer_id, notes, is_active')
+        .select('id, code, name, direction, price_basis, price_index, average_days, treatment_charge_usd_per_tonne, flat_discount_pct, supplier_id, customer_id, notes, is_active, deleted_at')
         .eq('id', id)
-        .is('deleted_at', null)
         .single()
 
     if (error || !formulaRaw) {
         notFound()
     }
+    // AUDIT-TRAIL-1b-3(Q9 · Q21):删掉的公式不再 404 —— 持 data.view_deleted 的人只读打开,别人得到一句具名拒绝
+    if (formulaRaw.deleted_at) {
+        const refused = await requireDeletedAccess('pricing.listTitle')
+        if (refused) return refused
+    }
+    const deletedAt = formulaRaw.deleted_at
 
     // cut 2b:改读遮蔽视图(基表原始敏感列已收回)。断言回基表行类型 —— 能进定价模块的
     // 角色全都持有 data.view_prices,列不会被遮蔽。见 lib/maskedRows.ts。
@@ -112,6 +119,7 @@ export default async function EditFormulaPage({
                     {t('pricing.listTitle')}
                     <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{formula.code}</span>
                 </h1>
+                <EndedFieldset ended={!!deletedAt}>
                 <div className="flex flex-wrap gap-2">
                     {formula.is_active && (
                         <PermissionGate code="module.pricing.edit" allowed={canEdit}>
@@ -122,7 +130,10 @@ export default async function EditFormulaPage({
                         <DeleteFormulaButton formulaId={formula.id} subject={formula.code} />
                     </PermissionGate>
                 </div>
+                </EndedFieldset>
             </div>
+            {deletedAt && <DeletedBanner kind="pricing_formula" id={formula.id} at={deletedAt} />}
+            <EndedFieldset ended={!!deletedAt}>
             <div className="mb-6">
                 <TermsRequestsPanel
                     open={requests.open}
@@ -144,6 +155,10 @@ export default async function EditFormulaPage({
                 canEdit={canEdit}
                 blockedReason={openLabel ? t('termsRequest.formBlocked', { label: openLabel }) : null}
             />
+            </EndedFieldset>
+
+            {/* AUDIT-TRAIL-1b-3(Q2):公式只有这一页 —— 审计记录(公式、应付金属、修改史、条款申请与它的审批)在底部 */}
+            <AuditTrail subject="pricing_formula" id={formula.id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

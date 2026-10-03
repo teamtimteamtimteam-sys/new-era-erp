@@ -147,3 +147,16 @@ export function requireAllowed(allowed: boolean, titleKey: string) {
     if (allowed) return null
     return refusal(titleKey, 'common.editDenied', 'common.editDeniedHint')
 }
+
+/**
+ * AUDIT-TRAIL-1b-3(Tim 的 Q9 · Q21):一条【删掉了】的记录 —— 删掉的客户、供应商、物料、定价公式,与删掉的销售订单、
+ * 报价、采购单 —— 只给持 data.view_deleted 的人【只读】打开(横幅 + 审计记录)。别人得到一句具名拒绝,
+ * 【不是 404】:"找不到这一页"会被读成"从来没有过这条记录",而它有过,只是删了。
+ *     if (record.deleted_at) { const refused = await requireDeletedAccess('nav.materials'); if (refused) return refused }
+ * 放在【确认这条记录被删了之后】—— 没删的记录照常走页面自己的守卫,本函数不多拦一个人。
+ */
+export async function requireDeletedAccess(titleKey: string) {
+    if (await canEnter('data.view_deleted')) return null
+    return refusal(titleKey, 'common.deletedDenied', 'common.deletedDeniedHint')
+}
+

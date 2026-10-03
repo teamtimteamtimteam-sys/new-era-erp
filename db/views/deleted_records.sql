@@ -20,6 +20,13 @@
 -- 现读本文件,加一支就自动被查到。
 --
 -- NOTE: introduced by db/migrations/2026-08-17-audel3-a-place-to-see-what-was-deleted.sql.
+--
+-- ★ AUDIT-TRAIL-1b-3(Tim 的 Q9 · Q8,2026-09-29):多了四类 —— 客户 · 供应商 · 物料 · 定价公式。
+--   这四张表【从来没有记过谁删的】(没有 deleted_by、没有 delete_reason)。"谁"只能从 change_log 里那一次
+--   把 deleted_at 置上的改动读出来(变更记录 28/09/2026 23:58 才开始);读不到就是 NULL —— 页面与横幅只说日期,
+--   【不】拿 updated_by 去猜(Q8:updated_by 是最后一个碰过它的人,不一定是删它的人)。
+--   属主权限照旧,所以视图读得到 change_log(应用角色对它没有任何授权);行一级仍由每一支自己的 permission 裁决。
+--   detail 那一格放名字(这几类记录没有数量可说;编号旁边的名字是人认得它的方式)。
 
 CREATE OR REPLACE VIEW public.deleted_records AS
  SELECT record_kind,
@@ -121,7 +128,71 @@ CREATE OR REPLACE VIEW public.deleted_records AS
             NULL::uuid AS uuid,
             q.status
            FROM quotes q
-          WHERE q.deleted_at IS NOT NULL) a
+          WHERE q.deleted_at IS NOT NULL
+        UNION ALL
+         SELECT 'customer'::text AS text,
+            'module.customers.view'::text AS text,
+            c.id,
+            c.code,
+            c.deleted_at,
+            ( SELECT l.actor_account
+                   FROM change_log l
+                  WHERE l.table_name = 'customers'::text AND l.row_key = jsonb_build_object('id', c.id) AND l.op = 'UPDATE'::text AND 'deleted_at'::text = ANY (l.changed_columns) AND (l.new ->> 'deleted_at'::text) IS NOT NULL
+                  ORDER BY l.seq DESC
+                 LIMIT 1) AS actor_account,
+            NULL::text AS text,
+            NULL::uuid AS uuid,
+            c.legal_name
+           FROM customers c
+          WHERE c.deleted_at IS NOT NULL
+        UNION ALL
+         SELECT 'supplier'::text AS text,
+            'module.suppliers.view'::text AS text,
+            s.id,
+            s.code,
+            s.deleted_at,
+            ( SELECT l.actor_account
+                   FROM change_log l
+                  WHERE l.table_name = 'suppliers'::text AND l.row_key = jsonb_build_object('id', s.id) AND l.op = 'UPDATE'::text AND 'deleted_at'::text = ANY (l.changed_columns) AND (l.new ->> 'deleted_at'::text) IS NOT NULL
+                  ORDER BY l.seq DESC
+                 LIMIT 1) AS actor_account,
+            NULL::text AS text,
+            NULL::uuid AS uuid,
+            s.legal_name
+           FROM suppliers s
+          WHERE s.deleted_at IS NOT NULL
+        UNION ALL
+         SELECT 'material'::text AS text,
+            'module.materials.view'::text AS text,
+            m.id,
+            m.code,
+            m.deleted_at,
+            ( SELECT l.actor_account
+                   FROM change_log l
+                  WHERE l.table_name = 'materials'::text AND l.row_key = jsonb_build_object('id', m.id) AND l.op = 'UPDATE'::text AND 'deleted_at'::text = ANY (l.changed_columns) AND (l.new ->> 'deleted_at'::text) IS NOT NULL
+                  ORDER BY l.seq DESC
+                 LIMIT 1) AS actor_account,
+            NULL::text AS text,
+            NULL::uuid AS uuid,
+            m.name
+           FROM materials m
+          WHERE m.deleted_at IS NOT NULL
+        UNION ALL
+         SELECT 'pricing_formula'::text AS text,
+            'module.pricing.view'::text AS text,
+            f.id,
+            f.code,
+            f.deleted_at,
+            ( SELECT l.actor_account
+                   FROM change_log l
+                  WHERE l.table_name = 'pricing_formulas'::text AND l.row_key = jsonb_build_object('id', f.id) AND l.op = 'UPDATE'::text AND 'deleted_at'::text = ANY (l.changed_columns) AND (l.new ->> 'deleted_at'::text) IS NOT NULL
+                  ORDER BY l.seq DESC
+                 LIMIT 1) AS actor_account,
+            NULL::text AS text,
+            NULL::uuid AS uuid,
+            f.name
+           FROM pricing_formulas f
+          WHERE f.deleted_at IS NOT NULL) a
   WHERE has_permission(permission);
 
 COMMENT ON VIEW public.deleted_records IS

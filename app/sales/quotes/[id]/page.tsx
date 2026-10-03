@@ -17,7 +17,7 @@ import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustOne, mustRows } from '@/lib/db-helpers'
 import { can } from '@/lib/permissions'
 import { formatAmount } from '@/lib/format'
-import { requireModule } from '@/app/components/moduleGuard'
+import { requireDeletedAccess, requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { quoteStatusKey } from '../quoteTypes'
 import IssuePanel from '@/app/components/IssuePanel'
@@ -27,6 +27,7 @@ import DeclineControl from './DeclineControl'
 import QuoteLinesEditor from './QuoteLinesEditor'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 
 export default async function QuotePage({ params, searchParams }: {
     params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
@@ -39,18 +40,41 @@ export default async function QuotePage({ params, searchParams }: {
     const locale = await getLocale()
     const supabase = await createClient()
 
-    const q = mustOne(
-        await supabase.from('quote_status')
-            .select('quote_id, code, customer_code, customer_name, quote_date, valid_until, currency, fx_rate, status, decline_reason, converted_order_id, converted_order_code, expired, convertible, issue_version, amended_since_issue, notes, terms_text')
-            .eq('quote_id', id).maybeSingle(),
-        'quote_status') as {
+    type QuoteHead = {
             quote_id: string; code: string; customer_code: string; customer_name: string
             quote_date: string; valid_until: string; currency: string; fx_rate: number
             status: string; decline_reason: string | null
             converted_order_id: string | null; converted_order_code: string | null
             expired: boolean; convertible: boolean; issue_version: number | null
-            amended_since_issue: boolean; notes: string | null; terms_text: string | null } | null
-    if (!q) notFound()
+            amended_since_issue: boolean; notes: string | null; terms_text: string | null }
+    let q = mustOne(
+        await supabase.from('quote_status')
+            .select('quote_id, code, customer_code, customer_name, quote_date, valid_until, currency, fx_rate, status, decline_reason, converted_order_id, converted_order_code, expired, convertible, issue_version, amended_since_issue, notes, terms_text')
+            .eq('quote_id', id).maybeSingle(),
+        'quote_status') as QuoteHead | null
+    // AUDIT-TRAIL-1b-3(Q9 · Q21):quote_status 只列没删的报价。读不到时再问基表它是不是【删掉了】——
+    //   删掉的报价不再 404(/settings/deleted 那条链接原来就是死的):持 data.view_deleted 的人只读打开
+    //   (横幅 + 审计记录),别人得到一句具名拒绝。页面要的几样从基表拼回同一个形状;
+    //   "过期 / 可转 / 签发后又改过"对一张删掉的报价没有意义,一律是否。
+    let deletedAt: string | null = null
+    if (!q) {
+        const raw = mustOne(
+            await supabase.from('quotes')
+                .select('id, code, quote_date, valid_until, currency, fx_rate, status, decline_reason, converted_order_id, notes, terms_text, deleted_at, customers ( code, legal_name )')
+                .eq('id', id).not('deleted_at', 'is', null).maybeSingle(),
+            'quotes') as unknown as {
+                id: string; code: string; quote_date: string; valid_until: string; currency: string; fx_rate: number
+                status: string; decline_reason: string | null; converted_order_id: string | null; notes: string | null
+                terms_text: string | null; deleted_at: string; customers: { code: string; legal_name: string } | null } | null
+        if (!raw) notFound()
+        const refused = await requireDeletedAccess('nav.sales')
+        if (refused) return refused
+        deletedAt = raw.deleted_at
+        q = { quote_id: raw.id, code: raw.code, customer_code: raw.customers?.code ?? '—', customer_name: raw.customers?.legal_name ?? '—',
+              quote_date: raw.quote_date, valid_until: raw.valid_until, currency: raw.currency, fx_rate: raw.fx_rate, status: raw.status,
+              decline_reason: raw.decline_reason, converted_order_id: raw.converted_order_id, converted_order_code: null,
+              expired: false, convertible: false, issue_version: null, amended_since_issue: false, notes: raw.notes, terms_text: raw.terms_text }
+    }
 
     const lines = mustRows(
         await supabase.from('quote_lines')
@@ -120,6 +144,9 @@ export default async function QuotePage({ params, searchParams }: {
                     </div>
                 </div>
 
+                {deletedAt && <DeletedBanner kind="quote" id={q.quote_id} at={deletedAt} />}
+
+                <EndedFieldset ended={!!deletedAt}>
                 {/* 【签发之后又改过】客户手里那份已经不是这一张了 —— 与销售订单
                     那条横幅同一个机制(两个时间戳一比,不是一个要人去清的标志位)*/}
                 {q.amended_since_issue && (
@@ -251,6 +278,8 @@ export default async function QuotePage({ params, searchParams }: {
                         ))}
                     </ul>
                 )}
+
+                </EndedFieldset>
 
                 {/* AUDIT-TRAIL-1b-2(Q26):原来这里是一段"历史"(quote_history 的每一行:时刻 · 类型 · detail)。
                     统一的审计记录在页底取代它 —— 那几行一行不少地在里面(建单、签发、谢绝、转成订单,记录开始之前的那一段),

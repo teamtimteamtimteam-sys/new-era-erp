@@ -191,6 +191,9 @@ function currencyFor(col: string, img: Img, opts: BuildOptions, d: TrailDict): s
 }
 /** 数量单位的说法:认得的(kg、t、units…)照英文目录说,短的小写字母照原样(它本来就是一个单位),其余按人话说 */
 function unitText(d: TrailDict, raw: string): string {
+    // AUDIT-TRAIL-1b-3:物料的单位存成中文(吨 / 克 / 件 —— 下拉框的取值),那是系统的话,说英文(Q8)
+    const machine = d.machine['materials#unit']?.[raw]
+    if (machine) return machine
     const known = d.enums['purchase_order_lines#unit']?.[raw]
     if (known) return known
     return /^[a-z]{1,6}$/i.test(raw) ? raw : humanize(raw).toLowerCase()
@@ -348,6 +351,14 @@ const FIELD_ORDER: Record<string, string[]> = {
     customer_statements: ['period_start', 'period_end', 'opening_base', 'charges_base', 'credits_base', 'receipts_base', 'closing_base', 'base_currency'],
     collection_chases: ['chased_on', 'reached', 'contacted_person', 'owed_base', 'on_account_base', 'net_due_base', 'base_currency'],
     collection_promises: ['promised_amount_ccy', 'currency', 'promised_date'],
+    // AUDIT-TRAIL-1b-3:编辑页上的先后
+    materials: ['name', 'kind_code', 'form_code', 'source_code', 'size_format_code', 'chemistry', 'waste_classification_code', 'unit',
+        'may_be_processed', 'safety_stock_qty', 'status', 'spec', 'notes'],
+    storage_locations: ['name', 'zone', 'is_active', 'notes'],
+    metal_prices: ['metal', 'price_date', 'price_usd_per_tonne', 'price_index', 'source', 'source_reference', 'quote_delayed', 'notes'],
+    pricing_formulas: ['name', 'direction', 'supplier_id', 'customer_id', 'price_basis', 'average_days', 'price_index',
+        'treatment_charge_usd_per_tonne', 'flat_discount_pct', 'is_active', 'notes'],
+    tasks: ['title', 'task_type', 'status', 'priority', 'due_date', 'reminder_at', 'tags', 'owner_id', 'description'],
 }
 function ordered(table: string | null, image: Img): [string, Json][] {
     const entries = Object.entries(image)
@@ -842,15 +853,27 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     lane: ['lanes', 'lane_document_requirements'],
     port: ['ports', 'lanes'],
     company_licence: ['company_compliance'],
+    // AUDIT-TRAIL-1b-3
+    material: ['materials', 'material_attachments', 'material_required_metals'],
+    storage_location: ['storage_locations', 'storage_location_allowed_classes'],
+    metal_price: ['metal_prices'],
+    pricing_formula: ['pricing_formulas', 'pricing_formula_metals', 'pricing_formula_history', 'terms_requests', 'approval_log'],
+    task: ['tasks', 'task_nodes', 'task_participants', 'task_history'],
+    processing_settings: ['processing_settings'],
+    pricing_settings: ['pricing_settings'],
+    receiving_settings: ['receiving_settings'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
     | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
+    | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
     quote: 'quote', sales_order: 'so', shipment: 'shipment', customer: 'customer', commission_agreement: 'commission',
     supplier: 'supplier', forwarder: 'supplier', container: 'container', lane: 'lane', port: 'lane', company_licence: 'licence',
+    material: 'material', storage_location: 'location', metal_price: 'metalPrice', pricing_formula: 'formula', task: 'task',
+    processing_settings: 'settings', pricing_settings: 'settings', receiving_settings: 'settings',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -897,6 +920,13 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (CONTAINER_TABLES.has(t)) return 'container'
     if (LANE_TABLES.has(t)) return 'lane'
     if (t === 'company_compliance') return 'licence'
+    // AUDIT-TRAIL-1b-3
+    if (MATERIAL_TABLES.has(t)) return 'material'
+    if (t === 'storage_locations' || t === 'storage_location_allowed_classes') return 'location'
+    if (t === 'metal_prices') return 'metalPrice'
+    if (FORMULA_TABLES.has(t)) return 'formula'
+    if (TASK_TABLES.has(t)) return 'task'
+    if (SETTINGS_TITLE[t]) return 'settings'
     return null
 }
 
@@ -956,28 +986,31 @@ function isCleared(r: TrailRow, col: string): boolean {
     return changed(r, col) && isEmpty(r.new?.[col] ?? null) && !isEmpty(r.old?.[col] ?? null)
 }
 
-/** 同一笔事务里先删后插的同一行(整组替换:金属、安全状态)→ 一次改动;前后一样的整个不算 */
+/** 同一笔事务里【先删后插】的同一行(整组替换:金属、安全状态、物料的化验要求)→ 一次改动;前后一样的整个不算。
+ *  AUDIT-TRAIL-1b-3:只认【删在前、插在后】这一种顺序,并且保留行的先后。先插后删(同一次操作里加上又拿掉,
+ *  例如建库位时勾了一个分类、随后那一次保存把它换掉)不是一次"整组替换",两行都照常说 —— 第一版不分先后,
+ *  于是线上那一次回滚的证明里库位的分类改动整个不见了。 */
 function netReplace(rows: TrailRow[]): TrailRow[] {
-    const del = new Map<string, TrailRow>()
-    for (const r of rows) if (r.op === 'DELETE' && r.key) del.set(JSON.stringify(r.key), r)
+    const firstDelete = new Map<string, number>()
+    rows.forEach((r, i) => { if (r.op === 'DELETE' && r.key && !firstDelete.has(JSON.stringify(r.key))) firstDelete.set(JSON.stringify(r.key), i) })
+    const paired = new Set<number>()
     const out: TrailRow[] = []
-    const used = new Set<string>()
-    for (const r of rows) {
-        if (r.op !== 'INSERT' || !r.key) continue
-        const k = JSON.stringify(r.key)
-        const before = del.get(k)
-        if (!before) { out.push(r); continue }
-        used.add(k)
-        const cols = Object.keys({ ...(before.old ?? {}), ...(r.new ?? {}) })
-            .filter((c) => JSON.stringify(before.old?.[c] ?? null) !== JSON.stringify(r.new?.[c] ?? null))
-        if (cols.length) out.push({ ...r, op: 'UPDATE', cols, old: before.old, refs: mergeRefs(before.refs, r.refs) })
-    }
-    for (const r of rows) {
-        if (r.op === 'INSERT') continue
-        if (r.op === 'DELETE' && r.key && used.has(JSON.stringify(r.key))) continue
+    rows.forEach((r, i) => {
+        if (r.op === 'INSERT' && r.key) {
+            const k = JSON.stringify(r.key)
+            const di = firstDelete.get(k)
+            if (di !== undefined && di < i) {
+                paired.add(di)
+                const before = rows[di]
+                const cols = Object.keys({ ...(before.old ?? {}), ...(r.new ?? {}) })
+                    .filter((c) => JSON.stringify(before.old?.[c] ?? null) !== JSON.stringify(r.new?.[c] ?? null))
+                if (cols.length) out.push({ ...r, op: 'UPDATE', cols, old: before.old, refs: mergeRefs(before.refs, r.refs) })
+                return
+            }
+        }
         out.push(r)
-    }
-    return out
+    })
+    return out.filter((r) => !(r.op === 'DELETE' && paired.has(rows.indexOf(r))))
 }
 
 /** absorbsApproval:这一块自己已经说出了那一步(供应商的"送审 / 批准 / 驳回"),同一笔里的审批留痕并进来时不再另起一行说明 */
@@ -1819,7 +1852,7 @@ function describeContact(d: TrailDict, r: TrailRow, opts: BuildOptions): Block2 
 }
 function describeAttachment(d: TrailDict, r: TrailRow, opts: BuildOptions): Block2 {
     const part = typed(str(r, 'file_name'))
-    if (r.op === 'INSERT') return { title: tx(d, 'batch.attachmentAdded'), part, lines: valueLines(d, r, r.new, opts, new Set(['file_name', 'customer_id', 'supplier_id', 'deleted_at'])), key: true, weight: 35 }
+    if (r.op === 'INSERT') return { title: tx(d, 'batch.attachmentAdded'), part, lines: valueLines(d, r, r.new, opts, new Set(['file_name', 'customer_id', 'supplier_id', 'material_id', 'deleted_at'])), key: true, weight: 35 }
     if (isDeleted(r)) return { title: tx(d, 'batch.attachmentRemoved'), part, lines: [], key: true, weight: 35 }
     return { title: tx(d, 'att.changed'), part, lines: changeLines(d, r, opts), key: false, weight: 30 }
 }
@@ -2061,6 +2094,328 @@ function describeLicence(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Bl
     })
 }
 
+// ════════════════════════════════════════════════════════════════════════════
+// AUDIT-TRAIL-1b-3:物料 · 库位 · 金属价格 · 定价公式与条款申请 · 任务 · 三个阈值面板
+// ════════════════════════════════════════════════════════════════════════════
+/** 一组字典代码(金属、废物分类)的名字,按字母排 —— "Added: Cobalt · Nickel" */
+function codeNames(d: TrailDict, rows: TrailRow[], col: string): string {
+    return rows.map((r) => dictName(d, r, col)).sort().join(' · ')
+}
+/** 建档那一次操作里的一组子行(允许分类、化验要求):第一次"拿掉"之前插进去的算【建档时的那一组】,
+ *  之后插的与拿掉的算【同一次操作里随后的改动】—— 与报价 / 订单建单那一笔里又改明细同一个说法(1b-2 的决定 22) */
+function splitAtFirstRemoval(rows: TrailRow[]): { atCreation: TrailRow[]; added: TrailRow[]; removed: TrailRow[] } {
+    const cut = rows.findIndex((r) => r.op === 'DELETE')
+    const ins = rows.map((r, i) => [r, i] as const).filter(([r]) => r.op === 'INSERT')
+    return { atCreation: ins.filter(([, i]) => cut < 0 || i < cut).map(([r]) => r), added: ins.filter(([, i]) => cut >= 0 && i > cut).map(([r]) => r),
+             removed: rows.filter((r) => r.op === 'DELETE') }
+}
+/** "加了几条 · 拿掉几条"那一组两行(与角色的授权同一种写法) */
+function addedRemovedLines(d: TrailDict, added: string, removed: string): Line[] {
+    const ls: Line[] = []
+    if (added) ls.push({ t: 'value', label: tx(d, 'role.lineAdded'), value: truncate(added) })
+    if (removed) ls.push({ t: 'value', label: tx(d, 'role.lineRemoved'), value: truncate(removed) })
+    return ls
+}
+
+// ── 物料:主档 · 附件 · 化验要求(哪些金属必须化验 —— 页面上那一块叫 "Assay requirement")──────────
+const MATERIAL_TABLES = new Set(['materials', 'material_attachments', 'material_required_metals'])
+function describeMaterial(d: TrailDict, rows0: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    // 化验要求是"整组换掉"写的(先删后插)—— 同一笔里前后一样的那几条不算改动
+    const rows = netReplace(rows0)
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const metals = by('material_required_metals')
+    const created = by('materials').find((r) => r.op === 'INSERT')
+    const split = splitAtFirstRemoval(metals)
+    const addedM = created ? split.added : metals.filter((r) => r.op === 'INSERT'), removedM = split.removed
+    for (const r of by('materials')) {
+        if (r === created) {
+            const ls = valueLines(d, r, r.new, opts, new Set(['code', 'deleted_at']))
+            if (split.atCreation.length) ls.push({ t: 'value', label: tx(d, 'mat.assayFor'), value: truncate(codeNames(d, split.atCreation, 'metal')) })
+            out.push({ title: tx(d, 'mat.created'), lines: ls, key: true, weight: 100 })
+            continue
+        }
+        // 删掉那一次:同一行同一次操作里别的列也改过(一次操作 = 一笔事务,两次编辑并成一行)—— 那几列照样说出来
+        if (isDeleted(r)) { out.push({ title: tx(d, 'mat.deleted'), lines: r.op === 'UPDATE' ? changeLines(d, r, opts, new Set(['deleted_at'])) : [], key: true, weight: 90 }); continue }
+        const ls = changeLines(d, r, opts, new Set(['status', 'deleted_at']))
+        if (changed(r, 'status')) {
+            ls.unshift({ t: 'change', label: fieldMeta(d, 'materials', 'status')[0], old: formatValue(d, 'materials', 'status', r.old?.['status'], imgOf(r), r.refs, r.op, opts),
+                new: formatValue(d, 'materials', 'status', r.new?.['status'], imgOf(r), r.refs, r.op, opts) })
+            out.push({ title: tx(d, 'mat.statusChanged'), lines: ls, key: true, weight: 80 })
+        } else if (ls.length) out.push({ title: tx(d, 'mat.edited'), lines: ls, key: false, weight: 30 })
+    }
+    if (addedM.length || removedM.length) {
+        out.push({ title: tx(d, 'mat.assayChanged'), lines: addedRemovedLines(d, codeNames(d, addedM, 'metal'), codeNames(d, removedM, 'metal')), key: true, weight: 60 })
+    }
+    for (const r of metals) if (r.op === 'UPDATE') out.push(describeGeneric(d, r, opts))
+    for (const r of by('material_attachments')) out.push(describeAttachment(d, r, opts))
+    return out
+}
+
+// ── 库位:主档 · 允许存放的物料分类(页面上那一块叫 "Allowed material classes")──────────────────
+function describeLocation(d: TrailDict, rows0: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const rows = netReplace(rows0)
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const cls = by('storage_location_allowed_classes')
+    const created = by('storage_locations').find((r) => r.op === 'INSERT')
+    const split = splitAtFirstRemoval(cls)
+    const addedC = created ? split.added : cls.filter((r) => r.op === 'INSERT'), removedC = split.removed
+    for (const r of by('storage_locations')) {
+        if (r === created) {
+            const ls = valueLines(d, r, r.new, opts, new Set(['code', 'is_active']))
+            if (split.atCreation.length) ls.push({ t: 'value', label: tx(d, 'loc.classesLine'), value: truncate(codeNames(d, split.atCreation, 'classification_code')) })
+            // 库位号是一个人敲的字(写在货架上的那个号)—— 与证书编号同一种待遇:标题后面 typed 的那一段
+            out.push({ title: tx(d, 'loc.created'), part: typed(str(r, 'code')), lines: ls, key: true, weight: 100 })
+            continue
+        }
+        const ls = changeLines(d, r, opts, new Set(['is_active']))
+        if (changed(r, 'is_active')) out.push({ title: tx(d, r.new?.['is_active'] === true ? 'loc.reactivated' : 'loc.deactivated'), lines: ls, key: true, weight: 80 })
+        else if (ls.length) out.push({ title: tx(d, 'loc.edited'), lines: ls, key: false, weight: 30 })
+    }
+    if (addedC.length || removedC.length) {
+        const parts = [addedC.length ? tx(d, 'role.added', { n: addedC.length }) : '', removedC.length ? tx(d, 'role.removed', { n: removedC.length }) : ''].filter(Boolean)
+        out.push({ title: [tx(d, 'loc.classesChanged'), parts.join(', ')].join(' · '),
+                   lines: addedRemovedLines(d, codeNames(d, addedC, 'classification_code'), codeNames(d, removedC, 'classification_code')), key: true, weight: 60 })
+    }
+    for (const r of cls) if (r.op === 'UPDATE') out.push(describeGeneric(d, r, opts))
+    return out
+}
+
+// ── 金属价格(一条报价)──────────────────────────────────────────────────────
+function describeMetalPrice(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    return rows.map((r) => {
+        if (r.op === 'INSERT') return { title: tx(d, 'mp.created'), lines: valueLines(d, r, r.new, opts, new Set(['deleted_at'])), key: true, weight: 100 }
+        if (isDeleted(r)) return { title: tx(d, 'mp.deleted'), lines: r.op === 'UPDATE' ? changeLines(d, r, opts, new Set(['deleted_at'])) : [], key: true, weight: 90 }
+        if (r.op === 'DELETE') return describeGeneric(d, r, opts)
+        return { title: tx(d, 'mp.edited'), lines: changeLines(d, r, opts, new Set(['deleted_at'])), key: false, weight: 30 }
+    })
+}
+
+// ── 定价公式:公式本身 · 应付金属 · 修改史 · 条款申请(与它的审批)───────────────────────────────
+//   公式的每一次改动都有两份:change_log 里那一行(全部列)与 pricing_formula_history 那一行(同一笔事务,AFTER 触发器写)。
+//   记录开始之后由前者说、修改史不再说第二遍;记录开始之前只有修改史(与建行那一刻),由它说。
+const FORMULA_TABLES = new Set(['pricing_formulas', 'pricing_formula_metals', 'pricing_formula_history', 'terms_requests'])
+const PF_HISTORY_COLS = ['name', 'direction', 'price_basis', 'average_days', 'treatment_charge_usd_per_tonne', 'flat_discount_pct', 'is_active']
+function pfHistoryLines(d: TrailDict, h: TrailRow, opts: BuildOptions, created: boolean): Line[] {
+    const out: Line[] = []
+    const n = h.new ?? {}
+    for (const bare of PF_HISTORY_COLS) {
+        const o = n['old_' + bare], v = n['new_' + bare]
+        if (created) {
+            if (isEmpty(v ?? null)) continue
+            out.push({ t: 'value', label: fieldMeta(d, 'pricing_formulas', bare)[0], value: formatValue(d, 'pricing_formula_history', 'new_' + bare, v, n, h.refs, 'INSERT', opts) })
+            continue
+        }
+        if (JSON.stringify(o ?? null) === JSON.stringify(v ?? null)) continue
+        out.push({ t: 'change', label: fieldMeta(d, 'pricing_formulas', bare)[0],
+            old: formatValue(d, 'pricing_formula_history', 'old_' + bare, o, n, h.refs, 'UPDATE', opts),
+            new: formatValue(d, 'pricing_formula_history', 'new_' + bare, v, n, h.refs, 'UPDATE', opts) })
+    }
+    return out
+}
+/** 送给 CFO 的是哪一种申请 —— 公式那一页上只会有前三种 */
+function trSentKey(kind: string | null): TrailTextKey {
+    return kind === 'formula_create' ? 'tr.sentNew' : kind === 'formula_change' ? 'tr.sentChange' : kind === 'formula_reactivate' ? 'tr.sentReactivate' : 'tr.sentOther'
+}
+function describeFormula(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const pf = by('pricing_formulas'), metals = by('pricing_formula_metals'), hist = by('pricing_formula_history'), reqs = by('terms_requests')
+    const logged = pf.some((r) => !r.prelog), loggedMetals = metals.some((r) => !r.prelog)
+    const created = pf.find((r) => r.op === 'INSERT')
+    const histCreate = hist.find((h) => str(h, 'change_type', 'new') === 'create')
+    const metalLine = (r: TrailRow): Line => ({ t: 'value', label: tx(d, 'pf.payableFor', { metal: dictName(d, r, 'metal') }),
+        value: formatValue(d, 'pricing_formula_metals', 'payable_pct', imgOf(r)['payable_pct'], imgOf(r), r.refs, r.op, opts) })
+    // ① 建立:公式那一行(或只有修改史的 create)+ 同一笔里的应付金属
+    if (created || histCreate) {
+        const ls = created ? valueLines(d, created, created.new, opts, new Set(['code', 'deleted_at'])) : pfHistoryLines(d, histCreate!, opts, true)
+        ls.push(...metals.filter((r) => r.op === 'INSERT').map(metalLine))
+        out.push({ title: tx(d, 'pf.created'), lines: ls, key: true, weight: 100 })
+    }
+    // ② 公式本身的改动
+    for (const r of pf) {
+        if (r === created) continue
+        if (isDeleted(r)) { out.push({ title: tx(d, 'pf.deleted'), lines: r.op === 'UPDATE' ? changeLines(d, r, opts, new Set(['deleted_at', 'is_active'])) : [], key: true, weight: 90 }); continue }
+        if (changed(r, 'deleted_at')) { out.push({ title: tx(d, 'pf.restored'), lines: changeLines(d, r, opts, new Set(['deleted_at'])), key: true, weight: 90 }); continue }
+        const ls = changeLines(d, r, opts, new Set(['is_active']))
+        if (changed(r, 'is_active')) out.push({ title: tx(d, r.new?.['is_active'] === true ? 'pf.reactivated' : 'pf.deactivated'), lines: ls, key: true, weight: 80 })
+        else if (ls.length) out.push({ title: tx(d, 'pf.edited'), lines: ls, key: false, weight: 30 })
+    }
+    // ③ 修改史(只在 change_log 没有那一行的时候说 —— 记录开始之前)
+    for (const h of hist) {
+        const ct = str(h, 'change_type', 'new') ?? ''
+        if (ct === 'create') continue
+        if (ct === 'metal_set' || ct === 'metal_clear') {
+            if (loggedMetals || created || histCreate) continue
+            const n = h.new ?? {}
+            const metal = dictName(d, h, 'metal')
+            out.push({ title: withPart(tx(d, ct === 'metal_set' ? 'pf.metalSet' : 'pf.metalRemoved'), metal), lines: ct === 'metal_set' ? [{ t: 'change',
+                label: fieldMeta(d, 'pricing_formula_metals', 'payable_pct')[0],
+                old: formatValue(d, 'pricing_formula_history', 'old_payable_pct', n['old_payable_pct'], n, h.refs, 'UPDATE', opts),
+                new: formatValue(d, 'pricing_formula_history', 'new_payable_pct', n['new_payable_pct'], n, h.refs, 'UPDATE', opts) }] : [],
+                key: false, weight: 45 })
+            continue
+        }
+        if (logged) continue
+        if (ct === 'delete') out.push({ title: tx(d, 'pf.deleted'), lines: [], key: true, weight: 90 })
+        else if (ct === 'restore') out.push({ title: tx(d, 'pf.restored'), lines: [], key: true, weight: 90 })
+        else {
+            const ls = pfHistoryLines(d, h, opts, false)
+            const act = ls.find((l) => l.t === 'change' && l.label === fieldMeta(d, 'pricing_formulas', 'is_active')[0])
+            const n = h.new ?? {}
+            if (act) out.push({ title: tx(d, n['new_is_active'] === true ? 'pf.reactivated' : 'pf.deactivated'), lines: ls.filter((l) => l !== act), key: true, weight: 80 })
+            else out.push({ title: tx(d, 'pf.edited'), lines: ls, key: false, weight: 30 })
+        }
+    }
+    // ④ 应付金属(建立那一笔之外)
+    if (!created && !histCreate) for (const r of metals) {
+        const metal = dictName(d, r, 'metal')
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'pf.metalSet'), metal), lines: valueLines(d, r, r.new, opts, new Set(['formula_id', 'metal'])), key: false, weight: 45 })
+        else if (r.op === 'DELETE') out.push({ title: withPart(tx(d, 'pf.metalRemoved'), metal), lines: [], key: false, weight: 45 })
+        else out.push({ title: withPart(tx(d, 'pf.metalSet'), metal), lines: changeLines(d, r, opts, new Set(['formula_id', 'metal'])), key: false, weight: 45 })
+    }
+    // ⑤ 条款申请:送给 CFO · 撤回 · 批准 / 驳回(审批留痕并进这一句)
+    for (const r of reqs) {
+        const id = idOf(r)
+        const kind = str(r, 'kind')
+        const part = typed(str(r, 'label'))
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, trSentKey(kind)), part, lines: [], reason: typed(r.new?.['reason']), key: true, weight: 85, recordId: id, absorbsApproval: true })
+        } else if (isSet(r, 'withdrawn_at') || (changed(r, 'status') && str(r, 'status', 'new') === 'withdrawn')) {
+            out.push({ title: tx(d, 'tr.withdrawn'), part, lines: [], reason: typed(r.new?.['withdraw_reason']), key: true, weight: 85, recordId: id })
+        } else if (changed(r, 'status') && ['approved', 'rejected'].includes(str(r, 'status', 'new') ?? '')) {
+            out.push({ title: tx(d, str(r, 'status', 'new') === 'approved' ? 'tr.approved' : 'tr.rejected'), part, lines: [],
+                       reason: typed(r.new?.['decision_notes']), key: true, weight: 95, recordId: id, absorbsApproval: true })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts, new Set(['proposed', 'snapshot', 'fingerprint', 'formula_id', 'contract_id', 'kind', 'label']))
+            if (ls.length) out.push({ title: tx(d, 'tr.changed'), part, lines: ls, key: false, weight: 40, recordId: id })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    return out
+}
+
+// ── 任务(Q3:私人任务也是)────────────────────────────────────────────────
+//   团队任务的每一次改动有两份:change_log 里那一行(任务 / 步骤 / 参与者本身)与 task_history 那一行(同一笔、触发器写)。
+//   同一件事只说一次 —— 认【这一件事落在哪一行上】:任务表头 = 任务那一行;一个步骤 = 那个步骤的 id;一个参与者 = 那个员工。
+//   记录开始之后由 change_log 那一行说(它有全部的列);它不在(记录开始之前)才由修改史说。
+//   私人任务没有修改史(触发器只在团队任务上写),所以它的每一件事都由 change_log 那一行说。
+const TASK_TABLES = new Set(['tasks', 'task_nodes', 'task_participants', 'task_history'])
+const TASK_HEADER = ['title', 'description', 'status', 'priority', 'due_date', 'reminder_at', 'tags']
+function stepTitle(r: TrailRow, titles: Map<string, string>): Val | null {
+    const own = str(r, 'title') ?? str(r, 'new_node_title') ?? str(r, 'old_node_title')
+    const nodeId = r.table === 'task_history' ? str(r, 'node_id') : idOf(r) ?? null
+    return typed(own ?? (nodeId ? titles.get(nodeId) ?? null : null))
+}
+function describeTask(d: TrailDict, rows: TrailRow[], opts: BuildOptions, titles: Map<string, string>): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const tasks = by('tasks'), nodes = by('task_nodes'), parts = by('task_participants'), hist = by('task_history')
+    const loggedTask = tasks.some((r) => !r.prelog && r.op === 'UPDATE')
+    const loggedNodes = new Set(nodes.filter((r) => !r.prelog).map((r) => idOf(r) ?? ''))
+    const histNodes = new Set(hist.map((h) => str(h, 'node_id') ?? '').filter(Boolean))
+    const histPeople = new Set(hist.filter((h) => /^participant_/.test(str(h, 'change_type', 'new') ?? '')).map((h) => str(h, 'employee_id') ?? ''))
+    const created = tasks.find((r) => r.op === 'INSERT')
+    const nodeIns = nodes.filter((r) => r.op === 'INSERT')
+    for (const r of tasks) {
+        if (r === created) {
+            const ls = valueLines(d, r, r.new, opts, new Set(['code', 'deleted_at']))
+            for (const n of nodeIns) ls.push({ t: 'value', label: tx(d, 'task.stepLine'), value: stepTitle(n, titles) ?? { text: tx(d, 'empty'), empty: true } })
+            out.push({ title: tx(d, 'task.created'), lines: ls, key: true, weight: 100 })
+            continue
+        }
+        if (isDeleted(r)) { out.push({ title: tx(d, 'task.deleted'), lines: r.op === 'UPDATE' ? changeLines(d, r, opts, new Set(['deleted_at'])) : [], key: true, weight: 90 }); continue }
+        const ls = changeLines(d, r, opts, new Set(['task_type', 'deleted_at']))
+        if (changed(r, 'task_type') && str(r, 'task_type', 'new') === 'team') { out.push({ title: tx(d, 'task.promoted'), lines: ls, key: true, weight: 85 }); continue }
+        if (changed(r, 'task_type')) ls.unshift(...changeLines(d, r, opts, new Set((r.cols ?? []).filter((c) => c !== 'task_type'))))
+        if (changed(r, 'owner_id')) { out.push({ title: tx(d, 'task.ownerTransferred'), lines: ls, key: true, weight: 80 }); continue }
+        if (ls.length) out.push({ title: tx(d, 'task.edited'), lines: ls, key: changed(r, 'status'), weight: changed(r, 'status') ? 70 : 30 })
+    }
+    // 步骤(change_log 那一行在就由它说;记录开始之前的建行 / 打勾戳,修改史说了的就不再说)
+    for (const r of nodes) {
+        const nid = idOf(r) ?? ''
+        if (r.prelog && histNodes.has(nid)) continue
+        if (created && r.op === 'INSERT') continue
+        const part = stepTitle(r, titles)
+        const skip = new Set(['task_id', 'parent_id', 'parent_depth', 'depth', 'sort_order', 'done_at', 'done_by', 'title'])
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'task.stepAdded'), part, lines: valueLines(d, r, r.new, opts, skip), key: true, weight: 50 })
+        else if (r.op === 'DELETE') out.push({ title: tx(d, 'task.stepRemoved'), part, lines: valueLines(d, r, { target_date: r.old?.['target_date'] ?? null, done: r.old?.['done'] ?? null }, opts), key: true, weight: 50 })
+        else if (isSet(r, 'done_at') || (changed(r, 'done') && r.new?.['done'] === true)) out.push({ title: tx(d, 'task.stepDone'), part, lines: [], key: true, weight: 55 })
+        else if (changed(r, 'done')) out.push({ title: tx(d, 'task.stepUndone'), part, lines: [], key: true, weight: 55 })
+        else if (changed(r, 'title')) out.push({ title: tx(d, 'task.stepRenamed'), part: typed(str(r, 'title', 'new')), lines: changeLines(d, r, opts, new Set([...skip].filter((c) => c !== 'title'))), key: true, weight: 50 })
+        else if (changed(r, 'target_date')) out.push({ title: tx(d, 'task.stepRedated'), part, lines: changeLines(d, r, opts, skip), key: true, weight: 50 })
+        else if (changed(r, 'sort_order')) out.push({ title: tx(d, 'task.stepMoved'), part, lines: [], key: true, weight: 40 })
+        else { const ls = changeLines(d, r, opts, skip); if (ls.length) out.push({ title: tx(d, 'task.stepChanged'), part, lines: ls, key: true, weight: 40 }) }
+    }
+    // 参与者(修改史在就由它说 —— 它分得清"自己走"与"被移出")
+    for (const r of parts) {
+        const who = refLabel(r, 'employee_id')
+        if (histPeople.has(str(r, 'employee_id') ?? '')) continue
+        if (r.op === 'INSERT') out.push({ title: withPart(tx(d, 'task.participantAdded'), who), lines: [], key: true, weight: 50 })
+        else if (isSet(r, 'removed_at')) out.push({ title: withPart(tx(d, str(r, 'removed_by') === str(r, 'employee_id') ? 'task.participantLeft' : 'task.participantRemoved'), who), lines: [], key: true, weight: 50 })
+        else out.push(describeGeneric(d, r, opts))
+    }
+    // 修改史(上面那几行没说的那一件事)
+    for (const h of hist) {
+        const ct = str(h, 'change_type', 'new') ?? ''
+        const n = h.new ?? {}
+        const nid = str(h, 'node_id') ?? ''
+        const part = stepTitle(h, titles)
+        const who = refLabel(h, 'employee_id')
+        const diff = (bares: string[], base: string, prefix = ''): Line[] => bares.flatMap((bare) => {
+            const o = n['old_' + prefix + bare], v = n['new_' + prefix + bare]
+            if (JSON.stringify(o ?? null) === JSON.stringify(v ?? null)) return []
+            return [{ t: 'change' as const, label: fieldMeta(d, base, bare)[0],
+                old: formatValue(d, 'task_history', 'old_' + prefix + bare, o, n, h.refs, 'UPDATE', opts),
+                new: formatValue(d, 'task_history', 'new_' + prefix + bare, v, n, h.refs, 'UPDATE', opts) }]
+        })
+        switch (ct) {
+            case 'header_update':
+                if (!loggedTask) out.push({ title: tx(d, 'task.edited'), lines: diff(TASK_HEADER, 'tasks'), key: !isEmpty(n['new_status'] ?? null), weight: !isEmpty(n['new_status'] ?? null) ? 70 : 30 })
+                break
+            case 'promoted_from_personal':
+                if (!tasks.some((r) => changed(r, 'task_type'))) out.push({ title: tx(d, 'task.promoted'), lines: [], key: true, weight: 85 })
+                break
+            case 'owner_transferred':
+                if (!tasks.some((r) => changed(r, 'owner_id'))) out.push({ title: withPart(tx(d, 'task.ownerTransferred'), who), lines: [], key: true, weight: 80 })
+                break
+            case 'task_deleted':
+                if (!tasks.some((r) => isDeleted(r))) out.push({ title: tx(d, 'task.deleted'), lines: [], key: true, weight: 90 })
+                break
+            case 'participant_added': case 'participant_removed': case 'participant_left':
+                out.push({ title: withPart(tx(d, ct === 'participant_added' ? 'task.participantAdded' : ct === 'participant_left' ? 'task.participantLeft' : 'task.participantRemoved'), who), lines: [], key: true, weight: 50 })
+                break
+            default: {
+                if (loggedNodes.has(nid) || (created && ct === 'node_added')) break
+                const key: TrailTextKey = ct === 'node_added' ? 'task.stepAdded' : ct === 'node_removed' ? 'task.stepRemoved' : ct === 'node_renamed' ? 'task.stepRenamed'
+                    : ct === 'node_redated' ? 'task.stepRedated' : ct === 'node_done' ? 'task.stepDone' : ct === 'node_undone' ? 'task.stepUndone'
+                    : ct === 'node_reordered' ? 'task.stepMoved' : 'task.stepChanged'
+                // 加上的步骤:它的计划日期是一个值,不是一次"(空) → 日期"的改动
+                const added: Line[] = ct === 'node_added' && !isEmpty(n['new_node_target_date'] ?? null)
+                    ? [{ t: 'value', label: fieldMeta(d, 'task_nodes', 'target_date')[0],
+                         value: formatValue(d, 'task_history', 'new_node_target_date', n['new_node_target_date'], n, h.refs, 'INSERT', opts) }] : []
+                // 删掉的步骤:它最后的计划日期与打没打勾(原来那一段"变更记录"在删除那一行上印着 "un-ticked" —— 一个都不丢)
+                const removed: Line[] = ct === 'node_removed' ? (['old_node_target_date', 'old_node_done'] as const).filter((c) => n[c] !== null && n[c] !== undefined)
+                    .map((c) => ({ t: 'value' as const, label: fieldMeta(d, 'task_history', c)[0], value: formatValue(d, 'task_history', c, n[c], n, h.refs, 'DELETE', opts) })) : []
+                const ls = ct === 'node_renamed' ? diff(['title'], 'task_nodes', 'node_') : ct === 'node_redated' ? diff(['target_date'], 'task_nodes', 'node_')
+                    : ct === 'node_removed' ? removed : added
+                out.push({ title: tx(d, key), part: ct === 'node_renamed' ? typed(str(h, 'new_node_title')) ?? part : part, lines: ls, key: true, weight: ct === 'node_done' || ct === 'node_undone' ? 55 : 50 })
+            }
+        }
+    }
+    return out
+}
+
+// ── 三个阈值面板(每一块只看它自己编辑的那几列,M6)───────────────────────────
+const SETTINGS_TITLE: Record<string, TrailTextKey> = {
+    processing_settings: 'set.processing', pricing_settings: 'set.pricing', receiving_settings: 'set.receiving',
+}
+function describeSettings(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    return rows.map((r) => r.op === 'UPDATE'
+        ? { title: tx(d, SETTINGS_TITLE[r.table!]), lines: changeLines(d, r, opts), key: true, weight: 60 }
+        : describeGeneric(d, r, opts))
+}
+
 /** 审批与它批的那件事在同一笔事务里(工单放行、盘点过账、仓库申请的决定)→ 并成一句:审批落成那一块下面的一行说明 */
 function foldApprovals(blocks: Block2[]): Block2[] {
     const out: Block2[] = []
@@ -2157,6 +2512,20 @@ export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions 
         const by = r.table === 'journal_entries' ? (r.ctx?.['reversed_by'] ?? r.new?.['reversed_by']) : null
         if (typeof by === 'string') reversals.add(by)
     }
+    // AUDIT-TRAIL-1b-3:任务修改史的"打勾 / 改日期"那几行只带着步骤的 id,不带名字 —— 名字从整页的行里找
+    //   (步骤那一行今天的样子、它的新增影像、修改史里写着的新旧名字),与上面认冲销分录同一个做法:看整页,不只看这一条
+    const stepTitles = new Map<string, string>()
+    for (const r of rows) {
+        if (r.table === 'task_nodes') {
+            const id = typeof r.key?.['id'] === 'string' ? r.key['id'] as string : null
+            const t = [r.ctx?.['title'], r.new?.['title'], r.old?.['title']].find((x) => typeof x === 'string' && x)
+            if (id && typeof t === 'string' && !stepTitles.has(id)) stepTitles.set(id, t)
+        } else if (r.table === 'task_history') {
+            const id = r.new?.['node_id']
+            const t = [r.new?.['new_node_title'], r.new?.['old_node_title']].find((x) => typeof x === 'string' && x)
+            if (typeof id === 'string' && typeof t === 'string' && !stepTitles.has(id)) stepTitles.set(id, t)
+        }
+    }
     const groups = new Map<string, TrailRow[]>()
     for (const r of rows) {
         const g = groups.get(r.group)
@@ -2208,6 +2577,12 @@ export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions 
                 case 'container': bs = describeContainer(d, list, opts); break
                 case 'lane': bs = describeLane(d, list, opts); break
                 case 'licence': bs = describeLicence(d, list, opts); break
+                case 'material': bs = describeMaterial(d, list, opts); break
+                case 'location': bs = describeLocation(d, list, opts); break
+                case 'metalPrice': bs = describeMetalPrice(d, list, opts); break
+                case 'formula': bs = describeFormula(d, list, opts); break
+                case 'task': bs = describeTask(d, list, opts, stepTitles); break
+                case 'settings': bs = describeSettings(d, list, opts); break
                 default: bs = []
             }
             // 别的记录的事(往上一跳够到的、审批、分录)永远不当这一条的标题 —— 这一页自己那件事在,标题就是它

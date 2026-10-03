@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import { mustRows, mustOne } from '@/lib/db-helpers'
-import { requireModule } from '@/app/components/moduleGuard'
+import { requireDeletedAccess, requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { soStatusKey, SO_ALLOWED_NEXT } from '../salesOrderTypes'
 import TransitionPanel from './TransitionPanel'
@@ -17,6 +17,7 @@ import OrderLinesTable, { type OrderLineRow } from './OrderLinesTable'
 import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 
 export default async function SalesOrderPage({ params, searchParams }: {
     params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
@@ -30,14 +31,21 @@ export default async function SalesOrderPage({ params, searchParams }: {
 
     const order = mustOne(
         await supabase.from('sales_orders')
-            .select('id, code, status, order_date, currency, fx_rate, notes, cancel_reason, customers ( code, legal_name )')
-            .eq('id', id).is('deleted_at', null).maybeSingle(),
+            .select('id, code, status, order_date, currency, fx_rate, notes, cancel_reason, deleted_at, customers ( code, legal_name )')
+            .eq('id', id).maybeSingle(),
         'sales_orders')
     if (!order) notFound()
     const o = order as unknown as {
         id: string; code: string; status: string; order_date: string; currency: string
-        fx_rate: number; notes: string | null; cancel_reason: string | null
+        fx_rate: number; notes: string | null; cancel_reason: string | null; deleted_at: string | null
         customers: { code: string; legal_name: string } | null }
+    // AUDIT-TRAIL-1b-3(Q9 · Q21):删掉的订单不再 404(/settings/deleted 那条链接原来就是死的)——
+    //   持 data.view_deleted 的人只读打开(横幅 + 审计记录),别人得到一句具名拒绝
+    if (o.deleted_at) {
+        const refused = await requireDeletedAccess('nav.sales')
+        if (refused) return refused
+    }
+    const deleted = !!o.deleted_at
 
     // SO-2:多取 id / material_id / 单位 —— 预留挂在【行】上,而单位长在物料上
     // (订单行没有 unit 这一列)。
@@ -104,7 +112,7 @@ export default async function SalesOrderPage({ params, searchParams }: {
     // 改单入口的三个状态,与 amend_sales_order 的闸【同一份表】。
     // (shipped 在数据库那边还开着一条"只许加行"的缝,但它今天没有入口 ——
     //  见 docs/known-issues.md。界面永远不该比数据库更宽松,反过来是允许的。)
-    const amendable = ['draft', 'confirmed', 'partially_shipped'].includes(o.status)
+    const amendable = !deleted && ['draft', 'confirmed', 'partially_shipped'].includes(o.status)
 
     return (
         <>
@@ -122,6 +130,9 @@ export default async function SalesOrderPage({ params, searchParams }: {
                     <span className="px-3 py-1 rounded bg-gray-200 text-sm">{t(soStatusKey(o.status))}</span>
                 </div>
 
+                {o.deleted_at && <DeletedBanner kind="sales_order" id={o.id} at={o.deleted_at} />}
+
+                <EndedFieldset ended={deleted}>
                 <dl className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm mb-6">
                     <div><dt className="inline text-[color:var(--brand-muted-text)]">{t('sales.colDate')}: </dt>
                          <dd className="inline">{formatDate(o.order_date, locale)}</dd></div>
@@ -264,6 +275,8 @@ export default async function SalesOrderPage({ params, searchParams }: {
                         ))}
                     </ul>
                 )}
+
+                </EndedFieldset>
 
                 {/* AUDIT-TRAIL-1b-2(Q26):原来这里是一段"历史"(sales_order_history 的每一行:时刻 · 类型 · 第几行 ·
                     数量与单价的前后 · detail · 理由)。统一的审计记录在页底取代它 —— 那几行一行不少地在里面,外加谁做的。 */}

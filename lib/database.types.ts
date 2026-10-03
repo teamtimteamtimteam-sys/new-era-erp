@@ -31629,6 +31629,17 @@ export type Database = {
         }
         Returns: Json
       }
+      save_storage_location: {
+        Args: {
+          p_classes: string[]
+          p_code: string
+          p_id?: string
+          p_name: string
+          p_notes?: string
+          p_zone?: string
+        }
+        Returns: string
+      }
       score_kpi_entry: {
         Args: {
           p_computed_basis?: string

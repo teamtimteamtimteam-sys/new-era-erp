@@ -33,6 +33,18 @@
 --   lane · port    → /logistics/lanes(只有清单页,按条合起来,见 app/components/trail/ListTrail.tsx)module.logistics.view
 --   company_licence → /purchasing/licences(只有清单页)门是 module.purchasing.view,而这张表的读规则是
 --                    module.suppliers.view —— 这一块只画在持 suppliers.view 的那一支里(页面本来就那样分),所以登记后者
+-- AUDIT-TRAIL-1b-3(Tim 2026-09-29,AT-1b Step 0 §a 的主数据与工具):
+--   material       → /materials/[id]/edit(只有这一页,Q2)requireModule(MOD.materials) = module.materials.view
+--   storage_location → /inventory/locations/[id]/edit(只有这一页)requireModule(MOD.inventory) = module.inventory.view
+--   metal_price    → /tools/pricing/metal-prices/[id]/edit(只有这一页)requireEditPermission('action.metal_prices')
+--   pricing_formula → /tools/pricing/formulas/[id]/edit(只有这一页)requireModule(MOD.pricing) = module.pricing.view
+--   task           → /tools/tasks/[id]                requireModule(MOD.tasks)       = module.tasks.view
+--                    私人任务也读得到(Q3):根行要过 tasks 自己的读规则(团队任务 · 自己的 · 或持 module.tasks.view_all)——
+--                    那正是"谁打得开这一页"的同一个判据,而遮蔽那一步本来就先问任务隐私
+--   processing_settings → /operation/orders 的工单阈值面板          module.processing.view;M6:只取面板编辑的两列
+--   pricing_settings    → /tools/pricing/metal-prices 的异常阈值面板  module.pricing.view;M6:只取那一列
+--   receiving_settings  → /purchasing/discrepancies 的收货阈值面板   module.inbound.view(面板只画在这一支里);M6:三列
+--                    三张都是单行表,主键 id boolean —— M5:页面传 'true',读法按根行自己的类型重建那个键
 -- 【后面几刀加主语】加一行这里、在 trail_subject_members 里登记它的子行与相关行、需要的话在
 --   trail_prelog_sources 里登记"记录开始之前"的来源,然后在 lib/trail/ 里补它的措辞 —— 见 docs/change-log.md §9。
 CREATE OR REPLACE FUNCTION public.trail_subjects()
@@ -63,6 +75,18 @@ AS $function$
         ('forwarder',         ARRAY['module.logistics.view'],     'suppliers',          'id', 'page',  NULL),
         ('lane',              ARRAY['module.logistics.view'],     'lanes',              'id', 'table', NULL),
         ('port',              ARRAY['module.logistics.view'],     'ports',              'id', 'table', NULL),
-        ('company_licence',   ARRAY['module.suppliers.view'],     'company_compliance', 'id', 'table', NULL)
+        ('company_licence',   ARRAY['module.suppliers.view'],     'company_compliance', 'id', 'table', NULL),
+        -- AUDIT-TRAIL-1b-3
+        ('material',          ARRAY['module.materials.view'],     'materials',          'id', 'table', NULL),
+        ('storage_location',  ARRAY['module.inventory.view'],     'storage_locations',  'id', 'table', NULL),
+        ('metal_price',       ARRAY['action.metal_prices'],       'metal_prices',       'id', 'table', NULL),
+        ('pricing_formula',   ARRAY['module.pricing.view'],       'pricing_formulas',   'id', 'table', NULL),
+        ('task',              ARRAY['module.tasks.view'],         'tasks',              'id', 'table', NULL),
+        ('processing_settings', ARRAY['module.processing.view'],  'processing_settings', 'id', 'table',
+            ARRAY['wo_input_overrun_pct', 'wo_output_shortfall_pct']),
+        ('pricing_settings',  ARRAY['module.pricing.view'],       'pricing_settings',   'id', 'table',
+            ARRAY['metal_price_change_warn_pct']),
+        ('receiving_settings', ARRAY['module.inbound.view'],      'receiving_settings', 'id', 'table',
+            ARRAY['grn_short_pct', 'grn_over_pct', 'grn_assay_tolerance_pct'])
     ) AS s(subject, view_codes, root_table, root_key, root_rule, root_columns);
 $function$;

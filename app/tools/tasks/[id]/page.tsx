@@ -1,5 +1,7 @@
 // app/tools/tasks/[id]/page.tsx
 // TASK-1b:任务详情。步骤树、参与者、变更记录 —— 三样都只在这里,不在弹窗里。
+// AUDIT-TRAIL-1b-3(Tim 的 Q26 · Q3):那一段"变更记录"换成页底统一的审计记录 —— 它原来印的每一行(task_history)
+//   一行不少地在里面,外加谁、什么时候、改之前是什么;而且【私人任务也显示】:打得开这张任务的人,就看得见它的记录。
 //
 // 【为什么是详情页而不是把弹窗做大】弹窗装不下一棵树 + 一份名单 + 一条记录,
 // 而看板的拖拽是这个模块最好用的手势,不该被挤走。弹窗保留【表头】的快速编辑。
@@ -13,17 +15,18 @@ import { can } from '@/lib/permissions'
 import { mustRows, mustOne } from '@/lib/db-helpers'
 import NodeTree, { type NodeRow } from './NodeTree'
 import Participants, { type ParticipantRow, type AssignableRow } from './Participants'
-import ChangeHistory, { type HistoryRow } from './ChangeHistory'
 import TaskHeader from './TaskHeader'
-import { loadActorNames } from '@/app/components/ActorName'
 import { STATUS_VALUES, PRIORITY_VALUES } from '../types'
 import { ListPage } from '@/app/components/ui/list-page'
 import { formatDate, formatDateTime } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 import { loadTaskAccess, NO_ACCESS, TASKS_EDIT } from '@/lib/taskAccess'
 import { TaskEditGate } from '../TaskEditGate'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function TaskDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function TaskDetailPage({ params, searchParams }: {
+    params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
+}) {
     const locale = await getLocale()
     const denied = await requireModule(MOD.tasks)
     if (denied) return denied
@@ -84,24 +87,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
           )
         : []
 
-    // 【私人任务不显示变更记录,而这是有意的不对称】一个人不需要一份关于自己的审计。
-    // 若哪天这在屏幕上读起来不对,要重议的是"私人任务不留痕"这个决定本身,
-    // 不是这里的显示方式。
-    const history = isTeam
-        ? mustRows<HistoryRow>(
-              await supabase
-                  .from('task_history')
-                  .select('id, change_type, node_id, changed_at, changed_by, old_title, new_title, old_status, new_status, old_priority, new_priority, old_due_date, new_due_date, old_node_title, new_node_title, old_node_target_date, new_node_target_date, old_node_done, new_node_done, old_sort_order, new_sort_order')
-                  .eq('task_id', id)
-                  .order('changed_at', { ascending: false })
-          )
-        : []
-
-    // TASK-1c-d:变更记录的操作人。changed_by 是【员工空间】(employees.id),
-    // 所以走 loadActorNames 的第二个参数 —— 同一个组件、同一份兜底,
-    // 不另写一个取名器(ActorName 抬头的那条理由)。
-    const actorNames = await loadActorNames(supabase, [], history.map((h) => h.changed_by))
-
+    // AUDIT-TRAIL-1b-3:原来这里取 task_history 喂"变更记录"那一段(只给团队任务 —— "一个人不需要一份关于自己的审计")。
+    //   Tim 的 Q3 改了那个决定:私人任务也显示,读法是页底的 record_trail('task', …),修改史是它的一张成员表。
     const me = await supabase.rpc('current_user_employee')
     const myEmployeeId = (me.data as string | null) ?? null
 
@@ -245,17 +232,8 @@ export default async function TaskDetailPage({ params }: { params: Promise<{ id:
                 <PromotePanel taskId={task.id} canPromote={myEmployeeId !== null} manageState={access.manage} />
             )}
 
-            {/* 【私人任务不显示变更记录,而这是有意的不对称】—— 见上面取数处的理由。 */}
-            {isTeam ? (
-                <ChangeHistory
-                    rows={history}
-                    actorNames={actorNames}
-                    actorLabel={t('tasks.history.actor')}
-                    unrecordedHint={t('tasks.history.actorUnrecordedHint')}
-                    heading={t('tasks.history.heading')}
-                    empty={t('tasks.history.empty')}
-                />
-            ) : null}
+            {/* AUDIT-TRAIL-1b-3(Q26 · Q3):统一的审计记录取代原来的"变更记录",团队任务与私人任务都有 */}
+            <AuditTrail subject="task" id={task.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

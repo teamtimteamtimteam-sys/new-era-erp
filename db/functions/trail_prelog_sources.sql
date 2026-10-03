@@ -166,6 +166,38 @@ AS $function$
         ('ports',                          'created', 'created_at',   'created_by',   NULL, 'account'),
         ('ports',                          'stamp',   'deleted_at',   NULL,           NULL, 'account'),
         ('company_compliance',             'created', 'created_at',   'created_by',   NULL, 'account'),
-        ('company_compliance',             'stamp',   'deleted_at',   NULL,           NULL, 'account')
+        ('company_compliance',             'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        -- ── AUDIT-TRAIL-1b-3 · 主数据与工具 ────────────────────────────────────────────────────────────
+        -- 物料、库位、金属价格:没有历史表,只有建行那一刻与删除那一戳(这几张表从来没有记过【谁】删的 —— by 为 NULL,
+        --   界面说 "Not recorded",横幅只说日期,Q8)
+        ('materials',                      'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('materials',                      'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('material_attachments',           'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('material_attachments',           'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('material_required_metals',       'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('storage_locations',              'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('storage_location_allowed_classes', 'created', 'created_at', 'created_by',   NULL, 'account'),
+        ('metal_prices',                   'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('metal_prices',                   'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        -- 公式:修改史(create / update / delete / restore / metal_set / metal_clear)是主线。公式本身的建行那一刻与它的应付金属
+        --   【也】登记 —— 与 1b-2 的报价 / 订单同一个做法:修改史由 AFTER 触发器在同一笔事务里写,时刻相同,归成一条,界面并成
+        --   一句(lib/trail/render.ts);而线上那一张公式早于修改史(修改史 0 行),不登记它就一条"建立"都没有。
+        --   删除那一戳【不】登记:修改史的 delete 记着。
+        ('pricing_formulas',               'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('pricing_formula_metals',         'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('pricing_formula_history',        'created', 'changed_at',   'changed_by',   NULL, 'account'),
+        -- 条款申请:提出 · 撤回;决定由审批留痕说(approval_log 已登记,decided_at 那一戳不再登记)
+        ('terms_requests',                 'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('terms_requests',                 'stamp',   'withdrawn_at', 'withdrawn_by', ARRAY['status', 'withdraw_reason'], 'account'),
+        -- 任务(M2:步骤与修改史里的人是【员工 id】):修改史只在团队任务上写(私人任务一行都不写,trg_tasks_history),
+        --   所以私人任务"记录开始之前"那一段只能来自建行与戳 —— 任务的建立与删除、步骤的建立与打勾。
+        --   团队任务上同一件事两边都有(步骤加上 = node_added,打勾 = node_done):同一笔事务、同一时刻,归成一条,
+        --   界面按步骤认,只说一次(fixture 240 的 N 臂)。参与者【不】登记:每一次进出修改史都记着,
+        --   唯一不记的是归属人自己那头一行 —— 那是有意的("变更记录记的是改动,不是初始状态")。
+        ('tasks',                          'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('tasks',                          'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('task_nodes',                     'created', 'created_at',   'created_by',   NULL, 'employee'),
+        ('task_nodes',                     'stamp',   'done_at',      'done_by',      ARRAY['done'], 'employee'),
+        ('task_history',                   'created', 'changed_at',   'changed_by',   NULL, 'employee')
     ) AS p(table_name, kind, at_column, by_column, extra, by_kind);
 $function$;

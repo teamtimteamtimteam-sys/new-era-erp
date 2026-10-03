@@ -150,6 +150,17 @@
 >    **破窗:至少 2 h 11 min 50 s,至多 2 h 25 min 34 s。** 窗口里**没有东西坏掉**(旧代码只用 AT-1a 的三个主语调
 >    `record_trail`,参数不变;旧批次页读的两张旧视图没动;`change_log_rows` 没动);提前到来、而且是本意的:折入 1 已经在库里,
 >    仓库的账号在 AT-1a 的三条审计记录上先看见别人的名字是 "Restricted"。见 `docs/handbacks/AUDIT-TRAIL-1b-1.md` §7。
+> 25. **✅ 商务那一半的审计记录 —— AUDIT-TRAIL-1b-2(`v1.4.33` 的一部分,【未发布】,2026-09-30)。**
+>    内容见下面「HISTORY family」一节 AT-1b 那一块的 ✅ AT-1b-2。
+>    ★ **部署:Tim 在 Vercel 上确认 `f8530f1d` 已部署(AT-1b-2 close-out + AT-1b-3 委托书,2026-10-03)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-09-30 01:06:27 CST**(测量:`db/migration-windows.tsv`)· 终点下界 **2026-09-30 02:57:40 CST**(测量:推送把
+>    `origin/main` 移到 `f8530f1d`,`git reflog show --date=iso refs/remotes/origin/main`)· 终点上界 **2026-10-03 09:18:04 CST**
+>    (推导:close-out 这一次会话第一条命令的时刻,手里已经有 Tim 的"已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 51 min 13 s,至多 80 h 11 min 37 s(3 天 8 h 11 min 37 s)。** 上界宽,是因为推送与 close-out 之间隔了三天 ——
+>    它是"Tim 说已部署"那一刻的上界,不是部署花了这么久。窗口里**没有东西坏掉**(四支登记函数同签名原地替换,不锁表;旧应用只用
+>    1b-1 的十个主语调 `record_trail`;旧的报价 / 订单页照旧读 `quote_history` / `sales_order_history`);提前到来、而且是本意的:
+>    `/settings/change-history` 的 Record 一栏,预留、发货单明细、订单事件史的行指向它们的订单 / 发货单。
+>    见 `docs/handbacks/AUDIT-TRAIL-1b-2.md` §7。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -6517,7 +6528,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   ★ **版本号 —— Tim 裁定,2026-09-29(AT-1a close-out 委托书),已关闭:** **AT-1a · AT-1b · AT-1c · AT-1d 合起来是【一个】版本
   `v1.4.33`,等 AT-1d 关闭之后才对测试者宣布;DATE-PICK-1 是 `v1.4.34`。** 原来的"每一刀一个版本号"与下面各刀原先标的
   v1.4.34 / v1.4.35 / v1.4.36 / v1.4.37 被这条裁定取代(原标记划掉留着)。`v1.4.33` 的发布那一行在 AT-1d 关闭时写。
-  * **AT-1b(`v1.4.33` 的一部分;~~v1.4.34~~)· 商务与生产的页面** —— Step 0 勘察与 Tim 的裁定(Q1–Q14 · M1–M6 全部照建议,2026-09-29)
+  * **✅ AT-1b(`v1.4.33` 的一部分;~~v1.4.34~~)· 商务与生产的页面 —— 三刀都做完了(1b-3,2026-10-03)** —— Step 0 勘察与 Tim 的裁定(Q1–Q14 · M1–M6 全部照建议,2026-09-29)
     在 `docs/surveys/AUDIT-TRAIL-1b/STEP0-HANDBACK.md`;按 Q1 拆成三刀,都在 `v1.4.33` 里,依次做:
     * **✅ AT-1b-1(2026-09-29)· 机制与生产的一半** —— 登记表的六个扩展 M1–M6(`docs/change-log.md` §9.9);三条折入(人名按
       ActorName 的规矩受限 · 汇总页 20 条再"Show older entries" · 审计记录那一段里一个中文字都没有);**批次页的旧 Audit Trail 换成统一的
@@ -6532,14 +6543,18 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
       `ListTrail`)。Step 0 点名、住在 1b-2 表上的四个错标签当场改了(联系人名字 "File" → Name · 集装箱 code "Container number" →
       Container code · 佣金 valid_to "Valid" → Valid to · 对账单 base_currency "By currency" → Base currency),折进来的
       `journal_entries.code` → "Journal number"。交回 `docs/handbacks/AUDIT-TRAIL-1b-2.md`;fixture 239。
-    * **⬜ AT-1b-3 · 主数据与工具** —— 物料 · 库位(含 Q13:允许的分类改成只改变动的那几条、一次调用)· 金属价格 · 公式与条款申请 ·
-      任务(Q3:个人任务也显示;M2:任务那一族的人都是员工 id)· 三个阈值面板(M5 · M6:各看各的那几列)· 删掉的主数据只读打开
-      (给 `data.view_deleted`)与 `/settings/deleted` 加上客户 · 供应商 · 物料 · 公式、修好销售订单 / 报价 / 采购单那几条 404 的链接(Q9)。
-      ★ **Step 0 点名、住在 1b-3 表上的错标签,由 1b-3 改(Tim 的裁定,2026-09-29:一个标签归【第一个把它那张表画上页面】的那一刀)**:
-      `task_nodes.task_id` / `task_participants.task_id`(以及同形状的 `task_history.task_id`)"Make this a team task" ·
-      `metal_prices.source` "Choose a source" · `processing_settings.wo_input_overrun_pct` "Wo input overrun %"(同一张表的
-      `wo_output_shortfall_pct` "Wo output shortfall %" 同形状)· `pricing_settings.notes_en` "Notes en"(`notes_zh` 同形状)。
-      生成器里还有同一形状的几处(`kpi_score_rubric.*_en`、`gst_return_boxes.label_en/zh`、`payment_trigger_events.phrase_en`)——
+    * **✅ AT-1b-3(2026-10-03)· 主数据与工具** —— 物料(编辑页,Q2)· 库位(编辑页;Q13:允许分类的保存改成一次调用、
+      只写变了的那几条 —— `save_storage_location`)· 金属价格(编辑页)· 定价公式与条款申请(编辑页)· 任务(替掉"变更记录";
+      Q3:私人任务也显示,打得开它的人就看得见;M2:任务那一族的人是员工 id)· 三个阈值面板(M5 · M6:各看各的那几列,
+      记录挂在面板底下)· 删掉的客户 · 供应商 · 物料 · 公式 · 销售订单 · 报价 · 采购单只读打开、带横幅
+      "Deleted on DD/MM/YYYY by <name>"(没有记人的只说日期),只给 `data.view_deleted`,别人得到一句具名拒绝(Q9 · Q21 · Q8)·
+      `/settings/deleted` 加上客户 · 供应商 · 物料 · 公式四类,修好销售订单 / 报价 / 采购单那几条 404 的链接(Q9)。
+      ★ **Step 0 点名、住在 1b-3 表上的四个错标签当场改了**(Tim 的裁定,2026-09-29:一个标签归第一个把它那张表画上页面的那一刀):
+      `task_nodes` / `task_participants` / `task_history.task_id` "Make this a team task" → **Task** ·
+      `metal_prices.source` "Choose a source" → **Source** · `processing_settings.wo_input_overrun_pct` "Wo input overrun %" →
+      **Input overrun (%)**(`wo_output_shortfall_pct` → Output shortfall (%))· `pricing_settings.notes_en` "Notes en" → **Notes (EN)**
+      (`notes_zh` → Notes (ZH))。交回 `docs/handbacks/AUDIT-TRAIL-1b-3.md`;fixture 240。
+      生成器里同一形状的还有几处(`kpi_score_rubric.*_en`、`gst_return_boxes.label_en/zh`、`payment_trigger_events.phrase_en`)——
       它们的表归 AT-1c / AT-1d,到时候一起核。
   * **⬜ AT-1c(`v1.4.33` 的一部分;~~v1.4.35~~)· 财务与合同的页面** —— `docs/surveys/AUDIT-TRAIL-0/ops-finance.md` 的 32 条宿主路由与 `/contracts/[id]`;
     凭证作为"由单据过账"的相关事件在哪些主语上出现(`docs/known-issues.md` 的 `AT1A-RUN-COST-JOURNALS-NOT-ON-TRAIL`)。

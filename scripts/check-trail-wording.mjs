@@ -24,10 +24,13 @@
 //      一处命中 = 红,并点名那一句与它来自哪一张表的哪一种样本。
 //   ⑤ 覆盖:扫过的表数必须等于目录里的表数(238),扫过的句子必须过一个下限 —— 一次悄悄少扫了的运行不许报"干净"。
 //   ⑥ 商务样例(AUDIT-TRAIL-1b-2):1b-2 每一个主语的字段编辑 · 子行改动 · 关键事件,造出来的英文逐字等于交回报告里列的那一句。
+//   ⑦ 主数据样例(AUDIT-TRAIL-1b-3):1b-3 的物料 · 库位 · 金属价格 · 公式与条款申请 · 任务 · 三个阈值面板,同一个办法;
+//      外加任务修改史与公式修改史每一个 change_type 的机器字扫描(它们是隐藏列,④ 的样本走不到那些分支)。
 //
 // 故障注入(TRAIL_WORDING_FAULT=<臂>,每一臂必须在【它那一臂】红):
 //   blind-detector · registry-drift · missing-key · dead-key · label-gap · enum-gap · raw-date · raw-ref · raw-json · raw-null · raw-role ·
-//   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)
+//   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
+//   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -549,13 +552,171 @@ if (FAULT === 'wording-drift') dict.text = { ...dict.text, 'so.shipped': 'Shippe
     if (FAULT === 'wording-drift' && !problems.gold.length) problems.gold.push('(注入 wording-drift 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑦ 主数据样例(AUDIT-TRAIL-1b-3):物料 · 库位 · 金属价格 · 公式与条款申请 · 任务 · 三个阈值面板 ──────────────
+//   与 ⑥ 同一个办法:每一个新主语的【字段编辑 · 子行改动 · 关键事件】造出来的英文,逐字等于交回报告里列的那一句。
+//   另加两条 ④ 走不到的扫描:任务修改史与公式修改史的 change_type 在目录里是隐藏列(样本里是一个 id),
+//   所以它们的【每一个取值】在这里一种一种造(取值从 CHECK 读,读出 0 个 = 覆盖不足)。
+//   注入:TRAIL_WORDING_FAULT=wording-drift-1b3(改一句措辞,这一臂必须红)。
+problems.gold3 = []
+if (FAULT === 'wording-drift-1b3') dict.text = { ...dict.text, 'loc.classesChanged': 'Allowed classes edited' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const G = (label, subject, rows, want) => {
+        let e
+        try { [e] = R.buildEntries(dict, rows.map((r) => ({ group: 'GOLD3', order: 1, prelog: false, at: '2026-09-29T02:00:00+00:00', key: { id: uuid() },
+            actor: { state: 'person', name: 'Sandra' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r })),
+            { currency: 'SGD', subject }) } catch (err) { problems.gold3.push(`${label}:造句器抛错 ${err.message}`); return }
+        const got = { title: e?.title, part: e?.titlePart?.text ?? null, lines: (e?.lines ?? []).map(lineText), reason: e?.reason?.text ?? null }
+        if (got.title !== want.title) problems.gold3.push(`${label}:标题「${got.title}」≠「${want.title}」`)
+        if ((want.part ?? null) !== got.part) problems.gold3.push(`${label}:标题后那一段「${got.part}」≠「${want.part ?? null}」`)
+        if (want.lines && JSON.stringify(got.lines) !== JSON.stringify(want.lines)) problems.gold3.push(`${label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(want.lines)}`)
+        if ((want.reason ?? null) !== got.reason) problems.gold3.push(`${label}:理由「${got.reason}」≠「${want.reason ?? null}」`)
+    }
+    const metal = (code, label) => ({ metal: { [code]: { label } } })
+    const cls = (code, label) => ({ classification_code: { [code]: { label } } })
+    // 物料
+    G('material · field edit', 'material', [{ table: 'materials', op: 'UPDATE', cols: ['spec'], old: { spec: null }, new: { spec: 'Shredded, <5 mm' } }],
+      { title: 'Material details changed', lines: ['Spec / Description: (empty) → Shredded, <5 mm'] })
+    G('material · assay requirement (delete-all + insert, netted)', 'material', [
+        { table: 'material_required_metals', op: 'DELETE', key: { material_id: id('m'), metal: 'ni' }, old: { metal: 'ni' }, refs: metal('ni', 'Nickel') },
+        { table: 'material_required_metals', op: 'DELETE', key: { material_id: id('m'), metal: 'co' }, old: { metal: 'co' }, refs: metal('co', 'Cobalt') },
+        { table: 'material_required_metals', op: 'INSERT', key: { material_id: id('m'), metal: 'ni' }, new: { metal: 'ni' }, refs: metal('ni', 'Nickel') },
+        { table: 'material_required_metals', op: 'INSERT', key: { material_id: id('m'), metal: 'li' }, new: { metal: 'li' }, refs: metal('li', 'Lithium') }],
+      { title: 'Assay requirement changed', lines: ['Added: Lithium', 'Removed: Cobalt'] })
+    G('material · created (unit stored in Chinese → English, Q8)', 'material', [
+        { table: 'materials', op: 'INSERT', new: { name: 'NMC black mass', unit: '吨', status: 'draft', may_be_processed: true, code: 'MAT-2026-0009' } },
+        { table: 'material_required_metals', op: 'INSERT', key: { material_id: id('m'), metal: 'ni' }, new: { metal: 'ni' }, refs: metal('ni', 'Nickel') }],
+      { title: 'Material created', lines: ['Name: NMC black mass', 'Unit: t', 'May be fed to a processing run: Yes', 'Status: Draft', 'Assay required for: Nickel'] })
+    G('material · deleted', 'material', [{ table: 'materials', op: 'UPDATE', cols: ['deleted_at'], old: { deleted_at: null }, new: { deleted_at: '2026-09-29T02:00:00Z' } }],
+      { title: 'Material deleted', lines: [] })
+    G('material · attachment added', 'material', [{ table: 'material_attachments', op: 'INSERT', new: { file_name: 'coa-2026.pdf', doc_category: 'coa', material_id: id('m') } }],
+      { title: 'Attachment added', part: 'coa-2026.pdf', lines: ['Category: COA'] })
+    // 库位(Q13:一次保存只写变了的 —— 改名 + 加一个分类是【一条】记录)
+    G('location · field edit', 'storage_location', [{ table: 'storage_locations', op: 'UPDATE', cols: ['zone'], old: { zone: 'A' }, new: { zone: 'B' } }],
+      { title: 'Storage location details changed', lines: ['Zone: A → B'] })
+    G('location · class change', 'storage_location', [
+        { table: 'storage_location_allowed_classes', op: 'INSERT', new: { classification_code: 'HW2', location_id: id('l') }, refs: cls('HW2', 'Hazardous waste (lead)') },
+        { table: 'storage_location_allowed_classes', op: 'DELETE', old: { classification_code: 'HW1', location_id: id('l') }, refs: cls('HW1', 'Hazardous waste (lithium)') }],
+      { title: 'Allowed material classes changed · 1 added, 1 removed', lines: ['Added: Hazardous waste (lead)', 'Removed: Hazardous waste (lithium)'] })
+    G('location · rename and a class in one save', 'storage_location', [
+        { table: 'storage_locations', op: 'UPDATE', cols: ['name'], old: { name: 'Bay A1' }, new: { name: 'Bay A1 (north)' } },
+        { table: 'storage_location_allowed_classes', op: 'INSERT', new: { classification_code: 'HW2', location_id: id('l') }, refs: cls('HW2', 'Hazardous waste (lead)') }],
+      { title: 'Allowed material classes changed · 1 added', lines: ['Added: Hazardous waste (lead)', '[Storage location details changed]', 'Name: Bay A1 → Bay A1 (north)'] })
+    G('location · taken out of use', 'storage_location', [{ table: 'storage_locations', op: 'UPDATE', cols: ['is_active'], old: { is_active: true }, new: { is_active: false } }],
+      { title: 'Storage location taken out of use', lines: [] })
+    G('location · created with a class', 'storage_location', [
+        { table: 'storage_locations', op: 'INSERT', new: { code: 'WH-A1', name: 'Bay A1', zone: 'A', is_active: true } },
+        { table: 'storage_location_allowed_classes', op: 'INSERT', new: { classification_code: 'HW1', location_id: id('l') }, refs: cls('HW1', 'Hazardous waste (lithium)') }],
+      { title: 'Storage location created', part: 'WH-A1', lines: ['Name: Bay A1', 'Zone: A', 'Allowed material classes: Hazardous waste (lithium)'] })
+    // 一次操作 = 一笔事务(线上那一次回滚的证明就是这个形状):建库位时勾了一个分类、随后那一次保存把它换掉并改了名 ——
+    //   换分类那一步必须说出来(先插后删不是"整组替换");删掉的那一次把同一次操作里别的改动也带着
+    G('location · created, then renamed and a class swapped in the same operation', 'storage_location', [
+        { table: 'storage_locations', op: 'INSERT', key: { id: id('l2') }, new: { code: 'WH-B2', name: 'Bay B2', zone: 'B', is_active: true } },
+        { table: 'storage_location_allowed_classes', op: 'INSERT', key: { id: id('c1') }, new: { classification_code: 'HW1', location_id: id('l2') }, refs: cls('HW1', 'Hazardous waste (lithium)') },
+        { table: 'storage_locations', op: 'UPDATE', key: { id: id('l2') }, cols: ['name'], old: { name: 'Bay B2' }, new: { name: 'Bay B2 (east)' } },
+        { table: 'storage_location_allowed_classes', op: 'DELETE', key: { id: id('c1') }, old: { classification_code: 'HW1', location_id: id('l2') }, refs: cls('HW1', 'Hazardous waste (lithium)') },
+        { table: 'storage_location_allowed_classes', op: 'INSERT', key: { id: id('c2') }, new: { classification_code: 'HW2', location_id: id('l2') }, refs: cls('HW2', 'Hazardous waste (lead)') }],
+      { title: 'Storage location created', part: 'WH-B2', lines: ['Name: Bay B2', 'Zone: B', 'Allowed material classes: Hazardous waste (lithium)',
+        '[Allowed material classes changed · 1 added, 1 removed]', 'Added: Hazardous waste (lead)', 'Removed: Hazardous waste (lithium)',
+        '[Storage location details changed]', 'Name: Bay B2 → Bay B2 (east)'] })
+    G('material · edited and deleted in the same operation (one merged edit)', 'material', [
+        { table: 'materials', op: 'UPDATE', key: { id: id('m2') }, cols: ['spec'], old: { spec: null }, new: { spec: 'Shredded' } },
+        { table: 'materials', op: 'UPDATE', key: { id: id('m2') }, cols: ['deleted_at'], old: { deleted_at: null }, new: { deleted_at: '2026-09-29T02:00:00Z' } }],
+      { title: 'Material deleted', lines: ['Spec / Description: (empty) → Shredded'] })
+    // 金属价格
+    G('metal price · recorded', 'metal_price', [{ table: 'metal_prices', op: 'INSERT', new: { metal: 'ni', price_date: '2026-09-29', price_usd_per_tonne: 16250,
+        source: 'broker_quote', quote_delayed: false, anomaly_check: { verdict: 'inside' } }, refs: metal('ni', 'Nickel') }],
+      { title: 'Metal price recorded', lines: ['Metal: Nickel', 'Price date: 29/09/2026', 'Price (USD/t): 16,250.00', 'Source: Broker / counterparty quotation', 'Delayed figure: No'] })
+    G('metal price · field edit', 'metal_price', [{ table: 'metal_prices', op: 'UPDATE', cols: ['price_usd_per_tonne', 'source'],
+        old: { price_usd_per_tonne: 16250, source: 'unknown' }, new: { price_usd_per_tonne: 16300, source: 'published_index' } }],
+      { title: 'Metal price changed', lines: ['Price (USD/t): 16,250.00 → 16,300.00', 'Source: Source not recorded → Published index'] })
+    G('metal price · deleted', 'metal_price', [{ table: 'metal_prices', op: 'UPDATE', cols: ['deleted_at'], old: { deleted_at: null }, new: { deleted_at: '2026-09-29T02:00:00Z' } }],
+      { title: 'Metal price deleted', lines: [] })
+    // 定价公式与条款申请
+    G('formula · terms sent to the CFO', 'pricing_formula', [{ table: 'terms_requests', op: 'INSERT', key: { id: id('tr') },
+        new: { kind: 'formula_change', label: 'TR-2026-0004', reason: 'Supplier agreed a higher nickel payable', status: 'submitted' } }],
+      { title: 'Change to the pricing formula sent to the CFO', part: 'TR-2026-0004', lines: [], reason: 'Supplier agreed a higher nickel payable' })
+    G('formula · CFO approved (request + approval + formula + payable in one operation)', 'pricing_formula', [
+        { table: 'terms_requests', op: 'UPDATE', key: { id: id('tr') }, cols: ['status', 'decision_notes'], old: { status: 'submitted' },
+          new: { status: 'approved', decision_notes: 'OK from 1 Oct' }, ctx: { label: 'TR-2026-0004', kind: 'formula_change' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'terms_request', subject_id: id('tr'), subject_code: 'TR-2026-0004', decision: 'approved', note: 'OK from 1 Oct' } },
+        { table: 'pricing_formulas', op: 'UPDATE', cols: ['treatment_charge_usd_per_tonne'], old: { treatment_charge_usd_per_tonne: 300 }, new: { treatment_charge_usd_per_tonne: 280 } },
+        { table: 'pricing_formula_history', op: 'INSERT', new: { change_type: 'update', old_treatment_charge_usd_per_tonne: 300, new_treatment_charge_usd_per_tonne: 280 } },
+        { table: 'pricing_formula_metals', op: 'UPDATE', key: { formula_id: id('f'), metal: 'ni' }, cols: ['payable_pct'], old: { payable_pct: 75 }, new: { payable_pct: 78 },
+          ctx: { metal: 'ni' }, refs: metal('ni', 'Nickel') }],
+      { title: 'CFO approved the terms', part: 'TR-2026-0004', lines: ['[Payable % set · Nickel]', 'Payable %: 75 → 78', '[Pricing formula changed]',
+        'Treatment charge (USD per tonne): 300.00 → 280.00'], reason: 'OK from 1 Oct' })
+    G('formula · field edit before the log (history only)', 'pricing_formula', [{ table: 'pricing_formula_history', op: 'INSERT', prelog: true,
+        new: { change_type: 'update', old_average_days: 5, new_average_days: 10 } }],
+      { title: 'Pricing formula changed', lines: ['Averaging days: 5 → 10'] })
+    // 任务(团队任务的一件事两份 —— change_log 与修改史 —— 只说一次;私人任务只有 change_log)
+    G('task · field edit (team: row + history in one operation)', 'task', [
+        { table: 'tasks', op: 'UPDATE', cols: ['title'], old: { title: 'Ship samples' }, new: { title: 'Ship the samples' } },
+        { table: 'task_history', op: 'INSERT', new: { change_type: 'header_update', old_title: 'Ship samples', new_title: 'Ship the samples' } }],
+      { title: 'Task edited', lines: ['Title: Ship samples → Ship the samples'] })
+    G('task · step ticked (team: row + history)', 'task', [
+        { table: 'task_nodes', op: 'UPDATE', key: { id: id('n1') }, cols: ['done', 'done_at'], old: { done: false, done_at: null }, new: { done: true, done_at: '2026-09-29T02:00:00Z' }, ctx: { title: 'Pack boxes' } },
+        { table: 'task_history', op: 'INSERT', new: { change_type: 'node_done', node_id: id('n1'), old_node_done: false, new_node_done: true } }],
+      { title: 'Step ticked', part: 'Pack boxes', lines: [] })
+    G('task · personal task edited (no history)', 'task', [{ table: 'tasks', op: 'UPDATE', cols: ['status', 'priority'], old: { status: 'todo', priority: 'medium' },
+        new: { status: 'in_progress', priority: 'high' } }],
+      { title: 'Task edited', lines: ['Status: To Do → In Progress', 'Priority: Medium → High'] })
+    G('task · participant added (row + history)', 'task', [
+        { table: 'task_participants', op: 'INSERT', new: { employee_id: id('e2') }, refs: { employee_id: { [id('e2')]: { label: 'Choo Er' } } } },
+        { table: 'task_history', op: 'INSERT', new: { change_type: 'participant_added', employee_id: id('e2') }, refs: { employee_id: { [id('e2')]: { label: 'Choo Er' } } } }],
+      { title: 'Participant added · Choo Er', lines: [] })
+    // 记录开始之前:步骤的建行戳与修改史的 node_added 是同一笔、同一刻(fixture 240 N)—— 只说一次
+    G('task · before the log, a step added (stamp + history in one operation)', 'task', [
+        { table: 'task_nodes', op: 'INSERT', prelog: true, key: { id: id('n9') }, new: { title: 'Old step', target_date: '2026-09-01' } },
+        { table: 'task_history', op: 'INSERT', prelog: true, new: { change_type: 'node_added', node_id: id('n9'), new_node_title: 'Old step', new_node_target_date: '2026-09-01' } }],
+      { title: 'Step added', part: 'Old step', lines: ['Target date: 01/09/2026'] })
+    G('task · made a team task', 'task', [
+        { table: 'tasks', op: 'UPDATE', cols: ['task_type'], old: { task_type: 'personal' }, new: { task_type: 'team' } },
+        { table: 'task_history', op: 'INSERT', new: { change_type: 'promoted_from_personal', employee_id: id('e') } }],
+      { title: 'Made a team task', lines: [] })
+    // 三个阈值面板(M6:读法只交回面板那几列;造句器不加也不减)
+    G('variance thresholds', 'processing_settings', [{ table: 'processing_settings', op: 'UPDATE', cols: ['wo_input_overrun_pct'], old: { wo_input_overrun_pct: 10 }, new: { wo_input_overrun_pct: 12 } }],
+      { title: 'Variance thresholds changed', lines: ['Input overrun (%): 10 → 12'] })
+    G('price anomaly warning', 'pricing_settings', [{ table: 'pricing_settings', op: 'UPDATE', cols: ['metal_price_change_warn_pct'], old: { metal_price_change_warn_pct: 15 }, new: { metal_price_change_warn_pct: 20 } }],
+      { title: 'Price anomaly warning changed', lines: ['Warn above (%): 15 → 20'] })
+    G('discrepancy thresholds', 'receiving_settings', [{ table: 'receiving_settings', op: 'UPDATE', cols: ['grn_short_pct', 'grn_assay_tolerance_pct'],
+        old: { grn_short_pct: 5, grn_assay_tolerance_pct: 10 }, new: { grn_short_pct: 4, grn_assay_tolerance_pct: 12 } }],
+      { title: 'Discrepancy thresholds changed', lines: ['Short delivery (%): 5 → 4', 'Assay tolerance (%): 10 → 12'] })
+    // 修改史的每一个取值(④ 走不到)
+    const taskTypes = checkValues('task_history', 'change_type') ?? []
+    const pfTypes = checkValues('pricing_formula_history', 'change_type') ?? []
+    if (taskTypes.length < 14 || pfTypes.length < 6) problems.coverage.push(`主数据修改史的取值只读出 任务 ${taskTypes.length} / 公式 ${pfTypes.length} —— 解析器瞎了`)
+    for (const ct of taskTypes) for (const prelog of [true, false]) {
+        sweep(`task_history ${ct}${prelog ? '(记录开始之前)' : ''}`, [row('task_history', 'INSERT', { prelog, new: { change_type: ct, node_id: uuid(), employee_id: id('e2'),
+            old_title: 'A', new_title: 'B', old_status: 'todo', new_status: 'done', old_priority: 'low', new_priority: 'high', old_node_title: 'Pack', new_node_title: 'Pack boxes',
+            old_node_target_date: '2026-09-01', new_node_target_date: '2026-09-03', old_node_done: false, new_node_done: true, old_sort_order: 1, new_sort_order: 2 },
+            refs: { employee_id: { [id('e2')]: { label: 'Choo Er' } } } })], 'task')
+    }
+    for (const ct of pfTypes) {
+        sweep(`pricing_formula_history ${ct}`, [row('pricing_formula_history', 'INSERT', { prelog: true, new: { change_type: ct, metal: 'ni', old_payable_pct: 75, new_payable_pct: RESTRICTED,
+            old_name: 'A', new_name: 'B', old_direction: 'purchase', new_direction: 'both', old_price_basis: 'spot', new_price_basis: 'average', old_is_active: true, new_is_active: false },
+            refs: metal('ni', 'Nickel') })], 'pricing_formula')
+    }
+    for (const st of checkValues('terms_requests', 'status') ?? []) {
+        sweep(`terms request → ${st}`, [row('terms_requests', 'UPDATE', { cols: ['status', 'withdrawn_at'], old: { status: 'submitted' }, new: { status: st, withdrawn_at: st === 'withdrawn' ? '2026-09-29T02:00:00Z' : null },
+            ctx: { label: 'TR-2026-0001', kind: 'formula_change' } })], 'pricing_formula')
+    }
+    for (const sub of ['material', 'storage_location', 'metal_price', 'pricing_formula', 'task', 'processing_settings', 'pricing_settings', 'receiving_settings']) {
+        sweep(`${sub} 整条看不见`, [row(subjects.find((x) => x.subject === sub)?.root ?? null, null, { hidden: true, table: null, actor: null })], sub)
+    }
+    if (FAULT === 'wording-drift-1b3' && !problems.gold3.length) problems.gold3.push('(注入 wording-drift-1b3 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + 1
 if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSwept.size} 张表,目录里有 ${expectTables} 张`)
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

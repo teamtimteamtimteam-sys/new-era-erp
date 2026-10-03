@@ -268,6 +268,38 @@ const OVERRIDES = {
     lane_document_requirements: { deleted_at: 'Removed on' },
     ports: { code: 'Port code', name: 'Port name', deleted_at: 'Removed on' },
     company_compliance: { cert_no: 'Licence number', cert_type_code: 'Licence kind' },
+    // ── AUDIT-TRAIL-1b-3:物料 · 库位 · 金属价格 · 公式与条款申请 · 任务 · 三个阈值面板的表(每一列对着它所在的那一页核过 ——
+    //    编辑它的表单的标签优先,列表页的列头其次;交回报告逐条列出)。Step 0 §f 点名、住在这几张表上的四个在这一段:
+    //    task_id 被配成了升级按钮上那句 "Make this a team task"、metal_prices.source 被配成了下拉框的占位 "Choose a source"、
+    //    阈值的两列读成 "Wo input overrun %"、pricing_settings.notes_en 读成 "Notes en"(同形状的 notes_zh、
+    //    wo_output_shortfall_pct 一起改)───────────────────────────────────────────────────────────────
+    materials: { code: 'Code', may_be_processed: 'May be fed to a processing run', safety_stock_qty: 'Safety stock threshold' },
+    material_attachments: { doc_category: 'Category', file_name: 'File' },
+    material_required_metals: { metal: 'Assay required for' },
+    storage_locations: { is_active: 'Active' },
+    storage_location_allowed_classes: { classification_code: 'Allowed material class' },
+    metal_prices: { source: 'Source', price_date: 'Price date', price_usd_per_tonne: 'Price (USD/t)', source_reference: 'Evidence reference', quote_delayed: 'Delayed figure' },
+    pricing_formulas: { code: 'Code', average_days: 'Averaging days', is_active: 'In use' },
+    pricing_formula_history: {
+        old_name: 'Previous formula name', new_name: 'New formula name', old_average_days: 'Previous averaging days',
+        new_average_days: 'New averaging days', old_treatment_charge_usd_per_tonne: 'Previous treatment charge (USD/t)',
+        new_treatment_charge_usd_per_tonne: 'New treatment charge (USD/t)', old_is_active: 'Was in use', new_is_active: 'Now in use',
+    },
+    terms_requests: { kind: 'Request type', label: 'Request', proposed: 'Proposed terms', snapshot: 'Terms before',
+        withdraw_reason: 'Withdrawal reason', executed_at: 'Applied on' },
+    tasks: { code: 'Task number' },
+    task_nodes: { task_id: 'Task', title: 'Step title', parent_id: 'Parent step', done_at: 'Ticked on', done_by: 'Ticked by' },
+    task_participants: { task_id: 'Task', employee_id: 'Participant', removed_at: 'Taken off on', removed_by: 'Taken off by' },
+    task_history: {
+        task_id: 'Task', employee_id: 'Participant', old_reminder_at: 'Previous reminder', new_reminder_at: 'New reminder',
+        old_node_title: 'Previous step title', new_node_title: 'New step title', old_node_target_date: 'Previous step target date',
+        new_node_target_date: 'New step target date', old_node_done: 'Step was ticked', new_node_done: 'Step now ticked',
+        old_sort_order: 'Previous position', new_sort_order: 'New position',
+    },
+    processing_settings: { wo_input_overrun_pct: 'Input overrun (%)', wo_output_shortfall_pct: 'Output shortfall (%)' },
+    pricing_settings: { metal_price_change_warn_pct: 'Warn above (%)', notes_en: 'Notes (EN)', notes_zh: 'Notes (ZH)',
+        default_metal_index: 'Default price index', metal_quote_stale_days: 'Quote goes stale after (days)' },
+    receiving_settings: { grn_short_pct: 'Short delivery (%)', grn_over_pct: 'Over-delivery (%)', grn_assay_tolerance_pct: 'Assay tolerance (%)' },
 }
 // AUDIT-TRAIL-1b-2:勘察把几列自由文本认成了"像枚举"(enum_like)—— 页面上它们是一个随手填的输入框,
 //   审计记录就照原样说(一个人敲的字,Q8),而不是去找一张并不存在的取值表。
@@ -275,6 +307,8 @@ const KIND_OVERRIDES = {
     counterparty_contacts: { role: 'text' },
     container_documents: { document_type: 'text' },
     lane_document_requirements: { document_type: 'text' },
+    // AUDIT-TRAIL-1b-3:任务修改史里的优先级被认成了一段文字 —— 它与 tasks.priority 是同一组取值(High / Medium / Low)
+    task_history: { old_priority: 'enum_like', new_priority: 'enum_like' },
 }
 // 三个主语的表里【本来就不该印的列】(Q12:单据编号自己在标题里,内部代码不上屏)
 const HIDE = {
@@ -300,6 +334,13 @@ const HIDE = {
     quote_history: ['quote_id', 'change_type', 'changed_at', 'changed_by'],
     customer_credit_history: ['customer_id', 'changed_at', 'changed_by'],
     supplier_status_history: ['supplier_id', 'changed_at', 'changed_by'],
+    // AUDIT-TRAIL-1b-3:公式与任务的编号在页头;两张修改史的主键、类型、时刻、人由标题与"谁 · 何时"两栏说;
+    //   金属价格那一格"异常判词"是系统在录入那一刻算的一段 JSON(列表上画成徽章),不是一个人的改动;
+    //   条款申请的指纹是散列;步骤的 parent_depth 是一个生成列(与 depth / sort_order 同类)
+    pricing_formulas: ['code'], tasks: ['code'],
+    pricing_formula_history: ['formula_id', 'change_type', 'changed_at', 'changed_by'],
+    task_history: ['task_id', 'change_type', 'changed_at', 'changed_by', 'node_id'],
+    metal_prices: ['anomaly_check'], terms_requests: ['fingerprint'], task_nodes: ['parent_depth'],
 }
 
 // ── 记录类型的英文名(单数)与区域 ─────────────────────────────────────────────
@@ -340,6 +381,12 @@ const TABLE_NAMES = {
     containers: 'container', container_milestones: 'container milestone', container_documents: 'container document',
     forwarder_details: 'forwarder logistics details', forwarder_rate_quotes: 'rate quote', lanes: 'lane',
     lane_document_requirements: 'required lane document', ports: 'port', company_compliance: 'company licence',
+    // AUDIT-TRAIL-1b-3
+    material_attachments: 'material attachment', material_required_metals: 'assay requirement',
+    storage_locations: 'storage location', storage_location_allowed_classes: 'allowed material class', metal_prices: 'metal price',
+    pricing_formulas: 'pricing formula', pricing_formula_metals: 'payable metal', pricing_formula_history: 'pricing formula change',
+    terms_requests: 'terms request', processing_settings: 'variance threshold setting', pricing_settings: 'price anomaly setting',
+    receiving_settings: 'discrepancy threshold setting',
 }
 // 区域:按表名开头认(先长后短),认不出的归 Other。区域名与导航模块的英文说法一致。
 const AREA_RULES = [
@@ -444,6 +491,26 @@ const ENUM_OVERRIDES = {
     'supplier_attachments#doc_category': { 'hazardous-waste-permit': 'Hazardous waste permit', 'import-license': 'Import licence',
         'export-license': 'Export licence', 'basel-document': 'Basel document', contract: 'Contract', other: 'Other' },
     'container_documents#status': { pending: 'Pending', received: 'Received', not_applicable: 'Not applicable' },
+    // ── AUDIT-TRAIL-1b-3 ──────────────────────────────────────────────────────────────────────────────
+    //   物料的状态是一段自由文本(线上只有 draft);附件的分类照附件面板的说法(materials.attachments.cat.*);
+    //   价格基准照公式列表的说法;条款申请的种类与状态:页面上那几句是卡片标题("…is waiting for the CFO")与小写的
+    //   "waiting",放进一行"Status: waiting → approved"读不通 —— 这里给它们短而完整的说法
+    'materials#status': { draft: 'Draft', active: 'Active', inactive: 'Inactive' },
+    'material_attachments#doc_category': { 'spec-sheet': 'Spec sheet', msds: 'MSDS', coa: 'COA', datasheet: 'Datasheet', other: 'Other' },
+    'pricing_formulas#price_basis': { spot: 'Spot', average: 'Average' },
+    'pricing_formula_history#old_price_basis': { spot: 'Spot', average: 'Average' },
+    'pricing_formula_history#new_price_basis': { spot: 'Spot', average: 'Average' },
+    'pricing_formula_history#old_direction': { purchase: 'Purchase', sale: 'Sale', both: 'Both' },
+    'pricing_formula_history#new_direction': { purchase: 'Purchase', sale: 'Sale', both: 'Both' },
+    'pricing_formula_history#change_type': { create: 'Created', update: 'Edited', delete: 'Deleted', restore: 'Restored',
+        metal_set: 'Payable % set', metal_clear: 'Payable % removed' },
+    'terms_requests#kind': { formula_create: 'New pricing formula', formula_change: 'Change to a pricing formula',
+        formula_reactivate: 'Pricing formula back in use', contract_activate: 'Contract activation' },
+    'terms_requests#status': { submitted: 'Waiting for the CFO', approved: 'Approved', rejected: 'Rejected', withdrawn: 'Withdrawn' },
+    'task_history#old_status': { todo: 'To Do', in_progress: 'In Progress', done: 'Done' },
+    'task_history#new_status': { todo: 'To Do', in_progress: 'In Progress', done: 'Done' },
+    'task_history#old_priority': { high: 'High', medium: 'Medium', low: 'Low' },
+    'task_history#new_priority': { high: 'High', medium: 'Medium', low: 'Low' },
     'work_order_history#change_type': { created: 'Created', released: 'Released', closed: 'Closed', cancelled: 'Cancelled',
         header_update: 'Details changed', line_add: 'Input line added', line_update: 'Input line changed', line_remove: 'Input line removed',
         expected_add: 'Expected output added', expected_update: 'Expected output changed', expected_remove: 'Expected output removed' },

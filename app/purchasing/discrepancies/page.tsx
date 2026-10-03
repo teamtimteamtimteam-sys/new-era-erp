@@ -25,13 +25,14 @@ import { can } from '@/lib/permissions'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import ReceivingThresholdPanel from './ReceivingThresholdPanel'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import DiscrepancyKinds, {
     type DiscrepancyRow, type ReceivingThresholds,
 } from '@/app/components/receiving/DiscrepancyKinds'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
 
-export default async function ReceivingDiscrepanciesPage() {
+export default async function ReceivingDiscrepanciesPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推(这一页尤其:视图对无权者就是 0 行)。
@@ -113,11 +114,18 @@ export default async function ReceivingDiscrepanciesPage() {
                         {t('grn.po.thresholdsRestricted')}
                     </p>
                 ) : settings ? (
-                    <ReceivingThresholdPanel
-                        shortPct={Number(settings.grn_short_pct)}
-                        overPct={Number(settings.grn_over_pct)}
-                        assayPct={Number(settings.grn_assay_tolerance_pct)}
-                        canEdit={canEdit} />
+                    <>
+                        <ReceivingThresholdPanel
+                            shortPct={Number(settings.grn_short_pct)}
+                            overPct={Number(settings.grn_over_pct)}
+                            assayPct={Number(settings.grn_assay_tolerance_pct)}
+                            canEdit={canEdit} />
+                        {/* AUDIT-TRAIL-1b-3(Step 0 §a,M5 · M6):这块面板自己的审计记录 —— 只有它编辑的那三列;
+                            与面板同在 module.inbound.view 这一支里(receiving_settings 的门) */}
+                        <div className="mb-6">
+                            <AuditTrail subject="receiving_settings" id="true" show={trailCount((await searchParams).trail)} />
+                        </div>
+                    </>
                 ) : null}
 
                 {rows.length === 0 ? (

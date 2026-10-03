@@ -14,4 +14,12 @@ export const TRAIL_MACHINE_VALUES: Record<string, Record<string, string>> = {
         '加工中': 'Processing started',
         '已加工完': 'Fully processed',
     },
+    // AUDIT-TRAIL-1b-3:物料的单位 —— 下拉框把选项的值存成中文(app/materials/options.ts 的 UNIT_OPTIONS),
+    //   页面上照 units.* 说英文;审计记录同一套说法。数量后面的单位(lib/trail/render.ts 的 unitText)也查这里。
+    'materials#unit': {
+        'kg': 'kg',
+        '吨': 't',
+        '克': 'g',
+        '件': 'pcs',
+    },
 }

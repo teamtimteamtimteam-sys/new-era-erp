@@ -8,11 +8,12 @@ import { requireEditPermission } from '@/app/components/moduleGuard'
 import { getMetalPriceIndices } from '../../indexQuery'
 import { loadSubstances, toOptions } from '../../substanceQuery'
 import { formatDate } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 export default async function EditMetalPricePage({
-    params,
+    params, searchParams,
 }: {
-    params: Promise<{ id: string }>
+    params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
 }) {
     // 【本页把关用 action.metal_prices,不是 module.pricing.view。这是那条规矩的「写」那一半】
     // 规矩只有一条:【守卫跟着数据自己的 RLS 走,不跟模块目录走】。
@@ -71,6 +72,9 @@ export default async function EditMetalPricePage({
             </div>
 
             <EditMetalPriceForm substanceOptions={substanceOptions} indices={indices} locale={locale} row={row} />
+
+            {/* AUDIT-TRAIL-1b-3(Q2):一条报价只有这一页,审计记录在它的底部 */}
+            <AuditTrail subject="metal_price" id={row.id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

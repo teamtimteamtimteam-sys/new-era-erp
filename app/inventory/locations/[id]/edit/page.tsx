@@ -11,11 +11,12 @@ import { getWasteClassifications } from '@/app/materials/wasteClassQuery'
 import LocationForm from '../../LocationForm'
 import LocationActiveToggle from '../../LocationActiveToggle'
 import { updateLocation } from '../../actions'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 export default async function EditLocationPage({
-    params,
+    params, searchParams,
 }: {
-    params: Promise<{ id: string }>
+    params: Promise<{ id: string }>; searchParams: Promise<{ trail?: string }>
 }) {
     const denied = await requireModule(MOD.inventory)
     if (denied) return denied
@@ -86,6 +87,9 @@ export default async function EditLocationPage({
                 <h2 className="mb-3">{t('locations.statusSectionTitle')}</h2>
                 <LocationActiveToggle id={loc.id} isActive={loc.is_active} />
             </section>
+
+            {/* AUDIT-TRAIL-1b-3(Q2):库位只有这一页,审计记录在它的底部;允许分类的保存只写变了的那几条(Q13) */}
+            <AuditTrail subject="storage_location" id={loc.id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }
