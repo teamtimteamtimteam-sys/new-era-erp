@@ -161,6 +161,16 @@
 >    1b-1 的十个主语调 `record_trail`;旧的报价 / 订单页照旧读 `quote_history` / `sales_order_history`);提前到来、而且是本意的:
 >    `/settings/change-history` 的 Record 一栏,预留、发货单明细、订单事件史的行指向它们的订单 / 发货单。
 >    见 `docs/handbacks/AUDIT-TRAIL-1b-2.md` §7。
+> 26. **✅ 主数据与工具的审计记录、删掉的记录只读打开 —— AUDIT-TRAIL-1b-3(`v1.4.33` 的一部分,【未发布】,2026-10-03)。AT-1b 三刀做完。**
+>    内容见下面「HISTORY family」一节 AT-1b 那一块的 ✅ AT-1b-3。
+>    ★ **部署:Tim 在 Vercel 上确认 `24b913fd` 已部署(AT-1b-3 close-out + AT-1c Step 0 委托书,2026-10-03)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-03 10:31:01 CST**(测量:`db/migration-windows.tsv`)· 终点下界 **2026-10-03 12:24:10 CST**(测量:推送把
+>    `origin/main` 移到 `24b913fd`,`git reflog show --date=iso refs/remotes/origin/main`)· 终点上界 **2026-10-03 12:27:47 CST**
+>    (推导:close-out 这一次会话第一条命令的时刻,手里已经有 Tim 的"已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 53 min 09 s,至多 1 h 56 min 46 s。** 窗口里**没有写入的路坏掉**(三支登记函数同签名原地替换;旧的库位动作照旧
+>    直写那三下,仍然被允许;新函数 `save_storage_location` 部署前没人调);看得见的一处:旧的 `/settings/deleted` 把新加的四类
+>    (客户 · 供应商 · 物料 · 公式)列成**原样的键名**(`deleted.kind.customer`)、**没有链接** —— 旧页面两样都没有。
+>    应用迁移那一段(10:29:17 → 10:31:01)`deleted_records` 被视图替换锁着。见 `docs/handbacks/AUDIT-TRAIL-1b-3.md` §7。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
