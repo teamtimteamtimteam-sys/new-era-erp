@@ -114,6 +114,18 @@
 --                    ★ M11:'collection' —— 没有根行,那张字典表的每一行、change_log 里它的每一行都属于这一块;根键照写那张表的主键
 --                    (code),record_trail 不用它。
 --   ☞ M12('gate:reviewer')本刀没有主语用它(它的第一个用户是 AT-1d-3 的 /my-reviews);fixture 244 用一个临时主语证它。
+-- AUDIT-TRAIL-1d-2(Tim 2026-10-04,AT-1d Step 0 §a,Q1 拆分的第二刀:请假与考勤):
+--   leave_request     → /hr/leave/[id]                  requireModule(MOD.hr)          = module.hr.view
+--                    根表的读规则是 hr.view 或【这张单说的就是你】—— 与页面同一个答案
+--   my_leave_request  → /me 本人那几张(Q14,M8:没有页面码 —— 根行自己的读规则就是门;审批与消耗那几行对本人是 Restricted)
+--   leave_grant       → /hr/leave/grants 那一块(清单块,按年)         module.hr.view
+--   leave_types       → /hr/leave/types(M11 集合,根键 code)         module.hr.view
+--   public_holidays   → /hr/leave/holidays(M11 集合 —— 假期是【硬删】的,一行删掉之后只剩变更记录里那一份影像)
+--   medical_claim     → /hr/claims/[id]                 requireModule(MOD.hr)          = module.hr.view
+--   my_medical_claim  → /me 本人那几张(Q14,M8)
+--   overtime_batch    → /hr/overtime/[id]               requireFunction(FN.overtime)   = M1:hr.view · overtime_enter · overtime_approve
+--                    (与页面守卫、与 overtime_batches 的读规则逐字同一组码)
+--   attendance_period → /hr/attendance/[id]             requireModule(MOD.hr)          = module.hr.view
 -- 【后面几刀加主语】加一行这里、在 trail_subject_members 里登记它的子行与相关行、需要的话在
 --   trail_prelog_sources 里登记"记录开始之前"的来源,然后在 lib/trail/ 里补它的措辞 —— 见 docs/change-log.md §9。
 CREATE OR REPLACE FUNCTION public.trail_subjects()
@@ -203,6 +215,16 @@ AS $function$
         ('dictionary_material_kinds',      ARRAY['module.materials.view'], 'material_kinds',         'code', 'collection', NULL),
         ('dictionary_inbound_safety_states', ARRAY['module.materials.view'], 'inbound_safety_states', 'code', 'collection', NULL),
         ('dictionary_laboratories',        ARRAY['module.inbound.view'],   'laboratories',           'code', 'collection', NULL),
-        ('dictionary_inbound_source_reasons', ARRAY['module.inbound.view'], 'inbound_source_reasons', 'code', 'collection', NULL)
+        ('dictionary_inbound_source_reasons', ARRAY['module.inbound.view'], 'inbound_source_reasons', 'code', 'collection', NULL),
+        -- AUDIT-TRAIL-1d-2
+        ('leave_request',     ARRAY['module.hr.view'],            'leave_requests',     'id', 'table', NULL),
+        ('my_leave_request',  ARRAY[]::text[],                    'leave_requests',     'id', 'table', NULL),
+        ('leave_grant',       ARRAY['module.hr.view'],            'leave_grants',       'id', 'table', NULL),
+        ('leave_types',       ARRAY['module.hr.view'],            'leave_types',        'code', 'collection', NULL),
+        ('public_holidays',   ARRAY['module.hr.view'],            'public_holidays',    'id', 'collection', NULL),
+        ('medical_claim',     ARRAY['module.hr.view'],            'medical_claims',     'id', 'table', NULL),
+        ('my_medical_claim',  ARRAY[]::text[],                    'medical_claims',     'id', 'table', NULL),
+        ('overtime_batch',    ARRAY['module.hr.view', 'action.overtime_enter', 'action.overtime_approve'], 'overtime_batches', 'id', 'table', NULL),
+        ('attendance_period', ARRAY['module.hr.view'],            'attendance_periods', 'id', 'table', NULL)
     ) AS s(subject, view_codes, root_table, root_key, root_rule, root_columns);
 $function$;

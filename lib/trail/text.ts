@@ -742,6 +742,57 @@ export const TRAIL_TEXT = {
     'imp.imported.many': '{n} {thing} records imported from a file',
     'listTrail.intro.importBatches': 'Bulk imports · newest first · Singapore time',
     // ── 结束了的记录(Q25 · Q26):删掉的角色 · 员工 · 部门 · 培训记录 —— 用 banner.deleted / banner.deletedDate ──
+    // ════ AUDIT-TRAIL-1d-2(Tim 2026-10-04)── 请假与考勤 ────────────────────────────────────────────
+    //    前缀是 lv. / lgr. / mc. / ot. / attp.(att. 已经是附件的),不是 leave. / claims. / overtime. / attendance.:后四个是 messages/en.ts 的顶层命名空间
+    //    (那几页),check-i18n 会把这里的键当成界面键去两边找(dictv. 的同一条)
+    // ── 请假(G01–G04;Q12:取消改写决定那一对戳,按状态说)──────────────────────────────────────
+    'lv.days.one': '1 day',
+    'lv.days.many': '{n} days',
+    'lv.requested': 'Leave requested: {days} of {type}',
+    'lv.approved': 'Leave approved',
+    'lv.rejected': 'Leave rejected',
+    'lv.cancelled': 'Leave cancelled',
+    'lv.changed': 'Leave request changed',
+    'lv.daysTaken': 'Days taken from the balance',
+    'lv.daysReturned': 'Days returned to the balance',
+    'lv.exception': 'Days entered by hand (exception)',
+    // ── 假期发放(G06;一次结转是一条 —— 清单块按操作并)───────────────────────────────────────────────
+    'lgr.carried': 'Unused leave carried forward: {days}',
+    'lgr.carriedMany': 'Unused leave carried forward · {n} people',
+    'lgr.granted': 'Leave granted: {days}',
+    'lgr.changed': 'Leave grant changed',
+    'lgr.removed': 'Leave grant removed',
+    // ── 医疗报销(G07–G11)────────────────────────────────────────────────────────────────────
+    'mc.submitted': 'Medical claim submitted: {amount}',
+    'mc.approved': 'Medical claim approved',
+    'mc.rejected': 'Medical claim rejected',
+    'mc.withdrawn': 'Medical claim withdrawn',
+    'mc.expenseRaised': 'Expense raised to pay the claim',
+    'mc.changed': 'Medical claim changed',
+    // ── 加班(G16–G22;Q35:驳回照页面的话说 "Sent back")──────────────────────────────────────────
+    'ot.started': 'Overtime batch started',
+    'ot.submitted': 'Overtime sent for approval',
+    'ot.submittedHours': 'Overtime sent for approval: {hours} hours',
+    'ot.withdrawn': 'Overtime taken back for changes',
+    'ot.approved': 'Overtime approved',
+    'ot.sentBack': 'Overtime sent back',
+    'ot.reversed': 'Overtime reversed',
+    'ot.discarded': 'Overtime batch discarded',
+    'ot.changed': 'Overtime batch changed',
+    'ot.lineAdded': 'Overtime line added',
+    'ot.lineRemoved': 'Overtime line removed',
+    'ot.lineChanged': 'Overtime line changed',
+    // ── 考勤(G56–G58;Q12:记录开始之前只剩最近那一次完成与重开 —— 照直说)──────────────────────────
+    'attp.opened': 'Attendance period opened',
+    'attp.completed': 'Attendance period completed',
+    'attp.reopened': 'Attendance period reopened',
+    'attp.frozen': 'Attendance figures frozen',
+    'attp.joinersAdded': 'New joiners added to the sheet',
+    'attp.recorded': 'Attendance recorded',
+    'attp.changed': 'Attendance period changed',
+    'attp.people': 'People',
+    'attp.latestOnly': 'Only the latest completion and reopening of this month were kept before the log began.',
+    'listTrail.intro.leaveGrants': 'Leave grants for this leave year · newest first · Singapore time',
 } as const
 
 export type TrailTextKey = keyof typeof TRAIL_TEXT

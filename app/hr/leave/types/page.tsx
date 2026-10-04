@@ -18,8 +18,9 @@ import LeaveTypesEditor, { type LeaveTypeRow } from './LeaveTypesEditor'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function LeaveTypesPage() {
+export default async function LeaveTypesPage({ searchParams }: { searchParams: Promise<{ trail?: string | string[] }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.hr)
@@ -45,6 +46,8 @@ export default async function LeaveTypesPage() {
             }
         >
             <LeaveTypesEditor rows={rows} />
+            {/* AUDIT-TRAIL-1d-2(M11):整张假别表一段 —— 每一个假别的建立与每一次改动(假别建好之后不删,只停用) */}
+            <AuditTrail subject="leave_types" id="all" show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

@@ -19,8 +19,12 @@ import { formatAuditStamp, formatDate, formatMonth, toYearMonth, toYmd } from '@
 import ActorName, { loadActorNames } from '@/app/components/ActorName'
 import BatchDetail, { type LineRow, type StaffOption } from './BatchDetail'
 import { OVERTIME_STATUS_CLS } from '../BatchesTable'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function OvertimeBatchPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function OvertimeBatchPage({ params, searchParams }: {
+    params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
+}) {
     const denied = await requireFunction(FN.overtime)
     if (denied) return denied
 
@@ -150,6 +154,10 @@ export default async function OvertimeBatchPage({ params }: { params: Promise<{ 
                 iSubmitted={iSubmitted}
                 iAmInIt={iAmInIt}
             />
+
+            {/* AUDIT-TRAIL-1d-2:页底的审计记录(上面那几行"谁做的"照旧 —— 它是这一批此刻的样子,Q27;记录补上丢弃、
+                与被重新送审抹掉的那几次决定)。人名照 ActorName 的规矩:不持 hr.view 的批准人看到的是 Restricted(Q20,已登记) */}
+            <AuditTrail subject="overtime_batch" id={batch.id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

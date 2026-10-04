@@ -22,7 +22,7 @@
 //     给【派生累积】那一行的 grant_id 是 NULL(db/functions/leave_balance_internal.sql:76),
 //     而组件的 rowKey 要一个真的字符串。转换之前那里是 key={null} —— React 退回
 //     用下标,并在开发档打一句警告。这一处【只改键,不改任何看得见的东西】。
-import { useState, useTransition } from 'react'
+import { useState, useTransition, type ReactNode } from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import LeaveForm, { type LeaveTypeOption } from '@/app/hr/leave/LeaveForm'
 import { cancelLeave } from '@/app/hr/leave/actions'
@@ -48,14 +48,16 @@ type Req = {
     decision_notes: string | null
 }
 
+// AUDIT-TRAIL-1d-2(Q14):每一张自己的请假一段审计记录(服务端造好,按请假 id 交进来;折起来,与报销那一块同一个做法)
 export default function MyLeavePanel({
-    employeeId, balance, requests, types, decisions,
+    employeeId, balance, requests, types, decisions, trails = {},
 }: {
     employeeId: string
     balance: Balance | null
     requests: Req[]
     types: LeaveTypeOption[]
     decisions: Record<string, Decision>
+    trails?: Record<string, ReactNode>
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -196,6 +198,16 @@ export default function MyLeavePanel({
                 phone={{ mode: 'columns' }}
                 empty={t('me.noLeave')}
             />
+            {requests.length > 0 && (
+                <div className="mt-4 space-y-2">
+                    {requests.map((r) => (
+                        <div key={r.id} className="text-sm">
+                            <span className="text-xs text-[color:var(--brand-muted-text)]">{r.code}</span>
+                            {trails[r.id]}
+                        </div>
+                    ))}
+                </div>
+            )}
         </section>
     )
 }

@@ -236,7 +236,9 @@ v1.4.33) built the last four mechanism pieces — M9 (a log-only root: login acc
 collection subject), M12 (a gate narrower than the table's rule) — made `/settings/change-history` re-check each row's read rule (Q13), and
 added accounts (per account on `/settings/accounts`, mirrored on the employee page), role grants on the role page, the approval-policy panel,
 the six dictionaries, the import-batch block, employees, departments and training records, with deleted roles, employees, departments and
-training records opening read-only (§9.14). AT-1d-2 (leave and time) and AT-1d-3 (pay and performance) follow
+training records opening read-only (§9.14). AUDIT-TRAIL-1d-2 (part of v1.4.33) added leave and time — leave requests, leave grants, leave types
+and public holidays (collections, a deleted holiday included), medical claims (reachable from the expense that pays them), overtime batches,
+attendance periods, and the employee's own leave requests and medical claims on `/me` (§9.15). AT-1d-3 (pay and performance) follows
 (`docs/forward-queue.md`, "HISTORY family").
 Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`), AT-1b Step 0 Q1–Q14 + M1–M6
 (`docs/surveys/AUDIT-TRAIL-1b/STEP0-HANDBACK.md`) and AT-1c Step 0 Q1–Q34 (`docs/surveys/AUDIT-TRAIL-1c/STEP0-HANDBACK.md`),
@@ -307,6 +309,14 @@ all accepted as recommended; AT-1d Step 0 Q1–Q38 (`docs/surveys/AUDIT-TRAIL-1d
 | `/settings/import` (1d-1, `ListTrail`, Q24) | `import_batch` | `action.bulk_import` | each batch: who, when, file, rows, first and last number. Imported records carry no link back to their batch (the `import_batches` table comment, Q24) |
 | `/hr/employees/[id]` (1d-1, Q28) | `employee` | `module.hr.view` | the employee · employment history · salary change requests and their approvals (Restricted without `data.view_pay`) · training records (home: the training record) · additional logins and their history · the account mirror (Q24 · Q21): the primary and additional login accounts (up, M9) and their role grants — account events and the link history are Restricted to a reader without `action.manage_permissions`; grants are visible (every login reads `user_roles`) |
 | `/hr/departments/[id]/edit` · `/hr/training/[id]/edit` (1d-1, their only pages) | `department` · `training_record` | `module.hr.view` | the department · the training record |
+| `/hr/leave/[id]` (1d-2) | `leave_request` | `module.hr.view` | the request · its decision or cancellation · the days drawn from or returned to the balance (`leave_consumption`) · its approval rows (folded into the decision) |
+| `/me`, one per own leave request and medical claim (1d-2, Q14, compact) | `my_leave_request` · `my_medical_claim` | **none** (M8: the row's own rule — HR, or it is yours) | the same rows; approvals, draws and the finance side are Restricted to the employee (Q4); names follow the ActorName rule (Q15) |
+| `/hr/leave/grants` (1d-2, `ListTrail`, the selected leave year) | `leave_grant` | `module.hr.view` | each grant; one carry-forward run reads as one entry, "Unused leave carried forward · N people" (Q16) |
+| `/hr/leave/types` · `/hr/leave/holidays` (1d-2, one block per page) | `leave_types` · `public_holidays` | `module.hr.view` | M11: every leave type / every public holiday — added, changed, deactivated, and (holidays) hard-deleted, said with its last values |
+| `/hr/claims/[id]` (1d-2) | `medical_claim` | `module.hr.view` | the claim · its decision (approval folded in) · its withdrawal · the expense raised to pay it, that expense's journal, allocations and reversal (finance only — Restricted for an HR-only reader) |
+| `/finance/expenses/[id]` (1c-1, extended in 1d-2, Q37) | `expense` | `module.finance.view` | + the medical claim that the expense pays (not home) |
+| `/hr/overtime/[id]` (1d-2) | `overtime_batch` | `module.hr.view` **or** `action.overtime_enter` **or** `action.overtime_approve` (M1) | the batch · its lines (removed lines from their last image) · sent for approval / taken back / approved / "Overtime sent back" (Q35) / reversed / discarded, with the approval rows folded in |
+| `/hr/attendance/[id]` (1d-2) | `attendance_period` | `module.hr.view` | the period · opened (people) · joiners added · each line recorded · completed (one sentence for the mass updates) · reopened with its reason |
 
 ### 9.1 The reader: `record_trail(subject, id, entries)`
 
@@ -544,7 +554,7 @@ samples must all be caught, a known-good sentence must pass).
 | **M7** (1c-1) | a member with **no foreign key** under a single-row root: every row of that table, and every log row of it (`match` filtered), belongs to the singleton (`hop = 'all'`, `fk_column` NULL). Ignored unless the parent is the subject's root table. `trail_row_record` gives such a row the singleton as its home | `trail_subject_members.hop = 'all'` | `finance_lock` (1c-3: `period_closes` — a month close reads "Finance settings" in the summary page's Record column); AT-1d's approval policy (`finance_settings_history`) |
 | **M9** (1d-1) | a **log-only root** outside `public`: `trail_log_only_tables()` names the table (`auth.users`), the **safe projection** it may be read through (`id, email, created_at, banned_until` — never the whole auth row, which carries the password hash and six token columns) and a **declared read code** (`action.manage_permissions`) that stands in for its policies. `trail_current_image` and `trail_row_visible` consult it; its creation after the log is an `ACCOUNT_CREATE` row, so the pre-log creation is skipped when either that or an `INSERT` exists | `trail_log_only_tables()` | `account` on `/settings/accounts`; the account mirror on `/hr/employees/[id]` (up hops to `auth.users`) |
 | **M10** (1d-1) | a **member limited to declared columns** (M6 on a member): `trail_member_columns()` gives `(subject, ord) → columns`; a change touching none is dropped, the rest keep only those columns, and a column-limited member contributes no pre-log creation | `trail_member_columns()` (a side registry — changing `trail_subject_members`' return type would break every fixture that redefines it) | the account trail's employee row (`user_id` only — an HR edit of that person is not the account's business) |
-| **M11** (1d-1) | `root_rule = 'collection'`: **no root row**; every current row of the table and every log row of it belong to the record, each checked against its own read rule. `p_id` is ignored (pages pass `'all'`) | `trail_subjects.root_rule` | the six dictionaries. AT-1d-2 / 1d-3: public holidays (hard-deleted), leave types, the rating scale |
+| **M11** (1d-1) | `root_rule = 'collection'`: **no root row**; every current row of the table and every log row of it belong to the record, each checked against its own read rule. `p_id` is ignored (pages pass `'all'`) | `trail_subjects.root_rule` | the six dictionaries; AT-1d-2: public holidays (hard-deleted) and leave types; AT-1d-3: the rating scale |
 | **M12** (1d-1) | `root_rule = 'gate:<name>'`: the root row must pass its table's read rule **and** `trail_root_gate(<name>, …)` — a closed set (`reviewer`: the review's `reviewer_employee_id` is the reader); an unknown name admits nobody. May be combined with M8 (no page code) | `trail_root_gate()` | none yet — AT-1d-3's `/my-reviews/[id]`; proved with a temporary subject in fixture 244 |
 | **M8** (1c-3) | a subject with **no page code**: `view_codes` is an empty array, and the root row's own read rule is the only gate. Allowed only with `root_rule = 'table'` — `'page'` with no code would open the record to everyone, so `record_trail` refuses it (`TRAIL_NOT_PERMITTED`); `NULL` codes are still refused | `trail_subjects.view_codes = ARRAY[]::text[]` | `my_expense_claim` on `/me` (the claimant reads their own claim; `expense_claims`' read rule is finance or own) |
 
@@ -742,3 +752,42 @@ until they are dropped.
   on its role page, the policy panel, six dictionary sections, the import block, the deleted role and employee (read-only for admin, a named
   refusal for `gm`), `/settings/deleted`, and zh = en on every 1d-1 page.
 
+### 9.15 Leave and time (AUDIT-TRAIL-1d-2, Tim's AT-1d Q1–Q38)
+
+- **A decision is one sentence (Q12 · Q2).** Approving leave writes the request's status and decision stamp, an approval row and one draw per
+  source of days in one transaction: "Leave approved", the days taken as a line, the approver's note as the reason. A cancellation reads "Leave
+  cancelled" with the days returned. Medical claims ("Medical claim approved / rejected / withdrawn") and overtime ("Overtime sent for approval: N
+  hours", "Overtime taken back for changes", "Overtime approved", "Overtime sent back" — the page's own words, Q35 — "Overtime reversed",
+  "Overtime batch discarded") work the same way; their approval rows fold into the sentence and, on their own (before the log), say the same words.
+- **Stamps that are the only record (Q12).** Before the log, the leave decision stamp is read by the request's **current** status: approved and
+  rejected fold with the approval row written at the same moment; cancelled is the cancellation (cancelling overwrites the stamp — the two live
+  self-cancellations have nothing else). Because the stamp carries today's `decision_notes`, a cancellation before the log names that column
+  ("Decision notes: …") rather than presenting it as the cancellation's reason. Overtime `reversed_*` and `discarded_*` fold with the lines'
+  `voided_at`. Attendance `completed_*` folds with the lines' `frozen_at`; reopening clears the completion and overwrites the last reopen, so the
+  trail says "Only the latest completion and reopening of this month were kept before the log began." A medical claim's withdrawal recorded no
+  person: "Not recorded", never `updated_by`.
+- **Machine text (Q10).** With approvals off, `decide_overtime_batch` appends a Chinese sentence to the approver's note; the renderer strips it
+  (`stripOvertimeMachineNote`) and keeps the person's words. On the claim page, the note `pay_medical_claim` writes into the expense ("Medical
+  claim MC-… (EMP-…)") is not presented as a reason. The writers are unchanged (`docs/known-issues.md`).
+- **Side effects are not events.** Submitting and approving overtime restamp every line's day kind; reversing and discarding void every line;
+  completing attendance freezes every line's derived figures. None of these is said line by line.
+- **Collections (M11).** Leave types and public holidays are one block each. A holiday is hard-deleted; the trail finds it in the change log and
+  says "Public holiday deleted · <name>" with its last date. `holiday_key` (a machine key) is hidden (Q33).
+- **`/me` (Q14 · Q15).** Only the two request kinds the employee raises carry a trail on `/me`, under M8. The approval rows, the leave draws and the
+  finance side of a claim are Restricted there; the decider is named by the ActorName rule (Restricted to an employee without hr.view; the
+  `/me` table's Decision column already names who decided).
+- **Overtime (M1 · Q20).** The batch is readable by any of the page's three codes. The warehouse approver, who holds `action.overtime_approve`
+  but not `module.hr.view`, sees the employees on the lines and the people who acted as Restricted in the trail, while the page shows him the
+  line names — the registered difference (`AT1D1-OVERTIME-APPROVER-NAMES-PAGE-VS-TRAIL`).
+- **Links (Q36 · Q37).** `document_types`: medical claims and attendance periods link to their detail pages. Overtime batches have no `code` column
+  and stay out of `document_types` (global search builds `SELECT code`); their label and link come from `trail_ref_label` / `trail_row_record`,
+  the same shape as sales (1c-2). The expense subject gains `medical_claims` as a member (not home), so an expense raised for a claim shows it.
+- **Working lists kept (Q27).** The leave consumption table and the overtime "Started by / Submitted by / Decided by / Reversed by" list stay.
+- **Checks.** Fixture **245** (each subject's field edit and key event; the pre-log leave fold and the self-cancellation; M8 on `/me` with ActorName;
+  one carry-forward run; both collections and a hard-deleted holiday; Q37; the claim's withdrawal "Not recorded"; M1 and Q20 on overtime; the
+  pre-log discard, reversal, reopen ("latest only") and completion folds; Q12 and Q36 registrations), fault-injected by
+  `db/scripts/2026-10-04-at1d2-fixture-injections.py` (16 injections, each red in its own arm). `scripts/check-trail-wording.mjs` arm
+  **⑫ 请假与考勤** (47 goldens, plus a machine-token sweep over the nine subjects with the page's own subject, every approval decision and every
+  overtime status; injection `wording-drift-1d2`). Smoke `trail` assertions on the seven 1d-2 pages (the overtime and attendance detail pages stay
+  on the skip list: none on live). `scripts/probe-at1d2.mjs`: every live leave request, medical claim, its expense (Q37), the leave-type, holiday
+  and grant pages, in both interfaces.

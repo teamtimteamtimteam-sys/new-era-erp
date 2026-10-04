@@ -207,6 +207,18 @@
 >    没变;旧应用不叫十二个新主语,1c-1 / 1c-2 的主语照旧读得出 —— 迁移自己的证明读过)。提前看得见、而且是有意的:`/settings/change-history`
 >    上日记账申请及其审批那几行的 Record 一栏改名为申请本身;月结那几行名为 "Finance settings";转账那几行名为 "Transfer DD/MM/YYYY · … → …"。
 >    见 `docs/handbacks/AUDIT-TRAIL-1c-3.md` §7.4。
+> 30. **✅ 账号、设置与员工的审计记录 —— AUDIT-TRAIL-1d-1(`v1.4.33` 的一部分,【未发布】,2026-10-04)。**
+>    内容见下面「HISTORY family」一节 AT-1d 那一块的 ✅ AT-1d-1。
+>    ★ **部署:Tim 在 Vercel 上确认 `a228de72` 已部署(AT-1d-1 close-out + AT-1d-2 委托书,2026-10-04)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-04 15:35:59 CST**(测量:`db/migration-windows.tsv`,`2026-10-04-at1d1-trails-accounts-settings-and-employees.sql`)·
+>    终点下界 **2026-10-04 16:55:17 CST**(测量:推送把 `origin/main` 移到 `a228de72`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`a228de72 … {2026-10-04 16:55:17 +0800}: update by push`)·
+>    终点上界 **2026-10-04 16:59:37 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 19 min 18 s,至多 1 h 23 min 38 s。** 窗口里**没有量到坏掉的东西**(旧的 `/settings/approvals` 仍直接读
+>    `finance_settings_history`;旧的雇员表单直接写,`save_employee` 是新增的;`record_trail` 同签名原地替换)。提前看得见、而且是有意的:
+>    `/settings/change-history` 逐行再过读规则(Q13),cfo 读 `auth.users` 与 `cod_verification_failures` 那几行是 Restricted;
+>    旧的 `/settings/deleted` 应当把四个新种类印成原样的键名、没有链接(Step 0 §j 的推断,窗口里没有人去看过)。见 `docs/handbacks/AUDIT-TRAIL-1d-1.md` §7.3。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -6643,9 +6655,13 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
       `save_employee`(员工与履历一笔事务,Q8);账号(每一个账号一块,员工页上照出来;停用失败并成一句 —— Q24 · Q9 · Q21)· 角色页说出授给了谁(Q22)·
       审批方针那一块(替掉 `ApprovalsHistory`,Q25 · Q27)· 六本字典 · 导入批次那一块与"谁"一栏(Q24)· 员工(替掉调薪的"最近了结"那一段,Q27 · Q28)·
       部门 · 培训记录(Q29);删掉的角色 · 员工 · 部门 · 培训记录只读打开、进 `/settings/deleted`(Q25 · Q26)。交回 `docs/handbacks/AUDIT-TRAIL-1d-1.md`;fixture 244。
-    * **⬜ AT-1d-2 · 请假与考勤** —— 请假(取消改写决定那一戳,按状态说)· 假期发放 · 假别 · 公众假期(M11,硬删)· 医疗报销(M4;Q37:费用页够到它)·
-      加班(M1;Q20 审批人看名字;Q35 "Sent back")· 考勤 · `/me` 的 `my_leave_request` / `my_medical_claim`(M8,Q14 · Q15)· Q36 的 document_types ·
-      Q19 以 warehouse 账号把 `/me` 量一次。
+    * **✅ AT-1d-2(2026-10-04)· 请假与考勤** —— 请假(决定与审批、扣减并成一句;记录开始之前那一对戳按今天的状态说,本人取消从它读出来 —— Q12)·
+      假期发放(清单块,一次结转一条)· 假别 · 公共假期(M11;硬删的假期说出它最后的样子)· 医疗报销(M4;撤回没有记人 —— "Not recorded";
+      Q37:费用页够到它)· 加班(M1;"Overtime sent back",Q35;审批人那一格里系统追加的中文剥掉,Q10;Q20 照登记)· 考勤(完成是一句;
+      之前那一段只剩最近一次,照直说)· `/me` 的 `my_leave_request` / `my_medical_claim`(M8 · Q14 · Q15)· Q36:医疗报销与考勤期间链到详情页
+      (加班批没有 code 列,不进 document_types —— 链接由 trail_ref_label 给)· Q19 以 warehouse 账号量过(`docs/known-issues.md`)。
+      交回 `docs/handbacks/AUDIT-TRAIL-1d-2.md`;fixture 245。★ **破窗**:起点 **2026-10-04 19:00:10 CST**(`db/migration-windows.tsv`);
+      终点 = Tim 在 Vercel 上看到部署成功的那一刻(转述,不是本机测量)—— **下一次 close-out 时补记**。
     * **⬜ AT-1d-3 · 工资与评审** —— 工资期(请求的"历史"那一段换掉;工资行按员工配对,Q11)· 评审(M12 的 `my_review`)· 评审周期 · 评分刻度(M11)·
       KPI;三刀做完写 `v1.4.33` 的发布那一行。
   * **⬜ DATE-PICK-1(`v1.4.34`;~~v1.4.37~~)· 日期选择器** —— 一个自建的选择器(Radix Popover + 现成的 `MonthGrid` + `lib/bankCsv.ts` 的

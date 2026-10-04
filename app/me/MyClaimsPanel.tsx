@@ -12,7 +12,7 @@
 //   从 my_document_decisions() 来)不带 priority,手机上折进展开区;动作列带 priority(够不着的动作等于不存在):
 //   submitted 的申报有「撤回」;已批准 / 已付的那颗钮【看得见、按不动、说出理由】(库里按名拒
 //   MEDICAL_CLAIM_NOT_SUBMITTED)。已驳回 / 已撤回的没有钮 —— 那里没有一个会被拒的动作。
-import { useState, useTransition } from 'react'
+import { useState, useTransition, type ReactNode } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import ClaimForm from '@/app/hr/claims/ClaimForm'
 import { withdrawMedicalClaim } from '@/app/hr/claims/actions'
@@ -28,9 +28,10 @@ type Claim = {
 }
 type Bal = { pro_rated_limit_sgd: number; claimed_sgd: number; remaining_sgd: number }
 
+// AUDIT-TRAIL-1d-2(Q14):每一张自己的医疗报销一段审计记录(服务端造好,按报销单 id 交进来;折起来)
 export default function MyClaimsPanel({
-    employeeId, claims, balance, decisions,
-}: { employeeId: string; claims: Claim[]; balance: Bal | null; decisions: Record<string, Decision> }) {
+    employeeId, claims, balance, decisions, trails = {},
+}: { employeeId: string; claims: Claim[]; balance: Bal | null; decisions: Record<string, Decision>; trails?: Record<string, ReactNode> }) {
     const t = useTranslations()
     const [open, setOpen] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -122,6 +123,16 @@ export default function MyClaimsPanel({
                 phone={{ mode: 'columns' }}
                 empty={t('me.noClaims')}
             />
+            {claims.length > 0 && (
+                <div className="mt-4 space-y-2">
+                    {claims.map((c) => (
+                        <div key={c.claim_id} className="text-sm">
+                            <span className="text-xs text-[color:var(--brand-muted-text)]">{c.code}</span>
+                            {trails[c.claim_id]}
+                        </div>
+                    ))}
+                </div>
+            )}
         </section>
     )
 }

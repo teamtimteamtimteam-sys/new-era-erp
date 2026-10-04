@@ -10,6 +10,7 @@
 -- AUDIT-TRAIL-1c-2(Tim 的 Q14):销售是一个主语的根了 —— 它那一行(与沿 home 走上来的子行)的家是【这一笔销售】,
 --   链接落在它的应收页 /finance/receivables/<id>。销售没有 code 列,所以它【不】进 document_types(全站搜索会对登记的
 --   每一张表拼一句 SELECT code);名字由 trail_ref_label 给,路由在这里给,与单据同一个形状(doc_key 'sale',link_mode 'detail')。
+-- AUDIT-TRAIL-1d-2(Q36):加班批同一个形状 —— 没有 code 列,不进 document_types;链接落在 /hr/overtime/<id>(doc_key 'overtime_batch')。
 -- 【属主身份】EXECUTE 已从 authenticated 收回。
 CREATE OR REPLACE FUNCTION public.trail_row_record(p_table text, p_key jsonb, p_old jsonb, p_new jsonb)
  RETURNS jsonb
@@ -83,6 +84,8 @@ BEGIN
     SELECT dt.key, dt.route, dt.link_mode INTO v_dkey, v_route, v_mode FROM document_types dt WHERE dt.table_name = v_table ORDER BY dt.key LIMIT 1;
     IF v_table = 'sales_records' THEN
         v_dkey := 'sale'; v_route := '/finance/receivables'; v_mode := 'detail';
+    ELSIF v_table = 'overtime_batches' THEN
+        v_dkey := 'overtime_batch'; v_route := '/hr/overtime'; v_mode := 'detail';
     END IF;
     RETURN jsonb_build_object('table', v_table, 'id', v_id,
         'label', v_lab ->> 'label', 'gone', COALESCE((v_lab ->> 'gone')::boolean, false),

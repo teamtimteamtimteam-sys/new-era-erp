@@ -37,6 +37,10 @@
 --     自己):/settings/change-history 的 Record 一栏(授权、附加账号的家是账号,Q22)读 label,不读 person。认不出就没有名字,
 --     界面说 "a login account" —— 【不】回落到邮箱(那是账号的身份数据,不是它的名字)。
 --   · 培训记录 → 培训的名字;导入批次 → 文件名(两张表都没有 name / title / label 一类的列)。
+-- AUDIT-TRAIL-1d-2(Tim 2026-10-04,AT-1d Step 0 §a · Q36):
+--   · 假期发放 → "Annual leave 2027"(假别的英文名 + 那一个假期年;那张表没有名字一类的列);
+--   · 加班批 → 它的 label("OT 2026-10 #1",照旧),外加 href 指向 /hr/overtime/<id>。加班批没有 code 列,所以它【不】进
+--     document_types(全站搜索会对登记的每一张表拼一句 SELECT code —— 销售那一刀记过同一个理由);链接在这里给,与销售同一个形状。
 -- 【属主身份】按表名动态读;EXECUTE 已从 authenticated 收回。
 CREATE OR REPLACE FUNCTION public.trail_ref_label(p_table text, p_column text, p_value text)
  RETURNS jsonb
@@ -173,6 +177,12 @@ BEGIN
         v_label := 'Transfer ' || to_char((v_img ->> 'transfer_date')::date, 'DD/MM/YYYY') || ' · '
                    || COALESCE((SELECT a.name_en FROM accounts a WHERE a.code = v_img ->> 'from_account'), '?') || ' → '
                    || COALESCE((SELECT a.name_en FROM accounts a WHERE a.code = v_img ->> 'to_account'), '?');
+    ELSIF p_table = 'leave_grants' THEN
+        v_label := concat_ws(' ', (SELECT lt.name_en FROM leave_types lt WHERE lt.code = v_img ->> 'leave_type_code'), v_img ->> 'leave_year');
+    ELSIF p_table = 'overtime_batches' THEN
+        RETURN jsonb_build_object('label', NULLIF(v_label, ''), 'gone', v_gone)
+               || CASE WHEN p_column = 'id' AND NOT v_gone
+                       THEN jsonb_build_object('href', '/hr/overtime/' || p_value) ELSE '{}'::jsonb END;
     ELSIF p_table = 'processing_runs' THEN
         RETURN jsonb_build_object('label', NULLIF(v_label, ''), 'gone', v_gone, 'ended', v_img ->> 'deleted_at' IS NOT NULL);
     END IF;

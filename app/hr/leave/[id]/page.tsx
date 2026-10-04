@@ -17,11 +17,14 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import { GrantBreakdownTable, ConsumptionTable, type GrantBreakdownRow, type ConsumptionRow } from './LeaveDetailTables'
 import { formatDate } from '@/lib/dates'
 import { can } from '@/lib/permissions'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 export default async function LeaveRequestDetail({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -180,6 +183,9 @@ export default async function LeaveRequestDetail({
                 requested={req.days}
                 canDecide={await can('action.decide_hr_requests')}
             />
+
+            {/* AUDIT-TRAIL-1d-2:页底的审计记录 —— 申请 · 决定(审批并进这一句)· 取消 · 扣减与归还(上面那张消耗账照旧是工作清单,Q27) */}
+            <AuditTrail subject="leave_request" id={req.id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

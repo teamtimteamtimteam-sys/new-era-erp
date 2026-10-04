@@ -264,6 +264,9 @@ Two injections did not bite on the first try, because each property is guarded t
 | start | **2026-10-04 15:35:59 CST** | `db/migration-windows.tsv` |
 | end | Tim's Vercel reading of the deployment of this commit | **to be supplied by Tim**, not measured here |
 
+**→ Closed at the 1d-1 close-out (2026-10-04, `docs/forward-queue.md` item 30):** end lower bound 16:55:17 CST (the push, reflog), upper
+bound 16:59:37 CST (the close-out session's first command, resting on Tim's "deployed"). **At least 1 h 19 min 18 s, at most 1 h 23 min 38 s.**
+
 **What was broken inside the window (old app + new database):**
 - The old `/settings/approvals` still read `finance_settings_history` directly, which still works.
 - The old hire and edit forms wrote directly, which still works: `save_employee` is additive.

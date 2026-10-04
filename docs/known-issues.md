@@ -10018,7 +10018,10 @@ banner-noby / history-back / refusal-wrong 三跑,五次 zh = en = 667 字;`cjk`
 
 审计记录在造句那一层认出它们、说成英文(1c-2 "Reconciliation undone" 的先例);**写的那一头没有改**(改写入是另一刀的事,Q10 照建议)。
 逐条(file:line 是写下它的那一句):
-- `decide_overtime_batch.sql:67-69` —— 审批关着时,在审批人的说明后面拼一句中文("审批流未启用 ……")。AT-1d-2 的加班那一页认它。
+- `decide_overtime_batch.sql:67-69` —— 审批关着时,在审批人的说明后面拼一句中文("审批流未启用 ……")。
+  **AT-1d-2 已认**(`stripOvertimeMachineNote`,`lib/trail/render.ts`):那一截剥掉,只留审批人的话;只有那一截时不说理由。
+- `pay_medical_claim.sql:131`(AT-1d-2 量到的同族一处)—— 付医疗报销建的费用单 `notes` = "Medical claim MC-… (EMP-…)"(系统拼的英文)。
+  **AT-1d-2 在报销单那一页上不把它说成理由**(那一页就是那张报销单);费用页上它照 1c-1 的样子是那张费用单的 "Reason"(未改,一句系统写的话)。
 - `decide_payroll_request.sql:62-66` —— 在决定的说明后面拼一句中英双语("本期含审批人自己的工资行 · this period includes the approver's own pay line: EMP-…")。AT-1d-3 认它。
 - `unpost_payroll_period_internal`(同族):在 `payroll_periods.notes` 后面拼 "[YYYY-MM-DD HH:MI unposted …]"。AT-1d-3 认它。
 - `approve_review.sql:68,118` —— `employment_history.notes` = "Probation confirmed by performance review <uuid>";员工页的履历时间线今天照原样印出那个 uuid。
@@ -10059,13 +10062,23 @@ cto 与 gm 持 hr.view、不持 view_pay,读得到。**审计记录照页面**(Q
 `app/me/page.tsx:207-216` 与 `:263-266` 读这两张表给员工的考勤与工资单配月份与编号;两张表的读策略都只有 `module.hr.view`
 (`attendance_periods.sql:46-48`、`payroll_periods.sql:86`)。`page.tsx:205-206` 的注释说"本人读得到"—— 那句话与策略不符。
 **推断(不是在页面上看到的):** 一个不持 hr.view 的员工(线上:warehouse 那一个账号)在 `/me` 上看到的考勤与工资单会缺月份与编号。
-**处置:** AT-1d-2 的探针以 warehouse 账号读 `/me` 把它量出来;修法(一支给本人的属主读法,或者一条自读策略)不是审计记录的事。**删除条件:** 量过、修过。
+**AT-1d-2 量过了(2026-10-04,以 fusheng@ —— 线上唯一不持 hr.view 的真账号 —— 的 JWT,`SET LOCAL ROLE authenticated`,读的正是 `/me` 那几句查询):**
+- 今天(只读,回滚):他自己的考勤行 0、工资单行 0;`payroll_periods` 他读到 **0 行**,而那张表有 **1 行**(postgres / rolbypassrls 计数);
+  `attendance_periods` 0 行(表里也是 0)。也就是说,今天他的 `/me` 什么都不缺 —— **因为他还没有一行可配**;
+- 回滚的线上证明里开了上个月的考勤(`open_attendance_period`,每个在职员工一行):他读到**自己的 1 行考勤,而那一行的期间 0 行** ——
+  `/me` 的考勤表会把编号与月份印成 "—"(`app/me/page.tsx` 的 `attPeriodById.get(...)?.code ?? '—'`)。工资单同形(`periodById`)。
+- `page.tsx:205-206` 那句"attendance_periods 的读策略也放行本人"与策略不符(`attendance_periods.sql:46-48` 只有 hr.view)—— 照旧登记,未改。
+**结论:推断成立,它在第一份考勤 / 第一张工资单落到一个不持 hr.view 的员工身上时显形。** 修法(一支给本人的属主读法,或一条"本人的期间"自读策略)
+不是审计记录的事,1d-2 不修(委托书)。**删除条件:** 修过,并以同一个身份读回编号与月份。
 
 ## AT1D1-OVERTIME-APPROVER-NAMES-PAGE-VS-TRAIL —— 加班审批人在页面上看得到每一个人的名字,在审计记录里是 Restricted(AT-1d Step 0 Q20)
 
 warehouse 角色持 `action.overtime_approve`、不持 `module.hr.view`。`/hr/overtime/[id]` 经 `overtime_batch_lines()` 把每一行的员工名字交给它;
 审计记录照 ActorName 的规矩(1b 折入 1:不持 hr.view 的读者只认得出自己)把那些名字说成 Restricted。**审计记录照规矩**(Q20)。
 **若审批人必须看到名字,那是一次对"加班审批人"这条规矩的改动,两边一起改。** AT-1d-2 做加班那一页时这一条会在线上显形(今天 0 批加班)。
+**AT-1d-2(2026-10-04)建好了加班那一段**:fixture 245 O 臂实测 —— 只持 `action.overtime_approve` 的读者读得到这一批(M1),行里的员工与做事的人
+对他是 `restricted`;页面上那几行"Started by / Submitted by …"(`ActorName`)对他同样是受限的,而【行里的员工名】(`overtime_batch_lines()`)他看得见 ——
+差别就在这一格,照登记不改。线上仍 0 批加班;回滚的线上证明里 fusheng@(仓库)读一张临时的批,审计记录里员工是 Restricted。
 **删除条件:** Tim 对审批人看名字有了裁定,页面与审计记录说同一句话。
 
 ## AT1D1-ANONYMISATION-LEAVES-OTHER-TABLES-UNREDACTED —— 匿名化只涂员工与履历的变更记录(AT-1d Step 0 Q30;隐私组,UNBLOCK-1)
@@ -10087,10 +10100,12 @@ warehouse 角色持 `action.overtime_approve`、不持 `module.hr.view`。`/hr/o
 ## AT1D1-STEP0-SIDE-FINDINGS —— AT-1d Step 0 Q38 的几件小事(登记,不是审计记录的活)
 
 逐条,file:line 是 Step 0 量到的:
-- `app/hr/leave/[id]/page.tsx:91` 把 `leave_grant_id.slice(0,8)`(一段 uuid)印在消耗表里 —— 机器字上屏。AT-1d-2 做请假页时一并处理。
+- `app/hr/leave/[id]/page.tsx:91` 把 `leave_grant_id.slice(0,8)`(一段 uuid)印在消耗表里 —— 机器字上屏。
+  **AT-1d-2 碰了这个文件,但【没有】改它**:Tim 的 Q38 裁定是"只改那两句过期的注释",这一条是登记,不是这一刀的活(消耗表是 Q27 留着的工作清单)。
 - `leave_requests` 与 `payroll_periods` 的页面过滤 `deleted_at`,而这两张表的 `deleted_at` 没有任何写入者(`grep` 了 db/functions 与 app)—— 一道永远不触发的过滤。
 - `review_cycles` 的开轮守卫是 `status <> 'open'`(推断):一轮关掉之后还能再开。AT-1d-3 做评审周期时量一次。
-- `app/hr/claims/[id]/page.tsx` 的"关联费用"链到费用【清单】,不是那一张费用单;`document_types` 里 `medical_claim` / `attendance_period` 的 `link_mode` 是 `list`(Q36,AT-1d-2)。
+- `app/hr/claims/[id]/page.tsx` 的"关联费用"链到费用【清单】,不是那一张费用单(仍然如此 —— Q38 登记、未改;审计记录里 "Expense raised to pay the claim"
+  那一行链到那一张费用单)。`document_types` 里 `medical_claim` / `attendance_period` 的 `link_mode` **AT-1d-2 已改成 `detail`(Q36)**。
 - **已修(本刀碰了它们的文件,Q38):** `app/settings/dictionaries/registry.ts` 的注释说"这五张"而联合类型里是六张 —— 改成六张;
   `app/settings/accounts/page.tsx:31-34` 的注释说"系统管理员账号不再持 module.hr.view"—— 线上 admin 持它,改成照实说(理由仍然成立)。
   `ApprovalsHistory.tsx` 抬头那句"这张表在 APR-1 之后是空的"随那个组件一起删掉了(Q27 把它换成审计记录)。

@@ -8,11 +8,14 @@ import { mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import AttendanceGrid from './AttendanceGrid'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 export default async function AttendancePeriodPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
 }) {
     const denied = await requireModule(MOD.hr)
     if (denied) return denied
@@ -89,6 +92,9 @@ export default async function AttendancePeriodPage({
                 status={period.status ?? 'open'}
                 rows={rows}
             />
+
+            {/* AUDIT-TRAIL-1d-2:页底的审计记录 —— 开月 · 补新人 · 每人一行的记录 · 完成 · 重开(之前那一段只剩最近一次,照直说) */}
+            <AuditTrail subject="attendance_period" id={id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

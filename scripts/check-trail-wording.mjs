@@ -30,6 +30,9 @@
 //      对每一个主语的每一张表造样本的机器字扫描(④ 的通用扫描不带 subject,走不到 describeFinance / describeLedger2)。
 //   ⑪ 账号、设置与员工(AUDIT-TRAIL-1d-1):十二个主语与角色页上的授权,同一个办法(停用失败并成一句 · 授权两边说 ·
 //      员工页上账号事件 Restricted · 入职一条 · 履历里系统写的说明 · 匿名化 · 审批方针只说它那四列)外加按那一页的机器字扫描。
+//   ⑫ 请假与考勤(AUDIT-TRAIL-1d-2):九个主语与费用页上的医疗报销(Q37),同一个办法(请假的决定与审批、扣减并成一句 · 之前那一对戳
+//      按状态说 · "Overtime sent back" 且审批人那一格里系统追加的中文被剥掉 · 一次结转一条 · 硬删的假期 · 考勤完成一句、之前只剩最近一次)
+//      外加按那一页的机器字扫描(每一种审批决定、每一种加班状态)。
 //   ⑩ 期末、设置与清单页(AUDIT-TRAIL-1c-3):同一个办法 —— 十二个主语的金句(两块面板各看各的列 · 月结 / 反结 · 年结 ·
 //      Q16 的合并 · Q30 · M8 的报销人)外加按【那一页】的机器字扫描(describeLedger3)。
 //
@@ -37,7 +40,7 @@
 //   blind-detector · registry-drift · missing-key · dead-key · label-gap · enum-gap · raw-date · raw-ref · raw-json · raw-null · raw-role ·
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
-//   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)
+//   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -2766,6 +2769,675 @@ if (FAULT === 'wording-drift-1d1') dict.text = { ...dict.text, 'acct.grantedTo':
     if (FAULT === 'wording-drift-1d1' && !problems.gold11.length) problems.gold11.push('(注入 wording-drift-1d1 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑫ 请假与考勤(AUDIT-TRAIL-1d-2)──────────────────────────────────────────────────────────────
+// 九个主语(请假与本人的请假 · 假期发放 · 假别 · 公共假期 · 医疗报销与本人的报销 · 加班 · 考勤)与费用页上的医疗报销(Q37),
+//   各一次字段编辑与关键事件,逐字;加上:请假的决定与审批留痕、扣减并成一句(之后与之前两种都证 —— Q12 的那一对戳按状态说)·
+//   本人取消从那一对戳读出来 · 退回照页面的话说 "Overtime sent back"(Q35)且审批人那一格里系统追加的中文被剥掉(Q10)·
+//   送审 / 批准整批重盖的 day_kind 与冲销作废的每一行不说 · 一次结转是一条 · 硬删的假期说出它最后的样子 · 考勤完成是一句、
+//   之前那一段只剩最近一次(照直说)· /me 上本人读到的审批与消耗是 Restricted(M8 · Q14)。每一句都先由造句器造出来、
+//   逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/AUDIT-TRAIL-1d-2.md §8 逐条列出。注入 wording-drift-1d2 → 这一臂必须红。
+problems.gold12 = []
+if (FAULT === 'wording-drift-1d2') dict.text = { ...dict.text, 'ot.sentBack': 'Overtime rejected' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const ref = (col, v, label, href) => ({ [col]: { [v]: href ? { label, href } : { label } } })
+    const person = (col, v, name) => ({ [col]: { [v]: { person: { state: 'person', name } } } })
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const emp = id('emp'), lv = id('lv')
+    const L = { subject: 'leave_request', recordId: lv }
+    const lvRefs = { ...ref('leave_type_code', 'annual', 'Annual leave'), ...person('employee_id', emp, 'Lim Wei Ming') }
+    const lvRow = { code: 'LV-2026-0007', employee_id: emp, leave_type_code: 'annual', start_date: '2026-10-12', end_date: '2026-10-13', days: 2 }
+    // ── 请假 ──
+    add('leave · requested', L, [{ table: 'leave_requests', op: 'INSERT', key: { id: lv }, new: { ...lvRow, status: 'pending', reason: 'Family trip' }, refs: lvRefs }])
+    add('leave · requested as an exception (days entered by hand)', L, [{ table: 'leave_requests', op: 'INSERT', key: { id: lv },
+        new: { ...lvRow, days: 1.5, end_half_day: true, status: 'pending', is_exception: true, exception_reason: 'Six-day roster' }, refs: lvRefs }])
+    const draw = (k, n, pre = false) => ({ table: 'leave_consumption', op: 'INSERT', prelog: pre, key: { id: id(k) }, new: { leave_request_id: lv, entry_type: 'draw', days: n, accrual_year: 2026 } })
+    add('leave · approved (the approval row and the draws fold in)', L, [
+        { table: 'leave_requests', op: 'UPDATE', key: { id: lv }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'],
+          old: { status: 'pending', decision_notes: null }, new: { status: 'approved', decision_notes: 'Enjoy' }, ctx: lvRow, refs: lvRefs },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('al1') }, new: { subject_type: 'leave_request', subject_id: lv, subject_code: 'LV-2026-0007', decision: 'approved', note: 'Enjoy' } },
+        draw('d1', 2)])
+    add('leave · approved before the log (Q12: the stamp, the approval row and the draw are one moment)', L, [
+        { table: 'leave_requests', op: 'UPDATE', prelog: true, key: { id: lv }, cols: ['decided_at', 'decided_by', 'status', 'decision_notes'],
+          new: { status: 'approved', decision_notes: 'Enjoy' }, ctx: lvRow, refs: lvRefs },
+        { table: 'approval_log', op: 'INSERT', prelog: true, key: { id: id('al0') }, new: { subject_type: 'leave_request', subject_id: lv, subject_code: 'LV-2026-0007', decision: 'approved', note: 'Enjoy' } },
+        draw('d0', 2, true)])
+    add('leave · rejected', L, [
+        { table: 'leave_requests', op: 'UPDATE', key: { id: lv }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'],
+          old: { status: 'pending' }, new: { status: 'rejected', decision_notes: 'Year-end stocktake that week' }, ctx: lvRow },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('al2') }, new: { subject_type: 'leave_request', subject_id: lv, decision: 'rejected', note: 'Year-end stocktake that week' } }])
+    add('leave · cancelled by the employee before the log (Q12: read from the decision stamp)', L, [
+        { table: 'leave_requests', op: 'UPDATE', prelog: true, key: { id: lv }, cols: ['decided_at', 'decided_by', 'status', 'decision_notes'],
+          new: { status: 'cancelled', decision_notes: null }, ctx: lvRow }])
+    add('leave · cancelled after approval (days returned, with the reason)', L, [
+        { table: 'leave_requests', op: 'UPDATE', key: { id: lv }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'],
+          old: { status: 'approved', decision_notes: 'Enjoy' }, new: { status: 'cancelled', decision_notes: 'Trip called off' }, ctx: lvRow },
+        { table: 'leave_consumption', op: 'INSERT', key: { id: id('r1') }, new: { leave_request_id: lv, entry_type: 'release', days: 2, accrual_year: 2026 } }])
+    add('leave · request changed (field edit)', L, [
+        { table: 'leave_requests', op: 'UPDATE', key: { id: lv }, cols: ['certificate_ref', 'updated_at'], old: { certificate_ref: null }, new: { certificate_ref: 'MC 448812' }, ctx: lvRow }])
+    add('leave · approved before the log and cancelled later (only the approval row is left for that moment)', L, [
+        { table: 'approval_log', op: 'INSERT', prelog: true, key: { id: id('al3') }, new: { subject_type: 'leave_request', subject_id: lv, decision: 'approved', note: null } },
+        draw('d3', 1, true)])
+    add('my leave · approved, read by the employee (M8 · Q14: the approval and the draw are Restricted)', { subject: 'my_leave_request', recordId: lv }, [
+        { table: 'leave_requests', op: 'UPDATE', key: { id: lv }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'],
+          old: { status: 'pending' }, new: { status: 'approved', decision_notes: 'Enjoy' }, ctx: lvRow },
+        { hidden: true, table: null, op: null, actor: null }, { hidden: true, table: null, op: null, actor: null }])
+    add('leave · on the summary page (no page subject: the number is said)', {}, [
+        { table: 'leave_requests', op: 'UPDATE', key: { id: lv }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'],
+          old: { status: 'pending' }, new: { status: 'rejected', decision_notes: null }, ctx: lvRow }])
+    // ── 假期发放 ──
+    const G = { subject: 'leave_grant', recordId: id('g1') }
+    const grant = (k, e, name, n) => ({ table: 'leave_grants', op: 'INSERT', key: { id: id(k) },
+        new: { employee_id: e, leave_type_code: 'annual', leave_year: 2027, days: n, granted_on: '2026-12-31', expires_on: '2027-12-31', grant_type: 'carry_forward' },
+        refs: { ...person('employee_id', e, name), ...ref('leave_type_code', 'annual', 'Annual leave') } })
+    add('leave grants · one carry-forward run is one entry (Q16)', G, [grant('g1', id('e1'), 'Lim Wei Ming', 4), grant('g2', id('e2'), 'Sandra Tan', 1), grant('g3', id('e3'), 'Fu Sheng', 6.5)])
+    add('leave grants · carried forward for one person', G, [grant('g4', id('e1'), 'Lim Wei Ming', 4)])
+    add('leave grants · a grant removed', G, [{ table: 'leave_grants', op: 'UPDATE', key: { id: id('g1') }, cols: ['deleted_at'], old: { deleted_at: null }, new: { deleted_at: '2026-10-03T02:00:00Z' } }])
+    // ── 假别 · 公共假期(M11 集合)──
+    const LT = { subject: 'leave_types', recordId: 'all' }
+    add('leave types · standard days changed (field edit)', LT, [{ table: 'leave_types', op: 'UPDATE', key: { code: 'annual' }, cols: ['default_days_per_year', 'updated_at'],
+        old: { default_days_per_year: 14 }, new: { default_days_per_year: 18 }, ctx: { name_en: 'Annual leave' } }])
+    add('leave types · deactivated', LT, [{ table: 'leave_types', op: 'UPDATE', key: { code: 'unpaid' }, cols: ['is_active'], old: { is_active: true }, new: { is_active: false }, ctx: { name_en: 'Unpaid leave' } }])
+    add('leave types · two seeded before the log (one moment, one entry)', LT, [
+        { table: 'leave_types', op: 'INSERT', prelog: true, key: { code: 'annual' }, new: { code: 'annual', name_en: 'Annual leave', name_zh: '年假', is_paid: true, is_accrued: true, default_days_per_year: 14, gender_restriction: null, is_active: true, sort_order: 1 } },
+        { table: 'leave_types', op: 'INSERT', prelog: true, key: { code: 'maternity' }, new: { code: 'maternity', name_en: 'Maternity leave', name_zh: '产假', is_paid: true, is_accrued: false, default_days_per_year: 112, gender_restriction: 'female', is_active: true, sort_order: 5 } }])
+    const PH = { subject: 'public_holidays', recordId: 'all' }
+    const hol = id('hol')
+    add('public holidays · added', PH, [{ table: 'public_holidays', op: 'INSERT', key: { id: hol }, new: { holiday_date: '2027-01-01', name_en: "New Year's Day", name_zh: '元旦', country: 'SG', is_active: true, holiday_key: 'new-year', is_in_lieu: false } }])
+    add('public holidays · date changed (field edit)', PH, [{ table: 'public_holidays', op: 'UPDATE', key: { id: hol }, cols: ['holiday_date', 'updated_at'],
+        old: { holiday_date: '2027-02-06' }, new: { holiday_date: '2027-02-07' }, ctx: { name_en: 'Chinese New Year' } }])
+    add('public holidays · hard-deleted (its last values are the record)', PH, [{ table: 'public_holidays', op: 'DELETE', key: { id: hol },
+        old: { holiday_date: '2027-05-21', name_en: 'Vesak Day (in lieu)', name_zh: '卫塞节(补假)', country: 'SG', is_active: true, holiday_key: 'vesak', is_in_lieu: true } }])
+    // ── 医疗报销 ──
+    const mc = id('mc'), exp = id('exp')
+    const M = { subject: 'medical_claim', recordId: mc }
+    const mcRow = { code: 'MC-2026-0003', employee_id: emp, claim_date: '2026-10-01', amount_sgd: 85, status: 'submitted' }
+    add('medical claim · submitted', M, [{ table: 'medical_claims', op: 'INSERT', key: { id: mc }, new: { ...mcRow, description: 'GP visit — fever', receipt_ref: 'RC-5512' }, refs: person('employee_id', emp, 'Lim Wei Ming') }])
+    add('medical claim · approved (the approval row folds in)', M, [
+        { table: 'medical_claims', op: 'UPDATE', key: { id: mc }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'], old: { status: 'submitted' }, new: { status: 'approved', decision_notes: 'Within limit' }, ctx: mcRow },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('al4') }, new: { subject_type: 'medical_claim', subject_id: mc, decision: 'approved', note: 'Within limit' } }])
+    add('medical claim · rejected', M, [
+        { table: 'medical_claims', op: 'UPDATE', key: { id: mc }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'], old: { status: 'submitted' }, new: { status: 'rejected', decision_notes: 'Dental is not covered' }, ctx: mcRow },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('al5') }, new: { subject_type: 'medical_claim', subject_id: mc, decision: 'rejected', note: 'Dental is not covered' } }])
+    add('medical claim · withdrawn before the log (Q12: no person was recorded)', M, [
+        { table: 'medical_claims', op: 'UPDATE', prelog: true, key: { id: mc }, cols: ['withdrawn_at', 'status'], new: { withdrawn_at: '2026-09-20T02:00:00Z', status: 'withdrawn' }, ctx: mcRow }],
+        { state: 'unknown' })
+    add('medical claim · expense raised to pay it (the expense and its journal are lines of the same operation)', M, [
+        { table: 'medical_claims', op: 'UPDATE', key: { id: mc }, cols: ['expense_id', 'updated_by', 'updated_at'], old: { expense_id: null }, new: { expense_id: exp }, ctx: mcRow,
+          refs: ref('expense_id', exp, 'EXP-2026-0012', `/finance/expenses/${exp}`) },
+        { table: 'expenses', op: 'INSERT', key: { id: exp }, new: { code: 'EXP-2026-0012', amount_ccy: 85, currency: 'SGD', notes: 'Medical claim MC-2026-0003 (EMP-2026-0007)' } },
+        { table: 'journal_entries', op: 'INSERT', key: { id: id('je') }, new: { code: 'JE-2026-0101', entry_date: '2026-10-02', source_type: 'expense' } }])
+    add('medical claim · description changed (field edit)', M, [
+        { table: 'medical_claims', op: 'UPDATE', key: { id: mc }, cols: ['description', 'updated_at'], old: { description: 'GP visit' }, new: { description: 'GP visit — fever' }, ctx: mcRow }])
+    add('expense page · the medical claim that raised it (Q37)', { subject: 'expense', recordId: exp }, [
+        { table: 'medical_claims', op: 'UPDATE', key: { id: mc }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'], old: { status: 'submitted' }, new: { status: 'approved', decision_notes: 'Within limit' }, ctx: mcRow }])
+    add('my medical claim · approved, read by the employee (M8: the approval is Restricted)', { subject: 'my_medical_claim', recordId: mc }, [
+        { table: 'medical_claims', op: 'UPDATE', key: { id: mc }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'], old: { status: 'submitted' }, new: { status: 'approved', decision_notes: 'Within limit' }, ctx: mcRow },
+        { hidden: true, table: null, op: null, actor: null }])
+    // ── 加班(Q35 · Q10)──
+    const ob = id('ob'), ol1 = id('ol1'), ol2 = id('ol2')
+    const O = { subject: 'overtime_batch', recordId: ob }
+    const obRow = { label: 'OT 2026-10 #1', period_month: '2026-10-01' }
+    const machine = '审批流未启用(finance_settings.approvals_enabled = false)—— 加班不受审批开关管,决定仍是仓库这个人按下去的'
+    const restamp = (k, h) => ({ table: 'overtime_lines', op: 'UPDATE', key: { id: k }, cols: ['day_kind'], old: { day_kind: 'weekday' }, new: { day_kind: 'weekday' }, ctx: { batch_id: ob, hours: h, employee_id: emp } })
+    add('overtime · batch started', O, [{ table: 'overtime_batches', op: 'INSERT', key: { id: ob }, new: { ...obRow, status: 'draft' } }])
+    add('overtime · line added', O, [{ table: 'overtime_lines', op: 'INSERT', key: { id: ol1 }, new: { batch_id: ob, employee_id: emp, work_date: '2026-10-05', hours: 3.5, day_kind: 'rest_day', note: 'Container unloading' },
+        refs: person('employee_id', emp, 'Lim Wei Ming') }])
+    add('overtime · line removed (hard delete: its last values)', O, [{ table: 'overtime_lines', op: 'DELETE', key: { id: ol2 }, old: { batch_id: ob, employee_id: emp, work_date: '2026-10-06', hours: 2, day_kind: 'weekday' },
+        refs: person('employee_id', emp, 'Lim Wei Ming') }])
+    add('overtime · sent for approval (the day_kind restamp is not said; the approval row folds in)', O, [
+        { table: 'overtime_batches', op: 'UPDATE', key: { id: ob }, cols: ['status', 'submitted_at', 'submitted_by'], old: { status: 'draft' }, new: { status: 'submitted' }, ctx: obRow },
+        restamp(ol1, 3.5), restamp(id('ol3'), 2.5),
+        { table: 'approval_log', op: 'INSERT', key: { id: id('al6') }, new: { subject_type: 'overtime_batch', subject_id: ob, decision: 'submitted', note: null } }])
+    add('overtime · taken back for changes', O, [
+        { table: 'overtime_batches', op: 'UPDATE', key: { id: ob }, cols: ['status', 'submitted_at', 'submitted_by'], old: { status: 'submitted' }, new: { status: 'draft' }, ctx: obRow }])
+    add('overtime · sent back (Q35; the machine suffix is stripped from the approver note — Q10)', O, [
+        { table: 'overtime_batches', op: 'UPDATE', key: { id: ob }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'], old: { status: 'submitted' }, new: { status: 'rejected', decision_notes: 'Fri hours look doubled' }, ctx: obRow },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('al7') }, new: { subject_type: 'overtime_batch', subject_id: ob, decision: 'rejected', note: `Fri hours look doubled · ${machine}` } }])
+    add('overtime · approved with approvals off (the note is only machine text: no reason)', O, [
+        { table: 'overtime_batches', op: 'UPDATE', key: { id: ob }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'], old: { status: 'submitted' }, new: { status: 'approved', decision_notes: null }, ctx: obRow },
+        restamp(ol1, 3.5),
+        { table: 'approval_log', op: 'INSERT', key: { id: id('al8') }, new: { subject_type: 'overtime_batch', subject_id: ob, decision: 'approved', note: machine } }])
+    add('overtime · reversed (the voided lines are not said)', O, [
+        { table: 'overtime_batches', op: 'UPDATE', key: { id: ob }, cols: ['status', 'reversed_at', 'reversed_by', 'reverse_reason'], old: { status: 'approved' }, new: { status: 'reversed', reverse_reason: 'Entered against the wrong month' }, ctx: obRow },
+        { table: 'overtime_lines', op: 'UPDATE', key: { id: ol1 }, cols: ['voided_at'], old: { voided_at: null }, new: { voided_at: '2026-10-20T02:00:00Z' }, ctx: { batch_id: ob } }])
+    add('overtime · discarded before the log (Q12: the stamp; the voided lines fold in)', O, [
+        { table: 'overtime_batches', op: 'UPDATE', prelog: true, key: { id: ob }, cols: ['discarded_at', 'discarded_by', 'status'], new: { status: 'discarded' }, ctx: obRow },
+        { table: 'overtime_lines', op: 'UPDATE', prelog: true, key: { id: ol1 }, cols: ['voided_at'], new: { voided_at: '2026-09-20T02:00:00Z' }, ctx: { batch_id: ob } }])
+    add('overtime · sent back before the log (only the approval row; suffix stripped)', O, [
+        { table: 'approval_log', op: 'INSERT', prelog: true, key: { id: id('al9') }, new: { subject_type: 'overtime_batch', subject_id: ob, subject_code: 'OT 2026-10 #1', decision: 'rejected', note: `Check Sunday · ${machine}` } }])
+    add('overtime · a line read by the warehouse approver (Q20: the employee is Restricted)', O, [
+        { table: 'overtime_lines', op: 'INSERT', key: { id: ol1 }, new: { batch_id: ob, employee_id: emp, work_date: '2026-10-05', hours: 3.5, day_kind: 'rest_day' },
+          refs: { employee_id: { [emp]: { person: { state: 'restricted' } } } } }])
+    add('overtime · sent back, on the summary page (the batch is named)', {}, [
+        { table: 'approval_log', op: 'INSERT', key: { id: id('al10') }, new: { subject_type: 'overtime_batch', subject_id: ob, subject_code: 'OT 2026-10 #1', decision: 'rejected', note: 'Check Sunday' } }])
+    // ── 考勤 ──
+    const ap = id('ap')
+    const A = { subject: 'attendance_period', recordId: ap }
+    const apRow = { code: 'ATT-2026-10', period_month: '2026-10-01' }
+    const aline = (k, op, over = {}) => ({ table: 'attendance_lines', op, key: { id: id(k) }, ...over })
+    add('attendance · period opened (one line per staff member)', A, [
+        { table: 'attendance_periods', op: 'INSERT', key: { id: ap }, new: { ...apRow, status: 'open' } },
+        aline('a1', 'INSERT', { new: { period_id: ap, employee_id: id('e1') } }), aline('a2', 'INSERT', { new: { period_id: ap, employee_id: id('e2') } }),
+        aline('a3', 'INSERT', { new: { period_id: ap, employee_id: id('e3') } })])
+    add('attendance · a line recorded', A, [aline('a1', 'UPDATE', { cols: ['note', 'recorded_at', 'recorded_by'], old: { note: null, recorded_at: null }, new: { note: 'MC 2 days', recorded_at: '2026-10-28T02:00:00Z' },
+        ctx: { employee_id: emp }, refs: person('employee_id', emp, 'Lim Wei Ming') })])
+    add('attendance · new joiners added', A, [aline('a4', 'INSERT', { new: { period_id: ap, employee_id: emp }, refs: person('employee_id', emp, 'Lim Wei Ming') })])
+    add('attendance · period completed (the mass updates are one sentence)', A, [
+        { table: 'attendance_periods', op: 'UPDATE', key: { id: ap }, cols: ['status', 'completed_at', 'completed_by'], old: { status: 'open' }, new: { status: 'complete' }, ctx: apRow },
+        aline('a1', 'UPDATE', { cols: ['unpaid_days', 'frozen_at', 'active_from', 'active_to'], old: { unpaid_days: null }, new: { unpaid_days: 0 } }),
+        aline('a2', 'UPDATE', { cols: ['unpaid_days', 'frozen_at'], old: { unpaid_days: null }, new: { unpaid_days: 1 } }),
+        aline('a1', 'UPDATE', { cols: ['ot_normal_hours'], old: { ot_normal_hours: 0 }, new: { ot_normal_hours: 3.5 } }),
+        aline('a3', 'UPDATE', { cols: ['ot_normal_hours'], old: { ot_normal_hours: 0 }, new: { ot_normal_hours: 0 } })])
+    add('attendance · period reopened', A, [
+        { table: 'attendance_periods', op: 'UPDATE', key: { id: ap }, cols: ['status', 'completed_at', 'completed_by', 'reopened_at', 'reopened_by', 'reopen_reason'],
+          old: { status: 'complete', completed_at: '2026-10-31T02:00:00Z', reopened_at: null, reopen_reason: null },
+          new: { status: 'open', completed_at: null, reopened_at: '2026-11-03T02:00:00Z', reopen_reason: 'Late MC from Sandra' }, ctx: apRow }])
+    add('attendance · completed before the log (Q12: latest only, said so)', A, [
+        { table: 'attendance_periods', op: 'UPDATE', prelog: true, key: { id: ap }, cols: ['completed_at', 'completed_by', 'status'], new: { status: 'complete' }, ctx: apRow },
+        aline('a1', 'UPDATE', { prelog: true, cols: ['frozen_at'], new: { frozen_at: '2026-09-01T02:00:00Z' } }),
+        aline('a2', 'UPDATE', { prelog: true, cols: ['frozen_at'], new: { frozen_at: '2026-09-01T02:00:00Z' } })])
+    add('attendance · reopened before the log (Q12: latest only, said so)', A, [
+        { table: 'attendance_periods', op: 'UPDATE', prelog: true, key: { id: ap }, cols: ['reopened_at', 'reopened_by', 'reopen_reason'], new: { reopen_reason: 'Payroll query' }, ctx: apRow }])
+
+    const WANT = {
+        "leave · requested": {
+            "title": "Leave requested: 2 days of Annual leave",
+            "part": null,
+            "lines": [
+                "Start: 12/10/2026",
+                "End: 13/10/2026"
+            ],
+            "reason": "Family trip",
+            "who": "Sandra"
+        },
+        "leave · requested as an exception (days entered by hand)": {
+            "title": "Leave requested: 1.5 days of Annual leave",
+            "part": null,
+            "lines": [
+                "Start: 12/10/2026",
+                "End: 13/10/2026",
+                "Half day on the last day: Yes",
+                "(Days entered by hand (exception))",
+                "Reason for the exception: Six-day roster"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "leave · approved (the approval row and the draws fold in)": {
+            "title": "Leave approved",
+            "part": null,
+            "lines": [
+                "Days taken from the balance: 2 days"
+            ],
+            "reason": "Enjoy",
+            "who": "Sandra"
+        },
+        "leave · approved before the log (Q12: the stamp, the approval row and the draw are one moment)": {
+            "title": "Leave approved",
+            "part": null,
+            "lines": [
+                "Days taken from the balance: 2 days"
+            ],
+            "reason": "Enjoy",
+            "who": "Sandra"
+        },
+        "leave · rejected": {
+            "title": "Leave rejected",
+            "part": null,
+            "lines": [],
+            "reason": "Year-end stocktake that week",
+            "who": "Sandra"
+        },
+        "leave · cancelled by the employee before the log (Q12: read from the decision stamp)": {
+            "title": "Leave cancelled",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "leave · cancelled after approval (days returned, with the reason)": {
+            "title": "Leave cancelled",
+            "part": null,
+            "lines": [
+                "Days returned to the balance: 2 days"
+            ],
+            "reason": "Trip called off",
+            "who": "Sandra"
+        },
+        "leave · request changed (field edit)": {
+            "title": "Leave request changed",
+            "part": null,
+            "lines": [
+                "Medical certificate: (empty) → MC 448812"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "leave · approved before the log and cancelled later (only the approval row is left for that moment)": {
+            "title": "Leave approved",
+            "part": null,
+            "lines": [
+                "Days taken from the balance: 1 day"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "my leave · approved, read by the employee (M8 · Q14: the approval and the draw are Restricted)": {
+            "title": "Leave approved",
+            "part": null,
+            "lines": [
+                "(Part of this change is restricted.)"
+            ],
+            "reason": "Enjoy",
+            "who": "Sandra"
+        },
+        "leave · on the summary page (no page subject: the number is said)": {
+            "title": "Leave rejected · LV-2026-0007",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "leave grants · one carry-forward run is one entry (Q16)": {
+            "title": "Unused leave carried forward · 3 people",
+            "part": null,
+            "lines": [
+                "Lim Wei Ming: 4 days",
+                "Sandra Tan: 1 day",
+                "Fu Sheng: 6.5 days"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "leave grants · carried forward for one person": {
+            "title": "Unused leave carried forward: 4 days",
+            "part": null,
+            "lines": [
+                "Employee: Lim Wei Ming",
+                "Leave type: Annual leave",
+                "Leave year: 2027",
+                "Source: Carried forward",
+                "Lapses on: 31/12/2027"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "leave grants · a grant removed": {
+            "title": "Leave grant removed",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "leave types · standard days changed (field edit)": {
+            "title": "Leave type changed",
+            "part": "Annual leave",
+            "lines": [
+                "Standard days: 14 → 18"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "leave types · deactivated": {
+            "title": "Leave type deactivated",
+            "part": "Unpaid leave",
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "leave types · two seeded before the log (one moment, one entry)": {
+            "title": "Leave type added",
+            "part": "Annual leave",
+            "lines": [
+                "Name (Chinese): 年假",
+                "Paid: Yes",
+                "Accrues: Yes",
+                "Standard days: 14",
+                "Active: Yes",
+                "[Leave type added · Maternity leave]",
+                "Name (Chinese): 产假",
+                "Paid: Yes",
+                "Accrues: No",
+                "Standard days: 112",
+                "Only for: Women",
+                "Active: Yes"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "public holidays · added": {
+            "title": "Public holiday added",
+            "part": "New Year's Day",
+            "lines": [
+                "Date: 01/01/2027",
+                "Name (Chinese): 元旦",
+                "Holiday in lieu (of a Sunday): No",
+                "Country: SG",
+                "Active: Yes"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "public holidays · date changed (field edit)": {
+            "title": "Public holiday changed",
+            "part": "Chinese New Year",
+            "lines": [
+                "Date: 06/02/2027 → 07/02/2027"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "public holidays · hard-deleted (its last values are the record)": {
+            "title": "Public holiday deleted",
+            "part": "Vesak Day (in lieu)",
+            "lines": [
+                "Date: 21/05/2027",
+                "Name (Chinese): 卫塞节(补假)",
+                "Holiday in lieu (of a Sunday): Yes",
+                "Country: SG",
+                "Active: Yes"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "medical claim · submitted": {
+            "title": "Medical claim submitted: 85.00 SGD",
+            "part": null,
+            "lines": [
+                "Employee: Lim Wei Ming",
+                "Date: 01/10/2026",
+                "Description: GP visit — fever",
+                "Receipt reference: RC-5512"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "medical claim · approved (the approval row folds in)": {
+            "title": "Medical claim approved",
+            "part": null,
+            "lines": [],
+            "reason": "Within limit",
+            "who": "Sandra"
+        },
+        "medical claim · rejected": {
+            "title": "Medical claim rejected",
+            "part": null,
+            "lines": [],
+            "reason": "Dental is not covered",
+            "who": "Sandra"
+        },
+        "medical claim · withdrawn before the log (Q12: no person was recorded)": {
+            "title": "Medical claim withdrawn",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Not recorded"
+        },
+        "medical claim · expense raised to pay it (the expense and its journal are lines of the same operation)": {
+            "title": "Expense raised to pay the claim",
+            "part": null,
+            "lines": [
+                "Expense: EXP-2026-0012",
+                "[Expense recorded · EXP-2026-0012]",
+                "Amount: 85.00 SGD",
+                "[Journal posted · JE-2026-0101]"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "medical claim · description changed (field edit)": {
+            "title": "Medical claim changed",
+            "part": null,
+            "lines": [
+                "Description: GP visit → GP visit — fever"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "expense page · the medical claim that raised it (Q37)": {
+            "title": "Medical claim approved · MC-2026-0003",
+            "part": null,
+            "lines": [],
+            "reason": "Within limit",
+            "who": "Sandra"
+        },
+        "my medical claim · approved, read by the employee (M8: the approval is Restricted)": {
+            "title": "Medical claim approved",
+            "part": null,
+            "lines": [
+                "(Part of this change is restricted.)"
+            ],
+            "reason": "Within limit",
+            "who": "Sandra"
+        },
+        "overtime · batch started": {
+            "title": "Overtime batch started",
+            "part": null,
+            "lines": [
+                "Month: 01/10/2026"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "overtime · line added": {
+            "title": "Overtime line added",
+            "part": "Lim Wei Ming",
+            "lines": [
+                "Date: 05/10/2026",
+                "Day: Rest day (Sunday)",
+                "Hours: 3.5",
+                "Note: Container unloading"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "overtime · line removed (hard delete: its last values)": {
+            "title": "Overtime line removed",
+            "part": "Lim Wei Ming",
+            "lines": [
+                "Date: 06/10/2026",
+                "Day: Weekday",
+                "Hours: 2"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "overtime · sent for approval (the day_kind restamp is not said; the approval row folds in)": {
+            "title": "Overtime sent for approval: 6 hours",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "overtime · taken back for changes": {
+            "title": "Overtime taken back for changes",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "overtime · sent back (Q35; the machine suffix is stripped from the approver note — Q10)": {
+            "title": "Overtime sent back",
+            "part": null,
+            "lines": [],
+            "reason": "Fri hours look doubled",
+            "who": "Sandra"
+        },
+        "overtime · approved with approvals off (the note is only machine text: no reason)": {
+            "title": "Overtime approved",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "overtime · reversed (the voided lines are not said)": {
+            "title": "Overtime reversed",
+            "part": null,
+            "lines": [],
+            "reason": "Entered against the wrong month",
+            "who": "Sandra"
+        },
+        "overtime · discarded before the log (Q12: the stamp; the voided lines fold in)": {
+            "title": "Overtime batch discarded",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "overtime · sent back before the log (only the approval row; suffix stripped)": {
+            "title": "Overtime sent back",
+            "part": null,
+            "lines": [],
+            "reason": "Check Sunday",
+            "who": "Sandra"
+        },
+        "overtime · a line read by the warehouse approver (Q20: the employee is Restricted)": {
+            "title": "Overtime line added",
+            "part": null,
+            "lines": [
+                "Employee: Restricted",
+                "Date: 05/10/2026",
+                "Day: Rest day (Sunday)",
+                "Hours: 3.5"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "overtime · sent back, on the summary page (the batch is named)": {
+            "title": "Overtime sent back · OT 2026-10 #1",
+            "part": null,
+            "lines": [],
+            "reason": "Check Sunday",
+            "who": "Sandra"
+        },
+        "attendance · period opened (one line per staff member)": {
+            "title": "Attendance period opened",
+            "part": null,
+            "lines": [
+                "Month: 01/10/2026",
+                "People: 3"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "attendance · a line recorded": {
+            "title": "Attendance recorded",
+            "part": "Lim Wei Ming",
+            "lines": [
+                "Note: MC 2 days"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "attendance · new joiners added": {
+            "title": "New joiners added to the sheet",
+            "part": null,
+            "lines": [
+                "Employee: Lim Wei Ming"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "attendance · period completed (the mass updates are one sentence)": {
+            "title": "Attendance period completed",
+            "part": null,
+            "lines": [
+                "People: 3"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "attendance · period reopened": {
+            "title": "Attendance period reopened",
+            "part": null,
+            "lines": [],
+            "reason": "Late MC from Sandra",
+            "who": "Sandra"
+        },
+        "attendance · completed before the log (Q12: latest only, said so)": {
+            "title": "Attendance period completed",
+            "part": null,
+            "lines": [
+                "People: 2",
+                "(Only the latest completion and reopening of this month were kept before the log began.)"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "attendance · reopened before the log (Q12: latest only, said so)": {
+            "title": "Attendance period reopened",
+            "part": null,
+            "lines": [
+                "(Only the latest completion and reopening of this month were kept before the log began.)"
+            ],
+            "reason": "Payroll query",
+            "who": "Sandra"
+        }
+    }
+    const got12 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 40) problems.gold12.push(`⑫ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD12', order: 1, prelog: false, at: '2026-10-03T02:00:00+00:00', key: { id: uuid() },
+            actor: c.actor ?? { state: 'person', name: 'Sandra' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold12.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        if (es.length !== 1) { problems.gold12.push(`${c.label}:一次操作应当是一条,造出了 ${es.length} 条(${es.map((x) => x.title).join(' | ')})`); continue }
+        const e = es[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null, who: e.who.text }
+        got12[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold12.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold12.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold12.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (process.env.TRAIL_GOLD12_PRINT) console.log(JSON.stringify(got12, null, 8))
+    // 审批人那一格里系统追加的中文:剥掉之后一个中文字都不剩(Q10);只有机器字时整格为空
+    if (R.stripOvertimeMachineNote('OK · 审批流未启用(x)—— y') !== 'OK' || R.stripOvertimeMachineNote('审批流未启用(x)') !== null || R.stripOvertimeMachineNote('人写的') !== '人写的')
+        problems.gold12.push('stripOvertimeMachineNote 没有照约定剥(人的话留下、系统追加的那一截去掉、只有系统那一截时为空)')
+
+    // 机器字扫描:九个主语各自的表,按【这一页】的说法(subject)造样本跑一遍;外加每一种审批决定、每一种加班状态
+    const SUBS12 = ['leave_request', 'my_leave_request', 'leave_grant', 'leave_types', 'public_holidays', 'medical_claim', 'my_medical_claim',
+        'overtime_batch', 'attendance_period']
+    let s12 = 0
+    for (const sub of SUBS12) {
+        for (const t of R.SUBJECT_TABLES[sub] ?? []) {
+            const cols = Object.entries(SAMPLE_KINDS[t] ?? {})
+            for (let variant = 0; variant < 4; variant++) {
+                const img = {}, old = {}, neu = {}
+                for (const [c, [, kind]] of cols) {
+                    img[c] = sample(t, c, kind, variant)
+                    old[c] = variant === 2 ? RESTRICTED : variant === 3 ? null : sample(t, c, kind, variant + 1)
+                    neu[c] = variant === 1 ? RESTRICTED : sample(t, c, kind, variant + 2)
+                }
+                const refs = { ...refsFor(t, img, variant), ...refsFor(t, old, variant + 1), ...refsFor(t, neu, variant + 2) }
+                for (const [op, o] of [['INSERT', { new: img, prelog: variant === 3 }], ['UPDATE', { cols: cols.map(([c]) => c), old, new: neu, ctx: img, prelog: variant === 3 }], ['DELETE', { old: img }]]) {
+                    sweep(`${sub} · ${t} · ${op} · 样本 ${variant}`, [row(t, op, { ...o, refs })], sub)
+                    s12++
+                }
+            }
+        }
+        for (const st of ['leave_request', 'medical_claim', 'overtime_batch']) for (const dec of checkValues('approval_log', 'decision') ?? []) {
+            sweep(`${sub} · approval ${st} ${dec}`, [row('approval_log', 'INSERT', { new: { subject_type: st, subject_id: uuid(), subject_code: 'X-2026-0001', decision: dec, note: 'n · 审批流未启用(x)' } })], sub)
+            s12++
+        }
+        for (const st of checkValues('overtime_batches', 'status') ?? []) {
+            sweep(`${sub} · overtime → ${st}`, [row('overtime_batches', 'UPDATE', { cols: ['status'], old: { status: 'submitted' }, new: { status: st, label: 'OT 2026-10 #1' } })], sub)
+            s12++
+        }
+        sweep(`${sub} 整条看不见`, [row(R.SUBJECT_TABLES[sub][0], null, { hidden: true, table: null, actor: null })], sub)
+        s12++
+    }
+    const decisions = (checkValues('approval_log', 'decision') ?? []).length, otStates = (checkValues('overtime_batches', 'status') ?? []).length
+    const s12Want = SUBS12.reduce((n, sub) => n + (R.SUBJECT_TABLES[sub] ?? []).length * 12 + 3 * decisions + otStates + 1, 0)
+    if (s12 !== s12Want || s12 < 300 || !decisions || !otStates) problems.coverage.push(`请假与考勤那九个主语的机器字扫描造了 ${s12} 句,登记表要求 ${s12Want} 句(审批决定 ${decisions} 种、加班状态 ${otStates} 种)—— 造样本那一段瞎了`)
+    if (FAULT === 'wording-drift-1d2' && !problems.gold12.length) problems.gold12.push('(注入 wording-drift-1d2 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -2773,7 +3445,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

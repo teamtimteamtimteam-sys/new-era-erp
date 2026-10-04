@@ -306,6 +306,35 @@ AS $function$
         ('departments',                    'created', 'created_at',   'created_by',   NULL, 'account'),
         ('departments',                    'stamp',   'deleted_at',   NULL,           NULL, 'account'),
         ('training_records',               'created', 'created_at',   'created_by',   NULL, 'account'),
-        ('training_records',               'stamp',   'deleted_at',   NULL,           NULL, 'account')
+        ('training_records',               'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        -- AUDIT-TRAIL-1d-2(Tim 2026-10-04,AT-1d Step 0 的 Q12):请假与考勤。这几样戳是那几件事【唯一】的记录(Q11 / 1c Q9 的例外):
+        --   · 请假的 decided_at / decided_by —— 取消【改写】同一对戳(cancel_leave_request),所以线上两次本人取消只剩它;
+        --     批准 / 驳回时审批留痕同一笔、同一刻写下,两行归成一条,界面按【状态】说一次(status 在 extra 里)。
+        --   · 加班的冲销与丢弃(reversed_* · discarded_*):送审与决定在审批留痕里,不登记 decided_*(重新送审会把它清掉)。
+        --     行的 voided_at 与冲销 / 丢弃同一笔、同一刻 —— 并进那一句;那张表没有记人。
+        --   · 考勤的 completed_* 与 reopened_*:重开清掉完成那一对、覆盖上一次重开 —— 只剩【最近】那一次,界面照直说。
+        --     行的 recorded_* 与 frozen_at(冻结没有记人,与完成同一刻)。
+        --   · 医疗报销的 withdrawn_at:撤回【没有】记人(withdraw_medical_claim 只写 updated_by —— 不拿它猜,界面说 "Not recorded")。
+        --     批准 / 驳回由审批留痕说(decided_at 与它同一刻,不再登记)。
+        --   · 假别与公共假期:建立那一刻(都由迁移种下,没有记人);之后的改动只有共用的 updated_*,说不出改了哪一列。
+        ('leave_requests',                 'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('leave_requests',                 'stamp',   'decided_at',   'decided_by',   ARRAY['status', 'decision_notes'], 'account'),
+        ('leave_consumption',              'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('leave_grants',                   'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('leave_grants',                   'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('leave_types',                    'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('public_holidays',                'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('medical_claims',                 'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('medical_claims',                 'stamp',   'withdrawn_at', NULL,           ARRAY['status'], 'account'),
+        ('overtime_batches',               'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('overtime_batches',               'stamp',   'reversed_at',  'reversed_by',  ARRAY['status', 'reverse_reason'], 'account'),
+        ('overtime_batches',               'stamp',   'discarded_at', 'discarded_by', ARRAY['status'], 'account'),
+        ('overtime_lines',                 'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('overtime_lines',                 'stamp',   'voided_at',    NULL,           NULL, 'account'),
+        ('attendance_periods',             'created', 'opened_at',    'opened_by',    NULL, 'account'),
+        ('attendance_periods',             'stamp',   'completed_at', 'completed_by', ARRAY['status'], 'account'),
+        ('attendance_periods',             'stamp',   'reopened_at',  'reopened_by',  ARRAY['reopen_reason'], 'account'),
+        ('attendance_lines',               'stamp',   'recorded_at',  'recorded_by',  ARRAY['note'], 'account'),
+        ('attendance_lines',               'stamp',   'frozen_at',    NULL,           NULL, 'account')
     ) AS p(table_name, kind, at_column, by_column, extra, by_kind);
 $function$;

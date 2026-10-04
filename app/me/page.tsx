@@ -455,6 +455,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
                     requests={(mustRows(myLeaveRes)) as never}
                     types={(mustRows(typeRes)) as never}
                     decisions={decisions}
+                    trails={Object.fromEntries((mustRows(myLeaveRes) as { id: string }[]).map((r) => [r.id,
+                        <AuditTrail key={r.id} subject="my_leave_request" id={r.id} show={trailShow} anchor={`my-leave-trail-${r.id}`} compact />]))}
                 />
             </div>
 
@@ -464,6 +466,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
                     claims={(mustRows(claimRes)) as never}
                     balance={claimBalRes.data as never}
                     decisions={decisions}
+                    trails={Object.fromEntries((mustRows(claimRes) as { claim_id: string }[]).map((r) => [r.claim_id,
+                        <AuditTrail key={r.claim_id} subject="my_medical_claim" id={r.claim_id} show={trailShow} anchor={`my-mc-trail-${r.claim_id}`} compact />]))}
                 />
 
                 <MyExpenseClaimsPanel

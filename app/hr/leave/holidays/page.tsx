@@ -11,10 +11,11 @@ import { type HolidayRow } from './HolidaysTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 export default async function HolidaysPage({
     searchParams,
-}: { searchParams: Promise<{ year?: string }> }) {
+}: { searchParams: Promise<{ year?: string; trail?: string | string[] }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.hr)
@@ -69,6 +70,8 @@ export default async function HolidaysPage({
             state={{ kind: 'ok' }}
         >
             <HolidaysEditor rows={mustRows(res) as HolidayRow[]} year={year} knownKeys={knownKeys} />
+            {/* AUDIT-TRAIL-1d-2(M11):整张公共假期表一段,不按上面的年份筛 —— 一个假期删掉就是【硬删】,它最后的样子只在这一段里 */}
+            <AuditTrail subject="public_holidays" id="all" show={trailCount(sp.trail)} />
         </ListPage>
     )
 }

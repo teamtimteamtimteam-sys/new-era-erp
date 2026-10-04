@@ -21,8 +21,12 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function ClaimDetail({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClaimDetail({ params, searchParams }: {
+    params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
+}) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -189,6 +193,9 @@ export default async function ClaimDetail({ params }: { params: Promise<{ id: st
                 gstRegistered={gstRegistered}
                 taxCodes={taxCodes}
             />
+
+            {/* AUDIT-TRAIL-1d-2:页底的审计记录 —— 提交 · 决定 · 撤回 · 付款建的费用单与它的分录、核销(只给财务,别人 Restricted —— Q4) */}
+            <AuditTrail subject="medical_claim" id={claim.claim_id as string} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

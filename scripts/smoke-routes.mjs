@@ -656,6 +656,15 @@ const MUST_CONTAIN = {
     '/hr/employees/[id]': [{ trail: 'audit-trail', why: '员工页底的审计记录(Q28;账号的镜像 Q24 · Q21)' }],
     '/hr/departments/[id]/edit': [{ trail: 'audit-trail', why: '部门编辑页底的审计记录(它只有这一页)' }],
     '/hr/training/[id]/edit': [{ trail: 'audit-trail', why: '培训记录编辑页底的审计记录(Q29;它只有这一页)' }],
+    // AUDIT-TRAIL-1d-2:请假与考勤。加班批与考勤期间的明细页线上至今 0 张(在下面的跳过清单里)—— 有数据那天它们照这一条一起受检。
+    //   【emptyOk】发放那一块:线上至今 0 笔发放。假别与公共假期两段都有记录开始之前的建立。
+    '/hr/leave/[id]': [{ trail: 'audit-trail', why: '请假页底的审计记录(申请 · 决定 · 取消)' }],
+    '/hr/claims/[id]': [{ trail: 'audit-trail', why: '医疗报销页底的审计记录(Q37:付款建的费用单)' }],
+    '/hr/overtime/[id]': [{ trail: 'audit-trail', why: '加班批页底的审计记录(M1 · Q35)' }],
+    '/hr/attendance/[id]': [{ trail: 'audit-trail', why: '考勤期间页底的审计记录(Q12:之前那一段只剩最近一次)' }],
+    '/hr/leave/types': [{ trail: 'audit-trail', why: '整张假别表一段(M11)' }],
+    '/hr/leave/holidays': [{ trail: 'audit-trail', why: '整张公共假期表一段(M11 —— 硬删的假期只在这一段里)' }],
+    '/hr/leave/grants': [{ trail: 'audit-trail', emptyOk: true, why: '这一个假期年的发放那一块' }],
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
     // 为空时改渲染一段琥珀色文字("还没有货代 / 还没有供货商")。所以那个字符串

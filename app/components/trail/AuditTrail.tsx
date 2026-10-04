@@ -32,6 +32,8 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'account' | 'approval_policy' | 'employee' | 'department' | 'training_record' | 'import_batch'
     | 'dictionary_substances' | 'dictionary_battery_chemistries' | 'dictionary_material_kinds' | 'dictionary_inbound_safety_states'
     | 'dictionary_laboratories' | 'dictionary_inbound_source_reasons'
+    | 'leave_request' | 'my_leave_request' | 'leave_grant' | 'leave_types' | 'public_holidays' | 'medical_claim' | 'my_medical_claim'
+    | 'overtime_batch' | 'attendance_period'
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
@@ -109,6 +111,16 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     dictionary_inbound_safety_states: 'inbound_safety_states',
     dictionary_laboratories: 'laboratories',
     dictionary_inbound_source_reasons: 'inbound_source_reasons',
+    // AUDIT-TRAIL-1d-2(假别与公共假期是 M11 集合,页面交 'all';my_* 是 /me 上本人那几张 —— M8)
+    leave_request: 'leave_requests',
+    my_leave_request: 'leave_requests',
+    leave_grant: 'leave_grants',
+    leave_types: 'leave_types',
+    public_holidays: 'public_holidays',
+    medical_claim: 'medical_claims',
+    my_medical_claim: 'medical_claims',
+    overtime_batch: 'overtime_batches',
+    attendance_period: 'attendance_periods',
 }
 
 export const PAGE = 20

@@ -473,6 +473,57 @@ const OVERRIDES = {
     inbound_source_reasons: {
         name_en: 'Name (English)', name_zh: 'Name (Chinese)', notes: 'Notes', is_active: 'Active', requires_explanation: 'Needs an explanation',
     },
+    // ── AUDIT-TRAIL-1d-2(Tim 2026-10-04,AT-1d Step 0 Q32 · Q33):这一刀第一次把这几张表放上页面 —— 逐列对着它那一页核过。
+    //   请假:请假详情页与表单(leave.*);消耗账:详情页"这几天从哪来"那一张;发放:/hr/leave/grants 与余额表;假别:假别表;
+    //   公共假期:假期表;医疗报销:报销详情页(claims.*);加班:加班批页(overtime.*);考勤:考勤底稿(attendance.*)。
+    //   Step 0 §h 点名的错标签在这里改:"Decided by you (flagged)"、"Request leave"、两个 "Reason for the exception"、"New batch"、
+    //   加班两对 "Decided by" / "Reversed by"、"Identity key"、"Amount SGD"、"Ot normal hours" 一类、"Name (EN) / (ZH)"。
+    leave_requests: {
+        code: 'Leave request number', employee_id: 'Employee', leave_type_code: 'Leave type', start_date: 'Start', end_date: 'End',
+        start_half_day: 'Half day on the first day', end_half_day: 'Half day on the last day', days: 'Days', reason: 'Reason',
+        certificate_ref: 'Medical certificate', status: 'Status', decided_at: 'Decided on', decided_by: 'Decided by',
+        decision_notes: 'Decision notes', deleted_at: 'Deleted on', is_exception: 'Days entered by hand (exception)',
+        exception_reason: 'Reason for the exception',
+    },
+    leave_consumption: {
+        leave_request_id: 'Leave request', leave_grant_id: 'Leave grant', entry_type: 'Entry', days: 'Days', notes: 'Notes',
+        accrual_year: 'Accrual year',
+    },
+    leave_grants: {
+        employee_id: 'Employee', leave_type_code: 'Leave type', leave_year: 'Leave year', days: 'Days', granted_on: 'Granted on',
+        expires_on: 'Lapses on', grant_type: 'Source', source_grant_id: 'Carried forward from', notes: 'Notes', deleted_at: 'Deleted on',
+    },
+    leave_types: {
+        name_en: 'Name (English)', name_zh: 'Name (Chinese)', description_en: 'Description (English)', description_zh: 'Description (Chinese)',
+        is_paid: 'Paid', is_accrued: 'Accrues', default_days_per_year: 'Standard days', requires_certificate_after_days: 'Certificate after (days)',
+        requires_approval: 'Needs approval', allows_half_day: 'Half days', gender_restriction: 'Only for', is_active: 'Active', notes: 'Notes',
+    },
+    public_holidays: {
+        holiday_date: 'Date', name_en: 'Name (English)', name_zh: 'Name (Chinese)', country: 'Country', is_active: 'Active', notes: 'Notes',
+        is_in_lieu: 'Holiday in lieu (of a Sunday)',
+    },
+    medical_claims: {
+        code: 'Claim number', employee_id: 'Employee', claim_date: 'Date', claim_year: 'Year', amount_sgd: 'Amount', description: 'Description',
+        receipt_ref: 'Receipt reference', status: 'Status', decided_at: 'Decided on', decided_by: 'Decided by', decision_notes: 'Decision notes',
+        expense_id: 'Expense', deleted_at: 'Deleted on', withdrawn_at: 'Withdrawn on',
+    },
+    overtime_batches: {
+        label: 'Batch', period_month: 'Month', status: 'Status', submitted_at: 'Submitted on', submitted_by: 'Submitted by',
+        decided_at: 'Decided on', decided_by: 'Decided by', decision_notes: "Approver's note", reversed_at: 'Reversed on',
+        reversed_by: 'Reversed by', reverse_reason: 'Reason for reversing', discarded_at: 'Discarded on', discarded_by: 'Discarded by',
+    },
+    overtime_lines: {
+        batch_id: 'Batch', employee_id: 'Employee', work_date: 'Date', hours: 'Hours', day_kind: 'Day', note: 'Note', voided_at: 'Voided on',
+    },
+    attendance_periods: {
+        code: 'Sheet', period_month: 'Month', status: 'Status', opened_at: 'Opened on', opened_by: 'Opened by', completed_at: 'Completed on',
+        completed_by: 'Completed by', reopened_at: 'Reopened on', reopened_by: 'Reopened by', reopen_reason: 'Reason for reopening',
+    },
+    attendance_lines: {
+        period_id: 'Attendance period', employee_id: 'Employee', ot_normal_hours: 'OT normal (hours)', ot_rest_day_hours: 'OT rest day (hours)',
+        ot_public_holiday_hours: 'OT public holiday (hours)', note: 'Note', recorded_at: 'Recorded on', recorded_by: 'Recorded by',
+        unpaid_days: 'Unpaid days', active_from: 'Employed from', active_to: 'Employed to', frozen_at: 'Frozen on',
+    },
 }
 // AUDIT-TRAIL-1b-2:勘察把几列自由文本认成了"像枚举"(enum_like)—— 页面上它们是一个随手填的输入框,
 //   审计记录就照原样说(一个人敲的字,Q8),而不是去找一张并不存在的取值表。
@@ -553,6 +604,9 @@ const HIDE = {
     // AUDIT-TRAIL-1d-1:员工编号在页头;调薪申请的快照是一段 JSON、"经由哪个码批的"是一个权限码(机器字,Q10 · Q33);
     //   挂接史的序号、授权的主键是技术列
     employees: ['code'], salary_change_requests: ['snapshot', 'decided_via'],
+    // AUDIT-TRAIL-1d-2:公共假期的 holiday_key 是一个跨年份的机器键(Q33 —— 名字与日期已经说了它是哪一天);
+    //   加班批的序号由 label 说了;医疗报销的年份由日期说了
+    public_holidays: ['holiday_key'], overtime_batches: ['seq'], medical_claims: ['claim_year'],
 }
 
 // ── 记录类型的英文名(单数)与区域 ─────────────────────────────────────────────
@@ -621,6 +675,10 @@ const TABLE_NAMES = {
     employee_account_history: 'additional login change', finance_settings_history: 'approval policy change',
     salary_change_requests: 'salary change request', training_records: 'training record', departments: 'department',
     import_batches: 'bulk import',
+    // AUDIT-TRAIL-1d-2
+    leave_consumption: 'leave balance entry', leave_grants: 'leave grant', leave_types: 'leave type', medical_claims: 'medical claim',
+    overtime_batches: 'overtime batch', overtime_lines: 'overtime line', attendance_periods: 'attendance period',
+    attendance_lines: 'attendance line',
 }
 // 区域:按表名开头认(先长后短),认不出的归 Other。区域名与导航模块的英文说法一致。
 const AREA_RULES = [
@@ -801,6 +859,10 @@ const ENUM_OVERRIDES = {
     'employee_account_history#action': { linked: 'Linked', unlinked: 'Unlinked' },
     'import_batches#target_table': { materials: 'Materials', suppliers: 'Suppliers', customers: 'Customers', employees: 'Employees',
         departments: 'Departments', storage_locations: 'Storage locations' },
+    // ── AUDIT-TRAIL-1d-2(Q34:取值照各自那一页的选项文字)─────────────────────────────────────────
+    'medical_claims#status': { submitted: 'Waiting for approval', approved: 'Approved', rejected: 'Rejected', paid: 'Paid', withdrawn: 'Withdrawn' },
+    'leave_grants#grant_type': { entitlement: 'Entitlement', carry_forward: 'Carried forward', adjustment: 'Adjustment', pro_rata: 'Pro-rated' },
+    'leave_types#gender_restriction': { female: 'Women', male: 'Men' },
     'work_order_history#change_type': { created: 'Created', released: 'Released', closed: 'Closed', cancelled: 'Cancelled',
         header_update: 'Details changed', line_add: 'Input line added', line_update: 'Input line changed', line_remove: 'Input line removed',
         expected_add: 'Expected output added', expected_update: 'Expected output changed', expected_remove: 'Expected output removed' },
