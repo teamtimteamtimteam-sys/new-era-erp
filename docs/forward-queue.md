@@ -195,6 +195,18 @@
 >    上界,不是部署花了这么久。窗口里坏的只有一处(1c-2 交回 §8 读旧页面读出来的):旧的 `/settings/deleted` 把删掉的对账单
 >    BS-2026-0001 的种类列成原样的键名 `deleted.kind.bank_statement`、没有链接;其余照旧(旧应用不叫八个新主语;汇总页 Record 一栏
 >    销售那几行链到旧应用本来就有的应收页;旧资产页的修改史面板读的 `fixed_asset_history` 没动)。见 `docs/handbacks/AUDIT-TRAIL-1c-2.md` §8。
+> 29. **✅ 期末、设置与清单页的审计记录 —— AUDIT-TRAIL-1c-3(`v1.4.33` 的一部分,【未发布】,2026-10-04)。AT-1c 三刀做完。**
+>    内容见下面「HISTORY family」一节 AT-1c 那一块的 ✅ AT-1c-3。
+>    ★ **部署:Tim 在 Vercel 上确认 `6104635b` 已部署(AT-1c-3 close-out + AT-1d Step 0 委托书,2026-10-04)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-04 08:39:15 CST**(测量:`db/migration-windows.tsv`,`2026-10-04-at1c3-trails-period-end-settings-and-lists.sql`)·
+>    终点下界 **2026-10-04 10:43:28 CST**(测量:推送把 `origin/main` 移到 `6104635b`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`6104635b … {2026-10-04 10:43:28 +0800}: update by push`)·
+>    终点上界 **2026-10-04 10:50:20 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 2 h 04 min 13 s,至多 2 h 11 min 05 s。** 窗口里**没有东西坏掉**(五支登记函数同签名原地替换,`record_trail` 的返回列
+>    没变;旧应用不叫十二个新主语,1c-1 / 1c-2 的主语照旧读得出 —— 迁移自己的证明读过)。提前看得见、而且是有意的:`/settings/change-history`
+>    上日记账申请及其审批那几行的 Record 一栏改名为申请本身;月结那几行名为 "Finance settings";转账那几行名为 "Transfer DD/MM/YYYY · … → …"。
+>    见 `docs/handbacks/AUDIT-TRAIL-1c-3.md` §7.4。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;

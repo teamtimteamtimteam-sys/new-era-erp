@@ -650,6 +650,8 @@ recurring-lines form and the frozen table, the import page ("Mapping name"), the
 11. **The processing-cost block reads the entries through `processing_cost_entries_masked`** (the masked-reads check) and shows a named
     refusal to a reader without `module.processing.view`. I did not widen `processing_cost_entry_lookup` with the two id columns: its header
     says adding a column widens what processing readers see, and that is a decision for you.
+    **→ Tim's ruling (AT-1c-3 close-out brief, 2026-10-04), closed:** the processing-costs page **keeps** its "Restricted" notice for
+    readers without processing access; `processing_cost_entry_lookup` is **not** widened. Nothing to build; the page stays as shipped.
 12. **List blocks read a bounded window** (24 runs; the FX page's rates + 50 withdrawn; 50 deleted statements; the page's 20 forecasts and 50
     transfers; the journal page's listed requests). Registered as `AT1C3-LIST-BLOCKS-READ-A-BOUNDED-WINDOW`.
 13. **Per-row trails are collapsed** (`<details>`, "Audit trail") inside the card or row; every trail on a page shares `?trail=` and anchors to
@@ -704,3 +706,5 @@ recurring-lines form and the frozen table, the import page ("Mapping name"), the
 **`docs/forward-queue.md`:** item 28 records 1c-2's broken window; AT-1c-3 and AT-1c marked ✅; the 1c-3 window (start 2026-10-04 08:39:15
 CST) is to be closed with Tim's Vercel reading at the next close-out. **Not done here, by the brief:** the approval-policy panel (AT-1d),
 DATE-PICK-1, any AT-1d page. The `processing_cost_entry_lookup` widening (decision 11) is a question for Tim, not queued as work.
+**→ Answered 2026-10-04 (close-out brief): not widened; the "Restricted" notice stays (decision 11).** The 1c-3 window was closed in
+`docs/forward-queue.md` item 29 (at least 2 h 04 min 13 s, at most 2 h 11 min 05 s).
