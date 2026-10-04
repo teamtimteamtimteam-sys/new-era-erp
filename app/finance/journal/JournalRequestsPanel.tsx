@@ -11,7 +11,7 @@
 // 钮亮着,拒绝由库出,就地说成人话。
 // 【权限码的那一半看得见、按不动、带理由】(DBLOCK-1)—— 批 / 驳要 data.view_prices(能进这一页的人
 // 已经持 module.finance.view,那是门的另一半);撤回要 module.finance.edit,提单人本人除外。
-import { useTransition } from 'react'
+import { useTransition, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -56,6 +56,7 @@ export default function JournalRequestsPanel({
     canWithdraw,
     baseCurrency,
     lockedBeforeText,
+    trails = {},
 }: {
     open: JournalRequestView[]
     history: JournalRequestView[]
@@ -63,6 +64,9 @@ export default function JournalRequestsPanel({
     canWithdraw: boolean
     baseCurrency: string
     lockedBeforeText: string | null
+    /** AUDIT-TRAIL-1c-3(Q17):每一张申请的审计记录(页面在服务端造好,折起来放在卡片 / 那一行的末尾)——
+     *  一张还没批的人工分录没有分录页,它的记录只住在这里 */
+    trails?: Record<string, ReactNode>
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -192,6 +196,7 @@ export default function JournalRequestsPanel({
                             {t('finance.journalRequest.withdraw')}
                         </ConfirmButton>
                     </PermissionGate>
+                    {trails[r.id]}
                 </div>
             ))}
 
@@ -216,6 +221,7 @@ export default function JournalRequestsPanel({
                                         {' '}— {h.decisionNotes ?? h.withdrawReason}
                                     </span>
                                 )}
+                                {trails[h.id]}
                             </li>
                         ))}
                     </ul>

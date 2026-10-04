@@ -27,6 +27,8 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'processing_settings' | 'pricing_settings' | 'receiving_settings'
     | 'journal_entry' | 'invoice' | 'credit_note' | 'payment' | 'payment_request' | 'expense' | 'payable'
     | 'sale' | 'freight' | 'fixed_asset' | 'bank_statement' | 'gst_period' | 'fx_rate' | 'management_pack' | 'contract'
+    | 'finance_lock' | 'finance_gst' | 'company_profile' | 'year_close' | 'journal_request' | 'expense_claim' | 'my_expense_claim'
+    | 'bank_transfer' | 'wht_remittance' | 'cash_forecast' | 'cash_forecast_line' | 'bank_import_profile'
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
@@ -78,6 +80,19 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     fx_rate: 'fx_rates',
     management_pack: 'management_packs',
     contract: 'contracts',
+    // AUDIT-TRAIL-1c-3
+    finance_lock: 'finance_settings',
+    finance_gst: 'finance_settings',
+    company_profile: 'company_profile',
+    year_close: 'year_closes',
+    journal_request: 'journal_requests',
+    expense_claim: 'expense_claims',
+    my_expense_claim: 'expense_claims',
+    bank_transfer: 'bank_transfers',
+    wht_remittance: 'wht_remittances',
+    cash_forecast: 'cash_forecasts',
+    cash_forecast_line: 'cash_forecast_lines',
+    bank_import_profile: 'bank_import_profiles',
 }
 
 export const PAGE = 20
@@ -88,27 +103,39 @@ export function trailCount(raw: string | string[] | undefined): number {
     return Number.isInteger(n) && n >= PAGE && n <= 500 ? n : PAGE
 }
 
-export default async function AuditTrail({ subject, id, show }: { subject: TrailSubject; id: string; show: number }) {
+// AUDIT-TRAIL-1c-3:一页上不止一段时(/finance/settings 的锁期与 GST 两块面板、/finance/close 的锁期与年结),每一段一个自己的
+//   anchor —— section 的 id 与"Show older entries"落回的地方。同一页的几段共用 ?trail=(点一段的"更早"几段一起多读 20 条,
+//   落回点的那一段)。不传就是 'audit-trail',与以前逐字相同。
+// compact:一张卡片 / 一行里的那一块(人工分录申请、报销单 —— Q17 · Q20):折起来(<details>),标题与说明不画,
+//   分页链接落回那一块;section 照样带 data-audit-trail,冒烟与探针认得出它。
+export default async function AuditTrail({ subject, id, show, anchor = 'audit-trail', compact = false }: {
+    subject: TrailSubject; id: string; show: number; anchor?: string; compact?: boolean
+}) {
     const supabase = await createClient()
     const res = await supabase.rpc('record_trail', { p_subject: subject, p_id: id, p_entries: show })
-    const heading = (
+    const heading = compact ? null : (
         <>
             <h2 className="mb-1">{TRAIL_TEXT['section.title']}</h2>
             <p className="mb-3 text-xs text-[color:var(--brand-muted-text)]">{TRAIL_TEXT['section.intro']}</p>
         </>
     )
+    const frame = (state: string, body: React.ReactNode) => compact ? (
+        <details id={anchor} className="mt-3 border-t pt-2">
+            <summary className="cursor-pointer text-xs text-[color:var(--brand-muted-text)]">{TRAIL_TEXT['rowTrail.summary']}</summary>
+            <section data-audit-trail={state} className="mt-2">{body}</section>
+        </details>
+    ) : (
+        <section id={anchor} data-audit-trail={state} className="mt-8 border-t pt-6">{heading}{body}</section>
+    )
     if (res.error) {
         const code = res.error.message.split('|')[0]
         if (code === 'TRAIL_NOT_PERMITTED' || code === 'TRAIL_SUBJECT_UNKNOWN') {
-            return (
-                <section id="audit-trail" data-audit-trail="refused" className="mt-8 border-t pt-6">
-                    {heading}
-                    <p className="text-sm">
-                        <Refusal>{TRAIL_TEXT.restricted}</Refusal>{' '}
-                        {TRAIL_TEXT[code === 'TRAIL_NOT_PERMITTED' ? 'refusal.notPermitted' : 'refusal.unknown']}
-                    </p>
-                </section>
-            )
+            return frame('refused', (
+                <p className="text-sm">
+                    <Refusal>{TRAIL_TEXT.restricted}</Refusal>{' '}
+                    {TRAIL_TEXT[code === 'TRAIL_NOT_PERMITTED' ? 'refusal.notPermitted' : 'refusal.unknown']}
+                </p>
+            ))
         }
         throw new Error(`record_trail(${subject}) failed: ${res.error.message}`)
     }
@@ -120,15 +147,14 @@ export default async function AuditTrail({ subject, id, show }: { subject: Trail
     const currency = typeof ctx?.currency === 'string' ? ctx.currency : null
     const entries = buildEntries(dict, rows.map((r) => fromRecordTrail(r as Parameters<typeof fromRecordTrail>[0])), { currency, subject, recordId: id })
     const more = rows.some((r) => r.more)
-    return (
-        <section id="audit-trail" data-audit-trail={entries.length ? 'entries' : 'empty'} className="mt-8 border-t pt-6">
-            {heading}
+    return frame(entries.length ? 'entries' : 'empty', (
+        <>
             {entries.length === 0 ? (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{TRAIL_TEXT.noEntries}</p>
             ) : (
                 <AuditTrailList entries={entries} divider={fill(TRAIL_TEXT.divider, { date: formatTrailStamp(TRAIL_LOG_BEGAN_AT) })} />
             )}
-            {more && <OlderEntriesLink href={`?trail=${show + PAGE}#audit-trail`} />}
-        </section>
-    )
+            {more && <OlderEntriesLink href={`?trail=${show + PAGE}#${anchor}`} />}
+        </>
+    ))
 }

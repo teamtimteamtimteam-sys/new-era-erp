@@ -14,6 +14,10 @@ import StatementsTable, { type StatementRow } from './StatementsTable'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import { mustRows } from '@/lib/db-helpers'
+import { can } from '@/lib/permissions'
+import { trailCount } from '@/app/components/trail/AuditTrail'
+import ListTrail from '@/app/components/trail/ListTrail'
 
 const PAGE_SIZE = 20
 
@@ -25,7 +29,7 @@ function parsePage(value: string | undefined): number {
 export default async function BankStatementsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ account?: string; status?: string; page?: string }>
+    searchParams: Promise<{ account?: string; status?: string; page?: string; trail?: string }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -135,6 +139,13 @@ export default async function BankStatementsPage({
         }
     })
 
+    // AUDIT-TRAIL-1c-3:删掉的对账单 —— 只给持 data.view_deleted 的人读(与它那一页的门同一个码)
+    const canDeleted = await can('data.view_deleted')
+    const deletedStatements = canDeleted
+        ? mustRows(await supabase.from('bank_statements').select('id, code').not('deleted_at', 'is', null)
+            .order('deleted_at', { ascending: false }).limit(50), 'bank_statements deleted') as { id: string; code: string }[]
+        : []
+
     return (
         <ListPage
             title={t('bank.listTitle')}
@@ -188,6 +199,13 @@ export default async function BankStatementsPage({
                     </Button>
                 )}
             </div>
+
+            {/* AUDIT-TRAIL-1c-3:删掉的对账单(清单只列在用的)—— 一块合起来的审计记录,每一张链到它只读的页(1c-2 的 Q6)。
+                与那一页同一道门:持 data.view_deleted 的人看得见;别人看到一句具名的拒绝,不是一块空白。 */}
+            <ListTrail anchor="deleted-statements-trail" intro="listTrail.intro.deletedStatements" show={trailCount(sp.trail)}
+                refused={!canDeleted}
+                records={deletedStatements.map((b) => ({ subject: 'bank_statement' as const, id: b.id, href: `/finance/bank/statements/${b.id}`,
+                    label: `${b.code} (deleted)` }))} />
         </ListPage>
     )
 }

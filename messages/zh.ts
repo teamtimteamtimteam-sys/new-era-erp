@@ -8288,6 +8288,9 @@ const zh = {
             },
             addButton: '+ 新增汇率',
             recordCount: '共 {count} 条记录',
+            // AUDIT-TRAIL-1c-3:撤回了的汇率在清单里不列,但它们的页打得开(1c-2 的 Q7)—— 这里给它们一个入口
+            withdrawnTitle: '已撤回的汇率',
+            withdrawnHint: '已不再生效。点开是只读的,写着谁撤回的、为什么。',
             colCurrency: '币种',
             colType: '方向',
             colRate: '汇率(1 外币 = ? SGD)',

@@ -31,14 +31,24 @@ import { formatTrailStamp } from '@/lib/dates'
 import AuditTrailList, { OlderEntriesLink, type ViewEntry } from './AuditTrailList'
 import { PAGE, type TrailSubject } from './AuditTrail'
 
-export type ListTrailRecord = { subject: TrailSubject; id: string; label: string }
+// AUDIT-TRAIL-1c-3:一条记录有自己的页时(重估分录、汇率、删掉的对账单……)交一个 href,Record 一栏就是一个链接 ——
+//   撤回了的汇率、删掉的对账单从这里打得开(1c-2 留下的"没有入口")。一次操作碰到几条记录时 Record 一栏只说名字。
+//   anchor:一页上不止一段时各用各的(/finance/close 的锁期与年结)。
+export type ListTrailRecord = { subject: TrailSubject; id: string; label: string; href?: string | null }
 /** 每一个用 ListTrail 的清单页一句开场白 —— 字面量写全(check-trail-wording 按字面认"这个键有人用") */
 type IntroKey = 'listTrail.intro.lanes' | 'listTrail.intro.licences'
+    | 'listTrail.intro.yearCloses' | 'listTrail.intro.revaluations' | 'listTrail.intro.depreciation' | 'listTrail.intro.fxRates'
+    | 'listTrail.intro.forecasts' | 'listTrail.intro.payroll' | 'listTrail.intro.costSettlement' | 'listTrail.intro.wht'
+    | 'listTrail.intro.transfers' | 'listTrail.intro.importMappings' | 'listTrail.intro.deletedStatements'
 
-export default async function ListTrail({ records, intro, show }: {
+// refused:调用方在【找记录】那一步就已经被挡(/finance/processing-costs:成本条目的读规则是加工的码)—— 画成一句具名的
+//   拒绝,不画成"这里什么都没记过"(一个 0 行的读数要先问是谁读的)。
+export default async function ListTrail({ records, intro, show, anchor = 'audit-trail', refused = false }: {
     records: ListTrailRecord[]
     intro: IntroKey
     show: number
+    anchor?: string
+    refused?: boolean
 }) {
     const supabase = await createClient()
     const dict = trailDict(await getBaseCurrency())
@@ -48,6 +58,14 @@ export default async function ListTrail({ records, intro, show }: {
             <p className="mb-3 text-xs text-[color:var(--brand-muted-text)]">{TRAIL_TEXT[intro]}</p>
         </>
     )
+    if (refused) {
+        return (
+            <section id={anchor} data-audit-trail="refused" className="mt-8 border-t pt-6">
+                {heading}
+                <p className="text-sm"><Refusal>{TRAIL_TEXT.restricted}</Refusal>{' '}{TRAIL_TEXT['refusal.notPermitted']}</p>
+            </section>
+        )
+    }
     const results = await Promise.all(records.map(async (r) => ({
         r, res: await supabase.rpc('record_trail', { p_subject: r.subject, p_id: r.id, p_entries: show }) })))
     // 每一行记下它从哪一条记录读回来(同一行被两条记录读到,只留第一条的那一份)
@@ -60,7 +78,7 @@ export default async function ListTrail({ records, intro, show }: {
             // 页面的门已经放行,这里被拒 = 登记表与页面对不上 —— 说出来,不画成"什么都没发生"
             if (code === 'TRAIL_NOT_PERMITTED' || code === 'TRAIL_SUBJECT_UNKNOWN') {
                 return (
-                    <section id="audit-trail" data-audit-trail="refused" className="mt-8 border-t pt-6">
+                    <section id={anchor} data-audit-trail="refused" className="mt-8 border-t pt-6">
                         {heading}
                         <p className="text-sm"><Refusal>{TRAIL_TEXT.restricted}</Refusal>{' '}
                             {TRAIL_TEXT[code === 'TRAIL_NOT_PERMITTED' ? 'refusal.notPermitted' : 'refusal.unknown']}</p>
@@ -84,12 +102,12 @@ export default async function ListTrail({ records, intro, show }: {
     const shown = unique.slice(0, show)
     if (unique.length > show) more = true
     return (
-        <section id="audit-trail" data-audit-trail={shown.length ? 'entries' : 'empty'} className="mt-8 border-t pt-6">
+        <section id={anchor} data-audit-trail={shown.length ? 'entries' : 'empty'} className="mt-8 border-t pt-6">
             {heading}
             {shown.length === 0
                 ? <p className="text-sm text-[color:var(--brand-muted-text)]">{TRAIL_TEXT['listTrail.empty']}</p>
                 : <AuditTrailList entries={shown} withRecord divider={fill(TRAIL_TEXT.divider, { date: formatTrailStamp(TRAIL_LOG_BEGAN_AT) })} />}
-            {more && <OlderEntriesLink href={`?trail=${show + PAGE}#audit-trail`} />}
+            {more && <OlderEntriesLink href={`?trail=${show + PAGE}#${anchor}`} />}
         </section>
     )
 }

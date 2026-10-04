@@ -9,8 +9,11 @@ import type { BankMapping } from '@/lib/bankCsv'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
+import { trailCount } from '@/app/components/trail/AuditTrail'
+import ListTrail from '@/app/components/trail/ListTrail'
 
-export default async function ImportStatementPage() {
+// AUDIT-TRAIL-1c-3:页底一块 —— 每一份导入映射(删掉的也在:"删掉了"正是要说的事);映射没有自己的页
+export default async function ImportStatementPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -48,10 +51,16 @@ export default async function ImportStatementPage() {
         mapping: p.mapping as unknown as BankMapping,
     }))
 
+    const allProfiles = mustRows(await supabase.from('bank_import_profiles').select('id, name, deleted_at').order('name'),
+        'bank_import_profiles incl. deleted') as { id: string; name: string; deleted_at: string | null }[]
+
     return (
         <div className="p-8 max-w-6xl">
             <h1 className="mb-4">{t('bank.importTitle')}</h1>
             <ImportStatementForm canEdit={canEditGate} profiles={profiles} />
+            <ListTrail intro="listTrail.intro.importMappings" show={trailCount((await searchParams).trail)}
+                records={allProfiles.map((p) => ({ subject: 'bank_import_profile' as const, id: p.id,
+                    label: `Mapping: ${p.name}${p.deleted_at ? ' (deleted)' : ''}` }))} />
         </div>
     )
 }

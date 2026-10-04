@@ -74,6 +74,29 @@
 --   contract        → /contracts/[id]                   requireModule(MOD.suppliers)   = module.suppliers.view
 --                    根表的读规则按方向:卖方合同要 customers.view、买方合同要 suppliers.view —— 页面在 RLS 下读、读不到就 404,
 --                    所以 'table' 与页面同一个答案(看不见的合同对他而言不存在)
+-- AUDIT-TRAIL-1c-3(Tim 2026-10-03,AT-1c Step 0 §a,Q1 拆分的第三刀:期末、设置与清单页上的记录):
+--   finance_lock    → /finance/settings 锁期面板之下 · /finance/close 关账史之下(Q25 · Q29)  module.finance.view
+--                    根表 finance_settings(单行,id boolean —— M5,页面传 'true');M6:只取 locked_before 一列;
+--                    月结 / 反结(period_closes)经 M7 整张表属于这一行(两张表之间一个键都没有,Q3)
+--   finance_gst     → /finance/settings GST 面板之下                                       module.finance.view
+--                    同一行(M5);M6:只取 gst_registered、gst_registration_no 两列 —— 两块面板各看各的(Q25);
+--                    这一行上没有面板的六列(gst_rate_pct · system_start_date · 三个财年列 · default_allocation_basis)
+--                    哪一块都不取,只在 /settings/change-history 上找得到(Q4);审批方针那四列归 AT-1d(Q2)
+--   company_profile → /finance/company                                                     requireModule(MOD.finance)
+--                    单行(M5),整行 —— 一块面板编辑整行;银行那五列按 HISTORY-1 的规则对不持 data.view_banking 的人遮
+--   year_close      → /finance/close 年结那一块(清单块,ListTrail)                          module.finance.view
+--   journal_request → /finance/journal 每一张申请卡片里(Q17,一张一块)                     module.finance.view
+--   expense_claim   → /finance/claims 每一张报销单一块(Q20)                                module.finance.view
+--   my_expense_claim → /me 报销人自己那几张(Q20 的另一半)—— ★ M8:没有页面码(view_codes 为空数组),
+--                    根行自己那张表的读规则就是门(expense_claims:module.finance.view 或者【这张单说的就是你】);
+--                    只许与 'table' 同用(record_trail 里拒绝 'page' —— 那会对每一个人敞开)。
+--                    审批留痕那一支(approval_log 的 expense_claim)不给本人开口子,所以本人看到的是 Restricted(Q4)
+--   bank_transfer   → /finance/bank 转账那一块(清单块)                                     module.finance.view
+--   wht_remittance  → /finance/wht 缴纳那一块(清单块)                                      module.finance.view
+--   cash_forecast · cash_forecast_line → /finance/cash-forecast(清单块,Q16:冻结 + 作废旧的一张是一次操作)
+--   bank_import_profile → /finance/bank/import(清单块,删掉的也读)                         module.finance.view
+--   (重估 / 折旧 / 工资付款 / 加工成本结算的批次与批量汇率【不】另立主语:它们各自的清单块读 journal_entry · expense ·
+--    fx_rate 那几个现成主语,Q16 的 op_key 把一次操作并成一条 —— Q18 · Q19)
 -- 【后面几刀加主语】加一行这里、在 trail_subject_members 里登记它的子行与相关行、需要的话在
 --   trail_prelog_sources 里登记"记录开始之前"的来源,然后在 lib/trail/ 里补它的措辞 —— 见 docs/change-log.md §9。
 CREATE OR REPLACE FUNCTION public.trail_subjects()
@@ -135,6 +158,20 @@ AS $function$
         ('gst_period',        ARRAY['module.finance.view'],       'gst_periods',        'id', 'table', NULL),
         ('fx_rate',           ARRAY['module.finance.view'],       'fx_rates',           'id', 'table', NULL),
         ('management_pack',   ARRAY['module.finance.view'],       'management_packs',   'id', 'table', NULL),
-        ('contract',          ARRAY['module.suppliers.view'],     'contracts',          'id', 'table', NULL)
+        ('contract',          ARRAY['module.suppliers.view'],     'contracts',          'id', 'table', NULL),
+        -- AUDIT-TRAIL-1c-3
+        ('finance_lock',      ARRAY['module.finance.view'],       'finance_settings',   'id', 'table', ARRAY['locked_before']),
+        ('finance_gst',       ARRAY['module.finance.view'],       'finance_settings',   'id', 'table',
+            ARRAY['gst_registered', 'gst_registration_no']),
+        ('company_profile',   ARRAY['module.finance.view'],       'company_profile',    'id', 'table', NULL),
+        ('year_close',        ARRAY['module.finance.view'],       'year_closes',        'id', 'table', NULL),
+        ('journal_request',   ARRAY['module.finance.view'],       'journal_requests',   'id', 'table', NULL),
+        ('expense_claim',     ARRAY['module.finance.view'],       'expense_claims',     'id', 'table', NULL),
+        ('my_expense_claim',  ARRAY[]::text[],                    'expense_claims',     'id', 'table', NULL),
+        ('bank_transfer',     ARRAY['module.finance.view'],       'bank_transfers',     'id', 'table', NULL),
+        ('wht_remittance',    ARRAY['module.finance.view'],       'wht_remittances',    'id', 'table', NULL),
+        ('cash_forecast',     ARRAY['module.finance.view'],       'cash_forecasts',     'id', 'table', NULL),
+        ('cash_forecast_line', ARRAY['module.finance.view'],      'cash_forecast_lines', 'id', 'table', NULL),
+        ('bank_import_profile', ARRAY['module.finance.view'],     'bank_import_profiles', 'id', 'table', NULL)
     ) AS s(subject, view_codes, root_table, root_key, root_rule, root_columns);
 $function$;

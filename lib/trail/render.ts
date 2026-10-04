@@ -85,6 +85,9 @@ export type TrailDict = {
     formatDate: (v: string) => string
     /** 时刻 → `DD/MM/YYYY HH:MM`,新加坡时间(lib/dates.ts 的 formatTrailStamp) */
     formatStamp: (v: string) => string
+    /** AUDIT-TRAIL-1c-3:银行户 → 它的本币(lib/currencyMap.ts 的 currencyOfBank —— 全仓唯一写着币种代码的那一份)。
+     *  行内转账的两条腿各是各的币种:付出的那一条按出款户,收到的那一条按入款户 */
+    bankCurrency?: (code: string) => string | undefined
 }
 
 export type BuildOptions = {
@@ -192,9 +195,22 @@ function enumLabel(d: TrailDict, table: string, col: string, raw: string): strin
 const BASE_PRICE_COLS: Record<string, Set<string>> = {
     inbound_batches: new Set(['unit_price']),
     price_history: new Set(['old_unit_price', 'new_unit_price']),
+    // AUDIT-TRAIL-1c-3:月结的借贷合计与年结的净结果是本位币(总账口径)—— 那两张表没有币种列,锁期那一行也没有;
+    //   不说出来,线上锁期那一段印的是 "Total debits: 757,013.37"(线上的回滚证明读出来的)
+    period_closes: new Set(['total_debits', 'total_credits']),
+    year_closes: new Set(['net_result']),
 }
 function currencyFor(col: string, img: Img, opts: BuildOptions, d: TrailDict, table?: string): string | null {
     if (/_base$/.test(col) || /^(old|new)_amount_base$/.test(col)) return d.baseCurrency
+    // AUDIT-TRAIL-1c-3:行内转账两条腿各按自己那个户的本币(此前两条都挂着单据币种 —— 一笔 SGD → USD 的转账,收到的那一条
+    //   读成 "1,000.00 SGD",而它是 USD);一张转账申请的 amount_in 同理(按入款户)
+    const leg = table === 'bank_transfers' ? (col === 'amount_out' ? 'from_account' : col === 'amount_in' ? 'to_account' : null)
+        : table === 'payment_requests' && col === 'amount_in' ? 'to_account_code' : null
+    if (leg && d.bankCurrency) {
+        const acct = img[leg]
+        const c = typeof acct === 'string' ? d.bankCurrency(acct) : undefined
+        if (c) return c
+    }
     if (table && BASE_PRICE_COLS[table]?.has(col)) return d.baseCurrency
     // 列名里写着币种的(…_usd_per_tonne)—— 它的标签已经说了 "(USD/t)",值本身不再挂币种(币种是数据,不写字面量)
     if (/_usd(_|$)/.test(col)) return null
@@ -899,7 +915,7 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     pricing_settings: ['pricing_settings'],
     receiving_settings: ['receiving_settings'],
     // AUDIT-TRAIL-1c-1
-    journal_entry: ['journal_entries', 'journal_lines', 'journal_requests', 'approval_log'],
+    journal_entry: ['journal_entries', 'journal_lines', 'journal_requests', 'approval_log', 'fixed_asset_depreciation'],
     invoice: ['invoices', 'invoice_lines', 'invoice_issues', 'invoice_requests', 'approval_log', 'credit_notes', 'payment_allocations', 'journal_entries'],
     credit_note: ['credit_notes', 'credit_note_lines', 'cn_issues', 'invoice_requests', 'approval_log', 'journal_entries'],
     payment: ['payments', 'payment_allocations', 'finance_attachments', 'payment_requests', 'approval_log', 'journal_entries'],
@@ -922,6 +938,19 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     contract: ['contracts', 'contract_grade_specs', 'contract_insurance_obligations', 'contract_volume_commitments', 'contract_pricing_terms',
         'contract_settlement_terms', 'contract_refining_charges', 'contract_penalty_elements', 'terms_requests', 'approval_log',
         'contract_document_terms'],
+    // AUDIT-TRAIL-1c-3
+    finance_lock: ['finance_settings', 'period_closes'],
+    finance_gst: ['finance_settings'],
+    company_profile: ['company_profile'],
+    year_close: ['year_closes', 'journal_entries'],
+    journal_request: ['journal_requests', 'approval_log', 'journal_entries'],
+    expense_claim: ['expense_claims', 'approval_log', 'finance_attachments', 'expenses'],
+    my_expense_claim: ['expense_claims', 'approval_log', 'finance_attachments', 'expenses'],
+    bank_transfer: ['bank_transfers', 'journal_entries', 'payment_requests', 'approval_log'],
+    wht_remittance: ['wht_remittances', 'journal_entries', 'payment_requests', 'approval_log'],
+    cash_forecast: ['cash_forecasts'],
+    cash_forecast_line: ['cash_forecast_lines'],
+    bank_import_profile: ['bank_import_profiles'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
@@ -938,6 +967,9 @@ const PAGE_FAMILY: Record<string, Family> = {
     journal_entry: 'fin', invoice: 'fin', credit_note: 'fin', payment: 'fin', payment_request: 'fin', expense: 'fin', payable: 'fin',
     // AUDIT-TRAIL-1c-2
     sale: 'fin', freight: 'fin', fixed_asset: 'fin', bank_statement: 'fin', gst_period: 'fin', fx_rate: 'fin', management_pack: 'fin', contract: 'fin',
+    // AUDIT-TRAIL-1c-3
+    finance_lock: 'fin', finance_gst: 'fin', company_profile: 'fin', year_close: 'fin', journal_request: 'fin', expense_claim: 'fin',
+    my_expense_claim: 'fin', bank_transfer: 'fin', wht_remittance: 'fin', cash_forecast: 'fin', cash_forecast_line: 'fin', bank_import_profile: 'fin',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -1080,7 +1112,7 @@ function netReplace(rows: TrailRow[]): TrailRow[] {
 }
 
 /** absorbsApproval:这一块自己已经说出了那一步(供应商的"送审 / 批准 / 驳回"),同一笔里的审批留痕并进来时不再另起一行说明 */
-type Block2 = Block & { recordId?: string; approvalFor?: string; absorbsApproval?: boolean }
+type Block2 = Block & { recordId?: string; approvalFor?: string; absorbsApproval?: boolean; whtReversal?: boolean }
 
 // ── 审批(任何一种单据)──────────────────────────────────────────────────────
 function approvalThing(d: TrailDict, subjectType: string): string {
@@ -2495,7 +2527,10 @@ function describeSettings(d: TrailDict, rows: TrailRow[], opts: BuildOptions): B
 //   "Approved automatically (approvals were switched off)"(Q32);审批留痕并进申请那一句,不另起一行。
 export const FIN_SUBJECTS = new Set(['journal_entry', 'invoice', 'credit_note', 'payment', 'payment_request', 'expense', 'payable',
     // AUDIT-TRAIL-1c-2
-    'sale', 'freight', 'fixed_asset', 'bank_statement', 'gst_period', 'fx_rate', 'management_pack', 'contract'])
+    'sale', 'freight', 'fixed_asset', 'bank_statement', 'gst_period', 'fx_rate', 'management_pack', 'contract',
+    // AUDIT-TRAIL-1c-3
+    'finance_lock', 'finance_gst', 'company_profile', 'year_close', 'journal_request', 'expense_claim', 'my_expense_claim', 'bank_transfer',
+    'wht_remittance', 'cash_forecast', 'cash_forecast_line', 'bank_import_profile'])
 
 /** 整页的冲销关系(与上面认冲销分录同一个做法:看整页,不只看这一条)—— 镜像 id → 原单 {id, code, href} */
 export type FinCtx = {
@@ -2619,14 +2654,24 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
                 out.push({ title: withPart(tx(d, 'je.reversalPosted'), code), lines: ls, reason: reversalReason(str(r, 'memo')), key: true, weight: isRoot ? 100 : 55, recordId: id })
                 continue
             }
+            // AUDIT-TRAIL-1c-3:年结那一块里,结转分录是年结那一句的一行("Closing journal: JE-…"),不再另起一句
+            if (subject === 'year_close') continue
             const ls: Line[] = []
             if (isRoot) {
                 ls.push(...vlines(d, r, ['entry_date', 'source_type'], opts))
                 const memo = typed(r.new?.['memo'])
                 if (memo) ls.push({ t: 'value', label: fieldMeta(d, 'journal_entries', 'memo')[0], value: memo })
                 ls.push(...rows.filter((x) => x.table === 'journal_lines' && x.op === 'INSERT').map((x) => journalLineLine(d, x)))
+                // AUDIT-TRAIL-1c-3:一次折旧的分录带着它记到每一张资产卡上的那一行(资产 · 期末:金额)
+                for (const x of rows.filter((y) => y.table === 'fixed_asset_depreciation' && y.op === 'INSERT' && str(y, 'journal_entry_id') === id)) {
+                    ls.push({ t: 'value', label: refLabel(x, 'asset_id') ?? cap(thing(d, 'fixed_assets')),
+                              value: formatValue(d, 'fixed_asset_depreciation', 'amount_base', x.new?.['amount_base'], imgOf(x), x.refs, 'INSERT', opts) })
+                }
             }
-            out.push({ title: withPart(tx(d, 'je.posted'), code), lines: ls, key: true, weight: isRoot ? 100 : 55, recordId: id })
+            // AUDIT-TRAIL-1c-3:在分录自己的页与清单块上(重估 · 折旧 · 工资 · 年结的批次),按来源说它是什么;别的页照旧 "Journal posted"
+            const src = str(r, 'source_type')
+            const srcKey: TrailTextKey = subject === 'journal_entry' && src && src in JE_SOURCE_TITLE ? JE_SOURCE_TITLE[src] : 'je.posted'
+            out.push({ title: withPart(tx(d, srcKey), code), lines: ls, key: true, weight: isRoot ? 100 : 55, recordId: id })
         } else if (r.op === 'UPDATE' && changed(r, 'status') && str(r, 'status', 'new') === 'reversed') {
             const rev = str(r, 'reversed_by', 'new')
             // 冲销分录自己的页:它的建立那一句已经说了"Reverses JE-…"
@@ -2635,6 +2680,12 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
             const ls: Line[] = []
             const v = docVal(d, r, 'journal_entries', 'reversed_by')
             if (v) ls.push({ t: 'value', label: tx(d, 'je.reversedByLine'), value: v })
+            // AUDIT-TRAIL-1c-3(Q30):在缴纳那一块里,它的分录被冲销就是"WHT remittance reversed",冲销分录是下面一行
+            if (subject === 'wht_remittance') {
+                out.push({ title: tx(d, 'pr.done.wht_remittance_reversal'), lines: ls, reason: revRow ? reversalReason(str(revRow, 'memo')) : null,
+                           key: true, weight: 96, recordId: id, whtReversal: true })
+                continue
+            }
             out.push({ title: isRoot ? tx(d, 'je.reversed') : tx(d, 'je.reversedOther', { code: code ?? '' }).replace(/\s+/g, ' '),
                        lines: ls, reason: revRow ? reversalReason(str(revRow, 'memo')) : null, key: true, weight: isRoot ? 95 : 55, recordId: id })
         } else {
@@ -2804,12 +2855,15 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
     }
 
     // ── ⑤ 付款申请的结果:转账 · 代扣税缴纳(在"付了"那一句里只说一次)─────────────────────────────────
-    const doneBlock = out.find((b) => PR_KINDS.some((k) => b.title.startsWith(tx(d, PR_TEXT.done[k]))))
+    // AUDIT-TRAIL-1c-3:分录那一节说的"WHT remittance reversed"(Q30)不是"付了"那一句 —— 缴纳的建立不并进它
+    const doneBlock = out.find((b) => !b.whtReversal && PR_KINDS.some((k) => b.title.startsWith(tx(d, PR_TEXT.done[k]))))
     for (const r of by('bank_transfers')) {
         const ls = r.op === 'INSERT' ? vlines(d, r, ['transfer_date', 'from_account', 'to_account', 'amount_out', 'amount_in', 'bank_reference'], opts)
             : isSet(r, 'reversed_at') ? vlines(d, r, ['reversal_entry_id'], opts) : changeLines(d, r, opts)
         if (doneBlock) { doneBlock.lines.push(...ls); continue }
-        out.push({ title: tx(d, r.op === 'INSERT' ? 'pr.done.bank_transfer' : isSet(r, 'reversed_at') ? 'pr.done.bank_transfer_reversal' : 'pr.changed'), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: 70 })
+        // AUDIT-TRAIL-1c-3:转账自己的一次改动是 "Bank transfer changed"(以前借了申请的 "Request changed")
+        out.push({ title: tx(d, r.op === 'INSERT' ? 'pr.done.bank_transfer' : isSet(r, 'reversed_at') ? 'pr.done.bank_transfer_reversal' : 'btr.changed'), lines: ls, reason: typed(r.new?.['notes']),
+                   key: r.op === 'INSERT' || isSet(r, 'reversed_at'), weight: 70 })
     }
     for (const r of by('wht_remittances')) {
         const ls = r.op === 'INSERT' ? vlines(d, r, ['period_month', 'amount_base', 'remitted_on', 'filed_reference'], opts) : changeLines(d, r, opts)
@@ -2909,12 +2963,29 @@ function describeFinance(d: TrailDict, rows0: TrailRow[], opts: BuildOptions, re
     // 别的表(这几页的登记表之外不该出现;出现了照通用的说,不丢)
     // ── ⑧ AUDIT-TRAIL-1c-2:其余的单据与合同 ─────────────────────────────────────────────────────
     out.push(...describeLedger2(d, rows, opts))
+    // ── ⑨ AUDIT-TRAIL-1c-3:期末、设置与清单页上的记录 ───────────────────────────────────────────────
+    out.push(...describeLedger3(d, rows, opts))
+    // Q30:缴纳的冲销经一张申请付出时,申请那一句("WHT remittance reversed · PREQ-…")与分录那一句说的是同一件事 ——
+    //   分录那一句的"Reversed by"并进申请那一句(它的"Posted as"是同一张分录,不再说一遍),申请那一句带着审批留痕
+    const jrev = out.find((b) => b.whtReversal)
+    const rrev = jrev && out.find((b) => b !== jrev && b.title.startsWith(tx(d, 'pr.done.wht_remittance_reversal')))
+    if (jrev && rrev) {
+        const postedAs = fieldMeta(d, 'payment_requests', 'result_journal_entry_id')[0]
+        rrev.lines = [...rrev.lines.filter((l) => !(l.t === 'value' && l.label === postedAs)), ...jrev.lines]
+        if (!rrev.reason && jrev.reason) rrev.reason = jrev.reason
+        rrev.weight = Math.max(rrev.weight, jrev.weight)
+        out.splice(out.indexOf(jrev), 1)
+    }
     const known = new Set(['journal_entries', 'journal_lines', 'journal_requests', 'invoice_requests', 'payment_requests', 'approval_log', 'invoices',
         'invoice_lines', 'invoice_issues', 'credit_notes', 'credit_note_lines', 'cn_issues', 'payments', 'payment_allocations', 'bank_transfers',
         'wht_remittances', 'expenses', 'expense_claims', 'fixed_asset_cost_entries', 'prepayment_applications', 'finance_attachments',
-        'inbound_batches', 'price_history', 'freight_allocations', ...LEDGER2_TABLES])
+        'inbound_batches', 'price_history', 'freight_allocations', ...LEDGER2_TABLES, ...LEDGER3_TABLES])
     for (const r of rows) if (r.table && !known.has(r.table)) out.push(describeGeneric(d, r, opts))
     return out
+}
+/** AUDIT-TRAIL-1c-3:分录自己的页与清单块上,按来源说出一张批次分录是什么(字面量写全 —— check-trail-wording 按字面认) */
+const JE_SOURCE_TITLE: Record<string, TrailTextKey> = {
+    revaluation: 'je.posted.revaluation', depreciation: 'je.posted.depreciation', payroll: 'je.posted.payroll', year_close: 'je.posted.year_close',
 }
 // ════════════════════════════════════════════════════════════════════════════
 // AUDIT-TRAIL-1c-2:其余的单据与合同 —— 销售 · 运费单 · 资产(财务那一页)· 对账单 · GST 期间 · 汇率 · 管理包 · 合同
@@ -3118,6 +3189,8 @@ function describeLedger2(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Bl
         else out.push(describeGeneric(d, r, opts))
     }
     for (const r of by('fixed_asset_depreciation')) {
+        // AUDIT-TRAIL-1c-3:在分录那一页(与折旧批次那一块)上,每一张资产的那一行是过账那一句的一行(describeFinance)
+        if (subject === 'journal_entry' && r.op === 'INSERT' && rows.some((x) => x.table === 'journal_entries' && x.op === 'INSERT' && idOf(x) === str(r, 'journal_entry_id'))) continue
         if (r.op !== 'INSERT') { out.push(describeGeneric(d, r, opts)); continue }
         out.push({ title: tx(d, 'fa.depreciated'), lines: vlines(d, r, ['period_end', 'amount_base', 'journal_entry_id'], opts), key: true, weight: 70 })
     }
@@ -3255,8 +3328,21 @@ function describeLedger2(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Bl
     // ── ⑥ 汇率(一件事两行;Q7)────────────────────────────────────────────────────────────
     const rates = by('fx_rates'), hist = by('fx_rate_history')
     const histAction = (h: TrailRow) => str(h, 'action', 'new')
+    // AUDIT-TRAIL-1c-3(Q16):一次批量录入(/finance/fx 的清单块把同一次操作碰到的几条汇率并成一条)—— 一句,每一条汇率一行
+    const ratesIn = rates.filter((r) => r.op === 'INSERT')
+    if (ratesIn.length > 1) {
+        out.push({ title: tx(d, 'fxr.recordedMany', { n: ratesIn.length }), key: true, weight: 100, lines: ratesIn.map((r) => {
+            const img = imgOf(r)
+            // 每一条的名字与 trail_ref_label 给汇率起的名字同一种说法("USD · TT selling rate · 01/10/2026")
+            const label = [typeof img['currency'] === 'string' ? img['currency'] : null,
+                typeof img['rate_type'] === 'string' ? FX_SIDE_NAME[img['rate_type'] as string] ?? formatValue(d, 'fx_rates', 'rate_type', img['rate_type'], img, r.refs, 'INSERT', opts).text : null,
+                formatValue(d, 'fx_rates', 'rate_date', img['rate_date'], img, r.refs, 'INSERT', opts).text].filter(Boolean).join(' · ')
+            return { t: 'value' as const, label, value: formatValue(d, 'fx_rates', 'rate_sgd_per_unit', img['rate_sgd_per_unit'], img, r.refs, 'INSERT', opts) }
+        }) })
+    }
     for (const r of rates) {
         const h = hist.find((x) => x.op === 'INSERT' && str(x, 'fx_rate_id') === idOf(r))
+        if (r.op === 'INSERT' && ratesIn.length > 1) continue
         if (r.op === 'INSERT') {
             out.push({ title: tx(d, 'fxr.recorded'), lines: vlines(d, r, ['currency', 'rate_type', 'rate_sgd_per_unit', 'rate_date', 'source'], opts),
                        reason: typed(r.new?.['notes']), key: true, weight: 100 })
@@ -3380,6 +3466,147 @@ function foldApprovals(blocks: Block2[]): Block2[] {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// AUDIT-TRAIL-1c-3:期末、设置与清单页上的记录 —— 锁期面板 · GST 面板 · 公司资料 · 年结 · 现金预测与常设行 · 银行导入模板
+//   (Tim 2026-10-03,AT-1c Step 0 §a 与 Q3 · Q4 · Q16 · Q25 · Q29)
+// ════════════════════════════════════════════════════════════════════════════
+// 【一行,两块面板】finance_settings 那一行由锁期与 GST 两块面板分着管(M6:读法那一层已经只留下这一块的列)——
+//   这里按【变的是哪一列】说,不按主语说;同一份造句器在汇总页之外的任何一页上都只会看见它那一块的列。
+// 【月结 / 反结】关账在同一笔里写一行 period_closes、把锁往后挪 —— 一句 "Month closed up to …",挪锁是它下面一行;
+//   反结给那一行盖戳、把锁往回挪 —— "Month reopened from …"(那个月的第一天)。单独挪锁(设置页那一格)是 "Period lock moved"。
+// 【一次操作一条】冻结一张新的预测、作废旧的一张(Q16):清单块把两条记录读回来的行并成一次 buildEntries —— 新那一张的冻结是标题,
+//   旧那一张"被取代"是它下面一块。
+export const LEDGER3_TABLES = ['finance_settings', 'period_closes', 'year_closes', 'company_profile', 'cash_forecasts', 'cash_forecast_lines',
+    'bank_import_profiles']
+const GST_SETTING_COLS = ['gst_registered', 'gst_registration_no']
+/** 一条汇率的名字里那一段(与 trail_ref_label 的 fx_rates 那一支同一组词) */
+const FX_SIDE_NAME: Record<string, string> = { tt_buy: 'TT buying rate', tt_sell: 'TT selling rate', mid: 'Mid rate' }
+/** "2026-08-31" → "2026-08-01"(反结的那个月从哪一天起) */
+function monthStart(v: string | null): string | null {
+    return v && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 8) + '01' : null
+}
+function describeLedger3(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const subject = opts.subject ?? ''
+    const rootId = opts.recordId ?? null
+    const skipStamps = new Set(['updated_at', 'updated_by'])
+    const dateText = (r: TrailRow, table: string, col: string, raw: Json | undefined) => formatValue(d, table, col, raw, imgOf(r), r.refs, r.op, opts).text
+
+    // ── ① 锁期(Q25 · Q29 · M7)────────────────────────────────────────────────────────────
+    const settings = by('finance_settings')
+    const lockRow = settings.find((r) => r.op === 'UPDATE' && changed(r, 'locked_before'))
+    const lockLines: Line[] = lockRow ? [{ t: 'change', label: fieldMeta(d, 'finance_settings', 'locked_before')[0],
+        old: formatValue(d, 'finance_settings', 'locked_before', lockRow.old?.['locked_before'], imgOf(lockRow), lockRow.refs, 'UPDATE', opts),
+        new: formatValue(d, 'finance_settings', 'locked_before', lockRow.new?.['locked_before'], imgOf(lockRow), lockRow.refs, 'UPDATE', opts) }] : []
+    let lockSaid = false
+    for (const r of by('period_closes')) {
+        const end = str(r, 'period_end')
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'plock.monthClosed', { date: dateText(r, 'period_closes', 'period_end', end) }),
+                       lines: [...lockLines, ...vlines(d, r, ['entries_count', 'total_debits', 'total_credits'], opts)],
+                       reason: typed(r.new?.['notes']), key: true, weight: 100 })
+            lockSaid = true
+        } else if (r.op === 'UPDATE' && isSet(r, 'reopened_at')) {
+            out.push({ title: tx(d, 'plock.monthReopened', { date: dateText(r, 'period_closes', 'period_end', monthStart(end)) }),
+                       lines: [...lockLines], reason: typed(r.new?.['reopen_reason']), key: true, weight: 100 })
+            lockSaid = true
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts)
+            if (ls.length) out.push({ title: tx(d, 'plock.closeChanged'), lines: ls, key: false, weight: 30 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    // ── ② 同一行设置:锁(单独挪)· GST 注册 —— M6 已经只留下这一块的列 ──────────────────────────────────
+    for (const r of settings) {
+        if (r.op !== 'UPDATE') { out.push(describeGeneric(d, r, opts)); continue }
+        if (changed(r, 'locked_before') && !lockSaid) {
+            const was = r.old?.['locked_before'] ?? null, now = r.new?.['locked_before'] ?? null
+            out.push({ title: tx(d, isEmpty(was) ? 'plock.set' : isEmpty(now) ? 'plock.removed' : 'plock.moved'), lines: [...lockLines], key: true, weight: 90 })
+        }
+        if (GST_SETTING_COLS.some((c) => changed(r, c))) {
+            const reg = changed(r, 'gst_registered') ? r.new?.['gst_registered'] : undefined
+            const key: TrailTextKey = reg === true ? 'gstset.registered' : reg === false ? 'gstset.deregistered' : 'gstset.changed'
+            out.push({ title: tx(d, key), lines: changeLines(d, r, opts, new Set(['locked_before', ...skipStamps])), key: true, weight: 90 })
+        }
+        // 这一行别的列(没有面板管的那六列、审批方针那四列)只在汇总页上出现 —— 那里不走这个家族(Q4 · Q2);
+        //   真走到这里(一个将来的主语没设 root_columns)就照实说出来,不丢
+        const rest = (r.cols ?? []).filter((c) => c !== 'locked_before' && !GST_SETTING_COLS.includes(c) && !skipStamps.has(c))
+        if (rest.length) out.push({ ...describeGeneric(d, { ...r, cols: rest }, opts), weight: 20 })
+    }
+
+    // ── ③ 公司资料(一块面板编辑整行;银行那五列对不持 data.view_banking 的人是 Restricted —— 遮蔽那一步给的)─────────
+    for (const r of by('company_profile')) {
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'coprof.created'), lines: valueLines(d, r, r.new, opts, skipStamps), key: true, weight: 100 })
+        else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts, skipStamps)
+            if (ls.length) out.push({ title: tx(d, 'coprof.changed'), lines: ls, key: false, weight: 60 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+
+    // ── ④ 年结:结转分录是年结那一句的一行;反结的冲销分录同样 ──────────────────────────────────────
+    for (const r of by('year_closes')) {
+        const end = dateText(r, 'year_closes', 'year_end', str(r, 'year_end'))
+        if (r.op === 'INSERT') {
+            const ls = vlines(d, r, ['net_result'], opts)
+            const j = docVal(d, r, 'year_closes', 'closing_journal_id')
+            if (j) ls.push({ t: 'value', label: fieldMeta(d, 'year_closes', 'closing_journal_id')[0], value: j })
+            out.push({ title: tx(d, 'yclose.closed', { date: end }), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: 100 })
+        } else if (r.op === 'UPDATE' && isSet(r, 'reopened_at')) {
+            const j = docVal(d, r, 'year_closes', 'reversal_journal_id')
+            out.push({ title: tx(d, 'yclose.reopened', { date: end }), lines: j ? [{ t: 'value', label: fieldMeta(d, 'year_closes', 'reversal_journal_id')[0], value: j }] : [],
+                       reason: typed(r.new?.['reopen_reason']), key: true, weight: 100 })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts)
+            if (ls.length) out.push({ title: tx(d, 'yclose.changed'), lines: ls, key: false, weight: 30 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+
+    // ── ⑤ 现金预测(Q16)· 常设行 ────────────────────────────────────────────────────────────
+    for (const r of by('cash_forecasts')) {
+        const code = str(r, 'code')
+        const own = subject === 'cash_forecast' && idOf(r) === rootId
+        if (r.op === 'INSERT') {
+            out.push({ title: withPart(tx(d, 'fcst.frozen'), code), lines: vlines(d, r, ['week_start', 'horizon_weeks', 'base_currency'], opts),
+                       key: true, weight: own ? 100 : 80 })
+        } else if (r.op === 'UPDATE' && isSet(r, 'superseded_at')) {
+            const v = docVal(d, r, 'cash_forecasts', 'superseded_by')
+            out.push({ title: withPart(tx(d, 'fcst.superseded'), code), lines: v ? [{ t: 'value', label: tx(d, 'fcst.replacedBy'), value: v }] : [],
+                       reason: typed(r.new?.['superseded_reason']), key: true, weight: own ? 95 : 70 })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts)
+            if (ls.length) out.push({ title: withPart(tx(d, 'fcst.changed'), code), lines: ls, key: false, weight: 30 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const r of by('cash_forecast_lines')) {
+        const part = typed(str(r, 'label'))
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'fcl.added'), part, lines: vlines(d, r, ['direction', 'amount_ccy', 'cadence', 'start_date', 'end_date'], opts),
+                       reason: typed(r.new?.['notes']), key: true, weight: 100 })
+        } else if (r.op === 'UPDATE') {
+            const off = changed(r, 'is_active') ? r.new?.['is_active'] : undefined
+            const ls = changeLines(d, r, opts, new Set([...skipStamps, ...(off === undefined ? [] : ['is_active'])]))
+            const key: TrailTextKey = off === false ? 'fcl.switchedOff' : off === true ? 'fcl.switchedOn' : 'fcl.changed'
+            if (ls.length || off !== undefined) out.push({ title: tx(d, key), part, lines: ls, key: off !== undefined, weight: off !== undefined ? 80 : 40 })
+        } else if (r.op === 'DELETE') {
+            out.push({ title: tx(d, 'fcl.removed'), part, lines: [], key: true, weight: 80 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+
+    // ── ⑥ 银行导入模板(删掉的也读 —— "删掉了"正是要说的事)──────────────────────────────────────────
+    for (const r of by('bank_import_profiles')) {
+        const part = typed(str(r, 'name'))
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'bip.created'), part, lines: vlines(d, r, ['bank_account_code', 'mapping'], opts), key: true, weight: 100 })
+        // 删掉的那一下同时改了别的列(同一次操作里先改名再删)—— 别的列照样说(1b-3 的规矩:删除不吞掉同一笔里的改动)
+        else if (r.op === 'UPDATE' && isSet(r, 'deleted_at')) out.push({ title: tx(d, 'bip.deleted'), part, lines: changeLines(d, r, opts, new Set(['deleted_at', ...skipStamps])), key: true, weight: 90 })
+        else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts, skipStamps)
+            if (ls.length) out.push({ title: tx(d, 'bip.changed'), part, lines: ls, key: false, weight: 40 })
+        } else if (r.op === 'DELETE') out.push({ title: tx(d, 'bip.deleted'), part, lines: [], key: true, weight: 90 })
+        else out.push(describeGeneric(d, r, opts))
+    }
+    return out
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // 组装
 // ════════════════════════════════════════════════════════════════════════════
 function whoOf(d: TrailDict, rows: TrailRow[]): Val {
@@ -3487,6 +3714,9 @@ export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions 
         const base: Omit<Entry, 'title' | 'titlePart' | 'lines' | 'reason' | 'keyEvent' | 'titleRestricted'> = {
             key, at, atText: d.formatStamp(at), who: whoOf(d, rs), prelog: rs.some((r) => r.prelog), record }
         if (!visible.length) {
+            // AUDIT-TRAIL-1c-3:每一行都被合并掉了(同一次操作里改出去又改回来 —— 挪锁往前、再挪回来),而一行都没有被藏 ——
+            //   那一次操作净值什么都没改,不说;只有真的有行看不见时才是 Restricted(以前两种都印 Restricted,那是一句错话)
+            if (!rs.some((r) => r.hidden)) continue
             out.push({ ...base, title: tx(d, 'restricted'), titlePart: null, titleRestricted: true, lines: [], reason: null, keyEvent: true })
             continue
         }
@@ -3603,10 +3833,10 @@ export function mergeKey(r: TrailRow, seq: number | null | undefined): string | 
     if (seq !== null && seq !== undefined) return `L|${seq}`
     return `P|${r.table}|${JSON.stringify(r.key)}|${r.op}|${r.at}|${(r.cols ?? []).join(',')}`
 }
-export type ListRecord = { subject: string; id: string; label: string }
+export type ListRecord = { subject: string; id: string; label: string; href?: string | null }
 /** 几条记录读回来的行(已按 mergeKey 去重)→ 一次操作一条:同一个 op_key 的行交给同一次 buildEntries,
  *  Record 一栏列出这次操作碰到的每一条记录(按清单上的先后)。没有 op_key 的行(旧读法)按"记录 · 条"各自成条。 */
-export function mergeByOperation(d: TrailDict, items: { row: TrailRow; rec: ListRecord }[]): (Entry & { recordText: string; recordHref: null })[] {
+export function mergeByOperation(d: TrailDict, items: { row: TrailRow; rec: ListRecord }[]): (Entry & { recordText: string; recordHref: string | null })[] {
     const ops = new Map<string, { rows: TrailRow[]; recs: ListRecord[] }>()
     for (const { row, rec } of items) {
         const k = row.opKey ?? `${rec.subject}:${rec.id}:${row.group}`
@@ -3615,11 +3845,12 @@ export function mergeByOperation(d: TrailDict, items: { row: TrailRow; rec: List
         if (!g.recs.some((x) => x.subject === rec.subject && x.id === rec.id)) g.recs.push(rec)
         ops.set(k, g)
     }
-    const out: (Entry & { recordText: string; recordHref: null })[] = []
+    const out: (Entry & { recordText: string; recordHref: string | null })[] = []
     for (const [k, g] of ops) {
         const [first] = g.recs
         for (const e of buildEntries(d, g.rows, { subject: first.subject, recordId: first.id })) {
-            out.push({ ...e, key: k, recordText: g.recs.map((x) => x.label).join(' · '), recordHref: null })
+            // AUDIT-TRAIL-1c-3:只碰到一条、而它有自己的页 → Record 一栏是一个链接
+            out.push({ ...e, key: k, recordText: g.recs.map((x) => x.label).join(' · '), recordHref: g.recs.length === 1 ? g.recs[0].href ?? null : null })
         }
     }
     return out

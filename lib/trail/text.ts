@@ -622,6 +622,65 @@ export const TRAIL_TEXT = {
     'con.linked': 'Linked to {code}',
     'con.linkedPlain': 'Linked to an order',
     'tr.sentActivate': 'Contract activation sent to the CFO',
+    // ══ AUDIT-TRAIL-1c-3 · 期末、设置与清单页上的记录 ═════════════════════════════════════════════════
+    // 前缀避开 messages/en.ts 的顶层命名空间(check-i18n 会把那些前缀的字面量当成界面键):plock · gstset · coprof · yclose ·
+    //   fcst · fcl · bip。
+    // ── 锁期面板(Q25 · Q29 · M7):§4 的 "Month closed up to …" / "Month reopened from …" / "Period lock moved";
+    //    挪了多少由下面一行说,标签与页面上那一格同一句("Period locked before")──────────────────────────────
+    'plock.moved': 'Period lock moved',
+    'plock.set': 'Period lock set',
+    'plock.removed': 'Period lock removed',
+    'plock.monthClosed': 'Month closed up to {date}',
+    'plock.monthReopened': 'Month reopened from {date}',
+    'plock.closeChanged': 'Month close changed',
+    // ── GST 设置面板(Q25):注册开关与注册号 ─────────────────────────────────────────────────────
+    'gstset.registered': 'GST registration switched on',
+    'gstset.deregistered': 'GST registration switched off',
+    'gstset.changed': 'GST settings changed',
+    // ── 公司资料 ────────────────────────────────────────────────────────────────────────
+    'coprof.created': 'Company profile created',
+    'coprof.changed': 'Company profile changed',
+    // ── 年结(/finance/close 年结那一块)──────────────────────────────────────────────────────
+    'yclose.closed': 'Year closed up to {date}',
+    'yclose.reopened': 'Year reopened · year ending {date}',
+    'yclose.changed': 'Year close changed',
+    // ── 分录:一张按来源说得出是什么的分录(只在分录自己的页与清单块上 —— 重估 / 折旧 / 工资 / 年结的批次)──────
+    'je.posted.revaluation': 'FX revaluation posted',
+    'je.posted.depreciation': 'Depreciation posted',
+    'je.posted.payroll': 'Payroll journal posted',
+    'je.posted.year_close': 'Year-end closing journal posted',
+    // ── 批量汇率(Q16):一次批量录入是一条 ───────────────────────────────────────────────────
+    'fxr.recordedMany': 'Exchange rates recorded · {n} rates',
+    // ── 现金预测(Q16:冻结一张新的、作废旧的一张是一次操作)与常设行 ─────────────────────────────────
+    'fcst.frozen': 'Cash forecast frozen',
+    'fcst.superseded': 'Cash forecast replaced',
+    'fcst.replacedBy': 'Replaced by',
+    'fcst.changed': 'Cash forecast changed',
+    'fcl.added': 'Recurring line added',
+    'fcl.changed': 'Recurring line changed',
+    'fcl.switchedOff': 'Recurring line switched off',
+    'fcl.switchedOn': 'Recurring line switched back on',
+    'fcl.removed': 'Recurring line removed',
+    // ── 行内转账自己的一次改动(此前借了付款申请的 "Request changed")──────────────────────────────────────
+    'btr.changed': 'Bank transfer changed',
+    // ── 银行导入模板(页面上叫 mapping)────────────────────────────────────────────────────────
+    'bip.created': 'Import mapping saved',
+    'bip.changed': 'Import mapping changed',
+    'bip.deleted': 'Import mapping deleted',
+    // ── 清单块的开场白(每一页一句;字面量写全 —— check-trail-wording 按字面认"这个键有人用")─────────────
+    'listTrail.intro.yearCloses': 'Year closes · newest first · Singapore time',
+    'listTrail.intro.revaluations': 'FX revaluation runs · newest first · Singapore time',
+    'listTrail.intro.depreciation': 'Depreciation runs · newest first · Singapore time',
+    'listTrail.intro.fxRates': 'Exchange rates on this page, and withdrawn rates · newest first · Singapore time',
+    'listTrail.intro.forecasts': 'Frozen forecasts and recurring lines · newest first · Singapore time',
+    'listTrail.intro.payroll': 'Payroll journals · newest first · Singapore time',
+    'listTrail.intro.costSettlement': 'Processing-cost remittance journals and relief expenses · newest first · Singapore time',
+    'listTrail.intro.wht': 'WHT remittances · newest first · Singapore time',
+    'listTrail.intro.transfers': 'Bank transfers · newest first · Singapore time',
+    'listTrail.intro.importMappings': 'Import mappings, including deleted ones · newest first · Singapore time',
+    'listTrail.intro.deletedStatements': 'Deleted bank statements · newest first · Singapore time',
+    // ── 一张卡片 / 一行里的那一块(人工分录申请 · 报销单):折起来,点开才看 ─────────────────────────────
+    'rowTrail.summary': 'Audit trail',
 } as const
 
 export type TrailTextKey = keyof typeof TRAIL_TEXT

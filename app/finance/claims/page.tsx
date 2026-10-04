@@ -26,8 +26,12 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import ClaimDecisionPanel, { type ClaimRow } from './ClaimDecisionPanel'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function ClaimsPage() {
+// AUDIT-TRAIL-1c-3(Tim 的 Q20):每一张报销单一段审计记录(提交 · 决定 · 撤回 · 收据 · 批准时记下的费用单);
+//   报销人自己那一半在 /me(my_expense_claim,M8)。
+export default async function ClaimsPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
+    const show = trailCount((await searchParams).trail)
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
     const t = await getTranslations()
@@ -68,6 +72,8 @@ export default async function ClaimsPage() {
             state={{ kind: 'ok' }}
         >
             <ClaimDecisionPanel
+                trails={Object.fromEntries(rows.map((r) => [r.claim_id,
+                    <AuditTrail key={r.claim_id} subject="expense_claim" id={r.claim_id} show={show} anchor={`claim-trail-${r.claim_id}`} compact />]))}
                 pending={pending}
                 decided={decided}
                 accounts={accounts}

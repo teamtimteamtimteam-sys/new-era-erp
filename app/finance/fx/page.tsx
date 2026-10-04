@@ -25,6 +25,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { Alert, AlertTitle } from '@/app/components/ui/alert'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { trailCount } from '@/app/components/trail/AuditTrail'
+import ListTrail from '@/app/components/trail/ListTrail'
 
 type FxRow = {
     id: string
@@ -44,6 +46,7 @@ export default async function FxRatesPage({
         sort?: string
         dir?: string
         page?: string
+        trail?: string
     }>
 }) {
     const locale = await getLocale()
@@ -175,6 +178,11 @@ export default async function FxRatesPage({
         source: r.source,
         notes: r.notes,
     }))
+
+    // AUDIT-TRAIL-1c-3:撤回了的汇率(清单的过滤把它们挡在外面 —— fxQuery.ts 的 applyFxFilters)
+    const withdrawn = mustRows(await supabase.from('fx_rates').select('id, currency, rate_type, rate_date')
+        .not('deleted_at', 'is', null).order('rate_date', { ascending: false }).limit(50), 'fx_rates withdrawn') as
+        { id: string; currency: string; rate_type: string; rate_date: string }[]
 
     return (
         <ListPage
@@ -316,6 +324,32 @@ export default async function FxRatesPage({
                     </Button>
                 )}
             </div>
+
+            {/* AUDIT-TRAIL-1c-3:撤回了的汇率的入口(1c-2 留给这一刀的那一件)—— 清单只列生效的,撤回的那几条在这里 */}
+            {withdrawn.length > 0 && (
+                <div className="mt-8">
+                    <h2 className="mb-1">{t('finance.fxPage.withdrawnTitle')}</h2>
+                    <p className="mb-2 text-xs text-[color:var(--brand-muted-text)]">{t('finance.fxPage.withdrawnHint')}</p>
+                    <ul className="text-sm space-y-1">
+                        {withdrawn.map((w) => (
+                            <li key={w.id}>
+                                <Link href={`/finance/fx/${w.id}/edit`} className="app-link hover:underline">
+                                    {w.currency} · {formatDate(w.rate_date, locale)}
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {/* AUDIT-TRAIL-1c-3(Q16):这一页上的汇率与撤回了的汇率,合成一块 —— 一次批量录入是一条(op_key),
+                每一条汇率链到它自己的页。名字只说英文(审计记录那一段里一个中文字都没有,Q7)。 */}
+            <ListTrail intro="listTrail.intro.fxRates" show={trailCount(sp.trail)}
+                records={[...(rows ?? []).map((r) => ({ ...r, withdrawn: false })), ...withdrawn.map((w) => ({ ...w, withdrawn: true }))].map((r) => ({
+                    subject: 'fx_rate' as const, id: r.id, href: `/finance/fx/${r.id}/edit`,
+                    label: `${r.currency} · ${FX_SIDE[r.rate_type] ?? r.rate_type} · ${formatDate(r.rate_date, 'en')}${r.withdrawn ? ' (withdrawn)' : ''}` }))} />
         </ListPage>
     )
 }
+/** 与 trail_ref_label 给汇率起的名字同一种说法("USD · TT selling rate · 01/08/2026")—— 审计记录只说英文 */
+const FX_SIDE: Record<string, string> = { tt_buy: 'TT buying rate', tt_sell: 'TT selling rate', mid: 'Mid rate' }

@@ -16,6 +16,7 @@ import { mustOne, mustRows } from '@/lib/db-helpers'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { Button } from '@/app/components/ui/button'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
@@ -33,7 +34,7 @@ function parsePage(value: string | undefined): number {
 export default async function JournalListPage({
     searchParams,
 }: {
-    searchParams: Promise<{ date_from?: string; date_to?: string; page?: string }>
+    searchParams: Promise<{ date_from?: string; date_to?: string; page?: string; trail?: string }>
 }) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -194,6 +195,8 @@ export default async function JournalListPage({
     return (
         <ListPage title={t('finance.journalTitle')} state={{ kind: 'ok' }}>
             <JournalRequestsPanel
+                trails={Object.fromEntries(rawRequests.map((r) => [r.id,
+                    <AuditTrail key={r.id} subject="journal_request" id={r.id} show={trailCount(sp.trail)} anchor={`jr-trail-${r.id}`} compact />]))}
                 open={openRequests}
                 history={requestHistory}
                 canDecide={canDecideRequest}

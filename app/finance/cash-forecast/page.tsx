@@ -27,8 +27,12 @@ import RecurringLines from './RecurringLines'
 import FrozenForecastsTable, { type FrozenRow } from './FrozenForecastsTable'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { trailCount } from '@/app/components/trail/AuditTrail'
+import ListTrail from '@/app/components/trail/ListTrail'
 
-export default async function CashForecastPage() {
+// AUDIT-TRAIL-1c-3(Q16):页底一块合起来的审计记录 —— 冻结过的预测(被取代的也在:那一张"被取代"正是要说的事)与常设行。
+//   冻结一张新的、作废旧的一张是同一次操作,读回来两条记录各一行,op_key 把它们并成一条。
+export default async function CashForecastPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
     const locale = await getLocale()
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
@@ -77,6 +81,14 @@ export default async function CashForecastPage() {
             <div className="max-w-3xl">
                 <FrozenForecastsTable rows={frozen} />
             </div>
+
+            <ListTrail intro="listTrail.intro.forecasts" show={trailCount((await searchParams).trail)}
+                records={[
+                    ...frozen.map((f) => ({ subject: 'cash_forecast' as const, id: f.id,
+                        label: `${f.code} · week of ${formatDate(f.week_start, 'en')}${f.superseded_at ? ' (replaced)' : ''}` })),
+                    ...lines.map((l) => ({ subject: 'cash_forecast_line' as const, id: l.id,
+                        label: `Recurring line: ${l.label}${l.is_active ? '' : ' (switched off)'}` })),
+                ]} />
         </ListPage>
     )
 }

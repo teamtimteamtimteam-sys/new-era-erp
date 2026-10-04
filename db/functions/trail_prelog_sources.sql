@@ -266,6 +266,21 @@ AS $function$
         ('contract_pricing_terms',         'created', 'created_at',   'created_by',   NULL, 'account'),
         ('contract_settlement_terms',      'created', 'created_at',   'created_by',   NULL, 'account'),
         ('contract_refining_charges',      'created', 'created_at',   'created_by',   NULL, 'account'),
-        ('contract_penalty_elements',      'created', 'created_at',   'created_by',   NULL, 'account')
+        ('contract_penalty_elements',      'created', 'created_at',   'created_by',   NULL, 'account'),
+        -- AUDIT-TRAIL-1c-3:期末、设置与清单页上的记录。
+        --   ★ finance_settings 与 company_profile【什么都不登记】:它们只有一对整行共用的 updated_at / updated_by,
+        --     说不出改的是哪一块面板的哪一列(Step 0 §c)—— 记录开始之前没有任何一条"谁注册了 GST、何时"的记录,照直不说。
+        --   锁期面板记录开始之前的内容就是 period_closes:关账的那一刻(created)与反结的那一戳(stamp)。
+        --   年结同形;现金预测:冻结那一刻 + 被取代那一戳(superseded_by 是【一张预测的 id】,不是人 —— 所以戳上不记人);
+        --   导入模板:建立 + 删除那一戳(表里没有 deleted_by)。报销单、人工分录申请、转账、缴纳在 1c-1 已经登记。
+        ('period_closes',                  'created', 'closed_at',    'closed_by',    NULL, 'account'),
+        ('period_closes',                  'stamp',   'reopened_at',  'reopened_by',  ARRAY['reopen_reason'], 'account'),
+        ('year_closes',                    'created', 'closed_at',    'closed_by',    NULL, 'account'),
+        ('year_closes',                    'stamp',   'reopened_at',  'reopened_by',  ARRAY['reopen_reason', 'reversal_journal_id'], 'account'),
+        ('cash_forecasts',                 'created', 'frozen_at',    'frozen_by',    NULL, 'account'),
+        ('cash_forecasts',                 'stamp',   'superseded_at', NULL,          ARRAY['superseded_by', 'superseded_reason'], 'account'),
+        ('cash_forecast_lines',            'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('bank_import_profiles',           'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('bank_import_profiles',           'stamp',   'deleted_at',   NULL,           NULL, 'account')
     ) AS p(table_name, kind, at_column, by_column, extra, by_kind);
 $function$;

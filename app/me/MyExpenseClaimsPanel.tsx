@@ -26,7 +26,7 @@
 // ★ EMP-SELF-1(G2,Tim 2026-09-27):多一列「决定」(谁、何时、备注,DecisionCell)。
 //   备注此前叠在「事由」格里;现在它跟着决定人走,于是从事由格里拿掉 —— 同一句话不在一行里出现两次。
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
-import { useState, useTransition } from 'react'
+import { useState, useTransition, type ReactNode } from 'react'
 import { submitClaim, withdrawClaim } from '@/app/finance/claims/actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
@@ -46,9 +46,12 @@ type Row = {
 const money = (n: number) =>
     Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
+// AUDIT-TRAIL-1c-3(Tim 的 Q20 的另一半):表下面一张一行,点开是这张报销单的审计记录 —— 报销人自己读(my_expense_claim,M8:
+//   没有页面码,报销单自己的读规则就是门)。审批留痕那一支不给本人开口子,所以那几行是 Restricted(Q4);谁决定的、为什么,
+//   本人在表里的「决定」一格已经看得到(EMP-SELF-1)。
 export default function MyExpenseClaimsPanel({
-    employeeId, rows, baseCurrency, decisions,
-}: { employeeId: string | null; rows: Row[]; baseCurrency: string; decisions: Record<string, Decision> }) {
+    employeeId, rows, baseCurrency, decisions, trails = {},
+}: { employeeId: string | null; rows: Row[]; baseCurrency: string; decisions: Record<string, Decision>; trails?: Record<string, ReactNode> }) {
     const t = useTranslations()
     const [open, setOpen] = useState(false)
     // 【花钱那天不预填】—— 一个决定成本落在哪个期间的日期,预填就是奖励留空;
@@ -219,6 +222,16 @@ export default function MyExpenseClaimsPanel({
                 phone={{ mode: 'columns' }}
                 empty={t('expenseClaims.none')}
             />
+            {rows.length > 0 && (
+                <div className="mt-4 space-y-2">
+                    {rows.map((r) => (
+                        <div key={r.claim_id} className="text-sm">
+                            <span className="text-xs text-[color:var(--brand-muted-text)]">{r.code}</span>
+                            {trails[r.claim_id]}
+                        </div>
+                    ))}
+                </div>
+            )}
         </section>
     )
 }

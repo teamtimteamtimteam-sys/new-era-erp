@@ -380,6 +380,32 @@ const OVERRIDES = {
         splitting_limit_pct: 'Splitting limit (percentage points)', sample_retention_days: 'Retention days',
         refining_charge_basis: 'Refining charge', penalty_basis: 'Penalties' },
     contract_refining_charges: { metal: 'Metal' },
+    // ── AUDIT-TRAIL-1c-3:期末、设置与清单页上的记录(这一刀第一次把这几张表画上页面 —— 一个标签归第一个把它那张表画上页面的
+    //    那一刀,所以 finance_settings 没有面板的那几列也在这里核过:它们只在汇总页上出现)。对着各自那一页核过:
+    //    设置页("Period locked before" · GST 面板 "Registered for GST" / "GST registration number")、/settings/approvals 的三格
+    //    ("Level-1 approver role" …)、公司资料表单、现金预测的常设行表单与冻结表、银行导入页("Mapping name")、月结与年结两张表。
+    //    生成器配错的那几类:"Fy end day"、"Approval level1 role"、"Closed at"(at 与 on 不统一)、"Reason (required)"(按钮旁的提示)、
+    //    "Starting Monday"、"Frozen" / "Superseded"(时刻读成状态词)、"Bank swift"、"Is active"。
+    finance_settings: { locked_before: 'Period locked before', gst_registered: 'Registered for GST', gst_registration_no: 'GST registration number',
+        approvals_enabled: 'Approvals are in force', approval_threshold_base: 'Approval threshold (base currency)',
+        approval_level1_role_code: 'Level-1 approver role', approval_level2_role_code: 'Level-2 approver role (at or above the threshold)',
+        fy_end_month: 'Financial year end (month)', fy_end_day: 'Financial year end (day)', first_fy_end: 'First financial year end',
+        system_start_date: 'System start date', default_allocation_basis: 'Default cost allocation basis', gst_rate_pct: 'GST rate %' },
+    period_closes: { period_end: 'Period end', closed_at: 'Closed on', closed_by: 'Closed by', entries_count: 'Entries',
+        total_debits: 'Total debits', total_credits: 'Total credits', reopened_at: 'Reopened on', reopened_by: 'Reopened by', reopen_reason: 'Reopen reason' },
+    year_closes: { year_end: 'Year end', closing_journal_id: 'Closing journal', net_result: 'Net result', closed_at: 'Closed on', closed_by: 'Closed by',
+        reopened_at: 'Reopened on', reopened_by: 'Reopened by', reopen_reason: 'Reopen reason', reversal_journal_id: 'Reversal journal' },
+    company_profile: { legal_name: 'Legal name', registration_no: 'Company registration no.', address_lines: 'Address', city: 'City',
+        postal_code: 'Postal code', country: 'Country', phone: 'Phone', email: 'Email', website: 'Website', bank_name: 'Bank name',
+        bank_account_name: 'Bank account name', bank_account_no: 'Bank account number', bank_swift: 'SWIFT', bank_address: 'Bank address',
+        invoice_footer_text: 'Invoice footer text', logo_path: 'Logo' },
+    cash_forecasts: { code: 'Forecast number', week_start: 'Week starting', horizon_weeks: 'Horizon (weeks)', base_currency: 'Base currency',
+        opening: 'Opening cash', buckets: 'Weekly figures', lines: 'Forecast lines', undated: 'Money with no date', promises_memo: 'Customer promises (memo)',
+        buffer: 'Fixed costs and cover', frozen_at: 'Frozen on', frozen_by: 'Frozen by', superseded_at: 'Replaced on', superseded_by: 'Replaced by',
+        superseded_reason: 'Why it was replaced' },
+    cash_forecast_lines: { label: 'Description', direction: 'Direction', amount_ccy: 'Amount', cadence: 'How often', start_date: 'First occurrence',
+        end_date: 'Last occurrence', is_active: 'Active' },
+    bank_import_profiles: { bank_account_code: 'Bank account', name: 'Mapping name', mapping: 'Column mapping', deleted_at: 'Deleted on' },
 }
 // AUDIT-TRAIL-1b-2:勘察把几列自由文本认成了"像枚举"(enum_like)—— 页面上它们是一个随手填的输入框,
 //   审计记录就照原样说(一个人敲的字,Q8),而不是去找一张并不存在的取值表。
@@ -404,6 +430,10 @@ const KIND_OVERRIDES = {
     gst_return_boxes: { box: 'enum' },
     contract_refining_charges: { usd_per_tonne_of_metal: 'number' },
     contract_penalty_elements: { usd_per_tonne_per_pct_over: 'number' },
+    // AUDIT-TRAIL-1c-3:公司资料的 logo 是存储桶里的一条路径(机器字)—— 换没换 logo 由"Logo: Details changed"一类说不清,
+    //   所以照技术列藏起来(页面上那一格是一张图,不是一段字);导入映射的户只认 1000 / 1010,说成户名
+    company_profile: { logo_path: 'technical' },
+    bank_import_profiles: { bank_account_code: 'enum' },
 }
 // 三个主语的表里【本来就不该印的列】(Q12:单据编号自己在标题里,内部代码不上屏)
 const HIDE = {
@@ -505,6 +535,9 @@ const TABLE_NAMES = {
     management_packs: 'management pack', contract_grade_specs: 'grade specification', contract_insurance_obligations: 'insurance obligation',
     contract_volume_commitments: 'volume commitment', contract_pricing_terms: 'index pricing term', contract_settlement_terms: 'settlement basis',
     contract_refining_charges: 'refining charge', contract_penalty_elements: 'penalty element',
+    // AUDIT-TRAIL-1c-3
+    period_closes: 'month close', year_closes: 'year close', company_profile: 'company profile', cash_forecasts: 'cash forecast',
+    cash_forecast_lines: 'recurring forecast line', bank_import_profiles: 'import mapping',
 }
 // 区域:按表名开头认(先长后短),认不出的归 Other。区域名与导航模块的英文说法一致。
 const AREA_RULES = [
@@ -671,6 +704,11 @@ const ENUM_OVERRIDES = {
     'contract_settlement_terms#settling_party': { ours: 'Ours', counterparty: 'The buyer' },
     'contract_settlement_terms#refining_charge_basis': { none_agreed: 'None agreed', per_metal: 'Per metal' },
     'contract_settlement_terms#penalty_basis': { none_agreed: 'None agreed', per_element: 'Per element' },
+    // ── AUDIT-TRAIL-1c-3(取值照各自那一页的选项文字)─────────────────────────────────────────────────────
+    'finance_settings#default_allocation_basis': { weight: 'By weight', metal_value: 'By metal value' },
+    'cash_forecast_lines#direction': { in: 'Money in', out: 'Money out' },
+    'cash_forecast_lines#cadence': { once: 'One-off', weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly', annual: 'Annually' },
+    'bank_import_profiles#bank_account_code': { '1000': 'Cash at Bank – SGD', '1010': 'Cash at Bank – USD' },
     'work_order_history#change_type': { created: 'Created', released: 'Released', closed: 'Closed', cancelled: 'Cancelled',
         header_update: 'Details changed', line_add: 'Input line added', line_update: 'Input line changed', line_remove: 'Input line removed',
         expected_add: 'Expected output added', expected_update: 'Expected output changed', expected_remove: 'Expected output removed' },

@@ -21,6 +21,9 @@ import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { mustRows } from '@/lib/db-helpers'
+import { trailCount } from '@/app/components/trail/AuditTrail'
+import ListTrail from '@/app/components/trail/ListTrail'
 
 type PreviewRow = {
     account: string
@@ -39,7 +42,7 @@ type Preview = {
     missing_rates: string[]
 }
 
-export default async function RevaluationPage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
+export default async function RevaluationPage({ searchParams }: { searchParams: Promise<{ date?: string; trail?: string }> }) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -90,6 +93,10 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
             : []),
     ]
 
+    const revalRuns = mustRows(await supabase.from('journal_entries').select('id, code, entry_date, status')
+        .eq('source_type', 'revaluation').order('created_at', { ascending: false }).limit(24), 'journal_entries revaluation') as
+        { id: string; code: string; entry_date: string; status: string }[]
+
     return (
         <ListPage title={t('finance.reval.title')} maxWidth="max-w-4xl" state={{ kind: 'ok' }}>
             <form method="get" className="mb-4">
@@ -113,6 +120,12 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
             )}
 
             <RevalueButton canEdit={canEditGate} periodEnd={d} disabled={!canPost} />
+
+            {/* AUDIT-TRAIL-1c-3(Step 0 §a):重估没有自己的批次表 —— 一次重估就是一张 source_type = 'revaluation' 的分录
+                (source_id 为空)。这一块读最近 24 张,每一张链到它的分录页。 */}
+            <ListTrail intro="listTrail.intro.revaluations" show={trailCount(sp.trail)}
+                records={revalRuns.map((j) => ({ subject: 'journal_entry' as const, id: j.id, href: `/finance/journal/${j.id}`,
+                    label: `${j.code} · ${formatDate(j.entry_date, 'en')}${j.status === 'reversed' ? ' (reversed)' : ''}` }))} />
         </ListPage>
     )
 }

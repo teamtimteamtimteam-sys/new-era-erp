@@ -8498,6 +8498,9 @@ const en = {
             },
             addButton: '+ Add FX Rate',
             recordCount: 'Total: {count}',
+            // AUDIT-TRAIL-1c-3:撤回了的汇率在清单里不列(它们不再生效),但它们的页打得开(1c-2 的 Q7)—— 这里给它们一个入口
+            withdrawnTitle: 'Withdrawn rates',
+            withdrawnHint: 'No longer in force. Each opens read-only with who withdrew it and why.',
             colCurrency: 'Currency',
             colType: 'Side',
             colRate: 'Rate (1 unit = ? SGD)',

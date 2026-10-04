@@ -9981,3 +9981,35 @@ banner-noby / history-back / refusal-wrong 三跑,五次 zh = en = 667 字;`cjk`
 `payable` 的 `root_columns` 里,所以 1c-1 的应付页上从来不说它;说它的只有 1b-1 的批次页。**影响:** 读得懂(英文、首字母大写),但措辞没经人过目,
 与 Q28"每一个取值都有英文"的规矩不一致。**处置:** 先量线上这一列有哪些取值、页面上怎么叫它们,再在生成器的 `ENUM_OVERRIDES` 里给一张表
 (或在表上加 CHECK)。**删除条件:** 这一列有了取值表,③ 能看见它。
+
+## AT1C3-LIST-BLOCKS-READ-A-BOUNDED-WINDOW —— 清单页上那几块合起来的审计记录读的是【一扇窗】,不是全部(AT-1c-3 立的,2026-10-04)
+
+`ListTrail` 每一条记录各读一次 `record_trail`,所以每一块都给自己读的记录数设了一个上界,而这个上界【不在屏幕上说】:
+重估、折旧、工资那三块各读最近的 **24** 张分录(`/finance/revaluation`、`/finance/assets`、`/finance/payroll-payments`,按 `created_at` 倒序);
+`/finance/fx` 那一块读【这一页清单上的】汇率加最近 **50** 条撤回的(一次批量录入如果跨了两页,这一页上只并得到它落在这一页上的那几条);
+`/finance/bank/statements` 读最近 **50** 张删掉的对账单;`/finance/cash-forecast` 读页上那张冻结表的 **20** 张(与表本身同一个上界)与全部常设行;
+`/finance/bank` 读页上那张转账表的 **50** 笔;`/finance/journal` 的每张申请卡片只给【页上列着的】申请(在等的 + 最近 10 张了结的)。
+**为什么可以接受:** 每一条记录的完整记录仍在它自己能打开的地方(分录、费用、汇率、对账单各自的页;汇总页 `/settings/change-history` 是全部);
+线上今天每一块都在上界之内(2026-10-04 以 postgres 读:重估 2 · 折旧 0 · 工资 4 · 汇率 12 · 撤回 0 · 删掉的对账单 1 · 预测 0 · 转账 0 · 申请 0)。
+**会咬人的时候:** 跑上一两年,重估 / 折旧 / 工资的分录过了 24 张 —— 最旧的那几次从这一块里掉出去,而这一块不会说"还有更早的"。
+**处置(还没做):** 让 `ListTrail` 在被截掉的时候说一句(或者给这几块一个"更早的批次"链接到分录清单的过滤视图)。**删除条件:** 截断被说出来。
+
+## AT1C3-LIVE-MONTH-CLOSE-BLOCKED-BY-UNALLOCATED-RUNS —— 线上任何一个月末都关不了账:8 张已提交的加工单从未分摊成本(AT-1c-3 的线上证明量到,2026-10-04)
+
+以 postgres 读(2026-10-04):`processing_runs` 里 `status = 'committed' AND allocated_at IS NULL AND deleted_at IS NULL` 的有 **8** 张,
+`process_date` 全部 ≤ 31/08/2026;锁在 01/08/2026。`close_period` 对每一个 ≥ 锁的月末按名拒 `PROCESSING_COSTS_UNALLOCATED`(INV-VAL-1 R8)。
+**这不是代码缺陷**(那一道闸是对的),记在这里是因为它挡住了一件验证:AT-1c-3 的线上回滚证明【做不了】"关一个月、再反结"——
+分摊那 8 张就是替在这之前就在的单据做决定,委托书连回滚的事务里也不许。月结 / 反结的读法因此由 fixture 243 L 臂在重建库上走真函数证,
+线上锁期那一段只读得到记录开始之前的那一次月结(31/07/2026)。**删除条件:** 这 8 张被分摊(或冲销),线上能关下一个月 —— 之后的刀就能在线上证月结。
+
+## GATE-TYPES-CLI-HAS-NO-TIMEOUT —— `db/gate.py` 调 `supabase gen types` 没有上限,一次卡住就让整门沉默到外面的上限(AT-1c-3 撞到,2026-10-04)
+
+`db/gate.py` 的 `check_generated_types()`(`:223`)用 `subprocess.run([...supabase gen types...])`,**没有 `timeout=`**。AT-1c-3 的第一次整门
+(08:40:55 起,`run_detached --timeout 1500`)在打印 "NO DIFFERENCES — the rebuild matches live ✓" 之后【一个字都没再写】,1500 秒到点被
+`run_detached` 收掉(`GATE_EXIT=124`,不是门自己的判词);线上那一侧没有任何会话卡着(`pg_stat_activity` 0 行非 idle)。立刻重跑一次,
+带上 `DO_NOT_TRACK=1 SUPABASE_TELEMETRY_DISABLED=1` 与 `python3 -u`:`types` 那一格几秒就过,`GATE_EXIT=0`(368 s)。
+**照直说:卡在哪一步【没有被证明】** —— 第一次的输出是缓冲的,停下来的那一刻之后什么都没落盘。最像的是 CLI 的遥测在退出时挂住
+(本机的记忆里记过同一个 CLI 的遥测把一行 JSON 写进 stdout 并 exit 1),但那是推断,不是测量。
+**影响:** 一次卡住的 CLI 让整门沉默到外层上限,而沉默与"还在跑"长得一模一样;外层上限救得了时间,救不了结论。
+**处置(还没做,不在撞到它的这一刀里顺手做):** 给那一次调用加 `timeout=`(由实测成本推:types:gen 实测几秒),超时按名报出来;
+并在调用里自己带上关遥测的两个环境变量。**删除条件:** 那一行有上限、超时会说出是 types 那一格。

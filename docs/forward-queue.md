@@ -182,6 +182,19 @@
 >    **破窗:至少 1 h 49 min 44 s,至多 1 h 53 min 34 s。** 窗口里**没有东西坏掉**(旧应用不读 `record_trail` 新多出来的 `op_key`
 >    那一列,也不叫七个新主语;`trail_ref_label` 给员工的新答法是旧造句器先读的那一个形状);冲销分录的"来源"链接在部署之前照旧是错的,
 >    与之前一样。见 `docs/handbacks/AUDIT-TRAIL-1c-1.md` §7。
+> 28. **✅ 其余单据与合同的审计记录 —— AUDIT-TRAIL-1c-2(`v1.4.33` 的一部分,【未发布】,2026-10-04)。**
+>    内容见下面「HISTORY family」一节 AT-1c 那一块的 ✅ AT-1c-2。
+>    ★ **部署:Tim 在 Vercel 上确认 `e282b092` 已部署(AT-1c-2 close-out + AT-1c-3 委托书,2026-10-04)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-04 01:18:22 CST**(测量:`db/migration-windows.tsv`,`2026-10-04-at1c2-trails-documents-and-contracts.sql`;
+>    跟着的 fu1 `2026-10-04-at1c2-fu1-trail-ref-label-journal-lines.sql` 在 **01:31:04 CST** 提交,在窗口之内)·
+>    终点下界 **2026-10-04 03:11:04 CST**(测量:推送把 `origin/main` 移到 `e282b092`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`e282b092 … {2026-10-04 03:11:04 +0800}: update by push`)·
+>    终点上界 **2026-10-04 07:38:14 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 52 min 42 s,至多 6 h 19 min 52 s。** 上界宽,是因为推送与 close-out 之间隔了一夜 —— 它是"Tim 说已部署"那一刻的
+>    上界,不是部署花了这么久。窗口里坏的只有一处(1c-2 交回 §8 读旧页面读出来的):旧的 `/settings/deleted` 把删掉的对账单
+>    BS-2026-0001 的种类列成原样的键名 `deleted.kind.bank_statement`、没有链接;其余照旧(旧应用不叫八个新主语;汇总页 Record 一栏
+>    销售那几行链到旧应用本来就有的应收页;旧资产页的修改史面板读的 `fixed_asset_history` 没动)。见 `docs/handbacks/AUDIT-TRAIL-1c-2.md` §8。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -6577,7 +6590,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
       (`notes_zh` → Notes (ZH))。交回 `docs/handbacks/AUDIT-TRAIL-1b-3.md`;fixture 240。
       生成器里同一形状的还有几处(`kpi_score_rubric.*_en`、`gst_return_boxes.label_en/zh`、`payment_trigger_events.phrase_en`)——
       它们的表归 AT-1c / AT-1d,到时候一起核。
-  * **⬜ AT-1c(`v1.4.33` 的一部分;~~v1.4.35~~)· 财务与合同的页面** —— `docs/surveys/AUDIT-TRAIL-0/ops-finance.md` 的 32 条宿主路由与 `/contracts/[id]`;
+  * **✅ AT-1c(`v1.4.33` 的一部分;~~v1.4.35~~)· 财务与合同的页面 —— 三刀都做完了(1c-3,2026-10-04)** —— `docs/surveys/AUDIT-TRAIL-0/ops-finance.md` 的 32 条宿主路由与 `/contracts/[id]`;
     凭证作为"由单据过账"的相关事件在哪些主语上出现(`docs/known-issues.md` 的 `AT1A-RUN-COST-JOURNALS-NOT-ON-TRAIL`)。
     Step 0 勘察与 Tim 的裁定(Q1–Q34 全部照建议,2026-10-03)在 `docs/surveys/AUDIT-TRAIL-1c/STEP0-HANDBACK.md`;按 Q1 拆成三刀,都在 `v1.4.33` 里,依次做:
     * **✅ AT-1c-1(2026-10-03)· 机制与账上的单据** —— M7(没有外键的表整张属于一个单行设置主语;第一个用户是 1c-3 的锁期面板)·
@@ -6595,17 +6608,21 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
       汇率(撤回了的汇率对本来的读者只读打开,Q7)· 管理包(Q25:fixture 与线上回滚的证明)· 合同(没有 pricing.view 的读者,CFO 的决定是
       Restricted,Q21);Q9 余下的两个戳(运费单冲销 · 对账单对账)。1c-1 留下的缺口补上:付款申请与贷项通知的【字段编辑】有了 fixture 一臂
       与金句(连带收付款、发票的 "… changed" 各一句)。交回 `docs/handbacks/AUDIT-TRAIL-1c-2.md`;fixture 242。
-    * **⬜ AT-1c-3 · 期末、设置与清单页上的记录** —— 锁期面板(+ 月结 / 反结,M7)与 `/finance/close`(Q29)· GST 设置面板 · 公司资料 · 年结 ·
-      重估与折旧的批次 · 批量汇率(Q16)· 现金预测 · 工资付款(Q18)· 加工成本结算(Q19)· 代扣税缴纳 · 转账 · 报销单(Q20)· 银行导入模板 ·
-      人工分录申请(Q17)。
-      ★ **1c-2 留给这一刀的一件(2026-10-04):撤回了的汇率在屏幕上没有入口。** 1c-2 让它的页面对本来的读者只读打开(Q7),而
-      `/finance/fx` 的清单与它的查询(`app/finance/fx/page.tsx:139`、`app/finance/fx/fxQuery.ts:47`)过滤掉 `deleted_at` —— 那一页是 1c-3 的
-      清单之家(批量汇率),1c-2 按委托书一个字没动。1c-3 动那一页时,给撤回的汇率一个入口(一个 "Withdrawn" 筛选,或清单页那一块审计记录
-      里的链接),否则它只能靠直接输入地址打开。
+    * **✅ AT-1c-3(2026-10-04)· 期末、设置与清单页上的记录** —— 锁期面板与 GST 面板(同一行设置,各看各的列:M6;锁期那一段经 M7
+      带上月结与反结,Q25 · Q3;没有面板的六列哪一块都不说,只在汇总页上,Q4)· `/finance/close` 关账史之下同一段锁期记录、年结一块(Q29)·
+      公司资料(M5)· 清单块:重估 · 折旧 · 批量汇率(Q16:一次操作一条)· 现金预测与常设行(Q16)· 工资分录(Q18)· 加工成本结算留下的分录与
+      费用单(Q19)· 代扣税缴纳("WHT remittance reversed",Q30)· 行内转账 · 导入映射 · 删掉的对账单(Q6 的入口)· 人工分录申请每一张一段
+      (Q17)· 报销单每一张一段,报销人自己在 `/me` 上读同一张(Q20;★ **M8**:一个主语可以没有页面码,根行自己的读规则就是门)。
+      ★ 1c-2 留下的那一件**做了**:`/finance/fx` 多了「撤回了的汇率」那一列入口,清单块里的每一条汇率也链到它的页。
+      顺带改对的两处(都在共用的造句器里):行内转账两条腿各按自己那个户的币种(此前收到的那一条挂着出款的币种);转账自己的一次改动叫
+      "Bank transfer changed"(此前借了申请的 "Request changed")。交回 `docs/handbacks/AUDIT-TRAIL-1c-3.md`;fixture 243。
+      ★ **破窗**:起点 **2026-10-04 08:39:15 CST**(迁移提交,`db/migration-windows.tsv`);终点 = Tim 在 Vercel 上看到部署成功的那一刻(转述,不是本机测量)——
+      **下一次 close-out 时补记**。窗口内没有量到坏掉的东西;提前可见的只有汇总页上人工分录申请及其审批那几行的 Record 列改指申请本身。
   * **⬜ AT-1d(`v1.4.33` 的最后一部分,关闭后才发布 `v1.4.33`;~~v1.4.36~~)· 人事、设置与账号** —— HR 的宿主页与 `/me`;设置页(审批方针、词典、导入);
     ★ **审批方针那一块面板归这里(Tim 的 AT-1c Q2,2026-10-03)**:`/settings/approvals`(守卫 `action.manage_permissions`)上的 `approval_policy`
     主语 —— `finance_settings` 的四列审批方针(M5 · M6)+ `finance_settings_history`(M7,整张表属于那一行),替掉页上的 `ApprovalsHistory`(Q26);
-    同一行上的锁期与 GST 设置两块面板归 AT-1c-3。~~**共用一行的设置面板各看各的字段**
+    同一行上的锁期与 GST 设置两块面板归 AT-1c-3(✅ 2026-10-04)。★ `/me` 上【报销人自己那一张报销单】的审计记录 AT-1c-3 已经做了
+    (Q20 的另一半,M8);AT-1d 管 `/me` 的其余部分。~~**共用一行的设置面板各看各的字段**
     (Q25:锁期、GST 设置、审批方针同住 `finance_settings`,锁期那一块再加上月结 / 反结)~~ —— 锁期与 GST 那两块挪到 AT-1c-3(Q2);**账号的审计记录**(Q24:`/settings/accounts`
     每行可展开,并在关联员工的页面上照出来)。
   * **⬜ DATE-PICK-1(`v1.4.34`;~~v1.4.37~~)· 日期选择器** —— 一个自建的选择器(Radix Popover + 现成的 `MonthGrid` + `lib/bankCsv.ts` 的

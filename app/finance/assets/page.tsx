@@ -43,6 +43,8 @@ import AssetDisposalRequestsPanel, { type DisposalRequestView, type DisposalFigu
 import { Button } from '@/app/components/ui/button'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { trailCount } from '@/app/components/trail/AuditTrail'
+import ListTrail from '@/app/components/trail/ListTrail'
 
 type AssetRow = {
     id: string
@@ -82,7 +84,7 @@ function endOfMonthIso(): string {
 export default async function AssetsPage({
     searchParams,
 }: {
-    searchParams: Promise<{ date?: string }>
+    searchParams: Promise<{ date?: string; trail?: string }>
 }) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -191,6 +193,10 @@ export default async function AssetsPage({
         await supabase.from('accounts').select('code').eq('is_cash', true).order('code'),
         'accounts bank') as unknown as { code: string }[]).map((b) => b.code)
 
+    const depRuns = mustRows(await supabase.from('journal_entries').select('id, code, entry_date, status')
+        .eq('source_type', 'depreciation').order('created_at', { ascending: false }).limit(24), 'journal_entries depreciation') as
+        { id: string; code: string; entry_date: string; status: string }[]
+
     return (
         <ListPage
             title={t('assets.title')}
@@ -243,6 +249,12 @@ export default async function AssetsPage({
                 <p className="text-sm text-[color:var(--brand-muted-text)] mb-3">{t('assets.nothingToDepreciate', { 0: d })}</p>
             )}
             <DepreciateButton canEdit={canEdit} periodEnd={d} disabled={totalDelta === 0} />
+
+            {/* AUDIT-TRAIL-1c-3(Step 0 §a):折旧没有自己的批次表 —— 一次折旧就是一张 source_type = 'depreciation' 的分录,
+                带着它记到每一张资产卡上的那一行(每一张资产自己的页上也有它那一行)。读最近 24 张,链到分录页。 */}
+            <ListTrail anchor="depreciation-trail" intro="listTrail.intro.depreciation" show={trailCount(sp.trail)}
+                records={depRuns.map((j) => ({ subject: 'journal_entry' as const, id: j.id, href: `/finance/journal/${j.id}`,
+                    label: `${j.code} · ${formatDate(j.entry_date, 'en')}${j.status === 'reversed' ? ' (reversed)' : ''}` }))} />
         </ListPage>
     )
 }

@@ -28,8 +28,11 @@ import { RemitControl } from './WhtControls'
 import { ListPage } from '@/app/components/ui/list-page'
 import { WhtLiabilityTable, WhtRemittancesTable, WhtRatesTable, type LiabilityRow, type RemittanceRow, type WhtRateRow } from './WhtTables'
 import { formatMonth } from '@/lib/dates'
+import { trailCount } from '@/app/components/trail/AuditTrail'
+import ListTrail from '@/app/components/trail/ListTrail'
 
-export default async function WhtPage() {
+export default async function WhtPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
+    const sp = await searchParams
     const denied = await requireModule(MOD.finance)
     if (denied) return denied
     const canEditGate = await can('module.finance.edit')
@@ -135,6 +138,9 @@ export default async function WhtPage() {
         rates: rates.filter((r) => r.nature === n.code),
     }))
 
+    // AUDIT-TRAIL-1c-3(Q30):页底一块 —— 每一次缴纳(与它的冲销、付出它 / 冲它的申请);缴纳没有自己的页
+    const whtRecords = remittances.map((r) => ({ subject: 'wht_remittance' as const, id: r.id as string,
+        label: `${r.code}${entryStatus.get(r.journal_entry_id as string) === 'reversed' ? ' (reversed)' : ''}` }))
     return (
         <ListPage title={t('wht.title')} intro={t('wht.subtitle')} maxWidth="max-w-5xl" state={{ kind: 'ok' }}>
             {/* ── 未申报居民身份的供应商:一个【数】,不是一句提醒 ───────────── */}
@@ -227,6 +233,8 @@ export default async function WhtPage() {
             <div className="mb-6">
                 <WhtRatesTable rows={rateRows} />
             </div>
+
+            <ListTrail intro="listTrail.intro.wht" show={trailCount(sp.trail)} records={whtRecords} />
         </ListPage>
     )
 }

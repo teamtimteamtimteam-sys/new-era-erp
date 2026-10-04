@@ -15,6 +15,8 @@ import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import { trailCount } from '@/app/components/trail/AuditTrail'
+import ListTrail from '@/app/components/trail/ListTrail'
 
 // 视图列生成类型全可空;取用列本地锁死
 type StatusRow = {
@@ -31,7 +33,9 @@ type StatusRow = {
     difference: number | null
 }
 
-export default async function BankHomePage() {
+// AUDIT-TRAIL-1c-3:页底一块 —— 这里列着的每一笔行内转账(与它的冲销、付出它 / 冲它的申请);转账没有自己的页
+//   (Q17:它也出现在它那张付款申请的审计记录里)。两头的账户按科目表的名字说(与 trail_ref_label 同一种说法)。
+export default async function BankHomePage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -101,6 +105,10 @@ export default async function BankHomePage() {
     )
     const openByTransfer = new Map(openReversals.map((r) => [r.transfer_id, r]))
     const ccyOf = (acct: string) => rows.find((r) => r.account_code === acct)?.currency ?? ''
+    // AUDIT-TRAIL-1c-3:清单块里转账的名字 —— 两头按科目表的英文名说
+    const accountName = new Map((mustRows(await supabase.from('accounts').select('code, name_en')
+        .in('code', [...new Set(transfers.flatMap((x) => [x.from_account, x.to_account]))]), 'accounts for transfers') as
+        { code: string; name_en: string }[]).map((a) => [a.code, a.name_en]))
     const transferRows: TransferRow[] = transfers.map((x) => ({
         id: x.id,
         dateText: formatDate(x.transfer_date, locale),
@@ -254,6 +262,10 @@ export default async function BankHomePage() {
             </div>
 
             <p className="text-sm text-[color:var(--brand-muted-text)] max-w-3xl">{t('bank.identityNote')}</p>
+
+            <ListTrail intro="listTrail.intro.transfers" show={trailCount((await searchParams).trail)}
+                records={transfers.map((x) => ({ subject: 'bank_transfer' as const, id: x.id,
+                    label: `Transfer ${formatDate(x.transfer_date, 'en')} · ${accountName.get(x.from_account) ?? x.from_account} → ${accountName.get(x.to_account) ?? x.to_account}${x.reversed_at ? ' (reversed)' : ''}` }))} />
         </div>
     )
 }

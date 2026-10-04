@@ -13,6 +13,7 @@ import { formatAmount } from '@/lib/format'
 import MyLeavePanel from './MyLeavePanel'
 import MyClaimsPanel from './MyClaimsPanel'
 import MyExpenseClaimsPanel from './MyExpenseClaimsPanel'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import type { Decision } from './DecisionCell'
 import MyAttendancePanel from './MyAttendancePanel'
 import MyOvertimePanel from './MyOvertimePanel'
@@ -43,7 +44,8 @@ type MyKpiRow = {
     override_cap: number | null; override_reason: string | null
 }
 
-export default async function MePage() {
+export default async function MePage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
+    const trailShow = trailCount((await searchParams).trail)
     const supabase = await createClient()
     const t = await getTranslations()
     const locale = await getLocale()
@@ -465,6 +467,8 @@ export default async function MePage() {
                 />
 
                 <MyExpenseClaimsPanel
+                    trails={Object.fromEntries((mustRows(expenseClaimRes) as { claim_id: string }[]).map((r) => [r.claim_id,
+                        <AuditTrail key={r.claim_id} subject="my_expense_claim" id={r.claim_id} show={trailShow} anchor={`my-claim-trail-${r.claim_id}`} compact />]))}
                     employeeId={employeeId}
                     rows={(mustRows(expenseClaimRes)) as never}
                     baseCurrency={baseCurrency}

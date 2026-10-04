@@ -621,6 +621,31 @@ const MUST_CONTAIN = {
     '/finance/bank/statements/[id]': [{ trail: 'audit-trail', why: '对账单页底的审计记录(Q6 · Q24)' }],
     '/finance/gst/[periodId]': [{ trail: 'audit-trail', why: 'GST 期间页底的审计记录(Q22 · Q23)' }],
     '/finance/fx/[id]/edit': [{ trail: 'audit-trail', why: '汇率编辑页底的审计记录(Q7;它只有这一页)' }],
+    // AUDIT-TRAIL-1c-3:期末、设置与清单页。【emptyOk 的那几段】线上那几张表一行变更记录、一行"记录开始之前"的来源都没有
+    //   (以 postgres 身份读,2026-10-04:year_closes · cash_forecasts · cash_forecast_lines · bank_import_profiles · bank_transfers ·
+    //   wht_remittances · 折旧分录各 0 行;GST 与公司资料那一行从来没有人改过、也没有记录开始之前的来源 —— Step 0 §c)。
+    //   refused 永远是坏的。/finance/journal 的申请卡片与 /me 的报销单:线上 0 张申请、冒烟的临时账号没有员工 —— 由 fixture 243、
+    //   线上回滚的证明与 scripts/probe-at1c3.mjs 钉着。
+    '/finance/settings': [
+        { trail: 'audit-trail', anchor: 'lock-trail', why: '锁期面板之下的审计记录(Q25 · M7:月结与反结)' },
+        { trail: 'audit-trail', anchor: 'gst-trail', emptyOk: true, why: 'GST 面板之下的审计记录(Q25 · M6)' },
+    ],
+    '/finance/close': [
+        { trail: 'audit-trail', anchor: 'lock-trail', why: '关账史之下的锁期审计记录(Q29)' },
+        { trail: 'audit-trail', anchor: 'year-close-trail', emptyOk: true, why: '年结那一块(Q29)' },
+    ],
+    '/finance/company': [{ trail: 'audit-trail', emptyOk: true, why: '公司资料页底的审计记录(M5)' }],
+    '/finance/revaluation': [{ trail: 'audit-trail', why: '重估批次那一块(重估分录)' }],
+    '/finance/assets': [{ trail: 'audit-trail', anchor: 'depreciation-trail', emptyOk: true, why: '折旧批次那一块' }],
+    '/finance/fx': [{ trail: 'audit-trail', why: '汇率清单那一块(Q16:一次批量录入是一条)' }],
+    '/finance/cash-forecast': [{ trail: 'audit-trail', emptyOk: true, why: '现金预测与常设行那一块(Q16)' }],
+    '/finance/payroll-payments': [{ trail: 'audit-trail', why: '工资分录那一块(Q18)' }],
+    '/finance/processing-costs': [{ trail: 'audit-trail', why: '加工成本结算那一块(Q19)' }],
+    '/finance/wht': [{ trail: 'audit-trail', emptyOk: true, why: '代扣税缴纳那一块(Q30)' }],
+    '/finance/bank': [{ trail: 'audit-trail', emptyOk: true, why: '行内转账那一块' }],
+    '/finance/claims': [{ trail: 'audit-trail', why: '每一张报销单的审计记录(Q20)' }],
+    '/finance/bank/import': [{ trail: 'audit-trail', emptyOk: true, why: '导入映射那一块' }],
+    '/finance/bank/statements': [{ trail: 'audit-trail', anchor: 'deleted-statements-trail', why: '删掉的对账单那一块(Q6 的入口)' }],
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
     // 为空时改渲染一段琥珀色文字("还没有货代 / 还没有供货商")。所以那个字符串
@@ -877,9 +902,13 @@ const contentSkips = []
 // AUDIT-TRAIL-1a:trail 判据 —— 取出那一段、剥掉人敲的字与标签、交给检出器
 const TRAIL_RULER = trailDetectorSelfProof()
 if (TRAIL_RULER.length) throw new Error('机器字检出器自证失败(lib/trail/machineTokens.ts)—— 它是瞎的,不许拿它判页面:' + TRAIL_RULER.join(' | '))
-function trailMisses(html, which, why, emptyOk = false) {
+// AUDIT-TRAIL-1c-3:一页上不止一段时(/finance/settings 的锁期与 GST、/finance/close 的锁期与年结)按 anchor 认那一段 ——
+//   从 id="<anchor>" 起找第一个标记;不给 anchor 就是页上的第一段(与以前逐字相同)。
+function trailMisses(html, which, why, emptyOk = false, anchor = null) {
     const marker = which === 'audit-trail' ? 'data-audit-trail="' : 'data-change-history="'
-    const i = html.indexOf(marker)
+    const from = anchor ? html.indexOf(`id="${anchor}"`) : 0
+    if (from < 0) return [`id="${anchor}" —— ${why}那一段没渲染出来`]
+    const i = html.indexOf(marker, from)
     if (i < 0) return [`${marker}… —— ${why}整段没渲染出来`]
     const state = html.slice(i + marker.length, html.indexOf('"', i + marker.length))
     const out = []
@@ -903,7 +932,7 @@ async function contentMisses(route, html) {
     const misses = []
     for (const a of MUST_CONTAIN[route] ?? []) {
         if (a.trail) {
-            misses.push(...trailMisses(html, a.trail, a.why, a.emptyOk === true))
+            misses.push(...trailMisses(html, a.trail, a.why, a.emptyOk === true, a.anchor ?? null))
             continue
         }
         if (a.needle) {

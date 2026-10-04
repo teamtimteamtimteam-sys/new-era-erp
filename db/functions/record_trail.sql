@@ -43,6 +43,10 @@
 --      各出一条 —— 一次批量录汇率是 N 条、一次冻结预测(新一张 + 旧一张作废)是两条。op_key 让它们并成一条。
 --      ☞ 返回列多了一列,CREATE OR REPLACE 换不了返回类型 —— 迁移里是 DROP + CREATE(同一笔事务;授权由
 --        apply_migration.sh 回放 zzz_function_grants 给回去)。
+-- AUDIT-TRAIL-1c-3(Tim 2026-10-03,AT-1c Step 0 的 Q20):
+--   M8 view_codes 为【空数组】:这一个主语没有页面码 —— 根行自己那张表的读规则就是唯一的门(/me 上报销人读自己那几张报销单:
+--      expense_claims 的读规则是 module.finance.view 或者【这张单说的就是你】)。只许与 root_rule = 'table' 同用:
+--      空的码配 'page' 等于对每一个登录的人敞开,所以那样登记的主语一律 TRAIL_NOT_PERMITTED。NULL 不是"没有码",照旧被拒。
 CREATE OR REPLACE FUNCTION public.record_trail(p_subject text, p_id text, p_entries integer DEFAULT 20)
  RETURNS TABLE(entry_no integer, prelog boolean, seq bigint, occurred_at timestamp with time zone, table_name text, row_key jsonb, op text, actor jsonb, changed_columns text[], old jsonb, new jsonb, ctx jsonb, refs jsonb, row_hidden boolean, row_restricted boolean, more boolean, op_key text)
  LANGUAGE plpgsql
@@ -87,7 +91,12 @@ BEGIN
     IF NOT FOUND THEN
         RAISE EXCEPTION 'TRAIL_SUBJECT_UNKNOWN|%', COALESCE(p_subject, '');
     END IF;
-    IF NOT has_any_permission(s.view_codes) THEN
+    IF cardinality(s.view_codes) = 0 THEN
+        -- M8:没有页面码 —— 根行的读规则是门,而那只在 'table' 时才问
+        IF s.root_rule IS DISTINCT FROM 'table' THEN
+            RAISE EXCEPTION 'TRAIL_NOT_PERMITTED|%', p_subject;
+        END IF;
+    ELSIF NOT has_any_permission(s.view_codes) THEN
         RAISE EXCEPTION 'TRAIL_NOT_PERMITTED|%', p_subject;
     END IF;
     v_rcols := s.root_columns;

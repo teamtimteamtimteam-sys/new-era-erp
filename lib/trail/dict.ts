@@ -7,6 +7,7 @@ import { TRAIL_TEXT } from './text'
 import { TRAIL_FIELDS, TRAIL_TABLES, TRAIL_ENUMS } from './catalogue.generated'
 import { TRAIL_MACHINE_VALUES } from '@/messages/trail-machine-values'
 import { formatDate, formatTrailStamp } from '@/lib/dates'
+import { currencyOfBank } from '@/lib/currencyMap'
 
 /**
  * 变更记录开始的那一刻 —— 分界线上那句 "Before …" 用它。
@@ -25,5 +26,6 @@ export function trailDict(baseCurrency: string): TrailDict {
         // 审计记录只说英文(Q7):日期不随界面语言走
         formatDate: (v: string) => formatDate(v, 'en'),
         formatStamp: (v: string) => formatTrailStamp(v),
+        bankCurrency: currencyOfBank,
     }
 }

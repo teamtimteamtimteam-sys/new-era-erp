@@ -16,8 +16,14 @@ import { getFunctionAccess } from '@/lib/moduleAccess'
 import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function FinanceSettingsPage() {
+// AUDIT-TRAIL-1c-3(Tim 的 Q25 · Q4):这一行设置由两块面板分着管,每一块下面是【它自己那几列】的审计记录 ——
+//   锁期那一块(locked_before,外加月结 / 反结,M7)、GST 那一块(注册开关与注册号)。同一行上没有面板的六列
+//   (gst_rate_pct · system_start_date · 三个财年列 · default_allocation_basis)哪一块都不说,只在 /settings/change-history 上;
+//   审批方针那四列归 AT-1d 的 /settings/approvals(Q2)。
+export default async function FinanceSettingsPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
+    const show = trailCount((await searchParams).trail)
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -140,12 +146,15 @@ export default async function FinanceSettingsPage() {
 
             <p className="text-sm text-[color:var(--brand-muted-text)] mt-6 mb-8">{t('finance.lockExplainer')}</p>
 
+            <AuditTrail subject="finance_lock" id="true" show={show} anchor="lock-trail" />
+
             {/* GST-3:注册开关。**这一页此前完全没有它** —— 而 GST-1/GST-2 建的
                 每一样东西都挂在它后面,于是两刀的成果一个人也碰不到。 */}
             <GstPanel canEdit={canEditSettings}
                 registered={data?.gst_registered ?? false}
                 registrationNo={data?.gst_registration_no ?? null}
             />
+            <AuditTrail subject="finance_gst" id="true" show={show} anchor="gst-trail" />
         </div>
     )
 }

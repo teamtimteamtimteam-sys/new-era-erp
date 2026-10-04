@@ -9,8 +9,12 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD, FN } from '@/lib/modules'
 import { getFunctionAccess } from '@/lib/moduleAccess'
 import { canViewBanking, can } from '@/lib/permissions'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function CompanyPage() {
+// AUDIT-TRAIL-1c-3:页底是公司资料那一行的审计记录(单行表,M5;银行那五列对不持 data.view_banking 的人是 Restricted ——
+//   遮蔽那一步与 HISTORY-1 的规则同一份)。记录开始之前什么都没有记:这一行只有一对 updated_at / updated_by。
+export default async function CompanyPage({ searchParams }: { searchParams: Promise<{ trail?: string }> }) {
+    const show = trailCount((await searchParams).trail)
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.finance)
@@ -94,6 +98,7 @@ export default async function CompanyPage() {
                     </p>
                 )}
             </div>
+            <AuditTrail subject="company_profile" id="true" show={show} />
         </div>
     )
 }

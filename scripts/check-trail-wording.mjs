@@ -28,11 +28,14 @@
 //      外加任务修改史与公式修改史每一个 change_type 的机器字扫描(它们是隐藏列,④ 的样本走不到那些分支)。
 //   ⑧ 账上的单据(AUDIT-TRAIL-1c-1)· ⑨ 其余的单据与合同(AUDIT-TRAIL-1c-2):同一个办法,外加按【那一页】的说法(subject)
 //      对每一个主语的每一张表造样本的机器字扫描(④ 的通用扫描不带 subject,走不到 describeFinance / describeLedger2)。
+//   ⑩ 期末、设置与清单页(AUDIT-TRAIL-1c-3):同一个办法 —— 十二个主语的金句(两块面板各看各的列 · 月结 / 反结 · 年结 ·
+//      Q16 的合并 · Q30 · M8 的报销人)外加按【那一页】的机器字扫描(describeLedger3)。
 //
 // 故障注入(TRAIL_WORDING_FAULT=<臂>,每一臂必须在【它那一臂】红):
 //   blind-detector · registry-drift · missing-key · dead-key · label-gap · enum-gap · raw-date · raw-ref · raw-json · raw-null · raw-role ·
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
-//   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)
+//   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
+//   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -47,6 +50,7 @@ const R = await imp('lib/trail/render.ts')
 const D = await imp('lib/dates.ts')
 const M = await imp('lib/trail/machineTokens.ts')
 const MV = await imp('messages/trail-machine-values.ts')
+const CM = await imp('lib/currencyMap.ts')
 const read = (p) => readFileSync(join(ROOT, p), 'utf8')
 
 const problems = { ruler: [], registry: [], catalogue: [], tokens: [], coverage: [] }
@@ -60,10 +64,12 @@ problems.ruler.push(...M.selfProof(detect))
 //   成员一行是 ('主语', ord, '表', '父表', '外键', '{…}'::jsonb, 'down'|'up', shown, home)。按行的形状整行认,
 //   不按"第几个引号串"认 —— 一个主语认两个码时,按位置取根表会取到第二个码(1b-1 第一次跑就是这么错的)。
 const subjectSrc = read('db/functions/trail_subjects.sql').replace(/--[^\n]*/g, '')
-const subjects = [...subjectSrc.matchAll(/\('([a-z_]+)',\s*ARRAY\[([^\]]*)\],\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'([a-z]+)'/g)]
+// AUDIT-TRAIL-1c-3:M8 的主语没有页面码 —— ARRAY[]::text[](空数组要写类型);M7 的成员没有外键 —— NULL 与 'all'。
+//   两种写法都要认:漏认一个主语,下面"55 ≠ 56"那一句会当场红(实测:第一次跑就是这么红的)。
+const subjects = [...subjectSrc.matchAll(/\('([a-z_]+)',\s*ARRAY\[([^\]]*)\](?:::text\[\])?,\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'([a-z]+)'/g)]
     .map((m) => ({ subject: m[1], views: [...m[2].matchAll(/'([^']+)'/g)].map((x) => x[1]), root: m[3], rule: m[5] }))
 const memberSrc = read('db/functions/trail_subject_members.sql').replace(/--[^\n]*/g, '')
-const members = [...memberSrc.matchAll(/\('([a-z_]+)',\s*(\d+),\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'[^']*'::jsonb,\s*'(up|down)',\s*(true|false),\s*(true|false)\)/g)]
+const members = [...memberSrc.matchAll(/\('([a-z_]+)',\s*(\d+),\s*'([a-z_]+)',\s*'([a-z_]+)',\s*(?:'([a-z_]+)'|NULL),\s*'[^']*'::jsonb,\s*'(up|down|all)',\s*(true|false),\s*(true|false)\)/g)]
     .map((m) => ({ subject: m[1], ord: m[2], table: m[3], parent: m[4], hop: m[6], shown: m[7] === 'true' }))
 const renderSrc = read('lib/trail/render.ts')
 const subjectBlock = renderSrc.match(/export const SUBJECT_TABLES[^=]*= \{([\s\S]*?)\n\}/)?.[1] ?? ''
@@ -175,6 +181,7 @@ const dict = {
     text, fields, tables: C.TRAIL_TABLES, enums, machine: MV.TRAIL_MACHINE_VALUES, baseCurrency: 'SGD',
     formatDate: FAULT === 'raw-date' ? (v) => v : (v) => D.formatDate(v, 'en'),
     formatStamp: (v) => D.formatTrailStamp(v),
+    bankCurrency: CM.currencyOfBank,
 }
 if (FAULT === 'raw-json') dict.text = { ...dict.text, 'value.detailsChanged': '{"a": 1}' }
 if (FAULT === 'raw-null') dict.text = { ...dict.text, empty: 'null' }
@@ -1621,13 +1628,602 @@ if (FAULT === 'wording-drift-1c2') dict.text = { ...dict.text, 'bst.unreconciled
     if (FAULT === 'wording-drift-1c2' && !problems.gold9.length) problems.gold9.push('(注入 wording-drift-1c2 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑩ 期末、设置与清单页上的记录(AUDIT-TRAIL-1c-3)───────────────────────────────────────────────────
+// 十二个主语(锁期 · GST · 公司资料 · 年结 · 人工分录申请 · 报销单与报销人自己 · 转账 · 代扣税缴纳 · 现金预测与常设行 · 导入映射)
+//   各一次字段编辑与关键事件,逐字;加上:两块面板各看各的列(M6 —— 读法那一层挡;这里证造句器按【变的那一列】说)、锁期那一段
+//   说出月结与反结(M7)、年结那一块、清单块把一次操作碰到的几条记录并成一条(Q16:批量汇率 · 冻结预测并作废旧的一张)、缴纳的冲销
+//   说成 "WHT remittance reversed"(Q30)、报销人自己读到的审批留痕是 Restricted(M8 · Q4)、分录页上按来源说出批次分录是什么
+//   (重估 · 折旧连带每一张资产的那一行)。每一句都先由造句器造出来、逐句人工核过,再钉在这里 —— 交回报告
+//   docs/handbacks/AUDIT-TRAIL-1c-3.md §8 逐条列出。注入 wording-drift-1c3 → 这一臂必须红。
+problems.gold10 = []
+if (FAULT === 'wording-drift-1c3') dict.text = { ...dict.text, 'plock.monthClosed': 'Period closed up to {date}' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const ref = (col, v, label, href) => ({ [col]: { [v]: href ? { label, href } : { label } } })
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows) => C.push({ label, opts, rows })
+    const fs = { id: true }
+    // ── 锁期(finance_lock):M6 已经只留下 locked_before;M7 把 period_closes 整张带进来 ──
+    add('lock · moved on the settings page (key event)', { subject: 'finance_lock', recordId: 'true' }, [
+        { table: 'finance_settings', op: 'UPDATE', key: fs, cols: ['locked_before'], old: { locked_before: '2026-08-01' }, new: { locked_before: '2026-09-01' } }])
+    add('lock · set where there was none', { subject: 'finance_lock', recordId: 'true' }, [
+        { table: 'finance_settings', op: 'UPDATE', key: fs, cols: ['locked_before'], old: { locked_before: null }, new: { locked_before: '2026-08-01' } }])
+    add('lock · removed', { subject: 'finance_lock', recordId: 'true' }, [
+        { table: 'finance_settings', op: 'UPDATE', key: fs, cols: ['locked_before'], old: { locked_before: '2026-08-01' }, new: { locked_before: null } }])
+    const pc = id('pc')
+    add('lock · month closed (the close row and the lock move are one operation)', { subject: 'finance_lock', recordId: 'true' }, [
+        { table: 'period_closes', op: 'INSERT', key: { id: pc }, new: { period_end: '2026-08-31', entries_count: 82, total_debits: 125000, total_credits: 125000, notes: 'August books checked' } },
+        { table: 'finance_settings', op: 'UPDATE', key: fs, cols: ['locked_before'], old: { locked_before: '2026-08-01' }, new: { locked_before: '2026-09-01' } }])
+    add('lock · month reopened (from the first day of that month)', { subject: 'finance_lock', recordId: 'true' }, [
+        { table: 'period_closes', op: 'UPDATE', key: { id: pc }, cols: ['reopened_at', 'reopened_by', 'reopen_reason'], old: { reopened_at: null, reopened_by: null, reopen_reason: null },
+          new: { reopened_at: '2026-09-03T02:00:00Z', reopen_reason: 'Late supplier invoice' }, ctx: { period_end: '2026-08-31' } },
+        { table: 'finance_settings', op: 'UPDATE', key: fs, cols: ['locked_before'], old: { locked_before: '2026-09-01' }, new: { locked_before: '2026-08-01' } }])
+    add('lock · a month closed before the log (from the close row alone)', { subject: 'finance_lock', recordId: 'true' }, [
+        { table: 'period_closes', op: 'INSERT', prelog: true, key: { id: id('pc0') }, new: { period_end: '2026-07-31', entries_count: 40, total_debits: 9000, total_credits: 9000, notes: null } }])
+    // ── GST(finance_gst):M6 只留下注册开关与注册号 ──
+    add('GST · registration switched on (key event)', { subject: 'finance_gst', recordId: 'true' }, [
+        { table: 'finance_settings', op: 'UPDATE', key: fs, cols: ['gst_registered', 'gst_registration_no'], old: { gst_registered: false, gst_registration_no: null },
+          new: { gst_registered: true, gst_registration_no: 'M90312345A' } }])
+    add('GST · registration number corrected (field edit)', { subject: 'finance_gst', recordId: 'true' }, [
+        { table: 'finance_settings', op: 'UPDATE', key: fs, cols: ['gst_registration_no'], old: { gst_registration_no: 'M90312345A' }, new: { gst_registration_no: 'M90312345B' } }])
+    add('GST · registration switched off', { subject: 'finance_gst', recordId: 'true' }, [
+        { table: 'finance_settings', op: 'UPDATE', key: fs, cols: ['gst_registered'], old: { gst_registered: true }, new: { gst_registered: false } }])
+    // ── 公司资料 ──
+    add('company profile · address changed (field edit)', { subject: 'company_profile', recordId: 'true' }, [
+        { table: 'company_profile', op: 'UPDATE', key: fs, cols: ['address_lines', 'postal_code'], old: { address_lines: '1 Tuas Ave', postal_code: '639001' }, new: { address_lines: '8 Tuas South Link', postal_code: '637645' } }])
+    add('company profile · bank account changed, read without data.view_banking (Restricted)', { subject: 'company_profile', recordId: 'true' }, [
+        { table: 'company_profile', op: 'UPDATE', key: fs, cols: ['bank_account_no'], old: { bank_account_no: RESTRICTED }, new: { bank_account_no: RESTRICTED } }])
+    // ── 年结 ──
+    const yc = id('yc'), cje = id('cje'), rje = id('rje')
+    add('year close · closed (key event; the closing journal is a line)', { subject: 'year_close', recordId: yc }, [
+        { table: 'year_closes', op: 'INSERT', key: { id: yc }, new: { year_end: '2026-12-31', closing_journal_id: cje, net_result: 48250.5, notes: 'FY2026' },
+          refs: ref('closing_journal_id', cje, 'JE-2026-0200', `/finance/journal/${cje}`) },
+        { table: 'journal_entries', op: 'INSERT', key: { id: cje }, new: { code: 'JE-2026-0200', source_type: 'year_close', status: 'posted' } }])
+    add('year close · reopened (the reversal journal is a line)', { subject: 'year_close', recordId: yc }, [
+        { table: 'year_closes', op: 'UPDATE', key: { id: yc }, cols: ['reopened_at', 'reopened_by', 'reopen_reason', 'reversal_journal_id'],
+          old: { reopened_at: null, reversal_journal_id: null }, new: { reopened_at: '2027-01-10T02:00:00Z', reopen_reason: 'Audit adjustment', reversal_journal_id: rje },
+          ctx: { year_end: '2026-12-31' }, refs: ref('reversal_journal_id', rje, 'JE-2027-0004', `/finance/journal/${rje}`) },
+        { table: 'journal_entries', op: 'INSERT', key: { id: rje }, new: { code: 'JE-2027-0004', source_type: 'year_close', status: 'posted' } }])
+    // ── 人工分录申请(Q17)──
+    const jr = id('jr'), jje = id('jje')
+    add('journal request · new manual journal sent for approval (key event)', { subject: 'journal_request', recordId: jr }, [
+        { table: 'journal_requests', op: 'INSERT', key: { id: jr }, new: { kind: 'entry', status: 'submitted', label: 'manual journal #3', entry_date: '2026-10-02', amount_base: 1200, memo: 'Accrue October rent', credits_bank: false } }])
+    add('journal request · approved and posted (the approval folds in; the posted journal is a block)', { subject: 'journal_request', recordId: jr }, [
+        { table: 'journal_requests', op: 'UPDATE', key: { id: jr }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes', 'result_journal_entry_id'],
+          old: { status: 'submitted' }, new: { status: 'approved', decision_notes: 'OK', result_journal_entry_id: jje }, ctx: { kind: 'entry', label: 'manual journal #3' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'journal_request', subject_id: jr, decision: 'approved', level: 2 } },
+        { table: 'journal_entries', op: 'INSERT', key: { id: jje }, new: { code: 'JE-2026-0150', source_type: 'manual', status: 'posted' } }])
+    add('journal request · withdrawn', { subject: 'journal_request', recordId: jr }, [
+        { table: 'journal_requests', op: 'UPDATE', key: { id: jr }, cols: ['status', 'withdrawn_at', 'withdrawn_by', 'withdraw_reason'], old: { status: 'submitted' },
+          new: { status: 'withdrawn', withdraw_reason: 'Wrong month' }, ctx: { kind: 'entry', label: 'manual journal #3' } }])
+    // ── 报销单(Q20)与报销人自己(M8)──
+    const cl = id('cl'), cexp = id('cexp'), emp = id('emp')
+    add('expense claim · submitted (key event)', { subject: 'expense_claim', recordId: cl }, [
+        { table: 'expense_claims', op: 'INSERT', key: { id: cl }, new: { code: 'CLM-2026-0005', employee_id: emp, spend_date: '2026-10-01', amount_ccy: 86.4, currency: 'SGD', description: 'Taxi to the port', status: 'submitted' },
+          refs: ref('employee_id', emp, 'Chooer') }])
+    add('expense claim · approved, its expense recorded in the same operation', { subject: 'expense_claim', recordId: cl }, [
+        { table: 'expense_claims', op: 'UPDATE', key: { id: cl }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes', 'expense_id', 'account_code', 'tax_code', 'posting_date'],
+          old: { status: 'submitted' }, new: { status: 'approved', decision_notes: 'Receipt attached', expense_id: cexp }, ctx: { code: 'CLM-2026-0005' } },
+        { table: 'approval_log', op: 'INSERT', new: { subject_type: 'expense_claim', subject_id: cl, decision: 'approved', level: 1 } },
+        { table: 'expenses', op: 'INSERT', key: { id: cexp }, new: { code: 'EXP-2026-0030', amount_ccy: 86.4, currency: 'SGD' } }])
+    add('expense claim · the claimant on /me: the decision row is Restricted (M8 · Q4)', { subject: 'my_expense_claim', recordId: cl }, [
+        { table: 'expense_claims', op: 'UPDATE', key: { id: cl }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes', 'expense_id'],
+          old: { status: 'submitted' }, new: { status: 'approved', decision_notes: 'Receipt attached', expense_id: cexp }, ctx: { code: 'CLM-2026-0005' } },
+        { table: null, op: null, hidden: true, actor: null },
+        { table: null, op: null, hidden: true, actor: null }])
+    add('expense claim · description corrected (field edit)', { subject: 'expense_claim', recordId: cl }, [
+        { table: 'expense_claims', op: 'UPDATE', key: { id: cl }, cols: ['description'], old: { description: 'Taxi' }, new: { description: 'Taxi to the port' }, ctx: { code: 'CLM-2026-0005' } }])
+    // ── 行内转账 ──
+    const bt = id('bt'), btj = id('btj'), btr = id('btr')
+    add('bank transfer · made (key event)', { subject: 'bank_transfer', recordId: bt }, [
+        { table: 'bank_transfers', op: 'INSERT', key: { id: bt }, new: { transfer_date: '2026-10-02', from_account: '1000', to_account: '1010', amount_out: 1350, amount_in: 1000, bank_reference: 'DBS 7781', journal_entry_id: btj } },
+        { table: 'journal_entries', op: 'INSERT', key: { id: btj }, new: { code: 'JE-2026-0151', source_type: 'transfer', status: 'posted' } }])
+    add('bank transfer · reversed', { subject: 'bank_transfer', recordId: bt }, [
+        { table: 'bank_transfers', op: 'UPDATE', key: { id: bt }, cols: ['reversed_at', 'reversed_by', 'reversal_entry_id'], old: { reversed_at: null }, new: { reversed_at: '2026-10-03T02:00:00Z', reversal_entry_id: btr },
+          refs: ref('reversal_entry_id', btr, 'JE-2026-0152', `/finance/journal/${btr}`) }])
+    add('bank transfer · bank reference corrected (field edit)', { subject: 'bank_transfer', recordId: bt }, [
+        { table: 'bank_transfers', op: 'UPDATE', key: { id: bt }, cols: ['bank_reference'], old: { bank_reference: 'DBS 7781' }, new: { bank_reference: 'DBS 7787' } }])
+    // ── 代扣税缴纳(Q30)──
+    const wr = id('wr'), wj = id('wj'), wrj = id('wrj'), wpr = id('wpr')
+    add('WHT remittance · remitted (key event)', { subject: 'wht_remittance', recordId: wr }, [
+        { table: 'wht_remittances', op: 'INSERT', key: { id: wr }, new: { code: 'WHT-2026-0002', period_month: '2026-09-01', amount_base: 340, remitted_on: '2026-10-02', filed_reference: 'IRAS 55120', journal_entry_id: wj } },
+        { table: 'journal_entries', op: 'INSERT', key: { id: wj }, new: { code: 'JE-2026-0160', source_type: 'wht_remittance', status: 'posted' } }])
+    add('WHT remittance · reversed through its request (Q30: one sentence, the reversal journal a line)', { subject: 'wht_remittance', recordId: wr }, [
+        { table: 'payment_requests', op: 'UPDATE', key: { id: wpr }, cols: ['status', 'paid_at', 'paid_by', 'result_journal_entry_id'], old: { status: 'approved' },
+          new: { status: 'paid', result_journal_entry_id: wrj }, ctx: { kind: 'wht_remittance_reversal', code: 'PREQ-2026-0009' }, refs: ref('result_journal_entry_id', wrj, 'JE-2026-0161', `/finance/journal/${wrj}`) },
+        { table: 'journal_entries', op: 'UPDATE', key: { id: wj }, cols: ['status', 'reversed_by'], old: { status: 'posted', reversed_by: null }, new: { status: 'reversed', reversed_by: wrj },
+          ctx: { code: 'JE-2026-0160', reversed_by: wrj }, refs: ref('reversed_by', wrj, 'JE-2026-0161', `/finance/journal/${wrj}`) },
+        { table: 'journal_entries', op: 'INSERT', key: { id: wrj }, new: { code: 'JE-2026-0161', memo: 'REVERSAL: JE-2026-0160 — Filed against the wrong month', status: 'posted' } }])
+    add('WHT remittance · reversed with no request (before PAY-REQ-1)', { subject: 'wht_remittance', recordId: wr }, [
+        { table: 'journal_entries', op: 'UPDATE', key: { id: wj }, cols: ['status', 'reversed_by'], old: { status: 'posted', reversed_by: null }, new: { status: 'reversed', reversed_by: wrj },
+          ctx: { code: 'JE-2026-0160', reversed_by: wrj }, refs: ref('reversed_by', wrj, 'JE-2026-0161', `/finance/journal/${wrj}`) },
+        { table: 'journal_entries', op: 'INSERT', key: { id: wrj }, new: { code: 'JE-2026-0161', memo: 'REVERSAL: JE-2026-0160 — Filed against the wrong month', status: 'posted' } }])
+    // ── 现金预测(Q16:冻结一张新的、作废旧的一张是一次操作)与常设行 ──
+    const f1 = id('f1'), f2 = id('f2'), fl = id('fl')
+    add('cash forecast · frozen, replacing the earlier one (Q16: one operation, two records)', { subject: 'cash_forecast', recordId: f2 }, [
+        { table: 'cash_forecasts', op: 'INSERT', key: { id: f2 }, new: { code: 'FCST-2026-0002', week_start: '2026-10-05', horizon_weeks: 13, base_currency: 'SGD' } },
+        { table: 'cash_forecasts', op: 'UPDATE', key: { id: f1 }, cols: ['superseded_at', 'superseded_by', 'superseded_reason'], old: { superseded_at: null, superseded_by: null },
+          new: { superseded_at: '2026-10-05T02:00:00Z', superseded_by: f2, superseded_reason: 'Customer paid early' }, ctx: { code: 'FCST-2026-0001' }, refs: ref('superseded_by', f2, 'FCST-2026-0002') }])
+    add('recurring line · added (key event)', { subject: 'cash_forecast_line', recordId: fl }, [
+        { table: 'cash_forecast_lines', op: 'INSERT', key: { id: fl }, new: { label: 'Office rent', direction: 'out', amount_ccy: 4200, currency: 'SGD', cadence: 'monthly', start_date: '2026-10-01', end_date: null, is_active: true } }])
+    add('recurring line · amount changed (field edit)', { subject: 'cash_forecast_line', recordId: fl }, [
+        { table: 'cash_forecast_lines', op: 'UPDATE', key: { id: fl }, cols: ['amount_ccy', 'updated_at', 'updated_by'], old: { amount_ccy: 4200 }, new: { amount_ccy: 4400 }, ctx: { label: 'Office rent', currency: 'SGD' } }])
+    add('recurring line · switched off', { subject: 'cash_forecast_line', recordId: fl }, [
+        { table: 'cash_forecast_lines', op: 'UPDATE', key: { id: fl }, cols: ['is_active'], old: { is_active: true }, new: { is_active: false }, ctx: { label: 'Office rent' } }])
+    // ── 导入映射 ──
+    const bp = id('bp')
+    add('import mapping · saved (key event)', { subject: 'bank_import_profile', recordId: bp }, [
+        { table: 'bank_import_profiles', op: 'INSERT', key: { id: bp }, new: { name: 'DBS business CSV', bank_account_code: '1000', mapping: { date: 0, amount: 3 } } }])
+    add('import mapping · renamed (field edit)', { subject: 'bank_import_profile', recordId: bp }, [
+        { table: 'bank_import_profiles', op: 'UPDATE', key: { id: bp }, cols: ['name', 'updated_at', 'updated_by'], old: { name: 'DBS CSV' }, new: { name: 'DBS business CSV' }, ctx: { name: 'DBS business CSV' } }])
+    add('import mapping · deleted', { subject: 'bank_import_profile', recordId: bp }, [
+        { table: 'bank_import_profiles', op: 'UPDATE', key: { id: bp }, cols: ['deleted_at', 'updated_at', 'updated_by'], old: { deleted_at: null }, new: { deleted_at: '2026-10-04T02:00:00Z' }, ctx: { name: 'DBS business CSV' } }])
+    // ── 批量汇率(Q16:fx_rate 清单块把一次批量录入的几条并成一条)──
+    add('FX · a bulk save of three rates (Q16: one entry)', { subject: 'fx_rate', recordId: id('fx1') }, [
+        { table: 'fx_rates', op: 'INSERT', key: { id: id('fx1') }, new: { currency: 'USD', rate_type: 'tt_sell', rate_sgd_per_unit: 1.3521, rate_date: '2026-10-02', source: 'DBS' } },
+        { table: 'fx_rates', op: 'INSERT', key: { id: id('fx2') }, new: { currency: 'USD', rate_type: 'tt_buy', rate_sgd_per_unit: 1.3388, rate_date: '2026-10-02', source: 'DBS' } },
+        { table: 'fx_rates', op: 'INSERT', key: { id: id('fx3') }, new: { currency: 'USD', rate_type: 'mid', rate_sgd_per_unit: 1.3455, rate_date: '2026-10-02', source: 'DBS' } }])
+    // ── 分录页与它的清单块:按来源说出批次分录是什么 ──
+    const dj = id('dj'), a1 = id('a1'), a2 = id('a2'), rv = id('rv')
+    add('journal · a depreciation run on its own page (each asset a line)', { subject: 'journal_entry', recordId: dj }, [
+        { table: 'journal_entries', op: 'INSERT', key: { id: dj }, new: { code: 'JE-2026-0170', entry_date: '2026-10-31', source_type: 'depreciation', status: 'posted' } },
+        { table: 'fixed_asset_depreciation', op: 'INSERT', new: { asset_id: a1, period_end: '2026-10-31', amount_base: 200, journal_entry_id: dj }, refs: ref('asset_id', a1, 'FA-2026-0001') },
+        { table: 'fixed_asset_depreciation', op: 'INSERT', new: { asset_id: a2, period_end: '2026-10-31', amount_base: 75.5, journal_entry_id: dj }, refs: ref('asset_id', a2, 'FA-2026-0002') }])
+    add('journal · an FX revaluation run on its own page', { subject: 'journal_entry', recordId: rv }, [
+        { table: 'journal_entries', op: 'INSERT', key: { id: rv }, new: { code: 'JE-2026-0171', entry_date: '2026-10-31', source_type: 'revaluation', memo: 'Month-end revaluation', status: 'posted' } }])
+    // ── 一次操作里的几件事(线上的回滚证明一笔事务做完全程才看见的三处;Tim 的规矩:没有改动就不说,删除不吞掉同一笔的改动)──
+    add('lock · moved forward and back in one operation (nets to nothing: no entry, never "Restricted")', { subject: 'finance_lock', recordId: 'true' }, [
+        { table: 'finance_settings', op: 'UPDATE', key: fs, cols: ['locked_before'], old: { locked_before: '2026-08-01' }, new: { locked_before: '2026-09-01' } },
+        { table: 'finance_settings', op: 'UPDATE', key: fs, cols: ['locked_before'], old: { locked_before: '2026-09-01' }, new: { locked_before: '2026-08-01' } }])
+    add('WHT remittance · remitted and reversed in one operation (the creation keeps its own sentence)', { subject: 'wht_remittance', recordId: wr }, [
+        { table: 'wht_remittances', op: 'INSERT', key: { id: wr }, new: { code: 'WHT-2026-0002', period_month: '2026-09-01', amount_base: 340, remitted_on: '2026-10-02', journal_entry_id: wj } },
+        { table: 'journal_entries', op: 'INSERT', key: { id: wj }, new: { code: 'JE-2026-0160', source_type: 'wht_remittance', status: 'posted' } },
+        { table: 'journal_entries', op: 'UPDATE', key: { id: wj }, cols: ['status', 'reversed_by'], old: { status: 'posted', reversed_by: null }, new: { status: 'reversed', reversed_by: wrj },
+          ctx: { code: 'JE-2026-0160', reversed_by: wrj }, refs: ref('reversed_by', wrj, 'JE-2026-0161', `/finance/journal/${wrj}`) },
+        { table: 'journal_entries', op: 'INSERT', key: { id: wrj }, new: { code: 'JE-2026-0161', memo: 'REVERSAL: JE-2026-0160 — Filed against the wrong month', status: 'posted' } }])
+    add('import mapping · renamed and deleted in one operation (the deletion keeps the rename)', { subject: 'bank_import_profile', recordId: bp }, [
+        { table: 'bank_import_profiles', op: 'UPDATE', key: { id: bp }, cols: ['name'], old: { name: 'DBS CSV' }, new: { name: 'DBS business CSV' }, ctx: { name: 'DBS business CSV' } },
+        { table: 'bank_import_profiles', op: 'UPDATE', key: { id: bp }, cols: ['deleted_at'], old: { deleted_at: null }, new: { deleted_at: '2026-10-04T02:00:00Z' }, ctx: { name: 'DBS business CSV' } }])
+    const WANT = {
+        "lock · moved forward and back in one operation (nets to nothing: no entry, never \"Restricted\")": { none: true },
+        "WHT remittance · remitted and reversed in one operation (the creation keeps its own sentence)": {
+        "title": "WHT remittance reversed",
+        "part": null,
+        "lines": [
+                "Reversed by: JE-2026-0161",
+                "[WHT remitted · WHT-2026-0002]",
+                "Withholding month: 01/09/2026",
+                "Amount: 340.00 SGD",
+                "Paid on: 02/10/2026",
+                "[Journal posted · JE-2026-0160]"
+        ],
+        "reason": "Filed against the wrong month"
+        },
+        "import mapping · renamed and deleted in one operation (the deletion keeps the rename)": {
+        "title": "Import mapping deleted",
+        "part": "DBS business CSV",
+        "lines": [
+                "Mapping name: DBS CSV → DBS business CSV"
+        ],
+        "reason": null
+        },
+        "lock · moved on the settings page (key event)": {
+                "title": "Period lock moved",
+                "part": null,
+                "lines": [
+                        "Period locked before: 01/08/2026 → 01/09/2026"
+                ],
+                "reason": null
+        },
+        "lock · set where there was none": {
+                "title": "Period lock set",
+                "part": null,
+                "lines": [
+                        "Period locked before: (empty) → 01/08/2026"
+                ],
+                "reason": null
+        },
+        "lock · removed": {
+                "title": "Period lock removed",
+                "part": null,
+                "lines": [
+                        "Period locked before: 01/08/2026 → (empty)"
+                ],
+                "reason": null
+        },
+        "lock · month closed (the close row and the lock move are one operation)": {
+                "title": "Month closed up to 31/08/2026",
+                "part": null,
+                "lines": [
+                        "Period locked before: 01/08/2026 → 01/09/2026",
+                        "Entries: 82",
+                        "Total debits: 125,000.00 SGD",
+                        "Total credits: 125,000.00 SGD"
+                ],
+                "reason": "August books checked"
+        },
+        "lock · month reopened (from the first day of that month)": {
+                "title": "Month reopened from 01/08/2026",
+                "part": null,
+                "lines": [
+                        "Period locked before: 01/09/2026 → 01/08/2026"
+                ],
+                "reason": "Late supplier invoice"
+        },
+        "lock · a month closed before the log (from the close row alone)": {
+                "title": "Month closed up to 31/07/2026",
+                "part": null,
+                "lines": [
+                        "Entries: 40",
+                        "Total debits: 9,000.00 SGD",
+                        "Total credits: 9,000.00 SGD"
+                ],
+                "reason": null
+        },
+        "GST · registration switched on (key event)": {
+                "title": "GST registration switched on",
+                "part": null,
+                "lines": [
+                        "Registered for GST: No → Yes",
+                        "GST registration number: (empty) → M90312345A"
+                ],
+                "reason": null
+        },
+        "GST · registration number corrected (field edit)": {
+                "title": "GST settings changed",
+                "part": null,
+                "lines": [
+                        "GST registration number: M90312345A → M90312345B"
+                ],
+                "reason": null
+        },
+        "GST · registration switched off": {
+                "title": "GST registration switched off",
+                "part": null,
+                "lines": [
+                        "Registered for GST: Yes → No"
+                ],
+                "reason": null
+        },
+        "company profile · address changed (field edit)": {
+                "title": "Company profile changed",
+                "part": null,
+                "lines": [
+                        "Address: 1 Tuas Ave → 8 Tuas South Link"
+                ],
+                "reason": null
+        },
+        "company profile · bank account changed, read without data.view_banking (Restricted)": {
+                "title": "Company profile changed",
+                "part": null,
+                "lines": [
+                        "Bank account number: Restricted → Restricted"
+                ],
+                "reason": null
+        },
+        "year close · closed (key event; the closing journal is a line)": {
+                "title": "Year closed up to 31/12/2026",
+                "part": null,
+                "lines": [
+                        "Net result: 48,250.50 SGD",
+                        "Closing journal: JE-2026-0200"
+                ],
+                "reason": "FY2026"
+        },
+        "year close · reopened (the reversal journal is a line)": {
+                "title": "Year reopened · year ending 31/12/2026",
+                "part": null,
+                "lines": [
+                        "Reversal journal: JE-2027-0004"
+                ],
+                "reason": "Audit adjustment"
+        },
+        "journal request · new manual journal sent for approval (key event)": {
+                "title": "Manual journal sent for approval",
+                "part": "manual journal #3",
+                "lines": [
+                        "Entry date: 02/10/2026",
+                        "Amount (sum of debits): 1,200.00 SGD",
+                        "Memo: Accrue October rent"
+                ],
+                "reason": null
+        },
+        "journal request · approved and posted (the approval folds in; the posted journal is a block)": {
+                "title": "Manual journal approved",
+                "part": "manual journal #3",
+                "lines": [
+                        "[Journal posted · JE-2026-0150]"
+                ],
+                "reason": "OK"
+        },
+        "journal request · withdrawn": {
+                "title": "Manual journal request withdrawn",
+                "part": "manual journal #3",
+                "lines": [],
+                "reason": "Wrong month"
+        },
+        "expense claim · submitted (key event)": {
+                "title": "Expense claim submitted · CLM-2026-0005",
+                "part": null,
+                "lines": [
+                        "Employee: Chooer",
+                        "Spend date: 01/10/2026",
+                        "Amount: 86.40 SGD"
+                ],
+                "reason": "Taxi to the port"
+        },
+        "expense claim · approved, its expense recorded in the same operation": {
+                "title": "Expense claim approved · CLM-2026-0005",
+                "part": null,
+                "lines": [
+                        "[Expense recorded · EXP-2026-0030]",
+                        "Amount: 86.40 SGD"
+                ],
+                "reason": "Receipt attached"
+        },
+        "expense claim · the claimant on /me: the decision row is Restricted (M8 · Q4)": {
+                "title": "Expense claim approved · CLM-2026-0005",
+                "part": null,
+                "lines": [
+                        "(Part of this change is restricted.)"
+                ],
+                "reason": "Receipt attached"
+        },
+        "expense claim · description corrected (field edit)": {
+                "title": "Expense claim changed · CLM-2026-0005",
+                "part": null,
+                "lines": [
+                        "Description: Taxi → Taxi to the port"
+                ],
+                "reason": null
+        },
+        "bank transfer · made (key event)": {
+                "title": "Bank transfer made",
+                "part": null,
+                "lines": [
+                        "Transfer date: 02/10/2026",
+                        "From account: Cash at Bank – SGD",
+                        "To account: Cash at Bank – USD",
+                        "Amount out (source currency): 1,350.00 SGD",
+                        "Amount in (destination currency): 1,000.00 USD",
+                        "Bank reference: DBS 7781",
+                        "[Journal posted · JE-2026-0151]"
+                ],
+                "reason": null
+        },
+        "bank transfer · reversed": {
+                "title": "Bank transfer reversed",
+                "part": null,
+                "lines": [
+                        "Reversal journal: JE-2026-0152"
+                ],
+                "reason": null
+        },
+        "bank transfer · bank reference corrected (field edit)": {
+                "title": "Bank transfer changed",
+                "part": null,
+                "lines": [
+                        "Bank reference: DBS 7781 → DBS 7787"
+                ],
+                "reason": null
+        },
+        "WHT remittance · remitted (key event)": {
+                "title": "WHT remitted · WHT-2026-0002",
+                "part": null,
+                "lines": [
+                        "Withholding month: 01/09/2026",
+                        "Amount: 340.00 SGD",
+                        "Paid on: 02/10/2026",
+                        "IRAS filing reference: IRAS 55120",
+                        "[Journal posted · JE-2026-0160]"
+                ],
+                "reason": null
+        },
+        "WHT remittance · reversed through its request (Q30: one sentence, the reversal journal a line)": {
+                "title": "WHT remittance reversed · PREQ-2026-0009",
+                "part": null,
+                "lines": [
+                        "Reversed by: JE-2026-0161"
+                ],
+                "reason": "Filed against the wrong month"
+        },
+        "WHT remittance · reversed with no request (before PAY-REQ-1)": {
+                "title": "WHT remittance reversed",
+                "part": null,
+                "lines": [
+                        "Reversed by: JE-2026-0161"
+                ],
+                "reason": "Filed against the wrong month"
+        },
+        "cash forecast · frozen, replacing the earlier one (Q16: one operation, two records)": {
+                "title": "Cash forecast frozen · FCST-2026-0002",
+                "part": null,
+                "lines": [
+                        "Week starting: 05/10/2026",
+                        "Horizon (weeks): 13",
+                        "Base currency: SGD",
+                        "[Cash forecast replaced · FCST-2026-0001]",
+                        "Replaced by: FCST-2026-0002"
+                ],
+                "reason": "Customer paid early"
+        },
+        "recurring line · added (key event)": {
+                "title": "Recurring line added",
+                "part": "Office rent",
+                "lines": [
+                        "Direction: Money out",
+                        "Amount: 4,200.00 SGD",
+                        "How often: Monthly",
+                        "First occurrence: 01/10/2026"
+                ],
+                "reason": null
+        },
+        "recurring line · amount changed (field edit)": {
+                "title": "Recurring line changed",
+                "part": "Office rent",
+                "lines": [
+                        "Amount: 4,200.00 SGD → 4,400.00 SGD"
+                ],
+                "reason": null
+        },
+        "recurring line · switched off": {
+                "title": "Recurring line switched off",
+                "part": "Office rent",
+                "lines": [],
+                "reason": null
+        },
+        "import mapping · saved (key event)": {
+                "title": "Import mapping saved",
+                "part": "DBS business CSV",
+                "lines": [
+                        "Bank account: Cash at Bank – SGD",
+                        "Column mapping: Details recorded"
+                ],
+                "reason": null
+        },
+        "import mapping · renamed (field edit)": {
+                "title": "Import mapping changed",
+                "part": "DBS business CSV",
+                "lines": [
+                        "Mapping name: DBS CSV → DBS business CSV"
+                ],
+                "reason": null
+        },
+        "import mapping · deleted": {
+                "title": "Import mapping deleted",
+                "part": "DBS business CSV",
+                "lines": [],
+                "reason": null
+        },
+        "FX · a bulk save of three rates (Q16: one entry)": {
+                "title": "Exchange rates recorded · 3 rates",
+                "part": null,
+                "lines": [
+                        "USD · TT selling rate · 02/10/2026: 1.3521",
+                        "USD · TT buying rate · 02/10/2026: 1.3388",
+                        "USD · Mid rate · 02/10/2026: 1.3455"
+                ],
+                "reason": null
+        },
+        "journal · a depreciation run on its own page (each asset a line)": {
+                "title": "Depreciation posted · JE-2026-0170",
+                "part": null,
+                "lines": [
+                        "Entry date: 31/10/2026",
+                        "Source: Depreciation",
+                        "FA-2026-0001: 200.00 SGD",
+                        "FA-2026-0002: 75.50 SGD"
+                ],
+                "reason": null
+        },
+        "journal · an FX revaluation run on its own page": {
+                "title": "FX revaluation posted · JE-2026-0171",
+                "part": null,
+                "lines": [
+                        "Entry date: 31/10/2026",
+                        "Source: FX revaluation",
+                        "Memo: Month-end revaluation"
+                ],
+                "reason": null
+        }
+    }
+    const got10 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 38) problems.gold10.push(`⑩ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD10', order: 1, prelog: false, at: '2026-10-03T02:00:00+00:00', key: { id: uuid() },
+            actor: { state: 'person', name: 'Sandra' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        // ★ 不带单据币种:这几个根(设置那一行、公司资料、年结、预测……)没有币种列,AuditTrail 取不到;ListTrail 根本不给 ——
+        //   第一版在这里塞了 'SGD',于是"月结合计没有币种"那一处缺陷金句看不见,是线上的回滚证明读出来的
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold10.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const w = WANT[c.label]
+        if (w && w.none) { if (es.length) problems.gold10.push(`${c.label}:净值什么都没改,应当一条都不说,造出了「${es.map((x) => x.title).join(' | ')}」`); got10[c.label] = { got: { none: true } }; continue }
+        if (es.length !== 1) { problems.gold10.push(`${c.label}:一次操作应当是一条,造出了 ${es.length} 条`); continue }
+        const e = es[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null }
+        got10[c.label] = { e, got }
+        if (!w) { problems.gold10.push(`${c.label}:金句表里没有这一句`); continue }
+        if (got.title !== w.title) problems.gold10.push(`${c.label}:标题「${got.title}」≠「${w.title}」`)
+        if (got.part !== w.part) problems.gold10.push(`${c.label}:标题后那一段「${got.part}」≠「${w.part}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold10.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+        if (got.reason !== w.reason) problems.gold10.push(`${c.label}:理由「${got.reason}」≠「${w.reason}」`)
+    }
+    if (process.env.TRAIL_GOLD10_PRINT) console.log(JSON.stringify(Object.fromEntries(Object.entries(got10).map(([k, v]) => [k, v.got])), null, 8))
+    // 链接:年结那一句里的结转分录、缴纳冲销那一句里的冲销分录是点得过去的单据
+    const hrefOf = (label, text) => got10[label]?.e?.lines?.find((l) => l.t === 'value' && l.value.text === text)?.value?.href
+    if (!hrefOf('year close · closed (key event; the closing journal is a line)', 'JE-2026-0200')?.startsWith('/finance/journal/')) problems.gold10.push('year close:结转分录那一行不是链接')
+    if (!hrefOf('WHT remittance · reversed through its request (Q30: one sentence, the reversal journal a line)', 'JE-2026-0161')?.startsWith('/finance/journal/')) problems.gold10.push('WHT 冲销:冲销分录那一行不是链接')
+
+    // Q16:清单块真的把一次操作碰到的几条记录并成一条(mergeByOperation —— 与 ListTrail 同一支)。冻结预测:新一张 + 旧一张;
+    //   批量汇率:三条汇率各读回自己那一行,op_key 相同。两条记录各读一次、合起来必须是【一】条,Record 一栏列出碰到的几条
+    {
+        const opRow = (r) => ({ group: 'G', order: 1, prelog: false, at: '2026-10-05T02:00:00+00:00', key: { id: uuid() }, actor: { state: 'person', name: 'Sandra' },
+            cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, opKey: 'L9001', ...r })
+        const fc = C.find((c) => c.label.startsWith('cash forecast · frozen')).rows.map(opRow)
+        const m1 = R.mergeByOperation(dict, [{ row: fc[0], rec: { subject: 'cash_forecast', id: f2, label: 'FCST-2026-0002 · week of 05/10/2026' } },
+                                              { row: fc[1], rec: { subject: 'cash_forecast', id: f1, label: 'FCST-2026-0001 · week of 05/10/2026 (replaced)' } }])
+        if (m1.length !== 1) problems.gold10.push(`Q16 预测:冻结 + 作废旧的一张应当是一条,并出了 ${m1.length} 条`)
+        else if (!m1[0].recordText.includes('FCST-2026-0001') || !m1[0].recordText.includes('FCST-2026-0002')) problems.gold10.push(`Q16 预测:Record 一栏没有列出两张:${m1[0].recordText}`)
+        const fx = C.find((c) => c.label.startsWith('FX · a bulk save')).rows.map(opRow)
+        const m2 = R.mergeByOperation(dict, fx.map((row, i) => ({ row, rec: { subject: 'fx_rate', id: row.key.id, label: `rate ${i + 1}`, href: `/finance/fx/${row.key.id}/edit` } })))
+        if (m2.length !== 1) problems.gold10.push(`Q16 批量汇率:三条应当并成一条,并出了 ${m2.length} 条`)
+        else {
+            if (m2[0].title !== 'Exchange rates recorded · 3 rates') problems.gold10.push(`Q16 批量汇率:标题「${m2[0].title}」`)
+            if (m2[0].recordHref !== null) problems.gold10.push('Q16 批量汇率:一次操作碰到三条,Record 一栏不该只链到其中一条')
+        }
+        const one = R.mergeByOperation(dict, [{ row: fx[0], rec: { subject: 'fx_rate', id: fx[0].key.id, label: 'rate 1', href: '/finance/fx/x/edit' } }])
+        if (one[0]?.recordHref !== '/finance/fx/x/edit') problems.gold10.push('清单块:只碰到一条、而它有自己的页时,Record 一栏应当是一个链接')
+    }
+
+    // 机器字扫描:十二个主语各自的表,按【这一页】的说法(subject)造样本跑一遍(④ 的通用扫描不带 subject,走不到 describeLedger3)
+    const SUBS10 = ['finance_lock', 'finance_gst', 'company_profile', 'year_close', 'journal_request', 'expense_claim', 'my_expense_claim',
+        'bank_transfer', 'wht_remittance', 'cash_forecast', 'cash_forecast_line', 'bank_import_profile']
+    let fin10 = 0
+    for (const sub of SUBS10) {
+        for (const t of R.SUBJECT_TABLES[sub] ?? []) {
+            const cols = Object.entries(SAMPLE_KINDS[t] ?? {})
+            for (let variant = 0; variant < 4; variant++) {
+                const img = {}, old = {}, neu = {}
+                for (const [c, [, kind]] of cols) {
+                    img[c] = sample(t, c, kind, variant)
+                    old[c] = variant === 2 ? RESTRICTED : variant === 3 ? null : sample(t, c, kind, variant + 1)
+                    neu[c] = variant === 1 ? RESTRICTED : sample(t, c, kind, variant + 2)
+                }
+                const refs = { ...refsFor(t, img, variant), ...refsFor(t, old, variant + 1), ...refsFor(t, neu, variant + 2) }
+                for (const [op, o] of [['INSERT', { new: img, prelog: variant === 3 }], ['UPDATE', { cols: cols.map(([c]) => c), old, new: neu, ctx: img }], ['DELETE', { old: img }]]) {
+                    sweep(`${sub} · ${t} · ${op} · 样本 ${variant}`, [row(t, op, { ...o, refs })], sub)
+                    fin10++
+                }
+            }
+        }
+        // 关账 / 反结 / 挪锁 / 注册开关 / 年结与反结 / 预测被取代 / 常设行开关 / 映射删掉,按这一页说一遍
+        sweep(`${sub} · month close`, [row('period_closes', 'INSERT', { new: { period_end: '2026-08-31', entries_count: 1, total_debits: 1, total_credits: 1 } }),
+            row('finance_settings', 'UPDATE', { key: { id: true }, cols: ['locked_before'], old: { locked_before: '2026-08-01' }, new: { locked_before: '2026-09-01' } })], sub)
+        sweep(`${sub} · month reopen`, [row('period_closes', 'UPDATE', { cols: ['reopened_at', 'reopen_reason'], old: { reopened_at: null }, new: { reopened_at: '2026-09-02T00:00:00Z', reopen_reason: 'why' }, ctx: { period_end: '2026-08-31' } })], sub)
+        sweep(`${sub} · GST switch`, [row('finance_settings', 'UPDATE', { key: { id: true }, cols: ['gst_registered'], old: { gst_registered: false }, new: { gst_registered: true } })], sub)
+        sweep(`${sub} · year reopen`, [row('year_closes', 'UPDATE', { cols: ['reopened_at', 'reversal_journal_id'], old: { reopened_at: null }, new: { reopened_at: '2027-01-02T00:00:00Z', reversal_journal_id: uuid() }, ctx: { year_end: '2026-12-31' } })], sub)
+        sweep(`${sub} · forecast replaced`, [row('cash_forecasts', 'UPDATE', { cols: ['superseded_at', 'superseded_by'], old: { superseded_at: null }, new: { superseded_at: '2026-10-05T00:00:00Z', superseded_by: uuid() } })], sub)
+        sweep(`${sub} · line switched off`, [row('cash_forecast_lines', 'UPDATE', { cols: ['is_active'], old: { is_active: true }, new: { is_active: false } })], sub)
+        sweep(`${sub} · mapping deleted`, [row('bank_import_profiles', 'UPDATE', { cols: ['deleted_at'], old: { deleted_at: null }, new: { deleted_at: '2026-10-05T00:00:00Z' } })], sub)
+        sweep(`${sub} 整条看不见`, [row(R.SUBJECT_TABLES[sub][0], null, { hidden: true, table: null, actor: null })], sub)
+        fin10 += 8
+    }
+    // 应当造的句数由登记表算出来(每张表 4 个样本 × 3 种操作 · 每个主语 7 句关键事件 + 1 句整条看不见)
+    const fin10Want = SUBS10.reduce((n, sub) => n + (R.SUBJECT_TABLES[sub] ?? []).length * 12 + 8, 0)
+    if (fin10 !== fin10Want || fin10 < 300) problems.coverage.push(`期末与清单页那十二个主语的机器字扫描造了 ${fin10} 句,登记表要求 ${fin10Want} 句 —— 造样本那一段瞎了`)
+    if (FAULT === 'wording-drift-1c3' && !problems.gold10.length) problems.gold10.push('(注入 wording-drift-1c3 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + 1
 if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSwept.size} 张表,目录里有 ${expectTables} 张`)
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

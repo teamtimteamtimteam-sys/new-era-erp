@@ -34,6 +34,8 @@ import { Button } from '@/app/components/ui/button'
 import { can } from '@/lib/permissions'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import ListTrail from '@/app/components/trail/ListTrail'
 
 type CloseRow = {
     id: string
@@ -53,7 +55,7 @@ const ymdUtc = (d: Date) => d.toISOString().slice(0, 10)
 export default async function ClosePage({
     searchParams,
 }: {
-    searchParams: Promise<{ period?: string }>
+    searchParams: Promise<{ period?: string; trail?: string }>
 }) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -67,6 +69,7 @@ export default async function ClosePage({
     const canReopenGate = await can('action.finance_reopen')
 
     const sp = await searchParams
+    const show = trailCount(sp.trail)
     const supabase = await createClient()
     const t = await getTranslations()
     // 「借方/贷方/净结果」这些标签都不写币种 —— 金额自己带(CCY-1)
@@ -285,6 +288,9 @@ export default async function ClosePage({
                 canEdit={canReopenGate}
                 empty={t('finance.closeHistoryEmpty')}
             />
+            {/* AUDIT-TRAIL-1c-3(Q29):关账史之下是锁期的审计记录 —— 每一次挪锁,外加每一次月结与反结(M7);
+                设置页锁期那一块下面是同一段。关账史这张表照旧留着:它是带"反结"按钮的工作清单(Q26)。 */}
+            <AuditTrail subject="finance_lock" id="true" show={show} anchor="lock-trail" />
 
             {/* ── FIN-23:年结 ─────────────────────────────────────────────── */}
             <h2 className="mt-8 mb-3">{t('finance.yearClose.title')}</h2>
@@ -329,6 +335,11 @@ export default async function ClosePage({
                     <YearCloseHistoryTable rows={yearCloseRows} />
                 </div>
             )}
+            {/* AUDIT-TRAIL-1c-3(Q29):年结那一块 —— 每一次年结与反结,合成一块(年结不挪锁,所以不在锁期那一段里)。
+                名字只说英文(审计记录那一段里一个中文字都没有,Q7)。 */}
+            <ListTrail anchor="year-close-trail" intro="listTrail.intro.yearCloses" show={show}
+                records={yearCloses.map((c) => ({ subject: 'year_close' as const, id: c.id,
+                    label: `Year ending ${formatDate(c.year_end, 'en')}${c.reopened_at ? ' (reopened)' : ''}` }))} />
         </ListPage>
     )
 }

@@ -12,7 +12,7 @@
 // 只有那个期间已经关账、服务端按名拒(PERIOD_LOCKED)之后,才另给一个日子 ——
 // 界面【不】替人回落到今天,那正是 FIN-10 拆掉的那种默认。
 import { CONTROL_SELECT, CONTROL_INPUT } from '@/app/components/ui/control-style'
-import { useState, useTransition } from 'react'
+import { useState, useTransition, type ReactNode } from 'react'
 import { decideClaim } from './actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
@@ -36,12 +36,14 @@ const money = (n: number) =>
     Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 export default function ClaimDecisionPanel({
-    pending, decided, accounts, taxCodes, canDecide,
+    pending, decided, accounts, taxCodes, canDecide, trails = {},
 }: {
     pending: ClaimRow[]; decided: ClaimRow[]
     accounts: { code: string; name_en: string }[]
     taxCodes: { code: string; name_en: string }[]
     canDecide: boolean; baseCurrency: string
+    /** AUDIT-TRAIL-1c-3(Q20):每一张报销单的审计记录(页面在服务端造好)—— 待批的在卡片末尾,已决的在登记簿下面一张一行 */
+    trails?: Record<string, ReactNode>
 }) {
     const locale = useLocale()
     const t = useTranslations()
@@ -185,6 +187,7 @@ export default function ClaimDecisionPanel({
                             <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('expenseClaims.postingDateHint')}</p>
                             <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.taxCodeHint')}</p>
                             <p className="text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.gstBackedOutHint')}</p>
+                            {trails[c.claim_id]}
                         </div>
                     ))}
                 </div>
@@ -202,12 +205,24 @@ export default function ClaimDecisionPanel({
             {decided.length === 0 ? (
                 <p className="text-sm text-[color:var(--brand-muted-text)]">{t('expenseClaims.noneForEmployee')}</p>
             ) : (
-                <DataTable
-                    rows={decided}
-                    columns={decidedColumns}
-                    rowKey={(c) => c.claim_id}
-                    phone={{ mode: 'columns' }}
-                />
+                <>
+                    <DataTable
+                        rows={decided}
+                        columns={decidedColumns}
+                        rowKey={(c) => c.claim_id}
+                        phone={{ mode: 'columns' }}
+                    />
+                    {/* AUDIT-TRAIL-1c-3(Q20):已决的每一张一行,点开是它的审计记录 —— 登记簿的格子装不下一段记录 */}
+                    <div className="mt-4 space-y-2">
+                        {decided.map((c) => (
+                            <div key={c.claim_id} className="text-sm">
+                                <span className="text-xs text-[color:var(--brand-muted-text)]">{c.code}</span>{' '}
+                                <span>{c.employee_name}</span>
+                                {trails[c.claim_id]}
+                            </div>
+                        ))}
+                    </div>
+                </>
             )}
         </div>
     )

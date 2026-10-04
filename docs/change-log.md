@@ -227,7 +227,12 @@ notes, payments, payment requests, expenses and the payable view of an inbound b
 operation key, employee names in references; §9.9, §9.11). AUDIT-TRAIL-1c-2 (part of v1.4.33) added the rest of the documents
 and contracts — sales, freight documents, fixed assets (the finance page), bank statements, GST periods, FX rates, management packs and
 contracts — replaced the asset page's "Change history" panel, and made deleted bank statements and withdrawn FX rates open read-only
-(§9.12). AT-1c-3 and AT-1d follow (`docs/forward-queue.md`, "HISTORY family").
+(§9.12). AUDIT-TRAIL-1c-3 (part of v1.4.33) added period-end, settings and the list homes — the period-lock and GST panels on the
+shared settings row (each showing only its own columns; the lock's trail also shows month close and reopen), `/finance/close`, the company
+profile, and list-level blocks for year closes, revaluation and depreciation runs, bulk FX, cash forecasts and recurring lines, payroll
+journals, processing-cost settlement, WHT remittances, bank transfers, import mappings and deleted statements; a trail per journal request
+and per expense claim, and the claimant's own claim on `/me` (§9.13, M8 in §9.9). That completes AT-1c. AT-1d follows
+(`docs/forward-queue.md`, "HISTORY family").
 Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`), AT-1b Step 0 Q1–Q14 + M1–M6
 (`docs/surveys/AUDIT-TRAIL-1b/STEP0-HANDBACK.md`) and AT-1c Step 0 Q1–Q34 (`docs/surveys/AUDIT-TRAIL-1c/STEP0-HANDBACK.md`),
 all accepted as recommended.
@@ -278,13 +283,26 @@ all accepted as recommended.
 | `/finance/fx/[id]/edit` (1c-2, its only page) | `fx_rate` | `module.finance.view` | the rate · its history (recorded, corrected with a reason, withdrawn with a reason) — a withdrawn rate opens read-only (Q7) |
 | `/finance/packs/[id]` (1c-2) | `management_pack` | `module.finance.view` | the pack (produced; replaced by a later pack, which is a link) — no members (Q25) |
 | `/contracts/[id]` (1c-2) | `contract` | `module.suppliers.view` (the page guard; the root's own rule is side-dependent) | the contract · its seven term tables · its activation requests and the CFO's decisions (Restricted for a reader without `module.pricing.view`, Q21) · the purchase or sales orders it was linked to |
+| `/finance/settings`, under the lock form; `/finance/close`, under close history (1c-3) | `finance_lock` | `module.finance.view` (M5 · M6: `locked_before` only) | every lock move · every month close and reopen (`period_closes`, the whole table — M7), the close's notes and totals, the reopen reason |
+| `/finance/settings`, under the GST panel (1c-3) | `finance_gst` | `module.finance.view` (M5 · M6: `gst_registered`, `gst_registration_no`) | the registration switch and number only. The six columns no panel owns (`gst_rate_pct`, `system_start_date`, the three financial-year columns, `default_allocation_basis`) are on no panel's trail — only on `/settings/change-history` (Q4); the four approval-policy columns are AT-1d's (Q2) |
+| `/finance/company` (1c-3) | `company_profile` | `module.finance.view` (M5, whole row) | the company profile (the five bank columns Restricted without `data.view_banking`) |
+| `/finance/close`, year-close block (1c-3, `ListTrail`) | `year_close` | `module.finance.view` | each year close and reopen · its closing and reversal journals (lines of the sentence) |
+| `/finance/journal`, inside each request card (1c-3, Q17) | `journal_request` | `module.finance.view` | the request · its approval · the journal it posted. The request and its approval now home on the request on `/settings/change-history` |
+| `/finance/claims`, one per claim (1c-3, Q20) | `expense_claim` | `module.finance.view` | the claim · its approval · its receipts · the expense it recorded |
+| `/me`, one per own claim (1c-3, Q20) | `my_expense_claim` | **none** (M8: the claim's own read rule — finance, or the claim is yours) | the same rows; the approval and the expense are Restricted to a claimant without finance (Q4) |
+| `/finance/bank` (1c-3, `ListTrail`) | `bank_transfer` | `module.finance.view` | each transfer · its journal and reversal journal · the requests that made and reversed it, and their approvals |
+| `/finance/wht` (1c-3, `ListTrail`) | `wht_remittance` | `module.finance.view` | each remittance · its journal · its reversal ("WHT remittance reversed", Q30) · the requests that made and reversed it, and their approvals |
+| `/finance/cash-forecast` (1c-3, `ListTrail`) | `cash_forecast` · `cash_forecast_line` | `module.finance.view` | each frozen forecast (frozen; replaced by a later one — one operation with the new freeze, Q16) · each recurring line |
+| `/finance/bank/import` (1c-3, `ListTrail`) | `bank_import_profile` | `module.finance.view` | each import mapping, deleted ones included |
+| `/finance/revaluation`, `/finance/assets`, `/finance/payroll-payments`, `/finance/processing-costs`, `/finance/fx`, `/finance/bank/statements` (1c-3, `ListTrail`) | `journal_entry` · `expense` · `fx_rate` · `bank_statement` | `module.finance.view` (the statements block: `data.view_deleted` too, as the statement's page) | revaluation, depreciation (each asset a line) and payroll journals; processing-cost remittance journals and relief expenses (Q19); the rates on the page and every withdrawn rate (a bulk save is one entry, Q16); deleted statements — each record links to its own page |
 
 ### 9.1 The reader: `record_trail(subject, id, entries)`
 
 - **The page names a subject, never a table.** `trail_subjects()` maps each subject to its root table and the page's own
   view codes (**any one of them admits**, M1 — the same shape as a page guard that accepts either of two codes);
   an unknown subject raises **`TRAIL_SUBJECT_UNKNOWN`**.
-- **Authorisation, three layers.** (1) The page's view codes (`has_any_permission`). (2) The root row's own read rule — the
+- **Authorisation, three layers.** (1) The page's view codes (`has_any_permission`; since AUDIT-TRAIL-1c-3 a subject may declare **no**
+  code — M8, §9.9 — and then only layer (2) applies). (2) The root row's own read rule — the
   table's permissive SELECT/ALL policies re-evaluated on that row (`trail_row_visible`), or on its last image if it was
   hard-deleted. A subject whose `root_rule` is `page` (M3; today only `equipment`, whose root `fixed_assets` is
   finance-only while the page is for processing) skips this layer: the page's code is the gate, and the root row's own
@@ -395,6 +413,9 @@ single-field edits were not."
    `<ListTrail records={[{ subject, id, label }…]} intro="listTrail.intro.…" show={…} />`. It reads `record_trail` once per
    record (deleted records included — "removed" is part of the record), merges the entries newest first with a Record column,
    and drops an entry shown identically by two records (a lane's creation also belongs to both its ports).
+   A page that carries two trails (1c-3: `/finance/settings`, `/finance/close`) gives each its own `anchor`; a trail inside a card or a row
+   (1c-3: journal requests, expense claims) is `compact` — collapsed, no heading; a list record with a page of its own passes `href` to
+   `ListTrail` and its Record column links.
    A panel that owns only some columns of a shared row (1b-3's threshold panels) sets `root_columns` (M6): the trail then
    shows only those columns and drops the changes that touch none of them. A single-row settings table keyed by `id
    boolean` works as a root (M5): the reader rebuilds the root key from the row's own typed value.
@@ -508,7 +529,8 @@ samples must all be caught, a known-good sentence must pass).
 | M4 | a member may be reached by an **upward** hop, and may be a **stepping stone** that is not shown | `trail_subject_members.hop` / `shown` | the batch trail (45 of the 292 old rows live were upward) |
 | M5 | a root keyed by a non-text value (`id boolean`) is matched by its typed value | `record_trail` rebuilds the root key from the row | the three threshold panels (1b-3; the page passes `'true'`) |
 | M6 | a root may be limited to the **columns a panel owns** | `trail_subjects.root_columns` | the three threshold panels (1b-3): processing 2 columns, pricing 1, receiving 3 |
-| **M7** (1c-1) | a member with **no foreign key** under a single-row root: every row of that table, and every log row of it (`match` filtered), belongs to the singleton (`hop = 'all'`, `fk_column` NULL). Ignored unless the parent is the subject's root table. `trail_row_record` gives such a row the singleton as its home | `trail_subject_members.hop = 'all'` | none live yet: AT-1c-3's period-lock panel (`period_closes`), AT-1d's approval policy (`finance_settings_history`); fixture 241 M proves it with a temporary subject |
+| **M7** (1c-1) | a member with **no foreign key** under a single-row root: every row of that table, and every log row of it (`match` filtered), belongs to the singleton (`hop = 'all'`, `fk_column` NULL). Ignored unless the parent is the subject's root table. `trail_row_record` gives such a row the singleton as its home | `trail_subject_members.hop = 'all'` | `finance_lock` (1c-3: `period_closes` — a month close reads "Finance settings" in the summary page's Record column); AT-1d's approval policy (`finance_settings_history`) |
+| **M8** (1c-3) | a subject with **no page code**: `view_codes` is an empty array, and the root row's own read rule is the only gate. Allowed only with `root_rule = 'table'` — `'page'` with no code would open the record to everyone, so `record_trail` refuses it (`TRAIL_NOT_PERMITTED`); `NULL` codes are still refused | `trail_subjects.view_codes = ARRAY[]::text[]` | `my_expense_claim` on `/me` (the claimant reads their own claim; `expense_claims`' read rule is finance or own) |
 
 The retired batch views `batch_audit_trail` / `batch_audit_trail_all` stay in place, unread by any page (Q32); fixture 238
 reads them as the reference its row-for-row check compares against, and their i18n entry in `scripts/check-i18n.mjs` stays
@@ -619,3 +641,42 @@ until they are dropped.
   the deleted statement read-only for admin and refused by name for `gm`; the freight banner; the asset page without its old panel; every live
   record of the eight subjects in both interfaces, plus one AT-1a, one AT-1b and one AT-1c-1 page.
 
+### 9.13 Period-end, settings and the list homes (AUDIT-TRAIL-1c-3, Tim's AT-1c Q1–Q34)
+
+- **One settings row, two panels (Q25 · Q4).** `finance_settings` holds the period lock, the GST registration, the approval policy and six
+  columns no screen edits. `finance_lock` and `finance_gst` are two subjects on that one row (M5), each limited to its own columns (M6), so
+  the lock panel never shows a GST change and the GST panel never shows a lock move; the six unowned columns are on neither (they stay on
+  `/settings/change-history`, the complete record); the approval-policy panel is AT-1d's (Q2). The lock's trail also carries `period_closes`
+  through M7, so it reads "Month closed up to DD/MM/YYYY" (the close row and the lock move are one operation; the lock move is a line,
+  "Period locked before: old → new", the page's own label) and "Month reopened from DD/MM/YYYY" (the first day of the reopened month);
+  a lock moved on its own reads "Period lock moved / set / removed". Before the log the lock panel has exactly one source, the close row
+  itself (`period_closes.closed_at`, and the reopen stamp); the settings row and the company profile keep only shared `updated_*` stamps,
+  so nothing is registered for them and their trails start at the log.
+- **List homes (Q16 · Q17 · Q18 · Q19 · Q20 · Q29 · Q30).** Records with no page of their own get a block on their list page (`ListTrail`),
+  read per record and merged by operation (`op_key`): one bulk FX save is "Exchange rates recorded · N rates", one freeze that replaces the
+  week's earlier forecast is one entry. Runs that have no table of their own (revaluation, depreciation, payroll, processing-cost
+  remittance) are their journals, read through `journal_entry` (and the relief expenses through `expense`); on a journal's own page and in
+  these blocks such a journal reads by its source ("FX revaluation posted", "Depreciation posted" with each asset as a line, "Payroll journal
+  posted", "Year-end closing journal posted"). A list record that has a page of its own links from the Record column. Journal requests and
+  expense claims are action cards, so each card carries its own collapsed trail; the claimant reads the same claim on `/me` through
+  `my_expense_claim` (M8), where the approval and the expense it recorded read Restricted (Q4) — who decided and why is already in the
+  `/me` table's Decision column.
+- **Wording corrections in the shared renderer.** A bank transfer's two legs now take each account's own currency (the incoming leg used to
+  carry the source currency); a transfer's own edit reads "Bank transfer changed" (it used to borrow "Request changed"); a WHT remittance's
+  reversal reads "WHT remittance reversed" with the reversal journal as a line, merged with the paying request's sentence (Q30).
+  Found by the rolled-back live proof (it writes everything in one transaction) and fixed, each with a golden that goes red when the fix is
+  removed: a month close's totals and a year close's net result are in the base currency (the lock row and those tables have no currency
+  column, so the live lock trail printed "Total debits: 757,013.37"); an operation whose every row nets to nothing (a lock moved and moved
+  back) says nothing — it used to read "Restricted", a false statement, since nothing was hidden; a remittance created and reversed in one
+  operation keeps its own "WHT remitted" sentence; a deletion that also renamed an import mapping keeps the rename.
+- **Entry points.** `/finance/fx` lists withdrawn rates (they open read-only, 1c-2's Q7) and its block links every rate;
+  `/finance/bank/statements` has a block of deleted statements for `data.view_deleted` holders, each linked to its read-only page — the
+  same gate as that page; everyone else sees a named refusal there, not an empty block.
+- **Checks.** Fixture **243** (each subject's field edit and key event, or the named refusal where a record cannot change; M6 on both panels,
+  M7 and the pre-log close, Q4; M8 including the `'page'` edge; Q16 within and before the log; Q30; the summary page's homes), fault-injected
+  by `db/scripts/2026-10-04-at1c3-fixture-injections.py` (24 injections, each red in its own arm). `scripts/check-trail-wording.mjs` arm
+  **⑩ 期末、设置与清单页** (39 goldens plus the Q16 merges through `mergeByOperation`, and a machine-token sweep over the twelve subjects'
+  tables with the page's own subject); injection `wording-drift-1c3`. Smoke `trail` assertions on fourteen 1c-3 pages (by `anchor` where a
+  page carries two trails; `emptyOk` where live has no record yet). `scripts/probe-at1c3.mjs`: the two panels each only their own columns,
+  the close page, a trail per claim, the deleted-statements block (admin reads it; `gm` gets the named refusal), and every trail section on
+  every 1c-3 page in both interfaces.

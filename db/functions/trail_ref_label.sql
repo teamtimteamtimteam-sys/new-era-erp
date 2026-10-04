@@ -28,6 +28,10 @@
 --      Record 一栏的名字与链接由这里与 trail_row_record 给,与单据同一个形状);
 --   · 汇率 → "USD · TT selling rate · 01/08/2026";对账单行 → "BS-… line N";分录行 → "JE-… · 科目";申报格 → "Box 1";
 --     对账记录 → "BS-… reconciliation DD/MM/YYYY";折旧 → "FA-… · period ending DD/MM/YYYY"。
+-- AUDIT-TRAIL-1c-3(Tim 2026-10-03,AT-1c Step 0 §a):这几张也没有编号或名字 ——
+--   · 财务设置那一行 → "Finance settings";公司资料那一行 → "Company profile"(两张都是单行表,id = true);
+--   · 月结 → "Period ending DD/MM/YYYY";年结 → "Year ending DD/MM/YYYY";
+--   · 行内转账 → "Transfer DD/MM/YYYY · Cash at Bank – SGD → Cash at Bank – USD"(两头按科目表的名字说,不说 1000 / 1010)。
 -- 【属主身份】按表名动态读;EXECUTE 已从 authenticated 收回。
 CREATE OR REPLACE FUNCTION public.trail_ref_label(p_table text, p_column text, p_value text)
  RETURNS jsonb
@@ -149,6 +153,18 @@ BEGIN
     ELSIF p_table = 'fixed_asset_depreciation' THEN
         v_label := (SELECT fa.code FROM fixed_assets fa WHERE fa.id::text = v_img ->> 'asset_id')
                    || ' · period ending ' || to_char((v_img ->> 'period_end')::date, 'DD/MM/YYYY');
+    ELSIF p_table = 'finance_settings' THEN
+        v_label := 'Finance settings';
+    ELSIF p_table = 'company_profile' THEN
+        v_label := 'Company profile';
+    ELSIF p_table = 'period_closes' THEN
+        v_label := 'Period ending ' || to_char((v_img ->> 'period_end')::date, 'DD/MM/YYYY');
+    ELSIF p_table = 'year_closes' THEN
+        v_label := 'Year ending ' || to_char((v_img ->> 'year_end')::date, 'DD/MM/YYYY');
+    ELSIF p_table = 'bank_transfers' THEN
+        v_label := 'Transfer ' || to_char((v_img ->> 'transfer_date')::date, 'DD/MM/YYYY') || ' · '
+                   || COALESCE((SELECT a.name_en FROM accounts a WHERE a.code = v_img ->> 'from_account'), '?') || ' → '
+                   || COALESCE((SELECT a.name_en FROM accounts a WHERE a.code = v_img ->> 'to_account'), '?');
     ELSIF p_table = 'processing_runs' THEN
         RETURN jsonb_build_object('label', NULLIF(v_label, ''), 'gone', v_gone, 'ended', v_img ->> 'deleted_at' IS NOT NULL);
     END IF;
