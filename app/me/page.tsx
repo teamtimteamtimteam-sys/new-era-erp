@@ -203,7 +203,14 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
 
     // ATTEND-1:自己那几行考勤。行级策略放行 employee_id = current_user_employee(),
     // 所以这里【不加】模块权限 —— 与这一页其余部分同一条路。期间的 code/月份要
-    // 另取:attendance_lines 上没有,而 attendance_periods 的读策略也放行本人。
+    // 另取:attendance_lines 上没有。
+    // ★ AUDIT-TRAIL-1d-3(Q19 修好):这里原来写着"attendance_periods 的读策略也放行本人"—— 那句话与策略不符(只有 hr.view),
+    //   于是不持 hr.view 的员工读到 0 个期间,编号与月份印成 "—"(AT-1d-2 以 fusheng@ 量过)。现在编号与月份经
+    //   my_period_labels()(属主函数:只给你自己的行所在的期间,只给编号与月份两样);状态仍直读 —— 那一样不是给本人的,
+    //   不持 hr.view 的人那一格照旧是空的。工资单同一个做法(下面)。
+    const myPeriodLabels = mustRows(await supabase.rpc('my_period_labels'), 'my_period_labels')
+    const labelOf = (kind: 'attendance' | 'payroll', id: string | null | undefined) =>
+        id ? myPeriodLabels.find((x) => x.kind === kind && x.period_id === id) : undefined
     const myLinesRes = await supabase
         .from('attendance_lines')
         .select('id, period_id, ot_normal_hours, ot_rest_day_hours, ot_public_holiday_hours, note, recorded_at, unpaid_days')
@@ -212,15 +219,15 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     const myPeriodIds = [...new Set(myLines.map((l) => l.period_id))]
     const myPeriods = myPeriodIds.length
         ? mustRows(await supabase.from('attendance_periods')
-            .select('id, code, period_month, status').in('id', myPeriodIds))
+            .select('id, status').in('id', myPeriodIds))
         : []
     // 【不叫 periodById】这一页下面已经有一个同名的 —— 那是【薪资】期间。
     // tsc 抓到了这次重名;两个都留着各自的全名,读的人就不必猜是哪一种期间。
     const attPeriodById = new Map(myPeriods.map((x) => [x.id, x]))
     const myAttendance = myLines
         .map((l) => ({
-            code: attPeriodById.get(l.period_id)?.code ?? '—',
-            periodMonth: formatMonth(attPeriodById.get(l.period_id)?.period_month, dateLocale) ?? '',
+            code: labelOf('attendance', l.period_id)?.code ?? '—',
+            periodMonth: formatMonth(labelOf('attendance', l.period_id)?.period_month, dateLocale) ?? '',
             status: attPeriodById.get(l.period_id)?.status ?? '',
             normal: Number(l.ot_normal_hours ?? 0),
             restDay: Number(l.ot_rest_day_hours ?? 0),
@@ -259,13 +266,12 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     const periodIds = Array.from(
         new Set((mustRows(payRes)).map((l) => l.payroll_period_id).filter((x): x is string => x !== null))
     )
-    const { data: periods } = periodIds.length
-        ? await supabase
-              .from('payroll_periods')
-              .select('id, code, period_month, payment_date, currency')
-              .in('id', periodIds)
-        : { data: [] as { id: string; code: string; period_month: string; payment_date: string; currency: string }[] }
-    const periodById = new Map((periods ?? []).map((x) => [x.id, x]))
+    // 工资单的币种:只有持 hr.view 的人读得到期间那一行(不持的人 0 行 —— 金额照旧不挂币种,登记在 docs/known-issues.md);
+    //   编号与月份对每一个人都经 my_period_labels()(Q19)
+    const periods = periodIds.length
+        ? mustRows(await supabase.from('payroll_periods').select('id, currency').in('id', periodIds), 'payroll_periods (currency)')
+        : []
+    const periodById = new Map(periods.map((x) => [x.id, x]))
 
     const deptName = locale === 'zh' ? p.department_name_zh : p.department_name_en
     const card = 'rounded border border-gray-200 p-4'
@@ -296,10 +302,11 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     //     "按位置"在这里写明出来,而不是换一种认法:下标兜底,不会撞。
     const payslipRows: PayslipRow[] = (mustRows(payRes)).map((l, i) => {
         const per = l.payroll_period_id ? periodById.get(l.payroll_period_id) : undefined
+        const lab = labelOf('payroll', l.payroll_period_id)
         return {
             id: l.id ?? `payslip-${i}`,
-            periodCode: per ? per.code : '—',
-            periodMonthLabel: per?.period_month ? formatMonth(per.period_month, locale) : null,
+            periodCode: lab ? lab.code : '—',
+            periodMonthLabel: lab?.period_month ? formatMonth(lab.period_month, locale) : null,
             gross: formatAmount(l.gross_pay, per?.currency),
             employerCpf: formatAmount(l.employer_cpf, per?.currency),
             employeeCpf: formatAmount(l.employee_cpf, per?.currency),

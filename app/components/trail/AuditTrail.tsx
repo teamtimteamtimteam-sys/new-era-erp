@@ -34,6 +34,7 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'dictionary_laboratories' | 'dictionary_inbound_source_reasons'
     | 'leave_request' | 'my_leave_request' | 'leave_grant' | 'leave_types' | 'public_holidays' | 'medical_claim' | 'my_medical_claim'
     | 'overtime_batch' | 'attendance_period'
+    | 'payroll_period' | 'performance_review' | 'my_review' | 'review_cycle' | 'review_rating_scale' | 'kpi_entry'
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
@@ -121,6 +122,14 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     my_medical_claim: 'medical_claims',
     overtime_batch: 'overtime_batches',
     attendance_period: 'attendance_periods',
+    // AUDIT-TRAIL-1d-3(my_review 是 /my-reviews 上审核人那一份 —— M8 + M12;评分刻度是 M11 集合,页面交 'all';
+    //   轮次与 KPI 条目住在清单页上的那一块)
+    payroll_period: 'payroll_periods',
+    performance_review: 'performance_reviews',
+    my_review: 'performance_reviews',
+    review_cycle: 'review_cycles',
+    review_rating_scale: 'review_rating_scale',
+    kpi_entry: 'kpi_entries',
 }
 
 export const PAGE = 20

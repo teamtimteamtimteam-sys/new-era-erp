@@ -16,8 +16,9 @@ import ScaleEditor, { type ScaleRow } from './ScaleEditor'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function RatingScalePage() {
+export default async function RatingScalePage({ searchParams }: { searchParams: Promise<{ trail?: string | string[] }> }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.hr)
@@ -62,6 +63,9 @@ export default async function RatingScalePage() {
             state={{ kind: 'ok' }}
         >
             <ScaleEditor rows={rows} />
+
+            {/* AUDIT-TRAIL-1d-3:整张评分刻度一段(M11 集合)—— 加一档、改一档、停用 / 恢复(刻度不删:代码是永久的,页面的说明) */}
+            <AuditTrail subject="review_rating_scale" id="all" show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

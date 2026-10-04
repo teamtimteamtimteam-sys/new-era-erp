@@ -33,6 +33,9 @@
 //   ⑫ 请假与考勤(AUDIT-TRAIL-1d-2):九个主语与费用页上的医疗报销(Q37),同一个办法(请假的决定与审批、扣减并成一句 · 之前那一对戳
 //      按状态说 · "Overtime sent back" 且审批人那一格里系统追加的中文被剥掉 · 一次结转一条 · 硬删的假期 · 考勤完成一句、之前只剩最近一次)
 //      外加按那一页的机器字扫描(每一种审批决定、每一种加班状态)。
+//   ⑬ 工资与评审(AUDIT-TRAIL-1d-3):六个主语与员工页上评审定的调薪,同一个办法(工资行按员工配对 · 撤销那一行备注是理由 ·
+//      审批说明后面那一截中英两段剥掉 · label 里原样的种类不上屏 · 分录按结构认 · 年度评审以它的轮次开头 · 批准按评审自己的几列说结论 ·
+//      审核人那一份里审批是 Restricted · KPI 一次生成是一条)外加按那一页的机器字扫描(两种审批的每一种决定、申请与评审的每一种状态)。
 //   ⑩ 期末、设置与清单页(AUDIT-TRAIL-1c-3):同一个办法 —— 十二个主语的金句(两块面板各看各的列 · 月结 / 反结 · 年结 ·
 //      Q16 的合并 · Q30 · M8 的报销人)外加按【那一页】的机器字扫描(describeLedger3)。
 //
@@ -40,7 +43,8 @@
 //   blind-detector · registry-drift · missing-key · dead-key · label-gap · enum-gap · raw-date · raw-ref · raw-json · raw-null · raw-role ·
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
-//   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)
+//   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)· wording-drift-1d2(AUDIT-TRAIL-1d-2:⑫)·
+//   wording-drift-1d3(AUDIT-TRAIL-1d-3:⑬)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -3438,6 +3442,796 @@ if (FAULT === 'wording-drift-1d2') dict.text = { ...dict.text, 'ot.sentBack': 'O
     if (FAULT === 'wording-drift-1d2' && !problems.gold12.length) problems.gold12.push('(注入 wording-drift-1d2 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑬ 工资与评审(AUDIT-TRAIL-1d-3)──────────────────────────────────────────────────────────────
+// 六个主语(工资期 · 评审与审核人的那一份 · 评审轮次 · 评分刻度 · KPI 条目)与员工页上评审定的调薪,各一次字段编辑与关键事件,逐字;
+//   加上:工资行按员工配对 —— 没变的一对不说、变了的一对是一行(Q11),看不见金额的读者那一次保存只说一行 Restricted ·
+//   撤销追加在备注里的那一行是 "Payroll unposted" 的理由、从不说成改了备注(Q10)· 审批说明后面那一截中英两段的机器字剥掉、
+//   换成一行英文(Q10)· label 里原样的种类不上屏(Q10)· 分录按结构认出是哪一笔(过账 · 发薪 · CPF · 撤销)· 不持财务的读者
+//   读到的分录号是 Restricted(与页头同一条)· 年度评审以它的轮次开头(Q6)· 批准按评审自己的几列说结论、新月薪照今天遮蔽(Q7)·
+//   审核人那一份里审批是 Restricted(Q5)· 作废与撤回的那一个戳(Q12)· KPI 一次生成是一条。每一句都先由造句器造出来、
+//   逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/AUDIT-TRAIL-1d-3.md §8 逐条列出。注入 wording-drift-1d3 → 这一臂必须红。
+problems.gold13 = []
+if (FAULT === 'wording-drift-1d3') dict.text = { ...dict.text, 'prl.unposted': 'Payroll reversed' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const ref = (col, v, label, href) => ({ [col]: { [v]: href ? { label, href } : { label } } })
+    const person = (col, v, name) => ({ [col]: { [v]: { person: { state: 'person', name } } } })
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows, actor) => C.push({ label, opts, rows, actor })
+    const ea = id('ea'), eb = id('eb'), ec = id('ec')
+    const empRefs = (e, name) => person('employee_id', e, name)
+    // ── 工资期 ──
+    const pp = id('pp')
+    const P = { subject: 'payroll_period', recordId: pp, currency: 'SGD' }
+    const ppRow = { code: 'PAY-2026-0010', period_month: '2026-10-01', payment_date: '2026-10-30', currency: 'SGD', fx_rate: 1, status: 'draft' }
+    const pline = (k, op, e, name, gross, net, extra = {}) => ({ table: 'payroll_lines', op, key: { id: id(k) },
+        ...(op === 'DELETE' ? { old: { payroll_period_id: pp, employee_id: e, gross_pay: gross, employer_cpf: 0, employee_cpf: gross - net, other_deductions: 0, net_pay: net, ...extra } }
+                            : { new: { payroll_period_id: pp, employee_id: e, gross_pay: gross, employer_cpf: 0, employee_cpf: gross - net, other_deductions: 0, net_pay: net, ...extra } }),
+        refs: empRefs(e, name) })
+    add('payroll · recorded (the period and its lines are one operation)', P, [
+        { table: 'payroll_periods', op: 'INSERT', key: { id: pp }, new: { ...ppRow, gross_total: 0, net_pay_total: 0, source_note: 'Provider file Oct.xlsx' } },
+        pline('l1', 'INSERT', ea, 'Lim Wei Ming', 5000, 4000), pline('l2', 'INSERT', eb, 'Sandra Tan', 4000, 3200),
+        { table: 'payroll_periods', op: 'UPDATE', key: { id: pp }, cols: ['gross_total', 'net_pay_total', 'updated_by'], old: { gross_total: 0, net_pay_total: 0 }, new: { gross_total: 9000, net_pay_total: 7200 }, ctx: ppRow }])
+    add('payroll · re-saved: an unchanged pair says nothing, a changed pair is one line each (Q11)', P, [
+        { table: 'payroll_periods', op: 'UPDATE', key: { id: pp }, cols: ['payment_date', 'updated_by'], old: { payment_date: '2026-10-30' }, new: { payment_date: '2026-10-29' }, ctx: ppRow },
+        pline('l1', 'DELETE', ea, 'Lim Wei Ming', 5000, 4000), pline('l2', 'DELETE', eb, 'Sandra Tan', 4000, 3200),
+        pline('l3', 'INSERT', ea, 'Lim Wei Ming', 5000, 4000), pline('l4', 'INSERT', eb, 'Sandra Tan', 4200, 3360),
+        { table: 'payroll_periods', op: 'UPDATE', key: { id: pp }, cols: ['gross_total', 'net_pay_total', 'updated_by'], old: { gross_total: 9000, net_pay_total: 7200 }, new: { gross_total: 9200, net_pay_total: 7360 }, ctx: ppRow }])
+    const R13 = { $restricted: true }
+    const rline = (k, op, e, name) => ({ table: 'payroll_lines', op, key: { id: id(k) },
+        [op === 'DELETE' ? 'old' : 'new']: { payroll_period_id: pp, employee_id: e, gross_pay: R13, employer_cpf: R13, employee_cpf: R13, other_deductions: R13, net_pay: R13, notes: null },
+        refs: empRefs(e, name) })
+    add('payroll · re-saved, read without data.view_pay (whether a line changed is pay data: one Restricted line)', P, [
+        rline('l1', 'DELETE', ea, 'Lim Wei Ming'), rline('l2', 'DELETE', eb, 'Sandra Tan'), rline('l3', 'INSERT', ea, 'Lim Wei Ming'), rline('l4', 'INSERT', eb, 'Sandra Tan'),
+        { table: 'payroll_periods', op: 'UPDATE', key: { id: pp }, cols: ['gross_total', 'net_pay_total', 'updated_by'], old: { gross_total: 9000, net_pay_total: 7200 }, new: { gross_total: 9200, net_pay_total: 7360 }, ctx: ppRow }])
+    add('payroll · re-saved: one person left the sheet, one joined', P, [
+        pline('l1', 'DELETE', ea, 'Lim Wei Ming', 5000, 4000), pline('l2', 'DELETE', eb, 'Sandra Tan', 4000, 3200),
+        pline('l3', 'INSERT', ea, 'Lim Wei Ming', 5000, 4000), pline('l5', 'INSERT', ec, 'Fu Sheng', 3000, 2400),
+        { table: 'payroll_periods', op: 'UPDATE', key: { id: pp }, cols: ['gross_total', 'net_pay_total', 'updated_by'], old: { gross_total: 9000, net_pay_total: 7200 }, new: { gross_total: 8000, net_pay_total: 6400 }, ctx: ppRow }])
+    const rq = id('rq'), rq2 = id('rq2')
+    const rqRow = { payroll_period_id: pp, kind: 'post', label: 'PAY-2026-0010 · post #1', currency: 'SGD', fx_rate: 1, gross_total: 9200, amount_base: 9200 }
+    const own = '本期含审批人自己的工资行 · this period includes the approver\'s own pay line: EMP-2026-0004'
+    const autoNote = '审批关着时提交:申请生下来就是 approved,没有人按过批准'
+    add('payroll · posting sent for approval (the approval row folds in)', P, [
+        { table: 'payroll_requests', op: 'INSERT', key: { id: rq }, new: { ...rqRow, status: 'submitted' } },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('a1') }, new: { subject_type: 'payroll_request', subject_id: rq, subject_code: 'PAY-2026-0010 · post #1', decision: 'submitted', note: null } }])
+    add('payroll · posting approved automatically (approvals off: the machine note is not said)', P, [
+        { table: 'payroll_requests', op: 'INSERT', key: { id: rq }, new: { ...rqRow, status: 'approved' } },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('a2') }, new: { subject_type: 'payroll_request', subject_id: rq, subject_code: 'PAY-2026-0010 · post #1', decision: 'auto_approved', note: autoNote } }])
+    add("payroll · posting approved; the approver's own pay line (Q10: the bilingual suffix is said in English)", P, [
+        { table: 'payroll_requests', op: 'UPDATE', key: { id: rq }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'], old: { status: 'submitted' }, new: { status: 'approved', decision_notes: 'Checked against the provider file' }, ctx: rqRow },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('a3') }, new: { subject_type: 'payroll_request', subject_id: rq, subject_code: 'PAY-2026-0010 · post #1', decision: 'approved', note: `Checked against the provider file\n${own}` } }])
+    add('payroll · unposting rejected', P, [
+        { table: 'payroll_requests', op: 'UPDATE', key: { id: rq2 }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'], old: { status: 'submitted' }, new: { status: 'rejected', decision_notes: 'Wait for the bonus run' }, ctx: { ...rqRow, kind: 'reversal', label: 'PAY-2026-0010 · reversal #1' } },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('a4') }, new: { subject_type: 'payroll_request', subject_id: rq2, subject_code: 'PAY-2026-0010 · reversal #1', decision: 'rejected', note: `Wait for the bonus run\n${own}` } }])
+    add('payroll · posting request withdrawn before the log (Q12: the stamp is the only record)', P, [
+        { table: 'payroll_requests', op: 'UPDATE', prelog: true, key: { id: rq }, cols: ['withdrawn_at', 'withdrawn_by', 'status'], new: { withdrawn_at: '2026-09-20T02:00:00Z', status: 'withdrawn' }, ctx: rqRow }])
+    const je1 = id('je1'), je2 = id('je2'), je3 = id('je3'), je4 = id('je4')
+    add('payroll · posted (the journal and the executed request fold in)', P, [
+        { table: 'payroll_periods', op: 'UPDATE', key: { id: pp }, cols: ['status', 'journal_entry_id', 'updated_by'], old: { status: 'draft', journal_entry_id: null }, new: { status: 'posted', journal_entry_id: je1 }, ctx: ppRow,
+          refs: ref('journal_entry_id', je1, 'JE-2026-0120', `/finance/journal/${je1}`) },
+        { table: 'journal_entries', op: 'INSERT', key: { id: je1 }, new: { code: 'JE-2026-0120', entry_date: '2026-10-30', source_type: 'payroll', source_id: pp, memo: 'Payroll PAY-2026-0010', status: 'posted' } },
+        { table: 'payroll_requests', op: 'UPDATE', key: { id: rq }, cols: ['status', 'executed_at', 'executed_by', 'result_journal_entry_id'], old: { status: 'approved' }, new: { status: 'executed', result_journal_entry_id: je1 }, ctx: rqRow }])
+    add('payroll · posted, read without finance (the journal number is Restricted, as on the page)', P, [
+        { table: 'payroll_periods', op: 'UPDATE', key: { id: pp }, cols: ['status', 'journal_entry_id', 'updated_by'], old: { status: 'draft', journal_entry_id: null }, new: { status: 'posted', journal_entry_id: je1 }, ctx: ppRow,
+          refs: ref('journal_entry_id', je1, 'JE-2026-0120', `/finance/journal/${je1}`) },
+        { hidden: true, table: null, op: null, actor: null },
+        { table: 'payroll_requests', op: 'UPDATE', key: { id: rq }, cols: ['status', 'executed_at', 'executed_by', 'result_journal_entry_id'], old: { status: 'approved' }, new: { status: 'executed', result_journal_entry_id: je1 }, ctx: rqRow }])
+    add('payroll · unposted (Q10: the machine line in the notes is the reason, never "Notes changed")', P, [
+        { table: 'payroll_periods', op: 'UPDATE', key: { id: pp }, cols: ['status', 'journal_entry_id', 'notes', 'updated_by'],
+          old: { status: 'posted', journal_entry_id: je1, notes: 'Includes the October bonus' },
+          new: { status: 'draft', journal_entry_id: null, notes: 'Includes the October bonus\n[2026-11-02 09:15 unposted] Wrong CPF rate for two people' }, ctx: ppRow },
+        { table: 'journal_entries', op: 'UPDATE', key: { id: je1 }, cols: ['status', 'reversed_by'], old: { status: 'posted', reversed_by: null }, new: { status: 'reversed', reversed_by: je2 },
+          ctx: { code: 'JE-2026-0120' }, refs: ref('reversed_by', je2, 'JE-2026-0131', `/finance/journal/${je2}`) },
+        { table: 'journal_entries', op: 'INSERT', key: { id: je2 }, new: { code: 'JE-2026-0131', entry_date: '2026-11-02', source_type: 'payroll', source_id: je1, memo: 'Payroll reversal PAY-2026-0010', status: 'posted' } },
+        { table: 'payroll_requests', op: 'UPDATE', key: { id: rq2 }, cols: ['status', 'executed_at', 'executed_by', 'result_journal_entry_id'], old: { status: 'approved' }, new: { status: 'executed', result_journal_entry_id: je2 }, ctx: { ...rqRow, kind: 'reversal' } }])
+    add("payroll · salaries paid (each line's paid stamp folds in)", P, [
+        { table: 'payroll_lines', op: 'UPDATE', key: { id: id('l3') }, cols: ['paid_at', 'paid_journal_entry_id'], old: { paid_at: null }, new: { paid_at: '2026-10-30T02:00:00Z', paid_journal_entry_id: je3 }, ctx: { employee_id: ea }, refs: empRefs(ea, 'Lim Wei Ming') },
+        { table: 'payroll_lines', op: 'UPDATE', key: { id: id('l4') }, cols: ['paid_at', 'paid_journal_entry_id'], old: { paid_at: null }, new: { paid_at: '2026-10-30T02:00:00Z', paid_journal_entry_id: je3 }, ctx: { employee_id: eb }, refs: empRefs(eb, 'Sandra Tan') },
+        { table: 'journal_entries', op: 'INSERT', key: { id: je3 }, new: { code: 'JE-2026-0121', entry_date: '2026-10-30', source_type: 'payroll', source_id: pp, memo: 'Salary payment PAY-2026-0010', status: 'posted' } }])
+    add('payroll · CPF paid', P, [
+        { table: 'payroll_periods', op: 'UPDATE', key: { id: pp }, cols: ['cpf_paid_at', 'cpf_journal_entry_id'], old: { cpf_paid_at: null }, new: { cpf_paid_at: '2026-11-12', cpf_journal_entry_id: je4 }, ctx: ppRow,
+          refs: ref('cpf_journal_entry_id', je4, 'JE-2026-0140', `/finance/journal/${je4}`) },
+        { table: 'journal_entries', op: 'INSERT', key: { id: je4 }, new: { code: 'JE-2026-0140', entry_date: '2026-11-12', source_type: 'payroll', source_id: pp, memo: 'CPF PAY-2026-0010', status: 'posted' } }])
+    add('payroll · posted before the log (only the journal is left; known by structure, not by its memo)', P, [
+        { table: 'journal_entries', op: 'INSERT', prelog: true, key: { id: je1 }, new: { code: 'JE-2026-0017', entry_date: '2026-09-26', source_type: 'payroll', source_id: pp, memo: 'Payroll PAY-2026-0001', status: 'posted' } },
+        { group: 'OTHER', table: 'payroll_periods', op: 'INSERT', prelog: true, key: { id: pp }, new: { ...ppRow, status: 'posted', journal_entry_id: je1 }, ctx: { ...ppRow, status: 'posted', journal_entry_id: je1 } }])
+    add('payroll · salaries paid before the log (the lines that journal paid are counted from the page)', P, [
+        { table: 'journal_entries', op: 'INSERT', prelog: true, key: { id: je3 }, new: { code: 'JE-2026-0018', entry_date: '2026-09-26', source_type: 'payroll', source_id: pp, memo: 'Salary payment PAY-2026-0001', status: 'posted' } },
+        { group: 'OTHER', table: 'payroll_lines', op: 'INSERT', prelog: true, key: { id: id('l9') }, new: { payroll_period_id: pp, employee_id: ea }, ctx: { payroll_period_id: pp, employee_id: ea, paid_journal_entry_id: je3 }, refs: empRefs(ea, 'Lim Wei Ming') }])
+    add("payroll · posting approved before the log (only the approval row; the label's raw kind is not said)", P, [
+        { table: 'approval_log', op: 'INSERT', prelog: true, key: { id: id('a5') }, new: { subject_type: 'payroll_request', subject_id: rq, subject_code: 'PAY-2026-0010 · post #1', decision: 'approved', note: null } }])
+    add('payroll · lines saved before the log, apart from the period (the last save; no person was recorded)', P, [
+        { ...pline('l6', 'INSERT', ea, 'Lim Wei Ming', 5000, 4000), prelog: true }, { ...pline('l7', 'INSERT', eb, 'Sandra Tan', 4000, 3200), prelog: true }], { state: 'unknown' })
+    add('payroll · posting approved, on the summary page (the period is named, the kind is not)', {}, [
+        { table: 'payroll_requests', op: 'UPDATE', key: { id: rq }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes'], old: { status: 'submitted' }, new: { status: 'approved', decision_notes: null }, ctx: rqRow }])
+    // ── 评审 ──
+    const rv = id('rv'), cyc = id('cyc'), rev = id('rev')
+    const RV = { subject: 'performance_review', recordId: rv }
+    const rvRow = { employee_id: ea, review_type: 'annual', cycle_id: cyc, period_start: '2026-01-01', period_end: '2026-12-31', reviewer_employee_id: rev }
+    const rvRefs = { ...empRefs(ea, 'Lim Wei Ming'), ...person('reviewer_employee_id', rev, 'Sandra Tan'), ...ref('cycle_id', cyc, 'FY2026 annual'),
+        rating_code: { MEETS: { label: 'Meets Expectations' }, EXCEEDS: { label: 'Exceeds Expectations' } } }
+    add('review · annual review opened (Q6: the cycle is named)', RV, [
+        { table: 'performance_reviews', op: 'INSERT', key: { id: rv }, new: { ...rvRow, status: 'draft' }, refs: rvRefs }])
+    add('review · probation review opened', RV, [
+        { table: 'performance_reviews', op: 'INSERT', key: { id: rv }, new: { ...rvRow, review_type: 'probation', cycle_id: null, period_start: '2026-07-01', period_end: '2026-09-30', status: 'draft' }, refs: rvRefs }])
+    add('review · opened for self-assessment', RV, [
+        { table: 'performance_reviews', op: 'UPDATE', key: { id: rv }, cols: ['status'], old: { status: 'draft', self_assessment_submitted_at: null }, new: { status: 'self_review' }, ctx: rvRow, refs: rvRefs }])
+    add("review · self-assessment reopened (Q35: the page's \"Reopen self-assessment\")", RV, [
+        { table: 'performance_reviews', op: 'UPDATE', key: { id: rv }, cols: ['status', 'self_assessment_submitted_at'], old: { status: 'self_review', self_assessment_submitted_at: '2026-10-20T02:00:00Z' }, new: { status: 'self_review', self_assessment_submitted_at: null }, ctx: rvRow, refs: rvRefs }])
+    const g1 = id('g1')
+    add('review · self-assessment finalised (the goal results are lines of it)', RV, [
+        { table: 'performance_reviews', op: 'UPDATE', key: { id: rv }, cols: ['self_assessment_text', 'self_assessment_submitted_at'], old: { self_assessment_text: null, self_assessment_submitted_at: null },
+          new: { self_assessment_text: 'A steady year; the stocktake work went well.', self_assessment_submitted_at: '2026-10-21T02:00:00Z' }, ctx: rvRow, refs: rvRefs },
+        { table: 'review_goals', op: 'UPDATE', key: { id: g1 }, cols: ['employee_result_text', 'actual_value'], old: { employee_result_text: null, actual_value: null },
+          new: { employee_result_text: 'All counts done on time', actual_value: 12 }, ctx: { review_id: rv, sequence: 1, objective_text: 'Run the monthly stocktake', target_value: 12, unit: 'counts' } }])
+    add('review · self-assessment saved as a draft', RV, [
+        { table: 'performance_reviews', op: 'UPDATE', key: { id: rv }, cols: ['self_assessment_text'], old: { self_assessment_text: null }, new: { self_assessment_text: 'First thoughts' }, ctx: rvRow, refs: rvRefs }])
+    add('review · conclusion changed', RV, [
+        { table: 'performance_reviews', op: 'UPDATE', key: { id: rv }, cols: ['rating_code', 'summary_text'], old: { rating_code: 'MEETS', summary_text: null }, new: { rating_code: 'EXCEEDS', summary_text: 'Ran every count; trained two new staff.' }, ctx: rvRow, refs: rvRefs }])
+    add('review · reviewer changed', RV, [
+        { table: 'performance_reviews', op: 'UPDATE', key: { id: rv }, cols: ['reviewer_employee_id'], old: { reviewer_employee_id: eb }, new: { reviewer_employee_id: rev }, ctx: rvRow,
+          refs: { reviewer_employee_id: { [eb]: { person: { state: 'person', name: 'Fu Sheng' } }, [rev]: { person: { state: 'person', name: 'Sandra Tan' } } } } }])
+    add('review · submitted for approval (the approval row folds in)', RV, [
+        { table: 'performance_reviews', op: 'UPDATE', key: { id: rv }, cols: ['status', 'submitted_at', 'submitted_by'], old: { status: 'self_review' }, new: { status: 'submitted' }, ctx: { ...rvRow, rating_code: 'EXCEEDS' }, refs: rvRefs },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('ra1') }, new: { subject_type: 'performance_review', subject_id: rv, subject_code: 'EMP-2026-0007', decision: 'submitted', note: null } }])
+    const probRow = { ...rvRow, review_type: 'probation', cycle_id: null, rating_code: 'MEETS', probation_outcome: 'confirm', salary_effective_date: '2026-11-01' }
+    add('review · approved (Q7: the outcome from the review\'s own columns; the salary masked as today)', RV, [
+        { table: 'performance_reviews', op: 'UPDATE', key: { id: rv }, cols: ['status', 'approved_at', 'approved_by'], old: { status: 'submitted' }, new: { status: 'approved' },
+          ctx: { ...probRow, new_monthly_salary: R13 }, refs: rvRefs },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('ra2') }, new: { subject_type: 'performance_review', subject_id: rv, subject_code: 'EMP-2026-0007', decision: 'approved', note: null } }])
+    add('review · approved, read with data.view_pay', RV, [
+        { table: 'performance_reviews', op: 'UPDATE', key: { id: rv }, cols: ['status', 'approved_at', 'approved_by'], old: { status: 'submitted' }, new: { status: 'approved' },
+          ctx: { ...probRow, new_monthly_salary: 5200 }, refs: rvRefs },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('ra3') }, new: { subject_type: 'performance_review', subject_id: rv, subject_code: 'EMP-2026-0007', decision: 'approved', note: null } }])
+    add("review · approved before the log (only the approval row; the outcome is today's review)", RV, [
+        { table: 'approval_log', op: 'INSERT', prelog: true, key: { id: id('ra4') }, new: { subject_type: 'performance_review', subject_id: rv, subject_code: 'EMP-2026-0007', decision: 'approved', note: null } },
+        { group: 'OTHER', table: 'performance_reviews', op: 'INSERT', prelog: true, key: { id: rv }, new: { ...rvRow, rating_code: 'MEETS', status: 'approved' }, ctx: { ...rvRow, rating_code: 'MEETS', status: 'approved' }, refs: rvRefs }])
+    add('review · acknowledged by the employee', RV, [
+        { table: 'performance_reviews', op: 'UPDATE', key: { id: rv }, cols: ['status', 'acknowledged_at'], old: { status: 'approved' }, new: { status: 'acknowledged' }, ctx: rvRow, refs: rvRefs },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('ra5') }, new: { subject_type: 'performance_review', subject_id: rv, subject_code: 'EMP-2026-0007', decision: 'acknowledged', note: null } }])
+    add('review · voided', RV, [
+        { table: 'performance_reviews', op: 'UPDATE', key: { id: rv }, cols: ['status', 'void_reason', 'voided_at', 'voided_by'], old: { status: 'draft' }, new: { status: 'void', void_reason: 'Opened for the wrong person' }, ctx: rvRow, refs: rvRefs }])
+    add('review · voided before the log (Q12: the stamp is the only record, with its reason)', RV, [
+        { table: 'performance_reviews', op: 'UPDATE', prelog: true, key: { id: rv }, cols: ['voided_at', 'voided_by', 'status', 'void_reason'], new: { status: 'void', void_reason: 'Duplicate of the probation review' }, ctx: rvRow, refs: rvRefs }])
+    add('review · goal added', RV, [
+        { table: 'review_goals', op: 'INSERT', key: { id: g1 }, new: { review_id: rv, sequence: 1, objective_text: 'Run the monthly stocktake', target_value: 12, unit: 'counts' } }])
+    add('review · goal changed (field edit)', RV, [
+        { table: 'review_goals', op: 'UPDATE', key: { id: g1 }, cols: ['target_value'], old: { target_value: 12 }, new: { target_value: 10 }, ctx: { review_id: rv, sequence: 1, objective_text: 'Run the monthly stocktake', unit: 'counts' } }])
+    add('review · goal removed (hard delete: its last values)', RV, [
+        { table: 'review_goals', op: 'DELETE', key: { id: g1 }, old: { review_id: rv, sequence: 2, objective_text: 'Cut forklift idle time', target_value: 10, unit: '%' } }])
+    add('my review · approved, read by a reviewer without hr.view (Q5: the approval row is Restricted)', { subject: 'my_review', recordId: rv }, [
+        { table: 'performance_reviews', op: 'UPDATE', key: { id: rv }, cols: ['status', 'approved_at', 'approved_by'], old: { status: 'submitted' }, new: { status: 'approved' },
+          ctx: { ...rvRow, rating_code: 'MEETS', new_monthly_salary: R13 }, refs: { ...rvRefs, employee_id: { [ea]: { person: { state: 'restricted' } } } } },
+        { hidden: true, table: null, op: null, actor: null }], { state: 'restricted' })
+    add('review · approved, on the summary page (the employee code is named)', {}, [
+        { table: 'approval_log', op: 'INSERT', key: { id: id('ra6') }, new: { subject_type: 'performance_review', subject_id: rv, subject_code: 'EMP-2026-0007', decision: 'approved', note: null } }])
+    // ── 评审轮次(Q6)──
+    const CY = { subject: 'review_cycle', recordId: cyc }
+    add('review cycle · created', CY, [{ table: 'review_cycles', op: 'INSERT', key: { id: cyc }, new: { name: 'FY2026 annual', period_start: '2026-01-01', period_end: '2026-12-31', due_date: '2027-01-31', status: 'draft' } }])
+    add('review cycle · opened (Q6: the reviews it creates are not on the cycle)', CY, [
+        { table: 'review_cycles', op: 'UPDATE', key: { id: cyc }, cols: ['status'], old: { status: 'draft' }, new: { status: 'open' }, ctx: { name: 'FY2026 annual' } }])
+    add('review cycle · closed', CY, [{ table: 'review_cycles', op: 'UPDATE', key: { id: cyc }, cols: ['status'], old: { status: 'open' }, new: { status: 'closed' }, ctx: { name: 'FY2026 annual' } }])
+    add('review cycle · due date changed (field edit)', CY, [{ table: 'review_cycles', op: 'UPDATE', key: { id: cyc }, cols: ['due_date'], old: { due_date: '2027-01-31' }, new: { due_date: '2027-02-15' }, ctx: { name: 'FY2026 annual' } }])
+    // ── 评分刻度(M11 集合)──
+    const SC = { subject: 'review_rating_scale', recordId: 'all' }
+    add('rating scale · a rating added', SC, [{ table: 'review_rating_scale', op: 'INSERT', key: { code: 'FAR_BELOW' }, new: { code: 'FAR_BELOW', name_en: 'Far Below Expectations', name_zh: '远低于预期', sort_order: 50, is_active: true, is_probation_pass: false } }])
+    add('rating scale · description changed (field edit)', SC, [{ table: 'review_rating_scale', op: 'UPDATE', key: { code: 'MEETS' }, cols: ['description_en'], old: { description_en: 'Met the objectives set for the period.' },
+        new: { description_en: 'Met every objective set for the period.' }, ctx: { name_en: 'Meets Expectations' } }])
+    add('rating scale · deactivated', SC, [{ table: 'review_rating_scale', op: 'UPDATE', key: { code: 'BELOW' }, cols: ['is_active'], old: { is_active: true }, new: { is_active: false }, ctx: { name_en: 'Below Expectations' } }])
+    add('rating scale · two seeded before the log (one moment, one entry)', SC, [
+        { table: 'review_rating_scale', op: 'INSERT', prelog: true, key: { code: 'OUTSTANDING' }, new: { code: 'OUTSTANDING', name_en: 'Outstanding', name_zh: '卓越', sort_order: 10, is_active: true, is_probation_pass: true } },
+        { table: 'review_rating_scale', op: 'INSERT', prelog: true, key: { code: 'MEETS' }, new: { code: 'MEETS', name_en: 'Meets Expectations', name_zh: '符合预期', sort_order: 30, is_active: true, is_probation_pass: true } }], { state: 'unknown' })
+    // ── KPI 条目 ──
+    const K = { subject: 'kpi_entry', recordId: id('k1') }
+    const kpi = (k, ref_, title, w) => ({ table: 'kpi_entries', op: 'INSERT', key: { id: id(k) },
+        new: { employee_id: ea, kpi_ref: ref_, title, weight_pct: w, target_text: 'As set by the template', org_codes: ['O1'], is_provisional: false }, refs: empRefs(ea, 'Lim Wei Ming') })
+    add('KPI · five entries generated for one person (one operation, Q16)', K, [
+        kpi('k1', 'F1', 'Stocktake accuracy', 30), kpi('k2', 'F2', 'Receiving turnaround', 20), kpi('k3', 'C5', 'Planned maintenance done', 20),
+        kpi('k4', 'S1', 'Safety observations', 15), kpi('k5', 'T3', 'Training hours', 15)])
+    const kRow = { employee_id: ea, kpi_ref: 'F1', title: 'Stocktake accuracy', weight_pct: 30 }
+    add('KPI · scored (judged, with evidence and feedback)', K, [
+        { table: 'kpi_entries', op: 'UPDATE', key: { id: id('k1') }, cols: ['score', 'score_kind', 'evidence_note', 'feedback_note', 'scored_by', 'scored_at', 'updated_by'],
+          old: { score: null, score_kind: null }, new: { score: 4, score_kind: 'judged', evidence_note: 'Three counts, one variance found and cleared', feedback_note: 'Keep the Friday count' }, ctx: kRow, refs: empRefs(ea, 'Lim Wei Ming') }])
+    add('KPI · re-scored, capped by a safety override', K, [
+        { table: 'kpi_entries', op: 'UPDATE', key: { id: id('k1') }, cols: ['score', 'override_cap', 'override_reason', 'scored_by', 'scored_at'],
+          old: { score: 4, override_cap: null }, new: { score: 5, override_cap: 2, override_reason: 'Forklift near-miss on 14/10' }, ctx: { ...kRow, score_kind: 'judged' }, refs: empRefs(ea, 'Lim Wei Ming') }])
+    add('KPI · scored before the log (the stamp is the only record of that scoring)', K, [
+        { table: 'kpi_entries', op: 'UPDATE', prelog: true, key: { id: id('k1') }, cols: ['scored_at', 'scored_by', 'score', 'score_kind'], new: { score: 3, score_kind: 'computed' }, ctx: kRow }])
+    add('KPI · evidence changed, the score unchanged (field edit)', K, [
+        { table: 'kpi_entries', op: 'UPDATE', key: { id: id('k1') }, cols: ['evidence_note', 'scored_at', 'scored_by'], old: { evidence_note: 'Three counts' }, new: { evidence_note: 'Three counts, all within tolerance' }, ctx: kRow }])
+    // ── 员工页:评审定的调薪(Q10,approve_review 的另一句)──
+    add('employee · salary changed through a review (the review\'s machine note is said in English)', { subject: 'employee', recordId: ea }, [
+        { table: 'employment_history', op: 'INSERT', key: { id: id('h1') }, new: { employee_id: ea, effective_date: '2026-11-01', change_type: 'salary_change', old_monthly_salary: 5000, new_monthly_salary: 5200,
+          notes: `Salary change approved with performance review ${rv}` } }])
+
+    const WANT = {
+        "payroll · recorded (the period and its lines are one operation)": {
+            "title": "Payroll recorded · 2 people",
+            "part": null,
+            "lines": [
+                "Month: 01/10/2026",
+                "Payment date: 30/10/2026",
+                "Currency: SGD",
+                "Gross total: 9,000.00 SGD",
+                "Net total: 7,200.00 SGD",
+                "Source: Provider file Oct.xlsx"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · re-saved: an unchanged pair says nothing, a changed pair is one line each (Q11)": {
+            "title": "Payroll changed",
+            "part": null,
+            "lines": [
+                "Payment date: 30/10/2026 → 29/10/2026",
+                "Gross total: 9,000.00 SGD → 9,200.00 SGD",
+                "Net total: 7,200.00 SGD → 7,360.00 SGD",
+                "Line · Sandra Tan · Gross pay: 4,000.00 SGD → 4,200.00 SGD",
+                "Line · Sandra Tan · Employee CPF: 800.00 SGD → 840.00 SGD",
+                "Line · Sandra Tan · Net pay: 3,200.00 SGD → 3,360.00 SGD"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · re-saved, read without data.view_pay (whether a line changed is pay data: one Restricted line)": {
+            "title": "Payroll changed",
+            "part": null,
+            "lines": [
+                "Gross total: 9,000.00 SGD → 9,200.00 SGD",
+                "Net total: 7,200.00 SGD → 7,360.00 SGD",
+                "Pay lines · 2 people: Restricted"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · re-saved: one person left the sheet, one joined": {
+            "title": "Payroll changed",
+            "part": null,
+            "lines": [
+                "Gross total: 9,000.00 SGD → 8,000.00 SGD",
+                "Net total: 7,200.00 SGD → 6,400.00 SGD",
+                "Line added · Fu Sheng: 3,000.00 SGD",
+                "Line removed · Sandra Tan: 4,000.00 SGD"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · posting sent for approval (the approval row folds in)": {
+            "title": "Payroll posting sent for approval",
+            "part": null,
+            "lines": [
+                "Gross total: 9,200.00 SGD"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · posting approved automatically (approvals off: the machine note is not said)": {
+            "title": "Payroll posting approved",
+            "part": null,
+            "lines": [
+                "(Approved automatically (approvals were switched off))",
+                "Gross total: 9,200.00 SGD"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · posting approved; the approver's own pay line (Q10: the bilingual suffix is said in English)": {
+            "title": "Payroll posting approved",
+            "part": null,
+            "lines": [
+                "(This period includes the approver's own pay line: EMP-2026-0004)"
+            ],
+            "reason": "Checked against the provider file",
+            "who": "Sandra"
+        },
+        "payroll · unposting rejected": {
+            "title": "Payroll unposting rejected",
+            "part": null,
+            "lines": [
+                "(This period includes the approver's own pay line: EMP-2026-0004)"
+            ],
+            "reason": "Wait for the bonus run",
+            "who": "Sandra"
+        },
+        "payroll · posting request withdrawn before the log (Q12: the stamp is the only record)": {
+            "title": "Payroll posting request withdrawn",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · posted (the journal and the executed request fold in)": {
+            "title": "Payroll posted",
+            "part": null,
+            "lines": [
+                "Journal: JE-2026-0120"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · posted, read without finance (the journal number is Restricted, as on the page)": {
+            "title": "Payroll posted",
+            "part": null,
+            "lines": [
+                "Journal: Restricted",
+                "(Part of this change is restricted.)"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · unposted (Q10: the machine line in the notes is the reason, never \"Notes changed\")": {
+            "title": "Payroll unposted",
+            "part": null,
+            "lines": [
+                "Reversal journal: JE-2026-0131"
+            ],
+            "reason": "Wrong CPF rate for two people",
+            "who": "Sandra"
+        },
+        "payroll · salaries paid (each line's paid stamp folds in)": {
+            "title": "Salaries paid · 2 people",
+            "part": null,
+            "lines": [
+                "Journal: JE-2026-0121"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · CPF paid": {
+            "title": "CPF paid",
+            "part": null,
+            "lines": [
+                "CPF paid on: 12/11/2026",
+                "Journal: JE-2026-0140"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · posted before the log (only the journal is left; known by structure, not by its memo)": {
+            "title": "Payroll posted",
+            "part": null,
+            "lines": [
+                "Journal: JE-2026-0017"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · salaries paid before the log (the lines that journal paid are counted from the page)": {
+            "title": "Salaries paid · 1 person",
+            "part": null,
+            "lines": [
+                "Journal: JE-2026-0018"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · posting approved before the log (only the approval row; the label's raw kind is not said)": {
+            "title": "Payroll posting approved",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "payroll · lines saved before the log, apart from the period (the last save; no person was recorded)": {
+            "title": "Pay lines saved · 2 people",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Not recorded"
+        },
+        "payroll · posting approved, on the summary page (the period is named, the kind is not)": {
+            "title": "Payroll posting approved · PAY-2026-0010",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · annual review opened (Q6: the cycle is named)": {
+            "title": "Annual review opened (cycle FY2026 annual)",
+            "part": null,
+            "lines": [
+                "Employee: Lim Wei Ming",
+                "Period start: 01/01/2026",
+                "Period end: 31/12/2026",
+                "Reviewer: Sandra Tan"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · probation review opened": {
+            "title": "Probation review opened",
+            "part": null,
+            "lines": [
+                "Employee: Lim Wei Ming",
+                "Period start: 01/07/2026",
+                "Period end: 30/09/2026",
+                "Reviewer: Sandra Tan"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · opened for self-assessment": {
+            "title": "Opened for self-assessment",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · self-assessment reopened (Q35: the page's \"Reopen self-assessment\")": {
+            "title": "Self-assessment reopened",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · self-assessment finalised (the goal results are lines of it)": {
+            "title": "Self-assessment finalised",
+            "part": null,
+            "lines": [
+                "Self-assessment: A steady year; the stocktake work went well.",
+                "[Goal 1 · Run the monthly stocktake]",
+                "Employee result: (empty) → All counts done on time",
+                "Actual: (empty) → 12"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · self-assessment saved as a draft": {
+            "title": "Self-assessment saved",
+            "part": null,
+            "lines": [
+                "Self-assessment: (empty) → First thoughts"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · conclusion changed": {
+            "title": "Review conclusion changed",
+            "part": null,
+            "lines": [
+                "Rating: Meets Expectations → Exceeds Expectations",
+                "Written summary: (empty) → Ran every count; trained two new staff."
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · reviewer changed": {
+            "title": "Reviewer changed",
+            "part": null,
+            "lines": [
+                "Reviewer: Fu Sheng → Sandra Tan"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · submitted for approval (the approval row folds in)": {
+            "title": "Review submitted for approval",
+            "part": null,
+            "lines": [
+                "Rating: Exceeds Expectations"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · approved (Q7: the outcome from the review's own columns; the salary masked as today)": {
+            "title": "Review approved",
+            "part": null,
+            "lines": [
+                "Rating: Meets Expectations",
+                "Probation outcome: Confirm",
+                "New monthly salary: Restricted",
+                "Effective from: 01/11/2026"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · approved, read with data.view_pay": {
+            "title": "Review approved",
+            "part": null,
+            "lines": [
+                "Rating: Meets Expectations",
+                "Probation outcome: Confirm",
+                "New monthly salary: 5,200.00 SGD",
+                "Effective from: 01/11/2026"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · approved before the log (only the approval row; the outcome is today's review)": {
+            "title": "Review approved",
+            "part": null,
+            "lines": [
+                "Rating: Meets Expectations"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · acknowledged by the employee": {
+            "title": "Review acknowledged by the employee",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · voided": {
+            "title": "Review voided",
+            "part": null,
+            "lines": [],
+            "reason": "Opened for the wrong person",
+            "who": "Sandra"
+        },
+        "review · voided before the log (Q12: the stamp is the only record, with its reason)": {
+            "title": "Review voided",
+            "part": null,
+            "lines": [],
+            "reason": "Duplicate of the probation review",
+            "who": "Sandra"
+        },
+        "review · goal added": {
+            "title": "Goal added",
+            "part": "Run the monthly stocktake",
+            "lines": [
+                "Target: 12",
+                "Unit: counts"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · goal changed (field edit)": {
+            "title": "Goal changed",
+            "part": "Run the monthly stocktake",
+            "lines": [
+                "Target: 12 → 10"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review · goal removed (hard delete: its last values)": {
+            "title": "Goal removed",
+            "part": "Cut forklift idle time",
+            "lines": [
+                "Target: 10",
+                "Unit: %"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "my review · approved, read by a reviewer without hr.view (Q5: the approval row is Restricted)": {
+            "title": "Review approved",
+            "part": null,
+            "lines": [
+                "Rating: Meets Expectations",
+                "New monthly salary: Restricted",
+                "(Part of this change is restricted.)"
+            ],
+            "reason": null,
+            "who": "Restricted"
+        },
+        "review · approved, on the summary page (the employee code is named)": {
+            "title": "Review approved · EMP-2026-0007",
+            "part": null,
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review cycle · created": {
+            "title": "Review cycle created",
+            "part": "FY2026 annual",
+            "lines": [
+                "Period start: 01/01/2026",
+                "Period end: 31/12/2026",
+                "Due date: 31/01/2027"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review cycle · opened (Q6: the reviews it creates are not on the cycle)": {
+            "title": "Review cycle opened",
+            "part": "FY2026 annual",
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review cycle · closed": {
+            "title": "Review cycle closed",
+            "part": "FY2026 annual",
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "review cycle · due date changed (field edit)": {
+            "title": "Review cycle changed",
+            "part": "FY2026 annual",
+            "lines": [
+                "Due date: 31/01/2027 → 15/02/2027"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "rating scale · a rating added": {
+            "title": "Rating added",
+            "part": "Far Below Expectations",
+            "lines": [
+                "Name (Chinese): 远低于预期",
+                "Usually passes probation: No",
+                "Active: Yes"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "rating scale · description changed (field edit)": {
+            "title": "Rating changed",
+            "part": "Meets Expectations",
+            "lines": [
+                "Description (English): Met the objectives set for the period. → Met every objective set for the period."
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "rating scale · deactivated": {
+            "title": "Rating deactivated",
+            "part": "Below Expectations",
+            "lines": [],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "rating scale · two seeded before the log (one moment, one entry)": {
+            "title": "Rating added",
+            "part": "Outstanding",
+            "lines": [
+                "Name (Chinese): 卓越",
+                "Usually passes probation: Yes",
+                "Active: Yes",
+                "[Rating added · Meets Expectations]",
+                "Name (Chinese): 符合预期",
+                "Usually passes probation: Yes",
+                "Active: Yes"
+            ],
+            "reason": null,
+            "who": "Not recorded"
+        },
+        "KPI · five entries generated for one person (one operation, Q16)": {
+            "title": "KPI entries generated · 5",
+            "part": null,
+            "lines": [
+                "Employee: Lim Wei Ming",
+                "F1: Stocktake accuracy (30%)",
+                "F2: Receiving turnaround (20%)",
+                "C5: Planned maintenance done (20%)",
+                "S1: Safety observations (15%)",
+                "T3: Training hours (15%)"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "KPI · scored (judged, with evidence and feedback)": {
+            "title": "KPI scored: 4",
+            "part": "F1 · Stocktake accuracy",
+            "lines": [
+                "How it was scored: Judged",
+                "Evidence: Three counts, one variance found and cleared",
+                "Feedback: Keep the Friday count"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "KPI · re-scored, capped by a safety override": {
+            "title": "KPI re-scored: 4 → 5",
+            "part": "F1 · Stocktake accuracy",
+            "lines": [
+                "How it was scored: Judged",
+                "Safety / regulatory cap: 2",
+                "Reason for the cap: Forklift near-miss on 14/10"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "KPI · scored before the log (the stamp is the only record of that scoring)": {
+            "title": "KPI scored: 3",
+            "part": "F1 · Stocktake accuracy",
+            "lines": [
+                "How it was scored: Computed"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "KPI · evidence changed, the score unchanged (field edit)": {
+            "title": "KPI entry changed",
+            "part": "F1 · Stocktake accuracy",
+            "lines": [
+                "Evidence: Three counts → Three counts, all within tolerance"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        },
+        "employee · salary changed through a review (the review's machine note is said in English)": {
+            "title": "Salary changed",
+            "part": null,
+            "lines": [
+                "Effective date: 01/11/2026",
+                "Previous monthly salary: 5,000.00 SGD",
+                "New monthly salary: 5,200.00 SGD",
+                "(Changed through a performance review)"
+            ],
+            "reason": null,
+            "who": "Sandra"
+        }
+    }
+    const got13 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 45) problems.gold13.push(`⑬ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD13', order: r.group ? 2 : 1, prelog: false, at: '2026-10-03T02:00:00+00:00', key: { id: uuid() },
+            actor: c.actor ?? { state: 'person', name: 'Sandra' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold13.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        const mine = es.filter((x) => x.key === 'GOLD13')
+        if (mine.length !== 1) { problems.gold13.push(`${c.label}:一次操作应当是一条,造出了 ${mine.length} 条(${mine.map((x) => x.title).join(' | ')})`); continue }
+        const e = mine[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null, who: e.who.text }
+        got13[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold13.push(`${c.label}:金句表里没有这一句`); continue }
+        for (const k of ['title', 'part', 'reason', 'who']) if (got[k] !== w[k]) problems.gold13.push(`${c.label}:${k}「${got[k]}」≠「${w[k]}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold13.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+    }
+    if (process.env.TRAIL_GOLD13_PRINT) console.log(JSON.stringify(got13, null, 8))
+    // 两支剥机器字的函数:人的话留下、系统追加的那一截去掉、只有系统那一截时为空;撤销追加的理由取最后一次
+    const dn = R.splitPayrollDecisionNote(`OK\n${own}`), dn2 = R.splitPayrollDecisionNote(own), dn3 = R.splitPayrollDecisionNote('Fine')
+    if (dn.text !== 'OK' || dn.ownLine !== 'EMP-2026-0004' || dn2.text !== null || dn2.ownLine !== 'EMP-2026-0004' || dn3.text !== 'Fine' || dn3.ownLine !== null)
+        problems.gold13.push('splitPayrollDecisionNote 没有照约定剥(人的话留下、那一行的员工编号取出、只有系统那一截时为空)')
+    const un = R.splitPayrollUnpostNote('Bonus\n[2026-10-01 10:00 unposted] First\n[2026-10-02 11:00 unposted] Second')
+    if (un.notes !== 'Bonus' || un.reason !== 'Second' || un.unposts !== 2 || R.splitPayrollUnpostNote('[2026-10-01 10:00 unposted] Only').notes !== null)
+        problems.gold13.push('splitPayrollUnpostNote 没有照约定剥(人写的备注留下、理由取最后一次、时间戳不留)')
+
+    // 机器字扫描:六个主语各自的表,按【这一页】的说法(subject)造样本跑一遍;外加两种审批的每一种决定、工资申请与评审的每一种状态
+    const SUBS13 = ['payroll_period', 'performance_review', 'my_review', 'review_cycle', 'review_rating_scale', 'kpi_entry']
+    let s13 = 0
+    for (const sub of SUBS13) {
+        for (const t of R.SUBJECT_TABLES[sub] ?? []) {
+            const cols = Object.entries(SAMPLE_KINDS[t] ?? {})
+            for (let variant = 0; variant < 4; variant++) {
+                const img = {}, old = {}, neu = {}
+                for (const [c, [, kind]] of cols) {
+                    img[c] = sample(t, c, kind, variant)
+                    old[c] = variant === 2 ? RESTRICTED : variant === 3 ? null : sample(t, c, kind, variant + 1)
+                    neu[c] = variant === 1 ? RESTRICTED : sample(t, c, kind, variant + 2)
+                }
+                const refs = { ...refsFor(t, img, variant), ...refsFor(t, old, variant + 1), ...refsFor(t, neu, variant + 2) }
+                for (const [op, o] of [['INSERT', { new: img, prelog: variant === 3 }], ['UPDATE', { cols: cols.map(([c]) => c), old, new: neu, ctx: img, prelog: variant === 3 }], ['DELETE', { old: img }]]) {
+                    sweep(`${sub} · ${t} · ${op} · 样本 ${variant}`, [row(t, op, { ...o, refs })], sub)
+                    s13++
+                }
+            }
+        }
+        for (const st of ['payroll_request', 'performance_review']) for (const dec of checkValues('approval_log', 'decision') ?? []) {
+            sweep(`${sub} · approval ${st} ${dec}`, [row('approval_log', 'INSERT', { new: { subject_type: st, subject_id: uuid(), subject_code: 'PAY-2026-0001 · post #1', decision: dec,
+                note: `n\n本期含审批人自己的工资行 · this period includes the approver's own pay line: EMP-2026-0001` } })], sub)
+            s13++
+        }
+        for (const st of checkValues('payroll_requests', 'status') ?? []) {
+            sweep(`${sub} · payroll request → ${st}`, [row('payroll_requests', 'UPDATE', { cols: ['status'], old: { status: 'submitted' }, new: { status: st, kind: 'reversal', label: 'PAY-2026-0001 · reversal #2' } })], sub)
+            s13++
+        }
+        for (const st of checkValues('performance_reviews', 'status') ?? []) {
+            sweep(`${sub} · review → ${st}`, [row('performance_reviews', 'UPDATE', { cols: ['status'], old: { status: 'draft', self_assessment_submitted_at: '2026-10-01T02:00:00Z' }, new: { status: st } })], sub)
+            s13++
+        }
+        sweep(`${sub} · payroll unposted`, [row('payroll_periods', 'UPDATE', { cols: ['status', 'notes'], old: { status: 'posted', notes: 'x' }, new: { status: 'draft', notes: 'x\n[2026-10-04 21:16 unposted] Wrong rate' } })], sub)
+        s13++
+        sweep(`${sub} 整条看不见`, [row(R.SUBJECT_TABLES[sub][0], null, { hidden: true, table: null, actor: null })], sub)
+        s13++
+    }
+    const decisions13 = (checkValues('approval_log', 'decision') ?? []).length
+    const prStates = (checkValues('payroll_requests', 'status') ?? []).length, rvStates = (checkValues('performance_reviews', 'status') ?? []).length
+    const s13Want = SUBS13.reduce((n, sub) => n + (R.SUBJECT_TABLES[sub] ?? []).length * 12 + 2 * decisions13 + prStates + rvStates + 2, 0)
+    if (s13 !== s13Want || s13 < 200 || !decisions13 || !prStates || !rvStates) problems.coverage.push(`工资与评审那六个主语的机器字扫描造了 ${s13} 句,登记表要求 ${s13Want} 句(审批决定 ${decisions13} 种、申请状态 ${prStates} 种、评审状态 ${rvStates} 种)—— 造样本那一段瞎了`)
+    if (FAULT === 'wording-drift-1d3' && !problems.gold13.length) problems.gold13.push('(注入 wording-drift-1d3 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
 // AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
 const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
@@ -3445,7 +4239,7 @@ if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSw
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工', gold12: '⑫ 请假与考勤', gold13: '⑬ 工资与评审' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

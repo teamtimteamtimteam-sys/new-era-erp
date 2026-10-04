@@ -4865,7 +4865,6 @@ const en = {
             executeUnpost: 'Unpost',
             executeUnpostConfirm: 'Unpost this payroll now?',
             executeUnpostBody: 'The reason on the approved request goes on the reversal entry. The period returns to draft.',
-            history: 'Earlier requests',
             editLocked: 'This period has an open request, so it cannot be edited. Withdraw the request first.',
         },
         trainingTitle: 'Training Records',
@@ -5540,7 +5539,6 @@ const en = {
         stateAlreadyVoid: 'This appraisal has already been voided, so there is nothing left to void.',
         probationOutcomePendingHr: 'A probation review needs HR to record the confirmation decision before it can be submitted.',
         voidReason: 'Void reason', void: 'Void',
-        voidBanner: 'Voided: {0}',
         // HR decision
         hrDecisionTitle: 'HR decision',
         probationOutcome: 'Probation outcome',

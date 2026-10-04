@@ -26,6 +26,8 @@ import ScoreEditor, { type ScoreRow } from './ScoreEditor'
 import GenerateMissing, { type MissingPerson } from './GenerateMissing'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { Button } from '@/app/components/ui/button'
+import ListTrail from '@/app/components/trail/ListTrail'
+import { trailCount } from '@/app/components/trail/AuditTrail'
 
 type Cycle = {
     id: string; name: string; period_start: string; period_end: string
@@ -45,19 +47,19 @@ type Rubric = {
     score: number; band_en: string; band_zh: string
     evidence_standard_en: string; management_action_en: string; veto_rule_en: string
 }
-type Emp = { id: string; legal_name: string; position_id: string | null }
+type Emp = { id: string; code: string; legal_name: string; position_id: string | null }
 
 export default async function KpiScorePage({
     searchParams,
 }: {
-    searchParams: Promise<{ cycle?: string }>
+    searchParams: Promise<{ cycle?: string; trail?: string | string[] }>
 }) {
     const denied = await requireModule(MOD.hr)
     if (denied) return denied
 
     const supabase = await createClient()
     const t = await getTranslations()
-    const { cycle: chosenId } = await searchParams
+    const { cycle: chosenId, trail } = await searchParams
 
     // ★【读得进来 ≠ 改得动】module.hr.view 的人(auditor)可以看这一屏,
     //   但不该看到一排会被数据库 42501 掉的编辑钮。导航项挂在 edit 上,
@@ -87,6 +89,8 @@ export default async function KpiScorePage({
 
     let rows: ScoreRow[] = []
     let missing: MissingPerson[] = []
+    // AUDIT-TRAIL-1d-3:这一个月的每一条 KPI 条目一条记录,清单块按操作合起来(一次生成五条是一条)。员工按工号认
+    let trailRecords: { subject: 'kpi_entry'; id: string; label: string }[] = []
     if (chosen) {
         const [entries, orgs, staff] = await Promise.all([
             supabase.from('kpi_entries')
@@ -95,7 +99,7 @@ export default async function KpiScorePage({
             supabase.from('kpi_organisation').select('code, title, month3_target, month6_target'),
             // 【读遮蔽视图,不直连 employees】被扣下的列按权限呈现为 null,
             // 而不是让整条查询 42501 —— check-masked-reads 守的就是这一条。
-            supabase.from('employees_masked').select('id, legal_name, position_id').is('deleted_at', null),
+            supabase.from('employees_masked').select('id, code, legal_name, position_id').is('deleted_at', null),
         ])
         const es = mustRows(entries, 'kpi_entries') as Entry[]
         const os = mustRows(orgs, 'kpi_organisation') as Org[]
@@ -103,6 +107,7 @@ export default async function KpiScorePage({
 
         const orgBy = new Map(os.map((o) => [o.code, o]))
         const empBy = new Map(st.map((e) => [e.id, e]))
+        trailRecords = es.map((e) => ({ subject: 'kpi_entry' as const, id: e.id, label: `${empBy.get(e.employee_id)?.code ?? '—'} · ${e.kpi_ref}` }))
         const posBy = new Map<string, string>()
         if (es.length > 0) {
             const positions = mustRows(
@@ -276,6 +281,13 @@ export default async function KpiScorePage({
                     <PermissionGate code="action.hr_reviews" allowed={mayScore} className="flex w-full items-stretch">
                         <ScoreEditor rows={rows} canEdit={stateAllowsScoring} />
                     </PermissionGate>
+
+                    {/* AUDIT-TRAIL-1d-3:这一个月的 KPI 条目一块 —— 只在【看得见分数】那一支画(不持 data.view_reviews 的读者在上面
+                        已经读到一句具名的"受限";kpi_entries 的读规则对他只放行自己那一行,一块里有一条被拒就整块拒)。
+                        /me 上【没有】KPI 的审计记录(Q14 · Q16:没结束的那一轮,本人的分数藏到结束) */}
+                    {canSeeScores && (
+                        <ListTrail intro="listTrail.intro.kpiEntries" show={trailCount(trail)} records={trailRecords} />
+                    )}
                 </>
             )}
         </ListPage>

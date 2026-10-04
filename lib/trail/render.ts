@@ -205,6 +205,8 @@ const BASE_PRICE_COLS: Record<string, Set<string>> = {
     salary_change_requests: new Set(['old_monthly_salary', 'new_monthly_salary']),
     // AUDIT-TRAIL-1d-2:医疗报销的金额是本位币(那一列叫 amount_sgd,页面上的币种由消息参数带;表里没有币种列)
     medical_claims: new Set(['amount_sgd']),
+    // AUDIT-TRAIL-1d-3:评审里的新月薪是本位币(与员工、履历同一条;那张表没有币种列)
+    performance_reviews: new Set(['new_monthly_salary']),
 }
 function currencyFor(col: string, img: Img, opts: BuildOptions, d: TrailDict, table?: string): string | null {
     if (/_base$/.test(col) || /^(old|new)_amount_base$/.test(col)) return d.baseCurrency
@@ -423,6 +425,8 @@ const FIELD_ORDER: Record<string, string[]> = {
     public_holidays: ['holiday_date', 'name_en', 'name_zh', 'is_in_lieu', 'country', 'is_active', 'notes'],
     leave_types: ['name_en', 'name_zh', 'is_paid', 'is_accrued', 'default_days_per_year', 'requires_certificate_after_days', 'allows_half_day',
         'requires_approval', 'gender_restriction', 'is_active', 'description_en', 'description_zh', 'notes'],
+    // AUDIT-TRAIL-1d-3:评分刻度那一页上的先后
+    review_rating_scale: ['name_en', 'name_zh', 'description_en', 'description_zh', 'is_probation_pass', 'is_active', 'notes'],
 }
 function ordered(table: string | null, image: Img): [string, Json][] {
     const entries = Object.entries(image)
@@ -987,12 +991,19 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     my_medical_claim: ['medical_claims', 'approval_log', 'expenses', 'journal_entries', 'payment_allocations'],
     overtime_batch: ['overtime_batches', 'overtime_lines', 'approval_log'],
     attendance_period: ['attendance_periods', 'attendance_lines'],
+    // AUDIT-TRAIL-1d-3
+    payroll_period: ['payroll_periods', 'payroll_lines', 'payroll_requests', 'approval_log', 'journal_entries'],
+    performance_review: ['performance_reviews', 'review_goals', 'approval_log'],
+    my_review: ['performance_reviews', 'review_goals', 'approval_log'],
+    review_cycle: ['review_cycles'],
+    review_rating_scale: ['review_rating_scale'],
+    kpi_entry: ['kpi_entries'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
     | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
     | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings' | 'fin'
-    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time'
+    | 'access' | 'hr' | 'policy' | 'dict' | 'import' | 'time' | 'pay' | 'review' | 'kpi'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
@@ -1014,6 +1025,9 @@ const PAGE_FAMILY: Record<string, Family> = {
     // AUDIT-TRAIL-1d-2(假别与公共假期是 M11 集合,与六本字典同一种说法:"<Thing> added / changed / deactivated")
     leave_request: 'time', my_leave_request: 'time', leave_grant: 'time', medical_claim: 'time', my_medical_claim: 'time',
     overtime_batch: 'time', attendance_period: 'time', leave_types: 'dict', public_holidays: 'dict',
+    // AUDIT-TRAIL-1d-3(评分刻度是 M11 集合,与字典同一种说法:"Rating added / changed / deactivated")
+    payroll_period: 'pay', performance_review: 'review', my_review: 'review', review_cycle: 'review', review_rating_scale: 'dict',
+    kpi_entry: 'kpi',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -1039,6 +1053,8 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if ((subject === 'medical_claim' || subject === 'my_medical_claim') && (t === 'expenses' || t === 'journal_entries' || t === 'payment_allocations')) return 'fin'
     // AUDIT-TRAIL-1c-1:账上那七页上的每一行都从 describeFinance 说 —— 别的页上同一张表的说法不动
     if (subject && FIN_SUBJECTS.has(subject)) return 'fin'
+    // AUDIT-TRAIL-1d-3:工资期页上这一期的分录从工资期这一边说("Payroll posted" · "Salaries paid" · "CPF paid" …)
+    if (subject === 'payroll_period' && t === 'journal_entries') return 'pay'
     // AUDIT-TRAIL-1d-1:审批方针那一页上,那一行设置与它的修改史从方针这一边说;账号页上那名员工(只剩 user_id 一列,M10)从账号这一边说
     if (subject === 'approval_policy' && (t === 'finance_settings' || t === 'finance_settings_history')) return 'policy'
     if (t === 'finance_settings_history') return 'policy'
@@ -1050,7 +1066,11 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (subject === 'shipment' && t === 'shipment_lines') return 'shipment'
     if (t === 'counterparty_contacts') return subject === 'supplier' || (!subject && !imgOf(r)['customer_id']) ? 'supplier' : 'customer'
     // AUDIT-TRAIL-1d-2:请假、医疗报销、加班的审批照它那一页的话说("Leave approved"、"Overtime sent back" —— Q35)
-    if (t === 'approval_log') return str(r, 'subject_type') === 'purchase_order' ? 'po' : TIME_APPROVALS.has(str(r, 'subject_type') ?? '') ? 'time' : 'approval'
+    if (t === 'approval_log') {
+        const st = str(r, 'subject_type') ?? ''
+        // AUDIT-TRAIL-1d-3:工资申请与评审的审批同样照它那一页的话说("Payroll posting approved" · "Review approved")
+        return st === 'purchase_order' ? 'po' : TIME_APPROVALS.has(st) ? 'time' : st === 'payroll_request' ? 'pay' : st === 'performance_review' ? 'review' : 'approval'
+    }
     if (PO_TABLES.has(t)) return 'po'
     if (RUN_TABLES.has(t)) return 'run'
     if (t === 'roles' || t === 'role_permissions') return 'role'
@@ -1086,6 +1106,11 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     // AUDIT-TRAIL-1d-2
     if (TIME_TABLES.has(t)) return 'time'
     if (t === 'leave_types' || t === 'public_holidays') return 'dict'
+    // AUDIT-TRAIL-1d-3
+    if (PAY_TABLES.has(t)) return 'pay'
+    if (REVIEW_TABLES.has(t)) return 'review'
+    if (t === 'kpi_entries') return 'kpi'
+    if (t === 'review_rating_scale') return 'dict'
     return null
 }
 
@@ -3702,6 +3727,8 @@ const APP_CHANGE_NOTE = /^(?:(?:status|department|position|employment type): [^;
 function historyNote(d: TrailDict, notes: string | null): Line | null {
     if (!notes || !notes.trim()) return null
     if (/^Probation confirmed by performance review [0-9a-fA-F-]{36}$/.test(notes.trim())) return { t: 'note', text: tx(d, 'emp.noteReview') }
+    // AUDIT-TRAIL-1d-3:同一支 approve_review 的另一句(评审里定的新月薪)—— 此前没有认,于是一个 uuid 当成备注印在员工页上
+    if (/^Salary change approved with performance review [0-9a-fA-F-]{36}$/.test(notes.trim())) return { t: 'note', text: tx(d, 'emp.noteReviewSalary') }
     const m = notes.trim().match(/^Salary change approved with request (.+)$/)
     if (m) return { t: 'value', label: tx(d, 'emp.noteSalaryRequest'), value: { text: m[1], typed: true } }
     if (APP_CHANGE_NOTE.test(notes.trim())) return null
@@ -4182,6 +4209,444 @@ function describeTime(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block
 }
 
 // ════════════════════════════════════════════════════════════════════════════
+// AUDIT-TRAIL-1d-3:工资与评审 —— 工资期 · 评审(HR 那一页与审核人那一页)· 评审轮次 · KPI 条目(评分刻度走字典那一家:M11 集合)
+//   (Tim 2026-10-04,AT-1d Step 0 §a 与 Q5 · Q6 · Q7 · Q10 · Q11 · Q12 · Q27)
+// ════════════════════════════════════════════════════════════════════════════
+// 【工资行按员工配对】(Q11)upsert_payroll_period 每次保存都把这一期的工资行【全删、重插】(新的 id)。于是同一次操作里,
+//   同一个员工的一删一插是【同一行】:没变的一对什么都不说;变了的一对是一行 "Line · <name> · Gross pay: a → b"(每变一列一行)。
+//   只删不插 = 这个人不在了("Line removed · <name>");只插不删 = 新来的("Line added · <name>")。
+//   ★ 读者看不见金额(不持 data.view_pay —— 遮蔽规则把那五列说成 Restricted)时,一对"变没变"本身就是工资数据:
+//     那一次保存只说一行 "Pay lines · N people: Restricted"(Q4:看得见它在,看不见内容),不逐人猜。
+// 【机器写进人话那一格的字】(Q10)① 撤销过账在工资期的 notes 末尾追加一行 "[YYYY-MM-DD HH:MI unposted] 理由" —— 那是
+//   "Payroll unposted" 这件事本身,理由是那一行的后半截;从来不说成 "Notes changed",那一截时间戳也不上屏。
+//   ② 批 / 驳工资申请时,审批留痕的说明后面追加一行中英两段的 "本期含审批人自己的工资行 · this period includes the approver's
+//   own pay line: EMP-…" —— 剥掉,换成一行英文说明。③ 申请的 label("PAY-2026-0001 · post #1")里那一截原样的种类不上屏:
+//   标题已经说了它是过账还是撤销。④ 审批关着时自动批的那一句中文说明 —— "Approved automatically"(与采购单同一句)。
+// 【分录说它是哪一笔】过账 · 发薪 · CPF · 代扣款 · 撤销的冲销 —— 按【结构】认(工资期那几列指着谁、工资行的 paid_journal_entry_id、
+//   申请的 result_journal_entry_id、整页的冲销关系),不读 memo。与那一步同一笔的分录并进那一句;只有分录自己时(记录开始之前)
+//   照它的身份说同一句。认不出的照 1c-3 的说法 "Payroll journal posted"。
+// 【评审的结论按评审自己的几列说】(Q7)批准在同一笔里还改了员工那一行与任职履历(转正、调薪)——它们没有指回评审的键,不挂进来;
+//   "Review approved" 下面一行一行说出评审自己记着的结论:评级 · 试用期结论 · 新月薪(遮蔽照今天:不持 view_pay 的人是 Restricted)·
+//   生效日。记录开始之前只剩审批留痕那一行 —— 结论从整页那一份评审今天的样子读(审批之后这几列冻住,guard_performance_review_write)。
+// 【轮次】(Q6)开轮在同一笔里给每个人铺一份评审 —— 那几份评审不挂在轮次上(没有成员),轮次那一块只说 "Review cycle opened";
+//   每一份评审自己的那一段以 "Annual review opened (cycle <名字>)" 开头。
+// 【页面的话】(Q35)"Open self-assessment" / "Reopen self-assessment" / "Finalised" —— 评审页上那几个按钮与标记的说法。
+const PAY_TABLES = new Set(['payroll_periods', 'payroll_lines', 'payroll_requests'])
+const REVIEW_TABLES = new Set(['performance_reviews', 'review_goals', 'review_cycles'])
+const PAY_MONEY = ['gross_pay', 'employer_cpf', 'employee_cpf', 'other_deductions', 'net_pay']
+/** 整页的工资与评审上下文(与认冲销分录同一个做法:看整页,不只看这一条) */
+export type HrCtx = {
+    /** 分录 id → 它是工资期的哪一笔 */
+    journalRole: Map<string, 'post' | 'salary' | 'cpf' | 'deductions' | 'reversal'>
+    /** 发薪分录 id → 它付了几行 */
+    salaryLines: Map<string, number>
+    /** 工资申请 id → post / reversal */
+    requestKind: Map<string, string>
+    /** 评审 id → 它今天的样子(遮蔽之后;受限的值保留成 Restricted)与那一份的引用(评级的名字、人)*/
+    reviewImg: Map<string, { ctx: Img; refs: Refs | null }>
+}
+export function hrContext(rows: TrailRow[], reversals: Set<string>): HrCtx {
+    const c: HrCtx = { journalRole: new Map(), salaryLines: new Map(), requestKind: new Map(), reviewImg: new Map() }
+    const paid = new Map<string, Set<string>>()
+    for (const r of rows) {
+        if (r.hidden) continue
+        if (r.table === 'payroll_periods') {
+            for (const [col, role] of [['journal_entry_id', 'post'], ['cpf_journal_entry_id', 'cpf'], ['deductions_journal_entry_id', 'deductions']] as const) {
+                for (const v of [r.ctx?.[col], r.old?.[col], r.new?.[col]]) if (typeof v === 'string') c.journalRole.set(v, role)
+            }
+        } else if (r.table === 'payroll_lines') {
+            for (const v of [r.ctx?.['paid_journal_entry_id'], r.new?.['paid_journal_entry_id']]) {
+                if (typeof v !== 'string') continue
+                c.journalRole.set(v, 'salary')
+                paid.set(v, (paid.get(v) ?? new Set()).add(JSON.stringify(r.key)))
+            }
+        } else if (r.table === 'payroll_requests') {
+            const id = idOf(r), kind = str(r, 'kind')
+            if (id && kind) c.requestKind.set(id, kind)
+            const j = imgOf(r)['result_journal_entry_id']
+            if (typeof j === 'string' && kind) c.journalRole.set(j, kind === 'reversal' ? 'reversal' : 'post')
+        } else if (r.table === 'performance_reviews') {
+            const id = idOf(r)
+            if (id && r.ctx && !c.reviewImg.has(id)) c.reviewImg.set(id, { ctx: r.ctx, refs: r.refs })
+        }
+    }
+    for (const id of reversals) c.journalRole.set(id, 'reversal')
+    for (const [j, s] of paid) c.salaryLines.set(j, s.size)
+    return c
+}
+/** decide_payroll_request 在审批留痕的说明后面追加的那一行(中英两段)→ 人写的话 + 那一行点名的员工编号(Q10) */
+export function splitPayrollDecisionNote(note: string | null): { text: string | null; ownLine: string | null } {
+    if (!note) return { text: null, ownLine: null }
+    const m = note.match(/(?:^|\n)本期含审批人自己的工资行 · this period includes the approver's own pay line: (\S+)\s*$/)
+    if (!m) return { text: note.trim() || null, ownLine: null }
+    const text = note.slice(0, m.index).trim()
+    return { text: text || null, ownLine: m[1] }
+}
+/** unpost_payroll_period_internal 追加在工资期 notes 末尾的 "[YYYY-MM-DD HH:MI unposted] 理由" → 人写的备注 + 最后那一次的理由(Q10) */
+export function splitPayrollUnpostNote(notes: string | null): { notes: string | null; reason: string | null; unposts: number } {
+    if (!notes) return { notes: null, reason: null, unposts: 0 }
+    const re = /(?:^|\n)\[\d{4}-\d{2}-\d{2} \d{2}:\d{2} unposted\] ([^\n]*)/g
+    const reasons = [...notes.matchAll(re)].map((m) => m[1].trim())
+    const rest = notes.replace(re, '').trim()
+    return { notes: rest || null, reason: reasons.length ? reasons[reasons.length - 1] || null : null, unposts: reasons.length }
+}
+/** 申请的 label "PAY-2026-0001 · post #1" → 期间编号(那一截原样的种类不上屏)与种类 */
+function payrollLabel(label: string | null): { code: string | null; kind: string | null } {
+    if (!label) return { code: null, kind: null }
+    const m = label.match(/^(.+?) · (post|reversal) #\d+$/)
+    const code = m ? m[1] : label.split(' · ')[0]
+    return { code: DOC_CODE.test(code) ? code : null, kind: m ? m[2] : null }
+}
+const PAYROLL_REQUEST_TEXT = {
+    post: { sent: 'prl.sentPost', approved: 'prl.approvedPost', rejected: 'prl.rejectedPost', withdrawn: 'prl.withdrawnPost' },
+    reversal: { sent: 'prl.sentUnpost', approved: 'prl.approvedUnpost', rejected: 'prl.rejectedUnpost', withdrawn: 'prl.withdrawnUnpost' },
+} as const
+function prlKey(kind: string | null, what: 'sent' | 'approved' | 'rejected' | 'withdrawn'): TrailTextKey {
+    return PAYROLL_REQUEST_TEXT[kind === 'reversal' ? 'reversal' : 'post'][what]
+}
+function describePay(d: TrailDict, rows: TrailRow[], opts: BuildOptions, hc: HrCtx): Block2[] {
+    const out: Block2[] = []
+    const onPage = opts.subject === 'payroll_period'
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const skip = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
+    const people = (n: number) => tx(d, n === 1 ? 'prl.people.one' : 'prl.people.many', { n })
+    const periods = by('payroll_periods'), lines = by('payroll_lines'), jes = by('journal_entries')
+    const statusTo = (r: TrailRow) => (changed(r, 'status') ? str(r, 'status', 'new') : null)
+    const created = periods.find((r) => r.op === 'INSERT')
+    const postRow = periods.find((r) => statusTo(r) === 'posted')
+    const unpostRow = periods.find((r) => statusTo(r) === 'draft' && str(r, 'status', 'old') === 'posted')
+    const cpfRow = periods.find((r) => r.op === 'UPDATE' && isSet(r, 'cpf_paid_at'))
+    const dedRow = periods.find((r) => r.op === 'UPDATE' && isSet(r, 'deductions_paid_at'))
+    // 这一期的编号:在它自己那一页上不再报;在别处(汇总页、分录页)报
+    const codeOf = (r: TrailRow | undefined) => (onPage || !r ? null : docCode(str(r, 'code')))
+    const jeLine = (key: TrailTextKey, v: Val | null): Line[] => (v ? [{ t: 'value', label: tx(d, key), value: v }] : [])
+    // 分录号只在读者看得见那一张分录时才说(工资期页自己的规矩:没有财务权限的人在页头读到的是 Restricted)——
+    //   同一笔里那一张分录不在可见的行里 = 它被藏了
+    const restrictedVal: Val = { text: tx(d, 'restricted'), restricted: true }
+    const seen = (v: Val | null, jid: Json | undefined): Val | null => (v && typeof jid === 'string' && !jes.some((j) => idOf(j) === jid) ? restrictedVal : v)
+    const jeSelf = (r: TrailRow): Val | null => { const c = str(r, 'code'); return c ? { text: c } : null }
+    const jeOf = (role: string) => jes.find((j) => j.op === 'INSERT' && hc.journalRole.get(idOf(j) ?? '') === role)
+
+    // ── 工资行:一次操作里按员工配对(Q11)──
+    const del = new Map<string, TrailRow>(), ins = new Map<string, TrailRow>()
+    const lineUpdates: TrailRow[] = []
+    for (const r of lines) {
+        const emp = str(r, 'employee_id')
+        if (r.op === 'DELETE' && emp) del.set(emp, r)
+        else if (r.op === 'INSERT' && emp) ins.set(emp, r)
+        else if (r.op === 'UPDATE') lineUpdates.push(r)
+    }
+    const lineLines: Line[] = []
+    let hiddenPairs = 0
+    const nameOf = (r: TrailRow) => refText(d, r, 'employee_id')?.text ?? cap(thing(d, 'payroll_lines'))
+    const money = (r: TrailRow, img: Img | null, c: string) => formatValue(d, 'payroll_lines', c, img?.[c], imgOf(r), r.refs, r.op, opts)
+    for (const [emp, after] of ins) {
+        const before = del.get(emp)
+        if (!before) continue
+        const restricted = PAY_MONEY.some((c) => isRestricted(before.old?.[c]) || isRestricted(after.new?.[c]))
+        const cols = restricted ? ['notes'] : [...PAY_MONEY, 'notes']
+        for (const c of cols) {
+            if (JSON.stringify(before.old?.[c] ?? null) === JSON.stringify(after.new?.[c] ?? null)) continue
+            lineLines.push({ t: 'change', label: `${tx(d, 'prl.lineHeading', { name: nameOf(after) })} · ${fieldMeta(d, 'payroll_lines', c)[0]}`,
+                old: money(before, before.old, c), new: money(after, after.new, c) })
+        }
+        if (restricted) hiddenPairs++
+    }
+    if (hiddenPairs) lineLines.push({ t: 'value', label: tx(d, 'prl.linesRestricted', { people: people(hiddenPairs) }), value: { text: tx(d, 'restricted'), restricted: true } })
+    if (!created) {
+        for (const [emp, r] of ins) if (!del.has(emp)) lineLines.push({ t: 'value', label: tx(d, 'prl.lineAdded', { name: nameOf(r) }), value: money(r, r.new, 'gross_pay') })
+        for (const [emp, r] of del) if (!ins.has(emp)) lineLines.push({ t: 'value', label: tx(d, 'prl.lineRemoved', { name: nameOf(r) }), value: money(r, r.old, 'gross_pay') })
+    }
+
+    // ── 工资期 ──
+    for (const r of periods) {
+        if (r === created) {
+            const n = ins.size
+            const totals = periods.filter((x) => x !== r && x.op === 'UPDATE')
+            const last = (c: string): Json | undefined => { let v = r.new?.[c]; for (const x of totals) if ((x.cols ?? []).includes(c)) v = x.new?.[c]; return v }
+            const img = { ...(r.new ?? {}) }
+            for (const c of ['gross_total', 'net_pay_total']) img[c] = last(c) ?? null
+            const ls: Line[] = []
+            for (const c of ['period_month', 'payment_date', 'currency', 'gross_total', 'net_pay_total', 'source_note']) {
+                const v = img[c]
+                if (isEmpty(v ?? null) && !isRestricted(v)) continue
+                ls.push({ t: 'value', label: fieldMeta(d, 'payroll_periods', c)[0], value: formatValue(d, 'payroll_periods', c, v, img, r.refs, 'INSERT', opts) })
+            }
+            const notes = typed(splitPayrollUnpostNote(str(r, 'notes', 'new')).notes)
+            if (notes) ls.push({ t: 'value', label: fieldMeta(d, 'payroll_periods', 'notes')[0], value: notes })
+            out.push({ title: withPart(n ? `${tx(d, 'prl.recorded')} · ${people(n)}` : tx(d, 'prl.recorded'), codeOf(r)), lines: ls, key: true, weight: 100 })
+            continue
+        }
+        if (r.op === 'DELETE' || (r.op === 'UPDATE' && isSet(r, 'deleted_at'))) { out.push(describeGeneric(d, r, opts)); continue }
+        // 建立的那一笔里,upsert 先以 0 插入、再把合计写上 —— 那是建立本身(合计已经取最后写下的值说了),不是一次改动
+        if (created && r.op === 'UPDATE' && !statusTo(r)) continue
+        if (r === postRow) {
+            out.push({ title: withPart(tx(d, 'prl.posted'), codeOf(r)), key: true, weight: 100,
+                lines: jeLine('prl.journal', seen(docVal(d, r, 'payroll_periods', 'journal_entry_id'), r.new?.['journal_entry_id'])) })
+            continue
+        }
+        if (r === unpostRow) {
+            const orig = jes.find((j) => j.op === 'UPDATE' && changed(j, 'reversed_by'))
+            const rev = (orig ? docVal(d, orig, 'journal_entries', 'reversed_by') : (() => { const j = jeOf('reversal'); return j ? jeSelf(j) : null })()) ?? restrictedVal
+            const reason = splitPayrollUnpostNote(str(r, 'notes', 'new')).reason
+            out.push({ title: withPart(tx(d, 'prl.unposted'), codeOf(r)), lines: jeLine('prl.reversalJournal', rev), reason: typed(reason), key: true, weight: 100 })
+            continue
+        }
+        if (r === cpfRow || r === dedRow) {
+            const cpf = r === cpfRow
+            out.push({ title: withPart(tx(d, cpf ? 'prl.cpfPaid' : 'prl.deductionsPaid'), codeOf(r)), key: true, weight: 100,
+                lines: [...vline(d, r, cpf ? 'cpf_paid_at' : 'deductions_paid_at', opts),
+                        ...jeLine('prl.journal', seen(docVal(d, r, 'payroll_periods', cpf ? 'cpf_journal_entry_id' : 'deductions_journal_entry_id'),
+                                                      r.new?.[cpf ? 'cpf_journal_entry_id' : 'deductions_journal_entry_id']))] })
+            continue
+        }
+        // 一次保存(重导):抬头那几列 + 合计 + 配对之后的工资行;notes 只比人写的那一段(撤销追加的那几行不是这一次的改动)
+        const was = splitPayrollUnpostNote(str(r, 'notes', 'old')).notes, now = splitPayrollUnpostNote(str(r, 'notes', 'new')).notes
+        const ls = changeLines(d, r, opts, new Set([...skip, 'notes', 'status', 'journal_entry_id']))
+        if (changed(r, 'notes') && was !== now) {
+            ls.push({ t: 'change', label: fieldMeta(d, 'payroll_periods', 'notes')[0],
+                old: was ? truncate(was, true) : { text: tx(d, 'empty'), empty: true }, new: now ? truncate(now, true) : { text: tx(d, 'empty'), empty: true } })
+        }
+        if (ls.length || lineLines.length) out.push({ title: withPart(tx(d, 'prl.changed'), codeOf(r)), lines: [...ls, ...lineLines], key: false, weight: 60 })
+    }
+    // 工资行单独出现(记录开始之前:最近一次保存的那一刻;或一次只动了行的操作)
+    if (!periods.some((r) => r !== created && r.op === 'UPDATE' && !isSet(r, 'cpf_paid_at') && !isSet(r, 'deductions_paid_at')) && !created) {
+        const prelogIns = [...ins.values()].filter((r) => r.prelog)
+        if (prelogIns.length && !del.size) out.push({ title: `${tx(d, 'prl.linesSaved')} · ${people(prelogIns.length)}`, lines: [], key: true, weight: 50 })
+        else if (lineLines.length) out.push({ title: tx(d, 'prl.changed'), lines: lineLines, key: false, weight: 50 })
+    }
+    for (const r of lineUpdates) {
+        // 发薪那一笔给每一行盖 paid_at —— 那是"Salaries paid"那一句(分录的建立说它)
+        if ((r.cols ?? []).every((c) => c === 'paid_at' || c === 'paid_journal_entry_id')) continue
+        const ls = changeLines(d, r, opts, skip)
+        if (ls.length) out.push({ title: tx(d, 'prl.changed'), lines: [{ t: 'heading', text: tx(d, 'prl.lineHeading', { name: nameOf(r) }) }, ...ls], key: false, weight: 40 })
+    }
+
+    // ── 这一期的分录(过账 · 发薪 · CPF · 代扣款 · 撤销的冲销):与那一步同一笔的并进那一句;单独出现时照它的身份说同一句 ──
+    for (const j of jes) {
+        const id = idOf(j) ?? ''
+        const role = hc.journalRole.get(id)
+        if (j.op === 'UPDATE' && changed(j, 'status') && str(j, 'status', 'new') === 'reversed') {
+            if (unpostRow) continue
+            out.push({ title: tx(d, 'prl.unposted'), lines: jeLine('prl.reversalJournal', docVal(d, j, 'journal_entries', 'reversed_by')), key: true, weight: 90 })
+            continue
+        }
+        if (j.op !== 'INSERT') { out.push({ ...describeGeneric(d, j, opts), title: withPart(tx(d, 'journal.edited'), str(j, 'code')), weight: 25 }); continue }
+        if (role === 'post') { if (!postRow) out.push({ title: tx(d, 'prl.posted'), lines: jeLine('prl.journal', jeSelf(j)), key: true, weight: 90 }); continue }
+        if (role === 'reversal') { if (!unpostRow && !jes.some((x) => x.op === 'UPDATE' && str(x, 'reversed_by', 'new') === id)) out.push({ title: tx(d, 'prl.unposted'), lines: jeLine('prl.reversalJournal', jeSelf(j)), key: true, weight: 90 }); continue }
+        if (role === 'cpf') { if (!cpfRow) out.push({ title: tx(d, 'prl.cpfPaid'), lines: jeLine('prl.journal', jeSelf(j)), key: true, weight: 90 }); continue }
+        if (role === 'deductions') { if (!dedRow) out.push({ title: tx(d, 'prl.deductionsPaid'), lines: jeLine('prl.journal', jeSelf(j)), key: true, weight: 90 }); continue }
+        if (role === 'salary') {
+            const n = hc.salaryLines.get(id) ?? lineUpdates.filter((r) => str(r, 'paid_journal_entry_id', 'new') === id).length
+            out.push({ title: n ? `${tx(d, 'prl.salariesPaid')} · ${people(n)}` : tx(d, 'prl.salariesPaid'), lines: jeLine('prl.journal', jeSelf(j)), key: true, weight: 90 })
+            continue
+        }
+        out.push({ title: withPart(tx(d, 'je.posted.payroll'), str(j, 'code')), lines: [], key: true, weight: 55 })
+    }
+
+    // ── 过账 / 撤销的申请(审批留痕并进它批的那一张;执行与过账 / 撤销同一笔 —— 那一句说它)──
+    for (const r of by('payroll_requests')) {
+        const id = idOf(r)
+        const kind = str(r, 'kind') ?? (id ? hc.requestKind.get(id) ?? null : null)
+        const code = onPage ? null : payrollLabel(str(r, 'label')).code
+        const to = statusTo(r)
+        if (r.op === 'INSERT') {
+            const auto = str(r, 'status', 'new') === 'approved' || by('approval_log').some((a) => str(a, 'subject_id') === id && str(a, 'decision', 'new') === 'auto_approved')
+            const ls: Line[] = [...(auto ? [{ t: 'note', text: tx(d, 'po.autoApproved') } as Line] : []), ...vlines(d, r, ['gross_total'], opts)]
+            out.push({ title: withPart(tx(d, prlKey(kind, auto ? 'approved' : 'sent')), code), lines: ls, reason: typed(r.new?.['notes']), key: true, weight: 85,
+                       recordId: id, absorbsApproval: true })
+        } else if (to === 'withdrawn' || (r.prelog && (r.cols ?? []).includes('withdrawn_at'))) {
+            out.push({ title: withPart(tx(d, prlKey(kind, 'withdrawn')), code), lines: [], key: true, weight: 85, recordId: id, absorbsApproval: true })
+        } else if (to === 'approved' || to === 'rejected') {
+            out.push({ title: withPart(tx(d, prlKey(kind, to)), code), lines: [], reason: typed(r.new?.['decision_notes']), key: true, weight: 90, recordId: id, absorbsApproval: true })
+        } else if (to === 'executed') {
+            // 执行与过账 / 撤销同一笔 —— 工资期那一句说它;万一它单独出现,照它的种类说那一步
+            if (!postRow && !unpostRow) out.push({ title: withPart(tx(d, kind === 'reversal' ? 'prl.unposted' : 'prl.posted'), code), lines: [], key: true, weight: 90 })
+        } else if (r.op === 'UPDATE') {
+            const ls = changeLines(d, r, opts, new Set(['decided_at', 'decided_by', 'executed_at', 'executed_by', 'result_journal_entry_id', 'label', 'snapshot']))
+            if (ls.length) out.push({ title: withPart(tx(d, 'prl.requestChanged'), code), lines: ls, key: false, weight: 35, recordId: id })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    for (const a of by('approval_log')) {
+        if (a.op !== 'INSERT') { out.push(describeGeneric(d, a, opts)); continue }
+        const sid = str(a, 'subject_id')
+        const { code, kind: lk } = payrollLabel(str(a, 'subject_code'))
+        const kind = (sid ? hc.requestKind.get(sid) : null) ?? lk
+        const decision = str(a, 'decision', 'new') ?? ''
+        const what = decision === 'submitted' ? 'sent' : decision === 'approved' || decision === 'auto_approved' ? 'approved' : decision === 'rejected' ? 'rejected' : null
+        if (!what) { out.push(...describeApproval(d, [a])); continue }
+        const { text, ownLine } = decision === 'auto_approved' ? { text: null, ownLine: null } : splitPayrollDecisionNote(str(a, 'note', 'new'))
+        const ls: Line[] = [...(decision === 'auto_approved' ? [{ t: 'note', text: tx(d, 'po.autoApproved') } as Line] : []),
+                            ...(ownLine ? [{ t: 'note', text: tx(d, 'prl.ownLine', { code: ownLine }) } as Line] : [])]
+        out.push({ title: withPart(tx(d, prlKey(kind, what)), onPage ? null : code), lines: ls, reason: typed(text), key: true, weight: 85, approvalFor: sid ?? undefined })
+    }
+    // 审批并进申请那一句时,那一句只带走理由与它自己的标题;"本期含审批人自己的工资行"那一行要跟过去
+    for (const a of out.filter((b) => b.approvalFor)) {
+        const target = out.find((b) => b !== a && b.recordId === a.approvalFor)
+        if (target) for (const l of a.lines) if (l.t === 'note' && !target.lines.some((x) => x.t === 'note' && x.text === l.text)) target.lines.push(l)
+    }
+    return out
+}
+
+function reviewTitle(d: TrailDict, r: TrailRow): string {
+    if (str(r, 'review_type') === 'probation') return tx(d, 'rv.openedProbation')
+    const cyc = refText(d, r, 'cycle_id')
+    return cyc ? tx(d, 'rv.openedAnnual', { cycle: cyc.text }) : tx(d, 'rv.openedAnnualNoCycle')
+}
+/** 评审的结论,按评审自己的几列说(Q7)—— 受限的照样说 Restricted(vlinesR) */
+function reviewOutcome(d: TrailDict, r: TrailRow, opts: BuildOptions): Line[] {
+    const img = imgOf(r)
+    const raw = (c: string) => r.new?.[c] ?? r.old?.[c] ?? r.ctx?.[c]
+    const cols = ['rating_code', ...(img['review_type'] === 'probation' ? ['probation_outcome'] : [])]
+    if (!isEmpty(raw('new_monthly_salary') ?? null) || isRestricted(raw('new_monthly_salary'))) cols.push('new_monthly_salary', 'salary_effective_date')
+    return vlinesR(d, r, cols, opts)
+}
+const REVIEW_CONCLUSION = ['rating_code', 'summary_text']
+const REVIEW_HR = ['probation_outcome', 'new_monthly_salary', 'salary_effective_date']
+function goalHeading(d: TrailDict, r: TrailRow): Line {
+    const n = num(imgOf(r)['sequence'] ?? null)
+    return { t: 'heading', text: n !== null ? tx(d, 'rv.goalHeading', { n }) : cap(thing(d, 'review_goals')), part: typed(str(r, 'objective_text')) }
+}
+function describeReview(d: TrailDict, rows: TrailRow[], opts: BuildOptions, hc: HrCtx): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const skip = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
+    const reviews = by('performance_reviews'), goals = by('review_goals')
+    // 自评那一笔(本人保存 / 定稿)整批写每一个目标的结果 —— 那几行是它下面的行,不各自成句
+    const selfOp = reviews.some((r) => r.op === 'UPDATE' && (changed(r, 'self_assessment_text') || changed(r, 'self_assessment_submitted_at')) && !changed(r, 'status'))
+    const goalLines: Line[] = []
+    for (const r of reviews) {
+        const id = idOf(r)
+        if (r.op === 'INSERT') {
+            out.push({ title: reviewTitle(d, r), lines: vlinesR(d, r, ['employee_id', 'period_start', 'period_end', 'reviewer_employee_id'], opts), key: true, weight: 100 })
+            continue
+        }
+        if (r.op === 'DELETE') { out.push(describeGeneric(d, r, opts)); continue }
+        const to = changed(r, 'status') ? str(r, 'status', 'new') : null
+        const prelogVoid = r.prelog && (r.cols ?? []).includes('voided_at')
+        if (to === 'void' || prelogVoid) {
+            out.push({ title: tx(d, 'rv.voided'), lines: [], reason: typed(r.new?.['void_reason']), key: true, weight: 100, recordId: id })
+            continue
+        }
+        if (to === 'self_review') {
+            const reopened = !isEmpty(r.old?.['self_assessment_submitted_at'] ?? null)
+            out.push({ title: tx(d, reopened ? 'rv.selfReopened' : 'rv.openedForSelf'), lines: [], key: true, weight: 95, recordId: id })
+            continue
+        }
+        if (to === 'submitted') {
+            out.push({ title: tx(d, 'rv.submitted'), lines: vlinesR(d, r, ['rating_code', ...(imgOf(r)['review_type'] === 'probation' ? ['probation_outcome'] : [])], opts),
+                       key: true, weight: 95, recordId: id, absorbsApproval: true })
+            continue
+        }
+        if (to === 'approved') {
+            out.push({ title: tx(d, 'rv.approved'), lines: reviewOutcome(d, r, opts), key: true, weight: 100, recordId: id, absorbsApproval: true })
+            continue
+        }
+        if (to === 'acknowledged') {
+            out.push({ title: tx(d, 'rv.acknowledged'), lines: [], key: true, weight: 95, recordId: id, absorbsApproval: true })
+            continue
+        }
+        if (changed(r, 'self_assessment_submitted_at') && !isEmpty(r.new?.['self_assessment_submitted_at'] ?? null)) {
+            out.push({ title: tx(d, 'rv.selfFinalised'), lines: vlines(d, r, ['self_assessment_text'], opts), key: true, weight: 90, recordId: id })
+            continue
+        }
+        if (changed(r, 'self_assessment_text')) {
+            out.push({ title: tx(d, 'rv.selfSaved'), lines: changeLines(d, r, opts, new Set([...skip, 'self_assessment_submitted_at'])), key: false, weight: 70, recordId: id })
+            continue
+        }
+        const cols = r.cols ?? []
+        const key: TrailTextKey = cols.includes('reviewer_employee_id') ? 'rv.reviewerChanged'
+            : cols.some((c) => REVIEW_CONCLUSION.includes(c)) ? 'rv.conclusionChanged'
+            : cols.some((c) => REVIEW_HR.includes(c)) ? 'rv.hrDecisionChanged' : 'rv.changed'
+        const ls = changeLines(d, r, opts, skip)
+        if (ls.length) out.push({ title: tx(d, key), lines: ls, key: key !== 'rv.changed', weight: 70, recordId: id })
+    }
+    for (const r of goals) {
+        const part = typed(str(r, 'objective_text'))
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'rv.goalAdded'), part, lines: vlines(d, r, ['target_value', 'unit'], opts), key: false, weight: 60 })
+        } else if (r.op === 'DELETE') {
+            out.push({ title: tx(d, 'rv.goalRemoved'), part, lines: vlines(d, r, ['target_value', 'actual_value', 'unit', 'employee_result_text', 'reviewer_assessment_text'], opts), key: false, weight: 60 })
+        } else {
+            const ls = changeLines(d, r, opts, skip)
+            if (!ls.length) continue
+            if (selfOp) goalLines.push(goalHeading(d, r), ...ls)
+            else out.push({ title: tx(d, 'rv.goalChanged'), part, lines: ls, key: false, weight: 60 })
+        }
+    }
+    if (goalLines.length) {
+        const self = out.find((b) => b.title === tx(d, 'rv.selfFinalised') || b.title === tx(d, 'rv.selfSaved'))
+        if (self) self.lines.push(...goalLines)
+        else out.push({ title: tx(d, 'rv.goalChanged'), lines: goalLines, key: false, weight: 60 })
+    }
+    // 审批留痕:送审 · 批准 · 本人确认(与评审那一行同一笔时并进那一句;单独出现时 —— 记录开始之前 —— 照同一句说,
+    //   批准那一句的结论从整页那一份评审今天的样子读,Q7)
+    for (const a of by('approval_log')) {
+        if (a.op !== 'INSERT') { out.push(describeGeneric(d, a, opts)); continue }
+        const decision = str(a, 'decision', 'new') ?? ''
+        const sid = str(a, 'subject_id') ?? undefined
+        const key: TrailTextKey | null = decision === 'submitted' ? 'rv.submitted' : decision === 'approved' || decision === 'auto_approved' ? 'rv.approved'
+            : decision === 'acknowledged' ? 'rv.acknowledged' : null
+        if (!key) { out.push(...describeApproval(d, [a])); continue }
+        const own = opts.subject === 'performance_review' || opts.subject === 'my_review'
+        const rv = sid ? hc.reviewImg.get(sid) : undefined
+        const ls = key === 'rv.approved' && rv && !reviews.some((r) => idOf(r) === sid)
+            ? reviewOutcome(d, { ...a, table: 'performance_reviews', op: 'UPDATE', cols: [], old: null, new: null, ctx: rv.ctx, refs: rv.refs }, opts) : []
+        out.push({ title: withPart(tx(d, key), own ? null : docCode(str(a, 'subject_code'))), lines: ls, reason: typed(a.new?.['note']), key: true, weight: 90, approvalFor: sid })
+    }
+    // ── 评审轮次(Q6)──
+    for (const r of by('review_cycles')) {
+        const part = typed(str(r, 'name'))
+        const to = changed(r, 'status') ? str(r, 'status', 'new') : null
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'rcy.created'), part, lines: vlines(d, r, ['period_start', 'period_end', 'due_date', 'notes'], opts), key: true, weight: 100 })
+        else if (to === 'open') out.push({ title: tx(d, 'rcy.opened'), part, lines: [], key: true, weight: 100 })
+        else if (to === 'closed') out.push({ title: tx(d, 'rcy.closed'), part, lines: [], key: true, weight: 100 })
+        else if (r.op === 'UPDATE' && !isSet(r, 'deleted_at')) {
+            const ls = changeLines(d, r, opts, skip)
+            if (ls.length) out.push({ title: tx(d, 'rcy.changed'), part, lines: ls, key: false, weight: 40 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    return out
+}
+/** KPI 条目:一次生成(assign_position_kpis 一个人一次,N 条一笔)· 打分 / 改分(score_kpi_entry)· 别的改动 */
+function describeKpi(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const skip = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
+    const partOf = (r: TrailRow) => typed([str(r, 'kpi_ref'), str(r, 'title')].filter(Boolean).join(' · '))
+    const made = rows.filter((r) => r.op === 'INSERT')
+    if (made.length) {
+        const ls: Line[] = []
+        const emps = [...new Set(made.map((r) => str(r, 'employee_id')).filter((x): x is string => !!x))]
+        for (const e of emps) {
+            const first = made.find((r) => str(r, 'employee_id') === e)!
+            ls.push({ t: 'value', label: fieldMeta(d, 'kpi_entries', 'employee_id')[0], value: refText(d, first, 'employee_id') ?? { text: tx(d, 'empty'), empty: true } })
+        }
+        for (const r of made) {
+            const w = formatValue(d, 'kpi_entries', 'weight_pct', imgOf(r)['weight_pct'], imgOf(r), r.refs, 'INSERT', opts)
+            ls.push({ t: 'value', label: str(r, 'kpi_ref') ?? cap(thing(d, 'kpi_entries')), value: typed(`${str(r, 'title') ?? ''} (${w.text}%)`) ?? { text: tx(d, 'empty'), empty: true } })
+        }
+        out.push({ title: made.length === 1 ? tx(d, 'kpe.generatedOne') : tx(d, 'kpe.generated', { n: made.length }), lines: ls, key: true, weight: 100 })
+    }
+    for (const r of rows) {
+        if (r.op === 'INSERT') continue
+        if (r.op === 'DELETE') { out.push(describeGeneric(d, r, opts)); continue }
+        const now = num(r.new?.['score'] ?? null)
+        if (now !== null && (changed(r, 'score') || (r.prelog && (r.cols ?? []).includes('scored_at')))) {
+            // 打分(score_kpi_entry 一次写下分、种类、依据、反馈、封顶);再打一次是"改分":先前那个分说出来
+            const was = r.prelog ? null : num(r.old?.['score'] ?? null)
+            const title = was !== null ? tx(d, 'kpe.rescored', { from: was, to: now }) : tx(d, 'kpe.scored', { score: now })
+            const ls = r.prelog ? vlines(d, r, ['score_kind'], opts)
+                : vlines(d, r, ['score_kind', 'computed_basis', 'evidence_note', 'feedback_note', 'override_cap', 'override_reason'], opts)
+            out.push({ title, part: partOf(r), lines: ls, key: true, weight: 90 })
+            continue
+        }
+        const ls = changeLines(d, r, opts, new Set([...skip, 'scored_at', 'scored_by']))
+        if (ls.length) out.push({ title: tx(d, 'kpe.changed'), part: partOf(r), lines: ls, key: false, weight: 40 })
+    }
+    return out
+}
+
+// ════════════════════════════════════════════════════════════════════════════
 // 组装
 // ════════════════════════════════════════════════════════════════════════════
 function whoOf(d: TrailDict, rows: TrailRow[]): Val {
@@ -4286,6 +4751,8 @@ export function buildEntries(d: TrailDict, rows0: TrailRow[], opts: BuildOptions
         }
     }
     const fc = opts.subject && FIN_SUBJECTS.has(opts.subject) ? finContext(rows) : null
+    // AUDIT-TRAIL-1d-3:工资期的分录是哪一笔、发薪付了几行、评审今天的结论 —— 看整页
+    const hc = hrContext(rows, reversals)
     const groups = new Map<string, TrailRow[]>()
     for (const r of rows) {
         const g = groups.get(r.group)
@@ -4353,6 +4820,9 @@ export function buildEntries(d: TrailDict, rows0: TrailRow[], opts: BuildOptions
                 case 'dict': bs = describeDict(d, list, opts); break
                 case 'import': bs = describeImport(d, list, opts); break
                 case 'time': bs = describeTime(d, list, opts); break
+                case 'pay': bs = describePay(d, list, opts, hc); break
+                case 'review': bs = describeReview(d, list, opts, hc); break
+                case 'kpi': bs = describeKpi(d, list, opts); break
                 default: bs = []
             }
             // 别的记录的事(往上一跳够到的、审批、分录)永远不当这一条的标题 —— 这一页自己那件事在,标题就是它

@@ -309,7 +309,10 @@ const MEASURE = `(() => {
   //   measurements under /login -- a page that has no table was reported as
   //   having a 7-column one. Any route whose landedOn differs from what was
   //   requested is excluded from the counts rather than quietly folded in.
-  const landedOn = location.pathname;
+  //   AUDIT-TRAIL-1d-3: pathname + search -- a --paths address with a query
+  //   string (/hr/kpi/score?cycle=<id>) read pathname only and was filed as
+  //   "redirected" to itself, dropping out of the denominator.
+  const landedOn = location.pathname + location.search;
 
   const denied = !!document.querySelector('[data-access-denied]');
   const bodyText = (document.body ? document.body.innerText : '') || '';
@@ -822,7 +825,9 @@ async function main() {
     // AUDIT-TRAIL-1b-3:--paths=/sales/customers/<id>,… —— 量几条【具体的】地址,与路由同一套量法。
     //   为什么要它:一条路由只取线上的【第一行】(见 firstId),于是一页的某一种状态(一条删掉的记录的横幅与只读)
     //   永远轮不到被量。给了 --paths 而没给 --routes 时,只量这几条;两个都给就两边合起来。
-    const pathsArg = (process.argv.find((a) => a.startsWith('--paths=')) || '').split('=')[1]
+    // AUDIT-TRAIL-1d-3:取 --paths= 后面的【整段】—— 一条带查询串的地址(/hr/kpi/score?cycle=<id>)本身含 '=',
+    //   按 '=' 切会把它截成 "/hr/kpi/score?cycle",量到的是另一页(没有选月份的那一页)
+    const pathsArg = (process.argv.find((a) => a.startsWith('--paths=')) || '').slice('--paths='.length)
     if (pathsArg) {
         const extra = pathsArg.split(',').filter(Boolean).map((p) => ({ route: p, url: p, dynamic: true }))
         targets = routesArg ? [...targets, ...extra] : extra

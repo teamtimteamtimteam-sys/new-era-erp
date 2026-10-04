@@ -42,6 +42,7 @@ type IntroKey = 'listTrail.intro.lanes' | 'listTrail.intro.licences'
     | 'listTrail.intro.transfers' | 'listTrail.intro.importMappings' | 'listTrail.intro.deletedStatements'
     | 'listTrail.intro.importBatches'
     | 'listTrail.intro.leaveGrants'
+    | 'listTrail.intro.reviewCycles' | 'listTrail.intro.kpiEntries'
 
 // refused:调用方在【找记录】那一步就已经被挡(/finance/processing-costs:成本条目的读规则是加工的码)—— 画成一句具名的
 //   拒绝,不画成"这里什么都没记过"(一个 0 行的读数要先问是谁读的)。

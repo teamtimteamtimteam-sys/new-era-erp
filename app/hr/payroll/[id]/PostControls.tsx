@@ -14,6 +14,9 @@
 //
 // ★ 过账预览的第五行从【银行】改成了 2300 应付净薪:FIN-4 起过账不碰银行(净额挂 2300,逐人付款时
 //   才贷银行),这一行此前一直在说一件过账并不做的事。
+// ★ AUDIT-TRAIL-1d-3(Tim 的 Q27):这一块下面原来那一段"以往的申请"(每一张了结的申请:状态 · 时刻 · 决定的说明)是一段
+//   纯粹的决定史 —— 换成页底的审计记录(谁、何时、送审 / 批准 / 驳回 / 撤回 / 执行,理由在同一句里)。
+//   挂着的那一张申请与过账 / 撤销的按钮是【控制】,留着(与 1c-1 的发票申请同一个裁定)。
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -46,7 +49,6 @@ export function PayrollRequestPanel({
     currency,
     totals,
     open,
-    history,
     canRaise,
     canDecide,
     ownLineCode,
@@ -58,7 +60,6 @@ export function PayrollRequestPanel({
     currency: string
     totals: { gross: number; employerCpf: number; employeeCpf: number; other: number; net: number }
     open: PayrollRequestView | null
-    history: PayrollRequestView[]
     canRaise: boolean
     canDecide: boolean
     /** 看这一页的人自己在本期里有没有工资行 —— 有就是他的员工编号。 */
@@ -260,22 +261,6 @@ export function PayrollRequestPanel({
                 </div>
             )}
 
-            {/* ── 以往的申请 ─────────────────────────────────────────────── */}
-            {history.length > 0 && (
-                <div>
-                    <h3 className="mb-1">{t('hr.payrollRequest.history')}</h3>
-                    <ul className="text-sm space-y-1">
-                        {history.map((h) => (
-                            <li key={h.id}>
-                                <span className="font-mono">{h.label}</span> · {t('hr.payrollRequest.status.' + h.status)} · {h.createdText}
-                                {h.decisionNotes && (
-                                    <span className="text-[color:var(--brand-muted-text)] whitespace-pre-line"> — {h.decisionNotes}</span>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
         </section>
     )
 }

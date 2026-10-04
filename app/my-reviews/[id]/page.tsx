@@ -19,8 +19,12 @@ import {
     statusPillClass,
 } from '@/app/hr/reviews/reviewShared'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function MyReviewDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function MyReviewDetailPage({ params, searchParams }: {
+    params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
+}) {
     const { id } = await params
     const supabase = await createClient()
     const t = await getTranslations()
@@ -177,6 +181,11 @@ export default async function MyReviewDetailPage({ params }: { params: Promise<{
                 approveCode={approveCode}
                 canApprove={canApprove}
             />
+
+            {/* AUDIT-TRAIL-1d-3(Q5):审核人这一页的审计记录 —— 主语 my_review(M8 + M12):没有页面码,门是"这一份评审点名的审核人",
+                被评审的本人即使在批准之后读得到那一行,也进不了这一段。审批那几行的读规则是 hr.view,不持它的审核人读到 Restricted(Q4);
+                人名照 ActorName 的规矩 */}
+            <AuditTrail subject="my_review" id={r.id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

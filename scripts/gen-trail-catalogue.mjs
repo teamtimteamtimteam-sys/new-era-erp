@@ -524,6 +524,61 @@ const OVERRIDES = {
         ot_public_holiday_hours: 'OT public holiday (hours)', note: 'Note', recorded_at: 'Recorded on', recorded_by: 'Recorded by',
         unpaid_days: 'Unpaid days', active_from: 'Employed from', active_to: 'Employed to', frozen_at: 'Frozen on',
     },
+    // ── AUDIT-TRAIL-1d-3(Tim 2026-10-04,AT-1d Step 0 Q32 · Q33):这一刀第一次把这几张表放上页面 —— 逐列对着它那一页核过。
+    //   工资期:工资期页的抬头与明细(hr.col*);申请:PostControls(hr.payrollRequest.*);评审:评审页(reviews.*);目标:目标编辑器;
+    //   轮次:轮次页;评分刻度:刻度表(中英两个名字一律 "Name (English)" / "Name (Chinese)",Q32 —— 两个都说,人敲的字);
+    //   KPI:打分那一屏(kpi.col*)。Step 0 §h 点名的错标签在这里改:"Open cycle"、"Reviewer employee"、"Summary text"、"Reviews"、
+    //   "Objective text" 一类、"CFO's note"(别的申请表都叫 "Decision notes")、"Result journal entry"、"Employee not visible to you"、
+    //   "Locked"(一个时刻冒充一个状态)、"Name (EN) / (ZH)"。
+    payroll_periods: {
+        code: 'Payroll number', period_month: 'Month', payment_date: 'Payment date', currency: 'Currency', fx_rate: 'FX rate',
+        status: 'Status', gross_total: 'Gross total', employer_cpf_total: 'Employer CPF total', employee_cpf_total: 'Employee CPF total',
+        other_deductions_total: 'Deductions total', net_pay_total: 'Net total', journal_entry_id: 'Journal', source_note: 'Source',
+        notes: 'Notes', deleted_at: 'Deleted on', cpf_paid_at: 'CPF paid on', cpf_journal_entry_id: 'CPF journal',
+        deductions_paid_at: 'Deductions paid on', deductions_journal_entry_id: 'Deductions journal',
+    },
+    payroll_lines: {
+        payroll_period_id: 'Payroll period', employee_id: 'Employee', gross_pay: 'Gross pay', employer_cpf: 'Employer CPF',
+        employee_cpf: 'Employee CPF', other_deductions: 'Deductions', net_pay: 'Net pay', notes: 'Notes', paid_at: 'Paid on',
+        paid_journal_entry_id: 'Payment journal',
+    },
+    payroll_requests: {
+        payroll_period_id: 'Payroll period', kind: 'Request', status: 'Status', currency: 'Currency', fx_rate: 'FX rate',
+        gross_total: 'Gross total', amount_base: 'Amount (base currency)', notes: 'Reason', decided_at: 'Decided on', decided_by: 'Decided by',
+        decision_notes: 'Decision notes', withdrawn_at: 'Withdrawn on', withdrawn_by: 'Withdrawn by', executed_at: 'Carried out on',
+        executed_by: 'Carried out by', result_journal_entry_id: 'Journal',
+    },
+    performance_reviews: {
+        employee_id: 'Employee', review_type: 'Review type', cycle_id: 'Cycle', period_start: 'Period start', period_end: 'Period end',
+        reviewer_employee_id: 'Reviewer', status: 'Status', rating_code: 'Rating', summary_text: 'Written summary',
+        self_assessment_text: 'Self-assessment', probation_outcome: 'Probation outcome', new_monthly_salary: 'New monthly salary',
+        salary_effective_date: 'Effective from', submitted_at: 'Submitted on', submitted_by: 'Submitted by', approved_at: 'Approved on',
+        approved_by: 'Approved by', acknowledged_at: 'Acknowledged on', void_reason: 'Reason for voiding', voided_at: 'Voided on',
+        voided_by: 'Voided by', notes: 'Notes', self_assessment_submitted_at: 'Self-assessment finalised on',
+    },
+    review_goals: {
+        review_id: 'Review', objective_text: 'Objective', employee_result_text: 'Employee result', reviewer_assessment_text: 'Reviewer assessment',
+        target_value: 'Target', actual_value: 'Actual', unit: 'Unit',
+    },
+    review_cycles: {
+        name: 'Name', period_start: 'Period start', period_end: 'Period end', due_date: 'Due date', status: 'Status', notes: 'Notes',
+        deleted_at: 'Deleted on',
+    },
+    review_rating_scale: {
+        name_en: 'Name (English)', name_zh: 'Name (Chinese)', description_en: 'Description (English)', description_zh: 'Description (Chinese)',
+        is_active: 'Active', is_probation_pass: 'Usually passes probation', notes: 'Notes',
+    },
+    kpi_entries: {
+        cycle_id: 'Month', employee_id: 'Employee', source_position_id: 'Position', kpi_ref: 'KPI', title: 'Title', weight_pct: 'Weight %',
+        target_text: 'Target', evidence_source: 'Measurement / evidence', is_provisional: 'Provisional target', provisional_note: 'Why provisional',
+        org_codes: 'Supports organization KPIs', score: 'Score (0–5)', score_kind: 'How it was scored', computed_basis: 'Computed from',
+        evidence_note: 'Evidence', scored_by: 'Scored by', scored_at: 'Scored on', override_cap: 'Safety / regulatory cap',
+        override_reason: 'Reason for the cap', feedback_note: 'Feedback',
+    },
+    kpi_cycles: {
+        name: 'Name', period_start: 'Period start', period_end: 'Period end', due_date: 'Due date', status: 'Status', gate: 'Gate',
+        notes: 'Notes', deleted_at: 'Deleted on', locked_at: 'Locked on', locked_by: 'Locked by',
+    },
 }
 // AUDIT-TRAIL-1b-2:勘察把几列自由文本认成了"像枚举"(enum_like)—— 页面上它们是一个随手填的输入框,
 //   审计记录就照原样说(一个人敲的字,Q8),而不是去找一张并不存在的取值表。
@@ -561,6 +616,11 @@ const KIND_OVERRIDES = {
     employment_history: { employment_status: 'enum', employment_type: 'enum', work_category: 'enum' },
     salary_change_requests: { snapshot: 'technical', decided_via: 'technical' },
     import_batches: { target_table: 'enum' },
+    // AUDIT-TRAIL-1d-3:三段人敲 / 模板抄来的文字被认成了"像枚举"(目标的单位、KPI 的计算依据与证据来源 —— 页面上是随手填的框);
+    //   工资申请的快照是一段 JSON(Q33,与调薪申请同一条);KPI 的来源模板与版本是内部引用(职位已经说了它从哪儿来)
+    review_goals: { unit: 'text' },
+    kpi_entries: { computed_basis: 'text', evidence_source: 'text', source_template_id: 'technical', source_template_version: 'technical' },
+    payroll_requests: { snapshot: 'technical' },
 }
 // 三个主语的表里【本来就不该印的列】(Q12:单据编号自己在标题里,内部代码不上屏)
 const HIDE = {
@@ -607,6 +667,10 @@ const HIDE = {
     // AUDIT-TRAIL-1d-2:公共假期的 holiday_key 是一个跨年份的机器键(Q33 —— 名字与日期已经说了它是哪一天);
     //   加班批的序号由 label 说了;医疗报销的年份由日期说了
     public_holidays: ['holiday_key'], overtime_batches: ['seq'], medical_claims: ['claim_year'],
+    // AUDIT-TRAIL-1d-3:工资期编号在页头;申请的 label 里嵌着原样的种类("· post #1",Q10 —— 标题已经说了是过账还是撤销);
+    //   目标的序号由 "Goal N" 那一个小标题说;评分刻度的排序是一个技术列;KPI 的组织代码是一组机器代码(页面上画成组织 KPI 的名字)
+    payroll_periods: ['code'], payroll_requests: ['label'], review_goals: ['sequence'], review_rating_scale: ['sort_order'],
+    kpi_entries: ['org_codes'],
 }
 
 // ── 记录类型的英文名(单数)与区域 ─────────────────────────────────────────────
@@ -679,6 +743,9 @@ const TABLE_NAMES = {
     leave_consumption: 'leave balance entry', leave_grants: 'leave grant', leave_types: 'leave type', medical_claims: 'medical claim',
     overtime_batches: 'overtime batch', overtime_lines: 'overtime line', attendance_periods: 'attendance period',
     attendance_lines: 'attendance line',
+    // AUDIT-TRAIL-1d-3(评分刻度的每一行是一档评级 —— "Rating added")
+    payroll_periods: 'payroll period', payroll_lines: 'pay line', payroll_requests: 'payroll request', review_goals: 'review goal',
+    review_cycles: 'review cycle', review_rating_scale: 'rating', kpi_entries: 'KPI entry', kpi_cycles: 'KPI month',
 }
 // 区域:按表名开头认(先长后短),认不出的归 Other。区域名与导航模块的英文说法一致。
 const AREA_RULES = [
@@ -863,6 +930,10 @@ const ENUM_OVERRIDES = {
     'medical_claims#status': { submitted: 'Waiting for approval', approved: 'Approved', rejected: 'Rejected', paid: 'Paid', withdrawn: 'Withdrawn' },
     'leave_grants#grant_type': { entitlement: 'Entitlement', carry_forward: 'Carried forward', adjustment: 'Adjustment', pro_rata: 'Pro-rated' },
     'leave_types#gender_restriction': { female: 'Women', male: 'Men' },
+    // ── AUDIT-TRAIL-1d-3(Q34:取值照各自那一页的选项文字;kpi_cycles.status 是 Step 0 点名的那一列)───────────────────
+    'kpi_entries#score_kind': { judged: 'Judged', computed: 'Computed' },
+    'kpi_cycles#status': { draft: 'Draft', open: 'Open', closed: 'Closed' },
+    'kpi_cycles#gate': { M3: 'Month 3 gate', M6: 'Month 6 gate' },
     'work_order_history#change_type': { created: 'Created', released: 'Released', closed: 'Closed', cancelled: 'Cancelled',
         header_update: 'Details changed', line_add: 'Input line added', line_update: 'Input line changed', line_remove: 'Input line removed',
         expected_add: 'Expected output added', expected_update: 'Expected output changed', expected_remove: 'Expected output removed' },

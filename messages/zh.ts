@@ -4734,7 +4734,6 @@ const zh = {
             executeUnpost: '撤销过账',
             executeUnpostConfirm: '现在撤销这一期的过账?',
             executeUnpostBody: '已批申请上的理由会写在冲销分录上。期间退回草稿。',
-            history: '以往的申请',
             editLocked: '本期挂着一张未了结的申请,不能编辑。请先撤回申请。',
         },
         trainingTitle: '培训记录',
@@ -5379,7 +5378,6 @@ const zh = {
         stateAlreadyVoid: '这份考核已经作废了,没有什么可以再作废的。',
         probationOutcomePendingHr: '试用期评估要先由 HR 记下转正决定,才能提交。',
         voidReason: '作废原因', void: '作废',
-        voidBanner: '已作废:{0}',
         // HR decision
         hrDecisionTitle: 'HR 的决定',
         probationOutcome: '试用期结论',

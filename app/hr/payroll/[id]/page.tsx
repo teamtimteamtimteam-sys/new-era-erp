@@ -20,11 +20,14 @@ import { Button } from '@/app/components/ui/button'
 import { formatDate, formatMonth, formatAuditStamp } from '@/lib/dates'
 import { mustRows } from '@/lib/db-helpers'
 import { getLocale } from '@/lib/i18n/server'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 export default async function PayrollDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
 }) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
@@ -105,7 +108,6 @@ export default async function PayrollDetailPage({
         createdText: formatAuditStamp(r.created_at),
     }))
     const openRequest = requests.find((r) => r.status === 'submitted' || r.status === 'approved') ?? null
-    const history = requests.filter((r) => r !== openRequest)
     // 看这一页的人自己在本期里有没有工资行(按人认:current_user_employee 就是 account_person)
     const myEmployeeId = (meRes.data as string | null) ?? null
     const ownLineCode = myEmployeeId
@@ -270,11 +272,14 @@ export default async function PayrollDetailPage({
                     net: Number(period.net_pay_total),
                 }}
                 open={openRequest}
-                history={history}
                 canRaise={canRaise}
                 canDecide={canDecide}
                 ownLineCode={ownLineCode}
             />
+
+            {/* AUDIT-TRAIL-1d-3:页底的审计记录 —— 这一期的保存(工资行按员工配对,Q11)· 过账 / 撤销与它们的申请和审批 ·
+                发薪 · CPF · 代扣款。它替掉了申请那一块下面的"以往的申请"(Q27);分录对不持财务权限的人是 Restricted,与页头同一条 */}
+            <AuditTrail subject="payroll_period" id={id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

@@ -41,6 +41,11 @@
 --   · 假期发放 → "Annual leave 2027"(假别的英文名 + 那一个假期年;那张表没有名字一类的列);
 --   · 加班批 → 它的 label("OT 2026-10 #1",照旧),外加 href 指向 /hr/overtime/<id>。加班批没有 code 列,所以它【不】进
 --     document_types(全站搜索会对登记的每一张表拼一句 SELECT code —— 销售那一刀记过同一个理由);链接在这里给,与销售同一个形状。
+-- AUDIT-TRAIL-1d-3(Tim 2026-10-04,AT-1d Step 0 §a · Q10):
+--   · 评审 → "Annual review 01/01/2026–31/12/2026"(种类 + 期间;那张表没有名字一类的列 —— 被评审的人【不】进名字:
+--     名字要过 ActorName 那一道,而这一句是一个单据的名字,不经 trail_actor);外加 href 指向 /hr/reviews/<id>;
+--   · 工资申请 → "PAY-2026-0001 posting request"(label 里那一截原样的种类 "· post #1" 不上屏 —— Q10;种类说成英文);
+--   · KPI 条目 → "F1 · Stock accuracy"(参考号 · 标题)。轮次(name)与评分刻度(name_en)走通用的那一支。
 -- 【属主身份】按表名动态读;EXECUTE 已从 authenticated 收回。
 CREATE OR REPLACE FUNCTION public.trail_ref_label(p_table text, p_column text, p_value text)
  RETURNS jsonb
@@ -183,6 +188,17 @@ BEGIN
         RETURN jsonb_build_object('label', NULLIF(v_label, ''), 'gone', v_gone)
                || CASE WHEN p_column = 'id' AND NOT v_gone
                        THEN jsonb_build_object('href', '/hr/overtime/' || p_value) ELSE '{}'::jsonb END;
+    ELSIF p_table = 'performance_reviews' THEN
+        v_label := CASE v_img ->> 'review_type' WHEN 'probation' THEN 'Probation review' ELSE 'Annual review' END
+                   || ' ' || to_char((v_img ->> 'period_start')::date, 'DD/MM/YYYY') || '–' || to_char((v_img ->> 'period_end')::date, 'DD/MM/YYYY');
+        RETURN jsonb_build_object('label', NULLIF(v_label, ''), 'gone', v_gone)
+               || CASE WHEN p_column = 'id' AND NOT v_gone
+                       THEN jsonb_build_object('href', '/hr/reviews/' || p_value) ELSE '{}'::jsonb END;
+    ELSIF p_table = 'payroll_requests' THEN
+        v_label := COALESCE((SELECT pp.code FROM payroll_periods pp WHERE pp.id::text = v_img ->> 'payroll_period_id') || ' ', '')
+                   || CASE v_img ->> 'kind' WHEN 'reversal' THEN 'unposting request' ELSE 'posting request' END;
+    ELSIF p_table = 'kpi_entries' THEN
+        v_label := concat_ws(' · ', NULLIF(v_img ->> 'kpi_ref', ''), NULLIF(v_img ->> 'title', ''));
     ELSIF p_table = 'processing_runs' THEN
         RETURN jsonb_build_object('label', NULLIF(v_label, ''), 'gone', v_gone, 'ended', v_img ->> 'deleted_at' IS NOT NULL);
     END IF;

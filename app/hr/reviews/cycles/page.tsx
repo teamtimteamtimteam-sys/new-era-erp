@@ -38,6 +38,8 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { tableC } from '@/app/components/ui/table-style'
 import { formatDate } from '@/lib/dates'
 import { getLocale } from '@/lib/i18n/server'
+import ListTrail from '@/app/components/trail/ListTrail'
+import { trailCount } from '@/app/components/trail/AuditTrail'
 
 type CycleRow = {
     id: string
@@ -57,7 +59,7 @@ type CycleReview = {
     reviewer_employee_id: string | null
 }
 
-export default async function ReviewCyclesPage() {
+export default async function ReviewCyclesPage({ searchParams }: { searchParams: Promise<{ trail?: string | string[] }> }) {
     const locale = await getLocale()
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -88,6 +90,12 @@ export default async function ReviewCyclesPage() {
     // 读不到就必须炸:渲染成"还没有周期"会诱使人再开一轮,而开轮会给每名员工
     // 再生成一条评估 —— 唯一的护栏只是名称唯一索引。
     const cycles = mustRows(cycleRes, 'review_cycles') as unknown as CycleRow[]
+    // AUDIT-TRAIL-1d-3(Q6):每一轮一条记录(删掉的也读 —— "被删"是那一轮的一部分),清单块按操作合起来。轮次那一块只说
+    //   建 · 开 · 关;开轮时铺下的那几份评审不挂进来(每一份评审自己的那一段以"Annual review opened (cycle …)"开头)
+    const trailCycles = mustRows(
+        await supabase.from('review_cycles').select('id, name').order('period_start', { ascending: false }).limit(200),
+        'review_cycles (trail)',
+    )
     const reviews = (reviewRes.data as unknown as CycleReview[] | null) ?? []
     const employees = (empRes.data as unknown as (EmployeeOption & { employment_status: string })[] | null) ?? []
     const empById = new Map(employees.map((e) => [e.id, e]))
@@ -193,6 +201,9 @@ export default async function ReviewCyclesPage() {
                     })}
                 </div>
             )}
+
+            <ListTrail intro="listTrail.intro.reviewCycles" show={trailCount((await searchParams).trail)}
+                records={trailCycles.map((c) => ({ subject: 'review_cycle' as const, id: c.id, label: c.name }))} />
         </ListPage>
     )
 }

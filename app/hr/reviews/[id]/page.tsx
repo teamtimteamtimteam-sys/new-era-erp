@@ -20,8 +20,13 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { formatAuditStamp, formatDate } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import EndedBanner from '@/app/components/trail/EndedBanner'
 
-export default async function ReviewDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ReviewDetailPage({ params, searchParams }: {
+    params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
+}) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
     const denied = await requireModule(MOD.hr)
@@ -155,10 +160,10 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                 </h1>
             </div>
 
-            {r.status === 'void' && (
-                <div className="mb-4 rounded border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-800">
-                    {t('reviews.voidBanner', { 0: r.void_reason ?? '' })}
-                </div>
+            {/* AUDIT-TRAIL-1d-3(Step 0 §f · Q21):作废的评审照常打开,横幅说出【何时、被谁】作废的("Voided on DD/MM/YYYY by …"),
+                第二行是理由 —— 与作废的发票同一条(EndedBanner;人名照 ActorName 的规矩)。此前它只说理由。 */}
+            {r.status === 'void' && r.voided_at && (
+                <EndedBanner kind="voided" at={r.voided_at} by={r.voided_by} reason={r.void_reason} />
             )}
 
             {/* 抬头 */}
@@ -322,6 +327,10 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
                 approveCode={approveCode}
                 canApprove={canApprove}
             />
+
+            {/* AUDIT-TRAIL-1d-3:页底的审计记录 —— 开评审(年度那一份说出它的轮次,Q6)· 自评 · 送审 · 批准(结论按评审自己的几列说,
+                新月薪的遮蔽照今天,Q7)· 本人确认 · 作废 · 目标的增改删 */}
+            <AuditTrail subject="performance_review" id={r.id} show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

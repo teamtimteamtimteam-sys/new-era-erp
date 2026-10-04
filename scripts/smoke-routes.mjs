@@ -665,6 +665,14 @@ const MUST_CONTAIN = {
     '/hr/leave/types': [{ trail: 'audit-trail', why: '整张假别表一段(M11)' }],
     '/hr/leave/holidays': [{ trail: 'audit-trail', why: '整张公共假期表一段(M11 —— 硬删的假期只在这一段里)' }],
     '/hr/leave/grants': [{ trail: 'audit-trail', emptyOk: true, why: '这一个假期年的发放那一块' }],
+    // AUDIT-TRAIL-1d-3:工资与评审。评审详情页(HR 与审核人两页)线上至今 0 份(冒烟自己会造一份临时的试用期评审 —— 有它就受检);
+    //   审核人那一页(/my-reviews/[id])对 admin 是 404 的契约 —— 它的审计记录在主循环之后、以评估人会话的那一次精确请求里受检。
+    //   【emptyOk】轮次那一块:线上至今 0 轮。评分刻度有记录开始之前的建立。KPI 那一块只在选了月份、看得见分数时画 ——
+    //   冒烟打开的是不带 ?cycle= 的 URL,那一块按设计不出现(没有默认月份,见那一页的抬头),所以 /hr/kpi/score 不在这里。
+    '/hr/payroll/[id]': [{ trail: 'audit-trail', why: '工资期页底的审计记录(工资行配对 Q11 · 过账 / 撤销 · 申请替掉了"以往的申请" Q27)' }],
+    '/hr/reviews/[id]': [{ trail: 'audit-trail', why: '评审页底的审计记录(Q6 · Q7)' }],
+    '/hr/reviews/cycles': [{ trail: 'audit-trail', emptyOk: true, why: '评审轮次那一块(Q6)' }],
+    '/hr/reviews/scale': [{ trail: 'audit-trail', why: '整张评分刻度一段(M11)' }],
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
     // 为空时改渲染一段琥珀色文字("还没有货代 / 还没有供货商")。所以那个字符串
@@ -2432,11 +2440,14 @@ async function main() {
             const before = logChunks.length
             const res = await fetch(`http://localhost:${PORT}${target}`, {
                 headers: { cookie: cookie2 }, redirect: 'manual' })
-            if (res.status === 200) { ok++ }
+            // AUDIT-TRAIL-1d-3(Q5):这一页的审计记录(主语 my_review,M12 —— 只给评估人)也在这一次请求里受检:
+            //   读得到、有记录(这一份临时评估本身的建立),一个机器字都没有
+            const trailMiss = res.status === 200 ? trailMisses(await res.text(), 'audit-trail', '审核人那一页的审计记录(M12:只给审核人,Q5)') : []
+            if (res.status === 200 && trailMiss.length === 0) { ok++ }
             else {
                 failures.push({ route: '/my-reviews/[id] (as reviewer)', url: target,
-                    status: res.status, expected: 200, stack: await serverStack(before) })
-                console.log(`  FAIL /my-reviews/[id] (as reviewer) → ${res.status} (expected 200)`)
+                    status: res.status, expected: 200, stack: trailMiss.length ? `内容缺失:${trailMiss.join(' | ')}` : await serverStack(before) })
+                console.log(`  FAIL /my-reviews/[id] (as reviewer) → ${res.status}${trailMiss.length ? ' ' + trailMiss.join(' | ') : ' (expected 200)'}`)
             }
         }
 

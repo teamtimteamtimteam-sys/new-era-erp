@@ -335,6 +335,28 @@ AS $function$
         ('attendance_periods',             'stamp',   'completed_at', 'completed_by', ARRAY['status'], 'account'),
         ('attendance_periods',             'stamp',   'reopened_at',  'reopened_by',  ARRAY['reopen_reason'], 'account'),
         ('attendance_lines',               'stamp',   'recorded_at',  'recorded_by',  ARRAY['note'], 'account'),
-        ('attendance_lines',               'stamp',   'frozen_at',    NULL,           NULL, 'account')
+        ('attendance_lines',               'stamp',   'frozen_at',    NULL,           NULL, 'account'),
+        -- AUDIT-TRAIL-1d-3(Tim 2026-10-04,AT-1d Step 0 的 Q12):工资与评审。Step 0 交给这一刀的两个戳 —— 那件事【唯一】的记录:
+        --   · 工资申请的 withdrawn_at / withdrawn_by —— 撤回不写审批留痕(withdraw_payroll_request),它是唯一的记录;
+        --     送审 · 批准 · 驳回在审批留痕里(不登记 decided_*);执行(executed_*)与过账 / 撤销的分录同一笔、同一刻 —— 分录的建立说它。
+        --   · 评审的 voided_at / voided_by —— 作废不写审批留痕(void_review),理由一并取(void_reason)。
+        --     送审 · 批准 · 本人确认在审批留痕里(不登记 submitted_* / approved_* / acknowledged_at)。
+        --   另外是几张表的建立:工资期(与它的工资行同一笔、同一刻 —— 归成一条)· 工资行(没有 created_by:"Not recorded";
+        --     每次保存删了重插,所以它的建立是【最近一次】保存)· 申请 · 评审 · 目标 · 轮次 · 评分刻度 · KPI 条目。
+        --   ★ 本刀自己多登记了一个(交回报告的自决事项):KPI 的 scored_at / scored_by —— 打分只写那一行(score_kpi_entry),
+        --     不写任何留痕,再打一次会覆盖它;之前那一段里它是那一次打分唯一的记录(与 Q12 同一条理由)。
+        --   ★ 没有登记:工资行的 paid_at(与发薪分录同一笔、同一刻 —— 发薪那一句由分录的建立说)· 评审的
+        --     self_assessment_submitted_at(重开会把它清掉,而且它没有记人)。
+        ('payroll_periods',                'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('payroll_lines',                  'created', 'created_at',   NULL,           NULL, 'account'),
+        ('payroll_requests',               'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('payroll_requests',               'stamp',   'withdrawn_at', 'withdrawn_by', ARRAY['status'], 'account'),
+        ('performance_reviews',            'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('performance_reviews',            'stamp',   'voided_at',    'voided_by',    ARRAY['status', 'void_reason'], 'account'),
+        ('review_goals',                   'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('review_cycles',                  'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('review_rating_scale',            'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('kpi_entries',                    'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('kpi_entries',                    'stamp',   'scored_at',    'scored_by',    ARRAY['score', 'score_kind'], 'account')
     ) AS p(table_name, kind, at_column, by_column, extra, by_kind);
 $function$;

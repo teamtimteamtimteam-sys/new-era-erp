@@ -238,8 +238,11 @@ added accounts (per account on `/settings/accounts`, mirrored on the employee pa
 the six dictionaries, the import-batch block, employees, departments and training records, with deleted roles, employees, departments and
 training records opening read-only (§9.14). AUDIT-TRAIL-1d-2 (part of v1.4.33) added leave and time — leave requests, leave grants, leave types
 and public holidays (collections, a deleted holiday included), medical claims (reachable from the expense that pays them), overtime batches,
-attendance periods, and the employee's own leave requests and medical claims on `/me` (§9.15). AT-1d-3 (pay and performance) follows
-(`docs/forward-queue.md`, "HISTORY family").
+attendance periods, and the employee's own leave requests and medical claims on `/me` (§9.15). AUDIT-TRAIL-1d-3 (the last part of
+v1.4.33) added pay and performance — payroll periods (pay lines paired by employee, the request history replaced), performance reviews and the
+reviewer's own page (`/my-reviews/[id]`, the first M12 subject), review cycles, the rating scale and KPI entries — and fixed Q19: an employee
+without `module.hr.view` now reads the code and month of the periods their own attendance line or payslip belongs to (§9.16). That completes
+AT-1d, and with it AUDIT-TRAIL-1 (v1.4.33).
 Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`), AT-1b Step 0 Q1–Q14 + M1–M6
 (`docs/surveys/AUDIT-TRAIL-1b/STEP0-HANDBACK.md`) and AT-1c Step 0 Q1–Q34 (`docs/surveys/AUDIT-TRAIL-1c/STEP0-HANDBACK.md`),
 all accepted as recommended; AT-1d Step 0 Q1–Q38 (`docs/surveys/AUDIT-TRAIL-1d/STEP0-HANDBACK.md`), all accepted as recommended.
@@ -317,6 +320,12 @@ all accepted as recommended; AT-1d Step 0 Q1–Q38 (`docs/surveys/AUDIT-TRAIL-1d
 | `/finance/expenses/[id]` (1c-1, extended in 1d-2, Q37) | `expense` | `module.finance.view` | + the medical claim that the expense pays (not home) |
 | `/hr/overtime/[id]` (1d-2) | `overtime_batch` | `module.hr.view` **or** `action.overtime_enter` **or** `action.overtime_approve` (M1) | the batch · its lines (removed lines from their last image) · sent for approval / taken back / approved / "Overtime sent back" (Q35) / reversed / discarded, with the approval rows folded in |
 | `/hr/attendance/[id]` (1d-2) | `attendance_period` | `module.hr.view` | the period · opened (people) · joiners added · each line recorded · completed (one sentence for the mass updates) · reopened with its reason |
+| `/hr/payroll/[id]` (1d-3) | `payroll_period` | `module.hr.view` | the period · its pay lines (deleted and re-inserted on every save, paired by employee — Q11) · posting and unposting requests and their approvals · the period's journals (posting, salaries, CPF, deductions — by `source_id`, not by `journal_entry_id`, which an unpost clears) and their reversals (finance only — Restricted for an HR-only reader). Replaces the request panel's "Earlier requests" list (Q27) |
+| `/hr/reviews/[id]` (1d-3) | `performance_review` | `module.hr.view` (root rule `table`: hr.view and `data.view_reviews`, or the reviewer, or the employee once approved) | the review (opened — an annual one with its cycle, Q6 · self-assessment · conclusion · reviewer · HR decision · submitted · approved with its outcome, Q7 · acknowledged · voided) · its goals (removed goals from their last image) · its approval rows (folded in) |
+| `/my-reviews/[id]` (1d-3, Q5) | `my_review` | **none** (M8 + M12 `gate:reviewer`: the reviewer only — not the reviewed employee, who can read the approved row) | the same rows; the approval rows are Restricted to a reviewer without `module.hr.view` (Q4) |
+| `/hr/reviews/cycles` (1d-3, `ListTrail`) | `review_cycle` | `module.hr.view` | each cycle: created · opened · closed. The reviews opening creates are not members (Q6) — each review's own trail opens with "Annual review opened (cycle …)" |
+| `/hr/reviews/scale` (1d-3, one block) | `review_rating_scale` | `module.hr.view` | M11: every rating — added, changed, deactivated, reactivated |
+| `/hr/kpi/score?cycle=…` (1d-3, `ListTrail`, only where scores are visible) | `kpi_entry` | `module.hr.view` (root rule `table`: hr.view and `data.view_reviews`, or own) | each entry of the chosen month: generated (one generation is one entry) · scored · re-scored. No KPI or review trail on `/me` (Q14 · Q16) |
 
 ### 9.1 The reader: `record_trail(subject, id, entries)`
 
@@ -554,8 +563,8 @@ samples must all be caught, a known-good sentence must pass).
 | **M7** (1c-1) | a member with **no foreign key** under a single-row root: every row of that table, and every log row of it (`match` filtered), belongs to the singleton (`hop = 'all'`, `fk_column` NULL). Ignored unless the parent is the subject's root table. `trail_row_record` gives such a row the singleton as its home | `trail_subject_members.hop = 'all'` | `finance_lock` (1c-3: `period_closes` — a month close reads "Finance settings" in the summary page's Record column); AT-1d's approval policy (`finance_settings_history`) |
 | **M9** (1d-1) | a **log-only root** outside `public`: `trail_log_only_tables()` names the table (`auth.users`), the **safe projection** it may be read through (`id, email, created_at, banned_until` — never the whole auth row, which carries the password hash and six token columns) and a **declared read code** (`action.manage_permissions`) that stands in for its policies. `trail_current_image` and `trail_row_visible` consult it; its creation after the log is an `ACCOUNT_CREATE` row, so the pre-log creation is skipped when either that or an `INSERT` exists | `trail_log_only_tables()` | `account` on `/settings/accounts`; the account mirror on `/hr/employees/[id]` (up hops to `auth.users`) |
 | **M10** (1d-1) | a **member limited to declared columns** (M6 on a member): `trail_member_columns()` gives `(subject, ord) → columns`; a change touching none is dropped, the rest keep only those columns, and a column-limited member contributes no pre-log creation | `trail_member_columns()` (a side registry — changing `trail_subject_members`' return type would break every fixture that redefines it) | the account trail's employee row (`user_id` only — an HR edit of that person is not the account's business) |
-| **M11** (1d-1) | `root_rule = 'collection'`: **no root row**; every current row of the table and every log row of it belong to the record, each checked against its own read rule. `p_id` is ignored (pages pass `'all'`) | `trail_subjects.root_rule` | the six dictionaries; AT-1d-2: public holidays (hard-deleted) and leave types; AT-1d-3: the rating scale |
-| **M12** (1d-1) | `root_rule = 'gate:<name>'`: the root row must pass its table's read rule **and** `trail_root_gate(<name>, …)` — a closed set (`reviewer`: the review's `reviewer_employee_id` is the reader); an unknown name admits nobody. May be combined with M8 (no page code) | `trail_root_gate()` | none yet — AT-1d-3's `/my-reviews/[id]`; proved with a temporary subject in fixture 244 |
+| **M11** (1d-1) | `root_rule = 'collection'`: **no root row**; every current row of the table and every log row of it belong to the record, each checked against its own read rule. `p_id` is ignored (pages pass `'all'`) | `trail_subjects.root_rule` | the six dictionaries; AT-1d-2: public holidays (hard-deleted) and leave types; AT-1d-3: the rating scale (`review_rating_scale`) |
+| **M12** (1d-1) | `root_rule = 'gate:<name>'`: the root row must pass its table's read rule **and** `trail_root_gate(<name>, …)` — a closed set (`reviewer`: the review's `reviewer_employee_id` is the reader); an unknown name admits nobody. May be combined with M8 (no page code) | `trail_root_gate()` | `my_review` on `/my-reviews/[id]` (AT-1d-3, with M8); first proved with a temporary subject in fixture 244, then by fixture 246 MR |
 | **M8** (1c-3) | a subject with **no page code**: `view_codes` is an empty array, and the root row's own read rule is the only gate. Allowed only with `root_rule = 'table'` — `'page'` with no code would open the record to everyone, so `record_trail` refuses it (`TRAIL_NOT_PERMITTED`); `NULL` codes are still refused | `trail_subjects.view_codes = ARRAY[]::text[]` | `my_expense_claim` on `/me` (the claimant reads their own claim; `expense_claims`' read rule is finance or own) |
 
 The retired batch views `batch_audit_trail` / `batch_audit_trail_all` stay in place, unread by any page (Q32); fixture 238
@@ -791,3 +800,52 @@ until they are dropped.
   overtime status; injection `wording-drift-1d2`). Smoke `trail` assertions on the seven 1d-2 pages (the overtime and attendance detail pages stay
   on the skip list: none on live). `scripts/probe-at1d2.mjs`: every live leave request, medical claim, its expense (Q37), the leave-type, holiday
   and grant pages, in both interfaces.
+
+### 9.16 Pay and performance (AUDIT-TRAIL-1d-3, Tim's AT-1d Q1–Q38)
+
+- **Pay lines are paired by employee (Q11).** `upsert_payroll_period` deletes every line and re-inserts it on each save (new ids). Within one
+  operation a delete and an insert for the same employee are one line: an unchanged pair says nothing; a changed pair reads
+  "Line · <name> · Gross pay: a → b" (one line per changed figure); a person who left or joined the sheet reads "Line removed / added · <name>".
+  For a reader who cannot see pay (no `data.view_pay`: the five figures are masked), whether a line changed is itself pay data, so that save says
+  one line, "Pay lines · N people: Restricted", instead of guessing per person.
+- **Machine text in the payroll columns (Q10).** Unposting appends "[YYYY-MM-DD HH:MI unposted] <reason>" to the period's notes: that line is
+  "Payroll unposted" with its reason, never "Notes changed", and its timestamp never reaches the screen; a later save compares only the
+  person-written part of the notes. Deciding a request appends a bilingual "this period includes the approver's own pay line: EMP-…" line to the
+  approval note: it is stripped and said in English as its own line. A request's `label` ("PAY-… · post #1") is not shown — the title says
+  posting or unposting; elsewhere the request is named "PAY-… posting request". The automatic-approval note is "Approved automatically".
+- **The period's journals are found by `source_id` (`source_type = 'payroll'`), not by `journal_entry_id`**, which an unpost sets to NULL; a
+  reversal's `source_id` is the original journal, so reversals are an up hop through `reversed_by`. Which step a journal is (posting · salaries ·
+  CPF · deductions · reversal) is read from structure — the period's journal columns, the lines' `paid_journal_entry_id`, the requests'
+  `result_journal_entry_id`, the page-wide reversal set — never from the memo. A journal written with its step folds into that step's sentence
+  ("Payroll posted", "Salaries paid · N people", "CPF paid", "Deductions paid", "Payroll unposted"); before the log, the journal alone says the
+  same sentence. The journal number is shown only to a reader who can see the journal (the page's own rule: Restricted without finance).
+- **Reviews (Q6 · Q7 · Q5).** An annual review's trail opens with "Annual review opened (cycle <name>)"; the cycle's own block says only
+  "Review cycle created / opened / closed" — opening a cycle creates one review per employee in the same operation, and those reviews are not
+  members of the cycle. Approval also writes the employee row and employment history (confirmation, salary); they carry no key back to the
+  review and are not members, so "Review approved" states the outcome from the review's own columns — rating, probation outcome, new monthly
+  salary (masked as today: Restricted without `data.view_pay`), effective date. Before the log only the approval row is left; the outcome then
+  comes from the review as it is today (approval freezes those columns). `/my-reviews/[id]` is `my_review`: M8 + M12, the reviewer only; the
+  approval rows are Restricted to a reviewer without `module.hr.view`. The page words: "Opened for self-assessment", "Self-assessment reopened",
+  "Self-assessment finalised" (Q35). A voided review opens with "Voided on DD/MM/YYYY by <name>" and its reason (`EndedBanner`).
+- **Stamps that are the only record (Q12).** `payroll_requests.withdrawn_*` (withdrawing writes no approval row) and
+  `performance_reviews.voided_*` (voiding writes none) are pre-log sources, the void reason with them; this cut also registers
+  `kpi_entries.scored_*` (scoring writes nothing else and a re-score overwrites it). Not registered: the lines' `paid_at` (the salary journal's
+  creation says it) and `self_assessment_submitted_at` (reopening clears it, and it records no person).
+- **KPI entries.** A list block on `/hr/kpi/score` for the chosen month, drawn only where scores are visible (`data.view_reviews`). One
+  generation (`assign_position_kpis`, five entries) is one entry, "KPI entries generated · 5"; "KPI scored: 4" / "KPI re-scored: 4 → 5" with
+  how it was scored, the evidence, the feedback and any cap. There is no review or KPI trail on `/me` (Q14 · Q16).
+- **Q19 fixed.** `my_period_labels()` (SECURITY DEFINER, no arguments) returns the attendance and payroll periods the caller's own attendance
+  lines and payslips belong to — kind, id, code and month, nothing else; `/me` reads the code and month from it. The two period tables stay
+  `module.hr.view` only when read directly (a self-read policy would have let the whole row through, totals included).
+- **One renderer fix outside these pages.** `approve_review` writes "Salary change approved with performance review <uuid>" into
+  `employment_history.notes`; the employee page now says "Changed through a performance review" instead of printing the note (1d-1 recognised
+  only the probation sentence).
+- **Checks.** Fixture **246** (PP: recorded, re-saved, posted, unposted, withdrawn, paid, CPF; masked figures; hidden journals · PQ: the pre-log
+  withdrawal · RV: Q7 · MR: M12 and Q5 · CY: Q6 · RX: the void, after and before the log · SC: M11 · KP: Q14 · Q16 and the pre-log score ·
+  Q: Q19 · R: registrations), fault-injected by `db/scripts/2026-10-05-at1d3-fixture-injections.py` (21 injections, each red in its own arm).
+  `scripts/check-trail-wording.mjs` arm **⑬ 工资与评审** (53 goldens, two contract checks for the note splitters, and a machine-token sweep over
+  the six subjects with the page's own subject, every approval decision of both kinds, every request and review status; injection
+  `wording-drift-1d3`). Smoke `trail` assertions on the payroll, review, cycle and scale pages, and on `/my-reviews/[id]` in the reviewer-session
+  request. `scripts/probe-at1d3.mjs`: every live payroll period (and Q27), every review, the cycle, scale and KPI blocks, the `/me` subjects, and
+  zh = en on every 1d-3 page plus a 1d-2 and a 1d-1 page.
+

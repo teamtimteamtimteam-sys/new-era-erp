@@ -10022,15 +10022,23 @@ banner-noby / history-back / refusal-wrong 三跑,五次 zh = en = 667 字;`cjk`
   **AT-1d-2 已认**(`stripOvertimeMachineNote`,`lib/trail/render.ts`):那一截剥掉,只留审批人的话;只有那一截时不说理由。
 - `pay_medical_claim.sql:131`(AT-1d-2 量到的同族一处)—— 付医疗报销建的费用单 `notes` = "Medical claim MC-… (EMP-…)"(系统拼的英文)。
   **AT-1d-2 在报销单那一页上不把它说成理由**(那一页就是那张报销单);费用页上它照 1c-1 的样子是那张费用单的 "Reason"(未改,一句系统写的话)。
-- `decide_payroll_request.sql:62-66` —— 在决定的说明后面拼一句中英双语("本期含审批人自己的工资行 · this period includes the approver's own pay line: EMP-…")。AT-1d-3 认它。
-- `unpost_payroll_period_internal`(同族):在 `payroll_periods.notes` 后面拼 "[YYYY-MM-DD HH:MI unposted …]"。AT-1d-3 认它。
+- `decide_payroll_request.sql:62-66` —— 在决定的说明后面拼一句中英双语("本期含审批人自己的工资行 · this period includes the approver's own pay line: EMP-…")。
+  **AT-1d-3 已认**(`splitPayrollDecisionNote`,`lib/trail/render.ts`):那一截剥掉,换成一行英文 "This period includes the approver's own pay line: EMP-…"。
+- `unpost_payroll_period_internal`(同族):在 `payroll_periods.notes` 后面拼 "[YYYY-MM-DD HH:MI unposted] <理由>"。
+  **AT-1d-3 已认**(`splitPayrollUnpostNote`):那一行就是 "Payroll unposted" 这件事,理由取它的后半截,时间戳不上屏;之后一次保存只比人写的那一段备注。
+- `submit_payroll_request.sql:84-85`(AT-1d-3 量到的同族一处)—— 审批关着时自动批那一行审批留痕的 note 是一句中文("审批关着时提交:……")。
+  **AT-1d-3 已认**:说成 "Approved automatically (approvals were switched off)"(与采购单同一句),那一句中文不上屏。
 - `approve_review.sql:68,118` —— `employment_history.notes` = "Probation confirmed by performance review <uuid>";员工页的履历时间线今天照原样印出那个 uuid。
   **AT-1d-1 已认**:审计记录说 "Confirmed through a performance review"。
+  ★ **同一支函数的另一句(AT-1d-3 量到,1d-1 漏了)**:评审里定了新月薪时写 "Salary change approved with performance review <uuid>"(`approve_review.sql`
+  调薪那一段)—— 1d-1 只认了"Probation confirmed"那一句,于是员工页的审计记录会把这一句连同 uuid 当成备注印出来(线上 0 份评审,没有显形过)。
+  **AT-1d-3 已认**:说成 "Changed through a performance review"(⑬ 的金句钉住)。履历时间线(页面本身)照旧印原句 —— 那是页面,不是审计记录,登记。
 - `salary_change_execute_internal.sql:45` —— `employment_history.notes` = "Salary change approved with request <label>"。**AT-1d-1 已认**:一行 "Salary change request: <label>"。
 - `app/hr/employees/actions.ts`(`describeChanges`)—— 员工表单把 "status: probation → active; department: X → Y" 写进 `employment_history.notes`(原始代码值)。
   **AT-1d-1 已认**:那一句不说(履历那一行自己的几列已经说了)。
 - `submit_payroll_request.sql:69` —— `payroll_requests.label` = `code · <原始种类> #n`("post #1");`salary_change_requests.decided_via` 存的是一个权限码。
-  AT-1d-1 把 `decided_via` 藏了(目录里 technical);label 由 AT-1d-3 说成不带种类的那一段。
+  AT-1d-1 把 `decided_via` 藏了(目录里 technical);**AT-1d-3 把 `payroll_requests.label` 也藏了**(标题已经说了是过账还是撤销),
+  在别处被引用时名字是 "PAY-… posting request" / "unposting request"(`trail_ref_label`)。
 **删除条件:** 写入的那一头不再往人看的列里拼机器字(或者每一处都有一列专门放它)。
 
 ## AT1D1-KPI-OPEN-CYCLE-SCORES-SELF-READABLE —— 员工经 API 读得到自己【还没结束的那一轮】的 KPI 分(AT-1d Step 0 Q16;隐私组,UNBLOCK-1)
@@ -10057,7 +10065,7 @@ banner-noby / history-back / refusal-wrong 三跑,五次 zh = en = 667 字;`cjk`
 cto 与 gm 持 hr.view、不持 view_pay,读得到。**审计记录照页面**(Q18:AT-1d 不新造数据码)。**处置(进 UNBLOCK-1 的隐私组):** Tim 定要不要一个
 健康数据码,以及工资期合计在一期只有一两个人时要不要随 `data.view_pay` 遮。**删除条件:** 两件都有了裁定并落地。
 
-## AT1D1-ME-READS-HR-ONLY-PERIOD-TABLES —— `/me` 读 `attendance_periods` 与 `payroll_periods`,而这两张只给 module.hr.view(AT-1d Step 0 Q19)
+## ✅ 已关闭(AT-1d-3,2026-10-05)· AT1D1-ME-READS-HR-ONLY-PERIOD-TABLES —— `/me` 读 `attendance_periods` 与 `payroll_periods`,而这两张只给 module.hr.view(AT-1d Step 0 Q19)
 
 `app/me/page.tsx:207-216` 与 `:263-266` 读这两张表给员工的考勤与工资单配月份与编号;两张表的读策略都只有 `module.hr.view`
 (`attendance_periods.sql:46-48`、`payroll_periods.sql:86`)。`page.tsx:205-206` 的注释说"本人读得到"—— 那句话与策略不符。
@@ -10070,6 +10078,14 @@ cto 与 gm 持 hr.view、不持 view_pay,读得到。**审计记录照页面**(Q
 - `page.tsx:205-206` 那句"attendance_periods 的读策略也放行本人"与策略不符(`attendance_periods.sql:46-48` 只有 hr.view)—— 照旧登记,未改。
 **结论:推断成立,它在第一份考勤 / 第一张工资单落到一个不持 hr.view 的员工身上时显形。** 修法(一支给本人的属主读法,或一条"本人的期间"自读策略)
 不是审计记录的事,1d-2 不修(委托书)。**删除条件:** 修过,并以同一个身份读回编号与月份。
+**✅ 关闭(AT-1d-3,2026-10-05,Tim 的折入):** 修法是一支属主函数 `my_period_labels()`(`db/functions/my_period_labels.sql`)——
+调用者自己的考勤行与工资单落在哪几个期间,**只给编号与月份**(kind · period_id · code · period_month),行由 `current_user_employee()` 收住;
+不是一条自读策略,因为策略放进的是整行(Q18 那五个合计)。`app/me/page.tsx` 的两张表改从它取编号与月份;期间表的直读收窄到 `id, status`(考勤)
+与 `id, currency`(工资单)。**读回(同一个身份,2026-10-05 02:17 CST,`db/scripts/2026-10-05-at1d3-live-proof.sql` 的 B 段,一笔事务、ROLLBACK,
+`PROOF_OWN_EXIT=0`):** 以 fusheng@(线上唯一不持 hr.view 的真账号,`SET LOCAL ROLE authenticated` + JWT)—— 自己的考勤行 1、工资单 1;
+`my_period_labels()` 给出 `attendance ATT-2026-09 2026-09-01 · payroll PAY-2026-0002 2026-09-01`;两张期间表直读仍是 **0 行**(策略未放宽)。
+fixture 246 Q 臂钉住(没有自己那一行的期间不回、没有员工记录的账号 0 行、anon 不可执行、列只有四个、两张期间表直读仍 0 行)。**仍然开着的那一半另立一条:** 工资单的币种仍读 `payroll_periods.currency`,
+对不持 hr.view 的员工是空的 —— `AT1D3-ME-PAYSLIP-CURRENCY-NEEDS-HR-VIEW`(委托书只说"编号与月份",币种留给 Tim)。本条留作记录,不删。
 
 ## AT1D1-OVERTIME-APPROVER-NAMES-PAGE-VS-TRAIL —— 加班审批人在页面上看得到每一个人的名字,在审计记录里是 Restricted(AT-1d Step 0 Q20)
 
@@ -10103,10 +10119,30 @@ warehouse 角色持 `action.overtime_approve`、不持 `module.hr.view`。`/hr/o
 - `app/hr/leave/[id]/page.tsx:91` 把 `leave_grant_id.slice(0,8)`(一段 uuid)印在消耗表里 —— 机器字上屏。
   **AT-1d-2 碰了这个文件,但【没有】改它**:Tim 的 Q38 裁定是"只改那两句过期的注释",这一条是登记,不是这一刀的活(消耗表是 Q27 留着的工作清单)。
 - `leave_requests` 与 `payroll_periods` 的页面过滤 `deleted_at`,而这两张表的 `deleted_at` 没有任何写入者(`grep` 了 db/functions 与 app)—— 一道永远不触发的过滤。
-- `review_cycles` 的开轮守卫是 `status <> 'open'`(推断):一轮关掉之后还能再开。AT-1d-3 做评审周期时量一次。
+- ~~`review_cycles` 的开轮守卫是 `status <> 'open'`(推断):一轮关掉之后还能再开。AT-1d-3 做评审周期时量一次。~~
+  **AT-1d-3 量过:推断是【假】的。** `open_review_cycle` 对一轮已经关掉的轮次按名拒(`IF v_c.status = 'closed' THEN RAISE EXCEPTION 'CYCLE_CLOSED|…'`,
+  `db/functions/open_review_cycle.sql`);`status <> 'open'` 那一句只是"已经开着就不再改状态"(重跑开轮是幂等的,页面上的 "Re-run")。这一条不是缺陷,划掉。
 - `app/hr/claims/[id]/page.tsx` 的"关联费用"链到费用【清单】,不是那一张费用单(仍然如此 —— Q38 登记、未改;审计记录里 "Expense raised to pay the claim"
   那一行链到那一张费用单)。`document_types` 里 `medical_claim` / `attendance_period` 的 `link_mode` **AT-1d-2 已改成 `detail`(Q36)**。
 - **已修(本刀碰了它们的文件,Q38):** `app/settings/dictionaries/registry.ts` 的注释说"这五张"而联合类型里是六张 —— 改成六张;
   `app/settings/accounts/page.tsx:31-34` 的注释说"系统管理员账号不再持 module.hr.view"—— 线上 admin 持它,改成照实说(理由仍然成立)。
   `ApprovalsHistory.tsx` 抬头那句"这张表在 APR-1 之后是空的"随那个组件一起删掉了(Q27 把它换成审计记录)。
 **删除条件:** 前四条各自在它那一刀里处理掉。
+
+## AT1D3-ME-PAYSLIP-CURRENCY-NEEDS-HR-VIEW —— `/me` 的工资单金额不挂币种,对不持 module.hr.view 的员工(AT-1d-3 量到,2026-10-05)
+
+`/me` 的工资单五栏用【那一期自己的币种】格式化金额(`app/me/page.tsx`,`formatAmount(l.gross_pay, per?.currency)`),而那一期的币种从
+`payroll_periods` 直读 —— 那张表只给 `module.hr.view`(`payroll_periods.sql` 的读策略)。于是不持 hr.view 的员工(线上:warehouse 那一个账号)
+读到 0 行,金额印成不带币种的数字。**AT-1d-3 修 Q19 时【没有】把币种放进 `my_period_labels()`**:Tim 的折入写的是"只给编号与月份,别的都不给"。
+今天不显形:那个账号还没有一张工资单(线上 1 个工资期、1 行工资,不是他的)。
+**处置(Tim 定):** 要么把币种也算作"本人看得见的那一期的属性"加进 `my_period_labels()`(一列),要么工资单按本位币说(工资按本位币发,ROLE-1 · APR-9)。
+**删除条件:** 二选一落地,并以同一个身份读回带币种的金额。
+
+## AT1D3-REVIEWER-PAGE-NAMES-VS-TRAIL —— 审核人那一页印着被评审的人的名字,审计记录里对不持 hr.view 的审核人是 Restricted(AT-1d-3,2026-10-05;Q20 的同一个形状)
+
+`/my-reviews/[id]` 经 `my_review_subjects` 把被评审的人的工号与名字交给审核人(页头);审计记录(主语 `my_review`,M12)照 ActorName 的规矩
+(1b 折入 1:不持 module.hr.view 的读者只认得出自己)把评审开头那一句里的 "Employee: …" 与做事的人说成 Restricted。线上唯一不持 hr.view 的
+账号是 warehouse(fusheng@);今天没有一份评审(回滚的线上证明里他当了一次审核人,读到的正是 Restricted)。
+**审计记录照规矩**(与加班审批人 Q20 同一条,`AT1D1-OVERTIME-APPROVER-NAMES-PAGE-VS-TRAIL`)。若审核人必须在审计记录里看到名字,
+那是一次对 ActorName 规矩的改动,两处一起裁。**删除条件:** Tim 对"有一层业务关系的读者"(加班审批人、审核人)裁一次。
+

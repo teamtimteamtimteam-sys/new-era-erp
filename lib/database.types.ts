@@ -30678,6 +30678,15 @@ export type Database = {
           work_date: string
         }[]
       }
+      my_period_labels: {
+        Args: never
+        Returns: {
+          code: string
+          kind: string
+          period_id: string
+          period_month: string
+        }[]
+      }
       next_assay_code: { Args: { p_date?: string }; Returns: string }
       next_chase_code: { Args: { p_date?: string }; Returns: string }
       next_cod_code: { Args: { p_date?: string }; Returns: string }

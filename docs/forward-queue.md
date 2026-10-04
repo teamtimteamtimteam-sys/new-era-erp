@@ -219,6 +219,22 @@
 >    `finance_settings_history`;旧的雇员表单直接写,`save_employee` 是新增的;`record_trail` 同签名原地替换)。提前看得见、而且是有意的:
 >    `/settings/change-history` 逐行再过读规则(Q13),cfo 读 `auth.users` 与 `cod_verification_failures` 那几行是 Restricted;
 >    旧的 `/settings/deleted` 应当把四个新种类印成原样的键名、没有链接(Step 0 §j 的推断,窗口里没有人去看过)。见 `docs/handbacks/AUDIT-TRAIL-1d-1.md` §7.3。
+> 31. **✅ 请假与考勤的审计记录 —— AUDIT-TRAIL-1d-2(`v1.4.33` 的一部分,【未发布】,2026-10-04)。**
+>    内容见下面「HISTORY family」一节 AT-1d 那一块的 ✅ AT-1d-2。
+>    ★ **部署:Tim 在 Vercel 上确认 `cb8c87c9` 已部署(AT-1d-2 close-out + AT-1d-3 委托书,2026-10-04)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-04 19:00:10 CST**(测量:`db/migration-windows.tsv`,`2026-10-04-at1d2-trails-leave-and-time.sql`)·
+>    终点下界 **2026-10-04 21:16:28 CST**(测量:推送把 `origin/main` 移到 `cb8c87c9`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`cb8c87c9 … {2026-10-04 21:16:28 +0800}: update by push`)·
+>    终点上界 **2026-10-04 23:56:44 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 2 h 16 min 18 s,至多 4 h 56 min 34 s。** 上界宽,是因为推送与 close-out 之间隔了 2 h 40 min —— 它是"Tim 说已部署"那一刻的
+>    上界,不是部署花了这么久。窗口里**没有量到坏掉的东西**(五支登记函数同签名原地替换,`record_trail` 没动;旧应用不叫九个新主语)。
+>    提前看得见、而且是有意的:旧的费用页审计记录多了医疗报销那几行(新成员),说成通用的 "Medical claim edited";汇总页 Record 一栏把加班行
+>    链到它的批;全局搜索把医疗报销与考勤期间开到详情页(两页本来就有)。见 `docs/handbacks/AUDIT-TRAIL-1d-2.md` §7.3。
+> 32. **✅ 工资与评审的审计记录 —— AUDIT-TRAIL-1d-3(`v1.4.33` 的最后一部分,2026-10-05)。AT-1d 三刀做完,AUDIT-TRAIL-1 = `v1.4.33`。**
+>    内容见下面「HISTORY family」一节 AT-1d 那一块的 ✅ AT-1d-3;发布那一行在 `docs/handbacks/AUDIT-TRAIL-1d-3.md` 的抬头。下一刀 DATE-PICK-1(`v1.4.34`)。
+>    ★ **破窗**:起点 **2026-10-05 01:14:31 CST**(测量:`db/migration-windows.tsv`,`2026-10-05-at1d3-trails-pay-and-performance.sql`)·
+>    终点 = Tim 在 Vercel 上看到部署成功的那一刻 —— **下一次 close-out 时补记**(下界读 `git reflog show --date=iso refs/remotes/origin/main` 里这一次推送)。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -6581,7 +6597,9 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   "记录开始之前"那一段的合并;前三页(`/purchasing/orders/[id]` · `/operation/processing/[id]` · `/settings/roles/[id]`);
   `/settings/change-history` 改写成同一种话;屏幕日期改成 DD/MM/YYYY(PDF 与外发单据不变)。说明书 `docs/change-log.md` §9;
   交回 `docs/handbacks/AUDIT-TRAIL-1a.md`;勘察 `docs/surveys/AUDIT-TRAIL-0/`。
-* **⬜ AUDIT-TRAIL 的后几刀**(AUDIT-TRAIL-0 §8 的拆分,Tim 2026-09-29 批准,依次做)—— 每一刀都要留下能用的页面;
+* **✅ AUDIT-TRAIL 的后几刀 —— 四刀(AT-1a · 1b · 1c · 1d)都做完了:AUDIT-TRAIL-1 = `v1.4.33`(AT-1d-3 收尾,2026-10-05)。**
+  发布那一行写在 `docs/handbacks/AUDIT-TRAIL-1d-3.md` 的抬头。下一刀是 DATE-PICK-1(`v1.4.34`)。
+  原文(AUDIT-TRAIL-0 §8 的拆分,Tim 2026-09-29 批准,依次做)—— 每一刀都要留下能用的页面;
   没转到的页面保持今天的样子。**加一个主语怎么做**写在 `docs/change-log.md` §9.6。
   ★ **版本号 —— Tim 裁定,2026-09-29(AT-1a close-out 委托书),已关闭:** **AT-1a · AT-1b · AT-1c · AT-1d 合起来是【一个】版本
   `v1.4.33`,等 AT-1d 关闭之后才对测试者宣布;DATE-PICK-1 是 `v1.4.34`。** 原来的"每一刀一个版本号"与下面各刀原先标的
@@ -6642,7 +6660,7 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
       "Bank transfer changed"(此前借了申请的 "Request changed")。交回 `docs/handbacks/AUDIT-TRAIL-1c-3.md`;fixture 243。
       ★ **破窗**:起点 **2026-10-04 08:39:15 CST**(迁移提交,`db/migration-windows.tsv`);终点 = Tim 在 Vercel 上看到部署成功的那一刻(转述,不是本机测量)——
       **下一次 close-out 时补记**。窗口内没有量到坏掉的东西;提前可见的只有汇总页上人工分录申请及其审批那几行的 Record 列改指申请本身。
-  * **⬜ AT-1d(`v1.4.33` 的最后一部分,关闭后才发布 `v1.4.33`;~~v1.4.36~~)· 人事、设置与账号** —— HR 的宿主页与 `/me`;设置页(审批方针、词典、导入);
+  * **✅ AT-1d(`v1.4.33` 的最后一部分;~~v1.4.36~~)· 人事、设置与账号 —— 三刀都做完了(1d-3,2026-10-05),`v1.4.33` 随它发布** —— HR 的宿主页与 `/me`;设置页(审批方针、词典、导入);
     ★ **审批方针那一块面板归这里(Tim 的 AT-1c Q2,2026-10-03)**:`/settings/approvals`(守卫 `action.manage_permissions`)上的 `approval_policy`
     主语 —— `finance_settings` 的四列审批方针(M5 · M6)+ `finance_settings_history`(M7,整张表属于那一行),替掉页上的 `ApprovalsHistory`(Q26);
     同一行上的锁期与 GST 设置两块面板归 AT-1c-3(✅ 2026-10-04)。★ `/me` 上【报销人自己那一张报销单】的审计记录 AT-1c-3 已经做了
@@ -6661,10 +6679,17 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
       之前那一段只剩最近一次,照直说)· `/me` 的 `my_leave_request` / `my_medical_claim`(M8 · Q14 · Q15)· Q36:医疗报销与考勤期间链到详情页
       (加班批没有 code 列,不进 document_types —— 链接由 trail_ref_label 给)· Q19 以 warehouse 账号量过(`docs/known-issues.md`)。
       交回 `docs/handbacks/AUDIT-TRAIL-1d-2.md`;fixture 245。★ **破窗**:起点 **2026-10-04 19:00:10 CST**(`db/migration-windows.tsv`);
-      终点 = Tim 在 Vercel 上看到部署成功的那一刻(转述,不是本机测量)—— **下一次 close-out 时补记**。
-    * **⬜ AT-1d-3 · 工资与评审** —— 工资期(请求的"历史"那一段换掉;工资行按员工配对,Q11)· 评审(M12 的 `my_review`)· 评审周期 · 评分刻度(M11)·
-      KPI;三刀做完写 `v1.4.33` 的发布那一行。
-  * **⬜ DATE-PICK-1(`v1.4.34`;~~v1.4.37~~)· 日期选择器** —— 一个自建的选择器(Radix Popover + 现成的 `MonthGrid` + `lib/bankCsv.ts` 的
+      终点 = Tim 在 Vercel 上看到部署成功的那一刻(转述,不是本机测量)—— **已在 1d-3 的 close-out 里补记(上面第 31 条:至少 2 h 16 min 18 s,至多 4 h 56 min 34 s)**。
+    * **✅ AT-1d-3(2026-10-05)· 工资与评审** —— 工资期(工资行按员工配对,Q11;撤销追加在备注里的那一行是理由、审批说明里中英两段的那一截剥掉、
+      申请的 label 里原样的种类不上屏 —— Q10;分录按 source_id 找,按结构认出是哪一笔;申请那一块下面的"以往的申请"换成审计记录,Q27)·
+      评审(年度那一份以它的轮次开头,Q6;批准按评审自己的几列说结论、新月薪照今天遮蔽,Q7;作废的横幅说出何时、被谁)·
+      审核人那一页 `my_review`(M8 + M12:只给审核人,审批那几行对不持 hr.view 的审核人是 Restricted —— Q5)· 评审轮次(清单块,只说建 · 开 · 关)·
+      评分刻度(M11)· KPI 条目(清单块,只在看得见分数那一支;一次生成是一条)· Q12:工资申请的撤回、评审的作废(本刀另加 KPI 的打分)·
+      /me 上没有评审与 KPI 的审计记录(Q14 · Q16)。★ **Tim 的折入:修好 Q19** —— `my_period_labels()` 只给本人自己那几个期间的编号与月份,
+      `/me` 不再印 "—"(`docs/known-issues.md` 的 Q19 那一条已关)。交回 `docs/handbacks/AUDIT-TRAIL-1d-3.md`(抬头是 `v1.4.33` 的发布那一行);
+      fixture 246。★ **破窗**:起点 **2026-10-05 01:14:31 CST**(`db/migration-windows.tsv`);终点 = Tim 在 Vercel 上看到部署成功的那一刻
+      (转述,不是本机测量)—— **下一次 close-out 时补记**。
+  * **⬜ ★ 下一刀:DATE-PICK-1(`v1.4.34`;~~v1.4.37~~)· 日期选择器** —— 一个自建的选择器(Radix Popover + 现成的 `MonthGrid` + `lib/bankCsv.ts` 的
     DD/MM/YYYY 解析,不加库):能敲能点、DD/MM/YYYY、周一开头、提交 ISO、min/max 之外的日子不可选并说原因、不可能的日子拦住提交
     (Q35 · Q37);5 个月份框(MM/YYYY)与 4 个日期时间框(DD/MM/YYYY HH:MM,改按新加坡时间)一起换(Q36);中文界面的月名周名用中文、
     输入格式仍是 DD/MM/YYYY(Q39);**134 个原生日期框一个不剩**,检查改成"零个",两种独立的数法,`check-date-data-paths.mjs` 改瞄选择器,

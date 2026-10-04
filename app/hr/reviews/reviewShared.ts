@@ -37,6 +37,8 @@ export type ReviewRow = {
     acknowledged_at: string | null
     void_reason: string | null
     voided_at: string | null
+    /** AUDIT-TRAIL-1d-3(Step 0 §f):作废的横幅说出【谁】作废的(EndedBanner,ActorName 的规矩) */
+    voided_by: string | null
     self_assessment_submitted_at: string | null
     created_at: string
     updated_at: string
@@ -46,7 +48,7 @@ export const REVIEW_COLUMNS =
     'id, employee_id, review_type, cycle_id, period_start, period_end, reviewer_employee_id, ' +
     'status, rating_code, summary_text, self_assessment_text, probation_outcome, ' +
     'new_monthly_salary, salary_effective_date, submitted_at, submitted_by, approved_at, ' +
-    'approved_by, acknowledged_at, void_reason, voided_at, self_assessment_submitted_at, ' +
+    'approved_by, acknowledged_at, void_reason, voided_at, voided_by, self_assessment_submitted_at, ' +
     'created_at, updated_at'
 
 export type GoalRow = {
