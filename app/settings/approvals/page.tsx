@@ -14,9 +14,12 @@
 // 【这一页现在做三件事】
 //   ① 读:就绪状态(ApprovalsPanel,原样不动)—— 屏幕与闸读同一份判据;
 //   ② 写:四个值一起保存(ApprovalsForm → set_approvals_policy);
-//   ③ 留痕:经这块屏幕做过的每一次改动(ApprovalsHistory)。
+//   ③ 留痕:经这块屏幕做过的每一次改动。
 //      ★ ③ 不是装饰:本刀同时在修"留痕写得进读不出"那条已知问题,
 //        新建一张史表却没有任何地方读它,等于当场把同一个形状再造一遍。
+//      ★ AUDIT-TRAIL-1d-1(Tim 的 Q25 · Q27,2026-10-04):③ 从 ApprovalsHistory 换成页底的审计记录(approval_policy)——
+//        同一张 finance_settings_history(M7:整张属于那一行设置)加上那一行设置自己这四列的每一次改动(M6),
+//        谁改的经 ActorName 那一道(以前这里取账号邮箱当名字)。finance_settings_history 从此只有审计记录读它。
 //
 // 【判据只有一个码 —— 看得见这一页 = 改得动它】(Tim 裁定,Q4)
 //   页面的闸是 action.manage_permissions,RPC 的闸【逐字同一个】,
@@ -34,7 +37,7 @@ import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import ApprovalsPanel from './ApprovalsPanel'
 import ApprovalsForm, { type RoleOption } from './ApprovalsForm'
-import ApprovalsHistory, { type PolicyChange } from './ApprovalsHistory'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 // ★【查询失败必须【失败】,不许读成空】mustRows 抛,`?? []` 不抛 ——
 //   而这一页上两处空集各自都有一句【错误的】读法在等着:
 //   角色清单读成空 = "系统里没有角色";留痕读成空 = "这条策略从来没有被人动过"。
@@ -54,7 +57,11 @@ type Readiness = {
     can_disable: boolean
 }
 
-export default async function ApprovalsSettingsPage() {
+export default async function ApprovalsSettingsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ trail?: string | string[] }>
+}) {
     // 【判据来自注册表,不写在这一页里】—— 与入口用的是同一条 FN.approvals,
     // 所以"谁看得见这个入口"与"谁进得去这一页"不可能各错一次(NAV-REG-1 的 3d)。
     const denied = await requireFunction(FN.approvals)
@@ -73,30 +80,6 @@ export default async function ApprovalsSettingsPage() {
         .select('code, name_en, name_zh, sort_order')
         .eq('is_active', true)
         .is('deleted_at', null), 'roles for the approval policy pickers')
-
-    // 经这块屏幕做过的改动。十条 —— 这是一条一年翻不了几次的策略。
-    const historyRows = mustRows<PolicyChange>(await supabase
-        .from('finance_settings_history')
-        .select('id, changed_at, changed_by, old_approvals_enabled, new_approvals_enabled, old_approval_level1_role_code, new_approval_level1_role_code, old_approval_level2_role_code, new_approval_level2_role_code, old_approval_threshold_base, new_approval_threshold_base')
-        .order('changed_at', { ascending: false })
-        .limit(10), 'approval policy changes')
-
-    // 谁改的 —— user_directory 的闸【就是】action.manage_permissions,
-    // 也就是能看到这一页的那批人,所以这次查询不会为了权限而空手而归。
-    const actorIds = Array.from(new Set(
-        historyRows.map((r) => r.changed_by).filter((v): v is string => !!v)))
-    // user_directory 是一个视图,生成的类型把每一列都标成可空。这里【不】假装
-    // user_id 不会是 null —— 拿不到 id 的那一行直接跳过,它认不出是谁。
-    type Actor = { user_id: string | null; email: string | null; employee_name: string | null }
-    const actors: Actor[] = actorIds.length === 0 ? [] : mustRows<Actor>(
-        await supabase.from('user_directory')
-            .select('user_id, email, employee_name')
-            .in('user_id', actorIds), 'who changed the approval policy')
-    const whoByUserId: Record<string, string> = {}
-    for (const u of actors) {
-        if (!u.user_id) continue
-        whoByUserId[u.user_id] = u.employee_name || u.email || u.user_id
-    }
 
     const r = readinessRes.data as Readiness | null
 
@@ -126,7 +109,6 @@ export default async function ApprovalsSettingsPage() {
                         blocking={r.blocking ?? []}
                         pendingPurchaseOrders={r.pending_purchase_orders}
                     />
-                    <ApprovalsHistory rows={historyRows} whoByUserId={whoByUserId} />
                 </>
             )}
             {/* ★ 这一段【不再】说"这里没有配置控件" —— 它现在说的是
@@ -134,6 +116,8 @@ export default async function ApprovalsSettingsPage() {
             <p className="mt-6 max-w-2xl text-sm text-[color:var(--brand-text)] bg-amber-50 border border-amber-200 rounded px-3 py-2">
                 {t('finance.approvals.noConfigUi')}
             </p>
+            {/* AUDIT-TRAIL-1d-1(Q25):这一块面板管的那四列与它的修改史 —— 锁期、GST 与另外六列不在这里(M6) */}
+            <AuditTrail subject="approval_policy" id="true" show={trailCount((await searchParams).trail)} />
         </div>
     )
 }

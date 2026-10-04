@@ -406,6 +406,73 @@ const OVERRIDES = {
     cash_forecast_lines: { label: 'Description', direction: 'Direction', amount_ccy: 'Amount', cadence: 'How often', start_date: 'First occurrence',
         end_date: 'Last occurrence', is_active: 'Active' },
     bank_import_profiles: { bank_account_code: 'Bank account', name: 'Mapping name', mapping: 'Column mapping', deleted_at: 'Deleted on' },
+    // ── AUDIT-TRAIL-1d-1(Tim 2026-10-04,AT-1d Step 0 Q32 · Q33):这一刀第一次把这几张表放上页面 —— 逐列对着它那一页核过。
+    //   员工:员工表单与详情页(hr.col*);任职履历:详情页的履历时间线;调薪申请:SalaryChangePanel;培训:培训表单;
+    //   部门:部门表单;授权 · 附加账号:/settings/accounts;审批方针的修改史:/settings/approvals 的那几个字段名;
+    //   导入批次:/settings/import 的批次表;六本字典:/settings/dictionaries 的一段(中英两个名字一律
+    //   "Name (English)" / "Name (Chinese)" —— AT-1a 角色的写法,Q32;两个都说:那是人敲的字,不是机器写的中文)。
+    employees: {
+        code: 'Employee number', legal_name: 'Legal name', first_name: 'First name', last_name: 'Last name',
+        preferred_name: 'Preferred name', greeting_name: 'Greeting name', department_id: 'Department', position_id: 'Position',
+        manager_id: 'Manager', employment_type: 'Employment type', work_category: 'Category', is_site_staff: 'Site staff',
+        hire_date: 'Hire date', probation_end_date: 'Probation ends', confirmation_date: 'Confirmation date',
+        employment_status: 'Employment status', separation_date: 'Separation date', separation_type: 'Separation type',
+        separation_notes: 'Separation notes', work_email: 'Work email', work_phone: 'Work phone', residency_status: 'Residency status',
+        identity_no: 'Identity number', work_pass_type: 'Work pass type', work_pass_no: 'Work pass number',
+        work_pass_issue_date: 'Work pass issued on', work_pass_expiry_date: 'Work pass expires on', notes: 'Notes',
+        monthly_salary: 'Monthly salary', review_exempt: 'Exempt from reviews', user_id: 'Login account',
+        deleted_at: 'Deleted on', anonymised_at: 'Anonymised on', anonymised_by: 'Anonymised by',
+    },
+    employment_history: {
+        employee_id: 'Employee', effective_date: 'Effective date', change_type: 'Change', job_title: 'Job title',
+        department_id: 'Department', employment_type: 'Employment type', employment_status: 'Employment status',
+        work_category: 'Category', old_monthly_salary: 'Previous monthly salary', new_monthly_salary: 'New monthly salary',
+        notes: 'Notes', anonymised_at: 'Anonymised on',
+    },
+    salary_change_requests: {
+        employee_id: 'Employee', label: 'Request', old_monthly_salary: 'Current monthly salary', new_monthly_salary: 'New monthly salary',
+        effective_date: 'Effective date', reason: 'Reason', status: 'Status', decided_at: 'Decided on', decided_by: 'Decided by',
+        decision_notes: 'Decision notes', executed_at: 'Applied on', withdrawn_at: 'Withdrawn on', withdrawn_by: 'Withdrawn by',
+        withdraw_reason: 'Reason for withdrawing',
+    },
+    training_records: {
+        employee_id: 'Employee', training_name: 'Training', category: 'Category', completed_date: 'Completed on',
+        expiry_date: 'Expires on', provider: 'Provider', certificate_ref: 'Certificate reference', notes: 'Notes', deleted_at: 'Deleted on',
+    },
+    departments: {
+        code: 'Code', name_en: 'Name (English)', name_zh: 'Name (Chinese)', parent_department_id: 'Parent department',
+        manager_employee_id: 'Manager', is_active: 'Active', notes: 'Notes', deleted_at: 'Deleted on',
+    },
+    user_roles: {
+        user_id: 'Login account', role_id: 'Role', granted_at: 'Granted on', granted_by: 'Granted by', revoked_at: 'Removed on',
+        revoked_by: 'Removed by', revoke_reason: 'Reason for removing',
+    },
+    employee_accounts: { user_id: 'Login account', employee_id: 'Employee', linked_at: 'Linked on', linked_by: 'Linked by' },
+    employee_account_history: {
+        user_id: 'Login account', employee_id: 'Employee', action: 'Change', changed_at: 'Changed on', actor_user_id: 'Changed by',
+    },
+    finance_settings_history: {
+        changed_at: 'Changed on', changed_by: 'Changed by',
+        old_approvals_enabled: 'Approvals were in force', new_approvals_enabled: 'Approvals are in force',
+        old_approval_threshold_base: 'Previous approval threshold (base currency)', new_approval_threshold_base: 'Approval threshold (base currency)',
+        old_approval_level1_role_code: 'Previous level-1 approver role', new_approval_level1_role_code: 'Level-1 approver role',
+        old_approval_level2_role_code: 'Previous level-2 approver role', new_approval_level2_role_code: 'Level-2 approver role (at or above the threshold)',
+    },
+    import_batches: {
+        target_table: 'Imported into', file_name: 'File', row_count: 'Rows', code_first: 'First number', code_last: 'Last number',
+        imported_at: 'Imported on', imported_by: 'Imported by',
+    },
+    substances: { name_en: 'Name (English)', name_zh: 'Name (Chinese)', symbol: 'Symbol', notes: 'Notes', is_active: 'Active' },
+    battery_chemistries: { name_en: 'Name (English)', name_zh: 'Name (Chinese)', notes: 'Notes', is_active: 'Active' },
+    material_kinds: {
+        name_en: 'Name (English)', name_zh: 'Name (Chinese)', notes: 'Notes', is_active: 'Active',
+        has_condition_axes: 'Has condition axes', may_ever_be_processed: 'Can ever be processed',
+    },
+    inbound_safety_states: { name_en: 'Name (English)', name_zh: 'Name (Chinese)', notes: 'Notes', is_active: 'Active', may_be_fed: 'Can be fed to processing' },
+    laboratories: { name_en: 'Name (English)', name_zh: 'Name (Chinese)', notes: 'Notes', is_active: 'Active' },
+    inbound_source_reasons: {
+        name_en: 'Name (English)', name_zh: 'Name (Chinese)', notes: 'Notes', is_active: 'Active', requires_explanation: 'Needs an explanation',
+    },
 }
 // AUDIT-TRAIL-1b-2:勘察把几列自由文本认成了"像枚举"(enum_like)—— 页面上它们是一个随手填的输入框,
 //   审计记录就照原样说(一个人敲的字,Q8),而不是去找一张并不存在的取值表。
@@ -434,6 +501,15 @@ const KIND_OVERRIDES = {
     //   所以照技术列藏起来(页面上那一格是一张图,不是一段字);导入映射的户只认 1000 / 1010,说成户名
     company_profile: { logo_path: 'technical' },
     bank_import_profiles: { bank_account_code: 'enum' },
+    // AUDIT-TRAIL-1d-1:登录账号那一列是一个人(按账号认人),不是一个写入者;审批方针修改史里的角色是一个角色代码 ——
+    //   经 trail_refs 解析成角色的名字(与设置那一行同一种说法),不是一段文字;两张历史表的旧值 / 新值照它们自己那一列的种类
+    employees: { user_id: 'actor', monthly_salary_set: 'technical' },
+    finance_settings_history: { old_approval_level1_role_code: 'dict', new_approval_level1_role_code: 'dict',
+        old_approval_level2_role_code: 'dict', new_approval_level2_role_code: 'dict' },
+    employee_account_history: { employee_id: 'fk_person' },
+    employment_history: { employment_status: 'enum', employment_type: 'enum', work_category: 'enum' },
+    salary_change_requests: { snapshot: 'technical', decided_via: 'technical' },
+    import_batches: { target_table: 'enum' },
 }
 // 三个主语的表里【本来就不该印的列】(Q12:单据编号自己在标题里,内部代码不上屏)
 const HIDE = {
@@ -474,6 +550,9 @@ const HIDE = {
     fixed_asset_history: ['fixed_asset_id', 'change_type', 'changed_at', 'changed_by', 'changed_columns', 'changed_by_kind'],
     fx_rate_history: ['fx_rate_id', 'changed_at', 'changed_by'],
     gst_return_boxes: ['label_zh'],
+    // AUDIT-TRAIL-1d-1:员工编号在页头;调薪申请的快照是一段 JSON、"经由哪个码批的"是一个权限码(机器字,Q10 · Q33);
+    //   挂接史的序号、授权的主键是技术列
+    employees: ['code'], salary_change_requests: ['snapshot', 'decided_via'],
 }
 
 // ── 记录类型的英文名(单数)与区域 ─────────────────────────────────────────────
@@ -538,6 +617,10 @@ const TABLE_NAMES = {
     // AUDIT-TRAIL-1c-3
     period_closes: 'month close', year_closes: 'year close', company_profile: 'company profile', cash_forecasts: 'cash forecast',
     cash_forecast_lines: 'recurring forecast line', bank_import_profiles: 'import mapping',
+    // AUDIT-TRAIL-1d-1
+    employee_account_history: 'additional login change', finance_settings_history: 'approval policy change',
+    salary_change_requests: 'salary change request', training_records: 'training record', departments: 'department',
+    import_batches: 'bulk import',
 }
 // 区域:按表名开头认(先长后短),认不出的归 Other。区域名与导航模块的英文说法一致。
 const AREA_RULES = [
@@ -709,6 +792,15 @@ const ENUM_OVERRIDES = {
     'cash_forecast_lines#direction': { in: 'Money in', out: 'Money out' },
     'cash_forecast_lines#cadence': { once: 'One-off', weekly: 'Weekly', monthly: 'Monthly', quarterly: 'Quarterly', annual: 'Annually' },
     'bank_import_profiles#bank_account_code': { '1000': 'Cash at Bank – SGD', '1010': 'Cash at Bank – USD' },
+    // ── AUDIT-TRAIL-1d-1(取值照各自那一页的选项文字;员工状态的页面词是小写的句中词,这里给句首也读得通的说法)──
+    'employees#employment_status': { probation: 'On probation', active: 'Active', notice: 'Serving notice', separated: 'Left' },
+    'employment_history#employment_status': { probation: 'On probation', active: 'Active', notice: 'Serving notice', separated: 'Left' },
+    'employment_history#employment_type': { full_time: 'Full-time', part_time: 'Part-time', internship: 'Internship', contract: 'Contract' },
+    'employment_history#work_category': { office: 'Office', shopfloor: 'Shopfloor' },
+    'salary_change_requests#status': { submitted: 'Waiting for approval', approved: 'Approved', rejected: 'Rejected', withdrawn: 'Withdrawn' },
+    'employee_account_history#action': { linked: 'Linked', unlinked: 'Unlinked' },
+    'import_batches#target_table': { materials: 'Materials', suppliers: 'Suppliers', customers: 'Customers', employees: 'Employees',
+        departments: 'Departments', storage_locations: 'Storage locations' },
     'work_order_history#change_type': { created: 'Created', released: 'Released', closed: 'Closed', cancelled: 'Cancelled',
         header_update: 'Details changed', line_add: 'Input line added', line_update: 'Input line changed', line_remove: 'Input line removed',
         expected_add: 'Expected output added', expected_update: 'Expected output changed', expected_remove: 'Expected output removed' },
@@ -795,6 +887,10 @@ async function main() {
         if (enums[`fixed_assets#${m[2]}`]) enums[`fixed_asset_history#${c}`] = { ...enums[`fixed_assets#${m[2]}`] }
     }
     tables['auth.users'] = [humanTable('auth.users'), 'Settings']
+    // AUDIT-TRAIL-1d-1(M9):登录账号不在 labels.csv 里(它不在 public)—— 它的"列"就是 trail_log_only_tables() 的那一份安全投影,
+    //   一列不多(check-trail-wording 用同一份投影当它的列去对)
+    fields['auth.users'] = { id: ['ID', 'technical'], email: ['Email', 'text'], created_at: ['Created on', 'audit_std'],
+        banned_until: ['Disabled until', 'timestamp_audit'] }
 
     const sortObj = (o) => Object.fromEntries(Object.entries(o).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
     const body = [

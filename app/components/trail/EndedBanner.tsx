@@ -101,6 +101,8 @@ export function EndedFieldset({ ended, children }: { ended: boolean; children: R
 
 /** deleted_records 里的种类(db/views/deleted_records.sql 的 record_kind)—— 1b-3 打开的那七种 + 1c-2 的对账单(Q6) */
 export type DeletedKind = 'customer' | 'supplier' | 'material' | 'pricing_formula' | 'sales_order' | 'quote' | 'purchase_order' | 'bank_statement'
+    // AUDIT-TRAIL-1d-1(Q25 · Q26):删掉的角色 · 员工 · 部门 · 培训记录
+    | 'role' | 'employee' | 'department' | 'training_record'
 
 /** 删掉的记录的横幅:时刻、谁、理由都从 deleted_records 读 —— 与 /settings/deleted 同一份答案。
  *  那四类从来没有记过谁删的,视图从变更记录里读;读不到(早于变更记录)就只说日期。

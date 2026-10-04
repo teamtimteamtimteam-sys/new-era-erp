@@ -26,7 +26,6 @@
 //   一次实质变动会在一条今天还工作着的审计轨迹里无声消失,那是回归不是省略。
 // ════════════════════════════════════════════════════════════════════════════
 import { createClient } from '@/lib/supabase/server'
-import type { InsertRow } from '@/lib/db-helpers'
 import { getTranslations } from '@/lib/i18n/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
@@ -236,28 +235,27 @@ export async function createEmployee(
             .maybeSingle()
         if (taken) return { error: t('hr.errAccountAlreadyLinked', { 0: taken.code }) }
     }
-    const { data, error } = await supabase
-        .from('employees')
-        .insert(payload as InsertRow<'employees'>)
-        .select('id')
-        .single()
-
-    if (error) {
-        if (error.code === '23505') return { error: t('hr.errCodeTaken', { 0: f.legal_name }) }
-        return { error: await localizeHrError(error.message) }
-    }
-
-    // 入职一行,生效日 = 入职日
-    await supabase.from('employment_history').insert({
-        employee_id: data.id,
-        effective_date: f.hire_date,
-        change_type: 'hired',
-        // KPI-1:履历里存的是【那一刻职位的 title 文本】,不是 position_id
-        job_title: await positionTitleById(supabase, f.position_id),
-        department_id: f.department_id,
-        employment_type: f.employment_type,
-        employment_status: f.employment_status,
+    // AUDIT-TRAIL-1d-1(Tim 的 AT-1d Q8):员工那一行与入职那一行履历【一次调用、一笔事务】(save_employee)——
+    //   以前是两次请求,审计记录里是两条("Employee added"与"Hired"),第二次失败时履历安静地缺一行。
+    //   入职一行,生效日 = 入职日;KPI-1:履历里存的是【那一刻职位的 title 文本】,不是 position_id
+    const { data: newId, error } = await supabase.rpc('save_employee', {
+        p_id: null as unknown as string,
+        p_fields: payload,
+        p_history: {
+            effective_date: f.hire_date,
+            change_type: 'hired',
+            job_title: await positionTitleById(supabase, f.position_id),
+            department_id: f.department_id,
+            employment_type: f.employment_type,
+            employment_status: f.employment_status,
+        },
     })
+
+    if (error || !newId) {
+        if (error?.code === '23505') return { error: t('hr.errCodeTaken', { 0: f.legal_name }) }
+        return { error: await localizeHrError(error?.message ?? 'EMPLOYEE_NOT_FOUND') }
+    }
+    const data = { id: newId as string }
 
     revalidatePath('/hr/employees')
     const linkErr = await applyAccountLink(supabase, data.id, _nextUser, null, t)
@@ -308,11 +306,6 @@ export async function updateEmployee(
     const linkErr = await applyAccountLink(supabase, employeeId, nextUser, before.user_id, t)
     if (linkErr) return { error: linkErr }
 
-    const { error } = await supabase.from('employees').update(payload).eq('id', employeeId)
-    if (error) {
-        return { error: await localizeHrError(error.message) }
-    }
-
     const after: MaterialFields = {
         position_id: f.position_id,
         department_id: f.department_id,
@@ -320,6 +313,7 @@ export async function updateEmployee(
         employment_status: f.employment_status,
     }
     const changeType = inferChangeType(before as MaterialFields, after)
+    let history: Record<string, string | null> | null = null
     if (changeType) {
         // 部门名用于摘要:两侧 id 都查一次(可能为空)
         const ids = [before.department_id, f.department_id].filter(Boolean) as string[]
@@ -337,8 +331,7 @@ export async function updateEmployee(
         const posById = new Map((poss ?? []).map((x) => [x.id, x]))
         const posName = (id: string | null) => (id ? (posById.get(id)?.code ?? '?') : '—')
 
-        await supabase.from('employment_history').insert({
-            employee_id: employeeId,
+        history = {
             effective_date: effective_date || new Date().toISOString().slice(0, 10),
             change_type: changeType,
             // 履历存文本快照(见抬头);解析不到就 null,不存 uuid
@@ -347,7 +340,13 @@ export async function updateEmployee(
             employment_type: f.employment_type,
             employment_status: f.employment_status,
             notes: describeChanges(before as MaterialFields, after, deptName, posName) || null,
-        })
+        }
+    }
+
+    // AUDIT-TRAIL-1d-1(Q8):字段与那一行履历一次调用、一笔事务(save_employee 只写变了的列;履历为空就不补)
+    const { error } = await supabase.rpc('save_employee', { p_id: employeeId, p_fields: payload, p_history: history as never })
+    if (error) {
+        return { error: await localizeHrError(error.message) }
     }
 
     revalidatePath('/hr/employees')

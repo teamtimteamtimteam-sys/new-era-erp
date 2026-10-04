@@ -29,6 +29,9 @@ export type TrailSubject = 'purchase_order' | 'processing_run' | 'role' | 'inbou
     | 'sale' | 'freight' | 'fixed_asset' | 'bank_statement' | 'gst_period' | 'fx_rate' | 'management_pack' | 'contract'
     | 'finance_lock' | 'finance_gst' | 'company_profile' | 'year_close' | 'journal_request' | 'expense_claim' | 'my_expense_claim'
     | 'bank_transfer' | 'wht_remittance' | 'cash_forecast' | 'cash_forecast_line' | 'bank_import_profile'
+    | 'account' | 'approval_policy' | 'employee' | 'department' | 'training_record' | 'import_batch'
+    | 'dictionary_substances' | 'dictionary_battery_chemistries' | 'dictionary_material_kinds' | 'dictionary_inbound_safety_states'
+    | 'dictionary_laboratories' | 'dictionary_inbound_source_reasons'
 
 /** 主语的根表 —— 只用来从根行的"今天的样子"里取币种;与 db/functions/trail_subjects.sql 同一份(check-trail-wording 比对)。 */
 export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
@@ -93,6 +96,19 @@ export const TRAIL_SUBJECT_ROOTS: Record<TrailSubject, string> = {
     cash_forecast: 'cash_forecasts',
     cash_forecast_line: 'cash_forecast_lines',
     bank_import_profile: 'bank_import_profiles',
+    // AUDIT-TRAIL-1d-1(account 的根在 auth —— M9;六本字典是集合 —— M11,页面交 'all')
+    account: 'auth.users',
+    approval_policy: 'finance_settings',
+    employee: 'employees',
+    department: 'departments',
+    training_record: 'training_records',
+    import_batch: 'import_batches',
+    dictionary_substances: 'substances',
+    dictionary_battery_chemistries: 'battery_chemistries',
+    dictionary_material_kinds: 'material_kinds',
+    dictionary_inbound_safety_states: 'inbound_safety_states',
+    dictionary_laboratories: 'laboratories',
+    dictionary_inbound_source_reasons: 'inbound_source_reasons',
 }
 
 export const PAGE = 20

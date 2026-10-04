@@ -1317,7 +1317,7 @@ const zh = {
         history: '最近的导入',
         historyEmpty: '还没有导入过任何东西。这与"文件里没有行"不是一回事,与"你不能导入"也不是一回事。',
         historyIsALog: '这是一本回答「那个文件到底进去了没有」的日志。它【不是】关于每一行来历的记录,而且上线前清库时会跟着那些行一起清掉。',
-        col: { when: '时间', table: '表', file: '文件', rows: '行数', codeRange: '编号范围' },
+        col: { when: '时间', table: '表', file: '文件', rows: '行数', codeRange: '编号范围', who: '谁' },
         table: {
             materials: '物料', suppliers: '供应商', customers: '客户',
             departments: '部门', employees: '员工', storage_locations: '库位',
@@ -6629,7 +6629,6 @@ const zh = {
         withdraw: '撤回',
         withdrawConfirm: '撤回这张调薪申请?',
         withdrawBody: '什么都不变,之后可以再提。',
-        history: '最近了结的',
         status: {
             submitted: '在等',
             approved: '已批准',
@@ -6870,6 +6869,10 @@ const zh = {
             material: '物料',
             pricing_formula: '定价公式',
             bank_statement: '对账单',
+            role: '角色',
+            employee: '员工',
+            department: '部门',
+            training_record: '培训记录',
         },
     },
     metals: {
@@ -7862,15 +7865,7 @@ const zh = {
             level1Missing: '请选一级审批角色,或者让整条策略保持未决',
             enableBlockedWhy: '审批还开不起来 —— 数据库会拒绝:{what}',
             disableBlockedWhy: '还有 {n} 张单在等审批,此时关不掉 —— 关掉会把它们搁死。',
-            historyTitle: '这条策略的变更',
-            historyEmpty:
-                '没有记录到任何变更。这【不是】说这条策略从来没有变过 —— 是说它从来没有【经这块屏幕】变过。上面那些值是这块屏幕存在之前直接改库设上的,而那一次变更【不在这里编造出来】。',
-            historyBy: '{who} · {when}',
-            historyWhoUnknown: '不知道是哪个账号',
-            historyOn: '生效',
-            historyOff: '未生效',
             historyUnset: '尚未决定',
-            historyArrow: '{field}:{from} → {to}',
             holdersOkPeople: '目前有 {n} 个账号持有 {role},而且登录得了 —— 合计 {people} 个人。同一个人的两个账号只算一个人。',
             holdersCannotSignIn: '\u2605 {role} 【确实有】 {n} 个持有人,但没有一个登录得了 \u2014\u2014 所以这一级实际上没有人批得了。再授一次权不会有任何变化;要解决的是那个账号登录不了。这一条为真时,审批开不起来。',
             holdersNone: '没有人持有 {role},这一级没有审批人。这一条为真时,审批开不起来。',

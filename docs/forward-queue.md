@@ -6637,6 +6637,17 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     (Q20 的另一半,M8);AT-1d 管 `/me` 的其余部分。~~**共用一行的设置面板各看各的字段**
     (Q25:锁期、GST 设置、审批方针同住 `finance_settings`,锁期那一块再加上月结 / 反结)~~ —— 锁期与 GST 那两块挪到 AT-1c-3(Q2);**账号的审计记录**(Q24:`/settings/accounts`
     每行可展开,并在关联员工的页面上照出来)。
+    ★ **Step 0 做完(2026-10-04,`docs/surveys/AUDIT-TRAIL-1d/STEP0-HANDBACK.md`);Tim 照建议裁定 Q1–Q38,拆成三刀,都在 `v1.4.33` 里:**
+    * **✅ AT-1d-1(2026-10-04)· 机制、设置与员工** —— M9(只在变更记录里出现的根:登录账号,一份安全投影 + 声明的读码)· M10(成员只取声明的几列)·
+      M11(集合主语:六本字典)· M12(比表的规则更窄的门;第一个用户是 1d-3 的 `/my-reviews`)· Q13(`/settings/change-history` 逐行再过读规则)·
+      `save_employee`(员工与履历一笔事务,Q8);账号(每一个账号一块,员工页上照出来;停用失败并成一句 —— Q24 · Q9 · Q21)· 角色页说出授给了谁(Q22)·
+      审批方针那一块(替掉 `ApprovalsHistory`,Q25 · Q27)· 六本字典 · 导入批次那一块与"谁"一栏(Q24)· 员工(替掉调薪的"最近了结"那一段,Q27 · Q28)·
+      部门 · 培训记录(Q29);删掉的角色 · 员工 · 部门 · 培训记录只读打开、进 `/settings/deleted`(Q25 · Q26)。交回 `docs/handbacks/AUDIT-TRAIL-1d-1.md`;fixture 244。
+    * **⬜ AT-1d-2 · 请假与考勤** —— 请假(取消改写决定那一戳,按状态说)· 假期发放 · 假别 · 公众假期(M11,硬删)· 医疗报销(M4;Q37:费用页够到它)·
+      加班(M1;Q20 审批人看名字;Q35 "Sent back")· 考勤 · `/me` 的 `my_leave_request` / `my_medical_claim`(M8,Q14 · Q15)· Q36 的 document_types ·
+      Q19 以 warehouse 账号把 `/me` 量一次。
+    * **⬜ AT-1d-3 · 工资与评审** —— 工资期(请求的"历史"那一段换掉;工资行按员工配对,Q11)· 评审(M12 的 `my_review`)· 评审周期 · 评分刻度(M11)·
+      KPI;三刀做完写 `v1.4.33` 的发布那一行。
   * **⬜ DATE-PICK-1(`v1.4.34`;~~v1.4.37~~)· 日期选择器** —— 一个自建的选择器(Radix Popover + 现成的 `MonthGrid` + `lib/bankCsv.ts` 的
     DD/MM/YYYY 解析,不加库):能敲能点、DD/MM/YYYY、周一开头、提交 ISO、min/max 之外的日子不可选并说原因、不可能的日子拦住提交
     (Q35 · Q37);5 个月份框(MM/YYYY)与 4 个日期时间框(DD/MM/YYYY HH:MM,改按新加坡时间)一起换(Q36);中文界面的月名周名用中文、
@@ -6646,6 +6657,12 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   * **⬜ ★ 第一条(Tim 的 AT-1c Q11,2026-10-03):工资过账的分录行只给持 `data.view_pay` 的人看一个人的金额** —— 其余的人看到 "Restricted"。
     今天持 `module.finance.view` 而不持 `data.view_pay` 的 cto 与 gm 在分录页上读得到每一个人的实发工资(`pay_payroll_lines` 一人一行)。
     AT-1c 的审计记录照分录页今天的样子说,不在审计记录里单独遮。`docs/known-issues.md` 的 `AT1C1-PAYROLL-JOURNAL-SHOWS-INDIVIDUAL-PAY`。
+  * **⬜ 隐私组(Tim 2026-10-04 的裁定:AT-1d Step 0 的 Q16 · Q17 · Q18 · Q30 一起排在第一条之后)** —— 四件都是【量到了、AT-1d 不加新暴露、
+    等 Tim 定界线】的人事隐私:
+    * **Q16 · 没结束的那一轮 KPI 分本人经 API 读得到**(自读策略没有轮次条件,屏幕藏到结束)—— `docs/known-issues.md` 的 `AT1D1-KPI-OPEN-CYCLE-SCORES-SELF-READABLE`。
+    * **Q17 · `employees.notes` / `separation_notes` 屏幕上是人事内部的、自读策略放本人读**(导出也给)—— `AT1D1-HR-NOTES-SELF-READABLE`。
+    * **Q18 · 病假 / 医疗的文字与工资期合计只要 module.hr.view**(一期一个人时合计就是一个人的工资)—— `AT1D1-HEALTH-TEXT-AND-PERIOD-TOTALS-BEHIND-HR-VIEW-ONLY`。
+    * **Q30 · 匿名化只涂员工与履历的变更记录**(调薪申请、工资行、请假理由、医疗说明原样)—— `AT1D1-ANONYMISATION-LEAVES-OTHER-TABLES-UNREDACTED`。
   * **⬜ `equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人**(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
 * **⬜ `/settings/deleted` 要不要被变更记录吸收**(HISTORY-0 Q30,Tim:本刀之后再定,2026-09-28)—— 见下面「事件触发」那一节的原条目;

@@ -28,6 +28,8 @@
 //      外加任务修改史与公式修改史每一个 change_type 的机器字扫描(它们是隐藏列,④ 的样本走不到那些分支)。
 //   ⑧ 账上的单据(AUDIT-TRAIL-1c-1)· ⑨ 其余的单据与合同(AUDIT-TRAIL-1c-2):同一个办法,外加按【那一页】的说法(subject)
 //      对每一个主语的每一张表造样本的机器字扫描(④ 的通用扫描不带 subject,走不到 describeFinance / describeLedger2)。
+//   ⑪ 账号、设置与员工(AUDIT-TRAIL-1d-1):十二个主语与角色页上的授权,同一个办法(停用失败并成一句 · 授权两边说 ·
+//      员工页上账号事件 Restricted · 入职一条 · 履历里系统写的说明 · 匿名化 · 审批方针只说它那四列)外加按那一页的机器字扫描。
 //   ⑩ 期末、设置与清单页(AUDIT-TRAIL-1c-3):同一个办法 —— 十二个主语的金句(两块面板各看各的列 · 月结 / 反结 · 年结 ·
 //      Q16 的合并 · Q30 · M8 的报销人)外加按【那一页】的机器字扫描(describeLedger3)。
 //
@@ -35,7 +37,7 @@
 //   blind-detector · registry-drift · missing-key · dead-key · label-gap · enum-gap · raw-date · raw-ref · raw-json · raw-null · raw-role ·
 //   wording-drift(AUDIT-TRAIL-1b-2:⑥ 商务样例 —— 改一句措辞,逐字比对必须红)·
 //   wording-drift-1b3(AUDIT-TRAIL-1b-3:⑦ 主数据样例 —— 同上)· wording-drift-1c1(⑧)· wording-drift-1c2(AUDIT-TRAIL-1c-2:⑨)·
-//   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)
+//   wording-drift-1c3(AUDIT-TRAIL-1c-3:⑩)· wording-drift-1d1(AUDIT-TRAIL-1d-1:⑪)
 // 退出码:0 干净 · 1 有发现 · 3 尺瞎了或覆盖不足(本脚本【不知道】答案)
 // ════════════════════════════════════════════════════════════════════════════
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
@@ -66,10 +68,11 @@ problems.ruler.push(...M.selfProof(detect))
 const subjectSrc = read('db/functions/trail_subjects.sql').replace(/--[^\n]*/g, '')
 // AUDIT-TRAIL-1c-3:M8 的主语没有页面码 —— ARRAY[]::text[](空数组要写类型);M7 的成员没有外键 —— NULL 与 'all'。
 //   两种写法都要认:漏认一个主语,下面"55 ≠ 56"那一句会当场红(实测:第一次跑就是这么红的)。
-const subjects = [...subjectSrc.matchAll(/\('([a-z_]+)',\s*ARRAY\[([^\]]*)\](?:::text\[\])?,\s*'([a-z_]+)',\s*'([a-z_]+)',\s*'([a-z]+)'/g)]
+// AUDIT-TRAIL-1d-1:M9 的根表带 schema('auth.users'),M11 的规则是 'collection',M12 的规则是 'gate:<名字>' —— 三种都认
+const subjects = [...subjectSrc.matchAll(/\('([a-z_]+)',\s*ARRAY\[([^\]]*)\](?:::text\[\])?,\s*'([a-z_.]+)',\s*'([a-z_]+)',\s*'([a-z:]+)'/g)]
     .map((m) => ({ subject: m[1], views: [...m[2].matchAll(/'([^']+)'/g)].map((x) => x[1]), root: m[3], rule: m[5] }))
 const memberSrc = read('db/functions/trail_subject_members.sql').replace(/--[^\n]*/g, '')
-const members = [...memberSrc.matchAll(/\('([a-z_]+)',\s*(\d+),\s*'([a-z_]+)',\s*'([a-z_]+)',\s*(?:'([a-z_]+)'|NULL),\s*'[^']*'::jsonb,\s*'(up|down|all)',\s*(true|false),\s*(true|false)\)/g)]
+const members = [...memberSrc.matchAll(/\('([a-z_]+)',\s*(\d+),\s*'([a-z_.]+)',\s*'([a-z_.]+)',\s*(?:'([a-z_]+)'|NULL),\s*'[^']*'::jsonb,\s*'(up|down|all)',\s*(true|false),\s*(true|false)\)/g)]
     .map((m) => ({ subject: m[1], ord: m[2], table: m[3], parent: m[4], hop: m[6], shown: m[7] === 'true' }))
 const renderSrc = read('lib/trail/render.ts')
 const subjectBlock = renderSrc.match(/export const SUBJECT_TABLES[^=]*= \{([\s\S]*?)\n\}/)?.[1] ?? ''
@@ -155,8 +158,13 @@ const HIDDEN = new Set(['technical', 'audit_std', 'own_key', 'text_code', 'uuid_
 const HISTORY_BASE = { purchase_order_history: 'purchase_orders', processing_cost_entry_history: 'processing_cost_entries' }
 const subjectTables = [...new Set(subjects.flatMap((s) => [...tablesOf(s.subject)]))]
 let subjectCols = 0
+// AUDIT-TRAIL-1d-1(M9):只在变更记录里出现的表(auth.users)没有 db/tables 镜像 —— 它的"列"就是登记表里那一份安全投影
+const logOnlySrc = read('db/functions/trail_log_only_tables.sql').replace(/--[^\n]*/g, '')
+const LOG_ONLY = Object.fromEntries([...logOnlySrc.matchAll(/\('([a-z_.]+)',\s*'[a-z_]+',\s*'[a-z_]+',\s*ARRAY\[([^\]]*)\]/g)]
+    .map((m) => [m[1], [...m[2].matchAll(/'([^']+)'/g)].map((x) => x[1])]))
+if (!LOG_ONLY['auth.users']?.length) problems.registry.push('trail_log_only_tables.sql 里读不出 auth.users 的安全投影 —— 解析器瞎了')
 for (const t of subjectTables) {
-    const cols = mirrorColumns(t)
+    const cols = LOG_ONLY[t] ?? mirrorColumns(t)
     if (!cols || cols.length < 2) { problems.catalogue.push(`读不出 ${t} 的列(db/tables/${t}.sql)—— 解析器瞎了`); continue }
     for (const c of cols) {
         subjectCols++
@@ -2217,13 +2225,555 @@ if (FAULT === 'wording-drift-1c3') dict.text = { ...dict.text, 'plock.monthClose
     if (FAULT === 'wording-drift-1c3' && !problems.gold10.length) problems.gold10.push('(注入 wording-drift-1c3 没有咬人 —— 这一臂瞎了)')
 }
 
+// ── ⑪ 账号、设置与员工(AUDIT-TRAIL-1d-1)──────────────────────────────────────────────────────────
+// 十二个主语(账号 · 审批方针 · 员工 · 部门 · 培训记录 · 导入批次 · 六本字典)与角色页上的授权,各一次字段编辑与关键事件,逐字;
+//   加上:停用失败那一对并成一句(Q9)· 一次建立被回滚 · 授权从账号与从角色两边说(Q22)· 员工页上账号事件对人事读者是
+//   Restricted(Q21)· 入职经 save_employee 是一条(Q8)· 履历里系统写的三种说明(Q10)· 匿名化只说一句、那个人读作
+//   "A former employee"(Q30)· 审批方针只说它那四列(M6)且修改史与那一行设置是一件事(M7)。每一句都先由造句器造出来、
+//   逐句人工核过,再钉在这里 —— 交回报告 docs/handbacks/AUDIT-TRAIL-1d-1.md §8 逐条列出。注入 wording-drift-1d1 → 这一臂必须红。
+problems.gold11 = []
+if (FAULT === 'wording-drift-1d1') dict.text = { ...dict.text, 'acct.grantedTo': 'Role given to {who}' }
+{
+    const ids = {}
+    const id = (k) => (ids[k] ??= uuid())
+    const ref = (col, v, label, href) => ({ [col]: { [v]: href ? { label, href } : { label } } })
+    const person = (col, v, name) => ({ [col]: { [v]: { person: { state: 'person', name } } } })
+    const lineText = (l) => l.t === 'change' ? `${l.label}: ${l.old.text} → ${l.new.text}` : l.t === 'value' ? `${l.label}: ${l.value.text}`
+        : l.t === 'heading' ? `[${l.text}${l.part ? ' · ' + l.part.text : ''}]` : `(${l.text})`
+    const C = []
+    const add = (label, opts, rows) => C.push({ label, opts, rows })
+    const acc = id('acc'), cfo = id('cfo'), emp = id('emp'), ur = id('ur')
+    const A = { subject: 'account', recordId: acc }
+    // ── 账号(M9)──
+    add('account · created', A, [{ table: 'auth.users', op: 'ACCOUNT_CREATE', key: { id: acc }, new: { email: 'sandra@evoltrya.test', role_id: cfo } }])
+    add('account · disabled', A, [{ table: 'auth.users', op: 'ACCOUNT_DISABLE', key: { id: acc }, new: { email: 'sandra@evoltrya.test' } }])
+    add('account · disabling failed (Q9: the event and its failure are one line)', A, [
+        { table: 'auth.users', op: 'ACCOUNT_DISABLE', key: { id: acc }, new: { email: 'sandra@evoltrya.test' }, group: 'GOLD11-A', at: '2026-10-03T01:59:58+00:00' },
+        { table: 'auth.users', op: 'ACCOUNT_DISABLE_FAILED', key: { id: acc }, new: { email: 'sandra@evoltrya.test', error: 'timeout' } }])
+    add('account · re-enabled', A, [{ table: 'auth.users', op: 'ACCOUNT_ENABLE', key: { id: acc }, new: { email: 'sandra@evoltrya.test' } }])
+    add('account · a creation rolled back', A, [{ table: 'auth.users', op: 'ACCOUNT_DELETE', key: { id: acc }, new: { email: 'sandra@evoltrya.test', reason: 'create_rolled_back' } }])
+    add('account · created before the log (Q12: from the account itself)', A, [
+        { table: 'auth.users', op: 'INSERT', prelog: true, key: { id: acc }, new: { id: acc, email: 'sandra@evoltrya.test', created_at: '2026-09-01T02:00:00Z', banned_until: null } }])
+    add('account · role granted (key event)', A, [
+        { table: 'user_roles', op: 'INSERT', key: { id: ur }, new: { user_id: acc, role_id: cfo, granted_by: id('g') }, refs: { ...ref('role_id', cfo, 'CFO'), ...person('user_id', acc, 'Sandra') } }])
+    add('account · role removed, with its reason', A, [
+        { table: 'user_roles', op: 'UPDATE', key: { id: ur }, cols: ['revoked_at', 'revoked_by', 'revoke_reason'], old: { revoked_at: null, revoke_reason: null },
+          new: { revoked_at: '2026-10-03T02:00:00Z', revoke_reason: 'Moved to sales' }, ctx: { user_id: acc, role_id: cfo },
+          refs: { ...ref('role_id', cfo, 'CFO'), ...person('user_id', acc, 'Sandra') } }])
+    add('account · additional login linked (the link and its history row are one event)', A, [
+        { table: 'employee_accounts', op: 'INSERT', key: { user_id: acc }, new: { user_id: acc, employee_id: emp }, refs: person('employee_id', emp, 'Sandra Tan') },
+        { table: 'employee_account_history', op: 'INSERT', key: { id: id('eah') }, new: { user_id: acc, employee_id: emp, action: 'linked' } }])
+    add('account · additional login unlinked', A, [
+        { table: 'employee_accounts', op: 'DELETE', key: { user_id: acc }, old: { user_id: acc, employee_id: emp }, refs: person('employee_id', emp, 'Sandra Tan') },
+        { table: 'employee_account_history', op: 'INSERT', key: { id: id('eah2') }, new: { user_id: acc, employee_id: emp, action: 'unlinked' } }])
+    add('account · login linked to an employee (M10: only user_id)', A, [
+        { table: 'employees', op: 'UPDATE', key: { id: emp }, cols: ['user_id'], old: { user_id: null }, new: { user_id: acc }, ctx: { code: 'EMP-2026-0004' } }])
+    add('account · login unlinked from an employee', A, [
+        { table: 'employees', op: 'UPDATE', key: { id: emp }, cols: ['user_id'], old: { user_id: acc }, new: { user_id: null }, ctx: { code: 'EMP-2026-0004' } }])
+    // ── 角色页:授给了谁(Q22)──
+    const R1 = { subject: 'role', recordId: cfo }
+    add('role · granted to an account', R1, [
+        { table: 'user_roles', op: 'INSERT', key: { id: ur }, new: { user_id: acc, role_id: cfo }, refs: { ...ref('role_id', cfo, 'CFO'), ...person('user_id', acc, 'Sandra') } }])
+    add('role · removed from an account', R1, [
+        { table: 'user_roles', op: 'UPDATE', key: { id: ur }, cols: ['revoked_at', 'revoked_by', 'revoke_reason'], old: { revoked_at: null },
+          new: { revoked_at: '2026-10-03T02:00:00Z', revoke_reason: 'Moved to sales' }, ctx: { user_id: acc, role_id: cfo },
+          refs: { ...ref('role_id', cfo, 'CFO'), ...person('user_id', acc, 'Sandra') } }])
+    // ── 员工(Q28)──
+    const E = { subject: 'employee', recordId: emp }
+    const dept = id('dept'), dept2 = id('dept2')
+    add('employee · hired through one save (Q8: the employee and the hired row are one entry)', E, [
+        { table: 'employees', op: 'INSERT', key: { id: emp }, new: { code: 'EMP-2026-0007', legal_name: 'Lim Wei Ming', first_name: 'Wei Ming', department_id: dept,
+          employment_type: 'full_time', work_category: 'office', hire_date: '2026-10-01', employment_status: 'probation', is_site_staff: false },
+          refs: ref('department_id', dept, 'Operations') },
+        { table: 'employment_history', op: 'INSERT', key: { id: id('h1') }, new: { employee_id: emp, effective_date: '2026-10-01', change_type: 'hired',
+          department_id: dept, employment_type: 'full_time', employment_status: 'probation' }, refs: ref('department_id', dept, 'Operations') }])
+    add('employee · details changed (field edit; identity Restricted for a reader without data.view_identity)', E, [
+        { table: 'employees', op: 'UPDATE', key: { id: emp }, cols: ['preferred_name', 'work_phone'], old: { preferred_name: null, work_phone: RESTRICTED },
+          new: { preferred_name: 'Wei', work_phone: RESTRICTED } }])
+    add('employee · transferred (the form\'s own summary note is not said — the lines say it)', E, [
+        { table: 'employment_history', op: 'INSERT', key: { id: id('h2') }, new: { employee_id: emp, effective_date: '2026-11-01', change_type: 'transfer',
+          department_id: dept2, employment_type: 'full_time', employment_status: 'active', notes: 'department: OPS → SALES' }, refs: ref('department_id', dept2, 'Sales') }])
+    add('employee · confirmed through a review (Q10: the review note in English)', E, [
+        { table: 'employment_history', op: 'INSERT', key: { id: id('h3') }, new: { employee_id: emp, effective_date: '2027-01-01', change_type: 'confirmed',
+          employment_status: 'active', notes: `Probation confirmed by performance review ${id('rv')}` } }])
+    add('employee · salary changed through a request (Q10: the request label)', E, [
+        { table: 'employment_history', op: 'INSERT', key: { id: id('h4') }, new: { employee_id: emp, effective_date: '2027-02-01', change_type: 'salary_change',
+          old_monthly_salary: 4200, new_monthly_salary: 4500, notes: 'Salary change approved with request EMP-2026-0007 · 2027-02' } }])
+    add('employee · first salary set, read without data.view_pay (Restricted)', E, [
+        { table: 'employment_history', op: 'INSERT', key: { id: id('h5') }, new: { employee_id: emp, effective_date: '2026-10-01', change_type: 'salary_change',
+          old_monthly_salary: null, new_monthly_salary: RESTRICTED } }])
+    const scr = id('scr')
+    add('employee · salary change requested', E, [
+        { table: 'salary_change_requests', op: 'INSERT', key: { id: scr }, new: { employee_id: emp, label: 'EMP-2026-0007 · 2027-02', status: 'submitted',
+          old_monthly_salary: 4200, new_monthly_salary: 4500, effective_date: '2027-02-01', reason: 'Annual increment' } }])
+    add('employee · salary change approved (the approval folds in)', E, [
+        { table: 'salary_change_requests', op: 'UPDATE', key: { id: scr }, cols: ['status', 'decided_at', 'decided_by', 'decision_notes', 'executed_at'],
+          old: { status: 'submitted' }, new: { status: 'approved', decision_notes: 'Agreed at review' } },
+        { table: 'approval_log', op: 'INSERT', key: { id: id('al1') }, new: { subject_type: 'salary_change_request', subject_id: scr, decision: 'approved', level: 1, note: 'Agreed at review' } }])
+    add('employee · salary change request withdrawn', E, [
+        { table: 'salary_change_requests', op: 'UPDATE', key: { id: scr }, cols: ['status', 'withdrawn_at', 'withdrawn_by', 'withdraw_reason'],
+          old: { status: 'submitted' }, new: { status: 'withdrawn', withdraw_reason: 'Raised by mistake' } }])
+    add('employee · login account linked (on the employee page)', E, [
+        { table: 'employees', op: 'UPDATE', key: { id: emp }, cols: ['user_id'], old: { user_id: null }, new: { user_id: acc } }])
+    add('employee · deleted', E, [
+        { table: 'employees', op: 'UPDATE', key: { id: emp }, cols: ['deleted_at'], old: { deleted_at: null }, new: { deleted_at: '2026-10-03T02:00:00Z' } }])
+    add('employee · personal data anonymised (Q30: one sentence, the cleared values never said)', E, [
+        { table: 'employees', op: 'UPDATE', key: { id: emp }, cols: ['anonymised_at', 'anonymised_by', 'legal_name', 'first_name', 'identity_no'],
+          old: { anonymised_at: null, legal_name: null, first_name: null, identity_no: null }, new: { anonymised_at: '2026-10-03T02:00:00Z', legal_name: null, first_name: null, identity_no: null } },
+        { table: 'employment_history', op: 'UPDATE', key: { id: id('h4') }, cols: ['old_monthly_salary', 'new_monthly_salary'], old: { old_monthly_salary: 4200, new_monthly_salary: 4500 },
+          new: { old_monthly_salary: null, new_monthly_salary: null } }])
+    add('employee · the account mirror for an HR reader (Q21: a grant visible, the account event Restricted)', E, [
+        { table: 'user_roles', op: 'INSERT', key: { id: ur }, new: { user_id: acc, role_id: cfo }, refs: { ...ref('role_id', cfo, 'CFO'), ...person('user_id', acc, 'Sandra') } },
+        { hidden: true, table: null, op: null, actor: null }])
+    add('training · recorded', { subject: 'training_record', recordId: id('tr') }, [
+        { table: 'training_records', op: 'INSERT', key: { id: id('tr') }, new: { employee_id: emp, training_name: 'Forklift safety', category: 'safety', completed_date: '2026-09-20',
+          provider: 'SafeWorks' }, refs: person('employee_id', emp, 'Lim Wei Ming') }])
+    add('training · deleted', { subject: 'training_record', recordId: id('tr') }, [
+        { table: 'training_records', op: 'UPDATE', key: { id: id('tr') }, cols: ['deleted_at'], old: { deleted_at: null }, new: { deleted_at: '2026-10-03T02:00:00Z' }, ctx: { training_name: 'Forklift safety' } }])
+    add('department · created', { subject: 'department', recordId: dept }, [
+        { table: 'departments', op: 'INSERT', key: { id: dept }, new: { code: 'OPS', name_en: 'Operations', name_zh: '运营部', is_active: true } }])
+    add('department · deactivated', { subject: 'department', recordId: dept }, [
+        { table: 'departments', op: 'UPDATE', key: { id: dept }, cols: ['is_active'], old: { is_active: true }, new: { is_active: false }, ctx: { name_en: 'Operations' } }])
+    add('department · deleted', { subject: 'department', recordId: dept }, [
+        { table: 'departments', op: 'UPDATE', key: { id: dept }, cols: ['deleted_at'], old: { deleted_at: null }, new: { deleted_at: '2026-10-03T02:00:00Z' }, ctx: { name_en: 'Operations' } }])
+    // ── 审批方针(M6 · M7)──
+    const P = { subject: 'approval_policy', recordId: 'true' }
+    add('approval policy · switched on (the settings row and its history row are one event)', P, [
+        { table: 'finance_settings', op: 'UPDATE', key: { id: true }, cols: ['approvals_enabled', 'approval_level1_role_code', 'approval_threshold_base'],
+          old: { approvals_enabled: false, approval_level1_role_code: null, approval_threshold_base: null },
+          new: { approvals_enabled: true, approval_level1_role_code: 'finance', approval_threshold_base: 1000 },
+          refs: ref('approval_level1_role_code', 'finance', 'Finance') },
+        { table: 'finance_settings_history', op: 'INSERT', key: { id: id('fsh') }, new: { old_approvals_enabled: false, new_approvals_enabled: true } }])
+    add('approval policy · switched on before the log (from its history row)', P, [
+        { table: 'finance_settings_history', op: 'INSERT', prelog: true, key: { id: id('fsh0') }, new: { old_approvals_enabled: false, new_approvals_enabled: true,
+          old_approval_level1_role_code: 'finance', new_approval_level1_role_code: 'finance', old_approval_level2_role_code: 'cfo', new_approval_level2_role_code: 'cfo',
+          old_approval_threshold_base: 1000, new_approval_threshold_base: 1000 } }])
+    add('approval policy · threshold changed', P, [
+        { table: 'finance_settings', op: 'UPDATE', key: { id: true }, cols: ['approval_threshold_base'], old: { approval_threshold_base: 1000 }, new: { approval_threshold_base: 2500 } },
+        { table: 'finance_settings_history', op: 'INSERT', key: { id: id('fsh2') }, new: { old_approval_threshold_base: 1000, new_approval_threshold_base: 2500 } }])
+    add('approval policy · level-2 approver changed before the log (role names, not codes)', P, [
+        { table: 'finance_settings_history', op: 'INSERT', prelog: true, key: { id: id('fsh3') }, new: { old_approvals_enabled: true, new_approvals_enabled: true,
+          old_approval_level2_role_code: 'cfo', new_approval_level2_role_code: 'cco' },
+          refs: { ...ref('old_approval_level2_role_code', 'cfo', 'CFO'), ...ref('new_approval_level2_role_code', 'cco', 'CCO') } }])
+    // ── 字典(M11)· 导入批次 ──
+    const K = { subject: 'dictionary_substances', recordId: 'all' }
+    add('dictionary · a value added', K, [{ table: 'substances', op: 'INSERT', key: { code: 'CO' }, new: { code: 'CO', name_en: 'Cobalt', name_zh: '钴', symbol: 'Co', is_active: true } }])
+    add('dictionary · a value deactivated', K, [{ table: 'substances', op: 'UPDATE', key: { code: 'CO' }, cols: ['is_active'], old: { is_active: true }, new: { is_active: false }, ctx: { name_en: 'Cobalt' } }])
+    add('dictionary · a value renamed (field edit)', { subject: 'dictionary_laboratories', recordId: 'all' }, [
+        { table: 'laboratories', op: 'UPDATE', key: { code: 'SGS' }, cols: ['name_en'], old: { name_en: 'SGS Singapore' }, new: { name_en: 'SGS Testing Singapore' } }])
+    add('import · a batch of suppliers', { subject: 'import_batch', recordId: id('ib') }, [
+        { table: 'import_batches', op: 'INSERT', key: { id: id('ib') }, new: { target_table: 'suppliers', file_name: 'suppliers-oct.csv', row_count: 2, code_first: 'SUP-2026-0018', code_last: 'SUP-2026-0019' } }])
+    add('import · a single material', { subject: 'import_batch', recordId: id('ib2') }, [
+        { table: 'import_batches', op: 'INSERT', key: { id: id('ib2') }, new: { target_table: 'materials', file_name: 'one.csv', row_count: 1, code_first: 'MAT-0042', code_last: 'MAT-0042' } }])
+
+    const WANT = {
+            "account · created": {
+                    "title": "Account created",
+                    "part": null,
+                    "lines": [
+                            "Email: sandra@evoltrya.test"
+                    ],
+                    "reason": null
+            },
+            "account · disabled": {
+                    "title": "Account disabled",
+                    "part": null,
+                    "lines": [
+                            "Email: sandra@evoltrya.test"
+                    ],
+                    "reason": null
+            },
+            "account · disabling failed (Q9: the event and its failure are one line)": {
+                    "title": "Account could not be disabled",
+                    "part": null,
+                    "lines": [
+                            "Email: sandra@evoltrya.test"
+                    ],
+                    "reason": null
+            },
+            "account · re-enabled": {
+                    "title": "Account re-enabled",
+                    "part": null,
+                    "lines": [
+                            "Email: sandra@evoltrya.test"
+                    ],
+                    "reason": null
+            },
+            "account · a creation rolled back": {
+                    "title": "Account removed (it was never finished)",
+                    "part": null,
+                    "lines": [
+                            "Email: sandra@evoltrya.test"
+                    ],
+                    "reason": null
+            },
+            "account · created before the log (Q12: from the account itself)": {
+                    "title": "Account created",
+                    "part": null,
+                    "lines": [
+                            "Email: sandra@evoltrya.test"
+                    ],
+                    "reason": null
+            },
+            "account · role granted (key event)": {
+                    "title": "Role granted: CFO",
+                    "part": null,
+                    "lines": [],
+                    "reason": null
+            },
+            "account · role removed, with its reason": {
+                    "title": "Role removed: CFO",
+                    "part": null,
+                    "lines": [],
+                    "reason": "Moved to sales"
+            },
+            "account · additional login linked (the link and its history row are one event)": {
+                    "title": "Additional login linked",
+                    "part": null,
+                    "lines": [
+                            "Employee: Sandra Tan"
+                    ],
+                    "reason": null
+            },
+            "account · additional login unlinked": {
+                    "title": "Additional login unlinked",
+                    "part": null,
+                    "lines": [
+                            "Employee: Sandra Tan"
+                    ],
+                    "reason": null
+            },
+            "account · login linked to an employee (M10: only user_id)": {
+                    "title": "Login linked to employee EMP-2026-0004",
+                    "part": null,
+                    "lines": [],
+                    "reason": null
+            },
+            "account · login unlinked from an employee": {
+                    "title": "Login unlinked from employee EMP-2026-0004",
+                    "part": null,
+                    "lines": [],
+                    "reason": null
+            },
+            "role · granted to an account": {
+                    "title": "Role granted to Sandra",
+                    "part": null,
+                    "lines": [],
+                    "reason": null
+            },
+            "role · removed from an account": {
+                    "title": "Role removed from Sandra",
+                    "part": null,
+                    "lines": [],
+                    "reason": "Moved to sales"
+            },
+            "employee · hired through one save (Q8: the employee and the hired row are one entry)": {
+                    "title": "Employee added",
+                    "part": null,
+                    "lines": [
+                            "Legal name: Lim Wei Ming",
+                            "First name: Wei Ming",
+                            "Department: Operations",
+                            "Employment type: Full-time",
+                            "Category: Office",
+                            "Hire date: 01/10/2026",
+                            "Employment status: On probation",
+                            "Site staff: No",
+                            "[Hired]",
+                            "Effective date: 01/10/2026",
+                            "Department: Operations",
+                            "Employment type: Full-time",
+                            "Employment status: On probation"
+                    ],
+                    "reason": null
+            },
+            "employee · details changed (field edit; identity Restricted for a reader without data.view_identity)": {
+                    "title": "Employee details changed",
+                    "part": null,
+                    "lines": [
+                            "Preferred name: (empty) → Wei",
+                            "Work phone: Restricted → Restricted"
+                    ],
+                    "reason": null
+            },
+            "employee · transferred (the form's own summary note is not said — the lines say it)": {
+                    "title": "Transferred",
+                    "part": null,
+                    "lines": [
+                            "Effective date: 01/11/2026",
+                            "Department: Sales",
+                            "Employment type: Full-time",
+                            "Employment status: Active"
+                    ],
+                    "reason": null
+            },
+            "employee · confirmed through a review (Q10: the review note in English)": {
+                    "title": "Confirmed after probation",
+                    "part": null,
+                    "lines": [
+                            "Effective date: 01/01/2027",
+                            "Employment status: Active",
+                            "(Confirmed through a performance review)"
+                    ],
+                    "reason": null
+            },
+            "employee · salary changed through a request (Q10: the request label)": {
+                    "title": "Salary changed",
+                    "part": null,
+                    "lines": [
+                            "Effective date: 01/02/2027",
+                            "Previous monthly salary: 4,200.00 SGD",
+                            "New monthly salary: 4,500.00 SGD",
+                            "Salary change request: EMP-2026-0007 · 2027-02"
+                    ],
+                    "reason": null
+            },
+            "employee · first salary set, read without data.view_pay (Restricted)": {
+                    "title": "Salary set",
+                    "part": null,
+                    "lines": [
+                            "Effective date: 01/10/2026",
+                            "New monthly salary: Restricted"
+                    ],
+                    "reason": null
+            },
+            "employee · salary change requested": {
+                    "title": "Salary change requested",
+                    "part": null,
+                    "lines": [
+                            "Effective date: 01/02/2027",
+                            "Current monthly salary: 4,200.00 SGD",
+                            "New monthly salary: 4,500.00 SGD"
+                    ],
+                    "reason": "Annual increment"
+            },
+            "employee · salary change approved (the approval folds in)": {
+                    "title": "Salary change approved",
+                    "part": null,
+                    "lines": [],
+                    "reason": "Agreed at review"
+            },
+            "employee · salary change request withdrawn": {
+                    "title": "Salary change request withdrawn",
+                    "part": null,
+                    "lines": [],
+                    "reason": "Raised by mistake"
+            },
+            "employee · login account linked (on the employee page)": {
+                    "title": "Login account linked",
+                    "part": null,
+                    "lines": [],
+                    "reason": null
+            },
+            "employee · deleted": {
+                    "title": "Employee deleted",
+                    "part": null,
+                    "lines": [],
+                    "reason": null
+            },
+            "employee · personal data anonymised (Q30: one sentence, the cleared values never said)": {
+                    "title": "Personal data anonymised",
+                    "part": null,
+                    "lines": [],
+                    "reason": null
+            },
+            "employee · the account mirror for an HR reader (Q21: a grant visible, the account event Restricted)": {
+                    "title": "Role granted: CFO",
+                    "part": null,
+                    "lines": [
+                            "(Part of this change is restricted.)"
+                    ],
+                    "reason": null
+            },
+            "training · recorded": {
+                    "title": "Training recorded",
+                    "part": "Forklift safety",
+                    "lines": [
+                            "Employee: Lim Wei Ming",
+                            "Category: Safety",
+                            "Completed on: 20/09/2026",
+                            "Provider: SafeWorks"
+                    ],
+                    "reason": null
+            },
+            "training · deleted": {
+                    "title": "Training record deleted",
+                    "part": "Forklift safety",
+                    "lines": [],
+                    "reason": null
+            },
+            "department · created": {
+                    "title": "Department created",
+                    "part": "Operations",
+                    "lines": [
+                            "Code: OPS",
+                            "Name (Chinese): 运营部",
+                            "Active: Yes"
+                    ],
+                    "reason": null
+            },
+            "department · deactivated": {
+                    "title": "Department deactivated",
+                    "part": "Operations",
+                    "lines": [],
+                    "reason": null
+            },
+            "department · deleted": {
+                    "title": "Department deleted",
+                    "part": "Operations",
+                    "lines": [],
+                    "reason": null
+            },
+            "approval policy · switched on (the settings row and its history row are one event)": {
+                    "title": "Approvals switched on",
+                    "part": null,
+                    "lines": [
+                            "Approvals are in force: No → Yes",
+                            "Level-1 approver role: (empty) → Finance",
+                            "Approval threshold (base currency): (empty) → 1,000.00 SGD"
+                    ],
+                    "reason": null
+            },
+            "approval policy · switched on before the log (from its history row)": {
+                    "title": "Approvals switched on",
+                    "part": null,
+                    "lines": [
+                            "Approvals are in force: No → Yes"
+                    ],
+                    "reason": null
+            },
+            "approval policy · threshold changed": {
+                    "title": "Approval policy changed",
+                    "part": null,
+                    "lines": [
+                            "Approval threshold (base currency): 1,000.00 SGD → 2,500.00 SGD"
+                    ],
+                    "reason": null
+            },
+            "approval policy · level-2 approver changed before the log (role names, not codes)": {
+                    "title": "Approval policy changed",
+                    "part": null,
+                    "lines": [
+                            "Level-2 approver role (at or above the threshold): CFO → CCO"
+                    ],
+                    "reason": null
+            },
+            "dictionary · a value added": {
+                    "title": "Substance added",
+                    "part": "Cobalt",
+                    "lines": [
+                            "Name (Chinese): 钴",
+                            "Symbol: Co",
+                            "Active: Yes"
+                    ],
+                    "reason": null
+            },
+            "dictionary · a value deactivated": {
+                    "title": "Substance deactivated",
+                    "part": "Cobalt",
+                    "lines": [],
+                    "reason": null
+            },
+            "dictionary · a value renamed (field edit)": {
+                    "title": "Laboratory changed",
+                    "part": "SGS Testing Singapore",
+                    "lines": [
+                            "Name (English): SGS Singapore → SGS Testing Singapore"
+                    ],
+                    "reason": null
+            },
+            "import · a batch of suppliers": {
+                    "title": "2 supplier records imported from a file",
+                    "part": "suppliers-oct.csv",
+                    "lines": [
+                            "First number: SUP-2026-0018",
+                            "Last number: SUP-2026-0019"
+                    ],
+                    "reason": null
+            },
+            "import · a single material": {
+                    "title": "1 material imported from a file",
+                    "part": "one.csv",
+                    "lines": [
+                            "First number: MAT-0042",
+                            "Last number: MAT-0042"
+                    ],
+                    "reason": null
+            }
+    }
+    const got11 = {}
+    if (C.length !== Object.keys(WANT).length || C.length < 35) problems.gold11.push(`⑪ 造了 ${C.length} 个样例,金句表里有 ${Object.keys(WANT).length} 句 —— 两边对不上`)
+    for (const c of C) {
+        const rows = c.rows.map((r) => ({ group: 'GOLD11', order: 1, prelog: false, at: '2026-10-03T02:00:00+00:00', key: { id: uuid() },
+            actor: { state: 'person', name: 'Sandra' }, cols: null, old: null, new: null, ctx: null, refs: {}, hidden: false, restricted: false, ...r }))
+        let es
+        try { es = R.buildEntries(dict, rows, { currency: null, ...c.opts }) } catch (err) { problems.gold11.push(`${c.label}:造句器抛错 ${err.message}`); continue }
+        if (es.length !== 1) { problems.gold11.push(`${c.label}:一次操作应当是一条,造出了 ${es.length} 条(${es.map((x) => x.title).join(' | ')})`); continue }
+        const e = es[0]
+        const got = { title: e.title, part: e.titlePart?.text ?? null, lines: e.lines.map(lineText), reason: e.reason?.text ?? null }
+        got11[c.label] = got
+        const w = WANT[c.label]
+        if (!w) { problems.gold11.push(`${c.label}:金句表里没有这一句`); continue }
+        if (got.title !== w.title) problems.gold11.push(`${c.label}:标题「${got.title}」≠「${w.title}」`)
+        if (got.part !== w.part) problems.gold11.push(`${c.label}:标题后那一段「${got.part}」≠「${w.part}」`)
+        if (JSON.stringify(got.lines) !== JSON.stringify(w.lines)) problems.gold11.push(`${c.label}:行 ${JSON.stringify(got.lines)} ≠ ${JSON.stringify(w.lines)}`)
+        if (got.reason !== w.reason) problems.gold11.push(`${c.label}:理由「${got.reason}」≠「${w.reason}」`)
+    }
+    if (process.env.TRAIL_GOLD11_PRINT) console.log(JSON.stringify(got11, null, 8))
+    // 匿名化之后,那个人做过的事读作 "A former employee"(trail_actor 给 anonymised;Q30)
+    {
+        const es = R.buildEntries(dict, [{ group: 'GA', order: 1, prelog: false, at: '2026-10-03T02:00:00+00:00', table: 'departments', key: { id: uuid() },
+            op: 'INSERT', actor: { state: 'anonymised' }, cols: null, old: null, new: { code: 'X', name_en: 'X' }, ctx: null, refs: {}, hidden: false, restricted: false }],
+            { subject: 'department' })
+        if (es[0]?.who.text !== 'A former employee') problems.gold11.push(`匿名化之后那个人应当读作 "A former employee",造出了「${es[0]?.who.text}」`)
+    }
+
+    // 机器字扫描:十二个主语(与角色页的授权)各自的表,按【这一页】的说法(subject)造样本跑一遍
+    const SUBS11 = ['account', 'approval_policy', 'employee', 'department', 'training_record', 'import_batch', 'role',
+        'dictionary_substances', 'dictionary_battery_chemistries', 'dictionary_material_kinds', 'dictionary_inbound_safety_states',
+        'dictionary_laboratories', 'dictionary_inbound_source_reasons']
+    let s11 = 0
+    for (const sub of SUBS11) {
+        for (const t of R.SUBJECT_TABLES[sub] ?? []) {
+            const cols = Object.entries(SAMPLE_KINDS[t] ?? {})
+            for (let variant = 0; variant < 4; variant++) {
+                const img = {}, old = {}, neu = {}
+                for (const [c, [, kind]] of cols) {
+                    img[c] = sample(t, c, kind, variant)
+                    old[c] = variant === 2 ? RESTRICTED : variant === 3 ? null : sample(t, c, kind, variant + 1)
+                    neu[c] = variant === 1 ? RESTRICTED : sample(t, c, kind, variant + 2)
+                }
+                const refs = { ...refsFor(t, img, variant), ...refsFor(t, old, variant + 1), ...refsFor(t, neu, variant + 2) }
+                for (const [op, o] of [['INSERT', { new: img, prelog: variant === 3 }], ['UPDATE', { cols: cols.map(([c]) => c), old, new: neu, ctx: img }], ['DELETE', { old: img }]]) {
+                    sweep(`${sub} · ${t} · ${op} · 样本 ${variant}`, [row(t, op, { ...o, refs })], sub)
+                    s11++
+                }
+            }
+        }
+        // 账号事件每一种、匿名化、履历每一种 change_type,按这一页说一遍
+        for (const ev of ['ACCOUNT_CREATE', 'ACCOUNT_DELETE', 'ACCOUNT_DISABLE', 'ACCOUNT_DISABLE_FAILED', 'ACCOUNT_ENABLE', 'ACCOUNT_ENABLE_FAILED']) {
+            sweep(`${sub} · ${ev}`, [row('auth.users', ev, { new: { email: 'a@b.test', role_id: uuid(), employee_id: uuid(), reason: 'create_rolled_back' } })], sub)
+        }
+        for (const ct of checkValues('employment_history', 'change_type') ?? []) {
+            sweep(`${sub} · history ${ct}`, [row('employment_history', 'INSERT', { new: { change_type: ct, effective_date: '2026-10-01', notes: `Probation confirmed by performance review ${uuid()}` } })], sub)
+        }
+        sweep(`${sub} · anonymised`, [row('employees', 'UPDATE', { cols: ['anonymised_at', 'legal_name'], old: { anonymised_at: null, legal_name: null }, new: { anonymised_at: '2026-10-03T00:00:00Z', legal_name: null } })], sub)
+        sweep(`${sub} 整条看不见`, [row(R.SUBJECT_TABLES[sub][0], null, { hidden: true, table: null, actor: null })], sub)
+        s11 += 6 + (checkValues('employment_history', 'change_type') ?? []).length + 2
+    }
+    const s11Want = SUBS11.reduce((n, sub) => n + (R.SUBJECT_TABLES[sub] ?? []).length * 12 + 6 + (checkValues('employment_history', 'change_type') ?? []).length + 2, 0)
+    if (s11 !== s11Want || s11 < 300) problems.coverage.push(`账号、设置与员工那十三个主语的机器字扫描造了 ${s11} 句,登记表要求 ${s11Want} 句 —— 造样本那一段瞎了`)
+    if (FAULT === 'wording-drift-1d1' && !problems.gold11.length) problems.gold11.push('(注入 wording-drift-1d1 没有咬人 —— 这一臂瞎了)')
+}
+
 // ── ⑤ 覆盖 ──────────────────────────────────────────────────────────────────
-const expectTables = Object.keys(C.TRAIL_FIELDS).length + 1
+// AUDIT-TRAIL-1d-1:auth.users 从此在目录里有它自己的列(M9 的安全投影),不再是额外加上的那一张
+const expectTables = Object.keys(C.TRAIL_FIELDS).length + (C.TRAIL_FIELDS['auth.users'] ? 0 : 1)
 if (tablesSwept.size !== expectTables) problems.coverage.push(`扫过 ${tablesSwept.size} 张表,目录里有 ${expectTables} 张`)
 if (scanned < 20000) problems.coverage.push(`只扫了 ${scanned} 句(下限 20,000)—— 造样本那一段悄悄少造了`)
 
 // ── 报告 ────────────────────────────────────────────────────────────────────
-const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页' }
+const NAMES = { ruler: '① 尺', registry: '② 登记表一致', catalogue: '③ 措辞目录完整', tokens: '④ 机器字', coverage: '⑤ 覆盖', gold: '⑥ 商务样例', gold3: '⑦ 主数据样例', gold8: '⑧ 账上的单据', gold9: '⑨ 其余的单据与合同', gold10: '⑩ 期末、设置与清单页', gold11: '⑪ 账号、设置与员工' }
 let exit = 0
 for (const [k, list] of Object.entries(problems)) {
     if (!list.length) { console.log(`✓ check-trail-wording ${NAMES[k]}`); continue }

@@ -64,14 +64,18 @@ for (const name of ACTIONS) {
             && n.thenStatement.getText(actions).includes("'hr.errFirstNameRequired'")) guardPos = n.getStart(actions)
     })
     check(guardPos >= 0, `${name}:没有「if (firstNameMissing(f)) return … hr.errFirstNameRequired」那一句`)
-    // 它必须在写库之前:第一次 .insert( / .update( 调用的位置
+    // 它必须在写库之前:第一次 .insert( / .update( 调用的位置 ——
+    //   AUDIT-TRAIL-1d-1(Q8):员工那一行从此经 .rpc('save_employee', …) 一次写下(与它的履历一笔事务),那也是一次写库;
+    //   量具认的东西被这一刀改了,所以在同一个提交里教它认新的那一种(AGENTS.md「判据吊在一个这一刀自己要改掉的东西上」)
     let writePos = -1
     walk(f, (n) => {
         if (writePos < 0 && ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression)
-            && ['insert', 'update'].includes(n.expression.name.text)) writePos = n.getStart(actions)
+            && (['insert', 'update'].includes(n.expression.name.text)
+                || (n.expression.name.text === 'rpc' && n.arguments[0] && ts.isStringLiteral(n.arguments[0]) && n.arguments[0].text === 'save_employee')))
+            writePos = n.getStart(actions)
     })
     check(writePos >= 0 && guardPos >= 0 && guardPos < writePos,
-        `${name}:名字检查必须在写库(.insert / .update)【之前】(检查在 ${guardPos},写在 ${writePos})`)
+        `${name}:名字检查必须在写库(.insert / .update / .rpc('save_employee'))【之前】(检查在 ${guardPos},写在 ${writePos})`)
 }
 assertPinned(SCRIPT, '找得到的员工动作 ↔ 应当有的员工动作', found, ACTIONS.length,
     '一支动作改了名字,这里就不再看它 —— 那条路上的名字必填就没有人守着。')

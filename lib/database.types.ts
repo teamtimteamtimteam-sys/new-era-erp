@@ -31621,6 +31621,10 @@ export type Database = {
         }
         Returns: Json
       }
+      save_employee: {
+        Args: { p_fields: Json; p_history?: Json; p_id: string }
+        Returns: string
+      }
       save_self_assessment: {
         Args: {
           p_final?: boolean
@@ -32201,6 +32205,24 @@ export type Database = {
           target_table: string
         }[]
       }
+      trail_log_only_tables: {
+        Args: never
+        Returns: {
+          image_columns: string[]
+          read_code: string
+          rel_name: string
+          schema_name: string
+          table_name: string
+        }[]
+      }
+      trail_member_columns: {
+        Args: never
+        Returns: {
+          columns: string[]
+          ord: number
+          subject: string
+        }[]
+      }
       trail_pk_columns: { Args: { p_table: string }; Returns: string[] }
       trail_prelog_sources: {
         Args: never
@@ -32220,6 +32242,10 @@ export type Database = {
       trail_refs: {
         Args: { p_ctx: Json; p_new: Json; p_old: Json; p_table: string }
         Returns: Json
+      }
+      trail_root_gate: {
+        Args: { p_gate: string; p_image: Json; p_table: string }
+        Returns: boolean
       }
       trail_row_record: {
         Args: { p_key: Json; p_new: Json; p_old: Json; p_table: string }

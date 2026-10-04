@@ -14,9 +14,17 @@ import { IMPORT_TABLES, type TemplateColumn } from '@/lib/importTables'
 import ImportForm from './ImportForm'
 import { ListPage } from '@/app/components/ui/list-page'
 import ImportHistoryTable, { type ImportBatchRow } from './ImportHistoryTable'
-import { formatAuditStamp } from '@/lib/dates'
+import { formatAuditStamp, formatTrailStamp } from '@/lib/dates'
+import { loadActorNames } from '@/app/components/ActorName'
+import { Refusal } from '@/app/components/ui/refusal'
+import ListTrail from '@/app/components/trail/ListTrail'
+import { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function ImportPage() {
+export default async function ImportPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ trail?: string | string[] }>
+}) {
     const t = await getTranslations()
     const allowed = await can('action.bulk_import')
 
@@ -53,7 +61,7 @@ export default async function ImportPage() {
     const batches = mustRows(
         await supabase
             .from('import_batches')
-            .select('id, target_table, file_name, row_count, code_first, code_last, imported_at')
+            .select('id, target_table, file_name, row_count, code_first, code_last, imported_at, imported_by')
             .order('imported_at', { ascending: false })
             .limit(20),
         'import_batches'
@@ -62,6 +70,13 @@ export default async function ImportPage() {
     // CONV-5:套 CONV-1 的两文件模板。ImportForm 是这一页存在的理由,
     // 它与页顶 intro 都画在状态分支之前;历史那一段的空
     // (【第三种空】还没有导入过任何东西)由 DataTable 自己的 empty 说。
+    // AUDIT-TRAIL-1d-1(Tim 的 Q24):批次表多一栏"谁"—— 与别的页面同一个取名器(不持 hr.view 的读者只认得出自己)
+    const names = await loadActorNames(supabase, batches.map((b) => b.imported_by as string | null))
+    const whoOf = (id: string | null) => {
+        const n = id ? names.names.get(id) : null
+        if (n) return n
+        return id && names.restricted ? <Refusal>{t('common.restricted')}</Refusal> : '—'
+    }
     const tableRows: ImportBatchRow[] = batches.map((b) => ({
         id: b.id as string,
         whenLabel: formatAuditStamp(b.imported_at),
@@ -69,6 +84,7 @@ export default async function ImportPage() {
         fileName: b.file_name as string,
         rowCount: b.row_count as number,
         codeRange: `${b.code_first as string} … ${b.code_last as string}`,
+        who: whoOf(b.imported_by as string | null),
     }))
 
     return (
@@ -83,6 +99,13 @@ export default async function ImportPage() {
             <h2 className="mt-10 mb-2">{t('import.history')}</h2>
             <ImportHistoryTable rows={tableRows} empty={t('import.historyEmpty')} />
             <p className="text-xs text-[color:var(--brand-muted-text)] mt-2">{t('import.historyIsALog')}</p>
+            {/* AUDIT-TRAIL-1d-1(Q24):同样那几次导入的审计记录 —— 被导进去的那几行与批次之间【没有】回指(import_batches 的
+                表注释不许),所以这一块只说批次自己:谁、何时、哪个文件、多少行、编号从哪到哪 */}
+            <ListTrail intro="listTrail.intro.importBatches" show={trailCount((await searchParams).trail)}
+                records={batches.map((b) => ({ subject: 'import_batch' as const, id: b.id as string,
+                    // Record 一栏只说英文、不放文件名:文件名是人起的名字(可以是 "good.csv" 这种带点的串),它已经作为【人敲的字】
+                    //   在那一条的标题里了;放在 Record 一栏会被冒烟的机器字判据读成一个代码(实测:第一次冒烟就是这么红的)
+                    label: `Import ${formatTrailStamp(b.imported_at as string)}` }))} />
         </ListPage>
     )
 }

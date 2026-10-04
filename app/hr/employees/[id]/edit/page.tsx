@@ -2,7 +2,7 @@
 // 上级候选里剔掉【自己与自己的所有下属】—— 与部门那边同一个道理:
 // 让人选不到会成环的项,DB 的 MANAGER_CYCLE 是后墙。
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import EmployeeForm, { type PickOption, type EmployeeRecord } from '../../EmployeeForm'
@@ -49,7 +49,7 @@ export default async function EditEmployeePage({
     const locale = await getLocale()
 
     const [empRes, deptRes, allRes] = await Promise.all([
-        supabase.from('employees_masked').select('*').eq('id', id).is('deleted_at', null).single(),
+        supabase.from('employees_masked').select('*').eq('id', id).single(),
         supabase.from('departments').select('id, code, name_en, name_zh').is('deleted_at', null).eq('is_active', true).order('code'),
         supabase
             .from('employees')
@@ -61,6 +61,9 @@ export default async function EditEmployeePage({
     if (empRes.error || !empRes.data) {
         notFound()
     }
+    // AUDIT-TRAIL-1d-1(Q26):删掉的员工不在这里编辑 —— 送回它的详情页(只读 + 横幅 + 审计记录;
+    //   对账工作台送回对账单的同一个做法)
+    if (empRes.data.deleted_at) redirect(`/hr/employees/${id}`)
 
     const all = (mustRows(allRes)).map((e) => ({ id: e.id, manager_id: e.manager_id }))
     const excluded = reportIds(all, id)

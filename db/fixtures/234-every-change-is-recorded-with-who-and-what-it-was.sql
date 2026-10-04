@@ -83,7 +83,10 @@ DO $$
 DECLARE
     k_restricted constant jsonb := '{"$restricted": true}'::jsonb;
     u_all uuid := gen_random_uuid();   -- 持全部码(含 data.view_change_log)
-    u_m   uuid := gen_random_uuid();   -- 合成读者:data.view_change_log + module.tasks.view,别的数据码一个没有
+    u_m   uuid := gen_random_uuid();   -- 合成读者:data.view_change_log + 三张表的模块码(tasks / purchasing / pricing),别的数据码一个没有
+    -- ★ AUDIT-TRAIL-1d-1(Tim 的 AT-1d Q13):汇总页的读法从此每一行再过一次它那张表的【读规则】(与 record_trail 同一判)。
+    --   H 那几臂问的是【列】遮蔽,所以两个合成读者带上那几张表的模块码(采购单历史 · 定价公式 · 任务),行那一道过得去,
+    --   列那一道照旧只看数据码;行那一道本身由 fixture 244 的 Q13 臂证。
     u_pp  uuid := gen_random_uuid();   -- 合成读者 + data.view_purchase_prices
     u_no  uuid := gen_random_uuid();   -- 一个码都不持
     u_buy uuid := gen_random_uuid();   -- 采购读者:module.purchasing.view,没有价格码
@@ -107,9 +110,10 @@ BEGIN
     INSERT INTO roles (code,name_en,name_zh,is_active) VALUES ('fx234-hr','f','f',true)  RETURNING id INTO r_hr;
     INSERT INTO role_permissions (role_id, permission_code) SELECT r_all, code FROM permissions;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_m, c FROM unnest(ARRAY['data.view_change_log', 'module.tasks.view']) c;
+    SELECT r_m, c FROM unnest(ARRAY['data.view_change_log', 'module.tasks.view', 'module.purchasing.view', 'module.pricing.view']) c;
     INSERT INTO role_permissions (role_id, permission_code)
-    SELECT r_pp, c FROM unnest(ARRAY['data.view_change_log', 'module.tasks.view', 'data.view_purchase_prices']) c;
+    SELECT r_pp, c FROM unnest(ARRAY['data.view_change_log', 'module.tasks.view', 'module.purchasing.view', 'module.pricing.view',
+                                     'data.view_purchase_prices']) c;
     INSERT INTO role_permissions (role_id, permission_code) VALUES (r_buy, 'module.purchasing.view');
     INSERT INTO role_permissions (role_id, permission_code)
     SELECT r_hr, c FROM unnest(ARRAY['module.hr.edit', 'module.hr.view', 'action.anonymise_employee']) c;

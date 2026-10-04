@@ -1407,7 +1407,7 @@ const en = {
         history: 'Recent imports',
         historyEmpty: 'Nothing has been imported yet. That is different from a file with no rows, and different from not being allowed to import.',
         historyIsALog: 'This is a log answering "did that file land". It is not a record of where each row came from, and it is wiped along with the rows before go-live.',
-        col: { when: 'When', table: 'Table', file: 'File', rows: 'Rows', codeRange: 'Codes' },
+        col: { when: 'When', table: 'Table', file: 'File', rows: 'Rows', codeRange: 'Codes', who: 'Who' },
         table: {
             materials: 'Materials', suppliers: 'Suppliers', customers: 'Customers',
             departments: 'Departments', employees: 'Employees', storage_locations: 'Storage locations',
@@ -6835,7 +6835,6 @@ const en = {
         withdraw: 'Withdraw',
         withdrawConfirm: 'Withdraw this salary change?',
         withdrawBody: 'Nothing changes. It can be raised again.',
-        history: 'Recently decided',
         status: {
             submitted: 'waiting',
             approved: 'approved',
@@ -7076,6 +7075,10 @@ const en = {
             material: 'Material',
             pricing_formula: 'Pricing formula',
             bank_statement: 'Bank statement',
+            role: 'Role',
+            employee: 'Employee',
+            department: 'Department',
+            training_record: 'Training record',
         },
     },
     metals: {
@@ -8076,15 +8079,7 @@ const en = {
             level1Missing: 'Pick the level-1 approver role, or leave the whole policy undecided',
             enableBlockedWhy: 'Approvals cannot be switched on yet — the database would refuse: {what}',
             disableBlockedWhy: 'Approvals cannot be switched off while {n} order(s) are still awaiting approval — switching off would strand them.',
-            historyTitle: 'Changes to this policy',
-            historyEmpty:
-                'No changes have been recorded. This does NOT mean the policy has never changed — it means it has never been changed through this screen. The values above were set by a direct database change before this screen existed, and that change is deliberately not invented here.',
-            historyBy: '{who} · {when}',
-            historyWhoUnknown: 'unknown account',
-            historyOn: 'in force',
-            historyOff: 'not in force',
             historyUnset: 'not decided',
-            historyArrow: '{field}: {from} → {to}',
             holdersOkPeople: '{n} account(s) currently hold {role} and can sign in — {people} person/people. Two accounts belonging to one person count once.',
             holdersCannotSignIn: '\u2605 {role} IS held by {n} account(s), but none of them can sign in \u2014 so nobody can actually approve at this level. Granting the role again will change nothing; the account needs to be able to sign in. Approvals cannot be switched on while this is true.',
             holdersNone: 'Nobody holds {role}, so there is no approver at this level. Approvals cannot be switched on while this is true.',

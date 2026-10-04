@@ -14,6 +14,8 @@ export type ImportBatchRow = {
     fileName: string
     rowCount: number
     codeRange: string
+    /** AUDIT-TRAIL-1d-1(Q24):谁导入的 —— 按 ActorName 的规矩已经解析好的名字(或 Restricted / 没记人) */
+    who: React.ReactNode
 }
 
 export default function ImportHistoryTable({ rows, empty }: { rows: ImportBatchRow[]; empty: React.ReactNode }) {
@@ -24,6 +26,7 @@ export default function ImportHistoryTable({ rows, empty }: { rows: ImportBatchR
     const columns: Column<ImportBatchRow>[] = [
         { key: 'when', header: t('import.col.when'), priority: true, render: (r) => r.whenLabel },
         { key: 'table', header: t('import.col.table'), priority: true, render: (r) => r.tableLabel },
+        { key: 'who', header: t('import.col.who'), render: (r) => r.who },
         { key: 'file', header: t('import.col.file'), render: (r) => r.fileName },
         { key: 'rows', header: t('import.col.rows'), align: 'right', render: (r) => r.rowCount },
         { key: 'codeRange', header: t('import.col.codeRange'), className: 'text-xs', render: (r) => r.codeRange },

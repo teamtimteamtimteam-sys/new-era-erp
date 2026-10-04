@@ -199,6 +199,10 @@ const BASE_PRICE_COLS: Record<string, Set<string>> = {
     //   不说出来,线上锁期那一段印的是 "Total debits: 757,013.37"(线上的回滚证明读出来的)
     period_closes: new Set(['total_debits', 'total_credits']),
     year_closes: new Set(['net_result']),
+    // AUDIT-TRAIL-1d-1:月薪(员工、履历、调薪申请)是本位币 —— 三张表都没有币种列(工资按本位币发,ROLE-1 · APR-9)
+    employees: new Set(['monthly_salary']),
+    employment_history: new Set(['old_monthly_salary', 'new_monthly_salary']),
+    salary_change_requests: new Set(['old_monthly_salary', 'new_monthly_salary']),
 }
 function currencyFor(col: string, img: Img, opts: BuildOptions, d: TrailDict, table?: string): string | null {
     if (/_base$/.test(col) || /^(old|new)_amount_base$/.test(col)) return d.baseCurrency
@@ -874,7 +878,7 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
         'pricing_term_commitments', 'po_issues', 'contract_document_terms', 'approval_log', 'purchase_order_history'],
     processing_run: ['processing_runs', 'processing_inputs', 'processing_outputs', 'processing_cost_entries', 'processing_cost_entry_history',
         'batch_processing_cost_allocations', 'processing_run_losses', 'warehouse_requests', 'approval_log'],
-    role: ['roles', 'role_permissions'],
+    role: ['roles', 'role_permissions', 'user_roles'],
     inbound_batch: ['inbound_batches', 'inbound_batch_metals', 'assay_results', 'assay_result_metals', 'inbound_batch_safety_states',
         'price_history', 'receipt_price_requests', 'approval_log', 'prepayment_applications', 'pricing_term_commitments',
         'pricing_term_commitment_metals', 'inventory_movements', 'stocktake_lines', 'stocktake_counts', 'processing_inputs',
@@ -951,11 +955,26 @@ export const SUBJECT_TABLES: Record<string, string[]> = {
     cash_forecast: ['cash_forecasts'],
     cash_forecast_line: ['cash_forecast_lines'],
     bank_import_profile: ['bank_import_profiles'],
+    // AUDIT-TRAIL-1d-1
+    account: ['auth.users', 'user_roles', 'employee_accounts', 'employee_account_history', 'employees'],
+    approval_policy: ['finance_settings', 'finance_settings_history'],
+    employee: ['employees', 'employment_history', 'salary_change_requests', 'approval_log', 'training_records', 'employee_accounts',
+        'employee_account_history', 'auth.users', 'user_roles'],
+    department: ['departments'],
+    training_record: ['training_records'],
+    import_batch: ['import_batches'],
+    dictionary_substances: ['substances'],
+    dictionary_battery_chemistries: ['battery_chemistries'],
+    dictionary_material_kinds: ['material_kinds'],
+    dictionary_inbound_safety_states: ['inbound_safety_states'],
+    dictionary_laboratories: ['laboratories'],
+    dictionary_inbound_source_reasons: ['inbound_source_reasons'],
 }
 
 type Family = 'po' | 'run' | 'role' | 'batch' | 'journal' | 'approval' | 'wo' | 'stocktake' | 'equipment' | 'handover' | 'wr' | 'so'
     | 'quote' | 'shipment' | 'customer' | 'commission' | 'supplier' | 'container' | 'lane' | 'licence'
     | 'material' | 'location' | 'metalPrice' | 'formula' | 'task' | 'settings' | 'fin'
+    | 'access' | 'hr' | 'policy' | 'dict' | 'import'
 const PAGE_FAMILY: Record<string, Family> = {
     purchase_order: 'po', processing_run: 'run', role: 'role', inbound_batch: 'batch', output_batch: 'batch', work_order: 'wo',
     stocktake: 'stocktake', equipment: 'equipment', shift_handover: 'handover', warehouse_request: 'wr',
@@ -970,6 +989,10 @@ const PAGE_FAMILY: Record<string, Family> = {
     // AUDIT-TRAIL-1c-3
     finance_lock: 'fin', finance_gst: 'fin', company_profile: 'fin', year_close: 'fin', journal_request: 'fin', expense_claim: 'fin',
     my_expense_claim: 'fin', bank_transfer: 'fin', wht_remittance: 'fin', cash_forecast: 'fin', cash_forecast_line: 'fin', bank_import_profile: 'fin',
+    // AUDIT-TRAIL-1d-1
+    account: 'access', approval_policy: 'policy', employee: 'hr', department: 'hr', training_record: 'hr', import_batch: 'import',
+    dictionary_substances: 'dict', dictionary_battery_chemistries: 'dict', dictionary_material_kinds: 'dict',
+    dictionary_inbound_safety_states: 'dict', dictionary_laboratories: 'dict', dictionary_inbound_source_reasons: 'dict',
 }
 const BATCH_TABLES = new Set(['inbound_batches', 'output_batches', 'inbound_batch_metals', 'output_batch_metals', 'assay_results',
     'assay_result_metals', 'inbound_batch_safety_states', 'output_batch_safety_states', 'price_history', 'receipt_price_requests',
@@ -991,6 +1014,10 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (!t) return null
     // AUDIT-TRAIL-1c-1:账上那七页上的每一行都从 describeFinance 说 —— 别的页上同一张表的说法不动
     if (subject && FIN_SUBJECTS.has(subject)) return 'fin'
+    // AUDIT-TRAIL-1d-1:审批方针那一页上,那一行设置与它的修改史从方针这一边说;账号页上那名员工(只剩 user_id 一列,M10)从账号这一边说
+    if (subject === 'approval_policy' && (t === 'finance_settings' || t === 'finance_settings_history')) return 'policy'
+    if (t === 'finance_settings_history') return 'policy'
+    if (subject === 'account' && t === 'employees') return 'access'
     if ((subject === 'inbound_batch' || subject === 'output_batch') && BATCH_VIEW_OF_RUN.has(t)) return 'batch'
     // AUDIT-TRAIL-1b-2:预留、合同条款在订单页上从订单这一边说;发货单明细在发货单页上从发货单这一边说
     //   (在批次页、采购单页、汇总页上仍照 1b-1 的说法)
@@ -1025,6 +1052,11 @@ function familyOf(r: TrailRow, subject?: string | null): Family | null {
     if (FORMULA_TABLES.has(t)) return 'formula'
     if (TASK_TABLES.has(t)) return 'task'
     if (SETTINGS_TITLE[t]) return 'settings'
+    // AUDIT-TRAIL-1d-1
+    if (ACCESS_TABLES.has(t)) return 'access'
+    if (HR1_TABLES.has(t)) return 'hr'
+    if (DICT_TABLES.has(t)) return 'dict'
+    if (t === 'import_batches') return 'import'
     return null
 }
 
@@ -3606,6 +3638,260 @@ function describeLedger3(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Bl
     return out
 }
 
+
+// ════════════════════════════════════════════════════════════════════════════
+// AUDIT-TRAIL-1d-1:机制、设置与员工 —— 账号 · 授权 · 审批方针 · 六本字典 · 导入批次 · 员工 · 部门 · 培训记录
+//   (Tim 2026-10-04,AT-1d Step 0 §a 与 Q2 · Q3 · Q9 · Q10 · Q12 · Q21 · Q22 · Q23 · Q27 · Q28 · Q29 · Q30 · Q31)
+// ════════════════════════════════════════════════════════════════════════════
+// 【账号(access 家族)】一个登录账号的事:建立 / 停用 / 恢复(change_log 里 table_name = 'auth.users' 的 ACCOUNT_* 行)·
+//   授给它的角色(user_roles:授予是一行 INSERT,收回是给那一行盖 revoked_* 的戳 —— 从来不删)· 它作为附加账号挂在谁身上
+//   (employee_accounts 与它的挂接史:同一笔、同一刻,只说一次)· 它是谁的主账号(employees.user_id —— 读法那一层已经只留下这一列,M10)。
+//   同一张授权表在三页上从三边说:账号页 "Role granted: CFO";角色页 "Role granted to Sandra";员工页(账号的镜像)同账号页。
+//   ★ 停用 / 恢复先写事件、auth 那一头失败再写一行 *_FAILED(两次调用,两笔事务)—— buildEntries 先把这一对并成一条,
+//     这里只说 "Account could not be disabled"(Q9:那一对的意思是"没有停用",不是"停用了,然后失败了")。
+// 【员工(hr 家族)】员工那一行 · 任职履历(每一行就是一件事,按 change_type 说)· 调薪申请(与它的审批并成一句)· 培训 · 部门。
+//   匿名化(Q30):员工那一行的姓名、证件……被清空、履历的旧薪新薪被清空 —— 说一句 "Personal data anonymised",
+//   那些被清空的值【一个都不说】(把它们说成"改成了空"是一句错话,也会把匿名化之前的名字在 old 那一侧再印一遍)。
+// 【机器写进人话那一列的字】(Q10):任职履历的 notes 有三种是系统写的 —— 评审批准写的"Probation confirmed by performance review
+//   <uuid>"、调薪执行写的"Salary change approved with request <label>"、员工表单自己拼的"status: a → b; department: X → Y"。
+//   前两种认出来、说成英文的一行;第三种整句不说(它说的那几样,履历那一行自己的几列已经说了)。
+const ACCESS_TABLES = new Set(['auth.users', 'user_roles', 'employee_accounts', 'employee_account_history'])
+const HR1_TABLES = new Set(['employees', 'employment_history', 'salary_change_requests', 'training_records', 'departments'])
+const DICT_TABLES = new Set(['substances', 'battery_chemistries', 'material_kinds', 'inbound_safety_states', 'laboratories', 'inbound_source_reasons'])
+const HR_SKIP = new Set(['updated_at', 'updated_by', 'created_at', 'created_by'])
+/** 一个被引用值的名字(refs 解析出来的;人 → 名字或 Restricted) */
+function refText(d: TrailDict, r: TrailRow, col: string): Val | null {
+    const raw = str(r, col)
+    return raw ? refVal(d, r.table!, col, raw, r.refs) : null
+}
+/** 员工表单写进 notes 的那一句("status: probation → active; department: X → Y")—— 一律不说 */
+const APP_CHANGE_NOTE = /^(?:(?:status|department|position|employment type): [^;]* → [^;]*)(?:; (?:status|department|position|employment type): [^;]* → [^;]*)*$/
+/** 任职履历 notes 里系统写的那两种 → 一行英文;人写的照原样;app 拼的那一种 → null */
+function historyNote(d: TrailDict, notes: string | null): Line | null {
+    if (!notes || !notes.trim()) return null
+    if (/^Probation confirmed by performance review [0-9a-fA-F-]{36}$/.test(notes.trim())) return { t: 'note', text: tx(d, 'emp.noteReview') }
+    const m = notes.trim().match(/^Salary change approved with request (.+)$/)
+    if (m) return { t: 'value', label: tx(d, 'emp.noteSalaryRequest'), value: { text: m[1], typed: true } }
+    if (APP_CHANGE_NOTE.test(notes.trim())) return null
+    return { t: 'value', label: fieldMeta(d, 'employment_history', 'notes')[0], value: truncate(notes, true) }
+}
+const HISTORY_TITLE: Record<string, TrailTextKey> = {
+    hired: 'emp.hired', confirmed: 'emp.confirmed', promotion: 'emp.promotion', transfer: 'emp.transfer', type_change: 'emp.typeChange',
+    status_change: 'emp.statusChange', separated: 'emp.separated', category_change: 'emp.categoryChange',
+}
+function describeAccess(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const onRole = opts.subject === 'role'
+    const onAccount = opts.subject === 'account'
+    // ── 账号事件(停用失败那一对已被 buildEntries 并进同一条:只说失败那一句)──
+    const events = rows.filter((r) => r.table === 'auth.users')
+    const failed = new Set(events.filter((r) => r.op?.endsWith('_FAILED')).map((r) => r.op!.replace(/_FAILED$/, '')))
+    for (const r of events) {
+        if (r.op && failed.has(r.op)) continue
+        if (r.op === 'INSERT' && r.prelog) {
+            const email = str(r, 'email')
+            out.push({ title: tx(d, 'account.ACCOUNT_CREATE'), lines: email ? [{ t: 'value', label: fieldMeta(d, 'auth.users', 'email')[0], value: { text: email, typed: true } }] : [],
+                       key: true, weight: 100 })
+            continue
+        }
+        out.push({ ...describeGeneric(d, r, opts), weight: 100 })
+    }
+    // ── 授权(一行一块:授予 / 收回)──
+    for (const r of rows.filter((x) => x.table === 'user_roles')) {
+        const role = refText(d, r, 'role_id')?.text ?? cap(thing(d, 'roles'))
+        const who = refText(d, r, 'user_id')
+        const revoked = (r.op === 'UPDATE' && isSet(r, 'revoked_at')) || (r.prelog && r.op === 'UPDATE' && r.cols?.includes('revoked_at'))
+        if (r.op === 'INSERT') {
+            out.push({ title: onRole && who ? tx(d, 'acct.grantedTo', { who: who.text }) : tx(d, 'acct.roleGranted', { role }), lines: [], key: true, weight: 90 })
+        } else if (revoked) {
+            out.push({ title: onRole && who ? tx(d, 'acct.removedFrom', { who: who.text }) : tx(d, 'acct.roleRemoved', { role }), lines: [],
+                       reason: typed(r.new?.['revoke_reason']), key: true, weight: 90 })
+        } else if (r.op === 'DELETE') {
+            out.push({ title: tx(d, 'acct.roleRemoved', { role }), lines: [], key: true, weight: 90 })
+        } else {
+            const ls = changeLines(d, r, opts)
+            if (ls.length) out.push({ title: tx(d, 'generic.edited', { thing: thing(d, 'user_roles') }), lines: ls, key: false, weight: 30 })
+        }
+    }
+    // ── 附加账号:挂接表与它的挂接史是同一件事的两行(同一笔)—— 有挂接表那一行就只说它 ──
+    const links = rows.filter((r) => r.table === 'employee_accounts')
+    for (const r of links) {
+        const emp = refText(d, r, 'employee_id')
+        const lines: Line[] = onAccount && emp ? [{ t: 'value', label: fieldMeta(d, 'employee_accounts', 'employee_id')[0], value: emp }] : []
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'acct.extraLinked'), lines, key: true, weight: 85 })
+        else if (r.op === 'DELETE') out.push({ title: tx(d, 'acct.extraUnlinked'), lines, key: true, weight: 85 })
+        else { const ls = changeLines(d, r, opts); if (ls.length) out.push({ title: tx(d, 'acct.extraLinked'), lines: ls, key: false, weight: 30 }) }
+    }
+    if (!links.length) {
+        for (const r of rows.filter((x) => x.table === 'employee_account_history')) {
+            const unlinked = str(r, 'action') === 'unlinked'
+            out.push({ title: tx(d, unlinked ? 'acct.extraUnlinked' : 'acct.extraLinked'), lines: [], key: true, weight: 85 })
+        }
+    }
+    // ── 主账号:员工那一行的 user_id(M10:读法只交来这一列)──
+    for (const r of rows.filter((x) => x.table === 'employees')) {
+        // 员工编号(不是名字 —— 名字要过 ActorName 那一道,而这一行是员工那一行自己,不经 trail_actor);一个 id 形状的值宁可不说
+        const code = docCode(str(r, 'code'))
+        const now = r.op === 'DELETE' ? null : (r.new?.['user_id'] ?? null)
+        const linked = typeof now === 'string'
+        out.push({ title: code ? tx(d, linked ? 'acct.primaryLinked' : 'acct.primaryUnlinked', { code })
+                                 : tx(d, linked ? 'acct.primaryLinkedAny' : 'acct.primaryUnlinkedAny'), lines: [], key: true, weight: 85 })
+    }
+    return out
+}
+/** 几列的值,【受限的照样说 Restricted】—— vlines 走 imgOf,受限的值在那里被丢掉,于是一笔看不见的月薪会整行消失
+ *  ("Salary set" 下面什么都没有,读起来像没有填数)。人事这几块的薪资列要说出"有一个数,你看不见" */
+function vlinesR(d: TrailDict, r: TrailRow, cols: string[], opts: BuildOptions): Line[] {
+    return cols.flatMap((c) => {
+        const raw = r.new?.[c] ?? r.old?.[c] ?? r.ctx?.[c]
+        if (isRestricted(raw)) return [{ t: 'value', label: fieldMeta(d, r.table!, c)[0], value: { text: tx(d, 'restricted'), restricted: true } } as Line]
+        return vline(d, r, c, opts)
+    })
+}
+function describeHr(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const by = (t: string) => rows.filter((r) => r.table === t)
+    const anonymised = by('employees').some((r) => (r.op === 'UPDATE' && isSet(r, 'anonymised_at')) || (r.prelog && r.cols?.includes('anonymised_at')))
+    // ── 员工那一行 ──
+    for (const r of by('employees')) {
+        if (r.op === 'INSERT') {
+            out.push({ title: tx(d, 'emp.added'), lines: valueLines(d, r, r.new, opts, new Set([...HR_SKIP, 'user_id', 'monthly_salary_set'])), key: true, weight: 100 })
+            continue
+        }
+        if (r.op === 'DELETE') { out.push(describeGeneric(d, r, opts)); continue }
+        if (anonymised) {
+            if (isSet(r, 'anonymised_at') || r.cols?.includes('anonymised_at')) out.push({ title: tx(d, 'emp.anonymised'), lines: [], key: true, weight: 100 })
+            continue
+        }
+        if ((changed(r, 'deleted_at') && r.new?.['deleted_at']) || (r.prelog && r.cols?.includes('deleted_at'))) {
+            out.push({ title: tx(d, 'emp.deleted'), lines: changeLines(d, r, opts, new Set(['deleted_at', ...HR_SKIP])), key: true, weight: 100 })
+            continue
+        }
+        if (changed(r, 'user_id')) {
+            out.push({ title: tx(d, r.new?.['user_id'] ? 'emp.loginLinked' : 'emp.loginUnlinked'), lines: [], key: true, weight: 90 })
+        }
+        const ls = changeLines(d, r, opts, new Set([...HR_SKIP, 'user_id', 'monthly_salary_set']))
+        if (ls.length) out.push({ title: tx(d, 'emp.edited'), lines: ls, key: false, weight: 60 })
+    }
+    // ── 任职履历:每一行就是一件事 ──
+    for (const r of by('employment_history')) {
+        if (r.op !== 'INSERT') {
+            if (anonymised) continue
+            const ls = changeLines(d, r, opts, new Set(HR_SKIP))
+            if (ls.length) out.push({ title: tx(d, 'emp.historyChanged'), lines: ls, key: false, weight: 30 })
+            continue
+        }
+        const ct = str(r, 'change_type') ?? ''
+        const salary = ct === 'salary_change'
+        const title = salary
+            ? tx(d, isEmpty(r.new?.['old_monthly_salary']) && !isRestricted(r.new?.['old_monthly_salary']) ? 'emp.salarySet' : 'emp.salaryChanged')
+            : HISTORY_TITLE[ct] ? tx(d, HISTORY_TITLE[ct]) : tx(d, 'emp.historyRecorded')
+        const cols = salary ? ['effective_date', 'old_monthly_salary', 'new_monthly_salary']
+            : ['effective_date', 'job_title', 'department_id', 'employment_type', 'employment_status', 'work_category']
+        const ls = vlinesR(d, r, cols, opts)
+        const note = historyNote(d, str(r, 'notes'))
+        if (note) ls.push(note)
+        out.push({ title, lines: ls, key: true, weight: 95 })
+    }
+    // ── 调薪申请(审批留痕并进这一句)──
+    for (const r of by('salary_change_requests')) {
+        const id = idOf(r)
+        if (r.op === 'INSERT') {
+            const ls = vlinesR(d, r, ['effective_date', 'old_monthly_salary', 'new_monthly_salary'], opts)
+            if (str(r, 'status', 'new') === 'approved') ls.push({ t: 'note', text: tx(d, 'po.autoApproved') })
+            out.push({ title: tx(d, 'scr.requested'), lines: ls, reason: typed(r.new?.['reason']), key: true, weight: 90, recordId: id, absorbsApproval: false })
+            continue
+        }
+        if (r.op === 'UPDATE' && (changed(r, 'status') || (r.prelog && r.cols?.includes('withdrawn_at')))) {
+            const st = str(r, 'status', 'new') ?? (r.prelog ? 'withdrawn' : '')
+            const key: TrailTextKey = st === 'approved' ? 'scr.approved' : st === 'rejected' ? 'scr.rejected' : st === 'withdrawn' ? 'scr.withdrawn' : 'scr.changed'
+            out.push({ title: tx(d, key), lines: [], reason: typed(r.new?.['decision_notes'] ?? r.new?.['withdraw_reason']), key: true, weight: 90,
+                       recordId: id, absorbsApproval: st === 'approved' || st === 'rejected' })
+            continue
+        }
+        const ls = changeLines(d, r, opts, new Set([...HR_SKIP, 'decided_via', 'snapshot']))
+        if (ls.length) out.push({ title: tx(d, 'scr.changed'), lines: ls, key: false, weight: 30, recordId: id })
+    }
+    // ── 培训记录 ──
+    for (const r of by('training_records')) {
+        const part = typed(str(r, 'training_name'))
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'trn.added'), part, lines: valueLines(d, r, r.new, opts, new Set([...HR_SKIP, 'training_name'])), key: true, weight: 80 })
+        else if ((r.op === 'UPDATE' && isSet(r, 'deleted_at')) || (r.prelog && r.cols?.includes('deleted_at'))) out.push({ title: tx(d, 'trn.deleted'), part, lines: changeLines(d, r, opts, new Set(['deleted_at', ...HR_SKIP])), key: true, weight: 80 })
+        else if (r.op === 'UPDATE') { const ls = changeLines(d, r, opts, HR_SKIP); if (ls.length) out.push({ title: tx(d, 'trn.changed'), part, lines: ls, key: false, weight: 40 }) }
+        else out.push(describeGeneric(d, r, opts))
+    }
+    // ── 部门 ──
+    for (const r of by('departments')) {
+        const part = typed(str(r, 'name_en'))
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'dept.created'), part, lines: valueLines(d, r, r.new, opts, new Set([...HR_SKIP, 'name_en'])), key: true, weight: 80 })
+        else if ((r.op === 'UPDATE' && isSet(r, 'deleted_at')) || (r.prelog && r.cols?.includes('deleted_at'))) out.push({ title: tx(d, 'dept.deleted'), part, lines: [], key: true, weight: 80 })
+        else if (r.op === 'UPDATE') {
+            const act = changed(r, 'is_active') ? r.new?.['is_active'] : undefined
+            const ls = changeLines(d, r, opts, new Set([...HR_SKIP, ...(act === undefined ? [] : ['is_active'])]))
+            if (act !== undefined) out.push({ title: tx(d, act === true ? 'dept.reactivated' : 'dept.deactivated'), part, lines: ls, key: true, weight: 70 })
+            else if (ls.length) out.push({ title: tx(d, 'dept.changed'), part, lines: ls, key: false, weight: 40 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    return out
+}
+const POLICY_COLS = ['approvals_enabled', 'approval_threshold_base', 'approval_level1_role_code', 'approval_level2_role_code']
+/** 审批方针(Q25):那一行设置的四列(M6 已经只留下它们)与它的修改史(M7)。记录开始之后,同一次保存在两张表上各一行 ——
+ *  设置那一行说(它有每一列),修改史那一行不再说;之前只有修改史,它说(old_ / new_ 成对)。 */
+function describePolicy(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    const settings = rows.filter((r) => r.table === 'finance_settings' && r.op === 'UPDATE')
+    const titleOf = (was: Json | undefined, now: Json | undefined, moved: boolean): TrailTextKey =>
+        moved && now === true ? 'pol.switchedOn' : moved && now === false ? 'pol.switchedOff' : 'pol.changed'
+    for (const r of settings) {
+        const ls = changeLines(d, r, opts, new Set(['updated_at', 'updated_by']))
+        if (!ls.length) continue
+        out.push({ title: tx(d, titleOf(r.old?.['approvals_enabled'], r.new?.['approvals_enabled'], changed(r, 'approvals_enabled'))), lines: ls, key: true, weight: 100 })
+    }
+    if (!settings.length) {
+        for (const h of rows.filter((r) => r.table === 'finance_settings_history')) {
+            const ls: Line[] = []
+            for (const c of POLICY_COLS) {
+                const was = h.new?.['old_' + c], now = h.new?.['new_' + c]
+                if (JSON.stringify(was ?? null) === JSON.stringify(now ?? null)) continue
+                ls.push({ t: 'change', label: fieldMeta(d, 'finance_settings', c)[0],
+                          old: formatValue(d, 'finance_settings_history', 'old_' + c, was, imgOf(h), h.refs, 'INSERT', opts),
+                          new: formatValue(d, 'finance_settings_history', 'new_' + c, now, imgOf(h), h.refs, 'INSERT', opts) })
+            }
+            const moved = JSON.stringify(h.new?.['old_approvals_enabled'] ?? null) !== JSON.stringify(h.new?.['new_approvals_enabled'] ?? null)
+            out.push({ title: tx(d, titleOf(h.new?.['old_approvals_enabled'], h.new?.['new_approvals_enabled'], moved)), lines: ls, key: true, weight: 100 })
+        }
+    }
+    for (const r of rows.filter((x) => x.table === 'finance_settings' && x.op !== 'UPDATE')) out.push(describeGeneric(d, r, opts))
+    return out
+}
+/** 六本字典(M11):一个值加上 / 改了 / 停用 / 恢复 —— 字典不删(没有删除策略) */
+function describeDict(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    const out: Block2[] = []
+    for (const r of rows) {
+        const t = thing(d, r.table)
+        const part = typed(str(r, 'name_en'))
+        if (r.op === 'INSERT') out.push({ title: tx(d, 'dictv.added', { thing: t }), part, lines: valueLines(d, r, r.new, opts, new Set(['name_en'])), key: true, weight: 80 })
+        else if (r.op === 'UPDATE') {
+            const act = changed(r, 'is_active') ? r.new?.['is_active'] : undefined
+            const ls = changeLines(d, r, opts, new Set(act === undefined ? [] : ['is_active']))
+            if (act !== undefined) out.push({ title: tx(d, act === true ? 'dictv.reactivated' : 'dictv.deactivated', { thing: t }), part, lines: ls, key: true, weight: 70 })
+            else if (ls.length) out.push({ title: tx(d, 'dictv.changed', { thing: t }), part, lines: ls, key: false, weight: 40 })
+        } else out.push(describeGeneric(d, r, opts))
+    }
+    return out
+}
+/** 导入批次(F97):"N supplier records imported from a file"—— 文件名是人起的名字 */
+function describeImport(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block2[] {
+    return rows.map((r) => {
+        if (r.op !== 'INSERT') return describeGeneric(d, r, opts)
+        const n = num(r.new?.['row_count'] ?? null) ?? 0
+        const target = str(r, 'target_table')
+        const what = target ? (d.tables[target]?.[0] ?? humanize(target).toLowerCase()) : 'record'
+        return { title: tx(d, n === 1 ? 'imp.imported.one' : 'imp.imported.many', { n, thing: what }), part: typed(str(r, 'file_name')),
+                 lines: vlines(d, r, ['code_first', 'code_last'], opts), key: true, weight: 90 }
+    })
+}
+
 // ════════════════════════════════════════════════════════════════════════════
 // 组装
 // ════════════════════════════════════════════════════════════════════════════
@@ -3677,7 +3963,18 @@ function commonRecord(rs: TrailRow[]): RecordRef | null {
     return best?.r ?? rs.find((x) => x.record)?.record ?? null
 }
 
-export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions = {}): Entry[] {
+export function buildEntries(d: TrailDict, rows0: TrailRow[], opts: BuildOptions = {}): Entry[] {
+    // AUDIT-TRAIL-1d-1(Q9):停用 / 恢复先写事件、auth 那一头失败再写一行 *_FAILED —— 两次调用、两条记录。那一对的意思是
+    //   "没有停用 / 没有恢复",所以把事件那一行并进失败那一条(同一个账号、在它之前最近的那一次同名事件),只说一句。
+    const rows = rows0.map((r) => ({ ...r }))
+    for (const f of rows) {
+        if (f.table !== 'auth.users' || !f.op?.endsWith('_FAILED') || f.hidden) continue
+        const base = f.op.replace(/_FAILED$/, '')
+        const k = JSON.stringify(f.key)
+        const prior = rows.filter((x) => x.table === 'auth.users' && x.op === base && JSON.stringify(x.key) === k && x.at <= f.at && x.group !== f.group)
+            .sort((a, b) => (a.at < b.at ? 1 : -1))[0]
+        if (prior) { prior.group = f.group; prior.order = f.order }
+    }
     // 一张冲销分录:它自己没有任何一列说"我是冲销"(只有原分录的 reversed_by 指着它)。整页的行里,凡是被别的分录
     // 今天的 reversed_by 指着的,就是冲销 —— 结构上认,绝不读 memo(fixture 181 D 臂)
     const reversals = new Set<string>()
@@ -3761,6 +4058,11 @@ export function buildEntries(d: TrailDict, rows: TrailRow[], opts: BuildOptions 
                 case 'task': bs = describeTask(d, list, opts, stepTitles); break
                 case 'settings': bs = describeSettings(d, list, opts); break
                 case 'fin': bs = describeFinance(d, list, opts, reversals, fc ?? finContext(rows)); break
+                case 'access': bs = describeAccess(d, list, opts); break
+                case 'hr': bs = describeHr(d, list, opts); break
+                case 'policy': bs = describePolicy(d, list, opts); break
+                case 'dict': bs = describeDict(d, list, opts); break
+                case 'import': bs = describeImport(d, list, opts); break
                 default: bs = []
             }
             // 别的记录的事(往上一跳够到的、审批、分录)永远不当这一条的标题 —— 这一页自己那件事在,标题就是它

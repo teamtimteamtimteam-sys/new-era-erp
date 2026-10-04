@@ -231,11 +231,16 @@ contracts — replaced the asset page's "Change history" panel, and made deleted
 shared settings row (each showing only its own columns; the lock's trail also shows month close and reopen), `/finance/close`, the company
 profile, and list-level blocks for year closes, revaluation and depreciation runs, bulk FX, cash forecasts and recurring lines, payroll
 journals, processing-cost settlement, WHT remittances, bank transfers, import mappings and deleted statements; a trail per journal request
-and per expense claim, and the claimant's own claim on `/me` (§9.13, M8 in §9.9). That completes AT-1c. AT-1d follows
+and per expense claim, and the claimant's own claim on `/me` (§9.13, M8 in §9.9). That completes AT-1c. AUDIT-TRAIL-1d-1 (part of
+v1.4.33) built the last four mechanism pieces — M9 (a log-only root: login accounts), M10 (a member limited to declared columns), M11 (a
+collection subject), M12 (a gate narrower than the table's rule) — made `/settings/change-history` re-check each row's read rule (Q13), and
+added accounts (per account on `/settings/accounts`, mirrored on the employee page), role grants on the role page, the approval-policy panel,
+the six dictionaries, the import-batch block, employees, departments and training records, with deleted roles, employees, departments and
+training records opening read-only (§9.14). AT-1d-2 (leave and time) and AT-1d-3 (pay and performance) follow
 (`docs/forward-queue.md`, "HISTORY family").
 Rulings: AUDIT-TRAIL-0 Q1–Q43 (`docs/surveys/AUDIT-TRAIL-0/README.md`), AT-1b Step 0 Q1–Q14 + M1–M6
 (`docs/surveys/AUDIT-TRAIL-1b/STEP0-HANDBACK.md`) and AT-1c Step 0 Q1–Q34 (`docs/surveys/AUDIT-TRAIL-1c/STEP0-HANDBACK.md`),
-all accepted as recommended.
+all accepted as recommended; AT-1d Step 0 Q1–Q38 (`docs/surveys/AUDIT-TRAIL-1d/STEP0-HANDBACK.md`), all accepted as recommended.
 
 | page | subject | view code | what rolls up into its trail |
 |---|---|---|---|
@@ -295,6 +300,13 @@ all accepted as recommended.
 | `/finance/cash-forecast` (1c-3, `ListTrail`) | `cash_forecast` · `cash_forecast_line` | `module.finance.view` | each frozen forecast (frozen; replaced by a later one — one operation with the new freeze, Q16) · each recurring line |
 | `/finance/bank/import` (1c-3, `ListTrail`) | `bank_import_profile` | `module.finance.view` | each import mapping, deleted ones included |
 | `/finance/revaluation`, `/finance/assets`, `/finance/payroll-payments`, `/finance/processing-costs`, `/finance/fx`, `/finance/bank/statements` (1c-3, `ListTrail`) | `journal_entry` · `expense` · `fx_rate` · `bank_statement` | `module.finance.view` (the statements block: `data.view_deleted` too, as the statement's page) | revaluation, depreciation (each asset a line) and payroll journals; processing-cost remittance journals and relief expenses (Q19); the rates on the page and every withdrawn rate (a bulk save is one entry, Q16); deleted statements — each record links to its own page |
+| `/settings/accounts`, one per account row (1d-1, Q24, compact) | `account` | `action.manage_permissions` (root `auth.users` — M9: a safe projection and a declared read code) | account created / disabled / could not be disabled / re-enabled / removed (a creation rolled back) · the roles granted to it and removed from it (home here, Q22) · it as an additional login of an employee and that link's history · it as an employee's primary login (`employees.user_id` only — M10) |
+| `/settings/roles/[id]` (AT-1a, extended in 1d-1) | `role` | `action.manage_permissions` | + who the role was granted to and removed from (`user_roles`, not home — "Role granted to <name>", Q22) |
+| `/settings/approvals` (1d-1, Q25) | `approval_policy` | `action.manage_permissions` (M5 · M6: the four policy columns; root rule `table`, so the reader needs `module.finance.view` too — Q23) | approvals switched on / off, level-1 / level-2 approver role, threshold · its history `finance_settings_history` (M7) — replaces `ApprovalsHistory` (Q27) |
+| `/settings/dictionaries`, one per section (1d-1, Q4, compact) | `dictionary_substances` … `dictionary_inbound_source_reasons` (six) | each section's view code (`module.materials.view` ×4, `module.inbound.view` ×2) | M11: every value of that dictionary — added, changed, deactivated, reactivated. Dictionaries have no timestamps, so nothing before the log |
+| `/settings/import` (1d-1, `ListTrail`, Q24) | `import_batch` | `action.bulk_import` | each batch: who, when, file, rows, first and last number. Imported records carry no link back to their batch (the `import_batches` table comment, Q24) |
+| `/hr/employees/[id]` (1d-1, Q28) | `employee` | `module.hr.view` | the employee · employment history · salary change requests and their approvals (Restricted without `data.view_pay`) · training records (home: the training record) · additional logins and their history · the account mirror (Q24 · Q21): the primary and additional login accounts (up, M9) and their role grants — account events and the link history are Restricted to a reader without `action.manage_permissions`; grants are visible (every login reads `user_roles`) |
+| `/hr/departments/[id]/edit` · `/hr/training/[id]/edit` (1d-1, their only pages) | `department` · `training_record` | `module.hr.view` | the department · the training record |
 
 ### 9.1 The reader: `record_trail(subject, id, entries)`
 
@@ -530,6 +542,10 @@ samples must all be caught, a known-good sentence must pass).
 | M5 | a root keyed by a non-text value (`id boolean`) is matched by its typed value | `record_trail` rebuilds the root key from the row | the three threshold panels (1b-3; the page passes `'true'`) |
 | M6 | a root may be limited to the **columns a panel owns** | `trail_subjects.root_columns` | the three threshold panels (1b-3): processing 2 columns, pricing 1, receiving 3 |
 | **M7** (1c-1) | a member with **no foreign key** under a single-row root: every row of that table, and every log row of it (`match` filtered), belongs to the singleton (`hop = 'all'`, `fk_column` NULL). Ignored unless the parent is the subject's root table. `trail_row_record` gives such a row the singleton as its home | `trail_subject_members.hop = 'all'` | `finance_lock` (1c-3: `period_closes` — a month close reads "Finance settings" in the summary page's Record column); AT-1d's approval policy (`finance_settings_history`) |
+| **M9** (1d-1) | a **log-only root** outside `public`: `trail_log_only_tables()` names the table (`auth.users`), the **safe projection** it may be read through (`id, email, created_at, banned_until` — never the whole auth row, which carries the password hash and six token columns) and a **declared read code** (`action.manage_permissions`) that stands in for its policies. `trail_current_image` and `trail_row_visible` consult it; its creation after the log is an `ACCOUNT_CREATE` row, so the pre-log creation is skipped when either that or an `INSERT` exists | `trail_log_only_tables()` | `account` on `/settings/accounts`; the account mirror on `/hr/employees/[id]` (up hops to `auth.users`) |
+| **M10** (1d-1) | a **member limited to declared columns** (M6 on a member): `trail_member_columns()` gives `(subject, ord) → columns`; a change touching none is dropped, the rest keep only those columns, and a column-limited member contributes no pre-log creation | `trail_member_columns()` (a side registry — changing `trail_subject_members`' return type would break every fixture that redefines it) | the account trail's employee row (`user_id` only — an HR edit of that person is not the account's business) |
+| **M11** (1d-1) | `root_rule = 'collection'`: **no root row**; every current row of the table and every log row of it belong to the record, each checked against its own read rule. `p_id` is ignored (pages pass `'all'`) | `trail_subjects.root_rule` | the six dictionaries. AT-1d-2 / 1d-3: public holidays (hard-deleted), leave types, the rating scale |
+| **M12** (1d-1) | `root_rule = 'gate:<name>'`: the root row must pass its table's read rule **and** `trail_root_gate(<name>, …)` — a closed set (`reviewer`: the review's `reviewer_employee_id` is the reader); an unknown name admits nobody. May be combined with M8 (no page code) | `trail_root_gate()` | none yet — AT-1d-3's `/my-reviews/[id]`; proved with a temporary subject in fixture 244 |
 | **M8** (1c-3) | a subject with **no page code**: `view_codes` is an empty array, and the root row's own read rule is the only gate. Allowed only with `root_rule = 'table'` — `'page'` with no code would open the record to everyone, so `record_trail` refuses it (`TRAIL_NOT_PERMITTED`); `NULL` codes are still refused | `trail_subjects.view_codes = ARRAY[]::text[]` | `my_expense_claim` on `/me` (the claimant reads their own claim; `expense_claims`' read rule is finance or own) |
 
 The retired batch views `batch_audit_trail` / `batch_audit_trail_all` stay in place, unread by any page (Q32); fixture 238
@@ -680,3 +696,49 @@ until they are dropped.
   page carries two trails; `emptyOk` where live has no record yet). `scripts/probe-at1c3.mjs`: the two panels each only their own columns,
   the close page, a trail per claim, the deleted-statements block (admin reads it; `gm` gets the named refusal), and every trail section on
   every 1c-3 page in both interfaces.
+
+### 9.14 Accounts, settings and employees (AUDIT-TRAIL-1d-1, Tim's AT-1d Q1–Q38)
+
+- **The summary page re-checks every row (Q13).** `change_log_rows` now asks each row's own table read rule through `trail_row_visible`
+  — the same judgement `record_trail` makes — and returns a row the reader cannot read as wholly restricted (`row_restricted`, the
+  task-privacy shape). Until now it masked only by column rules, so a `data.view_change_log` holder without `data.view_pay` would have read
+  every salary-change figure, and one without `data.view_reviews` review and KPI text. Today's two holders (admin, cfo) hold both, so
+  nobody had read them — a latent hole, not a leak. Visible consequence: account events (`auth.users`, 0 rows on live) and the COD
+  verification counter are restricted for cfo (no `action.manage_permissions` / no read policy).
+- **Accounts (M9 · Q24 · Q9 · Q22).** One compact trail per account on `/settings/accounts`. Disabling writes the event first and a
+  `_FAILED` row if the auth call fails — two calls; the renderer joins that pair into the one sentence "Account could not be disabled".
+  A creation rolled back reads "Account removed (it was never finished)". A role grant reads "Role granted: CFO" on the account and
+  "Role granted to <name>" on the role page; the grant's home (the summary page's Record column) is the account. Before the log: the
+  account's own `created_at` (no person — "Not recorded"), `user_roles.granted_*` / `revoked_*`, the additional-login link.
+- **The employee page (Q28 · Q21 · Q10 · Q30 · Q31).** The employee, employment history ("Hired", "Transferred", "Confirmed after
+  probation", "Salary set / changed" …), salary change requests (the approval folds into "Salary change approved"), training, additional
+  logins and the account mirror. Three machine-written notes in `employment_history.notes` are recognised: a review's
+  "Probation confirmed by performance review <uuid>" reads "Confirmed through a performance review"; "Salary change approved with request
+  <label>" becomes a "Salary change request: <label>" line; the employee form's own "status: a → b; department: X → Y" summary is not
+  said (the row's own columns say it). Salaries are base currency. Anonymisation reads "Personal data anonymised" and nothing else — the
+  cleared values are never said; the person reads "A former employee". After the log, the person who executed a salary change is the
+  change log's actor (the history row's own `created_by` names the raiser — registered in `docs/known-issues.md`, Q31).
+- **One save for the employee (Q8).** `save_employee` (SECURITY INVOKER) writes the employee row and its history row in one call, so a hire
+  is one transaction (one entry) and a failed history row takes the employee row with it. It refuses by name without `module.hr.edit`
+  (the table's statement-level guard does too — fixture 244's injection had to remove both to go red). It no longer compares old values
+  before updating: that read masked columns the caller cannot select (42501), and the change log does not record a no-op update anyway.
+  The account link stays its own call (`set_user_employee_link`, a different permission).
+- **The approval-policy panel (Q25 · Q23 · Q27).** Only its four columns (M6) and its history (M7); after the log the settings row speaks
+  and the history row is not said again, before the log the history row speaks (role codes resolved to role names through `trail_refs`).
+  It replaces `ApprovalsHistory`, which named the actor by e-mail.
+- **Dictionaries (M11 · Q4 · Q32).** Each section of `/settings/dictionaries` carries the whole dictionary's trail; values read
+  "<Thing> added / changed / deactivated / reactivated"; both names are shown ("Name (English)" / "Name (Chinese)" — people typed them).
+- **Import (Q24).** A block of batches and a "Who" column; imported records have no link back (the table comment stands).
+- **Deleted records (Q25 · Q26).** Deleted roles, employees, departments and training records open read-only for `data.view_deleted`
+  holders ("Deleted on DD/MM/YYYY", the person from the change log when there is one) and give everyone else a named refusal; the deleted
+  employee's edit page sends back to its page; `deleted_records` and `/settings/deleted` list the four kinds with links.
+- **Checks.** Fixture **244** (M9 incl. the safe projection and the "said twice" edge · M10 · M11 · M12 incl. an unknown gate · Q13 ·
+  `save_employee` atomicity, no-op and named refusal · the account mirror for an HR reader · role grants and their home · the approval policy
+  (M6 · M7) · the import block · the four deleted kinds · anonymisation), fault-injected by `db/scripts/2026-10-04-at1d1-fixture-injections.py`
+  (18 injections, each red in its own arm). Fixture 234's synthetic readers gained the module codes of the three tables they read (its arms
+  ask about column masking; the row rule is now asked too). `scripts/check-trail-wording.mjs` arm **⑪ 账号、设置与员工** (41 goldens + the
+  "A former employee" check + a machine-token sweep over the thirteen subjects with the page's own subject; injection `wording-drift-1d1`).
+  Smoke `trail` assertions on seven pages. `scripts/probe-at1d1.mjs`: a trail per account, the mirror Restricted for `gm`, the cto grant
+  on its role page, the policy panel, six dictionary sections, the import block, the deleted role and employee (read-only for admin, a named
+  refusal for `gm`), `/settings/deleted`, and zh = en on every 1d-1 page.
+

@@ -32,6 +32,11 @@
 --   · 财务设置那一行 → "Finance settings";公司资料那一行 → "Company profile"(两张都是单行表,id = true);
 --   · 月结 → "Period ending DD/MM/YYYY";年结 → "Year ending DD/MM/YYYY";
 --   · 行内转账 → "Transfer DD/MM/YYYY · Cash at Bank – SGD → Cash at Bank – USD"(两头按科目表的名字说,不说 1000 / 1010)。
+-- AUDIT-TRAIL-1d-1(Tim 2026-10-04,AT-1d Step 0 §a):
+--   · 登录账号('auth.users')多带一个 label —— 认得出的那个人的名字(trail_actor 同一份答法:不持 hr.view 的读者只认得出
+--     自己):/settings/change-history 的 Record 一栏(授权、附加账号的家是账号,Q22)读 label,不读 person。认不出就没有名字,
+--     界面说 "a login account" —— 【不】回落到邮箱(那是账号的身份数据,不是它的名字)。
+--   · 培训记录 → 培训的名字;导入批次 → 文件名(两张表都没有 name / title / label 一类的列)。
 -- 【属主身份】按表名动态读;EXECUTE 已从 authenticated 收回。
 CREATE OR REPLACE FUNCTION public.trail_ref_label(p_table text, p_column text, p_value text)
  RETURNS jsonb
@@ -53,7 +58,8 @@ BEGIN
         IF p_value !~ '^[0-9a-fA-F-]{36}$' THEN
             RETURN NULL;
         END IF;
-        RETURN jsonb_build_object('person', trail_actor('prelog', p_value::uuid, NULL));
+        v_img := trail_actor('prelog', p_value::uuid, NULL);
+        RETURN jsonb_build_object('person', v_img, 'label', CASE WHEN v_img ->> 'state' = 'person' THEN v_img ->> 'name' END);
     END IF;
     IF to_regclass(format('public.%I', p_table)) IS NULL THEN
         RETURN NULL;
@@ -88,6 +94,8 @@ BEGIN
         WHEN p_table IN ('suppliers', 'customers') THEN v_img ->> 'legal_name'
         WHEN p_table = 'materials' THEN v_img ->> 'name'
         WHEN p_table = 'currencies' THEN v_img ->> 'code'
+        WHEN p_table = 'training_records' THEN v_img ->> 'training_name'
+        WHEN p_table = 'import_batches' THEN v_img ->> 'file_name'
         WHEN p_table = 'purchase_order_lines' THEN
             (SELECT po.code FROM purchase_orders po WHERE po.id::text = v_img ->> 'purchase_order_id')
             || ' line ' || (v_img ->> 'line_no')

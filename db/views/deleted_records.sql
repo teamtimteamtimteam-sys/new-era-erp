@@ -32,6 +32,13 @@
 --   在清单上被藏起来,于是它【一处都看不见】。它同样从来没有记过谁删的(没有 deleted_by、没有理由;删是一句直写的
 --   update),"谁"照上面四类的办法从 change_log 读,读不到(早于变更记录 —— 线上那一张 BS-2026-0001 是 30/07/2026 删的)
 --   就只说日期。门是 module.finance.view(那张表的读规则);detail 那一格放它覆盖的期间。
+--
+-- ★ AUDIT-TRAIL-1d-1(Tim 的 Q25 · Q26,2026-10-04):多了四类 —— 角色 · 员工 · 部门 · 培训记录。它们的页以前过滤掉已删的、404,
+--   这里也没有它们(AT-0 说"删掉的部门会到 /settings/deleted"—— 那句话不成立,Step 0 量过)。四张表都没有 deleted_by、没有理由,
+--   "谁"照上面几类的办法从 change_log 读;读不到(早于变更记录 —— 线上 15 名删掉的员工全是 ZZ-* 的测试行,一个删掉的角色
+--   operations)就只说日期。门:角色是 action.manage_permissions(角色页的门);另外三类是 module.hr.view。
+--   detail 那一格放名字(员工:称呼名,没有就法定名 —— 能进这一类的人都持 hr.view,与员工页同一个答案);培训记录没有编号,
+--   code 留空,名字在 detail。
 
 CREATE OR REPLACE VIEW public.deleted_records AS
  SELECT record_kind,
@@ -213,7 +220,71 @@ CREATE OR REPLACE VIEW public.deleted_records AS
             NULL::uuid AS uuid,
             (to_char(bs.period_start::timestamp without time zone, 'DD/MM/YYYY'::text) || ' – '::text) || to_char(bs.period_end::timestamp without time zone, 'DD/MM/YYYY'::text)
            FROM bank_statements bs
-          WHERE bs.deleted_at IS NOT NULL) a
+          WHERE bs.deleted_at IS NOT NULL
+        UNION ALL
+         SELECT 'role'::text AS text,
+            'action.manage_permissions'::text AS text,
+            ro.id,
+            ro.code,
+            ro.deleted_at,
+            ( SELECT l.actor_account
+                   FROM change_log l
+                  WHERE l.table_name = 'roles'::text AND l.row_key = jsonb_build_object('id', ro.id) AND l.op = 'UPDATE'::text AND 'deleted_at'::text = ANY (l.changed_columns) AND (l.new ->> 'deleted_at'::text) IS NOT NULL
+                  ORDER BY l.seq DESC
+                 LIMIT 1) AS actor_account,
+            NULL::text AS text,
+            NULL::uuid AS uuid,
+            ro.name_en
+           FROM roles ro
+          WHERE ro.deleted_at IS NOT NULL
+        UNION ALL
+         SELECT 'employee'::text AS text,
+            'module.hr.view'::text AS text,
+            em.id,
+            em.code,
+            em.deleted_at,
+            ( SELECT l.actor_account
+                   FROM change_log l
+                  WHERE l.table_name = 'employees'::text AND l.row_key = jsonb_build_object('id', em.id) AND l.op = 'UPDATE'::text AND 'deleted_at'::text = ANY (l.changed_columns) AND (l.new ->> 'deleted_at'::text) IS NOT NULL
+                  ORDER BY l.seq DESC
+                 LIMIT 1) AS actor_account,
+            NULL::text AS text,
+            NULL::uuid AS uuid,
+            COALESCE(NULLIF(em.preferred_name, ''::text), em.legal_name)
+           FROM employees em
+          WHERE em.deleted_at IS NOT NULL
+        UNION ALL
+         SELECT 'department'::text AS text,
+            'module.hr.view'::text AS text,
+            dp.id,
+            dp.code,
+            dp.deleted_at,
+            ( SELECT l.actor_account
+                   FROM change_log l
+                  WHERE l.table_name = 'departments'::text AND l.row_key = jsonb_build_object('id', dp.id) AND l.op = 'UPDATE'::text AND 'deleted_at'::text = ANY (l.changed_columns) AND (l.new ->> 'deleted_at'::text) IS NOT NULL
+                  ORDER BY l.seq DESC
+                 LIMIT 1) AS actor_account,
+            NULL::text AS text,
+            NULL::uuid AS uuid,
+            dp.name_en
+           FROM departments dp
+          WHERE dp.deleted_at IS NOT NULL
+        UNION ALL
+         SELECT 'training_record'::text AS text,
+            'module.hr.view'::text AS text,
+            tr.id,
+            NULL::text,
+            tr.deleted_at,
+            ( SELECT l.actor_account
+                   FROM change_log l
+                  WHERE l.table_name = 'training_records'::text AND l.row_key = jsonb_build_object('id', tr.id) AND l.op = 'UPDATE'::text AND 'deleted_at'::text = ANY (l.changed_columns) AND (l.new ->> 'deleted_at'::text) IS NOT NULL
+                  ORDER BY l.seq DESC
+                 LIMIT 1) AS actor_account,
+            NULL::text AS text,
+            NULL::uuid AS uuid,
+            tr.training_name
+           FROM training_records tr
+          WHERE tr.deleted_at IS NOT NULL) a
   WHERE has_permission(permission);
 
 COMMENT ON VIEW public.deleted_records IS

@@ -9,6 +9,8 @@ import RoleForm from '../RoleForm'
 import PermissionMatrix, { type PermissionRow } from '../PermissionMatrix'
 import { mustRows } from '@/lib/db-helpers'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
+import { requireDeletedAccess } from '@/app/components/moduleGuard'
 
 export default async function RoleDetailPage({
     params,
@@ -27,9 +29,8 @@ export default async function RoleDetailPage({
     const [roleRes, permRes, grantRes, holdersRes] = await Promise.all([
         supabase
             .from('roles')
-            .select('id, code, name_en, name_zh, description_en, description_zh, is_system, is_active, sort_order')
+            .select('id, code, name_en, name_zh, description_en, description_zh, is_system, is_active, sort_order, deleted_at')
             .eq('id', id)
-            .is('deleted_at', null)
             .single(),
         supabase
             .from('permissions')
@@ -41,6 +42,13 @@ export default async function RoleDetailPage({
 
     if (roleRes.error || !roleRes.data) notFound()
     const role = roleRes.data
+    // AUDIT-TRAIL-1d-1(Tim 的 Q25):一个删掉的角色以前在这里 404。现在对持 data.view_deleted 的人只读打开(横幅 + 审计记录),
+    //   别人得到一句具名拒绝 —— 不是 404("找不到"读起来是"从来没有过")。页面自己的门(manage_permissions)照旧先问。
+    const deleted = !!role.deleted_at
+    if (deleted) {
+        const refused = await requireDeletedAccess('permissions.roleTitle')
+        if (refused) return refused
+    }
 
     return (
         <div className="p-8 max-w-4xl">
@@ -59,11 +67,14 @@ export default async function RoleDetailPage({
                 </Link>
             </div>
 
+            {deleted && <DeletedBanner kind="role" id={role.id} at={role.deleted_at as string} />}
+
             <h2 className="mb-4">
                 {role.name_en}
                 <span className="ml-3 text-sm text-[color:var(--brand-muted-text)]">{role.code}</span>
             </h2>
 
+            <EndedFieldset ended={deleted}>
             <RoleForm
                 initial={{
                     id: role.id,
@@ -84,8 +95,10 @@ export default async function RoleDetailPage({
                 permissions={(mustRows(permRes)) as PermissionRow[]}
                 initial={(mustRows(grantRes)).map((g) => g.permission_code)}
             />
+            </EndedFieldset>
 
-            {/* AUDIT-TRAIL-1a:页底的审计记录 —— 这个角色的字段,与它的授权加上 / 拿掉(名字取 permissions.name_en) */}
+            {/* AUDIT-TRAIL-1a:页底的审计记录 —— 这个角色的字段,与它的授权加上 / 拿掉(名字取 permissions.name_en);
+                AUDIT-TRAIL-1d-1(Q22):外加这个角色授给了谁、从谁那里收回(user_roles —— 家在账号那一边) */}
             <AuditTrail subject="role" id={role.id} show={trailCount((await searchParams).trail)} />
         </div>
     )

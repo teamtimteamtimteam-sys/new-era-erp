@@ -2,7 +2,7 @@
 
 // app/settings/accounts/UserRow.tsx
 // 一个系统账号一行,展开后是编辑面板:勾选角色 + 关联员工档案。
-import { useState, useTransition } from 'react'
+import { useState, useTransition, type ReactNode } from 'react'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { saveUserRoles, linkAdditionalAccount, unlinkAdditionalAccount } from '../accountsActions'
 import { disableAccount, enableAccount } from './accountActions'
@@ -44,12 +44,15 @@ export default function UserRow({
     employees,
     lastSignInDisplay,
     createdDisplay,
+    trail,
 }: {
     row: DirectoryRow
     roles: RoleOption[]
     employees: EmployeeOption[]
     lastSignInDisplay: string
     createdDisplay: string
+    /** AUDIT-TRAIL-1d-1(Q24):这个账号的审计记录 —— 服务端造好的那一块(AuditTrail compact),这里只负责放进这一行 */
+    trail?: ReactNode
 }) {
     const t = useTranslations()
     const locale = useLocale()
@@ -385,6 +388,7 @@ export default function UserRow({
                     </div>
                 </div>
             )}
+            {trail}
         </div>
     )
 }

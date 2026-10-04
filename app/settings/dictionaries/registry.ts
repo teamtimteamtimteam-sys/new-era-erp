@@ -23,7 +23,8 @@ import type { Database } from '@/lib/database.types'
  *  写错一个表名会在编译期红,而不是在运行期变成一次静默的空查询。 */
 export type TableName = keyof Database['public']['Tables']
 
-/** 这五张字典本身。**窄到这五个**,而不是"任何表" ——
+/** 这六张字典本身(AUDIT-TRAIL-1d-1:这里以前写着"五张",而联合类型里一直是六张 —— AT-0 量过,Step 0 Q38 照改)。
+ *  **窄到这六个**,而不是"任何表" ——
  *  它们共用 code / name_en / name_zh / is_active / sort_order / notes 六列,
  *  编译器据此知道 .select('code') 是成立的;写成全表联合就什么都推不出来了。 */
 export type DictTable =

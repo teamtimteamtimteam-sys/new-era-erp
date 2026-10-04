@@ -93,6 +93,12 @@ const KIND_HREF: Record<string, (id: string) => string | null> = {
     // AUDIT-TRAIL-1c-2(Tim 的 Q6):删掉的对账单以前在详情页上 404、在清单上被藏起来 —— 一处都看不见。
     //   现在它对持 data.view_deleted 的人只读打开(横幅 + 审计记录),这里是它的入口
     bank_statement: (id) => `/finance/bank/statements/${id}`,
+    // AUDIT-TRAIL-1d-1(Tim 的 Q25 · Q26):删掉的角色 · 员工 · 部门 · 培训记录 —— 以前在各自那一页 404、这里也没有它们;
+    //   现在对持 data.view_deleted 的人只读打开(横幅 + 审计记录),这里是入口。部门与培训记录只有编辑页
+    role: (id) => `/settings/roles/${id}`,
+    employee: (id) => `/hr/employees/${id}`,
+    department: (id) => `/hr/departments/${id}/edit`,
+    training_record: (id) => `/hr/training/${id}/edit`,
 }
 
 const KINDS = Object.keys(KIND_HREF)

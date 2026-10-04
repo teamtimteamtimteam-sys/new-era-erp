@@ -646,6 +646,16 @@ const MUST_CONTAIN = {
     '/finance/claims': [{ trail: 'audit-trail', why: '每一张报销单的审计记录(Q20)' }],
     '/finance/bank/import': [{ trail: 'audit-trail', emptyOk: true, why: '导入映射那一块' }],
     '/finance/bank/statements': [{ trail: 'audit-trail', anchor: 'deleted-statements-trail', why: '删掉的对账单那一块(Q6 的入口)' }],
+    // AUDIT-TRAIL-1d-1:账号、设置与员工。【emptyOk】六本字典没有任何时刻列(记录开始之前什么都拼不出来),线上至今 0 行变更记录 ——
+    //   第一段(物质)是空的;别的几页线上都有记录开始之前的来源(账号的建立、审批方针那一行修改史、两批导入、员工 / 部门 / 培训的建立)。
+    //   /settings/accounts 每一行一块、折起来 —— 不给 anchor 就是页上第一段(第一个账号的),它有它的建立。
+    '/settings/accounts': [{ trail: 'audit-trail', why: '每一个账号一块审计记录(Q24 · M9)' }],
+    '/settings/approvals': [{ trail: 'audit-trail', why: '审批方针页底的审计记录(Q25:替掉 ApprovalsHistory)' }],
+    '/settings/dictionaries': [{ trail: 'audit-trail', emptyOk: true, why: '每一段字典一块审计记录(M11)' }],
+    '/settings/import': [{ trail: 'audit-trail', why: '导入批次那一块(Q24)' }],
+    '/hr/employees/[id]': [{ trail: 'audit-trail', why: '员工页底的审计记录(Q28;账号的镜像 Q24 · Q21)' }],
+    '/hr/departments/[id]/edit': [{ trail: 'audit-trail', why: '部门编辑页底的审计记录(它只有这一页)' }],
+    '/hr/training/[id]/edit': [{ trail: 'audit-trail', why: '培训记录编辑页底的审计记录(Q29;它只有这一页)' }],
     // ── 静态判据:下拉在,就说明名单非空 ────────────────────────────────────
     // 这九个下拉是【同一个形状】:名单非空时渲染 <select name="supplier_id">,
     // 为空时改渲染一段琥珀色文字("还没有货代 / 还没有供货商")。所以那个字符串

@@ -16,6 +16,13 @@
 --   belongs_to(trail_row_record:这一行属于哪张单据 / 哪条记录)· refs(trail_refs:每个引用值 → 名字)。
 --   任务隐私受限的行不带 belongs_to 与 refs —— 任务标题本身就是被藏起来的东西。
 -- 【它仍然列出每一次写入】(Q31):系统的、冒烟的、账号事件的,一行不少。
+-- AUDIT-TRAIL-1d-1(Tim 2026-10-04,AT-1d Step 0 的 Q13):【每一行再过一次它自己那张表的读规则】—— 与每一页底部的审计记录
+--   (record_trail 的第三道)同一个判法、同一支函数(trail_row_visible,对这一行今天的样子;已经删掉的,对它最后的影像)。
+--   过不了 → 整份影像受限(row_restricted = true,与任务隐私同一个形状:界面说这一类记录被改过、内容受限)。
+--   为什么:这一页的门是 data.view_change_log;以前只按 HISTORY-1 的列规则遮,而几张表是按【行】管的 ——
+--   调薪申请要 hr.view 加 data.view_pay,评审与 KPI 要 data.view_reviews,账号事件要 manage_permissions。
+--   一个持 view_change_log 而没有 view_pay 的人,以前在这里读得到每一笔调薪的金额。今天持这个码的两个人(admin、cfo)
+--   两样都有,所以那时没有人读到 —— 它是一个躺着的洞,不是一次泄漏。同一行在同一次调用里只判一次(v_vis_cache)。
 -- 【SECURITY DEFINER 的理由】change_log 对应用角色没有任何授权;读 auth.users 取邮箱与账号是否还在。
 CREATE OR REPLACE FUNCTION public.change_log_rows(p_from date DEFAULT NULL::date, p_to date DEFAULT NULL::date, p_table text DEFAULT NULL::text, p_record text DEFAULT NULL::text, p_actor uuid DEFAULT NULL::uuid, p_no_session boolean DEFAULT false, p_before bigint DEFAULT NULL::bigint, p_limit integer DEFAULT 50, p_tables text[] DEFAULT NULL::text[], p_removed_account boolean DEFAULT false, p_by_entry boolean DEFAULT false, p_record_ids text[] DEFAULT NULL::text[])
  RETURNS TABLE(seq bigint, occurred_at timestamp with time zone, table_name text, row_key jsonb, op text, actor_account uuid, actor_email text, actor_employee uuid, actor_employee_code text, actor_employee_name text, actor_kind text, db_role text, changed_columns text[], old jsonb, new jsonb, redacted_at timestamp with time zone, row_restricted boolean, txid bigint, actor jsonb, belongs_to jsonb, refs jsonb)
@@ -29,6 +36,10 @@ DECLARE
     v_mask   jsonb;
     v_limit  integer := LEAST(GREATEST(COALESCE(p_limit, 50), 1), 200);
     v_txids  bigint[];
+    v_vkey   text;
+    v_vis    boolean;
+    v_cache  jsonb := '{}'::jsonb;
+    v_cimg   record;
 BEGIN
     PERFORM require_permission('data.view_change_log');
 
@@ -102,6 +113,20 @@ BEGIN
         old := NULLIF(v_mask -> 'old', 'null'::jsonb);
         new := NULLIF(v_mask -> 'new', 'null'::jsonb);
         row_restricted := (v_mask ->> 'row_restricted')::boolean;
+        -- Q13:这一行过不过它自己那张表的读规则(每一行只判一次)
+        v_vkey := r.c_table || '|' || COALESCE(r.c_key::text, '');
+        IF v_cache ? v_vkey THEN
+            v_vis := (v_cache ->> v_vkey)::boolean;
+        ELSE
+            SELECT * INTO v_cimg FROM trail_current_image(r.c_table, r.c_key);
+            v_vis := COALESCE(trail_row_visible(r.c_table, r.c_key, COALESCE(v_cimg.image, r.c_new, r.c_old)), false);
+            v_cache := v_cache || jsonb_build_object(v_vkey, v_vis);
+        END IF;
+        IF NOT v_vis AND NOT row_restricted THEN
+            old := change_log_restrict(r.c_old, NULL);
+            new := change_log_restrict(r.c_new, NULL);
+            row_restricted := true;
+        END IF;
         IF row_restricted OR r.c_table = 'auth.users' THEN
             belongs_to := NULL;
             refs := '{}'::jsonb;

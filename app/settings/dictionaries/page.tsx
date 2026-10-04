@@ -31,10 +31,24 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { DICTIONARIES } from './registry'
 import DictSection, { type DictRow } from './DictSection'
 import { Alert } from '@/app/components/ui/alert'
+import AuditTrail, { trailCount, type TrailSubject } from '@/app/components/trail/AuditTrail'
 
-export default async function DictionariesPage() {
+// AUDIT-TRAIL-1d-1(Tim 的 Q4 —— M11):每一段一块审计记录 —— 那本字典整本是一条记录(集合主语:那张表今天的每一行、
+//   变更记录里它的每一行),所以加上的、改了的、停用 / 恢复的值都在那一段底下。主语名与表名一一对应(trail_subjects.sql)。
+const DICT_SUBJECT: Record<string, TrailSubject> = {
+    substances: 'dictionary_substances', battery_chemistries: 'dictionary_battery_chemistries',
+    material_kinds: 'dictionary_material_kinds', inbound_safety_states: 'dictionary_inbound_safety_states',
+    laboratories: 'dictionary_laboratories', inbound_source_reasons: 'dictionary_inbound_source_reasons',
+}
+
+export default async function DictionariesPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ trail?: string | string[] }>
+}) {
     const t = await getTranslations()
     const locale = await getLocale()
+    const show = trailCount((await searchParams).trail)
     const supabase = await createClient()
 
     // ════════════════════════════════════════════════════════════════════
@@ -164,8 +178,12 @@ export default async function DictionariesPage() {
             state={{ kind: 'ok' }}
         >
             {sections.map((s) => (
-                <DictSection key={s.spec.table} spec={s.spec} rows={s.rows}
-                             usage={s.usage} locale={locale} readOnly={s.readOnly} />
+                <div key={s.spec.table}>
+                    <DictSection spec={s.spec} rows={s.rows}
+                                 usage={s.usage} locale={locale} readOnly={s.readOnly} />
+                    <AuditTrail subject={DICT_SUBJECT[s.spec.table]} id="all" show={show}
+                                anchor={`dict-trail-${s.spec.table}`} compact />
+                </div>
             ))}
         </ListPage>
     )

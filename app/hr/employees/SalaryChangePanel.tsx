@@ -51,7 +51,7 @@ export type SalaryChangeView = {
 }
 
 export default function SalaryChangePanel({
-    employeeId, currency, currentSalary, months, canRaise, isOwn, open, history,
+    employeeId, currency, currentSalary, months, canRaise, isOwn, open,
 }: {
     employeeId: string
     currency: string
@@ -62,7 +62,6 @@ export default function SalaryChangePanel({
     /** 读者就是这个人(按人认)—— 谁都不能给自己提调薪 */
     isOwn: boolean
     open: SalaryChangeView[]
-    history: SalaryChangeView[]
 }) {
     const t = useTranslations()
     const router = useRouter()
@@ -226,26 +225,9 @@ export default function SalaryChangePanel({
                 </div>
             ))}
 
-            {/* ③ 最近了结的几张 */}
-            {history.length > 0 && (
-                <div>
-                    <h4 className="mb-1">{t('salaryChange.history')}</h4>
-                    <ul className="text-sm space-y-1">
-                        {history.map((h) => (
-                            <li key={h.id}>
-                                <span className="font-mono">{h.label}</span> · {money(h.oldSalary)} → {money(h.newSalary)} ·{' '}
-                                {h.effectiveText} · {t('salaryChange.status.' + h.status)}
-                                {h.decidedBy && <> · {h.decidedBy}</>}
-                                {(h.decisionNotes || h.withdrawReason) && (
-                                    <span className="text-[color:var(--brand-muted-text)] whitespace-pre-line">
-                                        {' '}— {h.decisionNotes ?? h.withdrawReason}
-                                    </span>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                </div>
-            )}
+            {/* ③ AUDIT-TRAIL-1d-1(Tim 的 Q27):"最近了结的几张"那一段换成了页底的审计记录 —— 它是一份纯粹的决定史
+                (批了 / 驳了 / 撤了,谁、为什么),审计记录说同样的事、加上是谁提出的,并且不止最近五张。
+                在途那几张(上面 ②)是这块面板的控件,照旧 */}
         </section>
     )
 }

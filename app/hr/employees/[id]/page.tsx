@@ -21,11 +21,16 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { RecordHeader } from '@/app/components/ui/record-header'
 import { EmployeeTrainingTable, EmployeeReviewsTable, EmployeePayrollTable, type TrainingRow, type EmployeeReviewRow, type EmployeePayRow } from './EmployeeTables'
 import { formatDate, formatMonth, toYearMonth } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
+import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
+import { requireDeletedAccess } from '@/app/components/moduleGuard'
 
 export default async function EmployeeDetailPage({
     params,
+    searchParams,
 }: {
     params: Promise<{ id: string }>
+    searchParams: Promise<{ trail?: string | string[] }>
 }) {
     // OPS-15:进不去的页面要【说出来】,不能渲染成空的。放在任何查询之前 ——
     // 拒绝必须是权限答复,不能是从空结果倒推。
@@ -41,11 +46,17 @@ export default async function EmployeeDetailPage({
         .from('employees_masked')
         .select('*')
         .eq('id', id)
-        .is('deleted_at', null)
         .single()
 
     if (error || !emp) {
         notFound()
+    }
+    // AUDIT-TRAIL-1d-1(Tim 的 Q26):一名删掉的员工以前在这里 404。现在对持 data.view_deleted 的人只读打开(横幅 + 审计记录),
+    //   别人得到一句具名拒绝 —— 不是 404。页面自己的门(module.hr.view)照旧先问。
+    const deleted = !!emp.deleted_at
+    if (deleted) {
+        const refused = await requireDeletedAccess('hr.employeesTitle')
+        if (refused) return refused
     }
 
     const [dirRes, deptRes, mgrRes, historyRes, trainingRes, payRes] = await Promise.all([
@@ -252,7 +263,7 @@ export default async function EmployeeDetailPage({
             }
             // ★ 出口:记一次培训 / 改这名员工。转换前它们画在 h1 右边 ——
             //   actions 是同一个位置,而且画在状态分支【之前】。
-            actions={
+            actions={deleted ? undefined :
                 <span className="flex flex-wrap items-center gap-3">
                     <Button asChild variant="outline">
                         <Link
@@ -269,6 +280,7 @@ export default async function EmployeeDetailPage({
             // ★★ 详情页恒为 ok —— 这名员工在不在由上面的 notFound() 回答。
             state={{ kind: 'ok' }}
         >
+            {deleted && <DeletedBanner kind="employee" id={id} at={emp.deleted_at as string} />}
             {/* ★ 记录抬头 —— 转换前是一块 bg-gray-50 的 grid 面板。 */}
             <RecordHeader
                 fields={[
@@ -424,6 +436,7 @@ export default async function EmployeeDetailPage({
                   · 已有且看得见 → 数字 + 一句"之后怎么改";
                   · 已有但看不见(没有 data.view_pay)→ 「受限」,不是空白;
                   · 还没有 → 录入表单,外面两道门:先要看得见工资(data.view_pay),再要 module.hr.edit。 */}
+            <EndedFieldset ended={deleted}>
             <h2 className="mb-3">{t('hr.initialSalary.title')}</h2>
             {emp.monthly_salary_set ? (
                 <p className="mb-6 text-sm">
@@ -449,13 +462,12 @@ export default async function EmployeeDetailPage({
                     canRaise={canHrWrite && canPay}
                     isOwn={isOwnRecord}
                     open={scrViews.filter((v) => v.status === 'submitted')}
-                    history={scrViews.filter((v) => v.status !== 'submitted')}
                 />
             )}
 
             <h2 className="mb-3">{t('reviews.sectionTitle')}</h2>
             {/* ★ 出口:发起转正评估。住 children,而 state 恒为 'ok'。 */}
-            {canHrEdit && emp.employment_status === 'probation' && (
+            {canHrEdit && !deleted && emp.employment_status === 'probation' && (
                 <RaiseProbationReview
                     employeeId={id}
                     probationEndDate={emp.probation_end_date ? formatDate(emp.probation_end_date, locale) : null}
@@ -469,6 +481,11 @@ export default async function EmployeeDetailPage({
             <h2 className="mb-1">{t('hr.payrollTitle')}</h2>
             <p className="text-xs text-[color:var(--brand-muted-text)] mb-3">{t('hr.payRestricted')}</p>
             <EmployeePayrollTable rows={payRows} />
+            </EndedFieldset>
+
+            {/* AUDIT-TRAIL-1d-1(Q28):这名员工、任职履历、调薪申请与它的审批、培训、附加账号,以及账号的镜像(Q24 · Q21)——
+                登录账号的事件与挂接史只给 manage_permissions 的人读,别人那几行是 Restricted;授权人人读得到 */}
+            <AuditTrail subject="employee" id={id} show={trailCount((await searchParams).trail)} />
         </ListPage>
     )
 }

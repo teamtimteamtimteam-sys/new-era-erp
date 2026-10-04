@@ -11,6 +11,8 @@
 --   ☞ 已知边界(reader-masking.md §1.6 已记):策略里 EXISTS 子查询读的别的表,在 DEFINER 里不再过那张表的 RLS。
 --     线上两处这种策略的子查询都自己写全了条件,所以结果相同。
 -- 【属主身份】EXECUTE 已从 authenticated 收回 —— 否则它就是一支"任意一行你看不看得见"的探针。
+-- AUDIT-TRAIL-1d-1(M9):trail_log_only_tables() 登记的表(auth.users)不在 public 里,它的策略这里读不到 ——
+--   它的读规则是登记表里【声明的那个码】(action.manage_permissions,与 user_directory 同一个谓词)。
 CREATE OR REPLACE FUNCTION public.trail_row_visible(p_table text, p_key jsonb, p_image jsonb)
  RETURNS boolean
  LANGUAGE plpgsql
@@ -24,7 +26,12 @@ DECLARE
     v_where text;
     v_ok    boolean;
     v_live  boolean;
+    v_code  text;
 BEGIN
+    SELECT l.read_code INTO v_code FROM trail_log_only_tables() l WHERE l.table_name = p_table;
+    IF FOUND THEN
+        RETURN p_key IS NOT NULL AND has_permission(v_code);
+    END IF;
     SELECT c.relrowsecurity INTO v_rls
       FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'public'
      WHERE c.relname = p_table AND c.relkind = 'r';

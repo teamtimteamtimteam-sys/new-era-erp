@@ -281,6 +281,31 @@ AS $function$
         ('cash_forecasts',                 'stamp',   'superseded_at', NULL,          ARRAY['superseded_by', 'superseded_reason'], 'account'),
         ('cash_forecast_lines',            'created', 'created_at',   'created_by',   NULL, 'account'),
         ('bank_import_profiles',           'created', 'created_at',   'created_by',   NULL, 'account'),
-        ('bank_import_profiles',           'stamp',   'deleted_at',   NULL,           NULL, 'account')
+        ('bank_import_profiles',           'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        -- AUDIT-TRAIL-1d-1(Tim 2026-10-04,AT-1d Step 0 的 Q12):这几样是那几件事【唯一】的记录,按 Q11 / 1c Q9 的例外登记 ——
+        --   账号的建立(auth.users.created_at;没有记人 —— "Not recorded")· 授权与收回(user_roles 的两对戳:线上 9 次授予、
+        --   2 次收回全在记录开始之前)· 附加账号的挂接(employee_accounts 与它的挂接史:同一笔、同一刻,界面说一次)·
+        --   审批方针的修改史(22/09/2026 那一次开审批)· 导入批次。
+        --   员工:建立 + 删除那一戳(表里没有 deleted_by)+ 匿名化那一戳;任职履历:每一行就是一件事。★ 薪资执行写的那一行
+        --   created_by 记的是【提出申请的人】,不是批准执行的人(salary_change_execute_internal,Q31)—— 线上记录开始之前
+        --   一行这种都没有(调薪申请 0 行);之后那一刻的"谁"由变更记录说(批准的人)。
+        --   调薪申请:提出 + 撤回;决定由审批留痕说(decided_at / executed_at 不登记)。部门、培训记录:建立 + 删除那一戳。
+        ('auth.users',                     'created', 'created_at',   NULL,           NULL, 'account'),
+        ('user_roles',                     'created', 'granted_at',   'granted_by',   NULL, 'account'),
+        ('user_roles',                     'stamp',   'revoked_at',   'revoked_by',   ARRAY['revoke_reason'], 'account'),
+        ('employee_accounts',              'created', 'linked_at',    'linked_by',    NULL, 'account'),
+        ('employee_account_history',       'created', 'changed_at',   'actor_user_id', NULL, 'account'),
+        ('finance_settings_history',       'created', 'changed_at',   'changed_by',   NULL, 'account'),
+        ('import_batches',                 'created', 'imported_at',  'imported_by',  NULL, 'account'),
+        ('employees',                      'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('employees',                      'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('employees',                      'stamp',   'anonymised_at', 'anonymised_by', NULL, 'account'),
+        ('employment_history',             'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('salary_change_requests',         'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('salary_change_requests',         'stamp',   'withdrawn_at', 'withdrawn_by', ARRAY['status', 'withdraw_reason'], 'account'),
+        ('departments',                    'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('departments',                    'stamp',   'deleted_at',   NULL,           NULL, 'account'),
+        ('training_records',               'created', 'created_at',   'created_by',   NULL, 'account'),
+        ('training_records',               'stamp',   'deleted_at',   NULL,           NULL, 'account')
     ) AS p(table_name, kind, at_column, by_column, extra, by_kind);
 $function$;

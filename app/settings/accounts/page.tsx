@@ -10,8 +10,13 @@ import UserRow, { type DirectoryRow, type RoleOption, type EmployeeOption } from
 import CreateAccountPanel from './CreateAccountPanel'
 import { mustRows } from '@/lib/db-helpers'
 import { formatAuditStamp } from '@/lib/dates'
+import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
-export default async function PermissionUsersPage() {
+export default async function PermissionUsersPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ trail?: string | string[] }>
+}) {
     const denied = await requireManagePermissions()
     if (denied) return denied
 
@@ -28,10 +33,11 @@ export default async function PermissionUsersPage() {
             .is('deleted_at', null)
             .eq('is_active', true)
             .order('sort_order'),
-        // ★ ROLE-1(Tim 的 Q8):系统管理员账号不再持 module.hr.view,而 employees 的读策略
-        //   要它 —— 那样这里会【安静地】只剩自己那一行(RLS 不报错,只是少行)。
-        //   账号↔员工关联归 admin,它要的只是名字:employee_lookup 对
-        //   action.manage_permissions 放行,只有 id / 工号 / 名字 / 账号。
+        // ★ ROLE-1(Tim 的 Q8):账号↔员工关联归 action.manage_permissions,它要的只是名字 ——
+        //   employee_lookup 对 action.manage_permissions 放行,只有 id / 工号 / 名字 / 账号,
+        //   于是这一页不靠读者【碰巧】也持 module.hr.view(employees 的读策略要它;没有它会【安静地】只剩自己那一行)。
+        //   AUDIT-TRAIL-1d-1(AT-1d Step 0 Q38):这里以前写着"系统管理员账号不再持 module.hr.view"—— 线上量过,admin 持着它;
+        //   那句话不成立了,理由(不靠读者碰巧持 hr.view)仍然成立。
         supabase
             .from('employee_lookup')
             .select('id, code, legal_name, user_id')
@@ -43,6 +49,7 @@ export default async function PermissionUsersPage() {
     const roles = (mustRows(rolesRes)) as RoleOption[]
     const employees = (mustRows(empRes)) as EmployeeOption[]
 
+    const show = trailCount((await searchParams).trail)
     const fmt = (v: string | null) =>
         v ? formatTimestamp(v, dateLocale) : '—'
 
@@ -74,6 +81,11 @@ export default async function PermissionUsersPage() {
                             employees={employees}
                             lastSignInDisplay={fmt(r.last_sign_in_at)}
                             createdDisplay={fmt(formatAuditStamp(r.created_at))}
+                            trail={
+                                // AUDIT-TRAIL-1d-1(Q24):每一个账号一块,折起来 —— 建立 / 停用 / 恢复、授给它的角色、
+                                //   它挂在谁身上(M9:根在 auth.users)
+                                <AuditTrail subject="account" id={r.user_id} show={show} anchor={`account-trail-${r.user_id}`} compact />
+                            }
                         />
                     ))}
                 </div>

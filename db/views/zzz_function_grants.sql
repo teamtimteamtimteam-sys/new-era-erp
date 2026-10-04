@@ -573,3 +573,9 @@ REVOKE EXECUTE ON FUNCTION public.trail_refs(text, jsonb, jsonb, jsonb) FROM aut
 REVOKE EXECUTE ON FUNCTION public.trail_row_record(text, jsonb, jsonb, jsonb) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.trail_row_visible(text, jsonb, jsonb) FROM authenticated;
 REVOKE EXECUTE ON FUNCTION public.trail_actor(text, uuid, uuid) FROM authenticated;
+
+-- AUDIT-TRAIL-1d-1(2026-10-04):M12 的门只由 record_trail(属主身份)调用 —— 给了 authenticated 就是一支
+--   "这一份评审的审核人是不是你"的探针。M9 / M10 的两张登记表(trail_log_only_tables · trail_member_columns)只读常量,留着
+--   (与 trail_subjects 同一个理由:fixture 与检查脚本会调)。save_employee【不收】:它是员工表单的那一次写入,
+--   按调用者的身份跑(SECURITY INVOKER),表的策略与守卫照常管。
+REVOKE EXECUTE ON FUNCTION public.trail_root_gate(text, text, jsonb) FROM authenticated;
