@@ -81,7 +81,7 @@ export default async function HrOverviewPage() {
         supabase.from('employee_directory').select('employment_status, work_category'),
         supabase.from('attendance_periods').select('id', { count: 'exact', head: true }),
         supabase
-            .from('payroll_periods')
+            .from('payroll_periods_masked')
             .select('period_month, status')
             .order('period_month', { ascending: false })
             .limit(1),

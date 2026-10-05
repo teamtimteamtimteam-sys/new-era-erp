@@ -55,9 +55,11 @@ type LedgerRow = {
     entry_status: string
     source_type: string | null
     source_id: string | null
-    debit: number
-    credit: number
-    amount: number
+    // ★ U1-A(Tim 的 UNBLOCK-1 Q1,2026-10-05):工资分录那几行对不持 data.view_pay 的人三个金额是 null、amounts_restricted = true
+    debit: number | null
+    credit: number | null
+    amount: number | null
+    amounts_restricted?: boolean
     counterparts: Counterpart[]
 }
 type Ledger = {
@@ -206,8 +208,9 @@ export default async function AccountLedgerPage({
         sourceHref: hrefs.get(sourceHrefKey(r)) ?? null,
         counterparts: r.counterparts.map((c) => ({ code: c.code, name: cpName(c) })),
         memo: r.line_memo || r.entry_memo || '—',
-        amountText: formatMoneyBare(r.amount, '列头 金额 ({ccy}) —— 已带本位币'),
-        negative: r.amount < 0,
+        amountText: r.amount === null ? '' : formatMoneyBare(r.amount, '列头 金额 ({ccy}) —— 已带本位币'),
+        negative: r.amount !== null && r.amount < 0,
+        restricted: r.amounts_restricted === true,
     }))
 
     // ★ 合计行是【数据】,不是 <tfoot> —— CONV-4 §⑨-3 定的型,CONV-8 §⑧ 复核保留。

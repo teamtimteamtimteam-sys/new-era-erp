@@ -186,7 +186,9 @@ BEGIN
     v_msg := pg_temp.f218_try(format('UPDATE payroll_lines SET notes = %L WHERE payroll_period_id = %L', 'x', p1), true);
     IF v_msg NOT LIKE 'PAYROLL_LINES_FROZEN|%|requested' THEN
         RAISE EXCEPTION 'FIXTURE 218C2 失败:申请开着时直连改行应当按名拒,实得 %', v_msg; END IF;
-    v_msg := pg_temp.f218_try(format('UPDATE payroll_periods SET gross_total = gross_total + 1 WHERE id = %L', p1), true);
+    -- U1-A(UNBLOCK-1 Q9):合计列对 authenticated 不再可读,所以这一格写常量而不是 gross_total + 1 ——
+    --   后者先要读那一列,会在守卫之前就 42501;这一臂要钉的是【守卫】按名拒。
+    v_msg := pg_temp.f218_try(format('UPDATE payroll_periods SET gross_total = 1 WHERE id = %L', p1), true);
     IF v_msg NOT LIKE 'PAYROLL_LINES_FROZEN|%|requested' THEN
         RAISE EXCEPTION 'FIXTURE 218C3 失败:申请开着时直连改合计应当按名拒,实得 %', v_msg; END IF;
     v_msg := pg_temp.f218_try(format('SELECT reopen_attendance_period(%L, %L)', v_att, 'fx218'));

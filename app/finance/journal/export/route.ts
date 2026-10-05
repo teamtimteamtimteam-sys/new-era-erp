@@ -11,6 +11,9 @@
 //   外加一个【分录内行号】(line_no),于是任何重排都还原得回来。
 //   一份重排之后就读不回去的导出,坏得很安静。
 //
+// ★ U1-A(Tim 的 UNBLOCK-1 Q1 · Q2,2026-10-05):取数改走 journal_export_lines(属主身份,读的仍是 journal_activity_lines
+//   那同一段推导)。直接调 journal_activity_lines 时,journal_lines 上那条 restrictive 策略让不持 data.view_pay 的读者
+//   【悄悄】少掉工资分录那几行 —— 一份少了几行、而抬头的行数照样对得上的导出。现在那几行在,三个金额印 "Restricted"(不是 0)。
 // ★【它读 journal_activity_lines,所以【不】按 status 过滤】★
 //   冲销的做法是原分录标 reversed + 过一张等额反向的 posted 分录。只留 posted
 //   会丢原件、留冲销件,净额刚好错成 −原件。这个病在本仓库现身过四次,
@@ -46,8 +49,14 @@ type Line = {
     source_type: string | null; entry_memo: string | null
     account_code: string; account_name_en: string; account_name_zh: string
     account_type: string; line_memo: string | null
-    debit: number; credit: number; signed_base: number
+    debit: number | null; credit: number | null; signed_base: number | null
+    /** U1-A:工资分录的金额对不持 data.view_pay 的人受限 —— 三格印 RESTRICTED,不印 0 */
+    amounts_restricted: boolean
 }
+
+// 受限的那几格写什么。CSV 的表头是英文(给外部会计师的文件,见下面两列科目名的说明),所以这一个词也是英文 ——
+// 与审计记录、与界面英文版说的是同一个词。
+const RESTRICTED = 'Restricted'
 
 export async function GET(request: NextRequest) {
     const sp = request.nextUrl.searchParams
@@ -64,7 +73,7 @@ export async function GET(request: NextRequest) {
     const baseCurrency = await getBaseCurrency()
 
     // 【推导住在 journal_activity_lines 里,这里一行算术都没有】
-    const res = await supabase.rpc('journal_activity_lines', {
+    const res = await supabase.rpc('journal_export_lines', {
         p_from: from, p_to: to, p_include_year_close: includeYearClose,
     })
     // mustRows:查询失败必须【失败】。一份读成空表的导出会被当成"这一期没有分录",
@@ -107,9 +116,9 @@ export async function GET(request: NextRequest) {
             r.account_name_zh,
             r.account_type,
             r.line_memo ?? '',
-            r.debit,
-            r.credit,
-            r.signed_base,
+            r.amounts_restricted ? RESTRICTED : r.debit,
+            r.amounts_restricted ? RESTRICTED : r.credit,
+            r.amounts_restricted ? RESTRICTED : r.signed_base,
         ]))
     }
 

@@ -3,7 +3,11 @@
 -- C5 让"当天没牌价"的交易直接失败,所以这里主要顶出来的是:
 -- 手工分录显式给了汇率的那些天(post_journal_entry 仍收手工汇率),
 -- 以及换基准之前的旧数据。牌价是每日日课 —— 这张视图就是漏掉那天的账单。
--- SECURITY INVOKER:底下 journal/fx 各自的 RLS 说了算。
+-- ~~SECURITY INVOKER:底下 journal/fx 各自的 RLS 说了算。~~
+-- ★ U1-A(Tim 的 UNBLOCK-1 Q2,2026-10-05):改成【属主权限】,过账那一支自己带门(module.finance.view —— 与 journal_lines /
+--   journal_entries 的 permissive 读策略同一个码);报价那一支的两张表读策略本来就是 USING (true),所以对每一个读者结果不变。
+--   理由:journal_lines 上那条 restrictive 策略让不持 data.view_pay 的财务读者读不到工资分录的行;invoker 时,一期外币发薪的日子会
+--   【悄悄】从缺牌价清单里少掉。这张视图只说日期与币种,不说金额,所以属主身份不交出任何新的东西。
 --
 -- ════════════════════════════════════════════════════════════════════════════
 -- FX-RATES-1(2026-08-27):**这张视图【看不见月末】,而那是刻意的。**
@@ -53,7 +57,7 @@
 -- (只读 rate_date / currency / missing_types)。db/fixtures/81 把三种行钉住。
 -- ════════════════════════════════════════════════════════════════════════════
 
-CREATE OR REPLACE VIEW public.fx_rate_gaps WITH (security_invoker = on) AS
+CREATE OR REPLACE VIEW public.fx_rate_gaps WITH (security_invoker = off) AS
  SELECT d.rate_date,
     d.currency,
     m.missing_types,
@@ -75,7 +79,7 @@ CREATE OR REPLACE VIEW public.fx_rate_gaps WITH (security_invoker = on) AS
                      JOIN journal_entries e ON e.id = l.entry_id
                   WHERE l.currency <> (( SELECT c.code
                            FROM currencies c
-                          WHERE c.is_base)) AND e.status = 'posted'::text
+                          WHERE c.is_base)) AND e.status = 'posted'::text AND has_permission('module.finance.view'::text)
                   GROUP BY e.entry_date, l.currency
                 UNION ALL
                  SELECT mp.price_date AS rate_date,

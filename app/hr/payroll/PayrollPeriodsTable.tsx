@@ -9,6 +9,7 @@
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
+import { MaskedValue } from '@/app/components/MaskedValue'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Refusal } from '@/app/components/ui/refusal'
 
@@ -18,8 +19,9 @@ export type PayrollPeriodRow = {
     periodMonth: string
     paymentDate: string
     currency: string
-    grossTotal: number
-    netPayTotal: number
+    /** U1-A(UNBLOCK-1 Q9):不持 data.view_pay 的人是 null —— 印「受限」,不印 0.00 */
+    grossTotal: number | null
+    netPayTotal: number | null
     lineCount: number
     status: string
     journalEntryId: string | null
@@ -49,12 +51,12 @@ export default function PayrollPeriodsTable({ rows, empty }: { rows: PayrollPeri
         { key: 'currency', header: t('hr.colCurrency'), render: (r) => r.currency },
         {
             key: 'gross', header: t('hr.colGrossTotal'), align: 'right', className: 'text-sm',
-            render: (r) => formatMoneyBare(r.grossTotal, '同行「币种」列(hr.colCurrency)'),
+            render: (r) => <MaskedValue value={r.grossTotal} canView={r.grossTotal !== null} format={(v: number) => formatMoneyBare(v, '同行「币种」列(hr.colCurrency)')} />,
         },
         {
             key: 'net', header: t('hr.colNetTotal'), priority: true, align: 'right',
             className: 'text-sm font-medium',
-            render: (r) => formatMoneyBare(r.netPayTotal, '同行「币种」列(hr.colCurrency)'),
+            render: (r) => <MaskedValue value={r.netPayTotal} canView={r.netPayTotal !== null} format={(v: number) => formatMoneyBare(v, '同行「币种」列(hr.colCurrency)')} />,
         },
         { key: 'lines', header: t('hr.colLineCount'), align: 'right', className: 'text-sm', render: (r) => r.lineCount },
         {

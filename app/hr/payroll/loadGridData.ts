@@ -33,7 +33,7 @@ export async function loadGridData(
         sourcePeriodId = opts.currentPeriodId
     } else {
         let q = supabase
-            .from('payroll_periods')
+            .from('payroll_periods_masked')
             .select('id, period_month')
             .is('deleted_at', null)
             .order('period_month', { ascending: false })

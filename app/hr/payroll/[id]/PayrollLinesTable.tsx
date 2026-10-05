@@ -22,6 +22,7 @@ import * as React from 'react'
 import Link from 'next/link'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { Refusal } from '@/app/components/ui/refusal'
 
 export type PayrollLineRow = {
     id: string
@@ -37,12 +38,19 @@ export type PayrollLineRow = {
     otHoursText: string
     /** 合计行。见 CONV-4 §⑨-3 / CONV-8 §⑧。 */
     isTotal?: boolean
+    /**
+     * U1-A(UNBLOCK-1 Q9):这一行的五个金额对读者受限 —— 每一格印「受限」(<Refusal>),不印空白。
+     *   工资行经 payroll_lines_masked(不持 data.view_pay 的人,除了本人那一行);合计行经 payroll_periods_masked。
+     */
+    restricted?: boolean
     /** 合计行右边那句「共 N 行」。 */
     totalNote?: string
 }
 
 export default function PayrollLinesTable({ rows }: { rows: readonly PayrollLineRow[] }) {
     const t = useTranslations()
+    const money = (r: PayrollLineRow, text: string): React.ReactNode =>
+        r.restricted ? <Refusal>{t('common.restricted')}</Refusal> : text
 
     const columns: Column<PayrollLineRow>[] = [
         {
@@ -65,10 +73,10 @@ export default function PayrollLinesTable({ rows }: { rows: readonly PayrollLine
                     '—'
                 ),
         },
-        { key: 'gross', header: t('hr.colGross'), align: 'right', render: (r) => r.grossText },
-        { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', render: (r) => r.employeeCpfText },
-        { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', render: (r) => r.employerCpfText },
-        { key: 'deductions', header: t('hr.colDeductions'), align: 'right', render: (r) => r.deductionsText },
+        { key: 'gross', header: t('hr.colGross'), align: 'right', render: (r) => money(r, r.grossText) },
+        { key: 'employeeCpf', header: t('hr.colEmployeeCpf'), align: 'right', render: (r) => money(r, r.employeeCpfText) },
+        { key: 'employerCpf', header: t('hr.colEmployerCpf'), align: 'right', render: (r) => money(r, r.employerCpfText) },
+        { key: 'deductions', header: t('hr.colDeductions'), align: 'right', render: (r) => money(r, r.deductionsText) },
         // ★ OVERTIME-1(Tim Q1):批过的加班小时,只读 —— 服务商拿它乘自己的费率;这里不乘。
         { key: 'otHours', header: t('hr.colOtHours'), align: 'right', render: (r) => r.otHoursText },
         {
@@ -78,7 +86,7 @@ export default function PayrollLinesTable({ rows }: { rows: readonly PayrollLine
             // ★ 这张表存在的理由:这个人这个月实际拿到多少。
             priority: true,
             className: 'font-medium',
-            render: (r) => r.netText,
+            render: (r) => money(r, r.netText),
         },
     ]
 

@@ -104,13 +104,18 @@ export default async function JournalListPage({
     const ids = rows.map((r) => r.id)
     const [linesRes, hrefs] = await Promise.all([
         ids.length
-            ? supabase.from('journal_lines').select('entry_id, debit').in('entry_id', ids)
-            : Promise.resolve({ data: [] as { entry_id: string; debit: number }[], error: null }),
+            // ★ U1-A(UNBLOCK-1 Q1 · Q2):读 journal_lines_masked —— 工资分录的金额对不持 data.view_pay 的人受限;
+            //   读基表的话,那几行对他们在 API 上不在,这一张分录的金额会悄悄变成 0.00(比「受限」更坏)。
+            ? supabase.from('journal_lines_masked').select('entry_id, debit, amounts_restricted').in('entry_id', ids)
+            : Promise.resolve({ data: [] as { entry_id: string; debit: number | null; amounts_restricted: boolean }[], error: null }),
         resolveSourceHrefs(supabase, rows),
     ])
     const amountByEntry = new Map<string, number>()
-    for (const l of mustRows(linesRes)) {
-        amountByEntry.set(l.entry_id, (amountByEntry.get(l.entry_id) ?? 0) + l.debit)
+    const restrictedEntries = new Set<string>()
+    // 视图的生成类型把每一列都标成可空;这三列由视图的定义保证(entry_id 来自基表的 NOT NULL 列)
+    for (const l of mustRows(linesRes) as unknown as { entry_id: string; debit: number | null; amounts_restricted: boolean }[]) {
+        if (l.amounts_restricted) restrictedEntries.add(l.entry_id)
+        amountByEntry.set(l.entry_id, (amountByEntry.get(l.entry_id) ?? 0) + (l.debit ?? 0))
     }
 
     function pageHref(targetPage: number) {
@@ -128,7 +133,8 @@ export default async function JournalListPage({
         memo: r.memo,
         sourceType: r.source_type,
         sourceHref: hrefs.get(sourceHrefKey(r)) ?? null,
-        amount: amountByEntry.get(r.id) ?? 0,
+        // 受限的分录给 null —— 表格印「受限」,不印一个由被遮的行拼出来的 0.00
+        amount: restrictedEntries.has(r.id) ? null : amountByEntry.get(r.id) ?? 0,
         status: r.status,
     }))
 

@@ -119,3 +119,11 @@ CREATE POLICY "payroll_requests select by permission" ON public.payroll_requests
 
 -- anon 什么都不给(check-anon-grant-decision:每一张新表都要【说出】它对 anon 的决定)。
 REVOKE ALL ON public.payroll_requests FROM anon;
+
+-- ★ U1-A(UNBLOCK-1 Q10,2026-10-05):snapshot(逐行的员工 · 应发 · 公积金……,payroll_period_fingerprint)、gross_total 与
+--   amount_base 要 data.view_pay —— 与这一期的合计同一个判据(Q9)。三列从列授权里拿掉,只经 payroll_requests_masked 读。
+--   列授权不随 ADD COLUMN 自动延伸:给这张表加列,要回到这一行,并把它放进 payroll_requests_masked(gate 的 colgrant)。
+REVOKE SELECT ON public.payroll_requests FROM authenticated;
+GRANT SELECT (id, payroll_period_id, kind, status, label, currency, fx_rate, notes, decided_at, decided_by, decision_notes,
+              withdrawn_at, withdrawn_by, executed_at, executed_by, result_journal_entry_id, created_at, created_by)
+    ON public.payroll_requests TO authenticated;

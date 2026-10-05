@@ -6,6 +6,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/database.types'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import LeaveSubnav from '../LeaveSubnav'
 import DecideControls from './DecideControls'
@@ -17,6 +18,7 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import { GrantBreakdownTable, ConsumptionTable, type GrantBreakdownRow, type ConsumptionRow } from './LeaveDetailTables'
 import { formatDate } from '@/lib/dates'
 import { can } from '@/lib/permissions'
+import { Refusal } from '@/app/components/ui/refusal'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 
 export default async function LeaveRequestDetail({
@@ -36,13 +38,21 @@ export default async function LeaveRequestDetail({
     const t = await getTranslations()
     const locale = await getLocale()
 
-    const { data: req, error } = await supabase
-        .from('leave_requests')
+    // ★ U1-A(Tim 的 UNBLOCK-1 Q8,2026-10-05):读 leave_requests_masked —— 事由、病假单号与例外理由是健康数据,
+    //   只给持 data.view_health 的人与本人(对不持的人是 null,下面印「受限」)。基表上那三列已经不对 authenticated 开放。
+    const { data: reqRaw, error } = await supabase
+        .from('leave_requests_masked')
         .select('*')
         .eq('id', id)
         .is('deleted_at', null)
         .single()
-    if (error || !req) notFound()
+    if (error || !reqRaw) notFound()
+    // 视图的生成类型把每一列都标成可空;列与基表逐列相同,NOT NULL 的那几列由基表保证 —— 按基表的行类型读,
+    //   被遮的三列(reason · certificate_ref · exception_reason)本来就可空
+    const req = reqRaw as unknown as Database['public']['Tables']['leave_requests']['Row']
+    // 健康数据的门与 leave_requests_masked 那句 CASE 同一个判据:持 data.view_health,或这一张就是读者自己的
+    const [hasHealth, meRes] = await Promise.all([can('data.view_health'), supabase.rpc('current_user_employee')])
+    const canSeeHealth = hasHealth || (meRes.data as string | null) === req.employee_id
 
     const [empRes, typeRes, balRes, consRes] = await Promise.all([
         supabase.from('employees').select('id, code, legal_name, employment_status')
@@ -140,9 +150,15 @@ export default async function LeaveRequestDetail({
                     { label: t('leave.dates'), value: `${formatDate(req.start_date, locale)} → ${formatDate(req.end_date, locale)}` },
                     { label: t('leave.days'), value: String(req.days), mono: true },
                     { label: t('leave.status'), value: t(`leave.status_${req.status}`) },
-                    ...(req.reason ? [{ label: t('leave.reason'), value: req.reason }] : []),
-                    ...(req.certificate_ref ? [{ label: t('leave.certificate'), value: req.certificate_ref }] : []),
-                    ...(req.is_exception ? [{ label: t('leave.exceptionReason'), value: req.exception_reason }] : []),
+                    // 看不见健康数据的人:那几格说「受限」,不是消失(消失读起来像"没填")
+                    ...(!canSeeHealth
+                        ? [{ label: t('leave.reason'), value: <Refusal>{t('common.restricted')}</Refusal> },
+                           { label: t('leave.certificate'), value: <Refusal>{t('common.restricted')}</Refusal> }]
+                        : [...(req.reason ? [{ label: t('leave.reason'), value: req.reason }] : []),
+                           ...(req.certificate_ref ? [{ label: t('leave.certificate'), value: req.certificate_ref }] : [])]),
+                    ...(req.is_exception
+                        ? [{ label: t('leave.exceptionReason'), value: canSeeHealth ? req.exception_reason : <Refusal>{t('common.restricted')}</Refusal> }]
+                        : []),
                     ...(req.decision_notes ? [{ label: t('leave.decisionNotes'), value: req.decision_notes }] : []),
                 ]}
             />

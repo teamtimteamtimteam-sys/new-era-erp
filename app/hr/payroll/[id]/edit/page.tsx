@@ -29,7 +29,7 @@ export default async function EditPayrollPage({
     const t = await getTranslations()
 
     const { data: period, error } = await supabase
-        .from('payroll_periods')
+        .from('payroll_periods_masked')
         .select('id, code, period_month, payment_date, currency, fx_rate, source_note, notes, status')
         .eq('id', id)
         .is('deleted_at', null)

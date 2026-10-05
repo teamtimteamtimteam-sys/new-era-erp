@@ -28,17 +28,23 @@ export default async function PayrollListPage() {
     const t = await getTranslations()
 
     const [periodsRes, linesRes, reqRes] = await Promise.all([
+        // ★ U1-A(Tim 的 UNBLOCK-1 Q9,2026-10-05):合计要 data.view_pay —— 读 payroll_periods_masked;不持的人读到 null,表格印「受限」。
+        //   (一期只有一两个人时,合计就是一个人的工资;基表上这五列已经不对 authenticated 开放。)
         supabase
-            .from('payroll_periods')
+            .from('payroll_periods_masked')
             .select('id, code, period_month, payment_date, currency, gross_total, net_pay_total, status, journal_entry_id')
             .is('deleted_at', null)
             .order('period_month', { ascending: false }),
         supabase.from('payroll_lines').select('payroll_period_id'),
         // PAYROLL-APR-1:每一期挂着的未了结申请(一期同时最多一张,唯一索引保证)
-        supabase.from('payroll_requests').select('payroll_period_id, kind, status').in('status', ['submitted', 'approved']),
+        supabase.from('payroll_requests_masked').select('payroll_period_id, kind, status').in('status', ['submitted', 'approved']),
     ])
 
-    const periods = mustRows(periodsRes)
+    // 视图的生成类型把每一列都标成可空;除了两个合计(受限 = null),这几列由基表的 NOT NULL 保证
+    const periods = mustRows(periodsRes) as unknown as {
+        id: string; code: string; period_month: string; payment_date: string; currency: string
+        gross_total: number | null; net_pay_total: number | null; status: string; journal_entry_id: string | null
+    }[]
     type OpenReq = NonNullable<PayrollPeriodRow['openRequest']>
     const openByPeriod = new Map<string, OpenReq>()
     for (const q of mustRows(reqRes) as { payroll_period_id: string; kind: OpenReq['kind']; status: OpenReq['status'] }[]) {

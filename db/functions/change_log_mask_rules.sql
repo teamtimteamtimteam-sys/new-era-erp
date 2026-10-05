@@ -10,6 +10,10 @@
 --   pft:direction                pricing_formula_terms_visible(这一行的 direction)
 --   pft:formula_id               pricing_formula_terms_visible(这一行所属公式的 direction)
 --   pft3                         pricing_formula_history_masked 那三段:公式当前方向 ∧ old_direction ∧ new_direction
+--   pay_journal:<码>             持码,或这一行所在分录不是工资分录(journal_lines_masked;U1-A,UNBLOCK-1 Q1)
+--   apr_amount                   approval_log_amount_visible(subject_type, subject_id)(approval_log_masked;U1-A,Q8 · Q10)
+-- ★ U1-A(UNBLOCK-1,2026-10-05)加了 20 行(81 → 101):工资分录的金额(Q1)· 审批留痕上的金额(Q8 · Q10)· 人事备注(Q6)·
+--   健康数据(Q8)· 工资期的合计与工资申请的快照和金额(Q9 · Q10)。每一行都抄自它那张 _masked 视图里的 CASE。
 -- 【它会不会和视图漂开】会 —— 所以有一道闸:change_log_mask_gaps() 拿目录里【真的被遮的列】
 --   (_masked 视图里 CASE … END AS <基表的列>)与本名单逐列对,缺一条或多一条都报;
 --   gate 的 changemask 那一行在线上与重建两侧各问一次,fixture 234 里注入"删掉一条"必须变红。
@@ -20,7 +24,9 @@ CREATE OR REPLACE FUNCTION public.change_log_mask_rules()
  SET search_path TO 'public', 'pg_temp'
 AS $function$
     VALUES
-        ('company_profile'::text, 'bank_name'::text, 'code:data.view_banking'::text),
+        ('approval_log'::text, 'amount_ccy'::text, 'apr_amount'::text),
+        ('approval_log', 'amount_base', 'apr_amount'),
+        ('company_profile', 'bank_name', 'code:data.view_banking'),
         ('company_profile', 'bank_account_name', 'code:data.view_banking'),
         ('company_profile', 'bank_account_no', 'code:data.view_banking'),
         ('company_profile', 'bank_swift', 'code:data.view_banking'),
@@ -30,6 +36,8 @@ AS $function$
         ('employees', 'identity_no', 'code_or_self:data.view_identity:id'),
         ('employees', 'work_pass_no', 'code_or_self:data.view_identity:id'),
         ('employees', 'monthly_salary', 'code_or_self:data.view_pay:id'),
+        ('employees', 'notes', 'code:module.hr.view'),
+        ('employees', 'separation_notes', 'code:module.hr.view'),
         ('employment_history', 'old_monthly_salary', 'code_or_self:data.view_pay:employee_id'),
         ('employment_history', 'new_monthly_salary', 'code_or_self:data.view_pay:employee_id'),
         ('inbound_batches', 'unit_price', 'code:data.view_purchase_prices'),
@@ -41,12 +49,28 @@ AS $function$
         ('invoices', 'tax_base', 'code:data.view_prices'),
         ('invoices', 'total_base', 'code:data.view_prices'),
         ('invoices', 'fx_rate', 'code:data.view_prices'),
+        ('journal_lines', 'debit', 'pay_journal:data.view_pay'),
+        ('journal_lines', 'credit', 'pay_journal:data.view_pay'),
+        ('journal_lines', 'amount_ccy', 'pay_journal:data.view_pay'),
+        ('leave_requests', 'reason', 'code_or_self:data.view_health:employee_id'),
+        ('leave_requests', 'certificate_ref', 'code_or_self:data.view_health:employee_id'),
+        ('leave_requests', 'exception_reason', 'code_or_self:data.view_health:employee_id'),
+        ('medical_claims', 'amount_sgd', 'code_or_self:data.view_health:employee_id'),
+        ('medical_claims', 'description', 'code_or_self:data.view_health:employee_id'),
         ('payment_term_template_lines', 'fixed_amount_ccy', 'code:data.view_purchase_prices'),
         ('payroll_lines', 'gross_pay', 'code_or_self:data.view_pay:employee_id'),
         ('payroll_lines', 'employer_cpf', 'code_or_self:data.view_pay:employee_id'),
         ('payroll_lines', 'employee_cpf', 'code_or_self:data.view_pay:employee_id'),
         ('payroll_lines', 'other_deductions', 'code_or_self:data.view_pay:employee_id'),
         ('payroll_lines', 'net_pay', 'code_or_self:data.view_pay:employee_id'),
+        ('payroll_periods', 'gross_total', 'code:data.view_pay'),
+        ('payroll_periods', 'employer_cpf_total', 'code:data.view_pay'),
+        ('payroll_periods', 'employee_cpf_total', 'code:data.view_pay'),
+        ('payroll_periods', 'other_deductions_total', 'code:data.view_pay'),
+        ('payroll_periods', 'net_pay_total', 'code:data.view_pay'),
+        ('payroll_requests', 'snapshot', 'code:data.view_pay'),
+        ('payroll_requests', 'gross_total', 'code:data.view_pay'),
+        ('payroll_requests', 'amount_base', 'code:data.view_pay'),
         ('performance_reviews', 'new_monthly_salary', 'code_or_self:data.view_pay:employee_id'),
         ('prepayment_applications', 'amount_base', 'code:data.view_purchase_prices'),
         ('prepayment_applications', 'amount_ccy', 'code:data.view_purchase_prices'),

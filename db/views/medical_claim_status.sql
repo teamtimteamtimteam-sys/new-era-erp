@@ -12,6 +12,10 @@
 -- 建了费用之后,详情页读 expense_amount_base(净额)与它,说得出那个总额被拆成了什么。
 -- 医疗申报只收本位币,所以本位币两个数就是单据上的两个数。只追加 → CREATE OR REPLACE。
 
+-- ★ U1-A(UNBLOCK-1 Q8,2026-10-05):金额与事由要 data.view_health,或本人 —— 与 medical_claims_masked 同一个判据。
+--   报销单关联的费用金额、已付与税额是【同一个数】的另外三种说法(费用由报销单生成),一起遮;结算状态照常算、照常给
+--   (它说的是"付到哪一步",不是多少钱)。⚠ 那一张费用单本身在财务那一侧照旧读得到(常设裁定 1:持 module.finance.view
+--   就看得见钱)—— 登记在 docs/known-issues.md 的 U1A-MEDICAL-EXPENSE-AMOUNT-ON-FINANCE-SIDE。
 CREATE VIEW public.medical_claim_status WITH (security_invoker = off) AS
  SELECT mc.id AS claim_id,
     mc.code,
@@ -20,16 +24,28 @@ CREATE VIEW public.medical_claim_status WITH (security_invoker = off) AS
     e.legal_name,
     mc.claim_date,
     mc.claim_year,
-    mc.amount_sgd,
-    mc.description,
+        CASE
+            WHEN has_permission('data.view_health'::text) OR mc.employee_id = current_user_employee() THEN mc.amount_sgd
+            ELSE NULL::numeric
+        END AS amount_sgd,
+        CASE
+            WHEN has_permission('data.view_health'::text) OR mc.employee_id = current_user_employee() THEN mc.description
+            ELSE NULL::text
+        END AS description,
     mc.receipt_ref,
     mc.status,
     mc.decided_at,
     mc.expense_id,
     mc.expense_id IS NOT NULL AS linked_to_expense,
     ex.code AS expense_code,
-    ex.amount_base AS expense_amount_base,
-    COALESCE(pay.settled_base, 0::numeric) AS settled_base,
+        CASE
+            WHEN has_permission('data.view_health'::text) OR mc.employee_id = current_user_employee() THEN ex.amount_base
+            ELSE NULL::numeric
+        END AS expense_amount_base,
+        CASE
+            WHEN has_permission('data.view_health'::text) OR mc.employee_id = current_user_employee() THEN COALESCE(pay.settled_base, 0::numeric)
+            ELSE NULL::numeric
+        END AS settled_base,
         CASE
             WHEN mc.status <> 'approved'::text THEN mc.status
             WHEN mc.expense_id IS NULL THEN 'awaiting_payment_run'::text
@@ -37,7 +53,10 @@ CREATE VIEW public.medical_claim_status WITH (security_invoker = off) AS
             WHEN COALESCE(pay.settled_base, 0::numeric) > 0::numeric THEN 'part_paid'::text
             ELSE 'expense_raised'::text
         END AS settlement_state,
-    ex.tax_base AS expense_tax_base
+        CASE
+            WHEN has_permission('data.view_health'::text) OR mc.employee_id = current_user_employee() THEN ex.tax_base
+            ELSE NULL::numeric
+        END AS expense_tax_base
    FROM medical_claims mc
      JOIN employees e ON e.id = mc.employee_id
      LEFT JOIN expenses ex ON ex.id = mc.expense_id

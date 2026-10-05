@@ -771,6 +771,15 @@ if (FAULT === 'wording-drift-1c1') dict.text = { ...dict.text, 'je.reversed': 'J
         { table: 'journal_lines', op: 'INSERT', new: { entry_id: je, account_id: 'a2', debit: 0, credit: 100, currency: 'USD', amount_ccy: 75 }, refs: acct('a2', 'Cash at Bank – USD') }],
       { title: 'Journal posted · JE-2026-0090', lines: ['Entry date: 03/10/2026', 'Source: Manual', 'Memo: Accrual for September',
         'Office rent: Debit 100.00 SGD', 'Cash at Bank – USD: Credit 100.00 SGD (75.00 USD)'] })
+    // U1-A(Tim 的 UNBLOCK-1 Q1,2026-10-05):一张工资分录,读的人不持 data.view_pay —— 每一行的金额是受限标记(debit 与 credit 两列都被遮)。
+    //   每一行说 Restricted;此前 journalLineLine 把它印成 "Credit 0.00 SGD"(imgOf 丢掉受限值,再 ?? 0)。
+    const pj = id('pj')
+    G('journal · a payroll journal read without data.view_pay (U1-A Q1: Restricted, never 0.00)', { subject: 'journal_entry', recordId: pj }, [
+        { table: 'journal_entries', op: 'INSERT', key: { id: pj }, new: { code: 'JE-2026-0095', entry_date: '2026-10-28', source_type: 'payroll', memo: 'Salary payment PAY-2026-0010', status: 'posted' } },
+        { table: 'journal_lines', op: 'INSERT', new: { entry_id: pj, account_id: 'a3', debit: RESTRICTED, credit: RESTRICTED, currency: 'SGD', amount_ccy: RESTRICTED, line_memo: 'Salary run PAY-2026-0010' }, refs: acct('a3', 'Accrued salaries') },
+        { table: 'journal_lines', op: 'INSERT', new: { entry_id: pj, account_id: 'a4', debit: RESTRICTED, credit: RESTRICTED, currency: 'SGD', amount_ccy: RESTRICTED, line_memo: 'EMP-2026-0007 Lim Wei Ming' }, refs: acct('a4', 'Cash at Bank – SGD') }],
+      { title: 'Payroll journal posted · JE-2026-0095',
+        lines: ['Entry date: 28/10/2026', 'Source: Payroll', 'Memo: Salary payment PAY-2026-0010', 'Accrued salaries: Restricted', 'Cash at Bank – SGD: Restricted'] })
     const eRev = G('journal · reversed — one linked line, its lines not repeated (Q33)', { subject: 'journal_entry', recordId: je }, [
         { table: 'journal_entries', op: 'UPDATE', key: { id: je }, cols: ['status', 'reversed_by'], old: { status: 'posted', reversed_by: null },
           new: { status: 'reversed', reversed_by: rev }, ctx: { code: 'JE-2026-0090', reversed_by: rev }, refs: ref('reversed_by', rev, 'JE-2026-0091', `/finance/journal/${rev}`) },
@@ -2797,6 +2806,9 @@ if (FAULT === 'wording-drift-1d2') dict.text = { ...dict.text, 'ot.sentBack': 'O
     const lvRow = { code: 'LV-2026-0007', employee_id: emp, leave_type_code: 'annual', start_date: '2026-10-12', end_date: '2026-10-13', days: 2 }
     // ── 请假 ──
     add('leave · requested', L, [{ table: 'leave_requests', op: 'INSERT', key: { id: lv }, new: { ...lvRow, status: 'pending', reason: 'Family trip' }, refs: lvRefs }])
+    // U1-A(UNBLOCK-1 Q8):不持 data.view_health 的读者 —— 事由、病假单号与例外理由是受限标记;理由那一行说 Restricted,不消失
+    add('leave · requested, read without data.view_health (U1-A Q8: the reason says Restricted)', L, [{ table: 'leave_requests', op: 'INSERT', key: { id: lv },
+        new: { ...lvRow, status: 'pending', reason: RESTRICTED, certificate_ref: RESTRICTED, is_exception: true, exception_reason: RESTRICTED }, refs: lvRefs }])
     add('leave · requested as an exception (days entered by hand)', L, [{ table: 'leave_requests', op: 'INSERT', key: { id: lv },
         new: { ...lvRow, days: 1.5, end_half_day: true, status: 'pending', is_exception: true, exception_reason: 'Six-day roster' }, refs: lvRefs }])
     const draw = (k, n, pre = false) => ({ table: 'leave_consumption', op: 'INSERT', prelog: pre, key: { id: id(k) }, new: { leave_request_id: lv, entry_type: 'draw', days: n, accrual_year: 2026 } })
@@ -2957,6 +2969,19 @@ if (FAULT === 'wording-drift-1d2') dict.text = { ...dict.text, 'ot.sentBack': 'O
                 "End: 13/10/2026"
             ],
             "reason": "Family trip",
+            "who": "Sandra"
+        },
+        "leave · requested, read without data.view_health (U1-A Q8: the reason says Restricted)": {
+            "title": "Leave requested: 2 days of Annual leave",
+            "part": null,
+            "lines": [
+                "Start: 12/10/2026",
+                "End: 13/10/2026",
+                "Medical certificate: Restricted",
+                "(Days entered by hand (exception))",
+                "Reason for the exception: Restricted"
+            ],
+            "reason": "Restricted",
             "who": "Sandra"
         },
         "leave · requested as an exception (days entered by hand)": {

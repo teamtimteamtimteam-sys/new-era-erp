@@ -21,13 +21,6 @@ import { formatAuditStamp, formatDate } from '@/lib/dates'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import { DeletedBanner, EndedFieldset } from '@/app/components/trail/EndedBanner'
 
-type MatchRow = {
-    statement_line_id: string
-    journal_lines: {
-        id: string
-        journal_entries: { id: string; code: string } | null
-    } | null
-}
 
 export default async function BankStatementDetailPage({
     params,
@@ -129,15 +122,26 @@ export default async function BankStatementDetailPage({
 
     // 已匹配行配到的分录(页级一次 .in),供"匹配到"列展示链接
     const matchedLineIds = rows.filter((r) => r.match_status === 'matched').map((r) => r.id)
-    const { data: matchRows } = matchedLineIds.length
-        ? await supabase
+    // ★ U1-A(Tim 的 UNBLOCK-1 Q1,2026-10-05):配到的分录行经 journal_lines_masked 认,不再内嵌 journal_lines ——
+    //   基表上工资分录的行对不持 data.view_pay 的人不在,内嵌会是 null,于是发薪那几笔的"匹配到"一栏【悄悄】空掉。
+    const matchRows = matchedLineIds.length
+        ? (mustRows(await supabase
               .from('bank_line_matches')
-              .select('statement_line_id, journal_lines(id, journal_entries(id, code))')
-              .in('statement_line_id', matchedLineIds)
-        : { data: [] as MatchRow[] }
+              .select('statement_line_id, journal_line_id')
+              .in('statement_line_id', matchedLineIds), 'bank_line_matches') as { statement_line_id: string; journal_line_id: string }[])
+        : []
+    const jlIds = [...new Set(matchRows.map((m) => m.journal_line_id))]
+    const jls = jlIds.length
+        ? (mustRows(await supabase.from('journal_lines_masked').select('id, entry_id').in('id', jlIds), 'journal_lines_masked') as { id: string; entry_id: string }[])
+        : []
+    const entryIds = [...new Set(jls.map((j) => j.entry_id))]
+    const entryRows = entryIds.length
+        ? mustRows(await supabase.from('journal_entries').select('id, code').in('id', entryIds), 'journal_entries')
+        : []
+    const entryByLine = new Map(jls.map((j) => [j.id, entryRows.find((e) => e.id === j.entry_id) ?? null]))
     const matchesByLine = new Map<string, { entry_id: string; entry_code: string }[]>()
-    for (const m of (matchRows as unknown as MatchRow[] | null) ?? []) {
-        const entry = m.journal_lines?.journal_entries
+    for (const m of matchRows) {
+        const entry = entryByLine.get(m.journal_line_id)
         if (!entry) continue
         const list = matchesByLine.get(m.statement_line_id) ?? []
         list.push({ entry_id: entry.id, entry_code: entry.code })

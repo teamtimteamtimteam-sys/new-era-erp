@@ -160,15 +160,16 @@ export default async function ClosePage({
         // 【这一格是关账的确认依据,读不出来必须报错】原本 error 被吞掉,rows 读成
         // 空集 → 借贷都是 0 → 0 === 0 → 绿色「✓ 已平」,就悬在关账按钮正上方。
         // 也就是说:那个对勾恰恰是【失败本身】画出来的。验不了就不能画勾。
-        const linesRes = await supabase
-            .from('journal_lines')
-            .select('entry_id, debit, credit, journal_entries!inner(entry_date)')
-            .lte('journal_entries.entry_date', selected)
-        const rows = mustRows(linesRes, 'journal_lines close preview')
+        // ★ U1-A(Tim 的 UNBLOCK-1 Q2,2026-10-05):问库(journal_close_preview,属主身份)。逐行拉 journal_lines 会让不持
+        //   data.view_pay 的财务读者【悄悄】少掉工资分录那几行 —— 分录数与两个合计都变小,而「✓ 已平」照样画出来。
+        const prevRes = await supabase.rpc('journal_close_preview', { p_period_end: selected })
+        const row = (mustRows(prevRes, 'journal_close_preview') as { entry_count: number; debits: number; credits: number }[])[0]
+        // 一句聚合恒回一行;没有行就是读法坏了 —— 抛,不画一个由空结果拼出来的「已平」
+        if (!row) throw new Error('journal_close_preview returned no row')
         preview = {
-            count: new Set(rows.map((l) => l.entry_id)).size,
-            debits: round2(rows.reduce((s, l) => s + l.debit, 0)),
-            credits: round2(rows.reduce((s, l) => s + l.credit, 0)),
+            count: Number(row.entry_count),
+            debits: round2(Number(row.debits)),
+            credits: round2(Number(row.credits)),
         }
     }
 

@@ -1,6 +1,10 @@
 -- db/functions/change_log_rule_visible.sql
 -- HISTORY-1:一条遮蔽规则(change_log_mask_rules)对【当前读者】、就【这一行记录】成不成立。
 -- 与 _masked 视图里那句 CASE WHEN 逐条同一个判据;认不出的规则按【看不见】答(关着失败)。
+-- ★ U1-A(UNBLOCK-1,2026-10-05)两种新写法,各自与它那张 _masked 视图里的 CASE 同一个判据:
+--   pay_journal:<码>   持码,或这一行所在分录(entry_id → journal_entries.source_type)不是 'payroll'(journal_lines_masked)。
+--                       分录找不到 → 看不见(关着失败;分录不可删,所以这只在影像里根本没有 entry_id 时发生)。
+--   apr_amount         approval_log_amount_visible(subject_type, subject_id) —— 视图与这里调同一支函数(approval_log_masked)。
 CREATE OR REPLACE FUNCTION public.change_log_rule_visible(p_rule text, p_table text, p_key jsonb, p_old jsonb, p_new jsonb)
  RETURNS boolean
  LANGUAGE plpgsql
@@ -16,6 +20,14 @@ BEGIN
     ELSIF v_part[1] = 'code_or_self' THEN
         RETURN has_permission(v_part[2])
             OR COALESCE(change_log_field(p_table, p_key, p_old, p_new, v_part[3]) = current_user_employee()::text, false);
+    ELSIF v_part[1] = 'pay_journal' THEN
+        RETURN has_permission(v_part[2])
+            OR COALESCE(change_log_field('journal_entries',
+                            jsonb_build_object('id', change_log_field(p_table, p_key, p_old, p_new, 'entry_id')),
+                            NULL, NULL, 'source_type') <> 'payroll', false);
+    ELSIF p_rule = 'apr_amount' THEN
+        RETURN COALESCE(approval_log_amount_visible(change_log_field(p_table, p_key, p_old, p_new, 'subject_type'),
+                                                    change_log_field(p_table, p_key, p_old, p_new, 'subject_id')::uuid), false);
     ELSIF p_rule = 'pft:direction' THEN
         RETURN pricing_formula_terms_visible(change_log_field(p_table, p_key, p_old, p_new, 'direction'));
     ELSIF p_rule IN ('pft:formula_id', 'pft3') THEN

@@ -744,6 +744,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bank_line_matches_journal_line_id_fkey"
+            columns: ["journal_line_id"]
+            isOneToOne: true
+            referencedRelation: "journal_lines_masked"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bank_line_matches_statement_line_id_fkey"
             columns: ["statement_line_id"]
             isOneToOne: false
@@ -9260,6 +9267,13 @@ export type Database = {
             referencedRelation: "leave_requests"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "leave_consumption_leave_request_id_fkey"
+            columns: ["leave_request_id"]
+            isOneToOne: false
+            referencedRelation: "leave_requests_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       leave_grants: {
@@ -12403,6 +12417,13 @@ export type Database = {
             referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payroll_lines_payroll_period_id_fkey"
+            columns: ["payroll_period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payroll_periods: {
@@ -12626,6 +12647,13 @@ export type Database = {
             columns: ["payroll_period_id"]
             isOneToOne: false
             referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_requests_payroll_period_id_fkey"
+            columns: ["payroll_period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods_masked"
             referencedColumns: ["id"]
           },
           {
@@ -21098,6 +21126,77 @@ export type Database = {
         }
         Relationships: []
       }
+      approval_log_masked: {
+        Row: {
+          actor_user_id: string | null
+          amount_base: number | null
+          amount_ccy: number | null
+          created_at: string | null
+          currency: string | null
+          decided_at: string | null
+          decision: string | null
+          fx_rate: number | null
+          id: string | null
+          is_reconstructed: boolean | null
+          level: number | null
+          note: string | null
+          reconstruction_note: string | null
+          self_decided: boolean | null
+          seq: number | null
+          subject_code: string | null
+          subject_id: string | null
+          subject_type: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          amount_base?: never
+          amount_ccy?: never
+          created_at?: string | null
+          currency?: string | null
+          decided_at?: string | null
+          decision?: string | null
+          fx_rate?: number | null
+          id?: string | null
+          is_reconstructed?: boolean | null
+          level?: number | null
+          note?: string | null
+          reconstruction_note?: string | null
+          self_decided?: boolean | null
+          seq?: number | null
+          subject_code?: string | null
+          subject_id?: string | null
+          subject_type?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          amount_base?: never
+          amount_ccy?: never
+          created_at?: string | null
+          currency?: string | null
+          decided_at?: string | null
+          decision?: string | null
+          fx_rate?: number | null
+          id?: string | null
+          is_reconstructed?: boolean | null
+          level?: number | null
+          note?: string | null
+          reconstruction_note?: string | null
+          self_decided?: boolean | null
+          seq?: number | null
+          subject_code?: string | null
+          subject_id?: string | null
+          subject_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "approval_log_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       ar_open_items: {
         Row: {
           amount_base: number | null
@@ -21187,6 +21286,7 @@ export type Database = {
         Row: {
           account_code: string | null
           amount_ccy: number | null
+          amounts_restricted: boolean | null
           currency: string | null
           direction: string | null
           entry_code: string | null
@@ -22010,14 +22110,14 @@ export type Database = {
           manager_id?: string | null
           monthly_salary?: never
           monthly_salary_set?: boolean | null
-          notes?: string | null
+          notes?: never
           position_id?: string | null
           preferred_name?: string | null
           probation_end_date?: string | null
           residency_status?: string | null
           review_exempt?: boolean | null
           separation_date?: string | null
-          separation_notes?: string | null
+          separation_notes?: never
           separation_type?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -22056,14 +22156,14 @@ export type Database = {
           manager_id?: string | null
           monthly_salary?: never
           monthly_salary_set?: boolean | null
-          notes?: string | null
+          notes?: never
           position_id?: string | null
           preferred_name?: string | null
           probation_end_date?: string | null
           residency_status?: string | null
           review_exempt?: boolean | null
           separation_date?: string | null
-          separation_notes?: string | null
+          separation_notes?: never
           separation_type?: string | null
           updated_at?: string | null
           updated_by?: string | null
@@ -23663,6 +23763,68 @@ export type Database = {
           },
         ]
       }
+      journal_lines_masked: {
+        Row: {
+          account_id: string | null
+          amount_ccy: number | null
+          amounts_restricted: boolean | null
+          created_at: string | null
+          credit: number | null
+          currency: string | null
+          debit: number | null
+          entry_id: string | null
+          fx_rate: number | null
+          fx_rate_date: string | null
+          id: string | null
+          line_memo: string | null
+          side: string | null
+          tax_code: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_lines_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "journal_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "journal_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "journal_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_code_lookup"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "journal_lines_tax_code_fkey"
+            columns: ["tax_code"]
+            isOneToOne: false
+            referencedRelation: "tax_codes"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       kpi_employee_linkage_matrix: {
         Row: {
           cycle_id: string | null
@@ -23867,6 +24029,180 @@ export type Database = {
           },
         ]
       }
+      leave_requests_masked: {
+        Row: {
+          certificate_ref: string | null
+          code: string | null
+          created_at: string | null
+          created_by: string | null
+          days: number | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          deleted_at: string | null
+          employee_id: string | null
+          end_date: string | null
+          end_half_day: boolean | null
+          exception_reason: string | null
+          id: string | null
+          is_exception: boolean | null
+          leave_type_code: string | null
+          reason: string | null
+          start_date: string | null
+          start_half_day: boolean | null
+          status: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          certificate_ref?: never
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          days?: number | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          deleted_at?: string | null
+          employee_id?: string | null
+          end_date?: string | null
+          end_half_day?: boolean | null
+          exception_reason?: never
+          id?: string | null
+          is_exception?: boolean | null
+          leave_type_code?: string | null
+          reason?: never
+          start_date?: string | null
+          start_half_day?: boolean | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          certificate_ref?: never
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          days?: number | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          deleted_at?: string | null
+          employee_id?: string | null
+          end_date?: string | null
+          end_half_day?: boolean | null
+          exception_reason?: never
+          id?: string | null
+          is_exception?: boolean | null
+          leave_type_code?: string | null
+          reason?: never
+          start_date?: string | null
+          start_half_day?: boolean | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "leave_requests_leave_type_code_fkey"
+            columns: ["leave_type_code"]
+            isOneToOne: false
+            referencedRelation: "leave_types"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "leave_requests_leave_type_code_fkey"
+            columns: ["leave_type_code"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["leave_type_code"]
+          },
+        ]
+      }
       material_lookup: {
         Row: {
           code: string | null
@@ -23929,6 +24265,164 @@ export type Database = {
           settled_base: number | null
           settlement_state: string | null
           status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "handover_people"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_linkage_matrix"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "kpi_employee_rollup"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_leave_balance"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_profile"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "my_review_subjects"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "task_assignable_employees"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "user_directory"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "medical_claims_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medical_claims_masked: {
+        Row: {
+          amount_sgd: number | null
+          claim_date: string | null
+          claim_year: number | null
+          code: string | null
+          created_at: string | null
+          created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          deleted_at: string | null
+          description: string | null
+          employee_id: string | null
+          expense_id: string | null
+          id: string | null
+          receipt_ref: string | null
+          status: string | null
+          updated_at: string | null
+          updated_by: string | null
+          withdrawn_at: string | null
+        }
+        Insert: {
+          amount_sgd?: never
+          claim_date?: string | null
+          claim_year?: number | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          deleted_at?: string | null
+          description?: never
+          employee_id?: string | null
+          expense_id?: string | null
+          id?: string | null
+          receipt_ref?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          withdrawn_at?: string | null
+        }
+        Update: {
+          amount_sgd?: never
+          claim_date?: string | null
+          claim_year?: number | null
+          code?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          deleted_at?: string | null
+          description?: never
+          employee_id?: string | null
+          expense_id?: string | null
+          id?: string | null
+          receipt_ref?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+          withdrawn_at?: string | null
         }
         Relationships: [
           {
@@ -24830,6 +25324,13 @@ export type Database = {
             referencedRelation: "payroll_periods"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "payroll_lines_payroll_period_id_fkey"
+            columns: ["payroll_period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods_masked"
+            referencedColumns: ["id"]
+          },
         ]
       }
       payroll_period_lookup: {
@@ -24888,6 +25389,252 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      payroll_periods_masked: {
+        Row: {
+          code: string | null
+          cpf_journal_entry_id: string | null
+          cpf_paid_at: string | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          deductions_journal_entry_id: string | null
+          deductions_paid_at: string | null
+          deleted_at: string | null
+          employee_cpf_total: number | null
+          employer_cpf_total: number | null
+          fx_rate: number | null
+          gross_total: number | null
+          id: string | null
+          journal_entry_id: string | null
+          net_pay_total: number | null
+          notes: string | null
+          other_deductions_total: number | null
+          payment_date: string | null
+          period_month: string | null
+          source_note: string | null
+          status: string | null
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          code?: string | null
+          cpf_journal_entry_id?: string | null
+          cpf_paid_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          deductions_journal_entry_id?: string | null
+          deductions_paid_at?: string | null
+          deleted_at?: string | null
+          employee_cpf_total?: never
+          employer_cpf_total?: never
+          fx_rate?: number | null
+          gross_total?: never
+          id?: string | null
+          journal_entry_id?: string | null
+          net_pay_total?: never
+          notes?: string | null
+          other_deductions_total?: never
+          payment_date?: string | null
+          period_month?: string | null
+          source_note?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          code?: string | null
+          cpf_journal_entry_id?: string | null
+          cpf_paid_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          deductions_journal_entry_id?: string | null
+          deductions_paid_at?: string | null
+          deleted_at?: string | null
+          employee_cpf_total?: never
+          employer_cpf_total?: never
+          fx_rate?: number | null
+          gross_total?: never
+          id?: string | null
+          journal_entry_id?: string | null
+          net_pay_total?: never
+          notes?: string | null
+          other_deductions_total?: never
+          payment_date?: string | null
+          period_month?: string | null
+          source_note?: string | null
+          status?: string | null
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_periods_cpf_journal_entry_id_fkey"
+            columns: ["cpf_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payroll_periods_cpf_journal_entry_id_fkey"
+            columns: ["cpf_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_periods_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payroll_periods_deductions_journal_entry_id_fkey"
+            columns: ["deductions_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payroll_periods_deductions_journal_entry_id_fkey"
+            columns: ["deductions_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_periods_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payroll_periods_journal_entry_id_fkey"
+            columns: ["journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_requests_masked: {
+        Row: {
+          amount_base: number | null
+          created_at: string | null
+          created_by: string | null
+          currency: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          executed_at: string | null
+          executed_by: string | null
+          fx_rate: number | null
+          gross_total: number | null
+          id: string | null
+          kind: string | null
+          label: string | null
+          notes: string | null
+          payroll_period_id: string | null
+          result_journal_entry_id: string | null
+          snapshot: Json | null
+          status: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
+        }
+        Insert: {
+          amount_base?: never
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          fx_rate?: number | null
+          gross_total?: never
+          id?: string | null
+          kind?: string | null
+          label?: string | null
+          notes?: string | null
+          payroll_period_id?: string | null
+          result_journal_entry_id?: string | null
+          snapshot?: never
+          status?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Update: {
+          amount_base?: never
+          created_at?: string | null
+          created_by?: string | null
+          currency?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          executed_at?: string | null
+          executed_by?: string | null
+          fx_rate?: number | null
+          gross_total?: never
+          id?: string | null
+          kind?: string | null
+          label?: string | null
+          notes?: string | null
+          payroll_period_id?: string | null
+          result_journal_entry_id?: string | null
+          snapshot?: never
+          status?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_requests_currency_fkey"
+            columns: ["currency"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "payroll_requests_payroll_period_id_fkey"
+            columns: ["payroll_period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_period_lookup"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_requests_payroll_period_id_fkey"
+            columns: ["payroll_period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_requests_payroll_period_id_fkey"
+            columns: ["payroll_period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods_masked"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "bank_unmatched_journal_lines"
+            referencedColumns: ["entry_id"]
+          },
+          {
+            foreignKeyName: "payroll_requests_result_journal_entry_id_fkey"
+            columns: ["result_journal_entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -29482,6 +30229,14 @@ export type Database = {
         }[]
       }
       approval_level_for: { Args: { p_amount_base: number }; Returns: number }
+      approval_log_amount_visible: {
+        Args: { p_subject_id: string; p_subject_type: string }
+        Returns: boolean
+      }
+      approval_log_readable: {
+        Args: { p_subject_type: string }
+        Returns: boolean
+      }
       approval_pending_documents: {
         Args: never
         Returns: {
@@ -30525,9 +31280,40 @@ export type Database = {
           source_type: string
         }[]
       }
+      journal_close_preview: {
+        Args: { p_period_end: string }
+        Returns: {
+          credits: number
+          debits: number
+          entry_count: number
+        }[]
+      }
       journal_entry_reversal_route: {
         Args: { p_entry_id: string }
         Returns: string
+      }
+      journal_export_lines: {
+        Args: { p_from: string; p_include_year_close: boolean; p_to: string }
+        Returns: {
+          account_code: string
+          account_id: string
+          account_name_en: string
+          account_name_zh: string
+          account_type: string
+          amounts_restricted: boolean
+          credit: number
+          debit: number
+          entry_code: string
+          entry_date: string
+          entry_id: string
+          entry_memo: string
+          entry_status: string
+          line_id: string
+          line_memo: string
+          signed_base: number
+          source_id: string
+          source_type: string
+        }[]
       }
       journal_request_dry_run: { Args: { p_request_id: string }; Returns: Json }
       journal_request_post_internal: {
@@ -30682,6 +31468,7 @@ export type Database = {
         Args: never
         Returns: {
           code: string
+          currency: string
           kind: string
           period_id: string
           period_month: string
@@ -32287,6 +33074,14 @@ export type Database = {
           root_table: string
           subject: string
           view_codes: string[]
+        }[]
+      }
+      trial_balance_totals: {
+        Args: never
+        Returns: {
+          account_id: string
+          credits: number
+          debits: number
         }[]
       }
       unapply_assay_result: {

@@ -8,14 +8,20 @@
 //
 // 草稿留存据此决定【不为哪些表留草稿】:见 lib/useFormDraft.ts。
 export const MASKED_TABLES: ReadonlySet<string> = new Set([
+    'approval_log',
     'company_profile',
     'employees',
     'employment_history',
     'inbound_batches',
     'invoice_lines',
     'invoices',
+    'journal_lines',
+    'leave_requests',
+    'medical_claims',
     'payment_term_template_lines',
     'payroll_lines',
+    'payroll_periods',
+    'payroll_requests',
     'performance_reviews',
     'prepayment_applications',
     'price_history',

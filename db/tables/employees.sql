@@ -226,7 +226,10 @@ REVOKE SELECT ON public.employees FROM authenticated, anon;
 -- PDPA-1:anonymised_at / anonymised_by 同样授回。**列清单式 SELECT 授权不随
 -- ADD COLUMN 自动延伸**,所以每一次给这张表加列都必须回到这一行(gate 的 colgrant
 -- 判据会点名漏掉的列;见 AGENTS.md「Adding a column to a masked table」)。
-GRANT SELECT (id, code, legal_name, preferred_name, department_id, position_id, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, separation_notes, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, notes, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt, anonymised_at, anonymised_by, greeting_name, is_site_staff, first_name, last_name)
+-- ★ U1-A(UNBLOCK-1 Q6,2026-10-05):notes 与 separation_notes 从列授权里拿掉 —— 两列是人事写给人事的话,
+--   本人那条自读策略("employees select own row")此前把它们整列交给了被写的那个人。从此只经 employees_masked 读,
+--   那里只给持 module.hr.view 的人(CASE),本人不让路。个人数据导出(export_my_personal_data)是【唯一】刻意的例外(Q7,Tim 的 PDPA 裁定)。
+GRANT SELECT (id, code, legal_name, preferred_name, department_id, position_id, manager_id, employment_type, work_category, hire_date, probation_end_date, employment_status, separation_date, separation_type, residency_status, work_pass_type, work_pass_issue_date, work_pass_expiry_date, user_id, deleted_at, created_at, created_by, updated_at, updated_by, confirmation_date, monthly_salary_set, review_exempt, anonymised_at, anonymised_by, greeting_name, is_site_staff, first_name, last_name)
     ON public.employees TO authenticated;
 
 -- cut 4 员工自助:【追加】一条 PERMISSIVE 策略,与既有模块策略【或】起来。

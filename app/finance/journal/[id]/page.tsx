@@ -20,20 +20,25 @@ import { RecordHeader } from '@/app/components/ui/record-header'
 import JournalLinesTable, { type JournalLineRow } from './JournalLinesTable'
 import { can } from '@/lib/permissions'
 import { formatDate } from '@/lib/dates'
-import { mustOne } from '@/lib/db-helpers'
+import { mustOne, mustRows } from '@/lib/db-helpers'
 import AuditTrail, { trailCount } from '@/app/components/trail/AuditTrail'
 import EndedBanner, { ReversalOfBanner } from '@/app/components/trail/EndedBanner'
 import { reversalReasonText } from '@/lib/trail/render'
 
 // FK 嵌入运行时是对象;显式类型 + cast 锁住。
+// ★ U1-A(Tim 的 UNBLOCK-1 Q1–Q3,2026-10-05):行从 journal_lines_masked 读 —— 工资分录的三个金额对不持 data.view_pay 的人是 null,
+//   amounts_restricted = true;side 说这一行记在哪一边。基表上那条 restrictive 策略让这几行对他们在 API 上不在,
+//   所以这一页若照旧读基表,工资分录的行表会是空的 —— 一张"没有行"的分录,比一个「受限」更坏。
 type LineRow = {
     id: string
-    debit: number
-    credit: number
+    debit: number | null
+    credit: number | null
     currency: string
-    amount_ccy: number
+    amount_ccy: number | null
     fx_rate: number
     line_memo: string | null
+    side: 'debit' | 'credit'
+    amounts_restricted: boolean
     accounts: { code: string; name_en: string; name_zh: string } | null
 }
 
@@ -63,8 +68,8 @@ export default async function JournalDetailPage({
             .eq('id', id)
             .single(),
         supabase
-            .from('journal_lines')
-            .select('id, debit, credit, currency, amount_ccy, fx_rate, line_memo, accounts ( code, name_en, name_zh )')
+            .from('journal_lines_masked')
+            .select('id, account_id, debit, credit, currency, amount_ccy, fx_rate, line_memo, side, amounts_restricted')
             .eq('entry_id', id)
             .order('created_at', { ascending: true })
             .order('id', { ascending: true }),
@@ -75,7 +80,16 @@ export default async function JournalDetailPage({
     }
 
     const entry = entryRes.data
-    const lines = ((linesRes.data as unknown as LineRow[] | null) ?? [])
+    // 读不出来就抛 —— 一次失败不许被读成"这张分录没有行"(mustRows)
+    const rawLines = mustRows(linesRes, 'journal_lines_masked') as unknown as (Omit<LineRow, 'accounts'> & { account_id: string })[]
+    // 科目名单独取(accounts 对每一个登录用户可读)—— 不靠 PostgREST 从一张连表视图推出外键去内嵌
+    const accountIds = [...new Set(rawLines.map((l) => l.account_id))]
+    const accountRows = accountIds.length
+        ? mustRows(await supabase.from('accounts').select('id, code, name_en, name_zh').in('id', accountIds), 'accounts')
+        : []
+    const accountById = new Map(accountRows.map((a) => [a.id, { code: a.code, name_en: a.name_en, name_zh: a.name_zh }]))
+    const lines: LineRow[] = rawLines.map((l) => ({ ...l, accounts: accountById.get(l.account_id) ?? null }))
+    const anyRestricted = lines.some((l) => l.amounts_restricted)
 
     // ★ APR-6:冲销钮问库的同一份判据(journal_entry_reversal_route),再看这张分录上有没有一张在等的冲销申请。
     //   判据读不出来(error)就抛 —— 一次失败不许被读成"可以冲"。
@@ -97,8 +111,8 @@ export default async function JournalDetailPage({
         resolveSourceHrefs(supabase, [entry]),
     ])
 
-    const sumDebit = Math.round(lines.reduce((s, l) => s + l.debit, 0) * 100) / 100
-    const sumCredit = Math.round(lines.reduce((s, l) => s + l.credit, 0) * 100) / 100
+    const sumDebit = Math.round(lines.reduce((s, l) => s + (l.debit ?? 0), 0) * 100) / 100
+    const sumCredit = Math.round(lines.reduce((s, l) => s + (l.credit ?? 0), 0) * 100) / 100
     const accountName = (l: LineRow) =>
         l.accounts ? (locale === 'zh' ? l.accounts.name_zh : l.accounts.name_en) : '—'
     const sourceHref = hrefs.get(sourceHrefKey(entry))
@@ -110,13 +124,17 @@ export default async function JournalDetailPage({
         id: l.id,
         accountCode: l.accounts?.code ?? '—',
         accountName: accountName(l),
-        debitText: l.debit > 0 ? formatAmount(l.debit, baseCurrency) : '',
-        creditText: l.credit > 0 ? formatAmount(l.credit, baseCurrency) : '',
+        debitText: l.debit !== null && l.debit > 0 ? formatAmount(l.debit, baseCurrency) : '',
+        creditText: l.credit !== null && l.credit > 0 ? formatAmount(l.credit, baseCurrency) : '',
+        debitRestricted: l.amounts_restricted && l.side === 'debit',
+        creditRestricted: l.amounts_restricted && l.side === 'credit',
         // 借/贷是本位币,自己带币种;同表「原币」列写的是【另一个】币种,
         // 不能拿它当"这屏已经写了币种"的凭据(CCY-1 RULE 3)。
         ccyText:
             l.currency !== baseCurrency
-                ? `${l.currency} ${formatMoneyBare(l.amount_ccy, '同格内紧邻的 l.currency 前缀')} @ ${l.fx_rate}`
+                ? l.amount_ccy === null
+                    ? `${l.currency} · ${t('common.restricted')}`
+                    : `${l.currency} ${formatMoneyBare(l.amount_ccy, '同格内紧邻的 l.currency 前缀')} @ ${l.fx_rate}`
                 : '—',
         memo: l.line_memo ?? '—',
     }))
@@ -132,6 +150,9 @@ export default async function JournalDetailPage({
             ccyText: '',
             memo: '',
             isTotal: true,
+            // 一行受限,合计就是那几行的和 —— 两格一起受限,不印一个"少了几行"的数
+            debitRestricted: anyRestricted,
+            creditRestricted: anyRestricted,
         })
     }
 

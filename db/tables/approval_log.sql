@@ -215,87 +215,94 @@ ALTER TABLE public.approval_log ENABLE ROW LEVEL SECURITY;
 -- 与 auditor 持有全部 module.*.view 是同一条思路:先给读得到相关模块的人。
 -- 写:【没有 INSERT 策略】。唯一的写入口是 record_approval_decision()(属主权限),
 -- 应用侧任何直接 INSERT 都会被 RLS 挡下 —— 留痕不该有第二个写法。
+-- ★ U1-A(UNBLOCK-1 Q8 · Q10,2026-10-05):读规则原样抽进 approval_log_readable(subject_type) ——
+--   这条策略与 approval_log_masked 视图调同一支函数,"谁看得见哪一类留痕"只有一份定义。下面是抽出去之前那一段 CASE 的原文
+--   (逐支的来历注释照留;函数体与它逐字同一组分支):
+--
+-- CASE subject_type
+-- WHEN 'leave_request'      THEN has_permission('module.hr.view'::text)
+-- WHEN 'medical_claim'      THEN has_permission('module.hr.view'::text)
+-- WHEN 'performance_review' THEN has_permission('module.hr.view'::text)
+-- WHEN 'purchase_order'     THEN has_permission('module.purchasing.view'::text)
+-- WHEN 'payment'            THEN has_permission('module.finance.view'::text)
+-- WHEN 'expense'            THEN has_permission('module.finance.view'::text)
+-- ★★ APR-3:报销单那一支 —— 这是 APR-0 §3.2 点名的第 ④ 格,
+-- 也是四格里【唯一一个漏掉也不会有任何东西变红】的那一格:
+-- 写得进、读不出,对每一个人都是 0 行,而且不报错。
+-- WO-1b 正是在这一格上漏了一次(APR0-WORK-ORDER-APPROVALS-INVISIBLE)。
+-- 取的码与 expense_claims 自己的读策略同源(module.finance.view)——
+-- ⚠ 照直说:那张表的策略还有【或者这张单说的就是你】那一条腿,
+-- 而留痕这一支【没有】给员工本人开口子。理由:一行留痕会说出
+-- "谁批的、什么级别",那是内控记录,不是自助查询;员工在 /me 上
+-- 看得见自己那张单的状态,那条路没有变。
+-- WHEN 'expense_claim'      THEN has_permission('module.finance.view'::text)
+-- WHEN 'pricing_formula'    THEN has_permission('module.pricing.view'::text)
+-- WHEN 'stocktake'          THEN has_permission('module.stocktakes.view'::text)
+-- ★ APR-1:WO-1b 漏掉的那一支(APR0-WORK-ORDER-APPROVALS-INVISIBLE)。
+-- 它写得进、读不出:线上有 1 行 work_order 留痕,而任何 authenticated
+-- 身份读到的都是 0 行【而且不报错】—— 一片正确的空白,与"这张工单
+-- 还没有被放行过"在屏幕上逐字相同。
+-- 取的码与 work_orders 自己的读策略【同一个】:读工单的判据只该有一份定义。
+-- ⚠ 照直说:cfo 不持 module.processing.view,所以二级审批人仍然读不到它。
+-- WHEN 'work_order'         THEN has_permission('module.processing.view'::text)
+-- ★ PAY-REQ-1:付款申请那一支 —— 与 payment_requests 自己的读策略同一个码。
+-- 漏掉它,写得进、读不出、不报错(APR-3 在报销单上记过的那一格)。
+-- WHEN 'payment_request'    THEN has_permission('module.finance.view'::text)
+-- ★ ROLE-1 Batch 2a:供应商那一支 —— 与 suppliers 自己的读策略同一个码。
+-- 漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+-- WHEN 'supplier'           THEN has_permission('module.suppliers.view'::text)
+-- ★ PAYROLL-APR-1:工资申请那一支 —— 与 payroll_requests 自己的读策略同一个码。
+-- 漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+-- WHEN 'payroll_request'    THEN has_permission('module.hr.view'::text)
+-- ★ ROLE-1 Batch 4b:收货定价申请那一支 —— 与 receipt_price_requests 自己的读策略同一对码。
+-- 漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+-- WHEN 'receipt_price_request' THEN has_permission('module.inbound.view'::text)
+-- AND has_permission('data.view_purchase_prices'::text)
+-- ★ APR-5a:贷项 / 作废申请那一支 —— 与 invoice_requests 自己的读策略同一个码。
+-- 漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+-- WHEN 'invoice_request'    THEN has_permission('module.finance.view'::text)
+-- ★ APR-5b:发货放行那一支 —— 与 shipping_releases 自己的读策略同一个码。
+-- 漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+-- WHEN 'shipping_release'   THEN has_permission('module.sales.view'::text)
+-- ★ APR-6:手工凭证 / 冲销申请那一支 —— 与 journal_requests 自己的读策略同一个码。
+-- 漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+-- WHEN 'journal_request'    THEN has_permission('module.finance.view'::text)
+-- ★ APR-7:仓库申请那一支 —— 与 warehouse_requests 自己的读策略同一个码。
+-- 漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+-- WHEN 'warehouse_request'  THEN has_permission('module.finance.view'::text)
+-- ★ APR-8:条款申请那一支 —— 公式那一页的门。留痕里只有编号与决定,没有条款本身。
+-- 漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+-- WHEN 'terms_request'      THEN has_permission('module.pricing.view'::text)
+-- ★ APR-9:调薪申请那一支 —— 与 salary_change_requests 自己的读策略同一对码。留痕里没有月薪数
+-- (performance_review 同形),但"谁的调薪、谁批的"本身就是人事记录。
+-- 漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+-- WHEN 'salary_change_request'  THEN has_permission('module.hr.view'::text)
+-- AND has_permission('data.view_pay'::text)
+-- ★ APR-9:处置申请那一支 —— 与 asset_disposal_requests 自己的读策略同一个码。
+-- 漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+-- WHEN 'asset_disposal_request' THEN has_permission('module.finance.view'::text)
+-- ★ APR-10:GST 申报申请那一支 —— 与 gst_filing_requests 自己的读策略同一个码。
+-- 漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
+-- WHEN 'gst_filing_request'     THEN has_permission('module.finance.view'::text)
+-- OVERTIME-1:与两张加班表同一组码 —— 批的人(仓库)不持 module.hr.view。
+-- WHEN 'overtime_batch'         THEN (has_permission('module.hr.view'::text)
+-- OR has_permission('action.overtime_enter'::text)
+-- OR has_permission('action.overtime_approve'::text))
+-- ELSE false
+-- END
+--
 CREATE POLICY "approval_log select by permission"
     ON public.approval_log
     AS PERMISSIVE FOR SELECT TO authenticated
-    USING (
-        CASE subject_type
-            WHEN 'leave_request'      THEN has_permission('module.hr.view'::text)
-            WHEN 'medical_claim'      THEN has_permission('module.hr.view'::text)
-            WHEN 'performance_review' THEN has_permission('module.hr.view'::text)
-            WHEN 'purchase_order'     THEN has_permission('module.purchasing.view'::text)
-            WHEN 'payment'            THEN has_permission('module.finance.view'::text)
-            WHEN 'expense'            THEN has_permission('module.finance.view'::text)
-            -- ★★ APR-3:报销单那一支 —— 这是 APR-0 §3.2 点名的第 ④ 格,
-            --   也是四格里【唯一一个漏掉也不会有任何东西变红】的那一格:
-            --   写得进、读不出,对每一个人都是 0 行,而且不报错。
-            --   WO-1b 正是在这一格上漏了一次(APR0-WORK-ORDER-APPROVALS-INVISIBLE)。
-            --   取的码与 expense_claims 自己的读策略同源(module.finance.view)——
-            --   ⚠ 照直说:那张表的策略还有【或者这张单说的就是你】那一条腿,
-            --   而留痕这一支【没有】给员工本人开口子。理由:一行留痕会说出
-            --   "谁批的、什么级别",那是内控记录,不是自助查询;员工在 /me 上
-            --   看得见自己那张单的状态,那条路没有变。
-            WHEN 'expense_claim'      THEN has_permission('module.finance.view'::text)
-            WHEN 'pricing_formula'    THEN has_permission('module.pricing.view'::text)
-            WHEN 'stocktake'          THEN has_permission('module.stocktakes.view'::text)
-            -- ★ APR-1:WO-1b 漏掉的那一支(APR0-WORK-ORDER-APPROVALS-INVISIBLE)。
-            --   它写得进、读不出:线上有 1 行 work_order 留痕,而任何 authenticated
-            --   身份读到的都是 0 行【而且不报错】—— 一片正确的空白,与"这张工单
-            --   还没有被放行过"在屏幕上逐字相同。
-            --   取的码与 work_orders 自己的读策略【同一个】:读工单的判据只该有一份定义。
-            --   ⚠ 照直说:cfo 不持 module.processing.view,所以二级审批人仍然读不到它。
-            WHEN 'work_order'         THEN has_permission('module.processing.view'::text)
-            -- ★ PAY-REQ-1:付款申请那一支 —— 与 payment_requests 自己的读策略同一个码。
-            --   漏掉它,写得进、读不出、不报错(APR-3 在报销单上记过的那一格)。
-            WHEN 'payment_request'    THEN has_permission('module.finance.view'::text)
-            -- ★ ROLE-1 Batch 2a:供应商那一支 —— 与 suppliers 自己的读策略同一个码。
-            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
-            WHEN 'supplier'           THEN has_permission('module.suppliers.view'::text)
-            -- ★ PAYROLL-APR-1:工资申请那一支 —— 与 payroll_requests 自己的读策略同一个码。
-            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
-            WHEN 'payroll_request'    THEN has_permission('module.hr.view'::text)
-            -- ★ ROLE-1 Batch 4b:收货定价申请那一支 —— 与 receipt_price_requests 自己的读策略同一对码。
-            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
-            WHEN 'receipt_price_request' THEN has_permission('module.inbound.view'::text)
-                                          AND has_permission('data.view_purchase_prices'::text)
-            -- ★ APR-5a:贷项 / 作废申请那一支 —— 与 invoice_requests 自己的读策略同一个码。
-            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
-            WHEN 'invoice_request'    THEN has_permission('module.finance.view'::text)
-            -- ★ APR-5b:发货放行那一支 —— 与 shipping_releases 自己的读策略同一个码。
-            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
-            WHEN 'shipping_release'   THEN has_permission('module.sales.view'::text)
-            -- ★ APR-6:手工凭证 / 冲销申请那一支 —— 与 journal_requests 自己的读策略同一个码。
-            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
-            WHEN 'journal_request'    THEN has_permission('module.finance.view'::text)
-            -- ★ APR-7:仓库申请那一支 —— 与 warehouse_requests 自己的读策略同一个码。
-            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
-            WHEN 'warehouse_request'  THEN has_permission('module.finance.view'::text)
-            -- ★ APR-8:条款申请那一支 —— 公式那一页的门。留痕里只有编号与决定,没有条款本身。
-            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
-            WHEN 'terms_request'      THEN has_permission('module.pricing.view'::text)
-            -- ★ APR-9:调薪申请那一支 —— 与 salary_change_requests 自己的读策略同一对码。留痕里没有月薪数
-            --   (performance_review 同形),但"谁的调薪、谁批的"本身就是人事记录。
-            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
-            WHEN 'salary_change_request'  THEN has_permission('module.hr.view'::text)
-                                          AND has_permission('data.view_pay'::text)
-            -- ★ APR-9:处置申请那一支 —— 与 asset_disposal_requests 自己的读策略同一个码。
-            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
-            WHEN 'asset_disposal_request' THEN has_permission('module.finance.view'::text)
-            -- ★ APR-10:GST 申报申请那一支 —— 与 gst_filing_requests 自己的读策略同一个码。
-            --   漏掉它,写得进、读不出、不报错(APR-3 记过的那一格)。
-            WHEN 'gst_filing_request'     THEN has_permission('module.finance.view'::text)
-            -- OVERTIME-1:与两张加班表同一组码 —— 批的人(仓库)不持 module.hr.view。
-            WHEN 'overtime_batch'         THEN (has_permission('module.hr.view'::text)
-                                                OR has_permission('action.overtime_enter'::text)
-                                                OR has_permission('action.overtime_approve'::text))
-            ELSE false
-        END
-    );
+    USING (approval_log_readable(subject_type));
 
 REVOKE SELECT ON public.approval_log FROM authenticated, anon;
+-- ★ U1-A(UNBLOCK-1 Q8 · Q10):amount_ccy 与 amount_base 从列授权里拿掉 —— 工资申请那一行的金额是一期的工资合计,
+--   医疗报销那一行是报销的金额;两样只经 approval_log_masked 读(approval_log_amount_visible 判)。
+--   从此这张表有了 _masked 伴生视图,colgrant 要求它的【每一列】都在那张视图里。
 GRANT SELECT (id, seq, subject_type, subject_id, subject_code, decision, level,
-              actor_user_id, decided_at, note, amount_ccy, currency, fx_rate,
-              amount_base, is_reconstructed, reconstruction_note, created_at,
+              actor_user_id, decided_at, note, currency, fx_rate,
+              is_reconstructed, reconstruction_note, created_at,
               self_decided)
     ON public.approval_log TO authenticated;
 

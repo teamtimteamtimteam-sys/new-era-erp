@@ -103,6 +103,16 @@ CREATE POLICY "payroll_periods delete by permission"
     AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.hr.edit'::text));
 
+-- ★ U1-A(UNBLOCK-1 Q9,2026-10-05):这一期的五个合计要 data.view_pay —— 一期只有一两个人时,合计就是一个人的工资;
+--   此前持 module.hr.view 的 cto 与 gm 在 /hr/payroll 上读得到。五列从列授权里拿掉,只经 payroll_periods_masked 读
+--   (与财务那一侧的 payroll_period_lookup 同一个判据)。表级 SELECT 授权蕴含所有列,所以先整表收回、再逐列授回;写权限不动。
+--   列授权不随 ADD COLUMN 自动延伸:给这张表加列,要回到这一行,并把它放进 payroll_periods_masked(gate 的 colgrant)。
+REVOKE SELECT ON public.payroll_periods FROM authenticated, anon;
+GRANT SELECT (id, code, period_month, payment_date, currency, fx_rate, status, journal_entry_id, source_note, notes,
+              deleted_at, created_at, created_by, updated_at, updated_by, cpf_paid_at, cpf_journal_entry_id,
+              deductions_paid_at, deductions_journal_entry_id)
+    ON public.payroll_periods TO authenticated;
+
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────
 -- 本表的写策略是 `USING (p) WITH CHECK (p)`,两侧同一个谓词:不满足 p 的人卡在
 -- USING 上,那一行根本没进语句的视野,WITH CHECK 永远没机会抛 —— 零行、不报错。

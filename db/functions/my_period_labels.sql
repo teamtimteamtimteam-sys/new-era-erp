@@ -11,22 +11,26 @@
 -- 【主语就是调用者】没有参数;current_user_employee() 解析的是调用者自己 —— 对 anon 是 NULL,于是 0 行。
 --   只回那几个【有一行是你的】期间:没有你的行的期间、别人的期间,一个都不回。
 -- 【为什么是 DEFINER】只用来越过两张期间表的读策略(它们只给 hr.view);行与列都由上面那两条收住。
+-- ★ U1-A(Tim 的 UNBLOCK-1 Q12,2026-10-05):多一列 currency —— 工资单那一期自己的币种(考勤那几行是 NULL:考勤没有币种)。
+--   /me 的工资单五栏按【那一期的币种】格式化(USD 的一期是可能的:upsert_payroll_period 收任何一个在册币种),
+--   而不持 module.hr.view 的员工此前读不到那一期,金额印成不带币种的数字。币种是"本人看得见的那一期"的一个属性,
+--   与编号、月份同一类;合计、状态、备注仍然一列都不给。返回表变了 → 迁移里 DROP 再 CREATE(CREATE OR REPLACE 改不了返回表)。
 CREATE OR REPLACE FUNCTION public.my_period_labels()
- RETURNS TABLE(kind text, period_id uuid, code text, period_month date)
+ RETURNS TABLE(kind text, period_id uuid, code text, period_month date, currency text)
  LANGUAGE sql
  STABLE SECURITY DEFINER
  SET search_path TO 'public', 'pg_temp'
 AS $function$
-    SELECT 'attendance'::text, ap.id, ap.code, ap.period_month
+    SELECT 'attendance'::text, ap.id, ap.code, ap.period_month, NULL::text
       FROM attendance_periods ap
      WHERE EXISTS (SELECT 1 FROM attendance_lines al
                     WHERE al.period_id = ap.id AND al.employee_id = current_user_employee())
     UNION ALL
-    SELECT 'payroll'::text, pp.id, pp.code, pp.period_month
+    SELECT 'payroll'::text, pp.id, pp.code, pp.period_month, pp.currency
       FROM payroll_periods pp
      WHERE EXISTS (SELECT 1 FROM payroll_lines pl
                     WHERE pl.payroll_period_id = pp.id AND pl.employee_id = current_user_employee())
 $function$;
 
 COMMENT ON FUNCTION public.my_period_labels() IS
-    'AUDIT-TRAIL-1d-3(Q19):调用者自己的考勤行与工资单所在的期间 —— 只给编号与月份(kind · period_id · code · period_month),别的一列都不给。两张期间表的读策略只有 module.hr.view,而 /me 要这两样去配月份;一条自读策略会放进整行(工资期的合计在一期只有一两个人时就是一个人的工资),所以是一支属主函数,行由 current_user_employee() 收住(对 anon 是 NULL → 0 行),列由返回表收住。';
+    'AUDIT-TRAIL-1d-3(Q19):调用者自己的考勤行与工资单所在的期间 —— 只给编号与月份(kind · period_id · code · period_month);U1-A(UNBLOCK-1 Q12)加 currency(工资单那一期的币种,考勤为 NULL),别的一列都不给。两张期间表的读策略只有 module.hr.view,而 /me 要这两样去配月份;一条自读策略会放进整行(工资期的合计在一期只有一两个人时就是一个人的工资),所以是一支属主函数,行由 current_user_employee() 收住(对 anon 是 NULL → 0 行),列由返回表收住。';

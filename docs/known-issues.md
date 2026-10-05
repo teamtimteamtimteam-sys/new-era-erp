@@ -3478,7 +3478,7 @@ lpad('14002',4,'0') = '1400'
 (b) CSV 导出的列要不要保留(有人可能已经在下游按列位取数),
 (c) 删列还是留列加注释。三个都是判断,不该混在一次别的刀里顺手做掉。
 
-## 收货库位【录不进去】—— ctx 机制到不了 PostgREST 的插入(IOD-1 报告,2026-08-12,未做)
+## ✅ 已关闭(IOD-1b,2026-08-13;UNBLOCK-1 Step 0 实测、U1-A 划掉,2026-10-05)· 收货库位【录不进去】—— ctx 机制到不了 PostgREST 的插入(IOD-1 报告,2026-08-12,~~未做~~)
 
 IOD-1 的设计里,三个建批次的表单应当把一个【可选库位】经既有的 ctx 机制
 传给收货触发器。**做不到,而原因是结构性的,不是写法问题。**
@@ -3516,6 +3516,10 @@ commit_processing_run 整个就是一个数据库函数,所以天然满足。
 
 **在选定之前,`evoltrya.location_ctx` 这条读取路径是【暂时无人调用】的** ——
 留着是因为路线 1 一旦选中它就直接可用;记在这里,免得下一个人以为它坏了。
+**✅ 已关闭 —— 而且早在 2026-08-13 就关了,这一条只是没人划掉(UNBLOCK-1 Step 0 实测,2026-10-05):** 上面的路线 1 就是后来做的那一条 ——
+IOD-1b(`db/migrations/2026-08-13-iod1b-batch-creation-rpcs.sql`)把三个建批次的地方收归 `create_inbound_batch` · `receive_inbound_batch_against_po` ·
+`create_output_batch` 三支 RPC,每一支先 `set_config('evoltrya.location_ctx', …)` 再插入;三个表单都画 `<LocationPicker>`
+(`app/inbound/new/actions.ts:142` · `app/inbound/receive/actions.ts:110` · `app/output/new/actions.ts:80`)。原文留着,不删。
 
 ## `sales_records.movement_id` 只记一次销售的【第一条】流水腿(IOD-1 记,2026-08-13,未修)
 
@@ -9853,7 +9857,7 @@ Step 0 的样稿 B 在"Processing cost added · Labour 200.00 SGD"后面写了"j
   对全树做了一次生产者 × 消费者的对照勘察(按属性名把 `formatDate` 的产出与 `new Date` / `Date.parse` / 查询过滤 / 再格式化的调用点连起来),
   找到的就是上面两处;按名字对照有漏的可能,所以登记在这里而不是写"零"。
 
-## AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS —— `equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人(AUDIT-TRAIL-1b-1 登记,2026-09-29,Tim 的 Q14)
+## ✅ 已关闭(U1-A,2026-10-05)· AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS —— `equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人(AUDIT-TRAIL-1b-1 登记,2026-09-29,Tim 的 Q14)
 
 `db/views/equipment_maintenance_advice.sql:28-44` 是属主权限视图,门是 `module.finance.view` **或** `module.processing.view`,
 而它带回 `work_cost_base`(维修那张费用的 `amount_base`)与 `equipment_cost_base`(`fixed_assets.cost_base`)。于是一个只持
@@ -9861,6 +9865,7 @@ Step 0 的样稿 B 在"Processing cost added · Labour 200.00 SGD"后面写了"j
 本刀新建的 `/operation/equipment/[id]` **不读**这张视图(抬头写着理由);今天读它的只有 `/finance/assets/[id]`(财务的门)。
 **修法是另一个决定**(Q14):要么把那两列按 `module.finance.view` 置空(与 `processing_runs_masked` 的写法相同),要么把视图的门
 收成财务。队列:`docs/forward-queue.md` 的 UNBLOCK-1。**删除条件:** 那一刀落地。
+**✅ 关闭(U1-A,2026-10-05,Q13):** 维修花费、机器成本与两者之比只给 `module.finance.view`;`meets_threshold` 与行照常给加工的人。fixture 247 EQ 臂。
 
 ## AT1B-WAREHOUSE-APPROVALS-FINANCE-ONLY —— 仓库申请的审批留痕仍然只给财务读(AUDIT-TRAIL-1b-1 登记,2026-09-29)
 
@@ -9925,7 +9930,7 @@ detail 在其余每一张订单上都只是单号本身。那一条记录照样�
 其余的查询参数(或面板那一段换成不翻页的短块),在金属价格页上带着筛选点一次,筛选还在。
 
 
-## AT1C1-PAYROLL-JOURNAL-SHOWS-INDIVIDUAL-PAY —— 工资过账的分录行把每一个人的实发工资给了不持 `data.view_pay` 的财务读者(AT-1c Step 0 量到,Tim 的 Q11,2026-10-03)
+## ✅ 已关闭(U1-A,2026-10-05)· AT1C1-PAYROLL-JOURNAL-SHOWS-INDIVIDUAL-PAY —— 工资过账的分录行把每一个人的实发工资给了不持 `data.view_pay` 的财务读者(AT-1c Step 0 量到,Tim 的 Q11,2026-10-03)
 
 `pay_payroll_lines` 给每一名员工过一行银行贷方,金额是那个人的实发工资,行备注是员工编号 + 法定姓名
 (`db/functions/pay_payroll_lines.sql:85-90`)。`journal_lines` 没有列遮蔽(本文件之外的常设决定 1:持 `module.finance.view`
@@ -9936,6 +9941,7 @@ detail 在其余每一张订单上都只是单号本身。那一条记录照样�
 **不在 AT-1c 里修** —— AT-1c 的审计记录照分录页今天的样子说(不在审计记录里单独遮,那会让审计记录与分录页说两个答案)。
 排在 `docs/forward-queue.md` UNBLOCK-1 的第一条。**删除条件:** 一个不持 `data.view_pay` 的财务读者在分录页与它的审计记录上,
 工资过账那几行按人的金额都读到 Restricted;持的人照常读到数。
+**✅ 关闭(U1-A,`v1.4.35`,2026-10-05,Tim 的 UNBLOCK-1 Q1–Q3):** 工资分录(`source_type = 'payroll'` 的每一张,含冲销)的每一行金额只给持 `data.view_pay` 的人 —— API 上由 `journal_lines` 的 restrictive 策略挡掉整行,页面经 `journal_lines_masked` 读到行与行摘要、金额「受限」,审计记录与变更记录经 `pay_journal` 规则印 Restricted(`journalLineLine` 不再印 0.00)。会悄悄少掉那几行的读法全部改成属主汇总(`docs/change-log.md` §10.1)。fixture 247 JA · JM · JT · JR 臂;线上角色表见 `docs/handbacks/U1-A.md`。本条留作记录,不删。
 
 ## AT1C1-UNRECONCILE-WRITES-TIMESTAMP-INTO-NOTES —— 撤销对账把一个原始时间戳拼进了对账单的备注(AT-1c Step 0 量到,Tim 的 Q24,2026-10-03)
 
@@ -10041,29 +10047,32 @@ banner-noby / history-back / refusal-wrong 三跑,五次 zh = en = 667 字;`cjk`
   在别处被引用时名字是 "PAY-… posting request" / "unposting request"(`trail_ref_label`)。
 **删除条件:** 写入的那一头不再往人看的列里拼机器字(或者每一处都有一列专门放它)。
 
-## AT1D1-KPI-OPEN-CYCLE-SCORES-SELF-READABLE —— 员工经 API 读得到自己【还没结束的那一轮】的 KPI 分(AT-1d Step 0 Q16;隐私组,UNBLOCK-1)
+## ✅ 已关闭(U1-A,2026-10-05)· AT1D1-KPI-OPEN-CYCLE-SCORES-SELF-READABLE —— 员工经 API 读得到自己【还没结束的那一轮】的 KPI 分(AT-1d Step 0 Q16;隐私组,UNBLOCK-1)
 
 以 postgres 读策略(2026-10-04):`kpi_entries` 的 "kpi_entries select own"(`db/tables/kpi_entries.sql:108`)只问 `employee_id = current_user_employee()`,
 **没有"这一轮已结束"的条件**;整表的 SELECT 授权也在。而 `/me` 读的 `my_kpi_entries`(属主视图)把分数、种类、依据、证据与覆盖【藏到这一轮结束】,
 `feedback_note` 永远不给。也就是说:屏幕不给,一次直接的 API 调用给。线上 30 条 KPI、全部在没结束的轮次里、0 条打过分(以 postgres 读)—— 今天没有可读的分。
 **AT-1d 不加新的暴露**(Q14:`/me` 上没有 KPI 的审计记录)。**处置(Tim 的裁定:进 UNBLOCK-1 的隐私组):** 收紧那一条自读策略
 (加轮次已结束的条件,或者整个改成只经 `my_kpi_entries` 读)。**删除条件:** 员工在一轮结束之前经任何一条路都读不到自己的分。
+**✅ 关闭(U1-A,2026-10-05,Q5):** "kpi_entries select own" 拿掉了;本人只经 `my_kpi_entries` 读(分数在关轮之后)。审计记录那条路(持 hr.view 的本人经 `trail_row_visible`)随它一起关了。fixture 247 KP 臂。
 
-## AT1D1-HR-NOTES-SELF-READABLE —— `employees.notes` 与 `separation_notes` 在屏幕上是人事内部的,而员工自读策略放他读(AT-1d Step 0 Q17;隐私组,UNBLOCK-1)
+## ✅ 已关闭(U1-A,2026-10-05)· AT1D1-HR-NOTES-SELF-READABLE —— `employees.notes` 与 `separation_notes` 在屏幕上是人事内部的,而员工自读策略放他读(AT-1d Step 0 Q17;隐私组,UNBLOCK-1)
 
 `/hr/employees/[id]` 印 `notes`(人事写给人事的话)与离职说明;`/me` 读的 `my_profile` **不**给这两列。可是 "employees select own row"
 (`db/tables/employees.sql:234`,`id = current_user_employee()`)放员工读自己那一行的【每一列】(这两列都在整表授权里、不在遮蔽规则里)。
 个人数据导出(`export_my_personal_data`)同样把 `notes` 的每一次改动与改它的人交给本人 —— 那是一条已经存在的、有意的路(PDPA 的查阅权)。
 **AT-1d 不加新的暴露**(Q14:`/me` 上没有个人档案的审计记录)。**处置(进 UNBLOCK-1 的隐私组):** 先由 Tim 定"员工能不能读人事写他的话"——
 能,就把屏幕补上;不能,就把这两列从自读里拿掉(遮蔽规则或列授权),并且决定导出那一条路怎么办。**删除条件:** 屏幕与 API 给员工的是同一套。
+**✅ 关闭(U1-A,2026-10-05,Q6 · Q7):** 两列从 `employees` 的列授权里拿掉,`employees_masked` 只给 `module.hr.view`(不对本人让路),遮蔽规则 `code:module.hr.view`。个人数据导出照旧交给本人 —— Tim 的 PDPA 裁定,登记为 `U1A-EXPORT-KEEPS-HR-NOTES`。fixture 247 EN 臂。
 
-## AT1D1-HEALTH-TEXT-AND-PERIOD-TOTALS-BEHIND-HR-VIEW-ONLY —— 病假 / 医疗的文字与工资期合计只要 module.hr.view(AT-1d Step 0 Q18;隐私组,UNBLOCK-1)
+## ✅ 已关闭(U1-A,2026-10-05)· AT1D1-HEALTH-TEXT-AND-PERIOD-TOTALS-BEHIND-HR-VIEW-ONLY —— 病假 / 医疗的文字与工资期合计只要 module.hr.view(AT-1d Step 0 Q18;隐私组,UNBLOCK-1)
 
 `medical_claims.description`、`amount_sgd` 与 `leave_requests.reason`、`certificate_ref`、`exception_reason` 是健康相关的文字,只受 `module.hr.view` 管
 (线上 7 个账号里 6 个持它,以 postgres 读 `role_permissions` × `user_roles`)。`payroll_periods` 的五个合计(`gross_total` … `net_pay_total`)同样只要 hr.view,
 `/hr/payroll/[id]` 不问 `data.view_pay` 就印它们(`page.tsx:139-143,266-270`)—— 线上 1 个工资期、1 行工资,于是那一期的合计【就是一个人的工资】;
 cto 与 gm 持 hr.view、不持 view_pay,读得到。**审计记录照页面**(Q18:AT-1d 不新造数据码)。**处置(进 UNBLOCK-1 的隐私组):** Tim 定要不要一个
 健康数据码,以及工资期合计在一期只有一两个人时要不要随 `data.view_pay` 遮。**删除条件:** 两件都有了裁定并落地。
+**✅ 关闭(U1-A,2026-10-05,Q8 · Q9 · Q10):** 新码 `data.view_health`(admin · hr · cco · cfo · finance);医疗事由与金额、请假事由 · 病假单号 · 例外理由只经遮蔽视图读,对本人让路。工资期的五个合计、工资申请的快照与金额(以及审批留痕上那两类单据的金额)要 `data.view_pay`。fixture 247 HL · PT 臂。
 
 ## ✅ 已关闭(AT-1d-3,2026-10-05)· AT1D1-ME-READS-HR-ONLY-PERIOD-TABLES —— `/me` 读 `attendance_periods` 与 `payroll_periods`,而这两张只给 module.hr.view(AT-1d Step 0 Q19)
 
@@ -10097,7 +10106,7 @@ warehouse 角色持 `action.overtime_approve`、不持 `module.hr.view`。`/hr/o
 差别就在这一格,照登记不改。线上仍 0 批加班;回滚的线上证明里 fusheng@(仓库)读一张临时的批,审计记录里员工是 Restricted。
 **删除条件:** Tim 对审批人看名字有了裁定,页面与审计记录说同一句话。
 
-## AT1D1-ANONYMISATION-LEAVES-OTHER-TABLES-UNREDACTED —— 匿名化只涂员工与履历的变更记录(AT-1d Step 0 Q30;隐私组,UNBLOCK-1)
+## ✅ 已关闭(U1-A,2026-10-05)· AT1D1-ANONYMISATION-LEAVES-OTHER-TABLES-UNREDACTED —— 匿名化只涂员工与履历的变更记录(AT-1d Step 0 Q30;隐私组,UNBLOCK-1)
 
 `anonymise_employee` → `change_log_redact_employee` 只涂 `employees` 与 `employment_history` 的变更记录(可涂的列:员工 18 列、履历 3 列,
 `change_log_redactable_columns`,以 postgres 读)。**这几张表上那个人的东西【不涂】:** `salary_change_requests`(旧薪 / 新薪 / 快照)、
@@ -10105,6 +10114,7 @@ warehouse 角色持 `action.overtime_approve`、不持 `module.hr.view`。`/hr/o
 (只有 admin 持 `action.anonymise_employee`)。AT-1d-1 做的只是说法:"Personal data anonymised",那个人读作 "A former employee"(fixture 244 N 臂)。
 **处置(进 UNBLOCK-1 的隐私组):** Tim 定匿名化要涂到哪里(工资与健康的文字是不是 PDPA 意义上要抹的),再扩 `change_log_redactable_columns` 与那支函数。
 **删除条件:** 匿名化覆盖到 Tim 定的那一圈,并且有 fixture 钉着。
+**✅ 关闭(U1-A,2026-10-05,Q11):** 匿名化再擦四张表上人写的字(理由、说明、备注、单号),表里与记录里都擦,金额一分不动;`change_log_redactable_columns` 与 `anonymise_employee` 同一份名单。fixture 247 AN 臂。
 
 ## AT1D1-SALARY-EXECUTION-HISTORY-NAMES-THE-RAISER —— 调薪执行写的那一行履历把【提出申请的人】记成作者(AT-1d Step 0 Q31)
 
@@ -10129,7 +10139,7 @@ warehouse 角色持 `action.overtime_approve`、不持 `module.hr.view`。`/hr/o
   `ApprovalsHistory.tsx` 抬头那句"这张表在 APR-1 之后是空的"随那个组件一起删掉了(Q27 把它换成审计记录)。
 **删除条件:** 前四条各自在它那一刀里处理掉。
 
-## AT1D3-ME-PAYSLIP-CURRENCY-NEEDS-HR-VIEW —— `/me` 的工资单金额不挂币种,对不持 module.hr.view 的员工(AT-1d-3 量到,2026-10-05)
+## ✅ 已关闭(U1-A,2026-10-05)· AT1D3-ME-PAYSLIP-CURRENCY-NEEDS-HR-VIEW —— `/me` 的工资单金额不挂币种,对不持 module.hr.view 的员工(AT-1d-3 量到,2026-10-05)
 
 `/me` 的工资单五栏用【那一期自己的币种】格式化金额(`app/me/page.tsx`,`formatAmount(l.gross_pay, per?.currency)`),而那一期的币种从
 `payroll_periods` 直读 —— 那张表只给 `module.hr.view`(`payroll_periods.sql` 的读策略)。于是不持 hr.view 的员工(线上:warehouse 那一个账号)
@@ -10137,6 +10147,7 @@ warehouse 角色持 `action.overtime_approve`、不持 `module.hr.view`。`/hr/o
 今天不显形:那个账号还没有一张工资单(线上 1 个工资期、1 行工资,不是他的)。
 **处置(Tim 定):** 要么把币种也算作"本人看得见的那一期的属性"加进 `my_period_labels()`(一列),要么工资单按本位币说(工资按本位币发,ROLE-1 · APR-9)。
 **删除条件:** 二选一落地,并以同一个身份读回带币种的金额。
+**✅ 关闭(U1-A,2026-10-05,Q12):** `my_period_labels()` 多一列 `currency`;`/me` 的工资单按那一期自己的币种说(一期 USD 的工资是可能的)。fixture 247 CU 臂、fixture 246 Q 臂改成五列。
 
 ## AT1D3-REVIEWER-PAGE-NAMES-VS-TRAIL —— 审核人那一页印着被评审的人的名字,审计记录里对不持 hr.view 的审核人是 Restricted(AT-1d-3,2026-10-05;Q20 的同一个形状)
 
@@ -10210,3 +10221,52 @@ DATE-PICK-1 在这一页上改的是 PayrollGrid 的月份框;单路由复现是
 线上(Vercel)这一页从来没有被报过 500 —— **但那是"没有报告",不是一次测量**(这台机器够不到 Vercel,AGENTS.md)。
 **处置:** 记下,不追(DATE-PICK-1 §8 第 25 条)。下一次 survey / 冒烟再在这一页上看到 500,先读 dev server 那一刻的输出。
 **删除条件:** 连续两刀的 survey 在这一页上都是 200(本条之后的第一刀算第一次),或者再出现一次并找到原因。
+
+## UNBLOCK1-BANK-STATEMENT-SHOWS-PAY —— 对账单上银行自己那一份工资转账,对不持 data.view_pay 的财务读者照旧看得见(U1-A 登记,Tim 的 UNBLOCK-1 Q4,2026-10-05)
+
+`bank_statement_lines`(导入的对账单行,`module.finance.view`)与 `bank_line_matches.matched_amount` 上有银行自己那一份按人的工资转账。
+**Tim 的 Q4:不在 U1-A 的范围** —— 那是银行的单据,只在对账页上读;今天持 `module.finance.edit`(能对账)的角色都持 `data.view_pay`。
+线上 4 行对账单行(以 postgres 读,2026-10-05)。U1-A 只把对账页上【分录那一侧】改成按遮蔽读(工资分录的候选行金额「受限」,
+配到它们的对账单行不再丢掉分录链接)。**删除条件:** 一个只持 `module.finance.view`、不持 `data.view_pay` 的角色开始对账时,重新裁。
+
+## U1A-EXPORT-KEEPS-HR-NOTES —— 个人数据导出照旧把人事写的备注交给本人(U1-A,Tim 的 UNBLOCK-1 Q7 · PDPA 裁定,2026-10-05)
+
+**这是一条裁定,不是一个漏洞。** 从 U1-A 起,员工本人经屏幕与 API 都读不到 `employees.notes` 与 `separation_notes`(Q6);
+而 `export_my_personal_data()` 的 `my_record_changes` 照旧把那两列每一次改动的前后值交给本人 —— Tim 的 PDPA 读法:当事人的
+查阅请求覆盖关于他的意见,这份导出就是那条正式、留痕的查阅路,是【唯一一条刻意的例外】。代码旁边写着同一句话
+(`db/functions/export_my_personal_data.sql` 抬头);fixture 247 EN 臂钉着"导出里仍有那段备注"。
+**删除条件:** 无 —— 只有 Tim 改口才动(那时连同 fixture 247 EN 那一格一起改)。
+
+## U1A-PAYROLL-REVERSAL-REQUEST-SHOWS-AMOUNT —— 一张【工资分录的冲销申请】带着那张分录的金额,对不持 data.view_pay 的财务读者可读(U1-A 登记,2026-10-05)
+
+发薪、公积金、扣款那几张分录的冲销走手工凭证的冲销申请(`journal_entry_reversal_route` 回 `request`)。那张申请
+(`journal_requests.amount_base`,以及它审批留痕上的 `amount_base`)抄着被冲销那张分录的合计 —— 一期一个人时就是一个人的实发工资。
+U1-A 遮的是【分录】(Q1:每一张工资分录的每一行,含冲销件),没有遮【申请】;`journal_requests` 与它那几行审批留痕仍按 `module.finance.view` 给。
+**线上今天 0 张手工凭证申请**(以 postgres 读 `journal_requests`,2026-10-05),所以没有一个数在外面。
+**删除条件:** `journal_requests` 对工资分录的冲销申请按 `data.view_pay` 遮金额(一个 `journal_requests_masked` + 审批留痕 `apr_amount` 多一支),
+或 Tim 裁定冲销申请本来就只有财务看。
+
+## U1A-MEDICAL-EXPENSE-AMOUNT-ON-FINANCE-SIDE —— 一张医疗报销生成的那张费用单,在财务那一侧照旧读得到金额(U1-A 登记,2026-10-05)
+
+U1-A 把医疗报销的金额收到 `data.view_health`(Q8);报销单那一页(`/hr/claims/[id]`)上由它生成的费用单的金额、已付与税额一起遮。
+**但那张费用单本身**(`expenses`,以及它的分录)在 `/finance/expenses`、分录页上照旧给每一个持 `module.finance.view` 的人 ——
+常设裁定 1(AGENTS.md:持 `module.finance.view` 就看得见钱,总账就是价格数据)。费用单的摘要是系统写的
+"Medical claim MC-… (EMP-…)",不带病由。cto 与 gm 持 `module.finance.view`,所以读得到"某人某天报销了多少医疗费"。
+**删除条件:** Tim 裁定医疗报销生成的费用单要不要按 `data.view_health` 遮(那会是总账里第二种按行遮金额的单据,形状同工资分录),或裁定这一处可以接受。
+
+## U1A-SELF-GATE-NULL-TRAP —— 九支请假函数的"持码或本人"门,对【没有员工档案】的账号从来没有关过(U1-A 量到,2026-10-05)
+
+`IF NOT (has_permission('module.hr.view') OR p_employee_id = current_user_employee()) THEN RAISE …` —— 一个没有员工档案的账号,
+`current_user_employee()` 是 NULL,于是 `p_employee_id = NULL` 是 NULL,`NOT (false OR NULL)` 也是 NULL,`IF NULL` 不进分支:**门是开的**。
+U1-A 在 `medical_claim_balance` 上撞到它(fixture 247 HL 臂的一格本该被拒却读到了数),并当场修好(`COALESCE(…, false)`)。
+**同一个写法还在九支**(`grep -n "IF NOT (.*= current_user_employee()" db/functions/*.sql`,去掉带 COALESCE 的):
+`accrued_annual_leave_detail` · `accrued_annual_leave` · `annual_leave_available_from` · `annual_leave_rate_per_year` ·
+`available_annual_accrual` · `consumed_from_accrual` · `compute_leave_encashment` · `leave_balance_internal` · `leave_balance`。
+**今天没有人走得到它**:线上七个账号里,没有员工档案的只有 tim@,而 tim@ 持 `module.hr.view`(以 postgres 读 `auth.users` × `employees` × 权限,2026-10-05)。
+它们读出来的是某个员工的假期余额(不是钱)。**删除条件:** 九支都改成 `COALESCE(p_employee_id = current_user_employee(), false)`,带一支 fixture(一个没有员工档案、不持 hr.view 的账号被按名拒)。归 U1-B。
+
+## U1A-SEARCH-NO-HEALTH-OR-NOTES —— 全局搜索不再按请假事由、看病事由或人事备注找单据(U1-A 的代价,2026-10-05)
+
+`document_types` 的 `match_columns` / `label_column` 必须对 `authenticated` 可读(fixture 100/8 · 199F 的判据:一个只对持码人可读的列做搜索,
+等于让不持码的人用搜索框去试出那段字)。U1-A 把那几列收起来之后,搜索也跟着不认它们了:员工不按 `notes` 找;请假单不按事由与病假单号找、
+搜索结果只印编号;医疗报销不按事由找、只印编号。**这是买来的代价,不是缺陷。** **删除条件:** 无 —— 若要恢复,要先有一条按读者的码过滤的搜索路(另一刀)。

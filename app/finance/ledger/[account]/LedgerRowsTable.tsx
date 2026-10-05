@@ -21,6 +21,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Refusal } from '@/app/components/ui/refusal'
 import { useTranslations } from '@/lib/i18n/client'
 
 export type LedgerTableRow = {
@@ -38,6 +39,8 @@ export type LedgerTableRow = {
     negative: boolean
     /** 合计行。见 CONV-4 §⑨-3 / CONV-8 §⑧。 */
     isTotal?: boolean
+    /** U1-A(UNBLOCK-1 Q1):工资分录那一行的金额对不持 data.view_pay 的人受限 —— 印「受限」,不印 0.00。合计不受限(它是发生额)。 */
+    restricted?: boolean
 }
 
 export default function LedgerRowsTable({
@@ -126,7 +129,9 @@ export default function LedgerRowsTable({
             // ★ 被追问的那个数。
             priority: true,
             className: 'text-sm',
-            render: (r) => (r.negative ? <span className="text-red-600">{r.amountText}</span> : r.amountText),
+            render: (r) =>
+                r.restricted ? <Refusal>{t('common.restricted')}</Refusal>
+                    : r.negative ? <span className="text-red-600">{r.amountText}</span> : r.amountText,
         },
     ]
 

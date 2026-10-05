@@ -49,7 +49,8 @@ export default async function ClaimsPage({
         code: r.code as string,
         employeeLabel: `${r.employee_code} — ${r.legal_name}`,
         claimDate: r.claim_date ? formatDate(r.claim_date, locale) : '—',
-        amountSgd: Number(r.amount_sgd).toFixed(2),
+        // U1-A(UNBLOCK-1 Q8):金额对不持 data.view_health 的人(本人的除外)是 null —— 表格印「受限」,不印 0.00
+        amountSgd: r.amount_sgd === null ? null : Number(r.amount_sgd).toFixed(2),
         settlementState: (r.settlement_state ?? '') as string,
         expenseCode: (r.expense_code ?? '—') as string,
     }))

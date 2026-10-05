@@ -94,6 +94,9 @@ INSERT INTO public.permissions (code, category, name_en, name_zh, description_en
     ('data.view_prices', 'data', 'View sales prices & costs', '查看销售价格与成本', 'Sales prices, invoices, receivables, landed cost, inventory valuation, processing cost and margin. Purchase-side prices are under View purchase prices.', '销售价格、发票、应收、到岸成本、存货计值、加工成本与毛利。采购那一侧的价格归「查看采购价格」。', 200),
     ('data.view_purchase_prices', 'data', 'View purchase prices', '查看采购价格', 'Purchase orders and their lines, retentions and payment terms, purchase pricing formulas and committed terms, the calculator, receipt unit prices and price history, and payables ageing. Seeing a receipt price does not allow setting it.', '采购单与采购行、质保金与付款条款、采购计价公式与已承诺条款、计价器、收货单价与改价历史、应付账龄。看得见收货价不等于定得了价。', 205),
     ('data.view_pay', 'data', 'View pay', '查看薪酬', 'Salary, CPF and payroll figures', '工资、公积金与薪资明细', 210),
+    -- ★ U1-A(Tim 的 UNBLOCK-1 Q8,2026-10-05):健康数据自己的码。授 admin · hr · cco · cfo · finance(决定 HR 申请的人);
+    --   cto · gm · warehouse 不持 —— 他们从此读不到别人看病的事由与请假的事由。本人读自己的照旧(遮蔽对本人让路)。
+    ('data.view_health', 'data', 'View health details', '查看健康信息', 'Medical-claim descriptions and amounts, and the reasons, certificate references and exception reasons on leave requests. Everyone still sees their own.', '医疗报销的事由与金额,以及请假单上的事由、病假单号与例外理由。每个人照旧看得见自己的。', 215),
     ('data.view_identity', 'data', 'View identity data', '查看身份信息', 'Identity numbers and work pass numbers', '身份证件号与工作准证号', 220),
     ('data.view_banking', 'data', 'View company bank details', '查看公司银行明细', 'Company bank account name, number, SWIFT and bank address as printed on invoices', '开在发票上的公司银行户名、账号、SWIFT 与开户行地址', 230),
     ('data.view_sales', 'data', 'View sales records', '查看销售记录', 'Quantity, unit price, amount, customer and date of sales made from output batches', '产出批次的销售数量、单价、金额、客户与日期', 240),

@@ -7,12 +7,18 @@ AS $function$
 DECLARE
     v_code text; v_name_en text; v_name_zh text; v_type text;
     v_rows jsonb; v_total numeric;
+    v_pay  boolean;
 BEGIN
     -- 【权限:与两张报表同一道门】能看见那个数字的人,就能看见它背后的行 ——
     -- 反过来说,这个函数不该比它服务的报表松一格。module.finance.view 隐含
     -- 价格可见性(AGENTS.md 三条常设裁定之一:总账就是价格数据),所以这里
     -- 不再叠第二把锁。
     PERFORM require_permission('module.finance.view');
+    -- ★ U1-A(Tim 的 UNBLOCK-1 Q1 · Q2,2026-10-05):工资分录那几行的金额(debit · credit · amount)只给持 data.view_pay 的人 ——
+    --   与 journal_lines_masked 的 CASE、与 change_log_mask_rules 的 pay_journal 规则同一个判据。行在、行摘要在、对方科目在,
+    --   金额是 null 并带 amounts_restricted = true(页面说「受限」,不说 0.00)。【合计不遮】:它是这个科目在这一期的发生额,
+    --   与报表上那个数并排对账(下面那段说明);没有逐行余额,所以从合计减不出任何一行。
+    v_pay := has_permission('data.view_pay');
 
     IF p_account_code IS NULL OR btrim(p_account_code) = '' THEN
         RAISE EXCEPTION 'ACCOUNT_CODE_REQUIRED';
@@ -73,10 +79,11 @@ BEGIN
             -- 那份映射已经服务分录列表页,不在这里抄第二份。
             'source_type',  m.source_type,
             'source_id',    m.source_id,
-            'debit',        m.debit,
-            'credit',       m.credit,
+            'debit',        CASE WHEN v_pay OR m.source_type IS DISTINCT FROM 'payroll' THEN m.debit END,
+            'credit',       CASE WHEN v_pay OR m.source_type IS DISTINCT FROM 'payroll' THEN m.credit END,
             -- 【符号:共享推导那一条,不是这里第三次写的一条】
-            'amount',       m.signed_base,
+            'amount',       CASE WHEN v_pay OR m.source_type IS DISTINCT FROM 'payroll' THEN m.signed_base END,
+            'amounts_restricted', NOT (v_pay OR m.source_type IS DISTINCT FROM 'payroll'),
             'counterparts', COALESCE(c.accounts, '[]'::jsonb))
             ORDER BY m.entry_date, m.entry_code, m.line_id), '[]'::jsonb),
         -- 【本函数自己的合计】页面会把它与报表上那个数字【并排】显示。

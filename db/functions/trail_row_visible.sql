@@ -5,6 +5,9 @@
 --   对着那一行重新求一次值。这样做是对的,因为实测(AUDIT-TRAIL-0 reader-masking.md §1.6):线上 287 条读策略
 --   0 条 restrictive、0 条依赖数据库角色 —— 全部经 has_permission() / current_user_employee() 从登录的 JWT 认人。
 --   restrictive 策略若将来出现,在这里用 AND 接上(已经写好)。
+--   ★ U1-A(2026-10-05):第一条 restrictive 策略来了 —— journal_lines 的 "amounts: payroll journal lines need data.view_pay"。
+--     名字以 "amounts:" 开头的这一类【不】接进来:它们挡的是 API 上的整行(PostgREST 做不了逐行遮列),
+--     而审计记录跟【屏幕】走(<表>_masked:行在、金额受限),金额由 change_log_mask_rules 遮。别的 restrictive 照旧 AND。
 --   · 表没开 RLS → 看 authenticated 有没有任何一列的 SELECT 权限;
 --   · authenticated 连一列都读不了(cod_verification_failures 那种没有读策略的表)→ 看不见;
 --   · 这一行已被硬删 → 对它最后一份影像求同一个值(jsonb_populate_record,别名就是表名,于是带表名限定的列引用照样解析)。
@@ -56,7 +59,10 @@ BEGIN
       FROM pg_policies p
      WHERE p.schemaname = 'public' AND p.tablename = p_table AND p.permissive = 'RESTRICTIVE'
        AND p.cmd IN ('SELECT', 'ALL') AND p.roles && ARRAY['authenticated', 'public']::name[]
-       AND p.qual IS NOT NULL;
+       AND p.qual IS NOT NULL
+       -- U1-A:名字以 "amounts:" 开头的 restrictive 策略只是【金额】的门(经 API 藏掉整行,因为 PostgREST 做不了逐行遮列);
+       --   审计记录跟屏幕走 —— 那一行在、金额受限,遮蔽由 change_log_mask_rules 给出(journal_lines 的 pay_journal)。
+       AND p.policyname NOT LIKE 'amounts:%';
     v_perm := '(' || v_perm || ')' || COALESCE(' AND (' || v_restr || ')', '');
 
     SELECT string_agg(format('%I.%I::text = %L', p_table, k.key, k.value), ' AND ')

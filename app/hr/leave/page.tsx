@@ -48,7 +48,7 @@ export default async function LeaveRequestsPage({
     const locale = await getLocale()
 
     let qb = supabase
-        .from('leave_requests')
+        .from('leave_requests_masked')
         .select('id, code, employee_id, leave_type_code, start_date, end_date, days, status, is_exception, created_at')
         .is('deleted_at', null)
     if (sp.status) qb = qb.eq('status', sp.status)
@@ -66,7 +66,10 @@ export default async function LeaveRequestsPage({
     const empById = new Map((mustRows(empRes)).map((e) => [e.id, e]))
     const typeByCode = new Map((mustRows(typeRes)).map((x) => [x.code, x]))
     // 待审在最前 —— 这是一张待办清单,不是一份档案
-    const rows = (mustRows(reqRes)).sort((a, b) => {
+    // U1-A:读 leave_requests_masked(这一页不选被遮的三列);视图的生成类型把每一列都标成可空 —— 这几列由基表的 NOT NULL 保证
+    type ReqRow = { id: string; code: string; employee_id: string; leave_type_code: string; start_date: string; end_date: string
+                    days: number; status: string; is_exception: boolean; created_at: string }
+    const rows = (mustRows(reqRes) as unknown as ReqRow[]).sort((a, b) => {
         if (a.status === 'pending' && b.status !== 'pending') return -1
         if (b.status === 'pending' && a.status !== 'pending') return 1
         return (b.start_date ?? '').localeCompare(a.start_date ?? '')

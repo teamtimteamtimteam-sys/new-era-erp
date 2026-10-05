@@ -109,6 +109,9 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'module.hr.edit', 'module.hr.view', 'data.view_identity', 'data.view_pay',
+        -- ★ U1-A(Tim 的 UNBLOCK-1 Q8,2026-10-05):健康数据(医疗报销的事由与金额、请假的事由)归决定 HR 申请的人 ——
+        --   财务持 action.decide_hr_requests,所以一并持 data.view_health。
+        'data.view_health',
         'action.decide_hr_requests', 'action.metal_prices',
         -- ★ ROLE-1 Batch 4a(Tim 2026-09-25,grilling Q1):收货定价与改价归财务。
         'action.price_receipts',
@@ -206,9 +209,11 @@ SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
         'action.overtime_approve'
 ) WHERE r.code = 'warehouse';
 
--- hr(7):人力资源 + 薪酬 + 身份信息 + 绩效正文。这四类正是 HR 的工作对象,也正是别人不该看见的。
+-- hr(8):人力资源 + 薪酬 + 身份信息 + 绩效正文 + 健康数据。这五类正是 HR 的工作对象,也正是别人不该看见的。
+-- ★ U1-A(Tim 的 UNBLOCK-1 Q8,2026-10-05):加 data.view_health(医疗报销的事由与金额、请假的事由)。
 INSERT INTO public.role_permissions (role_id, permission_code)
 SELECT r.id, p.code FROM roles r JOIN permissions p ON p.code IN (
+        'data.view_health',
         'data.view_identity', 'data.view_pay', 'data.view_reviews', 'module.hr.edit',
         'module.hr.view', 'module.tasks.edit', 'module.tasks.view'
 ) WHERE r.code = 'hr';

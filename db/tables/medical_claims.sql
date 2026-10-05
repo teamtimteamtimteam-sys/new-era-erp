@@ -71,6 +71,16 @@ CREATE POLICY "medical_claims delete by permission"
     ON public.medical_claims AS PERMISSIVE FOR DELETE TO authenticated
     USING (has_permission('module.hr.edit'));
 
+-- ★ U1-A(UNBLOCK-1 Q8,2026-10-05):健康数据要 data.view_health。description(看病的事由)与 amount_sgd(报销金额)
+--   从列授权里拿掉,只经 medical_claims_masked 读 —— 那里给持 data.view_health 的人,并【对本人让路】(自己的报销单照旧读得到)。
+--   此前 6 个账号里持 module.hr.view 的每一个都读得到别人看病的事由;cto · gm · warehouse 从此读不到。
+--   表级 SELECT 授权蕴含所有列,所以先整表收回、再逐列授回(employees 与 payroll_lines 同一个做法);写权限不动。
+--   列授权不随 ADD COLUMN 自动延伸:给这张表加列,要回到这一行,并把它放进 medical_claims_masked(gate 的 colgrant)。
+REVOKE SELECT ON public.medical_claims FROM authenticated, anon;
+GRANT SELECT (id, code, employee_id, claim_date, claim_year, receipt_ref, status, decided_at, decided_by, decision_notes,
+              expense_id, deleted_at, created_at, created_by, updated_at, updated_by, withdrawn_at)
+    ON public.medical_claims TO authenticated;
+
 -- ============================================================================
 
 -- ── SILENT-1(2026-09-08)· 被拒绝的写要抛,不许是一次"成功的空操作" ──────────

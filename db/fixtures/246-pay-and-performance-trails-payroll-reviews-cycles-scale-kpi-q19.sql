@@ -379,9 +379,13 @@ BEGIN
     IF NOT (v_r @> jsonb_build_array(jsonb_build_object('kind', 'attendance', 'period_id', v_att, 'code', v_att_code, 'period_month', v_m2))
             AND v_r @> jsonb_build_array(jsonb_build_object('kind', 'payroll', 'period_id', pp, 'code', v_pp_code, 'period_month', v_m2))) THEN
         RAISE EXCEPTION 'FIXTURE 246 Q19: the code and month of the employee''s own periods, got %', v_r; END IF;
+    -- U1-A(Tim 的 UNBLOCK-1 Q12,2026-10-05):多一列 currency —— 工资单那一期自己的币种,考勤那一行是 null。别的仍然一列都不给。
     IF EXISTS (SELECT 1 FROM jsonb_array_elements(v_r) x
-                WHERE (SELECT array_agg(k ORDER BY k) FROM jsonb_object_keys(x) k) <> ARRAY['code', 'kind', 'period_id', 'period_month']) THEN
-        RAISE EXCEPTION 'FIXTURE 246 Q19: nothing else of the period — only kind, id, code and month, got %', v_r; END IF;
+                WHERE (SELECT array_agg(k ORDER BY k) FROM jsonb_object_keys(x) k) <> ARRAY['code', 'currency', 'kind', 'period_id', 'period_month']) THEN
+        RAISE EXCEPTION 'FIXTURE 246 Q19: nothing else of the period — only kind, id, code, month and currency, got %', v_r; END IF;
+    IF NOT (v_r @> jsonb_build_array(jsonb_build_object('kind', 'payroll', 'currency', (SELECT currency FROM payroll_periods WHERE id = pp)))
+            AND v_r @> jsonb_build_array(jsonb_build_object('kind', 'attendance', 'currency', NULL))) THEN
+        RAISE EXCEPTION 'FIXTURE 246 Q19 (Q12): the payslip''s own currency on the payroll row, none on attendance, got %', v_r; END IF;
     IF v_r::text LIKE '%' || pp2::text || '%' THEN
         RAISE EXCEPTION 'FIXTURE 246 Q19: a period with no line of the employee must not be returned'; END IF;
     v_r := pg_temp.f246_read(u_emp, 'SELECT to_jsonb((SELECT count(*) FROM payroll_periods) + (SELECT count(*) FROM attendance_periods))');

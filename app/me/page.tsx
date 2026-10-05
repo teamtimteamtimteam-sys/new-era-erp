@@ -152,7 +152,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     // 自助的假期与报销:全部靠 cut 4 的行级策略 + HR-2a 的函数,不需要任何模块权限
     const [balRes, myLeaveRes, typeRes, claimRes, claimBalRes, expenseClaimRes, decisionRes] = await Promise.all([
         supabase.rpc('leave_balance', { p_employee_id: employeeId, p_leave_type_code: 'annual' }),
-        supabase.from('leave_requests')
+        // U1-A(UNBLOCK-1 Q8):leave_requests 有了遮蔽伴生视图,读它(这几列对本人原样;本人自己的健康数据也照给)
+        supabase.from('leave_requests_masked')
             // EMP-SELF-1:decision_notes —— 本人行策略本来就放行这一列(EMP-SELF-0 §1.5 记下的那一处)
             .select('id, code, leave_type_code, start_date, end_date, days, status, created_at, decision_notes')
             .eq('employee_id', employeeId).is('deleted_at', null)
@@ -263,15 +264,9 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
               .order('sequence')
         : { data: [] as GoalRow[] }
 
-    const periodIds = Array.from(
-        new Set((mustRows(payRes)).map((l) => l.payroll_period_id).filter((x): x is string => x !== null))
-    )
-    // 工资单的币种:只有持 hr.view 的人读得到期间那一行(不持的人 0 行 —— 金额照旧不挂币种,登记在 docs/known-issues.md);
-    //   编号与月份对每一个人都经 my_period_labels()(Q19)
-    const periods = periodIds.length
-        ? mustRows(await supabase.from('payroll_periods').select('id, currency').in('id', periodIds), 'payroll_periods (currency)')
-        : []
-    const periodById = new Map(periods.map((x) => [x.id, x]))
+    // ★ U1-A(Tim 的 UNBLOCK-1 Q12,2026-10-05):工资单的币种也经 my_period_labels()(多了 currency 一列)——
+    //   此前直读 payroll_periods,而那张表只给 module.hr.view,不持的人读到 0 行,金额印成不带币种的数字。
+    //   编号、月份与币种对每一个人都经同一支属主函数;一期 USD 的工资照它自己的币种说(不是本位币)。
 
     const deptName = locale === 'zh' ? p.department_name_zh : p.department_name_en
     const card = 'rounded border border-gray-200 p-4'
@@ -301,8 +296,8 @@ export default async function MePage({ searchParams }: { searchParams: Promise<{
     //     退回按【位置】认这一行。组件的 rowKey 要一个真的字符串,所以那个
     //     "按位置"在这里写明出来,而不是换一种认法:下标兜底,不会撞。
     const payslipRows: PayslipRow[] = (mustRows(payRes)).map((l, i) => {
-        const per = l.payroll_period_id ? periodById.get(l.payroll_period_id) : undefined
         const lab = labelOf('payroll', l.payroll_period_id)
+        const per = { currency: lab?.currency ?? undefined }
         return {
             id: l.id ?? `payslip-${i}`,
             periodCode: lab ? lab.code : '—',

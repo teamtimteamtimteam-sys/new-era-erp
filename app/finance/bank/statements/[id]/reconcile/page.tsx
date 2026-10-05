@@ -15,15 +15,6 @@ import { requireModule } from '@/app/components/moduleGuard'
 import { MOD } from '@/lib/modules'
 import { can } from '@/lib/permissions'
 
-type MatchRow = {
-    statement_line_id: string
-    matched_amount: number
-    journal_lines: {
-        id: string
-        journal_entries: { id: string; code: string; entry_date: string; memo: string | null } | null
-    } | null
-}
-
 export default async function ReconcilePage({
     params,
 }: {
@@ -104,16 +95,28 @@ export default async function ReconcilePage({
 
     // 已匹配行配到的分录(页级一次 .in;用于在行下方展示 entry code + 链接)
     const matchedLineIds = rawLines.filter((l) => l.match_status === 'matched').map((l) => l.id)
-    const { data: matchRows } = matchedLineIds.length
-        ? await supabase
+    // ★ U1-A(Tim 的 UNBLOCK-1 Q1,2026-10-05):配到的分录行经 journal_lines_masked 认,不再从 bank_line_matches 内嵌 journal_lines ——
+    //   基表上工资分录的行对不持 data.view_pay 的人不在,内嵌会是 null,于是配到发薪那几笔的对账单行【悄悄】丢掉它的分录链接。
+    //   (matched_amount 是银行那一侧的数,与对账单行同一件事 —— 见 known-issues 的 UNBLOCK1-BANK-STATEMENT-SHOWS-PAY,Q4 不在本刀。)
+    const matchRows = matchedLineIds.length
+        ? (mustRows(await supabase
               .from('bank_line_matches')
-              .select('statement_line_id, matched_amount, journal_lines(id, journal_entries(id, code, entry_date, memo))')
-              .in('statement_line_id', matchedLineIds)
-        : { data: [] as MatchRow[] }
+              .select('statement_line_id, matched_amount, journal_line_id')
+              .in('statement_line_id', matchedLineIds), 'bank_line_matches') as { statement_line_id: string; matched_amount: number; journal_line_id: string }[])
+        : []
+    const jlIds = [...new Set(matchRows.map((m) => m.journal_line_id))]
+    const jls = jlIds.length
+        ? (mustRows(await supabase.from('journal_lines_masked').select('id, entry_id').in('id', jlIds), 'journal_lines_masked') as { id: string; entry_id: string }[])
+        : []
+    const entryIds = [...new Set(jls.map((j) => j.entry_id))]
+    const entryRows = entryIds.length
+        ? mustRows(await supabase.from('journal_entries').select('id, code, entry_date, memo').in('id', entryIds), 'journal_entries')
+        : []
+    const entryByLine = new Map(jls.map((j) => [j.id, entryRows.find((e) => e.id === j.entry_id) ?? null]))
 
     const matchesByLine = new Map<string, { entry_id: string; entry_code: string; amount: number }[]>()
-    for (const m of (matchRows as unknown as MatchRow[] | null) ?? []) {
-        const entry = m.journal_lines?.journal_entries
+    for (const m of matchRows) {
+        const entry = entryByLine.get(m.journal_line_id)
         if (!entry) continue
         const list = matchesByLine.get(m.statement_line_id) ?? []
         list.push({ entry_id: entry.id, entry_code: entry.code, amount: m.matched_amount })

@@ -11,6 +11,11 @@
 --
 -- ★ HISTORY-1(2026-09-28):加 my_record_changes —— 通用变更记录里自己那一行的改动(见函数体注释)。
 -- ★ NAME-1(2026-09-28):first_name / last_name 跟着 legal_name 一起导出 —— 它们同样是关于这个人的个人数据。
+-- ★★ U1-A(Tim 的 UNBLOCK-1 Q7,2026-10-05 · PDPA 裁定):这份导出【照旧】把人事写他的备注(employees.notes / separation_notes)的
+--   改动史交给本人 —— 经 my_record_changes(变更记录里他自己那一行的每一次改动)。这是【唯一一条刻意的例外】:
+--   同一天起,本人经屏幕(employees_masked)与 API(列授权)都读不到这两列(Q6)。理由是 Tim 的 PDPA 读法:当事人的查阅请求
+--   覆盖关于他的意见,这份导出就是那条正式、留痕的查阅路。**不要"顺手"把它们从导出里删掉** —— 那是推翻一条裁定,不是修一个漏洞。
+--   登记在 docs/known-issues.md 的 U1A-EXPORT-KEEPS-HR-NOTES;fixture 247 的 EN 臂钉着"导出里仍有那段备注"。
 --
 -- NOTE: introduced by db/migrations/2026-08-24-pdpa1-anonymise-and-subject-access.sql;
 --       NAME-1 by db/migrations/2026-09-28-leavebal1-leave-balance-and-first-last-name.sql.

@@ -12,6 +12,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
+import { Refusal } from '@/app/components/ui/refusal'
 import { can } from '@/lib/permissions'
 import ClaimControls from './ClaimControls'
 import { mustRows } from '@/lib/db-helpers'
@@ -49,9 +50,13 @@ export default async function ClaimDetail({ params, searchParams }: {
     // pay_medical_claim 自己从报销单取。此前那个下拉筛 status='active',
     // 而线上没有任何 active 供应商,于是付款按钮被 !supplierId 永久禁用:
     // 这条路径在本刀之前【根本走不通】。
-    const balRes = await supabase.rpc('medical_claim_balance', {
-        p_employee_id: employeeId, p_year: claimYear,
-    })
+    // ★ U1-A(Tim 的 UNBLOCK-1 Q8,2026-10-05):金额、事由与额度(已用额 = 金额之和)要 data.view_health,或这一张就是读者自己的 ——
+    //   与 medical_claims_masked / medical_claim_status 的 CASE、与 medical_claim_balance 的门同一个判据。看不见的人:那几格说「受限」。
+    const [hasHealth, meRes] = await Promise.all([can('data.view_health'), supabase.rpc('current_user_employee')])
+    const canSeeHealth = hasHealth || (meRes.data as string | null) === employeeId
+    const balRes = canSeeHealth
+        ? await supabase.rpc('medical_claim_balance', { p_employee_id: employeeId, p_year: claimYear })
+        : { data: null, error: null }
     const bal = balRes.data as {
         pro_rated_limit_sgd: number; claimed_sgd: number; remaining_sgd: number; months_of_service: number
     } | null
@@ -117,14 +122,26 @@ export default async function ClaimDetail({ params, searchParams }: {
                     { label: t('claims.date'), value: claim.claim_date ? formatDate(claim.claim_date, locale) : null },
                     {
                         label: t('claims.amount'),
-                        value: t('claims.amountWithCcy', { amount: Number(claim.amount_sgd).toFixed(2), ccy: claimCcy }),
+                        value: claim.amount_sgd === null
+                            ? <Refusal>{t('common.restricted')}</Refusal>
+                            : t('claims.amountWithCcy', { amount: Number(claim.amount_sgd).toFixed(2), ccy: claimCcy }),
                         mono: true,
                     },
                     { label: t('claims.state'), value: t(`claims.state_${claim.settlement_state}`) },
-                    ...(claim.description ? [{ label: t('claims.description'), value: claim.description }] : []),
+                    ...(!canSeeHealth
+                        ? [{ label: t('claims.description'), value: <Refusal>{t('common.restricted')}</Refusal> }]
+                        : claim.description ? [{ label: t('claims.description'), value: claim.description }] : []),
                     ...(claim.receipt_ref ? [{ label: t('claims.receipt'), value: claim.receipt_ref }] : []),
                 ]}
             />
+
+            {!canSeeHealth && (
+                // U1-A(UNBLOCK-1 Q8):额度的已用额是金额之和 —— 看不见金额的人看见这一块在、说「受限」,而不是这一块消失
+                <section className={card}>
+                    <h3 className="mb-3">{t('claims.limitTitle', { 0: String(claimYear) })}</h3>
+                    <Refusal>{t('common.restricted')}</Refusal>
+                </section>
+            )}
 
             {bal && (
                 <section className={card}>

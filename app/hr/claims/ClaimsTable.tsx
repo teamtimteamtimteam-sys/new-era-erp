@@ -8,13 +8,15 @@
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { Refusal } from '@/app/components/ui/refusal'
 
 export type ClaimRow = {
     claimId: string
     code: string
     employeeLabel: string
     claimDate: string
-    amountSgd: string
+    /** U1-A(UNBLOCK-1 Q8):不持 data.view_health 的人(本人的除外)是 null */
+    amountSgd: string | null
     settlementState: string
     expenseCode: string
 }
@@ -45,7 +47,10 @@ export default function ClaimsTable({ rows, empty }: { rows: ClaimRow[]; empty: 
         },
         { key: 'employee', header: t('leave.employee'), render: (r) => r.employeeLabel },
         { key: 'date', header: t('claims.date'), render: (r) => r.claimDate },
-        { key: 'amount', header: t('claims.amount'), align: 'right', render: (r) => `${r.amountSgd} SGD` },
+        {
+            key: 'amount', header: t('claims.amount'), align: 'right',
+            render: (r) => (r.amountSgd === null ? <Refusal>{t('common.restricted')}</Refusal> : `${r.amountSgd} SGD`),
+        },
         {
             key: 'state', header: t('claims.state'), priority: true,
             render: (r) => (

@@ -24,6 +24,7 @@
 import * as React from 'react'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { useTranslations } from '@/lib/i18n/client'
+import { Refusal } from '@/app/components/ui/refusal'
 
 export type JournalLineRow = {
     id: string
@@ -36,6 +37,13 @@ export type JournalLineRow = {
     memo: string
     /** 合计行。见抬头。 */
     isTotal?: boolean
+    /**
+     * ★ U1-A(Tim 的 UNBLOCK-1 Q1 · Q3,2026-10-05):工资分录的金额对不持 data.view_pay 的人是【受限】——
+     *   那一格印「受限」(<Refusal>),不印空白(像没填),更不印 0.00(撒谎)。行、科目与行摘要照常在。
+     *   哪一格受限由 journal_lines_masked 的 side 定(借或贷);合计行在本张分录有任何一行受限时两格都受限。
+     */
+    debitRestricted?: boolean
+    creditRestricted?: boolean
 }
 
 export default function JournalLinesTable({ rows }: { rows: readonly JournalLineRow[] }) {
@@ -68,7 +76,7 @@ export default function JournalLinesTable({ rows }: { rows: readonly JournalLine
             // 代价是手机上是三列而不是两列,已在 survey-phone 上量过不溢出。
             priority: true,
             className: 'text-sm',
-            render: (r) => r.debitText,
+            render: (r) => (r.debitRestricted ? <Refusal>{t('common.restricted')}</Refusal> : r.debitText),
         },
         {
             key: 'credit',
@@ -76,7 +84,7 @@ export default function JournalLinesTable({ rows }: { rows: readonly JournalLine
             align: 'right',
             priority: true,
             className: 'text-sm',
-            render: (r) => r.creditText,
+            render: (r) => (r.creditRestricted ? <Refusal>{t('common.restricted')}</Refusal> : r.creditText),
         },
         {
             key: 'ccy',

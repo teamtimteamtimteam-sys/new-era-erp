@@ -1,6 +1,8 @@
 -- db/views/employees_masked.sql
 -- 员工档案的遮蔽伴生视图。身份/联系方式要 data.view_identity,月固定工资要 data.view_pay,
 -- 两者都【对本人让路】。
+-- ★ U1-A(UNBLOCK-1 Q6,2026-10-05):notes 与 separation_notes 要 module.hr.view,【不对本人让路】——
+--   那是人事写给人事的话(/hr/employees/[id] 才印它们,/me 从来不印)。个人数据导出照旧交给本人(Q7,刻意的例外)。
 --
 -- 【年假三列都是派生的】annual_leave_days 那一列已随 HR-2c 删除。
 --   annual_leave_rate_days       年度【费率】,界面必须按费率标,不是余额
@@ -32,7 +34,10 @@ CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
     employment_status,
     separation_date,
     separation_type,
-    separation_notes,
+        CASE
+            WHEN has_permission('module.hr.view'::text) THEN separation_notes
+            ELSE NULL::text
+        END AS separation_notes,
         CASE
             WHEN has_permission('data.view_identity'::text) OR id = current_user_employee() THEN work_email
             ELSE NULL::text
@@ -54,7 +59,10 @@ CREATE VIEW public.employees_masked WITH (security_invoker = off) AS
     work_pass_issue_date,
     work_pass_expiry_date,
     user_id,
-    notes,
+        CASE
+            WHEN has_permission('module.hr.view'::text) THEN notes
+            ELSE NULL::text
+        END AS notes,
     deleted_at,
     created_at,
     created_by,

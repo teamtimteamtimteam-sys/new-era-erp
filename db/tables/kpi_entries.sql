@@ -100,14 +100,12 @@ CREATE POLICY "kpi_entries select by permission"
     ON public.kpi_entries AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.hr.view'::text) AND has_permission('data.view_reviews'::text));
 
--- ★【本人看得见自己的那五条】★ 而这【不是】review_goals 那条策略的复制:
---   那一条把自评正文压到 approved/acknowledged 之后才可见,理由是自评过程中的
---   草稿不该被当事人看到。**KPI 条目不同:它是"你这个周期被考核的是哪五条"** ——
---   那是期初就该让人知道的事,藏起来才是错的。
---   所以本人始终看得见自己的条目;而**未定稿的分数由视图挡住**(见 my_kpi_entries)。
-CREATE POLICY "kpi_entries select own"
-    ON public.kpi_entries AS PERMISSIVE FOR SELECT TO authenticated
-    USING (employee_id = current_user_employee());
+-- ★ U1-A(UNBLOCK-1 Q5,Tim 2026-10-05):那条 "kpi_entries select own" 自读策略【拿掉了】。
+--   它没有"这一轮已结束"的条件,于是本人经 API(以及持 module.hr.view 的本人经审计记录 —— trail_row_visible 拿表的策略判行)
+--   在一轮还开着的时候就读得到自己的分数、依据与反馈;而屏幕(/me)只经 my_kpi_entries 读 —— 那张属主视图本来就把分数
+--   压到这一轮关掉之后、并且从来不给 feedback_note。从此本人【只有】那一条路:期初看得见"被考核的是哪五条"(视图照给),
+--   分数在关轮之后才出现。原来那段话("本人始终看得见自己的条目……未定稿的分数由视图挡住")说的是视图那一半,仍然成立;
+--   成立不了的是"基表也放他进来"那一半。
 
 COMMENT ON TABLE public.kpi_entries IS
     'KPI-1:一个人在一个周期里被考核的那五条 —— **模板的副本,不是引用**(规格 §8.3)。title / weight_pct / target_text / evidence_source / is_provisional / provisional_note / org_codes 全是【抄过来的值】;source_position_id 与 source_template_id/version 只回答"从哪儿来、哪一版",**不在读取时回查内容**。理由是仓库先例:FIN-27 的定价条款在承诺那一刻抄下、GST-2 的税率在开票那一刻冻结 —— 后来改模板不该回头改写他当时被考核的标准,那不是更新,那是改历史。FIN-27 的下半句一并继承:**引用了模板却没留下副本的记录要按名拒绝,不许悄悄回退去读"现在的模板"**,所以 target_text 是 NOT NULL。`score_kind` 把【算出来的分】与【人判的分】在数据里就分开(§10.2 是设计要求不是可选项:98.4% 与 4 分并排且长得一样,打分的人会默认两个一样可靠)—— 与 lib/permissions.ts 让 null 与 0 长得不一样是同一条。`override_cap` 是原表第六页那个【封顶】动作,原始分与封顶都留着,否则事后分不清"本来就 2 分"与"被封到 2 分"。';

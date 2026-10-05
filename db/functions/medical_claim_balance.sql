@@ -23,8 +23,14 @@ DECLARE
     v_start  date;      -- 本库自哪天起持有完整记录
     v_from_m integer;   -- 本年度从第几个月起算(入职月 / 完整记录起始月,取较晚者)
 BEGIN
-    IF NOT (has_permission('module.hr.view') OR p_employee_id = current_user_employee()) THEN
-        RAISE EXCEPTION 'PERMISSION_DENIED|module.hr.view';
+    -- ★ U1-A(Tim 的 UNBLOCK-1 Q8,2026-10-05):门从 module.hr.view 收成 data.view_health —— 已用额就是这个人这一年
+    --   医疗报销金额的合计,而那个金额(medical_claims.amount_sgd)从本刀起只给持 data.view_health 的人与本人。
+    --   本人照旧(/me 的额度面板);决定医疗报销的人(action.decide_hr_requests:admin · cco · cfo · finance)都持这一码,
+    --   所以 decide_medical_claim 里那一次调用照旧过得去。
+    --   ★ COALESCE 是承重的(U1-A 量到的、本刀之前就在的缺陷):一个【没有员工档案】的账号,current_user_employee() 是 NULL,
+    --     于是 "p_employee_id = NULL" 是 NULL,NOT (false OR NULL) 也是 NULL —— IF NULL 不进分支,这道门对它【从来没有关过】。
+    IF NOT (has_permission('data.view_health') OR COALESCE(p_employee_id = current_user_employee(), false)) THEN
+        RAISE EXCEPTION 'PERMISSION_DENIED|data.view_health';
     END IF;
 
     SELECT id, code, hire_date INTO v_emp FROM employees WHERE id = p_employee_id AND deleted_at IS NULL;

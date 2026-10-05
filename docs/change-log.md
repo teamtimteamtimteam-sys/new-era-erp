@@ -107,14 +107,19 @@ Each page's own trail is a **different** reader, `record_trail()` (§9) — the 
 **(empty)** (a blank before AUDIT-TRAIL-1a). The two are never confused. Since AUDIT-TRAIL-1a the masking is **one step**,
 `change_log_mask_row()`, called by both readers (§9.3).
 
-- The rules are one list, `change_log_mask_rules()`: one row per column, 80 columns on 26 tables. They were copied from
-  the `CASE WHEN … END AS <column>` of every `<table>_masked` view, plus the new `purchase_order_history_masked`.
+- The rules are one list, `change_log_mask_rules()`: one row per column, ~~80 columns on 26 tables~~ **101 columns on 33
+  tables since U1-A** (2026-10-05, §10). They were copied from the `CASE WHEN … END AS <column>` of every `<table>_masked`
+  view, plus the new `purchase_order_history_masked`.
 - Rule forms:
   - `code:<data code>`;
   - `code_or_self:<code>:<column>`, where the reader's own employee row counts, as in `employees_masked`;
   - `pft:direction` and `pft:formula_id`, where a sales formula asks `data.view_prices` and anything else asks
     `data.view_purchase_prices`;
-  - `pft3`, for `pricing_formula_history`.
+  - `pft3`, for `pricing_formula_history`;
+  - `pay_journal:<code>` (U1-A): visible with the code, or when the line's journal entry is not a payroll entry
+    (`journal_lines_masked`);
+  - `apr_amount` (U1-A): `approval_log_amount_visible(subject_type, subject_id)` — the same function the view calls
+    (`approval_log_masked`).
 - **Keeping the list in step is enforced:** `change_log_mask_gaps()` compares the list against the catalogue's
   actually-masked columns. A missing rule (the log would leak what the screen hides) or a stale rule fails the gate
   (`changemask` line, live and rebuild) and fixture 234.
@@ -136,6 +141,9 @@ updates, in the same transaction, it calls `change_log_redact_employee`, which:
 - nulls, in every log row for that employee's `employees` row **and** for their `employment_history` rows, exactly the
   fields anonymisation clears (`change_log_redactable_columns()`). These include `greeting_name`, which anonymisation now
   also clears (Q9);
+- **since U1-A (2026-10-05, Tim's UNBLOCK-1 Q11)** also nulls, in the log rows of that employee's
+  `salary_change_requests`, `payroll_lines`, `leave_requests` and `medical_claims`, the **free text** on them — reasons,
+  descriptions, notes, decision notes, certificate and receipt references — and **never an amount** (§10.4);
 - stamps `redacted_at`;
 - must run **after** the anonymisation `UPDATE`, because that update is itself logged and its `old` image holds every
   personal field. Fixture 234 pins this.
@@ -849,3 +857,56 @@ until they are dropped.
   request. `scripts/probe-at1d3.mjs`: every live payroll period (and Q27), every review, the cycle, scale and KPI blocks, the `/me` subjects, and
   zh = en on every 1d-3 page plus a 1d-2 and a 1d-1 page.
 
+## 10. Pay and personal data follow each role (U1-A, v1.4.35, 2026-10-05)
+
+Tim's UNBLOCK-1 rulings Q1–Q13 (Step 0 hand-back `docs/surveys/UNBLOCK-1/STEP0-HANDBACK.md`; hand-back `docs/handbacks/U1-A.md`).
+Every masked value reads **Restricted** — on the page, through the masked view, in each page's audit trail and on the
+change history; a genuinely empty value still reads **(empty)**.
+
+### 10.1 Payroll journals (Q1 · Q2 · Q3)
+
+- **What is pay:** every line of every journal entry with `source_type = 'payroll'` — the posting, the pay run, CPF,
+  deductions, and their reversals (a reversal copies `source_type`). Only `data.view_pay` holders see the amounts.
+- **The API** (`journal_lines` through PostgREST): a RESTRICTIVE policy, `"amounts: payroll journal lines need
+  data.view_pay"`, removes those rows for everyone else. Standing decision 1 (no column masking on the ledger) is kept:
+  nothing was revoked on `journal_lines`.
+- **The pages** read `journal_lines_masked` (owner rights, `module.finance.view`): the line is there, the account and the
+  line memo (employee code and name, Q3) are there, `debit` · `credit` · `amount_ccy` are null, `amounts_restricted` is
+  true, and `side` says which side the line is on.
+- **No report, balance or reconciliation changes for any reader** — every read that would have silently lost those rows
+  now reads as the owner: `trial_balance_totals()` (trial balance), `journal_close_preview()` (month close),
+  `journal_export_lines()` (GL CSV, the three amount cells read `Restricted`), `bank_book_balance_asof()` (now SECURITY
+  DEFINER), and the views `bank_unmatched_journal_lines`, `fx_rate_gaps`, `fx_month_end_readiness` (now owner rights, each
+  with its own `module.finance.view` arm). `account_ledger()` masks the per-line amounts; its period total is unchanged.
+- **The trail follows the screen, not the API.** `trail_row_visible()` skips restrictive policies whose name starts with
+  `amounts:` — they hide whole rows on the API only because PostgREST cannot mask a column per row. On the trail the line
+  is present and its amounts are masked by the `pay_journal` rule. A trail line whose amounts are restricted renders
+  `Restricted` (it used to render `Credit 0.00 SGD`).
+
+### 10.2 Payroll period totals, requests and approval amounts (Q9 · Q10)
+
+`payroll_periods`' five totals, `payroll_requests`' `snapshot` · `gross_total` · `amount_base`, and `approval_log`'s
+`amount_ccy` · `amount_base` on payroll-request rows are behind `data.view_pay` (base columns revoked; `_masked` views;
+rules `code:data.view_pay` and `apr_amount`). The approval-log read rule became one function, `approval_log_readable()`,
+called by both the policy and `approval_log_masked`.
+
+### 10.3 Health details (Q8) and HR's notes (Q6 · Q7)
+
+- New code **`data.view_health`** (admin · hr · cco · cfo · finance). It gates `medical_claims.description` and
+  `amount_sgd` and `leave_requests.reason` · `certificate_ref` · `exception_reason` (rule
+  `code_or_self:data.view_health:employee_id` — the employee keeps their own), `medical_claim_status`, the medical-claim
+  rows' approval amounts, and `medical_claim_balance()`.
+- `employees.notes` and `separation_notes`: rule `code:module.hr.view`, not self. **The personal-data export
+  (`export_my_personal_data`, `my_record_changes`) still gives the employee the history of those notes** — Tim's PDPA
+  ruling, the one deliberate exception (Q7).
+- Search no longer matches or labels by a masked column (`document_types`: employee `notes`; leave `reason` and
+  `certificate_ref`; medical `description`).
+
+### 10.4 Redaction scope (Q11)
+
+Anonymisation erases the free text on the person's salary-change requests (`reason`, `decision_notes`,
+`withdraw_reason`), payroll lines (`notes`), leave requests (`reason`, `certificate_ref`, `decision_notes`,
+`exception_reason`) and medical claims (`description`, `receipt_ref`, `decision_notes`) — in the tables (null, or
+`ANONYMISED` where a constraint forbids null) and in their log rows (JSON null, through the same guarded redaction, once
+per row). **Amounts are kept**: they are accounting records with statutory retention, and once the person is anonymised
+they belong to "a former employee". Fixture 247 AN arm pins it.

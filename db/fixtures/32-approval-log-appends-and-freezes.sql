@@ -42,7 +42,11 @@ BEGIN
     INSERT INTO role_permissions (role_id, permission_code)
     VALUES (r_hr, 'module.hr.edit'), (r_hr, 'module.hr.view'),
            -- ROLE-1(2026-09-23):请假与医疗申报的决定门换成 action.decide_hr_requests
-           (r_hr, 'action.decide_hr_requests');
+           (r_hr, 'action.decide_hr_requests'),
+           -- U1-A(UNBLOCK-1 Q8,2026-10-05):决定医疗报销要看额度(已用额 = 金额之和),而那个数从此要 data.view_health ——
+           --   线上每一个持 action.decide_hr_requests 的角色都持它(admin · cco · cfo · finance)。一个决定人不持它时,
+           --   decide_medical_claim 按名拒 PERMISSION_DENIED|data.view_health(看不见病由与金额的人不该批医疗报销)。
+           (r_hr, 'data.view_health');
     INSERT INTO roles (code, name_en, name_zh, is_active)
     VALUES ('fixture-32-none', 'f', 'f', true) RETURNING id INTO r_none;
     INSERT INTO role_permissions (role_id, permission_code) VALUES (r_none, 'module.finance.view');

@@ -32,6 +32,8 @@
 --   末尾调 change_log_redact_employee 涂掉通用变更记录里的个人字段。
 -- ★ NAME-1(2026-09-28,db/migrations/2026-09-28-leavebal1-leave-balance-and-first-last-name.sql):
 --   first_name / last_name 与 preferred_name 一起清成 NULL —— 它们就是身份列。
+-- ★ U1-A(Tim 的 UNBLOCK-1 Q11,2026-10-05):范围加四张表上【人写的字】(调薪申请、工资行、请假单、医疗报销),金额不动;
+--   记录那一侧由 change_log_redact_employee 跟上(同一份名单:change_log_redactable_columns)。
 
 CREATE OR REPLACE FUNCTION public.anonymise_employee(p_employee_id uuid, p_reason text)
  RETURNS jsonb
@@ -115,6 +117,33 @@ BEGIN
            anonymised_at      = now()
      WHERE employee_id = p_employee_id
        AND anonymised_at IS NULL;
+
+    -- ★ U1-A(Tim 的 UNBLOCK-1 Q11,2026-10-05):四张表上【人写的字】一并擦掉 —— 调薪申请的理由 · 决定说明 · 撤回理由,
+    --   工资行的备注,请假单的事由 · 病假单号 · 决定说明 · 例外理由,医疗报销的事由 · 单据号 · 决定说明。
+    --   【金额一个都不动】(Q11:擦文字,留金额 —— 那是有法定保存期的账;人一匿名化,它们就只属于"一位前员工")。
+    --   不许为空的那几列(调薪申请的理由;被驳回那一张的决定说明;例外请假的理由)写成 'ANONYMISED' —— 与 legal_name 同一个做法;
+    --   其余写成 NULL。下一句涂记录时,这几列在记录里一律涂成 null(change_log_redactable_columns)。
+    UPDATE salary_change_requests
+       SET reason          = 'ANONYMISED',
+           decision_notes  = CASE WHEN status = 'rejected' THEN 'ANONYMISED' END,
+           withdraw_reason = NULL
+     WHERE employee_id = p_employee_id;
+    UPDATE payroll_lines
+       SET notes = NULL
+     WHERE employee_id = p_employee_id AND notes IS NOT NULL;
+    UPDATE leave_requests
+       SET reason           = NULL,
+           certificate_ref  = NULL,
+           decision_notes   = NULL,
+           exception_reason = CASE WHEN is_exception THEN 'ANONYMISED' END
+     WHERE employee_id = p_employee_id
+       AND (reason IS NOT NULL OR certificate_ref IS NOT NULL OR decision_notes IS NOT NULL OR exception_reason IS NOT NULL);
+    UPDATE medical_claims
+       SET description    = NULL,
+           receipt_ref    = NULL,
+           decision_notes = NULL
+     WHERE employee_id = p_employee_id
+       AND (description IS NOT NULL OR receipt_ref IS NOT NULL OR decision_notes IS NOT NULL);
 
     -- ★ HISTORY-1(Tim 的 Q11):通用变更记录里关于这个人的个人字段一并涂掉。
     --   【必须在上面两句之后】—— 那两句本身就被 change_log_capture 记了行,

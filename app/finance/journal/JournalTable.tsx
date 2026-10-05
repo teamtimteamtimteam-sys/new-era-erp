@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { MaskedValue } from '@/app/components/MaskedValue'
 
 export type JournalRow = {
     id: string
@@ -15,7 +16,8 @@ export type JournalRow = {
     memo: string | null
     sourceType: string | null
     sourceHref: string | null
-    amount: number
+    /** U1-A(UNBLOCK-1 Q1):工资分录对不持 data.view_pay 的人是 null —— 印「受限」,不印 0.00 */
+    amount: number | null
     status: string
 }
 
@@ -48,7 +50,10 @@ export default function JournalTable({ rows, empty, baseCurrency }: { rows: Jour
         },
         {
             key: 'amount', header: t('finance.colAmount', { ccy: baseCurrency }), priority: true, align: 'right', className: 'text-sm',
-            render: (r) => formatMoneyBare(r.amount, '列头 金额 —— 已带本位币'),
+            render: (r) => (
+                <MaskedValue value={r.amount} canView={r.amount !== null}
+                             format={(v: number) => formatMoneyBare(v, '列头 金额 —— 已带本位币')} />
+            ),
         },
         {
             key: 'status', header: t('finance.colStatus'),

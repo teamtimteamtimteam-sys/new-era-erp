@@ -2676,6 +2676,10 @@ function labelPart(r: TrailRow): { code: string | null; part: Val | null } {
     return DOC_CODE.test(l) ? { code: l, part: null } : { code: null, part: { text: l } }
 }
 function vline(d: TrailDict, r: TrailRow, col: string, opts: BuildOptions, label?: string): Line[] {
+    // ★ U1-A(Tim 的裁定:每一个被遮的值都读作 Restricted):imgOf 把受限标记丢掉,于是一个被遮的值在这里【整行消失】——
+    //   读起来像"没填"。受限就说受限(vlinesR 的同一个判法,挪进所有人都走的这一支)。
+    const raw = r.new?.[col] ?? r.old?.[col] ?? r.ctx?.[col]
+    if (isRestricted(raw)) return [{ t: 'value', label: label ?? fieldMeta(d, r.table!, col)[0], value: { text: tx(d, 'restricted'), restricted: true } }]
     const v = imgOf(r)[col]
     if (isEmpty(v ?? null)) return []
     return [{ t: 'value', label: label ?? fieldMeta(d, r.table!, col)[0], value: formatValue(d, r.table!, col, v, imgOf(r), r.refs, r.op, opts) }]
@@ -2687,6 +2691,16 @@ function vlines(d: TrailDict, r: TrailRow, cols: string[], opts: BuildOptions): 
 function journalLineLine(d: TrailDict, r: TrailRow): Line {
     const img = imgOf(r)
     const acc = refLabel(r, 'account_id') ?? cap(fieldMeta(d, 'journal_lines', 'account_id')[0])
+    // ★ U1-A(Tim 的 UNBLOCK-1 Q1,2026-10-05):工资分录的金额对不持 data.view_pay 的读者是受限标记 —— imgOf 把受限值丢掉,
+    //   下面那句 `?? 0` 会把它印成 "Credit 0.00 SGD"(一句谎话)。受限就说受限;借贷那一边照常说(方向不是工资)。
+    const raw = r.new ?? r.old ?? {}
+    if (isRestricted(raw['debit']) || isRestricted(raw['credit'])) {
+        const side = isRestricted(raw['debit']) && isRestricted(raw['credit'])
+            ? null
+            : (num(img['debit'] ?? null) ?? 0) > 0 ? 'je.debit' as const : 'je.credit' as const
+        const text = side ? tx(d, side, { amount: tx(d, 'restricted') }) : tx(d, 'restricted')
+        return { t: 'value', label: acc, value: { text, restricted: true } }
+    }
     const dr = num(img['debit'] ?? null) ?? 0, cr = num(img['credit'] ?? null) ?? 0
     const amt = `${NUM2.format(dr > 0 ? dr : cr)} ${d.baseCurrency}`
     let text = tx(d, dr > 0 ? 'je.debit' : 'je.credit', { amount: amt })
@@ -4011,8 +4025,11 @@ function describeTime(d: TrailDict, rows: TrailRow[], opts: BuildOptions): Block
                 ls.push({ t: 'note', text: tx(d, 'lv.exception') })
                 ls.push(...vlines(d, r, ['exception_reason'], opts))
             }
+            // U1-A(UNBLOCK-1 Q8):请假事由对不持 data.view_health 的读者是受限标记 —— typed() 会把它当成"没写",于是那一行理由消失;
+            //   受限就说受限
             out.push({ title: withPart(tx(d, 'lv.requested', { days: daysText(d, num(r.new?.['days'] ?? null)), type }), code), lines: ls,
-                       reason: typed(r.new?.['reason']), key: true, weight: 100 })
+                       reason: isRestricted(r.new?.['reason']) ? { text: tx(d, 'restricted'), restricted: true } : typed(r.new?.['reason']),
+                       key: true, weight: 100 })
             continue
         }
         const decided = changed(r, 'status') || (r.prelog && (r.cols ?? []).includes('decided_at'))

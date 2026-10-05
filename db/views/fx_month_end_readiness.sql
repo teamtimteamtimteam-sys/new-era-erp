@@ -25,8 +25,13 @@
 --
 -- NOTE: introduced by db/migrations/2026-08-27-fxrates1-one-write-path-history-and-month-end-readiness.sql.
 
+-- ★ U1-A(Tim 的 UNBLOCK-1 Q2,2026-10-05):改成【属主权限】,外币行那一支自己带门(module.finance.view —— 与 journal_lines /
+--   journal_entries 的 permissive 读策略同一个码)。月份只从那一支长出来,所以对一个不持它的读者照旧是 0 行;对持它的读者,
+--   重估那两个 EXISTS 以属主身份读 journal_entries,与 invoker 时他自己读到的是同一组行。
+--   理由:journal_lines 上那条 restrictive 策略让不持 data.view_pay 的财务读者读不到工资分录的行;invoker 时,一期外币发薪会
+--   【悄悄】从"哪些月末要重估"里少掉一个币种。这张视图只说月末、币种与牌价,不说金额。
 CREATE OR REPLACE VIEW public.fx_month_end_readiness
-WITH (security_invoker = on) AS
+WITH (security_invoker = off) AS
  WITH b AS (
          SELECT c_1.code
            FROM currencies c_1
@@ -38,7 +43,7 @@ WITH (security_invoker = on) AS
              JOIN accounts a ON a.id = jl.account_id
              JOIN journal_entries e ON e.id = jl.entry_id
           WHERE a.is_monetary AND jl.currency <> (( SELECT b.code
-                   FROM b))
+                   FROM b)) AND has_permission('module.finance.view'::text)
         ), ccy AS (
          SELECT DISTINCT fx_lines.currency
            FROM fx_lines

@@ -7,6 +7,7 @@
 // DB 的 MATCH_AMOUNT_MISMATCH 仍是权威兜底。
 import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
+import { Refusal } from '@/app/components/ui/refusal'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatAmount } from '@/lib/format'
 import {
@@ -42,7 +43,12 @@ export type Candidate = {
     entry_date: string
     memo: string | null
     source_type: string | null
-    amount_ccy: number
+    /**
+     * ★ U1-A(Tim 的 UNBLOCK-1 Q1,2026-10-05):工资分录那几行(发薪的银行贷方)对不持 data.view_pay 的人是 null ——
+     *   行照常在候选里(它就是对账单上那几笔工资转账要配的行),金额印「受限」,不参与"最接近"的排序与选中合计。
+     *   能配(match_bank_line)要 module.finance.edit,而今天持它的角色都持 data.view_pay。
+     */
+    amount_ccy: number | null
     direction: 'debit' | 'credit'
 }
 
@@ -136,8 +142,9 @@ canEdit: boolean
             .filter((c) => c.direction === want)
             .slice()
             .sort((a, b) => {
-                const da = Math.abs(a.amount_ccy - target)
-                const db = Math.abs(b.amount_ccy - target)
+                // 受限的金额排在最后 —— 它离目标多远,这一位读者不知道,所以它不该冒充"最接近"
+                const da = a.amount_ccy === null ? Number.POSITIVE_INFINITY : Math.abs(a.amount_ccy - target)
+                const db = b.amount_ccy === null ? Number.POSITIVE_INFINITY : Math.abs(b.amount_ccy - target)
                 if (da !== db) return da - db
                 return a.entry_date.localeCompare(b.entry_date)
             })
@@ -146,7 +153,7 @@ canEdit: boolean
     const selectedTotal = round2(
         visibleCandidates
             .filter((c) => checked[c.journal_line_id])
-            .reduce((s, c) => s + c.amount_ccy, 0)
+            .reduce((s, c) => s + (c.amount_ccy ?? 0), 0)
     )
     const selectedIds = visibleCandidates
         .filter((c) => checked[c.journal_line_id])
@@ -561,7 +568,7 @@ canEdit: boolean
                             ) : (
                                 <div className="border border-gray-200 rounded divide-y max-h-[28rem] overflow-y-auto">
                                     {visibleCandidates.map((c) => {
-                                        const exact = Math.round((c.amount_ccy - target) * 100) === 0
+                                        const exact = c.amount_ccy !== null && Math.round((c.amount_ccy - target) * 100) === 0
                                         return (
                                             <label
                                                 key={c.journal_line_id}
@@ -592,7 +599,7 @@ canEdit: boolean
                                                     {c.source_type ? t('finance.source.' + c.source_type) : '—'}
                                                 </span>
                                                 <span className="w-24 shrink-0 text-right tabular-nums">
-                                                    {formatAmount(c.amount_ccy, null)}
+                                                    {c.amount_ccy === null ? <Refusal>{t('common.restricted')}</Refusal> : formatAmount(c.amount_ccy, null)}
                                                 </span>
                                                 <span className="w-16 shrink-0 text-right tabular-nums">
                                                     {exact && (

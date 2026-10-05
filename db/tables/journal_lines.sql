@@ -92,6 +92,24 @@ CREATE POLICY "journal_lines select by permission"
     AS PERMISSIVE FOR SELECT TO authenticated
     USING (has_permission('module.finance.view'::text));
 
+-- ★ U1-A(Tim 的 UNBLOCK-1 Q1 · Q2 · Q3,2026-10-05):工资分录里【每一行】都是一个人的工资 ——
+--   source_type = 'payroll' 的分录(过账、发薪、公积金、扣款,以及它们的冲销:冲销件照抄 source_type)的每一行,
+--   只有持 data.view_pay 的人经 API 读得到。其余的财务读者:
+--     · 页面经 journal_lines_masked 读 —— 那一行在,科目与行摘要(员工编号 + 姓名)在,金额是「受限」;
+--     · 直连 PostgREST 读这张表 —— 那几行【不在】(这条策略);
+--     · 报表、余额、对账都是 DEFINER 汇总(trial_balance_totals · journal_close_preview · account_ledger · bank_book_balance_asof ……),
+--       属主身份绕过 RLS,所以没有一个读者的合计因此变小。
+--   【策略名以 "amounts:" 开头,这是一个约定,不是装饰】trail_row_visible 在拼 restrictive 判据时跳过这一类 ——
+--   审计记录跟【屏幕】走(journal_lines_masked:行在、金额受限),而金额的遮蔽由 change_log_mask_rules 的 pay_journal 规则
+--   与视图里那句 CASE 逐字同一个判据给出。少了这个约定,审计记录会把整行藏掉,与页面说两件事。
+--   EXISTS 子查询读 journal_entries:对持 module.finance.view 的读者(只有他们过得了上面那条 permissive),那张表的策略放行。
+CREATE POLICY "amounts: payroll journal lines need data.view_pay"
+    ON public.journal_lines
+    AS RESTRICTIVE FOR SELECT TO authenticated
+    USING (has_permission('data.view_pay'::text)
+           OR NOT EXISTS (SELECT 1 FROM public.journal_entries e
+                           WHERE e.id = journal_lines.entry_id AND e.source_type = 'payroll'));
+
 -- ★ APR-6(2026-09-25,grilling Q1 · Q9):INSERT 写策略拿掉 —— 分录行只经 post_journal_entry 插入。
 --   这同时关掉了 JE-APPEND(往一张【已过账】的凭证追加一对借贷相等的行:开着的期间里 GO-2 的期间锁
 --   拦不住它,而 trg_journal_lines_immutable 只守 UPDATE / DELETE)。直连写由下面的语句级守卫按名拒。

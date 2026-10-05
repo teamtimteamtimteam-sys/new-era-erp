@@ -72,7 +72,15 @@ CREATE POLICY "leave_requests select own rows"
 --   于是这里【故意】没有 INSERT / UPDATE / DELETE 策略,并且收回写权限 —— 先例 import_batches。
 --   读照旧:上面两条读策略不动。
 REVOKE ALL ON public.leave_requests FROM authenticated;
-GRANT SELECT ON public.leave_requests TO authenticated;
+-- ★ U1-A(UNBLOCK-1 Q8,2026-10-05):reason · certificate_ref · exception_reason 是健康数据(请假的事由、病假单号、
+--   例外的理由),要 data.view_health —— 不再整表授读,而是逐列授回其余的列;那三列只经 leave_requests_masked 读,
+--   那里给持 data.view_health 的人,并【对本人让路】。列授权不随 ADD COLUMN 自动延伸:给这张表加列要回到这一行
+--   并放进 leave_requests_masked(gate 的 colgrant)。
+REVOKE SELECT ON public.leave_requests FROM anon;
+GRANT SELECT (id, code, employee_id, leave_type_code, start_date, end_date, start_half_day, end_half_day, days,
+              status, decided_at, decided_by, decision_notes, deleted_at, created_at, created_by, updated_at, updated_by,
+              is_exception)
+    ON public.leave_requests TO authenticated;
 
 -- ============================================================================
 

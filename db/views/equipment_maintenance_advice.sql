@@ -16,6 +16,11 @@
 -- 之后才开始咬人,而那时该按哪个算是一次会计决定,不是一个默认值。
 --
 -- NOTE: introduced by db/migrations/2026-08-21-eqp2b-maintenance-and-repair-records.sql.
+--
+-- ★ U1-A(Tim 的 UNBLOCK-1 Q13 · AT-1b Q14,2026-10-05):维修花了多少(work_cost_base)、机器的记录成本(equipment_cost_base)
+--   与两者之比(pct_of_equipment_cost —— 知道一个就推得出另一个)只给持 module.finance.view 的人。两张基表(expenses、fixed_assets)
+--   本来就只给财务;这张属主视图的门是"财务【或】加工",于是只持加工权限的人(warehouse)此前读得到这两个数。
+--   meets_threshold 照常给 —— 它就是那一句建议本身,只说够不够,不说多少;门(行谓词)不动,加工的人照旧看得见每一条记录与建议。
 
 CREATE VIEW public.equipment_maintenance_advice WITH (security_invoker = off) AS
  SELECT m.id AS maintenance_id,
@@ -25,11 +30,18 @@ CREATE VIEW public.equipment_maintenance_advice WITH (security_invoker = off) AS
     m.kind,
     m.capitalised,
     m.expense_id,
-    e.amount_base AS work_cost_base,
-    fa.cost_base AS equipment_cost_base,
+        CASE
+            WHEN has_permission('module.finance.view'::text) THEN e.amount_base
+            ELSE NULL::numeric
+        END AS work_cost_base,
+        CASE
+            WHEN has_permission('module.finance.view'::text) THEN fa.cost_base
+            ELSE NULL::numeric
+        END AS equipment_cost_base,
     s.capitalise_pct_of_cost,
     s.capitalise_floor_base,
         CASE
+            WHEN NOT has_permission('module.finance.view'::text) THEN NULL::numeric
             WHEN e.amount_base IS NULL OR fa.cost_base IS NULL OR fa.cost_base = 0::numeric THEN NULL::numeric
             ELSE round(e.amount_base / fa.cost_base * 100::numeric, 2)
         END AS pct_of_equipment_cost,

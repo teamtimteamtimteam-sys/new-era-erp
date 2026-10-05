@@ -19,6 +19,7 @@
 //   挂着的那一张申请与过账 / 撤销的按钮是【控制】,留着(与 1c-1 的发票申请同一个裁定)。
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { Refusal } from '@/app/components/ui/refusal'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
@@ -58,7 +59,8 @@ export function PayrollRequestPanel({
     subject: string
     isPosted: boolean
     currency: string
-    totals: { gross: number; employerCpf: number; employeeCpf: number; other: number; net: number }
+    /** U1-A(UNBLOCK-1 Q9):不持 data.view_pay 的人是 null(payroll_periods_masked)—— 过账预览印「受限」,不印 0.00 */
+    totals: { gross: number | null; employerCpf: number | null; employeeCpf: number | null; other: number | null; net: number | null }
     open: PayrollRequestView | null
     canRaise: boolean
     canDecide: boolean
@@ -80,12 +82,16 @@ export function PayrollRequestPanel({
         })
     }
 
+    // 一个数受限,整张预览就受限(五个数是同一组合计的五种拆法)
+    const restricted = totals.gross === null || totals.employerCpf === null || totals.employeeCpf === null
+        || totals.other === null || totals.net === null
+    const amt = (sign: string, v: number | null) => (restricted || v === null ? null : `${sign}${formatAmount(v, currency)}`)
     const postingLines = [
-        { acct: '6100', name: t('hr.acct6100'), amount: `+${formatAmount(totals.gross, currency)}` },
-        { acct: '6110', name: t('hr.acct6110'), amount: `+${formatAmount(totals.employerCpf, currency)}` },
-        { acct: '2400', name: t('hr.acct2400'), amount: `−${formatAmount(totals.employerCpf + totals.employeeCpf, currency)}` },
-        { acct: '2200', name: t('hr.acct2200'), amount: `−${formatAmount(totals.other, currency)}` },
-        { acct: '2300', name: t('hr.acct2300'), amount: `−${formatAmount(totals.net, currency)}` },
+        { acct: '6100', name: t('hr.acct6100'), amount: amt('+', totals.gross) },
+        { acct: '6110', name: t('hr.acct6110'), amount: amt('+', totals.employerCpf) },
+        { acct: '2400', name: t('hr.acct2400'), amount: amt('−', (totals.employerCpf ?? 0) + (totals.employeeCpf ?? 0)) },
+        { acct: '2200', name: t('hr.acct2200'), amount: amt('−', totals.other) },
+        { acct: '2300', name: t('hr.acct2300'), amount: amt('−', totals.net) },
     ]
     const postingTable = (
         <dl className="divide-y divide-[color:var(--brand-border)] rounded border border-[color:var(--brand-border)]">
@@ -94,7 +100,7 @@ export function PayrollRequestPanel({
                     <dt className="text-[color:var(--brand-muted-text)]">
                         <span>{l.acct}</span> {l.name}
                     </dt>
-                    <dd className="whitespace-nowrap">{l.amount}</dd>
+                    <dd className="whitespace-nowrap">{l.amount ?? <Refusal>{t('common.restricted')}</Refusal>}</dd>
                 </div>
             ))}
         </dl>

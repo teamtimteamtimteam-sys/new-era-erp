@@ -6,6 +6,7 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/database.types'
 import { getTranslations } from '@/lib/i18n/server'
 import { formatMoneyBare } from '@/lib/format'
 import { PayrollRequestPanel, type PayrollRequestView } from './PostControls'
@@ -39,16 +40,22 @@ export default async function PayrollDetailPage({
     const supabase = await createClient()
     const t = await getTranslations()
 
-    const { data: period, error } = await supabase
-        .from('payroll_periods')
+    // ★ U1-A(Tim 的 UNBLOCK-1 Q9,2026-10-05):读 payroll_periods_masked —— 五个合计对不持 data.view_pay 的人是 null(合计行与过账预览印「受限」)。
+    //   基表上那五列已经不对 authenticated 开放,select('*') 会 42501。
+    const { data: periodRaw, error } = await supabase
+        .from('payroll_periods_masked')
         .select('*')
         .eq('id', id)
         .is('deleted_at', null)
         .single()
 
-    if (error || !period) {
+    if (error || !periodRaw) {
         notFound()
     }
+    // 视图的生成类型把每一列都标成可空;列与基表逐列相同 —— 按基表的行类型读,只有五个合计是真的可空(受限 = null)
+    type PeriodTotals = 'gross_total' | 'employer_cpf_total' | 'employee_cpf_total' | 'other_deductions_total' | 'net_pay_total'
+    const period = periodRaw as unknown as Omit<Database['public']['Tables']['payroll_periods']['Row'], PeriodTotals>
+        & { [K in PeriodTotals]: number | null }
 
     const [linesRes, jeRes, reqRes, canRaise, canDecide, meRes, otRes] = await Promise.all([
         supabase
@@ -63,7 +70,7 @@ export default async function PayrollDetailPage({
             : Promise.resolve({ data: null, error: null }),
         // PAYROLL-APR-1:这一期的申请,最新的在前(读策略与本页同一个码,module.hr.view)
         supabase
-            .from('payroll_requests')
+            .from('payroll_requests_masked')
             .select('id, label, kind, status, notes, decision_notes, created_at')
             .eq('payroll_period_id', id)
             .order('created_at', { ascending: false }),
@@ -79,11 +86,11 @@ export default async function PayrollDetailPage({
 
     type LineRow = {
         id: string
-        gross_pay: number
-        employer_cpf: number
-        employee_cpf: number
-        other_deductions: number
-        net_pay: number
+        gross_pay: number | null
+        employer_cpf: number | null
+        employee_cpf: number | null
+        other_deductions: number | null
+        net_pay: number | null
         notes: string | null
         employees: { id: string; code: string; legal_name: string } | null
     }
@@ -128,6 +135,7 @@ export default async function PayrollDetailPage({
         deductionsText: formatMoneyBare(l.other_deductions, CCY_NOTE),
         netText: formatMoneyBare(l.net_pay, CCY_NOTE),
         otHoursText: l.employees ? (otByEmployee.get(l.employees.id) ?? 0).toFixed(2) : '—',
+        restricted: l.gross_pay === null,
     }))
 
     // ★ 合计行是【数据】,不是 <tfoot> —— CONV-4 §⑨-3 定的型,CONV-8 §⑧ 复核保留。
@@ -146,6 +154,7 @@ export default async function PayrollDetailPage({
         otHoursText: lines.reduce((acc, l) => acc + (l.employees ? (otByEmployee.get(l.employees.id) ?? 0) : 0), 0).toFixed(2),
         isTotal: true,
         totalNote: t('hr.lineCount', { n: lines.length }),
+        restricted: period.gross_total === null,
     })
 
     return (
@@ -265,11 +274,12 @@ export default async function PayrollDetailPage({
                 isPosted={isPosted}
                 currency={period.currency}
                 totals={{
-                    gross: Number(period.gross_total),
-                    employerCpf: Number(period.employer_cpf_total),
-                    employeeCpf: Number(period.employee_cpf_total),
-                    other: Number(period.other_deductions_total),
-                    net: Number(period.net_pay_total),
+                    // null 留 null —— Number(null) 是 0,那正是本仓库反复付账的「受限」读成 0.00
+                    gross: period.gross_total === null ? null : Number(period.gross_total),
+                    employerCpf: period.employer_cpf_total === null ? null : Number(period.employer_cpf_total),
+                    employeeCpf: period.employee_cpf_total === null ? null : Number(period.employee_cpf_total),
+                    other: period.other_deductions_total === null ? null : Number(period.other_deductions_total),
+                    net: period.net_pay_total === null ? null : Number(period.net_pay_total),
                 }}
                 open={openRequest}
                 canRaise={canRaise}

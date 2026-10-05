@@ -104,6 +104,11 @@ GRANT SELECT ON public.document_types TO authenticated;
 --   ☞ 而 db/anon-grants-baseline.tsv 一行都不用动:线上仍然是它的子集。
 REVOKE ALL ON public.document_types FROM anon;
 
+-- ★ U1-A(Tim 的 UNBLOCK-1 Q6 · Q8,2026-10-05):三类单据的搜索列与名字列不能再是被遮的列 ——
+--   搜索按 match_columns 匹配、按 label_column 印名字,而 fixture 100/8 与 199F 的判据是"它们对 authenticated 读得到";
+--   一个只对持码人可读的列做搜索,等于让一个不持码的人用搜索框去试出那段字(页面刻意扣住的东西)。
+--   employee:match 去掉 notes(人事备注,Q6);leave_request:label 从 reason 改成空(只印编号)、match 去掉 reason 与 certificate_ref;
+--   medical_claim:label 从 description 改成空、match 去掉 description(Q8 的健康数据)。代价照直说:HR 不能再用请假事由或看病事由搜单据。
 INSERT INTO public.document_types
     (key, prefix, table_name, numbering, sequence_name, route, link_mode, label_column, match_columns, view_permission)
 VALUES
@@ -112,12 +117,12 @@ VALUES
     ('cod', 'COD', 'certificates_of_destruction', 'gapless', NULL, '/output', 'type_list', 'void_reason', ARRAY['void_reason']::text[], ARRAY['action.issue_cod']::text[]),
     ('container', 'CTR', 'containers', 'gapless', NULL, '/logistics/containers', 'detail', 'notes', ARRAY['container_number', 'vessel', 'voyage', 'bl_number', 'notes']::text[], ARRAY['module.logistics.view']::text[]),
     ('credit_note', 'CN', 'credit_notes', 'gapless', NULL, '/finance/credit-notes', 'list', 'reason', ARRAY['reason']::text[], ARRAY['module.finance.view']::text[]),
-    ('employee', 'EMP', 'employees', 'gapless', NULL, '/hr/employees', 'detail', 'legal_name', ARRAY['legal_name', 'preferred_name', 'notes']::text[], ARRAY['module.hr.view']::text[]),
+    ('employee', 'EMP', 'employees', 'gapless', NULL, '/hr/employees', 'detail', 'legal_name', ARRAY['legal_name', 'preferred_name']::text[], ARRAY['module.hr.view']::text[]),
     ('expense_claim', 'CLM', 'expense_claims', 'gapless', NULL, '/hr/claims', 'list', 'description', ARRAY['description', 'no_receipt_reason', 'decision_notes']::text[], ARRAY['module.finance.view']::text[]),
     ('fixed_asset', 'FA', 'fixed_assets', 'gapless', NULL, '/finance/assets', 'detail', 'description', ARRAY['description', 'category', 'notes']::text[], ARRAY['module.finance.view']::text[]),
     ('cash_forecast', 'FCST', 'cash_forecasts', 'gapless', NULL, '/finance/cash-forecast', 'list', NULL, '{}'::text[], ARRAY['module.finance.view']::text[]),
-    ('leave_request', 'LV', 'leave_requests', 'gapless', NULL, '/hr/leave', 'detail', 'reason', ARRAY['reason', 'certificate_ref', 'decision_notes']::text[], ARRAY['module.hr.view']::text[]),
-    ('medical_claim', 'MC', 'medical_claims', 'gapless', NULL, '/hr/claims', 'detail', 'description', ARRAY['description', 'receipt_ref', 'decision_notes']::text[], ARRAY['module.hr.view']::text[]),
+    ('leave_request', 'LV', 'leave_requests', 'gapless', NULL, '/hr/leave', 'detail', NULL, ARRAY['decision_notes']::text[], ARRAY['module.hr.view']::text[]),
+    ('medical_claim', 'MC', 'medical_claims', 'gapless', NULL, '/hr/claims', 'detail', NULL, ARRAY['receipt_ref', 'decision_notes']::text[], ARRAY['module.hr.view']::text[]),
     ('payroll_period', 'PAY', 'payroll_periods', 'gapless', NULL, '/hr/payroll', 'detail', 'notes', ARRAY['source_note', 'notes']::text[], ARRAY['module.hr.view']::text[]),
     ('pricing_formula', 'PF', 'pricing_formulas', 'gapless', NULL, '/tools/pricing/formulas', 'list', 'name', ARRAY['name', 'notes']::text[], ARRAY['module.pricing.view']::text[]),
     ('purchase_order', 'PO', 'purchase_orders', 'gapless', NULL, '/purchasing/orders', 'detail', 'notes', ARRAY['terms_text', 'notes', 'delivery_location']::text[], ARRAY['module.purchasing.view']::text[]),

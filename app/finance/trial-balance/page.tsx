@@ -75,7 +75,10 @@ export default async function FinancePage({
             .from('accounts')
             .select('id, code, name_en, name_zh, account_type, is_active')
             .order('code'),
-        supabase.from('journal_lines').select('account_id, debit, credit'),
+        // ★ U1-A(Tim 的 UNBLOCK-1 Q2,2026-10-05):按科目的合计问库(trial_balance_totals,属主身份),不再把每一行拉回来自己加。
+        //   journal_lines 上那条 restrictive 策略让不持 data.view_pay 的财务读者读不到工资分录的行;逐行求和会让那几行
+        //   【悄悄】从合计里消失,而表仍然"平"(工资分录自己借贷相等)。库里那一支对每一个读者给同一组数。
+        supabase.rpc('trial_balance_totals'),
     ])
 
     if (accountsRes.error || linesRes.error) {
@@ -95,21 +98,18 @@ export default async function FinancePage({
     }
 
     const accounts = (mustRows(accountsRes)) as AccountRow[]
-    const lines = mustRows(linesRes)
+    const totals = mustRows(linesRes, 'trial_balance_totals') as { account_id: string; debits: number; credits: number }[]
 
-    // 按科目聚合借/贷
+    // 按科目的借/贷合计(库已经聚合好了)
     const agg = new Map<string, { debits: number; credits: number }>()
-    for (const l of lines) {
-        const cur = agg.get(l.account_id) ?? { debits: 0, credits: 0 }
-        cur.debits += l.debit
-        cur.credits += l.credit
-        agg.set(l.account_id, cur)
+    for (const l of totals) {
+        agg.set(l.account_id, { debits: Number(l.debits), credits: Number(l.credits) })
     }
 
     const accountName = (a: AccountRow) => (locale === 'zh' ? a.name_zh : a.name_en)
 
-    const totalDebits = Math.round(lines.reduce((s, l) => s + l.debit, 0) * 100) / 100
-    const totalCredits = Math.round(lines.reduce((s, l) => s + l.credit, 0) * 100) / 100
+    const totalDebits = Math.round(totals.reduce((s, l) => s + Number(l.debits), 0) * 100) / 100
+    const totalCredits = Math.round(totals.reduce((s, l) => s + Number(l.credits), 0) * 100) / 100
 
     // 分组(固定顺序);默认只显示有发生额的科目
     const groups = TYPE_ORDER.map((type) => ({
