@@ -7,7 +7,7 @@
 // 而且屏幕上的数字会被人当成"过账会发生什么"的承诺 —— 它却算错。
 // 同样的病之前出现过两次:验配影响预览(Phase 4 cut 5b)、GrantRunner 的假期公式
 // (HR-2c 已删)。修法一样:删掉重复实现,只留数据库那一份。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
 import { mustOne } from '@/lib/db-helpers'
@@ -100,7 +100,7 @@ export default async function RevaluationPage({ searchParams }: { searchParams: 
     return (
         <ListPage title={t('finance.reval.title')} maxWidth="max-w-4xl" state={{ kind: 'ok' }}>
             <form method="get" className="mb-4">
-                <input type="date" name="date" defaultValue={d} className={CONTROL_INPUT} />
+                <DatePicker name="date" defaultValue={d} />
                 <Button variant="secondary" type="submit" className="ml-2">{t('reviews.filter')}</Button>
             </form>
 

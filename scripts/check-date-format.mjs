@@ -13,10 +13,14 @@
 //      ★ **判据按【形状】,不按名字** —— AGENTS.md(BUGFIX-1b)记过:
 //        按 `localize*Error` 这个名字数出 42 支,按形状数是 45 支,
 //        差的 5 支做的是一模一样的事,只是不叫那个名字。
-//   ③ 原生 `<input type="date|month|datetime-local|week">` 的处数 **只许减少**。
-//      ☞ 这一维是替【下一刀】守的:选择器那一半是 DATE-0 单独立的一刀
-//        (85 个文件 / 130 个控件 + 一个自写的日历控件)。在它落地之前,
-//        这一维保证那笔债**不再长**。
+//   ③ ★ DATE-PICK-1(2026-10-05,Tim 的 Q38)起:原生日期 / 月份 / 日期时间框【一个都不许有】。
+//      从前它"只许减少"(DATE-1 守着那笔债不再长);选择器那一刀把 134 处全部换成了
+//      `app/components/ui/date-picker.tsx`,于是判据从【棘轮】变成【零】。
+//      ☞ 而"零"是这一维最危险的读数 —— 一支瞎掉的扫描器也报零。所以它【两条互相独立的路】数
+//        (语法树 · 字符),两个数必须相等;每一次运行先拿一段【金丝雀源码】试两条路,
+//        数不出金丝雀里那 5 处就当场退 2(「我瞎了」),而不是报「干净」。
+//      ☞ 两条路同时数【选择器的调用点】(DatePicker / PaymentDateInput):那是这 134 处搬去的地方,
+//        它的总体 ≥ 100 是"扫描器确实走到了那些页面"的第二个证据。
 //
 // ════════════════════════════════════════════════════════════════════════════
 // ★★★【它【做不到】什么 —— 而这一段是本文件最要紧的几行】★★★
@@ -74,16 +78,20 @@
 // 用法:node scripts/check-date-format.mjs
 //       node scripts/check-date-format.mjs --update-baseline
 //       node scripts/check-date-format.mjs --blind=ast|text   ← 致盲注入,必须退 2
+//       node scripts/check-date-format.mjs --inject=native|native-expr|native-ternary|native-month|native-datetime|comment
+//            ← 维度③ 的故障注入:往扫描集合里加一份【虚拟源码】;前五格必须退 1 并点名它,comment 那一格必须仍是 0
 // 退出码:0 干净 · 1 新增了违规 · 2 量具自己坏了
 // ════════════════════════════════════════════════════════════════════════════
 import { readdirSync, statSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import ts from 'typescript'
 import { assertPopulation, assertPinned } from './lib/selfproof.mjs'
+import { blankComments } from './lib/blank-comments.mjs'
 
 const ROOT = process.cwd()
 const BASELINE = join(ROOT, 'scripts/date-format-baseline.json')
 const BLIND = (process.argv.find((a) => a.startsWith('--blind=')) || '').slice(8)
+const INJECT = (process.argv.find((a) => a.startsWith('--inject=')) || '').slice(9)
 
 // ── 例外:每一条都要写理由。名单是列出来的,不是记在谁脑子里的。──────────────
 const ALLOWLIST = [
@@ -116,21 +124,7 @@ function allowed(rel) {
 //   ☞ 处置照 CONFIRM-1 的两条:① 数之前把注释剥掉,让两条路数的是同一个总体;
 //     ② **注释数与调用点数【分开报】** —— 只报一个总数的勘察,读者无从知道
 //     它数的是代码还是散文。
-function blankComments(src) {
-    let out = ''
-    let i = 0, inS = null, inLine = false, inBlock = false
-    while (i < src.length) {
-        const c = src[i], d = src[i + 1]
-        if (inLine) { if (c === '\n') { inLine = false; out += c } else out += ' '; i++; continue }
-        if (inBlock) { if (c === '*' && d === '/') { inBlock = false; out += '  '; i += 2 } else { out += (c === '\n' ? c : ' '); i++ } continue }
-        if (inS) { if (c === '\\') { out += '  '; i += 2; continue } if (c === inS) inS = null; out += c; i++; continue }
-        if (c === '/' && d === '/') { inLine = true; out += '  '; i += 2; continue }
-        if (c === '/' && d === '*') { inBlock = true; out += '  '; i += 2; continue }
-        if (c === '"' || c === "'" || c === '`') { inS = c; out += c; i++; continue }
-        out += c; i++
-    }
-    return out
-}
+// 涂注释那一支搬去了 scripts/lib/blank-comments.mjs(DATE-PICK-1:check-date-data-paths 的字符那条路也要它)
 
 function* walk(dir) {
     for (const name of readdirSync(dir)) {
@@ -142,7 +136,130 @@ function* walk(dir) {
 }
 
 const LOCALE_CALLS = new Set(['toLocaleDateString', 'toLocaleTimeString', 'toLocaleString'])
-const NATIVE_DATE_INPUT = /type="(date|month|datetime-local|week)"/g
+
+// ════════════════════════════════════════════════════════════════════════════
+// ── 维度 ③ 的两条路(DATE-PICK-1)────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// 【数的是什么】一个原生的日期类控件 = 下面五种写法里的任何一种,种类是 date · month · datetime-local · week · time:
+//   ① JSX 属性 `type="date"`(任何标签 —— `<Input type="date">` 与 `<input>` 一样坏);
+//   ② `type={'date'}` / `type={x ? 'date' : 'text'}`(表达式里出现那个字面量);
+//   ③ `createElement('input', { type: 'date' })`;④ `el.type = 'date'`;⑤ `el.setAttribute('type', 'date')`。
+// 【两条路怎么独立】路 A 走 TypeScript 语法树;路 B 只走字符(先把注释涂掉,字符串留着)。
+//   两条路都不按行切(AGENTS.md:按行切会废掉含 \n 的字符类 —— 多行开标签的那一行到 `<input` 就断了)。
+const NATIVE_KINDS = ['date', 'month', 'datetime-local', 'week', 'time']
+const NATIVE_SET = new Set(NATIVE_KINDS)
+const PICKER_TAGS = new Set(['DatePicker', 'PaymentDateInput'])
+const KIND_ALT = NATIVE_KINDS.join('|')
+
+/** 路 A:语法树。返回 { natives: [{line, how}], typeAttrs, pickers } */
+function nativeByAst(rel, src) {
+    const out = { natives: [], typeAttrs: 0, pickers: 0 }
+    if (BLIND === 'ast') return out
+    const sf = ts.createSourceFile(rel, src, ts.ScriptTarget.Latest, true,
+        rel.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS)
+    const at = (n) => sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1
+    const literalKinds = (expr) => {
+        const found = []
+        const v = (n) => {
+            if ((ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n)) && NATIVE_SET.has(n.text)) found.push(n.text)
+            ts.forEachChild(n, v)
+        }
+        v(expr)
+        return found
+    }
+    const visit = (n) => {
+        if (ts.isJsxSelfClosingElement(n) || ts.isJsxOpeningElement(n)) {
+            if (PICKER_TAGS.has(n.tagName.getText(sf))) out.pickers++
+        }
+        if (ts.isJsxAttribute(n) && n.name.getText(sf) === 'type') {
+            out.typeAttrs++
+            const init = n.initializer
+            if (init && ts.isStringLiteral(init) && NATIVE_SET.has(init.text)) out.natives.push({ line: at(n), how: `type="${init.text}"` })
+            else if (init && ts.isJsxExpression(init) && init.expression) {
+                for (const k of literalKinds(init.expression)) out.natives.push({ line: at(n), how: `type={…'${k}'…}` })
+            }
+        }
+        if (ts.isCallExpression(n)) {
+            const callee = n.expression
+            const nm = ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : ''
+            if (nm === 'createElement' && n.arguments.length >= 2 && ts.isObjectLiteralExpression(n.arguments[1])) {
+                for (const p of n.arguments[1].properties) {
+                    if (ts.isPropertyAssignment(p) && p.name.getText(sf) === 'type') {
+                        for (const k of literalKinds(p.initializer)) out.natives.push({ line: at(n), how: `createElement(…{ type: '${k}' })` })
+                    }
+                }
+            }
+            if (nm === 'setAttribute' && n.arguments.length >= 2 && ts.isStringLiteral(n.arguments[0]) && n.arguments[0].text === 'type') {
+                for (const k of literalKinds(n.arguments[1])) out.natives.push({ line: at(n), how: `setAttribute('type', '${k}')` })
+            }
+        }
+        if (ts.isBinaryExpression(n) && n.operatorToken.kind === ts.SyntaxKind.EqualsToken
+            && ts.isPropertyAccessExpression(n.left) && n.left.name.text === 'type') {
+            for (const k of literalKinds(n.right)) out.natives.push({ line: at(n), how: `.type = '${k}'` })
+        }
+        ts.forEachChild(n, visit)
+    }
+    visit(sf)
+    return out
+}
+
+/** 路 B:字符。注释先涂掉(字符串留着),整份源码跑正则 —— 不按行切。 */
+function nativeByText(rel, src) {
+    const out = { natives: [], typeAttrs: 0, pickers: 0 }
+    if (BLIND === 'text') return out
+    const s = blankComments(src)
+    const lineOf = (i) => s.slice(0, i).split('\n').length
+    const pats = [
+        [new RegExp(`\\btype=["'](${KIND_ALT})["']`, 'g'), (k) => `type="${k}"`],
+        [new RegExp(`\\btype=\\{[^}]*?['"\`](${KIND_ALT})['"\`][^}]*\\}`, 'g'), (k) => `type={…'${k}'…}`],
+        [new RegExp(`createElement\\(\\s*['"]input['"]\\s*,\\s*\\{[^}]*\\btype\\s*:\\s*['"](${KIND_ALT})['"]`, 'g'), (k) => `createElement(…{ type: '${k}' })`],
+        [new RegExp(`\\.type\\s*=\\s*['"](${KIND_ALT})['"]`, 'g'), (k) => `.type = '${k}'`],
+        [new RegExp(`setAttribute\\(\\s*['"]type['"]\\s*,\\s*['"](${KIND_ALT})['"]`, 'g'), (k) => `setAttribute('type', '${k}')`],
+    ]
+    for (const [re, how] of pats) for (const m of s.matchAll(re)) out.natives.push({ line: lineOf(m.index), how: how(m[1]) })
+    out.typeAttrs = (s.match(/(?<![\w.$-])type=(?=["'{])/g) || []).length
+    out.pickers = (s.match(/<(DatePicker|PaymentDateInput)(?=[\s/>]|$)/g) || []).length
+    return out
+}
+
+// ★ 金丝雀:每一次运行都先拿它试两条路。五处原生(三种 JSX 写法 + 一个多行开标签 + 一句赋值)、
+//   一处只在注释里(必须【不】算)、一个选择器调用点。任何一条路数不对,本支退 2 —— 一支瞎掉的扫描器
+//   必须说「我瞎了」,不许报一个漂亮的零(AGENTS.md「覆盖率本身必须是一条断言」)。
+const CANARY = [
+    "export function Canary({ k }: { k: boolean }) {",
+    "    return (",
+    "        <form>",
+    "            <input type=\"date\" />",
+    "            <input",
+    "                type=\"month\"",
+    "            />",
+    "            <input type={'datetime-local'} />",
+    "            <input type={k ? 'week' : 'text'} />",
+    "            {/* <input type=\"date\" /> 注释里的不算 */}",
+    "            <DatePicker name=\"d\" />",
+    "        </form>",
+    "    )",
+    "}",
+    "export function poke(el: HTMLInputElement) { el.type = 'time' }",
+].join('\n')
+const CANARY_NATIVES = 5, CANARY_PICKERS = 1
+
+// 维度③ 的故障注入:一份【虚拟】源码进扫描集合,走与真文件完全相同的两条路
+const INJECTIONS = {
+    'native': '<input type="date" name="x" />',
+    'native-expr': "<input type={'date'} />",
+    'native-ternary': "<input type={wide ? 'datetime-local' : 'text'} />",
+    'native-month': '<input\n    type="month"\n/>',
+    'native-datetime': '<input type="datetime-local" />',
+    'comment': '{/* <input type="date" /> 只在注释里 */}<input type="text" />',
+}
+const INJECT_REL = 'app/__inject__/DatePickInjection.tsx'
+const INJECT_SRC = INJECT && INJECTIONS[INJECT]
+    ? `export function Injected({ wide }: { wide: boolean }) {\n    return (<div>${INJECTIONS[INJECT]}</div>)\n}\n` : null
+if (INJECT && !INJECT_SRC) {
+    console.error(`✗ check-date-format:不认识的注入 --inject=${INJECT}(认的是:${Object.keys(INJECTIONS).join(' · ')})`)
+    process.exit(2)
+}
 
 const files = []
 for (const d of ['app', 'lib']) for (const f of walk(join(ROOT, d))) files.push(f)
@@ -214,9 +331,37 @@ for (const file of files) {
     visit(sf)
 }
 
-// ── 维度 ③:原生日期控件,按文本数 ──────────────────────────────────────────
-let nativeInputs = 0
+// ── 维度 ③:原生日期控件 —— 两条路各数一遍(DATE-PICK-1)────────────────────
+let nativeInputs = 0                        // 路 A(语法树)数出的原生控件
 const nativeByFile = Object.create(null)
+const nativeDetail = []
+let textNatives = 0, astTypeAttrs = 0, textTypeAttrs = 0, astPickers = 0, textPickers = 0
+{
+    // 金丝雀先跑:两条路都必须数出它
+    const ca = nativeByAst('canary.tsx', CANARY), cb = nativeByText('canary.tsx', CANARY)
+    if (ca.natives.length !== CANARY_NATIVES || cb.natives.length !== CANARY_NATIVES
+        || ca.pickers !== CANARY_PICKERS || cb.pickers !== CANARY_PICKERS) {
+        console.error('✗ check-date-format:**覆盖断言失败 —— 金丝雀没有被看见,这一次读数不作数。**')
+        console.error(`    金丝雀里有 ${CANARY_NATIVES} 处原生日期控件、${CANARY_PICKERS} 个选择器;`
+            + `语法树数出 ${ca.natives.length} / ${ca.pickers},字符数出 ${cb.natives.length} / ${cb.pickers}。`)
+        console.error('  ☞ 这【不是】"代码有问题"(那是 exit 1)。这是量具自己说它瞎了 —— 一支瞎掉的扫描器报出来的零不是零。')
+        process.exit(2)
+    }
+    const scan = [...files.map((f) => [relative(ROOT, f), null]), ...(INJECT_SRC ? [[INJECT_REL, INJECT_SRC]] : [])]
+    for (const [rel, injected] of scan) {
+        if (rel.includes('database.types')) continue
+        const src = injected ?? readFileSync(join(ROOT, rel), 'utf8')
+        const a = nativeByAst(rel, src), b = nativeByText(rel, src)
+        if (a.natives.length) {
+            nativeInputs += a.natives.length
+            nativeByFile[rel] = a.natives.length
+            for (const x of a.natives) nativeDetail.push({ rel, ...x })
+        }
+        textNatives += b.natives.length
+        astTypeAttrs += a.typeAttrs; textTypeAttrs += b.typeAttrs
+        astPickers += a.pickers; textPickers += b.pickers
+    }
+}
 let textualLocaleCalls = 0                  // 第二条独立路(覆盖用)
 let commentLocaleMentions = 0               // ★ 注释里提到的,分开报
 let commentNativeMentions = 0               // ★ 同上,维度③
@@ -231,11 +376,8 @@ for (const file of files) {
         //   ☞ **这是同一个形状在这一刀里的第【五】次**(CONFIRM-1 / ALERT-1 记过三次,
         //     本刀的 toLocale* 计数是第四次,这里是第五次)。
         //   而它每一次的解药都一样:**数之前把注释剥掉,并把注释数分开报。**
-        const stripped = blankComments(src)
-        const m = stripped.match(NATIVE_DATE_INPUT)
-        if (m) { nativeInputs += m.length; nativeByFile[rel] = m.length }
-        const rawM = src.match(NATIVE_DATE_INPUT)
-        commentNativeMentions += (rawM ? rawM.length : 0) - (m ? m.length : 0)
+        const rawNative = new RegExp(`\\btype=["'](${KIND_ALT})["']`, 'g')
+        commentNativeMentions += (src.match(rawNative) || []).length - (blankComments(src).match(rawNative) || []).length
         textualLocaleCalls += (blankComments(src).match(/\.toLocale(Date|Time)?String\s*\(/g) || []).length
         commentLocaleMentions += (src.match(/\.toLocale(Date|Time)?String\s*\(/g) || []).length
             - (blankComments(src).match(/\.toLocale(Date|Time)?String\s*\(/g) || []).length
@@ -250,7 +392,16 @@ for (const file of files) {
 // ════════════════════════════════════════════════════════════════════════════
 assertPopulation('check-date-format', 'app/ lib/ 下解析成功的源码', parsed, 500)
 assertPopulation('check-date-format', 'AST 走过的 CallExpression', astCalls, 5000)
-assertPopulation('check-date-format', '文本数出的原生日期控件', nativeInputs, 100)
+// ★ DATE-PICK-1:原生日期控件的总体【应当】是零,所以它不能再当覆盖的证据 ——
+//   覆盖改由三件事证明:金丝雀被两条路都数出来了(上面,已经过了);两条路都看见了几百个 type= 属性;
+//   两条路都数到了 ≥ 100 个选择器调用点(那 134 处搬去的地方)。
+assertPopulation('check-date-format', '语法树看见的 JSX type= 属性', astTypeAttrs, 500)
+assertPopulation('check-date-format', '字符看见的 type= 属性', textTypeAttrs, 500)
+assertPopulation('check-date-format', '语法树数出的日期选择器调用点', astPickers, 100)
+assertPinned('check-date-format', '日期选择器调用点:语法树 ↔ 字符', astPickers, textPickers,
+    '对不上说明其中一条路瞎了一半 —— 而瞎掉的那一半可能正好装着一个原生控件。')
+assertPinned('check-date-format', '原生日期控件:语法树 ↔ 字符', nativeInputs, textNatives,
+    '两条路对原生控件的计数不同 —— 其中一条看不见某一种写法。先查是哪一条,再看判词。')
 
 // 路 A:AST 数 toLocale*String 调用(含豁免的,否则两条路口径不同)
 let astLocaleAll = 0
@@ -275,7 +426,7 @@ assertPinned('check-date-format', 'toLocale*String:AST 数出的 ↔ 文本数�
 // ── 基线 ────────────────────────────────────────────────────────────────────
 const snapshot = {
     note: '★ 不要为了让门变绿而刷新基线。先确认每一处新增是不是真的该留。',
-    nativeDateInputs: nativeInputs,
+    nativeDateInputs: 0,
     sites: Object.fromEntries(Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0]))),
 }
 
@@ -302,14 +453,14 @@ for (const [k, n] of Object.entries(counts)) {
 }
 const gone = Object.keys(base.sites ?? {}).filter((k) => (counts[k] ?? 0) < base.sites[k])
 
-// 维度 ③:只许减少
-const nativeWas = base.nativeDateInputs ?? 0
-const nativeGrew = nativeInputs > nativeWas
+// 维度 ③:DATE-PICK-1 起是零,不看基线(基线里那一格钉成 0,只是给读基线的人看)
+const nativeGrew = nativeInputs > 0
 
 console.log(`check-date-format:解析 ${parsed} 份源码 · CallExpression ${astCalls} 个`)
 console.log(`  维度①② 在册 ${Object.values(counts).reduce((a, b) => a + b, 0)} 处`
     + `(${Object.keys(counts).length} 个〈文件 · 类型〉)`)
-console.log(`  维度③  原生日期控件 ${nativeInputs} 处(基线 ${nativeWas} —— 只许减少)`)
+console.log(`  维度③  原生日期控件 ${nativeInputs} 处(判据:零)· 语法树 ${nativeInputs} = 字符 ${textNatives}`
+    + ` · 选择器调用点 ${astPickers} = ${textPickers} · type= 属性 ${astTypeAttrs} / ${textTypeAttrs} · 金丝雀 ✓`)
 console.log(`  toLocale*String:调用点 ${textualLocaleCalls} 处 · ★ 另有【注释里提到】${commentLocaleMentions} 处`)
 console.log(`  原生日期控件   :代码里 ${nativeInputs} 处 · ★ 另有【注释里提到】${commentNativeMentions} 处`)
 console.log(`           (两个数分开报 —— 只报一个总数的勘察,读者无从知道它数的是代码还是散文)`)
@@ -317,9 +468,6 @@ console.log(`           (两个数分开报 —— 只报一个总数的勘察,�
 if (gone.length) {
     console.log('· 少了几处 —— 有人改好了。基线可以收紧:')
     for (const k of gone) console.log(`     ${k}   ${base.sites[k]} → ${counts[k] ?? 0}`)
-}
-if (nativeInputs < nativeWas) {
-    console.log(`· 原生日期控件 ${nativeWas} → ${nativeInputs},少了 ${nativeWas - nativeInputs} 处。基线可以收紧。`)
 }
 
 let bad = false
@@ -345,12 +493,11 @@ if (added.length) {
 if (nativeGrew) {
     bad = true
     console.error('')
-    console.error(`✗ 原生日期控件从 ${nativeWas} 涨到了 ${nativeInputs} —— 这一维【只许减少】。`)
-    console.error('  ☞ 选择器那一半是单独的一刀(DATE-0 §0:85 个文件 / 130 个控件 +')
-    console.error('    一个自写的日历控件)。在它落地之前,这一维保证那笔债不再长。')
-    console.error('  ★ 原生 <input type="date"> 按 HTML 规范渲染成【操作系统 locale】的格式,')
-    console.error('    而那个格式 CSS 够不到、JS 改不了 —— 所以多加一个,就是多一处')
-    console.error('    将来要换掉的控件。')
+    console.error(`✗ 原生日期 / 月份 / 日期时间控件 ${nativeInputs} 处 —— DATE-PICK-1 之后这一维的判据是【零】:`)
+    for (const d of nativeDetail) console.error(`   ${d.rel}:${d.line}  ${d.how}`)
+    console.error('  ☞ 改用 app/components/ui/date-picker.tsx 的 <DatePicker>(kind="month" / kind="datetime"):')
+    console.error('    框里是 DD/MM/YYYY、周一开头的月历、敲错的日子拦住提交,表单收到的仍是 ISO。')
+    console.error('  ★ 原生日期框按【操作系统 locale】画它的字,CSS 够不到、JS 改不了 —— 那正是 Tim 抱怨的「三种样子」之一。')
 }
 if (bad) process.exit(1)
 

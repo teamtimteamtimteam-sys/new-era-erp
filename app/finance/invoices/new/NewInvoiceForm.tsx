@@ -14,6 +14,7 @@ import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { formatDate } from '@/lib/dates'
 import { businessToday } from '@/lib/format'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 const initialState: CreateInvoiceState = {}
 
@@ -305,14 +306,12 @@ canEdit: boolean
                     <label className="block mb-1">
                         {t('invoice.form.issueDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="issue_date"
                         required
                         max={businessToday()}
                         value={issueDate}
-                        onChange={(e) => setIssueDate(e.target.value)}
-                        className={CONTROL_INPUT}
+                        onChange={setIssueDate}
                     />
                 </div>
                 <div>

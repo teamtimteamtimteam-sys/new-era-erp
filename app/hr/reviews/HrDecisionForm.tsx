@@ -15,6 +15,7 @@ import { saveHrDecision } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { Refusal } from '@/app/components/ui/refusal'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 type Props = {
     reviewId: string
@@ -45,6 +46,7 @@ export default function HrDecisionForm({
     const [outcome, setOutcome] = useState(probationOutcome ?? '')
     const [salary, setSalary] = useState(newMonthlySalary === null ? '' : String(newMonthlySalary))
     const [effective, setEffective] = useState(salaryEffectiveDate ?? '')
+    const [effectiveBad, setEffectiveBad] = useState(false)
 
     const salaryHalf =
         (salary.trim() === '') !== (effective.trim() === '') // 一半有一半没有
@@ -146,11 +148,11 @@ export default function HrDecisionForm({
                         <label className="">
                             {t('reviews.salaryEffective')}
                             {editable ? (
-                                <input
-                                    type="date"
+                                <DatePicker
                                     value={effective}
-                                    onChange={(e) => setEffective(e.target.value)}
-                                    className={`${CONTROL_INPUT} block`}
+                                    onChange={setEffective}
+                                    onInvalidChange={setEffectiveBad}
+                                    className="flex"
                                 />
                             ) : (
                                 <span className="block text-sm py-1">{salaryEffectiveDate ?? '—'}</span>
@@ -163,7 +165,7 @@ export default function HrDecisionForm({
                     <Button
                         type="button"
                         onClick={save}
-                        disabled={pending || salaryHalf}
+                        disabled={pending || salaryHalf || effectiveBad}
                     >
                         {pending ? t('common.saving') : t('common.save')}
                     </Button>

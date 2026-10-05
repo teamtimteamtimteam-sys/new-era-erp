@@ -4,7 +4,7 @@
 // 输入公式 / 数量 / 计价日 / 七个金属的化验含量(留空 = 没测,整行忽略),
 // 点"计算"走服务端动作调 DB 函数,把返回的【完整明细】原样摊开 —— 客户端不做任何算术。
 // 支持 ?formula=&quantity=&ni=&co=… 预填,便于从批次页直接带着化验结果跳进来。
-import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare } from '@/lib/format'
@@ -14,6 +14,7 @@ import PriceBreakdown from '@/app/components/pricing/PriceBreakdown'
 import { calculatePrice, type CalculatorState } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 /** 桥上交出去的一行 —— 与搬家前那两条并列数组逐字同构。
  *  ★ 这一张是 `#18 AssayForm` 的【孪生】:同样的字段名、同样的字典行、
@@ -202,12 +203,10 @@ export default function CalculatorForm({
                         <label className="block mb-1">
                             {t('pricing.calcDate')} <span className="text-red-600">*</span>
                         </label>
-                        <input
-                            type="date"
+                        <DatePicker
                             name="reference_date"
                             required
                             defaultValue={prefill.date}
-                            className={CONTROL_INPUT}
                         />
                     </div>
                 </div>

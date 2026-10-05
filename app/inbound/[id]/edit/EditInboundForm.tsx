@@ -8,6 +8,7 @@ import { UNIT_OPTIONS } from '../../../materials/options'
 import { STAGE_OPTIONS } from '../../options'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 const initialState: UpdateInboundState = {}
 
@@ -181,11 +182,10 @@ export default function EditInboundForm({
                 {/* 到货日期 */}
                 <div>
                     <label className="block mb-1">{t('inbound.form.arrivalDate')}</label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="arrival_date"
                         defaultValue={batch.arrival_date ?? ''}
-                        className={`${CONTROL_INPUT} w-full`}
+                        className="flex"
                     />
                 </div>
 

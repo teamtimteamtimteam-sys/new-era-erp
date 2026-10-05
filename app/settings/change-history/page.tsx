@@ -28,7 +28,7 @@ import { ListPage } from '@/app/components/ui/list-page'
 import { requireFunction } from '@/app/components/moduleGuard'
 import { FN } from '@/lib/modules'
 import { Button } from '@/app/components/ui/button'
-import { DateFilterInput } from '@/app/components/ui/date-filter-input'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
 import { documentHref } from '@/lib/search/documentHref'
 import { TRAIL_TEXT } from '@/lib/trail/text'
@@ -173,11 +173,11 @@ export default async function ChangeHistoryPage({ searchParams }: { searchParams
             <form className="flex flex-wrap items-end gap-2 mb-4 text-sm" action="/settings/change-history">
                 <label className="flex flex-col gap-1">
                     {t('changeHistory.filterFrom')}
-                    <DateFilterInput name="from" defaultValue={from} />
+                    <DatePicker name="from" defaultValue={from} />
                 </label>
                 <label className="flex flex-col gap-1">
                     {t('changeHistory.filterTo')}
-                    <DateFilterInput name="to" defaultValue={to} />
+                    <DatePicker name="to" defaultValue={to} />
                 </label>
                 <label className="flex flex-col gap-1">
                     {t('changeHistory.filterArea')}

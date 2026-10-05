@@ -13,6 +13,7 @@ import {
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 // 逗号分隔字符串 -> 去重去空的标签数组
 function parseTags(raw: string): string[] {
@@ -22,15 +23,6 @@ function parseTags(raw: string): string[] {
         if (tag) seen.add(tag)
     }
     return [...seen]
-}
-
-// ISO 时间戳 -> datetime-local 需要的本地 'YYYY-MM-DDTHH:mm'
-// (本组件只在用户打开弹窗时挂载,不参与 SSR,故可安全使用本地时区)
-function toLocalDatetime(iso: string | null): string {
-    if (!iso) return ''
-    const d = new Date(iso)
-    const p = (n: number) => String(n).padStart(2, '0')
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
 const inputCls = `${CONTROL_INPUT} w-full`
@@ -78,6 +70,7 @@ export default function TaskModal({
             priority: fd.get('priority') as string,
             task_type: fd.get('task_type') as string,
             due_date: (fd.get('due_date') as string) || null,
+            // 日期框交出的是新加坡钟面 + 偏移(…T14:30+08:00),new Date 读它不再依赖浏览器时区
             reminder_at: reminderLocal
                 ? new Date(reminderLocal).toISOString()
                 : null,
@@ -223,22 +216,21 @@ export default function TaskModal({
                             <label className={labelCls}>
                                 {t('tasks.form.dueDate')}
                             </label>
-                            <input
-                                type="date"
+                            <DatePicker
                                 name="due_date"
                                 defaultValue=""
-                                className={inputCls}
+                                className="flex"
                             />
                         </div>
                         <div>
                             <label className={labelCls}>
                                 {t('tasks.form.reminder')}
                             </label>
-                            <input
-                                type="datetime-local"
+                            <DatePicker
+                                kind="datetime"
                                 name="reminder_at"
                                 defaultValue=""
-                                className={inputCls}
+                                className="flex"
                             />
                         </div>
                     </div>

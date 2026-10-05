@@ -10,6 +10,7 @@ import { saveHoliday, deleteHoliday } from '../types/actions'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 import HolidaysTable, { type HolidayRow } from './HolidaysTable'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export default function HolidaysEditor({
     rows, year, knownKeys,
@@ -24,6 +25,7 @@ export default function HolidaysEditor({
     const [pending, startTransition] = useTransition()
     const [error, setError] = useState<string | null>(null)
     const [date, setDate] = useState(`${year}-01-01`)
+    const [dateBad, setDateBad] = useState(false)
     const [en, setEn] = useState('')
     const [zh, setZh] = useState('')
     const [notes, setNotes] = useState('')
@@ -64,13 +66,13 @@ export default function HolidaysEditor({
                 title={t('leave.addHoliday')}
                 error={error}
                 actions={
-                    <Button type="button" onClick={add} disabled={pending || !en || !zh || !key.trim()}>
+                    <Button type="button" onClick={add} disabled={pending || dateBad || !en || !zh || !key.trim()}>
                         {t('common.save')}
                     </Button>
                 }
             >
                 <label className="">{t('leave.date')}
-                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`block ${inp}`} /></label>
+                    <DatePicker value={date} onChange={setDate} onInvalidChange={setDateBad} className="flex" /></label>
                 <label className="">{t('permissions.nameEn')}
                     <input value={en} onChange={(e) => setEn(e.target.value)} className={`block ${inp}`} /></label>
                 <label className="">{t('permissions.nameZh')}

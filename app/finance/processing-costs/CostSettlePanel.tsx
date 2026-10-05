@@ -21,6 +21,7 @@ import { remitCosts, relieveAccruals } from '../month-end/actions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 type Entry = { id: string; run_id: string; cost_type: string; amount_base: number; is_estimate: boolean; created_at: string }
 type Run = { id: string; code: string }
@@ -43,6 +44,9 @@ canEdit: boolean
     const [actual, setActual] = useState('')
     const [payDate, setPayDate] = useState('')
     const [invDate, setInvDate] = useState('')
+    // DATE-PICK-1:两半都靠按钮 onClick 提交(不走原生表单)—— 哪一半的日期框里是敲错的日子,就关掉那一半的按钮
+    const [payDateBad, setPayDateBad] = useState(false)
+    const [invDateBad, setInvDateBad] = useState(false)
     const [payStatus, setPayStatus] = useState('paid')
     const [supplier, setSupplier] = useState('')
     const runBy = new Map(runs.map((r) => [r.id, r.code]))
@@ -70,7 +74,11 @@ canEdit: boolean
     // 表单状态恢复、某些日期选择器会直接改 DOM 值而不触发 React 的 change,受控输入
     // 于是显示着日期、状态却仍是空串。走查里"字段填着 08/05 却报空串"就是这个形状:
     // React 只比对前后两次的 prop,不会拿 prop 去纠正 DOM,所以一旦失同步就一直错下去。
-    const dateField = (id: string, value: string, set: (v: string) => void, labelKey: string, hintKey: string) => (
+    // ★ DATE-PICK-1:那道 onBlur 回写已经拿掉 —— 日期框的值只来自 React 状态,没有 DOM 漂移可回写。
+    const dateField = (
+        id: string, value: string, set: (v: string) => void, setBad: (bad: boolean) => void,
+        labelKey: string, hintKey: string,
+    ) => (
         <label className="block">
             {t(labelKey)} <span className="text-red-600">*</span>
             {/* ★★ POLISH-1(2026-09-12,Tim 的裁定 R10 · S3「状态色留着」)★★
@@ -87,10 +95,9 @@ canEdit: boolean
                      留下那个红底类 —— 模块那一支**没有**底色,它是真的在画。
                    ⚠ 「只读底色该长什么样」那一条(z③)Tim 2026-09-11 已裁**留**,
                      见 `app/hr/payroll/PayrollGrid.tsx` 那一行的注释。 */}
-            <input id={id} type="date" value={value} required aria-invalid={value === ''}
-                   onChange={(e) => set(e.target.value)} onBlur={(e) => set(e.target.value)}
-                   className={`${CONTROL_INPUT} block`
-                       + (value === '' ? ' bg-red-50' : '')} />
+            {/* ★ DATE-PICK-1:日期框自带它的 32px 框,上面说的那个红底类随原生框一起退场;空着时仍由 aria-invalid 画红描边。 */}
+            <DatePicker id={id} value={value} required aria-invalid={value === ''}
+                        onChange={set} onInvalidChange={setBad} className="flex" />
             <span className="mt-1 block max-w-[16rem] text-[color:var(--brand-muted-text)]">{t(hintKey)}</span>
         </label>
     )
@@ -135,10 +142,10 @@ canEdit: boolean
                         />
                     </div>
                     <div className="flex gap-4 flex-wrap items-start">
-                        {dateField('pay-date', payDate, setPayDate,
+                        {dateField('pay-date', payDate, setPayDate, setPayDateBad,
                             'finance.costSettle.paymentDate', 'finance.costSettle.paymentDateHint')}
                         <PermissionGate code="module.finance.edit" allowed={canEdit}>
-                        <Button className="mt-4" type="button" disabled={pending || chosenA.length === 0 || payDate === ''}
+                        <Button className="mt-4" type="button" disabled={pending || chosenA.length === 0 || payDate === '' || payDateBad}
                             onClick={() => run(() => remitCosts(chosenA.map((e) => e.id), payDate, ''))}>
                             {t('finance.costSettle.remit', { n: chosenA.length })}
                         </Button>
@@ -161,7 +168,7 @@ canEdit: boolean
                         />
                     </div>
                     <div className="flex gap-4 flex-wrap items-start text-xs text-[color:var(--brand-muted-text)]">
-                        {dateField('inv-date', invDate, setInvDate,
+                        {dateField('inv-date', invDate, setInvDate, setInvDateBad,
                             'finance.costSettle.invoiceDate', 'finance.costSettle.invoiceDateHint')}
                         <label>{t('finance.costSettle.invoiceAmount')}
                             <input type="number" value={actual} onChange={(e) => setActual(e.target.value)}
@@ -193,7 +200,7 @@ canEdit: boolean
                         <PermissionGate code="module.finance.edit" allowed={canEdit}>
                         <Button className="mt-4" type="button"
                             disabled={pending || chosenE.length === 0 || variance === null || mixedTypes
-                                      || invDate === '' || (payStatus === 'unpaid' && !supplier)}
+                                      || invDate === '' || invDateBad || (payStatus === 'unpaid' && !supplier)}
                             onClick={() => run(() => relieveAccruals({ entryIds: chosenE.map((e) => e.id), actual: actualN, date: invDate, paymentStatus: payStatus, bank: '', supplierId: supplier }))}>
                             {t('finance.costSettle.relieve', { n: chosenE.length })}
                         </Button>

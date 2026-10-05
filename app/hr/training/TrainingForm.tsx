@@ -8,6 +8,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { TRAINING_CATEGORY_OPTIONS } from '../options'
 import { saveTraining, type TrainingFormState } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 const initialState: TrainingFormState = {}
@@ -119,21 +120,17 @@ export default function TrainingForm({
                     <label className={label}>
                         {t('hr.colCompletedDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="completed_date"
                         required
                         defaultValue={record?.completed_date ?? ''}
-                        className={CONTROL_INPUT}
                     />
                 </div>
                 <div>
                     <label className={label}>{t('hr.colExpiryDate')}</label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="expiry_date"
                         defaultValue={record?.expiry_date ?? ''}
-                        className={CONTROL_INPUT}
                     />
                     <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('hr.expiryHint')}</p>
                 </div>

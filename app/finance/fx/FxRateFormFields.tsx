@@ -5,6 +5,7 @@
 // 银行买卖两价不同,方向由交易决定 —— 一天一个数不够,所以这里没有"一个汇率"这种字段。
 import { CONTROL_SELECT, CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useTranslations } from '@/lib/i18n/client'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export type FxFieldErrors = Record<string, string> | undefined
 
@@ -96,12 +97,11 @@ export default function FxRateFormFields({
                 <label className="block mb-1">
                     {t('finance.fxPage.form.rateDate')} <span className="text-red-600">*</span>
                 </label>
-                <input
-                    type="date"
+                <DatePicker
                     name="rate_date"
                     required
                     defaultValue={defaults?.rate_date ?? ''}
-                    className={`${CONTROL_INPUT} w-full`}
+                    className="flex"
                 />
                 {fieldErrors?.rate_date && (
                     <p className="text-red-600 text-xs mt-1">{fieldErrors.rate_date}</p>

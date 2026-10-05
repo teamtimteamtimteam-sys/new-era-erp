@@ -77,6 +77,8 @@ export default function RequestActions({
     const router = useRouter()
     const [pending, start] = useTransition()
     const [payDate, setPayDate] = useState('')
+    // DATE-PICK-1:付款日框里敲着一个不存在 / 将来的日子时,付款钮关着 —— 这里走的是按钮,不是原生表单提交,浏览器拦不住
+    const [payDateBad, setPayDateBad] = useState(false)
     const [fxRate, setFxRate] = useState('')
 
     function run(headline: string, fn: () => Promise<{ error?: string; detail?: string }>) {
@@ -93,7 +95,7 @@ export default function RequestActions({
     const isOut = kind === 'payment_out'
     // 除了付款冲销,每一种执行都要一个日期 —— 空着就按不下去,并且把理由摆在旁边(CMP-2 的房规)。
     const needsDate = kind !== 'payment_reversal'
-    const payBlocked = needsDate && payDate.trim() === ''
+    const payBlocked = needsDate && (payDate.trim() === '' || payDateBad)
     const copy = PAY_COPY[kind] ?? PAY_COPY.payment_out
     const isReversalKind = kind.endsWith('_reversal')
 
@@ -150,7 +152,7 @@ export default function RequestActions({
                                     <label className="block mb-1">
                                         {t(copy.dateLabel)} <span className="text-red-600">*</span>
                                     </label>
-                                    <PaymentDateInput name="payment_date" value={payDate} onChange={setPayDate} />
+                                    <PaymentDateInput name="payment_date" value={payDate} onChange={setPayDate} onInvalidChange={setPayDateBad} />
                                 </div>
                             )}
                             {isOut && (

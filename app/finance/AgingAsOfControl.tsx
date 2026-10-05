@@ -14,7 +14,7 @@
 // 【"今天"取库那一侧的今天】max 与"回到今天"用的都是服务端传下来的 today
 // (报表自己报的 today 字段),不是浏览器的 new Date():浏览器可能在别的时区,
 // 而这套系统的今天是新加坡的今天(db/fixtures/15)。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
@@ -45,12 +45,10 @@ export default function AgingAsOfControl({
         <div className="mb-4 flex flex-wrap items-center gap-3">
             <label className="">
                 {t('finance.asOf')}{' '}
-                <input
-                    type="date"
+                <DatePicker
                     value={asOf}
                     max={today}
-                    onChange={(e) => go(e.target.value)}
-                    className={CONTROL_INPUT}
+                    onChange={(v) => go(v)}
                 />
             </label>
             {asOf !== today && (

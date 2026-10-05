@@ -8,6 +8,7 @@ import { UNIT_OPTIONS } from '../../../materials/options'
 import { STATE_OPTIONS } from '../../../inbound/options'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 const initialState: UpdateOutputState = {}
 
@@ -153,11 +154,10 @@ export default function EditOutputForm({
                 {/* 产出日期 */}
                 <div>
                     <label className="block mb-1">{t('output.form.outputDate')}</label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="output_date"
                         defaultValue={batch.output_date ?? ''}
-                        className={`${CONTROL_INPUT} w-full`}
+                        className="flex"
                     />
                 </div>
 

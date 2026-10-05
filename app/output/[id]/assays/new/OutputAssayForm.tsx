@@ -15,6 +15,8 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import type { MetalOption } from '@/app/tools/pricing/metal-prices/options'
 import { submitOutputAssay, type SubmitOutputAssayState } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
+import { businessToday } from '@/lib/format'  // DATE-PICK-1:日期框的上限按新加坡的今天,与服务端拒「将来」的那一天同一天
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 
@@ -168,13 +170,11 @@ export default function OutputAssayForm({
                     <label className="block mb-1">
                         {t('assay.assayDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="assay_date"
                         required
-                        max={todayIsoLocal()}
+                        max={businessToday()}
                         defaultValue={todayIsoLocal()}
-                        className={CONTROL_INPUT}
                     />
                 </div>
                     {/* PROC-6:重量基准 —— 必填,【没有默认选中项】。

@@ -14,7 +14,8 @@ import { MOD } from '@/lib/modules'
 import { ListPage } from '@/app/components/ui/list-page'
 import LeaveRequestsTable, { type LeaveRequestRow } from './LeaveRequestsTable'
 import { Button } from '@/app/components/ui/button'
-import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { formatDate } from '@/lib/dates'
 
 type Row = {
@@ -72,7 +73,6 @@ export default async function LeaveRequestsPage({
     })
 
     const sel = CONTROL_SELECT
-    const inp = CONTROL_INPUT
 
     const tableRows: LeaveRequestRow[] = rows.map((r) => {
         const e = empById.get(r.employee_id)
@@ -136,11 +136,11 @@ export default async function LeaveRequestsPage({
                 </label>
                 <label className="">
                     {t('leave.from')}
-                    <input type="date" name="from" defaultValue={sp.from ?? ''} className={`block ${inp}`} />
+                    <DatePicker name="from" defaultValue={sp.from ?? ''} className="flex" />
                 </label>
                 <label className="">
                     {t('leave.to')}
-                    <input type="date" name="to" defaultValue={sp.to ?? ''} className={`block ${inp}`} />
+                    <DatePicker name="to" defaultValue={sp.to ?? ''} className="flex" />
                 </label>
                 <Button variant="secondary" type="submit">
                     {t('leave.filter')}

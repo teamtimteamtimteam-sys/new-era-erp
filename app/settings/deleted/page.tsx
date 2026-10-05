@@ -44,7 +44,7 @@
 // 【永不提供恢复】撤销删除是一个没有人做过的决定 —— 台账上已经有一条注销流水、
 // 回滚的投入已经还回去了。这里放一个按钮等于替所有人默默把那个决定做了。
 // 本页只读,连一个可写入口都没有。
-import { DateFilterInput } from '@/app/components/ui/date-filter-input'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations } from '@/lib/i18n/server'
@@ -214,10 +214,10 @@ export default async function DeletedRecordsPage({
                     表格那一半本来就没有溢出,溢出的一直是这条筛选行。 */}
                 <form className="flex flex-wrap items-center gap-2 sm:ml-auto" action="/settings/deleted">
                     {kind && <input type="hidden" name="kind" value={kind} />}
-                    {/* HISTORY-1:两个日期框并进共用的 DateFilterInput(原生日期控件只许减少) */}
-                    <DateFilterInput name="from" defaultValue={from} />
+                    {/* DATE-PICK-1:两个日期框是全站共用的 DatePicker(提交的仍是 ISO 的 from / to) */}
+                    <DatePicker name="from" defaultValue={from} aria-label={t('changeHistory.filterFrom')} />
                     <span className="text-[color:var(--brand-muted-text)]">–</span>
-                    <DateFilterInput name="to" defaultValue={to} />
+                    <DatePicker name="to" defaultValue={to} aria-label={t('changeHistory.filterTo')} />
                     <Button variant="secondary" type="submit">
                         {t('common.filter')}
                     </Button>

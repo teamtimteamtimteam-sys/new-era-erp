@@ -16,6 +16,7 @@ import LocationPicker, { type LocationChoice } from '@/app/components/inventory/
 import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditionFormSection'
 import type { SafetyState, Certainty } from '../IntakeConditionFields'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { formatDate } from '@/lib/dates'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
@@ -364,13 +365,12 @@ export default function NewInboundForm({
                     <label className="block mb-1">
                         {t('inbound.form.arrivalDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="arrival_date"
                         value={arrivalDate}
-                        onChange={(e) => setArrivalDate(e.target.value)}
+                        onChange={setArrivalDate}
                         required
-                        className={`${CONTROL_INPUT} w-full`}
+                        className="flex"
                     />
                     {/* IOD-1b:说清【为什么】必填 —— 星号只说"必填",不说这个日期
                         会去到哪里。它是收货流水的业务日(FIN-32),而业务日永远不

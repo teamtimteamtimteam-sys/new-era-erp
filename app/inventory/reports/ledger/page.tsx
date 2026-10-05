@@ -14,6 +14,7 @@ import { statusKey } from '../snapshot/snapshotQuery'
 import { ListPage } from '@/app/components/ui/list-page'
 import LedgerTable, { type LedgerTableRow } from './LedgerTable'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export default async function LedgerPage({
     searchParams,
@@ -89,13 +90,11 @@ export default async function LedgerPage({
             <form method="get" className="flex flex-wrap items-end gap-3 my-4">
                 <div>
                     <label className="block mb-1">{t('reports.ledger.from')}</label>
-                    <input type="date" name="from" defaultValue={params.from}
-                           className={CONTROL_INPUT} />
+                    <DatePicker name="from" defaultValue={params.from} />
                 </div>
                 <div>
                     <label className="block mb-1">{t('reports.ledger.to')}</label>
-                    <input type="date" name="to" defaultValue={params.to}
-                           className={CONTROL_INPUT} />
+                    <DatePicker name="to" defaultValue={params.to} />
                 </div>
                 <div>
                     <label className="block mb-1">{t('reports.ledger.material')}</label>

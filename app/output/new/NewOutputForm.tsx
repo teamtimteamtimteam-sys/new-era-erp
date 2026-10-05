@@ -9,6 +9,7 @@ import { STATE_OPTIONS } from '../../inbound/options'
 import { useTranslations } from '@/lib/i18n/client'
 import LocationPicker, { type LocationChoice } from '@/app/components/inventory/LocationPicker'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 const initialState: CreateOutputState = {}
 
@@ -158,13 +159,12 @@ export default function NewOutputForm({
                     <label className="block mb-1">
                         {t('output.form.outputDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="output_date"
                         value={outputDate}
-                        onChange={(e) => setOutputDate(e.target.value)}
+                        onChange={setOutputDate}
                         required
-                        className={`${CONTROL_INPUT} w-full`}
+                        className="flex"
                     />
                     {state.fieldErrors?.output_date && (
                         <p className="text-red-600 text-xs mt-1">

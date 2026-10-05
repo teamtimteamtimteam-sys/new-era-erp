@@ -21,6 +21,7 @@ import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { Button } from '@/app/components/ui/button'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 // SO-3a:order 头的作废是一次【冲销】(借 2500 / 贷 1100)—— 冲销日必填,
 // 它决定冲销分录落进哪个期间,永不默认(与手工冲销分录同一条);sale 头照旧。
@@ -45,6 +46,8 @@ canEdit: boolean
     const [open, setOpen] = useState(false)
     const [reason, setReason] = useState('')
     const [reversalDate, setReversalDate] = useState('')
+    // DATE-PICK-1:作废走 ConfirmButton(不是原生表单)—— 冲销日框里是敲错的日子时把它关掉
+    const [reversalBad, setReversalBad] = useState(false)
     const [submitted, setSubmitted] = useState<string | null>(null)
     // ★【GST-3:判据从"是不是 order 型"改成"有没有分录要冲"】★
     // GST-2 让【带税的 sale 型发票】也过一张分录(借 1100 / 贷 2100),
@@ -107,11 +110,10 @@ canEdit: boolean
             />
             {needsReversalDate && (
                 <span className="flex items-center gap-1">
-                    <input
-                        type="date"
+                    <DatePicker
                         value={reversalDate}
-                        onChange={(e) => setReversalDate(e.target.value)}
-                        className={CONTROL_INPUT}
+                        onChange={setReversalDate}
+                        onInvalidChange={setReversalBad}
                         title={t('invoice.voidReversalDateWhy')}
                     />
                     <span className="text-xs text-[color:var(--brand-muted-text)]">{t('invoice.voidReversalDateWhy')}</span>
@@ -123,7 +125,7 @@ canEdit: boolean
                 title={t('invoice.voidConfirm')}
                 confirmLabel={t('invoice.void')}
                 tier="destructive"
-                disabled={!reason.trim() || (needsReversalDate && !reversalDate.trim()) || isPending}
+                disabled={!reason.trim() || (needsReversalDate && (!reversalDate.trim() || reversalBad)) || isPending}
                 onConfirm={handleSubmit}
                 triggerVariant="destructive"
             >

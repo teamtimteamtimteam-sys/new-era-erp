@@ -11,6 +11,7 @@ import { formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 const initialState: CreateEntryState = {}
 
@@ -111,12 +112,10 @@ export default function NewEntryForm(
                     <label className="block mb-1">
                         {t('finance.entryDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="entry_date"
                         required
                         defaultValue={todayIsoLocal()}
-                        className={CONTROL_INPUT}
                     />
                 </div>
                 {/* 摘要(必填)*/}

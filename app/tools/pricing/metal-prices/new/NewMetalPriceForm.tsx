@@ -4,6 +4,7 @@ import { CONTROL_SELECT, CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/component
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { createMetalPrice, type CreateMetalPriceState } from './actions'
 import type { MetalOption } from '../options'
 import { useTranslations } from '@/lib/i18n/client'
@@ -112,12 +113,11 @@ export default function NewMetalPriceForm({
                     <label className="block mb-1">
                         {t('metalPrices.form.priceDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="price_date"
                         required
                         defaultValue={todayIsoLocal()}
-                        className={`${CONTROL_INPUT} w-full`}
+                        className="flex"
                     />
                     {state.fieldErrors?.price_date && (
                         <p className="text-red-600 text-xs mt-1">

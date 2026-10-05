@@ -8,6 +8,7 @@ import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { TaskEditGate } from '../TaskEditGate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import type { TaskEditState } from '@/lib/taskAccess'
 
 // app/tools/tasks/[id]/TaskHeader.tsx
@@ -45,13 +46,8 @@ function parseTags(raw: string): string[] {
     return [...seen]
 }
 
-// datetime-local 要的是本地时间字符串,而库里存的是 ISO(UTC)。
-function toLocalInput(iso: string | null): string {
-    if (!iso) return ''
-    const d = new Date(iso)
-    const pad = (n: number) => String(n).padStart(2, '0')
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
-}
+// 从前这里有一支 toLocalInput,把库里的 ISO(UTC)换成【浏览器时区】的钟面串喂给原生的日期时间框。
+// 日期框按新加坡时间读写(Q36),库里的时间戳原样传进去即可 —— 那支换算连同它的时区假设一起拿掉了。
 
 export default function TaskHeader({
     task,
@@ -85,6 +81,7 @@ export default function TaskHeader({
     function onSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault()
         const fd = new FormData(e.currentTarget)
+        // 日期框交出的是新加坡钟面 + 偏移(…T14:30+08:00),new Date 读它不再依赖浏览器时区
         const local = (fd.get('reminder_at') as string) || ''
         setError(null)
         start(async () => {
@@ -156,11 +153,11 @@ export default function TaskHeader({
                 </div>
                 <div className="min-w-[9rem] flex-1">
                     <label className={label}>{labels.dueDate}</label>
-                    <input type="date" name="due_date" defaultValue={task.due_date ?? ''} className={field} />
+                    <DatePicker name="due_date" defaultValue={task.due_date ?? ''} className="flex" />
                 </div>
                 <div className="min-w-[12rem] flex-1">
                     <label className={label}>{labels.reminderAt}</label>
-                    <input type="datetime-local" name="reminder_at" defaultValue={toLocalInput(task.reminder_at)} className={field} />
+                    <DatePicker kind="datetime" name="reminder_at" defaultValue={task.reminder_at ?? ''} className="flex" />
                 </div>
             </div>
 

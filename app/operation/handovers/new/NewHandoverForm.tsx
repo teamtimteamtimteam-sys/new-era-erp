@@ -17,7 +17,8 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { submitShiftHandover } from '../actions'
 import { Button } from '@/app/components/ui/button'
-import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_INPUT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export default function NewHandoverForm({ shifts, people, itemTypes, downtime }: {
     shifts: { code: string; label: string }[]
@@ -34,6 +35,8 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
     // 【日期不预填今天】世界侧日期不给默认值(与 FIN-10 同一条)——
     // 一个预填的日期会让"没人选过"看起来像"有人选了今天"。
     const [date, setDate] = useState('')
+    // 日期框里敲了一个不存在 / 格式不对的日子:按钮不走原生表单,得自己关掉(DATE-PICK-1)
+    const [dateBad, setDateBad] = useState(false)
     const [outgoing, setOutgoing] = useState('')
     const [incoming, setIncoming] = useState('')
     const [notes, setNotes] = useState('')
@@ -85,8 +88,7 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
                     <label className="block mb-1">
                         {t('processing.handover.colDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                           className={`${CONTROL_INPUT} w-full`} />
+                    <DatePicker value={date} onChange={setDate} onInvalidChange={setDateBad} className="flex" />
                 </div>
                 <div>
                     <label className="block mb-1">
@@ -151,7 +153,7 @@ export default function NewHandoverForm({ shifts, people, itemTypes, downtime }:
 
             {error && <p className="text-sm text-red-700">{error}</p>}
 
-            <Button type="button" onClick={submit} disabled={isPending}>
+            <Button type="button" onClick={submit} disabled={isPending || dateBad}>
                 {isPending ? t('common.saving') : t('processing.handover.submit')}
             </Button>
         </div>

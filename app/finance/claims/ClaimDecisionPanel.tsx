@@ -18,6 +18,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
 
@@ -53,6 +54,9 @@ export default function ClaimDecisionPanel({
     const get = (id: string) => sel[id] ?? { acct: '', tax: '', post: '', notes: '' }
     const set = (id: string, patch: Partial<{ acct: string; tax: string; post: string; notes: string }>) =>
         setSel((s) => ({ ...s, [id]: { ...get(id), ...patch } }))
+    // DATE-PICK-1:批准靠按钮 onClick 提交(不走原生表单)—— 哪一张的入账日框里是敲错的日子,就关掉【那一张】的批准钮。
+    //   驳回不送日期,不受它影响。
+    const [postBad, setPostBad] = useState<Record<string, boolean>>({})
 
     // ★【已决登记簿的列 —— 手机上留【单号】与【金额】】★
     //   · 单号是身份,而且是人嘴里说的那个东西;
@@ -160,14 +164,15 @@ export default function ClaimDecisionPanel({
                                             ))}
                                         </select></label>
                                     <label className="">{t('expenseClaims.postingDate')}
-                                        <input type="date" value={get(c.claim_id).post}
-                                            onChange={(e) => set(c.claim_id, { post: e.target.value })}
-                                            className={`${CONTROL_INPUT} block`} /></label>
+                                        <DatePicker value={get(c.claim_id).post}
+                                            onChange={(v) => set(c.claim_id, { post: v })}
+                                            onInvalidChange={(bad) => setPostBad((m) => ({ ...m, [c.claim_id]: bad }))}
+                                            className="flex" /></label>
                                     <label className="flex-1 min-w-[12rem]">{t('expenseClaims.decisionNotes')}
                                         <input value={get(c.claim_id).notes}
                                             onChange={(e) => set(c.claim_id, { notes: e.target.value })}
                                             className={`${CONTROL_INPUT} block w-full`} /></label>
-                                    <Button type="button" disabled={pendingTx}
+                                    <Button type="button" disabled={pendingTx || !!postBad[c.claim_id]}
                                         onClick={() => run(() => decideClaim({
                                             claimId: c.claim_id, approve: true,
                                             accountCode: get(c.claim_id).acct, taxCode: get(c.claim_id).tax,

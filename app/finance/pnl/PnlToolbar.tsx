@@ -2,7 +2,7 @@
 
 // 损益表工具栏:日期区间(显示生效值,含默认)+ 快捷预设(本月/上月/今年)。
 // 改动只写进 URL searchParams,聚合在服务端 page.tsx 完成。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
@@ -35,20 +35,16 @@ export default function PnlToolbar({
         <div className="mb-4 flex flex-wrap items-center gap-3">
             <label className="">
                 {t('listFilters.dateFrom')}{' '}
-                <input
-                    type="date"
+                <DatePicker
                     value={from}
-                    onChange={(e) => push(e.target.value, to)}
-                    className={CONTROL_INPUT}
+                    onChange={(v) => push(v, to)}
                 />
             </label>
             <label className="">
                 {t('listFilters.dateTo')}{' '}
-                <input
-                    type="date"
+                <DatePicker
                     value={to}
-                    onChange={(e) => push(from, e.target.value)}
-                    className={CONTROL_INPUT}
+                    onChange={(v) => push(from, v)}
                 />
             </label>
             {presets.map((p) => (

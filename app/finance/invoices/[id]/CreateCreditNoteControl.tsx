@@ -18,6 +18,7 @@ import { createCreditNote, type CreditNoteState } from './creditNoteActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 /** 桥上交出去的一行。
  *  ★ **`qty` 是可选的,而那【不是】图省事** —— 服务端的
@@ -256,9 +257,7 @@ canEdit: boolean
                     <label className="block mb-1">
                         {t('cn.noteDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input type="date" name="note_date" value={noteDate}
-                           onChange={(e) => setNoteDate(e.target.value)}
-                           className={CONTROL_INPUT} />
+                    <DatePicker name="note_date" value={noteDate} onChange={setNoteDate} />
                 </div>
                 <div className="flex-1 min-w-[16rem]">
                     <label className="block mb-1">

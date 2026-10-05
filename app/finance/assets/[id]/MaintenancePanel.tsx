@@ -56,6 +56,7 @@ import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_RADIO, CONTROL_INPUT, CONTROL_SELECT, CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 import { formatDate } from '@/lib/dates'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { useLocale } from '@/lib/i18n/client'
 
 export type MaintRow = {
@@ -113,6 +114,8 @@ export default function MaintenancePanel({
         employeeId: '', supplierId: '', performerName: '',
         expenseId: '', capitalised: false, capitalisationReason: '', notes: '',
     })
+    // DATE-PICK-1:这一块靠按钮 onClick 提交(不走原生表单)—— 框里是一个敲错的日子时把保存钮关掉
+    const [performedBad, setPerformedBad] = useState(false)
 
     // 【提交钮的禁用条件,以及【为什么】—— 一起算,免得有分支只画了禁用】
     // 只挡表单【自己确定】的那几件:日期空、描述空、没选人。
@@ -269,9 +272,9 @@ export default function MaintenancePanel({
                         <label className="block">
                             <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.maint.date')}</span>
                             {/* 【没有 defaultValue,而且不许有】见本文件抬头。 */}
-                            <input type="date" value={f.performedOn}
-                                   onChange={(e) => setF({ ...f, performedOn: e.target.value })}
-                                   className={CONTROL_INPUT} />
+                            <DatePicker value={f.performedOn}
+                                        onChange={(v) => setF({ ...f, performedOn: v })}
+                                        onInvalidChange={setPerformedBad} />
                         </label>
                         <label className="block">
                             <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.maint.kind')}</span>
@@ -388,7 +391,7 @@ export default function MaintenancePanel({
                             这个【保存】提交的是 recordMaintenance,一条直插 equipment_maintenance,
                             强制它的是那张表的 insert 策略(processing.edit),不是 finance。 */}
                         <PermissionGate code="module.processing.edit" allowed={canEdit}>
-                        <Button size="xs" type="button" disabled={pending || why !== ''} onClick={submit}>
+                        <Button size="xs" type="button" disabled={pending || why !== '' || performedBad} onClick={submit}>
                             {t('common.save')}
                         </Button>
                         </PermissionGate>
@@ -437,6 +440,8 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
     //   这里预填的是一个【已经存在的业务事实】(这条维修记录自己的 performed_on),
     //   人看得见、改得动,而且空掉照样被服务端按名拒。两者不是同一件事。
     const [f, setF] = useState({ expenseDate: performedOn, amount: '', currency: baseCurrency, supplierId: '' })
+    // DATE-PICK-1:同样是按钮 onClick 提交 —— 敲错的日子关掉资本化钮
+    const [dateBad, setDateBad] = useState(false)
 
     // 【按不下去的时候把理由摆在旁边】—— AssetActions 立的规矩。
     const why = !f.expenseDate ? t('equipment.maint.capNeedDate')
@@ -478,8 +483,8 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
             <div className="grid grid-cols-2 gap-2">
                 <label className="">
                     {t('equipment.maint.capDate')}
-                    <input type="date" value={f.expenseDate} onChange={(e) => setF({ ...f, expenseDate: e.target.value })}
-                           className={`${CONTROL_INPUT} block w-full`} />
+                    <DatePicker value={f.expenseDate} onChange={(v) => setF({ ...f, expenseDate: v })}
+                                onInvalidChange={setDateBad} className="flex" />
                 </label>
                 <label className="">
                     {t('equipment.maint.capAmount')}
@@ -505,7 +510,7 @@ function CapitaliseControl({ assetId, maintenanceId, performedOn, suppliers, bas
             </div>
             <div className="flex gap-2 items-center mt-2">
                 <PermissionGate code="module.finance.edit" allowed={canCapitalise}>
-                <Button size="xs" type="button" disabled={pending || why !== ''} onClick={submit}>
+                <Button size="xs" type="button" disabled={pending || why !== '' || dateBad} onClick={submit}>
                     {t('equipment.maint.capitaliseAction')}
                 </Button>
                 </PermissionGate>

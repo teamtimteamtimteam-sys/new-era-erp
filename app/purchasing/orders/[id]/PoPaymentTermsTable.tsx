@@ -6,7 +6,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 //
 // 与 PoLinesTable 的 ③ 是同一件事的第二次:最后一列是 `ExpectedDateControl`
-// (给一期分期填【预计付款日】,一个 <input type="date"> 直接写库)。
+// (给一期分期填【预计付款日】,一个日期框直接写库 —— DATE-PICK-1 起是共用的 DatePicker)。
 // 同样走 DataTable 的 `render`,不升级成 EditableTable —— 理由见 PoLinesTable 抬头。
 //
 // ★【CASHFLOW-1 的那条视觉约定必须活下来】★

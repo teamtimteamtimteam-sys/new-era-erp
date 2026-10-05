@@ -11,6 +11,7 @@ import AnomalyWarning from '../../AnomalyWarning'
 import IndexPicker from '../../IndexPicker'
 import type { MetalPriceIndex } from '../../indexOptions'
 import { ACK_FIELD, ackSignature } from '../../anomaly'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 const initialState: UpdateMetalPriceState = {}
 
@@ -98,12 +99,11 @@ export default function EditMetalPriceForm({
                     <label className="block mb-1">
                         {t('metalPrices.form.priceDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="price_date"
                         required
                         defaultValue={row.price_date}
-                        className={`${CONTROL_INPUT} w-full`}
+                        className="flex"
                     />
                     {state.fieldErrors?.price_date && (
                         <p className="text-red-600 text-xs mt-1">

@@ -4679,6 +4679,33 @@ const en = {
     },
     // ── TOOLS-1 ④:单位换算器 ────────────────────────────────────────────
     // ── TOOLS-1 ②:跨模块日历 ────────────────────────────────────────────
+    // DATE-PICK-1(2026-10-05):全站唯一的日期框(app/components/ui/date-picker.tsx)。框里永远是 DD/MM/YYYY(Q39)。
+    datePicker: {
+        openCalendar: 'Open calendar',
+        time: 'Time, Singapore (HH:MM, 24-hour)',
+        prevMonth: 'Previous month', nextMonth: 'Next month',
+        prevYear: 'Previous year', nextYear: 'Next year',
+        monthYear: '{month} {year}',
+        month: {
+            1: 'January', 2: 'February', 3: 'March', 4: 'April', 5: 'May', 6: 'June',
+            7: 'July', 8: 'August', 9: 'September', 10: 'October', 11: 'November', 12: 'December',
+        },
+        today: 'Today', thisMonth: 'This month', clear: 'Clear',
+        errFormat: 'Type the date as DD/MM/YYYY, for example 05/10/2026.',
+        errImpossible: '{text} is not a real date.',
+        errMonthFormat: 'Type the month as MM/YYYY, for example 10/2026.',
+        errMonthImpossible: '{text} is not a real month.',
+        errTimeFormat: 'Type the time as HH:MM (24-hour), for example 14:30.',
+        errTimeImpossible: '{text} is not a real time.',
+        errNeedTime: 'Add a time (HH:MM).',
+        errNeedDate: 'Add a date (DD/MM/YYYY).',
+        errBeforeMin: '{date} is before the earliest date allowed here, {min}.',
+        errAfterMax: '{date} is after the latest date allowed here, {max}.',
+        errFuture: '{date} is in the future. Today is {today}.',
+        reasonBeforeMin: 'Dates before {min} can\u2019t be chosen here.',
+        reasonAfterMax: 'Dates after {max} can\u2019t be chosen here.',
+        reasonFuture: 'Future dates can\u2019t be chosen. Today is {today}.',
+    },
     calendar: {
         kindRestricted:
             '{kind} is withheld from this account.',

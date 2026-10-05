@@ -2,7 +2,7 @@
 
 // 资产负债表工具栏:截至日期(显示生效值,含默认今天)。
 // 改动只写进 URL searchParams,聚合在服务端 page.tsx 完成。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 
@@ -24,11 +24,9 @@ export default function BsToolbar({ asOf }: { asOf: string }) {
         <div className="mb-4 flex flex-wrap items-center gap-3">
             <label className="">
                 {t('finance.asOf')}{' '}
-                <input
-                    type="date"
+                <DatePicker
                     value={asOf}
-                    onChange={(e) => onChange(e.target.value)}
-                    className={CONTROL_INPUT}
+                    onChange={(v) => onChange(v)}
                 />
             </label>
         </div>

@@ -233,8 +233,19 @@
 >    链到它的批;全局搜索把医疗报销与考勤期间开到详情页(两页本来就有)。见 `docs/handbacks/AUDIT-TRAIL-1d-2.md` §7.3。
 > 32. **✅ 工资与评审的审计记录 —— AUDIT-TRAIL-1d-3(`v1.4.33` 的最后一部分,2026-10-05)。AT-1d 三刀做完,AUDIT-TRAIL-1 = `v1.4.33`。**
 >    内容见下面「HISTORY family」一节 AT-1d 那一块的 ✅ AT-1d-3;发布那一行在 `docs/handbacks/AUDIT-TRAIL-1d-3.md` 的抬头。下一刀 DATE-PICK-1(`v1.4.34`)。
->    ★ **破窗**:起点 **2026-10-05 01:14:31 CST**(测量:`db/migration-windows.tsv`,`2026-10-05-at1d3-trails-pay-and-performance.sql`)·
->    终点 = Tim 在 Vercel 上看到部署成功的那一刻 —— **下一次 close-out 时补记**(下界读 `git reflog show --date=iso refs/remotes/origin/main` 里这一次推送)。
+>    ★ **部署:Tim 在 Vercel 上确认 `ea4e6018` 已部署(AT-1d-3 close-out + DATE-PICK-1 委托书,2026-10-05)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-05 01:14:31 CST**(测量:`db/migration-windows.tsv`,`2026-10-05-at1d3-trails-pay-and-performance.sql`)·
+>    终点下界 **2026-10-05 02:24:44 CST**(测量:推送把 `origin/main` 移到 `ea4e6018`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`ea4e6018 … {2026-10-05 02:24:44 +0800}: update by push`)·
+>    终点上界 **2026-10-05 09:12:02 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 1 h 10 min 13 s,至多 7 h 57 min 31 s。** 上界宽,是因为推送与 close-out 之间隔了一夜(6 h 47 min)—— 它是"Tim 说已部署"那一刻的
+>    上界,不是部署花了这么久。窗口里**没有量到坏掉的东西**(五支登记函数同签名原地替换,`record_trail` 没动;旧应用不叫六个新主语,也不调
+>    `my_period_labels()`;旧的 `/me` 照旧直读期间表,Q19 的缺口在部署之前照旧可见)。提前看得见的:引用里评审 · 工资申请 · KPI 条目的新名字 ——
+>    线上 0 份评审、0 张工资申请,所以哪一条都出现不了。见 `docs/handbacks/AUDIT-TRAIL-1d-3.md` §7.3。
+>
+> 33. **✅ 日期选择器 —— DATE-PICK-1(`v1.4.34`,2026-10-05)。** 内容见下面「HISTORY family」一节的 ✅ DATE-PICK-1;发布那一行在
+>    `docs/handbacks/DATE-PICK-1.md` 的抬头。**没有迁移,所以没有破窗**(部署之前旧页面照旧是原生日期框)。下一刀 UNBLOCK-1。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
@@ -4382,7 +4393,7 @@ ALERT-1 的兜底保证了【原文永远不做标题】,但兜底那句话说�
 | ★★ **两个账号前置** | ① 那个**只持字典编辑权**的账号**仍然不存在**(走查 §12 第 1 步与 §15 第 1 步都卡在它上面);② **全系统只有一个人登得进来**,而**应用里没有任何一条路能把管理员权限重新授出去** | ★ **一个有名字的人**,在发账号那一天 | 「内部验收」(e)|
 | ★ **`GHOST-GRANTS`** | 幽灵 admin 授权会再长回来:**66 → 21 → 8**,第三次清扫 | 产地那一层已由 LEAK-1 关掉;**这一条本身仍开着** | `known-issues` 同名条 |
 | ★ **`PERIOD-LOCK-RAW-CODE`** | 42 支 `*ErrorCodes.ts` 里 **31 支不认 `PERIOD_LOCKED`** → 屏幕上出现 `PERIOD_LOCKED\|2026-07-15\|2026-08-01`,**已举证一条真路** | **没有前置**(而它是一刀,不是补几个码)| 本文件同名条 |
-| ★★ **DATE-1 的选择器那一半** | **130 个 `<input type="date">` / 85 个文件**按 HTML 规范渲染成**操作系统 locale** 的格式 —— 于是 Tim 最初抱怨的「同一个日期读出三种样子」**只治好了显示那一半** | ✅ **Tim 已答(2026-09-29,AUDIT-TRAIL-0 Q35–Q39):做,排成 DATE-PICK-1(v1.4.37)**;AUDIT-TRAIL-0 重量:134 处 / 90 个文件 | 「HISTORY family」一节的「⬜ AUDIT-TRAIL 的后几刀」|
+| ✅ ~~★★ **DATE-1 的选择器那一半**~~ | ~~**130 个原生日期框 / 85 个文件**按 HTML 规范渲染成**操作系统 locale** 的格式~~ —— **✅ DATE-PICK-1(`v1.4.34`,2026-10-05)做完**:134 处(125 日期 · 5 月份 · 4 日期时间,90 个文件)全部换成 `app/components/ui/date-picker.tsx`;`check-date-format` 维度③判零(两条独立的路 + 金丝雀) | ✅ Tim 已答(2026-09-29,AUDIT-TRAIL-0 Q35–Q39);交回 `docs/handbacks/DATE-PICK-1.md` | 「HISTORY family」一节的 ✅ DATE-PICK-1 |
 
 ### 乙 · ★★ 排它不会让它前进 —— **等一句裁定**
 
@@ -6688,13 +6699,17 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
       /me 上没有评审与 KPI 的审计记录(Q14 · Q16)。★ **Tim 的折入:修好 Q19** —— `my_period_labels()` 只给本人自己那几个期间的编号与月份,
       `/me` 不再印 "—"(`docs/known-issues.md` 的 Q19 那一条已关)。交回 `docs/handbacks/AUDIT-TRAIL-1d-3.md`(抬头是 `v1.4.33` 的发布那一行);
       fixture 246。★ **破窗**:起点 **2026-10-05 01:14:31 CST**(`db/migration-windows.tsv`);终点 = Tim 在 Vercel 上看到部署成功的那一刻
-      (转述,不是本机测量)—— **下一次 close-out 时补记**。
-  * **⬜ ★ 下一刀:DATE-PICK-1(`v1.4.34`;~~v1.4.37~~)· 日期选择器** —— 一个自建的选择器(Radix Popover + 现成的 `MonthGrid` + `lib/bankCsv.ts` 的
+      (转述,不是本机测量)—— **已在 DATE-PICK-1 的 close-out 里补记(上面第 32 条:至少 1 h 10 min 13 s,至多 7 h 57 min 31 s)**。
+  * **✅ DATE-PICK-1(`v1.4.34`;~~v1.4.37~~,2026-10-05)· 日期选择器** —— 交回 `docs/handbacks/DATE-PICK-1.md`(抬头是 `v1.4.34` 的发布那一行)。
+    134 个原生日期框(125 日期 · 5 月份 · 4 日期时间,90 个文件)一个不剩,全换成 `app/components/ui/date-picker.tsx`(三个包装里
+    `DateFilterInput` 与 `ContractDateInput` 删掉、`PaymentDateInput` 留作付款日规矩的薄包装、`CostSettlePanel` 的 `dateField()` 改用选择器);
+    `check-date-format` 维度③从【只许减少】改成【零】,语法树与字符两条路 + 每次都跑的金丝雀;`check-date-data-paths` 改瞄选择器的属性;
+    两处都做了故障注入(真注入,不是往违规表里塞一行)。不动数据库。下一刀:UNBLOCK-1。原文:一个自建的选择器(Radix Popover + 现成的 `MonthGrid` + `lib/bankCsv.ts` 的
     DD/MM/YYYY 解析,不加库):能敲能点、DD/MM/YYYY、周一开头、提交 ISO、min/max 之外的日子不可选并说原因、不可能的日子拦住提交
     (Q35 · Q37);5 个月份框(MM/YYYY)与 4 个日期时间框(DD/MM/YYYY HH:MM,改按新加坡时间)一起换(Q36);中文界面的月名周名用中文、
     输入格式仍是 DD/MM/YYYY(Q39);**134 个原生日期框一个不剩**,检查改成"零个",两种独立的数法,`check-date-data-paths.mjs` 改瞄选择器,
     两处都做故障注入(Q38)。勘察 `docs/surveys/AUDIT-TRAIL-0/dates.md`。不动数据库。
-* **⬜ UNBLOCK-1 · 量到了、没修、等一个裁定的几件**(AUDIT-TRAIL-1b-1 起立这一条,2026-09-29)
+* **⬜ ★ 下一刀:UNBLOCK-1 · 量到了、没修、等一个裁定的几件**(AUDIT-TRAIL-1b-1 起立这一条,2026-09-29;DATE-PICK-1 之后排在最前)
   * **⬜ ★ 第一条(Tim 的 AT-1c Q11,2026-10-03):工资过账的分录行只给持 `data.view_pay` 的人看一个人的金额** —— 其余的人看到 "Restricted"。
     今天持 `module.finance.view` 而不持 `data.view_pay` 的 cto 与 gm 在分录页上读得到每一个人的实发工资(`pay_payroll_lines` 一人一行)。
     AT-1c 的审计记录照分录页今天的样子说,不在审计记录里单独遮。`docs/known-issues.md` 的 `AT1C1-PAYROLL-JOURNAL-SHOWS-INDIVIDUAL-PAY`。
@@ -6704,6 +6719,9 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
     * **Q17 · `employees.notes` / `separation_notes` 屏幕上是人事内部的、自读策略放本人读**(导出也给)—— `AT1D1-HR-NOTES-SELF-READABLE`。
     * **Q18 · 病假 / 医疗的文字与工资期合计只要 module.hr.view**(一期一个人时合计就是一个人的工资)—— `AT1D1-HEALTH-TEXT-AND-PERIOD-TOTALS-BEHIND-HR-VIEW-ONLY`。
     * **Q30 · 匿名化只涂员工与履历的变更记录**(调薪申请、工资行、请假理由、医疗说明原样)—— `AT1D1-ANONYMISATION-LEAVES-OTHER-TABLES-UNREDACTED`。
+  * **⬜ `/me` 的工资单金额对不持 `module.hr.view` 的员工不挂币种**(Tim 2026-10-05 排在隐私组之后,DATE-PICK-1 委托书)——
+    `docs/known-issues.md` 的 `AT1D3-ME-PAYSLIP-CURRENCY-NEEDS-HR-VIEW`。两种修法(币种也进 `my_period_labels()` 一列 / 工资单按本位币说),
+    哪一种是 Tim 的决定;今天不显形(唯一不持 hr.view 的账号 warehouse 还没有一张工资单)。
   * **⬜ `equipment_maintenance_advice` 把资产成本与维修花费给了持加工权限的人**(Tim 的 Q14)—— `docs/known-issues.md` 的
     `AT1B-EQUIPMENT-ADVICE-SHOWS-COSTS`。两种修法(置空那两列 / 把门收成财务),哪一种是 Tim 的决定;`/operation/equipment/[id]` 已经不读它。
 * **⬜ `/settings/deleted` 要不要被变更记录吸收**(HISTORY-0 Q30,Tim:本刀之后再定,2026-09-28)—— 见下面「事件触发」那一节的原条目;

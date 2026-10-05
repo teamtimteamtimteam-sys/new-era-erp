@@ -1,6 +1,6 @@
 {
-  "note": "★ 不要为了让门变绿而刷新基线。先确认每一处新增是不是真的该留。  ★ nativeDateInputs 数的是【代码里的】处数 —— 注释【不算】。DATE-1 落地时这个数从一个连注释一起数的 144 收紧到了 138:一个把注释数进去的基线,可以被一句注释defeated。  TERMS-EDIT-1(2026-09-27)收紧到 135:合同新建页与详情页表头共用一个 ContractDateInput,新建页原有的 3 个并成 1 个。  HISTORY-1(2026-09-28)收紧到 134:/settings/deleted 的两个日期框与新页 /settings/change-history 的两个共用一个 DateFilterInput(app/components/ui/date-filter-input.tsx)。",
-  "nativeDateInputs": 134,
+  "note": "★ 不要为了让门变绿而刷新基线。先确认每一处新增是不是真的该留。",
+  "nativeDateInputs": 0,
   "sites": {
     "app/components/ui/feedback.tsx :: locale-call:toLocaleString": 1,
     "app/finance/assets/[id]/ServiceIntervalPanel.tsx :: locale-call:toLocaleString": 1,
@@ -26,7 +26,6 @@
     "app/inbound/receive/ReceiveForm.tsx :: hand-rolled-date-formatter": 1,
     "app/inventory/reports/reportShared.ts :: hand-rolled-date-formatter": 2,
     "app/materials/export/route.ts :: hand-rolled-date-formatter": 1,
-    "app/me/MyExpenseClaimsPanel.tsx :: hand-rolled-date-formatter": 2,
     "app/me/MyExpenseClaimsPanel.tsx :: locale-call:toLocaleString": 1,
     "app/operation/processing/new/NewProcessingForm.tsx :: hand-rolled-date-formatter": 1,
     "app/output/[id]/assays/new/OutputAssayForm.tsx :: hand-rolled-date-formatter": 1,
@@ -35,7 +34,6 @@
     "app/purchasing/orders/[id]/RetentionPanel.tsx :: locale-call:toLocaleString": 1,
     "app/purchasing/orders/new/NewOrderForm.tsx :: hand-rolled-date-formatter": 2,
     "app/sales/customers/[id]/page.tsx :: hand-rolled-date-formatter": 1,
-    "app/sales/customers/ChasePanel.tsx :: hand-rolled-date-formatter": 1,
     "app/sales/customers/ChasePanel.tsx :: locale-call:toLocaleString": 3,
     "app/sales/customers/export/route.ts :: hand-rolled-date-formatter": 1,
     "app/sales/customers/StatementPanel.tsx :: hand-rolled-date-formatter": 2,
@@ -44,9 +42,7 @@
     "app/tools/calendar/page.tsx :: hand-rolled-date-formatter": 2,
     "app/tools/calendar/sources.ts :: hand-rolled-date-formatter": 2,
     "app/tools/pricing/metal-prices/new/NewMetalPriceForm.tsx :: hand-rolled-date-formatter": 1,
-    "app/tools/tasks/[id]/TaskHeader.tsx :: hand-rolled-date-formatter": 1,
     "app/tools/tasks/TaskBoard.tsx :: hand-rolled-date-formatter": 1,
-    "app/tools/tasks/TaskModal.tsx :: hand-rolled-date-formatter": 1,
     "lib/bankCsv.ts :: hand-rolled-date-formatter": 1
   }
 }

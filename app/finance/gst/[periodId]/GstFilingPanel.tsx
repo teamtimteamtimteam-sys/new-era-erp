@@ -18,6 +18,7 @@ import { showActionMessage } from '@/app/components/ui/action-message'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { decideGstFiling, withdrawGstFiling, submitGstFiling, recordGstFiling } from '../actions'
 
@@ -92,6 +93,8 @@ export default function GstFilingPanel({
     const [pending, start] = useTransition()
     const [note, setNote] = useState('')
     const [filedOn, setFiledOn] = useState('')
+    // DATE-PICK-1:记下申报靠按钮 onClick 提交(不走原生表单)—— 框里是敲错的日子时把按钮关掉
+    const [filedOnBad, setFiledOnBad] = useState(false)
     const [reference, setReference] = useState('')
     const [err, setErr] = useState('')
     const notDone = t('common.actionMessage.headline.notDecided')
@@ -227,8 +230,7 @@ export default function GstFilingPanel({
                     <div className="flex flex-wrap items-end gap-3">
                         <div>
                             <label className="block mb-1">{t('gst.filedOn')}</label>
-                            <input type="date" value={filedOn} onChange={(e) => setFiledOn(e.target.value)}
-                                   className={CONTROL_INPUT} />
+                            <DatePicker value={filedOn} onChange={setFiledOn} onInvalidChange={setFiledOnBad} />
                         </div>
                         <div>
                             <label className="block mb-1">{t('gst.filedReference')}</label>
@@ -238,7 +240,7 @@ export default function GstFilingPanel({
                         </div>
                         {!filedOn && <p className="text-sm text-amber-700 self-center">{t('gst.blockedNeedFiledOn')}</p>}
                         <PermissionGate code="module.finance.edit" allowed={canEdit}>
-                            <Button type="button" disabled={!filedOn || pending}
+                            <Button type="button" disabled={!filedOn || pending || filedOnBad}
                                     onClick={() => start(async () => {
                                         const r = await recordGstFiling(periodId, filedOn, reference)
                                         if (r.error) setErr(r.error); else { setErr(''); router.refresh() }

@@ -10,6 +10,7 @@ import { submitTransferRequest } from './transferActions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 const inp = CONTROL_INPUT
 const sel = CONTROL_SELECT
@@ -34,6 +35,8 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
     // 实际转账日在执行那一步给(必填),两者可以不同。
     const [date, setDate] = useState(todayIsoLocal)
     const [ref, setRef] = useState('')
+    // DATE-PICK-1:提交走按钮 onClick,不走原生表单 —— 框里是一个敲错的日子时把按钮关掉
+    const [dateBad, setDateBad] = useState(false)
 
     function submit() {
         setError(null)
@@ -53,7 +56,7 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
             )}
             <div className="flex gap-2 flex-wrap items-end text-xs text-[color:var(--brand-muted-text)]">
                 <label>{t('finance.transfer.plannedDate')}
-                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`block ${inp}`} />
+                    <DatePicker value={date} onChange={setDate} onInvalidChange={setDateBad} className="flex" />
                 </label>
                 <label>{t('finance.transfer.from')}
                     <select value={from} onChange={(e) => setFrom(e.target.value)} className={`block ${sel}`}>
@@ -77,7 +80,7 @@ export default function TransferForm({ canEdit }: { canEdit: boolean }) {
                     <input value={ref} onChange={(e) => setRef(e.target.value)} className={`block ${inp} w-36`} />
                 </label>
                 <PermissionGate code="module.finance.edit" allowed={canEdit}>
-                <Button type="button" onClick={submit} disabled={pending || !date || !out || !inn}>
+                <Button type="button" onClick={submit} disabled={pending || !date || !out || !inn || dateBad}>
                     {pending ? t('common.saving') : t('finance.transfer.submitRequest')}
                 </Button>
                 </PermissionGate>

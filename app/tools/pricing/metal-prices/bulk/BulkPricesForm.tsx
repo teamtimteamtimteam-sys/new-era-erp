@@ -4,7 +4,6 @@
 // 每行右侧给出"该日期之前(含当日)最近一次的价格"作为参照 —— 录入时能看清是从多少改到多少。
 // 已有当日价格的金属会被预填(于是本页同时也是"改今天的价"的编辑页)。
 // 改日期会重新拉取参照价与预填值(走 router.replace 把日期写进 URL,由服务端重取)。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useActionState, useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { saveBulkPrices, type BulkPricesState } from './actions'
@@ -16,6 +15,7 @@ import SourcePicker from '../SourcePicker'
 import { INDEX_UNSTATED, type MetalPriceIndex } from '../indexOptions'
 import { ACK_FIELD, ackSignature } from '../anomaly'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 /** 桥上交出去的一行 —— 与搬家前 `metal[]` / `price[]` 逐字同构。 */
 type PriceLine = { metal: string; price: string }
@@ -154,16 +154,13 @@ export default function BulkPricesForm({
                     <label className="block mb-1">
                         {t('metalPrices.bulk.date')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="price_date"
                         required
                         value={priceDate}
-                        onChange={(e) => {
-                            const d = e.target.value
+                        onChange={(d) => {
                             if (d) router.replace(`${pathname}?date=${d}&index=${priceIndex ?? INDEX_UNSTATED}`)
                         }}
-                        className={CONTROL_INPUT}
                     />
                 </div>
                 {/* METAL-2:整张表属于一个指数。改它要【重取参照价】—— 拿 LME 的

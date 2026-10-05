@@ -7,9 +7,11 @@
 // DATE-0 §5.2 点名了四条路:一个日期在那里**不是显示,是数据**。
 // ★★ **其中三条的失败是【安静的】** —— 它们不报错,只是给出一个算得出来的错答案:
 //
-//   ① `<input type="date">` 的 value / min / max
-//      HTML 规范【要求】 `YYYY-MM-DD`。**不合法的值当空值处理,不抛错** ——
-//      控件就那么空着。一个人打开编辑页,看见日期栏是空的,以为这张单没有日期。
+//   ① 日期框的 value / defaultValue / min / max
+//      ★ DATE-PICK-1(2026-10-05,Q38)起,日期框是 `<DatePicker>`(与它的薄包装 `<PaymentDateInput>`),
+//      原生日期控件一个都不剩(check-date-format 的维度③判零)。于是这一臂【改瞄选择器的属性】:
+//      选择器把传进来的值按 ISO 读(toYmd / toYearMonth),一个 `01/09/2026` 也读得回来,
+//      但 `2026年9月1日`、`Sep 2026` 读不回来 —— **框就那么空着,不报错**。与原生控件同一个安静的失败。
 //
 //   ② ★★★ **URL 上的日期过滤** —— 四条里最坏的一条。
 //      `lib/dateFilter.ts` 的 `isYmd()` 不认就返回 `''`,而 `''` 的意思是
@@ -49,6 +51,7 @@ import { readdirSync, statSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import ts from 'typescript'
 import { assertPopulation, assertAssertionsRan } from './lib/selfproof.mjs'
+import { blankComments } from './lib/blank-comments.mjs'
 import * as D from '../lib/dates.ts'
 import { isYmd, parseDateRange } from '../lib/dateFilter.ts'
 
@@ -60,7 +63,19 @@ const DISPLAY_FORMATTERS = new Set([
     'formatDate', 'formatDateTime', 'formatMonth', 'formatAuditStamp',
     'formatTimestamp', 'fmtDate',
     'toLocaleDateString', 'toLocaleString', 'toDateString',
+    // DATE-PICK-1:选择器框里那一行字(DD/MM/YYYY · MM/YYYY)也是给人看的
+    'formatTypedDate', 'formatTypedMonth', 'formatTrailStamp', 'formatDocumentDate',
 ])
+// DATE-PICK-1:日期框的标签 —— 选择器本身,与它唯一的薄包装(付款日:必填、不晚于今天)
+const PICKER_TAGS = new Set(['DatePicker', 'PaymentDateInput'])
+const INJECT_PICKER = (process.argv.find((a) => a.startsWith('--inject=')) || '').slice(9)
+// 真注入(不是往违规表里塞一行):一份虚拟源码走与真文件完全相同的扫描。每一格先说出它应该红在哪一臂。
+const PICKER_INJECTIONS = {
+    picker: { arm: 1, src: "export function A({ d, locale }: { d: string; locale: string }) { return <DatePicker value={formatDate(d, locale)} onChange={() => {}} /> }" },
+    'picker-max': { arm: 1, src: "export function A({ d }: { d: string }) { return <DatePicker name=\"x\" max={formatTypedDate(d)} /> }" },
+    'picker-name': { arm: 4, src: "export function A({ d, locale }: { d: string; locale: string }) { return <PaymentDateInput name=\"zz_inject_date\" value={formatDate(d, locale)} onChange={() => {}} /> }\n"
+        + "export async function act(formData: FormData) { return formData.get('zz_inject_date') }" },
+}
 // ── 数据那一侧的正解,写在这里是给【读错误消息的人】看的:
 //    这四条路要的是它们,不是显示那一族。(判据不用它,所以不建成一个 Set。)
 //    toYmd() · toYearMonth() · lib/format.ts 的 businessToday()
@@ -105,10 +120,12 @@ let arm1Sinks = 0, arm2Sinks = 0, arm3Sinks = 0, arm4Sinks = 0, arm5Sinks = 0
 let openTagsSeen = 0
 let parsed = 0
 
-for (const file of files) {
-    const rel = relative(ROOT, file)
+let pickerSites = 0
+const scanList = files.map((f) => [relative(ROOT, f), null])
+if (PICKER_INJECTIONS[INJECT_PICKER]) scanList.push(['app/__inject__/PickerInjection.tsx', PICKER_INJECTIONS[INJECT_PICKER].src])
+for (const [rel, injected] of scanList) {
     if (rel.includes('database.types')) continue
-    const src = readFileSync(file, 'utf8')
+    const src = injected ?? readFileSync(join(ROOT, rel), 'utf8')
     const sf = ts.createSourceFile(rel, src, ts.ScriptTarget.Latest, true,
         rel.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS)
     if ((sf.parseDiagnostics ?? []).length) {
@@ -132,7 +149,10 @@ for (const file of files) {
             const nameAttr = attrs.find((a) => a.name.getText() === 'name')
             const nameVal = nameAttr?.initializer && ts.isStringLiteral(nameAttr.initializer)
                 ? nameAttr.initializer.text : null
-            if (nameVal && DATE_PARAM.test(nameVal) && (tag === 'input' || tag === 'Input')) {
+            const isPicker = PICKER_TAGS.has(tag)
+            if (isPicker) pickerSites++
+            // ★ DATE-PICK-1:选择器的 name= 一律是日期键(它只装日期),不必再过 DATE_PARAM
+            if (nameVal && (isPicker || (DATE_PARAM.test(nameVal) && (tag === 'input' || tag === 'Input')))) {
                 const vAttr = attrs.find((a) => ['value', 'defaultValue'].includes(a.name.getText()))
                 let badFmt = null
                 if (vAttr?.initializer && ts.isJsxExpression(vAttr.initializer) && vAttr.initializer.expression) {
@@ -141,7 +161,7 @@ for (const file of files) {
                 if (!namedDateInputs.has(nameVal)) namedDateInputs.set(nameVal, [])
                 namedDateInputs.get(nameVal).push({ rel, line: at(n), badFmt })
             }
-            if (typeVal && ['date', 'month', 'datetime-local', 'week'].includes(typeVal)) {
+            if (isPicker || (typeVal && ['date', 'month', 'datetime-local', 'week'].includes(typeVal))) {
                 for (const a of attrs) {
                     const an = a.name.getText()
                     if (!['value', 'min', 'max', 'defaultValue'].includes(an)) continue
@@ -150,8 +170,8 @@ for (const file of files) {
                     const bad = callsAnyOf(a.initializer.expression, DISPLAY_FORMATTERS)
                     if (bad) {
                         violations.push({ arm: 1, rel, line: at(a), what:
-                            `<input type="${typeVal}"> 的 ${an}= 里调用了显示格式化 ${bad}()`,
-                            why: 'HTML 规范要求 YYYY-MM-DD;不合法的值【当空值处理,不报错】—— 控件会空着。',
+                            `<${isPicker ? tag : `input type="${typeVal}"`}> 的 ${an}= 里调用了显示格式化 ${bad}()`,
+                            why: '日期框按 ISO 读这个值;一个读不回来的显示串【当空值处理,不报错】—— 框会空着。',
                             fix: '改用 toYmd()(type="month" 用 toYearMonth())。' })
                     }
                 }
@@ -328,6 +348,26 @@ for (const loc of ['en', 'zh']) {
 B('toYmd 把 DD/MM/YYYY 读回日在前', D.toYmd('01/09/2026') === '2026-09-01', `→ ${D.toYmd('01/09/2026')}`)
 B('PDF 的写法不变(Q16)', D.formatDocumentDate('2026-09-01', 'en') === '01 Sep 2026' && D.formatDocumentDate('2026-09-01', 'zh') === '2026年9月1日',
     `→ ${D.formatDocumentDate('2026-09-01', 'en')} / ${D.formatDocumentDate('2026-09-01', 'zh')}`)
+// ⑦ DATE-PICK-1(Q37):选择器读人敲的字 —— 每一种认的写法都读成同一个 ISO,不存在的日子说"不存在"而不是"格式错"
+for (const typed of ['5/10/2026', '05/10/2026', '05/10/26', '05102026', '2026-10-05', '5.10.2026']) {
+    const r = D.parseTypedDate(typed)
+    B(`parseTypedDate("${typed}")`, !!r && r.ok && r.value === '2026-10-05', `→ ${JSON.stringify(r)}`)
+}
+for (const typed of ['31/02/2026', '29/02/2026', '00/10/2026', '05/13/2026']) {
+    const r = D.parseTypedDate(typed)
+    B(`parseTypedDate("${typed}") 是不存在的日子`, !!r && !r.ok && r.reason === 'impossible', `→ ${JSON.stringify(r)}`)
+}
+B('parseTypedDate 认得闰年 29/02/2028', D.parseTypedDate('29/02/2028')?.ok === true, '→ 不认')
+B('parseTypedDate 空是"没填",不是错', D.parseTypedDate('  ') === null, '→ 不是 null')
+B('parseTypedMonth("10/2026" · "102026" · "2026-10")', ['10/2026', '102026', '2026-10'].every((x) => { const r = D.parseTypedMonth(x); return r && r.ok && r.value === '2026-10' }), '→ 有一种没读成 2026-10')
+B('parseTypedTime("14:30" · "1430") 与 24:00 不存在', D.parseTypedTime('1430')?.ok === true && D.parseTypedTime('24:00')?.ok === false, '→ 不对')
+// 框里那一行字【给人看】,isYmd 必须拒绝它 —— 否则它会被当成一个合法的过滤值
+B('isYmd 拒绝框里那一行字', !isYmd(D.formatTypedDate('2026-10-05')) && D.formatTypedDate('2026-10-05') === '05/10/2026', `→ ${D.formatTypedDate('2026-10-05')}`)
+// Q36:日期时间交出去的是新加坡时间、带偏移;从时间戳读回来也按新加坡
+B('businessDateTimeIso 带新加坡的偏移', D.businessDateTimeIso('2026-10-05', '14:30') === '2026-10-05T14:30+08:00', `→ ${D.businessDateTimeIso('2026-10-05', '14:30')}`)
+B('toBusinessDateTime 把 UTC 读成新加坡钟面', JSON.stringify(D.toBusinessDateTime('2026-10-05T06:30:00Z')) === '{"date":"2026-10-05","time":"14:30"}', `→ ${JSON.stringify(D.toBusinessDateTime('2026-10-05T06:30:00Z'))}`)
+B('带偏移的值与 UTC 是同一刻', new Date(D.businessDateTimeIso('2026-10-05', '14:30')).toISOString() === '2026-10-05T06:30:00.000Z', '→ 不是同一刻')
+B('月历周一开头:05/10/2026 是周一', D.mondayIndex('2026-10-05') === 0, `→ ${D.mondayIndex('2026-10-05')}`)
 // ⑤ 审计戳那一族是 YYYY-MM-DD HH:MM,而且【不随语言变】(D2)
 B('审计戳形状', /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(D.formatAuditStamp(SAMPLE_TS)),
     `→ ${D.formatAuditStamp(SAMPLE_TS)}`)
@@ -361,6 +401,15 @@ if (INJECT === 3) violations.push({ arm: 3, rel: '(注入)', line: 0,
     what: '注入:把 formatMonth() 接到 URL 的 month 键上', why: '演示 ARM 3 会红', fix: '—' })
 if (INJECT === 4) violations.push({ arm: 4, rel: '(注入)', line: 0,
     what: '注入:把 formatDate() 接到 FormData 上', why: '演示 ARM 4 会红', fix: '—' })
+if (INJECT_PICKER && !/^\d$/.test(INJECT_PICKER)) {
+    const want = PICKER_INJECTIONS[INJECT_PICKER]
+    if (!want) { console.error(`✗ check-date-data-paths:不认识的注入 --inject=${INJECT_PICKER}`); process.exit(2) }
+    // 注入的那一份必须在它预言的那一臂红;没红就是这一臂瞎了 —— 退 2,不是退 0
+    if (!violations.some((v) => v.arm === want.arm && v.rel === 'app/__inject__/PickerInjection.tsx')) {
+        console.error(`✗ check-date-data-paths:注入 ${INJECT_PICKER} 应当红在 ARM ${want.arm},而它没红 —— 这一臂看不见选择器。`)
+        process.exit(2)
+    }
+}
 
 // ── 覆盖断言 ────────────────────────────────────────────────────────────────
 // ★ 一个瞎掉的检查必须说「我瞎了」,不许说「干净」。
@@ -369,14 +418,20 @@ assertPopulation('check-date-data-paths', 'JSX 开标签', openTagsSeen, 1000)
 // 第二条独立的路:按【文本】数一遍原生日期控件,与走 AST 的那条对照。
 // 两个数不必相等(AST 数的是【带 value/min/max 的属性】,文本数的是【标签】),
 // 所以这里钉的是"两条路都不是零",而不是"两个数相等" —— 一个假的相等比不相等更坏。
-let textualDateInputs = 0
-for (const file of files) {
-    const rel = relative(ROOT, file)
+// ★ DATE-PICK-1:从前这里数的是原生日期控件(≥ 100)—— 那个总体现在【应当】是零,不能再当覆盖的证据。
+//   改数选择器的调用点:语法树一条、字符一条(先涂注释,整份源码跑正则,不按行切),两个数必须相等。
+let textualPickers = 0
+for (const [rel, injected] of scanList) {
     if (rel.includes('database.types')) continue
-    textualDateInputs += (readFileSync(file, 'utf8').match(/type="(date|month|datetime-local|week)"/g) || []).length
+    textualPickers += (blankComments(injected ?? readFileSync(join(ROOT, rel), 'utf8')).match(/<(DatePicker|PaymentDateInput)(?=[\s/>]|$)/g) || []).length
 }
-assertPopulation('check-date-data-paths', '文本数出的原生日期控件', textualDateInputs, 100)
-assertPopulation('check-date-data-paths', 'AST 数出的 value/min/max 属性(ARM 1 的落点)', arm1Sinks, 1)
+assertPopulation('check-date-data-paths', '语法树数出的日期选择器调用点', pickerSites, 100)
+if (pickerSites !== textualPickers) {
+    console.error(`✗ check-date-data-paths:**覆盖断言失败** —— 日期选择器调用点:语法树 ${pickerSites} · 字符 ${textualPickers}。`)
+    console.error('  ☞ 两条路对不上,其中一条瞎了一半 —— 而 ARM 1 / ARM 4 只走语法树那一条。')
+    process.exit(2)
+}
+assertPopulation('check-date-data-paths', '选择器的 value/defaultValue/min/max 属性(ARM 1 的落点)', arm1Sinks, 100)
 // ★ 下面三条是【总体非空】断言,而它们存在的理由是第一版 ARM3/ARM4 的落点各只有 1 个:
 //   **一个总体为 1 的断言,与一个瞎掉的断言在输出上分不开。**
 assertPopulation('check-date-data-paths', 'server action 读的日期键(ARM 4 的闭合集合)', formDataDateKeys.size, 10)
@@ -385,7 +440,7 @@ assertPopulation('check-date-data-paths', 'month 键的读取点(ARM 3)', monthK
 assertPopulation('check-date-data-paths', 'Date.parse / new Date 的落点(ARM 5)', arm5Sinks, 20)
 // ★【这个数被本支自己的机制抓过一次:声明 14,实际求值 13,当场 exit 2】
 //   加断言就要把这个数一起改掉 —— 那个摩擦是刻意的。
-assertAssertionsRan('check-date-data-paths', ran, 19)   // AUDIT-TRAIL-1a:13 → 19(⑤b 的六条:幂等 ×4 · 读回日在前 · PDF 写法不变)
+assertAssertionsRan('check-date-data-paths', ran, 38)   // AUDIT-TRAIL-1a:13 → 19(⑤b 的六条);DATE-PICK-1:19 → 38(⑦ 的十九条:选择器的解析与新加坡时间)
 
 // ── 判词 ────────────────────────────────────────────────────────────────────
 const ARM_NAME = {
@@ -397,7 +452,7 @@ const ARM_NAME = {
 }
 console.log(`check-date-data-paths:解析 ${parsed} 份源码 · JSX 开标签 ${openTagsSeen} 个`)
 console.log(`  落点:ARM1 ${arm1Sinks} · ARM2 ${arm2Sinks} · ARM3 ${arm3Sinks} · ARM4 ${arm4Sinks}`
-    + ` · ARM5 ${arm5Sinks} · 文本数出的原生日期控件 ${textualDateInputs}`)
+    + ` · ARM5 ${arm5Sinks} · 日期选择器调用点 语法树 ${pickerSites} = 字符 ${textualPickers}`)
 console.log(`  ARM4 闭合集合:action 读了 ${formDataDateKeys.size} 个日期键`
     + ` → 回查到 ${arm4Checked} 颗 name= 对得上的控件`)
 console.log(`  ARM3 闭合集合:month 键读取点 ${monthKeyReads.length} 处`)

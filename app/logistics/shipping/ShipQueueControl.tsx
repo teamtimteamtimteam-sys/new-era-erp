@@ -15,6 +15,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { shipFromQueue } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export default function ShipQueueControl({
     orderId,
@@ -38,6 +39,8 @@ export default function ShipQueueControl({
     const [isPending, startTransition] = useTransition()
     const [qty, setQty] = useState('')
     const [shipDate, setShipDate] = useState('')
+    // 日期框里敲着一个不合法的日子:shipDate 还是上一个合法值,按钮靠这一位关上
+    const [dateBad, setDateBad] = useState(false)
 
     const qtyN = Number(qty)
     // 【数量留空 = 整条预留】—— 不是 0。
@@ -74,10 +77,9 @@ export default function ShipQueueControl({
                 </div>
                 <div>
                     <label className="block mb-1">{t('logistics.shipping.shipDate')}</label>
-                    <input type="date" value={shipDate} onChange={(e) => setShipDate(e.target.value)}
-                           className={CONTROL_INPUT} />
+                    <DatePicker value={shipDate} onChange={setShipDate} onInvalidChange={setDateBad} />
                 </div>
-                <Button type="button" onClick={go} disabled={isPending || blocked !== null} variant="secondary">
+                <Button type="button" onClick={go} disabled={isPending || blocked !== null || dateBad} variant="secondary">
                     {isPending ? t('common.saving') : t('logistics.shipping.action')}
                 </Button>
             </div>

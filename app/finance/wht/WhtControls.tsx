@@ -12,6 +12,7 @@ import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { showActionMessage } from '@/app/components/ui/action-message'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 type Month = { month: string; label: string; amount: string }
 
@@ -27,6 +28,8 @@ canEdit: boolean
     const [bank, setBank] = useState('')
     const [notes, setNotes] = useState('')
     const [err, setErr] = useState('')
+    // DATE-PICK-1:提交靠按钮 onClick(不走原生表单)—— 框里是敲错的日子时把按钮关掉
+    const [onBad, setOnBad] = useState(false)
     const [busy, start] = useTransition()
 
     // 【没有欠款时不给按钮,而是说出为什么】一个点下去只会得到
@@ -58,8 +61,7 @@ canEdit: boolean
                 </div>
                 <div>
                     <label className="block mb-1">{t('wht.remitPlannedOn')}</label>
-                    <input type="date" value={on} onChange={(e) => setOn(e.target.value)}
-                           className={CONTROL_INPUT} />
+                    <DatePicker value={on} onChange={setOn} onInvalidChange={setOnBad} />
                 </div>
                 <div>
                     <label className="block mb-1">{t('wht.remitReference')}</label>
@@ -84,7 +86,7 @@ canEdit: boolean
 
             <div className="mt-3 flex items-center gap-3">
                 <PermissionGate code="module.finance.edit" allowed={canEdit}>
-                <Button type="button" disabled={incomplete || busy}
+                <Button type="button" disabled={incomplete || busy || onBad}
                         onClick={() => start(async () => {
                             const r = await submitWhtRemittanceRequest(month, on, ref, bank, notes)
                             if (r?.error) setErr(r.error)

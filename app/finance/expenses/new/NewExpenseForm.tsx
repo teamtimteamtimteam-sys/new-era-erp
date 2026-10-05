@@ -19,6 +19,7 @@ import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { businessToday } from '@/lib/format'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 // EQP-1c-c:已登记、还能加成本的机器。
 // EQP-1c-c:资本支出的两扇门。**这个数组是 expense.form.capitalMode(.Hint) 那两族
@@ -195,13 +196,11 @@ canEdit: boolean
                     <label className="block mb-1">
                         {t('expense.form.date')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="expense_date"
                         required
                         defaultValue={todayIsoLocal()}
                         max={businessToday()}
-                        className={CONTROL_INPUT}
                     />
                 </div>
                 {/* FIN-22:资本性支出开关 —— 勾上后借 1500 而不是费用科目,
@@ -527,8 +526,7 @@ canEdit: boolean
                         </div>
                         <div>
                             <label className="block mb-1">{t('assets.colInService')}</label>
-                            <input type="date" name="asset_in_service_date"
-                                   className={CONTROL_INPUT} />
+                            <DatePicker name="asset_in_service_date" />
                             <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('expense.form.inServiceHint')}</p>
                         </div>
                         <div>

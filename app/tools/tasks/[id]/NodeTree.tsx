@@ -6,6 +6,7 @@ import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { CONTROL_CHECKBOX, CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { TaskEditGate } from '../TaskEditGate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import type { TaskEditState } from '@/lib/taskAccess'
 
 // app/tools/tasks/[id]/NodeTree.tsx
@@ -57,6 +58,8 @@ export default function NodeTree({
     const [addingUnder, setAddingUnder] = useState<string | null | undefined>(undefined)
     const [draftTitle, setDraftTitle] = useState('')
     const [draftDate, setDraftDate] = useState('')
+    // 新步骤的日期框里敲着一个不合法的日子:draftDate 还是上一个合法值,保存钮靠这一位关上
+    const [draftDateBad, setDraftDateBad] = useState(false)
     const [editing, setEditing] = useState<string | null>(null)
     const [editTitle, setEditTitle] = useState('')
 
@@ -115,12 +118,10 @@ export default function NodeTree({
                       `disabled` 是把控件从人手里拿走;这一句只是不听第二次。
                     ⚠ 原生浮层本身在无头浏览器里**观察不到**(它不在 DOM 里)——
                       这一条的机制是 PROVEN,「于是浮层关得掉」要 Tim 手上确认。 */}
-                <input
-                    type="date"
-                    className={CONTROL_INPUT}
+                <DatePicker
                     value={n.target_date ?? ''}
                     aria-label={labels.targetDate}
-                    onChange={(e) => { if (pending) return; run(() => setNodeDate(taskId, n.id, e.target.value || null)) }}
+                    onChange={(v) => { if (pending) return; run(() => setNodeDate(taskId, n.id, v || null)) }}
                 />
                 {isOverdue(n) ? (
                     <span className="rounded bg-amber-100 px-1 text-xs text-amber-800">{labels.overdue}</span>
@@ -191,15 +192,14 @@ export default function NodeTree({
                 value={draftTitle}
                 onChange={(e) => setDraftTitle(e.target.value)}
             />
-            <input
-                type="date"
-                className={CONTROL_INPUT}
+            <DatePicker
                 aria-label={labels.targetDate}
                 value={draftDate}
-                onChange={(e) => setDraftDate(e.target.value)}
+                onChange={setDraftDate}
+                onInvalidChange={setDraftDateBad}
             />
             <Button size="xs"
-                disabled={pending || !draftTitle.trim()}
+                disabled={pending || !draftTitle.trim() || draftDateBad}
                 onClick={() => { run(() => addNode(taskId, draftTitle, draftDate || null, parentId)); setDraftTitle(''); setDraftDate(''); setAddingUnder(undefined) }}>{labels.save}</Button>
             <Button variant="secondary" size="xs" onClick={() => setAddingUnder(undefined)}>{labels.cancel}</Button>
         </div>

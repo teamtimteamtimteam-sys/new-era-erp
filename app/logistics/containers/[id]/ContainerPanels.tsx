@@ -10,6 +10,7 @@ import {
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { tableC } from '@/app/components/ui/table-style'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
 
@@ -41,6 +42,8 @@ canEdit: boolean
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
     const [detaching, setDetaching] = useState<string | null>(null)
+    // 日期框不认 form.reset()(它的字在 React 状态里)—— 加完一条里程碑换一个 key 让它重新挂载、回到空
+    const [msKey, setMsKey] = useState(0)
     const field = CONTROL_INPUT
     const fieldSelect = CONTROL_SELECT
     const run = (fn: () => Promise<unknown>, after?: () => void) =>
@@ -94,8 +97,8 @@ canEdit: boolean
                     {/* 【世界那一侧的日期:永不预填】没有 defaultValue 的兜底,
                         没有"默认今天",空着就是空着 —— 与 event_date 那条列注释同一条规矩。 */}
                     <div><label className="block mb-1">{labels.etaLabel}</label>
-                        <input type="date" name="expected_arrival_date"
-                            defaultValue={head.expected_arrival_date ?? ''} className={field} /></div>
+                        <DatePicker name="expected_arrival_date"
+                            defaultValue={head.expected_arrival_date ?? ''} /></div>
                     <div className="min-w-[16rem] flex-1"><label className="block mb-1">{labels.notes}</label>
                         <input name="notes" defaultValue={head.notes ?? ''} className={`${field} w-full`} /></div>
                     <Button variant="default" className="text-sm" disabled={pending}>{labels.save}</Button>
@@ -228,7 +231,7 @@ canEdit: boolean
                             milestone: d.get('milestone') as string,
                             event_date: d.get('event_date') as string,
                             note: (d.get('note') as string)?.trim() || null,
-                        }), () => f.reset()) }}
+                        }), () => { f.reset(); setMsKey((k) => k + 1) }) }}
                 >
                     <div><label className="block mb-1">{labels.milestone}</label>
                         <select name="milestone" required className={fieldSelect}>
@@ -236,7 +239,7 @@ canEdit: boolean
                         </select></div>
                     <div><label className="block mb-1">{labels.eventDate} <span className="text-red-600">*</span></label>
                         {/* 【没有 defaultValue】—— 世界那一侧的日期,系统不代填 */}
-                        <input type="date" name="event_date" required className={field} /></div>
+                        <DatePicker key={msKey} name="event_date" required /></div>
                     <div className="min-w-[16rem] flex-1"><label className="block mb-1">{labels.milestoneNote}</label>
                         <input name="note" className={`${field} w-full`} /></div>
                     <Button variant="default" className="text-sm" disabled={pending}>{labels.addMilestone}</Button>

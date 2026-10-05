@@ -10146,3 +10146,27 @@ warehouse 角色持 `action.overtime_approve`、不持 `module.hr.view`。`/hr/o
 **审计记录照规矩**(与加班审批人 Q20 同一条,`AT1D1-OVERTIME-APPROVER-NAMES-PAGE-VS-TRAIL`)。若审核人必须在审计记录里看到名字,
 那是一次对 ActorName 规矩的改动,两处一起裁。**删除条件:** Tim 对"有一层业务关系的读者"(加班审批人、审核人)裁一次。
 
+
+## DATEPICK1-DISPLAY-DATE-IN-EDIT-STATE —— 许可证与佣金协议的编辑表单把【显示串】放进了状态(DATE-PICK-1 找到并修好,2026-10-05;留作记录)
+
+`app/purchasing/licences/LicencePanel.tsx` 的 `openEdit` 与 `app/sales/commissions/CommissionForm.tsx` 的初值写的是 `formatDate(…) ?? ''`。
+AT-1a(2026-09-29,Q16)把 `formatDate` 改成 `DD/MM/YYYY` 之后,这两处的状态里放的就是显示串(空值是「—」):原生日期框认不出它、【显示为空】,
+而不碰日期直接保存时那一串原样送到库里 —— 线上 `DateStyle` 是 `ISO, MDY`(以 `postgres` 实测),`05/10/2026` 会被读成 **5 月 10 日**,
+「—」则按名被拒;佣金那一页的"不完整"提交闸还把「—」当成"填了"。
+**线上没有一行受影响(实测,以 `postgres` 读基表):** `company_compliance` 1 行、自变更记录开始以来 0 次写入;`commission_agreements` 0 行。
+**修法(DATE-PICK-1):** 两处都改成 `toYmd(…)` —— 状态里放 ISO,选择器读它。
+☞ **为什么 `check-date-data-paths` 没抓到:** 它的 ARM 1 看的是【日期框属性里直接调用】显示格式化;这两处是先进 `useState`、再由状态喂给框 ——
+脚本抬头写明了这一类它按构造看不见("一个日期先进 useState、再被一句我读不懂的表达式送进……")。是同一族:`Display date used as data`。
+**删除条件:** 无(记录)。
+
+## DATEPICK1-SMALL-GAPS —— 换日期框时量到、没有在这一刀里改的几件(DATE-PICK-1,2026-10-05)
+
+- `app/tools/tasks/[id]/NodeTree.tsx`:节点日期在一次保存还没回来时又改了一次,那一次改动被现有的 `if (pending) return` 丢掉,
+  而选择器的框里仍显示那个被丢掉的日子(原生受控框会弹回去)。直到下一次值变了才对上。
+- `app/hr/leave/holidays/HolidaysEditor.tsx` 的"保存"没有 `!date` 的判断:把预填的日期清空再保存,送出去的是空串(服务端怎么答没有量)。改它前的样子。
+- `app/hr/claims/[id]/ClaimControls.tsx` 的付款日初值取 `new Date().toISOString().slice(0,10)` —— **UTC** 的今天,新加坡零点到八点之间是昨天。改它前的样子。
+- `todayIsoLocal()` 一族(`DATE1-YMD-BUILDERS`)仍是不少表单的【默认值】(TransferForm · NewExpenseForm · NewEntryForm · AssayForm …)——
+  读浏览器的时区。DATE-PICK-1 只把四个框的【上限】换成了 `businessToday()`(AssayForm · OutputAssayForm · /me 报销 · ChasePanel),默认值没动。
+- `app/purchasing/orders/new/NewOrderForm.tsx` 的付款条款到期日在 EditableTable 里画两份(桌面一份、手机展开面板一份);手机上在面板里敲了一个错日子、
+  再把面板收起来,那一份卸载,条款保留上一个合法日子(收起之前提交是被拦的)。
+**删除条件:** 各自在碰到那个文件的一刀里处理掉。

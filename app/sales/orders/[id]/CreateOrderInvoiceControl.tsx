@@ -8,13 +8,13 @@
 //
 // 【后果写在按钮旁边】开票会过账(借 1100 应收 / 贷 2500 合同负债,按订单抄来的
 // 汇率),而且订单流【先开票后发货】—— 那句话必须在按下之前就在屏幕上。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { createOrderInvoice } from '../actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { businessToday } from '@/lib/format'
 
 export default function CreateOrderInvoiceControl({
@@ -32,6 +32,8 @@ canEdit: boolean
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState('')
     const [issueDate, setIssueDate] = useState('')
+    // 日期框里敲着一个不合法的日子:issueDate 还是上一个合法值,开票钮靠这一位关上
+    const [dateBad, setDateBad] = useState(false)
 
     function go() {
         setError('')
@@ -48,19 +50,18 @@ canEdit: boolean
             <div className="flex flex-wrap items-end gap-3">
                 <div>
                     <label className="block mb-1">{t('sales.invoice.issueDate')}</label>
-                    <input
-                        type="date"
+                    <DatePicker
                         max={businessToday()}
                         value={issueDate}
-                        onChange={(e) => setIssueDate(e.target.value)}
-                        className={CONTROL_INPUT}
+                        onChange={setIssueDate}
+                        onInvalidChange={setDateBad}
                     />
                 </div>
                 <PermissionGate code="module.finance.edit" allowed={canEdit}>
                 <Button variant="secondary"
                     type="button"
                     onClick={go}
-                    disabled={isPending || issueDate.trim() === ''}
+                    disabled={isPending || issueDate.trim() === '' || dateBad}
                 >
                     {isPending ? t('common.saving') : t('sales.invoice.create', { n: String(unbilledCount) })}
                 </Button>

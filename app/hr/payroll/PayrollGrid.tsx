@@ -15,6 +15,7 @@ import { formatAmount } from '@/lib/format'
 import DecimalInput, { parseDecimal } from '@/app/components/forms/DecimalInput'
 import { savePayrollPeriod, type PayrollFormState, type PayrollLineInput } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import type { FooterRow } from '@/app/components/ui/data-table'
 
@@ -334,8 +335,8 @@ export default function PayrollGrid({
                     <label className="block mb-1">
                         {t('hr.colPeriod')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="month"
+                    <DatePicker
+                        kind="month"
                         name="period_month"
                         required
                         defaultValue={defaults.period_month}
@@ -350,20 +351,20 @@ export default function PayrollGrid({
                            ⚠ **不要把它"顺手统一"进 `control-style.ts`**:那等于替 Tim 裁一条
                              他没有裁的规矩(「这套系统的控件状态有哪几种」),
                              而那条规矩今天还不存在 —— 见 `docs/known-issues.md` 的
-                             `POLISH1-CONTROL-STATE-VOCAB`。 */
-                        className={`${CONTROL_INPUT} read-only:bg-gray-100`}
+                             `POLISH1-CONTROL-STATE-VOCAB`。
+                           ☞ DATE-PICK-1:月份框换成 <DatePicker>,它自己画框、className 只落在外层,
+                             所以只读底色改成【打在里面那个文字框上】的后代选择器 —— 底色本身一字未改。 */
+                        className="[&_input:read-only]:bg-gray-100"
                     />
                 </div>
                 <div>
                     <label className="block mb-1">
                         {t('hr.colPaymentDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="payment_date"
                         required
                         defaultValue={defaults.payment_date}
-                        className={CONTROL_INPUT}
                     />
                     <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('hr.paymentDateHint')}</p>
                 </div>

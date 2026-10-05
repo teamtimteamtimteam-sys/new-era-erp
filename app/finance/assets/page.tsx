@@ -24,7 +24,7 @@
 //   同名数组回传),这张表【没有】那个形状。
 //   ☞ 表本身搬到了 ./AssetsTable.tsx('use client');本页是 server component,
 //     而列描述符带 render 函数,过不了那道边界。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import Link from 'next/link'
 import { getBaseCurrency } from '@/lib/currency'
 import { createClient } from '@/lib/supabase/server'
@@ -235,8 +235,7 @@ export default async function AssetsPage({
             <h2 className="mb-3">{t('assets.depTitle')}</h2>
             <form method="get" className="mb-3">
                 <label className="mr-2">{t('assets.depPeriodEnd')}</label>
-                <input type="date" name="date" defaultValue={d}
-                       className={CONTROL_INPUT} />
+                <DatePicker name="date" defaultValue={d} />
                 <Button variant="secondary" type="submit" className="ml-2">
                     {t('finance.reval.preview')}
                 </Button>

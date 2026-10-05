@@ -11,6 +11,7 @@ import { createAsset, type NewAssetState } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { Alert, AlertTitle } from '@/app/components/ui/alert'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 const CATEGORIES = ['equipment', 'vehicle', 'office', 'other'] as const
 
@@ -61,8 +62,7 @@ export default function NewAssetForm({ canEdit }: { canEdit: boolean }) {
                     <label htmlFor="acquisition_date" className="block mb-1">
                         {t('assets.new.acquisitionDate')}
                     </label>
-                    <input id="acquisition_date" name="acquisition_date" type="date" required
-                        className={`${CONTROL_INPUT} w-full`} />
+                    <DatePicker id="acquisition_date" name="acquisition_date" required className="flex" />
                     {/* 【为什么不预填今天】它是投用日的下界 —— 预填会把投用日的
                         合法范围一起挪掉,而那不是这张表单该替人决定的事。 */}
                     <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('assets.new.acquisitionDateHint')}</p>

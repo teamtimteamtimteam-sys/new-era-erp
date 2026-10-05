@@ -5,6 +5,7 @@ import { saveForwarderDetails, addRateQuote, removeRateQuote } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
 
@@ -35,6 +36,8 @@ canEdit: boolean
     const locale = useLocale()
     const [error, setError] = useState<string | null>(null)
     const [pending, start] = useTransition()
+    // 日期框不认 form.reset()(它的字在 React 状态里)—— 加完一份报价换一个 key 让两个日期框回到空
+    const [quoteKey, setQuoteKey] = useState(0)
     const field = `${CONTROL_INPUT} w-full`
     const fieldSelect = `${CONTROL_SELECT} w-full`
     const fieldTextarea = `${CONTROL_TEXTAREA} w-full`
@@ -73,7 +76,7 @@ canEdit: boolean
                 free_days: (fd.get('free_days') as string) ?? '',
             })
             if ('error' in res) setError(res.error)
-            else form.reset()
+            else { form.reset(); setQuoteKey((k) => k + 1) }
         })
     }
 
@@ -142,11 +145,11 @@ canEdit: boolean
                         </div>
                         <div>
                             <label className="block mb-1">{labels.validFrom}</label>
-                            <input name="valid_from" type="date" required className={field} />
+                            <DatePicker key={`from-${quoteKey}`} name="valid_from" required className="flex" />
                         </div>
                         <div>
                             <label className="block mb-1">{labels.validTo}</label>
-                            <input name="valid_to" type="date" required className={field} />
+                            <DatePicker key={`to-${quoteKey}`} name="valid_to" required className="flex" />
                         </div>
                         {/* 【不是 required】—— 留空是一个正当答案("这份报价没写免柜期"),
                             不是漏填。min=0 允许真正的 0,而 0 与留空是两件不同的事。 */}

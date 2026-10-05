@@ -10,7 +10,6 @@
 // CCY-1:这一块【整块都是本位币】(*_base),而它挂在进料批次编辑页上 —— 那一页
 // 上下都是采购单的单据币种口径(批次单价、金额)。面板自己不写币种就等于借了
 // 一个说着别的币种的抬头,所以四个数字各自带上币种。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
@@ -18,6 +17,7 @@ import { formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { applyPrepayment, type ApplyPrepaymentState } from './prepaymentActions'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { tableC } from '@/app/components/ui/table-style'
 
@@ -130,8 +130,7 @@ canEdit: boolean
                         <label className="" htmlFor="release_date">
                             {t('purchasing.releaseDate')}
                         </label>
-                        <input id="release_date" name="release_date" type="date" required
-                            className={CONTROL_INPUT} />
+                        <DatePicker id="release_date" name="release_date" required />
                         <Button
                             type="submit"
                             disabled={isPending}

@@ -209,7 +209,7 @@ function dmy(p: { y: number; m: number; d: number }): string {
  * 屏幕上的单据日期 → `01/09/2026`,两种语言都是(AUDIT-TRAIL-1a · Q16)。
  * `locale` 留着:调用点一个都不用改,而且下一次若要按语言分开,入口还在。
  *
- * ⚠ **这个函数的输出【永远不要】喂回给机器** —— 不要喂 `<input type="date">`
+ * ⚠ **这个函数的输出【永远不要】喂回给机器** —— 不要喂日期框(DatePicker)
  *   的 value/min/max、不要放进 URL 的日期过滤、不要塞进 FormData。
  *   那四条路各自要的是 `toYmd()`,而其中三条失败时**一声不吭**。
  *   ☞ `scripts/check-date-data-paths.mjs` 就是为这四条路写的,它会变红。
@@ -316,7 +316,7 @@ export function formatAuditStamp(value: string | Date | null | undefined): strin
 // ════════════════════════════════════════════════════════════════════════════
 // DATE-0 §5.2 点名了四条会把一个日期【当数据读回去】的路,而**其中三条的
 // 失败是安静的**:
-//   ① `<input type="date">` 的 value/min/max —— HTML 规范【要求】 `YYYY-MM-DD`,
+//   ① 日期框的 value/min/max —— 原生控件时代 HTML 规范【要求】 `YYYY-MM-DD`;DATE-PICK-1 之后是 DatePicker,它照样按 ISO 读,
 //      不合法**当空值处理,不报错**:控件什么都不显示。
 //   ② URL 上的日期过滤 —— `lib/dateFilter.ts` 的 isYmd 不认就"不过滤",
 //      于是**列表悄悄给出全部行**。★ 一个算得出来的错答案。
@@ -324,7 +324,7 @@ export function formatAuditStamp(value: string | Date | null | undefined): strin
 //   ④ server action 从 FormData 里读日期 —— 库解析不了就拒(**这一条是响亮的**)。
 // ☞ 所以这几支**不看 locale**,而且它们的输出格式是一条契约,不是一个选择。
 
-/** `YYYY-MM-DD` —— 喂给 `<input type="date">`、URL 过滤、FormData 的那一个。 */
+/** `YYYY-MM-DD` —— 喂给日期框(DatePicker)、URL 过滤、FormData 的那一个。 */
 export function toYmd(value: string | Date | null | undefined): string {
     if (value === null || value === undefined || value === '') return ''
     const p = parts(value)
@@ -332,7 +332,7 @@ export function toYmd(value: string | Date | null | undefined): string {
     return `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`
 }
 
-/** `YYYY-MM` —— 喂给 `<input type="month">` 与 `/hr/leave/calendar` 的 month 键。 */
+/** `YYYY-MM` —— 喂给月份框(DatePicker kind="month")与 `/hr/leave/calendar` 的 month 键。 */
 export function toYearMonth(value: string | Date | null | undefined): string {
     if (value === null || value === undefined || value === '') return ''
     const p = parts(value)
@@ -371,4 +371,139 @@ export function formatCsvTimestamp(value: string | null | undefined): string {
         `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}` +
         ` ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`
     )
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ── 选择器那一族(DATE-PICK-1,2026-10-05;AUDIT-TRAIL-0 Q35–Q39)────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// 【为什么住在这里】`app/components/ui/date-picker.tsx` 是全站唯一的日期框;它要【读人敲的字】、
+//   【写机器要的串】、【算一个月有几天、周一在哪】。这三件事都是日期格式化,而本文件是
+//   check-date-format 认的那【一份】实现 —— 把它们写进组件,就是第七份复制的开头。
+// 【人敲的字】(Q37)DD/MM/YYYY 一族:`5/10/2026` · `05/10/26`(两位年 = 20YY,与 lib/bankCsv.ts 同一条)·
+//   `05102026`(手机数字键盘打不出斜杠)· 粘贴进来的 ISO `2026-10-05`。分隔符认 `/` `.` `-`。
+//   ★ `31/02/2026` 【不是】格式错,是"没有这一天" —— 两种错说两句话(Q37:不可能的日子要说出来)。
+//   ★ 永远【日在前】:`01/09/2026` 是 9 月 1 日。`new Date('01/09/2026')` 读成 1 月 9 日,所以这里一个 Date 都不构造。
+// 【机器要的串】日期 `YYYY-MM-DD` · 月份 `YYYY-MM` · 日期时间 `YYYY-MM-DDTHH:MM+08:00`(Q36:新加坡时间,
+//   带偏移 —— 不再交给浏览器的时区去解释,也不交给库会话的时区)。
+
+/** 草稿恢复(lib/useFormDraft.ts)改了日期框的隐藏输入之后发的事件名 —— 选择器听它,把框里的字一起改掉。 */
+export const DATE_PICKER_RESTORE = 'datepicker:restore'
+
+export type TypedParse<T extends string> = { ok: true; value: T } | { ok: false; reason: 'format' | 'impossible' }
+
+/** 一个真实存在的日子 → `YYYY-MM-DD`;2 月 30 日之类返回 null(不会被滚到 3 月)。 */
+export function isoDateIfValid(year: number, month: number, day: number): string | null {
+    if (!Number.isInteger(year) || year < 1000 || year > 9999) return null
+    if (month < 1 || month > 12 || day < 1 || day > daysInMonthOf(year, month)) return null
+    return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+/** 某年某月有几天。只做算术,不碰时区。 */
+export function daysInMonthOf(year: number, month: number): number {
+    return new Date(Date.UTC(year, month, 0)).getUTCDate()
+}
+
+/** `YYYY-MM-DD` 是星期几,周一 = 0 … 周日 = 6(Q35:日历周一开头)。 */
+export function mondayIndex(iso: string): number {
+    const [y, m, d] = iso.split('-').map(Number)
+    return (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7
+}
+
+/** `YYYY-MM-DD` 加减 n 天(键盘的左右上下)。 */
+export function addDaysIso(iso: string, n: number): string {
+    const [y, m, d] = iso.split('-').map(Number)
+    const t = new Date(Date.UTC(y, m - 1, d + n))
+    return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}-${String(t.getUTCDate()).padStart(2, '0')}`
+}
+
+/** `YYYY-MM-DD` 加减 n 个月;日子超出新月份就落在月底(31/01 + 1 个月 = 28/02 或 29/02)。 */
+export function addMonthsIso(iso: string, n: number): string {
+    const [y, m, d] = iso.split('-').map(Number)
+    const idx = y * 12 + (m - 1) + n
+    const ny = Math.floor(idx / 12), nm = idx - ny * 12 + 1
+    return `${ny}-${String(nm).padStart(2, '0')}-${String(Math.min(d, daysInMonthOf(ny, nm))).padStart(2, '0')}`
+}
+
+function fullYear(y: string): number {
+    return y.length === 2 ? 2000 + Number(y) : Number(y)
+}
+
+/** 人在日期框里敲的字 → `YYYY-MM-DD`。空串返回 null(= 没有填,不是错)。 */
+export function parseTypedDate(raw: string): TypedParse<string> | null {
+    const s = raw.trim()
+    if (!s) return null
+    let y: number, m: number, d: number
+    const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ]\S*)?$/.exec(s)
+    const packed = /^(\d{2})(\d{2})(\d{4})$/.exec(s)
+    const sep = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2}|\d{4})$/.exec(s)
+    if (iso) { y = Number(iso[1]); m = Number(iso[2]); d = Number(iso[3]) }
+    else if (packed) { d = Number(packed[1]); m = Number(packed[2]); y = Number(packed[3]) }
+    else if (sep) { d = Number(sep[1]); m = Number(sep[2]); y = fullYear(sep[3]) }
+    else return { ok: false, reason: 'format' }
+    const out = isoDateIfValid(y, m, d)
+    return out ? { ok: true, value: out } : { ok: false, reason: 'impossible' }
+}
+
+/** 人在月份框里敲的字(`10/2026` · `10/26` · `102026` · 粘贴的 `2026-10`)→ `YYYY-MM`。 */
+export function parseTypedMonth(raw: string): TypedParse<string> | null {
+    const s = raw.trim()
+    if (!s) return null
+    let y: number, m: number
+    const iso = /^(\d{4})-(\d{1,2})$/.exec(s)
+    const packed = /^(\d{2})(\d{4})$/.exec(s)
+    const sep = /^(\d{1,2})[/.-](\d{2}|\d{4})$/.exec(s)
+    if (iso) { y = Number(iso[1]); m = Number(iso[2]) }
+    else if (packed) { m = Number(packed[1]); y = Number(packed[2]) }
+    else if (sep) { m = Number(sep[1]); y = fullYear(sep[2]) }
+    else return { ok: false, reason: 'format' }
+    if (m < 1 || m > 12 || y < 1000) return { ok: false, reason: 'impossible' }
+    return { ok: true, value: `${y}-${String(m).padStart(2, '0')}` }
+}
+
+/** 人在时刻框里敲的字(`14:30` · `9:05` · `1430`,24 小时制)→ `HH:MM`。 */
+export function parseTypedTime(raw: string): TypedParse<string> | null {
+    const s = raw.trim()
+    if (!s) return null
+    const m = /^(\d{1,2})[:.](\d{2})$/.exec(s) ?? /^(\d{2})(\d{2})$/.exec(s)
+    if (!m) return { ok: false, reason: 'format' }
+    const hh = Number(m[1]), mm = Number(m[2])
+    if (hh > 23 || mm > 59) return { ok: false, reason: 'impossible' }
+    return { ok: true, value: `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}` }
+}
+
+/** 日期框里显示的字:`YYYY-MM-DD` → `DD/MM/YYYY`(两种语言同一个样子,Q39)。不是日期就给空串。 */
+export function formatTypedDate(iso: string): string {
+    const p = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso)
+    return p ? `${p[3]}/${p[2]}/${p[1]}` : ''
+}
+
+/** 月份框里显示的字:`YYYY-MM` → `MM/YYYY`。 */
+export function formatTypedMonth(ym: string): string {
+    const p = /^(\d{4})-(\d{2})/.exec(ym)
+    return p ? `${p[2]}/${p[1]}` : ''
+}
+
+/**
+ * 一个时刻在【新加坡】是几号几点 → `{ date: 'YYYY-MM-DD', time: 'HH:MM' }`(Q36)。
+ * 带 `Z` 或偏移的时间戳按业务时区换算;不带的(`2026-10-05T14:30`)当作已经是新加坡的钟面时刻。
+ * ★ 这取代了日期时间框从前那一手 `new Date(iso).getHours()` —— 那读的是【浏览器】的时区。
+ */
+export function toBusinessDateTime(value: string | Date | null | undefined): { date: string; time: string } | null {
+    if (value === null || value === undefined || value === '') return null
+    const p = parts(value)
+    if (!p) return null
+    return { date: `${p.y}-${String(p.m).padStart(2, '0')}-${String(p.d).padStart(2, '0')}`, time: `${p.hh}:${p.mm}` }
+}
+
+/**
+ * 新加坡的钟面时刻 → 带偏移的 ISO `2026-10-05T14:30+08:00`(Q36)。
+ * 偏移由 Intl 按业务时区算出来,不写死 —— 与本文件其余部分同一个 BUSINESS_TIMEZONE。
+ * 带着偏移,收到它的人(服务端的 `new Date()`、库里的 timestamptz)都不必再猜它是哪个时区的钟面。
+ */
+export function businessDateTimeIso(date: string, time: string): string {
+    const probe = new Date(`${date}T${time}:00Z`)
+    const name = new Intl.DateTimeFormat('en-US', { timeZone: BUSINESS_TIMEZONE, timeZoneName: 'longOffset' })
+        .formatToParts(probe).find((x) => x.type === 'timeZoneName')?.value ?? 'GMT'
+    const off = /GMT([+-]\d{2}:\d{2})/.exec(name)?.[1] ?? '+00:00'
+    return `${date}T${time}${off}`
 }

@@ -15,6 +15,7 @@ import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { AddRowPanel } from '@/app/components/ui/add-row-panel'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 type Row = {
     id: string; label: string; direction: string; amount_ccy: number; currency: string
@@ -36,6 +37,9 @@ export default function RecurringLines({
     // 预填就是奖励留空;服务端也独立地要求它非空(NOT NULL)。
     const [startDate, setStartDate] = useState('')
     const [endDate, setEndDate] = useState('')
+    // DATE-PICK-1:面板靠按钮 onClick 提交(AddRowPanel 不是原生表单)—— 任一个框里是敲错的日子就关掉按钮
+    const [startBad, setStartBad] = useState(false)
+    const [endBad, setEndBad] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [pending, startTransition] = useTransition()
 
@@ -88,7 +92,7 @@ export default function RecurringLines({
                     error={error}
                     className="mb-4"
                     actions={
-                        <Button className="text-sm" type="button" disabled={pending || !canSubmit}
+                        <Button className="text-sm" type="button" disabled={pending || !canSubmit || startBad || endBad}
                             onClick={() => {
                                 setError(null)
                                 startTransition(async () => {
@@ -128,11 +132,11 @@ export default function RecurringLines({
                             ))}
                         </select></label>
                     <label className="">{t('cashForecast.startDate')}
-                        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                            className={`${CONTROL_INPUT} block`} /></label>
+                        <DatePicker value={startDate} onChange={setStartDate} onInvalidChange={setStartBad}
+                            className="flex" /></label>
                     <label className="">{t('cashForecast.endDate')}
-                        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-                            className={`${CONTROL_INPUT} block`} /></label>
+                        <DatePicker value={endDate} onChange={setEndDate} onInvalidChange={setEndBad}
+                            className="flex" /></label>
                 </AddRowPanel>
             )}
 

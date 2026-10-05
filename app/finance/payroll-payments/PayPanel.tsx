@@ -17,8 +17,9 @@ import { formatAmount } from '@/lib/format'
 import { payLines, payCpf, payDeductions } from '../month-end/actions'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { Button } from '@/app/components/ui/button'
-import { CONTROL_CHECKBOX, CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX } from '@/app/components/ui/control-style'
 import { formatAuditStamp, formatMonth } from '@/lib/dates'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { useLocale } from '@/lib/i18n/client'
 
 type Period = { id: string; code: string; period_month: string; net_pay_total: number
@@ -43,6 +44,8 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
     const [error, setError] = useState<string | null>(null)
     const [sel, setSel] = useState<Record<string, boolean>>({})
     const [date, setDate] = useState('')
+    // DATE-PICK-1:三个按钮都靠 onClick 提交(不走原生表单)—— 框里是敲错的日子时三个一起关掉
+    const [dateBad, setDateBad] = useState(false)
     const empBy = new Map(employees.map((e) => [e.id, e]))
 
     function run(fn: () => Promise<{ error?: string }>) {
@@ -63,7 +66,8 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                 更坏的一点:替换成"今天"永远撞不上 PERIOD_LOCKED,所以【填对日期会报错、
                 留空反而顺利滑进未关的月份】。留空严格地比填错更危险。
                 onBlur 与 onChange 双挂:自动填充/表单状态恢复会改 DOM 而不触发 change,
-                受控输入会显示着日期而状态仍是空串(走查里就是这个形状)。 */}
+                受控输入会显示着日期而状态仍是空串(走查里就是这个形状)。
+                ★ DATE-PICK-1:那道 onBlur 回写已经拿掉 —— 日期框的值只来自 React 状态,没有 DOM 漂移可回写。 */}
             <label className="block mb-4">
                 {t('finance.payrollPay.date')} <span className="text-red-600">*</span>
                 {/* ★★ POLISH-1(2026-09-12,Tim 的裁定 R10 · S3「状态色留着」)★★
@@ -80,10 +84,9 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                      留下那个红底类 —— 模块那一支**没有**底色,它是真的在画。
                    ⚠ 「只读底色该长什么样」那一条(z③)Tim 2026-09-11 已裁**留**,
                      见 `app/hr/payroll/PayrollGrid.tsx` 那一行的注释。 */}
-            <input type="date" value={date} required aria-invalid={date === ''}
-                       onChange={(e) => setDate(e.target.value)} onBlur={(e) => setDate(e.target.value)}
-                       className={`${CONTROL_INPUT} block`
-                           + (date === '' ? ' bg-red-50' : '')} />
+            {/* ★ DATE-PICK-1:日期框自带它的 32px 框,上面说的那个红底类随原生框一起退场;空着时仍由 aria-invalid 画红描边。 */}
+            <DatePicker value={date} required aria-invalid={date === ''}
+                        onChange={setDate} onInvalidChange={setDateBad} className="flex" />
                 <span className="mt-1 block max-w-md text-[color:var(--brand-muted-text)]">{t('finance.payrollPay.dateHint')}</span>
             </label>
             {periods.length === 0 && (
@@ -137,20 +140,20 @@ export default function PayPanel({ periods, lines, employees, baseCurrency }: { 
                             />
                         </div>
                         <div className="flex gap-2 flex-wrap items-center text-sm">
-                            <Button type="button" disabled={pending || chosen.length === 0 || date === ''}
+                            <Button type="button" disabled={pending || chosen.length === 0 || date === '' || dateBad}
                                 onClick={() => run(() => payLines(p.id, chosen, date, ''))}>
                                 {t('finance.payrollPay.paySelected', { n: chosen.length })}
                             </Button>
                             {cpf > 0 && (p.cpf_paid_at
                                 ? <span className="text-xs text-green-700">{t('finance.payrollPay.cpfPaid', { 0: formatAuditStamp(p.cpf_paid_at) })}</span>
-                                : <Button type="button" disabled={pending || date === ''}
+                                : <Button type="button" disabled={pending || date === '' || dateBad}
                                     onClick={() => run(() => payCpf(p.id, date))}
                                     variant="secondary">
                                     {t('finance.payrollPay.payCpf', { amount: formatAmount(cpf, baseCurrency), due: cpfDue(formatMonth(p.period_month, locale)) })}
                                   </Button>)}
                             {Number(p.other_deductions_total ?? 0) > 0 && (p.deductions_paid_at
                                 ? <span className="text-xs text-green-700">{t('finance.payrollPay.dedPaid', { 0: formatAuditStamp(p.deductions_paid_at) })}</span>
-                                : <Button type="button" disabled={pending || date === ''}
+                                : <Button type="button" disabled={pending || date === '' || dateBad}
                                     onClick={() => run(() => payDeductions(p.id, date))}
                                     variant="secondary">
                                     {t('finance.payrollPay.payDeductions', { amount: formatAmount(p.other_deductions_total, baseCurrency) })}

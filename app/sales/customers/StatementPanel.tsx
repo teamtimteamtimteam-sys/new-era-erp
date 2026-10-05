@@ -23,6 +23,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 type Preview = {
     opening_base: number; charges_base: number; credits_base: number
@@ -63,6 +64,9 @@ export default function StatementPanel({
     const d = lastMonth()
     const [from, setFrom] = useState(d.from)
     const [to, setTo] = useState(d.to)
+    // 日期框里敲着一个不合法的日子:from/to 还是上一个合法值,预览与签发两个钮都靠这两位关上
+    const [fromBad, setFromBad] = useState(false)
+    const [toBad, setToBad] = useState(false)
     const [reason, setReason] = useState('')
     const [preview, setPreview] = useState<Preview | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -129,15 +133,13 @@ export default function StatementPanel({
             <div className="flex flex-wrap items-end gap-3 mb-3">
                 <label className="">
                     {t('statements.from')}
-                    <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-                        className={`${CONTROL_INPUT} block`} />
+                    <DatePicker value={from} onChange={setFrom} onInvalidChange={setFromBad} className="flex" />
                 </label>
                 <label className="">
                     {t('statements.to')}
-                    <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-                        className={`${CONTROL_INPUT} block`} />
+                    <DatePicker value={to} onChange={setTo} onInvalidChange={setToBad} className="flex" />
                 </label>
-                <Button variant="secondary" type="button" disabled={pending}
+                <Button variant="secondary" type="button" disabled={pending || fromBad || toBad}
                     onClick={() => run(async () => {
                         const r = await previewStatement(customerId, from, to)
                         if (!r.error) setPreview(r.data as Preview)
@@ -198,7 +200,7 @@ export default function StatementPanel({
                             placeholder={t('statements.supersedeReasonHint')}
                             className={`${CONTROL_INPUT} block w-72`} />
                     </label>
-                    <Button type="button" disabled={pending}
+                    <Button type="button" disabled={pending || fromBad || toBad}
                         onClick={() => run(() => issueStatement(customerId, from, to, reason))}>
                         {t('statements.issue')}
                     </Button>

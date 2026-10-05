@@ -13,6 +13,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { createSalesOrder, type OrderFormState } from '../actions'
 import type { CreditRow } from '../salesOrderTypes'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 const initialState: OrderFormState = {}
 const LINE_SLOTS = 5
@@ -93,9 +94,8 @@ export default function NewOrderForm({
                     <label className="block mb-1">
                         {t('sales.form.orderDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input type="date" name="order_date" value={orderDate}
-                           onChange={(e) => setOrderDate(e.target.value)} required
-                           className={`${CONTROL_INPUT} w-full`} />
+                    <DatePicker name="order_date" value={orderDate}
+                                onChange={setOrderDate} required className="flex" />
                     {state.fieldErrors?.order_date && (
                         <p className="text-red-600 text-xs mt-1">{state.fieldErrors.order_date}</p>
                     )}

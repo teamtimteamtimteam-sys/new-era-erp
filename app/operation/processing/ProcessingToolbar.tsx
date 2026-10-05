@@ -1,7 +1,7 @@
 'use client'
 
 // 加工单列表工具栏:仅两个日期字段(process_date 区间)。URL 驱动,改动回到第 1 页。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 
@@ -32,20 +32,16 @@ export default function ProcessingToolbar() {
         <div className="mb-4 flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-1">
                 {t('listFilters.dateFrom')}
-                <input
-                    type="date"
+                <DatePicker
                     value={currentDateFrom}
-                    onChange={(e) => onFilterChange('date_from', e.target.value)}
-                    className={CONTROL_INPUT}
+                    onChange={(v) => onFilterChange('date_from', v)}
                 />
             </label>
             <label className="flex items-center gap-1">
                 {t('listFilters.dateTo')}
-                <input
-                    type="date"
+                <DatePicker
                     value={currentDateTo}
-                    onChange={(e) => onFilterChange('date_to', e.target.value)}
-                    className={CONTROL_INPUT}
+                    onChange={(v) => onFilterChange('date_to', v)}
                 />
             </label>
         </div>

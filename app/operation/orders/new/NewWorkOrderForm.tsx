@@ -16,6 +16,7 @@ import Link from 'next/link'
 import { useTranslations } from '@/lib/i18n/client'
 import { createWorkOrder } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 
@@ -49,6 +50,8 @@ export default function NewWorkOrderForm({ materials, canCreate }: { materials: 
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState('')
     const [scheduled, setScheduled] = useState('')
+    // 日期框里敲了一个不存在 / 格式不对的日子:保存按钮不走原生表单,得自己关掉(DATE-PICK-1)
+    const [scheduledBad, setScheduledBad] = useState(false)
     const [lines, setLines] = useState(
         Array.from({ length: LINE_SLOTS }, () => ({ material_id: '', planned_qty: '' })))
     // PROC-SUPPORT-1(R3):每一行预期产出都要说出它的【出处】。
@@ -266,8 +269,7 @@ export default function NewWorkOrderForm({ materials, canCreate }: { materials: 
             <div className="space-y-5">
                 <div>
                     <label className="block mb-1">{t('processing.wo.form.scheduled')}</label>
-                    <input type="date" value={scheduled} onChange={(e) => setScheduled(e.target.value)}
-                           className={CONTROL_INPUT} />
+                    <DatePicker value={scheduled} onChange={setScheduled} onInvalidChange={setScheduledBad} />
                     <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('processing.wo.form.scheduledWhy')}</p>
                 </div>
 
@@ -312,7 +314,7 @@ export default function NewWorkOrderForm({ materials, canCreate }: { materials: 
                 <p className="text-xs text-[color:var(--brand-muted-text)]">{t('processing.wo.form.savesAsDraft')}</p>
                 <div className="flex gap-3">
                     <PermissionGate code="action.wo_create" allowed={canCreate} inline>
-                        <Button type="button" onClick={submit} disabled={isPending || blocked}>
+                        <Button type="button" onClick={submit} disabled={isPending || blocked || scheduledBad}>
                             {isPending ? t('common.saving') : t('processing.wo.form.save')}
                         </Button>
                     </PermissionGate>

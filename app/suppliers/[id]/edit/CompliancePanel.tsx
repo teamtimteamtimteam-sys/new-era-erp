@@ -6,6 +6,7 @@ import { addCompliance, deleteCompliance } from './complianceActions'
 import { useTranslations } from '@/lib/i18n/client'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { formatDate } from '@/lib/dates'
 
@@ -249,19 +250,11 @@ export default function CompliancePanel({
                 <div className="grid grid-cols-2 gap-3">
                     <div>
                         <label className="block mb-1">{t('suppliers.compliance.validFrom')}</label>
-                        <input
-                            type="date"
-                            name="valid_from"
-                            className={`${CONTROL_INPUT} w-full`}
-                        />
+                        <DatePicker name="valid_from" className="flex" />
                     </div>
                     <div>
                         <label className="block mb-1">{t('suppliers.compliance.validUntil')}</label>
-                        <input
-                            type="date"
-                            name="valid_until"
-                            className={`${CONTROL_INPUT} w-full`}
-                        />
+                        <DatePicker name="valid_until" className="flex" />
                     </div>
                 </div>
 

@@ -25,6 +25,7 @@ import {
 import { Button } from '@/app/components/ui/button'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 const initialState: ImportStatementState = {}
 
@@ -430,28 +431,24 @@ canEdit: boolean
                     <label className="block mb-1">
                         {t('bank.periodStart')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         value={effStart}
-                        onChange={(e) => {
+                        onChange={(v) => {
                             setPeriodTouched(true)
-                            setPeriodStart(e.target.value)
+                            setPeriodStart(v)
                         }}
-                        className={CONTROL_INPUT}
                     />
                 </div>
                 <div>
                     <label className="block mb-1">
                         {t('bank.periodEnd')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         value={effEnd}
-                        onChange={(e) => {
+                        onChange={(v) => {
                             setPeriodTouched(true)
-                            setPeriodEnd(e.target.value)
+                            setPeriodEnd(v)
                         }}
-                        className={CONTROL_INPUT}
                     />
                 </div>
                 <div>

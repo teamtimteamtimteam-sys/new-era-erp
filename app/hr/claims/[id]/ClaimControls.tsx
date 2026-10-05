@@ -8,6 +8,7 @@ import { decideClaim, payClaim } from '../actions'
 import { Button } from '@/app/components/ui/button'
 import { ConfirmButton } from '@/app/components/ui/confirm-dialog'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 /**
  * ★★ BUGFIX-1b(2026-09-12):GST 开着时这条路【一笔费用都开不出来】——
@@ -45,6 +46,7 @@ export default function ClaimControls({
     const router = useRouter()
     const [notes, setNotes] = useState('')
     const [date, setDate] = useState(new Date().toISOString().slice(0, 10))
+    const [dateBad, setDateBad] = useState(false)
     // ★ 预选 BL —— 而 **BL 不在启用清单里时【不伪造它】**:留空,下面那句提示说出来。
     //   一个预选出来的、其实不存在的税码,会在服务端被 TAX_CODE_UNKNOWN 挡回来,
     //   而屏幕上看起来像是已经选好了。
@@ -97,8 +99,8 @@ export default function ClaimControls({
                         `<select>` 坐在不换行的容器里,就是那条已经付过两次账的危险形状。 */}
                     <div className="flex gap-2 flex-wrap items-end mb-3">
                         <label className="">{t('claims.expenseDate')}
-                            <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                                   className={`${CONTROL_INPUT} block`} /></label>
+                            <DatePicker value={date} onChange={setDate} onInvalidChange={setDateBad}
+                                        className="flex" /></label>
                         {gstRegistered && (
                             <label className="">{t('claims.taxCode')} <span className="text-red-600">*</span>
                                 <select value={taxCode} onChange={(e) => setTaxCode(e.target.value)}
@@ -145,7 +147,7 @@ export default function ClaimControls({
                                 : t('claims.confirmRaiseBody', { date })}
                             confirmLabel={t('claims.createExpense')}
                             triggerVariant="default"
-                            disabled={pending || !date || (gstRegistered && !taxCode)}
+                            disabled={pending || !date || dateBad || (gstRegistered && !taxCode)}
                             onConfirm={() => run(() => payClaim(claimId, date, gstRegistered ? taxCode : null))}>
                             {pending ? t('common.saving') : t('claims.createExpense')}
                         </ConfirmButton>

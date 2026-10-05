@@ -10,11 +10,11 @@
 //
 // 【过期那一条要给补救办法】"过期了"是一句没有下一步的话;能做的事是
 // 改有效期、再签发一版 —— 那句话必须写出来。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { useState, useTransition } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { convertQuote } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export default function ConvertControl({
     quoteId, code, convertible, status, expired, validUntil, convertedOrderCode,
@@ -26,6 +26,8 @@ export default function ConvertControl({
     const [isPending, startTransition] = useTransition()
     const [open, setOpen] = useState(false)
     const [orderDate, setOrderDate] = useState('')
+    // 日期框里敲着一个不合法的日子:orderDate 还是上一个合法值,转单钮靠这一位关上
+    const [dateBad, setDateBad] = useState(false)
     const [error, setError] = useState('')
 
     // 【每一种"转不了"指向一个不同的下一步】
@@ -65,10 +67,9 @@ export default function ConvertControl({
                     <label className="block mb-1">
                         {t('quotes.convert.orderDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)}
-                           className={CONTROL_INPUT} />
+                    <DatePicker value={orderDate} onChange={setOrderDate} onInvalidChange={setDateBad} />
                 </div>
-                <Button type="button" onClick={go} disabled={isPending || orderDate.trim() === ''}>
+                <Button type="button" onClick={go} disabled={isPending || orderDate.trim() === '' || dateBad}>
                     {isPending ? t('common.saving') : t('quotes.convert.action')}
                 </Button>
                 <Button variant="secondary" type="button" onClick={() => setOpen(false)}>

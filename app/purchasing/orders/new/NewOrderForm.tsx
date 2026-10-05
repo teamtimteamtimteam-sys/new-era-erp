@@ -20,6 +20,7 @@ import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_RADIO, CONTROL_SELECT } from '
 import { useActionState, useMemo, useState } from 'react'
 import { useRef } from 'react'
 import { useFormDraft } from '@/lib/useFormDraft'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import DraftBanner from '@/app/components/DraftBanner'
 import Link from 'next/link'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
@@ -524,12 +525,11 @@ canEdit: boolean
                         ))}
                     </select>
                     {r.trigger_event === 'fixed_date' && (
-                        <input
-                            type="date"
+                        <DatePicker
                             value={r.due_date}
                             aria-label={t('purchasing.colTrigger')}
-                            onChange={(e) => patchTerm(r.uid, { due_date: e.target.value })}
-                            className={`${CONTROL_INPUT} ml-2`}
+                            onChange={(v) => patchTerm(r.uid, { due_date: v })}
+                            className="ml-2"
                         />
                     )}
                 </>
@@ -627,22 +627,16 @@ canEdit: boolean
                     <label className="block mb-1">
                         {t('purchasing.form.orderDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="order_date"
                         required
                         value={orderDate}
-                        onChange={(e) => setOrderDate(e.target.value)}
-                        className={CONTROL_INPUT}
+                        onChange={setOrderDate}
                     />
                 </div>
                 <div>
                     <label className="block mb-1">{t('purchasing.form.expectedDelivery')}</label>
-                    <input
-                        type="date"
-                        name="expected_delivery"
-                        className={CONTROL_INPUT}
-                    />
+                    <DatePicker name="expected_delivery" />
                 </div>
                 <div>
                     <label className="block mb-1">{t('purchasing.form.currency')}</label>

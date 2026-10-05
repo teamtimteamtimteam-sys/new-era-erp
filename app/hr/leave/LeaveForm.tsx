@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import { submitLeave, previewLeaveDays } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export type LeaveTypeOption = {
     code: string
@@ -45,6 +46,8 @@ export default function LeaveForm({
     const [typeCode, setTypeCode] = useState(types[0]?.code ?? '')
     const [start, setStart] = useState('')
     const [end, setEnd] = useState('')
+    const [startBad, setStartBad] = useState(false)
+    const [endBad, setEndBad] = useState(false)
     const [startHalf, setStartHalf] = useState(false)
     const [endHalf, setEndHalf] = useState(false)
     const [reason, setReason] = useState('')
@@ -150,7 +153,7 @@ export default function LeaveForm({
 
                 <label className="">
                     {t('leave.startDate')}
-                    <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className={field} />
+                    <DatePicker value={start} onChange={setStart} onInvalidChange={setStartBad} className="mt-1 flex" />
                     {type?.allows_half_day && (
                         <label className="mt-1 flex items-center gap-2">
                             <input className={CONTROL_CHECKBOX} type="checkbox" checked={startHalf} onChange={(e) => setStartHalf(e.target.checked)} />
@@ -161,7 +164,7 @@ export default function LeaveForm({
 
                 <label className="">
                     {t('leave.endDate')}
-                    <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className={field} />
+                    <DatePicker value={end} onChange={setEnd} onInvalidChange={setEndBad} className="mt-1 flex" />
                     {type?.allows_half_day && (
                         <label className="mt-1 flex items-center gap-2">
                             <input className={CONTROL_CHECKBOX} type="checkbox" checked={endHalf} onChange={(e) => setEndHalf(e.target.checked)} />
@@ -228,7 +231,7 @@ export default function LeaveForm({
             <Button
                 type="button"
                 onClick={submit}
-                disabled={pending || !start || !end || (!fixedEmployeeId && !employeeId)}
+                disabled={pending || !start || !end || startBad || endBad || (!fixedEmployeeId && !employeeId)}
                 variant="default" className="mt-4"
             >
                 {pending ? t('common.saving') : t('leave.submit')}

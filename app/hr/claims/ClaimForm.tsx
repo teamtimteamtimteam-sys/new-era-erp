@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { submitClaim } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export type EmpOpt = { id: string; code: string; legal_name: string }
 
@@ -18,6 +19,7 @@ export default function ClaimForm({
     const router = useRouter()
     const [employeeId, setEmployeeId] = useState(fixedEmployeeId ?? '')
     const [date, setDate] = useState('')
+    const [dateBad, setDateBad] = useState(false)
     const [amount, setAmount] = useState('')
     const [desc, setDesc] = useState('')
     const [receipt, setReceipt] = useState('')
@@ -56,7 +58,7 @@ export default function ClaimForm({
                     </label>
                 )}
                 <label className="">{t('claims.date')}
-                    <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={field} /></label>
+                    <DatePicker value={date} onChange={setDate} onInvalidChange={setDateBad} className="mt-1 flex" /></label>
                 <label className="">{t('claims.amountSgd')}
                     <input type="number" step="0.01" min="0.01" value={amount}
                            onChange={(e) => setAmount(e.target.value)} className={field} />
@@ -68,7 +70,7 @@ export default function ClaimForm({
                     <input value={receipt} onChange={(e) => setReceipt(e.target.value)} className={field} /></label>
             </div>
             <Button type="button" onClick={submit}
-                    disabled={pending || !date || !amount || (!fixedEmployeeId && !employeeId)}
+                    disabled={pending || !date || dateBad || !amount || (!fixedEmployeeId && !employeeId)}
                     variant="default" className="mt-4">
                 {pending ? t('common.saving') : t('claims.submit')}
             </Button>

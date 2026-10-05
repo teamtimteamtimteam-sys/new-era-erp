@@ -3,6 +3,7 @@
 // app/finance/packs/PackControls.tsx
 // GLEXPORT-1:月份选择 + 存档控件。**禁用一律说出为什么**(CMP-2 的规矩)。
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { useState, useTransition } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
@@ -17,9 +18,8 @@ export function PackMonthPicker({ month }: { month: string }) {
     return (
         <div>
             <label className="block mb-1">{t('pack.colMonth')}</label>
-            <input type="month" defaultValue={month} name="month"
-                   onChange={(e) => { if (e.target.value) router.push(`${pathname}?month=${e.target.value}`) }}
-                   className={CONTROL_INPUT} />
+            <DatePicker kind="month" defaultValue={month} name="month"
+                        onChange={(v) => { if (v) router.push(`${pathname}?month=${v}`) }} />
         </div>
     )
 }

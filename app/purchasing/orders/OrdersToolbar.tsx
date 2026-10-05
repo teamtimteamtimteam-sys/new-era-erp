@@ -2,7 +2,8 @@
 
 // 采购单列表工具栏:order_date 区间 + 供应商 + 单据状态(端口自 InvoicesToolbar)。
 // 改动只写进 URL searchParams,过滤在服务端完成。
-import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 
@@ -32,20 +33,16 @@ export default function OrdersToolbar({ suppliers }: { suppliers: { id: string; 
         <div className="mb-4 flex flex-wrap items-center gap-3">
             <label className="">
                 {t('listFilters.dateFrom')}{' '}
-                <input
-                    type="date"
+                <DatePicker
                     value={dateFrom}
-                    onChange={(e) => onChange('date_from', e.target.value)}
-                    className={CONTROL_INPUT}
+                    onChange={(v) => onChange('date_from', v)}
                 />
             </label>
             <label className="">
                 {t('listFilters.dateTo')}{' '}
-                <input
-                    type="date"
+                <DatePicker
                     value={dateTo}
-                    onChange={(e) => onChange('date_to', e.target.value)}
-                    className={CONTROL_INPUT}
+                    onChange={(v) => onChange('date_to', v)}
                 />
             </label>
             <select

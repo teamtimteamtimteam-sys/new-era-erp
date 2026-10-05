@@ -2,7 +2,7 @@
 
 // 分录列表工具栏:entry_date 日期区间(端口自 ProcessingToolbar 的日期段)。
 // 改动只写进 URL searchParams,真正的过滤在服务端 page.tsx 完成。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 
@@ -29,20 +29,16 @@ export default function JournalToolbar() {
         <div className="mb-4 flex flex-wrap items-center gap-3">
             <label className="">
                 {t('listFilters.dateFrom')}{' '}
-                <input
-                    type="date"
+                <DatePicker
                     value={dateFrom}
-                    onChange={(e) => onChange('date_from', e.target.value)}
-                    className={CONTROL_INPUT}
+                    onChange={(v) => onChange('date_from', v)}
                 />
             </label>
             <label className="">
                 {t('listFilters.dateTo')}{' '}
-                <input
-                    type="date"
+                <DatePicker
                     value={dateTo}
-                    onChange={(e) => onChange('date_to', e.target.value)}
-                    className={CONTROL_INPUT}
+                    onChange={(v) => onChange('date_to', v)}
                 />
             </label>
         </div>

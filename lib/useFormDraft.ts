@@ -24,6 +24,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { DRAFT_MAX_AGE_MS } from '@/lib/session'
 import { MASKED_TABLES } from '@/lib/maskedTables'
+import { DATE_PICKER_RESTORE } from '@/lib/dates'
 
 const PREFIX = 'evoltrya:draft:v1'
 
@@ -183,6 +184,9 @@ export function useFormDraft(opts: {
             if (el instanceof HTMLInputElement) {
                 if (el.type === 'checkbox' || el.type === 'radio') el.checked = el.value === value
                 else el.value = value
+                // DATE-PICK-1:日期框交出去的是一个隐藏输入,只改它的 value,框里的字不会跟着变 ——
+                // 于是屏幕上是一个日子、提交的是另一个。告诉选择器一声,它把框里的字一起改掉。
+                if (el.type === 'hidden' && 'datePickerValue' in el.dataset) el.dispatchEvent(new Event(DATE_PICKER_RESTORE))
             } else if (el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
                 el.value = value
             }

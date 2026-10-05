@@ -4,40 +4,39 @@
 // PAY-REQ-1(2026-09-23):付款日期那一格,两处共用 —— 收付款登记表(/finance/payments/new)
 // 与付款申请的「付款」面板(/finance/payment-requests/[id])。
 //
-// 【为什么抽出来,而不是在申请页上再写一个原生日期框】
-// scripts/check-date-format.mjs 的维度③只许原生日期控件【变少】(DATE-0 那一刀之前的债
-// 不再长)。付款日是同一件事的同一格 —— 决定期间与汇率,必填,绝不替人填 ——
-// 所以它应当是【一个】控件,而不是两份各自记得 onBlur 的副本。
+// 【为什么留着这一层】付款日是同一件事的同一格 —— 决定期间与汇率,必填,绝不替人填,而且不许晚于今天
+// (AP-RECON-1 Batch B,Tim Q9:收付款是已经发生的事;晚于今天服务端按名拒 DOCUMENT_DATE_IN_FUTURE)。
+// 这几条规矩写在一处,两处调用点就不会各记各的。
 //
-// 【onBlur 也写回】React 不会拿受控输入的 value 与活的 DOM 对账:一个"看起来填好了"的
-// 日期框可以提交出空串(AGENTS.md「Dates and amounts that decide a period」)。
-// 失焦时再读一次 DOM,是 NewPaymentForm 原来就有的那一道,原样搬过来。
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+// 【DATE-PICK-1(2026-10-05)】原生日期框换成全站共用的 DatePicker。从前那道 onBlur 回写(React 不拿受控输入的 value
+// 与活的 DOM 对账,一个"看起来填好了"的框可以提交出空串)随之删掉:选择器交出去的值只来自 React 的状态,
+// 框里的字与它对不上时提交被拦(原生表单靠 setCustomValidity;按钮提交的面板靠 onInvalidChange)。
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { businessToday } from '@/lib/format'
 
 export function PaymentDateInput({
     name,
     value,
     onChange,
+    onInvalidChange,
     className,
 }: {
     name: string
     value: string
     onChange: (v: string) => void
+    /** 不走原生表单提交的面板(付款申请的「付款」钮)用它关钮 */
+    onInvalidChange?: (invalid: boolean) => void
     className?: string
 }) {
     return (
-        <input
-            type="date"
+        <DatePicker
             name={name}
             required
-            // AP-RECON-1 Batch B(Tim Q9):收付款是已经发生的事 —— 晚于今天服务端按名拒
-            // (DOCUMENT_DATE_IN_FUTURE),这里先不给选。付款申请的付款日走的也是这一格。
             max={businessToday()}
             value={value}
-            onChange={(e) => onChange(e.target.value)}
-            onBlur={(e) => onChange(e.target.value)}
-            className={className ?? CONTROL_INPUT}
+            onChange={onChange}
+            onInvalidChange={onInvalidChange}
+            className={className}
         />
     )
 }

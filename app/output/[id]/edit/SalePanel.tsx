@@ -11,6 +11,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { formatMoneyBare, formatAmount } from '@/lib/format'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
 const initialState: SaleState = {}
@@ -106,6 +107,9 @@ export default function SalePanel({
     const [quoteFormulaId, setQuoteFormulaId] = useState('')
     const [quote, setQuote] = useState<QuoteState | null>(null)
     const [quoting, setQuoting] = useState(false)
+    // 销售日框里敲了一个不存在 / 格式不对的日子。「报价」按钮走 onClick、不走原生表单,
+    // 原生校验拦不住它,得自己关掉(DATE-PICK-1);「记录销售」走原生提交,由日期框自己拦。
+    const [saleDateBad, setSaleDateBad] = useState(false)
     const computed = quote?.unitPrice !== undefined && unitPrice === String(quote.unitPrice)
 
     // 成功后清空录入(重挂表单 + 复位受控值)
@@ -224,7 +228,7 @@ export default function SalePanel({
                     {priceMode !== 'manual' && (
                         <Button
                             type="button"
-                            disabled={quoting}
+                            disabled={quoting || saleDateBad}
                             onClick={() => {
                                 const fd = new FormData()
                                 fd.set('quote_formula_id', priceMode === 'formula' ? quoteFormulaId : '')
@@ -318,12 +322,11 @@ export default function SalePanel({
                     </div>
                     <div>
                         <label className="block mb-1">{t('output.sale.saleDate')}</label>
-                        <input
-                            type="date"
+                        <DatePicker
                             name="sale_date"
                             required
                             defaultValue={todayIsoLocal()}
-                            className={CONTROL_INPUT}
+                            onInvalidChange={setSaleDateBad}
                         />
                     </div>
                     <div className="flex-1 min-w-[8rem]">

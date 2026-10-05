@@ -25,6 +25,7 @@ import {
 } from '../options'
 import { createEmployee, updateEmployee, type EmployeeFormState } from './actions'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 
 const initialState: EmployeeFormState = {}
@@ -362,21 +363,17 @@ export default function EmployeeForm({
                         <label className={label}>
                             {t('hr.colHireDate')} <span className="text-red-600">*</span>
                         </label>
-                        <input
-                            type="date"
+                        <DatePicker
                             name="hire_date"
                             required
                             defaultValue={employee?.hire_date ?? todayIsoLocal()}
-                            className={CONTROL_INPUT}
                         />
                     </div>
                     <div>
                         <label className={label}>{t('hr.colProbationEnd')}</label>
-                        <input
-                            type="date"
+                        <DatePicker
                             name="probation_end_date"
                             defaultValue={employee?.probation_end_date ?? ''}
-                            className={CONTROL_INPUT}
                         />
                     </div>
                     <div>
@@ -400,10 +397,8 @@ export default function EmployeeForm({
                 {employee && (
                     <div className="mt-4">
                         <label className={label}>{t('hr.effectiveDate')}</label>
-                        <input
-                            type="date"
+                        <DatePicker
                             name="effective_date"
-                            className={CONTROL_INPUT}
                         />
                         <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('hr.effectiveDateHint')}</p>
                     </div>
@@ -476,24 +471,20 @@ export default function EmployeeForm({
                             <label className={label}>
                                 {t('hr.colWorkPassIssue')} <span className="text-red-600">*</span>
                             </label>
-                            <input
-                                type="date"
+                            <DatePicker
                                 name="work_pass_issue_date"
                                 required
                                 defaultValue={employee?.work_pass_issue_date ?? ''}
-                                className={CONTROL_INPUT}
                             />
                         </div>
                         <div>
                             <label className={label}>
                                 {t('hr.colWorkPassExpiry')} <span className="text-red-600">*</span>
                             </label>
-                            <input
-                                type="date"
+                            <DatePicker
                                 name="work_pass_expiry_date"
                                 required
                                 defaultValue={employee?.work_pass_expiry_date ?? ''}
-                                className={CONTROL_INPUT}
                             />
                         </div>
                     </div>
@@ -509,12 +500,10 @@ export default function EmployeeForm({
                             <label className={label}>
                                 {t('hr.colSeparationDate')} <span className="text-red-600">*</span>
                             </label>
-                            <input
-                                type="date"
+                            <DatePicker
                                 name="separation_date"
                                 required
                                 defaultValue={employee?.separation_date ?? ''}
-                                className={CONTROL_INPUT}
                             />
                         </div>
                         <div>

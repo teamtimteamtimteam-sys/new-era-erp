@@ -13,6 +13,7 @@ import LocationPicker, { type LocationChoice } from '@/app/components/inventory/
 import IntakeConditionFormSection, { type MaterialAxis } from '../IntakeConditionFormSection'
 import type { SafetyState, Certainty } from '../IntakeConditionFields'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_TOUCH } from '@/app/components/ui/control-style'
 import { formatDate } from '@/lib/dates'
@@ -309,13 +310,12 @@ export default function ReceiveForm({
                 <label className={labelCls}>
                     {t('receive.arrivalDate')} <span className="text-red-600">*</span>
                 </label>
-                <input
-                    type="date"
+                <DatePicker
                     name="arrival_date"
                     value={arrivalDate}
-                    onChange={(e) => setArrivalDate(e.target.value)}
+                    onChange={setArrivalDate}
                     required
-                    className={fieldCls}
+                    className="flex"
                 />
             </div>
 

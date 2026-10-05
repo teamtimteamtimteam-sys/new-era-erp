@@ -30,6 +30,8 @@ import { useState, useTransition, type ReactNode } from 'react'
 import { submitClaim, withdrawClaim } from '@/app/finance/claims/actions'
 import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
+import { businessToday } from '@/lib/format'  // DATE-PICK-1:日期框的上限按新加坡的今天,与服务端拒「将来」的那一天同一天
 import { DataTable, type Column } from '@/app/components/ui/data-table'
 import DecisionCell, { type Decision } from './DecisionCell'
 
@@ -57,6 +59,7 @@ export default function MyExpenseClaimsPanel({
     // 【花钱那天不预填】—— 一个决定成本落在哪个期间的日期,预填就是奖励留空;
     // 服务端也独立地拒空(合取,不是二选一)。
     const [spendDate, setSpendDate] = useState('')
+    const [spendDateBad, setSpendDateBad] = useState(false)
     const [amount, setAmount] = useState('')
     const [currency, setCurrency] = useState(baseCurrency)
     const [description, setDescription] = useState('')
@@ -64,10 +67,6 @@ export default function MyExpenseClaimsPanel({
     const [error, setError] = useState<string | null>(null)
     const [pending, startTransition] = useTransition()
 
-    const today = () => {
-        const d = new Date()
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    }
     const canSubmit = spendDate !== '' && amount !== '' && description.trim() !== ''
 
     /* 撤回钮。TABLE-PHONE-3 当时把它写成一个共用的画法,是因为同一颗钮要在两个
@@ -178,9 +177,9 @@ export default function MyExpenseClaimsPanel({
             {employeeId && open && (
                 <div className="mb-4 rounded border border-gray-300 p-3 flex flex-wrap gap-3 items-end max-w-3xl">
                     <label className="">{t('expenseClaims.spendDate')}
-                        <input type="date" value={spendDate} max={today()}
-                            onChange={(e) => setSpendDate(e.target.value)}
-                            className={`${CONTROL_INPUT} block`} />
+                        <DatePicker value={spendDate} max={businessToday()}
+                            onChange={setSpendDate} onInvalidChange={setSpendDateBad}
+                            className="flex" />
                         <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.spendDateHint')}</span></label>
                     <label className="">{t('expenseClaims.amount')}
                         <input type="number" step="0.01" min="0" value={amount}
@@ -198,7 +197,7 @@ export default function MyExpenseClaimsPanel({
                         <input value={noReceipt} onChange={(e) => setNoReceipt(e.target.value)}
                             className={`${CONTROL_INPUT} block w-full`} />
                         <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('expenseClaims.noReceiptReasonHint')}</span></label>
-                    <Button type="button" disabled={pending || !canSubmit}
+                    <Button type="button" disabled={pending || !canSubmit || spendDateBad}
                         onClick={() => {
                             setError(null)
                             startTransition(async () => {

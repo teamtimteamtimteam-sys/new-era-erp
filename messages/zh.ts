@@ -4559,6 +4559,33 @@ const zh = {
             separated: '已离职',
         },
     },
+    // DATE-PICK-1(2026-10-05):全站唯一的日期框。中文界面的月名与星期名是中文,敲的格式仍是 DD/MM/YYYY(Q39)。
+    datePicker: {
+        openCalendar: '打开日历',
+        time: '时刻,新加坡时间(HH:MM,24 小时制)',
+        prevMonth: '上一个月', nextMonth: '下一个月',
+        prevYear: '上一年', nextYear: '下一年',
+        monthYear: '{year}年{month}',
+        month: {
+            1: '1月', 2: '2月', 3: '3月', 4: '4月', 5: '5月', 6: '6月',
+            7: '7月', 8: '8月', 9: '9月', 10: '10月', 11: '11月', 12: '12月',
+        },
+        today: '今天', thisMonth: '本月', clear: '清空',
+        errFormat: '请按 DD/MM/YYYY 填写日期,例如 05/10/2026。',
+        errImpossible: '{text} 不是一个存在的日子。',
+        errMonthFormat: '请按 MM/YYYY 填写月份,例如 10/2026。',
+        errMonthImpossible: '{text} 不是一个存在的月份。',
+        errTimeFormat: '请按 HH:MM(24 小时制)填写时刻,例如 14:30。',
+        errTimeImpossible: '{text} 不是一个存在的时刻。',
+        errNeedTime: '还要填时刻(HH:MM)。',
+        errNeedDate: '还要填日期(DD/MM/YYYY)。',
+        errBeforeMin: '{date} 早于这里允许的最早日期 {min}。',
+        errAfterMax: '{date} 晚于这里允许的最晚日期 {max}。',
+        errFuture: '{date} 是将来的日子。今天是 {today}。',
+        reasonBeforeMin: '{min} 之前的日子在这里不能选。',
+        reasonAfterMax: '{max} 之后的日子在这里不能选。',
+        reasonFuture: '不能选将来的日子。今天是 {today}。',
+    },
     calendar: {
         kindRestricted: '这一类事件对本账号是受限的:{kind}。',
         kindRestrictedHint:

@@ -15,6 +15,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { createQuote, type QuoteFormState } from '../actions'
 import { Button } from '@/app/components/ui/button'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 const initialState: QuoteFormState = {}
 const LINE_SLOTS = 5
@@ -169,9 +170,7 @@ export default function NewQuoteForm({
                         <label className="block mb-1">
                             {t('quotes.form.quoteDate')} <span className="text-red-600">*</span>
                         </label>
-                        <input type="date" name="quote_date" value={quoteDate}
-                               onChange={(e) => setQuoteDate(e.target.value)}
-                               className={CONTROL_INPUT} />
+                        <DatePicker name="quote_date" value={quoteDate} onChange={setQuoteDate} />
                         {state.fieldErrors?.quote_date && (
                             <p className="text-xs text-red-600 mt-1">{state.fieldErrors.quote_date}</p>
                         )}
@@ -180,9 +179,7 @@ export default function NewQuoteForm({
                         <label className="block mb-1">
                             {t('quotes.form.validUntil')} <span className="text-red-600">*</span>
                         </label>
-                        <input type="date" name="valid_until" value={validUntil}
-                               onChange={(e) => setValidUntil(e.target.value)}
-                               className={CONTROL_INPUT} />
+                        <DatePicker name="valid_until" value={validUntil} onChange={setValidUntil} />
                         {state.fieldErrors?.valid_until && (
                             <p className="text-xs text-red-600 mt-1">{state.fieldErrors.valid_until}</p>
                         )}

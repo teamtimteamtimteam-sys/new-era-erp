@@ -552,6 +552,8 @@ const MANIFEST = {
     'calendar.kind.': { kind: 'enum', values: () => tsArray('app/tools/calendar/sources.ts', 'CALENDAR_KINDS') },
     // TOOLS-1 ②:星期名。真源是共享月历组件里那个 DOW_KEYS(七个,从周日起)。
     'calendar.dow.': { kind: 'enum', values: () => tsArray('app/components/calendar/MonthGrid.tsx', 'DOW_KEYS') },
+    // DATE-PICK-1:日期框月历里的月名(中文界面是中文,Q39)。真源是选择器里那个 MONTH_KEYS(十二个)。
+    'datePicker.month.': { kind: 'enum', values: () => tsArray('app/components/ui/date-picker.tsx', 'MONTH_KEYS') },
     // TOOLS-1 ④:换算器的质量单位。真源是表单里那个 UNITS(as const)——
     // 而它自己 `satisfies readonly MassUnit[]`,所以加一个单位【类型先红】,
     // 补进 lib/convert.ts 之后【这道检查再要求补文案】。两道门,两个方向。

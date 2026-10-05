@@ -10,6 +10,7 @@ import { useActionState } from 'react'
 import { useTranslations } from '@/lib/i18n/client'
 import { releasePrepayment, type ReleaseState } from './releasePrepaymentActions'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export default function ReleasePrepaymentPanel({
     expenseId, poId, poCode, openCcy, currency, remainingBase, baseCurrency, canEdit,
@@ -78,8 +79,7 @@ export default function ReleasePrepaymentPanel({
                         <label htmlFor="release_date" className="block mb-1">
                             {t('expense.release.date')}
                         </label>
-                        <input id="release_date" name="release_date" type="date" required
-                            className={CONTROL_INPUT} />
+                        <DatePicker id="release_date" name="release_date" required />
                         {/* X1:不预填今天 —— 它决定期间。 */}
                         <p className="mt-1 text-xs text-[color:var(--brand-muted-text)]">{t('expense.release.dateHint')}</p>
                     </div>

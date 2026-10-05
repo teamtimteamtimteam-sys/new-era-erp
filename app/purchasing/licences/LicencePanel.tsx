@@ -23,8 +23,8 @@ import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import LicenceTable from './LicenceTable'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
-import { formatDate } from '@/lib/dates'
-import { useLocale } from '@/lib/i18n/client'
+import { DatePicker } from '@/app/components/ui/date-picker'
+import { toYmd } from '@/lib/dates'
 
 export type LicenceRow = {
     id: string
@@ -52,7 +52,6 @@ const EMPTY: LicenceInput = {
 export default function LicencePanel({
     rows, certTypes, canEdit,
 }: { rows: LicenceRow[]; certTypes: CertType[]; canEdit: boolean }) {
-    const locale = useLocale()
     const t = useTranslations()
     const router = useRouter()
     const [form, setForm] = useState<LicenceInput | null>(null)
@@ -69,9 +68,11 @@ export default function LicencePanel({
             cert_no: r.cert_no ?? '',
             issuing_body: r.issuing_body ?? '',
             status: r.status ?? '',
-            issue_date: formatDate(r.issue_date, locale) ?? '',
-            valid_from: formatDate(r.valid_from, locale) ?? '',
-            valid_until: formatDate(r.valid_until, locale) ?? '',
+            // ISO 进状态,不是显示串:从前这里放的是 formatDate 的输出(DD/MM/YYYY,空值是「—」),
+            // 不碰日期框就原样存回去 —— 显示串被当成了数据
+            issue_date: toYmd(r.issue_date),
+            valid_from: toYmd(r.valid_from),
+            valid_until: toYmd(r.valid_until),
             approved_storage_limit_tonnes:
                 r.approved_storage_limit_tonnes === null ? '' : String(r.approved_storage_limit_tonnes),
             scope: r.scope ?? '',
@@ -197,18 +198,18 @@ export default function LicencePanel({
                             </div>
                             <div>
                                 <label className={label} htmlFor="issued">{t('company.licence.fieldIssueDate')}</label>
-                                <input id="issued" type="date" className={field} value={form.issue_date}
-                                       onChange={(e) => set('issue_date', e.target.value)} />
+                                <DatePicker id="issued" value={form.issue_date} className="flex"
+                                            onChange={(v) => set('issue_date', v)} />
                             </div>
                             <div>
                                 <label className={label} htmlFor="from">{t('company.licence.fieldValidFrom')}</label>
-                                <input id="from" type="date" className={field} value={form.valid_from}
-                                       onChange={(e) => set('valid_from', e.target.value)} />
+                                <DatePicker id="from" value={form.valid_from} className="flex"
+                                            onChange={(v) => set('valid_from', v)} />
                             </div>
                             <div>
                                 <label className={label} htmlFor="until">{t('company.licence.fieldValidUntil')}</label>
-                                <input id="until" type="date" className={field} value={form.valid_until}
-                                       onChange={(e) => set('valid_until', e.target.value)} />
+                                <DatePicker id="until" value={form.valid_until} className="flex"
+                                            onChange={(v) => set('valid_until', v)} />
                             </div>
                             <div>
                                 <label className={label} htmlFor="lim">{t('company.licence.fieldStorageLimit')}</label>

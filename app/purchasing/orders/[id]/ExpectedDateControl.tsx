@@ -11,6 +11,7 @@
 import { useState, useTransition } from 'react'
 import { setExpectedDate } from '@/app/finance/cash-forecast/actions'
 import { useTranslations } from '@/lib/i18n/client'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export default function ExpectedDateControl({
     termId, purchaseOrderId, triggerEvent, expectedDate, ownerName, canEdit,
@@ -41,19 +42,17 @@ export default function ExpectedDateControl({
                 //   一颗日期框的 change 发起保存,而它在保存过程中把自己 disable 掉,
                 //   于是焦点当场销毁、原生浮层失去关掉它的那个事件。
                 //   防重复提交改成「pending 时忽略后续的 change」,不动焦点。
-                <input
-                    type="date"
+                <DatePicker
                     value={value}
-                    onChange={(e) => {
+                    onChange={(v) => {
                         if (pending) return
-                        setValue(e.target.value)
+                        setValue(v)
                         setError(null)
                         startTransition(async () => {
-                            const r = await setExpectedDate(termId, e.target.value, purchaseOrderId)
+                            const r = await setExpectedDate(termId, v, purchaseOrderId)
                             if (r.error) setError(r.error)
                         })
                     }}
-                    className="rounded border-b border-dashed border-amber-500 bg-transparent px-1 py-0.5 text-amber-900"
                 />
             ) : value ? (
                 <span className="border-b border-dashed border-amber-500 text-amber-900">{value}</span>

@@ -24,6 +24,8 @@ import {
     type PreviewState,
 } from '../actions'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
+import { businessToday } from '@/lib/format'  // DATE-PICK-1:日期框的上限按新加坡的今天,与服务端拒「将来」的那一天同一天
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 
@@ -210,14 +212,12 @@ export default function AssayForm({
                     <label className="block mb-1">
                         {t('assay.assayDate')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    <DatePicker
                         name="assay_date"
                         required
-                        max={todayIsoLocal()}
+                        max={businessToday()}
                         value={assayDate}
-                        onChange={(e) => setAssayDate(e.target.value)}
-                        className={CONTROL_INPUT}
+                        onChange={setAssayDate}
                     />
                 </div>
                     {/* PROC-6:重量基准 —— 必填,【没有默认选中项】。

@@ -5,7 +5,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
-import { ContractDateInput } from '../ContractDateInput'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { Refusal } from '@/app/components/ui/refusal'
@@ -90,18 +90,18 @@ export default function HeaderForm({
                     </div>
                     <div>
                         <label className="block mb-1" htmlFor="hdr-from">{t('contracts.form.effectiveFrom')} <span className="text-red-600">*</span></label>
-                        <ContractDateInput id="hdr-from" name="effective_from" defaultValue={values.effective_from} disabled={disabled} className={field} />
+                        <DatePicker id="hdr-from" name="effective_from" defaultValue={values.effective_from} disabled={disabled} className="flex" />
                         {err('effective_from')}
                     </div>
                     <div>
                         <label className="block mb-1" htmlFor="hdr-to">{t('contracts.form.effectiveTo')}</label>
-                        <ContractDateInput id="hdr-to" name="effective_to" defaultValue={values.effective_to} disabled={disabled} className={field} />
+                        <DatePicker id="hdr-to" name="effective_to" defaultValue={values.effective_to} disabled={disabled} className="flex" />
                         <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('contracts.form.effectiveToHint')}</p>
                         {err('effective_to')}
                     </div>
                     <div>
                         <label className="block mb-1" htmlFor="hdr-signed">{t('contracts.form.signedOn')}</label>
-                        <ContractDateInput id="hdr-signed" name="signed_on" defaultValue={values.signed_on} disabled={disabled} className={field} />
+                        <DatePicker id="hdr-signed" name="signed_on" defaultValue={values.signed_on} disabled={disabled} className="flex" />
                     </div>
                     <div>
                         <label className="block mb-1" htmlFor="hdr-ccy">{t('contracts.form.currency')}</label>

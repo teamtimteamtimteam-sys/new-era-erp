@@ -5,6 +5,7 @@ import { createContainer } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { CONTROL_INPUT, CONTROL_SELECT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 // LOG-2c:新建集装箱。
 // 【开航日永不预填】—— 它是世界那一侧的事实,系统无从知道。给它一个"今天",
@@ -69,7 +70,7 @@ canEdit: boolean
                 <div>
                     <label className="block mb-1">{labels.departure} <span className="text-red-600">*</span></label>
                     {/* 【没有 defaultValue】—— 见组件抬头 */}
-                    <input type="date" name="departure_date" required className={field} />
+                    <DatePicker name="departure_date" required />
                 </div>
                 <div>
                     <label className="block mb-1">{labels.containerNumber}</label>

@@ -30,6 +30,7 @@ import { triggerLabel, type PaymentTriggerEvent } from '@/lib/paymentTriggers'
 import DecimalInput from '@/app/components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
 import { EditableTable, type EditableColumn } from '@/app/components/ui/editable-table'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export type AmendLine = {
     id: string
@@ -362,15 +363,14 @@ export default function AmendOrderForm({
                 <div className="flex flex-wrap gap-4">
                     <div>
                         <label className="block mb-1">{t('purchasing.amend.orderDate')}</label>
-                        <input type="date" name="order_date" defaultValue={orderDate} disabled={frozen}
-                            className={CONTROL_INPUT} />
+                        <DatePicker name="order_date" defaultValue={orderDate} disabled={frozen} />
                         {/* 改单据日会重取牌价 —— 缺牌价即拒,绝不编一个 */}
                         <p className="text-xs text-[color:var(--brand-muted-text)] mt-1">{t('purchasing.amend.orderDateHint')}</p>
                     </div>
                     <div>
                         <label className="block mb-1">{t('purchasing.amend.expected')}</label>
-                        <input type="date" name="expected_delivery_date" defaultValue={expectedDelivery}
-                            disabled={frozen} className={CONTROL_INPUT} />
+                        <DatePicker name="expected_delivery_date" defaultValue={expectedDelivery}
+                            disabled={frozen} />
                     </div>
                     <div>
                         <label className="block mb-1">{t('purchasing.amend.incoterm')}</label>
@@ -558,9 +558,8 @@ export default function AmendOrderForm({
                                     </div>
                                     <div>
                                         <label className="block mb-1">{t('purchasing.form.termDue')}</label>
-                                        <input type="date" value={x.term.due_date} disabled={frozen}
-                                            onChange={(e) => patchTerm(x.uid, { due_date: e.target.value })}
-                                            className={CONTROL_INPUT} />
+                                        <DatePicker value={x.term.due_date} disabled={frozen}
+                                            onChange={(v) => patchTerm(x.uid, { due_date: v })} />
                                     </div>
                                     <Button variant="secondary" size="inline" type="button" disabled={frozen}
                                         onClick={() => setTerms((ts) => ts.filter((y) => y.uid !== x.uid))}

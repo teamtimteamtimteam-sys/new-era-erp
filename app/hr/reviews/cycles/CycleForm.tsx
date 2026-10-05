@@ -7,6 +7,7 @@ import { useTranslations } from '@/lib/i18n/client'
 import { createCycle } from '../actions'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT } from '@/app/components/ui/control-style'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 const inp = `${CONTROL_INPUT} w-full`
 
@@ -19,6 +20,9 @@ export default function CycleForm() {
     const [start, setStart] = useState('')
     const [end, setEnd] = useState('')
     const [due, setDue] = useState('')
+    const [startBad, setStartBad] = useState(false)
+    const [endBad, setEndBad] = useState(false)
+    const [dueBad, setDueBad] = useState(false)
     const [notes, setNotes] = useState('')
 
     function add() {
@@ -52,15 +56,15 @@ export default function CycleForm() {
                 </label>
                 <label className="">
                     {t('leave.startDate')}
-                    <input type="date" value={start} onChange={(e) => setStart(e.target.value)} className={`block ${inp}`} />
+                    <DatePicker value={start} onChange={setStart} onInvalidChange={setStartBad} className="flex" />
                 </label>
                 <label className="">
                     {t('leave.endDate')}
-                    <input type="date" value={end} onChange={(e) => setEnd(e.target.value)} className={`block ${inp}`} />
+                    <DatePicker value={end} onChange={setEnd} onInvalidChange={setEndBad} className="flex" />
                 </label>
                 <label className="">
                     {t('reviews.dueDate')}
-                    <input type="date" value={due} onChange={(e) => setDue(e.target.value)} className={`block ${inp}`} />
+                    <DatePicker value={due} onChange={setDue} onInvalidChange={setDueBad} className="flex" />
                 </label>
                 <label className="">
                     {t('leave.notes')}
@@ -69,7 +73,7 @@ export default function CycleForm() {
                 <Button
                     type="button"
                     onClick={add}
-                    disabled={pending || !name.trim() || !start || !end || !due}
+                    disabled={pending || !name.trim() || !start || !end || !due || startBad || endBad || dueBad}
                 >
                     {t('common.save')}
                 </Button>

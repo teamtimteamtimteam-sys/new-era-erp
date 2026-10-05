@@ -9,6 +9,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useTranslations } from '@/lib/i18n/client'
 import { STATE_OPTIONS } from '../inbound/options'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export type PartyOption = { id: string; label: string }
 
@@ -122,20 +123,16 @@ export default function OutputToolbar({
             </select>
             <label className="flex items-center gap-1">
                 {t('listFilters.dateFrom')}
-                <input
-                    type="date"
+                <DatePicker
                     value={currentDateFrom}
-                    onChange={(e) => onFilterChange('date_from', e.target.value)}
-                    className={CONTROL_INPUT}
+                    onChange={(v) => onFilterChange('date_from', v)}
                 />
             </label>
             <label className="flex items-center gap-1">
                 {t('listFilters.dateTo')}
-                <input
-                    type="date"
+                <DatePicker
                     value={currentDateTo}
-                    onChange={(e) => onFilterChange('date_to', e.target.value)}
-                    className={CONTROL_INPUT}
+                    onChange={(v) => onFilterChange('date_to', v)}
                 />
             </label>
             <Button asChild variant="outline">

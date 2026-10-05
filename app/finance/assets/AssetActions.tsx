@@ -24,6 +24,7 @@ import { submitDisposalRequest } from './disposalRequestActions'
 import { setPlannedInService } from './[id]/actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export default function AssetActions({
     assetId, code, status, inServiceDate, plannedInServiceDate, acquisitionDate, hasCost, canEdit, bankAccounts,
@@ -45,6 +46,9 @@ export default function AssetActions({
     const [open, setOpen] = useState<'' | 'commission' | 'dispose' | 'plan'>('')
     const [plan, setPlan] = useState(plannedInServiceDate ?? '')
     const [inSvc, setInSvc] = useState('')
+    // DATE-PICK-1:两个面板都靠按钮 onClick 提交,不走原生表单 —— 框里是一个敲错的日子时把按钮关掉
+    const [planBad, setPlanBad] = useState(false)
+    const [inSvcBad, setInSvcBad] = useState(false)
     const [dispReason, setDispReason] = useState('')
     const [proceeds, setProceeds] = useState('0')
     const [bank, setBank] = useState('')
@@ -116,10 +120,9 @@ export default function AssetActions({
             {open === 'commission' && (
                 <div className="mt-2 border border-gray-300 rounded p-2 space-y-1">
                     <p className="text-xs text-[color:var(--brand-muted-text)]">{t('assets.actions.commissionWhy')}</p>
-                    <input type="date" value={inSvc} min={acquisitionDate}
-                           onChange={(e) => setInSvc(e.target.value)}
-                           className={CONTROL_INPUT} />
-                    <Button type="button" disabled={pending || inSvc.trim() === ''}
+                    <DatePicker value={inSvc} min={acquisitionDate}
+                                onChange={setInSvc} onInvalidChange={setInSvcBad} />
+                    <Button type="button" disabled={pending || inSvc.trim() === '' || inSvcBad}
                             onClick={() => run(() => commissionAsset(assetId, inSvc))}
                             variant="default" size="xs" className="ml-2">
                         {pending ? t('common.saving') : t('assets.actions.commissionConfirm', { code })}
@@ -133,9 +136,8 @@ export default function AssetActions({
             {open === 'plan' && (
                 <div className="mt-2 border border-gray-300 rounded p-2 space-y-1">
                     <p className="text-xs text-[color:var(--brand-muted-text)]">{t('assets.plannedHint')}</p>
-                    <input type="date" value={plan} onChange={(e) => setPlan(e.target.value)}
-                           className={CONTROL_INPUT} />
-                    <Button type="button" disabled={pending}
+                    <DatePicker value={plan} onChange={setPlan} onInvalidChange={setPlanBad} />
+                    <Button type="button" disabled={pending || planBad}
                             onClick={() => run(() => setPlannedInService({ assetId, plannedDate: plan }))}
                             variant="default" size="xs" className="ml-2">
                         {pending ? t('common.saving') : t('common.save')}

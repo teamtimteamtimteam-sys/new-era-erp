@@ -32,6 +32,7 @@ import { openDowntime, closeDowntime } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { formatAuditStamp } from '@/lib/dates'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export type DowntimeRow = {
     id: string
@@ -60,10 +61,14 @@ export default function DowntimePanel({
     const [open, setOpen] = useState(false)
     const [f, setF] = useState({ startedAt: '', reason: '', notes: '' })
     const [endAt, setEndAt] = useState('')
+    // DATE-PICK-1:两块都靠按钮 onClick 提交(不走原生表单)—— 框里敲了一个不存在的时刻时把按钮关掉
+    const [startBad, setStartBad] = useState(false)
+    const [endBad, setEndBad] = useState(false)
 
     const openRow = rows.find((r) => r.ended_at === null) ?? null
     // FIX-2(F):结束早于开始 —— 这正是 Tim 撞上的那一条,而屏幕此前一个字都没说。
-    // (datetime-local 给的是本地时间串;与开始时刻同口径比较即可。)
+    // (DATE-PICK-1:日期时间框交出的是带 +08:00 偏移的新加坡时刻,started_at 是 timestamptz ——
+    //  两边都是绝对时刻,直接比。)
     const endBeforeStart = !!(openRow && endAt && new Date(endAt) < new Date(openRow.started_at))
     // DATE-1:停机的起止时刻是【系统记下的那一刻】—— 走审计戳那一族,
     // 于是它可排序、可复制、也不随界面语言变。
@@ -154,10 +159,9 @@ export default function DowntimePanel({
                         <div className="flex flex-wrap gap-2 items-end mt-2">
                             <label className="block">
                                 <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.down.endedAt')}</span>
-                                <input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)}
-                                       className={CONTROL_INPUT} />
+                                <DatePicker kind="datetime" value={endAt} onChange={setEndAt} onInvalidChange={setEndBad} />
                             </label>
-                            <Button size="xs" type="button" disabled={pending || !endAt || endBeforeStart}
+                            <Button size="xs" type="button" disabled={pending || !endAt || endBeforeStart || endBad}
                                     onClick={() => run(() => closeDowntime({ assetId, downtimeId: openRow.id, endedAt: endAt }))}>
                                 {t('equipment.down.close')}
                             </Button>
@@ -212,9 +216,8 @@ export default function DowntimePanel({
                     <label className="block">
                         <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.down.startedAt')}</span>
                         {/* 【不预填"现在"】停机是世界那一侧的事实 —— 谁都可能过后才来补录。 */}
-                        <input type="datetime-local" value={f.startedAt}
-                               onChange={(e) => setF({ ...f, startedAt: e.target.value })}
-                               className={CONTROL_INPUT} />
+                        <DatePicker kind="datetime" value={f.startedAt}
+                                    onChange={(v) => setF({ ...f, startedAt: v })} onInvalidChange={setStartBad} />
                     </label>
                     <label className="block">
                         <span className="text-xs text-[color:var(--brand-muted-text)] block">{t('equipment.down.reason')}</span>
@@ -223,7 +226,7 @@ export default function DowntimePanel({
                     </label>
                     <p className="text-xs text-[color:var(--brand-muted-text)]">{t('equipment.down.openHint')}</p>
                     <div className="flex gap-2 items-center">
-                        <Button size="xs" type="button" disabled={pending || !f.startedAt || !f.reason.trim()}
+                        <Button size="xs" type="button" disabled={pending || !f.startedAt || !f.reason.trim() || startBad}
                                 onClick={() => run(() => openDowntime({ assetId, ...f }))}>
                             {t('common.save')}
                         </Button>

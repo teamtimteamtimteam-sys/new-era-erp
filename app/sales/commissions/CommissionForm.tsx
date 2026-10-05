@@ -14,8 +14,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { saveCommissionAgreement, type CommissionInput } from './actions'
 import { Button } from '@/app/components/ui/button'
 import { CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
-import { formatDate } from '@/lib/dates'
-import { useLocale } from '@/lib/i18n/client'
+import { DatePicker } from '@/app/components/ui/date-picker'
+import { toYmd } from '@/lib/dates'
 
 export type Agent = { id: string; code: string; legal_name: string }
 export type Currency = { code: string }
@@ -33,7 +33,6 @@ export default function CommissionForm({
     currencies: Currency[]
     initial?: Partial<CommissionInput> & { id?: string }
 }) {
-    const locale = useLocale()
     const t = useTranslations()
     const router = useRouter()
     const [error, setError] = useState<string | null>(null)
@@ -49,8 +48,9 @@ export default function CommissionForm({
         rate_pct: initial?.rate_pct ?? '',
         amount_ccy: initial?.amount_ccy ?? '',
         currency: initial?.currency ?? '',
-        valid_from: formatDate(initial?.valid_from, locale) ?? '',
-        valid_to: formatDate(initial?.valid_to, locale) ?? '',
+        // ISO 进状态,不是显示串:formatDate 对空值给「—」,那会让下面的提交闸以为它填了
+        valid_from: toYmd(initial?.valid_from),
+        valid_to: toYmd(initial?.valid_to),
         remarks: initial?.remarks ?? '',
     })
 
@@ -176,13 +176,13 @@ export default function CommissionForm({
             <div className="grid grid-cols-2 gap-4">
                 <div>
                     <label className={label} htmlFor="from">{t('commissions.fieldValidFrom')}</label>
-                    <input id="from" name="valid_from" type="date" className={field} value={form.valid_from}
-                           onChange={(e) => set('valid_from', e.target.value)} />
+                    <DatePicker id="from" name="valid_from" className="flex" value={form.valid_from}
+                                onChange={(v) => set('valid_from', v)} />
                 </div>
                 <div>
                     <label className={label} htmlFor="to">{t('commissions.fieldValidTo')}</label>
-                    <input id="to" name="valid_to" type="date" className={field} value={form.valid_to}
-                           onChange={(e) => set('valid_to', e.target.value)} />
+                    <DatePicker id="to" name="valid_to" className="flex" value={form.valid_to}
+                                onChange={(v) => set('valid_to', v)} />
                 </div>
             </div>
 

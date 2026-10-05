@@ -9,7 +9,7 @@
 //
 // 【本表单不自己算分摊】金额、拆账、过账全由 record_freight_document 决定;
 // 这里只把选择送下去。两份算术会在写下的那天一致,此后各自漂移。
-import { CONTROL_CHECKBOX, CONTROL_INPUT, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
+import { CONTROL_CHECKBOX, CONTROL_SELECT, CONTROL_TEXTAREA } from '@/app/components/ui/control-style'
 import { useActionState, useState } from 'react'
 import Link from 'next/link'
 import { createFreightDocument, type FreightState } from './actions'
@@ -20,6 +20,7 @@ import { EditableTable, type EditableColumn } from '@/app/components/ui/editable
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
 import { businessToday } from '@/lib/format'
+import { DatePicker } from '@/app/components/ui/date-picker'
 
 export type BatchOption = {
     id: string
@@ -226,8 +227,7 @@ export default function NewFreightForm({
                         </label>
                         {/* AP-RECON-1 Batch B(Tim Q7):运费单记的是已经发生的一笔,日期不许晚于今天 —— 服务端按名拒
                             DOCUMENT_DATE_IN_FUTURE,这里先不给选。FRT-2027-* 就是没有这道闸时进的真账。 */}
-                        <input type="date" name="doc_date" required max={businessToday()}
-                            className={CONTROL_INPUT} />
+                        <DatePicker name="doc_date" required max={businessToday()} />
                     </div>
                     <div>
                         <label className="block mb-1">

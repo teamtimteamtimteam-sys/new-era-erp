@@ -11,7 +11,6 @@
 //   与真实星期【从来没有对齐过】,而没有任何东西会说。
 //   共享组件按当月 1 号的星期算前导空格(并且按周一开头),所以列对上了。
 //   **这不是本刀新加的功能,是搬家时露出来的一处旧账。**
-import { CONTROL_INPUT } from '@/app/components/ui/control-style'
 import { createClient } from '@/lib/supabase/server'
 import { getTranslations, getLocale } from '@/lib/i18n/server'
 import LeaveSubnav from '../LeaveSubnav'
@@ -21,6 +20,7 @@ import { MOD } from '@/lib/modules'
 import MonthGrid, { DOW_KEYS, type CalendarItem } from '@/app/components/calendar/MonthGrid'
 import { expandRange, KIND_COLOR } from '@/app/tools/calendar/sources'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { businessToday } from '@/lib/format'
 
 export default async function LeaveCalendarPage({
@@ -90,8 +90,7 @@ export default async function LeaveCalendarPage({
             <form method="get" className="mb-4 flex items-end gap-2">
                 <label className="">
                     {t('leave.month')}
-                    <input type="month" name="month" defaultValue={month}
-                           className={`${CONTROL_INPUT} mt-1 block`} />
+                    <DatePicker kind="month" name="month" defaultValue={month} className="mt-1 flex" />
                 </label>
                 <Button variant="secondary" type="submit">
                     {t('leave.filter')}

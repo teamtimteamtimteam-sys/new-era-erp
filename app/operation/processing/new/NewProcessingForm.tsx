@@ -11,6 +11,7 @@ import { UNIT_OPTIONS } from '../../../materials/options'
 import { useTranslations, useLocale } from '@/lib/i18n/client'
 import DecimalInput from '../../../components/forms/DecimalInput'
 import { Button } from '@/app/components/ui/button'
+import { DatePicker } from '@/app/components/ui/date-picker'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { formatDate } from '@/lib/dates'
 
@@ -331,13 +332,12 @@ export default function NewProcessingForm({
                     <label className="block mb-1">
                         {t('processing.form.dateLabel')} <span className="text-red-600">*</span>
                     </label>
-                    <input
-                        type="date"
+                    {/* 从前的 onBlur 回写已删:日期框的值只来自 React 状态,没有 DOM 漂移(DATE-PICK-1) */}
+                    <DatePicker
                         required
                         value={processDate}
-                        onChange={(e) => setProcessDate(e.target.value)}
-                        onBlur={(e) => setProcessDate(e.target.value)}
-                        className={`${CONTROL_INPUT} w-full`}
+                        onChange={setProcessDate}
+                        className="flex"
                     />
                 </div>
 

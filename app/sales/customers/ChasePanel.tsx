@@ -21,6 +21,8 @@ import { useTranslations } from '@/lib/i18n/client'
 import { Button } from '@/app/components/ui/button'
 import { PermissionGate } from '@/app/components/ui/permission-gate'
 import { DataTable, type Column } from '@/app/components/ui/data-table'
+import { DatePicker } from '@/app/components/ui/date-picker'
+import { businessToday } from '@/lib/format'  // DATE-PICK-1:日期框的上限按新加坡的今天,与服务端拒「将来」的那一天同一天
 import { formatDate } from '@/lib/dates'
 import { useLocale } from '@/lib/i18n/client'
 
@@ -44,11 +46,6 @@ const OUTCOMES = ['kept', 'broken', 'renegotiated', 'cancelled'] as const
 
 const money = (n: number) =>
     n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-
-const today = () => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 export default function ChasePanel({
     customerId, chases, openPromises, owedToday, baseCurrency, canEdit,
@@ -74,6 +71,9 @@ export default function ChasePanel({
     const [amount, setAmount] = useState('')
     const [currency, setCurrency] = useState(baseCurrency)
     const [promisedDate, setPromisedDate] = useState('')
+    // 日期框里敲着一个不合法的日子:状态还是上一个合法值,提交钮靠这两位关上
+    const [chasedBad, setChasedBad] = useState(false)
+    const [promisedBad, setPromisedBad] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [pending, startTransition] = useTransition()
 
@@ -223,9 +223,8 @@ export default function ChasePanel({
                     <div className="flex flex-wrap gap-3 mb-3">
                         <label className="">
                             {t('chases.chasedOn')}
-                            <input type="date" value={chasedOn} max={today()}
-                                onChange={(e) => setChasedOn(e.target.value)}
-                                className={`${CONTROL_INPUT} block`} />
+                            <DatePicker value={chasedOn} max={businessToday()} className="flex"
+                                onChange={setChasedOn} onInvalidChange={setChasedBad} />
                             <span className="block text-xs text-[color:var(--brand-muted-text)]">{t('chases.chasedOnHint')}</span>
                         </label>
                         <label className="">
@@ -280,13 +279,13 @@ export default function ChasePanel({
                             </label>
                             <label className="">
                                 {t('chases.promiseDate')}
-                                <input type="date" value={promisedDate} min={chasedOn || undefined}
-                                    onChange={(e) => setPromisedDate(e.target.value)}
-                                    className={`${CONTROL_INPUT} block`} />
+                                <DatePicker value={promisedDate} min={chasedOn || undefined} className="flex"
+                                    onChange={setPromisedDate} onInvalidChange={setPromisedBad} />
                             </label>
                         </div>
                     )}
-                    <Button type="button" disabled={pending || !canSubmit}
+                    {/* 承诺日期框只在勾了承诺时挂着;卸掉时它报不了"好了",所以按同一个条件取它 */}
+                    <Button type="button" disabled={pending || !canSubmit || chasedBad || (reached && wantPromise && promisedBad)}
                         onClick={() => run(() => recordChase({
                             customerId, chasedOn, channel, reached, summary,
                             contactedPerson: person,
