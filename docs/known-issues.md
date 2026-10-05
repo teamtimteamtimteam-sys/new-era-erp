@@ -10170,3 +10170,43 @@ AT-1a(2026-09-29,Q16)把 `formatDate` 改成 `DD/MM/YYYY` 之后,这两处的状
 - `app/purchasing/orders/new/NewOrderForm.tsx` 的付款条款到期日在 EditableTable 里画两份(桌面一份、手机展开面板一份);手机上在面板里敲了一个错日子、
   再把面板收起来,那一份卸载,条款保留上一个合法日子(收起之前提交是被拦的)。
 **删除条件:** 各自在碰到那个文件的一刀里处理掉。
+
+## DATEPICK1-390-FIVE-PAGES-OVERFLOW —— 五页在 390px 上整页横向溢出;把原生日期框换回去读数逐字相同,所以不是选择器造成的(DATE-PICK-1 量到,close-out 登记,2026-10-05)
+
+**量法:** `scripts/survey-phone.mjs` 的 390px 一遍,DATE-PICK-1 改过的 92 条路由里量了 87 条(admin 的一次性账号,本机 `next dev`,读线上数据;
+日志 `SURVEY390_EXIT=1`,原因是下一条的那一次 500,不是溢出)。**分母:87 条路由 · 首屏 · 390px 一个视口;1280px 那一遍 88 条、溢出 0。**
+五页溢出,探针点名的元凶照抄(survey 的 `culprit:` 一列):
+
+| 路由 | 整页溢出 | 元凶 | 已有的登记 |
+|---|--:|---|---|
+| `/operation/processing/new` | **+177px** | 一颗原生 `<select>`(`select.h-8 rounded-lg border border-input …`) | `docs/forward-queue.md` 「✅ INPUT-3」那一节 R6(a) 的读数(2026-09-11:416 → 194,单位与今天的 +177 不一定同口径,并排写不比较) |
+| `/finance/freight/new` | **+27px** | 一颗页面级原生 `<select>` | `FREIGHT-NEW-PHONE-OVERFLOW`(同一个 27px,同一个元凶) |
+| `/sales/orders/new` | **+8px** | 一颗原生 `<select>` | `docs/forward-queue.md` 「Round 2 停在哪、Round 3 怎么修的」那张表(当时 6,`NewOrderForm.tsx` 的 `flex gap-2` 行) |
+| `/sales/quotes/[id]` | **+8px** | 明细编辑器加行那一排的物料 `<select>` | `AT1B2-QUOTE-PAGE-390-OVERFLOW`(同一个 8px) |
+| `/finance/month-end` | **+6px** | 一个表格格子(`td.px-3 py-2.5 align-middle text-[15px] text-gray-600`) | 无 —— 本条是第一次登记 |
+
+**为什么说不是选择器造成的(测量,不是推断):** 这一刀没有改前读数(改前那棵树的 dev server 起不来,DATE-PICK-1 §8 第 26 条),所以
+`scripts/probe-date-pick1.mjs` 在**同一页**上把一个选择器换回原生 `<input type="date">` 再量一次,再换回来再量一次:
+`/operation/processing/new` 177 · 177 · 177;`/finance/freight/new` 27 · 27 · 27;`/sales/orders/new` 8 · 8 · 8;`/finance/month-end` 6 · 6 · 6
+(选择器 · 换回原生 · 再换回来,探针 §7 那四行 ✓);`/sales/quotes/[id]` 的默认画面里**一个日期框都没有**(要先点开 "convert"),溢出与它无关。
+☞ **四页的元凶是 `<select>`、一页是表格格子 —— 五个元凶里没有一个是日期框。**
+**处置:** 前四页是 AGENTS.md「不换行的容器里、内在尺寸由内容决定的原生控件」那一族,解药是给那一排的容器 `flex-wrap`(或那条规矩点名的
+min-content 处置);月结那一格要先量它的 min-content 由什么撑起。**删除条件:** 五页在 390px 上整页溢出读 0(各自修到哪一页就划掉哪一行)。
+
+## DATEPICK1-PAYROLL-NEW-ONE-500 —— 390px 那一遍里 `/hr/payroll/new` 回过一次 HTTP 500,之后复现不出来(DATE-PICK-1 量到,close-out 登记,2026-10-05)
+
+**知道的:**
+- 那一遍是 `scripts/survey-phone.mjs` 的 390px 全量(89 个目标,`/hr/payroll/new` 是第 46 个,开跑后 242s),admin 的一次性账号,本机 `next dev`。
+  survey 判 500 用的是 CDP 读到的**主文档响应码**(`lastDoc.status`,`scripts/survey-phone.mjs:895`);同一行进度照样打出了 `ovf=0 clip=0` ——
+  也就是说页面**渲染出了东西并被量过**,但那份读数量的是一份回 500 的文档,不能当成 PayrollGrid 的 390px 读数(那个读数来自下面的单路由一遍)。
+- 同一棵树、同一套路由的 1280px 那一遍(在 390px 那一遍之后跑,日志 10:56:58 收尾;第 46 个,238s):没有 HTTP ≥ 400,`SURVEY1280_EXIT=0`。
+- 复现:一个全新的 `next dev`、admin 会话,连着两次 GET `/hr/payroll/new` → **200 · 200**,dev server 输出里没有一行错误;
+  单路由的 390px 一遍(`--routes=/hr/payroll/new`)→ 200,`ovf=0 clip=0`,`SURVEY390B_EXIT=0`。
+- 同一天的冒烟第一跑里另一条路由(`/my-reviews`)回过 500,原因是 dev server 到 Supabase 的请求在网络层失败(`TypeError: fetch failed`);
+  立刻重跑一次全绿。**两件同形(本机 dev server · 一次 · 重跑即好),但 payroll 那一次【没有】抓到服务端的错误行,所以"也是网络"是推断,不是测量。**
+
+**不知道的:** 那一次 500 的服务端原因 —— 当时 survey 不收 dev server 的错误输出,500 之后也没有留下栈。
+DATE-PICK-1 在这一页上改的是 PayrollGrid 的月份框;单路由复现是 200,但【没有】逐行排查过这一页的读法能不能产生 500 —— 关联既没有被证明,也没有被排除;
+线上(Vercel)这一页从来没有被报过 500 —— **但那是"没有报告",不是一次测量**(这台机器够不到 Vercel,AGENTS.md)。
+**处置:** 记下,不追(DATE-PICK-1 §8 第 25 条)。下一次 survey / 冒烟再在这一页上看到 500,先读 dev server 那一刻的输出。
+**删除条件:** 连续两刀的 survey 在这一页上都是 200(本条之后的第一刀算第一次),或者再出现一次并找到原因。

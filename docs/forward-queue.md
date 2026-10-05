@@ -246,6 +246,11 @@
 >
 > 33. **✅ 日期选择器 —— DATE-PICK-1(`v1.4.34`,2026-10-05)。** 内容见下面「HISTORY family」一节的 ✅ DATE-PICK-1;发布那一行在
 >    `docs/handbacks/DATE-PICK-1.md` 的抬头。**没有迁移,所以没有破窗**(部署之前旧页面照旧是原生日期框)。下一刀 UNBLOCK-1。
+>    ★ **部署:Tim 在 Vercel 上确认 `b1a9c0cd` 已部署(DATE-PICK-1 close-out + UNBLOCK-1 Step 0 委托书,2026-10-05)。没有迁移,所以【没有破窗】可记**
+>    —— 测量,不是转述:`git show --stat b1a9c0cd` 里 `db/migrations/` 下 **0** 个文件(`db/` 下唯一的改动是只读的
+>    `db/scripts/2026-10-05-datepick1-live-readings.sql`);`db/migration-windows.tsv` 的最后一行仍是 1d-3 的
+>    `2026-10-05T01:14:31+0800`,之后没有新行。推送时刻(`git reflog show --date=iso refs/remotes/origin/main`):
+>    `b1a9c0cd … {2026-10-05 14:48:30 +0800}: update by push`。部署前后都是同一个库,旧应用与新应用读的是同一份 schema。
 >
 > **LEAVE-BAL-1 留下的(先后归 Tim):**
 > * **⬜ 新入职的人的额度折算 + 病假的三个月资格期**(Tim LEAVE-BAL-1 Q6)—— 年假以外的额度今天整年给足、不看服务期;
