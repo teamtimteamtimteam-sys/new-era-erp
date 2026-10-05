@@ -257,6 +257,14 @@
 >    迁移 `db/migrations/2026-10-05-u1a-pay-and-personal-data.sql`;fixture 247(11 臂、19 格注入全红在点名的那一臂)。
 >    ★ **破窗**:起点 **2026-10-05 16:40:23 CST**(测量:`db/apply_migration.sh` 打出来、`db/migration-windows.tsv` 那一行);
 >    终点 = Tim 在 Vercel 上看到部署成功的那一刻(转述,不是本机测量 —— 下一次 close-out 补记)。
+>    ★ **部署:Tim 在 Vercel 上确认 `d625c4b5` 已部署(U1-A close-out,2026-10-05)。破窗已闭合(带界,按类标注)**:
+>    起点 **2026-10-05 16:40:23 CST**(测量:`db/migration-windows.tsv`,`2026-10-05-u1a-pay-and-personal-data.sql`)·
+>    终点下界 **2026-10-05 19:06:19 CST**(测量:推送把 `origin/main` 移到 `d625c4b5`,
+>    `git reflog show --date=iso refs/remotes/origin/main`:`d625c4b5 … {2026-10-05 19:06:19 +0800}: update by push`)·
+>    终点上界 **2026-10-05 19:07:58 CST**(推导:close-out 这一次会话第一条命令的时刻(`date` 打出来的),手里已经有 Tim 的
+>    "已部署" —— 一句转述,不是对 Vercel 的测量)。
+>    **破窗:至少 2 h 25 min 56 s,至多 2 h 27 min 35 s。** 窗口长,是因为线上验证(探针、证明、前后读数)整个跑在窗口里;
+>    窗口里坏掉的就是下面那一段推导的那些 —— 没有在线上量过。
 >    窗口里坏掉的(**推导**:按旧代码读的列与本迁移收回的授权对出来,没有在线上量):直读被收回列的页面 —— 工资期列表与详情、工资申请、
 >    请假单列表与详情、医疗报销列表与详情、员工详情里内嵌的工资期、`/me` 的请假 —— 对所有人 42501(`check-masked-reads` 在构建时点名的正是这几处);
 >    分录页、试算表、结账预览、分录导出、明细账对不持 `data.view_pay` 的读者(cto · gm)静默少掉工资分录行,直到新代码改读 `_masked` 视图与 DEFINER 合计。
@@ -6730,6 +6738,13 @@ Batch 1(本刀)做完的见 `docs/handbacks/ROLE-1.md`。**五批是 Tim 的 Q13
   (已发货单补行 · 停机更正 / 作废 · 报销的另一位决定人 · 深放电函数 · 加工单上的机器 · 删死动作 · PO 关闭 / 重开的理由 · `PERIOD_LOCKED`
   共用映射 · 月结清单与加工错误码 · ForwarderPanels · KPI 打分行 · GHOST-GRANTS 脚本),逐条见 Step 0 交回 §6 那张表。
   Q26 是 Tim 自己的数据录入,不在任何一刀里。
+  ★ **U1-B 另加三件(Tim 2026-10-05,U1-A close-out;U1-A 量到、登记、没修):**
+  * **⬜ 工资分录的冲销申请带着那张分录的金额**,对不持 `data.view_pay` 的财务读者可读 —— **必须照 `data.view_pay` 那条规矩遮**(Tim)。
+    `docs/known-issues.md` 的 `U1A-PAYROLL-REVERSAL-REQUEST-SHOWS-AMOUNT`。
+  * **⬜ 一张医疗报销生成的那张费用单,在财务那一侧照旧读得到金额** —— **留给 U1-B 的 grilling 判:是泄漏,还是财务正当的需要**(Tim)。
+    `docs/known-issues.md` 的 `U1A-MEDICAL-EXPENSE-AMOUNT-ON-FINANCE-SIDE`。
+  * **⬜ 九支请假函数的"持码或本人"门,对没有员工档案的账号是开的**(NULL 陷阱;`medical_claim_balance` 那一支 U1-A 已修)——
+    `docs/known-issues.md` 的 `U1A-SELF-GATE-NULL-TRAP`(那一条早已写"归 U1-B";本行是它在队列里的位置,U1-A close-out 补上)。
   * **✅ ~~★ 第一条(Tim 的 AT-1c Q11,2026-10-03):工资过账的分录行只给持 `data.view_pay` 的人看一个人的金额~~**(★ ✅ U1-A) —— 其余的人看到 "Restricted"。
     今天持 `module.finance.view` 而不持 `data.view_pay` 的 cto 与 gm 在分录页上读得到每一个人的实发工资(`pay_payroll_lines` 一人一行)。
     AT-1c 的审计记录照分录页今天的样子说,不在审计记录里单独遮。`docs/known-issues.md` 的 `AT1C1-PAYROLL-JOURNAL-SHOWS-INDIVIDUAL-PAY`。
