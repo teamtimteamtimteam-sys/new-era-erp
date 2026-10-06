@@ -414,6 +414,17 @@ alike. Fixture 250 GATE pins it in both directions. MES-2 §7 decision 1 records
 **Recorded here in full** because MES-2 §7 decision 1 states the choice but not these consequences. Whether the built behaviour stands,
 or `READING_INSTRUMENT_NOT_CALIBRATED` should refuse with the switch empty (Step 0's text), is Tim's; nothing was changed.
 
+> **★ Tim's ruling (2026-10-06, the MES-3a Step 0 brief) — the conflict is closed.** "Nothing refuses when it is NULL" was Claude's error
+> in the MES-2 brief; the accepted Step 0 design stands and is **restored**: a linked reading from an instrument known to be out of
+> calibration at capture time (expired, failed or never calibrated, Q25) **always** refuses pricing (`reprice_inbound_batch` and its preview)
+> and `issue_cod` with `READING_INSTRUMENT_NOT_CALIBRATED`, regardless of `require_calibrated_since`. The switch governs only
+> `READING_INSTRUMENT_NOT_RECORDED` and `RECEIPT_READING_NOT_RECORDED` (receipts created on or after its date also refuse those two).
+> `require_calibrated_since` stays NULL on live. **Built in MES-3a as a fold-in** (`docs/surveys/MES-3a/STEP0-HANDBACK.md` §0, §7); until
+> MES-3a is deployed, live behaves as built in MES-2 (points 1–4 above). Live has 0 weighings, so the restored rule refuses nothing that
+> exists today. Item a (§10.4) is ruled too: the receipt's own page will show the ticket's current net and the difference (MES-3a fold-in 2).
+> **§6.1's "the holder of `action.price_receipts` (only admin@)" is false**: live, admin and finance hold it, and chooer@'s requests are
+> decided by tim@ (MES-3a Step 0 §9).
+
 ### §10.3 · Read-only verification of items the MES-2 report did not spell out
 
 | | item | verdict | evidence [measured: file:line read this session] |

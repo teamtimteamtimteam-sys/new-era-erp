@@ -985,6 +985,12 @@ permission. The same column is outside the table's column-level SELECT grant and
 
 ## 13. Weighing and calibration (MES-2, v1.4.38, 2026-10-06)
 
+> **★ Ruling recorded (Tim, 2026-10-06, MES-3a Step 0 brief): the calibration gate's switch rule is corrected.** As built in MES-2,
+> nothing refuses while `ingest_settings.require_calibrated_since` is NULL; that sentence came from an error in the MES-2 brief. Ruled: an
+> out-of-calibration reading (expired, failed, never calibrated) **always** refuses pricing and `issue_cod`
+> (`READING_INSTRUMENT_NOT_CALIBRATED`); the switch governs only `READING_INSTRUMENT_NOT_RECORDED` and `RECEIPT_READING_NOT_RECORDED`.
+> **The code change lands in MES-3a**; until then the as-built behaviour applies. Details: `docs/handbacks/MES-2.md` §10.2.
+
 Hand-back `docs/handbacks/MES-2.md`; fixture 250 pins every rule below.
 
 ### 13.1 Logged, excluded
